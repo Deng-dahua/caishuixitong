@@ -18,6 +18,7 @@ function renderTaxRiskReport(container) {
     + '<div style="display:flex;gap:8px">'
     + '<label class="btn-toolbar" style="background:var(--blue-500);color:#fff;border-color:var(--blue-500);cursor:pointer">'
     + '<input type="file" id="risk-docs-input" multiple style="display:none" onchange="uploadRiskDocs()">上传资料</label>'
+    + '<button class="btn-toolbar" onclick="batchDelRiskDocs()" style="background:#dc2626;color:#fff">删除选中资料</button>'
     + '<button class="btn-toolbar" onclick="analyzeAllRiskDocs()" style="background:#059669;color:#fff">一键分析资料</button>'
     + '<button class="btn-toolbar" onclick="exportDocsReport()" id="btn-export-report" style="background:#6366f1;color:#fff;display:none">导出分析报告</button>'
     + '</div></div>'
@@ -301,11 +302,12 @@ function refreshRiskDocsList() {
       el.innerHTML = '暂无上传资料';
       return;
     }
-    el.innerHTML = docs.map(function(d) {
+    el.innerHTML = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllRiskDocs(this)" style="margin-right:4px">全选</label></div>'
+      + docs.map(function(d) {
       var size = d.size > 1024 ? (d.size/1024).toFixed(1)+'KB' : d.size+'B';
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
-        + '<span>' + escapeHtml(d.original_name) + ' <span style="color:var(--gray-400)">' + size + '</span></span>'
-        + '<span style="color:var(--gray-400);font-size:11px">' + d.uploaded_at.substring(0,10) + '</span>'
+        + '<span><input type="checkbox" class="risk-doc-check" data-id="' + d.id + '" style="margin-right:6px">' + escapeHtml(d.original_name) + ' <span style="color:var(--gray-400)">' + size + '</span></span>'
+        + '<span style="color:var(--gray-400);font-size:11px">' + (d.uploaded_at || '').substring(0,10) + '</span>'
         + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delRiskDoc(' + d.id + ')">删除</span>'
         + '</div>';
     }).join('');
@@ -327,6 +329,26 @@ function uploadRiskDocs() {
     }
     input.value = '';
   }).catch(function(e) { toast('上传失败: ' + (e.message || e), 'error'); });
+}
+
+function toggleAllRiskDocs(cb) {
+  var boxes = document.querySelectorAll('.risk-doc-check');
+  boxes.forEach(function(b) { b.checked = cb.checked; });
+}
+
+async function batchDelRiskDocs() {
+  var boxes = document.querySelectorAll('.risk-doc-check:checked');
+  if (boxes.length === 0) { toast('请先选择要删除的资料', 'warning'); return; }
+  var ids = Array.from(boxes).map(function(b) { return b.getAttribute('data-id'); });
+  if (!confirm('确定删除选中的 ' + ids.length + ' 个文件？')) return;
+  var fail = 0;
+  for (var i = 0; i < ids.length; i++) {
+    try {
+      await api('/api/tax-risk-docs/' + ids[i], { method: 'DELETE' });
+    } catch(e) { fail++; }
+  }
+  toast('已删除 ' + (ids.length - fail) + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
+  refreshRiskDocsList();
 }
 
 function delRiskDoc(id) {
