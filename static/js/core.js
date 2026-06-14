@@ -56,7 +56,8 @@ const pages = {
   'housing-fund': '住房公积金',
   'bookkeeping-invoices': '记账发票',
   'tax-risk-report': '涉税风险分析报告',
-  'tax-risk-rules': '涉税风险分析规则'
+  'tax-risk-rules': '涉税风险分析规则',
+  'tax-doc-analysis': '涉税资料分析'
 };
 
 // ==================== 初始化（多公司版本） ====================
@@ -484,6 +485,7 @@ function navigateTo(page) {
     case '文化事业建设费': renderCulturalConstructionFee(container); break;
     case 'tax-risk-report': renderTaxRiskReport(container); break;
     case 'tax-risk-rules': renderTaxRiskRules(container); break;
+    case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
   }
   window.scrollTo(0, 0);
 }

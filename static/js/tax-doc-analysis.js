@@ -1,0 +1,332 @@
+// ==================== 涉税资料分析模块 ====================
+var taxDocReportData = null;
+var taxDocAnalyzing = false;
+
+function renderTaxDocAnalysis(container) {
+  window.currentModule = '涉税资料分析';
+
+  container.innerHTML = ''
+    + '<div class="risk-report-container">'
+    
+    // ── 标题区 ──
+    + '<div class="risk-report-header">'
+    + '<h2>涉税资料分析</h2>'
+    + '<p class="risk-report-subtitle">上传企业的银行流水、发票、凭证、工资表、社保明细、进销存台账、合同等经营资料，290条规则+17域多源交叉分析，还原稽查真实过程</p>'
+    + '</div>'
+    
+    // ── 资料上传区 ──
+    + '<div id="tda-upload-section" style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:10px;padding:20px 24px;margin-bottom:20px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<div>'
+    + '<span style="font-weight:600;font-size:16px">📁 上传经营资料</span>'
+    + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<label class="btn-toolbar" style="background:var(--blue-500);color:#fff;border-color:var(--blue-500);cursor:pointer;font-size:14px;padding:8px 20px">'
+    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">📤 上传资料</label>'
+    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="background:#059669;color:#fff;font-size:14px;padding:8px 20px">🔍 一键分析</button>'
+    + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn" style="background:#6366f1;color:#fff;font-size:14px;padding:8px 20px;display:none">📥 导出报告</button>'
+    + '</div></div>'
+    
+    // ── 文件列表 ──
+    + '<div id="tda-file-list" style="font-size:13px;color:var(--gray-500);min-height:40px">暂无上传资料</div>'
+    
+    // ── 资料类型提示 ──
+    + '<div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">'
+    + '<span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:4px">🏦 银行流水(PDF)</span>'
+    + '<span style="font-size:11px;background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:4px">🧾 销项/进项发票(Excel)</span>'
+    + '<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:4px">📋 记账凭证(Excel)</span>'
+    + '<span style="font-size:11px;background:#fae8ff;color:#7e22ce;padding:4px 10px;border-radius:4px">💰 工资表+社保(Excel)</span>'
+    + '<span style="font-size:11px;background:#ffe4e6;color:#9f1239;padding:4px 10px;border-radius:4px">📦 进销存台账(Excel)</span>'
+    + '<span style="font-size:11px;background:#f3e8ff;color:#6b21a8;padding:4px 10px;border-radius:4px">📄 合同文件(Excel/PDF)</span>'
+    + '</div>'
+    + '</div>'
+    
+    // ── 分析结果区 ──
+    + '<div id="tda-report-area"></div>'
+    + '</div>';
+
+  // 加载已有文件列表
+  refreshTaxDocList();
+}
+
+// ==================== 文件上传 ====================
+async function uploadTaxDocs() {
+  var input = document.getElementById('tda-file-input');
+  if (!input || !input.files || input.files.length === 0) return;
+
+  var formData = new FormData();
+  for (var i = 0; i < input.files.length; i++) {
+    formData.append('files', input.files[i]);
+  }
+
+  var btn = document.getElementById('tda-analyze-btn');
+  try {
+    btn.disabled = true; btn.textContent = '上传中...';
+    var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + getCurrentCompanyId(), {
+      method: 'POST', body: formData
+    });
+    var data = await resp.json();
+    if (data.ok) {
+      toast('成功上传 ' + input.files.length + ' 个文件', 'success');
+    } else {
+      toast(data.message || '上传失败', 'error');
+    }
+    input.value = '';
+    refreshTaxDocList();
+  } catch (e) {
+    toast('上传失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 一键分析';
+  }
+}
+
+// ==================== 文件列表 ====================
+async function refreshTaxDocList() {
+  try {
+    var resp = await fetch('/api/tax-risk-docs/list?company_id=' + getCurrentCompanyId());
+    var docs = await resp.json();
+    var listEl = document.getElementById('tda-file-list');
+    if (!listEl) return;
+
+    if (!docs || docs.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">📂 暂无上传资料，请点击上方按钮上传</div>';
+      return;
+    }
+
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">';
+    docs.forEach(function(doc) {
+      var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
+      var name = doc.original_name || doc.filename || '未知文件';
+      var icon = name.endsWith('.pdf') ? '📄' : (name.endsWith('.xls') || name.endsWith('.xlsx') ? '📊' : '📁');
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px">'
+        + '<div style="overflow:hidden">'
+        + '<span>' + icon + '</span> '
+        + '<span style="font-size:12px" title="' + esc(name) + '">' + esc(name.length > 30 ? name.substring(0,28) + '...' : name) + '</span>'
+        + '<span style="font-size:10px;color:var(--gray-400);margin-left:8px">' + size + '</span>'
+        + '</div>'
+        + '<button onclick="delTaxDoc(' + doc.id + ')" style="background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:16px" title="删除">×</button>'
+        + '</div>';
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+  } catch (e) {
+    console.error('刷新文件列表失败:', e);
+  }
+}
+
+async function delTaxDoc(id) {
+  if (!confirm('确认删除该文件？')) return;
+  try {
+    var resp = await fetch('/api/tax-risk-docs/' + id + '?company_id=' + getCurrentCompanyId(), { method: 'DELETE' });
+    var data = await resp.json();
+    if (data.ok) toast('已删除', 'success');
+    refreshTaxDocList();
+  } catch (e) {
+    toast('删除失败', 'error');
+  }
+}
+
+// ==================== 一键分析 ====================
+async function analyzeTaxDocs() {
+  if (taxDocAnalyzing) return;
+  taxDocAnalyzing = true;
+  var btn = document.getElementById('tda-analyze-btn');
+  btn.disabled = true; btn.textContent = '⏳ 分析中...（约2-3分钟）';
+
+  try {
+    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + getCurrentCompanyId(), { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      taxDocReportData = data.report;
+      renderTaxDocReport(data.report);
+      var exportBtn = document.getElementById('tda-export-btn');
+      if (exportBtn) exportBtn.style.display = 'inline-block';
+      toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+    } else {
+      toast(data.message || '分析失败', 'error');
+    }
+  } catch (e) {
+    toast('分析失败: ' + e.message, 'error');
+  } finally {
+    taxDocAnalyzing = false;
+    btn.disabled = false; btn.textContent = '🔍 一键分析';
+  }
+}
+
+// ==================== 报告渲染 ====================
+function renderTaxDocReport(r) {
+  var area = document.getElementById('tda-report-area');
+  if (!area || !r) return;
+
+  var lc = r.overall_level === '高风险' ? '#dc2626' : (r.overall_level === '中风险' ? '#f59e0b' : '#059669');
+  var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
+
+  var html = ''
+    // ── 综合风险总览卡片 ──
+    + '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:24px;margin-top:16px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">'
+    + '<div>'
+    + '<span style="font-weight:600;font-size:15px">综合风险等级：</span>'
+    + '<span style="display:inline-block;padding:6px 24px;background:' + lb + ';color:' + lc + ';border-radius:6px;font-weight:700;font-size:18px;margin-left:8px">' + r.overall_level + '</span>'
+    + '</div>'
+    + '<div style="font-size:13px;color:var(--gray-500)">分析 ' + r.files_count + ' 份文件 · 使用 ' + r.rules_used + ' 条规则 · 识别 ' + r.total_risks + ' 项风险</div>'
+    + '</div>'
+    
+    // 风险计数卡片
+    + '<div style="display:flex;gap:12px;margin-top:16px">'
+    + '<div style="flex:1;background:#fef2f2;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#dc2626">' + r.high_risk + '</div><div style="font-size:11px;color:#991b1b">高风险</div></div>'
+    + '<div style="flex:1;background:#fffbeb;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + r.mid_risk + '</div><div style="font-size:11px;color:#92400e">中风险</div></div>'
+    + '<div style="flex:1;background:#ecfdf5;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#059669">' + r.low_risk + '</div><div style="font-size:11px;color:#065f46">低风险</div></div>'
+    + '</div>'
+    
+    // 摘要
+    + '<div style="background:#f8fafc;border-radius:8px;padding:14px 18px;margin-top:16px;font-size:13px;color:var(--gray-600);line-height:1.7">' + esc(r.summary_text || '') + '</div>'
+    + '</div>'
+
+    // ── 数据统计 ──
+    + '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+    + '<b style="font-size:15px">📈 数据统计</b>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:12px">';
+  if (r.stats) {
+    Object.keys(r.stats).forEach(function(k) {
+      html += '<div style="background:#f8fafc;border-radius:6px;padding:10px;text-align:center"><div style="font-size:15px;font-weight:700;word-break:break-all">' + esc(String(r.stats[k])) + '</div><div style="font-size:10px;color:var(--gray-400);margin-top:2px">' + esc(k) + '</div></div>';
+    });
+  }
+  html += '</div></div>';
+
+  // ── 处理流水 ──
+  if (r.pipeline_log && r.pipeline_log.length > 0) {
+    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+      + '<b style="font-size:15px">📋 处理流水</b>'
+      + '<div style="background:#f0fdf4;border-radius:6px;padding:10px 16px;margin-top:8px;font-size:12px">';
+    r.pipeline_log.forEach(function(log) {
+      html += '<div style="padding:2px 0;color:var(--gray-600)">' + esc(log) + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // ── 文件处理详情 ──
+  if (r.file_results && r.file_results.length > 0) {
+    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+      + '<b style="font-size:15px">📁 文件处理详情</b>';
+    r.file_results.forEach(function(fr) {
+      var icon = fr.error ? '❌' : (fr.type === 'bank' ? '🏦' : (fr.type === 'sales_invoice' ? '🧾' : (fr.type === 'purchase_invoice' ? '📥' : (fr.type === 'voucher' ? '📋' : '📄'))));
+      html += '<div style="padding:4px 0;font-size:12px;border-bottom:1px solid #f1f5f9">'
+        + icon + ' <b>' + esc(fr.file) + '</b>'
+        + ' <span style="color:var(--gray-400)">→ ' + esc(fr.type || 'unknown') + '</span>'
+        + (fr.actions ? fr.actions.map(function(a) { return ' <span style="color:#059669">✅ ' + esc(a) + '</span>'; }).join('') : '')
+        + (fr.error ? ' <span style="color:#dc2626">' + esc(fr.error) + '</span>' : '')
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // ── 17域分析结果 ──
+  if (r.domain_summary && r.domain_summary.length > 0) {
+    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+      + '<b style="font-size:15px">🔍 17域分析结果</b>';
+    r.domain_summary.forEach(function(dr) {
+      if (!dr.findings || dr.findings.length === 0) return;
+      var dColor = dr.high > 0 ? '#dc2626' : (dr.mid > 0 ? '#f59e0b' : '#059669');
+      html += '<div style="margin-top:16px;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--gray-200)">'
+        + '<span style="font-weight:600;font-size:14px">' + esc(dr.name) + '</span>'
+        + '<span style="font-size:12px;color:' + dColor + '">' + dr.count + '项发现'
+        + (dr.high > 0 ? ' <span style="color:#dc2626">' + dr.high + '高</span>' : '')
+        + (dr.mid > 0 ? ' <span style="color:#f59e0b">' + dr.mid + '中</span>' : '')
+        + '</span></div>';
+      dr.findings.forEach(function(f) {
+        var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
+        var cfBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#ecfdf5');
+        html += '<div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.7">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+          + '<span style="display:inline-block;padding:2px 10px;background:' + cfColor + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + f.level + '</span>'
+          + '<b style="font-size:14px">' + esc(f.type || '') + '</b>'
+          + '<span style="font-size:11px;color:var(--gray-400)">分值：' + (f.score || '-') + '</span>'
+          + '</div>'
+          + '<div style="color:var(--gray-600);margin-bottom:8px">' + esc(f.detail || '') + '</div>';
+        if (f.description) {
+          html += '<div style="background:' + cfBg + ';border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+            + '<div style="font-weight:600;font-size:12px;color:' + cfColor + ';margin-bottom:4px">📋 风险解释</div>'
+            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.description) + '</div></div>';
+        }
+        if (f.how_found) {
+          html += '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+            + '<div style="font-weight:600;font-size:12px;color:#7c3aed;margin-bottom:4px">🔍 如何得出</div>'
+            + '<div style="font-size:11px;color:var(--gray-600);white-space:pre-line">' + esc(f.how_found) + '</div></div>';
+        }
+        if (f.tax_impact) {
+          html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+            + '<div style="font-weight:600;font-size:12px;color:#ea580c;margin-bottom:4px">⚠️ 税务影响</div>'
+            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.tax_impact) + '</div></div>';
+        }
+        if (f.policy_ref) {
+          html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+            + '<div style="font-weight:600;font-size:12px;color:#0369a1;margin-bottom:4px">📜 政策依据</div>'
+            + '<div style="font-size:11px;color:var(--gray-600)">' + esc(f.policy_ref) + '</div></div>';
+        }
+        if (f.suggestion) {
+          html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+            + '<div style="font-weight:600;font-size:12px;color:#059669;margin-bottom:4px">✅ 整改建议</div>'
+            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.suggestion) + '</div></div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // ── 详细风险列表（290引擎发现） ──
+  if (r.all_findings && r.all_findings.length > 0) {
+    var engineItems = r.all_findings.filter(function(f) { return f.category && !f.domain; });
+    if (engineItems.length > 0) {
+      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+        + '<b style="font-size:15px">🛡️ 290规则引擎发现（基于100%上传文件数据，显示前30条）</b>';
+      engineItems.slice(0, 30).forEach(function(f, i) {
+        var lv = f.risk_level || f.level || '?';
+        var color = lv === '高风险' ? '#dc2626' : (lv === '中风险' ? '#f59e0b' : '#6b7280');
+        var bg = lv === '高风险' ? '#fef2f2' : (lv === '中风险' ? '#fffbeb' : '#f9fafb');
+        html += '<div style="margin-top:10px;padding:12px 16px;background:' + bg + ';border-left:4px solid ' + color + ';border-radius:6px">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+          + '<span style="font-weight:700">#' + (i+1) + '</span>'
+          + '<span style="display:inline-block;padding:2px 10px;background:' + color + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + esc(lv) + '</span>'
+          + '<span style="font-weight:600;font-size:13px">' + esc(f.item || '') + '</span>'
+          + '</div>'
+          + '<div style="font-size:12px;color:var(--gray-600);margin-top:4px">' + esc(f.detail || '') + '</div>'
+          + (f.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:4px">💡 ' + esc(f.suggestion) + '</div>' : '')
+          + '</div>';
+      });
+      if (engineItems.length > 30) {
+        html += '<div style="text-align:center;color:var(--gray-400);padding:8px;font-size:12px">...共' + engineItems.length + '条引擎发现，此处展示前30条</div>';
+      }
+      html += '</div>';
+    }
+  }
+
+  area.innerHTML = html;
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ==================== 导出报告 ====================
+function exportTaxDocReport() {
+  var area = document.getElementById('tda-report-area');
+  if (!area) return;
+  var content = area.innerHTML;
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>涉税资料分析报告</title>'
+    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
+    + 'h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}'
+    + '@media print{body{padding:0;font-size:11pt}}</style></head><body>'
+    + '<h1 style="text-align:center">涉税资料分析报告</h1>'
+    + '<p style="text-align:center;color:#64748b">生成时间：' + new Date().toLocaleString('zh-CN') + '</p>'
+    + content + '</body></html>';
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '涉税资料分析报告_' + new Date().toISOString().substring(0,10) + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('报告已导出', 'success');
+}
