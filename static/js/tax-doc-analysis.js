@@ -25,6 +25,7 @@ function renderTaxDocAnalysis(container) {
     + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
+    + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
     + '</div></div>'
     
     // ── 文件列表 ──
@@ -322,4 +323,12 @@ function exportTaxDocReport() {
   a.click();
   URL.revokeObjectURL(url);
   toast('报告已导出', 'success');
+}
+
+function deleteTaxDocReport() {
+  if (!taxDocReportData) { toast('暂无报告可删除', 'warning'); return; }
+  if (!confirm('确定要删除当前报告吗？')) return;
+  taxDocReportData = null;
+  document.getElementById('tda-report-area').innerHTML = '';
+  toast('报告已删除', 'success');
 }
