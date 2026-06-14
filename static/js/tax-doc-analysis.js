@@ -52,7 +52,7 @@ async function uploadTaxDocs() {
   var btn = document.getElementById('tda-analyze-btn');
   try {
     btn.disabled = true; btn.textContent = '上传中...';
-    var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + getCurrentCompanyId(), {
+    var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), {
       method: 'POST', body: formData
     });
     var data = await resp.json();
@@ -73,7 +73,7 @@ async function uploadTaxDocs() {
 // ==================== 文件列表 ====================
 async function refreshTaxDocList() {
   try {
-    var resp = await fetch('/api/tax-risk-docs/list?company_id=' + getCurrentCompanyId());
+    var resp = await fetch('/api/tax-risk-docs/list?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1));
     var docs = await resp.json();
     var listEl = document.getElementById('tda-file-list');
     if (!listEl) return;
@@ -107,7 +107,7 @@ async function refreshTaxDocList() {
 async function delTaxDoc(id) {
   if (!confirm('确认删除该文件？')) return;
   try {
-    var resp = await fetch('/api/tax-risk-docs/' + id + '?company_id=' + getCurrentCompanyId(), { method: 'DELETE' });
+    var resp = await fetch('/api/tax-risk-docs/' + id + '?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'DELETE' });
     var data = await resp.json();
     if (data.ok) toast('已删除', 'success');
     refreshTaxDocList();
@@ -124,7 +124,7 @@ async function analyzeTaxDocs() {
   btn.disabled = true; btn.textContent = '⏳ 分析中...（约2-3分钟）';
 
   try {
-    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + getCurrentCompanyId(), { method: 'POST' });
+    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'POST' });
     var data = await resp.json();
     if (data.ok) {
       taxDocReportData = data.report;
