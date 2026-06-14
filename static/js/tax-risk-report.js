@@ -110,12 +110,7 @@ function renderTaxRiskReport(container) {
     }
   }, 100);
 
-  // 自动加载
-  if (!taxRiskReportData) {
-    loadTaxRiskReport();
-  } else {
-    renderTaxRiskReportData(taxRiskReportData);
-  }
+  // 不自动加载，等待用户点击"生成/刷新报告"
 }
 
 async function loadTaxRiskReport() {
