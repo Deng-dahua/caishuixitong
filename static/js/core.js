@@ -433,6 +433,11 @@ function _ensureContainer(page) {
 
 function navigateTo(page) {
   currentPage = page;
+  // 离开资料分析页时标记为非活跃
+  if (typeof taxDocPageActive !== 'undefined') taxDocPageActive = false;
+  if (typeof taxDocAnalyzing !== 'undefined' && taxDocAnalyzing) {
+    // 有正在进行中的分析，标记为非活跃但不禁用（分析继续在后台运行）
+  }
   console.log('[navigateTo] 切换到：' + page);
   localStorage.setItem('lastPage', page);
   document.querySelectorAll('.nav-item').forEach(el => {

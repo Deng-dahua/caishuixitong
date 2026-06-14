@@ -1,9 +1,11 @@
 // ==================== 涉税资料分析模块 ====================
 var taxDocReportData = null;
 var taxDocAnalyzing = false;
+var taxDocPageActive = false;
 
 function renderTaxDocAnalysis(container) {
   window.currentModule = '资料风险分析报告';
+  taxDocPageActive = true;  // 标记页面激活
 
   container.innerHTML = ''
     + '<div class="risk-report-container">'
@@ -145,6 +147,7 @@ async function analyzeTaxDocs() {
   try {
     var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'POST' });
     var data = await resp.json();
+    if (!taxDocPageActive) return;  // 页面已离开，不渲染
     if (data.ok) {
       taxDocReportData = data.report;
       renderTaxDocReport(data.report);
