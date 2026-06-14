@@ -3,14 +3,14 @@ var taxDocReportData = null;
 var taxDocAnalyzing = false;
 
 function renderTaxDocAnalysis(container) {
-  window.currentModule = '涉税资料分析';
+  window.currentModule = '资料风险分析报告';
 
   container.innerHTML = ''
     + '<div class="risk-report-container">'
     
     // ── 标题区 ──
     + '<div class="risk-report-header">'
-    + '<h2>涉税资料分析</h2>'
+    + '<h2>资料风险分析报告</h2>'
     + '<p class="risk-report-subtitle">上传企业的银行流水、发票、凭证、工资表、社保明细、进销存台账、合同等经营资料，290条规则+17域多源交叉分析，还原稽查真实过程</p>'
     + '</div>'
     

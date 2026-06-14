@@ -3,12 +3,12 @@ var taxRiskReportData = null;
 var taxRiskLoading = false;
 
 function renderTaxRiskReport(container) {
-  window.currentModule = '涉税风险分析报告';
+  window.currentModule = '账务风险分析报告';
 
   container.innerHTML = ''
     + '<div class="risk-report-container">'
     + '<div class="risk-report-header">'
-    + '<h2>涉税风险分析报告</h2>'
+    + '<h2>账务风险分析报告</h2>'
     + '<p class="risk-report-subtitle">基于账务数据、发票合规、税负水平、成本结构、政策执行等维度综合分析</p>'
     + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
     + '</div>'

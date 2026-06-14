@@ -55,9 +55,9 @@ const pages = {
   'social-security': '社会保险费',
   'housing-fund': '住房公积金',
   'bookkeeping-invoices': '记账发票',
-  'tax-risk-report': '涉税风险分析报告',
+  'tax-risk-report': '账务风险分析报告',
   'tax-risk-rules': '涉税风险分析规则',
-  'tax-doc-analysis': '涉税资料分析'
+  'tax-doc-analysis': '资料风险分析报告'
 };
 
 // ==================== 初始化（多公司版本） ====================
