@@ -11,20 +11,21 @@ function renderTaxDocAnalysis(container) {
     // ── 标题区 ──
     + '<div class="risk-report-header">'
     + '<h2>资料风险分析报告</h2>'
+    + '<div id="tda-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
     + '</div>'
-    
+
     // ── 资料上传区 ──
     + '<div id="tda-upload-section" style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:10px;padding:20px 24px;margin-bottom:20px">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
     + '<div>'
-    + '<span style="font-weight:600;font-size:16px">📁 上传经营资料</span>'
+    + '<span style="font-weight:600;font-size:16px">上传经营资料</span>'
     + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
     + '</div>'
     + '<div style="display:flex;gap:10px">'
-    + '<label class="btn-toolbar" style="background:var(--blue-500);color:#fff;border-color:var(--blue-500);cursor:pointer;font-size:14px;padding:8px 20px">'
+    + '<label class="btn-toolbar" style="cursor:pointer;font-size:14px;padding:8px 20px">'
     + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
-    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="background:#059669;color:#fff;font-size:14px;padding:8px 20px">一键分析</button>'
-    + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn" style="background:#6366f1;color:#fff;font-size:14px;padding:8px 20px;display:none">📥 导出报告</button>'
+    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="font-size:14px;padding:8px 20px">一键分析</button>'
+    + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn" style="font-size:14px;padding:8px 20px">导出报告</button>'
     + '</div></div>'
     
     // ── 文件列表 ──
@@ -35,8 +36,96 @@ function renderTaxDocAnalysis(container) {
     + '<div id="tda-report-area"></div>'
     + '</div>';
 
+  // ── 构建标准期间栏 + 按钮：查询 → 清除 → 生成/刷新报告 → 下载报告 → 删除报告 ──
+  setTimeout(function() {
+    _buildStandardPeriodBar('tda-', {
+      onQuery: function() { loadTaxDocReportFromServer(); },
+      onClear: function() {
+        taxDocReportData = null;
+        document.getElementById('tda-report-area').innerHTML = '';
+      }
+    });
+    var bar = document.getElementById('tda-period-bar');
+    if (!bar) return;
+    var clearBtn = bar.querySelector('.std-clear-btn');
+    if (!clearBtn) return;
+
+    // 生成/刷新报告
+    var refreshBtn = document.createElement('button');
+    refreshBtn.className = 'btn-toolbar';
+    refreshBtn.textContent = '生成/刷新报告';
+    refreshBtn.addEventListener('click', function() { loadTaxDocReportFromServer(); });
+    clearBtn.parentNode.insertBefore(refreshBtn, clearBtn.nextSibling);
+
+    // 下载报告
+    var downloadBtn = document.createElement('button');
+    downloadBtn.className = 'btn-toolbar';
+    downloadBtn.textContent = '下载报告';
+    downloadBtn.addEventListener('click', function() {
+      if (!taxDocReportData) { toast('请先生成报告', 'warning'); return; }
+      exportTaxDocReport();
+    });
+    clearBtn.parentNode.insertBefore(downloadBtn, refreshBtn.nextSibling);
+
+    // 删除报告
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-toolbar';
+    deleteBtn.textContent = '删除报告';
+    deleteBtn.style.color = '#dc2626';
+    deleteBtn.style.borderColor = '#fca5a5';
+    deleteBtn.style.background = '#fef2f2';
+    deleteBtn.addEventListener('click', function() {
+      if (!confirm('确定要删除当前报告吗？')) return;
+      taxDocReportData = null;
+      document.getElementById('tda-report-area').innerHTML = '';
+      toast('报告已删除', 'success');
+    });
+    clearBtn.parentNode.insertBefore(deleteBtn, downloadBtn.nextSibling);
+
+    // 最近更新时间
+    var spacer = document.createElement('span');
+    spacer.style.marginLeft = '8px';
+    spacer.innerHTML = '<span id="tda-last-update" style="color:var(--gray-400);font-size:12px"></span>';
+    bar.appendChild(spacer);
+  }, 100);
+
   // 加载已有文件列表
   refreshTaxDocList();
+}
+
+// ==================== 从服务端加载报告 ====================
+async function loadTaxDocReportFromServer() {
+  if (taxDocAnalyzing) return;
+  taxDocAnalyzing = true;
+  var btn = document.getElementById('tda-analyze-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+
+  try {
+    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + getCurrentCompanyId(), { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      taxDocReportData = data.report;
+      renderTaxDocReport(data.report);
+      var now = new Date();
+      var ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-'
+        + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':'
+        + String(now.getMinutes()).padStart(2,'0');
+      var el = document.getElementById('tda-last-update');
+      if (el) el.textContent = '最近更新: ' + ts;
+      toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+      var now2 = new Date();
+      var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
+      var el2 = document.getElementById('tda-last-update');
+      if (el2) el2.textContent = '最近更新: ' + ts2;
+    } else {
+      toast(data.message || '分析失败', 'error');
+    }
+  } catch (e) {
+    toast('分析失败: ' + e.message, 'error');
+  } finally {
+    taxDocAnalyzing = false;
+    if (btn) { btn.disabled = false; btn.textContent = '一键分析'; }
+  }
 }
 
 // ==================== 文件上传 ====================
@@ -132,6 +221,10 @@ async function analyzeTaxDocs() {
       var exportBtn = document.getElementById('tda-export-btn');
       if (exportBtn) exportBtn.style.display = 'inline-block';
       toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+      var now2 = new Date();
+      var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
+      var el2 = document.getElementById('tda-last-update');
+      if (el2) el2.textContent = '最近更新: ' + ts2;
     } else {
       toast(data.message || '分析失败', 'error');
     }
