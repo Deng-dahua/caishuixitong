@@ -22,8 +22,8 @@ function renderTaxDocAnalysis(container) {
     + '</div>'
     + '<div style="display:flex;gap:10px">'
     + '<label class="btn-toolbar" style="background:var(--blue-500);color:#fff;border-color:var(--blue-500);cursor:pointer;font-size:14px;padding:8px 20px">'
-    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">📤 上传资料</label>'
-    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="background:#059669;color:#fff;font-size:14px;padding:8px 20px">🔍 一键分析</button>'
+    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
+    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="background:#059669;color:#fff;font-size:14px;padding:8px 20px">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn" style="background:#6366f1;color:#fff;font-size:14px;padding:8px 20px;display:none">📥 导出报告</button>'
     + '</div></div>'
     
@@ -66,7 +66,7 @@ async function uploadTaxDocs() {
   } catch (e) {
     toast('上传失败: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = '🔍 一键分析';
+    btn.disabled = false; btn.textContent = '一键分析';
   }
 }
 
@@ -139,7 +139,7 @@ async function analyzeTaxDocs() {
     toast('分析失败: ' + e.message, 'error');
   } finally {
     taxDocAnalyzing = false;
-    btn.disabled = false; btn.textContent = '🔍 一键分析';
+    btn.disabled = false; btn.textContent = '一键分析';
   }
 }
 
