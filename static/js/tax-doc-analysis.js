@@ -80,22 +80,19 @@ async function refreshTaxDocList() {
     if (!listEl) return;
 
     if (!docs || docs.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">📂 暂无上传资料，请点击上方按钮上传</div>';
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">暂无上传资料，请点击上方按钮上传</div>';
       return;
     }
 
-    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">';
+    var html = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label></div>';
     docs.forEach(function(doc) {
       var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
       var name = doc.original_name || doc.filename || '未知文件';
-      var icon = name.endsWith('.pdf') ? '📄' : (name.endsWith('.xls') || name.endsWith('.xlsx') ? '📊' : '📁');
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px">'
-        + '<div style="overflow:hidden">'
-        + '<span>' + icon + '</span> '
-        + '<span style="font-size:12px" title="' + esc(name) + '">' + esc(name.length > 30 ? name.substring(0,28) + '...' : name) + '</span>'
-        + '<span style="font-size:10px;color:var(--gray-400);margin-left:8px">' + size + '</span>'
-        + '</div>'
-        + '<button onclick="delTaxDoc(' + doc.id + ')" style="background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:16px" title="删除">×</button>'
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
+        + '<span><input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
+        + esc(name) + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
+        + '<span style="color:var(--gray-400);font-size:11px">' + (doc.uploaded_at || '').substring(0,10) + '</span>'
+        + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delTaxDoc(' + doc.id + ')">删除</span>'
         + '</div>';
     });
     html += '</div>';
@@ -115,6 +112,11 @@ async function delTaxDoc(id) {
   } catch (e) {
     toast('删除失败', 'error');
   }
+}
+
+function toggleAllTdaDocs(cb) {
+  var boxes = document.querySelectorAll('.tda-doc-check');
+  boxes.forEach(function(b) { b.checked = cb.checked; });
 }
 
 // ==================== 一键分析 ====================
