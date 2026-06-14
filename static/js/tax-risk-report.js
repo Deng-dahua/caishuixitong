@@ -9,7 +9,6 @@ function renderTaxRiskReport(container) {
     + '<div class="risk-report-container">'
     + '<div class="risk-report-header">'
     + '<h2>账务风险分析报告</h2>'
-    + '<p class="risk-report-subtitle">基于账务数据、发票合规、税负水平、成本结构、政策执行等维度综合分析</p>'
     + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
     + '</div>'
     // 涉税资料上传区
