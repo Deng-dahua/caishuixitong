@@ -10052,21 +10052,51 @@ def _domain_supplier_deep(pur_invs):
 
 def _domain_voucher_anomaly(vouchers):
     """域5: 凭证科目异常"""
-    findings, by_vn = [], {}
+    findings = []
+    if not vouchers: return findings
+    
+    # 检测凭证号字段是否有效
+    empty_vn = sum(1 for v in vouchers if not str(v.get("voucher_no", "")).strip())
+    if empty_vn / len(vouchers) > 0.9:
+        # 超过90%的行凭证号为空，无法做逐张平衡校验
+        findings.append({"type": "凭证号字段缺失", "level": "低风险", "score": 2,
+            "detail": f"共{len(vouchers)}条分录，{empty_vn}条凭证号为空。无法做逐张凭证借贷平衡校验。",
+            "description": f"上传的记账凭证文件中，{len(vouchers)}条分录中{empty_vn}条的凭证编号为空（占比{empty_vn/len(vouchers)*100:.0f}%）。缺少凭证编号就无法将分录归集到具体凭证，因此无法逐张校验借贷是否平衡。这通常是Excel导出时未包含凭证号列导致的。",
+            "how_found": "检测凭证文件中'凭证编号/voucher_no'字段，空值比例超过90%即判定字段缺失。",
+            "tax_impact": "无法验证逐张凭证的借贷平衡，但不影响整体账务分析。建议在导出凭证Excel时加上凭证编号列。",
+            "suggestion": "重新导出记账凭证Excel文件，确保包含完整的凭证编号列（如'记-001'格式），以便系统能逐张校验借贷平衡。",
+            "category": "域5 凭证异常"})
+        return findings
+    
+    # 凭证号有效，按编号分组校验
+    by_vn = {}
+    skipped_empty = 0
     for v in vouchers:
-        vn = v.get("voucher_no", ""); by_vn.setdefault(vn, {"d": 0, "c": 0})
-        by_vn[vn]["d"] += v.get("debit", 0); by_vn[vn]["c"] += v.get("credit", 0)
+        vn = str(v.get("voucher_no", "")).strip()
+        if not vn:
+            skipped_empty += 1
+            continue
+        if vn not in by_vn:
+            by_vn[vn] = {"d": 0, "c": 0}
+        by_vn[vn]["d"] += float(v.get("debit", 0) or 0)
+        by_vn[vn]["c"] += float(v.get("credit", 0) or 0)
+    
     unbalanced = [(vn, b) for vn, b in by_vn.items() if abs(b["d"] - b["c"]) > 1]
     if unbalanced:
-        gap_total = sum(abs(b["d"]-b["c"]) for _,b in unbalanced)
+        gap_total = sum(abs(b["d"]-b["c"]) for _, b in unbalanced)
         findings.append({"type": "凭证借贷不平", "level": "高风险", "score": 9,
-        "how_found": "按凭证编号分组汇总每张凭证的借方金额和贷方金额，计算借贷差额。差额>1元视为不平。",
             "detail": f"{len(unbalanced)}张凭证借贷不平衡（共{len(by_vn)}张），差额合计{gap_total:,.2f}元。",
-            "description": f"在{len(by_vn)}张记账凭证中，发现{len(unbalanced)}张凭证的借方金额与贷方金额不相等，差额合计{gap_total:,.2f}元。根据会计基本原理'有借必有贷，借贷必相等'，每一张记账凭证的借方合计必须等于贷方合计。借贷不平意味着记账存在错误，可能导致财务报表数据失真，影响企业所得税、增值税计算的准确性。",
-            "tax_impact": "凭证借贷不平直接导致科目余额和财务报表不准确，企业据此计算缴纳的税款可能存在多缴或少缴。税务机关在稽查中发现凭证不平，将质疑企业会计核算的规范性，扩大稽查范围。",
-            "policy_ref": "《会计法》关于会计核算的要求；《企业会计准则——基本准则》关于借贷记账法的规定。",
-            "suggestion": "1）逐笔核查借贷不平的凭证，找出错误原因（分录遗漏、金额录入错误等）；2）及时做更正分录；3）加强凭证审核制度，确保每张凭证登账前借贷平衡；4）建议使用财务软件自动校验借贷平衡。",
+            "description": f"在{len(by_vn)}张有凭证编号的凭证中，发现{len(unbalanced)}张借方与贷方不相等，差额合计{gap_total:,.2f}元。根据会计基本原理'有借必有贷，借贷必相等'，借贷不平意味着记账存在错误，可能导致财务报表数据失真。" + (f"另有{skipped_empty}条分录凭证号为空，已跳过校验。" if skipped_empty > 0 else ""),
+            "how_found": f"按凭证编号分组汇总每张凭证的借贷金额，差额>1元视为不平。有效凭证{len(by_vn)}张" + (f"，跳过{skipped_empty}条空凭证号" if skipped_empty else "") + "。",
+            "tax_impact": "凭证借贷不平直接导致科目余额和财务报表不准确，企业据此计算缴纳的税款可能存在多缴或少缴。",
+            "policy_ref": "《会计法》；《企业会计准则——基本准则》关于借贷记账法的规定。",
+            "suggestion": "1）逐笔核查借贷不平的凭证；2）及时做更正分录；3）加强凭证审核制度。",
             "category": "域5 凭证异常"})
+    elif skipped_empty > 0:
+        findings.append({"type": "凭证编号有效且借贷平衡", "level": "低风险", "score": 2,
+            "detail": f"{len(by_vn)}张凭证借贷全部平衡。{skipped_empty}条分录凭证号为空已跳过。",
+            "category": "域5 凭证异常"})
+    
     return findings
 
 def _domain_inventory_turnover(inventory, sal_invs):
