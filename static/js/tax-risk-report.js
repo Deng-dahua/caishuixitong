@@ -104,8 +104,6 @@ function renderTaxRiskReport(container) {
         taxRiskReportData = null;
         document.getElementById('risk-report-body').innerHTML = '';
         document.getElementById('risk-summary-cards').innerHTML = '';
-        document.getElementById('risk-delete-btn-wrap').style.display = 'none';
-        if (downloadBtn) downloadBtn.style.display = 'none';
         toast('报告已删除', 'success');
       });
     }
