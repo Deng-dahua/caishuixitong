@@ -30,16 +30,6 @@ function renderTaxDocAnalysis(container) {
     
     // ── 文件列表 ──
     + '<div id="tda-file-list" style="font-size:13px;color:var(--gray-500);min-height:40px">暂无上传资料</div>'
-    
-    // ── 资料类型提示 ──
-    + '<div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">'
-    + '<span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:4px">🏦 银行流水(PDF)</span>'
-    + '<span style="font-size:11px;background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:4px">🧾 销项/进项发票(Excel)</span>'
-    + '<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:4px">📋 记账凭证(Excel)</span>'
-    + '<span style="font-size:11px;background:#fae8ff;color:#7e22ce;padding:4px 10px;border-radius:4px">💰 工资表+社保(Excel)</span>'
-    + '<span style="font-size:11px;background:#ffe4e6;color:#9f1239;padding:4px 10px;border-radius:4px">📦 进销存台账(Excel)</span>'
-    + '<span style="font-size:11px;background:#f3e8ff;color:#6b21a8;padding:4px 10px;border-radius:4px">📄 合同文件(Excel/PDF)</span>'
-    + '</div>'
     + '</div>'
     
     // ── 分析结果区 ──
