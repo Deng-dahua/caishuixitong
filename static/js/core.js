@@ -484,7 +484,10 @@ function navigateTo(page) {
     case 'housing-fund': renderHousingFund(container); break;
     case '文化事业建设费': renderCulturalConstructionFee(container); break;
     case 'tax-risk-report': renderTaxRiskReport(container); break;
-    case 'tax-risk-rules': renderTaxRiskRules(container); break;
+    case 'tax-risk-rules':
+      var pwd = prompt('请输入访问密码：');
+      if (pwd !== '123456') { toast('密码错误，无法访问', 'error'); return; }
+      renderTaxRiskRules(container); break;
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
   }
   window.scrollTo(0, 0);
