@@ -23,6 +23,7 @@ function renderTaxDocAnalysis(container) {
     + '<div style="display:flex;gap:10px">'
     + '<label class="btn-toolbar" for="tda-file-input" style="cursor:pointer">'
     + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
+    + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
@@ -117,6 +118,21 @@ async function delTaxDoc(id) {
 function toggleAllTdaDocs(cb) {
   var boxes = document.querySelectorAll('.tda-doc-check');
   boxes.forEach(function(b) { b.checked = cb.checked; });
+}
+
+async function batchDelTdaDocs() {
+  var boxes = document.querySelectorAll('.tda-doc-check:checked');
+  if (boxes.length === 0) { toast('请先选择要删除的资料', 'warning'); return; }
+  var ids = Array.from(boxes).map(function(b) { return b.getAttribute('data-id'); });
+  if (!confirm('确定删除选中的 ' + ids.length + ' 个文件？')) return;
+  var fail = 0;
+  for (var i = 0; i < ids.length; i++) {
+    try {
+      await fetch('/api/tax-risk-docs/' + ids[i] + '?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'DELETE' });
+    } catch(e) { fail++; }
+  }
+  toast('已删除 ' + (ids.length - fail) + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
+  refreshTaxDocList();
 }
 
 // ==================== 一键分析 ====================
