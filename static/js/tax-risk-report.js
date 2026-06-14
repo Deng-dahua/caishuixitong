@@ -11,22 +11,8 @@ function renderTaxRiskReport(container) {
     + '<h2>账务风险分析报告</h2>'
     + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
     + '</div>'
-    // 涉税资料上传区
-    + '<div id="risk-docs-section" style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:12px 16px;margin-bottom:16px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-    + '<span style="font-weight:600;font-size:14px">上传涉税分析资料</span>'
-    + '<div style="display:flex;gap:8px">'
-    + '<label class="btn-toolbar" style="cursor:pointer">'
-    + '<input type="file" id="risk-docs-input" multiple style="display:none" onchange="uploadRiskDocs()">上传资料</label>'
-    + '<button class="btn-toolbar" onclick="batchDelRiskDocs()">删除选中资料</button>'
-    + '<button class="btn-toolbar" onclick="analyzeAllRiskDocs()">一键分析资料</button>'
-    + '<button class="btn-toolbar" onclick="exportDocsReport()" id="btn-export-report" style="background:#6366f1;color:#fff;display:none">导出分析报告</button>'
-    + '</div></div>'
-    + '<div id="risk-docs-list" style="font-size:12px;color:var(--gray-500)">暂无上传资料</div>'
-    + '</div>'
     + '<div id="risk-summary-cards" class="risk-summary-cards"></div>'
     + '<div id="risk-report-body" class="risk-report-body"></div>'
-    + '<div id="risk-docs-report"></div>'
     + '</div>';
 
   // 构建标准期间栏 + 按钮：清除 → 生成/刷新 → 下载 → 删除
