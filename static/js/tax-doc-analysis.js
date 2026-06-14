@@ -22,7 +22,7 @@ function renderTaxDocAnalysis(container) {
     + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
     + '</div>'
     + '<div style="display:flex;gap:10px">'
-    + '<label class="btn-toolbar" style="cursor:pointer;font-size:14px;padding:8px 20px">'
+    + '<label class="btn-toolbar" for="tda-file-input" style="cursor:pointer;font-size:14px;padding:8px 20px">'
     + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn" style="font-size:14px;padding:8px 20px">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn" style="font-size:14px;padding:8px 20px">导出报告</button>'
