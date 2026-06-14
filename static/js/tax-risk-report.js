@@ -54,7 +54,7 @@ function renderTaxRiskReport(container) {
     // 下载按钮
     var downloadWrap = document.createElement('span');
     downloadWrap.innerHTML = '<div class="download-dropdown" style="display:inline-block;position:relative">'
-      + '<button class="btn-toolbar" id="risk-download-btn" style="display:none">下载报告</button>'
+      + '<button class="btn-toolbar" id="risk-download-btn">下载报告</button>'
       + '<div class="download-menu" style="display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid var(--gray-200);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:100;min-width:120px">'
       + '<div data-fmt="pdf" style="padding:8px 16px;cursor:pointer" onmouseover="this.style.background=\'var(--gray-50)\'" onmouseout="this.style.background=\'\'">PDF 下载</div>'
       + '<div data-fmt="docx" style="padding:8px 16px;cursor:pointer" onmouseover="this.style.background=\'var(--gray-50)\'" onmouseout="this.style.background=\'\'">Word 下载</div>'
@@ -65,7 +65,7 @@ function renderTaxRiskReport(container) {
     // 删除按钮
     var deleteWrap = document.createElement('span');
     deleteWrap.id = 'risk-delete-btn-wrap';
-    deleteWrap.style.display = 'none';
+    deleteWrap.style.display = 'inline-block';
     deleteWrap.innerHTML = '<button class="btn-toolbar" id="risk-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>';
     clearBtn.parentNode.insertBefore(deleteWrap, downloadWrap.nextSibling);
 
