@@ -237,20 +237,6 @@ class Period(Base):
     period = Column(String(7), nullable=False, comment="YYYY-MM")
     status = Column(String(20), default="开放", comment="开放/已结账")
     closed_at = Column(DateTime, nullable=True)
-
-
-class AccessLog(Base):
-    __tablename__ = "access_logs"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    company_id = Column(Integer, nullable=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    method = Column(String(10), nullable=False)
-    path = Column(String(200), nullable=False)
-    status_code = Column(Integer, nullable=False)
-    client_ip = Column(String(50), nullable=True)
-    response_time_ms = Column(Integer, nullable=True)
-    user_agent = Column(String(500), nullable=True)
-    action_type = Column(String(50), nullable=True, comment="upload/analyze/export/audit/fix/view")
     company = relationship("Company", back_populates="periods")
 
 

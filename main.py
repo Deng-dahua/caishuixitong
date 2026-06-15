@@ -1,7 +1,7 @@
 """
 中小制造业账务处理系统 - 后端 API
 """
-from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -36,7 +36,6 @@ from database import (
     InputVATDeduction, ColumnTemplate, JournalEntry,
     SalaryRecord, VATDeclaration,
     CompanyShareholder, CompanyDirector, CompanySupervisor, CompanyFinanceContact,
-    AccessLog,
     auto_generate_single_invoice,
     auto_generate_input_vat_for_period, auto_generate_input_vat_journals,
     _normalize_customer_name, _match_customer, _generate_bank_journals, _classify_bank_tx, _build_entity_index, _ensure_account,
@@ -65,17 +64,17 @@ app = FastAPI(title="账务处理系统", description="中小制造业账务管�
 # ==================== 访问日志中间件 ====================
 import time as _time_module
 
+LOG_FILE = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+
 @app.middleware("http")
 async def access_log_middleware(request: Request, call_next):
     start = _time_module.time()
     response = await call_next(request)
     elapsed_ms = int((_time_module.time() - start) * 1000)
     
-    # 跳过静态资源
     if not request.url.path.startswith("/static") and request.url.path != "/favicon.ico":
         try:
-            from database import SessionLocal as _Sl, AccessLog as _AL
-            db = _Sl()
+            import json as _json
             path = request.url.path
             cid = None
             if "company_id=" in str(request.url.query):
@@ -89,10 +88,11 @@ async def access_log_middleware(request: Request, call_next):
             elif "audit" in path: action = "audit"
             elif "fix" in path: action = "fix"
             elif "/api/tax-risk-docs/review" in path: action = "review"
-            db.add(_AL(company_id=cid, method=request.method, path=path[:200], status_code=response.status_code,
-                       client_ip=request.client.host if request.client else None, response_time_ms=elapsed_ms,
-                       user_agent=str(request.headers.get("user-agent",""))[:500], action_type=action))
-            db.commit(); db.close()
+            entry = {"t": _time_module.time(), "cid": cid, "m": request.method, "p": path[:200],
+                     "s": response.status_code, "ip": request.client.host if request.client else None,
+                     "ms": elapsed_ms, "a": action}
+            with open(LOG_FILE, "a", encoding="utf-8") as lf:
+                lf.write(_json.dumps(entry, ensure_ascii=False) + "\n")
         except: pass
     return response
 
@@ -100,25 +100,37 @@ async def access_log_middleware(request: Request, call_next):
 from fastapi.responses import JSONResponse, HTMLResponse
 
 @app.post("/api/system-logs/clear")
-def clear_system_logs(db: Session = Depends(get_db)):
+def clear_system_logs():
     try:
-        db.query(AccessLog).delete()
-        db.commit()
+        lf_path = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+        if os.path.exists(lf_path): os.remove(lf_path)
         return {"ok": True, "message": "已清空"}
     except: return {"ok": False}
 
 @app.get("/api/system-logs")
-def get_system_logs(limit: int = 200, company_id: int = None, db: Session = Depends(get_db)):
+def get_system_logs(limit: int = 200, company_id: int = None):
     try:
-        q = db.query(AccessLog).order_by(AccessLog.id.desc())
-        if company_id: q = q.filter(AccessLog.company_id == company_id)
-        logs = q.limit(limit).all()
-        return JSONResponse([{
-            "id": l.id, "company_id": l.company_id, "timestamp": l.timestamp.isoformat() if l.timestamp else None,
-            "method": l.method, "path": l.path, "status_code": l.status_code,
-            "client_ip": l.client_ip, "response_time_ms": l.response_time_ms,
-            "action_type": l.action_type
-        } for l in logs])
+        import json as _json
+        logs = []
+        lf_path = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+        if os.path.exists(lf_path):
+            with open(lf_path, "r", encoding="utf-8") as lf:
+                for line in lf:
+                    line = line.strip()
+                    if line:
+                        try: logs.append(_json.loads(line))
+                        except: pass
+        logs.reverse()
+        if company_id: logs = [l for l in logs if l.get("cid") == company_id]
+        logs = logs[:limit]
+        for i, l in enumerate(logs):
+            from datetime import datetime as _dt
+            ts = _dt.fromtimestamp(l["t"]).isoformat() if "t" in l else None
+            logs[i] = {"id": i+1, "company_id": l.get("cid"), "timestamp": ts,
+                       "method": l.get("m",""), "path": l.get("p",""), "status_code": l.get("s",0),
+                       "client_ip": l.get("ip",""), "response_time_ms": l.get("ms",0),
+                       "action_type": l.get("a","")}
+        return JSONResponse(logs)
     except Exception as e:
         return JSONResponse([], status_code=500)
 
