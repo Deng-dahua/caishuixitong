@@ -249,104 +249,171 @@ function renderTaxDocReport(r) {
   }
   html += '</div></div>';
 
-  // ── 综合报告增强：资金流向图 + 往来方TOP20 + 分级整改 ──
+  // ── 综合报告增强：四大风格经营分析 ──
   if (r.comprehensive) {
     var comp = r.comprehensive;
+    var NAVY = '#1e3a5f';
+    var BLUE = '#2563eb';
+    var GRAY600 = '#4b5563';
+    var GRAY300 = '#d1d5db';
+    var GRAY50 = '#f9fafb';
     
-    // 资金流向月度柱状图
+    // 格式化金额
+    function fmtAmt(v) {
+      if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
+      if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
+      return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
+    }
+    
+    // ═══ 区块1: 关键财务指标 KPI 卡片 ═══
+    var totalIn = 0, totalOut = 0, totalTax = 0;
+    if (comp.cashflow) {
+      comp.cashflow.income.forEach(function(v){totalIn+=v;});
+      comp.cashflow.expense.forEach(function(v){totalOut+=v;});
+      comp.cashflow.tax.forEach(function(v){totalTax+=v;});
+    }
+    var kpiCards = [];
+    if (totalIn > 0) kpiCards.push({label:'年度总收入', value:fmtAmt(totalIn), sub:comp.cashflow ? comp.cashflow.months.length+'个月' : ''});
+    if (totalOut > 0) kpiCards.push({label:'年度总支出', value:fmtAmt(totalOut), sub:'含税费'});
+    if (totalTax > 0) kpiCards.push({label:'年度纳税', value:fmtAmt(totalTax), sub:totalIn>0?'税负率 '+(totalTax/totalIn*100).toFixed(1)+'%':''});
+    kpiCards.push({label:'分析文件', value:r.files_count+'份', sub:'100%覆盖'});
+    kpiCards.push({label:'风险发现', value:r.total_risks+'项', sub:'高'+r.high_risk+' 中'+r.mid_risk});
+    
+    html += '<div style="margin-top:16px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+      + '<div style="width:4px;height:20px;background:'+NAVY+';border-radius:2px"></div>'
+      + '<span style="font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px">经营财务分析</span></div>'
+      
+      // KPI 卡片行
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
+    kpiCards.forEach(function(k) {
+      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px 14px">'
+        + '<div style="font-size:11px;color:'+GRAY600+';margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">'+k.label+'</div>'
+        + '<div style="font-size:22px;font-weight:700;color:'+NAVY+';margin-bottom:4px">'+k.value+'</div>'
+        + '<div style="font-size:11px;color:#9ca3af">'+k.sub+'</div></div>';
+    });
+    html += '</div>';
+    
+    // ═══ 区块2: 月度资金流向图 + 往来方表格 并排 ═══
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    
+    // 左：资金流向图
     if (comp.cashflow && comp.cashflow.months && comp.cashflow.months.length > 0) {
       var cf = comp.cashflow;
-      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-        + '<b style="font-size:15px">💰 月度资金流向</b>'
-        + '<div style="display:flex;align-items:flex-end;gap:4px;height:160px;margin-top:12px;padding:0 10px">';
-      var maxVal = 0;
-      for (var mi = 0; mi < cf.months.length; mi++) {
-        maxVal = Math.max(maxVal, cf.income[mi], cf.expense[mi], cf.tax[mi]);
+      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px">'
+        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:12px">月度资金流向</div>'
+        + '<svg viewBox="0 0 340 160" style="width:100%;height:auto">';
+      
+      // 网格线
+      html += '<line x1="30" y1="140" x2="330" y2="140" stroke="'+GRAY300+'" stroke-width="0.5"/>';
+      html += '<line x1="30" y1="105" x2="330" y2="105" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
+      html += '<line x1="30" y1="70" x2="330" y2="70" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
+      html += '<line x1="30" y1="35" x2="330" y2="35" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
+      
+      var barW = Math.max(8, Math.min(18, 280 / cf.months.length - 4));
+      var gap = (300 / cf.months.length);
+      var maxV = 0;
+      for (var mi=0; mi<cf.months.length; mi++) maxV = Math.max(maxV, cf.income[mi], cf.expense[mi] + cf.tax[mi]);
+      maxV = maxV || 1;
+      
+      for (var mi=0; mi<cf.months.length; mi++) {
+        var x = 35 + mi * gap;
+        var h1 = Math.max(2, (cf.income[mi]/maxV)*130);
+        var h2 = Math.max(2, (cf.expense[mi]/maxV)*130);
+        var h3 = Math.max(1, (cf.tax[mi]/maxV)*130);
+        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h1)+'" width="'+barW+'" height="'+h1+'" fill="'+BLUE+'" opacity="0.20" rx="1"/>';
+        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h1)+'" width="'+barW+'" height="2" fill="'+BLUE+'" opacity="0.60" rx="1"/>';
+        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h2-h3)+'" width="'+barW+'" height="'+h2+'" fill="'+NAVY+'" opacity="0.35" rx="1"/>';
+        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h2-h3)+'" width="'+barW+'" height="2" fill="'+NAVY+'" opacity="0.70" rx="1"/>';
+        if (h3 > 0.5) {
+          html += '<rect x="'+(x-barW/2)+'" y="'+(140-h3)+'" width="'+barW+'" height="'+h3+'" fill="#f59e0b" opacity="0.50" rx="1"/>';
+        }
+        var mLabel = cf.months[mi].substring(5);
+        html += '<text x="'+x+'" y="154" text-anchor="middle" font-size="8" fill="'+GRAY600+'">'+mLabel+'</text>';
       }
-      maxVal = maxVal || 1;
-      for (var mi = 0; mi < cf.months.length; mi++) {
-        var h_inc = Math.max(2, (cf.income[mi] / maxVal) * 140);
-        var h_exp = Math.max(2, (cf.expense[mi] / maxVal) * 140);
-        var h_tax = Math.max(2, (cf.tax[mi] / maxVal) * 140);
-        var label = cf.months[mi].substring(5);
-        html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center">'
-          + '<div style="font-size:9px;color:#059669">' + (cf.income[mi] >= 10000 ? (cf.income[mi]/10000).toFixed(1)+'万' : cf.income[mi].toFixed(0)) + '</div>'
-          + '<div style="width:100%;max-width:20px;background:#059669;height:' + h_inc + 'px;border-radius:3px 3px 0 0;margin-bottom:1px" title="收入:' + cf.income[mi].toFixed(2) + '"></div>'
-          + '<div style="width:100%;max-width:20px;background:#dc2626;height:' + h_exp + 'px;border-radius:3px 3px 0 0;margin-bottom:1px" title="支出:' + cf.expense[mi].toFixed(2) + '"></div>'
-          + '<div style="width:100%;max-width:20px;background:#f59e0b;height:' + h_tax + 'px;border-radius:3px 3px 0 0;margin-bottom:4px" title="缴税:' + cf.tax[mi].toFixed(2) + '"></div>'
-          + '<div style="font-size:9px;color:var(--gray-500)">' + label + '</div></div>';
-      }
-      html += '</div>'
-        + '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--gray-500)">'
-        + '<span>🟢 收入</span><span>🔴 支出</span><span>🟠 缴税</span></div></div>';
+      html += '</svg>'
+        + '<div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:'+GRAY600+'">'
+        + '<span><span style="display:inline-block;width:8px;height:8px;background:'+BLUE+';opacity:0.6;border-radius:2px;margin-right:3px"></span>收入</span>'
+        + '<span><span style="display:inline-block;width:8px;height:8px;background:'+NAVY+';opacity:0.7;border-radius:2px;margin-right:3px"></span>支出</span>'
+        + '<span><span style="display:inline-block;width:8px;height:8px;background:#f59e0b;opacity:0.5;border-radius:2px;margin-right:3px"></span>缴税</span>'
+        + '</div></div>';
     }
     
-    // 往来方TOP20
-    if (comp.top_receivers || comp.top_payers) {
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">';
-      if (comp.top_receivers && comp.top_receivers.length > 0) {
-        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px">'
-          + '<b style="font-size:14px">📥 收入来源TOP20</b>'
-          + '<div style="max-height:300px;overflow-y:auto;margin-top:8px">'
-          + '<table style="width:100%;font-size:11px;border-collapse:collapse">';
-        comp.top_receivers.forEach(function(r, idx) {
-          html += '<tr><td style="padding:3px 6px;color:var(--gray-400)">'+(idx+1)+'</td><td style="padding:3px 6px">'+esc(r.name)+'</td><td style="padding:3px 6px;text-align:right;color:#059669;font-weight:600">'+(r.amount>=10000?(r.amount/10000).toFixed(1)+'万':r.amount.toFixed(0))+'</td></tr>';
-        });
-        html += '</table></div></div>';
-      }
-      if (comp.top_payers && comp.top_payers.length > 0) {
-        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px">'
-          + '<b style="font-size:14px">📤 支出对象TOP20</b>'
-          + '<div style="max-height:300px;overflow-y:auto;margin-top:8px">'
-          + '<table style="width:100%;font-size:11px;border-collapse:collapse">';
-        comp.top_payers.forEach(function(r, idx) {
-          html += '<tr><td style="padding:3px 6px;color:var(--gray-400)">'+(idx+1)+'</td><td style="padding:3px 6px">'+esc(r.name)+'</td><td style="padding:3px 6px;text-align:right;color:#dc2626;font-weight:600">'+(r.amount>=10000?(r.amount/10000).toFixed(1)+'万':r.amount.toFixed(0))+'</td></tr>';
-        });
-        html += '</table></div></div>';
-      }
-      html += '</div>';
-    }
+    // 右：往来方表
+    html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px">'
+      + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:10px">主要往来方</div>'
+      + '<table style="width:100%;font-size:11px;border-collapse:collapse">'
+      + '<thead><tr style="background:'+GRAY50+'">'
+      + '<th style="padding:6px 8px;text-align:left;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">#</th>'
+      + '<th style="padding:6px 8px;text-align:left;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">对方名称</th>'
+      + '<th style="padding:6px 8px;text-align:right;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">金额</th></tr></thead><tbody>';
     
-    // 分级整改建议
+    // 合并收入+支出来源
+    var allCp = [];
+    if (comp.top_receivers) comp.top_receivers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'收'});});
+    if (comp.top_payers) comp.top_payers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'付'});});
+    allCp.sort(function(a,b){return b.amount-a.amount;});
+    allCp = allCp.slice(0, 15);
+    
+    allCp.forEach(function(r,idx){
+      var cColor = r.type==='收'?'#059669':NAVY;
+      html += '<tr style="border-bottom:1px solid '+GRAY50+'">'
+        + '<td style="padding:5px 8px;color:#9ca3af;font-size:10px">'+(idx+1)+'</td>'
+        + '<td style="padding:5px 8px;color:#374151">'+esc(r.name)+'</td>'
+        + '<td style="padding:5px 8px;text-align:right;font-weight:600;font-size:10px;color:'+cColor+'">'+fmtAmt(r.amount)+'</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+    
+    // ═══ 区块3: 分级建议 (四大风格) ═══
     if (comp.actions) {
       var act = comp.actions;
-      var sections = [
-        {key:'p0_urgent', label:'🔴 P0 紧急整改', color:'#dc2626', bg:'#fef2f2'},
-        {key:'p1_important', label:'🟠 P1 重要优化', color:'#f59e0b', bg:'#fffbeb'},
-        {key:'p2_normal', label:'🟢 P2 建议完善', color:'#059669', bg:'#ecfdf5'},
+      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px;margin-top:12px">'
+        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:14px">整改建议等级</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
+      
+      var secs = [
+        {key:'p0_urgent',title:'紧急整改',sub:'P0',color:NAVY},
+        {key:'p1_important',title:'重要优化',sub:'P1',color:BLUE},
+        {key:'p2_normal',title:'建议完善',sub:'P2',color:'#6b7280'}
       ];
-      var hasAction = sections.some(function(s){return act[s.key] && act[s.key].length > 0;});
-      if (hasAction) {
-        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-          + '<b style="font-size:15px">📋 分级整改建议</b>';
-        sections.forEach(function(sec) {
-          var items = act[sec.key] || [];
-          if (items.length === 0) return;
-          html += '<div style="margin-top:12px"><div style="font-weight:600;font-size:13px;margin-bottom:6px">'+sec.label+' ('+items.length+'项)</div>';
-          items.forEach(function(item, idx) {
-            html += '<div style="background:'+sec.bg+';border-left:3px solid '+sec.color+';padding:8px 12px;margin-bottom:6px;border-radius:4px;font-size:12px;line-height:1.6">'
-              + '<b>'+esc(item.type)+'</b><br>'+esc(item.suggestion)+'</div>';
-          });
-          html += '</div>';
+      secs.forEach(function(sec){
+        var items = act[sec.key]||[];
+        html += '<div><div style="font-size:10px;color:#9ca3af;letter-spacing:1px;margin-bottom:4px">'+sec.sub+'</div>'
+          + '<div style="font-size:13px;font-weight:600;color:'+sec.color+';margin-bottom:8px">'+sec.title
+          + '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px">'+items.length+'项</span></div>';
+        var show = items.slice(0, items.length);
+        show.forEach(function(item){
+          html += '<div style="padding:8px 0;border-top:1px solid '+GRAY50+';font-size:11px;line-height:1.5;color:#374151">'
+            + '<div style="font-weight:500;margin-bottom:2px">'+esc(item.type)+'</div>'
+            + '<div style="color:'+GRAY600+';font-size:10px">'+esc(item.suggestion).substring(0,100)+'</div></div>';
         });
         html += '</div>';
-      }
-    }
-    
-    // 数据概览
-    if (comp.data_overview) {
-      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px;margin-top:12px">'
-        + '<b style="font-size:14px">📊 数据概览</b>'
-        + '<div style="margin-top:8px;font-size:12px">';
-      (comp.data_overview.present||[]).forEach(function(s) {
-        html += '<span style="display:inline-block;background:#ecfdf5;color:#059669;padding:3px 8px;border-radius:4px;margin:2px 4px 2px 0;font-size:11px">✅ '+s+'</span>';
-      });
-      (comp.data_overview.missing||[]).forEach(function(s) {
-        html += '<span style="display:inline-block;background:#fef2f2;color:#dc2626;padding:3px 8px;border-radius:4px;margin:2px 4px 2px 0;font-size:11px">❌ '+s+'</span>';
       });
       html += '</div></div>';
     }
-  }
+    
+    // ═══ 区块4: 数据覆盖度 ═══
+    if (comp.data_overview) {
+      var totalCats = (comp.data_overview.present||[]).length + (comp.data_overview.missing||[]).length;
+      var covered = (comp.data_overview.present||[]).length;
+      var pct = totalCats > 0 ? Math.round(covered/totalCats*100) : 0;
+      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px;margin-top:12px">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+'">数据覆盖度</div>'
+        + '<div style="font-size:13px;font-weight:700;color:'+NAVY+'">'+covered+'/'+totalCats+' · '+pct+'%</div></div>'
+        + '<div style="display:flex;height:6px;background:'+GRAY50+';border-radius:3px;margin-bottom:12px">'
+        + '<div style="width:'+pct+'%;background:'+BLUE+';border-radius:3px;transition:width 0.6s"></div></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px">';
+      (comp.data_overview.present||[]).forEach(function(s){
+        html += '<span style="background:#eff6ff;color:'+NAVY+';padding:4px 8px;border-radius:3px;font-weight:500">'+s+'</span>';
+      });
+      (comp.data_overview.missing||[]).forEach(function(s){
+        html += '<span style="background:#f9fafb;color:#9ca3af;padding:4px 8px;border-radius:3px;border:1px dashed '+GRAY300+'">'+s+'</span>';
+      });
+      html += '</div></div>';
+    }
+    
+    html += '</div>'; // end comprehensive wrapper
 
   // ── 处理流水 ──
   if (r.pipeline_log && r.pipeline_log.length > 0) {
