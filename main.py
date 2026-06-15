@@ -136,19 +136,29 @@ def get_system_logs(limit: int = 200, company_id: int = None):
         logs.reverse()
         if company_id: logs = [l for l in logs if l.get("cid") == company_id]
         logs = logs[:limit]
-        # IP地理位置解析（带缓存）
+        # IP地理位置解析（异步线程池，不阻塞事件循环）
         ip_locations = {}
         try:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
             import urllib.request, json as _j2
             unique_ips = list(set(l.get("ip","") for l in logs if l.get("ip") and not l.get("ip","").startswith("127.") and l.get("ip") != "localhost"))
-            for ip in unique_ips[:20]:  # 每次最多查20个
-                try:
-                    req = urllib.request.Request("http://ip-api.com/json/" + ip, headers={"User-Agent": "TaxSystem/1.0"})
-                    with urllib.request.urlopen(req, timeout=2) as resp:
-                        data = _j2.loads(resp.read())
-                        if data.get("status") == "success":
-                            ip_locations[ip] = data.get("regionName","") + " " + data.get("city","") if data.get("city") else data.get("country","")
-                except: pass
+            if unique_ips:
+                def _lookup_ip(ip):
+                    try:
+                        req = urllib.request.Request("http://ip-api.com/json/" + ip, headers={"User-Agent": "TaxSystem/1.0"})
+                        with urllib.request.urlopen(req, timeout=1) as resp:
+                            data = _j2.loads(resp.read())
+                            if data.get("status") == "success":
+                                return ip, data.get("regionName","") + " " + data.get("city","") if data.get("city") else data.get("country","")
+                    except: pass
+                    return ip, ""
+                with ThreadPoolExecutor(max_workers=3) as ex:
+                    futures = [ex.submit(_lookup_ip, ip) for ip in unique_ips[:10]]
+                    for f in as_completed(futures):
+                        try:
+                            ip, loc = f.result(timeout=1.5)
+                            if loc: ip_locations[ip] = loc
+                        except: pass
         except: pass
         
         for i, l in enumerate(logs):
