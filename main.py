@@ -11328,8 +11328,8 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
     """单条结论复核：重新解析上传文件，对finding中的数据做源数据交叉验证"""
     try:
         finding = await request.json()
-    except:
-        return {"ok": False, "message": "无效的请求数据"}
+    except Exception as e:
+        return {"ok": False, "message": f"无效的请求数据: {e}"}
     
     ftype = str(finding.get("type", ""))
     detail = str(finding.get("detail", ""))
