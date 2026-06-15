@@ -10114,12 +10114,15 @@ def _domain_bank_tracking(txs):
     """域1: 资金全链路追踪"""
     from collections import defaultdict
     findings = []
+    total_txs = len(txs)
     cats = defaultdict(float)
     third_party_detail = []
+    third_party_count = 0
     for tx in txs:
         raw = tx.get("raw", "")
         if any(k in raw for k in ("支付宝","微信","财付通")): 
             cats["third_party"] += tx["credit"]
+            third_party_count += 1
             third_party_detail.append(f"{tx.get('date','')} {tx.get('counterparty','')[:15]} {tx['credit']:,.2f}")
         elif "税务" in raw: cats["tax"] += tx["debit"]
     income = sum(tx["credit"] for tx in txs)
@@ -10127,15 +10130,15 @@ def _domain_bank_tracking(txs):
     if income > 0 and cats.get("third_party", 0) / income > 0.5:
         pct = cats['third_party']/income*100
         findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
-        "how_found": "分析银行流水中所有贷方(收入)交易，识别收款渠道（支付宝/微信/财付通等第三方平台），计算第三方收款占总收入的比例。超过50%触发预警。",
-            "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元，占总收入{pct:.0f}%。",
+        "how_found": f"逐条扫描银行流水PDF解析出的{total_txs}笔交易，在每笔交易的原始文本(raw字段)中搜索'支付宝''微信''财付通'关键词，命中{third_party_count}笔、累计贷方金额{cats['third_party']:,.2f}元。该金额÷全部贷方总额{income:,.2f}元={pct:.0f}%，超过50%预警阈值。",
+            "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.0f}%。",
             "description": f"贵公司通过支付宝、微信等第三方支付平台收取了绝大部分营业收入（{pct:.0f}%）。这种收款方式虽然便捷，但存在较大的税务合规隐患：第三方平台收款记录与企业开票信息、合同信息难以一一对应，税务机关在稽查时可能认为资金流、发票流、合同流[三流不一致]，从而质疑收入的真实性和完整性。",
             "tax_impact": "若无法逐笔匹配第三方收款与销售订单/发票，税务机关可能认定存在隐匿收入、账外经营的风险，要求补缴增值税及企业所得税，并加收滞纳金和罚款。",
             "policy_ref": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（2014年第39号）要求货物流、资金流、发票流三流一致。",
             "suggestion": "1）建立第三方收款与销售订单的逐笔匹配台账；2）每笔第三方收款确保开具相应发票；3）定期将第三方平台余额提现至对公账户；4）考虑逐步引导客户通过对公转账结算。",
             "category": "域1 资金全链路"})
     findings.append({"type": "资金流概览", "level": "低风险", "score": 2,
-    "how_found": "汇总银行流水中所有贷方和借方交易，分别计算收入总额、支出总额、缴税总额。",
+    "how_found": f"逐笔汇总银行流水解析出的{total_txs}条交易：所有贷方(收入)金额加总得{income:,.2f}元，所有借方(支出)加总得{expense:,.2f}元，从交易文本中识别'税务'关键词的交易汇总得缴税{cats.get('tax',0):,.2f}元。",
         "detail": f"收入{income:,.2f}元，支出{expense:,.2f}元，缴税{cats.get('tax',0):,.2f}元。",
         "description": f"综合分析期间银行账户资金流水：累计收入{income:,.2f}元，累计支出{expense:,.2f}元，其中向税务机关缴纳税款{cats.get('tax',0):,.2f}元。",
         "category": "域1 资金全链路"})
@@ -10247,20 +10250,22 @@ def _domain_voucher_anomaly(vouchers):
     findings = []
     if not vouchers: return findings
     
-    # 检测凭证号字段是否有效
+    total_rows = len(vouchers)
     empty_vn = sum(1 for v in vouchers if not str(v.get("voucher_no", "")).strip())
-    if empty_vn / len(vouchers) > 0.9:
-        # 超过90%的行凭证号为空，无法做逐张平衡校验
-        findings.append({"type": "凭证号字段缺失", "level": "低风险", "score": 2,
-            "detail": f"共{len(vouchers)}条分录，{empty_vn}条凭证号为空。无法做逐张凭证借贷平衡校验。",
-            "description": f"上传的记账凭证文件中，{len(vouchers)}条分录中{empty_vn}条的凭证编号为空（占比{empty_vn/len(vouchers)*100:.0f}%）。缺少凭证编号就无法将分录归集到具体凭证，因此无法逐张校验借贷是否平衡。这通常是Excel导出时未包含凭证号列导致的。",
-            "how_found": "检测凭证文件中'凭证编号/voucher_no'字段，空值比例超过90%即判定字段缺失。",
-            "tax_impact": "无法验证逐张凭证的借贷平衡，但不影响整体账务分析。建议在导出凭证Excel时加上凭证编号列。",
-            "suggestion": "重新导出记账凭证Excel文件，确保包含完整的凭证编号列（如'记-001'格式），以便系统能逐张校验借贷平衡。",
+    empty_pct = empty_vn / total_rows * 100
+    
+    # ═══ 情况1: 凭证号大面积缺失(>50%空) → 字段无效 ═══
+    if empty_pct > 50:
+        findings.append({"type": "凭证号字段大面积缺失", "level": "低风险", "score": 2,
+            "detail": f"共{total_rows}条分录，{empty_vn}条凭证号为空（{empty_pct:.0f}%）。凭证号字段不完整，无法做逐张凭证借贷平衡校验。",
+            "description": f"上传的记账凭证文件中，{total_rows}条分录中{empty_vn}条的凭证编号为空（占比{empty_pct:.0f}%）。正常凭证文件中，每一行分录都应归属于一张凭证，凭证号是分组的唯一键。凭证号大面积缺失意味着：①Excel导出时未包含凭证编号列；②或者该字段在源系统中本身就未填写。无论哪种情况，都无法将分录归集到具体凭证做逐张借贷平衡校验。",
+            "how_found": f"读取上传的凭证Excel文件（共{total_rows}行），逐行检测'凭证编号/voucher_no'列：{empty_vn}行为空（{empty_pct:.0f}%），仅{total_rows-empty_vn}行有值。因空值超过50%阈值，判定凭证号字段不完整，跳过逐张平衡校验。",
+            "tax_impact": "无法验证逐张凭证的借贷平衡，但不影响整体账务分析（序时账借方合计=贷方合计即表示总账平衡）。",
+            "suggestion": "重新导出记账凭证Excel文件，确保包含完整的凭证编号列（如'记-001'格式），且每行分录都填写对应凭证号。",
             "category": "域5 凭证异常"})
         return findings
     
-    # 凭证号有效，按编号分组校验
+    # ═══ 情况2: 凭证号有效 → 逐张校验 ═══
     by_vn = {}
     skipped_empty = 0
     for v in vouchers:
@@ -10274,19 +10279,35 @@ def _domain_voucher_anomaly(vouchers):
         by_vn[vn]["c"] += float(v.get("credit", 0) or 0)
     
     unbalanced = [(vn, b) for vn, b in by_vn.items() if abs(b["d"] - b["c"]) > 1]
+    unbal_pct = len(unbalanced) / max(len(by_vn), 1) * 100
+    
+    # ═══ 情况2a: 100%不平衡 → 分组键无效 ═══
+    if unbal_pct > 95 and len(by_vn) > 10:
+        gap_total = sum(abs(b["d"]-b["c"]) for _, b in unbalanced)
+        findings.append({"type": "凭证分组无效——凭证号可能不是真实的凭证编号", "level": "低风险", "score": 3,
+            "detail": f"{len(by_vn)}个凭证号全部不平（{unbal_pct:.0f}%），差额合计{gap_total:,.2f}元。但100%的凭证都不平衡在会计上不可能——说明此字段不是真实的凭证编号。",
+            "description": f"按凭证号分组后，{len(by_vn)}张凭证全部借贷不平衡（检验标准：差额>1元）。但根据会计基本原理'有借必有贷，借贷必相等'，真实的企业账务中不平衡凭证占比通常不超过5%。100%不平衡强烈说明：当前用于分组的'凭证号'字段不是真实的凭证编号，而是其他标识（如科目代码、摘要关键字、排序号等）。结论：此字段不适合作为逐张借贷平衡校验的分组键。",
+            "how_found": f"取凭证文件中{total_rows}行分录的'凭证编号'字段，{skipped_empty}行空值跳过，有效{len(by_vn)}个唯一值按凭证号分组汇总借贷金额。检测到{len(unbalanced)}张凭证借贷不平（{unbal_pct:.0f}%），因全部不平衡在真实账务中不可能发生，判定此字段非真实凭证编号。",
+            "tax_impact": "无法做逐张凭证平衡校验，但序时账总借贷平衡即表明整体账务无误。",
+            "suggestion": f"检查Excel文件中哪一列才是真实的凭证编号（通常格式为'记-001'、'转-001'等）。当前解析到的字段包含{total_rows-empty_vn}个有效值但100%不平衡——它可能是科目编码、摘要或其他非凭证号字段。",
+            "category": "域5 凭证异常"})
+        return findings
+    
+    # ═══ 情况2b: 正常校验 ═══
     if unbalanced:
         gap_total = sum(abs(b["d"]-b["c"]) for _, b in unbalanced)
         findings.append({"type": "凭证借贷不平", "level": "高风险", "score": 9,
             "detail": f"{len(unbalanced)}张凭证借贷不平衡（共{len(by_vn)}张），差额合计{gap_total:,.2f}元。",
-            "description": f"在{len(by_vn)}张有凭证编号的凭证中，发现{len(unbalanced)}张借方与贷方不相等，差额合计{gap_total:,.2f}元。根据会计基本原理'有借必有贷，借贷必相等'，借贷不平意味着记账存在错误，可能导致财务报表数据失真。" + (f"另有{skipped_empty}条分录凭证号为空，已跳过校验。" if skipped_empty > 0 else ""),
-            "how_found": f"按凭证编号分组汇总每张凭证的借贷金额，差额>1元视为不平。有效凭证{len(by_vn)}张" + (f"，跳过{skipped_empty}条空凭证号" if skipped_empty else "") + "。",
-            "tax_impact": "凭证借贷不平直接导致科目余额和财务报表不准确，企业据此计算缴纳的税款可能存在多缴或少缴。",
+            "description": f"在{len(by_vn)}张有凭证编号的凭证中，发现{len(unbalanced)}张借方与贷方不相等，差额合计{gap_total:,.2f}元。" + (f"另有{skipped_empty}条分录凭证号为空，已跳过校验。" if skipped_empty > 0 else ""),
+            "how_found": f"从凭证文件{total_rows}行分录中提取凭证编号列，{len(by_vn)}个有效编号分组汇总借贷金额，差额>1元视为不平。发现{len(unbalanced)}张（{unbal_pct:.0f}%）不平衡。" + (f"，跳过{skipped_empty}条空凭证号" if skipped_empty else ""),
+            "tax_impact": "凭证借贷不平直接导致科目余额和财务报表不准确。",
             "policy_ref": "《会计法》；《企业会计准则——基本准则》关于借贷记账法的规定。",
-            "suggestion": "1）逐笔核查借贷不平的凭证；2）及时做更正分录；3）加强凭证审核制度。",
+            "suggestion": "逐笔核查借贷不平的凭证，做更正分录。",
             "category": "域5 凭证异常"})
     elif skipped_empty > 0:
         findings.append({"type": "凭证编号有效且借贷平衡", "level": "低风险", "score": 2,
             "detail": f"{len(by_vn)}张凭证借贷全部平衡。{skipped_empty}条分录凭证号为空已跳过。",
+            "how_found": f"从{total_rows}行分录中按{len(by_vn)}个有效凭证编号分组汇总，差额全部≤1元，借贷平衡。跳过{skipped_empty}条空凭证号。",
             "category": "域5 凭证异常"})
     
     return findings
