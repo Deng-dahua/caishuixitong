@@ -12682,7 +12682,19 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 
 @app.post("/api/tax-risk-docs/analyze")
 async def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    return await _run_analyze(company_id, db)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _run_analyze_sync, company_id, db)
+
+
+def _run_analyze_sync(company_id, db):
+    """同步版本的分析函数，在独立线程中运行，不阻塞事件循环"""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(_run_analyze(company_id, db))
+    finally:
+        loop.close()
 
 
 
