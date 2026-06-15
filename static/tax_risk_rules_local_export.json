@@ -19704,5 +19704,20 @@
     "dataSource": "交叉比对",
     "remark": "稽查指标",
     "detectable": true
+  },
+  {
+    "id": 1324,
+    "category": "收入合规",
+    "categoryIcon": "💰",
+    "item": "装修劳务收入与施工面积配比异常指标",
+    "detail": "核查装修劳务收入与施工面积的配比合理性。",
+    "score": 6,
+    "level": "中风险",
+    "suggestion": "排查装修劳务收入与施工面积不匹配的相关风险。",
+    "urgency": "提醒",
+    "evidence": "装修合同/收入明细/施工面积",
+    "dataSource": "交叉比对",
+    "remark": "稽查指标",
+    "detectable": true
   }
 ]
