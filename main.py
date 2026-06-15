@@ -13637,8 +13637,89 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     return findings
 
 
+def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries):
+    import math
+    dimensions = {
+        "经营真实度": {"keywords": ["产能","能耗","电费","水费","油费","车辆","人工","工时","产量",
+            "物流","运输","机器","设备","模具","厂房","仓库","空间","门卫","质检","包装","废料","边角料",
+            "考勤","排班","温控","维修","原材","辅材","能耗与","产能与","设备与","以人定产",
+            "变压器","噪音","排污"], "weight":1.3, "color":"#2563eb",
+            "desc":"评估生产要素与经营产出的逻辑自洽性"},
+        "发票合规度": {"keywords": ["发票","进销","品名","税率","税负","红冲","作废","虚开","顶额",
+            "连号","滞留","认证","抵扣","专票","普票","电子发票","数电票","备注栏","清单",
+            "代开","优惠","票种","编码","混合销售","兼营","进项税额","留抵"], "weight":1.2, "color":"#ef4444",
+            "desc":"评估发票全生命周期的合规性和进销匹配度"},
+        "资金安全性": {"keywords": ["资金","银行","流水","现金","公私","对公","私户","公转私","回流",
+            "借款","货款","往来","应付","应收","预付","预收","挂账","坏账","贴现","承兑",
+            "支付宝","微信","二维码","POS","第三方","资产负债","流动比","速动比",
+            "负债率","所有者权益"], "weight":1.4, "color":"#8b5cf6",
+            "desc":"评估资金流向合法性、公私分离及资产负债健康度"},
+        "申报一致性": {"keywords": ["申报","申报表","企业所得税","增值税申报","个税申报","社保申报",
+            "财务报表","利润表","资产负债表","勾稽","差异","比对","城建税","教育费附加",
+            "印花税","房产税","土地使用税","契税","环保税","三流","四流","不征税",
+            "汇算清缴","预缴","预估","调整"], "weight":1.1, "color":"#f59e0b",
+            "desc":"评估各税种申报表与财务报表之间的一致性"},
+        "行业偏离度": {"keywords": ["行业","均值","基准","偏离","税负率","毛利率","净利率",
+            "费用率","集中度","季节性","波动","比重","占比","比例","超标","限额",
+            "合理区间","标准","同行","区域"], "weight":1.0, "color":"#10b981",
+            "desc":"评估关键财务指标与同行业正常区间的偏离程度"},
+        "关联风险": {"keywords": ["关联","转让定价","转移","避税","境外","跨境","非居民",
+            "代扣代缴","付汇","外汇","受控外国","资本弱化","同期资料","预约定价",
+            "集团","母子","同一控制","关联方","借用","来华"], "weight":1.2, "color":"#ec4899",
+            "desc":"评估关联交易定价公允性及跨境税务合规性"},
+        "档案完整度": {"keywords": ["缺少","缺失","无合同","无银行","无发票","无工资","无社保",
+            "无凭证","无进销存","不完整","未备案","未申报","未报告","完备度","不齐全",
+            "遗漏","逾期","延后","未提供"], "weight":0.8, "color":"#6b7280",
+            "desc":"评估经营资料的完整性和可核查性"},
+    }
+    
+    dim_scores = {}
+    for dim_name, dim_cfg in dimensions.items():
+        matched = []
+        for f in all_findings:
+            item = f.get("item", "") + f.get("type", "") + f.get("detail", "")
+            for kw in dim_cfg["keywords"]:
+                if kw in item:
+                    matched.append(f)
+                    break
+        if not matched:
+            dim_scores[dim_name] = {"score":0, "count":0, "level":"未触发", "weighted_score":0}
+            continue
+        total_score = sum(abs(f.get("score", 5)) for f in matched)
+        count = len(matched)
+        avg = total_score / count
+        # 非线性缩放：平均分 × √(命中数/50) × 7，上限100
+        raw = min(avg * 7 * math.sqrt(count / 50.0), 100)
+        weighted = raw * dim_cfg["weight"]
+        level = "高风险" if raw > 60 else ("中风险" if raw > 30 else "低风险")
+        dim_scores[dim_name] = {"score":round(raw,1), "weighted_score":round(weighted,1),
+                                "count":count, "level":level}
+    
+    high_dim_count = sum(1 for d in dim_scores.values() if d["level"] == "高风险")
+    cross_multiplier = 1.8 if high_dim_count >= 4 else (1.5 if high_dim_count >= 3 else (1.2 if high_dim_count >= 2 else 1.0))
+    composite_base = sum(d["weighted_score"] for d in dim_scores.values()) / 7
+    composite_score = round(min(composite_base * cross_multiplier, 100), 1)
+    composite_level = "高风险" if composite_score > 55 else ("中风险" if composite_score > 25 else "低风险")
+    
+    radar_labels = list(dimensions.keys())
+    radar_values = [dim_scores[d]["score"] for d in radar_labels]
+    radar_colors = [dimensions[d]["color"] for d in radar_labels]
+    
+    top_dim = sorted(dim_scores.items(), key=lambda x: -x[1]["weighted_score"])
+    commentary = [f"{dim_name}({ds['score']}分/{ds['count']}条): {dimensions[dim_name]['desc']}" 
+                  for dim_name, ds in top_dim[:3]]
+    
+    return {
+        "composite_score": composite_score, "composite_level": composite_level,
+        "cross_multiplier": cross_multiplier, "high_dimensions": high_dim_count,
+        "dimensions": {d: dim_scores[d] for d in radar_labels},
+        "radar": {"labels": radar_labels, "values": radar_values, "colors": radar_colors},
+        "commentary": commentary,
+        "description": f"7维度加权评分 × 交叉乘数{cross_multiplier}倍 = {composite_score}分({composite_level})。{high_dim_count}个维度触发高风险联动。"
+    }
+
+
 def _merge_similar_findings(findings):
-    """合并同类型仅参数不同的发现——例如同城供应商群集只城市不同，合并为一条"""
     import re
     if not findings: return findings
     
@@ -14091,6 +14172,10 @@ def _run_analyze(company_id, db):
         else:
             data_missing.append(label)
     comprehensive["data_overview"] = {"present": data_present, "missing": data_missing}
+
+    # ── 金税四期式多因子风险评分引擎 ──
+    risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
+    comprehensive["risk_profile"] = risk_profile
 
     # 动态读取实际规则数量
     _actual_rule_count = 312

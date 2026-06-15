@@ -254,6 +254,82 @@ function renderTaxDocReport(r) {
     var comp = r.comprehensive;
     var NAVY = '#1e3a5f';
     var BLUE = '#2563eb';
+
+    // ═══ 金税四期风险画像雷达图 ═══
+    if (comp.risk_profile) {
+      var rp = comp.risk_profile;
+      var rd = rp.radar;
+      var cx = 145, cy = 145, r = 120;
+      var n = rd.labels.length;
+      var svgR = '<svg viewBox=\"0 0 290 290\" style=\"width:240px;height:auto\">';
+      // 背景环
+      for (var gi = 1; gi <= 4; gi++) {
+        var gr = r * gi / 4;
+        svgR += '<circle cx=\"'+cx+'\" cy=\"'+cy+'\" r=\"'+gr+'\" fill=\"none\" stroke=\"'+GRAY300+'\" stroke-width=\"0.5\"/>';
+      }
+      // 轴线
+      for (var i = 0; i < n; i++) {
+        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
+        var ex = cx + r * Math.cos(angle);
+        var ey = cy + r * Math.sin(angle);
+        svgR += '<line x1=\"'+cx+'\" y1=\"'+cy+'\" x2=\"'+ex+'\" y2=\"'+ey+'\" stroke=\"'+GRAY300+'\" stroke-width=\"0.5\"/>';
+      }
+      // 数据区域
+      var pts = [];
+      for (var i = 0; i < n; i++) {
+        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
+        var val = Math.min(100, rd.values[i]) / 100;
+        var px = cx + r * val * Math.cos(angle);
+        var py = cy + r * val * Math.sin(angle);
+        pts.push(px+','+py);
+      }
+      svgR += '<polygon points=\"'+pts.join(' ')+'\" fill=\"'+BLUE+'\" opacity=\"0.12\" stroke=\"'+BLUE+'\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>';
+      // 数据点 + 标签
+      for (var i = 0; i < n; i++) {
+        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
+        var val = Math.min(100, rd.values[i]) / 100;
+        var px = cx + r * val * Math.cos(angle);
+        var py = cy + r * val * Math.sin(angle);
+        svgR += '<circle cx=\"'+px+'\" cy=\"'+py+'\" r=\"3\" fill=\"'+rd.colors[i]+'\"/>';
+        var lx = cx + (r + 20) * Math.cos(angle);
+        var ly = cy + (r + 20) * Math.sin(angle) + 4;
+        svgR += '<text x=\"'+lx+'\" y=\"'+ly+'\" text-anchor=\"middle\" font-size=\"9\" fill=\"'+NAVY+'\">'+rd.labels[i]+'</text>';
+      }
+      svgR += '</svg>';
+      
+      html += '<div style=\"margin-top:16px\">'
+        + '<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:12px\">'
+        + '<div style=\"width:4px;height:20px;background:'+NAVY+';border-radius:2px\"></div>'
+        + '<span style=\"font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px\">风险画像</span></div>'
+        + '<div style=\"display:flex;gap:20px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px\">'
+        + '<div>'+svgR+'</div>'
+        + '<div style=\"flex:1;min-width:200px\">'
+        + '<div style=\"font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:8px\">综合风险评分</div>'
+        + '<div style=\"font-size:42px;font-weight:800;color:'+BLUE+';line-height:1\">'+rp.composite_score+'</div>'
+        + '<div style=\"font-size:13px;color:'+NAVY+';font-weight:600;margin:4px 0\">'+rp.composite_level+'</div>'
+        + '<div style=\"font-size:10px;color:'+GRAY600+';\">7维度加权 × 交叉乘数 '+rp.cross_multiplier+' 倍</div>'
+        + '<div style=\"font-size:10px;color:'+GRAY600+';\">'+rp.high_dimensions+'个维度触发高风险联动</div>'
+        + '</div></div>';
+      
+      // 维度明细条
+      html += '<div style=\"background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:14px;margin-top:8px\">';
+      for (var i = 0; i < n; i++) {
+        var dn = rd.labels[i];
+        var ds = rp.dimensions[dn];
+        var pct = Math.min(100, ds.score);
+        html += '<div style=\"display:flex;align-items:center;gap:8px;margin-bottom:6px\">'
+          + '<span style=\"font-size:10px;font-weight:500;width:60px;text-align:right;color:'+NAVY+'\">'+dn+'</span>'
+          + '<div style=\"flex:1;height:8px;background:'+GRAY50+';border-radius:4px;overflow:hidden\">'
+          + '<div style=\"width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:4px\"></div></div>'
+          + '<span style=\"font-size:10px;font-weight:600;width:30px;color:'+rd.colors[i]+'\">'+ds.score+'</span>'
+          + '<span style=\"font-size:9px;color:'+GRAY600+';width:36px\">'+ds.count+'条</span></div>';
+      }
+      // 结论
+      html += '<div style=\"margin-top:10px;padding-top:8px;border-top:1px solid '+GRAY50+';font-size:11px;color:'+GRAY600+';line-height:1.6\">'
+        + rp.description + '<br>';
+      rp.commentary.forEach(function(c) { html += c + '<br>'; });
+      html += '</div></div></div>';
+    }
     var GRAY600 = '#4b5563';
     var GRAY300 = '#d1d5db';
     var GRAY50 = '#f9fafb';
