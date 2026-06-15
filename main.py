@@ -9915,7 +9915,12 @@ _FILE_FINGERPRINTS = {
                      "子女教育", "住房贷款利息", "赡养老人", "继续教育", "大病医疗",
                      "累计收入", "累计减除费用", "累计专项扣除", "累计应纳税额", "已预缴税额",
                      "应补退税额", "基本扣除", "其他扣除", "准予扣除的捐赠额", "减免税额",
-                     "税款负担方式", "所得项目", "收入额", "费用", "免税收入"],
+                     "税款负担方式", "所得项目", "收入额", "费用", "免税收入",
+                     # 常见HR工资表列名
+                     "基本工资", "绩效工资", "岗位工资", "加班工资", "工龄工资",
+                     "交通补贴", "通讯补贴", "餐补", "高温补贴", "住房补贴",
+                     "应发合计", "实发合计", "代扣个税合计", "税前工资",
+                     "缺勤扣款", "迟到扣款", "奖金", "年终奖", "提成工资"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_salary_sheet(s)
     },
@@ -10475,6 +10480,26 @@ def _parse_by_content(names, get_sheet):
         header = _get_row_values(s, 0)
         result = _FILE_FINGERPRINTS[best_type]["parser"](s, header)
         
+        # parser 可能因表头位置不匹配等原因返回 None
+        if result is None:
+            _trace_diag(f"关键词识别为{best_type}但parser返回None（表头位置可能不匹配），尝试结构兜底", "warn")
+            if best_struct:
+                # 结构分析有结果，降级为结构兜底
+                fd["type"] = best_struct["type"]
+                fd["source"] = "structure_fallback"
+                fd["confidence"] = best_struct_conf
+                fd["reason"] = cv["reason"]
+                best_struct["_trace"] = _LAST_PARSE_TRACE
+                return best_struct
+            else:
+                # 彻底失败
+                _add_failure_suggestions()
+                fd["type"] = None
+                fd["source"] = None
+                fd["confidence"] = 0
+                fd["reason"] = cv["reason"]
+                return None
+        
         # 修正发票方向：销项发票的购方名称应在首列或前几列
         if best_type in ("purchase_invoice", "invoice_universal"):
             hdr = " ".join(header[:10])
@@ -10922,9 +10947,9 @@ _STRUCTURAL_PATTERNS = [
         "min_amount_cols": 4,
         "bonus": {
             "has_id_card": 6,         # 身份证号=极强信号
-            "many_amount_cols": 5,    # amount>=15列
+            "many_amount_cols": 5,    # amount>=10列
             "has_person_name": 2,     # 人名
-            "high_col_count": 2,      # 列数>=20
+            "high_col_count": 2,      # 列数>=15
         },
         "penalty": {
             "has_code": -2,           # 编码列→可能不是工资
@@ -11170,7 +11195,7 @@ def _match_structural_pattern(profile):
             score += bonus["has_person_name"]
             reasons.append(f"has_person+{bonus['has_person_name']}")
         if bonus.get("many_amount_cols"):
-            threshold = 15 if pattern["type"] == "salary" else (6 if pattern["type"] == "social_security" else 5)
+            threshold = 10 if pattern["type"] == "salary" else (6 if pattern["type"] == "social_security" else 5)
             if amount_cols >= threshold:
                 score += bonus["many_amount_cols"]
                 reasons.append(f"many_amt_cols({amount_cols})+{bonus['many_amount_cols']}")
@@ -11243,8 +11268,8 @@ def _match_structural_pattern(profile):
             "reasons": reasons,
         })
     
-    # 按 (置信度降序, 得分降序) 排列 —— 同置信度时得分高的排前面
-    candidates.sort(key=lambda x: (-x["confidence"], -x["score"]))
+    # 按 (得分降序, 置信度降序) 排列 —— 得分优先，因为得分反映实际特征匹配
+    candidates.sort(key=lambda x: (-x["score"], -x["confidence"]))
     
     return candidates[:5]
 
@@ -11352,16 +11377,28 @@ def _parse_invoice_sheet(sheet, direction):
     return {"type": atype, "rows": rows}
 
 def _parse_salary_sheet(sheet):
-    header = _get_row_values(sheet, 2)
+    # 尝试从 row 0 或 row 2 读取表头（兼容不同HR系统导出格式）
+    header = _get_row_values(sheet, 0)
+    # 如果 row 0 看起来不是表头（全是短文本/数字），尝试 row 2
+    text_count = sum(1 for v in header if isinstance(v, str) and len(str(v)) >= 2)
+    if text_count < 2:
+        header = _get_row_values(sheet, 2)
     cols = _find_cols(header, {
         "姓名": "name", "证件号码": "id_card", "工资": "salary",
-        "代扣社保": "ss_deduct", "代扣公积金": "hf_deduct",
-        "代扣个税": "tax", "实发": "net"
+        "身份证号": "id_card", "身份证": "id_card", "工号": "emp_id",
+        "基本工资": "salary", "应发合计": "gross", "实发合计": "net",
+        "实发工资": "net", "应发工资": "gross",
+        "代扣社保": "ss_deduct", "代扣住房公积金": "hf_deduct",
+        "住房公积金": "hf_deduct", "代扣个税": "tax",
+        "个税": "tax", "个人所得税": "tax",
+        "实发": "net", "应发": "gross",
+        "部门": "dept", "职位": "position",
     })
     if not cols: return None
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(4, min(nrows, 100)):
+    start_row = 4 if text_count < 2 else 1  # row 0是表头则从row 1开始读数据
+    for r in range(start_row, min(nrows, 100)):
         vals = {}
         for field, col in cols.items():
             try:
@@ -11369,7 +11406,7 @@ def _parse_salary_sheet(sheet):
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("name"): continue
-        for k in ["salary","ss_deduct","hf_deduct","tax","net"]:
+        for k in ["salary","ss_deduct","hf_deduct","tax","net","gross"]:
             try: vals[k] = float(vals.get(k, 0) or 0)
             except: vals[k] = 0
         rows.append(vals)
@@ -11378,7 +11415,12 @@ def _parse_salary_sheet(sheet):
 def _parse_social_sheet(sheet, header):
     cols = _find_cols(header, {
         "人员": "name", "证件号码": "id_card", "缴费工资": "base",
-        "单位承担": "company_pay", "个人承担": "personal_pay", "险种": "insurance"
+        "姓名": "name", "身份证号": "id_card", "身份证": "id_card",
+        "缴费基数": "base", "社保基数": "base", "工资基数": "base",
+        "单位承担": "company_pay", "个人承担": "personal_pay", "险种": "insurance",
+        "单位缴纳": "company_pay", "个人缴纳": "personal_pay",
+        "单位缴费": "company_pay", "个人缴费": "personal_pay",
+        "合计": "total", "备注": "remark",
     })
     if not cols: return None
     rows = []

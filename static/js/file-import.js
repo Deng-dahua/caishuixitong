@@ -14,7 +14,11 @@ function showUploadModal(module) {
     <div id="mapping-section" style="display:none;"></div>
     <div id="mapping-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:10px 14px;border-radius:6px;font-size:13px;margin-top:12px;"></div>
     <div id="mapping-warning" style="display:none;background:#fffbeb;border:1px solid #fde68a;color:#b45309;padding:10px 14px;border-radius:6px;font-size:13px;margin-top:12px;"></div>
-    <div style="text-align:right;margin-top:16px;"><button class="btn" onclick="closeModal()">关闭</button></div>
+    <div id="mapping-debug" style="display:none;margin-top:12px;"></div>
+    <div style="text-align:right;margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
+      <button class="btn btn-sm" onclick="showParseDebug()" style="background:var(--gray-100);color:var(--gray-600);font-size:12px;" title="查看最近一次文件解析的诊断详情">🔍 诊断</button>
+      <button class="btn" onclick="closeModal()">关闭</button>
+    </div>
   `, 'modal-xl');
   document.body.appendChild(modal);
 }
@@ -75,6 +79,8 @@ async function handleFileSelect(input, module) {
 
   if (result.error) {
     toast(result.error, 'error');
+    // 自动获取诊断信息
+    fetchParseDebug(true);
     return;
   }
 
@@ -364,6 +370,8 @@ async function doImportWithMapping(module, fileName, bankConfigId) {
 
   if (result.error) {
     if (errEl) { errEl.innerText = '导入失败：' + result.error; errEl.style.display = 'block'; }
+    // 自动获取诊断信息
+    fetchParseDebug(true);
     return;
   }
 
@@ -435,5 +443,114 @@ async function doImportWithMapping(module, fileName, bankConfigId) {
   toast(msg, 'success');
   if (result.errors && result.errors.length > 0) console.warn('Import errors:', result.errors);
   if (result.infos && result.infos.length > 0) console.log('Import infos:', result.infos);
+}
+
+// ==================== 文件解析诊断 ====================
+
+async function fetchParseDebug(autoShow) {
+  const debugEl = document.getElementById('mapping-debug');
+  if (!debugEl) return;
+  try {
+    const resp = await fetch('/api/file/debug');
+    const data = await resp.json();
+    if (!data.ok) {
+      if (autoShow) {
+        debugEl.style.display = 'block';
+        debugEl.innerHTML = '<div style="color:var(--gray-500);font-size:12px;padding:8px;">' + (data.message || '暂无诊断记录') + '</div>';
+      }
+      return;
+    }
+    // 渲染诊断面板
+    var html = '<div style="border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;margin-top:8px;">';
+    html += '<div style="background:var(--gray-50);padding:8px 12px;font-size:13px;font-weight:600;color:var(--gray-700);border-bottom:1px solid var(--gray-200);">🔍 文件解析诊断 — ' + escapeHtml(data.filename) + '</div>';
+    html += '<div style="padding:12px;font-size:12px;line-height:1.6;">';
+
+    // 最终结果
+    var fd = data.final_decision || {};
+    if (fd.type) {
+      var labelMap = {bank_statement:'银行流水',salary:'工资',invoice:'发票',housing_fund:'公积金',social_security:'社保',trial_balance:'科目余额表',contract_list:'合同',generic_data:'通用数据'};
+      html += '<div style="margin-bottom:8px;"><b>识别结果：</b>' + (labelMap[fd.type] || fd.type) + ' (来源:' + (fd.source||'?') + ', 置信度:' + (fd.confidence != null ? Math.round(fd.confidence*100)+'%' : '?') + ')</div>';
+    } else {
+      html += '<div style="margin-bottom:8px;color:#dc2626;"><b>识别结果：</b>失败（无法识别文件类型）</div>';
+    }
+
+    // 交叉验证
+    var cv = data.cross_validation || {};
+    if (cv.winner) {
+      html += '<div style="margin-bottom:8px;"><b>裁决：</b>' + cv.winner + ' — ' + escapeHtml(cv.reason || '') + '</div>';
+    }
+
+    // 诊断建议
+    var suggestions = data.suggestions || [];
+    if (suggestions.length > 0) {
+      html += '<div style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:4px;border-left:3px solid #f59e0b;">';
+      html += '<div style="font-weight:600;color:#b45309;margin-bottom:6px;">诊断建议：</div>';
+      suggestions.forEach(function(s) {
+        html += '<div style="margin-bottom:8px;font-size:11px;">';
+        html += '<div style="color:#dc2626;font-weight:500;">⚠ ' + escapeHtml(s.issue || '') + '</div>';
+        html += '<div style="color:#666;">' + escapeHtml(s.detail || '') + '</div>';
+        html += '<div style="color:#059669;">💡 ' + escapeHtml(s.fix || '') + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // 关键词阶段
+    var kw = data.keyword_phase || {};
+    if (kw.matches && kw.matches.length > 0) {
+      html += '<details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--primary);font-size:12px;">关键词匹配 (' + kw.matches.length + '项)</summary>';
+      html += '<div style="font-size:11px;color:var(--gray-600);margin-top:4px;">';
+      kw.matches.forEach(function(m) {
+        html += '<div>· ' + m.fingerprint + ': 得分' + m.score + (m.matched_keywords ? ' (' + m.matched_keywords.slice(0,5).join(', ') + ')' : '') + '</div>';
+      });
+      html += '</div></details>';
+    }
+
+    // 结构分析阶段
+    var st = data.structure_phase || {};
+    if (st.candidates && st.candidates.length > 0) {
+      html += '<details style="margin-top:4px;"><summary style="cursor:pointer;color:var(--primary);font-size:12px;">结构分析候选 (' + st.candidates.length + '项)</summary>';
+      html += '<div style="font-size:11px;color:var(--gray-600);margin-top:4px;">';
+      st.candidates.forEach(function(c) {
+        html += '<div>· ' + c.type + ': ' + Math.round(c.confidence*100) + '% — Sheet[' + (c.sheet||'?') + '] ' + (c.rows||0) + '行</div>';
+      });
+      html += '</div></details>';
+    }
+
+    // 诊断事件
+    var diags = data.diagnostics || [];
+    if (diags.length > 0) {
+      html += '<details style="margin-top:4px;"><summary style="cursor:pointer;color:var(--gray-400);font-size:11px;">诊断事件日志 (' + diags.length + '条)</summary>';
+      html += '<div style="font-size:10px;color:var(--gray-500);margin-top:4px;max-height:120px;overflow-y:auto;">';
+      diags.forEach(function(d) {
+        html += '<div>[' + (d.source||'') + '] ' + escapeHtml(d.event || d.detail || '') + '</div>';
+      });
+      html += '</div></details>';
+    }
+
+    html += '</div></div>';
+    debugEl.innerHTML = html;
+    debugEl.style.display = 'block';
+  } catch(e) {
+    if (autoShow) {
+      debugEl.style.display = 'block';
+      debugEl.innerHTML = '<div style="color:var(--gray-500);font-size:12px;padding:8px;">诊断服务暂不可用</div>';
+    }
+  }
+}
+
+function showParseDebug() {
+  var debugEl = document.getElementById('mapping-debug');
+  if (!debugEl) return;
+  if (debugEl.style.display !== 'none' && debugEl.innerHTML) {
+    debugEl.style.display = 'none';
+    return;
+  }
+  fetchParseDebug(true);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
