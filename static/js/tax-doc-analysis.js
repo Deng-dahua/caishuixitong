@@ -414,6 +414,7 @@ function renderTaxDocReport(r) {
     }
     
     html += '</div>'; // end comprehensive wrapper
+  }
 
   // ── 处理流水 ──
   if (r.pipeline_log && r.pipeline_log.length > 0) {
