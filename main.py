@@ -13887,7 +13887,7 @@ def _run_analyze(company_id, db):
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200],
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
-            else f"17域+312规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
+            else f"29域+312规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
     }}
 
 # ═══════════ 报告复核函数 ═══════════

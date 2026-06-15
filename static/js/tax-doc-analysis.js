@@ -272,10 +272,10 @@ function renderTaxDocReport(r) {
     html += '</div>';
   }
 
-  // ── 17域分析结果 ──
+  // ── 29域分析结果 ──
   if (r.domain_summary && r.domain_summary.length > 0) {
     html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-      + '<b style="font-size:15px">🔍 17域分析结果</b>';
+      + '<b style="font-size:15px">🔍 29域分析结果</b>';
     r.domain_summary.forEach(function(dr) {
       if (!dr.findings || dr.findings.length === 0) return;
       var dColor = dr.high > 0 ? '#dc2626' : (dr.mid > 0 ? '#f59e0b' : '#059669');
