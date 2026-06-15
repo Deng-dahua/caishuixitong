@@ -373,12 +373,12 @@ function renderTaxDocReport(r) {
     // ═══ 区块2: 月度资金流向图 + 往来方表格 并排 ═══
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
     
-    // 左：资金流向图
+    // 左：资金流向折线图
     if (comp.cashflow && comp.cashflow.months && comp.cashflow.months.length > 0) {
       var cf = comp.cashflow;
       html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px">'
         + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:12px">月度资金流向</div>'
-        + '<svg viewBox="0 0 340 160" style="width:100%;height:auto">';
+        + '<svg viewBox="0 0 340 170" style="width:100%;height:auto">';
       
       // 网格线
       html += '<line x1="30" y1="140" x2="330" y2="140" stroke="'+GRAY300+'" stroke-width="0.5"/>';
@@ -386,32 +386,56 @@ function renderTaxDocReport(r) {
       html += '<line x1="30" y1="70" x2="330" y2="70" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
       html += '<line x1="30" y1="35" x2="330" y2="35" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
       
-      var barW = Math.max(8, Math.min(18, 280 / cf.months.length - 4));
-      var gap = (300 / cf.months.length);
+      var n = cf.months.length;
+      var gap = 300 / (n - 1 || 1);
       var maxV = 0;
-      for (var mi=0; mi<cf.months.length; mi++) maxV = Math.max(maxV, cf.income[mi], cf.expense[mi] + cf.tax[mi]);
+      for (var mi=0; mi<n; mi++) maxV = Math.max(maxV, cf.income[mi], cf.expense[mi], cf.tax[mi]);
       maxV = maxV || 1;
       
-      for (var mi=0; mi<cf.months.length; mi++) {
-        var x = 35 + mi * gap;
-        var h1 = Math.max(2, (cf.income[mi]/maxV)*130);
-        var h2 = Math.max(2, (cf.expense[mi]/maxV)*130);
-        var h3 = Math.max(1, (cf.tax[mi]/maxV)*130);
-        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h1)+'" width="'+barW+'" height="'+h1+'" fill="'+BLUE+'" opacity="0.20" rx="1"/>';
-        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h1)+'" width="'+barW+'" height="2" fill="'+BLUE+'" opacity="0.60" rx="1"/>';
-        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h2-h3)+'" width="'+barW+'" height="'+h2+'" fill="'+NAVY+'" opacity="0.35" rx="1"/>';
-        html += '<rect x="'+(x-barW/2)+'" y="'+(140-h2-h3)+'" width="'+barW+'" height="2" fill="'+NAVY+'" opacity="0.70" rx="1"/>';
-        if (h3 > 0.5) {
-          html += '<rect x="'+(x-barW/2)+'" y="'+(140-h3)+'" width="'+barW+'" height="'+h3+'" fill="#f59e0b" opacity="0.50" rx="1"/>';
+      // 计算点坐标的函数
+      function px(i) { return 30 + i * gap; }
+      function py(v) { return 140 - (v / maxV) * 120; }
+      
+      // 生成折线路径
+      function linePath(values) {
+        var p = '';
+        for (var i = 0; i < n; i++) {
+          var v = values[i] || 0;
+          p += (i === 0 ? 'M' : 'L') + px(i).toFixed(1) + ',' + py(v).toFixed(1) + ' ';
         }
+        return p;
+      }
+      
+      // 收入折线（蓝）
+      html += '<path d="'+linePath(cf.income)+'" fill="none" stroke="'+BLUE+'" stroke-width="2" stroke-linejoin="round" opacity="0.8"/>';
+      for (var mi=0; mi<n; mi++) {
+        html += '<circle cx="'+px(mi)+'" cy="'+py(cf.income[mi])+'" r="3" fill="'+BLUE+'"/>';
+      }
+      
+      // 支出折线（深蓝）
+      html += '<path d="'+linePath(cf.expense)+'" fill="none" stroke="'+NAVY+'" stroke-width="2" stroke-linejoin="round" opacity="0.8"/>';
+      for (var mi=0; mi<n; mi++) {
+        html += '<circle cx="'+px(mi)+'" cy="'+py(cf.expense[mi])+'" r="3" fill="'+NAVY+'"/>';
+      }
+      
+      // 缴税折线（琥珀）
+      html += '<path d="'+linePath(cf.tax)+'" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2" stroke-linejoin="round" opacity="0.8"/>';
+      for (var mi=0; mi<n; mi++) {
+        if (cf.tax[mi] > 0) {
+          html += '<circle cx="'+px(mi)+'" cy="'+py(cf.tax[mi])+'" r="3" fill="#f59e0b"/>';
+        }
+      }
+      
+      // 月度标签
+      for (var mi=0; mi<n; mi++) {
         var mLabel = cf.months[mi].substring(5);
-        html += '<text x="'+x+'" y="154" text-anchor="middle" font-size="8" fill="'+GRAY600+'">'+mLabel+'</text>';
+        html += '<text x="'+px(mi)+'" y="162" text-anchor="middle" font-size="8" fill="'+GRAY600+'">'+mLabel+'</text>';
       }
       html += '</svg>'
         + '<div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:'+GRAY600+'">'
-        + '<span><span style="display:inline-block;width:8px;height:8px;background:'+BLUE+';opacity:0.6;border-radius:2px;margin-right:3px"></span>收入</span>'
-        + '<span><span style="display:inline-block;width:8px;height:8px;background:'+NAVY+';opacity:0.7;border-radius:2px;margin-right:3px"></span>支出</span>'
-        + '<span><span style="display:inline-block;width:8px;height:8px;background:#f59e0b;opacity:0.5;border-radius:2px;margin-right:3px"></span>缴税</span>'
+        + '<span><span style="display:inline-block;width:12px;height:2px;background:'+BLUE+';margin-right:3px;vertical-align:middle"></span>收入</span>'
+        + '<span><span style="display:inline-block;width:12px;height:2px;background:'+NAVY+';margin-right:3px;vertical-align:middle"></span>支出</span>'
+        + '<span><span style="display:inline-block;width:12px;height:2px;background:#f59e0b;margin-right:3px;vertical-align:middle;border-top:2px dashed #f59e0b"></span>缴税</span>'
         + '</div></div>';
     }
     
