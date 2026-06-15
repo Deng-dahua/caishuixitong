@@ -9899,7 +9899,7 @@ _FILE_FINGERPRINTS = {
     "invoice_universal": {
         "keywords": ["发票号码", "发票代码", "数电发票号码", "发票类型", "开票日期",
                      "金额", "税额", "价税合计", "税率", "货物或应税劳务名称",
-                     "规格型号", "单位", "数量", "单价", "不含税金额", "含税金额",
+                     "规格型号", "数量", "单价", "不含税金额", "含税金额",
                      "税收分类编码", "商品和服务税收分类编码", "备注", "收款人", "复核人",
                      "开票人", "发票状态", "作废标志", "红字发票", "原发票号码"],
         "score_threshold": 4,
@@ -10196,8 +10196,9 @@ def _parse_housing_fund_sheet(sheet, header):
     cols = _find_cols(header, {
         "人员": "name", "姓名": "name", "证件号码": "id_card",
         "缴存基数": "base", "缴存比例": "ratio",
-        "单位缴存": "company_pay", "个人缴存": "personal_pay",
-        "月缴存额": "total_pay", "缴存人数": "count",
+        "单位缴存额": "company_pay", "个人缴存额": "personal_pay",
+        "月缴存额": "total_pay", "缴存额": "total_pay",
+        "缴存人数": "count",
         "公积金账号": "hf_account", "个人账号": "personal_account",
     })
     if not cols: return None
@@ -10350,11 +10351,24 @@ def _get_row_values(sheet, row_idx):
         return []
 
 def _find_cols(header, mapping):
+    """列名映射：精确匹配优先，否则选最短（最精确）的标题。
+    避免"单位缴存"误匹配"单位缴存比例"而非"单位缴存额"。
+    """
     cols = {}
     for keyword, field in mapping.items():
+        best_i = None
+        best_len = 999
         for i, h in enumerate(header):
-            if keyword in str(h).strip():
-                cols[field] = i; break
+            hs = str(h).strip()
+            if keyword in hs:
+                if hs == keyword:          # 精确匹配直接锁定
+                    best_i = i
+                    break
+                if len(hs) < best_len:     # 否则选最短标题
+                    best_len = len(hs)
+                    best_i = i
+        if best_i is not None:
+            cols[field] = best_i
     return cols
 
 def _parse_invoice_sheet(sheet, direction):
