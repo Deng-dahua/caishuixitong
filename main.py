@@ -10313,6 +10313,24 @@ def _parse_by_content(names, get_sheet):
         
         return result
     
+    # ═══════════════ 兜底层：纯内容结构分析 ═══════════════
+    # 关键词匹配失败——表头不认识、没有文件名、没有Sheet名
+    # 但人不需要标签也能理解数据：看列的类型、分布、形状
+    best_struct = None
+    best_struct_conf = 0
+    for i in range(len(names)):
+        try:
+            s = get_sheet(i)
+            struct_result = _parse_by_structure_only(s)
+            if struct_result and struct_result.get("confidence", 0) > best_struct_conf:
+                best_struct = struct_result
+                best_struct_conf = struct_result.get("confidence", 0)
+        except:
+            pass
+    
+    if best_struct and best_struct_conf >= 0.60:
+        return best_struct
+    
     return None
 
 # ── 数据清洗：跳过小计/合计/空行/重复表头 ──
@@ -10370,6 +10388,679 @@ def _find_cols(header, mapping):
         if best_i is not None:
             cols[field] = best_i
     return cols
+
+# ═══════════════ 纯内容结构分析层 ═══════════════
+# 核心哲学：不看文件名、不看Sheet名、不看表头关键词 —— 只看数据本身的形状、类型、分布、关联
+# 人看到一个表：日期列 + 金额列 + 对方户名列 → 就知道是银行流水
+# 人看到一个表：姓名列 + 身份证号 + 多列金额 → 就知道是工资表
+# 下面就是把人的这个直觉，翻译成代码
+
+import re
+
+def _classify_cell_type(val_str):
+    """分类单个单元格的值类型。返回 (type, normalized_value)"""
+    v = val_str.strip() if val_str else ""
+    if not v or v in ("None", "nan", "N/A", "-", "/", "——", "..."):
+        return ("empty", None)
+    
+    # ── 日期检测 ──
+    # 2025-01-15, 2025/01/15, 2025.01.15, 20250115, 2025年1月15日
+    date_patterns = [
+        r'^\d{4}[-/\.]\d{1,2}[-/\.]\d{1,2}$',
+        r'^\d{8}$',  # 20250115
+        r'^\d{4}年\d{1,2}月\d{1,2}日?$',
+        r'^\d{1,2}[-/\.]\d{1,2}[-/\.]\d{4}$',  # 01/15/2025
+    ]
+    for pat in date_patterns:
+        if re.match(pat, v):
+            return ("date", v)
+    # 也检测看起来像日期的纯数字（在合理范围内）
+    if v.isdigit() and len(v) == 8:
+        try:
+            y, m, d = int(v[:4]), int(v[4:6]), int(v[6:8])
+            if 2020 <= y <= 2030 and 1 <= m <= 12 and 1 <= d <= 31:
+                return ("date", v)
+        except: pass
+    
+    # ── 身份证号 ──
+    if re.match(r'^\d{17}[\dXx]$', v):
+        return ("id_card", v)
+    
+    # ── 金额/数字检测 ──
+    v_clean = v.replace(",", "").replace("，", "").replace("￥", "").replace("¥", "").replace(" ", "")
+    try:
+        n = float(v_clean)
+        if n == int(n) and abs(n) < 1e10:
+            n = int(n)
+        
+        # 百分比：0-1 或 0-100 范围
+        if 0 < n <= 1 and len(v_clean.replace(".", "")) <= 3:
+            return ("percentage", n)
+        if 0 < n <= 100 and any(p in v for p in ["%", "％"]):
+            return ("percentage", n / 100.0)
+        
+        # 小整数（序号/计数）
+        if isinstance(n, int) and 1 <= n <= 100 and v_clean.isdigit():
+            return ("count", n)
+        
+        # 金额：一般 > 0，可以是整数或小数
+        return ("amount", n)
+    except ValueError:
+        pass
+    
+    # ── 税率/比例（无百分号但看起来像） ──
+    if re.match(r'^0?\.\d{1,4}$', v_clean):
+        try:
+            n = float(v_clean)
+            if 0 < n < 1:
+                return ("percentage", n)
+        except: pass
+    
+    # ── 编码类（发票代码、合同编号等） ──
+    if re.match(r'^\d{10,20}$', v):
+        return ("code", v)
+    if re.match(r'^\d{5,9}$', v):
+        return ("code", v)
+    if re.match(r'^[A-Za-z0-9]{6,}$', v) and any(c.isalpha() for c in v):
+        return ("code", v)
+    
+    # ── 人名检测（2-4个中文字符） ──
+    if re.match(r'^[\u4e00-\u9fff]{2,4}$', v):
+        return ("person_name", v)
+    
+    # ── 公司名/长文本 ──
+    if re.match(r'^[\u4e00-\u9fff]{5,}', v) and any(k in v for k in ["公司", "集团", "企业", "中心", "有限", "股份"]):
+        return ("company_name", v)
+    
+    # ── 较长的中文文本 ──
+    if re.match(r'^[\u4e00-\u9fff]{5,}', v):
+        return ("text_cn", v)
+    
+    # ── 纯中文短词（科目名称、费用类别等） ──
+    if re.match(r'^[\u4e00-\u9fff]{2,6}$', v):
+        return ("short_cn", v)
+    
+    # ── 其他文本 ──
+    if len(v) > 0:
+        return ("text", v)
+    
+    return ("empty", None)
+
+
+def _profile_sheet_columns(sheet):
+    """纯内容结构分析：不看表头，只看数据列的类型和分布。
+    返回: {
+        'total_rows': int, 'col_count': int,
+        'columns': [{type_distribution: {...}, dominant_type: str, sample_values: [...], ...}],
+        'signature': str   # 如 "date|amount|amount|text|text|amount"
+    }
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else (sheet.max_row or 1)
+    if nrows < 2: return None
+    
+    # 先用前几行找到真正的表头行（跳过标题）
+    # 表头特征：文本多、数字/日期少、各行下面都有数据
+    header_row = 0
+    max_data_start = min(10, nrows)
+    best_data_score = -1
+    best_text_score = -1
+    
+    for candidate_header in range(max_data_start):
+        # 1. 看下面行有多少数据
+        data_score = 0
+        for dr in range(candidate_header + 1, min(candidate_header + 6, nrows)):
+            row_vals = _get_row_values(sheet, dr)
+            non_empty = sum(1 for v in row_vals if v and str(v).strip())
+            if non_empty >= 2:
+                data_score += non_empty
+        
+        # 2. 当前行本身的"表头特征"分：文本多得分高，数字/日期多扣分
+        header_vals = _get_row_values(sheet, candidate_header)
+        text_score = 0
+        non_empty_count = 0
+        for v in header_vals:
+            if not v or str(v).strip() in ("", "None", "nan"):
+                continue
+            non_empty_count += 1
+            t, _ = _classify_cell_type(str(v))
+            if t in ("text", "text_cn", "short_cn", "person_name", "company_name"):
+                text_score += 2  # 文本 = 表头信号
+            elif t in ("date", "amount", "code", "percentage", "count", "id_card"):
+                text_score -= 1  # 数字/日期 = 不是表头
+        
+        # 综合评分：数据要好，文本特征更要强
+        combined = data_score * 0.5 + text_score * 2 + (1 if candidate_header <= 1 else 0) * 3
+        if combined > best_data_score:
+            best_data_score = combined
+            best_text_score = text_score
+            header_row = candidate_header
+    
+    # 跳过表头和空行，取样本数据（最多100行）
+    sample_rows = []
+    sample_start = header_row + 1
+    for r in range(sample_start, min(nrows, sample_start + 100)):
+        row_vals = _get_row_values(sheet, r)
+        if _is_summary_row(row_vals): continue
+        if _is_repeat_header(row_vals, _get_row_values(sheet, header_row)): continue
+        # 至少2个非空值
+        non_empty = [str(v).strip() for v in row_vals if v and str(v).strip() not in ("None", "nan")]
+        if len(non_empty) >= 2:
+            sample_rows.append(row_vals)
+    
+    if len(sample_rows) < 2:
+        return None
+    
+    # 确定列数（取最大值）
+    col_count = max(len(r) for r in sample_rows) if sample_rows else 0
+    if col_count == 0:
+        return None
+    
+    # 对每一列进行类型分析
+    columns = []
+    for c in range(col_count):
+        values = []
+        for r in sample_rows:
+            if c < len(r) and r[c]:
+                values.append(str(r[c]).strip())
+        if not values:
+            columns.append({"dominant_type": "empty", "non_empty": 0, "dominant_ratio": 0, "numeric_rate": 0})
+            continue
+        
+        # 统计类型分布
+        type_counts = {}
+        type_samples = {}
+        for v in values:
+            t, norm = _classify_cell_type(v)
+            type_counts[t] = type_counts.get(t, 0) + 1
+            if t not in type_samples and norm is not None:
+                type_samples[t] = norm
+        
+        total = len(values)
+        non_empty_total = sum(c for t, c in type_counts.items() if t != "empty")
+        
+        # 找主导类型（占比最高的非empty类型）
+        dominant = "text"
+        dominant_ratio = 0
+        for t, c in sorted(type_counts.items(), key=lambda x: -x[1]):
+            if t == "empty": continue
+            ratio = c / max(non_empty_total, 1)
+            if ratio > dominant_ratio:
+                dominant = t
+                dominant_ratio = ratio
+        
+        # 纯数字率（amount + percentage + count + code）
+        numeric_rate = sum(type_counts.get(t, 0) for t in ["amount", "percentage", "count"]) / max(total, 1)
+        
+        columns.append({
+            "dominant_type": dominant,
+            "dominant_ratio": round(dominant_ratio, 2),
+            "type_distribution": {t: c for t, c in type_counts.items() if t != "empty"},
+            "non_empty": non_empty_total,
+            "numeric_rate": round(numeric_rate, 2),
+            "samples": [type_samples.get(dominant)],
+        })
+    
+    # 生成结构签名
+    signature_parts = []
+    for col in columns:
+        if col["dominant_type"] == "empty" or col.get("non_empty", 0) == 0:
+            continue  # 跳过全空列
+        sig = col["dominant_type"][:4]  # 缩写
+        if col.get("dominant_ratio", 0) < 0.5:
+            sig = "mixed"
+        signature_parts.append(sig)
+    signature = "|".join(signature_parts)
+    
+    # 统计有效数据行数
+    valid_rows = 0
+    for r in range(sample_start, min(nrows, sample_start + 200)):
+        row_vals = _get_row_values(sheet, r)
+        if not _is_summary_row(row_vals):
+            non_empty = [v for v in row_vals if v and str(v).strip() not in ("None", "nan")]
+            if len(non_empty) >= 2:
+                valid_rows += 1
+    
+    return {
+        "total_rows": valid_rows,
+        "col_count": col_count,
+        "columns": columns,
+        "signature": signature,
+    }
+
+
+# ═══════════════ 结构签名 → 业务类型 映射表 ═══════════════
+# 这是核心：人看到一个表的数据形状，就能判断它是什么
+# 评分策略：每种类型有独特的加分项和扣分项，确保区分度
+_STRUCTURAL_PATTERNS = [
+    # ═══ 银行流水 ═══
+    # 核心特征：date列 + 对方户名(文本列) + 多个金额列 + 大量数据行
+    # 与科目余额表区分：前者有日期、有文本(户名/摘要)，后者无日期、有更多金额列
+    {
+        "type": "bank_statement",
+        "col_count_range": (4, 25),
+        "min_rows": 5,
+        "required_types": ["date", "amount"],
+        "min_amount_cols": 2,
+        "bonus": {
+            "has_date": 4,           # 必须有日期
+            "has_text": 2,           # 对方户名/摘要
+            "many_rows": 3,          # rows >= 10
+            "has_person_or_company": 1,  # 对方户名是人名或公司名
+        },
+        "penalty": {
+            "too_many_amount_cols": (8, -3),  # amount列太多→可能是科目余额表
+            "has_percentage": -2,     # 银行流水不应有百分比
+            "has_id_card": -2,        # 银行流水不应有身份证
+        },
+        "confidence": 0.85,
+    },
+    # ═══ 工资薪金 ═══
+    # 核心特征：大量列(15-50)、大量amount列(>10)、身份证号、人名
+    {
+        "type": "salary",
+        "col_count_range": (10, 60),
+        "min_rows": 1,
+        "required_types": ["amount"],
+        "min_amount_cols": 4,
+        "bonus": {
+            "has_id_card": 6,         # 身份证号=极强信号
+            "many_amount_cols": 5,    # amount>=15列
+            "has_person_name": 2,     # 人名
+            "high_col_count": 2,      # 列数>=20
+        },
+        "penalty": {
+            "has_code": -2,           # 编码列→可能不是工资
+            "has_percentage": -1,     # 工资可能有百分比(税率)但不强
+        },
+        "confidence": 0.80,
+    },
+    # ═══ 发票（进项/销项） ═══
+    # 核心特征：编码列(inv_code) + 日期 + 金额 + 税额 + 公司名
+    {
+        "type": "invoice",
+        "col_count_range": (5, 40),
+        "min_rows": 1,
+        "required_types": ["amount"],
+        "min_amount_cols": 2,
+        "bonus": {
+            "has_code": 5,            # 发票代码/号码=极强信号
+            "has_date": 3,            # 开票日期
+            "has_company": 3,         # 购买方/销售方名称
+            "has_amount_tax_pair": 2, # 金额+税额配对
+            "has_percentage": 1,      # 税率
+        },
+        "penalty": {
+            "has_id_card": -3,        # 发票不应有身份证
+            "many_person_names": -2,  # 多个人名→不是发票
+        },
+        "confidence": 0.85,
+    },
+    # ═══ 社保 ═══
+    # 核心特征：人名+身份证+多列amount(各险种) + 列数8-45
+    {
+        "type": "social_security",
+        "col_count_range": (8, 50),
+        "min_rows": 1,
+        "required_types": ["amount"],
+        "min_amount_cols": 4,
+        "bonus": {
+            "has_id_card": 4,
+            "has_person_name": 3,
+            "many_amount_cols": 3,    # amount>=6
+            "high_col_count": 2,      # 列数>=15
+        },
+        "penalty": {
+            "has_code": -2,
+            "has_date": -1,           # 社保表通常没有日期列
+            "has_company": -2,
+        },
+        "confidence": 0.75,
+    },
+    # ═══ 公积金 ═══
+    # 核心特征：少列(6-12)、人名+身份证、基数+百分比+金额、数学关系可验证
+    {
+        "type": "housing_fund",
+        "col_count_range": (5, 15),
+        "min_rows": 1,
+        "required_types": ["amount"],
+        "min_amount_cols": 3,
+        "bonus": {
+            "has_percentage": 6,      # 公积金必有缴存比例=极强信号
+            "has_person_name": 3,     # 人名
+            "has_id_card": 3,         # 身份证
+            "low_col_count": 3,       # 列少(<=12)且紧凑
+            "amounts_match_ratio": 4, # base*ratio ≈ company/personal_pay
+        },
+        "penalty": {
+            "has_code": -3,
+            "has_date": -2,
+            "has_company": -3,
+            "high_col_count": -2,     # 列>=15→不太可能是公积金
+        },
+        "confidence": 0.80,
+    },
+    # ═══ 科目余额表 ═══
+    # 核心特征：无日期、>=4个amount列、>=10行
+    {
+        "type": "trial_balance",
+        "col_count_range": (5, 20),
+        "min_rows": 5,
+        "required_types": ["amount"],
+        "min_amount_cols": 4,
+        "bonus": {
+            "many_amount_cols": 4,    # 5个以上amount列
+            "no_date": 2,             # 无日期=科目余额表的特征
+            "many_rows": 2,           # rows>=20
+        },
+        "penalty": {
+            "has_date": -4,           # 有日期→不是科目余额表
+            "has_id_card": -3,
+            "has_percentage": -2,
+        },
+        "confidence": 0.75,
+    },
+    # ═══ 合同清单 ═══
+    {
+        "type": "contract_list",
+        "col_count_range": (5, 25),
+        "min_rows": 1,
+        "required_types": ["amount"],
+        "min_amount_cols": 1,
+        "bonus": {
+            "has_code": 3,
+            "has_date": 3,
+            "has_company": 2,
+        },
+        "penalty": {
+            "has_id_card": -2,
+            "has_percentage": -1,
+        },
+        "confidence": 0.70,
+    },
+    # ═══ 费用明细 ═══
+    {
+        "type": "expense_detail",
+        "col_count_range": (3, 20),
+        "min_rows": 3,
+        "required_types": ["amount"],
+        "min_amount_cols": 1,
+        "max_amount_cols": 4,
+        "bonus": {
+            "has_date": 2,
+            "has_text": 2,
+        },
+        "penalty": {
+            "has_id_card": -2,
+            "has_percentage": -1,
+        },
+        "confidence": 0.65,
+    },
+]
+
+
+def _match_structural_pattern(profile):
+    """根据数据结构签名匹配业务类型。返回 [(type, confidence), ...]
+    新评分系统：每种类型有独特的 bonus（加分项）和 penalty（扣分项），确保区分度。
+    """
+    if not profile: return []
+    
+    cols = profile["columns"]
+    total_rows = profile.get("total_rows", 0)
+    col_count = profile["col_count"]
+    
+    # 列类型统计
+    type_counts = {}
+    amount_cols = 0
+    has_date = False
+    has_percentage = False
+    has_person_name = False
+    has_id_card = False
+    has_code = False
+    has_text = False
+    has_company = False
+    person_name_count = 0
+    
+    for col in cols:
+        t = col["dominant_type"]
+        type_counts[t] = type_counts.get(t, 0) + 1
+        if t in ("amount",): amount_cols += 1
+        if t == "date": has_date = True
+        if t == "percentage": has_percentage = True
+        if t == "person_name":
+            has_person_name = True
+            person_name_count += 1
+        if t == "id_card": has_id_card = True
+        if t == "code": has_code = True
+        if t in ("text", "text_cn"): has_text = True
+        if t == "company_name": has_company = True
+    
+    # 额外特征：金额+税额配对（发票特征）
+    has_amount_tax_pair = amount_cols >= 2 and has_percentage
+    
+    # 公积金数学关系验证
+    amounts_match_ratio = False
+    if has_percentage and amount_cols >= 3 and has_person_name:
+        # 找金额列和百分比列，看 sample 中是否有 base*ratio≈其他金额列
+        try:
+            pct_samples = []
+            amt_samples = []
+            for col in cols:
+                if col["dominant_type"] == "percentage" and col.get("samples"):
+                    pct_samples.extend([s for s in col["samples"] if isinstance(s, (int, float)) and 0 < s <= 1])
+                if col["dominant_type"] == "amount" and col.get("samples"):
+                    amt_samples.extend([s for s in col["samples"] if isinstance(s, (int, float)) and s > 0])
+            if pct_samples and amt_samples:
+                for pct in pct_samples[:2]:
+                    for amt in amt_samples[:3]:
+                        if amt > 0 and pct > 0:
+                            expected = round(amt * pct, 2)
+                            for other_amt in amt_samples[:5]:
+                                if other_amt != amt and abs(other_amt - expected) < max(1, expected * 0.05):
+                                    amounts_match_ratio = True
+                                    break
+                            if amounts_match_ratio: break
+                    if amounts_match_ratio: break
+        except:
+            pass
+    
+    candidates = []
+    
+    for pattern in _STRUCTURAL_PATTERNS:
+        score = 0
+        reasons = []
+        
+        # ── 基础条件检查 ──
+        lo, hi = pattern.get("col_count_range", (1, 999))
+        if not (lo <= col_count <= hi):
+            continue  # 列数不匹配直接跳过
+        
+        if total_rows < pattern.get("min_rows", 0):
+            continue  # 行数不够直接跳过
+        
+        req_types = pattern.get("required_types", [])
+        if not all(type_counts.get(t, 0) > 0 for t in req_types):
+            continue  # 必需类型缺失直接跳过
+        
+        min_amt = pattern.get("min_amount_cols", 0)
+        if amount_cols < min_amt:
+            continue
+        
+        max_amt = pattern.get("max_amount_cols", 999)
+        if amount_cols > max_amt:
+            continue
+        
+        # ── 基础分（通过基础条件的奖励） ──
+        score = 3  # 基础分
+        
+        # ── Bonus 加分项 ──
+        bonus = pattern.get("bonus", {})
+        if bonus.get("has_date") and has_date:
+            score += bonus["has_date"]
+            reasons.append(f"has_date+{bonus['has_date']}")
+        if bonus.get("has_text") and has_text:
+            score += bonus["has_text"]
+            reasons.append(f"has_text+{bonus['has_text']}")
+        if bonus.get("many_rows") and total_rows >= 10:
+            score += bonus["many_rows"]
+            reasons.append(f"many_rows+{bonus['many_rows']}")
+        if bonus.get("has_person_or_company") and (has_person_name or has_company):
+            score += bonus["has_person_or_company"]
+        if bonus.get("has_id_card") and has_id_card:
+            score += bonus["has_id_card"]
+            reasons.append(f"has_id_card+{bonus['has_id_card']}")
+        if bonus.get("has_person_name") and has_person_name:
+            score += bonus["has_person_name"]
+            reasons.append(f"has_person+{bonus['has_person_name']}")
+        if bonus.get("many_amount_cols"):
+            threshold = 15 if pattern["type"] == "salary" else (6 if pattern["type"] == "social_security" else 5)
+            if amount_cols >= threshold:
+                score += bonus["many_amount_cols"]
+                reasons.append(f"many_amt_cols({amount_cols})+{bonus['many_amount_cols']}")
+        if bonus.get("high_col_count") and col_count >= 15:
+            score += bonus["high_col_count"]
+            reasons.append(f"high_cols({col_count})+{bonus['high_col_count']}")
+        if bonus.get("has_code") and has_code:
+            score += bonus["has_code"]
+            reasons.append(f"has_code+{bonus['has_code']}")
+        if bonus.get("has_company") and has_company:
+            score += bonus["has_company"]
+            reasons.append(f"has_company+{bonus['has_company']}")
+        if bonus.get("has_amount_tax_pair") and has_amount_tax_pair:
+            score += bonus["has_amount_tax_pair"]
+            reasons.append(f"amt_tax_pair+{bonus['has_amount_tax_pair']}")
+        if bonus.get("has_percentage") and has_percentage:
+            score += bonus["has_percentage"]
+            reasons.append(f"has_pct+{bonus['has_percentage']}")
+        if bonus.get("low_col_count") and col_count <= 12:
+            score += bonus["low_col_count"]
+            reasons.append(f"low_cols({col_count})+{bonus['low_col_count']}")
+        if bonus.get("amounts_match_ratio") and amounts_match_ratio:
+            score += bonus["amounts_match_ratio"]
+            reasons.append(f"ratio_match+{bonus['amounts_match_ratio']}")
+        if bonus.get("no_date") and not has_date:
+            score += bonus["no_date"]
+            reasons.append(f"no_date+{bonus['no_date']}")
+        
+        # ── Penalty 扣分项 ──
+        penalty = pattern.get("penalty", {})
+        if penalty.get("too_many_amount_cols"):
+            limit, pts = penalty["too_many_amount_cols"]
+            if amount_cols > limit:
+                score += pts
+                reasons.append(f"too_many_amt({amount_cols}>{limit}){pts}")
+        if penalty.get("has_percentage") and has_percentage:
+            score += penalty["has_percentage"]
+            reasons.append(f"has_pct{penalty['has_percentage']}")
+        if penalty.get("has_id_card") and has_id_card:
+            score += penalty["has_id_card"]
+            reasons.append(f"has_id_card{penalty['has_id_card']}")
+        if penalty.get("has_code") and has_code:
+            score += penalty["has_code"]
+            reasons.append(f"has_code{penalty['has_code']}")
+        if penalty.get("has_date") and has_date:
+            score += penalty["has_date"]
+            reasons.append(f"has_date{penalty['has_date']}")
+        if penalty.get("has_company") and has_company:
+            score += penalty["has_company"]
+            reasons.append(f"has_company{penalty['has_company']}")
+        if penalty.get("high_col_count") and col_count >= 15:
+            score += penalty["high_col_count"]
+            reasons.append(f"high_cols{penalty['high_col_count']}")
+        if penalty.get("many_person_names") and person_name_count >= 3:
+            score += penalty["many_person_names"]
+            reasons.append(f"many_persons({person_name_count}){penalty['many_person_names']}")
+        
+        # ── 最终得分 → 置信度 ──
+        # score 越大越确信，base_confidence 是底分
+        base_conf = pattern["confidence"]
+        adj_conf = min(0.99, base_conf + max(0, score - 3) * 0.025)
+        # score < 0 → 即使基础条件通过，也不可信
+        if score < 1:
+            adj_conf = base_conf * 0.6
+        
+        candidates.append({
+            "type": pattern["type"],
+            "confidence": round(adj_conf, 4),
+            "score": score,
+            "reasons": reasons,
+        })
+    
+    # 按 (置信度降序, 得分降序) 排列 —— 同置信度时得分高的排前面
+    candidates.sort(key=lambda x: (-x["confidence"], -x["score"]))
+    
+    return candidates[:5]
+
+
+def _parse_by_structure_only(sheet):
+    """纯靠数据结构识别并解析，完全不依赖表头和关键词。
+    当 _parse_by_content 的关键词匹配失败时，调用此函数作为兜底。
+    """
+    profile = _profile_sheet_columns(sheet)
+    if not profile:
+        return None
+    
+    candidates = _match_structural_pattern(profile)
+    if not candidates or candidates[0]["confidence"] < 0.60:
+        return None
+    
+    best = candidates[0]
+    ftype = best["type"]
+    
+    # 找到真正的表头行（文本多=表头，数字多=数据）
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else (sheet.max_row or 1)
+    header_row = 0
+    best_data_score = -1
+    for candidate_header in range(min(10, nrows)):
+        data_score = 0
+        for dr in range(candidate_header + 1, min(candidate_header + 6, nrows)):
+            row_vals = _get_row_values(sheet, dr)
+            non_empty = sum(1 for v in row_vals if v and str(v).strip())
+            if non_empty >= 2:
+                data_score += non_empty
+        header_vals = _get_row_values(sheet, candidate_header)
+        text_score = 0
+        for v in header_vals:
+            if not v or str(v).strip() in ("", "None", "nan"): continue
+            t, _ = _classify_cell_type(str(v))
+            if t in ("text", "text_cn", "short_cn", "person_name", "company_name"):
+                text_score += 2
+            elif t in ("date", "amount", "code", "percentage", "count", "id_card"):
+                text_score -= 1
+        combined = data_score * 0.5 + text_score * 2 + (1 if candidate_header <= 1 else 0) * 3
+        if combined > best_data_score:
+            best_data_score = combined
+            header_row = candidate_header
+    
+    header = _get_row_values(sheet, header_row)
+    
+    # 根据业务类型构建通用解析结果
+    rows = []
+    data_start = header_row + 1
+    for r in range(data_start, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        if _is_summary_row(raw_vals): continue
+        if _is_repeat_header(raw_vals, header): continue
+        
+        vals = {}
+        for i, v in enumerate(raw_vals):
+            col_type, norm_val = _classify_cell_type(str(v))
+            key = header[i] if i < len(header) and header[i] else f"col_{i}"
+            vals[key] = norm_val if norm_val is not None else str(v).strip()
+        
+        non_empty = sum(1 for v in vals.values() if v not in ("", None, 0, "0"))
+        if non_empty >= 2:
+            rows.append(vals)
+    
+    if not rows:
+        return None
+    
+    return {
+        "type": ftype,
+        "rows": rows,
+        "confidence": best["confidence"],
+        "source": "structure",  # 标记来源：结构分析
+    }
+
 
 def _parse_invoice_sheet(sheet, direction):
     header = _get_row_values(sheet, 1)
