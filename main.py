@@ -9862,88 +9862,167 @@ def _parse_excel_structured(filepath, ext):
 # ── 资料类型特征库（列名关键词+得分）──
 # 覆盖税务稽查所需的所有资料类型，纯内容识别，不依赖Sheet名
 _FILE_FINGERPRINTS = {
-    # ═══ 基础财务类 ═══
+    # ══════════ 第一梯队：高频核心类型（用户最常上传）══════════
+    "bank_statement": {
+        "keywords": ["对方户名", "对方账号", "对方行名", "对方开户行", "交易日期", "记账日期",
+                     "收入金额", "支出金额", "贷方金额", "借方金额", "本次余额", "交易余额",
+                     "流水号", "交易流水号", "凭证号", "交易行名", "借贷标志", "借贷",
+                     "交易金额", "发生额", "币种", "起息日", "柜员号", "网点号"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_bank_sheet(s),
+        "secondary": ["摘要", "用途", "附言", "备注", "对方", "收入", "支出", "余额"],
+    },
     "salary": {
         "keywords": ["本期收入", "应纳税所得额", "代扣个税", "实发工资", "应发工资",
                      "专项扣除", "基本养老保险", "基本医疗保险", "住房公积金", "累计预扣预缴",
-                     "子女教育", "住房贷款利息", "赡养老人", "继续教育", "大病医疗"],
+                     "子女教育", "住房贷款利息", "赡养老人", "继续教育", "大病医疗",
+                     "累计收入", "累计减除费用", "累计专项扣除", "累计应纳税额", "已预缴税额",
+                     "应补退税额", "基本扣除", "其他扣除", "准予扣除的捐赠额", "减免税额",
+                     "税款负担方式", "所得项目", "收入额", "费用", "免税收入"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_salary_sheet(s)
     },
     "sales_invoice": {
         "keywords": ["购方名称", "购方税号", "购方开户行", "购买方名称", "购买方纳税人识别号",
-                     "购方地址", "购方电话"],
+                     "购方地址", "购方电话", "购方银行账号", "购买方地址", "购买方电话",
+                     "购买方开户行", "购买方银行账号"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_invoice_sheet(s, "销项")
     },
     "purchase_invoice": {
         "keywords": ["销方名称", "销方税号", "销售方名称", "供应商名称", "销方地址",
-                     "销方开户行", "销方银行账号"],
+                     "销方开户行", "销方银行账号", "销售方税号", "销售方地址", "销售方电话",
+                     "销售方开户行", "销售方银行账号", "供方名称", "供方税号"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
     },
     "invoice_universal": {
         "keywords": ["发票号码", "发票代码", "数电发票号码", "发票类型", "开票日期",
-                     "金额", "税额", "价税合计", "税率", "货物或应税劳务名称", "*"],
+                     "金额", "税额", "价税合计", "税率", "货物或应税劳务名称",
+                     "规格型号", "单位", "数量", "单价", "不含税金额", "含税金额",
+                     "税收分类编码", "商品和服务税收分类编码", "备注", "收款人", "复核人",
+                     "开票人", "发票状态", "作废标志", "红字发票", "原发票号码"],
         "score_threshold": 4,
         "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
     },
     "voucher": {
-        "keywords": ["凭证号", "凭证编号", "科目名称", "科目编号", "摘要"],
+        "keywords": ["凭证号", "凭证编号", "科目名称", "科目编号", "摘要", "会计科目",
+                     "明细科目", "记账凭证", "凭证日期", "制单人", "审核人", "记账人"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_voucher_sheet(s),
-        "secondary": ["借方金额", "借方", "贷方金额", "贷方", "借方合计"],
-        "secondary_threshold": 1,
+        "secondary": ["借方金额", "借方", "贷方金额", "贷方", "借方合计", "贷方合计",
+                      "金额", "附件", "结算方式", "结算号", "票号", "发生日期"],
     },
     "social_security": {
         "keywords": ["缴费基数", "单位缴纳", "个人缴纳", "养老保险", "医疗保险", "工伤保险",
-                     "失业保险", "生育保险", "社保人数", "社保编号", "参保险种"],
+                     "失业保险", "生育保险", "社保人数", "社保编号", "参保险种",
+                     "单位比例", "个人比例", "单位缴费金额", "个人缴费金额", "缴费工资",
+                     "险种类型", "社平工资", "大额医疗", "补充医疗"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "social_security", "rows": _parse_social_sheet(s, h)}
     },
+    "housing_fund": {
+        "keywords": ["公积金", "住房", "缴存基数", "缴存比例", "单位缴存", "个人缴存",
+                     "月缴存额", "缴存人数", "汇缴", "补缴", "封存", "启封", "转移",
+                     "提取", "公积金账号", "个人账号", "单位账号", "缴存状态"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_housing_fund_sheet(s, h)
+    },
     "inventory": {
         "keywords": ["本期入库", "本期出库", "期初库存", "期末库存", "产品编码", "产品名称",
-                     "规格型号", "入库数量", "出库数量", "进销存", "单位", "单价", "库存金额"],
+                     "规格型号", "入库数量", "出库数量", "进销存", "单位", "单价", "库存金额",
+                     "存货编码", "存货名称", "仓库", "批次号", "生产日期", "保质期",
+                     "账面数量", "盘点数量", "盈亏数量", "存货类别", "收发类别"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_inventory_sheet(s)
     },
-    # ═══ 申报表类 ═══
+    # ══════════ 第二梯队：申报表与财务报表 ══════════
+    "financial_statements": {
+        "keywords": ["资产负债表", "利润表", "现金流量表", "所有者权益变动表",
+                     "资产总计", "负债合计", "所有者权益", "营业利润", "净利润",
+                     "经营活动", "投资活动", "筹资活动", "期末现金", "年初余额",
+                     "期末余额", "本年累计", "上年同期", "报表项目", "行次",
+                     "流动资产", "非流动资产", "流动负债", "非流动负债"],
+        "score_threshold": 3,
+        "parser": lambda s, h: {"type": "financial_statements", "rows": _parse_generic_table(s, h)}
+    },
+    "trial_balance": {
+        "keywords": ["科目余额表", "总账", "明细账", "期初借方", "期初贷方",
+                     "本期借方", "本期贷方", "期末借方", "期末贷方", "累计借方",
+                     "累计贷方", "余额方向", "核算维度", "辅助核算", "部门核算",
+                     "项目核算", "客户核算", "供应商核算", "个人核算"],
+        "score_threshold": 3,
+        "parser": lambda s, h: {"type": "trial_balance", "rows": _parse_generic_table(s, h)}
+    },
     "vat_declaration": {
         "keywords": ["增值税纳税申报表", "销项税额", "进项税额", "应纳税额", "未开具发票",
                      "即征即退", "免抵退税", "期末留抵税额", "本期应补(退)税额",
-                     "简易计税", "按适用税率计税销售额", "应税劳务", "应税服务"],
+                     "简易计税", "按适用税率计税销售额", "应税劳务", "应税服务",
+                     "一般项目", "即征即退项目", "免税", "不征税", "零税率"],
         "score_threshold": 3,
         "parser": lambda s, h: {"type": "vat_declaration", "rows": _parse_generic_table(s, h)}
     },
     "cit_declaration": {
         "keywords": ["企业所得税", "应纳税所得额", "利润总额", "纳税调整增加额", "纳税调整减少额",
                      "弥补以前年度亏损", "减免所得税额", "实际应纳所得税额", "资产总额", "从业人数",
-                     "营业收入", "营业成本", "期间费用"],
+                     "营业收入", "营业成本", "期间费用", "所得税费用", "递延所得税",
+                     "预缴税额", "汇算清缴", "年度申报", "季度申报"],
         "score_threshold": 3,
         "parser": lambda s, h: {"type": "cit_declaration", "rows": _parse_generic_table(s, h)}
     },
+    "individual_tax": {
+        "keywords": ["个人所得税", "个税申报", "扣缴义务人", "纳税人识别号",
+                     "工资薪金所得", "劳务报酬所得", "稿酬所得", "特许权使用费",
+                     "经营所得", "财产租赁所得", "财产转让所得", "利息股息红利",
+                     "偶然所得", "综合所得", "分类所得", "预扣预缴", "代扣代缴",
+                     "汇算清缴", "专项附加扣除", "累计预扣法", "全员全额"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "individual_tax", "rows": _parse_generic_table(s, h)}
+    },
     "stamp_duty": {
         "keywords": ["印花税", "计税金额", "应纳税额", "已纳税额", "应补税额",
-                     "购销合同", "借款合同", "财产租赁", "技术合同", "加工承揽"],
+                     "购销合同", "借款合同", "财产租赁", "技术合同", "加工承揽",
+                     "建设工程", "运输合同", "仓储合同", "保险合同", "产权转移",
+                     "营业账簿", "权利许可证照", "证券交易"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "stamp_duty", "rows": _parse_generic_table(s, h)}
     },
-    # ═══ 往来明细类 ═══
+    "tax_payment": {
+        "keywords": ["完税证明", "缴税记录", "税种", "税款所属期", "实缴金额",
+                     "电子缴款凭证", "税收缴款书", "电子税票", "征收机关",
+                     "缴款日期", "缴款期限", "滞纳金", "罚款", "退抵税",
+                     "银行端查询缴税凭证", "国库", "中央级", "地方级"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "tax_payment", "rows": _parse_generic_table(s, h)}
+    },
+    # ══════════ 第三梯队：往来与合同 ══════════
+    "contract_list": {
+        "keywords": ["合同编号", "合同名称", "合同类型", "签订日期", "生效日期",
+                     "到期日期", "甲方", "乙方", "合同金额", "已付金额", "未付金额",
+                     "履行状态", "条款", "违约", "终止", "续签", "负责人",
+                     "对方单位", "签约日期", "终止日期", "付款方式", "付款条件",
+                     "质保金", "履约保证金", "框架协议", "补充协议"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_contract_sheet(s, h)
+    },
     "accounts_receivable": {
         "keywords": ["应收账款", "期初余额", "借方发生额", "贷方发生额", "期末余额", "账龄",
-                     "客户名称", "应收金额", "已收金额", "未收金额", "坏账准备"],
+                     "客户名称", "应收金额", "已收金额", "未收金额", "坏账准备",
+                     "账龄分析", "逾期", "催收", "对账", "函证"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "accounts_receivable", "rows": _parse_generic_table(s, h)}
     },
     "accounts_payable": {
         "keywords": ["应付账款", "供应商", "应付金额", "已付金额", "未付金额",
-                     "暂估应付款", "暂估入库", "应付暂估"],
+                     "暂估应付款", "暂估入库", "应付暂估", "付款计划", "账期",
+                     "采购订单", "入库单", "结算单", "对账单"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "accounts_payable", "rows": _parse_generic_table(s, h)}
     },
     "prepaid_advance": {
         "keywords": ["预收账款", "预收款项", "合同负债", "预付账款", "预付款项",
-                     "预收金额", "预付金额", "待转销项税额"],
+                     "预收金额", "预付金额", "待转销项税额", "预付费", "充值",
+                     "预缴", "预存", "押金", "定金"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "prepaid_advance", "rows": _parse_generic_table(s, h)}
     },
@@ -9953,16 +10032,17 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "other_receivables", "rows": _parse_generic_table(s, h)}
     },
-    # ═══ 资产类 ═══
+    # ══════════ 第四梯队：资产与费用 ══════════
     "fixed_assets": {
         "keywords": ["固定资产", "资产编码", "资产名称", "购置日期", "原值", "残值率",
-                     "折旧年限", "月折旧额", "累计折旧", "净值", "使用部门", "存放地点"],
+                     "折旧年限", "月折旧额", "累计折旧", "净值", "使用部门", "存放地点",
+                     "折旧方法", "资产类别", "资产状态", "使用年限", "残值", "净残值"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "fixed_assets", "rows": _parse_generic_table(s, h)}
     },
     "intangible_assets": {
         "keywords": ["无形资产", "摊销年限", "专利权", "商标权", "著作权", "土地使用权",
-                     "软件", "摊销金额", "累计摊销"],
+                     "软件", "摊销金额", "累计摊销", "入账价值", "资本化"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "intangible_assets", "rows": _parse_generic_table(s, h)}
     },
@@ -9972,22 +10052,30 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "asset_impairment", "rows": _parse_generic_table(s, h)}
     },
-    # ═══ 费用明细类 ═══
     "expense_detail": {
         "keywords": ["费用明细", "广告费", "业务招待费", "差旅费", "会议费", "佣金",
                      "手续费", "咨询费", "服务费", "运输费", "仓储费", "包装费",
-                     "办公费", "通讯费", "水电费", "租赁费", "物业费"],
+                     "办公费", "通讯费", "水电费", "租赁费", "物业费", "维修费",
+                     "保险费", "培训费", "福利费", "工会经费", "职工教育经费",
+                     "开办费", "装修费", "折旧费", "摊销费", "劳务费", "检测费"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "expense_detail", "rows": _parse_generic_table(s, h)}
     },
     "rd_expense": {
         "keywords": ["研发费用", "研发支出", "研究开发费", "自主研发", "委托研发",
                      "合作研发", "研发人员", "直接投入", "折旧费用", "无形资产摊销",
-                     "设计费用", "装备调试费", "加计扣除"],
+                     "设计费用", "装备调试费", "加计扣除", "研发项目"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "rd_expense", "rows": _parse_generic_table(s, h)}
     },
-    # ═══ 特殊交易类 ═══
+    # ══════════ 第五梯队：特殊交易 ══════════
+    "employee_list": {
+        "keywords": ["人员清单", "花名册", "入职日期", "离职日期", "部门", "岗位",
+                     "身份证号", "联系电话", "学历", "职称", "劳动合同", "用工形式",
+                     "在岗状态", "在职", "离职", "工号", "性别", "出生日期", "民族"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "employee_list", "rows": _parse_generic_table(s, h)}
+    },
     "equity_transaction": {
         "keywords": ["股权转让", "股权变更", "注册资本", "实收资本", "股东", "出资额",
                      "股权比例", "转让价格", "转让协议", "增资", "减资", "撤资"],
@@ -10008,13 +10096,19 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "loan_borrowing", "rows": _parse_generic_table(s, h)}
     },
-    # ═══ 进出口类 ═══
     "import_export": {
         "keywords": ["报关单", "海关", "进口", "出口", "退税", "外汇", "收汇", "付汇",
                      "跨境", "境外", "离岸", "到岸", "FOB", "CIF", "外汇管理局",
                      "出口日期", "贸易方式", "成交方式", "商品编码", "HS编码"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "import_export", "rows": _parse_generic_table(s, h)}
+    },
+    # ══════════ 兜底：纯数值表（含大量数字列但无明确分类特征）══════════
+    "generic_data": {
+        "keywords": ["日期", "金额", "数量", "序号", "编码", "名称", "类型", "备注",
+                     "合计", "总计", "小计"],
+        "score_threshold": 1,
+        "parser": lambda s, h: {"type": "generic_data", "rows": _parse_generic_table(s, h)}
     },
 }
 
@@ -10031,13 +10125,133 @@ def _parse_generic_table(sheet, header):
             rows.append(row)
     return rows
 
+def _parse_bank_sheet(sheet):
+    """解析银行流水：自适应表头+提取交易记录"""
+    # 扫描前5行找到真正的表头行（跳过标题/空行）
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row = 0
+    header = []
+    kw_bank = {"交易日期", "记账日期", "对方户名", "对方账号", "收入金额", "支出金额",
+               "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言"}
+    for r in range(min(8, nrows)):
+        h = _get_row_values(sheet, r)
+        if sum(1 for v in h if any(k in str(v) for k in kw_bank)) >= 2:
+            header = h; header_row = r; break
+    if not header:
+        header = _get_row_values(sheet, 0)
+    
+    cols = _find_cols(header, {
+        "交易日期": "date", "记账日期": "bk_date", "日期": "date",
+        "对方户名": "counterparty", "对方名称": "counterparty", "对方": "counterparty", "户名": "counterparty",
+        "对方账号": "account", "对方行名": "bank",
+        "收入金额": "income", "支出金额": "expense",
+        "贷方金额": "credit", "贷方": "credit",
+        "借方金额": "debit", "借方": "debit",
+        "摘要": "summary", "用途": "summary", "附言": "summary", "备注": "remark",
+        "余额": "balance", "本次余额": "balance", "交易余额": "balance",
+        "流水号": "tx_no", "交易流水号": "tx_no", "凭证号": "tx_no",
+        "交易金额": "amount", "金额": "amount", "发生额": "amount",
+        "借贷标志": "direction", "借贷": "direction",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        if _is_summary_row(raw_vals): continue
+        if _is_repeat_header(raw_vals, header): continue
+        vals = {}
+        for field, col in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        
+        # 至少要有日期或金额才视为有效行
+        has_date = bool(vals.get("date", "").strip())
+        has_amount = any(vals.get(k) and vals[k] != "0" for k in ["amount", "income", "expense", "credit", "debit"])
+        has_counterparty = bool(vals.get("counterparty", "").strip())
+        if not (has_date or has_amount or has_counterparty): continue
+        
+        # 统一金额
+        if "amount" not in vals:
+            amt = 0
+            for k in ["income", "expense", "credit", "debit"]:
+                try: amt = max(amt, abs(float(vals.get(k, 0) or 0)))
+                except: pass
+            vals["amount"] = str(amt)
+        # 统一日期格式
+        d = vals.get("date", "").strip()
+        if d:
+            d = d.replace("-", "").replace("/", "").replace(".", "").replace("年", "").replace("月", "").replace("日", "")
+            if len(d) == 8: vals["date"] = d
+        
+        rows.append(vals)
+    
+    if not rows: return None
+    return {"type": "bank_statement", "rows": rows}
+
+def _parse_housing_fund_sheet(sheet, header):
+    """解析住房公积金明细"""
+    cols = _find_cols(header, {
+        "人员": "name", "姓名": "name", "证件号码": "id_card",
+        "缴存基数": "base", "缴存比例": "ratio",
+        "单位缴存": "company_pay", "个人缴存": "personal_pay",
+        "月缴存额": "total_pay", "缴存人数": "count",
+        "公积金账号": "hf_account", "个人账号": "personal_account",
+    })
+    if not cols: return None
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 200)):
+        vals = {}
+        for field, col in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("name") and not vals.get("base"): continue
+        for k in ["base", "company_pay", "personal_pay", "total_pay"]:
+            try: vals[k] = float(vals.get(k, 0) or 0)
+            except: vals[k] = 0
+        rows.append(vals)
+    return {"type": "housing_fund", "rows": rows}
+
+def _parse_contract_sheet(sheet, header):
+    """解析合同清单"""
+    cols = _find_cols(header, {
+        "合同编号": "contract_no", "合同名称": "name", "合同类型": "contract_type",
+        "甲方": "party_a", "乙方": "party_b", "对方单位": "party_b",
+        "合同金额": "amount", "已付金额": "paid_amount", "未付金额": "unpaid_amount",
+        "签订日期": "signing_date", "签约日期": "signing_date",
+        "生效日期": "effective_date", "到期日期": "expiry_date", "终止日期": "expiry_date",
+        "履行状态": "status", "负责人": "responsible",
+        "付款方式": "payment_method", "付款条件": "payment_terms",
+        "备注": "remark", "条款": "terms",
+    })
+    if not cols: return None
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 2000)):
+        vals = {}
+        for field, col in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("name") and not vals.get("contract_no"): continue
+        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        except: vals["amount"] = 0
+        rows.append(vals)
+    return {"type": "contract_list", "rows": rows}
+
 def _parse_by_content(names, get_sheet):
     """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型"""
     best_score = 0
     best_type = None
     best_sheet_idx = 0
     
-    for i in range(min(len(names), 3)):  # 最多扫描3个Sheet
+    for i in range(len(names)):  # 扫描全部Sheet，不限于前3个
         try:
             s = get_sheet(i)
             # ═══ 扫前3行做表头识别（第0行常是标题，第1行才是列名） ═══
