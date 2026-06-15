@@ -10774,6 +10774,10 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
     """域12: 经营实质深度稽查 — 多角度、多维度、多样化手段"""
     findings = []
 
+    # ═══ 守卫: 进项发票和银行流水全空 → 无法判断费用是否真实缺失（可能是文件解析失败） ═══
+    if not pur_invs and not bank_txs:
+        return findings
+
     # ═══════ 维度1: 基础经营费用六要素检测 ═══════
     biz_types = set()
     biz_keywords = {
@@ -10949,6 +10953,23 @@ def _domain_invoice_deep(invoices):
 def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory):
     """评估提交资料的完整度，逐项量化缺失资料的稽查风险和牵连影响"""
     findings = []
+    
+    # ═══ 守卫: 全部文件解析失败 → 不报"缺失"而报"解析失败" ═══
+    total_parsed_docs = len(bank_txs) + len(sal_invs) + len(pur_invs) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
+    if total_parsed_docs == 0 and docs_list:
+        findings.append({
+            "type": "文件解析失败",
+            "level": "高风险", "score": 10,
+            "detail": f"{len(docs_list)}个文件全部解析失败，无法评估资料完备度。",
+            "description": "所有上传的文件均未能提取到结构化数据。这通常是因为：(1)文件格式不是财税标准模板——如简单的记账表格、非标准报表、截图嵌入Excel等；(2)表头列名与系统识别的关键词不匹配；(3)数据行在Sheet中的位置异常。注意：系统已识别到文件并进行了分析尝试，但无法提取有效数据。这不意味着企业真实缺失这些资料，而是系统无法解析当前文件格式。",
+            "how_found": f"扫描{len(docs_list)}个文件，全部解析后0条记录被提取到数据仓库（银行流水/发票/工资/社保/凭证/进销存均空）。",
+            "tax_impact": "资料无法解析意味着无法进行风险分析。但请注意：这些资料在企业手中是完整的，只是导出格式不兼容——稽查时可直接提供原始格式，不存在真实缺失。",
+            "policy_ref": "本结论仅反映系统识别能力，不代表企业实际缺资料。建议按标准模板重新导出数据。",
+            "suggestion": "① 确认Excel文件第一行为表头行（列名）；② 确认文件内容为财税相关数据（发票清单/银行流水/工资表/社保明细/凭证/进销存/合同）；③ 尝试用金税系统标准导出格式重新生成文件；④ 如为PDF银行流水，请上传对账单PDF。",
+            "category": "域14 资料完备度"
+        })
+        return findings
+    
     doc_types_present = set()
     if bank_txs: doc_types_present.add("bank")
     if sal_invs: doc_types_present.add("sales_invoice")
@@ -12411,6 +12432,33 @@ def _run_analyze(company_id, db):
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     
+    # ═══ 数据充分性守卫：全量解析失败时拒绝生成报告 ═══
+    total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
+    # 统计识别为unknown的文件数
+    unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
+    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取0条" in str(fr.get("actions", [])))
+    failure_count = sum(1 for fr in file_results if any("失败" in a for a in fr.get("actions", [])))
+    
+    if total_parsed == 0:
+        fail_reasons = []
+        if unknown_count > 0:
+            unknown_files = [fr["file"] for fr in file_results if fr["type"] == "unknown"]
+            fail_reasons.append(f"{unknown_count}个文件未能识别类型: {', '.join(unknown_files[:5])}")
+        if zero_record_count > 0:
+            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取0条" in str(fr.get("actions", []))]
+            fail_reasons.append(f"{zero_record_count}个文件识别成功但未提取到数据: {', '.join(zero_files[:5])}")
+        if failure_count > 0:
+            fail_files = [fr["file"] for fr in file_results if any("失败" in a for a in fr.get("actions", []))]
+            fail_reasons.append(f"{failure_count}个文件解析异常")
+        
+        return {"ok": False, "message": "所有文件解析失败，无法生成分析报告",
+                "detail": "；".join(fail_reasons) if fail_reasons else "未提取到任何结构化数据",
+                "files_count": len(docs), "pipeline_log": pipeline_log, "file_results": file_results,
+                "suggestion": "请检查文件格式：1)确认Excel文件包含表头行 2)确认文件内容是财税相关数据(发票/工资/银行流水/凭证/社保等) 3)尝试用标准模板格式重新导出"}
+    
+    # _ 数据不足警告（少量数据，报告标注）
+    low_data_warning = total_parsed < 10  # 少于10条记录视为数据不足
+    
     # ── 凭证收入提取（区分开票/未开票）──
     voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "total": 0.0, "rows": 0}
     for v in vouchers:
@@ -12439,31 +12487,51 @@ def _run_analyze(company_id, db):
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
     if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
     if invoices: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(invoices)})
-    domain_results.append({"domain": "合同比对分析", "findings": _domain_contract_comparison(db, company_id, sal_invs, pur_invs)})
-    domain_results.append({"domain": "经营实质分析", "findings": _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries)})
+    # 无条件域加数据守卫：关键数据全空的域跳过，避免空数据触发误报
+    _has_any_data = total_parsed > 0
+    _has_inv_or_bank = len(invoices) > 0 or len(bank_txs) > 0
+    _has_bank = len(bank_txs) > 0
+    
+    if _has_any_data: domain_results.append({"domain": "合同比对分析", "findings": _domain_contract_comparison(db, company_id, sal_invs, pur_invs)})
+    else: domain_results.append({"domain": "合同比对分析", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "经营实质分析", "findings": _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries)})
+    else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
-    # 域14: 资料完备度
+    # 域14: 资料完备度（始终运行——空数据本身就是信号）
     domain_results.append({"domain": "资料完备度评估", "findings": _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
     # 域15: 多源交叉验证
-    domain_results.append({"domain": "多源交叉验证", "findings": _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, db, company_id)})
+    if _has_any_data: domain_results.append({"domain": "多源交叉验证", "findings": _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, db, company_id)})
+    else: domain_results.append({"domain": "多源交叉验证", "findings": []})
     # 域16: 扩展规则
-    domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
+    if _has_any_data: domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
+    else: domain_results.append({"domain": "扩展审查规则", "findings": []})
     # 域17: 凭证收入 vs 发票收入对比
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
     # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论 (需要在all_findings之后)
     # 域19: 跨域关联推理——单点发现→多域印证→证据链 (需要在all_findings之后)
     # 先跑不依赖all_findings的域
-    domain_results.append({"domain": "收入时间线调查", "findings": _domain_revenue_timeline(vouchers, sal_invs, bank_txs)})
-    domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
-    domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
-    domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
-    domain_results.append({"domain": "发票存货付款三角验证", "findings": _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs)})
-    domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
-    domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
-    domain_results.append({"domain": "异常交易时间分析", "findings": _domain_temporal_anomaly(bank_txs)})
-    domain_results.append({"domain": "关联交易穿透检测", "findings": _domain_related_party_check(sal_invs, pur_invs, bank_txs)})
-    domain_results.append({"domain": "资产折旧费用匹配", "findings": _domain_depreciation_match(bank_txs, pur_invs)})
-    domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory)})
+    if _has_any_data: domain_results.append({"domain": "收入时间线调查", "findings": _domain_revenue_timeline(vouchers, sal_invs, bank_txs)})
+    else: domain_results.append({"domain": "收入时间线调查", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
+    else: domain_results.append({"domain": "供应商画像分析", "findings": []})
+    if _has_bank: domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
+    else: domain_results.append({"domain": "资金流向追踪", "findings": []})
+    if _has_any_data: domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
+    else: domain_results.append({"domain": "人员与业务匹配", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "发票存货付款三角验证", "findings": _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs)})
+    else: domain_results.append({"domain": "发票存货付款三角验证", "findings": []})
+    if invoices: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
+    else: domain_results.append({"domain": "红冲作废发票追踪", "findings": []})
+    if _has_bank: domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
+    else: domain_results.append({"domain": "利润现金流矛盾检测", "findings": []})
+    if _has_bank: domain_results.append({"domain": "异常交易时间分析", "findings": _domain_temporal_anomaly(bank_txs)})
+    else: domain_results.append({"domain": "异常交易时间分析", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "关联交易穿透检测", "findings": _domain_related_party_check(sal_invs, pur_invs, bank_txs)})
+    else: domain_results.append({"domain": "关联交易穿透检测", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "资产折旧费用匹配", "findings": _domain_depreciation_match(bank_txs, pur_invs)})
+    else: domain_results.append({"domain": "资产折旧费用匹配", "findings": []})
+    if _has_any_data: domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory)})
+    else: domain_results.append({"domain": "行业对标分析", "findings": []})
 
     all_findings = []
     for dr in domain_results:
@@ -12472,72 +12540,79 @@ def _run_analyze(company_id, db):
     # ═══════ 290规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
     engine_results = []
     bk_ids, bt_ids, sr_ids = [], [], []
-    try:
-        from datetime import date as date_cls
-        from database import BookkeepingInvoice, BankTransaction, SalaryRecord as SR
-        
-        # ═══ 临时导入: 仅用于312规则引擎，分析后立即清理，不污染其他模块 ═══
-        # 发票 → BookkeepingInvoice
-        for inv in invoices[:1000]:
-            try:
-                bk = BookkeepingInvoice(company_id=company_id,
-                    digital_invoice_no=str(inv.get("inv_no", ""))[:50],
-                    seller_name=str(inv.get("seller", ""))[:100],
-                    buyer_name=str(inv.get("buyer", ""))[:100],
-                    goods_name=str(inv.get("goods", ""))[:200],
-                    total_amount=float(inv.get("total", 0) or 0),
-                    amount=float(inv.get("amount", 0) or 0),
-                    tax_amount=float(inv.get("tax", 0) or 0),
-                    invoice_date=datetime.now().date())
-                db.add(bk); db.flush(); bk_ids.append(bk.id)
-            except: pass
-        
-        # 银行流水 → BankTransaction
-        for tx in bank_txs[:500]:
-            try:
-                d_str = tx["date"]
-                bt = BankTransaction(company_id=company_id,
-                    transaction_date=date_cls(int(d_str[:4]), int(d_str[4:6]), int(d_str[6:8])),
-                    counterparty_name=str(tx.get("counterparty", ""))[:100],
-                    debit_amount=float(tx.get("debit", 0)), credit_amount=float(tx.get("credit", 0)),
-                    amount=abs(float(tx.get("amount", 0))), summary=str(tx.get("summary", ""))[:200])
-                db.add(bt); db.flush(); bt_ids.append(bt.id)
-            except: pass
-        
-        # 工资 → SalaryRecord
-        for s in salaries[:100]:
-            try:
-                sr = SR(company_id=company_id,
-                    name=str(s.get("name", ""))[:50],
-                    salary=float(s.get("salary", 0) or 0))
-                db.add(sr); db.flush(); sr_ids.append(sr.id)
-            except: pass
-        
-        db.commit()
-        pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
-
-        # 跑312规则引擎
-        from tax_risk import get_tax_risk_report
-        risk_data = get_tax_risk_report(company_id=company_id, period_from="2025-01", period_to=datetime.now().strftime("%Y-%m"), db=db)
-        if risk_data:
-            engine_results = risk_data.get("results", [])
-            pipeline_log.append(f"312规则引擎: 发现{len(engine_results)}条风险")
-    except Exception as e:
-        pipeline_log.append(f"312规则引擎异常: {e}")
-        try: db.rollback()
-        except: pass
-    finally:
-        # ═══ 彻底清理: 上传资料仅用于资料风险分析报告，不污染其他模块 ═══
+    if total_parsed > 0:  # 守卫: 无数据跳过，避免空DB触发误报规则
         try:
-            if bk_ids: db.query(BookkeepingInvoice).filter(BookkeepingInvoice.id.in_(bk_ids)).delete(synchronize_session=False)
-            if bt_ids: db.query(BankTransaction).filter(BankTransaction.id.in_(bt_ids)).delete(synchronize_session=False)
-            if sr_ids: db.query(SR).filter(SR.id.in_(sr_ids)).delete(synchronize_session=False)
+            from datetime import date as date_cls
+            from decimal import Decimal as D
+            from database import BookkeepingInvoice, BankTransaction, SalaryRecord as SR
+            
+            # ═══ 金额转换: 统一转Decimal，避免Decimal+float类型错误 ═══
+            def _to_dec(v):
+                try: return D(str(float(v or 0)))
+                except: return D("0")
+            
+            # ═══ 临时导入: 仅用于312规则引擎，分析后立即清理，不污染其他模块 ═══
+            # 发票 → BookkeepingInvoice
+            for inv in invoices[:1000]:
+                try:
+                    bk = BookkeepingInvoice(company_id=company_id,
+                        digital_invoice_no=str(inv.get("inv_no", ""))[:50],
+                        seller_name=str(inv.get("seller", ""))[:100],
+                        buyer_name=str(inv.get("buyer", ""))[:100],
+                        goods_name=str(inv.get("goods", ""))[:200],
+                        total_amount=_to_dec(inv.get("total")),
+                        amount=_to_dec(inv.get("amount")),
+                        tax_amount=_to_dec(inv.get("tax")),
+                        invoice_date=datetime.now().date())
+                    db.add(bk); db.flush(); bk_ids.append(bk.id)
+                except: pass
+            
+            # 银行流水 → BankTransaction
+            for tx in bank_txs[:500]:
+                try:
+                    d_str = tx["date"]
+                    bt = BankTransaction(company_id=company_id,
+                        transaction_date=date_cls(int(d_str[:4]), int(d_str[4:6]), int(d_str[6:8])),
+                        counterparty_name=str(tx.get("counterparty", ""))[:100],
+                        debit_amount=_to_dec(tx.get("debit")), credit_amount=_to_dec(tx.get("credit")),
+                        amount=abs(_to_dec(tx.get("amount"))), summary=str(tx.get("summary", ""))[:200])
+                    db.add(bt); db.flush(); bt_ids.append(bt.id)
+                except: pass
+            
+            # 工资 → SalaryRecord
+            for s in salaries[:100]:
+                try:
+                    sr = SR(company_id=company_id,
+                        name=str(s.get("name", ""))[:50],
+                        salary=_to_dec(s.get("salary")))
+                    db.add(sr); db.flush(); sr_ids.append(sr.id)
+                except: pass
+            
             db.commit()
-            pipeline_log.append("已清理全部临时数据，DB恢复初始状态（与其他模块数据隔离）")
+            pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
+
+            # 跑312规则引擎
+            from tax_risk import get_tax_risk_report
+            risk_data = get_tax_risk_report(company_id=company_id, period_from="2025-01", period_to=datetime.now().strftime("%Y-%m"), db=db)
+            if risk_data:
+                engine_results = risk_data.get("results", [])
+                pipeline_log.append(f"312规则引擎: 发现{len(engine_results)}条风险")
         except Exception as e:
-            pipeline_log.append(f"清理临时数据异常: {e}")
+            pipeline_log.append(f"312规则引擎异常: {e}")
             try: db.rollback()
             except: pass
+        finally:
+            # ═══ 彻底清理: 上传资料仅用于资料风险分析报告，不污染其他模块 ═══
+            try:
+                if bk_ids: db.query(BookkeepingInvoice).filter(BookkeepingInvoice.id.in_(bk_ids)).delete(synchronize_session=False)
+                if bt_ids: db.query(BankTransaction).filter(BankTransaction.id.in_(bt_ids)).delete(synchronize_session=False)
+                if sr_ids: db.query(SR).filter(SR.id.in_(sr_ids)).delete(synchronize_session=False)
+                db.commit()
+                pipeline_log.append("已清理全部临时数据，DB恢复初始状态（与其他模块数据隔离）")
+            except Exception as e:
+                pipeline_log.append(f"清理临时数据异常: {e}")
+                try: db.rollback()
+                except: pass
     
     all_findings.extend(engine_results)
 
@@ -12565,7 +12640,11 @@ def _run_analyze(company_id, db):
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": 312, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary,
-        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200], "summary_text": f"17域+312规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。295规则引擎基于100%上传文件数据运行。"
+        "low_data_warning": low_data_warning,
+        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200],
+        "summary_text": (
+            f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
+            else f"17域+312规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
     }}
 
 # ═══════════ 报告复核函数 ═══════════

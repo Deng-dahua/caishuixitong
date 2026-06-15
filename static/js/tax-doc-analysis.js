@@ -206,6 +206,12 @@ function renderTaxDocReport(r) {
   var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
 
   var html = ''
+    // ── 数据不足警告横幅 ──
+    + (r.low_data_warning ? '<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:16px;margin-top:16px;font-size:14px;color:#856404;line-height:1.7">' 
+      + '<strong>⚠️ 数据不足警告</strong><br>'
+      + '系统未能从上传文件中提取到足够的结构化数据（少于10条记录）。以下分析结果基于有限数据，可能产生误报。'
+      + '<br>请检查：① Excel文件第一行是否为表头 ② 文件是否为财税相关数据 ③ 文件格式是否为标准导出模板。'
+      + '</div>' : '')
     // ── 综合风险总览卡片 ──
     + '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:24px;margin-top:16px">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">'
