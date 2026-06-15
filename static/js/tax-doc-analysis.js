@@ -241,97 +241,50 @@ function renderTaxDocReport(r) {
     + '<div style="background:#f8fafc;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:14px 18px;margin-top:12px;font-size:13px;color:#475569;line-height:1.7">' + esc(r.summary_text || '') + '</div>'
     + '</div>'
 
-    // ── 数据统计 ──
-    + '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-    + '<b style="font-size:15px">📈 数据统计</b>'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:12px">';
-  if (r.stats) {
-    Object.keys(r.stats).forEach(function(k) {
-      html += '<div style="background:#f8fafc;border-radius:6px;padding:10px;text-align:center"><div style="font-size:15px;font-weight:700;word-break:break-all">' + esc(String(r.stats[k])) + '</div><div style="font-size:10px;color:var(--gray-400);margin-top:2px">' + esc(k) + '</div></div>';
-    });
-  }
-  html += '</div></div>';
-
   // ── 综合报告增强：四大风格经营分析 ──
   if (r.comprehensive) {
     var comp = r.comprehensive;
     var NAVY = '#1e3a5f';
     var BLUE = '#2563eb';
 
-    // ═══ 金税四期风险画像雷达图 ═══
+    // ═══ 金税四期风险画像 ═══
     if (comp.risk_profile) {
       var rp = comp.risk_profile;
       var rd = rp.radar;
-      var cx = 145, cy = 145, r = 120;
       var n = rd.labels.length;
-      var svgR = '<svg viewBox=\"0 0 290 290\" style=\"width:240px;height:auto\">';
-      // 背景环
-      for (var gi = 1; gi <= 4; gi++) {
-        var gr = r * gi / 4;
-        svgR += '<circle cx=\"'+cx+'\" cy=\"'+cy+'\" r=\"'+gr+'\" fill=\"none\" stroke=\"'+GRAY300+'\" stroke-width=\"0.5\"/>';
-      }
-      // 轴线
-      for (var i = 0; i < n; i++) {
-        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
-        var ex = cx + r * Math.cos(angle);
-        var ey = cy + r * Math.sin(angle);
-        svgR += '<line x1=\"'+cx+'\" y1=\"'+cy+'\" x2=\"'+ex+'\" y2=\"'+ey+'\" stroke=\"'+GRAY300+'\" stroke-width=\"0.5\"/>';
-      }
-      // 数据区域
-      var pts = [];
-      for (var i = 0; i < n; i++) {
-        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
-        var val = Math.min(100, rd.values[i]) / 100;
-        var px = cx + r * val * Math.cos(angle);
-        var py = cy + r * val * Math.sin(angle);
-        pts.push(px+','+py);
-      }
-      svgR += '<polygon points=\"'+pts.join(' ')+'\" fill=\"'+BLUE+'\" opacity=\"0.12\" stroke=\"'+BLUE+'\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>';
-      // 数据点 + 标签
-      for (var i = 0; i < n; i++) {
-        var angle = (Math.PI * 2 / n) * i - Math.PI / 2;
-        var val = Math.min(100, rd.values[i]) / 100;
-        var px = cx + r * val * Math.cos(angle);
-        var py = cy + r * val * Math.sin(angle);
-        svgR += '<circle cx=\"'+px+'\" cy=\"'+py+'\" r=\"3\" fill=\"'+rd.colors[i]+'\"/>';
-        var lx = cx + (r + 20) * Math.cos(angle);
-        var ly = cy + (r + 20) * Math.sin(angle) + 4;
-        svgR += '<text x=\"'+lx+'\" y=\"'+ly+'\" text-anchor=\"middle\" font-size=\"9\" fill=\"'+NAVY+'\">'+rd.labels[i]+'</text>';
-      }
-      svgR += '</svg>';
       
-      html += '<div style=\"margin-top:16px\">'
-        + '<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:12px\">'
-        + '<div style=\"width:4px;height:20px;background:'+NAVY+';border-radius:2px\"></div>'
-        + '<span style=\"font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px\">风险画像</span></div>'
-        + '<div style=\"display:flex;gap:20px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px\">'
-        + '<div>'+svgR+'</div>'
-        + '<div style=\"flex:1;min-width:200px\">'
-        + '<div style=\"font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:8px\">综合风险评分</div>'
-        + '<div style=\"font-size:42px;font-weight:800;color:'+BLUE+';line-height:1\">'+rp.composite_score+'</div>'
-        + '<div style=\"font-size:13px;color:'+NAVY+';font-weight:600;margin:4px 0\">'+rp.composite_level+'</div>'
-        + '<div style=\"font-size:10px;color:'+GRAY600+';\">7维度加权 × 交叉乘数 '+rp.cross_multiplier+' 倍</div>'
-        + '<div style=\"font-size:10px;color:'+GRAY600+';\">'+rp.high_dimensions+'个维度触发高风险联动</div>'
-        + '</div></div>';
+      html += '<div style="margin-top:16px">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+        + '<div style="width:4px;height:20px;background:'+NAVY+';border-radius:2px"></div>'
+        + '<span style="font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px">风险画像</span></div>'
+        
+        // 综合评分
+        + '<div style="display:flex;gap:20px;align-items:center;background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:20px;margin-bottom:8px">'
+        + '<div><div style="font-size:11px;color:#64748b;margin-bottom:4px">综合风险评分</div>'
+        + '<div style="font-size:36px;font-weight:800;color:'+BLUE+';line-height:1">'+rp.composite_score+'</div>'
+        + '<div style="font-size:12px;color:'+NAVY+';font-weight:600;margin:4px 0">'+rp.composite_level+'</div>'
+        + '<div style="font-size:10px;color:#94a3b8">7维度加权 × 交叉乘数 '+rp.cross_multiplier+' 倍 · '+rp.high_dimensions+'维高风险</div></div>';
       
-      // 维度明细条
-      html += '<div style=\"background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:14px;margin-top:8px\">';
+      // 维度条形图
+      html += '<div style="flex:1">';
       for (var i = 0; i < n; i++) {
         var dn = rd.labels[i];
         var ds = rp.dimensions[dn];
         var pct = Math.min(100, ds.score);
-        html += '<div style=\"display:flex;align-items:center;gap:8px;margin-bottom:6px\">'
-          + '<span style=\"font-size:10px;font-weight:500;width:60px;text-align:right;color:'+NAVY+'\">'+dn+'</span>'
-          + '<div style=\"flex:1;height:8px;background:'+GRAY50+';border-radius:4px;overflow:hidden\">'
-          + '<div style=\"width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:4px\"></div></div>'
-          + '<span style=\"font-size:10px;font-weight:600;width:30px;color:'+rd.colors[i]+'\">'+ds.score+'</span>'
-          + '<span style=\"font-size:9px;color:'+GRAY600+';width:36px\">'+ds.count+'条</span></div>';
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
+          + '<span style="font-size:10px;font-weight:500;width:60px;text-align:right;color:#475569">'+dn+'</span>'
+          + '<div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden">'
+          + '<div style="width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:5px"></div></div>'
+          + '<span style="font-size:10px;font-weight:600;width:28px;color:'+rd.colors[i]+'">'+ds.score+'</span>'
+          + '<span style="font-size:9px;color:#94a3b8;width:28px">'+ds.count+'条</span></div>';
       }
+      html += '</div></div>';
+      
       // 结论
-      html += '<div style=\"margin-top:10px;padding-top:8px;border-top:1px solid '+GRAY50+';font-size:11px;color:'+GRAY600+';line-height:1.6\">'
-        + rp.description + '<br>';
+      html += '<div style="background:#f8fafc;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:12px 14px;font-size:11px;color:#64748b;line-height:1.7">'
+        + '<b>'+rp.description+'</b><br>';
       rp.commentary.forEach(function(c) { html += c + '<br>'; });
-      html += '</div></div></div>';
+      html += '</div></div>';
     }
     var GRAY600 = '#4b5563';
     var GRAY300 = '#d1d5db';
@@ -355,8 +308,6 @@ function renderTaxDocReport(r) {
     if (totalIn > 0) kpiCards.push({label:'年度总收入', value:fmtAmt(totalIn), sub:comp.cashflow ? comp.cashflow.months.length+'个月' : ''});
     if (totalOut > 0) kpiCards.push({label:'年度总支出', value:fmtAmt(totalOut), sub:'含税费'});
     if (totalTax > 0) kpiCards.push({label:'年度纳税', value:fmtAmt(totalTax), sub:totalIn>0?'税负率 '+(totalTax/totalIn*100).toFixed(1)+'%':''});
-    kpiCards.push({label:'分析文件', value:r.files_count+'份', sub:'100%覆盖'});
-    kpiCards.push({label:'风险发现', value:r.total_risks+'项', sub:'高'+r.high_risk+' 中'+r.mid_risk});
     
     html += '<div style="margin-top:16px">'
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
@@ -373,77 +324,8 @@ function renderTaxDocReport(r) {
     });
     html += '</div>';
     
-    // ═══ 区块2: 月度资金流向图 + 往来方表格 并排 ═══
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
-    
-    // 左：资金流向折线图
-    if (comp.cashflow && comp.cashflow.months && comp.cashflow.months.length > 0) {
-      var cf = comp.cashflow;
-      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px">'
-        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:12px">月度资金流向</div>'
-        + '<svg viewBox="0 0 340 170" style="width:100%;height:auto">';
-      
-      // 网格线
-      html += '<line x1="30" y1="140" x2="330" y2="140" stroke="'+GRAY300+'" stroke-width="0.5"/>';
-      html += '<line x1="30" y1="105" x2="330" y2="105" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
-      html += '<line x1="30" y1="70" x2="330" y2="70" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
-      html += '<line x1="30" y1="35" x2="330" y2="35" stroke="'+GRAY300+'" stroke-width="0.3" stroke-dasharray="4,4"/>';
-      
-      var n = cf.months.length;
-      var gap = 300 / (n - 1 || 1);
-      var maxV = 0;
-      for (var mi=0; mi<n; mi++) maxV = Math.max(maxV, cf.income[mi], cf.expense[mi], cf.tax[mi]);
-      maxV = maxV || 1;
-      
-      // 计算点坐标的函数
-      function px(i) { return 30 + i * gap; }
-      function py(v) { return 140 - (v / maxV) * 120; }
-      
-      // 生成折线路径
-      function linePath(values) {
-        var p = '';
-        for (var i = 0; i < n; i++) {
-          var v = values[i] || 0;
-          p += (i === 0 ? 'M' : 'L') + px(i).toFixed(1) + ',' + py(v).toFixed(1) + ' ';
-        }
-        return p;
-      }
-      
-      // 收入折线（蓝）
-      html += '<path d="'+linePath(cf.income)+'" fill="none" stroke="'+BLUE+'" stroke-width="2" stroke-linejoin="round" opacity="0.8"/>';
-      for (var mi=0; mi<n; mi++) {
-        html += '<circle cx="'+px(mi)+'" cy="'+py(cf.income[mi])+'" r="3" fill="'+BLUE+'"/>';
-      }
-      
-      // 支出折线（深蓝）
-      html += '<path d="'+linePath(cf.expense)+'" fill="none" stroke="'+NAVY+'" stroke-width="2" stroke-linejoin="round" opacity="0.8"/>';
-      for (var mi=0; mi<n; mi++) {
-        html += '<circle cx="'+px(mi)+'" cy="'+py(cf.expense[mi])+'" r="3" fill="'+NAVY+'"/>';
-      }
-      
-      // 缴税折线（琥珀）
-      html += '<path d="'+linePath(cf.tax)+'" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2" stroke-linejoin="round" opacity="0.8"/>';
-      for (var mi=0; mi<n; mi++) {
-        if (cf.tax[mi] > 0) {
-          html += '<circle cx="'+px(mi)+'" cy="'+py(cf.tax[mi])+'" r="3" fill="#f59e0b"/>';
-        }
-      }
-      
-      // 月度标签
-      for (var mi=0; mi<n; mi++) {
-        var mLabel = cf.months[mi].substring(5);
-        html += '<text x="'+px(mi)+'" y="162" text-anchor="middle" font-size="8" fill="'+GRAY600+'">'+mLabel+'</text>';
-      }
-      html += '</svg>'
-        + '<div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:'+GRAY600+'">'
-        + '<span><span style="display:inline-block;width:12px;height:2px;background:'+BLUE+';margin-right:3px;vertical-align:middle"></span>收入</span>'
-        + '<span><span style="display:inline-block;width:12px;height:2px;background:'+NAVY+';margin-right:3px;vertical-align:middle"></span>支出</span>'
-        + '<span><span style="display:inline-block;width:12px;height:2px;background:#f59e0b;margin-right:3px;vertical-align:middle;border-top:2px dashed #f59e0b"></span>缴税</span>'
-        + '</div></div>';
-    }
-    
-    // 右：往来方表
-    html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px">'
+    // ═══ 区块2: 主要往来方 ═══
+    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:16px;margin-bottom:12px">'
       + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:10px">主要往来方</div>'
       + '<table style="width:100%;font-size:11px;border-collapse:collapse">'
       + '<thead><tr style="background:'+GRAY50+'">'
@@ -451,7 +333,6 @@ function renderTaxDocReport(r) {
       + '<th style="padding:6px 8px;text-align:left;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">对方名称</th>'
       + '<th style="padding:6px 8px;text-align:right;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">金额</th></tr></thead><tbody>';
     
-    // 合并收入+支出来源
     var allCp = [];
     if (comp.top_receivers) comp.top_receivers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'收'});});
     if (comp.top_payers) comp.top_payers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'付'});});
@@ -465,8 +346,8 @@ function renderTaxDocReport(r) {
         + '<td style="padding:5px 8px;color:#374151">'+esc(r.name)+'</td>'
         + '<td style="padding:5px 8px;text-align:right;font-weight:600;font-size:10px;color:'+cColor+'">'+fmtAmt(r.amount)+'</td></tr>';
     });
-    html += '</tbody></table></div></div>';
-    
+    html += '</tbody></table></div>';
+
     // ═══ 区块3: 分级建议 (四大风格) ═══
     if (comp.actions) {
       var act = comp.actions;
