@@ -76,8 +76,8 @@ function getCurrentUser() {
     options.headers = options.headers || {};
     var user = getCurrentUser();
     if (user) {
-      options.headers['X-User-Name'] = user.name;
-      options.headers['X-User-Phone'] = user.phone;
+      options.headers['X-User-Name'] = encodeURIComponent(user.name);
+      options.headers['X-User-Phone'] = encodeURIComponent(user.phone);
     }
     return _origFetch(url, options);
   };

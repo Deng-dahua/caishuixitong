@@ -88,9 +88,19 @@ async def access_log_middleware(request: Request, call_next):
             elif "audit" in path: action = "audit"
             elif "fix" in path: action = "fix"
             elif "/api/tax-risk-docs/review" in path: action = "review"
-            # 获取用户信息
+            # 获取用户信息（Header中是URL编码的，需解码）
             user_name = request.headers.get("X-User-Name", "")
             user_phone = request.headers.get("X-User-Phone", "")
+            if user_name:
+                try: 
+                    import urllib.parse as _up
+                    user_name = _up.unquote(user_name)
+                except: pass
+            if user_phone:
+                try: 
+                    import urllib.parse as _up
+                    user_phone = _up.unquote(user_phone)
+                except: pass
             entry = {"t": _time_module.time(), "cid": cid, "m": request.method, "p": path[:200],
                      "s": response.status_code, "ip": request.client.host if request.client else None,
                      "ms": elapsed_ms, "a": action, "un": user_name, "up": user_phone}
