@@ -1,4 +1,4 @@
-// ==================== 涉税风险分析规则管理模块 V2 ====================
+// ==================== 涉税风险稽查指令管理模块 V2 ====================
 // 功能：左侧纯文本输入 → 系统自动解析整理 → 右侧结构化展示
 // 布局：左侧纯输入框 + 右侧规则显示区
 // 作者：AI助手 | 更新：2026-06-12
@@ -59,15 +59,15 @@ var RISK_LEVEL_ICONS = {
 //  二、主渲染函数
 // ══════════════════════════════════════════════════════════════
 function renderTaxRiskRules(container) {
-  window.currentModule = '涉税风险分析规则';
+  window.currentModule = '涉税风险稽查指令';
 
   container.innerHTML = ''
     + '<div class="risk-rules-container">'
     // 顶部标题栏
     + '<div class="risk-rules-header">'
     + '<div class="risk-rules-title">'
-    + '<h2>涉税风险分析规则管理</h2>'
-    + '<p>收集和整理涉税风险分析规则，用于编制涉税风险分析报告</p>'
+    + '<h2>涉税风险稽查指令管理</h2>'
+    + '<p>收集和整理涉税风险稽查指令，用于编制涉税风险分析报告</p>'
     + '</div>'
     + '<div class="risk-rules-toolbar">'
     + '<button class="btn-toolbar btn-primary" id="btn-load-default-rules" onclick="loadDefaultTaxRiskRules()">加载默认规则</button>'
