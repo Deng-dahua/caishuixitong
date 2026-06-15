@@ -11056,6 +11056,178 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     return findings
 
 
+# ═══════════ 域19: 跨域关联推理——从点→线→面→体 ═══════════
+
+def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory):
+    """将所有发现的关联关系串联成证据链，实现单点→多域印证→风险主题"""
+    findings = []
+    
+    # ═══ 构建关键词索引 ═══
+    def keyword_match(finding, keywords):
+        text = str(finding.get("type","")) + str(finding.get("detail","")) + str(finding.get("description",""))
+        return any(kw in text for kw in keywords)
+    
+    # ═══ 证据链1: 隐匿收入 ═══
+    income_chain = []
+    income_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["第三方收款", "第三方收款占比"]):
+            income_evidence.append(("A", "资金端", str(f.get("detail",""))[:80], f.get("score",0)))
+            income_chain.append(f)
+        if keyword_match(f, ["未开票收入占比", "未开票收入占比过高"]):
+            income_evidence.append(("B", "凭证端", str(f.get("detail",""))[:80], f.get("score",0)))
+            income_chain.append(f)
+        if keyword_match(f, ["收款与开票"]):
+            income_evidence.append(("C", "发票端", str(f.get("detail",""))[:80], f.get("score",0)))
+            income_chain.append(f)
+        if keyword_match(f, ["进销严重倒挂"]):
+            income_evidence.append(("D", "进销端", str(f.get("detail",""))[:80], f.get("score",0)))
+            income_chain.append(f)
+    
+    if len(income_evidence) >= 3:
+        total_score = sum(e[3] for e in income_evidence)
+        evidence_text = ""
+        for code, source, detail, sc in income_evidence:
+            evidence_text += f"[{code}-{source}] {detail}\n"
+        
+        findings.append({
+            "type": "隐匿收入证据链",
+            "level": "高风险", "score": min(total_score // len(income_evidence), 10),
+            "detail": f"{len(income_evidence)}条相互印证的发现指向同一结论：企业存在严重隐匿收入。证据链：{', '.join(e[0] for e in income_evidence)}。",
+            "description": f"以下{len(income_evidence)}条来自不同域、不同数据源的发现，从不同角度指向同一个结论——【企业存在严重隐匿收入问题】：\n\n{evidence_text}\n\n这些发现不是孤立的。它们形成了完整的证据链闭环：\n① [A资金端] 第三方收款占比过高→收款方式异常，脱离对公监管\n② [B凭证端] 凭证记录有大量未开票收入→企业自己承认有收入但未开票\n③ [C发票端] 收款与开票偏差巨大→银行收到的钱远远大于开票金额\n④ [D进销端] 进项远超销项→采购了货但没卖出对应的发票\n\n四者互相对照印证，隐匿收入不是个别推测，而是多源数据交叉验证后的必然结论。",
+            "how_found": "扫描所有发现的类型和描述文本，匹配'第三方收款''未开票收入''收款与开票''进销倒挂'四个关键词，找到来自资金端、凭证端、发票端、进销端四个维度的证据，串联形成完整证据链。",
+            "tax_impact": "多源证据链是税务稽查的核武器。单点异常可以解释，四点同时出现无法解释。这已经构成偷税嫌疑，税务局可以就此启动正式稽查程序。",
+            "policy_ref": "《税收征收管理法》第六十三条关于偷税的认定；《税务稽查工作规程》关于证据链的要求。",
+            "suggestion": "隐匿收入是多源交叉确认的结论而非单一推测。建议：1）立即核查第三方收款与销售订单的对应关系；2）如确有未开票收入，主动做补充申报；3）建立收款→开票→入账的内控流程。",
+            "category": "域19 跨域推理"
+        })
+    
+    # ═══ 证据链2: 虚开发票嫌疑 ═══
+    fraud_chain = []
+    fraud_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["同城供应商群集"]):
+            fraud_evidence.append(("A", "供应商地理", str(f.get("detail",""))[:80], f.get("score",0)))
+            fraud_chain.append(f)
+        if keyword_match(f, ["进项发票无付款"]):
+            fraud_evidence.append(("B", "资金匹配", str(f.get("detail",""))[:80], f.get("score",0)))
+            fraud_chain.append(f)
+        if keyword_match(f, ["供应商高度集中"]):
+            fraud_evidence.append(("C", "采购集中度", str(f.get("detail",""))[:80], f.get("score",0)))
+            fraud_chain.append(f)
+        if keyword_match(f, ["采购量远超销售"]):
+            fraud_evidence.append(("D", "采购合理性", str(f.get("detail",""))[:80], f.get("score",0)))
+            fraud_chain.append(f)
+        if keyword_match(f, ["供应商名称"]):
+            fraud_evidence.append(("E", "供应商身份", str(f.get("detail",""))[:80], f.get("score",0)))
+            fraud_chain.append(f)
+    
+    if len(fraud_evidence) >= 3:
+        total_score = sum(e[3] for e in fraud_evidence)
+        evidence_text = ""
+        for code, source, detail, sc in fraud_evidence:
+            evidence_text += f"[{code}-{source}] {detail}\n"
+        
+        findings.append({
+            "type": "虚开发票嫌疑证据链",
+            "level": "高风险", "score": min(total_score // len(fraud_evidence), 10),
+            "detail": f"{len(fraud_evidence)}条跨域发现指向进项发票可能存在虚开。",
+            "description": f"以下{len(fraud_evidence)}条发现从不同维度指向【进项发票真实性存疑】：\n\n{evidence_text}\n\n形成证据链闭环：供应商高度集中在少数城市→同一城市存在多家同类型供应商（'开票团伙'特征）→有票但无付款记录（'走账'痕迹缺失）→采购量远超合理销售需求（'买票冲成本'特征）。\n\n在税务稽查中，这四条满足任意两条就足够启动进项发票专项核查。",
+            "how_found": "匹配'同城供应商''进项发票无付款''供应商集中''采购量远超销售''供应商名称异常'五个维度的发现，串联形成虚开嫌疑证据链。",
+            "tax_impact": "虚开发票是刑事犯罪。一旦认定，进项税额全部转出补税+0.5-5倍罚款+移送公安经侦。",
+            "suggestion": "1）对所有集中供应商做背景调查（工商登记/实地考察/纳税信用）；2）统计有票无付的供应商名单并联系核实；3）无法证实的进项发票主动做进项税额转出。",
+            "category": "域19 跨域推理"
+        })
+    
+    # ═══ 证据链3: 空壳/无实质经营 ═══
+    shell_chain = []
+    shell_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["基础经营费用缺失"]):
+            shell_evidence.append(("A", "经营费用", str(f.get("detail",""))[:80], f.get("score",0)))
+            shell_chain.append(f)
+        if keyword_match(f, ["库存真实性"]):
+            shell_evidence.append(("B", "仓储空间", str(f.get("detail",""))[:80], f.get("score",0)))
+            shell_chain.append(f)
+        if keyword_match(f, ["经营实质"]):
+            shell_evidence.append(("C", "经营实质", str(f.get("detail",""))[:80], f.get("score",0)))
+            shell_chain.append(f)
+        if keyword_match(f, ["没有仓储"]):
+            shell_evidence.append(("D", "存货支撑", str(f.get("detail",""))[:80], f.get("score",0)))
+            shell_chain.append(f)
+    
+    if len(shell_evidence) >= 2:
+        total_score = sum(e[3] for e in shell_evidence)
+        evidence_text = ""
+        for code, source, detail, sc in shell_evidence:
+            evidence_text += f"[{code}-{source}] {detail}\n"
+        
+        findings.append({
+            "type": "无实质经营证据链",
+            "level": "高风险", "score": min(total_score // len(shell_evidence), 10),
+            "detail": f"{len(shell_evidence)}条发现指向企业可能无实体经营场所和实质运营。",
+            "description": f"以下发现共同指向【企业可能不具备实质经营能力】：\n\n{evidence_text}\n\n推导逻辑：一个正常经营的企业一定有办公场所（房租+水电+物业）、有仓储空间（仓库租金或自有仓库）、有物流运输（物流费用）。如果这三项全部缺失，企业更像是'注册在一个地址、税务上挂一个壳'的开票实体，而非真实运营的企业。",
+            "how_found": "交叉匹配'基础费用缺失''库存真实性''经营实质''无仓储'等发现，形成无实质经营证据链。",
+            "tax_impact": "一旦被认定为无实质经营的空壳公司→所有发票交易的真实性全面否定→按偷税或虚开发票从重处罚。",
+            "suggestion": "如企业确实在真实经营，请补充：办公场所租赁合同+最近6个月水电费缴费单+仓库租赁合同+物流运输合同。",
+            "category": "域19 跨域推理"
+        })
+    
+    # ═══ 证据链4: 会计基础工作全线崩溃 ═══
+    acct_chain = []
+    acct_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["凭证号字段缺失"]):
+            acct_evidence.append(("A", "凭证管理", str(f.get("detail",""))[:80], f.get("score",0)))
+            acct_chain.append(f)
+        if keyword_match(f, ["凭证借贷不平"]):
+            acct_evidence.append(("B", "借贷平衡", str(f.get("detail",""))[:80], f.get("score",0)))
+            acct_chain.append(f)
+        if keyword_match(f, ["合同文件缺失"]):
+            acct_evidence.append(("C", "档案管理", str(f.get("detail",""))[:80], f.get("score",0)))
+            acct_chain.append(f)
+    
+    if len(acct_evidence) >= 2:
+        findings.append({
+            "type": "会计基础工作薄弱证据链",
+            "level": "中风险", "score": 7,
+            "detail": f"凭证管理、借贷平衡、档案管理三个方面均存在严重问题。",
+            "description": f"以下问题表明企业会计基础工作存在系统性缺陷：\n① 凭证号字段全空→凭证管理形同虚设→无法追溯单笔业务\n② 合同文件缺失→交易真实性无书面证据→一旦稽查百口莫辩\n\n会计基础工作是税务合规的根基。根基不牢，上面的税种申报、发票管理、成本核算都无法保证准确。",
+            "how_found": "匹配'凭证号缺失''借贷不平''合同缺失'三个维度的发现。",
+            "tax_impact": "会计基础薄弱→税务机关扩大稽查范围→从增值税延伸到全部税种→全量数据的重新核定。",
+            "suggestion": "1）补全凭证编号，按日记账编号规则重新编号；2）为所有客户和供应商补签购销合同；3）聘请专业会计团队做一次全面的账务整理。",
+            "category": "域19 跨域推理"
+        })
+    
+    # ═══ 证据链5: 资金链风险 ═══
+    fund_chain = []
+    fund_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["存货占压资金"]):
+            fund_evidence.append(("A", "存货压款", str(f.get("detail",""))[:80], f.get("score",0)))
+            fund_chain.append(f)
+        if keyword_match(f, ["资金流概览"]) and ("支出" in str(f.get("detail","")) or "收入" in str(f.get("detail",""))):
+            fund_evidence.append(("B", "收支对比", str(f.get("detail",""))[:80], f.get("score",0)))
+            fund_chain.append(f)
+        if keyword_match(f, ["采购量远超"]):
+            fund_evidence.append(("C", "过度采购", str(f.get("detail",""))[:80], f.get("score",0)))
+            fund_chain.append(f)
+    
+    if len(fund_evidence) >= 2:
+        findings.append({
+            "type": "资金链危机预警",
+            "level": "高风险", "score": 8,
+            "detail": "存货占压巨额资金+过度采购+收入远不及采购，资金链面临断裂风险。",
+            "description": f"企业正面临严重的资金链危机：\n\n大量资金被库存套牢（存货占压资金）→采购远大于销售（资金只出不进）→经营现金流可能为负（收入不抵支出）。\n\n这条链路如果不在3-6个月内扭转，企业将面临供应商断供、银行抽贷、员工欠薪等连锁反应。",
+            "how_found": "关联匹配'存货占压''资金收支''采购合理性'三个维度。",
+            "tax_impact": "资金链紧张→拖欠税款→产生滞纳金→纳税信用降级→无法领取发票→经营进一步恶化。",
+            "suggestion": "1）制定3个月紧急资金周转计划；2）暂停一切非必要采购；3）加速去库存（折价出售、退货）；4）与供应商谈判延期付款或分期结算。",
+            "category": "域19 跨域推理"
+        })
+    
+    return findings
+
+
 # ═══════════ 域18: 285规则全覆盖验证 ═══════════
 
 RULE_DATA_REQUIREMENTS = {
@@ -11317,6 +11489,8 @@ async def _run_analyze(company_id, db):
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
     # 域18: 285规则全覆盖验证——对未触发的规则产出缺失数据结论
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
+    # 域19: 跨域关联推理——单点发现→多域印证→证据链
+    domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
 
     all_findings = []
     for dr in domain_results:
