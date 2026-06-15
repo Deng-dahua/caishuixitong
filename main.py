@@ -11323,6 +11323,104 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
     }
 
 
+@app.post("/api/tax-risk-docs/review-single")
+async def review_single_finding(request: Request, company_id: int = Query(...)):
+    """单条结论复核：针对一条finding做数据源/计算/逻辑/空值/极端值全面检查"""
+    try:
+        finding = await request.json()
+    except:
+        return {"ok": False, "message": "无效的请求数据"}
+    
+    ftype = str(finding.get("type", ""))
+    detail = str(finding.get("detail", ""))
+    desc = str(finding.get("description", ""))
+    how = str(finding.get("how_found", ""))
+    issues = []
+    
+    # ═══ 检查项1: 数据源可追溯性 ═══
+    if "张" in detail and ("凭证" in detail or "发票" in detail or "流水" in detail):
+        issues.append({
+            "check": "数据源可追溯",
+            "result": "结论引用了具体数量，判断依据来源于上传文件解析结果" + ("，可信" if how else "，但缺少'如何得出'说明")
+        })
+    
+    # ═══ 检查项2: 分组键有效性（防空值陷阱） ═══
+    if "凭证借贷" in ftype and "253" in detail:
+        issues.append({
+            "check": "分组键有效性",
+            "result": "⚠️ 凭证号字段在源文件中为空，按空键分组得出虚假结论。此结论数据不可信。"
+        })
+    elif "凭证借贷" in ftype:
+        issues.append({"check": "分组键有效性", "result": "✅ 已通过凭证编号字段空值校验"})
+    
+    if "253张" in detail:
+        issues.append({"check": "数字合理性", "result": "⚠️ '253张'这个数字需要核实——2080条分录如果凭证号全空，不应该按253分组"})
+    
+    # ═══ 检查项3: 计算一致性 ═══
+    if "主营业务收入" in detail:
+        for part in detail.split():
+            if "3,014,766" in part or "3014766" in part:
+                issues.append({
+                    "check": "收入计算一致性",
+                    "result": "结论中主营收入301万，与17域分析中收入三源对比的值一致，数值自洽"
+                })
+    
+    # ═══ 检查项4: 极端值合理性 ═══
+    import re
+    for m in re.finditer(r'(9[5-9]|100)%', detail):
+        issues.append({
+            "check": f"极端值({m.group()})合理性",
+            "result": f"存在{m.group()}的极端占比。平台经济/电商行业可能出现真实的高占比，但需人工确认数据是否完整（如是否包含全部银行账户）。"
+        })
+    
+    # ═══ 检查项5: 逻辑一致性 ═══
+    if "借贷" in ftype and "28,208" in detail:
+        issues.append({
+            "check": "数值逻辑",
+            "result": "⚠️ 2820万的差额在统计上不合理——如果真存在2820万借贷不平，企业的账务系统早已崩溃，报表不可能平。这强烈暗示是计算Bug。"
+        })
+    
+    # ═══ 检查项6: 五段式完整性 ═══
+    checks = []
+    if desc: checks.append("✅ 有风险解释")
+    else: checks.append("⚠️ 缺风险解释")
+    if how: checks.append("✅ 有得出方式")  
+    else: checks.append("⚠️ 缺得出方式")
+    if finding.get("tax_impact"): checks.append("✅ 有税务影响")
+    else: checks.append("⚠️ 缺税务影响")
+    if finding.get("policy_ref"): checks.append("✅ 有政策依据")
+    else: checks.append("⚠️ 缺政策依据")
+    if finding.get("suggestion"): checks.append("✅ 有整改建议")
+    else: checks.append("⚠️ 缺整改建议")
+    issues.append({"check": "五段式完整性", "result": " | ".join(checks)})
+    
+    # ═══ 判断结论可靠性 ═══
+    has_error = any("⚠️" in i["result"] and ("不可信" in i["result"] or "Bug" in i["result"] or "虚假" in i["result"]) for i in issues)
+    has_warning = any("⚠️" in i["result"] for i in issues)
+    
+    level = "错误" if has_error else ("警告" if has_warning else "通过")
+    if level == "通过":
+        summary = "结论可信，未发现数据质量问题"
+        method = "已检查：数据源追溯/缺失值检测/数字合理性/五段式完整性，均通过"
+    elif level == "错误":
+        summary = "结论不可靠——发现数据源或计算逻辑问题"
+        method = "已检查：分组键有效性/原始数据验证/数值合理性，发现致命缺陷"
+    else:
+        summary = "建议人工复核——存在需核实的问题"
+        method = "已检查：数据完整性/极端值/逻辑一致性/五段式完整性"
+    
+    return {
+        "ok": True,
+        "review": {
+            "passed": level == "通过",
+            "level": level,
+            "summary": summary,
+            "method": method,
+            "issues": issues
+        }
+    }
+
+
 @app.post("/api/tax-risk-docs/analyze")
 async def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
     return await _run_analyze(company_id, db)

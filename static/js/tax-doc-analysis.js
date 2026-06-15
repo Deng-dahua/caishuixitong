@@ -175,6 +175,18 @@ function renderTaxDocReport(r) {
   var area = document.getElementById('tda-report-area');
   if (!area || !r) return;
 
+  // 给所有finding分配全局唯一索引
+  var fIdx = 0;
+  window._allFindings = [];
+  if (r.domain_summary) {
+    r.domain_summary.forEach(function(dr) {
+      if (dr.findings) dr.findings.forEach(function(f) {
+        f._idx = fIdx++;
+        window._allFindings.push(f);
+      });
+    });
+  }
+
   var lc = r.overall_level === '高风险' ? '#dc2626' : (r.overall_level === '中风险' ? '#f59e0b' : '#059669');
   var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
 
@@ -255,13 +267,15 @@ function renderTaxDocReport(r) {
       dr.findings.forEach(function(f) {
         var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
         var cfBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#ecfdf5');
-        html += '<div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.7">'
+        html += '<div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.7" id="finding-' + (f._idx || 0) + '">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="display:inline-block;padding:2px 10px;background:' + cfColor + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + f.level + '</span>'
-          + '<b style="font-size:14px">' + esc(f.type || '') + '</b>'
+          + '<b style="font-size:14px;flex:1">' + esc(f.type || '') + '</b>'
           + '<span style="font-size:11px;color:var(--gray-400)">分值：' + (f.score || '-') + '</span>'
+          + '<button onclick="reviewSingleFinding(this)" data-idx="' + (f._idx || 0) + '" style="font-size:11px;padding:3px 10px;border:1px solid #93c5fd;background:#eff6ff;color:#0369a1;border-radius:4px;cursor:pointer;white-space:nowrap">复核此结论</button>'
           + '</div>'
-          + '<div style="color:var(--gray-600);margin-bottom:8px">' + esc(f.detail || '') + '</div>';
+          + '<div style="color:var(--gray-600);margin-bottom:8px">' + esc(f.detail || '') + '</div>'
+          + '<div class="finding-review-result" id="review-result-' + (f._idx || 0) + '" style="display:none;margin:8px 0"></div>';
         if (f.description) {
           html += '<div style="background:' + cfBg + ';border-radius:6px;padding:10px 14px;margin-bottom:6px">'
             + '<div style="font-weight:600;font-size:12px;color:' + cfColor + ';margin-bottom:4px">📋 风险解释</div>'
@@ -449,4 +463,56 @@ function createElementFromString(htmlStr) {
   var div = document.createElement('div');
   div.innerHTML = htmlStr.trim();
   return div.firstChild;
+}
+
+// ==================== 单结论复核 ====================
+async function reviewSingleFinding(btn) {
+  var idx = parseInt(btn.getAttribute('data-idx'));
+  var finding = window._allFindings ? window._allFindings[idx] : null;
+  if (!finding) { toast('找不到该结论', 'error'); return; }
+
+  var resultDiv = document.getElementById('review-result-' + idx);
+  if (!resultDiv) return;
+
+  btn.disabled = true; btn.textContent = '复核中...';
+
+  try {
+    var resp = await fetch('/api/tax-risk-docs/review-single?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(finding)
+    });
+    var data = await resp.json();
+    if (!data.ok) { toast('复核失败', 'error'); return; }
+
+    var ri = data.review;
+    var issues = ri.issues || [];
+    var color = ri.passed ? '#059669' : (ri.level === '错误' ? '#dc2626' : '#f59e0b');
+    var bg = ri.passed ? '#ecfdf5' : (ri.level === '错误' ? '#fef2f2' : '#fffbeb');
+    var icon = ri.passed ? '✅' : (ri.level === '错误' ? '❌' : '⚠️');
+
+    var html = '<div style="background:' + bg + ';border:1px solid ' + color + ';border-radius:6px;padding:10px 14px;margin-top:8px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+      + '<span style="font-size:16px">' + icon + '</span>'
+      + '<b style="color:' + color + '">复核结论：' + esc(ri.summary || '通过') + '</b>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--gray-500);margin-bottom:6px">' + esc(ri.method || '') + '</div>';
+
+    if (issues.length > 0) {
+      issues.forEach(function(iss) {
+        html += '<div style="font-size:12px;padding:6px 8px;margin:4px 0;background:rgba(255,255,255,0.7);border-radius:4px">'
+          + '<span style="font-weight:600">' + esc(iss.check || '') + '：</span>'
+          + '<span style="color:var(--gray-600)">' + esc(iss.result || '') + '</span>'
+          + '</div>';
+      });
+    }
+    html += '</div>';
+
+    resultDiv.innerHTML = html;
+    resultDiv.style.display = 'block';
+  } catch (e) {
+    toast('复核失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '复核此结论';
+  }
 }
