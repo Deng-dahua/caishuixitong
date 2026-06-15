@@ -845,16 +845,37 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
     for rule in unmatched_rules:
         score = rule.get("score", 5)
         level = rule.get("level", "中风险")
+        raw_detail = rule.get("detail", "")
+        raw_suggestion = rule.get("suggestion", "")
+        
+        # ── 长文案提炼：超过120字时自动拆为"结论+稽查要点" ──
+        description_text = ""
+        detail_text = raw_detail
+        if len(raw_detail) > 120:
+            # 尝试按句号或换行拆第一句做结论
+            first_sentence = raw_detail.split("。")[0].split("\n")[0].strip()
+            if len(first_sentence) > 10:
+                detail_text = first_sentence + "（详见稽查要点）"
+                description_text = raw_detail
+        
+        # 合并 suggestion 到描述（如果有的话）
+        if raw_suggestion:
+            if description_text:
+                description_text += "\n\n💡 整改建议：" + raw_suggestion
+            elif len(raw_suggestion) > 80:
+                description_text = raw_suggestion
+        
         results.append({
             "item": rule.get("item", ""),
             "category": rule.get("category", "规则专项"),
             "category_icon": rule.get("categoryIcon", "📋"),
-            "detail": rule.get("detail", ""),
+            "detail": detail_text,
             "risk_score": score,
             "risk_level": level,
             "risk_color": _risk_color(score),
             "suggestion": rule.get("suggestion", ""),
             "urgency": rule.get("urgency", ""),
+            "description": description_text,
             "required_evidence": [e.strip() for e in rule.get("evidence", "").split("\n") if e.strip()] if rule.get("evidence") else [],
             "source": "规则引擎（未匹配的独立规则）",
             "rule_id": rule.get("id", ""),
