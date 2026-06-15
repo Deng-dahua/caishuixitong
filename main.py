@@ -9846,55 +9846,131 @@ from datetime import timedelta
 # ═══════════ Excel 结构化提取 ═══════════
 
 def _parse_excel_structured(filepath, ext):
-    """按Sheet名和列名提取Excel结构化数据"""
+    """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断"""
     try:
         if ext == ".xls":
             import xlrd
             wb = xlrd.open_workbook(filepath)
-            return _parse_by_sheet_name(wb.sheet_names(), lambda i: wb.sheet_by_index(i))
+            return _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i))
         else:
             import openpyxl
             wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-            return _parse_by_sheet_name(wb.sheetnames, lambda i: wb[wb.sheetnames[i]])
+            return _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]])
     except: return None
 
-def _parse_by_sheet_name(names, get_sheet):
-    first_sheet = str(names[0]) if names else ""
-    if first_sheet in ("销项", "进项"):
-        return _parse_invoice_sheet(get_sheet(0), first_sheet)
-    if "工资" in first_sheet:
-        return _parse_salary_sheet(get_sheet(0))
-    if first_sheet == "人员明细":
-        s = get_sheet(0)
-        header = _get_row_values(s, 0)
-        return {"type": "social_security", "rows": _parse_social_sheet(s, header)}
-    if "凭证" in first_sheet:
-        return _parse_voucher_sheet(get_sheet(0))
-    if "进销存" in first_sheet:
-        return _parse_inventory_sheet(get_sheet(0))
+# ── 资料类型特征库（列名关键词+得分）──
+_FILE_FINGERPRINTS = {
+    "salary": {
+        "keywords": ["本期收入", "应纳税所得额", "代扣个税", "实发工资", "应发工资",
+                     "专项扣除", "基本养老保险", "基本医疗保险", "住房公积金", "累计预扣预缴"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_salary_sheet(s)
+    },
+    "sales_invoice": {
+        "keywords": ["购方名称", "购方税号", "购方开户行", "购买方名称"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_invoice_sheet(s, "销项")
+    },
+    "purchase_invoice": {
+        "keywords": ["销方名称", "销方税号", "销售方名称", "供应商名称"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
+    },
+    "invoice_universal": {
+        "keywords": ["发票号码", "发票代码", "数电发票号码", "发票类型", "开票日期",
+                     "金额", "税额", "价税合计", "税率"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_invoice_sheet(s, "进项")  # 默认进项，后面有数据会修正
+    },
+    "voucher": {
+        "keywords": ["凭证号", "凭证编号", "科目名称", "科目编号", "摘要"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_voucher_sheet(s),
+        "secondary": ["借方金额", "借方", "贷方金额", "贷方"],  # 需要+2分才确认
+        "secondary_threshold": 1,
+    },
+    "social_security": {
+        "keywords": ["缴费基数", "单位缴纳", "个人缴纳", "养老保险", "医疗保险", "工伤保险",
+                     "失业保险", "生育保险", "社保人数"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "social_security", "rows": _parse_social_sheet(s, h)}
+    },
+    "inventory": {
+        "keywords": ["本期入库", "本期出库", "期初库存", "期末库存", "产品编码", "产品名称",
+                     "规格型号", "入库数量", "出库数量", "进销存"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_inventory_sheet(s)
+    },
+}
+
+def _parse_by_content(names, get_sheet):
+    """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型"""
+    best_score = 0
+    best_type = None
+    best_sheet_idx = 0
     
-    # ── fallback: 读取第一行表头，按内容关键词推断文件类型 ──
-    try:
-        s = get_sheet(0)
+    for i in range(min(len(names), 3)):  # 最多扫描3个Sheet
+        try:
+            s = get_sheet(i)
+            header = _get_row_values(s, 0)
+            header_text = " ".join(h for h in header[:20] if h)  # 前20列的表头
+            all_text = header_text
+            
+            # 也看第二行(有时表头占两行)
+            if hasattr(s, 'nrows') and s.nrows > 1:
+                row1 = _get_row_values(s, 1)
+                all_text += " " + " ".join(str(v) for v in row1[:20] if v)
+            
+            for ftype, fp in _FILE_FINGERPRINTS.items():
+                score = 0
+                for kw in fp["keywords"]:
+                    if kw in all_text:
+                        score += 1
+                # 加分：次级关键词
+                if "secondary" in fp:
+                    for kw in fp["secondary"]:
+                        if kw in all_text:
+                            score += 2
+                
+                if score >= fp["score_threshold"] and score > best_score:
+                    # 额外验证：取前3行样本数据
+                    try:
+                        sample_data = []
+                        nrows = s.nrows if hasattr(s, 'nrows') else s.max_row
+                        for r in range(1, min(nrows, 4)):
+                            row_vals = _get_row_values(s, r)
+                            sample_data.append(" ".join(str(v) for v in row_vals[:10] if v))
+                        sample_text = " ".join(sample_data)
+                        # 样本数据加分
+                        for kw in fp["keywords"]:
+                            if kw in sample_text and kw not in all_text:
+                                score += 0.5
+                    except:
+                        pass
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_type = ftype
+                        best_sheet_idx = i
+        except:
+            pass
+    
+    if best_type and best_score >= _FILE_FINGERPRINTS[best_type]["score_threshold"]:
+        s = get_sheet(best_sheet_idx)
         header = _get_row_values(s, 0)
-        header_text = " ".join(header)
+        result = _FILE_FINGERPRINTS[best_type]["parser"](s, header)
         
-        if "凭证号" in header_text or "凭证编号" in header_text or ("借方" in header_text and "贷方" in header_text):
-            return _parse_voucher_sheet(s)
-        if "发票号码" in header_text or "发票代码" in header_text or "数电发票号码" in header_text:
-            # 尝试判断方向
-            if "购方名称" in header_text or "购方税号" in header_text:
-                return _parse_invoice_sheet(s, "销项")
-            if "销方名称" in header_text or "销方税号" in header_text:
-                return _parse_invoice_sheet(s, "进项")
-        if "工资" in header_text or "本期收入" in header_text or "应纳税所得额" in header_text or "社保" in header_text:
-            if "缴费基数" in header_text or "单位缴纳" in header_text:
-                return {"type": "social_security", "rows": _parse_social_sheet(s, header)}
-            return _parse_salary_sheet(s)
-        if "产品名称" in header_text and ("入库" in header_text or "出库" in header_text):
-            return _parse_inventory_sheet(s)
-    except:
-        pass
+        # 修正发票方向：销项发票的购方名称应在首列或前几列
+        if best_type == "purchase_invoice" or best_type == "invoice_universal":
+            hdr = " ".join(header[:10])
+            if "购方名称" in hdr or "购方税号" in hdr or "购买方" in hdr:
+                result["type"] = "sales_invoice"
+                # 重新解析? 不如标记方向
+                for row in result.get("rows", []):
+                    row["direction"] = "销项"
+        
+        return result
+    
     return None
 
 # ── 数据清洗：跳过小计/合计/空行/重复表头 ──
