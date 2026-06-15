@@ -12243,12 +12243,13 @@ def _run_analyze(company_id, db):
 
     # ═══════ 290规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
     engine_results = []
+    bk_ids, bt_ids, sr_ids = [], [], []
     try:
         from datetime import date as date_cls
         from database import BookkeepingInvoice, BankTransaction, SalaryRecord as SR
         
+        # ═══ 临时导入: 仅用于312规则引擎，分析后立即清理，不污染其他模块 ═══
         # 发票 → BookkeepingInvoice
-        bk_ids = []
         for inv in invoices[:1000]:
             try:
                 bk = BookkeepingInvoice(company_id=company_id,
@@ -12264,7 +12265,6 @@ def _run_analyze(company_id, db):
             except: pass
         
         # 银行流水 → BankTransaction
-        bt_ids = []
         for tx in bank_txs[:500]:
             try:
                 d_str = tx["date"]
@@ -12277,7 +12277,6 @@ def _run_analyze(company_id, db):
             except: pass
         
         # 工资 → SalaryRecord
-        sr_ids = []
         for s in salaries[:100]:
             try:
                 sr = SR(company_id=company_id,
@@ -12287,23 +12286,30 @@ def _run_analyze(company_id, db):
             except: pass
         
         db.commit()
-        pipeline_log.append(f"数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
+        pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
 
-        # 跑290规则引擎
+        # 跑312规则引擎
         from tax_risk import get_tax_risk_report
         risk_data = get_tax_risk_report(company_id=company_id, period_from="2025-01", period_to=datetime.now().strftime("%Y-%m"), db=db)
         if risk_data:
             engine_results = risk_data.get("results", [])
-            pipeline_log.append(f"290规则引擎: 发现{len(engine_results)}条风险")
-
-        # 彻底清理所有临时导入数据
-        if bk_ids: db.query(BookkeepingInvoice).filter(BookkeepingInvoice.id.in_(bk_ids)).delete(synchronize_session=False)
-        if bt_ids: db.query(BankTransaction).filter(BankTransaction.id.in_(bt_ids)).delete(synchronize_session=False)
-        if sr_ids: db.query(SR).filter(SR.id.in_(sr_ids)).delete(synchronize_session=False)
-        db.commit()
-        pipeline_log.append("已清理全部临时数据，DB恢复初始状态")
+            pipeline_log.append(f"312规则引擎: 发现{len(engine_results)}条风险")
     except Exception as e:
-        pipeline_log.append(f"290规则引擎异常: {e}")
+        pipeline_log.append(f"312规则引擎异常: {e}")
+        try: db.rollback()
+        except: pass
+    finally:
+        # ═══ 彻底清理: 上传资料仅用于资料风险分析报告，不污染其他模块 ═══
+        try:
+            if bk_ids: db.query(BookkeepingInvoice).filter(BookkeepingInvoice.id.in_(bk_ids)).delete(synchronize_session=False)
+            if bt_ids: db.query(BankTransaction).filter(BankTransaction.id.in_(bt_ids)).delete(synchronize_session=False)
+            if sr_ids: db.query(SR).filter(SR.id.in_(sr_ids)).delete(synchronize_session=False)
+            db.commit()
+            pipeline_log.append("已清理全部临时数据，DB恢复初始状态（与其他模块数据隔离）")
+        except Exception as e:
+            pipeline_log.append(f"清理临时数据异常: {e}")
+            try: db.rollback()
+            except: pass
     
     all_findings.extend(engine_results)
 
