@@ -8545,6 +8545,36 @@ async def import_file_with_mapping(  # v2026-06-04-simplify: 进项发票改为�
         return {"error": f"导入失败：{str(e)}"}
 
 
+# ═══════════════ 文件解析诊断端点 ═══════════════
+@app.get("/api/file/debug")
+async def get_file_parse_debug():
+    """获取最近一次文件解析的完整诊断追踪。
+    当文件导入识别失败时，前端可调用此端点获取详细的诊断信息和修复建议。
+    返回：关键词匹配记录、结构分析候选、交叉验证裁决、失败诊断建议。
+    """
+    trace = _get_last_trace()
+    if not trace or not trace.get("filename"):
+        return {"ok": False, "message": "暂无文件解析记录，请先上传文件导入"}
+    return {
+        "ok": True,
+        "filename": trace.get("filename", ""),
+        "timestamp": trace.get("timestamp", ""),
+        "sheets_scanned": trace.get("sheets_scanned", 0),
+        "keyword_phase": {
+            "matches": trace.get("keyword_phase", {}).get("matches", []),
+            "best": trace.get("keyword_phase", {}).get("best")
+        },
+        "structure_phase": {
+            "candidates": trace.get("structure_phase", {}).get("candidates", []),
+            "best": trace.get("structure_phase", {}).get("best")
+        },
+        "cross_validation": trace.get("cross_validation", {}),
+        "final_decision": trace.get("final_decision", {}),
+        "diagnostics": trace.get("diagnostics", []),
+        "suggestions": trace.get("suggestions", []),
+    }
+
+
 # ==================== 信息真实性校验（公用的校验工具） ====================
 
 def validate_uscc(code: str) -> tuple:
@@ -9848,16 +9878,23 @@ from datetime import timedelta
 
 def _parse_excel_structured(filepath, ext):
     """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断"""
+    fname = os.path.basename(filepath)
+    _init_trace(fname)  # 初始化诊断追踪
     try:
         if ext == ".xls":
             import xlrd
             wb = xlrd.open_workbook(filepath)
-            return _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i))
+            result = _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i))
         else:
             import openpyxl
             wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-            return _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]])
-    except: return None
+            result = _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]])
+        if result is None:
+            _trace_diag("三层递进全部失败: 关键词匹配→结构分析→通用解析 均未通过", "error")
+        return result
+    except Exception as e:
+        _trace_diag(f"Excel解析异常: {e}", "error")
+        return None
 
 # ── 资料类型特征库（列名关键词+得分）──
 # 覆盖税务稽查所需的所有资料类型，纯内容识别，不依赖Sheet名
@@ -10246,11 +10283,43 @@ def _parse_contract_sheet(sheet, header):
         rows.append(vals)
     return {"type": "contract_list", "rows": rows}
 
+# ═══════════════ 诊断追踪系统 ═══════════════
+# 目的：让系统能解释自己的每一个决策——为什么选这个类型、为什么排除那个类型、哪里出了问题
+# 这是"把技能教给系统"的核心基础设施：系统不仅能做，还能说清楚为什么这样做
+
+_LAST_PARSE_TRACE = {}  # 最近一次解析的完整追踪记录
+
+def _init_trace(filename=""):
+    """初始化一条新的解析追踪记录"""
+    global _LAST_PARSE_TRACE
+    _LAST_PARSE_TRACE = {
+        "filename": filename,
+        "timestamp": datetime.now().isoformat(),
+        "sheets_scanned": 0,
+        "keyword_phase": {"matches": [], "best": None},
+        "structure_phase": {"candidates": [], "best": None},
+        "cross_validation": {"agreed": None, "conflict": None, "winner": None, "reason": ""},
+        "final_decision": {"type": None, "confidence": 0, "source": None, "reason": ""},
+        "diagnostics": [],  # 诊断消息列表
+        "suggestions": [],  # 修复建议
+    }
+
+def _trace_diag(msg, level="info"):
+    """记录一条诊断消息"""
+    global _LAST_PARSE_TRACE
+    _LAST_PARSE_TRACE.setdefault("diagnostics", []).append({"level": level, "message": msg, "time": datetime.now().isoformat()})
+
+def _get_last_trace():
+    """获取最近一次解析的完整追踪"""
+    return _LAST_PARSE_TRACE
+
 def _parse_by_content(names, get_sheet):
-    """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型"""
+    """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型。
+    同时运行结构分析做交叉验证，记录完整决策过程。"""
     best_score = 0
     best_type = None
     best_sheet_idx = 0
+    kw_trace_matches = []  # 记录所有达标的关键词匹配
     
     for i in range(len(names)):  # 扫描全部Sheet，不限于前3个
         try:
@@ -10265,16 +10334,21 @@ def _parse_by_content(names, get_sheet):
             
             for ftype, fp in _FILE_FINGERPRINTS.items():
                 score = 0
+                kw_hits = []  # 命中的关键词
                 for kw in fp["keywords"]:
                     if kw in all_text:
                         score += 1
+                        kw_hits.append(kw)
                 # 加分：次级关键词
+                sec_hits = []
                 if "secondary" in fp:
                     for kw in fp["secondary"]:
                         if kw in all_text:
                             score += 2
+                            sec_hits.append(kw)
                 
-                if score >= fp["score_threshold"] and score > best_score:
+                threshold = fp["score_threshold"]
+                if score >= threshold:
                     # 额外验证：取前3行样本数据
                     try:
                         sample_data = []
@@ -10283,55 +10357,239 @@ def _parse_by_content(names, get_sheet):
                             row_vals = _get_row_values(s, r)
                             sample_data.append(" ".join(str(v) for v in row_vals[:10] if v))
                         sample_text = " ".join(sample_data)
-                        # 样本数据加分
                         for kw in fp["keywords"]:
                             if kw in sample_text and kw not in all_text:
                                 score += 0.5
+                                kw_hits.append(kw + "(sample)")
                     except:
                         pass
-                    
-                    if score > best_score:
-                        best_score = score
-                        best_type = ftype
-                        best_sheet_idx = i
-        except:
-            pass
+                
+                # 记录所有达标匹配（不仅是最高分）
+                if score >= threshold:
+                    kw_trace_matches.append({
+                        "sheet": i, "type": ftype, "score": score, "threshold": threshold,
+                        "kw_hits": kw_hits[:10], "sec_hits": sec_hits[:10]
+                    })
+                
+                if score > best_score:
+                    best_score = score
+                    best_type = ftype
+                    best_sheet_idx = i
+        except Exception as e:
+            _trace_diag(f"扫描Sheet[{i}]异常: {e}", "warn")
     
-    if best_type and best_score >= _FILE_FINGERPRINTS[best_type]["score_threshold"]:
+    _LAST_PARSE_TRACE["keyword_phase"]["matches"] = kw_trace_matches
+    _LAST_PARSE_TRACE["sheets_scanned"] = len(names)
+    
+    kw_passed = best_type is not None and best_score >= _FILE_FINGERPRINTS[best_type]["score_threshold"]
+    if kw_passed:
+        _LAST_PARSE_TRACE["keyword_phase"]["best"] = {"type": best_type, "score": best_score, "sheet": best_sheet_idx}
+        _trace_diag(f"关键词匹配通过: {best_type}(得分{best_score}分), 阈值{_FILE_FINGERPRINTS[best_type]['score_threshold']}")
+    else:
+        best_info = f"{best_type}({best_score}分)" if best_type else "无"
+        _trace_diag(f"关键词匹配未通过: 最高{best_info}, 未达阈值", "warn")
+    
+    # ═══════════════ 第2层：始终运行结构分析（不仅是兜底，也用于交叉验证） ═══════════════
+    best_struct = None
+    best_struct_conf = 0
+    struct_candidates = []
+    for i in range(len(names)):
+        try:
+            s = get_sheet(i)
+            struct_result = _parse_by_structure_only(s)
+            if struct_result and struct_result.get("confidence", 0) >= 0.50:
+                struct_candidates.append({
+                    "type": struct_result["type"], "confidence": struct_result["confidence"],
+                    "sheet": i, "rows": len(struct_result.get("rows", []))
+                })
+            if struct_result and struct_result.get("confidence", 0) > best_struct_conf:
+                best_struct = struct_result
+                best_struct_conf = struct_result.get("confidence", 0)
+        except Exception as e:
+            _trace_diag(f"结构分析Sheet[{i}]异常: {e}", "warn")
+    
+    _LAST_PARSE_TRACE["structure_phase"]["candidates"] = struct_candidates
+    if best_struct:
+        _LAST_PARSE_TRACE["structure_phase"]["best"] = {"type": best_struct["type"], "confidence": best_struct_conf}
+        _trace_diag(f"结构分析通过: {best_struct['type']}(置信度{best_struct_conf:.0%})")
+    else:
+        _trace_diag("结构分析未通过: 无结果或置信度不足", "warn")
+    
+    # ═══════════════ 交叉验证裁决 ═══════════════
+    struct_passed = best_struct is not None and best_struct_conf >= 0.60
+    cv = _LAST_PARSE_TRACE["cross_validation"]
+    
+    if kw_passed and struct_passed:
+        kw_type = best_type
+        st_type = best_struct["type"]
+        # 类型映射：关键词类型 → 结构类型
+        type_map = {
+            "sales_invoice": "invoice", "purchase_invoice": "invoice", "invoice_universal": "invoice",
+            "housing_fund": "housing_fund", "social_security": "social_security",
+            "salary": "salary", "bank_statement": "bank_statement",
+            "voucher": "trial_balance", "trial_balance": "trial_balance",
+            "contract_list": "contract_list", "inventory": "trial_balance",
+        }
+        mapped_kw = type_map.get(kw_type, kw_type)
+        
+        if mapped_kw == st_type:
+            cv["agreed"] = True
+            cv["winner"] = "keyword"
+            cv["reason"] = f"关键词({kw_type})与结构分析({st_type})一致，双重确认"
+            _trace_diag(f"✓ 交叉验证一致: 关键词={kw_type} ↔ 结构={st_type}")
+        else:
+            cv["agreed"] = False
+            cv["conflict"] = f"关键词={kw_type}({best_score}分) vs 结构={st_type}({best_struct_conf:.0%})"
+            # 结构分析置信度 ≥ 0.90 时，信任结构分析
+            if best_struct_conf >= 0.90:
+                cv["winner"] = "structure"
+                cv["reason"] = f"结构分析置信度极高({best_struct_conf:.0%})，覆写关键词({kw_type})"
+                _trace_diag(f"⚠ 交叉验证冲突: 结构分析置信度{best_struct_conf:.0%}极高，采用结构结果={st_type}，覆写关键词={kw_type}", "warn")
+            elif best_score >= 8:
+                cv["winner"] = "keyword"
+                cv["reason"] = f"关键词得分极高({best_score}分)，覆写结构分析({st_type})"
+                _trace_diag(f"⚠ 交叉验证冲突: 关键词得分{best_score}极高，采用关键词={kw_type}", "warn")
+            else:
+                cv["winner"] = "structure"
+                cv["reason"] = f"关键词({kw_type})与结构({st_type})冲突，默认信任结构分析(置信度{best_struct_conf:.0%})"
+                _trace_diag(f"⚠ 交叉验证冲突: 采用结构分析={st_type}(置信度{best_struct_conf:.0%})", "warn")
+    elif kw_passed and not struct_passed:
+        cv["winner"] = "keyword"
+        cv["reason"] = "仅关键词匹配通过，结构分析未达阈值"
+        _trace_diag("结构分析未通过，仅使用关键词结果")
+    elif not kw_passed and struct_passed:
+        cv["winner"] = "structure"
+        cv["reason"] = "仅结构分析通过，关键词匹配未达标"
+        _trace_diag("关键词匹配失败，使用结构分析兜底")
+    else:
+        cv["winner"] = None
+        cv["reason"] = "关键词和结构分析均未通过"
+        _trace_diag("关键词和结构分析均失败，文件无法识别", "error")
+    
+    # ═══════════════ 最终裁决 ═══════════════
+    winner = cv["winner"]
+    fd = _LAST_PARSE_TRACE["final_decision"]
+    
+    if winner == "keyword":
         s = get_sheet(best_sheet_idx)
         header = _get_row_values(s, 0)
         result = _FILE_FINGERPRINTS[best_type]["parser"](s, header)
         
         # 修正发票方向：销项发票的购方名称应在首列或前几列
-        if best_type == "purchase_invoice" or best_type == "invoice_universal":
+        if best_type in ("purchase_invoice", "invoice_universal"):
             hdr = " ".join(header[:10])
             if "购方名称" in hdr or "购方税号" in hdr or "购买方" in hdr:
                 result["type"] = "sales_invoice"
-                # 重新解析? 不如标记方向
                 for row in result.get("rows", []):
                     row["direction"] = "销项"
+                _trace_diag("发票方向修正: 检测到购方关键词 → 标记为销项发票")
         
+        fd["type"] = result.get("type", best_type)
+        fd["source"] = "keyword"
+        fd["confidence"] = min(1.0, best_score / max(10, best_score + 2))
+        fd["reason"] = cv["reason"]
+        result["_trace"] = _LAST_PARSE_TRACE  # 附加追踪信息
         return result
     
-    # ═══════════════ 兜底层：纯内容结构分析 ═══════════════
-    # 关键词匹配失败——表头不认识、没有文件名、没有Sheet名
-    # 但人不需要标签也能理解数据：看列的类型、分布、形状
-    best_struct = None
-    best_struct_conf = 0
-    for i in range(len(names)):
-        try:
-            s = get_sheet(i)
-            struct_result = _parse_by_structure_only(s)
-            if struct_result and struct_result.get("confidence", 0) > best_struct_conf:
-                best_struct = struct_result
-                best_struct_conf = struct_result.get("confidence", 0)
-        except:
-            pass
-    
-    if best_struct and best_struct_conf >= 0.60:
+    elif winner == "structure":
+        fd["type"] = best_struct["type"]
+        fd["source"] = "structure"
+        fd["confidence"] = best_struct_conf
+        fd["reason"] = cv["reason"]
+        best_struct["_trace"] = _LAST_PARSE_TRACE
         return best_struct
     
-    return None
+    else:
+        # 彻底失败，给出诊断建议
+        _add_failure_suggestions()
+        fd["type"] = None
+        fd["source"] = None
+        fd["confidence"] = 0
+        fd["reason"] = cv["reason"]
+        return None
+
+def _add_failure_suggestions():
+    """解析失败时自动分析原因并生成修复建议。
+    将技能中的"常见陷阱与修复"知识嵌入系统，让系统能自我诊断。"""
+    diags = _LAST_PARSE_TRACE.get("diagnostics", [])
+    kw = _LAST_PARSE_TRACE.get("keyword_phase", {})
+    st = _LAST_PARSE_TRACE.get("structure_phase", {})
+    suggestions = []
+    
+    # 诊断1: 结构分析失败——可能是表头误判或数据形状异常
+    try:
+        st_candidates = st.get("candidates", [])
+        st_best = st.get("best")
+        if not st_candidates and not st_best:
+            # 完全无结构候选——数据行全被判为重复表头/小计行/空行
+            suggestions.append({
+                "issue": "表头检测失败：所有行被跳过",
+                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终0条有效数据行。",
+                "fix": "(1)确认Excel前1-3行包含文本型列名（如'发票号码''金额''姓名'等），而非纯数字 (2)若数据从第1行开始，在首行上方插入一行列名 (3)检查是否有多余的空白行或标题行干扰了表头定位。"
+            })
+        elif st_candidates and not st_best:
+            # 有候选但无不达阈值——可能是数据过于稀疏或格式异常
+            top_candidates = sorted(st_candidates, key=lambda x: -x["confidence"])[:3]
+            for c in top_candidates:
+                suggestions.append({
+                    "issue": f"数据结构接近{c['type']}但置信度不足({c['confidence']:.0%}, 需60%)",
+                    "detail": f"Sheet[{c.get('sheet','?')}] {c.get('rows',0)}行数据，模式匹配{c['type']}但特征不够明确",
+                    "fix": f"数据量可能太少(仅{c.get('rows',0)}行)，建议至少10行以上。或检查：日期格式是否标准(YYYY-MM-DD)、金额列是否纯数字(不含货币符号和单位文字)、身份证号是否18位完整。"
+                })
+    except Exception:
+        pass
+    
+    # 诊断2: 所有关键词得分均为0——可能文件格式完全不匹配
+    matches = kw.get("matches", [])
+    if not matches:
+        suggestions.append({
+            "issue": "表头关键词全未命中",
+            "detail": f"扫描了{_LAST_PARSE_TRACE.get('sheets_scanned', 0)}个Sheet的前3行，31类指纹无一匹配",
+            "fix": "检查以下可能：(1)文件是否为财税相关数据(发票/工资/银行流水/社保/凭证等) (2)列名是否用了非标准简称(如'单位'代替'单位缴存额') (3)是否有合并单元格导致列名跨行 (4)尝试导出为标准格式(xlsx而非csv)"
+        })
+    
+    # 诊断3: 有关键词命中但阈值不够
+    if matches and not kw.get("best"):
+        top_matches = sorted(matches, key=lambda x: -x["score"])[:3]
+        for m in top_matches:
+            suggestions.append({
+                "issue": f"关键词得分不足: {m['type']}({m['score']}分, 需{m['threshold']}分)",
+                "detail": f"命中关键词: {', '.join(m['kw_hits'][:5])}",
+                "fix": f"可能缺少关键列名。对于{m['type']}类型，确保包含完整的标准列名。例如银行流水需'对方户名'/'借方金额'等，工资需'本期收入'/'实发工资'等。"
+            })
+    
+    # 诊断4: 结构分析接近阈值但不够
+    st_best = st.get("best")
+    st_candidates = st.get("candidates", [])
+    if st_candidates and (not st_best or st_best.get("confidence", 0) < 0.60):
+        top_st = sorted(st_candidates, key=lambda x: -x["confidence"])[:2]
+        for c in top_st:
+            suggestions.append({
+                "issue": f"结构分析置信度不足: {c['type']}({c['confidence']:.0%}, 需60%)",
+                "detail": f"数据形状接近{c['type']}模式，但特征不够明确。共{c['rows']}条数据。",
+                "fix": "数据量可能太少，建议至少提供10行以上数据。或检查数据格式：日期是否标准(2025-01-15)、金额是否纯数字(不含文字)、身份证号是否完整(18位)。"
+            })
+    
+    # 诊断5: 空数据或数据太少
+    if not st_candidates and not matches:
+        suggestions.append({
+            "issue": "文件可能为空或格式异常",
+            "detail": "关键词匹配和结构分析均无任何结果",
+            "fix": "检查Excel文件是否可正常打开、是否包含数据行(非仅标题)、是否为加密或损坏文件。尝试用Excel重新保存后再上传。"
+        })
+    
+    # 诊断6: 交叉验证冲突的通用建议
+    cv = _LAST_PARSE_TRACE.get("cross_validation", {})
+    if cv.get("conflict"):
+        suggestions.append({
+            "issue": "关键词与结构分析结论冲突",
+            "detail": cv["conflict"],
+            "fix": f"系统采用{cv.get('winner', '未知')}作为最终结果。建议人工复核：确认文件实际类型，必要时调整列名使其更精确。"
+        })
+    
+    _LAST_PARSE_TRACE["suggestions"] = suggestions
+    if suggestions:
+        _trace_diag(f"生成{len(suggestions)}条修复建议", "info")
 
 # ── 数据清洗：跳过小计/合计/空行/重复表头 ──
 _SUBTOTAL_PATTERNS = ["小计", "合计", "总计", "累计", "本页小计", "本页合计", "本期合计", "本年累计", "当月合计"]
