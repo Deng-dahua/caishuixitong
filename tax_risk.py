@@ -808,6 +808,9 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
             # 冲突场景：从规则透传到结果
             if "conflict_scenarios" in best_match and best_match["conflict_scenarios"]:
                 r["conflict_scenarios"] = best_match["conflict_scenarios"]
+            # 稽查要点（description）：规则中已有的description透传
+            if "description" in best_match and best_match["description"]:
+                r["description"] = best_match["description"]
             # 重新计算颜色
             r["risk_color"] = _risk_color(r["risk_score"])
             # 关联 rule_id，使规则覆盖验证能准确匹配
@@ -849,9 +852,10 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
         raw_suggestion = rule.get("suggestion", "")
         
         # ── 长文案提炼：超过120字时自动拆为"结论+稽查要点" ──
-        description_text = ""
+        # 优先使用规则内已有的 description（如已被人工提炼过的规则）
+        description_text = rule.get("description", "")
         detail_text = raw_detail
-        if len(raw_detail) > 120:
+        if not description_text and len(raw_detail) > 120:
             # 尝试按句号或换行拆第一句做结论
             first_sentence = raw_detail.split("。")[0].split("\n")[0].strip()
             if len(first_sentence) > 10:
