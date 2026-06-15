@@ -39,6 +39,7 @@ async function loadSystemLogs(filter) {
       + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">状态</th>'
       + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">耗时</th>'
       + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">IP</th>'
+      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">地区</th>'
       + '</tr></thead><tbody>';
     
     logs.forEach(function(l) {
@@ -52,6 +53,7 @@ async function loadSystemLogs(filter) {
         + '<td style="padding:6px 12px;text-align:center;color:' + statusColor + '">' + l.status_code + '</td>'
         + '<td style="padding:6px 12px;text-align:center">' + (l.response_time_ms || '-') + 'ms</td>'
         + '<td style="padding:6px 12px">' + esc(l.client_ip || '-') + '</td>'
+        + '<td style="padding:6px 12px;color:var(--gray-500)">' + esc(l.location || '') + '</td>'
         + '</tr>';
     });
     html += '</tbody></table>';

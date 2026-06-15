@@ -123,12 +123,29 @@ def get_system_logs(limit: int = 200, company_id: int = None):
         logs.reverse()
         if company_id: logs = [l for l in logs if l.get("cid") == company_id]
         logs = logs[:limit]
+        # IP地理位置解析（带缓存）
+        ip_locations = {}
+        try:
+            import urllib.request, json as _j2
+            unique_ips = list(set(l.get("ip","") for l in logs if l.get("ip") and not l.get("ip","").startswith("127.") and l.get("ip") != "localhost"))
+            for ip in unique_ips[:20]:  # 每次最多查20个
+                try:
+                    req = urllib.request.Request("http://ip-api.com/json/" + ip, headers={"User-Agent": "TaxSystem/1.0"})
+                    with urllib.request.urlopen(req, timeout=2) as resp:
+                        data = _j2.loads(resp.read())
+                        if data.get("status") == "success":
+                            ip_locations[ip] = data.get("regionName","") + " " + data.get("city","") if data.get("city") else data.get("country","")
+                except: pass
+        except: pass
+        
         for i, l in enumerate(logs):
             from datetime import datetime as _dt
             ts = _dt.fromtimestamp(l["t"]).isoformat() if "t" in l else None
+            ip = l.get("ip","")
+            loc = ip_locations.get(ip, "")
             logs[i] = {"id": i+1, "company_id": l.get("cid"), "timestamp": ts,
                        "method": l.get("m",""), "path": l.get("p",""), "status_code": l.get("s",0),
-                       "client_ip": l.get("ip",""), "response_time_ms": l.get("ms",0),
+                       "client_ip": ip, "location": loc, "response_time_ms": l.get("ms",0),
                        "action_type": l.get("a","")}
         return JSONResponse(logs)
     except Exception as e:
