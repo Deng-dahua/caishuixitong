@@ -10040,14 +10040,13 @@ def _parse_by_content(names, get_sheet):
     for i in range(min(len(names), 3)):  # 最多扫描3个Sheet
         try:
             s = get_sheet(i)
-            header = _get_row_values(s, 0)
-            header_text = " ".join(h for h in header[:20] if h)  # 前20列的表头
-            all_text = header_text
-            
-            # 也看第二行(有时表头占两行)
-            if hasattr(s, 'nrows') and s.nrows > 1:
-                row1 = _get_row_values(s, 1)
-                all_text += " " + " ".join(str(v) for v in row1[:20] if v)
+            # ═══ 扫前3行做表头识别（第0行常是标题，第1行才是列名） ═══
+            all_text = ""
+            # 用统一方式获取行数（xlrd用nrows，openpyxl用max_row）
+            _nrows = s.nrows if hasattr(s, 'nrows') else (s.max_row or 1)
+            for scan_row in range(min(3, _nrows)):
+                row_vals = _get_row_values(s, scan_row)
+                all_text += " " + " ".join(str(v) for v in row_vals[:20] if v)
             
             for ftype, fp in _FILE_FINGERPRINTS.items():
                 score = 0
@@ -10119,10 +10118,22 @@ def _is_repeat_header(vals, header):
     return match >= min(3, len(header) - 1)  # 3个以上匹配视为重复表头
 
 def _get_row_values(sheet, row_idx):
-    try: return [str(sheet.cell_value(row_idx, c)) for c in range(sheet.ncols)]
+    """读取一行所有单元格的值，兼容xlrd和openpyxl(含read_only模式)"""
+    # openpyxl: 有iter_rows方法
+    if hasattr(sheet, 'iter_rows'):
+        try:
+            # values_only=True返回生成器，list转tuple取第一行
+            rows = list(sheet.iter_rows(min_row=row_idx+1, max_row=row_idx+1, values_only=True))
+            if rows and rows[0]:
+                return [str(c) if c is not None else "" for c in rows[0]]
+            return []
+        except:
+            return []
+    # xlrd: 有cell_value和ncols
+    try:
+        return [str(sheet.cell_value(row_idx, c)) for c in range(sheet.ncols)]
     except:
-        try: return [str(c) for c in list(sheet.iter_rows(min_row=row_idx+1, max_row=row_idx+1, values_only=True))[0]]
-        except: return []
+        return []
 
 def _find_cols(header, mapping):
     cols = {}
