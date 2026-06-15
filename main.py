@@ -11998,7 +11998,7 @@ RULE_DATA_REQUIREMENTS = {
     290: ("多期经营数据", "缺少多期经营数据，无法判断季节性波动合理性"),
 }
 
-def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list):
+def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs):
     """对312条规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
     findings = []
     
@@ -12026,8 +12026,8 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     has_inventory = len(inventory) > 0
     # 检测是否有合同文件
     has_contract = False
-    if docs_list:
-        for d in docs_list:
+    if docs:
+        for d in docs:
             fn = d.get("original_name", "").lower()
             if any(k in fn for k in ("合同", "contract", "协议")):
                 has_contract = True; break
@@ -12281,7 +12281,7 @@ def _run_analyze(company_id, db):
     all_findings.extend(engine_results)
 
     # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
-    domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
+    domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs)})
     domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
 
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
