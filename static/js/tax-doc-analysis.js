@@ -313,12 +313,12 @@ function renderTaxDocReport(r) {
     html += '</div>';
   }
 
-  // ── 详细风险列表（290引擎发现） ──
+  // ── 详细风险列表（285规则引擎发现） ──
   if (r.all_findings && r.all_findings.length > 0) {
     var engineItems = r.all_findings.filter(function(f) { return f.category && !f.domain; });
     if (engineItems.length > 0) {
       html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-        + '<b style="font-size:15px">🛡️ 290规则引擎发现（基于100%上传文件数据，显示前30条）</b>';
+        + '<b style="font-size:15px">🛡️ 285规则引擎发现（基于100%上传文件数据，显示前30条）</b>';
       engineItems.slice(0, 30).forEach(function(f, i) {
         var lv = f.risk_level || f.level || '?';
         var color = lv === '高风险' ? '#dc2626' : (lv === '中风险' ? '#f59e0b' : '#6b7280');
