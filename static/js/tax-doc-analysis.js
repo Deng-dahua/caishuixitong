@@ -3,6 +3,11 @@ var taxDocReportData = null;
 var taxDocAnalyzing = false;
 var taxDocPageActive = false;
 
+// 确保 esc 可用
+if (typeof esc === 'undefined') {
+  var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+}
+
 function renderTaxDocAnalysis(container) {
   window.currentModule = '资料风险分析报告';
   taxDocPageActive = true;  // 标记页面激活
@@ -94,16 +99,21 @@ async function refreshTaxDocList() {
     }
 
     var html = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label></div>';
-    docs.forEach(function(doc) {
-      var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
-      var name = doc.original_name || doc.filename || '未知文件';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
-        + '<span><input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
-        + esc(name) + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
-        + '<span style="color:var(--gray-400);font-size:11px">' + (doc.uploaded_at || '').substring(0,10) + '</span>'
-        + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delTaxDoc(' + doc.id + ')">删除</span>'
-        + '</div>';
-    });
+    try {
+      docs.forEach(function(doc) {
+        var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
+        var name = doc.original_name || doc.filename || '未知文件';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
+          + '<span><input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
+          + esc(name) + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
+          + '<span style="color:var(--gray-400);font-size:11px">' + (doc.uploaded_at || '').substring(0,10) + '</span>'
+          + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delTaxDoc(' + doc.id + ')">删除</span>'
+          + '</div>';
+      });
+    } catch(e) {
+      console.error('文件列表渲染错误:', e);
+      html += '<div style="color:#dc2626">渲染错误: ' + esc(String(e.message || e)) + '</div>';
+    }
     html += '</div>';
     listEl.innerHTML = html;
   } catch (e) {
