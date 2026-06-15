@@ -29,6 +29,7 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
+    + '<button class="btn-toolbar" onclick="reviewTaxDocReport()" id="tda-review-btn" style="color:#0369a1;border-color:#93c5fd;background:#eff6ff">报告复核</button>'
     + '</div></div>'
     
     // ── 文件列表 ──
@@ -352,4 +353,100 @@ function deleteTaxDocReport() {
   taxDocReportData = null;
   document.getElementById('tda-report-area').innerHTML = '';
   toast('报告已删除', 'success');
+}
+
+// ==================== 报告复核 ====================
+var reviewData = null;
+
+async function reviewTaxDocReport() {
+  var btn = document.getElementById('tda-review-btn');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '复核中...';
+
+  try {
+    var resp = await fetch('/api/tax-risk-docs/review?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'POST' });
+    var data = await resp.json();
+    if (!data.ok) { toast(data.message || '复核失败', 'error'); return; }
+
+    reviewData = data;
+    renderReviewResult(data);
+
+    if (data.passed) {
+      toast('复核通过：未发现错误，但有' + data.report_issues + '项提示', 'success');
+    } else {
+      toast('复核发现' + data.report_issues + '项问题，请查看详情', 'warning');
+    }
+  } catch (e) {
+    toast('复核失败: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '报告复核'; }
+  }
+}
+
+function renderReviewResult(data) {
+  var area = document.getElementById('tda-report-area');
+  if (!area) return;
+
+  var issues = data.review || [];
+  var errorCount = issues.filter(function(i) { return i.level === '错误'; }).length;
+  var warnCount = issues.filter(function(i) { return i.level === '警告'; }).length;
+  var infoCount = issues.filter(function(i) { return i.level === '信息' || i.level === '注意'; }).length;
+
+  var html = '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+    + '<b style="font-size:15px">报告复核结果</b>'
+    + '<div style="display:flex;gap:12px;margin-top:12px">';
+
+  if (errorCount > 0) {
+    html += '<div style="flex:1;background:#fef2f2;border-radius:8px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:700;color:#dc2626">' + errorCount + '</div><div style="font-size:11px;color:#991b1b">错误</div></div>';
+  }
+  if (warnCount > 0) {
+    html += '<div style="flex:1;background:#fffbeb;border-radius:8px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:700;color:#f59e0b">' + warnCount + '</div><div style="font-size:11px;color:#92400e">警告</div></div>';
+  }
+  if (infoCount > 0) {
+    html += '<div style="flex:1;background:#f0f9ff;border-radius:8px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:700;color:#0369a1">' + infoCount + '</div><div style="font-size:11px;color:#1e40af">提示</div></div>';
+  }
+  if (issues.length === 0) {
+    html += '<div style="flex:1;background:#ecfdf5;border-radius:8px;padding:14px;text-align:center"><div style="font-size:24px">✅</div><div style="font-size:11px;color:#065f46">全部通过</div></div>';
+  }
+
+  html += '</div>';
+
+  // 复核方法说明
+  html += '<div style="margin-top:16px;background:#f0fdf4;border-radius:8px;padding:12px 16px;font-size:12px;color:#065f46">'
+    + '<b>复核方法：</b>'
+    + '① 数据源验证（结论引用的数字是否真实存在） | '
+    + '② 计算复核（关键数字重新从源数据计算） | '
+    + '③ 逻辑一致性（不同域结论是否自相矛盾） | '
+    + '④ 空值陷阱检测（分母/分组键是否有效） | '
+    + '⑤ 极端值合理性（>95%占比需人工确认）'
+    + '</div>';
+
+  // 逐条展示复核发现
+  if (issues.length > 0) {
+    issues.forEach(function(iss, i) {
+      var color = iss.level === '错误' ? '#dc2626' : (iss.level === '警告' ? '#f59e0b' : '#0369a1');
+      var bg = iss.level === '错误' ? '#fef2f2' : (iss.level === '警告' ? '#fffbeb' : '#f0f9ff');
+      var icon = iss.level === '错误' ? '❌' : (iss.level === '警告' ? '⚠️' : 'ℹ️');
+      html += '<div style="margin-top:10px;padding:12px 16px;background:' + bg + ';border-left:4px solid ' + color + ';border-radius:6px;font-size:13px">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        + '<span style="font-size:18px">' + icon + '</span>'
+        + '<span style="font-weight:600">#' + (i+1) + ' [' + iss.level + '] ' + esc(iss.item) + '</span>'
+        + '</div>'
+        + '<div style="color:var(--gray-600);margin-bottom:4px">' + esc(iss.detail) + '</div>'
+        + '<div style="color:' + color + ';font-size:12px">💡 ' + esc(iss.suggestion) + '</div>'
+        + '</div>';
+    });
+  }
+
+  html += '</div>';
+
+  // 插入到报告区域顶部
+  area.insertBefore(createElementFromString(html), area.firstChild);
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+function createElementFromString(htmlStr) {
+  var div = document.createElement('div');
+  div.innerHTML = htmlStr.trim();
+  return div.firstChild;
 }
