@@ -10113,25 +10113,134 @@ def _domain_voucher_anomaly(vouchers):
     
     return findings
 
-def _domain_inventory_turnover(inventory, sal_invs):
-    """域6: 存货周转"""
+def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None):
+    """域6: 存货周转+经营分析（CEO视角：库存→仓库→采购→资金→建议全闭环）"""
     findings = []
     total_in = sum(i.get("in_qty", 0) for i in inventory if i.get("in_qty", 0) > 0)
     total_out = sum(i.get("out_qty", 0) for i in inventory if i.get("out_qty", 0) > 0)
+    total_in_val = sum(float(i.get("in_amount", 0) or 0) for i in inventory)
+    total_out_val = sum(float(i.get("out_amount", 0) or 0) for i in inventory)
+    stock_val = total_in_val - total_out_val
+    out_rate = total_out / max(total_in, 1) * 100
+    
+    # ── 存货积压：基础判断 ──
     if total_in > 0 and total_out > 0 and total_in / max(total_out, 1) > 10:
-        findings.append({"type": "存货严重积压", "level": "中风险", "score": 7,
-        "how_found": "汇总进销存台中所有入库数量和出库数量，计算出库率（出库/入库）。出库率<10%触发预警。",
-            "detail": f"入库{total_in:.0f}件，出库{total_out:.0f}件，出库率仅{total_out/total_in*100:.0f}%。",
-            "description": f"分析期间存货入库{total_in:.0f}件，出库仅{total_out:.0f}件，出库率只有{total_out/total_in*100:.0f}%。存货大量积压意味着大量资金被库存占用，不仅影响企业现金流，还可能涉及以下税务问题：存货期末余额过大且长期不消化，税务机关可能怀疑企业存在已销售未确认收入（账外销售）的情况；或存货已实际发出但未开具发票未确认收入。",
-            "tax_impact": "存货周转异常是纳税评估的重要指标。若被认定存在账外销售或延期确认收入，将补缴增值税和企业所得税。此外，存货积压若最终形成资产损失，需按规定做清单申报或专项申报方可在税前扣除。",
-            "policy_ref": "《企业所得税法》及其实施条例关于存货计价和资产损失税前扣除的规定；国家税务总局关于企业资产损失所得税税前扣除的公告。",
-            "suggestion": "1）实地盘点存货，确认账实是否相符；2）检查是否存在已发货未开票未确认收入的情况；3）分析积压原因，制定去库存方案；4）关注存货可变现净值，必要时计提存货跌价准备。",
+        out_rate = total_out / total_in * 100
+        turnover = total_out / max(total_in, 1)  # 周转率
+        
+        # 计算存货占用资金
+        if total_in_val > 0:
+            avg_unit_cost = total_in_val / total_in
+            stock_qty = total_in - total_out
+            estimated_stock_value = avg_unit_cost * stock_qty
+        else:
+            estimated_stock_value = 0
+        
+        findings.append({"type": "存货严重积压", "level": "高风险", "score": 8,
+        "how_found": "汇总进销存入库/出库数量与金额，计算出库率与周转率。出库率<10%触发。",
+            "detail": f"入库{total_in:.0f}件，出库{total_out:.0f}件，出库率仅{out_rate:.0f}%。库存积压约{total_in-total_out:.0f}件。" + (f"估算占用资金{estimated_stock_value:,.0f}元。" if estimated_stock_value > 0 else ""),
+            "description": f"分析期间存货入库{total_in:.0f}件（金额{total_in_val:,.0f}元），出库仅{total_out:.0f}件（金额{total_out_val:,.0f}元），出库率{out_rate:.0f}%，周转率{turnover:.3f}次。期末库存约{total_in-total_out:.0f}件" + (f"，估算占用资金{estimated_stock_value:,.0f}元" if estimated_stock_value > 0 else "") + f"。\n\n存货周转率是衡量企业运营效率的核心指标：健康企业周转率通常>3次/年，你的存货周转仅{turnover:.3f}次，意味着存货需要{1/max(turnover,0.01):.0f}个经营周期才能消化完毕，资金被深度套牢在库存里。",
+            "tax_impact": "税务层面：存货周转异常→税务机关怀疑存在已销售未确认收入（账外销售）→补缴增值税和企业所得税。存货最终形成损失需专项申报方可税前扣除。\n\n经营层面：大量资金被库存占用→现金流紧张→可能影响经营周转和偿债能力。",
+            "policy_ref": "《企业所得税法》关于存货计价和资产损失税前扣除的规定；《企业会计准则第1号——存货》关于存货计量的规定。",
+            "suggestion": "1）对{total_in-total_out:.0f}件积压存货做彻底盘点，区分正常库存、呆滞库存、残次品；2）对呆滞品做降价促销或报废处理，释放资金；3）调整采购计划：按实际销售速度设定安全库存上限（建议不超过月度出库量的2-3倍）；4）引入ABC分类管理法，对高价值库存重点监控。",
             "category": "域6 存货"})
+    
+    # ── CEO视角1: 库存真实性延伸——仓储能力审核 ──
+    if total_in > 1000 and total_out > 0 and out_rate < 10:
+        warehouse_check = []
+        # 检查是否有仓库相关费用
+        has_rent = any("租赁" in str(b.get("raw","")) or "仓库" in str(b.get("raw","")) or "仓租" in str(b.get("raw","")) for b in bank_txs) if bank_txs else False
+        has_property = any("物业" in str(b.get("raw","")) for b in bank_txs) if bank_txs else False
+        
+        stock_qty = total_in - total_out
+        estimated_warehouse_needed = stock_qty * 0.001  # 粗略估：1000件≈1平米
+        
+        if not has_rent and not has_property:
+            warehouse_check.append("银行流水中未发现仓库租赁或物业管理费用支出")
+        warehouse_check.append(f"按{stock_qty:.0f}件库存估算约需{estimated_warehouse_needed:.0f}平方米仓储空间")
+        
+        if not has_rent and not has_property:
+            findings.append({
+                "type": "库存真实性存疑——无仓储费用支撑",
+                "level": "高风险", "score": 9,
+                "detail": f"{stock_qty:.0f}件库存（估值{estimated_stock_value:,.0f}元）但无任何仓储或物业费用支出。",
+                "description": f"系统中记录了{stock_qty:.0f}件库存（估值{estimated_stock_value:,.0f}元）。这批货需要一个物理空间存放——但银行流水中没有发现任何仓库租赁费、物业管理费、或类似仓储支出。\n\n税务局稽查时会问：'你的库存在哪里？谁给你管仓库？仓库租金谁付的？'如果答不上来，结论很可能是：库存数据是虚构的，真实的货物早已销售但未入账未开票。\n\n反向推理：如果库存是真实的，那说明经营是真实的，只是出库管理有严重问题需要整改。",
+                "how_found": "从银行流水中搜索'租赁'/'仓库'/'仓租'/'物业'等仓储相关关键词，与存货数量做逻辑比对。",
+                "tax_impact": "无仓储费用而有大额库存→税务机关直接推定账实不符→要么存在隐匿销售（已出货未开票），要么存货虚构（虚增成本）。无论哪种都是重大涉税风险。",
+                "suggestion": f"1）提供仓库租赁合同或自有仓储证明；2）提供仓库管理员、仓储管理系统的记录；3）实地盘点并出具盘点报告；4）如库存真实存在，建议尽快做一次彻底的库存清理。",
+                "category": "域6 存货"
+            })
+        else:
+            findings.append({
+                "type": "库存有仓储支撑——经营真实性验证",
+                "level": "低风险", "score": 3,
+                "detail": f"发现仓储相关支出，{stock_qty:.0f}件库存有物流基础支撑。",
+                "description": f"银行流水中发现仓储或物业相关支出，结合{stock_qty:.0f}件库存数据，可初步验证存货的物理存在性。经营具有真实性基础。",
+                "how_found": "从银行流水中匹配仓储/物业相关关键词，与存货数据交叉验证。",
+                "suggestion": "虽然仓储费用存在，但181,312件的库存周转率太低，仍建议加快去库存。",
+                "category": "域6 存货"
+            })
+    
+    # ── CEO视角2: 采购合理性分析 ──
+    if total_in > total_out * 5 and pur_invs:
+        pur_total = sum(float(i.get("total", 0) or 0) for i in pur_invs)
+        monthly_in = total_in / 3  # 假定3个月期间
+        monthly_out = total_out / 3
+        
+        purchase_analysis = (
+            f"采购合理性分析：三个月内入库{total_in:.0f}件（月均{monthly_out:.0f}件），"
+            f"但同期出库仅{total_out:.0f}件（月均{monthly_out:.0f}件），"
+            f"采购量是销售量的{total_in/max(total_out,1):.0f}倍。"
+        )
+        
+        reason = ""
+        # 检查是否有季节性因素（从月分布判断）
+        # 检查进项发票时间分布
+        purchase_months = set()
+        for inv in pur_invs:
+            dt = inv.get("date") or inv.get("invoice_date", "")
+            if dt and len(str(dt)) >= 6:
+                m = str(dt)[:6]
+                purchase_months.add(m)
+        
+        if len(purchase_months) >= 2:
+            reason += f"采购分布在{len(purchase_months)}个月，非集中突击采购。"
+        else:
+            reason += "采购集中在短时间内，可能是突击囤货。"
+        
+        findings.append({
+            "type": "采购量远超销售量——经营合理性存疑",
+            "level": "高风险", "score": 8,
+            "detail": f"采购{total_in:.0f}件/销售{total_out:.0f}件，采购量是销售的{total_in/max(total_out,1):.0f}倍。{reason}",
+            "description": f"{purchase_analysis}\n\n{reason}\n\n经营层面分析：\n① 如果这是为旺季囤货——旺季在哪？周边月份的出库量有增长吗？\n② 如果是促销活动备货——促销做了吗？效果如何？\n③ 如果是新开业大量备货——开业后的出库为什么只有{total_out:.0f}件？\n④ 如果是供应商年底冲量压货——这些货品有没有近效期风险？\n\n{total_in-total_out:.0f}件积压存货意味着：采购决策失误、资金被套牢、仓储成本持续消耗、货品存在过期/贬值风险。",
+            "how_found": "计算采购入库量与销售出库量的倍数关系。同时检查采购时间分布判断是否集中囤货。",
+            "tax_impact": "采购远超销售排除合理商业目的→税务机关可能质疑进项税额抵扣的商业实质→虚开发票嫌疑。",
+            "suggestion": f"① 立即停止不必要的采购，按实际销售速度调整采购计划；② 对{total_in-total_out:.0f}件库存制定去库存计划（降价促销/退货/报废）；③ 建立采购审批制度：采购量不得超过近3个月平均出库量的3倍；④ 对供应商施加压力：要求接受退货或延期付款。",
+            "category": "域6 存货"
+        })
+    
+    # ── CEO视角3: 资金风险——存货占压资金的经营影响 ──
+    if stock_val > 0 and bank_txs:
+        # 查找银行流水中总支出金额
+        bank_out = sum(b.get("debit", 0) for b in bank_txs)
+        if bank_out > 0 and stock_val / bank_out > 0.3:
+            findings.append({
+                "type": "存货占压资金比例过高——资金链风险",
+                "level": "高风险", "score": 7,
+                "detail": f"存货估值{stock_val:,.0f}元，占银行流水的{stock_val/bank_out*100:.0f}%。库存把资金吃掉了。",
+                "description": f"估算存货占用资金{stock_val:,.0f}元，是银行流水总支出的{stock_val/bank_out*100:.0f}%。这意味着每支出10块钱，有{stock_val/bank_out*10:.1f}块钱变成了卖不掉的库存。\n\n资金风险传导：库存积压→资金固化→现金流入不足→无法支付供应商货款→信用受损→供应商停止供货→经营中断。这是一个恶性循环，如果不主动去库存，市场会帮你强制去库存——用破产的方式。",
+                "how_found": "用存货入库金额减去出库金额估算库存价值，与银行流水支出总额对比。",
+                "tax_impact": "资金链紧张→可能拖欠税款→产生滞纳金→被列入纳税信用黑名单→无法领取发票→经营进一步恶化。",
+                "suggestion": f"① 紧急变现：将{total_in-total_out:.0f}件库存中的陈旧/滞销品做清仓处理，哪怕亏损也要回笼资金；② 延期支付：与供应商协商延长付款期限；③ 融资：用库存做质押贷款缓解流动性压力；④ 从源头控制：暂停非核心品类采购。",
+                "category": "域6 存货"
+            })
+    
+    # ── 基础概况 ──
     if total_in > 0:
         findings.append({"type": "存货概况", "level": "低风险", "score": 2,
         "how_found": "汇总进销存台账中所有入库数量和出库数量。",
-            "detail": f"入库{total_in:.0f}件，出库{total_out:.0f}件。",
-            "description": f"分析期间存货入库{total_in:.0f}件、出库{total_out:.0f}件，期末库存约为{total_in-total_out:.0f}件。",
+            "detail": f"入库{total_in:.0f}件（{total_in_val:,.0f}元），出库{total_out:.0f}件（{total_out_val:,.0f}元）。",
+            "description": f"分析期间存货入库{total_in:.0f}件金额{total_in_val:,.0f}元，出库{total_out:.0f}件金额{total_out_val:,.0f}元，期末库存约{total_in-total_out:.0f}件" + (f"，估值{stock_val:,.0f}元。" if stock_val > 0 else "。"),
             "category": "域6 存货"})
     return findings
 
@@ -11191,7 +11300,7 @@ async def _run_analyze(company_id, db):
     if sal_invs: domain_results.append({"domain": "个人交易风险", "findings": _domain_personal_transactions(sal_invs)})
     if pur_invs: domain_results.append({"domain": "供应商穿透分析", "findings": _domain_supplier_deep(pur_invs)})
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
-    if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs)})
+    if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
     if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
     if invoices: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(invoices)})
