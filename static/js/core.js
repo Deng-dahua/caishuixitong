@@ -494,6 +494,7 @@ function navigateTo(page) {
       if (pwd !== '123456') { toast('密码错误，无法访问', 'error'); return; }
       renderTaxRiskRules(container); break;
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
+    case 'system-logs': renderSystemLogs(container); break;
   }
   window.scrollTo(0, 0);
 }
