@@ -9859,49 +9859,176 @@ def _parse_excel_structured(filepath, ext):
     except: return None
 
 # ── 资料类型特征库（列名关键词+得分）──
+# 覆盖税务稽查所需的所有资料类型，纯内容识别，不依赖Sheet名
 _FILE_FINGERPRINTS = {
+    # ═══ 基础财务类 ═══
     "salary": {
         "keywords": ["本期收入", "应纳税所得额", "代扣个税", "实发工资", "应发工资",
-                     "专项扣除", "基本养老保险", "基本医疗保险", "住房公积金", "累计预扣预缴"],
+                     "专项扣除", "基本养老保险", "基本医疗保险", "住房公积金", "累计预扣预缴",
+                     "子女教育", "住房贷款利息", "赡养老人", "继续教育", "大病医疗"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_salary_sheet(s)
     },
     "sales_invoice": {
-        "keywords": ["购方名称", "购方税号", "购方开户行", "购买方名称"],
+        "keywords": ["购方名称", "购方税号", "购方开户行", "购买方名称", "购买方纳税人识别号",
+                     "购方地址", "购方电话"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_invoice_sheet(s, "销项")
     },
     "purchase_invoice": {
-        "keywords": ["销方名称", "销方税号", "销售方名称", "供应商名称"],
+        "keywords": ["销方名称", "销方税号", "销售方名称", "供应商名称", "销方地址",
+                     "销方开户行", "销方银行账号"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
     },
     "invoice_universal": {
         "keywords": ["发票号码", "发票代码", "数电发票号码", "发票类型", "开票日期",
-                     "金额", "税额", "价税合计", "税率"],
-        "score_threshold": 3,
-        "parser": lambda s, h: _parse_invoice_sheet(s, "进项")  # 默认进项，后面有数据会修正
+                     "金额", "税额", "价税合计", "税率", "货物或应税劳务名称", "*"],
+        "score_threshold": 4,
+        "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
     },
     "voucher": {
         "keywords": ["凭证号", "凭证编号", "科目名称", "科目编号", "摘要"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_voucher_sheet(s),
-        "secondary": ["借方金额", "借方", "贷方金额", "贷方"],  # 需要+2分才确认
+        "secondary": ["借方金额", "借方", "贷方金额", "贷方", "借方合计"],
         "secondary_threshold": 1,
     },
     "social_security": {
         "keywords": ["缴费基数", "单位缴纳", "个人缴纳", "养老保险", "医疗保险", "工伤保险",
-                     "失业保险", "生育保险", "社保人数"],
+                     "失业保险", "生育保险", "社保人数", "社保编号", "参保险种"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "social_security", "rows": _parse_social_sheet(s, h)}
     },
     "inventory": {
         "keywords": ["本期入库", "本期出库", "期初库存", "期末库存", "产品编码", "产品名称",
-                     "规格型号", "入库数量", "出库数量", "进销存"],
+                     "规格型号", "入库数量", "出库数量", "进销存", "单位", "单价", "库存金额"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_inventory_sheet(s)
     },
+    # ═══ 申报表类 ═══
+    "vat_declaration": {
+        "keywords": ["增值税纳税申报表", "销项税额", "进项税额", "应纳税额", "未开具发票",
+                     "即征即退", "免抵退税", "期末留抵税额", "本期应补(退)税额",
+                     "简易计税", "按适用税率计税销售额", "应税劳务", "应税服务"],
+        "score_threshold": 3,
+        "parser": lambda s, h: {"type": "vat_declaration", "rows": _parse_generic_table(s, h)}
+    },
+    "cit_declaration": {
+        "keywords": ["企业所得税", "应纳税所得额", "利润总额", "纳税调整增加额", "纳税调整减少额",
+                     "弥补以前年度亏损", "减免所得税额", "实际应纳所得税额", "资产总额", "从业人数",
+                     "营业收入", "营业成本", "期间费用"],
+        "score_threshold": 3,
+        "parser": lambda s, h: {"type": "cit_declaration", "rows": _parse_generic_table(s, h)}
+    },
+    "stamp_duty": {
+        "keywords": ["印花税", "计税金额", "应纳税额", "已纳税额", "应补税额",
+                     "购销合同", "借款合同", "财产租赁", "技术合同", "加工承揽"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "stamp_duty", "rows": _parse_generic_table(s, h)}
+    },
+    # ═══ 往来明细类 ═══
+    "accounts_receivable": {
+        "keywords": ["应收账款", "期初余额", "借方发生额", "贷方发生额", "期末余额", "账龄",
+                     "客户名称", "应收金额", "已收金额", "未收金额", "坏账准备"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "accounts_receivable", "rows": _parse_generic_table(s, h)}
+    },
+    "accounts_payable": {
+        "keywords": ["应付账款", "供应商", "应付金额", "已付金额", "未付金额",
+                     "暂估应付款", "暂估入库", "应付暂估"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "accounts_payable", "rows": _parse_generic_table(s, h)}
+    },
+    "prepaid_advance": {
+        "keywords": ["预收账款", "预收款项", "合同负债", "预付账款", "预付款项",
+                     "预收金额", "预付金额", "待转销项税额"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "prepaid_advance", "rows": _parse_generic_table(s, h)}
+    },
+    "other_receivables": {
+        "keywords": ["其他应收款", "其他应付款", "往来单位", "备用金", "保证金",
+                     "押金", "代垫款", "员工借款", "关联方往来"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "other_receivables", "rows": _parse_generic_table(s, h)}
+    },
+    # ═══ 资产类 ═══
+    "fixed_assets": {
+        "keywords": ["固定资产", "资产编码", "资产名称", "购置日期", "原值", "残值率",
+                     "折旧年限", "月折旧额", "累计折旧", "净值", "使用部门", "存放地点"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "fixed_assets", "rows": _parse_generic_table(s, h)}
+    },
+    "intangible_assets": {
+        "keywords": ["无形资产", "摊销年限", "专利权", "商标权", "著作权", "土地使用权",
+                     "软件", "摊销金额", "累计摊销"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "intangible_assets", "rows": _parse_generic_table(s, h)}
+    },
+    "asset_impairment": {
+        "keywords": ["资产损失", "存货跌价", "坏账损失", "资产减值", "报废", "盘亏",
+                     "盘盈", "资产处置", "资产盘点"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "asset_impairment", "rows": _parse_generic_table(s, h)}
+    },
+    # ═══ 费用明细类 ═══
+    "expense_detail": {
+        "keywords": ["费用明细", "广告费", "业务招待费", "差旅费", "会议费", "佣金",
+                     "手续费", "咨询费", "服务费", "运输费", "仓储费", "包装费",
+                     "办公费", "通讯费", "水电费", "租赁费", "物业费"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "expense_detail", "rows": _parse_generic_table(s, h)}
+    },
+    "rd_expense": {
+        "keywords": ["研发费用", "研发支出", "研究开发费", "自主研发", "委托研发",
+                     "合作研发", "研发人员", "直接投入", "折旧费用", "无形资产摊销",
+                     "设计费用", "装备调试费", "加计扣除"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "rd_expense", "rows": _parse_generic_table(s, h)}
+    },
+    # ═══ 特殊交易类 ═══
+    "equity_transaction": {
+        "keywords": ["股权转让", "股权变更", "注册资本", "实收资本", "股东", "出资额",
+                     "股权比例", "转让价格", "转让协议", "增资", "减资", "撤资"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "equity_transaction", "rows": _parse_generic_table(s, h)}
+    },
+    "related_party": {
+        "keywords": ["关联方", "关联交易", "关联企业", "关联关系", "母子公司",
+                     "兄弟公司", "同一控制", "最终控制方", "关联购销", "关联借贷",
+                     "关联担保", "转移定价", "独立交易原则", "同期资料"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "related_party", "rows": _parse_generic_table(s, h)}
+    },
+    "loan_borrowing": {
+        "keywords": ["借款合同", "贷款合同", "借款金额", "年利率", "借款期限", "还款方式",
+                     "担保方式", "抵押", "质押", "保证", "信用贷款", "授信额度",
+                     "还本付息", "利息支出", "利息资本化", "资本弱化", "关联方借款"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "loan_borrowing", "rows": _parse_generic_table(s, h)}
+    },
+    # ═══ 进出口类 ═══
+    "import_export": {
+        "keywords": ["报关单", "海关", "进口", "出口", "退税", "外汇", "收汇", "付汇",
+                     "跨境", "境外", "离岸", "到岸", "FOB", "CIF", "外汇管理局",
+                     "出口日期", "贸易方式", "成交方式", "商品编码", "HS编码"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "import_export", "rows": _parse_generic_table(s, h)}
+    },
 }
+
+def _parse_generic_table(sheet, header):
+    """通用表格解析: 提取表头+数据行，不做特定类型转换"""
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 2000)):
+        vals = _get_row_values(sheet, r)
+        if _is_summary_row(vals): continue
+        if _is_repeat_header(vals, header): continue
+        row = {header[i]: vals[i] if i < len(vals) else "" for i in range(min(len(header), len(vals)))}
+        if any(str(v).strip() for v in row.values()):
+            rows.append(row)
+    return rows
 
 def _parse_by_content(names, get_sheet):
     """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型"""
@@ -12272,6 +12399,7 @@ def _run_analyze(company_id, db):
                     elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
+                    else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
                 txs = _parse_pdf_bank_statement(fpath)
