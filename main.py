@@ -9872,6 +9872,29 @@ def _parse_by_sheet_name(names, get_sheet):
         return _parse_voucher_sheet(get_sheet(0))
     if "进销存" in first_sheet:
         return _parse_inventory_sheet(get_sheet(0))
+    
+    # ── fallback: 读取第一行表头，按内容关键词推断文件类型 ──
+    try:
+        s = get_sheet(0)
+        header = _get_row_values(s, 0)
+        header_text = " ".join(header)
+        
+        if "凭证号" in header_text or "凭证编号" in header_text or ("借方" in header_text and "贷方" in header_text):
+            return _parse_voucher_sheet(s)
+        if "发票号码" in header_text or "发票代码" in header_text or "数电发票号码" in header_text:
+            # 尝试判断方向
+            if "购方名称" in header_text or "购方税号" in header_text:
+                return _parse_invoice_sheet(s, "销项")
+            if "销方名称" in header_text or "销方税号" in header_text:
+                return _parse_invoice_sheet(s, "进项")
+        if "工资" in header_text or "本期收入" in header_text or "应纳税所得额" in header_text or "社保" in header_text:
+            if "缴费基数" in header_text or "单位缴纳" in header_text:
+                return {"type": "social_security", "rows": _parse_social_sheet(s, header)}
+            return _parse_salary_sheet(s)
+        if "产品名称" in header_text and ("入库" in header_text or "出库" in header_text):
+            return _parse_inventory_sheet(s)
+    except:
+        pass
     return None
 
 # ── 数据清洗：跳过小计/合计/空行/重复表头 ──
