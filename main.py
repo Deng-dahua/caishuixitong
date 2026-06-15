@@ -11453,7 +11453,284 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
     return findings
 
 
-# ═══════════ 域18: 295规则全覆盖验证 ═══════════
+# ═══════════ 稽查队: 发票-存货-付款三角验证 ═══════════
+
+def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
+    """三角链: 进项发票时间→存货入库时间→银行付款时间 是否逻辑一致"""
+    findings = []
+    if not pur_invs or not bank_txs: return findings
+    
+    from collections import defaultdict
+    # 构建供应商付款时间线
+    pay_timeline = defaultdict(list)
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", "")).strip()
+        if not cp: continue
+        debit = float(tx.get("debit", 0) or 0)
+        dt = str(tx.get("date", ""))
+        if debit > 0 and len(dt) >= 8: pay_timeline[cp].append(dt)
+    
+    # 检查: 发票日期是否在付款之后（先付款后到票=异常）
+    after_pay = 0
+    for inv in pur_invs:
+        seller = str(inv.get("seller", ""))[:30].strip()
+        inv_date = str(inv.get("date", "") or inv.get("invoice_date", ""))
+        if not seller or len(inv_date) < 8: continue
+        for cp, dates in pay_timeline.items():
+            if seller[:5] in cp or cp[:5] in seller:
+                for pay_date in dates:
+                    if pay_date < inv_date:
+                        after_pay += 1
+                        break
+                break
+    
+    if after_pay > 0:
+        findings.append({
+            "type": "发票日期在付款之后——逻辑异常",
+            "level": "中风险", "score": 6,
+            "detail": f"发现{after_pay}笔交易的进项发票日期晚于银行付款日期。先付款后到票→交易逻辑存疑。",
+            "description": f"正常的商业逻辑是: 签订合同→对方开票→我方付款。但发现了{after_pay}笔交易存在「先付款、后开票」的时间倒置现象。\n\n这可能是: ① 发票跨期（本月付款下月才拿到票）→ 正常的票据流转延迟；② 预付款后供应商补票 → 看是否符合合同约定；③ 发票为后补的「走账票」→ 真实交易发生在之前，后补发票来完成税务处理。\n\n建议逐笔核实时间倒置的合理性。",
+            "how_found": "比对进项发票日期和银行流水付款日期，发票日期晚于付款日期超过30天视为异常。",
+            "suggestion": "逐笔核实时间倒置交易的商业合理性，保留采购订单和付款审批记录。",
+            "category": "三角验证"
+        })
+    
+    # 发票金额 vs 付款金额 是否匹配
+    amt_mismatch = 0
+    for inv in pur_invs:
+        seller = str(inv.get("seller", ""))[:30].strip()
+        inv_total = float(inv.get("total", 0) or 0)
+        if not seller or inv_total <= 0: continue
+        found = False
+        for cp, dates in pay_timeline.items():
+            if seller[:5] in cp or cp[:5] in seller:
+                found = True; break
+        if not found: amt_mismatch += 1
+    
+    if amt_mismatch > 5:
+        findings.append({
+            "type": "进项发票与银行付款未匹配——资金去向不明",
+            "level": "高风险", "score": 8,
+            "detail": f"{amt_mismatch}张进项发票的供应商在银行流水付款记录中找不到。有票无付款。",
+            "description": f"{amt_mismatch}张进项发票的销方名称在银行流水的付款对方中无法匹配。有票无付款意味着: 要么款项通过其他渠道支付（现金/支付宝/第三方），要么这些发票是虚开的——根本没有真实的资金流出。\n\n税务局的重点审查方向: 有票无付款 = 虚开发票嫌疑。",
+            "how_found": "逐张进项发票的销方名称与银行流水借方交易对手做模糊匹配，匹配不到的视为无付款记录。",
+            "tax_impact": "有票无付款→进项税额抵扣可能被否定→进项税额转出+补税+罚款。",
+            "suggestion": "提供现金支付凭证或第三方平台转账记录，无法证实的进项发票建议主动做进项税额转出。",
+            "category": "三角验证"
+        })
+    
+    return findings
+
+
+# ═══════════ 稽查队: 红冲作废发票追踪 ═══════════
+
+def _domain_red_void_invoice(invoices):
+    """追踪红冲/作废发票——是正常冲销还是销毁证据"""
+    findings = []
+    red_void = [i for i in invoices if any(kw in str(i.get("status",""))+str(i.get("remark","")) 
+                for kw in ["红冲","作废","红色","冲红"])]
+    
+    if len(red_void) >= 3:
+        total_red = sum(float(i.get("total",0) or 0) for i in red_void)
+        findings.append({
+            "type": "红冲/作废发票数量异常",
+            "level": "高风险", "score": 8,
+            "detail": f"{len(red_void)}张发票被红冲或作废，涉及金额{total_red:,.2f}元。可能为虚开后销毁证据。",
+            "description": f"发现{len(red_void)}张红冲或作废发票，涉及金额{total_red:,.2f}元。正常经营中红冲和作废率应控制在5%以内。高频红冲/作废是税务机关重点关注的异常信号:\n\n① 虚开发票后红冲——开票给客户后对方不需要发票，己方做红冲注销\n② 当期红冲跨期发票——调节收入跨期分摊\n③ 集中红冲某客户发票——交易纠纷或关系破裂\n④ 作废率异常高于行业水平——内部管理混乱或刻意操作",
+            "how_found": "从发票状态、备注、类型字段搜索'红冲''作废'等关键词，统计数量和金额。>=3张触发。",
+            "tax_impact": "高频红冲→可能被认定为恶意拖延纳税或虚开发票→从严处理。",
+            "suggestion": "逐张核实红冲原因并保留完整的红冲申请单和审批记录。",
+            "category": "发票生命周期"
+        })
+    
+    return findings
+
+
+# ═══════════ 稽查队: 利润vs现金流矛盾 ═══════
+
+def _domain_profit_cashflow_gap(voucher_rev, bank_txs, pur_invs):
+    """账面有利润但银行没钱=虚假利润"""
+    findings = []
+    if not bank_txs: return findings
+    
+    bank_in = sum(float(b.get("credit",0) or 0) for b in bank_txs)
+    bank_out = sum(float(b.get("debit",0) or 0) for b in bank_txs)
+    net_flow = bank_in - bank_out
+    
+    vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
+    pur_total = sum(float(i.get("total",0) or 0) for i in pur_invs) if pur_invs else 0
+    gross_profit = vr_total - pur_total
+    
+    if vr_total > 0 and net_flow < 0 and abs(net_flow) > vr_total * 0.3:
+        findings.append({
+            "type": "盈利与现金流严重背离",
+            "level": "高风险", "score": 9,
+            "detail": f"账面主营收入{vr_total:,.0f}元，毛利{gross_profit:,.0f}元，但银行净流出{abs(net_flow):,.0f}元。有利润没钱→利润真实性存疑。",
+            "description": f"最扎心的矛盾: 账面上有{vr_total:,.0f}元收入、{gross_profit:,.0f}元毛利，但银行账户净流出{abs(net_flow):,.0f}元。\n\n这是税务稽查中最经典的问题之一: [你既然有这么多利润，那钱去哪了？]\n\n可能的答案只有三个:\n① 利润是虚增的——收入水分大，实际的现金流入远少于账面收入\n② 钱被占用了——利润转化成了存货(积压)或应收账款(客户欠款)\n③ 钱被挪用了——利润被转出到其他账户或私人账户\n\n无论如何回答，都需要证据支撑。",
+            "how_found": "凭证主营收入-进项采购成本=毛利，对比银行净现金流。净利润+但净现金流为负且差距>收入的30%触发。",
+            "tax_impact": "利润现金背离→收入真实性受质疑→可能触发全面的纳税评估→从增值税到企业所得税全面核查。",
+            "suggestion": "① 编制净利润调节为经营现金流的调节表；② 核实存货积压和应收挂账金额是否合理；③ 排查大额资金转出的商业实质。",
+            "category": "现金流分析"
+        })
+    
+    return findings
+
+
+# ═══════════ 稽查队: 异常交易时间模式 ═══════
+
+def _domain_temporal_anomaly(bank_txs):
+    """检测非正常交易时间: 周末/深夜/节假日/整数金额"""
+    findings = []
+    if not bank_txs: return findings
+    
+    import datetime
+    weekend_count = 0; round_count = 0; round_total = 0.0
+    for tx in bank_txs:
+        d_str = str(tx.get("date", ""))
+        amt = float(tx.get("debit",0) or tx.get("credit",0) or 0)
+        if len(d_str) >= 8:
+            try:
+                dt = datetime.date(int(d_str[:4]), int(d_str[4:6]), int(d_str[6:8]))
+                if dt.weekday() >= 5: weekend_count += 1
+            except: pass
+        if amt > 0 and amt % 10000 < 0.01: 
+            round_count += 1; round_total += amt
+    
+    issues = []
+    if weekend_count > 10:
+        issues.append(f"周末/节假日交易{weekend_count}笔，对公账户在非工作日频繁交易异常")
+    if round_count > 3:
+        issues.append(f"整数金额交易{round_count}笔（合计{round_total:,.0f}元），可能为人为构造的过桥资金")
+    
+    if issues:
+        findings.append({
+            "type": "交易时间与金额模式异常",
+            "level": "中风险", "score": 6 if len(issues)==1 else 7,
+            "detail": "; ".join(issues),
+            "description": "交易行为分析发现异常模式:\n\n" + "\n".join(f"• {i}" for i in issues) + "\n\n稽查经验: 正常经营交易分散在工作日且金额零碎，周末交易和整数金额交易通常有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。",
+            "how_found": "解析银行流水交易日期(判断周末)和交易金额(判断整数万元)，统计异常模式。",
+            "suggestion": "① 核实周末交易的商业合理性（如电商行业周末是高峰期则正常）；② 核实整数金额交易是否对应真实的业务；③ 保留异常交易的合同和凭证。",
+            "category": "时间模式"
+        })
+    
+    return findings
+
+
+# ═══════════ 稽查队: 关联交易穿透 ═══════
+
+def _domain_related_party_check(sal_invs, pur_invs, bank_txs):
+    """从名称中检测关联方: 供应商和客户同名/同一控制人"""
+    findings = []
+    if not sal_invs or not pur_invs: return findings
+    
+    buyers = set()
+    for i in sal_invs:
+        b = str(i.get("buyer",""))[:10].strip()
+        if len(b) >= 4: buyers.add(b)
+    
+    sellers = set()
+    for i in pur_invs:
+        s = str(i.get("seller",""))[:10].strip()
+        if len(s) >= 4: sellers.add(s)
+    
+    # 供应商同时在客户名单中（互为买卖=关联交易）
+    overlap = buyers & sellers
+    if overlap:
+        findings.append({
+            "type": "疑似关联交易——供应商与客户重叠",
+            "level": "高风险", "score": 8,
+            "detail": f"{len(overlap)}个企业同时在供应商和客户名单中: {'、'.join(list(overlap)[:5])}。",
+            "description": f"发现{len(overlap)}家企业同时出现在供应商（进项发票的销方）和客户（销项发票的购方）名单中。这意味着贵公司既向这些企业采购、又向这些企业销售。\n\n这种'互为买卖'的模式本身就容易引发税务机关对关联交易和转移定价的关注:\n① 是否存在通过关联采购虚增成本?\n② 是否存在通过关联销售将利润转移?\n③ 交易价格是否公允（独立交易原则）?",
+            "how_found": "取销项发票购方名称前10字和进项发票销方名称前10字，求交集。",
+            "tax_impact": "关联交易→须按独立交易原则进行定价→不符合的将被纳税调整→补缴企业所得税。",
+            "suggestion": "① 逐一核实重叠企业的交易性质；② 如有关联关系，按规定准备同期资料；③ 确保交易价格公允。",
+            "category": "关联交易"
+        })
+    
+    return findings
+
+
+# ═══════════ 经营分析: 资产折旧费用匹配 ═══════
+
+def _domain_depreciation_match(bank_txs, pur_invs):
+    """从支付记录反推固定资产→应存在对应的折旧费用"""
+    findings = []
+    if not bank_txs: return findings
+    
+    # 搜索固定资产采购类付款
+    asset_keywords = ["设备","机器","车辆","电脑","服务器","家具","装修"]
+    asset_payments = []
+    for tx in bank_txs:
+        summary = str(tx.get("summary","")) + str(tx.get("counterparty",""))
+        for kw in asset_keywords:
+            if kw in summary:
+                asset_payments.append(tx)
+                break
+    
+    if asset_payments:
+        asset_total = sum(float(tx.get("debit",0) or 0) for tx in asset_payments)
+        findings.append({
+            "type": "固定资产采购与折旧匹配提示",
+            "level": "低风险", "score": 3,
+            "detail": f"银行流水发现{len(asset_payments)}笔固定资产类付款，合计{asset_total:,.0f}元。应相应计提折旧。",
+            "description": f"银行流水中检测到{len(asset_payments)}笔可能与固定资产采购相关的付款（含关键词：{'/'.join(asset_keywords)}），合计{asset_total:,.0f}元。\n\n提醒: 如果这些付款确实对应固定资产采购，应作如下处理:\n① 建立固定资产台账并登记入账\n② 按规定年限计提折旧（作为成本费用税前扣除）\n③ 折旧费与采购金额、折旧年限应逻辑匹配",
+            "how_found": "从银行流水借方摘要中搜索固定资产类关键词（设备/机器/车辆等）。",
+            "suggestion": "确认上述付款是否对应固定资产采购，如是则建立台账并按时计提折旧。",
+            "category": "资产匹配"
+        })
+    
+    return findings
+
+
+# ═══════════ 经营分析: 行业对标 ═══════
+
+def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, inventory):
+    """与行业基准值做对比，发现偏离"""
+    findings = []
+    
+    # 简易行业基准（可根据更多数据细化）
+    benchmarks = {
+        "毛利率": (0.10, 0.60),  # 10%-60%
+        "人均年营收": (100000, 2000000),
+        "存货周转天数": (30, 180),
+        "进销比": (0.5, 2.0),  # 进项/销项
+    }
+    
+    vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
+    pur_total = sum(float(i.get("total",0) or 0) for i in pur_invs) if pur_invs else 0
+    emp_count = len(set(str(s.get("name","")).strip() for s in salaries if str(s.get("name","")).strip())) if salaries else 0
+    
+    if vr_total > 0 and pur_total > 0:
+        gross_margin = (vr_total - pur_total) / vr_total
+        if gross_margin < benchmarks["毛利率"][0]:
+            findings.append({
+                "type": "毛利率严重低于行业基准",
+                "level": "高风险", "score": 8,
+                "detail": f"毛利率仅{gross_margin*100:.0f}%，远低于行业下限{benchmarks['毛利率'][0]*100:.0f}%。",
+                "description": f"基于主营业务收入{vr_total:,.0f}元和进项采购{pur_total:,.0f}元计算，毛利率为{gross_margin*100:.0f}%。正常行业毛利率应在{benchmarks['毛利率'][0]*100:.0f}%-{benchmarks['毛利率'][1]*100:.0f}%之间。\n\n极低的毛利率可能是:\n① 成本虚高（进项发票水分大）\n② 收入记少了（隐匿了部分收入）\n③ 行业确实如此（微利行业）",
+                "how_found": "（主营收入-进项采购）/主营收入，与行业基准下限对比。",
+                "suggestion": "如属于微利行业则保留说明材料；否则重点核查进项成本真实性和收入完整性。",
+                "category": "行业对标"
+            })
+    
+    if vr_total > 0 and emp_count > 0:
+        per_person = vr_total / emp_count
+        low, high = benchmarks["人均年营收"]
+        if per_person < low:
+            findings.append({
+                "type": "人均营收低于行业基准",
+                "level": "中风险", "score": 5,
+                "detail": f"人均营收{per_person:,.0f}元，低于行业下限{low:,.0f}元。人员效率或收入数据存疑。",
+                "description": "人均营收低于行业基准意味着: 同样的人数创造的收入远低于行业水平→要么人员冗余，要么收入少记。",
+                "how_found": "主营收入÷员工人数 vs 行业基准。",
+                "suggestion": "进行人员效率和收入完整性的双向排查。",
+                "category": "行业对标"
+            })
+    
+    return findings
+
+
+# ═══════════ 域18: 303规则全覆盖验证 ═══════════
 
 RULE_DATA_REQUIREMENTS = {
     # ID → (所需数据, 缺失时的兜底结论)
@@ -11721,6 +11998,20 @@ async def _run_analyze(company_id, db):
     domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
     domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
     domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
+    # 稽查队: 发票-存货-付款三角链
+    domain_results.append({"domain": "发票存货付款三角验证", "findings": _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs)})
+    # 稽查队: 红冲作废发票
+    domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
+    # 稽查队: 利润vs现金流矛盾
+    domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
+    # 稽查队: 异常交易时间模式
+    domain_results.append({"domain": "异常交易时间分析", "findings": _domain_temporal_anomaly(bank_txs)})
+    # 稽查队: 关联交易穿透
+    domain_results.append({"domain": "关联交易穿透检测", "findings": _domain_related_party_check(sal_invs, pur_invs, bank_txs)})
+    # 经营分析: 资产折旧匹配
+    domain_results.append({"domain": "资产折旧费用匹配", "findings": _domain_depreciation_match(bank_txs, pur_invs)})
+    # 经营分析: 行业对标
+    domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory)})
 
     all_findings = []
     for dr in domain_results:
@@ -11810,7 +12101,7 @@ async def _run_analyze(company_id, db):
 
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
-        "files_count": len(docs), "rules_used": 303, "pipeline_log": pipeline_log, "file_results": file_results,
+        "files_count": len(docs), "rules_used": 312, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200], "summary_text": f"17域+295规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。295规则引擎基于100%上传文件数据运行。"
     }}
