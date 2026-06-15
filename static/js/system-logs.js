@@ -38,6 +38,7 @@ async function loadSystemLogs(filter) {
       + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">请求</th>'
       + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">状态</th>'
       + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">耗时</th>'
+      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">用户</th>'
       + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">IP</th>'
       + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">地区</th>'
       + '</tr></thead><tbody>';
@@ -52,6 +53,7 @@ async function loadSystemLogs(filter) {
         + '<td style="padding:6px 12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(l.path) + '">' + esc(l.path.replace('/api/','')) + '</td>'
         + '<td style="padding:6px 12px;text-align:center;color:' + statusColor + '">' + l.status_code + '</td>'
         + '<td style="padding:6px 12px;text-align:center">' + (l.response_time_ms || '-') + 'ms</td>'
+        + '<td style="padding:6px 12px;font-weight:500">' + (l.user_name ? esc(l.user_name) + ' <span style="color:var(--gray-400);font-weight:400">' + esc(l.user_phone || '') + '</span>' : '<span style="color:var(--gray-400)">-</span>') + '</td>'
         + '<td style="padding:6px 12px">' + esc(l.client_ip || '-') + '</td>'
         + '<td style="padding:6px 12px;color:var(--gray-500)">' + esc(l.location || '') + '</td>'
         + '</tr>';

@@ -88,9 +88,12 @@ async def access_log_middleware(request: Request, call_next):
             elif "audit" in path: action = "audit"
             elif "fix" in path: action = "fix"
             elif "/api/tax-risk-docs/review" in path: action = "review"
+            # 获取用户信息
+            user_name = request.headers.get("X-User-Name", "")
+            user_phone = request.headers.get("X-User-Phone", "")
             entry = {"t": _time_module.time(), "cid": cid, "m": request.method, "p": path[:200],
                      "s": response.status_code, "ip": request.client.host if request.client else None,
-                     "ms": elapsed_ms, "a": action}
+                     "ms": elapsed_ms, "a": action, "un": user_name, "up": user_phone}
             with open(LOG_FILE, "a", encoding="utf-8") as lf:
                 lf.write(_json.dumps(entry, ensure_ascii=False) + "\n")
         except: pass
@@ -146,6 +149,7 @@ def get_system_logs(limit: int = 200, company_id: int = None):
             logs[i] = {"id": i+1, "company_id": l.get("cid"), "timestamp": ts,
                        "method": l.get("m",""), "path": l.get("p",""), "status_code": l.get("s",0),
                        "client_ip": ip, "location": loc, "response_time_ms": l.get("ms",0),
+                       "user_name": l.get("un",""), "user_phone": l.get("up",""),
                        "action_type": l.get("a","")}
         return JSONResponse(logs)
     except Exception as e:

@@ -60,8 +60,45 @@ const pages = {
   'tax-doc-analysis': '资料风险分析报告'
 };
 
-// ==================== 初始化（多公司版本） ====================
-async function init() {
+// ==================== 用户登录 ====================
+function getCurrentUser() {
+  try {
+    var data = JSON.parse(localStorage.getItem('taxUser') || 'null');
+    return data || null;
+  } catch(e) { return null; }
+}
+
+// 全局 fetch 拦截：所有请求自动附加用户信息
+(function() {
+  var _origFetch = window.fetch;
+  window.fetch = function(url, options) {
+    options = options || {};
+    options.headers = options.headers || {};
+    var user = getCurrentUser();
+    if (user) {
+      options.headers['X-User-Name'] = encodeURIComponent(user.name);
+      options.headers['X-User-Phone'] = user.phone;
+    }
+    return _origFetch(url, options);
+  };
+})();
+
+function handleUserLogin(e) {
+  e.preventDefault();
+  var name = document.getElementById('user-login-name').value.trim();
+  var phone = document.getElementById('user-login-phone').value.trim();
+  if (!name || !phone) { toast('请填写姓名和手机号', 'warning'); return; }
+  if (!/^1[3-9]\d{9}$/.test(phone)) { toast('手机号格式不正确', 'warning'); return; }
+  
+  var user = { name: name, phone: phone, loginAt: new Date().toISOString() };
+  localStorage.setItem('taxUser', JSON.stringify(user));
+  document.getElementById('user-register-overlay').style.display = 'none';
+  // 继续正常初始化流程
+  initAppFlow();
+}
+
+// 分离出应用入口，登录后再调用
+async function initAppFlow() {
   const companies = await loadCompaniesRaw();
   window._companiesForPick = companies || [];
 
@@ -166,6 +203,10 @@ async function enterApp(companyId, companyName) {
   document.getElementById('registration-view').classList.add('hidden');
   document.getElementById('company-pick-view').classList.add('hidden');
   document.getElementById('app-view').classList.remove('hidden');
+  // 显示当前用户
+  var user = getCurrentUser();
+  var userEl = document.getElementById('sidebar-user-name');
+  if (userEl && user) userEl.textContent = user.name + ' (' + user.phone + ')';
   await loadCompanies();
   await loadCurrentPeriod();
   await loadAllAccounts();
@@ -769,6 +810,16 @@ function getModulePeriod(prefix) {
 }
 
 // ==================== 启动 ====================
+async function init() {
+  var user = getCurrentUser();
+  if (!user) {
+    document.getElementById('user-register-overlay').style.display = 'flex';
+    return;
+  }
+  document.getElementById('user-register-overlay').style.display = 'none';
+  return initAppFlow();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   init().catch(function (e) {
     console.error('初始化失败', e);
