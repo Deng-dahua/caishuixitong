@@ -14092,9 +14092,19 @@ def _run_analyze(company_id, db):
             data_missing.append(label)
     comprehensive["data_overview"] = {"present": data_present, "missing": data_missing}
 
+    # 动态读取实际规则数量
+    _actual_rule_count = 312
+    try:
+        _rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+        if os.path.exists(_rules_path):
+            with open(_rules_path, "r", encoding="utf-8") as _rf:
+                _actual_rule_count = len(json.load(_rf))
+    except:
+        pass
+
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
-        "files_count": len(docs), "rules_used": 312, "pipeline_log": pipeline_log, "file_results": file_results,
+        "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
         "low_data_warning": low_data_warning,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200],
