@@ -12104,7 +12104,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     
     return findings
 
-async def _run_analyze(company_id, db):
+def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
 
@@ -12676,22 +12676,10 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 
 
 @app.post("/api/tax-risk-docs/analyze")
-async def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    import asyncio
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _run_analyze_sync, company_id, db)
-
-
-def _run_analyze_sync(company_id, db):
-    """同步版本的分析函数，在独立线程中运行，不阻塞事件循环"""
-    import asyncio
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(_run_analyze(company_id, db))
-    finally:
-        loop.close()
-
-
+@app.post("/api/tax-risk-docs/analyze")
+def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
+    """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
+    return _run_analyze(company_id, db)
 
 if __name__ == "__main__":
     import uvicorn
