@@ -297,6 +297,7 @@ function renderTaxDocReport(r) {
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="display:inline-block;padding:2px 10px;background:' + cfColor + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + f.level + '</span>'
           + '<b style="font-size:14px;flex:1">' + esc(f.type || '') + '</b>'
+          + (f.merged_from ? '<span style="font-size:11px;color:#6366f1;background:#eef2ff;padding:2px 8px;border-radius:4px">已合并' + f.merged_from + '条同类风险</span>' : '')
           + '<span style="font-size:11px;color:var(--gray-400)">分值：' + (f.score || '-') + '</span>'
           + '<button onclick="reviewSingleFinding(this)" data-idx="' + (f._idx || 0) + '" style="font-size:11px;padding:3px 10px;border:1px solid #93c5fd;background:#eff6ff;color:#0369a1;border-radius:4px;cursor:pointer;white-space:nowrap">复核此结论</button>'
           + '</div>'

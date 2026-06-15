@@ -13634,6 +13634,84 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     
     return findings
 
+
+def _merge_similar_findings(findings):
+    """合并同类型仅参数不同的发现——例如同城供应商群集只城市不同，合并为一条"""
+    import re
+    if not findings: return findings
+    
+    # 第一步：按 type 分组
+    groups = {}
+    for f in findings:
+        t = f.get("type", "")
+        if t not in groups:
+            groups[t] = []
+        groups[t].append(f)
+    
+    merged = []
+    for ftype, items in groups.items():
+        if len(items) == 1:
+            merged.append(items[0])
+            continue
+        
+        # 同一 type 下，按 (level, score) 再分组——仅同等级同分的才可能合并
+        sub_groups = {}
+        for f in items:
+            key = (f.get("level", ""), f.get("score", 0))
+            if key not in sub_groups:
+                sub_groups[key] = []
+            sub_groups[key].append(f)
+        
+        for (level, score), sub_items in sub_groups.items():
+            if len(sub_items) == 1:
+                merged.append(sub_items[0])
+                continue
+            
+            # 尝试合并：提取所有 detail 中的参数部分
+            if _is_mergeable_city_group(sub_items):
+                merged.append(_merge_city_findings(sub_items, ftype, level, score))
+            else:
+                merged.extend(sub_items)
+    
+    return merged
+
+
+def _is_mergeable_city_group(items):
+    """判断一组发现是否为「同城供应商群集」这类仅城市不同的可合并组"""
+    import re
+    pattern = re.compile(r'(.{2,4})地区集中(\d+)家')
+    for f in items:
+        d = str(f.get("detail", ""))
+        if not pattern.search(d):
+            return False
+    return True
+
+
+def _merge_city_findings(items, ftype, level, score):
+    """合并城市类发现：北京(15家)、上海(13家)..."""
+    import re
+    pattern = re.compile(r'(.{2,4})地区集中(\d+)家')
+    cities = []
+    total_suppliers = 0
+    for f in items:
+        m = pattern.search(str(f.get("detail", "")))
+        if m:
+            cities.append((m.group(1), int(m.group(2))))
+            total_suppliers += int(m.group(2))
+    
+    cities.sort(key=lambda x: -x[1])
+    city_parts = [f"{c}({n}家)" for c, n in cities]
+    
+    return {
+        "type": ftype,
+        "level": level,
+        "score": score,
+        "detail": f"多地区同类供应商群集，涉及{cities[0][0]}等{len(cities)}个城市共{total_suppliers}家：{'、'.join(city_parts[:8])}" + ("（等）" if len(cities) > 8 else ""),
+        "description": f"以下城市存在同类供应商群集现象：\n" + "\n".join(f"  • {c}：{n}家同类供应商" for c, n in cities),
+        "merged_from": len(items),
+        "domain": items[0].get("domain", "")
+    }
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -13874,6 +13952,17 @@ def _run_analyze(company_id, db):
     # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs)})
     domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
+
+    # ── 同类风险合并：将仅参数不同的同类发现合并为一条 ──
+    for dr in domain_results:
+        dr["findings"] = _merge_similar_findings(dr["findings"])
+    
+    # 重建 all_findings（合并后数量变了）
+    all_findings = []
+    for dr in domain_results:
+        for f in dr["findings"]:
+            all_findings.append({**f, "domain": dr["domain"]})
+    all_findings.extend(engine_results)
 
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
