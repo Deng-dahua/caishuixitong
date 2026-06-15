@@ -214,6 +214,7 @@ function renderTaxDocReport(r) {
     + '<span style="display:inline-block;padding:6px 24px;background:' + lb + ';color:' + lc + ';border-radius:6px;font-weight:700;font-size:18px;margin-left:8px">' + r.overall_level + '</span>'
     + '</div>'
     + '<div style="font-size:13px;color:var(--gray-500)">分析 ' + r.files_count + ' 份文件 · 使用 ' + r.rules_used + ' 条规则 · 识别 ' + r.total_risks + ' 项风险</div>'
+    + '<div style="font-size:13px;color:var(--gray-400)">最近更新: ' + (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); })() + '</div>'
     + '</div>'
     
     // 风险计数卡片
