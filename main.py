@@ -10445,8 +10445,20 @@ def _parse_by_content(names, get_sheet):
         else:
             cv["agreed"] = False
             cv["conflict"] = f"关键词={kw_type}({best_score}分) vs 结构={st_type}({best_struct_conf:.0%})"
+            # ── 结构同形冲突规则：某些类型在纯结构层面不可区分 ──
+            # salary/housing_fund/social_security 都是人名+金额的结构，
+            # 只有关键词(列名语义)能区分。这类冲突优先信任关键词。
+            STRUCT_AMBIGUOUS_PAIRS = [
+                ("salary", "housing_fund"), ("salary", "social_security"),
+                ("social_security", "housing_fund"), ("social_security", "salary"),
+                ("housing_fund", "salary"), ("housing_fund", "social_security"),
+            ]
+            if (kw_type, st_type) in STRUCT_AMBIGUOUS_PAIRS:
+                cv["winner"] = "keyword"
+                cv["reason"] = f"关键词({kw_type})与结构({st_type})属结构同形类型，信任关键词语义"
+                _trace_diag(f"⚠ 交叉验证冲突: {kw_type}↔{st_type}结构同形，采用关键词(得分{best_score})", "warn")
             # 结构分析置信度 ≥ 0.90 时，信任结构分析
-            if best_struct_conf >= 0.90:
+            elif best_struct_conf >= 0.90:
                 cv["winner"] = "structure"
                 cv["reason"] = f"结构分析置信度极高({best_struct_conf:.0%})，覆写关键词({kw_type})"
                 _trace_diag(f"⚠ 交叉验证冲突: 结构分析置信度{best_struct_conf:.0%}极高，采用结构结果={st_type}，覆写关键词={kw_type}", "warn")
@@ -10941,7 +10953,7 @@ _STRUCTURAL_PATTERNS = [
     # 核心特征：大量列(15-50)、大量amount列(>10)、身份证号、人名
     {
         "type": "salary",
-        "col_count_range": (10, 60),
+        "col_count_range": (4, 60),
         "min_rows": 1,
         "required_types": ["amount"],
         "min_amount_cols": 4,
@@ -11384,7 +11396,8 @@ def _parse_salary_sheet(sheet):
     if text_count < 2:
         header = _get_row_values(sheet, 2)
     cols = _find_cols(header, {
-        "姓名": "name", "证件号码": "id_card", "工资": "salary",
+        "姓名": "name", "员工": "name", "姓名/员工": "name",
+        "证件号码": "id_card", "工资": "salary",
         "身份证号": "id_card", "身份证": "id_card", "工号": "emp_id",
         "基本工资": "salary", "应发合计": "gross", "实发合计": "net",
         "实发工资": "net", "应发工资": "gross",
