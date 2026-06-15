@@ -10810,7 +10810,7 @@ def _analyze_multi_source_cross(db, company_id, ps, pe, results):
 
     # 收入三源
     if bts and sis:
-        bank_income = sum((bt.credit_amount or 0) for bt in bts)
+        bank_income = sum(float(bt.credit_amount or 0) for bt in bts)
         inv_income = sum(_safe_float(si.total_amount) for si in sis)
         if inv_income > 0 and bank_income > 0:
             gap_pct = abs(bank_income - inv_income) / max(inv_income, 1)

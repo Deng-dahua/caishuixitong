@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>税务风险综合分析报告 — 演示公司</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background:#0f172a; color:#e2e8f0; line-height:1.7; }
+.container { max-width:1200px; margin:0 auto; padding:24px; }
+
+/* Header */
+.report-header { background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%); border:1px solid #334155; border-radius:16px; padding:40px; margin-bottom:24px; text-align:center; }
+.report-header h1 { font-size:32px; font-weight:800; color:#f8fafc; margin-bottom:8px; }
+.report-header .subtitle { color:#94a3b8; font-size:14px; }
+.report-header .meta { display:flex; justify-content:center; gap:32px; margin-top:20px; flex-wrap:wrap; }
+.report-header .meta-item { text-align:center; }
+.report-header .meta-label { color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+.report-header .meta-value { color:#f8fafc; font-size:18px; font-weight:700; }
+
+/* Summary cards */
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+.summary-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:20px; text-align:center; }
+.summary-card .label { color:#94a3b8; font-size:12px; margin-bottom:4px; }
+.summary-card .value { font-size:28px; font-weight:800; }
+.summary-card .sub { color:#64748b; font-size:11px; margin-top:4px; }
+
+/* Data overview */
+.data-overview { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:24px; margin-bottom:24px; }
+.data-overview h2 { font-size:18px; color:#f8fafc; margin-bottom:16px; }
+.data-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.data-item { padding:12px; background:#0f172a; border-radius:8px; text-align:center; }
+.data-item .d-label { color:#64748b; font-size:11px; }
+.data-item .d-value { font-size:22px; font-weight:700; color:#f8fafc; }
+
+/* Domain sections */
+.domain-section { background:#1e293b; border:1px solid #334155; border-radius:12px; margin-bottom:16px; overflow:hidden; }
+.domain-header { padding:16px 20px; display:flex; align-items:center; gap:12px; background:#0f172a; }
+.domain-num { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px; }
+.domain-name { font-weight:700; font-size:15px; color:#f8fafc; flex:1; }
+.domain-stats { display:flex; gap:12px; font-size:13px; color:#94a3b8; }
+.stat-high { color:#fca5a5; }
+.stat-mid { color:#fcd34d; }
+
+/* Finding cards */
+.domain-findings { padding:16px 20px; }
+.finding-card { background:#0f172a; border-radius:8px; padding:16px; margin-bottom:12px; border-left:3px solid #334155; }
+.finding-card.level-高风险 { border-left-color:#dc2626; background:linear-gradient(90deg,rgba(220,38,38,0.08),transparent); }
+.finding-card.level-中风险 { border-left-color:#f59e0b; background:linear-gradient(90deg,rgba(245,158,11,0.06),transparent); }
+.finding-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.finding-body { color:#cbd5e1; font-size:14px; margin-bottom:8px; line-height:1.8; white-space:pre-wrap; }
+.finding-section { color:#94a3b8; font-size:13px; margin-top:8px; padding-top:8px; border-top:1px solid #1e293b; }
+.finding-section.suggestion { background:rgba(59,130,246,0.08); border-radius:6px; padding:10px 12px; border:none; color:#93c5fd; }
+.finding-score { font-size:12px; color:#64748b; }
+
+/* Badges */
+.badge { display:inline-block; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:600; }
+.badge-high { background:rgba(220,38,38,0.2); color:#fca5a5; }
+.badge-mid { background:rgba(245,158,11,0.2); color:#fcd34d; }
+.badge-low { background:rgba(34,197,94,0.2); color:#86efac; }
+
+/* Chart */
+.chart-container { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:24px; margin-bottom:24px; }
+.chart-container h2 { font-size:18px; color:#f8fafc; margin-bottom:16px; }
+.chart-bars { display:flex; align-items:flex-end; gap:4px; height:300px; overflow-x:auto; padding-bottom:8px; }
+.chart-bar-group { display:flex; flex-direction:column; align-items:center; min-width:40px; }
+.chart-bar-in { width:18px; background:linear-gradient(180deg,#22c55e,#15803d); border-radius:4px 4px 0 0; }
+.chart-bar-out { width:18px; background:linear-gradient(180deg,#ef4444,#b91c1c); border-radius:4px 4px 0 0; margin-left:2px; }
+.chart-label { font-size:10px; color:#64748b; margin-top:4px; writing-mode:vertical-rl; transform:rotate(180deg); max-height:50px; }
+
+/* Counterparty table */
+.cp-table { width:100%; border-collapse:collapse; font-size:13px; }
+.cp-table th { text-align:left; color:#64748b; font-weight:600; padding:10px 12px; border-bottom:1px solid #334155; }
+.cp-table td { padding:8px 12px; border-bottom:1px solid #1e293b; color:#cbd5e1; }
+.cp-table tr:hover td { background:rgba(59,130,246,0.04); }
+.amount-out { color:#fca5a5; }
+.amount-in { color:#86efac; }
+
+/* Tabs */
+.tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.tab { padding:8px 20px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#94a3b8; cursor:pointer; font-size:14px; transition:all 0.2s; }
+.tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* Risk Overview */
+.risk-verdict { background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(220,38,38,0.05)); border:2px solid #dc2626; border-radius:16px; padding:32px; margin-bottom:24px; text-align:center; }
+.risk-verdict h2 { font-size:24px; color:#fca5a5; margin-bottom:8px; }
+.risk-verdict .verdict-text { color:#cbd5e1; font-size:15px; margin-top:12px; line-height:1.8; }
+.risk-verdict .verdict-stats { display:flex; justify-content:center; gap:40px; margin-top:20px; }
+.risk-verdict .verdict-stat { text-align:center; }
+.risk-verdict .verdict-num { font-size:36px; font-weight:800; }
+
+/* Footer */
+.report-footer { text-align:center; color:#475569; font-size:12px; padding:40px 0 20px; border-top:1px solid #1e293b; margin-top:40px; }
+
+@media (max-width:768px) {
+    .report-header h1 { font-size:22px; }
+    .summary-grid { grid-template-columns:repeat(2,1fr); }
+    .tabs { flex-direction:column; }
+}
+
+.tab-btn { display:inline-block; padding:8px 20px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#94a3b8; cursor:pointer; font-size:14px; transition:all 0.2s; margin:0 4px; }
+.tab-btn.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+</style>
+<script>
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tabName).classList.add('active');
+    event.target.classList.add('active');
+}
+</script>
+</head>
+<body>
+
+<div class="container">
+
+<!-- Header -->
+<div class="report-header">
+    <h1>📊 税务风险综合分析报告</h1>
+    <p class="subtitle">演示公司 · 统一社会信用代码: 91110000DEMO00001</p>
+    <div class="meta">
+        <div class="meta-item">
+            <div class="meta-label">报告生成时间</div>
+            <div class="meta-value">2026-06-15 18:40:34</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">数据期间</div>
+            <div class="meta-value">2020-12-20 ~ 2026-03-31</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">分析引擎</div>
+            <div class="meta-value">29域 + 312规则</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">数据记录数</div>
+            <div class="meta-value">2,948</div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Verdict -->
+<div class="risk-verdict">
+    <h2>⚠️ 综合风险判定：高风险</h2>
+    <div style="color:#cbd5e1;font-size:15px;margin-top:8px;">
+        共发现 <strong style="color:#fca5a5">23</strong> 条风险异常
+    </div>
+    <div class="verdict-stats">
+        <div class="verdict-stat">
+            <div class="verdict-num" style="color:#fca5a5">9</div>
+            <div style="color:#94a3b8;font-size:13px;">高风险</div>
+        </div>
+        <div class="verdict-stat">
+            <div class="verdict-num" style="color:#fcd34d">9</div>
+            <div style="color:#94a3b8;font-size:13px;">中风险</div>
+        </div>
+        <div class="verdict-stat">
+            <div class="verdict-num" style="color:#86efac">5</div>
+            <div style="color:#94a3b8;font-size:13px;">低风险/信息</div>
+        </div>
+    </div>
+    <div class="verdict-text">
+        该企业呈现<strong>典型的"空壳经营"特征</strong>：银行流水近4000万但仅有5张销项发票（24.6万元）、无进项发票、无合同、无工资社保记录、无经营实质费用（房租/水电/办公全为零）。银行资金进出完全无法与发票购销匹配——这是税务稽查中最核心的隐匿收入/虚开发票信号。
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="label">银行流水净额</div>
+        <div class="value" style="color:#22c55e">+2,178,603</div>
+        <div class="sub">流入 39,219,750 / 流出 37,041,146</div>
+    </div>
+    <div class="summary-card">
+        <div class="label">销项开票金额</div>
+        <div class="value" style="color:#f59e0b">245,827</div>
+        <div class="sub">5张发票 · 税额14,750</div>
+    </div>
+    <div class="summary-card">
+        <div class="label">主营业务收入</div>
+        <div class="value" style="color:#3b82f6">260,577</div>
+        <div class="sub">15条分录 · 借贷260577</div>
+    </div>
+    <div class="summary-card">
+        <div class="label">银行流水笔数</div>
+        <div class="value" style="color:#8b5cf6">2,928</div>
+        <div class="sub">20个对手方</div>
+    </div>
+</div>
+
+<!-- Data Overview -->
+<div class="data-overview">
+    <h2>📋 数据底账</h2>
+    <div class="data-grid">
+        <div class="data-item">
+            <div class="d-label">银行流水</div>
+            <div class="d-value">2,928</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">销项发票</div>
+            <div class="d-value">5</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">进项发票</div>
+            <div class="d-value" style="color:#ef4444">0</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">序时账凭证</div>
+            <div class="d-value">15</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">工资记录</div>
+            <div class="d-value" style="color:#ef4444">0</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">客户</div>
+            <div class="d-value">2</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">供应商</div>
+            <div class="d-value" style="color:#ef4444">0</div>
+        </div>
+        <div class="data-item">
+            <div class="d-label">合同</div>
+            <div class="d-value" style="color:#ef4444">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('domains')">🔍 29域分析</button>
+    <button class="tab-btn" onclick="switchTab('cashflow')">💰 资金流水</button>
+    <button class="tab-btn" onclick="switchTab('counterparties')">🏢 对手方</button>
+    <button class="tab-btn" onclick="switchTab('recommendations')">💡 整改建议</button>
+</div>
+
+<!-- Tab: Domains -->
+<div id="tab-domains" class="tab-pane active">
+    <div style="margin-bottom:16px;color:#94a3b8;font-size:13px;">
+        共触发 12 个分析域，产出 23 条发现（高9/中9）
+    </div>
+    
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #f43f5e">
+            <span class="domain-num" style="background:#f43f5e">域1</span>
+            <span class="domain-name">资金全链路追踪</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid"> M0</span>
+                <span>1 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-低风险">
+            <div class="finding-header">
+                <span class="badge badge-low">低风险</span>
+                <span class="finding-score">风险分: 2</span>
+            </div>
+            <div class="finding-body">综合分析期间银行账户资金流水：累计收入39,219,749.64元，累计支出37,041,146.40元，其中向税务机关缴纳税款0.00元。</div>
+            
+            
+            
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #f97316">
+            <span class="domain-num" style="background:#f97316">域2</span>
+            <span class="domain-name">凭证科目异常</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid"> M0</span>
+                <span>2 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-低风险">
+            <div class="finding-header">
+                <span class="badge badge-low">低风险</span>
+                <span class="finding-score">风险分: 0</span>
+            </div>
+            <div class="finding-body">这是最基础的账务复核手段：将凭证文件中所有分录的借方金额列和贷方金额列分别求和，验证是否相等。你的凭证文件借方合计260,576.64元，贷方合计260,576.64元，两者完全相等。根据借贷记账法'有借必有贷，借贷必相等'，总账平衡说明整体账务处理无误。</div>
+            
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>序时账总账平衡，整体账务无误。</div>
+        </div>
+        <div class="finding-card level-低风险">
+            <div class="finding-header">
+                <span class="badge badge-low">低风险</span>
+                <span class="finding-score">风险分: 2</span>
+            </div>
+            <div class="finding-body">凭证编号字段有15/15（100%）为空。逐张凭证平衡校验依赖于每行分录都填写正确的凭证编号才能将分录归集到对应凭证。凭证号大面积缺失导致无法做逐张校验——但这不影响：总账已通过通道1验证借贷平衡（260,576.64=260,576.64）。</div>
+            
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>如需逐张凭证校验，请重新导出含完整凭证编号的Excel文件。当前文件总账平衡，整体无误。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #eab308">
+            <span class="domain-num" style="background:#eab308">域3</span>
+            <span class="domain-name">合同比对分析</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid">🟡 M1</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 6</span>
+            </div>
+            <div class="finding-body">贵公司共有2个销项发票客户，但仅有0个客户能找到对应的合同，2个客户的交易缺少合同支撑。合同是证明交易真实性的核心证据，也是税务稽查中判断'四流合一'（合同流、资金流、发票流、货物流）的首要环节。大量交易无合同，一旦被稽查将难以证明交易的真实性和合理性。</div>
+            <div class="finding-section"><strong>税务影响：</strong>缺少合同支撑的交易，税务机关可能要求企业补充提供其他交易真实性证据。如无法提供，将面临进项税额不予抵扣、成本不予税前扣除、甚至被认定为虚开发票的严重后果。此外，合同是印花税的计税依据，无合同也意味着印花税可能存在漏缴。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《民法典》关于合同订立的规定；《印花税法》关于应税合同的规定；国家税务总局关于'四流合一'的稽查要求。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）为现有交易客户补签购销合同；2）建立'先签合同后开票'的内部制度；3）注意合同要素的完整性和规范性（双方名称、金额、标的、履行期限等）；4）按合同金额依法缴纳印花税。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #22c55e">
+            <span class="domain-num" style="background:#22c55e">域4</span>
+            <span class="domain-name">经营实质分析</span>
+            <span class="domain-stats">
+                <span class="stat-high">🔴 H1</span>
+                <span class="stat-mid"> M0</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 9</span>
+            </div>
+            <div class="finding-body">正常经营企业必然产生基本费用，但分析发现无房租/场地租赁支出；无水电费支出；无物业管理费支出；无通信网络支出；无物流快递支出；无办公用品支出。缺失去向：(1)可能无实际经营场所→空壳企业嫌疑；(2)费用由关联方代付→关联交易未披露；(3)现金支付未取票→账外经营。无固定经营场所是税务机关认定'无实际经营能力'的核心依据。</div>
+            <div class="finding-section"><strong>税务影响：</strong>被认定无实际经营场所或经营能力与业务规模不匹配→一般纳税人资格可能被取消→已抵扣进项税额需转出。虚开发票刑事风险大幅上升。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《增值税暂行条例》关于一般纳税人认定标准；国税总局关于纳税人认定或登记为一般纳税人前进项税额抵扣问题的公告。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）有经营场所→收集租赁合同+租金发票+水电费发票；2）股东无偿提供→签租赁协议并按公允价值纳税；3）所有经营费用通过对公账户支付并取得正规发票；4）工商注册地址与实际经营地址必须一致。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #06b6d4">
+            <span class="domain-num" style="background:#06b6d4">域5</span>
+            <span class="domain-name">资料完备度评估</span>
+            <span class="domain-stats">
+                <span class="stat-high">🔴 H3</span>
+                <span class="stat-mid">🟡 M3</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 9</span>
+            </div>
+            <div class="finding-body">稽查来了一定会要合同。合同是证明交易真实性的第一份证据。你缺了合同，意味着：
+
+① 2个客户、涉及0元的销售收入无法通过合同验证——稽查会逐笔质疑这些交易是否真实发生；
+② 0个供应商、涉及0元的采购成本无法通过合同验证——稽查会逐笔质疑这些进项发票是否为虚开；
+③ 四流合一（合同流、发票流、资金流、货物流）缺了第一环，整个证据链从源头断裂；
+④ 印花税的计税依据缺失——合同金额无法核实，印花税必然存在漏缴。</div>
+            <div class="finding-section"><strong>税务影响：</strong>① 稽查将逐笔质疑2+0笔无合同交易的商业合理性；② 无合同→印花税漏缴→补税+罚款；③ 大额交易无合同→虚开发票嫌疑→可能移送公安。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《税收征收管理法》第五十四条（税务检查权，可调取合同）；《印花税法》关于应税合同的规定；国家税务总局关于'四流合一'的稽查要求。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 立即为2个客户和0个供应商补签购销合同（至少覆盖主要交易）；② 合同中必须明确：双方名称、金额、货物/服务内容、履行期限、违约责任；③ 按合同金额依法补缴印花税；④ 建立'先签合同、后开发票、再付款'的内控制度。</div>
+        </div>
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 9</span>
+            </div>
+            <div class="finding-body">进项发票是验证成本真实性、进项税额抵扣合法性的核心资料。缺失意味着：
+
+① 无法验证已抵扣的进项税额是否合规——稽查可能要求全部进项转出；
+② 无法验证供应商是否真实经营——是否存在走逃失联供应商无从排查；
+③ 无法比对[采购发票 vs 存货入库 vs 银行付款]三流一致性。</div>
+            <div class="finding-section"><strong>税务影响：</strong>缺失进项发票→稽查将逐一核验全部进项税额抵扣凭证→异常发票做进项转出→补税+滞纳金。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《增值税暂行条例》关于进项税额抵扣的规定；国家税务总局公告2019年第38号（异常增值税扣税凭证）。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 从金税系统导出完整的进项发票清单；② 逐张核实进项发票对应的采购入库和银行付款，三流不一致的主动做进项转出。</div>
+        </div>
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 6</span>
+            </div>
+            <div class="finding-body">工资是企业所得税前扣除的大项，也是个税代扣代缴的基础资料。缺失工资表=稽查无法核实：① 税前扣除的工资费用是否真实（有没有虚列人员？）；② 个税是否足额代扣代缴。</div>
+            <div class="finding-section"><strong>税务影响：</strong>缺失工资表→工资费用可能被全额纳税调增（不得税前扣除）→补缴企业所得税→同时追缴未扣个税。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《企业所得税法实施条例》第三十四条；《个人所得税法》第九条（扣缴义务）。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 整理完整的工资表（含姓名、身份证号、应发、代扣社保/公积金/个税、实发）；② 与个税申报、社保参保名单三方比对。</div>
+        </div>
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 6</span>
+            </div>
+            <div class="finding-body">社保明细是验证企业用工合规性的核心资料。缺失=无法核实：① 是否全员参保；② 缴费基数是否与实际工资一致；③ 是否存在'假派遣真用工'规避社保。金税四期已将人社数据与税务数据打通，差异自动预警。</div>
+            <div class="finding-section"><strong>税务影响：</strong>缺失社保→社保稽核部门独立立案→社保补缴+滞纳金→并同步推送风险至税务系统→联动稽查。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《社会保险法》第五十八条（参保义务）；第八十四条（未参保处罚）。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 整理社保参保人员明细（含姓名、身份证号、缴费基数、险种）；② 与工资表做逐人比对，差异人员说明原因。</div>
+        </div>
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 5</span>
+            </div>
+            <div class="finding-body">进销存台账是验证存货真实性和购销匹配的基础。缺失=稽查无法判断：① 账面库存是否真实存在（账实是否相符）；② 采购量、销售量、库存量三者逻辑是否自洽（有没有隐匿销售或虚增采购）。</div>
+            <div class="finding-section"><strong>税务影响：</strong>缺失进销存→稽查进行实地盘点→账实不符的部分→推定为已销售未入账→补缴增值税和企业所得税。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《企业所得税法实施条例》关于存货计价和盘点核实的规定。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 整理完整的进销存台账（含期初/入库/出库/结存的数量和金额）；② 每月与财务存货账核对，差异零容忍。</div>
+        </div>
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 10</span>
+            </div>
+            <div class="finding-body">本次分析提交了3类资料，缺失5类。每缺一类资料，稽查来的时候你就少一道防线。根据《税务稽查工作规程》，接到稽查通知后通常只有3-5天准备时间——有些资料你现在不整理好，到时候根本来不及凑。
+
+已提交的资料：银行流水、销项发票、记账凭证。这些资料对应的分析域已经产生了风险发现，详见本报告各分析域。</div>
+            <div class="finding-section"><strong>税务影响：</strong>稽查通知下达后，无法在限期内提供完整资料的→面临罚款（单位最高5万元）+ 税务机关按最不利方式核定应纳税额。每一类缺失的资料，都是在给稽查递刀子。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《税收征收管理法》第五十四条、第五十六条（资料提供义务及罚则）；《税务稽查工作规程》第二十二条（检查取证）。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>立即补充缺失的5类资料。按照金税四期稽查必查清单，企业应确保以下8类资料随时可调取、完整、规范：银行流水、销项发票、进项发票、记账凭证、工资表、社保明细、进销存台账、合同文件。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #3b82f6">
+            <span class="domain-num" style="background:#3b82f6">域6</span>
+            <span class="domain-name">扩展审查规则</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid">🟡 M2</span>
+                <span>1 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 7</span>
+            </div>
+            <div class="finding-body">银行流水中发现60笔金额为整万元的交易。真实的商业交易金额通常带有零头（含税、运费等），大量整数交易可能表明：资金过桥、虚假交易、或通过整数金额规避银行反洗钱监控阈值。</div>
+            <div class="finding-section"><strong>税务影响：</strong>整数交易易引发反洗钱监测和税务稽查关注，可能被认定为无真实商业背景的资金往来。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《反洗钱法》关于大额交易和可疑交易报告的规定；《金融机构大额交易和可疑交易报告管理办法》。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）逐笔核实整数交易的商业背景；2）保留交易合同、订单等证明文件；3）避免无商业实质的整数资金往来。</div>
+        </div>
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 5</span>
+            </div>
+            <div class="finding-body">发现672笔银行交易发生在周末或节假日。正常企业间的对公交易通常在营业日进行，周末频繁交易可能表明：个人经营者使用对公账户处理个人事务、或通过周末交易规避监管。</div>
+            <div class="finding-section"><strong>税务影响：</strong>周末异常交易可能被纳入可疑交易监测范围，引发反洗钱和税务联合检查。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《人民币银行结算账户管理办法》关于账户用途的规定。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）核实周末交易是否具有合理商业理由（如电商行业周末正常收款属正常）；2）非营业日交易应有明确业务背景支撑。</div>
+        </div>
+        <div class="finding-card level-低风险">
+            <div class="finding-header">
+                <span class="badge badge-low">低风险</span>
+                <span class="finding-score">风险分: 3</span>
+            </div>
+            <div class="finding-body">有5张销项发票未填写备注栏信息。根据规定，建筑服务、运输服务、不动产租赁、销售不动产等特定业务的发票备注栏属于必填项目。大量空白备注栏可能意味着未按规定填写发票信息，虽然不直接构成偷逃税，但在稽查中会被认定为发票管理不规范。</div>
+            <div class="finding-section"><strong>税务影响：</strong>特定业务备注栏缺失的发票不得作为税收凭证，购买方取得的此类发票不得抵扣进项税额或税前扣除。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《国家税务总局关于全面推开营业税改征增值税试点有关税收征收管理事项的公告》（2016年第23号）关于发票备注栏的规定。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）检查发票是否涉及需要备注的特殊业务类型；2）规范开票流程，确保备注栏按要求填写。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #8b5cf6">
+            <span class="domain-num" style="background:#8b5cf6">域7</span>
+            <span class="domain-name">凭证发票收入对比</span>
+            <span class="domain-stats">
+                <span class="stat-high">🔴 H2</span>
+                <span class="stat-mid"> M0</span>
+                <span>1 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-低风险">
+            <div class="finding-header">
+                <span class="badge badge-low">低风险</span>
+                <span class="finding-score">风险分: 2</span>
+            </div>
+            <div class="finding-body">这是稽查中最核心的三源收入对比。凭证记录的主营业务收入为245,827.02元，其中明确标注开票收入0.00元、未开票收入245,827.02元（占比100%）。销项发票价税合计0.00元，银行流水入账39,219,749.64元。</div>
+            
+            
+            
+        </div>
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 9</span>
+            </div>
+            <div class="finding-body">贵公司245,827.02元的主营业务收入中，有245,827.02元（100%）为未开票收入。这个比例非常高。未开票收入本身并不违法，但必须确认是否已在增值税申报表中'未开具发票'栏次如实填报了245,827.02元。如果申报表中未填报或填报金额不一致，将构成少申报销售额的严重问题。</div>
+            <div class="finding-section"><strong>税务影响：</strong>未开票收入245,827.02元若未在增值税申报中如实填报，将少缴增值税约31,958元（按13%税率估算），需补缴税款+滞纳金+可能罚款。同时企业所得税也存在少申报营业收入的风险。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《增值税暂行条例》第十九条关于纳税义务发生时间的规定；增值税申报表附表一'未开具发票'栏次；《税收征收管理法》第六十三条关于偷税的规定。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）立即核实245,827.02元未开票收入是否已在对应税款所属期的增值税申报中填报；2）若未申报，尽快做补充申报并补缴税款；3）建立未开票收入台账，确保每期申报完整；4）考虑将未开票收入逐步转为规范开票。</div>
+        </div>
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 8</span>
+            </div>
+            <div class="finding-body">凭证记录的主营业务收入为245,827.02元，银行流水贷方入账39,219,749.64元，两者差异38,973,922.62元（15854%）。银行入账大于凭证收入，说明存在未确认收入的资金入账；凭证收入大于银行入账，说明存在非银行渠道收款（现金、第三方平台等）或收入确认时点与收款时点不一致。</div>
+            <div class="finding-section"><strong>税务影响：</strong>银行入账与账面收入不匹配，会触发税务机关对隐匿收入或虚列收入的质疑。若银行入账多但账面收入少，差额可能被推定为隐匿收入。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《税收征收管理法》第三十五条关于核定应纳税额的规定。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>1）逐月编制银行入账与主营业务收入的调节表；2）区分经营性收款和非经营性收款；3）确保所有经营收款及时确认收入并如实申报。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #ec4899">
+            <span class="domain-num" style="background:#ec4899">域8</span>
+            <span class="domain-name">收入时间线调查</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid">🟡 M1</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 6</span>
+            </div>
+            <div class="finding-body">在1个月份中，凭证主营业务收入与销项开票收入存在2倍以上差异。这意味着要么凭证入账了但没开票（未开票收入集中确认），要么开了票但凭证没入账（跨期或遗漏）。月度错配是申报不准确的前兆。</div>
+            <div class="finding-section"><strong>税务影响：</strong>月度错配→增值税月度申报与会计收入确认不同步→存在跨期申报风险。</div>
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>逐月核对开票收入与入账收入，差异超过20%的月份要编制调节表。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #14b8a6">
+            <span class="domain-num" style="background:#14b8a6">域9</span>
+            <span class="domain-name">资金流向追踪</span>
+            <span class="domain-stats">
+                <span class="stat-high">🔴 H2</span>
+                <span class="stat-mid"> M0</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 8</span>
+            </div>
+            <div class="finding-body">银行流水中总共收到37,952,297元，但只有0元（0%）能匹配到销项发票上的购方名称。
+
+剩余37,952,297元来自发票上未出现的付款方——这些钱是谁付的？是未开票的客户吗？是关联方往来吗？是借款吗？每一个解释都需要证据支持。稽查的做法是：逐笔追问不明资金来源，直到企业给出每一笔的合理解释。</div>
+            <div class="finding-section"><strong>税务影响：</strong>不明来源资金→可能被推定为未开票的销售收入→补缴增值税+企业所得税+滞纳金+罚款。</div>
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 逐笔核实不明来源资金的性质；②编制银行存款收款来源分析表；③对于非经营收款（借款、注资等）留好合同和凭证。</div>
+        </div>
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 8</span>
+            </div>
+            <div class="finding-body">银行流水中总共支出21,814,439元，但只有0元（0%）能匹配到进项发票上的销方名称。
+
+资金的去向是税务稽查中最重要的线索——税务局的思路是：'你有这些进项发票，钱也打给了这些供应商，那货应该收到了。但那些没有进项发票却付了款的交易，钱去哪了？买什么了？为什么会记在成本里？'</div>
+            <div class="finding-section"><strong>税务影响：</strong>付款无对应进项发票→该支出能否税前扣除存疑→纳税调整增加企业所得税。</div>
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 逐笔核实无对应进项发票的付款性质；②如为工资/费用/固定资产采购，确保取得合规票据；③如为往来款，单独挂账管理。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #84cc16">
+            <span class="domain-num" style="background:#84cc16">域10</span>
+            <span class="domain-name">异常交易时间分析</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid">🟡 M1</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 7</span>
+            </div>
+            <div class="finding-body">交易行为分析发现异常模式:
+
+• 周末/节假日交易672笔，对公账户在非工作日频繁交易异常
+• 整数金额交易60笔（合计2,040,000元），可能为人为构造的过桥资金
+
+稽查经验: 正常经营交易分散在工作日且金额零碎，周末交易和整数金额交易通常有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。</div>
+            
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>① 核实周末交易的商业合理性（如电商行业周末是高峰期则正常）；② 核实整数金额交易是否对应真实的业务；③ 保留异常交易的合同和凭证。</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #f59e0b">
+            <span class="domain-num" style="background:#f59e0b">域11</span>
+            <span class="domain-name">规则全覆盖验证</span>
+            <span class="domain-stats">
+                <span class="stat-high"> H0</span>
+                <span class="stat-mid">🟡 M1</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-中风险">
+            <div class="finding-header">
+                <span class="badge badge-mid">中风险</span>
+                <span class="finding-score">风险分: 6</span>
+            </div>
+            <div class="finding-body">以下54条规则无法执行审查，因为缺少所需数据：
+
+【规则18】财税票三表综合比对差异：缺少增值税申报表，缺少增值税申报历史数据，无法做财税票三表比对
+【规则19】收入/成本/费用变动率异常：缺少多期财务报表数据，缺少多期收入/成本/费用数据，无法计算变动率异常
+【规则22】预收账款占比偏高：缺少预收账款明细，缺少预收账款数据，无法判断是否隐匿收入
+【规则23】应付账款占比偏高：缺少应付账款明细，缺少应付账款数据，无法判断是否虚增成本
+【规则30】有租金收入但未缴房产税：缺少租金发票或租赁合同，无法验证租金收入是否足额申报房产税
+【规则31】有员工但无个税申报：缺少个税申报记录，缺少个税申报数据，无法比对员工与申报人数
+【规则33】利润分配未代扣个人所得税：缺少利润分配凭证，缺少利润分配记录，无法验证个税代扣
+【规则35】营业收入较高但未缴印花税：缺少印花税申报记录，缺少印花税申报数据，无法验证缴纳情况
+【规则37】广宣费超限额：缺少广宣费明细，缺少广告宣传费明细，无法验证是否超限
+【规则40】四季度收入占比过高：缺少季度收入分布，缺少季度收入数据，无法判断收入集中度
+【规则41】未发现社保缴存记录：缺少社保缴存记录，缺少社保系统缴费记录，无法验证申报缴存情况
+【规则56】疑似空壳公司特征：缺少企业工商档案，缺少企业工商数据，无法排查空壳特征
+【规则77】关联方资金往来无独立合同：缺少关联方资金往来记录，缺少关联交易数据，无法验证资金往来合规性
+【规则81】合同对方与发票对方名称不一致：缺少合同对方与发票对方比对，缺少合同数据，无法比对发票对方一致性
+【规则104】免税收入进项税额未转出：缺少免税收入明细，缺少免税收入数据，无法验证进项税额转出
+【规则106】无票收入申报缺失：缺少增值税申报表附表一，缺少增值税申报记录，无法验证无票收入是否已填报
+【规则121】进项税额转出处理不及时：缺少增值税申报表进项税额转出栏，缺少申报记录，无法验证进项税额转出及时性
+【规则137】不征税收入处理不合规：缺少不征税收入备案，缺少不征税收入数据，无法验证合规性
+【规则138】暂估成本跨期未冲销：缺少暂估成本明细账，缺少暂估成本跨期数据，无法验证是否及时冲销
+【规则144】持有投资性房地产需关注税费申报：缺少投资性房地产台账，无法验证投资性房地产相关税费申报
+【规则147】企业所得税贡献率持续为零：缺少企业所得税申报记录，缺少所得税申报历史，无法验证贡献率
+【规则153】简易计税与一般计税划分不清：缺少简易计税备案，缺少简易计税备案，无法验证计税方式划分
+【规则162】合同违约金/赔偿金涉税处理存疑：缺少合同违约金条款，缺少合同数据，无法验证违约金涉税处理
+【规则167】价外费用可能未并入销售额申报增值税：缺少销售合同中的价外费用条款，无法验证价外费用是否并入销售额
+【规则168】非货币性资产交换可能未确认增值税和企业所得税收入：缺少非货币性资产交换清单，无法验证非货币性资产交换纳税情况
+【规则169】债务重组收益可能未确认企业所得税：缺少债务重组协议，无法验证债务重组收益是否确认企业所得税
+【规则170】股权转让交易可能未足额申报纳税：缺少股权转让协议/工商变更记录，无法验证股权转让交易是否足额纳税
+【规则171】大额无偿借款可能未视同销售缴纳增值税：缺少关联方借款合同，无法验证无偿借款是否视同销售
+【规则172】向关联方（母公司/集团）支付管理费可能不合规：缺少关联方管理费支付凭证，无法验证关联方管理费合规性
+【规则173】向境外支付款项可能未履行代扣代缴义务：缺少境外付汇备案表，无法验证境外付款代扣代缴义务
+【规则174】混合销售/兼营业务可能未分别核算：缺少混合销售/兼营业务明细，无法验证混合销售是否分别核算
+【规则175】存在排污/环保相关支出但未申报环境保护税：缺少排污许可证/环保支出明细，无法验证环境保护税申报情况
+【规则176】特定业务发票备注栏可能未按要求填写：缺少发票备注栏信息，无法验证特定业务发票备注栏合规性
+【规则177】佣金/手续费支出可能存在合规风险：缺少佣金/手续费合同及结算凭证，无法验证佣金手续费支出合规性
+【规则178】捐赠支出税前扣除合规性存疑：缺少捐赠协议及公益组织资质，无法验证捐赠支出税前扣除合规性
+【规则179】存货盘亏/盘盈/报废可能未做税务处理：缺少存货盘点报告，无法验证存货盘亏盘盈税务处理
+【规则187】个人股权转让未足额申报个税：缺少股权转让协议及个税申报，缺少股权转让和个税数据，无法验证个税申报
+【规则206】大额资产损失税前扣除未经备案/申报：缺少资产损失税前扣除备案，缺少备案记录，无法验证资产损失扣除合规性
+【规则237】无税务稽查应对预案：缺少税务稽查应对预案文件，无法验证稽查应对预案的完备性
+【规则241】行业列入年度税务稽查重点：缺
+...(更多信息见详细报告)</div>
+            <div class="finding-section"><strong>税务影响：</strong>部分规则无法验证意味着企业可能存在的风险未被发现。建议补充对应的数据后再做一次分析。</div>
+            <div class="finding-section"><strong>政策依据：</strong>《税务稽查工作规程》关于企业提供完整经营资料的义务。</div>
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>如需全面验证312条规则，请补充以下资料：
+1）合同文件（覆盖主要客户/供应商）
+2）增值税申报表历史数据
+3）企业所得税申报表
+4）印花税申报记录
+5）关联交易/资本交易相关资料
+6）存货盘点报告
+7）税务稽查应对预案</div>
+        </div></div>
+    </div>
+    <div class="domain-section">
+        <div class="domain-header" style="border-left: 4px solid #6366f1">
+            <span class="domain-num" style="background:#6366f1">域12</span>
+            <span class="domain-name">跨域关联推理</span>
+            <span class="domain-stats">
+                <span class="stat-high">🔴 H1</span>
+                <span class="stat-mid"> M0</span>
+                <span>0 L</span>
+            </span>
+        </div>
+        <div class="domain-findings">
+        <div class="finding-card level-高风险">
+            <div class="finding-header">
+                <span class="badge badge-high">高风险</span>
+                <span class="finding-score">风险分: 8</span>
+            </div>
+            <div class="finding-body">发现2条发票相关的异常行为，它们之间可能相互印证：
+
+• 红冲/作废行为 + 时间倒置（先付款后开票）+ 有票无付款 → 虚开后销毁证据的典型手法
+• 异常交易时间（周末/整数金额）+ 资金流向异常 → 人为构造流水痕迹
+
+这些异常单独看可能是巧合，叠加在一起就是有人在刻意操作发票和资金流的证据。</div>
+            
+            
+            <div class="finding-section suggestion"><strong>💡 建议：</strong>对涉及的所有发票和对应交易逐笔核实，编制异常发票清单和说明。</div>
+        </div></div>
+    </div>
+</div>
+
+<!-- Tab: Cashflow -->
+<div id="tab-cashflow" class="tab-pane">
+    <div class="chart-container">
+        <h2>📈 月度银行资金进出</h2>
+        <div style="color:#94a3b8;font-size:13px;margin-bottom:12px;">绿色=流入 · 红色=流出 · 近24个月</div>
+        <div class="chart-bars">
+
+            <div class="chart-bar-group">
+                <div style="display:flex;align-items:flex-end;height:250px;">
+                    <div class="chart-bar-in" style="height:0px;min-height:1px;"></div>
+                    <div class="chart-bar-out" style="height:11px;min-height:1px;"></div>
+                </div>
+                <div class="chart-label">12</div>
+            </div>
+            <div class="chart-bar-group">
+                <div style="display:flex;align-items:flex-end;height:250px;">
+                    <div class="chart-bar-in" style="height:240px;min-height:1px;"></div>
+                    <div class="chart-bar-out" style="height:210px;min-height:1px;"></div>
+                </div>
+                <div class="chart-label">01</div>
+            </div>
+            <div class="chart-bar-group">
+                <div style="display:flex;align-items:flex-end;height:250px;">
+                    <div class="chart-bar-in" style="height:226px;min-height:1px;"></div>
+                    <div class="chart-bar-out" style="height:191px;min-height:1px;"></div>
+                </div>
+                <div class="chart-label">02</div>
+            </div>
+            <div class="chart-bar-group">
+                <div style="display:flex;align-items:flex-end;height:250px;">
+                    <div class="chart-bar-in" style="height:234px;min-height:1px;"></div>
+                    <div class="chart-bar-out" style="height:250px;min-height:1px;"></div>
+                </div>
+                <div class="chart-label">03</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:12px;color:#94a3b8;">
+            <span>🟢 流入</span><span>🔴 流出</span>
+        </div>
+    </div>
+
+    <!-- Monthly table -->
+    <div class="data-overview">
+        <h2>月度明细</h2>
+        <table class="cp-table">
+            <thead><tr><th>月份</th><th>笔数</th><th>流出</th><th>流入</th><th>净额</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>2026-03</td>
+                    <td>1116</td>
+                    <td class="amount-out">14,005,035</td>
+                    <td class="amount-in">13,093,339</td>
+                    <td style="color:#fca5a5">-911,696</td>
+                </tr>
+                <tr>
+                    <td>2026-02</td>
+                    <td>828</td>
+                    <td class="amount-out">10,678,181</td>
+                    <td class="amount-in">12,675,688</td>
+                    <td style="color:#86efac">+1,997,507</td>
+                </tr>
+                <tr>
+                    <td>2026-01</td>
+                    <td>972</td>
+                    <td class="amount-out">11,750,322</td>
+                    <td class="amount-in">13,450,723</td>
+                    <td style="color:#86efac">+1,700,400</td>
+                </tr>
+                <tr>
+                    <td>2020-12</td>
+                    <td>12</td>
+                    <td class="amount-out">607,608</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-607,608</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tab: Counterparties -->
+<div id="tab-counterparties" class="tab-pane">
+    <div class="data-overview">
+        <h2>🏢 交易对手方 TOP20</h2>
+        <table class="cp-table">
+            <thead><tr><th>#</th><th>对手方名称</th><th>交易笔数</th><th>流出金额</th><th>流入金额</th><th>净额</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>支付宝支付科技有限公司</td>
+                    <td>1080</td>
+                    <td class="amount-out">0</td>
+                    <td class="amount-in">37,952,297</td>
+                    <td style="color:#86efac">+37,952,297</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>(未命名)</td>
+                    <td>516</td>
+                    <td class="amount-out">15,226,707</td>
+                    <td class="amount-in">1,267,452</td>
+                    <td style="color:#fca5a5">-13,959,255</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>国家税务总局北京市大兴区税务局</td>
+                    <td>384</td>
+                    <td class="amount-out">1,107,321</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-1,107,321</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>五方世纪生活用品（深圳）有限公司</td>
+                    <td>72</td>
+                    <td class="amount-out">2,770,868</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-2,770,868</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>威海精诚进出口有限公司</td>
+                    <td>60</td>
+                    <td class="amount-out">268,380</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-268,380</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>深圳市叻森贸易有限公司</td>
+                    <td>48</td>
+                    <td class="amount-out">476,952</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-476,952</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>仙庭商贸（上海）有限公司</td>
+                    <td>48</td>
+                    <td class="amount-out">535,308</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-535,308</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>重庆添翼科技有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">502,379</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-502,379</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>深圳市派菲供应链管理有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">3,462,528</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-3,462,528</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td>深圳天秤实业有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">354,804</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-354,804</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td>河北康士达纸制品科技有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">343,982</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-343,982</td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td>广州星宠文化传媒有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">2,189,045</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-2,189,045</td>
+                </tr>
+                <tr>
+                    <td>13</td>
+                    <td>广州壹圆品牌管理有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">838,683</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-838,683</td>
+                </tr>
+                <tr>
+                    <td>14</td>
+                    <td>北京易邮鲜配科技有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">1,320,000</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-1,320,000</td>
+                </tr>
+                <tr>
+                    <td>15</td>
+                    <td>北京住房公积金管理中心</td>
+                    <td>36</td>
+                    <td class="amount-out">43,200</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-43,200</td>
+                </tr>
+                <tr>
+                    <td>16</td>
+                    <td>北京世昌源商贸有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">598,961</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-598,961</td>
+                </tr>
+                <tr>
+                    <td>17</td>
+                    <td>光橙（上海）信息科技有限公司</td>
+                    <td>36</td>
+                    <td class="amount-out">208,500</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-208,500</td>
+                </tr>
+                <tr>
+                    <td>18</td>
+                    <td>武汉市初世沫贸易有限公司</td>
+                    <td>24</td>
+                    <td class="amount-out">332,640</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-332,640</td>
+                </tr>
+                <tr>
+                    <td>19</td>
+                    <td>恺易萌（苏州）宠物健康科技有限公司</td>
+                    <td>24</td>
+                    <td class="amount-out">1,377,512</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-1,377,512</td>
+                </tr>
+                <tr>
+                    <td>20</td>
+                    <td>山东路斯宠物食品股份有限公司</td>
+                    <td>24</td>
+                    <td class="amount-out">83,232</td>
+                    <td class="amount-in">0</td>
+                    <td style="color:#fca5a5">-83,232</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tab: Recommendations -->
+<div id="tab-recommendations" class="tab-pane">
+    <div class="domain-section">
+        <div class="domain-header" style="border-left:4px solid #3b82f6">
+            <span class="domain-num" style="background:#3b82f6">※</span>
+            <span class="domain-name">紧急整改建议（按优先级）</span>
+        </div>
+        <div class="domain-findings">
+            <div class="finding-card level-高风险">
+                <div class="finding-header">
+                    <span class="badge badge-high">P0 — 立即处理</span>
+                    <span class="finding-score">核心证据链断裂</span>
+                </div>
+                <div class="finding-body">
+<strong>1. 补全进项发票</strong>：当前进项发票为零，无法验证成本真实性和进项税额抵扣合规性。至少应取得与已付款项对应的供应商发票（已付款2118万元）。
+<strong>2. 补签购销合同</strong>：2个销项客户均无合同。发票+资金流+合同流+货物流"四流合一"是稽查底线。
+<strong>3. 整理经营费用凭证</strong>：房租/水电/物业/办公/物流费用全部缺失——补齐这些基本费用凭证（至少能证明有实际经营场所）。
+<strong>4. 补录未开票收入申报</strong>：245,827元主营业务收入100%未开票，需核对是否已在增值税申报表"未开具发票"栏次填报。
+                </div>
+            </div>
+            <div class="finding-card level-中风险">
+                <div class="finding-header">
+                    <span class="badge badge-mid">P1 — 近期处理</span>
+                    <span class="finding-score">账务与资金流匹配</span>
+                </div>
+                <div class="finding-body">
+<strong>1. 建立银行—发票—凭证三方对账机制</strong>：银行流水3920万但仅5张发票，收款无法匹配客户（0%匹配率）、付款无法匹配供应商（0%匹配率）。
+<strong>2. 建全工资社保公积金档案</strong>：当前工资记录为零——有收入但无人工成本是明显的不合理迹象。
+<strong>3. 规范交易时间</strong>：672笔周末交易、60笔整数金额交易——建立工作日交易管理制度，降低人为构造痕迹。
+                </div>
+            </div>
+            <div class="finding-card level-低风险">
+                <div class="finding-header">
+                    <span class="badge badge-low">P2 — 持续改进</span>
+                    <span class="finding-score">档案体系完善</span>
+                </div>
+                <div class="finding-body">
+<strong>1. 建立完整的客户/供应商档案</strong>（目前仅2个客户、0个供应商）
+<strong>2. 补齐合同备案</strong>（当前0份合同）
+<strong>3. 完善记账凭证</strong>（凭证号100%为空，无法做逐张凭证平衡校验）
+<strong>4. 建立存货管理台账</strong>（无存货数据）
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="report-footer">
+    <p>本报告由税务风险智能分析系统自动生成 · 分析引擎：29域综合研判 + 312规则引擎</p>
+    <p>报告生成时间：{data['generated_at']} · 数据期间：{data['period_info']['bt_from']} ~ {data['period_info']['bt_to']}</p>
+    <p style="margin-top:8px;">⚠️ 免责声明：本报告基于企业上传的经营数据自动分析生成，仅供参考。具体税务处理请咨询专业税务顾问。</p>
+</div>
+
+</div>
+</body>
+</html>
