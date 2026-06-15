@@ -9948,7 +9948,7 @@ _FILE_FINGERPRINTS = {
         "parser": lambda s, h: _parse_invoice_sheet(s, "进项")
     },
     "voucher": {
-        "keywords": ["凭证号", "凭证编号", "科目名称", "科目编号", "摘要", "会计科目",
+        "keywords": ["凭证号", "凭证编号", "凭证字号", "科目名称", "科目", "科目编号", "摘要", "会计科目",
                      "明细科目", "记账凭证", "凭证日期", "制单人", "审核人", "记账人"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_voucher_sheet(s),
@@ -10388,6 +10388,17 @@ def _parse_by_content(names, get_sheet):
     
     kw_passed = best_type is not None and best_score >= _FILE_FINGERPRINTS[best_type]["score_threshold"]
     if kw_passed:
+        # ── invoice_universal 吞并修复：当 universal 胜出但 sales/purchase 也达标时，
+        #    优先选择有方向区分的具体类型（universal 默认进项会吞掉销项）──
+        if best_type == "invoice_universal":
+            for m in sorted(kw_trace_matches, key=lambda x: -x["score"]):
+                if m["type"] in ("sales_invoice", "purchase_invoice") and m["score"] >= _FILE_FINGERPRINTS[m["type"]]["score_threshold"]:
+                    best_type = m["type"]
+                    best_score = m["score"]
+                    best_sheet_idx = m["sheet"]
+                    _trace_diag(f"invoice_universal被具体类型覆盖: {best_type}(得分{best_score}), 原universal得分{best_score}")
+                    break
+        
         _LAST_PARSE_TRACE["keyword_phase"]["best"] = {"type": best_type, "score": best_score, "sheet": best_sheet_idx}
         _trace_diag(f"关键词匹配通过: {best_type}(得分{best_score}分), 阈值{_FILE_FINGERPRINTS[best_type]['score_threshold']}")
     else:
@@ -10452,6 +10463,7 @@ def _parse_by_content(names, get_sheet):
                 ("salary", "housing_fund"), ("salary", "social_security"),
                 ("social_security", "housing_fund"), ("social_security", "salary"),
                 ("housing_fund", "salary"), ("housing_fund", "social_security"),
+                ("voucher", "bank_statement"), ("bank_statement", "voucher"),
             ]
             if (kw_type, st_type) in STRUCT_AMBIGUOUS_PAIRS:
                 cv["winner"] = "keyword"
