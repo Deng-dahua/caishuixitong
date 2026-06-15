@@ -10192,7 +10192,7 @@ def _domain_personal_transactions(sal_invs):
         pct = p_total / all_total * 100 if all_total > 0 else 0
         if pct > 30:
             findings.append({"type": "个人交易占比过高", "level": "高风险", "score": 8,
-            "how_found": f"通道1(发票): 从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{personal_count}张，金额{personal_total:,.2f}元，占{personal_total/s_total*100:.0f}%。通道2(银行): 验证银行流水中是否有对应的个人付款记录，如果银行收款对象与发票购方一致则交易真实。双通道交叉确认后输出结论。",
+            "how_found": f"通道1(发票): 从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{len(personal)}张({p_total:,.2f}元)，占全部销项{pct:.0f}%。通道2(银行): 验证银行流水中是否有对应的个人付款记录，双通道交叉确认后输出结论。",
                 "detail": f"{len(personal)}张发票开给个人，金额{p_total:,.2f}元（占总销项{pct:.0f}%）。",
                 "description": f"贵公司有{len(personal)}张销项发票的开票对象为个人，合计金额{p_total:,.2f}元，占全部销项收入的{pct:.0f}%。向个人销售虽属正常经营行为，但占比过高会引起税务机关关注：个人消费者通常不索要发票，若大量开票给个人，可能存在将本应开给企业的发票开给个人以规避税务监管的情况，或存在借用个人名义拆分收入、规避企业所得税的问题。",
                 "tax_impact": "若被认定为异常开票行为，可能面临发票协查、纳税评估甚至税务稽查。情节严重的可能被认定为虚开发票。",
@@ -10236,7 +10236,7 @@ def _domain_supplier_deep(pur_invs):
     for city, sellers in sorted(by_city.items(), key=lambda x: -len(x[1])):
         if len(sellers) >= 3:
             findings.append({"type": "同城供应商群集", "level": "中风险", "score": 5,
-            "how_found": f"通道1(地理): 从{len(pur_invs)}张进项发票中提取销方名称，按城市关键词分组，发现{len(city_groups)}个城市有群集供应商。通道2(行业): 检查群集供应商的经营范围是否同质化——同一城市但不同行业则属于正常市场集聚，不构成风险。双通道交叉确认后输出结论。",
+            "how_found": f"通道1(地理): 从{len(pur_invs)}张进项发票中提取销方名称，按城市关键词分组，发现{len(by_city)}个城市有群集供应商。通道2(行业): 同城市但不同行业属于正常集聚，双通道交叉确认后输出结论。",
                 "detail": f"{city}地区集中{len(sellers)}家同类供应商。",
                 "description": f"贵公司在{city}地区有{len(sellers)}家同类供应商。同一城市存在多家同类型供应商，可能引发税务机关对以下问题的关注：是否存在同一控制人注册多家公司分散开票、是否有注册空壳公司虚开发票、是否存在利用不同纳税人身份（一般纳税人/小规模纳税人）调节税负的情况。",
                 "tax_impact": "若同城多家供应商存在关联关系或被认定为虚开团伙，则本公司取得的进项发票将面临进项税额转出风险。",
