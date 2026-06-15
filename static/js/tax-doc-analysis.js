@@ -209,33 +209,36 @@ function renderTaxDocReport(r) {
   var lc = r.overall_level === '高风险' ? '#dc2626' : (r.overall_level === '中风险' ? '#f59e0b' : '#059669');
   var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
 
+  var CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)';
+  var CARD_RADIUS = '8px';
+
   var html = ''
     // ── 数据不足警告横幅 ──
-    + (r.low_data_warning ? '<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:16px;margin-top:16px;font-size:14px;color:#856404;line-height:1.7">' 
+    + (r.low_data_warning ? '<div style="background:#fffbeb;box-shadow:'+CARD_SHADOW+';border-radius:8px;padding:16px;margin-top:16px;font-size:13px;color:#92400e;line-height:1.7;border-left:3px solid #f59e0b">' 
       + '<strong>⚠️ 数据不足警告</strong><br>'
       + '系统未能从上传文件中提取到足够的结构化数据（少于10条记录）。以下分析结果基于有限数据，可能产生误报。'
       + '<br>请检查：① Excel文件第一行是否为表头 ② 文件是否为财税相关数据 ③ 文件格式是否为标准导出模板。'
       + '</div>' : '')
     // ── 综合风险总览卡片 ──
-    + '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:24px;margin-top:16px">'
+    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:24px;margin-top:16px">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">'
     + '<div>'
-    + '<span style="font-weight:600;font-size:15px">综合风险等级：</span>'
-    + '<span style="display:inline-block;padding:6px 24px;background:' + lb + ';color:' + lc + ';border-radius:6px;font-weight:700;font-size:18px;margin-left:8px">' + r.overall_level + '</span>'
+    + '<span style="font-weight:600;font-size:14px;color:#1e293b">综合风险等级</span>'
+    + '<span style="display:inline-block;padding:5px 20px;background:' + lb + ';color:' + lc + ';border-radius:4px;font-weight:700;font-size:17px;margin-left:10px;border:1px solid ' + lc + '20">' + r.overall_level + '</span>'
     + '</div>'
-    + '<div style="font-size:13px;color:var(--gray-500)">分析 ' + r.files_count + ' 份文件 · 使用 ' + r.rules_used + ' 条指令 · 识别 ' + r.total_risks + ' 项风险</div>'
-    + '<div style="font-size:13px;color:var(--gray-400)">最近更新: ' + (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); })() + '</div>'
+    + '<div style="font-size:12px;color:#94a3b8">' + r.files_count + ' 份文件 · ' + r.rules_used + ' 条指令 · ' + r.total_risks + ' 项风险</div>'
+    + '<div style="font-size:12px;color:#cbd5e1">' + (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); })() + '</div>'
     + '</div>'
     
     // 风险计数卡片
-    + '<div style="display:flex;gap:12px;margin-top:16px">'
-    + '<div style="flex:1;background:#fef2f2;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#dc2626">' + r.high_risk + '</div><div style="font-size:11px;color:#991b1b">高风险</div></div>'
-    + '<div style="flex:1;background:#fffbeb;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + r.mid_risk + '</div><div style="font-size:11px;color:#92400e">中风险</div></div>'
-    + '<div style="flex:1;background:#ecfdf5;border-radius:8px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:700;color:#059669">' + r.low_risk + '</div><div style="font-size:11px;color:#065f46">低风险</div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px">'
+    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#dc2626;line-height:1">' + r.high_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">高风险</div></div>'
+    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#f59e0b;line-height:1">' + r.mid_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">中风险</div></div>'
+    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#059669;line-height:1">' + r.low_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">低风险</div></div>'
     + '</div>'
     
     // 摘要
-    + '<div style="background:#f8fafc;border-radius:8px;padding:14px 18px;margin-top:16px;font-size:13px;color:var(--gray-600);line-height:1.7">' + esc(r.summary_text || '') + '</div>'
+    + '<div style="background:#f8fafc;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:14px 18px;margin-top:12px;font-size:13px;color:#475569;line-height:1.7">' + esc(r.summary_text || '') + '</div>'
     + '</div>'
 
     // ── 数据统计 ──
@@ -518,26 +521,27 @@ function renderTaxDocReport(r) {
 
   // ── 处理流水 ──
   if (r.pipeline_log && r.pipeline_log.length > 0) {
-    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-      + '<b style="font-size:15px">📋 处理流水</b>'
-      + '<div style="background:#f0fdf4;border-radius:6px;padding:10px 16px;margin-top:8px;font-size:12px">';
+    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:18px;margin-top:12px">'
+      + '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px">📋 处理流水</div>'
+      + '<div style="background:#f8fafc;border-radius:4px;padding:10px 14px;font-size:11px;font-family:ui-monospace,monospace;max-height:200px;overflow-y:auto">';
     r.pipeline_log.forEach(function(log) {
-      html += '<div style="padding:2px 0;color:var(--gray-600)">' + esc(log) + '</div>';
+      html += '<div style="padding:1px 0;color:#64748b">' + esc(log) + '</div>';
     });
     html += '</div></div>';
   }
 
   // ── 文件处理详情 ──
   if (r.file_results && r.file_results.length > 0) {
-    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-      + '<b style="font-size:15px">📁 文件处理详情</b>';
+    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:18px;margin-top:12px">'
+      + '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px">📁 文件处理详情</div>';
     r.file_results.forEach(function(fr) {
-      var icon = fr.error ? '❌' : (fr.type === 'bank' ? '🏦' : (fr.type === 'sales_invoice' ? '🧾' : (fr.type === 'purchase_invoice' ? '📥' : (fr.type === 'voucher' ? '📋' : '📄'))));
-      html += '<div style="padding:4px 0;font-size:12px;border-bottom:1px solid #f1f5f9">'
-        + icon + ' <b>' + esc(fr.file) + '</b>'
-        + ' <span style="color:var(--gray-400)">→ ' + esc(fr.type || 'unknown') + '</span>'
-        + (fr.actions ? fr.actions.map(function(a) { return ' <span style="color:#059669">✅ ' + esc(a) + '</span>'; }).join('') : '')
-        + (fr.error ? ' <span style="color:#dc2626">' + esc(fr.error) + '</span>' : '')
+      var icon = fr.error ? '✕' : (fr.type === 'bank' ? '●' : (fr.type === 'sales_invoice' ? '●' : (fr.type === 'purchase_invoice' ? '●' : (fr.type === 'voucher' ? '●' : '○'))));
+      html += '<div style="padding:5px 0;font-size:11px;border-bottom:1px solid #f8fafc">'
+        + '<span style="color:#94a3b8;margin-right:6px">' + icon + '</span>'
+        + '<span style="font-weight:500;color:#334155">' + esc(fr.file) + '</span>'
+        + ' <span style="color:#94a3b8">→ ' + esc((fr.type || 'unknown').replace(/_/g,' ')) + '</span>'
+        + (fr.actions ? fr.actions.map(function(a) { return ' <span style="color:#059669;font-size:10px">✓ ' + esc(a) + '</span>'; }).join('') : '')
+        + (fr.error ? ' <span style="color:#dc2626;font-size:10px">✕ ' + esc(fr.error) + '</span>' : '')
         + '</div>';
     });
     html += '</div>';
@@ -545,30 +549,29 @@ function renderTaxDocReport(r) {
 
   // ── 29域分析结果 ──
   if (r.domain_summary && r.domain_summary.length > 0) {
-    html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-      + '<b style="font-size:15px">🔍 29域分析结果</b>';
+    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:20px;margin-top:12px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">'
+      + '<div style="width:3px;height:18px;background:#1e293b;border-radius:2px"></div>'
+      + '<span style="font-weight:700;font-size:14px;color:#1e293b;letter-spacing:0.3px">域分析结果</span>'
+      + '<span style="font-size:11px;color:#94a3b8">' + r.domain_summary.length + '个域</span></div>';
     r.domain_summary.forEach(function(dr) {
       if (!dr.findings || dr.findings.length === 0) return;
       var dColor = dr.high > 0 ? '#dc2626' : (dr.mid > 0 ? '#f59e0b' : '#059669');
-      html += '<div style="margin-top:16px;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--gray-200)">'
-        + '<span style="font-weight:600;font-size:14px">' + esc(dr.name) + '</span>'
-        + '<span style="font-size:12px;color:' + dColor + '">' + dr.count + '项发现'
-        + (dr.high > 0 ? ' <span style="color:#dc2626">' + dr.high + '高</span>' : '')
-        + (dr.mid > 0 ? ' <span style="color:#f59e0b">' + dr.mid + '中</span>' : '')
-        + '</span></div>';
+      html += '<div style="margin-top:10px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc">'
+        + '<span style="font-weight:600;font-size:13px;color:#334155">' + esc(dr.name) + '</span>'
+        + '<span style="font-size:11px;color:' + dColor + '">' + dr.count + '项</span></div>';
       dr.findings.forEach(function(f) {
-        var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
-        var cfBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#ecfdf5');
-        html += '<div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.7" id="finding-' + (f._idx || 0) + '">'
-          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-          + '<span style="display:inline-block;padding:2px 10px;background:' + cfColor + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + f.level + '</span>'
-          + '<b style="font-size:14px;flex:1">' + esc(f.type || '') + '</b>'
-          + (f.merged_from ? '<span style="font-size:11px;color:#6366f1;background:#eef2ff;padding:2px 8px;border-radius:4px">已合并' + f.merged_from + '条同类风险</span>' : '')
-          + '<span style="font-size:11px;color:var(--gray-400)">分值：' + (f.score || '-') + '</span>'
-          + '<button onclick="reviewSingleFinding(this)" data-idx="' + (f._idx || 0) + '" style="font-size:11px;padding:3px 10px;border:1px solid #93c5fd;background:#eff6ff;color:#0369a1;border-radius:4px;cursor:pointer;white-space:nowrap">复核此结论</button>'
+        var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#64748b');
+        html += '<div style="padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;line-height:1.7" id="finding-' + (f._idx || 0) + '">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+          + '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + cfColor + '"></span>'
+          + '<b style="font-size:13px;color:#1e293b;flex:1">' + esc(f.type || '') + '</b>'
+          + (f.merged_from ? '<span style="font-size:10px;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:3px">已合并' + f.merged_from + '条</span>' : '')
+          + '<span style="font-size:10px;color:#94a3b8">' + (f.score || '-') + '分</span>'
+          + '<button onclick="reviewSingleFinding(this)" data-idx="' + (f._idx || 0) + '" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;background:#fff;color:#64748b;border-radius:3px;cursor:pointer">复核</button>'
           + '</div>'
-          + '<div style="color:var(--gray-600);margin-bottom:8px">' + esc(f.detail || '') + '</div>'
+          + '<div style="color:#475569;margin-bottom:6px">' + esc(f.detail || '') + '</div>'
           + '<div class="finding-review-result" id="review-result-' + (f._idx || 0) + '" style="display:none;margin:8px 0"></div>';
         if (f.description) {
           html += '<div style="background:' + cfBg + ';border-radius:6px;padding:10px 14px;margin-bottom:6px">'
