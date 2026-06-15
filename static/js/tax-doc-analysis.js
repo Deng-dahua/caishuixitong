@@ -24,7 +24,7 @@ function renderTaxDocAnalysis(container) {
     + '<div id="tda-upload-section" style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:10px;padding:20px 24px;margin-bottom:20px">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
     + '<div>'
-    + '<span style="font-weight:600;font-size:16px">上传经营资料</span>'
+    + '<span style="font-weight:600;font-size:16px">上传经营资料 <span id="tda-file-count" style="color:var(--gray-400);font-weight:400;font-size:14px">(0 份)</span></span>'
     + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
     + '</div>'
     + '<div style="display:flex;gap:10px">'
@@ -92,6 +92,10 @@ async function refreshTaxDocList() {
     var docs = await resp.json();
     var listEl = document.getElementById('tda-file-list');
     if (!listEl) return;
+
+    // 更新文件数量显示
+    var countEl = document.getElementById('tda-file-count');
+    if (countEl) countEl.textContent = '(' + (docs ? docs.length : 0) + ' 份)';
 
     if (!docs || docs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">暂无上传资料，请点击上方按钮上传</div>';
