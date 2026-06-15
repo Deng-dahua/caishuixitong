@@ -9963,18 +9963,32 @@ def _domain_bank_tracking(txs):
         "category": "域1 资金全链路"})
     return findings
 
-def _domain_profit_analysis(sal_invs, pur_invs, inventory):
-    """域2: 进销毛利率"""
+def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
+    """域2: 进销毛利率 — 发票对比用开票收入，总收入用主营业务收入"""
     findings = []
     s_total = sum(i["total"] for i in sal_invs if i["total"] > 0)
     p_total = sum(i["total"] for i in pur_invs if i["total"] > 0)
     s_count, p_count = len(sal_invs), len(pur_invs)
+    
+    # 获取主营业务收入(凭证)作为总收入口径
+    vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
+    
     if s_total > 0 and p_total > 0 and p_total / s_total > 1.5:
         ratio = p_total/s_total
+        
+        # 如果有凭证收入数据，同时给出两个比率
+        context = ""
+        if vr_total > 0 and vr_total > s_total * 1.1:
+            vr_ratio = p_total / vr_total
+            context = (f"\n\n【收入口径说明】本次审核区分两种收入口径：\n"
+                      f"① 进销发票对比：进项发票{p_total:,.2f}元 vs 销项发票{s_total:,.2f}元（开票收入），进项是销项的{ratio:.0f}倍。\n"
+                      f"② 进项发票 vs 主营业务收入：进项发票{p_total:,.2f}元 vs 主营业务收入{vr_total:,.2f}元（含未开票收入），进项是主营收入的{vr_ratio:.1f}倍。\n"
+                      f"因该公司存在大量未开票收入（{voucher_rev.get('uninvoiced',0):,.2f}元），发票口径与总收入口径差异巨大，本结论以发票对比(①)为准。")
+        
         findings.append({"type": "进销严重倒挂", "level": "高风险", "score": 8,
-        "how_found": "汇总所有销项发票价税合计（收入端）和所有进项发票价税合计（支出端），计算进销比率。比率>150%触发预警。",
-            "detail": f"进项发票{p_total:,.2f}元（{p_count}张）/ 销项发票{s_total:,.2f}元（{s_count}张），比率{ratio*100:.0f}%。",
-            "description": f"贵公司分析期间取得进项发票{p_count}张、金额{p_total:,.2f}元，但对外开具销项发票仅{s_count}张、金额{s_total:,.2f}元。进项金额是销项的{ratio*100:.0f}%，严重倒挂。正常情况下，企业采购原材料或商品后加工或转售应产生增值，销项金额应大于进项金额。进销倒挂可能意味着：存在未开票的隐匿销售收入、囤货积压、关联交易转移定价、或进项发票虚开虚抵等问题。",
+        "how_found": "汇总销项发票价税合计（开票收入）和进项发票价税合计，计算进销比率。比率>150%触发预警。同时与凭证主营业务收入（含未开票收入）做对照。",
+            "detail": f"进项发票{p_total:,.2f}元（{p_count}张）/ 销项发票{s_total:,.2f}元（{s_count}张），进销比率{ratio*100:.0f}%{context[:100] if context else ''}。",
+            "description": f"贵公司分析期间取得进项发票{p_count}张、金额{p_total:,.2f}元，但对外开具销项发票仅{s_count}张、金额{s_total:,.2f}元。进项是销项的{ratio*100:.0f}%，严重倒挂。{context}\n\n正常情况下，企业采购原材料或商品后加工或转售应产生增值，销项应大于进项。进销倒挂可能意味着：存在未开票的隐匿销售收入、囤货积压、关联交易转移定价、或进项发票虚开虚抵。",
             "tax_impact": "进销倒挂是税务机关重点关注指标。若被认定存在隐匿收入，需补缴增值税及企业所得税；若被认定进项虚抵，已抵扣税款将做进项税额转出并加收滞纳金。",
             "policy_ref": "《增值税暂行条例》及其实施细则关于进项税额抵扣的规定；《企业所得税法》关于收入确认的规定。",
             "suggestion": "1）核实是否存在已发货未开票的销售收入，及时补开或确认未开票收入；2）检查存货库存，确认是否有大量商品积压；3）分析进项发票是否与实际采购量匹配；4）关注是否存在关联方之间以不合理价格交易。",
@@ -11173,7 +11187,7 @@ async def _run_analyze(company_id, db):
     domain_results = []
 
     if bank_txs: domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs)})
-    if sal_invs and pur_invs: domain_results.append({"domain": "进销毛利率分析", "findings": _domain_profit_analysis(sal_invs, pur_invs, inventory)})
+    if sal_invs and pur_invs: domain_results.append({"domain": "进销毛利率分析", "findings": _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue)})
     if sal_invs: domain_results.append({"domain": "个人交易风险", "findings": _domain_personal_transactions(sal_invs)})
     if pur_invs: domain_results.append({"domain": "供应商穿透分析", "findings": _domain_supplier_deep(pur_invs)})
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
