@@ -96,6 +96,10 @@ function renderTaxRiskReport(container) {
   }, 100);
 
   // 不自动加载，等待用户点击"生成/刷新报告"
+  // 但如果有缓存数据，恢复显示
+  if (taxRiskReportData) {
+    setTimeout(function() { renderTaxRiskReportData(taxRiskReportData); }, 100);
+  }
 }
 
 async function loadTaxRiskReport() {

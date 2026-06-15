@@ -42,6 +42,11 @@ function renderTaxDocAnalysis(container) {
 
   // 加载已有文件列表
   refreshTaxDocList();
+
+  // 如果有之前的报告数据，恢复显示
+  if (taxDocReportData) {
+    setTimeout(function() { renderTaxDocReport(taxDocReportData); }, 200);
+  }
 }
 
 // ==================== 文件上传 ====================

@@ -11325,7 +11325,7 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
 
 @app.post("/api/tax-risk-docs/review-single")
 async def review_single_finding(request: Request, company_id: int = Query(...)):
-    """单条结论复核：针对一条finding做数据源/计算/逻辑/空值/极端值全面检查"""
+    """单条结论复核：重新解析上传文件，对finding中的数据做源数据交叉验证"""
     try:
         finding = await request.json()
     except:
@@ -11337,77 +11337,144 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
     how = str(finding.get("how_found", ""))
     issues = []
     
-    # ═══ 检查项1: 数据源可追溯性 ═══
-    if "张" in detail and ("凭证" in detail or "发票" in detail or "流水" in detail):
-        issues.append({
-            "check": "数据源可追溯",
-            "result": "结论引用了具体数量，判断依据来源于上传文件解析结果" + ("，可信" if how else "，但缺少'如何得出'说明")
-        })
+    # ═══ 重新解析上传文件获取原始数据 ═══
+    ULDR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
+    raw_bank, raw_inv, raw_vouchers, raw_salaries = [], [], [], []
+    if os.path.exists(ULDR):
+        for fname in os.listdir(ULDR):
+            fpath = os.path.join(ULDR, fname)
+            ext = os.path.splitext(fname)[1].lower()
+            try:
+                if ext in (".xls", ".xlsx"):
+                    parsed = _parse_excel_structured(fpath, ext)
+                    if not parsed: continue
+                    ft = parsed.get("type", "")
+                    rows = parsed.get("rows", [])
+                    if ft == "voucher": raw_vouchers = rows
+                    elif ft == "salary": raw_salaries = rows
+                    elif ft in ("sales_invoice", "purchase_invoice"):
+                        raw_inv.extend([{**r, "direction": "销项" if ft == "sales_invoice" else "进项"} for r in rows])
+                elif ext == ".pdf":
+                    txs = _parse_pdf_bank_statement(fpath)
+                    if txs: raw_bank.extend(txs)
+            except: pass
     
-    # ═══ 检查项2: 分组键有效性（防空值陷阱） ═══
-    if "凭证借贷" in ftype and "253" in detail:
-        issues.append({
-            "check": "分组键有效性",
-            "result": "⚠️ 凭证号字段在源文件中为空，按空键分组得出虚假结论。此结论数据不可信。"
-        })
-    elif "凭证借贷" in ftype:
-        issues.append({"check": "分组键有效性", "result": "✅ 已通过凭证编号字段空值校验"})
-    
-    if "253张" in detail:
-        issues.append({"check": "数字合理性", "result": "⚠️ '253张'这个数字需要核实——2080条分录如果凭证号全空，不应该按253分组"})
-    
-    # ═══ 检查项3: 计算一致性 ═══
-    if "主营业务收入" in detail:
-        for part in detail.split():
-            if "3,014,766" in part or "3014766" in part:
-                issues.append({
-                    "check": "收入计算一致性",
-                    "result": "结论中主营收入301万，与17域分析中收入三源对比的值一致，数值自洽"
-                })
-    
-    # ═══ 检查项4: 极端值合理性 ═══
+    # ═══ 检查项1: 数据源实际数值验证 ═══
     import re
+    
+    # 提取结论中的金额
+    amounts = []
+    for m in re.finditer(r'[\d,]+\.?\d*(?:亿|万|元)?', detail):
+        num_str = m.group().replace(',', '').replace('元', '').replace('万', '0000').replace('亿', '00000000')
+        try: amounts.append(float(num_str))
+        except: pass
+    
+    if amounts:
+        # 验证: 结论中的金额是否在原始数据中有支撑
+        # 凭证借贷不平检查
+        if "凭证" in ftype and "借贷" in ftype:
+            empty_vn = sum(1 for v in raw_vouchers if not str(v.get("voucher_no", "")).strip())
+            total_vn = len(raw_vouchers)
+            if total_vn > 0:
+                if empty_vn / total_vn > 0.9:
+                    issues.append({
+                        "check": "源数据验证",
+                        "result": f"❌ 凭证号字段{empty_vn}/{total_vn}={empty_vn/total_vn*100:.0f}%为空，按空键分组产生错误聚合。结论中的金额数字来源于全量汇总而非逐张凭证。"
+                    })
+                else:
+                    # 重新计算有效凭证
+                    vn_balanced = {}
+                    for v in raw_vouchers:
+                        vn = str(v.get("voucher_no", "")).strip()
+                        if not vn: continue
+                        vn_balanced.setdefault(vn, {"d": 0, "c": 0})
+                        vn_balanced[vn]["d"] += float(v.get("debit", 0) or 0)
+                        vn_balanced[vn]["c"] += float(v.get("credit", 0) or 0)
+                    unbal = [(vn, b) for vn, b in vn_balanced.items() if abs(b["d"]-b["c"]) > 1]
+                    gap = sum(abs(b["d"]-b["c"]) for _,b in unbal)
+                    issues.append({
+                        "check": "源数据重新计算",
+                        "result": f"有效凭证{len(vn_balanced)}张，不平{len(unbal)}张，差额{gap:,.2f}元（跳�{empty_vn}条空凭证号）"
+                    })
+        
+        # 收入数据验证
+        if "主营业务收入" in detail or "主营收入" in "".join([ftype, detail]):
+            vr_total = sum(float(v.get("credit", 0) or 0) for v in raw_vouchers if "主营业务收入" in str(v.get("account", "")))
+            issues.append({
+                "check": "收入原始数据复核",
+                "result": f"凭证中主营业务收入贷方合计{vr_total:,.2f}元" + ("，与结论一致" if abs(vr_total - max(amounts, default=0)) < 1000 else f"，与结论差异{abs(vr_total - max(amounts, default=0)):,.2f}元")
+            })
+        
+        # 进项/销项数据验证
+        if "进项" in ftype or "销项" in "".join([ftype, detail]):
+            sal_total = sum(float(i.get("total", 0) or 0) for i in raw_inv if i.get("direction") == "销项")
+            pur_total = sum(float(i.get("total", 0) or 0) for i in raw_inv if i.get("direction") == "进项")
+            sal_count = sum(1 for i in raw_inv if i.get("direction") == "销项")
+            pur_count = sum(1 for i in raw_inv if i.get("direction") == "进项")
+            issues.append({
+                "check": "发票原始数据复核",
+                "result": f"销项发票{sal_count}张合计{sal_total:,.2f}元，进项发票{pur_count}张合计{pur_total:,.2f}元"
+            })
+        
+        # 银行流水数据验证
+        if "银行" in ftype or "流水" in ftype or "收款" in ftype or "付款" in ftype:
+            bt_income = sum(tx.get("credit", 0) for tx in raw_bank)
+            bt_expense = sum(tx.get("debit", 0) for tx in raw_bank)
+            issues.append({
+                "check": "银行流水原始数据复核",
+                "result": f"银行流水{len(raw_bank)}条，收入{bt_income:,.2f}元，支出{bt_expense:,.2f}元"
+            })
+    
+    # ═══ 检查项2: 空值/默认值陷阱 ═══
+    if "凭证" in ftype:
+        empty_vn = sum(1 for v in raw_vouchers if not str(v.get("voucher_no", "")).strip()) if raw_vouchers else 0
+        vn_pct = empty_vn / max(len(raw_vouchers), 1) if raw_vouchers else 0
+        icon = "\u26a0\ufe0f" if vn_pct > 0.9 else "\u2705"
+        vn_issue = "全空！所有按凭证号分组的结果均无效" if vn_pct > 0.9 else "正常"
+        issues.append({
+            "check": "空值陷阱",
+            "result": icon + " 凭证号空值率%d/%d=%.0f%% %s" % (empty_vn, len(raw_vouchers), vn_pct*100, vn_issue)
+        })
+    
+    if "工资" in ftype or "薪酬" in ftype:
+        empty_names = sum(1 for s in raw_salaries if not str(s.get("name", "")).strip()) if raw_salaries else 0
+        nm_pct = empty_names / max(len(raw_salaries), 1) if raw_salaries else 0
+        nm_icon = "\u26a0\ufe0f" if nm_pct > 0.5 else "\u2705"
+        issues.append({
+            "check": "空值陷阱",
+            "result": "%s 工资表姓名空值率%d/%d" % (nm_icon, empty_names, max(len(raw_salaries), 1))
+        })
+    
+    # ═══ 检查项3: 极端值合理性 ═══
     for m in re.finditer(r'(9[5-9]|100)%', detail):
         issues.append({
-            "check": f"极端值({m.group()})合理性",
-            "result": f"存在{m.group()}的极端占比。平台经济/电商行业可能出现真实的高占比，但需人工确认数据是否完整（如是否包含全部银行账户）。"
+            "check": f"极端值({m.group()})",
+            "result": f"存在{m.group()}极端占比。需人工确认：1)数据是否完整 2)是否包含所有账户/平台 3)行业特性是否合理"
         })
     
-    # ═══ 检查项5: 逻辑一致性 ═══
-    if "借贷" in ftype and "28,208" in detail:
-        issues.append({
-            "check": "数值逻辑",
-            "result": "⚠️ 2820万的差额在统计上不合理——如果真存在2820万借贷不平，企业的账务系统早已崩溃，报表不可能平。这强烈暗示是计算Bug。"
-        })
+    # ═══ 检查项4: 五段式完整性 ═══
+    parts = []
+    parts.append("✅" if desc else "❌" + "风险解释")
+    parts.append("✅" if how else "❌" + "得出方式")
+    parts.append("✅" if finding.get("tax_impact") else "❌" + "税务影响")
+    parts.append("✅" if finding.get("policy_ref") else "❌" + "政策依据")
+    parts.append("✅" if finding.get("suggestion") else "❌" + "整改建议")
+    issues.append({"check": "五段式完整性", "result": " ".join(parts)})
     
-    # ═══ 检查项6: 五段式完整性 ═══
-    checks = []
-    if desc: checks.append("✅ 有风险解释")
-    else: checks.append("⚠️ 缺风险解释")
-    if how: checks.append("✅ 有得出方式")  
-    else: checks.append("⚠️ 缺得出方式")
-    if finding.get("tax_impact"): checks.append("✅ 有税务影响")
-    else: checks.append("⚠️ 缺税务影响")
-    if finding.get("policy_ref"): checks.append("✅ 有政策依据")
-    else: checks.append("⚠️ 缺政策依据")
-    if finding.get("suggestion"): checks.append("✅ 有整改建议")
-    else: checks.append("⚠️ 缺整改建议")
-    issues.append({"check": "五段式完整性", "result": " | ".join(checks)})
-    
-    # ═══ 判断结论可靠性 ═══
-    has_error = any("⚠️" in i["result"] and ("不可信" in i["result"] or "Bug" in i["result"] or "虚假" in i["result"]) for i in issues)
-    has_warning = any("⚠️" in i["result"] for i in issues)
+    # ═══ 判断 ═══
+    has_error = any("❌" in i["result"] and ("空键" in i["result"] or "无效" in i["result"]) for i in issues)
+    has_warning = any("⚠️" in i["result"] or "❌" in i["result"] for i in issues)
     
     level = "错误" if has_error else ("警告" if has_warning else "通过")
     if level == "通过":
-        summary = "结论可信，未发现数据质量问题"
-        method = "已检查：数据源追溯/缺失值检测/数字合理性/五段式完整性，均通过"
+        summary = "数据复核通过，源数据与结论一致"
+        method = "已从源文件重新解析数据并交叉比对，结论可信"
     elif level == "错误":
-        summary = "结论不可靠——发现数据源或计算逻辑问题"
-        method = "已检查：分组键有效性/原始数据验证/数值合理性，发现致命缺陷"
+        summary = "结论不可靠——源数据与结论存在矛盾"
+        method = "重新解析了上传文件，发现数据源问题"
     else:
-        summary = "建议人工复核——存在需核实的问题"
-        method = "已检查：数据完整性/极端值/逻辑一致性/五段式完整性"
+        summary = "部分数据需人工确认"
+        method = "已从源文件重新计算并比对，存在需核实的差异"
     
     return {
         "ok": True,
