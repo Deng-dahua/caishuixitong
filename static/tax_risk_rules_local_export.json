@@ -19674,5 +19674,35 @@
     "dataSource": "交叉比对",
     "remark": "稽查指标",
     "detectable": true
+  },
+  {
+    "id": 1322,
+    "category": "发票进销匹配",
+    "categoryIcon": "🔍",
+    "item": "药材收购对象为非农业生产者开具收购发票",
+    "detail": "核查药材收购对象为非农业生产者开具收购发票的合规性。",
+    "score": 6,
+    "level": "中风险",
+    "suggestion": "排查药材收购对象为非农业生产者开具收购发票相关风险。",
+    "urgency": "提醒",
+    "evidence": "相关凭证/申报表",
+    "dataSource": "交叉比对",
+    "remark": "稽查指标",
+    "detectable": true
+  },
+  {
+    "id": 1323,
+    "category": "发票进销匹配",
+    "categoryIcon": "🔍",
+    "item": "商务企业进销商品编码匹配度偏低指标",
+    "detail": "核查商务企业进销商品编码匹配度偏低指标的合规性。",
+    "score": 6,
+    "level": "中风险",
+    "suggestion": "排查商务企业进销商品编码匹配度偏低指标相关风险。",
+    "urgency": "提醒",
+    "evidence": "相关凭证/申报表",
+    "dataSource": "交叉比对",
+    "remark": "稽查指标",
+    "detectable": true
   }
 ]
