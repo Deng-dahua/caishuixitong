@@ -8676,6 +8676,42 @@ async def tax_risk_rules_audit(request: Request):
         layer8["detail"] = wide_cats
     report["layers"].append(layer8)
 
+    # --- 第9层(P0): 同item不同ID重复检测 ---
+    by_item = {}
+    for r in data:
+        by_item.setdefault(r["item"], []).append(r["id"])
+    p0_dups = {k: v for k, v in by_item.items() if len(v) > 1}
+    layer9 = {"name": "P0-同item重复检测", "pass": len(p0_dups) == 0}
+    if p0_dups:
+        layer9["detail"] = [{"item": k, "ids": v} for k, v in p0_dups.items()]
+        issues_found.append("P0同item重复")
+    report["layers"].append(layer9)
+
+    # --- 第10层(P1): urgency非法值检测 ---
+    valid_urgencies = {"紧急", "一般", "提醒"}
+    bad_urgency = [(r["id"], r.get("urgency", "")) for r in data if r.get("urgency", "") not in valid_urgencies]
+    layer10 = {"name": "P1-urgency合法性", "pass": len(bad_urgency) == 0}
+    if bad_urgency:
+        layer10["detail"] = [{"id": id, "urgency": u} for id, u in bad_urgency]
+        issues_found.append("P1urgency非法值")
+    report["layers"].append(layer10)
+
+    # --- 第11层(P2): 碎片分类检测（≤2条的） ---
+    frag_cats = {k: v for k, v in cats_all.items() if v <= 2}
+    layer11 = {"name": "P2-碎片分类(≤2条)", "pass": len(frag_cats) == 0}
+    if frag_cats:
+        layer11["detail"] = dict(frag_cats)
+        issues_found.append("P2碎片分类")
+    report["layers"].append(layer11)
+
+    # --- 第12层(P3): detectable字段缺失检测 ---
+    missing_detectable = [(r["id"], r["item"]) for r in data if "detectable" not in r]
+    layer12 = {"name": "P3-detectable字段", "pass": len(missing_detectable) == 0}
+    if missing_detectable:
+        layer12["detail"] = [{"id": id, "item": item} for id, item in missing_detectable[:10]]
+        issues_found.append("P3缺少detectable")
+    report["layers"].append(layer12)
+
     # --- 汇总 ---
     cats_all = _Counter(r["category"] for r in data)
     levels_all = _Counter(r["level"] for r in data)
@@ -8796,6 +8832,33 @@ async def tax_risk_rules_fix(request: Request):
             old = r["level"]
             r["level"] = level_map[old]
             fixes.append(f"级别标准化: '{r['item'][:30]}' {old} → {r['level']}")
+
+    # ========== P0修复: 同item不同ID去重 ==========
+    by_item_p0 = {}
+    for r in rules:
+        by_item_p0.setdefault(r["item"], []).append(r)
+    for item, group in by_item_p0.items():
+        if len(group) > 1:
+            group.sort(key=lambda x: x.get("score", 0), reverse=True)
+            for dup in group[1:]:
+                rules.remove(dup)
+                fixes.append(f"P0去重: 移除{item}(ID={dup['id']}，保留ID={group[0]['id']})")
+
+    # ========== P1修复: urgency非法值规范化 ==========
+    urgency_fix_map = {"建议": "提醒", "高": "紧急", "警示": "一般", "重要": "一般"}
+    for r in rules:
+        u = r.get("urgency", "")
+        if u in urgency_fix_map:
+            old_u = u
+            r["urgency"] = urgency_fix_map[u]
+            fixes.append(f"P1: urgency '{old_u}'→'{r['urgency']}' (ID={r['id']})")
+
+    # ========== P3修复: 补充detectable字段 ==========
+    auto_detectable = {"账务数据","发票合规","发票深度","成本结构","申报比对","隐匿虚增","税负水平","个人所得税","纳税调整","政策执行","资金往来","薪酬合规","财务健康","增值税专项","经营实质","合同风险","供应商穿透","交易特征","企业所得税","薪酬福利","平台经济","征管风险","多源交叉","经营穿透","经营分析","时间线调查","供应商画像","资金流向","人员画像","三角验证","现金流分析","时间模式","关联交易","资产匹配","行业对标","发票生命周期"}
+    for r in rules:
+        if "detectable" not in r:
+            r["detectable"] = r["category"] in auto_detectable
+            fixes.append(f"P3: 补充detectable={r['detectable']} (ID={r['id']})")
 
     # ========== 重新生成审计报告 ==========
     # 轻量审计（仅检查是否还有问题）
