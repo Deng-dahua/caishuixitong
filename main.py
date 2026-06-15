@@ -11288,6 +11288,34 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
             "category": "域19 跨域推理"
         })
     
+    # ═══ 证据链6: 利润现金流背离 ═══
+    profit_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["盈利与现金流严重背离"]) or keyword_match(f, ["利润与现金流"]):
+            profit_evidence.append(f)
+        if keyword_match(f, ["存货占压资金"]): profit_evidence.append(f)
+    if len(profit_evidence) >= 1:
+        for f in profit_evidence:
+            f["category"] = "域19 跨域推理"
+            f["type"] = f.get("type","") + " [加入利润现金流证据链]"
+    
+    # ═══ 证据链7: 发票异常行为链（红冲+三角验证+时间模式） ═══
+    invoice_evidence = []
+    for f in all_findings:
+        if keyword_match(f, ["红冲"]) or keyword_match(f, ["作废"]): invoice_evidence.append(f)
+        if keyword_match(f, ["发票日期在银行付款之后"]) or keyword_match(f, ["有票无付款"]): invoice_evidence.append(f)
+        if keyword_match(f, ["整数金额交易"]) or keyword_match(f, ["周末"]): invoice_evidence.append(f)
+    if len(invoice_evidence) >= 2:
+        findings.append({
+            "type": "发票异常行为证据链",
+            "level": "高风险", "score": 8,
+            "detail": f"{len(invoice_evidence)}条发票相关异常串联成风险链条。",
+            "description": f"发现{len(invoice_evidence)}条发票相关的异常行为，它们之间可能相互印证：\n\n• 红冲/作废行为 + 时间倒置（先付款后开票）+ 有票无付款 → 虚开后销毁证据的典型手法\n• 异常交易时间（周末/整数金额）+ 资金流向异常 → 人为构造流水痕迹\n\n这些异常单独看可能是巧合，叠加在一起就是有人在刻意操作发票和资金流的证据。",
+            "how_found": "匹配'红冲''作废''发票日期在付款后''有票无付款''整数交易''周末交易'等发现。",
+            "suggestion": "对涉及的所有发票和对应交易逐笔核实，编制异常发票清单和说明。",
+            "category": "域19 跨域推理"
+        })
+    
     return findings
 
 
@@ -11856,7 +11884,7 @@ RULE_DATA_REQUIREMENTS = {
 }
 
 def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list):
-    """对285条规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
+    """对312条规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
     findings = []
     
     # 读取规则库
@@ -11927,7 +11955,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         findings.append({
             "type": "规则已触发验证",
             "level": "低风险", "score": 2,
-            "detail": f"285条规则中{verified_count}条已被触发并产出结论。",
+            "detail": f"312条规则中{verified_count}条已被触发并产出结论。",
             "description": f"已触发的{verified_count}条规则覆盖了本报告各分析域的风险发现。这些规则的结论已经过数据源复核。",
             "how_found": "将报告所有发现的规则ID与规则库285条逐一比对，标记已触发的规则。",
             "category": "域18 全覆盖验证"
@@ -11950,12 +11978,12 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         findings.append({
             "type": "部分规则因数据缺失无法验证",
             "level": "中风险", "score": 6,
-            "detail": f"285条规则中{len(missing_data)}条因缺少所需数据未能验证。其中{sum(1 for m in missing_data if any(k in m['required'] for k in ('合同','协议')))}条需合同文件、{sum(1 for m in missing_data if '申报' in m['required'] or '备案' in m['required'])}条需税务申报记录。",
+            "detail": f"312条规则中{len(missing_data)}条因缺少所需数据未能验证。其中{sum(1 for m in missing_data if any(k in m['required'] for k in ('合同','协议')))}条需合同文件、{sum(1 for m in missing_data if '申报' in m['required'] or '备案' in m['required'])}条需税务申报记录。",
             "description": f"以下{len(missing_data)}条规则无法执行审查，因为缺少所需数据：\n\n{verification_text[:2000]}" + ("\n...(更多信息见详细报告)" if len(verification_text) > 2000 else ""),
-            "how_found": "将285条规则逐一比对已触发的规则ID集合，对未触发规则逐个分析所需数据源是否在本次上传的文件中存在。",
+            "how_found": "将312条规则逐一比对已触发的规则ID集合，对未触发规则逐个分析所需数据源是否在本次上传的文件中存在。",
             "tax_impact": "部分规则无法验证意味着企业可能存在的风险未被发现。建议补充对应的数据后再做一次分析。",
             "policy_ref": "《税务稽查工作规程》关于企业提供完整经营资料的义务。",
-            "suggestion": "如需全面验证285条规则，请补充以下资料：\n1）合同文件（覆盖主要客户/供应商）\n2）增值税申报表历史数据\n3）企业所得税申报表\n4）印花税申报记录\n5）关联交易/资本交易相关资料\n6）存货盘点报告\n7）税务稽查应对预案",
+            "suggestion": "如需全面验证312条规则，请补充以下资料：\n1）合同文件（覆盖主要客户/供应商）\n2）增值税申报表历史数据\n3）企业所得税申报表\n4）印花税申报记录\n5）关联交易/资本交易相关资料\n6）存货盘点报告\n7）税务稽查应对预案",
             "category": "域18 全覆盖验证"
         })
     
@@ -12052,7 +12080,7 @@ async def _run_analyze(company_id, db):
     domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
     # 域17: 凭证收入 vs 发票收入对比
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
-    # 域18: 285规则全覆盖验证——对未触发的规则产出缺失数据结论
+    # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
     # 域19: 跨域关联推理——单点发现→多域印证→证据链
     domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
@@ -12166,7 +12194,7 @@ async def _run_analyze(company_id, db):
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": 312, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary,
-        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200], "summary_text": f"17域+295规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。295规则引擎基于100%上传文件数据运行。"
+        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200], "summary_text": f"17域+312规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。295规则引擎基于100%上传文件数据运行。"
     }}
 
 # ═══════════ 报告复核函数 ═══════════
