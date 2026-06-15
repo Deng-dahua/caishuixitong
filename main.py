@@ -10167,7 +10167,7 @@ def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
                       f"因该公司存在大量未开票收入（{voucher_rev.get('uninvoiced',0):,.2f}元），发票口径与总收入口径差异巨大，本结论以发票对比(①)为准。")
         
         findings.append({"type": "进销严重倒挂", "level": "高风险", "score": 8,
-        "how_found": "汇总销项发票价税合计（开票收入）和进项发票价税合计，计算进销比率。比率>150%触发预警。同时与凭证主营业务收入（含未开票收入）做对照。",
+        "how_found": f"销项发票{s_count}张合计{s_total:,.2f}元 vs 进项发票{p_count}张合计{p_total:,.2f}元=进销比率{ratio*100:.0f}%，超过150%阈值触发预警。",
             "detail": f"进项发票{p_total:,.2f}元（{p_count}张）/ 销项发票{s_total:,.2f}元（{s_count}张），进销比率{ratio*100:.0f}%{context[:100] if context else ''}。",
             "description": f"贵公司分析期间取得进项发票{p_count}张、金额{p_total:,.2f}元，但对外开具销项发票仅{s_count}张、金额{s_total:,.2f}元。进项是销项的{ratio*100:.0f}%，严重倒挂。{context}\n\n正常情况下，企业采购原材料或商品后加工或转售应产生增值，销项应大于进项。进销倒挂可能意味着：存在未开票的隐匿销售收入、囤货积压、关联交易转移定价、或进项发票虚开虚抵。",
             "tax_impact": "进销倒挂是税务机关重点关注指标。若被认定存在隐匿收入，需补缴增值税及企业所得税；若被认定进项虚抵，已抵扣税款将做进项税额转出并加收滞纳金。",
@@ -10336,7 +10336,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
             estimated_stock_value = 0
         
         findings.append({"type": "存货严重积压", "level": "高风险", "score": 8,
-        "how_found": "汇总进销存入库/出库数量与金额，计算出库率与周转率。出库率<10%触发。",
+        "how_found": f"逐行汇总进销存台账共{len(inventory)}条记录，入库{total_in:.0f}件/出库{total_out:.0f}件=出库率{out_rate:.0f}%，低于10%触发；周转率{turnover:.3f}次。",
             "detail": f"入库{total_in:.0f}件，出库{total_out:.0f}件，出库率仅{out_rate:.0f}%。库存积压约{total_in-total_out:.0f}件。" + (f"估算占用资金{estimated_stock_value:,.0f}元。" if estimated_stock_value > 0 else ""),
             "description": f"分析期间存货入库{total_in:.0f}件（金额{total_in_val:,.0f}元），出库仅{total_out:.0f}件（金额{total_out_val:,.0f}元），出库率{out_rate:.0f}%，周转率{turnover:.3f}次。期末库存约{total_in-total_out:.0f}件" + (f"，估算占用资金{estimated_stock_value:,.0f}元" if estimated_stock_value > 0 else "") + f"。\n\n存货周转率是衡量企业运营效率的核心指标：健康企业周转率通常>3次/年，你的存货周转仅{turnover:.3f}次，意味着存货需要{1/max(turnover,0.01):.0f}个经营周期才能消化完毕，资金被深度套牢在库存里。",
             "tax_impact": "税务层面：存货周转异常→税务机关怀疑存在已销售未确认收入（账外销售）→补缴增值税和企业所得税。存货最终形成损失需专项申报方可税前扣除。\n\n经营层面：大量资金被库存占用→现金流紧张→可能影响经营周转和偿债能力。",
@@ -10364,7 +10364,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
                 "level": "高风险", "score": 9,
                 "detail": f"{stock_qty:.0f}件库存（估值{estimated_stock_value:,.0f}元）但无任何仓储或物业费用支出。",
                 "description": f"系统中记录了{stock_qty:.0f}件库存（估值{estimated_stock_value:,.0f}元）。这批货需要一个物理空间存放——但银行流水中没有发现任何仓库租赁费、物业管理费、或类似仓储支出。\n\n税务局稽查时会问：'你的库存在哪里？谁给你管仓库？仓库租金谁付的？'如果答不上来，结论很可能是：库存数据是虚构的，真实的货物早已销售但未入账未开票。\n\n反向推理：如果库存是真实的，那说明经营是真实的，只是出库管理有严重问题需要整改。",
-                "how_found": "从银行流水中搜索'租赁'/'仓库'/'仓租'/'物业'等仓储相关关键词，与存货数量做逻辑比对。",
+                "how_found": f"扫描银行流水{len(bank_txs)}条交易原始文本，搜索关键词[租赁/仓库/仓租/物业]，命中={has_rent}。{stock_qty:.0f}件库存估算需{estimated_warehouse_needed:.0f}平方米仓储空间，无费用支撑→库存真实性存疑。",
                 "tax_impact": "无仓储费用而有大额库存→税务机关直接推定账实不符→要么存在隐匿销售（已出货未开票），要么存货虚构（虚增成本）。无论哪种都是重大涉税风险。",
                 "suggestion": f"1）提供仓库租赁合同或自有仓储证明；2）提供仓库管理员、仓储管理系统的记录；3）实地盘点并出具盘点报告；4）如库存真实存在，建议尽快做一次彻底的库存清理。",
                 "category": "域6 存货"
@@ -10375,7 +10375,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
                 "level": "低风险", "score": 3,
                 "detail": f"发现仓储相关支出，{stock_qty:.0f}件库存有物流基础支撑。",
                 "description": f"银行流水中发现仓储或物业相关支出，结合{stock_qty:.0f}件库存数据，可初步验证存货的物理存在性。经营具有真实性基础。",
-                "how_found": "从银行流水中匹配仓储/物业相关关键词，与存货数据交叉验证。",
+                "how_found": f"扫描银行流水{len(bank_txs)}条交易，匹配到仓储/物业关键词，与{stock_qty:.0f}件库存交叉→仓储费用存在→库存有物理基础。",
                 "suggestion": "虽然仓储费用存在，但181,312件的库存周转率太低，仍建议加快去库存。",
                 "category": "域6 存货"
             })
@@ -10412,7 +10412,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
             "level": "高风险", "score": 8,
             "detail": f"采购{total_in:.0f}件/销售{total_out:.0f}件，采购量是销售的{total_in/max(total_out,1):.0f}倍。{reason}",
             "description": f"{purchase_analysis}\n\n{reason}\n\n经营层面分析：\n① 如果这是为旺季囤货——旺季在哪？周边月份的出库量有增长吗？\n② 如果是促销活动备货——促销做了吗？效果如何？\n③ 如果是新开业大量备货——开业后的出库为什么只有{total_out:.0f}件？\n④ 如果是供应商年底冲量压货——这些货品有没有近效期风险？\n\n{total_in-total_out:.0f}件积压存货意味着：采购决策失误、资金被套牢、仓储成本持续消耗、货品存在过期/贬值风险。",
-            "how_found": "计算采购入库量与销售出库量的倍数关系。同时检查采购时间分布判断是否集中囤货。",
+            "how_found": f"入库{total_in:.0f}件÷出库{total_out:.0f}件={total_in/max(total_out,1):.0f}倍(远超正常)。进项发票时间分布在{len(purchase_months)}个月，判断是否集中囤货。",
             "tax_impact": "采购远超销售排除合理商业目的→税务机关可能质疑进项税额抵扣的商业实质→虚开发票嫌疑。",
             "suggestion": f"① 立即停止不必要的采购，按实际销售速度调整采购计划；② 对{total_in-total_out:.0f}件库存制定去库存计划（降价促销/退货/报废）；③ 建立采购审批制度：采购量不得超过近3个月平均出库量的3倍；④ 对供应商施加压力：要求接受退货或延期付款。",
             "category": "域6 存货"
@@ -10428,7 +10428,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
                 "level": "高风险", "score": 7,
                 "detail": f"存货估值{stock_val:,.0f}元，占银行流水的{stock_val/bank_out*100:.0f}%。库存把资金吃掉了。",
                 "description": f"估算存货占用资金{stock_val:,.0f}元，是银行流水总支出的{stock_val/bank_out*100:.0f}%。这意味着每支出10块钱，有{stock_val/bank_out*10:.1f}块钱变成了卖不掉的库存。\n\n资金风险传导：库存积压→资金固化→现金流入不足→无法支付供应商货款→信用受损→供应商停止供货→经营中断。这是一个恶性循环，如果不主动去库存，市场会帮你强制去库存——用破产的方式。",
-                "how_found": "用存货入库金额减去出库金额估算库存价值，与银行流水支出总额对比。",
+                "how_found": f"(入库{total_in_val:,.0f}-出库{total_out_val:,.0f})=库存估值{stock_val:,.0f}÷银行支出{bank_out:,.0f}元={stock_val/bank_out*100:.0f}%，超过30%阈值→库存占用资金过高。",
                 "tax_impact": "资金链紧张→可能拖欠税款→产生滞纳金→被列入纳税信用黑名单→无法领取发票→经营进一步恶化。",
                 "suggestion": f"① 紧急变现：将{total_in-total_out:.0f}件库存中的陈旧/滞销品做清仓处理，哪怕亏损也要回笼资金；② 延期支付：与供应商协商延长付款期限；③ 融资：用库存做质押贷款缓解流动性压力；④ 从源头控制：暂停非核心品类采购。",
                 "category": "域6 存货"
@@ -10437,7 +10437,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     # ── 基础概况 ──
     if total_in > 0:
         findings.append({"type": "存货概况", "level": "低风险", "score": 2,
-        "how_found": "汇总进销存台账中所有入库数量和出库数量。",
+        "how_found": f"逐行汇总进销存台账{len(inventory)}条：入库{total_in:.0f}件({total_in_val:,.0f}元)，出库{total_out:.0f}件({total_out_val:,.0f}元)，期末库存{total_in-total_out:.0f}件。",
             "detail": f"入库{total_in:.0f}件（{total_in_val:,.0f}元），出库{total_out:.0f}件（{total_out_val:,.0f}元）。",
             "description": f"分析期间存货入库{total_in:.0f}件金额{total_in_val:,.0f}元，出库{total_out:.0f}件金额{total_out_val:,.0f}元，期末库存约{total_in-total_out:.0f}件" + (f"，估值{stock_val:,.0f}元。" if stock_val > 0 else "。"),
             "category": "域6 存货"})
@@ -10753,7 +10753,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
             "level": "高风险", "score": 9,
             "detail": f"缺少合同文件：{sal_buyers}个销项客户+{pur_sellers}个进项供应商的交易均无合同支撑（涉及销项{sal_total:,.0f}元+进项{pur_total:,.0f}元）。",
             "description": f"稽查来了一定会要合同。合同是证明交易真实性的第一份证据。你缺了合同，意味着：\n\n① {sal_buyers}个客户、涉及{sal_total:,.0f}元的销售收入无法通过合同验证——稽查会逐笔质疑这些交易是否真实发生；\n② {pur_sellers}个供应商、涉及{pur_total:,.0f}元的采购成本无法通过合同验证——稽查会逐笔质疑这些进项发票是否为虚开；\n③ 四流合一（合同流、发票流、资金流、货物流）缺了第一环，整个证据链从源头断裂；\n④ 印花税的计税依据缺失——合同金额无法核实，印花税必然存在漏缴。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到文件名含'合同''contract''协议'的文件。同时从销项发票提取了{sal_buyers}个购方、从进项发票提取了{pur_sellers}个销方，全部无合同对应。",
+            "how_found": f"扫描{len(docs_list)}个上传文件，搜索文件名中[合同/contract/协议]关键词，未命中。同时从销项发票提取了{sal_buyers}个购方、从进项发票提取了{pur_sellers}个销方，全部无合同对应。",
             "tax_impact": f"① 稽查将逐笔质疑{sal_buyers}+{pur_sellers}笔无合同交易的商业合理性；② 无合同→印花税漏缴→补税+罚款；③ 大额交易无合同→虚开发票嫌疑→可能移送公安。",
             "policy_ref": "《税收征收管理法》第五十四条（税务检查权，可调取合同）；《印花税法》关于应税合同的规定；国家税务总局关于'四流合一'的稽查要求。",
             "suggestion": f"① 立即为{sal_buyers}个客户和{pur_sellers}个供应商补签购销合同（至少覆盖主要交易）；② 合同中必须明确：双方名称、金额、货物/服务内容、履行期限、违约责任；③ 按合同金额依法补缴印花税；④ 建立'先签合同、后开发票、再付款'的内控制度。",
@@ -11200,7 +11200,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
         "level": "低风险", "score": 2,
         "detail": f"凭证主营业务收入{vr_total:,.2f}元（开票{vr_invoiced:,.2f} + 未开票{vr_uninvoiced:,.2f}） vs 销项发票{inv_total:,.2f}元 vs 银行入账{bank_income:,.2f}元。",
         "description": f"这是稽查中最核心的三源收入对比。凭证记录的主营业务收入为{vr_total:,.2f}元，其中明确标注开票收入{vr_invoiced:,.2f}元、未开票收入{vr_uninvoiced:,.2f}元（占比{vr_uninvoiced/max(vr_total,1)*100:.0f}%）。销项发票价税合计{inv_total:,.2f}元，银行流水入账{bank_income:,.2f}元。",
-        "how_found": "从凭证文件中提取所有主营业务收入科目贷方发生额，按摘要区分'开票收入'和'未开票收入'（无票收入），汇总后与销项发票价税合计、银行入账三方比对。",
+        "how_found": f"①凭证端: {voucher_rev['rows']}条主营收入分录，按摘要(普票/专票/无票)分类求和→开票{vr_invoiced:,.0f}+未开票{vr_uninvoiced:,.0f}={vr_total:,.0f}元; ②发票端: {len(sal_invs)}张销项发票汇总{inv_total:,.0f}元; ③银行端: {len(bank_txs)}条流水贷方合计{bank_income:,.0f}元。三源对比出差异。",
         "category": "域17 凭证发票收入对比"
     })
     
@@ -11212,7 +11212,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
             "level": "高风险", "score": 9,
             "detail": f"凭证主营业务收入{vr_total:,.2f}元中，未开票收入{vr_uninvoiced:,.2f}元（占比{pct:.0f}%）。",
             "description": f"贵公司{vr_total:,.2f}元的主营业务收入中，有{vr_uninvoiced:,.2f}元（{pct:.0f}%）为未开票收入。这个比例非常高。未开票收入本身并不违法，但必须确认是否已在增值税申报表中'未开具发票'栏次如实填报了{vr_uninvoiced:,.2f}元。如果申报表中未填报或填报金额不一致，将构成少申报销售额的严重问题。",
-            "how_found": "从凭证主营业务收入科目中，筛选摘要含'未开票'/'无票'或未标注发票类型的贷方发生额，汇总后计算占总收入的比例。超过30%触发预警。",
+            "how_found": f"从凭证主营收入{vr_total:,.0f}元中，筛选摘要含[未开票/无票]或无发票类型标注的贷方合计{vr_uninvoiced:,.0f}元，占{vr_uninvoiced/vr_total*100:.0f}%，超30%触发。",
             "tax_impact": f"未开票收入{vr_uninvoiced:,.2f}元若未在增值税申报中如实填报，将少缴增值税约{vr_uninvoiced*0.13:,.0f}元（按13%税率估算），需补缴税款+滞纳金+可能罚款。同时企业所得税也存在少申报营业收入的风险。",
             "policy_ref": "《增值税暂行条例》第十九条关于纳税义务发生时间的规定；增值税申报表附表一'未开具发票'栏次；《税收征收管理法》第六十三条关于偷税的规定。",
             "suggestion": f"1）立即核实{vr_uninvoiced:,.2f}元未开票收入是否已在对应税款所属期的增值税申报中填报；2）若未申报，尽快做补充申报并补缴税款；3）建立未开票收入台账，确保每期申报完整；4）考虑将未开票收入逐步转为规范开票。",
@@ -11228,7 +11228,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
                 "level": "高风险", "score": 8,
                 "detail": f"凭证记录开票收入{vr_invoiced:,.2f}元 vs 销项发票价税合计{inv_total:,.2f}元，差异{gap:,.2f}元。",
                 "description": f"凭证中标注为开票收入的金额为{vr_invoiced:,.2f}元，但销项发票价税合计为{inv_total:,.2f}元，两者差异{gap:,.2f}元（{gap/max(vr_invoiced,1)*100:.0f}%）。这个差异意味着：要么凭证中有些标注为开票的收入实际未开票，要么存在发票未入账（发票已开但凭证未记），要么金额录入有误。",
-                "how_found": "将凭证中主营业务收入科目摘要含'普票'/'专票'/'发票'关键字的发生额汇总，与销项发票价税合计比对。差异超过10%触发预警。",
+                "how_found": f"凭证标注开票收入{vr_invoiced:,.0f}元 vs 销项发票价税合计{inv_total:,.0f}元，差异{gap:,.2f}元({gap/vr_invoiced*100:.0f}%)，超10%触发。",
                 "tax_impact": "凭证与发票金额不一致，说明会计核算与税务申报之间存在脱节，稽查时会深究每一笔差异的来源和性质。",
                 "policy_ref": "《会计法》关于会计核算真实性的要求；《发票管理办法》关于发票入账的规定。",
                 "suggestion": "1）逐月核对凭证主营业务收入与销项发票金额；2）差异编制调节表并逐笔说明原因（如含税/不含税差异、发票跨期等）；3）确保会计记账与开票系统数据同步。",
@@ -11245,7 +11245,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
                 "level": "高风险", "score": 8,
                 "detail": f"凭证收入{vr_total:,.2f}元 vs 银行入账{bank_income:,.2f}元，差异{gap:,.2f}元（{gap_pct:.0f}%）。",
                 "description": f"凭证记录的主营业务收入为{vr_total:,.2f}元，银行流水贷方入账{bank_income:,.2f}元，两者差异{gap:,.2f}元（{gap_pct:.0f}%）。银行入账大于凭证收入，说明存在未确认收入的资金入账；凭证收入大于银行入账，说明存在非银行渠道收款（现金、第三方平台等）或收入确认时点与收款时点不一致。",
-                "how_found": "将凭证主营业务收入贷方总额与银行流水贷方（收入）金额进行比对，差异超过20%触发预警。",
+                "how_found": f"凭证主营收入{vr_total:,.0f}元 vs 银行流水贷方合计{bank_income:,.0f}元，差异{gap:,.2f}元({gap_pct:.0f}%)，超20%触发。",
                 "tax_impact": "银行入账与账面收入不匹配，会触发税务机关对隐匿收入或虚列收入的质疑。若银行入账多但账面收入少，差额可能被推定为隐匿收入。",
                 "policy_ref": "《税收征收管理法》第三十五条关于核定应纳税额的规定。",
                 "suggestion": "1）逐月编制银行入账与主营业务收入的调节表；2）区分经营性收款和非经营性收款；3）确保所有经营收款及时确认收入并如实申报。",
@@ -11294,7 +11294,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
             "level": "高风险", "score": min(total_score // len(income_evidence), 10),
             "detail": f"{len(income_evidence)}条相互印证的发现指向同一结论：企业存在严重隐匿收入。证据链：{', '.join(e[0] for e in income_evidence)}。",
             "description": f"以下{len(income_evidence)}条来自不同域、不同数据源的发现，从不同角度指向同一个结论——【企业存在严重隐匿收入问题】：\n\n{evidence_text}\n\n这些发现不是孤立的。它们形成了完整的证据链闭环：\n① [A资金端] 第三方收款占比过高→收款方式异常，脱离对公监管\n② [B凭证端] 凭证记录有大量未开票收入→企业自己承认有收入但未开票\n③ [C发票端] 收款与开票偏差巨大→银行收到的钱远远大于开票金额\n④ [D进销端] 进项远超销项→采购了货但没卖出对应的发票\n\n四者互相对照印证，隐匿收入不是个别推测，而是多源数据交叉验证后的必然结论。",
-            "how_found": "扫描所有发现的类型和描述文本，匹配'第三方收款''未开票收入''收款与开票''进销倒挂'四个关键词，找到来自资金端、凭证端、发票端、进销端四个维度的证据，串联形成完整证据链。",
+            "how_found": f"在{len(all_findings)}条发现中跨域匹配：A资金端(第三方收款占比异常)→B凭证端(未开票收入占比异常)→C发票端(收款开票偏差)→D进销端(进销倒挂)。四源交叉互证形成证据链闭环。",
             "tax_impact": "多源证据链是税务稽查的核武器。单点异常可以解释，四点同时出现无法解释。这已经构成偷税嫌疑，税务局可以就此启动正式稽查程序。",
             "policy_ref": "《税收征收管理法》第六十三条关于偷税的认定；《税务稽查工作规程》关于证据链的要求。",
             "suggestion": "隐匿收入是多源交叉确认的结论而非单一推测。建议：1）立即核查第三方收款与销售订单的对应关系；2）如确有未开票收入，主动做补充申报；3）建立收款→开票→入账的内控流程。",
@@ -11332,7 +11332,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
             "level": "高风险", "score": min(total_score // len(fraud_evidence), 10),
             "detail": f"{len(fraud_evidence)}条跨域发现指向进项发票可能存在虚开。",
             "description": f"以下{len(fraud_evidence)}条发现从不同维度指向【进项发票真实性存疑】：\n\n{evidence_text}\n\n形成证据链闭环：供应商高度集中在少数城市→同一城市存在多家同类型供应商（'开票团伙'特征）→有票但无付款记录（'走账'痕迹缺失）→采购量远超合理销售需求（'买票冲成本'特征）。\n\n在税务稽查中，这四条满足任意两条就足够启动进项发票专项核查。",
-            "how_found": "匹配'同城供应商''进项发票无付款''供应商集中''采购量远超销售''供应商名称异常'五个维度的发现，串联形成虚开嫌疑证据链。",
+            "how_found": f"在{len(all_findings)}条发现中跨域匹配：A供应商地理(同城群集)→B资金匹配(有票无付款)→C采购集中度(前3大占比)→D采购合理性(远超销售)→E供应商身份(名称异常)。五维交叉形成虚开嫌疑证据链。",
             "tax_impact": "虚开发票是刑事犯罪。一旦认定，进项税额全部转出补税+0.5-5倍罚款+移送公安经侦。",
             "suggestion": "1）对所有集中供应商做背景调查（工商登记/实地考察/纳税信用）；2）统计有票无付的供应商名单并联系核实；3）无法证实的进项发票主动做进项税额转出。",
             "category": "域19 跨域推理"
@@ -11418,7 +11418,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
             "level": "高风险", "score": 8,
             "detail": "存货占压巨额资金+过度采购+收入远不及采购，资金链面临断裂风险。",
             "description": f"企业正面临严重的资金链危机：\n\n大量资金被库存套牢（存货占压资金）→采购远大于销售（资金只出不进）→经营现金流可能为负（收入不抵支出）。\n\n这条链路如果不在3-6个月内扭转，企业将面临供应商断供、银行抽贷、员工欠薪等连锁反应。",
-            "how_found": "关联匹配'存货占压''资金收支''采购合理性'三个维度。",
+            "how_found": f"跨域关联：A存货域(占压资金比例异常)→B资金域(收支不匹配)→C采购域(远超销售)。三域串联→资金链危机预警。",
             "tax_impact": "资金链紧张→拖欠税款→产生滞纳金→纳税信用降级→无法领取发票→经营进一步恶化。",
             "suggestion": "1）制定3个月紧急资金周转计划；2）暂停一切非必要采购；3）加速去库存（折价出售、退货）；4）与供应商谈判延期付款或分期结算。",
             "category": "域19 跨域推理"
