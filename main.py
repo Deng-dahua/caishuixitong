@@ -13980,10 +13980,100 @@ def _run_analyze(company_id, db):
         if dr["findings"]:
             domain_summary.append({"name": dr["domain"], "count": len(dr["findings"]), "high": dh, "mid": dm, "findings": dr["findings"]})
 
+    # ── 综合报告增强数据：月度资金流 + 往来方TOP20 + 分级整改建议 ──
+    comprehensive = {}
+    
+    # 1. 月度资金流（银行流水按月汇总收入/支出/净额）
+    if bank_txs:
+        from collections import defaultdict
+        monthly = defaultdict(lambda: {"income": 0, "expense": 0, "tax": 0})
+        for tx in bank_txs:
+            d = str(tx.get("transaction_date") or tx.get("date", ""))
+            if not d: continue
+            m = d[:7]  # YYYY-MM
+            if m and len(m) == 7:
+                debit = float(tx.get("debit", 0) or 0)
+                credit = float(tx.get("credit", 0) or 0)
+                summ = str(tx.get("summary", ""))
+                if debit > 0:
+                    if any(k in summ for k in ("税", "国税", "地税", "金库", "纳税")):
+                        monthly[m]["tax"] += debit
+                    else:
+                        monthly[m]["expense"] += debit
+                if credit > 0:
+                    monthly[m]["income"] += credit
+        
+        months = sorted(monthly.keys())
+        comprehensive["cashflow"] = {
+            "months": months,
+            "income": [round(monthly[m]["income"], 2) for m in months],
+            "expense": [round(monthly[m]["expense"], 2) for m in months],
+            "tax": [round(monthly[m]["tax"], 2) for m in months],
+            "net": [round(monthly[m]["income"] - monthly[m]["expense"] - monthly[m]["tax"], 2) for m in months],
+        }
+    
+    # 2. 往来方TOP20（收入和支出分列）
+    if bank_txs:
+        from collections import defaultdict as dd2
+        receivers = dd2(float)
+        payers = dd2(float)
+        for tx in bank_txs:
+            name = str(tx.get("counterparty_name") or tx.get("counterparty", "")).strip()
+            if not name or name == "无" or len(name) < 2: continue
+            credit = float(tx.get("credit", 0) or 0)
+            debit = float(tx.get("debit", 0) or 0)
+            if credit > 0: receivers[name] += credit
+            if debit > 0: payers[name] += debit
+        
+        top_recv = sorted(receivers.items(), key=lambda x: -x[1])[:20]
+        top_pay = sorted(payers.items(), key=lambda x: -x[1])[:20]
+        comprehensive["top_receivers"] = [{"name": n, "amount": round(a, 2)} for n, a in top_recv]
+        comprehensive["top_payers"] = [{"name": n, "amount": round(a, 2)} for n, a in top_pay]
+    
+    # 3. 分级整改建议（从 all_findings 提取高风险→P0，中风险→P1，低风险→P2）
+    urgent = []
+    important = []
+    normal = []
+    seen_suggestions = set()
+    for f in sorted(all_findings, key=lambda x: -(x.get("score") or 0)):
+        suggestion = str(f.get("suggestion", "")).strip()
+        if not suggestion or suggestion in seen_suggestions: continue
+        seen_suggestions.add(suggestion)
+        item = {
+            "type": f.get("type", ""),
+            "suggestion": suggestion[:200],
+            "score": f.get("score", 0),
+            "level": f.get("level", ""),
+        }
+        if f.get("level") == "高风险":
+            urgent.append(item)
+        elif f.get("level") == "中风险":
+            important.append(item)
+        else:
+            normal.append(item)
+    
+    comprehensive["actions"] = {
+        "p0_urgent": urgent[:8],
+        "p1_important": important[:8],
+        "p2_normal": normal[:5],
+    }
+    
+    # 4. 数据概览
+    data_present = []
+    data_missing = []
+    for label, data_list in [("银行流水", bank_txs), ("销项发票", sal_invs), ("进项发票", pur_invs),
+                             ("工资表", salaries), ("社保明细", social_security), ("记账凭证", vouchers),
+                             ("进销存台账", inventory)]:
+        if data_list:
+            data_present.append(f"{label}({len(data_list)}条)")
+        else:
+            data_missing.append(label)
+    comprehensive["data_overview"] = {"present": data_present, "missing": data_missing}
+
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": 312, "pipeline_log": pipeline_log, "file_results": file_results,
-        "stats": stats, "domain_summary": domain_summary,
+        "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
         "low_data_warning": low_data_warning,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200],
         "summary_text": (

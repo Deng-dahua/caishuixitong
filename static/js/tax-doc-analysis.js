@@ -249,6 +249,105 @@ function renderTaxDocReport(r) {
   }
   html += '</div></div>';
 
+  // ── 综合报告增强：资金流向图 + 往来方TOP20 + 分级整改 ──
+  if (r.comprehensive) {
+    var comp = r.comprehensive;
+    
+    // 资金流向月度柱状图
+    if (comp.cashflow && comp.cashflow.months && comp.cashflow.months.length > 0) {
+      var cf = comp.cashflow;
+      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+        + '<b style="font-size:15px">💰 月度资金流向</b>'
+        + '<div style="display:flex;align-items:flex-end;gap:4px;height:160px;margin-top:12px;padding:0 10px">';
+      var maxVal = 0;
+      for (var mi = 0; mi < cf.months.length; mi++) {
+        maxVal = Math.max(maxVal, cf.income[mi], cf.expense[mi], cf.tax[mi]);
+      }
+      maxVal = maxVal || 1;
+      for (var mi = 0; mi < cf.months.length; mi++) {
+        var h_inc = Math.max(2, (cf.income[mi] / maxVal) * 140);
+        var h_exp = Math.max(2, (cf.expense[mi] / maxVal) * 140);
+        var h_tax = Math.max(2, (cf.tax[mi] / maxVal) * 140);
+        var label = cf.months[mi].substring(5);
+        html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center">'
+          + '<div style="font-size:9px;color:#059669">' + (cf.income[mi] >= 10000 ? (cf.income[mi]/10000).toFixed(1)+'万' : cf.income[mi].toFixed(0)) + '</div>'
+          + '<div style="width:100%;max-width:20px;background:#059669;height:' + h_inc + 'px;border-radius:3px 3px 0 0;margin-bottom:1px" title="收入:' + cf.income[mi].toFixed(2) + '"></div>'
+          + '<div style="width:100%;max-width:20px;background:#dc2626;height:' + h_exp + 'px;border-radius:3px 3px 0 0;margin-bottom:1px" title="支出:' + cf.expense[mi].toFixed(2) + '"></div>'
+          + '<div style="width:100%;max-width:20px;background:#f59e0b;height:' + h_tax + 'px;border-radius:3px 3px 0 0;margin-bottom:4px" title="缴税:' + cf.tax[mi].toFixed(2) + '"></div>'
+          + '<div style="font-size:9px;color:var(--gray-500)">' + label + '</div></div>';
+      }
+      html += '</div>'
+        + '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--gray-500)">'
+        + '<span>🟢 收入</span><span>🔴 支出</span><span>🟠 缴税</span></div></div>';
+    }
+    
+    // 往来方TOP20
+    if (comp.top_receivers || comp.top_payers) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">';
+      if (comp.top_receivers && comp.top_receivers.length > 0) {
+        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px">'
+          + '<b style="font-size:14px">📥 收入来源TOP20</b>'
+          + '<div style="max-height:300px;overflow-y:auto;margin-top:8px">'
+          + '<table style="width:100%;font-size:11px;border-collapse:collapse">';
+        comp.top_receivers.forEach(function(r, idx) {
+          html += '<tr><td style="padding:3px 6px;color:var(--gray-400)">'+(idx+1)+'</td><td style="padding:3px 6px">'+esc(r.name)+'</td><td style="padding:3px 6px;text-align:right;color:#059669;font-weight:600">'+(r.amount>=10000?(r.amount/10000).toFixed(1)+'万':r.amount.toFixed(0))+'</td></tr>';
+        });
+        html += '</table></div></div>';
+      }
+      if (comp.top_payers && comp.top_payers.length > 0) {
+        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px">'
+          + '<b style="font-size:14px">📤 支出对象TOP20</b>'
+          + '<div style="max-height:300px;overflow-y:auto;margin-top:8px">'
+          + '<table style="width:100%;font-size:11px;border-collapse:collapse">';
+        comp.top_payers.forEach(function(r, idx) {
+          html += '<tr><td style="padding:3px 6px;color:var(--gray-400)">'+(idx+1)+'</td><td style="padding:3px 6px">'+esc(r.name)+'</td><td style="padding:3px 6px;text-align:right;color:#dc2626;font-weight:600">'+(r.amount>=10000?(r.amount/10000).toFixed(1)+'万':r.amount.toFixed(0))+'</td></tr>';
+        });
+        html += '</table></div></div>';
+      }
+      html += '</div>';
+    }
+    
+    // 分级整改建议
+    if (comp.actions) {
+      var act = comp.actions;
+      var sections = [
+        {key:'p0_urgent', label:'🔴 P0 紧急整改', color:'#dc2626', bg:'#fef2f2'},
+        {key:'p1_important', label:'🟠 P1 重要优化', color:'#f59e0b', bg:'#fffbeb'},
+        {key:'p2_normal', label:'🟢 P2 建议完善', color:'#059669', bg:'#ecfdf5'},
+      ];
+      var hasAction = sections.some(function(s){return act[s.key] && act[s.key].length > 0;});
+      if (hasAction) {
+        html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
+          + '<b style="font-size:15px">📋 分级整改建议</b>';
+        sections.forEach(function(sec) {
+          var items = act[sec.key] || [];
+          if (items.length === 0) return;
+          html += '<div style="margin-top:12px"><div style="font-weight:600;font-size:13px;margin-bottom:6px">'+sec.label+' ('+items.length+'项)</div>';
+          items.forEach(function(item, idx) {
+            html += '<div style="background:'+sec.bg+';border-left:3px solid '+sec.color+';padding:8px 12px;margin-bottom:6px;border-radius:4px;font-size:12px;line-height:1.6">'
+              + '<b>'+esc(item.type)+'</b><br>'+esc(item.suggestion)+'</div>';
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+    }
+    
+    // 数据概览
+    if (comp.data_overview) {
+      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px;margin-top:12px">'
+        + '<b style="font-size:14px">📊 数据概览</b>'
+        + '<div style="margin-top:8px;font-size:12px">';
+      (comp.data_overview.present||[]).forEach(function(s) {
+        html += '<span style="display:inline-block;background:#ecfdf5;color:#059669;padding:3px 8px;border-radius:4px;margin:2px 4px 2px 0;font-size:11px">✅ '+s+'</span>';
+      });
+      (comp.data_overview.missing||[]).forEach(function(s) {
+        html += '<span style="display:inline-block;background:#fef2f2;color:#dc2626;padding:3px 8px;border-radius:4px;margin:2px 4px 2px 0;font-size:11px">❌ '+s+'</span>';
+      });
+      html += '</div></div>';
+    }
+  }
+
   // ── 处理流水 ──
   if (r.pipeline_log && r.pipeline_log.length > 0) {
     html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
