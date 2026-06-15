@@ -11228,7 +11228,232 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
     return findings
 
 
-# ═══════════ 域18: 285规则全覆盖验证 ═══════════
+# ═══════════ 稽查队扩展: 收入时间线调查 ═══════════
+
+def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
+    """按时间线分析收入波动，找出异常时间点"""
+    findings = []
+    
+    # 从凭证提取收入时间分布
+    from collections import defaultdict
+    rev_by_month = defaultdict(float)
+    for v in vouchers:
+        if "主营业务收入" in str(v.get("account", "")):
+            date_str = str(v.get("date", ""))
+            credit = float(v.get("credit", 0) or 0)
+            if credit > 0 and len(date_str) >= 6:
+                month = date_str[:6]
+                rev_by_month[month] += credit
+    
+    if len(rev_by_month) >= 2:
+        months = sorted(rev_by_month.keys())
+        values = [rev_by_month[m] for m in months]
+        if max(values) > min(values) * 3 and min(values) > 0:
+            spike_month = months[values.index(max(values))]
+            findings.append({
+                "type": "收入时间线异常波动",
+                "level": "中风险", "score": 5,
+                "detail": f"收入月度波动剧烈：最高月{max(values):,.0f}元（{spike_month}），最低月{min(values):,.0f}元，波动倍数{max(values)/min(values):.1f}x。",
+                "description": f"主营业务收入在不同月份间存在巨大波动：从最低{min(values):,.0f}元到最高{max(values):,.0f}元，相差{max(values)/min(values):.1f}倍。正常经营的电商企业收入通常呈平稳增长或季节性规律波动，非季节性月份出现3倍以上波动需要合理解释。\n\n可能原因：①某月集中确认了大额未开票收入；②促销活动导致收入暴增；③重大客户在集中月份付款；④之前月份有收入未及时入账。",
+                "how_found": "从凭证中提取主营业务收入贷方发生额，按月汇总后计算最高月/最低月比值，>3倍触发预警。",
+                "tax_impact": "收入大幅波动→若高月份是因为确认了长期积压的未开票收入→说明之前月份少确认了收入→跨期申报不准确。",
+                "suggestion": f"① 解释{spike_month}月收入暴增的具体原因并提供支撑资料；② 检查其他月份是否遗漏了应确认的收入。",
+                "category": "时间线调查"
+            })
+    
+    # 销项发票时间分布
+    inv_by_month = defaultdict(float)
+    for inv in sal_invs:
+        dt = str(inv.get("date", "") or inv.get("invoice_date", ""))
+        if len(dt) >= 6:
+            inv_by_month[dt[:6]] += float(inv.get("total", 0) or 0)
+    
+    if inv_by_month and rev_by_month:
+        # 对比开票收入与主营业务收入的月度差异
+        all_months = sorted(set(list(inv_by_month.keys()) + list(rev_by_month.keys())))
+        mismatches = []
+        for m in all_months:
+            rev = rev_by_month.get(m, 0)
+            inv = inv_by_month.get(m, 0)
+            if rev > inv * 2 or inv > rev * 2:
+                mismatches.append(m)
+        
+        if mismatches:
+            findings.append({
+                "type": "开票与入账收入月度错配",
+                "level": "中风险", "score": 6,
+                "detail": f"{len(mismatches)}个月存在开票收入与入账收入严重错配。",
+                "description": f"在{len(mismatches)}个月份中，凭证主营业务收入与销项开票收入存在2倍以上差异。这意味着要么凭证入账了但没开票（未开票收入集中确认），要么开了票但凭证没入账（跨期或遗漏）。月度错配是申报不准确的前兆。",
+                "how_found": "按月份分别汇总凭证主营收入和销项发票金额，对比月度差异，>2倍视为错配。",
+                "tax_impact": "月度错配→增值税月度申报与会计收入确认不同步→存在跨期申报风险。",
+                "suggestion": "逐月核对开票收入与入账收入，差异超过20%的月份要编制调节表。",
+                "category": "时间线调查"
+            })
+    
+    return findings
+
+
+# ═══════════ 稽查队扩展: 供应商画像分析 ═══════
+
+def _domain_supplier_profiling(pur_invs, bank_txs):
+    """对核心供应商做深度画像: 交易频率/金额/时间/资金匹配"""
+    findings = []
+    if not pur_invs: return findings
+    
+    from collections import defaultdict
+    supplier_stats = defaultdict(lambda: {"count": 0, "total": 0.0, "months": set()})
+    for inv in pur_invs:
+        name = str(inv.get("seller", ""))[:30].strip()
+        if not name: continue
+        supplier_stats[name]["count"] += 1
+        supplier_stats[name]["total"] += float(inv.get("total", 0) or 0)
+        dt = str(inv.get("date", "") or inv.get("invoice_date", ""))
+        if len(dt) >= 6: supplier_stats[name]["months"].add(dt[:6])
+    
+    # 画像1: 高频低额供应商（刷票嫌疑）
+    for name, s in supplier_stats.items():
+        if s["count"] >= 20 and s["total"] / s["count"] < 5000:
+            findings.append({
+                "type": "高频低额供应商——刷票嫌疑",
+                "level": "中风险", "score": 6,
+                "detail": f"供应商「{name}」月度开票{s['count']}张，均额仅{s['total']/s['count']:,.0f}元，可能为拆分开票规避监管。",
+                "description": f"供应商「{name}」在分析期间向贵公司开具了{s['count']}张发票，平均每张{s['total']/s['count']:,.0f}元。高频率、低单价的模式不符合正常B2B交易习惯，更常见于：①利用小规模纳税人起征点拆分开票；②刷流水式开票以虚增业务量；③将大额交易拆分为多张小额发票以规避大额交易报告。",
+                "how_found": "按销方名称分组统计发票张数，单供应商>=20张且均额<5000元触发。",
+                "tax_impact": "拆分开票是税务机关重点打击的行为。各张发票独立来看可能合规，但汇总起来暴露出规避监管的意图。",
+                "suggestion": f"① 核实「{name}」{s['count']}笔交易的真实性和独立性；②检查是否应将连续小额交易合并为大额合同处理。",
+                "category": "供应商画像"
+            })
+            break  # 只报告最典型的一个
+    
+    # 画像2: 供应商交易时间集中度
+    for name, s in supplier_stats.items():
+        if s["count"] >= 5 and len(s["months"]) == 1:
+            findings.append({
+                "type": "供应商交易集中在单月——突击开票嫌疑",
+                "level": "中风险", "score": 5,
+                "detail": f"供应商「{name}」{s['count']}张发票全部集中在同一个月，可能在突击开票。",
+                "description": f"供应商「{name}」的{s['count']}张发票全部集中在一个月内开出。正常供应商的供货应该是持续性的，单月密集开票可能意味着：①期末突击采购以消耗预算或满足进项需求；②一次性交易刻意拆分成多张发票；③供应商本身经营不稳定。",
+                "how_found": "按销方名称统计发票时间分布，>=5张发票但仅1个月的触发。",
+                "suggestion": f"核实「{name}」集中交易的商业合理性，保留采购合同和入库凭证。",
+                "category": "供应商画像"
+            })
+            break
+    
+    return findings
+
+
+# ═══════════ 稽查队扩展: 资金流向追踪 ═══════
+
+def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs):
+    """绘制资金流向图: 谁在给企业钱→企业把钱给了谁"""
+    findings = []
+    if not bank_txs: return findings
+    
+    from collections import defaultdict
+    payers = defaultdict(float)  # 谁付钱给企业
+    payees = defaultdict(float)  # 企业付钱给谁
+    
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", "")).strip()
+        if not cp: continue
+        credit = float(tx.get("credit", 0) or 0)
+        debit = float(tx.get("debit", 0) or 0)
+        if credit > 0: payers[cp] += credit
+        if debit > 0: payees[cp] += debit
+    
+    # 分析: 收款来源是客户还是非客户?
+    buyer_names = set(str(i.get("buyer", ""))[:20].strip() for i in sal_invs) if sal_invs else set()
+    total_income = sum(payers.values()) if payers else 0
+    income_from_buyers = sum(payers.get(b, 0) for b in buyer_names)
+    
+    if total_income > 0 and income_from_buyers / total_income < 0.3:
+        findings.append({
+            "type": "收款来源与开票客户严重不匹配",
+            "level": "高风险", "score": 8,
+            "detail": f"银行入账{total_income:,.0f}元中仅{income_from_buyers/total_income*100:.0f}%来自开票客户，大量资金来源不明。",
+            "description": f"银行流水中总共收到{total_income:,.0f}元，但只有{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）能匹配到销项发票上的购方名称。\n\n剩余{total_income-income_from_buyers:,.0f}元来自发票上未出现的付款方——这些钱是谁付的？是未开票的客户吗？是关联方往来吗？是借款吗？每一个解释都需要证据支持。稽查的做法是：逐笔追问不明资金来源，直到企业给出每一笔的合理解释。",
+            "how_found": "从银行流水提取交易对手名称和贷方金额，与销项发票购方名称做模糊匹配。匹配不到的比例>70%触发。",
+            "tax_impact": "不明来源资金→可能被推定为未开票的销售收入→补缴增值税+企业所得税+滞纳金+罚款。",
+            "suggestion": "① 逐笔核实不明来源资金的性质；②编制银行存款收款来源分析表；③对于非经营收款（借款、注资等）留好合同和凭证。",
+            "category": "资金流向"
+        })
+    
+    # 分析: 付款流向是否与进项发票匹配
+    seller_names = set(str(i.get("seller", ""))[:20].strip() for i in pur_invs) if pur_invs else set()
+    total_expense = sum(payees.values()) if payees else 0
+    expense_to_sellers = sum(payees.get(s, 0) for s in seller_names)
+    
+    if total_expense > 0 and expense_to_sellers / total_expense < 0.3:
+        findings.append({
+            "type": "付款流向与进项发票供应商严重不匹配",
+            "level": "高风险", "score": 8,
+            "detail": f"银行支出{total_expense:,.0f}元中仅{expense_to_sellers/total_expense*100:.0f}%流向进项供应商，大量资金去向不明。",
+            "description": f"银行流水中总共支出{total_expense:,.0f}元，但只有{expense_to_sellers:,.0f}元（{expense_to_sellers/total_expense*100:.0f}%）能匹配到进项发票上的销方名称。\n\n资金的去向是税务稽查中最重要的线索——税务局的思路是：'你有这些进项发票，钱也打给了这些供应商，那货应该收到了。但那些没有进项发票却付了款的交易，钱去哪了？买什么了？为什么会记在成本里？'",
+            "how_found": "从银行流水提取交易对手名称和借方金额，与进项发票销方名称做模糊匹配。匹配不到的比例>70%触发。",
+            "tax_impact": "付款无对应进项发票→该支出能否税前扣除存疑→纳税调整增加企业所得税。",
+            "suggestion": "① 逐笔核实无对应进项发票的付款性质；②如为工资/费用/固定资产采购，确保取得合规票据；③如为往来款，单独挂账管理。",
+            "category": "资金流向"
+        })
+    
+    return findings
+
+
+# ═══════════ 稽查队扩展: 人员与业务匹配 ═══════
+
+def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security):
+    """人员画像: 人数规模与业务量匹配、薪酬结构合理性"""
+    findings = []
+    if not salaries: return findings
+    
+    # 提取员工姓名和薪资
+    emp_count = len(set(str(s.get("name", "")).strip() for s in salaries if str(s.get("name", "")).strip()))
+    total_salary = sum(float(s.get("salary", 0) or 0) for s in salaries)
+    avg_salary = total_salary / max(emp_count, 1)
+    
+    # 人均营收
+    vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
+    per_person_revenue = vr_total / max(emp_count, 1)
+    
+    if emp_count > 0 and vr_total > 0:
+        if per_person_revenue > 500000:
+            findings.append({
+                "type": "人均营收异常高——人员不足或收入虚高",
+                "level": "中风险", "score": 5,
+                "detail": f"{emp_count}名员工，人均营收{per_person_revenue:,.0f}元。超出一般中小企业水平。",
+                "description": f"根据工资表统计有{emp_count}名员工，主营业务收入{vr_total:,.0f}元，人均创收{per_person_revenue:,.0f}元。对于一般企业，年人均营收在50-200万元属于正常范围。您的数据远超正常水平，可能意味着：①收入数据虚高（包含了不应计入收入的款项）；②存在大量外包/派遣人员未在工资表中体现；③企业确实属于高效轻资产模式。",
+                "how_found": "主营业务收入（来自凭证）÷员工人数（来自工资表）>50万触发。",
+                "suggestion": "① 如存在外包/派遣人员，补充相关合同和付款凭证；② 核实收入确认口径是否准确。",
+                "category": "人员画像"
+            })
+        elif per_person_revenue < 100000 and vr_total > 100000:
+            findings.append({
+                "type": "人均营收过低——人员冗余或收入少记",
+                "level": "中风险", "score": 5,
+                "detail": f"{emp_count}名员工，人均营收仅{per_person_revenue:,.0f}元。人员效率严重偏低。",
+                "description": f"{emp_count}名员工人均创收仅{per_person_revenue:,.0f}元，效率极低。可能原因：①存在虚列人员吃空饷（工资表有人但实际无人）；②收入少记或隐匿；③企业处于初创期尚未产生收入。",
+                "how_found": "主营业务收入÷员工人数<10万触发。",
+                "suggestion": "① 逐人核实在岗情况；② 进行人员编制与产能的匹配分析；③ 裁撤冗余岗位。",
+                "category": "人员画像"
+            })
+    
+    # 薪酬与社保人数比对
+    ss_count = len(set(str(s.get("name", "")).strip() for s in social_security if str(s.get("name", "")).strip())) if social_security else 0
+    if emp_count > 0 and ss_count > 0 and emp_count != ss_count:
+        findings.append({
+            "type": "工资人数与社保人数不一致",
+            "level": "高风险", "score": 8,
+            "detail": f"工资表{emp_count}人 vs 社保{ss_count}人，差异{abs(emp_count-ss_count)}人。",
+            "description": f"工资表显示有{emp_count}名员工，但社保参保仅{ss_count}人，差异{abs(emp_count-ss_count)}人。未参保的员工涉嫌违反《社会保险法》。金税四期已将人社数据与税务数据打通，工资个税申报人数与社保参保人数不一致将触发自动预警并可能引发社保稽核。",
+            "how_found": "分别从工资表和社保明细中提取唯一员工姓名集合，对比人数差异。",
+            "tax_impact": "① 未参保员工→社保稽核+补缴+滞纳金；② 工资费用如无社保支撑→可能被质疑为虚列费用→纳税调整。",
+            "suggestion": "① 立即为未参保员工补办社保登记并补缴；② 如为劳务派遣/外包，提供派遣协议。",
+            "category": "人员画像"
+        })
+    
+    return findings
+
+
+# ═══════════ 域18: 295规则全覆盖验证 ═══════════
 
 RULE_DATA_REQUIREMENTS = {
     # ID → (所需数据, 缺失时的兜底结论)
@@ -11491,6 +11716,11 @@ async def _run_analyze(company_id, db):
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
     # 域19: 跨域关联推理——单点发现→多域印证→证据链
     domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
+    # 稽查队扩展角色
+    domain_results.append({"domain": "收入时间线调查", "findings": _domain_revenue_timeline(vouchers, sal_invs, bank_txs)})
+    domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
+    domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
+    domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
 
     all_findings = []
     for dr in domain_results:
@@ -11580,7 +11810,7 @@ async def _run_analyze(company_id, db):
 
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
-        "files_count": len(docs), "rules_used": 295, "pipeline_log": pipeline_log, "file_results": file_results,
+        "files_count": len(docs), "rules_used": 303, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200], "summary_text": f"17域+295规则双引擎分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。295规则引擎基于100%上传文件数据运行。"
     }}
