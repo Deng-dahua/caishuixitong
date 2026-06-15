@@ -12195,28 +12195,19 @@ async def _run_analyze(company_id, db):
     domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
     # 域17: 凭证收入 vs 发票收入对比
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
-    # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论
-    domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
-    # 域19: 跨域关联推理——单点发现→多域印证→证据链
-    domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
-    # 稽查队扩展角色
+    # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论 (需要在all_findings之后)
+    # 域19: 跨域关联推理——单点发现→多域印证→证据链 (需要在all_findings之后)
+    # 先跑不依赖all_findings的域
     domain_results.append({"domain": "收入时间线调查", "findings": _domain_revenue_timeline(vouchers, sal_invs, bank_txs)})
     domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
     domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
     domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
-    # 稽查队: 发票-存货-付款三角链
     domain_results.append({"domain": "发票存货付款三角验证", "findings": _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs)})
-    # 稽查队: 红冲作废发票
     domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
-    # 稽查队: 利润vs现金流矛盾
     domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
-    # 稽查队: 异常交易时间模式
     domain_results.append({"domain": "异常交易时间分析", "findings": _domain_temporal_anomaly(bank_txs)})
-    # 稽查队: 关联交易穿透
     domain_results.append({"domain": "关联交易穿透检测", "findings": _domain_related_party_check(sal_invs, pur_invs, bank_txs)})
-    # 经营分析: 资产折旧匹配
     domain_results.append({"domain": "资产折旧费用匹配", "findings": _domain_depreciation_match(bank_txs, pur_invs)})
-    # 经营分析: 行业对标
     domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory)})
 
     all_findings = []
@@ -12288,6 +12279,10 @@ async def _run_analyze(company_id, db):
         pipeline_log.append(f"290规则引擎异常: {e}")
     
     all_findings.extend(engine_results)
+
+    # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
+    domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs_list)})
+    domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
 
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
