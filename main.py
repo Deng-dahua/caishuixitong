@@ -13602,9 +13602,11 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
             "level": "低风险", "score": 2,
             "detail": f"312条规则中{verified_count}条已被触发并产出结论。",
             "description": f"已触发的{verified_count}条规则覆盖了本报告各分析域的风险发现。这些规则的结论已经过数据源复核。",
-            "how_found": "将报告所有发现的规则ID与规则库285条逐一比对，标记已触发的规则。",
+            "how_found": "将报告所有发现的规则ID与规则库{total_rules}条逐一比对，标记已触发的规则。".format(total_rules=len(all_rules)),
             "category": "域18 全覆盖验证"
         })
+    
+    total_rule_count = len(all_rules)
     
     if missing_data:
         # 按缺失类型分组
@@ -13623,12 +13625,12 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         findings.append({
             "type": "部分规则因数据缺失无法验证",
             "level": "中风险", "score": 6,
-            "detail": f"312条规则中{len(missing_data)}条因缺少所需数据未能验证。其中{sum(1 for m in missing_data if any(k in m['required'] for k in ('合同','协议')))}条需合同文件、{sum(1 for m in missing_data if '申报' in m['required'] or '备案' in m['required'])}条需税务申报记录。",
+            "detail": f"{total_rule_count}条规则中{len(missing_data)}条因缺少所需数据未能验证。其中{sum(1 for m in missing_data if any(k in m['required'] for k in ('合同','协议')))}条需合同文件、{sum(1 for m in missing_data if '申报' in m['required'] or '备案' in m['required'])}条需税务申报记录。",
             "description": f"以下{len(missing_data)}条规则无法执行审查，因为缺少所需数据：\n\n{verification_text[:2000]}" + ("\n...(更多信息见详细报告)" if len(verification_text) > 2000 else ""),
-            "how_found": "将312条规则逐一比对已触发的规则ID集合，对未触发规则逐个分析所需数据源是否在本次上传的文件中存在。",
+            "how_found": f"将{total_rule_count}条规则逐一比对已触发的规则ID集合，对未触发规则逐个分析所需数据源是否在本次上传的文件中存在。",
             "tax_impact": "部分规则无法验证意味着企业可能存在的风险未被发现。建议补充对应的数据后再做一次分析。",
             "policy_ref": "《税务稽查工作规程》关于企业提供完整经营资料的义务。",
-            "suggestion": "如需全面验证312条规则，请补充以下资料：\n1）合同文件（覆盖主要客户/供应商）\n2）增值税申报表历史数据\n3）企业所得税申报表\n4）印花税申报记录\n5）关联交易/资本交易相关资料\n6）存货盘点报告\n7）税务稽查应对预案",
+            "suggestion": f"如需全面验证{total_rule_count}条规则，请补充以下资料：\n1）合同文件（覆盖主要客户/供应商）\n2）增值税申报表历史数据\n3）企业所得税申报表\n4）印花税申报记录\n5）关联交易/资本交易相关资料\n6）存货盘点报告\n7）税务稽查应对预案",
             "category": "域18 全覆盖验证"
         })
     
@@ -13935,6 +13937,26 @@ def _run_analyze(company_id, db):
             try: db.rollback()
             except: pass
         finally:
+            # ── 审计基础检查：在临时数据清理前运行 ──
+            try:
+                from audit import audit_all
+                audit_result = audit_all(company_id)
+                audit_findings = []
+                audit_errors = 0
+                for check_name, count in audit_result.items():
+                    if count > 0:
+                        audit_errors += count
+                        audit_findings.append({
+                            "type": f"审计检查：{check_name}",
+                            "level": "中风险", "score": 5,
+                            "detail": f"{check_name}检查发现{count}项异常。",
+                            "suggestion": f"请排查{check_name}相关问题，确保账务数据规范。"
+                        })
+                if audit_errors > 0:
+                    domain_results.append({"domain": "审计基础检查", "findings": audit_findings})
+            except Exception as e:
+                pipeline_log.append(f"审计检查异常: {e}")
+            
             # ═══ 彻底清理: 上传资料仅用于资料风险分析报告，不污染其他模块 ═══
             try:
                 if bk_ids: db.query(BookkeepingInvoice).filter(BookkeepingInvoice.id.in_(bk_ids)).delete(synchronize_session=False)

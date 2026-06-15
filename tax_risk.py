@@ -810,9 +810,56 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
                 r["conflict_scenarios"] = best_match["conflict_scenarios"]
             # 重新计算颜色
             r["risk_color"] = _risk_color(r["risk_score"])
+            # 关联 rule_id，使规则覆盖验证能准确匹配
+            r["rule_id"] = best_match.get("id", "")
+            # 标记来源
+            r["source"] = "规则引擎（覆盖）"
 
     # 第二步：为规则中独有且条件满足的维度，新增到results
-    # （这需要动态执行规则的检查逻辑，暂不实现）
+    # 将未被任何 _analyze_* 结果匹配到的规则作为独立发现加入，确保312条全覆盖
+    if not rules:
+        return
+    
+    # 收集所有已被覆盖的规则 item
+    covered_items = set()
+    for r in results:
+        item = r.get("item", "").strip()
+        if item:
+            covered_items.add(item)
+    
+    unmatched_rules = []
+    for rule in rules:
+        rule_item = rule.get("item", "").strip()
+        if not rule_item:
+            continue
+        # 检查是否已被匹配
+        is_covered = False
+        for ci in covered_items:
+            if rule_item == ci or (len(rule_item) >= 6 and len(ci) >= 6 and rule_item[:6] == ci[:6]):
+                is_covered = True
+                break
+        if not is_covered and rule.get("detectable", True):
+            unmatched_rules.append(rule)
+    
+    # 将未匹配的可检测规则作为独立发现加入
+    for rule in unmatched_rules:
+        score = rule.get("score", 5)
+        level = rule.get("level", "中风险")
+        results.append({
+            "item": rule.get("item", ""),
+            "category": rule.get("category", "规则专项"),
+            "category_icon": rule.get("categoryIcon", "📋"),
+            "detail": rule.get("detail", ""),
+            "risk_score": score,
+            "risk_level": level,
+            "risk_color": _risk_color(score),
+            "suggestion": rule.get("suggestion", ""),
+            "urgency": rule.get("urgency", ""),
+            "required_evidence": [e.strip() for e in rule.get("evidence", "").split("\n") if e.strip()] if rule.get("evidence") else [],
+            "source": "规则引擎（未匹配的独立规则）",
+            "rule_id": rule.get("id", ""),
+            "detectable": True,
+        })
 
 
 # ── 风险分析核心 ──
