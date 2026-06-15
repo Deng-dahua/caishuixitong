@@ -9752,16 +9752,17 @@ async def upload_tax_risk_docs(
     files: list[UploadFile] = File(...),
     company_id: int = Query(...),
 ):
-    """上传涉税分析资料（支持多文件，MD5去重）"""
+    """上传涉税分析资料（支持多文件，同公司MD5去重）"""
     import hashlib
-    # 计算已有文件的MD5集合
+    # 计算已有文件的MD5集合——仅限当前公司
     existing_hashes = set()
-    for d in _tax_risk_docs:
-        if d["company_id"] == company_id and "md5" in d:
-            existing_hashes.add(d["md5"])
-    # 也从磁盘扫描
+    # 从磁盘扫描（仅当前公司的文件）
     if os.path.exists(UPLOAD_DIR):
         for fname in os.listdir(UPLOAD_DIR):
+            parts = fname.split("_")
+            try:
+                if len(parts) >= 1 and int(parts[0]) != company_id: continue
+            except: pass
             try:
                 with open(os.path.join(UPLOAD_DIR, fname), "rb") as fh:
                     existing_hashes.add(hashlib.md5(fh.read()).hexdigest())
