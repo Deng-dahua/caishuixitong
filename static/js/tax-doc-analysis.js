@@ -501,33 +501,6 @@ function renderTaxDocReport(r) {
     html += '</div>';
   }
 
-  // ── 详细风险列表（312规则引擎发现） ──
-  if (r.all_findings && r.all_findings.length > 0) {
-    var engineItems = r.all_findings.filter(function(f) { return f.category && !f.domain; });
-    if (engineItems.length > 0) {
-      html += '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:20px;margin-top:12px">'
-        + '<b style="font-size:15px">🛡️ ' + (r.rules_used || 312) + '规则引擎发现（基于100%上传文件数据）</b>';
-      engineItems.slice(0, 30).forEach(function(f, i) {
-        var lv = f.risk_level || f.level || '?';
-        var color = lv === '高风险' ? '#dc2626' : (lv === '中风险' ? '#f59e0b' : '#6b7280');
-        var bg = lv === '高风险' ? '#fef2f2' : (lv === '中风险' ? '#fffbeb' : '#f9fafb');
-        html += '<div style="margin-top:10px;padding:12px 16px;background:' + bg + ';border-left:4px solid ' + color + ';border-radius:6px">'
-          + '<div style="display:flex;align-items:center;gap:8px">'
-          + '<span style="font-weight:700">#' + (i+1) + '</span>'
-          + '<span style="display:inline-block;padding:2px 10px;background:' + color + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + esc(lv) + '</span>'
-          + '<span style="font-weight:600;font-size:13px">' + esc(f.item || '') + '</span>'
-          + '</div>'
-          + '<div style="font-size:12px;color:var(--gray-600);margin-top:4px">' + esc(f.detail || '') + '</div>'
-          + (f.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:4px">💡 ' + esc(f.suggestion) + '</div>' : '')
-          + '</div>';
-      });
-      if (engineItems.length > 30) {
-        html += '<div style="text-align:center;color:var(--gray-400);padding:8px;font-size:12px">...共' + engineItems.length + '条引擎发现，此处展示前30条</div>';
-      }
-      html += '</div>';
-    }
-  }
-
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
 }
