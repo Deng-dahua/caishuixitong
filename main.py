@@ -12772,6 +12772,8 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
     
     # ═══ 构建关键词索引 ═══
     def keyword_match(finding, keywords):
+        if not isinstance(finding, dict):
+            return False
         text = str(finding.get("type","")) + str(finding.get("detail","")) + str(finding.get("description",""))
         return any(kw in text for kw in keywords)
     
@@ -13543,6 +13545,8 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     # 已触发的规则ID集合
     triggered_ids = set()
     for f in all_findings:
+        if not isinstance(f, dict):
+            continue
         rid = f.get("rule_id") or f.get("id")
         if rid: triggered_ids.add(rid)
     
@@ -14171,6 +14175,8 @@ def _run_analyze(company_id, db):
         for f in dr["findings"]:
             all_findings.append({**f, "domain": dr["domain"]})
     all_findings.extend(engine_results)
+    # 过滤掉非dict项（某些函数返回字符串混入）
+    all_findings = [f for f in all_findings if isinstance(f, dict)]
 
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
