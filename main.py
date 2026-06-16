@@ -13916,16 +13916,24 @@ def _run_analyze(company_id, db):
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
                     elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
                     elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
-                    elif ftype == "invoice":  # 通用发票类型，按品名/对方名称判断方向
-                        for r in parsed["rows"]:
-                            seller = str(r.get("seller", "")).strip()
-                            buyer = str(r.get("buyer", "")).strip()
-                            goods = str(r.get("goods", "")).strip()
-                            # 简单判断：有销方名=进项，有购方名=销项
-                            if seller > buyer:
+                    elif ftype == "invoice":  # 通用发票 → 按列内容判断进销方向
+                        rows = parsed["rows"]
+                        for r in rows:
+                            seller_name = str(r.get("seller", "")).strip()
+                            buyer_name = str(r.get("buyer", "")).strip()
+                            seller_tax = str(r.get("seller_tax", "")).strip()
+                            buyer_tax = str(r.get("buyer_tax", "")).strip()
+                            # 正确判断：销方名非空=进项(公司付给销方)，购方名非空=销项(公司卖给购方)
+                            if seller_name and seller_tax:
                                 r["direction"] = "进项"
-                            else:
+                            elif buyer_name and buyer_tax:
                                 r["direction"] = "销项"
+                            elif seller_name:
+                                r["direction"] = "进项"
+                            elif buyer_name:
+                                r["direction"] = "销项"
+                            else:
+                                r["direction"] = "进项"  # 默认进项
                             invoices.append(r)
                         fr["actions"].append(f"提取{n}条发票")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
@@ -14092,8 +14100,9 @@ def _run_analyze(company_id, db):
             for s in salaries:
                 try:
                     sr = SR(company_id=company_id,
-                        name=str(s.get("name", s.get("employee_name", "")))[:50],
-                        salary=_to_dec(s.get("salary", s.get("amount"))))
+                        employee_name=str(s.get("name", ""))[:50],
+                        salary_amount=_to_dec(s.get("salary", s.get("amount", s.get("net", 0)))),
+                        period=str(s.get("period", "2025-01"))[:20])
                     db.add(sr); db.flush(); sr_ids.append(sr.id)
                 except: pass
             db.commit()
@@ -14181,7 +14190,11 @@ def _run_analyze(company_id, db):
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
-    overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
+    # 使用评分引擎的综合风险等级，与风险画像保持一致
+    overall = comprehensive.get("risk_profile", {}).get("composite_level", "低风险")
+    # 兜底：如果评分引擎为空，用传统计数
+    if not comprehensive.get("risk_profile"):
+        overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 
     stats = {"分析文件数": len(docs), "银行流水": len(bank_txs), "销项发票": len(sal_invs),
              "进项发票": len(pur_invs), "工资记录": len(salaries), "社保记录": len(social_security), "凭证记录": len(vouchers),
