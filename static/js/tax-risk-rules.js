@@ -66,31 +66,43 @@ function renderTaxRiskRules(container) {
     + '<div class="risk-rules-container">'
     + '<div class="risk-rules-header"><div class="risk-rules-title"></div><div class="risk-rules-toolbar"></div></div>'
     + '<div style="display:flex;gap:8px;margin:12px 0;padding:0 8px">'
-    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">分类显示</button>'
-    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">线索链</button>'
-    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">证据链</button>'
+    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219</button>'
+    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe</button>'
+    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe</button>'
+    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790</button>'
     + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>分类显示区 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（当前 <strong id="risk-rules-header-count">0</strong> 条）</span></h3>'
+    + '<div class="display-panel-header"><h3>\u89c4\u5219\u663e\u793a\u533a <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u5f53\u524d <strong id="risk-rules-header-count">0</strong> \u6761\uff09</span></h3>'
     + '<div class="display-panel-toolbar">'
-    + '<input type="text" class="search-input" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()">'
-    + '<select class="filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">全部分类</option></select>'
-    + '<select class="filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>'
+    + '<input type="text" class="search-input" id="risk-rules-search" placeholder="\u641c\u7d22\u89c4\u5219..." oninput="filterTaxRiskRules()">'
+    + '<select class="filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
+    + '<select class="filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u9ad8\u98ce\u9669</option><option value="\u4e2d\u98ce\u9669">\u4e2d\u98ce\u9669</option><option value="\u4f4e\u98ce\u9669">\u4f4e\u98ce\u9669</option></select>'
     + '</div></div>'
     + '<div class="display-panel-body" id="risk-rules-list"></div>'
-    + '<div class="risk-rules-empty">暂无规则数据</div>'
-    + '<div class="display-panel-footer"><span id="risk-rules-stats">共 0 条规则</span></div>'
+    + '<div class="risk-rules-empty">\u6682\u65e0\u89c4\u5219\u6570\u636e</div>'
+    + '<div class="display-panel-footer"><span id="risk-rules-stats">\u5171 0 \u6761\u89c4\u5219</span></div>'
     + '</div></div>'
     + '<div id="rr-panel-chain" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>线索链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（稽查调查路径）</span></h3></div>'
-    + '<div class="display-panel-body" id="audit-chains-body">加载中...</div>'
+    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09</span></h3></div>'
+    + '<div class="display-panel-body" id="audit-chains-body">\u52a0\u8f7d\u4e2d...</div>'
     + '</div></div>'
     + '<div id="rr-panel-evidence" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>证据链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（含规则ID+处罚依据）</span></h3></div>'
-    + '<div class="display-panel-body" id="audit-evidence-body">加载中...</div>'
+    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09</span></h3></div>'
+    + '<div class="display-panel-body" id="audit-evidence-body">\u52a0\u8f7d\u4e2d...</div>'
+    + '</div></div>'
+    + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
+    + '<div class="risk-rules-display">'
+    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790\u663e\u793a\u533a <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u5ba1\u6838\u62a5\u544a\uff09</span></h3>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<button id="rra-analyze-btn" onclick="runAnalysisFromRules()" style="padding:6px 16px;background:#0f172a;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">\u6267\u884c\u5206\u6790</button>'
+    + '<span id="rra-status" style="font-size:11px;color:var(--gray-400)"></span>'
+    + '</div></div>'
+    + '<div class="display-panel-body" id="rra-report-body">'
+    + '<div style="text-align:center;padding:60px;color:var(--gray-400)">\u70b9\u51fb\u201c\u6267\u884c\u5206\u6790\u201d\u6309\u94ae\u5f00\u59cb\u7a3d\u67e5\u5206\u6790\uff0c\u7ed3\u679c\u5c06\u5728\u6b64\u5904\u663e\u793a</div>'
+    + '</div>'
     + '</div></div>'
     + '</div>';
 
@@ -1254,15 +1266,53 @@ if (typeof loadAuditChains === 'function') loadAuditChains();
 
 // ==================== Tab ====================
 var _currentTab = 0;
-var _tabs = ['cat','chain','evidence'];
+var _tabs = ['cat','chain','evidence','analyze'];
 function switchTab(n) {
   _currentTab = n;
   document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
   document.getElementById('rr-panel-cat').style.display = (n===0?'block':'none');
   document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
   document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
+  document.getElementById('rr-panel-analyze').style.display = (n===3?'block':'none');
   if (n===1) loadAuditChains();
   if (n===2) loadAuditEvidence();
+}
+
+// ==================== 一键分析（在规则模块内） ====================
+var _rraAnalyzing = false;
+async function runAnalysisFromRules() {
+  if (_rraAnalyzing) return;
+  _rraAnalyzing = true;
+  var btn = document.getElementById('rra-analyze-btn');
+  var status = document.getElementById('rra-status');
+  btn.disabled = true; btn.textContent = '\u5206\u6790\u4e2d...';
+  status.textContent = '\u6b63\u5728\u8c03\u7528\u4e00\u952e\u5206\u6790\u5f15\u64ce...';
+  try {
+    var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + cid, { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok && data.report) {
+      status.textContent = '\u5206\u6790\u5b8c\u6210\uff1a' + data.report.total_risks + '\u9879\u98ce\u9669\u53d1\u73b0';
+      // Render via renderAuditReport if available (tax-doc-analysis.js), else fallback
+      if (typeof renderAuditReport === 'function') {
+        window._reportData = data.report;
+        window._auditReportTarget = 'rra-report-body';
+        renderAuditReport();
+        window._auditReportTarget = null;
+      } else {
+        document.getElementById('rra-report-body').innerHTML = '<pre>' + JSON.stringify(data.report, null, 2).substring(0, 5000) + '</pre>';
+      }
+    } else {
+      status.textContent = data.message || '\u5206\u6790\u5931\u8d25';
+      document.getElementById('rra-report-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">' + (data.message || '\u5206\u6790\u5931\u8d25') + '</div>';
+    }
+  } catch(e) {
+    status.textContent = '\u5206\u6790\u5931\u8d25: ' + e.message;
+    document.getElementById('rra-report-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">' + e.message + '</div>';
+  } finally {
+    _rraAnalyzing = false;
+    btn.disabled = false; btn.textContent = '\u6267\u884c\u5206\u6790';
+  }
 }
 
 async function loadAuditChains() {

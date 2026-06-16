@@ -651,7 +651,9 @@ async function reviewSingleFinding(btn) {
 function renderAuditReport() {
   var r = window._reportData;
   if (!r) return;
-  var area = document.getElementById('tda-report-area');
+  var targetId = window._auditReportTarget || 'tda-report-area';
+  var area = document.getElementById(targetId);
+  if (!area) return;
   var toolbar = area.querySelector('.tda-toolbar');
   
   var S = { bg: '#fff', text: '#1e293b', muted: '#64748b', light: '#94a3b8',
