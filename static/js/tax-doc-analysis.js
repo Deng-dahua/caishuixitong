@@ -808,8 +808,7 @@ function renderAuditReport() {
     + '本次稽查共调用以下数据源：<br>';
   var p = r.comprehensive.data_overview.present || [];
   p.forEach(function(s){ h += '· '+esc(s)+'<br>'; });
-  h += '<br>数据覆盖度：'+p.length+'/'+(p.length+(r.comprehensive.data_overview.missing||[]).length)
-    +' 类资料已采集。缺失资料可能导致部分稽查指令无法执行。</div>';
+  h += '<br>已采集资料类型：' + p.length + ' 类</div>';
   
   // 4. 审计基础检查
   var auditLogs = r.pipeline_log.filter(function(l){ return l.indexOf('审计')>=0 || l.indexOf('平衡')>=0; });

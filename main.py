@@ -14525,9 +14525,9 @@ def _run_analyze(company_id, db):
         "p2_normal": normal[:5],
     }
     
-    # 4. 数据概览 —— 动态生成，基于实际文件识别和解析结果
+    # 4. 数据概览 —— 纯动态生成，仅根据实际识别到的文件类型展示
     data_present = []
-    data_missing = []
+    data_missing = []  # 不再使用，保留兼容
     type_label_map = {
         "bank": "银行流水", "bank_statement": "银行流水", "bank_transaction": "银行流水",
         "sales_invoice": "销项发票", "purchase_invoice": "进项发票", "invoice": "发票",
@@ -14539,31 +14539,16 @@ def _run_analyze(company_id, db):
         "customs_declaration": "海关报关单",
     }
     
-    # 方案1: 优先用已解析数据量统计
-    known_labels = {
-        "银行流水": bank_txs, "销项发票": sal_invs, "进项发票": pur_invs,
-        "工资表": salaries, "社保明细": social_security, "记账凭证": vouchers,
-        "进销存台账": inventory,
-    }
-    seen_labels = set()
-    for label, data_list in known_labels.items():
-        if data_list:
-            data_present.append(f"{label}({len(data_list)}条)")
-            seen_labels.add(label)
-        else:
-            data_missing.append(label)
-            seen_labels.add(label)
-    
-    # 方案2: 补充文件识别中额外发现的类型（如合同/公积金/海关等）
+    # 根据实际识别到的文件类型统计
     from collections import Counter
     type_counts = Counter(fr.get("type", "unknown") for fr in file_results if not fr.get("error"))
+    seen_labels = set()
     for ftype, count in type_counts.items():
         label = type_label_map.get(ftype, ftype)
-        if label not in seen_labels:
-            if count > 0:
-                data_present.append(f"{label}({count}份)")
-                seen_labels.add(label)
-    comprehensive["data_overview"] = {"present": data_present, "missing": data_missing}
+        if label not in seen_labels and count > 0:
+            data_present.append(f"{label}({count}份)")
+            seen_labels.add(label)
+    comprehensive["data_overview"] = {"present": data_present, "missing": []}
 
     # ── 金税四期式多因子风险评分引擎 ──
     risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
