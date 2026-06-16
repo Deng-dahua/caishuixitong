@@ -3,12 +3,12 @@ var taxRiskReportData = null;
 var taxRiskLoading = false;
 
 function renderTaxRiskReport(container) {
-  window.currentModule = '账务分析风险报告';
+  window.currentModule = '账务风险分析报告';
 
   container.innerHTML = ''
     + '<div class="risk-report-container">'
     + '<div class="risk-report-header">'
-    + '<h2>账务分析风险报告</h2>'
+    + '<h2>账务风险分析报告</h2>'
     + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
     + '</div>'
     + '<div id="risk-summary-cards" class="risk-summary-cards"></div>'

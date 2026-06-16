@@ -9,7 +9,7 @@ if (typeof esc === 'undefined') {
 }
 
 function renderTaxDocAnalysis(container) {
-  window.currentModule = '资料分析风险报告';
+  window.currentModule = '资料风险分析报告';
   taxDocPageActive = true;  // 标记页面激活
 
   container.innerHTML = ''
@@ -17,7 +17,7 @@ function renderTaxDocAnalysis(container) {
     
     // ── 标题区 ──
     + '<div class="risk-report-header">'
-    + '<h2>资料分析风险报告</h2>'
+    + '<h2>资料风险分析报告</h2>'
     + '</div>'
 
     // ── 资料上传区 ──
