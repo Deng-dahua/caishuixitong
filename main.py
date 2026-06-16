@@ -14783,15 +14783,96 @@ def _run_analyze(company_id, db):
     except Exception as ce:
         pipeline_log.append(f"证据链匹配异常: {ce}")
     
+    # ── 匹配稽查证据链（精确版：规则ID直连）──
+    triggered_chains = []
+    try:
+        chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
+        rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+        chains_data = {}
+        rules_data = []
+        if os.path.exists(chain_path):
+            with open(chain_path, "r", encoding="utf-8") as cf:
+                chains_data = json.load(cf)
+        if os.path.exists(rules_path):
+            with open(rules_path, "r", encoding="utf-8") as rf:
+                rules_data = json.load(rf)
+        
+        # 构建 rule_id → 规则 映射
+        rule_map = {r["id"]: r for r in rules_data}
+        
+        # 为每条finding匹配规则ID（type关键词 + category双重匹配）
+        for f in all_findings:
+            f_type = str(f.get("type", "")).lower()
+            f_cat = str(f.get("category", "")).lower()
+            matched_ids = []
+            # 提取finding type中的关键词
+            type_kws = set(f_type.replace("（"," ").replace("）"," ").replace(":"," ").replace("："," ").split())
+            for r in rules_data:
+                r_item = r.get("item", "").lower()
+                r_cat = r.get("category", "").lower()
+                # 匹配逻辑：finding type关键词命中 rule item，或 category一致
+                hits = sum(1 for kw in type_kws if kw in r_item)
+                cat_match = f_cat and r_cat and (f_cat in r_cat or r_cat in f_cat)
+                if hits >= 2 or (hits >= 1 and cat_match):
+                    matched_ids.append(r["id"])
+            f["matched_rule_ids"] = matched_ids[:5]  # 最多5条规则
+            f["matched_rule_count"] = len(matched_ids)
+        
+        # 构建 rule_id → 证据链 反向索引
+        rule_to_chains = {}
+        for chain in chains_data.get("chains", []):
+            for step in chain.get("investigation_path", []):
+                rid = step.get("rule_id")
+                if rid:
+                    if rid not in rule_to_chains:
+                        rule_to_chains[rid] = []
+                    rule_to_chains[rid].append(chain["name"])
+        
+        # 为每条finding匹配证据链
+        for f in all_findings:
+            chain_names = set()
+            for rid in f.get("matched_rule_ids", []):
+                if rid in rule_to_chains:
+                    for cn in rule_to_chains[rid]:
+                        chain_names.add(cn)
+            f["matched_chain_ids"] = list(chain_names)[:5]
+            f["matched_chain_count"] = len(chain_names)
+        
+        # 汇总触发的证据链（去重+排序）
+        chain_hit_count = {}
+        for f in all_findings:
+            for cn in f.get("matched_chain_ids", []):
+                chain_hit_count[cn] = chain_hit_count.get(cn, 0) + 1
+        
+        # 按命中次数排序，取top30
+        sorted_chains = sorted(chain_hit_count.items(), key=lambda x: -x[1])
+        for cn, hits in sorted_chains[:30]:
+            # 找到链详情
+            for chain in chains_data.get("chains", []):
+                if chain["name"] == cn:
+                    triggered_chains.append({
+                        "name": cn, "hits": hits,
+                        "steps": chain["steps"],
+                        "high_risk": chain["high_risk_steps"],
+                        "policies": chain.get("policies", [])[:2],
+                        "tax_impacts": chain.get("tax_impacts", [])[:2],
+                    })
+                    break
+        
+        if triggered_chains:
+            pipeline_log.append(f"证据链匹配: {len(triggered_chains)}条触发（规则ID直连）")
+        if rules_data:
+            pipeline_log.append(f"规则匹配: {len(rules_data)}条规则可追溯")
+    except Exception as ce:
+        pipeline_log.append(f"证据链匹配异常: {ce}")
+    
     comprehensive["triggered_chains"] = triggered_chains
 
     # 动态读取实际规则数量
     _actual_rule_count = 312
     try:
-        _rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-        if os.path.exists(_rules_path):
-            with open(_rules_path, "r", encoding="utf-8") as _rf:
-                _actual_rule_count = len(json.load(_rf))
+        if rules_data:
+            _actual_rule_count = len(rules_data)
     except:
         pass
 

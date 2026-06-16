@@ -454,6 +454,17 @@ function renderTaxDocReport(r) {
         if (f.tax_impact) html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#ea580c;margin-bottom:3px">税务影响</div><div style="font-size:11px;color:#475569">'+esc(f.tax_impact)+'</div></div>';
         if (f.policy_ref) html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#0369a1;margin-bottom:3px">政策依据</div><div style="font-size:10px;color:'+S.muted+'">'+esc(f.policy_ref)+'</div></div>';
         if (f.suggestion) html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:10px 12px"><div style="font-weight:600;font-size:11px;color:#059669;margin-bottom:3px">整改建议</div><div style="font-size:11px;color:#475569">'+esc(f.suggestion)+'</div></div>';
+        // 规则引用 + 证据链
+        var metaHtml = '';
+        if (f.matched_rule_ids && f.matched_rule_ids.length) {
+          metaHtml += '<span style="font-size:9px;color:'+S.light+'">关联规则: </span>';
+          f.matched_rule_ids.forEach(function(rid){ metaHtml += '<span style="background:#f1f5f9;padding:1px 6px;border-radius:2px;font-size:9px;color:#475569;margin-right:3px">R'+rid+'</span>'; });
+        }
+        if (f.matched_chain_ids && f.matched_chain_ids.length) {
+          metaHtml += '<span style="font-size:9px;color:'+S.light+';margin-left:8px">证据链: </span>';
+          f.matched_chain_ids.slice(0,3).forEach(function(cid){ metaHtml += '<span style="background:#fef3c7;padding:1px 6px;border-radius:2px;font-size:9px;color:#92400e;margin-right:3px">'+esc(cid)+'</span>'; });
+        }
+        if (metaHtml) html += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed '+S.border+'">'+metaHtml+'</div>';
         html += '</div>';
       });
       html += '</div></div>';
