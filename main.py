@@ -10331,11 +10331,25 @@ def _parse_by_content(names, get_sheet):
             s = get_sheet(i)
             # ═══ 扫前3行做表头识别（第0行常是标题，第1行才是列名） ═══
             all_text = ""
-            # 用统一方式获取行数（xlrd用nrows，openpyxl用max_row）
+            # 行0单独扫描：检测文件标题（含进项/销项/台账等方向标识）
+            row0_text = ""
             _nrows = s.nrows if hasattr(s, 'nrows') else (s.max_row or 1)
+            if _nrows > 0:
+                row0_vals = _get_row_values(s, 0)
+                row0_text = " " + " ".join(str(v) for v in row0_vals[:20] if v)
+            
             for scan_row in range(min(3, _nrows)):
                 row_vals = _get_row_values(s, scan_row)
                 all_text += " " + " ".join(str(v) for v in row_vals[:20] if v)
+            
+            # 标题行方向检测：给对应指纹加分
+            title_bonus = {}
+            if "销项发票" in row0_text or "销售发票" in row0_text:
+                title_bonus["sales_invoice"] = 3
+            elif "进项发票" in row0_text or "采购发票" in row0_text or "取得发票" in row0_text:
+                title_bonus["purchase_invoice"] = 3
+            elif "进销存" in row0_text or "台账" in row0_text or "存货" in row0_text or "库存" in row0_text or "物料" in row0_text:
+                title_bonus["inventory"] = 5
             
             for ftype, fp in _FILE_FINGERPRINTS.items():
                 score = 0
@@ -10353,6 +10367,10 @@ def _parse_by_content(names, get_sheet):
                             sec_hits.append(kw)
                 
                 threshold = fp["score_threshold"]
+                # 标题行加分：如有标题方向匹配，额外加分
+                if ftype in title_bonus:
+                    score += title_bonus[ftype]
+                    kw_hits.append(f"标题:{title_bonus[ftype]}分")
                 if score >= threshold:
                     # 额外验证：取前3行样本数据
                     try:
