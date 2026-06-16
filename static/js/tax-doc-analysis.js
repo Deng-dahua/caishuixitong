@@ -210,281 +210,164 @@ function renderTaxDocReport(r) {
   var lc = r.overall_level === '高风险' ? '#dc2626' : (r.overall_level === '中风险' ? '#f59e0b' : '#059669');
   var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
 
-  var CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)';
-  var CARD_RADIUS = '8px';
+  var S = { bg: '#fff', text: '#1e293b', muted: '#64748b', light: '#94a3b8',
+    border: '#e2e8f0', accent: '#0f172a', blue: '#2563eb',
+    red: '#dc2626', amber: '#f59e0b', green: '#059669',
+    shadow: '0 1px 2px rgba(0,0,0,0.04)', radius: '6px' };
 
-  var html = ''
-    // ── 数据不足警告横幅 ──
-    + (r.low_data_warning ? '<div style="background:#fffbeb;box-shadow:'+CARD_SHADOW+';border-radius:8px;padding:16px;margin-top:16px;font-size:13px;color:#92400e;line-height:1.7;border-left:3px solid #f59e0b">' 
-      + '<strong>⚠️ 数据不足警告</strong><br>'
-      + '系统未能从上传文件中提取到足够的结构化数据（少于10条记录）。以下分析结果基于有限数据，可能产生误报。'
-      + '<br>请检查：① Excel文件第一行是否为表头 ② 文件是否为财税相关数据 ③ 文件格式是否为标准导出模板。'
-      + '</div>' : '')
-    // ── 综合风险总览卡片 ──
-    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:24px;margin-top:16px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">'
-    + '<div>'
-    + '<span style="font-weight:600;font-size:14px;color:#1e293b">综合风险等级</span>'
-    + '<span style="display:inline-block;padding:5px 20px;background:' + lb + ';color:' + lc + ';border-radius:4px;font-weight:700;font-size:17px;margin-left:10px;border:1px solid ' + lc + '20">' + r.overall_level + '</span>'
-    + '</div>'
-    + '<div style="font-size:12px;color:#94a3b8">' + r.files_count + ' 份文件 · ' + r.rules_used + ' 条指令 · ' + r.total_risks + ' 项风险</div>'
-    + '<div style="font-size:12px;color:#cbd5e1">' + (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); })() + '</div>'
-    + '</div>'
-    
-    // 风险计数卡片
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px">'
-    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#dc2626;line-height:1">' + r.high_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">高风险</div></div>'
-    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#f59e0b;line-height:1">' + r.mid_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">中风险</div></div>'
-    + '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:16px;text-align:center"><div style="font-size:32px;font-weight:800;color:#059669;line-height:1">' + r.low_risk + '</div><div style="font-size:11px;color:#64748b;margin-top:4px;letter-spacing:1px">低风险</div></div>'
-    + '</div>'
-    
-    // 摘要
-    + '<div style="background:#f8fafc;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:14px 18px;margin-top:12px;font-size:13px;color:#475569;line-height:1.7">' + esc(r.summary_text || '') + '</div>'
-    + '</div>'
+  function secHdr(title) {
+    return '<div style="margin:24px 0 12px;display:flex;align-items:center;gap:10px">'
+      + '<div style="width:3px;height:18px;background:'+S.accent+';border-radius:2px;flex-shrink:0"></div>'
+      + '<span style="font-weight:600;font-size:14px;color:'+S.accent+';letter-spacing:0.3px">'+title+'</span></div>';
+  }
+  function pill(label, v, c) {
+    return '<div style="text-align:center;flex:1"><div style="font-size:28px;font-weight:700;color:'+c+';line-height:1">'+v+'</div><div style="font-size:11px;color:'+S.muted+';margin-top:2px">'+label+'</div></div>';
+  }
+  function fmtAmt(v) {
+    if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
+    if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
+    return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
+  }
 
-  // ── 综合报告增强：四大风格经营分析 ──
+  var html = '';
+  // Data warning
+  if (r.low_data_warning) {
+    html += '<div style="background:#fffbeb;border-left:3px solid '+S.amber+';padding:14px 18px;border-radius:4px;margin-bottom:16px;font-size:12px;color:#92400e;line-height:1.7">'
+      + '<strong>数据不足</strong> — 系统未能提取足够结构化数据，以下分析结果可能产生误报。</div>';
+  }
+
+  // ═══ 1. Risk Overview ═══
+  html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:24px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">'
+    + '<div style="display:flex;align-items:center;gap:12px">'
+    + '<span style="font-size:13px;color:'+S.muted+';letter-spacing:0.5px">综合风险等级</span>'
+    + '<span style="display:inline-block;padding:4px 16px;background:'+lb+';color:'+lc+';border-radius:3px;font-weight:700;font-size:15px">'+r.overall_level+'</span>'
+    + '</div>'
+    + '<span style="font-size:11px;color:'+S.light+'">'+r.total_risks+' 项发现 · '+r.files_count+' 份文件 · '+r.rules_used+' 条指令</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:24px;margin-top:16px;padding-top:16px;border-top:1px solid '+S.border+'">'
+    + pill('高风险', r.high_risk, S.red) + pill('中风险', r.mid_risk, S.amber) + pill('低风险', r.low_risk, S.green)
+    + '<div style="flex:1;text-align:center"><div style="font-size:11px;color:'+S.muted+';line-height:1.6;margin-top:4px">'+esc(r.summary_text||'')+'</div></div>'
+    + '</div></div>';
+
+  // ═══ 2. Comprehensive ═══
   if (r.comprehensive) {
     var comp = r.comprehensive;
-    var NAVY = '#1e3a5f';
-    var BLUE = '#2563eb';
+    var present = comp.data_overview.present || [];
+    var missing = comp.data_overview.missing || [];
+    html += secHdr('数据覆盖') + '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    present.forEach(function(s){ html += '<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:4px 10px;border-radius:3px;font-size:11px">'+esc(s)+'</span>'; });
+    missing.forEach(function(s){ html += '<span style="background:#f9fafb;color:'+S.light+';border:1px dashed '+S.border+';padding:4px 10px;border-radius:3px;font-size:11px">'+esc(s)+'</span>'; });
+    html += '</div>';
 
-    // ═══ 金税四期风险画像 ═══
+    // Risk Profile
     if (comp.risk_profile) {
       var rp = comp.risk_profile;
+      html += secHdr('风险画像')
+        + '<div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap">'
+        + '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:24px;text-align:center;min-width:140px">'
+        + '<div style="font-size:11px;color:'+S.muted+';margin-bottom:6px;letter-spacing:0.5px">综合评分</div>'
+        + '<div style="font-size:40px;font-weight:800;color:'+S.blue+';line-height:1">'+rp.composite_score+'</div>'
+        + '<div style="font-size:12px;color:'+S.accent+';font-weight:600;margin-top:4px">'+rp.composite_level+'</div>'
+        + '<div style="font-size:10px;color:'+S.light+';margin-top:4px">x'+rp.cross_multiplier+' · '+rp.high_dimensions+'维高风险</div></div>'
+        + '<div style="flex:1;background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:20px">';
       var rd = rp.radar;
-      var n = rd.labels.length;
-      
-      html += '<div style="margin-top:16px">'
-        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
-        + '<div style="width:4px;height:20px;background:'+NAVY+';border-radius:2px"></div>'
-        + '<span style="font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px">风险画像</span></div>'
-        
-        // 综合评分
-        + '<div style="display:flex;gap:20px;align-items:center;background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:20px;margin-bottom:8px">'
-        + '<div><div style="font-size:11px;color:#64748b;margin-bottom:4px">综合风险评分</div>'
-        + '<div style="font-size:36px;font-weight:800;color:'+BLUE+';line-height:1">'+rp.composite_score+'</div>'
-        + '<div style="font-size:12px;color:'+NAVY+';font-weight:600;margin:4px 0">'+rp.composite_level+'</div>'
-        + '<div style="font-size:10px;color:#94a3b8">7维度加权 × 交叉乘数 '+rp.cross_multiplier+' 倍 · '+rp.high_dimensions+'维高风险</div></div>';
-      
-      // 维度条形图
-      html += '<div style="flex:1">';
-      for (var i = 0; i < n; i++) {
-        var dn = rd.labels[i];
-        var ds = rp.dimensions[dn];
-        var pct = Math.min(100, ds.score);
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-          + '<span style="font-size:10px;font-weight:500;width:60px;text-align:right;color:#475569">'+dn+'</span>'
-          + '<div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden">'
-          + '<div style="width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:5px"></div></div>'
-          + '<span style="font-size:10px;font-weight:600;width:28px;color:'+rd.colors[i]+'">'+ds.score+'</span>'
-          + '<span style="font-size:9px;color:#94a3b8;width:28px">'+ds.count+'条</span></div>';
+      for (var i=0; i<rd.labels.length; i++) {
+        var dn = rd.labels[i], ds = rp.dimensions[dn], pct = Math.max(2, Math.min(100, ds.score));
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+          + '<span style="font-size:10px;color:'+S.muted+';width:60px;text-align:right">'+dn+'</span>'
+          + '<div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:5px"></div></div>'
+          + '<span style="font-size:10px;font-weight:600;width:28px;color:'+rd.colors[i]+'">'+ds.score+'</span></div>';
+      }
+      if (rp.cross_patterns && rp.cross_patterns.length) {
+        html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid '+S.border+'">';
+        rp.cross_patterns.forEach(function(p){ html += '<span style="background:#fef2f2;color:'+S.red+';padding:2px 8px;border-radius:3px;font-size:10px;margin-right:6px">'+esc(p)+'</span>'; });
+        html += '</div>';
       }
       html += '</div></div>';
-      
-      // 结论
-      html += '<div style="background:#f8fafc;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:12px 14px;font-size:11px;color:#64748b;line-height:1.7">'
-        + '<b>'+rp.description+'</b><br>';
-      rp.commentary.forEach(function(c) { html += c + '<br>'; });
-      html += '</div></div>';
     }
-    var GRAY600 = '#4b5563';
-    var GRAY300 = '#d1d5db';
-    var GRAY50 = '#f9fafb';
-    
-    // 格式化金额
-    function fmtAmt(v) {
-      if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
-      if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
-      return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
-    }
-    
-    // ═══ 区块1: 关键财务指标 KPI 卡片 ═══
-    var totalIn = 0, totalOut = 0, totalTax = 0;
-    if (comp.cashflow) {
-      comp.cashflow.income.forEach(function(v){totalIn+=v;});
-      comp.cashflow.expense.forEach(function(v){totalOut+=v;});
-      comp.cashflow.tax.forEach(function(v){totalTax+=v;});
-    }
-    var kpiCards = [];
-    if (totalIn > 0) kpiCards.push({label:'年度总收入', value:fmtAmt(totalIn), sub:comp.cashflow ? comp.cashflow.months.length+'个月' : ''});
-    if (totalOut > 0) kpiCards.push({label:'年度总支出', value:fmtAmt(totalOut), sub:'含税费'});
-    if (totalTax > 0) kpiCards.push({label:'年度纳税', value:fmtAmt(totalTax), sub:totalIn>0?'税负率 '+(totalTax/totalIn*100).toFixed(1)+'%':''});
-    
-    html += '<div style="margin-top:16px">'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
-      + '<div style="width:4px;height:20px;background:'+NAVY+';border-radius:2px"></div>'
-      + '<span style="font-weight:700;font-size:15px;color:'+NAVY+';letter-spacing:0.5px">经营财务分析</span></div>'
-      
-      // KPI 卡片行
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
-    kpiCards.forEach(function(k) {
-      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:16px 14px">'
-        + '<div style="font-size:11px;color:'+GRAY600+';margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">'+k.label+'</div>'
-        + '<div style="font-size:22px;font-weight:700;color:'+NAVY+';margin-bottom:4px">'+k.value+'</div>'
-        + '<div style="font-size:11px;color:#9ca3af">'+k.sub+'</div></div>';
-    });
+
+    // KPI cards
+    var tIn=0,tOut=0,tTax=0;
+    if (comp.cashflow) { comp.cashflow.income.forEach(function(v){tIn+=v;}); comp.cashflow.expense.forEach(function(v){tOut+=v;}); comp.cashflow.tax.forEach(function(v){tTax+=v;}); }
+    html += secHdr('经营概览') + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">';
+    if (tIn>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度总收入</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tIn)+'</div></div>';
+    if (tOut>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度总支出</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tOut)+'</div></div>';
+    if (tTax>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度纳税</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tTax)+'</div><div style="font-size:10px;color:'+S.muted+'">税负率 '+(tIn>0?(tTax/tIn*100).toFixed(1):'0')+'%</div></div>';
     html += '</div>';
-    
-    // ═══ 区块2: 主要往来方 ═══
-    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:6px;padding:16px;margin-bottom:12px">'
-      + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:10px">主要往来方</div>'
-      + '<table style="width:100%;font-size:11px;border-collapse:collapse">'
-      + '<thead><tr style="background:'+GRAY50+'">'
-      + '<th style="padding:6px 8px;text-align:left;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">#</th>'
-      + '<th style="padding:6px 8px;text-align:left;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">对方名称</th>'
-      + '<th style="padding:6px 8px;text-align:right;font-weight:600;color:'+GRAY600+';border-bottom:2px solid '+GRAY300+'">金额</th></tr></thead><tbody>';
-    
+
+    // Counterparty table
     var allCp = [];
-    if (comp.top_receivers) comp.top_receivers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'收'});});
-    if (comp.top_payers) comp.top_payers.forEach(function(r){allCp.push({name:r.name,amount:r.amount,type:'付'});});
-    allCp.sort(function(a,b){return b.amount-a.amount;});
-    allCp = allCp.slice(0, 15);
-    
-    allCp.forEach(function(r,idx){
-      var cColor = r.type==='收'?'#059669':NAVY;
-      html += '<tr style="border-bottom:1px solid '+GRAY50+'">'
-        + '<td style="padding:5px 8px;color:#9ca3af;font-size:10px">'+(idx+1)+'</td>'
-        + '<td style="padding:5px 8px;color:#374151">'+esc(r.name)+'</td>'
-        + '<td style="padding:5px 8px;text-align:right;font-weight:600;font-size:10px;color:'+cColor+'">'+fmtAmt(r.amount)+'</td></tr>';
-    });
-    html += '</tbody></table></div>';
+    if (comp.top_receivers) comp.top_receivers.forEach(function(t){allCp.push({name:t.name,amount:t.amount,type:'收'});});
+    if (comp.top_payers) comp.top_payers.forEach(function(t){allCp.push({name:t.name,amount:t.amount,type:'付'});});
+    allCp.sort(function(a,b){return b.amount-a.amount;}).slice(0,10);
+    if (allCp.length) {
+      html += secHdr('主要往来方')
+        + '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;overflow:hidden">'
+        + '<table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr style="background:#f8fafc;border-bottom:2px solid '+S.border+'"><th style="padding:8px 12px;text-align:left;font-weight:600;color:'+S.muted+'">#</th><th style="padding:8px 12px;text-align:left;font-weight:600;color:'+S.muted+'">对方名称</th><th style="padding:8px 12px;text-align:right;font-weight:600;color:'+S.muted+'">金额</th></tr></thead><tbody>';
+      allCp.forEach(function(t,i){ html += '<tr style="border-bottom:1px solid #f8fafc"><td style="padding:6px 12px;color:'+S.light+'">'+(i+1)+'</td><td style="padding:6px 12px;color:'+S.text+'">'+esc(t.name)+'</td><td style="padding:6px 12px;text-align:right;font-weight:600;color:'+(t.type==='收'?S.green:S.accent)+'">'+fmtAmt(t.amount)+'</td></tr>'; });
+      html += '</tbody></table></div>';
+    }
 
-    // ═══ 区块3: 分级建议 (四大风格) ═══
-    if (comp.actions) {
-      var act = comp.actions;
-      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px;margin-top:12px">'
-        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+';margin-bottom:14px">整改建议等级</div>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
-      
-      var secs = [
-        {key:'p0_urgent',title:'紧急整改',sub:'P0',color:NAVY},
-        {key:'p1_important',title:'重要优化',sub:'P1',color:BLUE},
-        {key:'p2_normal',title:'建议完善',sub:'P2',color:'#6b7280'}
-      ];
-      secs.forEach(function(sec){
-        var items = act[sec.key]||[];
-        html += '<div><div style="font-size:10px;color:#9ca3af;letter-spacing:1px;margin-bottom:4px">'+sec.sub+'</div>'
-          + '<div style="font-size:13px;font-weight:600;color:'+sec.color+';margin-bottom:8px">'+sec.title
-          + '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px">'+items.length+'项</span></div>';
-        var show = items.slice(0, items.length);
-        show.forEach(function(item){
-          html += '<div style="padding:8px 0;border-top:1px solid '+GRAY50+';font-size:11px;line-height:1.5;color:#374151">'
-            + '<div style="font-weight:500;margin-bottom:2px">'+esc(item.type)+'</div>'
-            + '<div style="color:'+GRAY600+';font-size:10px">'+esc(item.suggestion).substring(0,100)+'</div></div>';
-        });
+    // Actions
+    var act = comp.actions || {};
+    var secs = [['p0_urgent','需立即处理',S.red],['p1_important','重要',S.amber],['p2_normal','建议',S.green]];
+    var anyAct = secs.some(function(s){return act[s[0]] && act[s[0]].length;});
+    if (anyAct) {
+      html += secHdr('行动建议');
+      secs.forEach(function(s){
+        var items = act[s[0]] || [];
+        if (!items.length) return;
+        html += '<div style="border-left:3px solid '+s[2]+';padding-left:14px;margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:'+s[2]+';margin-bottom:6px">'+s[1]+' ('+items.length+'项)</div>';
+        items.forEach(function(it){ html += '<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:'+S.text+'">'+esc(it.type||'')+'</div><div style="font-size:10px;color:'+S.muted+';line-height:1.7">'+esc(it.suggestion||'')+'</div></div>'; });
         html += '</div>';
       });
-      html += '</div></div>';
     }
-    
-    // ═══ 区块4: 数据覆盖度 ═══
-    if (comp.data_overview) {
-      var totalCats = (comp.data_overview.present||[]).length + (comp.data_overview.missing||[]).length;
-      var covered = (comp.data_overview.present||[]).length;
-      var pct = totalCats > 0 ? Math.round(covered/totalCats*100) : 0;
-      html += '<div style="background:#fff;border:1px solid '+GRAY300+';border-radius:6px;padding:20px;margin-top:12px">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-        + '<div style="font-size:12px;font-weight:600;color:'+NAVY+'">数据覆盖度</div>'
-        + '<div style="font-size:13px;font-weight:700;color:'+NAVY+'">'+covered+'/'+totalCats+' · '+pct+'%</div></div>'
-        + '<div style="display:flex;height:6px;background:'+GRAY50+';border-radius:3px;margin-bottom:12px">'
-        + '<div style="width:'+pct+'%;background:'+BLUE+';border-radius:3px;transition:width 0.6s"></div></div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px">';
-      (comp.data_overview.present||[]).forEach(function(s){
-        html += '<span style="background:#eff6ff;color:'+NAVY+';padding:4px 8px;border-radius:3px;font-weight:500">'+s+'</span>';
-      });
-      (comp.data_overview.missing||[]).forEach(function(s){
-        html += '<span style="background:#f9fafb;color:#9ca3af;padding:4px 8px;border-radius:3px;border:1px dashed '+GRAY300+'">'+s+'</span>';
-      });
-      html += '</div></div>';
-    }
-    
-    html += '</div>'; // end comprehensive wrapper
   }
 
-  // ── 处理流水 ──
+  // ═══ 3-5. Bottom sections ═══
   if (r.pipeline_log && r.pipeline_log.length > 0) {
-    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:18px;margin-top:12px">'
-      + '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px">📋 处理流水</div>'
-      + '<div style="background:#f8fafc;border-radius:4px;padding:10px 14px;font-size:11px;font-family:ui-monospace,monospace;max-height:200px;overflow-y:auto">';
-    r.pipeline_log.forEach(function(log) {
-      html += '<div style="padding:1px 0;color:#64748b">' + esc(log) + '</div>';
-    });
-    html += '</div></div>';
+    html += secHdr('处理日志');
+    html += '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:6px;padding:10px 14px;font-size:10px;font-family:ui-monospace,monospace;color:'+S.muted+';max-height:160px;overflow-y:auto">';
+    r.pipeline_log.forEach(function(log){ html += '<div style="padding:1px 0">'+esc(log)+'</div>'; });
+    html += '</div>';
   }
 
-  // ── 文件处理详情 ──
   if (r.file_results && r.file_results.length > 0) {
-    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:18px;margin-top:12px">'
-      + '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px">📁 文件处理详情</div>';
-    r.file_results.forEach(function(fr) {
-      var icon = fr.error ? '✕' : '●';
-      html += '<div style="padding:5px 0;font-size:11px;border-bottom:1px solid #f8fafc">'
-        + '<span style="color:#94a3b8;margin-right:6px">' + icon + '</span>'
-        + '<span style="font-weight:500;color:#334155">' + esc(fr.file) + '</span>'
-        + ' <span style="color:#94a3b8">→ ' + esc((fr.type || 'unknown').replace(/_/g,' ')) + '</span>'
-        + (fr.actions ? fr.actions.map(function(a) { return ' <span style="color:#059669;font-size:10px">✓ ' + esc(a) + '</span>'; }).join('') : '')
-        + (fr.error ? ' <span style="color:#dc2626;font-size:10px">✕ ' + esc(fr.error) + '</span>' : '')
-        + '</div>';
+    html += secHdr('文件详情');
+    html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;overflow:hidden">';
+    r.file_results.forEach(function(fr){
+      var icon = fr.error ? '✕' : '●', icoC = fr.error ? S.red : S.green;
+      html += '<div style="padding:6px 14px;font-size:11px;border-bottom:1px solid #f8fafc;display:flex;align-items:center;gap:8px">'
+        + '<span style="color:'+icoC+'">'+icon+'</span><span style="font-weight:500;color:'+S.text+';flex:1">'+esc(fr.file)+'</span>'
+        + '<span style="color:'+S.light+';font-size:10px">'+esc((fr.type||'?').replace(/_/g,' '))+'</span>'
+        + (fr.actions?fr.actions.map(function(a){return '<span style="color:'+S.green+';font-size:9px">✓ '+esc(a)+'</span>';}).join(''):'')
+        + (fr.error?'<span style="color:'+S.red+';font-size:9px">✕ '+esc(fr.error)+'</span>':'')+'</div>';
     });
     html += '</div>';
   }
 
-  // ── 29域分析结果 ──
   if (r.domain_summary && r.domain_summary.length > 0) {
-    html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:20px;margin-top:12px">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">'
-      + '<div style="width:3px;height:18px;background:#1e293b;border-radius:2px"></div>'
-      + '<span style="font-weight:700;font-size:14px;color:#1e293b;letter-spacing:0.3px">域分析结果</span>'
-      + '<span style="font-size:11px;color:#94a3b8">' + r.domain_summary.length + '个域</span></div>';
-    r.domain_summary.forEach(function(dr) {
-      if (!dr.findings || dr.findings.length === 0) return;
-      var dColor = dr.high > 0 ? '#dc2626' : (dr.mid > 0 ? '#f59e0b' : '#059669');
-      html += '<div style="margin-top:10px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc">'
-        + '<span style="font-weight:600;font-size:13px;color:#334155">' + esc(dr.name) + '</span>'
-        + '<span style="font-size:11px;color:' + dColor + '">' + dr.count + '项</span></div>';
-      dr.findings.forEach(function(f) {
-        var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#64748b');
-        html += '<div style="padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;line-height:1.7" id="finding-' + (f._idx || 0) + '">'
-          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-          + '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + cfColor + '"></span>'
-          + '<b style="font-size:13px;color:#1e293b;flex:1">' + esc(f.type || '') + '</b>'
-          + (f.merged_from ? '<span style="font-size:10px;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:3px">已合并' + f.merged_from + '条</span>' : '')
-          + '<span style="font-size:10px;color:#94a3b8">' + (f.score || '-') + '分</span>'
-          + '<button onclick="reviewSingleFinding(this)" data-idx="' + (f._idx || 0) + '" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;background:#fff;color:#64748b;border-radius:3px;cursor:pointer">复核</button>'
-          + '</div>'
-          + '<div style="color:#475569;margin-bottom:6px">' + esc(f.detail || '') + '</div>'
-          + '<div class="finding-review-result" id="review-result-' + (f._idx || 0) + '" style="display:none;margin:8px 0"></div>';
-        if (f.description) {
-          html += '<div style="background:#f8fafc;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
-            + '<div style="font-weight:600;font-size:12px;color:' + cfColor + ';margin-bottom:4px">📋 风险解释</div>'
-            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.description) + '</div></div>';
-        }
-        if (f.how_found) {
-          html += '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
-            + '<div style="font-weight:600;font-size:12px;color:#7c3aed;margin-bottom:4px">🔍 如何得出</div>'
-            + '<div style="font-size:11px;color:var(--gray-600);white-space:pre-line">' + esc(f.how_found) + '</div></div>';
-        }
-        if (f.tax_impact) {
-          html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
-            + '<div style="font-weight:600;font-size:12px;color:#ea580c;margin-bottom:4px">⚠️ 税务影响</div>'
-            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.tax_impact) + '</div></div>';
-        }
-        if (f.policy_ref) {
-          html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
-            + '<div style="font-weight:600;font-size:12px;color:#0369a1;margin-bottom:4px">📜 政策依据</div>'
-            + '<div style="font-size:11px;color:var(--gray-600)">' + esc(f.policy_ref) + '</div></div>';
-        }
-        if (f.suggestion) {
-          html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
-            + '<div style="font-weight:600;font-size:12px;color:#059669;margin-bottom:4px">✅ 整改建议</div>'
-            + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.suggestion) + '</div></div>';
-        }
+    html += secHdr('域分析');
+    r.domain_summary.forEach(function(dr){
+      if (!dr.findings || !dr.findings.length) return;
+      html += '<div style="margin-bottom:6px;border:1px solid '+S.border+';border-radius:6px;overflow:hidden">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;cursor:pointer" onclick="var n=this.nextElementSibling;n.hidden=!n.hidden">'
+        + '<span style="font-weight:600;font-size:12px;color:'+S.text+'">'+esc(dr.name)+'</span><span style="font-size:10px;color:'+S.muted+'">'+dr.count+' 项</span></div>'
+        + '<div>';
+      dr.findings.forEach(function(f){
+        var dotC = f.level==='高风险'?S.red:(f.level==='中风险'?S.amber:S.light);
+        html += '<div style="padding:10px 14px;border-bottom:1px solid #f8fafc;font-size:11px;line-height:1.7">'
+          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+          + '<span style="width:5px;height:5px;border-radius:50%;background:'+dotC+';flex-shrink:0"></span>'
+          + '<b style="font-size:12px;color:'+S.text+';flex:1">'+esc(f.type||'')+'</b>'
+          + '<span style="font-size:9px;color:'+S.light+'">'+(f.score||0)+'分</span></div>'
+          + '<div style="color:'+S.muted+'">'+esc(f.detail||'')+'</div>';
+        if (f.suggestion) html += '<div style="margin-top:4px;color:'+S.light+';font-size:10px">'+esc(f.suggestion)+'</div>';
         html += '</div>';
       });
-      html += '</div>';
+      html += '</div></div>';
     });
-    html += '</div>';
   }
 
   area.innerHTML = html;
