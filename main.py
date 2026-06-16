@@ -14499,6 +14499,46 @@ def _run_analyze(company_id, db):
     # 过滤掉非dict项（某些函数返回字符串混入）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
 
+    # ═══ 合并同类发现 ═══
+    # 将同一类型（type名称相同/语义相同）的发现合并为一条
+    # 避免"社保低基数参保"在多个域中重复出现
+    def _normalize_type(t):
+        """标准化类型名称，用于去重匹配"""
+        t = str(t).strip().replace(" ","").replace("一","").replace("检查","").replace("指标","")
+        return t[:20]  # 前20字一致视为同类
+    
+    merged_map = {}
+    for f in all_findings:
+        key = _normalize_type(f.get("type", ""))
+        if key in merged_map:
+            existing = merged_map[key]
+            # 保留分数更高的
+            if (f.get("score") or 0) > (existing.get("score") or 0):
+                existing["score"] = f["score"]
+                existing["level"] = f.get("level", existing.get("level",""))
+            # 合并 detail：去重后拼接
+            existing_details = set(existing.get("detail","").split(";"))
+            new_detail = f.get("detail","").strip()
+            if new_detail and new_detail not in existing.get("detail",""):
+                existing["detail"] = (existing.get("detail","") + "；" + new_detail).strip("；")
+            # 合并 suggestion：取更具体的
+            if len(f.get("suggestion","")) > len(existing.get("suggestion","")):
+                existing["suggestion"] = f["suggestion"]
+            # 合并 how_found
+            if f.get("how_found") and f["how_found"] not in existing.get("how_found",""):
+                existing["how_found"] = (existing.get("how_found","") + " | " + f["how_found"]).strip(" |")
+            # 记录来源域
+            existing["_domains"] = (existing.get("_domains","") + "," + f.get("domain","")).strip(",")
+            existing["_merged"] = True
+        else:
+            merged_map[key] = dict(f)
+            merged_map[key]["_domains"] = f.get("domain","")
+    
+    all_findings = list(merged_map.values())
+    merged_count = sum(1 for f in all_findings if f.get("_merged"))
+    if merged_count > 0:
+        pipeline_log.append(f"合并同类发现: {merged_count}条被合并")
+
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
