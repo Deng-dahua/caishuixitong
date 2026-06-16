@@ -14049,13 +14049,13 @@ def _run_analyze(company_id, db):
             for inv in invoices:
                 try:
                     bk = BookkeepingInvoice(company_id=company_id,
-                        digital_invoice_no=str(inv.get("inv_no", inv.get("invoice_no", "")))[:50],
-                        seller_name=str(inv.get("seller", inv.get("seller_name", "")))[:100],
-                        buyer_name=str(inv.get("buyer", inv.get("buyer_name", "")))[:100],
-                        goods_name=str(inv.get("goods", inv.get("goods_name", "")))[:200],
+                        digital_invoice_no=str(inv.get("inv_no", ""))[:50],
+                        seller_name=str(inv.get("seller", ""))[:100],
+                        buyer_name=str(inv.get("buyer", ""))[:100],
+                        goods_name=str(inv.get("goods", ""))[:200],
                         total_amount=_to_dec(inv.get("total", inv.get("amount"))),
                         amount=_to_dec(inv.get("amount")),
-                        tax_amount=_to_dec(inv.get("tax", inv.get("tax_amount"))),
+                        tax_amount=_to_dec(inv.get("tax")),
                         invoice_date=datetime.now().date())
                     db.add(bk); db.flush(); bk_ids.append(bk.id)
                 except: pass
@@ -14094,6 +14094,7 @@ def _run_analyze(company_id, db):
 
             # 运行规则引擎
             try:
+                from tax_risk import get_tax_risk_report
                 engine_results = get_tax_risk_report(db=db, company_id=company_id,
                     period_from=period_start, period_to=period_end)
                 pipeline_log.append(f"{_real_rule_count}条规则引擎: 发现{len(engine_results)}条风险")
