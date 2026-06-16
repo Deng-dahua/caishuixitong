@@ -10799,6 +10799,120 @@ def _find_cols_semantic(header, mapping):
     
     return cols
 
+# ═══════════════ 数据内容推断列角色 ═══════════════
+def _infer_columns_from_data(sheet, nrows):
+    """不看表头，纯粹看数据内容猜每列的角色。
+    
+    这是终极兜底：当任何列名匹配都失败时，系统通过数据本身的形态来判断列的用途。
+    就像人扫一眼表格——看到一列全是日期格式就知道是日期列，
+    看到一列全是18位数字就知道是身份证号。
+    """
+    header = _get_row_values(sheet, 0)
+    ncols = len(header) if header else min(20, sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column)
+    sample_rows = min(nrows, 50)
+    
+    date_pattern = re.compile(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}')
+    id_pattern = re.compile(r'^\d{15}$|^\d{17}[\dXx]$|^\d{18}$')
+    amount_pattern = re.compile(r'^-?\d+\.?\d*$')
+    bank_pattern = re.compile(r'^\d{10,20}$')
+    phone_pattern = re.compile(r'^1[3-9]\d{9}$')
+    
+    col_roles = {}
+    
+    for ci in range(ncols):
+        samples = []
+        for r in range(1, sample_rows + 1):
+            try:
+                vals = _get_row_values(sheet, r)
+                if ci < len(vals) and vals[ci] is not None and str(vals[ci]).strip():
+                    samples.append(str(vals[ci]).strip())
+            except: pass
+        
+        if not samples:
+            continue
+        
+        date_count = sum(1 for s in samples if date_pattern.match(s))
+        id_count = sum(1 for s in samples if id_pattern.match(s))
+        amount_count = sum(1 for s in samples if amount_pattern.match(s.replace(',','')))
+        bank_count = sum(1 for s in samples if bank_pattern.match(s))
+        phone_count = sum(1 for s in samples if phone_pattern.match(s))
+        
+        total = len(samples)
+        roles = []
+        
+        if date_count / total > 0.5: roles.append("date_col")
+        if id_count / total > 0.3: roles.append("id_number")
+        if amount_count / total > 0.5: roles.append("amount_col")
+        if bank_count / total > 0.3: roles.append("bank_account")
+        if phone_count / total > 0.3: roles.append("contact")
+        
+        # 文本列判断：不是数字/日期/ID的就是文本
+        if not roles and total > 0:
+            text_count = total - amount_count - date_count - id_count
+            if text_count / total > 0.7:
+                # 判断是人名还是其他
+                avg_len = sum(len(s) for s in samples) / len(samples)
+                if avg_len <= 4: roles.append("person_name")   # 短文本→人名
+                elif avg_len <= 20: roles.append("counterparty")  # 中文本→公司名
+                else: roles.append("description")  # 长文本→摘要/描述
+        
+        if roles:
+            col_roles[ci] = roles
+    
+    return col_roles
+
+# ═══════════════ 涉税相关性评分 ═══════════════
+def _score_tax_relevance(sheet, nrows):
+    """分析表格内容是否与涉税相关。返回 0-100 分数。
+    
+    涉税相关表格通常包含以下特征：
+    - 包含金额列（交易/收入/税额）
+    - 包含日期列
+    - 包含对方名称（交易对手/供应商/客户）
+    - 包含发票号码或税号
+    - 包含税务关键词（增值税/所得税/抵扣/申报/缴税）
+    """
+    header = _get_row_values(sheet, 0)
+    header_text = " ".join(str(v) for v in header if v)
+    sample_rows = min(nrows, 30)
+    all_data = header_text + " "
+    for r in range(1, sample_rows + 1):
+        try:
+            vals = _get_row_values(sheet, r)
+            all_data += " " + " ".join(str(v) for v in vals if v)
+        except: pass
+    
+    score = 0
+    
+    # 1. 列名含税务关键词
+    tax_kw = ["发票", "税金", "税额", "增值税", "所得税", "抵扣", "申报", "缴税", "纳税",
+              "银行", "流水", "凭证", "记账", "工资", "社保", "公积金", "销项", "进项",
+              "合同", "收入", "成本", "应收", "应付", "借方", "贷方", "余额", "对方"]
+    for kw in tax_kw:
+        if kw in header_text: score += 3
+    
+    # 2. 数据中包含金额
+    col_roles = _infer_columns_from_data(sheet, nrows)
+    if any("amount_col" in roles for roles in col_roles.values()): score += 20
+    
+    # 3. 包含日期列
+    if any("date_col" in roles for roles in col_roles.values()): score += 15
+    
+    # 4. 包含对方名称（交易相关）
+    if any("counterparty" in roles for roles in col_roles.values()): score += 15
+    
+    # 5. 包含身份证/税号
+    if any("id_number" in roles for roles in col_roles.values()): score += 10
+    
+    # 6. 数据量合理（有足够的行）
+    if sample_rows > 3: score += 5
+    if sample_rows > 10: score += 5
+    
+    # 7. 数据含发票号码模式
+    if re.search(r'\d{10,12}', all_data): score += 5
+    
+    return min(100, score)
+
 # ═══════════════ 纯内容结构分析层 ═══════════════
 # 核心哲学：不看文件名、不看Sheet名、不看表头关键词 —— 只看数据本身的形状、类型、分布、关联
 # 人看到一个表：日期列 + 金额列 + 对方户名列 → 就知道是银行流水
