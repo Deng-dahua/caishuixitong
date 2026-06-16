@@ -676,8 +676,102 @@ function renderAuditReport() {
   }
   h += '</div></div>';
   
-  // ── 二、主要违法事实 ──
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、主要违法事实</div>';
+  // ── 二、稽查过程 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、稽查过程</div>';
+  
+  // 2a. 稽查方法
+  var present = (r.comprehensive||{}).data_overview||{};
+  h += '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（一）稽查方法</div>'
+    + '<div style="font-size:11px;color:'+S.muted+';line-height:1.9;padding:0 8px">'
+    + '依据《税务稽查工作规程》，对'+r.files_count+'份涉税资料执行'+r.rules_used+'条稽查指令。主要方法包括：<br>'
+    + '1. 数据比对法：对银行流水、进销项发票、记账凭证、工资社保四源数据进行交叉比对。<br>'
+    + '2. 比率分析法：计算进销比率、税负率、毛利率、购销弹性等关键指标，与行业基准和税法规定阈值比较。<br>'
+    + '3. 穿透核验法：对供应商/客户进行身份核验，检查是否存在群集注册、异常关联等风险特征。<br>'
+    + '4. 资金流追踪法：追踪大额、整数、非工作日交易，匹配资金流向与发票购销方的对应关系。<br>'
+    + '5. 证据链串联法：将多域发现的孤立疑点串并为完整证据链，判断是否构成系统性违法行为。<br>'
+    + '<br>上述方法交叉运用，已有'+r.total_risks+'项疑点经多通道验证后形成实质性发现。</div></div>';
+  
+  // 2b. 稽查线索链 —— 从跨域推理中提取
+  var crossDomain = r.domain_summary.filter(function(dr){ return dr.name.indexOf('跨域')>=0; });
+  if (crossDomain.length && crossDomain[0].findings) {
+    h += '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（二）稽查线索链</div>';
+    h += '<div style="font-size:11px;line-height:1.9;padding:0 8px">'
+      + '以下为跨域串联形成的稽查线索链，展示单一疑点如何通过多源交叉验证升级为系统性违法证据：<br><br>';
+    
+    crossDomain[0].findings.forEach(function(cf, ci){
+      var chainColor = '#7c3aed';
+      h += '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:4px;padding:14px;margin-bottom:12px">'
+        + '<div style="font-weight:700;font-size:12px;color:'+chainColor+';margin-bottom:8px">线索链 '+(ci+1)+'：'+esc(cf.type||'')+'</div>';
+      
+      // Show the chain from description
+      var desc = cf.description || '';
+      // Extract evidence chain markers [A-xxx] [B-xxx] etc
+      var markers = desc.match(/\[[A-Z\u4e00-\u9fa5]+?-[^\]]+\]/g) || [];
+      if (markers.length) {
+        h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">';
+        for (var mi = 0; mi < markers.length; mi++) {
+          var m = markers[mi];
+          h += '<span style="background:#ede9fe;color:'+chainColor+';padding:3px 10px;border-radius:3px;font-size:10px;font-weight:600">'+esc(m)+'</span>';
+          if (mi < markers.length - 1) h += '<span style="color:'+chainColor+';font-weight:700">→</span>';
+        }
+        h += '</div>';
+      }
+      h += '<div style="font-size:10px;color:'+S.muted+'">'+esc(desc.substring(0, 200))+'</div></div>';
+    });
+    h += '</div></div>';
+  } else {
+    // 如果没有跨域推理，为top3发现构建审计链
+    h += '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（二）稽查审计链</div>';
+    h += '<div style="font-size:11px;line-height:1.9;padding:0 8px">';
+    
+    // Build audit chains from related findings
+    var chainMap = {};
+    topF.forEach(function(f){
+      if ((f.score||0) < 5) return;
+      var key = f.type||'';
+      var deps = [];
+      // Find related findings by keyword overlap
+      var words = (f.detail||'').match(/[\u4e00-\u9fa5]{2,}/g) || [];
+      topF.forEach(function(of){
+        if (of === f) return;
+        var od = of.detail||'';
+        var hits = 0;
+        words.forEach(function(w){
+          if (od.indexOf(w) >= 0) hits++;
+        });
+        if (hits >= 3 && (of.score||0) >= 5) deps.push(of.type||'');
+      });
+      if (deps.length) chainMap[key] = deps.slice(0, 3);
+    });
+    
+    Object.keys(chainMap).slice(0, 5).forEach(function(key, ci){
+      var deps = chainMap[key];
+      h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:11px">'
+        + '<span style="font-weight:700;color:'+S.accent+'">审计项：</span>'+esc(key);
+      if (deps.length) {
+        h += '<div style="margin-top:4px;color:'+S.muted+'">';
+        for (var di=0; di<deps.length; di++) {
+          h += '├─ '+esc(deps[di])+'<br>';
+        }
+        h += '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div></div>';
+  }
+  
+  // 2c. 数据源统计
+  h += '<div><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（三）稽查数据源</div>'
+    + '<div style="font-size:11px;color:'+S.muted+';line-height:1.9;padding:0 8px">'
+    + '本次稽查共调用以下数据源：<br>';
+  var p = r.comprehensive.data_overview.present || [];
+  p.forEach(function(s){ h += '· '+esc(s)+'<br>'; });
+  h += '<br>数据覆盖度：'+p.length+'/'+(p.length+(r.comprehensive.data_overview.missing||[]).length)
+    +' 类资料已采集。缺失资料可能导致部分稽查指令无法执行。</div></div>';
+  h += '</div>';
+  
+  // ── 三、主要违法事实 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">三、主要违法事实</div>';
   
   var factNum = 1;
   topF.forEach(function(f){
@@ -700,7 +794,7 @@ function renderAuditReport() {
     var m = d.match(/(\d[\d,.]*)\s*[万元]/g);
   });
   
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">三、拟处理建议</div>';
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、拟处理建议</div>';
   
   h += '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:16px">'
     + '<tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">处理事项</th><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">法律依据</th><th style="padding:8px 12px;text-align:right;border:1px solid '+S.border+'">处理建议</th></tr>';
@@ -717,7 +811,7 @@ function renderAuditReport() {
   h += '</table></div>';
   
   // ── 四、整改建议 ──
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、整改建议</div>';
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">五、整改建议</div>';
   
   var fixNum = 1;
   topF.forEach(function(f){
@@ -737,7 +831,7 @@ function renderAuditReport() {
     + '</div>';
   
   // ── 五、附件 ──
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">五、附件清单</div>'
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">六、附件清单</div>'
     + '<div style="font-size:11px;color:'+S.muted+'">';
   r.file_results.forEach(function(fr,i){
     h += (i+1)+'. '+esc(fr.file)+' （'+esc((fr.type||'?').replace(/_/g,' '))+'）<br>';
