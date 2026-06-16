@@ -14818,25 +14818,38 @@ def _run_analyze(company_id, db):
             f["matched_rule_ids"] = matched_ids[:5]  # 最多5条规则
             f["matched_rule_count"] = len(matched_ids)
         
-        # 构建 rule_id → 证据链 反向索引
+        # 构建 rule_id → 证据链 反向索引 + 链详情缓存
+        chain_map = {}  # chain_name → full chain data
         rule_to_chains = {}
         for chain in chains_data.get("chains", []):
+            cn = chain["name"]
+            chain_map[cn] = chain
             for step in chain.get("investigation_path", []):
                 rid = step.get("rule_id")
                 if rid:
                     if rid not in rule_to_chains:
                         rule_to_chains[rid] = []
-                    rule_to_chains[rid].append(chain["name"])
+                    if cn not in rule_to_chains[rid]:
+                        rule_to_chains[rid].append(cn)
         
-        # 为每条finding匹配证据链
+        # 为每条finding匹配证据链（含详细步骤）
         for f in all_findings:
             chain_names = set()
+            chain_details = []
             for rid in f.get("matched_rule_ids", []):
                 if rid in rule_to_chains:
                     for cn in rule_to_chains[rid]:
                         chain_names.add(cn)
             f["matched_chain_ids"] = list(chain_names)[:5]
             f["matched_chain_count"] = len(chain_names)
+            # 附带前3条链的调查步骤（线索链+证据链共用）
+            for cn in list(chain_names)[:3]:
+                c = chain_map.get(cn, {})
+                steps_summary = []
+                for s in c.get("investigation_path", []):
+                    steps_summary.append({"step": s.get("step",""), "rule_id": s.get("rule_id"), "level": s.get("level","")})
+                chain_details.append({"name": cn, "steps": c.get("steps",0), "high_risk": c.get("high_risk_steps",0), "steps_detail": steps_summary})
+            f["matched_chain_details"] = chain_details
         
         # 汇总触发的证据链（去重+排序）
         chain_hit_count = {}

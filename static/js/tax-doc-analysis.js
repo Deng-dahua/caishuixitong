@@ -455,16 +455,25 @@ function renderTaxDocReport(r) {
         if (f.policy_ref) html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#0369a1;margin-bottom:3px">政策依据</div><div style="font-size:10px;color:'+S.muted+'">'+esc(f.policy_ref)+'</div></div>';
         if (f.suggestion) html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:10px 12px"><div style="font-weight:600;font-size:11px;color:#059669;margin-bottom:3px">整改建议</div><div style="font-size:11px;color:#475569">'+esc(f.suggestion)+'</div></div>';
         // 规则引用 + 证据链
+        // 规则 + 线索链 + 证据链 三层关联
         var metaHtml = '';
         if (f.matched_rule_ids && f.matched_rule_ids.length) {
-          metaHtml += '<span style="font-size:9px;color:'+S.light+'">关联规则: </span>';
+          metaHtml += '<div style="margin-bottom:4px"><span style="font-size:9px;color:'+S.light+'">📋 关联规则: </span>';
           f.matched_rule_ids.forEach(function(rid){ metaHtml += '<span style="background:#f1f5f9;padding:1px 6px;border-radius:2px;font-size:9px;color:#475569;margin-right:3px">R'+rid+'</span>'; });
+          metaHtml += '</div>';
         }
-        if (f.matched_chain_ids && f.matched_chain_ids.length) {
-          metaHtml += '<span style="font-size:9px;color:'+S.light+';margin-left:8px">证据链: </span>';
-          f.matched_chain_ids.slice(0,3).forEach(function(cid){ metaHtml += '<span style="background:#fef3c7;padding:1px 6px;border-radius:2px;font-size:9px;color:#92400e;margin-right:3px">'+esc(cid)+'</span>'; });
+        if (f.matched_chain_details && f.matched_chain_details.length) {
+          metaHtml += '<div style="margin-bottom:6px"><span style="font-size:9px;color:'+S.light+'">🔗 线索/证据链:</span></div>';
+          f.matched_chain_details.forEach(function(cd){
+            var stepFlow = cd.steps_detail.map(function(s){
+              var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
+              return '<span style="background:#f8fafc;padding:1px 5px;border-radius:2px;font-size:9px;border-left:2px solid '+dot+'">'+esc(s.step)+'</span>';
+            }).join('<span style="color:'+S.light+';margin:0 2px">→</span>');
+            metaHtml += '<div style="margin-bottom:3px"><span style="font-weight:600;font-size:10px;color:'+S.accent+'">'+esc(cd.name)+'</span> <span style="font-size:9px;color:'+S.light+'">('+cd.steps+'步/'+cd.high_risk+'高)</span></div>';
+            metaHtml += '<div style="margin-bottom:6px">'+stepFlow+'</div>';
+          });
         }
-        if (metaHtml) html += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed '+S.border+'">'+metaHtml+'</div>';
+        if (metaHtml) html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed '+S.border+'">'+metaHtml+'</div>';
         html += '</div>';
       });
       html += '</div></div>';
