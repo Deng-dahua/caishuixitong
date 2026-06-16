@@ -66,8 +66,6 @@ function renderTaxRiskRules(container) {
     // 顶部标题栏
     + '<div class="risk-rules-header">'
     + '<div class="risk-rules-title">'
-    + '<h2>涉税风险稽查指令管理</h2>'
-    + '<p>收集和整理涉税风险稽查指令，用于编制涉税风险分析报告</p>'
     + '</div>'
     + '<div class="risk-rules-toolbar">'
     + '</div>'
