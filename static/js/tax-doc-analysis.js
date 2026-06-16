@@ -668,6 +668,27 @@ function renderAuditReport() {
   h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">一、稽查结论</div>'
     + '<div style="font-size:13px;line-height:2;padding:16px;background:#f8fafc;border-left:3px solid '+sevColor+'">'
     + '经对'+r.files_count+'份涉税资料进行系统性审查，依据'+r.rules_used+'条稽查指令，共发现<span style="color:'+sevColor+';font-weight:700"> '+r.total_risks+' 项涉税疑点</span>（高风险'+r.high_risk+'项，中风险'+r.mid_risk+'项）。综合评估结论：<span style="color:'+sevColor+';font-weight:700">'+sevLabel+'</span>。';
+  // 7维评分 + 交叉模式
+  var rp = (r.comprehensive||{}).risk_profile;
+  if (rp && rp.dimensions) {
+    h += '<br><br><span style="font-weight:600;color:'+S.accent+'">金税四期 7 维风险评分：</span>';
+    Object.keys(rp.dimensions).forEach(function(dn){
+      var ds = rp.dimensions[dn];
+      var lc = ds.score > 40 ? S.red : (ds.score > 20 ? S.amber : S.green);
+      h += '<span style="font-size:10px;padding:2px 6px;margin:0 3px;background:#f8fafc;border-radius:3px">'+dn+' <b style="color:'+lc+'">'+ds.score+'</b></span>';
+    });
+  }
+  if (rp && rp.cross_patterns && rp.cross_patterns.length) {
+    h += '<br><span style="font-weight:600;color:'+S.red+';font-size:11px">交叉预警：</span>';
+    rp.cross_patterns.forEach(function(p){ h += '<span style="background:#fef2f2;color:'+S.red+';padding:2px 6px;border-radius:3px;font-size:10px;margin:0 3px">'+esc(p)+'</span>'; });
+  }
+  // 数据导入流水
+  h += '<br><span style="font-size:10px;color:'+S.light+'">数据导入：';
+  r.pipeline_log.forEach(function(log){
+    var m = log.match(/导入DB.*/);
+    if (m) h += esc(m[0]);
+  });
+  h += '</span>';
   if (top3.length) {
     h += '<br><br>三项优先度最高的问题：<br>';
     top3.forEach(function(f,i){
@@ -767,7 +788,17 @@ function renderAuditReport() {
   var p = r.comprehensive.data_overview.present || [];
   p.forEach(function(s){ h += '· '+esc(s)+'<br>'; });
   h += '<br>数据覆盖度：'+p.length+'/'+(p.length+(r.comprehensive.data_overview.missing||[]).length)
-    +' 类资料已采集。缺失资料可能导致部分稽查指令无法执行。</div></div>';
+    +' 类资料已采集。缺失资料可能导致部分稽查指令无法执行。</div>';
+  
+  // 4. 审计基础检查
+  var auditLogs = r.pipeline_log.filter(function(l){ return l.indexOf('审计')>=0 || l.indexOf('平衡')>=0; });
+  if (auditLogs.length) {
+    h += '<div style="margin-top:8px;font-size:10px;color:'+S.muted+';line-height:1.7">'
+      + '<span style="font-weight:600;color:'+S.text+'">基础账务审计：</span>';
+    auditLogs.forEach(function(l){ h += esc(l)+'<br>'; });
+    h += '</div>';
+  }
+  h += '</div>';
   h += '</div>';
   
   // ── 三、主要违法事实 ──
@@ -794,19 +825,36 @@ function renderAuditReport() {
     var m = d.match(/(\d[\d,.]*)\s*[万元]/g);
   });
   
+  // ── 收入口径说明 ──
+  var revenueNote = r.summary_text||'';
+  var revMatch = revenueNote.match(/凭证主营收入[\d,]+元[^。]*/);
+  if (revMatch) {
+    h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;padding:14px;border-radius:4px;margin-bottom:28px;font-size:11px;color:'+S.muted+';line-height:1.8">'
+      + '<div style="font-weight:600;color:'+S.accent+';margin-bottom:4px">收入口径说明</div>'
+      + '本次审核使用三种收入口径交叉验证：<br>'
+      + '① 发票口径（销项发票汇总）→ 用于进销发票比对<br>'
+      + '② 凭证口径（主营业务收入贷方）→ 用于总收入计算，含未开票收入<br>'
+      + '③ 银行口径（对公账户入账）→ 用于收款来源匹配<br>'
+      + esc(revMatch[0]) + '</div>';
+  }
+
   h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、拟处理建议</div>';
   
   h += '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:16px">'
-    + '<tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">处理事项</th><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">法律依据</th><th style="padding:8px 12px;text-align:right;border:1px solid '+S.border+'">处理建议</th></tr>';
+    + '<tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">优先级</th><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">处理事项</th><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">法律依据</th></tr>';
   
   var actions = [];
   topF.forEach(function(f){
     var sug = (f.suggestion||'').split('\n')[0];
-    if (sug) actions.push({item: esc(f.type||''), basis: esc((f.policy_ref||'').substring(0,40)), act: esc(sug.substring(0,60))});
+    if (sug) {
+      var pri = (f.score||0) >= 8 ? 'P0' : ((f.score||0) >= 6 ? 'P1' : 'P2');
+      var priColor = pri === 'P0' ? S.red : (pri === 'P1' ? S.amber : S.green);
+      actions.push({item: esc(f.type||''), basis: esc((f.policy_ref||'').substring(0,40)), pri: pri, priColor: priColor});
+    }
   });
   actions = actions.slice(0, 5);
   actions.forEach(function(a){
-    h += '<tr><td style="padding:6px 12px;border:1px solid '+S.border+'">'+a.item+'</td><td style="padding:6px 12px;border:1px solid '+S.border+';font-size:10px;color:'+S.muted+'">'+a.basis+'</td><td style="padding:6px 12px;border:1px solid '+S.border+';text-align:right">'+a.act+'</td></tr>';
+    h += '<tr><td style="padding:6px 12px;border:1px solid '+S.border+'"><span style="display:inline-block;background:'+a.priColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+a.pri+'</span></td><td style="padding:6px 12px;border:1px solid '+S.border+'">'+a.item+'</td><td style="padding:6px 12px;border:1px solid '+S.border+';font-size:10px;color:'+S.muted+'">'+a.basis+'</td></tr>';
   });
   h += '</table></div>';
   
