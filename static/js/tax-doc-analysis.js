@@ -357,13 +357,20 @@ function renderTaxDocReport(r) {
         + '<div>';
       dr.findings.forEach(function(f){
         var dotC = f.level==='高风险'?S.red:(f.level==='中风险'?S.amber:S.light);
-        html += '<div style="padding:10px 14px;border-bottom:1px solid #f8fafc;font-size:11px;line-height:1.7">'
-          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+        var cfBg = f.level==='高风险'?'#fef2f2':(f.level==='中风险'?'#fffbeb':'#f8fafc');
+        var cfBorder = f.level==='高风险'?'#fecaca':(f.level==='中风险'?'#fde68a':'#e2e8f0');
+        html += '<div style="padding:12px 14px;border-bottom:1px solid #f8fafc;font-size:12px;line-height:1.7">'
+          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
           + '<span style="width:5px;height:5px;border-radius:50%;background:'+dotC+';flex-shrink:0"></span>'
-          + '<b style="font-size:12px;color:'+S.text+';flex:1">'+esc(f.type||'')+'</b>'
-          + '<span style="font-size:9px;color:'+S.light+'">'+(f.score||0)+'分</span></div>'
-          + '<div style="color:'+S.muted+'">'+esc(f.detail||'')+'</div>';
-        if (f.suggestion) html += '<div style="margin-top:4px;color:'+S.light+';font-size:10px">'+esc(f.suggestion)+'</div>';
+          + '<b style="font-size:13px;color:'+S.text+';flex:1">'+esc(f.type||'')+'</b>'
+          + '<span style="font-size:9px;color:'+S.light+'">'+(f.score||0)+'分</span>'
+          + '<button onclick="reviewSingleFinding(this)" data-idx="'+(f._idx||0)+'" style="font-size:10px;padding:2px 8px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:3px;cursor:pointer">复核</button></div>'
+          + '<div style="color:'+S.muted+';margin-bottom:6px">'+esc(f.detail||'')+'</div>';
+        if (f.description) html += '<div style="background:'+cfBg+';border:1px solid '+cfBorder+';border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:'+dotC+';margin-bottom:3px">风险解释</div><div style="font-size:11px;color:#475569;white-space:pre-line">'+esc(f.description)+'</div></div>';
+        if (f.how_found) html += '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#7c3aed;margin-bottom:3px">如何得出</div><div style="font-size:10px;color:'+S.muted+';white-space:pre-line">'+esc(f.how_found)+'</div></div>';
+        if (f.tax_impact) html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#ea580c;margin-bottom:3px">税务影响</div><div style="font-size:11px;color:#475569">'+esc(f.tax_impact)+'</div></div>';
+        if (f.policy_ref) html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#0369a1;margin-bottom:3px">政策依据</div><div style="font-size:10px;color:'+S.muted+'">'+esc(f.policy_ref)+'</div></div>';
+        if (f.suggestion) html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:10px 12px"><div style="font-weight:600;font-size:11px;color:#059669;margin-bottom:3px">整改建议</div><div style="font-size:11px;color:#475569">'+esc(f.suggestion)+'</div></div>';
         html += '</div>';
       });
       html += '</div></div>';
