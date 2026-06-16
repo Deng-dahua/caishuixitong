@@ -14044,55 +14044,61 @@ def _run_analyze(company_id, db):
                 try: return D(str(float(v or 0)))
                 except: return D("0")
             
-            # ═══ 临时导入: 仅用于312规则引擎，分析后立即清理，不污染其他模块 ═══
-            # 发票 → BookkeepingInvoice
-            for inv in invoices[:1000]:
+            # ═══ 临时导入: 全量导入 ═══
+            # 发票
+            for inv in invoices:
                 try:
                     bk = BookkeepingInvoice(company_id=company_id,
-                        digital_invoice_no=str(inv.get("inv_no", ""))[:50],
-                        seller_name=str(inv.get("seller", ""))[:100],
-                        buyer_name=str(inv.get("buyer", ""))[:100],
-                        goods_name=str(inv.get("goods", ""))[:200],
-                        total_amount=_to_dec(inv.get("total")),
+                        digital_invoice_no=str(inv.get("inv_no", inv.get("invoice_no", "")))[:50],
+                        seller_name=str(inv.get("seller", inv.get("seller_name", "")))[:100],
+                        buyer_name=str(inv.get("buyer", inv.get("buyer_name", "")))[:100],
+                        goods_name=str(inv.get("goods", inv.get("goods_name", "")))[:200],
+                        total_amount=_to_dec(inv.get("total", inv.get("amount"))),
                         amount=_to_dec(inv.get("amount")),
-                        tax_amount=_to_dec(inv.get("tax")),
+                        tax_amount=_to_dec(inv.get("tax", inv.get("tax_amount"))),
                         invoice_date=datetime.now().date())
                     db.add(bk); db.flush(); bk_ids.append(bk.id)
                 except: pass
-            
-            # 银行流水 → BankTransaction
-            for tx in bank_txs[:500]:
+            # 银行流水
+            for tx in bank_txs:
                 try:
-                    d_str = tx["date"]
-                    bt = BankTransaction(company_id=company_id,
-                        transaction_date=date_cls(int(d_str[:4]), int(d_str[4:6]), int(d_str[6:8])),
-                        counterparty_name=str(tx.get("counterparty", ""))[:100],
-                        debit_amount=_to_dec(tx.get("debit")), credit_amount=_to_dec(tx.get("credit")),
-                        amount=abs(_to_dec(tx.get("amount"))), summary=str(tx.get("summary", ""))[:200])
-                    db.add(bt); db.flush(); bt_ids.append(bt.id)
+                    d_str = tx.get("date", tx.get("transaction_date", ""))
+                    if d_str and len(str(d_str)) >= 8:
+                        ds = str(d_str)
+                        bt = BankTransaction(company_id=company_id,
+                            transaction_date=date_cls(int(ds[:4]), int(ds[4:6]), int(ds[6:8])),
+                            counterparty_name=str(tx.get("counterparty", tx.get("counterparty_name", "")))[:100],
+                            debit_amount=_to_dec(tx.get("debit")), credit_amount=_to_dec(tx.get("credit")),
+                            amount=abs(_to_dec(tx.get("amount"))), summary=str(tx.get("summary", ""))[:200])
+                        db.add(bt); db.flush(); bt_ids.append(bt.id)
                 except: pass
-            
-            # 工资 → SalaryRecord
-            for s in salaries[:100]:
+            # 工资
+            for s in salaries:
                 try:
                     sr = SR(company_id=company_id,
-                        name=str(s.get("name", ""))[:50],
-                        salary=_to_dec(s.get("salary")))
+                        name=str(s.get("name", s.get("employee_name", "")))[:50],
+                        salary=_to_dec(s.get("salary", s.get("amount"))))
                     db.add(sr); db.flush(); sr_ids.append(sr.id)
                 except: pass
-            
             db.commit()
             pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
 
-            # 跑312规则引擎
-            from tax_risk import get_tax_risk_report
-            risk_data = get_tax_risk_report(company_id=company_id, period_from="2025-01", period_to=datetime.now().strftime("%Y-%m"), db=db)
-            if risk_data:
-                engine_results = risk_data.get("results", [])
-                pipeline_log.append(f"312规则引擎: 发现{len(engine_results)}条风险")
-        except Exception as e:
-            pipeline_log.append(f"312规则引擎异常: {e}")
-            try: db.rollback()
+            # 读取实际规则数
+            _real_rule_count = 1319
+            try:
+                _rp = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+                if os.path.exists(_rp):
+                    with open(_rp, "r", encoding="utf-8") as _rf:
+                        _real_rule_count = len(json.load(_rf))
+            except: pass
+
+            # 运行规则引擎
+            try:
+                engine_results = get_tax_risk_report(db=db, company_id=company_id,
+                    period_from=period_start, period_to=period_end)
+                pipeline_log.append(f"{_real_rule_count}条规则引擎: 发现{len(engine_results)}条风险")
+            except Exception as re:
+                pipeline_log.append(f"规则引擎异常: {re}")
             except: pass
         finally:
             # ── 审计基础检查：在临时数据清理前运行 ──
@@ -14102,14 +14108,19 @@ def _run_analyze(company_id, db):
                 audit_findings = []
                 audit_errors = 0
                 for check_name, count in audit_result.items():
-                    if count > 0:
-                        audit_errors += count
-                        audit_findings.append({
-                            "type": f"审计检查：{check_name}",
-                            "level": "中风险", "score": 5,
-                            "detail": f"{check_name}检查发现{count}项异常。",
-                            "suggestion": f"请排查{check_name}相关问题，确保账务数据规范。"
-                        })
+                    if check_name == "errors":
+                        continue  # 跳过错误列表
+                    try:
+                        if int(count) > 0:
+                            audit_errors += int(count)
+                            audit_findings.append({
+                                "type": f"审计检查：{check_name}",
+                                "level": "中风险", "score": 5,
+                                "detail": f"{check_name}检查发现{count}项异常。",
+                                "suggestion": f"请排查{check_name}相关问题，确保账务数据规范。"
+                            })
+                    except (TypeError, ValueError):
+                        pass
                 if audit_errors > 0:
                     domain_results.append({"domain": "审计基础检查", "findings": audit_findings})
             except Exception as e:
