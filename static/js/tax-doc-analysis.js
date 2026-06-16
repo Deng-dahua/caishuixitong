@@ -721,6 +721,22 @@ function renderAuditReport() {
   }
   h += '</div></div>';
   
+  // ═══ 触发的证据链 ═══
+  var tc = (r.comprehensive||{}).triggered_chains||[];
+  if (tc.length > 0) {
+    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">触发的证据链 (' + tc.length + '条)</div>';
+    tc.forEach(function(chain) {
+      h += '<div style="border:1px solid '+S.border+';border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:11px">'
+        + '<span style="font-weight:700;color:'+S.accent+'">' + esc(chain.name) + '</span> '
+        + '<span style="color:'+S.muted+'">' + chain.hits + '/' + chain.steps + '步命中, '+chain.high_risk+'高风险</span>';
+      if (chain.tax_impacts && chain.tax_impacts.length) {
+        h += '<div style="margin-top:4px;color:#dc2626;font-size:10px">' + esc(chain.tax_impacts[0]||'') + '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  
   // ── 二、稽查过程 ──
   h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、稽查过程</div>';
   

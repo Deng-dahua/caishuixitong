@@ -14676,6 +14676,43 @@ def _run_analyze(company_id, db):
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 
+    # ── 匹配稽查证据链 ──
+    # 将本次发现与358条证据链做匹配，标注触发的链
+    triggered_chains = []
+    try:
+        chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
+        if os.path.exists(chain_path):
+            with open(chain_path, "r", encoding="utf-8") as cf:
+                chains_data = json.load(cf)
+            finding_keywords = set()
+            for f in all_findings:
+                t = str(f.get("type", ""))
+                d = str(f.get("detail", ""))
+                for w in t.split(): finding_keywords.add(w)
+                for w in d.split(): finding_keywords.add(w)
+            for chain in chains_data.get("chains", []):
+                hits = 0
+                for step in chain.get("investigation_path", []):
+                    if step["step"] in str(finding_keywords):
+                        hits += 1
+                if hits >= 2:  # 至少命中2个环节才算触发
+                    triggered_chains.append({
+                        "name": chain["name"],
+                        "hits": hits,
+                        "steps": chain["steps"],
+                        "high_risk": chain["high_risk_steps"],
+                        "policies": chain.get("policies", [])[:2],
+                        "tax_impacts": chain.get("tax_impacts", [])[:2],
+                    })
+            triggered_chains.sort(key=lambda x: -(x["hits"] + x["high_risk"]))
+            triggered_chains = triggered_chains[:10]  # Top 10
+            if triggered_chains:
+                pipeline_log.append(f"证据链匹配: {len(triggered_chains)}条触发")
+    except Exception as ce:
+        pipeline_log.append(f"证据链匹配异常: {ce}")
+    
+    comprehensive["triggered_chains"] = triggered_chains
+
     # 动态读取实际规则数量
     _actual_rule_count = 312
     try:
