@@ -14099,9 +14099,11 @@ def _run_analyze(company_id, db):
             # 工资
             for s in salaries:
                 try:
+                    salary_val = _to_dec(s.get("salary", s.get("net", s.get("gross", 0))))
                     sr = SR(company_id=company_id,
                         employee_name=str(s.get("name", ""))[:50],
-                        salary_amount=_to_dec(s.get("salary", s.get("amount", s.get("net", 0)))),
+                        current_income=salary_val,
+                        taxable_income=salary_val,
                         period=str(s.get("period", "2025-01"))[:20])
                     db.add(sr); db.flush(); sr_ids.append(sr.id)
                 except: pass

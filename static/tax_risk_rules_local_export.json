@@ -4331,7 +4331,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "存货真实性——仓储空间与库存量匹配验证"
   },
   {
     "id": 287,
@@ -4346,7 +4346,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "采购合理性——采购量与销售量比例分析"
   },
   {
     "id": 288,
@@ -4361,7 +4361,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "资金风险——存货占压资金对经营的传导影响"
   },
   {
     "id": 289,
@@ -4376,7 +4376,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "经营费用与实物资产的逻辑自洽性"
   },
   {
     "id": 290,
@@ -4391,7 +4391,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "人均效能——员工产出与经营规模的匹配性"
   },
   {
     "id": 291,
@@ -4406,7 +4406,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "资金沉淀率——收款后资金停留时间"
   },
   {
     "id": 292,
@@ -4421,7 +4421,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "供应商依赖度——采购集中导致的经营脆弱性"
   },
   {
     "id": 293,
@@ -4436,7 +4436,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "经营活动现金流的正负持续性"
   },
   {
     "id": 294,
@@ -4451,7 +4451,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "三项费用结构与企业特征的匹配度"
   },
   {
     "id": 295,
@@ -4466,7 +4466,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "跨境交易与进出口经营的真实性"
   },
   {
     "id": 296,
@@ -4481,7 +4481,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "收入月度剧烈波动——交替月份收入差距3倍以上"
   },
   {
     "id": 297,
@@ -4496,7 +4496,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "开票收入与入账收入月度严重错配"
   },
   {
     "id": 298,
@@ -4511,7 +4511,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "高频低额供应商——拆分开票嫌疑"
   },
   {
     "id": 299,
@@ -4526,7 +4526,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "供应商交易集中在单月——突击开票"
   },
   {
     "id": 300,
@@ -4541,7 +4541,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "收款来源与开票客户严重不匹配"
   },
   {
     "id": 301,
@@ -4556,7 +4556,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "付款流向与进项发票供应商严重不匹配"
   },
   {
     "id": 302,
@@ -4571,7 +4571,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "人均营收异常——人员规模与业务量不匹配"
   },
   {
     "id": 303,
@@ -4586,7 +4586,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "工资人数与社保参保人数不一致"
   },
   {
     "id": 304,
@@ -4601,7 +4601,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "发票日期在银行付款之后——时间逻辑倒置"
   },
   {
     "id": 305,
@@ -4616,7 +4616,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "进项发票供应商在银行付款中找不到——有票无付款"
   },
   {
     "id": 306,
@@ -4631,7 +4631,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "红冲/作废发票数量异常——可能虚开后销毁证据"
   },
   {
     "id": 307,
@@ -4646,7 +4646,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "盈利与现金流严重背离——账面有利润但银行没钱"
   },
   {
     "id": 308,
@@ -4661,7 +4661,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "交易时间与金额模式异常——周末/整数交易"
   },
   {
     "id": 309,
@@ -4676,7 +4676,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "供应商与客户重叠——互为买卖的关联交易风险"
   },
   {
     "id": 310,
@@ -4691,7 +4691,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "固定资产采购——应相应计提折旧并税前扣除"
   },
   {
     "id": 311,
@@ -4706,7 +4706,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "毛利率严重低于行业基准——成本虚高或收入隐匿"
   },
   {
     "id": 312,
@@ -4721,7 +4721,7 @@
     "evidence": "相关凭证/申报表",
     "dataSource": "涉税数据交叉比对",
     "categoryIcon": "📋",
-    "remark": ""
+    "remark": "人均营收低于行业基准——人员效率或收入数据存疑"
   },
   {
     "id": 313,
