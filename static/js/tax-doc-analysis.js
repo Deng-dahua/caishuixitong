@@ -766,8 +766,8 @@ function renderAuditReport() {
 function renderAnalysisReport() {
   var area = document.getElementById('tda-report-area');
   var toolbarHtml = '<div class="tda-toolbar" style="display:flex;gap:8px;margin-bottom:16px">'
-    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:4px;font-size:12px;cursor:pointer">稽查审核报告</button>'
-    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:2px solid '+S.accent+';background:'+S.accent+';color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">分析视图</button>'
+    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:1px solid #e2e8f0;background:#fff;color:#64748b;border-radius:4px;font-size:12px;cursor:pointer">稽查审核报告</button>'
+    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:2px solid #0f172a;background:#0f172a;color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">分析视图</button>'
     + '</div>';
   area.innerHTML = toolbarHtml + (window._analysisViewHtml || '');
   area.scrollIntoView({ behavior: 'smooth' });
