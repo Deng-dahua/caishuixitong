@@ -10351,10 +10351,22 @@ def _parse_by_content(names, get_sheet, original_name=""):
             fn_lower = original_name.lower()
             if any(k in fn_lower for k in ["进销存", "台账", "明细账", "存货", "库存明细", "收发存"]):
                 title_bonus["inventory"] = 5
-            elif any(k in fn_lower for k in ["销项", "销售发票", "销货"]):
+            elif any(k in fn_lower for k in ["销项", "销售发票", "销货", "开票"]):
                 title_bonus["sales_invoice"] = 4
-            elif any(k in fn_lower for k in ["进项", "采购发票", "购货", "取得发票"]):
+            elif any(k in fn_lower for k in ["进项", "采购发票", "购货", "取得发票", "取票"]):
                 title_bonus["purchase_invoice"] = 4
+            elif any(k in fn_lower for k in ["银行", "流水", "bank"]):
+                title_bonus["bank_statement"] = 4
+            elif any(k in fn_lower for k in ["工资", "薪金", "所得"]):
+                title_bonus["salary"] = 4
+            elif any(k in fn_lower for k in ["社保", "社会保险"]):
+                title_bonus["social_security"] = 4
+            elif any(k in fn_lower for k in ["公积金"]):
+                title_bonus["housing_fund"] = 4
+            elif any(k in fn_lower for k in ["抵扣"]):
+                title_bonus["input_vat_deduction"] = 4
+            elif any(k in fn_lower for k in ["凭证", "记账", "序时"]):
+                title_bonus["voucher"] = 4
             # 单元格内容检测（作为补充）
             if "销项发票" in row0_text or "销售发票" in row0_text:
                 title_bonus["sales_invoice"] = max(title_bonus.get("sales_invoice", 0), 3)
@@ -11443,11 +11455,18 @@ def _parse_salary_sheet(sheet):
         "身份证号": "id_card", "身份证": "id_card", "工号": "emp_id",
         "基本工资": "salary", "应发合计": "gross", "实发合计": "net",
         "实发工资": "net", "应发工资": "gross",
+        "本期收入": "salary", "本期费用": "fee_deduct",
+        "本期免税收入": "tax_free", "本期基本养老保险费": "pension",
+        "本期基本医疗保险费": "medical", "本期失业保险费": "unemploy",
+        "本期住房公积金": "hf_deduct", "年金": "annuity",
+        "企业(职业)年金": "annuity", "本期企业(职业)年金": "annuity",
         "代扣社保": "ss_deduct", "代扣住房公积金": "hf_deduct",
         "住房公积金": "hf_deduct", "代扣个税": "tax",
         "个税": "tax", "个人所得税": "tax",
+        "税款所属期起": "period_start", "税款所属期止": "period_end",
         "实发": "net", "应发": "gross",
         "部门": "dept", "职位": "position",
+        "所得项目": "income_type",
     })
     if not cols: return None
     rows = []
