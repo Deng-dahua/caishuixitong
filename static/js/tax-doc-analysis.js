@@ -230,6 +230,19 @@ function renderTaxDocReport(r) {
   }
 
   var html = '';
+
+  // ═══ 稽查审核报告格式 ═══
+  // 工具栏切换
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px">'
+    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:2px solid '+S.accent+';background:'+S.accent+';color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">稽查审核报告</button>'
+    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:4px;font-size:12px;cursor:pointer">分析视图</button>'
+    + '</div>';
+  
+  // 缓存报告数据
+  window._reportData = r;
+  
+  // 继续构建分析视图HTML（完整的html会在后面累加）
+
   // Data warning
   if (r.low_data_warning) {
     html += '<div style="background:#fffbeb;border-left:3px solid '+S.amber+';padding:14px 18px;border-radius:4px;margin-bottom:16px;font-size:12px;color:#92400e;line-height:1.7">'
@@ -423,7 +436,10 @@ function renderTaxDocReport(r) {
     });
   }
 
-  area.innerHTML = html;
+  // 保存分析视图HTML
+  window._analysisViewHtml = html;
+  // 默认展示稽查报告
+  renderAuditReport();
   area.scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -603,4 +619,136 @@ async function reviewSingleFinding(btn) {
   } finally {
     btn.disabled = false; btn.textContent = '复核此结论';
   }
+}
+
+// ═══════════════════════════════════════
+// 稽查审核报告渲染 —— 税务稽查局执行人员向上级汇报格式
+// ═══════════════════════════════════════
+function renderAuditReport() {
+  var r = window._reportData;
+  if (!r) return;
+  var area = document.getElementById('tda-report-area');
+  var toolbar = area.querySelector('.tda-toolbar');
+  
+  var S = { bg: '#fff', text: '#1e293b', muted: '#64748b', light: '#94a3b8',
+    border: '#e2e8f0', accent: '#0f172a', blue: '#2563eb',
+    red: '#dc2626', amber: '#f59e0b', green: '#059669' };
+  
+  function fmt(v) {
+    if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
+    if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
+    return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
+  }
+  
+  var h = '<div style="padding:40px 0;max-width:780px;margin:0 auto;font-size:13px;line-height:1.9;color:'+S.text+'">';
+  
+  // ── 表头 ──
+  h += '<div style="text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:3px double '+S.accent+'">'
+    + '<div style="font-size:20px;font-weight:700;color:'+S.accent+';letter-spacing:2px;margin-bottom:8px">税务稽查审核报告</div>'
+    + '<div style="font-size:11px;color:'+S.muted+'">编号：TS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-001 | '+new Date().toLocaleString('zh-CN')+'</div>'
+    + '</div>';
+  
+  // ── 基本信息 ──
+  h += '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:24px">'
+    + '<tr><td style="padding:4px 12px;width:100px;color:'+S.muted+';font-weight:600">被查单位</td><td style="padding:4px 12px">（依据上传资料识别）</td></tr>'
+    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">稽查期间</td><td style="padding:4px 12px">'+ (r.summary_text||'').match(/\d{4}年/) + '（以凭证及发票数据覆盖期间为准）</td></tr>'
+    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">稽查范围</td><td style="padding:4px 12px">'+r.files_count+'份资料，涵盖银行流水、进销项发票、记账凭证、工资社保</td></tr>'
+    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">执行标准</td><td style="padding:4px 12px">'+r.rules_used+' 条稽查指令，《税务稽查工作规程》（国税发[2009]157号）</td></tr>'
+    + '</table>';
+  
+  // ── 一、稽查结论 ──
+  var topF = [];
+  r.domain_summary.forEach(function(dr){ if(dr.findings) dr.findings.forEach(function(f){f._d=dr.name;topF.push(f);}); });
+  topF.sort(function(a,b){return(b.score||0)-(a.score||0);});
+  var top3 = topF.filter(function(f){return (f.score||0)>=7;}).slice(0,3);
+  
+  var sevLabel = top3.length>=3?'存在严重涉税违法嫌疑':(top3.length>=2?'存在多项涉税疑点':'基本合规');
+  var sevColor = top3.length>=3?S.red:(top3.length>=2?S.amber:S.green);
+  
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">一、稽查结论</div>'
+    + '<div style="font-size:13px;line-height:2;padding:16px;background:#f8fafc;border-left:3px solid '+sevColor+'">'
+    + '经对'+r.files_count+'份涉税资料进行系统性审查，依据'+r.rules_used+'条稽查指令，共发现<span style="color:'+sevColor+';font-weight:700"> '+r.total_risks+' 项涉税疑点</span>（高风险'+r.high_risk+'项，中风险'+r.mid_risk+'项）。综合评估结论：<span style="color:'+sevColor+';font-weight:700">'+sevLabel+'</span>。';
+  if (top3.length) {
+    h += '<br><br>三项优先度最高的问题：<br>';
+    top3.forEach(function(f,i){
+      h += (i+1)+'. <b>'+esc(f.type||'')+'</b>：'+esc((f.detail||'').substring(0,100))+'<br>';
+    });
+  }
+  h += '</div></div>';
+  
+  // ── 二、主要违法事实 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、主要违法事实</div>';
+  
+  var factNum = 1;
+  topF.forEach(function(f){
+    if ((f.score||0) < 5) return;
+    h += '<div style="margin-bottom:14px;page-break-inside:avoid">'
+      + '<div style="font-weight:600;color:'+S.text+';margin-bottom:4px"><span style="color:'+S.accent+'">（'+(factNum++)+'）</span> '+esc(f.type||'')+' <span style="font-size:10px;color:'+(f.level==='高风险'?S.red:f.level==='中风险'?S.amber:S.green)+'">['+(f.level||'?')+']</span></div>'
+      + '<div style="padding:4px 0;color:'+S.muted+'">'+esc(f.detail||'')+'</div>';
+    if (f.description) h += '<div style="background:#f8fafc;padding:8px 12px;border-radius:4px;margin:6px 0;font-size:11px;color:'+S.text+'">'+esc(f.description)+'</div>';
+    if (f.tax_impact) h += '<div style="font-size:11px;color:'+S.red+'">税务后果：'+esc(f.tax_impact)+'</div>';
+    if (f.policy_ref) h += '<div style="font-size:10px;color:'+S.muted+'">依据：'+esc(f.policy_ref)+'</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  
+  // ── 三、税款估算 ──
+  var estVAT = 0, estCIT = 0;
+  // Rough estimate from findings that mention amounts
+  topF.forEach(function(f){
+    var d = (f.detail||'') + (f.description||'');
+    var m = d.match(/(\d[\d,.]*)\s*[万元]/g);
+  });
+  
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">三、拟处理建议</div>';
+  
+  h += '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:16px">'
+    + '<tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">处理事项</th><th style="padding:8px 12px;text-align:left;border:1px solid '+S.border+'">法律依据</th><th style="padding:8px 12px;text-align:right;border:1px solid '+S.border+'">处理建议</th></tr>';
+  
+  var actions = [];
+  topF.forEach(function(f){
+    var sug = (f.suggestion||'').split('\n')[0];
+    if (sug) actions.push({item: esc(f.type||''), basis: esc((f.policy_ref||'').substring(0,40)), act: esc(sug.substring(0,60))});
+  });
+  actions = actions.slice(0, 5);
+  actions.forEach(function(a){
+    h += '<tr><td style="padding:6px 12px;border:1px solid '+S.border+'">'+a.item+'</td><td style="padding:6px 12px;border:1px solid '+S.border+';font-size:10px;color:'+S.muted+'">'+a.basis+'</td><td style="padding:6px 12px;border:1px solid '+S.border+';text-align:right">'+a.act+'</td></tr>';
+  });
+  h += '</table></div>';
+  
+  // ── 四、附件 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、附件清单</div>'
+    + '<div style="font-size:11px;color:'+S.muted+'">';
+  r.file_results.forEach(function(fr,i){
+    h += (i+1)+'. '+esc(fr.file)+' （'+esc((fr.type||'?').replace(/_/g,' '))+'）<br>';
+  });
+  h += '</div></div>';
+  
+  // ── 签章 ──
+  h += '<div style="text-align:right;margin-top:40px;padding-top:20px;border-top:1px solid '+S.border+'">'
+    + '<div style="font-size:11px;color:'+S.muted+'">稽查执行人：___________</div>'
+    + '<div style="font-size:11px;color:'+S.muted+';margin-top:8px">审理意见：___________</div>'
+    + '<div style="font-size:11px;color:'+S.muted+';margin-top:16px">'+new Date().toLocaleString('zh-CN')+'</div>'
+    + '</div>';
+  
+  h += '</div>';
+  
+  // Show toolbar + report
+  var toolbarHtml = '<div class="tda-toolbar" style="display:flex;gap:8px;margin-bottom:16px">'
+    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:2px solid '+S.accent+';background:'+S.accent+';color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">稽查审核报告</button>'
+    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:4px;font-size:12px;cursor:pointer">分析视图</button>'
+    + '</div>';
+  
+  area.innerHTML = toolbarHtml + h;
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderAnalysisReport() {
+  var area = document.getElementById('tda-report-area');
+  var toolbarHtml = '<div class="tda-toolbar" style="display:flex;gap:8px;margin-bottom:16px">'
+    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:4px;font-size:12px;cursor:pointer">稽查审核报告</button>'
+    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:2px solid '+S.accent+';background:'+S.accent+';color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">分析视图</button>'
+    + '</div>';
+  area.innerHTML = toolbarHtml + (window._analysisViewHtml || '');
+  area.scrollIntoView({ behavior: 'smooth' });
 }
