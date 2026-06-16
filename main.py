@@ -13912,6 +13912,18 @@ def _run_analyze(company_id, db):
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
                     elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
                     elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
+                    elif ftype == "invoice":  # 通用发票类型，按品名/对方名称判断方向
+                        for r in parsed["rows"]:
+                            seller = str(r.get("seller", "")).strip()
+                            buyer = str(r.get("buyer", "")).strip()
+                            goods = str(r.get("goods", "")).strip()
+                            # 简单判断：有销方名=进项，有购方名=销项
+                            if seller > buyer:
+                                r["direction"] = "进项"
+                            else:
+                                r["direction"] = "销项"
+                            invoices.append(r)
+                        fr["actions"].append(f"提取{n}条发票")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
@@ -14095,6 +14107,10 @@ def _run_analyze(company_id, db):
             # 运行规则引擎
             try:
                 from tax_risk import get_tax_risk_report
+                from datetime import date as date_cls2
+                _now = date_cls2.today()
+                period_start = f"{_now.year - 2}-01-01"
+                period_end = f"{_now.year}-12-31"
                 engine_results = get_tax_risk_report(db=db, company_id=company_id,
                     period_from=period_start, period_to=period_end)
                 pipeline_log.append(f"{_real_rule_count}条规则引擎: 发现{len(engine_results)}条风险")
