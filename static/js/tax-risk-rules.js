@@ -59,56 +59,45 @@ var RISK_LEVEL_ICONS = {
 //  二、主渲染函数
 // ══════════════════════════════════════════════════════════════
 function renderTaxRiskRules(container) {
+  if (!container) return;
   window.currentModule = '涉税风险稽查指令';
 
   container.innerHTML = ''
     + '<div class="risk-rules-container">'
-    // 顶部标题栏
-    + '<div class="risk-rules-header">'
-    + '<div class="risk-rules-title">'
+    + '<div class="risk-rules-header"><div class="risk-rules-title"></div><div class="risk-rules-toolbar"></div></div>'
+    + '<div style="display:flex;gap:8px;margin:12px 0;padding:0 8px">'
+    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">分类显示</button>'
+    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">线索链</button>'
+    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">证据链</button>'
     + '</div>'
-    + '<div class="risk-rules-toolbar">'
-    + '</div>'
-    + '</div>'
-    // 主体：规则显示区（全宽）
-    + '<div class="risk-rules-body">'
-    // 右侧：规则显示区
+    + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
-    + '<div class="display-panel-header">'
-    + '<h3>规则显示区 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（当前 <strong id="risk-rules-header-count">0</strong> 条）</span></h3>'
+    + '<div class="display-panel-header"><h3>分类显示区 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（当前 <strong id="risk-rules-header-count">0</strong> 条）</span></h3>'
     + '<div class="display-panel-toolbar">'
-    + '<input type="text" class="search-input" id="risk-rules-search" placeholder="🔍 搜索规则..." oninput="filterTaxRiskRules()">'
-    + '<select class="filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()">'
-    + '<option value="">全部分类</option>'
-    + '</select>'
-    + '<select class="filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()">'
-    + '<option value="">全部等级</option>'
-    + '<option value="高风险">🔴 高风险</option>'
-    + '<option value="中风险">🟡 中风险</option>'
-    + '<option value="低风险">🔵 低风险</option>'
-    + '<option value="良好">🟢 良好</option>'
-    + '</select>'
-    + '</div>'
-    + '</div>'
-    + '<div class="display-panel-body" id="risk-rules-list">'
-    + '<div class="risk-rules-empty">暂无规则数据，请在左侧输入区添加规则，或点击"加载默认规则"</div>'
-    + '</div>'
-    + '<div class="display-panel-footer">'
-    + '<span id="risk-rules-stats">共 0 条规则</span>'
-    + '</div>'
-    + '</div>'
-    + '</div>'
-    // 稽查线索链
-    + '<div class="risk-rules-body" style="margin-top:16px">'
+    + '<input type="text" class="search-input" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()">'
+    + '<select class="filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">全部分类</option></select>'
+    + '<select class="filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>'
+    + '</div></div>'
+    + '<div class="display-panel-body" id="risk-rules-list"></div>'
+    + '<div class="risk-rules-empty">暂无规则数据</div>'
+    + '<div class="display-panel-footer"><span id="risk-rules-stats">共 0 条规则</span></div>'
+    + '</div></div>'
+    + '<div id="rr-panel-chain" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>稽查线索链</h3></div>'
+    + '<div class="display-panel-header"><h3>线索链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（稽查调查路径）</span></h3></div>'
     + '<div class="display-panel-body" id="audit-chains-body">加载中...</div>'
+    + '</div></div>'
+    + '<div id="rr-panel-evidence" class="risk-rules-body" style="display:none">'
+    + '<div class="risk-rules-display">'
+    + '<div class="display-panel-header"><h3>证据链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（含规则ID+处罚依据）</span></h3></div>'
+    + '<div class="display-panel-body" id="audit-evidence-body">加载中...</div>'
     + '</div></div>'
     + '</div>';
 
-  // 加载规则
   loadTaxRiskRules();
+  loadAuditChains();
 }
+
 
 // ══════════════════════════════════════════════════════════════
 //  三、加载规则（每次从服务器加载最新规则文件）
@@ -1261,4 +1250,80 @@ async function loadAuditChains() {
 }
 
 // 在模块初始化时加载
+if (typeof loadAuditChains === 'function') loadAuditChains();
+
+// ==================== Tab ====================
+var _currentTab = 0;
+var _tabs = ['cat','chain','evidence'];
+function switchTab(n) {
+  _currentTab = n;
+  document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
+  document.getElementById('rr-panel-cat').style.display = (n===0?'block':'none');
+  document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
+  document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
+  if (n===1) loadAuditChains();
+  if (n===2) loadAuditEvidence();
+}
+
+async function loadAuditChains() {
+  try {
+    var resp = await fetch('/api/tax-risk-rules/chains');
+    var data = await resp.json();
+    var body = document.getElementById('audit-chains-body');
+    if (!body || !data.chains || !data.chains.length) {
+      if (body) body.innerHTML = '<div style="text-align:center;padding:40px">暂无线索链</div>';
+      return;
+    }
+    var html = '';
+    data.chains.forEach(function(chain) {
+      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px">'
+        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px">' + chain.name + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '步</span></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      chain.investigation_path.forEach(function(s, idx) {
+        var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
+        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">'+s.step+'</span>';
+        if (idx < chain.investigation_path.length - 1) html += '<span style="color:#94a3b8;font-weight:700">-</span>';
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  } catch(e) { console.error(e); }
+}
+
+async function loadAuditEvidence() {
+  try {
+    var resp = await fetch('/api/tax-risk-rules/chains');
+    var data = await resp.json();
+    var body = document.getElementById('audit-evidence-body');
+    if (!body || !data.chains || !data.chains.length) {
+      if (body) body.innerHTML = '<div style="text-align:center;padding:40px">暂无证据链</div>';
+      return;
+    }
+    var html = '';
+    data.chains.forEach(function(chain) {
+      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:16px;margin-bottom:12px;background:#fff">'
+        + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">' + chain.name + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '步 ' + chain.high_risk_steps + '高</span></div>';
+      chain.investigation_path.forEach(function(s) {
+        var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
+        html += '<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #f8fafc">'
+          + '<span style="font-size:10px;color:'+dot+';font-weight:700;min-width:22px;text-align:right">R'+(s.rule_id||'')+'</span>'
+          + '<span style="width:4px;height:4px;border-radius:50%;background:'+dot+';margin-top:6px;flex-shrink:0"></span>'
+          + '<div style="flex:1;font-size:11px;color:#475569;line-height:1.6">'
+          + '<b style="color:#1e293b;font-size:12px">'+(s.rule_item||s.step)+'</b> '
+          + '<span style="font-size:10px;color:'+dot+'">['+(s.level||'?')+']</span>'
+          + '<br>'+(s.detail||'').substring(0,150)
+          + '<div style="margin-top:2px;font-size:9px;color:#94a3b8">'+(s.policy_ref||'').substring(0,80)+'</div>'
+          + '<div style="margin-top:2px;font-size:9px;color:#dc2626">'+(s.tax_impact||'').substring(0,80)+'</div>'
+          + '</div></div>';
+      });
+      html += '</div>';
+    });
+    body.innerHTML = html;
+  } catch(e) { console.error(e); }
+}
+
+var tabStyle = document.createElement('style');
+tabStyle.textContent = '.rrtab{padding:6px 16px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-600);border-radius:4px;font-size:12px;cursor:pointer;font-weight:500}.rrtab.active{background:#0f172a;color:#fff;border-color:#0f172a}';
+document.head.appendChild(tabStyle);
+
 if (typeof loadAuditChains === 'function') loadAuditChains();
