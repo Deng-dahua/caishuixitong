@@ -10185,7 +10185,7 @@ def _parse_bank_sheet(sheet):
     if not header:
         header = _get_row_values(sheet, 0)
     
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "交易日期": "date", "记账日期": "bk_date", "日期": "date",
         "对方户名": "counterparty", "对方名称": "counterparty", "对方": "counterparty", "户名": "counterparty",
         "对方账号": "account", "对方行名": "bank",
@@ -10238,7 +10238,7 @@ def _parse_bank_sheet(sheet):
 
 def _parse_housing_fund_sheet(sheet, header):
     """解析住房公积金明细"""
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "人员": "name", "姓名": "name", "证件号码": "id_card",
         "缴存基数": "base", "缴存比例": "ratio",
         "单位缴存额": "company_pay", "个人缴存额": "personal_pay",
@@ -10265,7 +10265,7 @@ def _parse_housing_fund_sheet(sheet, header):
 
 def _parse_contract_sheet(sheet, header):
     """解析合同清单"""
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "合同编号": "contract_no", "合同名称": "name", "合同类型": "contract_type",
         "甲方": "party_a", "乙方": "party_b", "对方单位": "party_b",
         "合同金额": "amount", "已付金额": "paid_amount", "未付金额": "unpaid_amount",
@@ -10717,25 +10717,86 @@ def _get_row_values(sheet, row_idx):
     except:
         return []
 
-def _find_cols(header, mapping):
-    """列名映射：精确匹配优先，否则选最短（最精确）的标题。
-    避免"单位缴存"误匹配"单位缴存比例"而非"单位缴存额"。
+# ═══════════════ 语义化列检测 ═══════════════
+# 核心哲学：不依赖精确列名匹配，而是理解列的「语义角色」
+# 人看到"本期收入"就知道是金额列，看到"销售方纳税人名称"就知道是公司名
+# 这些语义角色通过大规模同义词库实现跨企业格式的通用识别
+
+SEMANTIC_ROLES = {
+    "person_name": ["姓名", "员工", "人员", "名称", "客户", "供应商", "户名", "对方", "销方名称", "购方名称",
+                    "销售方", "购买方", "销售方纳税人名称", "销售方名称", "购买方名称", "纳税人名称", "name"],
+    "id_number": ["身份证", "证件号码", "税号", "统一社会信用代码", "纳税人识别号", "USCC", "信用代码",
+                  "身份证号", "身份证号码", "id", "ID"],
+    "date_col": ["日期", "时间", "开票日期", "交易日期", "申请日期", "所属期", "税款所属期", "缴存月份",
+                 "date", "时间", "年月"],
+    "amount_col": ["金额", "收入", "支出", "工资", "费", "税", "缴", "扣", "额", "额合计",
+                   "有效抵扣税额", "本期收入", "应发", "实发", "缴存额", "本期基本养老", "本期基本医疗",
+                   "本期失业", "本期住房", "借方金额", "贷方金额", "价税合计", "不含税金额",
+                   "amount", "salary", "fee", "tax", "debit", "credit", "net", "gross"],
+    "counterparty": ["对方", "销方", "购方", "客户", "供应商", "购买方", "销售方",
+                     "对方户名", "对方账号", "对方行名", "交易对手", "counterparty"],
+    "invoice_number": ["发票号码", "发票代码", "数电发票号码", "发票编号", "invoice", "inv_no"],
+    "bank_account": ["账号", "银行账号", "开户行", "银行", "account", "bank"],
+    "employee_id": ["工号", "员工编号", "职工编号", "employee_id", "emp_id", "编号"],
+    "department": ["部门", "科室", "车间", "dept", "department"],
+    "position": ["职位", "岗位", "职务", "position", "title"],
+}
+
+def _find_cols_semantic(header, mapping):
+    """增强版列名映射：精确匹配优先，语义角色匹配兜底
+    
+    - 第一轮：精确/子串匹配（原 _find_cols 逻辑）
+    - 第二轮：语义角色匹配 —— 找不到精确匹配的字段，尝试用语义角色查找
     """
     cols = {}
+    # Round 1: 精确匹配
     for keyword, field in mapping.items():
-        best_i = None
-        best_len = 999
+        best_i, best_len = None, 999
         for i, h in enumerate(header):
             hs = str(h).strip()
             if keyword in hs:
-                if hs == keyword:          # 精确匹配直接锁定
-                    best_i = i
-                    break
-                if len(hs) < best_len:     # 否则选最短标题
-                    best_len = len(hs)
-                    best_i = i
+                if hs == keyword:
+                    best_i = i; break
+                if len(hs) < best_len:
+                    best_len = len(hs); best_i = i
         if best_i is not None:
             cols[field] = best_i
+    
+    # Round 2: 语义角色兜底 —— 精确匹配没命中的字段
+    missing_fields = [f for f in set(mapping.values()) if f not in cols]
+    for field in missing_fields:
+        # 找这个 field 对应的语义角色
+        role = None
+        for rname, synonyms in SEMANTIC_ROLES.items():
+            # 检查 field 或它的关键词是否在语义角色中
+            if field in synonyms or any(kw in synonyms for kw, f in mapping.items() if f == field and kw in " ".join(header)):
+                if any(field in syn or syn in field for syn in synonyms):
+                    role = rname
+                    break
+        if not role:
+            # 模糊匹配：field 名本身可能暗示语义
+            for rname, synonyms in SEMANTIC_ROLES.items():
+                if any(syn in field or field in syn for syn in synonyms):
+                    role = rname
+                    break
+        
+        if role:
+            synonyms = SEMANTIC_ROLES[role]
+            best_i, best_score = None, 0
+            for i, h in enumerate(header):
+                if i in cols.values(): continue  # 已被占用的列
+                hs = str(h).strip()
+                score = 0
+                for syn in synonyms:
+                    if syn in hs:
+                        score += len(syn) / len(hs) * 10  # 匹配越精准分越高
+                        if hs == syn: score += 5  # 精确匹配加分
+                if score > best_score:
+                    best_score = score
+                    best_i = i
+            if best_i is not None and best_score > 3:
+                cols[field] = best_i
+    
     return cols
 
 # ═══════════════ 纯内容结构分析层 ═══════════════
@@ -11413,7 +11474,7 @@ def _parse_by_structure_only(sheet):
 
 def _parse_invoice_sheet(sheet, direction):
     header = _get_row_values(sheet, 1)
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "发票类型": "inv_type", "发票号码": "inv_no", "购方名称": "buyer", "购方税号": "buyer_tax",
         "销方名称": "seller", "销方税号": "seller_tax", "开票项目": "goods",
         "金额": "amount", "税额": "tax", "价税合计": "total", "业务类型": "biz_type",
@@ -11449,7 +11510,7 @@ def _parse_salary_sheet(sheet):
     text_count = sum(1 for v in header if isinstance(v, str) and len(str(v)) >= 2)
     if text_count < 2:
         header = _get_row_values(sheet, 2)
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "姓名": "name", "员工": "name", "姓名/员工": "name",
         "证件号码": "id_card", "工资": "salary",
         "身份证号": "id_card", "身份证": "id_card", "工号": "emp_id",
@@ -11487,7 +11548,7 @@ def _parse_salary_sheet(sheet):
     return {"type": "salary", "rows": rows}
 
 def _parse_social_sheet(sheet, header):
-    cols = _find_cols(header, {
+    cols = _find_cols_semantic(header, {
         "人员": "name", "证件号码": "id_card", "缴费工资": "base",
         "姓名": "name", "身份证号": "id_card", "身份证": "id_card",
         "缴费基数": "base", "社保基数": "base", "工资基数": "base",
@@ -11515,7 +11576,7 @@ def _parse_social_sheet(sheet, header):
 
 def _parse_voucher_sheet(sheet):
     header = _get_row_values(sheet, 1)
-    cols = _find_cols(header, {"日期": "date", "凭证字号": "voucher_no", "摘要": "summary",
+    cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no", "摘要": "summary",
         "科目": "account", "借方": "debit", "贷方": "credit"})
     if not cols: return None
     rows = []
@@ -11545,7 +11606,7 @@ def _parse_inventory_sheet(sheet):
             header = h; header_row = r; break
     if not header:
         header = _get_row_values(sheet, 0); header_row = 0
-    cols = _find_cols(header, {"日期": "date", "凭证字号": "voucher_no",
+    cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no",
         "入库": "in_qty", "出库": "out_qty", "存货": "item", "数量": "qty", "金额": "amount"})
     if not cols: return None
     rows = []
