@@ -107,10 +107,16 @@ async function refreshTaxDocList() {
       docs.forEach(function(doc, idx) {
         var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
         var name = doc.original_name || doc.filename || '未知文件';
+        var rowInfo = '';
+        // 如果有分析结果，从 _reportFileRows 获取行数
+        if (window._reportFileRows && window._reportFileRows[name]) {
+          var ri = window._reportFileRows[name];
+          rowInfo = '<span style="color:'+(ri.error?'#dc2626':'#059669')+';font-size:10px;margin-left:6px">' + (ri.rows||'') + '</span>';
+        }
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
           + '<span><span style="color:#94a3b8;font-size:10px;width:24px;display:inline-block;text-align:right;margin-right:4px">' + (idx+1) + '.</span>'
           + '<input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
-          + esc(name) + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
+          + esc(name) + rowInfo + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
           + '<span style="color:var(--gray-400);font-size:11px">' + (doc.uploaded_at || '').substring(0,10) + '</span>'
           + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delTaxDoc(' + doc.id + ')">删除</span>'
           + '</div>';
@@ -240,6 +246,21 @@ function renderTaxDocReport(r) {
   
   // 缓存报告数据
   window._reportData = r;
+  // 从 file_results 提取每个文件的行数
+  window._reportFileRows = {};
+  if (r.file_results) {
+    r.file_results.forEach(function(fr){
+      var rows = '';
+      if (fr.actions && fr.actions.length) {
+        var m = fr.actions[0].match(/(\d+)条/);
+        if (m) rows = m[1] + '条';
+      }
+      if (fr.error) rows = '失败';
+      window._reportFileRows[fr.file] = { rows: rows, error: !!fr.error };
+    });
+  }
+  // 刷新文件列表以显示行数
+  if (typeof refreshTaxDocList === 'function') refreshTaxDocList();
   
   // 继续构建分析视图HTML（完整的html会在后面累加）
 
