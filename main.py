@@ -14589,6 +14589,8 @@ def _run_analyze(company_id, db):
         "tax_return": "纳税申报表", "vat_declaration": "增值税申报表",
         "income_tax_return": "企业所得税申报表",
         "customs_declaration": "海关报关单",
+        "trial_balance": "科目余额表", "input_vat_deduction": "进项抵扣",
+        "archive": "档案文件", "unknown": "未识别文件",
     }
     
     # 根据实际识别到的文件类型统计
