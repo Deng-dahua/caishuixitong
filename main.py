@@ -14209,10 +14209,57 @@ def _run_analyze(company_id, db):
     for doc in docs:
         fname, fpath, ext = doc["original_name"], doc["path"], os.path.splitext(doc["original_name"])[1].lower()
         fr = {"file": fname, "type": "unknown", "actions": []}
+        parsed = None
         try:
             if ext in (".xls", ".xlsx"):
                 parsed = _parse_excel_structured(fpath, ext, fname)
-                if parsed and parsed.get("rows"): _save_to_transfer(company_id, doc["id"], fname, parsed)
+                
+                # ═══ 兜底：数据内容推断 ═══
+                # 当所有解析器失败（unknown或0行），用数据形态反推列角色
+                if (parsed is None or len(parsed.get("rows", [])) == 0):
+                    try:
+                        import xlrd as _xlrd, openpyxl as _opxl
+                        if ext == ".xls":
+                            _wb = _xlrd.open_workbook(fpath)
+                            _s = _wb.sheet_by_index(0)
+                            _nrows = _s.nrows
+                        else:
+                            _wb = _opxl.load_workbook(fpath, data_only=True)
+                            _s = _wb[_wb.sheetnames[0]]
+                            _nrows = _s.max_row
+                        col_roles = _infer_columns_from_data(_s, _nrows)
+                        if col_roles:
+                            # 用推断的列角色尝试提取数据
+                            rows = []
+                            _header = _get_row_values(_s, 0)
+                            for _r in range(1, min(_nrows, 200)):
+                                _vals = {}
+                                for _ci, _roles in col_roles.items():
+                                    try:
+                                        _v = _get_row_values(_s, _r)
+                                        if _ci < len(_v):
+                                            _vals[str(_roles[0])] = str(_v[_ci])
+                                    except: pass
+                                if any(v for v in _vals.values()):
+                                    rows.append(_vals)
+                            if rows:
+                                # 根据列角色推断文件类型
+                                has_amount = any("amount_col" in r for r in col_roles.values())
+                                has_date = any("date_col" in r for r in col_roles.values())
+                                has_name = any("person_name" in r or "counterparty" in r for r in col_roles.values())
+                                inferred_type = "generic_data"
+                                if has_date and has_amount and has_name: inferred_type = "bank_statement"
+                                elif has_date and has_amount: inferred_type = "voucher"
+                                parsed = {"type": inferred_type, "rows": rows}
+                                fr["type"] = inferred_type
+                                fr["actions"].append(f"数据推断:{len(rows)}条")
+                                pipeline_log.append(f"{fname} -> 数据推断兜底({len(rows)}条)")
+                                _save_to_transfer(company_id, doc["id"], fname, parsed)
+                    except Exception as _ie:
+                        fr["actions"].append(f"推断失败: {_ie}")
+                
+                if parsed and parsed.get("rows"): 
+                    _save_to_transfer(company_id, doc["id"], fname, parsed)
                 if parsed:
                     ftype = parsed.get("type", "unknown"); fr["type"] = ftype
                     n = len(parsed.get("rows", []))
@@ -14259,6 +14306,31 @@ def _run_analyze(company_id, db):
     unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
     zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取0条" in str(fr.get("actions", [])))
     failure_count = sum(1 for fr in file_results if any("失败" in a for a in fr.get("actions", [])))
+    
+    # ═══ 涉税相关性评分：标记非涉税文件 ═══
+    non_tax_files = 0
+    for fr in file_results:
+        if not fr.get("error") and fr["type"] not in ("unknown",):
+            doc_obj = next((d for d in docs if d["original_name"] == fr["file"]), None)
+            if doc_obj:
+                try:
+                    import xlrd as _xr, openpyxl as _ox
+                    _ep = doc_obj["path"]
+                    _ext = os.path.splitext(_ep)[1].lower()
+                    if _ext == ".xls":
+                        _wb = _xr.open_workbook(_ep); _s = _wb.sheet_by_index(0); _nr = _s.nrows
+                    elif _ext == ".xlsx":
+                        _wb = _ox.load_workbook(_ep, data_only=True); _s = _wb[_wb.sheetnames[0]]; _nr = _s.max_row
+                    else: continue
+                    _score = _score_tax_relevance(_s, _nr)
+                    fr["tax_relevance"] = _score
+                    if _score < 20:
+                        fr["non_tax"] = True
+                        non_tax_files += 1
+                        fr["actions"].append(f"涉税相关度{_score}分-可能非财税资料")
+                except: pass
+    if non_tax_files > 0:
+        pipeline_log.append(f"涉税相关性: {non_tax_files}个文件相关度低")
     
     if total_parsed == 0:
         fail_reasons = []
