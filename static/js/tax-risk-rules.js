@@ -98,6 +98,12 @@ function renderTaxRiskRules(container) {
     + '</div>'
     + '</div>'
     + '</div>'
+    // 稽查线索链
+    + '<div class="risk-rules-body" style="margin-top:16px">'
+    + '<div class="risk-rules-display">'
+    + '<div class="display-panel-header"><h3>稽查线索链</h3></div>'
+    + '<div class="display-panel-body" id="audit-chains-body">加载中...</div>'
+    + '</div></div>'
     + '</div>';
 
   // 加载规则
@@ -1223,3 +1229,36 @@ function applyParsedRules(rulesStr) {
     toast('已添加 ' + rules.length + ' 条规则', 'success');
   } catch(e) { toast('应用失败: ' + e.message, 'error'); }
 }
+
+// ==================== 稽查线索链 ====================
+async function loadAuditChains() {
+  try {
+    var resp = await fetch('/api/tax-risk-rules/chains');
+    var data = await resp.json();
+    var body = document.getElementById('audit-chains-body');
+    if (!body || !data.chains || !data.chains.length) {
+      if (body) body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">暂无稽查线索链数据</div>';
+      return;
+    }
+    var html = '';
+    data.chains.forEach(function(chain) {
+      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px;background:#fff">'
+        + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:6px">' + chain.name
+        + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '条规则 · ' + chain.description + '</span></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      chain.investigation_steps.forEach(function(step, idx) {
+        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;color:#64748b">' + step + '</span>';
+        if (idx < chain.investigation_steps.length - 1) {
+          html += '<span style="color:#94a3b8;font-weight:700">→</span>';
+        }
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  } catch(e) {
+    console.error('加载稽查线索链失败:', e);
+  }
+}
+
+// 在模块初始化时加载
+if (typeof loadAuditChains === 'function') loadAuditChains();

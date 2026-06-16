@@ -8642,6 +8642,16 @@ async def tax_risk_rules_save_local(request: Request):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+@app.get("/api/tax-risk-rules/chains")
+async def tax_risk_rules_chains():
+    """返回稽查线索链数据"""
+    import json as _json
+    chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
+    if os.path.exists(chain_path):
+        with open(chain_path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    return {"chains": [], "total_chains": 0}
+
 # ==================== 涉税风险规则审计 API ====================
 @app.post("/api/tax-risk-rules/audit")
 async def tax_risk_rules_audit(request: Request):
