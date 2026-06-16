@@ -416,7 +416,7 @@ function renderTaxDocReport(r) {
     html += '<div style="background:#fff;box-shadow:'+CARD_SHADOW+';border-radius:'+CARD_RADIUS+';padding:18px;margin-top:12px">'
       + '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px">📁 文件处理详情</div>';
     r.file_results.forEach(function(fr) {
-      var icon = fr.error ? '✕' : (fr.type === 'bank' ? '●' : (fr.type === 'sales_invoice' ? '●' : (fr.type === 'purchase_invoice' ? '●' : (fr.type === 'voucher' ? '●' : '○'))));
+      var icon = fr.error ? '✕' : '●';
       html += '<div style="padding:5px 0;font-size:11px;border-bottom:1px solid #f8fafc">'
         + '<span style="color:#94a3b8;margin-right:6px">' + icon + '</span>'
         + '<span style="font-weight:500;color:#334155">' + esc(fr.file) + '</span>'
