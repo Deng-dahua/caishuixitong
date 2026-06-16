@@ -14311,16 +14311,44 @@ def _run_analyze(company_id, db):
         "p2_normal": normal[:5],
     }
     
-    # 4. 数据概览
+    # 4. 数据概览 —— 动态生成，基于实际文件识别和解析结果
     data_present = []
     data_missing = []
-    for label, data_list in [("银行流水", bank_txs), ("销项发票", sal_invs), ("进项发票", pur_invs),
-                             ("工资表", salaries), ("社保明细", social_security), ("记账凭证", vouchers),
-                             ("进销存台账", inventory)]:
+    type_label_map = {
+        "bank": "银行流水", "bank_statement": "银行流水", "bank_transaction": "银行流水",
+        "sales_invoice": "销项发票", "purchase_invoice": "进项发票", "invoice": "发票",
+        "salary": "工资表", "social_security": "社保明细", "voucher": "记账凭证",
+        "inventory": "进销存台账", "contract": "合同文件",
+        "housing_fund": "公积金缴存", "financial_statements": "财务报表",
+        "tax_return": "纳税申报表", "vat_declaration": "增值税申报表",
+        "income_tax_return": "企业所得税申报表",
+        "customs_declaration": "海关报关单",
+    }
+    
+    # 方案1: 优先用已解析数据量统计
+    known_labels = {
+        "银行流水": bank_txs, "销项发票": sal_invs, "进项发票": pur_invs,
+        "工资表": salaries, "社保明细": social_security, "记账凭证": vouchers,
+        "进销存台账": inventory,
+    }
+    seen_labels = set()
+    for label, data_list in known_labels.items():
         if data_list:
             data_present.append(f"{label}({len(data_list)}条)")
+            seen_labels.add(label)
         else:
             data_missing.append(label)
+            seen_labels.add(label)
+    
+    # 方案2: 补充文件识别中额外发现的类型（如合同/公积金/海关等）
+    from collections import Counter
+    type_counts = Counter(fr.get("type", "unknown") for fr in file_results if not fr.get("error"))
+    for ftype, count in type_counts.items():
+        label = type_label_map.get(ftype, ftype)
+        if label not in seen_labels:
+            if count > 0:
+                data_present.append(f"{label}({count}份)")
+                seen_labels.add(label)
     comprehensive["data_overview"] = {"present": data_present, "missing": data_missing}
 
     # ── 金税四期式多因子风险评分引擎 ──
