@@ -23,6 +23,7 @@ V11新增2项: 普票浪费可抵扣进项税额（专业服务类供应商开�
 """
 from fastapi import APIRouter, Depends, Query, Body
 from fastapi.responses import FileResponse, Response
+import sys
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, extract, and_, or_
 from datetime import date, timedelta, datetime
@@ -654,10 +655,10 @@ def _validate_rules_on_load(rules: list):
             issues.append(f"[规则] ID={rid} suggestion过短")
     
     if issues:
-        print(f"\n⚠️  规则文件校验发现 {len(issues)} 个问题：")
-        for i in issues:
-            print(f"  {i}")
-        print(f"  文件: {RULES_FILE}\n")
+        print(f"\n规则文件校验发现 {len(issues)} 个问题，详见日志", file=sys.stderr)
+        _ = [print(f"  {i}", file=sys.stderr) for i in issues[:5]]
+        if len(issues) > 5:
+            print(f"  ... 共{len(issues)}个", file=sys.stderr)
     return issues
 
 
