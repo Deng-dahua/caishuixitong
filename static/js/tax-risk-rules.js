@@ -66,10 +66,10 @@ function renderTaxRiskRules(container) {
     + '<div class="risk-rules-container">'
     + '<div class="risk-rules-header"><div class="risk-rules-title"></div><div class="risk-rules-toolbar"></div></div>'
     + '<div style="display:flex;gap:8px;margin:12px 0;padding:0 8px">'
-    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219 <span id="rrtab-count-cat">0</span></button>'
-    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe <span id="rrtab-count-chain">0</span></button>'
-    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe <span id="rrtab-count-evidence">0</span></button>'
-    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790 <span id="rrtab-count-analyze">7</span></button>'
+    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219</button>'
+    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe</button>'
+    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe</button>'
+    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790</button>'
     + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
@@ -85,7 +85,7 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-chain" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09</span></h3>'
+    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09 <strong id="chain-header-count">0</strong>\u6761</span></h3>'
     + '<div class="display-panel-toolbar">'
     + '<input type="text" class="search-input" id="chain-search" placeholder="\u641c\u7d22\u7ebf\u7d22\u94fe..." oninput="filterChains()">'
     + '<select class="filter-select" id="chain-filter-cat" onchange="filterChains()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
@@ -96,7 +96,7 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-evidence" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09</span></h3>'
+    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09 <strong id="evidence-header-count">0</strong>\u6761</span></h3>'
     + '<div class="display-panel-toolbar">'
     + '<input type="text" class="search-input" id="evidence-search" placeholder="\u641c\u7d22\u8bc1\u636e\u94fe..." oninput="filterEvidence()">'
     + '<select class="filter-select" id="evidence-filter-cat" onchange="filterEvidence()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
@@ -107,7 +107,7 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff087\u5b50\u7cfb\u7edf\u5f15\u64ce\u67b6\u6784\uff09</span></h3></div>'
+    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff087\u5b50\u7cfb\u7edf\u5f15\u64ce\u67b6\u6784\uff09 <strong>7</strong>\u9879</span></h3></div>'
     + '<div class="display-panel-body" style="padding:16px;font-size:12px;color:#475569;line-height:1.9">'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
     // 子系统1
@@ -675,8 +675,6 @@ function renderTaxRiskRulesList(filterData) {
   // 更新规则显示区标题中的数量
   var hcEl = document.getElementById('risk-rules-header-count');
   if (hcEl) hcEl.textContent = data.length;
-  var tcEl = document.getElementById('rrtab-count-cat');
-  if (tcEl) tcEl.textContent = data.length;
 
   // 更新加载按钮上的规则数量
   updateLoadButtonText();
@@ -1363,8 +1361,8 @@ function filterChains() {
   }
   var stats = document.getElementById('chain-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u7ebf\u7d22\u94fe';
-  var tc = document.getElementById('rrtab-count-chain');
-  if (tc) tc.textContent = _allChains.length;
+  var hc = document.getElementById('chain-header-count');
+  if (hc) hc.textContent = _allChains.length;
 }
 
 async function loadAuditEvidence() {
@@ -1422,8 +1420,8 @@ function filterEvidence() {
   }
   var stats = document.getElementById('evidence-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
-  var tc = document.getElementById('rrtab-count-evidence');
-  if (tc) tc.textContent = _allChains.length;
+  var hc = document.getElementById('evidence-header-count');
+  if (hc) hc.textContent = _allChains.length;
 }
 
 // ==================== Tab ====================
