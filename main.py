@@ -14142,9 +14142,14 @@ def _run_analyze(company_id, db):
             try:
                 from audit import audit_all
                 audit_result = audit_all(company_id)
+                # audit_all 返回 {"company_id", "results", "errors", "passed", "total_errors"}
+                # 真正的检查项在 results 子 dict 里
+                checks = audit_result.get("results", {})
+                if not isinstance(checks, dict) or len(checks) == 0:
+                    checks = {k: v for k, v in audit_result.items() if k not in ("company_id", "results", "errors", "passed", "total_errors")}
                 audit_findings = []
                 audit_errors = 0
-                for check_name, count in audit_result.items():
+                for check_name, count in checks.items():
                     if check_name == "errors":
                         continue
                     try:
