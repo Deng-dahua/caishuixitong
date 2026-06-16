@@ -247,8 +247,9 @@ function renderTaxDocReport(r) {
     + '</div>'
     + '<div style="display:flex;gap:24px;margin-top:16px;padding-top:16px;border-top:1px solid '+S.border+'">'
     + pill('高风险', r.high_risk, S.red) + pill('中风险', r.mid_risk, S.amber) + pill('低风险', r.low_risk, S.green)
-    + '<div style="flex:1;text-align:center"><div style="font-size:11px;color:'+S.muted+';line-height:1.6;margin-top:4px">'+esc(r.summary_text||'')+'</div></div>'
-    + '</div></div>';
+    + '</div></div>'
+    // 摘要文字单独放到下面
+    + '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:4px;padding:10px 16px;margin-top:12px;font-size:11px;color:'+S.muted+';line-height:1.7">'+esc(r.summary_text||'')+'</div>';
 
   // ═══ 2. Executive Summary ═══
   // Build from top findings: merge duplicates, estimate tax impact, prioritize
