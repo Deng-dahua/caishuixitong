@@ -14269,7 +14269,7 @@ def _run_analyze(company_id, db):
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
         "low_data_warning": low_data_warning,
-        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0))[:200],
+        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0)),
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
