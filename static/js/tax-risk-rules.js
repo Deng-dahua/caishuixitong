@@ -85,13 +85,25 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-chain" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09</span></h3></div>'
+    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09</span></h3>'
+    + '<div class="display-panel-toolbar">'
+    + '<input type="text" class="search-input" id="chain-search" placeholder="\u641c\u7d22\u7ebf\u7d22\u94fe..." oninput="filterChains()">'
+    + '<select class="filter-select" id="chain-filter-cat" onchange="filterChains()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
+    + '<select class="filter-select" id="chain-filter-level" onchange="filterChains()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u542b\u9ad8\u98ce\u9669\u73af\u8282</option></select>'
+    + '</div></div>'
     + '<div class="display-panel-body" id="audit-chains-body">\u52a0\u8f7d\u4e2d...</div>'
+    + '<div class="display-panel-footer"><span id="chain-stats">\u5171 0 \u6761\u7ebf\u7d22\u94fe</span></div>'
     + '</div></div>'
     + '<div id="rr-panel-evidence" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09</span></h3></div>'
+    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09</span></h3>'
+    + '<div class="display-panel-toolbar">'
+    + '<input type="text" class="search-input" id="evidence-search" placeholder="\u641c\u7d22\u8bc1\u636e\u94fe..." oninput="filterEvidence()">'
+    + '<select class="filter-select" id="evidence-filter-cat" onchange="filterEvidence()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
+    + '<select class="filter-select" id="evidence-filter-level" onchange="filterEvidence()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u9ad8\u98ce\u9669</option><option value="\u4e2d\u98ce\u9669">\u4e2d\u98ce\u9669</option></select>'
+    + '</div></div>'
     + '<div class="display-panel-body" id="audit-evidence-body">\u52a0\u8f7d\u4e2d...</div>'
+    + '<div class="display-panel-footer"><span id="evidence-stats">\u5171 0 \u6761\u8bc1\u636e\u94fe</span></div>'
     + '</div></div>'
     + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
@@ -1299,130 +1311,96 @@ function applyParsedRules(rulesStr) {
   } catch(e) { toast('应用失败: ' + e.message, 'error'); }
 }
 
-// ==================== 稽查线索链 ====================
-async function loadAuditChains() {
-  try {
-    var resp = await fetch('/api/tax-risk-rules/chains');
-    var data = await resp.json();
-    var body = document.getElementById('audit-chains-body');
-    if (!body || !data.chains || !data.chains.length) {
-      if (body) body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">暂无稽查线索链数据</div>';
-      return;
-    }
-    var html = '';
-    data.chains.forEach(function(chain) {
-      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px;background:#fff">'
-        + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:6px">' + chain.name
-        + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '条规则 · ' + chain.description + '</span></div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
-      chain.investigation_steps.forEach(function(step, idx) {
-        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;color:#64748b">' + step + '</span>';
-        if (idx < chain.investigation_steps.length - 1) {
-          html += '<span style="color:#94a3b8;font-weight:700">→</span>';
-        }
-      });
-      html += '</div></div>';
-    });
-    body.innerHTML = html;
-  } catch(e) {
-    console.error('加载稽查线索链失败:', e);
-  }
-}
-
-// 在模块初始化时加载
-if (typeof loadAuditChains === 'function') loadAuditChains();
 
 // ==================== Tab ====================
-var _currentTab = 0;
-var _tabs = ['cat','chain','evidence','analyze'];
-function switchTab(n) {
-  _currentTab = n;
-  document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
-  document.getElementById('rr-panel-cat').style.display = (n===0?'block':'none');
-  document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
-  document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
-  document.getElementById('rr-panel-analyze').style.display = (n===3?'block':'none');
-  if (n===1) loadAuditChains();
-  if (n===2) loadAuditEvidence();
-}
-
-// ==================== 一键分析（在规则模块内） ====================
-var _rraAnalyzing = false;
-async function runAnalysisFromRules() {
-  if (_rraAnalyzing) return;
-  _rraAnalyzing = true;
-  var btn = document.getElementById('rra-analyze-btn');
-  var status = document.getElementById('rra-status');
-  btn.disabled = true; btn.textContent = '\u5206\u6790\u4e2d...';
-  status.textContent = '\u6b63\u5728\u8c03\u7528\u4e00\u952e\u5206\u6790\u5f15\u64ce...';
-  try {
-    var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
-    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + cid, { method: 'POST' });
-    var data = await resp.json();
-    if (data.ok && data.report) {
-      status.textContent = '\u5206\u6790\u5b8c\u6210\uff1a' + data.report.total_risks + '\u9879\u98ce\u9669\u53d1\u73b0';
-      // Render via renderAuditReport if available (tax-doc-analysis.js), else fallback
-      if (typeof renderAuditReport === 'function') {
-        window._reportData = data.report;
-        window._auditReportTarget = 'rra-report-body';
-        renderAuditReport();
-        window._auditReportTarget = null;
-      } else {
-        document.getElementById('rra-report-body').innerHTML = '<pre>' + JSON.stringify(data.report, null, 2).substring(0, 5000) + '</pre>';
-      }
-    } else {
-      status.textContent = data.message || '\u5206\u6790\u5931\u8d25';
-      document.getElementById('rra-report-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">' + (data.message || '\u5206\u6790\u5931\u8d25') + '</div>';
-    }
-  } catch(e) {
-    status.textContent = '\u5206\u6790\u5931\u8d25: ' + e.message;
-    document.getElementById('rra-report-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">' + e.message + '</div>';
-  } finally {
-    _rraAnalyzing = false;
-    btn.disabled = false; btn.textContent = '\u6267\u884c\u5206\u6790';
-  }
-}
+// ==================== 线索链 + 证据链（带搜索筛选） ====================
+var _allChains = [];
 
 async function loadAuditChains() {
   try {
     var resp = await fetch('/api/tax-risk-rules/chains');
     var data = await resp.json();
-    var body = document.getElementById('audit-chains-body');
-    if (!body || !data.chains || !data.chains.length) {
-      if (body) body.innerHTML = '<div style="text-align:center;padding:40px">暂无线索链</div>';
-      return;
-    }
-    var html = '';
-    data.chains.forEach(function(chain) {
-      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px">'
-        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px">' + chain.name + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '步</span></div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
-      chain.investigation_path.forEach(function(s, idx) {
-        var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
-        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">'+s.step+'</span>';
-        if (idx < chain.investigation_path.length - 1) html += '<span style="color:#94a3b8;font-weight:700">-</span>';
-      });
-      html += '</div></div>';
-    });
-    body.innerHTML = html;
+    _allChains = data.chains || [];
+    var cats = {};
+    _allChains.forEach(function(c){ var p = c.name.split('-')[0]; if (p) cats[p] = true; });
+    var catKeys = Object.keys(cats).sort();
+    var catSel = document.getElementById('chain-filter-cat');
+    if (catSel) { catSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ catSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
+    var evCatSel = document.getElementById('evidence-filter-cat');
+    if (evCatSel) { evCatSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ evCatSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
+    filterChains();
   } catch(e) { console.error(e); }
 }
 
-async function loadAuditEvidence() {
-  try {
-    var resp = await fetch('/api/tax-risk-rules/chains');
-    var data = await resp.json();
-    var body = document.getElementById('audit-evidence-body');
-    if (!body || !data.chains || !data.chains.length) {
-      if (body) body.innerHTML = '<div style="text-align:center;padding:40px">暂无证据链</div>';
-      return;
-    }
+function filterChains() {
+  var q = (document.getElementById('chain-search')?.value || '').toLowerCase();
+  var cat = document.getElementById('chain-filter-cat')?.value || '';
+  var lvl = document.getElementById('chain-filter-level')?.value || '';
+  var filtered = _allChains.filter(function(c) {
+    if (q && c.name.toLowerCase().indexOf(q) === -1) return false;
+    if (cat && !c.name.startsWith(cat)) return false;
+    if (lvl && !c.high_risk_steps) return false;
+    return true;
+  });
+  var body = document.getElementById('audit-chains-body');
+  if (!body) return;
+  if (!filtered.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">\u65e0\u5339\u914d\u7ebf\u7d22\u94fe</div>'; } else {
     var html = '';
-    data.chains.forEach(function(chain) {
+    filtered.forEach(function(c) {
+      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px">'
+        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+c.name+' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">'+c.steps+'\u6b65</span></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      (c.investigation_path||[]).forEach(function(s, idx) {
+        var dot = s.level==='\u9ad8\u98ce\u9669'?'#dc2626':(s.level==='\u4e2d\u98ce\u9669'?'#f59e0b':'#94a3b8');
+        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">'+s.step+'</span>';
+        if (idx < (c.investigation_path||[]).length - 1) html += '<span style="color:#94a3b8;font-weight:700">-</span>';
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  }
+  var stats = document.getElementById('chain-stats');
+  if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u7ebf\u7d22\u94fe';
+}
+
+async function loadAuditEvidence() {
+  if (!_allChains.length) {
+    try { var resp = await fetch('/api/tax-risk-rules/chains'); var data = await resp.json(); _allChains = data.chains || []; } catch(e) {}
+  }
+  filterEvidence();
+}
+
+function filterEvidence() {
+  var q = (document.getElementById('evidence-search')?.value || '').toLowerCase();
+  var cat = document.getElementById('evidence-filter-cat')?.value || '';
+  var lvl = document.getElementById('evidence-filter-level')?.value || '';
+  var filtered = _allChains.filter(function(c) {
+    var nameMatch = !q || c.name.toLowerCase().indexOf(q) !== -1;
+    var itemMatch = false;
+    if (!nameMatch && q) {
+      (c.investigation_path||[]).forEach(function(s) {
+        if ((s.rule_item||'').toLowerCase().indexOf(q) !== -1) itemMatch = true;
+        if ((s.step||'').toLowerCase().indexOf(q) !== -1) itemMatch = true;
+      });
+    }
+    if (q && !nameMatch && !itemMatch) return false;
+    if (cat && !c.name.startsWith(cat)) return false;
+    if (lvl) {
+      var hasLevel = false;
+      (c.investigation_path||[]).forEach(function(s) { if (s.level === lvl) hasLevel = true; });
+      if (!hasLevel) return false;
+    }
+    return true;
+  });
+  var body = document.getElementById('audit-evidence-body');
+  if (!body) return;
+  if (!filtered.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">\u65e0\u5339\u914d\u8bc1\u636e\u94fe</div>'; } else {
+    var html = '';
+    filtered.forEach(function(c) {
       html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:16px;margin-bottom:12px;background:#fff">'
-        + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">' + chain.name + ' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">' + chain.steps + '步 ' + chain.high_risk_steps + '高</span></div>';
-      chain.investigation_path.forEach(function(s) {
-        var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
+        + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">'+c.name+' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">'+c.steps+'\u6b65 '+c.high_risk_steps+'\u9ad8</span></div>';
+      (c.investigation_path||[]).forEach(function(s) {
+        var dot = s.level==='\u9ad8\u98ce\u9669'?'#dc2626':(s.level==='\u4e2d\u98ce\u9669'?'#f59e0b':'#94a3b8');
         html += '<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #f8fafc">'
           + '<span style="font-size:10px;color:'+dot+';font-weight:700;min-width:22px;text-align:right">R'+(s.rule_id||'')+'</span>'
           + '<span style="width:4px;height:4px;border-radius:50%;background:'+dot+';margin-top:6px;flex-shrink:0"></span>'
@@ -1437,7 +1415,23 @@ async function loadAuditEvidence() {
       html += '</div>';
     });
     body.innerHTML = html;
-  } catch(e) { console.error(e); }
+  }
+  var stats = document.getElementById('evidence-stats');
+  if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
+}
+
+// ==================== Tab ====================
+var _currentTab = 0;
+var _tabs = ['cat','chain','evidence','analyze'];
+function switchTab(n) {
+  _currentTab = n;
+  document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
+  document.getElementById('rr-panel-cat').style.display = (n===0?'block':'none');
+  document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
+  document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
+  document.getElementById('rr-panel-analyze').style.display = (n===3?'block':'none');
+  if (n===1) loadAuditChains();
+  if (n===2) loadAuditEvidence();
 }
 
 var tabStyle = document.createElement('style');
