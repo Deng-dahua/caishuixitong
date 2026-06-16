@@ -13937,7 +13937,7 @@ def _run_analyze(company_id, db):
 
     for doc in docs:
         fname, fpath, ext = doc["original_name"], doc["path"], os.path.splitext(doc["original_name"])[1].lower()
-            fr = {"file": fname, "type": "unknown", "actions": []}
+        fr = {"file": fname, "type": "unknown", "actions": []}
         try:
             if ext in (".xls", ".xlsx"):
                 parsed = _parse_excel_structured(fpath, ext, fname)
