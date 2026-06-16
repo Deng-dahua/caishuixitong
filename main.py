@@ -14377,6 +14377,14 @@ def _run_analyze(company_id, db):
 
     # 综合风险等级：优先使用评分引擎结果
     overall = risk_profile.get("composite_level", "低风险")
+    # 如果评分引擎算低风险但实际有多个高分数高风险发现+跨域证据链，
+    # 则等级应上调为"中风险"——评分引擎只看数量，不看质量
+    high_score_count = sum(1 for f in all_findings if f.get("level") == "高风险" and f.get("score", 0) >= 8)
+    has_cross_chain = any("证据链" in str(f.get("type", "")) for f in all_findings)
+    if overall == "低风险" and (high_score_count >= 3 or has_cross_chain):
+        overall = "中风险"
+    if overall == "中风险" and high >= 10:
+        overall = "高风险"
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 

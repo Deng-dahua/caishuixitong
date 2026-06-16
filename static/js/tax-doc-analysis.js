@@ -250,7 +250,52 @@ function renderTaxDocReport(r) {
     + '<div style="flex:1;text-align:center"><div style="font-size:11px;color:'+S.muted+';line-height:1.6;margin-top:4px">'+esc(r.summary_text||'')+'</div></div>'
     + '</div></div>';
 
-  // ═══ 2. Comprehensive ═══
+  // ═══ 2. Executive Summary ═══
+  // Build from top findings: merge duplicates, estimate tax impact, prioritize
+  if (r.comprehensive && r.domain_summary) {
+    var comp = r.comprehensive;
+    var allF = [];
+    r.domain_summary.forEach(function(dr){ if (dr.findings) dr.findings.forEach(function(f){ f._domain = dr.name; allF.push(f); }); });
+    
+    // Sort by score, pick top risks
+    allF.sort(function(a,b){ return (b.score||0)-(a.score||0); });
+    var top3 = allF.filter(function(f){ return (f.score||0) >= 7; }).slice(0, 3);
+    
+    // Build exec summary
+    html += '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:6px;padding:24px;margin-top:16px">'
+      + '<div style="font-size:11px;color:'+S.light+';letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">执行摘要</div>';
+    
+    if (top3.length) {
+      // Determine actual severity from top findings
+      var sevColor = top3.length >= 3 ? S.red : (top3.length >= 2 ? S.amber : S.green);
+      var sevLabel = top3.length >= 3 ? '严重' : (top3.length >= 2 ? '需关注' : '较轻');
+      
+      html += '<div style="font-size:15px;font-weight:700;color:'+S.accent+';margin-bottom:4px;line-height:1.6">'
+        + '经分析发现 <span style="color:'+sevColor+'">'+top3.length+' 项优先处理问题</span>，风险评估等级为 <span style="color:'+sevColor+'">'+sevLabel+'</span></div>'
+        + '<div style="font-size:11px;color:'+S.muted+';margin-bottom:16px">基于 '+r.total_risks+' 项风险发现、'+r.rules_used+' 条稽查指令、'+r.files_count+' 份文件分析</div>';
+      
+      top3.forEach(function(f, i){
+        html += '<div style="display:flex;gap:12px;align-items:baseline;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid '+S.border+'">'
+          + '<span style="font-size:20px;font-weight:800;color:'+sevColor+';min-width:24px">'+(i+1)+'</span>'
+          + '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:'+S.accent+';margin-bottom:2px">'+esc(f.type||'')+'</div>'
+          + '<div style="font-size:10px;color:'+S.muted+';line-height:1.5">'+esc((f.detail||'').substring(0, 150))+'</div></div>'
+          + '<span style="font-size:10px;color:#fff;background:'+sevColor+';padding:2px 8px;border-radius:3px;white-space:nowrap;align-self:flex-start">'+(f.score||0)+'分</span></div>';
+      });
+      
+      // Immediate actions
+      html += '<div style="background:#fff;border:1px solid '+S.border+';border-radius:4px;padding:14px;margin-top:12px">'
+        + '<div style="font-size:11px;font-weight:600;color:'+S.accent+';margin-bottom:8px">今日可执行</div>';
+      top3.forEach(function(f){
+        var sug = (f.suggestion||'').substring(0, 120);
+        if (sug) html += '<div style="display:flex;gap:8px;margin-bottom:4px;font-size:10px;color:'+S.muted+'">'
+          + '<span style="color:'+S.green+'">✔</span><span>'+esc(sug)+'</span></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // ═══ 3. Comprehensive ═══
   if (r.comprehensive) {
     var comp = r.comprehensive;
     var present = comp.data_overview.present || [];
