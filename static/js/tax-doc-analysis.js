@@ -262,7 +262,10 @@ function renderTaxDocReport(r) {
   // 刷新文件列表以显示行数
   if (typeof refreshTaxDocList === 'function') refreshTaxDocList();
   
-  // 继续构建分析视图HTML（完整的html会在后面累加）
+  // 直接渲染稽查报告，跳过分析视图
+  renderAuditReport();
+  area.scrollIntoView({ behavior: 'smooth' });
+  return;  // 跳过后续分析视图HTML构建
 
   // Data warning
   if (r.low_data_warning) {
@@ -915,13 +918,8 @@ function renderAuditReport() {
   
   h += '</div>';
   
-  // Show toolbar + report
-  var toolbarHtml = '<div class="tda-toolbar" style="display:flex;gap:8px;margin-bottom:16px">'
-    + '<button onclick="renderAuditReport()" style="padding:6px 16px;border:2px solid '+S.accent+';background:'+S.accent+';color:#fff;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">稽查审核报告</button>'
-    + '<button onclick="renderAnalysisReport()" style="padding:6px 16px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:4px;font-size:12px;cursor:pointer">分析视图</button>'
-    + '</div>';
-  
-  area.innerHTML = toolbarHtml + h;
+  // Render directly without toolbar
+  area.innerHTML = h;
   area.scrollIntoView({ behavior: 'smooth' });
 }
 
