@@ -455,7 +455,7 @@ function renderTaxDocReport(r) {
           + '<div style="color:#475569;margin-bottom:6px">' + esc(f.detail || '') + '</div>'
           + '<div class="finding-review-result" id="review-result-' + (f._idx || 0) + '" style="display:none;margin:8px 0"></div>';
         if (f.description) {
-          html += '<div style="background:' + cfBg + ';border-radius:6px;padding:10px 14px;margin-bottom:6px">'
+          html += '<div style="background:#f8fafc;border-radius:6px;padding:10px 14px;margin-bottom:6px">'
             + '<div style="font-weight:600;font-size:12px;color:' + cfColor + ';margin-bottom:4px">📋 风险解释</div>'
             + '<div style="font-size:12px;color:var(--gray-700)">' + esc(f.description) + '</div></div>';
         }
