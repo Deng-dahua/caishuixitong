@@ -9449,15 +9449,11 @@ def _init_tax_docs_from_disk():
     _TAX_DOC_SCANNED = True
     if os.path.exists(UPLOAD_DIR):
         for fname in os.listdir(UPLOAD_DIR):
-            parts = fname.split("_")
+            parts = fname.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
             if len(parts) < 3: continue
             try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
             except: continue
-            if "__" in fname:
-                orig_part = fname.rsplit("__", 1)[1]
-                orig_name = orig_part.rsplit(".", 1)[0] if "." in orig_part else orig_part
-            else:
-                orig_name = fname
+            orig_name = parts[2]  # 第三个部分开始是原始文件名
             fpath = os.path.join(UPLOAD_DIR, fname)
             _tax_risk_docs.append({
                 "id": f_doc_id, "filename": fname, "original_name": orig_name,
@@ -9866,11 +9862,8 @@ async def upload_tax_risk_docs(
 
         _tax_doc_counter[0] += 1
         doc_id = _tax_doc_counter[0]
-        # 保留原始文件名用于后续识别（文件名含进销存/销项/进项等关键方向词）
-        orig_base = f.filename.rsplit(".", 1)[0] if "." in (f.filename or "") else (f.filename or "doc")
-        orig_base = orig_base[:50]  # 截断过长的原始文件名
-        ext = os.path.splitext(f.filename or "doc")[1] or ".pdf"
-        safe_name = f"{company_id}_{doc_id}_{int(datetime.now().timestamp())}__{orig_base}{ext}"
+        # 直接用原始文件名保存，不重命名
+        safe_name = f"{company_id}_{doc_id}_{f.filename}"
         filepath = os.path.join(UPLOAD_DIR, safe_name)
         with open(filepath, "wb") as fw:
             fw.write(content)
