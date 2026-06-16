@@ -716,8 +716,28 @@ function renderAuditReport() {
   });
   h += '</table></div>';
   
-  // ── 四、附件 ──
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、附件清单</div>'
+  // ── 四、整改建议 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">四、整改建议</div>';
+  
+  var fixNum = 1;
+  topF.forEach(function(f){
+    if ((f.score||0) < 6 || !f.suggestion) return;
+    h += '<div style="margin-bottom:12px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:4px">'+(fixNum++)+'. '+esc(f.type||'')+'</div>'
+      + '<div style="font-size:11px;color:'+S.muted+';padding-left:16px;border-left:2px solid '+S.green+'">'+esc(f.suggestion||'')+'</div></div>';
+  });
+  
+  // 补充通用整改要求
+  h += '<div style="margin-top:16px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;font-size:11px;color:#166534;line-height:1.8">'
+    + '<div style="font-weight:600;margin-bottom:4px">稽查整改通用要求</div>'
+    + '1. 上述整改事项应于收到本报告后30日内完成，整改结果书面报告至主管税务机关。<br>'
+    + '2. 涉及补缴税款的，应在整改期内主动申报补缴，可依法申请从轻或减轻处罚。<br>'
+    + '3. 整改过程中发现的账务错误应同步调整会计账簿和财务报表。<br>'
+    + '4. 建立完善的内控制度，防止同类问题再次发生。<br>'
+    + '5. 整改材料包括但不限于：补缴税款凭证、调整后账务记录、补充合同及其他证明文件。</div>'
+    + '</div>';
+  
+  // ── 五、附件 ──
+  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">五、附件清单</div>'
     + '<div style="font-size:11px;color:'+S.muted+'">';
   r.file_results.forEach(function(fr,i){
     h += (i+1)+'. '+esc(fr.file)+' （'+esc((fr.type||'?').replace(/_/g,' '))+'）<br>';
