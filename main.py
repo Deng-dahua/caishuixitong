@@ -9441,6 +9441,36 @@ def _clear_transfer(company_id=None):
 _tax_risk_docs = []
 _tax_doc_counter = [0]
 
+# 启动时扫描磁盘上已有文件，初始化文件列表
+_TAX_DOC_SCANNED = False
+def _init_tax_docs_from_disk():
+    global _TAX_DOC_SCANNED, _tax_risk_docs, _tax_doc_counter
+    if _TAX_DOC_SCANNED: return
+    _TAX_DOC_SCANNED = True
+    if os.path.exists(UPLOAD_DIR):
+        for fname in os.listdir(UPLOAD_DIR):
+            parts = fname.split("_")
+            if len(parts) < 3: continue
+            try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
+            except: continue
+            if "__" in fname:
+                orig_part = fname.rsplit("__", 1)[1]
+                orig_name = orig_part.rsplit(".", 1)[0] if "." in orig_part else orig_part
+            else:
+                orig_name = fname
+            fpath = os.path.join(UPLOAD_DIR, fname)
+            _tax_risk_docs.append({
+                "id": f_doc_id, "filename": fname, "original_name": orig_name,
+                "path": fpath, "size": os.path.getsize(fpath),
+                "uploaded_at": datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(),
+                "company_id": f_cid
+            })
+            if f_doc_id > _tax_doc_counter[0]:
+                _tax_doc_counter[0] = f_doc_id
+
+# 初始化：在模块加载时扫描磁盘
+_init_tax_docs_from_disk()
+
 
 def _recover_tax_risk_docs():
     """启动时从磁盘恢复资料列表"""
@@ -14157,28 +14187,9 @@ def _run_analyze(company_id, db):
     from collections import defaultdict
 
     global _tax_risk_docs, _tax_doc_counter
-    if os.path.exists(UPLOAD_DIR):
-        for fname in os.listdir(UPLOAD_DIR):
-            # 新格式: {cid}_{doc_id}_{timestamp}__{original_base}{ext} 或旧格式无__
-            parts = fname.split("_")
-            if len(parts) < 3: continue
-            try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
-            except: continue
-            if f_cid != company_id: continue
-            if any(d["id"] == f_doc_id for d in _tax_risk_docs): continue
-            fpath = os.path.join(UPLOAD_DIR, fname)
-            # 提取原始文件名
-            if "__" in fname:
-                orig_part = fname.rsplit("__", 1)[1]
-                # 去掉扩展名
-                orig_name = orig_part.rsplit(".", 1)[0] if "." in orig_part else orig_part
-            else:
-                orig_name = fname
-            _tax_risk_docs.append({"id": f_doc_id, "filename": fname, "original_name": orig_name,
-                "path": fpath, "size": os.path.getsize(fpath),
-                "uploaded_at": datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(), "company_id": company_id})
-            if f_doc_id > _tax_doc_counter[0]: _tax_doc_counter[0] = f_doc_id
-
+    # 确保启动时已加载磁盘文件（幂等调用）
+    _init_tax_docs_from_disk()
+    
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
     if not docs: return {"ok": False, "message": "暂无上传资料"}
     try: db.rollback()
