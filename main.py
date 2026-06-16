@@ -9876,7 +9876,7 @@ from datetime import timedelta
 
 # ═══════════ Excel 结构化提取 ═══════════
 
-def _parse_excel_structured(filepath, ext):
+def _parse_excel_structured(filepath, ext, original_name=""):
     """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断"""
     fname = os.path.basename(filepath)
     _init_trace(fname)  # 初始化诊断追踪
@@ -9884,11 +9884,11 @@ def _parse_excel_structured(filepath, ext):
         if ext == ".xls":
             import xlrd
             wb = xlrd.open_workbook(filepath)
-            result = _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i))
+            result = _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i), original_name)
         else:
             import openpyxl
             wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-            result = _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]])
+            result = _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]], original_name)
         if result is None:
             _trace_diag("三层递进全部失败: 关键词匹配→结构分析→通用解析 均未通过", "error")
         return result
@@ -10318,7 +10318,7 @@ def _get_last_trace():
     """获取最近一次解析的完整追踪"""
     return _LAST_PARSE_TRACE
 
-def _parse_by_content(names, get_sheet):
+def _parse_by_content(names, get_sheet, original_name=""):
     """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型。
     同时运行结构分析做交叉验证，记录完整决策过程。"""
     best_score = 0
@@ -10342,14 +10342,23 @@ def _parse_by_content(names, get_sheet):
                 row_vals = _get_row_values(s, scan_row)
                 all_text += " " + " ".join(str(v) for v in row_vals[:20] if v)
             
-            # 标题行方向检测：给对应指纹加分
+            # 标题行方向检测：给对应指纹加分（文件名+单元格双重检测）
             title_bonus = {}
-            if "销项发票" in row0_text or "销售发票" in row0_text:
-                title_bonus["sales_invoice"] = 3
-            elif "进项发票" in row0_text or "采购发票" in row0_text or "取得发票" in row0_text:
-                title_bonus["purchase_invoice"] = 3
-            elif "进销存" in row0_text or "台账" in row0_text or "存货" in row0_text or "库存" in row0_text or "物料" in row0_text:
+            # 文件名关键词检测
+            fn_lower = original_name.lower()
+            if any(k in fn_lower for k in ["进销存", "台账", "明细账", "存货", "库存明细", "收发存"]):
                 title_bonus["inventory"] = 5
+            elif any(k in fn_lower for k in ["销项", "销售发票", "销货"]):
+                title_bonus["sales_invoice"] = 4
+            elif any(k in fn_lower for k in ["进项", "采购发票", "购货", "取得发票"]):
+                title_bonus["purchase_invoice"] = 4
+            # 单元格内容检测（作为补充）
+            if "销项发票" in row0_text or "销售发票" in row0_text:
+                title_bonus["sales_invoice"] = max(title_bonus.get("sales_invoice", 0), 3)
+            elif "进项发票" in row0_text or "采购发票" in row0_text or "取得发票" in row0_text:
+                title_bonus["purchase_invoice"] = max(title_bonus.get("purchase_invoice", 0), 3)
+            elif "进销存" in row0_text or "台账" in row0_text or "存货" in row0_text or "库存" in row0_text or "物料" in row0_text:
+                title_bonus["inventory"] = max(title_bonus.get("inventory", 0), 5)
             
             for ftype, fp in _FILE_FINGERPRINTS.items():
                 score = 0
@@ -13928,10 +13937,10 @@ def _run_analyze(company_id, db):
 
     for doc in docs:
         fname, fpath, ext = doc["original_name"], doc["path"], os.path.splitext(doc["original_name"])[1].lower()
-        fr = {"file": fname, "type": "unknown", "actions": []}
+            fr = {"file": fname, "type": "unknown", "actions": []}
         try:
             if ext in (".xls", ".xlsx"):
-                parsed = _parse_excel_structured(fpath, ext)
+                parsed = _parse_excel_structured(fpath, ext, fname)
                 if parsed:
                     ftype = parsed.get("type", "unknown"); fr["type"] = ftype
                     n = len(parsed.get("rows", []))
