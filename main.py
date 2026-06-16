@@ -11695,7 +11695,19 @@ def _parse_salary_sheet(sheet):
     return {"type": "salary", "rows": rows}
 
 def _parse_social_sheet(sheet, header):
-    cols = _find_cols_semantic(header, {
+    # 智能表头检测：社保文件常有合并的多行标题
+    # 扫描行0-3，选关键词命中最多的一行作为真实表头
+    best_header = header
+    best_score = sum(1 for kw in ["姓名","身份证","参保","基数","单位","个人"] if any(kw in str(h) for h in header))
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(min(3, nrows)):
+        candidate = _get_row_values(sheet, r)
+        score = sum(1 for kw in ["姓名","身份证","证件","参保","基数","单位","个人","险种","缴费","费款"] if any(kw in str(h) for h in candidate))
+        if score > best_score:
+            best_score = score
+            best_header = candidate
+    
+    cols = _find_cols_semantic(best_header, {
         "人员": "name", "证件号码": "id_card", "缴费工资": "base",
         "姓名": "name", "身份证号": "id_card", "身份证": "id_card",
         "缴费基数": "base", "社保基数": "base", "工资基数": "base",
