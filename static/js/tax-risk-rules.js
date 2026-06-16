@@ -89,7 +89,7 @@ function renderTaxRiskRules(container) {
     + '<div class="display-panel-toolbar">'
     + '<input type="text" class="search-input" id="chain-search" placeholder="\u641c\u7d22\u7ebf\u7d22\u94fe..." oninput="filterChains()">'
     + '<select class="filter-select" id="chain-filter-cat" onchange="filterChains()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
-    + '<select class="filter-select" id="chain-filter-level" onchange="filterChains()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u542b\u9ad8\u98ce\u9669\u73af\u8282</option></select>'
+    + '<select class="filter-select" id="chain-filter-level" onchange="filterChains()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u542b\u9ad8\u98ce\u9669\u73af\u8282</option><option value="\u4e2d\u98ce\u9669">\u542b\u4e2d\u98ce\u9669\u73af\u8282</option></select>'
     + '</div></div>'
     + '<div class="display-panel-body" id="audit-chains-body">\u52a0\u8f7d\u4e2d...</div>'
     + '<div class="display-panel-footer"><span id="chain-stats">\u5171 0 \u6761\u7ebf\u7d22\u94fe</span></div>'
@@ -1339,7 +1339,12 @@ function filterChains() {
   var filtered = _allChains.filter(function(c) {
     if (q && c.name.toLowerCase().indexOf(q) === -1) return false;
     if (cat && !c.name.startsWith(cat)) return false;
-    if (lvl && !c.high_risk_steps) return false;
+    if (lvl === '\u9ad8\u98ce\u9669' && !c.high_risk_steps) return false;
+    if (lvl === '\u4e2d\u98ce\u9669') {
+      var hasMid = false;
+      (c.investigation_path||[]).forEach(function(s){ if (s.level==='\u4e2d\u98ce\u9669') hasMid=true; });
+      if (!hasMid) return false;
+    }
     return true;
   });
   var body = document.getElementById('audit-chains-body');
