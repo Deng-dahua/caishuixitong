@@ -9809,8 +9809,11 @@ async def upload_tax_risk_docs(
 
         _tax_doc_counter[0] += 1
         doc_id = _tax_doc_counter[0]
+        # 保留原始文件名用于后续识别（文件名含进销存/销项/进项等关键方向词）
+        orig_base = f.filename.rsplit(".", 1)[0] if "." in (f.filename or "") else (f.filename or "doc")
+        orig_base = orig_base[:50]  # 截断过长的原始文件名
         ext = os.path.splitext(f.filename or "doc")[1] or ".pdf"
-        safe_name = f"{company_id}_{doc_id}_{int(datetime.now().timestamp())}{ext}"
+        safe_name = f"{company_id}_{doc_id}_{int(datetime.now().timestamp())}__{orig_base}{ext}"
         filepath = os.path.join(UPLOAD_DIR, safe_name)
         with open(filepath, "wb") as fw:
             fw.write(content)
@@ -13915,6 +13918,7 @@ def _run_analyze(company_id, db):
     global _tax_risk_docs, _tax_doc_counter
     if os.path.exists(UPLOAD_DIR):
         for fname in os.listdir(UPLOAD_DIR):
+            # 新格式: {cid}_{doc_id}_{timestamp}__{original_base}{ext} 或旧格式无__
             parts = fname.split("_")
             if len(parts) < 3: continue
             try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
@@ -13922,7 +13926,14 @@ def _run_analyze(company_id, db):
             if f_cid != company_id: continue
             if any(d["id"] == f_doc_id for d in _tax_risk_docs): continue
             fpath = os.path.join(UPLOAD_DIR, fname)
-            _tax_risk_docs.append({"id": f_doc_id, "filename": fname, "original_name": fname,
+            # 提取原始文件名
+            if "__" in fname:
+                orig_part = fname.rsplit("__", 1)[1]
+                # 去掉扩展名
+                orig_name = orig_part.rsplit(".", 1)[0] if "." in orig_part else orig_part
+            else:
+                orig_name = fname
+            _tax_risk_docs.append({"id": f_doc_id, "filename": fname, "original_name": orig_name,
                 "path": fpath, "size": os.path.getsize(fpath),
                 "uploaded_at": datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(), "company_id": company_id})
             if f_doc_id > _tax_doc_counter[0]: _tax_doc_counter[0] = f_doc_id
