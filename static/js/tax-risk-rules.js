@@ -66,10 +66,10 @@ function renderTaxRiskRules(container) {
     + '<div class="risk-rules-container">'
     + '<div class="risk-rules-header"><div class="risk-rules-title"></div><div class="risk-rules-toolbar"></div></div>'
     + '<div style="display:flex;gap:8px;margin:12px 0;padding:0 8px">'
-    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219</button>'
-    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe</button>'
-    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe</button>'
-    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790</button>'
+    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219 <span id="rrtab-count-cat">0</span></button>'
+    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe <span id="rrtab-count-chain">0</span></button>'
+    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe <span id="rrtab-count-evidence">0</span></button>'
+    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790 <span id="rrtab-count-analyze">7</span></button>'
     + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
@@ -675,6 +675,8 @@ function renderTaxRiskRulesList(filterData) {
   // 更新规则显示区标题中的数量
   var hcEl = document.getElementById('risk-rules-header-count');
   if (hcEl) hcEl.textContent = data.length;
+  var tcEl = document.getElementById('rrtab-count-cat');
+  if (tcEl) tcEl.textContent = data.length;
 
   // 更新加载按钮上的规则数量
   updateLoadButtonText();
@@ -1361,6 +1363,8 @@ function filterChains() {
   }
   var stats = document.getElementById('chain-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u7ebf\u7d22\u94fe';
+  var tc = document.getElementById('rrtab-count-chain');
+  if (tc) tc.textContent = _allChains.length;
 }
 
 async function loadAuditEvidence() {
@@ -1418,6 +1422,8 @@ function filterEvidence() {
   }
   var stats = document.getElementById('evidence-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
+  var tc = document.getElementById('rrtab-count-evidence');
+  if (tc) tc.textContent = _allChains.length;
 }
 
 // ==================== Tab ====================
