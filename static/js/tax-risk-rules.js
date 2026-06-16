@@ -72,26 +72,8 @@ function renderTaxRiskRules(container) {
     + '<div class="risk-rules-toolbar">'
     + '</div>'
     + '</div>'
-    // 主体：左侧输入区 + 右侧显示区
+    // 主体：规则显示区（全宽）
     + '<div class="risk-rules-body">'
-    // 左侧：纯文本输入框
-    + '<div class="risk-rules-input" id="risk-rules-input">'
-    + '<div class="input-panel-header">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'
-    + '<h3 style="margin:0;">规则信息输入</h3>'
-    + '</div>'
-    + '<span class="input-panel-hint" style="display:block;margin-top:4px;">自由输入涉税风险规则描述，系统自动解析整理</span>'
-    + '</div>'
-    + '<div class="input-panel-body">'
-    + '<textarea class="form-textarea" id="rule-input-text" rows="18" placeholder="请在此输入涉税风险规则描述...\n\n例如：\n1. 借贷不平衡——以下期间借贷方金额不相等，会导致报表数据失真。评分9分，高风险。建议逐月排查序时账。\n\n2. 存在风险进项发票——有进项发票被标记为疑点/异常/失控。评分9分，高风险。建议立即核实。\n\n3. 毛利率偏低——毛利率低于5%。评分5分，中风险。建议分析成本构成。\n\n也可以一次输入多条规则，用换行或数字序号分隔。"></textarea>'
-    + '<div style="margin-top:8px;font-size:11px;color:var(--gray-400);">'
-    + '💡 提示：输入规则描述后点击"解析并添加"，系统会自动提取分类、评分、等级等信息。'
-    + '</div>'
-    + '</div>'
-    + '<div class="input-panel-footer">'
-    + '<span style="font-size:12px;color:var(--gray-500);">支持多条规则同时输入，用换行或数字序号分隔</span>'
-    + '</div>'
-    + '</div>'
     // 右侧：规则显示区
     + '<div class="risk-rules-display" id="risk-rules-display">'
     + '<div class="display-panel-header">'
