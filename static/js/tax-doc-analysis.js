@@ -102,13 +102,14 @@ async function refreshTaxDocList() {
       return;
     }
 
-    var html = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label></div>';
+    var html = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label> <span style="color:#94a3b8;font-size:10px">共 ' + docs.length + ' 个</span></div>';
     try {
-      docs.forEach(function(doc) {
+      docs.forEach(function(doc, idx) {
         var size = doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : '未知';
         var name = doc.original_name || doc.filename || '未知文件';
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
-          + '<span><input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
+          + '<span><span style="color:#94a3b8;font-size:10px;width:24px;display:inline-block;text-align:right;margin-right:4px">' + (idx+1) + '.</span>'
+          + '<input type="checkbox" class="tda-doc-check" data-id="' + doc.id + '" style="margin-right:6px">'
           + esc(name) + ' <span style="color:var(--gray-400);font-size:11px">' + size + '</span></span>'
           + '<span style="color:var(--gray-400);font-size:11px">' + (doc.uploaded_at || '').substring(0,10) + '</span>'
           + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delTaxDoc(' + doc.id + ')">删除</span>'
