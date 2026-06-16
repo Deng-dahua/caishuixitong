@@ -10388,15 +10388,15 @@ def _parse_by_content(names, get_sheet):
     
     kw_passed = best_type is not None and best_score >= _FILE_FINGERPRINTS[best_type]["score_threshold"]
     if kw_passed:
-        # ── invoice_universal 吞并修复：当 universal 胜出但 sales/purchase 也达标时，
-        #    优先选择有方向区分的具体类型（universal 默认进项会吞掉销项）──
-        if best_type == "invoice_universal":
+        # ── invoice_universal/generic_data 吞并修复：优先选择得分最高的具体类型 ──
+        if best_type in ("invoice_universal", "generic_data"):
             for m in sorted(kw_trace_matches, key=lambda x: -x["score"]):
-                if m["type"] in ("sales_invoice", "purchase_invoice") and m["score"] >= _FILE_FINGERPRINTS[m["type"]]["score_threshold"]:
-                    best_type = m["type"]
+                ft = m["type"]
+                if ft not in ("invoice_universal", "generic_data") and m["score"] >= _FILE_FINGERPRINTS[ft]["score_threshold"]:
+                    best_type = ft
                     best_score = m["score"]
                     best_sheet_idx = m["sheet"]
-                    _trace_diag(f"invoice_universal被具体类型覆盖: {best_type}(得分{best_score}), 原universal得分{best_score}")
+                    _trace_diag(f"{best_type}被具体类型覆盖: {ft}(得分{m['score']}), 原得分{best_score}")
                     break
         
         _LAST_PARSE_TRACE["keyword_phase"]["best"] = {"type": best_type, "score": best_score, "sheet": best_sheet_idx}
