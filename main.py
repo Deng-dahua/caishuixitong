@@ -11686,12 +11686,17 @@ def _parse_invoice_sheet(sheet, direction):
     return {"type": atype, "rows": rows}
 
 def _parse_salary_sheet(sheet):
-    # 尝试从 row 0 或 row 2 读取表头（兼容不同HR系统导出格式）
-    header = _get_row_values(sheet, 0)
-    # 如果 row 0 看起来不是表头（全是短文本/数字），尝试 row 2
-    text_count = sum(1 for v in header if isinstance(v, str) and len(str(v)) >= 2)
-    if text_count < 2:
-        header = _get_row_values(sheet, 2)
+    # 智能表头检测：扫描行0-6，选关键词命中最多的一行
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    best_header = _get_row_values(sheet, 0)
+    best_score = sum(1 for kw in ["姓名","工号","工资","本期收入"] if any(kw in str(h) for h in best_header))
+    for r in range(min(7, nrows)):
+        candidate = _get_row_values(sheet, r)
+        score = sum(1 for kw in ["姓名","工号","工资","本期收入","应发","实发","证件","身份证","应税"] if any(kw in str(h) for h in candidate))
+        if score > best_score:
+            best_score = score
+            best_header = candidate
+    header = best_header
     cols = _find_cols_semantic(header, {
         "姓名": "name", "员工": "name", "姓名/员工": "name",
         "证件号码": "id_card", "工资": "salary",
@@ -11731,13 +11736,13 @@ def _parse_salary_sheet(sheet):
 
 def _parse_social_sheet(sheet, header):
     # 智能表头检测：社保文件常有合并的多行标题
-    # 扫描行0-3，选关键词命中最多的一行作为真实表头
+    # 扫描行0-6，选关键词命中最多的一行作为真实表头
     best_header = header
     best_score = sum(1 for kw in ["姓名","身份证","参保","基数","单位","个人"] if any(kw in str(h) for h in header))
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(min(3, nrows)):
+    for r in range(min(7, nrows)):  # 0-6行
         candidate = _get_row_values(sheet, r)
-        score = sum(1 for kw in ["姓名","身份证","证件","参保","基数","单位","个人","险种","缴费","费款"] if any(kw in str(h) for h in candidate))
+        score = sum(1 for kw in ["姓名","身份证","证件","参保","基数","缴费","险种","费款","序号","单位","个人","费率"] if any(kw in str(h) for h in candidate))
         if score > best_score:
             best_score = score
             best_header = candidate
