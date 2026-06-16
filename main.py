@@ -13726,18 +13726,23 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
 
     # L3: 多源交叉融合 乘数效应
     cross_patterns = []
-    ps_dev = dim_scores["发票合规度"]["score"] > 40
+    # 降低阈值：即使少量数据也能触发交叉模式
+    ps_dev = dim_scores["发票合规度"]["score"] >= 15
     third_p = "第三方收款" in dim_scores["经营真实度"].get("boost","")
     cont_loss = any("连续" in f.get("detail","") and "亏损" in f.get("detail","") for f in all_findings)
-    asset_grow = dim_scores["经营真实度"]["score"] > 50
+    asset_grow = dim_scores["经营真实度"]["score"] >= 15
     ss_gap = any("社保" in f.get("item","") and ("人数" in f.get("item","") or "差异" in f.get("item","")) for f in all_findings)
+    # 新增：公转私+第三方收款组合
+    pub_priv = "公转私" in dim_scores["资金安全性"].get("boost","")
 
     if ps_dev and third_p:
-        cross_patterns.append(("进销背离+第三方收款=虚开高危", 2.0, ["发票合规度","资金安全性","经营真实度"]))
+        cross_patterns.append(("进销背离+第三方收款=虚开高危", 1.8, ["发票合规度","资金安全性","经营真实度"]))
     if cont_loss and asset_grow:
-        cross_patterns.append(("长亏不倒+资产扩张=隐匿收入", 1.5, ["经营真实度","行业偏离度"]))
-    if ss_gap and dim_scores["申报一致性"]["score"] > 30:
-        cross_patterns.append(("工资社保差异=未全员参保", 1.5, ["申报一致性","经营真实度"]))
+        cross_patterns.append(("长亏不倒+资产扩张=隐匿收入", 1.4, ["经营真实度","行业偏离度"]))
+    if ss_gap and dim_scores["申报一致性"]["score"] >= 10:
+        cross_patterns.append(("工资社保差异=未全员参保", 1.3, ["申报一致性","经营真实度"]))
+    if third_p and pub_priv:
+        cross_patterns.append(("公转私+第三方收款=资金体外循环", 1.5, ["资金安全性","经营真实度"]))
 
     for pn, mult, dims in cross_patterns:
         for dn in dims:
@@ -14141,15 +14146,16 @@ def _run_analyze(company_id, db):
                 audit_errors = 0
                 for check_name, count in audit_result.items():
                     if check_name == "errors":
-                        continue  # 跳过错误列表
+                        continue
                     try:
-                        if int(count) > 0:
-                            audit_errors += int(count)
+                        c = int(count) if not isinstance(count, (list, dict)) else len(count)
+                        if c > 0:
+                            audit_errors += c
                             audit_findings.append({
                                 "type": f"审计检查：{check_name}",
                                 "level": "中风险", "score": 5,
-                                "detail": f"{check_name}检查发现{count}项异常。",
-                                "suggestion": f"请排查{check_name}相关问题，确保账务数据规范。"
+                                "detail": f"{check_name}检查发现{c}项异常。",
+                                "suggestion": f"请排查{check_name}相关问题。"
                             })
                     except (TypeError, ValueError):
                         pass
