@@ -73,7 +73,7 @@ function renderTaxRiskRules(container) {
     + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u89c4\u5219\u663e\u793a\u533a <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u5f53\u524d <strong id="risk-rules-header-count">0</strong> \u6761\uff09</span></h3>'
+    + '<div class="display-panel-header"><h3>\u89c4\u5219 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u6307\u4ee4\u5206\u7c7b\u68c0\u7d22\uff09 <strong id="risk-rules-header-count">0</strong>\u6761</span></h3>'
     + '<div class="display-panel-toolbar">'
     + '<input type="text" class="search-input" id="risk-rules-search" placeholder="\u641c\u7d22\u89c4\u5219..." oninput="filterTaxRiskRules()">'
     + '<select class="filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
@@ -95,7 +95,7 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790\u5f15\u64ce\u5168\u94fe\u8def <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff087\u4e2a\u5b50\u7cfb\u7edf\u5168\u90e8\u63a5\u5165\uff09</span></h3></div>'
+    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff087\u5b50\u7cfb\u7edf\u5f15\u64ce\u67b6\u6784\uff09</span></h3></div>'
     + '<div class="display-panel-body" style="padding:16px;font-size:12px;color:#475569;line-height:1.9">'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
     // 子系统1
