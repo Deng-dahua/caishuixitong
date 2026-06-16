@@ -10400,6 +10400,8 @@ def _parse_by_content(names, get_sheet, original_name=""):
                 title_bonus["input_vat_deduction"] = 4
             elif any(k in fn_lower for k in ["凭证", "记账", "序时"]):
                 title_bonus["voucher"] = 4
+            elif any(k in fn_lower for k in ["客户", "供应商", "人员", "部门", "档案"]):
+                title_bonus["archive"] = 3
             # 单元格内容检测（作为补充）
             if "销项发票" in row0_text or "销售发票" in row0_text:
                 title_bonus["sales_invoice"] = max(title_bonus.get("sales_invoice", 0), 3)
