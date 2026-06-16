@@ -11629,8 +11629,8 @@ def _domain_bank_tracking(txs):
 def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
     """域2: 进销毛利率 — 发票对比用开票收入，总收入用主营业务收入"""
     findings = []
-    s_total = sum(i["total"] for i in sal_invs if i["total"] > 0)
-    p_total = sum(i["total"] for i in pur_invs if i["total"] > 0)
+    s_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
+    p_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in pur_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
     s_count, p_count = len(sal_invs), len(pur_invs)
     
     # 获取主营业务收入(凭证)作为总收入口径
@@ -11669,8 +11669,8 @@ def _domain_personal_transactions(sal_invs):
     findings = []
     personal = [i for i in sal_invs if "个人" in str(i.get("buyer", ""))]
     if personal:
-        p_total = sum(i["total"] for i in personal if i["total"] > 0)
-        all_total = sum(i["total"] for i in sal_invs if i["total"] > 0)
+        p_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in personal if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
+        all_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
         pct = p_total / all_total * 100 if all_total > 0 else 0
         if pct > 30:
             findings.append({"type": "个人交易占比过高", "level": "高风险", "score": 8,
@@ -11699,7 +11699,7 @@ def _domain_supplier_deep(pur_invs):
     findings, by_supplier, by_city = [], defaultdict(float), defaultdict(set)
     import re
     for i in pur_invs:
-        name = i.get("seller", ""); by_supplier[name] += i["total"]
+        name = i.get("seller", ""); by_supplier[name] += float(i.get("total", i.get("amount", 0)) or 0)
         m = re.search(r'(广州|深圳|北京|上海|杭州|武汉|成都|重庆|南京|天津|苏州)', name)
         if m: by_city[m.group(1)].add(name)
     total_pur = sum(by_supplier.values())
@@ -14190,11 +14190,6 @@ def _run_analyze(company_id, db):
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
-    # 使用评分引擎的综合风险等级，与风险画像保持一致
-    overall = comprehensive.get("risk_profile", {}).get("composite_level", "低风险")
-    # 兜底：如果评分引擎为空，用传统计数
-    if not comprehensive.get("risk_profile"):
-        overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 
     stats = {"分析文件数": len(docs), "银行流水": len(bank_txs), "销项发票": len(sal_invs),
              "进项发票": len(pur_invs), "工资记录": len(salaries), "社保记录": len(social_security), "凭证记录": len(vouchers),
@@ -14300,6 +14295,11 @@ def _run_analyze(company_id, db):
     # ── 金税四期式多因子风险评分引擎 ──
     risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
     comprehensive["risk_profile"] = risk_profile
+
+    # 综合风险等级：优先使用评分引擎结果
+    overall = risk_profile.get("composite_level", "低风险")
+    if overall == "未触发":
+        overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 
     # 动态读取实际规则数量
     _actual_rule_count = 312
