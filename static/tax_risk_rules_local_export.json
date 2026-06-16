@@ -2570,7 +2570,9 @@
     "evidence": "研发项目立项书\n研发费用辅助账\n研发人员工时记录\n无形资产（研发成果）清单",
     "dataSource": "JournalEntry × 研发费用科目 明细分析",
     "remark": "其他相关费用>可加计扣除总额*10%触发",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业会计准则》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 144,
@@ -2945,7 +2947,9 @@
     "evidence": "价外费用收取明细\n对应合同条款\n增值税申报表\n价外费用发票开具记录",
     "dataSource": "JournalEntry × 手续费/补贴/违约金/包装费 价外费用关键词 汇总",
     "remark": "价外费用>0但未申报触发",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 165,
@@ -3050,7 +3054,9 @@
     "evidence": "境外支付明细\n对外支付税务备案表\n代扣代缴税款凭证\n税收协定优惠待遇申请\n非居民纳税人身份证明",
     "dataSource": "BankTransaction × 境外/跨境/外汇 付款 配对分析",
     "remark": "对外支付需依法代扣代缴增值税和所得税",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 171,
@@ -3101,7 +3107,9 @@
     "evidence": "特定业务发票清单\n备注栏填写情况检查表\n补充/重开的合规发票",
     "dataSource": "SalesInvoice × PurchaseInvoice 特定业务类型 备注栏完整性检测",
     "remark": "建筑服务等特定业务发票备注栏填写不合规",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 174,
@@ -3116,7 +3124,9 @@
     "evidence": "佣金/手续费支出明细\n代扣个税计算表\n收款方经营资质证明\n支出限额计算表（合同金额×法定比例）",
     "dataSource": "JournalEntry × 佣金/手续费/居间 关键词 比例分析",
     "remark": "佣金支出超限额不得税前扣除",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 175,
@@ -3131,7 +3141,9 @@
     "evidence": "捐赠协议/决议\n公益事业捐赠票据\n受赠方公益性捐赠税前扣除资格证明\n扣除限额计算表\n纳税调整明细",
     "dataSource": "JournalEntry × 捐赠/捐助/公益 关键词 合规性检查",
     "remark": "捐赠需通过合规渠道且不超过利润12%",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 176,
@@ -3182,7 +3194,9 @@
     "evidence": "银行对账单、电商平台后台数据导出、支付宝/微信商户账单、收入差异分析表",
     "dataSource": "银行流水(贷方合计) vs 增值税申报销售额 + 销项发票合计金额",
     "remark": "差异>20%且绝对额>50万触发高风险；2026年八部门联合打击重点领域",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "相关行业税收政策",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 179,
@@ -3197,7 +3211,9 @@
     "evidence": "银行流水（私户收款清单）、第三方支付平台账单、收款整改记录",
     "dataSource": "银行流水，按对方账户类型统计个人账户转入占比",
     "remark": "私户收款占比>30%或绝对额>100万触发；注意区分合法的股东借款归还",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "相关行业税收政策",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 180,
@@ -3212,7 +3228,9 @@
     "evidence": "用工合同/协议、劳务报酬vs经营所得判定依据、个独企业/个体户营业执照",
     "dataSource": "供应商/客户中有大量个体工商户或个人独资企业 + 服务费/咨询费发票",
     "remark": "金税四期接入市场监管部门个体户/个独企业登记数据，自动关联识别",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "相关行业税收政策",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 181,
@@ -3227,7 +3245,9 @@
     "evidence": "灵活用工平台合作协议、任务发包记录、成果交付凭证、资金结算单",
     "dataSource": "进项发票（销方为灵活用工/人力资源平台）+ 社保缴纳记录（人数对比）",
     "remark": "灵活用工平台开票>年收入30%或社保人数异常降低触发；2025-2026多省专项整治",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "相关行业税收政策",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 182,
@@ -3242,7 +3262,9 @@
     "evidence": "电商平台订单明细、物流发货记录、库存出库记录、刷单证据（如有）",
     "dataSource": "销项发票/申报收入 vs 银行流水 vs 物流费用/库存变动，交叉比对",
     "remark": "订单量/收入远高于物流发货量或库存出库量触发；电商行业专项稽查重点",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "相关行业税收政策",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 183,
@@ -3257,7 +3279,9 @@
     "evidence": "股权转让协议、工商变更登记、企业净资产评估报告、个税申报记录",
     "dataSource": "序时账中实收资本/资本公积变动 + 个税申报记录（需外部工商变更数据配合）",
     "remark": "贵州等地已部署对股权转让的案源检查；低价转让无正当理由将核定征收",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 184,
@@ -3272,7 +3296,9 @@
     "evidence": "境外公司持股证明、境外银行账户对账单、境外完税凭证、CRS交换信息",
     "dataSource": "需外部数据：CRS信息交换、外汇管理数据、境外投资备案 + 序时账中境外收支",
     "remark": "CRS+外汇管理双重监控；高净值个人（资产>1000万）是重点监管对象",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 185,
@@ -3287,7 +3313,9 @@
     "evidence": "租赁合同、租金支付凭证、代扣代缴个税凭证",
     "dataSource": "序时账（管理费用-租赁费/其他业务成本-租赁支出）+ 个税代扣记录",
     "remark": "年租赁收入>12万或月租金>1万触发关注",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 186,
@@ -3302,7 +3330,9 @@
     "evidence": "限售股减持记录、证券账户交易流水、完税凭证、成本原值证明",
     "dataSource": "需外部数据：证券登记结算数据、上市公司公告 + 个税申报记录",
     "remark": "2026年对双高人群限售股减持实施穿透式监管",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 187,
@@ -3317,7 +3347,9 @@
     "evidence": "专项附加扣除填报明细、佐证材料（入学证明/贷款合同/租赁合同等）",
     "dataSource": "个税申报系统（需外部数据）+ 跨部门数据比对",
     "remark": "虚报专项附加扣除将被追缴税款+滞纳金+罚款，并影响纳税信用等级",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 188,
@@ -3332,7 +3364,9 @@
     "evidence": "高新认定申请书、研发费用辅助账、高新收入明细、科技人员名册及社保记录、知识产权证书",
     "dataSource": "序时账（研发费用/高新收入占比）+ 工资薪金（科技人员占比）+ 固定资产（研发设备）",
     "remark": "2026年对高新技术企业资格实施全周期监管，不达标即取消；南京等城市已有大量查补案例",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 189,
@@ -3347,7 +3381,9 @@
     "evidence": "企业收入/资产/人数变动趋势分析、关联企业业务拆分依据",
     "dataSource": "营业收入+资产总额+从业人数，判断是否连续多期刚好卡在标准线以下",
     "remark": "多项指标同时卡线的企业将被自动标记；2026年优惠资格全周期监管已启动",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 190,
@@ -3362,7 +3398,9 @@
     "evidence": "即征即退申请资料、软件检测证明/著作权证书、进项税额分摊计算表",
     "dataSource": "VATDeclaration（即征即退/加计抵减栏次）+ 销项发票（品名/税率匹配）+ 序时账",
     "remark": "骗享税费优惠是2026年八部门联合打击重点，虚报退税可追缴并处罚款+刑事责任",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 191,
@@ -3377,7 +3415,9 @@
     "evidence": "关联公司注册地证明、经营实质证据（人员/场地/资产）、关联交易转移定价文档",
     "dataSource": "关联企业税务登记地信息 + 跨公司交易数据 + 序时账中管理费/服务费/咨询费往来",
     "remark": "2026年开展全国税收优惠政策清理规范；缺乏经济实质的税收洼地安排将被穿透",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 192,
@@ -3392,7 +3432,9 @@
     "evidence": "上下游企业股权结构图、货物流转记录（入库单/出库单/物流单）、资金流转路径",
     "dataSource": "进项发票+销项发票（销方和购方交叉比对）+ 关联企业关系+ 资金回流检测",
     "remark": "金税四期通过企业关系图谱和资金流向自动识别循环开票；虚开超5万元可入刑",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 193,
@@ -3407,7 +3449,9 @@
     "evidence": "推广/咨询/服务费发票清单、推广合同、活动记录、成果报告、服务商资质",
     "dataSource": "进项发票（品名含推广/咨询/服务/会议）+ 销项发票收入（费用占收入比）",
     "remark": "推广费占收入>20%或缺乏合同/活动记录的触发高风险；多省已开展医药行业专项整治",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 194,
@@ -3422,7 +3466,9 @@
     "evidence": "预收款明细账、合同履约进度表、服务交付记录、客户确认单",
     "dataSource": "科目 2203 预收账款/合同负债 余额 + 账龄 >6个月 + 服务已交付",
     "remark": "预收款账龄>1年且无合理理由的触发高风险；教培行业已有多地集中曝光",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 195,
@@ -3437,7 +3483,9 @@
     "evidence": "成品油发票清单、车辆登记证/行驶证/里程记录、油耗对比分析表",
     "dataSource": "进项发票（品名含汽油/柴油/成品油）+ 固定资产（车辆净值）+ 运输费用收入",
     "remark": "有成品油发票但车辆资产为零或油费远超车辆可支撑里程触发；多地加油站因'富余票'被查处",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 196,
@@ -3452,7 +3500,9 @@
     "evidence": "房地产开发项目台账、预售许可证、竣工验收备案、销售明细、开发成本凭证",
     "dataSource": "序时账（房地产相关收入/成本科目）+ 固定资产（房屋建筑物）+ 合同台账（房产销售合同）",
     "remark": "转让房地产收入占比>总收入的50%或预售收入>5000万触发土增税清算关注",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 197,
@@ -3467,7 +3517,9 @@
     "evidence": "境外投资架构图、CFC所在国税率证明、境外公司财务报表、董事会利润分配决议",
     "dataSource": "需外部数据：境外投资备案/OdI数据 + 关联公司信息",
     "remark": "2026年CRS+外汇管理双重数据源，海外架构透明化；CFC利润不分配是重点监管对象",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 198,
@@ -3482,7 +3534,9 @@
     "evidence": "合伙/个独企业营业执照、经营场所证明、人员名册、银行账户独立性证明",
     "dataSource": "进项发票（销方为个独企业/合伙企业）+ 供应商信息 + 资金流水（是否回流）",
     "remark": "2022年起权益性投资个独/合伙企业一律查账征收；多地已清理违规核定征收",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 199,
@@ -3497,7 +3551,9 @@
     "evidence": "差额扣除凭证清单、差额扣除计算表、差额征税发票台账",
     "dataSource": "VATDeclaration附表三（差额征税扣除项目）+ 进项发票（差额扣除凭证类型检查）",
     "remark": "有差额征税申报但凭证不合规率>20%触发；违规差额扣除可追溯调整并补税",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 200,
@@ -3512,7 +3568,9 @@
     "evidence": "代理记账合同、办税授权书、开票设备使用记录、中介机构资质证明",
     "dataSource": "需外部数据：开票IP/设备MAC地址（金税四期记录）+ 办税人员信息+ 关联企业关系",
     "remark": "2026年明确对涉税中介实施穿透式监管和'一案双查'",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 201,
@@ -3527,7 +3585,9 @@
     "evidence": "跨区域涉税事项报告表、项目地完税证明、异地项目台账",
     "dataSource": "序时账（建筑服务收入/成本）+ 合同（异地工程项目）+ 增值税申报表（预缴抵减栏）",
     "remark": "有建筑收入但增值税申报中无预缴税款记录触发；建筑业是税务稽查传统重点行业",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 202,
@@ -3542,7 +3602,9 @@
     "evidence": "资产损失明细表、报废审批单、盘亏报告、坏账核销决议、被投资企业清算证明",
     "dataSource": "序时账（营业外支出-资产处置损失/资产减值损失）+ 固定资产减少 + 存货盘亏/报废",
     "remark": "有大额资产处置损失但无资产损失申报记录触发；未经申报的损失不得税前扣除",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法实施条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 203,
@@ -3613,7 +3675,9 @@
     "evidence": "跨行业供应商工商信息查询、经营地址核查记录、发票明细清单",
     "dataSource": "取得发票（酒店+餐饮跨行业聚类）+供应商档案",
     "remark": "V12新增。跨行业混合群集比单行业群集更危险。",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 207,
@@ -3628,7 +3692,9 @@
     "evidence": "金额一致的发票明细清单、消费明细清单、业务招待申请单、付款凭证",
     "dataSource": "取得发票（餐饮/住宿类按价税合计分组，同金额≥2家触发）",
     "remark": "V12新增。金额一致性是虚开发票的强信号。",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 208,
@@ -3679,7 +3745,9 @@
     "evidence": "收款银行回单、对应业务合同/订单、合同履约进度确认文件",
     "dataSource": "银行流水LEFT JOIN销项发票→无匹配触发",
     "remark": "V13新增。资金流与发票流不匹配是稽查第一切入点。",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 211,
@@ -3712,7 +3780,9 @@
     "evidence": "费用结构分析表、餐饮住宿类发票明细清单、业务招待审批记录",
     "dataSource": "取得发票（按分类汇总）+银行流水+序时账",
     "remark": "V13新增。广告公司不可能吃出46%的餐饮住宿占比。",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 213,
@@ -3763,7 +3833,9 @@
     "evidence": "银行流水付款记录与进项发票的交叉比对表\n供应商对账单",
     "dataSource": "银行流水(借方)×进项发票(销方) 模糊匹配",
     "remark": "三源交叉验证：资金流+发票流+货物流",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 216,
@@ -3796,7 +3868,9 @@
     "evidence": "银行入账与销项发票交叉比对表\n收入明细台账",
     "dataSource": "银行流水(贷方)×销项发票(价税合计) 差额分析",
     "remark": "三源交叉验证：资金流+发票流+合同流",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 218,
@@ -3811,7 +3885,9 @@
     "evidence": "工资表与银行代发记录比对表\n社保参保人员清单",
     "dataSource": "工资表×银行流水(代发)×社保明细 三方比对",
     "remark": "三源交叉验证：薪酬+资金+社保",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 219,
@@ -3844,7 +3920,9 @@
     "evidence": "周末交易明细表\n营业日/非营业日交易统计",
     "dataSource": "银行流水 交易日 weekday>=5 筛选",
     "remark": "反洗钱及异常交易监测指标",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《企业所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 221,
@@ -3859,7 +3937,9 @@
     "evidence": "进销品名对比表\n委托加工合同及台账",
     "dataSource": "销项发票(品名)×进项发票(品名) 分词交集分析",
     "remark": "购销逻辑一致性验证",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 222,
@@ -3910,7 +3990,9 @@
     "evidence": "员工名册与工资表\n同行业人均效能对比数据",
     "dataSource": "工资表(人数)×销项发票(收入) 人均产值计算",
     "remark": "经营效率与合规性交叉指标",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《个人所得税法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 225,
@@ -3925,7 +4007,9 @@
     "evidence": "税务四源对比表\n各期增值税申报表\n银行缴税凭证",
     "dataSource": "发票税额×申报表×银行缴税 四源交叉比对",
     "remark": "最核心的税务合规交叉验证",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 226,
@@ -3940,7 +4024,9 @@
     "evidence": "关联交易明细表\n同期资料（主体文档+本地文档）\n可比公司筛选分析\n转让定价方法说明\n年度关联业务往来报告表",
     "dataSource": "关联交易金额汇总 × 42号公告门槛判断",
     "remark": "同期资料是转让定价调查的第一道防线",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 227,
@@ -3991,7 +4077,9 @@
     "evidence": "各资格认定证书及有效期\n续审申请材料\n资格到期提醒台账\n补税计算表",
     "dataSource": "优惠资格证书有效期 × 当期申报享受优惠记录 比对",
     "remark": "高新技术企业资格每年抽查，2026年全周期监管",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 230,
@@ -4006,7 +4094,9 @@
     "evidence": "电子发票归档管理办法\n电子发票XML原件存储证明\n发票台账与电子会计凭证对照表",
     "dataSource": "数电票开具/接收记录 × 电子档案归档状态检测",
     "remark": "电子发票只保存打印件不合规，2026年数电票全面推广",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《发票管理办法》《增值税暂行条例》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 231,
@@ -4057,7 +4147,9 @@
     "evidence": "股权激励计划文件\n行权/解禁记录\n递延纳税备案表\n代扣个税记录",
     "dataSource": "序时账（资本公积/股本变动）+ 个税申报（工资薪金异常增长）关联分析",
     "remark": "2026年双高人群稽查核心：股权激励行权不申报",
-    "detectable": true
+    "detectable": true,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 234,
@@ -4108,7 +4200,9 @@
     "evidence": "税务总局/省局年度稽查工作要点\n行业专项整治公告\n本企业业务模式说明文档\n同行业稽查案例汇编",
     "dataSource": "外部政策文件 + 企业行业标签",
     "remark": "2026年八部门联合打击涉税违法犯罪，行业专项整治范围显著扩大",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 237,
@@ -4123,7 +4217,9 @@
     "evidence": "电子税务局风险提示信息\n第三方税务风险评估报告\n积分影响因子改善记录",
     "dataSource": "金税四期风险画像系统（外部接口）",
     "remark": "企业看不到自己的积分，但稽查选案系统已全面依赖大数据风险排序",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 238,
@@ -4138,7 +4234,9 @@
     "evidence": "上下游企业纳税信用查询结果\n走逃企业发票清单\n与涉案企业交易的完整证据包\n进项转出计算表",
     "dataSource": "外部：税务机关协查通知/走逃企业名单 + 内部：进项发票销方信息",
     "remark": "协查是不可回避的稽查手段，被动等待只会压缩应对时间",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 239,
@@ -4153,7 +4251,9 @@
     "evidence": "银行账户完整性声明\n大额资金往来商业目的说明\n借款/还款合同及利息记录\n个人账户流水（如需）",
     "dataSource": "银行流水（已采集合规化） + 资金网络分析模式",
     "remark": "2026年资金查控技术已实现秒级分析，资金回流无法隐匿",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 240,
@@ -4204,7 +4304,9 @@
     "evidence": "股权转让协议及资产评估报告\n财产转让完税凭证\n限售股原值证明\n转让定价合理性说明",
     "dataSource": "序时账（实收资本变动）+ 个税申报记录 + 外部：工商变更、证券登记",
     "remark": "双高人群稽查与关联企业稽查联动，个人问题将引向企业",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 243,
@@ -4219,7 +4321,9 @@
     "evidence": "刑事合规评估报告\n已停止的违规业务清单\n律师函/法律意见书",
     "dataSource": "虚开风险指标（循环开票/资金回流/进销不匹配等）达到刑事立案阈值",
     "remark": "八部门联合机制下，行刑衔接极快，2026年已将多起案件移送公安",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 244,
@@ -4252,7 +4356,9 @@
     "evidence": "接受检查行为准则文件\n稽查资料提供清单签收表\n与稽查人员的沟通记录",
     "dataSource": "企业内控制度 + 稽查应对演练记录",
     "remark": "程序合规是底线，实体问题可以争议，程序对抗的代价最大",
-    "detectable": false
+    "detectable": false,
+    "policy_ref": "《税收征收管理法》",
+    "tax_impact": "补税+滞纳金+罚款"
   },
   {
     "id": 246,
@@ -23619,7 +23725,7 @@
     "evidence": "银行流水",
     "dataSource": "银行流水",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》第六十三条",
     "tax_impact": "补税+0.5-5倍罚款",
     "detectable": "是"
@@ -23635,7 +23741,7 @@
     "evidence": "出库记录",
     "dataSource": "进销存台账",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》第十九条",
     "tax_impact": "补缴增值税+滞纳金",
     "detectable": "是"
@@ -23651,7 +23757,7 @@
     "evidence": "银行流水",
     "dataSource": "银行流水",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《刑法》第二百零五条",
     "tax_impact": "虚开发票罪+移送公安",
     "detectable": "是"
@@ -23667,7 +23773,7 @@
     "evidence": "工商变更记录",
     "dataSource": "工商数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》",
     "tax_impact": "虚开发票嫌疑+稽查监控",
     "detectable": "是"
@@ -23683,7 +23789,7 @@
     "evidence": "租赁合同",
     "dataSource": "经营费用",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税务稽查工作规程》",
     "tax_impact": "经营实质否定+虚开刑事风险",
     "detectable": "是"
@@ -23699,7 +23805,7 @@
     "evidence": "进销发票",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补税+罚款+移送公安",
     "detectable": "是"
@@ -23715,7 +23821,7 @@
     "evidence": "电商平台后台",
     "dataSource": "电商平台",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《电子商务法》第十条",
     "tax_impact": "虚增收入+多缴税款或查处",
     "detectable": "是"
@@ -23731,7 +23837,7 @@
     "evidence": "采购合同",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "国办药品采购指导意见",
     "tax_impact": "虚开发票刑事风险",
     "detectable": "是"
@@ -23747,7 +23853,7 @@
     "evidence": "培训合同",
     "dataSource": "合同",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法实施条例》",
     "tax_impact": "补缴企业所得税",
     "detectable": "是"
@@ -23763,7 +23869,7 @@
     "evidence": "加盟合同",
     "dataSource": "合同",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法实施条例》",
     "tax_impact": "补缴企业所得税",
     "detectable": "是"
@@ -23779,7 +23885,7 @@
     "evidence": "路桥费发票",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "进项税额转出",
     "detectable": "是"
@@ -23795,7 +23901,7 @@
     "evidence": "境外公司财务报表",
     "dataSource": "工商数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》第四十五条",
     "tax_impact": "视同股息分配补税",
     "detectable": "是"
@@ -23811,7 +23917,7 @@
     "evidence": "评估报告",
     "dataSource": "资产台账",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》第二十五条",
     "tax_impact": "补缴企业所得税+增值税",
     "detectable": "是"
@@ -23827,7 +23933,7 @@
     "evidence": "换股协议",
     "dataSource": "股权结构",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2009]59号",
     "tax_impact": "补缴企业所得税",
     "detectable": "是"
@@ -23843,7 +23949,7 @@
     "evidence": "投资协议",
     "dataSource": "投资记录",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2016]101号",
     "tax_impact": "递延资格失效+补税",
     "detectable": "是"
@@ -23859,7 +23965,7 @@
     "evidence": "工资表",
     "dataSource": "社保数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《社会保险法》",
     "tax_impact": "补缴社保+滞纳金",
     "detectable": "是"
@@ -23875,7 +23981,7 @@
     "evidence": "灵活用工合同",
     "dataSource": "银行流水",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《个人所得税法》第九条",
     "tax_impact": "补扣个税+罚款",
     "detectable": "是"
@@ -23891,7 +23997,7 @@
     "evidence": "工资表",
     "dataSource": "个税数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2018]164号",
     "tax_impact": "补缴个税+滞纳金",
     "detectable": "是"
@@ -23907,7 +24013,7 @@
     "evidence": "福利发放记录",
     "dataSource": "福利数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《个人所得税法实施条例》",
     "tax_impact": "补扣个税+滞纳金",
     "detectable": "是"
@@ -23923,7 +24029,7 @@
     "evidence": "退休返聘协议",
     "dataSource": "个税数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《个人所得税法》",
     "tax_impact": "补扣个税+滞纳金",
     "detectable": "是"
@@ -23939,7 +24045,7 @@
     "evidence": "离职协议",
     "dataSource": "个税数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2018]164号",
     "tax_impact": "补扣个税+滞纳金",
     "detectable": "是"
@@ -23955,7 +24061,7 @@
     "evidence": "年金账户明细",
     "dataSource": "个税数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2013]103号",
     "tax_impact": "补缴个税+滞纳金",
     "detectable": "是"
@@ -23971,7 +24077,7 @@
     "evidence": "股权激励计划",
     "dataSource": "个税数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "财税[2016]101号",
     "tax_impact": "补扣个税+罚款",
     "detectable": "是"
@@ -23987,7 +24093,7 @@
     "evidence": "护照出入境记录",
     "dataSource": "个税数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《个人所得税法》第一条",
     "tax_impact": "补缴个税+罚款",
     "detectable": "是"
@@ -24003,7 +24109,7 @@
     "evidence": "工资表",
     "dataSource": "工资数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《个人所得税法》",
     "tax_impact": "补扣个税+滞纳金",
     "detectable": "是"
@@ -24019,7 +24125,7 @@
     "evidence": "合同台账",
     "dataSource": "合同",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《印花税法》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -24035,7 +24141,7 @@
     "evidence": "电子合同记录",
     "dataSource": "合同",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《印花税法》",
     "tax_impact": "补税+滞纳金",
     "detectable": "是"
@@ -24051,7 +24157,7 @@
     "evidence": "土地证",
     "dataSource": "资产台账",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《城镇土地使用税暂行条例》",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24067,7 +24173,7 @@
     "evidence": "购房合同",
     "dataSource": "合同",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《契税法》",
     "tax_impact": "补税+滞纳金",
     "detectable": "是"
@@ -24083,7 +24189,7 @@
     "evidence": "排污许可证",
     "dataSource": "环保数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《环境保护税法》",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24099,7 +24205,7 @@
     "evidence": "转让合同",
     "dataSource": "合同",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《土地增值税暂行条例》",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24115,7 +24221,7 @@
     "evidence": "开采记录",
     "dataSource": "生产数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《资源税法》",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24131,7 +24237,7 @@
     "evidence": "专票信息",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "税务总局公告2019年第45号",
     "tax_impact": "进项税额永久丧失",
     "detectable": "是"
@@ -24147,7 +24253,7 @@
     "evidence": "销项发票",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票嫌疑",
     "detectable": "是"
@@ -24163,7 +24269,7 @@
     "evidence": "销项发票",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票嫌疑",
     "detectable": "是"
@@ -24179,7 +24285,7 @@
     "evidence": "货物清单",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税专用发票使用规定》",
     "tax_impact": "进项税额不得抵扣",
     "detectable": "是"
@@ -24195,7 +24301,7 @@
     "evidence": "代开材料",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票+移送公安",
     "detectable": "是"
@@ -24211,7 +24317,7 @@
     "evidence": "报销记录",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "虚假费用不得扣除",
     "detectable": "是"
@@ -24227,7 +24333,7 @@
     "evidence": "查验结果",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票+移送公安",
     "detectable": "是"
@@ -24243,7 +24349,7 @@
     "evidence": "发票原件",
     "dataSource": "发票数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "使用假发票+移送公安",
     "detectable": "是"
@@ -24259,7 +24365,7 @@
     "evidence": "销项发票",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补缴增值税差额",
     "detectable": "是"
@@ -24275,7 +24381,7 @@
     "evidence": "逐月收入",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "纳税调整",
     "detectable": "是"
@@ -24291,7 +24397,7 @@
     "evidence": "销项发票",
     "dataSource": "发票数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "收入真实性存疑",
     "detectable": "是"
@@ -24307,7 +24413,7 @@
     "evidence": "设备台账",
     "dataSource": "生产数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "虚列成本或隐匿收入",
     "detectable": "是"
@@ -24323,7 +24429,7 @@
     "evidence": "考勤记录",
     "dataSource": "工资数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法实施条例》",
     "tax_impact": "虚列人员→纳税调增",
     "detectable": "是"
@@ -24339,7 +24445,7 @@
     "evidence": "增值税申报表",
     "dataSource": "申报数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "稽查启动+补税",
     "detectable": "是"
@@ -24355,7 +24461,7 @@
     "evidence": "申报表",
     "dataSource": "申报数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "税务总局公告2019年第20号",
     "tax_impact": "骗退税+移送公安",
     "detectable": "是"
@@ -24371,7 +24477,7 @@
     "evidence": "简易计税备案",
     "dataSource": "申报数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补缴增值税差额",
     "detectable": "是"
@@ -24387,7 +24493,7 @@
     "evidence": "发票/合同",
     "dataSource": "凭证数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "税务总局公告2018年第28号",
     "tax_impact": "纳税调增+补税",
     "detectable": "是"
@@ -24403,7 +24509,7 @@
     "evidence": "会计账簿",
     "dataSource": "凭证数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24419,7 +24525,7 @@
     "evidence": "高新证书",
     "dataSource": "申报数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《高新技术企业认定管理办法》",
     "tax_impact": "补缴差额+取消资格",
     "detectable": "是"
@@ -24435,7 +24541,7 @@
     "evidence": "借款协议",
     "dataSource": "资金数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》第四十一条",
     "tax_impact": "纳税调增+补税",
     "detectable": "是"
@@ -24451,7 +24557,7 @@
     "evidence": "境外财务报表",
     "dataSource": "投资数据",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《企业所得税法》第三条",
     "tax_impact": "补税+罚款",
     "detectable": "是"
@@ -24467,7 +24573,7 @@
     "evidence": "工商变更记录",
     "dataSource": "工商数据",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》",
     "tax_impact": "罚款",
     "detectable": "是"
@@ -24485,7 +24591,8 @@
     "urgency": "紧急",
     "policy_ref": "《个人所得税法》第九条",
     "tax_impact": "补扣个税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1374,
@@ -24500,7 +24607,8 @@
     "urgency": "紧急",
     "policy_ref": "《进出口关税条例》",
     "tax_impact": "补税+罚款+没收",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1375,
@@ -24515,7 +24623,8 @@
     "urgency": "紧急",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1376,
@@ -24530,7 +24639,8 @@
     "urgency": "提醒",
     "policy_ref": "《个人所得税法》",
     "tax_impact": "补缴个税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1377,
@@ -24545,7 +24655,8 @@
     "urgency": "紧急",
     "policy_ref": "财税[2014]84号",
     "tax_impact": "补税+取消优惠资格",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1378,
@@ -24560,7 +24671,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1379,
@@ -24575,7 +24687,8 @@
     "urgency": "提醒",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "补税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1380,
@@ -24590,7 +24703,8 @@
     "urgency": "紧急",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "补税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1381,
@@ -24605,7 +24719,8 @@
     "urgency": "紧急",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1382,
@@ -24620,7 +24735,8 @@
     "urgency": "提醒",
     "policy_ref": "《企业所得税法实施条例》",
     "tax_impact": "补税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1383,
@@ -24635,7 +24751,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "收入虚增",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1384,
@@ -24650,7 +24767,8 @@
     "urgency": "紧急",
     "policy_ref": "《税收征收管理法》",
     "tax_impact": "补税+罚款+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1385,
@@ -24665,7 +24783,8 @@
     "urgency": "紧急",
     "policy_ref": "《个人所得税法》",
     "tax_impact": "补税+罚款+移送公安",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1386,
@@ -24680,7 +24799,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "补税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1387,
@@ -24695,7 +24815,8 @@
     "urgency": "紧急",
     "policy_ref": "《企业所得税法》第七条",
     "tax_impact": "补税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1388,
@@ -24710,7 +24831,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例》",
     "tax_impact": "收入时点错误",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1389,
@@ -24725,7 +24847,8 @@
     "urgency": "提醒",
     "policy_ref": "《企业所得税法》",
     "tax_impact": "收入确认偏差",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1390,
@@ -24740,7 +24863,8 @@
     "urgency": "紧急",
     "policy_ref": "《企业所得税法实施条例》",
     "tax_impact": "补税+纳税调整",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1391,
@@ -24755,7 +24879,8 @@
     "urgency": "紧急",
     "policy_ref": "国务院关于清理规范税收等优惠政策的通知",
     "tax_impact": "补税+追回返还款项",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1392,
@@ -24770,7 +24895,8 @@
     "urgency": "紧急",
     "policy_ref": "《企业所得税法》第四十一条",
     "tax_impact": "纳税调增+补税",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1393,
@@ -24785,7 +24911,8 @@
     "urgency": "提醒",
     "policy_ref": "《个人所得税法》",
     "tax_impact": "补税+滞纳金",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1394,
@@ -24800,7 +24927,8 @@
     "urgency": "提醒",
     "policy_ref": "《个人所得税法》第九条",
     "tax_impact": "补扣个税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1395,
@@ -24815,7 +24943,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例实施细则》第四条",
     "tax_impact": "补缴增值税",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1396,
@@ -24830,7 +24959,8 @@
     "urgency": "紧急",
     "policy_ref": "财政部税务总局关于资管产品增值税有关问题的通知",
     "tax_impact": "补税+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1397,
@@ -24845,7 +24975,8 @@
     "urgency": "紧急",
     "policy_ref": "《刑法》第二百零五条",
     "tax_impact": "虚开罪+移送公安",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1398,
@@ -24860,7 +24991,8 @@
     "urgency": "紧急",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票+移送公安",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1399,
@@ -24875,7 +25007,8 @@
     "urgency": "紧急",
     "policy_ref": "《发票管理办法》",
     "tax_impact": "虚开发票+移送公安",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1400,
@@ -24890,7 +25023,8 @@
     "urgency": "紧急",
     "policy_ref": "《刑法》第二百零五条、第一百九十一条",
     "tax_impact": "虚开发票+洗钱罪",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1401,
@@ -24905,7 +25039,8 @@
     "urgency": "紧急",
     "policy_ref": "《电子商务法》",
     "tax_impact": "虚增收入+多缴税或认定为虚开",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1402,
@@ -24920,7 +25055,8 @@
     "urgency": "提醒",
     "policy_ref": "《增值税暂行条例实施细则》第四条",
     "tax_impact": "补缴增值税",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1403,
@@ -24935,7 +25071,8 @@
     "urgency": "紧急",
     "policy_ref": "税收协定常设机构条款",
     "tax_impact": "补缴企业所得税",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1404,
@@ -24950,7 +25087,8 @@
     "urgency": "紧急",
     "policy_ref": "国家税务总局公告2018年第9号",
     "tax_impact": "补扣税款+罚款",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1405,
@@ -24965,7 +25103,8 @@
     "urgency": "紧急",
     "policy_ref": "国家税务总局公告2016年第42号",
     "tax_impact": "罚款+稽查",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1406,
@@ -24980,7 +25119,8 @@
     "urgency": "紧急",
     "policy_ref": "国家税务总局公告2016年第42号",
     "tax_impact": "罚款+转让定价调整",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1407,
@@ -24995,7 +25135,8 @@
     "urgency": "紧急",
     "policy_ref": "海南自由贸易港法",
     "tax_impact": "补税+取消优惠",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1408,
@@ -25010,7 +25151,8 @@
     "urgency": "紧急",
     "policy_ref": "《刑法》第二百零四条",
     "tax_impact": "骗税罪+移送公安",
-    "detectable": "是"
+    "detectable": "是",
+    "remark": "—"
   },
   {
     "id": 1409,
@@ -25023,7 +25165,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25039,7 +25181,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25055,7 +25197,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25071,7 +25213,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25087,7 +25229,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25103,7 +25245,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25119,7 +25261,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25135,7 +25277,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25151,7 +25293,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25167,7 +25309,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25183,7 +25325,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25199,7 +25341,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25215,7 +25357,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25231,7 +25373,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25247,7 +25389,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25263,7 +25405,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25279,7 +25421,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25295,7 +25437,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25311,7 +25453,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25327,7 +25469,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25343,7 +25485,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25359,7 +25501,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25375,7 +25517,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25391,7 +25533,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25407,7 +25549,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25423,7 +25565,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25439,7 +25581,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25455,7 +25597,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25471,7 +25613,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25487,7 +25629,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25503,7 +25645,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25519,7 +25661,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25535,7 +25677,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25551,7 +25693,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25567,7 +25709,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25583,7 +25725,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25599,7 +25741,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25615,7 +25757,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25631,7 +25773,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25647,7 +25789,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25663,7 +25805,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25679,7 +25821,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25695,7 +25837,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25711,7 +25853,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25727,7 +25869,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25743,7 +25885,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25759,7 +25901,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25775,7 +25917,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25791,7 +25933,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25807,7 +25949,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25823,7 +25965,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25839,7 +25981,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25855,7 +25997,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25871,7 +26013,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25887,7 +26029,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25903,7 +26045,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25919,7 +26061,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25935,7 +26077,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25951,7 +26093,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25967,7 +26109,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25983,7 +26125,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -25999,7 +26141,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26015,7 +26157,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26031,7 +26173,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26047,7 +26189,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26063,7 +26205,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26079,7 +26221,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26095,7 +26237,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26111,7 +26253,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26127,7 +26269,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26143,7 +26285,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26159,7 +26301,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26175,7 +26317,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "提醒",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26191,7 +26333,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26207,7 +26349,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26223,7 +26365,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26239,7 +26381,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26255,7 +26397,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26271,7 +26413,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26287,7 +26429,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26303,7 +26445,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26319,7 +26461,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26335,7 +26477,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26351,7 +26493,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26367,7 +26509,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26383,7 +26525,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26399,7 +26541,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26415,7 +26557,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26431,7 +26573,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26447,7 +26589,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
@@ -26463,7 +26605,7 @@
     "evidence": "账簿、发票、银行流水等",
     "dataSource": "涉税资料",
     "urgency": "紧急",
-    "remark": "",
+    "remark": "—",
     "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
     "tax_impact": "补税+滞纳金+罚款",
     "detectable": "是"
