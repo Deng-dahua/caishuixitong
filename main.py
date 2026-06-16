@@ -9410,6 +9410,33 @@ async def tax_risk_rules_upload_report(request: Request):
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+# ═══════════════ 资料中转站 ═══════════════
+TRANSFER_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
+os.makedirs(TRANSFER_DIR, exist_ok=True)
+
+def _save_to_transfer(company_id, doc_id, original_name, parsed_data):
+    path = os.path.join(TRANSFER_DIR, f"{company_id}_{doc_id}.json")
+    payload = {"type":parsed_data.get("type","unknown"),"file":original_name,
+        "parsed_at":datetime.now().isoformat(),"row_count":len(parsed_data.get("rows",[])),
+        "rows":parsed_data.get("rows",[])}
+    try:
+        with open(path,"w",encoding="utf-8") as f: json.dump(payload,f,ensure_ascii=False,default=str)
+        return True
+    except: return False
+
+def _load_from_transfer(company_id, doc_id):
+    path = os.path.join(TRANSFER_DIR, f"{company_id}_{doc_id}.json")
+    if not os.path.exists(path): return None
+    try:
+        with open(path,"r",encoding="utf-8") as f: return json.load(f)
+    except: return None
+
+def _clear_transfer(company_id=None):
+    if os.path.exists(TRANSFER_DIR):
+        for fn in os.listdir(TRANSFER_DIR):
+            if company_id is None or fn.startswith(f"{company_id}_"):
+                os.remove(os.path.join(TRANSFER_DIR,fn))
+
 
 _tax_risk_docs = []
 _tax_doc_counter = [0]
@@ -9848,6 +9875,12 @@ def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
             _tax_risk_docs.pop(i)
             return {"ok": True, "message": "删除成功"}
     raise HTTPException(404, "文件不存在")
+
+@app.delete("/api/tax-risk-docs/clear-transfer")
+def clear_transfer_cache(company_id: int = Query(...)):
+    _clear_transfer(company_id)
+    return {"ok":True,"message":"中转站缓存已清空"}
+
 
 
 def _classify_file_type(text, filename):
@@ -14146,6 +14179,7 @@ def _run_analyze(company_id, db):
         try:
             if ext in (".xls", ".xlsx"):
                 parsed = _parse_excel_structured(fpath, ext, fname)
+                if parsed and parsed.get("rows"): _save_to_transfer(company_id, doc["id"], fname, parsed)
                 if parsed:
                     ftype = parsed.get("type", "unknown"); fr["type"] = ftype
                     n = len(parsed.get("rows", []))
