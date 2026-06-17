@@ -9960,8 +9960,15 @@ def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
     global _tax_risk_docs
     for i, d in enumerate(_tax_risk_docs):
         if d["id"] == doc_id and d["company_id"] == company_id:
-            try: os.remove(d["path"])
+            # 先修复文件权限（旧文件可能是只读），再删除
+            try:
+                import stat
+                os.chmod(d["path"], stat.S_IWUSR | stat.S_IRUSR)
             except: pass
+            try:
+                os.remove(d["path"])
+            except Exception as _e:
+                raise HTTPException(500, f"文件删除失败: {str(_e)}")
             _tax_risk_docs.pop(i)
             return {"ok": True, "message": "删除成功"}
     raise HTTPException(404, "文件不存在")
