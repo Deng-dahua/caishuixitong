@@ -1701,54 +1701,66 @@ function renderAuditReport() {
 
   // ── 将finding转为叙事段落 ──
   function findingToParagraph(f, idx) {
+    var ftype = f.type || '';
+    var detail = f.detail || '';
+    var desc = f.description || '';
+    var closed = f.chain_closure;
+    var chainName = f.source_chain || '';
+    
     var p = '';
     p += '<p style="text-indent:2em;margin:16px 0;line-height:2.2;text-align:justify">';
     p += '<b>（' + idx + '）</b>';
     
-    // 第一句：依据什么规则/方法
-    var chainName = f.source_chain || '';
-    if (/进销/.test(chainName)) {
-      p += '我们对被查单位的进项发票与销项发票进行了进销存数据比对。';
-    } else if (/资金/.test(chainName) || /银行/.test(chainName)) {
-      p += '我们对被查单位银行账户资金流水与发票数据进行了逐笔核对。';
-    } else if (/供应商/.test(chainName)) {
-      p += '我们对被查单位的供应商及客户信息进行了穿透式核查。';
-    } else if (/隐匿/.test(chainName) || /收入/.test(chainName)) {
-      p += '我们针对被查单位可能存在的收入隐匿问题开展了专项核查。';
-    } else if (/合同/.test(chainName)) {
-      p += '我们对被查单位的合同、发票与资金流进行了三流合一核查。';
-    } else if (/存货/.test(chainName) || /库存/.test(chainName)) {
-      p += '我们对被查单位的进项采购与销项开票进行了存货逻辑审核。';
+    // 第一句：根据finding的类别判断稽查动作
+    var detailLower = (detail + ftype).toLowerCase();
+    if (/进销|采购.*销售|进项.*销项|有进无销|有销无进|品名不匹配|数量偏差/.test(ftype + detail)) {
+      p += '我们对被查单位的全部进项发票与销项发票进行了进销存数据比对。';
+    } else if (/银行|收款|付款|流水|资金|周末|交易/.test(ftype + detail)) {
+      p += '我们对被查单位银行账户的全部资金流水进行了逐笔核查。';
+    } else if (/发票.*数量|发票.*单位|发票.*计量|发票.*金额|发票.*连号|发票.*日期|发票.*认证|发票.*顶额/.test(ftype)) {
+      p += '我们对被查单位全部发票的开具合规性进行了逐票审核。';
+    } else if (/加工费/.test(ftype + detail)) {
+      p += '我们针对被查单位取得的加工费发票进行了专项核查。';
+    } else if (/供应商|客户|供应商.*集中|刷票/.test(ftype + detail)) {
+      p += '我们对被查单位的供应商及客户结构进行了穿透式分析。';
+    } else if (/BOM|物料清单/.test(ftype + detail)) {
+      p += '我们对被查单位的生产经营流程进行了逻辑审核。';
+    } else if (/固定|资产/.test(ftype + detail)) {
+      p += '我们对被查单位的资产构成与经营规模的匹配性进行了核查。';
+    } else if (/资料|完备|缺失|不完备/.test(ftype)) {
+      p += '我们对被查单位本次提交的稽查资料进行了完备性审核。';
     } else {
       p += '我们对被查单位的相关经营资料进行了系统性审核。';
     }
     
-    // 第二句：发现了什么
-    if (f.detail) {
-      p += '经查，' + esc(f.detail) + '。';
+    // 第二句：发现了什么（去重句号）
+    p += '经查，';
+    if (detail) {
+      var d = esc(detail);
+      // 去掉detail末尾的句号，避免双句号
+      if (d.endsWith('。')) d = d.substring(0, d.length - 1);
+      p += d + '。';
     }
     
     // 第三句：说明/解释
-    if (f.description) {
-      p += esc(f.description);
+    if (desc) {
+      p += esc(desc);
     }
-
-    // 第四句：定性判断（口语化）
-    if (f.chain_closure) {
+    
+    // 第四句：按score分级给出不同结尾
+    var score = f.score || 0;
+    if (closed) {
       p += '综合上述多源数据交叉验证，该问题已经查证属实，事实清楚、证据充分。';
-      if (/隐匿|少报|瞒报|未申报/.test(f.type||'')) {
-        p += '被查单位存在隐匿销售收入、少缴应纳税款的违法嫌疑。';
-      } else if (/虚开|虚抵|虚假|伪造/.test(f.type||'')) {
-        p += '被查单位存在虚开发票的违法嫌疑，涉嫌违反《中华人民共和国发票管理办法》第二十二条规定。';
-      } else if (/进销|毛利|采购.*销售|成本.*收入/.test(f.type||'')) {
-        p += '被查单位存在进销数据异常、少计收入或多列成本的嫌疑。';
-      } else if (/集中|群集|壳/.test(f.type||'')) {
-        p += '被查单位的供应商/客户存在异常集中或群集特征，不排除通过关联空壳公司进行虚假交易的嫌疑。';
-      } else {
-        p += '被查单位存在涉税违法嫌疑。';
-      }
+      if (/隐匿/.test(ftype)) p += '被查单位存在隐匿销售收入、少缴应纳税款的违法嫌疑。';
+      else if (/虚开/.test(ftype)) p += '被查单位涉嫌虚开发票。';
+      else if (/进销/.test(ftype)) p += '被查单位存在进销数据异常、少计收入或多列成本的嫌疑。';
+      else p += '被查单位存在涉税违法嫌疑。';
+    } else if (score >= 9) {
+      p += '上述发现金额较大、数据偏差显著，虽因缺少部分佐证资料尚未形成完整闭环，但已构成重大疑点，建议启动专项调查程序。';
+    } else if (score >= 7) {
+      p += '上述问题属于实质性发现，建议要求被查单位限期提供相关佐证资料以进一步核实。';
     } else {
-      p += '因缺少部分关键佐证资料，上述疑点尚未形成完整证据闭环，建议要求被查单位限期提供相关资料后进一步核实。';
+      p += '此疑点值得在后续稽查中持续关注。';
     }
     
     p += '</p>';
