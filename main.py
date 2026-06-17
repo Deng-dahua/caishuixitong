@@ -10673,6 +10673,20 @@ def _parse_by_content(names, get_sheet, original_name=""):
                     row["direction"] = "销项"
                 _trace_diag("发票方向修正: 检测到购方关键词 → 标记为销项发票")
         
+        # 文件名修正发票方向（更高优先级）
+        if result and result.get("type") in ("sales_invoice", "purchase_invoice", "invoice", "invoice_universal"):
+            fn_lower = original_name.lower()
+            if "进项" in fn_lower or "取得" in fn_lower or "抵扣" in fn_lower:
+                result["type"] = "purchase_invoice"
+                for row in result.get("rows", []):
+                    row["direction"] = "进项"
+                _trace_diag(f"发票方向修正(文件名): {original_name} → 进项发票")
+            elif "开票" in fn_lower or "销项" in fn_lower or "销售" in fn_lower:
+                result["type"] = "sales_invoice"
+                for row in result.get("rows", []):
+                    row["direction"] = "销项"
+                _trace_diag(f"发票方向修正(文件名): {original_name} → 销项发票")
+        
         fd["type"] = result.get("type", best_type)
         fd["source"] = "keyword"
         fd["confidence"] = min(1.0, best_score / max(10, best_score + 2))
