@@ -10071,6 +10071,22 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "trial_balance", "rows": _parse_trial_balance_sheet(s, h)}
     },
+    # ══════════ 合同/权证/关联交易 ══════════
+    "contract": {
+        "keywords": ["合同名称", "合同编号", "合同类型", "合同金额", "签订日期",
+                     "甲方", "乙方", "签订时间", "合同期限", "付款方式",
+                     "合同内容", "当事人", "签约方", "甲方名称", "乙方名称"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_contract_sheet(s, h)
+    },
+    "related_party": {
+        "keywords": ["关联方名称", "关联关系", "关联交易", "交易类型", "交易金额",
+                     "关联交易汇总", "关联方清单", "持股比例", "定价政策",
+                     "交易内容", "关联交易类型", "金额（万元）", "关联主体",
+                     "对外投资", "投资比例", "同期资料", "本年发生额"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "related_party", "rows": _parse_related_party_sheet(s, h)}
+    },
     # ══════════ 第二梯队：申报表与财务报表 ══════════
     "financial_statements": {
         "keywords": ["资产负债表", "利润表", "现金流量表", "所有者权益变动表",
@@ -11790,6 +11806,52 @@ def _parse_trial_balance_sheet(sheet, header):
         for k in ["open_debit","open_credit","current_debit","current_credit","year_debit","year_credit","close_debit","close_credit"]:
             try: vals[k] = float(vals.get(k, 0) or 0)
             except: vals[k] = 0
+        rows.append(vals)
+    return rows
+
+def _parse_contract_sheet(sheet, header):
+    """解析合同台账"""
+    cols = _find_cols_semantic(header, {
+        "合同名称": "name", "合同编号": "contract_no", "合同类型": "contract_type",
+        "甲方": "party_a", "甲方名称": "party_a", "乙方": "party_b", "乙方名称": "party_b",
+        "合同金额": "amount", "签订日期": "sign_date", "签订时间": "sign_date",
+        "合同期限": "term", "合同内容": "content", "付款方式": "payment_method",
+        "合同状态": "status", "备注": "remark", "签约方": "party",
+    })
+    if not cols: return None
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 2000)):
+        vals = {}
+        for field, col in cols.items():
+            try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
+            except: vals[field] = ""
+        if not vals.get("name") and not vals.get("party_a"): continue
+        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        except: vals["amount"] = 0
+        rows.append(vals)
+    return {"type": "contract", "rows": rows}
+
+def _parse_related_party_sheet(sheet, header):
+    """解析关联交易报告"""
+    cols = _find_cols_semantic(header, {
+        "关联方名称": "name", "关联关系": "relation", "关联交易": "transaction",
+        "交易类型": "type", "交易金额": "amount", "金额": "amount",
+        "交易内容": "content", "定价政策": "pricing",
+        "持股比例": "share_ratio", "对外投资": "investment",
+        "投资比例": "invest_ratio", "本年发生额": "year_amount",
+    })
+    if not cols: return None
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 1000)):
+        vals = {}
+        for field, col in cols.items():
+            try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
+            except: vals[field] = ""
+        if not vals.get("name") and not vals.get("content"): continue
+        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        except: vals["amount"] = 0
         rows.append(vals)
     return rows
 
@@ -14430,6 +14492,9 @@ def _run_analyze(company_id, db):
                             bank_txs.append(tx)
                         fr["actions"].append(f"提取{n}条流水")
                     elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
+                    elif ftype == "contract": fr["actions"].append(f"提取{n}份合同")
+                    elif ftype == "related_party": fr["actions"].append(f"提取{n}条关联交易")
+                    elif ftype == "trial_balance": fr["actions"].append(f"提取{n}条科目余额")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
