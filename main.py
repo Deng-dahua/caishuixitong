@@ -44,11 +44,7 @@ from database import (
     auto_generate_purchase_journal, auto_generate_bookkeeping_journal, _next_voucher_no, _classify_purchase_debit,
 )
 
-from vat import router as vat_router
-from salary import router as salary_router
-from social_security import router as social_security_router
-from housing_fund import router as housing_fund_router
-from cultural_construction_fee import router as cultural_construction_fee_router
+# vat/salary/social/housing/ccf/chat 模块已删除（8888稽查版）
 from tax_risk import router as tax_risk_router
 
 
@@ -184,11 +180,7 @@ async def add_cache_headers(request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
-app.include_router(vat_router)
-app.include_router(salary_router)
-app.include_router(social_security_router)
-app.include_router(housing_fund_router)
-app.include_router(cultural_construction_fee_router)
+# vat/salary/social/housing/ccf 路由已移除（8888稽查版）
 app.include_router(tax_risk_router)
 
 # 挂载静态文件
@@ -2030,22 +2022,6 @@ def close_period(period: str, company_id: int = Query(...), db: Session = Depend
 
 
 # ==================== 统计看板（原有，保留）====================
-
-@app.get("/api/dashboard")
-def dashboard(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """统计看板 - 基础档案统计"""
-    period = date.today().strftime("%Y-%m")
-
-    customer_count = db.query(Customer).filter(Customer.company_id == company_id).count()
-    supplier_count = db.query(Supplier).filter(Supplier.company_id == company_id).count()
-    employee_count = db.query(Employee).filter(Employee.company_id == company_id).count()
-    account_count = db.query(Account).filter(Account.company_id == company_id, Account.is_active == True).count()
-
-    # 本月发票数量
-    si_count = db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).count()
-    pi_count = db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).count()
-    bi_count = db.query(BookkeepingInvoice).filter(BookkeepingInvoice.company_id == company_id).count()
-
     return {
         "period": period,
         "customer_count": customer_count,
@@ -8620,8 +8596,8 @@ def validate_id_card(card_no: str) -> tuple:
 
 
 # ==================== Chat AI 助手模块 ====================
-from chat import router as chat_router
-app.include_router(chat_router)
+# chat_router 已移除（8888稽查版）
+# chat_router 已移除（8888稽查版）
 
 # ==================== 涉税风险规则：从浏览器 localStorage 导出到服务器 ====================
 import json as _json
@@ -14374,6 +14350,272 @@ def _domain_supply_chain_deep(invoices, bank_txs):
     return findings
 
 
+# ═══════════ 发票实质性稽查：合规检查+单价分析+BOM缺失 ═══════════
+
+def _domain_invoice_audit(invoices):
+    """对发票进行实质性审计——逐票检查，而非关键词匹配。
+    
+    五层深度审计：
+    1. 合规检查：发票管理办法——数量/单位/单价是否齐全
+    2. 同品名单价分析：同一货物单价是否一致（按供应商+品名分组）
+    3. 加工费专项：加工费必须有数量+单位+单价，否则无法核定
+    4. 金额/数量合理性：大额无数量、整数金额、极小数量大金额
+    5. 进销品名映射+BOM缺失：原材料→成品逻辑是否成立
+    """
+    findings = []
+    
+    if not invoices or len(invoices) < 2:
+        return findings
+    
+    pur_invs = [inv for inv in invoices if inv.get("direction") in ("进项", "purchase")]
+    sal_invs = [inv for inv in invoices if inv.get("direction") in ("销项", "sales")]
+    
+    # ═══ 第一层：发票管理办法合规检查 ═══
+    missing_qty = []        # 缺数量
+    missing_unit = []       # 缺单位
+    missing_price = []      # 缺单价
+    proc_fee_no_qty = []    # 加工费缺数量
+    proc_fee_no_unit = []   # 加工费缺单位
+    round_amounts = []      # 整数金额（可疑）
+    tiny_qty_big_amt = []   # 极小数量大金额
+    
+    for inv in invoices:
+        goods = str(inv.get("goods", ""))
+        qty = inv.get("qty", "")
+        unit = inv.get("unit", "")
+        price = inv.get("price", "")
+        amount = inv.get("amount", 0)
+        seller = str(inv.get("seller", ""))[:25]
+        direction = inv.get("direction", "")
+        
+        if amount <= 0:
+            continue
+        
+        has_qty = bool(qty and qty.strip() and qty.strip() not in ("0", "0.0", "0.00"))
+        has_unit = bool(unit and unit.strip())
+        has_price = bool(price and price.strip() and price.strip() not in ("0", "0.0"))
+        
+        # 1a. 缺数量
+        if not has_qty:
+            missing_qty.append({"goods": goods[:30], "amount": amount, "seller": seller, "direction": direction})
+        
+        # 1b. 缺单位
+        if not has_unit:
+            missing_unit.append({"goods": goods[:30], "amount": amount, "seller": seller, "direction": direction})
+        
+        # 1c. 缺单价
+        if not has_price and has_qty:
+            missing_price.append({"goods": goods[:30], "amount": amount, "seller": seller, "direction": direction})
+        
+        # 1d. 加工费专项
+        if "加工" in goods:
+            if not has_qty:
+                proc_fee_no_qty.append({"goods": goods[:40], "amount": amount, "seller": seller})
+            if not has_unit:
+                proc_fee_no_unit.append({"goods": goods[:40], "amount": amount, "seller": seller})
+        
+        # 1e. 金额合理性检查
+        if amount >= 1000 and amount == int(amount):
+            round_amounts.append({"goods": goods[:30], "amount": amount, "seller": seller})
+        if has_qty:
+            try:
+                qty_f = float(qty.strip())
+                if qty_f > 0 and qty_f < 1 and amount > 50000:
+                    tiny_qty_big_amt.append({"goods": goods[:30], "qty": qty_f, "amount": amount, "seller": seller})
+            except:
+                pass
+    
+    total_inv = len(invoices)
+    
+    # ── 报告1：缺数量 ──
+    if missing_qty:
+        examples = [f"{m['goods'][:20]}({m['seller'][:15]}, {m['amount']:,.0f}元)" for m in missing_qty[:5]]
+        findings.append({
+            "type": "发票缺少数量字段",
+            "level": "中风险", "score": 7,
+            "detail": f"{total_inv}张发票中{len(missing_qty)}张({len(missing_qty)/total_inv*100:.0f}%)金额>0但无数量。",
+            "description": f"《发票管理办法》第二十二条：发票须如实开具品名、数量、单价、金额。无数量则无法计算单价、无法验证进销存数量逻辑、无法核实交易真实性。涉及：{'；'.join(examples)}等。",
+            "how_found": f"逐票检查：{len(missing_qty)}/{total_inv}张金额>0但数量字段为空或0",
+            "suggestion": "要求企业补开或提供出入库单、物流单佐证交易真实性。",
+            "category": "发票合规"
+        })
+    
+    # ── 报告2：缺单位 ──
+    if missing_unit:
+        findings.append({
+            "type": "发票缺少计量单位",
+            "level": "中风险", "score": 6,
+            "detail": f"{total_inv}张发票中{len(missing_unit)}张({len(missing_unit)/total_inv*100:.0f}%)金额>0但无计量单位。",
+            "how_found": f"逐票检查：{len(missing_unit)}/{total_inv}张无计量单位",
+            "suggestion": "要求企业规范开票，补全计量单位（如kg、米、吨、件等）。无单位无法判断数量含义。",
+            "category": "发票合规"
+        })
+    
+    # ── 报告3：加工费专项 ──
+    total_proc_issues = len(proc_fee_no_qty) + len(proc_fee_no_unit)
+    if total_proc_issues > 0:
+        examples = []
+        for p in (proc_fee_no_qty + proc_fee_no_unit)[:3]:
+            iss = "缺数量" if p in proc_fee_no_qty else "缺单位"
+            examples.append(f"{p['goods'][:25]}({p['seller'][:15]}, {p['amount']:,.0f}元, {iss})")
+        findings.append({
+            "type": "加工费发票缺少数量或单位",
+            "level": "高风险", "score": 8,
+            "detail": f"加工费发票{total_proc_issues}处不合规：{len(proc_fee_no_qty)}张缺数量、{len(proc_fee_no_unit)}张缺单位。",
+            "description": f"加工费是虚开发票最高发领域之一。《发票管理办法》要求劳务服务发票必须记载服务数量、计量单位和单价。缺少这些要素，一笔'加工费80万'无法判断加工了1000吨还是1吨，无法核定加工单价是否合理。涉及：{'；'.join(examples)}等。",
+            "how_found": f"筛选含'加工'关键词发票→逐票检查数量/单位/单价字段",
+            "suggestion": "要求企业提供：(1)加工合同（含单价、数量约定）；(2)加工出入库单；(3)加工费结算明细；(4)BOM表以核实加工量合理性。",
+            "category": "发票合规"
+        })
+    
+    # ── 报告4：整数金额可疑 ──
+    if len(round_amounts) >= 5:
+        big_round = [r for r in round_amounts if r["amount"] >= 10000]
+        if big_round:
+            examples = [f"{r['goods'][:20]}({r['amount']:,.0f}元)" for r in big_round[:5]]
+            findings.append({
+                "type": "发票金额为整数——缺少零头",
+                "level": "中风险", "score": 6,
+                "detail": f"发现{len(big_round)}张发票金额为精确整数（≥1万元），与正常商业交易习惯不符。",
+                "description": f"正常交易因数量×单价通常产生非整数金额（如1.25元×800kg=1,000元）。大量精确整万、整千金额可能为人为凑数，是虚开特征之一。涉及：{'；'.join(examples)}等。",
+                "how_found": f"检查金额=金额取整→发现{len(big_round)}笔万元级整数金额",
+                "suggestion": "要求企业提供这些发票对应的采购合同、入库单，核实交易真实性。",
+                "category": "发票合规"
+            })
+    
+    # ── 报告5：极小数量大金额 ──
+    if tiny_qty_big_amt:
+        examples = [f"{t['goods'][:20]}({t['qty']}件, {t['amount']:,.0f}元)" for t in tiny_qty_big_amt[:3]]
+        findings.append({
+            "type": "发票数量极小但金额巨大——单价异常",
+            "level": "中风险", "score": 6,
+            "detail": f"发现{len(tiny_qty_big_amt)}张发票数量极小(<1)但金额巨大(>5万)，折算单价畸高。",
+            "description": f"数量<1但金额>5万，意味着单价超过5万元/单位。例如'1件棉纱100万元'显然不合常理，可能存在：(1)发票内容与实际不符（品名或数量造假）；(2)通过虚高单价虚增进项。涉及：{'；'.join(examples)}等。",
+            "how_found": f"计算单价=金额÷数量→筛选数量<1且金额>5万的记录",
+            "suggestion": "要求企业提供该类交易的合同、付款凭证，说明高单价的合理性。",
+            "category": "发票合规"
+        })
+    
+    # ═══ 第二层：同品名同供应商单价一致性 ═══
+    # 同一供应商+同一品名→单价应一致
+    if pur_invs:
+        from collections import defaultdict
+        supplier_goods = defaultdict(list)
+        for inv in pur_invs:
+            goods = str(inv.get("goods", "")).strip()
+            seller = str(inv.get("seller", "")).strip()
+            qty_str = str(inv.get("qty", "")).strip()
+            amount = inv.get("amount", 0)
+            if not goods or not seller or not qty_str:
+                continue
+            try:
+                qty = float(qty_str)
+                if qty <= 0: continue
+                key = (seller, goods)
+                supplier_goods[key].append({"qty": qty, "amount": amount, "price": round(amount/qty, 2)})
+            except:
+                pass
+        
+        same_price_diff = []
+        for (seller, goods), records in supplier_goods.items():
+            if len(records) < 2:
+                continue
+            prices = [r["price"] for r in records]
+            avg = sum(prices) / len(prices)
+            if avg > 0 and (max(prices) - min(prices)) / avg > 0.15:
+                same_price_diff.append({
+                    "seller": seller[:20],
+                    "goods": goods[:25],
+                    "prices": sorted(set(prices)),
+                    "count": len(records),
+                })
+        
+        if same_price_diff:
+            examples = []
+            for sp in same_price_diff[:3]:
+                ps = "/".join(str(p) for p in sp["prices"])
+                examples.append(f"{sp['goods']}({sp['seller']}): {sp['count']}次采购{ps}元")
+            findings.append({
+                "type": "同一供应商同品名单价不一致",
+                "level": "中风险", "score": 7,
+                "detail": f"发现{len(same_price_diff)}组同一供应商+同一品名的采购存在单价差异。{'；'.join(examples)}。",
+                "description": "同一供应商同品名在不同采购中单价不一致，可能原因：(1)规格/品质差异（需BOM佐证）；(2)关联交易定价不公允；(3)发票内容与实际不符。正常情况下，稳定供应商的同一品名单价应相对稳定，波动超过15%需要合理解释。",
+                "how_found": "按供应商+品名分组→计算每次采购单价→检查同组单价波动>15%",
+                "suggestion": "要求企业提供：(1)不同批次的采购合同或报价单；(2)品质/规格差异说明；(3)BOM表以核实原料差异。",
+                "category": "发票合规"
+            })
+    
+    # ═══ 第三层：进销品名映射 + BOM缺失 ═══
+    pur_goods = set()
+    sal_goods = set()
+    for inv in pur_invs:
+        g = str(inv.get("goods", "")).strip()
+        if g: pur_goods.add(g)
+    for inv in sal_invs:
+        g = str(inv.get("goods", "")).strip()
+        if g: sal_goods.add(g)
+    
+    raw_kw = ["纱","丝","棉","料","线","纤维","染料","助剂","浆料","原料","坯布","胚布","针织","梭织","毛","绒","皮","革","化纤","涤纶","锦纶","氨纶","腈纶","丙纶"]
+    finish_kw = ["布","面料","服装","制成品","成品","针织物","机织物","无纺布","帆布","毛巾","床品","窗帘","沙发","地毯"]
+    
+    raw_materials = [g for g in pur_goods if any(kw in g for kw in raw_kw)]
+    finished_goods = [g for g in sal_goods if any(kw in g for kw in finish_kw)]
+    
+    if raw_materials and finished_goods:
+        raw_examples = list(raw_materials)[:3]
+        fin_examples = list(finished_goods)[:3]
+        
+        # 尝试建立原材料→成品的逻辑映射
+        mapping_hints = []
+        for raw in raw_examples:
+            for fin in fin_examples:
+                # 简单映射规则：棉纱→棉布，涤纶丝→涤纶面料
+                raw_core = raw[:2] if len(raw) >= 2 else raw
+                fin_core = fin[:2] if len(fin) >= 2 else fin
+                if raw_core in fin or fin_core in raw:
+                    mapping_hints.append(f"{raw}→{fin}")
+        
+        mapping_text = ""
+        if mapping_hints:
+            mapping_text = f"可能的加工关系：{'；'.join(mapping_hints[:3])}等。"
+        
+        findings.append({
+            "type": "缺少BOM表（物料清单）",
+            "level": "中风险", "score": 6,
+            "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→为生产型企业但无BOM表。{mapping_text}",
+            "description": f"进项原材料(如{'、'.join(raw_examples)}等)→销项成品(如{'、'.join(fin_examples)}等)。缺少BOM表导致：(1)无法判断每单位成品合理耗用多少原材料；(2)无法判断进项采购量是否与产出量匹配；(3)是否存在虚增进项或少计产出的情况。",
+            "how_found": f"进项品名含原材料关键词({len(raw_materials)}种)→销项品名含成品关键词({len(finished_goods)}种)→生产加工关系成立→查无BOM表",
+            "suggestion": "限期提供每种产品的BOM表（含原材料名称、规格、单耗、损耗率）、生产投料记录、产成品入库单。",
+            "category": "进销存"
+        })
+    
+    # 进销品名无逻辑对应关系
+    only_raw = raw_materials and not finished_goods
+    only_finish = finished_goods and not raw_materials
+    if only_raw:
+        findings.append({
+            "type": "有进项原材料但无销项成品",
+            "level": "中风险", "score": 6,
+            "detail": f"进项采购{len(raw_materials)}种原材料（如{'、'.join(list(raw_materials)[:3])}等），但销项发票中未发现对应成品。",
+            "description": "作为生产型企业，采购原材料应产出成品并对外销售。如有原材料采购但销项无对应成品，可能存在：(1)产品以未开票方式销售（隐匿收入）；(2)原材料用于非生产用途；(3)进项虚开。",
+            "how_found": "进项品名含原材料→销项品名搜索成品关键词→无匹配",
+            "suggestion": "核实原材料去向：是否全部用于生产？产出成品如何销售？是否存在未开票销售？",
+            "category": "进销存"
+        })
+    if only_finish:
+        findings.append({
+            "type": "有销项成品但无对应进项原材料",
+            "level": "中风险", "score": 6,
+            "detail": f"销项销售{len(finished_goods)}种成品，但进项发票中未发现对应原材料采购。",
+            "description": "销售成品但无原材料采购记录，可能：(1)原材料是外购半成品或来料加工；(2)进项发票由其他关联企业接收；(3)存在委托加工但无加工费发票。",
+            "how_found": "销项品名含成品→进项品名搜索原材料关键词→无匹配",
+            "suggestion": "要求企业说明原材料来源：是直接采购、委托加工还是来料加工？提供对应的采购发票或加工合同。",
+            "category": "进销存"
+        })
+    
+    return findings
+
+
 # ═══════════ 域18: 303规则全覆盖验证 ═══════════
 
 RULE_DATA_REQUIREMENTS = {
@@ -15094,8 +15336,16 @@ def _run_analyze(company_id, db):
     # 每次分析时强制重扫描磁盘（确保新上传文件可见，零时差）
     _TAX_DOC_SCANNED = False
     _tax_risk_docs.clear()
-    _recover_tax_risk_docs()
     _init_tax_docs_from_disk()
+    # 去重：同一文件名只保留一条（防止 _init_ 和 _recover 重复添加）
+    seen_fnames = set()
+    unique_docs = []
+    for d in _tax_risk_docs:
+        key = d.get("filename", "")
+        if key and key not in seen_fnames:
+            seen_fnames.add(key)
+            unique_docs.append(d)
+    _tax_risk_docs[:] = unique_docs
     
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
     if not docs: return {"ok": False, "message": "暂无上传资料"}
@@ -15529,6 +15779,12 @@ def _run_analyze(company_id, db):
         domain_results.append({"domain": "上下游穿透分析", "findings": _domain_supply_chain_deep(invoices, bank_txs)})
     else:
         domain_results.append({"domain": "上下游穿透分析", "findings": []})
+    
+    # ═══ 新增稽查域：发票实质性审计（合规/单价/BOM）═══
+    if invoices:
+        domain_results.append({"domain": "发票实质性审计", "findings": _domain_invoice_audit(invoices)})
+    else:
+        domain_results.append({"domain": "发票实质性审计", "findings": []})
 
     all_findings = []
     for dr in domain_results:
@@ -16397,6 +16653,15 @@ def _run_analyze(company_id, db):
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
     
+    # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
+    all_findings, pipeline_log = _apply_methodology_filter(all_findings, pipeline_log, 
+        bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
+    
+    # ═══ 重算风险统计（过滤后）═══
+    high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
+    mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
+    total = len(all_findings)
+    
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
@@ -16579,6 +16844,219 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
             entity["type"] = "贸易型企业"
     
     return entity
+
+
+# ═══════════ 稽查方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
+
+def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs):
+    """过滤铁律：每条结论必须有上传资料中的实际数据支撑。"""
+    before = len(all_findings)
+    
+    has_bank = len(bank_txs) > 0
+    has_invoice = len(invoices) > 0
+    has_salary = len(salaries) > 0
+    has_voucher = len(vouchers) > 0
+    has_inventory = len(inventory) > 0
+    
+    has_declaration = any("vat" in str(doc.get("type","")).lower() or "declaration" in str(doc.get("type","")).lower() for doc in docs)
+    has_contract = any("contract" in str(doc.get("type","")).lower() for doc in docs)
+    
+    # 检测行业
+    target_industry = ""
+    if invoices:
+        goods_text = " ".join([str(inv.get("goods","")) for inv in invoices[:50]])
+        for kw, ind in [("纺织","纺织"),("棉纱","纺织"),("软件","IT"),("医药","医药"),("医疗","医药"),("建筑","建筑"),("食品","食品"),("餐饮","餐饮")]:
+            if kw in goods_text: target_industry = ind; break
+    
+    # ═══ 硬删除：绝对不可能基于当前资料的结论 ═══
+    HARD_BAN = [
+        "涉税中介","代账公司","空壳公司","壳公司",  # 需工商穿透
+        "公安","经侦","刑事","移送司法","移送公安","联合办案",
+        "走逃","失联","已被稽查","已被立案","已受查",
+        "第三方机构","金税四期交叉比对","多部门数据交换",
+        "伪造","变造","套打","克隆","防伪","票面","二维码",
+        "拒绝提供资料","提供虚假资料","阻挠检查","逾期提供",
+        "资金链断裂","银行抽贷","逾期欠款","员工欠薪",
+        "税务稽查程序","稽查应对","合规度",
+        # 证据链编号引用（非真实分析）
+        "证据链[",
+        "经营场所实质","开票经济","开票公司",
+        # 医药相关（非医药行业）
+        "医疗器械","两票制","推广费异常",
+        # 需要外部信用/监管系统数据
+        "失信记录","供应商信用","信用评级",
+        # 需要个人账户数据
+        "私户收款","个人银行账户","法定代表人/股东/财务人员个人",
+        # 系统术语/功能描述
+        "金税四期综合风险积分","税务四源偏差",
+        # 需要专项调查
+        "挂靠经营","转让定价","同期资料","主体文档","本地文档",
+        # 需要跨境数据
+        "跨境","出口退税","报关",
+        # 需要个人账户/对私数据
+        "公转私","对私转账",
+        # 需要完整损益表/成本核算（无凭证时不可判断）
+        "毛利率/净利率为负","毛利率偏离","成本无合法凭证",
+        "已发货未开票","契税延期缴纳",
+        # 方法论描述/信息摘要，非稽查发现
+        "资金流水全量调取","资金流概览","进销概况",
+        "进销存虚拟匹配概览","收入三源对比总览",
+        # 需要凭证级明细的指标
+        "指标","预警","配比异常",
+        # 无具体交易支撑的推测
+        "资金回流转账","陈述与证据矛盾",
+        # Python模板变量未替换的僵尸发现
+        "{bank_income", "{inv_income", "{gap_pct",
+    ]
+    if target_industry != "医药":
+        HARD_BAN.extend(["医药"])
+    
+    COND_BAN = {
+        "申报表": ("申报收入","申报表","未申报","少申报","漏申报","纳税申报"),
+        "合同": ("四流不一","合同缺失","合同覆盖","合同流","三流不一"),
+        "工资表": ("工资","薪酬","个税","个人所得税","人力成本","薪资"),
+        "库存台账": ("存货","库存","盘点","账外物资","入库单","出库单"),
+        "会计凭证": ("记账凭证","序时账","会计凭证","账务处理",
+            "料工费配比","制造费用分摊","暂估成本","结转大额成本",
+            "废品率","边角料","折旧年限","跨年度成本",
+            "成本率季度","季度间波动","同比激增",
+            "收入同比下滑成本同比","收入增长幅度远低于成本增长幅度",
+            "办公费月度波动","差旅费月度集中","广告费业务宣传费",
+            "补充养老保险","超标列支未调增",
+            "年末集中结转","年末暂估","补缴以前年度",
+            "指标","预警",  # 所有指标/预警类需完整财务数据
+            "管理费用占收入比例","销售费用占","主营业务成本率",
+            "原材料耗用占","业务招待费","办公用品采购与员工人数"),
+    }
+    
+    filtered = []
+    removed_count = 0
+    removed_reasons = {}
+    gap_count = 0
+    gap_limit = 5  # 资料缺失类最多保留5条
+    
+    for f in all_findings:
+        f_type = str(f.get("type", ""))
+        f_detail = str(f.get("detail", ""))
+        f_desc = str(f.get("description", ""))
+        full_text = f_type + " " + f_detail + " " + f_desc
+        skip = False
+        reason = ""
+        
+        # 规则0：证据链自动生成结论 → 删除（检查type和detail）
+        if f_type.startswith("证据链闭环") or "证据链" in f_type or "证据链[" in f_detail:
+            skip = True; reason = "自动生成证据链"
+        
+        # 规则1：硬删除
+        if not skip:
+            for kw in HARD_BAN:
+                if kw in full_text:
+                    skip = True; reason = f"禁止词:{kw}"; break
+        
+        # 规则2：有条件过滤
+        if not skip:
+            checks = [
+                ("申报表", has_declaration),
+                ("合同", has_contract),
+                ("工资表", has_salary),
+                ("库存台账", has_inventory),
+                ("会计凭证", has_voucher),
+            ]
+            for name, has_it in checks:
+                if has_it: continue
+                for kw in COND_BAN[name]:
+                    if kw in full_text:
+                        skip = True; reason = f"无{name}"; break
+                if skip: break
+        
+        # 规则3：正常/一致结论 → 排除
+        if not skip:
+            for kw in ["一致","正常","无明显差异","通过","良好","合规","无异常"]:
+                if kw in f_type:
+                    skip = True; reason = "正常结论"; break
+        
+        # 规则4：资料缺口类合并（发票/data audit发现不计入缺口上限）
+        if not skip:
+            for kw in ["缺少","缺失","无法验证","不完备","未被触发"]:
+                if kw in f_type:
+                    # 发票实质性审计发现(如"发票缺少数量字段")是真实发现，不计入资料缺口
+                    if "发票" in f_type or "加工费" in f_type or "BOM" in f_type or "进销" in f_type:
+                        gap_count += 0  # 不占缺口配额
+                    elif gap_count >= gap_limit:
+                        skip = True; reason = "资料缺口超限"
+                    else:
+                        gap_count += 1
+                    break
+        
+        if skip:
+            removed_count += 1
+            removed_reasons[reason] = removed_reasons.get(reason, 0) + 1
+            continue
+        
+        filtered.append(f)
+    
+    after1 = len(filtered)
+    
+    # ═══ 规则5：行业不匹配过滤 ═══
+    # 所有可能的行业类型
+    ALL_INDUSTRIES = {
+        "房地产": ["房地产", "土地增值税清算", "房地产开发", "土增税", "房产税"],
+        "建筑": ["建筑业", "工程进度", "建筑项目", "施工", "装修", "建材"],
+        "医药": ["医药", "医疗器械", "两票制", "推广费", "带金销售"],
+        "餐饮": ["餐饮", "酒店", "住宿", "客房", "入住率"],
+        "电商": ["电商", "直播带货", "平台", "刷单"],
+        "教育": ["教培", "培训", "预收款", "教育"],
+        "金融": ["金融", "保险", "证券", "基金", "理财产品"],
+        "物流": ["物流", "运输", "快递", "仓储"],
+        "商贸": ["商贸", "批发", "零售", "贸易"],
+    }
+    
+    post_industry = []
+    ind_removed = 0
+    for f in filtered:
+        ft = str(f.get("type", ""))
+        fd = str(f.get("detail", ""))
+        full = ft + fd
+        skip = False
+        for ind_name, keywords in ALL_INDUSTRIES.items():
+            if ind_name == target_industry or not target_industry:
+                continue  # don't filter matching industry
+            for kw in keywords:
+                if kw in full:
+                    skip = True
+                    break
+            if skip:
+                break
+        if skip:
+            ind_removed += 1
+            continue
+        post_industry.append(f)
+    
+    # ═══ 规则6：去重 ═══
+    seen = set()
+    deduped = []
+    dup_removed = 0
+    for f in post_industry:
+        # 以前60字type作为去重key
+        key = str(f.get("type", ""))[:60]
+        if key not in seen:
+            seen.add(key)
+            deduped.append(f)
+        else:
+            dup_removed += 1
+    
+    filtered = deduped
+    after = len(filtered)
+    total_removed = removed_count + ind_removed + dup_removed
+    pipeline_log.append(f"方法论过滤: {before}→{after}条 (剔除{total_removed}条噪声)")
+    for rsn, cnt in sorted(removed_reasons.items(), key=lambda x: -x[1])[:8]:
+        pipeline_log.append(f"  剔除 [{rsn}]: {cnt}条")
+    if ind_removed > 0:
+        pipeline_log.append(f"  剔除 [行业不匹配]: {ind_removed}条")
+    if dup_removed > 0:
+        pipeline_log.append(f"  剔除 [重复发现]: {dup_removed}条")
+
+    return filtered, pipeline_log
 
 def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouchers, salaries):
     """逐结论复核：1)数据源验证 2)计算复核 3)逻辑一致性 4)空值陷阱 5)极端值"""
