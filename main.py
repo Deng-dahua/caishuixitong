@@ -14768,6 +14768,9 @@ def _run_analyze(company_id, db):
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     domain_results.append({"domain": "资料完备度评估", "findings": _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
+    # 域14.5: 账务系统缺失风险（有发票/流水但无凭证→无法验证账务真实性）
+    _acct_risk = _check_accounting_system_gap(invoices, bank_txs, vouchers)
+    if _acct_risk: domain_results.append({"domain": "账务系统风险", "findings": _acct_risk})
     # 域15: 多源交叉验证
     if _has_any_data: domain_results.append({"domain": "多源交叉验证", "findings": _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, db, company_id)})
     else: domain_results.append({"domain": "多源交叉验证", "findings": []})
