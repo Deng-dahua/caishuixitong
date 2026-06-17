@@ -743,96 +743,7 @@ function renderAuditReport() {
   }
   h += '</div></div>';
   
-  // ═══ 触发的证据链 ═══
-  var tc = (r.comprehensive||{}).triggered_chains||[];
-  if (tc.length > 0) {
-    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">触发的证据链 (' + tc.length + '条)</div>';
-    tc.forEach(function(chain) {
-      h += '<div style="border:1px solid '+S.border+';border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:11px">'
-        + '<span style="font-weight:700;color:'+S.accent+'">' + esc(chain.name) + '</span> '
-        + '<span style="color:'+S.muted+'">' + chain.hits + '/' + chain.steps + '步命中, '+chain.high_risk+'高风险</span>';
-      if (chain.tax_impacts && chain.tax_impacts.length) {
-        h += '<div style="margin-top:4px;color:#dc2626;font-size:10px">' + esc(chain.tax_impacts[0]||'') + '</div>';
-      }
-      h += '</div>';
-    });
-    h += '</div>';
-  }
-
-  // ═══ 推荐下一步调查 ═══
-  var rn = (r.comprehensive||{}).recommended_next||[];
-  if (rn.length > 0) {
-    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">推荐下一步调查 (' + rn.length + '条)</div>';
-    rn.forEach(function(rec) {
-      h += '<div style="border:1px solid '+S.border+';border-left:3px solid #2563eb;border-radius:4px;padding:12px 14px;margin-bottom:8px;background:#fff">'
-        + '<div style="font-weight:700;font-size:12px;color:'+S.accent+';margin-bottom:6px">' + esc(rec.chain_name) + ' — 已触发' + rec.triggered + '步, 剩余' + rec.remaining + '步待查</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      rec.next_steps.forEach(function(ns){
-        var dot = ns.level==='高风险'?'#dc2626':(ns.level==='中风险'?'#f59e0b':'#94a3b8');
-        h += '<span style="background:#eff6ff;padding:3px 10px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">' + esc(ns.step||ns.rule_item||'') + '</span>';
-      });
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-  
   // ── 二、稽查过程 ──
-  // ═══ 链驱动分析执行报告 ═══
-  var ce = (r.comprehensive||{}).chain_execution||[];
-  var ctc = (r.comprehensive||{}).chain_triggered_count||0;
-  var ctt = (r.comprehensive||{}).chain_total_count||0;
-  if (ce.length > 0) {
-    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">链驱动分析执行报告 ('+ctc+'/'+ctt+'条线索链触发)</div>';
-    ce.slice(0,15).forEach(function(cx){
-      var ratio = cx.triggered_ratio || 0;
-      var barColor = ratio>=50?'#059669':(ratio>=25?'#f59e0b':'#94a3b8');
-      h += '<div style="border:1px solid '+S.border+';border-radius:4px;padding:12px 14px;margin-bottom:8px;background:#fff">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        + '<span style="font-weight:700;font-size:12px;color:'+S.accent+'">'+esc(cx.chain_name)+'</span>'
-        + '<span style="font-size:10px;color:'+barColor+';font-weight:600">'+cx.triggered_steps+'/'+cx.total_steps+'步触发('+ratio+'%)</span></div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
-      cx.steps.forEach(function(st){
-        var dot = st.triggered?'#059669':'#cbd5e1';
-        var bg = st.triggered?'#f0fdf4':'#f8fafc';
-        var title = st.triggered?st.reason||'已触发':st.reason||'未触发';
-        h += '<span style="background:'+bg+';padding:3px 8px;border-radius:3px;font-size:9px;border-left:2px solid '+dot+';cursor:help" title="'+esc(title)+'">';
-        if (st.triggered) h += '✓ ';
-        h += esc(st.step||st.rule_item||'')+'</span>';
-      });
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-
-  // ═══ 证据链闭环检测 ═══
-  var ec = (r.comprehensive||{}).evidence_closures||[];
-  var ccc = (r.comprehensive||{}).closed_chain_count||0;
-  if (ec.length > 0) {
-    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">证据链闭环检测 ('+ccc+'条闭环/'+ec.length+'条触发)</div>';
-    ec.forEach(function(ex){
-      var closed = ex.closed;
-      var borderColor = closed?'#dc2626':'#f59e0b';
-      var bgColor = closed?'#fef2f2':'#fffbeb';
-      var badge = closed?'⚠ 违法事实闭环':'⚡ 部分触发';
-      var badgeColor = closed?'#dc2626':'#f59e0b';
-      h += '<div style="border:1px solid '+borderColor+';border-radius:4px;padding:12px 14px;margin-bottom:8px;background:'+bgColor+'">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        + '<span style="font-weight:700;font-size:12px;color:'+S.accent+'">'+esc(ex.chain_name)+'</span>'
-        + '<span style="font-size:10px;color:'+badgeColor+';font-weight:700">'+badge+' '+ex.triggered_steps+'/'+ex.total_steps+'('+ex.ratio+'%)</span></div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
-      ex.steps.forEach(function(st){
-        var dot = st.triggered?'#059669':'#cbd5e1';
-        var bg = st.triggered?'#f0fdf4':'#f8fafc';
-        h += '<span style="background:'+bg+';padding:3px 8px;border-radius:3px;font-size:9px;border-left:2px solid '+dot+'">';
-        if (st.triggered) h += '✓ ';
-        h += esc(st.rule_item||st.step)+'</span>';
-      });
-      h += '</div></div>';
-    });
-    h += '</div>';
-  }
-
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、稽查过程</div>';
   
   // 2a. 稽查方法
   var present = (r.comprehensive||{}).data_overview||{};
@@ -844,7 +755,20 @@ function renderAuditReport() {
     + '3. 穿透核验法：对供应商/客户进行身份核验，检查是否存在群集注册、异常关联等风险特征。<br>'
     + '4. 资金流追踪法：追踪大额、整数、非工作日交易，匹配资金流向与发票购销方的对应关系。<br>'
     + '5. 证据链串联法：将多域发现的孤立疑点串并为完整证据链，判断是否构成系统性违法行为。<br>'
-    + '<br>上述方法交叉运用，已有'+r.total_risks+'项疑点经多通道验证后形成实质性发现。</div></div>';
+    + '<br>上述方法交叉运用，已有'+r.total_risks+'项疑点经多通道验证后形成实质性发现。'
+    // 链驱动摘要（融入报告，不单独展示）
+    + '<br><span style="font-size:10px;color:'+S.muted+'">'
+    + '数据交叉验证：' + (r.rules_used||1499) + '条规则 × ' + ((r.comprehensive||{}).chain_total_count||0) + '条线索链驱动检查';
+    var ccc = (r.comprehensive||{}).closed_chain_count||0;
+    if (ccc > 0) h += '，其中' + ccc + '条证据链形成闭环';
+    var rn = (r.comprehensive||{}).recommended_next||[];
+    if (rn.length > 0) {
+      h += '<br>后续核查建议：';
+      rn.slice(0,3).forEach(function(rec,i){
+        h += (i>0?'、':'') + rec.chain_name;
+      });
+    }
+    h += '</span></div></div>';
   
   // 2b. 稽查线索链 —— 从跨域推理中提取
   var crossDomain = r.domain_summary.filter(function(dr){ return dr.name.indexOf('跨域')>=0; });
