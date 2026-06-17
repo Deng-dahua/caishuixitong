@@ -14464,8 +14464,12 @@ def _run_analyze(company_id, db):
                                 has_amount = any("amount_col" in r for r in col_roles.values())
                                 has_date = any("date_col" in r for r in col_roles.values())
                                 has_name = any("person_name" in r or "counterparty" in r for r in col_roles.values())
+                                # 检查表头是否有工资关键词
+                                hdr_text = " ".join(str(v) for v in _header)
+                                is_salary = any(k in hdr_text for k in ["工资","代扣社保","养老保险","本期收入","实发","个税","应纳税","累计收入","费用类型","所得项目"])
                                 inferred_type = "generic_data"
-                                if has_date and has_amount and has_name: inferred_type = "bank_statement"
+                                if is_salary: inferred_type = "salary"
+                                elif has_date and has_amount and has_name: inferred_type = "bank_statement"
                                 elif has_date and has_amount: inferred_type = "voucher"
                                 parsed = {"type": inferred_type, "rows": rows}
                                 fr["type"] = inferred_type
