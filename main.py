@@ -14387,6 +14387,7 @@ def _run_analyze(company_id, db):
     except: pass
 
     bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
+    contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
 
     for doc in docs:
@@ -14492,9 +14493,9 @@ def _run_analyze(company_id, db):
                             bank_txs.append(tx)
                         fr["actions"].append(f"提取{n}条流水")
                     elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
-                    elif ftype == "contract": fr["actions"].append(f"提取{n}份合同")
-                    elif ftype == "related_party": fr["actions"].append(f"提取{n}条关联交易")
-                    elif ftype == "trial_balance": fr["actions"].append(f"提取{n}条科目余额")
+                    elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份合同")
+                    elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
+                    elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":

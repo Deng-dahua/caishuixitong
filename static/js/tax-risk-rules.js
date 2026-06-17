@@ -1444,12 +1444,17 @@ function filterEvidence() {
           + '<div style="margin-top:2px;font-size:9px;color:#dc2626">'+(s.tax_impact||'').substring(0,80)+'</div>'
           + '</div></div>';
       });
-      // 反向索引：覆盖的规则数
+      // 反向索引：覆盖的规则数 + 质量分
       var rCount = c.covered_rule_count || c.steps;
       var relCount = c.related_chain_count || 0;
+      var qScore = c.quality_score || 0;
+      var qLabel = qScore>=15?'S':(qScore>=10?'A':(qScore>=7?'B':'C'));
+      var qColor = qScore>=15?'#059669':(qScore>=10?'#2563eb':(qScore>=7?'#f59e0b':'#94a3b8'));
       html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:9px;color:#94a3b8">'
+        + '<span style="background:'+qColor+'15;color:'+qColor+';padding:1px 6px;border-radius:2px;font-weight:700;margin-right:6px">'+qLabel+'</span>'
         + '覆盖规则: <b style="color:#1e293b">'+rCount+'条</b>';
       if (relCount > 0) html += ' | 关联链: <b style="color:#1e293b">'+relCount+'条</b>';
+      if (qScore) html += ' | 质量: <b style="color:'+qColor+'">'+qScore+'分</b>';
       html += '</div>';
       html += '</div>';
     });
