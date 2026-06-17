@@ -146,11 +146,11 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     // 子系统5
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #dc2626;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2464 \u6d89\u7a0e\u76f8\u5173\u6027\u8bc4\u5206</div>'
+    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2464 \u6d89\u7a0e\u76f8\u5173\u6027\u8bc4\u5206 + \u8d44\u6599\u5b8c\u5907\u6027\u68c0\u6d4b</div>'
     + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '\u626b\u63cf\u5217\u540d\u548c\u6570\u636e\u503c\uff0c\u81ea\u52a8\u5224\u65ad\u6587\u4ef6\u662f\u5426\u4e0e\u7a0e\u52a1\u76f8\u5173<br>'
     + '\u975e\u6d89\u7a0e\u6587\u4ef6\u81ea\u52a8\u6807\u6ce8\u201c\u65e0\u5173\u8d44\u6599\u201d<br>'
-    + '\u907f\u514d\u5408\u540c/\u901a\u77e5\u4e66/\u8bf4\u660e\u6587\u6863\u8bef\u5165\u5206\u6790\u6d41\u7a0b'
+    + '\u6709\u53d1\u7968/\u6d41\u6c34\u4f46\u65e0\u5e8f\u65f6\u8d26\u2192\u9ad8\u98ce\u9669\u9884\u8b66<br>'
+    + '\u7f3a\u51ed\u8bc1\u5bfc\u81f4\u5206\u6790\u76f2\u533a\uff1a\u6536\u5165\u786e\u8ba4/\u6210\u672c\u5339\u914d/\u5f80\u6765\u6838\u7b97'
     + '</div></div>'
     // 子系统6
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #0f172a;border-radius:6px;padding:14px;background:#fff">'

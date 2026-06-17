@@ -14391,6 +14391,56 @@ def _merge_city_findings(items, ftype, level, score):
         "domain": items[0].get("domain", "")
     }
 
+def _check_accounting_system_gap(invoices, bank_txs, vouchers):
+    """检测账务系统缺失风险"""
+    findings = []
+    has_inv = len(invoices) > 0
+    has_bank = len(bank_txs) > 0
+    has_voucher = len(vouchers) > 0
+    
+    if (has_inv or has_bank) and not has_voucher:
+        detail_parts = []
+        if has_inv: detail_parts.append(f"{len(invoices)}张发票")
+        if has_bank: detail_parts.append(f"{len(bank_txs)}条银行流水")
+        data_desc = "、".join(detail_parts)
+        
+        findings.append({
+            "type": "缺失序时账/会计凭证",
+            "level": "高风险",
+            "score": 9,
+            "detail": f"系统已加载{data_desc}，但未检测到序时账或记账凭证。无法验证账务处理的真实性和完整性。",
+            "description": (
+                "序时账（记账凭证）是税务稽查的核心资料，缺少凭证将导致以下风险无法排除：\n"
+                "1. 发票与账务脱节：无法确认发票是否已正确入账，是否存在'有票无账'或'有账无票'。\n"
+                "2. 收入隐匿风险：银行流水中的收款可能未在账务中确认收入，无法判断是否已纳税申报。\n"
+                "3. 成本真实性：进项发票对应的采购成本是否准确计入当期损益无法验证。\n"
+                "4. 科目余额无法追溯：缺少凭证使科目余额表的形成过程不可审计。\n"
+                "5. 跨期调节无法识别：无法判断企业是否通过跨期入账调节应纳税所得额。"
+            ),
+            "how_found": f"数据源检测：发票{len(invoices)}张 + 银行{len(bank_txs)}条 + 凭证{len(vouchers)}条 → 凭证缺口",
+            "tax_impact": (
+                "缺少凭证使所有账务分析结论存在重大不确定性。"
+                "收入确认、成本匹配、往来核算等核心税务判断无法通过账务交叉验证。"
+            ),
+            "policy_ref": "《税收征收管理法》第十九条、第二十四条；《会计法》第九条；《税务稽查工作规程》",
+            "suggestion": (
+                "必须要求企业提供完整的序时账（Excel格式）。\n"
+                "立即核实：① 发票是否全部入账 ② 银行收款是否已确认收入并申报纳税 "
+                "③ 进项发票是否已计入成本费用 ④ 是否存在跨年度调节利润"
+            ),
+            "category": "账务系统",
+        })
+        
+        findings.append({
+            "type": "凭证缺失导致的分析盲区",
+            "level": "中风险",
+            "score": 7,
+            "detail": "因缺少序时账，以下分析领域受限：收入确认、成本匹配、往来核算、科目追溯、跨期识别。当前分析仅基于发票和银行流水，结论存在重大不确定性。",
+            "category": "账务系统",
+        })
+    
+    return findings if findings else None
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
