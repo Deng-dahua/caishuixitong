@@ -45,6 +45,7 @@ class Company(Base):
     address = Column(String(200), comment="注册地址")
     business_scope = Column(Text, comment="经营范围")
     company_type = Column(String(20), comment="公司类型")
+    industry_code = Column(String(30), comment="行业代码(manufacturing/commerce/construction/real_estate/service/technology/catering/logistics/agriculture)")
     created_at = Column(DateTime, default=datetime.now)
 
     shareholders = relationship("CompanyShareholder", back_populates="company", cascade="all, delete-orphan")
@@ -4489,6 +4490,34 @@ def init_db():
 
         db.commit()
         print(f"数据库初始化完成（{len(companies)} 家公司）")
+
+        # 初始化审计日志表
+        try:
+            db.execute(TextClause("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER,
+                    user_name TEXT,
+                    action TEXT NOT NULL,
+                    target TEXT,
+                    detail TEXT,
+                    created_at TEXT
+                )
+            """))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # 为已有公司自动识别行业
+        for company in companies:
+            if not company.industry_code and company.business_scope:
+                try:
+                    from audit_enhancements import detect_industry
+                    company.industry_code = detect_industry(company.business_scope)
+                    db.commit()
+                except Exception:
+                    pass
+
     except Exception as e:
         db.rollback()
         print(f"初始化错误: {e}")

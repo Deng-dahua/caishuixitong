@@ -196,7 +196,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==================== 文件上传安全常数 (P2-4/5) ====================
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt'}
+ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt', '.docx', '.doc'}
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 
 def _validate_upload(file: UploadFile):
     """验证上传文件大小和扩展名"""
@@ -2215,6 +2216,31 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
         from database import VATDeclaration
         db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).delete()
     # 7. 字典表（不按company_id隔离，跳过）
+    # 7.5 V15新增：清理涉税资料上传文件
+    try:
+        import glob
+        upload_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
+        if os.path.isdir(upload_dir):
+            for f in glob.glob(os.path.join(upload_dir, f"{company_id}_*")):
+                os.remove(f)
+        transfer_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
+        if os.path.isdir(transfer_dir):
+            for f in glob.glob(os.path.join(transfer_dir, f"{company_id}_*")):
+                os.remove(f)
+    except Exception:
+        pass
+    # 7.6 V15新增：清理其他子模块表
+    try:
+        from database import SocialSecurityDeclaration, SocialSecurityDetail
+        from database import HousingFundDetail, HousingFundDeclaration
+        from database import CulturalConstructionFeeDeclaration
+        db.query(SocialSecurityDeclaration).filter(SocialSecurityDeclaration.company_id == company_id).delete()
+        db.query(SocialSecurityDetail).filter(SocialSecurityDetail.company_id == company_id).delete()
+        db.query(HousingFundDetail).filter(HousingFundDetail.company_id == company_id).delete()
+        db.query(HousingFundDeclaration).filter(HousingFundDeclaration.company_id == company_id).delete()
+        db.query(CulturalConstructionFeeDeclaration).filter(CulturalConstructionFeeDeclaration.company_id == company_id).delete()
+    except Exception:
+        pass
     # 8. 终删公司
     db.delete(company)
     db.commit()
@@ -9825,8 +9851,24 @@ async def upload_tax_risk_docs(
     files: list[UploadFile] = File(...),
     company_id: int = Query(...),
 ):
-    """上传涉税分析资料（支持多文件，同公司MD5去重）"""
+    """上传涉税分析资料（支持多文件，同公司MD5去重）
+    V15: 增加Word/图片格式支持 + 安全验证"""
     import hashlib
+    # V15: 安全验证 — 文件类型和大小
+    all_allowed = ALLOWED_EXTENSIONS | ALLOWED_IMAGE_EXTENSIONS
+    validated_files = []
+    rejected = []
+    for f in files:
+        ext = os.path.splitext(f.filename or '')[1].lower()
+        if ext not in all_allowed:
+            rejected.append({"filename": f.filename, "reason": f"不支持的文件类型: {ext}"})
+            continue
+        validated_files.append(f)
+    if not validated_files:
+        return {"ok": False, "error": "没有有效的文件", "rejected": rejected}
+
+    files = validated_files
+
     # 计算已有文件的MD5集合——仅限当前公司
     existing_hashes = set()
     # 从磁盘扫描（仅当前公司的文件）
@@ -9845,6 +9887,10 @@ async def upload_tax_risk_docs(
     skipped = 0
     for f in files:
         content = await f.read()
+        # V15: 大小验证
+        if len(content) > MAX_UPLOAD_SIZE:
+            rejected.append({"filename": f.filename, "reason": f"文件超过{MAX_UPLOAD_SIZE // 1024 // 1024}MB限制"})
+            continue
         md5 = hashlib.md5(content).hexdigest()
         if md5 in existing_hashes:
             skipped += 1
@@ -9868,7 +9914,8 @@ async def upload_tax_risk_docs(
 
     msg = f"已上传 {len(uploaded)} 个文件"
     if skipped > 0: msg += f"，跳过 {skipped} 个重复文件"
-    return {"ok": True, "uploaded": uploaded, "skipped": skipped, "total": len(_tax_risk_docs), "message": msg}
+    if rejected: msg += f"，拒绝 {len(rejected)} 个无效文件"
+    return {"ok": True, "uploaded": uploaded, "skipped": skipped, "rejected": rejected, "total": len(_tax_risk_docs), "message": msg}
 
 
 @app.get("/api/tax-risk-docs/list")
@@ -16914,7 +16961,6 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 
 
 @app.post("/api/tax-risk-docs/analyze")
-@app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
     """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
     return _run_analyze(company_id, db)
@@ -16947,4 +16993,184 @@ async def add_cache_headers(request, call_next):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
+
+# ═══════════════════════════════════════════════════════════════
+#  V15新增端点：OCR / Word解析 / 审计日志 / 行业更新 / 数据脱敏
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/api/tax-risk-docs/ocr")
+async def ocr_scan_document(
+    file: UploadFile = File(...),
+    company_id: int = Query(...),
+):
+    """OCR识别扫描件PDF/图片，返回提取的文本内容
+    V15: 支持扫描件PDF、JPG/PNG/BMP/TIFF图片"""
+    ext = os.path.splitext(file.filename or '')[1].lower()
+    all_allowed = ALLOWED_EXTENSIONS | ALLOWED_IMAGE_EXTENSIONS
+    if ext not in all_allowed:
+        raise HTTPException(400, f"不支持的文件类型: {ext}")
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(400, f"文件超过{MAX_UPLOAD_SIZE // 1024 // 1024}MB限制")
+
+    extracted_text = ""
+
+    if ext == '.pdf':
+        # 尝试文本提取
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(content))
+            for page in reader.pages:
+                page_text = page.extract_text() or ""
+                extracted_text += page_text + "\n"
+        except Exception:
+            pass
+
+        # 如果文本提取结果太少（扫描件），尝试OCR
+        if len(extracted_text.strip()) < 50:
+            ocr_text = _try_ocr_pdf(content)
+            if ocr_text:
+                extracted_text = ocr_text
+
+    elif ext in ('.jpg', '.jpeg', '.png', '.bmp', '.tiff'):
+        # 图片直接OCR
+        ocr_text = _try_ocr_image(content)
+        if ocr_text:
+            extracted_text = ocr_text
+
+    elif ext in ('.docx', '.doc'):
+        # Word文档
+        extracted_text = _extract_word_text(content, ext)
+
+    elif ext == '.txt':
+        extracted_text = content.decode('utf-8', errors='ignore')
+
+    if not extracted_text.strip():
+        return {"ok": False, "error": "无法提取文本内容，可能是扫描件且OCR不可用。请安装OCR依赖：pip install pytesseract Pillow pdf2image", "text": ""}
+
+    return {"ok": True, "filename": file.filename, "text": extracted_text[:10000], "char_count": len(extracted_text)}
+
+
+def _try_ocr_pdf(content: bytes) -> str:
+    """尝试对PDF进行OCR"""
+    try:
+        import pytesseract
+        from pdf2image import convert_from_bytes
+        from PIL import Image
+        images = convert_from_bytes(content, dpi=200, first_page=1, last_page=5)  # 限制前5页
+        text = ""
+        for img in images:
+            text += pytesseract.image_to_string(img, lang='chi_sim+eng') + "\n"
+        return text
+    except ImportError:
+        return ""
+    except Exception:
+        return ""
+
+
+def _try_ocr_image(content: bytes) -> str:
+    """尝试对图片进行OCR"""
+    try:
+        import pytesseract
+        from PIL import Image
+        img = Image.open(io.BytesIO(content))
+        return pytesseract.image_to_string(img, lang='chi_sim+eng')
+    except ImportError:
+        return ""
+    except Exception:
+        return ""
+
+
+def _extract_word_text(content: bytes, ext: str) -> str:
+    """提取Word文档文本"""
+    try:
+        from docx import Document
+        doc = Document(io.BytesIO(content))
+        text = ""
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+        # 提取表格内容
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    text += cell.text + "\t"
+                text += "\n"
+        return text
+    except ImportError:
+        return "（需安装python-docx：pip install python-docx）"
+    except Exception:
+        return ""
+
+
+@app.get("/api/audit-logs")
+def get_audit_logs(
+    company_id: int = Query(None),
+    limit: int = Query(100),
+    db: Session = Depends(get_db)
+):
+    """查询操作审计日志"""
+    from sqlalchemy import text as TextClause
+    try:
+        if company_id:
+            rows = db.execute(TextClause(
+                "SELECT * FROM audit_logs WHERE company_id = :cid ORDER BY created_at DESC LIMIT :lim"
+            ), {"cid": company_id, "lim": limit}).fetchall()
+        else:
+            rows = db.execute(TextClause(
+                "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT :lim"
+            ), {"lim": limit}).fetchall()
+        return {"ok": True, "logs": [
+            {"id": r[0], "company_id": r[1], "user_name": r[2], "action": r[3],
+             "target": r[4], "detail": r[5], "created_at": r[6]}
+            for r in rows
+        ]}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "logs": []}
+
+
+@app.put("/api/companies/{company_id}/industry")
+def update_company_industry(
+    company_id: int,
+    industry: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """更新公司行业分类"""
+    from audit_enhancements import INDUSTRY_KEYWORD_MAP
+    valid_industries = list(INDUSTRY_KEYWORD_MAP.keys())
+    if industry not in valid_industries:
+        raise HTTPException(400, f"无效的行业代码，可选: {', '.join(valid_industries)}")
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(404, "公司不存在")
+    company.industry_code = industry
+    db.commit()
+    return {"ok": True, "message": f"行业已更新为: {industry}", "industry": industry}
+
+
+@app.post("/api/companies/{company_id}/auto-detect-industry")
+def auto_detect_industry(company_id: int, db: Session = Depends(get_db)):
+    """根据经营范围自动识别行业"""
+    from audit_enhancements import detect_industry
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(404, "公司不存在")
+    industry = detect_industry(company.business_scope or "")
+    company.industry_code = industry
+    db.commit()
+    return {"ok": True, "industry": industry, "message": f"自动识别行业为: {industry}"}
+
+
+@app.get("/api/industries")
+def list_industries():
+    """列出所有支持的行业分类"""
+    from audit_enhancements import INDUSTRY_BENCHMARKS
+    return {"industries": [
+        {"code": k, "name": v["name"],
+         "vat_burden_range": f"{v['vat_burden_min']}-{v['vat_burden_max']}%",
+         "gross_margin_range": f"{v['gross_margin_min']}-{v['gross_margin_max']}%",
+         "special_risks": v["special_risks"]}
+        for k, v in INDUSTRY_BENCHMARKS.items()
+    ]}
 

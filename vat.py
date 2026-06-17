@@ -209,7 +209,7 @@ def _validate_small_micro_enterprise(db: Session, company_id: int, period: str) 
 
 
 @router.get("/check-micro-enterprise")
-def check_micro_enterprise(company_id: int = Query(), period: str = Query(), db: Session = Depends(get_db)):
+def check_micro_enterprise(company_id: int = Query(...), period: str = Query(...), db: Session = Depends(get_db)):
     """预校验：创建申报表前先查看是否符合小型微利企业标准"""
     return _validate_small_micro_enterprise(db, company_id, period)
 
@@ -226,7 +226,7 @@ class VATDeclarationCreate(BaseModel):
 
 
 @router.post("/declarations")
-def create_vat_declaration(data: VATDeclarationCreate, company_id: int = Query(), db: Session = Depends(get_db)):
+def create_vat_declaration(data: VATDeclarationCreate, company_id: int = Query(...), db: Session = Depends(get_db)):
     period = data.period
     if not period:
         raise HTTPException(400, detail="税款所属期不能为空")
@@ -285,7 +285,7 @@ def create_vat_declaration(data: VATDeclarationCreate, company_id: int = Query()
 
 
 @router.get("/declarations/{declaration_id}")
-def get_vat_declaration(declaration_id: int, company_id: int = Query(), db: Session = Depends(get_db)):
+def get_vat_declaration(declaration_id: int, company_id: int = Query(...), db: Session = Depends(get_db)):
     vd = db.query(VATDeclaration).filter(VATDeclaration.id == declaration_id, VATDeclaration.company_id == company_id).first()
     if not vd:
         raise HTTPException(404, detail="申报表不存在")
@@ -317,7 +317,7 @@ def get_vat_declaration(declaration_id: int, company_id: int = Query(), db: Sess
 
 
 @router.put("/declarations/{declaration_id}")
-def update_vat_declaration(declaration_id: int, data: dict, company_id: int = Query(), db: Session = Depends(get_db)):
+def update_vat_declaration(declaration_id: int, data: dict, company_id: int = Query(...), db: Session = Depends(get_db)):
     vd = db.query(VATDeclaration).filter(VATDeclaration.id == declaration_id, VATDeclaration.company_id == company_id).first()
     if not vd:
         raise HTTPException(404, detail="申报表不存在")
@@ -339,7 +339,7 @@ def update_vat_declaration(declaration_id: int, data: dict, company_id: int = Qu
 
 
 @router.delete("/declarations/{declaration_id}")
-def delete_vat_declaration(declaration_id: int, company_id: int = Query(), db: Session = Depends(get_db)):
+def delete_vat_declaration(declaration_id: int, company_id: int = Query(...), db: Session = Depends(get_db)):
     vd = db.query(VATDeclaration).filter(VATDeclaration.id == declaration_id, VATDeclaration.company_id == company_id).first()
     if not vd:
         raise HTTPException(404, detail="申报表不存在")
@@ -349,7 +349,7 @@ def delete_vat_declaration(declaration_id: int, company_id: int = Query(), db: S
 
 
 @router.post("/declarations/{declaration_id}/recompute")
-def recompute_vat_declaration(declaration_id: int, company_id: int = Query(), db: Session = Depends(get_db)):
+def recompute_vat_declaration(declaration_id: int, company_id: int = Query(...), db: Session = Depends(get_db)):
     vd = db.query(VATDeclaration).filter(VATDeclaration.id == declaration_id, VATDeclaration.company_id == company_id).first()
     if not vd:
         raise HTTPException(404, detail="申报表不存在")
@@ -359,7 +359,7 @@ def recompute_vat_declaration(declaration_id: int, company_id: int = Query(), db
 
 
 @router.get("/prior-data")
-def get_prior_period_data(company_id: int = Query(), period: str = Query(...), db: Session = Depends(get_db)):
+def get_prior_period_data(company_id: int = Query(...), period: str = Query(...), db: Session = Depends(get_db)):
     """获取上期申报表数据，供主表第13行(上期留抵税额)和第25行(期初未缴税额)自动填列。
     
     取数逻辑：

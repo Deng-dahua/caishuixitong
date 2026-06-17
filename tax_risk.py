@@ -44,6 +44,12 @@ from database import FixedAsset, IntangibleAsset
 from database import Customer, Supplier, Employee, Contract, ContractPayment, Payment
 from database import InventoryTransaction, InventoryBalance, InventoryItem
 from database import SocialSecurityDeclaration, HousingFundDeclaration
+from audit_enhancements import (
+    generate_material_gap_report, assess_data_quality,
+    check_analysis_data_availability, enhance_evidence_summary,
+    detect_industry, analyze_industry_specific_risks, get_industry_benchmark,
+    generate_audit_working_paper
+)
 
 router = APIRouter(prefix="/api/tax-risk", tags=["涉税风险分析"])
 
@@ -911,6 +917,7 @@ def get_tax_risk_report(
             "good_count": 0,
             "overall_risk_level": None,
             "summary": "该公司暂无业务数据（序时账/发票/银行流水/合同/员工/资产均无记录），无法进行涉税风险分析。",
+            "data_quality": {"total_score": 0, "level": "严重不足", "warnings": ["无任何业务数据"]},
         }
 
     if period_from and period_to:
@@ -930,6 +937,21 @@ def get_tax_risk_report(
             period_start = f"{y}-{m:02d}"
         else:
             period_start = period_end = date.today().strftime("%Y-%m")
+
+    # ── V15新增：数据质量评分前置环节 ──
+    data_quality = assess_data_quality(db, company_id, period_start, period_end)
+
+    # ── V15新增：分析受限说明 — 检测因资料不足无法执行的分析 ──
+    restricted_analyses = check_analysis_data_availability(db, company_id, period_start, period_end)
+
+    # ── V15新增：行业自适应 — 自动识别行业并加载行业基准 ──
+    company = db.query(Company).filter(Company.id == company_id).first()
+    industry = getattr(company, "industry_code", None) if company else None
+    if not industry and company and company.business_scope:
+        industry = detect_industry(company.business_scope)
+    elif not industry:
+        industry = "manufacturing"
+    industry_benchmark = get_industry_benchmark(industry)
 
     # ── 23 个基础分析维度 ──
     _analyze_accounting(db, company_id, period_start, period_end, results)
@@ -1085,6 +1107,24 @@ def get_tax_risk_report(
     _analyze_tax_base_cross_check(db, company_id, period_start, period_end, results)
     _analyze_energy_revenue_ratio(db, company_id, period_start, period_end, results)
 
+    # ── V15新增：行业自适应风险分析 ──
+    industry_results = analyze_industry_specific_risks(db, company_id, industry, period_start, period_end)
+    results.extend(industry_results)
+
+    # ── V15新增：将分析受限说明作为特殊结果项加入 ──
+    for restricted in restricted_analyses:
+        results.append({
+            "category": "分析受限", "category_icon": "⚠️",
+            "risk_score": 0, "risk_level": "信息",
+            "risk_color": "#6b7280", "urgency": "信息",
+            "item": f"分析受限：{restricted['display_name']}",
+            "detail": f"因缺少{restricted['missing_sources_text']}资料，该分析维度无法执行。请补充相关资料后重新分析。",
+            "suggestion": f"上传{restricted['missing_sources_text']}相关资料，系统将自动执行该分析维度。",
+            "required_evidence": [],
+            "is_restricted": True,
+            "missing_sources": restricted["missing_sources"],
+        })
+
     # ── 【核心】加载用户规则并应用覆盖 ──
     rules = _load_saved_rules()
     rules_applied = False
@@ -1110,13 +1150,26 @@ def get_tax_risk_report(
     cost_debit = _get_account_sum(db, company_id, "6401", period_start, period_end, "debit")
     vat_total = _vat_payable_sum(db, company_id, period_start, period_end)
 
+    # ── V15新增：增强 evidence_summary 与已上传文件比对 ──
+    evidence_summary = _build_evidence_summary(results)
+    evidence_summary = enhance_evidence_summary(evidence_summary, company_id)
+
     return {
         "company_id": company_id,
         "period_start": period_start, "period_end": period_end,
+        "industry": industry,
+        "industry_benchmark": {
+            "name": industry_benchmark["name"],
+            "vat_burden_range": f"{industry_benchmark['vat_burden_min']}-{industry_benchmark['vat_burden_max']}%",
+            "gross_margin_range": f"{industry_benchmark['gross_margin_min']}-{industry_benchmark['gross_margin_max']}%",
+        },
+        "data_quality": data_quality,
+        "restricted_analyses": restricted_analyses,
         "summary": {
             "total_items": len(results),
             "high_risk_count": high_count, "mid_risk_count": mid_count,
             "low_risk_count": low_count, "good_count": good_count,
+            "restricted_count": len(restricted_analyses),
             "overall_risk_score": total_score,
             "overall_risk_level": (
                 "高风险" if total_score >= 60 else
@@ -1132,7 +1185,7 @@ def get_tax_risk_report(
         },
         "rules_applied": rules_applied,
         "rules_count": rules_count,
-        "required_evidence_summary": _build_evidence_summary(results),
+        "required_evidence_summary": evidence_summary,
         "results": results
     }
 
@@ -1287,6 +1340,84 @@ def download_tax_risk_report(
         return _download_pptx(data)
     else:
         return {"error": f"不支持的格式: {format}，请使用 pdf/docx/pptx"}
+
+
+# ═══════════════════════════════════════════════════════════════
+#  V15新增：资料缺口报告 API
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/material-gap-report")
+def get_material_gap_report(
+    company_id: int = Query(...),
+    period_from: str = Query(None),
+    period_to: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """资料缺口报告 — 已提交 vs 应提交资料对比 + 缺失清单 + 补充通知书"""
+    ps = _normalize_period(period_from) if period_from else ""
+    pe = _normalize_period(period_to) if period_to else ""
+    return generate_material_gap_report(db, company_id, ps, pe)
+
+
+@router.get("/material-gap-report/download")
+def download_material_gap_report(
+    company_id: int = Query(...),
+    period_from: str = Query(None),
+    period_to: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """下载资料缺口报告（补充通知书）为文本文件"""
+    ps = _normalize_period(period_from) if period_from else ""
+    pe = _normalize_period(period_to) if period_to else ""
+    report = generate_material_gap_report(db, company_id, ps, pe)
+    content = report.get("supplement_notice", "无内容")
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=material_supplement_notice_{company_id}.txt"}
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+#  V15新增：稽查工作底稿导出
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/working-paper/download")
+def download_working_paper(
+    company_id: int = Query(...),
+    period_from: str = Query(None),
+    period_to: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """导出稽查工作底稿（HTML格式，可打印为PDF）"""
+    data = get_tax_risk_report(company_id=company_id, period_from=period_from, period_to=period_to, db=db)
+    ps = data.get("period_start", "")
+    pe = data.get("period_end", "")
+    company = db.query(Company).filter(Company.id == company_id).first()
+    company_name = company.name if company else f"公司{company_id}"
+    html = generate_audit_working_paper(db, company_id, ps, pe, data.get("results", []), company_name)
+    return Response(
+        content=html.encode("utf-8"),
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=audit_working_paper_{company_id}.html"}
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+#  V15新增：数据质量评分 API
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/data-quality")
+def get_data_quality(
+    company_id: int = Query(...),
+    period_from: str = Query(None),
+    period_to: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """数据质量评分 — 在生成报告前评估数据质量"""
+    ps = _normalize_period(period_from) if period_from else date.today().strftime("%Y-%m")
+    pe = _normalize_period(period_to) if period_to else date.today().strftime("%Y-%m")
+    return assess_data_quality(db, company_id, ps, pe)
 
 
 def _download_pdf(data):
@@ -10794,38 +10925,62 @@ def _analyze_invoice_time_concentration(db, company_id, ps, pe, results):
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_document_completeness(db, company_id, ps, pe, results):
-    """ID 218: 资料完备度"""
-    checks = {
-        "银行流水": db.query(BankTransaction).filter(BankTransaction.company_id == company_id).first(),
-        "销项发票": db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).first(),
-        "进项发票": db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).first(),
-        "记账凭证": db.query(JournalEntry).filter(JournalEntry.company_id == company_id).first(),
+    """ID 218: 资料完备度 — V15升级为完整度评分（数据量/时间覆盖/逻辑一致三维度）"""
+    from audit_enhancements import detect_submitted_materials
+    submitted = detect_submitted_materials(db, company_id, ps, pe)
+
+    # 评估各资料完整度
+    doc_status = {}
+    missing = []
+    insufficient = []
+    sufficient = []
+
+    for name, info in submitted.items():
+        status = info.get("completeness", "缺失")
+        doc_status[name] = info
+        if not info.get("exists", False):
+            missing.append(name)
+        elif status in ("不足", "缺失"):
+            insufficient.append(f"{name}（{info.get('record_count', 0)}条）")
+        else:
+            sufficient.append(name)
+
+    # 额外检查合同/固定资产/无形资产
+    extra_checks = {
+        "合同": db.query(Contract).filter(Contract.company_id == company_id).first() is not None,
+        "固定资产": db.query(FixedAsset).filter(FixedAsset.company_id == company_id).first() is not None,
+        "无形资产": db.query(IntangibleAsset).filter(IntangibleAsset.company_id == company_id).first() is not None,
     }
-    has_salary = db.query(SalaryRecord).filter(SalaryRecord.company_id == company_id).first() is not None
-    has_ss = db.query(SocialSecurityDetail).first() is not None
-    has_contract = db.query(Contract).filter(Contract.company_id == company_id).first() is not None
-    has_inv = db.query(JournalEntry.account_name).filter(
-        JournalEntry.company_id == company_id,
-        JournalEntry.account_name.contains("库存")
-    ).first() is not None
+    for name, exists in extra_checks.items():
+        if not exists and name not in doc_status:
+            missing.append(name)
+        doc_status[name] = {"exists": exists, "completeness": "充足" if exists else "缺失"}
 
-    doc_status = {"银行流水": checks["银行流水"] is not None, "销项发票": checks["销项发票"] is not None,
-        "进项发票": checks["进项发票"] is not None, "记账凭证": checks["记账凭证"] is not None,
-        "工资表": has_salary, "社保明细": has_ss, "合同": has_contract, "进销存台账": has_inv}
-    present = [k for k, v in doc_status.items() if v]
-    missing = [k for k, v in doc_status.items() if not v]
+    present = [k for k, v in doc_status.items() if v.get("exists")]
+    all_missing = [m for m in missing if m not in present]
 
-    if missing:
+    if all_missing:
         results.append({
             "category": "资料完备度", "category_icon": "📁",
-            "risk_score": min(5 + len(missing), 10),
-            "risk_level": "高风险" if len(missing) >= 3 else "中风险",
-            "risk_color": "#dc2626" if len(missing) >= 3 else "#f59e0b",
-            "urgency": "紧急" if len(missing) >= 3 else "重要",
+            "risk_score": min(5 + len(all_missing), 10),
+            "risk_level": "高风险" if len(all_missing) >= 3 else "中风险",
+            "risk_color": "#dc2626" if len(all_missing) >= 3 else "#f59e0b",
+            "urgency": "紧急" if len(all_missing) >= 3 else "重要",
             "item": "关键经营资料缺失",
-            "detail": f"系统中有{'、'.join(present)}等{len(present)}类资料，缺少{'、'.join(missing)}等{len(missing)}类。稽查时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
-            "suggestion": "、".join([f"补充{m}资料" for m in missing]) + "。按稽查必查清单提前归档全部经营资料。",
+            "detail": f"系统中有{'、'.join(present[:5])}等{len(present)}类资料，缺少{'、'.join(all_missing)}等{len(all_missing)}类。稽查时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
+            "suggestion": "、".join([f"补充{m}资料" for m in all_missing]) + "。按稽查必查清单提前归档全部经营资料。可通过「资料缺口报告」查看完整清单。",
             "required_evidence": ["已提交资料清单", "缺失资料列表", "稽查必查资料对照表"],
+        })
+
+    if insufficient:
+        results.append({
+            "category": "资料完备度", "category_icon": "📁",
+            "risk_score": 5, "risk_level": "中风险",
+            "risk_color": "#f59e0b", "urgency": "重要",
+            "item": "部分资料数据量不足",
+            "detail": f"以下资料已提交但数据量偏少，可能不完整：{'；'.join(insufficient)}。数据量不足会影响分析准确性。",
+            "suggestion": "补充上述资料的完整期间数据，确保覆盖全部稽查期间。",
+            "required_evidence": ["完整期间资料数据"],
         })
 
 
