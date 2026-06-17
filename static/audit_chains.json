@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-06-17",
-  "total_chains": 580,
+  "total_chains": 581,
   "chains": [
     {
       "name": "隐匿收入-第三方收款",
@@ -49516,8 +49516,60 @@
       "covered_rule_count": 4,
       "related_chains": [],
       "related_chain_count": 0
+    },
+    {
+      "name": "证据链-最终补链",
+      "chain_type": "证据链",
+      "steps": 3,
+      "high_risk_steps": 1,
+      "cross_category": false,
+      "policies": [],
+      "tax_impacts": [],
+      "covered_rule_ids": [
+        173,
+        1421,
+        1474
+      ],
+      "covered_rule_count": 3,
+      "related_chains": [],
+      "related_chain_count": 0,
+      "investigation_path": [
+        {
+          "step": "特定业务发票备注",
+          "rule_id": 173,
+          "rule_item": "特定业务发票备注栏可能未按要求填写",
+          "level": "低风险",
+          "score": 4,
+          "detail": "特定业务的发票备注栏有法定填写要求（如建筑服务-项目名称+地址、运输服务-起运地+到达地+车号、不动产租赁-不动产详细地址等），填写不全可能影响受票方抵扣和税前扣除。",
+          "policy_ref": "《税收征收管理法》",
+          "tax_impact": "补税+滞纳金+罚款",
+          "suggestion": "按税法要求规范填写特定业务发票的备注栏：建筑服务、运输服务、不动产销售/租赁、保险代收车船税等业务必须填写规定的备注信息。对已开具但备注不全的发票，作废重开。"
+        },
+        {
+          "step": "向关联方大额支付",
+          "rule_id": 1421,
+          "rule_item": "向关联方大额支付",
+          "level": "高风险",
+          "score": 8,
+          "detail": "向关联方支付大额款项但缺乏商业实质的合同支持，可能通过关联方进行利益输送或虚开发票。",
+          "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
+          "tax_impact": "补税+滞纳金+罚款",
+          "suggestion": "核实并整改相关问题，保留整改记录。"
+        },
+        {
+          "step": "跨区划调整税务处",
+          "rule_id": 1474,
+          "rule_item": "跨区划调整税务处理",
+          "level": "中风险",
+          "score": 6,
+          "detail": "企业注册地或经营地进行区划调整后未及时办理税务变更登记。",
+          "policy_ref": "《税收征收管理法》《企业所得税法》《增值税暂行条例》",
+          "tax_impact": "补税+滞纳金+罚款",
+          "suggestion": "核实并整改相关问题，保留整改记录。"
+        }
+      ]
     }
   ],
   "trail_chains": 347,
-  "evidence_chains": 233
+  "evidence_chains": 234
 }
