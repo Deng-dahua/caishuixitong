@@ -9482,6 +9482,15 @@ def _recover_tax_risk_docs():
         if doc_id >= _tax_doc_counter[0]:
             _tax_doc_counter[0] = doc_id
 
+    # 去重：同一 id + original_name 只保留一条
+    seen = set()
+    unique = []
+    for d in _tax_risk_docs:
+        key = (d["id"], d["original_name"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(d)
+    _tax_risk_docs[:] = unique
 
 _recover_tax_risk_docs()
 
@@ -9867,10 +9876,18 @@ def list_tax_risk_docs(company_id: int = Query(...)):
     # 每次请求时从磁盘重扫描（确保新文件被识别）
     global _TAX_DOC_SCANNED, _tax_risk_docs
     _TAX_DOC_SCANNED = False
-    _init_tax_docs_from_disk()
+    _recover_tax_risk_docs()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
+    # 去重：同一 original_name 只保留一条
+    seen = set()
+    unique = []
+    for d in docs:
+        key = (d["id"], d["original_name"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(d)
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
-             "uploaded_at": d["uploaded_at"]} for d in docs]
+             "uploaded_at": d["uploaded_at"]} for d in unique]
 
 
 @app.delete("/api/tax-risk-docs/{doc_id}")
