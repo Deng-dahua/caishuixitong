@@ -107,7 +107,7 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
     + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u5168\u94fe\u8def\u5f15\u64ce\u67b6\u6784\uff09 <strong>1499/\u7ebf420/\u8bc1735</strong></span></h3></div>'
+    + '<div class="display-panel-header"><h3>\u4e00\u952e\u5206\u6790 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u5168\u94fe\u8def\u5f15\u64ce\u67b6\u6784\uff09 <strong>1499/\u7ebf382/\u8bc1735</strong></span></h3></div>'
     + '<div class="display-panel-body" style="padding:16px;font-size:12px;color:#475569;line-height:1.9">'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
     // 子系统1
@@ -156,7 +156,7 @@ function renderTaxRiskRules(container) {
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #0f172a;border-radius:6px;padding:14px;background:#fff">'
     + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2465 \u89c4\u5219\u5f15\u64ce + \u7ebf\u7d22\u94fe/\u8bc1\u636e\u94fe</div>'
     + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '1499\u6761\u7a3d\u67e5\u6307\u4ee4 + 420\u6761\u624b\u5199\u7ebf\u7d22\u94fe + 735\u6761\u5b50\u4e3b\u9898\u8bc1\u636e\u94fe<br>'
+    + '1499\u6761\u7a3d\u67e5\u6307\u4ee4 + 382\u6761\u624b\u5199\u7ebf\u7d22\u94fe + 735\u6761\u5b50\u4e3b\u9898\u8bc1\u636e\u94fe<br>'
     + '\u89c4\u5219\u2192\u7ebf\u7d22\u94fe\u2192\u8bc1\u636e\u94fe\u4e09\u5c42\u76f4\u8fde\uff0c\u53d1\u73b0\u81ea\u52a8\u5339\u914d\u8bc1\u636e\u94fe<br>'
     + '\u524d20\u5b57\u76f8\u540c\u7684\u53d1\u73b0\u81ea\u52a8\u5408\u5e76\uff0c\u907f\u514d\u591a\u57df\u91cd\u590d'
     + '</div></div>'
@@ -172,7 +172,7 @@ function renderTaxRiskRules(container) {
     // 统计总览
     + '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
     + '<span style="background:#eff6ff;border:1px solid #bfdbfe;padding:6px 14px;border-radius:4px;font-size:11px;color:#1e40af"><b>1499</b> \u6761\u89c4\u5219</span>'
-    + '<span style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 14px;border-radius:4px;font-size:11px;color:#166534"><b>420</b> \u6761\u7ebf\u7d22\u94fe</span>'
+    + '<span style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 14px;border-radius:4px;font-size:11px;color:#166534"><b>382</b> \u6761\u7ebf\u7d22\u94fe</span>'
     + '<span style="background:#fef3c7;border:1px solid #fde68a;padding:6px 14px;border-radius:4px;font-size:11px;color:#92400e"><b>735</b> \u6761\u8bc1\u636e\u94fe</span>'
     + '<span style="background:#f3f4f6;border:1px solid #d1d5db;padding:6px 14px;border-radius:4px;font-size:11px;color:#374151">100%\u8986\u76d6</span>'
     + '<span style="background:#ede9fe;border:1px solid #c4b5fd;padding:6px 14px;border-radius:4px;font-size:11px;color:#6d28d9"><b>13.2</b> \u5e73\u5747\u8d28\u91cf\u5206</span>'
