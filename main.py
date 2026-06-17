@@ -14293,16 +14293,19 @@ def _run_analyze(company_id, db):
                         # 银行流水→标准化后加入bank_txs
                         for r in parsed["rows"]:
                             tx = dict(r)
-                            tx.setdefault("date", tx.get("交易日期", tx.get("date", "")))
-                            tx.setdefault("counterparty", tx.get("对方户名", tx.get("counterparty", "")))
-                            tx.setdefault("summary", tx.get("摘要", tx.get("summary", "")))
-                            # 金额处理
-                            debit = float(tx.get("debit", tx.get("借方金额", 0) or 0))
-                            credit = float(tx.get("credit", tx.get("贷方金额", 0) or 0))
-                            amount = float(tx.get("amount", tx.get("交易金额", 0) or 0))
-                            if amount == 0: amount = debit + credit
+                            # 标准化日期
+                            tx["date"] = str(tx.get("date", tx.get("交易日期", ""))).strip()
+                            # 标准化对方
+                            tx["counterparty"] = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
+                            tx["summary"] = str(tx.get("summary", tx.get("摘要", tx.get("交易附言", "")))).strip()
+                            # 标准化金额
+                            debit_val = float(tx.get("debit", tx.get("借方金额", 0) or 0))
+                            credit_val = float(tx.get("credit", tx.get("贷方金额", 0) or 0))
+                            amount = float(tx.get("amount", tx.get("交易金额", debit_val + credit_val) or 0))
+                            tx["debit"] = debit_val
+                            tx["credit"] = credit_val
                             tx["amount"] = amount
-                            tx["direction"] = "支出" if debit > 0 else "收入"
+                            tx["direction"] = "支出" if debit_val > 0 else ("收入" if credit_val > 0 else "未知")
                             bank_txs.append(tx)
                         fr["actions"].append(f"提取{n}条流水")
                     elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
