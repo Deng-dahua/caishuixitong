@@ -9876,9 +9876,10 @@ def list_tax_risk_docs(company_id: int = Query(...)):
     # 每次请求时从磁盘重扫描（确保新文件被识别）
     global _TAX_DOC_SCANNED, _tax_risk_docs
     _TAX_DOC_SCANNED = False
+    _tax_risk_docs.clear()
     _recover_tax_risk_docs()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
-    # 去重：同一 original_name 只保留一条
+    # 去重
     seen = set()
     unique = []
     for d in docs:
@@ -9888,6 +9889,18 @@ def list_tax_risk_docs(company_id: int = Query(...)):
             unique.append(d)
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
              "uploaded_at": d["uploaded_at"]} for d in unique]
+
+@app.get("/api/tax-risk-docs/debug")
+def debug_tax_risk_docs():
+    """诊断端点：确认磁盘文件是否可达"""
+    return {
+        "upload_dir": UPLOAD_DIR,
+        "dir_exists": os.path.exists(UPLOAD_DIR),
+        "files_on_disk": len(os.listdir(UPLOAD_DIR)) if os.path.exists(UPLOAD_DIR) else 0,
+        "docs_in_memory": len(_tax_risk_docs),
+        "scanned": _TAX_DOC_SCANNED,
+        "file_sample": [{"name": f, "parts": f.split("_", 2)} for f in sorted(os.listdir(UPLOAD_DIR))[:3]] if os.path.exists(UPLOAD_DIR) else [],
+    }
 
 
 @app.delete("/api/tax-risk-docs/{doc_id}")
