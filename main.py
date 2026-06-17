@@ -15611,31 +15611,36 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
             # Skip - this is metadata not transaction
             pass
     
-    # 2. 从进项发票购方名称提取（进项票的购买方=分析对象）
-    buyer_names = Counter()
+    # 2. 交叉推断：在进项票中是购买方、在销项票中是销售方 → 分析对象
+    pur_buyers = Counter()
+    sal_sellers = Counter()
     for inv in invoices:
+        direction = inv.get("direction", "")
         buyer = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
-        if buyer and len(buyer) >= 4:
-            buyer_names[buyer] += 1
+        seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+        if direction == "进项" and buyer and len(buyer) >= 4:
+            pur_buyers[buyer] += 1
+        if direction == "销项" and seller and len(seller) >= 4:
+            sal_sellers[seller] += 1
     
-    if buyer_names:
-        top_buyer, count = buyer_names.most_common(1)[0]
-        entity["name"] = top_buyer
-        entity["source"].append(f"进项发票购买方({count}次)")
+    # 取同时出现在进项购买方和销项销售方的名称
+    cross_names = set(pur_buyers.keys()) & set(sal_sellers.keys())
+    if cross_names:
+        best = max(cross_names, key=lambda n: pur_buyers[n] + sal_sellers[n])
+        entity["name"] = best
+        entity["source"].append(f"进销交叉识别(进{pur_buyers[best]}次/销{sal_sellers[best]}次)")
     
-    # 3. 从销项发票销方名称提取（销项票的销售方=分析对象，如果BP是代开模式）
-    if not entity["name"]:
-        seller_names = Counter()
-        for inv in invoices:
-            seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
-            if seller and len(seller) >= 4:
-                seller_names[seller] += 1
-        if seller_names:
-            top_seller, count = seller_names.most_common(1)[0]
-            entity["name"] = top_seller
-            entity["source"].append(f"销项发票销售方({count}次)")
+    # 回退：只用进项购买方
+    if not entity["name"] and pur_buyers:
+        entity["name"] = pur_buyers.most_common(1)[0][0]
+        entity["source"].append(f"进项发票购买方({pur_buyers[entity['name']]}次)")
     
-    # 4. 从银行流水对方户名反向推断（大额收款方可能是公司）
+    # 再回退：只用销项销售方
+    if not entity["name"] and sal_sellers:
+        entity["name"] = sal_sellers.most_common(1)[0][0]
+        entity["source"].append(f"销项发票销售方({sal_sellers[entity['name']]}次)")
+    
+    # 4. 从银行流水对方户名反向推断（最后的兜底）
     if not entity["name"]:
         for tx in bank_txs:
             cp = str(tx.get("counterparty", ""))
