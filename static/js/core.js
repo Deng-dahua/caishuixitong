@@ -530,7 +530,7 @@ function navigateTo(page) {
     case 'housing-fund': renderHousingFund(container); break;
     case '文化事业建设费': renderCulturalConstructionFee(container); break;
     case 'tax-risk-report': renderTaxRiskReport(container); break;
-    case 'tax-risk-rules': renderTaxRiskRules(); break;      renderTaxRiskRules(container); break;
+    case 'tax-risk-rules': renderTaxRiskRules(container); break;
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
     case 'system-logs': renderSystemLogs(container); break;
   }
