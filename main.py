@@ -15110,6 +15110,40 @@ def _run_analyze(company_id, db):
             comprehensive["chain_execution"] = chain_stats[:30]
             comprehensive["chain_triggered_count"] = triggered_count
             comprehensive["chain_total_count"] = len(chain_execution)
+
+            # ── 合同/关联交易/科目余额 数据驱动分析域 ──
+            if contract_data:
+                ct = len(contract_data); ct_amt = sum(float(x.get("amount",0)or 0) for x in contract_data)
+                cfs = []
+                if ct < 3 and (len(invoices) > 0 or len(bank_txs) > 0):
+                    cfs.append({"type":"合同覆盖率严重不足","level":"高风险","score":9,
+                        "detail":f"仅{ct}份合同。发票{len(invoices)}张/流水{len(bank_txs)}条但合同极少→四流不一",
+                        "description":"合同是四流合一的基石，合同缺失意味着无法验证交易的真实性。",
+                        "category":"合同风险","contract_driven":True})
+                if ct > 0:
+                    cfs.append({"type":"合同金额汇总","level":"低风险","score":2,
+                        "detail":f"合同{ct}份，总金额{ct_amt:,.0f}元","category":"合同风险"})
+                all_findings.extend(cfs)
+                pipeline_log.append(f"合同分析: {ct}份, {len(cfs)}项发现")
+            if related_party_data:
+                rp = len(related_party_data); rp_amt = sum(float(x.get("amount",0)or 0) for x in related_party_data)
+                rfs = [{"type":"关联交易存在性","level":"中风险","score":6,
+                    "detail":f"{rp}笔关联交易，总金额{rp_amt:,.0f}元。需核实独立交易原则。",
+                    "category":"关联风险","rp_driven":True}]
+                all_findings.extend(rfs)
+                pipeline_log.append(f"关联交易分析: {rp}笔, {len(rfs)}项发现")
+            if trial_balance_data:
+                tb = len(trial_balance_data)
+                td = sum(float(x.get("close_debit",0)or 0) for x in trial_balance_data)
+                tc = sum(float(x.get("close_credit",0)or 0) for x in trial_balance_data)
+                tfs = [{"type":"科目余额表概况","level":"低风险","score":2,
+                    "detail":f"科目{tb}条，借方{td:,.0f}/贷方{tc:,.0f}","category":"资产负债往来"}]
+                diff = abs(td-tc)
+                if diff > 0.01:
+                    tfs.append({"type":"科目余额表借贷不平衡","level":"高风险","score":10,
+                        "detail":f"借方{td:,.0f}/贷方{tc:,.0f}，差额{diff:,.0f}元","category":"资产负债往来"})
+                all_findings.extend(tfs)
+                pipeline_log.append(f"科目余额分析: {tb}条, {len(tfs)}项发现")
     except Exception as che:
         pipeline_log.append(f"链驱动引擎异常: {che}")
     # ═══════════════════════════════════════════════════
