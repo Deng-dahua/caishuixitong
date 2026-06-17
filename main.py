@@ -10274,7 +10274,7 @@ def _parse_bank_sheet(sheet):
         "交易日期": "date", "记账日期": "bk_date", "日期": "date", "申请日期": "apply_date",
         "对方户名": "counterparty", "对方名称": "counterparty", "对方": "counterparty", "户名": "counterparty",
         "对方账号": "account", "对方行名": "bank", "对方账户": "account",
-        "收入金额": "income", "支出金额": "expense",
+        "收入金额": "credit", "支出金额": "debit",
         "贷方金额": "credit", "贷方": "credit",
         "借方金额": "debit", "借方": "debit",
         "摘要": "summary", "用途": "summary", "附言": "summary", "备注": "remark",
