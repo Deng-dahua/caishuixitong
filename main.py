@@ -9933,7 +9933,17 @@ def _classify_file_type(text, filename):
     t = text[:500].lower()
     if "借方" in t and "贷方" in t and any(k in t for k in ["对方户名","交易日期","余额","摘要"]): return ("bank", 0.8)
     if "销项税额" in t and "进项税额" in t: return ("vat", 0.8)
+    if "缴存月份" in t and "缴存基数" in t: return ("housing_fund", 0.9)
+    if "发票代码" in t and "发票号码" in t and "开票日期" in t:
+        if any(k in t for k in ["所得项目","本期收入","实发工资"]): return ("salary", 0.8)
+        elif "勾选状态" in t or "有效抵扣税额" in t: return ("input_vat_deduction", 0.9)
+        # 销方名称存在但购方名称也存在 → 无法判断→交给文件名
+        return ("invoice", 0.7)
+    if "本期收入" in t and "实发工资" in t: return ("salary", 0.9)
     if any(k in t for k in ["发票代码","发票号码","数电发票","货物或应税劳务名称"]) and "税率" in t: return ("invoice", 0.8)
+    if "缴存月份" in t or ("缴存基数" in t and "单位缴存" in t): return ("housing_fund", 0.9)
+    if "勾选" in t and "税额" in t and "有效抵扣" in t: return ("input_vat_deduction", 0.9)
+    if any(k in t for k in ["费款所属期","缴费工资","单位社保","个人社保"]) and "基本养老" in t: return ("social_security", 0.85)
     if "缴费基数" in t and any(k in t for k in ["养老","医疗","工伤","生育","失业"]): return ("social_security", 0.8)
     if "公积金" in t and "缴存" in t: return ("housing_fund", 0.8)
     if any(k in t for k in ["应发工资","实发工资","应纳税所得额","代扣个税"]): return ("salary", 0.8)
@@ -10035,9 +10045,16 @@ _FILE_FINGERPRINTS = {
     "housing_fund": {
         "keywords": ["公积金", "住房", "缴存基数", "缴存比例", "单位缴存", "个人缴存",
                      "月缴存额", "缴存人数", "汇缴", "补缴", "封存", "启封", "转移",
-                     "提取", "公积金账号", "个人账号", "单位账号", "缴存状态"],
+                     "提取", "公积金账号", "个人账号", "单位账号", "缴存状态",
+                     "缴存月份", "缴存额", "单位缴存额", "个人缴存额", "身份证号"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_housing_fund_sheet(s, h)
+    },
+    "input_vat_deduction": {
+        "keywords": ["勾选状态", "有效抵扣税额", "转内销证明编号", "发票风险等级",
+                     "勾选时间", "票种标签", "数电发票号码"],
+        "score_threshold": 2,
+        "parser": lambda s, h: _parse_input_vat_sheet(s),
     },
     "inventory": {
         "keywords": ["本期入库", "本期出库", "期初库存", "期末库存", "产品编码", "产品名称",
@@ -10304,14 +10321,18 @@ def _parse_bank_sheet(sheet):
 
 def _parse_housing_fund_sheet(sheet, header):
     """解析住房公积金明细"""
-    cols = _find_cols_semantic(header, {
+    colmap = {
         "人员": "name", "姓名": "name", "证件号码": "id_card",
-        "缴存基数": "base", "缴存比例": "ratio",
+        "身份证号": "id_card", "工号": "emp_id",
+        "缴存月份": "period", "缴存基数": "base",
+        "缴存比例": "ratio", "单位缴存比例": "company_ratio",
+        "个人缴存比例": "personal_ratio",
         "单位缴存额": "company_pay", "个人缴存额": "personal_pay",
         "月缴存额": "total_pay", "缴存额": "total_pay",
         "缴存人数": "count",
         "公积金账号": "hf_account", "个人账号": "personal_account",
-    })
+    }
+    cols = _find_cols_semantic(header, colmap)
     if not cols: return None
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
@@ -11654,6 +11675,33 @@ def _parse_by_structure_only(sheet):
     }
 
 
+def _parse_input_vat_sheet(sheet):
+    """解析进项认证抵扣明细"""
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header = _get_row_values(sheet, 0)
+    cols = _find_cols_semantic(header, {
+        "数电发票号码": "digital_invoice_no", "发票代码": "invoice_code",
+        "发票号码": "invoice_no", "开票日期": "date",
+        "销售方纳税人识别号": "seller_tax", "销售方纳税人名称": "seller_name",
+        "金额": "amount", "税额": "tax", "有效抵扣税额": "deductible_tax",
+        "勾选状态": "status", "发票来源": "source",
+        "票种": "invoice_type", "发票风险等级": "risk_level",
+    })
+    if not cols: return None
+    rows = []
+    for r in range(1, min(nrows, 5000)):
+        vals = {}
+        for field, col in cols.items():
+            try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
+            except: vals[field] = ""
+        if not vals.get("invoice_no") and not vals.get("digital_invoice_no"): continue
+        for k in ["amount", "tax", "deductible_tax"]:
+            try: vals[k] = float(vals.get(k, 0) or 0)
+            except: vals[k] = 0
+        vals["direction"] = "进项"
+        rows.append(vals)
+    return {"type": "purchase_invoice", "rows": rows, "sub_type": "input_vat_deduction"}
+
 def _parse_invoice_sheet(sheet, direction):
     header = _get_row_values(sheet, 1)
     cols = _find_cols_semantic(header, {
@@ -11748,9 +11796,17 @@ def _parse_social_sheet(sheet, header):
             best_header = candidate
     
     cols = _find_cols_semantic(best_header, {
-        "人员": "name", "证件号码": "id_card", "缴费工资": "base",
+        "姓名": "name", "证件号码": "id_card", "缴费工资": "base",
         "姓名": "name", "身份证号": "id_card", "身份证": "id_card",
+        "序号": "seq", "费款所属期起": "period_start", "费款所属期止": "period_end",
         "缴费基数": "base", "社保基数": "base", "工资基数": "base",
+        "应收金额": "due_amount", "个人社保合计": "personal_total", "单位社保合计": "company_total",
+        "基本养老保险（单位）": "pension_company", "基本养老保险（个人）": "pension_personal",
+        "基本医疗保险（单位）": "medical_company", "基本医疗保险（个人）": "medical_personal",
+        "失业保险（单位）": "unemploy_company", "失业保险（个人）": "unemploy_personal",
+        "工伤保险（单位）": "injury_company", "生育保险": "maternity",
+        "职业年金（单位）": "annuity_company", "职业年金（个人）": "annuity_personal",
+        "地方补充医疗（单位）": "supp_medical", "公务员医疗补助": "civil_medical",
         "单位承担": "company_pay", "个人承担": "personal_pay", "险种": "insurance",
         "单位缴纳": "company_pay", "个人缴纳": "personal_pay",
         "单位缴费": "company_pay", "个人缴费": "personal_pay",
@@ -14266,7 +14322,7 @@ def _run_analyze(company_id, db):
                     if ftype == "salary": salaries.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条工资")
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
                     elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
-                    elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
+                    elif ftype in ("purchase_invoice", "input_vat_deduction"): invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
                     elif ftype == "invoice":  # 通用发票 → 按列内容判断进销方向
                         rows = parsed["rows"]
                         for r in rows:
