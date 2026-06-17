@@ -14305,7 +14305,7 @@ def _run_analyze(company_id, db):
                             tx["direction"] = "支出" if debit > 0 else "收入"
                             bank_txs.append(tx)
                         fr["actions"].append(f"提取{n}条流水")
-                    elif ftype == "housing_fund": housing_fund = housing_fund if 'housing_fund' in dir() else []; housing_fund = housing_fund.extend(parsed.get("rows", [])) if housing_fund else parsed.get("rows", []); fr["actions"].append(f"提取{n}条公积金")
+                    elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
