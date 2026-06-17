@@ -14533,23 +14533,48 @@ def _run_analyze(company_id, db):
     # Phase 1: 确定分析对象 → 反推发票方向校正
     # ═══════════════════════════════════════
     from collections import Counter as _Counter
-    _pur_buyers = _Counter()
-    _sal_sellers = _Counter()
+    
+    # 统计所有发票中出现的名称（不依赖方向判断）
+    _all_names = _Counter()
     for inv in invoices:
         b = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
         s = str(inv.get("seller", inv.get("销方名称", ""))).strip()
-        if b and len(b) >= 6: _pur_buyers[b] += 1
-        if s and len(s) >= 6: _sal_sellers[s] += 1
+        if b and len(b) >= 6: _all_names[b] += 1
+        if s and len(s) >= 6: _all_names[s] += 1
+    
+    # 同时统计交叉出现（同一名称既做买方又做卖方）
+    _pur_buyers = _Counter()
+    _sal_sellers = _Counter()
+    _sal_buyers = _Counter()
+    _pur_sellers = _Counter()
+    for inv in invoices:
+        b = str(inv.get("buyer", "")).strip()
+        s = str(inv.get("seller", "")).strip()
+        if b and len(b) >= 6:
+            _pur_buyers[b] += 1; _sal_buyers[b] += 1  # 计数时不区分方向
+        if s and len(s) >= 6:
+            _pur_sellers[s] += 1; _sal_sellers[s] += 1
     
     _target_name = ""
-    _cross = set(_pur_buyers.keys()) & set(_sal_sellers.keys())
-    if _cross:
-        _target_name = max(_cross, key=lambda n: _pur_buyers[n] + _sal_sellers[n])
-        pipeline_log.append(f"Phase1-识别对象: {_target_name} (进{_pur_buyers[_target_name]}次/销{_sal_sellers[_target_name]}次)")
-    elif _pur_buyers:
-        _target_name = _pur_buyers.most_common(1)[0][0]
-    elif _sal_sellers:
-        _target_name = _sal_sellers.most_common(1)[0][0]
+    # 策略1：出现在所有位置总次数最多的名称
+    if _all_names:
+        best_name = _all_names.most_common(1)[0][0]
+        # 验证：该名称至少出现在50%以上的发票中
+        if _all_names[best_name] >= len(invoices) * 0.3:
+            _target_name = best_name
+            pipeline_log.append(f"Phase1-识别对象(频次): {_target_name} (出现{_all_names[best_name]}次/{len(invoices)}张)")
+    
+    # 策略2：交叉出现的名称
+    if not _target_name:
+        _cross_1 = set(_pur_buyers.keys()) & set(_sal_sellers.keys())
+        _cross_2 = set(_sal_buyers.keys()) & set(_pur_sellers.keys())
+        _cross = _cross_1 | _cross_2
+        if _cross:
+            _target_name = max(_cross, key=lambda n: _all_names.get(n, 0))
+            pipeline_log.append(f"Phase1-识别对象(交叉): {_target_name}")
+    
+    if not _target_name and _all_names:
+        _target_name = _all_names.most_common(1)[0][0]
     
     if _target_name:
         _corrected = 0
