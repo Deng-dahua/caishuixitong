@@ -123,8 +123,8 @@ function renderTaxRiskRules(container) {
     + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2461 \u667a\u80fd\u8868\u5934\u626b\u63cf</div>'
     + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
     + '\u626b\u63cf\u7b2c0-6\u884c\uff0c\u9009\u5173\u952e\u8bcd\u547d\u4e2d\u6700\u591a\u7684\u4e00\u884c\u4f5c\u4e3a\u771f\u5b9e\u8868\u5934<br>'
-    + '\u89e3\u51b3\u591a\u884c\u5408\u5e76\u6807\u9898\u3001\u7a7a\u884c\u3001\u6c47\u603b\u884c\u5e72\u6270<br>'
-    + '\u9002\u7528\u793e\u4fdd/\u5de5\u8d44/\u94f6\u884c\u7b49\u6240\u6709\u89e3\u6790\u5668'
+    + '\u5408\u5e76\u884c\u8868\u5934\uff1a\u81ea\u52a8\u8bc6\u522b\u201c\u4ee3\u6263\u793e\u4fdd\u2192\u517b\u8001/\u533b\u7597/\u5931\u4e1a\u201d\u591a\u884c\u8868\u5934<br>'
+    + '\u9002\u7528\u5de5\u8d44/\u793e\u4fdd/\u94f6\u884c/\u8fdb\u9500\u5b58\u7b49\u6240\u6709\u89e3\u6790\u5668'
     + '</div></div>'
     // 子系统3
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #7c3aed;border-radius:6px;padding:14px;background:#fff">'
@@ -137,12 +137,12 @@ function renderTaxRiskRules(container) {
     + '</div></div>'
     // 子系统4
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #f59e0b;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2463 \u6570\u636e\u5185\u5bb9\u63a8\u65ad\u5146\u5e95</div>'
+    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2463 \u6570\u636e\u5f62\u6001\u63a8\u65ad\u5146\u5e95</div>'
     + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '\u5217\u540d\u5b8c\u5168\u5339\u914d\u4e0d\u4e0a\u65f6\uff0c\u901a\u8fc7\u6570\u636e\u5f62\u6001\u53cd\u63a8\u5217\u89d2\u8272<br>'
-    + '\u65e5\u671f\u683c\u5f0f\u2192 date_col / \u91d1\u989d\u6570\u5b57\u2192 amount_col<br>'
-    + '\u8eab\u4efd\u8bc1\u53f7\u2192 id_card / \u4f01\u4e1a\u540d\u79f0\u2192 counterparty<br>'
-    + '\u8ba9 0 \u884c\u6587\u4ef6\u8d77\u6b7b\u56de\u751f'
+    + '\u5173\u952e\u8bcd\u6307\u7eb9\u672a\u547d\u4e2d\u65f6\uff0c\u901a\u8fc7\u6570\u636e\u5f62\u6001\u53cd\u63a8\u5217\u89d2\u8272<br>'
+    + '\u4f18\u5148\u68c0\u6d4b\u5de5\u8d44\u5173\u952e\u8bcd\u201c\u5de5\u8d44/\u4ee3\u6263\u793e\u4fdd/\u517b\u8001\u4fdd\u9669\u201d\u907f\u514d\u8bef\u5224<br>'
+    + '\u8eab\u4efd\u8bc1\u53f7\u2192 id_card / \u91d1\u989d\u6570\u5b57\u2192 amount_col / \u65e5\u671f\u2192 date_col<br>'
+    + '\u8ba9 0 \u884c\u6587\u4ef6\u8d77\u6b7b\u56de\u751f\uff0c\u5de5\u8d44\u8868\u4e0d\u518d\u8bef\u5224\u4e3a\u94f6\u884c\u6d41\u6c34'
     + '</div></div>'
     // 子系统5
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #dc2626;border-radius:6px;padding:14px;background:#fff">'
