@@ -9950,6 +9950,11 @@ def debug_tax_risk_docs():
     }
 
 
+@app.delete("/api/tax-risk-docs/clear-transfer")
+def clear_transfer_cache(company_id: int = Query(...)):
+    _clear_transfer(company_id)
+    return {"ok":True,"message":"中转站缓存已清空"}
+
 @app.delete("/api/tax-risk-docs/{doc_id}")
 def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
     global _tax_risk_docs
@@ -9960,12 +9965,6 @@ def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
             _tax_risk_docs.pop(i)
             return {"ok": True, "message": "删除成功"}
     raise HTTPException(404, "文件不存在")
-
-@app.delete("/api/tax-risk-docs/clear-transfer")
-def clear_transfer_cache(company_id: int = Query(...)):
-    _clear_transfer(company_id)
-    return {"ok":True,"message":"中转站缓存已清空"}
-
 
 
 def _classify_file_type(text, filename):
