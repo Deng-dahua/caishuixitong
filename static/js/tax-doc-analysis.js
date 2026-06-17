@@ -728,9 +728,25 @@ function renderAuditReport() {
     + '<div class="rp-cover-sub">编号：TS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+' | '+new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'})+'</div>'
     + '</div>';
   
+  // ── 分析对象 ──
+  var te = r.target_entity || {};
+  if (te.name) {
+    var typeColor = te.type==='生产型企业'?'#c92a2a':(te.type==='服务型企业'?'#1a56db':'#e67700');
+    h += '<div class="rp-summary" style="border-left-color:#0f172a">'
+      + '<div style="font-size:14px;font-weight:700;margin-bottom:10px">分析对象</div>'
+      + '<table style="width:100%;font-size:13px;line-height:2.2">'
+      + '<tr><td style="width:80px;color:'+S.muted+'">单位名称</td><td style="font-weight:600">'+esc(te.name)+'</td></tr>'
+      + '<tr><td style="color:'+S.muted+'">企业类型</td><td><span class="rp-tag" style="background:#fff;color:'+typeColor+';border:1px solid '+typeColor+'">'+esc(te.type||'未知')+'</span></td></tr>'
+      + (te.industry?'<tr><td style="color:'+S.muted+'">所属行业</td><td>'+esc(te.industry)+'</td></tr>':'')
+      + (te.period?'<tr><td style="color:'+S.muted+'">分析期间</td><td>'+esc(te.period)+'</td></tr>':'')
+      + (te.bank_account?'<tr><td style="color:'+S.muted+'">银行账号</td><td>'+esc(te.bank_account)+'</td></tr>':'')
+      + (te.source && te.source.length?'<tr><td style="color:'+S.muted+'">识别来源</td><td style="font-size:11px;color:'+S.light+'">'+te.source.join(' / ')+'</td></tr>':'')
+      + '</table></div>';
+  }
+  
   // ── 基本信息 ──
   h += '<table class="rp-table">'
-    + '<tr><td>被查单位</td><td>（依据上传资料识别）</td></tr>'
+    + '<tr><td>被查单位</td><td>'+(te.name?esc(te.name):'（依据上传资料识别）')+'</td></tr>'
     + '<tr><td>稽查期间</td><td>'+ (r.summary_text||'').match(/\d{4}年/) + '（以凭证及发票数据覆盖期间为准）</td></tr>'
     + '<tr><td>稽查范围</td><td>'+r.files_count+'份资料，涵盖银行流水、进销项发票、记账凭证、工资社保</td></tr>'
     + '<tr><td>执行标准</td><td>'+r.rules_used+' 条稽查指令，《税务稽查工作规程》（国税发[2009]157号）</td></tr>'

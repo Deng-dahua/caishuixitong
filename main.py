@@ -15579,10 +15579,14 @@ def _run_analyze(company_id, db):
     except:
         pass
 
+    # ═══ 确定分析对象 ═══
+    target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
+    
     return {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
+        "target_entity": target_entity,
         "low_data_warning": low_data_warning,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0)),
         "summary_text": (
@@ -15591,6 +15595,109 @@ def _run_analyze(company_id, db):
     }}
 
 # ═══════════ 报告复核函数 ═══════════
+
+def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
+    """从银行流水/发票/工资中自动识别被分析对象"""
+    from collections import Counter
+    
+    entity = {"name": "", "type": "未知", "industry": "", "period": "", "bank_account": "", "source": []}
+    
+    # 1. 从银行流水表头提取（账户明细/户名）
+    for tx in bank_txs:
+        summary = str(tx.get("summary", "")).lower()
+        cp = str(tx.get("counterparty", ""))
+        # 如果有类似"户名:XXX"的元数据
+        if "户名" in summary or "达冠" in cp or "中山市" in cp:
+            # Skip - this is metadata not transaction
+            pass
+    
+    # 2. 从进项发票购方名称提取（进项票的购买方=分析对象）
+    buyer_names = Counter()
+    for inv in invoices:
+        buyer = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
+        if buyer and len(buyer) >= 4:
+            buyer_names[buyer] += 1
+    
+    if buyer_names:
+        top_buyer, count = buyer_names.most_common(1)[0]
+        entity["name"] = top_buyer
+        entity["source"].append(f"进项发票购买方({count}次)")
+    
+    # 3. 从销项发票销方名称提取（销项票的销售方=分析对象，如果BP是代开模式）
+    if not entity["name"]:
+        seller_names = Counter()
+        for inv in invoices:
+            seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+            if seller and len(seller) >= 4:
+                seller_names[seller] += 1
+        if seller_names:
+            top_seller, count = seller_names.most_common(1)[0]
+            entity["name"] = top_seller
+            entity["source"].append(f"销项发票销售方({count}次)")
+    
+    # 4. 从银行流水对方户名反向推断（大额收款方可能是公司）
+    if not entity["name"]:
+        for tx in bank_txs:
+            cp = str(tx.get("counterparty", ""))
+            credit = float(tx.get("credit", 0) or 0)
+            if credit > 100000:  # 大额收款
+                entity["name"] = cp
+                entity["source"].append("银行大额收款方")
+                break
+    
+    # 5. 推断行业类型
+    goods_list = []
+    for inv in invoices:
+        g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+        if g: goods_list.append(g)
+    
+    if goods_list:
+        goods_text = " ".join(goods_list)
+        industry_map = {
+            "纺织": "纺织制造", "棉纱": "纺织制造", "纱线": "纺织制造", "针织": "纺织制造", "梭织": "纺织制造",
+            "染整": "染整加工", "印花": "印染加工", "服装": "服装制造",
+            "建筑": "建筑工程", "房地产": "房地产",
+            "餐饮": "餐饮服务", "住宿": "酒店服务",
+            "物流": "物流运输", "运输": "物流运输",
+            "软件": "信息技术", "技术": "信息技术",
+            "租赁": "租赁服务", "咨询": "咨询服务",
+            "广告": "广告传媒", "设计": "设计服务",
+            "医药": "医药健康", "医疗": "医药健康",
+            "食品": "食品加工", "农产品": "农业生产",
+        }
+        for kw, industry in industry_map.items():
+            if kw in goods_text:
+                entity["industry"] = industry
+                break
+    
+    # 6. 提取期间范围
+    dates = []
+    for inv in invoices:
+        d = str(inv.get("date", inv.get("开票日期", "")))[:10]
+        if d and d[:4].isdigit(): dates.append(d)
+    for tx in bank_txs:
+        d = str(tx.get("date", ""))[:10]
+        if d and d[:4].isdigit(): dates.append(d)
+    if dates:
+        dates.sort()
+        entity["period"] = f"{dates[0][:7]} 至 {dates[-1][:7]}"
+    
+    # 7. 推断企业类型
+    if entity["industry"] in ("纺织制造", "服装制造", "食品加工", "印染加工"):
+        entity["type"] = "生产型企业"
+    elif entity["industry"] in ("餐饮服务", "酒店服务", "物流运输", "咨询服务", "租赁服务"):
+        entity["type"] = "服务型企业"
+    else:
+        # 从进销判断：有加工费/劳务票=生产型
+        for inv in invoices:
+            goods = str(inv.get("goods", ""))
+            if "加工" in goods or "劳务" in goods:
+                entity["type"] = "生产型企业"
+                break
+        if not entity["type"] or entity["type"] == "未知":
+            entity["type"] = "贸易型企业"
+    
+    return entity
 
 def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouchers, salaries):
     """逐结论复核：1)数据源验证 2)计算复核 3)逻辑一致性 4)空值陷阱 5)极端值"""
