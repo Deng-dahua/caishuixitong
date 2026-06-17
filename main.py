@@ -15002,6 +15002,84 @@ def _run_analyze(company_id, db):
             chain_stats = [ce for ce in chain_execution if ce["triggered_steps"] > 0]
             chain_stats.sort(key=lambda x: -x["triggered_steps"])
             
+            # ═══════════════════════════════════════════════════
+            # 证据链闭环检测：≥60%规则触发 → 违法事实闭环 → 风险升级
+            # ═══════════════════════════════════════════════════
+            evidence_closures = []
+            triggered_rule_ids_for_evidence = set()
+            for f in all_findings:
+                for rid in f.get("matched_rule_ids", []):
+                    triggered_rule_ids_for_evidence.add(rid)
+            
+            for chain in chains_data.get("chains", []):
+                if chain.get("chain_type") != "证据链": continue
+                
+                total_steps = len(chain.get("investigation_path", []))
+                if total_steps < 3: continue
+                
+                # 计算该证据链中触发的规则数
+                triggered_in_chain = 0
+                step_results = []
+                for step in chain.get("investigation_path", []):
+                    rid = step.get("rule_id")
+                    hit = rid in triggered_rule_ids_for_evidence
+                    if hit:
+                        triggered_in_chain += 1
+                    step_results.append({
+                        "step": step.get("step", ""),
+                        "rule_id": rid,
+                        "rule_item": step.get("rule_item", "")[:30],
+                        "level": step.get("level", ""),
+                        "triggered": hit,
+                    })
+                
+                ratio = triggered_in_chain / total_steps
+                
+                if ratio >= 0.5:  # ≥50%触发即记录
+                    evidence_closures.append({
+                        "chain_name": chain["name"],
+                        "total_steps": total_steps,
+                        "triggered_steps": triggered_in_chain,
+                        "ratio": round(ratio * 100),
+                        "closed": ratio >= 0.6,  # ≥60%闭环
+                        "steps": step_results,
+                    })
+                    
+                    # 闭环的链 → 生成违法事实发现 + 升级风险等级
+                    if ratio >= 0.6:
+                        # 生成违法事实闭环发现
+                        step_items = [s["rule_item"] for s in step_results if s["triggered"]][:3]
+                        policy_items = list(set(s.get("policy_ref","") for step in chain.get("investigation_path",[]) for s in [step] if s.get("rule_id") in triggered_rule_ids_for_evidence))[:2]
+                        
+                        all_findings.append({
+                            "type": f"证据链闭环：{chain['name'][:30]}",
+                            "level": "高风险",
+                            "score": 9,
+                            "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
+                            "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被数据验证命中，触发率{round(ratio*100)}%。根据《税务稽查工作规程》，多源交叉互证形成完整证据闭环，应启动正式稽查程序。",
+                            "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中 → 自动判定违法事实闭环",
+                            "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
+                            "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务稽查工作规程》",
+                            "suggestion": f"该证据链已闭环，建议：(1)启动正式稽查立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items[:2])}进行重点核实",
+                            "category": chain.get("sub_topic", "综合"),
+                            "chain_closure": True,
+                            "source_chain": chain["name"],
+                        })
+            
+            # 按闭环优先排序
+            evidence_closures.sort(key=lambda x: (-x["closed"], -x["ratio"]))
+            
+            if evidence_closures:
+                closed_count = sum(1 for e in evidence_closures if e["closed"])
+                pipeline_log.append(f"证据链闭环检测: {len(evidence_closures)}条≥50%, {closed_count}条≥60%闭环")
+                for ec in evidence_closures[:5]:
+                    if ec["closed"]:
+                        pipeline_log.append(f"  闭环: {ec['chain_name'][:30]} {ec['triggered_steps']}/{ec['total_steps']}={ec['ratio']}%")
+            
+            comprehensive["evidence_closures"] = evidence_closures[:20]
+            comprehensive["closed_chain_count"] = sum(1 for e in evidence_closures if e["closed"])
+            # ═══════════════════════════════════════════════════
+            
             if chain_execution:
                 pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行, {triggered_count}条触发, {len(chain_findings)}条新发现")
             comprehensive["chain_execution"] = chain_stats[:30]
@@ -15145,6 +15223,14 @@ def _run_analyze(company_id, db):
         overall = "中风险"
     if overall == "中风险" and high >= 10:
         overall = "高风险"
+    # 证据链闭环 → 强制升级风险等级
+    closed_count = comprehensive.get("closed_chain_count", 0)
+    if closed_count >= 3:
+        overall = "高风险"  # 3条以上证据链闭环 → 直接高风险
+        pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级强制提升为高风险")
+    elif closed_count >= 1 and overall == "低风险":
+        overall = "中风险"  # 至少1条闭环 → 至少中风险
+        pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级提升为中风险")
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 

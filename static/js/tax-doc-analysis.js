@@ -804,6 +804,34 @@ function renderAuditReport() {
     h += '</div>';
   }
 
+  // ═══ 证据链闭环检测 ═══
+  var ec = (r.comprehensive||{}).evidence_closures||[];
+  var ccc = (r.comprehensive||{}).closed_chain_count||0;
+  if (ec.length > 0) {
+    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">证据链闭环检测 ('+ccc+'条闭环/'+ec.length+'条触发)</div>';
+    ec.forEach(function(ex){
+      var closed = ex.closed;
+      var borderColor = closed?'#dc2626':'#f59e0b';
+      var bgColor = closed?'#fef2f2':'#fffbeb';
+      var badge = closed?'⚠ 违法事实闭环':'⚡ 部分触发';
+      var badgeColor = closed?'#dc2626':'#f59e0b';
+      h += '<div style="border:1px solid '+borderColor+';border-radius:4px;padding:12px 14px;margin-bottom:8px;background:'+bgColor+'">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        + '<span style="font-weight:700;font-size:12px;color:'+S.accent+'">'+esc(ex.chain_name)+'</span>'
+        + '<span style="font-size:10px;color:'+badgeColor+';font-weight:700">'+badge+' '+ex.triggered_steps+'/'+ex.total_steps+'('+ex.ratio+'%)</span></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+      ex.steps.forEach(function(st){
+        var dot = st.triggered?'#059669':'#cbd5e1';
+        var bg = st.triggered?'#f0fdf4':'#f8fafc';
+        h += '<span style="background:'+bg+';padding:3px 8px;border-radius:3px;font-size:9px;border-left:2px solid '+dot+'">';
+        if (st.triggered) h += '✓ ';
+        h += esc(st.rule_item||st.step)+'</span>';
+      });
+      h += '</div></div>';
+    });
+    h += '</div>';
+  }
+
   h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、稽查过程</div>';
   
   // 2a. 稽查方法
