@@ -14999,17 +14999,38 @@ def _run_analyze(company_id, db):
             if chain_findings:
                 all_findings.extend(chain_findings)
             
+            # ── 为链驱动发现补全规则匹配（用于证据链闭环检测）──
+            for f in chain_findings:
+                f_type = f.get("type", "").lower()
+                f_cat = f.get("category", "").lower()
+                matched_ids = []
+                for r in rules_data:
+                    r_item = r.get("item", "").lower()
+                    r_cat = r.get("category", "").lower()
+                    hits = sum(1 for kw in f_type.replace(" ","") if kw in r_item.replace(" ",""))
+                    cat_match = f_cat and r_cat and (f_cat in r_cat or r_cat in f_cat)
+                    if hits >= 2 or (hits >= 1 and cat_match):
+                        matched_ids.append(r["id"])
+                f["matched_rule_ids"] = matched_ids[:5]
+                f["matched_rule_count"] = len(matched_ids)
+            
             chain_stats = [ce for ce in chain_execution if ce["triggered_steps"] > 0]
             chain_stats.sort(key=lambda x: -x["triggered_steps"])
             
             # ═══════════════════════════════════════════════════
-            # 证据链闭环检测：≥60%规则触发 → 违法事实闭环 → 风险升级
+            # 证据链闭环检测：收集所有触发规则 → ≥60% → 违法事实闭环
             # ═══════════════════════════════════════════════════
             evidence_closures = []
+            # 收集所有触发的规则ID：来自已有发现 + 链驱动发现 + 链执行记录
             triggered_rule_ids_for_evidence = set()
             for f in all_findings:
                 for rid in f.get("matched_rule_ids", []):
                     triggered_rule_ids_for_evidence.add(rid)
+            # 也直接从链执行记录中收集
+            for ce in chain_execution:
+                for s in ce.get("steps", []):
+                    if s.get("triggered") and s.get("rule_id"):
+                        triggered_rule_ids_for_evidence.add(s["rule_id"])
             
             for chain in chains_data.get("chains", []):
                 if chain.get("chain_type") != "证据链": continue
@@ -15082,6 +15103,9 @@ def _run_analyze(company_id, db):
             
             if chain_execution:
                 pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行, {triggered_count}条触发, {len(chain_findings)}条新发现")
+            if evidence_closures:
+                pipeline_log.append(f"证据链闭环: {sum(1 for e in evidence_closures if e['closed'])}条闭环({len(triggered_rule_ids_for_evidence)}条规则参与判定)")
+            pipeline_log.append(f"全链路执行: 线索链{len(chain_execution)}条 → 证据链{len(evidence_closures)}条 → 规则{len(triggered_rule_ids_for_evidence)}条触发")
             comprehensive["chain_execution"] = chain_stats[:30]
             comprehensive["chain_triggered_count"] = triggered_count
             comprehensive["chain_total_count"] = len(chain_execution)
