@@ -14475,12 +14475,264 @@ def _check_accounting_system_gap(invoices, bank_txs, vouchers):
     
     return findings if findings else None
 
+# ═══════════════════════════════════════════════════
+# 规则数据验证引擎 —— 把规则变成真正的分析引擎
+# ═══════════════════════════════════════════════════
+
+def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_security, vouchers):
+    """对规则进行真正的数据验证，返回(是否触发, 原因, 置信度, 数值证据)
+    
+    规则类型自动检测：
+    - 定量规则（含数字/阈值）：提取阈值→扫描数据→判断是否超标→返回具体超标值
+    - 定性规则（无数字）：检查相关数据是否存在→返回数据量
+    - 缺失规则（缺失/不完备/无）：检查指定数据类型是否存在→返回缺失判断
+    
+    这是"把规则变成真正分析引擎"的核心函数。
+    """
+    item = str(rule.get("item", ""))
+    detail = str(rule.get("detail", ""))
+    rule_text = item + " " + detail
+    level = str(rule.get("level", "中风险"))
+    category = str(rule.get("category", ""))
+    
+    # ── 类型1：定量规则 → 提取数字阈值并验证 ──
+    import re as _re_q
+    numbers = _re_q.findall(r'(\d+(?:\.\d+)?)\s*(万|万元|亿|元|%)?', rule_text)
+    thresholds = []  # 提取到的阈值列表
+    for n_str, unit in numbers:
+        val = float(n_str)
+        if unit in ("万", "万元"): val *= 10000
+        elif unit == "亿": val *= 100000000
+        elif unit == "%": val = val  # 百分比保持原值
+        thresholds.append(val)
+    
+    # ── 定量验证：规则中是否有明确金额/比例阈值 ──
+    if thresholds:
+        evidence = {}
+        # 检查发票金额相关
+        if any(k in rule_text for k in ("发票", "红字", "作废", "冲红", "金额", "税额")):
+            if invoices:
+                big_invs = []
+                for inv in invoices:
+                    amt = float(inv.get("amount", 0) or 0)
+                    if amt > 0:
+                        for th in thresholds:
+                            if th > 1 and amt >= th:
+                                big_invs.append({"id": inv.get("id", ""), "amount": amt, "date": str(inv.get("date", ""))[:10]})
+                                break
+                if big_invs:
+                    evidence["超标发票"] = len(big_invs)
+                    evidence["最大金额"] = max(x["amount"] for x in big_invs)
+                    return (True, f"数据验证通过：{len(big_invs)}张发票超阈值", 0.85, evidence)
+                else:
+                    return (False, "无发票金额超标", 0, {})
+            else:
+                return (False, "无发票数据", 0, {})
+        
+        # 检查银行流水金额相关
+        if any(k in rule_text for k in ("银行", "流水", "收款", "付款", "转账", "资金")):
+            if bank_txs:
+                big_txs = []
+                for tx in bank_txs:
+                    debit = float(tx.get("debit", 0) or 0)
+                    credit = float(tx.get("credit", 0) or 0)
+                    max_amt = max(debit, credit)
+                    if max_amt > 0:
+                        for th in thresholds:
+                            if th > 1 and max_amt >= th:
+                                big_txs.append({"id": tx.get("id", ""), "amount": max_amt, "date": str(tx.get("date", ""))[:10]})
+                                break
+                if big_txs:
+                    evidence["超标流水"] = len(big_txs)
+                    evidence["最大金额"] = max(x["amount"] for x in big_txs)
+                    return (True, f"数据验证通过：{len(big_txs)}笔流水超阈值", 0.85, evidence)
+                else:
+                    return (False, "无流水金额超标", 0, {})
+            else:
+                return (False, "无银行流水数据", 0, {})
+        
+        # 检查工资相关
+        if any(k in rule_text for k in ("工资", "薪酬", "个税", "薪金")):
+            if salaries:
+                total_salary = sum(float(s.get("amount", 0) or 0) for s in salaries)
+                for th in thresholds:
+                    if th > 1 and total_salary > th:
+                        evidence["总工资"] = total_salary
+                        evidence["员工数"] = len(salaries)
+                        return (True, f"数据验证通过：总工资{total_salary:,.0f}超阈值{th}", 0.8, evidence)
+                return (False, f"总工资{total_salary:,.0f}未超阈值", 0, {})
+            else:
+                return (False, "无工资数据", 0, {})
+        
+        # 通用定量：有阈值但无法确定数据类型→标记为"需要数据反查"
+        return (False, "无法确定阈值对应的数据类型", 0, {})
+    
+    # ── 类型2：缺失检查规则 ──
+    if any(k in rule_text for k in ("缺失", "不完备", "无", "没有", "缺少", "不足")):
+        ds = category.lower()
+        if any(k in ds for k in ("发票", "进项", "销项")):
+            has_it = len(invoices) > 0
+            return (not has_it, f"{'缺少' if not has_it else '已有'}发票数据" + (f"({len(invoices)}张)" if has_it else ""), 0.9 if not has_it else 0.1, {"has_data": has_it})
+        if any(k in ds for k in ("合同",)):
+            return (True, "合同数据需单独检查", 0.5, {})
+        if any(k in ds for k in ("凭证", "序时账", "会计")):
+            has_v = len(vouchers) > 0
+            return (not has_v, f"{'缺少' if not has_v else '已有'}凭证数据" + (f"({len(vouchers)}条)" if has_v else ""), 0.85 if not has_v else 0.15, {"has_data": has_v})
+        if any(k in ds for k in ("社保",)):
+            has_si = len(social_security) > 0
+            return (not has_si, f"{'缺少' if not has_si else '已有'}社保数据" + (f"({len(social_security)}条)" if has_si else ""), 0.85 if not has_si else 0.15, {"has_data": has_si})
+    
+    # ── 类型3：定性规则 → 检查相关数据是否存在 ──
+    if bank_txs and any(k in rule_text for k in ("银行", "流水", "账户", "收款", "付款")):
+        return (True, f"银行流水{len(bank_txs)}条可分析", 0.6, {"count": len(bank_txs)})
+    if invoices and any(k in rule_text for k in ("发票", "进项", "销项", "开票")):
+        return (True, f"发票{len(invoices)}张可分析", 0.6, {"count": len(invoices)})
+    if salaries and any(k in rule_text for k in ("工资", "薪酬", "员工")):
+        return (True, f"工资{len(salaries)}条可分析", 0.6, {"count": len(salaries)})
+    
+    return (False, "无法确认数据关联", 0, {})
+
+
+# ═══════════════════════════════════════════════════
+# 资料情报提取引擎 —— 从资料数据中提取稽查所需信息
+# ═══════════════════════════════════════════════════
+
+def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory):
+    """从各类资料中提取关键审计情报——让系统真正'读懂'资料"""
+    intel = {}
+    from collections import Counter
+    
+    # ── 银行流水情报 ──
+    if bank_txs:
+        total_in = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
+        total_out = sum(float(tx.get("debit", 0) or 0) for tx in bank_txs)
+        tax_payments = []
+        large_txs = []
+        counterparties = Counter()
+        months = set()
+        
+        for tx in bank_txs:
+            d = str(tx.get("date", "") or tx.get("transaction_date", ""))[:10]
+            if d and len(d) >= 7: months.add(d[:7])
+            cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            debit = float(tx.get("debit", 0) or 0)
+            credit = float(tx.get("credit", 0) or 0)
+            summary = str(tx.get("summary", "") or "")
+            
+            # 大额交易（>50万）
+            max_amt = max(debit, credit)
+            if max_amt > 500000:
+                large_txs.append({"date": d[:10], "amount": round(max_amt, 2), 
+                                "type": "支出" if debit > credit else "收款",
+                                "counterparty": cp[:30], "summary": summary[:30]})
+            
+            # 税费支付
+            if any(k in summary for k in ("税", "金库", "国税", "地税", "纳税", "缴税")):
+                tax_payments.append({"date": d[:10], "amount": round(max_amt, 2), "summary": summary[:30]})
+            
+            # 往来方
+            if cp and len(cp) >= 2:
+                counterparties[cp] += round(max_amt, 2)
+        
+        intel["银行流水"] = {
+            "总收款": f"{total_in:,.0f}元",
+            "总付款": f"{total_out:,.0f}元",
+            "净流入": f"{total_in - total_out:,.0f}元",
+            "覆盖月份": sorted(months)[:6],
+            "笔数": len(bank_txs),
+            "税费支出笔数": len(tax_payments),
+            "税费支出总额": f"{sum(x['amount'] for x in tax_payments):,.0f}元",
+            "大额交易(>50万)": len(large_txs),
+            "往来方TOP5": [{"名称": n, "金额": f"{a:,.0f}"} for n, a in counterparties.most_common(5)],
+        }
+    
+    # ── 发票情报 ──
+    if invoices:
+        sal_invs = [i for i in invoices if i.get("direction") == "销项"]
+        pur_invs = [i for i in invoices if i.get("direction") == "进项"]
+        
+        sal_total = sum(float(i.get("amount", 0) or 0) for i in sal_invs)
+        sal_tax = sum(float(i.get("tax", 0) or 0) for i in sal_invs)
+        pur_total = sum(float(i.get("amount", 0) or 0) for i in pur_invs)
+        pur_tax = sum(float(i.get("tax", 0) or 0) for i in pur_invs)
+        
+        # 货物/服务分类
+        categories = Counter()
+        for inv in invoices:
+            goods = str(inv.get("goods", "") or inv.get("货物或应税劳务名称", ""))
+            for cat_kw, cat_name in [("纺织", "纺织产品"), ("棉纱", "纺织原料"), ("服装", "服装"),
+                                       ("加工", "加工劳务"), ("建筑", "建安服务"), ("广告", "广告服务"),
+                                       ("设计", "设计服务"), ("咨询", "咨询服务"), ("租赁", "租赁服务"),
+                                       ("运输", "运输服务"), ("餐饮", "餐饮服务"), ("住宿", "酒店住宿")]:
+                if cat_kw in goods:
+                    categories[cat_name] += 1
+                    break
+        
+        intel["发票"] = {
+            "销项发票": f"{len(sal_invs)}张，金额{sal_total:,.0f}元，税额{sal_tax:,.0f}元",
+            "进项发票": f"{len(pur_invs)}张，金额{pur_total:,.0f}元，税额{pur_tax:,.0f}元",
+            "进销比": f"{pur_total/sal_total:.2f}" if sal_total > 0 else "N/A",
+            "主要货物类别": dict(categories.most_common(5)) if categories else {},
+        }
+        
+        # 买方/卖方TOP
+        from collections import Counter as C2
+        buyers = C2(); sellers = C2()
+        for inv in invoices:
+            buyer = str(inv.get("buyer", "") or inv.get("购买方名称", "")).strip()
+            seller = str(inv.get("seller", "") or inv.get("销方名称", "")).strip()
+            if buyer and len(buyer) >= 2: buyers[buyer] += 1
+            if seller and len(seller) >= 2: sellers[seller] += 1
+        if buyers:
+            intel["发票"]["前5大购买方"] = [{"名称": n, "张数": c} for n, c in buyers.most_common(5)]
+        if sellers:
+            intel["发票"]["前5大供应商"] = [{"名称": n, "张数": c} for n, c in sellers.most_common(5)]
+    
+    # ── 工资情报 ──
+    if salaries:
+        total_salary = sum(float(s.get("amount", 0) or s.get("实发工资", 0) or 0) for s in salaries)
+        emp_count = len(set(str(s.get("name", "") or s.get("姓名", "") or s.get("id", "")) for s in salaries))
+        intel["工资"] = {
+            "总工资": f"{total_salary:,.0f}元",
+            "员工人数": emp_count,
+            "人均工资": f"{total_salary/max(emp_count,1):,.0f}元" if emp_count > 0 else "0",
+            "记录条数": len(salaries),
+        }
+    
+    # ── 社保情报 ──
+    if social_security:
+        ss_total = sum(float(s.get("amount", 0) or 0) for s in social_security)
+        ss_count = len(social_security)
+        intel["社保"] = {
+            "记录条数": ss_count,
+            "总缴费金额": f"{ss_total:,.0f}元",
+        }
+    
+    # ── 凭证情报 ──
+    if vouchers:
+        intel["凭证"] = {
+            "凭证数量": len(vouchers),
+            "科目数量": len(set(str(v.get("account", "")) for v in vouchers if v.get("account"))),
+        }
+    
+    # ── 存货情报 ──
+    if inventory:
+        intel["进销存"] = {
+            "记录条数": len(inventory),
+        }
+    
+    return intel
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
 
-    global _tax_risk_docs, _tax_doc_counter
-    # 确保启动时已加载磁盘文件（幂等调用）
+    global _tax_risk_docs, _tax_doc_counter, _TAX_DOC_SCANNED
+    # 每次分析时强制重扫描磁盘（确保新上传文件可见，零时差）
+    _TAX_DOC_SCANNED = False
+    _tax_risk_docs.clear()
+    _recover_tax_risk_docs()
     _init_tax_docs_from_disk()
     
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
@@ -15160,50 +15412,35 @@ def _run_analyze(company_id, db):
                     elif total_items == 0:
                         reason = "无数据"
                     else:
-                        # 规则触发逻辑：检查rule的item/detail是否与数据匹配
-                        rule_text = (rule.get("item", "") + " " + rule.get("detail", "")).lower()
+                        # ═══ 真正数据验证引擎 ═══
+                        verified, v_reason, v_confidence, v_evidence = _verify_rule_against_data(
+                            rule, bank_txs, invoices, salaries, social_security, vouchers)
                         
-                        # 检查1：规则关键词命中数据
-                        rule_kws = set()
-                        import re as _re_chain
-                        for rkw in _re_chain.findall(r'[\u4e00-\u9fff]{2,6}', rule_text):
-                            rule_kws.add(rkw)
-                        
-                        data_hits = sum(1 for kw in rule_kws if kw in str(data_keywords))
-                        
-                        # 检查2：规则关联的数据类型是否存在
-                        data_type_match = False
-                        ds = rule.get("dataSource", "").lower()
-                        if "银行" in ds and has_bank: data_type_match = True
-                        if "发票" in ds and has_invoice: data_type_match = True
-                        if "工资" in ds and has_salary: data_type_match = True
-                        if "社保" in ds and has_social: data_type_match = True
-                        if "凭证" in ds and has_voucher: data_type_match = True
-                        if not ds: data_type_match = total_items > 0  # 无指定数据源则只要有数据就尝试
-                        
-                        # 检查3：规则是否已被现有发现匹配
-                        rule_type = rule.get("item", "").lower().replace(" ", "")
-                        if rule_type in existing_finding_map:
+                        if v_confidence >= 0.8:
                             triggered = True
-                            reason = "已命中现有发现"
-                            finding_ref = existing_finding_map[rule_type].get("type", "")
-                        
-                        # 检查4：通用规则（关于缺失/完整性的）在数据存在时触发
-                        if not triggered and ("缺失" in rule_item or "不完备" in rule_item or "无" in rule_item):
-                            if data_type_match:
+                            reason = f"数据验证: {v_reason}"
+                        elif v_confidence >= 0.5:
+                            rule_text = (rule.get("item", "") + " " + rule.get("detail", ""))
+                            import re as _re_chain
+                            rule_kws = set(_re_chain.findall(r'[\u4e00-\u9fff]{2,6}', rule_text))
+                            data_hits = sum(1 for kw in rule_kws if kw in str(data_keywords))
+                            if verified or data_hits >= 3:
                                 triggered = True
-                                reason = "数据覆盖触发"
-                        
-                        # 检查5：关键词命中
-                        if not triggered and data_hits >= 2 and data_type_match:
-                            triggered = True
-                            reason = f"数据关键词命中{data_hits}个"
-                        
-                        if not triggered and not reason.startswith("已命中"):
-                            if total_items > 0 and not data_type_match:
-                                reason = "对应数据类型不存在"
-                            elif data_hits < 2:
-                                reason = f"数据关键词不足(命中{data_hits})"
+                                reason = f"综合判断(置信{v_confidence}): {v_reason}"
+                            else:
+                                reason = f"验证不充分: {v_reason}"
+                        else:
+                            # 低置信度→回退关键词+已有发现检查
+                            rule_text = rule.get("item", "").lower().replace(" ", "")
+                            if rule_text in existing_finding_map:
+                                triggered = True
+                                reason = "已命中现有发现"
+                                finding_ref = existing_finding_map[rule_text].get("type", "")
+                            elif "缺失" in rule_item or "不完备" in rule_item or "无" in rule_item:
+                                triggered = bool(total_items)
+                                reason = "缺失检查触发" if total_items else "无数据"
+                            else:
+                                reason = f"验证未通过: {v_reason}"
                     
                     if triggered:
                         triggered_steps += 1
@@ -15258,16 +15495,26 @@ def _run_analyze(company_id, db):
                 all_findings.extend(chain_findings)
             
             # ── 为链驱动发现补全规则匹配（用于证据链闭环检测）──
+            # 修复：使用词级匹配(2+字中文词组)替代字符级匹配，避免误匹配
+            import re as _re_cf
             for f in chain_findings:
-                f_type = f.get("type", "").lower()
-                f_cat = f.get("category", "").lower()
+                f_type = str(f.get("type", ""))
+                f_cat = str(f.get("category", "")).lower()
+                f_detail = str(f.get("detail", ""))[:100]
                 matched_ids = []
+                # 提取finding中的2+字中文关键词
+                type_kws = set(_re_cf.findall(r'[\u4e00-\u9fff]{2,8}', f_type))
+                detail_kws = set(_re_cf.findall(r'[\u4e00-\u9fff]{2,8}', f_detail))
+                all_kws = type_kws | detail_kws
                 for r in rules_data:
-                    r_item = r.get("item", "").lower()
-                    r_cat = r.get("category", "").lower()
-                    hits = sum(1 for kw in f_type.replace(" ","") if kw in r_item.replace(" ",""))
+                    r_item = str(r.get("item", ""))
+                    r_cat = str(r.get("category", "")).lower()
+                    r_detail = str(r.get("detail", ""))[:100]
+                    # 词级匹配：2+字关键词命中
+                    hits = sum(1 for kw in all_kws if kw in r_item or kw in r_detail)
                     cat_match = f_cat and r_cat and (f_cat in r_cat or r_cat in f_cat)
-                    if hits >= 2 or (hits >= 1 and cat_match):
+                    # 修复：要求3+词命中或2词命中+分类一致
+                    if hits >= 3 or (hits >= 2 and cat_match):
                         matched_ids.append(r["id"])
                 f["matched_rule_ids"] = matched_ids[:5]
                 f["matched_rule_count"] = len(matched_ids)
@@ -15320,30 +15567,47 @@ def _run_analyze(company_id, db):
                         "total_steps": total_steps,
                         "triggered_steps": triggered_in_chain,
                         "ratio": round(ratio * 100),
-                        "closed": ratio >= 0.6,  # ≥60%闭环
+                        "closed": (ratio >= 0.6 and triggered_in_chain >= 3),  # 修复：≥60%且≥3条规则才闭环
                         "steps": step_results,
                     })
                     
                     # 闭环的链 → 生成违法事实发现 + 升级风险等级
-                    if ratio >= 0.6:
-                        # 生成违法事实闭环发现
-                        step_items = [s["rule_item"] for s in step_results if s["triggered"]][:3]
-                        policy_items = list(set(s.get("policy_ref","") for step in chain.get("investigation_path",[]) for s in [step] if s.get("rule_id") in triggered_rule_ids_for_evidence))[:2]
+                    # 修复：增加多源交叉验证——触发规则须来自≥2个数据域
+                    if ratio >= 0.6 and triggered_in_chain >= 3:
+                        # 检查触发的规则是否来自多数据源（多角度互证）
+                        triggered_rules = [step_results[i] for i, s in enumerate(step_results) if s["triggered"]]
+                        source_domains = set()
+                        for tr in triggered_rules:
+                            r_id = tr.get("rule_id")
+                            if r_id and r_id in rule_map:
+                                r_cat = str(rule_map[r_id].get("category", ""))
+                                source_domains.add(r_cat[:6])
                         
-                        all_findings.append({
-                            "type": f"证据链闭环：{chain['name'][:30]}",
-                            "level": "高风险",
-                            "score": 9,
-                            "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
-                            "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被数据验证命中，触发率{round(ratio*100)}%。根据《税务稽查工作规程》，多源交叉互证形成完整证据闭环，应启动正式稽查程序。",
-                            "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中 → 自动判定违法事实闭环",
-                            "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
-                            "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务稽查工作规程》",
-                            "suggestion": f"该证据链已闭环，建议：(1)启动正式稽查立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items[:2])}进行重点核实",
-                            "category": chain.get("sub_topic", "综合"),
-                            "chain_closure": True,
-                            "source_chain": chain["name"],
-                        })
+                        # 修复：需≥2个数据域交叉验证才闭环，单域触发即使100%也不闭环
+                        if len(source_domains) >= 2:
+                            # 生成违法事实闭环发现
+                            step_items = [s["rule_item"] for s in step_results if s["triggered"]][:3]
+                            policy_items = list(set(s.get("policy_ref","") for step in chain.get("investigation_path",[]) for s in [step] if s.get("rule_id") in triggered_rule_ids_for_evidence))[:2]
+                            
+                            all_findings.append({
+                                "type": f"证据链闭环：{chain['name'][:30]}",
+                                "level": "高风险",
+                                "score": 9,
+                                "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，跨{len(source_domains)}域交叉验证，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
+                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务稽查工作规程》，多源交叉互证形成完整证据闭环，应启动正式稽查程序。",
+                                "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中({len(source_domains)}域交叉) → 自动判定违法事实闭环",
+                                "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
+                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务稽查工作规程》",
+                                "suggestion": f"该证据链已闭环，建议：(1)启动正式稽查立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items[:2])}进行重点核实",
+                                "category": chain.get("sub_topic", "综合"),
+                                "chain_closure": True,
+                                "source_chain": chain["name"],
+                                "cross_domains": len(source_domains),
+                            })
+                        else:
+                            # 单域触发：写入证据链记录但不闭环，标注需多源验证
+                            evidence_closures[-1]["closed"] = False
+                            evidence_closures[-1]["note"] = f"仅{len(source_domains)}域触发，需多源交叉验证"
             
             # 按闭环优先排序
             evidence_closures.sort(key=lambda x: (-x["closed"], -x["ratio"]))
@@ -15562,6 +15826,11 @@ def _run_analyze(company_id, db):
             seen_labels.add(label)
     comprehensive["data_overview"] = {"present": data_present, "missing": []}
 
+    # ── 资料情报提取：从数据中自动提取关键审计信息 ──
+    material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory)
+    comprehensive["material_intel"] = material_intel
+    pipeline_log.append(f"资料情报提取: 已完成{len(material_intel)}个模块的关键信息提取")
+
     # ── 金税四期式多因子风险评分引擎 ──
     risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
     comprehensive["risk_profile"] = risk_profile
@@ -15605,17 +15874,22 @@ def _run_analyze(company_id, db):
         rule_map = {r["id"]: r for r in rules_data}
         
         for f in all_findings:
-            f_type = str(f.get("type", "")).lower()
+            f_type = str(f.get("type", ""))
             f_cat = str(f.get("category", "")).lower()
+            f_detail = str(f.get("detail", ""))[:100]
             matched_ids = []
             type_kws = set(_re_find.findall(r'[\u4e00-\u9fff]{2,8}', f_type))
+            detail_kws = set(_re_find.findall(r'[\u4e00-\u9fff]{2,8}', f_detail))
+            all_kws = type_kws | detail_kws
             for r in rules_data:
-                r_item = r.get("item", "").lower()
-                r_cat = r.get("category", "").lower()
-                # 匹配逻辑：finding type关键词命中 rule item，或 category一致
-                hits = sum(1 for kw in type_kws if kw in r_item)
+                r_item = str(r.get("item", ""))
+                r_cat = str(r.get("category", "")).lower()
+                r_detail = str(r.get("detail", ""))[:100]
+                # 词级匹配：2+字关键词命中rule的item或detail
+                hits = sum(1 for kw in all_kws if kw in r_item or kw in r_detail)
                 cat_match = f_cat and r_cat and (f_cat in r_cat or r_cat in f_cat)
-                if hits >= 2 or (hits >= 1 and cat_match):
+                # 修复：要求3+词命中或2词命中+分类一致，杜绝字符级误匹配
+                if hits >= 3 or (hits >= 2 and cat_match):
                     matched_ids.append(r["id"])
             f["matched_rule_ids"] = matched_ids[:5]  # 最多5条规则
             f["matched_rule_count"] = len(matched_ids)

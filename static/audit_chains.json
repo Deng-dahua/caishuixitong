@@ -107,7 +107,9 @@
       "related_chain_count": 225,
       "quality_score": 19.6,
       "has_policy_count": 4,
-      "total_steps": 6
+      "total_steps": 6,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-有票无付",
@@ -201,7 +203,9 @@
       "related_chain_count": 224,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-资金回流",
@@ -294,7 +298,9 @@
       "related_chain_count": 277,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-借贷不平衡-资金回流：支",
@@ -387,7 +393,9 @@
       "related_chain_count": 285,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-借贷不平衡-预收账款长期",
@@ -482,7 +490,9 @@
       "related_chain_count": 316,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-盈利与现金流-资金回流：支",
@@ -575,7 +585,9 @@
       "related_chain_count": 93,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-盈利与现金流-预收账款长期",
@@ -670,7 +682,9 @@
       "related_chain_count": 117,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-账簿记录不完-资金回流：支",
@@ -765,7 +779,9 @@
       "related_chain_count": 115,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-账簿记录不完-预收账款长期",
@@ -861,8 +877,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 9,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 12,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-未计提固定资-资金回流：支",
@@ -955,7 +971,9 @@
       "related_chain_count": 83,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-未计提固定资-预收账款长期",
@@ -1050,7 +1068,9 @@
       "related_chain_count": 113,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-企业所得税贡-资金回流：支",
@@ -1143,7 +1163,9 @@
       "related_chain_count": 79,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-企业所得税贡-预收账款长期",
@@ -1238,7 +1260,9 @@
       "related_chain_count": 109,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-付款流向与进-预收账款长期",
@@ -1333,7 +1357,9 @@
       "related_chain_count": 115,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-期末库存商品-资金回流：支",
@@ -1427,8 +1453,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-期末库存商品-预收账款长期",
@@ -1523,7 +1549,9 @@
       "related_chain_count": 109,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-盈余公积或未-资金回流：支",
@@ -1616,7 +1644,9 @@
       "related_chain_count": 97,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-盈余公积或未-预收账款长期",
@@ -1711,7 +1741,9 @@
       "related_chain_count": 98,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-公转私大额频",
@@ -1805,8 +1837,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-应收账款长期",
@@ -1901,7 +1933,9 @@
       "related_chain_count": 123,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-账面大量现金",
@@ -1997,8 +2031,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-预收账款长期",
@@ -2093,7 +2127,9 @@
       "related_chain_count": 123,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-预付账款长期",
@@ -2188,7 +2224,9 @@
       "related_chain_count": 123,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-期间无凭证记",
@@ -2282,8 +2320,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-流动比率偏低",
@@ -2376,7 +2414,9 @@
       "related_chain_count": 69,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-公转私大额频-预收账款长期",
@@ -2471,7 +2511,9 @@
       "related_chain_count": 116,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-应收账款长期-预收账款长期",
@@ -2566,7 +2608,9 @@
       "related_chain_count": 101,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-账面大量现金-预收账款长期",
@@ -2662,8 +2706,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-预收账款长期-预付账款长期",
@@ -2758,7 +2802,9 @@
       "related_chain_count": 100,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-预收账款长期-期间无凭证记",
@@ -2854,8 +2900,8 @@
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-预收账款长期-资产负债率过",
@@ -2950,7 +2996,9 @@
       "related_chain_count": 115,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-预收账款长期-流动比率偏低",
@@ -3045,7 +3093,9 @@
       "related_chain_count": 111,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-疑似空壳公司-经营场所实质",
@@ -3140,7 +3190,9 @@
       "related_chain_count": 70,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-存货真实性—",
@@ -3235,7 +3287,9 @@
       "related_chain_count": 75,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-采购量远超销",
@@ -3330,7 +3384,9 @@
       "related_chain_count": 81,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-企业倒闭未清",
@@ -3425,7 +3481,9 @@
       "related_chain_count": 65,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-长期亏损风险",
@@ -3520,7 +3578,9 @@
       "related_chain_count": 72,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-经营场所银行",
@@ -3615,7 +3675,9 @@
       "related_chain_count": 60,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-有员工但未申",
@@ -3710,7 +3772,9 @@
       "related_chain_count": 71,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-新办企业短期",
@@ -3805,7 +3869,9 @@
       "related_chain_count": 66,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-注销前突击开",
@@ -3900,7 +3966,9 @@
       "related_chain_count": 83,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-采购合理性—",
@@ -3995,7 +4063,9 @@
       "related_chain_count": 82,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-采购量远超销-新办企业短期",
@@ -4090,7 +4160,9 @@
       "related_chain_count": 80,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-企业倒闭未清-新办企业短期",
@@ -4185,7 +4257,9 @@
       "related_chain_count": 72,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所银行-新办企业短期",
@@ -4280,7 +4354,9 @@
       "related_chain_count": 67,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所银行-采购合理性—",
@@ -4375,7 +4451,9 @@
       "related_chain_count": 72,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-新办企业短期-注销前突击开",
@@ -4470,7 +4548,9 @@
       "related_chain_count": 82,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-新办企业短期-采购合理性—",
@@ -4565,7 +4645,9 @@
       "related_chain_count": 72,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-新办企业短期-经营费用与实",
@@ -4660,7 +4742,9 @@
       "related_chain_count": 75,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-银行流水深度",
@@ -4744,11 +4828,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 19.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "社保-险种覆盖",
@@ -4844,11 +4928,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 19.0,
       "has_policy_count": 6,
       "total_steps": 6,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-私户经营",
@@ -4944,7 +5028,9 @@
       "related_chain_count": 305,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-购销弹性",
@@ -5037,7 +5123,9 @@
       "related_chain_count": 252,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-供应商异常",
@@ -5131,7 +5219,9 @@
       "related_chain_count": 224,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-费用虚增",
@@ -5226,7 +5316,9 @@
       "related_chain_count": 291,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-工资虚列",
@@ -5354,8 +5446,8 @@
       "quality_score": 18.7,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-骗取退税",
@@ -5452,7 +5544,9 @@
       "related_chain_count": 297,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-社保匹配",
@@ -5546,7 +5640,9 @@
       "related_chain_count": 224,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-股东分红",
@@ -5639,7 +5735,9 @@
       "related_chain_count": 81,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-代开",
@@ -5821,7 +5919,9 @@
       "related_chain_count": 239,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-境外付汇",
@@ -5916,7 +6016,9 @@
       "related_chain_count": 238,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-综合保税区",
@@ -6010,7 +6112,9 @@
       "related_chain_count": 225,
       "quality_score": 18.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-变更后开票",
@@ -6094,11 +6198,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 18.7,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-主营业务",
@@ -6234,7 +6338,9 @@
       "related_chain_count": 237,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-即征即退",
@@ -6359,7 +6465,9 @@
       "related_chain_count": 239,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-关联交易",
@@ -6455,7 +6563,9 @@
       "related_chain_count": 227,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "转让定价-同期资料",
@@ -6540,7 +6650,9 @@
       "related_chain_count": 1,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-疑似空壳公司-资金回流嫌疑",
@@ -6638,8 +6750,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-房地产/建筑",
@@ -6734,7 +6846,9 @@
       "related_chain_count": 78,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-银行流水收入",
@@ -6830,8 +6944,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-资金回流嫌疑",
@@ -6927,8 +7041,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所实质-费用结构与企",
@@ -7023,7 +7137,9 @@
       "related_chain_count": 64,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-房地产/建筑-新办企业短期",
@@ -7118,7 +7234,9 @@
       "related_chain_count": 84,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-银行流水收入-资金回流嫌疑",
@@ -7216,8 +7334,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-存货真实性—-资金回流嫌疑",
@@ -7315,8 +7433,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-采购量远超销-资金回流嫌疑",
@@ -7412,8 +7530,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-企业倒闭未清-资金回流嫌疑",
@@ -7509,8 +7627,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-企业经营困难-资金回流嫌疑",
@@ -7606,8 +7724,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-收入/成本/-新办企业短期",
@@ -7702,7 +7820,9 @@
       "related_chain_count": 76,
       "quality_score": 18.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-长期亏损风险-资金回流嫌疑",
@@ -7798,8 +7918,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-经营场所银行-资金回流嫌疑",
@@ -7895,8 +8015,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-有员工但未申-资金回流嫌疑",
@@ -7994,8 +8114,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-新办企业短期-资金回流嫌疑",
@@ -8091,8 +8211,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-资金回流嫌疑-注销前突击开",
@@ -8188,8 +8308,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-资金回流嫌疑-经营费用与实",
@@ -8285,8 +8405,8 @@
       "quality_score": 18.5,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-未开票收入",
@@ -8383,7 +8503,9 @@
       "related_chain_count": 369,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-转出未转",
@@ -8479,7 +8601,9 @@
       "related_chain_count": 281,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-资源税",
@@ -8574,7 +8698,9 @@
       "related_chain_count": 226,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-关联采购",
@@ -8669,7 +8795,9 @@
       "related_chain_count": 272,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-研发外包",
@@ -8764,7 +8892,9 @@
       "related_chain_count": 242,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-市场采购",
@@ -8857,7 +8987,9 @@
       "related_chain_count": 275,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "慈善非营利-免税资格",
@@ -8951,7 +9083,9 @@
       "related_chain_count": 225,
       "quality_score": 18.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "社保-基数核查",
@@ -9035,11 +9169,11 @@
           "suggestion": "逐项比对三表数据差异，查明原因（时间性差异还是永久性差异），调整申报数据或账务处理。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 18.4,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-供应商群集",
@@ -9132,7 +9266,9 @@
       "related_chain_count": 247,
       "quality_score": 18.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "转让定价-利润转移",
@@ -9225,7 +9361,9 @@
       "related_chain_count": 286,
       "quality_score": 18.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-发票分析",
@@ -9329,7 +9467,9 @@
       "related_chain_count": 226,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-修理费",
@@ -9467,7 +9607,9 @@
       "related_chain_count": 224,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-差额与全额",
@@ -9626,8 +9768,8 @@
       "quality_score": 18.1,
       "has_policy_count": 3,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-出口退免税",
@@ -9723,7 +9865,9 @@
       "related_chain_count": 244,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-真假鉴别",
@@ -9818,8 +9962,8 @@
       "quality_score": 18.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "出口退税-骗税识别",
@@ -9915,7 +10059,9 @@
       "related_chain_count": 271,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "出口退税-供货异常",
@@ -10010,7 +10156,9 @@
       "related_chain_count": 225,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-ERP系统比对",
@@ -10094,10 +10242,11 @@
           "suggestion": "逐月排查序时账，检查是否有凭证漏记或金额录入错误，确保每笔凭证借贷金额相等。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-多税率管理",
@@ -10181,11 +10330,11 @@
           "suggestion": "①对涉及酒店和餐饮供应商进行穿透式尽职调查，查工商登记信息/社保缴纳/实际经营地址；②向税务机关举报可疑开票方；③立即停止与可疑供应商交易。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 18.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-转让定价",
@@ -10269,11 +10418,11 @@
           "suggestion": "立即检查该期间是否漏记账务，补充必要的凭证录入。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 18.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-受控外国",
@@ -10357,10 +10506,11 @@
           "suggestion": "核查股东借款的用途和期限。超过一个纳税年度未归还且未用于企业生产经营的股东借款，视同分红征收20%个税。建议股东归还借款或转为实收资本。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 18.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-协定滥用",
@@ -10444,11 +10594,11 @@
           "suggestion": "立即检查该期间是否漏记账务，补充必要的凭证录入。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 18.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-零申报",
@@ -10541,7 +10691,9 @@
       "related_chain_count": 262,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-计税价格",
@@ -10638,7 +10790,9 @@
       "related_chain_count": 18,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "资产负债往来-资金回流：支-资产负债率过",
@@ -10731,7 +10885,9 @@
       "related_chain_count": 71,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-毛利率/净利-咨询费/服务",
@@ -10826,7 +10982,9 @@
       "related_chain_count": 86,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-房地产/建筑-资金回流嫌疑",
@@ -10922,8 +11080,8 @@
       "quality_score": 18.0,
       "has_policy_count": 3,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营实质-资金回流嫌疑-费用结构与企",
@@ -11019,8 +11177,8 @@
       "quality_score": 18.0,
       "has_policy_count": 3,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-以货抵债未开-预收账款占比",
@@ -11117,7 +11275,9 @@
       "related_chain_count": 54,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-以货抵债未开-预收账款期末",
@@ -11214,7 +11374,9 @@
       "related_chain_count": 54,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-非货币性交易-预收账款占比",
@@ -11311,7 +11473,9 @@
       "related_chain_count": 54,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-非货币性交易-预收账款期末",
@@ -11408,7 +11572,9 @@
       "related_chain_count": 54,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-存货周转率极-预收账款占比",
@@ -11505,7 +11671,9 @@
       "related_chain_count": 57,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-存货周转率极-预收账款期末",
@@ -11602,7 +11770,9 @@
       "related_chain_count": 57,
       "quality_score": 18.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-销项异常",
@@ -11698,7 +11868,9 @@
       "related_chain_count": 265,
       "quality_score": 17.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-纳税调整",
@@ -11794,7 +11966,9 @@
       "related_chain_count": 227,
       "quality_score": 17.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-境外所得",
@@ -11890,7 +12064,9 @@
       "related_chain_count": 236,
       "quality_score": 17.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-客户分析",
@@ -11983,7 +12159,9 @@
       "related_chain_count": 224,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-四流比对",
@@ -12078,7 +12256,9 @@
       "related_chain_count": 23,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-暂估无票",
@@ -12173,7 +12353,9 @@
       "related_chain_count": 251,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-环保税",
@@ -12289,7 +12471,9 @@
       "related_chain_count": 224,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-账簿检查",
@@ -12386,8 +12570,8 @@
       "quality_score": 17.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-股权转让",
@@ -12480,7 +12664,9 @@
       "related_chain_count": 17,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-重组税务",
@@ -12597,7 +12783,9 @@
       "related_chain_count": 244,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-上下游协查",
@@ -12694,7 +12882,9 @@
       "related_chain_count": 225,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-海南自贸港",
@@ -12788,7 +12978,9 @@
       "related_chain_count": 224,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-全链条追踪",
@@ -12872,10 +13064,11 @@
           "suggestion": "排查上下游企业均为同一团伙控制集中开票闭环相关风险。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-走逃前迹象",
@@ -12959,10 +13152,11 @@
           "suggestion": "逐票核查注销前开票的真实性。确认是否有真实的货物交易和资金流动。税务机关对注销企业的发票会进行重点核查。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-费用结构分析",
@@ -13046,10 +13240,11 @@
           "suggestion": "核算主要客户的运距和运费占比，确保在行业合理范围内。远距离销售低毛利产品的，必须能解释商业合理性（如独特技术壁垒、客户指定采购等）。运输费占比异常偏低的，需有客户承担运费的合同条款支撑。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-大额费用",
@@ -13133,11 +13328,11 @@
           "suggestion": "立即检查该期间是否漏记账务，补充必要的凭证录入。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-金融行业",
@@ -13221,11 +13416,11 @@
           "suggestion": "核实并整改相关问题，保留整改记录。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-红冲作废",
@@ -13318,7 +13513,9 @@
       "related_chain_count": 224,
       "quality_score": 17.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-免税收入",
@@ -13415,7 +13612,9 @@
       "related_chain_count": 262,
       "quality_score": 17.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-股权激励",
@@ -13605,7 +13804,9 @@
       "related_chain_count": 233,
       "quality_score": 17.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-场所",
@@ -13697,7 +13898,9 @@
       "related_chain_count": 6,
       "quality_score": 17.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-产能推算",
@@ -13794,7 +13997,9 @@
       "related_chain_count": 36,
       "quality_score": 17.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-清算重组",
@@ -13890,7 +14095,9 @@
       "related_chain_count": 32,
       "quality_score": 17.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-体育",
@@ -13984,7 +14191,9 @@
       "related_chain_count": 238,
       "quality_score": 17.5,
       "has_policy_count": 2,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-无仓储物流",
@@ -14081,7 +14290,9 @@
       "related_chain_count": 44,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-通信",
@@ -14175,7 +14386,9 @@
       "related_chain_count": 224,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-媒体曝光",
@@ -14270,7 +14483,9 @@
       "related_chain_count": 261,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-资金追踪",
@@ -14367,8 +14582,8 @@
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 9,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 12,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-衍生工具",
@@ -14462,7 +14677,9 @@
       "related_chain_count": 265,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "税务-偷税认定",
@@ -14558,7 +14775,9 @@
       "related_chain_count": 326,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-大额资产损失",
@@ -14653,7 +14872,9 @@
       "related_chain_count": 99,
       "quality_score": 17.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-生产成本料工",
@@ -14748,7 +14969,9 @@
       "related_chain_count": 88,
       "quality_score": 17.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-发票流向",
@@ -14832,10 +15055,11 @@
           "suggestion": "逐月排查库存商品明细账，负数月份须逐笔核实入库凭证。至少按季度做存货盘点。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-暴力虚开",
@@ -14919,10 +15143,11 @@
           "suggestion": "排查留抵退税申请后快速大额对外虚开发票骗税指标相关风险。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-预缴与清算",
@@ -15006,10 +15231,11 @@
           "suggestion": "逐笔整理出口退税所需单证：报关单、收汇核销单/银行收汇水单、出口发票、进货凭证。缺失单证应尽快补齐或按内销处理。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-电商全流程",
@@ -15093,11 +15319,11 @@
           "suggestion": "按企业会计准则第4号，当月增加的固定资产次月起计提折旧，检查是否漏记折旧费用。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-餐饮全流程",
@@ -15181,11 +15407,11 @@
           "suggestion": "建立废料全流程管理：生产废料→废料入库→废料销售→废料发票，每个环节数量可追踪。废料销售无论金额大小，必须开具发票并申报收入。边角料和废料的产出率应稳定在行业标准范围内，异常波动需有合理解释。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-物流全流程",
@@ -15269,11 +15495,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-制造业全流程",
@@ -15357,10 +15583,11 @@
           "suggestion": "补开发票或申报未开票收入，建立出库开票联动。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-证据准备",
@@ -15444,11 +15671,11 @@
           "suggestion": "逐份核查合同执行情况：补开/补收对应发票，补办付款手续并留存银行回单，建立三流合一检查制度。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-听证程序",
@@ -15532,11 +15759,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-行政复议",
@@ -15618,11 +15845,11 @@
           "suggestion": "核查作废和红冲原因，是否符合国家税务总局公告2016年第47号规定的红冲条件。避免频繁作废发票。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-账外资产",
@@ -15717,7 +15944,9 @@
       "related_chain_count": 239,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-医药医疗",
@@ -15814,7 +16043,9 @@
       "related_chain_count": 249,
       "quality_score": 17.4,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-存货异常",
@@ -15909,7 +16140,9 @@
       "related_chain_count": 243,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-土地增值税",
@@ -16004,7 +16237,9 @@
       "related_chain_count": 249,
       "quality_score": 17.4,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-滞留异常",
@@ -16100,7 +16335,9 @@
       "related_chain_count": 247,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-农业",
@@ -16196,7 +16433,9 @@
       "related_chain_count": 261,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-能耗",
@@ -16292,7 +16531,9 @@
       "related_chain_count": 225,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-外包管理",
@@ -16388,7 +16629,9 @@
       "related_chain_count": 242,
       "quality_score": 17.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-个税代扣",
@@ -16483,7 +16726,9 @@
       "related_chain_count": 237,
       "quality_score": 17.4,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-串通舞弊",
@@ -16577,7 +16822,9 @@
       "related_chain_count": 245,
       "quality_score": 17.3,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-限制出境",
@@ -16673,7 +16920,9 @@
       "related_chain_count": 246,
       "quality_score": 17.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-强制执行",
@@ -16787,7 +17036,9 @@
       "related_chain_count": 306,
       "quality_score": 17.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-偷税认定",
@@ -16885,8 +17136,8 @@
       "quality_score": 17.3,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 9,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 12,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-进销背离",
@@ -16979,7 +17230,9 @@
       "related_chain_count": 247,
       "quality_score": 17.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-成本扣除",
@@ -17077,8 +17330,8 @@
       "quality_score": 17.2,
       "has_policy_count": 4,
       "total_steps": 5,
-      "usage_count": 8,
-      "last_triggered": "2026-06-17 13:38"
+      "usage_count": 11,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-备注栏",
@@ -17174,7 +17427,9 @@
       "related_chain_count": 225,
       "quality_score": 17.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-房地产",
@@ -17289,7 +17544,9 @@
       "related_chain_count": 249,
       "quality_score": 17.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-新办企业",
@@ -17384,7 +17641,9 @@
       "related_chain_count": 241,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-无经营场所",
@@ -17481,7 +17740,9 @@
       "related_chain_count": 38,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-劳务报酬",
@@ -17575,7 +17836,9 @@
       "related_chain_count": 28,
       "quality_score": 17.1,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-房产税",
@@ -17672,7 +17935,9 @@
       "related_chain_count": 242,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-互联网",
@@ -17767,7 +18032,9 @@
       "related_chain_count": 224,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-利润",
@@ -17864,7 +18131,9 @@
       "related_chain_count": 281,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-逾期",
@@ -17961,7 +18230,9 @@
       "related_chain_count": 82,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-虚报亏损",
@@ -18056,7 +18327,9 @@
       "related_chain_count": 237,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "知识产权-许可费",
@@ -18152,7 +18425,9 @@
       "related_chain_count": 225,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "税务-税务筹划",
@@ -18246,7 +18521,9 @@
       "related_chain_count": 225,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-关联方销售",
@@ -18330,10 +18607,11 @@
           "suggestion": "逐项排查煤炭进销单价偏离市场公允价格指标相关风险，确保税务处理合规。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-税会差异",
@@ -18417,10 +18695,11 @@
           "suggestion": "逐月排查序时账，检查是否有凭证漏记或金额录入错误，确保每笔凭证借贷金额相等。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 17.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-研发费用",
@@ -18515,7 +18794,9 @@
       "related_chain_count": 226,
       "quality_score": 17.0,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-咨询费",
@@ -18612,7 +18893,9 @@
       "related_chain_count": 268,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-进项异常",
@@ -18708,7 +18991,9 @@
       "related_chain_count": 260,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-收入确认",
@@ -18804,7 +19089,9 @@
       "related_chain_count": 245,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-财产调查",
@@ -18901,7 +19188,9 @@
       "related_chain_count": 42,
       "quality_score": 17.0,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "出口退税-函调不符",
@@ -18997,7 +19286,9 @@
       "related_chain_count": 261,
       "quality_score": 17.0,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-办公费用缺失",
@@ -19092,7 +19383,9 @@
       "related_chain_count": 59,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-主营业务成本",
@@ -19187,7 +19480,9 @@
       "related_chain_count": 68,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-收入同比下滑",
@@ -19282,7 +19577,9 @@
       "related_chain_count": 69,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-期末存货与当",
@@ -19377,7 +19674,9 @@
       "related_chain_count": 91,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-存货周转天数",
@@ -19472,7 +19771,9 @@
       "related_chain_count": 93,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-原材料库存逐",
@@ -19567,7 +19868,9 @@
       "related_chain_count": 93,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-账面存货金额",
@@ -19662,7 +19965,9 @@
       "related_chain_count": 91,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-年末集中结转",
@@ -19757,7 +20062,9 @@
       "related_chain_count": 91,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-年末暂估成本",
@@ -19852,7 +20159,9 @@
       "related_chain_count": 94,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-暂估成本长期",
@@ -19947,7 +20256,9 @@
       "related_chain_count": 88,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本费用配比-咨询费/服务-原材料耗用占",
@@ -20042,7 +20353,9 @@
       "related_chain_count": 77,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-刷单虚假交易-预收账款期末",
@@ -20139,7 +20452,9 @@
       "related_chain_count": 53,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-销售量与申报-预收账款期末",
@@ -20236,7 +20551,9 @@
       "related_chain_count": 51,
       "quality_score": 17.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-综合与分类",
@@ -20320,11 +20637,11 @@
           "suggestion": "排查企业年会抽奖红包未代扣偶然所得个税指标相关风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 17.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-资产处理",
@@ -20420,7 +20737,9 @@
       "related_chain_count": 262,
       "quality_score": 16.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-税率",
@@ -20516,7 +20835,9 @@
       "related_chain_count": 224,
       "quality_score": 16.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-异常凭证",
@@ -20613,7 +20934,9 @@
       "related_chain_count": 247,
       "quality_score": 16.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-信托计划",
@@ -20704,7 +21027,9 @@
       "related_chain_count": 301,
       "quality_score": 16.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-以货易货",
@@ -20800,7 +21125,9 @@
       "related_chain_count": 248,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-集中开票",
@@ -20896,7 +21223,9 @@
       "related_chain_count": 244,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-零售业",
@@ -21001,7 +21330,9 @@
       "related_chain_count": 225,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-制造业",
@@ -21096,7 +21427,9 @@
       "related_chain_count": 224,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-能源矿产",
@@ -21192,7 +21525,9 @@
       "related_chain_count": 226,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-电力",
@@ -21287,7 +21622,9 @@
       "related_chain_count": 224,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-物流",
@@ -21384,7 +21721,9 @@
       "related_chain_count": 233,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-预缴偏差",
@@ -21481,7 +21820,9 @@
       "related_chain_count": 252,
       "quality_score": 16.8,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-协查",
@@ -21575,7 +21916,9 @@
       "related_chain_count": 240,
       "quality_score": 16.8,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-同业业务",
@@ -21678,7 +22021,9 @@
       "related_chain_count": 226,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "知识产权-研发投入",
@@ -21774,7 +22119,9 @@
       "related_chain_count": 226,
       "quality_score": 16.8,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "海关-完税价格",
@@ -21869,7 +22216,9 @@
       "related_chain_count": 236,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-政府补贴",
@@ -21953,11 +22302,11 @@
           "suggestion": "逐笔整理出口退税所需单证：报关单、收汇核销单/银行收汇水单、出口发票、进货凭证。缺失单证应尽快补齐或按内销处理。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-申报表比对",
@@ -22041,10 +22390,11 @@
           "suggestion": "建立《考勤工时-产量-工资》三者的联动台账。确保：①工人实际出勤工时与生产能力相匹配；②计件工资总额与入库产量有清晰的勾稽关系；③加班记录与产量增长有合理性。保留完整的考勤原始记录。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-医药行业",
@@ -22128,11 +22478,11 @@
           "suggestion": "核查会议是否真实召开，参会人员是否为真正的医疗专业人士"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境-常设机构",
@@ -22216,10 +22566,11 @@
           "suggestion": "①按服务履约进度将预收款结转收入，不得长期挂账；②增值税纳税义务发生时间为收到预收款的当天（提供服务的除外）；③预收款对应的服务如已终止，应及时将不再退还的预收款转为营业外收入；④建立预收款与履约进度"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-优惠管理",
@@ -22315,7 +22666,9 @@
       "related_chain_count": 229,
       "quality_score": 16.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-货物清单",
@@ -22411,8 +22764,8 @@
       "quality_score": 16.7,
       "has_policy_count": 5,
       "total_steps": 5,
-      "usage_count": 25,
-      "last_triggered": "2026-06-17 19:51"
+      "usage_count": 28,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-多税种联动",
@@ -22496,10 +22849,11 @@
           "suggestion": "重新计算增值额和税率。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-预收账款",
@@ -22593,7 +22947,9 @@
       "related_chain_count": 263,
       "quality_score": 16.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-关联企业",
@@ -22690,7 +23046,9 @@
       "related_chain_count": 21,
       "quality_score": 16.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-供应链",
@@ -22786,7 +23144,9 @@
       "related_chain_count": 247,
       "quality_score": 16.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-大数据预警",
@@ -22883,7 +23243,9 @@
       "related_chain_count": 287,
       "quality_score": 16.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "国际-税收协定",
@@ -22979,7 +23341,9 @@
       "related_chain_count": 228,
       "quality_score": 16.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-无物流",
@@ -23076,7 +23440,9 @@
       "related_chain_count": 230,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-顶额开具",
@@ -23173,7 +23539,9 @@
       "related_chain_count": 248,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "出口退税-单证不齐",
@@ -23270,7 +23638,9 @@
       "related_chain_count": 247,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-教培/服务行-预收账款期末",
@@ -23365,7 +23735,9 @@
       "related_chain_count": 53,
       "quality_score": 16.5,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-境外收入",
@@ -23449,10 +23821,11 @@
           "suggestion": "核实授权费的合理性和独立交易原则，超标准部分不得税前扣除。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-会员储值",
@@ -23534,11 +23907,11 @@
           "suggestion": "按企业会计准则第4号，当月增加的固定资产次月起计提折旧，检查是否漏记折旧费用。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-行业对标",
@@ -23622,10 +23995,11 @@
           "suggestion": "准备同期资料（转让定价文档）。对关联交易进行可比性分析，调整定价至合理区间。关联交易金额较大时应主动进行预约定价安排。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-优惠叠加",
@@ -23709,11 +24083,11 @@
           "suggestion": "核实并整改相关问题，保留整改记录。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-汇算清缴",
@@ -23882,11 +24256,11 @@
           "suggestion": "排查员工多处工资薪金收入未合并汇算个税风险指标相关风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-外贸全流程",
@@ -23970,11 +24344,11 @@
           "suggestion": "逐项排查境外客户收入无外汇收汇凭证匹配指标相关风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-教育行业",
@@ -24058,11 +24432,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-自查补救",
@@ -24146,11 +24520,11 @@
           "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风控-内控制度",
@@ -24234,11 +24608,11 @@
           "suggestion": "按企业会计准则第4号，当月增加的固定资产次月起计提折旧，检查是否漏记折旧费用。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.5,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风控-合同管理",
@@ -24322,10 +24696,11 @@
           "suggestion": "如变更行为有合理商业原因（如业务转型、正常人事变动），应保留相关决议和证明文件，并在变更时向税务机关完整披露。避免无合理理由的频繁变更，尤其是将法定代表人变更为无关联的老年人/异地人员。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-现金交易",
@@ -24422,7 +24797,9 @@
       "related_chain_count": 254,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-发票编码",
@@ -24518,7 +24895,9 @@
       "related_chain_count": 242,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-低值易耗品",
@@ -24614,7 +24993,9 @@
       "related_chain_count": 224,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-视同销售",
@@ -24711,7 +25092,9 @@
       "related_chain_count": 228,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-关联销售",
@@ -24808,7 +25191,9 @@
       "related_chain_count": 229,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-变更登记",
@@ -24898,7 +25283,9 @@
       "related_chain_count": 4,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "转让定价-无形资产",
@@ -24993,7 +25380,9 @@
       "related_chain_count": 9,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "转让定价-关联服务",
@@ -25090,7 +25479,9 @@
       "related_chain_count": 225,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-注册地与经营地",
@@ -25174,10 +25565,11 @@
           "suggestion": "多地经营须每地办理税务登记或分支机构备案"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-关联方费用",
@@ -25261,10 +25653,11 @@
           "suggestion": "核实平台代扣个税义务履行情况，不符合核定条件的改为查账征收。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-债券投资",
@@ -25357,7 +25750,9 @@
       "related_chain_count": 241,
       "quality_score": 16.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "知识产权-税收优惠",
@@ -25550,7 +25945,9 @@
       "related_chain_count": 263,
       "quality_score": 16.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-多期比对",
@@ -25645,7 +26042,9 @@
       "related_chain_count": 227,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-招待费",
@@ -25740,7 +26139,9 @@
       "related_chain_count": 240,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-办公费",
@@ -25833,7 +26234,9 @@
       "related_chain_count": 224,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-混合销售",
@@ -25928,7 +26331,9 @@
       "related_chain_count": 224,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-免税转出",
@@ -26024,7 +26429,9 @@
       "related_chain_count": 261,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-预提费用",
@@ -26117,7 +26524,9 @@
       "related_chain_count": 242,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-土地使用税",
@@ -26214,7 +26623,9 @@
       "related_chain_count": 260,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-餐饮住宿",
@@ -26310,7 +26721,9 @@
       "related_chain_count": 239,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-处罚",
@@ -26406,7 +26819,9 @@
       "related_chain_count": 228,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-联合惩戒",
@@ -26501,7 +26916,9 @@
       "related_chain_count": 224,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "数字经济-虚拟商品",
@@ -26596,7 +27013,9 @@
       "related_chain_count": 224,
       "quality_score": 16.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "税务-税务代理",
@@ -26691,7 +27110,9 @@
       "related_chain_count": 224,
       "quality_score": 16.1,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-废料收入",
@@ -26775,11 +27196,11 @@
           "suggestion": "逐项排查废旧物资回收企业税负偏离指标相关风险，确保税务处理合规。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-评估与申报",
@@ -26962,7 +27383,9 @@
       "related_chain_count": 269,
       "quality_score": 16.0,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-样品赠送视同-预收账款期末",
@@ -27059,7 +27482,9 @@
       "related_chain_count": 51,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-资产置换未确-预收账款期末",
@@ -27156,7 +27581,9 @@
       "related_chain_count": 58,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-增值税申报收-预收账款期末",
@@ -27251,7 +27678,9 @@
       "related_chain_count": 63,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-季度增值税收-预收账款期末",
@@ -27346,7 +27775,9 @@
       "related_chain_count": 64,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-年度主营业务-预收账款期末",
@@ -27441,7 +27872,9 @@
       "related_chain_count": 58,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-连续三期收入-预收账款期末",
@@ -27536,7 +27969,9 @@
       "related_chain_count": 57,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "收入合规-长期零申报企-预收账款期末",
@@ -27631,7 +28066,9 @@
       "related_chain_count": 63,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-税负-1",
@@ -27722,10 +28159,11 @@
         "证据链-关联交易-798"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-税负-2",
@@ -27818,10 +28256,11 @@
         "证据链-稽查-564"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-税负-3",
@@ -27909,10 +28348,11 @@
         "证据链-进项税额-34"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-进项税额-33",
@@ -28002,10 +28442,11 @@
         "证据链-进项税额-34"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-进项税额-34",
@@ -28093,10 +28534,11 @@
         "证据链-税负-4"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-顶额-97",
@@ -28188,10 +28630,11 @@
         "证据链-进项税额-34"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-103",
@@ -28282,10 +28725,11 @@
         "证据链-稽查-541"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-104",
@@ -28379,10 +28823,11 @@
         "证据链-异常-103"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-105",
@@ -28474,10 +28919,11 @@
         "证据链-异常-106"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-106",
@@ -28565,10 +29011,11 @@
         "证据链-异常-105"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-107",
@@ -28662,10 +29109,11 @@
         "证据链-异常-106"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-108",
@@ -28757,11 +29205,11 @@
         "证据链-异常-109"
       ],
       "related_chain_count": 6,
-      "usage_count": 12,
+      "usage_count": 15,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-109",
@@ -28851,10 +29299,11 @@
         "证据链-虚开-261"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-110",
@@ -28940,10 +29389,11 @@
         "证据链-虚开-262"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-111",
@@ -29031,10 +29481,11 @@
         "证据链-免税-70"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-112",
@@ -29218,10 +29669,11 @@
         "证据链-虚开-273"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-私户-168",
@@ -29317,10 +29769,11 @@
         "证据链-电商-517"
       ],
       "related_chain_count": 10,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-171",
@@ -29411,11 +29864,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 6,
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-172",
@@ -29509,10 +29962,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-173",
@@ -29607,10 +30061,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-174",
@@ -29705,11 +30160,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 9,
-      "usage_count": 9,
+      "usage_count": 12,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-175",
@@ -29801,11 +30256,11 @@
         "证据链-资金回流-353"
       ],
       "related_chain_count": 8,
-      "usage_count": 9,
+      "usage_count": 12,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-176",
@@ -29892,11 +30347,11 @@
         "证据链-预收账款-170"
       ],
       "related_chain_count": 5,
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-177",
@@ -29987,11 +30442,11 @@
         "证据链-存货-369"
       ],
       "related_chain_count": 5,
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-178",
@@ -30082,11 +30537,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 7,
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-251",
@@ -30178,10 +30633,11 @@
         "证据链-出口退税-90"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-252",
@@ -30269,10 +30725,11 @@
         "证据链-异常-103"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-253",
@@ -30365,10 +30822,11 @@
         "证据链-异常-103"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-254",
@@ -30460,10 +30918,11 @@
         "证据链-医药-520"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-255",
@@ -30557,10 +31016,11 @@
         "证据链-存货-364"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-256",
@@ -30652,10 +31112,11 @@
         "证据链-异常-106"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-257",
@@ -30746,10 +31207,11 @@
         "证据链-场所-761"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-258",
@@ -30840,10 +31302,11 @@
         "证据链-稽查-554"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-259",
@@ -30937,10 +31400,11 @@
         "证据链-虚开-260"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-260",
@@ -31029,11 +31493,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 5,
-      "usage_count": 12,
+      "usage_count": 15,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-265",
@@ -31121,10 +31585,11 @@
         "证据链-稽查-564"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-266",
@@ -31215,10 +31680,11 @@
         "证据链-稽查-564"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-267",
@@ -31306,10 +31772,11 @@
         "证据链-资金回流-353"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-268",
@@ -31675,10 +32142,11 @@
         "证据链-虚开-270"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-272",
@@ -31770,10 +32238,11 @@
         "证据链-虚开-271"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-273",
@@ -31865,10 +32334,11 @@
         "证据链-异常-114"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-275",
@@ -32052,10 +32522,11 @@
         "证据链-走逃-354"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-331",
@@ -32144,10 +32615,11 @@
         "证据链-四流-332"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-332",
@@ -32239,10 +32711,11 @@
         "证据链-稽查-557"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-338",
@@ -32425,10 +32898,11 @@
         "证据链-异常-103"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-折旧-358",
@@ -32523,10 +32997,11 @@
         "证据链-研发费用-472"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-409",
@@ -32620,10 +33095,11 @@
         "证据链-股权转让-801"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-410",
@@ -32716,10 +33192,11 @@
         "证据链-异常-106"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-411",
@@ -32813,10 +33290,11 @@
         "证据链-稽查-557"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-413",
@@ -33089,10 +33567,11 @@
         "证据链-四流-332"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-496",
@@ -33360,10 +33839,11 @@
         "证据链-物流-522"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-544",
@@ -33454,10 +33934,11 @@
         "证据链-存货-364"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-548",
@@ -33546,10 +34027,11 @@
         "证据链-存货-364"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-549",
@@ -33639,10 +34121,11 @@
         "证据链-存货-364"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-550",
@@ -33735,10 +34218,11 @@
         "证据链-存货-364"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-557",
@@ -33831,10 +34315,11 @@
         "证据链-个税-411"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-558",
@@ -33921,10 +34406,11 @@
         "证据链-稽查-559"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-559",
@@ -34012,10 +34498,11 @@
         "证据链-折旧-358"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-560",
@@ -34197,11 +34684,11 @@
         "证据链-虚开-260"
       ],
       "related_chain_count": 6,
-      "usage_count": 9,
+      "usage_count": 12,
       "quality_score": 16.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-567",
@@ -34290,10 +34777,11 @@
         "证据链-个税-412"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-569",
@@ -34381,10 +34869,11 @@
         "证据链-处罚-740"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-570",
@@ -34473,10 +34962,11 @@
         "证据链-稽查-569"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-573",
@@ -34840,10 +35330,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-580",
@@ -34936,10 +35427,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-581",
@@ -35034,10 +35526,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-583",
@@ -35223,10 +35716,11 @@
         "证据链-稽查-547"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-768",
@@ -35317,10 +35811,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-境外-795",
@@ -35407,10 +35902,11 @@
         "证据链-境外-796"
       ],
       "related_chain_count": 1,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-关联交易-798",
@@ -35591,10 +36087,11 @@
         "证据链-关联交易-798"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-教育培训",
@@ -35690,7 +36187,9 @@
       "related_chain_count": 237,
       "quality_score": 15.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "国际-间接转让",
@@ -35787,7 +36286,9 @@
       "related_chain_count": 236,
       "quality_score": 15.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-发票与申报",
@@ -35859,10 +36360,11 @@
           "suggestion": "逐项说明进项品名与销项品名的对应关系。如有生产加工环节，提供加工工艺说明。如是贸易企业，提供购销合同证明商业合理性。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.9,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-珠宝",
@@ -35958,7 +36460,9 @@
       "related_chain_count": 224,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-利息费",
@@ -36055,7 +36559,9 @@
       "related_chain_count": 66,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-电商平台",
@@ -36149,7 +36655,9 @@
       "related_chain_count": 225,
       "quality_score": 15.8,
       "has_policy_count": 1,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-负债",
@@ -36243,7 +36751,9 @@
       "related_chain_count": 82,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营深度-应收账款",
@@ -36338,7 +36848,9 @@
       "related_chain_count": 285,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-毛利率纵向",
@@ -36422,10 +36934,11 @@
           "suggestion": "核实并整改相关问题，保留整改记录。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-总分机构",
@@ -36509,10 +37022,11 @@
           "suggestion": "①梳理所有异地建筑项目，核实是否在项目开工前办理跨区域涉税事项报告；②在项目所在地按月/季预缴增值税并取得完税证明；③在机构所在地申报时正确填列预缴税款抵减额，避免重复缴税或抵减错误。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-代扣代缴",
@@ -36596,10 +37110,11 @@
           "suggestion": "逐项排查预提费用长期挂账无实际支付凭证匹配指标相关风险。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-资产税务",
@@ -36683,10 +37198,11 @@
           "suggestion": "企业所得税前允许扣除的资产损失，仅限于实际发生的损失。计提的减值准备需做纳税调增。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-建安业全流程",
@@ -36770,11 +37286,11 @@
           "suggestion": "立即检查该期间是否漏记账务，补充必要的凭证录入。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 15.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风控-档案管理",
@@ -36858,11 +37374,11 @@
           "suggestion": "逐月排查序时账，检查是否有凭证漏记或金额录入错误，确保每笔凭证借贷金额相等。"
         }
       ],
-      "usage_count": 12,
+      "usage_count": 15,
       "quality_score": 15.8,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-农产品",
@@ -36951,7 +37467,9 @@
       "related_chain_count": 3,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-简易计税",
@@ -37048,7 +37566,9 @@
       "related_chain_count": 227,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-工资申报",
@@ -37145,7 +37665,9 @@
       "related_chain_count": 25,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-印花税",
@@ -37236,7 +37758,9 @@
       "related_chain_count": 5,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-资金链",
@@ -37329,7 +37853,9 @@
       "related_chain_count": 15,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-关联借款",
@@ -37424,7 +37950,9 @@
       "related_chain_count": 224,
       "quality_score": 15.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-零申报后开票",
@@ -37496,10 +38024,11 @@
           "suggestion": "提供与开票规模匹配的资产证明、人员社保记录、经营场所证明。逐笔说明大额交易的商业合理性和货源/销路渠道。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.6,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-完工进度",
@@ -37673,10 +38202,11 @@
           "suggestion": "逐项排查直播带货无进项抵扣低税负监控相关风险，确保税务处理合规。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-境外抵免",
@@ -37760,10 +38290,11 @@
           "suggestion": "广宣费超过当年销售收入15%的部分，可结转以后年度扣除。化妆品制造等行业可提高至30%。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-亏损管理",
@@ -37847,10 +38378,11 @@
           "suggestion": "超标年度不得享受小微优惠，补缴差额税款及滞纳金"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-产权变更",
@@ -37934,10 +38466,11 @@
           "suggestion": "准备同期资料（转让定价文档）。对关联交易进行可比性分析，调整定价至合理区间。关联交易金额较大时应主动进行预约定价安排。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-陈述申辩",
@@ -38021,10 +38554,11 @@
           "suggestion": "逐项解释所有者权益各项目变动的原因和依据"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-亏损弥补",
@@ -38121,7 +38655,9 @@
       "related_chain_count": 238,
       "quality_score": 15.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-补贴津贴",
@@ -38217,7 +38753,9 @@
       "related_chain_count": 225,
       "quality_score": 15.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-资料缺失",
@@ -38314,7 +38852,9 @@
       "related_chain_count": 227,
       "quality_score": 15.4,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "出口退税-异地货源",
@@ -38399,7 +38939,9 @@
       "related_chain_count": 227,
       "quality_score": 15.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "股权资本-减资撤资",
@@ -38480,7 +39022,9 @@
       "related_chain_count": 224,
       "quality_score": 15.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-人员",
@@ -38573,7 +39117,9 @@
       "related_chain_count": 224,
       "quality_score": 15.2,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-保险费",
@@ -38669,7 +39215,9 @@
       "related_chain_count": 225,
       "quality_score": 15.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-跨境交易",
@@ -38766,7 +39314,9 @@
       "related_chain_count": 25,
       "quality_score": 15.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-车船税",
@@ -38863,7 +39413,9 @@
       "related_chain_count": 48,
       "quality_score": 15.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-评估",
@@ -38960,7 +39512,9 @@
       "related_chain_count": 225,
       "quality_score": 15.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-简易与一般",
@@ -39044,10 +39598,11 @@
           "suggestion": "分项核对适用税率。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "隐匿收入-价外费用",
@@ -39144,7 +39699,9 @@
       "related_chain_count": 225,
       "quality_score": 15.0,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-费用扣除",
@@ -39235,7 +39792,9 @@
       "related_chain_count": 4,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营-品牌管理",
@@ -39332,7 +39891,9 @@
       "related_chain_count": 230,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-政策变动",
@@ -39416,7 +39977,9 @@
       "related_chain_count": 318,
       "quality_score": 15.0,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "政府补贴-研发补贴",
@@ -39512,7 +40075,9 @@
       "related_chain_count": 9,
       "quality_score": 15.0,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-视同销售-74",
@@ -39607,10 +40172,11 @@
         "证据链-稽查-579"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-未开票-167",
@@ -39701,11 +40267,11 @@
         "证据链-账外-235"
       ],
       "related_chain_count": 5,
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 15.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-账外-227",
@@ -39798,10 +40364,11 @@
         "证据链-存货-369"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-276",
@@ -40086,10 +40653,11 @@
         "证据链-设备-781"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-伪造-804",
@@ -40176,10 +40744,11 @@
         "证据链-出口退税-90"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 15.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-电子发票",
@@ -40275,7 +40844,9 @@
       "related_chain_count": 224,
       "quality_score": 14.9,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "申报-汇算清缴",
@@ -40359,7 +40930,9 @@
       "related_chain_count": 225,
       "quality_score": 14.9,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-折旧摊销",
@@ -40456,7 +41029,9 @@
       "related_chain_count": 245,
       "quality_score": 14.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "企业所得税-坏账准备",
@@ -40552,7 +41127,9 @@
       "related_chain_count": 46,
       "quality_score": 14.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-物流运输",
@@ -40647,7 +41224,9 @@
       "related_chain_count": 8,
       "quality_score": 14.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-选案",
@@ -40729,7 +41308,9 @@
       "related_chain_count": 274,
       "quality_score": 14.8,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "融资租赁-融资租赁",
@@ -40808,7 +41389,9 @@
       "related_chain_count": 230,
       "quality_score": 14.8,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票深度-跨区域",
@@ -40893,7 +41476,9 @@
       "related_chain_count": 225,
       "quality_score": 14.8,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-租赁费",
@@ -40981,7 +41566,9 @@
       "related_chain_count": 1,
       "quality_score": 14.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-年终奖",
@@ -41076,7 +41663,9 @@
       "related_chain_count": 224,
       "quality_score": 14.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-福利费",
@@ -41164,7 +41753,9 @@
       "related_chain_count": 2,
       "quality_score": 14.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-离退休",
@@ -41338,7 +41929,9 @@
       "related_chain_count": 224,
       "quality_score": 14.6,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "虚开-开票时间",
@@ -41423,7 +42016,9 @@
       "related_chain_count": 224,
       "quality_score": 14.6,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-契税",
@@ -41520,7 +42115,9 @@
       "related_chain_count": 11,
       "quality_score": 14.6,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税深度-高净值",
@@ -41603,7 +42200,9 @@
       "related_chain_count": 321,
       "quality_score": 14.6,
       "has_policy_count": 2,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-差旅费",
@@ -41700,7 +42299,9 @@
       "related_chain_count": 240,
       "quality_score": 14.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "风险-区划调整",
@@ -41782,7 +42383,9 @@
       "related_chain_count": 225,
       "quality_score": 14.5,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "破产重组-资产处置",
@@ -41867,7 +42470,9 @@
       "related_chain_count": 278,
       "quality_score": 14.5,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "慈善非营利-捐赠扣除",
@@ -41961,7 +42566,9 @@
       "related_chain_count": 226,
       "quality_score": 14.5,
       "has_policy_count": 3,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-跨期调节",
@@ -42132,10 +42739,11 @@
           "suggestion": "制定《接受税务机关检查行为准则》：所有稽查对接统一归口在财务总监或指定律师，确保期限前完整提供资料，不隐匿、不销毁、不阻挠；对检查人员的问题如实答复但不主动扩大。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 14.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-佣金返利",
@@ -42231,7 +42839,9 @@
       "related_chain_count": 227,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "行业-拍卖",
@@ -42327,7 +42937,9 @@
       "related_chain_count": 226,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "稽查-查补",
@@ -42423,7 +43035,9 @@
       "related_chain_count": 227,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "股权资本-对赌协议",
@@ -42504,7 +43118,9 @@
       "related_chain_count": 224,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "股权资本-代持还原",
@@ -42588,7 +43204,9 @@
       "related_chain_count": 224,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "数字经济-直播带货",
@@ -42684,7 +43302,9 @@
       "related_chain_count": 225,
       "quality_score": 14.3,
       "has_policy_count": 2,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "经营深度-对外担保",
@@ -42765,7 +43385,9 @@
       "related_chain_count": 224,
       "quality_score": 14.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "增值税-税负偏低",
@@ -42848,7 +43470,9 @@
       "related_chain_count": 335,
       "quality_score": 14.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "国际-非居民管理",
@@ -42945,7 +43569,9 @@
       "related_chain_count": 228,
       "quality_score": 14.1,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "成本-人均费用",
@@ -43029,11 +43655,11 @@
           "suggestion": "进行人员效率和收入完整性的双向排查。"
         }
       ],
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 14.1,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-进项税额-35",
@@ -43127,10 +43753,11 @@
         "证据链-税负-4"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 14.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-简易计税-68",
@@ -43413,10 +44040,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 14.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-研发费用-472",
@@ -43608,10 +44236,11 @@
         "证据链-处罚-741"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 14.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-房产税-478",
@@ -43707,10 +44336,11 @@
         "证据链-隐匿-212"
       ],
       "related_chain_count": 10,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 14.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "政府补贴-不征税",
@@ -43795,7 +44425,9 @@
       "related_chain_count": 225,
       "quality_score": 13.9,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "破产重组-债务豁免",
@@ -43879,7 +44511,9 @@
       "related_chain_count": 224,
       "quality_score": 13.9,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票-时间模式",
@@ -43969,7 +44603,9 @@
       "related_chain_count": 3,
       "quality_score": 13.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-外汇交易",
@@ -44063,7 +44699,9 @@
       "related_chain_count": 225,
       "quality_score": 13.8,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "跨境电商-支付合规",
@@ -44148,7 +44786,9 @@
       "related_chain_count": 238,
       "quality_score": 13.8,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票深度-差额开票",
@@ -44228,7 +44868,9 @@
       "related_chain_count": 104,
       "quality_score": 13.8,
       "has_policy_count": 1,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税深度-境外收入",
@@ -44402,7 +45044,9 @@
       "related_chain_count": 236,
       "quality_score": 13.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "个税-专项附加",
@@ -44484,10 +45128,11 @@
           "suggestion": "排查继续教育扣除无在读学籍证明虚假填报指标相关风险。"
         }
       ],
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.7,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-股票投资",
@@ -44584,7 +45229,9 @@
       "related_chain_count": 56,
       "quality_score": 13.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票深度-汇总开票",
@@ -44669,7 +45316,9 @@
       "related_chain_count": 46,
       "quality_score": 13.5,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "财产税-持有与交易",
@@ -44925,7 +45574,9 @@
       "related_chain_count": 26,
       "quality_score": 13.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "金融-理财产品",
@@ -45007,7 +45658,9 @@
       "related_chain_count": 226,
       "quality_score": 13.3,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-差额-77",
@@ -45084,10 +45737,11 @@
         "证据链-账外-227"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-出口退税-90",
@@ -45164,10 +45818,11 @@
         "证据链-稽查-540"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-转出-91",
@@ -45246,11 +45901,11 @@
         "证据链-免税-70"
       ],
       "related_chain_count": 5,
-      "usage_count": 8,
+      "usage_count": 11,
       "quality_score": 13.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-113",
@@ -45411,10 +46066,11 @@
         "证据链-异常-114"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-261",
@@ -45490,11 +46146,11 @@
         "证据链-异常-109"
       ],
       "related_chain_count": 4,
-      "usage_count": 9,
+      "usage_count": 12,
       "quality_score": 13.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-263",
@@ -45567,10 +46223,11 @@
         "证据链-异常-110"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-274",
@@ -45729,10 +46386,11 @@
         "证据链-异常-106"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-供应商-328",
@@ -45893,10 +46551,11 @@
         "证据链-虚开-271"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-365",
@@ -45972,11 +46631,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 6,
-      "usage_count": 9,
+      "usage_count": 12,
       "quality_score": 13.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 13:38"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-368",
@@ -46058,10 +46717,11 @@
         "证据链-异常-113"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-370",
@@ -46143,10 +46803,11 @@
         "证据链-存货-369"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-412",
@@ -46224,10 +46885,11 @@
         "证据链-股权转让-801"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-495",
@@ -46303,10 +46965,11 @@
         "证据链-四流-338"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-电商-517",
@@ -46385,10 +47048,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-物流-522",
@@ -46466,10 +47130,11 @@
         "证据链-印花税-494"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-540",
@@ -46550,10 +47215,11 @@
         "证据链-出口退税-90"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-541",
@@ -46706,10 +47372,11 @@
         "证据链-逾期-784"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-551",
@@ -46790,10 +47457,11 @@
         "证据链-虚开-257"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-552",
@@ -46871,10 +47539,11 @@
         "证据链-房产税-478"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-554",
@@ -46951,10 +47620,11 @@
         "证据链-走逃-354"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-555",
@@ -47119,10 +47789,11 @@
         "证据链-个税-411"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-563",
@@ -47273,10 +47944,11 @@
         "证据链-虚开-266"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-568",
@@ -47507,10 +48179,11 @@
         "证据链-预缴-785"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-576",
@@ -47585,10 +48258,11 @@
         "证据链-四流-337"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-579",
@@ -47663,10 +48337,11 @@
         "证据链-虚开-274"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-582",
@@ -47823,10 +48498,11 @@
         "证据链-走逃-354"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-737",
@@ -47904,10 +48580,11 @@
         "证据链-处罚-738"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-739",
@@ -48060,10 +48737,11 @@
         "证据链-稽查-577"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-场所-761",
@@ -48138,10 +48816,11 @@
         "证据链-稽查-554"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-766",
@@ -48219,10 +48898,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-设备-780",
@@ -48381,11 +49061,11 @@
         "证据链-关联交易-798"
       ],
       "related_chain_count": 4,
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 13.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-缺失-791",
@@ -48460,10 +49140,11 @@
         "证据链-缺失-792"
       ],
       "related_chain_count": 1,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-境外-796",
@@ -48541,10 +49222,11 @@
         "证据链-境外-795"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-股权转让-801",
@@ -48624,10 +49306,11 @@
         "证据链-稽查-547"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-税负-4",
@@ -48716,10 +49399,11 @@
         "证据链-进项税额-36"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-留抵-28",
@@ -48814,10 +49498,11 @@
         "证据链-进项税额-36"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-预收账款-170",
@@ -48913,10 +49598,11 @@
         "证据链-进项税额-45"
       ],
       "related_chain_count": 10,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-供应商-329",
@@ -49009,10 +49695,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-339",
@@ -49100,10 +49787,11 @@
         "证据链-印花税-497"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-咨询费-400",
@@ -49199,10 +49887,11 @@
         "证据链-异常-109"
       ],
       "related_chain_count": 10,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-工资薪金-459",
@@ -49295,10 +49984,11 @@
         "证据链-稽查-618"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-劳务报酬-465",
@@ -49389,10 +50079,11 @@
         "证据链-个税-417"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 13.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-纳税调整-468",
@@ -49560,7 +50251,9 @@
       "related_chain_count": 275,
       "quality_score": 12.8,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "发票深度-循环开票",
@@ -49643,7 +50336,9 @@
       "related_chain_count": 239,
       "quality_score": 12.5,
       "has_policy_count": 3,
-      "total_steps": 4
+      "total_steps": 4,
+      "usage_count": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-免税-70",
@@ -49719,10 +50414,11 @@
         "证据链-转出-91"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-作废发票-96",
@@ -49800,11 +50496,11 @@
         "证据链-异常-109"
       ],
       "related_chain_count": 8,
-      "usage_count": 12,
+      "usage_count": 15,
       "quality_score": 12.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-179",
@@ -49883,10 +50579,11 @@
         "证据链-稽查-583"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-264",
@@ -50044,10 +50741,11 @@
         "证据链-资金回流-353"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-资金回流-353",
@@ -50125,10 +50823,11 @@
         "证据链-虚开-267"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-集中开票-355",
@@ -50206,10 +50905,11 @@
         "证据链-四流-344"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-366",
@@ -50285,10 +50985,11 @@
         "证据链-稽查-564"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-重组-475",
@@ -50369,10 +51070,11 @@
         "证据链-稽查-590"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-医药-520",
@@ -50452,10 +51154,11 @@
         "证据链-电商-517"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-预缴-785",
@@ -50918,10 +51621,11 @@
         "证据链-隐匿-180"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-497",
@@ -51012,10 +51716,11 @@
         "证据链-印花税-496"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 12.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-销项税额-59",
@@ -51093,10 +51798,11 @@
         "证据链-视同销售-74"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-即征即退-69",
@@ -51173,10 +51879,11 @@
         "证据链-稽查-704"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-走逃-354",
@@ -51258,10 +51965,11 @@
         "证据链-虚开-312"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-无票-357",
@@ -51421,10 +52129,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-坏账-471",
@@ -51584,10 +52293,11 @@
         "证据链-虚开-276"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-744",
@@ -56545,10 +57255,11 @@
         "证据链-建筑-512"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-差额-88",
@@ -56926,11 +57637,11 @@
         "证据链-稽查-593"
       ],
       "related_chain_count": 7,
-      "usage_count": 10,
+      "usage_count": 13,
       "quality_score": 11.0,
       "has_policy_count": 5,
       "total_steps": 5,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-121",
@@ -57480,10 +58191,11 @@
         "证据链-虚开-289"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-129",
@@ -59284,10 +59996,11 @@
         "证据链-隐匿-182"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-150",
@@ -59472,10 +60185,11 @@
         "证据链-隐匿-196"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-152",
@@ -59660,10 +60374,11 @@
         "证据链-稽查-619"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-154",
@@ -60151,10 +60866,11 @@
         "证据链-稽查-704"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-159",
@@ -60243,10 +60959,11 @@
         "证据链-虚开-318"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-160",
@@ -60337,10 +61054,11 @@
         "证据链-虚开-319"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-161",
@@ -60428,10 +61146,11 @@
         "证据链-进项税额-58"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-162",
@@ -60620,10 +61339,11 @@
         "证据链-预收账款-170"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-181",
@@ -60714,10 +61434,11 @@
         "证据链-隐匿-182"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-182",
@@ -60804,10 +61525,11 @@
         "证据链-账外-228"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-183",
@@ -60895,10 +61617,11 @@
         "证据链-隐匿-182"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-184",
@@ -61983,10 +62706,11 @@
         "证据链-隐匿-200"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-200",
@@ -62074,10 +62798,11 @@
         "证据链-隐匿-201"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-201",
@@ -62620,10 +63345,11 @@
         "证据链-存货-376"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-隐匿-207",
@@ -64348,10 +65074,11 @@
         "证据链-存货-395"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-账外-228",
@@ -64437,10 +65164,11 @@
         "证据链-隐匿-182"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-账外-230",
@@ -65339,10 +66067,11 @@
         "证据链-隐匿-226"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-277",
@@ -65434,10 +66163,11 @@
         "证据链-场所-763"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-278",
@@ -65619,10 +66349,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-281",
@@ -67335,10 +68066,11 @@
         "证据链-物流-526"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-311",
@@ -67425,10 +68157,11 @@
         "证据链-虚开-312"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-312",
@@ -67877,10 +68610,11 @@
         "证据链-四流-346"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-317",
@@ -68070,10 +68804,11 @@
         "证据链-虚开-319"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-323",
@@ -68164,10 +68899,11 @@
         "证据链-虚开-322"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-340",
@@ -68260,10 +68996,11 @@
         "证据链-虚开-310"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-348",
@@ -68638,10 +69375,11 @@
         "证据链-存货-373"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-373",
@@ -68732,10 +69470,11 @@
         "证据链-隐匿-180"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-374",
@@ -68825,10 +69564,11 @@
         "证据链-稽查-610"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-存货-375",
@@ -68919,10 +69659,11 @@
         "证据链-稽查-610"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-招待费-398",
@@ -69011,10 +69752,11 @@
         "证据链-稽查-699"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-差旅费-399",
@@ -69395,10 +70137,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-417",
@@ -70036,10 +70779,11 @@
         "证据链-个税-426"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-426",
@@ -71314,10 +72058,11 @@
         "证据链-代开发票-101"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-440",
@@ -71406,10 +72151,11 @@
         "证据链-免税-73"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-441",
@@ -72134,10 +72880,11 @@
         "证据链-个税-450"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-450",
@@ -73087,10 +73834,11 @@
         "证据链-稽查-618"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-劳务报酬-466",
@@ -73731,10 +74479,11 @@
         "证据链-印花税-497"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-501",
@@ -74294,10 +75043,11 @@
         "证据链-虚开-310"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-物流-529",
@@ -75220,10 +75970,11 @@
         "证据链-稽查-589"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-590",
@@ -75313,10 +76064,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-593",
@@ -75682,10 +76434,11 @@
         "证据链-数电-166"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-601",
@@ -75768,10 +76521,11 @@
         "证据链-稽查-602"
       ],
       "related_chain_count": 1,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-610",
@@ -75858,10 +76612,11 @@
         "证据链-稽查-609"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-611",
@@ -75947,10 +76702,11 @@
         "证据链-存货-375"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-612",
@@ -76484,10 +77240,11 @@
         "证据链-异常-153"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-618",
@@ -76576,10 +77333,11 @@
         "证据链-稽查-619"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-619",
@@ -78640,10 +79398,11 @@
         "证据链-餐饮-519"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-687",
@@ -79267,10 +80026,11 @@
         "证据链-稽查-697"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-697",
@@ -79356,10 +80116,11 @@
         "证据链-稽查-698"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-698",
@@ -80266,10 +81027,11 @@
         "证据链-稽查-724"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-728",
@@ -80358,10 +81120,11 @@
         "证据链-虚开-323"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-746",
@@ -80906,10 +81669,11 @@
         "证据链-处罚-758"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-779",
@@ -81203,10 +81967,11 @@
         "证据链-人员-765"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-546",
@@ -81269,10 +82034,11 @@
         "证据链-虚开-254"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-553",
@@ -81340,10 +82106,11 @@
         "证据链-虚开-257"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-562",
@@ -81542,10 +82309,11 @@
         "证据链-处罚-738"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-577",
@@ -81610,10 +82378,11 @@
         "证据链-稽查-576"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-738",
@@ -81939,10 +82708,11 @@
         "证据链-虚开-253"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-767",
@@ -82006,10 +82776,11 @@
         "证据链-场所-761"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-769",
@@ -82144,10 +82915,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-出口-794",
@@ -82291,10 +83063,11 @@
         "证据链-进项税额-39"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-销项税额-60",
@@ -83084,10 +83857,11 @@
         "证据链-代开发票-101"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-125",
@@ -83162,10 +83936,11 @@
         "证据链-数电-166"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-私户-169",
@@ -83245,10 +84020,11 @@
         "证据链-私户-168"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-账外-232",
@@ -83707,10 +84483,11 @@
         "证据链-场所-764"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-供应商-330",
@@ -83788,10 +84565,11 @@
         "证据链-稽查-592"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-四流-347",
@@ -84417,10 +85195,11 @@
         "证据链-稽查-681"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-研发费用-473",
@@ -84660,10 +85439,11 @@
         "证据链-土地使用税-504"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-房产税-493",
@@ -84840,10 +85620,11 @@
         "证据链-培训-408"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-进项税额-57",
@@ -84937,10 +85718,11 @@
         "证据链-税负-27"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-备注栏-99",
@@ -85033,10 +85815,11 @@
         "证据链-虚开-325"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-163",
@@ -85127,10 +85910,11 @@
         "证据链-隐匿-226"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-318",
@@ -85220,10 +86004,11 @@
         "证据链-虚开-319"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-319",
@@ -85312,10 +86097,11 @@
         "证据链-稽查-724"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-个税-457",
@@ -85407,10 +86193,11 @@
         "证据链-个税-456"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 10.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-土地增值税-511",
@@ -85478,10 +86265,11 @@
         "证据链-清算-476"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-房地产-516",
@@ -85615,10 +86403,11 @@
         "证据链-个税-415"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-逾期-784",
@@ -85682,10 +86471,11 @@
         "证据链-稽查-547"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-变更-788",
@@ -85819,10 +86609,11 @@
         "证据链-印花税-495"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-股权转让-802",
@@ -85958,10 +86749,11 @@
         "证据链-境外-796"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-留抵-32",
@@ -86433,10 +87225,11 @@
         "证据链-稽查-734"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-销项税额-61",
@@ -86587,10 +87380,11 @@
         "证据链-进项税额-43"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-销项税额-63",
@@ -87149,11 +87943,11 @@
         "证据链-缺失-793"
       ],
       "related_chain_count": 2,
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 9.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-118",
@@ -87307,10 +88101,11 @@
         "证据链-虚开-279"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-126",
@@ -88720,10 +89515,11 @@
         "证据链-场所-763"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-282",
@@ -89028,10 +89824,11 @@
         "证据链-异常-129"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-296",
@@ -90464,10 +91261,11 @@
         "证据链-房产税-480"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-房产税-481",
@@ -90853,10 +91651,11 @@
         "证据链-个税-450"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-房产税-491",
@@ -91180,10 +91979,11 @@
         "证据链-个税-425"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-物流-525",
@@ -91336,10 +92136,11 @@
         "证据链-四流-346"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-592",
@@ -91416,10 +92217,11 @@
         "证据链-稽查-593"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-595",
@@ -92576,10 +93378,11 @@
         "证据链-差额-87"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-677",
@@ -93949,10 +94752,11 @@
         "证据链-场所-764"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-726",
@@ -94108,11 +94912,11 @@
         "证据链-异常-163"
       ],
       "related_chain_count": 4,
-      "usage_count": 13,
+      "usage_count": 16,
       "quality_score": 9.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 19:50"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-729",
@@ -94193,10 +94997,11 @@
         "证据链-福利费-464"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-730",
@@ -94273,10 +95078,11 @@
         "证据链-处罚-759"
       ],
       "related_chain_count": 3,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-处罚-745",
@@ -95141,11 +95947,11 @@
         "证据链-缺失-792"
       ],
       "related_chain_count": 4,
-      "usage_count": 25,
+      "usage_count": 28,
       "quality_score": 9.2,
       "has_policy_count": 4,
       "total_steps": 4,
-      "last_triggered": "2026-06-17 19:51"
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-异常-164",
@@ -95236,10 +96042,11 @@
         "证据链-虚开-325"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 9.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-虚开-324",
@@ -95707,10 +96514,11 @@
         "证据链-招待费-398"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 8.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-499",
@@ -95775,10 +96583,11 @@
         "证据链-房产税-479"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-印花税-500",
@@ -95843,10 +96652,11 @@
         "证据链-处罚-754"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-土地使用税-504",
@@ -95908,10 +96718,11 @@
         "证据链-房产税-480"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-土地使用税-505",
@@ -96105,10 +96916,11 @@
         "证据链-稽查-597"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-契税-509",
@@ -96443,10 +97255,11 @@
         "证据链-印花税-497"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-586",
@@ -96512,10 +97325,11 @@
         "证据链-四流-339"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-587",
@@ -96583,10 +97397,11 @@
         "证据链-虚开-279"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-589",
@@ -96652,10 +97467,11 @@
         "证据链-虚开-279"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-591",
@@ -96719,10 +97535,11 @@
         "证据链-稽查-592"
       ],
       "related_chain_count": 2,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-596",
@@ -97964,10 +98781,11 @@
         "证据链-虚开-322"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 7.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-人员-771",
@@ -98727,10 +99545,11 @@
         "证据链-虚开-319"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 6.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-731",
@@ -98889,10 +99708,11 @@
         "证据链-稽查-734"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 5.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-732",
@@ -98971,10 +99791,11 @@
         "证据链-四流-350"
       ],
       "related_chain_count": 5,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 5.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 21:03"
     },
     {
       "name": "证据链-稽查-733",
@@ -99123,10 +99944,11 @@
         "证据链-进项税额-58"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 3,
       "quality_score": 4.4,
       "has_policy_count": 3,
-      "total_steps": 3
+      "total_steps": 3,
+      "last_triggered": "2026-06-17 21:03"
     }
   ],
   "trail_chains": 382,
