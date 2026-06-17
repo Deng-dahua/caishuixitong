@@ -1919,7 +1919,6 @@ class AccountUpdate(BaseModel):
     level: Optional[int] = None
     parent_code: Optional[str] = None
     opening_balance: Optional[float] = None
-    password: str = ""
     is_active: Optional[bool] = None
 
 
@@ -1963,33 +1962,9 @@ def create_account(data: AccountCreate, company_id: int = Query(...), db: Sessio
     return {"id": acc.id, "code": acc.code, "name": acc.name, "message": "创建成功"}
 
 
-ACCOUNT_PWD = "123456"
-
-def _account_needs_password(db, company_id, account_id):
-    """检查科目是否有下级或被序时账使用，需要密码才能修改/删除"""
-    acc = db.query(Account).filter(Account.company_id == company_id, Account.id == account_id).first()
-    if not acc:
-        return False, None, "科目不存在"
-    # 检查是否有下级科目
-    has_child = db.query(Account).filter(Account.company_id == company_id, Account.parent_code == acc.code).first()
-    if has_child:
-        return True, acc, "该科目下有下级科目，修改/删除需要密码"
-    # 检查是否被序时账使用
-    has_journal = db.query(JournalEntry).filter(
-        JournalEntry.company_id == company_id,
-        JournalEntry.account_code == acc.code
-    ).first()
-    if has_journal:
-        return True, acc, "该科目已被序时账使用，修改/删除需要密码"
-    return False, acc, ""
-
 @app.put("/api/accounts/{account_id}")
 def update_account(account_id: int, data: AccountUpdate, company_id: int = Query(...), db: Session = Depends(get_db)):
-    needs_pwd, acc, msg = _account_needs_password(db, company_id, account_id)
-    if needs_pwd:
-        pwd = data.password
-        if pwd != ACCOUNT_PWD:
-            raise HTTPException(403, detail=f"{msg}，请输入正确密码")
+    acc = db.query(Account).filter(Account.company_id == company_id, Account.id == account_id).first()
     if not acc:
         raise HTTPException(404, detail="科目不存在")
     if data.name is not None:
@@ -2012,12 +1987,8 @@ def update_account(account_id: int, data: AccountUpdate, company_id: int = Query
 
 
 @app.delete("/api/accounts/{account_id}")
-def delete_account(account_id: int, company_id: int = Query(...), db: Session = Depends(get_db), password: str = Body("")):
-    pwd = password
-    needs_pwd, acc, msg = _account_needs_password(db, company_id, account_id)
-    if needs_pwd:
-        if pwd != ACCOUNT_PWD:
-            raise HTTPException(403, detail=f"{msg}，请输入正确密码")
+def delete_account(account_id: int, company_id: int = Query(...), db: Session = Depends(get_db)):
+    acc = db.query(Account).filter(Account.company_id == company_id, Account.id == account_id).first()
     if not acc:
         raise HTTPException(404, detail="科目不存在")
     db.delete(acc)

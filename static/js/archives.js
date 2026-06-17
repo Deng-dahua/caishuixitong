@@ -57,15 +57,9 @@ async function loadAccounts() {
           ${data.map(a => {
                 const locked = a.has_children || a.has_journal;
                 const reason = a.has_children ? '该科目下有下级科目' : (a.has_journal ? '该科目已被序时账使用' : '');
-                const editBtn = locked
-                  ? `<button class="btn btn-sm btn-secondary" disabled style="opacity:0.35;cursor:not-allowed" title="${reason}，需要密码才能修改">编辑</button>`
-                  : `<button class="btn btn-sm btn-secondary" onclick="showEditAccount(${a.id},'${esc(a.code)}','${esc(a.name)}','${a.category}','${a.balance_direction}',${a.level},'${a.parent_code||''}',${a.opening_balance||0})">编辑</button>`;
-                const delBtn = locked
-                  ? `<button class="btn btn-sm btn-danger" disabled style="opacity:0.35;cursor:not-allowed" title="${reason}，需要密码才能删除">删除</button>`
-                  : `<button class="btn btn-sm btn-danger" onclick="deleteAccount(${a.id},false)">删除</button>`;
-                const toggleBtn = locked
-                  ? `<button class="btn btn-sm btn-secondary" disabled style="opacity:0.35;cursor:not-allowed" title="${reason}，需要密码才能修改">${a.is_active ? '停用' : '启用'}</button>`
-                  : `<button class="btn btn-sm btn-secondary" onclick="toggleAccount(${a.id},${!a.is_active},false)">${a.is_active ? '停用' : '启用'}</button>`;
+                const editBtn = `<button class="btn btn-sm btn-secondary" onclick="showEditAccount(${a.id},'${esc(a.code)}','${esc(a.name)}','${a.category}','${a.balance_direction}',${a.level},'${a.parent_code||''}',${a.opening_balance||0})">编辑</button>`;
+                const delBtn = `<button class="btn btn-sm btn-danger" onclick="deleteAccount(${a.id})">删除</button>`;
+                const toggleBtn = `<button class="btn btn-sm btn-secondary" onclick="toggleAccount(${a.id},${!a.is_active})">${a.is_active ? '停用' : '启用'}</button>`;
                 return `
             <tr>
               <td style="font-weight:500">${a.code}</td>
