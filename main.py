@@ -14529,6 +14529,46 @@ def _run_analyze(company_id, db):
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     
+    # ═══════════════════════════════════════
+    # Phase 1: 确定分析对象 → 反推发票方向校正
+    # ═══════════════════════════════════════
+    from collections import Counter as _Counter
+    _pur_buyers = _Counter()
+    _sal_sellers = _Counter()
+    for inv in invoices:
+        b = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
+        s = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+        if b and len(b) >= 6: _pur_buyers[b] += 1
+        if s and len(s) >= 6: _sal_sellers[s] += 1
+    
+    _target_name = ""
+    _cross = set(_pur_buyers.keys()) & set(_sal_sellers.keys())
+    if _cross:
+        _target_name = max(_cross, key=lambda n: _pur_buyers[n] + _sal_sellers[n])
+        pipeline_log.append(f"Phase1-识别对象: {_target_name} (进{_pur_buyers[_target_name]}次/销{_sal_sellers[_target_name]}次)")
+    elif _pur_buyers:
+        _target_name = _pur_buyers.most_common(1)[0][0]
+    elif _sal_sellers:
+        _target_name = _sal_sellers.most_common(1)[0][0]
+    
+    if _target_name:
+        _corrected = 0
+        for inv in invoices:
+            buyer = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
+            seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+            old_dir = inv.get("direction", "")
+            if buyer == _target_name or _target_name in buyer:
+                if old_dir != "进项":
+                    inv["direction"] = "进项"; _corrected += 1
+            elif seller == _target_name or _target_name in seller:
+                if old_dir != "销项":
+                    inv["direction"] = "销项"; _corrected += 1
+        if _corrected:
+            pipeline_log.append(f"Phase1-方向校正: {_corrected}张发票方向已修正")
+        sal_invs = [i for i in invoices if i["direction"] == "销项"]
+        pur_invs = [i for i in invoices if i["direction"] == "进项"]
+    # ═══════════════════════════════════════
+    
     # ═══ 虚拟进销存分析：用销项/进项发票构建进销匹配 ═══
     inv_match_findings = []
     if sal_invs and pur_invs:

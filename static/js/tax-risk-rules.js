@@ -112,11 +112,11 @@ function renderTaxRiskRules(container) {
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
     // 子系统1
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #2563eb;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2460 \u8d44\u6599\u4e2d\u8f6c\u7ad9</div>'
+    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2460 \u8d44\u6599\u4e2d\u8f6c\u7ad9 + \u5206\u6790\u5bf9\u8c61\u8bc6\u522b</div>'
     + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '\u4e0a\u4f20\u6587\u4ef6\u89e3\u6790\u540e\u81ea\u52a8\u5b58\u5165 transfer/ \u76ee\u5f55<br>'
-    + '\u4e0b\u6b21\u5206\u6790\u76f4\u63a5\u8bfb\u53d6\u7f13\u5b58\uff0c\u8df3\u8fc7\u91cd\u590d\u89e3\u6790<br>'
-    + '\u652f\u6301\u6e05\u7a7a\u91cd\u89e3\u6790\uff1aDELETE /api/tax-risk-docs/clear-transfer'
+    + '\u89e3\u6790\u540e\u81ea\u52a8\u5b58\u5165\u7f13\u5b58\uff0c\u8df3\u8fc7\u91cd\u590d\u89e3\u6790<br>'
+    + 'Phase1\uff1a\u4ece\u8fdb\u9879\u8d2d\u4e70\u65b9 \u00d7 \u9500\u9879\u9500\u552e\u65b9 \u4ea4\u53c9\u8bc6\u522b\u4f01\u4e1a<br>'
+    + '\u81ea\u52a8\u6821\u6b63\u53d1\u7968\u65b9\u5411\uff1a\u4f01\u4e1a\u5728\u8d2d\u4e70\u65b9\u2192\u8fdb\u9879 / \u5728\u9500\u552e\u65b9\u2192\u9500\u9879'
     + '</div></div>'
     // 子系统2
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #059669;border-radius:6px;padding:14px;background:#fff">'
