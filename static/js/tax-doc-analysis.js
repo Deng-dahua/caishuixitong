@@ -758,6 +758,23 @@ function renderAuditReport() {
     });
     h += '</div>';
   }
+
+  // ═══ 推荐下一步调查 ═══
+  var rn = (r.comprehensive||{}).recommended_next||[];
+  if (rn.length > 0) {
+    h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">推荐下一步调查 (' + rn.length + '条)</div>';
+    rn.forEach(function(rec) {
+      h += '<div style="border:1px solid '+S.border+';border-left:3px solid #2563eb;border-radius:4px;padding:12px 14px;margin-bottom:8px;background:#fff">'
+        + '<div style="font-weight:700;font-size:12px;color:'+S.accent+';margin-bottom:6px">' + esc(rec.chain_name) + ' — 已触发' + rec.triggered + '步, 剩余' + rec.remaining + '步待查</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      rec.next_steps.forEach(function(ns){
+        var dot = ns.level==='高风险'?'#dc2626':(ns.level==='中风险'?'#f59e0b':'#94a3b8');
+        h += '<span style="background:#eff6ff;padding:3px 10px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">' + esc(ns.step||ns.rule_item||'') + '</span>';
+      });
+      h += '</div></div>';
+    });
+    h += '</div>';
+  }
   
   // ── 二、稽查过程 ──
   h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">二、稽查过程</div>';

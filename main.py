@@ -14872,6 +14872,46 @@ def _run_analyze(company_id, db):
                     })
                     break
         
+        # ── 动态链触发：推荐下一步调查 ──
+        triggered_rule_ids = set()
+        for f in all_findings:
+            for rid in f.get("matched_rule_ids", []):
+                triggered_rule_ids.add(rid)
+        recommended_next = []
+        for chain in chains_data.get("chains", []):
+            trig = []; notrig = []
+            for step in chain.get("investigation_path", []):
+                if step.get("rule_id") in triggered_rule_ids:
+                    trig.append(step)
+                else:
+                    notrig.append(step)
+            if trig and notrig and len(trig) >= 1:
+                recommended_next.append({
+                    "chain_name": chain["name"],
+                    "chain_type": chain.get("chain_type", "证据链"),
+                    "triggered": len(trig), "remaining": len(notrig),
+                    "next_steps": [{"step": s["step"], "rule_id": s.get("rule_id"), "rule_item": s.get("rule_item","")[:40], "level": s.get("level","")} for s in notrig[:3]]
+                })
+        recommended_next.sort(key=lambda x: -(x["remaining"] + x["triggered"]))
+        comprehensive["recommended_next"] = recommended_next[:15]
+        
+        # ── 链使用统计（持久化） ──
+        chain_usage = {}
+        for c in chains_data.get("chains", []):
+            hits = sum(1 for s in c.get("investigation_path", []) if s.get("rule_id") in triggered_rule_ids)
+            if hits > 0:
+                chain_usage[c["name"]] = {"hits": hits, "steps": c.get("steps", 0), "type": c.get("chain_type", "?")}
+        try:
+            for c in chains_data.get("chains", []):
+                uc = chain_usage.get(c["name"], {})
+                if uc.get("hits", 0) > 0:
+                    c["usage_count"] = c.get("usage_count", 0) + 1
+                    c["last_triggered"] = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M")
+            with open(chain_path, "w", encoding="utf-8") as cf2:
+                json.dump(chains_data, cf2, ensure_ascii=False, indent=2)
+        except: pass
+        comprehensive["chain_usage"] = dict(sorted(chain_usage.items(), key=lambda x: -x[1]["hits"])[:20])
+        
         if triggered_chains:
             pipeline_log.append(f"证据链匹配: {len(triggered_chains)}条触发（规则ID直连）")
         if rules_data:
