@@ -14817,6 +14817,200 @@ def _run_analyze(company_id, db):
     if merged_count > 0:
         pipeline_log.append(f"合并同类发现: {merged_count}条被合并")
 
+    # ═══════════════════════════════════════════════════
+    # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
+    # ═══════════════════════════════════════════════════
+    chain_execution = []  # 每条链的执行结果
+    chain_findings = []   # 链驱动生成的新发现
+    try:
+        chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
+        rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+        if os.path.exists(chain_path) and os.path.exists(rules_path):
+            with open(chain_path, "r", encoding="utf-8") as cf:
+                chains_data = json.load(cf)
+            with open(rules_path, "r", encoding="utf-8") as rf:
+                rules_data = json.load(rf)
+            
+            # 构建规则查找
+            rule_map = {r["id"]: r for r in rules_data}
+            # 构建现有发现的type→finding映射（用于复用已有分析结果）
+            existing_finding_map = {}
+            for f in all_findings:
+                key = f.get("type", "").lower().replace(" ", "")
+                existing_finding_map[key] = f
+            
+            # 收集所有可用的数据关键词（用于规则触发检测）
+            data_keywords = set()
+            for tx in bank_txs[:500]:
+                cp = str(tx.get("counterparty", ""))
+                summary = str(tx.get("summary", ""))
+                if cp: data_keywords.add(cp[:20])
+                if summary: data_keywords.update(summary[:30].replace(" ",""))
+            for inv in invoices[:500]:
+                goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+                seller = str(inv.get("seller", inv.get("销方名称", "")))
+                if goods: data_keywords.update(goods[:20].replace(" ",""))
+                if seller: data_keywords.add(seller[:20])
+            for sal in salaries[:100]:
+                name = str(sal.get("name", ""))
+                if name: data_keywords.add(name)
+            
+            # 汇总数据特征
+            has_bank = len(bank_txs) > 0
+            has_invoice = len(invoices) > 0
+            has_salary = len(salaries) > 0
+            has_social = len(social_security) > 0
+            has_voucher = len(vouchers) > 0
+            total_items = len(bank_txs) + len(invoices) + len(salaries) + len(social_security)
+            
+            # 提取数据中的数值特征
+            bank_total_in = sum(tx.get("credit", 0) for tx in bank_txs[:500])
+            bank_total_out = sum(tx.get("debit", 0) for tx in bank_txs[:500])
+            inv_total = sum(float(inv.get("amount", 0) or 0) for inv in invoices[:500])
+            sal_total = sum(float(sal.get("salary", sal.get("本期收入", 0)) or 0) for sal in salaries[:100])
+            # 第三方收款检测
+            third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
+            third_party_count = sum(1 for tx in bank_txs if any(k in str(tx.get("counterparty","")) for k in third_party_keywords))
+            
+            # 逐一执行每条线索链
+            chain_stats = []
+            total_chains = len(chains_data.get("chains", []))
+            triggered_count = 0
+            
+            for chain in chains_data.get("chains", []):
+                if chain.get("chain_type") != "线索链": continue  # 只执行线索链
+                
+                steps_exec = []  # 每条步骤的执行结果
+                triggered_steps = 0
+                total_steps = len(chain.get("investigation_path", []))
+                chain_triggered = False
+                
+                for step in chain.get("investigation_path", []):
+                    rid = step.get("rule_id")
+                    rule = rule_map.get(rid) if rid else None
+                    step_name = step.get("step", "")
+                    rule_item = step.get("rule_item", "")
+                    step_level = step.get("level", "")
+                    
+                    # 检查该规则是否可被当前数据触发
+                    triggered = False
+                    reason = "数据不足"
+                    finding_ref = None
+                    
+                    if not rule:
+                        reason = "规则未找到"
+                    elif total_items == 0:
+                        reason = "无数据"
+                    else:
+                        # 规则触发逻辑：检查rule的item/detail是否与数据匹配
+                        rule_text = (rule.get("item", "") + " " + rule.get("detail", "")).lower()
+                        
+                        # 检查1：规则关键词命中数据
+                        rule_kws = set()
+                        import re as _re_chain
+                        for rkw in _re_chain.findall(r'[\u4e00-\u9fff]{2,6}', rule_text):
+                            rule_kws.add(rkw)
+                        
+                        data_hits = sum(1 for kw in rule_kws if kw in str(data_keywords))
+                        
+                        # 检查2：规则关联的数据类型是否存在
+                        data_type_match = False
+                        ds = rule.get("dataSource", "").lower()
+                        if "银行" in ds and has_bank: data_type_match = True
+                        if "发票" in ds and has_invoice: data_type_match = True
+                        if "工资" in ds and has_salary: data_type_match = True
+                        if "社保" in ds and has_social: data_type_match = True
+                        if "凭证" in ds and has_voucher: data_type_match = True
+                        if not ds: data_type_match = total_items > 0  # 无指定数据源则只要有数据就尝试
+                        
+                        # 检查3：规则是否已被现有发现匹配
+                        rule_type = rule.get("item", "").lower().replace(" ", "")
+                        if rule_type in existing_finding_map:
+                            triggered = True
+                            reason = "已命中现有发现"
+                            finding_ref = existing_finding_map[rule_type].get("type", "")
+                        
+                        # 检查4：通用规则（关于缺失/完整性的）在数据存在时触发
+                        if not triggered and ("缺失" in rule_item or "不完备" in rule_item or "无" in rule_item):
+                            if data_type_match:
+                                triggered = True
+                                reason = "数据覆盖触发"
+                        
+                        # 检查5：关键词命中
+                        if not triggered and data_hits >= 2 and data_type_match:
+                            triggered = True
+                            reason = f"数据关键词命中{data_hits}个"
+                        
+                        if not triggered and not reason.startswith("已命中"):
+                            if total_items > 0 and not data_type_match:
+                                reason = "对应数据类型不存在"
+                            elif data_hits < 2:
+                                reason = f"数据关键词不足(命中{data_hits})"
+                    
+                    if triggered:
+                        triggered_steps += 1
+                        if not chain_triggered:
+                            chain_triggered = True
+                            triggered_count += 1
+                    
+                    steps_exec.append({
+                        "step": step_name,
+                        "rule_id": rid,
+                        "rule_item": rule_item[:40],
+                        "level": step_level,
+                        "triggered": triggered,
+                        "reason": reason,
+                        "finding_ref": finding_ref,
+                    })
+                
+                # 只在至少有1步触发时记录链执行结果
+                if chain_triggered or len([s for s in steps_exec if s["triggered"]]) > 0:
+                    chain_execution.append({
+                        "chain_name": chain["name"],
+                        "chain_type": chain.get("chain_type", ""),
+                        "total_steps": total_steps,
+                        "triggered_steps": triggered_steps,
+                        "triggered_ratio": round(triggered_steps / max(total_steps, 1) * 100),
+                        "steps": steps_exec,
+                    })
+            
+            # 如果链触发了但现有发现中没对应的规则，生成新发现
+            for ce in chain_execution:
+                for s in ce["steps"]:
+                    if s["triggered"] and not s.get("finding_ref") and s.get("rule_id"):
+                        rule = rule_map.get(s["rule_id"])
+                        if rule and s["rule_item"] not in [f.get("type", "") for f in all_findings]:
+                            chain_findings.append({
+                                "type": s["rule_item"][:40],
+                                "level": rule.get("level", "中风险"),
+                                "score": rule.get("score", 5),
+                                "detail": rule.get("detail", "")[:200],
+                                "description": f"线索链[{ce['chain_name']}]自动触发：{s['reason']}",
+                                "how_found": f"链驱动分析：{ce['chain_name']} → {s['step']} → 规则R{s['rule_id']}命中",
+                                "tax_impact": rule.get("tax_impact", ""),
+                                "policy_ref": rule.get("policy_ref", ""),
+                                "suggestion": rule.get("suggestion", ""),
+                                "category": rule.get("category", ""),
+                                "chain_driven": True,
+                                "source_chain": ce["chain_name"],
+                            })
+            
+            # 合并链驱动发现到总发现列表
+            if chain_findings:
+                all_findings.extend(chain_findings)
+            
+            chain_stats = [ce for ce in chain_execution if ce["triggered_steps"] > 0]
+            chain_stats.sort(key=lambda x: -x["triggered_steps"])
+            
+            if chain_execution:
+                pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行, {triggered_count}条触发, {len(chain_findings)}条新发现")
+            comprehensive["chain_execution"] = chain_stats[:30]
+            comprehensive["chain_triggered_count"] = triggered_count
+            comprehensive["chain_total_count"] = len(chain_execution)
+    except Exception as che:
+        pipeline_log.append(f"链驱动引擎异常: {che}")
+    # ═══════════════════════════════════════════════════
+
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
