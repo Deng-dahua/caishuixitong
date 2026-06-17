@@ -860,7 +860,9 @@
       "related_chain_count": 101,
       "quality_score": 19.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 1,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "资产负债往来-未计提固定资-资金回流：支",
@@ -14303,7 +14305,9 @@
       "related_chain_count": 250,
       "quality_score": 17.5,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 1,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "金融-衍生工具",
@@ -16813,7 +16817,9 @@
       "related_chain_count": 329,
       "quality_score": 17.3,
       "has_policy_count": 4,
-      "total_steps": 5
+      "total_steps": 5,
+      "usage_count": 1,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "虚开-进销背离",
@@ -29615,10 +29621,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 9,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-隐匿-175",
@@ -29710,10 +29717,11 @@
         "证据链-资金回流-353"
       ],
       "related_chain_count": 8,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-隐匿-176",
@@ -34101,10 +34109,11 @@
         "证据链-虚开-260"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 16.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-稽查-567",
@@ -45388,10 +45397,11 @@
         "证据链-异常-109"
       ],
       "related_chain_count": 4,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-虚开-263",
@@ -45869,10 +45879,11 @@
         "证据链-稽查-561"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 13.2,
       "has_policy_count": 4,
-      "total_steps": 4
+      "total_steps": 4,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-存货-368",
@@ -56820,10 +56831,11 @@
         "证据链-稽查-593"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-异常-121",
@@ -56915,10 +56927,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 6,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-异常-122",
@@ -75301,10 +75314,11 @@
         "证据链-异常-120"
       ],
       "related_chain_count": 7,
-      "usage_count": 0,
+      "usage_count": 1,
       "quality_score": 11.0,
       "has_policy_count": 5,
-      "total_steps": 5
+      "total_steps": 5,
+      "last_triggered": "2026-06-17 10:08"
     },
     {
       "name": "证据链-稽查-594",

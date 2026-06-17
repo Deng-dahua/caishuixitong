@@ -10064,6 +10064,13 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: _parse_inventory_sheet(s)
     },
+    # 科目余额表
+    "trial_balance": {
+        "keywords": ["科目编码", "科目名称", "期初余额", "本期发生额", "本年累计发生额",
+                     "期末余额", "借方", "贷方", "一级科目", "明细科目"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "trial_balance", "rows": _parse_trial_balance_sheet(s, h)}
+    },
     # ══════════ 第二梯队：申报表与财务报表 ══════════
     "financial_statements": {
         "keywords": ["资产负债表", "利润表", "现金流量表", "所有者权益变动表",
@@ -10260,7 +10267,10 @@ def _parse_bank_sheet(sheet):
     header_row = 0
     header = []
     kw_bank = {"交易日期", "记账日期", "对方户名", "对方账号", "收入金额", "支出金额",
-               "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言"}
+               "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言",
+               # 双语表头
+               "Transaction Date", "Counterparty", "Debit Amount", "Credit Amount",
+               "Bank Name", "Currency", "Order", "Notes"}
     for r in range(min(8, nrows)):
         h = _get_row_values(sheet, r)
         if sum(1 for v in h if any(k in str(v) for k in kw_bank)) >= 2:
@@ -10269,9 +10279,10 @@ def _parse_bank_sheet(sheet):
         header = _get_row_values(sheet, 0)
     
     cols = _find_cols_semantic(header, {
-        "交易日期": "date", "记账日期": "bk_date", "日期": "date",
+        # 中文列名
+        "交易日期": "date", "记账日期": "bk_date", "日期": "date", "申请日期": "apply_date",
         "对方户名": "counterparty", "对方名称": "counterparty", "对方": "counterparty", "户名": "counterparty",
-        "对方账号": "account", "对方行名": "bank",
+        "对方账号": "account", "对方行名": "bank", "对方账户": "account",
         "收入金额": "income", "支出金额": "expense",
         "贷方金额": "credit", "贷方": "credit",
         "借方金额": "debit", "借方": "debit",
@@ -10280,6 +10291,13 @@ def _parse_bank_sheet(sheet):
         "流水号": "tx_no", "交易流水号": "tx_no", "凭证号": "tx_no",
         "交易金额": "amount", "金额": "amount", "发生额": "amount",
         "借贷标志": "direction", "借贷": "direction",
+        "币种": "currency", "交易时间": "tx_time",
+        # 双语表头
+        "Transaction Date": "date", "Counterparty Account Name": "counterparty",
+        "Order": "seq", "Bank Name": "bank",
+        "Debit Amount": "debit", "Credit Amount": "credit",
+        "Currency": "currency", "Notes/Abstract": "summary",
+        "Opposite Account No.": "account", "Opposite Account": "account",
     })
     if not cols: return None
     
@@ -11703,16 +11721,31 @@ def _parse_input_vat_sheet(sheet):
     return {"type": "purchase_invoice", "rows": rows, "sub_type": "input_vat_deduction"}
 
 def _parse_invoice_sheet(sheet, direction):
-    header = _get_row_values(sheet, 1)
+    # 智能表头检测：row 0 或 row 1
+    header = _get_row_values(sheet, 0)
+    text_count = sum(1 for v in header if isinstance(v, str) and len(str(v)) >= 2)
+    if text_count < 3:
+        header = _get_row_values(sheet, 1)
     cols = _find_cols_semantic(header, {
-        "发票类型": "inv_type", "发票号码": "inv_no", "购方名称": "buyer", "购方税号": "buyer_tax",
-        "销方名称": "seller", "销方税号": "seller_tax", "开票项目": "goods",
-        "金额": "amount", "税额": "tax", "价税合计": "total", "业务类型": "biz_type",
+        "发票类型": "inv_type", "发票号码": "inv_no", "发票代码": "inv_code",
+        "购方名称": "buyer", "购方税号": "buyer_tax",
+        "销方名称": "seller", "销方税号": "seller_tax",
+        "开票项目": "goods", "货物或应税劳务名称": "goods",
+        "金额": "amount", "税额": "tax", "价税合计": "total",
+        "业务类型": "biz_type", "税收编码": "tax_code", "税收分类编码": "tax_code",
+        "开票日期": "date", "数量": "qty", "单价": "price",
+        "税率": "tax_rate", "规格型号": "spec", "计量单位": "unit",
+        "认证状态": "cert_status", "认证日期": "cert_date",
+        "抵扣状态": "deduct_status", "抵扣方式": "deduct_method",
+        "征收方式": "collect_method", "校验码": "check_code",
+        "印花税": "stamp_tax", "文建费": "culture_fee",
+        "备注": "remark", "凭证号": "voucher_no",
     })
     if not cols: return None
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(2, min(nrows, 2000)):
+    start_row = 2 if text_count >= 3 else 1  # row 0有表头则从row 1或2读
+    for r in range(start_row, min(nrows, 5000)):
         raw_vals = _get_row_values(sheet, r)
         if _is_summary_row(raw_vals): continue
         vals = {}
@@ -11721,7 +11754,7 @@ def _parse_invoice_sheet(sheet, direction):
                 v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
                 vals[field] = v
             except: vals[field] = ""
-        if not vals.get("inv_no") and not vals.get("buyer") and not vals.get("seller") and not vals.get("goods"):
+        if not vals.get("inv_no") and not vals.get("inv_code") and not vals.get("buyer") and not vals.get("seller") and not vals.get("goods"):
             continue
         try: vals["amount"] = float(vals.get("amount", 0) or 0)
         except: vals["amount"] = 0
@@ -11732,6 +11765,33 @@ def _parse_invoice_sheet(sheet, direction):
         rows.append(vals)
     atype = "sales_invoice" if direction == "销项" else "purchase_invoice"
     return {"type": atype, "rows": rows}
+
+def _parse_trial_balance_sheet(sheet, header):
+    """解析科目余额表"""
+    cols = _find_cols_semantic(header, {
+        "科目编码": "code", "科目名称": "name",
+        "期初余额": "open", "期初借方": "open_debit", "期初贷方": "open_credit",
+        "本期发生额": "current", "本期借方": "current_debit", "本期贷方": "current_credit",
+        "本年累计发生额": "year", "本年借方": "year_debit", "本年贷方": "year_credit",
+        "期末余额": "close", "期末借方": "close_debit", "期末贷方": "close_credit",
+        "借方": "debit", "贷方": "credit",
+    })
+    if not cols: return None
+    rows = []
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    for r in range(1, min(nrows, 500)):
+        vals = {}
+        for field, col in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("code") and not vals.get("name"): continue
+        for k in ["open_debit","open_credit","current_debit","current_credit","year_debit","year_credit","close_debit","close_credit"]:
+            try: vals[k] = float(vals.get(k, 0) or 0)
+            except: vals[k] = 0
+        rows.append(vals)
+    return rows
 
 def _parse_salary_sheet(sheet):
     # 智能表头检测：扫描行0-6，选关键词命中最多的一行
@@ -11758,11 +11818,16 @@ def _parse_salary_sheet(sheet):
         "企业(职业)年金": "annuity", "本期企业(职业)年金": "annuity",
         "代扣社保": "ss_deduct", "代扣住房公积金": "hf_deduct",
         "住房公积金": "hf_deduct", "代扣个税": "tax",
+        "养老保险": "pension", "医疗保险": "medical", "失业保险": "unemploy",
+        "大病医疗": "illness", "合计": "total",
         "个税": "tax", "个人所得税": "tax",
         "税款所属期起": "period_start", "税款所属期止": "period_end",
         "实发": "net", "应发": "gross",
         "部门": "dept", "职位": "position",
-        "所得项目": "income_type",
+        "所得项目": "income_type", "费用类型": "fee_type",
+        "累计收入": "acc_income", "累计应纳税所得额": "acc_taxable",
+        "累计已缴税额": "acc_paid", "应补（退）税额": "tax_diff",
+        "其他扣除": "other_deduct", "其他税后扣除": "other_after",
     })
     if not cols: return None
     rows = []
