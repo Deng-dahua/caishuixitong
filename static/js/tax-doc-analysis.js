@@ -439,7 +439,7 @@ function renderTaxDocReport(r) {
         + '<span style="font-weight:600;font-size:12px;color:'+S.text+'">'+esc(dr.name)+'</span><span style="font-size:10px;color:'+S.muted+'">'+dr.count+' 项</span></div>'
         + '<div>';
       dr.findings.forEach(function(f){
-        var dotC = f.level==='高风险'?S.red:(f.level==='中风险'?S.amber:S.light);
+        var dotC = f.level==='高风险'?S.red:(f.level==='中风险'?S.amber:S.green);
         var cfBg = f.level==='高风险'?'#fef2f2':(f.level==='中风险'?'#fffbeb':'#f8fafc');
         var cfBorder = f.level==='高风险'?'#fecaca':(f.level==='中风险'?'#fde68a':'#e2e8f0');
         html += '<div style="padding:12px 14px;border-bottom:1px solid #f8fafc;font-size:12px;line-height:1.7">'
@@ -676,30 +676,64 @@ function renderAuditReport() {
   if (!area) return;
   var toolbar = area.querySelector('.tda-toolbar');
   
-  var S = { bg: '#fff', text: '#1e293b', muted: '#64748b', light: '#94a3b8',
-    border: '#e2e8f0', accent: '#0f172a', blue: '#2563eb',
-    red: '#dc2626', amber: '#f59e0b', green: '#059669' };
+  var S = { bg: '#fff', text: '#1a1a2e', muted: '#5c6370', light: '#999',
+    border: '#e0e0e0', accent: '#1a1a2e', blue: '#1a56db',
+    red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
   
+  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function fmt(v) {
     if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
     if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
     return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
   }
   
-  var h = '<div style="padding:40px 0;max-width:780px;margin:0 auto;font-size:13px;line-height:1.9;color:'+S.text+'">';
+  // 报告样式
+  var h = '<style>'
+    + '#rr-detached-report *{box-sizing:border-box;margin:0;padding:0}'
+    + '#rr-detached-report{font-family:"PingFang SC","Microsoft YaHei","Noto Serif SC",Georgia,"Times New Roman",serif;font-size:15px;line-height:2;color:#1a1a2e;max-width:820px;margin:0 auto;padding:60px 40px}'
+    + '#rr-detached-report h2{font-size:20px;font-weight:700;margin:36px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;letter-spacing:1px}'
+    + '#rr-detached-report h3{font-size:16px;font-weight:600;margin:24px 0 12px;color:#1a1a2e}'
+    + '#rr-detached-report h4{font-size:14px;font-weight:600;margin:16px 0 8px;color:#2d3436}'
+    + '#rr-detached-report p{margin:8px 0;text-indent:2em;text-align:justify}'
+    + '#rr-detached-report .rp-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}'
+    + '#rr-detached-report .rp-table td{padding:6px 12px;border-bottom:1px solid #eee;vertical-align:top}'
+    + '#rr-detached-report .rp-table td:first-child{width:100px;font-weight:600;color:#5c6370;white-space:nowrap}'
+    + '#rr-detached-report .rp-finding{border:1px solid #e0e0e0;border-radius:6px;margin:10px 0;overflow:hidden;background:#fff;font-size:14px}'
+    + '#rr-detached-report .rp-finding .rp-fh{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f0f0f0;background:#fafafa;cursor:pointer;user-select:none}'
+    + '#rr-detached-report .rp-finding .rp-fh:hover{background:#f5f5f5}'
+    + '#rr-detached-report .rp-finding .rp-fb{padding:14px 16px}'
+    + '#rr-detached-report .rp-finding .rp-fb>:last-child{margin-bottom:0}'
+    + '#rr-detached-report .rp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}'
+    + '#rr-detached-report .rp-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:12px;font-weight:500;margin-right:4px}'
+    + '#rr-detached-report .rp-box{border-radius:5px;padding:12px 14px;margin:8px 0;font-size:14px;line-height:1.8}'
+    + '#rr-detached-report .rp-box .rp-box-hd{font-weight:600;font-size:12px;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}'
+    + '#rr-detached-report .rp-domain{margin-bottom:8px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden}'
+    + '#rr-detached-report .rp-domain .rp-dh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fafafa;cursor:pointer;font-weight:600;font-size:14px}'
+    + '#rr-detached-report .rp-domain .rp-dh:hover{background:#f5f5f5}'
+    + '#rr-detached-report .rp-domain .rp-db{padding:0}'
+    + '#rr-detached-report .rp-summary{background:#f8f9fa;border-left:3px solid #1a1a2e;padding:20px 24px;margin:24px 0;line-height:2;font-size:15px}'
+    + '#rr-detached-report .rp-header{text-align:center;padding-bottom:28px;margin-bottom:36px;border-bottom:3px double #1a1a2e}'
+    + '#rr-detached-report .rp-header h1{font-size:24px;font-weight:700;letter-spacing:3px;margin-bottom:10px}'
+    + '#rr-detached-report .rp-header .rp-meta{font-size:12px;color:#999}'
+    + '#rr-detached-report .rp-report-cover{text-align:center;padding:60px 0;border-bottom:1px solid #e0e0e0;margin-bottom:40px}'
+    + '#rr-detached-report .rp-report-cover .rp-cover-title{font-size:28px;font-weight:900;letter-spacing:6px;margin-bottom:20px}'
+    + '#rr-detached-report .rp-report-cover .rp-cover-sub{font-size:13px;color:#999;letter-spacing:2px}'
+    + '#rr-detached-report .rp-stamp{display:inline-block;border:3px solid #c92a2a;border-radius:50%;width:80px;height:80px;line-height:74px;text-align:center;font-size:13px;font-weight:900;color:#c92a2a;transform:rotate(-15deg);opacity:0.85}'
+    + '</style>'
+    + '<div id="rr-detached-report">';
   
-  // ── 表头 ──
-  h += '<div style="text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:3px double '+S.accent+'">'
-    + '<div style="font-size:20px;font-weight:700;color:'+S.accent+';letter-spacing:2px;margin-bottom:8px">税务稽查审核报告</div>'
-    + '<div style="font-size:11px;color:'+S.muted+'">编号：TS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-001 | '+new Date().toLocaleString('zh-CN')+'</div>'
+  // ── 报告封面 ──
+  h += '<div class="rp-report-cover">'
+    + '<div class="rp-cover-title">税务稽查审核报告</div>'
+    + '<div class="rp-cover-sub">编号：TS-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+' | '+new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'})+'</div>'
     + '</div>';
   
   // ── 基本信息 ──
-  h += '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:24px">'
-    + '<tr><td style="padding:4px 12px;width:100px;color:'+S.muted+';font-weight:600">被查单位</td><td style="padding:4px 12px">（依据上传资料识别）</td></tr>'
-    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">稽查期间</td><td style="padding:4px 12px">'+ (r.summary_text||'').match(/\d{4}年/) + '（以凭证及发票数据覆盖期间为准）</td></tr>'
-    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">稽查范围</td><td style="padding:4px 12px">'+r.files_count+'份资料，涵盖银行流水、进销项发票、记账凭证、工资社保</td></tr>'
-    + '<tr><td style="padding:4px 12px;color:'+S.muted+';font-weight:600">执行标准</td><td style="padding:4px 12px">'+r.rules_used+' 条稽查指令，《税务稽查工作规程》（国税发[2009]157号）</td></tr>'
+  h += '<table class="rp-table">'
+    + '<tr><td>被查单位</td><td>（依据上传资料识别）</td></tr>'
+    + '<tr><td>稽查期间</td><td>'+ (r.summary_text||'').match(/\d{4}年/) + '（以凭证及发票数据覆盖期间为准）</td></tr>'
+    + '<tr><td>稽查范围</td><td>'+r.files_count+'份资料，涵盖银行流水、进销项发票、记账凭证、工资社保</td></tr>'
+    + '<tr><td>执行标准</td><td>'+r.rules_used+' 条稽查指令，《税务稽查工作规程》（国税发[2009]157号）</td></tr>'
     + '</table>';
   
   // ── 一、稽查结论 ──
@@ -710,67 +744,50 @@ function renderAuditReport() {
   
   var sevLabel = top3.length>=3?'存在严重涉税违法嫌疑':(top3.length>=2?'存在多项涉税疑点':'基本合规');
   var sevColor = top3.length>=3?S.red:(top3.length>=2?S.amber:S.green);
+  var closedCount = (r.comprehensive||{}).closed_chain_count||0;
+  if (closedCount >= 1) { sevLabel = '存在违法事实闭环，涉税违法嫌疑重大'; sevColor = S.red; }
   
-  h += '<div style="margin-bottom:28px"><div style="font-size:15px;font-weight:700;color:'+S.accent+';border-bottom:2px solid '+S.accent+';padding-bottom:6px;margin-bottom:14px">一、稽查结论</div>'
-    + '<div style="font-size:13px;line-height:2;padding:16px;background:#f8fafc;border-left:3px solid '+sevColor+'">'
+  h += '<h2>一、稽查结论</h2>'
+    + '<div class="rp-summary" style="border-left-color:'+sevColor+'">'
     + '经对'+r.files_count+'份涉税资料进行系统性审查，依据'+r.rules_used+'条稽查指令，共发现<span style="color:'+sevColor+';font-weight:700"> '+r.total_risks+' 项涉税疑点</span>（高风险'+r.high_risk+'项，中风险'+r.mid_risk+'项）。综合评估结论：<span style="color:'+sevColor+';font-weight:700">'+sevLabel+'</span>。';
-  // 7维评分 + 交叉模式
   var rp = (r.comprehensive||{}).risk_profile;
   if (rp && rp.dimensions) {
-    h += '<br><br><span style="font-weight:600;color:'+S.accent+'">金税四期 7 维风险评分：</span>';
+    h += '<div style="margin-top:12px;font-size:13px;color:'+S.muted+'">金税四期 7 维评分：';
     Object.keys(rp.dimensions).forEach(function(dn){
       var ds = rp.dimensions[dn];
       var lc = ds.score > 40 ? S.red : (ds.score > 20 ? S.amber : S.green);
-      h += '<span style="font-size:10px;padding:2px 6px;margin:0 3px;background:#f8fafc;border-radius:3px">'+dn+' <b style="color:'+lc+'">'+ds.score+'</b></span>';
+      h += '<span class="rp-tag" style="background:#f1f3f5;color:'+lc+'">'+dn+' <b>'+ds.score+'</b></span>';
     });
+    h += '</div>';
   }
-  if (rp && rp.cross_patterns && rp.cross_patterns.length) {
-    h += '<br><span style="font-weight:600;color:'+S.red+';font-size:11px">交叉预警：</span>';
-    rp.cross_patterns.forEach(function(p){ h += '<span style="background:#fef2f2;color:'+S.red+';padding:2px 6px;border-radius:3px;font-size:10px;margin:0 3px">'+esc(p)+'</span>'; });
-  }
-  // 数据导入流水
-  h += '<br><span style="font-size:10px;color:'+S.light+'">数据导入：';
-  r.pipeline_log.forEach(function(log){
-    var m = log.match(/导入DB.*/);
-    if (m) h += esc(m[0]);
-  });
-  h += '</span>';
   if (top3.length) {
-    h += '<br><br>三项优先度最高的问题：<br>';
+    h += '<div style="margin-top:12px;font-size:14px">'
+      + '<div style="font-weight:600;margin-bottom:6px;color:'+S.text+'">优先调查事项：</div>';
     top3.forEach(function(f,i){
-      h += (i+1)+'. <b>'+esc(f.type||'')+'</b>：'+esc((f.detail||'').substring(0,100))+'<br>';
+      h += '<div style="margin:6px 0;padding-left:8px;border-left:3px solid '+S.red+'">'
+        + '<b>'+esc(f.type||'')+'</b>'
+        + '<span style="color:'+S.muted+';margin-left:8px;font-size:13px">'+esc((f.detail||'').substring(0,120))+'</span></div>';
     });
+    h += '</div>';
   }
-  h += '</div></div>';
+  h += '</div>';
   
   // ── 二、稽查过程 ──
-  
-  // 2a. 稽查方法
-  var present = (r.comprehensive||{}).data_overview||{};
-  h += '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（一）稽查方法</div>'
-    + '<div style="font-size:11px;color:'+S.muted+';line-height:1.9;padding:0 8px">'
-    + '依据《税务稽查工作规程》，对'+r.files_count+'份涉税资料执行'+r.rules_used+'条稽查指令。主要方法包括：<br>'
-    + '1. 数据比对法：对银行流水、进销项发票、记账凭证、工资社保四源数据进行交叉比对。<br>'
-    + '2. 比率分析法：计算进销比率、税负率、毛利率、购销弹性等关键指标，与行业基准和税法规定阈值比较。<br>'
-    + '3. 穿透核验法：对供应商/客户进行身份核验，检查是否存在群集注册、异常关联等风险特征。<br>'
-    + '4. 资金流追踪法：追踪大额、整数、非工作日交易，匹配资金流向与发票购销方的对应关系。<br>'
-    + '5. 证据链串联法：将多域发现的孤立疑点串并为完整证据链，判断是否构成系统性违法行为。<br>'
-    + '<br>上述方法交叉运用，已有'+r.total_risks+'项疑点经多通道验证后形成实质性发现。'
-    // 链驱动摘要（融入报告，不单独展示）
-    + '<br><span style="font-size:10px;color:'+S.muted+'">'
+  h += '<h2>二、稽查过程</h2>';
+  h += '<h3>（一）稽查方法</h3>';
+  h += '<p>依据《税务稽查工作规程》，对'+r.files_count+'份涉税资料执行'+r.rules_used+'条稽查指令。主要方法包括：</p>';
+  h += '<p>1. 数据比对法：对银行流水、进销项发票、记账凭证、工资社保四源数据进行交叉比对。</p>';
+  h += '<p>2. 比率分析法：计算进销比率、税负率、毛利率、购销弹性等关键指标，与行业基准和税法规定阈值比较。</p>';
+  h += '<p>3. 穿透核验法：对供应商/客户进行身份核验，检查是否存在群集注册、异常关联等风险特征。</p>';
+  h += '<p>4. 资金流追踪法：追踪大额、整数、非工作日交易，匹配资金流向与发票购销方的对应关系。</p>';
+  h += '<p>5. 证据链串联法：将多域发现的孤立疑点串并为完整证据链，判断是否构成系统性违法行为。</p>';
+  h += '<p>上述方法交叉运用，已有'+r.total_risks+'项疑点经多通道验证后形成实质性发现。'
     + '数据交叉验证：' + (r.rules_used||1499) + '条规则 × ' + ((r.comprehensive||{}).chain_total_count||0) + '条线索链驱动检查';
-    var ccc = (r.comprehensive||{}).closed_chain_count||0;
-    if (ccc > 0) h += '，其中' + ccc + '条证据链形成闭环';
-    var rn = (r.comprehensive||{}).recommended_next||[];
-    if (rn.length > 0) {
-      h += '<br>后续核查建议：';
-      rn.slice(0,3).forEach(function(rec,i){
-        h += (i>0?'、':'') + rec.chain_name;
-      });
-    }
-    h += '</span></div></div>';
+  var cccl = (r.comprehensive||{}).closed_chain_count||0;
+  if (cccl > 0) h += '，其中' + cccl + '条证据链形成闭环。'; else h += '。';
+  h += '</p>';
   
-  // 2b. 稽查线索链 —— 从跨域推理中提取
+  // 2b. 稽查线索链 —— 融入正文
   var crossDomain = r.domain_summary.filter(function(dr){ return dr.name.indexOf('跨域')>=0; });
   if (crossDomain.length && crossDomain[0].findings) {
     h += '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12px;color:'+S.text+';margin-bottom:6px">（二）稽查线索链</div>';
@@ -834,7 +851,7 @@ function renderAuditReport() {
         }
         h += '</div>';
       }
-      h += '</div>';
+      h += '</div></div>';
     });
     h += '</div></div>';
   }
