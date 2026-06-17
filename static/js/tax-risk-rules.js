@@ -1322,13 +1322,14 @@ async function loadAuditChains() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var cats = {};
-    _allChains.forEach(function(c){ var p = c.name.split('-')[0]; if (p) cats[p] = true; });
+    _allChains.forEach(function(c){ if (c.chain_type === '线索链') { var p = c.name.split('-')[0]; if (p) cats[p] = true; } });
     var catKeys = Object.keys(cats).sort();
     var catSel = document.getElementById('chain-filter-cat');
     if (catSel) { catSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ catSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
     var evCatSel = document.getElementById('evidence-filter-cat');
     if (evCatSel) { evCatSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ evCatSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
     filterChains();
+    filterEvidence();
   } catch(e) { console.error(e); }
 }
 
@@ -1337,6 +1338,7 @@ function filterChains() {
   var cat = document.getElementById('chain-filter-cat')?.value || '';
   var lvl = document.getElementById('chain-filter-level')?.value || '';
   var filtered = _allChains.filter(function(c) {
+    if (c.chain_type !== '线索链') return false;
     if (q && c.name.toLowerCase().indexOf(q) === -1) return false;
     if (cat && !c.name.startsWith(cat)) return false;
     if (lvl === '\u9ad8\u98ce\u9669' && !c.high_risk_steps) return false;
@@ -1366,8 +1368,9 @@ function filterChains() {
   }
   var stats = document.getElementById('chain-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u7ebf\u7d22\u94fe';
+  var trailCount = _allChains.filter(function(c){return c.chain_type==='线索链';}).length;
   var hc = document.getElementById('chain-header-count');
-  if (hc) hc.textContent = _allChains.length;
+  if (hc) hc.textContent = trailCount;
 }
 
 async function loadAuditEvidence() {
@@ -1382,6 +1385,7 @@ function filterEvidence() {
   var cat = document.getElementById('evidence-filter-cat')?.value || '';
   var lvl = document.getElementById('evidence-filter-level')?.value || '';
   var filtered = _allChains.filter(function(c) {
+    if (c.chain_type !== '证据链') return false;
     var nameMatch = !q || c.name.toLowerCase().indexOf(q) !== -1;
     var itemMatch = false;
     if (!nameMatch && q) {
@@ -1419,14 +1423,22 @@ function filterEvidence() {
           + '<div style="margin-top:2px;font-size:9px;color:#dc2626">'+(s.tax_impact||'').substring(0,80)+'</div>'
           + '</div></div>';
       });
+      // 反向索引：覆盖的规则数
+      var rCount = c.covered_rule_count || c.steps;
+      var relCount = c.related_chain_count || 0;
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:9px;color:#94a3b8">'
+        + '覆盖规则: <b style="color:#1e293b">'+rCount+'条</b>';
+      if (relCount > 0) html += ' | 关联链: <b style="color:#1e293b">'+relCount+'条</b>';
+      html += '</div>';
       html += '</div>';
     });
     body.innerHTML = html;
   }
   var stats = document.getElementById('evidence-stats');
   if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
+  var evCount = _allChains.filter(function(c){return c.chain_type==='证据链';}).length;
   var hc = document.getElementById('evidence-header-count');
-  if (hc) hc.textContent = _allChains.length;
+  if (hc) hc.textContent = evCount;
 }
 
 // ==================== Tab ====================
