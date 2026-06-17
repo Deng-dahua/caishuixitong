@@ -9864,6 +9864,10 @@ async def upload_tax_risk_docs(
 
 @app.get("/api/tax-risk-docs/list")
 def list_tax_risk_docs(company_id: int = Query(...)):
+    # 每次请求时从磁盘重扫描（确保新文件被识别）
+    global _TAX_DOC_SCANNED, _tax_risk_docs
+    _TAX_DOC_SCANNED = False
+    _init_tax_docs_from_disk()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
              "uploaded_at": d["uploaded_at"]} for d in docs]
