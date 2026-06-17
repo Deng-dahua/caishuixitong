@@ -11894,8 +11894,37 @@ def _parse_salary_sheet(sheet):
     if not cols: return None
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    start_row = 4 if text_count < 2 else 1  # row 0是表头则从row 1开始读数据
-    for r in range(start_row, min(nrows, 100)):
+    # 智能定位数据起始行：跳过标题行和表头行
+    start_row = 1
+    # 从第0行开始找第一个有数据行（有姓名或数字开头）
+    for r in range(min(10, nrows)):
+        row_vals = _get_row_values(sheet, r)
+        # 如果该行有姓名列的值（不是表头关键词），说明是数据起始行
+        has_name = False
+        if cols.get("name") is not None:
+            try:
+                v = str(row_vals[cols["name"]]).strip() if cols["name"] < len(row_vals) else ""
+                if v and v not in ("姓名","员工","人员") and not v.startswith("企业"):
+                    has_name = True
+            except: pass
+        if has_name:
+            start_row = r
+            break
+        # 如果该行第一列是数字（序号），也判断为数据起始行
+        try:
+            first_val = str(row_vals[0]).strip() if len(row_vals) > 0 else ""
+            if first_val.isdigit():
+                start_row = r
+                break
+        except: pass
+    else:
+        # 没找到数据起始行，从表头+1开始
+        for r in range(min(6, nrows)):
+            h = _get_row_values(sheet, r)
+            if sum(1 for v in h if "姓名" in str(v) or "工号" in str(v) or "序号" in str(v)) >= 1:
+                start_row = r + 1
+                break
+    for r in range(start_row, min(nrows, 500)):
         vals = {}
         for field, col in cols.items():
             try:
