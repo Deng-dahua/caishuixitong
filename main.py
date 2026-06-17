@@ -14289,6 +14289,23 @@ def _run_analyze(company_id, db):
                         fr["actions"].append(f"提取{n}条发票")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
+                    elif ftype in ("bank", "bank_statement", "bank_transaction"): 
+                        # 银行流水→标准化后加入bank_txs
+                        for r in parsed["rows"]:
+                            tx = dict(r)
+                            tx.setdefault("date", tx.get("交易日期", tx.get("date", "")))
+                            tx.setdefault("counterparty", tx.get("对方户名", tx.get("counterparty", "")))
+                            tx.setdefault("summary", tx.get("摘要", tx.get("summary", "")))
+                            # 金额处理
+                            debit = float(tx.get("debit", tx.get("借方金额", 0) or 0))
+                            credit = float(tx.get("credit", tx.get("贷方金额", 0) or 0))
+                            amount = float(tx.get("amount", tx.get("交易金额", 0) or 0))
+                            if amount == 0: amount = debit + credit
+                            tx["amount"] = amount
+                            tx["direction"] = "支出" if debit > 0 else "收入"
+                            bank_txs.append(tx)
+                        fr["actions"].append(f"提取{n}条流水")
+                    elif ftype == "housing_fund": housing_fund = housing_fund if 'housing_fund' in dir() else []; housing_fund = housing_fund.extend(parsed.get("rows", [])) if housing_fund else parsed.get("rows", []); fr["actions"].append(f"提取{n}条公积金")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
@@ -14806,7 +14823,7 @@ def _run_analyze(company_id, db):
             f_cat = str(f.get("category", "")).lower()
             matched_ids = []
             # 提取finding type中的关键词
-            type_kws = set(f_type.replace("（"," ").replace("）"," ").replace(":"," ").replace("："," ").split())
+            type_kws = set(re.findall(r'[\u4e00-\u9fff]{2,8}', f_type))
             for r in rules_data:
                 r_item = r.get("item", "").lower()
                 r_cat = r.get("category", "").lower()
