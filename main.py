@@ -15171,6 +15171,43 @@ def _run_analyze(company_id, db):
         if dr["findings"]:
             domain_summary.append({"name": dr["domain"], "count": len(dr["findings"]), "high": dh, "mid": dm, "findings": dr["findings"]})
 
+    # 将域分析外的新发现（链驱动/合同/关联交易/科目余额等）补入domain_summary
+    extra_by_cat = {}
+    existing_types = set()
+    for dr in domain_summary:
+        for f in dr["findings"]:
+            existing_types.add(f.get("type", ""))
+    for f in all_findings:
+        if f.get("chain_closure") and f["type"] not in existing_types:
+            cat = "证据链闭环"
+            if cat not in extra_by_cat: extra_by_cat[cat] = []
+            extra_by_cat[cat].append(f)
+            existing_types.add(f["type"])
+        elif f.get("contract_driven") and f["type"] not in existing_types:
+            cat = "合同风险分析"
+            if cat not in extra_by_cat: extra_by_cat[cat] = []
+            extra_by_cat[cat].append(f)
+            existing_types.add(f["type"])
+        elif f.get("rp_driven") and f["type"] not in existing_types:
+            cat = "关联交易分析"
+            if cat not in extra_by_cat: extra_by_cat[cat] = []
+            extra_by_cat[cat].append(f)
+            existing_types.add(f["type"])
+        elif f.get("tb_driven") and f["type"] not in existing_types:
+            cat = "科目余额分析"
+            if cat not in extra_by_cat: extra_by_cat[cat] = []
+            extra_by_cat[cat].append(f)
+            existing_types.add(f["type"])
+        elif f.get("chain_driven") and f["type"] not in existing_types:
+            cat = "链驱动发现"
+            if cat not in extra_by_cat: extra_by_cat[cat] = []
+            extra_by_cat[cat].append(f)
+            existing_types.add(f["type"])
+    for cat, findings in extra_by_cat.items():
+        dh = sum(1 for f in findings if f.get("level") == "高风险")
+        dm = sum(1 for f in findings if f.get("level") == "中风险")
+        domain_summary.append({"name": cat, "count": len(findings), "high": dh, "mid": dm, "findings": findings})
+
     # ── 综合报告增强数据：月度资金流 + 往来方TOP20 + 分级整改建议 ──
     comprehensive = {}
     
