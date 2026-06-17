@@ -14515,6 +14515,87 @@ def _run_analyze(company_id, db):
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     
+    # ═══ 虚拟进销存分析：用销项/进项发票构建进销匹配 ═══
+    inv_match_findings = []
+    if sal_invs and pur_invs:
+        # 按货物名称聚合
+        from collections import defaultdict
+        sale_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
+        pur_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
+        for inv in sal_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            if not g: g = "未命名商品"
+            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
+            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            sale_by_goods[g]["qty"] += q
+            sale_by_goods[g]["amount"] += a
+            sale_by_goods[g]["count"] += 1
+        for inv in pur_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            if not g: g = "未命名商品"
+            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
+            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            pur_by_goods[g]["qty"] += q
+            pur_by_goods[g]["amount"] += a
+            pur_by_goods[g]["count"] += 1
+        
+        # 检查1：有进无销（购入但未销售→可能账外经营）
+        only_buy = [g for g in pur_by_goods if g not in sale_by_goods]
+        if only_buy:
+            pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy)
+            inv_match_findings.append({
+                "type": "有进无销风险", "level": "高风险", "score": 8,
+                "detail": f"{len(only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元。可能账外经营或未开票销售。",
+                "description": f"进项发票中{len(only_buy)}类商品（{'、'.join(only_buy[:3])}等）在销项发票中无对应销售记录。根据进销匹配原则，企业采购的商品应有对应销售。无销售记录可能意味着：1)账外经营隐匿收入 2)未开票销售 3)货物去向不明。",
+                "how_found": f"发票进销匹配：{len(sal_invs)}张销项 × {len(pur_invs)}张进项 → {len(only_buy)}类商品有进无销",
+                "tax_impact": "可能隐匿销售收入→补税+罚款+滞纳金",
+                "policy_ref": "《税收征收管理法》第六十三条；《增值税暂行条例》",
+                "suggestion": f"核实{'、'.join(only_buy[:3])}等商品的真实去向，确认是否已销售但未开票。",
+                "category": "进销存匹配",
+            })
+        
+        # 检查2：有销无进（卖出但未采购→可能虚开发票）
+        only_sell = [g for g in sale_by_goods if g not in pur_by_goods]
+        if only_sell:
+            sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell)
+            inv_match_findings.append({
+                "type": "有销无进风险", "level": "高风险", "score": 9,
+                "detail": f"{len(only_sell)}类商品仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元。可能虚开发票。",
+                "description": f"销项发票中{len(only_sell)}类商品（{'、'.join(only_sell[:3])}等）在进项发票中无对应采购记录。企业销售商品应有相应采购来源。无采购记录可能意味着：1)虚开发票 2)购进发票未入账 3)虚构销售交易。",
+                "how_found": f"发票进销匹配：{len(sal_invs)}张销项 × {len(pur_invs)}张进项 → {len(only_sell)}类商品有销无进",
+                "tax_impact": "虚开发票→刑事责任+巨额罚款+信用降级",
+                "policy_ref": "《发票管理办法》第二十二条；《刑法》第二百零五条",
+                "suggestion": f"立即核实{'、'.join(only_sell[:3])}等商品的真实采购来源，确认是否存在虚开或变名开票行为。",
+                "category": "进销存匹配",
+            })
+        
+        # 检查3：进销数量差异
+        matched = [(g, (sale_by_goods[g]["qty"] - pur_by_goods[g]["qty"])) 
+                   for g in sale_by_goods if g in pur_by_goods]
+        big_diff = [(g, d) for g, d in matched if abs(d) > 100 and pur_by_goods[g]["qty"] > 0]
+        if big_diff:
+            big_diff.sort(key=lambda x: -abs(x[1]))
+            top_diff = big_diff[:3]
+            detail_parts = [f"{g}（销{sale_by_goods[g]['qty']:.0f}/进{pur_by_goods[g]['qty']:.0f}，差{d:.0f}）" for g,d in top_diff]
+            inv_match_findings.append({
+                "type": "进销数量严重偏差", "level": "中风险", "score": 6,
+                "detail": f"{len(big_diff)}类商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
+                "category": "进销存匹配",
+            })
+        
+        # 总额概括
+        sale_total = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
+        pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+        inv_match_findings.insert(0, {
+            "type": "进销存虚拟匹配概览", "level": "低风险", "score": 2,
+            "detail": f"基于{len(sal_invs)}张销项发票×{len(pur_invs)}张进项发票构建虚拟进销存。销项总额{sale_total:,.0f}元，进项总额{pur_total:,.0f}元。货物品类：销{len(sale_by_goods)}种/进{len(pur_by_goods)}种。",
+            "category": "进销存匹配",
+        })
+    
+    if inv_match_findings:
+        pipeline_log.append(f"虚拟进销存分析: {len(inv_match_findings)}项发现")
+    # ═══════════════════════════════════════════════════
+    
     # ═══ 数据充分性守卫：全量解析失败时拒绝生成报告 ═══
     total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
     # 统计识别为unknown的文件数
@@ -14595,6 +14676,7 @@ def _run_analyze(company_id, db):
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
     if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
     if invoices: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(invoices)})
+    if inv_match_findings: domain_results.append({"domain": "进销存匹配分析", "findings": inv_match_findings})
     # 无条件域加数据守卫：关键数据全空的域跳过，避免空数据触发误报
     _has_any_data = total_parsed > 0
     _has_inv_or_bank = len(invoices) > 0 or len(bank_txs) > 0
