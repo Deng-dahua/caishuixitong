@@ -1631,8 +1631,8 @@ function renderAuditReport() {
     + '</table>';
   
   // ── 一、稽查结论 ──
-  var topF = [];
-  r.domain_summary.forEach(function(dr){ if(dr.findings) dr.findings.forEach(function(f){f._d=dr.name;topF.push(f);}); });
+  // 使用方法论过滤后的all_findings，而非未过滤的domain_summary
+  var topF = r.all_findings || [];
   topF.sort(function(a,b){return(b.score||0)-(a.score||0);});
   var top3 = topF.filter(function(f){return (f.score||0)>=7;}).slice(0,3);
   
