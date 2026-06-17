@@ -14829,6 +14829,7 @@ def _run_analyze(company_id, db):
     # ═══════════════════════════════════════════════════
     # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
     # ═══════════════════════════════════════════════════
+    comprehensive = {}
     chain_execution = []  # 每条链的执行结果
     chain_findings = []   # 链驱动生成的新发现
     try:
@@ -15209,7 +15210,7 @@ def _run_analyze(company_id, db):
         domain_summary.append({"name": cat, "count": len(findings), "high": dh, "mid": dm, "findings": findings})
 
     # ── 综合报告增强数据：月度资金流 + 往来方TOP20 + 分级整改建议 ──
-    comprehensive = {}
+    comprehensive = comprehensive  # already defined above
     
     # 1. 月度资金流（银行流水按月汇总收入/支出/净额）
     if bank_txs:
