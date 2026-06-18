@@ -334,6 +334,24 @@ function renderTaxDocReport(r) {
     h += '</table>';
   }
 
+  // 销项客户明细
+  var xm = ii['销项客户明细'];
+  if (xm && xm.length) {
+    h += '<h3>销项客户明细 <span style="font-size:12px;color:#999">（共'+xm.length+'个购买方）</span></h3>';
+    h += '<table class="tbl2"><tr><th>购买方</th><th class="r">销售金额（元）</th></tr>';
+    xm.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
+    h += '</table>';
+  }
+
+  // 进项供应商明细
+  var jm = ii['进项供应商明细'];
+  if (jm && jm.length) {
+    h += '<h3>进项供应商明细 <span style="font-size:12px;color:#999">（共'+jm.length+'个供应商）</span></h3>';
+    h += '<table class="tbl2"><tr><th>供应商</th><th class="r">采购金额（元）</th></tr>';
+    jm.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
+    h += '</table>';
+  }
+
   h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
   // section 3

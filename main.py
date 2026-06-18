@@ -15422,15 +15422,29 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         # 买方/卖方TOP
         from collections import Counter as C2
         buyers = C2(); sellers = C2()
+        buyer_amt = defaultdict(float); seller_amt = defaultdict(float)
         for inv in invoices:
             buyer = str(inv.get("buyer", "") or inv.get("购买方名称", "")).strip()
             seller = str(inv.get("seller", "") or inv.get("销方名称", "")).strip()
+            direction = str(inv.get("direction", "")).strip()
+            amt = float(inv.get("total", 0) or inv.get("amount", 0) or 0)
             if buyer and len(buyer) >= 2: buyers[buyer] += 1
             if seller and len(seller) >= 2: sellers[seller] += 1
+            # 按金额汇总：销项→买方的购买总额，进项→供应商的供货总额
+            if direction == "销项" and buyer and amt > 0:
+                buyer_amt[buyer] += amt
+            if direction == "进项" and seller and amt > 0:
+                seller_amt[seller] += amt
         if buyers:
             intel["发票"]["前5大购买方"] = [{"名称": n, "张数": c} for n, c in buyers.most_common(5)]
         if sellers:
             intel["发票"]["前5大供应商"] = [{"名称": n, "张数": c} for n, c in sellers.most_common(5)]
+        # 销项客户明细（全部，按金额排序）
+        if buyer_amt:
+            intel["发票"]["销项客户明细"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(buyer_amt.items(), key=lambda x: -x[1])]
+        # 进项供应商明细（全部，按金额排序）
+        if seller_amt:
+            intel["发票"]["进项供应商明细"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(seller_amt.items(), key=lambda x: -x[1])]
     
     # ── 工资情报 ──
     if salaries:
