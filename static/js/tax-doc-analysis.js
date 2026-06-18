@@ -235,6 +235,22 @@ function renderTaxDocReport(r) {
   var te = r.target_entity || {};
   var allF = r.all_findings || [];
   allF.sort(function(a,b){return(b.score||0)-(a.score||0);});
+  // 确保资料完备度评估不被过滤器遗漏：从domain_summary补充
+  var hasCompleteness = false;
+  for (var fi = 0; fi < allF.length; fi++) { if (allF[fi].type && allF[fi].type.indexOf('资料完备度综合') >= 0) { hasCompleteness = true; break; } }
+  if (!hasCompleteness && r.domain_summary) {
+    for (var di = 0; di < r.domain_summary.length; di++) {
+      var ds = r.domain_summary[di];
+      if (ds.name && ds.name.indexOf('资料完备') >= 0 && ds.findings) {
+        for (var fj = 0; fj < ds.findings.length; fj++) {
+          if (ds.findings[fj].type && ds.findings[fj].type.indexOf('资料完备度综合') >= 0) {
+            allF.unshift(ds.findings[fj]); break;
+          }
+        }
+        break;
+      }
+    }
+  }
   var cc = (r.comprehensive||{});
   var mi = cc.material_intel || {};
   var bi = mi['银行流水'] || {};
