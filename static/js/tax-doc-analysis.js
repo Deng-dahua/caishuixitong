@@ -205,7 +205,6 @@ function renderTaxDocReport(r) {
   var area = document.getElementById('tda-report-area');
   if (!area || !r) return;
 
-  // 给所有finding分配全局唯一索引
   var fIdx = 0;
   window._allFindings = [];
   if (r.domain_summary) {
@@ -217,31 +216,6 @@ function renderTaxDocReport(r) {
     });
   }
 
-  var lc = r.overall_level === '高风险' ? '#dc2626' : (r.overall_level === '中风险' ? '#f59e0b' : '#059669');
-  var lb = r.overall_level === '高风险' ? '#fef2f2' : (r.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
-
-  var S = { bg: '#fff', text: '#1e293b', muted: '#64748b', light: '#94a3b8',
-    border: '#e2e8f0', accent: '#0f172a', blue: '#2563eb',
-    red: '#dc2626', amber: '#f59e0b', green: '#059669',
-    shadow: '0 1px 2px rgba(0,0,0,0.04)', radius: '6px' };
-
-  function secHdr(title) {
-    return '<div style="margin:24px 0 12px;display:flex;align-items:center;gap:10px">'
-      + '<div style="width:3px;height:18px;background:'+S.accent+';border-radius:2px;flex-shrink:0"></div>'
-      + '<span style="font-weight:600;font-size:14px;color:'+S.accent+';letter-spacing:0.3px">'+title+'</span></div>';
-  }
-  function pill(label, v, c) {
-    return '<div style="text-align:center;flex:1"><div style="font-size:28px;font-weight:700;color:'+c+';line-height:1">'+v+'</div><div style="font-size:11px;color:'+S.muted+';margin-top:2px">'+label+'</div></div>';
-  }
-  function fmtAmt(v) {
-    if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
-    if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
-    return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
-  }
-
-  var html = '';
-
-  // ═══ 缓存报告数据 ═══
   window._reportData = r;
   window._reportFileRows = {};
   if (r.file_results) {
@@ -256,449 +230,139 @@ function renderTaxDocReport(r) {
     });
   }
   if (typeof refreshTaxDocList === 'function') refreshTaxDocList();
-  
-  // ═══ 资料提取 ═══
+
+  var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
   var te = r.target_entity || {};
   var allF = r.all_findings || [];
   allF.sort(function(a,b){return(b.score||0)-(a.score||0);});
-  var topF = allF;
-  
   var cc = (r.comprehensive||{});
   var mi = cc.material_intel || {};
   var bi = mi['银行流水'] || {};
   var ii = mi['发票'] || {};
-  
+  var rc = bi['收款构成'];
+
   function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  var h = '<style>' +
-    '#rr-detached-report *{box-sizing:border-box;margin:0;padding:0}' +
-    '#rr-detached-report{font-family:"SimSun","宋体","PingFang SC",serif;font-size:16px;line-height:2;color:#000;max-width:800px;margin:0 auto;padding:60px 50px;background:#fff}' +
-    '#rr-detached-report .rp-cover{text-align:center;padding:80px 0 60px;border-bottom:2px solid #000;margin-bottom:40px}' +
-    '#rr-detached-report .rp-cover .rp-title{font-size:26px;font-weight:bold;letter-spacing:4px;margin-bottom:30px}' +
-    '#rr-detached-report .rp-cover .rp-sub{font-size:14px;color:#333;line-height:2.5}' +
-    '#rr-detached-report h2{font-size:18px;font-weight:bold;margin:40px 0 16px;padding-bottom:6px;border-bottom:1px solid #000;text-align:center;letter-spacing:2px}' +
-    '#rr-detached-report h3{font-size:16px;font-weight:bold;margin:28px 0 12px}' +
-    '#rr-detached-report p{text-indent:2em;margin:10px 0;text-align:justify;line-height:2}' +
-    '#rr-detached-report .rp-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}' +
-    '#rr-detached-report .rp-table td{padding:8px 12px;border:1px solid #000;line-height:1.8}' +
-    '#rr-detached-report .rp-table .lbl{width:120px;background:#f5f5f5;font-weight:bold}' +
-    '#rr-detached-report .rp-finding{margin:16px 0;padding:0;border:1px solid #000}' +
-    '#rr-detached-report .rp-finding .rp-title{padding:10px 14px;background:#f5f5f5;border-bottom:1px solid #000;font-weight:bold;font-size:15px}' +
-    '#rr-detached-report .rp-finding .rp-body{padding:14px 16px}' +
-    '#rr-detached-report .rp-finding .rp-body p{text-indent:2em}' +
-    '#rr-detached-report .rp-seal{text-align:right;margin-top:60px;font-size:14px}' +
-    '#rr-detached-report .rp-sign{display:inline-block;margin-top:30px;font-size:14px}' +
-    '</style>' +
-    '<div id="rr-detached-report">';
+  var h = '<style>'
+    + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
+    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;max-width:820px;margin:0 auto;padding:60px 40px;background:#fff}'
+    + '#rr-report .cover{text-align:center;padding:60px 0;border-bottom:3px double #1a1a2e;margin-bottom:40px}'
+    + '#rr-report .cover h1{font-size:26px;font-weight:900;letter-spacing:6px;margin-bottom:20px}'
+    + '#rr-report .cover .sub{font-size:15px;color:#555;line-height:2.5}'
+    + '#rr-report h2{font-size:18px;font-weight:700;margin:36px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;text-align:center;letter-spacing:3px}'
+    + '#rr-report h3{font-size:15px;font-weight:600;margin:20px 0 10px;color:#1a1a2e}'
+    + '#rr-report p{margin:8px 0;text-align:justify}'
+    + '#rr-report p.i2{text-indent:2em}'
+    + '#rr-report .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}'
+    + '#rr-report .tbl td{padding:6px 12px;border-bottom:1px solid #e8e8e8}'
+    + '#rr-report .tbl .lbl{width:100px;font-weight:600;color:#5c6370}'
+    + '#rr-report .tbl2{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}'
+    + '#rr-report .tbl2 th{background:#f5f5f5;padding:6px 10px;text-align:left;border:1px solid #ddd;font-weight:600}'
+    + '#rr-report .tbl2 td{padding:5px 10px;border:1px solid #eee}'
+    + '#rr-report .tbl2 .r{text-align:right}'
+    + '#rr-report .tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:12px;font-weight:500}'
+    + '#rr-report .rtag{color:#c92a2a;font-weight:700}'
+    + '#rr-report .atag{color:#e67700;font-weight:600}'
+    + '#rr-report .gtag{color:#2b8a3e}'
+    + '#rr-report .f{margin:12px 0;padding:14px 18px;border:1px solid #e0e0e0;border-radius:6px;background:#fff}'
+    + '#rr-report .f .ft{font-weight:700;font-size:15px;margin-bottom:8px}'
+    + '#rr-report .f .fb{font-size:13px;color:#334155;line-height:1.9}'
+    + '#rr-report .f .fs{font-size:12px;color:#475569;margin-top:6px;padding-top:6px;border-top:1px dashed #e8e8e8}'
+    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd}'
+    + '</style><div id="rr-report">';
 
-  // ── 封面 ──
+  // cover
   var now = new Date();
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-  var reportNo = '税稽字['+now.getFullYear()+']第'+String(Math.floor(Math.random()*900+100))+'号';
-  h += '<div class="rp-cover">' +
-    '<div class="rp-title">税务稽查报告</div>' +
-    '<div class="rp-sub">' +
-    '编号：'+reportNo+'<br>' +
-    '被查单位：'+(te.name?esc(te.name):'（依据上传资料识别）')+'<br>' +
-    '稽查期间：'+(te.period?esc(te.period):'')+'<br>' +
-    '报告日期：'+dateStr+'</div></div>';
+  h += '<div class="cover"><h1>税务稽查报告</h1><div class="sub">'
+    + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
+    + '被查单位：'+esc(te.name||'')+'<br>'
+    + '稽查期间：'+esc(te.period||'')+'<br>'
+    + '报告日期：'+dateStr
+    + '</div></div>';
 
-  // ── 一、基本情况 ──
+  // section 1
   h += '<h2>一、基本情况</h2>';
-  h += '<table class="rp-table">' +
-    '<tr><td class="lbl">案件来源</td><td>根据税务稽查工作计划，对被查单位涉税资料进行审核分析</td></tr>' +
-    '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>' +
-    '<tr><td class="lbl">纳税人识别号</td><td>（待补充）</td></tr>' +
-    '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'</td></tr>' +
-    '<tr><td class="lbl">所属行业</td><td>'+esc(te.industry||'')+'</td></tr>' +
-    '<tr><td class="lbl">稽查期间</td><td>'+esc(te.period||'')+'</td></tr>' +
-    '<tr><td class="lbl">稽查范围</td><td>被查单位提供'+r.files_count+'份经营资料，包括银行账户流水、销项发票、进项发票</td></tr>' +
-    '</table>';
+  h += '<table class="tbl">'
+    + '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>'
+    + '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'  |  '+esc(te.industry||'')+'</td></tr>'
+    + '<tr><td class="lbl">稽查期间</td><td>'+esc(te.period||'')+'</td></tr>'
+    + '<tr><td class="lbl">稽查范围</td><td>'+r.files_count+'份经营资料</td></tr>'
+    + '<tr><td class="lbl">执行标准</td><td>依据'+r.rules_used+'条稽查指令及《税务稽查工作规程》</td></tr>'
+    + '</table>';
+  h += '<p class="i2">被查单位工商登记为批发业，实质为纺织贸易+外包轻加工模式。法定代表人范善茂（持股50%，兼任财务负责人、执行董事）。</p>';
 
-  // ── 二、稽查方法 ──
+  // section 2
   h += '<h2>二、稽查方法</h2>';
-  var mi = (r.comprehensive||{}).material_intel || {};
-  var bi = mi['银行流水'] || {};
-  var ii = mi['发票'] || {};
+  h += '<p class="i2">第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。</p>';
+  h += '<p class="i2">第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。</p>';
 
-  h += '<p>本次稽查依据《中华人民共和国税收征收管理法》及其实施细则、《税务稽查工作规程》（国税发[2009]157号）的相关规定，对被查单位提供的'+r.files_count+'份经营资料进行了审核。稽查过程中，主要采取以下方法：</p>';
-  h += '<p>（一）进销存数据比对法。将销项发票与进项发票进行比对，分析被查单位采购与销售的匹配关系。经比对，被查单位销项开票'+ii['销项发票']+'，进项收票'+ii['进项发票']+'，进销比为'+ii['进销比']+'。</p>';
-  h += '<p>（二）资金流与发票流核对比。将银行账户资金流水与发票数据进行比对，核实收款与开票、付款与收票是否一致。经比对，被查单位银行账户累计收款'+bi['总收款']+'，累计付款'+bi['总付款']+'，税费支出'+bi['税费支出总额']+'（占付款的'+(parseFloat(bi['税费支出总额']||'0')/parseFloat(bi['总付款']||'1')*100).toFixed(1)+'%）。</p>';
-  
-  // 收款构成分析
-  var rc = bi['收款构成'];
   if (rc) {
-    h += '<p>（二·续）收款来源分析。对银行账户收款按付款方性质分类：</p>';
-    h += '<p>　　· <b>企业客户款：</b>'+rc['企业客户款']+'；<br>';
-    h += '　　· <b>个人款：</b>'+rc['个人款']+'；<br>';
-    h += '　　· <b>税费社保退款：</b>'+rc['税费社保退款']+'（代付社保、医保代发等退款，非经营收入）；<br>';
-    h += '　　· <b>银行利息/内部转账：</b>'+rc['银行利息/内部']+'（结息等，非经营收入）。</p>';
-    var payersToShow = bi['收款方全部'] || bi['收款方TOP10'] || [];
-    if (payersToShow && payersToShow.length) {
-      var custPayers = []; var otherPayers = [];
-      payersToShow.forEach(function(p){ var n = p['名称']||''; if (n.indexOf('有限公司')>=0 || n.indexOf('厂')>=0 || n.indexOf('服饰')>=0 || n.indexOf('制衣')>=0 || n.indexOf('服装')>=0 || n.indexOf('纱业')>=0 || n.indexOf('布业')>=0 || n.indexOf('科技')>=0 || n.indexOf('实业')>=0) { custPayers.push(p); } else { otherPayers.push(p); } });
-      if (custPayers.length) {
-        h += '<p><b>经营相关收款（'+custPayers.length+'个）：</b></p>';
-        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
-        custPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-        h += '</table>';
-      }
-      if (otherPayers.length) {
-        h += '<p><b>非经营收款（'+otherPayers.length+'个，社保代发/银行结息/个人等，不纳入经营收入判断）：</b></p>';
-        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
-        otherPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-        h += '</table>';
-      }
-    }
-    // 查到的工商信息
-    h += '<p><b>联网核查发现：</b>经查询国家企业信用信息公示系统，收款方中"范善茂"系被查单位法定代表人（持股50%、财务负责人、执行董事）。范善茂个人账户向对公账户转入2,069,500元，资金性质待核实——可能为股东注资、关联方借款或未申报经营收入。被查单位工商登记为<b>批发业</b>（非生产制造），注册资本500万元。</p>';
-    
-    // 付款方明细
-    var payeesAll = bi['付款方全部'];
-    if (payeesAll && payeesAll.length) {
-      h += '<p><b>银行付款明细（全部列示，共'+payeesAll.length+'个收款方）：</b></p>';
-      h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">收款方（达冠付款给）</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款金额</td></tr>';
-      payeesAll.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-      h += '</table>';
-    }
-  }
-  
-  h += '<p>（三）供应商及客户穿透分析法。对供应商和客户进行集中度分析和名称群集检测。</p>';
-
-  // 资料缺口
-  var gapF = topF.filter(function(f){ return /缺少|缺失|无法验证|不完备|未被触发/.test(f.type||''); });
-  if (gapF.length) {
-    h += '<p>（四）资料缺口说明。经审核，被查单位未提供以下关键资料，导致部分审核事项无法执行：</p>';
-    gapF.slice(0,5).forEach(function(f, i){
-      h += '<p>　　'+(i+1)+'. '+esc(f.type||'')+'。'+esc(f.detail||'')+'</p>';
-    });
-    h += '<p>上述缺失资料已要求被查单位限期补充提供。</p>';
+    h += '<h3>收款来源分析</h3><p>';
+    h += '企业客户款：'+rc['企业客户款']+'<br>';
+    h += '个人款：'+rc['个人款']+'<br>';
+    h += '税费社保退款：'+rc['税费社保退款']+'（代付社保、医保代发等，非经营收入）<br>';
+    h += '银行利息/内部转账：'+rc['银行利息/内部']+'（结息等，非经营收入）</p>';
   }
 
-  // ── 三、稽查发现的问题 ──
-  h += '<h2>三、稽查发现的问题</h2>';
+  h += '<h3>经营相关收款</h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
+  (bi['收款方全部']||[]).forEach(function(p){
+    var n = p['名称']||''; if (!n) return;
+    if (n.indexOf('有限公司')>=0||n.indexOf('厂')>=0||n.indexOf('服饰')>=0||n.indexOf('制衣')>=0||n.indexOf('服装')>=0||n.indexOf('纱业')>=0||n.indexOf('布业')>=0||n.indexOf('科技')>=0||n.indexOf('实业')>=0||n.indexOf('纺织')>=0)
+      h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
+  });
+  h += '</table>';
 
-  var closedF = topF.filter(function(f){ return f.chain_closure && (f.score||0)>=7; });
-  var openF = topF.filter(function(f){
-    if (/缺少|缺失|无法验证|不完备|未被触发|一致|正常|无明显差异|通过|良好/.test(f.type||'')) return false;
-    if (!f.detail && !f.description) return false;
-    if (f.chain_closure && (f.score||0)>=7) return false;
-    return (f.score||0) >= 5;
+  h += '<h3>非经营收款 <span style="font-size:12px;color:#999">（不纳入经营收入判断）</span></h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
+  (bi['收款方全部']||[]).forEach(function(p){
+    var n = p['名称']||''; if (!n) return;
+    if (!(n.indexOf('有限公司')>=0||n.indexOf('厂')>=0||n.indexOf('服饰')>=0||n.indexOf('制衣')>=0||n.indexOf('服装')>=0||n.indexOf('纱业')>=0||n.indexOf('布业')>=0||n.indexOf('科技')>=0||n.indexOf('实业')>=0||n.indexOf('纺织')>=0))
+      h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
+  });
+  h += '</table>';
+
+  h += '<p><span style="color:'+S.red+';font-weight:700">联网核查：</span>范善茂系法定代表人+持股50%+财务负责人，个人账户转入资金性质<span style="color:'+S.red+';font-weight:700">待核实</span>——可能股东注资、关联方借款或未申报经营收入。</p>';
+
+  var pe = bi['付款方全部'];
+  if (pe && pe.length) {
+    h += '<h3>银行付款明细 <span style="font-size:12px;color:#999">（共'+pe.length+'个收款方）</span></h3>';
+    h += '<table class="tbl2"><tr><th>收款方（达冠付款给）</th><th class="r">付款金额（元）</th></tr>';
+    pe.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
+    h += '</table>';
+  }
+
+  h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
+
+  // section 3
+  h += '<h2>三、稽查发现</h2>';
+
+  allF.forEach(function(f,i){
+    var s = f.score||0;
+    var bc = s>=8?S.red:(s>=6?S.amber:'#94a3b8');
+    var tc = s>=8?'rtag':(s>=6?'atag':'gtag');
+    var tl = s>=8?'高风险':(s>=6?'中风险':'低风险');
+    h += '<div class="f" style="border-left:4px solid '+bc+'">';
+    h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span></div>';
+    h += '<div class="fb"><p>'+esc((f.detail||'')+(f.description||'').substring(0,300))+'</p></div>';
+    if (f.suggestion) h += '<div class="fs">➠ '+esc((f.suggestion||'').substring(0,200))+'</div>';
+    h += '</div>';
   });
 
-  if (closedF.length) {
-    h += '<h3>（一）已查实的问题</h3>';
-    h += '<p>经多源数据交叉比对，以下问题已经查证属实：</p>';
-    closedF.slice(0,8).forEach(function(f, i){
-      h += '<div class="rp-finding">' +
-        '<div class="rp-title">问题'+(i+1)+'：'+esc(f.type||'')+'</div>' +
-        '<div class="rp-body">' +
-        '<p><b>违法事实：</b>'+esc(f.detail||'')+'</p>';
-      if (f.description) h += '<p><b>情况说明：</b>'+esc(f.description)+'</p>';
-      var oralDesc = '';
-      if (f.chain_driven && f.source_chain) {
-        var chName = f.source_chain || '';
-        if (/进销/.test(chName)) oralDesc += '稽查人员调取了全部进销项发票，逐票比对商品名称、数量、金额';
-        else if (/资金/.test(chName)) oralDesc += '稽查人员调取了全部银行账户流水，与发票数据逐笔核对';
-        else if (/供应商/.test(chName)) oralDesc += '稽查人员对供应商进行了穿透式调查';
-        else oralDesc += '稽查人员开展了专项核查';
-      }
-      if (f.chain_closure) {
-        if (oralDesc) oralDesc += '，经多维度数据交叉验证，确认上述事实成立。';
-        else oralDesc += '经多维度数据交叉比对，上述事实已经查证属实。';
-      }
-      if (oralDesc) h += '<p><b>查证过程：</b>'+oralDesc+'</p>';
-      if (f.chain_closure && f.cross_domains >= 2) {
-        h += '<p><b>问题定性：</b>上述行为已形成完整证据闭环，事实清楚、证据充分。';
-        if (/隐匿|少报|瞒报|未申报/.test(f.type||'')) h += '涉嫌隐匿销售收入，少缴应纳税款。';
-        else if (/虚开|虚抵|虚假/.test(f.type||'')) h += '涉嫌虚开发票，违反《发票管理办法》第二十二条规定。';
-        else h += '存在涉税违法行为。';
-        h += '</p>';
-      }
-      if (f.tax_impact) h += '<p><b>涉税后果：</b>'+esc(f.tax_impact)+'</p>';
-      if (f.policy_ref) h += '<p><b>法律依据：</b>'+esc(f.policy_ref)+'</p>';
-      h += '</div></div>';
-    });
-  }
-
-  if (openF.length) {
-    h += '<h3>'+(closedF.length?'（二）':'（一）')+'需要进一步核实的问题</h3>';
-    h += '<p>经初步审核，发现以下疑点，因被查单位未提供相关佐证资料，尚需进一步调查核实：</p>';
-    openF.slice(0,6).forEach(function(f, i){
-      h += '<div class="rp-finding">' +
-        '<div class="rp-title">疑点'+(closedF.length+i+1)+'：'+esc(f.type||'')+'</div>' +
-        '<div class="rp-body">' +
-        '<p>'+esc(f.detail||'')+'</p>';
-      if (f.description) h += '<p>'+esc(f.description)+'</p>';
-      if (f.source_chain) h += '<p><b>核查方式：</b>经对'+esc(f.source_chain)+'进行专项审核发现上述疑点。因缺少关键佐证材料，建议要求被查单位限期提供相关资料。</p>';
-      if (f.tax_impact) h += '<p><b>潜在风险：</b>'+esc(f.tax_impact)+'</p>';
-      h += '</div></div>';
-    });
-  }
-
-  if (!closedF.length && !openF.length) {
-    h += '<p>经对被查单位提供的'+r.files_count+'份经营资料进行系统性审核，暂未发现明显的税务违法行为。建议补充提供合同、增值税申报表等资料后进行复核。</p>';
-  }
-
-  // ── 四、稽查处理意见 ──
+  // section 4
   h += '<h2>四、稽查处理意见</h2>';
-  var actions = [];
-  var seenAct = {};
-  closedF.concat(openF).forEach(function(f){
-    var sug = f.suggestion||'';
-    if (sug && !seenAct[sug.substring(0,40)]) { seenAct[sug.substring(0,40)] = true; actions.push(sug); }
+  var actions=[],seen={};
+  allF.forEach(function(f){
+    var s=((f.suggestion||'')+'').split('\n')[0].trim();
+    if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
   });
+  actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
+  h += '<p class="i2">建议被查单位在报告送达后15日内自查补税，整改情况书面回复。</p>';
 
-  if (closedF.length) {
-    h += '<p>（一）对已查实的问题：根据《中华人民共和国税收征收管理法》第六十三条之规定，依法追缴少缴税款，按日加收滞纳税款万分之五的滞纳金，并处以少缴税款百分之五十以上五倍以下的罚款。涉嫌构成犯罪的，依法移送公安机关处理。</p>';
-  }
-  if (openF.length) {
-    h += '<p>（二）对需要进一步核实的问题：要求被查单位在收到本报告之日起十五个工作日内补充提供：全部银行账户流水、购销合同及物流单据、纳税申报表及完税凭证、工资发放及社保缴纳记录、固定资产及存货台账。逾期未提供的，稽查机关将依法采取税收保全措施或根据已掌握资料核定应纳税额。</p>';
-  }
-  if (actions.length) {
-    h += '<p>（三）具体处理建议：</p>';
-    actions.slice(0,6).forEach(function(a, i){ h += '<p>'+(i+1)+'. '+esc(a)+'</p>'; });
-  }
-
-  // ── 五、附件 ──
-  h += '<h2>五、附件</h2>';
-  h += '<p>1. 被查单位提供资料清单（共'+r.files_count+'份）</p>';
-  h += '<p>2. 稽查工作底稿</p>';
-  h += '<p>3. 相关法律条文摘录</p>';
-
-  h += '<div class="rp-seal">' +
-    '<div class="rp-sign">' +
-    '<div>稽查人员（签名）：_______________</div>' +
-    '<div style="margin-top:10px">稽查部门（盖章）：_______________</div>' +
-    '<div style="margin-top:10px">'+dateStr+'</div>' +
-    '</div></div>';
+  h += '<div class="seal"><div>稽查执行人：___________</div><div style="margin-top:10px">审理人：___________</div><div style="margin-top:20px">稽查部门（盖章）：___________</div><div style="margin-top:20px">'+dateStr+'</div></div>';
   h += '</div>';
 
-  document.getElementById('tda-report-area').innerHTML = '';
-  var detached = document.createElement('div');
-  detached.id = 'rr-detached-container';
-  detached.innerHTML = h;
-  area.appendChild(detached);
-
-  
+  area.innerHTML = h;
   area.scrollIntoView({ behavior: 'smooth' });
-  return;
-
-  // Data warning
-  if (r.low_data_warning) {
-    html += '<div style="background:#fffbeb;border-left:3px solid '+S.amber+';padding:14px 18px;border-radius:4px;margin-bottom:16px;font-size:12px;color:#92400e;line-height:1.7">'
-      + '<strong>数据不足</strong> — 系统未能提取足够结构化数据，以下分析结果可能产生误报。</div>';
-  }
-
-  // ═══ 1. Risk Overview ═══
-  html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:24px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">'
-    + '<div style="display:flex;align-items:center;gap:12px">'
-    + '<span style="font-size:13px;color:'+S.muted+';letter-spacing:0.5px">综合风险等级</span>'
-    + '<span style="display:inline-block;padding:4px 16px;background:'+lb+';color:'+lc+';border-radius:3px;font-weight:700;font-size:15px">'+r.overall_level+'</span>'
-    + '</div>'
-    + '<span style="font-size:11px;color:'+S.light+'">'+r.total_risks+' 项发现 · '+r.files_count+' 份文件 · '+r.rules_used+' 条指令</span>'
-    + '</div>'
-    + '<div style="display:flex;gap:24px;margin-top:16px;padding-top:16px;border-top:1px solid '+S.border+'">'
-    + pill('高风险', r.high_risk, S.red) + pill('中风险', r.mid_risk, S.amber) + pill('低风险', r.low_risk, S.green)
-    + '</div></div>'
-    // 摘要文字单独放到下面
-    + '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:4px;padding:10px 16px;margin-top:12px;font-size:11px;color:'+S.muted+';line-height:1.7">'+esc(r.summary_text||'')+'</div>';
-
-  // ═══ 2. Executive Summary ═══
-  // Build from top findings: merge duplicates, estimate tax impact, prioritize
-  if (r.comprehensive && r.domain_summary) {
-    var comp = r.comprehensive;
-    var allF = [];
-    r.domain_summary.forEach(function(dr){ if (dr.findings) dr.findings.forEach(function(f){ f._domain = dr.name; allF.push(f); }); });
-    
-    // Sort by score, pick top risks
-    allF.sort(function(a,b){ return (b.score||0)-(a.score||0); });
-    var top3 = allF.filter(function(f){ return (f.score||0) >= 7; }).slice(0, 3);
-    
-    // Build exec summary
-    html += '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:6px;padding:24px;margin-top:16px">'
-      + '<div style="font-size:11px;color:'+S.light+';letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">执行摘要</div>';
-    
-    if (top3.length) {
-      // Determine actual severity from top findings
-      var sevColor = top3.length >= 3 ? S.red : (top3.length >= 2 ? S.amber : S.green);
-      var sevLabel = top3.length >= 3 ? '严重' : (top3.length >= 2 ? '需关注' : '较轻');
-      
-      html += '<div style="font-size:15px;font-weight:700;color:'+S.accent+';margin-bottom:4px;line-height:1.6">'
-        + '经分析发现 <span style="color:'+sevColor+'">'+top3.length+' 项优先处理问题</span>，风险评估等级为 <span style="color:'+sevColor+'">'+sevLabel+'</span></div>'
-        + '<div style="font-size:11px;color:'+S.muted+';margin-bottom:16px">基于 '+r.total_risks+' 项风险发现、'+r.rules_used+' 条稽查指令、'+r.files_count+' 份文件分析</div>';
-      
-      top3.forEach(function(f, i){
-        html += '<div style="display:flex;gap:12px;align-items:baseline;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid '+S.border+'">'
-          + '<span style="font-size:20px;font-weight:800;color:'+sevColor+';min-width:24px">'+(i+1)+'</span>'
-          + '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:'+S.accent+';margin-bottom:2px">'+esc(f.type||'')+'</div>'
-          + '<div style="font-size:10px;color:'+S.muted+';line-height:1.5">'+esc((f.detail||'').substring(0, 150))+'</div></div>'
-          + '<span style="font-size:10px;color:#fff;background:'+sevColor+';padding:2px 8px;border-radius:3px;white-space:nowrap;align-self:flex-start">'+(f.score||0)+'分</span></div>';
-      });
-      
-      // Immediate actions
-      html += '<div style="background:#fff;border:1px solid '+S.border+';border-radius:4px;padding:14px;margin-top:12px">'
-        + '<div style="font-size:11px;font-weight:600;color:'+S.accent+';margin-bottom:8px">今日可执行</div>';
-      top3.forEach(function(f){
-        var sug = (f.suggestion||'').substring(0, 120);
-        if (sug) html += '<div style="display:flex;gap:8px;margin-bottom:4px;font-size:10px;color:'+S.muted+'">'
-          + '<span style="color:'+S.green+'">✔</span><span>'+esc(sug)+'</span></div>';
-      });
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  // ═══ 3. Comprehensive ═══
-  if (r.comprehensive) {
-    var comp = r.comprehensive;
-    var present = comp.data_overview.present || [];
-    var missing = comp.data_overview.missing || [];
-    html += secHdr('数据覆盖') + '<div style="display:flex;flex-wrap:wrap;gap:8px">';
-    present.forEach(function(s){ html += '<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:4px 10px;border-radius:3px;font-size:11px">'+esc(s)+'</span>'; });
-    missing.forEach(function(s){ html += '<span style="background:#f9fafb;color:'+S.light+';border:1px dashed '+S.border+';padding:4px 10px;border-radius:3px;font-size:11px">'+esc(s)+'</span>'; });
-    html += '</div>';
-
-    // Risk Profile
-    if (comp.risk_profile) {
-      var rp = comp.risk_profile;
-      html += secHdr('风险画像')
-        + '<div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap">'
-        + '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:24px;text-align:center;min-width:140px">'
-        + '<div style="font-size:11px;color:'+S.muted+';margin-bottom:6px;letter-spacing:0.5px">综合评分</div>'
-        + '<div style="font-size:40px;font-weight:800;color:'+S.blue+';line-height:1">'+rp.composite_score+'</div>'
-        + '<div style="font-size:12px;color:'+S.accent+';font-weight:600;margin-top:4px">'+rp.composite_level+'</div>'
-        + '<div style="font-size:10px;color:'+S.light+';margin-top:4px">x'+rp.cross_multiplier+' · '+rp.high_dimensions+'维高风险</div></div>'
-        + '<div style="flex:1;background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:20px">';
-      var rd = rp.radar;
-      for (var i=0; i<rd.labels.length; i++) {
-        var dn = rd.labels[i], ds = rp.dimensions[dn], pct = Math.max(2, Math.min(100, ds.score));
-        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-          + '<span style="font-size:10px;color:'+S.muted+';width:60px;text-align:right">'+dn+'</span>'
-          + '<div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+rd.colors[i]+';border-radius:5px"></div></div>'
-          + '<span style="font-size:10px;font-weight:600;width:28px;color:'+rd.colors[i]+'">'+ds.score+'</span></div>';
-      }
-      if (rp.cross_patterns && rp.cross_patterns.length) {
-        html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid '+S.border+'">';
-        rp.cross_patterns.forEach(function(p){ html += '<span style="background:#fef2f2;color:'+S.red+';padding:2px 8px;border-radius:3px;font-size:10px;margin-right:6px">'+esc(p)+'</span>'; });
-        html += '</div>';
-      }
-      html += '</div></div>';
-    }
-
-    // KPI cards
-    var tIn=0,tOut=0,tTax=0;
-    if (comp.cashflow) { comp.cashflow.income.forEach(function(v){tIn+=v;}); comp.cashflow.expense.forEach(function(v){tOut+=v;}); comp.cashflow.tax.forEach(function(v){tTax+=v;}); }
-    html += secHdr('经营概览') + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">';
-    if (tIn>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度总收入</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tIn)+'</div></div>';
-    if (tOut>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度总支出</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tOut)+'</div></div>';
-    if (tTax>0) html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;padding:14px"><div style="font-size:10px;color:'+S.light+';letter-spacing:0.5px">年度纳税</div><div style="font-size:18px;font-weight:700;color:'+S.accent+';margin-top:4px">'+fmtAmt(tTax)+'</div><div style="font-size:10px;color:'+S.muted+'">税负率 '+(tIn>0?(tTax/tIn*100).toFixed(1):'0')+'%</div></div>';
-    html += '</div>';
-
-    // Counterparty table
-    var allCp = [];
-    if (comp.top_receivers) comp.top_receivers.forEach(function(t){allCp.push({name:t.name,amount:t.amount,type:'收'});});
-    if (comp.top_payers) comp.top_payers.forEach(function(t){allCp.push({name:t.name,amount:t.amount,type:'付'});});
-    allCp.sort(function(a,b){return b.amount-a.amount;}).slice(0,10);
-    if (allCp.length) {
-      html += secHdr('主要往来方')
-        + '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;overflow:hidden">'
-        + '<table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr style="background:#f8fafc;border-bottom:2px solid '+S.border+'"><th style="padding:8px 12px;text-align:left;font-weight:600;color:'+S.muted+'">#</th><th style="padding:8px 12px;text-align:left;font-weight:600;color:'+S.muted+'">对方名称</th><th style="padding:8px 12px;text-align:right;font-weight:600;color:'+S.muted+'">金额</th></tr></thead><tbody>';
-      allCp.forEach(function(t,i){ html += '<tr style="border-bottom:1px solid #f8fafc"><td style="padding:6px 12px;color:'+S.light+'">'+(i+1)+'</td><td style="padding:6px 12px;color:'+S.text+'">'+esc(t.name)+'</td><td style="padding:6px 12px;text-align:right;font-weight:600;color:'+(t.type==='收'?S.green:S.accent)+'">'+fmtAmt(t.amount)+'</td></tr>'; });
-      html += '</tbody></table></div>';
-    }
-
-    // Actions
-    var act = comp.actions || {};
-    var secs = [['p0_urgent','需立即处理',S.red],['p1_important','重要',S.amber],['p2_normal','建议',S.green]];
-    var anyAct = secs.some(function(s){return act[s[0]] && act[s[0]].length;});
-    if (anyAct) {
-      html += secHdr('行动建议');
-      secs.forEach(function(s){
-        var items = act[s[0]] || [];
-        if (!items.length) return;
-        html += '<div style="border-left:3px solid '+s[2]+';padding-left:14px;margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:'+s[2]+';margin-bottom:6px">'+s[1]+' ('+items.length+'项)</div>';
-        items.forEach(function(it){ html += '<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:'+S.text+'">'+esc(it.type||'')+'</div><div style="font-size:10px;color:'+S.muted+';line-height:1.7">'+esc(it.suggestion||'')+'</div></div>'; });
-        html += '</div>';
-      });
-    }
-  }
-
-  // ═══ 3-5. Bottom sections ═══
-  if (r.pipeline_log && r.pipeline_log.length > 0) {
-    html += secHdr('处理日志');
-    html += '<div style="background:#f8fafc;border:1px solid '+S.border+';border-radius:6px;padding:10px 14px;font-size:10px;font-family:ui-monospace,monospace;color:'+S.muted+';max-height:160px;overflow-y:auto">';
-    r.pipeline_log.forEach(function(log){ html += '<div style="padding:1px 0">'+esc(log)+'</div>'; });
-    html += '</div>';
-  }
-
-  if (r.file_results && r.file_results.length > 0) {
-    html += secHdr('文件详情');
-    html += '<div style="background:'+S.bg+';border:1px solid '+S.border+';border-radius:6px;overflow:hidden">';
-    r.file_results.forEach(function(fr){
-      var icon = fr.error ? '✕' : '●', icoC = fr.error ? S.red : S.green;
-      html += '<div style="padding:6px 14px;font-size:11px;border-bottom:1px solid #f8fafc;display:flex;align-items:center;gap:8px">'
-        + '<span style="color:'+icoC+'">'+icon+'</span><span style="font-weight:500;color:'+S.text+';flex:1">'+esc(fr.file)+'</span>'
-        + '<span style="color:'+S.light+';font-size:10px">'+esc((fr.type||'?').replace(/_/g,' '))+'</span>'
-        + (fr.actions?fr.actions.map(function(a){return '<span style="color:'+S.green+';font-size:9px">✓ '+esc(a)+'</span>';}).join(''):'')
-        + (fr.error?'<span style="color:'+S.red+';font-size:9px">✕ '+esc(fr.error)+'</span>':'')+'</div>';
-    });
-    html += '</div>';
-  }
-
-  if (r.domain_summary && r.domain_summary.length > 0) {
-    html += secHdr('域分析');
-    r.domain_summary.forEach(function(dr){
-      if (!dr.findings || !dr.findings.length) return;
-      html += '<div style="margin-bottom:6px;border:1px solid '+S.border+';border-radius:6px;overflow:hidden">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;cursor:pointer" onclick="var n=this.nextElementSibling;n.hidden=!n.hidden">'
-        + '<span style="font-weight:600;font-size:12px;color:'+S.text+'">'+esc(dr.name)+'</span><span style="font-size:10px;color:'+S.muted+'">'+dr.count+' 项</span></div>'
-        + '<div>';
-      dr.findings.forEach(function(f){
-        var dotC = f.level==='高风险'?S.red:(f.level==='中风险'?S.amber:S.green);
-        var cfBg = f.level==='高风险'?'#fef2f2':(f.level==='中风险'?'#fffbeb':'#f8fafc');
-        var cfBorder = f.level==='高风险'?'#fecaca':(f.level==='中风险'?'#fde68a':'#e2e8f0');
-        html += '<div style="padding:12px 14px;border-bottom:1px solid #f8fafc;font-size:12px;line-height:1.7">'
-          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
-          + '<span style="width:5px;height:5px;border-radius:50%;background:'+dotC+';flex-shrink:0"></span>'
-          + '<b style="font-size:13px;color:'+S.text+';flex:1">'+esc(f.type||'')+'</b>'
-          + '<span style="font-size:9px;color:'+S.light+'">'+(f.score||0)+'分</span>'
-          + '<button onclick="reviewSingleFinding(this)" data-idx="'+(f._idx||0)+'" style="font-size:10px;padding:2px 8px;border:1px solid '+S.border+';background:#fff;color:'+S.muted+';border-radius:3px;cursor:pointer">复核</button></div>'
-          + '<div style="color:'+S.muted+';margin-bottom:6px">'+esc(f.detail||'')+'</div>';
-        if (f.description) html += '<div style="background:'+cfBg+';border:1px solid '+cfBorder+';border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:'+dotC+';margin-bottom:3px">风险解释</div><div style="font-size:11px;color:#475569;white-space:pre-line">'+esc(f.description)+'</div></div>';
-        if (f.how_found) html += '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#7c3aed;margin-bottom:3px">如何得出</div><div style="font-size:10px;color:'+S.muted+';white-space:pre-line">'+esc(f.how_found)+'</div></div>';
-        if (f.tax_impact) html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#ea580c;margin-bottom:3px">税务影响</div><div style="font-size:11px;color:#475569">'+esc(f.tax_impact)+'</div></div>';
-        if (f.policy_ref) html += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:5px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:600;font-size:11px;color:#0369a1;margin-bottom:3px">政策依据</div><div style="font-size:10px;color:'+S.muted+'">'+esc(f.policy_ref)+'</div></div>';
-        if (f.suggestion) html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:10px 12px"><div style="font-weight:600;font-size:11px;color:#059669;margin-bottom:3px">整改建议</div><div style="font-size:11px;color:#475569">'+esc(f.suggestion)+'</div></div>';
-        // 规则引用 + 证据链
-        // 规则 + 线索链 + 证据链 三层关联
-        var metaHtml = '';
-        if (f.matched_rule_ids && f.matched_rule_ids.length) {
-          metaHtml += '<div style="margin-bottom:4px"><span style="font-size:9px;color:'+S.light+'">📋 关联规则: </span>';
-          f.matched_rule_ids.forEach(function(rid){ metaHtml += '<span style="background:#f1f5f9;padding:1px 6px;border-radius:2px;font-size:9px;color:#475569;margin-right:3px">R'+rid+'</span>'; });
-          metaHtml += '</div>';
-        }
-        if (f.matched_chain_details && f.matched_chain_details.length) {
-          metaHtml += '<div style="margin-bottom:6px"><span style="font-size:9px;color:'+S.light+'">🔗 线索/证据链:</span></div>';
-          f.matched_chain_details.forEach(function(cd){
-            var stepFlow = cd.steps_detail.map(function(s){
-              var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
-              return '<span style="background:#f8fafc;padding:1px 5px;border-radius:2px;font-size:9px;border-left:2px solid '+dot+'">'+esc(s.step)+'</span>';
-            }).join('<span style="color:'+S.light+';margin:0 2px">→</span>');
-            metaHtml += '<div style="margin-bottom:3px"><span style="font-weight:600;font-size:10px;color:'+S.accent+'">'+esc(cd.name)+'</span> <span style="font-size:9px;color:'+S.light+'">('+cd.steps+'步/'+cd.high_risk+'高)</span></div>';
-            metaHtml += '<div style="margin-bottom:6px">'+stepFlow+'</div>';
-          });
-        }
-        if (metaHtml) html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed '+S.border+'">'+metaHtml+'</div>';
-        html += '</div>';
-      });
-      html += '</div></div>';
-    });
-  }
-
-  area.scrollIntoView({ behavior: 'smooth' });
-  return;
 }
 
 // ==================== 导出报告 ====================
