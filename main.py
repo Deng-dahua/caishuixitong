@@ -12941,19 +12941,48 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         })
 
     # ═══ 资料完备度综合评估 ═══
-    missing_count = 8 - len(doc_types_present)
+    # 缺失类别及说明
+    missing_categories = []
+    if "contract" not in doc_types_present:
+        missing_categories.append("合同文件（证明交易真实性，四流合一第一环）")
+    if "voucher" not in doc_types_present:
+        missing_categories.append("记账凭证（追溯账务处理过程，无凭证=核定征收）")
+    if "salary" not in doc_types_present:
+        missing_categories.append("工资表（验证工资费用真实性+个税代扣代缴）")
+    if "social_security" not in doc_types_present:
+        missing_categories.append("社保明细（核实用工合规性，金税四期人社税务数据联动）")
+    if "inventory" not in doc_types_present:
+        missing_categories.append("进销存台账（验证存货真实性+购销匹配）")
+    if "bank" not in doc_types_present:
+        missing_categories.append("银行流水（验证资金全链路，稽查第一调取对象）")
+    if "sales_invoice" not in doc_types_present:
+        missing_categories.append("销项发票（验证开票收入与申报收入匹配）")
+    if "purchase_invoice" not in doc_types_present:
+        missing_categories.append("进项发票（验证成本真实性+进项税额抵扣合法性）")
+    
+    missing_count = len(missing_categories)
     if missing_count > 0:
         total_score = min(3 + missing_count * 2, 10)
+        # 构建items列表，每条缺失类别一行
+        missing_items = []
+        for mc in missing_categories:
+            name, reason = mc.split("（", 1)
+            reason = reason.rstrip("）")
+            missing_items.append({"缺失资料": name, "缺失后果": reason})
+        
+        missing_detail = "、".join([mc.split("（")[0] for mc in missing_categories])
+        
         findings.append({
             "type": "资料完备度综合评估",
             "level": "高风险" if missing_count >= 3 else ("中风险" if missing_count >= 1 else "低风险"),
             "score": total_score,
-            "detail": f"已提交{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类。",
+            "detail": f"已提交{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类：{missing_detail}。",
             "description": f"本次分析提交了{len(present_names)}类资料，缺失{missing_count}类。每缺一类资料，稽查来的时候你就少一道防线。根据《税务稽查工作规程》，接到稽查通知后通常只有3-5天准备时间——有些资料你现在不整理好，到时候根本来不及凑。\n\n已提交的资料：{'、'.join(present_names)}。这些资料对应的分析域已经产生了风险发现，详见本报告各分析域。",
             "how_found": f"系统逐一检测8类稽查必查资料的提交状态。检测方法：银行流水→PDF文件、发票→Excel文件含销项/进项sheet、凭证→Excel文件含凭证sheet、工资→Excel文件含工资sheet、社保→Excel文件含社保sheet、存货→Excel文件含进销存sheet、合同→文件名含'合同'/'contract'。",
             "tax_impact": "稽查通知下达后，无法在限期内提供完整资料的→面临罚款（单位最高5万元）+ 税务机关按最不利方式核定应纳税额。每一类缺失的资料，都是在给稽查递刀子。",
             "policy_ref": "《税收征收管理法》第五十四条、第五十六条（资料提供义务及罚则）；《税务稽查工作规程》第二十二条（检查取证）。",
             "suggestion": f"立即补充缺失的{missing_count}类资料。按照金税四期稽查必查清单，企业应确保以下8类资料随时可调取、完整、规范：银行流水、销项发票、进项发票、记账凭证、工资表、社保明细、进销存台账、合同文件。",
+            "items": missing_items,
             "category": "域14 资料完备度"
         })
     else:

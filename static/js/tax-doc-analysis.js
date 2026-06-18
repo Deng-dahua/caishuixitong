@@ -365,6 +365,19 @@ function renderTaxDocReport(r) {
     h += '<div class="f" style="border-left:4px solid '+bc+'">';
     h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span></div>';
     h += '<div class="fb"><p>'+esc((f.detail||'')+(f.description||'').substring(0,300))+'</p></div>';
+    if (f.items && f.items.length > 0) {
+      var cols2 = Object.keys(f.items[0]);
+      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">缺失明细</div>';
+      h += '<table class="tbl2"><tr>';
+      cols2.forEach(function(c){ h += '<th>'+esc(c)+'</th>'; });
+      h += '</tr>';
+      f.items.forEach(function(row){
+        h += '<tr>';
+        cols2.forEach(function(c){ h += '<td>'+esc(row[c]||'')+'</td>'; });
+        h += '</tr>';
+      });
+      h += '</table></div>';
+    }
     if (f.suggestion) h += '<div class="fs">➠ '+esc((f.suggestion||'').substring(0,200))+'</div>';
     h += '</div>';
   });
