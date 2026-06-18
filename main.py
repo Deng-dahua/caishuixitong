@@ -11796,8 +11796,8 @@ def _parse_invoice_sheet(sheet, direction):
         header = _get_row_values(sheet, 1)
     cols = _find_cols_semantic(header, {
         "发票类型": "inv_type", "发票号码": "inv_no", "发票代码": "inv_code",
-        "购方名称": "buyer", "购方税号": "buyer_tax",
-        "销方名称": "seller", "销方税号": "seller_tax",
+        "购方名称": "buyer", "购方税号": "buyer_tax", "购买方名称": "buyer", "购买方纳税人识别号": "buyer_tax",
+        "销方名称": "seller", "销方税号": "seller_tax", "销售方名称": "seller", "销售方纳税人识别号": "seller_tax",
         "开票项目": "goods", "货物或应税劳务名称": "goods",
         "金额": "amount", "税额": "tax", "价税合计": "total",
         "业务类型": "biz_type", "税收编码": "tax_code", "税收分类编码": "tax_code",
