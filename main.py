@@ -15337,11 +15337,15 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 elif any(k in summary for k in ['费用','外收','短信','账户']): cp = "(银行费用)"
                 else: cp = "(未记录名称)"
             # 分类
-            if any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源','服饰']):
-                enterprise_pay[cp] += credit
-            elif any(k in cp for k in ['国家金库','税务局','ETS','社保','国库','税','财政']):
+            if any(k in cp for k in ['代付社保','医保代发','社保资金','社保','医保']):
                 tax_pay[cp] += credit
-            elif any(k in cp for k in ['银行','农行','清算','资金','批量','结息']):
+            elif any(k in cp for k in ['银行结息','结息','利息','批量']):
+                bank_internal[cp] += credit
+            elif any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源','服饰','进出口']):
+                enterprise_pay[cp] += credit
+            elif any(k in cp for k in ['国家金库','税务局','ETS','国库','税','财政','待报解']):
+                tax_pay[cp] += credit
+            elif any(k in cp for k in ['银行','农行','清算','资金','费用']):
                 bank_internal[cp] += credit
             else:
                 individual_pay[cp] += credit

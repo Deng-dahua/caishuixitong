@@ -752,16 +752,27 @@ function renderAuditReport() {
   // 收款构成分析
   var rc = bi['收款构成'];
   if (rc) {
-    h += '<p>（二·续）收款来源分析。对银行账户284笔收款按付款方性质分类：</p>';
+    h += '<p>（二·续）收款来源分析。对银行账户收款按付款方性质分类：</p>';
     h += '<p>　　· <b>企业客户款：</b>'+rc['企业客户款']+'；<br>';
     h += '　　· <b>个人款：</b>'+rc['个人款']+'；<br>';
-    h += '　　· <b>税费社保退款：</b>'+rc['税费社保退款']+'；<br>';
-    h += '　　· <b>银行利息/内部转账：</b>'+rc['银行利息/内部']+'。</p>';
+    h += '　　· <b>税费社保退款：</b>'+rc['税费社保退款']+'（代付社保、医保代发等退款，非经营收入）；<br>';
+    h += '　　· <b>银行利息/内部转账：</b>'+rc['银行利息/内部']+'（结息等，非经营收入）。</p>';
     var payersToShow = bi['收款方全部'] || bi['收款方TOP10'] || [];
     if (payersToShow && payersToShow.length) {
-      h += '<p>收款方明细（全部列示，共'+payersToShow.length+'个付款方）：</p><table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
-      payersToShow.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-      h += '</table>';
+      var custPayers = []; var otherPayers = [];
+      payersToShow.forEach(function(p){ var n = p['名称']||''; if (n.indexOf('有限公司')>=0 || n.indexOf('厂')>=0 || n.indexOf('服饰')>=0 || n.indexOf('制衣')>=0 || n.indexOf('服装')>=0 || n.indexOf('纱业')>=0 || n.indexOf('布业')>=0 || n.indexOf('科技')>=0 || n.indexOf('实业')>=0) { custPayers.push(p); } else { otherPayers.push(p); } });
+      if (custPayers.length) {
+        h += '<p><b>经营相关收款（'+custPayers.length+'个）：</b></p>';
+        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
+        custPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
+        h += '</table>';
+      }
+      if (otherPayers.length) {
+        h += '<p><b>非经营收款（'+otherPayers.length+'个，社保代发/银行结息/个人等，不纳入经营收入判断）：</b></p>';
+        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
+        otherPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
+        h += '</table>';
+      }
     }
     // 查到的工商信息
     h += '<p><b>联网核查发现：</b>经查询国家企业信用信息公示系统，收款方中"范善茂"系被查单位法定代表人（持股50%、财务负责人、执行董事）。范善茂个人账户向对公账户转入2,069,500元，资金性质待核实——可能为股东注资、关联方借款或未申报经营收入。被查单位工商登记为<b>批发业</b>（非生产制造），注册资本500万元。</p>';
