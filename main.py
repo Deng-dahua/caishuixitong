@@ -17995,6 +17995,17 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
     }
 
 
+@app.get("/api/health")
+def health_check():
+    """健康检查——返回当前运行的git commit版本，用于验证服务器是否运行最新代码"""
+    import subprocess
+    commit = "unknown"
+    try:
+        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0: commit = r.stdout.strip()
+    except: pass
+    return {"status": "ok", "commit": commit, "port": 8001}
+
 @app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
     """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
