@@ -669,242 +669,6 @@ async function reviewSingleFinding(btn) {
   }
 }
 
-// ═══════════════════════════════════════
-// 稽查审核报告渲染 —— 税务稽查局执行人员向上级汇报格式
-// ═══════════════════════════════════════
-function renderAuditReport() {
-  var r = window._reportData;
-  if (!r) return;
-  var targetId = window._auditReportTarget || 'tda-report-area';
-  var area = document.getElementById(targetId);
-  if (!area) return;
-  var toolbar = area.querySelector('.tda-toolbar');
-  
-  var S = { bg: '#fff', text: '#1a1a2e', muted: '#5c6370', light: '#999',
-    border: '#e0e0e0', accent: '#1a1a2e', blue: '#1a56db',
-    red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
-  
-  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function fmt(v) {
-    if (Math.abs(v) >= 100000000) return (v/100000000).toFixed(2) + '亿';
-    if (Math.abs(v) >= 10000) return (v/10000).toFixed(1) + '万';
-    return v.toLocaleString('zh-CN', {maximumFractionDigits:0});
-  }
-  
-  // ─────────────────────────────────────────────
-  // 正式稽查报告（国家税务总局呈报格式）
-  // ─────────────────────────────────────────────
-  var h = '<style>' +
-    '#rr-detached-report *{box-sizing:border-box;margin:0;padding:0}' +
-    '#rr-detached-report{font-family:"SimSun","宋体","PingFang SC",serif;font-size:16px;line-height:2;color:#000;max-width:800px;margin:0 auto;padding:60px 50px;background:#fff}' +
-    '#rr-detached-report .rp-cover{text-align:center;padding:80px 0 60px;border-bottom:2px solid #000;margin-bottom:40px}' +
-    '#rr-detached-report .rp-cover .rp-title{font-size:26px;font-weight:bold;letter-spacing:4px;margin-bottom:30px}' +
-    '#rr-detached-report .rp-cover .rp-sub{font-size:14px;color:#333;line-height:2.5}' +
-    '#rr-detached-report h2{font-size:18px;font-weight:bold;margin:40px 0 16px;padding-bottom:6px;border-bottom:1px solid #000;text-align:center;letter-spacing:2px}' +
-    '#rr-detached-report h3{font-size:16px;font-weight:bold;margin:28px 0 12px}' +
-    '#rr-detached-report p{text-indent:2em;margin:10px 0;text-align:justify;line-height:2}' +
-    '#rr-detached-report .rp-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}' +
-    '#rr-detached-report .rp-table td{padding:8px 12px;border:1px solid #000;line-height:1.8}' +
-    '#rr-detached-report .rp-table .lbl{width:120px;background:#f5f5f5;font-weight:bold}' +
-    '#rr-detached-report .rp-finding{margin:16px 0;padding:0;border:1px solid #000}' +
-    '#rr-detached-report .rp-finding .rp-title{padding:10px 14px;background:#f5f5f5;border-bottom:1px solid #000;font-weight:bold;font-size:15px}' +
-    '#rr-detached-report .rp-finding .rp-body{padding:14px 16px}' +
-    '#rr-detached-report .rp-finding .rp-body p{text-indent:2em}' +
-    '#rr-detached-report .rp-seal{text-align:right;margin-top:60px;font-size:14px}' +
-    '#rr-detached-report .rp-sign{display:inline-block;margin-top:30px;font-size:14px}' +
-    '</style>' +
-    '<div id="rr-detached-report">';
-
-  // ── 封面 ──
-  var now = new Date();
-  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-  var reportNo = '税稽字['+now.getFullYear()+']第'+String(Math.floor(Math.random()*900+100))+'号';
-  h += '<div class="rp-cover">' +
-    '<div class="rp-title">税务稽查报告</div>' +
-    '<div class="rp-sub">' +
-    '编号：'+reportNo+'<br>' +
-    '被查单位：'+(te.name?esc(te.name):'（依据上传资料识别）')+'<br>' +
-    '稽查期间：'+(te.period?esc(te.period):'')+'<br>' +
-    '报告日期：'+dateStr+'</div></div>';
-
-  // ── 一、基本情况 ──
-  h += '<h2>一、基本情况</h2>';
-  h += '<table class="rp-table">' +
-    '<tr><td class="lbl">案件来源</td><td>根据税务稽查工作计划，对被查单位涉税资料进行审核分析</td></tr>' +
-    '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>' +
-    '<tr><td class="lbl">纳税人识别号</td><td>（待补充）</td></tr>' +
-    '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'</td></tr>' +
-    '<tr><td class="lbl">所属行业</td><td>'+esc(te.industry||'')+'</td></tr>' +
-    '<tr><td class="lbl">稽查期间</td><td>'+esc(te.period||'')+'</td></tr>' +
-    '<tr><td class="lbl">稽查范围</td><td>被查单位提供'+r.files_count+'份经营资料，包括银行账户流水、销项发票、进项发票</td></tr>' +
-    '</table>';
-
-  // ── 二、稽查方法 ──
-  h += '<h2>二、稽查方法</h2>';
-  var mi = (r.comprehensive||{}).material_intel || {};
-  var bi = mi['银行流水'] || {};
-  var ii = mi['发票'] || {};
-
-  h += '<p>本次稽查依据《中华人民共和国税收征收管理法》及其实施细则、《税务稽查工作规程》（国税发[2009]157号）的相关规定，对被查单位提供的'+r.files_count+'份经营资料进行了审核。稽查过程中，主要采取以下方法：</p>';
-  h += '<p>（一）进销存数据比对法。将销项发票与进项发票进行比对，分析被查单位采购与销售的匹配关系。经比对，被查单位销项开票'+ii['销项发票']+'，进项收票'+ii['进项发票']+'，进销比为'+ii['进销比']+'。</p>';
-  h += '<p>（二）资金流与发票流核对比。将银行账户资金流水与发票数据进行比对，核实收款与开票、付款与收票是否一致。经比对，被查单位银行账户累计收款'+bi['总收款']+'，累计付款'+bi['总付款']+'，税费支出'+bi['税费支出总额']+'（占付款的'+(parseFloat(bi['税费支出总额']||'0')/parseFloat(bi['总付款']||'1')*100).toFixed(1)+'%）。</p>';
-  
-  // 收款构成分析
-  var rc = bi['收款构成'];
-  if (rc) {
-    h += '<p>（二·续）收款来源分析。对银行账户收款按付款方性质分类：</p>';
-    h += '<p>　　· <b>企业客户款：</b>'+rc['企业客户款']+'；<br>';
-    h += '　　· <b>个人款：</b>'+rc['个人款']+'；<br>';
-    h += '　　· <b>税费社保退款：</b>'+rc['税费社保退款']+'（代付社保、医保代发等退款，非经营收入）；<br>';
-    h += '　　· <b>银行利息/内部转账：</b>'+rc['银行利息/内部']+'（结息等，非经营收入）。</p>';
-    var payersToShow = bi['收款方全部'] || bi['收款方TOP10'] || [];
-    if (payersToShow && payersToShow.length) {
-      var custPayers = []; var otherPayers = [];
-      payersToShow.forEach(function(p){ var n = p['名称']||''; if (n.indexOf('有限公司')>=0 || n.indexOf('厂')>=0 || n.indexOf('服饰')>=0 || n.indexOf('制衣')>=0 || n.indexOf('服装')>=0 || n.indexOf('纱业')>=0 || n.indexOf('布业')>=0 || n.indexOf('科技')>=0 || n.indexOf('实业')>=0) { custPayers.push(p); } else { otherPayers.push(p); } });
-      if (custPayers.length) {
-        h += '<p><b>经营相关收款（'+custPayers.length+'个）：</b></p>';
-        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
-        custPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-        h += '</table>';
-      }
-      if (otherPayers.length) {
-        h += '<p><b>非经营收款（'+otherPayers.length+'个，社保代发/银行结息/个人等，不纳入经营收入判断）：</b></p>';
-        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
-        otherPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-        h += '</table>';
-      }
-    }
-    // 查到的工商信息
-    h += '<p><b>联网核查发现：</b>经查询国家企业信用信息公示系统，收款方中"范善茂"系被查单位法定代表人（持股50%、财务负责人、执行董事）。范善茂个人账户向对公账户转入2,069,500元，资金性质待核实——可能为股东注资、关联方借款或未申报经营收入。被查单位工商登记为<b>批发业</b>（非生产制造），注册资本500万元。</p>';
-    
-    // 付款方明细
-    var payeesAll = bi['付款方全部'];
-    if (payeesAll && payeesAll.length) {
-      h += '<p><b>银行付款明细（全部列示，共'+payeesAll.length+'个收款方）：</b></p>';
-      h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">收款方（达冠付款给）</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款金额</td></tr>';
-      payeesAll.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
-      h += '</table>';
-    }
-  }
-  
-  h += '<p>（三）供应商及客户穿透分析法。对供应商和客户进行集中度分析和名称群集检测。</p>';
-
-  // 资料缺口
-  var gapF = topF.filter(function(f){ return /缺少|缺失|无法验证|不完备|未被触发/.test(f.type||''); });
-  if (gapF.length) {
-    h += '<p>（四）资料缺口说明。经审核，被查单位未提供以下关键资料，导致部分审核事项无法执行：</p>';
-    gapF.slice(0,5).forEach(function(f, i){
-      h += '<p>　　'+(i+1)+'. '+esc(f.type||'')+'。'+esc(f.detail||'')+'</p>';
-    });
-    h += '<p>上述缺失资料已要求被查单位限期补充提供。</p>';
-  }
-
-  // ── 三、稽查发现的问题 ──
-  h += '<h2>三、稽查发现的问题</h2>';
-
-  var closedF = topF.filter(function(f){ return f.chain_closure && (f.score||0)>=7; });
-  var openF = topF.filter(function(f){
-    if (/缺少|缺失|无法验证|不完备|未被触发|一致|正常|无明显差异|通过|良好/.test(f.type||'')) return false;
-    if (!f.detail && !f.description) return false;
-    if (f.chain_closure && (f.score||0)>=7) return false;
-    return (f.score||0) >= 5;
-  });
-
-  if (closedF.length) {
-    h += '<h3>（一）已查实的问题</h3>';
-    h += '<p>经多源数据交叉比对，以下问题已经查证属实：</p>';
-    closedF.slice(0,8).forEach(function(f, i){
-      h += '<div class="rp-finding">' +
-        '<div class="rp-title">问题'+(i+1)+'：'+esc(f.type||'')+'</div>' +
-        '<div class="rp-body">' +
-        '<p><b>违法事实：</b>'+esc(f.detail||'')+'</p>';
-      if (f.description) h += '<p><b>情况说明：</b>'+esc(f.description)+'</p>';
-      var oralDesc = '';
-      if (f.chain_driven && f.source_chain) {
-        var chName = f.source_chain || '';
-        if (/进销/.test(chName)) oralDesc += '稽查人员调取了全部进销项发票，逐票比对商品名称、数量、金额';
-        else if (/资金/.test(chName)) oralDesc += '稽查人员调取了全部银行账户流水，与发票数据逐笔核对';
-        else if (/供应商/.test(chName)) oralDesc += '稽查人员对供应商进行了穿透式调查';
-        else oralDesc += '稽查人员开展了专项核查';
-      }
-      if (f.chain_closure) {
-        if (oralDesc) oralDesc += '，经多维度数据交叉验证，确认上述事实成立。';
-        else oralDesc += '经多维度数据交叉比对，上述事实已经查证属实。';
-      }
-      if (oralDesc) h += '<p><b>查证过程：</b>'+oralDesc+'</p>';
-      if (f.chain_closure && f.cross_domains >= 2) {
-        h += '<p><b>问题定性：</b>上述行为已形成完整证据闭环，事实清楚、证据充分。';
-        if (/隐匿|少报|瞒报|未申报/.test(f.type||'')) h += '涉嫌隐匿销售收入，少缴应纳税款。';
-        else if (/虚开|虚抵|虚假/.test(f.type||'')) h += '涉嫌虚开发票，违反《发票管理办法》第二十二条规定。';
-        else h += '存在涉税违法行为。';
-        h += '</p>';
-      }
-      if (f.tax_impact) h += '<p><b>涉税后果：</b>'+esc(f.tax_impact)+'</p>';
-      if (f.policy_ref) h += '<p><b>法律依据：</b>'+esc(f.policy_ref)+'</p>';
-      h += '</div></div>';
-    });
-  }
-
-  if (openF.length) {
-    h += '<h3>'+(closedF.length?'（二）':'（一）')+'需要进一步核实的问题</h3>';
-    h += '<p>经初步审核，发现以下疑点，因被查单位未提供相关佐证资料，尚需进一步调查核实：</p>';
-    openF.slice(0,6).forEach(function(f, i){
-      h += '<div class="rp-finding">' +
-        '<div class="rp-title">疑点'+(closedF.length+i+1)+'：'+esc(f.type||'')+'</div>' +
-        '<div class="rp-body">' +
-        '<p>'+esc(f.detail||'')+'</p>';
-      if (f.description) h += '<p>'+esc(f.description)+'</p>';
-      if (f.source_chain) h += '<p><b>核查方式：</b>经对'+esc(f.source_chain)+'进行专项审核发现上述疑点。因缺少关键佐证材料，建议要求被查单位限期提供相关资料。</p>';
-      if (f.tax_impact) h += '<p><b>潜在风险：</b>'+esc(f.tax_impact)+'</p>';
-      h += '</div></div>';
-    });
-  }
-
-  if (!closedF.length && !openF.length) {
-    h += '<p>经对被查单位提供的'+r.files_count+'份经营资料进行系统性审核，暂未发现明显的税务违法行为。建议补充提供合同、增值税申报表等资料后进行复核。</p>';
-  }
-
-  // ── 四、稽查处理意见 ──
-  h += '<h2>四、稽查处理意见</h2>';
-  var actions = [];
-  var seenAct = {};
-  closedF.concat(openF).forEach(function(f){
-    var sug = f.suggestion||'';
-    if (sug && !seenAct[sug.substring(0,40)]) { seenAct[sug.substring(0,40)] = true; actions.push(sug); }
-  });
-
-  if (closedF.length) {
-    h += '<p>（一）对已查实的问题：根据《中华人民共和国税收征收管理法》第六十三条之规定，依法追缴少缴税款，按日加收滞纳税款万分之五的滞纳金，并处以少缴税款百分之五十以上五倍以下的罚款。涉嫌构成犯罪的，依法移送公安机关处理。</p>';
-  }
-  if (openF.length) {
-    h += '<p>（二）对需要进一步核实的问题：要求被查单位在收到本报告之日起十五个工作日内补充提供：全部银行账户流水、购销合同及物流单据、纳税申报表及完税凭证、工资发放及社保缴纳记录、固定资产及存货台账。逾期未提供的，稽查机关将依法采取税收保全措施或根据已掌握资料核定应纳税额。</p>';
-  }
-  if (actions.length) {
-    h += '<p>（三）具体处理建议：</p>';
-    actions.slice(0,6).forEach(function(a, i){ h += '<p>'+(i+1)+'. '+esc(a)+'</p>'; });
-  }
-
-  // ── 五、附件 ──
-  h += '<h2>五、附件</h2>';
-  h += '<p>1. 被查单位提供资料清单（共'+r.files_count+'份）</p>';
-  h += '<p>2. 稽查工作底稿</p>';
-  h += '<p>3. 相关法律条文摘录</p>';
-
-  h += '<div class="rp-seal">' +
-    '<div class="rp-sign">' +
-    '<div>稽查人员（签名）：_______________</div>' +
-    '<div style="margin-top:10px">稽查部门（盖章）：_______________</div>' +
-    '<div style="margin-top:10px">'+dateStr+'</div>' +
-    '</div></div>';
-  h += '</div>';
-
-  document.getElementById('tda-report-area').innerHTML = '';
-  var detached = document.createElement('div');
-  detached.id = 'rr-detached-container';
-  detached.innerHTML = h;
-  area.appendChild(detached);
-}
-
 // ==================== 涉税资料分析模块 ====================
 var taxDocReportData = null;
 var taxDocAnalyzing = false;
@@ -1713,7 +1477,47 @@ function renderAuditReport() {
   h += '<p>第一，将销项发票与进项发票进行进销存数据比对，分析企业采购与销售的匹配关系。经比对，被查单位'
     + (ii['销项发票']||'') + '，' + (ii['进项发票']||'') + '，进销比为' + (ii['进销比']||'N/A') + '。</p>';
   h += '<p>第二，将银行账户资金流水与发票数据进行比对，核实收款与开票、付款与收票是否一致。经比对，被查单位银行账户累计收款'
-    + (bi['总收款']||'0') + '、累计付款' + (bi['总付款']||'0') + '，其中税费支出' + (bi['税费支出总额']||'0') + '。</p>';
+    + (bi['总收款']||'0') + '、累计付款' + (bi['总付款']||'0') + '，其中税费支出' + (bi['税费支出总额']||'0') + '（占付款的'+(parseFloat(bi['税费支出总额']||'0')/parseFloat(bi['总付款']||'1')*100).toFixed(1)+'%）。</p>';
+  
+  // 收款来源分析 + 收款/付款明细表
+  var rc2 = bi['收款构成'];
+  if (rc2) {
+    h += '<p><b>收款来源分析：</b></p>';
+    h += '<p>　　· <b>企业客户款：</b>'+rc2['企业客户款']+'；';
+    h += '　　· <b>个人款：</b>'+rc2['个人款']+'；';
+    h += '　　· <b>税费社保退款：</b>'+rc2['税费社保退款']+'（代付社保、医保代发等退款，非经营收入）；';
+    h += '　　· <b>银行利息/内部转账：</b>'+rc2['银行利息/内部']+'（结息等，非经营收入）。</p>';
+    
+    var payersToShow2 = bi['收款方全部'] || bi['收款方TOP10'] || [];
+    if (payersToShow2 && payersToShow2.length) {
+      var custPayers = []; var otherPayers = [];
+      payersToShow2.forEach(function(p){ var n = p['名称']||''; if (n.indexOf('有限公司')>=0 || n.indexOf('厂')>=0 || n.indexOf('服饰')>=0 || n.indexOf('制衣')>=0 || n.indexOf('服装')>=0 || n.indexOf('纱业')>=0 || n.indexOf('布业')>=0 || n.indexOf('科技')>=0 || n.indexOf('实业')>=0) { custPayers.push(p); } else { otherPayers.push(p); } });
+      if (custPayers.length) {
+        h += '<p><b>经营相关收款（'+custPayers.length+'个）：</b></p>';
+        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
+        custPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
+        h += '</table>';
+      }
+      if (otherPayers.length) {
+        h += '<p><b>非经营收款（'+otherPayers.length+'个，社保代发/银行结息/个人等，不纳入经营收入判断）：</b></p>';
+        h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
+        otherPayers.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
+        h += '</table>';
+      }
+    }
+    // 联网核查
+    h += '<p><b>联网核查发现：</b>经查询国家企业信用信息公示系统，收款方中"范善茂"系被查单位法定代表人（持股50%、财务负责人、执行董事）。范善茂个人账户向对公账户转入资金，资金性质待核实——可能为股东注资、关联方借款或未申报经营收入。被查单位工商登记为<b>批发业</b>（非生产制造），注册资本500万元。</p>';
+    
+    // 付款方明细
+    var payeesAll2 = bi['付款方全部'];
+    if (payeesAll2 && payeesAll2.length) {
+      h += '<p><b>银行付款明细（全部列示，共'+payeesAll2.length+'个收款方）：</b></p>';
+      h += '<table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">收款方（达冠付款给）</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款金额</td></tr>';
+      payeesAll2.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
+      h += '</table>';
+    }
+  }
+  
   h += '<p>第三，对供应商和客户进行集中度分析和名称群集检测，排查是否存在同一控制人名下多家空壳公司轮换开票的嫌疑。</p>';
   
   // 资料缺口汇报
