@@ -15863,10 +15863,24 @@ def _run_analyze(company_id, db):
             if is_manufacturing:
                 pur_raw_list = pur_raw[:5]
                 sell_list = only_sell[:5]
-                desc = f"被查单位销售了{'、'.join(sell_list)}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的直接采购记录。"
-                desc += f"\n\n⚠️ 根因分析：被查单位进项中有加工费发票和原材料（{'、'.join(pur_raw_list[:3])}等）采购记录，这强烈表明销售的商品是通过加工链条从原材料转化而成的成品。销售\"梭织布\"但购买的是\"棉纱\"——这是纺织制造的典型流程：买棉花/纱线→纺纱/织布→卖坯布/成品布。"
-                desc += f"\n\n因此，{len(only_sell)}种商品'有销无进'的合理解释是：它们是加工后的成品，而非直接买进再卖出的商品。这不是虚开发票，而是制造业的正常加工链条。"
-                desc += f"\n\n但需注意：必须验证加工链条的真实性——进项原材料能否产出销项成品？加工费发票是否与成品产出量匹配？缺少BOM表，这个'正常加工链条'的说法就无法成立。"
+                # 计算原材料和加工费总额
+                total_raw = sum(pur_by_goods[g]["amount"] for g in pur_raw[:5])
+                total_process = sum(pur_by_goods[g]["amount"] for g in only_buy if "加工" in g)
+                processing_items = [g for g in only_buy if "加工" in g][:3]
+                
+                desc = f"被查单位销售了{'、'.join(sell_list)}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现同名商品的采购记录。\n\n"
+                
+                desc += f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
+                desc += f"稽查的关键不是看'有没有这个结论'，而是看'为什么会有这个结论'。被查单位的进项发票中同时存在：\n"
+                desc += f"① 原材料采购{len(pur_raw)}种（{'、'.join(pur_raw_list[:3])}等，合计约{total_raw:,.0f}元）\n"
+                desc += f"② 加工费发票（{'、'.join(processing_items)}，合计约{total_process:,.0f}元）\n\n"
+                desc += f"这两类进项恰好与销项成品形成对应关系：原材料+加工费→成品。销售\"梭织布\"但购买的是\"棉纱\"——这是纺织制造的典型流程：买纱线→委托加工→卖成品布。\n\n"
+                desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果——你买的是原料，卖的是成品，品名当然不相同。这和面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n\n"
+                
+                desc += f"但风险并没有完全消除——风险从'品名不匹配'转移到了'加工链条是否真实'：\n"
+                desc += f"① 进项原材料能否真实产出销项成品？（需要BOM表验证投入产出比和损耗率）\n"
+                desc += f"② 加工费发票是真实的外包加工，还是为了解释进销品名差异而虚开的？（需要加工合同和出入库单）\n"
+                desc += f"③ 如果既不是自己加工也不是外包加工，而是纯贸易（直接买成品卖），那为什么采购端找不到对应的成品采购发票？（这才是真正的虚开风险）"
                 
                 inv_match_findings.append({
                     "type": "有销无进风险",
