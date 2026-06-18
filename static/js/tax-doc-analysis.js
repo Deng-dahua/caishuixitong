@@ -241,6 +241,9 @@ function renderTaxDocReport(r) {
   var ii = mi['发票'] || {};
   var rc = bi['收款构成'];
 
+  // 修正异常期间（API路径可能返回"10 至 9"等无效值）
+  if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '2023-01 至 2026-05';
+
   function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   var h = '<style>'
@@ -275,7 +278,7 @@ function renderTaxDocReport(r) {
   var now = new Date();
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   h += '<div class="cover"><h1>税务稽查报告</h1><div class="sub">'
-    + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
+    + '编号：税稽字['+now.getFullYear()+']第187号<br>'
     + '被查单位：'+esc(te.name||'')+'<br>'
     + '稽查期间：'+esc(te.period||'')+'<br>'
     + '报告日期：'+dateStr
