@@ -14079,38 +14079,64 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
     if actual_rev > 0 and pur_total > 0:
         gross_margin = (actual_rev - pur_total) / actual_rev
         low, high, typical = bm["毛利率"]
+        gm_pct = gross_margin * 100
+        # 三级判断：远低于下限 / 接近下限 / 高于上限
         if gross_margin < low:
             findings.append({
-                "type": f"毛利率{gross_margin*100:.0f}%远低于{target_industry}行业下限{low*100:.0f}%",
+                "type": f"毛利率{gm_pct:.1f}%低于{target_industry}行业下限{low*100:.0f}%",
                 "level": "高风险", "score": 9,
-                "detail": f"毛利率{gross_margin*100:.0f}%（收入{actual_rev:,.0f}-成本{pur_total:,.0f}），行业下限{low*100:.0f}%，典型值{typical*100:.0f}%。",
-                "description": f"毛利率严重低于{target_industry}行业基准。稽查意义：①进项发票可能虚增（采购成本虚高）②销售收入可能少记（隐匿收入）。需结合产能/能耗数据交叉验证。",
-                "how_found": f"(开票收入{actual_rev:,.0f}-进项采购{pur_total:,.0f})/开票收入 = {gross_margin*100:.0f}%，对比{target_industry}行业下限{low*100:.0f}%。",
-                "suggestion": f"重点核查：1)进项发票真实性（与物流/入库单/银行付款三单比对）2)是否存在未开票销售收入。",
+                "detail": f"被查单位毛利率{gm_pct:.1f}%（=（销售收入{actual_rev:,.0f}元-进项采购成本{pur_total:,.0f}元）/销售收入{actual_rev:,.0f}元）。{target_industry}行业毛利率正常区间为{low*100:.0f}%~{high*100:.0f}%，典型值{typical*100:.0f}%。被查单位毛利率已低于行业下限{low*100:.0f}%，偏离度{gross_margin/low-1:.0%}。",
+                "description": f"毛利率低于行业基准下限{low*100:.0f}%，这一偏差在稽查中有明确的指向意义：①进项发票可能存在虚增——采购成本被人为做高以虚抵进项税、虚列成本少缴企业所得税；②销售收入可能被隐匿——部分收入未入账、未开票，导致收入端偏低、毛利率被拉低。{target_industry}行业毛利率典型值为{typical*100:.0f}%，被查单位{gm_pct:.1f}%已处于行业尾部。需结合产能、能耗、人工投入等经营数据做交叉验证。",
+                "how_found": f"计算公式：毛利率=（销售收入-采购成本）/销售收入。被查单位=({actual_rev:,.0f}-{pur_total:,.0f})/{actual_rev:,.0f}={gm_pct:.1f}%。与{target_industry}行业下限{low*100:.0f}%对比，低于下限。",
+                "tax_impact": f"若进项虚增：补缴增值税+企业所得税+滞纳金+罚款；若收入隐匿：补缴增值税+企业所得税+滞纳金+0.5-5倍罚款，情节严重移送公安。",
+                "suggestion": f"核查方向：1)逐笔核实大额进项发票的真实性（与物流单、入库单、银行付款单三单比对）——重点核查偏离度最大的品类；2)将银行流水贷方发生额与销项发票总额做逐月比对，找出银行收款＞开票收入的月份，追查未开票收入；3)要求企业提供成本核算明细和BOM表，核实料工费配比是否合理。",
+                "category": "行业对标"
+            })
+        elif gross_margin < typical * 0.85:
+            findings.append({
+                "type": f"毛利率{gm_pct:.1f}%低于{target_industry}行业典型值{typical*100:.0f}%的85%",
+                "level": "中风险", "score": 6,
+                "detail": f"被查单位毛利率{gm_pct:.1f}%低于{target_industry}行业典型值{typical*100:.0f}%，但尚未跌破行业下限{low*100:.0f}%。偏离度{gross_margin/typical-1:.0%}。",
+                "description": f"毛利率虽未跌破行业下限，但已低于典型值{typical*100:.0f}%的85%。可能存在成本偏高或收入偏低的情况，建议结合产能数据做进一步核实。",
+                "how_found": f"毛利率={gm_pct:.1f}%，{target_industry}行业典型值{typical*100:.0f}%×0.85={(typical*0.85*100):.0f}%。",
+                "suggestion": "核实毛利率偏低的品类，检查是否有低价销售、成本虚增或收入少记的情况。",
                 "category": "行业对标"
             })
         elif gross_margin > high * 1.3:
             findings.append({
-                "type": f"毛利率{gross_margin*100:.0f}%显著高于{target_industry}行业上限{high*100:.0f}%",
+                "type": f"毛利率{gm_pct:.1f}%高于{target_industry}行业上限{high*100:.0f}%",
                 "level": "中风险", "score": 5,
-                "detail": f"毛利率{gross_margin*100:.0f}%超出行业上限{high*100:.0f}%达30%以上。",
-                "description": "超高毛利率可能原因：①虚开发票（销项票开给不需要的买家）②收入确认时点异常③行业特殊性（专利等高附加值）。",
-                "how_found": f"毛利率={gross_margin*100:.0f}% > 行业上限{high*100:.0f}%×1.3。",
-                "suggestion": "核实收入确认是否合规，检查是否存在为虚增业绩而虚开发票的情况。",
+                "detail": f"被查单位毛利率{gm_pct:.1f}%超出{target_industry}行业上限{high*100:.0f}%。偏离度{gross_margin/high-1:.0%}。",
+                "description": f"毛利率超出行业上限30%以上，可能原因：①虚开销售发票（没有真实交易）；②收入确认跨期不当；③隐藏成本费用；④具有特殊技术或品牌溢价（需提供佐证）。",
+                "how_found": f"毛利率={gm_pct:.1f}% > {target_industry}行业上限{high*100:.0f}%×1.3={(high*1.3*100):.0f}%。",
+                "suggestion": "核实收入确认的合规性，检查每笔销售对应的采购成本和费用是否完整入账。",
                 "category": "行业对标"
             })
     
     if sal_total > 0 and pur_total > 0:
         io_ratio = pur_total / sal_total
         low, high, typical = bm["进销比"]
-        if io_ratio > high * 1.3:
+        if io_ratio > high:
+            io_pct = (io_ratio - typical) / typical * 100
             findings.append({
-                "type": f"进销比{io_ratio:.1f}异常偏高（进>销，可能隐匿收入）",
+                "type": f"进销比{io_ratio:.1f}高于{target_industry}行业上限{high}",
                 "level": "高风险", "score": 9,
-                "detail": f"进项{pur_total:,.0f}元/销项{sal_total:,.0f}元={io_ratio:.1f}。{target_industry}行业上限{high}。",
-                "description": f"进项远超销项说明：要么有大量未开票销售收入（隐匿），要么进项发票虚开。{target_industry}行业进销比典型值为{typical}。",
-                "how_found": f"进项{pur_total:,.0f}÷销项{sal_total:,.0f}={io_ratio:.1f} vs {target_industry}行业上限{high}。",
-                "suggestion": "重点核查：1)银行流水收款与销项发票比对 2)库存盘点 3)是否存在账外经营。",
+                "detail": f"被查单位进销比{io_ratio:.1f}（=进项采购{pur_total:,.0f}元/销项开票{sal_total:,.0f}元），{target_industry}行业正常进销比区间为{low}~{high}，典型值{typical}。被查单位进销比高于行业上限{high}，偏离度{(io_ratio-typical)/typical*100:.0f}%。",
+                "description": f"进销比={io_ratio:.1f}的含义：被查单位每对外开具1元销项发票，对应取得了{io_ratio:.1f}元进项发票。{target_industry}行业典型进销比为{typical}（每1元销项对应约{typical}元进项采购），合理区间{low}~{high}。被查单位的进销比{io_ratio:.1f}已超出行业上限{high}，偏差{(io_ratio-typical)/typical*100:.0f}%。进销比偏高有两种稽查解释：①存在未开票销售收入——实际销售>开票销售，拉高了进项/销项的比值；②进项发票存在虚开——采购端被人为做高。两者都涉及纳税义务的不当减少。",
+                "how_found": f"进项采购{pur_total:,.0f}÷销项开票{sal_total:,.0f}={io_ratio:.1f}。{target_industry}行业进销比参考值：下限{low}、典型值{typical}、上限{high}。被查单位={io_ratio:.1f} > 上限{high}。",
+                "tax_impact": "若隐匿收入→补缴增值税（货物税率）+企业所得税+滞纳金+罚款。若虚增进项→补缴增值税（已抵扣税额）+企业所得税+罚款+刑事责任。",
+                "suggestion": f"稽查方向：1)银行流水收款与销项发票逐月比对→找出收款>开票的月份，追查未开票收入；2)大额供应商穿透→核实是否为空壳公司、是否存在资金回流；3)存货盘点→核实库存商品是否与进销存逻辑一致；4)若进销比偏高是因为库存积压，要求企业提供存货盘点表佐证。",
+                "category": "行业对标"
+            })
+        elif io_ratio > typical * 1.2:
+            io_pct = (io_ratio - typical) / typical * 100
+            findings.append({
+                "type": f"进销比{io_ratio:.1f}高于{target_industry}行业典型值{typical}",
+                "level": "中风险", "score": 6,
+                "detail": f"被查单位进销比{io_ratio:.1f}高于{target_industry}行业典型值{typical}，偏离度{io_pct:.0f}%。",
+                "description": f"进销比高于典型值但未超上限，提示可能存在部分未开票销售或采购端存在少量异常。",
+                "how_found": f"进销比={io_ratio:.1f} > {target_industry}行业典型值{typical}×1.2={(typical*1.2):.1f}。",
+                "suggestion": "关注进销比偏高的品类，核实是否有库存积压或未及时开票的销售。",
                 "category": "行业对标"
             })
     
@@ -15570,14 +15596,17 @@ def _run_analyze(company_id, db):
         only_buy = [g for g in pur_by_goods if g not in sale_by_goods]
         if only_buy:
             pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy)
+            pur_total_all = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
+            pct = pur_amount_only / max(pur_total_all, 1) * 100
             inv_match_findings.append({
-                "type": "有进无销风险", "level": "高风险", "score": 8,
-                "detail": f"{len(only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元。可能账外经营或未开票销售。",
-                "description": f"进项发票中{len(only_buy)}类商品（{'、'.join(only_buy[:3])}等）在销项发票中无对应销售记录。根据进销匹配原则，企业采购的商品应有对应销售。无销售记录可能意味着：1)账外经营隐匿收入 2)未开票销售 3)货物去向不明。",
-                "how_found": f"发票进销匹配：{len(sal_invs)}张销项 × {len(pur_invs)}张进项 → {len(only_buy)}类商品有进无销",
-                "tax_impact": "可能隐匿销售收入→补税+罚款+滞纳金",
-                "policy_ref": "《税收征收管理法》第六十三条；《增值税暂行条例》",
-                "suggestion": f"核实{'、'.join(only_buy[:3])}等商品的真实去向，确认是否已销售但未开票。",
+                "type": "有进无销风险",
+                "level": "高风险", "score": 8,
+                "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
+                "description": f"被查单位采购了{'、'.join(only_buy[:3])}等{len(only_buy)}种原材料/商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。根据增值税进销存管理原则，企业采购的商品应当有对应的对外销售或用于生产后对外销售。上述商品'有进无销'可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售",
+                "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。进项税额若已抵扣且货物去向不明的还应作进项税额转出。",
+                "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
+                "suggestion": f"要求被查单位逐项说明{len(only_buy)}种商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录；4)若为研发或样品，提供对应项目资料。无法说明去向的，按隐匿收入处理。",
                 "category": "进销存匹配",
             })
         
@@ -15585,14 +15614,17 @@ def _run_analyze(company_id, db):
         only_sell = [g for g in sale_by_goods if g not in pur_by_goods]
         if only_sell:
             sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell)
+            sell_total_all = sum(sale_by_goods[g]["amount"] for g in sale_by_goods)
+            pct = sell_amount_only / max(sell_total_all, 1) * 100
             inv_match_findings.append({
-                "type": "有销无进风险", "level": "高风险", "score": 9,
-                "detail": f"{len(only_sell)}类商品仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元。可能虚开发票。",
-                "description": f"销项发票中{len(only_sell)}类商品（{'、'.join(only_sell[:3])}等）在进项发票中无对应采购记录。企业销售商品应有相应采购来源。无采购记录可能意味着：1)虚开发票 2)购进发票未入账 3)虚构销售交易。",
-                "how_found": f"发票进销匹配：{len(sal_invs)}张销项 × {len(pur_invs)}张进项 → {len(only_sell)}类商品有销无进",
-                "tax_impact": "虚开发票→刑事责任+巨额罚款+信用降级",
-                "policy_ref": "《发票管理办法》第二十二条；《刑法》第二百零五条",
-                "suggestion": f"立即核实{'、'.join(only_sell[:3])}等商品的真实采购来源，确认是否存在虚开或变名开票行为。",
+                "type": "有销无进风险",
+                "level": "高风险", "score": 9,
+                "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
+                "description": f"被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征：①可能根本不存在真实的货物交易，纯属虚构销售开票；②可能通过变名开票方式将A商品采购变造为B商品销售；③可能为'买单配票'——购买了他人未使用的进项配额后对外虚开。",
+                "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无采购",
+                "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
+                "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
+                "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料：1)采购发票、采购合同及对应的银行付款记录；2)入库单据和物流运输记录；3)若为委托加工，提供加工合同和加工费发票。无法提供真实采购来源的，按虚开发票立案处理。",
                 "category": "进销存匹配",
             })
         
