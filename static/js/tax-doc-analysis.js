@@ -377,7 +377,7 @@ function renderTaxDocReport(r) {
     var s = f.score||0;
     var bc = s>=8?S.red:(s>=6?S.amber:'#94a3b8');
     var tc = s>=8?'rtag':(s>=6?'atag':'gtag');
-    var tl = s>=8?'高风险':(s>=6?'中风险':'低风险');
+    var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
     h += '<div class="f" style="border-left:4px solid '+bc+'">';
     h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span></div>';
     h += '<div class="fb"><p>'+esc((f.detail||'')+(f.description||'').substring(0,300))+'</p></div>';
