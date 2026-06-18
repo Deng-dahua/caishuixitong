@@ -758,8 +758,10 @@ function renderAuditReport() {
     h += '　　· <b>税费社保退款：</b>'+rc['税费社保退款']+'；<br>';
     h += '　　· <b>银行利息/内部转账：</b>'+rc['银行利息/内部']+'。</p>';
     var top10 = bi['收款方TOP10'];
-    if (top10 && top10.length) {
-      h += '<p>收款方前十名：</p><table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
+    var allPayers = bi['收款方全部'];
+    var payersToShow = allPayers || top10;
+    if (payersToShow && payersToShow.length) {
+      h += '<p>收款方明细（全部列示，共'+payersToShow.length+'个付款方）：</p><table style="font-size:13px;width:100%;border-collapse:collapse;margin:8px 0"><tr style="background:#f5f5f5"><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">付款方</td><td style="padding:4px 8px;border:1px solid #ccc;font-weight:bold">金额</td></tr>';
       top10.forEach(function(p){ h += '<tr><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['名称']||'')+'</td><td style="padding:4px 8px;border:1px solid #ccc">'+esc(p['金额']||'')+'元</td></tr>'; });
       h += '</table>';
     }

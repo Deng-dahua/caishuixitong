@@ -15329,7 +15329,13 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "")).strip()
-            if not cp or cp == "": cp = "(无名称)"
+            summary = str(tx.get("summary", "")).strip()
+            # 空名称时用摘要兜底
+            if not cp:
+                if any(k in summary for k in ['结息','利息']): cp = "(银行结息)"
+                elif any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
+                elif any(k in summary for k in ['费用','外收','短信','账户']): cp = "(银行费用)"
+                else: cp = "(未记录名称)"
             # 分类
             if any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源','服饰']):
                 enterprise_pay[cp] += credit
@@ -15351,6 +15357,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         for d in [enterprise_pay, individual_pay, tax_pay, bank_internal]:
             for k, v in d.items(): all_payers[k[:25]] = v
         intel["银行流水"]["收款方TOP10"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])[:10]]
+        intel["银行流水"]["收款方全部"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
     
     # ── 发票情报 ──
     if invoices:
