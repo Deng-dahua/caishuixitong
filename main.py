@@ -15581,6 +15581,21 @@ def _run_analyze(company_id, db):
                                 # 跳过空行（日期和金额都为空的无效行）
                                 if not tx["date"] or (debit_val == 0 and credit_val == 0):
                                     continue
+                                # 跳过银行流水的"汇总"行和无效行
+                                cp_name = str(tx.get("counterparty", "")).strip()
+                                if not cp_name:
+                                    st = str(tx.get("summary", "")).strip()
+                                    # 有摘要的、无对手的中等交易可能是有实质内容的
+                                    if credit_val < 50000 and credit_val != int(credit_val):
+                                        pass  # 保留：有零头的小额交易（可能是摘要中有线索）
+                                    elif credit_val < 1000:
+                                        continue  # 忽略：极小金额无对手→银行费用
+                                    elif "汇总" in st or "合计" in st:
+                                        continue  # 忽略：明确的汇总行
+                                    elif credit_val >= 50000:
+                                        continue  # 忽略：大额无对手→汇总行/重复数据
+                                    elif credit_val == int(credit_val) or (debit_val > 0 and debit_val == int(debit_val)):
+                                        continue  # 忽略：整数金额无对手→非真实交易
                                 bank_txs.append(tx)
                                 success_count += 1
                             except Exception:
