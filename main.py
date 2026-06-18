@@ -16003,11 +16003,23 @@ def _run_analyze(company_id, db):
             if g: goods_list.append(g)
         if goods_list:
             goods_text = " ".join(goods_list)
-            # 简易行业检测（与_detect_target_entity一致的逻辑）
-            for kw, ind in INDUSTRY_BENCHMARKS.items():
-                if kw != "_default" and kw in goods_text:
-                    _target_industry = kw
-                    break
+            # 行业检测：匹配最精确的行业（双向匹配+优先长关键字）
+            candidates = []
+            for kw in INDUSTRY_BENCHMARKS:
+                if kw == "_default": continue
+                if kw in goods_text:
+                    candidates.append((kw, len(kw)))
+                else:
+                    # 反向：检测商品关键词是否匹配行业名的子集
+                    for word in set(goods_text.split()):
+                        word = word.strip("*").strip()
+                        if len(word) >= 2 and word in kw:
+                            candidates.append((kw, len(word)))
+                            break
+            # 按匹配长度排序，取最长
+            candidates.sort(key=lambda x: -x[1])
+            if candidates:
+                _target_industry = candidates[0][0]
 
     if bank_txs: domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs)})
     if sal_invs and pur_invs: domain_results.append({"domain": "进销毛利率分析", "findings": _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue)})
