@@ -15798,41 +15798,96 @@ def _run_analyze(company_id, db):
             pur_by_goods[g]["amount"] += a
             pur_by_goods[g]["count"] += 1
         
-        # 检查1：有进无销（购入但未销售→可能账外经营）
+        # 检查1：有进无销（购入但未销售→可能账外经营，也可能是制造业原材料加工成成品）
         only_buy = [g for g in pur_by_goods if g not in sale_by_goods]
         if only_buy:
             pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy)
             pur_total_all = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
             pct = pur_amount_only / max(pur_total_all, 1) * 100
-            inv_match_findings.append({
-                "type": "有进无销风险",
-                "level": "高风险", "score": 8,
-                "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
-                "description": f"被查单位采购了{'、'.join(only_buy[:3])}等{len(only_buy)}种原材料/商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。根据增值税进销存管理原则，企业采购的商品应当有对应的对外销售或用于生产后对外销售。上述商品'有进无销'可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
-                "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售",
-                "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。进项税额若已抵扣且货物去向不明的还应作进项税额转出。",
-                "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
-                "suggestion": f"要求被查单位逐项说明{len(only_buy)}种商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录；4)若为研发或样品，提供对应项目资料。无法说明去向的，按隐匿收入处理。",
-                "category": "进销存匹配",
-            })
+            
+            # 制造业诊断：进项有加工费+原材料→很可能是将原材料加工为成品销售（进销品名天然不同）
+            has_processing = any("加工费" in g or "加工" in g for g in pur_by_goods)
+            has_raw_materials = any("纱" in g or "棉" in g or "布" in g for g in only_buy)
+            is_manufacturing = has_processing and has_raw_materials
+            
+            if is_manufacturing:
+                # 制造业正常加工链条：采购纱线→委托加工→销售成品布
+                raw_list = [g for g in only_buy if any(k in g for k in ["纱","棉","丝","纤维"])][:5]
+                processing = [g for g in only_buy if "加工" in g][:3]
+                only_sell_goods = [g for g in sale_by_goods if g not in pur_by_goods]
+                
+                desc = f"被查单位采购了{'、'.join(raw_list[:3])}等{len(only_buy)}种商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。"
+                desc += f"\n\n⚠️ 根因分析：被查单位是纺织制造企业，进项中有加工费发票（{'、'.join(processing) if processing else '外包加工'}），这强烈表明企业采用'采购原材料→委托加工→销售成品'的经营模式。"
+                desc += f"在此模式下，{len(only_buy)}种进项商品（棉纱等原材料、加工费、水电费等）经过加工后转化为成品（{'、'.join(only_sell_goods[:3])}），因此进项品名与销项品名天然不匹配——这不是虚开发票，而是制造业的正常加工链条。"
+                desc += f"\n\n但需注意：① 加工链条的真实性仍需BOM表验证——多少纱能产出多少布？加工损耗率是多少？② 非原材料类采购（住宿费、餐费、加油费等{len([g for g in only_buy if not any(k in g for k in ['纱','棉','丝','纤维','加工','纺织','布','服装'])])}类）的去向需要单独说明。"
+                
+                inv_match_findings.append({
+                    "type": "有进无销风险",
+                    "level": "中风险", "score": 5,  # 降级：制造业正常加工链条可解释
+                    "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
+                    "description": desc,
+                    "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售→进一步诊断：已检测到加工费发票（{has_processing}）和原材料采购（{has_raw_materials}），判断为制造业正常加工链条导致进销品名差异。",
+                    "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但非原材料类采购的去向仍需说明，特别是费用类进项（住宿、餐饮等）与经营规模是否匹配需核实。关键风险点是：加工费发票的真实性（是否虚开加工票）和BOM表的完整性（能否证明投入产出逻辑）。",
+                    "policy_ref": "《增值税暂行条例》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
+                    "suggestion": f"① 限期提供BOM表（物料清单），验证原材料投入→加工→成品产出的完整链条（投入产出比、损耗率）；② 提供加工合同、加工出入库单（送料单+收货单）；③ 对住宿费、餐费等费用类进项，提供费用报销凭证和业务说明；④ 如为纯贸易（直接买进卖出），提供贸易链条说明。",
+                    "category": "进销存匹配",
+                })
+            else:
+                inv_match_findings.append({
+                    "type": "有进无销风险",
+                    "level": "高风险", "score": 8,
+                    "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
+                    "description": f"被查单位采购了{'、'.join(only_buy[:3])}等{len(only_buy)}种原材料/商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。根据增值税进销存管理原则，企业采购的商品应当有对应的对外销售或用于生产后对外销售。上述商品'有进无销'可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                    "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售",
+                    "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。进项税额若已抵扣且货物去向不明的还应作进项税额转出。",
+                    "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
+                    "suggestion": f"要求被查单位逐项说明{len(only_buy)}种商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录；4)若为研发或样品，提供对应项目资料。无法说明去向的，按隐匿收入处理。",
+                    "category": "进销存匹配",
+                })
         
-        # 检查2：有销无进（卖出但未采购→可能虚开发票）
+        # 检查2：有销无进（卖出但未采购→可能虚开发票，也可能是制造业加工产出成品）
         only_sell = [g for g in sale_by_goods if g not in pur_by_goods]
         if only_sell:
             sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell)
             sell_total_all = sum(sale_by_goods[g]["amount"] for g in sale_by_goods)
             pct = sell_amount_only / max(sell_total_all, 1) * 100
-            inv_match_findings.append({
-                "type": "有销无进风险",
-                "level": "高风险", "score": 9,
-                "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
-                "description": f"被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征：①可能根本不存在真实的货物交易，纯属虚构销售开票；②可能通过变名开票方式将A商品采购变造为B商品销售；③可能为'买单配票'——购买了他人未使用的进项配额后对外虚开。",
-                "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无采购",
-                "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
-                "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
-                "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料：1)采购发票、采购合同及对应的银行付款记录；2)入库单据和物流运输记录；3)若为委托加工，提供加工合同和加工费发票。无法提供真实采购来源的，按虚开发票立案处理。",
-                "category": "进销存匹配",
-            })
+            
+            # 制造业诊断：有加工费+有原材料采购→销售的是加工后的成品（品名天然不同）
+            has_processing = any("加工费" in g or "加工" in g for g in pur_by_goods)
+            pur_raw = [g for g in pur_by_goods if any(k in g for k in ["纱","棉","丝","纤维"])]
+            is_manufacturing = has_processing and len(pur_raw) > 0
+            
+            if is_manufacturing:
+                pur_raw_list = pur_raw[:5]
+                sell_list = only_sell[:5]
+                desc = f"被查单位销售了{'、'.join(sell_list)}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的直接采购记录。"
+                desc += f"\n\n⚠️ 根因分析：被查单位进项中有加工费发票和原材料（{'、'.join(pur_raw_list[:3])}等）采购记录，这强烈表明销售的商品是通过加工链条从原材料转化而成的成品。销售\"梭织布\"但购买的是\"棉纱\"——这是纺织制造的典型流程：买棉花/纱线→纺纱/织布→卖坯布/成品布。"
+                desc += f"\n\n因此，{len(only_sell)}种商品'有销无进'的合理解释是：它们是加工后的成品，而非直接买进再卖出的商品。这不是虚开发票，而是制造业的正常加工链条。"
+                desc += f"\n\n但需注意：必须验证加工链条的真实性——进项原材料能否产出销项成品？加工费发票是否与成品产出量匹配？缺少BOM表，这个'正常加工链条'的说法就无法成立。"
+                
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "中风险", "score": 5,  # 降级：制造业加工可解释
+                    "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无直接采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
+                    "description": desc,
+                    "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无直接采购→进一步诊断：已检测到加工费（{has_processing}）+原材料采购（{len(pur_raw)}种），判断为制造业加工链条导致进销品名差异。",
+                    "tax_impact": "制造业加工链条导致销项品名与进项品名不同属正常现象。真正的风险点是：① BOM表能否证明投入产出逻辑（多少纱产多少布）；② 加工费发票是否真实（有无虚开）；③ 是否有假借加工名义将A商品变名出售。缺少BOM表，这些风险无法排除。",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；但制造业加工链条导致的品名差异不自动构成虚开。",
+                    "suggestion": f"① 提供BOM表验证加工链条：进项原材料+加工费→能否产出销项成品（投入产出比、损耗率）；② 提供委托加工合同、送料单、收货单；③ 如为纯贸易（直接买成品再卖），提供采购端对应的成品采购发票。以上资料齐全则可排除虚开嫌疑。",
+                    "category": "进销存匹配",
+                })
+            else:
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "高风险", "score": 9,
+                    "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
+                    "description": f"被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征：①可能根本不存在真实的货物交易，纯属虚构销售开票；②可能通过变名开票方式将A商品采购变造为B商品销售；③可能为'买单配票'——购买了他人未使用的进项配额后对外虚开。",
+                    "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无采购",
+                    "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
+                    "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料：1)采购发票、采购合同及对应的银行付款记录；2)入库单据和物流运输记录；3)若为委托加工，提供加工合同和加工费发票。无法提供真实采购来源的，按虚开发票立案处理。",
+                    "category": "进销存匹配",
+                })
         
         # 检查3：进销数量差异
         matched = [(g, (sale_by_goods[g]["qty"] - pur_by_goods[g]["qty"])) 
