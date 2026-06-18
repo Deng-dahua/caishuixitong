@@ -1758,6 +1758,40 @@ function renderAuditReport() {
       p += '</div>';
     }
     
+    // 稽查明细表
+    if (f.items && f.items.length > 0) {
+      var itemCount = f.items.length;
+      var tblId = 'tbl-' + idx + '-' + Math.random().toString(36).substr(2,6);
+      var cols = Object.keys(f.items[0]);
+      var showCount = Math.min(itemCount, 15);
+      
+      p += '<div style="margin:10px 0">';
+      p += '<div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:6px">稽查明细（共' + itemCount + '条' + (itemCount > showCount ? '，展示前' + showCount + '条' : '') + '）';
+      p += ' <button onclick="var t=document.getElementById(\\\'' + tblId + '\\\');if(t.style.display==\\\'none\\\'){t.style.display=\\\'\\\';this.textContent=\\\'收起▲\\\'}else{t.style.display=\\\'none\\\';this.textContent=\\\'展开▼\\\'}" style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#64748b">展开明细▼</button>';
+      p += '</div>';
+      
+      p += '<div id="' + tblId + '" style="display:none;overflow-x:auto;margin-top:4px">';
+      p += '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.6">';
+      // header
+      p += '<tr style="background:#f1f5f9">';
+      for (var ci = 0; ci < cols.length; ci++) {
+        p += '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-weight:600;white-space:nowrap">' + esc(cols[ci]) + '</th>';
+      }
+      p += '</tr>';
+      // body
+      for (var ri = 0; ri < showCount; ri++) {
+        var row = f.items[ri];
+        p += '<tr>';
+        for (var cj = 0; cj < cols.length; cj++) {
+          p += '<td style="padding:4px 8px;border:1px solid #e2e8f0;white-space:nowrap">' + esc(row[cols[cj]] || '') + '</td>';
+        }
+        p += '</tr>';
+      }
+      p += '</table>';
+      p += '</div>';
+      p += '</div>';
+    }
+    
     p += '</div>';
     return p;
   }

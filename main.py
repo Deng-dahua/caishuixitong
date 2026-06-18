@@ -13193,10 +13193,13 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
                 group = [inv_nos[i]]
         if len(group) >= 5: consecutive_groups.append(group)
         if consecutive_groups:
+            group_details = []
+            for g in consecutive_groups[:3]:
+                group_details.append(f"{len(g)}张连号({g[0]}~{g[-1]})")
             findings.append({
                 "type": "发票连号异常",
                 "level": "中风险", "score": 6,
-                "detail": f"发现{len(consecutive_groups)}组连号或近号发票（每组>=5张）。",
+                "detail": f"发现{len(consecutive_groups)}组连号或近号发票（每组>=5张）。{'；'.join(group_details)}。",
                 "description": f"销项发票中存在{len(consecutive_groups)}组发票号码连续或接近连续的发票。正常的经营活动中，发票通常是分散开给不同客户的，连号发票可能表明：集中突击开票、为完成业绩或调节税负而集中开票、或向同一客户大额拆分开票。",
                 "how_found": "提取所有销项发票号码（数字部分），排序后检测连续号码组（相邻号码差<=3），连续>=5张触发预警。",
                 "tax_impact": "连号开票易被税务机关认定为人为调节收入或拆分开票，若被认定存在虚开嫌疑，将面临协查和处罚。",
@@ -13678,15 +13681,29 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs):
     income_from_buyers = sum(payers.get(b, 0) for b in buyer_names)
     
     if total_income > 0 and income_from_buyers / total_income < 0.3:
+        # 收集不匹配的付款方明细
+        unmatched_payers = []
+        for cp, amt in sorted(payers.items(), key=lambda x: -x[1]):
+            if cp not in buyer_names and amt > 0:
+                unmatched_payers.append({"name": cp[:25], "amount": amt})
+        top_unmatched = unmatched_payers[:5]
+        examples = "；".join([f"{u['name']}({u['amount']:,.0f}元)" for u in top_unmatched])
+        
+        # 也列出能匹配到的买家
+        matched_payers = [(b, payers.get(b, 0)) for b in buyer_names if payers.get(b, 0) > 0]
+        matched_payers.sort(key=lambda x: -x[1])
+        matched_examples = "；".join([f"{m[0]}({m[1]:,.0f}元)" for m in matched_payers[:3]]) if matched_payers else "无"
+        
         findings.append({
             "type": "收款来源与开票客户严重不匹配",
-            "level": "高风险", "score": 8,
-            "detail": f"银行入账{total_income:,.0f}元中仅{income_from_buyers/total_income*100:.0f}%来自开票客户，大量资金来源不明。",
-            "description": f"银行流水中总共收到{total_income:,.0f}元，但只有{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）能匹配到销项发票上的购方名称。\n\n剩余{total_income-income_from_buyers:,.0f}元来自发票上未出现的付款方——这些钱是谁付的？是未开票的客户吗？是关联方往来吗？是借款吗？每一个解释都需要证据支持。稽查的做法是：逐笔追问不明资金来源，直到企业给出每一笔的合理解释。",
-            "how_found": "从银行流水提取交易对手名称和贷方金额，与销项发票购方名称做模糊匹配。匹配不到的比例>70%触发。",
-            "tax_impact": "不明来源资金→可能被推定为未开票的销售收入→补缴增值税+企业所得税+滞纳金+罚款。",
-            "suggestion": "① 逐笔核实不明来源资金的性质；②编制银行存款收款来源分析表；③对于非经营收款（借款、注资等）留好合同和凭证。",
-            "category": "资金流向"
+            "level": "高风险", "score": 9,
+            "detail": f"银行账户累计收款{total_income:,.0f}元，其中仅{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）来自销项发票上的购方客户。剩余{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）来自销项发票上未出现的付款方。",
+            "description": f"被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户（购方），银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。\n\n销项发票列示的客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）。其中匹配到的客户：{matched_examples}。\n\n销项发票未列示的付款方合计{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）。主要不明来源：{examples}等。\n\n稽查判断：{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票未列示的主体，意味着要么这些收款对应的销售未开具发票（隐匿收入），要么这些资金不是经营收入而是借款、投资款、往来款等。无论哪种解释，都需要逐笔提供证明材料。",
+            "how_found": f"从银行流水提取{len(payers)}个付款方→与销项发票{len(buyer_names)}个购方名称交叉比对→仅{income_from_buyers/total_income*100:.0f}%匹配。",
+            "tax_impact": f"不明来源资金{total_income-income_from_buyers:,.0f}元可能被推定为未开票销售收入→补缴增值税（适用税率）+企业所得税（25%）+滞纳金（日万分之五）+0.5-5倍罚款。",
+            "suggestion": f"要求被查单位逐笔说明{len(unmatched_payers)}个不明付款方的资金来源：①若为未开票的销售收入——立即补开发票并申报未开票收入，补缴相应税款；②若为借款——提供借款合同、借据、利息支付凭证；③若为股东注资——提供验资报告或出资证明；④若为关联方往来——提供对账单。无法说明来源的，按隐匿收入处理。",
+            "category": "资金流向",
+            "policy_ref": "《税收征收管理法》第三十五条（核定征收）；《增值税暂行条例》关于销售额确定的规定；《企业所得税法》关于收入确认的规定。",
         })
     
     # 分析: 付款流向是否与进项发票匹配
@@ -13802,7 +13819,8 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "detail": f"发现{after_pay}笔交易的进项发票日期晚于银行付款日期。先付款后到票→交易逻辑存疑。",
             "description": f"正常的商业逻辑是: 签订合同→对方开票→我方付款。但发现了{after_pay}笔交易存在「先付款、后开票」的时间倒置现象。\n\n这可能是: ① 发票跨期（本月付款下月才拿到票）→ 正常的票据流转延迟；② 预付款后供应商补票 → 看是否符合合同约定；③ 发票为后补的「走账票」→ 真实交易发生在之前，后补发票来完成税务处理。\n\n建议逐笔核实时间倒置的合理性。",
             "how_found": "比对进项发票日期和银行流水付款日期，发票日期晚于付款日期超过30天视为异常。",
-            "suggestion": "逐笔核实时间倒置交易的商业合理性，保留采购订单和付款审批记录。",
+            "suggestion": "逐笔核实时间倒置交易的商业合理性：(1)若为正常跨期→保留采购订单确认交易时间；(2)若为预付款→提供预付款合同条款；(3)若为后补发票→核实真实交易发生时间并提供物流签收记录。",
+            "policy_ref": "《发票管理办法》关于发票开具时限的规定；《增值税暂行条例》关于纳税义务发生时间的规定。",
             "category": "三角验证"
         })
     
@@ -13948,6 +13966,7 @@ def _domain_temporal_anomaly(bank_txs):
             "description": "交易行为分析发现异常模式:\n\n" + "\n".join(f"• {i}" for i in issues) + "\n\n稽查经验: 正常经营交易分散在工作日且金额零碎，周末交易和整数金额交易通常有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。",
             "how_found": "解析银行流水交易日期(判断周末)和交易金额(判断整数万元)，统计异常模式。",
             "suggestion": "① 核实周末交易的商业合理性（如电商行业周末是高峰期则正常）；② 核实整数金额交易是否对应真实的业务；③ 保留异常交易的合同和凭证。",
+            "policy_ref": "《税收征收管理法》关于账簿凭证管理的规定；虚开发票通常配合异常资金流水。",
             "category": "时间模式"
         })
     
@@ -15666,6 +15685,10 @@ def _run_analyze(company_id, db):
             inv_match_findings.append({
                 "type": "进销数量严重偏差", "level": "中风险", "score": 6,
                 "detail": f"{len(big_diff)}类商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
+                "description": f"进销数量偏差分析：通过逐票提取每张发票的商品名称和数量，将同一商品在进项和销项中的数量加总后进行比对。偏差超过100的含义：以'{top_diff[0][0]}'为例，销项开票数量{sale_by_goods[top_diff[0][0]]['qty']:.0f}但进项采购数量{pur_by_goods[top_diff[0][0]]['qty']:.0f}，差额{abs(top_diff[0][1]):.0f}。如果销项数量>进项数量，可能存在：(1)未开票采购（原材料来源不明）；(2)上期库存结转未计入。如果进项数量>销项数量，可能存在：(1)未开票销售（隐匿收入）；(2)存货积压未售出；(3)原材料损耗或用于非生产用途。",
+                "how_found": f"逐票提取{len(pur_by_goods)}种进项商品和{len(sale_by_goods)}种销项商品的数量→交叉比对→发现{len(big_diff)}种商品进销数量偏差>100",
+                "tax_impact": "进销数量严重偏差是账外经营和不实申报的典型特征。若销>进且无合理库存解释→可能存在未开票采购或虚开发票；若进>销且无合理库存解释→可能存在隐匿销售或存货异常损失。涉及增值税和企业所得税的少缴风险。",
+                "suggestion": "要求企业提供：(1)每种偏差商品的期初期末库存数量；(2)偏差商品对应的采购合同和销售合同；(3)如为正常库存变动，提供进销存台账佐证。",
                 "category": "进销存匹配",
             })
         
@@ -15990,45 +16013,11 @@ def _run_analyze(company_id, db):
     # 过滤掉非dict项（某些函数返回字符串混入）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
 
-    # ═══ 合并同类发现 ═══
-    # 将同一类型（type名称相同/语义相同）的发现合并为一条
-    # 避免"社保低基数参保"在多个域中重复出现
-    def _normalize_type(t):
-        """标准化类型名称，用于去重匹配"""
-        t = str(t).strip().replace(" ","").replace("一","").replace("检查","").replace("指标","")
-        return t[:20]  # 前20字一致视为同类
     
-    merged_map = {}
-    for f in all_findings:
-        key = _normalize_type(f.get("type", ""))
-        if key in merged_map:
-            existing = merged_map[key]
-            # 保留分数更高的
-            if (f.get("score") or 0) > (existing.get("score") or 0):
-                existing["score"] = f["score"]
-                existing["level"] = f.get("level", existing.get("level",""))
-            # 合并 detail：去重后拼接
-            existing_details = set(existing.get("detail","").split(";"))
-            new_detail = f.get("detail","").strip()
-            if new_detail and new_detail not in existing.get("detail",""):
-                existing["detail"] = (existing.get("detail","") + "；" + new_detail).strip("；")
-            # 合并 suggestion：取更具体的
-            if len(f.get("suggestion","")) > len(existing.get("suggestion","")):
-                existing["suggestion"] = f["suggestion"]
-            # 合并 how_found
-            if f.get("how_found") and f["how_found"] not in existing.get("how_found",""):
-                existing["how_found"] = (existing.get("how_found","") + " | " + f["how_found"]).strip(" |")
-            # 记录来源域
-            existing["_domains"] = (existing.get("_domains","") + "," + f.get("domain","")).strip(",")
-            existing["_merged"] = True
-        else:
-            merged_map[key] = dict(f)
-            merged_map[key]["_domains"] = f.get("domain","")
-    
-    all_findings = list(merged_map.values())
-    merged_count = sum(1 for f in all_findings if f.get("_merged"))
-    if merged_count > 0:
-        pipeline_log.append(f"合并同类发现: {merged_count}条被合并")
+    # ── 同类风险合并已移至 _apply_methodology_filter 的去重逻辑中 ──
+    # (此处原有的 _normalize_type 合并过于激进，会误杀实质性发现)
+    # merged_map 相关代码已禁用
+    merged_count = 0
 
     # ═══════════════════════════════════════════════════
     # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
@@ -16717,6 +16706,16 @@ def _run_analyze(company_id, db):
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
     
     # ═══ 重算风险统计（过滤后）═══
+    # 确保进销存匹配核心发现不丢失（有进无销/有销无进/进销数量偏差）
+    for imf in inv_match_findings:
+        if imf.get("score", 0) >= 6:
+            exists = any(f.get("type") == imf.get("type") for f in all_findings)
+            if not exists:
+                all_findings.append(imf)
+    
+    # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
+    all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
+    
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
@@ -16732,6 +16731,337 @@ def _run_analyze(company_id, db):
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
     }}
+
+# ═══════════ 明细注入：为每条发现附加结构化明细数据 ═══════════
+
+def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
+    """为每条发现附加items明细列表，使报告有具体数据支撑而非空泛结论。
+    
+    每条items = [{列字段...}]，前端渲染为可折叠明细表。
+    """
+    if not all_findings:
+        return all_findings
+    
+    # 预提取原始数据中的关键信息
+    pur_invs = [i for i in invoices if i.get("direction") in ("进项", "purchase")]
+    sal_invs = [i for i in invoices if i.get("direction") in ("销项", "sales")]
+    
+    for f in all_findings:
+        ftype = f.get("type", "")
+        items = []
+        
+        # ── 1. 有进无销风险：列出具体商品 ──
+        if "有进无销" in ftype and pur_invs and sal_invs:
+            sal_goods = set(str(i.get("goods", "")).strip() for i in sal_invs)
+            pur_by_goods = {}
+            for i in pur_invs:
+                g = str(i.get("goods", "")).strip()
+                if g and g not in sal_goods:
+                    pur_by_goods[g] = pur_by_goods.get(g, {"amount": 0, "suppliers": set(), "count": 0})
+                    pur_by_goods[g]["amount"] += float(i.get("amount", 0) or 0)
+                    pur_by_goods[g]["suppliers"].add(str(i.get("seller", ""))[:20])
+                    pur_by_goods[g]["count"] += 1
+            sorted_goods = sorted(pur_by_goods.items(), key=lambda x: -x[1]["amount"])
+            for g, v in sorted_goods[:20]:
+                items.append({
+                    "商品名称": g[:30], "采购次数": v["count"],
+                    "采购金额": f"{v['amount']:,.0f}", "供应商": "、".join(list(v["suppliers"])[:3]) if v["suppliers"] else ""
+                })
+        
+        # ── 2. 有销无进风险：列出具体商品 ──
+        elif "有销无进" in ftype and sal_invs and pur_invs:
+            pur_goods = set(str(i.get("goods", "")).strip() for i in pur_invs)
+            sal_by_goods = {}
+            for i in sal_invs:
+                g = str(i.get("goods", "")).strip()
+                if g and g not in pur_goods:
+                    sal_by_goods[g] = sal_by_goods.get(g, {"amount": 0, "buyers": set(), "count": 0})
+                    sal_by_goods[g]["amount"] += float(i.get("amount", 0) or 0)
+                    sal_by_goods[g]["buyers"].add(str(i.get("buyer", ""))[:20])
+                    sal_by_goods[g]["count"] += 1
+            sorted_goods = sorted(sal_by_goods.items(), key=lambda x: -x[1]["amount"])
+            for g, v in sorted_goods[:20]:
+                items.append({
+                    "商品名称": g[:30], "开票次数": v["count"],
+                    "开票金额": f"{v['amount']:,.0f}", "客户": "、".join(list(v["buyers"])[:3]) if v["buyers"] else ""
+                })
+        
+        # ── 3. 进项发票与银行付款未匹配 ──
+        elif "进项发票与银行付款" in ftype and pur_invs and bank_txs:
+            # 从银行流水中提取付款对方
+            bank_payees = set()
+            bank_payees_lower = set()
+            for tx in bank_txs:
+                debit = float(tx.get("debit", 0) or 0)
+                if debit > 0:
+                    cp = str(tx.get("counterparty", "")).strip()
+                    if cp:
+                        bank_payees.add(cp)
+                        bank_payees_lower.add(cp.lower().replace(" ", ""))
+            
+            unmatched = []
+            for i in pur_invs:
+                seller = str(i.get("seller", "")).strip()
+                if not seller:
+                    continue
+                # 排除特殊名称
+                seller_lower = seller.lower().replace(" ", "")
+                matched = any(
+                    seller_lower in bp or bp in seller_lower
+                    for bp in bank_payees_lower
+                )
+                if not matched:
+                    # 2字特殊名排除
+                    if len(seller.replace("市", "").replace("省", "")) <= 2:
+                        continue
+                    unmatched.append({
+                        "供应商": seller[:30],
+                        "金额": f"{float(i.get('amount', 0) or 0):,.0f}",
+                        "货物": str(i.get("goods", ""))[:20],
+                        "发票号": str(i.get("inv_no", ""))[:20] or "-"
+                    })
+            items = sorted(unmatched, key=lambda x: -float(x["金额"].replace(",", "")))[:30]
+        
+        # ── 4. 收款来源与开票客户不匹配 ──
+        elif "收款来源" in ftype and "开票客户" in ftype and bank_txs and sal_invs:
+            buyer_names = set()
+            buyer_names_lower = set()
+            for i in sal_invs:
+                b = str(i.get("buyer", "")).strip()
+                if b and len(b) > 2:
+                    buyer_names.add(b)
+                    buyer_names_lower.add(b.lower().replace(" ", ""))
+            
+            # 按收款对方统计
+            payer_totals = {}
+            for tx in bank_txs:
+                credit = float(tx.get("credit", 0) or 0)
+                if credit > 0:
+                    cp = str(tx.get("counterparty", "")).strip()
+                    if cp and len(cp) > 1:
+                        payer_totals[cp] = payer_totals.get(cp, 0) + credit
+            
+            # 关联发票客户
+            for i in sal_invs:
+                b = str(i.get("buyer", "")).strip()
+                if b and b in payer_totals:
+                    payer_totals[b] = payer_totals[b] - float(i.get("amount", 0) or 0)
+            
+            sorted_payers = sorted(payer_totals.items(), key=lambda x: -x[1])
+            for cp, amt in sorted_payers[:20]:
+                if amt > 0:
+                    # 判断是否来自开票客户
+                    cp_lower = cp.lower().replace(" ", "")
+                    is_customer = any(cp_lower in bl or bl in cp_lower for bl in buyer_names_lower)
+                    items.append({
+                        "付款方": cp[:25],
+                        "收款金额": f"{amt:,.0f}",
+                        "是否开票客户": "是" if is_customer else "否"
+                    })
+        
+        # ── 5. 发票缺少数量/单位字段 ──
+        elif ("发票缺少数量" in ftype or "发票缺少计量" in ftype) and invoices:
+            for i in invoices:
+                amt = float(i.get("amount", 0) or 0)
+                qty = i.get("qty", "")
+                unit = i.get("unit", "")
+                if amt <= 0:
+                    continue
+                if ("缺少数量" in ftype and (not qty or qty in ("", "0", "0.0"))):
+                    items.append({
+                        "供应商/客户": (str(i.get("seller", "")) or str(i.get("buyer", "")))[:25],
+                        "货物": str(i.get("goods", ""))[:25], "金额": f"{amt:,.0f}",
+                        "发票号": str(i.get("inv_no", ""))[:20] or "-",
+                        "方向": i.get("direction", "")
+                    })
+                    if len(items) >= 20: break
+                elif ("缺少计量" in ftype and (not unit or unit.strip() == "")):
+                    items.append({
+                        "供应商/客户": (str(i.get("seller", "")) or str(i.get("buyer", "")))[:25],
+                        "货物": str(i.get("goods", ""))[:25], "金额": f"{amt:,.0f}",
+                        "发票号": str(i.get("inv_no", ""))[:20] or "-",
+                        "方向": i.get("direction", "")
+                    })
+                    if len(items) >= 20: break
+        
+        # ── 6. 加工费发票 ──
+        elif "加工费" in ftype and invoices:
+            for i in invoices:
+                g = str(i.get("goods", ""))
+                if "加工" in g:
+                    amt = float(i.get("amount", 0) or 0)
+                    if amt > 0:
+                        qty = i.get("qty", "")
+                        unit = i.get("unit", "")
+                        issues = []
+                        if not qty or qty in ("", "0"): issues.append("缺数量")
+                        if not unit or unit.strip() == "": issues.append("缺单位")
+                        if issues:
+                            items.append({
+                                "供应商": str(i.get("seller", ""))[:25],
+                                "货物": g[:30], "金额": f"{amt:,.0f}",
+                                "问题": "、".join(issues), "发票号": str(i.get("inv_no", ""))[:20] or "-"
+                            })
+                            if len(items) >= 20: break
+        
+        # ── 7. 进销数量严重偏差 ──
+        elif "进销数量严重偏差" in ftype and pur_invs and sal_invs:
+            pur_qty = {}
+            for i in pur_invs:
+                g = str(i.get("goods", "")).strip()
+                qty_str = str(i.get("qty", "")).strip()
+                if g and qty_str and qty_str != "0":
+                    try:
+                        pur_qty[g] = pur_qty.get(g, 0) + float(qty_str)
+                    except: pass
+            sal_qty = {}
+            for i in sal_invs:
+                g = str(i.get("goods", "")).strip()
+                qty_str = str(i.get("qty", "")).strip()
+                if g and qty_str and qty_str != "0":
+                    try:
+                        sal_qty[g] = sal_qty.get(g, 0) + float(qty_str)
+                    except: pass
+            for g in pur_qty:
+                pi = pur_qty.get(g, 0)
+                si = sal_qty.get(g, 0)
+                if pi > 0 and abs(pi - si) > min(pi, si) * 0.5:
+                    items.append({
+                        "商品": g[:30], "进量": f"{pi:,.0f}",
+                        "销量": f"{si:,.0f}", "偏差": f"{abs(pi-si):,.0f}"
+                    })
+                    if len(items) >= 20: break
+        
+        # ── 8. 发票连号异常 ──
+        elif "发票连号" in ftype and sal_invs:
+            # 简化去重
+            seen_nos = set()
+            for i in sal_invs:
+                no = str(i.get("inv_no", "")).strip()
+                d = str(i.get("date", ""))[:10]
+                bn = str(i.get("buyer", ""))[:20]
+                if no and no not in seen_nos and len(no) >= 6:
+                    seen_nos.add(no)
+                    try:
+                        num = int("".join(c for c in no if c.isdigit())[-6:])
+                        items.append({"号码": no, "日期": d, "客户": bn, "数字部分": num})
+                    except: pass
+            # 排序找连续
+            items.sort(key=lambda x: x.get("数字部分", 0))
+            groups = []
+            cur = [items[0]] if items else []
+            for j in range(1, len(items)):
+                if items[j]["数字部分"] - items[j-1]["数字部分"] <= 3:
+                    cur.append(items[j])
+                else:
+                    if len(cur) >= 3: groups.append(cur)
+                    cur = [items[j]]
+            if len(cur) >= 3: groups.append(cur)
+            items = []
+            for grp in groups[:5]:
+                nos = [g["号码"] for g in grp]
+                items.append({
+                    "起始号": nos[0], "终止号": nos[-1],
+                    "张数": str(len(grp)), "日期范围": f"{grp[0]['日期']}~{grp[-1]['日期']}"
+                })
+        
+        # ── 9. 收款与开票金额偏差 ──
+        elif "收款与开票金额偏差" in ftype and bank_txs and sal_invs:
+            # Create items by rough period
+            from collections import defaultdict
+            period_bank = defaultdict(float)
+            period_inv = defaultdict(float)
+            for tx in bank_txs:
+                credit = float(tx.get("credit", 0) or 0)
+                if credit > 0:
+                    d = str(tx.get("date", ""))[:7]
+                    period_bank[d] += credit
+            for i in sal_invs:
+                d = str(i.get("date", ""))[:7]
+                period_inv[d] += float(i.get("amount", 0) or 0)
+            all_periods = sorted(set(list(period_bank.keys()) + list(period_inv.keys())))
+            for p in all_periods:
+                b = period_bank.get(p, 0)
+                s = period_inv.get(p, 0)
+                if b > 0 or s > 0:
+                    diff = b - s
+                    items.append({
+                        "期间": p, "收款": f"{b:,.0f}",
+                        "开票": f"{s:,.0f}", "差额": f"{diff:,.0f}"
+                    })
+            if items: items = items[:12]
+        
+        # ── 10. 经常损益(周末交易/高频低额等) ──
+        elif "周末交易" in ftype or "非工作日" in ftype:
+            for tx in bank_txs:
+                d = str(tx.get("date", ""))[:10]
+                debit = float(tx.get("debit", 0) or 0)
+                credit = float(tx.get("credit", 0) or 0)
+                amt = max(debit, credit)
+                if amt > 0:
+                    from datetime import datetime
+                    try:
+                        dt = datetime.strptime(d, "%Y-%m-%d")
+                        if dt.weekday() >= 5:
+                               items.append({
+                        "日期": d, f"{'付款' if debit > 0 else '收款'}金额": f"{amt:,.0f}",
+                        "对方": str(tx.get("counterparty", ""))[:20], "摘要": str(tx.get("summary", ""))[:30]
+                    })
+                    if len(items) >= 10: break
+                except: pass
+        
+        # 非工作日开票
+        elif "非工作日开票" in ftype and sal_invs:
+            for i in sal_invs:
+                d = str(i.get("date", ""))[:10]
+                if len(d) >= 10:
+                    from datetime import datetime
+                    try:
+                        dt = datetime.strptime(d, "%Y-%m-%d")
+                        if dt.weekday() >= 5:
+                            items.append({
+                                "日期": d, "发票号": str(i.get("inv_no", ""))[:20] or "-",
+                                "客户": str(i.get("buyer", ""))[:20], "金额": f"{float(i.get('amount', 0) or 0):,.0f}",
+                                "货物": str(i.get("goods", ""))[:20]
+                            })
+                            if len(items) >= 10: break
+                    except: pass
+        
+        elif "高频低额" in ftype and pur_invs:
+            # Count by seller
+            seller_counts = {}
+            for i in pur_invs:
+                s = str(i.get("seller", ""))[:30].strip()
+                if s:
+                    seller_counts[s] = seller_counts.get(s, {"count": 0, "amount": 0})
+                    seller_counts[s]["count"] += 1
+                    seller_counts[s]["amount"] += float(i.get("amount", 0) or 0)
+            for s, v in seller_counts.items():
+                if v["count"] >= 10:
+                    avg = v["amount"] / v["count"] if v["count"] > 0 else 0
+                    items.append({
+                        "供应商": s, "开票次数": str(v["count"]),
+                        "均额": f"{avg:,.0f}", "总额": f"{v['amount']:,.0f}"
+                    })
+                    if len(items) >= 15: break
+        
+        elif "交易时间与金额模式" in ftype and bank_txs:
+            for tx in bank_txs:
+                amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+                if amt >= 10000 and amt == int(amt):
+                    items.append({
+                        "日期": str(tx.get("date", ""))[:10],
+                        "金额": f"{amt:,.0f}", "对方": str(tx.get("counterparty", ""))[:20],
+                        "摘要": str(tx.get("summary", ""))[:30]
+                    })
+                    if len(items) >= 15: break
+        
+        # ── 注入items ──
+        if items:
+            f["items"] = items
+    
+    return all_findings
+
 
 # ═══════════ 报告复核函数 ═══════════
 
