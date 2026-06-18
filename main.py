@@ -15276,7 +15276,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
 def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory):
     """从各类资料中提取关键审计情报——让系统真正'读懂'资料"""
     intel = {}
-    from collections import Counter
+    from collections import Counter, defaultdict
     
     # ── 银行流水情报 ──
     if bank_txs:
@@ -15321,6 +15321,36 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             "大额交易(>50万)": len(large_txs),
             "往来方TOP5": [{"名称": n, "金额": f"{a:,.0f}"} for n, a in counterparties.most_common(5)],
         }
+        
+        # ── 收款类型分析：区分企业/个人/税费/社保/银行内部 ──
+        enterprise_pay = defaultdict(float); individual_pay = defaultdict(float)
+        tax_pay = defaultdict(float); bank_internal = defaultdict(float)
+        for tx in bank_txs:
+            credit = float(tx.get("credit", 0) or 0)
+            if credit <= 0: continue
+            cp = str(tx.get("counterparty", "")).strip()
+            if not cp or cp == "": cp = "(无名称)"
+            # 分类
+            if any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源','服饰']):
+                enterprise_pay[cp] += credit
+            elif any(k in cp for k in ['国家金库','税务局','ETS','社保','国库','税','财政']):
+                tax_pay[cp] += credit
+            elif any(k in cp for k in ['银行','农行','清算','资金','批量','结息']):
+                bank_internal[cp] += credit
+            else:
+                individual_pay[cp] += credit
+        
+        intel["银行流水"]["收款构成"] = {
+            "企业客户款": f"{sum(enterprise_pay.values()):,.0f}元（{len(enterprise_pay)}家）",
+            "个人款": f"{sum(individual_pay.values()):,.0f}元（{len(individual_pay)}位）",
+            "税费社保退款": f"{sum(tax_pay.values()):,.0f}元",
+            "银行利息/内部": f"{sum(bank_internal.values()):,.0f}元",
+        }
+        # TOP付款方明细
+        all_payers = {}
+        for d in [enterprise_pay, individual_pay, tax_pay, bank_internal]:
+            for k, v in d.items(): all_payers[k[:25]] = v
+        intel["银行流水"]["收款方TOP10"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])[:10]]
     
     # ── 发票情报 ──
     if invoices:
