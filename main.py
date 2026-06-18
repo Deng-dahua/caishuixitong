@@ -12778,22 +12778,28 @@ def _domain_invoice_deep(invoices):
 
 # ═══════════ 域14: 资料完备度评估 ═══════════
 
-def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory):
-    """评估提交资料的完整度，逐项量化缺失资料的稽查风险和牵连影响"""
+def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory,
+                                   trial_balance_data=None, contract_data=None, file_results=None):
+    """评估提交资料的完整度，逐项量化缺失资料的稽查风险和牵连影响
+    稽查必查15类资料：银行流水/销项发票/进项发票/记账凭证/工资表/社保明细/进销存台账/
+    合同文件/科目余额表/资产负债表/利润表/增值税申报表/企业所得税申报表/个税申报表/其他税种申报表"""
     findings = []
+    if trial_balance_data is None: trial_balance_data = []
+    if contract_data is None: contract_data = []
+    if file_results is None: file_results = []
     
     # ═══ 守卫: 全部文件解析失败 → 不报"缺失"而报"解析失败" ═══
-    total_parsed_docs = len(bank_txs) + len(sal_invs) + len(pur_invs) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
+    total_parsed_docs = len(bank_txs) + len(sal_invs) + len(pur_invs) + len(salaries) + len(social_security) + len(vouchers) + len(inventory) + len(trial_balance_data)
     if total_parsed_docs == 0 and docs_list:
         findings.append({
             "type": "文件解析失败",
             "level": "高风险", "score": 10,
             "detail": f"{len(docs_list)}个文件全部解析失败，无法评估资料完备度。",
             "description": "所有上传的文件均未能提取到结构化数据。这通常是因为：(1)文件格式不是财税标准模板——如简单的记账表格、非标准报表、截图嵌入Excel等；(2)表头列名与系统识别的关键词不匹配；(3)数据行在Sheet中的位置异常。注意：系统已识别到文件并进行了分析尝试，但无法提取有效数据。这不意味着企业真实缺失这些资料，而是系统无法解析当前文件格式。",
-            "how_found": f"扫描{len(docs_list)}个文件，全部解析后0条记录被提取到数据仓库（银行流水/发票/工资/社保/凭证/进销存均空）。",
+            "how_found": f"扫描{len(docs_list)}个文件，全部解析后0条记录被提取到数据仓库",
             "tax_impact": "资料无法解析意味着无法进行风险分析。但请注意：这些资料在企业手中是完整的，只是导出格式不兼容——稽查时可直接提供原始格式，不存在真实缺失。",
             "policy_ref": "本结论仅反映系统识别能力，不代表企业实际缺资料。建议按标准模板重新导出数据。",
-            "suggestion": "① 确认Excel文件第一行为表头行（列名）；② 确认文件内容为财税相关数据（发票清单/银行流水/工资表/社保明细/凭证/进销存/合同）；③ 尝试用金税系统标准导出格式重新生成文件；④ 如为PDF银行流水，请上传对账单PDF。",
+            "suggestion": "① 确认Excel文件第一行为表头行（列名）；② 确认文件内容为财税相关数据；③ 尝试用金税系统标准导出格式重新生成文件。",
             "category": "域14 资料完备度"
         })
         return findings
@@ -12806,164 +12812,176 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     if social_security: doc_types_present.add("social_security")
     if vouchers: doc_types_present.add("voucher")
     if inventory: doc_types_present.add("inventory")
+    if trial_balance_data: doc_types_present.add("trial_balance")
+    if contract_data: doc_types_present.add("contract")
+    
+    # 从文件名和file_results检测申报表类资料
     if docs_list:
         for d in docs_list:
             fn = d.get("original_name", "").lower()
             if any(k in fn for k in ("合同","contract","协议")): doc_types_present.add("contract")
-
-    all_present = list(doc_types_present)
+    
+    if file_results:
+        fr_types = set()
+        for fr in file_results:
+            t = fr.get("type", "")
+            if t == "financial_statements": fr_types.add("financial")
+            elif t == "vat_declaration": fr_types.add("vat")
+            elif t == "cit_declaration": fr_types.add("cit")
+            elif t == "individual_tax": fr_types.add("ind_tax")
+            elif t in ("stamp_duty", "tax_payment", "other_tax"): fr_types.add("other_tax")
+        for t in fr_types: doc_types_present.add(t)
+    
+    # 构建名称映射
     present_names = []
-    if "bank" in doc_types_present: present_names.append("银行流水")
-    if "sales_invoice" in doc_types_present: present_names.append("销项发票")
-    if "purchase_invoice" in doc_types_present: present_names.append("进项发票")
-    if "voucher" in doc_types_present: present_names.append("记账凭证")
-    if "salary" in doc_types_present: present_names.append("工资表")
-    if "social_security" in doc_types_present: present_names.append("社保明细")
-    if "inventory" in doc_types_present: present_names.append("进销存台账")
-    if "contract" in doc_types_present: present_names.append("合同文件")
-
+    ALL_CATEGORIES = [
+        ("bank", "银行流水", "验证资金全链路，稽查第一调取对象"),
+        ("sales_invoice", "销项发票", "验证开票收入与申报收入匹配"),
+        ("purchase_invoice", "进项发票", "验证成本真实性+进项税额抵扣合法性"),
+        ("voucher", "记账凭证", "追溯账务处理过程，缺失则无法核查账务合规性"),
+        ("salary", "工资表", "验证工资费用真实性+个税代扣代缴"),
+        ("social_security", "社保明细", "核实用工合规性，金税四期人社税务数据联动"),
+        ("inventory", "进销存台账", "验证存货真实性+购销匹配"),
+        ("contract", "合同文件", "证明交易真实性，四流合一第一环"),
+        ("trial_balance", "科目余额表", "验证总账与明细账一致性，稽查必查基础档案"),
+        ("financial", "资产负债表+利润表", "验证企业财务状况与申报数据的匹配"),
+        ("vat", "增值税申报表", "验证销项/进项税额与开票/收票数据的一致性"),
+        ("cit", "企业所得税申报表", "验证收入成本费用与凭证账务的匹配"),
+        ("ind_tax", "个人所得税申报表", "验证个税申报与工资表的一致性"),
+        ("other_tax", "其他税种申报表", "验证印花税/城建税/教育费附加等申报完整性"),
+    ]
+    
+    for key, name, reason in ALL_CATEGORIES:
+        if key in doc_types_present:
+            present_names.append(name)
+    
     # ═══ 逐项生成缺失资料的详细风险提示 ═══
     
-    # 1. 合同缺失
-    if "contract" not in doc_types_present:
-        sal_buyers = len(set(str(i.get("buyer",""))[:15] for i in sal_invs if i.get("buyer"))) if sal_invs else 0
-        pur_sellers = len(set(str(i.get("seller",""))[:15] for i in pur_invs if i.get("seller"))) if pur_invs else 0
-        sal_total = sum(float(i.get("total",0) or 0) for i in sal_invs) if sal_invs else 0
-        pur_total = sum(float(i.get("total",0) or 0) for i in pur_invs) if pur_invs else 0
-        findings.append({
-            "type": "合同文件缺失",
-            "level": "高风险", "score": 9,
-            "detail": f"缺少合同文件：{sal_buyers}个销项客户+{pur_sellers}个进项供应商的交易均无合同支撑（涉及销项{sal_total:,.0f}元+进项{pur_total:,.0f}元）。",
-            "description": f"稽查来了一定会要合同。合同是证明交易真实性的第一份证据。你缺了合同，意味着：\n\n① {sal_buyers}个客户、涉及{sal_total:,.0f}元的销售收入无法通过合同验证——稽查会逐笔质疑这些交易是否真实发生；\n② {pur_sellers}个供应商、涉及{pur_total:,.0f}元的采购成本无法通过合同验证——稽查会逐笔质疑这些进项发票是否为虚开；\n③ 四流合一（合同流、发票流、资金流、货物流）缺了第一环，整个证据链从源头断裂；\n④ 印花税的计税依据缺失——合同金额无法核实，印花税必然存在漏缴。",
-            "how_found": f"扫描{len(docs_list)}个上传文件，搜索文件名中[合同/contract/协议]关键词，未命中。同时从销项发票提取了{sal_buyers}个购方、从进项发票提取了{pur_sellers}个销方，全部无合同对应。",
-            "tax_impact": f"① 稽查将逐笔质疑{sal_buyers}+{pur_sellers}笔无合同交易的商业合理性；② 无合同→印花税漏缴→补税+罚款；③ 大额交易无合同→虚开发票嫌疑→可能移送公安。",
-            "policy_ref": "《税收征收管理法》第五十四条（税务检查权，可调取合同）；《印花税法》关于应税合同的规定；国家税务总局关于'四流合一'的稽查要求。",
-            "suggestion": f"① 立即为{sal_buyers}个客户和{pur_sellers}个供应商补签购销合同（至少覆盖主要交易）；② 合同中必须明确：双方名称、金额、货物/服务内容、履行期限、违约责任；③ 按合同金额依法补缴印花税；④ 建立'先签合同、后开发票、再付款'的内控制度。",
-            "category": "域14 资料完备度"
-        })
-
-    # 2. 银行流水缺失
-    if "bank" not in doc_types_present:
-        findings.append({
-            "type": "银行流水缺失",
-            "level": "高风险", "score": 10,
-            "detail": "缺少银行流水——稽查第一份就要调的资料。缺失则无法验证资金全链路。",
-            "description": "银行流水是稽查的第一个调取对象。缺失银行流水意味着：\n\n① 稽查无法验证收入完整性——所有销售收入是否真实入账无从核实；\n② 稽查无法验证成本真实性——所有采购支出是否真实发生无从核实；\n③ 稽查无法检测资金回流——虚开发票最常见的配合手段无法排查；\n④ 稽查会直接要求限期提供，逾期不提供→按最不利方式核定应纳税额。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到银行流水类文件（PDF格式含银行/对账单/交易明细等关键词）。",
-            "tax_impact": "稽查在无法调取银行流水的情况下，将以外部数据（如供电局用电量、行业平均产值）倒推核定收入，结果往往远超企业实际水平。配合'核定应纳税额+从高适用税率'的处罚力度。",
-            "policy_ref": "《税收征收管理法》第三十五条（核定应纳税额）、第五十四条（检查存款账户）。",
-            "suggestion": "① 立即整理全部对公账户的银行流水（含已注销账户）；② 法定代表人和主要股东的个人账户流水也应整理备查；③ 银行流水必须完整、连续、与序时账逐笔可勾稽。",
-            "category": "域14 资料完备度"
-        })
-
-    # 3. 销项发票缺失
-    if "sales_invoice" not in doc_types_present:
-        findings.append({
-            "type": "销项发票缺失",
-            "level": "高风险", "score": 9,
-            "detail": "缺少销项发票——无法验证企业实际开票收入和申报收入的匹配。",
-            "description": "销项发票是验证收入规模的核心资料。缺失意味着：\n\n① 无法比对[申报收入 vs 实际开票收入]——是否足额申报无从核实；\n② 无法比对[开票客户 vs 回款客户]——是否存在账外客户无从核实；\n③ 稽查会直接调取金税系统中的开票数据，与你的银行流水直接比对——你自己不先比对，等稽查帮你比对，你就被动了。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到销项发票类Excel文件。",
-            "tax_impact": "缺失销项发票→稽查使用金税系统开票数据→与你的银行流水比对→银行收款>开票金额的部分→推定为隐匿收入→补税+罚款。",
-            "policy_ref": "《增值税暂行条例》关于发票开具和销售额确定的规定。",
-            "suggestion": "① 从金税系统导出完整的销项发票清单（含电子发票）；② 按月度与银行收款、申报收入做三方勾稽，差异编制调节表。",
-            "category": "域14 资料完备度"
-        })
-
-    # 4. 进项发票缺失
-    if "purchase_invoice" not in doc_types_present:
-        findings.append({
-            "type": "进项发票缺失",
-            "level": "高风险", "score": 9,
-            "detail": "缺少进项发票——无法验证成本真实性和进项税额抵扣的合法性。",
-            "description": "进项发票是验证成本真实性、进项税额抵扣合法性的核心资料。缺失意味着：\n\n① 无法验证已抵扣的进项税额是否合规——稽查可能要求全部进项转出；\n② 无法验证供应商是否真实经营——是否存在走逃失联供应商无从排查；\n③ 无法比对[采购发票 vs 存货入库 vs 银行付款]三流一致性。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到进项发票类Excel文件。",
-            "tax_impact": "缺失进项发票→稽查将逐一核验全部进项税额抵扣凭证→异常发票做进项转出→补税+滞纳金。",
-            "policy_ref": "《增值税暂行条例》关于进项税额抵扣的规定；国家税务总局公告2019年第38号（异常增值税扣税凭证）。",
-            "suggestion": "① 从金税系统导出完整的进项发票清单；② 逐张核实进项发票对应的采购入库和银行付款，三流不一致的主动做进项转出。",
-            "category": "域14 资料完备度"
-        })
-
-    # 5. 记账凭证缺失
-    if "voucher" not in doc_types_present:
-        findings.append({
-            "type": "记账凭证缺失",
-            "level": "高风险", "score": 8,
-            "detail": "缺少记账凭证——稽查无法追溯业务账务处理过程。",
-            "description": "记账凭证是会计处理的原始记录。缺失凭证=稽查无法核查账务处理的合规性。根据《税务稽查工作规程》，企业有义务提供完整的会计凭证。逾期不提供→核定应纳税额→从高适用税率。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到凭证类Excel文件。",
-            "tax_impact": "缺失凭证→稽查按最不利方式核定应纳税额→通常远高于实际应缴税额→且罚款幅度在50%-5倍。",
-            "policy_ref": "《税收征收管理法》第三十五条（核定征收）；《税务稽查工作规程》关于资料提供的规定。",
-            "suggestion": "① 确保完整的记账凭证（序时账）随时可调取；② 凭证必须包含：日期、凭证号、摘要、科目、借贷金额、附件张数。",
-            "category": "域14 资料完备度"
-        })
-
-    # 6. 工资表缺失
-    if "salary" not in doc_types_present:
-        findings.append({
-            "type": "工资表缺失",
-            "level": "中风险", "score": 6,
-            "detail": "缺少工资表——个人所得税代扣代缴和工资费用真实性无法验证。",
-            "description": "工资是企业所得税前扣除的大项，也是个税代扣代缴的基础资料。缺失工资表=稽查无法核实：① 税前扣除的工资费用是否真实（有没有虚列人员？）；② 个税是否足额代扣代缴。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到工资类Excel文件。",
-            "tax_impact": "缺失工资表→工资费用可能被全额纳税调增（不得税前扣除）→补缴企业所得税→同时追缴未扣个税。",
-            "policy_ref": "《企业所得税法实施条例》第三十四条；《个人所得税法》第九条（扣缴义务）。",
-            "suggestion": "① 整理完整的工资表（含姓名、身份证号、应发、代扣社保/公积金/个税、实发）；② 与个税申报、社保参保名单三方比对。",
-            "category": "域14 资料完备度"
-        })
-
-    # 7. 社保明细缺失
-    if "social_security" not in doc_types_present:
-        findings.append({
-            "type": "社保明细缺失",
-            "level": "中风险", "score": 6,
-            "detail": "缺少社保明细——无法核实用工合规性，可能触发社保稽核联动税务稽查。",
-            "description": "社保明细是验证企业用工合规性的核心资料。缺失=无法核实：① 是否全员参保；② 缴费基数是否与实际工资一致；③ 是否存在'假派遣真用工'规避社保。金税四期已将人社数据与税务数据打通，差异自动预警。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到社保类Excel文件。",
-            "tax_impact": "缺失社保→社保稽核部门独立立案→社保补缴+滞纳金→并同步推送风险至税务系统→联动稽查。",
-            "policy_ref": "《社会保险法》第五十八条（参保义务）；第八十四条（未参保处罚）。",
-            "suggestion": "① 整理社保参保人员明细（含姓名、身份证号、缴费基数、险种）；② 与工资表做逐人比对，差异人员说明原因。",
-            "category": "域14 资料完备度"
-        })
-
-    # 8. 进销存台账缺失
-    if "inventory" not in doc_types_present:
-        findings.append({
-            "type": "进销存台账缺失",
-            "level": "中风险", "score": 5,
-            "detail": "缺少进销存台账——无法验证存货的真实性和购销匹配程度。",
-            "description": "进销存台账是验证存货真实性和购销匹配的基础。缺失=稽查无法判断：① 账面库存是否真实存在（账实是否相符）；② 采购量、销售量、库存量三者逻辑是否自洽（有没有隐匿销售或虚增采购）。",
-            "how_found": f"扫描了{len(docs_list)}个上传文件，未找到进销存类Excel文件。",
-            "tax_impact": "缺失进销存→稽查进行实地盘点→账实不符的部分→推定为已销售未入账→补缴增值税和企业所得税。",
-            "policy_ref": "《企业所得税法实施条例》关于存货计价和盘点核实的规定。",
-            "suggestion": "① 整理完整的进销存台账（含期初/入库/出库/结存的数量和金额）；② 每月与财务存货账核对，差异零容忍。",
-            "category": "域14 资料完备度"
-        })
-
+    # 缺失项定义：(key, finding_type, level, score, detail, description, tax_impact, policy, suggestion)
+    MISSING_DEFS = [
+        ("contract", "合同文件缺失", "高风险", 9,
+         lambda: f"缺少合同文件：{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}个销项客户+{len(set(str(i.get('seller',''))[:15] for i in pur_invs if i.get('seller'))) if pur_invs else 0}个供应商的交易均无合同支撑",
+         lambda: f"稽查来了一定会要合同。合同是证明交易真实性的第一份证据。\n\n① 销售收入无法通过合同验证——稽查会逐笔质疑交易是否真实发生；\n② 采购成本无法通过合同验证——稽查会逐笔质疑进项发票是否为虚开；\n③ 四流合一（合同流、发票流、资金流、货物流）缺了第一环；\n④ 印花税的计税依据缺失——合同金额无法核实，印花税必然存在漏缴。",
+         lambda: f"① 稽查将逐笔质疑无合同交易的商业合理性；② 无合同→印花税漏缴→补税+罚款；③ 大额交易无合同→虚开发票嫌疑→可能移送公安。",
+         lambda: "《税收征收管理法》第五十四条；《印花税法》关于应税合同的规定。",
+         "① 为客户和供应商补签购销合同（至少覆盖主要交易）；② 合同必须明确：双方名称、金额、货物内容、履行期限、违约责任；③ 按合同金额补缴印花税。"),
+        
+        ("bank", "银行流水缺失", "高风险", 10,
+         lambda: "缺少银行流水——稽查第一份就要调的资料",
+         lambda: "银行流水是稽查的第一个调取对象。缺失意味着：\n\n① 稽查无法验证收入完整性；\n② 稽查无法验证成本真实性；\n③ 稽查无法检测资金回流；\n④ 稽查会直接要求限期提供，逾期不提供可能触发核定征收。",
+         lambda: "稽查无法调取银行流水→可能使用外部数据倒推核定收入→结果往往远超企业实际水平。",
+         lambda: "《税收征收管理法》第三十五条、第五十四条。",
+         "① 整理全部对公账户银行流水（含已注销账户）；② 法人和主要股东个人账户流水也应整理备查。"),
+        
+        ("sales_invoice", "销项发票缺失", "高风险", 9,
+         lambda: "缺少销项发票——无法验证企业实际开票收入和申报收入的匹配",
+         lambda: "销项发票是验证收入规模的核心资料。缺失意味着：\n\n① 无法比对申报收入vs实际开票收入；\n② 无法比对开票客户vs回款客户；\n③ 稽查会直接调取金税系统中的开票数据与银行流水直接比对。",
+         lambda: "缺失销项发票→稽查使用金税系统开票数据→银行收款>开票金额→推定为隐匿收入→补税+罚款。",
+         lambda: "《增值税暂行条例》关于发票开具和销售额确定的规定。",
+         "① 从金税系统导出完整销项发票清单；② 按月度与银行收款、申报收入做三方勾稽。"),
+        
+        ("purchase_invoice", "进项发票缺失", "高风险", 9,
+         lambda: "缺少进项发票——无法验证成本真实性和进项税额抵扣的合法性",
+         lambda: "进项发票是验证成本真实性、进项税额抵扣合法性的核心资料。缺失意味着：\n\n① 无法验证已抵扣的进项税额是否合规；\n② 无法验证供应商是否真实经营；\n③ 无法比对采购发票vs存货入库vs银行付款三流一致性。",
+         lambda: "缺失进项发票→稽查逐一核验全部进项税额抵扣凭证→异常发票做进项转出→补税+滞纳金。",
+         lambda: "《增值税暂行条例》关于进项税额抵扣的规定；国家税务总局公告2019年第38号。",
+         "① 从金税系统导出完整进项发票清单；② 逐张核实三流一致性，不一致的主动做进项转出。"),
+        
+        ("voucher", "记账凭证缺失", "高风险", 8,
+         lambda: "缺少记账凭证——稽查无法追溯业务账务处理过程",
+         lambda: "记账凭证是会计处理的原始记录。缺失凭证=稽查无法核查账务处理的合规性。根据《税务稽查工作规程》，企业有义务提供完整的会计凭证。",
+         lambda: "缺失凭证→稽查无法核实账务处理的合规性→无法验证收入确认、成本结转、费用归集的时点和金额→可能被认定为账务混乱→补税+罚款。",
+         lambda: "《税收征收管理法》第五十四条、第五十六条；《税务稽查工作规程》关于资料提供的规定。",
+         "① 确保完整的记账凭证（序时账）随时可调取；② 凭证必须包含：日期、凭证号、摘要、科目、借贷金额、附件张数。"),
+        
+        ("trial_balance", "科目余额表缺失", "中风险", 7,
+         lambda: "缺少科目余额表——无法验证总账与明细账的一致性",
+         lambda: "科目余额表是连接总账与明细账的桥梁，也是编制财务报表的基础。缺失=稽查无法核实：① 各科目期初期末余额是否衔接；② 发生额是否与凭证汇总一致；③ 是否存在账外科目或账外资金。",
+         lambda: "缺失科目余额表→稽查无法验证科目余额的连续性→重点科目（往来/存货/收入/成本）将被逐笔重点核查。",
+         lambda: "《企业会计准则》关于科目设置和账务记录的规定。",
+         "① 导出完整的科目余额表（含期初余额/本期借方/本期贷方/期末余额）；② 与序时账的科目汇总数逐科目核对。"),
+        
+        ("salary", "工资表缺失", "中风险", 6,
+         lambda: "缺少工资表——个人所得税代扣代缴和工资费用真实性无法验证",
+         lambda: "工资是企业所得税前扣除的大项，也是个税代扣代缴的基础资料。缺失=稽查无法核实：① 税前扣除的工资费用是否真实；② 个税是否足额代扣代缴。",
+         lambda: "缺失工资表→工资费用可能被全额纳税调增→补缴企业所得税→同时追缴未扣个税。",
+         lambda: "《企业所得税法实施条例》第三十四条；《个人所得税法》第九条。",
+         "① 整理完整工资表（含姓名、身份证号、应发、代扣、实发）；② 与个税申报、社保参保名单三方比对。"),
+        
+        ("social_security", "社保明细缺失", "中风险", 6,
+         lambda: "缺少社保明细——无法核实用工合规性，可能触发社保稽核联动税务稽查",
+         lambda: "社保明细是验证企业用工合规性的核心资料。缺失=无法核实：① 是否全员参保；② 缴费基数是否与实际工资一致。金税四期已将人社数据与税务数据打通，差异自动预警。",
+         lambda: "缺失社保→社保稽核部门独立立案→社保补缴+滞纳金→同步推送风险至税务系统→联动稽查。",
+         lambda: "《社会保险法》第五十八条、第八十四条。",
+         "① 整理社保参保人员明细（含姓名、身份证号、缴费基数、险种）；② 与工资表逐人比对。"),
+        
+        ("inventory", "进销存台账缺失", "中风险", 5,
+         lambda: "缺少进销存台账——无法验证存货的真实性和购销匹配程度",
+         lambda: "进销存台账是验证存货真实性和购销匹配的基础。缺失=稽查无法判断：① 账面库存是否真实存在；② 采购量、销售量、库存量三者逻辑是否自洽。",
+         lambda: "缺失进销存→稽查进行实地盘点→账实不符的部分→推定为已销售未入账→补缴增值税和企业所得税。",
+         lambda: "《企业所得税法实施条例》关于存货计价和盘点核实的规定。",
+         "① 整理完整的进销存台账（含期初/入库/出库/结存的数量和金额）；② 每月与财务存货账核对。"),
+        
+        ("financial", "财务报表缺失", "中风险", 7,
+         lambda: "缺少资产负债表和利润表——无法验证企业财务状况与申报数据的匹配",
+         lambda: "资产负债表和利润表是企业财务状况的核心文件。缺失=稽查无法验证：① 申报收入与报表收入是否一致；② 资产规模与经营规模是否匹配；③ 往来科目余额是否异常。",
+         lambda: "缺失财务报表→稽查从金税系统调取申报数据→与银行流水/发票数据直接比对→差异部分推定为隐匿收入或虚列成本。",
+         lambda: "《税收征收管理法》第五十四条；《企业所得税法》关于纳税申报的规定。",
+         "① 准备完整的资产负债表、利润表、现金流量表；② 报表数据与税务申报数据、凭证账务三方核对一致。"),
+        
+        ("vat", "增值税申报表缺失", "中风险", 6,
+         lambda: "缺少增值税申报表——无法验证申报数据与开票数据的一致性",
+         lambda: "增值税申报表是验证销项税额和进项税额申报是否完整的基础。缺失=无法比对：① 申报销项税额vs开票税额；② 申报进项税额vs收票税额；③ 是否存在未开票收入未申报。",
+         lambda: "缺失增值税申报表→稽查直接调取金税系统申报记录→与你的发票数据比对→差异即问题→补税+罚款。",
+         lambda: "《增值税暂行条例》关于纳税申报的规定。",
+         "① 导出完整的增值税申报表（主表+附表）；② 逐月与销项/进项发票汇总数勾稽。"),
+        
+        ("cit", "企业所得税申报表缺失", "中风险", 6,
+         lambda: "缺少企业所得税申报表——无法验证收入成本费用与凭证账务的匹配",
+         lambda: "企业所得税申报表是验证利润真实性和税前扣除合规性的核心资料。缺失=无法比对：① 申报收入vs凭证收入；② 申报成本vs凭证成本；③ 各项费用税前扣除是否超标。",
+         lambda: "缺失所得税申报表→稽查直接调取金税系统申报记录→与凭证账务数据比对→差异即问题→补税+罚款。",
+         lambda: "《企业所得税法》关于纳税申报的规定。",
+         "① 导出完整的企业所得税年度申报表（A类全套）；② 与凭证汇总的期间收入成本费用逐项勾稽。"),
+        
+        ("ind_tax", "个人所得税申报表缺失", "低风险", 4,
+         lambda: "缺少个人所得税申报表——无法验证个税申报与工资表的一致性",
+         lambda: "个税申报表是验证工资发放和代扣代缴完整性的依据。缺失=无法核实：① 申报人数vs工资人数是否一致；② 申报收入vs实发工资是否一致；③ 专项附加扣除是否合规。",
+         lambda: "缺失个税申报表→稽查调取金税系统数据→与工资表比对→差异即问题→补税+罚款+滞纳金。",
+         lambda: "《个人所得税法》第九条、第十条。",
+         "① 导出完整的个税扣缴申报明细；② 与工资表逐人逐月比对。"),
+        
+        ("other_tax", "其他税种申报表缺失", "低风险", 3,
+         lambda: "缺少印花税/城建税/教育费附加等小税种申报表——无法验证附征税费的申报完整性",
+         lambda: "印花税、城建税、教育费附加等小税种虽然金额不大，但稽查中常常成为突破口。缺失=无法核实：① 印花税是否按合同/账簿/证照足额缴纳；② 城建税及附加是否按增值税额正确计算。",
+         lambda: "缺失小税种申报→稽查逐一核验→漏缴部分补税+罚款→虽金额不大但容易成为'突破口'。",
+         lambda: "《印花税法》、《城市维护建设税法》等相关规定。",
+         "① 整理所有税种的申报记录和完税凭证；② 按计税依据逐项自查是否存在漏缴。"),
+    ]
+    
+    for key, ftype, level, score, detail_fn, desc_fn, impact_fn, policy, suggestion in MISSING_DEFS:
+        if key not in doc_types_present:
+            findings.append({
+                "type": ftype,
+                "level": level, "score": score,
+                "detail": detail_fn(),
+                "description": desc_fn(),
+                "how_found": f"系统逐一检测15类稽查必查资料的提交状态，{ftype.replace('缺失','')}类资料未提交",
+                "tax_impact": impact_fn(),
+                "policy_ref": policy,
+                "suggestion": suggestion,
+                "category": "域14 资料完备度"
+            })
+    
     # ═══ 资料完备度综合评估 ═══
-    # 缺失类别及说明
+    total_categories = len(ALL_CATEGORIES)
     missing_categories = []
-    if "contract" not in doc_types_present:
-        missing_categories.append("合同文件（证明交易真实性，四流合一第一环）")
-    if "voucher" not in doc_types_present:
-        missing_categories.append("记账凭证（追溯账务处理过程，无凭证=核定征收）")
-    if "salary" not in doc_types_present:
-        missing_categories.append("工资表（验证工资费用真实性+个税代扣代缴）")
-    if "social_security" not in doc_types_present:
-        missing_categories.append("社保明细（核实用工合规性，金税四期人社税务数据联动）")
-    if "inventory" not in doc_types_present:
-        missing_categories.append("进销存台账（验证存货真实性+购销匹配）")
-    if "bank" not in doc_types_present:
-        missing_categories.append("银行流水（验证资金全链路，稽查第一调取对象）")
-    if "sales_invoice" not in doc_types_present:
-        missing_categories.append("销项发票（验证开票收入与申报收入匹配）")
-    if "purchase_invoice" not in doc_types_present:
-        missing_categories.append("进项发票（验证成本真实性+进项税额抵扣合法性）")
+    for key, name, reason in ALL_CATEGORIES:
+        if key not in doc_types_present:
+            missing_categories.append(f"{name}（{reason}）")
     
     missing_count = len(missing_categories)
     if missing_count > 0:
-        total_score = min(3 + missing_count * 2, 10)
-        # 构建items列表，每条缺失类别一行
+        total_score = min(3 + missing_count, 10)
         missing_items = []
         for mc in missing_categories:
             name, reason = mc.split("（", 1)
@@ -12974,14 +12992,14 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         
         findings.append({
             "type": "资料完备度综合评估",
-            "level": "高风险" if missing_count >= 3 else ("中风险" if missing_count >= 1 else "低风险"),
+            "level": "高风险" if missing_count >= 5 else ("中风险" if missing_count >= 2 else "低风险"),
             "score": total_score,
             "detail": f"已提交{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类：{missing_detail}。",
             "description": f"本次分析提交了{len(present_names)}类资料，缺失{missing_count}类。每缺一类资料，稽查来的时候你就少一道防线。根据《税务稽查工作规程》，接到稽查通知后通常只有3-5天准备时间——有些资料你现在不整理好，到时候根本来不及凑。\n\n已提交的资料：{'、'.join(present_names)}。这些资料对应的分析域已经产生了风险发现，详见本报告各分析域。",
-            "how_found": f"系统逐一检测8类稽查必查资料的提交状态。检测方法：银行流水→PDF文件、发票→Excel文件含销项/进项sheet、凭证→Excel文件含凭证sheet、工资→Excel文件含工资sheet、社保→Excel文件含社保sheet、存货→Excel文件含进销存sheet、合同→文件名含'合同'/'contract'。",
-            "tax_impact": "稽查通知下达后，无法在限期内提供完整资料的→面临罚款（单位最高5万元）+ 税务机关按最不利方式核定应纳税额。每一类缺失的资料，都是在给稽查递刀子。",
+            "how_found": f"系统逐一检测{total_categories}类稽查必查资料的提交状态。检测方法：从文件解析结果的数据类型和文件名称进行判断。",
+            "tax_impact": "稽查通知下达后，无法在限期内提供完整资料的→面临罚款（单位最高5万元）+ 税务机关将从其他数据源倒推核定应纳税额。每一类缺失的资料，都是在给稽查递刀子。",
             "policy_ref": "《税收征收管理法》第五十四条、第五十六条（资料提供义务及罚则）；《税务稽查工作规程》第二十二条（检查取证）。",
-            "suggestion": f"立即补充缺失的{missing_count}类资料。按照金税四期稽查必查清单，企业应确保以下8类资料随时可调取、完整、规范：银行流水、销项发票、进项发票、记账凭证、工资表、社保明细、进销存台账、合同文件。",
+            "suggestion": f"立即补充缺失的{missing_count}类资料。按照金税四期稽查必查清单，企业应确保以下{total_categories}类资料随时可调取、完整、规范：" + "、".join([f"{name}" for _, name, _ in ALL_CATEGORIES]) + "。",
             "items": missing_items,
             "category": "域14 资料完备度"
         })
@@ -12989,9 +13007,9 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         findings.append({
             "type": "资料完备度综合评估",
             "level": "低风险", "score": 2,
-            "detail": f"已提交全部8类稽查必查资料：{'、'.join(present_names)}。",
-            "description": f"本次分析覆盖了全部8类稽查必查核心资料，资料完整度高，能够支撑全面的涉税风险分析和稽查应对。",
-            "how_found": "系统逐一检测8类稽查必查资料的提交状态，全部检测通过。",
+            "detail": f"已提交全部{total_categories}类稽查必查资料：{'、'.join(present_names)}。",
+            "description": f"本次分析覆盖了全部{total_categories}类稽查必查核心资料，资料完整度高，能够支撑全面的涉税风险分析和稽查应对。",
+            "how_found": f"系统逐一检测{total_categories}类稽查必查资料的提交状态，全部检测通过。",
             "category": "域14 资料完备度"
         })
 
@@ -15954,7 +15972,7 @@ def _run_analyze(company_id, db):
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
-    domain_results.append({"domain": "资料完备度评估", "findings": _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
+    domain_results.append({"domain": "资料完备度评估", "findings": _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results)})
     # 域14.5: 账务系统缺失风险（有发票/流水但无凭证→无法验证账务真实性）
     _acct_risk = _check_accounting_system_gap(invoices, bank_txs, vouchers)
     if _acct_risk: domain_results.append({"domain": "账务系统风险", "findings": _acct_risk})
