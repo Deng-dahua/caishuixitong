@@ -15472,22 +15472,22 @@ def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
 
-    global _tax_risk_docs, _tax_doc_counter, _TAX_DOC_SCANNED
-    # 每次分析时强制重扫描磁盘（确保新上传文件可见，零时差）
-    _TAX_DOC_SCANNED = False
-    _tax_risk_docs.clear()
-    _init_tax_docs_from_disk()
-    # 去重：同一文件名只保留一条（防止 _init_ 和 _recover 重复添加）
-    seen_fnames = set()
-    unique_docs = []
-    for d in _tax_risk_docs:
-        key = d.get("filename", "")
-        if key and key not in seen_fnames:
-            seen_fnames.add(key)
-            unique_docs.append(d)
-    _tax_risk_docs[:] = unique_docs
-    
-    docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
+    # 直接从磁盘扫描文件列表——不依赖全局 _tax_risk_docs 状态
+    docs = []
+    if os.path.exists(UPLOAD_DIR):
+        for fname in os.listdir(UPLOAD_DIR):
+            parts = fname.split("_", 2)
+            if len(parts) < 3: continue
+            try: f_cid = int(parts[0]); f_doc_id = int(parts[1])
+            except: continue
+            if f_cid != company_id: continue
+            orig_name = parts[2]
+            fpath = os.path.join(UPLOAD_DIR, fname)
+            if os.path.isfile(fpath):
+                docs.append({
+                    "id": f_doc_id, "filename": fname, "original_name": orig_name,
+                    "path": fpath, "company_id": f_cid
+                })
     if not docs: return {"ok": False, "message": "暂无上传资料"}
     try: db.rollback()
     except: pass
