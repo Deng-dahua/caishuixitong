@@ -15805,28 +15805,31 @@ def _run_analyze(company_id, db):
             pur_total_all = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
             pct = pur_amount_only / max(pur_total_all, 1) * 100
             
-            # 制造业诊断：进项有加工费+原材料→很可能是将原材料加工为成品销售（进销品名天然不同）
+            # 制造业诊断：进项有加工费+有与销项品名不同的采购→很可能是将原材料加工为成品（进销品名天然不同）
             has_processing = any("加工费" in g or "加工" in g for g in pur_by_goods)
-            has_raw_materials = any("纱" in g or "棉" in g or "布" in g for g in only_buy)
-            is_manufacturing = has_processing and has_raw_materials
+            # 检测是否有"原材料类"采购：进项品名与销项品名不同的非加工费非费用类商品
+            non_matching_pur = [g for g in only_buy if g not in sale_by_goods]
+            # 去掉明显是费用类的进项（住宿、餐饮、加油、租赁等）
+            expense_keywords = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
+            raw_like = [g for g in non_matching_pur if not any(k in g for k in expense_keywords) and "加工" not in g]
+            is_manufacturing = has_processing and len(raw_like) > 0
             
             if is_manufacturing:
-                # 制造业正常加工链条：采购纱线→委托加工→销售成品布
-                raw_list = [g for g in only_buy if any(k in g for k in ["纱","棉","丝","纤维"])][:5]
+                pur_raw_list = raw_like[:5]
                 processing = [g for g in only_buy if "加工" in g][:3]
                 only_sell_goods = [g for g in sale_by_goods if g not in pur_by_goods]
                 
-                desc = f"被查单位采购了{'、'.join(raw_list[:3])}等{len(only_buy)}种商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。"
-                desc += f"\n\n⚠️ 根因分析：被查单位是纺织制造企业，进项中有加工费发票（{'、'.join(processing) if processing else '外包加工'}），这强烈表明企业采用'采购原材料→委托加工→销售成品'的经营模式。"
-                desc += f"在此模式下，{len(only_buy)}种进项商品（棉纱等原材料、加工费、水电费等）经过加工后转化为成品（{'、'.join(only_sell_goods[:3])}），因此进项品名与销项品名天然不匹配——这不是虚开发票，而是制造业的正常加工链条。"
-                desc += f"\n\n但需注意：① 加工链条的真实性仍需BOM表验证——多少纱能产出多少布？加工损耗率是多少？② 非原材料类采购（住宿费、餐费、加油费等{len([g for g in only_buy if not any(k in g for k in ['纱','棉','丝','纤维','加工','纺织','布','服装'])])}类）的去向需要单独说明。"
+                desc = f"被查单位采购了{'、'.join(pur_raw_list[:3])}等{len(only_buy)}种商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。"
+                desc += f"\n\n⚠️ 根因分析：进项中有加工费发票（{'、'.join(processing) if processing else '外包加工'}），同时存在{len(raw_like)}种非费用类采购与销项品名不重合。这强烈表明企业采用'采购原材料→委托加工→销售成品'的经营模式。"
+                desc += f"在此模式下，进项品名与销项品名天然不匹配——你买面粉不会卖面粉，你买芯片不会卖芯片，你买的是原料、卖的是加工后的成品——这不是虚开发票，而是制造业的正常加工链条。"
+                desc += f"\n\n但需注意：① 加工链条的真实性仍需BOM表验证——原料投入量和成品产出量的逻辑是否自洽；② 费用类进项（住宿费、餐费等{len([g for g in only_buy if any(k in g for k in expense_keywords)])}类）的去向需要单独说明。"
                 
                 inv_match_findings.append({
                     "type": "有进无销风险",
                     "level": "中风险", "score": 5,  # 降级：制造业正常加工链条可解释
                     "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
                     "description": desc,
-                    "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售→进一步诊断：已检测到加工费发票（{has_processing}）和原材料采购（{has_raw_materials}），判断为制造业正常加工链条导致进销品名差异。",
+                    "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售→进一步诊断：已检测到加工费发票（{has_processing}）和非费用类进项（{len(raw_like)}种），判断为制造业正常加工链条导致进销品名差异。",
                     "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但非原材料类采购的去向仍需说明，特别是费用类进项（住宿、餐饮等）与经营规模是否匹配需核实。关键风险点是：加工费发票的真实性（是否虚开加工票）和BOM表的完整性（能否证明投入产出逻辑）。",
                     "policy_ref": "《增值税暂行条例》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
                     "suggestion": f"① 限期提供BOM表（物料清单），验证原材料投入→加工→成品产出的完整链条（投入产出比、损耗率）；② 提供加工合同、加工出入库单（送料单+收货单）；③ 对住宿费、餐费等费用类进项，提供费用报销凭证和业务说明；④ 如为纯贸易（直接买进卖出），提供贸易链条说明。",
