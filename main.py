@@ -15358,6 +15358,33 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             for k, v in d.items(): all_payers[k[:25]] = v
         intel["银行流水"]["收款方TOP10"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])[:10]]
         intel["银行流水"]["收款方全部"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
+        
+        # ── 付款方分析（全部列示，不截断）──
+        enterprise_payee = defaultdict(float); individual_payee = defaultdict(float)
+        tax_payee = defaultdict(float); bank_payee = defaultdict(float)
+        for tx in bank_txs:
+            debit = float(tx.get("debit", 0) or 0)
+            if debit <= 0: continue
+            cp = str(tx.get("counterparty", "")).strip()
+            summary = str(tx.get("summary", "")).strip()
+            if not cp:
+                if any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
+                elif any(k in summary for k in ['结息','利息']): cp = "(银行扣息)"
+                elif any(k in summary for k in ['费用','短信','账户']): cp = "(银行费用)"
+                else: cp = "(未记录名称)"
+            if any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源']):
+                enterprise_payee[cp] += debit
+            elif any(k in cp for k in ['国家金库','税务局','ETS','社保','国库','税','财政','省ETS']):
+                tax_payee[cp] += debit
+            elif any(k in cp for k in ['银行','农行','清算','资金','批量','结息','扣息','费用']):
+                bank_payee[cp] += debit
+            else:
+                individual_payee[cp] += debit
+        
+        all_payees = {}
+        for d in [enterprise_payee, tax_payee, bank_payee, individual_payee]:
+            for k, v in d.items(): all_payees[k[:30]] = v
+        intel["银行流水"]["付款方全部"] = [{"名称": n, "金额": f"{a:,.0f}"} for n, a in sorted(all_payees.items(), key=lambda x: -x[1])]
     
     # ── 发票情报 ──
     if invoices:
