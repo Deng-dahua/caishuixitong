@@ -17003,12 +17003,14 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                     try:
                         dt = datetime.strptime(d, "%Y-%m-%d")
                         if dt.weekday() >= 5:
-                               items.append({
-                        "日期": d, f"{'付款' if debit > 0 else '收款'}金额": f"{amt:,.0f}",
-                        "对方": str(tx.get("counterparty", ""))[:20], "摘要": str(tx.get("summary", ""))[:30]
-                    })
-                    if len(items) >= 10: break
-                except: pass
+                            items.append({
+                                "日期": d, f"{'付款' if debit > 0 else '收款'}金额": f"{amt:,.0f}",
+                                "对方": str(tx.get("counterparty", ""))[:20], "摘要": str(tx.get("summary", ""))[:30]
+                            })
+                            if len(items) >= 10:
+                                break
+                    except:
+                        pass
         
         # 非工作日开票
         elif "非工作日开票" in ftype and sal_invs:
