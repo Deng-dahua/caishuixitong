@@ -14618,6 +14618,7 @@ def _domain_invoice_audit(invoices):
             })
     
     # ═══ 第三层：进销品名映射 + BOM缺失 ═══
+    # 只有进销品名存在实质差异时才需要BOM（同类商品直接买卖只需贸易发票，不需BOM）
     pur_goods = set()
     sal_goods = set()
     for inv in pur_invs:
@@ -14627,63 +14628,62 @@ def _domain_invoice_audit(invoices):
         g = str(inv.get("goods", "")).strip()
         if g: sal_goods.add(g)
     
-    raw_kw = ["纱","丝","棉","料","线","纤维","染料","助剂","浆料","原料","坯布","胚布","针织","梭织","毛","绒","皮","革","化纤","涤纶","锦纶","氨纶","腈纶","丙纶"]
-    finish_kw = ["布","面料","服装","制成品","成品","针织物","机织物","无纺布","帆布","毛巾","床品","窗帘","沙发","地毯"]
+    # 品类差异检测：进项品名 ≠ 销项品名 才算有加工关系
+    # 如果进销品名完全重合，说明是贸易行为（买什么卖什么），不需要BOM
+    overlap = pur_goods & sal_goods  # 完全相同的品名——直接买卖
+    pure_pur = pur_goods - sal_goods  # 只进不出的品名——可能是原料
+    pure_sal = sal_goods - pur_goods  # 只出不进的品名——可能是成品
     
-    raw_materials = [g for g in pur_goods if any(kw in g for kw in raw_kw)]
-    finished_goods = [g for g in sal_goods if any(kw in g for kw in finish_kw)]
+    # 加工证据：①有加工费发票 ②有只进不出的原料+只出不进的成品
+    has_processing_fee = any("加工" in str(i.get("goods","")) for i in pur_invs)
+    has_value_chain = len(pure_pur) > 0 and len(pure_sal) > 0
     
-    if raw_materials and finished_goods:
-        raw_examples = list(raw_materials)[:3]
-        fin_examples = list(finished_goods)[:3]
+    if has_processing_fee or has_value_chain:
+        raw_kw = ["纱","丝","棉","料","线","纤维","染料","助剂","浆料","原料","坯布","胚布"]
+        # 只用"只进不出"的品名做原材料关键词匹配（重叠品名可能是贸易商品）
+        raw_materials = [g for g in pure_pur if any(kw in g for kw in raw_kw)]
+        # 成品不需要关键词匹配——pure_sal里的就是成品
+        finished_goods = list(pure_sal)
         
-        # 尝试建立原材料→成品的逻辑映射
-        mapping_hints = []
-        for raw in raw_examples:
-            for fin in fin_examples:
-                # 简单映射规则：棉纱→棉布，涤纶丝→涤纶面料
-                raw_core = raw[:2] if len(raw) >= 2 else raw
-                fin_core = fin[:2] if len(fin) >= 2 else fin
-                if raw_core in fin or fin_core in raw:
-                    mapping_hints.append(f"{raw}→{fin}")
+        # 如果没有明确的原料/成品分类，用关键词兜底
+        if not raw_materials:
+            raw_materials = [g for g in pur_goods if any(kw in g for kw in raw_kw)]
+        if not finished_goods:
+            finish_kw = ["布","面料","服装","制成品","成品","针织物","机织物"]
+            finished_goods = [g for g in sal_goods if any(kw in g for kw in finish_kw)]
         
-        mapping_text = ""
-        if mapping_hints:
-            mapping_text = f"可能的加工关系：{'；'.join(mapping_hints[:3])}等。"
-        
-        findings.append({
-            "type": "缺少BOM表（物料清单）",
-            "level": "中风险", "score": 6,
-            "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→为生产型企业但无BOM表。{mapping_text}",
-            "description": f"进项原材料(如{'、'.join(raw_examples)}等)→销项成品(如{'、'.join(fin_examples)}等)。缺少BOM表导致：(1)无法判断每单位成品合理耗用多少原材料；(2)无法判断进项采购量是否与产出量匹配；(3)是否存在虚增进项或少计产出的情况。",
-            "how_found": f"进项品名含原材料关键词({len(raw_materials)}种)→销项品名含成品关键词({len(finished_goods)}种)→生产加工关系成立→查无BOM表",
-            "suggestion": "限期提供每种产品的BOM表（含原材料名称、规格、单耗、损耗率）、生产投料记录、产成品入库单。",
-            "category": "进销存"
-        })
-    
-    # 进销品名无逻辑对应关系
-    only_raw = raw_materials and not finished_goods
-    only_finish = finished_goods and not raw_materials
-    if only_raw:
-        findings.append({
-            "type": "有进项原材料但无销项成品",
-            "level": "中风险", "score": 6,
-            "detail": f"进项采购{len(raw_materials)}种原材料（如{'、'.join(list(raw_materials)[:3])}等），但销项发票中未发现对应成品。",
-            "description": "作为生产型企业，采购原材料应产出成品并对外销售。如有原材料采购但销项无对应成品，可能存在：(1)产品以未开票方式销售（隐匿收入）；(2)原材料用于非生产用途；(3)进项虚开。",
-            "how_found": "进项品名含原材料→销项品名搜索成品关键词→无匹配",
-            "suggestion": "核实原材料去向：是否全部用于生产？产出成品如何销售？是否存在未开票销售？",
-            "category": "进销存"
-        })
-    if only_finish:
-        findings.append({
-            "type": "有销项成品但无对应进项原材料",
-            "level": "中风险", "score": 6,
-            "detail": f"销项销售{len(finished_goods)}种成品，但进项发票中未发现对应原材料采购。",
-            "description": "销售成品但无原材料采购记录，可能：(1)原材料是外购半成品或来料加工；(2)进项发票由其他关联企业接收；(3)存在委托加工但无加工费发票。",
-            "how_found": "销项品名含成品→进项品名搜索原材料关键词→无匹配",
-            "suggestion": "要求企业说明原材料来源：是直接采购、委托加工还是来料加工？提供对应的采购发票或加工合同。",
-            "category": "进销存"
-        })
+        if raw_materials and finished_goods:
+            raw_examples = list(raw_materials)[:3]
+            fin_examples = list(finished_goods)[:3]
+            
+            mapping_hints = []
+            for raw in raw_examples:
+                for fin in fin_examples:
+                    raw_core = raw[:2] if len(raw) >= 2 else raw
+                    fin_core = fin[:2] if len(fin) >= 2 else fin
+                    if raw_core in fin or fin_core in raw:
+                        mapping_hints.append(f"{raw}→{fin}")
+            
+            mapping_text = ""
+            if mapping_hints:
+                mapping_text = f"可能的加工关系：{'；'.join(mapping_hints[:3])}等。"
+            
+            evidence = "加工费发票证实" if has_processing_fee else "进销品名存在实质差异"
+            
+            findings.append({
+                "type": "缺少BOM表（物料清单）",
+                "level": "中风险", "score": 6,
+                "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→为生产型企业但无BOM表。{mapping_text}",
+                "description": f"({evidence})进项品名中{len(pure_pur)}类仅采购未销售（拟为原料）、销项品名中{len(pure_sal)}类仅销售未采购（拟为成品），存在生产加工关系。缺少BOM表导致：(1)无法判断每单位成品合理耗用多少原材料；(2)无法判断进项采购量是否与产出量匹配；(3)是否存在虚增进项或少计产出的情况。",
+                "how_found": f"进销品名差异检测：{len(pure_pur)}类仅进→拟为原料，{len(pure_sal)}类仅销→拟为成品，{'加工费发票证实' if has_processing_fee else '品名差异推断'}生产加工关系",
+                "suggestion": "限期提供每种产品的BOM表（含原材料名称、规格、单耗、损耗率）、生产投料记录、产成品入库单。如实际为贸易行为（非生产加工），请提供贸易链条说明。",
+                "category": "进销存"
+            })
+
+    # 进销品名完全一致→贸易行为，不需要BOM
+    elif len(pure_pur) == 0 and len(pure_sal) == 0 and overlap:
+        # 纯贸易：买什么卖什么，不提示BOM
+        pass
     
     return findings
 

@@ -1,5 +1,5 @@
 // ==================== 全局状态 ====================
-var currentPage = 'tax-doc-analysis';
+var currentPage = 'dashboard';
 var currentPeriod = '';
 var allAccounts = [];
 
@@ -21,22 +21,51 @@ function escapeHtml(s) {
 var esc = escapeHtml;  // 简写别名，统一使用 core.js 的 escapeHtml，不再重复定义
 
 const pages = {
-  'tax-doc-analysis': '资料风险分析报告',
-  'tax-risk-rules': '涉税风险分析规则',
-  'system-logs': '系统日志'
+  'chat': '财税问答',
+  'dashboard': '数据看板',
+  'company': '公司信息',
+  'departments': '部门档案',
+  'employees': '人员档案',
+  'customers': '客户档案',
+  'suppliers': '供应商档案',
+  'general-ledger': '总账',
+  'detail-ledger': '科目明细账',
+  'employee-ledger': '人员明细账',
+  'customer-ledger': '客户明细账',
+  'supplier-ledger': '供应商明细账',
+  'journal': '序时账',
+  'profit-loss': '利润表',
+  'balance-sheet': '资产负债表',
+  'cash-flow': '现金流量表',
+  'equity-changes': '所有者权益变动表',
+  'account-balance': '科目余额表',
+  'accounts': '会计科目',
+  'periods': '期间管理',
+  'fixed-assets': '固定资产',
+  'intangible-assets': '无形资产',
+  'inventory': '库存管理',
+  'contracts': '合同管理',
+  'payments': '付款管理',
+  'sales-invoices': '开具发票',
+  'purchase-invoices': '取得发票',
+  'input-vat-deductions': '进项认证',
+  'bank-transactions': '银行流水',
+  'vat-declaration': '增值税',
+  'salary': '工资薪金',
+  'social-security': '社会保险费',
+  'housing-fund': '住房公积金',
+  'bookkeeping-invoices': '记账发票',
+  'tax-risk-report': '账务风险分析报告',
+  'tax-risk-rules': '涉税风险稽查指令',
+  'tax-doc-analysis': '资料风险分析报告'
 };
 
 // ==================== 用户登录 ====================
 function getCurrentUser() {
   try {
     var data = JSON.parse(localStorage.getItem('taxUser') || 'null');
-    if (!data) {
-      // 自动创建默认用户（稽查版无需登录流程）
-      data = { name: '稽查员', phone: '00000000000', role: '稽查' };
-      localStorage.setItem('taxUser', JSON.stringify(data));
-    }
     return data || null;
-  } catch(e) { return { name: '稽查员', phone: '00000000000', role: '稽查' }; }
+  } catch(e) { return null; }
 }
 
 // 全局 fetch 拦截：所有请求自动附加用户信息
@@ -179,8 +208,9 @@ async function enterApp(companyId, companyName) {
   var userEl = document.getElementById('sidebar-user-name');
   if (userEl && user) userEl.textContent = user.name + ' (' + user.phone + ')';
   await loadCompanies();
+  await loadCurrentPeriod();
   await loadAllAccounts();
-  const lastPage = localStorage.getItem('lastPage') || 'tax-doc-analysis';
+  const lastPage = localStorage.getItem('lastPage') || 'dashboard';
   navigateTo(lastPage);
 }
 
@@ -196,6 +226,235 @@ async function exitCompany() {
   showCompanyPick(companies);
 }
 
+// ==================== 全局 AI 自动处理 ====================
+async function globalAIAutoProcess() {
+  const btn = document.querySelector('.btn-ai-auto');
+  if (!currentCompanyId) { toast('请先选择账套', 'warning'); return; }
+  if (!window.currentModule) { toast('请先进入一个功能模块', 'warning'); return; }
+
+  const module = window.currentModule;
+  const moduleFuncMap = {
+    '文化事业建设费': 'ccfAIAutoFill',
+    '增值税': 'vatAIAutoFill',
+    '工资薪金': 'salaryAIAutoFill',
+    '社会保险费': 'ssAIAutoFill',
+    '住房公积金': 'hfAIAutoFill',
+    '销项发票': 'siAIAutoFill',
+    '进项发票': 'piAIAutoFill',
+    '银行流水': 'bankAIAutoFill',
+  };
+
+  const funcName = moduleFuncMap[module];
+  if (!funcName) {
+    toast('当前模块【' + module + '】暂不支持 AI 自动处理', 'info');
+    return;
+  }
+
+  if (!window[funcName]) {
+    toast('当前模块【' + module + '】的 AI 处理函数尚未实现', 'info');
+    return;
+  }
+
+  // 禁用按钮，防止重复点击
+  if (btn) { btn.disabled = true; btn.textContent = '🤖 AI 处理中...'; }
+
+  try {
+    toast('正在对【' + module + '】执行 AI 自动处理...', 'info');
+    await window[funcName]();
+  } catch (err) {
+    console.error('AI 自动处理失败:', err);
+    toast('AI 自动处理失败：' + (err.message || err), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 自动处理'; }
+  }
+}
+
+async function handleCompanyRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('reg-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 正在创建...';
+
+  const name = document.getElementById('reg-name').value.trim();
+  if (!name) { toast('请输入公司全称', 'error'); btn.disabled = false; btn.textContent = '✅ 创建账套，进入系统'; return; }
+
+  const body = {
+    name: name,
+    uscc: document.getElementById('reg-uscc').value.trim() || null
+  };
+
+  try {
+    const data = await fetch('/api/companies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(r => { if (!r.ok) return r.json().then(err => { throw new Error(err.detail || '创建失败'); }); return r.json(); });
+    toast('公司「' + data.name + '」创建成功，正在进入系统...', 'success');
+    setTimeout(() => enterApp(data.id, data.name), 600);
+  } catch (err) {
+    toast('创建失败：' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '✅ 创建账套，进入系统';
+  }
+}
+
+
+async function loadCurrentPeriod() {
+  const yearSel = document.getElementById('period-year');
+  if (!yearSel) return;
+  let ops = '<option value="">年</option>';
+  let now = new Date();
+  let curY = now.getFullYear();
+  for (let y = curY - 5; y <= curY + 5; y++) ops += `<option value="${y}">${y}年</option>`;
+  yearSel.innerHTML = ops;
+
+  const saved = localStorage.getItem('currentPeriod');
+  if (saved && /^\d{4}-\d{2}$/.test(saved)) {
+    const [y, m] = saved.split('-');
+    yearSel.value = y;
+    const monthSel = document.getElementById('period-month');
+    if (monthSel) monthSel.value = m;
+    currentPeriod = saved;
+  }
+}
+
+function periodToDateRange(period) {
+  if (!period || !/^\d{4}-\d{2}$/.test(period)) return { from: '', to: '' };
+  const [y, m] = period.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return { from: period + '-01', to: period + '-' + String(lastDay).padStart(2, '0') };
+}
+
+function onPeriodSelectChange() {
+  const y = document.getElementById('period-year')?.value;
+  const m = document.getElementById('period-month')?.value;
+  if (!y || !m) return;
+  const newPeriod = y + '-' + m;
+  if (newPeriod === currentPeriod) return;
+  currentPeriod = newPeriod;
+  localStorage.setItem('currentPeriod', currentPeriod);
+  // 同步所有已渲染页面的期间筛选框到新期间
+  ['gl-from','gl-to','dl-from','dl-to','pl-from','pl-to','bs-from','bs-to','cf-from','cf-to','ec-from','tb-from','tb-to','je-from','je-to'].forEach(function(prefix) {
+    let ey = document.getElementById(prefix + '-y');
+    let em = document.getElementById(prefix + '-m');
+    if (ey) ey.value = y;
+    if (em) em.value = m;
+  });
+  // 同步工资薪金
+  try { currentSalaryPeriod = newPeriod; } catch(e) {}
+  let sy = document.getElementById('salary-y');
+  let sm = document.getElementById('salary-m');
+  if (sy) sy.value = y;
+  if (sm) sm.value = m;
+  // 同步往来明细账（人员/客户/供应商）
+  ['employee','customer','supplier'].forEach(function(type) {
+    ['from','to'].forEach(function(side) {
+      let ey = document.getElementById(type + '-' + side + '-y');
+      let em = document.getElementById(type + '-' + side + '-m');
+      if (ey) ey.value = y;
+      if (em) em.value = m;
+    });
+  });
+  // 同步文化事业建设费
+  try { ccfFilterPeriod = newPeriod; ccfCurrentData = null; } catch(e) {}
+  let ccfY = document.getElementById('ccf-detail-year');
+  let ccfM = document.getElementById('ccf-detail-month');
+  if (ccfY) ccfY.value = y;
+  if (ccfM) ccfM.value = m;
+  try { siFilter.dateFrom = ''; siFilter.dateTo = ''; } catch(e) {}
+  try { piFilter.dateFrom = ''; piFilter.dateTo = ''; } catch(e) {}
+  try { ivdFilter.dateFrom = ''; ivdFilter.dateTo = ''; } catch(e) {}
+  navigateTo(currentPage);
+}
+
+// 全局期间确认：所有模块时间栏同步到顶格栏期间，并刷新当前页面数据
+function globalPeriodConfirm() {
+  const y = document.getElementById('period-year')?.value;
+  const m = document.getElementById('period-month')?.value;
+  if (!y || !m) { toast('请先在顶格栏选择年份和月份', 'warning'); return; }
+  const newPeriod = y + '-' + m;
+  currentPeriod = newPeriod;
+  localStorage.setItem('currentPeriod', currentPeriod);
+
+  // ===== 状态变量（影响 re-render/下次渲染时的默认值）必须在 navigateTo 之前设置 =====
+  try { currentSalaryPeriod = newPeriod; } catch(e) {}
+  try { vatFilterPeriod = newPeriod; vatSelectedId = null; vatCurrentData = null; } catch(e) {}
+  try { ssFilterPeriod = newPeriod; } catch(e) {}
+  try { ccfFilterPeriod = newPeriod; ccfCurrentData = null; } catch(e) {}
+
+  // ===== DOM 直接同步（已渲染但当前未激活的页面，下次切换过去时生效） =====
+  // 1. 序时账/总账/明细账/报表 (from-to)
+  ['gl','dl','pl','bs','cf','ec','tb','je'].forEach(function(prefix) {
+    ['from','to'].forEach(function(side) {
+      let ey = document.getElementById(prefix + '-' + side + '-y');
+      let em = document.getElementById(prefix + '-' + side + '-m');
+      if (ey) ey.value = y;
+      if (em) em.value = m;
+    });
+  });
+
+  // 2. 往来明细账（人员/客户/供应商）
+  ['employee','customer','supplier'].forEach(function(type) {
+    ['from','to'].forEach(function(side) {
+      let ey = document.getElementById(type + '-' + side + '-y');
+      let em = document.getElementById(type + '-' + side + '-m');
+      if (ey) ey.value = y;
+      if (em) em.value = m;
+    });
+  });
+
+  // 3. 工资薪金 DOM
+  let sy = document.getElementById('salary-y');
+  let sm = document.getElementById('salary-m');
+  if (sy) sy.value = y;
+  if (sm) sm.value = m;
+
+  // 4. 住房公积金 DOM
+  let hy = document.getElementById('hf-year');
+  let hm = document.getElementById('hf-month');
+  if (hy) hy.value = y;
+  if (hm) hm.value = m;
+
+  // 5. 社会保险费 DOM
+  let ssPeriod = document.getElementById('ss-filter-period');
+  if (ssPeriod) ssPeriod.value = newPeriod;
+
+  // 6. 文化事业建设费 DOM
+  let ccfY = document.getElementById('ccf-detail-year');
+  let ccfM = document.getElementById('ccf-detail-month');
+  if (ccfY) ccfY.value = y;
+  if (ccfM) ccfM.value = m;
+
+  // 7. 发票/抵扣筛选器
+  try { siFilter.dateFrom = ''; siFilter.dateTo = ''; } catch(e) {}
+  try { piFilter.dateFrom = ''; piFilter.dateTo = ''; } catch(e) {}
+  try { ivdFilter.dateFrom = ''; ivdFilter.dateTo = ''; } catch(e) {}
+
+  // ===== 刷新当前页面（re-render 会读状态变量决定默认期间） =====
+  navigateTo(currentPage);
+  toast('已同步所有模块到 ' + newPeriod, 'success');
+}
+
+function stepPeriodYear(delta) {
+  const sel = document.getElementById('period-year');
+  if (!sel || !sel.value) return;
+  sel.value = parseInt(sel.value) + delta;
+}
+
+function stepPeriodMonth(delta) {
+  const sel = document.getElementById('period-month');
+  if (!sel || !sel.value) return;
+  let m = parseInt(sel.value) + delta;
+  if (m > 12) { m = 1; stepPeriodYear(1); }
+  else if (m < 1) { m = 12; stepPeriodYear(-1); }
+  sel.value = String(m).padStart(2, '0');
+}
+
+async function loadAllAccounts() {
+  try {
+    allAccounts = await api('/api/accounts');
+  } catch (e) {}
+}
 
 // ==================== 路由 ====================
 // 每页独立容器，切换只 show/hide，不清空 DOM
@@ -225,8 +484,7 @@ function navigateTo(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
   });
-  var el = document.getElementById('page-title');
-  if (el) el.textContent = pages[page] || page;
+  document.getElementById('page-title').textContent = pages[page] || page;
 
   // 隐藏所有页面容器，只显示当前页
   document.querySelectorAll('#content-area > [id^="page-"]').forEach(el => el.style.display = 'none');
@@ -235,11 +493,47 @@ function navigateTo(page) {
 
   // 每次切换都自动刷新页面
   switch (page) {
-    case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
+    case 'chat': renderChat(container); break;
+    case 'dashboard': renderDashboard(container); break;
+    case 'journal': renderJournal(container); break;
+    case 'general-ledger': renderGeneralLedger(container); break;
+    case 'detail-ledger': renderDetailLedger(container); break;
+    case 'employee-ledger': renderEmployeeLedger(container); break;
+    case 'customer-ledger': renderCustomerLedger(container); break;
+    case 'supplier-ledger': renderSupplierLedger(container); break;
+    case 'profit-loss': renderProfitLoss(container); break;
+    case 'balance-sheet': renderBalanceSheet(container); break;
+    case 'cash-flow': renderCashFlow(container); break;
+    case 'equity-changes': renderEquityChanges(container); break;
+    case 'account-balance': renderAccountBalance(container); break;
+    case 'accounts': renderAccounts(container); break;
+    case 'periods': renderPeriods(container); break;
+    case 'company': showCompanyManager(container); break;
+    case 'departments': renderDepartments(container); break;
+    case 'employees': renderEmployees(container); break;
+    case 'customers': renderCustomers(container); break;
+    case 'suppliers': renderSuppliers(container); break;
+    case 'fixed-assets': renderFixedAssets(container); break;
+    case 'intangible-assets': renderIntangibleAssets(container); break;
+    case 'inventory': renderInventory(container); break;
+    case 'contracts': renderContracts(container); break;
+    case 'payments': renderPayments(container); break;
+    case 'sales-invoices': renderSalesInvoices(container); break;
+    case 'purchase-invoices': renderPurchaseInvoices(container); break;
+    case 'bookkeeping-invoices': renderBookkeepingInvoices(container); break;
+    case '未记账发票': renderUnbookkeptInvoices(container); break;
+    case 'input-vat-deductions': renderInputVATDeductions(container); break;
+    case 'bank-transactions': renderBankTransactions(container); break;
+    case 'vat-declaration': renderVATDeclaration(container); break;
+    case 'salary': showSalaryPage(container); break;
+    case 'social-security': renderSocialSecurity(container); break;
+    case 'housing-fund': renderHousingFund(container); break;
+    case '文化事业建设费': renderCulturalConstructionFee(container); break;
+    case 'tax-risk-report': renderTaxRiskReport(container); break;
     case 'tax-risk-rules': renderTaxRiskRules(container); break;
+    case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
     case 'system-logs': renderSystemLogs(container); break;
-    default: renderTaxDocAnalysis(container); break;
-  }  
+  }
   window.scrollTo(0, 0);
 }
 

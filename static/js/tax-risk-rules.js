@@ -133,7 +133,8 @@ function renderTaxRiskRules(container) {
     + '自动提取：银行收款/付款/税费 / 发票进销金额税额 / 货物分类<br>'
     + '进销存比对：商品明细匹配 + 进销比 + 毛利率<br>'
     + '供应商穿透：集中度 + 名称群集 + 双向交易 + 地域群集<br>'
-    + '<b style=\"color:#dc2626\">发票深度审计：五层检查(合规/单价/加工费/合理性/进销映射)</b>'
+    + '<b style=\"color:#dc2626\">发票深度审计：五层检查(合规/单价/加工费/合理性/进销映射→BOM)</b><br>'
+    + '<b style=\"color:#059669\">BOM判断新增：进销品名实质差异检测——只有进≠销时才判定生产加工关系。纯贸易不误报BOM缺失</b>'
     + '</div></div>'
     // 子系统4
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #f59e0b;border-radius:6px;padding:14px;background:#fff">'
