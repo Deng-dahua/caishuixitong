@@ -15426,7 +15426,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         for inv in invoices:
             buyer = str(inv.get("buyer", "") or inv.get("购买方名称", "") or inv.get("购方名称", "") or inv.get("购方", "")
                      or inv.get("buyer_name", "") or inv.get("purchaser", "")).strip()
-            seller = str(inv.get("seller", "") or inv.get("销方名称", "") or inv.get("销方", "")).strip()
+            seller = str(inv.get("seller", "") or inv.get("销方名称", "") or inv.get("销方", "") or inv.get("销售方名称", "")).strip()
             direction = str(inv.get("direction", "")).strip()
             amt = float(inv.get("total", 0) or inv.get("amount", 0) or 0)
             if buyer and len(buyer) >= 2: buyers[buyer] += 1
