@@ -14668,15 +14668,15 @@ def _domain_invoice_audit(invoices):
             if mapping_hints:
                 mapping_text = f"可能的加工关系：{'；'.join(mapping_hints[:3])}等。"
             
-            evidence = "加工费发票证实" if has_processing_fee else "进销品名存在实质差异"
+            evidence = "加工费发票证实存在外包轻加工" if has_processing_fee else "进销品名存在实质差异（可能为外包轻加工）"
             
             findings.append({
                 "type": "缺少BOM表（物料清单）",
                 "level": "中风险", "score": 6,
-                "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→为生产型企业但无BOM表。{mapping_text}",
-                "description": f"({evidence})进项品名中{len(pure_pur)}类仅采购未销售（拟为原料）、销项品名中{len(pure_sal)}类仅销售未采购（拟为成品），存在生产加工关系。缺少BOM表导致：(1)无法判断每单位成品合理耗用多少原材料；(2)无法判断进项采购量是否与产出量匹配；(3)是否存在虚增进项或少计产出的情况。",
-                "how_found": f"进销品名差异检测：{len(pure_pur)}类仅进→拟为原料，{len(pure_sal)}类仅销→拟为成品，{'加工费发票证实' if has_processing_fee else '品名差异推断'}生产加工关系",
-                "suggestion": "限期提供每种产品的BOM表（含原材料名称、规格、单耗、损耗率）、生产投料记录、产成品入库单。如实际为贸易行为（非生产加工），请提供贸易链条说明。",
+                "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→存在外包轻加工环节但无BOM表。{mapping_text}",
+                "description": f"({evidence})进项品名中{len(pure_pur)}类仅采购未销售（拟为原料）、销项品名中{len(pure_sal)}类仅销售未采购（拟为成品）。贸易公司通过外包轻加工（如买坯布→委托染整→卖成品布）完成商品形态转换是纺织行业常见模式，但仍需BOM表验证加工链条的真实性。缺少BOM表导致无法判断委托加工的数量和单价是否合理。",
+                "how_found": f"进销品名差异检测：{len(pure_pur)}类仅进→拟为原料，{len(pure_sal)}类仅销→拟为成品，{'加工费发票证实外包轻加工' if has_processing_fee else '品名差异推断可能存在加工'}",
+                "suggestion": "限期提供：(1)委托加工合同（含加工数量、单价、损耗率）；(2)加工出入库单（送料单+收货单）；(3)加工费结算明细。如实际为纯贸易（直接买进卖出同类商品），请提供贸易链条说明。",
                 "category": "进销存"
             })
 

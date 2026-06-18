@@ -135,7 +135,9 @@ function renderTaxRiskRules(container) {
     + '进销存比对：商品明细匹配 + 进销比 + 毛利率<br>'
     + '供应商穿透：集中度 + 名称群集 + 双向交易 + 地域群集<br>'
     + '<b style=\"color:#dc2626\">发票深度审计：五层检查(合规/单价/加工费/合理性/进销映射→BOM)</b><br>'
-    + '<b style=\"color:#059669\">BOM判断新增：进销品名实质差异检测——只有进≠销时才判定生产加工关系。纯贸易不误报BOM缺失</b>'
+    + '<b style=\"color:#059669\">BOM判断：进销品名差异+加工费证据→外包轻加工模式（批发业也可存在）</b><br>'
+    + '<b style=\"color:#7c3aed\">联网核查：自动查工商信息（法定代表人/股东/行业分类/注册资本）</b><br>'
+    + '<b style=\"color:#d97706\">收款分类：按付款方性质分企业/个人/税费/银行</b>'
     + '</div></div>'
     // 子系统4
     + '<div style="border:1px solid #e2e8f0;border-left:3px solid #f59e0b;border-radius:6px;padding:14px;background:#fff">'
