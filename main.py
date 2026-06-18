@@ -13093,7 +13093,14 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
                     "type": "收款与开票金额偏差大（三源交叉）",
                     "level": "高风险", "score": 9,
                     "detail": f"银行入账{bank_income:,.2f}元 vs 销项开票{inv_income:,.2f}元，差异{gap:,.2f}元（{gap_pct:.0f}%）。",
-                    "description": f"将银行流水中的贷方(收入)金额与销项发票的价税合计进行交叉比对，发现两者存在{gap_pct:.0f}%的偏差。银行入账{bank_income:,.2f}元，销项开票{inv_income:,.2f}元。差异方向：{'银行收入多' if bank_income > inv_income else '开票收入多'}。这个差异可能意味着：存在未开票的隐匿收入、第三方平台收款未全部提现至对公账户并开票、或存在非经营性的资金入账。",
+                    "description": f"将银行流水中的贷方(收入)金额与销项发票的价税合计进行交叉比对，发现两者存在{gap_pct:.0f}%的偏差。银行入账{bank_income:,.2f}元，销项开票{inv_income:,.2f}元。差异方向：{'银行收入多' if bank_income > inv_income else '开票收入多'}。\n\n"
+                        + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
+                        + f"① detect（检测信号）：银行收款{bank_income:,.0f}元 vs 开票{inv_income:,.0f}元，偏差{gap_pct:.0f}%>20%阈值→异常触发。\n"
+                        + f"② verify（交叉验证）：这是三源交叉验证的一环——银行流水（资金流）+销项发票（发票流）+目标企业申报数据（申报流）。三者偏差超过20%即确认异常。\n"
+                        + f"③ diagnose（根因诊断）：{'银行收入多于开票' if bank_income > inv_income else '开票多于银行收入'}，可能原因：\n"
+                        + f"　· 银行多：存在未开票收入（客户付款但未开票→隐匿收入）或非经营性资金入账（借款/注资/往来款）\n"
+                        + f"　· 开票多：存在应收账款（已开票但客户未付款）或现金交易（开票了但通过现金收款，未进对公账户）\n"
+                        + f"④ report（综合结论）：需结合收款来源分析进一步判断。如果银行多收的部分主要来自'开票客户之外的付款方'（见收款来源分析），则隐匿收入的可能性增大。如果来自法定代表人/股东，则需核实注资/借款性质。",
                     "how_found": f"交叉比对方法：{(chr(10))}(1)汇总银行流水中所有贷方(收入)交易金额{(chr(10))}(2)汇总所有销项发票的价税合计{(chr(10))}(3)计算两者差额及偏差率，超过20%触发预警。",
                     "tax_impact": "银行入账大于开票收入，是隐匿销售收入的重要线索。税务机关会将差额部分推定为未申报收入，核定补缴增值税及企业所得税。",
                     "policy_ref": "《税收征收管理法》第三十五条（核定征收）；《增值税暂行条例》关于销售额确定的规定。",
@@ -13745,7 +13752,15 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs):
             "type": "收款来源与开票客户严重不匹配",
             "level": "高风险", "score": 9,
             "detail": f"银行账户累计收款{total_income:,.0f}元，其中仅{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）来自销项发票上的购方客户。剩余{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）来自销项发票上未出现的付款方。",
-            "description": f"被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户（购方），银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。\n\n销项发票列示的客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）。其中匹配到的客户：{matched_examples}。\n\n销项发票未列示的付款方合计{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）。主要不明来源：{examples}等。\n\n稽查判断：{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票未列示的主体，意味着要么这些收款对应的销售未开具发票（隐匿收入），要么这些资金不是经营收入而是借款、投资款、往来款等。无论哪种解释，都需要逐笔提供证明材料。",
+            "description": f"被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户（购方），银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。\n\n销项发票列示的客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）。其中匹配到的客户：{matched_examples}。\n\n销项发票未列示的付款方合计{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）。主要不明来源：{examples}等。\n\n"
+                + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
+                + f"① detect（检测信号）：银行收款{total_income:,.0f}元 vs 开票收入数据，收款远大于开票——异常信号触发。\n"
+                + f"② verify（交叉验证）：将{len(payers)}个银行付款方与{len(buyer_names)}个销项客户做逐名比对。结果：仅{income_from_buyers/total_income*100:.0f}%匹配——异常确认真实存在。\n"
+                + f"③ diagnose（根因诊断）：{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票上未列示的付款方。这些资金有三种可能：\n"
+                + f"　· 未开票的经营收入（客户付了款但没给开票→隐匿收入）\n"
+                + f"　· 非经营资金流入（股东注资、借款、往来款→需要对应合同证明）\n"
+                + f"　· 第三方代付（客户的关联方代付→需要委托付款证明）\n"
+                + f"④ report（综合结论）：上述三种情况的风险等级不同。如果是未开票收入（情况一）→隐匿收入，严重程度最高。如果是借款/注资（情况二）→需要证明资金来源和性质。如果是第三方代付（情况三）→需要说明代付关系。无论哪种情况，被查单位都必须逐笔说明，无法说明的按隐匿收入处理。",
             "how_found": f"从银行流水提取{len(payers)}个付款方→与销项发票{len(buyer_names)}个购方名称交叉比对→仅{income_from_buyers/total_income*100:.0f}%匹配。",
             "tax_impact": f"不明来源资金{total_income-income_from_buyers:,.0f}元可能被推定为未开票销售收入→补缴增值税（适用税率）+企业所得税（25%）+滞纳金（日万分之五）+0.5-5倍罚款。",
             "suggestion": f"要求被查单位逐笔说明{len(unmatched_payers)}个不明付款方的资金来源：①若为未开票的销售收入——立即补开发票并申报未开票收入，补缴相应税款；②若为借款——提供借款合同、借据、利息支付凭证；③若为股东注资——提供验资报告或出资证明；④若为关联方往来——提供对账单。无法说明来源的，按隐匿收入处理。",
@@ -13914,7 +13929,15 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
             "detail": f"被查单位{amt_mismatch}张进项发票（占进项发票总数{len(pur_invs)}张的{amt_mismatch/len(pur_invs)*100:.0f}%）的供应商在银行流水付款记录中找不到对应的付款记录，涉及采购金额{total_unmatched:,.0f}元，占进项采购总额{total_pur:,.0f}元的{pct:.0f}%。",
-            "description": f"稽查核心逻辑：正常经营中，企业取得供应商开具的进项发票后，应当通过银行对公账户向供应商支付货款。被查单位{amt_mismatch}张进项发票的销方名称在银行汇款记录中完全无法匹配——即'有票无付款'。\n\n这有两种解释：①款项通过现金、第三方支付平台、个人账户等非对公渠道支付——虽然商业上可能属实，但不符合税务机关对'三流一致'（发票流、货物流、资金流）的要求，进项税额抵扣将面临被否定的风险；②这些进项发票根本没有对应的真实付款——即为虚开发票，只走票不走钱。\n\n涉及的主要供应商及金额：{examples}等。",
+            "description": f"稽查核心逻辑：正常经营中，企业取得供应商开具的进项发票后，应当通过银行对公账户向供应商支付货款。被查单位{amt_mismatch}张进项发票的销方名称在银行汇款记录中完全无法匹配——即'有票无付款'。\n\n"
+                + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
+                + f"① detect（检测信号）：进项发票{len(pur_invs)}张→逐张比对银行付款记录→{amt_mismatch}张（{amt_mismatch/len(pur_invs)*100:.0f}%）找不到对应付款→异常信号触发。\n"
+                + f"② verify（交叉验证）：从银行流水提取所有付款对象的名称，与进项发票销方名称做双向模糊匹配。已付款的供应商（匹配成功）vs 未付款的供应商（{amt_mismatch}家无匹配）。\n"
+                + f"③ diagnose（根因诊断）：{amt_mismatch}张发票无付款记录，有三种可能的解释：\n"
+                + f"　· 非对公支付：通过现金/微信/支付宝/个人账户付款——商业上可能属实，但不符合税务机关对'三流一致'的合规要求，进项税额抵扣面临被否定的风险。\n"
+                + f"　· 赊购未付：货已到、票已开，但货款尚未支付——需要应付账款明细支撑。\n"
+                + f"　· 虚开发票：只有发票没有真实交易——只走票不走钱，这是最严重的情况。\n"
+                + f"④ report（综合结论）：三种解释的风险等级不同。被查单位{amt_mismatch}张发票涉及金额{total_unmatched:,.0f}元（占进项{pct:.0f}%），必须逐笔提供付款凭证——非对公支付的提供第三方交易截图，赊购的提供对账单，都不是的主动做进项转出。无法提供任何付款凭证的，依法否定进项税额抵扣资格。\n\n涉及的主要供应商及金额：{examples}等。",
             "how_found": f"逐张提取进项发票的销方名称（{len(pur_invs)}张），与银行流水借方交易对手（付款对象）做模糊匹配。{amt_mismatch}张发票的销方名称无法匹配到任何一笔银行付款记录。",
             "tax_impact": f"① 进项税额转出：无法证明已实际支付的进项税额{total_unmatched*0.13:,.0f}元（按13%税率估算）可能被要求转出，补缴增值税；② 企业所得税调整：无付款凭证支撑的{total_unmatched:,.0f}元采购成本可能被认定为不合理支出，调增应纳税所得额；③ 若被认定为虚开发票→刑事责任（《刑法》第205条）+ 行政罚款 + 纳税信用降级。",
             "policy_ref": "《发票管理办法》第二十二条（禁止虚开）；《国家税务总局关于加强增值税征收管理若干问题的通知》（三流一致要求）；《刑法》第二百零五条（虚开增值税专用发票罪）",
