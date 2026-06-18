@@ -15517,23 +15517,38 @@ def _run_analyze(company_id, db):
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
                     elif ftype in ("bank", "bank_statement", "bank_transaction"): 
                         # 银行流水→标准化后加入bank_txs
+                        success_count = 0
                         for r in parsed["rows"]:
-                            tx = dict(r)
-                            # 标准化日期
-                            tx["date"] = str(tx.get("date", tx.get("交易日期", ""))).strip()
-                            # 标准化对方
-                            tx["counterparty"] = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
-                            tx["summary"] = str(tx.get("summary", tx.get("摘要", tx.get("交易附言", "")))).strip()
-                            # 标准化金额
-                            debit_val = float(tx.get("debit", tx.get("借方金额", 0) or 0))
-                            credit_val = float(tx.get("credit", tx.get("贷方金额", 0) or 0))
-                            amount = float(tx.get("amount", tx.get("交易金额", debit_val + credit_val) or 0))
-                            tx["debit"] = debit_val
-                            tx["credit"] = credit_val
-                            tx["amount"] = amount
-                            tx["direction"] = "支出" if debit_val > 0 else ("收入" if credit_val > 0 else "未知")
-                            bank_txs.append(tx)
-                        fr["actions"].append(f"提取{n}条流水")
+                            try:
+                                tx = dict(r)
+                                # 标准化日期（兼容 date / tx_time / 交易日期 / 交易时间 / 记账日期 五种命名）
+                                tx["date"] = str(tx.get("date") or tx.get("tx_time") or tx.get("交易日期") or tx.get("交易时间") or tx.get("记账日期") or "").strip()[:10]
+                                # 标准化对方
+                                tx["counterparty"] = str(tx.get("counterparty", tx.get("对方户名", tx.get("交易对方", tx.get("对方名称", ""))))).strip()
+                                tx["summary"] = str(tx.get("summary", tx.get("摘要", tx.get("交易附言", tx.get("用途", ""))))).strip()
+                                # 标准化金额（防御性转换——金额列可能是空/NULL/货币格式/文本）
+                                def _safe_float(val):
+                                    if val is None: return 0.0
+                                    if isinstance(val, (int, float)): return float(val)
+                                    s = str(val).strip().replace(",", "").replace("，", "").replace(" ", "").replace("¥", "").replace("￥", "").replace("元", "")
+                                    if s == "" or s == "-" or s == "--": return 0.0
+                                    try: return float(s)
+                                    except: return 0.0
+                                debit_val = _safe_float(tx.get("debit")) or _safe_float(tx.get("借方金额")) or _safe_float(tx.get("支出金额"))
+                                credit_val = _safe_float(tx.get("credit")) or _safe_float(tx.get("贷方金额")) or _safe_float(tx.get("收入金额"))
+                                amount_val = _safe_float(tx.get("amount")) or _safe_float(tx.get("交易金额")) or (debit_val + credit_val)
+                                tx["debit"] = debit_val
+                                tx["credit"] = credit_val
+                                tx["amount"] = amount_val
+                                tx["direction"] = "支出" if debit_val > 0 else ("收入" if credit_val > 0 else "未知")
+                                # 跳过空行（日期和金额都为空的无效行）
+                                if not tx["date"] or (debit_val == 0 and credit_val == 0):
+                                    continue
+                                bank_txs.append(tx)
+                                success_count += 1
+                            except Exception:
+                                pass
+                        fr["actions"].append(f"提取{success_count}条流水（共{n}行）")
                     elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
                     elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份合同")
                     elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
