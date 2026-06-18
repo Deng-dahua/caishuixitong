@@ -15821,107 +15821,135 @@ def _run_analyze(company_id, db):
             pur_by_goods[g]["amount"] += a
             pur_by_goods[g]["count"] += 1
         
-        # ═══════════════════════════════════════════════════════════════
-        # 进销品名匹配综合分析（制造业合并为一条，贸易业分两条）
-        # ═══════════════════════════════════════════════════════════════
+        # 检查1：有进无销（购入但未销售→可能账外经营，也可能是制造业原材料加工成成品）
         only_buy = [g for g in pur_by_goods if g not in sale_by_goods]
-        only_sell = [g for g in sale_by_goods if g not in pur_by_goods]
-        
-        if only_buy or only_sell:
-            # ── 制造业诊断 ──
+        if only_buy:
+            pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy)
+            pur_total_all = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
+            pct = pur_amount_only / max(pur_total_all, 1) * 100
+            
+            # 制造业诊断：进项有加工费+有与销项品名不同的采购→很可能是将原材料加工为成品
             has_processing = any("加工费" in g or "加工" in g for g in pur_by_goods)
-            expense_kws = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
-            pur_raw = [g for g in only_buy if not any(k in g for k in expense_kws) and "加工" not in g]
-            is_manufacturing = has_processing and len(pur_raw) > 0
+            expense_keywords = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
+            non_matching_pur = [g for g in only_buy if g not in sale_by_goods]
+            raw_like = [g for g in non_matching_pur if not any(k in g for k in expense_keywords) and "加工" not in g]
+            is_manufacturing = has_processing and len(raw_like) > 0
             
             if is_manufacturing:
-                # ═══ 制造业：合并为一条综合分析 ═══
-                pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy) if only_buy else 0
-                pur_total = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
-                sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell) if only_sell else 0
-                sell_total = sum(sale_by_goods[g]["amount"] for g in sale_by_goods)
-                pur_pct = pur_amount_only / max(pur_total, 1) * 100
-                sell_pct = sell_amount_only / max(sell_total, 1) * 100
+                pur_raw_list = raw_like[:5]
+                processing = [g for g in only_buy if "加工" in g][:3]
+                only_sell_goods = [g for g in sale_by_goods if g not in pur_by_goods]
                 
-                processing_items = [g for g in pur_by_goods if "加工" in g][:3]
-                proc_total = sum(pur_by_goods[g]["amount"] for g in processing_items)
-                raw_list = pur_raw[:5]
-                raw_total = sum(pur_by_goods[g]["amount"] for g in pur_raw[:5])
-                
-                # detail
-                parts = []
-                if only_buy:
-                    parts.append(f"{len(only_buy)}类进项商品（{pur_amount_only:,.0f}元，占进项{pur_pct:.0f}%）无对应销售记录")
-                if only_sell:
-                    parts.append(f"{len(only_sell)}类销项商品（{sell_amount_only:,.0f}元，占销项{sell_pct:.0f}%）无对应采购记录")
-                detail = "进销品名严重不匹配：" + "、".join(parts) + "。"
-                
-                # description (四步法)
                 desc = "【detect 检测现象】\n"
-                desc += f"将进项发票{len(pur_by_goods)}种商品与销项发票{len(sale_by_goods)}种商品逐票交叉比对，发现两者品名高度不重合——"
-                if only_buy: desc += f"进项中{len(only_buy)}种商品从未出现在销项中（采了没卖），"
-                if only_sell: desc += f"销项中{len(only_sell)}种商品从未出现在进项中（卖了没采）。"
-                desc += f"\n\n【verify 交叉验证】\n"
-                desc += f"从进项发票中检索加工信号，发现：\n"
-                desc += f"① 加工费发票{len(processing_items)}笔（{'、'.join(processing_items)}，合计{proc_total:,.0f}元）\n"
-                desc += f"② 非费用类原材料采购{len(pur_raw)}种（{'、'.join(raw_list[:3])}等，合计约{raw_total:,.0f}元）\n"
-                desc += f"两个信号同时为True → 被查单位采用'采购原材料→委托加工→销售成品'的经营模式。\n\n"
+                desc += f"将{len(pur_by_goods)}种进项商品与{len(sale_by_goods)}种销项商品逐票交叉比对，发现{len(only_buy)}种商品仅采购无销售——"
+                desc += f"采购了{'、'.join(pur_raw_list[:3])}等{len(only_buy)}种（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现同名产品的销售记录。\n\n"
+                
+                desc += "【verify 交叉验证】\n"
+                desc += f"从进项发票中检索加工信号：\n"
+                desc += f"① 加工费发票{len(processing)}笔（{'、'.join(processing) if processing else '外包加工'}）\n"
+                desc += f"② 非费用类原材料采购{len(raw_like)}种（{'、'.join(pur_raw_list[:3])}等）\n"
+                desc += f"双信号→企业采用'采购原材料→委托加工→销售成品'模式。\n\n"
                 
                 desc += "【diagnose 根因诊断】\n"
-                desc += f"进销品名不匹配的根因是制造业的正常加工链条——进项是原料（棉纱等），经过委托加工后变成成品（梭织布等），"
-                desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是一个道理。"
-                desc += f"\n\n因此，进销品名差异不是虚开发票，而是制造业的普遍特征。但风险并没有消除——它从'品名对不上'转移到了'加工链条是否真实'：\n"
-                desc += f"① 进项原材料（{len(pur_raw)}种）能否通过加工（{len(processing_items)}笔加工费）真实产出销项成品（{len(only_sell)}种）？\n"
-                desc += f"② 加工费发票是真实的外包加工，还是为解释品名差异而虚开的？\n"
-                desc += f"③ 费用类进项（{len([g for g in only_buy if any(k in g for k in expense_kws)])}类，如住宿、餐饮等）的去向是否合理？\n\n"
+                desc += f"进项品名与销项品名不匹配的根因是制造业加工链条——进项是原料（棉纱等），"
+                if only_sell_goods: desc += f"经过加工变成成品（{'、'.join(only_sell_goods[:3])}），"
+                desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
+                desc += f"因此，{len(only_buy)}种商品'有进无销'不是隐匿收入，而是制造业的正常加工链条。\n\n"
                 
                 desc += "【report 综合结论】\n"
-                desc += f"进销品名差异可解释为制造业加工链条，风险等级下调。但判决是否成立取决于BOM表和加工合同的真实性——"
-                desc += f"如果BOM的投入产出比合理、加工合同真实、费用类进项去向可说明，则可排除虚开嫌疑；如果缺BOM或缺加工合同，上述分析只能视为'可能解释'而非'确已排除'。"
+                desc += f"风险从'有进无销=隐匿收入'转移到了'加工链条真实性'。判决是否成立取决于："
+                desc += f"① BOM表能否证明原材料投入→加工→成品产出的逻辑（投入产出比、损耗率）；"
+                desc += f"② 加工费发票真实性（是否虚开）；"
+                desc += f"③ 费用类进项（{len([g for g in only_buy if any(k in g for k in expense_keywords)])}类，如住宿、餐饮等）去向是否与经营规模匹配。"
                 
                 inv_match_findings.append({
-                    "type": "进销品名匹配分析",
+                    "type": "有进无销风险",
                     "level": "中风险", "score": 5,
-                    "detail": detail,
+                    "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
                     "description": desc,
-                    "how_found": f"逐票提取进项/销项发票品名→交叉比对→发现进销品名不重合→检测加工费信号（{has_processing}）+原材料信号（{len(pur_raw)}种）→判定为制造业加工链条。",
-                    "tax_impact": "制造业加工链条导致的进销品名不匹配不自动构成虚开发票。关键风险转移至三处：① BOM表能否证明投入产出逻辑；② 加工费发票真实性；③ 费用类进项是否与经营规模匹配。三者任一无法验证，风险升级。",
-                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；制造业加工链条导致的品名差异不自动构成虚开。",
-                    "suggestion": f"① 限期提供BOM表（物料清单），验证原材料投入→加工→成品产出的完整链条（投入产出比、损耗率）；② 提供委托加工合同、送料单、收货单等加工全链条单据；③ 对费用类进项（住宿、餐饮等）提供报销凭证和业务说明；④ 如为纯贸易（直接买成品再卖），提供采购端对应的成品采购发票。以上资料齐全可排除虚开嫌疑。",
+                    "how_found": f"逐票提取进项/销项发票品名→交叉比对→发现{len(only_buy)}种仅采购无销售→检测加工信号（{has_processing}）+原材料（{len(raw_like)}种）→判定制造业加工链条。",
+                    "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但BOM表缺失则无法证明投入产出逻辑，加工费发票真实性无法验证，风险仍存在。",
+                    "policy_ref": "《增值税暂行条例》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
+                    "suggestion": f"① 提供BOM表验证原材料→加工→成品的完整链条（投入产出比、损耗率）；② 提供加工合同、送料单、收货单；③ 费用类进项提供报销凭证和业务说明。以上三项齐全可排除隐匿收入嫌疑。",
                     "category": "进销存匹配",
                 })
             else:
-                # ═══ 非制造业：分两条分别报 ═══
-                if only_buy:
-                    pur_amount_only = sum(pur_by_goods[g]["amount"] for g in only_buy)
-                    pur_total_all = sum(pur_by_goods[g]["amount"] for g in pur_by_goods)
-                    pct = pur_amount_only / max(pur_total_all, 1) * 100
-                    inv_match_findings.append({
-                        "type": "有进无销风险",
-                        "level": "高风险", "score": 8,
-                        "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
-                        "description": f"被查单位采购了{'、'.join(only_buy[:3])}等{len(only_buy)}种原材料/商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。根据增值税进销存管理原则，企业采购的商品应当有对应的对外销售或用于生产后对外销售。上述商品'有进无销'可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
-                        "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售",
-                        "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。进项税额若已抵扣且货物去向不明的还应作进项税额转出。",
-                        "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
-                        "suggestion": f"要求被查单位逐项说明{len(only_buy)}种商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录；4)若为研发或样品，提供对应项目资料。无法说明去向的，按隐匿收入处理。",
-                        "category": "进销存匹配",
-                    })
-                if only_sell:
-                    sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell)
-                    sell_total_all = sum(sale_by_goods[g]["amount"] for g in sale_by_goods)
-                    pct = sell_amount_only / max(sell_total_all, 1) * 100
-                    inv_match_findings.append({
-                        "type": "有销无进风险",
-                        "level": "高风险", "score": 9,
-                        "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
-                        "description": f"被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征：①可能根本不存在真实的货物交易，纯属虚构销售开票；②可能通过变名开票方式将A商品采购变造为B商品销售；③可能为'买单配票'——购买了他人未使用的进项配额后对外虚开。",
-                        "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无采购",
-                        "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
-                        "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
-                        "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料：1)采购发票、采购合同及对应的银行付款记录；2)入库单据和物流运输记录；3)若为委托加工，提供加工合同和加工费发票。无法提供真实采购来源的，按虚开发票立案处理。",
-                        "category": "进销存匹配",
-                    })
+                inv_match_findings.append({
+                    "type": "有进无销风险",
+                    "level": "高风险", "score": 8,
+                    "detail": f"{len(only_buy)}类商品（占总采购品类{len(only_buy)/max(len(pur_by_goods),1)*100:.0f}%）仅采购无销售记录，涉及金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%。",
+                    "description": f"被查单位采购了{'、'.join(only_buy[:3])}等{len(only_buy)}种原材料/商品（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现对应产品的销售记录。根据增值税进销存管理原则，企业采购的商品应当有对应的对外销售或用于生产后对外销售。上述商品'有进无销'可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                    "how_found": f"逐票提取进项发票品名→与销项发票品名交叉比对→发现{len(only_buy)}种商品仅采购无销售",
+                    "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。进项税额若已抵扣且货物去向不明的还应作进项税额转出。",
+                    "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
+                    "suggestion": f"要求被查单位逐项说明{len(only_buy)}种商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录；4)若为研发或样品，提供对应项目资料。无法说明去向的，按隐匿收入处理。",
+                    "category": "进销存匹配",
+                })
+        
+        # 检查2：有销无进（卖出但未采购→可能虚开发票，也可能是制造业加工产出成品）
+        only_sell = [g for g in sale_by_goods if g not in pur_by_goods]
+        if only_sell:
+            sell_amount_only = sum(sale_by_goods[g]["amount"] for g in only_sell)
+            sell_total_all = sum(sale_by_goods[g]["amount"] for g in sale_by_goods)
+            pct = sell_amount_only / max(sell_total_all, 1) * 100
+            
+            # 制造业诊断：有加工费+有原材料采购→销售的是加工后的成品（品名天然不同）
+            has_processing = any("加工费" in g or "加工" in g for g in pur_by_goods)
+            expense_keywords = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
+            pur_raw = [g for g in pur_by_goods if not any(k in g for k in expense_keywords) and "加工" not in g]
+            is_manufacturing = has_processing and len(pur_raw) > 0
+            
+            if is_manufacturing:
+                pur_raw_list = pur_raw[:5]
+                sell_list = only_sell[:5]
+                raw_total = sum(pur_by_goods[g]["amount"] for g in pur_raw[:5])
+                proc_items = [g for g in pur_by_goods if "加工" in g][:3]
+                proc_total = sum(pur_by_goods[g]["amount"] for g in proc_items)
+                
+                desc = "【detect 检测现象】\n"
+                desc += f"将{len(sale_by_goods)}种销项商品与{len(pur_by_goods)}种进项商品逐票交叉比对，发现{len(only_sell)}种商品仅销售无直接采购——"
+                desc += f"销售了{'、'.join(sell_list)}（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现同名商品的采购记录。\n\n"
+                
+                desc += "【verify 交叉验证】\n"
+                desc += f"从进项发票中检索信号：\n"
+                desc += f"① 加工费发票{len(proc_items)}笔（{'、'.join(proc_items)}，合计{proc_total:,.0f}元）\n"
+                desc += f"② 非费用类原材料{len(pur_raw)}种（{'、'.join(pur_raw_list[:3])}等，合计约{raw_total:,.0f}元）\n"
+                desc += f"双信号→原材料+加工费→成品，销项品名与进项品名不同的合理解释。\n\n"
+                
+                desc += "【diagnose 根因诊断】\n"
+                desc += f"销售的是加工的成品（梭织布），采购的是原料（棉纱），品名天然不同——买纱线→委托加工→卖成品布是纺织制造的标准流程。"
+                desc += f"这与面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
+                desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果。\n\n"
+                
+                desc += "【report 综合结论】\n"
+                desc += f"风险从'有销无进=虚开'转移到了'加工链条是否真实'：\n"
+                desc += f"① 进项原材料（{len(pur_raw)}种）能否通过加工真实产出销项成品（{len(only_sell)}种）？（需BOM表验证）\n"
+                desc += f"② 加工费发票是真实外包加工还是仅为解释品名差异而虚开？（需加工合同+出入库记录）\n"
+                desc += f"③ 如果纯贸易直接买成品，为什么找不到成品采购发票？（这才是真正的虚开风险）"
+                
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "中风险", "score": 5,
+                    "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无直接采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
+                    "description": desc,
+                    "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种仅销售无采购→检测加工费（{has_processing}）+原材料（{len(pur_raw)}种）→判定制造业加工链条。",
+                    "tax_impact": "制造业加工链条导致销项品名与进项品名不同属正常现象。但BOM表缺失则投入产出逻辑无法验证，加工费真实性无法判断。",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；制造业加工链条导致的品名差异不自动构成虚开。",
+                    "suggestion": f"① 提供BOM表验证加工链条（原料+加工费→能否产出成品）；② 提供委托加工合同、送料单、收货单；③ 如为纯贸易（直接买成品再卖），提供采购端对应的成品采购发票。资料齐全可排除虚开嫌疑。",
+                    "category": "进销存匹配",
+                })
+            else:
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "高风险", "score": 9,
+                    "detail": f"{len(only_sell)}类商品（占总销售品类{len(only_sell)/max(len(sale_by_goods),1)*100:.0f}%）仅销售无采购记录，涉及金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%。",
+                    "description": f"被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种商品（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征：①可能根本不存在真实的货物交易，纯属虚构销售开票；②可能通过变名开票方式将A商品采购变造为B商品销售；③可能为'买单配票'——购买了他人未使用的进项配额后对外虚开。",
+                    "how_found": f"逐票提取销项发票品名→与进项发票品名交叉比对→发现{len(only_sell)}种商品仅销售无采购",
+                    "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
+                    "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料：1)采购发票、采购合同及对应的银行付款记录；2)入库单据和物流运输记录；3)若为委托加工，提供加工合同和加工费发票。无法提供真实采购来源的，按虚开发票立案处理。",
+                    "category": "进销存匹配",
+                })
         
         # 检查3：进销数量差异
         matched = [(g, (sale_by_goods[g]["qty"] - pur_by_goods[g]["qty"])) 
@@ -17011,35 +17039,8 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         ftype = f.get("type", "")
         items = []
         
-        # ── 1. 进销品名匹配分析（制造业绩和）或以有进无销/有销无进分别列示 ──
-        if "进销品名匹配" in ftype and pur_invs and sal_invs:
-            sal_goods = set(str(i.get("goods", "")).strip() for i in sal_invs)
-            pur_goods = set(str(i.get("goods", "")).strip() for i in pur_invs)
-            # 进项独有（有进无销侧）
-            pur_only = {}
-            for i in pur_invs:
-                g = str(i.get("goods", "")).strip()
-                if g and g not in sal_goods:
-                    pur_only[g] = pur_only.get(g, {"amount": 0, "count": 0, "suppliers": set()})
-                    pur_only[g]["amount"] += float(i.get("amount", 0) or 0)
-                    pur_only[g]["count"] += 1
-                    pur_only[g]["suppliers"].add(str(i.get("seller", ""))[:20])
-            # 销项独有（有销无进侧）
-            sal_only = {}
-            for i in sal_invs:
-                g = str(i.get("goods", "")).strip()
-                if g and g not in pur_goods:
-                    sal_only[g] = sal_only.get(g, {"amount": 0, "count": 0, "buyers": set()})
-                    sal_only[g]["amount"] += float(i.get("amount", 0) or 0)
-                    sal_only[g]["count"] += 1
-                    sal_only[g]["buyers"].add(str(i.get("buyer", ""))[:20])
-            # 合并展示：先进后销
-            for g, v in sorted(pur_only.items(), key=lambda x: -x[1]["amount"])[:10]:
-                items.append({"方向": "进(无对应销)", "商品名称": g[:30], "次数": v["count"], "金额": f"{v['amount']:,.0f}", "对方": "、".join(list(v["suppliers"])[:3]) if v["suppliers"] else ""})
-            for g, v in sorted(sal_only.items(), key=lambda x: -x[1]["amount"])[:10]:
-                items.append({"方向": "销(无对应进)", "商品名称": g[:30], "次数": v["count"], "金额": f"{v['amount']:,.0f}", "对方": "、".join(list(v["buyers"])[:3]) if v["buyers"] else ""})
-        
-        elif "有进无销" in ftype and pur_invs and sal_invs:
+        # ── 1. 有进无销风险：列出具体商品 ──
+        if "有进无销" in ftype and pur_invs and sal_invs:
             sal_goods = set(str(i.get("goods", "")).strip() for i in sal_invs)
             pur_by_goods = {}
             for i in pur_invs:
