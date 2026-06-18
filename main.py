@@ -13819,14 +13819,41 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
         if not found: amt_mismatch += 1
     
     if amt_mismatch > 5:
+        # 收集未匹配发票的详细信息
+        unmatched_invs = []
+        for inv in pur_invs:
+            seller = str(inv.get("seller", ""))[:30].strip()
+            inv_total = float(inv.get("total", 0) or 0)
+            if not seller or inv_total <= 0: continue
+            found = False
+            for cp, dates in pay_timeline.items():
+                if seller[:5] in cp or cp[:5] in seller:
+                    found = True; break
+            if not found:
+                unmatched_invs.append({
+                    "seller": seller[:20],
+                    "amount": inv_total,
+                    "goods": str(inv.get("goods", ""))[:20],
+                })
+        
+        total_unmatched = sum(inv["amount"] for inv in unmatched_invs)
+        total_pur = sum(float(inv.get("total", 0) or 0) for inv in pur_invs)
+        pct = total_unmatched / max(total_pur, 1) * 100
+        
+        # 按金额排序取前5
+        unmatched_invs.sort(key=lambda x: -x["amount"])
+        top5 = unmatched_invs[:5]
+        examples = "；".join([f"{u['seller']}({u['goods']}, {u['amount']:,.0f}元)" for u in top5])
+        
         findings.append({
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
-            "detail": f"{amt_mismatch}张进项发票的供应商在银行流水付款记录中找不到。有票无付款。",
-            "description": f"{amt_mismatch}张进项发票的销方名称在银行流水的付款对方中无法匹配。有票无付款意味着: 要么款项通过其他渠道支付（现金/支付宝/第三方），要么这些发票是虚开的——根本没有真实的资金流出。\n\n税务局的重点审查方向: 有票无付款 = 虚开发票嫌疑。",
-            "how_found": "逐张进项发票的销方名称与银行流水借方交易对手做模糊匹配，匹配不到的视为无付款记录。",
-            "tax_impact": "有票无付款→进项税额抵扣可能被否定→进项税额转出+补税+罚款。",
-            "suggestion": "提供现金支付凭证或第三方平台转账记录，无法证实的进项发票建议主动做进项税额转出。",
+            "detail": f"被查单位{amt_mismatch}张进项发票（占进项发票总数{len(pur_invs)}张的{amt_mismatch/len(pur_invs)*100:.0f}%）的供应商在银行流水付款记录中找不到对应的付款记录，涉及采购金额{total_unmatched:,.0f}元，占进项采购总额{total_pur:,.0f}元的{pct:.0f}%。",
+            "description": f"稽查核心逻辑：正常经营中，企业取得供应商开具的进项发票后，应当通过银行对公账户向供应商支付货款。被查单位{amt_mismatch}张进项发票的销方名称在银行汇款记录中完全无法匹配——即'有票无付款'。\n\n这有两种解释：①款项通过现金、第三方支付平台、个人账户等非对公渠道支付——虽然商业上可能属实，但不符合税务机关对'三流一致'（发票流、货物流、资金流）的要求，进项税额抵扣将面临被否定的风险；②这些进项发票根本没有对应的真实付款——即为虚开发票，只走票不走钱。\n\n涉及的主要供应商及金额：{examples}等。",
+            "how_found": f"逐张提取进项发票的销方名称（{len(pur_invs)}张），与银行流水借方交易对手（付款对象）做模糊匹配。{amt_mismatch}张发票的销方名称无法匹配到任何一笔银行付款记录。",
+            "tax_impact": f"① 进项税额转出：无法证明已实际支付的进项税额{total_unmatched*0.13:,.0f}元（按13%税率估算）可能被要求转出，补缴增值税；② 企业所得税调整：无付款凭证支撑的{total_unmatched:,.0f}元采购成本可能被认定为不合理支出，调增应纳税所得额；③ 若被认定为虚开发票→刑事责任（《刑法》第205条）+ 行政罚款 + 纳税信用降级。",
+            "policy_ref": "《发票管理办法》第二十二条（禁止虚开）；《国家税务总局关于加强增值税征收管理若干问题的通知》（三流一致要求）；《刑法》第二百零五条（虚开增值税专用发票罪）",
+            "suggestion": f"要求被查单位逐笔说明{amt_mismatch}张发票的货款支付方式：①若通过现金支付——提供现金日记账、收款收据（需有供应商签章）及库存现金盘点表佐证现金来源；②若通过第三方支付——提供支付宝/微信商户号交易记录截图及对应的银行卡提现记录；③若通过个人账户代付——提供个人银行流水和代付说明；④若确属未付款——核对进项税额转出金额，主动申报补税以争取从宽处理。无法提供任何付款凭证的，依法否定进项税额抵扣资格，追缴已抵扣税款并加收滞纳金。",
             "category": "三角验证"
         })
     
