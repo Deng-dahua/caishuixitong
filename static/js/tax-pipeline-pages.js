@@ -178,10 +178,13 @@ function renderDomainAnalysisPage(container) {
   window.currentModule = '域分析';
 
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>🔍 域分析结果</h2></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔍 域分析结果</h2>'
+    + '<p class="pipeline-subtitle">31个分析域覆盖进销存/供应商/交叉验证/资料完备/经营实质等维度，域间不是孤立的——跨域关联推理引擎将单域发现串联为多源证据链</p>'
+    + '</div>'
     + '<div class="pipeline-body" id="da-body">'
     + renderDomainAnalysisStatic()
-    + '<div id="da-analysis-result"><div style="text-align:center;padding:40px;color:#94a3b8">动态分析结果加载中...</div></div>'
+    + '<div id="da-analysis-result"></div>'
     + '</div></div>';
 
   loadDomainAnalysisData();
@@ -355,9 +358,12 @@ function renderCrossDomainEvidencePage(container) {
   window.currentModule = '跨域证据链';
 
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>🔗 跨域证据链</h2></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔗 跨域证据链</h2>'
+    + '<p class="pipeline-subtitle">系统最高价值的输出——7条证据链各自由多源数据交叉验证形成，只有≥2个维度同时命中才形成有效证据链</p>'
+    + '</div>'
     + '<div class="pipeline-body" id="cde-body">'
-    + '<div id="cde-static"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '<div id="cde-static"><div class="pipeline-loading">加载中...</div></div>'
     + '<div id="cde-dynamic"></div>'
     + '</div></div>';
 
@@ -951,7 +957,10 @@ function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '一键分析';
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>⚡ 一键分析</h2><p style="font-size:12px;color:#64748b;margin-top:4px">方法论驱动稽查引擎</p></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">⚡ 一键分析概览</h2>'
+    + '<p class="pipeline-subtitle">方法论驱动稽查引擎——点击"运行一键分析"启动完整稽查流程</p>'
+    + '</div>'
     + '<div class="pipeline-body" id="analyze-body"></div>'
     + '</div>';
   loadAnalyzeOverview();
@@ -1153,8 +1162,11 @@ function renderMethodologyFilterPage(container) {
   window.currentModule = '方法论过滤器';
 
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>🎯 方法论过滤器</h2></div>'
-    + '<div class="pipeline-body" id="mf-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🎯 方法论过滤器</h2>'
+    + '<p class="pipeline-subtitle">HARD_BAN+COND_BAN+去重——三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
+    + '</div>'
+    + '<div class="pipeline-body" id="mf-body"><div class="pipeline-loading">加载中...</div></div>'
     + '</div>';
 
   loadMethodologyFilterData();

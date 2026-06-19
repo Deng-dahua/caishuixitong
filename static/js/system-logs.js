@@ -2,17 +2,22 @@
 function renderSystemLogs(container) {
   window.currentModule = '系统日志';
   container.innerHTML = ''
-    + '<div style="max-width:1200px;margin:0 auto">'
-    + '<h2 style="margin-bottom:16px">📋 系统使用日志</h2>'
-    + '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">'
-    + '<button class="btn-toolbar" onclick="loadSystemLogs()">刷新</button>'
-    + '<button class="btn-toolbar" onclick="loadSystemLogs(\'today\')">今日</button>'
-    + '<button class="btn-toolbar" onclick="loadSystemLogs(\'upload\')">上传操作</button>'
-    + '<button class="btn-toolbar" onclick="loadSystemLogs(\'analyze\')">分析操作</button>'
-    + '<button class="btn-toolbar" onclick="clearSystemLogs()" style="color:#dc2626;border-color:#fca5a5">清空日志</button>'
-    + '<span id="log-count" style="color:var(--gray-400);font-size:12px;margin-left:8px"></span>'
+    + '<div class="pipeline-page">'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">📋 系统使用日志</h2>'
+    + '<p class="pipeline-subtitle">上传、分析、导出、修复操作的完整审计追踪记录</p>'
     + '</div>'
-    + '<div id="system-logs-table" style="font-size:12px">加载中...</div>'
+    + '<div class="pipeline-body">'
+    + '<div class="pipeline-filter-bar">'
+    + '<button class="pipeline-btn pipeline-btn-secondary" onclick="loadSystemLogs()">🔄 刷新</button>'
+    + '<button class="pipeline-btn pipeline-btn-secondary" onclick="loadSystemLogs(\'today\')">📅 今日</button>'
+    + '<button class="pipeline-btn pipeline-btn-secondary" onclick="loadSystemLogs(\'upload\')">📤 上传操作</button>'
+    + '<button class="pipeline-btn pipeline-btn-secondary" onclick="loadSystemLogs(\'analyze\')">🔍 分析操作</button>'
+    + '<button class="pipeline-btn pipeline-btn-danger" onclick="clearSystemLogs()">🗑 清空日志</button>'
+    + '<span id="log-count" class="pipeline-badge pipeline-badge-gray"></span>'
+    + '</div>'
+    + '<div id="system-logs-table" class="pipeline-loading">加载中...</div>'
+    + '</div>'
     + '</div>';
   loadSystemLogs();
 }
@@ -31,31 +36,31 @@ async function loadSystemLogs(filter) {
     
     document.getElementById('log-count').textContent = '共 ' + logs.length + ' 条';
     
-    var html = '<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--gray-200)">'
-      + '<thead><tr style="background:#f8fafc;font-weight:600">'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">时间</th>'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">操作</th>'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">请求</th>'
-      + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">状态</th>'
-      + '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--gray-200)">耗时</th>'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">用户</th>'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">IP</th>'
-      + '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--gray-200)">地区</th>'
+    var html = '<table class="pipeline-table" style="font-size:11px">'
+      + '<thead><tr>'
+      + '<th>时间</th>'
+      + '<th>操作</th>'
+      + '<th>请求</th>'
+      + '<th style="text-align:center">状态</th>'
+      + '<th style="text-align:center">耗时</th>'
+      + '<th>用户</th>'
+      + '<th>IP</th>'
+      + '<th>地区</th>'
       + '</tr></thead><tbody>';
     
     logs.forEach(function(l) {
       var actionIcon = l.action_type === 'upload' ? '📤' : (l.action_type === 'analyze' ? '🔍' : (l.action_type === 'export' ? '📥' : (l.action_type === 'audit' ? '🛡️' : (l.action_type === 'fix' ? '🔧' : '📋'))));
       var statusColor = l.status_code >= 400 ? '#dc2626' : '#059669';
       var time = l.timestamp ? l.timestamp.substring(0,19).replace('T',' ') : '-';
-      html += '<tr style="border-bottom:1px solid var(--gray-100)">'
-        + '<td style="padding:6px 12px;white-space:nowrap">' + time + '</td>'
-        + '<td style="padding:6px 12px">' + actionIcon + ' ' + (l.action_type || l.method || '-') + '</td>'
-        + '<td style="padding:6px 12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(l.path) + '">' + esc(l.path.replace('/api/','')) + '</td>'
-        + '<td style="padding:6px 12px;text-align:center;color:' + statusColor + '">' + l.status_code + '</td>'
-        + '<td style="padding:6px 12px;text-align:center">' + (l.response_time_ms || '-') + 'ms</td>'
-        + '<td style="padding:6px 12px;font-weight:500">' + (l.user_name ? esc(l.user_name) + ' <span style="color:var(--gray-400);font-weight:400">' + esc(l.user_phone || '') + '</span>' : '<span style="color:var(--gray-400)">-</span>') + '</td>'
-        + '<td style="padding:6px 12px">' + esc(l.client_ip || '-') + '</td>'
-        + '<td style="padding:6px 12px;color:var(--gray-500)">' + esc(l.location || '') + '</td>'
+      html += '<tr>'
+        + '<td style="white-space:nowrap">' + time + '</td>'
+        + '<td>' + actionIcon + ' ' + (l.action_type || l.method || '-') + '</td>'
+        + '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(l.path) + '">' + esc(l.path.replace('/api/','')) + '</td>'
+        + '<td style="text-align:center;color:' + statusColor + '">' + l.status_code + '</td>'
+        + '<td style="text-align:center">' + (l.response_time_ms || '-') + 'ms</td>'
+        + '<td style="font-weight:500">' + (l.user_name ? esc(l.user_name) + ' <span style="color:#94a3b8;font-weight:400">' + esc(l.user_phone || '') + '</span>' : '<span style="color:#94a3b8">-</span>') + '</td>'
+        + '<td>' + esc(l.client_ip || '-') + '</td>'
+        + '<td style="color:#64748b">' + esc(l.location || '') + '</td>'
         + '</tr>';
     });
     html += '</tbody></table>';
