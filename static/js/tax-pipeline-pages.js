@@ -645,9 +645,14 @@ function renderChainsPage(container) {
   if (!container) return;
   window.currentModule = '线索链';
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>🔗 线索链</h2><p style="font-size:12px;color:#64748b;margin-top:4px">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p></div>'
-    + '<div class="pipeline-body" id="chains-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
-    + '</div>';
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔗 线索链列表</h2>'
+    + '<p class="pipeline-subtitle">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
+    + '</div>'
+    + '<div class="pipeline-body" id="chains-body">'
+    + '<div id="chains-static"></div>'
+    + '<div id="chains-dynamic"></div>'
+    + '</div></div>';
   loadChainsData();
 }
 
@@ -797,7 +802,10 @@ function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>🔒 证据链</h2><p style="font-size:12px;color:#64748b;margin-top:4px">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔒 证据链列表</h2>'
+    + '<p class="pipeline-subtitle">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p>'
+    + '</div>'
     + '<div class="pipeline-body" id="evidence-body"></div>'
     + '</div>';
   loadEvidenceData();
