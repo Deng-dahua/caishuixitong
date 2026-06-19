@@ -1388,7 +1388,32 @@ async function loadAuditChains() {
     if (evCatSel) { evCatSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ evCatSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
     filterChains();
     filterEvidence();
+    // 加载动态触发状态
+    if (!_chainDynamic) await loadChainDynamicStatus();
+    filterChains();  // re-render with dynamic status
+    filterEvidence();
   } catch(e) { console.error(e); }
+}
+
+var _chainDynamic = null;
+
+async function loadChainDynamicStatus() {
+  try {
+    var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
+    var data = await resp.json();
+    if (data.ok && data.report) {
+      var comp = data.report.comprehensive || {};
+      _chainDynamic = {
+        chain_execution: comp.chain_execution || [],
+        evidence_closures: comp.evidence_closures || [],
+        closed_count: comp.closed_chain_count || 0,
+        triggered_count: comp.chain_triggered_count || 0
+      };
+    } else {
+      _chainDynamic = { chain_execution: [], evidence_closures: [], closed_count: 0, triggered_count: 0 };
+    }
+  } catch(e) { _chainDynamic = { chain_execution: [], evidence_closures: [], closed_count: 0, triggered_count: 0 }; }
 }
 
 function filterChains() {
@@ -1409,26 +1434,60 @@ function filterChains() {
   });
   var body = document.getElementById('audit-chains-body');
   if (!body) return;
-  if (!filtered.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">\u65e0\u5339\u914d\u7ebf\u7d22\u94fe</div>'; } else {
+  // build dynamic trigger map from last analysis
+  var execMap = {};
+  if (_chainDynamic && _chainDynamic.chain_execution) {
+    _chainDynamic.chain_execution.forEach(function(ce) { execMap[ce.chain_name] = ce; });
+  }
+  var hasDynamic = Object.keys(execMap).length > 0;
+  var triggeredTotal = 0;
+
+  if (!filtered.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">无匹配线索链</div>'; } else {
     var html = '';
+    if (hasDynamic && _chainDynamic) {
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+        + '<span style="padding:4px 12px;border-radius:4px;font-size:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af"><b>总触发链数：</b>' + (_chainDynamic.triggered_count||0) + '</span>'
+        + '<span style="padding:4px 12px;border-radius:4px;font-size:10px;background:#fef3c7;border:1px solid #fde68a;color:#92400e"><b>闭环证据链：</b>' + (_chainDynamic.closed_count||0) + '</span>'
+        + '</div>';
+    }
     filtered.forEach(function(c) {
-      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px">'
-        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+c.name+' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">'+c.steps+'\u6b65</span></div>'
+      var exec = execMap[c.name];
+      var triggeredSteps = exec ? exec.triggered_steps : 0;
+      var totalSteps = exec ? exec.total_steps : c.steps;
+      var ratio = exec ? exec.triggered_ratio : 0;
+      if (exec && exec.triggered_steps > 0) triggeredTotal++;
+
+      var borderColor = ratio >= 80 ? '#dc2626' : (ratio >= 50 ? '#f59e0b' : (ratio > 0 ? '#059669' : 'var(--gray-200)'));
+      var badgeHtml = '';
+      if (exec && exec.triggered_steps > 0) {
+        badgeHtml = ' <span style="background:' + (ratio >= 60 ? '#dc2626' : '#059669') + '15;color:' + (ratio >= 60 ? '#dc2626' : '#059669') + ';padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">⚡ ' + triggeredSteps + '/' + totalSteps + ' (' + ratio + '%)</span>';
+      }
+
+      html += '<div style="border:2px solid ' + borderColor + ';border-radius:6px;padding:14px;margin-bottom:10px;background:#fff">'
+        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+c.name+' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">'+c.steps+'步</span>' + badgeHtml + '</div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
       (c.investigation_path||[]).forEach(function(s, idx) {
-        var dot = s.level==='\u9ad8\u98ce\u9669'?'#dc2626':(s.level==='\u4e2d\u98ce\u9669'?'#f59e0b':'#94a3b8');
-        html += '<span style="background:#f1f5f9;padding:3px 8px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">'+s.step+'</span>';
+        var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
+        var stepBg = '#f1f5f9';
+        if (exec && exec.triggered_steps > 0) {
+          stepBg = ratio >= 60 ? '#fef2f2' : '#f0fdf4';
+          dot = ratio >= 60 ? '#dc2626' : '#059669';
+        }
+        html += '<span style="background:'+stepBg+';padding:3px 8px;border-radius:3px;font-size:10px;border-left:2px solid '+dot+'">'+s.step+'</span>';
         if (idx < (c.investigation_path||[]).length - 1) html += '<span style="color:#94a3b8;font-weight:700">-</span>';
       });
       html += '</div></div>';
-    });
+    })
+    html += '</div>';
     body.innerHTML = html;
   }
   var stats = document.getElementById('chain-stats');
-  if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u7ebf\u7d22\u94fe';
   var trailCount = _allChains.filter(function(c){return c.chain_type==='线索链';}).length;
+  var statsText = '共 ' + filtered.length + ' 条线索链';
+  if (hasDynamic && filtered.length > 0) statsText += ' | 已触发 ' + triggeredTotal + ' 条';
+  if (stats) stats.textContent = statsText;
   var hc = document.getElementById('chain-header-count');
-  if (hc) hc.textContent = trailCount;
+  if (hc) hc.textContent = trailCount + (hasDynamic && _chainDynamic && _chainDynamic.triggered_count ? ' (' + _chainDynamic.triggered_count + '触发)' : '');
 }
 
 async function loadAuditEvidence() {
@@ -1466,7 +1525,16 @@ function filterEvidence() {
   if (!filtered.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">\u65e0\u5339\u914d\u8bc1\u636e\u94fe</div>'; } else {
     var html = '';
     filtered.forEach(function(c) {
-      html += '<div style="border:1px solid var(--gray-200);border-radius:6px;padding:16px;margin-bottom:12px;background:#fff">'
+      // dynamic evidence closure status
+      var evExecMap = {};
+      if (_chainDynamic && _chainDynamic.evidence_closures) {
+        _chainDynamic.evidence_closures.forEach(function(ec) { evExecMap[ec.chain_name] = ec; });
+      }
+      var evExec = evExecMap[c.name];
+      var evBorder = evExec ? (evExec.closed ? '#dc2626' : '#f59e0b') : 'var(--gray-200)';
+      var evBadge = evExec ? (' <span style="background:' + (evExec.closed ? '#dc2626' : '#f59e0b') + '15;color:' + (evExec.closed ? '#dc2626' : '#f59e0b') + ';padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">' + (evExec.closed ? '🔒闭环' : '⚠未闭环') + ' ' + evExec.ratio + '%</span>') : '';
+
+      html += '<div style="border:2px solid ' + evBorder + ';border-radius:6px;padding:16px;margin-bottom:12px;background:#fff">'
         + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">'+c.name+' <span style="font-weight:400;font-size:10px;color:var(--gray-400)">'+c.steps+'\u6b65 '+c.high_risk_steps+'\u9ad8</span></div>';
       (c.investigation_path||[]).forEach(function(s) {
         var dot = s.level==='\u9ad8\u98ce\u9669'?'#dc2626':(s.level==='\u4e2d\u98ce\u9669'?'#f59e0b':'#94a3b8');
@@ -1498,7 +1566,15 @@ function filterEvidence() {
     body.innerHTML = html;
   }
   var stats = document.getElementById('evidence-stats');
-  if (stats) stats.textContent = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
+  var closedInFiltered = 0;
+  if (_chainDynamic && _chainDynamic.evidence_closures) {
+    var evNames = {};
+    filtered.forEach(function(f){ evNames[f.name] = true; });
+    _chainDynamic.evidence_closures.forEach(function(ec){ if (ec.closed && evNames[ec.chain_name]) closedInFiltered++; });
+  }
+  var evText = '\u5171 ' + filtered.length + ' \u6761\u8bc1\u636e\u94fe';
+  if (closedInFiltered > 0) evText += ' | \u{1F512}\u5df2\u95ed\u73af ' + closedInFiltered + ' \u6761';
+  if (stats) stats.textContent = evText;
   var evCount = _allChains.filter(function(c){return c.chain_type==='证据链';}).length;
   var hc = document.getElementById('evidence-header-count');
   if (hc) hc.textContent = evCount;
@@ -1506,7 +1582,7 @@ function filterEvidence() {
 
 // ==================== Tab ====================
 var _currentTab = 0;
-var _tabs = ['cat','chain','evidence','analyze'];
+var _tabs = ['cat','chain','evidence','analyze','cross'];
 function switchTab(n) {
   _currentTab = n;
   document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
