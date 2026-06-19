@@ -172,29 +172,107 @@ function renderDomainAnalysisPage(container) {
 
   container.innerHTML = '<div class="pipeline-page">'
     + '<div class="pipeline-header"><h2>🔍 域分析结果</h2></div>'
-    + '<div class="pipeline-body" id="da-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
-    + '</div>';
+    + '<div class="pipeline-body" id="da-body">'
+    + renderDomainAnalysisStatic()
+    + '<div id="da-analysis-result"><div style="text-align:center;padding:40px;color:#94a3b8">动态分析结果加载中...</div></div>'
+    + '</div></div>';
 
   loadDomainAnalysisData();
 }
 
+function renderDomainAnalysisStatic() {
+  var domains = [
+    {name:'进销存匹配分析', desc:'进销品名交叉映射、进销比检测、费用结构分析。有进无销/有销无进触发制造业加工诊断——检测加工费+原材料信号→风险转移至加工链条真实性验证。', category:'进销存'},
+    {name:'供应商穿透分析', desc:'供应商集中度、同城群集、供应商名称异常检测。前3大供应商占比>70%触发依赖风险预警；同城多家同类供应商触发开票团伙怀疑。', category:'供应商'},
+    {name:'多源交叉验证', desc:'资金流(银行支出)+发票流(进项)+货物流(存货)三源采购验证；银行收入+销项发票双源收入验证；合同+发票+付款三角交叉验证。', category:'交叉验证'},
+    {name:'资料完备度评估', desc:'15类稽查必查资料逐一检测。银行流水/销项发票/进项发票/记账凭证/工资表/社保明细/进销存台账/合同/科目余额表/财务报表/增值税申报/所得税申报/个税申报/小税种/公积金。合同需求分层(_analyze_contract_tiers)自动判定哪些供应商必须签合同。', category:'资料完备'},
+    {name:'经营实质分析', desc:'基础经营费用(房租/水电/物业/物流/仓储)检测+企业经营能力评估+发票交易量与人员规模匹配度。费用为零意味着无办公场所/无仓储/无物流→企业实质存疑。', category:'经营实质'},
+    {name:'经营实质地理分析', desc:'供应商/客户/加工商地址三角验真+重物运输成本检测+跨省经营合理性判断。从单一加工费异常→扩展到供应商地址+客户地址+运输费→全链条货物流真实性验证。', category:'经营实质'},
+    {name:'发票深度特征', desc:'发票开具时间分布分析(月末集中/季度末/年末开票潮)+价格区间检测+金额尾数异常+发票连续性检测+顶额开票检测。', category:'发票'},
+    {name:'发票实质性审计', desc:'合规检查(数量/单位缺失)+同品名单价波动+加工费专项+BOM进销映射。发票五层审计：格式合规→价格合理性→加工真实性→投入产出逻辑→税额准确性。', category:'发票'},
+    {name:'发票生命周期', desc:'发票从开具到认证的全链条检测。未认证发票占比+超期未认证+税率异常+发票类型分布(专票/普票)+红冲作废追踪。', category:'发票'},
+    {name:'合同比对分析', desc:'合同与发票/付款的对应关系验证。合同覆盖度检测——哪些供应商有合同哪些没有、合同金额与发票金额偏差、特殊条款审查。', category:'合同'},
+    {name:'凭证科目异常', desc:'科目使用合规性检测。科目编码与业务内容的匹配度、借贷方向正确性、摘要规范性、异常科目组合(如费用类科目贷方发生额)。', category:'凭证'},
+    {name:'凭证发票收入对比', desc:'凭证记录的主营业务收入vs销项发票金额vs银行入账金额三源对比。偏差>20%触发预警，用于检测未开票收入虚列或隐匿开票收入。', category:'凭证'},
+    {name:'存货周转预警', desc:'基于进销存台账的存货周转率+库龄分析+库存结构(原料/在产/成品)合理性评估。入库量远大于出库量→存货积压+资金被占压。', category:'存货'},
+    {name:'税务缴纳一致性', desc:'银行流水中的税费支出vs发票数据推算的应纳税额差异。实际缴税额与理论应纳税额的差异可能意味着漏缴或少缴。', category:'税务'},
+    {name:'工资社保比对', desc:'工资表vs社保明细交叉验证。社保基数与工资收入匹配度、社保缴纳人数与工资人数一致、单位缴纳比例合规性。', category:'薪酬'},
+    {name:'收入时间线调查', desc:'凭证收入/开票收入/银行入账按月趋势对比。检测年末突击开票、季度末收入异常波动、跨期收入确认嫌疑。', category:'收入'},
+    {name:'供应商画像分析', desc:'供应商行业分布+地域分布+注册时间+注册资本综合分析。新注册/零实缴/经营范围不匹配的供应商→可疑交易方。', category:'供应商'},
+    {name:'资金流向追踪', desc:'银行流水收款方/付款方分类。区分经营收款vs个人转账vs关联方往来vs税费vs银行手续费。第三方支付占比过高→隐匿收入嫌疑。', category:'资金流'},
+    {name:'人员与业务匹配', desc:'员工人数vs营收规模合理性、人均薪资vs行业均值对比、社保缴费人数vs工资人数匹配。人数少营收大→虚开发票或人力外包未报。', category:'人员'},
+    {name:'发票存货付款三角验证', desc:'进项发票vs存货入库vs银行付款三向验证。有票无入库→票货分离；有票无付款→虚开嫌疑；存货增加无发票→采购未开票。', category:'交叉验证'},
+    {name:'红冲作废发票追踪', desc:'红冲发票率+作废发票率+红冲时间模式分析(开票后30天内/90天外红冲)+红冲金额占比+作废发票集中度。', category:'发票'},
+    {name:'利润现金流矛盾检测', desc:'账面利润vs经营现金流背离分析。利润为正但现金流为负→利润质量存疑；利润增速远高于现金流增速→可能存在虚增收入。', category:'财务报表'},
+    {name:'异常交易时间分析', desc:'银行流水交易时间检查。非工作时间交易(夜间/周末/节假日)→异常；特殊日期(季度末/年末/节前)→突击交易。', category:'资金流'},
+    {name:'关联交易穿透检测', desc:'发票与银行流水中企业与关联方的交易检测。名称相似度+同一法人+同一注册地+同一联系电话→关联交易未披露风险。', category:'关联交易'},
+    {name:'资产折旧费用匹配', desc:'固定资产采购发票vs折旧费用匹配。有大额固定资产采购但无折旧费用→资产未入账或少计折旧→利润虚增；折旧异常高→加速折旧未备案。', category:'资产'},
+    {name:'增值税申报比对', desc:'销项税额(发票)vs增值税申报表销项税额、进项税额(发票)vs申报表进项税额、应纳税额vs实缴税额。差异>1000元触发预警。', category:'税务'},
+    {name:'上下游穿透分析', desc:'销项发票客户vs进项发票供应商关联分析。同一企业既是客户又是供应商→对倒开票嫌疑；上下游地域分布交叉分析→贸易链条合理性验证。', category:'交叉验证'},
+    {name:'行业对标分析', desc:'66个行业基准值自动匹配。毛利率/税负率/进销比/人均营收/费用率五个维度对标。企业值偏离行业基准±30%触发预警。', category:'行业对标'},
+    {name:'账务系统风险', desc:'有发票或银行流水但无记账凭证→账务系统缺失检测。账务基础不牢→上面税费申报/发票管理/成本核算全无法验证。', category:'账务'},
+    {name:'扩展审查规则', desc:'312条规则全覆盖验证。未触发的规则→评估是否因数据缺失导致（非业务正常）。缺失数据可能意味着企业未按要求提供相应资料。', category:'规则引擎'},
+    {name:'规则全覆盖验证', desc:'对未触发的规则逐条检查——是数据不足导致还是业务正常？数据不足无法验证的标记为资料缺口，不作为风险结论。', category:'规则引擎'},
+    {name:'跨域关联推理', desc:'单点发现→多域印证→7条证据链。从所有域分析结果中提取跨域关联信号，A域资金异常+B域发票异常+C域凭证异常→多源交叉→违法事实闭环。', category:'证据链'},
+    {name:'审计基础检查', desc:'数据完整性检查：科目余额借贷平衡/凭证连续编号/银行流水日期连续性/发票号码连续性。基础数据问题会在所有分析域中放大。', category:'审计'},
+  ];
+
+  var html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📐 域分析体系说明</h3>'
+    + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:12px">'
+    + '<p><b>域分析是稽查分析的核心工作台。</b>每个域是一个独立的分析维度，由专门的域分析函数驱动。域之间不是孤立的——跨域关联推理引擎将单域发现串联为多源交叉证据链。</p>'
+    + '<p>域分析结果在报告渲染时合并同类风险后呈现，完整分析管线日志可追溯每条发现来自哪个域、基于什么数据触发。</p>'
+    + '</div>'
+
+    + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:8px">🗂️ ' + domains.length + '个分析域一览</h3>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px;font-size:11px">';
+
+  var categoryColors = {
+    '进销存': '#dc2626', '供应商': '#f59e0b', '交叉验证': '#7c3aed', '资料完备': '#2563eb',
+    '经营实质': '#059669', '发票': '#0891b2', '合同': '#0f172a', '凭证': '#b45309',
+    '存货': '#92400e', '税务': '#065f46', '薪酬': '#d97706', '收入': '#4f46e5',
+    '资金流': '#dc2626', '人员': '#6d28d9', '财务报表': '#1e40af', '关联交易': '#0369a1',
+    '资产': '#047857', '行业对标': '#6366f1', '账务': '#475569', '规则引擎': '#0f172a',
+    '证据链': '#7c3aed', '审计': '#64748b'
+  };
+
+  domains.forEach(function(d) {
+    var color = categoryColors[d.category] || '#64748b';
+    html += '<div style="background:#fff;border-left:3px solid ' + color + ';padding:8px 10px;border-radius:4px">'
+      + '<b style="color:' + color + '">' + escHtml(d.name) + '</b>'
+      + ' <span style="font-size:9px;background:' + color + '15;color:' + color + ';padding:1px 5px;border-radius:2px">' + escHtml(d.category) + '</span>'
+      + '<div style="color:#64748b;margin-top:3px;line-height:1.5">' + escHtml(d.desc) + '</div>'
+      + '</div>';
+  });
+
+  html += '</div>'
+    + '<div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;line-height:1.6">'
+    + '<b>🔍 域间关系：</b>域不是孤立的。资料完备度决定其他域的置信度（缺资料→对应域跳过）→经营实质为所有域提供企业画像→多源交叉验证将单域发现串联→跨域关联推理输出7条最终证据链。'
+    + '</div>'
+    + '</div>';
+
+  return html;
+}
+
 async function loadDomainAnalysisData() {
+  var target = document.getElementById('da-analysis-result');
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (!data.ok) {
-      document.getElementById('da-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果') + '</div>';
+      if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果，请先运行一键分析') + '</div>';
       return;
     }
     renderDomainAnalysisResult(data.report);
   } catch (e) {
-    document.getElementById('da-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
+    if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
 function renderDomainAnalysisResult(report) {
-  var ds = report.domain_summary || [];
+  var target = document.getElementById('da-analysis-result');
+  if (!target) return;
   var allF = report.all_findings || [];
 
   // 按域分组 findings
@@ -260,7 +338,7 @@ function renderDomainAnalysisResult(report) {
 
   html += '</div>';
 
-  document.getElementById('da-body').innerHTML = html;
+  target.innerHTML = '<div style="border-top:2px solid #e2e8f0;padding-top:20px;margin-top:20px"><h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📊 本次分析结果</h3>' + html + '</div>';
 }
 
 // ==================== 页面3：跨域证据链 ====================
