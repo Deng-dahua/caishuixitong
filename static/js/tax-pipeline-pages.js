@@ -349,29 +349,94 @@ function renderCrossDomainEvidencePage(container) {
 
   container.innerHTML = '<div class="pipeline-page">'
     + '<div class="pipeline-header"><h2>🔗 跨域证据链</h2></div>'
-    + '<div class="pipeline-body" id="cde-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
-    + '</div>';
+    + '<div class="pipeline-body" id="cde-body">'
+    + '<div id="cde-static"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '<div id="cde-dynamic"></div>'
+    + '</div></div>';
 
-  loadCrossDomainEvidenceData();
+  loadCrossDomainStatic();
+  loadCrossDomainDynamic();
 }
 
-async function loadCrossDomainEvidenceData() {
+function loadCrossDomainStatic() {
+  var target = document.getElementById('cde-static');
+  fetch('/static/cross_domain_evidence.json?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(chains) {
+      var html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+        + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📐 跨域证据链体系说明</h3>'
+        + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:12px">'
+        + '<p><b>跨域证据链是系统最高价值的输出。</b>单域发现可以解释，但多个域同时出现异常无法解释。7条证据链各自由多源数据交叉验证形成——从不同域、不同数据源提取相互印证的发现，串联为完整的证据闭环。</p>'
+        + '<p>每条证据链定义了触发关键词、所需最少证据维度数、多域交叉维度结构。只有≥2个维度同时命中才形成有效证据链，保证每条结论不是孤证。</p>'
+        + '</div>'
+
+        + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:8px">🗂️ ' + chains.length + '条跨域证据链</h3>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'
+        + chains.map(function(c) {
+          return '<span style="padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;background:' + (c.level === '高风险' ? '#fef2f2' : '#fffbeb') + ';border:1px solid ' + (c.level === '高风险' ? '#fecaca' : '#fde68a') + '">' + (c.level === '高风险' ? '🔴' : '🟡') + ' ' + _escStatic(c.name) + ' (' + c.dimensions.length + '维)</span>';
+        }).join('')
+        + '</div>';
+
+      chains.forEach(function(c) {
+        var bc = c.level === '高风险' ? '#dc2626' : '#f59e0b';
+        html += '<div style="border:2px solid ' + bc + ';border-radius:8px;padding:14px;margin-bottom:10px;background:#fff">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+          + '<span style="font-size:16px">' + (c.level === '高风险' ? '🔴' : '🟡') + '</span>'
+          + '<b style="font-size:13px;color:#1e293b">' + _escStatic(c.name) + '</b>'
+          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:' + bc + '15;color:' + bc + '">' + _escStatic(c.level) + '</span>'
+          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#f1f5f9;color:#64748b">' + _escStatic(c.sub_topic) + '</span>'
+          + '<span style="font-size:9px;color:#94a3b8">需≥' + c.min_evidence + '条证据</span>'
+          + '</div>'
+          + '<div style="margin-bottom:6px;font-size:9px;color:#64748b">触发词：' + c.trigger_keywords.map(function(k) { return '<code style="background:#f1f5f9;padding:1px 3px;border-radius:2px">' + _escStatic(k) + '</code>'; }).join(' ') + '</div>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+          + c.dimensions.map(function(d) {
+            return '<div style="flex:1;min-width:130px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px">'
+              + '<b style="font-size:10px;color:#1e293b">' + _escStatic(d.code) + ' ' + _escStatic(d.source) + '</b>'
+              + '<div style="font-size:9px;color:#64748b;margin-top:2px">' + _escStatic(d.desc.substring(0,60)) + '</div>'
+              + '</div>';
+          }).join('')
+          + '</div>'
+          + '<div style="font-size:10px;color:#475569;line-height:1.7">' + _escStatic(c.description) + '</div>'
+          + '<div style="margin-top:6px;font-size:9px;color:#7c3aed">📌 ' + _escStatic(c.how_found) + '</div>'
+          + '<div style="font-size:9px;color:#991b1b">💸 ' + _escStatic(c.tax_impact) + '</div>'
+          + '<div style="font-size:9px;color:#1e40af">📜 ' + _escStatic(c.policy_ref) + '</div>'
+          + '<div style="font-size:9px;color:#059669;padding:6px;background:#f0fdf4;border-radius:4px;margin-top:4px">✅ ' + _escStatic(c.suggestion) + '</div>'
+          + '</div>';
+      });
+
+      html += '<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e;line-height:1.6">'
+        + '<b>⚠️ 证据链≠结论：</b>每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。触发条件（需≥X条证据）反映了该链的严格程度——隐匿收入和虚开发票需要更多证据，因为结论严重。'
+        + '</div>'
+        + '</div>';
+      target.innerHTML = html;
+    })
+    .catch(function() {
+      target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">⚠️ 跨域证据链定义加载失败</div>';
+    });
+}
+
+function loadCrossDomainDynamic() {
+  var target = document.getElementById('cde-dynamic');
+  if (!target) return;
+
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
-  try {
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
-    if (!data.ok) {
-      document.getElementById('cde-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果') + '</div>';
-      return;
-    }
-    renderCrossDomainResult(data.report);
-  } catch (e) {
-    document.getElementById('cde-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
-  }
+  fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">⚠️ 暂无分析结果，请先运行一键分析以获取动态证据链数据</div>';
+        return;
+      }
+      renderCrossDomainDynamic(data.report);
+    })
+    .catch(function(e) {
+      target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">动态数据加载失败: ' + e.message + '</div>';
+    });
 }
 
-function renderCrossDomainResult(report) {
-  var allF = report.all_findings || [];
+function renderCrossDomainDynamic(report) {
+  var target = document.getElementById('cde-dynamic');
+  if (!target) return;
   var domainSummary = report.domain_summary || [];
   var comprehensive = report.comprehensive || {};
 
@@ -523,10 +588,11 @@ function renderCrossDomainResult(report) {
     html += '</tbody></table></div>';
   }
 
-  document.getElementById('cde-body').innerHTML = html;
+  target.innerHTML = '<div style="border-top:2px solid #e2e8f0;padding-top:20px;margin-top:20px"><h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📊 本次动态证据链结果</h3>' + html + '</div>';
 }
 
 // ==================== 工具函数 ====================
+function _escStatic(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function statCard(icon, label, value, color) {
   return '<div style="flex:1;min-width:100px;background:#fff;border:2px solid ' + color + ';border-radius:10px;padding:14px;text-align:center">'
     + '<div style="font-size:24px;margin-bottom:4px">' + icon + '</div>'
