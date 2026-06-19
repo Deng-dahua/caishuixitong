@@ -395,7 +395,17 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
-    if (f.suggestion) h += '<div class="fs">➠ '+esc((f.suggestion||'').substring(0,200))+'</div>';
+    if (f.suggestion) h += '<div class="fs">'+esc((f.suggestion||'').substring(0,200))+'</div>';
+    // \u4e09\u5c42\u8ffd\u6eaf
+    if (f.rule_id || f.source_chain || f.how_found) {
+      h += '<div style="margin-top:8px;border-top:1px dashed #e8e8e8;padding-top:6px">';
+      h += '<span onclick="var d=this.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'" style="cursor:pointer;font-size:11px;color:#64748b;font-weight:600">\u25b6 稽查溯源</span>';
+      h += '<div style="display:none;font-size:11px;color:#475569;margin-top:4px;line-height:1.6">';
+      if (f.rule_id) h += '<div><b>规则:</b> ID-'+esc(f.rule_id)+'</div>';
+      if (f.source_chain) h += '<div><b>线索链:</b> '+esc(f.source_chain)+'</div>';
+      if (f.how_found) h += '<div><b>查证方式:</b> '+esc((f.how_found||'').substring(0,250))+'</div>';
+      h += '</div></div>';
+    }
     h += '</div>';
   });
 
