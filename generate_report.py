@@ -1,7 +1,8 @@
 """
-生成稽查报告 HTML — 以稽查员身份出具
+生成稽查报告 HTML — 全面运用分析链㉔条标准
 """
 import json, os
+from datetime import datetime
 
 with open(os.path.join(os.path.dirname(__file__), 'report_data.json'), 'r', encoding='utf-8') as f:
     data = json.load(f)
@@ -13,6 +14,80 @@ low_list = data['low_list']
 def esc(s):
     if not s: return ''
     return str(s).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;').replace('"','&quot;')
+
+def render_items(items):
+    """渲染明细表格——全部数据，不截断"""
+    if not items or not isinstance(items, list) or len(items) == 0:
+        return ''
+    h = '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">明细数据</div>'
+    h += '<table class="tbl2"><thead><tr>'
+    for k in items[0].keys():
+        h += f'<th>{esc(k)}</th>'
+    h += '</tr></thead><tbody>'
+    for item in items:
+        h += '<tr>'
+        for v in item.values():
+            h += f'<td>{esc(str(v))}</td>'
+        h += '</tr>'
+    h += '</tbody></table></div>'
+    return h
+
+def render_finding(f, level, is_high=False):
+    """渲染单条发现"""
+    ftype = f.get('type', '')
+    detail = f.get('detail', '')
+    desc = f.get('description', '')
+    tax_impact = f.get('tax_impact', '')
+    policy = f.get('policy_ref', '')
+    suggestion = f.get('suggestion', '')
+    items = f.get('items', [])
+    score = f.get('score', 0)
+    rule_id = f.get('rule_id', '')
+    
+    if level == '高风险':
+        cls = ''; tag_cls = 'tag-r'; tag_text = f'高风险 {score}分'
+    elif level == '中风险':
+        cls = 'amber'; tag_cls = 'tag-a'; tag_text = '中风险'
+    else:
+        cls = 'green'; tag_cls = 'tag-g'; tag_text = '低风险'
+    
+    # 稽查重点标记
+    audit_priority = f.get('level_fixed', False)
+    
+    h = f'<div class="finding {cls}"><div class="ft">'
+    h += f'<span class="tag {tag_cls}">{tag_text}</span> '
+    if audit_priority:
+        h += '<span class="tag tag-r" style="font-size:10px">稽查重点</span> '
+    h += f'{esc(ftype)}'
+    if rule_id:
+        h += f' <span style="font-size:11px;color:#94a3b8">[规则ID:{rule_id}]</span>'
+    h += '</div>'
+    
+    if detail:
+        h += f'<p style="font-weight:600;color:#0f172a">{esc(detail)}</p>'
+    
+    if desc:
+        for para in desc.split('\n'):
+            para = para.strip()
+            if para:
+                h += f'<div class="fb">{esc(para)}</div>'
+    
+    if tax_impact:
+        h += f'<div class="fb"><strong>纳税影响：</strong>{esc(tax_impact)}</div>'
+    
+    if policy:
+        h += f'<div class="fs"><strong>法律依据：</strong>{esc(policy)}</div>'
+    
+    if suggestion:
+        h += f'<div class="fs"><strong>稽查建议：</strong>{esc(suggestion)}</div>'
+    
+    # 明细表格——全部数据，不截断
+    h += render_items(items)
+    
+    h += '</div>'
+    return h
+
+# ═══════ 构建报告 ═══════
 
 html = '''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -55,6 +130,8 @@ p.i2{text-indent:2em}
 .seal{text-align:right;margin-top:60px;padding-top:30px;border-top:2px solid #1a1a2e}
 .warn{background:#fff8e1;border-left:4px solid #e67700;padding:12px 16px;margin:12px 0;font-size:13px;line-height:1.8}
 .info{background:#e8f5e9;border-left:4px solid #2b8a3e;padding:12px 16px;margin:12px 0;font-size:13px}
+.meth-item{padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#64748b}
+.meth-item .mnum{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:#c92a2a;color:#fff;font-size:11px;margin-right:6px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -65,9 +142,21 @@ p.i2{text-indent:2em}
 编号：税稽字[2026]第''' + str(data['total_risks']) + '''号<br>
 被查单位：中山市达冠纺织有限公司<br>
 稽查期间：2023年6月 — 2026年9月<br>
-报告日期：2026年6月19日<br>
-资料数量：银行流水13份 + 进项发票5份 + 销项发票5份 = 共23份
+报告日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''<br>
+资料数量：银行流水13份 + 进项发票5份 + 销项发票5份 = 共''' + str(data['files_count']) + '''份
 </div>
+</div>
+
+<h2>稽查引擎执行标准</h2>
+<p style="font-size:13px;color:#64748b;line-height:2">
+本报告依托分析链㉔条稽查方法论，全量规则引擎+线索链+证据链+跨域推理+方法论过滤+建议增强。
+</p>
+<div style="padding:12px 16px;background:#fafafa;border-radius:6px;font-size:12px;line-height:2">
+<div class="meth-item"><span class="mnum">①</span>多格式兼容 <span style="margin:0 8px">②</span>汇总行过滤 <span style="margin:0 8px">③</span>付款方身份核实 <span style="margin:0 8px">④</span>关键词≠事实 <span style="margin:0 8px">⑤</span>行业认知补算法</div>
+<div class="meth-item"><span class="mnum">⑥</span>联网核查 <span style="margin:0 8px">⑦</span>明细即信服力 <span style="margin:0 8px">⑧</span>不墨迹直接干 <span style="margin:0 8px">⑨</span>合同分层判断 <span style="margin:0 8px">⑩</span>完备度明细</div>
+<div class="meth-item"><span class="mnum">⑪</span>完备度升级 <span style="margin:0 8px">⑫</span>凭证描述纠正 <span style="margin:0 8px">⑬</span>进销诊断升级 <span style="margin:0 8px">⑭</span>行业基准库 <span style="margin:0 8px">⑮</span>结论分析法</div>
+<div class="meth-item"><span class="mnum">⑯</span>COND_BAN防误杀 <span style="margin:0 8px">⑰</span>稽查重点强制等级 <span style="margin:0 8px">⑱</span>报告纯净度 <span style="margin:0 8px">⑲</span>发票≠收付款1:1 <span style="margin:0 8px">⑳</span>经营实质地理分析</div>
+<div class="meth-item"><span class="mnum">㉑</span>规则detail业务化 <span style="margin:0 8px">㉒</span>建议质量增强 <span style="margin:0 8px">㉓</span>四步稽查分析法 <span style="margin:0 8px">㉔</span>禁止数据截断</div>
 </div>
 
 <h2>一、稽查概况</h2>
@@ -80,107 +169,47 @@ p.i2{text-indent:2em}
 </div>
 
 <div class="warn">
-<strong>⚠️ 资料完备度严重不足：</strong>本次稽查共收到23份资料（银行流水13份、进项发票5份、销项发票5份），覆盖银行流水、进项发票、销项发票3类。缺失记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类稽查必查资料。核查结论仅基于已提供资料推断，不排除因资料缺失存在更多未暴露风险。
+<strong>⚠️ 资料完备度严重不足：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料（银行流水13份、进项发票5份、销项发票5份），覆盖银行流水、进项发票、销项发票3类。缺失记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类稽查必查资料。
 </div>
 
 <h2>二、高风险发现（''' + str(data['high_risk']) + '''项）</h2>
 '''
 
-for i, f in enumerate(high_list):
-    ftype = f.get('type', '')
-    detail = f.get('detail', '')
-    desc = f.get('description', '')
-    tax_impact = f.get('tax_impact', '')
-    policy = f.get('policy_ref', '')
-    suggestion = f.get('suggestion', '')
-    items = f.get('items', [])
-    score = f.get('score', 0)
-    
-    html += f'<div class="finding"><div class="ft"><span class="tag tag-r">高风险 {score}分</span> {esc(ftype)}</div>'
-    
-    if detail:
-        html += f'<p style="font-weight:600;color:#0f172a">{esc(detail)}</p>'
-    
-    if desc:
-        # 保留换行
-        for para in desc.split('\n'):
-            para = para.strip()
-            if para:
-                html += f'<div class="fb">{esc(para)}</div>'
-    
-    if tax_impact:
-        html += f'<div class="fb"><strong>纳税影响：</strong>{esc(tax_impact)}</div>'
-    
-    if policy:
-        html += f'<div class="fs"><strong>法律依据：</strong>{esc(policy)}</div>'
-    
-    if suggestion:
-        html += f'<div class="fs"><strong>稽查建议：</strong>{esc(suggestion)}</div>'
-    
-    if items and isinstance(items, list) and len(items) > 0:
-        html += '<table class="tbl2" style="margin-top:8px"><tr>'
-        for k in items[0].keys():
-            html += f'<th>{esc(k)}</th>'
-        html += '</tr>'
-        for item in items:
-            html += '<tr>'
-            for v in item.values():
-                html += f'<td>{esc(str(v))}</td>'
-            html += '</tr>'
-        html += '</table>'
-    
-    html += '</div>'
+for f in high_list:
+    html += render_finding(f, '高风险', is_high=True)
 
 html += '<h2>三、中风险发现（' + str(data['mid_risk']) + '项）</h2>'
-
-for i, f in enumerate(mid_list):
-    ftype = f.get('type', '')
-    detail = f.get('detail', '')
-    desc = f.get('description', '')
-    suggestion = f.get('suggestion', '')
-    
-    html += f'<div class="finding amber"><div class="ft"><span class="tag tag-a">中风险</span> {esc(ftype)}</div>'
-    if detail:
-        html += f'<p style="font-weight:600">{esc(detail)}</p>'
-    if desc:
-        for para in desc.split('\n'):
-            para = para.strip()
-            if para:
-                html += f'<div class="fb">{esc(para)}</div>'
-    if suggestion:
-        html += f'<div class="fs"><strong>建议：</strong>{esc(suggestion)}</div>'
-    html += '</div>'
+for f in mid_list:
+    html += render_finding(f, '中风险')
 
 html += '<h2>四、低风险发现（' + str(data['low_risk']) + '项）</h2>'
 for f in low_list:
-    html += f'<div class="finding green"><div class="ft"><span class="tag tag-g">低风险</span> {esc(f.get("type", ""))}</div>'
-    if f.get('detail'): html += f'<p>{esc(f["detail"])}</p>'
-    html += '</div>'
+    html += render_finding(f, '低风险')
 
 html += '''
 <h2>五、综合结论与稽查建议</h2>
 
-<p class="i2">经对被查单位「中山市达冠纺织有限公司」2023年6月至2026年9月期间的23份资料（银行流水13份、进项发票5份、销项发票5份）进行系统性稽查分析，形成结论如下：</p>
+<p class="i2">经对被查单位「中山市达冠纺织有限公司」2023年6月至2026年9月期间的''' + str(data['files_count']) + '''份资料进行系统性稽查分析，形成结论如下：</p>
 
 <h3>（一）已查实问题</h3>
 
-<p class="i2">1. <strong>资料完备度极低</strong>——仅提交3类资料，缺失11类稽查必查资料。根据《税收征收管理法》第五十四条、第五十六条，税务机关有权要求纳税人提供完整的涉税资料。缺失资料将使企业面临罚款（单位最高5万元）及核定征收风险。</p>
+<p class="i2">1. <strong>资料完备度极低</strong>——仅提交3类资料，缺失11类稽查必查资料。根据《税收征收管理法》第五十四条、第五十六条，税务机关有权要求纳税人提供完整的涉税资料。</p>
 
-<p class="i2">2. <strong>进项发票与银行付款记录存在大量未匹配</strong>——大量进项发票供应商在银行付款记录中找不到对应付款，涉及金额巨大。根据《发票管理办法》第二十二条及《刑法》第二百零五条，需要逐笔核实是否存在虚开发票情形。但需注意：发票与付款天然不是一一对应关系，未匹配不等于虚开——存在自然跨期、合并付款、分期付款、预付账款、应付账款、非对公/代付等六种正常商业场景。</p>
+<p class="i2">2. <strong>进项发票与银行付款记录存在未匹配</strong>——部分进项发票供应商在银行付款记录中找不到对应付款。但需注意：发票与付款天然不是一一对应关系——存在自然跨期、合并付款、分期付款、预付账款、应付账款、非对公/代付等六种正常商业场景，未匹配不等于虚开。</p>
 
-<p class="i2">3. <strong>收款来源与开票客户不匹配</strong>——银行收款方中含有非开票客户的资金流入，需要逐笔核实资金来源性质（经营收款/借款/注资/往来款），无法说明来源的按隐匿收入处理。</p>
+<p class="i2">3. <strong>收款来源与开票客户不匹配</strong>——银行收款方中含有非开票客户的资金流入，需逐笔核实资金来源性质。</p>
 
-<p class="i2">4. <strong>进销品名存在显著差异</strong>——进项以棉纱、涤纶布等原材料为主，销项以针织布、梭织布等成品为主，表明存在实质加工环节。需要核实加工链条的真实性和加工费发票的合规性。</p>
+<p class="i2">4. <strong>进销品名存在显著差异</strong>——进项以棉纱/涤纶布等原材料为主，销项以针织布/梭织布等成品为主，表明存在实质加工环节。</p>
 
 <h3>（二）需进一步核实事项</h3>
 
-<p class="i2">1. 要求被查单位补充提供：记账凭证（完整序时账）、工资表、社保明细、进销存台账、合同文件、科目余额表、资产负债表+利润表、增值税申报表、企业所得税申报表、个人所得税申报表、其他税种申报表等11类资料。</p>
+<p class="i2">1. 要求被查单位补充提供：记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类资料。</p>
 
-<p class="i2">2. 对进项发票与银行付款未匹配的供应商，逐笔核实属于六种付款模式中的哪一种，并提供对应的佐证材料。</p>
+<p class="i2">2. 对进项发票与银行付款未匹配的供应商，逐笔核实属于六种付款模式中的哪一种，并提供对应佐证材料。</p>
 
-<p class="i2">3. 对银行收款中非开票客户的资金来源，逐笔标注性质（经营/借款/注资/关联方往来），并提供对应的合同或凭证。</p>
+<p class="i2">3. 对银行收款中非开票客户的资金来源，逐笔标注性质并提供合同或凭证。</p>
 
-<p class="i2">4. 核实加工费真实性和加工链条完整性，确认是否存在虚开加工费发票或利用加工费转移利润的情形。</p>
+<p class="i2">4. 核实加工链条真实性和加工费发票合规性。</p>
 
 <h3>（三）稽查建议</h3>
 
@@ -188,13 +217,13 @@ html += '''
 
 <p class="i2"><strong>1. 限期整改（15个工作日）：</strong>补充全部缺失的11类资料，逐笔说明进项发票付款和银行收款的匹配情况。</p>
 
-<p class="i2"><strong>2. 重点核查：</strong>（1）银行收款中范善茂等个人账户的资金性质——根据工商登记查询，范善茂为法定代表人，其个人打款可能为股东注资或关联方往来；（2）进项发票中供应商名称与银行付款方名称的匹配度——重点关注无任何付款记录的大额供应商。</p>
+<p class="i2"><strong>2. 重点核查：</strong>（1）银行收款中个人账户的资金性质——法定代表人/股东打款可能为注资或关联方往来；（2）进项发票供应商与银行付款方的匹配度——重点关注无付款记录的大额供应商。</p>
 
-<p class="i2"><strong>3. 风险提示：</strong>如在限期内未能提供完整资料或对异常事项做出合理解释，将面临：（1）核定征收——税务机关根据银行流水等已有数据倒推核定应纳税额；（2）虚开发票专项核查——移送稽查部门；（3）纳税信用等级降级——影响发票领用、出口退税等。</p>
+<p class="i2"><strong>3. 风险提示：</strong>如在限期内未能提供完整资料或对异常事项做出合理解释，将面临核定征收、虚开发票专项核查、纳税信用等级降级等后果。</p>
 
 <div class="seal">
 <p>稽查员（签名）：_______________</p>
-<p>日期：2026年6月19日</p>
+<p>日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''</p>
 </div>
 
 </div>
@@ -208,3 +237,4 @@ with open(output_path, 'w', encoding='utf-8') as f:
 
 print(f"报告已生成: {output_path}")
 print(f"长度: {len(html):,} 字符")
+print(f"高风险 {len(high_list)} 项, 中风险 {len(mid_list)} 项, 低风险 {len(low_list)} 项")
