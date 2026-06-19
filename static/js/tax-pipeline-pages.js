@@ -16,7 +16,12 @@ function renderFileParsingPage(container) {
     + '  <div id="fp-analysis-result"></div>'
     + '</div>';
   renderFileParsingStatic();
-  loadFileParsingData();
+  // 缓存直接渲染最终态
+  if (_cachedFileParsingReport) {
+    renderFileParsingResult(_cachedFileParsingReport);
+  } else {
+    loadFileParsingData();
+  }
 }
 
 function renderFileParsingStatic() {
@@ -117,12 +122,13 @@ async function loadFileParsingData() {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (!data.ok) {
-      target.innerHTML = '<div style="text-align:center;padding:48px 0;color:#94a3b8;font-size:14px">暂无分析结果，请先运行一键分析</div>';
+      target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">暂无分析结果，请先运行一键分析</div>';
       return;
     }
+    _cachedFileParsingReport = data.report;
     renderFileParsingResult(data.report);
   } catch (e) {
-    target.innerHTML = '<div style="text-align:center;padding:48px 0;color:#94a3b8;font-size:14px">加载失败</div>';
+    target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">加载失败</div>';
   }
 }
 
@@ -213,7 +219,13 @@ function renderDomainAnalysisPage(container) {
     + renderDomainAnalysisStatic()
     + '<div id="da-analysis-result"></div>'
     + '</div>';
-  loadDomainAnalysisData();
+
+  // 缓存直接渲染最终态
+  if (_cachedDomainReport) {
+    renderDomainAnalysisResult(_cachedDomainReport);
+  } else {
+    loadDomainAnalysisData();
+  }
 }
 
 function renderDomainAnalysisStatic() {
@@ -305,12 +317,13 @@ async function loadDomainAnalysisData() {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (!data.ok) {
-      target.innerHTML = '<div style="text-align:center;padding:48px 0;color:#94a3b8;font-size:14px">暂无分析结果，请先运行一键分析</div>';
+      target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">暂无分析结果，请先运行一键分析</div>';
       return;
     }
+    _cachedDomainReport = data.report;
     renderDomainAnalysisResult(data.report);
   } catch (e) {
-    target.innerHTML = '<div style="text-align:center;padding:48px 0;color:#94a3b8;font-size:14px">加载失败</div>';
+    target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">加载失败</div>';
   }
 }
 
@@ -592,6 +605,10 @@ function renderCrossDomainDynamic(report) {
 
 
 // ==================== 全局变量（供线索链/证据链页面共享） ====================
+var _cachedDomainReport = null;
+var _cachedFileParsingReport = null;
+var _cachedFilterReport = null;
+var _cachedAnalyzeReport = null;
 var _allChains = [];
 var _chainDynamic = null;
 var _allClueChains = [];
@@ -923,12 +940,19 @@ async function loadAnalyzeOverview() {
 
   target.innerHTML = html;
 
+  // 缓存动态分析结果，二次访问直接渲染
+  if (_cachedAnalyzeReport) {
+    renderAnalyzeResult(_cachedAnalyzeReport);
+    return;
+  }
+
   // 加载动态分析结果
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (data.ok && data.report) {
+      _cachedAnalyzeReport = data.report;
       renderAnalyzeResult(data.report);
     }
   } catch (e) {}
@@ -984,13 +1008,18 @@ function renderMethodologyFilterPage(container) {
 
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '<div>'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">🎯 方法论过滤器</h2>'
+    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">方法论过滤器</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN+COND_BAN+去重——三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
     + '</div>'
     + '<div id="mf-body"></div>'
     + '</div>';
 
-  loadMethodologyFilterData();
+  // 缓存直接渲染最终态
+  if (_cachedFilterReport) {
+    renderFilterResult(_cachedFilterReport);
+  } else {
+    loadMethodologyFilterData();
+  }
 }
 
 async function loadMethodologyFilterData() {
@@ -999,12 +1028,13 @@ async function loadMethodologyFilterData() {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (!data.ok) {
-      document.getElementById('mf-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果') + '</div>';
+      document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">' + (data.message || '暂无分析结果') + '</div>';
       return;
     }
+    _cachedFilterReport = data.report;
     renderFilterResult(data.report);
   } catch (e) {
-    document.getElementById('mf-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
+    document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
