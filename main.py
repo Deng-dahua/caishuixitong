@@ -12860,10 +12860,18 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     # 缺失项定义：(key, finding_type, level, score, detail, description, tax_impact, policy, suggestion)
     MISSING_DEFS = [
         ("contract", "合同文件缺失", "高风险", 9,
-         lambda: f"合同是证明交易真实性的第一份书面证据，按供应商性质分三类：①主营业务（原材料/加工/成品采购）必须签合同；②单笔>5万元的非日常支出必须签合同；③日常标准化消费（加油/酒店/餐饮/差旅/通讯/办公/税务）以发票为凭证即可。当前{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}个客户+{len(set(str(i.get('seller',''))[:15] for i in pur_invs if i.get('seller'))) if pur_invs else 0}个供应商中，主营业务供应商和重大支出无合同支撑，四流合一缺合同流，印花税计税依据缺失。",
-         lambda: f"缺少合同文件——需分层判断：主营业务采购和>5万元的非日常支出必须有合同，加油/酒店/餐饮/差旅等标准化消费以发票为凭证即可。①稽查逐笔质疑无合同交易的商业合理性；②无合同→印花税漏缴；③大额采购无合同→虚开发票嫌疑。",
+         lambda: (
+             f"合同需求分层分析（行业无关，基于发票货物名称判断）：\n"
+             f"总供应商{len(set(str(i.get('seller',''))[:15] for i in pur_invs if i.get('seller'))) if pur_invs else 0}家，"
+             f"销项客户{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}家。\n"
+             f"按三标准自动分类：①主营业务(材料/加工/成品交易)→必须合同；"
+             f"②单笔或累计>5万元的非日常支出→必须合同；"
+             f"③日常消费(加油/酒店/餐饮/差旅/通讯/办公/税务)→发票为凭证即可。\n"
+             f"被查单位缺失合同的影响集中在第一类和第二类。四流合一缺了合同流，印花税计税依据缺失。"
+         ),
+         lambda: f"缺少合同文件——需按业务性质分层判断：主营业务交易和>5万元的大额非日常支出必须有合同；加油/酒店/餐饮/差旅/通讯/办公等标准化日常消费以发票为凭证即可。①稽查逐笔质疑无合同交易的商业合理性；②无合同→印花税漏缴；③大额无合同→虚开发票嫌疑。",
          lambda: "《税收征收管理法》第五十四条；《印花税法》关于应税合同的规定。",
-         "① 为主营业务供应商补签购销合同；② 为单笔或累计>5万元的非日常交易补签合同；③ 合同必须明确：双方、金额、货物内容、履行期限、违约责任；④ 日常费用类（加油/酒店/餐饮/差旅/通讯/办公/税务）以发票为凭证即可，不需补签；⑤ 按合同金额补缴印花税。"),
+         "① 为主营业务供应商补签购销合同；② 为单笔>5万元的非日常交易补签合同；③ 合同必须明确双方、金额、货物内容、履行期限、违约责任；④ 日常消费类（加油/酒店/餐饮/差旅/通讯/办公/税务）以发票为凭证，不需补签；⑤ 按合同金额补缴印花税。"),
         
         ("bank", "银行流水缺失", "高风险", 10,
          lambda: "缺少银行流水——稽查第一份就要调的资料",
@@ -13013,6 +13021,55 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         })
 
     return findings
+
+
+# ═══════════ 合同需求分层分析（行业无关）═══════════
+def _analyze_contract_tiers(pur_invs, sal_invs):
+    """从发票数据自动分析每个供应商的合同需求等级
+    
+    三标准（行业无关）：
+    1. 看品名——进项发票中的货物/服务是原材料/加工/成品→主营业务→必须合同
+    2. 看金额——单供应商累计>5万元且非日常消费→重大支出→必须合同
+    3. 看类型——加油/酒店/餐饮/差旅/通讯/税务→日常费用→发票即可
+    """
+    from collections import defaultdict
+    DAILY_GOODS = ['汽油','柴油','加油','燃料','酒店','住宿','餐饮','餐费','饭店','外卖',
+                    '旅行社','机票','火车票','快递','通信','电话','网络','宽带',
+                    '办公用品','饮用水','打印','复印','维修','物业','保险',
+                    '税务','代开','罚款','滞纳金','手续费','利息','银行','停车']
+    supplier_goods = defaultdict(set)
+    supplier_amt = defaultdict(float)
+    for inv in pur_invs:
+        seller = str(inv.get('seller','') or inv.get('销方名称','')).strip()
+        goods = str(inv.get('goods','') or inv.get('货物或应税劳务名称','')).strip()
+        amt = float(inv.get('amount', 0) or 0)
+        if seller and len(seller) >= 4:
+            supplier_goods[seller].add(goods)
+            supplier_amt[seller] += amt
+    must_contract = []; may_skip = []
+    for name, amt in sorted(supplier_amt.items(), key=lambda x: -x[1]):
+        goods_text = ' '.join(supplier_goods.get(name, set()))
+        if any(kw in goods_text for kw in DAILY_GOODS):
+            may_skip.append((name, amt, '日常消费'))
+            continue
+        if amt > 50000:
+            must_contract.append((name, amt, f'重大支出({amt:,.0f}元)'))
+            continue
+        main_kws = ['加工','材料','原料','配件','零件','包装','辅料','半成品']
+        if any(kw in goods_text for kw in main_kws):
+            must_contract.append((name, amt, '主营业务(材料/加工)'))
+            continue
+        if amt > 20000:
+            must_contract.append((name, amt, f'中等支出({amt:,.0f}元)建议合同'))
+        else:
+            may_skip.append((name, amt, f'小额({amt:,.0f}元)'))
+    return {
+        'must_contract': must_contract, 'may_skip': may_skip,
+        'total_suppliers': len(supplier_amt),
+        'must_count': len(must_contract), 'may_skip_count': len(may_skip),
+        'must_total_amt': sum(x[1] for x in must_contract),
+        'may_skip_total_amt': sum(x[1] for x in may_skip),
+    }
 
 
 # ═══════════ 域15: 多源交叉验证 ═══════════
