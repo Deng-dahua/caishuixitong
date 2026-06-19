@@ -70,6 +70,7 @@ function renderTaxRiskRules(container) {
     + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe</button>'
     + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe</button>'
     + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790</button>'
+    + '<button class="rrtab" id="rrtab-cross" onclick="switchTab(4)">\u8de8\u57df\u8bc1\u636e\u94fe</button>'
     + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
@@ -230,6 +231,13 @@ function renderTaxRiskRules(container) {
     + '<b style="color:#dc2626">+合同分层判断 | 建议质量增强 | 规则detail(533条) | 经营实质地理 | 四合一闭环</b>'
     + '</div>'
     + '</div>'
+    + '</div></div>'
+    + '</div>'
+    // 子tab5: 跨域证据链（7条多域交叉互证）
+    + '<div id="rr-panel-cross" class="risk-rules-body" style="display:none">'
+    + '<div class="risk-rules-display">'
+    + '<div class="display-panel-header"><h3>跨域证据链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（多域交叉互证·7条动态生成） <strong id="cross-header-count">-</strong></span></h3></div>'
+    + '<div class="display-panel-body" id="cross-domain-body" style="padding:16px"><div style="text-align:center;color:#94a3b8">点击加载...</div></div>'
     + '</div></div>'
     + '</div>';
     + '</div>'
@@ -1506,8 +1514,116 @@ function switchTab(n) {
   document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
   document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
   document.getElementById('rr-panel-analyze').style.display = (n===3?'block':'none');
+  document.getElementById('rr-panel-cross').style.display = (n===4?'block':'none');
   if (n===1) loadAuditChains();
   if (n===2) loadAuditEvidence();
+  if (n===4) loadCrossDomainEvidenceTab();
+}
+
+// 子tab5: 跨域证据链（7条多域交叉互证）
+function _esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function loadCrossDomainEvidenceTab() {
+  var body = document.getElementById('cross-domain-body');
+  var countEl = document.getElementById('cross-header-count');
+  if (!body) return;
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div>';
+
+  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+  try {
+    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
+    var data = await resp.json();
+    if (!data.ok || !data.report) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ 暂无分析结果，请先运行一键分析</div>';
+      return;
+    }
+    var report = data.report;
+    var domainSummary = report.domain_summary || [];
+    var allF = report.all_findings || [];
+    var comp = report.comprehensive || {};
+
+    // 从跨域关联推理域提取
+    var crossEvidence = [];
+    domainSummary.forEach(function(ds) {
+      if (ds.name && ds.name.indexOf('跨域关联推理') >= 0 && ds.findings) {
+        crossEvidence = ds.findings;
+      }
+    });
+
+    // 也从 all_findings 找证据链类型
+    allF.forEach(function(f) {
+      var t = f.type || '';
+      if ((t.indexOf('证据链') >= 0 || t.indexOf('隐匿收入') >= 0 || t.indexOf('虚开发票') >= 0) && crossEvidence.length < 10) {
+        var dup = crossEvidence.some(function(ce) { return ce.type === t; });
+        if (!dup) crossEvidence.push(f);
+      }
+    });
+
+    // 证据链闭环
+    var closures = comp.evidence_closures || [];
+    var closedCount = comp.closed_chain_count || 0;
+    var triggeredChains = comp.triggered_chains || [];
+
+    if (countEl) countEl.textContent = closedCount;
+
+    // -- 概览 --
+    var html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
+      + '<div style="flex:1;min-width:90px;text-align:center;background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#7c3aed">' + crossEvidence.length + '</div><div style="font-size:10px;color:#64748b">跨域证据链</div></div>'
+      + '<div style="flex:1;min-width:90px;text-align:center;background:#fff;border:2px solid ' + (closedCount>=3?'#dc2626':'#f59e0b') + ';border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:' + (closedCount>=3?'#dc2626':'#f59e0b') + '">' + closedCount + '</div><div style="font-size:10px;color:#64748b">已闭环</div></div>'
+      + '<div style="flex:1;min-width:90px;text-align:center;background:#fff;border:2px solid #2563eb;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#2563eb">' + closures.length + '</div><div style="font-size:10px;color:#64748b">证据链检测</div></div>'
+      + '<div style="flex:1;min-width:90px;text-align:center;background:#fff;border:2px solid #059669;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#059669">' + triggeredChains.length + '</div><div style="font-size:10px;color:#64748b">含规则ID链</div></div>'
+      + '</div>';
+
+    // -- 证据链闭环 --
+    if (closures.length > 0) {
+      html += '<div style="font-weight:700;font-size:13px;color:#1e293b;margin:16px 0 8px">证据链闭环检测 <span style="font-size:10px;color:#94a3b8">（≥60%规则触发+≥2域交叉=闭环）</span></div>';
+      closures.forEach(function(ec) {
+        var isClosed = ec.closed;
+        var rc = isClosed ? '#dc2626' : '#f59e0b';
+        html += '<div style="border:2px solid ' + rc + ';background:' + rc + '08;border-radius:8px;padding:12px;margin-bottom:8px">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+          + '<b style="font-size:12px">' + _esc(ec.chain_name) + '</b>'
+          + '<span style="background:' + rc + '15;color:' + rc + ';padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700">' + (isClosed ? '🔒 闭环' : '⚠️ 未闭环') + ' ' + ec.ratio + '%</span>'
+          + '</div>'
+          + '<div style="font-size:10px;color:#64748b;margin-bottom:4px">触发 ' + ec.triggered_steps + '/' + ec.total_steps + ' 条规则</div>';
+        if (ec.steps) {
+          html += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+          ec.steps.forEach(function(s) {
+            var sc = s.triggered ? '#059669' : '#94a3b8';
+            html += '<span style="padding:2px 8px;background:' + sc + '10;border:1px solid ' + sc + ';border-radius:3px;font-size:9px;color:' + sc + '">' + (s.triggered ? '✓' : '○') + ' ' + _esc(s.step.substring(0,20)) + '</span>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+    }
+
+    // -- 7条跨域证据链 --
+    html += '<div style="font-weight:700;font-size:13px;color:#1e293b;margin:16px 0 8px">7条跨域证据链</div>';
+    if (crossEvidence.length === 0) {
+      html += '<div style="text-align:center;padding:20px;color:#94a3b8">暂无数据</div>';
+    } else {
+      crossEvidence.forEach(function(f) {
+        var rc = f.level === '高风险' ? '#dc2626' : '#f59e0b';
+        html += '<div style="border:1px solid ' + rc + ';border-radius:6px;padding:10px;margin-bottom:8px;background:#fff">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+          + '<div>'
+          + '<span style="background:' + rc + '15;color:' + rc + ';padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">' + (f.level || '—') + '</span> '
+          + '<b style="font-size:12px">' + _esc(f.type || '') + '</b>'
+          + '</div>'
+          + '<span style="font-size:14px">' + (f.level === '高风险' ? '🔴' : '🟡') + '</span>'
+          + '</div>';
+        if (f.description) html += '<div style="font-size:10px;color:#475569;line-height:1.7;margin-top:6px">' + _esc(f.description.substring(0,300)) + '</div>';
+        if (f.how_found) html += '<div style="font-size:9px;color:#64748b;margin-top:4px">📌 ' + _esc(f.how_found.substring(0,150)) + '</div>';
+        if (f.policy_ref) html += '<div style="font-size:9px;color:#1e40af;margin-top:2px">📜 ' + _esc(f.policy_ref.substring(0,120)) + '</div>';
+        if (f.suggestion) html += '<div style="font-size:9px;color:#059669;margin-top:2px">✅ ' + _esc(f.suggestion.substring(0,150)) + '</div>';
+        html += '</div>';
+      });
+    }
+
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
+  }
 }
 
 var tabStyle = document.createElement('style');
