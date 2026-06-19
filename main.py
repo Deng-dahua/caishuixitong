@@ -13094,13 +13094,12 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
                     "level": "高风险", "score": 9,
                     "detail": f"银行入账{bank_income:,.2f}元 vs 销项开票{inv_income:,.2f}元，差异{gap:,.2f}元（{gap_pct:.0f}%）。",
                     "description": f"将银行流水中的贷方(收入)金额与销项发票的价税合计进行交叉比对，发现两者存在{gap_pct:.0f}%的偏差。银行入账{bank_income:,.2f}元，销项开票{inv_income:,.2f}元。差异方向：{'银行收入多' if bank_income > inv_income else '开票收入多'}。\n\n"
-                        + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
-                        + f"① detect（检测信号）：银行收款{bank_income:,.0f}元 vs 开票{inv_income:,.0f}元，偏差{gap_pct:.0f}%>20%阈值→异常触发。\n"
-                        + f"② verify（交叉验证）：这是三源交叉验证的一环——银行流水（资金流）+销项发票（发票流）+目标企业申报数据（申报流）。三者偏差超过20%即确认异常。\n"
-                        + f"③ diagnose（根因诊断）：{'银行收入多于开票' if bank_income > inv_income else '开票多于银行收入'}，可能原因：\n"
-                        + f"　· 银行多：存在未开票收入（客户付款但未开票→隐匿收入）或非经营性资金入账（借款/注资/往来款）\n"
-                        + f"　· 开票多：存在应收账款（已开票但客户未付款）或现金交易（开票了但通过现金收款，未进对公账户）\n"
-                        + f"④ report（综合结论）：需结合收款来源分析进一步判断。如果银行多收的部分主要来自'开票客户之外的付款方'（见收款来源分析），则隐匿收入的可能性增大。如果来自法定代表人/股东，则需核实注资/借款性质。",
+                        + f"银行收款{bank_income:,.0f}元 vs 开票{inv_income:,.0f}元，偏差{gap_pct:.0f}%——超过20%阈值即需重点关注。\n"
+                        + f"这是三源交叉验证的一环——银行流水（资金流）+销项发票（发票流）+目标企业申报数据（申报流）。三者偏差超过20%即确认异常。\n"
+                        + f"{'银行收入多于开票' if bank_income > inv_income else '开票多于银行收入'}，可能原因：\n"
+                        + f"· 银行多：存在未开票收入（客户付款但未开票→隐匿收入）或非经营性资金入账（借款/注资/往来款）\n"
+                        + f"· 开票多：存在应收账款（已开票但客户未付款）或现金交易（开票了但通过现金收款，未进对公账户）\n"
+                        + f"综合判断：需结合收款来源分析进一步判断。如果银行多收的部分主要来自开票客户之外的付款方，则隐匿收入的可能性增大。如果来自法定代表人/股东，则需核实注资/借款性质。",
                     "how_found": f"交叉比对方法：{(chr(10))}(1)汇总银行流水中所有贷方(收入)交易金额{(chr(10))}(2)汇总所有销项发票的价税合计{(chr(10))}(3)计算两者差额及偏差率，超过20%触发预警。",
                     "tax_impact": "银行入账大于开票收入，是隐匿销售收入的重要线索。税务机关会将差额部分推定为未申报收入，核定补缴增值税及企业所得税。",
                     "policy_ref": "《税收征收管理法》第三十五条（核定征收）；《增值税暂行条例》关于销售额确定的规定。",
@@ -13753,14 +13752,13 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs):
             "level": "高风险", "score": 9,
             "detail": f"银行账户累计收款{total_income:,.0f}元，其中仅{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）来自销项发票上的购方客户。剩余{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）来自销项发票上未出现的付款方。",
             "description": f"被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户（购方），银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。\n\n销项发票列示的客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）。其中匹配到的客户：{matched_examples}。\n\n销项发票未列示的付款方合计{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）。主要不明来源：{examples}等。\n\n"
-                + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
-                + f"① detect（检测信号）：银行收款{total_income:,.0f}元 vs 开票收入数据，收款远大于开票——异常信号触发。\n"
-                + f"② verify（交叉验证）：将{len(payers)}个银行付款方与{len(buyer_names)}个销项客户做逐名比对。结果：仅{income_from_buyers/total_income*100:.0f}%匹配——异常确认真实存在。\n"
-                + f"③ diagnose（根因诊断）：{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票上未列示的付款方。这些资金有三种可能：\n"
-                + f"　· 未开票的经营收入（客户付了款但没给开票→隐匿收入）\n"
-                + f"　· 非经营资金流入（股东注资、借款、往来款→需要对应合同证明）\n"
-                + f"　· 第三方代付（客户的关联方代付→需要委托付款证明）\n"
-                + f"④ report（综合结论）：上述三种情况的风险等级不同。如果是未开票收入（情况一）→隐匿收入，严重程度最高。如果是借款/注资（情况二）→需要证明资金来源和性质。如果是第三方代付（情况三）→需要说明代付关系。无论哪种情况，被查单位都必须逐笔说明，无法说明的按隐匿收入处理。",
+                + f"银行收款{total_income:,.0f}元，收款金额远超开票金额——异常信号触发。\n"
+                + f"将{len(payers)}个银行付款方与{len(buyer_names)}个销项客户做逐名比对，仅{income_from_buyers/total_income*100:.0f}%匹配——异常确认真实存在。\n"
+                + f"{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票上未列示的付款方。这些资金有三种可能：\n"
+                + f"· 未开票的经营收入（客户付了款但没给开票→隐匿收入）\n"
+                + f"· 非经营资金流入（股东注资、借款、往来款→需要对应合同证明）\n"
+                + f"· 第三方代付（客户的关联方代付→需要委托付款证明）\n"
+                + f"综合判断：上述三种情况的风险等级不同。如果是未开票收入→隐匿收入，严重程度最高。如果是借款/注资→需要证明资金来源和性质。如果是第三方代付→需要说明代付关系。无论哪种情况，被查单位都必须逐笔说明，无法说明的按隐匿收入处理。",
             "how_found": f"从银行流水提取{len(payers)}个付款方→与销项发票{len(buyer_names)}个购方名称交叉比对→仅{income_from_buyers/total_income*100:.0f}%匹配。",
             "tax_impact": f"不明来源资金{total_income-income_from_buyers:,.0f}元可能被推定为未开票销售收入→补缴增值税（适用税率）+企业所得税（25%）+滞纳金（日万分之五）+0.5-5倍罚款。",
             "suggestion": f"要求被查单位逐笔说明{len(unmatched_payers)}个不明付款方的资金来源：①若为未开票的销售收入——立即补开发票并申报未开票收入，补缴相应税款；②若为借款——提供借款合同、借据、利息支付凭证；③若为股东注资——提供验资报告或出资证明；④若为关联方往来——提供对账单。无法说明来源的，按隐匿收入处理。",
@@ -13929,15 +13927,15 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
             "detail": f"被查单位{amt_mismatch}张进项发票（占进项发票总数{len(pur_invs)}张的{amt_mismatch/len(pur_invs)*100:.0f}%）的供应商在银行流水付款记录中找不到对应的付款记录，涉及采购金额{total_unmatched:,.0f}元，占进项采购总额{total_pur:,.0f}元的{pct:.0f}%。",
-            "description": f"稽查核心逻辑：正常经营中，企业取得供应商开具的进项发票后，应当通过银行对公账户向供应商支付货款。被查单位{amt_mismatch}张进项发票的销方名称在银行汇款记录中完全无法匹配——即'有票无付款'。\n\n"
-                + f"⚠️ 根因分析——为什么会产生这个结论？\n\n"
-                + f"① detect（检测信号）：进项发票{len(pur_invs)}张→逐张比对银行付款记录→{amt_mismatch}张（{amt_mismatch/len(pur_invs)*100:.0f}%）找不到对应付款→异常信号触发。\n"
-                + f"② verify（交叉验证）：从银行流水提取所有付款对象的名称，与进项发票销方名称做双向模糊匹配。已付款的供应商（匹配成功）vs 未付款的供应商（{amt_mismatch}家无匹配）。\n"
-                + f"③ diagnose（根因诊断）：{amt_mismatch}张发票无付款记录，有三种可能的解释：\n"
-                + f"　· 非对公支付：通过现金/微信/支付宝/个人账户付款——商业上可能属实，但不符合税务机关对'三流一致'的合规要求，进项税额抵扣面临被否定的风险。\n"
-                + f"　· 赊购未付：货已到、票已开，但货款尚未支付——需要应付账款明细支撑。\n"
-                + f"　· 虚开发票：只有发票没有真实交易——只走票不走钱，这是最严重的情况。\n"
-                + f"④ report（综合结论）：三种解释的风险等级不同。被查单位{amt_mismatch}张发票涉及金额{total_unmatched:,.0f}元（占进项{pct:.0f}%），必须逐笔提供付款凭证——非对公支付的提供第三方交易截图，赊购的提供对账单，都不是的主动做进项转出。无法提供任何付款凭证的，依法否定进项税额抵扣资格。\n\n涉及的主要供应商及金额：{examples}等。",
+            "description": f"正常经营中，企业取得供应商开具的进项发票后，应当通过银行对公账户向供应商支付货款。被查单位{amt_mismatch}张进项发票的销方名称在银行汇款记录中完全无法匹配——即'有票无付款'。\n\n"
+                + f"逐张比对进项发票与银行付款记录：\n"
+                + f"进项发票{len(pur_invs)}张→逐张比对银行付款记录→{amt_mismatch}张（{amt_mismatch/len(pur_invs)*100:.0f}%）找不到对应付款。\n"
+                + f"从银行流水提取所有付款对象的名称，与进项发票销方名称做双向模糊匹配。已付款的供应商（匹配成功）vs 未付款的供应商（{amt_mismatch}家无匹配）。\n"
+                + f"{amt_mismatch}张发票无付款记录，有三种可能的解释：\n"
+                + f"· 非对公支付：通过现金/微信/支付宝/个人账户付款——商业上可能属实，但不符合税务机关对'三流一致'的合规要求，进项税额抵扣面临被否定的风险。\n"
+                + f"· 赊购未付：货已到、票已开，但货款尚未支付——需要应付账款明细支撑。\n"
+                + f"· 虚开发票：只有发票没有真实交易——只走票不走钱，这是最严重的情况。\n"
+                + f"综合判断：三种解释的风险等级不同。被查单位{amt_mismatch}张发票涉及金额{total_unmatched:,.0f}元（占进项{pct:.0f}%），必须逐笔提供付款凭证——非对公支付的提供第三方交易截图，赊购的提供对账单，都不是的主动做进项转出。无法提供任何付款凭证的，依法否定进项税额抵扣资格。\n\n涉及的主要供应商及金额：{examples}等。",
             "how_found": f"逐张提取进项发票的销方名称（{len(pur_invs)}张），与银行流水借方交易对手（付款对象）做模糊匹配。{amt_mismatch}张发票的销方名称无法匹配到任何一笔银行付款记录。",
             "tax_impact": f"① 进项税额转出：无法证明已实际支付的进项税额{total_unmatched*0.13:,.0f}元（按13%税率估算）可能被要求转出，补缴增值税；② 企业所得税调整：无付款凭证支撑的{total_unmatched:,.0f}元采购成本可能被认定为不合理支出，调增应纳税所得额；③ 若被认定为虚开发票→刑事责任（《刑法》第205条）+ 行政罚款 + 纳税信用降级。",
             "policy_ref": "《发票管理办法》第二十二条（禁止虚开）；《国家税务总局关于加强增值税征收管理若干问题的通知》（三流一致要求）；《刑法》第二百零五条（虚开增值税专用发票罪）",
@@ -15868,24 +15866,20 @@ def _run_analyze(company_id, db):
                 processing = [g for g in only_buy if "加工" in g][:3]
                 only_sell_goods = [g for g in sale_by_goods if g not in pur_by_goods]
                 
-                desc = "【detect 检测现象】\n"
-                desc += f"将{len(pur_by_goods)}种进项商品与{len(sale_by_goods)}种销项商品逐票交叉比对，发现{len(only_buy)}种商品仅采购无销售——"
+                desc = f"将进项{len(pur_by_goods)}种商品与销项{len(sale_by_goods)}种商品逐票交叉比对，发现{len(only_buy)}种商品仅采购无销售——"
                 desc += f"采购了{'、'.join(pur_raw_list[:3])}等{len(only_buy)}种（金额{pur_amount_only:,.0f}元，占进项总额{pct:.0f}%），但销项发票中未发现同名产品的销售记录。\n\n"
                 
-                desc += "【verify 交叉验证】\n"
-                desc += f"从进项发票中检索加工信号：\n"
+                desc += f"进一步核查进项结构，发现：\n"
                 desc += f"① 加工费发票{len(processing)}笔（{'、'.join(processing) if processing else '外包加工'}）\n"
                 desc += f"② 非费用类原材料采购{len(raw_like)}种（{'、'.join(pur_raw_list[:3])}等）\n"
-                desc += f"双信号→企业采用'采购原材料→委托加工→销售成品'模式。\n\n"
+                desc += f"上述两个信号同时存在，表明企业采用'采购原材料→委托加工→销售成品'的经营模式。\n\n"
                 
-                desc += "【diagnose 根因诊断】\n"
-                desc += f"进项品名与销项品名不匹配的根因是制造业加工链条——进项是原料（棉纱等），"
+                desc += f"进项品名与销项品名不匹配的根本原因是制造业的正常加工链条——进项是原料（棉纱等），"
                 if only_sell_goods: desc += f"经过加工变成成品（{'、'.join(only_sell_goods[:3])}），"
                 desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
                 desc += f"因此，{len(only_buy)}种商品'有进无销'不是隐匿收入，而是制造业的正常加工链条。\n\n"
                 
-                desc += "【report 综合结论】\n"
-                desc += f"风险从'有进无销=隐匿收入'转移到了'加工链条真实性'。判决是否成立取决于："
+                desc += f"风险焦点从'有进无销=隐匿收入'转移到了'加工链条是否真实'："
                 desc += f"① BOM表能否证明原材料投入→加工→成品产出的逻辑（投入产出比、损耗率）；"
                 desc += f"② 加工费发票真实性（是否虚开）；"
                 desc += f"③ 费用类进项（{len([g for g in only_buy if any(k in g for k in expense_keywords)])}类，如住宿、餐饮等）去向是否与经营规模匹配。"
@@ -15934,25 +15928,21 @@ def _run_analyze(company_id, db):
                 proc_items = [g for g in pur_by_goods if "加工" in g][:3]
                 proc_total = sum(pur_by_goods[g]["amount"] for g in proc_items)
                 
-                desc = "【detect 检测现象】\n"
-                desc += f"将{len(sale_by_goods)}种销项商品与{len(pur_by_goods)}种进项商品逐票交叉比对，发现{len(only_sell)}种商品仅销售无直接采购——"
+                desc = f"将{len(sale_by_goods)}种销项商品与{len(pur_by_goods)}种进项商品逐票交叉比对，发现{len(only_sell)}种商品仅销售无直接采购——"
                 desc += f"销售了{'、'.join(sell_list)}（金额{sell_amount_only:,.0f}元，占销项总额{pct:.0f}%），但进项发票中未发现同名商品的采购记录。\n\n"
                 
-                desc += "【verify 交叉验证】\n"
-                desc += f"从进项发票中检索信号：\n"
+                desc += f"进一步核查进项结构：\n"
                 desc += f"① 加工费发票{len(proc_items)}笔（{'、'.join(proc_items)}，合计{proc_total:,.0f}元）\n"
                 desc += f"② 非费用类原材料{len(pur_raw)}种（{'、'.join(pur_raw_list[:3])}等，合计约{raw_total:,.0f}元）\n"
-                desc += f"双信号→原材料+加工费→成品，销项品名与进项品名不同的合理解释。\n\n"
+                desc += f"上述两个信号同时存在，表明原材料+加工费→成品，这是销项品名与进项品名不同的合理解释。\n\n"
                 
-                desc += "【diagnose 根因诊断】\n"
-                desc += f"销售的是加工的成品（梭织布），采购的是原料（棉纱），品名天然不同——买纱线→委托加工→卖成品布是纺织制造的标准流程。"
+                desc += f"销售的是加工后的成品（梭织布），采购的是原料（棉纱），品名天然不同——买纱线→委托加工→卖成品布是纺织制造的标准流程。"
                 desc += f"这与面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
                 desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果。\n\n"
                 
-                desc += "【report 综合结论】\n"
-                desc += f"风险从'有销无进=虚开'转移到了'加工链条是否真实'：\n"
+                desc += f"风险焦点从'有销无进=虚开'转移到了'加工链条是否真实'：\n"
                 desc += f"① 进项原材料（{len(pur_raw)}种）能否通过加工真实产出销项成品（{len(only_sell)}种）？（需BOM表验证）\n"
-                desc += f"② 加工费发票是真实外包加工还是仅为解释品名差异而虚开？（需加工合同+出入库记录）\n"
+                desc += f"② 加工费发票是真实外包加工还是仅为解释品名差异而虚开？（需加工合同和出入库记录）\n"
                 desc += f"③ 如果纯贸易直接买成品，为什么找不到成品采购发票？（这才是真正的虚开风险）"
                 
                 inv_match_findings.append({
@@ -16490,7 +16480,7 @@ def _run_analyze(company_id, db):
                                 "level": rule.get("level", "中风险"),
                                 "score": rule.get("score", 5),
                                 "detail": rule.get("detail", "")[:200],
-                                "description": f"线索链[{ce['chain_name']}]自动触发：{s['reason']}",
+                                "description": f"根据{s['reason']}",
                                 "how_found": f"链驱动分析：{ce['chain_name']} → {s['step']} → 规则R{s['rule_id']}命中",
                                 "tax_impact": rule.get("tax_impact", ""),
                                 "policy_ref": rule.get("policy_ref", ""),
