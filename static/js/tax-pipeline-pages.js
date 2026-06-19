@@ -944,15 +944,9 @@ function renderEvidencePage(container) {
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
 
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
-    + '<div>'
+    + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">证据链列表</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p>'
-    + '</div>'
-    + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;margin-top:24px">'
-    + '<input type="text" id="evidence-search-input" placeholder="搜索证据链..." ' + (hasCache ? '' : 'disabled') + ' oninput="renderEvidenceList(_allEvidenceChains)" style="flex:1;border:none;outline:none;font-size:14px;color:#0f172a;padding:8px 0;background:transparent">'
-    + '<select id="evidence-filter-cat" ' + (hasCache ? '' : 'disabled') + ' onchange="renderEvidenceList(_allEvidenceChains)" style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部分类</option></select>'
-    + '<select id="evidence-filter-level" ' + (hasCache ? '' : 'disabled') + ' onchange="renderEvidenceList(_allEvidenceChains)" style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option></select>'
-    + '<span style="font-size:13px;color:#94a3b8"><strong>' + (hasCache ? _allEvidenceChains.length : '...') + '</strong> 条</span>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? _allEvidenceChains.length : '...') + ' 条证据链 · 含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
     + '</div>'
     + '<div id="evidence-body"></div></div>';
 
@@ -972,7 +966,6 @@ async function loadEvidenceData() {
     var evChains = _allChains.filter(function(c) { return c.chain_type === '证据链'; });
     if (!evChains.length) evChains = _allChains.slice(391, 391 + 740);
 
-    // 确保动态状态已加载
     if (!_chainDynamic) await loadChainDynamicStatus();
 
     _allEvidenceChains = evChains;
@@ -986,63 +979,79 @@ function renderEvidenceList(chains) {
   var target = document.getElementById('evidence-body');
   if (!target) return;
 
-  var q = (document.getElementById('evidence-search-input')?.value || '').toLowerCase();
-  var cat = document.getElementById('evidence-filter-cat')?.value || '';
-  var lvl = document.getElementById('evidence-filter-level')?.value || '';
-
-  var filtered = chains.filter(function(c) {
-    if (q && (c.name||'').toLowerCase().indexOf(q) === -1) {
-      var found = false;
-      (c.investigation_path||[]).forEach(function(s) {
-        if ((s.rule_item||'').toLowerCase().indexOf(q) !== -1) found = true;
-        if ((s.step||'').toLowerCase().indexOf(q) !== -1) found = true;
-      });
-      if (!found) return false;
-    }
-    if (cat && !(c.name||'').startsWith(cat)) return false;
-    if (lvl) {
-      var hasLevel = false;
-      (c.investigation_path||[]).forEach(function(s) { if (s.level === lvl) hasLevel = true; });
-      if (!hasLevel) return false;
-    }
-    return true;
-  });
-
   var evExecMap = {};
   if (_chainDynamic && _chainDynamic.evidence_closures) {
     _chainDynamic.evidence_closures.forEach(function(ec) { evExecMap[ec.chain_name] = ec; });
   }
 
+  var totalSteps = chains.reduce(function(s, c) { return s + (c.investigation_path || []).length; }, 0);
+  var closedCount = Object.values(evExecMap).filter(function(e) { return e.closed; }).length;
+
   var html = '';
-  if (!filtered.length) {
-    html = '<div style="text-align:center;padding:40px;color:#94a3b8">无匹配证据链</div>';
+
+  // 统计卡片
+  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链总数</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
+    + '</div>';
+
+  if (!chains.length) {
+    html += '<div style="text-align:center;padding:40px;color:#94a3b8">无证据链数据</div>';
   } else {
-    filtered.forEach(function(c) {
-      var evExec = evExecMap[c.name];
-      var badge = '';
-      if (evExec) {
-        badge = ' <span style="color:' + (evExec.closed ? '#dc2626' : '#f59e0b') + ';font-size:13px;font-weight:600">' + (evExec.closed ? '已闭环' : '未闭环') + ' ' + evExec.ratio + '%</span>';
-      }
+    // 分组：按名称前缀分类
+    var groups = {};
+    chains.forEach(function(c) {
+      var prefix = (c.name || '其他').split('-')[0] || '其他';
+      if (!groups[prefix]) groups[prefix] = [];
+      groups[prefix].push(c);
+    });
+    var sortedPrefixes = Object.keys(groups).sort(function(a,b) { return groups[b].length - groups[a].length; });
 
-      html += '<div style="padding:16px 0;border-bottom:1px solid #f1f5f9">'
-        + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">' + escHtml(c.name) + badge + '</div>';
+    sortedPrefixes.forEach(function(prefix) {
+      var groupChains = groups[prefix];
+      html += '<div style="margin-bottom:32px">'
+        + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>';
 
-      (c.investigation_path||[]).forEach(function(s) {
-        var levelTag = s.level==='高风险' ? '<span style="color:#dc2626">[高]</span>' : (s.level==='中风险' ? '<span style="color:#f59e0b">[中]</span>' : '<span style="color:#94a3b8">[低]</span>');
-        html += '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:6px;padding-left:16px">'
-          + '<span style="color:#94a3b8;font-size:12px">R' + (s.rule_id||'') + '</span> '
-          + levelTag + ' <b style="color:#0f172a">' + escHtml(s.rule_item||s.step||'') + '</b>';
-        if (s.detail) html += '<br><span style="color:#64748b">' + escHtml(s.detail.substring(0,150)) + '</span>';
-        if (s.policy_ref) html += '<br><span style="color:#94a3b8;font-size:12px">依据：' + escHtml(s.policy_ref.substring(0,80)) + '</span>';
-        html += '</div>';
+      groupChains.forEach(function(c) {
+        var evExec = evExecMap[c.name];
+        var closed = evExec && evExec.closed;
+        var ratio = evExec ? evExec.ratio : 0;
+        var badgeText = evExec ? (closed ? '已闭环 ' + ratio + '%' : '未闭环 ' + ratio + '%') : '';
+        var badgeColor = closed ? '#059669' : '#f59e0b';
+
+        html += '<div style="padding:16px 20px;margin-bottom:8px;border:1px solid #f1f5f9;border-radius:8px">'
+          // 标题行
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+          + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(c.name) + '</div>'
+          + (badgeText ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeColor + '15;color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>' : '')
+          + '</div>'
+
+          // 调查步骤
+          + '<div style="margin-bottom:8px">';
+        (c.investigation_path || []).forEach(function(s, si) {
+          var levelTag = s.level === '高风险' ? '<span style="color:#dc2626;font-weight:600">高风险</span>' : (s.level === '中风险' ? '<span style="color:#f59e0b;font-weight:600">中风险</span>' : (s.level ? '<span style="color:#94a3b8">' + s.level + '</span>' : ''));
+          html += '<div style="padding:8px 12px;margin-bottom:4px;background:#fafafa;border-radius:4px;font-size:13px;line-height:1.8">'
+            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">#' + (si + 1) + '</span>'
+            + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;margin-right:6px">R' + s.rule_id + '</span>' : '')
+            + (s.level ? '<span style="margin-right:6px">' + levelTag + '</span>' : '')
+            + '<b style="color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
+            + (s.detail ? '<div style="color:#64748b;margin-top:4px">' + escHtml(s.detail) + '</div>' : '')
+            + (s.policy_ref ? '<div style="color:#94a3b8;font-size:12px;margin-top:4px">依据：' + escHtml(s.policy_ref) + '</div>' : '')
+            + '</div>';
+        });
+        html += '</div>'
+
+          // 底栏
+          + '<div style="display:flex;gap:16px;font-size:12px;color:#94a3b8;padding-top:8px;border-top:1px solid #f1f5f9">'
+          + '<span>步骤 ' + (c.investigation_path || []).length + ' 条</span>'
+          + '<span>覆盖规则 ' + (c.covered_rule_count || (c.investigation_path || []).length) + ' 条</span>'
+          + (c.related_chain_count > 0 ? '<span>关联链 ' + c.related_chain_count + ' 条</span>' : '')
+          + (c.quality_score ? '<span>质量 ' + c.quality_score + ' 分</span>' : '')
+          + '</div>'
+
+          + '</div>';
       });
-
-      var rCount = c.covered_rule_count || (c.investigation_path||[]).length;
-      var qScore = c.quality_score || 0;
-      html += '<div style="font-size:13px;color:#94a3b8;margin-top:6px">覆盖规则 ' + rCount + ' 条';
-      if (c.related_chain_count > 0) html += ' · 关联链 ' + c.related_chain_count + ' 条';
-      if (qScore) html += ' · 质量 ' + qScore + ' 分';
-      html += '</div>';
 
       html += '</div>';
     });
@@ -1050,10 +1059,6 @@ function renderEvidenceList(chains) {
 
   target.innerHTML = html;
   _allEvidenceChains = chains;
-}
-
-function filterEvidenceList() {
-  if (_allEvidenceChains) renderEvidenceList(_allEvidenceChains);
 }
 
 // ==================== 页面：分析链 ====================
