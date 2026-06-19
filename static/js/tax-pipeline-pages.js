@@ -420,13 +420,13 @@ function loadCrossDomainStatic() {
       var highCount = chains.filter(function(c) { return c.level === '高风险'; }).length;
       var totalDim = chains.reduce(function(s, c) { return s + c.dimensions.length; }, 0);
       var html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:12px"><div style="font-size:28px;font-weight:700;color:#7c3aed">' + chains.length + '</div><div style="font-size:11px;color:#64748b">证据链总数</div></div>'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #dc2626;border-radius:8px;padding:12px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:11px;color:#64748b">高风险链</div></div>'
-        + '<div id="cde-triggered-count" style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #94a3b8;border-radius:8px;padding:12px"><div style="font-size:28px;font-weight:700;color:#94a3b8">—</div><div style="font-size:11px;color:#64748b">本次触发</div></div>'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #2563eb;border-radius:8px;padding:12px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:11px;color:#64748b">总维度数</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:11px;color:#64748b">证据链总数</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + highCount + '</div><div style="font-size:11px;color:#64748b">高风险链</div></div>'
+        + '<div id="cde-triggered-count" style="flex:1;min-width:80px;text-align:center;background:#fff;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">—</div><div style="font-size:11px;color:#64748b">本次触发</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;padding:12px 16px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + totalDim + '</div><div style="font-size:11px;color:#64748b">总维度数</div></div>'
         + '</div>';
 
-      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+      html += '<div style="margin-bottom:24px">'
         + '<h3 style="font-size:15px;color:#1e293b;margin-bottom:12px">📐 跨域证据链体系说明</h3>'
         + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:12px">'
         + '<p><b>跨域证据链是系统最高价值的输出。</b>单域发现可以解释，但多个域同时出现异常无法解释。7条证据链各自由多源数据交叉验证形成——从不同域、不同数据源提取相互印证的发现，串联为完整的证据闭环。</p>'
@@ -442,7 +442,7 @@ function loadCrossDomainStatic() {
 
       chains.forEach(function(c, ci) {
         var bc = c.level === '高风险' ? '#dc2626' : '#f59e0b';
-        html += '<div id="cde-chain-' + ci + '" style="border:2px solid ' + bc + ';border-radius:8px;padding:14px;margin-bottom:10px;background:#fff">'
+        html += '<div id="cde-chain-' + ci + '" style="border-bottom:1px solid #f1f5f9;padding:14px 0;margin-bottom:0">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="font-size:16px">' + (c.level === '高风险' ? '🔴' : '🟡') + '</span>'
           + '<b style="font-size:13px;color:#1e293b">' + _escStatic(c.name) + '</b>'
@@ -468,7 +468,7 @@ function loadCrossDomainStatic() {
           + '</div>';
       });
 
-      html += '<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6">'
+      html += '<div style="margin-top:12px;padding:10px 14px;font-size:13px;color:#94a3b8;line-height:1.8;padding:16px 0;border-top:1px solid #f1f5f9">'
         + '<b>⚠️ 证据链≠结论：</b>每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。触发条件（需≥X条证据）反映了该链的严格程度——隐匿收入和虚开发票需要更多证据，因为结论严重。'
         + '</div>'
         + '</div>';
@@ -1010,7 +1010,7 @@ function renderAnalyzePage(container) {
 async function loadAnalyzeOverview() {
   var target = document.getElementById('analyze-body');
   // 静态内容（完整移植原 rr-panel-analyze）
-  var staticHtml = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+  var staticHtml = '<div style="margin-bottom:24px">'
     + '<h3 style="font-size:15px;color:#1e293b;margin-bottom:12px">📐 一键分析执行管线</h3>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
     // 子系统1
@@ -1080,14 +1080,14 @@ async function loadAnalyzeOverview() {
     + '</div>'
     // 统计总览
     + '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
-    + '<span style="background:#eff6ff;border:1px solid #bfdbfe;padding:6px 14px;border-radius:4px;font-size:11px;color:#1e40af"><b>1503</b> 条规则</span>'
-    + '<span style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 14px;border-radius:4px;font-size:11px;color:#166534"><b>386</b> 条线索链</span>'
-    + '<span style="background:#fef3c7;border:1px solid #fde68a;padding:6px 14px;border-radius:4px;font-size:11px;color:#92400e"><b>735</b> 条证据链</span>'
-    + '<span style="background:#fef2f2;border:1px solid #fecaca;padding:6px 14px;border-radius:4px;font-size:11px;color:#991b1b"><b>97%</b> 噪声过滤率</span>'
-    + '<span style="background:#ede9fe;border:1px solid #c4b5fd;padding:6px 14px;border-radius:4px;font-size:11px;color:#6d28d9"><b>66</b> 行业基准库</span>'
+    + '<span style="color:#64748b;font-size:12px"><b>1503</b> 条规则</span>'
+    + '<span style="color:#64748b;font-size:12px"><b>386</b> 条线索链</span>'
+    + '<span style="color:#64748b;font-size:12px"><b>735</b> 条证据链</span>'
+    + '<span style="color:#64748b;font-size:12px"><b>97%</b> 噪声过滤率</span>'
+    + '<span style="color:#64748b;font-size:12px"><b>66</b> 行业基准库</span>'
     + '</div>'
     // 底部说明
-    + '<div style="margin-top:16px;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#64748b;line-height:1.8">'
+    + '<div style="margin-top:16px;padding:12px 16px;font-size:13px;color:#64748b;line-height:1.8">'
     + '<strong style="color:#1e293b">执行流程：</strong>'
     + '点击"一键分析" → '
     + '①资料扫描+类型识别 → '
@@ -1098,13 +1098,13 @@ async function loadAnalyzeOverview() {
     + '⑥行业对标+申报比对 → '
     + '⑦正式稽查报告输出'
     + '</div>'
-    + '<div style="margin-top:8px;padding:10px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;color:#1e40af;line-height:1.7">'
+    + '<div style="margin-top:8px;padding:10px 12px;font-size:13px;color:#64748b;line-height:1.8;padding:12px 0;border-top:1px solid #f1f5f9">'
     + '<strong>📑 稽查行为准则（已内化）：</strong><br>'
     + '<b>① 必有明细：</b>每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
     + '<b>② 自行解决：</b>遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
     + '<b>③ 不墨迹：</b>报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
     + '</div>'
-    + '<div style="margin-top:8px;padding:10px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;font-size:11px;color:#92400e;line-height:1.7">'
+    + '<div style="margin-top:8px;padding:10px 12px;font-size:13px;color:#64748b;line-height:1.8;padding:12px 0;border-top:1px solid #f1f5f9">'
     + '<strong>📖 稽查方法论八条（达冠实战总结）：</strong><br>'
     + '① 多格式兼容：银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容，未知格式直接读表头<br>'
     + '② 汇总行过滤：月末汇总行(对手为空+大额整数)→自动识别并剔除，防止13M虚增<br>'
