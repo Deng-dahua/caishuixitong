@@ -75,8 +75,9 @@ function renderTaxRiskRules(container) {
     + '<span class="pipeline-badge pipeline-badge-blue"><strong id="risk-rules-header-count">0</strong>条</span>'
     + '</div>' 
     + '<div id="risk-rules-list"></div>' 
-    + '<div class="pipeline-empty" id="risk-rules-empty">暂无规则数据</div>' 
-    + '<div id="risk-rules-stats" style="text-align:center;padding:12px;font-size:11px;color:#64748b">共 0 条规则</div>' 
+    + '<div class="pipeline-loading" id="risk-rules-loading">加载中...</div>'
+    + '<div class="pipeline-empty" id="risk-rules-empty" style="display:none">暂无规则数据</div>' 
+    + '<div id="risk-rules-stats" style="text-align:center;padding:12px;font-size:11px;color:#64748b;display:none">共 0 条规则</div>' 
     + '</div>' 
     + '</div>';
   loadTaxRiskRules();
@@ -110,6 +111,11 @@ async function loadDefaultTaxRiskRules() {
   } catch (e) {
     console.error('加载最新规则失败:', e);
     toast('加载规则失败：' + e.message, 'error');
+    // 切换UI：隐藏loading，显示空状态
+    var loadingEl = document.getElementById('risk-rules-loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+    var emptyEl = document.getElementById('risk-rules-empty');
+    if (emptyEl) emptyEl.style.display = '';
   }
 }
 
@@ -552,6 +558,11 @@ function renderTaxRiskRulesList(filterData) {
     });
     listEl.innerHTML = html;
   }
+
+  // 隐藏 loading，显示统计
+  var loadingEl = document.getElementById('risk-rules-loading');
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (statsEl) statsEl.style.display = '';
 
   if (statsEl) {
     var high = data.filter(function(r) { return r.level === '高风险'; }).length;
