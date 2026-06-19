@@ -16990,6 +16990,7 @@ def _run_analyze(company_id, db):
 
     # ── 综合报告增强数据：月度资金流 + 往来方TOP20 + 分级整改建议 ──
     comprehensive = comprehensive  # already defined above
+    comprehensive["filter_log"] = filter_log  # 方法论过滤详情
     
     # 1. 月度资金流（银行流水按月汇总收入/支出/净额）
     if bank_txs:
@@ -17293,7 +17294,7 @@ def _run_analyze(company_id, db):
         pass
     
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
-    all_findings, pipeline_log = _apply_methodology_filter(all_findings, pipeline_log, 
+    all_findings, pipeline_log, filter_log = _apply_methodology_filter(all_findings, pipeline_log, 
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
     
     # ═══ 重算风险统计（过滤后）═══
@@ -17964,6 +17965,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     filtered = []
     removed_count = 0
     removed_reasons = {}
+    removed_items = []  # 详细删除日志
     gap_count = 0
     gap_limit = 5  # 资料缺失类最多保留5条
     
@@ -18028,6 +18030,13 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         if skip:
             removed_count += 1
             removed_reasons[reason] = removed_reasons.get(reason, 0) + 1
+            removed_items.append({
+                "type": f_type[:60],
+                "level": f.get("level", ""),
+                "score": f.get("score", 0),
+                "reason": reason,
+                "category": f.get("category", "")[:40],
+            })
             continue
         
         filtered.append(f)
@@ -18066,6 +18075,13 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
                 break
         if skip:
             ind_removed += 1
+            removed_items.append({
+                "type": ft[:60],
+                "level": f.get("level", ""),
+                "score": f.get("score", 0),
+                "reason": f"行业不匹配:{ind_name}",
+                "category": f.get("category", "")[:40],
+            })
             continue
         post_industry.append(f)
     
@@ -18081,6 +18097,13 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
             deduped.append(f)
         else:
             dup_removed += 1
+            removed_items.append({
+                "type": str(f.get("type", ""))[:60],
+                "level": f.get("level", ""),
+                "score": f.get("score", 0),
+                "reason": "重复发现去重",
+                "dup_of": key,
+            })
     
     filtered = deduped
     after = len(filtered)
@@ -18093,7 +18116,18 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     if dup_removed > 0:
         pipeline_log.append(f"  剔除 [重复发现]: {dup_removed}条")
 
-    return filtered, pipeline_log
+    filter_log = {
+        "before_count": before,
+        "after_count": after,
+        "total_removed": total_removed,
+        "hard_ban_removed": removed_count,
+        "industry_removed": ind_removed,
+        "dup_removed": dup_removed,
+        "reason_breakdown": dict(sorted(removed_reasons.items(), key=lambda x: -x[1])),
+        "removed_items": removed_items,
+        "noise_ratio": round(total_removed / max(before, 1) * 100),
+    }
+    return filtered, pipeline_log, filter_log
 
 def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouchers, salaries):
     """逐结论复核：1)数据源验证 2)计算复核 3)逻辑一致性 4)空值陷阱 5)极端值"""

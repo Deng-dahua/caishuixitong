@@ -60,7 +60,8 @@ const pages = {
   'tax-doc-analysis': '资料风险分析报告',
   'file-parsing': '文件解析',
   'domain-analysis': '域分析',
-  'cross-domain-evidence': '跨域证据链'
+  'cross-domain-evidence': '跨域证据链',
+  'methodology-filter': '方法论过滤器'
 };
 
 // ==================== 用户登录 ====================
@@ -538,6 +539,7 @@ function navigateTo(page) {
     case 'file-parsing': renderFileParsingPage(container); break;
     case 'domain-analysis': renderDomainAnalysisPage(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
+    case 'methodology-filter': renderMethodologyFilterPage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
   }
   window.scrollTo(0, 0);

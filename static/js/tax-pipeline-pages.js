@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-//  稽查管道独立页：文件解析 | 域分析 | 跨域证据链
+//  稽查管道独立页：文件解析 | 域分析 | 跨域证据链 | 方法论过滤器
 // ══════════════════════════════════════════════════════════════
 
 // ==================== 页面1：文件解析 ====================
@@ -394,4 +394,157 @@ function toggleDomainDetail(idx) {
   var el = document.getElementById('dd-' + idx);
   if (!el) return;
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ==================== 页面4：方法论过滤器 ====================
+function renderMethodologyFilterPage(container) {
+  if (!container) return;
+  window.currentModule = '方法论过滤器';
+
+  container.innerHTML = '<div class="pipeline-page">'
+    + '<div class="pipeline-header"><h2>🎯 方法论过滤器</h2></div>'
+    + '<div class="pipeline-body" id="mf-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '</div>';
+
+  loadMethodologyFilterData();
+}
+
+async function loadMethodologyFilterData() {
+  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+  try {
+    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
+    var data = await resp.json();
+    if (!data.ok) {
+      document.getElementById('mf-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果') + '</div>';
+      return;
+    }
+    renderFilterResult(data.report);
+  } catch (e) {
+    document.getElementById('mf-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
+  }
+}
+
+var FILTER_RULE_NAMES = {
+  '自动生成证据链': '证据链自动生成结论（非真实发现）',
+  '正常结论': '正常/一致/通过类结论（无风险）',
+  '资料缺口超限': '资料缺口类过多（上限5条，非核心发现）',
+  '重复发现去重': '同类型重复发现合并',
+  '行业不匹配': '发现内容与当前企业行业不匹配',
+};
+
+function renderFilterResult(report) {
+  var comp = report.comprehensive || {};
+  var fl = comp.filter_log;
+  if (!fl) {
+    document.getElementById('mf-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ 暂无过滤记录（需重新运行一键分析）</div>';
+    return;
+  }
+
+  var removedItems = fl.removed_items || [];
+  var breakdown = fl.reason_breakdown || {};
+  var totalRemoved = fl.total_removed || 0;
+
+  var html = '';
+
+  // ── 概览卡片 ──
+  html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">';
+  html += statCard('📥', '过滤前', fl.before_count || 0, '#2563eb');
+  html += statCard('📤', '过滤后', fl.after_count || 0, '#059669');
+  html += statCard('🗑️', '已剔除', totalRemoved, '#dc2626');
+  html += statCard('📊', '噪声率', (fl.noise_ratio || 0) + '%', '#7c3aed');
+  html += '</div>';
+
+  // ── 过滤规则说明 ──
+  html += '<h3 style="margin:16px 0 8px;font-size:14px;color:#1e293b">过滤规则体系</h3>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin-bottom:16px">';
+
+  var rules = [
+    { title: '① HARD_BAN 硬删除', desc: '禁止词命中（涉税中介/公安/刑事/空壳/走逃/伪造/私户等40+词）→ 立即删除', color: '#dc2626' },
+    { title: '② COND_BAN 条件过滤', desc: '数据缺失触发——无申报表→删申报相关结论，无合同→删合同相关，无凭证→删成本核算类', color: '#f59e0b' },
+    { title: '③ 正常结论排除', desc: 'type含"一致/正常/无明显差异/通过/良好/合规/无异常"→删除', color: '#059669' },
+    { title: '④ 资料缺口限流', desc: '资料缺少/缺失/无法验证/不完备类最多保留5条，超限删除', color: '#2563eb' },
+    { title: '⑤ 行业不匹配', desc: '非本行业的专业发现（如纺织企业不报医药/房地产/建筑/餐饮/电商等）→删除', color: '#7c3aed' },
+    { title: '⑥ 去重合并', desc: '同type前60字完全相同的发现→只保留第一条', color: '#0891b2' },
+  ];
+
+  rules.forEach(function(r) {
+    html += '<div style="border:1px solid ' + r.color + ';background:' + r.color + '08;border-radius:8px;padding:12px">'
+      + '<div style="font-weight:700;font-size:13px;color:' + r.color + ';margin-bottom:4px">' + r.title + '</div>'
+      + '<div style="font-size:11px;color:#64748b;line-height:1.6">' + r.desc + '</div>'
+      + '</div>';
+  });
+
+  html += '</div>';
+
+  // ── 剔除原因分布 ──
+  html += '<h3 style="margin:20px 0 8px;font-size:14px;color:#1e293b">剔除原因分布</h3>';
+  if (Object.keys(breakdown).length === 0) {
+    html += '<div style="text-align:center;padding:12px;color:#94a3b8;background:#f8fafc;border-radius:8px">本次无剔除</div>';
+  } else {
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+    var breakdownEntries = Object.entries(breakdown).sort(function(a, b) { return b[1] - a[1]; });
+    breakdownEntries.forEach(function(entry) {
+      var reason = entry[0], count = entry[1];
+      var pct = totalRemoved > 0 ? Math.round(count / totalRemoved * 100) : 0;
+      var barWidth = Math.max(3, pct);
+      var color = reason.indexOf('禁止词') >= 0 ? '#dc2626' : (reason.indexOf('无') >= 0 ? '#f59e0b' : (reason.indexOf('行业') >= 0 ? '#7c3aed' : '#059669'));
+      html += '<div style="flex:1;min-width:160px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px">'
+        + '<div style="font-size:11px;color:#64748b;margin-bottom:4px">' + escHtml(reason) + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<span style="font-size:20px;font-weight:700;color:' + color + '">' + count + '</span>'
+        + '<span style="font-size:11px;color:#94a3b8">' + pct + '%</span>'
+        + '</div>'
+        + '<div style="margin-top:4px;height:4px;background:#f1f5f9;border-radius:2px">'
+        + '<div style="height:100%;width:' + barWidth + '%;background:' + color + ';border-radius:2px"></div>'
+        + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // ── 详细剔除明细 ──
+  html += '<h3 style="margin:20px 0 8px;font-size:14px;color:#1e293b">剔除明细 <span style="font-size:11px;color:#94a3b8">（共' + removedItems.length + '条）</span></h3>';
+
+  if (removedItems.length === 0) {
+    html += '<div style="text-align:center;padding:20px;color:#94a3b8;background:#f8fafc;border-radius:8px">无剔除记录</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table class="pipeline-table">';
+    html += '<thead><tr><th>#</th><th>发现类型</th><th>等级</th><th>分数</th><th>剔除原因</th><th>分类</th></tr></thead><tbody>';
+
+    // 按原因分组显示
+    var grouped = {};
+    removedItems.forEach(function(item) {
+      var r = item.reason || '未知';
+      if (!grouped[r]) grouped[r] = [];
+      grouped[r].push(item);
+    });
+
+    var idx = 0;
+    Object.keys(grouped).sort(function(a, b) { return grouped[b].length - grouped[a].length; }).forEach(function(reason) {
+      var items = grouped[reason];
+      // 显示该组标题
+      var reasonLabel = FILTER_RULE_NAMES[reason] || reason;
+      var reasonColor = reason.indexOf('禁止词') >= 0 ? '#dc2626' : (reason.indexOf('无') >= 0 ? '#f59e0b' : (reason.indexOf('行业') >= 0 ? '#7c3aed' : (reason.indexOf('重复') >= 0 ? '#0891b2' : '#059669')));
+      html += '<tr style="background:' + reasonColor + '06"><td colspan="6" style="padding:8px 12px;font-size:11px;font-weight:600;color:' + reasonColor + '">'
+        + '▸ ' + escHtml(reasonLabel) + ' <span style="color:#94a3b8;font-weight:400">(' + items.length + '条)</span>'
+        + '</td></tr>';
+
+      items.forEach(function(item) {
+        idx++;
+        var lvlColor = item.level === '高风险' ? '#dc2626' : (item.level === '中风险' ? '#f59e0b' : '#64748b');
+        html += '<tr>'
+          + '<td>' + idx + '</td>'
+          + '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(item.type) + '">' + escHtml(item.type) + '</td>'
+          + '<td><span style="color:' + lvlColor + ';font-weight:600">' + escHtml(item.level || '—') + '</span></td>'
+          + '<td>' + (item.score || '—') + '</td>'
+          + '<td style="font-size:11px;color:#64748b">' + escHtml(reason) + '</td>'
+          + '<td style="font-size:10px;color:#94a3b8">' + escHtml((item.category || '').substring(0, 20)) + '</td>'
+          + '</tr>';
+      });
+    });
+
+    html += '</tbody></table></div>';
+  }
+
+  document.getElementById('mf-body').innerHTML = html;
 }
