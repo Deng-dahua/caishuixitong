@@ -662,7 +662,7 @@ def _validate_rules_on_load(rules: list):
     
     if issues:
         print(f"\n规则文件校验发现 {len(issues)} 个问题，详见日志", file=sys.stderr)
-        _ = [print(f"  {i}", file=sys.stderr) for i in issues[:5]]
+        _ = [print(f"  {i}", file=sys.stderr) for i in issues]
         if len(issues) > 5:
             print(f"  ... 共{len(issues)}个", file=sys.stderr)
     return issues
@@ -1469,7 +1469,7 @@ def _download_pdf(data):
     story.append(Paragraph(f"综合风险: {s.get('overall_risk_level','')} | 高风险{s.get('high_risk_count',0)}项 | 中风险{s.get('mid_risk_count',0)}项 | 低风险{s.get('low_risk_count',0)}项 | 共{s.get('total_items',0)}项", cn_style))
     story.append(Spacer(1, 4*mm))
     
-    for r in results[:50]:  # 最多50项
+    for r in results:  # 最多50项
         level_color = {"高风险":"#dc2626","中风险":"#f59e0b","低风险":"#3b82f6","良好":"#10b981"}.get(r.get("risk_level",""), "#6b7280")
         story.append(Paragraph(f"<font color='{level_color}'>[{r.get('risk_level','')}]</font> {r.get('item','')}", cn_h2))
         story.append(Paragraph(r.get("detail",""), cn_style))
@@ -2114,7 +2114,7 @@ def _analyze_ratio_elasticity(db, company_id, ps, pe, results):
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "收入/成本/费用变动率异常",
             "detail": f"分析期间内收入/成本/费用的最大单月变动率达 {max_change*100:.0f}%，远超正常水平（±30%以内）。月度间剧烈波动可能涉及跨期调节。" +
-                     (f" 另有 {"；".join(elasticity_warnings[:3])}" if elasticity_warnings else ""),
+                     (f" 另有 {"；".join(elasticity_warnings)}" if elasticity_warnings else ""),
             "suggestion": "逐项排查大额波动的原因（如大额订单、季节性因素、会计估计变更等），保留合理的商业解释和证明材料。特别是成本弹性>1.5的月份需重点核查。"
         })
     elif elasticity_warnings:
@@ -2122,7 +2122,7 @@ def _analyze_ratio_elasticity(db, company_id, ps, pe, results):
             "category": "配比弹性", "category_icon": "📐", "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "成本弹性异常",
-            "detail": f"部分月份成本增长率远超收入增长率：{'；'.join(elasticity_warnings[:3])}。弹性系数>1.5说明成本增长速度快于收入，需关注成本真实性。",
+            "detail": f"部分月份成本增长率远超收入增长率：{'；'.join(elasticity_warnings)}。弹性系数>1.5说明成本增长速度快于收入，需关注成本真实性。",
             "suggestion": "核查弹性异常月份的成本构成，确认是否存在虚增成本或多列费用的情况。"
         })
     elif max_change < 0.3 and len(periods) >= 3:
@@ -2688,7 +2688,7 @@ def _analyze_revenue_timing(db, company_id, ps, pe, results):
     # 检查收入确认时点集中度（单月收入占比超过40%或Top2月份占比超过70%）
     monthly_credits = [(p, v.get("credit", 0)) for p, v in monthly_rev.items()]
     monthly_credits.sort(key=lambda x: x[1], reverse=True)
-    top2_pct = sum(v for _, v in monthly_credits[:2]) / total * 100 if total > 0 else 0
+    top2_pct = sum(v for _, v in monthly_credits) / total * 100 if total > 0 else 0
     max_month_pct = monthly_credits[0][1] / total * 100 if total > 0 and monthly_credits else 0
 
     if max_month_pct > 40:
@@ -2922,7 +2922,7 @@ def _analyze_customer_penetration(db, company_id, ps, pe, results):
         })
 
     if total_customer_sales > 0 and len(top_sorted) >= 3:
-        top3_pct = sum(x[1] for x in top_sorted[:3]) / total_customer_sales * 100
+        top3_pct = sum(x[1] for x in top_sorted) / total_customer_sales * 100
         if top3_pct < 80:
             results.append({
                 "category": "客户穿透", "category_icon": "🏢", "risk_score": 0, "risk_level": "良好",
@@ -2985,7 +2985,7 @@ def _analyze_supplier_penetration(db, company_id, ps, pe, results):
         })
 
     if total_purchase > 0 and len(top_sorted) >= 3:
-        top3_pct = sum(x[1] for x in top_sorted[:3]) / total_purchase * 100
+        top3_pct = sum(x[1] for x in top_sorted) / total_purchase * 100
         if top3_pct < 80:
             results.append({
                 "category": "供应商穿透", "category_icon": "🏭", "risk_score": 0, "risk_level": "良好",
@@ -3454,7 +3454,7 @@ def _analyze_business_premise(db, company_id, ps, pe, results):
     # ── 场景4：序时账没有，但有场地合同（可能免费使用） ──
     if not je_has_any and contract_info["any_found"]:
         cts = contract_info["contracts"]
-        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in cts[:3]])
+        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in cts])
         if contract_info["free_venue_possible"]:
             # 免费场地
             results.append({
@@ -4827,7 +4827,7 @@ def _analyze_vat_zero_declaration(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "📋", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期零申报或小额申报",
-            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months[:6])}。稽查视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务稽查入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
+            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months)}。稽查视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务稽查入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
             "suggestion": "①核查实际经营收入，补报漏报销售；②如确无经营应办理停业登记；③税务机关预警后可导致发票停供、纳税信用降级。",
             "required_evidence": ["经营场所租赁合同或产权证明", "银行账户流水（证明无经营收入）", "近12个月零申报情况说明", "如已停业，提供工商停业备案"]
         })
@@ -5101,7 +5101,7 @@ def _analyze_buy_sell_mismatch(db, company_id, ps, pe, results):
             "category": "发票异常", "category_icon": "🧾", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "进销品名严重不匹配",
-            "detail": f"销项主要商品：{'/'.join(list(sales_items)[:5])}，进项主要商品：{'/'.join(list(purchase_items)[:5])}，进销商品品类无重合。稽查视角：制造业企业购买的原材料与生产销售的产品品类不匹配，暗示可能：①存在未入账的委托加工；②虚开进项发票冲抵成本；③隐瞒了部分生产环节。",
+            "detail": f"销项主要商品：{'/'.join(list(sales_items))}，进项主要商品：{'/'.join(list(purchase_items))}，进销商品品类无重合。稽查视角：制造业企业购买的原材料与生产销售的产品品类不匹配，暗示可能：①存在未入账的委托加工；②虚开进项发票冲抵成本；③隐瞒了部分生产环节。",
             "suggestion": "①准备完整的生产工艺流程图和投入产出分析；②说明原材料与产成品之间的转换关系；③如存在外协加工，补充委托加工合同。",
             "required_evidence": ["生产工艺流程图", "投入产出分析表（原材料→产成品）", "委托加工合同（如适用）", "存货收发存明细账"]
         })
@@ -5500,7 +5500,7 @@ def _analyze_cross_invoicing(db, company_id, ps, pe, results):
             "category": "其他风险", "category_icon": "⚠️", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "互开发票风险",
-            "detail": f"发现 {len(cross)} 家企业同时既对本公司开具发票又接受本公司开具的发票：{'/'.join(list(cross)[:5])}。稽查视角：互开发票（对开发票）是税务局认定虚开增值税专用发票的重要信号，可能导致：①双方同时虚增收入和成本（流水造假）；②涉嫌循环经济/环开发票犯罪。",
+            "detail": f"发现 {len(cross)} 家企业同时既对本公司开具发票又接受本公司开具的发票：{'/'.join(list(cross))}。稽查视角：互开发票（对开发票）是税务局认定虚开增值税专用发票的重要信号，可能导致：①双方同时虚增收入和成本（流水造假）；②涉嫌循环经济/环开发票犯罪。",
             "suggestion": "①逐笔核查互开发票对应的业务真实性（合同/物流/资金流三流合一）；②如无真实业务，立即做进项税额转出或红冲；③建立客户供应商黑名单制度。",
             "required_evidence": ["互开发票清单及三流合一证明", "每笔互开发票对应的合同/物流/付款凭证", "不能提供真实交易证明的不得抵扣进项税额"]
         })
@@ -5654,7 +5654,7 @@ def _analyze_consecutive_invoice_numbers(db, company_id, ps, pe, results):
     
     if consecutive_groups:
         total_affected = sum(g["count"] for g in consecutive_groups)
-        detail_items = [f"代码{g['code']}号码{g['start']}~{g['end']}共{g['count']}张" for g in consecutive_groups[:3]]
+        detail_items = [f"代码{g['code']}号码{g['start']}~{g['end']}共{g['count']}张" for g in consecutive_groups]
         results.append({
             "category": "发票异常", "category_icon": "🧾", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
@@ -5793,7 +5793,7 @@ def _analyze_einvoice_frequency_spike(db, company_id, ps, pe, results):
             "category": "发票合规", "category_icon": "🧾", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "高",
             "item": "全电发票开具频次异常",
-            "detail": f"以下周期开票量/金额远超历史均值（3倍以上）：{'；'.join(spike_weeks[:3])}。金税四期系统会自动标记开票量异常激增的企业。",
+            "detail": f"以下周期开票量/金额远超历史均值（3倍以上）：{'；'.join(spike_weeks)}。金税四期系统会自动标记开票量异常激增的企业。",
             "suggestion": "核查开票业务真实性，准备合同/物流/资金流佐证材料，说明激增合理原因。",
             "required_evidence": ["销项发票台账（按日/按周统计）", "激增期间的业务合同及物流单据"]
         })
@@ -5944,7 +5944,7 @@ def _analyze_input_tax_transfer_delay(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "🧾", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "高",
             "item": "进项税额转出处理不及时",
-            "detail": f"以下期间存在免税/简易计税项目但进项转出不足：{'；'.join(delay_periods[:3])}。用于免税项目、集体福利、个人消费的进项税额不得抵扣，必须做进项税额转出。金税四期进项转出数据与申报比对。",
+            "detail": f"以下期间存在免税/简易计税项目但进项转出不足：{'；'.join(delay_periods)}。用于免税项目、集体福利、个人消费的进项税额不得抵扣，必须做进项税额转出。金税四期进项转出数据与申报比对。",
             "suggestion": "按月核查进项税额用途，属于不得抵扣情形的及时做进项转出，并在增值税申报表正确填列。",
             "required_evidence": ["进项发票用途分类台账", "不得抵扣进项税额计算表", "进项税额转出明细"]
         })
@@ -5993,7 +5993,7 @@ def _analyze_invoice_revenue_cross_period(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "🧾", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "高",
             "item": "增值税发票开具与收入确认跨期异常",
-            "detail": f"以下期间开票金额与申报销售额差异较大：{'；'.join(mismatches[:5])}。金税四期开票系统与申报系统自动比对，跨期差异将被标记。",
+            "detail": f"以下期间开票金额与申报销售额差异较大：{'；'.join(mismatches)}。金税四期开票系统与申报系统自动比对，跨期差异将被标记。",
             "suggestion": "确保发票开具时间与收入确认时间一致，跨期发票及时调整申报所属期。"
         })
 
@@ -6305,7 +6305,7 @@ def _analyze_seller_spike_invoicing(db, company_id, ps, pe, results):
             "category": "发票深度", "category_icon": "🔍", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "高",
             "item": "同一销方短期内开票金额激增",
-            "detail": f"以下供应商开票金额环比增长超过5倍：{'；'.join(spike_sellers[:3])}。涉嫌虚开发票或串通开票。金税四期对供应商开票异常行为双向监控。",
+            "detail": f"以下供应商开票金额环比增长超过5倍：{'；'.join(spike_sellers)}。涉嫌虚开发票或串通开票。金税四期对供应商开票异常行为双向监控。",
             "suggestion": "核查与销方的业务真实性，准备采购合同/入库单/付款凭证等佐证材料，对异常供应商停止合作。",
             "required_evidence": ["异常供应商的采购合同", "入库单/收货记录", "付款凭证（银行回单）"]
         })
@@ -6613,7 +6613,7 @@ def _analyze_two_end_outside(db, company_id, ps, pe, results):
     # ── 序时账没有，但有场地合同（免费场地） ──
     if overall["je_missing_but_contract_found"]:
         cts = contracts
-        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in cts[:3]])
+        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in cts])
         free_note = "·可能为免费场地" if free_possible else ""
         results.append({
             "category": "经营实质", "category_icon": "🔍", "risk_score": 5, "risk_level": "中风险",
@@ -7029,7 +7029,7 @@ def _analyze_same_buyer_frequent_red(db, company_id, ps, pe, results):
     
     if frequent_buyers:
         detail_items = []
-        for name, invs in frequent_buyers[:3]:
+        for name, invs in frequent_buyers:
             amt = sum(_safe_float(inv.total_amount) for inv in invs)
             detail_items.append(f"{name}({len(invs)}张/{amt:,.0f}元)")
         
@@ -7344,7 +7344,7 @@ def _analyze_cross_region_invoicing(db, company_id, ps, pe, results):
         province_counts[cr['province']] = province_counts.get(cr['province'], 0) + 1
 
     if cross_ratio > 50 and len(cross_region_invoices) >= 10:
-        top_provinces = sorted(province_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        top_provinces = sorted(province_counts.items(), key=lambda x: x[1], reverse=True)
         prov_desc = "、".join(f"{p}({c}张)" for p, c in top_provinces)
         results.append({
             "category": "发票异常", "category_icon": "🧾", "risk_score": 7, "risk_level": "高风险",
@@ -7406,7 +7406,7 @@ def _analyze_simple_general_tax_mix(db, company_id, ps, pe, results):
     # 检查是否有期间未做进项转出
     no_transfer_periods = [m for m in mix_periods if m['input_transfer'] < 1]
     if no_transfer_periods:
-        period_list = "、".join(m['period'] for m in no_transfer_periods[:3])
+        period_list = "、".join(m['period'] for m in no_transfer_periods)
         total_simple = sum(m['simple'] for m in no_transfer_periods)
         results.append({
             "category": "申报比对", "category_icon": "📋", "risk_score": 6, "risk_level": "中风险",
@@ -7448,7 +7448,7 @@ def _analyze_pre_cancellation_spike(db, company_id, ps, pe, results):
     if len(sorted_periods) < 6:
         return
 
-    first_half = sorted_periods[:3]
+    first_half = sorted_periods
     last_half = sorted_periods[-3:]
 
     first_avg = sum(monthly_sales[p]["amt"] for p in first_half) / 3 if first_half else 0
@@ -7476,7 +7476,7 @@ def _analyze_pre_cancellation_spike(db, company_id, ps, pe, results):
     pur_first_avg = 0
     pur_last_avg = 0
     if len(sorted_pur) >= 6:
-        pur_first_avg = sum(monthly_purchase[p]["amt"] for p in sorted_pur[:3]) / 3
+        pur_first_avg = sum(monthly_purchase[p]["amt"] for p in sorted_pur) / 3
         pur_last_avg = sum(monthly_purchase[p]["amt"] for p in sorted_pur[-3:]) / 3
 
     pur_spike = 0
@@ -7613,7 +7613,7 @@ def _analyze_address_mismatch(db, company_id, ps, pe, results):
             "required_evidence": ["未入账的经营场所相关发票", "经营场所租赁合同或产权证明"]
         })
     elif overall["je_missing_but_contract_found"]:
-        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in contracts[:3]])
+        ct_summary = "；".join([f"{c['name']}({c['type']}{'·免费' if c['is_free'] else ''})" for c in contracts])
         free_note = "·可能为免费使用场地" if free_possible else ""
         results.append({
             "category": "经营实质", "category_icon": "🔍", "risk_score": 2, "risk_level": "低风险",
@@ -8034,7 +8034,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
         missing_both = [x for x in three_flow_missing if "资金流" in x["missing"]]
         missing_invoice = [x for x in three_flow_missing if x["missing"] == "发票流"]
         detail_parts = []
-        for x in three_flow_missing[:5]:
+        for x in three_flow_missing:
             detail_parts.append(f"{x['contract_no']} {x['name']}（{x['amount']:,.0f}元，缺失{x['missing']}）")
 
         results.append({
@@ -8101,7 +8101,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if four_flow_issues:
         detail_parts = []
-        for x in four_flow_issues[:5]:
+        for x in four_flow_issues:
             detail_parts.append(
                 f"{x['contract_no']} {x['name']}（合同{x['ct_amt']:,.0f}元 vs 发票{x['inv_amt']:,.0f}元，偏差{x['deviation_pct']}%）"
             )
@@ -8168,7 +8168,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if long_no_ct_cust:
         total = sum(a for _, a in long_no_ct_cust)
-        top3 = long_no_ct_cust[:3]
+        top3 = long_no_ct_cust
         detail_parts = [f"{n}（{a:,.0f}元）" for n, a in top3]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 8, "risk_level": "高风险",
@@ -8184,7 +8184,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if long_no_ct_supp:
         total = sum(a for _, a in long_no_ct_supp)
-        top3 = long_no_ct_supp[:3]
+        top3 = long_no_ct_supp
         detail_parts = [f"{n}（{a:,.0f}元）" for n, a in top3]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 8, "risk_level": "高风险",
@@ -8252,7 +8252,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if contract_invoice_deviation:
         detail_parts = []
-        for x in contract_invoice_deviation[:5]:
+        for x in contract_invoice_deviation:
             detail_parts.append(
                 f"{x['contract_no']} {x['name']} {x['direction']}（合同{x['ct_amt']:,.0f} vs 发票{x['inv_amt']:,.0f}，偏差{x['deviation_pct']}%）"
             )
@@ -8317,7 +8317,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if expired_trading:
         detail_parts = []
-        for x in expired_trading[:5]:
+        for x in expired_trading:
             detail_parts.append(f"{x['contract_no']} {x['name']}（到期{x['expiry']}，仍有{x['trade']}）")
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 7, "risk_level": "高风险",
@@ -8381,7 +8381,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if pre_sign_invoices:
         detail_parts = []
-        for x in pre_sign_invoices[:5]:
+        for x in pre_sign_invoices:
             detail_parts.append(
                 f"{x['contract_no']} {x['name']}（{x['type']}，签{x['sign_date']}，"
                 f"首票{x['first_invoice']}，共{x['cnt']}张）"
@@ -8445,7 +8445,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     if plan_unmatched:
         total_unmatched = sum(p["plan_amt"] - p["paid_amt"] for p in plan_unmatched)
         detail_parts = []
-        for x in plan_unmatched[:5]:
+        for x in plan_unmatched:
             detail_parts.append(
                 f"{x['contract_no']} 第{x['payment_no']}期 "
                 f"（应付{x['plan_amt']:,.0f}/实付{x['paid_amt']:,.0f}，到期{x['due_date']}）"
@@ -8533,13 +8533,13 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
         if c.party_a: ct_sales_names.add(c.party_a.strip())
 
     # 找出发票中有但合同中没有的，且发票中名称与合同中任一名称都不相似的
-    for name in list(invoice_customers)[:20]:  # 限制检查量
+    for name in list(invoice_customers):  # 限制检查量
         if name not in ct_sales_names and not _name_in_set(name, ct_sales_names):
             # 发票中有，合同中找不到 → 已经在"收入无合同"中报了
             pass
 
     # 反之：合同中有乙方但找不到匹配发票的
-    for party in list(ct_sales_names)[:20]:
+    for party in list(ct_sales_names):
         matched = False
         for inv_name in invoice_customers:
             if _name_in_set(party, {inv_name}):
@@ -8556,7 +8556,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
         if c.party_b: ct_pur_names.add(c.party_b.strip())
         if c.party_a: ct_pur_names.add(c.party_a.strip())
 
-    for party in list(ct_pur_names)[:20]:
+    for party in list(ct_pur_names):
         matched = False
         for inv_name in invoice_suppliers:
             if _name_in_set(party, {inv_name}):
@@ -8566,7 +8566,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             name_mismatch.append({"party": party, "type": "采购"})
 
     if name_mismatch:
-        detail_parts = [f"{x['type']}合同方「{x['party']}」无匹配发票" for x in name_mismatch[:5]]
+        detail_parts = [f"{x['type']}合同方「{x['party']}」无匹配发票" for x in name_mismatch]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
@@ -8605,7 +8605,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if related_no_ct:
         total = sum(a for _, a in related_no_ct)
-        detail_parts = [f"{n}（{a:,.0f}元）" for n, a in related_no_ct[:5]]
+        detail_parts = [f"{n}（{a:,.0f}元）" for n, a in related_no_ct]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
@@ -8635,7 +8635,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if incomplete_ct and len(incomplete_ct) > len(all_contracts) * 0.3:  # 超过30%合同要素不全
         detail_parts = []
-        for x in incomplete_ct[:5]:
+        for x in incomplete_ct:
             detail_parts.append(f"{x['contract_no']} {x['name']}（缺{'/'.join(x['missing'])}）")
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 4, "risk_level": "中风险",
@@ -8725,15 +8725,15 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             level = "高风险" if cov_pct < 70 else ("中风险" if cov_pct < 90 else "低风险")
             color = "#dc2626" if cov_pct < 70 else ("#f59e0b" if cov_pct < 90 else "#10b981")
             urg = "紧急" if cov_pct < 70 else ("提醒" if cov_pct < 90 else "关注")
-            detail_parts = [f"{n}（{a:,.0f}元/{d}）" for n, a, d in sales_unmatched_list[:5]]
+            detail_parts = [f"{n}（{a:,.0f}元/{d}）" for n, a, d in sales_unmatched_list]
 
             # 构建分层详情
             sub_detail = ""
             if sales_big_nomatch:
-                big_items = "、".join([f"{n}({a:,.0f}元)" for n, a, _ in sales_big_nomatch[:3]])
+                big_items = "、".join([f"{n}({a:,.0f}元)" for n, a, _ in sales_big_nomatch])
                 sub_detail += f"【大额专项】≥10万元交易：{len(sales_big_nomatch)}家客户无合同（{big_items}）"
             if sales_freq_nomatch:
-                freq_items = "、".join([f"{n}({c}张/{a:,.0f}元)" for n, a, c in sales_freq_nomatch[:3]])
+                freq_items = "、".join([f"{n}({c}张/{a:,.0f}元)" for n, a, c in sales_freq_nomatch])
                 sub_detail += f"\n【高频专项】≥5张发票客户：{len(sales_freq_nomatch)}家无框架合同（{freq_items}）"
 
             detail_text = (
@@ -8818,12 +8818,12 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             level = "高风险" if cov_pct < 70 else ("中风险" if cov_pct < 90 else "低风险")
             color = "#dc2626" if cov_pct < 70 else ("#f59e0b" if cov_pct < 90 else "#10b981")
             urg = "紧急" if cov_pct < 70 else ("提醒" if cov_pct < 90 else "关注")
-            detail_parts = [f"{n}（{a:,.0f}元/{d}）" for n, a, d in pur_unmatched_list[:5]]
+            detail_parts = [f"{n}（{a:,.0f}元/{d}）" for n, a, d in pur_unmatched_list]
 
             # 构建大额分层详情
             sub_detail = ""
             if pur_big_nomatch:
-                big_items = "、".join([f"{n}({a:,.0f}元)" for n, a, _ in pur_big_nomatch[:3]])
+                big_items = "、".join([f"{n}({a:,.0f}元)" for n, a, _ in pur_big_nomatch])
                 sub_detail += f"【大额专项】≥10万元交易：{len(pur_big_nomatch)}家供应商无合同（{big_items}）"
 
             detail_text = (
@@ -8867,7 +8867,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if contracts_missing_clauses:
         detail_parts = []
-        for x in contracts_missing_clauses[:5]:
+        for x in contracts_missing_clauses:
             found_str = "、".join(x['found']) if x['found'] else "无涉税关键词"
             detail_parts.append(f"{x['contract_no']} {x['name']}（类型:{x['type']}，含:{found_str}）")
         results.append({
@@ -8912,7 +8912,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
     if split_suspect:
         detail_parts = []
-        for x in split_suspect[:5]:
+        for x in split_suspect:
             detail_parts.append(f"{x['party']} {x['month']}月 {x['count']}份合同 合计{x['total']:,.0f}元")
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 7, "risk_level": "高风险",
@@ -8955,7 +8955,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
         ).count()
         penalty_entries += _
 
-        detail_parts = [f"{c.contract_no} {c.name}" for c in contracts_with_penalty[:5]]
+        detail_parts = [f"{c.contract_no} {c.name}" for c in contracts_with_penalty]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
@@ -8983,7 +8983,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             rent_free_cts.append(c)
 
     if rent_free_cts:
-        detail_parts = [f"{c.contract_no} {c.name}" for c in rent_free_cts[:5]]
+        detail_parts = [f"{c.contract_no} {c.name}" for c in rent_free_cts]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
@@ -9018,7 +9018,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     if cross_border_cts:
         no_withholding = [x for x in cross_border_cts if not x["has_withholding"]]
         detail_parts = []
-        for x in cross_border_cts[:5]:
+        for x in cross_border_cts:
             status = "未约定代扣代缴" if not x["has_withholding"] else "已约定"
             detail_parts.append(f"{x['contract_no']} {x['name']}（{status}）")
         results.append({
@@ -9075,7 +9075,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
 
         missing_originals = original_ct_nos - found_originals
 
-        detail_parts = [f"{c.contract_no} {c.name}" for c in amended_cts[:5]]
+        detail_parts = [f"{c.contract_no} {c.name}" for c in amended_cts]
         results.append({
             "category": CAT, "category_icon": ICON, "risk_score": 4, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
@@ -9113,7 +9113,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     if potentially_mixed_cts:
         no_split = [x for x in potentially_mixed_cts if not x["has_rate_split"]]
         detail_parts = []
-        for x in potentially_mixed_cts[:5]:
+        for x in potentially_mixed_cts:
             status = "未分别约定" if not x["has_rate_split"] else "已分别约定"
             detail_parts.append(f"{x['contract_no']} {x['name']}（{status}，含{'/'.join(x['keywords'])}）")
         results.append({
@@ -9187,7 +9187,7 @@ def _analyze_price_surcharge(db, company_id, ps, pe, results):
     if found_surcharge:
         total_amt = sum(x["amount"] for x in found_surcharge)
         detail_parts = []
-        for x in found_surcharge[:5]:
+        for x in found_surcharge:
             detail_parts.append(f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元，含{'/'.join(x['keywords'])}）")
         results.append({
             "category": "隐匿虚增", "category_icon": "🔍",
@@ -9231,7 +9231,7 @@ def _analyze_non_monetary_exchange(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["debit"] + x["credit"] for x in found)
-        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found]
         results.append({
             "category": "隐匿虚增", "category_icon": "🔍",
             "risk_score": 7, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9274,7 +9274,7 @@ def _analyze_debt_restructuring(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(max(x["credit"], x["debit"]) for x in found)
-        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 7, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9315,7 +9315,7 @@ def _analyze_equity_transfer(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["amount"] for x in found)
-        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 8, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9367,7 +9367,7 @@ def _analyze_interest_free_loan(db, company_id, ps, pe, results):
 
     if large_loans and interest_entries < 1000:  # 有大额借款但几乎无利息收入
         total_loan = sum(x["amount"] for x in large_loans)
-        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in large_loans[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in large_loans]
         results.append({
             "category": "增值税专项", "category_icon": "📋",
             "risk_score": 7, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9414,7 +9414,7 @@ def _analyze_parent_subsidiary_mgmt_fee(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["amount"] for x in found)
-        detail_parts = [f"{x['period']} {x['contact']} {x['summary'][:30]}（{x['amount']:,.0f}元）" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['contact']} {x['summary'][:30]}（{x['amount']:,.0f}元）" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 6, "risk_level": "中风险", "risk_color": "#f59e0b", "urgency": "提醒",
@@ -9457,7 +9457,7 @@ def _analyze_overseas_payment_withholding(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["amount"] for x in found)
-        detail_parts = [f"{x['period']} {x['contact']} {x['summary'][:30]}（{x['amount']:,.0f}元）" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['contact']} {x['summary'][:30]}（{x['amount']:,.0f}元）" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 8, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9542,7 +9542,7 @@ def _analyze_environmental_tax(db, company_id, ps, pe, results):
         ).count()
 
         if env_tax_entries == 0:
-            detail_parts = [f"{e.period} {e.summary[:40]}" for e in entries[:5]]
+            detail_parts = [f"{e.period} {e.summary[:40]}" for e in entries]
             results.append({
                 "category": "政策执行", "category_icon": "📜",
                 "risk_score": 7, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
@@ -9647,7 +9647,7 @@ def _analyze_commission_fee_compliance(db, company_id, ps, pe, results):
         ).scalar() or 0
 
         ratio = (_safe_float(total_amt) / _safe_float(total_revenue) * 100) if _safe_float(total_revenue) > 0 else 0
-        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 7 if ratio > 5 else 5,
@@ -9699,7 +9699,7 @@ def _analyze_donation_compliance(db, company_id, ps, pe, results):
         # 计算利润总额12%限额
         profit = _pl_net(db, company_id, ps, pe)
         limit_12pct = abs(profit) * 0.12 if profit else 0
-        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 7 if total_amt > limit_12pct else 5,
@@ -9749,7 +9749,7 @@ def _analyze_inventory_count_discrepancy(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["debit"] + x["credit"] for x in found)
-        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found[:5]]
+        detail_parts = [f"{x['period']} {x['summary'][:50]}" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
             "risk_score": 6, "risk_level": "中风险", "risk_color": "#f59e0b", "urgency": "提醒",
@@ -9863,7 +9863,7 @@ def _analyze_wasted_deductible_tax(db, company_id, ps, pe, results):
                   f"广告/设计/信息技术/租赁/企业管理等），这些供应商通常为一般纳税人，"
                   f"理应可以开具增值税专用发票。累计价税合计{sum(v['total'] for v in significant.values()):,.2f}元，"
                   f"浪费可抵扣进项税额{total_wasted_tax:,.2f}元。"
-                  f"涉及供应商：{'；'.join(detail_parts[:8])}"
+                  f"涉及供应商：{'；'.join(detail_parts)}"
                   + (f"等{supplier_cnt}家" if supplier_cnt > 8 else ""),
         "suggestion": "(1)主动联系供应商要求开具增值税专用发票，专票与普票对供应商而言开票成本相同；"
                       "(2)将「要求专票」纳入采购合同条款和供应商准入标准；"
@@ -10213,7 +10213,7 @@ def _analyze_suspicious_invoice_cluster(db, company_id, ps, pe, results):
         estimated_tax_evasion = total_with_tax * 0.25  # 25%企业所得税率
 
         # 列出涉及的供应商
-        seller_list_str = "、".join(sellers_in_group[:10])
+        seller_list_str = "、".join(sellers_in_group)
         if len(sellers_in_group) > 10:
             seller_list_str += f"等{len(sellers_in_group)}家"
 
@@ -10351,7 +10351,7 @@ def _analyze_cross_industry_cluster(db, company_id, all_invs, cluster_groups, re
     dates = sorted(set(str(inv.invoice_date) for inv in hospitality_invs if inv.invoice_date))
     date_range = f"{dates[0]}~{dates[-1]}" if len(dates) >= 2 else (dates[0] if dates else "")
 
-    seller_list = "、".join(list(unique_sellers)[:8])
+    seller_list = "、".join(list(unique_sellers))
     if len(unique_sellers) > 8:
         seller_list += f"等{len(unique_sellers)}家"
 
@@ -10431,7 +10431,7 @@ def _analyze_same_amount_pattern(all_invs, cluster_groups, results):
         if all(inv.id in clustered_ids for inv in invs_at_amt):
             continue
 
-        seller_list = "、".join(list(unique_sellers_at_amt)[:8])
+        seller_list = "、".join(list(unique_sellers_at_amt))
         if len(unique_sellers_at_amt) > 8:
             seller_list += f"等{len(unique_sellers_at_amt)}家"
 
@@ -10697,7 +10697,7 @@ def _analyze_supplier_naming_pattern(db, company_id, ps, pe, results):
         if len(sellers) < 3:
             continue  # 不足3家不形成模式
 
-        seller_list = "、".join(list(sellers)[:8])
+        seller_list = "、".join(list(sellers))
         if len(sellers) > 8:
             seller_list += f"等{len(sellers)}家"
 
@@ -10884,7 +10884,7 @@ def _analyze_invoice_time_concentration(db, company_id, ps, pe, results):
 
     # 只报告最显著的（按张数排序，最多3条）
     results_found.sort(key=lambda x: -x[1])
-    for seller, cnt, span, total, density, dates in results_found[:3]:
+    for seller, cnt, span, total, density, dates in results_found:
         date_range = f"{dates[0]}~{dates[-1]}"
 
         detail = (
@@ -10967,7 +10967,7 @@ def _analyze_document_completeness(db, company_id, ps, pe, results):
             "risk_color": "#dc2626" if len(all_missing) >= 3 else "#f59e0b",
             "urgency": "紧急" if len(all_missing) >= 3 else "重要",
             "item": "关键经营资料缺失",
-            "detail": f"系统中有{'、'.join(present[:5])}等{len(present)}类资料，缺少{'、'.join(all_missing)}等{len(all_missing)}类。稽查时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
+            "detail": f"系统中有{'、'.join(present)}等{len(present)}类资料，缺少{'、'.join(all_missing)}等{len(all_missing)}类。稽查时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
             "suggestion": "、".join([f"补充{m}资料" for m in all_missing]) + "。按稽查必查清单提前归档全部经营资料。可通过「资料缺口报告」查看完整清单。",
             "required_evidence": ["已提交资料清单", "缺失资料列表", "稽查必查资料对照表"],
         })
@@ -11014,9 +11014,9 @@ def _analyze_multi_source_cross(db, company_id, ps, pe, results):
             s = (pi.seller_name or "")[:20]
             if s: inv_sellers[s] += _safe_float(pi.total_amount)
 
-        pay_no_inv = [(n, a) for n, a in sorted(bank_payees.items(), key=lambda x: -x[1])[:15]
+        pay_no_inv = [(n, a) for n, a in sorted(bank_payees.items(), key=lambda x: -x[1])
                       if a >= 5000 and not any(n[:6] in s for s in inv_sellers)]
-        inv_no_pay = [(n, a) for n, a in sorted(inv_sellers.items(), key=lambda x: -x[1])[:15]
+        inv_no_pay = [(n, a) for n, a in sorted(inv_sellers.items(), key=lambda x: -x[1])
                       if a >= 5000 and not any(n[:6] in p for p in bank_payees)]
 
         if pay_no_inv:
