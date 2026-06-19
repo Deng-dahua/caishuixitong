@@ -13751,17 +13751,23 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs):
             "type": "收款来源与开票客户严重不匹配",
             "level": "高风险", "score": 9,
             "detail": f"银行账户累计收款{total_income:,.0f}元，其中仅{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）来自销项发票上的购方客户。剩余{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）来自销项发票上未出现的付款方。",
-            "description": f"被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户（购方），银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。\n\n销项发票列示的客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%）。其中匹配到的客户：{matched_examples}。\n\n销项发票未列示的付款方合计{total_income-income_from_buyers:,.0f}元（{(total_income-income_from_buyers)/total_income*100:.0f}%）。主要不明来源：{examples}等。\n\n"
-                + f"银行收款{total_income:,.0f}元，收款金额远超开票金额——异常信号触发。\n"
-                + f"将{len(payers)}个银行付款方与{len(buyer_names)}个销项客户做逐名比对，仅{income_from_buyers/total_income*100:.0f}%匹配——异常确认真实存在。\n"
-                + f"{(total_income-income_from_buyers)/total_income*100:.0f}%的收款来自销项发票上未列示的付款方。这些资金有三种可能：\n"
-                + f"· 未开票的经营收入（客户付了款但没给开票→隐匿收入）\n"
-                + f"· 非经营资金流入（股东注资、借款、往来款→需要对应合同证明）\n"
-                + f"· 第三方代付（客户的关联方代付→需要委托付款证明）\n"
-                + f"综合判断：上述三种情况的风险等级不同。如果是未开票收入→隐匿收入，严重程度最高。如果是借款/注资→需要证明资金来源和性质。如果是第三方代付→需要说明代付关系。无论哪种情况，被查单位都必须逐笔说明，无法说明的按隐匿收入处理。",
-            "how_found": f"从银行流水提取{len(payers)}个付款方→与销项发票{len(buyer_names)}个购方名称交叉比对→仅{income_from_buyers/total_income*100:.0f}%匹配。",
-            "tax_impact": f"不明来源资金{total_income-income_from_buyers:,.0f}元可能被推定为未开票销售收入→补缴增值税（适用税率）+企业所得税（25%）+滞纳金（日万分之五）+0.5-5倍罚款。",
-            "suggestion": f"要求被查单位逐笔说明{len(unmatched_payers)}个不明付款方的资金来源：①若为未开票的销售收入——立即补开发票并申报未开票收入，补缴相应税款；②若为借款——提供借款合同、借据、利息支付凭证；③若为股东注资——提供验资报告或出资证明；④若为关联方往来——提供对账单。无法说明来源的，按隐匿收入处理。",
+            "description": (
+                f"将银行收款方名称与销项发票的购方客户名称进行双向比对。注意：实际经营中收款与开票天然不是一一对应关系"
+                f"——客户可能分多次付款后一并开票（合并开票），也可能一次付款对应多张发票（合并收款），"
+                f"还存在先收款后开票（预收账款）或先开票后收款（应收账款）的跨期情形。"
+                f"因此，收款方名称与购方客户名称不匹配，不等于隐匿收入。\n\n"
+                + f"经比对，被查单位{len(sal_invs)}张销项发票列示了{len(buyer_names)}个客户，银行账户共收到{len(payers)}个不同付款方的资金{total_income:,.0f}元。其中销项发票购方客户付款合计{income_from_buyers:,.0f}元（{income_from_buyers/total_income*100:.0f}%），匹配到的客户：{matched_examples}。\n\n"
+                + f"其余{(total_income-income_from_buyers)/total_income*100:.0f}%的收款（{total_income-income_from_buyers:,.0f}元）来自销项发票上未列示的付款方，主要：{examples}等。这些资金可能属于以下情况：\n"
+                + f"· 自然跨期（最常见）：收款发生在分析期间内但开票在前后期间——或者预收账款（收款在先开票在后），或者应收账款回款（开票在先收款在后）。需要拉长期间验证。\n"
+                + f"· 合并/拆单收款：客户一次付款对应多张发票，或一笔发票对应多笔收款——名称能对上但金额对不上，此类已匹配成功。\n"
+                + f"· 未开票的经营收入：客户付了款但确实没给开票——这是真正需要关注的隐匿收入风险。\n"
+                + f"· 非经营资金流入：股东注资、借款、往来款——不是销售收入，但需要合同证明其性质。\n"
+                + f"· 第三方代付：客户的关联方或实际控制人代为付款——需委托付款证明。\n"
+                + f"· 已归类的非经营收款：社保退款、银行结息、法定代表人个人打款等——见本报告收款来源分析。\n\n"
+                + f"综合判断：{(total_income-income_from_buyers)/total_income*100:.0f}%的未匹配收款需要逐笔核实属于哪种情况。重点是区分\u201c没有开票的经营收入\u201d（情况三\u2192隐匿收入）和\u201c有合理解释的非经营资金\u201d（情况四/五/六）。无法说明来源的按隐匿收入处理。"),
+            "how_found": f"从银行流水提取{len(payers)}个付款方→与销项发票{len(buyer_names)}个购方名称交叉比对→{income_from_buyers/total_income*100:.0f}%匹配。",
+            "tax_impact": f"若为未开票收入→补缴增值税（适用税率）+企业所得税（25%）+滞纳金+0.5-5倍罚款；若为借款/注资→需提供合同证明，无法证明的推定为应税收入；若为第三方代付→需委托付款证明。注意：收款与开票天然不是1:1关系，未匹配不自动等于隐匿收入。",
+            "suggestion": f"要求被查单位逐笔说明{len(unmatched_payers)}个未匹配付款方的资金来源：①若为跨期收款——补充提供前后期间销项发票和银行流水；②若为预收/应收——提供预收账款或应收账款明细账佐证；③若为未开票销售收入——补开发票并申报未开票收入；④若为借款/注资——提供借款合同或出资证明；⑤若为第三方代付——提供委托付款证明。无法说明来源的按隐匿收入处理。",
             "category": "资金流向",
             "policy_ref": "《税收征收管理法》第三十五条（核定征收）；《增值税暂行条例》关于销售额确定的规定；《企业所得税法》关于收入确认的规定。",
         })
