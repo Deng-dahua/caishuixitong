@@ -183,7 +183,17 @@ async def add_cache_headers(request, call_next):
 # vat/salary/social/housing/ccf 路由已移除（8888稽查版）
 app.include_router(tax_risk_router)
 
-# 挂载静态文件
+# 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
+@app.middleware("http")
+async def _cache_control_middleware(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith('.js') or path.endswith('.css'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==================== 文件上传安全常数 (P2-4/5) ====================
