@@ -12898,6 +12898,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
              f"被查单位缺失合同的影响集中在第一类{must_total:,.0f}元交易。四流合一缺了合同流，印花税计税依据缺失（预计漏缴{stamp_tax_est:,.0f}元）。"
          ),
          lambda: f"缺少合同文件——需按业务性质分层判断：{len(mc_list)}个供应商/交易额{must_total:,.0f}元必须有合同，{len(ms_list)}个日常消费类以发票为凭证即可。①稽查逐笔质疑{len(mc_list)}笔无合同交易的商业合理性；②无合同→印花税漏缴(约{stamp_tax_est:,.0f}元)；③大额无合同→虚开发票嫌疑。",
+         lambda: f"缺失合同→四流合一断裂→{must_total:,.0f}元交易无合同支撑→稽查可逐笔质疑交易真实性→虚开发票嫌疑→补税+罚款+滞纳金；印花税计税依据缺失→漏缴约{stamp_tax_est:,.0f}元。",
          lambda: "《税收征收管理法》第五十四条；《印花税法》关于应税合同的规定。",
          f"① 为{must_total:,.0f}元必签合同的交易补签购销合同（共{len(mc_list)}家供应商）；② 合同必须明确双方、金额、货物内容、履行期限、违约责任；③ {len(ms_list)}家日常消费类以发票为凭证即可，不需补签；④ 按合同金额补缴印花税约{stamp_tax_est:,.0f}元。"),
         
@@ -16999,9 +17000,6 @@ def _run_analyze(company_id, db):
         domain_summary.append({"name": cat, "count": len(findings), "high": dh, "mid": dm, "findings": findings})
 
     # ── 综合报告增强数据：月度资金流 + 往来方TOP20 + 分级整改建议 ──
-    comprehensive = comprehensive  # already defined above
-    comprehensive["filter_log"] = filter_log  # 方法论过滤详情
-    
     # 1. 月度资金流（银行流水按月汇总收入/支出/净额）
     if bank_txs:
         from collections import defaultdict
@@ -17306,6 +17304,7 @@ def _run_analyze(company_id, db):
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     all_findings, pipeline_log, filter_log = _apply_methodology_filter(all_findings, pipeline_log, 
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
+    comprehensive["filter_log"] = filter_log  # 方法论过滤详情
     
     # ═══ 重算风险统计（过滤后）═══
     # 确保进销存匹配核心发现不丢失（有进无销/有销无进/进销数量偏差）
