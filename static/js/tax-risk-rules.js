@@ -539,34 +539,29 @@ function renderTaxRiskRulesList(filterData) {
   if (!listEl) return;
 
   if (data.length === 0) {
-    listEl.innerHTML = '<div class="risk-rules-empty">暂无规则数据，请在左侧输入区添加规则，或点击"加载默认规则"</div>';
+    listEl.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无规则数据，请加载默认规则</div>';
   } else {
     // 按分类分组
     var grouped = {};
     data.forEach(function(rule) {
       var cat = rule.category || '未分类';
       if (!grouped[cat]) {
-        grouped[cat] = { icon: rule.categoryIcon || '🔍', rules: [] };
+        grouped[cat] = { icon: rule.categoryIcon || '', rules: [] };
       }
       grouped[cat].rules.push(rule);
     });
 
-    // 按分类名称排序
     var sortedCats = Object.keys(grouped).sort();
 
     var html = '';
     sortedCats.forEach(function(cat) {
       var group = grouped[cat];
       html += ''
-        + '<div class="risk-rules-category">'
-        + '<div class="category-header">'
-        + '<span class="category-icon">' + group.icon + '</span>'
-        + '<span class="category-name">' + cat + '</span>'
-        + '<span class="category-count">' + group.rules.length + ' 条规则</span>'
+        + '<div style="margin-bottom:16px">'
+        + '<div style="font-size:15px;font-weight:600;color:#0f172a;padding:8px 0;border-bottom:1px solid #f1f5f9;margin-bottom:8px">'
+        + group.icon + ' ' + cat + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + group.rules.length + ' 条</span>'
         + '</div>'
-        + '<div class="category-rules">'
         + group.rules.map(function(rule) { return renderTaxRiskRuleCard(rule); }).join('')
-        + '</div>'
         + '</div>';
     });
     listEl.innerHTML = html;
@@ -589,36 +584,25 @@ function renderTaxRiskRulesList(filterData) {
   var hcEl = document.getElementById('risk-rules-header-count');
   if (hcEl) hcEl.textContent = data.length;
 
-  // 更新加载按钮上的规则数量
   updateLoadButtonText();
 }
 
-// 渲染单条规则卡片
+// 渲染单条规则
 function renderTaxRiskRuleCard(rule) {
   var color = RISK_LEVEL_COLORS[rule.level] || '#666';
   var icon = RISK_LEVEL_ICONS[rule.level] || '⚪';
 
   return ''
-    + '<div class="risk-rule-card" data-id="' + rule.id + '">'
-    + '<div class="rule-card-header">'
-    + '<span class="rule-level-badge" style="background:' + color + '15;color:' + color + ';">' + icon + ' ' + rule.level + '</span>'
-    + '<span class="rule-score-badge">评分: ' + rule.score + '分</span>'
+    + '<div style="padding:14px 0;border-bottom:1px solid #f1f5f9" data-id="' + rule.id + '">'
+    + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">'
+    + '<span style="font-size:13px;color:' + color + ';font-weight:600">' + icon + ' ' + rule.level + '</span>'
+    + '<span style="font-size:13px;color:#94a3b8">评分 ' + rule.score + ' 分</span>'
+    + '<span style="margin-left:auto;font-size:13px;color:#94a3b8">' + (rule.urgency ? rule.urgency : '') + '</span>'
     + '</div>'
-    + '<div class="rule-card-body">'
-    + '<h4 class="rule-item-name">' + escapeHtml(rule.item) + '</h4>'
-    + (rule.detail ? '<p class="rule-detail">' + escapeHtml(rule.detail) + '</p>' : '')
-    + (rule.suggestion ? '<p class="rule-suggestion"><strong>建议：</strong>' + escapeHtml(rule.suggestion) + '</p>' : '')
-    + (rule.evidence ? '<p class="rule-evidence"><strong>佐证：</strong>' + escapeHtml(rule.evidence).replace(/\n/g, '<br>') + '</p>' : '')
-    + (rule.dataSource ? '<p class="rule-data-source"><strong>数据：</strong>' + escapeHtml(rule.dataSource) + '</p>' : '')
-    + (rule.remark ? '<p class="rule-data-source"><strong>备注：</strong>' + escapeHtml(rule.remark) + '</p>' : '')
-    + '</div>'
-    + '<div class="rule-card-footer">'
-    + '<span class="rule-urgency">' + (rule.urgency ? '⏰ ' + rule.urgency : '') + '</span>'
-    + '<div class="rule-actions">'
-    + '<button class="btn-icon" onclick="editRuleInline(' + rule.id + ')" title="编辑">✏️</button>'
-    + '<button class="btn-icon" onclick="deleteTaxRiskRule(' + rule.id + ')" title="删除">🗑️</button>'
-    + '</div>'
-    + '</div>'
+    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:4px">' + escapeHtml(rule.item) + '</div>'
+    + (rule.detail ? '<div style="font-size:13px;color:#64748b;line-height:1.8">' + escapeHtml(rule.detail) + '</div>' : '')
+    + (rule.suggestion ? '<div style="font-size:13px;color:#64748b;margin-top:4px"><strong>建议：</strong>' + escapeHtml(rule.suggestion) + '</div>' : '')
+    + (rule.evidence ? '<div style="font-size:13px;color:#64748b;margin-top:4px"><strong>佐证：</strong>' + escapeHtml(rule.evidence) + '</div>' : '')
     + '</div>';
 }
 
