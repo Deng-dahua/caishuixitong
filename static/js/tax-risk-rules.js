@@ -65,13 +65,6 @@ function renderTaxRiskRules(container) {
   container.innerHTML = ''
     + '<div class="risk-rules-container">'
     + '<div class="risk-rules-header"><div class="risk-rules-title"></div><div class="risk-rules-toolbar"></div></div>'
-    + '<div style="display:flex;gap:8px;margin:12px 0;padding:0 8px">'
-    + '<button class="rrtab active" id="rrtab-cat" onclick="switchTab(0)">\u89c4\u5219</button>'
-    + '<button class="rrtab" id="rrtab-chain" onclick="switchTab(1)">\u7ebf\u7d22\u94fe</button>'
-    + '<button class="rrtab" id="rrtab-evidence" onclick="switchTab(2)">\u8bc1\u636e\u94fe</button>'
-    + '<button class="rrtab" id="rrtab-analyze" onclick="switchTab(3)">\u4e00\u952e\u5206\u6790</button>'
-    + '<button class="rrtab" id="rrtab-cross" onclick="switchTab(4)">\u8de8\u57df\u8bc1\u636e\u94fe</button>'
-    + '</div>'
     + '<div id="rr-panel-cat" class="risk-rules-body" style="display:block">'
     + '<div class="risk-rules-display" id="risk-rules-display">'
     + '<div class="display-panel-header"><h3>\u89c4\u5219 <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u6307\u4ee4\u5206\u7c7b\u68c0\u7d22\uff09 <strong id="risk-rules-header-count">0</strong>\u6761</span></h3>'
@@ -83,161 +76,6 @@ function renderTaxRiskRules(container) {
     + '<div class="display-panel-body" id="risk-rules-list"></div>'
     + '<div class="risk-rules-empty">\u6682\u65e0\u89c4\u5219\u6570\u636e</div>'
     + '<div class="display-panel-footer"><span id="risk-rules-stats">\u5171 0 \u6761\u89c4\u5219</span></div>'
-    + '</div></div>'
-    + '<div id="rr-panel-chain" class="risk-rules-body" style="display:none">'
-    + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u7ebf\u7d22\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u7a3d\u67e5\u8c03\u67e5\u8def\u5f84\uff09 <strong id="chain-header-count">0</strong>\u6761</span></h3>'
-    + '<div class="display-panel-toolbar">'
-    + '<input type="text" class="search-input" id="chain-search" placeholder="\u641c\u7d22\u7ebf\u7d22\u94fe..." oninput="filterChains()">'
-    + '<select class="filter-select" id="chain-filter-cat" onchange="filterChains()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
-    + '<select class="filter-select" id="chain-filter-level" onchange="filterChains()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u542b\u9ad8\u98ce\u9669\u73af\u8282</option><option value="\u4e2d\u98ce\u9669">\u542b\u4e2d\u98ce\u9669\u73af\u8282</option></select>'
-    + '</div></div>'
-    + '<div class="display-panel-body" id="audit-chains-body">\u52a0\u8f7d\u4e2d...</div>'
-    + '<div class="display-panel-footer"><span id="chain-stats">\u5171 0 \u6761\u7ebf\u7d22\u94fe</span></div>'
-    + '</div></div>'
-    + '<div id="rr-panel-evidence" class="risk-rules-body" style="display:none">'
-    + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>\u8bc1\u636e\u94fe <span style="font-size:13px;color:var(--gray-400);font-weight:400">\uff08\u542b\u89c4\u5219ID+\u5904\u7f5a\u4f9d\u636e\uff09 <strong id="evidence-header-count">0</strong>\u6761</span></h3>'
-    + '<div class="display-panel-toolbar">'
-    + '<input type="text" class="search-input" id="evidence-search" placeholder="\u641c\u7d22\u8bc1\u636e\u94fe..." oninput="filterEvidence()">'
-    + '<select class="filter-select" id="evidence-filter-cat" onchange="filterEvidence()"><option value="">\u5168\u90e8\u5206\u7c7b</option></select>'
-    + '<select class="filter-select" id="evidence-filter-level" onchange="filterEvidence()"><option value="">\u5168\u90e8\u7b49\u7ea7</option><option value="\u9ad8\u98ce\u9669">\u9ad8\u98ce\u9669</option><option value="\u4e2d\u98ce\u9669">\u4e2d\u98ce\u9669</option></select>'
-    + '</div></div>'
-    + '<div class="display-panel-body" id="audit-evidence-body">\u52a0\u8f7d\u4e2d...</div>'
-    + '<div class="display-panel-footer"><span id="evidence-stats">\u5171 0 \u6761\u8bc1\u636e\u94fe</span></div>'
-    + '</div></div>'
-    + '<div id="rr-panel-analyze" class="risk-rules-body" style="display:none">'
-    + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>一键分析 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（方法论驱动稽查引擎） <strong>1503则/386线/735证</strong></span></h3></div>'
-    + '<div class="display-panel-body" style="padding:16px;font-size:12px;color:#475569;line-height:1.9">'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">'
-    // 子系统1
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #2563eb;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2460 资料扫描与类型识别</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）<br>'
-    + '自动判定发票方向（购方名→销项 / 销方名→进项）<br>'
-    + '诊断追踪系统记录完整决策链路'
-    + '</div></div>'
-    // 子系统2
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #059669;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2461 目标实体识别</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '进项购买方 \u2229 销项销售方 \u2192 自动确定被查单位<br>'
-    + '66个行业分类（加权投票制，避免误判）<br>'
-    + '企业类型自动判定（生产型/服务型/贸易型）'
-    + '</div></div>'
-    // 子系统3
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #7c3aed;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2462 资料情报提取 + 数据分析</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '银行流水深度分析：收款构成(企业/个人/税费/银行)+收款方TOP10<br>'
-    + '<b style=\"color:#7c3aed\">联网核查：自动查询被查单位工商登记信息（法定代表人/股东/注册资本/行业分类）</b>'
-    + '进销存比对：商品明细匹配 + 进销比 + 毛利率<br>'
-    + '供应商穿透：集中度 + 名称群集 + 双向交易 + 地域群集<br>'
-    + '<b style=\"color:#dc2626\">发票深度审计：五层检查(合规/单价/加工费/合理性/进销映射→BOM)</b><br>'
-    + '<b style=\"color:#059669\">BOM判断：进销品名差异+加工费证据→外包轻加工模式（批发业也可存在）</b><br>'
-    + '<b style=\"color:#7c3aed\">联网核查：自动查工商信息（法定代表人/股东/行业分类/注册资本）</b><br>'
-    + '<b style=\"color:#d97706\">收款分类：按付款方性质分企业/个人/税费/银行</b>'
-    + '</div></div>'
-    // 子系统4
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #f59e0b;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2463 规则引擎 + 链驱动检查</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '1503条规则逐条匹配 + 真实数据验证（非关键词匹配）<br>'
-    + '386条线索链驱动：定量阈值验证（金额/比例/数量）<br>'
-    + '735条证据链闭环：≥3条触发+≥2域交叉验证<br>'
-    + '<b style=\"color:#dc2626\">方法论过滤器：1554→50±条（剔除97%噪声）</b>'
-    + '</div></div>'
-    // 子系统5
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #dc2626;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2464 方法论噪声过滤器</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '硬删除：禁止词(涉税中介/公安/伪造/资金回流等40+)<br>'
-    + '条件过滤：无资料→对应结论全删（申报表/合同/工资/凭证）<br>'
-    + '行业匹配：纺织企业不报医药/房地产/电商/教培等8行业<br>'
-    + '去重+正常结论排除+模板僵尸{var}检测<br>'
-    + '实测1554→24条（剔除97%噪声）'
-    + '</div></div>'
-    // 子系统6
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #0f172a;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2465 行业对标 + 申报比对</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）<br>'
-    + '申报表vs发票实际数据比对（核心逃税检测）<br>'
-    + '无申报表\u2192标记为资料缺口，不臆测'
-    + '</div></div>'
-    // 子系统7
-    + '<div style="border:1px solid #e2e8f0;border-left:3px solid #0891b2;border-radius:6px;padding:14px;background:#fff">'
-    + '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:8px">\u2466 正式稽查报告输出</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.8">'
-    + '国家税务总局呈报格式（封面/文号/签章/落款）<br>'
-    + '已查实问题 + 需进一步核实问题，两级分类<br>'
-    + '稽查人员口吻：查证过程/问题定性/法律依据'
-    + '</div></div>'
-    + '</div>'
-    // 统计总览
-    + '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'
-    + '<span style="background:#eff6ff;border:1px solid #bfdbfe;padding:6px 14px;border-radius:4px;font-size:11px;color:#1e40af"><b>1503</b> 条规则</span>'
-    + '<span style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 14px;border-radius:4px;font-size:11px;color:#166534"><b>386</b> 条线索链</span>'
-    + '<span style="background:#fef3c7;border:1px solid #fde68a;padding:6px 14px;border-radius:4px;font-size:11px;color:#92400e"><b>735</b> 条证据链</span>'
-    + '<span style="background:#fef2f2;border:1px solid #fecaca;padding:6px 14px;border-radius:4px;font-size:11px;color:#991b1b"><b>97%</b> 噪声过滤率</span>'
-    + '<span style="background:#ede9fe;border:1px solid #c4b5fd;padding:6px 14px;border-radius:4px;font-size:11px;color:#6d28d9"><b>66</b> 行业基准库</span>'
-    + '</div>'
-    // 底部说明
-    + '<div style="margin-top:16px;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#64748b;line-height:1.8">'
-    + '<strong style="color:#1e293b">执行流程：</strong>'
-    + '点击"一键分析" \u2192 '
-    + '\u2460资料扫描+类型识别 \u2192 '
-    + '\u2461目标实体识别 \u2192 '
-    + '\u2462资料情报提取+发票审计（合规/单价/BOM）\u2192 '
-    + '\u2463规则引擎+链驱动(1503/386/735) \u2192 '
-    + '\u2464方法论噪声过滤(剔除97%) \u2192 '
-    + '\u2465行业对标+申报比对 \u2192 '
-    + '\u2466正式稽查报告输出'
-    + '</div>'
-    + '<div style="margin-top:8px;padding:10px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;color:#1e40af;line-height:1.7">'
-    + '<strong>\u{1F4CB} 稽查行为准则（已内化）：</strong><br>'
-    + '<b>① 必有明细：</b>每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
-    + '<b>② 自行解决：</b>遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
-    + '<b>③ 不墨迹：</b>报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
-    + '</div>'
-    + '<div style="margin-top:8px;padding:10px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;font-size:11px;color:#92400e;line-height:1.7">'
-    + '<strong>\u{1F4D6} 稽查方法论八条（达冠实战总结）：</strong><br>'
-    + '① 多格式兼容：银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容，未知格式直接读表头<br>'
-    + '② 汇总行过滤：月末汇总行(对手为空+大额整数)→自动识别并剔除，防止13M虚增<br>'
-    + '③ 付款方身份核实：个人打款→联网查工商→范善茂=法定代表人→定性待核实（非直接假定注资）<br>'
-    + '④ 关键词≠事实：BOM判断从关键词匹配升级为进销品名实质差异+加工费证据双重验证<br>'
-    + '⑤ 行业认知补算法：工商批发业≠无加工。纺织贸易外包轻加工模式→BOM仍需要<br>'
-    + '\u2465 联网核查：企查查查法人/股东/行业/注册资本，颠覆范善茂=不明来源的判断<br>'
-    + '\u2466 明细即信服力：全部收款方+付款方均逐一列示明细表，不分组合并<br>'
-    + '⑧ 不墨迹直接干：发现问题不请示，读文件查格式直接修<br>'
-    + '⑨ JS双函数覆盖陷阱：同名函数后定义覆盖前定义→修改前grep确认只有1个<br>'
-    + '\u2460 完备度明细：缺失资料逐类列示缺失后果，不泛泛说"缺5类"→每类写明稽查风险<br>'
-    + '\u2461 完备度升级：8类→15类（+科目余额表/财务报表/增值税申报/所得税申报/个税申报/小税种）<br>'
-    + '\u2462 凭证描述纠正：无凭证不等于核定征收（删除了严重夸大性表述）<br>'
-    + '\u2463 进销诊断升级：制造业加工链条自动识别→有销无进/有进无销降级中风险+根因分析<br>'
-    + '\u2464 行业基准库：34行业×5指标双向匹配自动选行业<br>'
-    + '\u2465 结论分析法：先问为什么→分析进项结构→展示加工链条→风险转移而非消除<br>'
-    + '\u2466 稽查分析过程：收款/付款/进销三大核心发现均含detect→verify→diagnose→report四步分析<br>'
-    + '\u2467 COND_BAN防误杀：建议词≠数据依赖，\"入库单/出库单\"移除（含建议词的发现不应被无库存数据误删）<br>'
-    + '\u2468 稽查重点强制等级：现实中稽查必查项不根据score定级，AUDIT_PRIORITY_LEVELS硬编码+前端红色标记<br>'
-    + '\u2469 报告纯净度：移除系统内部标注（detect/verify/线索链自动触发等），报告即专业稽查文书<br>'
-    + '\u246a 发票≠收付款1:1：进项付款+销项收款均承认预付/应收/分期/合并/跨期/代付（双边统一方法论）<br>'
-    + '\u246b 经营实质地理分析：地址→运输→加工费多点交叉，单点到面（+2规则+1线索链+4步证据链）<br>'
-    + '\u246c 规则detail业务化：533条规则从泛化模板改为业务实质描述（10条核心重写+523条批量修正）<br>'
-    + '\u246d 建议质量增强：单点/面的风险均有具体佐证路径（提供XX资料→如果A就XX→如果B就XX→无法做到的后果）<br>'
-    + '\u246e 合同分层判断：_analyze_contract_tiers()→_domain_document_completeness 接入管线，供应商分三类——主营业务必须签/重大支出必须签/日常费用可免签（不再一刀切缺合同）<br>'
-    + '<b style="color:#dc2626">+合同分层判断 | 建议质量增强 | 规则detail(533条) | 经营实质地理 | 四合一闭环</b>'
-    + '</div>'
-    + '</div>'
-    + '</div></div>'
-    + '</div>'
-    // 子tab5: 跨域证据链（7条多域交叉互证）
-    + '<div id="rr-panel-cross" class="risk-rules-body" style="display:none">'
-    + '<div class="risk-rules-display">'
-    + '<div class="display-panel-header"><h3>跨域证据链 <span style="font-size:13px;color:var(--gray-400);font-weight:400">（多域交叉互证·7条动态生成） <strong id="cross-header-count">-</strong></span></h3></div>'
-    + '<div class="display-panel-body" id="cross-domain-body" style="padding:16px"><div style="text-align:center;color:#94a3b8">点击加载...</div></div>'
     + '</div></div>'
     + '</div>';
     + '</div>'
@@ -1371,26 +1209,10 @@ function applyParsedRules(rulesStr) {
 
 
 // ==================== Tab ====================
-// ==================== 线索链 + 证据链（带搜索筛选） ====================
-var _allChains = [];
-
-async function loadAuditChains() {
-  try {
-    var resp = await fetch('/api/tax-risk-rules/chains');
-    var data = await resp.json();
-    _allChains = data.chains || [];
-    var cats = {};
-    _allChains.forEach(function(c){ if (c.chain_type === '线索链') { var p = c.name.split('-')[0]; if (p) cats[p] = true; } });
-    var catKeys = Object.keys(cats).sort();
-    var catSel = document.getElementById('chain-filter-cat');
-    if (catSel) { catSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ catSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
-    var evCatSel = document.getElementById('evidence-filter-cat');
-    if (evCatSel) { evCatSel.innerHTML = '<option value="">\u5168\u90e8\u5206\u7c7b</option>'; catKeys.forEach(function(c){ evCatSel.innerHTML += '<option value="'+c+'">'+c+'</option>'; }); }
-    filterChains();
-    filterEvidence();
-    // 加载动态触发状态
-    if (!_chainDynamic) await loadChainDynamicStatus();
-    filterChains();  // re-render with dynamic status
+var _currentTab = 0;
+function switchTab(n) {
+  _currentTab = n;
+}
     filterEvidence();
   } catch(e) { console.error(e); }
 }
@@ -1580,50 +1402,11 @@ function filterEvidence() {
   if (hc) hc.textContent = evCount;
 }
 
-// ==================== 稽查管道侧边栏入口 ====================
-// 将5个子tab提升为独立侧边栏页面，自动选中对应tab
-function renderRulesPipelinePage(container) {
-  renderTaxRiskRules(container);
-  switchTab(0);
-}
-function renderChainsPipelinePage(container) {
-  renderTaxRiskRules(container);
-  switchTab(1);
-}
-function renderEvidencePipelinePage(container) {
-  renderTaxRiskRules(container);
-  switchTab(2);
-}
-function renderAnalyzePipelinePage(container) {
-  renderTaxRiskRules(container);
-  switchTab(3);
-}
-function renderCrossPipelinePage(container) {
-  renderTaxRiskRules(container);
-  switchTab(4);
-}
-
 // ==================== Tab ====================
 var _currentTab = 0;
-var _tabs = ['cat','chain','evidence','analyze','cross'];
 function switchTab(n) {
   _currentTab = n;
-  document.querySelectorAll('.rrtab').forEach(function(b,i){ b.classList.toggle('active',i===n); });
-  document.getElementById('rr-panel-cat').style.display = (n===0?'block':'none');
-  document.getElementById('rr-panel-chain').style.display = (n===1?'block':'none');
-  document.getElementById('rr-panel-evidence').style.display = (n===2?'block':'none');
-  document.getElementById('rr-panel-analyze').style.display = (n===3?'block':'none');
-  document.getElementById('rr-panel-cross').style.display = (n===4?'block':'none');
-  if (n===1) loadAuditChains();
-  if (n===2) loadAuditEvidence();
-  if (n===4) loadCrossDomainEvidenceTab();
 }
-
-// 子tab5: 跨域证据链（7条多域交叉互证）
-function _esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-async function loadCrossDomainEvidenceTab() {
-  var body = document.getElementById('cross-domain-body');
-  var countEl = document.getElementById('cross-header-count');
   if (!body) return;
   body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div>';
 
