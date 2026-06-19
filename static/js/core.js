@@ -66,7 +66,8 @@ const pages = {
   'evidence-page': '证据链',
   'analyze-page': '分析链',
   'cross-domain-evidence': '跨域证据链',
-  'system-logs': '系统日志'
+  'system-logs': '系统日志',
+  'ai-rules': 'AI行为准则'
 };
 
 // ==================== 用户登录 ====================
@@ -550,6 +551,7 @@ function navigateTo(page) {
     case 'analyze-page': renderAnalyzePage(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
+    case 'ai-rules': renderAiRules(container); break;
   }
   window.scrollTo(0, 0);
 }

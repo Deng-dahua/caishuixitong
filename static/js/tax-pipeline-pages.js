@@ -1152,3 +1152,81 @@ function renderFilterResult(report) {
 
   document.getElementById('mf-body').innerHTML = html;
 }
+
+// ══════════════════════════════════════════════════════════════
+//  AI行为准则页面 —— 全部13条行为准则
+// ══════════════════════════════════════════════════════════════
+
+function renderAiRules(container) {
+  var rules = [
+    {id:1,  name:'做事要狠', level:'准则', date:'2026-05-31',
+     desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根，不要修修补补。'},
+    {id:2,  name:'自作主张', level:'准则', date:'2026-05-31',
+     desc:'技术上该做的事情直接做，不要问"要不要做"。用户不需要知道每一个技术决策。'},
+    {id:3,  name:'主动进攻', level:'准则', date:'2026-05-31',
+     desc:'用户发现问题时，不要只修那一个点，把同类问题全部揪出来一起干掉。'},
+    {id:4,  name:'自行验证', level:'铁律', date:'2026-06-03',
+     desc:'每做完一件事，必须验证结果 —— 重启服务器 + 预览页面，确认功能完全正常后再提交。不验证就不算完成，不验证就不推送。'},
+    {id:5,  name:'规则=代码', level:'铁律', date:'2026-06-13',
+     desc:'改了规则必须同步改代码，不允许只改记忆不改代码。交付前必须验证代码变更已生效。'},
+    {id:6,  name:'科目name', level:'铁律', date:'2026-06-13',
+     desc:'Account表name字段只存本级名称。写入JournalEntry.account_name前必须查Account表以DB实际值为准，不能直接用代码中的映射值。'},
+    {id:7,  name:'三号合并', level:'铁律', date:'2026-06-13',
+     desc:'同一(invoice_code, invoice_no, digital_invoice_no)必须合并为一个凭证号。auto_generate_*_journal必须批量调用，禁止逐条for循环逐个传ID（会绕过三号分组）。'},
+    {id:8,  name:'变更影响分析', level:'铁律', date:'2026-06-13',
+     desc:'改任何值之前，先搜索所有引用点，改后逐一验证每个引用点都已正确更新。禁止改完就走、禁止假设"应该没问题"。'},
+    {id:9,  name:'审计铁律', level:'铁律', date:'2026-06-13',
+     desc:'财税系统每次代码变更后必须 python audit.py 1，7项全通过才提交。'},
+    {id:10, name:'ref_id去重', level:'铁律', date:'2026-06-13',
+     desc:'去重用 ref_id == tx.id 精确匹配，禁止金额模糊匹配（1002存贷方并非借方金额，永远对不上）。'},
+    {id:11, name:'普票税额并入成本', level:'准则', date:'2026-06-13',
+     desc:'普通发票税额不单独记进项税额(221001002)，并入成本/费用借方。'},
+    {id:12, name:'7分类禁止兜底', level:'准则', date:'2026-06-13',
+     desc:'CATEGORY_ACCOUNT_MAP严格限定7个分类，不在其中返回None跳过，禁止关键词兜底和默认660299。'},
+    {id:13, name:'代码即承诺', level:'铁律', date:'2026-06-19',
+     desc:'所有提出的功能、方法论、规则、分析链等概念，必须全部编写为实际可运行的代码。禁止只写口号不写代码。禁止在报告/文档中声称已实现但代码中找不到对应逻辑。每项声称必须有代码位置（文件名:行号）可追溯。'},
+  ];
+
+  var html = '';
+  html += '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">';
+  html += '<div style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">AI行为准则</div>';
+  html += '<div style="font-size:14px;color:#94a3b8;margin:0 0 32px">共 ' + rules.length + ' 条，其中 <span style="color:#c92a2a;font-weight:600">8 条铁律</span></div>';
+
+  // 分类统计
+  html += '<div style="display:flex;gap:16px;margin-bottom:32px">';
+  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#fef2f2;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#991b1b">8</div><div style="font-size:13px;color:#7f1d1d">🔴 铁律</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f0fdf4;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#166534">5</div><div style="font-size:13px;color:#14532d">📋 准则</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f8fafc;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#0f172a">13</div><div style="font-size:13px;color:#64748b">📊 合计</div></div>';
+  html += '</div>';
+
+  // 逐条渲染
+  var tieLvCount = 0, zhunZeCount = 0;
+  rules.forEach(function(r) {
+    var isTieLv = r.level === '铁律';
+    if (isTieLv) tieLvCount++; else zhunZeCount++;
+    var borderColor = isTieLv ? '#c92a2a' : '#475569';
+    var bgColor = isTieLv ? '#fef2f2' : '#f8fafc';
+    var badgeColor = isTieLv ? '#991b1b' : '#334155';
+    var badgeBg = isTieLv ? '#fee2e2' : '#e2e8f0';
+    var badgeText = isTieLv ? '🔴 铁律' : '📋 准则';
+
+    html += '<div style="padding:16px 20px;margin-bottom:12px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    html += '<div style="font-size:15px;font-weight:600;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</div>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + ';color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>';
+    html += '<span style="font-size:11px;color:#94a3b8">' + r.date + '</span>';
+    html += '</div></div>';
+    html += '<div style="font-size:13px;color:#475569;line-height:1.8">' + escHtml(r.desc) + '</div>';
+    html += '</div>';
+  });
+
+  html += '<div style="margin-top:32px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:12px;color:#94a3b8;line-height:1.8">';
+  html += '<strong style="color:#64748b">说明</strong><br>';
+  html += '铁律 = 违反后系统将无法正常工作或产生严重错误，必须绝对遵守。<br>';
+  html += '准则 = 最佳实践，应尽力遵守，特殊情况可例外。';
+  html += '</div>';
+
+  html += '</div>';
+  container.innerHTML = html;
+}
