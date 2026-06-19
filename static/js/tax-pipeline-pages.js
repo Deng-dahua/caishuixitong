@@ -650,14 +650,20 @@ var _allEvidenceChains = [];
 function renderChainsPage(container) {
   if (!container) return;
   window.currentModule = '线索链';
-  container.innerHTML = '<div class="pipeline-page" style="display:flex;align-items:center;justify-content:center;min-height:500px">'
-    + '<div class="pipeline-loading" style="font-size:15px;padding:30px 40px">⏳ 正在加载线索链数据...</div>'
-    + '</div>';
+  // 直接渲染完整框架，内容区显示loading，数据到位后无缝替换
+  container.innerHTML = '<div class="pipeline-page">'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔗 线索链列表</h2>'
+    + '<p class="pipeline-subtitle">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
+    + '</div>'
+    + '<div class="pipeline-body" id="chains-body">'
+    + '<div class="pipeline-loading">数据加载中...</div>'
+    + '</div></div>';
   loadChainsData();
 }
 
 async function loadChainsData() {
-  var container = document.getElementById('module-content') || document.querySelector('.main-content');
+  var target = document.getElementById('chains-body');
   try {
     var resp = await fetch('/static/audit_chains.json?_t=' + Date.now());
     var data = await resp.json();
@@ -674,24 +680,9 @@ async function loadChainsData() {
     var catKeys = Object.keys(cats).sort();
 
     _allClueChains = clueChains;
-
-    // 一次性渲染完整页面（header + body）
-    if (container) {
-      container.innerHTML = '<div class="pipeline-page">'
-        + '<div class="pipeline-header">'
-        + '<h2 class="pipeline-title">🔗 线索链列表</h2>'
-        + '<p class="pipeline-subtitle">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
-        + '</div>'
-        + '<div class="pipeline-body" id="chains-body">'
-        + '<div class="pipeline-loading">正在渲染...</div>'
-        + '</div></div>';
-    }
-
     renderChainsList(clueChains, catKeys);
   } catch (e) {
-    if (container) {
-      container.innerHTML = '<div class="pipeline-page"><div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">加载失败: ' + e.message + '</div></div>';
-    }
+    if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
@@ -816,14 +807,20 @@ function filterChainsList() {
 function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
-  container.innerHTML = '<div class="pipeline-page" style="display:flex;align-items:center;justify-content:center;min-height:500px">'
-    + '<div class="pipeline-loading" style="font-size:15px;padding:30px 40px">⏳ 正在加载证据链数据...</div>'
-    + '</div>';
+  // 直接渲染完整框架，内容区显示loading，数据到位后无缝替换
+  container.innerHTML = '<div class="pipeline-page">'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">🔒 证据链列表</h2>'
+    + '<p class="pipeline-subtitle">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p>'
+    + '</div>'
+    + '<div class="pipeline-body" id="evidence-body">'
+    + '<div class="pipeline-loading">数据加载中...</div>'
+    + '</div></div>';
   loadEvidenceData();
 }
 
 async function loadEvidenceData() {
-  var container = document.getElementById('module-content') || document.querySelector('.main-content');
+  var target = document.getElementById('evidence-body');
   try {
     var resp = await fetch('/static/audit_chains.json?_t=' + Date.now());
     var data = await resp.json();
@@ -835,24 +832,9 @@ async function loadEvidenceData() {
     if (!_chainDynamic) await loadChainDynamicStatus();
 
     _allEvidenceChains = evChains;
-
-    // 一次性渲染完整页面（header + body）
-    if (container) {
-      container.innerHTML = '<div class="pipeline-page">'
-        + '<div class="pipeline-header">'
-        + '<h2 class="pipeline-title">🔒 证据链列表</h2>'
-        + '<p class="pipeline-subtitle">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p>'
-        + '</div>'
-        + '<div class="pipeline-body" id="evidence-body">'
-        + '<div class="pipeline-loading">正在渲染...</div>'
-        + '</div></div>';
-    }
-
     renderEvidenceList(evChains);
   } catch (e) {
-    if (container) {
-      container.innerHTML = '<div class="pipeline-page"><div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">加载失败: ' + e.message + '</div></div>';
-    }
+    if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
