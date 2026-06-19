@@ -1066,7 +1066,7 @@ function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
-    + '<div>'
+    + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">1505规则 + 391线索链 + 740证据链 → 方法论过滤器 → 正式稽查报告</p>'
     + '</div>'
@@ -1078,13 +1078,11 @@ function renderAnalyzePage(container) {
 async function loadAnalyzeOverview() {
   var target = document.getElementById('analyze-body');
 
-  // 有缓存数据 → 直接渲染完整分析结果，不闪静态占位
   if (_cachedAnalyzeReport) {
     renderAnalyzeResult(_cachedAnalyzeReport);
     return;
   }
 
-  // 无缓存 → 先异步加载，有数据则渲染完整概览，无数据则显示静态说明
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
@@ -1096,45 +1094,97 @@ async function loadAnalyzeOverview() {
     }
   } catch (e) {}
 
-  // 兜底：无分析数据时显示静态流程说明
+  // 兜底：无分析数据时显示完整静态说明
+  var html = '';
+
+  // ══════ 一、分析链概述 ══════
+  html += '<div style="margin-bottom:48px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、分析链概述</h3>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '分析链是税务稽查系统的核心执行管线。从用户上传资料开始，经过七步串联处理，最终输出结构化稽查报告。'
+    + '每一步都有对应的代码实现（main.py 中的 <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> 函数），'
+    + '数据在管线中单向流动，不丢失、不污染、不截断。'
+    + '</p>'
+    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:12px;color:#94a3b8;line-height:2">'
+    + '<span style="font-weight:600;color:#64748b">数据规模：</span>'
+    + '1505 条稽查指令 · 391 条线索链 · 740 条证据链 · 8 条跨域证据链 · 97% 噪声过滤率 · 66 行业基准库'
+    + '</div>'
+    + '</div>';
+
+  // ══════ 二、七步执行流程 ══════
+  html += '<div style="margin-bottom:48px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、七步执行流程</h3>';
+
   var steps = [
-    { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
-    { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
-    { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集+双向交易。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环 → 方法论过滤器剔除97%噪声。' },
-    { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
-    { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
-    { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
+    {n:'①', title:'资料扫描与类型识别', icon:'📄',
+     desc:'系统遍历 uploads/ 目录，读取全部 Excel/CSV/PDF 文件。使用34类文件指纹库执行三层递进识别：'
+       + 'Step1 关键词打分（表头文字与34类指纹关键词库交叉匹配，每匹配一词得1分，超阈值即判定）→ '
+       + 'Step2 结构分析（列数+位置+表头组合模式确认，银行流水=日期+对方+金额+余额模式）→ '
+       + 'Step3 数据推断兜底（读前200行按语义角色判定：日期格式→日期列，含公司/厂→企业名，含元/￥→金额列）。'
+       + '不因无法识别而丢弃数据——标注为通用数据交由下游模块自行判断。'},
+    {n:'②', title:'目标实体识别', icon:'🎯',
+     desc:'从发票数据中自动推断被查单位的名称和行业。进项购买方 ∩ 销项销售方 → 交叉取交集确定企业全称。'
+       + '行业识别：90+关键词×66行业加权投票制，扫描全部发票品名，每个行业命中的关键词次数作为投票权重，取最高分。'
+       + '同时联网查询工商登记信息（法定代表人/注册资本/经营范围/股东），与发票推断结果做双源比对。'},
+    {n:'③', title:'资料情报提取与数据分析', icon:'🔍',
+     desc:'将各类型文件数据导入33个域分析函数。包括：银行流水收款构成分析 + 付款方身份核实（联网法人/股东比对）；'
+       + '进销存比对比——商品明细匹配 + 进销比 + 毛利率；五层发票审计——格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射；'
+       + '供应商穿透——集中度+群集+名称异常+双向交易检测；合同分层——四层自动分类（必签/应签/可免/小额）。'},
+    {n:'④', title:'规则引擎与链驱动检查', icon:'⚙️',
+     desc:'1505条稽查指令逐条与域分析发现做匹配。391条线索链引擎：每链多个调查步骤，通过定量/定性/缺失三类数据验证后触发，'
+       + '产生链驱动发现。740条证据链闭环检测：收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。'
+       + '234条证据链闭环触发→强制升级为高风险。链驱动引擎产出线索发现和闭环发现两类新发现，补充到总发现池。'},
+    {n:'⑤', title:'方法论噪声过滤器', icon:'🎯',
+     desc:'方法论过滤器是确保报告质量的最后关口。HARD_BAN（硬删除）：23类禁止词绝对不允许出现在输出中——'
+       + '涉刑侦术语（公安/经侦/刑事）、推测性结论（走逃/失联）、系统内部术语、跨域数据需求等。'
+       + 'COND_BAN（条件过滤）：5类——无申报表则删除申报相关结论，无库存台账则删除库存相关结论（有则放过）。'
+       + '稽查重点发现（level_fixed=True）不参与任何过滤。行业不匹配的发现自动删除。去重+正常结论排除。'
+       + '典型效果：1638条→过滤后36条。'},
+    {n:'⑥', title:'行业对标与申报比对', icon:'📊',
+     desc:'66行业基准值自动对标（每个行业含：毛利率下限/上限/典型值、净利率下限/上限/典型值、税负率下限/上限/典型值、'
+       + '进销比下限/上限/典型值、人均营收下限/上限/典型值）。三级判断：低于下限→高风险、低于典型值85%→中风险、高于上限→中风险。'
+       + '增值税申报表 vs 发票实际销项税额/进项税额比对，差异>1000元预警。'},
+    {n:'⑦', title:'正式稽查报告输出', icon:'📝',
+     desc:'综合所有域分析发现、链驱动发现、证据闭环发现，经过方法论过滤器和建议增强后，生成结构化稽查报告。'
+       + '报告含：稽查概况、企业工商信息（联网核查）、高风险/中风险/低风险发现（按优先级排序）、'
+       + '每条发现含四步分析框架（detect→verify→diagnose→report）、明细数据（供应商/金额/发票号）、'
+       + '法律依据引用、具体消除路径建议。报告为独立HTML文件，可直接交付。'},
   ];
 
-  var html = '';
   steps.forEach(function(s) {
-    html += '<div style="padding:14px 0;border-bottom:1px solid #f1f5f9">'
-      + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:4px">' + s.title + '</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.8">' + s.desc + '</div>'
+    html += '<div style="padding:16px 20px;margin-bottom:6px;border-left:3px solid #2563eb;background:#fafafa;border-radius:0 6px 6px 0">'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px"><span style="font-size:18px">' + s.icon + '</span> ' + s.n + ' ' + s.title + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2">' + s.desc + '</div>'
       + '</div>';
   });
 
-  html += '<div style="padding:14px 0;font-size:13px;color:#94a3b8">'
-    + '1505 条规则 · 391 条线索链 · 740 条证据链 · 97% 噪声过滤率 · 66 行业基准库'
+  html += '</div>';
+
+  // ══════ 三、数据闭环体系 ══════
+  html += '<div style="margin-bottom:48px;padding:20px 24px;background:#f8fafc;border-radius:8px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">三、四合一数据闭环</h3>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<strong>规则ID</strong> → 每条发现可追溯到 tax_risk_rules_local_export.json 中的具体稽查指令（1505条）。<br>'
+    + '<strong>线索链</strong> → 每条发现可追溯到 audit_chains.json 中的调查路径（391条线索链）。<br>'
+    + '<strong>证据来源</strong> → how_found 字段记录稽查审计溯源，换一个稽查员拿同样资料能得出同样结论。<br>'
+    + '<strong>一键分析</strong> → renderTaxDocReport 前端渲染时展示稽查溯源标记（▶ 规则追溯 / 线索追溯）。<br><br>'
+    + '<strong>证据链闭环</strong> → ≥60%触发率 + ≥3条规则 + ≥2数据域 → 闭环发现 → 强制升级高风险。<br>'
+    + '<strong>跨域证据链</strong> → 8条跨域证据链从 cross_domain_evidence.json 加载，多源数据交叉验证形成闭环。'
+    + '</div>'
     + '</div>';
 
-  html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
-    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">稽查行为准则（已内化）</div>'
-    + '① 必有明细：每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
-    + '② 自行解决：遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
-    + '③ 不墨迹：报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
-    + '</div>';
-
-  html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
-    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">稽查方法论演进</div>'
-    + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
-    + '⑥ 联网核查 ✅ ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
-    + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
-    + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
-    + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 四步稽查分析法<br>'
-    + '㉔ 禁止数据截断 ㉕ 三层行业穿透法<br>'
-    + '㉖ 经营实质点面推理法'
+  // ══════ 四、稽查方法论 ══════
+  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">四、稽查方法论（㉖条已全部代码化）</h3>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">'
+    + '<div>① 多格式兼容 · ② 汇总行过滤</div><div>③ 付款方身份核实 · ④ 关键词≠事实</div>'
+    + '<div>⑤ 行业认知补算法 · ⑥ 联网核查 ✅</div><div>⑦ 明细即信服力 · ⑧ 不墨迹直接干</div>'
+    + '<div>⑨ 合同分层判断 · ⑩ 完备度明细</div><div>⑪ 完备度升级 · ⑫ 凭证描述纠正</div>'
+    + '<div>⑬ 进销诊断升级 · ⑭ 行业基准库</div><div>⑮ 结论分析法 · ⑯ COND_BAN防误杀</div>'
+    + '<div>⑰ 稽查重点强制等级 · ⑱ 报告纯净度</div><div>⑲ 发票≠收付款1:1 · ⑳ 经营实质地理分析</div>'
+    + '<div>㉑ 规则detail业务化 · ㉒ 建议质量增强</div><div>㉓ 四步稽查分析法 · ㉔ 禁止数据截断</div>'
+    + '<div>㉕ 三层行业穿透法</div><div>㉖ 经营实质点面推理法</div>'
+    + '</div>'
     + '</div>';
 
   target.innerHTML = html;
@@ -1145,67 +1195,58 @@ function renderAnalyzeResult(report) {
   if (!target) return;
   var allF = report.all_findings || [];
   var comp = report.comprehensive || {};
+  var plogs = report.pipeline_log || [];
   var highCount = allF.filter(function(f){return f.level==='高风险'}).length;
   var midCount = allF.filter(function(f){return f.level==='中风险'}).length;
   var lowCount = allF.length - highCount - midCount;
 
-  // 替换为完整的分析结果概览（与资料风险分析报告中的 renderAnalyzeHeader 一致）
   var h = '';
 
-  // 7步执行流程
-  h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">稽查引擎执行流程</div>';
-  var steps = [
-    { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
-    { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
-    { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环（≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
-    { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
-    { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
-    { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
-  ];
-  steps.forEach(function(s) {
-    h += '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9">'
-      + '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:2px">' + s.title + '</div>'
-      + '<div style="font-size:12px;color:#64748b;line-height:1.7">' + s.desc + '</div>'
-      + '</div>';
-  });
-
-  // 分析结果统计
-  h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">本次分析结果</div>';
-  h += '<div style="font-size:13px;color:#64748b;line-height:2">'
-    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1505') + '</strong> 则 · '
-    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '391') + '</strong> 条 · '
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '740') + '</strong> 条 · '
-    + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
+  // ══════ 一、执行概览 ══════
+  h += '<div style="margin-bottom:40px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、执行概览</h3>'
+    + '<div style="display:flex;gap:12px;margin-bottom:20px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (report.files_count||0) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">资料文件</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (comp.rule_count||'1505') + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">匹配规则</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + midCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">中风险</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + lowCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">低风险</div></div>'
     + '</div>'
-    + '<div style="padding:8px 0;font-size:13px">'
-    + '<span style="display:inline-block;padding:2px 10px;border-radius:3px;font-size:12px;background:#fee2e2;color:#991b1b;margin-right:6px">高风险 ' + highCount + '</span>'
-    + '<span style="display:inline-block;padding:2px 10px;border-radius:3px;font-size:12px;background:#fef3c7;color:#92400e;margin-right:6px">中风险 ' + midCount + '</span>'
-    + '<span style="display:inline-block;padding:2px 10px;border-radius:3px;font-size:12px;background:#dcfce7;color:#166534;margin-right:6px">低风险 ' + lowCount + '</span>'
-    + '<span style="margin-left:4px;color:#64748b">共 <strong style="color:#0f172a">' + allF.length + '</strong> 条风险发现</span>'
-    + '</div>'
-    + '<div style="font-size:12px;color:#94a3b8;padding:4px 0">'
+    + '<div style="font-size:13px;color:#475569;line-height:2">'
+    + '规则 <strong>' + (comp.rule_count||'1505') + '</strong> 则 · 线索链 <strong>' + (comp.chain_count||'391') + '</strong> 条 · '
+    + '证据链 <strong>' + (comp.evidence_count||'740') + '</strong> 条 · 文件 <strong>' + (report.files_count||0) + '</strong> 个 · '
     + '四合一闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓'
+    + '</div>'
     + '</div>';
 
-  // 稽查行为准则
-  h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">稽查行为准则（已内化）</div>';
-  h += '<div style="font-size:12px;color:#64748b;line-height:2">'
-    + '① 必有明细：每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
-    + '② 自行解决：遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
-    + '③ 不墨迹：报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
-    + '</div>';
+  // ══════ 二、管线日志 ══════
+  if (plogs.length > 0) {
+    h += '<div style="margin-bottom:40px">'
+      + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、管线执行日志 · ' + plogs.length + ' 条</h3>'
+      + '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:500px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.2">';
+    plogs.forEach(function(log, i) {
+      var color = '#64748b';
+      if (/异常|失败|错误/.test(log)) color = '#fca5a5';
+      else if (/完成|成功|通过/.test(log)) color = '#86efac';
+      else if (/发现|触发|命中/.test(log)) color = '#fde68a';
+      else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
+      h += '<div style="color:' + color + '">[' + (i+1).toString().padStart(3,' ') + '] ' + escHtml(log) + '</div>';
+    });
+    h += '</div></div>';
+  }
 
-  // 稽查方法论演进
-  h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">稽查方法论演进</div>';
-  h += '<div style="font-size:12px;color:#64748b;line-height:2">'
-    + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
-    + '⑥ 联网核查 ✅ ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
-    + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
-    + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
-    + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 四步稽查分析法<br>'
-    + '㉔ 禁止数据截断 ㉕ 三层行业穿透法<br>'
-    + '㉖ 经营实质点面推理法'
+  // ══════ 三、稽查方法论 ══════
+  h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">三、稽查方法论（㉖条已全部代码化）</h3>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">'
+    + '<div>① 多格式兼容 · ② 汇总行过滤</div><div>③ 付款方身份核实 · ④ 关键词≠事实</div>'
+    + '<div>⑤ 行业认知补算法 · ⑥ 联网核查 ✅</div><div>⑦ 明细即信服力 · ⑧ 不墨迹直接干</div>'
+    + '<div>⑨ 合同分层判断 · ⑩ 完备度明细</div><div>⑪ 完备度升级 · ⑫ 凭证描述纠正</div>'
+    + '<div>⑬ 进销诊断升级 · ⑭ 行业基准库</div><div>⑮ 结论分析法 · ⑯ COND_BAN防误杀</div>'
+    + '<div>⑰ 稽查重点强制等级 · ⑱ 报告纯净度</div><div>⑲ 发票≠收付款1:1 · ⑳ 经营实质地理分析</div>'
+    + '<div>㉑ 规则detail业务化 · ㉒ 建议质量增强</div><div>㉓ 四步稽查分析法 · ㉔ 禁止数据截断</div>'
+    + '<div>㉕ 三层行业穿透法</div><div>㉖ 经营实质点面推理法</div>'
+    + '</div>'
     + '</div>';
 
   target.innerHTML = h;
