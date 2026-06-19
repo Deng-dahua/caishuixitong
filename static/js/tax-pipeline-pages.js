@@ -273,6 +273,7 @@ async function loadDomainAnalysisData() {
 function renderDomainAnalysisResult(report) {
   var target = document.getElementById('da-analysis-result');
   if (!target) return;
+  var ds = report.domain_summary || [];
   var allF = report.all_findings || [];
 
   // 按域分组 findings
