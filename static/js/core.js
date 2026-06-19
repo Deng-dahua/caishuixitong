@@ -60,8 +60,13 @@ const pages = {
   'tax-doc-analysis': '资料风险分析报告',
   'file-parsing': '文件解析',
   'domain-analysis': '域分析',
+  'cross-domain-evidence': '跨域证据链',
   'methodology-filter': '方法论过滤器',
-  'pipeline-rules': '规则'
+  'pipeline-rules': '规则',
+  'pipeline-chains': '线索链',
+  'pipeline-evidence': '证据链',
+  'pipeline-analyze': '一键分析',
+  'pipeline-cross': '跨域证据链'
 };
 
 // ==================== 用户登录 ====================
@@ -538,8 +543,13 @@ function navigateTo(page) {
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
     case 'file-parsing': renderFileParsingPage(container); break;
     case 'domain-analysis': renderDomainAnalysisPage(container); break;
+    case 'cross-domain-evidence': renderCrossPipelinePage(container); break;
     case 'methodology-filter': renderMethodologyFilterPage(container); break;
-    case 'pipeline-rules': renderTaxRiskRules(container); break;
+    case 'pipeline-rules': renderRulesPipelinePage(container); break;
+    case 'pipeline-chains': renderChainsPipelinePage(container); break;
+    case 'pipeline-evidence': renderEvidencePipelinePage(container); break;
+    case 'pipeline-analyze': renderAnalyzePipelinePage(container); break;
+    case 'pipeline-cross': renderCrossPipelinePage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
   }
   window.scrollTo(0, 0);
