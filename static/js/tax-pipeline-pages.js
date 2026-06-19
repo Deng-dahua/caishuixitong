@@ -9,28 +9,99 @@ function renderFileParsingPage(container) {
 
   container.innerHTML = '<div class="pipeline-page">'
     + '<div class="pipeline-header"><h2>📄 文件解析详情</h2></div>'
-    + '<div class="pipeline-body" id="fp-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
-    + '</div>';
+    + '<div class="pipeline-body" id="fp-body">'
+    + renderFileParsingStatic()  // 静态参考内容（始终显示）
+    + '<div id="fp-analysis-result"><div style="text-align:center;padding:40px;color:#94a3b8">动态分析结果加载中...</div></div>'
+    + '</div></div>';
 
   loadFileParsingData();
 }
 
+function renderFileParsingStatic() {
+  return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📐 文件解析管线说明</h3>'
+    + '<div style="font-size:12px;color:#475569;line-height:1.8">'
+    + '<p style="margin-bottom:8px"><b>三层递进识别机制：</b></p>'
+    + '<p>① <b>关键词匹配</b>——检测表头列名中的特征词（如"货物或应税劳务名称"→发票，"交易日期"→银行流水），快速判定文件类型。</p>'
+    + '<p>② <b>结构分析</b>——通过列数量、列位置、表头组合模式进一步确认。例如同时有"购方名称+销方名称+金额+税率"→确认为发票；"姓名+本期收入+代扣社保+实发金额"→工资表。</p>'
+    + '<p>③ <b>数据推断兜底</b>——当前两步失败时，读取前200行数据，按列角色推断（日期列/金额列/对手方列），自动判定文件最可能的类型，确保不丢数据。</p>'
+    + '</div>'
+
+    + '<h3 style="font-size:14px;color:#1e293b;margin:16px 0 8px">🗂️ 34类文件指纹识别库</h3>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;font-size:11px">'
+    // 流水类
+    + '<div style="background:#fff;border-left:3px solid #2563eb;padding:8px 10px;border-radius:4px"><b style="color:#2563eb">🏧</b> 银行流水 — 交易日期+对方户名+借贷金额</div>'
+    // 发票类
+    + '<div style="background:#fff;border-left:3px solid #059669;padding:8px 10px;border-radius:4px"><b style="color:#059669">🧾</b> 销项发票 — 购方名称+金额+税率+税额</div>'
+    + '<div style="background:#fff;border-left:3px solid #059669;padding:8px 10px;border-radius:4px"><b style="color:#059669">📥</b> 进项发票 — 销方名称+金额+税率+税额</div>'
+    + '<div style="background:#fff;border-left:3px solid #0891b2;padding:8px 10px;border-radius:4px"><b style="color:#0891b2">📋</b> 通用发票 — 自动判定进销方向</div>'
+    // 工资社保
+    + '<div style="background:#fff;border-left:3px solid #7c3aed;padding:8px 10px;border-radius:4px"><b style="color:#7c3aed">💰</b> 工资表 — 姓名+本期收入+代扣社保</div>'
+    + '<div style="background:#fff;border-left:3px solid #7c3aed;padding:8px 10px;border-radius:4px"><b style="color:#7c3aed">🛡️</b> 社保明细 — 姓名+社保基数+单位/个人缴纳</div>'
+    + '<div style="background:#fff;border-left:3px solid #7c3aed;padding:8px 10px;border-radius:4px"><b style="color:#7c3aed">🏡</b> 公积金 — 姓名+公积金基数+缴存比例</div>'
+    // 凭证类
+    + '<div style="background:#fff;border-left:3px solid #f59e0b;padding:8px 10px;border-radius:4px"><b style="color:#f59e0b">📝</b> 记账凭证 — 凭证号+科目+借方金额+贷方金额</div>'
+    // 进销存
+    + '<div style="background:#fff;border-left:3px solid #dc2626;padding:8px 10px;border-radius:4px"><b style="color:#dc2626">📦</b> 进销存台账 — 品名+期初+入库+出库+期末</div>'
+    // 申报表类
+    + '<div style="background:#fff;border-left:3px solid #0f172a;padding:8px 10px;border-radius:4px"><b style="color:#0f172a">📊</b> 增值税申报表 — 销售额+销项税额+进项税额</div>'
+    + '<div style="background:#fff;border-left:3px solid #0f172a;padding:8px 10px;border-radius:4px"><b style="color:#0f172a">📈</b> 企业所得税申报表 — 营业收入+利润总额+应纳税额</div>'
+    + '<div style="background:#fff;border-left:3px solid #0f172a;padding:8px 10px;border-radius:4px"><b style="color:#0f172a">👤</b> 个税申报表 — 姓名+收入+应纳税所得额</div>'
+    // 报表类
+    + '<div style="background:#fff;border-left:3px solid #1e40af;padding:8px 10px;border-radius:4px"><b style="color:#1e40af">📑</b> 科目余额表 — 科目编码+期初余额+本期发生+期末余额</div>'
+    + '<div style="background:#fff;border-left:3px solid #1e40af;padding:8px 10px;border-radius:4px"><b style="color:#1e40af">💰</b> 利润表 — 营业收入+营业成本+利润总额</div>'
+    + '<div style="background:#fff;border-left:3px solid #1e40af;padding:8px 10px;border-radius:4px"><b style="color:#1e40af">🏦</b> 资产负债表 — 资产合计+负债合计+所有者权益</div>'
+    + '<div style="background:#fff;border-left:3px solid #1e40af;padding:8px 10px;border-radius:4px"><b style="color:#1e40af">💵</b> 现金流量表 — 经营活动+投资活动+筹资活动</div>'
+    // 档案类
+    + '<div style="background:#fff;border-left:3px solid #475569;padding:8px 10px;border-radius:4px"><b style="color:#475569">📄</b> 合同文件 — 合同编号+签约方+金额+签订日期</div>'
+    + '<div style="background:#fff;border-left:3px solid #475569;padding:8px 10px;border-radius:4px"><b style="color:#475569">🏢</b> 公司档案 — 工商登记/股东名册/章程</div>'
+    + '<div style="background:#fff;border-left:3px solid #475569;padding:8px 10px;border-radius:4px"><b style="color:#475569">🔗</b> 关联交易 — 关联方+交易类型+金额+定价</div>'
+    // 资产类
+    + '<div style="background:#fff;border-left:3px solid #92400e;padding:8px 10px;border-radius:4px"><b style="color:#92400e">🏭</b> 固定资产 — 资产名称+原值+折旧+净值</div>'
+    + '<div style="background:#fff;border-left:3px solid #92400e;padding:8px 10px;border-radius:4px"><b style="color:#92400e">📜</b> 无形资产 — 专利/商标+摊销+净值</div>'
+    // 往来类
+    + '<div style="background:#fff;border-left:3px solid #0369a1;padding:8px 10px;border-radius:4px"><b style="color:#0369a1">🤝</b> 应收账款 — 客户名称+欠款金额+账龄</div>'
+    + '<div style="background:#fff;border-left:3px solid #0369a1;padding:8px 10px;border-radius:4px"><b style="color:#0369a1">🏗️</b> 应付账款 — 供应商名称+应付金额+账龄</div>'
+    + '<div style="background:#fff;border-left:3px solid #0369a1;padding:8px 10px;border-radius:4px"><b style="color:#0369a1">💳</b> 预收预付 — 客户/供应商+预收/预付金额</div>'
+    // 费用类
+    + '<div style="background:#fff;border-left:3px solid #b45309;padding:8px 10px;border-radius:4px"><b style="color:#b45309">📋</b> 费用明细 — 费用类型+金额+报销人</div>'
+    + '<div style="background:#fff;border-left:3px solid #b45309;padding:8px 10px;border-radius:4px"><b style="color:#b45309">🚗</b> 差旅费 — 出差人+目的地+天数+金额</div>'
+    // 税务类
+    + '<div style="background:#fff;border-left:3px solid #065f46;padding:8px 10px;border-radius:4px"><b style="color:#065f46">📋</b> 纳税记录 — 税种+所属期+计税金额+实缴金额</div>'
+    + '<div style="background:#fff;border-left:3px solid #065f46;padding:8px 10px;border-radius:4px"><b style="color:#065f46">📄</b> 印花税 — 税目+计税金额+税率</div>'
+    + '<div style="background:#fff;border-left:3px solid #065f46;padding:8px 10px;border-radius:4px"><b style="color:#065f46">🏭</b> 环保税 — 污染物+排放量+税额</div>'
+    // 特殊类
+    + '<div style="background:#fff;border-left:3px solid #9ca3af;padding:8px 10px;border-radius:4px"><b style="color:#9ca3af">🗂️</b> 通用表格 — 以上全不匹配→按数据结构反推</div>'
+    + '<div style="background:#fff;border-left:3px solid #9ca3af;padding:8px 10px;border-radius:4px"><b style="color:#9ca3af">📋</b> 诊断追踪记录 — 系统自动生成的解析决策日志</div>'
+    + '<div style="background:#fff;border-left:3px solid #9ca3af;padding:8px 10px;border-radius:4px"><b style="color:#9ca3af">🔗</b> 关联数据 — 多文件交叉关联分析结果</div>'
+    + '<div style="background:#fff;border-left:3px solid #9ca3af;padding:8px 10px;border-radius:4px"><b style="color:#9ca3af">📤</b> 导出数据 — 外部系统的财税数据导出文件</div>'
+    + '</div>'
+
+    + '<div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;line-height:1.6">'
+    + '<b>🔍 兼容策略：</b>银行流水自动兼容 date / tx_time / 交易日期 / 交易时间 / 记账日期 五种列名；发票自动兼容 购方名称/购买方名称/买方/客户名称 等多种命名；汇总行自动识别并过滤（对手为空+大额整数→非真实交易）；未知格式不放弃→读取表头+前200行→数据推断兜底。'
+    + '</div>'
+    + '</div>';
+}
+
 async function loadFileParsingData() {
+  var target = document.getElementById('fp-analysis-result');
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
     var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
     var data = await resp.json();
     if (!data.ok) {
-      document.getElementById('fp-body').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果') + '</div>';
+      if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">⚠️ ' + (data.message || '暂无分析结果，请先运行一键分析') + '</div>';
       return;
     }
     renderFileParsingResult(data.report);
   } catch (e) {
-    document.getElementById('fp-body').innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
+    if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
 function renderFileParsingResult(report) {
+  var target = document.getElementById('fp-analysis-result');
+  if (!target) return;
   var frs = report.file_results || [];
   var plogs = report.pipeline_log || [];
 
@@ -91,7 +162,7 @@ function renderFileParsingResult(report) {
   });
   html += '</div>';
 
-  document.getElementById('fp-body').innerHTML = html;
+  target.innerHTML = '<div style="border-top:2px solid #e2e8f0;padding-top:20px;margin-top:20px"><h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📊 本次分析结果</h3>' + html + '</div>';
 }
 
 // ==================== 页面2：域分析 ====================
