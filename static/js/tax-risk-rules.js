@@ -62,23 +62,8 @@ function renderTaxRiskRules(container) {
   if (!container) return;
   window.currentModule = '涉税风险稽查指令';
   container.innerHTML = ''
-    + '<div class="pipeline-page">' 
-    + '<div class="pipeline-header">'
-    + '<h2 class="pipeline-title">📋 涉税风险稽查指令（规则库）</h2>'
-    + '<p class="pipeline-subtitle">稽查指令分类检索——1503条规则按分类/等级二维过滤</p>'
-    + '</div>' 
-    + '<div class="pipeline-body">' 
-    + '<div class="pipeline-filter-bar">' 
-    + '<input type="text" class="pipeline-search-input" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()">' 
-    + '<select class="pipeline-filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">全部分类</option></select>' 
-    + '<select class="pipeline-filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>' 
-    + '<span class="pipeline-badge pipeline-badge-blue"><strong id="risk-rules-header-count">0</strong>条</span>'
-    + '</div>' 
-    + '<div id="risk-rules-list"></div>' 
-    + '<div class="pipeline-loading" id="risk-rules-loading">加载中...</div>'
-    + '<div class="pipeline-empty" id="risk-rules-empty" style="display:none">暂无规则数据</div>' 
-    + '<div id="risk-rules-stats" style="text-align:center;padding:12px;font-size:11px;color:#64748b;display:none">共 0 条规则</div>' 
-    + '</div>' 
+    + '<div class="pipeline-page" style="display:flex;align-items:center;justify-content:center;min-height:500px">'
+    + '<div class="pipeline-loading" style="font-size:15px;padding:30px 40px">⏳ 正在加载稽查指令...</div>'
     + '</div>';
   loadTaxRiskRules();
 }
@@ -95,6 +80,7 @@ async function loadTaxRiskRules() {
 
 // 加载默认规则（从最新的规则文件 tax_risk_rules_local_export.json）
 async function loadDefaultTaxRiskRules() {
+  var container = document.getElementById('module-content') || document.querySelector('.main-content');
   try {
     var resp = await fetch('/static/tax_risk_rules_local_export.json?_t=' + Date.now());
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -103,19 +89,36 @@ async function loadDefaultTaxRiskRules() {
 
     taxRiskRulesData = rules;
     saveTaxRiskRulesToLocal();
+
+    // 一次性渲染完整页面（header + filter + list + stats）
+    if (container) {
+      container.innerHTML = ''
+        + '<div class="pipeline-page">'
+        + '<div class="pipeline-header">'
+        + '<h2 class="pipeline-title">📋 涉税风险稽查指令（规则库）</h2>'
+        + '<p class="pipeline-subtitle">稽查指令分类检索——' + rules.length + '条规则按分类/等级二维过滤</p>'
+        + '</div>'
+        + '<div class="pipeline-body">'
+        + '<div class="pipeline-filter-bar">'
+        + '<input type="text" class="pipeline-search-input" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()">'
+        + '<select class="pipeline-filter-select" id="risk-rules-filter-category" onchange="filterTaxRiskRules()"><option value="">全部分类</option></select>'
+        + '<select class="pipeline-filter-select" id="risk-rules-filter-level" onchange="filterTaxRiskRules()"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>'
+        + '<span class="pipeline-badge pipeline-badge-blue"><strong id="risk-rules-header-count">' + rules.length + '</strong>条</span>'
+        + '</div>'
+        + '<div id="risk-rules-list"></div>'
+        + '<div id="risk-rules-stats" style="text-align:center;padding:12px;font-size:11px;color:#64748b"></div>'
+        + '</div></div>';
+    }
+
     renderTaxRiskRulesList();
     updateCategoryFilterOptions();
     updateLoadButtonText();
-    toast('已加载最新规则 ' + rules.length + ' 条', 'success');
     console.log('[涉税风险规则] 已从最新规则文件加载', rules.length, '条规则');
   } catch (e) {
     console.error('加载最新规则失败:', e);
-    toast('加载规则失败：' + e.message, 'error');
-    // 切换UI：隐藏loading，显示空状态
-    var loadingEl = document.getElementById('risk-rules-loading');
-    if (loadingEl) loadingEl.style.display = 'none';
-    var emptyEl = document.getElementById('risk-rules-empty');
-    if (emptyEl) emptyEl.style.display = '';
+    if (container) {
+      container.innerHTML = '<div class="pipeline-page"><div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">加载失败: ' + e.message + '</div></div>';
+    }
   }
 }
 
@@ -559,11 +562,7 @@ function renderTaxRiskRulesList(filterData) {
     listEl.innerHTML = html;
   }
 
-  // 隐藏 loading，显示统计
-  var loadingEl = document.getElementById('risk-rules-loading');
-  if (loadingEl) loadingEl.style.display = 'none';
-  if (statsEl) statsEl.style.display = '';
-
+  // 更新统计信息
   if (statsEl) {
     var high = data.filter(function(r) { return r.level === '高风险'; }).length;
     var mid = data.filter(function(r) { return r.level === '中风险'; }).length;
