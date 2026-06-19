@@ -14155,8 +14155,8 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
 
 # ═══════════ 稽查队: 经营实质地理分析 ═══════════
 
-def _domain_business_premise_geo(bank_txs, invoices, docs):
-    """经营实质地理分析——从单一风险点推理出面的风险
+def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
+    """经营实质地理分析——从单一风险点推理出面的风险。target_industry: 行业代码，用于行业自适应重物举例。
     
     核心逻辑：
     1. 提取企业地址 → 中山市
@@ -14245,19 +14245,61 @@ def _domain_business_premise_geo(bank_txs, invoices, docs):
                 has_transport = True
                 break
     
-    # ── 发现1：重物跨省经营缺运输成本 ──
+    # ── 行业自适应重物描述 ──
+    _heavy_goods_examples = {
+        "纺织制造": "纺织原料（棉纱、氨纶等）和成品（梭织布、针织衫等）",
+        "印染加工": "待染整的坯布和染色成品布",
+        "染整加工": "待加工的纱线和整理后的成品面料",
+        "服装制造": "面料、辅料和成品服装",
+        "食品加工": "粮油原料（面粉、小麦、食用油）和成品食品（糕点、罐头）",
+        "家具制造": "木材、板材和成品家具（桌子、椅子、柜子）",
+        "木材加工": "原木、木材和加工后的板材、地板",
+        "机械制造": "钢材、铸件和成品机械设备",
+        "模具制造": "模具钢和成品模具",
+        "五金加工": "钢材、铜材、铝材和五金件成品",
+        "金属加工": "金属原料和加工后的金属制品",
+        "钢铁": "铁矿石、焦炭和钢坯、钢材",
+        "电子制造": "电子元器件（芯片、PCB）和成品电子产品",
+        "电器制造": "压缩机、电机和成品家电（空调、冰箱）",
+        "汽车制造": "钢材、铝材、零部件和整车",
+        "新能源": "硅料、电池片和光伏组件、储能设备",
+        "化工": "原油、化工原料和化工成品（树脂、塑料）",
+        "塑料制品": "塑料原料（PP、PE、PVC）和塑料制品",
+        "橡胶制品": "天然橡胶、合成橡胶和轮胎、密封件",
+        "建材销售": "建材（钢筋、水泥、砂石、瓷砖）",
+        "建筑工程": "钢筋、水泥、混凝土、砖石等建筑材料",
+        "医药健康": "原料药、辅料和成品药品（片剂、胶囊）",
+        "医疗器械": "不锈钢、塑料和医疗器械、耗材",
+    }
+    heavy_example = _heavy_goods_examples.get(target_industry, "")
+    if not heavy_example:
+        # 模糊匹配
+        for ind, example in _heavy_goods_examples.items():
+            if ind in target_industry or target_industry in ind:
+                heavy_example = example
+                break
+    if not heavy_example:
+        heavy_example = "原材料和成品"
+    heavy_desc = f"{heavy_example}都是重物"
+    
+    # ── 行业自适应产业集群描述 ──
+    _cluster_map = {"纺织制造":"纺织产业（本地有集群）","印染加工":"印染产业","染整加工":"染整加工产业","服装制造":"服装制造产业","食品加工":"食品加工产业","家具制造":"家具制造产业","木材加工":"木材加工产业","机械制造":"机械制造产业","模具制造":"模具制造产业","五金加工":"五金加工产业","金属加工":"金属加工产业","钢铁":"钢铁产业","电子制造":"电子制造产业","电器制造":"电器制造产业","汽车制造":"汽车制造产业","新能源":"新能源产业","化工":"化工产业","塑料制品":"塑料制品产业","医药健康":"医药健康产业","医疗器械":"医疗器械产业"}
+    _proc_map = {"纺织制造":"染整、定型、印花等加工","印染加工":"染色、印花、整理","服装制造":"裁剪、缝制、整烫","食品加工":"烘焙、蒸煮、冷冻、灌装","家具制造":"开料、封边、钻孔、组装","机械制造":"铸造、锻造、机加工、装配","五金加工":"冲压、焊接、表面处理","电子制造":"贴片、焊接、测试、组装"}
+    _cluster = next((v for k,v in _cluster_map.items() if k in target_industry or target_industry in k), f"{target_industry}产业" if target_industry else "本地产业")
+    _proc = next((v for k,v in _proc_map.items() if k in target_industry or target_industry in k), "相关加工工序")
+    
     if remote_sellers >= 3 and not has_transport:
         remote_cities_list = "、".join(sorted(remote_seller_cities))
         findings.append({
             "type": "重物跨省经营缺运输成本",
             "level": "高风险", "score": 8,
-            "detail": f"被查单位位于{company_city}市，{remote_sellers}家进项供应商分布在{remote_cities_list}等外地城市（距离{company_city}数百至上千公里），销项客户也分布在{len(remote_buyer_cities)}个外地城市。纺织原料和成品均为重物，但进项发票和银行流水中均未发现任何运输/物流/快递类费用。",
-            "description": f"企业地址在{company_city}市，经营纺织产品（原料和成品均为重物）。\n\n"
+            "detail": f"被查单位位于{company_city}市，{remote_sellers}家进项供应商分布在{remote_cities_list}等外地城市（距离{company_city}数百至上千公里），销项客户也分布在{len(remote_buyer_cities)}个外地城市。{heavy_desc}，但进项发票和银行流水中均未发现任何运输/物流/快递类费用。",
+            "description": f"企业地址在{company_city}市，经营{heavy_example}。\n\n"
                 + f"进项供应商地理分布：{len(sellers)}家供应商中{remote_sellers}家在外地"
                 + f"（{'、'.join(sorted(remote_seller_cities))}等），距离{company_city}数百至上千公里。\n"
                 + f"销项客户地理分布：{len(buyers)}家客户中{remote_buyers}家在外地"
                 + f"（{'、'.join(sorted(remote_buyer_cities))}等）。\n\n"
-                + f"纺织原料（棉纱、氨纶等）和成品（梭织布、针织衫等）都是重物，批量跨省运输必然产生可观的运输费用——"
+                + f"{heavy_desc}，批量跨省运输必然产生可观的运输费用——"
                 + f"按行业经验，跨省运输成本通常占货值的3%-8%。但上传的全部进项发票和银行流水中均未发现任何运输/物流/快递类费用。\n\n"
                 + f"这是一个需要解释的经营实质问题：如果货物确实从{remote_cities_list}运到了{company_city}，运输费在哪里？\n"
                 + f"可能的解释：①运输费由供应商承担（含在原料价格中）→需要采购合同证明是到货价；\n"
@@ -14281,8 +14323,8 @@ def _domain_business_premise_geo(bank_txs, invoices, docs):
         desc = f"被查单位位于{company_city}市，但进项发票中出现了{len(processors)}家外地的加工费供应商："
         for pname, pcity in list(processors.items()):
             desc += f"\n· {pname}（{pcity}）"
-        desc += f"\n\n正常经营逻辑：纺织加工的染整、定型、印花等工序是服务型业务，加工商会主动靠近纺织产业集群。"
-        desc += f"{company_city}本身就是纺织产业集群地（沙溪镇、大涌镇等都是纺织重镇），当地应有大量可选的染整加工厂。"
+        desc += f"\n\n正常经营逻辑：{_proc}等工序是服务型业务，加工商会主动靠近产业集群。"
+        desc += f"{company_city}本身就是{_cluster}，当地应有大量可选的加工厂。"
         desc += f"但被查单位的加工费却来自{proc_city_names}等外地，这增加了额外的运输成本和加工周期，在商业上不合理。\n\n"
         
         if remote_procs > 0 and remote_sellers >= 3:
@@ -14301,7 +14343,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs):
         findings.append({
             "type": "外地加工费存疑",
             "level": level, "score": score,
-            "detail": f"发现{len(processors)}家加工费供应商不在{company_city}市（{proc_city_names}），与当地纺织产业集群现状不符。{('同时存在' + str(remote_sellers) + '家外地原材料供应商、' + str(remote_buyers) + '家外地客户、零运输成本——全链条物流存疑') if (remote_sellers >= 3 and not has_transport) else ''}",
+            "detail": f"发现{len(processors)}家加工费供应商不在{company_city}市（{proc_city_names}），与当地{_cluster}现状不符。{('同时存在' + str(remote_sellers) + '家外地原材料供应商、' + str(remote_buyers) + '家外地客户、零运输成本——全链条物流存疑') if (remote_sellers >= 3 and not has_transport) else ''}",
             "description": desc,
             "how_found": f"查阅被查单位提供的全部发票。从进项发票中筛选加工费类品名，提取对应的供应商名称并解析地址——发现{len(processors)}家加工费供应商均不在企业所在地（中山市）。同步提取原材料供应商地址（分布在{len(remote_seller_cities)}个城市）和销项客户地址（分布在{len(remote_buyer_cities)}个城市），交叉对比发现三组地址互不重叠。结合零运输成本的检测结果，判定全链条物流存疑。",
             "tax_impact": "加工费真实性存疑 + 三流（货物流）无法验证 → 加工费对应的进项税额可能被要求转出 → 企业所得税成本费用扣除资格可能被否定。",
@@ -16778,7 +16820,7 @@ def _run_analyze(company_id, db):
     if invoices: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
     else: domain_results.append({"domain": "红冲作废发票追踪", "findings": []})
     # 经营实质地理分析
-    if invoices and bank_txs: domain_results.append({"domain": "经营实质地理分析", "findings": _domain_business_premise_geo(bank_txs, invoices, docs)})
+    if invoices and bank_txs: domain_results.append({"domain": "经营实质地理分析", "findings": _domain_business_premise_geo(bank_txs, invoices, docs, _target_industry)})
     else: domain_results.append({"domain": "经营实质地理分析", "findings": []})
     if _has_bank: domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
     else: domain_results.append({"domain": "利润现金流矛盾检测", "findings": []})
