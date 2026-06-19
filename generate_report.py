@@ -122,13 +122,11 @@ for i, f in enumerate(high_list):
         for k in items[0].keys():
             html += f'<th>{esc(k)}</th>'
         html += '</tr>'
-        for item in items[:10]:
+        for item in items:
             html += '<tr>'
             for v in item.values():
                 html += f'<td>{esc(str(v))}</td>'
             html += '</tr>'
-        if len(items) > 10:
-            html += f'<tr><td colspan="{len(items[0])}" style="color:#94a3b8;text-align:center">...共{len(items)}条，已显示前10条</td></tr>'
         html += '</table>'
     
     html += '</div>'
