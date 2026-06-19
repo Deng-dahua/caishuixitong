@@ -383,84 +383,80 @@
 
 /* ==================== 字体大小强制统一 ====================
    所有 pipeline 页面字体大小统一，覆盖 inline style
+   按标签名强制，不依赖 class
    ════════════════════════════════════════════════════ */
-.pipeline-page h2,
-.pipeline-page h3,
-.pipeline-page h4 {
-  font-size: inherit;
-}
 
-/* 页面主标题：20px */
-.pipeline-title {
+/* ---------- 标题：按标签名强制 ---------- */
+.pipeline-page h2,
+.pipeline-page .pipeline-title {
   font-size: 20px !important;
 }
 
-/* 页面副标题：13px */
-.pipeline-subtitle {
-  font-size: 13px !important;
-}
-
-/* 区块标题：15px */
-.pipeline-section-title,
-.pipeline-static-title,
-.pipeline-dynamic-title {
+.pipeline-page h3,
+.pipeline-page .pipeline-section-title,
+.pipeline-page .pipeline-static-title,
+.pipeline-page .pipeline-dynamic-title {
   font-size: 15px !important;
 }
 
-/* 概览卡片数字：28px */
-.pipeline-card-value {
-  font-size: 28px !important;
-}
-
-/* 概览卡片标签：12px */
-.pipeline-card-label {
-  font-size: 12px !important;
-}
-
-/* 表格正文：13px */
-.pipeline-table,
-.pipeline-table td {
-  font-size: 13px !important;
-}
-
-/* 表格头部：12px */
-.pipeline-table th {
-  font-size: 12px !important;
-}
-
-/* 链卡片标题：14px */
-.pipeline-chain-card-title {
+.pipeline-page h4,
+.pipeline-page .pipeline-chain-card-title {
   font-size: 14px !important;
 }
 
-/* 正文内容：13px */
-.pipeline-static-content,
-.pipeline-static-content p,
-.pipeline-dynamic > div,
-.pipeline-content {
+/* ---------- 概览卡片 ---------- */
+.pipeline-page .pipeline-card-value {
+  font-size: 28px !important;
+}
+
+.pipeline-page .pipeline-card-label {
+  font-size: 12px !important;
+}
+
+/* ---------- 表格 ---------- */
+.pipeline-page .pipeline-table,
+.pipeline-page .pipeline-table td {
   font-size: 13px !important;
 }
 
-/* 辅助文字：12px */
-.pipeline-small,
-.pipeline-subtitle,
-.pipeline-card-label,
-.pipeline-table th {
+.pipeline-page .pipeline-table th {
   font-size: 12px !important;
 }
 
-/* badge：11px */
-.pipeline-badge {
-  font-size: 11px !important;
+/* ---------- 正文内容 ---------- */
+.pipeline-page .pipeline-static-content,
+.pipeline-page .pipeline-static-content p,
+.pipeline-page .pipeline-content {
+  font-size: 13px !important;
 }
 
-/* 维度标签：11px */
-.pipeline-dimension-tag {
-  font-size: 11px !important;
-}
-
-/* 链卡片内小字：12px */
-.pipeline-chain-card-meta,
-.pipeline-chain-card-meta span {
+/* ---------- 辅助文字 ---------- */
+.pipeline-page .pipeline-small,
+.pipeline-page .pipeline-subtitle,
+.pipeline-page .pipeline-card-label {
   font-size: 12px !important;
 }
+
+/* ---------- Badge / 小标签 ---------- */
+.pipeline-page .pipeline-badge,
+.pipeline-page .pipeline-dimension-tag {
+  font-size: 11px !important;
+}
+
+/* ---------- 链卡片元信息 ---------- */
+.pipeline-page .pipeline-chain-card-meta,
+.pipeline-page .pipeline-chain-card-meta span {
+  font-size: 12px !important;
+}
+
+/* ---------- 强制覆盖：所有 pipeline 页内 inline style ---------- */
+.pipeline-page h2 { font-size: 20px !important; }
+.pipeline-page h3 { font-size: 15px !important; }
+.pipeline-page h4 { font-size: 14px !important; }
+.pipeline-page .pipeline-card-value { font-size: 28px !important; }
+.pipeline-page .pipeline-card-label { font-size: 12px !important; }
+.pipeline-page .pipeline-table th { font-size: 12px !important; }
+.pipeline-page .pipeline-table,
+.pipeline-page .pipeline-table td { font-size: 13px !important; }
+.pipeline-page .pipeline-badge { font-size: 11px !important; }
+.pipeline-page .pipeline-dimension-tag { font-size: 11px !important; }

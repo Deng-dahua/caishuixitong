@@ -118,7 +118,7 @@ async function loadDefaultTaxRiskRules() {
   } catch (e) {
     console.error('加载最新规则失败:', e);
     var listEl = document.getElementById('risk-rules-list');
-    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">加载失败: ' + e.message + '</div>';
+    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;font-size:15px">加载失败: ' + e.message + '</div>';
   }
 }
 
@@ -288,7 +288,7 @@ function showNotTaxWarning(source, relevance) {
     + '<div style="text-align:center;margin-bottom:20px;">'
     + '<div style="font-size:48px;margin-bottom:8px;">⚠️</div>'
     + '<h3 style="margin:0 0 6px;color:#111827;font-size:18px;">涉税相关性' + levelText + '</h3>'
-    + '<p style="color:#6b7280;font-size:14px;margin:0;">评分 <strong style="color:' + levelColor + ';font-size:24px;">' + score + '</strong> / 100 ' + strongInfo + '</p>'
+    + '<p style="color:#6b7280;font-size:15px;margin:0;">评分 <strong style="color:' + levelColor + ';font-size:24px;">' + score + '</strong> / 100 ' + strongInfo + '</p>'
     + '</div>';
 
   if (keywords) {
@@ -300,8 +300,8 @@ function showNotTaxWarning(source, relevance) {
 
   html += '<p style="font-size:13px;color:#6b7280;margin:0 0 20px;">系统判断该内容可能<strong>不是涉税相关</strong>内容，解析结果可能偏差较大。是否仍要继续？</p>'
     + '<div style="display:flex;gap:10px;justify-content:center;">'
-    + '<button onclick="dismissNotTaxWarning(\'' + source + '\')" class="btn" style="background:var(--primary);color:#fff;padding:8px 20px;border-radius:6px;border:none;cursor:pointer;font-size:14px;">仍然继续解析</button>'
-    + '<button onclick="var el=document.getElementById(\'not-tax-warning-overlay\');if(el)el.remove();" class="btn" style="background:#fff;color:#374151;padding:8px 20px;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;font-size:14px;">取消</button>'
+    + '<button onclick="dismissNotTaxWarning(\'' + source + '\')" class="btn" style="background:var(--primary);color:#fff;padding:8px 20px;border-radius:6px;border:none;cursor:pointer;font-size:15px;">仍然继续解析</button>'
+    + '<button onclick="var el=document.getElementById(\'not-tax-warning-overlay\');if(el)el.remove();" class="btn" style="background:#fff;color:#374151;padding:8px 20px;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;font-size:15px;">取消</button>'
     + '</div>'
     + '</div>';
 
@@ -789,9 +789,9 @@ function renderFixResult(result) {
   // 操作按钮
   html += '<div style="display:flex;gap:8px;justify-content:center">';
   if (result.fixes_count > 0) {
-    html += '<button onclick="applyFixedRules(' + JSON.stringify(JSON.stringify(result.fixed_rules)).replace(/"/g, '&quot;') + ')" style="padding:10px 24px;background:#d97706;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600">✅ 应用修复结果</button>';
+    html += '<button onclick="applyFixedRules(' + JSON.stringify(JSON.stringify(result.fixed_rules)).replace(/"/g, '&quot;') + ')" style="padding:10px 24px;background:#d97706;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px;font-weight:600">✅ 应用修复结果</button>';
   }
-  html += '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:14px">取消</button>';
+  html += '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:15px">取消</button>';
   html += '</div>';
 
   // 隐藏 data
@@ -856,13 +856,13 @@ function renderAuditReport(report) {
     + '<div style="font-size:28px">' + statusIcon + '</div>'
     + '<div style="font-size:13px;color:' + statusColor + ';font-weight:600;margin-top:4px">' + statusText + '</div></div>';
   html += '<div style="flex:1;min-width:80px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center">'
-    + '<div style="font-size:22px;font-weight:700;color:#059669">' + summary.total_rules + '</div>'
+    + '<div style="font-size:28px;font-weight:700;color:#059669">' + summary.total_rules + '</div>'
     + '<div style="font-size:12px;color:#6b7280;margin-top:2px">总规则</div></div>';
   html += '<div style="flex:1;min-width:80px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center">'
-    + '<div style="font-size:22px;font-weight:700;color:#2563eb">' + summary.total_categories + '</div>'
+    + '<div style="font-size:28px;font-weight:700;color:#2563eb">' + summary.total_categories + '</div>'
     + '<div style="font-size:12px;color:#6b7280;margin-top:2px">总分类</div></div>';
   html += '<div style="flex:1;min-width:80px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:14px;text-align:center">'
-    + '<div style="font-size:22px;font-weight:700;color:#ca8a04">' + summary.avg_score + '</div>'
+    + '<div style="font-size:28px;font-weight:700;color:#ca8a04">' + summary.avg_score + '</div>'
     + '<div style="font-size:12px;color:#6b7280;margin-top:2px">平均评分</div></div>';
   html += '</div>';
 
@@ -1033,19 +1033,19 @@ function parseReportModal() {
     + ' ondrop="handleReportFileDrop(event)" ondragover="handleReportFileDragOver(event)" ondragleave="handleReportFileDragLeave(event)" onclick="document.getElementById(\'report-file-input\').click()">'
     + '<input type="file" id="report-file-input" accept=".pdf,.docx,.txt" style="display:none" onchange="handleReportFileSelect(event)">'
     + '<div style="font-size:36px;margin-bottom:8px">📁</div>'
-    + '<div style="font-weight:600;color:#4338ca;font-size:14px" id="report-file-label">点击选择或拖拽 PDF/Word/TXT 文件</div>'
+    + '<div style="font-weight:600;color:#4338ca;font-size:15px" id="report-file-label">点击选择或拖拽 PDF/Word/TXT 文件</div>'
     + '<div style="font-size:12px;color:#6b7280;margin-top:4px" id="report-file-info">支持 PDF、Word(.docx)、TXT</div>'
     + '</div>';
 
   // 文本粘贴区域
   html += '<div style="margin-bottom:8px;font-size:13px;color:#6b7280;font-weight:600">— 或者直接粘贴文本 —</div>';
   html += '<div style="margin-bottom:16px">'
-    + '<textarea id="report-text-input" style="width:100%;height:160px;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box" placeholder="粘贴税务报告、风险分析结果或文章内容..."></textarea>'
+    + '<textarea id="report-text-input" style="width:100%;height:160px;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;resize:vertical;box-sizing:border-box" placeholder="粘贴税务报告、风险分析结果或文章内容..."></textarea>'
     + '</div>';
 
   html += '<div style="display:flex;gap:8px;justify-content:center">'
-    + '<button onclick="submitReportForParsing()" style="padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600">🔍 开始解析</button>'
-    + '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:14px">取消</button>'
+    + '<button onclick="submitReportForParsing()" style="padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px;font-weight:600">🔍 开始解析</button>'
+    + '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:15px">取消</button>'
     + '</div>';
   showAuditModal(html);
 }
@@ -1194,10 +1194,10 @@ function renderParsedRules(result) {
   html += '<div style="display:flex;gap:8px;justify-content:center">';
   if (rules.length > 0) {
     var rulesStr = JSON.stringify(rules).replace(/"/g, '&quot;');
-    html += '<button onclick="applyParsedRules(\'' + rulesStr + '\')" style="padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600">✅ 应用 ' + rules.length + ' 条规则</button>';
+    html += '<button onclick="applyParsedRules(\'' + rulesStr + '\')" style="padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px;font-weight:600">✅ 应用 ' + rules.length + ' 条规则</button>';
   }
-  html += '<button onclick="parseReportModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:14px">重新解析</button>'
-    + '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:14px">取消</button>'
+  html += '<button onclick="parseReportModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:15px">重新解析</button>'
+    + '<button onclick="closeAuditModal()" style="padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;cursor:pointer;font-size:15px">取消</button>'
     + '</div>';
   showAuditModal(html);
 }
