@@ -14253,6 +14253,86 @@ def _domain_business_premise_geo(bank_txs, invoices, docs):
             "source_chain": "经营实质-地理分布",
         })
     
+    # ── 发现3：全链条经营实质地理异常（点→面推理核心） ──
+    # 逻辑：加工商地址 ≠ 供应商地址 ≠ 客户地址 → 三地分离 + 零运输成本 → 全链条异常
+    all_geo_sets = []
+    if remote_seller_cities: all_geo_sets.append(("原材料供应商", remote_seller_cities))
+    if proc_cities: all_geo_sets.append(("加工费供应商", proc_cities))
+    if remote_buyer_cities: all_geo_sets.append(("销项客户", remote_buyer_cities))
+    
+    # 至少两组地址互不重叠（来自不同城市群）
+    all_cities_list = [cities for _, cities in all_geo_sets]
+    has_geo_overlap = False
+    for i in range(len(all_cities_list)):
+        for j in range(i+1, len(all_cities_list)):
+            if all_cities_list[i] & all_cities_list[j]:
+                has_geo_overlap = True
+                break
+    
+    geo_disjoint = len(all_geo_sets) >= 2 and not has_geo_overlap
+    
+    if geo_disjoint and not has_transport and (remote_sellers >= 3 or remote_buyers >= 3):
+        groups_desc = "；".join([f"{name}分布在{'、'.join(sorted(cities))}" for name, cities in all_geo_sets])
+        
+        findings.append({
+            "type": "全链条经营实质地理异常",
+            "level": "高风险", "score": 9,
+            "detail": (
+                f"点→面推理：从单点异常（{'加工费来自外地' if processors else '供应商在外地'}）扩展为全链条分析。\n"
+                f"被查单位（{company_city}市）的经营链条中：{groups_desc}。\n"
+                f"三组地址互不重叠+零运输成本→货物流物证链断裂，全链条经营实质存疑。"
+            ),
+            "description": (
+                f"【点→面推理分析】\n\n"
+                f"起点（单点发现）：{'发现' + str(len(processors)) + '家加工费供应商不在' + company_city + '市' if processors else '发现供应商地址分布异常'}。\n\n"
+                f"扩展（关联维度）：\n"
+                f"┌ 维度A-原材料供应链：{remote_sellers}家供应商分布在{len(remote_seller_cities)}个城市"
+                f"（{'、'.join(sorted(remote_seller_cities))}）\n"
+                f"├ 维度B-加工链条：{'、'.join(sorted(proc_cities)) if proc_cities else '无加工费'}\n"
+                f"├ 维度C-销售链条：{remote_buyers}家客户分布在{len(remote_buyer_cities)}个城市"
+                f"（{'、'.join(sorted(remote_buyer_cities))}）\n"
+                f"└ 维度D-物流成本：运输/物流/快递费用为零\n\n"
+                f"交叉验证：\n"
+                f"· A∩B∩C = ∅ → 三组地址完全互不重叠\n"
+                f"· D = 0 → 货物流物证链完全缺失\n"
+                f"· 结论：货物在{len(remote_seller_cities)}+{len(proc_cities)}+{len(remote_buyer_cities)}个城市之间反复运输，"
+                f"但没有产生任何运输费用→这在物理上不可能。\n\n"
+                f"这是一个从单点（{'加工费地理异常' if processors else '供应商地理异常'}）扩展到面（全链条经营实质存疑）的交叉推理。"
+                f"换一个稽查员拿同样资料，同样会得出这个结论——因为三组地址互不重叠+零运输成本是无法解释的客观事实。"
+            ),
+            "how_found": (
+                f"从发票中提取全部供应商({len(sellers)}家)和客户({len(buyers)}家)的地址信息，"
+                f"按城市分类统计。同步检索银行流水中运输类支出→无任何运输费用。"
+                f"发现{'加工费供应商均不在本地' if processors else '供应商分布异常'}，进而扩展到原材料供应、加工、销售三个环节的城市分布检查"
+                f"→三组地址完全互不重叠→点→面交叉推理→得出全链条经营实质存疑的结论。"
+            ),
+            "tax_impact": (
+                "全链条经营实质存疑是最严重的经营异常信号。"
+                "如果无法提供运输证明→税务机关有权否定全部跨省交易的真实性→企业所得税成本费用全部不得扣除+增值税进项税额全部转出。"
+                "这是整个税务稽查报告中最核心的发现——因为它不是一个点的问题，而是整个经营链条在物理层面无法成立。"
+            ),
+            "policy_ref": (
+                "《企业所得税法》第八条（成本费用真实性、合理性）；"
+                "《税收征收管理法》第三十五条（核定征收条件）；"
+                "国家税务总局关于三流一致的要求（货物流、资金流、发票流必须一致）。"
+            ),
+            "suggestion": (
+                f"这是全链条经营实质的核心问题，需要从以下路径提供证据：\n"
+                f"【路径A——提供全链条物流单据】\n"
+                f"①原材料从{', '.join(sorted(remote_seller_cities))}等地到{company_city}的运输单据（运单、签收单、运费发票）；\n"
+                f"②委托加工物资往返{company_city}↔{'/'.join(sorted(proc_cities)) if proc_cities else '外地'}的物流记录；\n"
+                f"③成品从{company_city}到客户的发货记录和物流单据。\n\n"
+                f"【路径B——提供合同中的运费条款】\n"
+                f"如为供应商承担运费→提供采购合同中'到货价'条款+供应商的运费发票复印件。\n\n"
+                f"【路径C——无法提供】\n"
+                f"如果确实无法提供任何运输证明→企业的全链条经营在物理上无法成立→"
+                f"所有跨省交易的发票应视为虚开或交易不真实→进项税额全部转出+成本费用全部不得税前扣除。"
+            ),
+            "category": "经营实质",
+            "rule_id": 1502,
+            "source_chain": "经营实质-地理分布-全链条",
+        })
+    
     return findings
 
 

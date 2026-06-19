@@ -158,6 +158,7 @@ p.i2{text-indent:2em}
 <div class="meth-item"><span class="mnum">⑯</span>COND_BAN防误杀 <span style="margin:0 8px">⑰</span>稽查重点强制等级 <span style="margin:0 8px">⑱</span>报告纯净度 <span style="margin:0 8px">⑲</span>发票≠收付款1:1 <span style="margin:0 8px">⑳</span>经营实质地理分析</div>
 <div class="meth-item"><span class="mnum">㉑</span>规则detail业务化 <span style="margin:0 8px">㉒</span>建议质量增强 <span style="margin:0 8px">㉓</span>四步稽查分析法 <span style="margin:0 8px">㉔</span>禁止数据截断</div>
 <div class="meth-item"><span class="mnum">㉕</span>三层行业穿透法 <span style="margin:0 8px;color:#c92a2a">NEW</span></div>
+<div class="meth-item"><span class="mnum">㉖</span>经营实质点面推理法 <span style="margin:0 8px;color:#c92a2a">NEW</span></div>
 </div>
 
 '''
