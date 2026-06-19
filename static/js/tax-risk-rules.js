@@ -61,22 +61,35 @@ var RISK_LEVEL_ICONS = {
 function renderTaxRiskRules(container) {
   if (!container) return;
   window.currentModule = '涉税风险稽查指令';
+
+  // 有缓存数据 → 直接渲染最终态，无闪烁
+  var hasCache = Array.isArray(taxRiskRulesData) && taxRiskRulesData.length > 0;
+
   container.innerHTML = ''
     + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '  <div style="margin-bottom:32px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">稽查指令（规则库）</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">1503条规则 · 按分类/等级二维过滤</p>'
+    + '    <p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? taxRiskRulesData.length : '...') + '条规则 · 按分类/等级二维过滤</p>'
     + '  </div>'
     + '  <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9">'
-    + '    <input type="text" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()" disabled style="flex:1;border:none;outline:none;font-size:14px;color:#0f172a;padding:8px 0;background:transparent">'
-    + '    <select id="risk-rules-filter-category" disabled style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部分类</option></select>'
-    + '    <select id="risk-rules-filter-level" disabled style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>'
-    + '    <span style="font-size:13px;color:#94a3b8"><strong id="risk-rules-header-count">...</strong> 条</span>'
+    + '    <input type="text" id="risk-rules-search" placeholder="搜索规则..." oninput="filterTaxRiskRules()" ' + (hasCache ? '' : 'disabled') + ' style="flex:1;border:none;outline:none;font-size:14px;color:#0f172a;padding:8px 0;background:transparent">'
+    + '    <select id="risk-rules-filter-category" ' + (hasCache ? '' : 'disabled') + ' style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部分类</option></select>'
+    + '    <select id="risk-rules-filter-level" ' + (hasCache ? '' : 'disabled') + ' style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部等级</option><option value="高风险">高风险</option><option value="中风险">中风险</option><option value="低风险">低风险</option></select>'
+    + '    <span style="font-size:13px;color:#94a3b8"><strong id="risk-rules-header-count">' + (hasCache ? taxRiskRulesData.length : '...') + '</strong> 条</span>'
     + '  </div>'
-    + '  <div id="risk-rules-list"><div style="color:#94a3b8;font-size:13px;padding:40px 0">加载中...</div></div>'
+    + '  <div id="risk-rules-list"></div>'
     + '  <div id="risk-rules-stats" style="text-align:center;padding:12px;font-size:13px;color:#94a3b8;display:none"></div>'
     + '</div>';
-  loadTaxRiskRules();
+
+  if (hasCache) {
+    // 直接渲染最终态，零闪烁
+    updateCategoryFilterOptions();
+    renderTaxRiskRulesList();
+    updateLoadButtonText();
+  } else {
+    // 首次加载：异步取数后渲染
+    loadTaxRiskRules();
+  }
 }
 
 

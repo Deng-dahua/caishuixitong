@@ -401,7 +401,7 @@ function renderCrossDomainEvidencePage(container) {
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">🔗 跨域证据链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">系统最高价值的输出——7条证据链各自由多源数据交叉验证形成，只有≥2个维度同时命中才形成有效证据链</p>'
     + '</div>'
-    + '<div id="cde-static"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '<div id="cde-static"></div>'
     + '<div id="cde-dynamic"></div>'
     + '</div>';
 
@@ -688,15 +688,13 @@ var _allEvidenceChains = [];
 function renderChainsPage(container) {
   if (!container) return;
   window.currentModule = '线索链';
-  // 直接渲染完整框架，内容区显示loading，数据到位后无缝替换
+  // 直接渲染框架，数据到位后无缝填充
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '<div>'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">🔗 线索链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
-    + '<div id="chains-body">'
-    + '<div style="text-align:center;padding:40px;color:#94a3b8">数据加载中...</div>'
-    + '</div></div>';
+    + '<div id="chains-body"></div></div>';
   loadChainsData();
 }
 
@@ -845,15 +843,13 @@ function filterChainsList() {
 function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
-  // 直接渲染完整框架，内容区显示loading，数据到位后无缝替换
+  // 直接渲染框架，数据到位后无缝填充
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '<div>'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">🔒 证据链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">含规则ID+处罚依据，每条证据链需≥3条线索链触发+≥2域交叉验证形成闭环</p>'
     + '</div>'
-    + '<div id="evidence-body">'
-    + '<div style="text-align:center;padding:40px;color:#94a3b8">数据加载中...</div>'
-    + '</div></div>';
+    + '<div id="evidence-body"></div></div>';
   loadEvidenceData();
 }
 
@@ -1206,7 +1202,7 @@ function renderMethodologyFilterPage(container) {
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">🎯 方法论过滤器</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN+COND_BAN+去重——三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
     + '</div>'
-    + '<div id="mf-body"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>'
+    + '<div id="mf-body"></div>'
     + '</div>';
 
   loadMethodologyFilterData();
