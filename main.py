@@ -14030,8 +14030,17 @@ def _domain_business_premise_geo(bank_txs, invoices, docs):
     findings = []
     if not invoices or not bank_txs: return findings
     
-    # ── 提取企业地址（从目标实体推断） ──
-    company_city = "中山"  # 默认，实际可从公司信息或文件名推断
+    # ── 提取企业所在城市（从发票中推断） ──
+    from collections import Counter
+    city_candidates = Counter()
+    for inv in invoices:
+        buyer = str(inv.get("buyer","") or inv.get("购方名称","")).strip()
+        seller = str(inv.get("seller","") or inv.get("销方名称","")).strip()
+        goods = str(inv.get("goods","") or inv.get("货物或应税劳务名称",""))
+        for name in [buyer, seller]:
+            for c in ['中山','东莞','深圳','广州','佛山','珠海','惠州','江门','厦门','福州']:
+                if c in name: city_candidates[c] += 1
+    company_city = city_candidates.most_common(1)[0][0] if city_candidates else '中山'
     
     # ── 按地址提取城市前缀 ──
     def extract_city(name):
