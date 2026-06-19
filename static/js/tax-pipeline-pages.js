@@ -363,7 +363,18 @@ function loadCrossDomainStatic() {
   fetch('/static/cross_domain_evidence.json?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(chains) {
-      var html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
+      window._allCrossChains = chains;  // 保存供动态部分使用
+      // 概览卡片
+      var highCount = chains.filter(function(c) { return c.level === '高风险'; }).length;
+      var totalDim = chains.reduce(function(s, c) { return s + c.dimensions.length; }, 0);
+      var html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#7c3aed">' + chains.length + '</div><div style="font-size:10px;color:#64748b">证据链总数</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #dc2626;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:10px;color:#64748b">高风险链</div></div>'
+        + '<div id="cde-triggered-count" style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #94a3b8;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#94a3b8">—</div><div style="font-size:10px;color:#64748b">本次触发</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #2563eb;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:10px;color:#64748b">总维度数</div></div>'
+        + '</div>';
+
+      html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
         + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📐 跨域证据链体系说明</h3>'
         + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:12px">'
         + '<p><b>跨域证据链是系统最高价值的输出。</b>单域发现可以解释，但多个域同时出现异常无法解释。7条证据链各自由多源数据交叉验证形成——从不同域、不同数据源提取相互印证的发现，串联为完整的证据闭环。</p>'
@@ -377,14 +388,15 @@ function loadCrossDomainStatic() {
         }).join('')
         + '</div>';
 
-      chains.forEach(function(c) {
+      chains.forEach(function(c, ci) {
         var bc = c.level === '高风险' ? '#dc2626' : '#f59e0b';
-        html += '<div style="border:2px solid ' + bc + ';border-radius:8px;padding:14px;margin-bottom:10px;background:#fff">'
+        html += '<div id="cde-chain-' + ci + '" style="border:2px solid ' + bc + ';border-radius:8px;padding:14px;margin-bottom:10px;background:#fff">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="font-size:16px">' + (c.level === '高风险' ? '🔴' : '🟡') + '</span>'
           + '<b style="font-size:13px;color:#1e293b">' + _escStatic(c.name) + '</b>'
           + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:' + bc + '15;color:' + bc + '">' + _escStatic(c.level) + '</span>'
           + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#f1f5f9;color:#64748b">' + _escStatic(c.sub_topic) + '</span>'
+          + '<span id="cde-triggered-' + ci + '"></span>'
           + '<span style="font-size:9px;color:#94a3b8">需≥' + c.min_evidence + '条证据</span>'
           + '</div>'
           + '<div style="margin-bottom:6px;font-size:9px;color:#64748b">触发词：' + c.trigger_keywords.map(function(k) { return '<code style="background:#f1f5f9;padding:1px 3px;border-radius:2px">' + _escStatic(k) + '</code>'; }).join(' ') + '</div>'
@@ -472,6 +484,29 @@ function renderCrossDomainDynamic(report) {
   var closedCount = comprehensive.closed_chain_count || 0;
   var triggeredChains = comprehensive.triggered_chains || [];
   var chainExecution = comprehensive.chain_execution || [];
+
+  // 更新概览卡片中的"本次触发"数
+  var tcEl = document.getElementById('cde-triggered-count');
+  if (tcEl) {
+    var tcc = tcEl.querySelector('div');
+    if (tcc) tcc.textContent = triggeredChains.length;
+    tcEl.style.borderColor = triggeredChains.length >= 2 ? '#dc2626' : '#059669';
+    tcEl.style.color = triggeredChains.length >= 2 ? '#dc2626' : '#059669';
+  }
+
+  // 为每条链更新触发状态badge
+  var allCC = window._allCrossChains || [];
+  allCC.forEach(function(c, ci) {
+    var isTriggered = c.trigger_keywords && triggeredChains.some(function(t) {
+      return c.trigger_keywords.some(function(kw) { return t.indexOf(kw) >= 0; });
+    });
+    var badgeEl = document.getElementById('cde-triggered-' + ci);
+    if (badgeEl) {
+      badgeEl.innerHTML = triggeredChains.length > 0
+        ? (isTriggered ? '<span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600">⚡ 已触发</span>' : '<span style="background:#94a3b8;color:#fff;padding:2px 8px;border-radius:3px;font-size:10px">未触发</span>')
+        : '';
+    }
+  });
 
   // ── 概览 ──
   var html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">';
