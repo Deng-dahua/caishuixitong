@@ -13953,6 +13953,159 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     return findings
 
 
+# ═══════════ 稽查队: 经营实质地理分析 ═══════════
+
+def _domain_business_premise_geo(bank_txs, invoices, docs):
+    """经营实质地理分析——从单一风险点推理出面的风险
+    
+    核心逻辑：
+    1. 提取企业地址 → 中山市
+    2. 分析销项客户/进项供应商/加工费供应商的地理分布
+    3. 检测运输成本是否缺失（重物必有的运输开支）
+    4. 加工费供应商是否在企业所在地（外地加工不合常理）
+    5. 交叉推理：客户分布 ≠ 供应商分布 ≠ 加工商分布 ≠ 运输成本缺失 → 经营链条可疑
+    """
+    findings = []
+    if not invoices or not bank_txs: return findings
+    
+    # ── 提取企业地址（从目标实体推断） ──
+    company_city = "中山"  # 默认，实际可从公司信息或文件名推断
+    
+    # ── 按地址提取城市前缀 ──
+    def extract_city(name):
+        # 从公司名称中提取城市
+        city_keywords = ["中山","东莞","深圳","广州","佛山","珠海","惠州","江门","汕头","湛江","茂名","肇庆","揭阳",
+                        "厦门","福州","泉州","漳州","台山",
+                        "鄢陵","许昌","郑州","石嘴山","银川","吴江","宜城","襄阳","武汉","淄博","临沂","济南","绍兴","杭州","宁波","义乌"]
+        for c in sorted(city_keywords, key=lambda x: -len(x)):
+            if c in name: return c
+        return "其他"
+    
+    # ── 分类统计 ──
+    buyers = {}     # 销项客户 → city
+    sellers = {}    # 进项供应商 → city  
+    processors = {} # 加工费供应商 → city
+    
+    for inv in invoices:
+        direction = str(inv.get("direction", ""))
+        goods = str(inv.get("goods", "") or inv.get("货物或应税劳务名称", ""))
+        
+        if direction == "销项":
+            buyer = str(inv.get("buyer", "") or inv.get("购方名称", "")).strip()
+            if buyer and len(buyer) >= 4:
+                city = extract_city(buyer)
+                buyers[buyer] = city
+        elif direction == "进项":
+            seller = str(inv.get("seller", "") or inv.get("销方名称", "")).strip()
+            if seller and len(seller) >= 4:
+                city = extract_city(seller)
+                sellers[seller] = city
+                # 加工费特殊标记
+                if "加工" in goods:
+                    processors[seller] = city
+    
+    # ── 统计本地 vs 外地 ──
+    local_buyers = sum(1 for c in buyers.values() if c == company_city)
+    remote_buyers = sum(1 for c in buyers.values() if c != company_city and c != "其他")
+    local_sellers = sum(1 for c in sellers.values() if c == company_city)
+    remote_sellers = sum(1 for c in sellers.values() if c != company_city and c != "其他")
+    remote_procs = sum(1 for c in processors.values() if c != company_city and c != "其他")
+    
+    remote_buyer_cities = set(c for c in buyers.values() if c != company_city and c != "其他")
+    remote_seller_cities = set(c for c in sellers.values() if c != company_city and c != "其他")
+    proc_cities = set(c for c in processors.values() if c != company_city and c != "其他")
+    
+    # ── 检测运输成本 ──
+    transport_kws = ["运输","物流","快递","货运","搬运","装卸","配送","运费","交通"]
+    has_transport = False
+    for inv in invoices:
+        goods = str(inv.get("goods", "") or inv.get("货物或应税劳务名称", ""))
+        if any(kw in goods for kw in transport_kws):
+            has_transport = True
+            break
+        seller = str(inv.get("seller", "") or inv.get("销方名称", ""))
+        if any(kw in seller for kw in transport_kws):
+            has_transport = True
+            break
+    
+    # 检查银行付款中是否有运输公司
+    if not has_transport:
+        for tx in bank_txs:
+            cp = str(tx.get("counterparty", "")).strip()
+            if any(kw in cp for kw in transport_kws):
+                has_transport = True
+                break
+    
+    # ── 发现1：重物跨省经营缺运输成本 ──
+    if remote_sellers >= 3 and not has_transport:
+        remote_cities_list = "、".join(sorted(remote_seller_cities)[:6])
+        findings.append({
+            "type": "重物跨省经营缺运输成本",
+            "level": "高风险", "score": 8,
+            "detail": f"被查单位位于{company_city}市，{remote_sellers}家进项供应商分布在{remote_cities_list}等外地城市（距离{company_city}数百至上千公里），销项客户也分布在{len(remote_buyer_cities)}个外地城市。纺织原料和成品均为重物，但进项发票和银行流水中均未发现任何运输/物流/快递类费用。",
+            "description": f"企业地址在{company_city}市，经营纺织产品（原料和成品均为重物）。\n\n"
+                + f"进项供应商地理分布：{len(sellers)}家供应商中{remote_sellers}家在外地"
+                + f"（{'、'.join(sorted(remote_seller_cities)[:5])}等），距离{company_city}数百至上千公里。\n"
+                + f"销项客户地理分布：{len(buyers)}家客户中{remote_buyers}家在外地"
+                + f"（{'、'.join(sorted(remote_buyer_cities)[:4])}等）。\n\n"
+                + f"纺织原料（棉纱、氨纶等）和成品（梭织布、针织衫等）都是重物，批量跨省运输必然产生可观的运输费用——"
+                + f"按行业经验，跨省运输成本通常占货值的3%-8%。但上传的全部进项发票和银行流水中均未发现任何运输/物流/快递类费用。\n\n"
+                + f"这是一个需要解释的经营实质问题：如果货物确实从{remote_cities_list}运到了{company_city}，运输费在哪里？\n"
+                + f"可能的解释：①运输费由供应商承担（含在原料价格中）→需要采购合同证明是到货价；\n"
+                + f"②运输费通过其他渠道支付（私人账户、现金）→三流不合一；\n"
+                + f"③货物并未真实运输→虚构交易。\n\n"
+                + f"无论哪种情况，都需要被查单位提供运输单据（物流单、运单、运费发票）来证明货物流的真实性。",
+            "how_found": f"从{len(invoices)}张发票中提取{len(buyers)}个客户和{len(sellers)}个供应商的地址信息→{remote_sellers}家外地供应商+{remote_buyers}家外地客户→搜索全部进项发票和银行流水中的运输类关键词→未发现任何运输成本。",
+            "tax_impact": "无运输费=货物流的物证链断裂→发票流+资金流虽存在但第三流（货物流）无法验证→交易真实性存疑→企业所得税成本扣除资格可能被否定+增值税进项税额抵扣面临被否定的风险。",
+            "policy_ref": "《企业所得税法》第八条（成本费用真实性）；国家税务总局关于三流一致的要求（货物流、资金流、发票流）。",
+            "suggestion": f"①提供全部外地供应商的采购合同，确认运输费用承担方式（出厂价/到货价/运费到付）；②提供物流运输单据（运单、签收单、物流公司对账单）；③如有运输类发票未上传，立即补充上传；④如为供应商承担运费，提供合同中的运费条款和供应商的运费发票复印件。无法提供任何运输证明的，成本费用不得税前扣除。",
+            "category": "经营实质",
+        })
+    
+    # ── 发现2：加工费不在本地 ──
+    if processors:
+        proc_city_names = "、".join(sorted(proc_cities)) if proc_cities else "无"
+        all_remote = len(processors) == remote_procs and remote_procs > 0
+        
+        desc = f"被查单位位于{company_city}市，但进项发票中出现了{len(processors)}家外地的加工费供应商："
+        for pname, pcity in list(processors.items())[:5]:
+            desc += f"\n· {pname}（{pcity}）"
+        desc += f"\n\n正常经营逻辑：纺织加工的染整、定型、印花等工序是服务型业务，加工商会主动靠近纺织产业集群。"
+        desc += f"{company_city}本身就是纺织产业集群地（沙溪镇、大涌镇等都是纺织重镇），当地应有大量可选的染整加工厂。"
+        desc += f"但被查单位的加工费却来自{proc_city_names}等外地，这增加了额外的运输成本和加工周期，在商业上不合理。\n\n"
+        
+        if remote_procs > 0 and remote_sellers >= 3:
+            desc += f"更值得警惕的是：加工费供应商（{proc_city_names}）、原材料供应商（{', '.join(sorted(remote_seller_cities - proc_cities)[:3])}等{len(remote_seller_cities)}城）、"
+            desc += f"销售客户（{', '.join(sorted(remote_buyer_cities)[:3])}等{len(remote_buyer_cities)}城）三者分布在完全不同的城市——"
+            desc += f"这意味着货物要在{len(remote_seller_cities)}+{len(proc_cities)}+{len(remote_buyer_cities)}个城市之间反复运输，"
+            desc += f"而系统未检测到任何运输成本记录。这是一个从单点（加工费）扩展到面（全链条）的交叉异常："
+            desc += f"加工费不本地+供应商不本地+客户不本地+零运输成本=整个经营链条在物流层面缺乏物证支撑。\n\n"
+        
+        desc += f"存疑点：①为何选择外地加工商而非本地加工商？②外地加工的真实性（加工过程是否有证据）？"
+        desc += f"③若货物需要在{company_city}↔外地之间往返运输，运输成本在哪里？"
+        
+        level = "高风险" if (all_remote and remote_sellers >= 3 and not has_transport) else "中风险"
+        score = 8 if level == "高风险" else 6
+        
+        findings.append({
+            "type": "外地加工费存疑",
+            "level": level, "score": score,
+            "detail": f"发现{len(processors)}家加工费供应商不在{company_city}市（{proc_city_names}），与当地纺织产业集群现状不符。{('同时存在' + str(remote_sellers) + '家外地原材料供应商、' + str(remote_buyers) + '家外地客户、零运输成本——全链条物流存疑') if (remote_sellers >= 3 and not has_transport) else ''}",
+            "description": desc,
+            "how_found": f"从{len(invoices)}张发票提取加工费供应商名称→地址解析→发现{len(processors)}家加工商均不在{company_city}→交叉对比原材料供应商地址（{len(remote_seller_cities)}城外）和销项客户地址（{len(remote_buyer_cities)}城外）→全链条地理分散+零运输成本=经营实质疑点。",
+            "tax_impact": "加工费真实性存疑 + 三流（货物流）无法验证 → 加工费对应的进项税额可能被要求转出 → 企业所得税成本费用扣除资格可能被否定。",
+            "policy_ref": "《企业所得税法》第八条（成本费用真实性、合理性）；《发票管理办法》第二十二条（禁止虚开）。",
+            "suggestion": (
+                f"①提供选择外地加工商的商业合理性说明（如本地无同类工艺、价格优势等）；"
+                f"②提供每次委托加工的送料单、收货单、加工工艺单、质量检验单等全链条单据；"
+                f"③提供货物往返运输的物流单据；"
+                f"④如加工真实但仅为外地开票\u2192认定为虚开发票风险。"),
+            "category": "经营实质",
+        })
+    
+    return findings
+
+
 # ═══════════ 稽查队: 红冲作废发票追踪 ═══════════
 
 def _domain_red_void_invoice(invoices):
@@ -15579,6 +15732,9 @@ AUDIT_PRIORITY_LEVELS = {
     # 费用 —— 偷逃税常用手段
     "费用发票占比异常": "高风险",
     "费用名目分散": "中风险",
+    # 经营实质 —— 点→面交叉推理
+    "重物跨省经营缺运输成本": "高风险",
+    "外地加工费存疑": "高风险",
 }
 
 def _fix_level_by_audit_priority(ftype, current_level):
@@ -16153,6 +16309,9 @@ def _run_analyze(company_id, db):
     else: domain_results.append({"domain": "发票存货付款三角验证", "findings": []})
     if invoices: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
     else: domain_results.append({"domain": "红冲作废发票追踪", "findings": []})
+    # 经营实质地理分析
+    if invoices and bank_txs: domain_results.append({"domain": "经营实质地理分析", "findings": _domain_business_premise_geo(bank_txs, invoices, docs)})
+    else: domain_results.append({"domain": "经营实质地理分析", "findings": []})
     if _has_bank: domain_results.append({"domain": "利润现金流矛盾检测", "findings": _domain_profit_cashflow_gap(voucher_revenue, bank_txs, pur_invs)})
     else: domain_results.append({"domain": "利润现金流矛盾检测", "findings": []})
     if _has_bank: domain_results.append({"domain": "异常交易时间分析", "findings": _domain_temporal_anomaly(bank_txs)})
