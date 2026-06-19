@@ -62,6 +62,14 @@ function renderTaxRiskRules(container) {
   if (!container) return;
   window.currentModule = '涉税风险稽查指令';
 
+  // 从 localStorage 恢复缓存（页面刷新后也能直接显示，不闪空白）
+  if (!Array.isArray(taxRiskRulesData) || taxRiskRulesData.length === 0) {
+    try {
+      var cached = localStorage.getItem('taxRiskRulesData');
+      if (cached) { taxRiskRulesData = JSON.parse(cached); }
+    } catch(e) {}
+  }
+
   // 有缓存数据 → 直接渲染最终态，无闪烁
   var hasCache = Array.isArray(taxRiskRulesData) && taxRiskRulesData.length > 0;
 
