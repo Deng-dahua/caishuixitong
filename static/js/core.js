@@ -61,7 +61,7 @@ const pages = {
   'file-parsing': '文件解析',
   'domain-analysis': '域分析',
   'methodology-filter': '方法论过滤器',
-  'pipeline-rules': '规则',
+  'pipeline-rules': '稽查指令',
   'chains-page': '线索链',
   'evidence-page': '证据链',
   'analyze-page': '分析链',
