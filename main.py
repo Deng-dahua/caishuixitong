@@ -14345,7 +14345,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
             "level": level, "score": score,
             "detail": f"发现{len(processors)}家加工费供应商不在{company_city}市（{proc_city_names}），与当地{_cluster}现状不符。{('同时存在' + str(remote_sellers) + '家外地原材料供应商、' + str(remote_buyers) + '家外地客户、零运输成本——全链条物流存疑') if (remote_sellers >= 3 and not has_transport) else ''}",
             "description": desc,
-            "how_found": f"查阅被查单位提供的全部发票。从进项发票中筛选加工费类品名，提取对应的供应商名称并解析地址——发现{len(processors)}家加工费供应商均不在企业所在地（中山市）。同步提取原材料供应商地址（分布在{len(remote_seller_cities)}个城市）和销项客户地址（分布在{len(remote_buyer_cities)}个城市），交叉对比发现三组地址互不重叠。结合零运输成本的检测结果，判定全链条物流存疑。",
+            "how_found": f"查阅被查单位提供的全部发票。从进项发票中筛选加工费类品名，提取对应的供应商名称并解析地址——发现{len(processors)}家加工费供应商均不在企业所在地（{company_city}市）。同步提取原材料供应商地址（分布在{len(remote_seller_cities)}个城市）和销项客户地址（分布在{len(remote_buyer_cities)}个城市），交叉对比发现三组地址互不重叠。结合零运输成本的检测结果，判定全链条物流存疑。",
             "tax_impact": "加工费真实性存疑 + 三流（货物流）无法验证 → 加工费对应的进项税额可能被要求转出 → 企业所得税成本费用扣除资格可能被否定。",
             "policy_ref": "《企业所得税法》第八条（成本费用真实性、合理性）；《发票管理办法》第二十二条（禁止虚开）。",
             "suggestion": (
@@ -15290,7 +15290,7 @@ def _domain_invoice_audit(invoices, target_industry=""):
             "type": "发票数量极小但金额巨大——单价异常",
             "level": "中风险", "score": 6,
             "detail": f"发现{len(tiny_qty_big_amt)}张发票数量极小(<1)但金额巨大(>5万)，折算单价畸高。",
-            "description": f"数量<1但金额>5万，意味着单价超过5万元/单位。例如'1件棉纱100万元'显然不合常理，可能存在：(1)发票内容与实际不符（品名或数量造假）；(2)通过虚高单价虚增进项。涉及：{'；'.join(examples)}等。",
+            "description": f"数量<1但金额>5万，意味着单价超过5万元/单位——远超正常商品单价，可能存在：(1)发票内容与实际不符（品名或数量造假）；(2)通过虚高单价虚增进项。涉及：{'；'.join(examples)}等。",
             "how_found": f"计算单价=金额÷数量→筛选数量<1且金额>5万的记录",
             "suggestion": "要求企业提供该类交易的合同、付款凭证，说明高单价的合理性。",
             "category": "发票合规"
@@ -15368,8 +15368,8 @@ def _domain_invoice_audit(invoices, target_industry=""):
     
     if has_processing_fee or has_value_chain:
         # 行业自适应原料/成品关键词（稽查方法论㉕：三层行业穿透法）
-        raw_kw = _get_product_keywords(target_industry, is_raw=True) if target_industry else ["纱","丝","棉","料","线","纤维","染料","助剂","浆料","原料","坯布","胚布"]
-        finish_kw = _get_product_keywords(target_industry, is_raw=False) if target_industry else ["布","面料","服装","制成品","成品","针织物","机织物"]
+        raw_kw = _get_product_keywords(target_industry, is_raw=True) if target_industry else ["原料","材料","钢材","塑料","电子","化工","金属","木材","面料","纱","粉","浆","油","剂","件","片","板","管","丝","线","布","纸","胶"]
+        finish_kw = _get_product_keywords(target_industry, is_raw=False) if target_industry else ["成品","制品","件","机","器","设备","产品","服装","食品","家具","配件","组件"]
         
         # 只用"只进不出"的品名做原材料关键词匹配（重叠品名可能是贸易商品）
         raw_materials = [g for g in pure_pur if any(kw in g for kw in raw_kw)]
@@ -15404,7 +15404,7 @@ def _domain_invoice_audit(invoices, target_industry=""):
                 "type": "缺少BOM表（物料清单）",
                 "level": "中风险", "score": 6,
                 "detail": f"进项{len(raw_materials)}种原材料+销项{len(finished_goods)}种成品→存在外包轻加工环节但无BOM表。{mapping_text}",
-                "description": f"({evidence})进项品名中{len(pure_pur)}类仅采购未销售（拟为原料）、销项品名中{len(pure_sal)}类仅销售未采购（拟为成品）。贸易公司通过外包轻加工（如买坯布→委托染整→卖成品布）完成商品形态转换是纺织行业常见模式，但仍需BOM表验证加工链条的真实性。缺少BOM表导致无法判断委托加工的数量和单价是否合理。",
+                "description": f"({evidence})进项品名中{len(pure_pur)}类仅采购未销售（拟为原料）、销项品名中{len(pure_sal)}类仅销售未采购（拟为成品）。企业可能通过外包轻加工完成商品形态转换（制造业常见模式），但仍需BOM表验证加工链条的真实性。缺少BOM表导致无法判断委托加工的数量和单价是否合理。",
                 "how_found": f"进销品名差异检测：{len(pure_pur)}类仅进→拟为原料，{len(pure_sal)}类仅销→拟为成品，{'加工费发票证实外包轻加工' if has_processing_fee else '品名差异推断可能存在加工'}",
                 "suggestion": "限期提供：(1)委托加工合同（含加工数量、单价、损耗率）；(2)加工出入库单（送料单+收货单）；(3)加工费结算明细。如实际为纯贸易（直接买进卖出同类商品），请提供贸易链条说明。",
                 "category": "进销存"
@@ -16539,7 +16539,7 @@ def _run_analyze(company_id, db):
                 desc += f"② 非费用类原材料采购{len(raw_like)}种（{'、'.join(pur_raw_list)}等）\n"
                 desc += f"上述两个信号同时存在，表明企业采用'采购原材料→委托加工→销售成品'的经营模式。\n\n"
                 
-                desc += f"进项品名与销项品名不匹配的根本原因是制造业的正常加工链条——进项是原料（棉纱等），"
+                desc += f"进项品名与销项品名不匹配的根本原因是制造业的正常加工链条——进项是原料（{'、'.join(pur_raw_list[:3])}等），"
                 if only_sell_goods: desc += f"经过加工变成成品（{'、'.join(only_sell_goods)}），"
                 desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
                 desc += f"因此，{len(only_buy)}种商品'有进无销'不是隐匿收入，而是制造业的正常加工链条。\n\n"
@@ -16605,7 +16605,7 @@ def _run_analyze(company_id, db):
                 desc += f"② 非费用类原材料{len(pur_raw)}种（{'、'.join(pur_raw_list)}等，合计约{raw_total:,.0f}元）\n"
                 desc += f"上述两个信号同时存在，表明原材料+加工费→成品，这是销项品名与进项品名不同的合理解释。\n\n"
                 
-                desc += f"销售的是加工后的成品（梭织布），采购的是原料（棉纱），品名天然不同——买纱线→委托加工→卖成品布是纺织制造的标准流程。"
+                desc += f"销售的是加工后的成品（{'、'.join(sell_list[:2])}），采购的是原料（{'、'.join(pur_raw_list[:2])}），品名天然不同——买原料→委托加工→卖成品是制造业的标准流程。"
                 desc += f"这与面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
                 desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果。\n\n"
                 
