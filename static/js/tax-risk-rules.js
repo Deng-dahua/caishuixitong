@@ -1580,6 +1580,29 @@ function filterEvidence() {
   if (hc) hc.textContent = evCount;
 }
 
+// ==================== 稽查管道侧边栏入口 ====================
+// 将5个子tab提升为独立侧边栏页面，自动选中对应tab
+function renderRulesPipelinePage(container) {
+  renderTaxRiskRules(container);
+  switchTab(0);
+}
+function renderChainsPipelinePage(container) {
+  renderTaxRiskRules(container);
+  switchTab(1);
+}
+function renderEvidencePipelinePage(container) {
+  renderTaxRiskRules(container);
+  switchTab(2);
+}
+function renderAnalyzePipelinePage(container) {
+  renderTaxRiskRules(container);
+  switchTab(3);
+}
+function renderCrossPipelinePage(container) {
+  renderTaxRiskRules(container);
+  switchTab(4);
+}
+
 // ==================== Tab ====================
 var _currentTab = 0;
 var _tabs = ['cat','chain','evidence','analyze','cross'];
