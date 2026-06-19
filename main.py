@@ -12875,37 +12875,43 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     # ═══ 逐项生成缺失资料的详细风险提示 ═══
     
     # ═══ 合同需求分层（行业无关，基于发票品名+金额+类型自动分类）═══
-    contract_tiers = _analyze_contract_tiers(pur_invs, sal_invs) if pur_invs else {'must_contract': [], 'may_skip': [], 'must_total_amt': 0, 'may_skip_total_amt': 0}
+    contract_tiers = _analyze_contract_tiers(pur_invs, sal_invs) if pur_invs else {'must_contract': [], 'should_contract': [], 'may_skip': [], 'must_total_amt': 0, 'should_total_amt': 0, 'may_skip_total_amt': 0}
     mc_list = contract_tiers.get('must_contract', [])
+    sc_list = contract_tiers.get('should_contract', [])
     ms_list = contract_tiers.get('may_skip', [])
     must_total = contract_tiers.get('must_total_amt', 0)
+    should_total = contract_tiers.get('should_total_amt', 0)
     may_total = contract_tiers.get('may_skip_total_amt', 0)
     # 构建分层明细文本
     mc_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.0f}元" for n, amt, r in mc_list) if mc_list else "    （无）"
+    sc_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.0f}元" for n, amt, r in sc_list) if sc_list else "    （无）"
     ms_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.0f}元" for n, amt, r in ms_list) if ms_list else "    （无）"
     mc_more = f"\n    ... 还有{len(mc_list)-10}家" if len(mc_list) > 10 else ""
     ms_more = f"\n    ... 还有{len(ms_list)-10}家" if len(ms_list) > 10 else ""
-    stamp_tax_est = must_total * 0.0003  # 购销合同印花税税率0.03%
+    stamp_tax_est = (must_total + should_total) * 0.0003  # 购销合同印花税税率0.03%
 
     # 缺失项定义：(key, finding_type, level, score, detail, description, tax_impact, policy, suggestion)
     MISSING_DEFS = [
         ("contract", "合同文件缺失", "高风险", 9,
          lambda: (
-             f"合同需求分层分析（行业无关，基于发票品名+金额+类型自动分类）：\n"
+             f"合同需求分层分析（行业无关，基于发票品名+金额+类型四层自动分类）：\n"
              f"总供应商{contract_tiers.get('total_suppliers', 0)}家，销项客户{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}家。\n\n"
-             f"【必须签合同】{len(mc_list)}家，交易额{must_total:,.0f}元：\n"
+             f"【必签合同·主营业务】{len(mc_list)}家，交易额{must_total:,.0f}元：\n"
              f"{mc_text}{mc_more}\n"
-             f"【可免签合同】{len(ms_list)}家，交易额{may_total:,.0f}元：\n"
-             f"{ms_text}{ms_more}\n\n"
-             f"按三标准自动分类：①主营业务(材料/加工/成品交易)→必须合同；"
-             f"②单笔或累计>5万元的非日常支出→必须合同；"
-             f"③日常消费(加油/酒店/餐饮/差旅/通讯/办公/税务)→发票为凭证即可。\n"
-             f"被查单位缺失合同的影响集中在第一类{must_total:,.0f}元交易。四流合一缺了合同流，印花税计税依据缺失（预计漏缴{stamp_tax_est:,.0f}元）。"
+             f"  → 判断依据：品名含原料/材料/加工/配件/零件/包装等主营业务关键词\n\n"
+             f"【应签合同·重要费用】{len(sc_list)}家，交易额{should_total:,.0f}元：\n"
+             f"{sc_text}\n"
+             f"  → 判断依据：设备/服务/维修/咨询/广告/物流等重要费用支出\n\n"
+             f"【可免合同·日常消费】{len(ms_list)}家，交易额{may_total:,.0f}元：\n"
+             f"{ms_text}{ms_more}\n"
+             f"  → 判断依据：加油/餐饮/差旅/办公/通讯/快递等日常消费\n\n"
+             f"四层自动分类：①主营业务采购→必签 ②重要费用(设备/服务/维修等)→应签 ③日常消费→发票即可 ④小额杂项→可免。"
+             f"被查单位缺失合同的影响集中在第一、二类{must_total+should_total:,.0f}元交易。四流合一缺了合同流，印花税计税依据缺失（预计漏缴{stamp_tax_est:,.0f}元）。"
          ),
-         lambda: f"缺少合同文件——需按业务性质分层判断：{len(mc_list)}个供应商/交易额{must_total:,.0f}元必须有合同，{len(ms_list)}个日常消费类以发票为凭证即可。①稽查逐笔质疑{len(mc_list)}笔无合同交易的商业合理性；②无合同→印花税漏缴(约{stamp_tax_est:,.0f}元)；③大额无合同→虚开发票嫌疑。",
-         lambda: f"缺失合同→四流合一断裂→{must_total:,.0f}元交易无合同支撑→稽查可逐笔质疑交易真实性→虚开发票嫌疑→补税+罚款+滞纳金；印花税计税依据缺失→漏缴约{stamp_tax_est:,.0f}元。",
+         lambda: f"缺少合同文件——需按业务性质四层判断：{len(mc_list)}家主营业务采购/交易额{must_total:,.0f}元必须有合同，{len(sc_list)}家重要费用/交易额{should_total:,.0f}元应签合同，{len(ms_list)}家日常消费类以发票为凭证即可。①稽查逐笔质疑{len(mc_list)+len(sc_list)}笔无合同交易的商业合理性；②无合同→印花税漏缴(约{stamp_tax_est:,.0f}元)；③大额无合同→虚开发票嫌疑。",
+         lambda: f"缺失合同→四流合一断裂→{must_total+should_total:,.0f}元交易无合同支撑→稽查可逐笔质疑交易真实性→虚开发票嫌疑→补税+罚款+滞纳金；印花税计税依据缺失→漏缴约{stamp_tax_est:,.0f}元。",
          lambda: "《税收征收管理法》第五十四条；《印花税法》关于应税合同的规定。",
-         f"① 为{must_total:,.0f}元必签合同的交易补签购销合同（共{len(mc_list)}家供应商）；② 合同必须明确双方、金额、货物内容、履行期限、违约责任；③ {len(ms_list)}家日常消费类以发票为凭证即可，不需补签；④ 按合同金额补缴印花税约{stamp_tax_est:,.0f}元。"),
+         f"① 为{must_total:,.0f}元主营业务交易的供应商补签购销合同（{len(mc_list)}家）；② {should_total:,.0f}元重要费用补签服务/设备合同（{len(sc_list)}家）；③ {len(ms_list)}家日常消费类以发票为凭证即可，不需补签；④ 按合同金额补缴印花税约{stamp_tax_est:,.0f}元。"),
         
         ("bank", "银行流水缺失", "高风险", 10,
          lambda: "缺少银行流水——稽查第一份就要调的资料",
@@ -13059,18 +13065,53 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
 
 # ═══════════ 合同需求分层分析（行业无关）═══════════
 def _analyze_contract_tiers(pur_invs, sal_invs):
-    """从发票数据自动分析每个供应商的合同需求等级
+    """从发票数据自动分析每个供应商的合同需求等级（行业无关，全行业适用）
     
-    三标准（行业无关）：
-    1. 看品名——进项发票中的货物/服务是原材料/加工/成品→主营业务→必须合同
-    2. 看金额——单供应商累计>5万元且非日常消费→重大支出→必须合同
-    3. 看类型——加油/酒店/餐饮/差旅/通讯/税务→日常费用→发票即可
+    四层判断体系：
+    1. 日常消费（免合同）——加油/餐饮/差旅/快递/办公/物业/银行手续费等
+    2. 主营业务（必合同）——原材料/加工/半成品/配件/包装/辅料等生产性采购
+    3. 重要费用（应合同）——大额服务/设备/咨询/广告/法律等虽非主营业务但金额重大
+    4. 小额杂项（可免）——小金额非主营业务采购
+    
+    判断优先级：先排除日常消费 → 再判断主营业务 → 再看金额 → 最后归入小额
     """
     from collections import defaultdict
-    DAILY_GOODS = ['汽油','柴油','加油','燃料','酒店','住宿','餐饮','餐费','饭店','外卖',
-                    '旅行社','机票','火车票','快递','通信','电话','网络','宽带',
-                    '办公用品','饮用水','打印','复印','维修','物业','保险',
-                    '税务','代开','罚款','滞纳金','手续费','利息','银行','停车']
+    
+    # ── 日常消费关键词（发票即可，无需合同）──
+    DAILY_GOODS = [
+        '汽油','柴油','加油','燃料','充电','酒店','住宿','餐饮','餐费','饭店','外卖',
+        '旅行社','机票','火车票','打车','滴滴','快递','通信','电话','网络','宽带',
+        '办公用品','饮用水','打印','复印','墨盒','纸张','文具',
+        '物业','停车','保洁','水费','电费','燃气','暖气',
+        '银行','手续费','利息','滞纳金','罚款','工本费','账户管理',
+    ]
+    
+    # ── 主营业务关键词（必有合同）──
+    MAIN_BIZ_KWS = [
+        '加工','材料','原料','配件','零件','包装','辅料','半成品',
+        '纱','丝','棉','布','料','线','染料','助剂','面料','坯布',
+        '钢材','铝材','铜材','板','管','棒','型材',
+        '模具','组件','部件','总成','毛坯','锻件','铸件',
+        '芯片','PCB','电路板','电子','电器','元器件',
+        '化工','树脂','塑料','橡胶','涂料','胶水','油墨',
+        '食品','面粉','粮油','肉','禽','蛋','水产','蔬菜','水果',
+        '药品','试剂','器械','敷料','消毒','医用',
+        '木材','板材','实木','密度板','五金',
+    ]
+    
+    # ── 重要费用关键词（建议签合同，非主营业务但金额重大）──
+    IMPORTANT_EXPENSE_KWS = [
+        '设备','机器','车辆','仪器','固定资产','生产线','成套',
+        '软件','系统','开发','技术','专利','授权','许可',
+        '广告','推广','宣传','展会','展览','发布',
+        '咨询','顾问','服务费','外包','代理','中介',
+        '法律','审计','评估','鉴定','检测','认证',
+        '设计','制作','安装','施工','装修','改造',
+        '租赁','房租','仓库','冷库','叉车','吊车',
+        '维修','保养','年检','保险','承运','运输','物流','货运',
+        '培训','教育','年会','活动','策划',
+    ]
+    
     supplier_goods = defaultdict(set)
     supplier_amt = defaultdict(float)
     for inv in pur_invs:
@@ -13080,28 +13121,50 @@ def _analyze_contract_tiers(pur_invs, sal_invs):
         if seller and len(seller) >= 4:
             supplier_goods[seller].add(goods)
             supplier_amt[seller] += amt
-    must_contract = []; may_skip = []
+    
+    must_contract = []      # 必签合同（主营业务）
+    should_contract = []    # 应签合同（重要费用）
+    may_skip = []           # 可免（日常消费/小额）
+    
     for name, amt in sorted(supplier_amt.items(), key=lambda x: -x[1]):
         goods_text = ' '.join(supplier_goods.get(name, set()))
+        
+        # ── 第1层：日常消费 → 免合同 ──
         if any(kw in goods_text for kw in DAILY_GOODS):
-            may_skip.append((name, amt, '日常消费'))
+            may_skip.append((name, amt, '日常消费(加油/餐饮/差旅/办公等)'))
             continue
+        
+        # ── 第2层：主营业务品名 → 必签合同 ──
+        if any(kw in goods_text for kw in MAIN_BIZ_KWS):
+            must_contract.append((name, amt, '主营业务采购(原料/加工/配件等)'))
+            continue
+        
+        # ── 第3层：重要费用品名 + 金额>5000 → 应签合同 ──
+        if any(kw in goods_text for kw in IMPORTANT_EXPENSE_KWS):
+            if amt > 5000:
+                should_contract.append((name, amt, f'重要费用(设备/服务/维修等) {amt:,.0f}元'))
+            else:
+                may_skip.append((name, amt, f'小额服务({amt:,.0f}元)'))
+            continue
+        
+        # ── 第4层：纯金额判断 ──
         if amt > 50000:
-            must_contract.append((name, amt, f'重大支出({amt:,.0f}元)'))
-            continue
-        main_kws = ['加工','材料','原料','配件','零件','包装','辅料','半成品']
-        if any(kw in goods_text for kw in main_kws):
-            must_contract.append((name, amt, '主营业务(材料/加工)'))
-            continue
-        if amt > 20000:
-            must_contract.append((name, amt, f'中等支出({amt:,.0f}元)建议合同'))
+            must_contract.append((name, amt, f'重大支出({amt:,.0f}元)品名不明确'))
+        elif amt > 20000:
+            should_contract.append((name, amt, f'中等支出({amt:,.0f}元)建议合同'))
         else:
             may_skip.append((name, amt, f'小额({amt:,.0f}元)'))
+    
     return {
-        'must_contract': must_contract, 'may_skip': may_skip,
+        'must_contract': must_contract,
+        'should_contract': should_contract,
+        'may_skip': may_skip,
         'total_suppliers': len(supplier_amt),
-        'must_count': len(must_contract), 'may_skip_count': len(may_skip),
+        'must_count': len(must_contract),
+        'should_count': len(should_contract),
+        'may_skip_count': len(may_skip),
         'must_total_amt': sum(x[1] for x in must_contract),
+        'should_total_amt': sum(x[1] for x in should_contract),
         'may_skip_total_amt': sum(x[1] for x in may_skip),
     }
 
