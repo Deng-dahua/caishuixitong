@@ -649,7 +649,7 @@ async function loadChainsData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var clueChains = _allChains.filter(function(c) { return c.chain_type === '线索链' || !c.chain_type; });
-    if (!clueChains.length) clueChains = _allChains.slice(0, 386);
+    if (!clueChains.length) clueChains = _allChains.slice(0, 391);
 
     // 加载动态触发状态
     await loadChainDynamicStatus();
@@ -787,7 +787,7 @@ async function loadEvidenceData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var evChains = _allChains.filter(function(c) { return c.chain_type === '证据链'; });
-    if (!evChains.length) evChains = _allChains.slice(386, 386 + 735);
+    if (!evChains.length) evChains = _allChains.slice(391, 391 + 740);
 
     // 确保动态状态已加载
     if (!_chainDynamic) await loadChainDynamicStatus();
@@ -880,7 +880,7 @@ function renderAnalyzePage(container) {
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '<div>'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">1503规则 + 386线索链 + 735证据链 → 方法论过滤器 → 正式稽查报告</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">1505规则 + 391线索链 + 740证据链 → 方法论过滤器 → 正式稽查报告</p>'
     + '</div>'
     + '<div id="analyze-body"></div>'
     + '</div>';
@@ -913,7 +913,7 @@ async function loadAnalyzeOverview() {
     { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
     { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
     { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集+双向交易。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1503条规则逐条匹配 + 386条线索链驱动 + 735条证据链闭环 → 方法论过滤器剔除97%噪声。' },
+    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环 → 方法论过滤器剔除97%噪声。' },
     { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
     { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
     { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
@@ -928,7 +928,7 @@ async function loadAnalyzeOverview() {
   });
 
   html += '<div style="padding:14px 0;font-size:13px;color:#94a3b8">'
-    + '1503 条规则 · 386 条线索链 · 735 条证据链 · 97% 噪声过滤率 · 66 行业基准库'
+    + '1505 条规则 · 391 条线索链 · 740 条证据链 · 97% 噪声过滤率 · 66 行业基准库'
     + '</div>';
 
   html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
@@ -970,7 +970,7 @@ function renderAnalyzeResult(report) {
     { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
     { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
     { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1503条规则逐条匹配 + 386条线索链驱动 + 735条证据链闭环（≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
+    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环（≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
     { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
     { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
     { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
@@ -985,9 +985,9 @@ function renderAnalyzeResult(report) {
   // 分析结果统计
   h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">本次分析结果</div>';
   h += '<div style="font-size:13px;color:#64748b;line-height:2">'
-    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1503') + '</strong> 则 · '
-    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '386') + '</strong> 条 · '
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '735') + '</strong> 条 · '
+    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1505') + '</strong> 则 · '
+    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '391') + '</strong> 条 · '
+    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '740') + '</strong> 条 · '
     + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
     + '</div>'
     + '<div style="padding:8px 0;font-size:13px">'
