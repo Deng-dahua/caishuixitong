@@ -10,13 +10,12 @@ function renderFileParsingPage(container) {
     + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">文件解析</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">三层递进识别 · 34类文件指纹 · 数据推断兜底</p>'
+    + '    <p style="font-size:14px;color:#94a3b8;margin:0">三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
     + '  </div>'
     + '  <div id="fp-static"></div>'
     + '  <div id="fp-analysis-result"></div>'
     + '</div>';
   renderFileParsingStatic();
-  // 缓存直接渲染最终态
   if (_cachedFileParsingReport) {
     renderFileParsingResult(_cachedFileParsingReport);
   } else {
@@ -27,84 +26,178 @@ function renderFileParsingPage(container) {
 function renderFileParsingStatic() {
   var target = document.getElementById('fp-static');
   if (!target) return;
-  target.innerHTML = ''
-    // 三层递进
-    + '<div style="margin-bottom:48px">'
-    + '  <h4 style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px">识别机制</h4>'
-    + '  <div style="display:flex;gap:24px">'
-    + '    <div style="flex:1;border-top:2px solid #0f172a;padding-top:12px">'
-    + '      <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">Step 1</div>'
-    + '      <div style="font-size:15px;font-weight:600;color:#0f172a">关键词匹配</div>'
-    + '      <div style="font-size:13px;color:#64748b;line-height:1.7;margin-top:4px">检测表头特征词快速判定类型</div>'
-    + '    </div>'
-    + '    <div style="flex:1;border-top:2px solid #cbd5e1;padding-top:12px">'
-    + '      <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">Step 2</div>'
-    + '      <div style="font-size:15px;font-weight:600;color:#0f172a">结构分析</div>'
-    + '      <div style="font-size:13px;color:#64748b;line-height:1.7;margin-top:4px">列数+位置+表头组合模式确认</div>'
-    + '    </div>'
-    + '    <div style="flex:1;border-top:2px solid #cbd5e1;padding-top:12px">'
-    + '      <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">Step 3</div>'
-    + '      <div style="font-size:15px;font-weight:600;color:#0f172a">数据推断兜底</div>'
-    + '      <div style="font-size:13px;color:#64748b;line-height:1.7;margin-top:4px">读前200行按列角色判定，确保不丢数据</div>'
-    + '    </div>'
-    + '  </div>'
+
+  var fps = fpFingerprints();
+  var html = '';
+
+  // ══════ 一、识别机制详解 ══════
+  html += '<div style="margin-bottom:48px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、识别机制：三层递进</h3>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 20px">'
+    + '系统接收到文件后，不会依赖文件扩展名（因为用户上传的 .xls 可能是任何内容），'
+    + '而是执行三层递进识别，从粗到细逐步确定文件类型：'
+    + '</p>'
+
+    + '<div style="display:flex;gap:20px;margin-bottom:24px">'
+
+    // Step 1
+    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #0f172a">'
+    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 1</div>'
+    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">关键词匹配 · 打分制</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
+    + '读取 Excel 文件的前200行表头区域，将表头中的每个词与34类文件指纹的关键词库进行匹配。<br><br>'
+    + '每匹配一个关键词得1分，得分超过该类指纹的阈值（通常2-4分）即判定为该类型。<br><br>'
+    + '例如：表头出现"对方户名""交易日期""收入金额"三个词→银行流水指纹得3分→≥阈值3→判定为银行流水。<br><br>'
+    + '多个类型同时超过阈值时，取得分最高的类型。'
     + '</div>'
-    // 34类指纹
-    + '<div style="margin-bottom:24px">'
-    + '  <h4 style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 16px">文件指纹库 · 34 类</h4>'
-    + '  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px">'
-    + fpFingerprints().map(function(item) {
-        return '<div style="padding:6px 0;font-size:13px;color:#334155">'
-          + '<span style="color:#0f172a;font-weight:500">' + item.icon + ' ' + item.name + '</span>'
-          + '<span style="color:#94a3b8;font-size:12px;margin-left:6px">' + item.sig + '</span></div>';
-      }).join('')
-    + '  </div>'
     + '</div>'
-    // 兼容策略
-    + '<div style="padding:16px 0;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;margin-bottom:48px">'
-    + '  <div style="font-size:13px;color:#64748b;line-height:1.8">'
-    + '    <span style="font-weight:600;color:#0f172a">兼容策略</span> '
-    + '    银行流水兼容5种日期列名 · 发票兼容多种购方命名 · 汇总行自动过滤 · 未知格式不放弃</div>'
+
+    // Step 2
+    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #94a3b8">'
+    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 2</div>'
+    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">结构分析 · 列模式</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
+    + '当关键词匹配不够明确时（多个类型分数接近），进入结构分析阶段。<br><br>'
+    + '检查列数、列位置、表头的组合模式——例如银行流水通常包含日期列+对方户名列+金额列+余额列；'
+    + '工资表通常包含姓名列+收入列+扣除列+实发列。<br><br>'
+    + '系统维护了每种文件类型的列模式模板，按模式相似度进行二次判定。'
+    + '</div>'
+    + '</div>'
+
+    // Step 3
+    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #94a3b8">'
+    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 3</div>'
+    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">数据推断 · 兜底</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
+    + '当关键词和结构都无法确定时，进入数据推断阶段。系统逐列读取前200行数据样本，按照语义角色自动化分类：<br><br>'
+    + '→ 日期格式（2023-01-01、2023/1/1等）→ 日期列<br>'
+    + '→ 纯数字无明显小数 → 数量/编号列<br>'
+    + '→ 含"公司""有限""厂""店" → 企业名称列<br>'
+    + '→ 含"元""金额""￥" → 金额列<br>'
+    + '→ 含"税""%""税率" → 税率列<br><br>'
+    + '不因无法识别而丢弃数据——标注为"通用数据"（generic_data），交由下游分析模块自行判断数据用途。'
+    + '</div>'
+    + '</div>'
+
+    + '</div>'
     + '</div>';
+
+  // ══════ 二、兼容策略 ══════
+  html += '<div style="margin-bottom:48px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">二、兼容策略</h3>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<strong>银行流水</strong>：兼容5种日期列名（交易日期/记账日期/交易时间/日期/申请日期），'
+    + '对方户名兼容4种命名（counterparty/对方户名/交易对方/对方名称），金额自动去除￥/元/逗号等非数字字符。<br>'
+    + '<strong>发票</strong>：兼容购方名称/购买方名称、销方名称/销售方名称/供应商名称等多种命名习惯，'
+    + '进项/销项方向通过购方税号与公司税号比对自动判定。<br>'
+    + '<strong>工资表</strong>：兼容60+个列名变体（本期收入/应发工资/实发合计等）。<br>'
+    + '<strong>汇总行过滤</strong>：自动识别并剔除"小计""合计""总计""本页合计""本年累计""当月合计"等汇总行，'
+    + '防止汇总数据污染分析结果。<br>'
+    + '<strong>社保/公积金</strong>：区分缴费基数、单位缴纳、个人缴纳三列数据。'
+    + '</div>'
+    + '</div>';
+
+  // ══════ 三、34类文件指纹 ══════
+  html += '<div style="margin-bottom:48px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、文件指纹库 · ' + fps.length + ' 类</h3>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">每类指纹由 关键词集 + 得分阈值 + 专用解析器 三部分组成。按使用频率分梯队排列。</p>';
+
+  // 分组显示
+  var groups = [
+    {title:'第一梯队 · 高频核心（用户最常上传）', items: fps.slice(0,12),
+     desc:'这12类文件是稽查中最常出现的材料，拥有最完善的关键词库和解析器。得分阈值2-4分。'},
+    {title:'第二梯队 · 合同/权证/关联交易', items: fps.slice(12,17),
+     desc:'合同和关联交易文件的识别需要更细致的结构分析，阈值通常为2分。'},
+    {title:'第三梯队 · 申报表与财务报表', items: fps.slice(17,23),
+     desc:'各类税务申报表和财务报表，关键词含税种名称、报表项目等专业术语。'},
+    {title:'第四梯队 · 往来与合同清单', items: fps.slice(23,27),
+     desc:'应收账款、应付账款、预收预付、其他应收付等往来类数据表。'},
+    {title:'第五梯队 · 资产与费用', items: fps.slice(27,31),
+     desc:'固定资产、无形资产、资产损失、费用明细、研发费用等资产和费用类表格。'},
+    {title:'第六梯队 · 特殊交易与兜底', items: fps.slice(31),
+     desc:'人员清单、股权交易、借款合同、进出口报关等特殊类型，以及通用数据的兜底识别。'},
+  ];
+
+  groups.forEach(function(g) {
+    html += '<div style="margin-bottom:24px">'
+      + '<div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:6px">' + escHtml(g.title) + '</div>'
+      + '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">' + escHtml(g.desc) + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px">';
+
+    g.items.forEach(function(item) {
+      html += '<div style="padding:10px 12px;border:1px solid #f1f5f9;border-radius:6px;font-size:13px;line-height:1.7">'
+        + '<div style="font-weight:600;color:#0f172a;margin-bottom:4px"><span style="font-size:16px">' + item.icon + '</span> ' + escHtml(item.name) + '</div>'
+        + '<div style="color:#64748b;font-size:12px;margin-bottom:4px">' + escHtml(item.sig) + '</div>'
+        + '<div style="color:#94a3b8;font-size:11px">阈值：' + item.threshold + ' · 解析器：' + item.parser + '</div>'
+        + '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+
+  // ══════ 四、解析流程 ══════
+  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">四、解析流程</h3>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<strong>1. 磁盘扫描</strong> → 遍历 uploads/ 目录下所有 .xls/.xlsx/.csv/.pdf 文件，按修改时间排序。<br>'
+    + '<strong>2. 格式检测</strong> → 读取文件前5KB数据，判断是 xls/xlsx/csv/pdf 格式，调用对应的文件读取库（openpyxl / xlrd / csv / pypdf）。<br>'
+    + '<strong>3. 表头提取</strong> → 逐 sheet 读取前200行，提取每列的表头文字和历史数据样本。<br>'
+    + '<strong>4. 指纹匹配</strong> → 将表头文字与34类指纹关键词库做交叉匹配，计算每类的得分。<br>'
+    + '<strong>5. 类型判定</strong> → 取得分最高的类型（需超过阈值），未超过的进入结构分析和数据推断。<br>'
+    + '<strong>6. 解析器调用</strong> → 根据确定的文件类型，调用对应的专用解析器（如 _parse_bank_sheet / _parse_invoice_sheet 等），将原始表格转换为结构化数据。<br>'
+    + '<strong>7. 标准化输出</strong> → 统一字段命名（date/amount/seller/buyer/goods等），输出可在后续分析中直接使用的结构化数据。<br>'
+    + '<strong>8. 逻辑层</strong> → 统计每条解析动作（如 "bank_statement: 13条"），输出 file_results 和 pipeline_log。'
+    + '</div>'
+    + '</div>';
+
+  target.innerHTML = html;
 }
 
-// 34类文件指纹数据
+// 34类文件指纹数据（详尽版）
 function fpFingerprints() {
   return [
-    {icon:'🏧',name:'银行流水',sig:'交易日期+对方户名+借贷金额'},
-    {icon:'🧾',name:'销项发票',sig:'购方名称+金额+税率+税额'},
-    {icon:'📥',name:'进项发票',sig:'销方名称+金额+税率+税额'},
-    {icon:'📋',name:'通用发票',sig:'自动判定进销方向'},
-    {icon:'💰',name:'工资表',sig:'姓名+本期收入+代扣社保'},
-    {icon:'🛡️',name:'社保明细',sig:'姓名+社保基数+单位/个人'},
-    {icon:'🏡',name:'公积金',sig:'姓名+公积金基数+缴存比例'},
-    {icon:'📝',name:'记账凭证',sig:'凭证号+科目+借贷金额'},
-    {icon:'📦',name:'进销存台账',sig:'品名+期初+入库+出库+期末'},
-    {icon:'📊',name:'增值税申报表',sig:'销售额+销项税额+进项税额'},
-    {icon:'📈',name:'企业所得税申报表',sig:'营业收入+利润总额+应纳税额'},
-    {icon:'👤',name:'个税申报表',sig:'姓名+收入+应纳税所得额'},
-    {icon:'📑',name:'科目余额表',sig:'科目编码+期初+本期+期末余额'},
-    {icon:'💰',name:'利润表',sig:'营业收入+营业成本+利润总额'},
-    {icon:'🏦',name:'资产负债表',sig:'资产合计+负债合计+所有者权益'},
-    {icon:'💵',name:'现金流量表',sig:'经营+投资+筹资活动'},
-    {icon:'📄',name:'合同文件',sig:'合同编号+签约方+金额+日期'},
-    {icon:'🏢',name:'公司档案',sig:'工商登记/股东名册/章程'},
-    {icon:'🔗',name:'关联交易',sig:'关联方+交易类型+金额+定价'},
-    {icon:'🏭',name:'固定资产',sig:'资产名称+原值+折旧+净值'},
-    {icon:'📜',name:'无形资产',sig:'专利/商标+摊销+净值'},
-    {icon:'🤝',name:'应收账款',sig:'客户名称+欠款金额+账龄'},
-    {icon:'🏗️',name:'应付账款',sig:'供应商名称+应付金额+账龄'},
-    {icon:'💳',name:'预收预付',sig:'客户/供应商+预收/预付金额'},
-    {icon:'📋',name:'费用明细',sig:'费用类型+金额+报销人'},
-    {icon:'🚗',name:'差旅费',sig:'出差人+目的地+天数+金额'},
-    {icon:'📋',name:'纳税记录',sig:'税种+所属期+计税金额+实缴'},
-    {icon:'📄',name:'印花税',sig:'税目+计税金额+税率'},
-    {icon:'🏭',name:'环保税',sig:'污染物+排放量+税额'},
-    {icon:'🗂️',name:'通用表格',sig:'按数据结构反推'},
-    {icon:'📋',name:'诊断追踪记录',sig:'系统解析决策日志'},
-    {icon:'🔗',name:'关联数据',sig:'多文件交叉关联分析'},
-    {icon:'📤',name:'导出数据',sig:'外部系统数据导出'},
-    {icon:'🏷️',name:'其他格式',sig:'自动检测+数据推断'}
+    // 第一梯队
+    {icon:'🏧', name:'银行流水', sig:'对方户名 | 交易日期 | 收入金额 | 支出金额 | 借贷标志 | 余额 (23个关键词 阈值3分)', threshold:'≥3', parser:'_parse_bank_sheet'},
+    {icon:'💰', name:'工资表', sig:'本期收入 | 应发工资 | 代扣个税 | 社保 | 公积金 | 实发合计 (60+关键词 阈值2分)', threshold:'≥2', parser:'_parse_salary_sheet'},
+    {icon:'🧾', name:'销项发票', sig:'购方名称 | 购方税号 | 购买方纳税人识别号 (10个关键词 阈值2分)', threshold:'≥2', parser:'_parse_invoice_sheet(销项)'},
+    {icon:'📥', name:'进项发票', sig:'销方名称 | 销方税号 | 销售方名称 | 供应商名称 (11个关键词 阈值2分)', threshold:'≥2', parser:'_parse_invoice_sheet(进项)'},
+    {icon:'📋', name:'通用发票', sig:'发票号码 | 发票代码 | 开票日期 | 金额 | 税额 | 价税合计 | 税率 (20个关键词 阈值4分)', threshold:'≥4', parser:'_parse_invoice_sheet(进项)'},
+    {icon:'📝', name:'记账凭证', sig:'凭证号 | 科目名称 | 摘要 | 借方金额 | 贷方金额 (8个主关键词 阈值2分)', threshold:'≥2', parser:'_parse_voucher_sheet'},
+    {icon:'🛡️', name:'社保明细', sig:'缴费基数 | 单位缴纳 | 个人缴纳 | 养老保险 | 医疗保险 | 工伤保险 (15个关键词 阈值2分)', threshold:'≥2', parser:'_parse_social_sheet'},
+    {icon:'🏡', name:'公积金', sig:'公积金 | 缴存基数 | 缴存比例 | 单位缴存 | 个人缴存 | 月缴存额 (17个关键词 阈值2分)', threshold:'≥2', parser:'_parse_housing_fund_sheet'},
+    {icon:'📑', name:'进项抵扣勾选', sig:'勾选状态 | 有效抵扣税额 | 数电发票号码 | 发票风险等级 (5个关键词 阈值2分)', threshold:'≥2', parser:'_parse_input_vat_sheet'},
+    {icon:'📦', name:'进销存台账', sig:'期初库存 | 本期入库 | 本期出库 | 期末库存 | 存货编码 | 产品名称 (16个关键词 阈值2分)', threshold:'≥2', parser:'_parse_inventory_sheet'},
+    {icon:'📊', name:'科目余额表', sig:'科目编码 | 科目名称 | 期初余额 | 本期发生额 | 期末余额 (8个关键词 阈值2分)', threshold:'≥2', parser:'_parse_trial_balance_sheet'},
+    // 第二梯队
+    {icon:'📄', name:'合同文件', sig:'合同编号 | 签约方 | 合同金额 | 签订日期 | 履约期限 (9个关键词 阈值2分)', threshold:'≥2', parser:'_parse_contract_sheet'},
+    {icon:'🔗', name:'关联交易', sig:'关联方名称 | 交易类型 | 关联关系 | 交易金额 | 定价方式 (12个关键词 阈值2分)', threshold:'≥2', parser:'_parse_related_party'},
+    // 第三梯队
+    {icon:'💰', name:'财务报表', sig:'营业收入 | 营业成本 | 利润总额 | 资产合计 | 负债合计 | 期末余额 (18个关键词 阈值3分)', threshold:'≥3', parser:'_parse_financial_sheet'},
+    {icon:'🏦', name:'增值税申报表', sig:'销售额 | 销项税额 | 进项税额 | 应纳税额 | 期末留抵 (19个关键词 阈值3分)', threshold:'≥3', parser:'_parse_vat_declaration'},
+    {icon:'📈', name:'企业所得税申报表', sig:'营业收入 | 营业成本 | 利润总额 | 应纳税所得额 | 税率 (11个关键词 阈值3分)', threshold:'≥3', parser:'_parse_cit_declaration'},
+    {icon:'👤', name:'个税申报表', sig:'纳税人姓名 | 收入 | 应纳税所得额 | 已缴税额 | 应补退税额 (16个关键词 阈值2分)', threshold:'≥2', parser:'_parse_individual_tax'},
+    {icon:'📜', name:'印花税', sig:'税目 | 计税金额 | 税率 | 应纳税额 | 减免税额 (12个关键词 阈值2分)', threshold:'≥2', parser:'_parse_stamp_duty'},
+    {icon:'📋', name:'完税证明', sig:'税种 | 所属期 | 计税金额 | 实缴金额 | 缴款日期 (14个关键词 阈值2分)', threshold:'≥2', parser:'_parse_tax_payment'},
+    // 第四梯队
+    {icon:'📄', name:'合同清单', sig:'合同名称 | 对方名称 | 合同金额 | 已付金额 | 未付金额 (16个关键词 阈值2分)', threshold:'≥2', parser:'_parse_contract_list'},
+    {icon:'🤝', name:'应收账款', sig:'客户名称 | 欠款金额 | 账龄 | 账期 | 是否逾期 (10个关键词 阈值2分)', threshold:'≥2', parser:'_parse_accounts_receivable'},
+    {icon:'🏗️', name:'应付账款', sig:'供应商名称 | 应付金额 | 账龄 | 付款条件 (10个关键词 阈值2分)', threshold:'≥2', parser:'_parse_accounts_payable'},
+    {icon:'💳', name:'预收预付', sig:'客户/供应商名称 | 预收金额 | 预付金额 | 结算状态 (10个关键词 阈值2分)', threshold:'≥2', parser:'_parse_prepaid_advance'},
+    {icon:'🧾', name:'其他应收付', sig:'对方名称 | 应收/应付 | 金额 | 账龄 | 坏账准备 (7个关键词 阈值2分)', threshold:'≥2', parser:'_parse_other_receivables'},
+    // 第五梯队
+    {icon:'🏭', name:'固定资产', sig:'资产名称 | 原值 | 累计折旧 | 净值 | 入账日期 | 折旧年限 (14个关键词 阈值2分)', threshold:'≥2', parser:'_parse_fixed_assets'},
+    {icon:'📜', name:'无形资产', sig:'资产名称 | 原值 | 累计摊销 | 净值 | 摊销年限 (9个关键词 阈值2分)', threshold:'≥2', parser:'_parse_intangible_assets'},
+    {icon:'📊', name:'资产损失', sig:'资产名称 | 损失金额 | 损失原因 | 审批日期 (8个关键词 阈值2分)', threshold:'≥2', parser:'_parse_asset_impairment'},
+    {icon:'📋', name:'费用明细', sig:'费用类型 | 金额 | 报销人 | 所属部门 | 发生日期 (20个关键词 阈值2分)', threshold:'≥2', parser:'_parse_expense_detail'},
+    {icon:'🔬', name:'研发费用', sig:'研发项目 | 费用类型 | 金额 | 研发阶段 | 资本化/费用化 (12个关键词 阈值2分)', threshold:'≥2', parser:'_parse_rd_expense'},
+    // 第六梯队
+    {icon:'👥', name:'人员清单', sig:'姓名 | 身份证号 | 入职日期 | 离职日期 | 岗位 | 部门 (14个关键词 阈值2分)', threshold:'≥2', parser:'_parse_employee_list'},
+    {icon:'📄', name:'股权交易', sig:'出让方 | 受让方 | 转让比例 | 转让价格 | 审批日期 (9个关键词 阈值2分)', threshold:'≥2', parser:'_parse_equity_transaction'},
+    {icon:'💰', name:'借款合同', sig:'借款人 | 出借人 | 借款金额 | 利率 | 期限 | 担保方式 (14个关键词 阈值2分)', threshold:'≥2', parser:'_parse_loan_borrowing'},
+    {icon:'🚢', name:'进出口报关', sig:'报关单号 | 进出口类型 | 商品名称 | 金额 | 币种 | 口岸 (15个关键词 阈值2分)', threshold:'≥2', parser:'_parse_import_export'},
+    {icon:'📋', name:'通用数据', sig:'纯数值表 (9个关键词 兜底阈值1分)', threshold:'≥1', parser:'_parse_generic'},
   ];
 }
 
@@ -142,63 +235,84 @@ function renderFileParsingResult(report) {
   var failed = frs.filter(function(f) { return f.error; }).length;
 
   var html = ''
-    // 薄分隔线
-    + '<div style="height:1px;background:#f1f5f9;margin-bottom:32px"></div>'
-    // 统计行
-    + '<div style="display:flex;justify-content:center;margin-bottom:40px">'
-    + statLine('文件', frs.length, '#0f172a')
-    + statLine('已解析', parsed, '#059669')
-    + statLine('未解析', failed, failed > 0 ? '#dc2626' : '#94a3b8')
-    + statLine('日志', plogs.length, '#0f172a')
+    + '<div style="height:1px;background:#f1f5f9;margin-bottom:40px"></div>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">解析结果</h3>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">本次分析共解析 ' + frs.length + ' 个文件，成功识别 ' + parsed + ' 个，未识别 ' + failed + ' 个</p>'
+
+    // 统计卡片
+    + '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + frs.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">文件总数</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + parsed + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已解析</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + failed + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">未解析</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + plogs.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">管线日志</div></div>'
     + '</div>'
-    // 文件列表
-    + '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 16px">解析明细</h4>';
+
+    // 类型分布
+    + '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;margin:0 0 12px">类型分布</h4>';
+  var typeCount = {};
+  frs.forEach(function(fr) { var t = fr.type || 'unknown'; typeCount[t] = (typeCount[t] || 0) + 1; });
+  var types = Object.keys(typeCount).sort(function(a,b) { return typeCount[b] - typeCount[a]; });
+  if (types.length > 0) {
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px">';
+    types.forEach(function(t) {
+      html += '<div style="padding:6px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569">'
+        + escHtml(t) + ' <span style="font-weight:600;color:#0f172a">x' + typeCount[t] + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // 解析明细表
+  html += '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;margin:0 0 12px">解析明细</h4>';
 
   if (frs.length === 0) {
     html += '<div style="color:#94a3b8;font-size:13px;padding:24px 0">无文件数据</div>';
   } else {
     html += '<table style="width:100%;border-collapse:collapse;font-size:13px">'
       + '<thead><tr style="border-bottom:2px solid #0f172a;text-align:left">'
-      + '<th style="padding:8px 12px 8px 0;font-weight:600;color:#0f172a">#</th>'
+      + '<th style="padding:8px 12px 8px 0;font-weight:600;color:#0f172a;width:36px">#</th>'
       + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">文件名</th>'
-      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">类型</th>'
-      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">条数</th>'
-      + '<th style="padding:8px 0;font-weight:600;color:#0f172a"></th>'
+      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">识别类型</th>'
+      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">数据条数</th>'
+      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">解析动作</th>'
       + '</tr></thead><tbody>';
 
     frs.forEach(function(fr, i) {
       var typeLabel = fr.type || '未知';
       var status = fr.error ? 'fail' : (fr.type === 'unknown' ? 'warn' : 'ok');
-      var rowCount = '';
+      var rowCount = '—';
+      var actions = '';
       if (fr.actions && fr.actions.length) {
         var m = (fr.actions.join(' ')).match(/(\d+)条/);
         if (m) rowCount = m[1];
+        actions = fr.actions.join(' · ');
       }
-      var dot = status === 'fail' ? '●' : (status === 'warn' ? '●' : '●');
-      var dotColor = status === 'fail' ? '#dc2626' : (status === 'warn' ? '#f59e0b' : '#22c55e');
+      var statusIcon = status === 'fail' ? '✗' : (status === 'warn' ? '△' : '✓');
+      var statusColor = status === 'fail' ? '#dc2626' : (status === 'warn' ? '#f59e0b' : '#22c55e');
+      var rowBg = status === 'fail' ? '#fef2f2' : (i % 2 === 0 ? '#fafafa' : 'transparent');
 
-      html += '<tr style="border-bottom:1px solid #f1f5f9">'
+      html += '<tr style="border-bottom:1px solid #f1f5f9;background:' + rowBg + '">'
         + '<td style="padding:10px 12px 10px 0;color:#94a3b8">' + (i + 1) + '</td>'
-        + '<td style="padding:10px 12px;color:#0f172a;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(fr.file) + '">' + escHtml(fr.file) + '</td>'
-        + '<td style="padding:10px 12px;font-size:12px;color:#64748b">' + escHtml(typeLabel) + '</td>'
-        + '<td style="padding:10px 12px;color:#64748b">' + (rowCount || '—') + '</td>'
-        + '<td style="padding:10px 0;color:' + dotColor + ';font-size:10px">' + dot + '</td>'
+        + '<td style="padding:10px 12px;color:#0f172a;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(fr.file) + '">' + escHtml(fr.file) + '</td>'
+        + '<td style="padding:10px 12px;color:#64748b">' + escHtml(typeLabel) + '</td>'
+        + '<td style="padding:10px 12px;color:#475569;font-weight:600">' + rowCount + '</td>'
+        + '<td style="padding:10px 12px;color:#94a3b8;font-size:12px;max-width:280px">' + escHtml(actions) + '</td>'
         + '</tr>';
     });
 
     html += '</tbody></table>';
   }
 
-  // 管线日志
+  // 管线日志（详尽版）
   if (plogs.length > 0) {
-    html += '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:40px 0 16px">管线日志</h4>';
-    html += '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:360px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2">';
+    html += '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;margin:40px 0 12px">管线日志 — 共 ' + plogs.length + ' 条</h4>';
+    html += '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:500px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.2">';
     plogs.forEach(function(log, i) {
       var color = '#64748b';
-      if (log.indexOf('异常') >= 0 || log.indexOf('失败') >= 0) color = '#fca5a5';
-      else if (log.indexOf('完成') >= 0 || log.indexOf('成功') >= 0) color = '#86efac';
-      else if (log.indexOf('发现') >= 0) color = '#fde68a';
-      html += '<div style="color:' + color + '">[' + (i + 1) + '] ' + escHtml(log) + '</div>';
+      if (/异常|失败|错误/.test(log)) color = '#fca5a5';
+      else if (/完成|成功|通过/.test(log)) color = '#86efac';
+      else if (/发现|触发|命中/.test(log)) color = '#fde68a';
+      else if (/Phase|Step|阶段/.test(log)) color = '#93c5fd';
+      html += '<div style="color:' + color + '">[' + (i + 1).toString().padStart(3, ' ') + '] ' + escHtml(log) + '</div>';
     });
     html += '</div>';
   }
