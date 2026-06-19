@@ -873,14 +873,14 @@ function filterEvidenceList() {
   if (_allEvidenceChains) renderEvidenceList(_allEvidenceChains);
 }
 
-// ==================== 页面：一键分析 ====================
+// ==================== 页面：分析链 ====================
 function renderAnalyzePage(container) {
   if (!container) return;
-  window.currentModule = '一键分析';
+  window.currentModule = '分析链';
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '<div>'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">一键分析概览</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">方法论驱动稽查引擎——点击"运行一键分析"启动完整稽查流程</p>'
+    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">1503规则 + 386线索链 + 735证据链 → 方法论过滤器 → 正式稽查报告</p>'
     + '</div>'
     + '<div id="analyze-body"></div>'
     + '</div>';

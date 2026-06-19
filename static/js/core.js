@@ -64,7 +64,7 @@ const pages = {
   'pipeline-rules': '规则',
   'chains-page': '线索链',
   'evidence-page': '证据链',
-  'analyze-page': '一键分析',
+  'analyze-page': '分析链',
   'cross-domain-evidence': '跨域证据链',
   'system-logs': '系统日志'
 };
