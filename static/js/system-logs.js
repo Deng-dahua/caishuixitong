@@ -73,12 +73,12 @@ function renderSystemLogsTable(logs, filter) {
     html += '<tr style="border-bottom:1px solid #f1f5f9">'
       + '<td style="padding:8px 12px 8px 0;white-space:nowrap;color:#64748b">' + time + '</td>'
       + '<td style="padding:8px 12px;color:#0f172a">' + actionText + '</td>'
-      + '<td style="padding:8px 12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b" title="' + esc(l.path) + '">' + esc(l.path.replace('/api/','')) + '</td>'
+      + '<td style="padding:8px 12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b" title="' + escLog(l.path) + '">' + escLog(l.path.replace('/api/','')) + '</td>'
       + '<td style="padding:8px 12px;text-align:center;color:' + statusColor + '">' + l.status_code + '</td>'
       + '<td style="padding:8px 12px;text-align:center;color:#94a3b8">' + (l.response_time_ms || '-') + 'ms</td>'
-      + '<td style="padding:8px 12px;color:#0f172a">' + (l.user_name ? esc(l.user_name) + ' <span style="color:#94a3b8">' + esc(l.user_phone || '') + '</span>' : '<span style="color:#94a3b8">-</span>') + '</td>'
-      + '<td style="padding:8px 12px;color:#64748b">' + esc(l.client_ip || '-') + '</td>'
-      + '<td style="padding:8px 0;color:#94a3b8">' + esc(l.location || '') + '</td>'
+      + '<td style="padding:8px 12px;color:#0f172a">' + (l.user_name ? escLog(l.user_name) + ' <span style="color:#94a3b8">' + escLog(l.user_phone || '') + '</span>' : '<span style="color:#94a3b8">-</span>') + '</td>'
+      + '<td style="padding:8px 12px;color:#64748b">' + escLog(l.client_ip || '-') + '</td>'
+      + '<td style="padding:8px 0;color:#94a3b8">' + escLog(l.location || '') + '</td>'
       + '</tr>';
   });
   html += '</tbody></table>';
@@ -95,7 +95,7 @@ async function clearSystemLogs() {
   } catch(e) { toast('清空失败', 'error'); }
 }
 
-function esc(s) {
+function escLog(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

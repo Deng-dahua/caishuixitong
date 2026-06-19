@@ -802,7 +802,7 @@ function applyFixedRules(fixedRulesJson) {
       return;
     }
     taxRiskRulesData = fixed;
-    saveTaxRiskRulesToCache();
+    saveTaxRiskRulesToLocal();
     closeAuditModal();
     renderTaxRiskRules();
     toast('已应用修复结果: ' + fixed.length + '条规则', 'success');
@@ -1201,7 +1201,7 @@ function applyParsedRules(rulesStr) {
     var rules = JSON.parse(rulesStr.replace(/&quot;/g, '"'));
     if (!Array.isArray(rules) || rules.length === 0) { toast('解析数据无效', 'error'); return; }
     taxRiskRulesData = taxRiskRulesData.concat(rules);
-    saveTaxRiskRulesToCache();
+    saveTaxRiskRulesToLocal();
     closeAuditModal();
     renderTaxRiskRules();
     toast('已添加 ' + rules.length + ' 条规则', 'success');

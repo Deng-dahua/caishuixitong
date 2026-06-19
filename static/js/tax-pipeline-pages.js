@@ -303,12 +303,6 @@ function renderDomainAnalysisStatic() {
     + '</div>';
 }
 
-function statLine(label, value, color) {
-  return '<div style="text-align:center;padding:0 24px;border-right:1px solid #f1f5f9">'
-    + '<div style="font-size:32px;font-weight:700;color:' + color + ';line-height:1.2">' + value + '</div>'
-    + '<div style="font-size:12px;color:#94a3b8;margin-top:2px">' + label + '</div></div>';
-}
-
 async function loadDomainAnalysisData() {
   var target = document.getElementById('da-analysis-result');
   if (!target) return;
@@ -510,6 +504,7 @@ function renderCrossDomainDynamic(report) {
   var comprehensive = report.comprehensive || {};
 
   var crossDomainFindings = [];
+  var allF = report.all_findings || [];
   domainSummary.forEach(function(ds) {
     if (ds.name && ds.name.indexOf('跨域关联推理') >= 0) {
       crossDomainFindings = ds.findings || [];
@@ -613,6 +608,7 @@ var _allChains = [];
 var _chainDynamic = null;
 var _allClueChains = [];
 var _allEvidenceChains = [];
+var _allCrossChains = null;
 
 // ==================== 页面：线索链 ====================
 function renderChainsPage(container) {
@@ -870,11 +866,11 @@ function renderEvidenceList(chains) {
   }
 
   target.innerHTML = html;
-  window._allEvidenceChains = chains;
+  _allEvidenceChains = chains;
 }
 
 function filterEvidenceList() {
-  if (window._allEvidenceChains) renderEvidenceList(window._allEvidenceChains);
+  if (_allEvidenceChains) renderEvidenceList(_allEvidenceChains);
 }
 
 // ==================== 页面：一键分析 ====================
@@ -983,12 +979,6 @@ function renderAnalyzeResult(report) {
 
 // ==================== 工具函数 ====================
 function _escStatic(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function statCard(icon, label, value, color) {
-  return '<div style="flex:1;min-width:80px;padding:12px 16px;text-align:center;border-right:1px solid #f1f5f9">'
-    + '<div style="font-size:28px;font-weight:700;color:#0f172a">' + value + '</div>'
-    + '<div style="font-size:13px;color:#94a3b8;margin-top:2px">' + label + '</div>'
-    + '</div>';
-}
 
 function escHtml(s) {
   if (!s) return '';
