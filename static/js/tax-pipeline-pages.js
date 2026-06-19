@@ -1188,19 +1188,21 @@ function renderAiRules(container) {
     {id:13, name:'代码即承诺', level:'铁律', date:'2026-06-19',
      desc:'所有提出的功能、方法论、规则、分析链等概念，必须全部编写为实际可运行的代码。禁止只写口号不写代码。禁止在报告/文档中声称已实现但代码中找不到对应逻辑。每项声称必须有代码位置（文件名:行号）可追溯。'},
     {id:14, name:'全行业适用', level:'铁律', date:'2026-06-19',
-     desc:'所有行为准则、稽查方法论、代码逻辑必须适用于全行业各企业。禁止为单一企业/单一行业做特化硬编码。发现行业特化代码（如只针对纺织的关键词列表）必须改造为行业自适应——通过词典/配置/策略模式覆盖全行业。'},
+     desc:'所有行为准则、稽查方法论、代码逻辑必须适用于全行业各企业。禁止为单一企业/单一行业做特化硬编码。发现行业特化代码必须改造为行业自适应。'},
+    {id:15, name:'提交前自查', level:'铁律', date:'2026-06-20',
+     desc:'每次写代码后、commit 前，必须按全部铁律逐条自查。检查清单：①行业特化硬编码 ②只写口号没代码 ③变量定义前引用 ④数据截断[:N] ⑤语法编译 ⑥JSON格式。自查不通过不提交。'},
   ];
 
   var html = '';
   html += '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">';
   html += '<div style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">AI行为准则</div>';
-  html += '<div style="font-size:14px;color:#94a3b8;margin:0 0 32px">共 ' + rules.length + ' 条，其中 <span style="color:#c92a2a;font-weight:600">9 条铁律</span></div>';
+  html += '<div style="font-size:14px;color:#94a3b8;margin:0 0 32px">共 ' + rules.length + ' 条，其中 <span style="color:#c92a2a;font-weight:600">10 条铁律</span></div>';
 
   // 分类统计
   html += '<div style="display:flex;gap:16px;margin-bottom:32px">';
-  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#fef2f2;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#991b1b">9</div><div style="font-size:13px;color:#7f1d1d">🔴 铁律</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#fef2f2;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#991b1b">10</div><div style="font-size:13px;color:#7f1d1d">🔴 铁律</div></div>';
   html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f0fdf4;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#166534">5</div><div style="font-size:13px;color:#14532d">📋 准则</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f8fafc;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#0f172a">14</div><div style="font-size:13px;color:#64748b">📊 合计</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f8fafc;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#0f172a">15</div><div style="font-size:13px;color:#64748b">📊 合计</div></div>';
   html += '</div>';
 
   // 逐条渲染
