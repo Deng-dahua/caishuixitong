@@ -12857,21 +12857,37 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     
     # ═══ 逐项生成缺失资料的详细风险提示 ═══
     
+    # ═══ 合同需求分层（行业无关，基于发票品名+金额+类型自动分类）═══
+    contract_tiers = _analyze_contract_tiers(pur_invs, sal_invs) if pur_invs else {'must_contract': [], 'may_skip': [], 'must_total_amt': 0, 'may_skip_total_amt': 0}
+    mc_list = contract_tiers.get('must_contract', [])
+    ms_list = contract_tiers.get('may_skip', [])
+    must_total = contract_tiers.get('must_total_amt', 0)
+    may_total = contract_tiers.get('may_skip_total_amt', 0)
+    # 构建分层明细文本
+    mc_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.0f}元" for n, amt, r in mc_list[:10]) if mc_list else "    （无）"
+    ms_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.0f}元" for n, amt, r in ms_list[:10]) if ms_list else "    （无）"
+    mc_more = f"\n    ... 还有{len(mc_list)-10}家" if len(mc_list) > 10 else ""
+    ms_more = f"\n    ... 还有{len(ms_list)-10}家" if len(ms_list) > 10 else ""
+    stamp_tax_est = must_total * 0.0003  # 购销合同印花税税率0.03%
+
     # 缺失项定义：(key, finding_type, level, score, detail, description, tax_impact, policy, suggestion)
     MISSING_DEFS = [
         ("contract", "合同文件缺失", "高风险", 9,
          lambda: (
-             f"合同需求分层分析（行业无关，基于发票货物名称判断）：\n"
-             f"总供应商{len(set(str(i.get('seller',''))[:15] for i in pur_invs if i.get('seller'))) if pur_invs else 0}家，"
-             f"销项客户{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}家。\n"
+             f"合同需求分层分析（行业无关，基于发票品名+金额+类型自动分类）：\n"
+             f"总供应商{contract_tiers.get('total_suppliers', 0)}家，销项客户{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}家。\n\n"
+             f"【必须签合同】{len(mc_list)}家，交易额{must_total:,.0f}元：\n"
+             f"{mc_text}{mc_more}\n"
+             f"【可免签合同】{len(ms_list)}家，交易额{may_total:,.0f}元：\n"
+             f"{ms_text}{ms_more}\n\n"
              f"按三标准自动分类：①主营业务(材料/加工/成品交易)→必须合同；"
              f"②单笔或累计>5万元的非日常支出→必须合同；"
              f"③日常消费(加油/酒店/餐饮/差旅/通讯/办公/税务)→发票为凭证即可。\n"
-             f"被查单位缺失合同的影响集中在第一类和第二类。四流合一缺了合同流，印花税计税依据缺失。"
+             f"被查单位缺失合同的影响集中在第一类{must_total:,.0f}元交易。四流合一缺了合同流，印花税计税依据缺失（预计漏缴{stamp_tax_est:,.0f}元）。"
          ),
-         lambda: f"缺少合同文件——需按业务性质分层判断：主营业务交易和>5万元的大额非日常支出必须有合同；加油/酒店/餐饮/差旅/通讯/办公等标准化日常消费以发票为凭证即可。①稽查逐笔质疑无合同交易的商业合理性；②无合同→印花税漏缴；③大额无合同→虚开发票嫌疑。",
+         lambda: f"缺少合同文件——需按业务性质分层判断：{len(mc_list)}个供应商/交易额{must_total:,.0f}元必须有合同，{len(ms_list)}个日常消费类以发票为凭证即可。①稽查逐笔质疑{len(mc_list)}笔无合同交易的商业合理性；②无合同→印花税漏缴(约{stamp_tax_est:,.0f}元)；③大额无合同→虚开发票嫌疑。",
          lambda: "《税收征收管理法》第五十四条；《印花税法》关于应税合同的规定。",
-         "① 为主营业务供应商补签购销合同；② 为单笔>5万元的非日常交易补签合同；③ 合同必须明确双方、金额、货物内容、履行期限、违约责任；④ 日常消费类（加油/酒店/餐饮/差旅/通讯/办公/税务）以发票为凭证，不需补签；⑤ 按合同金额补缴印花税。"),
+         f"① 为{must_total:,.0f}元必签合同的交易补签购销合同（共{len(mc_list)}家供应商）；② 合同必须明确双方、金额、货物内容、履行期限、违约责任；③ {len(ms_list)}家日常消费类以发票为凭证即可，不需补签；④ 按合同金额补缴印花税约{stamp_tax_est:,.0f}元。"),
         
         ("bank", "银行流水缺失", "高风险", 10,
          lambda: "缺少银行流水——稽查第一份就要调的资料",
