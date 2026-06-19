@@ -9396,6 +9396,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ═══════════════ 资料中转站 ═══════════════
 TRANSFER_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
 os.makedirs(TRANSFER_DIR, exist_ok=True)
+# ═══════════════ 最近分析结果缓存 ═══════════════
+_last_analysis_cache = {}  # {company_id: {report, timestamp}}
 
 def _save_to_transfer(company_id, doc_id, original_name, parsed_data):
     path = os.path.join(TRANSFER_DIR, f"{company_id}_{doc_id}.json")
@@ -17356,7 +17358,7 @@ def _run_analyze(company_id, db):
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
     
-    return {"ok": True, "report": {
+    result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
@@ -17367,6 +17369,9 @@ def _run_analyze(company_id, db):
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
     }}
+    # 缓存最近分析结果
+    _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
+    return result
 
 # ═══════════ 明细注入：为每条发现附加结构化明细数据 ═══════════
 
@@ -18474,6 +18479,15 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
             "issues": issues
         }
     }
+
+
+@app.get("/api/tax-risk-docs/last-analysis")
+async def get_last_analysis(company_id: int = Query(...)):
+    """获取最近一次分析结果缓存（无需重新分析）"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
+    return cached["report"]
 
 
 @app.get("/api/health")

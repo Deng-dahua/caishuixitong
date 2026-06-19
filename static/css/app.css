@@ -762,3 +762,45 @@
       color: var(--gray-400);
       font-size: 13px;
     }
+
+    /* ═══════════ 稽查管道独立页 ═══════════ */
+    .pipeline-page {
+      padding: 20px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .pipeline-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 16px;
+    }
+    .pipeline-body {
+      min-height: 200px;
+    }
+    .pipeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .pipeline-table th {
+      background: #f8fafc;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid #e2e8f0;
+      font-weight: 600;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .pipeline-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+    .pipeline-table tbody tr:hover {
+      background: #f8fafc;
+    }
+    .domain-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }

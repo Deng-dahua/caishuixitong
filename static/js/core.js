@@ -57,7 +57,10 @@ const pages = {
   'bookkeeping-invoices': '记账发票',
   'tax-risk-report': '账务风险分析报告',
   'tax-risk-rules': '涉税风险稽查指令',
-  'tax-doc-analysis': '资料风险分析报告'
+  'tax-doc-analysis': '资料风险分析报告',
+  'file-parsing': '文件解析',
+  'domain-analysis': '域分析',
+  'cross-domain-evidence': '跨域证据链'
 };
 
 // ==================== 用户登录 ====================
@@ -532,6 +535,9 @@ function navigateTo(page) {
     case 'tax-risk-report': renderTaxRiskReport(container); break;
     case 'tax-risk-rules': renderTaxRiskRules(container); break;
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
+    case 'file-parsing': renderFileParsingPage(container); break;
+    case 'domain-analysis': renderDomainAnalysisPage(container); break;
+    case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
   }
   window.scrollTo(0, 0);
