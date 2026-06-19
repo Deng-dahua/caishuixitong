@@ -375,11 +375,12 @@ function renderTaxDocReport(r) {
 
   allF.forEach(function(f,i){
     var s = f.score||0;
-    var bc = s>=8?S.red:(s>=6?S.amber:'#94a3b8');
-    var tc = s>=8?'rtag':(s>=6?'atag':'gtag');
     var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
+    var bc = f.level_fixed ? S.red : (s>=8?S.red:(s>=6?S.amber:'#94a3b8'));
+    var tc = f.level_fixed ? 'rtag' : (s>=8?'rtag':(s>=6?'atag':'gtag'));
+    var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">稽查重点</span>':'');
     h += '<div class="f" style="border-left:4px solid '+bc+'">';
-    h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span></div>';
+    h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
     h += '<div class="fb"><p>'+esc((f.detail||'')+(f.description||'').substring(0,300))+'</p></div>';
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);

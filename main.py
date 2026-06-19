@@ -15553,6 +15553,34 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
     return intel
 
 
+# ═══════════════════════════════════════════════════════════
+# 稽查重点：现实中不管score多少，这些风险类型就是稽查必查项
+# 等级不由score计算，而是由审计实务的优先级决定
+# ═══════════════════════════════════════════════════════════
+AUDIT_PRIORITY_LEVELS = {
+    # 资金流 —— 稽查最核心的三流合一
+    "收款来源与开票客户严重不匹配": "高风险",
+    "进项发票与银行付款未匹配": "高风险",
+    "收款与开票金额偏差大": "高风险",
+    # 资料完备 —— 缺资料就是递刀子
+    "合同文件缺失": "高风险",
+    "银行流水缺失": "高风险",
+    "销项发票缺失": "高风险",
+    "进项发票缺失": "高风险",
+    "记账凭证缺失": "高风险",
+    "资料完备度综合评估": "高风险",
+    # 进销存 —— 虚开发票的核心信号
+    "进销品名映射": "高风险",
+    # 费用 —— 偷逃税常用手段
+    "费用发票占比异常": "高风险",
+    "费用名目分散": "中风险",
+}
+
+def _fix_level_by_audit_priority(ftype, current_level):
+    """稽查重点发现强制等级——不根据score计算，根据审计实务的必查优先级"""
+    return AUDIT_PRIORITY_LEVELS.get(ftype, current_level)
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -16990,6 +17018,25 @@ def _run_analyze(company_id, db):
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
     
+    # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
+    priority_fixed = 0
+    for f in all_findings:
+        ftype = f.get("type", "")
+        for key, level in AUDIT_PRIORITY_LEVELS.items():
+            if key in ftype:
+                if f.get("level") != level:
+                    f["level"] = level
+                    f["level_fixed"] = True
+                    priority_fixed += 1
+                else:
+                    f["level_fixed"] = True  # 即使等级已匹配也标记
+                break
+    if priority_fixed:
+        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
+    else:
+        # 兜底：如果没匹配到任何发现，说明 this shouldn't happen
+        pass
+    
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     all_findings, pipeline_log = _apply_methodology_filter(all_findings, pipeline_log, 
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
@@ -16997,13 +17044,33 @@ def _run_analyze(company_id, db):
     # ═══ 重算风险统计（过滤后）═══
     # 确保进销存匹配核心发现不丢失（有进无销/有销无进/进销数量偏差）
     for imf in inv_match_findings:
-        if imf.get("score", 0) >= 6:
+        if imf.get("score", 0) >= 5:  # 放宽到5（制造业诊断后score可低至5）
             exists = any(f.get("type") == imf.get("type") for f in all_findings)
             if not exists:
+                # 稽查重点修正
+                for key, level in AUDIT_PRIORITY_LEVELS.items():
+                    if key in imf.get("type", ""):
+                        imf["level"] = level
+                        imf["level_fixed"] = True
+                        break
                 all_findings.append(imf)
     
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
+    
+    # ═══ 稽查重点等级修正：现实中不根据score定级，根据审计实务优先级 ═══
+    priority_fixed = 0
+    for f in all_findings:
+        ftype = f.get("type", "")
+        for key, level in AUDIT_PRIORITY_LEVELS.items():
+            if key in ftype:  # 模糊匹配——发现类型可能带长后缀
+                if f.get("level") != level:
+                    f["level"] = level
+                    f["level_fixed"] = True
+                    priority_fixed += 1
+                break
+    if priority_fixed:
+        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条发现按审计实务优先级调整等级")
     
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
@@ -17622,6 +17689,11 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         full_text = f_type + " " + f_detail + " " + f_desc
         skip = False
         reason = ""
+        
+        # 规则0：稽查重点发现（level_fixed=True）不参与任何过滤，强制保留
+        if f.get("level_fixed"):
+            filtered.append(f)
+            continue
         
         # 规则0：证据链自动生成结论 → 删除（检查type和detail）
         if f_type.startswith("证据链闭环") or "证据链" in f_type or "证据链[" in f_detail:
