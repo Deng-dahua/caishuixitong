@@ -1,0 +1,438 @@
+/* ═══════════════════════════════════════════════════════════
+   稽查管道统一版面样式
+   ═══════════════════════════════════════════════════════════ */
+
+/* ==================== 页面容器 ==================== */
+.pipeline-page {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ==================== 页面头部 ==================== */
+.pipeline-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.pipeline-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ==================== 页面主体 ==================== */
+.pipeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ==================== 概览卡片区 ==================== */
+.pipeline-overview {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pipeline-card {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 12px;
+  transition: all 0.2s ease;
+}
+
+.pipeline-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.pipeline-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pipeline-card-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* 卡片颜色变体 */
+.pipeline-card-blue { border-color: #2563eb; }
+.pipeline-card-blue .pipeline-card-value { color: #2563eb; }
+
+.pipeline-card-green { border-color: #059669; }
+.pipeline-card-green .pipeline-card-value { color: #059669; }
+
+.pipeline-card-purple { border-color: #7c3aed; }
+.pipeline-card-purple .pipeline-card-value { color: #7c3aed; }
+
+.pipeline-card-orange { border-color: #f59e0b; }
+.pipeline-card-orange .pipeline-card-value { color: #f59e0b; }
+
+.pipeline-card-red { border-color: #dc2626; }
+.pipeline-card-red .pipeline-card-value { color: #dc2626; }
+
+.pipeline-card-gray { border-color: #94a3b8; }
+.pipeline-card-gray .pipeline-card-value { color: #94a3b8; }
+
+/* ==================== 静态内容区 ==================== */
+.pipeline-static {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.pipeline-static-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline-static-content {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.pipeline-static-content p {
+  margin: 0 0 8px 0;
+}
+
+.pipeline-static-content b {
+  color: #1e293b;
+}
+
+/* ==================== 动态内容区 ==================== */
+.pipeline-dynamic {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+}
+
+.pipeline-dynamic-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==================== 内容区块 ==================== */
+.pipeline-section {
+  margin-bottom: 20px;
+}
+
+.pipeline-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ==================== 表格样式 ==================== */
+.pipeline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pipeline-table thead {
+  background: #f8fafc;
+}
+
+.pipeline-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pipeline-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.pipeline-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.pipeline-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ==================== Badge 样式 ==================== */
+.pipeline-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.pipeline-badge-blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.pipeline-badge-green {
+  background: #f0fdf4;
+  color: #059669;
+}
+
+.pipeline-badge-purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.pipeline-badge-orange {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.pipeline-badge-red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.pipeline-badge-gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ==================== 链/证据卡片 ==================== */
+.pipeline-chain-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.pipeline-chain-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.pipeline-chain-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pipeline-chain-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-chain-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==================== 过滤/搜索栏 ==================== */
+.pipeline-filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.pipeline-search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #1e293b;
+  transition: border-color 0.2s;
+}
+
+.pipeline-search-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.pipeline-filter-select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.pipeline-filter-select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* ==================== 按钮样式 ==================== */
+.pipeline-btn {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline-btn-primary {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.pipeline-btn-primary:hover {
+  background: #1e293b;
+}
+
+.pipeline-btn-secondary {
+  background: #fff;
+  color: #475569;
+}
+
+.pipeline-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pipeline-btn-danger {
+  background: #fff;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.pipeline-btn-danger:hover {
+  background: #fef2f2;
+}
+
+/* ==================== 加载/空状态 ==================== */
+.pipeline-loading {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.pipeline-empty {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.pipeline-error {
+  text-align: center;
+  padding: 20px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* ==================== 维度标签 ==================== */
+.pipeline-dimension-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin: 2px;
+}
+
+.pipeline-dimension-tag-blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.pipeline-dimension-tag-purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #c4b5fd;
+}
+
+/* ==================== 响应式布局 ==================== */
+@media (max-width: 768px) {
+  .pipeline-page {
+    padding: 12px;
+  }
+  
+  .pipeline-overview {
+    flex-direction: column;
+  }
+  
+  .pipeline-card {
+    min-width: 100%;
+  }
+  
+  .pipeline-filter-bar {
+    flex-direction: column;
+  }
+  
+  .pipeline-search-input {
+    min-width: 100%;
+  }
+}

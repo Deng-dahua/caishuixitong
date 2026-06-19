@@ -8,27 +8,34 @@ function renderFileParsingPage(container) {
   window.currentModule = '文件解析';
 
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div class="pipeline-header"><h2>📄 文件解析详情</h2></div>'
+    + '<div class="pipeline-header">'
+    + '<h2 class="pipeline-title">📄 文件解析详情</h2>'
+    + '<p class="pipeline-subtitle">三层递进识别机制——关键词匹配→结构分析→数据推断兜底，兼容34类文件格式</p>'
+    + '</div>'
     + '<div class="pipeline-body" id="fp-body">'
-    + renderFileParsingStatic()  // 静态参考内容（始终显示）
-    + '<div id="fp-analysis-result"><div style="text-align:center;padding:40px;color:#94a3b8">动态分析结果加载中...</div></div>'
+    + '<div id="fp-static"></div>'
+    + '<div id="fp-analysis-result"></div>'
     + '</div></div>';
 
+  renderFileParsingStatic();
   loadFileParsingData();
 }
 
 function renderFileParsingStatic() {
-  return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
-    + '<h3 style="font-size:14px;color:#1e293b;margin-bottom:12px">📐 文件解析管线说明</h3>'
-    + '<div style="font-size:12px;color:#475569;line-height:1.8">'
-    + '<p style="margin-bottom:8px"><b>三层递进识别机制：</b></p>'
+  var target = document.getElementById('fp-static');
+  if (!target) return;
+  
+  target.innerHTML = '<div class="pipeline-static">'
+    + '<h3 class="pipeline-static-title">📐 文件解析管线说明</h3>'
+    + '<div class="pipeline-static-content">'
+    + '<p><b>三层递进识别机制：</b></p>'
     + '<p>① <b>关键词匹配</b>——检测表头列名中的特征词（如"货物或应税劳务名称"→发票，"交易日期"→银行流水），快速判定文件类型。</p>'
     + '<p>② <b>结构分析</b>——通过列数量、列位置、表头组合模式进一步确认。例如同时有"购方名称+销方名称+金额+税率"→确认为发票；"姓名+本期收入+代扣社保+实发金额"→工资表。</p>'
     + '<p>③ <b>数据推断兜底</b>——当前两步失败时，读取前200行数据，按列角色推断（日期列/金额列/对手方列），自动判定文件最可能的类型，确保不丢数据。</p>'
     + '</div>'
 
-    + '<h3 style="font-size:14px;color:#1e293b;margin:16px 0 8px">🗂️ 34类文件指纹识别库</h3>'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;font-size:11px">'
+    + '<h3 class="pipeline-static-title">🗂️ 34类文件指纹识别库</h3>'
+    + '<div class="pipeline-file-grid">'
     // 流水类
     + '<div style="background:#fff;border-left:3px solid #2563eb;padding:8px 10px;border-radius:4px"><b style="color:#2563eb">🏧</b> 银行流水 — 交易日期+对方户名+借贷金额</div>'
     // 发票类
