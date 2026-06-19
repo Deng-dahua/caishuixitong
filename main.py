@@ -14652,6 +14652,9 @@ def _get_product_keywords(industry_code, is_raw=True):
 
 
 # ═══════════ 域分析：行业对标 ═══════════
+
+def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, inventory, target_industry=""):
+    """与行业基准值对比——基于国家税总局行业预警值"""
     findings = []
     bm = INDUSTRY_BENCHMARKS.get(target_industry, INDUSTRY_BENCHMARKS["_default"])
     
@@ -16623,7 +16626,7 @@ def _run_analyze(company_id, db):
     else: domain_results.append({"domain": "收入时间线调查", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "供应商画像分析", "findings": _domain_supplier_profiling(pur_invs, bank_txs)})
     else: domain_results.append({"domain": "供应商画像分析", "findings": []})
-    if _has_bank: domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity)})
+    if _has_bank: domain_results.append({"domain": "资金流向追踪", "findings": _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs)})
     else: domain_results.append({"domain": "资金流向追踪", "findings": []})
     if _has_any_data: domain_results.append({"domain": "人员与业务匹配", "findings": _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security)})
     else: domain_results.append({"domain": "人员与业务匹配", "findings": []})
@@ -17504,6 +17507,17 @@ def _run_analyze(company_id, db):
                     pipeline_log.append(f"  ⚠️ {target_entity['_company_status_warning']}")
         except Exception as _ol_err:
             pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
+    
+    # ═══ 稽查方法论③ 付款方身份核实：联网获取法人/股东信息后，补充匹配 ═══
+    if target_entity.get("_online_lookup") and bank_txs:
+        try:
+            payer_id_check = _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity)
+            for pf in payer_id_check:
+                if "个人付款方身份核实" in pf.get("type", ""):
+                    all_findings.append(pf)
+                    pipeline_log.append(f"付款方身份核实: 个人付款方已与法定代表人/股东名单比对")
+        except Exception as _pi_err:
+            pipeline_log.append(f"付款方身份核实失败: {_pi_err}")
     
     # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
     priority_fixed = 0
