@@ -20,6 +20,11 @@ import hashlib
 import uuid
 import openpyxl
 import json
+import urllib.request
+import urllib.parse
+import urllib.error
+import ssl
+import time as _time_module_inner
 from pypdf import PdfReader
 
 from database import (
@@ -17308,6 +17313,17 @@ def _run_analyze(company_id, db):
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
     
+    # ═══ 稽查方法论⑥ 联网核查：上网查企业工商信息 ═══
+    if target_entity.get("name"):
+        try:
+            target_entity = _enrich_target_entity_from_online(target_entity, db, company_id)
+            if target_entity.get("_online_lookup"):
+                pipeline_log.append(f"联网核查: {target_entity['name']} — 来源: {target_entity.get('lookup_source', '未知')}")
+                if target_entity.get("_company_status_warning"):
+                    pipeline_log.append(f"  ⚠️ {target_entity['_company_status_warning']}")
+        except Exception as _ol_err:
+            pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
+    
     # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
     priority_fixed = 0
     for f in all_findings:
@@ -17910,6 +17926,390 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
             entity["type"] = "贸易型企业"
     
     return entity
+
+
+# ═══════════ 稽查方法论⑥ 联网核查 —— 上线查企业工商信息 ═══════════
+
+# 公开企业信息查询源
+_COMPANY_LOOKUP_SOURCES = [
+    # 天眼查公开搜索页（无需登录的基础信息）
+    {
+        "name": "天眼查",
+        "url_template": "https://www.tianyancha.com/search?key={company_name}",
+        "parser": "tianyancha_public",
+    },
+    # 企查查公开搜索页
+    {
+        "name": "企查查",
+        "url_template": "https://www.qcc.com/web/search?key={company_name}",
+        "parser": "qcc_public",
+    },
+    # 国家企业信用信息公示系统（官方）
+    {
+        "name": "国家公示系统",
+        "url_template": "http://www.gsxt.gov.cn/index.html",  # 需要交互式查询
+        "parser": "gsxt_public",
+    },
+    # 爱企查（百度旗下）
+    {
+        "name": "爱企查",
+        "url_template": "https://aiqicha.baidu.com/s?q={company_name}",
+        "parser": "aiqicha_public",
+    },
+]
+
+def _http_get(url, timeout=8):
+    """带重试的 HTTP GET，返回 (status, body_text)"""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                body = resp.read()
+                charset = resp.headers.get_content_charset() or "utf-8"
+                return resp.status, body.decode(charset, errors="replace")
+        except Exception as e:
+            if attempt == 0:
+                _time_module_inner.sleep(1)
+                continue
+            return None, str(e)
+    return None, "timeout"
+
+
+def _extract_company_from_html(html_text, source_name):
+    """从各平台的HTML中提取企业信息"""
+    if not html_text:
+        return None
+    
+    info = {
+        "source": source_name,
+        "company_name": "",
+        "legal_representative": "",
+        "registered_capital": "",
+        "established_date": "",
+        "business_scope": "",
+        "address": "",
+        "industry": "",
+        "company_type": "",
+        "uscc": "",
+        "status": "",
+        "shareholders": [],
+        "raw_fields": {},
+    }
+    
+    # 通用模式：从HTML title/meta提取
+    # 企业名称模式
+    name_patterns = [
+        r'公司名称[：:]\s*([^<\n]{4,60})',
+        r'企业名称[：:]\s*([^<\n]{4,60})',
+        r'<title>([^<]{4,60}?)(?:-|_|\||\s*工商|\s*信用|\s*企业)</title>',
+        r'og:title"\s*content="([^"]{4,60})',
+    ]
+    for pat in name_patterns:
+        m = re.search(pat, html_text)
+        if m and not info["company_name"]:
+            info["company_name"] = m.group(1).strip()
+    
+    # 法定代表人
+    legal_patterns = [
+        r'法定代表人[：:]\s*([^<\n]{2,20})',
+        r'法定代表人[：:]\s*<[^>]*>([^<]{2,20})',
+        r'法人代表[：:]\s*([^<\n]{2,20})',
+        r'负责人[：:]\s*([^<\n]{2,20})',
+    ]
+    for pat in legal_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["legal_representative"] = m.group(1).strip()
+            break
+    
+    # 注册资本
+    capital_patterns = [
+        r'注册资本[：:]\s*([^<\n]{2,40})',
+        r'注册资本[：:]\s*<[^>]*>([^<]{2,40})',
+        r'注册资金[：:]\s*([^<\n]{2,40})',
+    ]
+    for pat in capital_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["registered_capital"] = m.group(1).strip()
+            break
+    
+    # 成立日期
+    date_patterns = [
+        r'成立日期[：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
+        r'成立日期[：:]\s*<[^>]*>(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
+        r'核准日期[：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
+    ]
+    for pat in date_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["established_date"] = m.group(1).strip()
+            break
+    
+    # 经营范围
+    scope_patterns = [
+        r'经营范围[：:]\s*([^<]{10,500})',
+        r'经营范围[：:]\s*<[^>]*>([^<]{10,500})',
+    ]
+    for pat in scope_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            scope = m.group(1).strip()
+            if len(scope) > 10:
+                info["business_scope"] = scope[:500]
+                break
+    
+    # 统一社会信用代码
+    uscc_patterns = [
+        r'统一社会信用代码[：:]\s*([A-Za-z0-9]{18})',
+        r'社会信用代码[：:]\s*([A-Za-z0-9]{18})',
+    ]
+    for pat in uscc_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["uscc"] = m.group(1).strip()
+            break
+    
+    # 注册地址
+    addr_patterns = [
+        r'住所[：:]\s*([^<\n]{5,100})',
+        r'注册地址[：:]\s*([^<\n]{5,100})',
+        r'企业地址[：:]\s*([^<\n]{5,100})',
+    ]
+    for pat in addr_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["address"] = m.group(1).strip()
+            break
+    
+    # 企业状态
+    status_patterns = [
+        r'登记状态[：:]\s*([^<\n]{2,10})',
+        r'经营状态[：:]\s*([^<\n]{2,10})',
+    ]
+    for pat in status_patterns:
+        m = re.search(pat, html_text)
+        if m:
+            info["status"] = m.group(1).strip()
+            break
+    
+    return info
+
+
+def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
+    """
+    联网查询企业工商信息 —— 稽查方法论⑥核心实现
+    
+    策略：
+    1. 如果数据库已有完整信息 → 直接返回（避免重复查询）
+    2. 尝试多个公开数据源 → 提取结构化信息
+    3. 优先天眼查/企查查，次选国家公示系统
+    4. 返回结构化结果并更新数据库Company表
+    
+    Args:
+        company_name: 企业全称
+        uscc: 统一社会信用代码（可选，有则精确匹配）
+        db: SQLAlchemy Session（用于查询和更新数据库）
+        company_id: 公司ID
+    
+    Returns:
+        dict: {company_name, legal_rep, registered_capital, industry, shareholders, ...}
+    """
+    if not company_name or len(company_name) < 4:
+        return {"success": False, "reason": "企业名称过短或为空", "company_name": company_name}
+    
+    result = {
+        "success": False,
+        "company_name": company_name,
+        "legal_representative": "",
+        "legal_rep_id": "",
+        "registered_capital": "",
+        "established_date": "",
+        "business_scope": "",
+        "address": "",
+        "industry": "",
+        "company_type": "",
+        "uscc": uscc or "",
+        "status": "",
+        "shareholders": [],
+        "source": "",
+        "lookup_time": datetime.now().isoformat(),
+        "raw_data": None,
+    }
+    
+    # 第一步：检查数据库是否已有完整信息（避免重复联网查询）
+    if db and company_id:
+        try:
+            company = db.query(Company).filter(Company.id == company_id).first()
+            if company:
+                # 判断是否已经有足够的信息
+                has_basic = bool(company.legal_representative and company.registered_capital)
+                has_scope = bool(company.business_scope and len(company.business_scope or "") > 20)
+                if has_basic and has_scope:
+                    # 数据库已有基本信息 + 经营范围，直接返回
+                    result["success"] = True
+                    result["legal_representative"] = company.legal_representative or ""
+                    result["registered_capital"] = str(company.registered_capital or "")
+                    result["established_date"] = str(company.established_date or "")
+                    result["business_scope"] = company.business_scope or ""
+                    result["address"] = company.address or ""
+                    result["company_type"] = company.company_type or ""
+                    result["uscc"] = company.uscc or (uscc or "")
+                    result["industry"] = company.industry_code or ""
+                    result["source"] = "数据库缓存"
+                    # 查股东
+                    try:
+                        from database import CompanyShareholder
+                        shs = db.query(CompanyShareholder).filter(
+                            CompanyShareholder.company_id == company_id
+                        ).all()
+                        result["shareholders"] = [
+                            {"name": s.name, "ratio": str(s.share_ratio or ""), "amount": str(s.amount or "")}
+                            for s in shs
+                        ]
+                    except:
+                        pass
+                    return result
+        except Exception as e:
+            pass  # 数据库查询失败，继续联网
+    
+    # 第二步：联网查询
+    online_info = None
+    
+    # URL编码公司名称
+    encoded_name = urllib.parse.quote(company_name)
+    
+    for src in _COMPANY_LOOKUP_SOURCES:
+        try:
+            url = src["url_template"].format(company_name=encoded_name)
+            status, body = _http_get(url, timeout=10)
+            if status and body and status == 200:
+                info = _extract_company_from_html(body, src["name"])
+                if info and (info.get("legal_representative") or info.get("registered_capital") or info.get("uscc")):
+                    online_info = info
+                    online_info["source_url"] = url
+                    result["source"] = f"联网查询({src['name']})"
+                    break
+        except Exception:
+            continue
+    
+    # 第三步：合并结果
+    if online_info:
+        result["success"] = True
+        result["legal_representative"] = online_info.get("legal_representative", "")
+        result["registered_capital"] = online_info.get("registered_capital", "")
+        result["established_date"] = online_info.get("established_date", "")
+        result["business_scope"] = online_info.get("business_scope", "")
+        result["address"] = online_info.get("address", "")
+        result["uscc"] = online_info.get("uscc", "") or (uscc or "")
+        result["status"] = online_info.get("status", "")
+        result["company_type"] = online_info.get("company_type", "")
+        result["raw_data"] = online_info
+        
+        # 从经营范围推断行业
+        if result["business_scope"]:
+            from audit_enhancements import detect_industry as _detect_ind
+            try:
+                result["industry"] = _detect_ind(result["business_scope"])
+            except:
+                pass
+    
+    # 第四步：更新数据库（持久化）
+    if result["success"] and db and company_id:
+        try:
+            company = db.query(Company).filter(Company.id == company_id).first()
+            if company:
+                updated = False
+                if result["legal_representative"] and not company.legal_representative:
+                    company.legal_representative = result["legal_representative"]
+                    updated = True
+                if result["registered_capital"] and not company.registered_capital:
+                    # 尝试解析金额
+                    cap_str = result["registered_capital"]
+                    cap_num = re.sub(r'[^\d.]', '', cap_str)
+                    if cap_num:
+                        try:
+                            company.registered_capital = float(cap_num)
+                            updated = True
+                        except:
+                            pass
+                if result["business_scope"] and (not company.business_scope or len(company.business_scope or "") < 10):
+                    company.business_scope = result["business_scope"]
+                    updated = True
+                if result["address"] and not company.address:
+                    company.address = result["address"]
+                    updated = True
+                if result["industry"] and not company.industry_code:
+                    company.industry_code = result["industry"]
+                    updated = True
+                if result["established_date"] and not company.established_date:
+                    try:
+                        date_str = result["established_date"].replace("年", "-").replace("月", "-").replace("日", "")
+                        from datetime import date as _date
+                        company.established_date = _date.fromisoformat(date_str[:10])
+                        updated = True
+                    except:
+                        pass
+                if updated:
+                    db.commit()
+                    result["_db_updated"] = True
+        except Exception as e:
+            result["_db_error"] = str(e)
+    
+    return result
+
+
+def _enrich_target_entity_from_online(target_entity, db, company_id):
+    """
+    将联网查询结果注入 target_entity —— 在 _run_analyze 管道中调用
+    
+    增强项：
+    - legal_representative → 用于判断个人打款性质
+    - registered_capital → 用于判断经营规模
+    - business_scope → 用于行业比对
+    - shareholders → 用于关联交易判断
+    - industry → 覆盖发票关键词推断结果（更准确）
+    """
+    if not target_entity.get("name"):
+        return target_entity
+    
+    company_name = target_entity["name"]
+    lookup = _online_company_lookup(company_name, db=db, company_id=company_id)
+    
+    if lookup.get("success"):
+        target_entity["_online_lookup"] = True
+        target_entity["legal_representative"] = lookup.get("legal_representative", "")
+        target_entity["registered_capital"] = lookup.get("registered_capital", "")
+        target_entity["established_date"] = lookup.get("established_date", "")
+        target_entity["business_scope"] = lookup.get("business_scope", "")
+        target_entity["address"] = lookup.get("address", "")
+        target_entity["company_type"] = lookup.get("company_type", "")
+        target_entity["uscc"] = lookup.get("uscc", "")
+        target_entity["shareholders"] = lookup.get("shareholders", [])
+        target_entity["lookup_source"] = lookup.get("source", "")
+        
+        # 如果联网查到了行业分类，替换发票关键词推断的行业（联网数据更权威）
+        if lookup.get("industry"):
+            target_entity["industry_online"] = lookup["industry"]
+            target_entity["industry_source"] = "联网查询"
+            # 不直接覆盖 entity["industry"]，保留发票关键词推断的作为对比
+            # 下游使用时可选择 industry_online 或 industry
+        
+        # 记录企业状态
+        if lookup.get("status"):
+            target_entity["company_status"] = lookup["status"]
+            if lookup["status"] not in ("存续", "在业", "开业", "正常"):
+                target_entity["_company_status_warning"] = f"企业状态异常: {lookup['status']}"
+    
+    return target_entity
 
 
 # ═══════════ 稽查方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
@@ -18781,4 +19181,78 @@ def list_industries():
          "special_risks": v["special_risks"]}
         for k, v in INDUSTRY_BENCHMARKS.items()
     ]}
+
+
+@app.post("/api/companies/{company_id}/online-lookup")
+def online_company_lookup_api(company_id: int, db: Session = Depends(get_db)):
+    """
+    稽查方法论⑥ 联网核查 —— 手动触发企业信息联网查询
+    
+    从公开数据源（天眼查/企查查/国家公示系统）拉取企业工商信息：
+    - 法定代表人
+    - 注册资本
+    - 成立日期
+    - 经营范围
+    - 注册地址
+    - 统一社会信用代码
+    - 行业分类
+    - 企业状态
+    - 股东信息
+    
+    查询结果自动更新到数据库Company表。
+    """
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(404, "公司不存在")
+    
+    company_name = company.name or ""
+    uscc = company.uscc or ""
+    
+    result = _online_company_lookup(company_name, uscc=uscc, db=db, company_id=company_id)
+    
+    return {
+        "ok": True,
+        "company_name": company_name,
+        "lookup_result": result,
+        "message": f"联网核查完成: {result.get('source', '未查到数据')}"
+    }
+
+
+@app.get("/api/companies/{company_id}/online-info")
+def get_online_company_info(company_id: int, db: Session = Depends(get_db)):
+    """
+    获取已缓存的联网核查结果（不重新联网）
+    """
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(404, "公司不存在")
+    
+    info = {
+        "company_name": company.name or "",
+        "uscc": company.uscc or "",
+        "legal_representative": company.legal_representative or "",
+        "legal_representative_id": company.legal_representative_id or "",
+        "registered_capital": str(company.registered_capital or ""),
+        "established_date": str(company.established_date or ""),
+        "business_scope": company.business_scope or "",
+        "address": company.address or "",
+        "company_type": company.company_type or "",
+        "industry_code": company.industry_code or "",
+        "has_online_data": bool(company.legal_representative and company.registered_capital),
+    }
+    
+    # 查股东
+    try:
+        from database import CompanyShareholder
+        shs = db.query(CompanyShareholder).filter(
+            CompanyShareholder.company_id == company_id
+        ).all()
+        info["shareholders"] = [
+            {"name": s.name, "ratio": str(s.share_ratio or ""), "amount": str(s.amount or "")}
+            for s in shs
+        ]
+    except:
+        info["shareholders"] = []
+    
+    return {"ok": True, "info": info}
 

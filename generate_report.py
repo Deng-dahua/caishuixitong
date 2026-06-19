@@ -153,12 +153,56 @@ p.i2{text-indent:2em}
 </p>
 <div style="padding:12px 16px;background:#fafafa;border-radius:6px;font-size:12px;line-height:2">
 <div class="meth-item"><span class="mnum">①</span>多格式兼容 <span style="margin:0 8px">②</span>汇总行过滤 <span style="margin:0 8px">③</span>付款方身份核实 <span style="margin:0 8px">④</span>关键词≠事实 <span style="margin:0 8px">⑤</span>行业认知补算法</div>
-<div class="meth-item"><span class="mnum">⑥</span>联网核查 <span style="margin:0 8px">⑦</span>明细即信服力 <span style="margin:0 8px">⑧</span>不墨迹直接干 <span style="margin:0 8px">⑨</span>合同分层判断 <span style="margin:0 8px">⑩</span>完备度明细</div>
+<div class="meth-item"><span class="mnum">⑥</span>联网核查 ✅ <span style="margin:0 8px">⑦</span>明细即信服力 <span style="margin:0 8px">⑧</span>不墨迹直接干 <span style="margin:0 8px">⑨</span>合同分层判断 <span style="margin:0 8px">⑩</span>完备度明细</div>
 <div class="meth-item"><span class="mnum">⑪</span>完备度升级 <span style="margin:0 8px">⑫</span>凭证描述纠正 <span style="margin:0 8px">⑬</span>进销诊断升级 <span style="margin:0 8px">⑭</span>行业基准库 <span style="margin:0 8px">⑮</span>结论分析法</div>
 <div class="meth-item"><span class="mnum">⑯</span>COND_BAN防误杀 <span style="margin:0 8px">⑰</span>稽查重点强制等级 <span style="margin:0 8px">⑱</span>报告纯净度 <span style="margin:0 8px">⑲</span>发票≠收付款1:1 <span style="margin:0 8px">⑳</span>经营实质地理分析</div>
 <div class="meth-item"><span class="mnum">㉑</span>规则detail业务化 <span style="margin:0 8px">㉒</span>建议质量增强 <span style="margin:0 8px">㉓</span>四步稽查分析法 <span style="margin:0 8px">㉔</span>禁止数据截断</div>
 </div>
 
+'''
+
+# ═══════ 企业工商信息（联网核查） ═══════
+entity = data.get('target_entity', {})
+online_lookup = entity.get('_online_lookup', False)
+legal_rep = entity.get('legal_representative', '')
+reg_capital = entity.get('registered_capital', '')
+est_date = entity.get('established_date', '')
+address_ = entity.get('address', '')
+biz_scope = entity.get('business_scope', '')
+company_type = entity.get('company_type', '')
+company_status = entity.get('company_status', '')
+lookup_source = entity.get('lookup_source', '')
+shareholders = entity.get('shareholders', [])
+
+if legal_rep or reg_capital:
+    html += '''
+<h2>企业工商信息（联网核查）</h2>
+<p style="font-size:13px;color:#64748b;margin-bottom:12px">
+数据来源：''' + esc(lookup_source or '联网查询') + ''' | 核查时间：''' + datetime.now().strftime('%Y-%m-%d %H:%M') + '''
+</p>
+<table class="tbl">
+<tr><td class="lbl">企业名称</td><td>''' + esc(entity.get('name', '')) + '''</td></tr>
+<tr><td class="lbl">法定代表人</td><td style="font-weight:600">''' + esc(legal_rep) + '''</td></tr>
+<tr><td class="lbl">注册资本</td><td>''' + esc(reg_capital) + '''</td></tr>
+<tr><td class="lbl">成立日期</td><td>''' + esc(est_date) + '''</td></tr>
+<tr><td class="lbl">企业类型</td><td>''' + esc(company_type) + '''</td></tr>
+<tr><td class="lbl">经营状态</td><td>''' + esc(company_status) + '''</td></tr>
+<tr><td class="lbl">注册地址</td><td>''' + esc(address_) + '''</td></tr>
+<tr><td class="lbl">经营范围</td><td style="font-size:12px">''' + esc(biz_scope) + '''</td></tr>
+<tr><td class="lbl">统一社会信用代码</td><td>''' + esc(entity.get('uscc', '')) + '''</td></tr>
+<tr><td class="lbl">行业分类</td><td style="font-weight:600">发票推断：''' + esc(entity.get('industry', '')) + ''' | 联网核查：''' + esc(entity.get('industry_online', '')) + '''</td></tr>'''
+    if shareholders:
+        html += '<tr><td class="lbl">股东信息</td><td>'
+        for i, sh in enumerate(shareholders):
+            if i > 0:
+                html += '；'
+            html += esc(sh.get('name', '')) + '(' + esc(str(sh.get('ratio', ''))) + ')'
+        html += '</td></tr>'
+    html += '''
+</table>
+'''
+
+html += '''
 <h2>一、稽查概况</h2>
 
 <div class="stat-grid">

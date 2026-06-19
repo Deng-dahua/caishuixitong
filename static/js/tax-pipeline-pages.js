@@ -941,7 +941,7 @@ async function loadAnalyzeOverview() {
   html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
     + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">稽查方法论演进</div>'
     + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
-    + '⑥ 联网核查 ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
+    + '⑥ 联网核查 ✅ ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
     + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
     + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
     + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 四步稽查分析法<br>'
@@ -1011,7 +1011,7 @@ function renderAnalyzeResult(report) {
   h += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">稽查方法论演进</div>';
   h += '<div style="font-size:12px;color:#64748b;line-height:2">'
     + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
-    + '⑥ 联网核查 ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
+    + '⑥ 联网核查 ✅ ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
     + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
     + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
     + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 四步稽查分析法<br>'

@@ -42,9 +42,9 @@ try:
         'high_risk': len(high_risks),
         'mid_risk': len(mid_risks),
         'low_risk': len(low_risks),
-        'high_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category', 'items', 'rule_id']} for f in high_risks],
-        'mid_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category', 'items', 'rule_id']} for f in mid_risks],
-        'low_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category']} for f in low_risks],
+        'high_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category', 'items', 'rule_id', 'level_fixed']} for f in high_risks],
+        'mid_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category', 'items', 'rule_id', 'level_fixed']} for f in mid_risks],
+        'low_list': [{k: v for k, v in f.items() if not callable(v) and k in ['type', 'level', 'score', 'detail', 'description', 'tax_impact', 'policy_ref', 'suggestion', 'category', 'items', 'level_fixed']} for f in low_risks],
         'pipeline_log': report.get('pipeline_log', []),
         'target_entity': report.get('target_entity', {}),
         'cashflow': {
