@@ -250,7 +250,7 @@ function renderDomainAnalysisStatic() {
     var color = categoryColors[d.category] || '#64748b';
     html += '<div style="background:#fff;border-left:3px solid ' + color + ';padding:8px 10px;border-radius:4px">'
       + '<b style="color:' + color + '">' + escHtml(d.name) + '</b>'
-      + ' <span style="font-size:9px;background:' + color + '15;color:' + color + ';padding:1px 5px;border-radius:2px">' + escHtml(d.category) + '</span>'
+      + ' <span style="font-size:11px;background:' + color + '15;color:' + color + ';padding:1px 5px;border-radius:2px">' + escHtml(d.category) + '</span>'
       + '<div style="color:#64748b;margin-top:3px;line-height:1.5">' + escHtml(d.desc) + '</div>'
       + '</div>';
   });
@@ -340,7 +340,7 @@ function renderDomainAnalysisResult(report) {
           + '<div style="color:#64748b;margin-top:2px">' + escHtml((f.detail || '').substring(0, 120)) + '</div>'
           + '</div>';
       });
-      if (d.count > 10) html += '<div style="font-size:10px;color:#94a3b8;text-align:center">... 还有 ' + (d.count - 10) + ' 条发现</div>';
+      if (d.count > 10) html += '<div style="font-size:11px;color:#94a3b8;text-align:center">... 还有 ' + (d.count - 10) + ' 条发现</div>';
       html += '</div>';
     }
 
@@ -381,10 +381,10 @@ function loadCrossDomainStatic() {
       var highCount = chains.filter(function(c) { return c.level === '高风险'; }).length;
       var totalDim = chains.reduce(function(s, c) { return s + c.dimensions.length; }, 0);
       var html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#7c3aed">' + chains.length + '</div><div style="font-size:10px;color:#64748b">证据链总数</div></div>'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #dc2626;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:10px;color:#64748b">高风险链</div></div>'
-        + '<div id="cde-triggered-count" style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #94a3b8;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#94a3b8">—</div><div style="font-size:10px;color:#64748b">本次触发</div></div>'
-        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #2563eb;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:10px;color:#64748b">总维度数</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#7c3aed">' + chains.length + '</div><div style="font-size:11px;color:#64748b">证据链总数</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #dc2626;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:11px;color:#64748b">高风险链</div></div>'
+        + '<div id="cde-triggered-count" style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #94a3b8;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#94a3b8">—</div><div style="font-size:11px;color:#64748b">本次触发</div></div>'
+        + '<div style="flex:1;min-width:80px;text-align:center;background:#fff;border:2px solid #2563eb;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:11px;color:#64748b">总维度数</div></div>'
         + '</div>';
 
       html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px">'
@@ -407,29 +407,29 @@ function loadCrossDomainStatic() {
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="font-size:16px">' + (c.level === '高风险' ? '🔴' : '🟡') + '</span>'
           + '<b style="font-size:13px;color:#1e293b">' + _escStatic(c.name) + '</b>'
-          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:' + bc + '15;color:' + bc + '">' + _escStatic(c.level) + '</span>'
-          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#f1f5f9;color:#64748b">' + _escStatic(c.sub_topic) + '</span>'
+          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;background:' + bc + '15;color:' + bc + '">' + _escStatic(c.level) + '</span>'
+          + '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;background:#f1f5f9;color:#64748b">' + _escStatic(c.sub_topic) + '</span>'
           + '<span id="cde-triggered-' + ci + '"></span>'
-          + '<span style="font-size:9px;color:#94a3b8">需≥' + c.min_evidence + '条证据</span>'
+          + '<span style="font-size:11px;color:#94a3b8">需≥' + c.min_evidence + '条证据</span>'
           + '</div>'
-          + '<div style="margin-bottom:6px;font-size:9px;color:#64748b">触发词：' + c.trigger_keywords.map(function(k) { return '<code style="background:#f1f5f9;padding:1px 3px;border-radius:2px">' + _escStatic(k) + '</code>'; }).join(' ') + '</div>'
+          + '<div style="margin-bottom:6px;font-size:11px;color:#64748b">触发词：' + c.trigger_keywords.map(function(k) { return '<code style="background:#f1f5f9;padding:1px 3px;border-radius:2px">' + _escStatic(k) + '</code>'; }).join(' ') + '</div>'
           + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
           + c.dimensions.map(function(d) {
             return '<div style="flex:1;min-width:130px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px">'
-              + '<b style="font-size:10px;color:#1e293b">' + _escStatic(d.code) + ' ' + _escStatic(d.source) + '</b>'
-              + '<div style="font-size:9px;color:#64748b;margin-top:2px">' + _escStatic(d.desc.substring(0,60)) + '</div>'
+              + '<b style="font-size:11px;color:#1e293b">' + _escStatic(d.code) + ' ' + _escStatic(d.source) + '</b>'
+              + '<div style="font-size:11px;color:#64748b;margin-top:2px">' + _escStatic(d.desc.substring(0,60)) + '</div>'
               + '</div>';
           }).join('')
           + '</div>'
-          + '<div style="font-size:10px;color:#475569;line-height:1.7">' + _escStatic(c.description) + '</div>'
-          + '<div style="margin-top:6px;font-size:9px;color:#7c3aed">📌 ' + _escStatic(c.how_found) + '</div>'
-          + '<div style="font-size:9px;color:#991b1b">💸 ' + _escStatic(c.tax_impact) + '</div>'
-          + '<div style="font-size:9px;color:#1e40af">📜 ' + _escStatic(c.policy_ref) + '</div>'
-          + '<div style="font-size:9px;color:#059669;padding:6px;background:#f0fdf4;border-radius:4px;margin-top:4px">✅ ' + _escStatic(c.suggestion) + '</div>'
+          + '<div style="font-size:11px;color:#475569;line-height:1.7">' + _escStatic(c.description) + '</div>'
+          + '<div style="margin-top:6px;font-size:11px;color:#7c3aed">📌 ' + _escStatic(c.how_found) + '</div>'
+          + '<div style="font-size:11px;color:#991b1b">💸 ' + _escStatic(c.tax_impact) + '</div>'
+          + '<div style="font-size:11px;color:#1e40af">📜 ' + _escStatic(c.policy_ref) + '</div>'
+          + '<div style="font-size:11px;color:#059669;padding:6px;background:#f0fdf4;border-radius:4px;margin-top:4px">✅ ' + _escStatic(c.suggestion) + '</div>'
           + '</div>';
       });
 
-      html += '<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e;line-height:1.6">'
+      html += '<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6">'
         + '<b>⚠️ 证据链≠结论：</b>每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。触发条件（需≥X条证据）反映了该链的严格程度——隐匿收入和虚开发票需要更多证据，因为结论严重。'
         + '</div>'
         + '</div>';
@@ -516,7 +516,7 @@ function renderCrossDomainDynamic(report) {
     var badgeEl = document.getElementById('cde-triggered-' + ci);
     if (badgeEl) {
       badgeEl.innerHTML = triggeredChains.length > 0
-        ? (isTriggered ? '<span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600">⚡ 已触发</span>' : '<span style="background:#94a3b8;color:#fff;padding:2px 8px;border-radius:3px;font-size:10px">未触发</span>')
+        ? (isTriggered ? '<span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">⚡ 已触发</span>' : '<span style="background:#94a3b8;color:#fff;padding:2px 8px;border-radius:3px;font-size:11px">未触发</span>')
         : '';
     }
   });
@@ -552,7 +552,7 @@ function renderCrossDomainDynamic(report) {
         ec.steps.forEach(function(step) {
           var stepColor = step.triggered ? '#059669' : '#94a3b8';
           var stepBg = step.triggered ? '#f0fdf4' : '#f8fafc';
-          html += '<div style="padding:4px 10px;border-radius:4px;background:' + stepBg + ';border:1px solid ' + stepColor + ';font-size:10px">'
+          html += '<div style="padding:4px 10px;border-radius:4px;background:' + stepBg + ';border:1px solid ' + stepColor + ';font-size:11px">'
             + '<span style="color:' + stepColor + ';font-weight:600">' + (step.triggered ? '✓' : '○') + '</span> '
             + escHtml(step.step.substring(0, 24))
             + (step.rule_id ? ' <span style="color:#94a3b8">R' + step.rule_id + '</span>' : '')
@@ -613,7 +613,7 @@ function renderCrossDomainDynamic(report) {
 
       // 域交叉信息
       if (f.cross_domains) {
-        html += '<div style="margin-top:8px;font-size:10px;color:#7c3aed">跨越 <b>' + f.cross_domains + '</b> 个分析域</div>';
+        html += '<div style="margin-top:8px;font-size:11px;color:#7c3aed">跨越 <b>' + f.cross_domains + '</b> 个分析域</div>';
       }
 
       html += '</div>';
@@ -770,11 +770,11 @@ function renderChainsList(chains, catKeys) {
       var borderColor = ratio >= 80 ? '#dc2626' : (ratio >= 50 ? '#f59e0b' : (ratio > 0 ? '#059669' : '#e2e8f0'));
       var badgeHtml = '';
       if (exec && exec.triggered_steps > 0) {
-        badgeHtml = ' <span style="background:' + (ratio >= 60 ? '#dc2626' : '#059669') + '15;color:' + (ratio >= 60 ? '#dc2626' : '#059669') + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚡ ' + triggeredSteps + '/' + totalSteps + ' (' + ratio + '%)</span>';
+        badgeHtml = ' <span style="background:' + (ratio >= 60 ? '#dc2626' : '#059669') + '15;color:' + (ratio >= 60 ? '#dc2626' : '#059669') + ';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">⚡ ' + triggeredSteps + '/' + totalSteps + ' (' + ratio + '%)</span>';
       }
 
       html += '<div style="border:2px solid ' + borderColor + ';border-radius:8px;padding:14px;margin-bottom:12px;background:#fff">'
-        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#1e293b">' + escHtml(c.name) + ' <span style="font-weight:400;font-size:10px;color:#94a3b8">' + (c.steps ? c.steps.length : totalSteps) + '步</span>' + badgeHtml + '</div>'
+        + '<div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#1e293b">' + escHtml(c.name) + ' <span style="font-weight:400;font-size:11px;color:#94a3b8">' + (c.steps ? c.steps.length : totalSteps) + '步</span>' + badgeHtml + '</div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
 
       (c.investigation_path||[]).forEach(function(s, idx) {
@@ -783,7 +783,7 @@ function renderChainsList(chains, catKeys) {
         if (exec && exec.triggered_steps > 0) {
           stepBg = ratio >= 60 ? '#fef2f2' : '#f0fdf4';
         }
-        html += '<span style="background:'+stepBg+';padding:4px 10px;border-radius:4px;font-size:10px;border-left:2px solid '+dot+'">' + escHtml(s.step||s.rule_item||'') + '</span>';
+        html += '<span style="background:'+stepBg+';padding:4px 10px;border-radius:4px;font-size:11px;border-left:2px solid '+dot+'">' + escHtml(s.step||s.rule_item||'') + '</span>';
         if (idx < (c.investigation_path||[]).length - 1) html += '<span style="color:#94a3b8;font-weight:700">→</span>';
       });
 
@@ -896,23 +896,23 @@ function renderEvidenceList(chains) {
     filtered.forEach(function(c) {
       var evExec = evExecMap[c.name];
       var evBorder = evExec ? (evExec.closed ? '#dc2626' : '#f59e0b') : '#e2e8f0';
-      var evBadge = evExec ? (' <span style="background:' + (evExec.closed ? '#dc2626' : '#f59e0b') + '15;color:' + (evExec.closed ? '#dc2626' : '#f59e0b') + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">' + (evExec.closed ? '🔒闭环' : '⚠未闭环') + ' ' + evExec.ratio + '%</span>') : '';
+      var evBadge = evExec ? (' <span style="background:' + (evExec.closed ? '#dc2626' : '#f59e0b') + '15;color:' + (evExec.closed ? '#dc2626' : '#f59e0b') + ';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">' + (evExec.closed ? '🔒闭环' : '⚠未闭环') + ' ' + evExec.ratio + '%</span>') : '';
 
       html += '<div style="border:2px solid ' + evBorder + ';border-radius:8px;padding:16px;margin-bottom:12px;background:#fff">'
-        + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">' + escHtml(c.name) + ' <span style="font-weight:400;font-size:10px;color:#94a3b8">' + (c.steps||c.investigation_path||[]).length + '步 ' + (c.high_risk_steps||'') + '高</span>' + evBadge + '</div>';
+        + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">' + escHtml(c.name) + ' <span style="font-weight:400;font-size:11px;color:#94a3b8">' + (c.steps||c.investigation_path||[]).length + '步 ' + (c.high_risk_steps||'') + '高</span>' + evBadge + '</div>';
 
       // 调查路径（含规则ID、处罚依据、纳税影响）
       (c.investigation_path||[]).forEach(function(s) {
         var dot = s.level==='高风险'?'#dc2626':(s.level==='中风险'?'#f59e0b':'#94a3b8');
         html += '<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #f8fafc">'
-          + '<span style="font-size:10px;color:'+dot+';font-weight:700;min-width:22px;text-align:right">R'+(s.rule_id||'')+'</span>'
+          + '<span style="font-size:11px;color:'+dot+';font-weight:700;min-width:22px;text-align:right">R'+(s.rule_id||'')+'</span>'
           + '<span style="width:4px;height:4px;border-radius:50%;background:'+dot+';margin-top:6px;flex-shrink:0"></span>'
           + '<div style="flex:1;font-size:11px;color:#475569;line-height:1.6">'
           + '<b style="color:#1e293b;font-size:12px">'+(s.rule_item||s.step||'')+'</b> '
-          + '<span style="font-size:10px;color:'+dot+'">['+(s.level||'')+']</span>'
+          + '<span style="font-size:11px;color:'+dot+'">['+(s.level||'')+']</span>'
           + '<br>'+(s.detail||'').substring(0,150)
-          + '<div style="margin-top:2px;font-size:9px;color:#94a3b8">'+(s.policy_ref||'').substring(0,80)+'</div>'
-          + '<div style="margin-top:2px;font-size:9px;color:#dc2626">'+(s.tax_impact||'').substring(0,80)+'</div>'
+          + '<div style="margin-top:2px;font-size:11px;color:#94a3b8">'+(s.policy_ref||'').substring(0,80)+'</div>'
+          + '<div style="margin-top:2px;font-size:11px;color:#dc2626">'+(s.tax_impact||'').substring(0,80)+'</div>'
           + '</div></div>';
       });
 
@@ -922,7 +922,7 @@ function renderEvidenceList(chains) {
       var qLabel = qScore>=15?'S':(qScore>=10?'A':(qScore>=7?'B':'C'));
       var qColor = qScore>=15?'#059669':(qScore>=10?'#2563eb':(qScore>=7?'#f59e0b':'#94a3b8'));
 
-      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:9px;color:#94a3b8">'
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:11px;color:#94a3b8">'
         + '<span style="background:'+qColor+'15;color:'+qColor+';padding:1px 6px;border-radius:2px;font-weight:700;margin-right:6px">'+qLabel+'</span>'
         + '覆盖规则: <b style="color:#1e293b">'+rCount+'条</b>';
       if (c.related_chain_count > 0) html += ' | 关联链: <b style="color:#1e293b">'+c.related_chain_count+'条</b>';
@@ -1301,7 +1301,7 @@ function renderFilterResult(report) {
           + '<td><span style="color:' + lvlColor + ';font-weight:600">' + escHtml(item.level || '—') + '</span></td>'
           + '<td>' + (item.score || '—') + '</td>'
           + '<td style="font-size:11px;color:#64748b">' + escHtml(reason) + '</td>'
-          + '<td style="font-size:10px;color:#94a3b8">' + escHtml((item.category || '').substring(0, 20)) + '</td>'
+          + '<td style="font-size:11px;color:#94a3b8">' + escHtml((item.category || '').substring(0, 20)) + '</td>'
           + '</tr>';
       });
     });
