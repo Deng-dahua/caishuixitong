@@ -903,6 +903,24 @@ async function loadAnalyzeOverview() {
     + '点击"一键分析" → ①资料扫描 → ②目标实体识别 → ③资料情报提取+发票审计 → ④规则引擎+链驱动 → ⑤方法论噪声过滤 → ⑥行业对标+申报比对 → ⑦正式稽查报告输出'
     + '</div>';
 
+  // 稽查行为准则已内化
+  html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
+    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">稽查行为准则（已内化）</div>'
+    + '① 必有明细：每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
+    + '② 自行解决：遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
+    + '③ 不墨迹：报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
+    + '</div>';
+
+  // 稽查方法论演进
+  html += '<div style="padding:16px 0;border-top:1px solid #f1f5f9;font-size:13px;color:#64748b;line-height:2">'
+    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">稽查方法论演进</div>'
+    + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
+    + '⑥ 联网核查 ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ JS双函数覆盖陷阱 ⑩ 完备度明细<br>'
+    + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
+    + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
+    + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 合同分层判断'
+    + '</div>';
+
   target.innerHTML = html;
 
   // 加载动态分析结果
