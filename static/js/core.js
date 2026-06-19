@@ -61,7 +61,11 @@ const pages = {
   'file-parsing': '文件解析',
   'domain-analysis': '域分析',
   'methodology-filter': '方法论过滤器',
-  'pipeline-rules': '规则'
+  'pipeline-rules': '规则',
+  'chains-page': '线索链',
+  'evidence-page': '证据链',
+  'analyze-page': '一键分析',
+  'cross-domain-evidence': '跨域证据链'
 };
 
 // ==================== 用户登录 ====================
@@ -540,6 +544,10 @@ function navigateTo(page) {
     case 'domain-analysis': renderDomainAnalysisPage(container); break;
     case 'methodology-filter': renderMethodologyFilterPage(container); break;
     case 'pipeline-rules': renderTaxRiskRules(container); break;
+    case 'chains-page': renderChainsPage(container); break;
+    case 'evidence-page': renderEvidencePage(container); break;
+    case 'analyze-page': renderAnalyzePage(container); break;
+    case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
   }
   window.scrollTo(0, 0);
