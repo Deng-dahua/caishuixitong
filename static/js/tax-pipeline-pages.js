@@ -1324,14 +1324,13 @@ function renderMethodologyFilterPage(container) {
   window.currentModule = '方法论过滤器';
 
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
-    + '<div>'
+    + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">方法论过滤器</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN+COND_BAN+去重——三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN + COND_BAN + 去重 —— 三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
     + '</div>'
     + '<div id="mf-body"></div>'
     + '</div>';
 
-  // 缓存直接渲染最终态
   if (_cachedFilterReport) {
     renderFilterResult(_cachedFilterReport);
   } else {
@@ -1355,14 +1354,6 @@ async function loadMethodologyFilterData() {
   }
 }
 
-var FILTER_RULE_NAMES = {
-  '自动生成证据链': '证据链自动生成结论（非真实发现）',
-  '正常结论': '正常/一致/通过类结论（无风险）',
-  '资料缺口超限': '资料缺口类过多（上限5条，非核心发现）',
-  '重复发现去重': '同类型重复发现合并',
-  '行业不匹配': '发现内容与当前企业行业不匹配',
-};
-
 function renderFilterResult(report) {
   var comp = report.comprehensive || {};
   var fl = comp.filter_log;
@@ -1374,51 +1365,104 @@ function renderFilterResult(report) {
   var removedItems = fl.removed_items || [];
   var breakdown = fl.reason_breakdown || {};
   var totalRemoved = fl.total_removed || 0;
+  var before = fl.before_count || 0;
+  var after = fl.after_count || 0;
 
   var html = '';
 
-  // 概览
-  html += '<div style="display:flex;margin-bottom:24px;margin-top:24px;border-bottom:1px solid #f1f5f9;padding-bottom:16px">';
-  html += '<div style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (fl.before_count || 0) + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">过滤前</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (fl.after_count || 0) + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">过滤后</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + totalRemoved + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">已剔除</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:12px 16px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (fl.noise_ratio || 0) + '%</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">噪声率</div></div>';
-  html += '</div>';
+  // ══════ 一、方法论过滤器概述 ══════
+  html += '<div style="margin-bottom:40px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是方法论过滤器</h3>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '方法论过滤器是稽查报告质量的最后一道防线。规则引擎和链驱动引擎产出的大量发现（通常1600+条）中，'
+    + '绝大多数是系统内部的技术性发现或资料不足无法验证的推测性结论。过滤器按照稽查方法论铁律，'
+    + '将不具备数据支撑的噪声发现剔除，只保留可查证、可追溯、可复核的核心发现进入正式报告。'
+    + '</p>'
+    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+    + '<strong>核心原则</strong>：宁可漏报，不可误报。没把握的疑点不进报告。误报一次毁信誉，宁可说"此事项因缺XX资料无法验证"。'
+    + '</div>'
+    + '</div>';
 
-  // 过滤规则体系
-  html += '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:12px">过滤规则体系</div>';
+  // 统计
+  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + before + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">过滤前</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + totalRemoved + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已剔除</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + after + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">过滤后</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (fl.noise_ratio || 0) + '%</div><div style="font-size:12px;color:#64748b;margin-top:4px">噪声率</div></div>'
+    + '</div>';
+
+  // ══════ 二、过滤规则体系 ══════
+  html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、过滤规则体系</h3>';
+
   var rules = [
-    { title: 'HARD_BAN 硬删除', desc: '禁止词命中（涉税中介/公安/刑事/空壳/走逃/伪造/私户等40+词）→ 立即删除' },
-    { title: 'COND_BAN 条件过滤', desc: '数据缺失触发——无申报表→删申报相关结论，无合同→删合同相关，无凭证→删成本核算类' },
-    { title: '正常结论排除', desc: 'type含"一致/正常/无明显差异/通过/良好/合规/无异常"→删除' },
-    { title: '资料缺口限流', desc: '资料缺少/缺失/无法验证/不完备类最多保留5条，超限删除' },
-    { title: '行业不匹配', desc: '非本行业的专业发现（如纺织企业不报医药/房地产/建筑/餐饮/电商等）→删除' },
-    { title: '去重合并', desc: '同type前60字完全相同的发现→只保留第一条' },
+    {title:'HARD_BAN 硬删除（23类）', icon:'🛑', color:'#dc2626',
+     desc:'绝对禁止出现在报告输出中的关键词。这些词代表的是推测性结论、跨域数据需求、或超出稽查能力的判断。'
+       + '<br><br><strong>禁止词清单</strong>：公安/经侦/刑事/走逃/失联/空壳/伪造/变造/私户收款/个人银行账户/法定代表人股东财务人员个人/'
+       + '公转私/转让定价/同期资料/开票经济/涉税中介/报关/出口退税/医疗器械/医药/金税四期交叉比对/金税四期综合风险积分/预警/指标/配比异常/资金链断裂/'
+       + '已发货未开票/成本无合法凭证/多部门数据交换/第三方机构/失信记录/陈述与证据矛盾/防伪/资金回流转账/挂靠经营/契税延期缴纳。<br><br>'
+       + '<strong>实现</strong>：发现type或detail中包含任一禁止词 → 立即删除，不参与后续判断。'},
+    {title:'COND_BAN 条件过滤（5类）', icon:'⚠️', color:'#f59e0b',
+     desc:'因缺少对应资料而无法判定的发现。有资料时放过，无资料时删除。<br><br>'
+       + '<strong>5类条件</strong>：<br>'
+       + '① 申报表类 —— 无增值税/企业所得/个税申报表时，删除所有含"申报/申报表/申报数据"的发现<br>'
+       + '② 合同类 —— 无合同时，删除含"合同/合同金额/合同条款"的发现<br>'
+       + '③ 工资表 —— 无工资表时，删除含"工资/薪酬/个税/工薪"的发现<br>'
+       + '④ 库存台账 —— 无库存时，删除含"库存/存货/入库/出库/盘点/库龄"的发现<br>'
+       + '⑤ 会计凭证 —— 无凭证时，删除含"凭证/借贷/科目/会计分录"的发现<br><br>'
+       + '<strong>实现</strong>：检查对应资料是否存在 → 存在则放过 → 不存在则删除匹配发现。'},
+    {title:'稽查重点保护（level_fixed）', icon:'🛡️', color:'#2563eb',
+     desc:'稽查重点发现（level_fixed=True）不参与任何过滤，强制保留。这是稽查审计实务优先级的体现——'
+       + '某些方向的异常（如资金流异常、资料缺失、进销不匹配等），无论资料情况如何，稽查来了必定重点审查。<br><br>'
+       + '<strong>12类稽查重点</strong>：收款来源不匹配/进项发票付款未匹配/收款开票偏差/合同缺失/银行流水缺失/'
+       + '销项发票缺失/进项发票缺失/记账凭证缺失/资料完备度/进销品名映射/费用发票占比异常/费用名目分散。<br><br>'
+       + '<strong>实现</strong>：过滤器第一道判断 → f.level_fixed=True → 跳过所有过滤规则。'},
+    {title:'正常结论排除', icon:'✅', color:'#059669',
+     desc:'type或detail中含有"一致/正常/无明显差异/通过/良好/合规/无异常/OK/无风险/无问题"的发现 → 删除。'
+       + '这些结论不构成风险发现，属于系统自检输出，不应出现在稽查报告中。'},
+    {title:'资料缺口限流', icon:'📊', color:'#6366f1',
+     desc:'资料缺少/缺失/无法验证/不完备类发现最多保留5条（非核心发现）。'
+       + '超限后按score从低到高删除。确保报告不被大量"缺XX资料"的提醒淹没。'},
+    {title:'行业不匹配过滤', icon:'🏭', color:'#0f172a',
+     desc:'发现中行业特定的关键词与当前企业行业不匹配时删除。'
+       + '如食品加工企业不保留"医疗器械/医药/房地产/建筑/餐饮/电商/金融/保险"等行业专项发现。'},
+    {title:'去重合并', icon:'🔄', color:'#94a3b8',
+     desc:'同type前60个字符完全相同的发现 → 只保留第一条（通常是score最高的）。避免同一异常被多处分析域重复报告。'},
   ];
+
   rules.forEach(function(r) {
-    html += '<div style="padding:12px 0;border-bottom:1px solid #f1f5f9">'
-      + '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:2px">' + r.title + '</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.8">' + r.desc + '</div>'
+    html += '<div style="padding:16px 20px;margin-bottom:8px;border-left:3px solid ' + r.color + ';background:#fafafa;border-radius:0 6px 6px 0">'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px"><span style="font-size:18px">' + r.icon + '</span> ' + r.title + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2">' + r.desc + '</div>'
       + '</div>';
   });
 
+  html += '</div>';
+
+  // ══════ 三、本次过滤结果 ══════
+  html += '<div style="margin-top:40px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、本次过滤结果</h3>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">' + before + ' → ' + after + ' 条，剔除 ' + totalRemoved + ' 条，噪声率 ' + (fl.noise_ratio||0) + '%</p>';
+
   // 剔除原因分布
   if (Object.keys(breakdown).length > 0) {
-    html += '<div style="margin-top:20px;font-size:15px;font-weight:600;color:#0f172a;margin-bottom:12px">剔除原因分布</div>';
+    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">剔除原因分布</h4>';
     var breakdownEntries = Object.entries(breakdown).sort(function(a, b) { return b[1] - a[1]; });
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">';
     breakdownEntries.forEach(function(entry) {
       var reason = entry[0], count = entry[1];
       var pct = totalRemoved > 0 ? Math.round(count / totalRemoved * 100) : 0;
-      html += '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;display:flex;justify-content:space-between">'
-        + '<span style="color:#0f172a">' + escHtml(reason) + '</span>'
-        + '<span style="color:#64748b">' + count + ' <span style="color:#94a3b8">(' + pct + '%)</span></span>'
+      html += '<div style="padding:8px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:13px">'
+        + '<span style="color:#0f172a;font-weight:600">' + count + '</span>'
+        + ' <span style="color:#64748b">' + escHtml(reason) + '</span>'
+        + ' <span style="color:#94a3b8;font-size:12px">' + pct + '%</span>'
         + '</div>';
     });
+    html += '</div>';
   }
 
   // 剔除明细
   if (removedItems.length > 0) {
-    html += '<div style="margin-top:20px;font-size:15px;font-weight:600;color:#0f172a;margin-bottom:12px">剔除明细（共' + removedItems.length + '条）</div>';
+    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">剔除明细（共 ' + removedItems.length + ' 条）</h4>';
     var grouped = {};
     removedItems.forEach(function(item) {
       var r = item.reason || '未知';
@@ -1427,10 +1471,11 @@ function renderFilterResult(report) {
     });
     Object.keys(grouped).sort(function(a, b) { return grouped[b].length - grouped[a].length; }).forEach(function(reason) {
       var items = grouped[reason];
-      var reasonLabel = FILTER_RULE_NAMES[reason] || reason;
-      html += '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#64748b">' + escHtml(reasonLabel) + ' <span style="color:#94a3b8">(' + items.length + '条)</span></div>';
+      html += '<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#64748b">' + escHtml(reason) + ' <span style="color:#94a3b8">(' + items.length + '条)</span></div>';
     });
   }
+
+  html += '</div>';
 
   document.getElementById('mf-body').innerHTML = html;
 }
