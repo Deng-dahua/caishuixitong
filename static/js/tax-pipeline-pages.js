@@ -942,7 +942,8 @@ async function loadChainsData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var clueChains = _allChains.filter(function(c) { return c.chain_type === '线索链' || !c.chain_type; });
-    if (!clueChains.length) clueChains = _allChains.slice(0, pc('trailChains', 391));
+    if (!clueChains.length) clueChains = _allChains.filter(function(c) { return c.chain_type !== '证据链'; });
+    if (!clueChains.length) clueChains = _allChains;
 
     // 加载动态触发状态
     await loadChainDynamicStatus();
