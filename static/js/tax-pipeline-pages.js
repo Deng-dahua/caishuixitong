@@ -923,9 +923,6 @@ function renderChainsPage(container) {
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
-    + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;margin-top:24px">'
-    + '<span style="font-size:13px;color:#94a3b8"><strong id="chain-header-count">' + (hasCache ? _allClueChains.length : '...') + '</strong> 条线索链</span>'
-    + '</div>'
     + '<div id="chains-body"></div></div>';
 
   if (hasCache) {
@@ -1023,9 +1020,6 @@ function renderChainsList(chains) {
   }
 
   target.innerHTML = html;
-
-  var hc = document.getElementById('chain-header-count');
-  if (hc) hc.textContent = chains.length + (hasDynamic && _chainDynamic && _chainDynamic.triggered_count ? ' (' + _chainDynamic.triggered_count + '触发)' : '');
 }
 
 // ==================== 页面：证据链 ====================
