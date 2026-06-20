@@ -1110,7 +1110,7 @@ function renderEvidenceList(chains) {
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
       html += '<div style="margin-bottom:32px">'
-        + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>';
+        + (sortedPrefixes.length > 1 ? '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>' : '');
 
       groupChains.forEach(function(c) {
         var evExec = evExecMap[c.name];
