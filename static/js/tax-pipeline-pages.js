@@ -1409,6 +1409,119 @@ function loadCrossDomainClues() {
     });
 }
 
+// ==================== 跨域分析链页面 ====================
+function renderCrossDomainAnalysisPage(container) {
+  if (!container) return;
+  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div style="margin-bottom:48px">'
+    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域分析链</h2>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证</p>'
+    + '</div>'
+    + '<div id="cda-body"></div>'
+    + '</div>';
+  loadCrossDomainAnalysis();
+}
+
+function loadCrossDomainAnalysis() {
+  var target = document.getElementById('cda-body');
+  fetch('/static/cross_domain_analysis.json?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(chains) {
+      var html = '';
+      var highCount = chains.filter(function(c){return c.level==='高风险';}).length;
+      var totalSteps = chains.reduce(function(s,c){return s+(c.reasoning_chain||[]).length;},0);
+
+      // ══════ 一、概述 ══════
+      html += '<div style="margin-bottom:40px">'
+        + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域分析链</h3>'
+        + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+        + '跨域分析链定义的是<strong>推理路径</strong>——从一个域的异常信号开始，通过多步逻辑推理，逐步扩展到其他域，'
+        + '最终得出跨域综合结论。每条链都有<strong>回退点</strong>——只要某个环节能提供合理解释，风险就会降级或消除。'
+        + '与线索链（调查路径）和证据链（验证标准）不同，分析链关注的是<strong>推理逻辑</strong>本身。'
+        + '</p>'
+        + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+        + '<strong>三个跨域链的关系</strong><br>'
+        + '🔎 跨域线索链 → 告诉稽查人员「怎么查」（调查步骤）<br>'
+        + '🔗 跨域证据链 → 告诉稽查人员「怎么判」（验证标准）<br>'
+        + '🧠 跨域分析链 → 告诉稽查人员「怎么推理」（逻辑路径+回退条件）'
+        + '</div>'
+        + '</div>';
+
+      // 统计
+      html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">分析链</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">推理步骤</div></div>'
+        + '</div>';
+
+      // ══════ 二、分析链定义 ══════
+      html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、跨域分析链定义</h3>';
+
+      chains.forEach(function(c) {
+        var levelColor = c.level === '高风险' ? '#dc2626' : '#f59e0b';
+        var levelBg = c.level === '高风险' ? '#fef2f2' : '#fffbeb';
+
+        html += '<div style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
+          // 标题
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+          + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + '</div>'
+          + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + c.level + '</span>'
+          + '</div>'
+
+          // 触发信号
+          + '<div style="font-size:13px;color:#475569;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发信号：</span>' + escHtml(c.trigger_signal) + '</div>'
+
+          // 描述
+          + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+
+          // 推理链
+          + '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px">'
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + (c.reasoning_chain||[]).length + ' 步</div>';
+
+        (c.reasoning_chain||[]).forEach(function(s, si) {
+          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:1.8">'
+            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + s.order + '</span>'
+            + '<span style="font-weight:600;color:#2563eb">' + escHtml(s.from) + '</span>'
+            + '<span style="color:#94a3b8"> → </span>'
+            + '<span style="font-weight:600;color:#7c3aed">' + escHtml(s.to) + '</span>'
+            + '<div style="color:#64748b;margin-top:2px">发现：' + escHtml(s.finding) + '</div>'
+            + '<div style="color:#94a3b8;font-size:12px">动作：' + escHtml(s.action) + '</div>'
+            + '</div>';
+          if (si < (c.reasoning_chain||[]).length - 1) {
+            html += '<div style="text-align:center;color:#94a3b8;font-size:18px;padding:4px 0">↓</div>';
+          }
+        });
+        html += '</div>'
+
+          // 回退点
+          + '<div style="padding:12px 16px;background:#f0fdf4;border-radius:6px;margin-bottom:8px">'
+          + '<div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:6px">回退点 · ' + (c.reversal_points||[]).length + ' 处</div>';
+        (c.reversal_points||[]).forEach(function(r) {
+          html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:1.8">'
+            + '<span style="color:#94a3b8;font-size:12px">Step ' + r.at_step + '</span>'
+            + '<span style="color:#059669;font-weight:600"> 如果</span> ' + escHtml(r.if)
+            + '<span style="color:#059669;font-weight:600"> → 则</span> ' + escHtml(r.then)
+            + '</div>';
+        });
+        html += '</div>'
+
+          // 方法论
+          + (c.methodology ? '<div style="font-size:12px;color:#94a3b8">关联方法论：' + escHtml(c.methodology) + '</div>' : '')
+          + '</div>';
+      });
+
+      html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+        + '<strong>跨域分析链的核心价值</strong>：不是给出结论，而是展示推理过程。每一步从哪个域出发、在哪个域发现了什么、从而导向哪个域。'
+        + '更重要的是——每一步都有回退条件。最终结论取决于每个环节是否可以被合理解释——这正是税务稽查中「证据链」思维在AI系统中的完整实现。'
+        + '</div>';
+
+      target.innerHTML = html;
+    })
+    .catch(function() {
+      if (target) target.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">跨域分析链加载失败</div>';
+    });
+}
+
 // ==================== 页面4：方法论过滤器 ====================
 function renderMethodologyFilterPage(container) {
   if (!container) return;

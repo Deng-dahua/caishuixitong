@@ -67,6 +67,7 @@ const pages = {
   'analyze-page': '分析链',
   'cross-domain-evidence': '跨域证据链',
   'cross-domain-clues': '跨域线索链',
+  'cross-domain-analysis': '跨域分析链',
   'system-logs': '系统日志',
   'ai-rules': 'AI行为准则'
 };
@@ -552,6 +553,7 @@ function navigateTo(page) {
     case 'analyze-page': renderAnalyzePage(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'cross-domain-clues': renderCrossDomainCluesPage(container); break;
+    case 'cross-domain-analysis': renderCrossDomainAnalysisPage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
   }
