@@ -57,7 +57,7 @@
       background: var(--primary-light); color: var(--primary); border-radius: 6px;
       padding: 4px 12px; font-size: 13px; font-weight: 500; cursor: pointer;
     }
-    .content-area { flex: 1; padding: 24px; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; }
+    .content-area { flex: 1; padding: 0; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; }
     #content-area > [id^="page-"] { display: flex; flex-direction: column; flex: 1; overflow-x: auto; min-height: 0; }
 
     /* 卡片 */
