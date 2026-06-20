@@ -919,7 +919,7 @@ function renderChainsPage(container) {
   var hasCache = _allClueChains && _allClueChains.length > 0;
 
   container.innerHTML = '<div class="pipeline-page">'
-    + '<div>'
+    + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
