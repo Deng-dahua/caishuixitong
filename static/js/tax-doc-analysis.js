@@ -399,8 +399,8 @@ function renderTaxDocReport(r) {
     (te.industry ? '工商登记' + te.industry : '企业') +
     (te.registered_type && te.registered_type !== te.industry ? '，实质为' + te.registered_type : '') +
     (te.legal_person ? '。法定代表人' + te.legal_person : '') +
-    (te.legal_person_role ? '（' + te.legal_person_role + '）' : '') +
-    '。</p>';
+    (te.legal_person_role ? '（' + te.legal_person_role + '）' : '')
+    ) + '。</p>';
 
   // section 2
   h += '<h2>二、稽查方法</h2>';
