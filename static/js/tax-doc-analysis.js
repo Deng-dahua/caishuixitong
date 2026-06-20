@@ -222,7 +222,7 @@ function renderAnalyzeHeader(report) {
     + '<span style="margin-left:4px">共 <strong style="color:#0f172a">' + allF.length + '</strong> 条风险发现</span>'
     + '</div>'
     + '<div style="font-size:12px;color:#94a3b8;padding-top:4px">'
-    + '四合一闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓'
+    + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓ · 证据链闭环 ✓ · 跨域证据链 ✓'
     + '</div>';
 
   // 稽查行为准则

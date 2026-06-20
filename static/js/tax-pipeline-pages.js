@@ -1261,11 +1261,11 @@ async function loadAnalyzeOverview() {
 
   html += '</div>';
 
-  // ══════ 三、四合一数据闭环体系 ══════
+  // ══════ 三、全链路稽查质量保障体系 ══════
   html += '<div style="margin-bottom:48px;padding:24px;background:#f8fafc;border-radius:8px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、四合一数据闭环体系</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、全链路稽查质量保障体系</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 16px">'
-    + '四合一数据闭环是税务稽查系统的质量保障核心。每条一键分析发现必须同时具备以下四项追溯信息，缺一不可。'
+    + '全链路稽查质量保障体系是税务稽查系统的质量保障核心。从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。体系涵盖六大质量保障维度，缺一不可。'
     + '</p>'
     + '<div style="font-size:14px;color:#475569;line-height:2.2">'
     + '<div style="padding:12px 16px;margin-bottom:8px;background:#fff;border-radius:6px;border-left:3px solid #2563eb"><strong>规则ID追溯</strong> → 每条发现可追溯到 tax_risk_rules_local_export.json 中的具体稽查指令（' + pc('rules','1505') + '条）。代码位置：main.py 第8540行 _run_analyze() 函数。</div>'
@@ -1351,7 +1351,7 @@ function renderAnalyzeResult(report) {
     + '<div style="font-size:13px;color:#475569;line-height:2">'
     + '规则 <strong>' + (comp.rule_count||pc('rules','1505')) + '</strong> 则 · 线索链 <strong>' + (comp.chain_count||pc('trailChains','391')) + '</strong> 条 · '
     + '证据链 <strong>' + (comp.evidence_count||pc('evidenceChains','740')) + '</strong> 条 · 文件 <strong>' + (report.files_count||0) + '</strong> 个 · '
-    + '四合一闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓'
+    + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓'
     + '</div>'
     + '</div>';
 
@@ -1827,6 +1827,12 @@ function renderAiRules(container) {
       {id:14, name:'全行业适用', level:'铁律', date:'2026-06-19',
        desc:'所有行为准则、稽查方法论、代码逻辑必须适用于全行业各企业。禁止为单一企业/单一行业做特化硬编码。',
        why:'BOM分析中原料/成品关键词全是纺织词（纱/丝/棉/布），食品/家具/电子企业完全无法使用——已改造为 INDUSTRY_PRODUCT_CHAINS 25行业自适应词典。'},
+      {id:16, name:'主动关联更新', level:'铁律', date:'2026-06-19',
+       desc:'当发现某个概念/提法/方法论已过时或需要扩展时，主动关联更新所有相关位置。禁止"踢一脚动一下"——用户指出"四合一"提法过时，就要主动搜索全项目所有"四合一"提法并一并更新，而不是只改用户指出的那一个位置。',
+       why:'用户指出"四合一"提法过时，但AI没有主动关联更新所有相关位置——这种行为准则自己的规范都不遵守，怎么要求代码质量？'},
+      {id:17, name:'自我反思与准则迭代', level:'铁律', date:'2026-06-19',
+       desc:'每次用户批评后，必须反思：我哪些行为准则没做到？准则本身是否遗漏了这条规范？如果发现准则有遗漏，立即补充到AI行为准则中。准则不是静态的，必须持续迭代。',
+       why:'用户批评"你的行为准则是不是应该提醒自己遵照执行呢？如果这种规范你行为的准则你都不主动写入AI行为准则，你怎么能更优秀呢？"——AI行为准则是规范AI自己的，必须主动维护。'},
     ]},
   ];
 
