@@ -44,7 +44,29 @@ function pc(key, fallback) {
   return (_pipelineCounts && _pipelineCounts[key] != null) ? _pipelineCounts[key] : fallback;
 }
 
-// ==================== 页面1：文件解析（极简风） ====================
+// ═══════════ API共享缓存（消除6模块重复请求同一API） ═══════════
+var _analysisCacheData = null;
+var _analysisCachePromise = null;
+
+function getSharedAnalysis() {
+  if (_analysisCacheData) return Promise.resolve(_analysisCacheData);
+  if (_analysisCachePromise) return _analysisCachePromise;
+  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+  _analysisCachePromise = fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      _analysisCacheData = data;
+      _analysisCachePromise = null;
+      return data;
+    })
+    .catch(function(e) {
+      _analysisCachePromise = null;
+      throw e;
+    });
+  return _analysisCachePromise;
+}
+
+// ═══════════ 页面1：文件解析（极简风） ═══════════
 function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
@@ -243,19 +265,11 @@ function fpFingerprints() {
   ];
 }
 
-function statLine(label, value, color) {
-  return '<div style="text-align:center;padding:0 24px;border-right:1px solid #f1f5f9">'
-    + '<div style="font-size:32px;font-weight:700;color:' + color + ';line-height:1.2">' + value + '</div>'
-    + '<div style="font-size:12px;color:#94a3b8;margin-top:2px">' + label + '</div></div>';
-}
-
 async function loadFileParsingData() {
   var target = document.getElementById('fp-analysis-result');
   if (!target) return;
-  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
+    var data = await getSharedAnalysis();
     if (!data.ok) {
       target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">暂无分析结果，请先运行一键分析</div>';
       return;
@@ -523,10 +537,8 @@ function renderDomainAnalysisStatic() {
 async function loadDomainAnalysisData() {
   var target = document.getElementById('da-analysis-result');
   if (!target) return;
-  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
+    var data = await getSharedAnalysis();
     if (!data.ok) {
       target.innerHTML = '<div style="padding:48px 0;font-size:13px;color:#94a3b8">暂无分析结果，请先运行一键分析</div>';
       return;
@@ -747,8 +759,7 @@ function loadCrossDomainDynamic() {
   var target = document.getElementById('cde-dynamic');
   if (!target) return;
 
-  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
-  fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
+  getSharedAnalysis()
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.ok) {
@@ -931,9 +942,7 @@ async function loadChainsData() {
 
 async function loadChainDynamicStatus() {
   try {
-    var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
+    var data = await getSharedAnalysis();
     if (data.ok && data.report) {
       var comp = data.report.comprehensive || {};
       _chainDynamic = {
@@ -992,10 +1001,6 @@ function renderChainsList(chains) {
 
   var hc = document.getElementById('chain-header-count');
   if (hc) hc.textContent = chains.length + (hasDynamic && _chainDynamic && _chainDynamic.triggered_count ? ' (' + _chainDynamic.triggered_count + '触发)' : '');
-}
-
-function filterChainsList() {
-  if (_allClueChains.length) renderChainsList(_allClueChains, []);
 }
 
 // ==================== 页面：证据链 ====================
@@ -1123,7 +1128,6 @@ function renderEvidenceList(chains) {
   }
 
   target.innerHTML = html;
-  _allEvidenceChains = chains;
 }
 
 // ==================== 页面：分析链 ====================
@@ -1148,10 +1152,8 @@ async function loadAnalyzeOverview() {
     return;
   }
 
-  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
+    var data = await getSharedAnalysis();
     if (data.ok && data.report) {
       _cachedAnalyzeReport = data.report;
       renderAnalyzeResult(data.report);
@@ -1405,7 +1407,7 @@ function renderCrossDomainCluesPage(container) {
   container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域线索链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查<span id="cdc-triggered-count"></span></p>'
     + '</div>'
     + '<div id="cdc-body"></div>'
     + '</div>';
@@ -1484,6 +1486,15 @@ function loadCrossDomainClues() {
         + '</div>';
 
       target.innerHTML = html;
+
+      // 加载动态触发状态
+      getSharedAnalysis().then(function(data) {
+        if (data.ok && data.report) {
+          var triggered = (data.report.comprehensive || {}).triggered_chains || [];
+          var cntEl = document.getElementById('cdc-triggered-count');
+          if (cntEl) cntEl.textContent = ' · 本次触发 ' + triggered.length + ' 条';
+        }
+      }).catch(function() {});
     })
     .catch(function() {
       if (target) target.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">跨域线索链加载失败</div>';
@@ -1496,7 +1507,7 @@ function renderCrossDomainAnalysisPage(container) {
   container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域分析链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证<span id="cda-triggered-count"></span></p>'
     + '</div>'
     + '<div id="cda-body"></div>'
     + '</div>';
@@ -1597,6 +1608,15 @@ function loadCrossDomainAnalysis() {
         + '</div>';
 
       target.innerHTML = html;
+
+      // 加载动态触发状态
+      getSharedAnalysis().then(function(data) {
+        if (data.ok && data.report) {
+          var triggered = (data.report.comprehensive || {}).triggered_chains || [];
+          var cntEl = document.getElementById('cda-triggered-count');
+          if (cntEl) cntEl.textContent = ' · 本次触发 ' + triggered.length + ' 条';
+        }
+      }).catch(function() {});
     })
     .catch(function() {
       if (target) target.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">跨域分析链加载失败</div>';
@@ -1624,10 +1644,8 @@ function renderMethodologyFilterPage(container) {
 }
 
 async function loadMethodologyFilterData() {
-  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
   try {
-    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    var data = await resp.json();
+    var data = await getSharedAnalysis();
     if (!data.ok) {
       document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">' + (data.message || '暂无分析结果') + '</div>';
       return;
