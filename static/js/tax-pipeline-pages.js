@@ -1321,6 +1321,8 @@ async function loadAnalyzeOverview() {
 
   html += '</div></div>';
 
+  target.innerHTML = html;
+
 }
 
 function renderAnalyzeResult(report) {
