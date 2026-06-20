@@ -19227,9 +19227,13 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
 
 @app.post("/api/tax-risk-docs/review")
 async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """报告复核：重新分析并返回复核问题列表"""
-    result = await _run_analyze(company_id, db)
-    if not result.get("ok"):
+    """报告复核：优先使用缓存，无缓存时重新分析"""
+    cached = _last_analysis_cache.get(company_id)
+    if cached and cached.get("report"):
+        report = cached["report"]
+    else:
+        report = await _run_analyze(company_id, db)
+    if not report.get("ok"):
         return {"ok": False, "message": "分析失败，无法复核"}
     
     report = result["report"]

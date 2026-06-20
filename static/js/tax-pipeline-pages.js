@@ -622,7 +622,9 @@ function renderDomainAnalysisResult(report) {
           var lvlBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
           html += '<div style="padding:10px 12px;margin-bottom:6px;background:' + lvlBg + ';border-radius:6px;border-left:3px solid ' + lvlColor + '">'
             + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">' + escHtml(f.type || '') + '</div>'
-            + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px">' + escHtml((f.detail || '').substring(0, 300)) + '</div>'
+            + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(f.detail || '').replace(/"/g, '&quot;') + '">' + escHtml((f.detail || '').substring(0, 300)) + '</span>'
+            + ((f.detail || '').length > 300 ? ' <a href="#" onclick="var s=this.previousElementSibling;s.textContent=s.getAttribute(\'data-full\');this.remove();return false" style="color:#2563eb;font-size:11px">展开全文</a>' : '')
+            + '</div>'
             + '<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#94a3b8">'
             + '<span style="color:' + lvlColor + ';font-weight:600">' + (f.level || '') + '</span>'
             + '<span>score:' + (f.score || '-') + '</span>'
@@ -792,9 +794,16 @@ function renderCrossDomainDynamic(report) {
     }
   });
 
+  // 动态匹配：基于实际加载的证据链名称，而非硬编码正则
+  var chainNames = [];
+  if (window._allCrossChains && window._allCrossChains.length) {
+    window._allCrossChains.forEach(function(cc) { if (cc.name) chainNames.push(cc.name); });
+  }
+  var chainRegex = chainNames.length ? new RegExp(chainNames.join('|')) : /证据链/;
+
   var evidenceFindings = allF.filter(function(f) {
     var t = f.type || '';
-    return /证据链|隐匿收入|虚开发票|无实质经营|会计基础|资金链|利润现金流|发票异常|全链条经营实质/.test(t);
+    return /证据链/.test(t) || chainRegex.test(t);
   });
 
   var allEvidence = [];
@@ -1165,7 +1174,7 @@ async function loadAnalyzeOverview() {
       renderAnalyzeResult(data.report);
       return;
     }
-  } catch (e) {}
+  } catch (e) { console.warn('分析链API加载失败，显示静态说明:', e.message); }
 
   // 兜底：无分析数据时显示完整静态说明
   var html = '';

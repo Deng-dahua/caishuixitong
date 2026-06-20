@@ -121,10 +121,10 @@ function renderTaxRiskRulesList() {
       var icon = RISK_LEVEL_ICONS[rule.level] || '⚪';
       var levelBg = rule.level === '高风险' ? '#fef2f2' : (rule.level === '中风险' ? '#fffbeb' : '#f0fdf4');
 
-      html += '<div style="padding:16px 20px;margin-bottom:8px;background:' + levelBg + ';border-left:3px solid ' + color + ';border-radius:0 8px 8px 0">'
+      html += '<div data-rule-id="' + (rule.id || '') + '" style="padding:16px 20px;margin-bottom:8px;background:' + levelBg + ';border-left:3px solid ' + color + ';border-radius:0 8px 8px 0">'
         // 标题行
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">'
-        + '<div style="font-size:15px;font-weight:600;color:#0f172a">' + escHtml(rule.item) + '</div>'
+        + '<div style="font-size:15px;font-weight:600;color:#0f172a">' + escHtml(rule.item) + '<span class="rule-trigger-badge" style="display:none;margin-left:8px;font-size:11px;padding:1px 6px;border-radius:3px;background:#fef2f2;color:#dc2626;font-weight:600">本次触发</span></div>'
         + '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px">'
         + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (rule.level || '') + '</span>'
         + '<span style="font-size:11px;color:#94a3b8">评分 ' + (rule.score !== undefined ? rule.score : '-') + '</span>'
@@ -163,5 +163,29 @@ function renderTaxRiskRulesList() {
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '
       + sortedCats.length + ' 个分类';
+  }
+
+  // 标注本次触发的规则（延迟加载，不阻塞页面渲染）
+  if (typeof getSharedAnalysis === 'function') {
+    getSharedAnalysis().then(function(sa) {
+      if (sa && sa.ok && sa.report) {
+        var triggeredIds = new Set();
+        (sa.report.all_findings || []).forEach(function(f) {
+          if (f.rule_id) triggeredIds.add(String(f.rule_id));
+        });
+        triggeredIds.forEach(function(rid) {
+          var el = document.querySelector('[data-rule-id="' + rid + '"]');
+          if (el) {
+            el.style.borderLeftColor = '#dc2626';
+            el.style.borderLeftWidth = '5px';
+            var badge = el.querySelector('.rule-trigger-badge');
+            if (badge) badge.style.display = 'inline';
+          }
+        });
+        // 更新标题的触发统计
+        var cntEl = document.getElementById('risk-rules-count');
+        if (cntEl) cntEl.textContent = data.length + ' 条稽查指令（本次触发 ' + triggeredIds.size + ' 条）· 按分类分组 · 每条含详细稽查标准和法律依据';
+      }
+    }).catch(function(){});
   }
 }
