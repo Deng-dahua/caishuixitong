@@ -425,7 +425,8 @@ function renderTaxDocReport(r) {
 
   h += '<table class="tbl">'
     + '<tr><td class="lbl">案件来源</td><td>资料风险分析（基于电子经营资料预审）</td></tr>'
-    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag + '</td></tr>'
+    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag
+    + '</td></tr>'
     + '<tr><td class="lbl">法定代表人</td><td>' + esc(te.legal_person || '') + (te.legal_person_role ? '（' + esc(te.legal_person_role) + '）' : '') + '</td></tr>'
     + (te.registered_capital ? '<tr><td class="lbl">注册资本</td><td>' + esc(te.registered_capital) + '</td></tr>' : '')
     + (te.uscc ? '<tr><td class="lbl">统一社会信用代码</td><td>' + esc(te.uscc) + '</td></tr>' : '')
@@ -839,3 +840,5 @@ async function clearTransferCache() {
     else { toast('清除失败', 'error'); }
   } catch(e) { toast('清除失败: ' + e.message, 'error'); }
 }
+
+

@@ -18434,29 +18434,17 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
 
 # 公开企业信息查询源
 _COMPANY_LOOKUP_SOURCES = [
-    # 天眼查公开搜索页（无需登录的基础信息）
+    # 搜狗搜索 — 知识图谱卡片自动聚合企查查/天眼查/启信宝数据（HTML文本提取，无需JS）
     {
-        "name": "天眼查",
-        "url_template": "https://www.tianyancha.com/search?key={company_name}",
-        "parser": "tianyancha_public",
+        "name": "搜狗搜索",
+        "url_template": "https://www.sogou.com/web?query={company_name}",
+        "parser": "sogou_kg",
     },
-    # 企查查公开搜索页
+    # 360搜索 — 备用源
     {
-        "name": "企查查",
-        "url_template": "https://www.qcc.com/web/search?key={company_name}",
-        "parser": "qcc_public",
-    },
-    # 国家企业信用信息公示系统（官方）
-    {
-        "name": "国家公示系统",
-        "url_template": "http://www.gsxt.gov.cn/index.html",  # 需要交互式查询
-        "parser": "gsxt_public",
-    },
-    # 爱企查（百度旗下）
-    {
-        "name": "爱企查",
-        "url_template": "https://aiqicha.baidu.com/s?q={company_name}",
-        "parser": "aiqicha_public",
+        "name": "360搜索",
+        "url_template": "https://www.so.com/s?q={company_name}",
+        "parser": "so360",
     },
 ]
 
@@ -18486,9 +18474,27 @@ def _http_get(url, timeout=8):
 
 
 def _extract_company_from_html(html_text, source_name):
-    """从各平台的HTML中提取企业信息"""
-    if not html_text:
+    """
+    从搜索引擎HTML中提取企业信息。
+    
+    策略（全行业通用，不依赖特定网页结构）：
+    1. 先去除<script>/<style>，再将HTML转为纯文本
+    2. 用正则从纯文本中提取"字段名：值"对
+    3. 搜狗/360搜索的知识图谱卡片天然是结构化纯文本，无需JS解析
+    """
+    if not html_text or len(html_text) < 100:
         return None
+    
+    # 第一步：HTML → 纯文本
+    clean = re.sub(r'<script[^>]*>.*?</script>', ' ', html_text, flags=re.DOTALL | re.IGNORECASE)
+    clean = re.sub(r'<style[^>]*>.*?</style>', ' ', clean, flags=re.DOTALL | re.IGNORECASE)
+    clean = re.sub(r'<[^>]+>', ' ', clean)       # 移除所有HTML标签
+    clean = re.sub(r'&nbsp;', ' ', clean)
+    clean = re.sub(r'&amp;', '&', clean)
+    clean = re.sub(r'&lt;', '<', clean)
+    clean = re.sub(r'&gt;', '>', clean)
+    clean = re.sub(r'&#?\w+;', ' ', clean)       # HTML实体
+    clean = re.sub(r'\s+', ' ', clean).strip()
     
     info = {
         "source": source_name,
@@ -18506,102 +18512,109 @@ def _extract_company_from_html(html_text, source_name):
         "raw_fields": {},
     }
     
-    # 通用模式：从HTML title/meta提取
-    # 企业名称模式
-    name_patterns = [
-        r'公司名称[：:]\s*([^<\n]{4,60})',
-        r'企业名称[：:]\s*([^<\n]{4,60})',
-        r'<title>([^<]{4,60}?)(?:-|_|\||\s*工商|\s*信用|\s*企业)</title>',
-        r'og:title"\s*content="([^"]{4,60})',
-    ]
-    for pat in name_patterns:
-        m = re.search(pat, html_text)
-        if m and not info["company_name"]:
-            info["company_name"] = m.group(1).strip()
-    
-    # 法定代表人
-    legal_patterns = [
-        r'法定代表人[：:]\s*([^<\n]{2,20})',
-        r'法定代表人[：:]\s*<[^>]*>([^<]{2,20})',
-        r'法人代表[：:]\s*([^<\n]{2,20})',
-        r'负责人[：:]\s*([^<\n]{2,20})',
-    ]
-    for pat in legal_patterns:
-        m = re.search(pat, html_text)
+    # 第二步：逐字段正则提取
+    # —— 法定代表人（优先级最高，多个结果取第一个）
+    for pat in [
+        r'法定代表人[：:]\s*([^\s]{2,10})(?:\s|$)',
+        r'法人代表[：:]\s*([^\s]{2,10})(?:\s|$)',
+    ]:
+        m = re.search(pat, clean)
         if m:
             info["legal_representative"] = m.group(1).strip()
             break
     
-    # 注册资本
-    capital_patterns = [
-        r'注册资本[：:]\s*([^<\n]{2,40})',
-        r'注册资本[：:]\s*<[^>]*>([^<]{2,40})',
-        r'注册资金[：:]\s*([^<\n]{2,40})',
-    ]
-    for pat in capital_patterns:
-        m = re.search(pat, html_text)
+    # —— 注册资本
+    for pat in [
+        r'注册资本[：:]\s*([\d.]+)\s*万(?:元)?',
+        r'注册资本[：:]\s*([\d.]+万?\s*元?)',
+    ]:
+        m = re.search(pat, clean)
         if m:
             info["registered_capital"] = m.group(1).strip()
             break
     
-    # 成立日期
-    date_patterns = [
+    # —— 成立日期（支持多种格式）
+    for pat in [
+        r'(\d{4}年\d{1,2}月\d{1,2}日)\s*成立',
         r'成立日期[：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
-        r'成立日期[：:]\s*<[^>]*>(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
         r'核准日期[：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2})',
-    ]
-    for pat in date_patterns:
-        m = re.search(pat, html_text)
+    ]:
+        m = re.search(pat, clean)
         if m:
             info["established_date"] = m.group(1).strip()
             break
     
-    # 经营范围
-    scope_patterns = [
-        r'经营范围[：:]\s*([^<]{10,500})',
-        r'经营范围[：:]\s*<[^>]*>([^<]{10,500})',
-    ]
-    for pat in scope_patterns:
-        m = re.search(pat, html_text)
+    # —— 登记状态
+    for pat in [
+        r'登记状态[：:]\s*([^\s]{2,20}?)(?:\s|$)',
+        r'经营状态[：:]\s*([^\s]{2,20}?)(?:\s|$)',
+    ]:
+        m = re.search(pat, clean)
+        if m:
+            s = m.group(1).strip()
+            if s not in ('', ' ', '查看', '详情'):
+                info["status"] = s
+                break
+    
+    # —— 企业/注册地址
+    for pat in [
+        r'企业地址[：:]\s*(.{5,80}?)(?:\s{2,}|$)',
+        r'注册地址[：:]\s*(.{5,80}?)(?:\s{2,}|$)',
+        r'住所[：:]\s*(.{5,80}?)(?:\s{2,}|$)',
+    ]:
+        m = re.search(pat, clean)
+        if m:
+            addr = m.group(1).strip()
+            if len(addr) >= 5:
+                info["address"] = addr
+                break
+    
+    # —— 经营范围
+    for pat in [
+        r'经营范围[：:]\s*(.{10,500}?)(?:\s{2,}|行业分类|工商信息)',
+    ]:
+        m = re.search(pat, clean)
         if m:
             scope = m.group(1).strip()
-            if len(scope) > 10:
+            if len(scope) >= 10:
                 info["business_scope"] = scope[:500]
                 break
     
-    # 统一社会信用代码
-    uscc_patterns = [
-        r'统一社会信用代码[：:]\s*([A-Za-z0-9]{18})',
-        r'社会信用代码[：:]\s*([A-Za-z0-9]{18})',
-    ]
-    for pat in uscc_patterns:
-        m = re.search(pat, html_text)
-        if m:
-            info["uscc"] = m.group(1).strip()
-            break
+    # —— 统一社会信用代码（18位数字+字母）
+    m = re.search(r'统一社会信用代码[：:]\s*([A-Za-z0-9]{18})', clean)
+    if m:
+        info["uscc"] = m.group(1).strip()
     
-    # 注册地址
-    addr_patterns = [
-        r'住所[：:]\s*([^<\n]{5,100})',
-        r'注册地址[：:]\s*([^<\n]{5,100})',
-        r'企业地址[：:]\s*([^<\n]{5,100})',
-    ]
-    for pat in addr_patterns:
-        m = re.search(pat, html_text)
-        if m:
-            info["address"] = m.group(1).strip()
-            break
+    # —— 企业类型
+    m = re.search(r'企业类型[：:]\s*([^\s]{4,30}?)(?:\s|$)', clean)
+    if m:
+        t = m.group(1).strip()
+        if t not in ('', ' ', '查看'):
+            info["company_type"] = t
     
-    # 企业状态
-    status_patterns = [
-        r'登记状态[：:]\s*([^<\n]{2,10})',
-        r'经营状态[：:]\s*([^<\n]{2,10})',
-    ]
-    for pat in status_patterns:
-        m = re.search(pat, html_text)
-        if m:
-            info["status"] = m.group(1).strip()
-            break
+    # —— 股东/高管信息（从搜索结果摘要提取）
+    # 搜狗知识图谱格式: "X位相关人员 更多 张三 执行董事,经理,财务负责人 李四 监事"
+    # 天眼查摘要格式: "XXX - 法定代表人/高管/股东"
+    # 噪声过滤: 只保留2-4字的纯中文姓名（排除纯数字、英文、含标点的）
+    _name_noise = {'经理', '执行', '总监', '负责人', '董事长', '总经理', '法人', '股东', '高管', '财务', '更多', '工商信息', '股东信息', '变更记录'}
+    # 先提取 "姓名 角色列表" 模式中的姓名
+    sh_block = re.search(r'(\d{1,2}位相关人员.*?)(?:工商信息|股东信息|变更记录|\Z)', clean)
+    if sh_block:
+        # 格式: "2位相关人员 更多 张三 执行董事,经理,财务负责人 李四 监事"
+        names = re.findall(r'([\u4e00-\u9fff]{2,4})\s+(?:执行董事|经理|财务负责人|监事|董事|总经理|法定代表人|股东)', sh_block.group(1))
+        for name in names:
+            name = name.strip()
+            if name and name not in _name_noise and name not in [s["name"] for s in info["shareholders"]]:
+                info["shareholders"].append({"name": name})
+    # 再从整个文本提取 "XXX - 法定代表人/高管/股东" 模式
+    for m in re.finditer(r'([\u4e00-\u9fff]{2,4})\s*[-—]\s*法定代表人[/]?高管[/]?股东', clean):
+        name = m.group(1).strip()
+        if name not in _name_noise and name not in [s["name"] for s in info["shareholders"]]:
+            info["shareholders"].append({"name": name})
+    
+    # 第三步：验证 — 至少要有法定代表人 or 注册资本才算有效提取
+    if not info["legal_representative"] and not info["registered_capital"]:
+        return None
     
     return info
 
