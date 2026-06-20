@@ -372,7 +372,7 @@ function renderTaxDocReport(r) {
     + '#rr-report .f .ft{font-weight:700;font-size:15px;margin-bottom:8px}'
     + '#rr-report .f .fb{font-size:13px;color:#334155;line-height:1.9}'
     + '#rr-report .f .fs{font-size:12px;color:#475569;margin-top:6px;padding-top:6px;border-top:1px dashed #e8e8e8}'
-    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd}'
+    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd;line-height:2.2}'
     + '#rr-report .toc{margin:30px 0;padding:0 40px}'
     + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:15px;line-height:2.4}'
     + '#rr-report .toc a:hover{color:#2563eb;text-decoration:underline}'
@@ -381,6 +381,17 @@ function renderTaxDocReport(r) {
     + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
     + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
     + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
+    + '#rr-report .fact-sec{margin:16px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
+    + '#rr-report .fact-sec .ftitle{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:10px}'
+    + '#rr-report .fact-sec .frow{margin:6px 0;font-size:13px;line-height:1.9}'
+    + '#rr-report .fact-sec .flabel{font-weight:600;color:#475569}'
+    + '#rr-report .law-ref{margin:8px 0;padding:8px 12px;background:#f8fafc;border-left:3px solid #2563eb;font-size:12px;color:#334155}'
+    + '#rr-report .rights-sec{margin:20px 0;padding:20px 24px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
+    + '#rr-report .rights-sec .rtitle{font-size:15px;font-weight:700;margin-bottom:12px}'
+    + '#rr-report .rights-sec .ritem{margin:6px 0;font-size:13px;line-height:1.8}'
+    + '#rr-report .appendix{margin:20px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
+    + '#rr-report .appendix .atitle{font-size:15px;font-weight:700;margin-bottom:10px}'
+    + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569}'
     + '</style><div id="rr-report">';
 
   // cover
@@ -393,33 +404,39 @@ function renderTaxDocReport(r) {
 
   // TOC
   h += '<div class="toc">'
-    + '<div><a href="#sec1"><span class="num">一、</span>基本情况</a></div>'
-    + '<div><a href="#sec2"><span class="num">二、</span>稽查方法</a></div>'
-    + '<div><a href="#sec3"><span class="num">三、</span>稽查发现</a></div>'
+    + '<div><a href="#sec1"><span class="num">一、</span>案件来源及稽查对象基本情况</a></div>'
+    + '<div><a href="#sec2"><span class="num">二、</span>稽查实施情况</a></div>'
+    + '<div><a href="#sec3"><span class="num">三、</span>稽查发现问题及事实认定</a></div>'
     + '<div><a href="#sec4"><span class="num">四、</span>稽查结论</a></div>'
-    + '<div><a href="#sec5"><span class="num">五、</span>稽查处理意见</a></div>'
+    + '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
+    + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'
+    + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
     + '</div>';
 
   // section 1
-  h += '<h2 id="sec1">一、基本情况</h2>';
+  h += '<h2 id="sec1">一、案件来源及稽查对象基本情况</h2>';
   h += '<table class="tbl">'
+    + '<tr><td class="lbl">案件来源</td><td>资料风险分析（基于电子经营资料预审）</td></tr>'
     + '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>'
-    + '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'  |  '+esc(te.industry||'')+'</td></tr>'
+    + '<tr><td class="lbl">法定代表人</td><td>'+esc(te.legal_person||'')+(te.legal_person_role?'（'+esc(te.legal_person_role)+'）':'')+'</td></tr>'
+    + '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'</td></tr>'
+    + '<tr><td class="lbl">行业</td><td>'+esc(te.industry||'')+(te.registered_type&&te.registered_type!==te.industry?'（实质为'+esc(te.registered_type)+'）':'')+'</td></tr>'
     + '<tr><td class="lbl">稽查期间</td><td>'+esc(te.period||'')+'</td></tr>'
     + '<tr><td class="lbl">稽查范围</td><td>'+r.files_count+'份经营资料</td></tr>'
     + '<tr><td class="lbl">执行标准</td><td>依据'+r.rules_used+'条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
   h += '<p class="i2">' + esc(
-    (te.industry ? '工商登记' + te.industry : '企业') +
-    (te.registered_type && te.registered_type !== te.industry ? '，实质为' + te.registered_type : '') +
-    (te.legal_person ? '。法定代表人' + te.legal_person : '') +
-    (te.legal_person_role ? '（' + te.legal_person_role + '）' : '')
-    ) + '。</p>';
+    '本案为资料风险分析预审案件。被查单位' +
+    (te.name||'') +
+    (te.industry ? '，工商登记行业为' + te.industry : '') +
+    (te.registered_type && te.registered_type !== te.industry ? '，实质经营为' + te.registered_type : '') +
+    (te.legal_person ? '，法定代表人' + te.legal_person : '') +
+    '。'
+    ) + '</p>';
 
   // section 2
-  h += '<h2 id="sec2">二、稽查方法</h2>';
-  h += '<p class="i2">第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。</p>';
-  h += '<p class="i2">第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。</p>';
+  h += '<h2 id="sec2">二、稽查实施情况</h2>';
+  h += '<p class="i2">（一）稽查方法。第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
   if (rc) {
     h += '<h3>收款来源分析</h3><p>';
@@ -483,7 +500,7 @@ function renderTaxDocReport(r) {
   h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
   // section 3
-  h += '<h2 id="sec3">三、稽查发现</h2>';
+  h += '<h2 id="sec3">三、稽查发现问题及事实认定</h2>';
 
   allF.forEach(function(f,i){
     var s = f.score||0;
@@ -491,12 +508,13 @@ function renderTaxDocReport(r) {
     var bc = f.level_fixed ? S.red : (s>=8?S.red:(s>=6?S.amber:'#94a3b8'));
     var tc = f.level_fixed ? 'rtag' : (s>=8?'rtag':(s>=6?'atag':'gtag'));
     var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">稽查重点</span>':'');
-    h += '<div class="f" style="border-left:4px solid '+bc+'">';
-    h += '<div class="ft">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
-    h += '<div class="fb"><p>'+esc((f.detail||'')+(f.description||'').substring(0,300))+'</p></div>';
+    h += '<div class="fact-sec" style="border-left:4px solid '+bc+'">';
+    h += '<div class="ftitle">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
+    h += '<div class="frow"><span class="flabel">违法性质：</span>'+esc(f.type||'')+'</div>';
+    h += '<div class="frow"><span class="flabel">违法事实：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);
-      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">缺失明细</div>';
+      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（明细）</div>';
       h += '<table class="tbl2"><tr>';
       cols2.forEach(function(c){ h += '<th>'+esc(c)+'</th>'; });
       h += '</tr>';
@@ -507,17 +525,13 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
-    if (f.suggestion) h += '<div class="fs">'+esc((f.suggestion||'').substring(0,200))+'</div>';
-    // \u4e09\u5c42\u8ffd\u6eaf
-    if (f.rule_id || f.source_chain || f.how_found) {
-      h += '<div style="margin-top:8px;border-top:1px dashed #e8e8e8;padding-top:6px">';
-      h += '<span onclick="var d=this.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'" style="cursor:pointer;font-size:11px;color:#64748b;font-weight:600">\u25b6 稽查溯源</span>';
-      h += '<div style="display:none;font-size:11px;color:#475569;margin-top:4px;line-height:1.6">';
-      if (f.rule_id) h += '<div><b>规则:</b> ID-'+esc(f.rule_id)+'</div>';
-      if (f.source_chain) h += '<div><b>线索链:</b> '+esc(f.source_chain)+'</div>';
-      if (f.how_found) h += '<div><b>查证方式:</b> '+esc((f.how_found||'').substring(0,250))+'</div>';
-      h += '</div></div>';
-    }
+    h += '<div class="frow"><span class="flabel">证据来源：</span>';
+    if (f.rule_id) h += '规则ID-'+esc(f.rule_id)+' ';
+    if (f.source_chain) h += '| 线索链-'+esc(f.source_chain)+' ';
+    if (f.how_found) h += '| 查证方式-'+esc((f.how_found||'').substring(0,200));
+    h += '</div>';
+    h += '<div class="law-ref">法律依据：《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。</div>';
+    if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc((f.suggestion||'').substring(0,300))+'</div>';
     h += '</div>';
   });
 
@@ -541,16 +555,45 @@ function renderTaxDocReport(r) {
   h+='</p>';
 
   // section 5 - 稽查处理意见
-  h += '<h2 id="sec5">五、稽查处理意见</h2>';
+  h += '<h2 id="sec5">五、处理处罚建议</h2>';
   var actions=[],seen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
     if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
   });
   actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
-  h += '<p class="i2">建议被查单位在报告送达后15日内自查补税，整改情况书面回复。</p>';
+  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及相关规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复稽查部门。</p>';
 
-  h += '<div class="seal"><div>稽查执行人：___________</div><div style="margin-top:10px">审理人：___________</div><div style="margin-top:20px">稽查部门（盖章）：___________</div><div style="margin-top:20px">'+dateStr+'</div></div>';
+
+  // section 6 - 告知权利义务
+  h += '<h2 id="sec6">六、告知权利义务</h2>';
+  h += '<div class="rights-sec">';
+  h += '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位享有以下权利：</div>';
+  h += '<div class="ritem">1. <b>申请回避权</b>：认为稽查人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>';
+  h += '<div class="ritem">2. <b>陈述申辩权</b>：对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见。</div>';
+  h += '<div class="ritem">3. <b>听证权</b>：对拟作出的较大数额罚款（法人或其他组织1万元以上）有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</div>';
+  h += '<div class="ritem">4. <b>复议权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起60日内向上一级税务机关申请行政复议。</div>';
+  h += '<div class="ritem">5. <b>诉讼权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起6个月内向人民法院提起行政诉讼。</div>';
+  h += '</div>';
+
+  // section 7 - 稽查人员签字
+  h += '<h2 id="sec7">七、稽查人员签字</h2>';
+  h += '<div class="seal">';
+  h += '<div>稽查执行人：___________ （签名）  ' + dateStr + '</div>';
+  h += '<div style="margin-top:10px">审理人：___________ （签名）</div>';
+  h += '<div style="margin-top:20px">稽查部门（盖章）：___________</div>';
+  h += '<div style="margin-top:20px">报告日期：' + dateStr + '</div>';
+  h += '</div>';
+
+  // 附件：证据清单
+  h += '<div class="appendix">';
+  h += '<div class="atitle">附件：证据清单</div>';
+  h += '<div class="aitem">1. 进销项发票数据（电子版）</div>';
+  h += '<div class="aitem">2. 银行流水数据（电子版）</div>';
+  h += '<div class="aitem">3. 合同文件（如有）</div>';
+  h += '<div class="aitem">4. 其他经营资料（共' + r.files_count + '份）</div>';
+  h += '</div>';
+
   h += '</div>';
 
   area.innerHTML = h;
