@@ -17815,6 +17815,21 @@ def _run_analyze(company_id, db):
         except Exception as _pi_err:
             pipeline_log.append(f"付款方身份核实失败: {_pi_err}")
     
+    # ═══ 稽查方法论㉗ 供应链联网核查：供应商/客户联网查询 + 六员交叉比对 ═══
+    if target_entity.get("_online_lookup") and (sal_invs or pur_invs):
+        try:
+            from collections import defaultdict
+            supply_chain_risk = _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs)
+            sc_findings = supply_chain_risk.get("findings", [])
+            if sc_findings:
+                all_findings.extend(sc_findings)
+                sc_results = len(supply_chain_risk.get("lookup_results", []))
+                pipeline_log.append(f"供应链联网核查: {sc_results}家供应商/客户已查询, {len(sc_findings)}项风险发现")
+                # 注入到target_entity供前端渲染
+                target_entity["_supply_chain_risk"] = supply_chain_risk
+        except Exception as _sc_err:
+            pipeline_log.append(f"供应链联网核查失败: {_sc_err}")
+    
     # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
     priority_fixed = 0
     for f in all_findings:
@@ -18971,6 +18986,249 @@ def _check_six_personnel_risk(db, company_id):
         "total_companies_checked": len(all_companies),
         "my_personnel": {name: list(set(roles)) for name, roles in my_personnel.items()}
     }
+
+
+def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
+    """
+    供应链联网核查 —— 稽查方法论核心扩展
+    
+    步骤：
+    1. 提取进项TOP供应商（按金额排序）和销项TOP客户
+    2. 对每个供应商/客户执行联网核查
+    3. 检测供应商/客户与本企业的六员重叠（关联交易信号）
+    4. 检测供应商与客户是否同一企业（购销闭环=虚开嫌疑）
+    
+    Returns:
+        dict: {lookup_results: [...], findings: [...], supply_personnel_map: {...}}
+    """
+    from collections import defaultdict
+    
+    results = {"lookup_results": [], "findings": [], "supply_personnel_map": {}}
+    
+    if not target_entity.get("name"):
+        return results
+    
+    target_name = target_entity["name"]
+    my_personnel = target_entity.get("_six_personnel_risk", {}).get("my_personnel", {})
+    
+    # 收集本企业六员姓名集合
+    my_names = set(my_personnel.keys())
+    if target_entity.get("legal_representative"):
+        my_names.add(target_entity["legal_representative"])
+    
+    # ========== Step 1: 提取供应商/客户 ==========
+    # 进项→供应商
+    supplier_amounts = defaultdict(float)
+    supplier_invs = defaultdict(list)
+    for inv in (pur_invs or []):
+        sname = str(inv.get("seller", inv.get("销方名称", inv.get("supplier", "")))).strip()
+        if not sname or len(sname) < 4 or sname == target_name:
+            continue
+        amt = float(inv.get("amount", inv.get("金额", 0)) or 0)
+        supplier_amounts[sname] += amt
+        supplier_invs[sname].append(inv)
+    
+    # 销项→客户
+    customer_amounts = defaultdict(float)
+    customer_invs = defaultdict(list)
+    for inv in (sal_invs or []):
+        cname = str(inv.get("buyer", inv.get("购买方名称", inv.get("customer", "")))).strip()
+        if not cname or len(cname) < 4 or cname == target_name:
+            continue
+        amt = float(inv.get("amount", inv.get("金额", 0)) or 0)
+        customer_amounts[cname] += amt
+        customer_invs[cname].append(inv)
+    
+    # TOP N（按金额排序，最多10家）
+    top_suppliers = sorted(supplier_amounts.items(), key=lambda x: x[1], reverse=True)[:10]
+    top_customers = sorted(customer_amounts.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # ========== Step 2: 联网核查供应商/客户 ==========
+    # 先查本企业的人员名单（从数据库获取）
+    from database import Company as _C2
+    company = db.query(_C2).filter(_C2.id == company_id).first()
+    
+    def _collect_personnel(comp):
+        """收集企业的六员姓名集合+角色"""
+        names = set()
+        roles = {}
+        if comp.legal_representative:
+            names.add(comp.legal_representative)
+            roles[comp.legal_representative] = "法定代表人"
+        for sh in (comp.shareholders or []):
+            names.add(sh.name)
+            roles[sh.name] = "股东"
+        for d in (comp.directors or []):
+            names.add(d.name)
+            roles[d.name] = "董事"
+        for s in (comp.supervisors or []):
+            names.add(s.name)
+            roles[s.name] = "监事"
+        for fc in (comp.finance_contacts or []):
+            names.add(fc.name)
+            roles[fc.name] = "财务负责人"
+        return names, roles
+    
+    my_all_names, my_roles = _collect_personnel(company) if company else (my_names, {n: "未知" for n in my_names})
+    my_roles_full = {}
+    for n in my_all_names:
+        my_roles_full[n] = my_roles.get(n, "相关人员")
+    
+    # 合并查找所有需要查询的企业名（去重，排除本企业）
+    to_lookup = set()
+    lookup_map = {}  # {company_name: type}  — 记录是供应商还是客户
+    lookup_amt = {}
+    
+    for sname, samt in top_suppliers:
+        if sname not in to_lookup and sname != target_name:
+            to_lookup.add(sname)
+            lookup_map[sname] = "供应商"
+            lookup_amt[sname] = samt
+    for cname, camt in top_customers:
+        if cname not in to_lookup:
+            to_lookup.add(cname)
+            lookup_map[cname] = "客户"
+            lookup_amt[cname] = camt
+        elif lookup_map.get(cname) == "供应商":
+            lookup_map[cname] = "供应商+客户"  # 同一个企业既是供应商又是客户→购销闭环
+    
+    lookup_count = 0
+    for name_to_check in to_lookup:
+        try:
+            lk = _online_company_lookup(name_to_check, db=db)
+            if lk.get("success"):
+                results["lookup_results"].append({
+                    "name": name_to_check,
+                    "relation": lookup_map.get(name_to_check, ""),
+                    "amount": lookup_amt.get(name_to_check, 0),
+                    "legal_rep": lk.get("legal_representative", ""),
+                    "status": lk.get("status", ""),
+                    "address": lk.get("address", ""),
+                })
+                lookup_count += 1
+                
+                # 收集该企业的人员
+                their_names = set()
+                their_roles = {}
+                if lk.get("legal_representative"):
+                    their_names.add(lk["legal_representative"])
+                    their_roles[lk["legal_representative"]] = "法定代表人"
+                for s in (lk.get("shareholders") or []):
+                    their_names.add(s.get("name", ""))
+                    their_roles[s.get("name", "")] = "股东"
+                for d in (lk.get("directors") or []):
+                    their_names.add(d.get("name", ""))
+                    their_roles[d.get("name", "")] = "董事"
+                for s in (lk.get("supervisors") or []):
+                    their_names.add(s.get("name", ""))
+                    their_roles[s.get("name", "")] = "监事"
+                for fc in (lk.get("finance_contacts") or []):
+                    their_names.add(fc.get("name", ""))
+                    their_roles[fc.get("name", "")] = "财务负责人"
+                
+                results["supply_personnel_map"][name_to_check] = {
+                    "their_names": their_names,
+                    "their_roles": their_roles
+                }
+        except:
+            continue
+    
+    # ========== Step 3: 六员交叉比对 ==========
+    # 检测：供应商/客户与本企业有无人员重叠
+    for lr in results["lookup_results"]:
+        sname = lr["name"]
+        their_info = results["supply_personnel_map"].get(sname, {})
+        their_names = their_info.get("their_names", set())
+        their_roles_map = their_info.get("their_roles", {})
+        
+        overlap = my_all_names & their_names
+        if overlap:
+            relation = lr["relation"]
+            # 生成风险发现
+            overlap_details = []
+            for name in overlap:
+                my_r = my_roles_full.get(name, "相关人员")
+                their_r = their_roles_map.get(name, "相关人员")
+                overlap_details.append(f"{name}（我方{my_r} / {relation}{their_r}）")
+            
+            is_both = (relation == "供应商+客户")
+            
+            findings_entry = {
+                "type": "供应商/客户六员重叠风险",
+                "level": "高风险" if is_both else "中风险",
+                "score": 9 if is_both else 7,
+                "detail": f"{relation}{sname}与本企业存在人员重叠：{'、'.join(overlap_details)}。疑似关联方交易。",
+                "description": (
+                    f"通过联网核查，发现{relation}{sname}（交易金额{lr['amount']:,.0f}元）与本企业{target_name}存在人员重叠——"
+                    f"{'、'.join(overlap_details)}。"
+                    f"根据《企业所得税法》第四十一条及《特别纳税调整实施办法》，"
+                    f"双方构成关联关系，交易属于关联交易。"
+                    + (f"该企业同时作为供应商和客户，形成购销闭环，虚开发票嫌疑增大。" if is_both else "")
+                ),
+                "how_found": (
+                    f"①从进销发票中提取{relation}名称（{'进项' if '供应商' in relation else '销项'}发票中金额TOP对象）；"
+                    f"②通过搜索引擎知识图谱联网核查{relation}的六员信息；"
+                    f"③将{relation}的六员名单与本企业{target_name}的六员名单逐名交叉比对——发现{len(overlap)}人重叠。"
+                ),
+                "tax_impact": (
+                    "关联交易需按独立交易原则调整。若未按公允价值交易，需补缴企业所得税+滞纳金；"
+                    "如涉及虚开发票（购销闭环+人员重叠+无真实货物交易），移送公安。"
+                ),
+                "policy_ref": (
+                    "《企业所得税法》第四十一条（独立交易原则）；"
+                    "《特别纳税调整实施办法（试行）》第九条（关联关系认定）；"
+                    "《税收征收管理法》第三十六条（关联企业业务往来）；"
+                    "《发票管理办法》第二十二条（虚开发票认定）"
+                ),
+                "suggestion": (
+                    f"①提供与{sname}的全部交易合同、物流单据、资金流水，证明交易真实性；"
+                    f"②提供关联交易定价依据（市场比价/成本加成），证明符合独立交易原则；"
+                    f"③若{sname}同时为供应商和客户，需提供购销闭环的商业合理性说明；"
+                    f"④编制关联交易申报表（年度企业所得税汇算清缴附件）。"
+                ),
+                "category": "关联交易",
+                "rule_id": 1510,
+                "source_chain": "供应链-六员重叠",
+                "cross_domain": True,
+                "cross_domains": ["人员信息", "发票数据", "资金流"],
+                "supply_name": sname,
+                "overlap_count": len(overlap),
+            }
+            results["findings"].append(findings_entry)
+    
+    # ========== Step 4: 供应商=客户 检测（购销闭环） ==========
+    for lr in results["lookup_results"]:
+        if lr["relation"] == "供应商+客户":
+            # 已经在上面的重叠检测中处理了
+            pass
+    
+    # 简单检测：从发票数据中找供应商=客户
+    supplier_names = {s[0] for s in top_suppliers}
+    customer_names = {c[0] for c in top_customers}
+    both_set = supplier_names & customer_names
+    for name in both_set:
+        # 检查是否已经生成了finding
+        already_found = any(f.get("supply_name") == name for f in results["findings"])
+        if not already_found:
+            results["findings"].append({
+                "type": "购销闭环风险",
+                "level": "高风险",
+                "score": 9,
+                "detail": f"企业{name}同时作为本企业的供应商（交易{supplier_amounts[name]:,.0f}元）和客户（交易{customer_amounts[name]:,.0f}元），形成购销闭环，存在虚开发票嫌疑。",
+                "description": f"从发票数据发现，{name}既是本企业的供应商（进项金额{supplier_amounts[name]:,.0f}元）又是客户（销项金额{customer_amounts[name]:,.0f}元），构成'A→B→A'式的购销闭环。这种模式下，发票在关联方之间循环流转，极易被用于虚开增值税发票——无真实货物交易，仅为增大进销金额、虚增业绩或骗取出口退税。",
+                "how_found": f"逐票比对进项发票的销售方名称和销项发票的购买方名称，交叉发现{name}既出现在进项侧又出现在销项侧。",
+                "tax_impact": "如无真实货物交易，构成虚开增值税发票→补税+罚款+刑事责任。即使有真实交易，也需按关联交易申报。",
+                "policy_ref": "《发票管理办法》第二十二条（虚开发票认定）；《刑法》第二百零五条（虚开增值税专用发票罪）",
+                "suggestion": f"①提供与{name}的全部购销合同、物流单据、出入库记录；②说明双方互为供应商和客户的商业合理性；③核查资金流是否与发票流一一对应。",
+                "category": "关联交易",
+                "rule_id": 1511,
+                "source_chain": "供应链-购销闭环",
+                "cross_domain": True,
+                "cross_domains": ["发票数据", "进销存"],
+                "supply_name": name,
+            })
+    
+    return results
 
 
 def _enrich_target_entity_from_online(target_entity, db, company_id):
