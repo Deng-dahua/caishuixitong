@@ -49,13 +49,12 @@ function renderTaxDocAnalysis(container) {
   // 加载已有文件列表
   refreshTaxDocList();
 
-  // 每次进入页面强制清空旧报告缓存
-  taxDocReportData = null;
-  window._reportData = null;
-  var reportArea = document.getElementById('tda-report-area');
-  if (reportArea) reportArea.innerHTML = '';
-  var exportBtn = document.getElementById('tda-export-btn');
-  if (exportBtn) exportBtn.style.display = 'none';
+  // 如果有缓存报告，恢复显示
+  if (taxDocReportData) {
+    renderTaxDocReport(taxDocReportData);
+    var btn = document.getElementById('tda-export-btn');
+    if (btn) btn.style.display = '';
+  }
 }
 
 // ==================== 文件上传 ====================
