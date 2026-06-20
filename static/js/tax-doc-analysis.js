@@ -223,6 +223,9 @@ function renderAnalyzeHeader(report) {
     + '</div>'
     + '<div style="font-size:12px;color:#94a3b8;padding-top:4px">'
     + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓ · 证据链闭环 ✓ · 跨域证据链 ✓'
+    + '</div>'
+    + '<div style="margin-top:12px">'
+    + '<a href="#" onclick="navigateTo(\'analyze-page\');return false" style="display:inline-block;padding:6px 16px;background:#7c3aed;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">⚡ 查看分析过程 →</a>'
     + '</div>';
 
   // 稽查行为准则

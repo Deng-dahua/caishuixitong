@@ -572,7 +572,12 @@ function renderDomainAnalysisResult(report) {
 
   var html = ''
     + '<div style="height:1px;background:#f1f5f9;margin-bottom:40px"></div>'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">域分析结果</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px;display:flex;align-items:center;justify-content:space-between">'
+    + '<span>域分析结果</span>'
+    + '<span style="font-size:12px;font-weight:400">'
+    + '<a href="#" onclick="expandAllDomains();return false" style="color:#2563eb;margin-right:8px">展开全部</a>'
+    + '<a href="#" onclick="collapseAllDomains();return false" style="color:#94a3b8">收起全部</a>'
+    + '</span></h3>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">共 ' + totalDomains + ' 个分析域执行完毕，' + triggeredDomains + ' 个域产生发现，合计 ' + allF.length + ' 条发现（高风险 ' + highTotal + ' · 中风险 ' + midTotal + '）</p>'
 
     // 统计卡片
@@ -1137,7 +1142,8 @@ function renderAnalyzePage(container) {
   container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '规则 + ' + pc('trailChains','391') + '线索链 + ' + pc('evidenceChains','740') + '证据链 → 方法论过滤器 → 正式稽查报告</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0 0 12px">' + pc('rules','1505') + '规则 + ' + pc('trailChains','391') + '线索链 + ' + pc('evidenceChains','740') + '证据链 → 方法论过滤器 → 正式稽查报告</p>'
+    + '<a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="display:inline-block;padding:6px 16px;background:#2563eb;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">📊 查看完整报告 →</a>'
     + '</div>'
     + '<div id="analyze-body"></div>'
     + '</div>';
@@ -1399,6 +1405,18 @@ function toggleDomainDetail(idx) {
   var el = document.getElementById('dd-' + idx);
   if (!el) return;
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function expandAllDomains() {
+  document.querySelectorAll('[id^="dd-"]').forEach(function(el) {
+    el.style.display = 'block';
+  });
+}
+
+function collapseAllDomains() {
+  document.querySelectorAll('[id^="dd-"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
 }
 
 // ==================== 跨域线索链页面 ====================
@@ -1940,11 +1958,11 @@ function renderQualitySystem(container) {
       desc: '税务稽查系统的数据基础设施。规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座，是系统运行的基础。',
       items: [
         {name:'规则引擎', source:'tax_risk.py',
-         desc:'1505条稽查指令，每条指令含触发条件、风险等级、调查步骤和处罚依据。涵盖收入、成本、费用、存货、固定资产、往来款、特殊交易等29个域。规则引擎是稽查分析的指令库——每条一键分析发现必须可追溯到具体规则ID。'},
+         desc:'" + pc('rules','1505') + "条稽查指令，每条指令含触发条件、风险等级、调查步骤和处罚依据。涵盖收入、成本、费用、存货、固定资产、往来款、特殊交易等29个域。规则引擎是稽查分析的指令库——每条一键分析发现必须可追溯到具体规则ID。'},
         {name:'线索链系统', source:'main.py',
-         desc:'391条线索链，每条链包含多个调查步骤。通过定量数据（阈值触发）、定性数据（模式匹配）、缺失数据（资料缺失触发）三类数据验证后触发，产生链驱动发现。线索链是稽查分析的导航图——从"怀疑"到"确认"的调查路径。'},
+         desc:'" + pc('trailChains','391') + "条线索链，每条链包含多个调查步骤。通过定量数据（阈值触发）、定性数据（模式匹配）、缺失数据（资料缺失触发）三类数据验证后触发，产生链驱动发现。线索链是稽查分析的导航图——从"怀疑"到"确认"的调查路径。'},
         {name:'证据链系统', source:'main.py',
-         desc:'740条证据链 + 8条跨域证据链。收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。234条证据链闭环触发→强制升级为高风险。证据链是结论的物证基础。'},
+         desc:'" + pc('evidenceChains','740') + "条证据链 + " + pc('crossEvidence','8') + "条跨域证据链。收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。234条证据链闭环触发→强制升级为高风险。证据链是结论的物证基础。'},
         {name:'跨域分析链', source:'main.py',
          desc:'多源数据交叉验证引擎。覆盖资金流（银行流水vs开票收款）+票据流（进项vs销项）+业务流（进销存vs合同）三维验证。跨越单一数据域进行分析，形成跨域证据闭环。是经营实质推理的核心引擎。'},
       ]
@@ -1996,7 +2014,7 @@ function renderQualitySystem(container) {
       desc: '从原始资料到正式报告的七步处理流程。数据在管线中单向流动，不丢失、不污染、不截断。每一步都是前一步的延伸和深化。',
       items: [
         {name:'七步执行流程', source:'main.py',
-         desc:'分析链的核心执行管线：①资料扫描与类型识别（34类文件指纹库+三层递进识别）→ ②目标实体识别（进项购买方∩销项销售方确定企业全称+90关键词×66行业加权投票+联网工商比对）→ ③资料情报提取与分析（35个域分析函数并行执行——银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层）→ ④规则引擎与链驱动检查（1505条稽查指令逐条匹配+391条线索链触发+740条证据链闭环检测）→ ⑤方法论噪声过滤器（HARD_BAN 23类+COND_BAN 5类→97%噪声过滤）→ ⑥行业对标与申报比对（66行业基准值自动对标+申报表vs发票实际比对）→ ⑦正式稽查报告输出（结构化HTML报告+四步分析框架+明细数据+法律依据+消除路径建议）。'},
+         desc:'分析链的核心执行管线：①资料扫描与类型识别（34类文件指纹库+三层递进识别）→ ②目标实体识别（进项购买方∩销项销售方确定企业全称+90关键词×66行业加权投票+联网工商比对）→ ③资料情报提取与分析（35个域分析函数并行执行——银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层）→ ④规则引擎与链驱动检查（" + pc('rules','1505') + "条稽查指令逐条匹配+" + pc('trailChains','391') + "条线索链触发+" + pc('evidenceChains','740') + "条证据链闭环检测）→ ⑤方法论噪声过滤器（HARD_BAN 23类+COND_BAN 5类→97%噪声过滤）→ ⑥行业对标与申报比对（66行业基准值自动对标+申报表vs发票实际比对）→ ⑦正式稽查报告输出（结构化HTML报告+四步分析框架+明细数据+法律依据+消除路径建议）。'},
         {name:'35个域分析函数', source:'main.py',
          desc:'35个域分析函数覆盖稽查全领域：银行流水（_domain_fund_flow_mapping / _domain_bank_receipt / _domain_bank_payment）、进销存（_domain_invoice_audit / _domain_purchase_sales / _domain_inventory）、费用（_domain_expense / _domain_travel / _domain_entertainment）、往来款（_domain_receivable / _domain_payable）、固定资产（_domain_fixed_asset）、税务（_domain_vat / _domain_income_tax / _domain_stamp_tax）、资料完备度（_domain_document_completeness）、经营实质（_domain_business_substance）等。所有函数通过_ensure_numeric_dtypes进行数据类型标准化处理。'},
         {name:'全链路溯源体系', source:'tax-doc-analysis.js',
