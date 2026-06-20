@@ -1485,78 +1485,133 @@ function renderFilterResult(report) {
 // ══════════════════════════════════════════════════════════════
 
 function renderAiRules(container) {
-  var rules = [
-    {id:1,  name:'做事要狠', level:'准则', date:'2026-05-31',
-     desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根，不要修修补补。'},
-    {id:2,  name:'自作主张', level:'准则', date:'2026-05-31',
-     desc:'技术上该做的事情直接做，不要问"要不要做"。用户不需要知道每一个技术决策。'},
-    {id:3,  name:'主动进攻', level:'准则', date:'2026-05-31',
-     desc:'用户发现问题时，不要只修那一个点，把同类问题全部揪出来一起干掉。'},
-    {id:4,  name:'自行验证', level:'铁律', date:'2026-06-03',
-     desc:'每做完一件事，必须验证结果 —— 重启服务器 + 预览页面，确认功能完全正常后再提交。不验证就不算完成，不验证就不推送。'},
-    {id:5,  name:'规则=代码', level:'铁律', date:'2026-06-13',
-     desc:'改了规则必须同步改代码，不允许只改记忆不改代码。交付前必须验证代码变更已生效。'},
-    {id:6,  name:'科目name', level:'铁律', date:'2026-06-13',
-     desc:'Account表name字段只存本级名称。写入JournalEntry.account_name前必须查Account表以DB实际值为准，不能直接用代码中的映射值。'},
-    {id:7,  name:'三号合并', level:'铁律', date:'2026-06-13',
-     desc:'同一(invoice_code, invoice_no, digital_invoice_no)必须合并为一个凭证号。auto_generate_*_journal必须批量调用，禁止逐条for循环逐个传ID（会绕过三号分组）。'},
-    {id:8,  name:'变更影响分析', level:'铁律', date:'2026-06-13',
-     desc:'改任何值之前，先搜索所有引用点，改后逐一验证每个引用点都已正确更新。禁止改完就走、禁止假设"应该没问题"。'},
-    {id:9,  name:'审计铁律', level:'铁律', date:'2026-06-13',
-     desc:'财税系统每次代码变更后必须 python audit.py 1，7项全通过才提交。'},
-    {id:10, name:'ref_id去重', level:'铁律', date:'2026-06-13',
-     desc:'去重用 ref_id == tx.id 精确匹配，禁止金额模糊匹配（1002存贷方并非借方金额，永远对不上）。'},
-    {id:11, name:'普票税额并入成本', level:'准则', date:'2026-06-13',
-     desc:'普通发票税额不单独记进项税额(221001002)，并入成本/费用借方。'},
-    {id:12, name:'7分类禁止兜底', level:'准则', date:'2026-06-13',
-     desc:'CATEGORY_ACCOUNT_MAP严格限定7个分类，不在其中返回None跳过，禁止关键词兜底和默认660299。'},
-    {id:13, name:'代码即承诺', level:'铁律', date:'2026-06-19',
-     desc:'所有提出的功能、方法论、规则、分析链等概念，必须全部编写为实际可运行的代码。禁止只写口号不写代码。禁止在报告/文档中声称已实现但代码中找不到对应逻辑。每项声称必须有代码位置（文件名:行号）可追溯。'},
-    {id:14, name:'全行业适用', level:'铁律', date:'2026-06-19',
-     desc:'所有行为准则、稽查方法论、代码逻辑必须适用于全行业各企业。禁止为单一企业/单一行业做特化硬编码。发现行业特化代码必须改造为行业自适应。'},
-    {id:15, name:'提交前自查', level:'铁律', date:'2026-06-20',
-     desc:'每次写代码后、commit 前，必须按全部铁律逐条自查。检查清单：①行业特化硬编码 ②只写口号没代码 ③变量定义前引用 ④数据截断[:N] ⑤语法编译 ⑥JSON格式。自查不通过不提交。'},
+  var categories = [
+    {name:'行事风格', icon:'⚡', color:'#0f172a', desc:'决定AI如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是"性格"层面的规范，直接影响每一次代码操作的质量和深度。', rules:[
+      {id:1, name:'做事要狠', level:'准则', date:'2026-05-31',
+       desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根，不要修修补补。',
+       why:'针对AI"只改用户指出的那一个点"的惰性行为。'},
+      {id:2, name:'自作主张', level:'准则', date:'2026-05-31',
+       desc:'技术上该做的事情直接做，不要问"要不要做"。用户不需要知道每一个技术决策。',
+       why:'消除不必要的确认往返——用户说"做个页面"，就不要问"要不要加标题"，直接做完整。'},
+      {id:3, name:'主动进攻', level:'准则', date:'2026-05-31',
+       desc:'用户发现问题时，不要只修那一个点，把同类问题全部揪出来一起干掉。',
+       why:'防止代码累积隐性债务——今天放过一个截断，明天就会有100个截断。'},
+    ]},
+    {name:'质量保障铁律', icon:'✅', color:'#dc2626', desc:'确保代码质量和正确性的强制规则。违反任何一条都可能导致系统崩溃、数据错误或报告失真。全部标注为铁律。', rules:[
+      {id:4, name:'自行验证', level:'铁律', date:'2026-06-03',
+       desc:'每做完一件事，必须验证结果 —— 重启服务器 + 预览页面，确认功能完全正常后再提交。不验证就不算完成，不验证就不推送。',
+       why:'多次出现"代码改了但没重启→用户看到的是旧版本"的情况。'},
+      {id:8, name:'变更影响分析', level:'铁律', date:'2026-06-13',
+       desc:'改任何值之前，先搜索所有引用点，改后逐一验证每个引用点都已正确更新。禁止改完就走、禁止假设"应该没问题"。',
+       why:'修改 domain_fund_flow_mapping 签名后未更新调用点→UnboundLocalError 导致一键分析崩溃。'},
+      {id:15, name:'提交前自查', level:'铁律', date:'2026-06-20',
+       desc:'每次写代码后、commit 前，必须按全部铁律逐条自查。6项自动检查（audit_commit_check.py）+ 人工确认。',
+       why:'代码写得快但描述文字写死了纺织举例→违反全行业适用铁律。如果有自查就不会发生。'},
+    ]},
+    {name:'财税系统铁律', icon:'📊', color:'#7c3aed', desc:'专门针对财税账务处理系统的强制规则。这些规则来自实际账务处理中踩过的坑，违反会导致账务数据错误。', rules:[
+      {id:6, name:'科目name', level:'铁律', date:'2026-06-13',
+       desc:'Account表name字段只存本级名称。写入JournalEntry.account_name前必须查Account表以DB实际值为准，不能直接用代码中的映射值。',
+       why:'硬编码科目名称导致父级科目和子级科目名称不一致，账务报表展示出错。'},
+      {id:7, name:'三号合并', level:'铁律', date:'2026-06-13',
+       desc:'同一(invoice_code, invoice_no, digital_invoice_no)必须合并为一个凭证号。auto_generate_*_journal必须批量调用，禁止逐条for循环逐个传ID（会绕过三号分组）。',
+       why:'逐条调用导致同一张发票被拆分为多个凭证，凭证号和发票号不再1:1对应。'},
+      {id:9, name:'审计铁律', level:'铁律', date:'2026-06-13',
+       desc:'财税系统每次代码变更后必须 python audit.py 1，7项全通过才提交。',
+       why:'账务系统的数据一致性比代码功能更重要——宁可功能少也不能账不平。'},
+      {id:10, name:'ref_id去重', level:'铁律', date:'2026-06-13',
+       desc:'去重用 ref_id == tx.id 精确匹配，禁止金额模糊匹配（1002存贷方并非借方金额，永远对不上）。',
+       why:'金额模糊匹配曾在银行存款科目中将贷方金额误匹配到借方交易，导致银行余额计算错误。'},
+      {id:11, name:'普票税额并入成本', level:'准则', date:'2026-06-13',
+       desc:'普通发票税额不单独记进项税额(221001002)，并入成本/费用借方。',
+       why:'普通发票不能抵扣进项税额，税额应计入采购成本而非单独挂账。'},
+      {id:12, name:'7分类禁止兜底', level:'准则', date:'2026-06-13',
+       desc:'CATEGORY_ACCOUNT_MAP严格限定7个分类，不在其中返回None跳过，禁止关键词兜底和默认660299。',
+       why:'兜底会导致所有未识别费用被错误归类为"销售费用-其他"，掩盖真实费用结构。'},
+    ]},
+    {name:'通用铁律', icon:'🌐', color:'#059669', desc:'跨项目适用的最高级别行为准则。这些规则定义了AI的可信度和可靠性边界，适用于所有代码编写场景。', rules:[
+      {id:5, name:'规则=代码', level:'铁律', date:'2026-06-13',
+       desc:'改了规则必须同步改代码，不允许只改记忆不改代码。交付前必须验证代码变更已生效。',
+       why:'记忆文件中记录了方法论，但代码中没有对应实现→"只写口号没写代码"的问题根源。'},
+      {id:13, name:'代码即承诺', level:'铁律', date:'2026-06-19',
+       desc:'所有提出的功能、方法论、规则、分析链等概念，必须全部编写为实际可运行的代码。禁止只写口号不写代码。禁止在报告/文档中声称已实现但代码中找不到对应逻辑。每项声称必须有代码位置（文件名:行号）可追溯。',
+       why:'稽查方法论⑥"联网核查"在报告中声称已实现，但代码中只有描述文字没有实际查询逻辑——用户发现后要求全量审计修复。'},
+      {id:14, name:'全行业适用', level:'铁律', date:'2026-06-19',
+       desc:'所有行为准则、稽查方法论、代码逻辑必须适用于全行业各企业。禁止为单一企业/单一行业做特化硬编码。',
+       why:'BOM分析中原料/成品关键词全是纺织词（纱/丝/棉/布），食品/家具/电子企业完全无法使用——已改造为 INDUSTRY_PRODUCT_CHAINS 25行业自适应词典。'},
+    ]},
   ];
+
+  var totalRules = categories.reduce(function(s,c){return s + c.rules.length;}, 0);
+  var tieLvCount = 0, zhunZeCount = 0;
+  categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   var html = '';
   html += '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">';
-  html += '<div style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">AI行为准则</div>';
-  html += '<div style="font-size:14px;color:#94a3b8;margin:0 0 32px">共 ' + rules.length + ' 条，其中 <span style="color:#c92a2a;font-weight:600">10 条铁律</span></div>';
 
-  // 分类统计
-  html += '<div style="display:flex;gap:16px;margin-bottom:32px">';
-  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#fef2f2;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#991b1b">10</div><div style="font-size:13px;color:#7f1d1d">🔴 铁律</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f0fdf4;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#166534">5</div><div style="font-size:13px;color:#14532d">📋 准则</div></div>';
-  html += '<div style="flex:1;text-align:center;padding:20px 16px;background:#f8fafc;border-radius:8px"><div style="font-size:32px;font-weight:700;color:#0f172a">15</div><div style="font-size:13px;color:#64748b">📊 合计</div></div>';
-  html += '</div>';
+  // 标题
+  html += '<div style="margin-bottom:48px">'
+    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">AI行为准则</h2>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">共 ' + totalRules + ' 条准则（' + tieLvCount + ' 铁律 + ' + zhunZeCount + ' 准则）· 4 大分类 · 持续迭代中</p>'
+    + '</div>';
 
-  // 逐条渲染
-  var tieLvCount = 0, zhunZeCount = 0;
-  rules.forEach(function(r) {
-    var isTieLv = r.level === '铁律';
-    if (isTieLv) tieLvCount++; else zhunZeCount++;
-    var borderColor = isTieLv ? '#c92a2a' : '#475569';
-    var bgColor = isTieLv ? '#fef2f2' : '#f8fafc';
-    var badgeColor = isTieLv ? '#991b1b' : '#334155';
-    var badgeBg = isTieLv ? '#fee2e2' : '#e2e8f0';
-    var badgeText = isTieLv ? '🔴 铁律' : '📋 准则';
+  // ══════ 一、概述 ══════
+  html += '<div style="margin-bottom:40px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是AI行为准则</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">'
+    + 'AI行为准则是指导AI在代码编写、系统设计、质量保障等所有工作中的强制性规范。这些准则来自实战中反复踩过的坑——'
+    + '每一条背后都有一个真实的Bug、一次系统崩溃或一次报告失真。准则不是凭空设计的，是血泪教训的结晶。'
+    + '</p>'
+    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+    + '<strong>级别说明</strong><br>'
+    + '<span style="color:#dc2626;font-weight:600">🔴 铁律</span> = 违反后系统将无法正常工作或产生严重错误，<strong>必须绝对遵守</strong>。'
+    + '如自行验证（不验证就提交→用户看到的是旧版本）、规则=代码（只改记忆不改代码→口号和实现脱节）。<br>'
+    + '<span style="color:#334155;font-weight:600">📋 准则</span> = 最佳实践，应尽力遵守，特殊情况可例外。'
+    + '如做事要狠（改彻底而非只修一个点）、自作主张（技术人员该做的直接做不要问）。'
+    + '</div>'
+    + '</div>';
 
-    html += '<div style="padding:16px 20px;margin-bottom:12px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-    html += '<div style="font-size:15px;font-weight:600;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</div>';
-    html += '<div style="display:flex;gap:8px;align-items:center">';
-    html += '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + ';color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>';
-    html += '<span style="font-size:11px;color:#94a3b8">' + r.date + '</span>';
-    html += '</div></div>';
-    html += '<div style="font-size:13px;color:#475569;line-height:1.8">' + escHtml(r.desc) + '</div>';
+  // 统计
+  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + totalRules + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">准则总数</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + tieLvCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">🔴 铁律</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + zhunZeCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">📋 准则</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + categories.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">分类</div></div>'
+    + '</div>';
+
+  // ══════ 逐分类渲染 ══════
+  categories.forEach(function(cat) {
+    var catColor = cat.color;
+    html += '<div style="margin-bottom:40px">'
+      + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">'
+      + '<span style="width:3px;height:14px;display:inline-block;background:' + catColor + ';border-radius:2px"></span>'
+      + '<span style="font-size:15px;font-weight:700;color:#0f172a">' + cat.icon + ' ' + cat.name + '</span>'
+      + '<span style="font-size:13px;color:#94a3b8">' + cat.rules.length + ' 条</span>'
+      + '</div>'
+      + '<div style="font-size:13px;color:#64748b;line-height:1.8;margin:0 0 16px 11px">' + cat.desc + '</div>';
+
+    cat.rules.forEach(function(r) {
+      var isTieLv = r.level === '铁律';
+      var borderColor = isTieLv ? '#dc2626' : '#475569';
+      var bgColor = isTieLv ? '#fef2f2' : '#f8fafc';
+      var badgeColor = isTieLv ? '#991b1b' : '#334155';
+      var badgeBg = isTieLv ? '#fee2e2' : '#e2e8f0';
+      var badgeText = isTieLv ? '🔴 铁律' : '📋 准则';
+
+      html += '<div style="padding:16px 20px;margin-bottom:6px;margin-left:11px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        + '<div style="font-size:14px;font-weight:600;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</div>'
+        + '<div style="display:flex;gap:8px;align-items:center">'
+        + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + ';color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>'
+        + '<span style="font-size:11px;color:#94a3b8">' + r.date + '</span>'
+        + '</div></div>'
+        + '<div style="font-size:13px;color:#475569;line-height:1.9;margin-bottom:6px">' + escHtml(r.desc) + '</div>'
+        + '<div style="font-size:12px;color:#94a3b8;line-height:1.7;padding-top:4px;border-top:1px solid #e2e8f0">'
+        + '<span style="color:#64748b">创立原因：</span>' + escHtml(r.why) + '</div>'
+        + '</div>';
+    });
+
     html += '</div>';
   });
-
-  html += '<div style="margin-top:32px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:12px;color:#94a3b8;line-height:1.8">';
-  html += '<strong style="color:#64748b">说明</strong><br>';
-  html += '铁律 = 违反后系统将无法正常工作或产生严重错误，必须绝对遵守。<br>';
-  html += '准则 = 最佳实践，应尽力遵守，特殊情况可例外。';
-  html += '</div>';
 
   html += '</div>';
   container.innerHTML = html;
