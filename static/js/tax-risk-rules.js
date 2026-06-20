@@ -36,7 +36,7 @@ function renderTaxRiskRules(container) {
   var hasCache = Array.isArray(taxRiskRulesData) && taxRiskRulesData.length > 0;
 
   container.innerHTML = ''
-    + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">稽查指令</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? taxRiskRulesData.length : '...') + ' 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据</p>'

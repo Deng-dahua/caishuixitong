@@ -105,6 +105,10 @@
     .btn-exit-company { background: #fff; color: var(--gray-500); border: 1px solid var(--gray-300); }
     .btn-exit-company:hover { background: var(--gray-100); color: var(--gray-700); }
     .btn-ai-auto { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; margin-right: 8px; box-shadow: 0 2px 8px rgba(102,126,234,0.4); }
+
+    /* 稽查管道页面统一容器 */
+    .pipeline-page { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; width: 100%; box-sizing: border-box; }
+    .pipeline-page h2, .pipeline-page h3, .pipeline-page h4, .pipeline-page p, .pipeline-page div { text-align: left; padding-left: 0; text-indent: 0; }
     .btn-ai-auto:hover { background: linear-gradient(135deg, #5a6fd6, #6a3fa0); box-shadow: 0 4px 12px rgba(102,126,234,0.6); }
     .btn-ai-auto:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
     .btn-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }

@@ -5,7 +5,7 @@ function renderSystemLogs(container) {
   window.currentModule = '系统日志';
 
   container.innerHTML = ''
-    + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:32px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">系统日志</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">上传、分析、导出、修复操作的完整审计追踪记录</p>'

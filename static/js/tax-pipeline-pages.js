@@ -2,12 +2,54 @@
 //  稽查管道独立页：文件解析 | 域分析 | 跨域证据链 | 方法论过滤器
 // ══════════════════════════════════════════════════════════════
 
+// ═══════════ 模块数量自动加载（从JSON数据文件动态读取，杜绝硬编码过期数字） ═══════════
+var _pipelineCounts = null;
+
+async function loadPipelineCounts() {
+  if (_pipelineCounts) return _pipelineCounts;
+  try {
+    var t0 = Date.now();
+    var [rulesResp, chainsResp, cdeResp, cdcResp, cdaResp] = await Promise.all([
+      fetch('/static/tax_risk_rules_local_export.json?_t=' + t0),
+      fetch('/static/audit_chains.json?_t=' + t0),
+      fetch('/static/cross_domain_evidence.json?_t=' + t0),
+      fetch('/static/cross_domain_clues.json?_t=' + t0),
+      fetch('/static/cross_domain_analysis.json?_t=' + t0)
+    ]);
+    var rules = await rulesResp.json();
+    var chainsData = await chainsResp.json();
+    var cde = await cdeResp.json();
+    var cdc = await cdcResp.json();
+    var cda = await cdaResp.json();
+    var chains = chainsData.chains || [];
+    _pipelineCounts = {
+      rules: rules.length,
+      trailChains: chains.filter(function(c){return c.chain_type==='线索链'}).length,
+      evidenceChains: chains.filter(function(c){return c.chain_type==='证据链'}).length,
+      totalChains: chains.length,
+      crossEvidence: cde.length,
+      crossClues: cdc.length,
+      crossAnalysis: cda.length
+    };
+    console.log('[pipeline counts] loaded:', _pipelineCounts);
+  } catch(e) {
+    console.error('[pipeline counts] failed:', e);
+    _pipelineCounts = {rules:1505,trailChains:391,evidenceChains:740,totalChains:1131,crossEvidence:8,crossClues:8,crossAnalysis:8};
+  }
+  return _pipelineCounts;
+}
+
+// 快捷取值：pc('rules','1505') → 返回已加载数量或fallback
+function pc(key, fallback) {
+  return (_pipelineCounts && _pipelineCounts[key] != null) ? _pipelineCounts[key] : fallback;
+}
+
 // ==================== 页面1：文件解析（极简风） ====================
 function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
   container.innerHTML = ''
-    + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">文件解析</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
@@ -325,7 +367,7 @@ function renderDomainAnalysisPage(container) {
   if (!container) return;
   window.currentModule = '域分析';
   container.innerHTML = ''
-    + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">域分析</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">35个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
@@ -432,9 +474,9 @@ function renderDomainAnalysisStatic() {
       {name:'资产折旧费用匹配', fn:'_domain_depreciation_match', line:'14373', desc:'固定资产采购vs折旧匹配 · 有资产无折旧→利润虚增'},
       {name:'关联交易穿透检测', fn:'_domain_related_party_check', line:'14339', desc:'名称相似度+同法人+同注册地+同电话→关联交易未披露'},
     ]},
-    {cat:'行业对标与规则', color:'#6366f1', desc:'66行业基准库对标，1505条规则全覆盖验证，审计基础检查。', items:[
+    {cat:'行业对标与规则', color:'#6366f1', desc:'66行业基准库对标，' + pc('rules','1505') + '条规则全覆盖验证，审计基础检查。', items:[
       {name:'行业对标分析', fn:'_domain_industry_benchmark', line:'14475', desc:'66个行业基准——毛利率/税负率/进销比/人均营收/费用率五维对标'},
-      {name:'规则全覆盖验证', fn:'_domain_rule_coverage', line:'15114', desc:'1505条规则逐条检查 · 数据不足→资料缺口 · 不作无依据结论'},
+      {name:'规则全覆盖验证', fn:'_domain_rule_coverage', line:'15114', desc:'' + pc('rules','1505') + '条规则逐条检查 · 数据不足→资料缺口 · 不作无依据结论'},
       {name:'跨域关联推理', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点→多域印证→8条跨域证据链 · A域+B域+C域异常→闭环'},
     ]},
   ];
@@ -470,7 +512,7 @@ function renderDomainAnalysisStatic() {
     + '<strong>经营实质分析</strong>（基础层）→ 提供企业画像：制造业/贸易型/服务型、本地/跨省、自加工/外包。<br>'
     + '<strong>发票+银行+凭证</strong>（数据层）→ 三大主数据源，支撑进销存、资金流、税务、薪酬、资产等15个分析域。<br>'
     + '<strong>多源交叉验证</strong>（交叉层）→ 将单个域的发现两两比对、三向检验，发现孤立点无法发现的隐藏关联。<br>'
-    + '<strong>行业对标+规则引擎</strong>（校验层）→ 将企业数据与66行业基准对比，与1505条规则逐一匹配。<br>'
+    + '<strong>行业对标+规则引擎</strong>（校验层）→ 将企业数据与66行业基准对比，与' + pc('rules','1505') + '条规则逐一匹配。<br>'
     + '<strong>跨域关联推理</strong>（顶层）→ 将以上所有发现串联为8条跨域证据链，形成最终稽查结论。'
     + '</div>'
     + '</div>';
@@ -588,7 +630,7 @@ function renderCrossDomainEvidencePage(container) {
 
   var hasCache = window._allCrossChains && window._allCrossChains.length > 0;
 
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域证据链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? window._allCrossChains.length : '...') + ' 条证据链 · 多源数据交叉验证 · ≥2个维度同时命中才形成有效证据链</p>'
@@ -854,7 +896,7 @@ function renderChainsPage(container) {
   if (hasCache) _allClueChains.forEach(function(c) { var p = (c.name || '').split('-')[0]; if (p) cats[p] = true; });
   var catKeys = hasCache ? Object.keys(cats).sort() : [];
 
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div>'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
@@ -883,7 +925,7 @@ async function loadChainsData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var clueChains = _allChains.filter(function(c) { return c.chain_type === '线索链' || !c.chain_type; });
-    if (!clueChains.length) clueChains = _allChains.slice(0, 391);
+    if (!clueChains.length) clueChains = _allChains.slice(0, pc('trailChains', 391));
 
     // 加载动态触发状态
     await loadChainDynamicStatus();
@@ -994,7 +1036,7 @@ function renderEvidencePage(container) {
 
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
 
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">证据链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? _allEvidenceChains.length : '...') + ' 条证据链 · 含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
@@ -1015,7 +1057,7 @@ async function loadEvidenceData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var evChains = _allChains.filter(function(c) { return c.chain_type === '证据链'; });
-    if (!evChains.length) evChains = _allChains.slice(391, 391 + 740);
+    if (!evChains.length) evChains = _allChains.slice(pc('trailChains', 391), pc('trailChains', 391) + pc('evidenceChains', 740));
 
     if (!_chainDynamic) await loadChainDynamicStatus();
 
@@ -1116,10 +1158,10 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">1505规则 + 391线索链 + 740证据链 → 方法论过滤器 → 正式稽查报告</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '规则 + ' + pc('trailChains','391') + '线索链 + ' + pc('evidenceChains','740') + '证据链 → 方法论过滤器 → 正式稽查报告</p>'
     + '</div>'
     + '<div id="analyze-body"></div>'
     + '</div>';
@@ -1158,7 +1200,7 @@ async function loadAnalyzeOverview() {
     + '</p>'
     + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:12px;color:#94a3b8;line-height:2">'
     + '<span style="font-weight:600;color:#64748b">数据规模：</span>'
-    + '1505 条稽查指令 · 391 条线索链 · 740 条证据链 · 8 条跨域证据链 · 97% 噪声过滤率 · 66 行业基准库'
+    + pc('rules','1505') + ' 条稽查指令 · ' + pc('trailChains','391') + ' 条线索链 · ' + pc('evidenceChains','740') + ' 条证据链 · 8 条跨域证据链 · 97% 噪声过滤率 · 66 行业基准库'
     + '</div>'
     + '</div>';
 
@@ -1182,8 +1224,8 @@ async function loadAnalyzeOverview() {
        + '进销存比对比——商品明细匹配 + 进销比 + 毛利率；五层发票审计——格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射；'
        + '供应商穿透——集中度+群集+名称异常+双向交易检测；合同分层——四层自动分类（必签/应签/可免/小额）。'},
     {n:'④', title:'规则引擎与链驱动检查', icon:'⚙️',
-     desc:'1505条稽查指令逐条与域分析发现做匹配。391条线索链引擎：每链多个调查步骤，通过定量/定性/缺失三类数据验证后触发，'
-       + '产生链驱动发现。740条证据链闭环检测：收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。'
+     desc:'' + pc('rules','1505') + '条稽查指令逐条与域分析发现做匹配。' + pc('trailChains','391') + '条线索链引擎：每链多个调查步骤，通过定量/定性/缺失三类数据验证后触发，'
+       + '产生链驱动发现。' + pc('evidenceChains','740') + '条证据链闭环检测：收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。'
        + '234条证据链闭环触发→强制升级为高风险。链驱动引擎产出线索发现和闭环发现两类新发现，补充到总发现池。'},
     {n:'⑤', title:'方法论噪声过滤器', icon:'🎯',
      desc:'方法论过滤器是确保报告质量的最后关口。HARD_BAN（硬删除）：23类禁止词绝对不允许出现在输出中——'
@@ -1215,8 +1257,8 @@ async function loadAnalyzeOverview() {
   html += '<div style="margin-bottom:48px;padding:20px 24px;background:#f8fafc;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">三、四合一数据闭环</h3>'
     + '<div style="font-size:13px;color:#475569;line-height:2.2">'
-    + '<strong>规则ID</strong> → 每条发现可追溯到 tax_risk_rules_local_export.json 中的具体稽查指令（1505条）。<br>'
-    + '<strong>线索链</strong> → 每条发现可追溯到 audit_chains.json 中的调查路径（391条线索链）。<br>'
+    + '<strong>规则ID</strong> → 每条发现可追溯到 tax_risk_rules_local_export.json 中的具体稽查指令（' + pc('rules','1505') + '条）。<br>'
+    + '<strong>线索链</strong> → 每条发现可追溯到 audit_chains.json 中的调查路径（' + pc('trailChains','391') + '条线索链）。<br>'
     + '<strong>证据来源</strong> → how_found 字段记录稽查审计溯源，换一个稽查员拿同样资料能得出同样结论。<br>'
     + '<strong>一键分析</strong> → renderTaxDocReport 前端渲染时展示稽查溯源标记（▶ 规则追溯 / 线索追溯）。<br><br>'
     + '<strong>证据链闭环</strong> → ≥60%触发率 + ≥3条规则 + ≥2数据域 → 闭环发现 → 强制升级高风险。<br>'
@@ -1258,14 +1300,14 @@ function renderAnalyzeResult(report) {
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、执行概览</h3>'
     + '<div style="display:flex;gap:12px;margin-bottom:20px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (report.files_count||0) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">资料文件</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (comp.rule_count||'1505') + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">匹配规则</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (comp.rule_count||pc('rules','1505')) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">匹配规则</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + midCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">中风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + lowCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">低风险</div></div>'
     + '</div>'
     + '<div style="font-size:13px;color:#475569;line-height:2">'
-    + '规则 <strong>' + (comp.rule_count||'1505') + '</strong> 则 · 线索链 <strong>' + (comp.chain_count||'391') + '</strong> 条 · '
-    + '证据链 <strong>' + (comp.evidence_count||'740') + '</strong> 条 · 文件 <strong>' + (report.files_count||0) + '</strong> 个 · '
+    + '规则 <strong>' + (comp.rule_count||pc('rules','1505')) + '</strong> 则 · 线索链 <strong>' + (comp.chain_count||pc('trailChains','391')) + '</strong> 条 · '
+    + '证据链 <strong>' + (comp.evidence_count||pc('evidenceChains','740')) + '</strong> 条 · 文件 <strong>' + (report.files_count||0) + '</strong> 个 · '
     + '四合一闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓'
     + '</div>'
     + '</div>';
@@ -1321,7 +1363,7 @@ function toggleDomainDetail(idx) {
 // ==================== 跨域线索链页面 ====================
 function renderCrossDomainCluesPage(container) {
   if (!container) return;
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域线索链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查</p>'
@@ -1412,7 +1454,7 @@ function loadCrossDomainClues() {
 // ==================== 跨域分析链页面 ====================
 function renderCrossDomainAnalysisPage(container) {
   if (!container) return;
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域分析链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证</p>'
@@ -1527,7 +1569,7 @@ function renderMethodologyFilterPage(container) {
   if (!container) return;
   window.currentModule = '方法论过滤器';
 
-  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">方法论过滤器</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN + COND_BAN + 去重 —— 三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
@@ -1750,7 +1792,7 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   var html = '';
-  html += '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">';
+  html += '<div class="pipeline-page">';
 
   // 标题
   html += '<div style="margin-bottom:48px">'
@@ -1820,3 +1862,6 @@ function renderAiRules(container) {
   html += '</div>';
   container.innerHTML = html;
 }
+
+// ═══════════ 页面加载时自动预取模块数量 ═══════════
+setTimeout(function(){ loadPipelineCounts(); }, 100);

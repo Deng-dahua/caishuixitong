@@ -544,7 +544,7 @@ function exportDocsReport() {
   if (!reportDiv) return;
   var content = reportDiv.innerHTML;
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>涉税风险分析报告</title>'
-    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
+    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:960px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
     + 'h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}'
     + '.risk-high{background:#fef2f2;border-left:3px solid #dc2626;padding:10px;margin:8px 0}'
     + '.risk-mid{background:#fffbeb;border-left:3px solid #f59e0b;padding:10px;margin:8px 0}'

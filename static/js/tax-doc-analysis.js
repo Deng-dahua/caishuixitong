@@ -178,7 +178,7 @@ function renderAnalyzeHeader(report) {
   var midCount = allF.filter(function(f){ return f.level === '中风险'; }).length;
 
   var h = '<style>'
-    + '#analyze-header{max-width:820px;margin:0 auto 40px;padding:40px 40px 0;font-family:"PingFang SC","Microsoft YaHei",serif}'
+    + '#analyze-header{max-width:960px;margin:0 auto 40px;padding:40px 40px 0;font-family:"PingFang SC","Microsoft YaHei",serif}'
     + '#analyze-header h3{font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}'
     + '#analyze-header .step-block{padding:10px 0;border-bottom:1px solid #f1f5f9}'
     + '#analyze-header .step-block .st{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:2px}'
@@ -347,7 +347,7 @@ function renderTaxDocReport(r) {
 
   var h = '<style>'
     + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
-    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;max-width:820px;margin:0 auto;padding:60px 40px;background:#fff}'
+    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;max-width:960px;margin:0 auto;padding:60px 40px;background:#fff}'
     + '#rr-report .cover{text-align:center;padding:60px 0;border-bottom:3px double #1a1a2e;margin-bottom:40px}'
     + '#rr-report .cover h1{font-size:26px;font-weight:900;letter-spacing:6px;margin-bottom:20px}'
     + '#rr-report .cover .sub{font-size:15px;color:#555;line-height:2.5}'
@@ -515,7 +515,7 @@ function exportTaxDocReport() {
   if (!area) return;
   var content = area.innerHTML;
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>涉税资料分析报告</title>'
-    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
+    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:960px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
     + 'h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}'
     + '@media print{body{padding:0;font-size:11pt}}</style></head><body>'
     + '<h1 style="text-align:center">涉税资料分析报告</h1>'
