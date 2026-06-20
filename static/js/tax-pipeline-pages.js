@@ -1478,6 +1478,52 @@ function renderAnalyzeResult(report) {
     + '<a href="#" onclick="navigateTo(\'quality-system\');return false" style="display:inline-block;margin-top:8px;font-size:12px;color:#2563eb">查看完整18组件详情 →</a>'
     + '</div>';
 
+  // ══════ 七、稽查报告标准格式（《税务稽查工作规程》正式格式）══════
+  h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafbfc;border-radius:8px;border-left:3px solid #1a1a2e">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">七、稽查报告标准格式</h3>'
+    + '<p style="font-size:12px;color:#94a3b8;margin:0 0 16px">依据《税务稽查工作规程》 · 资料风险分析报告（预审）标准格式</p>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+
+    + '<div style="margin-bottom:16px"><div style="font-weight:700;color:#1a1a2e;margin-bottom:6px">📄 报告结构（7章节 + 附件）</div>'
+    + '<div style="padding:0 16px;font-size:12px;line-height:2">'
+    + '<div><b>封面</b>：编号（税稽字[YYYY]第XXX号）+ 报告日期</div>'
+    + '<div><b>目录</b>：7章节锚点跳转</div>'
+    + '<div><b>一、案件来源及稽查对象基本情况</b>：案件来源 / 被查单位 / 法定代表人 / 企业类型 / 行业 / 稽查期间 / 稽查范围 / 执行标准</div>'
+    + '<div><b>二、稽查实施情况</b>：数据比对（进销存）→ 资金核对（银行流水）→ 穿透分析（供应商/客户/加工商）</div>'
+    + '<div><b>三、稽查发现问题及事实认定</b>：每条发现按"违法性质 / 违法事实 / 证据材料 / 证据来源 / 法律依据 / 处理建议"六要素格式</div>'
+    + '<div><b>四、稽查结论</b>：综合风险评级 + 主要高风险事实 + 证据链完整性 + 总体结论</div>'
+    + '<div><b>五、处理处罚建议</b>：去重后的处理建议列表 + 自查整改期限</div>'
+    + '<div><b>六、告知权利义务</b>：申请回避权 / 陈述申辩权 / 听证权 / 复议权 / 诉讼权（5项法定权利）</div>'
+    + '<div><b>七、稽查人员签字</b>：稽查执行人 + 审理人 + 稽查部门（盖章）+ 报告日期</div>'
+    + '<div><b>附件：证据清单</b>：进销项发票数据 / 银行流水数据 / 合同文件 / 其他经营资料</div>'
+    + '</div></div>'
+
+    + '<div style="margin-bottom:16px"><div style="font-weight:700;color:#1a1a2e;margin-bottom:6px">✅ 每条发现六要素标准</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;padding:0 16px">'
+    + '<div><span style="color:#2563eb">① 违法性质</span>：发现类型（如"收款来源与开票客户不匹配"）</div>'
+    + '<div><span style="color:#2563eb">② 违法事实</span>：具体描述 + 明细数据（供应商名/金额/发票号）</div>'
+    + '<div><span style="color:#2563eb">③ 证据材料</span>：明细表（逐笔列示，不截断）</div>'
+    + '<div><span style="color:#2563eb">④ 证据来源</span>：规则ID + 线索链 + 查证方式（可展开溯源）</div>'
+    + '<div><span style="color:#2563eb">⑤ 法律依据</span>：《税收征收管理法》及相关法规条文</div>'
+    + '<div><span style="color:#2563eb">⑥ 处理建议</span>：具体消除路径（提供XX资料→如果A就XX→无法做到的后果）</div>'
+    + '</div></div>'
+
+    + '<div style="margin-bottom:16px"><div style="font-weight:700;color:#1a1a2e;margin-bottom:6px">⚖️ 与正式税务稽查报告对照</div>'
+    + '<div style="padding:0 16px;font-size:12px;line-height:2">'
+    + '<div>✅ <span style="color:#059669">已符合</span>：报告编号格式 / 章节结构 / 事实认定格式 / 处理建议 / 签字栏位 / 证据清单</div>'
+    + '<div>⚠️ <span style="color:#f59e0b">部分符合</span>：被查单位基本情况（缺少注册资本/经营范围，可从工商数据补充）</div>'
+    + '<div>❌ <span style="color:#dc2626">待补充</span>：正式文书送达回证 / 审理意见书 / 税务行政处罚事项告知书（需税务局内部流程）</div>'
+    + '</div></div>'
+
+    + '<div><div style="font-weight:700;color:#1a1a2e;margin-bottom:6px">📌 报告生成位置</div>'
+    + '<div style="padding:0 16px;font-size:12px;line-height:2">'
+    + '入口：<b>资料风险分析报告</b>模块 → 上传资料 → 一键分析 → 生成稽查报告<br>'
+    + '代码位置：<code>static/js/tax-doc-analysis.js</code> <code>renderTaxDocReport()</code> 函数<br>'
+    + '样式：独立CSS（含封面/目录/违法事实认定/结论框/权利义务/附件等专用样式）'
+    + '</div></div>'
+
+    + '</div>';
+
   target.innerHTML = h;
 }
 
