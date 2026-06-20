@@ -322,32 +322,22 @@
 
 <script>init();</script>
 
-<!-- 侧边栏加载时自动滚到最底部（AI行为准则可见） -->
+<!-- 侧边栏自动滚到最底部 -->
 <script>
 (function() {
-  var scrolled = false;
-  function doScroll() {
-    if (scrolled) return;
+  function scrollToBottom() {
     var nav = document.querySelector('.sidebar-nav');
-    if (nav && nav.scrollHeight > nav.clientHeight + 10) {
-      nav.scrollTop = nav.scrollHeight;
-      scrolled = true;
-    }
+    if (nav) nav.scrollTop = 99999;
   }
-  // MutationObserver：监听侧边栏子元素变化，一有内容就滚到底
-  function watchNav() {
-    var nav = document.querySelector('.sidebar-nav');
-    if (!nav) { setTimeout(watchNav, 50); return; }
-    var observer = new MutationObserver(function(mutations) { doScroll(); });
-    observer.observe(nav, { childList: true, subtree: true, attributes: false });
-    doScroll();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scrollToBottom);
+  } else {
+    scrollToBottom();
   }
-  // 多时机触发，确保覆盖所有渲染路径
-  document.addEventListener('DOMContentLoaded', function() { setTimeout(watchNav, 0); });
-  window.addEventListener('load', doScroll);
-  setTimeout(watchNav, 300);
-  setTimeout(doScroll, 800);
-  setTimeout(doScroll, 1500);
+  window.addEventListener('load', scrollToBottom);
+  setTimeout(scrollToBottom, 100);
+  setTimeout(scrollToBottom, 500);
+  setTimeout(scrollToBottom, 1500);
 })();
 </script>
 
