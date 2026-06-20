@@ -13696,6 +13696,120 @@ def _get_action_paths(ftype, level):
     if "加工" in ftype or "有进无销" in ftype or "有销无进" in ftype: return ["路径A: 提供BOM+加工合同+物流→证实真实性","路径B: 无法提供→进项税额转出+补税"]
     return ["提供佐证→降级","无法提供→升级→按最高标准"]
 
+# ═══════════ 跨域线索链分析引擎 ═══════════
+
+def _domain_cross_domain_clues(all_findings):
+    """加载跨域线索链，匹配发现并记录触发状态到报告中"""
+    chain_defs = _load_json("static/cross_domain_clues.json", [])
+    if not chain_defs:
+        return []
+    
+    findings = []
+    for chain_def in chain_defs:
+        kws = chain_def.get("trigger_keywords", [])
+        min_ev = chain_def.get("min_evidence", 2)
+        
+        triggered_findings = []
+        for f in all_findings:
+            ftype = str(f.get("type", ""))
+            fdetail = str(f.get("detail", ""))
+            if any(kw in ftype or kw in fdetail for kw in kws):
+                if f not in triggered_findings:
+                    triggered_findings.append(f)
+        
+        if len(triggered_findings) >= min_ev:
+            path_steps = []
+            for s in chain_def.get("investigation_path", []):
+                path_steps.append(f"Step{s.get('step','')}: {s.get('domain','')} → {s.get('action','')}")
+            
+            findings.append({
+                "type": f"跨域线索链: {chain_def.get('name','')}",
+                "level": chain_def.get("level", "中风险"),
+                "score": min(len(triggered_findings) * 2, 9),
+                "detail": f"触发维度: {len(triggered_findings)}/{min_ev}。调查路径共{len(path_steps)}步。",
+                "description": chain_def.get("description",""),
+                "how_found": f"匹配发现关键词 → 触发跨域线索链'{chain_def.get('name','')}' ({len(triggered_findings)}条发现命中 {len(kws)}个关键词)",
+                "tax_impact": chain_def.get("tax_impact",""),
+                "policy_ref": chain_def.get("policy_ref",""),
+                "suggestion": chain_def.get("suggestion",""),
+                "category": "跨域线索链",
+                "_cross_domain_clue": True,
+                "_investigation_path": path_steps,
+            })
+    
+    return findings
+
+
+# ═══════════ 跨域分析链推理引擎 ═══════════
+
+def _domain_cross_domain_analysis(all_findings):
+    """加载跨域分析链，匹配触发信号并产生结构化推理发现"""
+    chain_defs = _load_json("static/cross_domain_analysis.json", [])
+    if not chain_defs:
+        return []
+    
+    findings = []
+    for chain_def in chain_defs:
+        trigger = chain_def.get("trigger_signal", "")
+        reasoning = chain_def.get("reasoning_chain", [])
+        reversals = chain_def.get("reversal_points", [])
+        
+        if not trigger or not reasoning:
+            continue
+        
+        # 检查触发信号是否在发现的type/detail/description中出现
+        triggered = False
+        for f in all_findings:
+            ftype = str(f.get("type", ""))
+            fdetail = str(f.get("detail", ""))
+            # 提取触发信号中的关键词检查
+            trigger_kws = [w for w in trigger.replace("→"," ").replace("，"," ").replace("、"," ").split() if len(w)>=3]
+            match_count = sum(1 for kw in trigger_kws if kw in ftype or kw in fdetail)
+            if match_count >= 2:
+                triggered = True
+                break
+        
+        if triggered:
+            reasoning_desc = ""
+            for rs in reasoning:
+                reasoning_desc += f"Step{rs.get('order','')}: {rs.get('from','')} → {rs.get('to','')}\n"
+                reasoning_desc += f"  发现: {rs.get('finding','')}\n"
+                reasoning_desc += f"  动作: {rs.get('action','')}\n\n"
+            
+            reversal_text = ""
+            for rp in reversals:
+                reversal_text += f"· Step{rp.get('at_step','')}: 如果{rp.get('if','')[:80]} → 则{rp.get('then','')[:60]}\n"
+            
+            findings.append({
+                "type": f"跨域分析链: {chain_def.get('name','')}",
+                "level": chain_def.get("level", "中风险"),
+                "score": min(len(reasoning) * 2, 9),
+                "detail": f"触发信号: {trigger[:100]}。推理链共{len(reasoning)}步，{len(reversals)}个回退点。",
+                "description": f"【推理路径】\n{reasoning_desc}\n【回退条件】\n{reversal_text}\n\n{chain_def.get('description','')}",
+                "how_found": f"发现匹配触发信号关键词 → 启动跨域分析链'{chain_def.get('name','')}'",
+                "suggestion": f"按{len(reasoning)}步推理链逐步验证，每步有对应回退条件。关联方法论: {chain_def.get('methodology','')}",
+                "category": "跨域分析链",
+                "_cross_domain_analysis": True,
+                "_reasoning_chain": reasoning,
+                "_reversal_points": reversals,
+            })
+    
+    return findings
+
+
+# ═══════════ 通用JSON加载 ═══════════
+
+def _load_json(rel_path, default=None):
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(__file__), rel_path)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return _json.load(f)
+    except Exception:
+        return default if default is not None else []
+
+
 # ═══════════ 稽查队扩展: 收入时间线调查 ═══════════
 
 def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
@@ -16982,6 +17096,12 @@ def _run_analyze(company_id, db):
     # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs)})
     domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
+    # 跨域线索链：加载 cross_domain_clues.json 匹配发现
+    if all_findings:
+        domain_results.append({"domain": "跨域线索链", "findings": _domain_cross_domain_clues(all_findings)})
+    # 跨域分析链：加载 cross_domain_analysis.json 推理分析
+    if all_findings:
+        domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
 
     # ── 同类风险合并：将仅参数不同的同类发现合并为一条 ──
     for dr in domain_results:
