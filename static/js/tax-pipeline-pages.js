@@ -1041,7 +1041,7 @@ function renderEvidencePage(container) {
   container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">证据链列表</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? _allEvidenceChains.length : '...') + ' 条证据链 · 含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
     + '</div>'
     + '<div id="evidence-body"></div></div>';
 
