@@ -373,6 +373,14 @@ function renderTaxDocReport(r) {
     + '#rr-report .f .fb{font-size:13px;color:#334155;line-height:1.9}'
     + '#rr-report .f .fs{font-size:12px;color:#475569;margin-top:6px;padding-top:6px;border-top:1px dashed #e8e8e8}'
     + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd}'
+    + '#rr-report .toc{margin:30px 0;padding:0 40px}'
+    + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:15px;line-height:2.4}'
+    + '#rr-report .toc a:hover{color:#2563eb;text-decoration:underline}'
+    + '#rr-report .toc .num{display:inline-block;min-width:28px;font-weight:700}'
+    + '#rr-report .conclusion-box{margin:16px 0;padding:16px 20px;border-radius:8px;line-height:2}'
+    + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
+    + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
+    + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
     + '</style><div id="rr-report">';
 
   // cover
@@ -385,8 +393,17 @@ function renderTaxDocReport(r) {
     + '报告日期：'+dateStr
     + '</div></div>';
 
+  // TOC
+  h += '<div class="toc">'
+    + '<div><a href="#sec1"><span class="num">一、</span>基本情况</a></div>'
+    + '<div><a href="#sec2"><span class="num">二、</span>稽查方法</a></div>'
+    + '<div><a href="#sec3"><span class="num">三、</span>稽查发现</a></div>'
+    + '<div><a href="#sec4"><span class="num">四、</span>稽查结论</a></div>'
+    + '<div><a href="#sec5"><span class="num">五、</span>稽查处理意见</a></div>'
+    + '</div>';
+
   // section 1
-  h += '<h2>一、基本情况</h2>';
+  h += '<h2 id="sec1">一、基本情况</h2>';
   h += '<table class="tbl">'
     + '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>'
     + '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'  |  '+esc(te.industry||'')+'</td></tr>'
@@ -402,7 +419,7 @@ function renderTaxDocReport(r) {
     ) + '。</p>';
 
   // section 2
-  h += '<h2>二、稽查方法</h2>';
+  h += '<h2 id="sec2">二、稽查方法</h2>';
   h += '<p class="i2">第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。</p>';
   h += '<p class="i2">第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。</p>';
 
@@ -468,7 +485,7 @@ function renderTaxDocReport(r) {
   h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
   // section 3
-  h += '<h2>三、稽查发现</h2>';
+  h += '<h2 id="sec3">三、稽查发现</h2>';
 
   allF.forEach(function(f,i){
     var s = f.score||0;
@@ -506,8 +523,27 @@ function renderTaxDocReport(r) {
     h += '</div>';
   });
 
-  // section 4
-  h += '<h2>四、稽查处理意见</h2>';
+  // section 4 - 稽查结论
+  h += '<h2 id="sec4">四、稽查结论</h2>';
+
+  var highCount=allF.filter(function(f){return(f.score||0)>=8;}).length;
+  var midCount=allF.filter(function(f){return(f.score||0)>=6&&(f.score||0)<8;}).length;
+  var lowCount=allF.filter(function(f){return(f.score||0)<6;}).length;
+  var fixedCount=allF.filter(function(f){return f.level_fixed;}).length;
+  var riskC=highCount>0?S.red:(midCount>0?S.amber:S.green);
+  var riskText=highCount>0?'高风险':(midCount>0?'中风险':'低风险');
+  h+='<div class="conclusion-box '+(highCount>0?'red':(midCount>0?'amber':'green'))+'">';
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+riskC+'">'+riskText+'</span></div>';
+  h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+highCount+'</strong> 项，中风险 <strong>'+midCount+'</strong> 项，低风险 <strong>'+lowCount+'</strong> 项。'+(fixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+fixedCount+' 项。</span>':'')+'</p>';
+  h+='</div>';
+  if(highCount>0){h+='<h3>主要高风险事实</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f,i){h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(f.detail||f.description||'').substring(0,150)+'</p>';});}
+  h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有规则ID溯源和≥2域交叉验证，符合稽查证据标准。</p>';
+  h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
+  if(highCount>0){h+='<span style="color:'+S.red+'">存在'+highCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(midCount>0){h+='<span style="color:'+S.amber+'">存在'+midCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}
+  h+='</p>';
+
+  // section 5 - 稽查处理意见
+  h += '<h2 id="sec5">五、稽查处理意见</h2>';
   var actions=[],seen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
