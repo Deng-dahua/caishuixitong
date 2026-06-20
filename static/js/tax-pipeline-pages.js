@@ -487,10 +487,10 @@ function renderDomainAnalysisStatic() {
       + '<span style="width:3px;height:14px;display:inline-block;background:' + g.color + ';border-radius:2px"></span>'
       + '<span style="font-size:13px;font-weight:700;color:#0f172a">' + escHtml(g.cat) + '</span>'
       + '</div>'
-      + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 11px;line-height:1.7">' + escHtml(g.desc) + '</div>';
+      + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 0;line-height:1.7">' + escHtml(g.desc) + '</div>';
 
     g.items.forEach(function(d) {
-      html += '<div style="padding:10px 12px 10px 11px;margin-bottom:4px;border-left:2px solid ' + g.color + ';background:#fafafa;border-radius:0 6px 6px 0">'
+      html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:2px solid ' + g.color + ';background:#fafafa;border-radius:0 6px 6px 0">'
         + '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(d.name) + '</div>'
         + '<div style="font-size:11px;color:#94a3b8">' + escHtml(d.fn) + '() · 行' + d.line + '</div>'
@@ -1833,7 +1833,7 @@ function renderAiRules(container) {
       + '<span style="font-size:15px;font-weight:700;color:#0f172a">' + cat.icon + ' ' + cat.name + '</span>'
       + '<span style="font-size:13px;color:#94a3b8">' + cat.rules.length + ' 条</span>'
       + '</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.8;margin:0 0 16px 11px">' + cat.desc + '</div>';
+      + '<div style="font-size:13px;color:#64748b;line-height:1.8;margin:0 0 16px">' + cat.desc + '</div>';
 
     cat.rules.forEach(function(r) {
       var isTieLv = r.level === '铁律';
@@ -1843,7 +1843,7 @@ function renderAiRules(container) {
       var badgeBg = isTieLv ? '#fee2e2' : '#e2e8f0';
       var badgeText = isTieLv ? '🔴 铁律' : '📋 准则';
 
-      html += '<div style="padding:16px 20px;margin-bottom:6px;margin-left:11px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">'
+      html += '<div style="padding:16px 20px;margin-bottom:6px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</div>'
         + '<div style="display:flex;gap:8px;align-items:center">'
