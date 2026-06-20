@@ -1372,7 +1372,19 @@ function renderAnalyzeResult(report) {
     + '<div style="padding:10px 0"><strong>⑦ 正式稽查报告输出</strong> — 结构化HTML报告+四步分析框架+明细数据+法律依据+消除路径建议。报告为独立HTML文件，可直接交付。</div>'
     + '</div></div>';
 
-  // ══════ 一、执行概览 ══════
+  // ══════ 一、什么是分析链 ══════
+  h += '<div style="margin-bottom:32px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #2563eb">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px">什么是分析链</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 8px">'
+    + '分析链是税务稽查系统的核心执行管线——<strong>七步串联的数据处理流水线</strong>，数据在管线中单向流动，不丢失、不污染、不截断。'
+    + '从资料扫描开始，经过多轮交叉验证，最终形成证据闭环：资料驱动+诚实边界+交叉推断+明细支撑。'
+    + '</p>'
+    + '<div style="font-size:12px;color:#94a3b8;line-height:1.8">'
+    + '代码：main.py _run_analyze() · 数据规模：' + pc('rules','1505') + '条指令+' + pc('trailChains','391') + '条线索链+' + pc('evidenceChains','740') + '条证据链 · 处理：97%噪声过滤+66行业基准库+35域分析函数'
+    + '</div>'
+    + '</div>';
+
+  // ══════ 二、执行概览 ══════
   h += '<div style="margin-bottom:40px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、执行概览</h3>'
     + '<div style="display:flex;gap:12px;margin-bottom:20px">'
@@ -1405,19 +1417,43 @@ function renderAnalyzeResult(report) {
     h += '</div></div>';
   }
 
-  // ══════ 三、稽查方法论 ══════
+  // ══════ 三、稽查方法论（㉖条详解）══════
+  var methods = [
+    {id:'①', name:'多格式兼容', desc:'银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容。PDF发票PDFPlumber解析+OCR兜底。Excel多引擎。'},
+    {id:'②', name:'汇总行过滤', desc:'月末汇总行（对手为空+大额整数）→自动识别并剔除。'},
+    {id:'③', name:'付款方身份核实', desc:'个人打款→联网查工商→性质待核实（股东注资/借款/未申报收入），不直接定性。'},
+    {id:'④', name:'关键词≠事实', desc:'BOM从纯关键词→进销品名实质差异+加工费证据。含BOM关键词≠有BOM业务。'},
+    {id:'⑤', name:'行业认知补算法', desc:'工商批发业≠无加工。外包轻加工模式在批发业中广泛存在，算法必须考虑行业认知。'},
+    {id:'⑥', name:'联网核查', desc:'企查查查法人/股东/行业/注册资本。工商信息可能与发票数据不一致，必须联网核查确认。'},
+    {id:'⑦', name:'明细即信服力', desc:'全部收款方+付款方逐一列示明细表，不分组合并。每条发现必须有具体数据。'},
+    {id:'⑧', name:'不墨迹直接干', desc:'发现问题不请示，读文件查格式直接修。自动继续直到交付完整结果。'},
+    {id:'⑨', name:'合同分层判断', desc:'四层自动分类：必签（主营业务+金额>5万）、应签（1-5万）、可免（日常消费）、小额（<1万）。'},
+    {id:'⑩', name:'完备度明细', desc:'资料完备度评估必须列明每类资料的实际数量，不能只说"齐全"或"缺失"。'},
+    {id:'⑪', name:'完备度升级', desc:'资料完备度从单一维度（有/无）升级为多维度（数量+时间跨度+完整性）。'},
+    {id:'⑫', name:'凭证描述纠正', desc:'记账凭证摘要必须规范化（如"购入原材料"而非"付款"），便于后续分析。'},
+    {id:'⑬', name:'进销诊断升级', desc:'进销品名不匹配诊断升级为三层分析：品名差异+加工费检查+加工链条合理性。'},
+    {id:'⑭', name:'行业基准库', desc:'66行业基准值库，每个行业含毛利率/净利率/税负率/进销比/人均营收三个基准值。'},
+    {id:'⑮', name:'结论分析法', desc:'detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。'},
+    {id:'⑯', name:'COND_BAN防误杀', desc:'条件过滤防止过滤器误杀重要发现。有资料则放过，无资料则删除相关结论。'},
+    {id:'⑰', name:'稽查重点强制等级', desc:'12类稽查重点直接硬编码为高风险，三层保护：后端修正+过滤器绕过+前端标记。'},
+    {id:'⑱', name:'报告纯净度', desc:'移除所有系统内部标注（【detect】等），四步框架表现为自然段落衔接。'},
+    {id:'⑲', name:'发票≠收付款1:1', desc:'六种收付款模式：跨期/合并/分期/预付预收/应付应收/非对公代付，未匹配≠异常。'},
+    {id:'⑳', name:'经营实质地理分析', desc:'供应商+客户+加工商地址+运输成本→全链条经营实质，重物跨省缺运输=物证链断裂。'},
+    {id:'㉑', name:'规则detail业务化', desc:'规则detail从技术语言改为业务语言，如"BOM进销映射异常"→"进销品名不匹配"。'},
+    {id:'㉒', name:'建议质量增强', desc:'每个风险点建议含具体消除路径——提供XX资料→如果A就XX→无法做到的后果。'},
+    {id:'㉓', name:'四步稽查分析法', desc:'detect（检测现象）→verify（交叉验证）→diagnose（根因诊断）→report（输出结论）。'},
+    {id:'㉔', name:'禁止数据截断', desc:'报告中显示全部明细数据，不截断（如"前5条"→显示全部）。明细即信服力。'},
+    {id:'㉕', name:'三层行业穿透法', desc:'工商登记→发票数据→加工信号，三者不一致时以实质重于形式为原则。'},
+    {id:'㉖', name:'经营实质点面推理法', desc:'单点发现→数据扩展→关联维度→交叉验证→综合结论（全链条经营实质）。'}
+  ];
+
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">三、稽查方法论（㉖条已全部代码化）</h3>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">'
-    + '<div>① 多格式兼容 · ② 汇总行过滤</div><div>③ 付款方身份核实 · ④ 关键词≠事实</div>'
-    + '<div>⑤ 行业认知补算法 · ⑥ 联网核查 ✅</div><div>⑦ 明细即信服力 · ⑧ 不墨迹直接干</div>'
-    + '<div>⑨ 合同分层判断 · ⑩ 完备度明细</div><div>⑪ 完备度升级 · ⑫ 凭证描述纠正</div>'
-    + '<div>⑬ 进销诊断升级 · ⑭ 行业基准库</div><div>⑮ 结论分析法 · ⑯ COND_BAN防误杀</div>'
-    + '<div>⑰ 稽查重点强制等级 · ⑱ 报告纯净度</div><div>⑲ 发票≠收付款1:1 · ⑳ 经营实质地理分析</div>'
-    + '<div>㉑ 规则detail业务化 · ㉒ 建议质量增强</div><div>㉓ 四步稽查分析法 · ㉔ 禁止数据截断</div>'
-    + '<div>㉕ 三层行业穿透法</div><div>㉖ 经营实质点面推理法</div>'
-    + '</div>'
-    + '</div>';
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;color:#475569;line-height:1.8">';
+  methods.forEach(function(m) {
+    h += '<div style="padding:8px 10px;background:#fff;border-radius:4px"><strong style="color:#0f172a">' + m.id + ' ' + m.name + '</strong><br><span style="color:#64748b">' + m.desc + '</span></div>';
+  });
+  h += '</div></div>';
 
   // ══════ 四、全链路稽查质量保障体系 ══════
   h += '<div style="margin-bottom:32px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #059669">'
