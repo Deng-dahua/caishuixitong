@@ -589,9 +589,9 @@ function renderCrossDomainEvidencePage(container) {
   var hasCache = window._allCrossChains && window._allCrossChains.length > 0;
 
   container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
-    + '<div>'
+    + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域证据链</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">系统最高价值的输出——7条证据链各自由多源数据交叉验证形成，只有≥2个维度同时命中才形成有效证据链</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? window._allCrossChains.length : '...') + ' 条证据链 · 多源数据交叉验证 · ≥2个维度同时命中才形成有效证据链</p>'
     + '</div>'
     + '<div id="cde-static"></div>'
     + '<div id="cde-dynamic"></div>'
@@ -624,39 +624,79 @@ function renderCrossDomainStaticContent(chains) {
   if (!target) return;
   var highCount = chains.filter(function(c) { return c.level === '高风险'; }).length;
   var totalDim = chains.reduce(function(s, c) { return s + c.dimensions.length; }, 0);
+  var totalMinEvidence = chains.reduce(function(s, c) { return s + c.min_evidence; }, 0);
 
-  var html = '<div style="display:flex;margin-bottom:24px;margin-top:24px;border-bottom:1px solid #f1f5f9;padding-bottom:16px">'
-    + '<div style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">证据链总数</div></div>'
-    + '<div style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">' + highCount + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">高风险链</div></div>'
-    + '<div id="cde-triggered-count" style="flex:1;text-align:center;padding:12px 16px;border-right:1px solid #f1f5f9"><div style="font-size:28px;font-weight:700;color:#0f172a">—</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">本次触发</div></div>'
-    + '<div style="flex:1;text-align:center;padding:12px 16px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + totalDim + '</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">总维度数</div></div>'
+  var html = '';
+
+  // ══════ 一、跨域证据链概述 ══════
+  html += '<div style="margin-bottom:40px">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域证据链</h3>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '跨域证据链是系统最高价值的输出——它不依赖单一数据源的孤立异常，而是将来自不同数据域（资金流、发票流、'
+    + '经营实质、资料完备等）的发现串联起来，形成多源交叉验证的证据闭环。单维度触发视为孤证，不形成证据链闭环。'
+    + '只有≥2个维度同时命中，才算形成有效证据链。这是税务稽查中"证据链"概念在AI系统中的实现。'
+    + '</p>'
+    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+    + '<strong>工作流程</strong>：domain_results中发现 → 关键词匹配各链维度 → 累计触发维度数 → 达到min_evidence阈值 → 生成跨域证据链发现 → 多源交叉闭环保高风险输出。'
+    + '</div>'
     + '</div>';
 
+  // 统计卡片
+  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">总维度</div></div>'
+    + '<div id="cde-triggered-count" style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">—</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
+    + '</div>';
+
+  // ══════ 二、证据链定义 ══════
+  html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、证据链定义</h3>';
+
   chains.forEach(function(c, ci) {
-    html += '<div id="cde-chain-' + ci + '" style="padding:16px 0;border-bottom:1px solid #f1f5f9">'
-      + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:6px">' + _escStatic(c.name)
-      + ' <span style="font-size:13px;color:' + (c.level === '高风险' ? '#dc2626' : '#f59e0b') + ';font-weight:400">' + _escStatic(c.level) + '</span>'
-      + ' <span style="font-size:13px;color:#94a3b8">' + _escStatic(c.sub_topic) + '</span>'
-      + ' <span id="cde-triggered-' + ci + '"></span>'
-      + ' <span style="font-size:13px;color:#94a3b8">需≥' + c.min_evidence + '条证据</span>'
+    var levelColor = c.level === '高风险' ? '#dc2626' : '#f59e0b';
+    var levelBg = c.level === '高风险' ? '#fef2f2' : '#fffbeb';
+
+    html += '<div id="cde-chain-' + ci + '" style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
+
+      // 标题
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + _escStatic(c.name) + '</div>'
+      + '<div style="display:flex;gap:8px;align-items:center">'
+      + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + _escStatic(c.level) + '</span>'
+      + '<span style="font-size:11px;color:#94a3b8">' + _escStatic(c.sub_topic) + '</span>'
+      + '<span style="font-size:11px;color:#94a3b8">需≥' + c.min_evidence + '维</span>'
+      + '<span id="cde-triggered-' + ci + '"></span>'
       + '</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.8">' + _escStatic(c.description) + '</div>';
+      + '</div>'
 
-    html += '<div style="font-size:13px;color:#64748b;margin-top:6px">维度：';
-    c.dimensions.forEach(function(d, di) {
-      html += (di > 0 ? ' · ' : '') + _escStatic(d.code) + ' ' + _escStatic(d.source);
+      // 描述
+      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + _escStatic(c.description) + '</div>'
+
+      // 维度详情
+      + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
+      + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">触发维度 · ' + c.dimensions.length + ' 个</div>';
+    c.dimensions.forEach(function(d) {
+      html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:1.8">'
+        + '<span style="font-weight:600;color:#0f172a">' + _escStatic(d.code) + '</span>'
+        + ' <span style="color:#64748b">' + _escStatic(d.source) + '</span>'
+        + '<span style="color:#94a3b8;margin-left:6px">→ ' + _escStatic(d.desc) + '</span>'
+        + '</div>';
     });
-    html += '</div>';
+    html += '</div>'
 
-    if (c.how_found) html += '<div style="font-size:13px;color:#64748b;margin-top:4px">溯源：' + _escStatic(c.how_found.substring(0,200)) + '</div>';
-    if (c.tax_impact) html += '<div style="font-size:13px;color:#64748b;margin-top:4px">纳税影响：' + _escStatic(c.tax_impact.substring(0,200)) + '</div>';
-    if (c.policy_ref) html += '<div style="font-size:13px;color:#64748b;margin-top:4px">法律依据：' + _escStatic(c.policy_ref.substring(0,200)) + '</div>';
-    if (c.suggestion) html += '<div style="font-size:13px;color:#64748b;margin-top:4px">建议：' + _escStatic(c.suggestion.substring(0,200)) + '</div>';
+      // 完整字段
+      + (c.how_found ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">溯源：</span>' + _escStatic(c.how_found) + '</div>' : '')
+      + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + _escStatic(c.tax_impact) + '</div>' : '')
+      + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + _escStatic(c.policy_ref) + '</div>' : '')
+      + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + _escStatic(c.suggestion) + '</div>' : '')
 
-    html += '</div>';
+      + '</div>';
   });
 
-  html += '<div style="padding:14px 0;font-size:13px;color:#94a3b8;line-height:1.8">证据链≠结论：每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。</div>';
+  html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+    + '<strong>证据链 ≠ 结论</strong>：每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。'
+    + '换一个稽查员拿同样资料，同样会得出相同结论——这就是证据链闭环的意义。'
+    + '</div>';
 
   target.innerHTML = html;
 }
@@ -670,24 +710,24 @@ function loadCrossDomainDynamic() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.ok) {
-        target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">⚠️ 暂无分析结果，请先运行一键分析以获取动态证据链数据</div>';
+        target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">暂无分析结果，请先运行一键分析以获取动态证据链数据</div>';
         return;
       }
       renderCrossDomainDynamic(data.report);
     })
     .catch(function(e) {
-      target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">动态数据加载失败: ' + e.message + '</div>';
+      target.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;margin-top:20px">动态数据加载失败</div>';
     });
 }
 
 function renderCrossDomainDynamic(report) {
   var target = document.getElementById('cde-dynamic');
   if (!target) return;
-  var domainSummary = report.domain_summary || [];
+  var allF = report.all_findings || [];
   var comprehensive = report.comprehensive || {};
+  var domainSummary = report.domain_summary || [];
 
   var crossDomainFindings = [];
-  var allF = report.all_findings || [];
   domainSummary.forEach(function(ds) {
     if (ds.name && ds.name.indexOf('跨域关联推理') >= 0) {
       crossDomainFindings = ds.findings || [];
@@ -696,7 +736,7 @@ function renderCrossDomainDynamic(report) {
 
   var evidenceFindings = allF.filter(function(f) {
     var t = f.type || '';
-    return t.indexOf('证据链') >= 0 || t.indexOf('隐匿收入') >= 0 || t.indexOf('虚开发票') >= 0 || t.indexOf('无实质经营') >= 0 || t.indexOf('会计基础') >= 0 || t.indexOf('资金链') >= 0 || t.indexOf('利润现金流') >= 0 || t.indexOf('发票异常') >= 0;
+    return /证据链|隐匿收入|虚开发票|无实质经营|会计基础|资金链|利润现金流|发票异常|全链条经营实质/.test(t);
   });
 
   var allEvidence = [];
@@ -715,7 +755,7 @@ function renderCrossDomainDynamic(report) {
   var triggeredChains = comprehensive.triggered_chains || [];
   var chainExecution = comprehensive.chain_execution || [];
 
-  // 更新"本次触发"数
+  // 更新触发数
   var tcEl = document.getElementById('cde-triggered-count');
   if (tcEl) {
     var tcc = tcEl.querySelector('div');
@@ -725,59 +765,70 @@ function renderCrossDomainDynamic(report) {
   // 更新各链触发badge
   var allCC = window._allCrossChains || [];
   allCC.forEach(function(c, ci) {
-    var isTriggered = c.trigger_keywords && triggeredChains.some(function(t) {
-      return c.trigger_keywords.some(function(kw) { return t.indexOf(kw) >= 0; });
-    });
+    var kwMatch = c.trigger_keywords || [];
+    var isTriggered = false;
+    if (kwMatch.length) {
+      for (var ti = 0; ti < triggeredChains.length; ti++) {
+        for (var ki = 0; ki < kwMatch.length; ki++) {
+          if (triggeredChains[ti].indexOf(kwMatch[ki]) >= 0) { isTriggered = true; break; }
+        }
+        if (isTriggered) break;
+      }
+    }
     var badgeEl = document.getElementById('cde-triggered-' + ci);
     if (badgeEl) {
       badgeEl.innerHTML = triggeredChains.length > 0
-        ? (isTriggered ? '<span style="color:#dc2626;font-weight:600"> 已触发</span>' : '<span style="color:#94a3b8"> 未触发</span>')
+        ? (isTriggered ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#dc262615;color:#dc2626;font-weight:600">已触发</span>' : '<span style="font-size:11px;color:#94a3b8">未触发</span>')
         : '';
     }
   });
 
-  var html = '<div style="padding:20px 0;border-top:1px solid #f1f5f9;margin-top:20px">'
-    + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:12px">本次动态证据链结果</div>'
-    + '<div style="font-size:13px;color:#64748b;line-height:2">'
-    + '跨域证据链 ' + allEvidence.length + ' · 已闭环 ' + closedCount + ' · 触发线索链 ' + chainExecution.length + ' · 含规则ID链 ' + triggeredChains.length
+  var html = '';
+  html += '<div style="height:1px;background:#f1f5f9;margin:40px 0"></div>';
+
+  // ══════ 三、本次动态证据链结果 ══════
+  html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、本次动态证据链结果</h3>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">跨域证据链 ' + allEvidence.length + ' 条 · 已闭环 ' + closedCount + ' 条 · 触发线索链 ' + chainExecution.length + ' 条 · 含规则ID链 ' + triggeredChains.length + ' 条</p>'
+
+    // 统计
+    + '<div style="display:flex;gap:12px;margin-bottom:32px">'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#f8fafc;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + allEvidence.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链发现</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#eff6ff;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">' + chainExecution.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#f8fafc;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + triggeredChains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">含规则</div></div>'
     + '</div>';
 
+  // 证据链闭环
   if (closures.length > 0) {
-    html += '<div style="margin-top:16px;font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">证据链闭环检测</div>';
+    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">证据链闭环检测</h4>';
     closures.forEach(function(ec) {
-      html += '<div style="padding:12px 0;border-bottom:1px solid #f1f5f9">'
+      var closed = ec.closed;
+      var color = closed ? '#059669' : '#f59e0b';
+      html += '<div style="padding:10px 16px;margin-bottom:4px;background:' + (closed ? '#f0fdf4' : '#fffbeb') + ';border-radius:6px;border-left:3px solid ' + color + '">'
         + '<span style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(ec.chain_name) + '</span>'
-        + ' <span style="font-size:13px;color:' + (ec.closed ? '#dc2626' : '#f59e0b') + '">' + (ec.closed ? '已闭环' : '未闭环') + ' ' + ec.ratio + '%</span>'
-        + '<div style="font-size:13px;color:#94a3b8">触发 ' + ec.triggered_steps + '/' + ec.total_steps + ' 条规则</div>'
+        + ' <span style="font-size:12px;font-weight:600;color:' + color + '">' + (closed ? '已闭环' : '未闭环') + ' ' + ec.ratio + '%</span>'
+        + '<span style="font-size:12px;color:#94a3b8;margin-left:8px">触发 ' + ec.triggered_steps + '/' + ec.total_steps + ' 规则</span>'
         + '</div>';
     });
+    html += '<div style="margin-bottom:32px"></div>';
   }
 
+  // 跨域推理详情
   if (allEvidence.length > 0) {
-    html += '<div style="margin-top:20px;font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">跨域关联推理详情</div>';
+    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">跨域关联推理详情</h4>';
     allEvidence.forEach(function(f) {
-      html += '<div style="padding:12px 0;border-bottom:1px solid #f1f5f9">'
-        + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(f.type || '') + '</div>';
-      if (f.description) html += '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-top:4px">' + escHtml(f.description.substring(0,300)) + '</div>';
-      if (f.how_found) html += '<div style="font-size:13px;color:#94a3b8;margin-top:4px">溯源：' + escHtml(f.how_found.substring(0,150)) + '</div>';
-      if (f.tax_impact) html += '<div style="font-size:13px;color:#94a3b8;margin-top:4px">纳税影响：' + escHtml(f.tax_impact.substring(0,150)) + '</div>';
-      html += '</div>';
-    });
-  }
-
-  if (chainExecution.length > 0) {
-    html += '<div style="margin-top:20px;font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px">触发线索链 TOP' + Math.min(20, chainExecution.length) + '</div>';
-    chainExecution.slice(0, 20).forEach(function(ce) {
-      var ratioColor = ce.triggered_ratio >= 80 ? '#dc2626' : (ce.triggered_ratio >= 50 ? '#f59e0b' : '#059669');
-      html += '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px">'
-        + '<span style="color:#0f172a">' + escHtml(ce.chain_name) + '</span>'
-        + ' <span style="color:#64748b">' + ce.triggered_steps + '/' + ce.total_steps + '</span>'
-        + ' <span style="color:' + ratioColor + ';font-weight:600">' + ce.triggered_ratio + '%</span>'
+      var lvlColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
+      var lvlBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
+      html += '<div style="padding:14px 16px;margin-bottom:6px;background:' + lvlBg + ';border-left:3px solid ' + lvlColor + ';border-radius:0 6px 6px 0">'
+        + '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:6px">' + escHtml(f.type || '') + '</div>'
+        + (f.description ? '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:6px">' + escHtml(f.description) + '</div>' : '')
+        + (f.how_found ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">溯源：' + escHtml(f.how_found) + '</div>' : '')
+        + (f.tax_impact ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">纳税影响：' + escHtml(f.tax_impact) + '</div>' : '')
+        + (f.suggestion ? '<div style="font-size:12px;color:#94a3b8">建议：' + escHtml(f.suggestion) + '</div>' : '')
         + '</div>';
     });
   }
 
-  html += '</div>';
   target.innerHTML = html;
 }
 
