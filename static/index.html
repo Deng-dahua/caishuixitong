@@ -322,6 +322,27 @@
 
 <script>init();</script>
 
+<!-- 侧边栏加载时自动滚到最底部（AI行为准则可见） -->
+<script>
+(function() {
+  function scrollSidebarToBottom() {
+    var nav = document.querySelector('.sidebar-nav');
+    if (nav) {
+      nav.scrollTop = nav.scrollHeight;
+    }
+  }
+  // DOM就绪后执行
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scrollSidebarToBottom);
+  } else {
+    scrollSidebarToBottom();
+  }
+  // init() 执行完后再执行一次（init会渲染侧边栏，可能改变scrollHeight）
+  setTimeout(scrollSidebarToBottom, 100);
+  setTimeout(scrollSidebarToBottom, 500);
+})();
+</script>
+
 </div><!-- /#app-view -->
 
 </body>
