@@ -413,21 +413,46 @@ function renderTaxDocReport(r) {
     + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
     + '</div>';
 
-  // section 1
+  // section 1 —— 稽查方法论⑥（联网核查）+ ㉕（三层行业穿透法）强制呈现
   h += '<h2 id="sec1">一、案件来源及稽查对象基本情况</h2>';
+
+  // 联网核查结果标注
+  var onlineOK = !!te._online_lookup;
+  var onlineSource = te.lookup_source || (onlineOK ? '联网核查' : '');
+  var infoSourceTag = onlineOK
+    ? '<span style="color:#059669;font-size:12px;margin-left:6px">✅ 联网核查确认</span>'
+    : '<span style="color:#d97706;font-size:12px;margin-left:6px">⚠️ 发票数据推断（联网核查未成功）</span>';
+
   h += '<table class="tbl">'
     + '<tr><td class="lbl">案件来源</td><td>资料风险分析（基于电子经营资料预审）</td></tr>'
-    + '<tr><td class="lbl">被查单位</td><td>'+esc(te.name||'')+'</td></tr>'
-    + '<tr><td class="lbl">法定代表人</td><td>'+esc(te.legal_person||'')+(te.legal_person_role?'（'+esc(te.legal_person_role)+'）':'')+'</td></tr>'
-    + '<tr><td class="lbl">企业类型</td><td>'+esc(te.type||'')+'</td></tr>'
-    + '<tr><td class="lbl">行业</td><td>'+esc(te.industry||'')+(te.registered_type&&te.registered_type!==te.industry?'（实质为'+esc(te.registered_type)+'）':'')+'</td></tr>'
-    + '<tr><td class="lbl">稽查期间</td><td>'+esc(te.period||'')+'</td></tr>'
-    + '<tr><td class="lbl">稽查范围</td><td>'+r.files_count+'份经营资料</td></tr>'
-    + '<tr><td class="lbl">执行标准</td><td>依据'+r.rules_used+'条稽查指令及《税务稽查工作规程》</td></tr>'
+    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag + '</td></tr>'
+    + '<tr><td class="lbl">法定代表人</td><td>' + esc(te.legal_person || '') + (te.legal_person_role ? '（' + esc(te.legal_person_role) + '）' : '') + '</td></tr>'
+    + (te.registered_capital ? '<tr><td class="lbl">注册资本</td><td>' + esc(te.registered_capital) + '</td></tr>' : '')
+    + (te.uscc ? '<tr><td class="lbl">统一社会信用代码</td><td>' + esc(te.uscc) + '</td></tr>' : '')
+    + (te.company_status ? '<tr><td class="lbl">登记状态</td><td>' + esc(te.company_status) + '</td></tr>' : '')
+    + '<tr><td class="lbl">企业类型</td><td>' + esc(te.type || '') + '</td></tr>'
+    + '<tr><td class="lbl">行业</td><td>' + esc(te.industry || '') + (te.registered_type && te.registered_type !== te.industry ? '（实质为' + esc(te.registered_type) + '）' : '') + '</td></tr>'
+    + '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
+    + '<tr><td class="lbl">稽查范围</td><td>' + r.files_count + '份经营资料</td></tr>'
+    + '<tr><td class="lbl">执行标准</td><td>依据' + r.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
+
+  // 三层行业穿透法结论呈现
+  h += '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">'
+    + '<div style="font-weight:700;color:#166534;margin-bottom:8px">ⓘ 三层行业穿透法结论（稽查方法论㉕）</div>'
+    + '<div><span class="flabel" style="color:#374151">第一层（工商登记）：</span>' + esc(te.industry || '未知') + '</div>'
+    + '<div><span class="flabel" style="color:#374151">第二层（发票数据）：</span>' + esc(te.industry_inferred || te.industry || '未知') + '</div>'
+    + '<div><span class="flabel" style="color:#374151">第三层（加工信号）：</span>' + esc(te.business_model || te.registered_type || '未知') + '</div>'
+    + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0"><span class="flabel" style="color:#166534">综合判断：</span>'
+    + esc((te.industry ? '工商登记为' + te.industry : '')
+         + (te.registered_type && te.registered_type !== te.industry ? '，发票数据+加工信号确认实质为' + te.registered_type : '')
+         + '。三者' + (te.industry && te.registered_type && te.industry !== te.registered_type ? '不一致，以实质重于形式为原则' : '一致'))
+    + '。</div>'
+    + '</div>';
+
   h += '<p class="i2">' + esc(
     '本案为资料风险分析预审案件。被查单位' +
-    (te.name||'') +
+    (te.name || '') +
     (te.industry ? '，工商登记行业为' + te.industry : '') +
     (te.registered_type && te.registered_type !== te.industry ? '，实质经营为' + te.registered_type : '') +
     (te.legal_person ? '，法定代表人' + te.legal_person : '') +
