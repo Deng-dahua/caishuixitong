@@ -198,7 +198,7 @@ function renderAnalyzeHeader(report) {
     { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
     { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
     { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集+双向交易。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1503条规则逐条匹配 + 386条线索链驱动 + 735条证据链闭环（≥3条触发+≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
+    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环（≥3条触发+≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
     { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
     { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
     { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
@@ -210,9 +210,9 @@ function renderAnalyzeHeader(report) {
   // 分析结果统计
   h += '<h3 style="margin-top:24px">本次分析结果</h3>';
   h += '<div class="stats-row">'
-    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1503') + '</strong> 则 · '
-    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '386') + '</strong> 条 · '
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '735') + '</strong> 条 · '
+    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1505') + '</strong> 则 · '
+    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '391') + '</strong> 条 · '
+    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '740') + '</strong> 条 · '
     + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
     + '</div>'
     + '<div class="stats-row" style="padding-top:0">'

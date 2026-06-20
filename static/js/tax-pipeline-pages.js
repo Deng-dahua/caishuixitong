@@ -328,7 +328,7 @@ function renderDomainAnalysisPage(container) {
     + '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">域分析</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">31个分析域 · 33个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
+    + '    <p style="font-size:14px;color:#94a3b8;margin:0">35个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
     + '  </div>'
     + renderDomainAnalysisStatic()
     + '<div id="da-analysis-result"></div>'
@@ -379,9 +379,9 @@ function renderDomainAnalysisStatic() {
     + '</div>'
     + '</div>';
 
-  // ══════ 三、31个分析域 ══════
+  // ══════ 三、30个分析域 ══════
   html += '<div style="margin-bottom:48px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、31个分析域</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、30个分析域</h3>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">每个域由独立的域分析函数驱动，按类别分组。右侧数字为该域的分析函数在 main.py 中的行号。</p>';
 
   var domainGroups = [
@@ -410,7 +410,7 @@ function renderDomainAnalysisStatic() {
       {name:'经营实质地理分析', fn:'_domain_business_premise_geo', line:'14158', desc:'供应商/客户/加工商地址三角验真 · 重物运输成本 · 点→面推理全链条经营实质'},
       {name:'人员与业务匹配', fn:'_domain_workforce_profiling', line:'13894', desc:'员工vs营收合理性 · 人均薪资vs行业均值 · 社保人数vs工资人数匹配'},
     ]},
-    {cat:'资料完备度', color:'#2563eb', desc:'14类稽查必查资料逐一检测，合同需求四层自动分层。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
+    {cat:'资料完备度', color:'#2563eb', desc:'15类稽查必查资料逐一检测，合同需求四层自动分层。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
       {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'15类稽查必查资料逐一检测 · 合同需求四层分层（必签/应签/可免/小额）'},
     ]},
     {cat:'发票分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性。每一张发票都是稽查线索。', items:[
@@ -1178,7 +1178,7 @@ async function loadAnalyzeOverview() {
        + '行业识别：90+关键词×66行业加权投票制，扫描全部发票品名，每个行业命中的关键词次数作为投票权重，取最高分。'
        + '同时联网查询工商登记信息（法定代表人/注册资本/经营范围/股东），与发票推断结果做双源比对。'},
     {n:'③', title:'资料情报提取与数据分析', icon:'🔍',
-     desc:'将各类型文件数据导入33个域分析函数。包括：银行流水收款构成分析 + 付款方身份核实（联网法人/股东比对）；'
+     desc:'将各类型文件数据导入35个域分析函数。包括：银行流水收款构成分析 + 付款方身份核实（联网法人/股东比对）；'
        + '进销存比对比——商品明细匹配 + 进销比 + 毛利率；五层发票审计——格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射；'
        + '供应商穿透——集中度+群集+名称异常+双向交易检测；合同分层——四层自动分类（必签/应签/可免/小额）。'},
     {n:'④', title:'规则引擎与链驱动检查', icon:'⚙️',
