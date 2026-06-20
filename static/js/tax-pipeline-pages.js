@@ -995,6 +995,15 @@ function renderChainsList(chains) {
   if (!filtered.length) {
     html = '<div style="text-align:center;padding:40px;color:#94a3b8">无匹配线索链</div>';
   } else {
+    // 统计卡片
+    var triggeredCount = _chainDynamic ? (_chainDynamic.triggered_count || 0) : 0;
+    var totalSteps = chains.reduce(function(s, c) { return s + (c.investigation_path || []).length; }, 0);
+    html += '<div style="display:flex;gap:12px;margin-bottom:32px">'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链总数</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
+      + '</div>';
+
     filtered.forEach(function(c, ci) {
       var exec = execMap[c.name];
       var triggeredSteps = exec ? exec.triggered_steps : 0;
