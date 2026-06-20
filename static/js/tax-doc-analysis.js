@@ -438,6 +438,56 @@ function renderTaxDocReport(r) {
     + '<tr><td class="lbl">执行标准</td><td>依据' + r.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
 
+  // 六员信息展示（如有联网数据）
+  var spr = te._six_personnel_risk;
+  if (spr) {
+    var mp = spr.my_personnel || {};
+    var myNames = Object.keys(mp);
+    if (myNames.length > 0) {
+      var multiRole = spr.one_person_multi_role || [];
+      var crossCo = spr.cross_company_overlap || [];
+      
+      h += '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2.2">';
+      h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">ⓘ 稽查六员清单（联网核查获取）</div>';
+      h += '<div style="color:#374151">';
+      for (var i = 0; i < myNames.length; i++) {
+        var name = myNames[i];
+        var roles = mp[name] || [];
+        h += esc(name) + '：' + roles.map(function(r){return '<span style="display:inline-block;padding:1px 6px;margin:0 2px;background:#fef3c7;border:1px solid #fcd34d;border-radius:3px;font-size:11px">' + esc(r) + '</span>';}).join(' ') + '<br>';
+      }
+      h += '</div>';
+      
+      // 一人多角警告
+      if (multiRole.length > 0) {
+        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #fed7aa">';
+        h += '<div style="font-weight:700;color:#dc2626">⚠️ 六员风险 — 一人多角（内控缺陷）</div>';
+        for (var j = 0; j < multiRole.length; j++) {
+          var mr = multiRole[j];
+          h += '<div style="color:#991b1b;font-size:12px">' + esc(mr.name) + '在本企业同时担任' + mr.count + '个关键角色：' + mr.roles.map(function(r){return esc(r);}).join('、') + '。缺乏内控制衡，资金流向完全由个人意志决定。</div>';
+        }
+        h += '</div>';
+      }
+      
+      // 跨企业重叠
+      if (crossCo.length > 0) {
+        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #fed7aa">';
+        h += '<div style="font-weight:700;color:#dc2626">⚠️ 六员风险 — 跨企业人员重叠（关联交易嫌疑）</div>';
+        for (var k = 0; k < crossCo.length; k++) {
+          var cc = crossCo[k];
+          var ops = cc.overlap_personnel || [];
+          h += '<div style="font-size:12px;color:#991b1b">对方企业：<b>' + esc(cc.other_company) + '</b></div>';
+          for (var l = 0; l < ops.length; l++) {
+            var op = ops[l];
+            h += '<div style="font-size:11px;color:#7f1d1d;padding-left:16px">' + esc(op.name) + '：我方' + op.my_roles.map(function(r){return esc(r);}).join('/') + '；对方' + op.other_roles.map(function(r){return esc(r);}).join('/') + '</div>';
+          }
+        }
+        h += '<div style="margin-top:6px;font-size:11px;color:#9a3412">→ 两家企业存在关联关系，需进一步核查资金往来、共用供应商、转移定价等。</div>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+  }
+
   // 三层行业穿透法结论呈现
   h += '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">'
     + '<div style="font-weight:700;color:#166534;margin-bottom:8px">ⓘ 三层行业穿透法结论（稽查方法论㉕）</div>'

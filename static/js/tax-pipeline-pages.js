@@ -1453,11 +1453,12 @@ function renderAnalyzeResult(report) {
     {id:'㉓', name:'四步稽查分析法（代码化）', desc:'detect（检测现象）→verify（交叉验证）→diagnose（根因诊断）→report（输出结论）。已在四大核心发现中推广。代码：main.py四步法函数。'},
     {id:'㉔', name:'禁止数据截断（全行业适用）', desc:'报告中显示全部明细数据，不截断（如"前5条"→显示全部）。明细即信服力。代码：tax-doc-analysis.js发现项渲染（无slice(0,N)）。'},
     {id:'㉕', name:'三层行业穿透法（报告第一章强制要求）', desc:'工商登记（法律形式）→发票数据（经营实质）→加工信号（业务模式），三者不一致时以实质重于形式为原则。报告第一章必须呈现三层结论：工商登记X / 发票推断Y / 实质经营Z → 综合判断。代码：main.py _detect_target_entity()+_three_layer_industry_penetration()。全行业适用。'},
-    {id:'㉖', name:'经营实质点面推理法（全行业适用）', desc:'单点发现→数据扩展→关联维度（供应商/客户/加工商/运输成本）→交叉验证→综合结论（全链条经营实质）。从单点风险推理出面的风险。代码：main.py _domain_geographic_analysis()。适用所有行业。'}
+    {id:'㉖', name:'经营实质点面推理法（全行业适用）', desc:'单点发现→数据扩展→关联维度（供应商/客户/加工商/运输成本）→交叉验证→综合结论（全链条经营实质）。从单点风险推理出面的风险。代码：main.py _domain_geographic_analysis()。适用所有行业。'},
+    {id:'㉗', name:'稽查六员跨企业比对（全行业适用）', desc:'联网核查获取六员（法定代表人/董事/监事/财务负责人/股东/经理）后，双重检测：①一人多角——同一人≥3个关键角色→内控缺陷②跨企业人员重叠——六员在其他企业任职→关联关系→资金回流/转移定价/虚开发票连锁风险。代码：main.py:18866 _check_six_personnel_risk() + tax-doc-analysis.js六员风险渲染。全行业各企业适用。'}
   ];
 
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉖条已全部代码化）</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉗条已全部代码化）</h3>'
     + '<div id="methods-body" style="font-size:13px;color:#475569;line-height:2">加载中...</div>'
     + '</div>';
   // 延迟加载方法论（从 audit_chains.json 读取，支持多字段）

@@ -18509,6 +18509,9 @@ def _extract_company_from_html(html_text, source_name):
         "uscc": "",
         "status": "",
         "shareholders": [],
+        "directors": [],
+        "supervisors": [],
+        "finance_contacts": [],
         "raw_fields": {},
     }
     
@@ -18592,24 +18595,63 @@ def _extract_company_from_html(html_text, source_name):
         if t not in ('', ' ', '查看'):
             info["company_type"] = t
     
-    # —— 股东/高管信息（从搜索结果摘要提取）
+    # —— 六员信息提取（稽查核心：法定代表人/董事/监事/财务负责人/股东/经理）
     # 搜狗知识图谱格式: "X位相关人员 更多 张三 执行董事,经理,财务负责人 李四 监事"
-    # 天眼查摘要格式: "XXX - 法定代表人/高管/股东"
-    # 噪声过滤: 只保留2-4字的纯中文姓名（排除纯数字、英文、含标点的）
-    _name_noise = {'经理', '执行', '总监', '负责人', '董事长', '总经理', '法人', '股东', '高管', '财务', '更多', '工商信息', '股东信息', '变更记录'}
-    # 先提取 "姓名 角色列表" 模式中的姓名
+    # 策略：①提取"姓名 角色列表"对 ②按角色分类 ③保存到对应字段
+    directors_map = {}      # {name: [roles]}
+    supervisors_map = {}    # {name: [roles]}
+    finance_map = {}        # {name: [roles]}
+    all_personnel = set()   # 所有出现的人名（去重后作为股东候选）
+    
     sh_block = re.search(r'(\d{1,2}位相关人员.*?)(?:工商信息|股东信息|变更记录|\Z)', clean)
     if sh_block:
-        # 格式: "2位相关人员 更多 张三 执行董事,经理,财务负责人 李四 监事"
-        names = re.findall(r'([\u4e00-\u9fff]{2,4})\s+(?:执行董事|经理|财务负责人|监事|董事|总经理|法定代表人|股东)', sh_block.group(1))
-        for name in names:
+        block = sh_block.group(1)
+        # 模式: "姓名(2-4字) 角色列表(逗号分隔)"
+        pairs = re.findall(r'([\u4e00-\u9fff]{2,4})\s+([\u4e00-\u9fff,、；;]+)(?=\s|$)', block)
+        for name, roles_str in pairs:
             name = name.strip()
-            if name and name not in _name_noise and name not in [s["name"] for s in info["shareholders"]]:
-                info["shareholders"].append({"name": name})
-    # 再从整个文本提取 "XXX - 法定代表人/高管/股东" 模式
+            # 过滤噪声词
+            if name in ('更多', '工商信息', '股东信息', '变更记录', '财务信息', '查看', '详情'):
+                continue
+            # 拆分角色
+            roles = [r.strip() for r in re.split(r'[,，、;；]', roles_str) if r.strip()]
+            roles_lower = [r for r in roles if r and len(r) <= 8]  # 过滤超长噪声
+            
+            if not roles_lower:
+                continue
+            
+            all_personnel.add(name)
+            
+            # 角色分类
+            for role in roles_lower:
+                if any(kw in role for kw in ('董事', '执行董事')):
+                    if name not in directors_map:
+                        directors_map[name] = []
+                    directors_map[name].extend(roles_lower)
+                if any(kw in role for kw in ('监事',)):
+                    if name not in supervisors_map:
+                        supervisors_map[name] = []
+                    supervisors_map[name].extend(roles_lower)
+                if any(kw in role for kw in ('财务负责人', '财务')):
+                    if name not in finance_map:
+                        finance_map[name] = []
+                    finance_map[name].extend(roles_lower)
+            # 如果角色包含"法定代表人"，记录为legal_representative候选
+            if not info["legal_representative"] and any('法定代表人' in r for r in roles_lower):
+                info["legal_representative"] = name
+    
+    # 从整个文本提取 "XXX - 法定代表人/高管/股东" 模式（天眼查摘要）
     for m in re.finditer(r'([\u4e00-\u9fff]{2,4})\s*[-—]\s*法定代表人[/]?高管[/]?股东', clean):
         name = m.group(1).strip()
-        if name not in _name_noise and name not in [s["name"] for s in info["shareholders"]]:
+        all_personnel.add(name)
+    
+    # 填充结果
+    info["directors"] = [{"name": n, "roles": ",".join(set(r))} for n, r in directors_map.items()]
+    info["supervisors"] = [{"name": n, "roles": ",".join(set(r))} for n, r in supervisors_map.items()]
+    info["finance_contacts"] = [{"name": n, "roles": ",".join(set(r))} for n, r in finance_map.items()]
+    # 股东 = 所有出现的人（包括未分类进董事/监事/财务的）
+    for name in all_personnel:
+        if name not in [s["name"] for s in info["shareholders"]]:
             info["shareholders"].append({"name": name})
     
     # 第三步：验证 — 至少要有法定代表人 or 注册资本才算有效提取
@@ -18655,6 +18697,9 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         "uscc": uscc or "",
         "status": "",
         "shareholders": [],
+        "directors": [],
+        "supervisors": [],
+        "finance_contacts": [],
         "source": "",
         "lookup_time": datetime.now().isoformat(),
         "raw_data": None,
@@ -18727,6 +18772,9 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         result["uscc"] = online_info.get("uscc", "") or (uscc or "")
         result["status"] = online_info.get("status", "")
         result["company_type"] = online_info.get("company_type", "")
+        result["directors"] = online_info.get("directors", [])
+        result["supervisors"] = online_info.get("supervisors", [])
+        result["finance_contacts"] = online_info.get("finance_contacts", [])
         result["raw_data"] = online_info
         
         # 从经营范围推断行业
@@ -18776,10 +18824,153 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
                 if updated:
                     db.commit()
                     result["_db_updated"] = True
+                
+                # 保存六员信息到子表（稽查六员风险数据基础）
+                # 董事
+                if result["directors"]:
+                    existing_dirs = {d.name for d in (company.directors or [])}
+                    for d in result["directors"]:
+                        if d["name"] not in existing_dirs:
+                            try:
+                                from database import CompanyDirector
+                                db.add(CompanyDirector(company_id=company_id, name=d["name"]))
+                            except:
+                                pass
+                # 监事
+                if result["supervisors"]:
+                    existing_sups = {s.name for s in (company.supervisors or [])}
+                    for s in result["supervisors"]:
+                        if s["name"] not in existing_sups:
+                            try:
+                                from database import CompanySupervisor
+                                db.add(CompanySupervisor(company_id=company_id, name=s["name"]))
+                            except:
+                                pass
+                # 财务负责人
+                if result["finance_contacts"]:
+                    existing_fcs = {f.name for f in (company.finance_contacts or [])}
+                    for fc in result["finance_contacts"]:
+                        if fc["name"] not in existing_fcs:
+                            try:
+                                from database import CompanyFinanceContact
+                                db.add(CompanyFinanceContact(company_id=company_id, name=fc["name"]))
+                            except:
+                                pass
+                if result["directors"] or result["supervisors"] or result["finance_contacts"]:
+                    db.commit()
         except Exception as e:
             result["_db_error"] = str(e)
     
     return result
+
+
+def _check_six_personnel_risk(db, company_id):
+    """
+    稽查六员风险检测 —— 跨企业人员交叉比对
+    
+    检测：
+    1. 一人多角：同一人在本公司同时担任多个关键角色（内控缺陷）
+    2. 跨企兼任：本公司的六员是否同时在其他企业任职（关联关系）
+    
+    Returns:
+        dict: {
+            "one_person_multi_role": [...],  # 一人多角色警告
+            "cross_company_overlap": [...],   # 跨企业人员重叠
+            "total_companies_checked": int
+        }
+    """
+    from database import (Company as _C, CompanyDirector as _CD, CompanySupervisor as _CS,
+                          CompanyFinanceContact as _FC, CompanyShareholder as _SH)
+    
+    company = db.query(_C).filter(_C.id == company_id).first()
+    if not company:
+        return {"one_person_multi_role": [], "cross_company_overlap": [], "total_companies_checked": 0}
+    
+    # 收集本企业所有六员
+    my_personnel = {}  # {name: [role_list]}
+    
+    if company.legal_representative:
+        my_personnel.setdefault(company.legal_representative, []).append("法定代表人")
+    
+    for sh in (company.shareholders or []):
+        my_personnel.setdefault(sh.name, []).append("股东")
+    
+    for d in (company.directors or []):
+        my_personnel.setdefault(d.name, []).append("董事")
+    
+    for s in (company.supervisors or []):
+        my_personnel.setdefault(s.name, []).append("监事")
+    
+    for fc in (company.finance_contacts or []):
+        my_personnel.setdefault(fc.name, []).append("财务负责人")
+    
+    # 检测1: 一人多角（≥3个不同角色 = 内控缺陷）
+    multi_role = []
+    for name, roles in my_personnel.items():
+        unique_roles = list(set(roles))
+        if len(unique_roles) >= 3:
+            multi_role.append({"name": name, "roles": unique_roles, "count": len(unique_roles)})
+    
+    # 检测2: 跨企业人员交叉比对
+    cross_company = []
+    all_companies = db.query(_C).filter(_C.id != company_id).all()
+    
+    for other in all_companies:
+        overlap = []
+        for my_name, my_roles in my_personnel.items():
+            # 检查此人是否在对方企业出现
+            is_in_other = False
+            other_roles = []
+            
+            if other.legal_representative == my_name:
+                is_in_other = True
+                other_roles.append("法定代表人")
+            
+            for sh in (other.shareholders or []):
+                if sh.name == my_name:
+                    is_in_other = True
+                    other_roles.append("股东")
+                    break
+            
+            for d in (other.directors or []):
+                if d.name == my_name:
+                    is_in_other = True
+                    other_roles.append("董事")
+                    break
+            
+            for s in (other.supervisors or []):
+                if s.name == my_name:
+                    is_in_other = True
+                    other_roles.append("监事")
+                    break
+            
+            for fc in (other.finance_contacts or []):
+                if fc.name == my_name:
+                    is_in_other = True
+                    other_roles.append("财务负责人")
+                    break
+            
+            if is_in_other:
+                overlap.append({
+                    "name": my_name,
+                    "my_roles": list(set(my_roles)),
+                    "other_company": other.name,
+                    "other_roles": other_roles
+                })
+        
+        if overlap:
+            cross_company.append({
+                "other_company": other.name,
+                "other_company_id": other.id,
+                "overlap_personnel": overlap
+            })
+    
+    return {
+        "one_person_multi_role": multi_role,
+        "cross_company_overlap": cross_company,
+        "total_companies_checked": len(all_companies),
+        "my_personnel": {name: list(set(roles)) for name, roles in my_personnel.items()}
+    }
 
 
 def _enrich_target_entity_from_online(target_entity, db, company_id):
@@ -18809,7 +19000,17 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
         target_entity["company_type"] = lookup.get("company_type", "")
         target_entity["uscc"] = lookup.get("uscc", "")
         target_entity["shareholders"] = lookup.get("shareholders", [])
+        target_entity["directors"] = lookup.get("directors", [])
+        target_entity["supervisors"] = lookup.get("supervisors", [])
+        target_entity["finance_contacts"] = lookup.get("finance_contacts", [])
         target_entity["lookup_source"] = lookup.get("source", "")
+        
+        # 稽查六员风险检测
+        try:
+            six_risk = _check_six_personnel_risk(db, company_id)
+            target_entity["_six_personnel_risk"] = six_risk
+        except:
+            pass
         
         # 如果联网查到了行业分类，替换发票关键词推断的行业（联网数据更权威）
         if lookup.get("industry"):
