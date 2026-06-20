@@ -13641,16 +13641,6 @@ _BUILTIN_CROSS_DOMAIN_CHAINS = [
     {"id":7,"name":"发票异常行为证据链","sub_topic":"发票流","level":"中风险","trigger_keywords":["红冲","作废","三角","时间","跨月"],"min_evidence":2,"dimensions":[{"code":"A","source":"红冲作废","kws":["红冲","作废"],"desc":"红冲作废异常"},{"code":"B","source":"三角验真","kws":["三角"],"desc":"三角验证失败"},{"code":"C","source":"时间模式","kws":["时间","跨月"],"desc":"时间模式可疑"}]},
 ]
 
-_BUILTIN_CROSS_DOMAIN_CHAINS = [
-    {"id":1,"name":"隐匿收入证据链","sub_topic":"资金流","level":"高风险","trigger_keywords":["第三方收款","第三方收款占比","未开票收入占比","未开票收入占比过高","收款与开票","进销严重倒挂"],"min_evidence":3,"dimensions":[{"code":"A","source":"资金端","kws":["第三方收款","第三方收款占比"],"desc":"收款方式异常，脱离对公监管"},{"code":"B","source":"凭证端","kws":["未开票收入占比","未开票收入占比过高"],"desc":"凭证记录有大量未开票收入"},{"code":"C","source":"发票端","kws":["收款与开票"],"desc":"收款与开票偏差巨大"},{"code":"D","source":"进销端","kws":["进销严重倒挂"],"desc":"进项远超销项"}]},
-    {"id":2,"name":"虚开发票嫌疑证据链","sub_topic":"发票流","level":"高风险","trigger_keywords":["同城供应商群集","进项发票无付款","供应商高度集中","采购量远超销售","供应商名称"],"min_evidence":3,"dimensions":[{"code":"A","source":"供应商地理","kws":["同城供应商群集"],"desc":"供应商集中"},{"code":"B","source":"资金匹配","kws":["进项发票无付款"],"desc":"有票无付款"},{"code":"C","source":"采购集中度","kws":["供应商高度集中"],"desc":"前3大占比过高"},{"code":"D","source":"采购合理性","kws":["采购量远超销售"],"desc":"采购量远超销售"},{"code":"E","source":"供应商身份","kws":["供应商名称"],"desc":"名称异常"}]},
-    {"id":3,"name":"无实质经营证据链","sub_topic":"经营实质","level":"高风险","trigger_keywords":["基础经营费用缺失","库存真实性","经营实质","没有仓储"],"min_evidence":2,"dimensions":[{"code":"A","source":"经营费用","kws":["基础经营费用缺失"],"desc":"基础费用为零"},{"code":"B","source":"仓储空间","kws":["库存真实性"],"desc":"库存真实性存疑"},{"code":"C","source":"经营实质","kws":["经营实质"],"desc":"业务链不完整"},{"code":"D","source":"存货支撑","kws":["没有仓储"],"desc":"无物理空间"}]},
-    {"id":4,"name":"会计基础工作薄弱证据链","sub_topic":"资料完备","level":"中风险","trigger_keywords":["凭证号字段缺失","凭证借贷不平","合同文件缺失"],"min_evidence":2,"dimensions":[{"code":"A","source":"凭证管理","kws":["凭证号字段缺失"],"desc":"凭证号全空"},{"code":"B","source":"借贷平衡","kws":["凭证借贷不平"],"desc":"借贷不平衡"},{"code":"C","source":"档案管理","kws":["合同文件缺失"],"desc":"合同缺失"}]},
-    {"id":5,"name":"资金链危机证据链","sub_topic":"资金流","level":"高风险","trigger_keywords":["存货占压资金","采购量远超"],"min_evidence":2,"dimensions":[{"code":"A","source":"存货压款","kws":["存货占压资金"],"desc":"存货占压资金"},{"code":"B","source":"收支对比","kws":[],"desc":"收支严重失衡"},{"code":"C","source":"过度采购","kws":["采购量远超"],"desc":"过度采购"}]},
-    {"id":6,"name":"利润现金流背离证据链","sub_topic":"财务报表","level":"中风险","trigger_keywords":["利润表","现金流","银行收入","开票收入"],"min_evidence":2,"dimensions":[{"code":"A","source":"利润端","kws":["利润表"],"desc":"账面有利润"},{"code":"B","source":"现金流","kws":["现金流"],"desc":"现金流为负"},{"code":"C","source":"发票端","kws":["开票收入"],"desc":"开票银行差异"}]},
-    {"id":7,"name":"发票异常行为证据链","sub_topic":"发票流","level":"中风险","trigger_keywords":["红冲","作废","三角","时间","跨月"],"min_evidence":2,"dimensions":[{"code":"A","source":"红冲作废","kws":["红冲","作废"],"desc":"红冲作废异常"},{"code":"B","source":"三角验真","kws":["三角"],"desc":"三角验证失败"},{"code":"C","source":"时间模式","kws":["时间","跨月"],"desc":"时间模式可疑"}]},
-]
-
 
 
 

@@ -702,35 +702,35 @@ function renderCrossDomainStaticContent(chains) {
 
       // 标题
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-      + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + _escStatic(c.name) + '</div>'
+      + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + '</div>'
       + '<div style="display:flex;gap:8px;align-items:center">'
-      + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + _escStatic(c.level) + '</span>'
-      + '<span style="font-size:11px;color:#94a3b8">' + _escStatic(c.sub_topic) + '</span>'
+      + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + escHtml(c.level) + '</span>'
+      + '<span style="font-size:11px;color:#94a3b8">' + escHtml(c.sub_topic) + '</span>'
       + '<span style="font-size:11px;color:#94a3b8">需≥' + c.min_evidence + '维</span>'
       + '<span id="cde-triggered-' + ci + '"></span>'
       + '</div>'
       + '</div>'
 
       // 描述
-      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + _escStatic(c.description) + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
 
       // 维度详情
       + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
       + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">触发维度 · ' + c.dimensions.length + ' 个</div>';
     c.dimensions.forEach(function(d) {
       html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:1.8">'
-        + '<span style="font-weight:600;color:#0f172a">' + _escStatic(d.code) + '</span>'
-        + ' <span style="color:#64748b">' + _escStatic(d.source) + '</span>'
-        + '<span style="color:#94a3b8;margin-left:6px">→ ' + _escStatic(d.desc) + '</span>'
+        + '<span style="font-weight:600;color:#0f172a">' + escHtml(d.code) + '</span>'
+        + ' <span style="color:#64748b">' + escHtml(d.source) + '</span>'
+        + '<span style="color:#94a3b8;margin-left:6px">→ ' + escHtml(d.desc) + '</span>'
         + '</div>';
     });
     html += '</div>'
 
       // 完整字段
-      + (c.how_found ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">溯源：</span>' + _escStatic(c.how_found) + '</div>' : '')
-      + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + _escStatic(c.tax_impact) + '</div>' : '')
-      + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + _escStatic(c.policy_ref) + '</div>' : '')
-      + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + _escStatic(c.suggestion) + '</div>' : '')
+      + (c.how_found ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">溯源：</span>' + escHtml(c.how_found) + '</div>' : '')
+      + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
+      + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
+      + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
 
       + '</div>';
   });
@@ -1047,7 +1047,10 @@ function renderEvidenceList(chains) {
   }
 
   var totalSteps = chains.reduce(function(s, c) { return s + (c.investigation_path || []).length; }, 0);
-  var closedCount = Object.values(evExecMap).filter(function(e) { return e.closed; }).length;
+  var closedCount = chains.filter(function(c) {
+    var exec = evExecMap[c.name];
+    return exec && exec.closed;
+  }).length;
 
   var html = '';
 
@@ -1389,12 +1392,6 @@ function renderAnalyzeResult(report) {
 
 
 // ==================== 工具函数 ====================
-function _escStatic(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function toggleDomainDetail(idx) {
   var el = document.getElementById('dd-' + idx);

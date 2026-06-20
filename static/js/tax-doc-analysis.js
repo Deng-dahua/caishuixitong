@@ -392,7 +392,12 @@ function renderTaxDocReport(r) {
     + '<tr><td class="lbl">稽查范围</td><td>'+r.files_count+'份经营资料</td></tr>'
     + '<tr><td class="lbl">执行标准</td><td>依据'+r.rules_used+'条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
-  h += '<p class="i2">被查单位工商登记为批发业，实质为纺织贸易+外包轻加工模式。法定代表人范善茂（持股50%，兼任财务负责人、执行董事）。</p>';
+  h += '<p class="i2">' + esc(
+    (te.industry ? '工商登记' + te.industry : '企业') +
+    (te.registered_type && te.registered_type !== te.industry ? '，实质为' + te.registered_type : '') +
+    (te.legal_person ? '。法定代表人' + te.legal_person : '') +
+    (te.legal_person_role ? '（' + te.legal_person_role + '）' : '') +
+    '。</p>';
 
   // section 2
   h += '<h2>二、稽查方法</h2>';
@@ -410,7 +415,9 @@ function renderTaxDocReport(r) {
   h += '<h3>经营相关收款</h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
   (bi['收款方全部']||[]).forEach(function(p){
     var n = p['名称']||''; if (!n) return;
-    if (n.indexOf('有限公司')>=0||n.indexOf('厂')>=0||n.indexOf('服饰')>=0||n.indexOf('制衣')>=0||n.indexOf('服装')>=0||n.indexOf('纱业')>=0||n.indexOf('布业')>=0||n.indexOf('科技')>=0||n.indexOf('实业')>=0||n.indexOf('纺织')>=0)
+    // 通用判断：含有企业标识（公司/厂/店/中心/集团/社/行/院/校/所）→经营收款
+    var isBiz = /公司|厂|店|中心|集团|社|行|院|校|所/.test(n);
+    if (isBiz)
       h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
   });
   h += '</table>';
@@ -418,12 +425,17 @@ function renderTaxDocReport(r) {
   h += '<h3>非经营收款 <span style="font-size:12px;color:#999">（不纳入经营收入判断）</span></h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
   (bi['收款方全部']||[]).forEach(function(p){
     var n = p['名称']||''; if (!n) return;
-    if (!(n.indexOf('有限公司')>=0||n.indexOf('厂')>=0||n.indexOf('服饰')>=0||n.indexOf('制衣')>=0||n.indexOf('服装')>=0||n.indexOf('纱业')>=0||n.indexOf('布业')>=0||n.indexOf('科技')>=0||n.indexOf('实业')>=0||n.indexOf('纺织')>=0))
+    var isBiz = /公司|厂|店|中心|集团|社|行|院|校|所/.test(n);
+    if (!isBiz)
       h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
   });
   h += '</table>';
 
-  h += '<p><span style="color:'+S.red+';font-weight:700">联网核查：</span>范善茂系法定代表人+持股50%+财务负责人，个人账户转入资金性质<span style="color:'+S.red+';font-weight:700">待核实</span>——可能股东注资、关联方借款或未申报经营收入。</p>';
+  h += '<p><span style="color:'+S.red+';font-weight:700">联网核查：</span>' +
+    esc(te.legal_person || '法定代表人') +
+    (te.legal_person_role ? '系' + esc(te.legal_person_role) : '') +
+    '，个人账户转入资金性质<span style="color:'+S.red+';font-weight:700">待核实</span>' +
+    '——可能股东注资、关联方借款或未申报经营收入。</p>';
 
   var pe = bi['付款方全部'];
   if (pe && pe.length) {

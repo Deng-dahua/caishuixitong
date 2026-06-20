@@ -165,10 +165,3 @@ function renderTaxRiskRulesList() {
       + sortedCats.length + ' 个分类';
   }
 }
-
-function escHtml(text) {
-  if (!text) return '';
-  var div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
-}

@@ -18,7 +18,8 @@ function escapeHtml(s) {
     if (!s) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-var esc = escapeHtml;  // 简写别名，统一使用 core.js 的 escapeHtml，不再重复定义
+var esc = escapeHtml;      // 全局统一转义函数（简写）
+var escHtml = escapeHtml;  // 全局统一转义函数（全名，供 tax-pipeline-pages / tax-risk-rules 等模块使用）
 
 const pages = {
   'chat': '财税问答',
