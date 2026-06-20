@@ -1458,11 +1458,45 @@ function renderAnalyzeResult(report) {
 
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉖条已全部代码化）</h3>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;color:#475569;line-height:1.8">';
-  methods.forEach(function(m) {
-    h += '<div style="padding:8px 10px;background:#fff;border-radius:4px"><strong style="color:#0f172a">' + m.id + ' ' + m.name + '</strong><br><span style="color:#64748b">' + m.desc + '</span></div>';
-  });
-  h += '</div></div>';
+    + '<div id="methods-body" style="font-size:13px;color:#475569;line-height:2">加载中...</div>'
+    + '</div>';
+  // 延迟加载方法论（从 audit_chains.json 读取，支持多字段）
+  setTimeout(function() {
+    var target = document.getElementById('methods-body');
+    if (!target) return;
+    fetch('/static/audit_chains.json?_t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var chains = data.chains || [];
+        var methods = chains.filter(function(c) { return c.type === 'methodology'; });
+        if (methods.length === 0) { target.innerHTML = '未找到方法论数据'; return; }
+        var html = '';
+        methods.forEach(function(m) {
+          var id = m.id || '';
+          var name = m.name || '';
+          var desc = m.desc || '';
+          var requirement = m.requirement || '';
+          var purpose = m.purpose || '';
+          var codePos = m.code_position || '';
+          var callLocs = m.call_locations || [];
+          html += '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px;border-left:3px solid #2563eb">'
+            + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+            + '<div style="font-size:14px;font-weight:700;color:#0f172a">' + escHtml(id + ' ' + name) + '</div>'
+            + '<span style="font-size:11px;color:#94a3b8;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'block\':\'none\'">展开/折叠</span>'
+            + '</div>'
+            + '<div style="font-size:12px;color:#475569;line-height:1.8">' + escHtml(desc) + '</div>'
+            + '<div style="display:none;margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:2">'
+            + (requirement ? '<div><span style="font-weight:600;color:#0f172a">要求：</span>' + escHtml(requirement) + '</div>' : '')
+            + (purpose ? '<div><span style="font-weight:600;color:#0f172a">用途：</span>' + escHtml(purpose) + '</div>' : '')
+            + (codePos ? '<div><span style="font-weight:600;color:#0f172a">代码位置：</span><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
+            + (callLocs.length > 0 ? '<div><span style="font-weight:600;color:#0f172a">调用位置：</span>' + callLocs.map(function(loc) { return '<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;background:#e0f2fe;color:#0369a1;font-size:11px;border-radius:4px">' + escHtml(loc) + '</span>'; }).join('') + '</div>' : '')
+            + '</div>'
+            + '</div>';
+        });
+        target.innerHTML = html;
+      })
+      .catch(function(e) { target.innerHTML = '加载失败：' + e.message; });
+  }, 100);
 
   // ══════ 六、全链路稽查质量保障体系 ══════
   h += '<div style="margin-bottom:32px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #059669">'
@@ -2249,3 +2283,52 @@ function renderQualitySystem(container) {
 
 // ═══════════ 页面加载时自动预取模块数量 ═══════════
 setTimeout(function(){ loadPipelineCounts(); }, 100);
+
+// ==================== 稽查方法论加载函数 ====================
+function loadMethodologies() {
+  var target = document.getElementById('methods-body');
+  if (!target) return;
+  
+  // 从 audit_chains.json 读取方法论
+  fetch('/static/audit_chains.json?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var chains = data.chains || [];
+      var methods = chains.filter(function(c) { return c.type === 'methodology'; });
+      
+      if (methods.length === 0) {
+        target.innerHTML = '<div style="color:#94a3b8;padding:20px">未找到方法论数据，请检查 audit_chains.json</div>';
+        return;
+      }
+      
+      var html = '';
+      methods.forEach(function(m, i) {
+        var id = m.id || (i+1);
+        var name = m.name || '未命名';
+        var desc = m.desc || '';
+        var requirement = m.requirement || '';
+        var purpose = m.purpose || '';
+        var codePos = m.code_position || '';
+        var callLocs = m.call_locations || [];
+        
+        html += '<div style="margin-bottom:16px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #2563eb">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+          + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
+          + '<span style="font-size:11px;color:#94a3b8;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'">展开/折叠</span>'
+          + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:1.8">' + escHtml(desc) + '</div>'
+          + '<div style="display:none;margin-top:12px;padding:12px 16px;background:#fff;border-radius:6px;font-size:13px;color:#475569;line-height:2">'
+          + (requirement ? '<div style="margin-bottom:8px"><span style="font-weight:600;color:#0f172a">要求：</span>' + escHtml(requirement) + '</div>' : '')
+          + (purpose ? '<div style="margin-bottom:8px"><span style="font-weight:600;color:#0f172a">用途：</span>' + escHtml(purpose) + '</div>' : '')
+          + (codePos ? '<div style="margin-bottom:8px"><span style="font-weight:600;color:#0f172a">代码位置：</span><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
+          + (callLocs.length > 0 ? '<div><span style="font-weight:600;color:#0f172a">调用位置：</span>' + callLocs.map(function(loc) { return '<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;background:#e0f2fe;color:#0369a1;font-size:11px;border-radius:4px">' + escHtml(loc) + '</span>'; }).join('') + '</div>' : '')
+          + '</div>'
+          + '</div>';
+      });
+      
+      target.innerHTML = html;
+    })
+    .catch(function(e) {
+      target.innerHTML = '<div style="color:#dc2626;padding:20px">加载方法论失败：' + e.message + '</div>';
+    });
+}

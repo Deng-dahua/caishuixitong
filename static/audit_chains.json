@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-06-17",
-  "total_chains": 1131,
+  "total_chains": 1157,
   "chains": [
     {
       "name": "行业-建筑业",
@@ -101219,6 +101219,369 @@
       "tax_impacts": [
         "大额无合同→虚开发票嫌疑",
         "日常消费误判→漏签风险"
+      ]
+    },
+    {
+      "id": "①",
+      "type": "methodology",
+      "name": "多格式兼容",
+      "desc": "银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容。PDF发票PDFPlumber解析+OCR兜底。Excel多引擎。",
+      "requirement": "所有文件解析函数必须支持至少3种命名变体；新文件格式加入时必须同步更新解析函数，不能只支持一种格式。",
+      "purpose": "防止因为文件格式差异导致解析失败，确保全行业各企业的各类文件都能正确解析。",
+      "code_position": "main.py: 文件解析函数（多处）",
+      "call_locations": [
+        "文件解析模块",
+        "一键分析-文件上传",
+        "数据标准化管线"
+      ]
+    },
+    {
+      "id": "②",
+      "type": "methodology",
+      "name": "汇总行过滤",
+      "desc": "月末汇总行（对手为空+大额整数）→自动识别并剔除。",
+      "requirement": "银行流水必须过滤汇总行，判断条件：对手为空/对手为'汇总'/金额为大额整数（>=10000且为100的倍数）。",
+      "purpose": "防止汇总行被误认为真实交易，导致资金流分析错误。全行业适用。",
+      "code_position": "main.py: 银行流水解析函数",
+      "call_locations": [
+        "银行流水解析",
+        "资金流分析",
+        "收款方/付款方识别"
+      ]
+    },
+    {
+      "id": "③",
+      "type": "methodology",
+      "name": "付款方身份核实",
+      "desc": "个人打款→联网查工商→性质待核实（股东注资/借款/未申报收入），不直接定性。",
+      "requirement": "所有个人付款方必须联网核查工商信息，确认是否为法定代表人/股东/关联方，不能直接定性为隐匿收入。",
+      "purpose": "防止把股东注资/借款误判为隐匿收入，确保资金流分析准确性。全行业适用。",
+      "code_position": "main.py: _online_company_lookup() + 付款方分析逻辑",
+      "call_locations": [
+        "付款方身份核实",
+        "资金流分析",
+        "隐匿收入判断"
+      ]
+    },
+    {
+      "id": "④",
+      "type": "methodology",
+      "name": "关键词≠事实",
+      "desc": "BOM从纯关键词→进销品名实质差异+加工费证据。含BOM关键词≠有BOM业务。",
+      "requirement": "不能仅凭关键词判定业务性质，必须结合进销品名差异+加工费发票+原材料/成品分类综合判断。",
+      "purpose": "防止关键词误判（如'纺织'关键词≠纺织业），确保业务性质判定准确性。全行业适用。",
+      "code_position": "main.py: _domain_invoice_audit() 第五层BOM分析",
+      "call_locations": [
+        "进销品名分析",
+        "BOM进销映射",
+        "加工费检查"
+      ]
+    },
+    {
+      "id": "⑤",
+      "type": "methodology",
+      "name": "行业认知补算法",
+      "desc": "工商登记行业≠实际经营行业。外包轻加工模式在批发业中广泛存在，算法必须考虑行业认知。",
+      "requirement": "行业判断必须结合工商登记+发票数据+加工信号三层，不能以工商登记为准。外包轻加工模式在全行业都存在（如电子业SMT外包、服装业印染外包）。",
+      "purpose": "防止以工商登记为准导致行业误判，确保行业认定准确性。全行业适用。",
+      "code_position": "main.py: _detect_target_entity() + INDUSTRY_PRODUCT_CHAINS",
+      "call_locations": [
+        "目标实体识别",
+        "行业认定",
+        "三层行业穿透法"
+      ]
+    },
+    {
+      "id": "⑥",
+      "type": "methodology",
+      "name": "联网核查",
+      "desc": "企查查查法人/股东/行业/注册资本。工商信息可能与发票数据不一致，必须联网核查确认。核查结果必须标注来源（✅联网核查确认/⚠️发票数据推断）。",
+      "requirement": "报告第一章必须使用联网核查结果。核查字段：法定代表人/注册资本/统一社会信用代码/登记状态/股东信息。核查失败时必须标注'⚠️发票数据推断'。",
+      "purpose": "确保报告中的企业基本信息准确，防止基于错误信息得出结论。全行业适用。",
+      "code_position": "main.py: _online_company_lookup() + tax-doc-analysis.js: renderTaxDocReport()第一章",
+      "call_locations": [
+        "报告第一章",
+        "目标实体识别",
+        "企业基本信息核实"
+      ]
+    },
+    {
+      "id": "⑦",
+      "type": "methodology",
+      "name": "明细即信服力",
+      "desc": "全部收款方+付款方逐一列示明细表，不分组合并。每条发现必须有具体数据（供应商名/金额/发票号）。",
+      "requirement": "所有发现的明细数据必须全部展示，不能只说'涉及5家供应商'，必须列出每家名称+金额。报告中显示全部明细，不截断。",
+      "purpose": "明细数据是稽查报告的信服力来源，缺少明细的结论不可信。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() + 各发现渲染函数",
+      "call_locations": [
+        "稽查报告生成",
+        "发现明细展示",
+        "收款方/付款方明细表"
+      ]
+    },
+    {
+      "id": "⑧",
+      "type": "methodology",
+      "name": "不墨迹直接干",
+      "desc": "发现问题不请示，读文件查格式直接修。自动继续直到交付完整结果。",
+      "requirement": "遇到解析错误/格式不兼容/字段缺失等自身问题，直接读文件查格式修复，不提问不墨迹。",
+      "purpose": "确保问题被及时修复，不因等待用户确认而延误分析进度。适用于所有错误处理场景。",
+      "code_position": "AI行为准则（各模块错误处理）",
+      "call_locations": [
+        "所有模块",
+        "文件解析错误处理",
+        "格式兼容性处理"
+      ]
+    },
+    {
+      "id": "⑨",
+      "type": "methodology",
+      "name": "合同分层判断",
+      "desc": "四层自动分类：必签（主营业务+金额>5万）、应签（1-5万）、可免（日常消费）、小额（<1万）。",
+      "requirement": "合同需求评估必须基于发票数据自动分析，三标准：看品名（主营业务）→必须合同；看金额（>5万）→重大支出必须合同；看类型（日常消费）→发票即可。",
+      "purpose": "防止合同缺失风险低估或高估，确保合同缺失评估准确性。全行业适用。",
+      "code_position": "main.py: _analyze_contract_tiers()",
+      "call_locations": [
+        "资料完备度评估",
+        "合同缺失分析",
+        "印花税预估"
+      ]
+    },
+    {
+      "id": "⑩",
+      "type": "methodology",
+      "name": "完备度明细",
+      "desc": "资料完备度评估必须列明每类资料的实际数量，不能只说'齐全'或'缺失'。",
+      "requirement": "资料完备度评估结果必须含：资料类型/实际数量/期望数量/完备度百分比。不能只给总分。",
+      "purpose": "资料完备度是稽查报告的重要组成部分，必须详细列明，不能只给结论。全行业适用。",
+      "code_position": "main.py: _domain_document_completeness() + tax-doc-analysis.js: 资料完备度展示",
+      "call_locations": [
+        "资料完备度评估",
+        "稽查报告-资料完备度章节",
+        "缺失资料明细"
+      ]
+    },
+    {
+      "id": "⑪",
+      "type": "methodology",
+      "name": "完备度升级",
+      "desc": "资料完备度从单一维度（有/无）升级为多维度（数量+时间跨度+完整性）。",
+      "requirement": "资料完备度评估必须考虑：数量维度（有几份）+时间跨度维度（覆盖几个月）+完整性维度（是否有缺失页）。",
+      "purpose": "单一维度完备度评估不准确，必须多维度综合评估。全行业适用。",
+      "code_position": "main.py: _domain_document_completeness()",
+      "call_locations": [
+        "资料完备度评估",
+        "稽查报告-资料完备度章节"
+      ]
+    },
+    {
+      "id": "⑫",
+      "type": "methodology",
+      "name": "凭证描述纠正",
+      "desc": "记账凭证摘要必须规范化（如'购入原材料'而非'付款'），便于后续分析。",
+      "requirement": "记账凭证摘要必须含：交易类型+交易对象+货物/服务名称。不能只写'付款'/'收款'/'转账'。",
+      "purpose": "规范化摘要便于后续分析，防止因为摘要不清导致分析错误。全行业适用。",
+      "code_position": "main.py: 记账凭证解析 + 摘要规范化函数",
+      "call_locations": [
+        "记账凭证解析",
+        "摘要规范化",
+        "凭证分析"
+      ]
+    },
+    {
+      "id": "⑬",
+      "type": "methodology",
+      "name": "进销诊断升级",
+      "desc": "进销品名不匹配诊断升级为三层分析：品名差异+加工费检查+加工链条合理性。",
+      "requirement": "进销品名不匹配不能直接定性为有问题，必须三层分析：①品名差异是否因加工环节？②是否有加工费发票？③加工链条是否合理（原材料→加工→成品）？",
+      "purpose": "防止进销品名不匹配误判，确保诊断准确性。全行业适用（所有制造业/加工业）。",
+      "code_position": "main.py: _domain_invoice_audit() 第五层 + 制造业诊断逻辑",
+      "call_locations": [
+        "进销品名分析",
+        "BOM进销映射",
+        "制造业诊断"
+      ]
+    },
+    {
+      "id": "⑭",
+      "type": "methodology",
+      "name": "行业基准库",
+      "desc": "66行业基准值库，每个行业含毛利率/净利率/税负率/进销比/人均营收三个基准值。",
+      "requirement": "行业基准值必须来自公开数据（统计局/行业协会），不能硬编码单一值，必须给范围（如毛利率10%-15%）。",
+      "purpose": "行业基准值是判断企业数据是否异常的重要依据，必须准确。全行业适用（66行业）。",
+      "code_position": "main.py: INDUSTRY_BENCHMARK + 行业基准值库",
+      "call_locations": [
+        "行业对标分析",
+        "异常值判断",
+        "稽查发现评分"
+      ]
+    },
+    {
+      "id": "⑮",
+      "type": "methodology",
+      "name": "结论分析法",
+      "desc": "detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。",
+      "requirement": "每条发现必须含四步推导链：detect（检测现象）→verify（交叉验证）→diagnose（根因诊断）→report（输出结论）。报告中移除【detect】等系统内部标注，表现为自然段落衔接。",
+      "purpose": "确保每条发现都有完整的推导链，读者能看到每一步的推理。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() 发现项渲染",
+      "call_locations": [
+        "稽查发现渲染",
+        "四步分析框架",
+        "报告纯净度"
+      ]
+    },
+    {
+      "id": "⑯",
+      "type": "methodology",
+      "name": "COND_BAN防误杀",
+      "desc": "条件过滤防止过滤器误杀重要发现。有资料则放过，无资料则删除相关结论。",
+      "requirement": "方法论过滤器必须含条件过滤（COND_BAN）：如果有某类资料，则放过相关发现；如果无某类资料，则删除相关结论。不能一刀切删除。",
+      "purpose": "防止过滤器误杀重要发现，确保有资料支撑的发现不被错误过滤。全行业适用。",
+      "code_position": "main.py: _apply_methodology_filter() COND_BAN逻辑",
+      "call_locations": [
+        "方法论过滤器",
+        "发现过滤",
+        "噪声过滤"
+      ]
+    },
+    {
+      "id": "⑰",
+      "type": "methodology",
+      "name": "稽查重点强制等级",
+      "desc": "12类稽查重点直接硬编码为高风险，三层保护：后端修正+过滤器绕过+前端标记。",
+      "requirement": "稽查重点（收款不匹配/付款不匹配/金额偏差大/合同缺失/银行流水缺失等）必须强制为高风险，不受score影响。三层保护机制确保不被过滤器误杀。",
+      "purpose": "稽查重点是税务稽查必查项，必须强制为高风险。全行业适用（12类稽查重点）。",
+      "code_position": "main.py: AUDIT_PRIORITY_LEVELS + _fix_level_by_audit_priority()",
+      "call_locations": [
+        "发现评分",
+        "高风险强制",
+        "稽查重点标记"
+      ]
+    },
+    {
+      "id": "⑱",
+      "type": "methodology",
+      "name": "报告纯净度",
+      "desc": "移除所有系统内部标注（【detect】等），四步框架表现为自然段落衔接。",
+      "requirement": "稽查报告中不能出现系统内部标注（【detect 检测现象】/【verify 交叉验证】等），四步分析框架必须表现为自然段落衔接。",
+      "purpose": "报告是专业文书，不是调试日志。确保报告专业性。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() 发现项渲染",
+      "call_locations": [
+        "稽查报告生成",
+        "报告纯净度",
+        "四步框架自然化"
+      ]
+    },
+    {
+      "id": "⑲",
+      "type": "methodology",
+      "name": "发票≠收付款1:1",
+      "desc": "六种收付款模式：跨期/合并/分期/预付预收/应付应收/非对公代付，未匹配≠异常。",
+      "requirement": "进项发票vs银行付款、销项发票vs银行收款，均不能按'名称对上=正常、对不上=异常'的1:1逻辑判断。必须考虑六种收付款模式。",
+      "purpose": "防止收付款匹配误判，确保资金流分析准确性。全行业适用（所有有收付款的企业）。",
+      "code_position": "main.py: 收付款匹配逻辑 + 六种模式判断",
+      "call_locations": [
+        "收付款匹配",
+        "资金流分析",
+        "进销项匹配"
+      ]
+    },
+    {
+      "id": "⑳",
+      "type": "methodology",
+      "name": "经营实质地理分析",
+      "desc": "供应商+客户+加工商地址+运输成本→全链条经营实质，重物跨省缺运输=物证链断裂。",
+      "requirement": "经营实质分析必须考虑地理因素：供应商地址/客户地址/加工商地址/运输成本。重物（如纺织/钢材/煤炭）跨省经营必须有运输成本，否则货物流物证链断裂。",
+      "purpose": "从单一风险点推理出面的风险，确保经营实质分析全面。全行业适用（特别是重物行业）。",
+      "code_position": "main.py: 经营实质地理分析函数 + 规则1500-1504",
+      "call_locations": [
+        "经营实质分析",
+        "地理分析",
+        "货物流验证"
+      ]
+    },
+    {
+      "id": "㉑",
+      "type": "methodology",
+      "name": "规则detail业务化",
+      "desc": "规则detail从技术语言改为业务语言，如'BOM进销映射异常'→'进销品名不匹配'。",
+      "requirement": "规则detail必须面向业务用户，不能含技术术语（如'BOM'/'映射'/'算法'）。必须改为业务语言（如'进销品名不匹配'/'加工费异常'）。",
+      "purpose": "规则detail是给用户看的，必须业务化。全行业适用。",
+      "code_position": "tax_risk_rules_local_export.json: 规则detail字段",
+      "call_locations": [
+        "规则引擎",
+        "规则detail展示",
+        "稽查指令页面"
+      ]
+    },
+    {
+      "id": "㉒",
+      "type": "methodology",
+      "name": "建议质量增强",
+      "desc": "每个风险点建议含具体消除路径——提供XX资料→如果A就XX→无法做到的后果。",
+      "requirement": "处理建议必须含具体消除路径：①需要提供什么资料；②如果资料A证明X，则结论Y；③如果无法提供资料，则后果Z。不能只说'立即整改'。",
+      "purpose": "建议是给用户执行的，必须具体可操作。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() 建议渲染 + 规则建议字段",
+      "call_locations": [
+        "处理建议生成",
+        "稽查报告-处理建议章节",
+        "建议质量"
+      ]
+    },
+    {
+      "id": "㉓",
+      "type": "methodology",
+      "name": "四步稽查分析法",
+      "desc": "detect（检测现象）→verify（交叉验证）→diagnose（根因诊断）→report（输出结论）。",
+      "requirement": "所有稽查发现必须完整呈现四步推导链。detect：检测现象（如收款≠开票）；verify：交叉验证（如逐名比对付款方）；diagnose：根因诊断（如未开票/非经营/代付）；report：输出结论（如三种可能分级处理）。",
+      "purpose": "确保稽查分析逻辑完整，结论可追溯可复核。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() 发现项渲染",
+      "call_locations": [
+        "稽查发现分析",
+        "四步分析框架",
+        "推导链展示"
+      ]
+    },
+    {
+      "id": "㉔",
+      "type": "methodology",
+      "name": "禁止数据截断",
+      "desc": "报告中显示全部明细数据，不截断（如'前5条'→显示全部）。明细即信服力。",
+      "requirement": "报告中所有明细数据必须全部展示，不能截断。如果数据量过大（>100条），则分页展示，不能只显示前N条。",
+      "purpose": "明细数据是稽查报告的信服力来源，截断明细=削弱信服力。全行业适用。",
+      "code_position": "tax-doc-analysis.js: renderTaxDocReport() 明细展示",
+      "call_locations": [
+        "稽查报告生成",
+        "明细展示",
+        "数据截断检查"
+      ]
+    },
+    {
+      "id": "㉕",
+      "type": "methodology",
+      "name": "三层行业穿透法",
+      "desc": "工商登记→发票数据→加工信号，三者不一致时以实质重于形式为原则。报告第一章必须呈现三层结论。",
+      "requirement": "行业认定必须三层穿透：第一层工商登记（法律形式）→联网核查；第二层发票数据（经营实质）→90+关键词加权投票；第三层加工信号（业务模式）→BOM品名差异+加工费证据。报告第一章必须呈现三层结论（如'工商登记X / 发票推断Y / 实质经营Z → 综合判断'）。",
+      "purpose": "防止行业认定错误，确保行业认定准确性。全行业适用（特别是工商登记与实质经营不一致的企业）。",
+      "code_position": "main.py: _detect_target_entity() + tax-doc-analysis.js: renderTaxDocReport()第一章",
+      "call_locations": [
+        "目标实体识别",
+        "行业认定",
+        "报告第一章-企业类型"
+      ]
+    },
+    {
+      "id": "㉖",
+      "type": "methodology",
+      "name": "经营实质点面推理法",
+      "desc": "单点发现→数据扩展→关联维度→交叉验证→综合结论（全链条经营实质）。",
+      "requirement": "从单一风险点推理出面的风险。分析维度：供应商地址分布+客户地址分布+加工商地址分布+运输成本存在性。最终得出全链条经营实质是否存疑的综合结论。",
+      "purpose": "从单点风险推理出全面风险，确保稽查分析全面深入。全行业适用（特别是跨区域经营的企业）。",
+      "code_position": "main.py: 经营实质地理分析函数 + 点面推理逻辑",
+      "call_locations": [
+        "经营实质分析",
+        "地理分析",
+        "全链条风险推理"
       ]
     }
   ],
