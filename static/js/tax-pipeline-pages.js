@@ -975,7 +975,7 @@ function renderChainsList(chains) {
   var target = document.getElementById('chains-body');
   if (!target) return;
 
-  var filtered = chains; // 无筛选，直接全部展示
+  var filtered = chains;
 
   var execMap = {};
   if (_chainDynamic && _chainDynamic.chain_execution) {
@@ -1045,7 +1045,8 @@ async function loadEvidenceData() {
     var data = await resp.json();
     _allChains = data.chains || [];
     var evChains = _allChains.filter(function(c) { return c.chain_type === '证据链'; });
-    if (!evChains.length) evChains = _allChains.slice(pc('trailChains', 391), pc('trailChains', 391) + pc('evidenceChains', 740));
+    if (!evChains.length) evChains = _allChains.filter(function(c) { return c.chain_type !== '线索链'; });
+    if (!evChains.length) evChains = _allChains;
 
     if (!_chainDynamic) await loadChainDynamicStatus();
 

@@ -343,8 +343,8 @@ function renderTaxDocReport(r) {
   var ii = mi['发票'] || {};
   var rc = bi['收款构成'];
 
-  // 修正异常期间（API路径可能返回"10 至 9"等无效值）
-  if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '2023-01 至 2026-05';
+  // 修正异常期间：无效格式则标记为未知
+  if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
 
   function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
