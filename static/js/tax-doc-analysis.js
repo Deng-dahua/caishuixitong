@@ -388,8 +388,6 @@ function renderTaxDocReport(r) {
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   h += '<div class="cover"><h1>税务稽查报告</h1><div class="sub">'
     + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
-    + '被查单位：'+esc(te.name||'')+'<br>'
-    + '稽查期间：'+esc(te.period||'')+'<br>'
     + '报告日期：'+dateStr
     + '</div></div>';
 
