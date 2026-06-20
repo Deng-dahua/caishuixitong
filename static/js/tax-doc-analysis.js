@@ -211,7 +211,7 @@ function renderAnalyzeHeader(report) {
   h += '<div class="stats-row">'
     + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1505') + '</strong> 则 · '
     + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '395') + '</strong> 条 · '
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '740') + '</strong> 条 · '
+    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '744') + '</strong> 条 · '
     + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
     + '</div>'
     + '<div class="stats-row" style="padding-top:0">'

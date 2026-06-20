@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-06-17",
-  "total_chains": 1163,
+  "total_chains": 1167,
   "chains": [
     {
       "name": "行业-建筑业",
@@ -101844,8 +101844,135 @@
       "tax_impacts": [
         "一人多角→内控缺陷→资金流向失去制衡→隐匿收入/虚列成本风险增大"
       ]
+    },
+    {
+      "name": "证据链-供应链-供应商六员重叠",
+      "chain_type": "证据链",
+      "sub_topic": "关联交易",
+      "description": "供应商与被查单位六员重叠→构成关联关系→交易需按独立交易原则验证。四维交叉：人员信息（六员重叠名单）→发票数据（进项金额+品名）→资金流（付款对象比对）→进销存（品名匹配度）。",
+      "steps": 6,
+      "high_risk_steps": [
+        4,
+        5
+      ],
+      "policies": [
+        "企业所得税法第41条",
+        "特别纳税调整实施办法第9条"
+      ],
+      "tax_impacts": [
+        "未按独立交易原则定价→补税+滞纳金",
+        "无真实交易→虚开发票移送公安"
+      ],
+      "investigation_path": "人员信息→发票数据→资金流→进销存四维交叉验证",
+      "covered_rule_ids": [
+        1510
+      ],
+      "covered_rule_count": 1,
+      "related_chains": [
+        "供应链-供应商六员重叠检测"
+      ],
+      "related_chain_count": 1,
+      "usage_count": 0,
+      "quality_score": 19.0,
+      "has_policy_count": 2,
+      "total_steps": 6
+    },
+    {
+      "name": "证据链-供应链-客户六员重叠",
+      "chain_type": "证据链",
+      "sub_topic": "关联交易",
+      "description": "客户与被查单位六员重叠→销售交易可能不公允→虚增收入或利润转移。三维交叉：人员信息（六员重叠名单）→发票数据（销项金额+品名）→资金流（收款来源比对）。",
+      "steps": 5,
+      "high_risk_steps": [
+        4,
+        5
+      ],
+      "policies": [
+        "企业所得税法第41条",
+        "税收征收管理法第36条"
+      ],
+      "tax_impacts": [
+        "关联销售定价不公允→企业所得税调整",
+        "虚增收入→补税+罚款"
+      ],
+      "investigation_path": "人员信息→销项发票→银行收款三流合一验证",
+      "covered_rule_ids": [
+        1510
+      ],
+      "covered_rule_count": 1,
+      "related_chains": [
+        "供应链-客户六员重叠检测"
+      ],
+      "related_chain_count": 1,
+      "usage_count": 0,
+      "quality_score": 18.5,
+      "has_policy_count": 2,
+      "total_steps": 5
+    },
+    {
+      "name": "证据链-供应链-购销闭环",
+      "chain_type": "证据链",
+      "sub_topic": "虚开发票",
+      "description": "同一企业既是供应商又是客户→A→B→A购销闭环→虚开发票关键信号。三环验证：发票环（进项品名=销项品名？）→资金环（付款≈收款金额？）→物流环（有无货物流转记录？）。三环皆闭环=虚开确认。",
+      "steps": 7,
+      "high_risk_steps": [
+        5,
+        6,
+        7
+      ],
+      "policies": [
+        "发票管理办法第22条",
+        "刑法第205条"
+      ],
+      "tax_impacts": [
+        "品名一致+资金回流→虚开发票确认",
+        "补税+0.5-5倍罚款+刑事责任"
+      ],
+      "investigation_path": "发票数据(供应商∩客户)→进销存(品名比对)→资金流(金额比对)→物流(运输单据)",
+      "covered_rule_ids": [
+        1511
+      ],
+      "covered_rule_count": 1,
+      "related_chains": [
+        "供应链-购销闭环检测"
+      ],
+      "related_chain_count": 1,
+      "usage_count": 0,
+      "quality_score": 20.0,
+      "has_policy_count": 2,
+      "total_steps": 7
+    },
+    {
+      "name": "证据链-内控-一人多角",
+      "chain_type": "证据链",
+      "sub_topic": "内控缺陷",
+      "description": "同一人担任≥3个关键角色→缺乏内控制衡→资金流向无监督→隐匿收入/虚列成本风险增大。双维验证：人员信息（角色统计）→资金流（个人账户经营资金进出）。",
+      "steps": 4,
+      "high_risk_steps": [
+        3,
+        4
+      ],
+      "policies": [
+        "企业内部控制基本规范",
+        "税收征收管理法"
+      ],
+      "tax_impacts": [
+        "内控缺陷→资金流向可被个人操纵→隐匿收入/虚列成本",
+        "个人卡大额经营资金→未申报收入嫌疑"
+      ],
+      "investigation_path": "六员角色统计→个人银行账户审查→经营资金识别",
+      "covered_rule_ids": [],
+      "covered_rule_count": 0,
+      "related_chains": [
+        "供应链-一人多角内控风险"
+      ],
+      "related_chain_count": 1,
+      "usage_count": 0,
+      "quality_score": 17.0,
+      "has_policy_count": 2,
+      "total_steps": 4
     }
   ],
   "trail_chains": 395,
-  "evidence_chains": 740
+  "evidence_chains": 744
 }
