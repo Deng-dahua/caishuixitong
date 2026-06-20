@@ -1163,7 +1163,7 @@ function renderAnalyzePage(container) {
 async function loadAnalyzeOverview() {
   var target = document.getElementById('analyze-body');
 
-  // 如果有分析数据，先渲染动态结果再追加静态说明
+  // 有分析数据时：渲染动态结果（已包含七步流程+质量体系）
   if (_cachedAnalyzeReport) {
     renderAnalyzeResult(_cachedAnalyzeReport);
     return;
@@ -1417,6 +1417,20 @@ function renderAnalyzeResult(report) {
     + '<div>㉑ 规则detail业务化 · ㉒ 建议质量增强</div><div>㉓ 四步稽查分析法 · ㉔ 禁止数据截断</div>'
     + '<div>㉕ 三层行业穿透法</div><div>㉖ 经营实质点面推理法</div>'
     + '</div>'
+    + '</div>';
+
+  // ══════ 四、全链路稽查质量保障体系 ══════
+  h += '<div style="margin-bottom:32px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #059669">'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 4px">四、全链路稽查质量保障体系</h3>'
+    + '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">开放生态系统 · 五大层次 · 持续扩展</p>'
+    + '<div style="font-size:12px;color:#475569;line-height:2">'
+    + '<div>🗄️ <strong>核心数据资产</strong>：规则引擎(' + pc('rules','1505') + '条) + 线索链(' + pc('trailChains','391') + '条) + 证据链(' + pc('evidenceChains','740') + '条) + 跨域分析链</div>'
+    + '<div>📐 <strong>方法论体系</strong>：稽查方法论㉖条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
+    + '<div>🔒 <strong>质量保障机制</strong>：稽查重点强制等级 + 报告纯净度 + 噪声过滤器(97%)</div>'
+    + '<div>🏭 <strong>行业认知体系</strong>：25行业词典 + 外包轻加工认知 + 66行业基准值库</div>'
+    + '<div>⚙️ <strong>执行管线</strong>：七步流程 + 35域函数 + 全链路溯源</div>'
+    + '</div>'
+    + '<a href="#" onclick="navigateTo(\'quality-system\');return false" style="display:inline-block;margin-top:8px;font-size:12px;color:#2563eb">查看完整18组件详情 →</a>'
     + '</div>';
 
   target.innerHTML = h;
