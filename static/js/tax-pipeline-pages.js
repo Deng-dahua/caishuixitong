@@ -1163,6 +1163,7 @@ function renderAnalyzePage(container) {
 async function loadAnalyzeOverview() {
   var target = document.getElementById('analyze-body');
 
+  // 如果有分析数据，先渲染动态结果再追加静态说明
   if (_cachedAnalyzeReport) {
     renderAnalyzeResult(_cachedAnalyzeReport);
     return;
@@ -1357,6 +1358,19 @@ function renderAnalyzeResult(report) {
   var lowCount = allF.length - highCount - midCount;
 
   var h = '';
+
+  // ══════ 七步执行流程（折叠面板）══════
+  h += '<div id="analyze-seven-steps" style="margin-bottom:32px;padding:16px 20px;background:#eff6ff;border-radius:8px;border-left:3px solid #2563eb;cursor:pointer" onclick="var d=document.getElementById(\'seven-steps-detail\');d.style.display=d.style.display===\'none\'?\'block\':\'none\'">'
+    + '<div style="font-size:14px;font-weight:700;color:#0f172a">⚙️ 七步执行流程 <span style="font-size:12px;color:#94a3b8;font-weight:400">（点击展开）</span></div>'
+    + '<div id="seven-steps-detail" style="display:none;margin-top:12px;font-size:13px;color:#475569;line-height:2.2">'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>① 资料扫描与类型识别</strong> — 34类文件指纹库+三层递进识别（关键词打分→结构分析→数据推断），自动判定发票方向。</div>'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>② 目标实体识别</strong> — 进项购买方∩销项销售方确定企业全称，90+关键词×66行业加权投票，联网工商比对。</div>'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>③ 资料情报提取与分析</strong> — 35个域分析函数并行执行：银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层。</div>'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>④ 规则引擎与链驱动检查</strong> — ' + pc('rules','1505') + '条稽查指令逐条匹配，' + pc('trailChains','391') + '条线索链触发，' + pc('evidenceChains','740') + '条证据链闭环检测。</div>'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>⑤ 方法论噪声过滤器</strong> — HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。稽查重点发现不受过滤影响。</div>'
+    + '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><strong>⑥ 行业对标与申报比对</strong> — 66行业基准值自动对标（毛利率/净利率/税负率/进销比/人均营收五维），申报表vs发票实际比对。</div>'
+    + '<div style="padding:10px 0"><strong>⑦ 正式稽查报告输出</strong> — 结构化HTML报告+四步分析框架+明细数据+法律依据+消除路径建议。报告为独立HTML文件，可直接交付。</div>'
+    + '</div></div>';
 
   // ══════ 一、执行概览 ══════
   h += '<div style="margin-bottom:40px">'
