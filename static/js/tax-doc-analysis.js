@@ -425,15 +425,82 @@ function renderTaxDocReport(r) {
 
   h += '<table class="tbl">'
     + '<tr><td class="lbl">案件来源</td><td>资料风险分析（基于电子经营资料预审）</td></tr>'
-    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag
-    + '</td></tr>'
-    + '<tr><td class="lbl">法定代表人</td><td>' + esc(te.legal_person || '') + (te.legal_person_role ? '（' + esc(te.legal_person_role) + '）' : '') + '</td></tr>'
-    + (te.registered_capital ? '<tr><td class="lbl">注册资本</td><td>' + esc(te.registered_capital) + '</td></tr>' : '')
-    + (te.uscc ? '<tr><td class="lbl">统一社会信用代码</td><td>' + esc(te.uscc) + '</td></tr>' : '')
-    + (te.company_status ? '<tr><td class="lbl">登记状态</td><td>' + esc(te.company_status) + '</td></tr>' : '')
-    + '<tr><td class="lbl">企业类型</td><td>' + esc(te.type || '') + '</td></tr>'
-    + '<tr><td class="lbl">行业</td><td>' + esc(te.industry || '') + (te.registered_type && te.registered_type !== te.industry ? '（实质为' + esc(te.registered_type) + '）' : '') + '</td></tr>'
-    + '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
+    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag + '</td></tr>';
+
+  // ── 基本工商信息 ──
+  var requiredFields = [
+    ['法定代表人', te.legal_person || te.legal_representative || ''],
+    ['注册资本', te.registered_capital || ''],
+    ['成立日期', te.established_date || ''],
+    ['统一社会信用代码', te.uscc || ''],
+    ['登记状态', te.company_status || te.status || ''],
+    ['企业类型', te.company_type || te.type || ''],
+    ['行业', te.industry || ''],
+    ['注册地址', te.address || ''],
+    ['经营范围', te.business_scope || ''],
+  ];
+  for (var fi = 0; fi < requiredFields.length; fi++) {
+    var label = requiredFields[fi][0];
+    var val = requiredFields[fi][1];
+    if (val) {
+      h += '<tr><td class="lbl">' + label + '</td><td>' + esc(val) + '</td></tr>';
+    } else if (onlineOK) {
+      h += '<tr><td class="lbl">' + label + '</td><td style="color:#9ca3af">搜索未获取</td></tr>';
+    }
+  }
+
+  // ── 六员信息 ──
+  var spr = te._six_personnel_risk;
+  var mp = spr ? (spr.my_personnel || {}) : {};
+  var myNames = Object.keys(mp);
+
+  // 股东（可从te.shareholders获取，也可从six_personnel中推断）
+  var shareholders = te.shareholders || [];
+  if (shareholders.length > 0) {
+    var shNames = shareholders.map(function(s){ return s.name || s; }).filter(function(n){ return n && n.length >= 2; });
+    h += '<tr><td class="lbl">股东名单</td><td>' + shNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
+  } else if (onlineOK) {
+    h += '<tr><td class="lbl">股东名单</td><td style="color:#9ca3af">搜索未获取</td></tr>';
+  }
+
+  // 董事
+  var directors = te.directors || [];
+  if (directors.length > 0) {
+    var dNames = directors.map(function(d){ return d.name || d; }).filter(function(n){ return n && n.length >= 2; });
+    h += '<tr><td class="lbl">董事</td><td>' + dNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
+  } else if (onlineOK) {
+    h += '<tr><td class="lbl">董事</td><td style="color:#9ca3af">搜索未获取</td></tr>';
+  }
+
+  // 监事
+  var supervisors = te.supervisors || [];
+  if (supervisors.length > 0) {
+    var supNames = supervisors.map(function(s){ return s.name || s; }).filter(function(n){ return n && n.length >= 2; });
+    h += '<tr><td class="lbl">监事</td><td>' + supNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
+  } else if (onlineOK) {
+    h += '<tr><td class="lbl">监事</td><td style="color:#9ca3af">搜索未获取</td></tr>';
+  }
+
+  // 财务负责人
+  var financeContacts = te.finance_contacts || [];
+  if (financeContacts.length > 0) {
+    var fcNames = financeContacts.map(function(f){ return f.name || f; }).filter(function(n){ return n && n.length >= 2; });
+    h += '<tr><td class="lbl">财务负责人</td><td>' + fcNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
+  } else if (onlineOK) {
+    h += '<tr><td class="lbl">财务负责人</td><td style="color:#9ca3af">搜索未获取</td></tr>';
+  }
+
+  // 办税人员/实际控制人/最终受益人（搜索引擎知识图谱不包含，需另行查询）
+  var naFields = [
+    ['办税人员', '需从天眼查/企查查会员页面另行查询，或从税务申报记录中提取'],
+    ['实际控制人', '需通过股权穿透分析确定，搜索知识图谱不直接提供'],
+    ['最终受益人', '需通过股权穿透+受益人分析确定，搜索知识图谱不直接提供'],
+  ];
+  for (var nj = 0; nj < naFields.length; nj++) {
+    h += '<tr><td class="lbl">' + naFields[nj][0] + '</td><td style="color:#9ca3af">' + naFields[nj][1] + '</td></tr>';
+  }
+
+  h += '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
     + '<tr><td class="lbl">稽查范围</td><td>' + r.files_count + '份经营资料</td></tr>'
     + '<tr><td class="lbl">执行标准</td><td>依据' + r.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
