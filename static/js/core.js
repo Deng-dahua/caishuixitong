@@ -65,6 +65,7 @@ const pages = {
   'chains-page': '线索链',
   'evidence-page': '证据链',
   'analyze-page': '分析链',
+  'quality-system': '全链路质量保障体系',
   'cross-domain-evidence': '跨域证据链',
   'cross-domain-clues': '跨域线索链',
   'cross-domain-analysis': '跨域分析链',
@@ -551,6 +552,7 @@ function navigateTo(page) {
     case 'chains-page': renderChainsPage(container); break;
     case 'evidence-page': renderEvidencePage(container); break;
     case 'analyze-page': renderAnalyzePage(container); break;
+    case 'quality-system': renderQualitySystem(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'cross-domain-clues': renderCrossDomainCluesPage(container); break;
     case 'cross-domain-analysis': renderCrossDomainAnalysisPage(container); break;
