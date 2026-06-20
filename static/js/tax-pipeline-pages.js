@@ -983,48 +983,147 @@ function renderChainsList(chains) {
   var target = document.getElementById('chains-body');
   if (!target) return;
 
-  var filtered = chains;
-
   var execMap = {};
   if (_chainDynamic && _chainDynamic.chain_execution) {
     _chainDynamic.chain_execution.forEach(function(ce) { execMap[ce.chain_name] = ce; });
   }
-  var hasDynamic = Object.keys(execMap).length > 0;
 
   var html = '';
-  if (!filtered.length) {
+  if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#94a3b8">无匹配线索链</div>';
   } else {
-    // 统计卡片
     var triggeredCount = _chainDynamic ? (_chainDynamic.triggered_count || 0) : 0;
-    var totalSteps = chains.reduce(function(s, c) { return s + (c.investigation_path || []).length; }, 0);
-    html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+    html += '<div style="display:flex;gap:12px;margin-bottom:32px">'
       + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链总数</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
       + '</div>';
 
-    filtered.forEach(function(c, ci) {
+    chains.forEach(function(c, ci) {
       var exec = execMap[c.name];
+      var isOldFormat = !!(c.investigation_path && c.investigation_path.length > 0 && c.investigation_path[0].rule_id);
+      var isNewFormat = !!(c.steps && Array.isArray(c.steps) && c.steps.length > 0 && c.steps[0].action);
+      var stepList = isOldFormat ? c.investigation_path : (isNewFormat ? c.steps : (c.investigation_path || []));
+      var totalS = stepList.length;
+      var highRiskSteps = c.high_risk_steps || [];
       var triggeredSteps = exec ? exec.triggered_steps : 0;
-      var totalSteps = exec ? exec.total_steps : (c.steps ? c.steps.length : (c.total_steps || 0));
       var ratio = exec ? exec.triggered_ratio : 0;
+      var subTopic = c.sub_topic || '';
+      var qualityScore = c.quality_score || 0;
 
+      // 触发徽章
       var badge = '';
       if (exec && exec.triggered_steps > 0) {
-        badge = ' <span style="color:' + (ratio >= 60 ? '#dc2626' : '#059669') + ';font-size:13px;font-weight:600">' + triggeredSteps + '/' + totalSteps + ' (' + ratio + '%)</span>';
+        var bColor = ratio >= 60 ? '#dc2626' : '#059669';
+        badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + bColor + '15;color:' + bColor + ';font-weight:600">' + triggeredSteps + '/' + totalS + ' (' + ratio + '%)</span>';
+      } else if (exec) {
+        badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-weight:500">未触发</span>';
       }
 
-      html += '<div style="padding:14px 0;border-bottom:1px solid #f1f5f9">'
-        + '<div style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:6px">' + escHtml(c.name) + badge + '</div>'
-        + '<div style="font-size:13px;color:#64748b;line-height:1.8">';
+      // 子主题标签
+      var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
 
-      (c.investigation_path||[]).forEach(function(s, idx) {
-        var levelTag = s.level==='高风险' ? '<span style="color:#dc2626">[高]</span>' : (s.level==='中风险' ? '<span style="color:#f59e0b">[中]</span>' : '<span style="color:#94a3b8">[低]</span>');
-        html += (idx > 0 ? ' → ' : '') + levelTag + ' ' + escHtml(s.step||s.rule_item||'');
-      });
+      // 质量分标签
+      var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-      html += '</div></div>';
+      html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04)">'
+
+        // ══ 卡片头部：名称 + 标签行 ═══
+        + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
+        + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + badge + topicTag + scoreTag + '</div>'
+        + '</div>';
+
+      // 描述（新格式链有 description/desc）
+      if (c.description) {
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.description) + '</div>';
+      } else if (c.desc) {
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.desc) + '</div>';
+      }
+
+      // ══ 步骤列表 ═══
+      if (isOldFormat) {
+        // 旧格式：investigation_path 含 rule_id/level/detail/policy_ref/suggestion
+        html += '<div style="margin-bottom:12px">';
+        stepList.forEach(function(s, si) {
+          var lvl = s.level || '';
+          var lvlColor = lvl === '高风险' ? '#dc2626' : (lvl === '中风险' ? '#f59e0b' : (lvl === '低风险' ? '#059669' : '#94a3b8'));
+          var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
+          var isHigh = highRiskSteps.indexOf(si + 1) >= 0 || highRiskSteps.indexOf(s.rule_id) >= 0;
+
+          html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+            + '<span style="color:#94a3b8;font-size:12px;font-weight:600">#' + (si + 1) + '</span>'
+            + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;font-weight:600;background:#eef2ff;padding:1px 6px;border-radius:3px">R' + s.rule_id + '</span>' : '')
+            + (lvl ? '<span style="font-size:11px;font-weight:600;color:' + lvlColor + ';background:' + lvlBg + ';padding:1px 6px;border-radius:3px">' + lvl + '</span>' : '')
+            + (s.score ? '<span style="font-size:11px;color:#94a3b8">score=' + s.score + '</span>' : '')
+            + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
+            + '</div>'
+            + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:1.7;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
+            + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:8px 12px;background:#f0fdf4;border-radius:4px">💡 建议：' + escHtml(s.suggestion) + '</div>' : '')
+            + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
+            + '</div>';
+        });
+        html += '</div>';
+      } else if (isNewFormat) {
+        // 新格式：steps 数组含 {step: N, action: "文本"}
+        html += '<div style="margin-bottom:12px">';
+        stepList.forEach(function(s, si) {
+          var stepNum = s.step || (si + 1);
+          var isHigh = highRiskSteps.indexOf(stepNum) >= 0;
+
+          html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
+            + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
+            + '<span style="font-size:13px;color:#334155;line-height:1.7">' + escHtml(s.action || '') + '</span>'
+            + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
+            + '</div>'
+            + '</div>';
+        });
+        html += '</div>';
+      } else if (totalS > 0) {
+        // 兜底格式
+        html += '<div style="margin-bottom:12px">';
+        stepList.forEach(function(s, si) {
+          var sText = typeof s === 'string' ? s : (s.step || s.action || s.rule_item || '');
+          var lvl = s.level || '';
+          html += '<div style="padding:8px 14px;margin-bottom:4px;background:#fafafa;border-radius:4px;font-size:13px;color:#475569">'
+            + '<span style="color:#94a3b8;margin-right:8px">#' + (si + 1) + '</span>'
+            + (lvl ? '<span style="color:' + (lvl==='高风险'?'#dc2626':lvl==='中风险'?'#f59e0b':'#94a3b8') + ';margin-right:8px">[' + lvl + ']</span>' : '')
+            + escHtml(sText)
+            + '</div>';
+        });
+        html += '</div>';
+      }
+
+      // ══ 政策依据 ═══
+      if (c.policies && c.policies.length > 0) {
+        html += '<div style="margin-bottom:10px">'
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
+        c.policies.forEach(function(p) {
+          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fffbeb;border-radius:4px;font-size:12px;color:#854d0e;line-height:1.6">• ' + escHtml(p) + '</div>';
+        });
+        html += '</div>';
+      }
+
+      // ══ 税务影响 ═══
+      if (c.tax_impacts && c.tax_impacts.length > 0) {
+        html += '<div style="margin-bottom:10px">'
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
+        c.tax_impacts.forEach(function(t) {
+          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fef2f2;border-radius:4px;font-size:12px;color:#991b1b;line-height:1.6">• ' + escHtml(t) + '</div>';
+        });
+        html += '</div>';
+      }
+
+      // ══ 底部元信息栏 ═══
+      html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
+        + '<span>📝 步骤 <b style="color:#475569">' + totalS + '</b> 条</span>'
+        + (highRiskSteps.length > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskSteps.length + '</b> 个</span>' : '')
+        + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
+        + (c.related_chain_count > 0 ? '<span>🔗 关联证据链 <b style="color:#475569">' + c.related_chain_count + '</b> 条</span>' : '')
+        + (qualityScore > 0 ? '<span>⭐ 质量评分 <b style="color:#475569">' + qualityScore + '</b></span>' : '')
+        + '</div>';
+
+      html += '</div>'; // card close
     });
   }
 
@@ -1080,7 +1179,14 @@ function renderEvidenceList(chains) {
     _chainDynamic.evidence_closures.forEach(function(ec) { evExecMap[ec.chain_name] = ec; });
   }
 
-  var totalSteps = chains.reduce(function(s, c) { return s + (c.investigation_path || []).length; }, 0);
+  // 统计步骤数：旧格式 investigation_path 是数组，新格式 steps 是数字
+  var totalSteps = chains.reduce(function(s, c) {
+    var ip = c.investigation_path;
+    if (Array.isArray(ip)) return s + ip.length;
+    if (typeof c.steps === 'number') return s + c.steps;
+    if (typeof c.total_steps === 'number') return s + c.total_steps;
+    return s;
+  }, 0);
   var closedCount = chains.filter(function(c) {
     var exec = evExecMap[c.name];
     return exec && exec.closed;
@@ -1089,7 +1195,7 @@ function renderEvidenceList(chains) {
   var html = '';
 
   // 统计卡片
-  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+  html += '<div style="display:flex;gap:12px;margin-bottom:32px"'
     + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链总数</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
@@ -1110,7 +1216,7 @@ function renderEvidenceList(chains) {
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
       html += '<div style="margin-bottom:32px">'
-        + (sortedPrefixes.length > 1 ? '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>' : '');
+        + (sortedPrefixes.length > 1 ? '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 10px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>' : '');
 
       groupChains.forEach(function(c) {
         var evExec = evExecMap[c.name];
@@ -1118,38 +1224,109 @@ function renderEvidenceList(chains) {
         var ratio = evExec ? evExec.ratio : 0;
         var badgeText = evExec ? (closed ? '已闭环 ' + ratio + '%' : '未闭环 ' + ratio + '%') : '';
         var badgeColor = closed ? '#059669' : '#f59e0b';
+        var ip = c.investigation_path;
+        var isArrayFormat = Array.isArray(ip) && ip.length > 0 && ip[0].rule_id;
+        var isStringFormat = typeof ip === 'string';
+        var subTopic = c.sub_topic || '';
+        var qualityScore = c.quality_score || 0;
+        var stepCount = isArrayFormat ? ip.length : (typeof c.steps === 'number' ? c.steps : (typeof c.total_steps === 'number' ? c.total_steps : (Array.isArray(ip) ? ip.length : 0)));
+        var highRiskSteps = c.high_risk_steps || [];
 
-        html += '<div style="padding:16px 20px;margin-bottom:8px;border:1px solid #f1f5f9;border-radius:8px">'
-          // 标题行
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-          + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(c.name) + '</div>'
-          + (badgeText ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeColor + '15;color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>' : '')
-          + '</div>'
+        var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
+        var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-          // 调查步骤
-          + '<div style="margin-bottom:8px">';
-        (c.investigation_path || []).forEach(function(s, si) {
-          var levelTag = s.level === '高风险' ? '<span style="color:#dc2626;font-weight:600">高风险</span>' : (s.level === '中风险' ? '<span style="color:#f59e0b;font-weight:600">中风险</span>' : (s.level ? '<span style="color:#94a3b8">' + s.level + '</span>' : ''));
-          html += '<div style="padding:8px 12px;margin-bottom:4px;background:#fafafa;border-radius:4px;font-size:13px;line-height:1.8">'
-            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">#' + (si + 1) + '</span>'
-            + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;margin-right:6px">R' + s.rule_id + '</span>' : '')
-            + (s.level ? '<span style="margin-right:6px">' + levelTag + '</span>' : '')
-            + '<b style="color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
-            + (s.detail ? '<div style="color:#64748b;margin-top:4px">' + escHtml(s.detail) + '</div>' : '')
-            + (s.policy_ref ? '<div style="color:#94a3b8;font-size:12px;margin-top:4px">依据：' + escHtml(s.policy_ref) + '</div>' : '')
-            + '</div>';
-        });
-        html += '</div>'
+        html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04)">'
 
-          // 底栏
-          + '<div style="display:flex;gap:16px;font-size:12px;color:#94a3b8;padding-top:8px;border-top:1px solid #f1f5f9">'
-          + '<span>步骤 ' + (c.investigation_path || []).length + ' 条</span>'
-          + '<span>覆盖规则 ' + (c.covered_rule_count || (c.investigation_path || []).length) + ' 条</span>'
-          + (c.related_chain_count > 0 ? '<span>关联链 ' + c.related_chain_count + ' 条</span>' : '')
-          + (c.quality_score ? '<span>质量 ' + c.quality_score + ' 分</span>' : '')
-          + '</div>'
-
+          // ══ 标题行 ═══
+          + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
+          + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + topicTag + scoreTag + '</div>'
+          + (badgeText ? '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + badgeColor + '15;color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>' : '')
           + '</div>';
+
+        // ══ 描述（新格式证据链有 description） ═══
+        if (c.description) {
+          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.description) + '</div>';
+        }
+
+        // ══ 调查路径 ═══
+        if (isArrayFormat) {
+          // 旧格式：investigation_path 是数组，含 rule_id/level/detail/policy_ref
+          html += '<div style="margin-bottom:12px">';
+          ip.forEach(function(s, si) {
+            var lvl = s.level || '';
+            var lvlColor = lvl === '高风险' ? '#dc2626' : (lvl === '中风险' ? '#f59e0b' : (lvl === '低风险' ? '#059669' : '#94a3b8'));
+            var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
+            var isHigh = highRiskSteps.indexOf(si + 1) >= 0 || highRiskSteps.indexOf(s.rule_id) >= 0;
+
+            html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
+              + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+              + '<span style="color:#94a3b8;font-size:12px;font-weight:600">#' + (si + 1) + '</span>'
+              + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;font-weight:600;background:#eef2ff;padding:1px 6px;border-radius:3px">R' + s.rule_id + '</span>' : '')
+              + (lvl ? '<span style="font-size:11px;font-weight:600;color:' + lvlColor + ';background:' + lvlBg + ';padding:1px 6px;border-radius:3px">' + lvl + '</span>' : '')
+              + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
+              + '</div>'
+              + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:1.7;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
+              + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
+              + '</div>';
+          });
+          html += '</div>';
+        } else if (isStringFormat) {
+          // 新格式：investigation_path 是字符串描述（如 "人员信息→发票数据→资金流→进销存四维交叉验证"）
+          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#eef2ff;border-radius:6px;font-size:13px;color:#3730a3;line-height:1.7">'
+            + '<b style="color:#4338ca">🔍 调查路径：</b>' + escHtml(ip)
+            + '</div>';
+        }
+
+        // ══ 政策依据 ═══
+        if (c.policies && c.policies.length > 0) {
+          html += '<div style="margin-bottom:10px">'
+            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
+          c.policies.forEach(function(p) {
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fffbeb;border-radius:4px;font-size:12px;color:#854d0e;line-height:1.6">• ' + escHtml(p) + '</div>';
+          });
+          html += '</div>';
+        }
+
+        // ══ 税务影响 ═══
+        if (c.tax_impacts && c.tax_impacts.length > 0) {
+          html += '<div style="margin-bottom:10px">'
+            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
+          c.tax_impacts.forEach(function(t) {
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fef2f2;border-radius:4px;font-size:12px;color:#991b1b;line-height:1.6">• ' + escHtml(t) + '</div>';
+          });
+          html += '</div>';
+        }
+
+        // ══ 关联线索链 ═══
+        if (c.related_chains && c.related_chains.length > 0) {
+          html += '<div style="margin-bottom:10px">'
+            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">🔗 关联线索链</div>';
+          c.related_chains.forEach(function(rc) {
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#f0f9ff;border-radius:4px;font-size:12px;color:#0369a1;line-height:1.6">• ' + escHtml(rc) + '</div>';
+          });
+          html += '</div>';
+        }
+
+        // ══ 覆盖规则 ═══
+        if (c.covered_rule_ids && c.covered_rule_ids.length > 0) {
+          html += '<div style="margin-bottom:10px">'
+            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📌 覆盖规则</div>';
+          c.covered_rule_ids.forEach(function(rid) {
+            html += '<span style="display:inline-block;font-size:11px;padding:2px 8px;margin:0 4px 4px 0;background:#eef2ff;color:#4338ca;border-radius:3px;font-weight:600">R' + rid + '</span>';
+          });
+          html += '</div>';
+        }
+
+        // ══ 底部元信息栏 ═══
+        html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
+          + '<span>📝 步骤 <b style="color:#475569">' + stepCount + '</b> 条</span>'
+          + (highRiskSteps.length > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskSteps.length + '</b> 个</span>' : '')
+          + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
+          + (c.related_chain_count > 0 ? '<span>🔗 关联线索链 <b style="color:#475569">' + c.related_chain_count + '</b> 条</span>' : '')
+          + (qualityScore > 0 ? '<span>⭐ 质量评分 <b style="color:#475569">' + qualityScore + '</b></span>' : '')
+          + '</div>';
+
+        html += '</div>';
       });
 
       html += '</div>';
