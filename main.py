@@ -16175,7 +16175,9 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 tax_pay[cp] += credit
             elif any(k in cp for k in ['银行结息','结息','利息','批量']):
                 bank_internal[cp] += credit
-            elif any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源','服饰','进出口']):
+            elif any(k in cp for k in ['有限公司','有限责任公司','股份有限公司','合伙企业','个人独资企业',
+                                          '厂','店','部','中心','局','院','所','社','会','馆','场','园','苑','山庄','大厦',
+                                          '集团','公司','企业','合作社','农场','牧场','渔场','林场']):
                 enterprise_pay[cp] += credit
             elif any(k in cp for k in ['国家金库','税务局','ETS','国库','税','财政','待报解']):
                 tax_pay[cp] += credit
@@ -16210,7 +16212,9 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 elif any(k in summary for k in ['结息','利息']): cp = "(银行扣息)"
                 elif any(k in summary for k in ['费用','短信','账户']): cp = "(银行费用)"
                 else: cp = "(未记录名称)"
-            if any(k in cp for k in ['有限公司','有限责任公司','厂','纺织','制衣','服装','服饰','纱业','布业','酒店','清洁','材料','科技','实业','集团','能源']):
+            if any(k in cp for k in ['有限公司','有限责任公司','股份有限公司','合伙企业','个人独资企业',
+                                          '厂','店','部','中心','局','院','所','社','会','馆','场','园','苑','山庄','大厦',
+                                          '集团','公司','企业','合作社','农场','牧场','渔场','林场']):
                 enterprise_payee[cp] += debit
             elif any(k in cp for k in ['国家金库','税务局','ETS','社保','国库','税','财政','省ETS']):
                 tax_payee[cp] += debit
@@ -16234,17 +16238,14 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         pur_total = sum(float(i.get("amount", 0) or 0) for i in pur_invs)
         pur_tax = sum(float(i.get("tax", 0) or 0) for i in pur_invs)
         
-        # 货物/服务分类
+        # 货物/服务分类（通用化：直接使用货物名称前4字作为分类，不依赖行业关键词）
         categories = Counter()
         for inv in invoices:
-            goods = str(inv.get("goods", "") or inv.get("货物或应税劳务名称", ""))
-            for cat_kw, cat_name in [("纺织", "纺织产品"), ("棉纱", "纺织原料"), ("服装", "服装"),
-                                       ("加工", "加工劳务"), ("建筑", "建安服务"), ("广告", "广告服务"),
-                                       ("设计", "设计服务"), ("咨询", "咨询服务"), ("租赁", "租赁服务"),
-                                       ("运输", "运输服务"), ("餐饮", "餐饮服务"), ("住宿", "酒店住宿")]:
-                if cat_kw in goods:
-                    categories[cat_name] += 1
-                    break
+            goods = str(inv.get("goods", "") or inv.get("货物或应税劳务名称", "")).strip()
+            if goods:
+                # 取货物名称前4字作为分类（通用规则，适用于全行业）
+                cat_name = goods[:4]
+                categories[cat_name] += 1
         
         intel["发票"] = {
             "销项发票": f"{len(sal_invs)}张，金额{sal_total:,.0f}元，税额{sal_tax:,.0f}元",
@@ -17832,8 +17833,12 @@ def _run_analyze(company_id, db):
         pass
     
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
-    all_findings, pipeline_log, filter_log = _apply_methodology_filter(all_findings, pipeline_log, 
-        bank_txs, invoices, salaries, social_security, vouchers, inventory, docs)
+    # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
+    _target_industry = target_entity.get("industry", "")
+    all_findings, pipeline_log, filter_log = _apply_methodology_filter(
+        all_findings, pipeline_log,
+        bank_txs, invoices, salaries, social_security, vouchers, inventory, docs,
+        target_industry=_target_industry)
     comprehensive["filter_log"] = filter_log  # 方法论过滤详情
     
     # ═══ 重算风险统计（过滤后）═══
@@ -18811,8 +18816,8 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
 
 # ═══════════ 稽查方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
 
-def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs):
-    """过滤铁律：每条结论必须有上传资料中的实际数据支撑。"""
+def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry=""):
+    """过滤铁律：每条结论必须有上传资料中的实际数据支撑。target_industry: 由_caller传入，复用_detect_target_entity()的检测结果，避免重复造轮子。"""
     before = len(all_findings)
     
     has_bank = len(bank_txs) > 0
@@ -18824,12 +18829,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     has_declaration = any("vat" in str(doc.get("type","")).lower() or "declaration" in str(doc.get("type","")).lower() for doc in docs)
     has_contract = any("contract" in str(doc.get("type","")).lower() for doc in docs)
     
-    # 检测行业
-    target_industry = ""
-    if invoices:
-        goods_text = " ".join([str(inv.get("goods","")) for inv in invoices])
-        for kw, ind in [("纺织","纺织"),("棉纱","纺织"),("软件","IT"),("医药","医药"),("医疗","医药"),("建筑","建筑"),("食品","食品"),("餐饮","餐饮")]:
-            if kw in goods_text: target_industry = ind; break
+    # target_industry 由调用方传入（来自_detect_target_entity()的加权投票结果），全行业适用
     
     # ═══ 硬删除：绝对不可能基于当前资料的结论 ═══
     HARD_BAN = [
