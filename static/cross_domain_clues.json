@@ -26,7 +26,7 @@
     "min_evidence": 2,
     "investigation_path": [
       {"step": 1, "domain": "进销存比对", "action": "提取全部进项品名和销项品名，做交叉比对，列出只进不出和只出不进的商品", "data_required": "进项发票+销项发票"},
-      {"step": 2, "domain": "加工费检测", "action": "筛查进项发票中是否含"加工"关键词，判断是否存在加工链条", "data_required": "进项发票"},
+      {"step": 2, "domain": "加工费检测", "action": "筛查进项发票中是否含「加工」关键词，判断是否存在加工链条", "data_required": "进项发票"},
       {"step": 3, "domain": "行业判定", "action": "联网查询工商登记行业 vs 发票推断行业 vs 加工信号→三层穿透判定实质经营模式", "data_required": "工商信息+发票数据"},
       {"step": 4, "domain": "供应商穿透", "action": "对只进不出的供应商做深度穿透：工商登记/同城群集/注册时间/集中度", "data_required": "供应商名单+工商信息"},
       {"step": 5, "domain": "资金匹配", "action": "逐票比对进项发票与银行付款记录，标记有票无付的供应商", "data_required": "银行流水"}
