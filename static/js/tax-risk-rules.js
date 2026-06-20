@@ -27,29 +27,18 @@ function renderTaxRiskRules(container) {
   if (!container) return;
   window.currentModule = '稽查指令';
 
-  if (!Array.isArray(taxRiskRulesData) || taxRiskRulesData.length === 0) {
-    try {
-      var cached = localStorage.getItem('taxRiskRulesData');
-      if (cached) { taxRiskRulesData = JSON.parse(cached); }
-    } catch(e) {}
-  }
-  var hasCache = Array.isArray(taxRiskRulesData) && taxRiskRulesData.length > 0;
-
   container.innerHTML = ''
     + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">稽查指令</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? taxRiskRulesData.length : '...') + ' 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据</p>'
+    + '    <p style="font-size:14px;color:#94a3b8;margin:0" id="risk-rules-count">1505 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据</p>'
     + '  </div>'
     + '  <div id="risk-rules-list"></div>'
     + '  <div id="risk-rules-stats" style="text-align:center;padding:24px;font-size:13px;color:#94a3b8"></div>'
     + '</div>';
 
-  if (hasCache) {
-    renderTaxRiskRulesList();
-  } else {
-    loadTaxRiskRules();
-  }
+  // 每次进入页面都重新加载，不使用缓存
+  loadTaxRiskRules();
 }
 
 async function loadTaxRiskRules() {
@@ -76,6 +65,10 @@ function renderTaxRiskRulesList() {
   var listEl = document.getElementById('risk-rules-list');
   var statsEl = document.getElementById('risk-rules-stats');
   if (!listEl) return;
+
+  // 更新页面标题数量
+  var countEl = document.getElementById('risk-rules-count');
+  if (countEl) countEl.textContent = data.length + ' 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据';
 
   if (data.length === 0) {
     listEl.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无稽查指令，请加载数据</div>';

@@ -892,9 +892,6 @@ function renderChainsPage(container) {
   window.currentModule = '线索链';
 
   var hasCache = _allClueChains && _allClueChains.length > 0;
-  var cats = {};
-  if (hasCache) _allClueChains.forEach(function(c) { var p = (c.name || '').split('-')[0]; if (p) cats[p] = true; });
-  var catKeys = hasCache ? Object.keys(cats).sort() : [];
 
   container.innerHTML = '<div class="pipeline-page">'
     + '<div>'
@@ -902,17 +899,12 @@ function renderChainsPage(container) {
     + '<p style="font-size:14px;color:#94a3b8;margin:0">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
     + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;margin-top:24px">'
-    + '<input type="text" id="chain-search-input" placeholder="搜索线索链..." ' + (hasCache ? '' : 'disabled') + ' oninput="renderChainsList(_allClueChains)" style="flex:1;border:none;outline:none;font-size:14px;color:#0f172a;padding:8px 0;background:transparent">'
-    + '<select id="chain-filter-cat" ' + (hasCache ? '' : 'disabled') + ' onchange="renderChainsList(_allClueChains)" style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部分类</option>'
-    + catKeys.map(function(k) { return '<option value="'+k+'">'+k+'</option>'; }).join('')
-    + '</select>'
-    + '<select id="chain-filter-level" ' + (hasCache ? '' : 'disabled') + ' onchange="renderChainsList(_allClueChains)" style="border:none;font-size:13px;color:#64748b;padding:6px 8px;background:transparent;cursor:pointer"><option value="">全部等级</option><option value="高风险">含高风险环节</option><option value="中风险">含中风险环节</option></select>'
-    + '<span style="font-size:13px;color:#94a3b8"><strong id="chain-header-count">' + (hasCache ? _allClueChains.length : '...') + '</strong> 条</span>'
+    + '<span style="font-size:13px;color:#94a3b8"><strong id="chain-header-count">' + (hasCache ? _allClueChains.length : '...') + '</strong> 条线索链</span>'
     + '</div>'
     + '<div id="chains-body"></div></div>';
 
   if (hasCache) {
-    renderChainsList(_allClueChains, catKeys);
+    renderChainsList(_allClueChains);
   } else {
     loadChainsData();
   }
@@ -930,13 +922,8 @@ async function loadChainsData() {
     // 加载动态触发状态
     await loadChainDynamicStatus();
 
-    // 提取分类
-    var cats = {};
-    clueChains.forEach(function(c) { var p = (c.name || '').split('-')[0]; if (p) cats[p] = true; });
-    var catKeys = Object.keys(cats).sort();
-
     _allClueChains = clueChains;
-    renderChainsList(clueChains, catKeys);
+    renderChainsList(clueChains);
   } catch (e) {
     if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
@@ -961,29 +948,11 @@ async function loadChainDynamicStatus() {
   } catch(e) { _chainDynamic = { chain_execution: [], evidence_closures: [], closed_count: 0, triggered_count: 0 }; }
 }
 
-function renderChainsList(chains, catKeys) {
+function renderChainsList(chains) {
   var target = document.getElementById('chains-body');
   if (!target) return;
 
-  var q = (document.getElementById('chain-search-input')?.value || '').toLowerCase();
-  var cat = document.getElementById('chain-filter-cat')?.value || '';
-  var lvl = document.getElementById('chain-filter-level')?.value || '';
-
-  var filtered = chains.filter(function(c) {
-    if (q && (c.name||'').toLowerCase().indexOf(q) === -1) return false;
-    if (cat && !(c.name||'').startsWith(cat)) return false;
-    if (lvl === '高风险') {
-      var hasHigh = false;
-      (c.investigation_path||[]).forEach(function(s) { if (s.level==='高风险') hasHigh=true; });
-      if (!hasHigh) return false;
-    }
-    if (lvl === '中风险') {
-      var hasMid = false;
-      (c.investigation_path||[]).forEach(function(s) { if (s.level==='中风险') hasMid=true; });
-      if (!hasMid) return false;
-    }
-    return true;
-  });
+  var filtered = chains; // 无筛选，直接全部展示
 
   var execMap = {};
   if (_chainDynamic && _chainDynamic.chain_execution) {
