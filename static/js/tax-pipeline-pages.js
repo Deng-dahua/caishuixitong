@@ -1393,7 +1393,7 @@ function renderAnalyzeResult(report) {
     + '<div style="padding:14px 16px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626"><strong style="color:#0f172a;font-size:13px">④ 规则引擎与链驱动检查</strong><br>' + pc('rules','1505') + '条稽查指令逐条匹配，' + pc('trailChains','391') + '条线索链触发，' + pc('evidenceChains','740') + '条证据链闭环检测。</div>'
     + '<div style="padding:14px 16px;background:#fffbeb;border-radius:6px;border-left:3px solid #f59e0b"><strong style="color:#0f172a;font-size:13px">⑤ 方法论噪声过滤器</strong><br>HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。稽查重点发现不受过滤影响。</div>'
     + '<div style="padding:14px 16px;background:#fdf2f8;border-radius:6px;border-left:3px solid #ec4899"><strong style="color:#0f172a;font-size:13px">⑥ 行业对标与申报比对</strong><br>66行业基准值自动对标（毛利率/净利率/税负率/进销比/人均营收五维），申报表vs发票实际比对。</div>'
-    + '<div style="padding:14px 16px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a"><strong style="color:#0f172a;font-size:13px">⑦ 正式稽查报告输出</strong><br>结构化HTML报告+四步分析框架+明细数据+法律依据+消除路径建议。报告为独立HTML文件，可直接交付。</div>'
+    + '<div style="padding:14px 16px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a"><strong style="color:#0f172a;font-size:13px">⑦ 正式稽查报告输出</strong><br>按《税务稽查工作规程》标准格式生成7章节+附件的完整稽查报告（详见第七节「稽查报告标准格式」）。</div>'
     + '</div>';
 
   // ══════ 三、本次分析结果 ══════
