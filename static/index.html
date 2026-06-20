@@ -325,21 +325,29 @@
 <!-- 侧边栏加载时自动滚到最底部（AI行为准则可见） -->
 <script>
 (function() {
-  function scrollSidebarToBottom() {
+  var scrolled = false;
+  function doScroll() {
+    if (scrolled) return;
     var nav = document.querySelector('.sidebar-nav');
-    if (nav) {
+    if (nav && nav.scrollHeight > nav.clientHeight + 10) {
       nav.scrollTop = nav.scrollHeight;
+      scrolled = true;
     }
   }
-  // DOM就绪后执行
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scrollSidebarToBottom);
-  } else {
-    scrollSidebarToBottom();
+  // MutationObserver：监听侧边栏子元素变化，一有内容就滚到底
+  function watchNav() {
+    var nav = document.querySelector('.sidebar-nav');
+    if (!nav) { setTimeout(watchNav, 50); return; }
+    var observer = new MutationObserver(function(mutations) { doScroll(); });
+    observer.observe(nav, { childList: true, subtree: true, attributes: false });
+    doScroll();
   }
-  // init() 执行完后再执行一次（init会渲染侧边栏，可能改变scrollHeight）
-  setTimeout(scrollSidebarToBottom, 100);
-  setTimeout(scrollSidebarToBottom, 500);
+  // 多时机触发，确保覆盖所有渲染路径
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(watchNav, 0); });
+  window.addEventListener('load', doScroll);
+  setTimeout(watchNav, 300);
+  setTimeout(doScroll, 800);
+  setTimeout(doScroll, 1500);
 })();
 </script>
 
