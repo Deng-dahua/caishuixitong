@@ -921,7 +921,7 @@ function renderChainsPage(container) {
   container.innerHTML = '<div class="pipeline-page">'
     + '<div>'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">稽查调查路径，每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
     + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;margin-top:24px">'
     + '<span style="font-size:13px;color:#94a3b8"><strong id="chain-header-count">' + (hasCache ? _allClueChains.length : '...') + '</strong> 条线索链</span>'
@@ -930,6 +930,11 @@ function renderChainsPage(container) {
 
   if (hasCache) {
     renderChainsList(_allClueChains);
+    // 更新标题栏显示触发数量
+    var st = document.getElementById('chains-subtitle');
+    if (st && _chainDynamic) {
+      st.textContent = _allClueChains.length + ' 条线索链（本次触发 ' + (_chainDynamic.triggered_count || 0) + ' 条）· 每条链含若干调查步骤，触发率=已触发步骤/总步骤';
+    }
   } else {
     loadChainsData();
   }
@@ -950,6 +955,11 @@ async function loadChainsData() {
 
     _allClueChains = clueChains;
     renderChainsList(clueChains);
+    // 更新标题栏显示触发数量
+    var st = document.getElementById('chains-subtitle');
+    if (st && _chainDynamic) {
+      st.textContent = clueChains.length + ' 条线索链（本次触发 ' + (_chainDynamic.triggered_count || 0) + ' 条）· 每条链含若干调查步骤，触发率=已触发步骤/总步骤';
+    }
   } catch (e) {
     if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
