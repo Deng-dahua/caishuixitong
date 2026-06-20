@@ -1318,6 +1318,97 @@ function toggleDomainDetail(idx) {
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
+// ==================== 跨域线索链页面 ====================
+function renderCrossDomainCluesPage(container) {
+  if (!container) return;
+  container.innerHTML = '<div style="max-width:960px;margin:0 auto;padding:40px 24px 80px">'
+    + '<div style="margin-bottom:48px">'
+    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域线索链</h2>'
+    + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查</p>'
+    + '</div>'
+    + '<div id="cdc-body"></div>'
+    + '</div>';
+  loadCrossDomainClues();
+}
+
+function loadCrossDomainClues() {
+  var target = document.getElementById('cdc-body');
+  fetch('/static/cross_domain_clues.json?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(clues) {
+      var html = '';
+
+      // ══════ 一、概述 ══════
+      html += '<div style="margin-bottom:40px">'
+        + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域线索链</h3>'
+        + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+        + '跨域线索链是从单一数据异常出发，跨多个数据域进行串联调查的标准化路径。每条线索链定义了从首域发现到多域验证的完整调查步骤，'
+        + '确保每个疑点都被多源数据交叉验证——不依赖单一数据源的孤立异常下结论。'
+        + '与跨域证据链不同：线索链定义的是<strong>调查路径</strong>（怎么查），证据链定义的是<strong>验证标准</strong>（怎么判）。'
+        + '</p>'
+        + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+        + '<strong>与跨域证据链的关系</strong>：线索链（调查路径）→ 证据链（验证标准）→ 结论。线索链告诉稽查人员"从哪里开始查，每一步查什么"，证据链告诉稽查人员"满足什么条件才算发现问题"。'
+        + '</div>'
+        + '</div>';
+
+      // 统计
+      var highCount = clues.filter(function(c) { return c.level === '高风险'; }).length;
+      var totalSteps = clues.reduce(function(s,c){return s+(c.investigation_path||[]).length;},0);
+      html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + clues.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
+        + '</div>';
+
+      // ══════ 二、线索链定义 ══════
+      html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、跨域线索链定义</h3>';
+
+      clues.forEach(function(c) {
+        var levelColor = c.level === '高风险' ? '#dc2626' : '#f59e0b';
+        var levelBg = c.level === '高风险' ? '#fef2f2' : '#fffbeb';
+
+        html += '<div style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+          + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + '</div>'
+          + '<div style="display:flex;gap:8px;align-items:center">'
+          + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + c.level + '</span>'
+          + '<span style="font-size:11px;color:#94a3b8">' + escHtml(c.sub_topic) + '</span>'
+          + '<span style="font-size:11px;color:#94a3b8">需≥' + c.min_evidence + '域</span>'
+          + '</div>'
+          + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+
+          // 调查路径
+          + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">调查路径 · ' + (c.investigation_path||[]).length + ' 步</div>';
+        (c.investigation_path||[]).forEach(function(s) {
+          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:1.8">'
+            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">Step ' + s.step + '</span>'
+            + '<span style="font-weight:600;color:#2563eb">' + escHtml(s.domain) + '</span>'
+            + '<span style="color:#64748b"> → ' + escHtml(s.action) + '</span>'
+            + '<div style="color:#94a3b8;font-size:12px;margin-top:2px">所需资料：' + escHtml(s.data_required) + '</div>'
+            + '</div>';
+        });
+        html += '</div>'
+
+          + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
+          + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
+          + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8"><span style="font-weight:600">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
+          + '</div>';
+      });
+
+      html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+        + '<strong>线索链 ≠ 证据链</strong>：线索链告诉你"怎么查"——从哪个域开始、每一步查什么、需要什么资料；证据链告诉你"怎么判"——满足什么条件才算形成证据闭环。'
+        + '两者结合使用：线索链指导取证，证据链指导认证。'
+        + '</div>';
+
+      target.innerHTML = html;
+    })
+    .catch(function() {
+      if (target) target.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">跨域线索链加载失败</div>';
+    });
+}
+
 // ==================== 页面4：方法论过滤器 ====================
 function renderMethodologyFilterPage(container) {
   if (!container) return;

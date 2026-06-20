@@ -66,6 +66,7 @@ const pages = {
   'evidence-page': '证据链',
   'analyze-page': '分析链',
   'cross-domain-evidence': '跨域证据链',
+  'cross-domain-clues': '跨域线索链',
   'system-logs': '系统日志',
   'ai-rules': 'AI行为准则'
 };
@@ -550,6 +551,7 @@ function navigateTo(page) {
     case 'evidence-page': renderEvidencePage(container); break;
     case 'analyze-page': renderAnalyzePage(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
+    case 'cross-domain-clues': renderCrossDomainCluesPage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
   }
