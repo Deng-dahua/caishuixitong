@@ -1648,11 +1648,12 @@ function renderAnalyzeResult(report) {
     {id:'㉕', name:'三层行业穿透法（报告第一章强制要求）', desc:'工商登记（法律形式）→发票数据（经营实质）→加工信号（业务模式），三者不一致时以实质重于形式为原则。报告第一章必须呈现三层结论：工商登记X / 发票推断Y / 实质经营Z → 综合判断。代码：main.py _detect_target_entity()+_three_layer_industry_penetration()。全行业适用。'},
     {id:'㉖', name:'经营实质点面推理法（全行业适用）', desc:'单点发现→数据扩展→关联维度（供应商/客户/加工商/运输成本）→交叉验证→综合结论（全链条经营实质）。从单点风险推理出面的风险。代码：main.py _domain_geographic_analysis()。适用所有行业。'},
     {id:'㉗', name:'稽查六员跨企业比对（全行业适用）', desc:'联网核查获取六员（法定代表人/董事/监事/财务负责人/股东/经理）后，双重检测：①一人多角——同一人≥3个关键角色→内控缺陷②跨企业人员重叠——六员在其他企业任职→关联关系→资金回流/转移定价/虚开发票连锁风险。代码：main.py:18866 _check_six_personnel_risk() + tax-doc-analysis.js六员风险渲染。全行业各企业适用。'},
-    {id:'㉘', name:'供应链联网核查（全链条人员交叉比对）', desc:'不仅查被查单位，还对TOP供应商/客户执行联网核查：发票提取名称→搜索引擎查六员→逐名与本企业六员交叉比对→发现重叠即关联交易信号。同时检测供应商=客户（购销闭环→虚开发票嫌疑）。三段式跨域分析：发票数据+人员信息+资金流。代码：main.py:18977 _lookup_supply_chain()。全行业各企业适用。'}
+    {id:'㉘', name:'供应链联网核查（全链条人员交叉比对）', desc:'不仅查被查单位，还对TOP供应商/客户执行联网核查：发票提取名称→搜索引擎查六员→逐名与本企业六员交叉比对→发现重叠即关联交易信号。同时检测供应商=客户（购销闭环→虚开发票嫌疑）。三段式跨域分析：发票数据+人员信息+资金流。代码：main.py:18977 _lookup_supply_chain()。全行业各企业适用。'},
+    {id:'㉙', name:'主营业务聚焦法（全行业适用）', desc:'判断企业所属行业时，必须以主营业务发票为依据，排除住宿费、餐饮费、加油费、租赁费、差旅费、保险费、通讯费、办公费、快递费、广告费、咨询费、法律费、维修费、物业费、停车费、经纪代理费、代订费等经营费用。经营费用是所有企业共同的日常支出，不反映行业特征。任何行业的经营费用种类相似（房租、水电、差旅、办公），但生产物资品类各行业不同（纺织→棉纱、电子→芯片、食品→原料）。代码：main.py _is_expense() + 规则999504 + _generate_biz_substance_findings()。全行业各企业适用。'}
   ];
 
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉘条已全部代码化）</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉙条已全部代码化）</h3>'
     + '<div id="methods-body" style="font-size:13px;color:#475569;line-height:2">加载中...</div>'
     + '</div>';
   // 延迟加载方法论（从 audit_chains.json 读取，支持多字段）
