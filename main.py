@@ -17925,21 +17925,18 @@ def _run_analyze(company_id, db):
     
     # ═══ 经营实质信号检测：加工费+进销品名差异 → 外包轻加工 ═══
     if pur_invs and sal_invs:
-        has_processing_fee = any("加工" in str(i.get("goods", "")) for i in pur_invs)
+        # 兼容 goods 和 goods_name 两种字段名（解析器输出字段名因版本而异）
+        def _get_goods(inv):
+            return str(inv.get("goods_name", "") or inv.get("goods", "") or "")
+        has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
         pur_goods = set()
         sal_goods = set()
-        pur_goods_count = {}
-        sal_goods_count = {}
         for i in pur_invs:
-            g = str(i.get("goods", "")).strip()
-            if g: 
-                pur_goods.add(g)
-                pur_goods_count[g] = pur_goods_count.get(g, 0) + 1
+            g = _get_goods(i).strip()
+            if g: pur_goods.add(g)
         for i in sal_invs:
-            g = str(i.get("goods", "")).strip()
-            if g: 
-                sal_goods.add(g)
-                sal_goods_count[g] = sal_goods_count.get(g, 0) + 1
+            g = _get_goods(i).strip()
+            if g: sal_goods.add(g)
         common_goods = sorted(pur_goods & sal_goods)  # 进销相同的品名（纯贸易）
         pur_only = sorted(pur_goods - sal_goods)       # 只购进不销售（拟为原料）
         sal_only = sorted(sal_goods - pur_goods)       # 只销售不购进（拟为成品）
