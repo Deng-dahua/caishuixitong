@@ -16748,7 +16748,7 @@ def _run_analyze(company_id, db):
         target_entity["_has_processing_signal"] = False
         target_entity["_goods_analysis"] = {}
         pipeline_log.append(f"经营实质信号跳过: pur_invs={bool(pur_invs)} sal_invs={bool(sal_invs)}")
-    # ═══════════════════════════════════════    # ═══════════════════════════════════════
+    # ═══════════════════════════════════
     
     # ═══ 虚拟进销存分析：用销项/进项发票构建进销匹配 ═══
     inv_match_findings = []
