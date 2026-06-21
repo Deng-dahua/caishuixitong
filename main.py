@@ -17120,7 +17120,11 @@ def _run_analyze(company_id, db):
 
     all_findings = []
     for dr in domain_results:
-        for f in dr["findings"]: all_findings.append({**f, "domain": dr["domain"]})
+        for f in dr["findings"]:
+            if isinstance(f, dict):
+                all_findings.append({**f, "domain": dr["domain"]})
+    # 过滤：确保 all_findings 中所有项都是 dict（防止错误字符串混入）
+    all_findings = [f for f in all_findings if isinstance(f, dict)]
 
     # ═══════ 290规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
     engine_results = []
@@ -17175,8 +17179,14 @@ def _run_analyze(company_id, db):
                         period=str(s.get("period", "2025-01"))[:20])
                     db.add(sr); db.flush(); sr_ids.append(sr.id)
                 except: pass
-            db.commit()
-            pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
+            try:
+                db.commit()
+                pipeline_log.append(f"[临时]数据导入DB: {len(bk_ids)}发票+{len(bt_ids)}流水+{len(sr_ids)}工资")
+            except Exception as _ce:
+                pipeline_log.append(f"[临时]数据导入DB失败(DB只读/权限不足): {_ce}，跳过DB写入，继续内存分析")
+                try: db.rollback()
+                except: pass
+                bk_ids, bt_ids, sr_ids = [], [], []  # 清空ID列表，避免后续清理报错
 
             # 读取实际规则数
             _real_rule_count = 1319
@@ -17245,6 +17255,8 @@ def _run_analyze(company_id, db):
                 except: pass
     
     all_findings.extend(engine_results)
+    # 再次过滤非 dict 项（引擎结果中可能有错误字符串）
+    all_findings = [f for f in all_findings if isinstance(f, dict)]
 
     # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
     domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs)})
