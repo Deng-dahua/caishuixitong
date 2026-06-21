@@ -1476,7 +1476,7 @@ async function loadAnalyzeOverview() {
     + '</div>'
     // 第二层：方法论体系
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">② 方法论体系</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查方法论㉖条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等26条实战方法论。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查方法论㉙条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等29条实战方法论。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>四步稽查分析法</strong> → detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #7c3aed"><strong>三层行业穿透法</strong> → 工商登记+发票数据+加工信号，三者不一致时以实质重于形式为原则。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #059669"><strong>经营实质点面推理法</strong> → 单点发现→数据扩展→关联维度→交叉验证→综合结论。</div>'
@@ -1503,9 +1503,9 @@ async function loadAnalyzeOverview() {
     + '</div>'
     + '</div>'
     + '</div>';
-  // ══════ 四、稽查方法论（㉖条详解）══════
+  // ══════ 四、稽查方法论（㉙条详解）══════
   html += '<div style="margin-bottom:48px;padding:24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（㉖条已全部代码化）</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（㉙条已全部代码化）</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 20px">'
     + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
     + '</p>'
@@ -1619,7 +1619,7 @@ function renderAnalyzeResult(report) {
     h += '</div></div>';
   }
 
-  // ══════ 五、稽查方法论（㉖条详解）══════
+  // ══════ 五、稽查方法论（㉙条详解）══════
   var methods = [
     {id:'①', name:'多格式兼容（全行业适用）', desc:'银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容。PDF发票PDFPlumber解析+OCR兜底。Excel多引擎。代码：main.py _read_file_multi_engine()。适用所有行业所有格式。'},
     {id:'②', name:'汇总行过滤（全行业适用）', desc:'月末汇总行（对手为空+大额整数）→自动识别并剔除。通用规则，与行业无关。代码：main.py _filter_bank_summary_rows()。'},
@@ -1700,7 +1700,7 @@ function renderAnalyzeResult(report) {
     + '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">开放生态系统 · 五大层次 · 持续扩展</p>'
     + '<div style="font-size:12px;color:#475569;line-height:2">'
     + '<div>🗄️ <strong>核心数据资产</strong>：规则引擎(' + pc('rules','1505') + '条) + 线索链(' + pc('trailChains','395') + '条) + 证据链(' + pc('evidenceChains','744') + '条) + 跨域分析链</div>'
-    + '<div>📐 <strong>方法论体系</strong>：稽查方法论㉖条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
+    + '<div>📐 <strong>方法论体系</strong>：稽查方法论㉙条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
     + '<div>🔒 <strong>质量保障机制</strong>：稽查重点强制等级 + 报告纯净度 + 噪声过滤器(97%)</div>'
     + '<div>🏭 <strong>行业认知体系</strong>：25行业词典 + 外包轻加工认知 + 66行业基准值库</div>'
     + '<div>⚙️ <strong>执行管线</strong>：七步流程 + 35域函数 + 全链路溯源</div>'
@@ -2331,10 +2331,10 @@ function renderQualitySystem(container) {
     },
     {
       id: 2, name: '方法论体系', icon: '📐', color: '#7c3aed',
-      desc: '税务稽查的方法论基石。26条稽查方法论全部代码化，六大分析框架覆盖从资料解析到结论输出的全流程。每条方法论都有明确的代码位置可追溯。',
+      desc: '税务稽查的方法论基石。29条稽查方法论全部代码化，六大分析框架覆盖从资料解析到结论输出的全流程。每条方法论都有明确的代码位置可追溯。',
       items: [
-        {name:'稽查方法论㉖条', source:'main.py',
-         desc:'已全部代码化的26条实战方法论：多格式兼容→汇总行过滤→付款方身份核实→关键词≠事实→行业认知补算法→联网核查→明细即信服力→不墨迹直接干→合同分层判断→完备度明细→完备度升级→凭证描述纠正→进销诊断升级→行业基准库→结论分析法→COND_BAN防误杀→稽查重点强制等级→报告纯净度→发票≠收付款1:1→经营实质地理分析→规则detail业务化→建议质量增强→四步稽查分析法→禁止数据截断→三层行业穿透法→经营实质点面推理法。每条对应具体代码位置。'},
+        {name:'稽查方法论㉙条', source:'main.py',
+         desc:'已全部代码化的29条实战方法论：多格式兼容→汇总行过滤→付款方身份核实→关键词≠事实→行业认知补算法→联网核查→明细即信服力→不墨迹直接干→合同分层判断→完备度明细→完备度升级→凭证描述纠正→进销诊断升级→行业基准库→结论分析法→COND_BAN防误杀→稽查重点强制等级→报告纯净度→发票≠收付款1:1→经营实质地理分析→规则detail业务化→建议质量增强→四步稽查分析法→禁止数据截断→三层行业穿透法→经营实质点面推理法。每条对应具体代码位置。'},
         {name:'四步稽查分析法', source:'main.py',
          desc:'核心分析框架。detect（检测现象：线索链触发识别异常信号）→ verify（交叉验证：证据链多源数据核实信号真实性）→ diagnose（根因诊断：双链交叉推理确定异常根因——是制造业加工链条/非经营资金/非对公付款/赊购）→ report（输出结论：证据闭环+风险分级+转移+具体建议）。四大核心发现全部应用四步法，每条发现必须完整呈现推导链。'},
         {name:'三层行业穿透法', source:'main.py',
