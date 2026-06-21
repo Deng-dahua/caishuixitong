@@ -628,7 +628,7 @@ function renderTaxDocReport(r) {
 
     // 第五段：综合判断
     h += '<p class="i2"><b>5. 综合判断。</b>';
-    h += '综合以上分析——工商登记为' + esc(registeredBusiness) + '、进项存在加工费' + (hasProcFee ? '' : '未') + '检出、进销品名存在' + (purOnlyGoods.length + salOnlyGoods.length) + '类实质性差异——';
+    h += '综合以上分析——工商登记为' + esc(registeredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + (purOnlyGoods.length + salOnlyGoods.length) + '类实质性差异——';
     h += '判断被查单位<span class="hl" style="color:#dc2626">实质经营模式为' + esc(actualBusiness) + '</span>，与其工商登记的' + esc(registeredBusiness) + '不完全一致。';
     h += '应在稽查中按实质经营模式进行税务处理，包括但不限于：核实委托加工合同的真实性、加工费支出的合理性、BOM表（物料清单）的完整性、以及进销存数量是否匹配。';
     h += '</p>';
