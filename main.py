@@ -17925,10 +17925,11 @@ def _run_analyze(company_id, db):
     
     # ═══ 经营实质信号检测：加工费+进销品名差异 → 外包轻加工 ═══
     if pur_invs and sal_invs:
-        # 兼容 goods 和 goods_name 两种字段名（解析器输出字段名因版本而异）
+        # 解析器使用 goods 字段（映射自"货物或应税劳务名称"），DB模型用 goods_name
         def _get_goods(inv):
-            return str(inv.get("goods_name", "") or inv.get("goods", "") or "")
+            return str(inv.get("goods", "") or inv.get("goods_name", "") or "")
         has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
+        pipeline_log.append(f"经营实质检测: pur_invs={len(pur_invs)} sal_invs={len(sal_invs)} has_processing_fee={has_processing_fee}")
         pur_goods = set()
         sal_goods = set()
         for i in pur_invs:
@@ -17952,6 +17953,7 @@ def _run_analyze(company_id, db):
     else:
         target_entity["_has_processing_signal"] = False
         target_entity["_goods_analysis"] = {}
+        pipeline_log.append(f"经营实质检测跳过: pur_invs={bool(pur_invs)} sal_invs={bool(sal_invs)}")
     
     # ═══ 稽查方法论⑥ 联网核查：上网查企业工商信息 ═══
     if target_entity.get("name"):
