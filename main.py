@@ -16046,7 +16046,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
                 if big_invs:
                     evidence["超标发票"] = len(big_invs)
                     evidence["最大金额"] = max(x["amount"] for x in big_invs)
-                    return (True, f"数据验证通过：{len(big_invs)}张发票超阈值", 0.85, evidence)
+                    return (True, f"{len(big_invs)}张发票金额超过{thresholds[0]:,.0f}元阈值", 0.85, evidence)
                 else:
                     return (False, "无发票金额超标", 0, {})
             else:
@@ -16068,7 +16068,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
                 if big_txs:
                     evidence["超标流水"] = len(big_txs)
                     evidence["最大金额"] = max(x["amount"] for x in big_txs)
-                    return (True, f"数据验证通过：{len(big_txs)}笔流水超阈值", 0.85, evidence)
+                    return (True, f"{len(big_txs)}笔银行流水超过{thresholds[0]:,.0f}元阈值", 0.85, evidence)
                 else:
                     return (False, "无流水金额超标", 0, {})
             else:
@@ -16082,7 +16082,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
                     if th > 1 and total_salary > th:
                         evidence["总工资"] = total_salary
                         evidence["员工数"] = len(salaries)
-                        return (True, f"数据验证通过：总工资{total_salary:,.0f}超阈值{th}", 0.8, evidence)
+                        return (True, f"总工资{total_salary:,.0f}元超过{th:,.0f}元阈值", 0.8, evidence)
                 return (False, f"总工资{total_salary:,.0f}未超阈值", 0, {})
             else:
                 return (False, "无工资数据", 0, {})
@@ -17353,13 +17353,49 @@ def _run_analyze(company_id, db):
             third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
             third_party_count = sum(1 for tx in bank_txs if any(k in str(tx.get("counterparty","")) for k in third_party_keywords))
             
+            # 获取目标企业行业（用于过滤不相关的行业特化链）
+            target_industry = target_entity.get("industry_online", target_entity.get("industry", ""))
+            # 行业关键词映射：发票推断行业 → audit_chains 中的行业链名称前缀
+            _INDUSTRY_CHAIN_PREFIXES = {
+                "纺织": "行业-纺织", "服装": "行业-纺织", "面料": "行业-纺织",
+                "建筑": "行业-建筑", "施工": "行业-建筑", "工程": "行业-建筑",
+                "制造": "行业-制造", "机械": "行业-制造", "电子": "行业-电子",
+                "餐饮": "行业-餐饮", "食品": "行业-食品",
+                "医疗": "行业-医药", "医药": "行业-医药", "药品": "行业-医药",
+                "软件": "行业-科技", "科技": "行业-科技", "信息": "行业-科技",
+                "批发": "行业-商贸", "零售": "行业-商贸", "贸易": "行业-商贸",
+                "物流": "行业-物流", "运输": "行业-物流",
+                "教育": "行业-教育", "培训": "行业-教育",
+                "酒店": "行业-酒店", "旅游": "行业-酒店",
+                "体育": "行业-体育", "健身": "行业-体育",
+                "汽车": "行业-汽车", "维修": "行业-汽车",
+            }
+            def _chain_matches_industry(chain_name):
+                """判断行业特化链是否匹配目标企业行业，全行业通用链不过滤"""
+                if not chain_name or not chain_name.startswith("行业-"):
+                    return True  # 非行业链，全部执行
+                if not target_industry:
+                    return False  # 不知道行业，跳过所有行业特化链
+                chain_industry = chain_name.split("行业-", 1)[1] if "行业-" in chain_name else ""
+                for ind_kw, chain_prefix in _INDUSTRY_CHAIN_PREFIXES.items():
+                    if ind_kw in target_industry and chain_name.startswith(chain_prefix):
+                        return True
+                return False  # 行业不匹配，跳过
+            
             # 逐一执行每条线索链
             chain_stats = []
             total_chains = len(chains_data.get("chains", []))
             triggered_count = 0
+            skipped_chains = 0
             
             for chain in chains_data.get("chains", []):
                 if chain.get("chain_type") != "线索链": continue  # 只执行线索链
+                
+                # 行业特化链过滤：仅匹配时才执行
+                chain_name = chain.get("name", "")
+                if not _chain_matches_industry(chain_name):
+                    skipped_chains += 1
+                    continue
                 
                 steps_exec = []  # 每条步骤的执行结果
                 triggered_steps = 0
@@ -17446,20 +17482,88 @@ def _run_analyze(company_id, db):
                     if s["triggered"] and not s.get("finding_ref") and s.get("rule_id"):
                         rule = rule_map.get(s["rule_id"])
                         if rule and s["rule_item"] not in [f.get("type", "") for f in all_findings]:
-                            chain_findings.append({
-                                "type": s["rule_item"][:40],
-                                "level": rule.get("level", "中风险"),
-                                "score": rule.get("score", 5),
-                                "detail": rule.get("detail", "")[:200],
-                                "description": f"根据{s['reason']}",
-                                "how_found": f"链驱动分析：{ce['chain_name']} → {s['step']} → 规则R{s['rule_id']}命中",
-                                "tax_impact": rule.get("tax_impact", ""),
-                                "policy_ref": rule.get("policy_ref", ""),
-                                "suggestion": rule.get("suggestion", ""),
-                                "category": rule.get("category", ""),
-                                "chain_driven": True,
-                                "source_chain": ce["chain_name"],
-                            })
+                            # ── 特殊处理：收款开票偏差 → 逐笔匹配 ──
+                            if s["rule_id"] == 217:
+                                from collections import defaultdict as _dd2
+                                # 银行收款按收款方分组（贷方=收入）
+                                bank_by_counterparty = _dd2(float)
+                                for tx in bank_txs:
+                                    cp = str(tx.get("counterparty", tx.get("counterparty_name", ""))).strip()
+                                    credit = float(tx.get("credit", 0) or 0)
+                                    if cp and credit > 0:
+                                        bank_by_counterparty[cp] += credit
+                                # 销项发票按购买方分组
+                                inv_by_buyer = _dd2(float)
+                                for inv in sal_invs:
+                                    buyer = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
+                                    amt = float(inv.get("amount", inv.get("total", 0)) or 0)
+                                    if buyer and amt > 0:
+                                        inv_by_buyer[buyer] += amt
+                                
+                                # 计算总体偏差
+                                total_receipts = sum(bank_by_counterparty.values())
+                                total_sales = sum(inv_by_buyer.values())
+                                dev_pct = round(abs(total_receipts - total_sales) / max(total_sales, 1) * 100)
+                                
+                                # 逐客户/收款方对比
+                                all_names = set(list(bank_by_counterparty.keys()) + list(inv_by_buyer.keys()))
+                                match_details = []
+                                for name in sorted(all_names, key=lambda n: bank_by_counterparty.get(n, 0) + inv_by_buyer.get(n, 0), reverse=True)[:15]:
+                                    brev = bank_by_counterparty.get(name, 0)
+                                    iamt = inv_by_buyer.get(name, 0)
+                                    gap = brev - iamt
+                                    if abs(gap) > 1000:  # 只显示有偏差的
+                                        match_details.append({
+                                            "往来方": name,
+                                            "银行收款": f"{brev:,.0f}",
+                                            "开票金额": f"{iamt:,.0f}",
+                                            "偏差": f"{gap:+,.0f}",
+                                            "判断": "收款＞开票→未开票收入存疑" if gap > 0 else "开票＞收款→应收账款/现金交易"
+                                        })
+                                
+                                detail_text = (
+                                    f"银行收款总额{total_receipts:,.0f}元 vs 销项开票{total_sales:,.0f}元，"
+                                    f"偏差{dev_pct}%。"
+                                    f"{'银行收款大于开票，需核查是否有未开票收入。' if total_receipts > total_sales else '开票大于银行收款，需核查应收账款回收情况。'}"
+                                    f"{'逐户比对发现' + str(len(match_details)) + '户存在显著偏差。' if match_details else ''}"
+                                )
+                                
+                                suggestion_text = (
+                                    f"①已自动完成银行收款与销项开票的逐户比对（共{len(all_names)}户）；"
+                                    f"②{'收款超出开票的' + str(sum(1 for m in match_details if m['偏差'].startswith('+')) if match_details else '0') + '户需提供未开票收入申报记录；' if match_details else ''}"
+                                    f"③{'开票超出收款的' + str(sum(1 for m in match_details if m['偏差'].startswith('-')) if match_details else '0') + '户需提供应收账款明细和回款计划' if match_details else ''}"
+                                )
+                                
+                                chain_findings.append({
+                                    "type": s["rule_item"][:40],
+                                    "level": rule.get("level", "中风险"),
+                                    "score": rule.get("score", 5),
+                                    "detail": detail_text[:300],
+                                    "description": detail_text[:300],
+                                    "how_found": f"逐户比对{len(all_names)}个往来方：银行贷方收入vs销项发票价税合计→发现{len(match_details)}户偏差",
+                                    "tax_impact": rule.get("tax_impact", ""),
+                                    "policy_ref": rule.get("policy_ref", ""),
+                                    "suggestion": suggestion_text,
+                                    "category": rule.get("category", ""),
+                                    "chain_driven": True,
+                                    "source_chain": ce["chain_name"],
+                                    "items": match_details,
+                                })
+                            else:
+                                chain_findings.append({
+                                    "type": s["rule_item"][:40],
+                                    "level": rule.get("level", "中风险"),
+                                    "score": rule.get("score", 5),
+                                    "detail": rule.get("detail", "")[:200],
+                                    "description": rule.get("detail", "")[:200],
+                                    "how_found": f"线索链「{ce['chain_name']}」→{s['step']}触发规则{s['rule_id']}",
+                                    "tax_impact": rule.get("tax_impact", ""),
+                                    "policy_ref": rule.get("policy_ref", ""),
+                                    "suggestion": rule.get("suggestion", ""),
+                                    "category": rule.get("category", ""),
+                                    "chain_driven": True,
+                                    "source_chain": ce["chain_name"],
+                                })
             
             # 合并链驱动发现到总发现列表
             if chain_findings:
@@ -17595,7 +17699,7 @@ def _run_analyze(company_id, db):
             # ═══════════════════════════════════════════════════
             
             if chain_execution:
-                pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行, {triggered_count}条触发, {len(chain_findings)}条新发现")
+                pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行({skipped_chains}条行业不匹配跳过), {triggered_count}条触发, {len(chain_findings)}条新发现")
             if evidence_closures:
                 pipeline_log.append(f"证据链闭环: {sum(1 for e in evidence_closures if e['closed'])}条闭环({len(triggered_rule_ids_for_evidence)}条规则参与判定)")
             pipeline_log.append(f"全链路执行: 线索链{len(chain_execution)}条 → 证据链{len(evidence_closures)}条 → 规则{len(triggered_rule_ids_for_evidence)}条触发")
