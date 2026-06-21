@@ -167,6 +167,7 @@ function renderSalaryPage(container) {
     const app = container || document.getElementById('page-salary') || document.getElementById('content-area');
     app.style.cssText = 'display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0';
     app.innerHTML = `
+        <div class="card card-fill">
         <div id="salary-stats" class="stats-cards"></div>
         <div class="page-header">
             <div></div>
@@ -231,6 +232,7 @@ function renderSalaryPage(container) {
                     <tr><td colspan="46" style="text-align:center;color:#999">加载中...</td></tr>
                 </tbody>
             </table>
+        </div>
         </div>
     `;
 }

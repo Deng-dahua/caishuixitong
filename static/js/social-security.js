@@ -95,7 +95,7 @@ async function renderSocialSecurity(container) {
   // 总列数 = 9个基本信息列 + 30个保险列 + 1个操作列 = 40
   // 基本信息列: 序号/姓名/证件号码/所属期起/所属期止/应收金额/个人社保/单位社保/缴费工资
   container.innerHTML =
-    '<div class="module-page">'
+    '<div class="card card-fill">'
     + '<div class="stats-row" id="ss-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;"></div>'
     + '<div class="toolbar">'
       + '<div class="toolbar-left" style="display:flex;align-items:center;flex-wrap:wrap">'

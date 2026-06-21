@@ -182,9 +182,9 @@ function renderVATPeriodEmpty(period) {
 async function renderVATDeclaration(container) {
   vatInlineDisplayId = null;
   const el = container || document.getElementById('page-vat-declaration') || document.getElementById('content-area');
-  el.innerHTML = '<div id="vat-stats-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px"></div>'
+  el.innerHTML = '<div class="card card-fill"><div id="vat-stats-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px"></div>'
     + '<div id="vat-forms-inline" style="display:none;margin-top:20px;background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:20px"></div>'
-    + '<div id="vat-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeVATModal()"><div class="modal modal-lg" id="vat-modal-inner"></div></div>';
+    + '<div id="vat-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeVATModal()"><div class="modal modal-lg" id="vat-modal-inner"></div></div></div>';
   await loadVATDeclarationList();
 }
 

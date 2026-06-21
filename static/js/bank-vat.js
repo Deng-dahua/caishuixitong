@@ -47,7 +47,7 @@ async function renderBankTransactions(container) {
   }
 
   const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-  let html = '';
+  let html = '<div class="card card-fill">';
 
   // 统计卡片
   html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
@@ -73,6 +73,7 @@ async function renderBankTransactions(container) {
 
   // 表格
   html += '<div id="bank-tx-table-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>';
+  html += '</div>';
 
   el.innerHTML = html;
   loadBankTxList();

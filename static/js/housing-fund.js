@@ -111,7 +111,7 @@ async function renderHousingFund(container) {
   }
 
   container.innerHTML = `
-    <div class="module-page">
+    <div class="card card-fill">
       <div class="stats-row" id="hf-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;"></div>
       <div class="toolbar">
         <div class="toolbar-left" style="display:flex;align-items:center;flex-wrap:wrap">

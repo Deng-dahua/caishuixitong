@@ -15,7 +15,7 @@ async function renderJournal(container) {
   el.innerHTML = '<div style="color:#999;padding:20px">加载中...</div>';
   try {
     const stats = await api('/api/journal-entries/stats');
-    let html = '';
+    let html = '<div class="card card-fill">';
 
     // 统计卡片
     html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
@@ -38,6 +38,7 @@ async function renderJournal(container) {
     html += '<div id="je-table-wrap" class="table-wrap" style="flex:1;overflow:auto;padding-bottom:4px"></div>';
     // 分页栏
     html += '<div id="je-pagination" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0;flex-shrink:0"></div>';
+    html += '</div>';
 
     el.innerHTML = html;
     buildJePeriodBar();
