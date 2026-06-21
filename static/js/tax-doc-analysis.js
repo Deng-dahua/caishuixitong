@@ -555,25 +555,39 @@ function renderTaxDocReport(r) {
     }
   }
 
-  // 三层行业穿透法结论呈现
+  // ═══ 经营实质综合判断 ═══
+  // 注册行业（来自联网核查的 company_type 或 industry_online）
+  var registeredBusiness = te.company_type || te.industry_online || '';
+  // 发票推断行业（来自 goods 关键词分析）
+  var inferredBusiness = te.industry || '';
+  // 加工信号：是否存在进销品名差异 + 加工费
+  var hasProcessingSignal = !!(te._has_processing_signal || (ii && ii['加工费信号']));
+  // 综合判断实质经营类型
+  var actualBusiness = '';
+  var showJudgment = false;
+  if (registeredBusiness && inferredBusiness && registeredBusiness !== inferredBusiness) {
+    showJudgment = true;
+    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
+  } else if (!registeredBusiness && inferredBusiness) {
+    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
+  }
+
+  // 经营实质核查结论（无方法论标签，纯业务表述）
   h += '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">'
-    + '<div style="font-weight:700;color:#166534;margin-bottom:8px">ⓘ 三层行业穿透法结论（稽查方法论㉕）</div>'
-    + '<div><span class="flabel" style="color:#374151">第一层（工商登记）：</span>' + esc(te.industry || '未知') + '</div>'
-    + '<div><span class="flabel" style="color:#374151">第二层（发票数据）：</span>' + esc(te.industry_inferred || te.industry || '未知') + '</div>'
-    + '<div><span class="flabel" style="color:#374151">第三层（加工信号）：</span>' + esc(te.business_model || te.registered_type || '未知') + '</div>'
-    + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0"><span class="flabel" style="color:#166534">综合判断：</span>'
-    + esc((te.industry ? '工商登记为' + te.industry : '')
-         + (te.registered_type && te.registered_type !== te.industry ? '，发票数据+加工信号确认实质为' + te.registered_type : '')
-         + '。三者' + (te.industry && te.registered_type && te.industry !== te.registered_type ? '不一致，以实质重于形式为原则' : '一致'))
-    + '。</div>'
+    + '<div style="font-weight:700;color:#166534;margin-bottom:8px">经营实质核查</div>'
+    + '<div><span class="flabel" style="color:#374151">工商登记类型：</span>' + esc(registeredBusiness || te.type || '未知') + '</div>'
+    + '<div><span class="flabel" style="color:#374151">发票数据推断：</span>' + esc(inferredBusiness || '未知') + '</div>'
+    + '<div><span class="flabel" style="color:#374151">加工信号：</span>' + (hasProcessingSignal ? '存在外包轻加工环节（加工费发票+进销品名差异）' : '未发现加工信号') + '</div>'
+    + (showJudgment ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0"><span class="flabel" style="color:#166534">综合判断：</span>'
+      + '工商登记为' + esc(registeredBusiness) + '，发票数据+加工信号确认实质为' + esc(actualBusiness) + '。以实质重于形式为原则。</div>' : '')
     + '</div>';
 
   h += '<p class="i2">' + esc(
     '本案为资料风险分析预审案件。被查单位' +
     (te.name || '') +
-    (te.industry ? '，工商登记行业为' + te.industry : '') +
-    (te.registered_type && te.registered_type !== te.industry ? '，实质经营为' + te.registered_type : '') +
-    (te.legal_person ? '，法定代表人' + te.legal_person : '') +
+    (registeredBusiness ? '，工商登记为' + registeredBusiness : (inferredBusiness ? '，所属行业为' + inferredBusiness : '')) +
+    (showJudgment ? '，实质经营为' + actualBusiness : '') +
+    (te.legal_person || te.legal_representative ? '，法定代表人' + (te.legal_person || te.legal_representative) : '') +
     '。'
     ) + '</p>';
 

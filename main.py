@@ -17793,6 +17793,22 @@ def _run_analyze(company_id, db):
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
     
+    # ═══ 经营实质信号检测：加工费+进销品名差异 → 外包轻加工 ═══
+    if pur_invs and sal_invs:
+        has_processing_fee = any("加工" in str(i.get("goods", "")) for i in pur_invs)
+        pur_goods = set()
+        sal_goods = set()
+        for i in pur_invs:
+            g = str(i.get("goods", "")).strip()
+            if g: pur_goods.add(g)
+        for i in sal_invs:
+            g = str(i.get("goods", "")).strip()
+            if g: sal_goods.add(g)
+        has_goods_mismatch = bool(pur_goods - sal_goods) and bool(sal_goods - pur_goods)
+        target_entity["_has_processing_signal"] = has_processing_fee or has_goods_mismatch
+    else:
+        target_entity["_has_processing_signal"] = False
+    
     # ═══ 稽查方法论⑥ 联网核查：上网查企业工商信息 ═══
     if target_entity.get("name"):
         try:
