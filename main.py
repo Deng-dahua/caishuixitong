@@ -17926,17 +17926,31 @@ def _run_analyze(company_id, db):
     if pur_invs and sal_invs:
         def _get_goods(inv):
             return str(inv.get("goods", "") or inv.get("goods_name", "") or "")
+        
+        # 经营费用关键词——这些是日常运营支出，不是生产物资，不应混入原材料分析
+        _EXPENSE_KWS = ["住宿", "餐饮", "餐费", "房费", "汽油", "柴油", "加油",
+                        "旅游", "差旅", "租赁", "保险", "通讯", "电话", "办公",
+                        "快递", "广告", "咨询", "法律", "维修", "物业", "停车",
+                        "经纪代理", "代订"]
+        def _is_expense(goods_name):
+            return any(kw in goods_name for kw in _EXPENSE_KWS)
+        
+        # 加工费信号——从全部进项中检测（含费用类，但加工费本身就是生产信号）
         has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
-        pur_goods = set(); sal_goods = set()
+        
+        # 品名分析——仅分析生产物资，排除经营费用
+        pur_production = set()
+        sal_goods = set()
         for i in pur_invs:
             g = _get_goods(i).strip()
-            if g: pur_goods.add(g)
+            if g and not _is_expense(g):
+                pur_production.add(g)
         for i in sal_invs:
             g = _get_goods(i).strip()
             if g: sal_goods.add(g)
-        common_goods = sorted(pur_goods & sal_goods)
-        pur_only = sorted(pur_goods - sal_goods)
-        sal_only = sorted(sal_goods - pur_goods)
+        common_goods = sorted(pur_production & sal_goods)
+        pur_only = sorted(pur_production - sal_goods)
+        sal_only = sorted(sal_goods - pur_production)
         target_entity["_has_processing_signal"] = has_processing_fee or (bool(pur_only) and bool(sal_only))
         target_entity["_goods_analysis"] = {
             "common_goods": common_goods, "pur_only_goods": pur_only,
