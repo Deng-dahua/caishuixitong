@@ -1004,7 +1004,7 @@ function renderChainsList(chains) {
       var isNewFormat = !!(c.steps && Array.isArray(c.steps) && c.steps.length > 0 && c.steps[0].action);
       var stepList = isOldFormat ? c.investigation_path : (isNewFormat ? c.steps : (c.investigation_path || []));
       var totalS = stepList.length;
-      var highRiskSteps = c.high_risk_steps || [];
+      var highRiskStepCount = (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
       var triggeredSteps = exec ? exec.triggered_steps : 0;
       var ratio = exec ? exec.triggered_ratio : 0;
       var subTopic = c.sub_topic || '';
@@ -1047,7 +1047,7 @@ function renderChainsList(chains) {
           var lvl = s.level || '';
           var lvlColor = lvl === '高风险' ? '#dc2626' : (lvl === '中风险' ? '#f59e0b' : (lvl === '低风险' ? '#059669' : '#94a3b8'));
           var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
-          var isHigh = highRiskSteps.indexOf(si + 1) >= 0 || highRiskSteps.indexOf(s.rule_id) >= 0;
+          var isHigh = lvl === '高风险';
 
           html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
             + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
@@ -1068,7 +1068,7 @@ function renderChainsList(chains) {
         html += '<div style="margin-bottom:12px">';
         stepList.forEach(function(s, si) {
           var stepNum = s.step || (si + 1);
-          var isHigh = highRiskSteps.indexOf(stepNum) >= 0;
+          var isHigh = !!(s.level && s.level === '高风险');
 
           html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
             + '<div style="display:flex;align-items:center;gap:8px">'
@@ -1117,7 +1117,7 @@ function renderChainsList(chains) {
       // ══ 底部元信息栏 ═══
       html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
         + '<span>📝 步骤 <b style="color:#475569">' + totalS + '</b> 条</span>'
-        + (highRiskSteps.length > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskSteps.length + '</b> 个</span>' : '')
+        + (highRiskStepCount > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskStepCount + '</b> 个</span>' : '')
         + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
         + (c.related_chain_count > 0 ? '<span>🔗 关联证据链 <b style="color:#475569">' + c.related_chain_count + '</b> 条</span>' : '')
         + (qualityScore > 0 ? '<span>⭐ 质量评分 <b style="color:#475569">' + qualityScore + '</b></span>' : '')
@@ -1230,7 +1230,7 @@ function renderEvidenceList(chains) {
         var subTopic = c.sub_topic || '';
         var qualityScore = c.quality_score || 0;
         var stepCount = isArrayFormat ? ip.length : (typeof c.steps === 'number' ? c.steps : (typeof c.total_steps === 'number' ? c.total_steps : (Array.isArray(ip) ? ip.length : 0)));
-        var highRiskSteps = c.high_risk_steps || [];
+        var highRiskStepCount = (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
 
         var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
         var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
@@ -1256,7 +1256,7 @@ function renderEvidenceList(chains) {
             var lvl = s.level || '';
             var lvlColor = lvl === '高风险' ? '#dc2626' : (lvl === '中风险' ? '#f59e0b' : (lvl === '低风险' ? '#059669' : '#94a3b8'));
             var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
-            var isHigh = highRiskSteps.indexOf(si + 1) >= 0 || highRiskSteps.indexOf(s.rule_id) >= 0;
+            var isHigh = lvl === '高风险';
 
             html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
               + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
@@ -1320,7 +1320,7 @@ function renderEvidenceList(chains) {
         // ══ 底部元信息栏 ═══
         html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
           + '<span>📝 步骤 <b style="color:#475569">' + stepCount + '</b> 条</span>'
-          + (highRiskSteps.length > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskSteps.length + '</b> 个</span>' : '')
+          + (highRiskStepCount > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskStepCount + '</b> 个</span>' : '')
           + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
           + (c.related_chain_count > 0 ? '<span>🔗 关联线索链 <b style="color:#475569">' + c.related_chain_count + '</b> 条</span>' : '')
           + (qualityScore > 0 ? '<span>⭐ 质量评分 <b style="color:#475569">' + qualityScore + '</b></span>' : '')
