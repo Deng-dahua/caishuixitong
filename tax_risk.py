@@ -4865,9 +4865,8 @@ def _analyze_biz_substance_registration_mismatch(db, company_id, ps, pe, results
     if not target_entity or not invoices:
         return
 
-    # 获取工商登记信息
-    registered_type = (target_entity.get("company_type") or
-                       target_entity.get("industry_online") or "")
+    # 获取工商登记行业（来自联网核查，非 company_type 企业类型）
+    registered_type = target_entity.get("industry_online", "")
     detected_industry = target_entity.get("industry", "")
     has_processing = target_entity.get("_has_processing_signal", False)
     goods_analysis = target_entity.get("_goods_analysis", {})

@@ -435,7 +435,7 @@ function renderTaxDocReport(r) {
     ['统一社会信用代码', te.uscc || ''],
     ['登记状态', te.company_status || te.status || ''],
     ['企业类型', te.company_type || te.type || ''],
-    ['行业', te.industry || ''],
+    ['行业', te.industry_online || te.industry || ''],
     ['注册地址', te.address || ''],
     ['经营范围', te.business_scope || ''],
   ];
@@ -556,8 +556,8 @@ function renderTaxDocReport(r) {
   }
 
   // ═══ 经营实质变量计算（供 section 2 使用） ═══
-  // 注册行业（来自联网核查的 company_type 或 industry_online）
-  var registeredBusiness = te.company_type || te.industry_online || '';
+  // 工商登记行业（来自联网核查的 industry_online，非 company_type 企业类型）
+  var registeredBusiness = te.industry_online || '';
   // 发票推断行业（来自 goods 关键词分析）
   var inferredBusiness = te.industry || '';
   // 加工信号：是否存在进销品名差异 + 加工费

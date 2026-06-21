@@ -16362,8 +16362,7 @@ def _generate_biz_substance_findings(target_entity, pur_invs, sal_invs):
     if not target_entity:
         return findings
     
-    registered_type = (target_entity.get("company_type") or
-                       target_entity.get("industry_online") or "")
+    registered_type = target_entity.get("industry_online", "")  # 工商登记行业（非company_type企业类型）
     detected_industry = target_entity.get("industry", "")
     has_processing = target_entity.get("_has_processing_signal", False)
     goods_analysis = target_entity.get("_goods_analysis", {})
