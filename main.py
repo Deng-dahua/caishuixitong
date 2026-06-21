@@ -16349,6 +16349,137 @@ def _fix_level_by_audit_priority(ftype, current_level):
     return AUDIT_PRIORITY_LEVELS.get(ftype, current_level)
 
 
+def _generate_biz_substance_findings(target_entity, pur_invs, sal_invs):
+    """经营实质核查发现生成（规则ID: 999501-999503）
+    
+    五步核查法——从用户一句话提炼：
+    ①工商登记→②进项审核(加工费+仅购进品名)→③销项审核(仅销售品名)
+    →④交叉比对(相同=纯贸易,不同=加工转换)→⑤综合判断实质经营模式
+    
+    全行业适用：不依赖行业词库，通过加工费+品名差异统一检测
+    """
+    findings = []
+    if not target_entity:
+        return findings
+    
+    registered_type = (target_entity.get("company_type") or
+                       target_entity.get("industry_online") or "")
+    detected_industry = target_entity.get("industry", "")
+    has_processing = target_entity.get("_has_processing_signal", False)
+    goods_analysis = target_entity.get("_goods_analysis", {})
+    
+    pur_only = goods_analysis.get("pur_only_goods", [])
+    sal_only = goods_analysis.get("sal_only_goods", [])
+    common_goods = goods_analysis.get("common_goods", [])
+    has_proc_fee = goods_analysis.get("has_processing_fee", False)
+    
+    # 无信号无差异 → 跳过
+    if not has_processing and not pur_only and not sal_only:
+        return findings
+    
+    # ── 规则 999501：工商登记企业类型与发票推断不一致 ──
+    biz_desc = ""
+    if has_proc_fee and (pur_only or sal_only):
+        biz_desc = "外包轻加工模式（加工费+进销品名差异双信号）"
+    elif pur_only and sal_only:
+        biz_desc = "可能的加工/制造模式（进销品名存在实质性差异）"
+    elif has_proc_fee:
+        biz_desc = "可能的外包轻加工模式（发现加工费支出）"
+    
+    if not biz_desc:
+        return findings
+    
+    risk_level = "高风险" if (has_proc_fee and pur_only and sal_only) else "中风险"
+    risk_score = 8 if risk_level == "高风险" else 5
+    
+    pur_str = "、".join(pur_only[:8]) if pur_only else "无"
+    sal_str = "、".join(sal_only[:8]) if sal_only else "无"
+    com_str = "、".join(common_goods[:5]) if common_goods else "无"
+    reg_str = registered_type or detected_industry or "未知"
+    
+    findings.append({
+        "type": "经营实质-工商登记与发票推断不一致",
+        "domain": "经营实质核查",
+        "level": risk_level,
+        "score": risk_score,
+        "rule_id": 999501,
+        "detail": (
+            f"工商登记为{reg_str}，但发票数据反映的实质经营为{biz_desc}。"
+            f"仅购进品名({len(pur_only)}类)：{pur_str}；"
+            f"仅销售品名({len(sal_only)}类)：{sal_str}；"
+            f"共同品名({len(common_goods)}类)：{com_str}。"
+            f"{'存在加工费发票。' if has_proc_fee else ''}"
+            f"综合判断：被查单位经营实质与工商登记不完全一致，应按实质经营模式进行税务处理。"
+        ),
+        "suggestion": (
+            "①核实委托加工合同及加工费支出的真实性和合理性；"
+            "②提供BOM表验证进销品名转换的投入产出关系；"
+            "③核实仅销售品名的生产来源（自行生产/委托加工/外购转售）；"
+            "④按实质经营模式重新核定适用税率和成本扣除标准"
+        ),
+        "how_found": "进项发票加工费信号+进销品名交叉比对",
+        "chain_ref": "经营实质-工商登记vs发票数据差异检测",
+        "evidence_ref": "经营实质-进销品名交叉验证闭环",
+        "required_evidence": ["委托加工合同", "BOM表", "加工费付款凭证", "进销存台账"],
+        "level_fixed": True  # 稽查重点，强制等级
+    })
+    
+    # ── 规则 999502：外包轻加工模式缺少委托加工合同 ──
+    if has_proc_fee and "外包" in biz_desc:
+        findings.append({
+            "type": "经营实质-外包轻加工缺少委托加工合同",
+            "domain": "经营实质核查",
+            "level": "高风险",
+            "score": 7,
+            "rule_id": 999502,
+            "detail": (
+                f"企业经营模式中包含外包轻加工环节（发现加工费发票），"
+                f"但缺少对应的委托加工合同。没有合同无法验证："
+                f"①委托加工数量是否合理；②加工单价是否公允；"
+                f"③加工损耗率是否符合行业标准。"
+            ),
+            "suggestion": (
+                "①提供与每家加工商的委托加工合同（载明品名/数量/单价/损耗率/交货期）；"
+                "②提供加工结算单或对账单；③提供加工费银行付款回单；"
+                "④如无法提供——加工费支出可能不被认定为合法成本扣除"
+            ),
+            "how_found": "加工费信号+合同缺失检测",
+            "chain_ref": "经营实质-工商登记vs发票数据差异检测",
+            "evidence_ref": "经营实质-进销品名交叉验证闭环",
+            "required_evidence": ["委托加工合同", "加工结算单", "银行付款回单"],
+            "level_fixed": True
+        })
+    
+    # ── 规则 999503：进销品名差异缺少BOM表 ──
+    if len(pur_only) >= 3 and len(sal_only) >= 2:
+        findings.append({
+            "type": "经营实质-进销品名差异缺少BOM表",
+            "domain": "经营实质核查",
+            "level": "中风险",
+            "score": 6,
+            "rule_id": 999503,
+            "detail": (
+                f"进项发票有{len(pur_only)}类品名仅购进未销售（{pur_str}），"
+                f"销项发票有{len(sal_only)}类品名仅销售未购进（{sal_str}），"
+                f"存在物料转换环节但缺少BOM表。没有BOM表无法判断："
+                f"①每种成品消耗多少原材料；②委托加工数量是否合理；"
+                f"③是否存在虚增原材料或虚减产成品的情况。"
+            ),
+            "suggestion": (
+                "①提供每种成品的BOM表（列明原材料名称、规格、单耗标准）；"
+                "②提供委托加工出入库单，核对原料发出数量与成品收回数量的配比关系；"
+                "③如BOM缺失——加工链条的真实性无法验证，进项税额抵扣存疑"
+            ),
+            "how_found": "进销品名交叉比对",
+            "chain_ref": "经营实质-工商登记vs发票数据差异检测",
+            "evidence_ref": "经营实质-进销品名交叉验证闭环",
+            "required_evidence": ["BOM表", "委托加工出入库单", "原材料/成品仓库台账"],
+            "level_fixed": True
+        })
+    
+    return findings
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -17862,6 +17993,12 @@ def _run_analyze(company_id, db):
                 target_entity["_supply_chain_risk"] = supply_chain_risk
         except Exception as _sc_err:
             pipeline_log.append(f"供应链联网核查失败: {_sc_err}")
+    
+    # ═══ 稽查方法论㉕补充：经营实质核查发现（工商登记vs发票推断） ═══
+    biz_sub_findings = _generate_biz_substance_findings(target_entity, pur_invs, sal_invs)
+    if biz_sub_findings:
+        all_findings.extend(biz_sub_findings)
+        pipeline_log.append(f"经营实质核查: {len(biz_sub_findings)}项发现（五步核查法：工商登记→进项审核→销项审核→交叉比对→综合判断）")
     
     # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
     priority_fixed = 0

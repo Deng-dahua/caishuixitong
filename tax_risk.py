@@ -4841,6 +4841,149 @@ def _analyze_vat_zero_declaration(db, company_id, ps, pe, results):
         })
 
 
+# ═══════════════════════════════════════════════════════════
+#  V9 新增 — 经营实质-工商登记vs发票推断差异检测
+#  规则ID: 999501-999503
+#  来源：用户一句话提炼——进项加工费+销项品名差异→外包轻加工
+# ═══════════════════════════════════════════════════════════
+
+def _analyze_biz_substance_registration_mismatch(db, company_id, ps, pe, results,
+                                                  invoices=None, bank_txs=None,
+                                                  target_entity=None):
+    """规则 999501：工商登记企业类型与发票数据推断不一致（全行业适用）
+
+    五步核查法：
+    ① 工商登记：获取注册行业/企业类型
+    ② 进项审核：检查加工费信号 + 仅购进品名
+    ③ 销项审核：检查仅销售品名
+    ④ 交叉比对：相同=纯贸易，不同=加工转换
+    ⑤ 综合判断：确定实质经营模式
+
+    触发条件：加工费发票存在 OR 进销品名存在实质性差异
+    全行业适用：不依赖行业专用词库，通过加工费+品名差异统一检测
+    """
+    if not target_entity or not invoices:
+        return
+
+    # 获取工商登记信息
+    registered_type = (target_entity.get("company_type") or
+                       target_entity.get("industry_online") or "")
+    detected_industry = target_entity.get("industry", "")
+    has_processing = target_entity.get("_has_processing_signal", False)
+    goods_analysis = target_entity.get("_goods_analysis", {})
+
+    pur_only = goods_analysis.get("pur_only_goods", [])
+    sal_only = goods_analysis.get("sal_only_goods", [])
+    common_goods = goods_analysis.get("common_goods", [])
+    has_proc_fee = goods_analysis.get("has_processing_fee", False)
+
+    # 无差异无信号 → 跳过
+    if not has_processing and not pur_only and not sal_only:
+        return
+
+    # 有明确加工信号或有实质品名差异
+    biz_substance_desc = ""
+    if has_proc_fee and (pur_only or sal_only):
+        biz_substance_desc = f"外包轻加工模式（加工费{'+进销品名差异' if pur_only or sal_only else ''}）"
+    elif pur_only and sal_only:
+        biz_substance_desc = "可能的加工/制造模式（进销品名存在实质性差异）"
+    elif has_proc_fee and not pur_only and not sal_only:
+        biz_substance_desc = "可能的外包轻加工模式（发现加工费支出）"
+
+    if not biz_substance_desc:
+        return
+
+    risk_level = "高风险" if (has_proc_fee and pur_only and sal_only) else "中风险"
+    risk_score = 8 if risk_level == "高风险" else 5
+
+    pur_only_str = "、".join(pur_only[:8]) if pur_only else "无"
+    sal_only_str = "、".join(sal_only[:8]) if sal_only else "无"
+    common_str = "、".join(common_goods[:5]) if common_goods else "无"
+    registered_str = registered_type or (detected_industry or "未知")
+
+    results.append({
+        "category": "经营实质", "category_icon": "🔍",
+        "risk_score": risk_score, "risk_level": risk_level,
+        "risk_color": "#dc2626" if risk_level == "高风险" else "#f59e0b",
+        "urgency": "紧急" if risk_level == "高风险" else "提醒",
+        "item": "工商登记企业类型与发票数据推断不一致",
+        "rule_id": 999501,
+        "detail": (
+            f"工商登记为{registered_str}，但发票数据反映的实质经营为{biz_substance_desc}。"
+            f"仅购进品名({len(pur_only)}类)：{pur_only_str}；"
+            f"仅销售品名({len(sal_only)}类)：{sal_only_str}；"
+            f"共同品名({len(common_goods)}类)：{common_str}。"
+            f"{'存在加工费发票。' if has_proc_fee else ''}"
+            f"综合判断：被查单位工商登记与实质经营不完全一致，应按实质经营模式进行税务处理。"
+        ),
+        "suggestion": (
+            f"①核实委托加工合同及加工费支出的真实性和合理性；"
+            f"②提供BOM表（物料清单）验证进销品名转换的投入产出关系；"
+            f"③核实仅销售品名的生产来源——是自行生产/委托加工/外购转售；"
+            f"④按实质经营模式重新核定适用的增值税税率和企业所得税成本扣除标准"
+        ),
+        "required_evidence": [
+            "委托加工合同",
+            "BOM表（物料清单）",
+            "加工费付款凭证",
+            "进销存台账",
+            "工商登记信息"
+        ]
+    })
+
+    # 规则 999502：外包轻加工模式下合同缺失风险
+    if business_substance_desc and "外包" in biz_substance_desc:
+        results.append({
+            "category": "经营实质", "category_icon": "🔍",
+            "risk_score": 7, "risk_level": "高风险",
+            "risk_color": "#dc2626", "urgency": "紧急",
+            "item": "外包轻加工模式缺少委托加工合同",
+            "rule_id": 999502,
+            "detail": (
+                f"企业经营模式中包含外包轻加工环节（发现加工费发票），"
+                f"但缺少对应的委托加工合同。没有合同无法验证：①委托加工数量是否合理；"
+                f"②加工单价是否公允；③加工损耗率是否符合行业标准。"
+            ),
+            "suggestion": (
+                f"①提供与每家加工商的委托加工合同；"
+                f"②合同应载明加工品名、数量、单价、损耗率、交货期等关键条款；"
+                f"③如无法提供合同——委托加工的真实性无法验证，加工费可能不被认定为合法成本扣除"
+            ),
+            "required_evidence": [
+                "委托加工合同（每家加工商各一份）",
+                "加工结算单/对账单",
+                "加工费银行付款回单"
+            ]
+        })
+
+    # 规则 999503：进销品名差异下BOM表缺失风险
+    if len(pur_only) >= 3 and len(sal_only) >= 2:
+        results.append({
+            "category": "经营实质", "category_icon": "🔍",
+            "risk_score": 6, "risk_level": "中风险",
+            "risk_color": "#f59e0b", "urgency": "提醒",
+            "item": "进销品名存在实质性差异但缺少BOM表",
+            "rule_id": 999503,
+            "detail": (
+                f"进项发票有{len(pur_only)}类品名仅购进未销售，"
+                f"销项发票有{len(sal_only)}类品名仅销售未购进，"
+                f"存在物料转换环节但缺少BOM表。没有BOM表无法判断："
+                f"①每种成品消耗多少原材料；②委托加工数量是否合理；"
+                f"③是否存在虚增原材料或虚减产成品的情况。"
+            ),
+            "suggestion": (
+                f"①提供每种成品的BOM表（物料清单），列明原材料名称、规格、单耗标准；"
+                f"②提供委托加工出入库单，核对原料发出数量与成品收回数量的配比关系；"
+                f"③如BOM缺失——加工链条的真实性无法验证，进项税额抵扣存疑"
+            ),
+            "required_evidence": [
+                "BOM表（每种成品各一份）",
+                "委托加工出入库单",
+                "原材料/成品仓库台账"
+            ]
+        })
+
+
 def _analyze_vat_burden_quarterly(db, company_id, ps, pe, results):
     """增值税税负率季度波动检测"""
     decls = db.query(VATDeclaration).filter(
