@@ -674,7 +674,7 @@ function renderTaxDocReport(r) {
   var pe = bi['付款方全部'];
   if (pe && pe.length) {
     h += '<h3>银行付款明细 <span style="font-size:12px;color:#999">（共'+pe.length+'个收款方）</span></h3>';
-    h += '<table class="tbl2"><tr><th>收款方（达冠付款给）</th><th class="r">付款金额（元）</th></tr>';
+    h += '<table class="tbl2"><tr><th>收款方（' + esc((te.name||'').substring(0,6)) + '付款给）</th><th class="r">付款金额（元）</th></tr>';
     pe.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
     h += '</table>';
   }
