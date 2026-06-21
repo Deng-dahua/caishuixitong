@@ -19000,6 +19000,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
                 if info and (info.get("legal_representative") or info.get("registered_capital") or info.get("uscc")):
                     online_info = info
                     online_info["source_url"] = url
+                    online_info["_raw_html"] = body  # 保存原始HTML供历史任期核查
                     result["source"] = f"联网查询({src['name']})"
                     break
         except Exception:
@@ -19019,6 +19020,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         result["directors"] = online_info.get("directors", [])
         result["supervisors"] = online_info.get("supervisors", [])
         result["finance_contacts"] = online_info.get("finance_contacts", [])
+        result["_raw_html"] = online_info.get("_raw_html", "")  # 历史任期核查用
         result["raw_data"] = online_info
         
         # 从经营范围推断行业
@@ -19333,6 +19335,7 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
                     "legal_rep": lk.get("legal_representative", ""),
                     "status": lk.get("status", ""),
                     "address": lk.get("address", ""),
+                    "_raw_html": lk.get("_raw_html", ""),
                 })
                 lookup_count += 1
                 
@@ -19424,6 +19427,84 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
                 "overlap_count": len(overlap),
             }
             results["findings"].append(findings_entry)
+    
+    # ========== Step 3.5: 历史任期核查（深度关联检测） ==========
+    # 即使当前六员名册无重叠，也要在联网查询的原始文本中搜索本企业人员姓名
+    # 发现历史关联（曾任董监高/股东/法定代表人）→ 说明存在历史关联关系
+    historical_findings = []
+    for lr in results["lookup_results"]:
+        sname = lr["name"]
+        raw_html = lr.get("_raw_html", "")
+        if not raw_html or len(raw_html) < 100:
+            continue
+        
+        # 在供应商/客户查询结果中搜索本企业六员姓名
+        historical_overlap = []
+        for name in my_all_names:
+            if not name or len(name) < 2:
+                continue
+            # 排除已在当前名册中检测到的重叠（避免重复报）
+            their_names = results["supply_personnel_map"].get(sname, {}).get("their_names", set())
+            if name in their_names:
+                continue
+            # 在原始HTML文本中搜索该姓名
+            if name in raw_html:
+                my_r = my_roles_full.get(name, "相关人员")
+                historical_overlap.append(f"{name}（我方{my_r}）")
+        
+        if historical_overlap:
+            relation = lr["relation"]
+            historical_findings.append({
+                "type": "历史任期关联风险（深度核查）",
+                "level": "中风险",
+                "score": 6,
+                "detail": (
+                    f"联网核查发现，{relation}{sname}（交易金额{lr['amount']:,.0f}元）"
+                    f"的工商信息页面中包含本企业{target_name}的人员姓名：{'、'.join(historical_overlap)}。"
+                    f"虽然该人员当前不在{sname}的董监高/法定代表人正式名册中，"
+                    f"但搜索引擎知识图谱中存在历史关联记录，"
+                    f"表明其可能曾在该企业任职或存在其他历史业务联系。"
+                ),
+                "description": (
+                    f"通过对{relation}{sname}的联网查询原始数据进行深度检索，"
+                    f"在半结构化工商信息文本中发现了本企业人员的姓名痕迹。"
+                    f"搜索引擎知识图谱通常包含变更记录、历史任职、新闻报道、司法文书等信息，"
+                    f"即使当前六员名册已不包含该人员，其出现在搜索结果中也意味着可能的关联关系。"
+                    f"需结合资金流水、交易合同、物流单据等交叉验证。"
+                ),
+                "how_found": (
+                    f"①从进销发票提取{relation}名称→联网查询→获取原始工商信息文本；"
+                    f"②在原始文本中逐名搜索本企业{target_name}的六员姓名；"
+                    f"③排除当前名册重叠（已在Step3中处理），聚焦历史关联→发现{len(historical_overlap)}条痕迹。"
+                ),
+                "tax_impact": (
+                    "若历史关联属实（曾任职/曾持股/亲属关系/业务代理），"
+                    "当前交易可能构成关联交易，需按独立交易原则调整；"
+                    "若历史关联配合异常资金流（无商业实质的回流），需进一步核查虚开发票风险。"
+                ),
+                "policy_ref": (
+                    "《企业所得税法》第四十一条（独立交易原则）；"
+                    "《特别纳税调整实施办法（试行）》第九条（关联关系认定——"
+                    "包括曾任董监高/持股25%以上/亲属关系/业务控制等情形）；"
+                    "国家税务总局公告2016年第42号（关联交易申报）"
+                ),
+                "suggestion": (
+                    f"①核实{historical_overlap[0].split('（')[0] if historical_overlap else ''}与{sname}的历史关联性质（曾任职务/亲属/代理）；"
+                    f"②比对与{sname}的交易定价是否与市场第三方价格相符；"
+                    f"③核查与{sname}的资金往来是否存在回流或异常；"
+                    f"④如确认关联交易，要求补充关联交易申报表。"
+                ),
+                "category": "关联交易",
+                "rule_id": 1511,
+                "source_chain": "供应链-历史任期深度核查",
+                "cross_domain": True,
+                "cross_domains": ["人员信息", "发票数据", "资金流", "搜索引擎数据"],
+                "supply_name": sname,
+                "overlap_count": len(historical_overlap),
+            })
+    
+    if historical_findings:
+        results["findings"].extend(historical_findings)
     
     # ========== Step 4: 供应商=客户 检测（购销闭环） ==========
     for lr in results["lookup_results"]:
