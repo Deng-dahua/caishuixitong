@@ -51,6 +51,7 @@ from database import (
 
 # vat/salary/social/housing/ccf/chat 模块已删除（8888稽查版）
 from tax_risk import router as tax_risk_router
+from chat import router as chat_router
 
 
 @asynccontextmanager
@@ -187,6 +188,7 @@ async def add_cache_headers(request, call_next):
     return response
 # vat/salary/social/housing/ccf 路由已移除（8888稽查版）
 app.include_router(tax_risk_router)
+app.include_router(chat_router)
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -8783,7 +8785,7 @@ async def tax_risk_rules_audit(request: Request):
     }
     mismatches = []
     for r in data:
-        detail = r["detail"] + r["suggestion"]
+        detail = r["detail"] + r.get("suggestion", "")
         for tax_kw, allowed_cats in tax_map.items():
             if tax_kw in detail and r["category"] not in allowed_cats:
                 mismatches.append({"item": r["item"], "category": r["category"], "keyword": tax_kw})
@@ -8798,8 +8800,9 @@ async def tax_risk_rules_audit(request: Request):
     valid_levels = {"高风险", "中风险", "低风险", "良好"}
     bad_levels = []
     for r in data:
-        if r["level"] not in valid_levels:
-            bad_levels.append({"item": r["item"], "level": r["level"]})
+        lv = r.get("level", "")
+        if lv not in valid_levels:
+            bad_levels.append({"item": r["item"], "level": lv})
     layer7 = {"name": "level 字段一致性", "pass": len(bad_levels) == 0}
     if bad_levels:
         layer7["detail"] = bad_levels
@@ -8809,7 +8812,7 @@ async def tax_risk_rules_audit(request: Request):
     # --- 第8层: 评分跨度 ---
     by_cat2 = {}
     for r in data:
-        by_cat2.setdefault(r["category"], []).append(r["score"])
+        by_cat2.setdefault(r["category"], []).append(r.get("score", 0))
     wide_cats = []
     for cat, scores in sorted(by_cat2.items()):
         if len(scores) > 1 and max(scores) - min(scores) >= 5:
@@ -8840,6 +8843,7 @@ async def tax_risk_rules_audit(request: Request):
     report["layers"].append(layer10)
 
     # --- 第11层(P2): 碎片分类检测（≤2条的） ---
+    cats_all = _Counter(r["category"] for r in data)
     frag_cats = {k: v for k, v in cats_all.items() if v <= 2}
     layer11 = {"name": "P2-碎片分类(≤2条)", "pass": len(frag_cats) == 0}
     if frag_cats:
@@ -8856,9 +8860,8 @@ async def tax_risk_rules_audit(request: Request):
     report["layers"].append(layer12)
 
     # --- 汇总 ---
-    cats_all = _Counter(r["category"] for r in data)
-    levels_all = _Counter(r["level"] for r in data)
-    scores_all = [r["score"] for r in data]
+    levels_all = _Counter(r.get("level", "未设置") for r in data)
+    scores_all = [r.get("score", 0) for r in data]
     report["summary"] = {
         "total_rules": len(data),
         "total_categories": len(cats_all),
@@ -8954,7 +8957,7 @@ async def tax_risk_rules_fix(request: Request):
     }
 
     for r in rules:
-        detail = r["detail"] + r["suggestion"]
+        detail = r["detail"] + r.get("suggestion", "")
         for tax_kw, allowed_cats in tax_map.items():
             if tax_kw in detail and r["category"] not in allowed_cats:
                 # 找到关键词 → 选首选分类
@@ -9009,7 +9012,7 @@ async def tax_risk_rules_fix(request: Request):
     fragments2 = {cat: cnt for cat, cnt in cat_counts2.items() if cnt < 2}
     mismatches2 = []
     for r in rules:
-        detail = r["detail"] + r["suggestion"]
+        detail = r["detail"] + r.get("suggestion", "")
         for tax_kw, allowed_cats in tax_map.items():
             if tax_kw in detail and r["category"] not in allowed_cats:
                 mismatches2.append(r["item"])
