@@ -628,8 +628,12 @@ function renderTaxDocReport(r) {
       if (commonGoods.length > 0) {
         h += '以下品名在进项和销项中<span class="hl">均有出现（购进与销售相同）</span>，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
       }
-      if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+      if (purOnlyGoods.length > 0 && salOnlyGoods.length > 0) {
         h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），表明企业存在将原材料转化为成品的经营活动。';
+      } else if (purOnlyGoods.length > 0) {
+        h += '存在仅购进不销售的品名（' + purOnlyGoods.length + '类），可能为原材料采购后全部用于委托加工。';
+      } else if (salOnlyGoods.length > 0) {
+        h += '存在仅销售不购进的品名（' + salOnlyGoods.length + '类），可能为委托加工收回的成品。';
       }
       h += '</p>';
     } else {
@@ -643,14 +647,14 @@ function renderTaxDocReport(r) {
     var diffText = totalDiff > 0 ? '进销品名存在' + totalDiff + '类实质性差异' : '进销品名未见实质性差异';
     h += '综合以上分析——工商登记为' + esc(registeredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、' + diffText + '——';
 
-    if (hasProcFee || totalDiff > 0) {
-      // 有加工信号 → 外包轻加工模式
+    // 有加工费信号 OR 进销双侧均有品名差异 → 外包轻加工模式，需核实加工链条
+    if (hasProcFee || (purOnlyGoods.length > 0 && salOnlyGoods.length > 0)) {
       h += '判断被查单位<span class="hl" style="color:#dc2626">实质经营模式为' + esc(actualBusiness) + '</span>，与其工商登记行业' + esc(registeredBusiness) + '不完全一致。';
       h += '应在稽查中按实质经营模式进行税务处理，包括但不限于：核实委托加工合同的真实性、加工费支出的合理性、BOM表（物料清单）的完整性、以及进销存数量是否匹配。';
     } else {
-      // 无加工信号、无品名差异、仅行业分类不同 → 可能是经营范围表述差异
+      // 无加工信号、无双侧品名差异、仅行业分类不同 → 可能是经营范围表述差异
       h += '判断被查单位<span class="hl">发票数据反映的实质行业为' + esc(inferredBusiness) + '</span>，与工商登记行业' + esc(registeredBusiness) + '存在差异。';
-      h += '由于未发现加工费或品名差异信号，该差异可能为：①工商登记经营范围表述较宽泛；②企业经营范围变更后未及时更新登记；③发票品名归类与国民经济行业分类不完全对应。建议核实企业实际经营范围和主营业务收入构成。';
+      h += '由于未发现加工费或进销双侧品名差异信号，该差异可能为：①工商登记经营范围表述较宽泛；②企业经营范围变更后未及时更新登记；③发票品名归类与国民经济行业分类不完全对应。建议核实企业实际经营范围和主营业务收入构成。';
     }
     h += '</p>';
   } else {
