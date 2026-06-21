@@ -597,42 +597,61 @@ function renderTaxDocReport(r) {
     h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。具体过程如下：</p>';
 
     // 第一段：工商登记情况
-    h += '<p class="i2"><b>1. 工商登记情况。</b>经联网核查，被查单位工商登记为<span class="hl">' + esc(registeredBusiness) + '</span>。';
+    h += '<p class="i2"><b>1. 工商登记情况。</b>经联网核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness) + '</span>。</p>';
 
-    // 第二段：进项发票审核
-    h += '<p class="i2"><b>2. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
-    if (hasProcFee) {
-      h += '发现进项发票中存在<b>加工费</b>项目——加工费属于将原材料委托外部加工为成品/半成品的典型支出，表明企业存在外包委托加工环节。';
-    }
-    if (purOnlyGoods.length > 0) {
-      h += '其中，以下品名<span class="hl">仅在进项发票中出现（购进但未销售）</span>，初步判断为原材料或委托加工物资：' + purOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
-    }
-    h += '</p>';
+    // 有加工信号或有品名差异 → 详细呈现审核过程
+    if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+      // 第二段：进项发票审核
+      h += '<p class="i2"><b>2. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
+      if (hasProcFee) {
+        h += '发现进项发票中存在<b>加工费</b>项目——加工费属于将原材料委托外部加工为成品/半成品的典型支出，表明企业存在外包委托加工环节。';
+      }
+      if (purOnlyGoods.length > 0) {
+        h += '以下品名<span class="hl">仅在进项发票中出现（购进但未销售）</span>，初步判断为原材料或委托加工物资：' + purOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+      }
+      if (!hasProcFee && purOnlyGoods.length === 0) {
+        h += '未发现加工费项目，进项品名均为常见经营物资。';
+      }
+      h += '</p>';
 
-    // 第三段：销项发票审核
-    h += '<p class="i2"><b>3. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
-    if (salOnlyGoods.length > 0) {
-      h += '其中，以下品名<span class="hl">仅在销项发票中出现（销售但未购进）</span>，初步判断为加工后的成品：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
-    }
-    h += '</p>';
+      // 第三段：销项发票审核
+      h += '<p class="i2"><b>3. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
+      if (salOnlyGoods.length > 0) {
+        h += '以下品名<span class="hl">仅在销项发票中出现（销售但未购进）</span>，初步判断为加工后的成品：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+      } else {
+        h += '销项品名均在进项中有对应购进记录。';
+      }
+      h += '</p>';
 
-    // 第四段：进销交叉比对
-    h += '<p class="i2"><b>4. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
-    if (commonGoods.length > 0) {
-      h += '以下品名在进项和销项中<span class="hl">均有出现（购进与销售相同）</span>，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+      // 第四段：进销交叉比对
+      h += '<p class="i2"><b>4. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
+      if (commonGoods.length > 0) {
+        h += '以下品名在进项和销项中<span class="hl">均有出现（购进与销售相同）</span>，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+      }
+      if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+        h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），表明企业存在将原材料转化为成品的经营活动。';
+      }
+      h += '</p>';
+    } else {
+      // 无信号：合并2-4为一段
+      h += '<p class="i2"><b>2-4. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，属纯贸易模式。</p>';
     }
-    if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
-      h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），表明企业存在将原材料委托加工后转化为成品的经营活动。';
-    }
-    h += '</p>';
 
-    // 第五段：综合判断
+    // 第五段：综合判断（根据信号区分结论）
     h += '<p class="i2"><b>5. 综合判断。</b>';
     var totalDiff = purOnlyGoods.length + salOnlyGoods.length;
     var diffText = totalDiff > 0 ? '进销品名存在' + totalDiff + '类实质性差异' : '进销品名未见实质性差异';
     h += '综合以上分析——工商登记为' + esc(registeredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、' + diffText + '——';
-    h += '判断被查单位<span class="hl" style="color:#dc2626">实质经营模式为' + esc(actualBusiness) + '</span>，与其工商登记的' + esc(registeredBusiness) + '不完全一致。';
-    h += '应在稽查中按实质经营模式进行税务处理，包括但不限于：核实委托加工合同的真实性、加工费支出的合理性、BOM表（物料清单）的完整性、以及进销存数量是否匹配。';
+
+    if (hasProcFee || totalDiff > 0) {
+      // 有加工信号 → 外包轻加工模式
+      h += '判断被查单位<span class="hl" style="color:#dc2626">实质经营模式为' + esc(actualBusiness) + '</span>，与其工商登记行业' + esc(registeredBusiness) + '不完全一致。';
+      h += '应在稽查中按实质经营模式进行税务处理，包括但不限于：核实委托加工合同的真实性、加工费支出的合理性、BOM表（物料清单）的完整性、以及进销存数量是否匹配。';
+    } else {
+      // 无加工信号、无品名差异、仅行业分类不同 → 可能是经营范围表述差异
+      h += '判断被查单位<span class="hl">发票数据反映的实质行业为' + esc(inferredBusiness) + '</span>，与工商登记行业' + esc(registeredBusiness) + '存在差异。';
+      h += '由于未发现加工费或品名差异信号，该差异可能为：①工商登记经营范围表述较宽泛；②企业经营范围变更后未及时更新登记；③发票品名归类与国民经济行业分类不完全对应。建议核实企业实际经营范围和主营业务收入构成。';
+    }
     h += '</p>';
   } else {
     // 无差异情况：简要说明
