@@ -1227,9 +1227,10 @@ function renderEvidenceList(chains) {
         var ip = c.investigation_path;
         var isArrayFormat = Array.isArray(ip) && ip.length > 0 && ip[0].rule_id;
         var isStringFormat = typeof ip === 'string';
+        var isStepsFormat = !isArrayFormat && !isStringFormat && Array.isArray(c.steps) && c.steps.length > 0 && c.steps[0].action;
         var subTopic = c.sub_topic || '';
         var qualityScore = c.quality_score || 0;
-        var stepCount = isArrayFormat ? ip.length : (typeof c.steps === 'number' ? c.steps : (typeof c.total_steps === 'number' ? c.total_steps : (Array.isArray(ip) ? ip.length : 0)));
+        var stepCount = isArrayFormat ? ip.length : (isStepsFormat ? c.steps.length : (typeof c.steps === 'number' ? c.steps : (typeof c.total_steps === 'number' ? c.total_steps : (Array.isArray(ip) ? ip.length : 0))));
         var highRiskStepCount = (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
 
         var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
@@ -1275,6 +1276,21 @@ function renderEvidenceList(chains) {
           html += '<div style="padding:10px 14px;margin-bottom:12px;background:#eef2ff;border-radius:6px;font-size:13px;color:#3730a3;line-height:1.7">'
             + '<b style="color:#4338ca">🔍 调查路径：</b>' + escHtml(ip)
             + '</div>';
+        } else if (isStepsFormat) {
+          // steps 数组格式（含 {step: N, action: "文本"}）
+          html += '<div style="margin-bottom:12px">';
+          (c.steps || []).forEach(function(s, si) {
+            var stepNum = s.step || (si + 1);
+            var isHigh = !!(s.level && s.level === '高风险');
+            html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
+              + '<div style="display:flex;align-items:center;gap:8px">'
+              + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
+              + '<span style="font-size:13px;color:#334155;line-height:1.7">' + escHtml(s.action || '') + '</span>'
+              + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
+              + '</div>'
+              + '</div>';
+          });
+          html += '</div>';
         }
 
         // ══ 政策依据 ═══
