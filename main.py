@@ -19495,7 +19495,7 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
                     f"④如确认关联交易，要求补充关联交易申报表。"
                 ),
                 "category": "关联交易",
-                "rule_id": 1511,
+                "rule_id": 1512,
                 "source_chain": "供应链-历史任期深度核查",
                 "cross_domain": True,
                 "cross_domains": ["人员信息", "发票数据", "资金流", "搜索引擎数据"],
