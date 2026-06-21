@@ -9517,8 +9517,6 @@ def _recover_tax_risk_docs():
             unique.append(d)
     _tax_risk_docs[:] = unique
 
-_recover_tax_risk_docs()
-
 
 def _read_file_text(filepath, original_name):
     """读取文件文本内容，支持全格式"""
