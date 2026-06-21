@@ -555,7 +555,7 @@ function renderTaxDocReport(r) {
     }
   }
 
-  // ═══ 经营实质综合判断 ═══
+  // ═══ 经营实质变量计算（供 section 2 使用） ═══
   // 注册行业（来自联网核查的 company_type 或 industry_online）
   var registeredBusiness = te.company_type || te.industry_online || '';
   // 发票推断行业（来自 goods 关键词分析）
@@ -572,27 +572,70 @@ function renderTaxDocReport(r) {
     actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
   }
 
-  // 经营实质核查结论（无方法论标签，纯业务表述）
-  h += '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">'
-    + '<div style="font-weight:700;color:#166534;margin-bottom:8px">经营实质核查</div>'
-    + '<div><span class="flabel" style="color:#374151">工商登记类型：</span>' + esc(registeredBusiness || te.type || '未知') + '</div>'
-    + '<div><span class="flabel" style="color:#374151">发票数据推断：</span>' + esc(inferredBusiness || '未知') + '</div>'
-    + '<div><span class="flabel" style="color:#374151">加工信号：</span>' + (hasProcessingSignal ? '存在外包轻加工环节（加工费发票+进销品名差异）' : '未发现加工信号') + '</div>'
-    + (showJudgment ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0"><span class="flabel" style="color:#166534">综合判断：</span>'
-      + '工商登记为' + esc(registeredBusiness) + '，发票数据+加工信号确认实质为' + esc(actualBusiness) + '。以实质重于形式为原则。</div>' : '')
-    + '</div>';
-
+  // section 1 基本情况段落
   h += '<p class="i2">' + esc(
     '本案为资料风险分析预审案件。被查单位' +
     (te.name || '') +
     (registeredBusiness ? '，工商登记为' + registeredBusiness : (inferredBusiness ? '，所属行业为' + inferredBusiness : '')) +
-    (showJudgment ? '，实质经营为' + actualBusiness : '') +
+    (showJudgment ? '。经审核发现实质经营模式与工商登记存在差异（详见稽查实施情况-经营实质核查）' : '') +
     (te.legal_person || te.legal_representative ? '，法定代表人' + (te.legal_person || te.legal_representative) : '') +
     '。'
     ) + '</p>';
 
   // section 2
   h += '<h2 id="sec2">二、稽查实施情况</h2>';
+
+  // ═══ （〇）经营实质核查 ═══
+  if (showJudgment) {
+    var ga = te._goods_analysis || {};
+    var commonGoods = ga.common_goods || [];
+    var purOnlyGoods = ga.pur_only_goods || [];
+    var salOnlyGoods = ga.sal_only_goods || [];
+    var hasProcFee = ga.has_processing_fee || false;
+
+    h += '<h3>（〇）经营实质核查</h3>';
+    h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。具体过程如下：</p>';
+
+    // 第一段：工商登记情况
+    h += '<p class="i2"><b>1. 工商登记情况。</b>经联网核查，被查单位工商登记为<span class="hl">' + esc(registeredBusiness) + '</span>。';
+
+    // 第二段：进项发票审核
+    h += '<p class="i2"><b>2. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
+    if (hasProcFee) {
+      h += '发现进项发票中存在<b>加工费</b>项目——加工费属于将原材料委托外部加工为成品/半成品的典型支出，表明企业存在外包委托加工环节。';
+    }
+    if (purOnlyGoods.length > 0) {
+      h += '其中，以下品名<span class="hl">仅在进项发票中出现（购进但未销售）</span>，初步判断为原材料或委托加工物资：' + purOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+    }
+    h += '</p>';
+
+    // 第三段：销项发票审核
+    h += '<p class="i2"><b>3. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
+    if (salOnlyGoods.length > 0) {
+      h += '其中，以下品名<span class="hl">仅在销项发票中出现（销售但未购进）</span>，初步判断为加工后的成品：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+    }
+    h += '</p>';
+
+    // 第四段：进销交叉比对
+    h += '<p class="i2"><b>4. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
+    if (commonGoods.length > 0) {
+      h += '以下品名在进项和销项中<span class="hl">均有出现（购进与销售相同）</span>，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+    }
+    if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+      h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），表明企业存在将原材料委托加工后转化为成品的经营活动。';
+    }
+    h += '</p>';
+
+    // 第五段：综合判断
+    h += '<p class="i2"><b>5. 综合判断。</b>';
+    h += '综合以上分析——工商登记为' + esc(registeredBusiness) + '、进项存在加工费' + (hasProcFee ? '' : '未') + '检出、进销品名存在' + (purOnlyGoods.length + salOnlyGoods.length) + '类实质性差异——';
+    h += '判断被查单位<span class="hl" style="color:#dc2626">实质经营模式为' + esc(actualBusiness) + '</span>，与其工商登记的' + esc(registeredBusiness) + '不完全一致。';
+    h += '应在稽查中按实质经营模式进行税务处理，包括但不限于：核实委托加工合同的真实性、加工费支出的合理性、BOM表（物料清单）的完整性、以及进销存数量是否匹配。';
+    h += '</p>';
+  } else {
+    // 无差异情况：简要说明
+    h += '<h3>（〇）经营实质核查</h3><p class="i2">经核查，被查单位' + esc(registeredBusiness || te.industry || te.type || '工商登记行业') + '，发票数据与工商登记一致，未发现经营实质差异。</p>';
+  }
   h += '<p class="i2">（一）稽查方法。第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
   if (rc) {
