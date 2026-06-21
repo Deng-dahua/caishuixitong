@@ -17353,8 +17353,11 @@ def _run_analyze(company_id, db):
             third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
             third_party_count = sum(1 for tx in bank_txs if any(k in str(tx.get("counterparty","")) for k in third_party_keywords))
             
-            # 获取目标企业行业（用于过滤不相关的行业特化链）
-            target_industry = target_entity.get("industry_online", target_entity.get("industry", ""))
+            # 获取目标企业行业（从DB读取，因此时target_entity尚未定义）
+            _db_company = db.query(Company).filter(Company.id == company_id).first()
+            target_industry = ""
+            if _db_company:
+                target_industry = (_db_company.industry_code or "") + " " + (_db_company.business_scope or "")
             # 行业关键词映射：发票推断行业 → audit_chains 中的行业链名称前缀
             _INDUSTRY_CHAIN_PREFIXES = {
                 "纺织": "行业-纺织", "服装": "行业-纺织", "面料": "行业-纺织",
