@@ -112,6 +112,7 @@
     .btn-ai-auto { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; margin-right: 8px; box-shadow: 0 2px 8px rgba(102,126,234,0.4); }
 
     /* 稽查管道内部子元素重置 — 保留内部样式约束 */
+    .pipeline-page { overflow-y: auto; }
     .pipeline-page h2, .pipeline-page h3, .pipeline-page h4, .pipeline-page p, .pipeline-page div,
     .pipeline-page ul, .pipeline-page ol, .pipeline-page li, .pipeline-page span,
     .pipeline-page section { text-align: left; padding-left: 0 !important; text-indent: 0 !important; margin-left: 0 !important; }
@@ -595,7 +596,7 @@
     .ss-grand-total td:first-child { border-top: none; }
 
     /* ── 涉税风险分析报告 ── */
-    .risk-report-container { }
+    .risk-report-container { overflow-y: auto; }
     .risk-report-header { text-align: center; padding: 16px 0 12px; border-bottom: 2px solid var(--gray-100); margin-bottom: 16px; }
     .risk-report-header h2 { font-size: 20px; margin-bottom: 4px; }
     .risk-report-subtitle { color: var(--gray-400); font-size: 13px; margin-bottom: 12px; }
