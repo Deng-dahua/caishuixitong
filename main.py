@@ -16722,34 +16722,6 @@ def _run_analyze(company_id, db):
         sal_invs = [i for i in invoices if i["direction"] == "销项"]
         pur_invs = [i for i in invoices if i["direction"] == "进项"]
 
-    # ═══ 经营实质信号检测（Phase1 方向校正后执行） ═══
-    if pur_invs and sal_invs:
-        def _get_goods(inv):
-            return str(inv.get("goods", "") or inv.get("goods_name", "") or "")
-        has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
-        pur_goods = set(); sal_goods = set()
-        for i in pur_invs: 
-            g = _get_goods(i).strip()
-            if g: pur_goods.add(g)
-        for i in sal_invs: 
-            g = _get_goods(i).strip()
-            if g: sal_goods.add(g)
-        common_goods = sorted(pur_goods & sal_goods)
-        pur_only = sorted(pur_goods - sal_goods)
-        sal_only = sorted(sal_goods - pur_goods)
-        target_entity["_has_processing_signal"] = has_processing_fee or (bool(pur_only) and bool(sal_only))
-        target_entity["_goods_analysis"] = {
-            "common_goods": common_goods, "pur_only_goods": pur_only,
-            "sal_only_goods": sal_only, "has_processing_fee": has_processing_fee,
-            "has_goods_mismatch": bool(pur_only) and bool(sal_only),
-        }
-        pipeline_log.append(f"经营实质信号: pur={len(pur_invs)} sal={len(sal_invs)} proc_fee={has_processing_fee} mismatch={bool(pur_only) and bool(sal_only)}")
-    else:
-        target_entity["_has_processing_signal"] = False
-        target_entity["_goods_analysis"] = {}
-        pipeline_log.append(f"经营实质信号跳过: pur_invs={bool(pur_invs)} sal_invs={bool(sal_invs)}")
-    # ═══════════════════════════════════
-    
     # ═══ 虚拟进销存分析：用销项/进项发票构建进销匹配 ═══
     inv_match_findings = []
     if sal_invs and pur_invs:
@@ -17950,7 +17922,32 @@ def _run_analyze(company_id, db):
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
     
-    # ═══ 稽查方法论⑥ 联网核查：上网查企业工商信息 ═══
+    # ═══ 经营实质信号检测（pur_invs/sal_invs 经 Phase1 方向校正后可用） ═══
+    if pur_invs and sal_invs:
+        def _get_goods(inv):
+            return str(inv.get("goods", "") or inv.get("goods_name", "") or "")
+        has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
+        pur_goods = set(); sal_goods = set()
+        for i in pur_invs:
+            g = _get_goods(i).strip()
+            if g: pur_goods.add(g)
+        for i in sal_invs:
+            g = _get_goods(i).strip()
+            if g: sal_goods.add(g)
+        common_goods = sorted(pur_goods & sal_goods)
+        pur_only = sorted(pur_goods - sal_goods)
+        sal_only = sorted(sal_goods - pur_goods)
+        target_entity["_has_processing_signal"] = has_processing_fee or (bool(pur_only) and bool(sal_only))
+        target_entity["_goods_analysis"] = {
+            "common_goods": common_goods, "pur_only_goods": pur_only,
+            "sal_only_goods": sal_only, "has_processing_fee": has_processing_fee,
+            "has_goods_mismatch": bool(pur_only) and bool(sal_only),
+        }
+        pipeline_log.append(f"经营实质信号: pur={len(pur_invs)} sal={len(sal_invs)} proc_fee={has_processing_fee}")
+    else:
+        target_entity["_has_processing_signal"] = False
+        target_entity["_goods_analysis"] = {}
+    # ═══ 稽查方法论⑥ 联网核查 ═══
     if target_entity.get("name"):
         try:
             target_entity = _enrich_target_entity_from_online(target_entity, db, company_id)
