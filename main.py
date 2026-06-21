@@ -19057,10 +19057,11 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     }
     
     # 第一步：检查数据库是否已有完整信息（避免重复联网查询）
+    # 必须验证DB中的公司名与查询名一致，防止海更的数据套到达冠头上
     if db and company_id:
         try:
             company = db.query(Company).filter(Company.id == company_id).first()
-            if company:
+            if company and company.name == company_name:  # 名实相符才用缓存
                 # 判断是否已经有足够的信息
                 has_basic = bool(company.legal_representative and company.registered_capital)
                 has_scope = bool(company.business_scope and len(company.business_scope or "") > 20)
@@ -19687,11 +19688,11 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
         except:
             pass
         
-        # 联网查询未获取六员数据时，从DB已有数据回填
+        # 联网查询未获取六员数据时，从DB已有数据回填（名实相符才回填）
         if not target_entity["directors"] or not target_entity["supervisors"] or not target_entity["finance_contacts"]:
             try:
                 from database import Company as _C2
-                _c = db.query(_C2).filter(_C2.id == company_id).first()
+                _c = db.query(_C2).filter(_C2.id == company_id, _C2.name == company_name).first()
                 if _c:
                     if not target_entity["directors"]:
                         target_entity["directors"] = [{"name": d.name, "id_number": d.id_number or ""} for d in (_c.directors or [])]
