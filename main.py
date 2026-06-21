@@ -9897,19 +9897,25 @@ async def upload_tax_risk_docs(
 
         _tax_doc_counter[0] += 1
         doc_id = _tax_doc_counter[0]
-        # 直接用原始文件名保存，不重命名
         safe_name = f"{company_id}_{doc_id}_{f.filename}"
         filepath = os.path.join(UPLOAD_DIR, safe_name)
-        with open(filepath, "wb") as fw:
-            fw.write(content)
+        file_saved = False
+        try:
+            with open(filepath, "wb") as fw:
+                fw.write(content)
+            file_saved = True
+        except PermissionError:
+            pass  # 沙箱环境下文件写入可能被拒绝，仍记录到内存列表
         existing_hashes.add(md5)
         doc = {
             "id": doc_id, "filename": safe_name, "original_name": f.filename,
             "path": filepath, "size": len(content), "md5": md5,
-            "uploaded_at": datetime.now().isoformat(), "company_id": company_id
+            "uploaded_at": datetime.now().isoformat(), "company_id": company_id,
+            "file_saved": file_saved
         }
         _tax_risk_docs.append(doc)
-        uploaded.append({"id": doc_id, "filename": f.filename, "size": len(content)})
+        uploaded.append({"id": doc_id, "filename": f.filename, "size": len(content),
+                         "file_saved": file_saved})
 
     msg = f"已上传 {len(uploaded)} 个文件"
     if skipped > 0: msg += f"，跳过 {skipped} 个重复文件"
