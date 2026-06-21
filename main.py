@@ -16476,6 +16476,36 @@ def _generate_biz_substance_findings(target_entity, pur_invs, sal_invs):
             "level_fixed": True
         })
     
+    # ── 规则 999504：经营费用混入生产物资分析 ──
+    _EXPENSE_KWS_FINDING = ["住宿", "餐饮", "餐费", "房费", "汽油", "柴油", "加油",
+                            "旅游", "差旅", "租赁", "保险", "通讯", "电话", "办公",
+                            "快递", "广告", "咨询", "法律", "维修", "物业", "停车",
+                            "经纪代理", "代订"]
+    expense_items_in_pur = [g for g in pur_only if any(kw in g for kw in _EXPENSE_KWS_FINDING)]
+    if expense_items_in_pur:
+        findings.append({
+            "type": "经营实质-经营费用混入进项物资分析",
+            "domain": "经营实质核查",
+            "level": "中风险",
+            "score": 5,
+            "rule_id": 999504,
+            "detail": (
+                f"仅购进品名列表中有{len(expense_items_in_pur)}类属于经营费用而非生产物资："
+                f"{'、'.join(expense_items_in_pur[:8])}。经营费用（住宿/餐饮/加油/租赁等）"
+                f"是所有企业共同的日常支出，不应纳入行业判断依据。行业判断应以主营业务发票为准。"
+            ),
+            "suggestion": (
+                "①将进项发票按生产物资/经营费用分类核算；"
+                "②行业判断聚焦主营物资（原材料/半成品/加工费），排除期间费用；"
+                "③经营费用单独分析其合理性和真实性"
+            ),
+            "how_found": "经营费用关键词匹配（进项品名过滤）",
+            "chain_ref": "经营实质-工商登记vs发票数据差异检测",
+            "evidence_ref": "经营实质-进销品名交叉验证闭环",
+            "required_evidence": ["主营业务收入构成表", "生产成本明细账"],
+            "level_fixed": True
+        })
+    
     return findings
 
 
