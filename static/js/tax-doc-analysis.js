@@ -93,7 +93,7 @@ async function refreshTaxDocList() {
     var resp = await fetch('/api/tax-risk-docs/list?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1));
     var docs = await resp.json();
     var listEl = document.getElementById('tda-file-list');
-    if (!listEl) return;
+    if (!listEl) { console.error('[tax-doc] tda-file-list 元素不存在'); return; }
 
     // 更新文件数量显示
     var countEl = document.getElementById('tda-file-count');
@@ -131,6 +131,8 @@ async function refreshTaxDocList() {
     listEl.innerHTML = html;
   } catch (e) {
     console.error('刷新文件列表失败:', e);
+    var listEl2 = document.getElementById('tda-file-list');
+    if (listEl2) listEl2.innerHTML = '<div style="color:#dc2626;padding:10px">列表加载失败: ' + esc(String(e.message || e)) + '</div>';
   }
 }
 
