@@ -453,7 +453,7 @@ function renderTaxDocReport(r) {
     ['法定代表人', te.legal_person || te.legal_representative || ''],
     ['注册资本', te.registered_capital || ''],
     ['成立日期', te.established_date || ''],
-    ['统一社会信用代码', te.uscc || ''],
+    ['统一社会信用代码', te.uscc || '', true],
     ['登记状态', te.company_status || te.status || ''],
     ['企业类型', te.company_type || te.type || ''],
     ['行业', te.industry_online || te.industry || ''],
@@ -464,7 +464,8 @@ function renderTaxDocReport(r) {
     var label = requiredFields[fi][0];
     var val = requiredFields[fi][1];
     if (val) {
-      h += '<tr><td class="lbl">' + label + '</td><td>' + esc(val) + '</td></tr>';
+      var nowrap = requiredFields[fi][2] ? ' style="white-space:nowrap"' : '';
+      h += '<tr><td class="lbl">' + label + '</td><td' + nowrap + '>' + esc(val) + '</td></tr>';
     } else if (onlineOK) {
       h += '<tr><td class="lbl">' + label + '</td><td style="color:#9ca3af">搜索未获取</td></tr>';
     }
