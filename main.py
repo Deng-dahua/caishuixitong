@@ -19206,12 +19206,17 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                     })
         
         # ── 5. 发票缺少数量/单位字段 ──
-        elif ("发票缺少数量" in ftype or "发票缺少计量" in ftype) and invoices:
+        elif ("发票缺少数量" in ftype or "发票缺少计量" in ftype or "加工费发票缺少" in ftype) and invoices:
+            is_proc_fee = "加工费" in ftype
             for i in invoices:
                 amt = float(i.get("amount", 0) or 0)
                 qty = i.get("qty", "")
                 unit = i.get("unit", "")
+                goods = str(i.get("goods", ""))
                 if amt <= 0:
+                    continue
+                # 加工费专项：只收录品名含"加工"的发票
+                if is_proc_fee and "加工" not in goods:
                     continue
                 if ("缺少数量" in ftype and (not qty or qty in ("", "0", "0.0"))):
                     items.append({

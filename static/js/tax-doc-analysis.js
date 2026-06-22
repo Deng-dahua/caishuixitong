@@ -1012,7 +1012,7 @@ function renderNarrativeReport(r) {
 
   var onlineOK = !!te._online_lookup;
   if (onlineOK) {
-    h += '<p>受理案件后，我首先通过联网核查系统对被查单位的基本工商信息进行了核实。经查，被查单位' + esc(te.name || '') + '，统一社会信用代码' + esc(te.uscc || '') + '，成立于' + esc(te.established_date || '') + '，登记状态为' + esc(te.company_status || te.status || '') + '，企业类型为' + esc(te.company_type || te.type || '') + '，法定代表人' + esc(te.legal_person || te.legal_representative || '') + '。注册资本' + esc(te.registered_capital || '') + '。工商登记行业为' + esc(registeredBusiness || '') + '。注册地址位于' + esc(te.address || '') + '。经营范围为' + esc(te.business_scope || '') + '。</p>';
+    h += '<p>受理案件后，我首先通过联网核查系统对被查单位的基本工商信息进行了核实。经查，被查单位' + esc(te.name || '') + '，统一社会信用代码<span style="white-space:nowrap">' + esc(te.uscc || '') + '</span>，成立于' + esc(te.established_date || '') + '，登记状态为' + esc(te.company_status || te.status || '') + '，企业类型为' + esc(te.company_type || te.type || '') + '，法定代表人' + esc(te.legal_person || te.legal_representative || '') + '。注册资本' + esc(te.registered_capital || '') + '。工商登记行业为' + esc(registeredBusiness || '') + '。注册地址位于' + esc(te.address || '') + '。经营范围为' + esc(te.business_scope || '') + '。</p>';
   } else {
     h += '<p>联网核查未获取到完整工商信息。我从发票数据中推断，该单位所属行业为' + esc(inferredBusiness || '') + '。我提醒自己，联网核查是稽查方法论第六项要求，后续应补充天眼查/企查查等渠道核实。</p>';
   }
