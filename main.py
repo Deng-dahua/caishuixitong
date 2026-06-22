@@ -18604,7 +18604,8 @@ def _run_analyze(company_id, db):
         for cn, hits in sorted_chains:
             # 找到链详情
             for chain in chains_data.get("chains", []):
-                if chain["name"] == cn:
+                if not isinstance(chain, dict): continue
+                if chain.get("name") == cn:
                     triggered_chains.append({
                         "name": cn, "hits": hits,
                         "steps": chain["steps"],
@@ -18617,8 +18618,10 @@ def _run_analyze(company_id, db):
         # ── 动态链触发：推荐下一步调查 ──
         triggered_rule_ids = set()
         for f in all_findings:
-            for rid in f.get("matched_rule_ids", []):
-                triggered_rule_ids.add(rid)
+            mrids = f.get("matched_rule_ids", [])
+            if isinstance(mrids, list):
+                for rid in mrids:
+                    triggered_rule_ids.add(rid)
         recommended_next = []
         for chain in chains_data.get("chains", []):
             trig = []; notrig = []
