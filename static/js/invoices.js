@@ -540,6 +540,7 @@ async function renderPurchaseInvoices(container) {
     var piParts = piPeriod ? piPeriod.split('-') : [];
     html += buildPeriodSelectorHtml('pi', piParts[0] || '', piParts[1] || '', 'onPIPeriodQuery');
     html += '<button class="btn-toolbar" onclick="showUploadModal(\'purchase-invoice\')">导入文件</button>';
+    html += '<button class="btn-toolbar" id="piBatchGenBtn" onclick="piGenerateVoucherOnly()">生成凭证</button>';
     html += '<button class="btn-toolbar" id="piSyncUnbookkeptBtn" onclick="syncPIToUnbookkept()" style="background:#d97706;color:#fff;">同步到未记账</button>';
     html += '<button class="btn-toolbar-danger" id="piBatchDelBtn" onclick="batchDeletePurchaseInvoices()">批量删除</button>';
     html += '<div class="tab-btn-group">';
@@ -712,6 +713,11 @@ function updatePiBatchBtn() {
   if (delBtn) {
     delBtn.textContent = count > 0 ? '批量删除（' + count + '）' : '批量删除';
     delBtn.disabled = count === 0;
+  }
+  const genBtn = document.getElementById('piBatchGenBtn');
+  if (genBtn) {
+    genBtn.textContent = count > 0 ? '生成凭证（' + count + '）' : '生成凭证';
+    genBtn.disabled = count === 0;
   }
   // 同步全选框状态（仅统计未禁用的复选框）
   const selectAll = document.getElementById('piSelectAll');

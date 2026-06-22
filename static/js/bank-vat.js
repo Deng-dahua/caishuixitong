@@ -395,6 +395,7 @@ async function renderInputVATDeductions(container) {
   var ivdParts = ivdPeriod ? ivdPeriod.split('-') : [];
   html += buildPeriodSelectorHtml('ivd', ivdParts[0] || '', ivdParts[1] || '', 'onIVDPeriodQuery');
   html += '<button class="btn-toolbar" onclick="showUploadModal(\'input-vat-deduction\')">导入文件</button>';
+  html += '<button class="btn-toolbar" id="ivdBatchCertBtn" onclick="batchCertifyIVD()">批量认证</button>';
   html += '<button class="btn-toolbar" id="ivdBatchGenBtn" onclick="batchGenerateIVDVouchers()">生成凭证</button>';
   html += '<button class="btn-toolbar-danger" id="ivdBatchDelBtn" onclick="batchDeleteIVD()">批量删除</button>';
   html += '</div></div>';
@@ -464,7 +465,7 @@ async function renderInputVATDeductions(container) {
         html += '<button class="btn btn-sm btn-danger" style="background:#e5e7eb;color:#9ca3af;cursor:not-allowed" disabled>删除</button>';
       } else {
         html += '<button class="btn btn-sm btn-secondary" onclick="editVATDeduction(' + it.id + ')">编辑</button>';
-        html += '<button class="btn btn-sm btn-danger" onclick="deleteIVD(' + it.id + ')">删除</button>';
+        html += '<button class="btn btn-sm btn-danger" onclick="deleteVATDeduction(' + it.id + ')">删除</button>';
       }
       html += '</td>';
       html += '</tr>';
@@ -680,21 +681,6 @@ function autoCalcVAT() {
 }
 
 function editVATDeduction(id) { showVATDeductionForm(id); }
-
-async function generateFromIVDGroup(idStr) {
-  let ids = idStr.split(',').map(function(id) { return parseInt(id); }).filter(Boolean);
-  if (!confirm('确认为该组 ' + ids.length + ' 条认证记录生成进项抵扣凭证？')) return;
-  try {
-    // 逐条生成凭证
-    for (var j = 0; j < ids.length; j++) {
-      await api('/api/input-vat-deductions/' + ids[j] + '/to-journal', { method: 'POST' });
-    }
-    toast('已为 ' + ids.length + ' 条记录生成凭证', 'success');
-    renderInputVATDeductions();
-  } catch (e) {
-    handleError(e, '生成凭证');
-  }
-}
 
 async function deleteIVDGroup(idStr) {
   let ids = idStr.split(',').map(function(id) { return parseInt(id); }).filter(Boolean);
