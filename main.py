@@ -18898,7 +18898,11 @@ def _run_analyze(company_id, db):
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
     
-    # ═══ 稽查报告质量标准执行（7项硬指标）═══
+    # ═══ 文本净化：剔除模板句/重复句/空描述（必须在质量标准之前）═══
+    all_findings, sanitize_log = _sanitize_finding_boilerplate(all_findings)
+    pipeline_log.append(sanitize_log)
+    
+    # ═══ 稽查报告质量标准执行（12项硬指标）═══
     all_findings, quality_report = _enforce_report_quality_standards(all_findings, pipeline_log)
     
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
@@ -18968,29 +18972,124 @@ def _run_analyze(company_id, db):
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
     return result
 
-# ═══════════ 稽查报告质量标准执行（7项硬指标）══════════
-# 提炼自Finding①"资料完备度综合评估"的标杆质量，全行业适用
-# 标准1: 第一人称稽查员叙事 — how_found/description以"我"为主语
+# ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
+# 必须在质量标准执行之前运行，确保进入报告的是可读的专业文本
+
+_BOILERPLATE_PREFIXES = [
+    "是税务稽查重点方向。",
+    "是税务稽查重点方向",
+    "稽查重点方向。",
+    "需逐笔核实，",
+    "请核实并提供相关佐证材料。",
+]
+
+_BOILERPLATE_SUFFIXES = [
+    "——请核实并提供相关佐证材料。",
+    "。——请核实并提供相关佐证材料。",
+]
+
+def _sanitize_finding_boilerplate(all_findings):
+    """剔除每条发现中的模板句、重复句、空描述，确保报告文本专业可读。
+    
+    处理内容：
+    1. 剔除"是税务稽查重点方向"等开篇模板
+    2. 删除连续重复的句子
+    3. 删除空描述（detail=title的复制品）
+    4. 清除suggestion中的"请提供相关佐证材料"万能句
+    """
+    sanitized = []
+    stats = {"cleaned_prefix": 0, "dedup": 0, "empty_desc": 0, "empty_suggestion": 0}
+    
+    for f in all_findings:
+        ftype = str(f.get("type", ""))
+        
+        # ── 1. 清理detail中的模板前缀 ──
+        detail = str(f.get("detail", ""))
+        for prefix in _BOILERPLATE_PREFIXES:
+            if detail.startswith(prefix):
+                detail = detail[len(prefix):].strip()
+                stats["cleaned_prefix"] += 1
+                break
+        # Also clean leading boilerplate if the detail starts with the type name itself
+        if detail.startswith(ftype + "是"):
+            idx = detail.find("。")
+            if idx > 0:
+                # Skip the redundant first sentence if it's just "X是税务稽查重点方向"
+                first_sent = detail[:idx+1]
+                if any(bp in first_sent for bp in _BOILERPLATE_PREFIXES[:3]):
+                    detail = detail[idx+1:].strip()
+                    stats["cleaned_prefix"] += 1
+        
+        # ── 2. 删除连续重复的句子（同一句话出现两次） ──
+        sentences = [s.strip() for s in detail.replace("。", "。\n").split("\n") if s.strip()]
+        deduped = []
+        for s in sentences:
+            if not deduped or s != deduped[-1]:
+                deduped.append(s)
+        if len(deduped) < len(sentences):
+            stats["dedup"] += 1
+        detail = "。".join(s for s in deduped if s)
+        
+        # ── 3. 检测空描述——detail仅等于标题或title的变体，无实质内容 ──
+        desc = str(f.get("description", ""))
+        if len(detail.replace(ftype, "").replace("是", "").replace("。", "").strip()) < 8:
+            # detail is essentially empty - just the title repeated
+            if desc and len(desc) > 20:
+                detail = desc  # fallback to description
+            else:
+                stats["empty_desc"] += 1
+        f["detail"] = detail
+        
+        # ── 4. 清理suggestion中的万能套话 ──
+        suggestion = str(f.get("suggestion", ""))
+        for suffix in _BOILERPLATE_SUFFIXES:
+            suggestion = suggestion.replace(suffix, "")
+        # 清除空占位符
+        suggestion = suggestion.replace("（如：()；()；()）", "").replace("如：()；()；()", "")
+        if not suggestion.strip() or suggestion.strip() in ("请核实并提供相关佐证材料", "请提供相关佐证材料", "请提供相关资料"):
+            stats["empty_suggestion"] += 1
+        f["suggestion"] = suggestion.strip()
+        
+        sanitized.append(f)
+    
+    log_msg = (f"文本净化完成: 剔除{stats['cleaned_prefix']}条模板前缀、去重{stats['dedup']}条、"
+               f"修复空描述{stats['empty_desc']}条、清理套话建议{stats['empty_suggestion']}条")
+    return sanitized, log_msg
+
+
+# ═══════════ 稽查报告质量标准执行（12项硬指标）══════════
+# 提炼自Finding①"资料完备度综合评估"的标杆质量 + 实战缺陷反思，全行业适用
+# 标准1: 第一人称稽查员叙事 — how_found以"我"为主语
 # 标准2: 事实-证据-后果三要素 — 缺一不可
-# 标准3: 完整因果链 A→B→C→D — 至少三步推导
+# 标准3: 完整因果链 A→B→C→D — 至少一步推导
 # 标准4: 可操作的紧迫感 — suggestion具体到步骤
-# 标准5: 特定法律条款引用 — 不得模糊引用
+# 标准5: 特定法律条款引用 — 含具体条款号
 # 标准6: 证据明细表(items) — 多项明细必须附items数组
-# 标准7: 方法在前过程在后 — 先声明稽查方法再展示核查结果
+# 标准7: 方法在前过程在后 — 先声明稽查方法再展示结果
+# 标准8: 反模板句 — 禁止"是税务稽查重点方向""需逐笔核实"等口水话
+# 标准9: 事实具体化 — 必须含具体数值（日期/金额/数量/百分比）
+# 标准10: 防跨发现复制 — tax_impact不能与同批其他发现完全相同
+# 标准11: 空占位符检测 — suggestion不能含"()""已识别N条关联记录（如：）"
+# 标准12: 法律条款号 — policy_ref必须含"第X条"或"第X款"等具体条款号
 
 BOILERPLATE_LEGAL_TEXT = "《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。"
 BOILERPLATE_LEGAL_SHORT = "《中华人民共和国税收征收管理法》及相关税收法规。"
 
 def _enforce_report_quality_standards(all_findings, pipeline_log):
-    """对全部发现执行7项质量标准检查，不达标标记问题但不阻塞（降级+标注）
+    """对全部发现执行12项质量标准检查，不达标标记问题但不阻塞（降级+标注）
     
     Returns: (enforced_findings, quality_report)
     """
     enforced = []
     quality_log = {"total": len(all_findings), "passed": 0, "warnings": [], "stats": {
         "标准1_叙事": 0, "标准2_三要素": 0, "标准3_因果链": 0,
-        "标准4_建议": 0, "标准5_法律引用": 0, "标准6_items": 0, "标准7_方法": 0
+        "标准4_建议": 0, "标准5_法律引用": 0, "标准6_items": 0, "标准7_方法": 0,
+        "标准8_反模板": 0, "标准9_具体化": 0, "标准10_防复制": 0,
+        "标准11_空占位": 0, "标准12_法条号": 0
     }}
+    
+    # 预收集所有tax_impact用于标准10防复制检查
+    all_impacts = [str(f.get("tax_impact", "")) for f in all_findings]
     
     for f in all_findings:
         issues = []
@@ -19000,6 +19099,7 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
         policy_ref = str(f.get("policy_ref", ""))
         suggestion = str(f.get("suggestion", ""))
         description = str(f.get("description", ""))
+        detail = str(f.get("detail", ""))
         has_items = bool(f.get("items")) and len(f.get("items", [])) > 0
         
         # 标准1: 第一人称稽查员叙事
@@ -19060,6 +19160,50 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
             issues.append("标准7_方法声明: 缺少稽查方法声明——应先讲方法再秀过程")
             quality_log["stats"]["标准7_方法"] += 1
         
+        # 标准8: 反模板句 — 检测残留的"是税务稽查重点方向"等口水话
+        boilerplate_phrases = [
+            "是税务稽查重点方向", "需逐笔核实", "请核实并提供相关佐证材料",
+            "通过调取企业各税种申报表及备案资料，核实企业是否按规定期限、规定内容完成各项税务申报和备案",
+            "申报不合规是税务行政处罚的常见案由"
+        ]
+        full_text = ftype + detail + how_found + description + tax_impact + suggestion
+        for bp in boilerplate_phrases:
+            if bp in full_text:
+                issues.append(f"标准8_反模板: 含模板句'{bp[:20]}...'")
+                quality_log["stats"]["标准8_反模板"] += 1
+                break
+        
+        # 标准9: 事实具体化 — 必须含具体数值
+        import re
+        has_numbers = bool(re.search(r'\d[\d,.]*万?元?', detail + description))
+        has_date_context = bool(re.search(r'\d{4}年|\d{1,2}月|\d{1,2}日|共\d+[条张笔家个]', detail + description))
+        if len(detail) > 30 and not has_numbers and not has_date_context:
+            issues.append("标准9_具体化: 事实描述缺少具体数值（金额/日期/数量/百分比）")
+            quality_log["stats"]["标准9_具体化"] += 1
+        
+        # 标准10: 防跨发现复制 — tax_impact不能与同批其他发现完全相同
+        this_impact = str(f.get("tax_impact", ""))
+        if len(this_impact) > 20:
+            dupe_count = sum(1 for imp in all_impacts if imp == this_impact and len(imp) > 20)
+            if dupe_count >= 2:
+                issues.append(f"标准10_防复制: tax_impact与其他{dupe_count-1}条发现完全相同，疑似复制粘贴")
+                quality_log["stats"]["标准10_防复制"] += 1
+        
+        # 标准11: 空占位符检测
+        empty_patterns = ["()", "已识别N条关联记录（如：", "（如：()；()；()）", "如：()；()；()"]
+        for ep in empty_patterns:
+            if ep in suggestion:
+                issues.append("标准11_空占位: 建议中含空占位符")
+                quality_log["stats"]["标准11_空占位"] += 1
+                break
+        
+        # 标准12: 法律条款号
+        if policy_ref and len(policy_ref) > 5:
+            has_clause_no = bool(re.search(r'第[一二三四五六七八九十\d]+条|第[一二三四五六七八九十\d]+款', policy_ref))
+            if not has_clause_no:
+                issues.append("标准12_法条号: 法律引用缺少具体条款号")
+                quality_log["stats"]["标准12_法条号"] += 1
+        
         # 记录质量结果
         if not issues:
             quality_log["passed"] += 1
@@ -19072,7 +19216,7 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
     passed_pct = quality_log["passed"] / max(quality_log["total"], 1) * 100
     pipeline_log.append(
         f"稽查报告质量标准检查: {quality_log['passed']}/{quality_log['total']}项通过（{passed_pct:.0f}%）——"
-        f"6项标准逐条检查完成"
+        f"12项标准逐条检查完成"
     )
     
     return enforced, quality_log

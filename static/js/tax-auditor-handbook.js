@@ -288,8 +288,8 @@ function renderAuditorHandbook(container) {
   html += '</div>';
 
   // 3.5 稽查报告质量标准
-  html += '<h3 style="margin-top:20px;">3.5 稽查报告质量标准——六项硬指标</h3>';
-  html += '<p style="font-size:13px;color:#6b7280;">以下标准提炼自稽查实战报告的最佳实践（以本系统的"资料完备度综合评估"为标杆模板），适用于全部的稽查发现。每一项发现必须满足全部6项标准，不达标退回重写。</p>';
+  html += '<h3 style="margin-top:20px;">3.5 稽查报告质量标准——十二项硬指标</h3>';
+  html += '<p style="font-size:13px;color:#6b7280;">以下12项标准由两部分构成：前7项提炼自标杆发现"资料完备度综合评估"的优秀实践，后5项从实际缺陷中总结（反模板/反空述/反复制/法条号/空占位符）。每条发现必须过12项检查，不达标标记但不阻塞。</p>';
 
   html += '<table class="table table-sm">';
   html += '<thead><tr><th style="width:30px;">#</th><th style="width:140px;">标准名称</th><th>判定规则</th><th style="width:200px;">不合格示例</th></tr></thead><tbody>';
@@ -319,14 +319,34 @@ function renderAuditorHandbook(container) {
   html += '<td style="color:#dc2626;font-size:12px;">❌ 一句话带过<br>✅ items数组：[{缺失资料:"记账凭证", 缺失后果:"完整因果链…"}, …]</td></tr>';
 
   html += '<tr><td style="font-weight:700;">7</td><td><strong>方法在前，过程在后</strong></td>';
-  html += '<td>每条稽查发现必须先声明使用了什么稽查方法（并列清单），再展示方法执行后的核查过程与结果。读者应先看到"我怎么查的"，再看到"我查到了什么"。方法必须是可复用的具体手段——工商登记核查法、进销存数据比对法、资金流发票流核对法、供应商客户穿透法、加工环节穿透法、五步核查法等——而非"通过分析发现"这类空泛陈述。</td>';
-  html += '<td style="color:#dc2626;font-size:12px;">❌ "需要按六种商业模式逐笔分析" — 没说方法是什么<br>✅ "（一）稽查方法。第一，工商登记核查法…第二，进销存数据比对法…"</td></tr>';
+  html += '<td>每条稽查发现必须先声明使用了什么稽查方法（并列清单），再展示方法执行后的核查过程与结果。读者应先看到"我怎么查的"，再看到"我查到了什么"。方法必须是可复用的具体手段——工商登记核查法、进销存数据比对法、资金流发票流核对法、供应商客户穿透法、加工环节穿透法、五步核查法等。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "需要按六种商业模式逐笔分析" — 没说方法<br>✅ "（一）稽查方法。第一，工商登记核查法…第二，进销存数据比对法…"</td></tr>';
+
+  html += '<tr style="background:#fef2f2;"><td style="font-weight:700;">8</td><td><strong>反模板句</strong></td>';
+  html += '<td>禁止出现"是税务稽查重点方向""需逐笔核实""请提供相关佐证材料""通过调取企业各税种申报表…""申报不合规是税务行政处罚的常见案由"等通用模板句。这些句子在所有发现中重复出现，除了增加字数外毫无信息量。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "收款来源与开票客户严重不匹配是税务稽查重点方向"<br>✅ 删掉模板句，直接进入事实</td></tr>';
+
+  html += '<tr style="background:#fef2f2;"><td style="font-weight:700;">9</td><td><strong>事实具体化</strong></td>';
+  html += '<td>事实描述（detail/description）必须含具体数值——日期（年月日）、金额（元/万元）、数量（笔/张/家）、百分比等。禁止纯定性描述（"存在风险""可能有问题"），必须有量化的数据支撑。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "经营场所银行付款未入账。经营场所银行付款未入账。" — 零事实<br>✅ "经查银行流水，2023年1月-12月期间向XX物业支付房租12笔共36万元，但序时账中无对应记录"</td></tr>';
+
+  html += '<tr style="background:#fef2f2;"><td style="font-weight:700;">10</td><td><strong>防跨发现复制</strong></td>';
+  html += '<td>同一份报告中，不同发现的<code>tax_impact</code>（税务影响）不能完全相同。每条发现的税务影响必须针对该发现的具体情形独立撰写——不能多条发现共用一个"被认定无实质经营→一般纳税人资格取消→已抵扣进项税额全部转出"。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ Findings 7/8/9 的tax_impact完全相同<br>✅ 每条发现的后果独立撰写</td></tr>';
+
+  html += '<tr style="background:#fef2f2;"><td style="font-weight:700;">11</td><td><strong>空占位符检测</strong></td>';
+  html += '<td><code>suggestion</code> 不能含空占位符如 <code>()</code> <code>()()</code> "已识别N条关联记录（如：）；" 等。占位符说明变量未注入——要么补数据，要么删掉整句。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "已识别10条关联记录（如：()；()；()）"<br>✅ 补全变量或删除该句</td></tr>';
+
+  html += '<tr style="background:#fef2f2;"><td style="font-weight:700;">12</td><td><strong>法律条款号</strong></td>';
+  html += '<td><code>policy_ref</code> 必须含具体的"第X条"或"第X款"等条款号。禁止只写法律名称不加条款号（如"《企业所得税法实施条例》"后面什么都没写）。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "《企业所得税法实施条例》"<br>✅ "《企业所得税法实施条例》第三十四条（工资薪金扣除）"</td></tr>';
 
   html += '</tbody></table>';
 
   html += '<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:13px;">';
-  html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行 <code>_enforce_report_quality_standards()</code> 函数对全部发现做7项标准逐条检查——';
-  html += '不达标的发现自动退回重写或补全缺失字段后才进入最终报告。每份报告末尾附质量检查通过数量统计。';
+  html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行两轮质量保障——①<code>_sanitize_finding_boilerplate()</code> 剔除模板句/重复句/空描述 ②<code>_enforce_report_quality_standards()</code> 对全部发现做12项标准逐条检查——';
+  html += '每份报告末尾附两轮质量检查统计。模板句先剔除再检查，确保进入报告的文本天然清洁。';
   html += '</div>';
   html += '</div>';
 
