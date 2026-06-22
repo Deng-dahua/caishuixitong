@@ -400,9 +400,23 @@ function renderAuditorHandbook(container) {
   html += '</tbody></table>';
   html += '</div>';
 
+  // 进项发票分层匹配法
+  html += '<div class="card" style="border-top:3px solid #dc2626;margin-bottom:16px;">';
+  html += '<h3>5.2 进项发票三层分类法</h3>';
+  html += '<p style="font-weight:600;">原理：真实企业经营中，不同类别的进项发票有不同的付款模式——不能把所有进项发票都用同一个"供应商名称必须匹配银行付款方"的标准来衡量。</p>';
+  html += '<table class="table table-sm"><tbody>';
+  html += '<tr><td style="white-space:nowrap;font-weight:600;">核心认知</td><td>做进项发票与银行付款匹配之前，必须先对发票按品名做分层分类。餐饮、住宿、汽油、差旅等日常费用是员工先垫付后凭发票报销——对公账户的付款对象是员工而非开票单位。如果不排除这些发票，"未匹配"统计会严重虚高，把正常的报销行为错误标记为异常。</td></tr>';
+  html += '<tr><td style="font-weight:600;">第一层<br>主营业务成本</td><td>原料/材料/辅料/配件/加工费/设备/机器等——作为企业核心经营活动的采购支出。<strong>必须</strong>能通过银行付款匹配到供应商名称。未匹配→需逐笔核实是否属于六种付款模式之一（跨期/合并/分期/预付/应付/代付）。</td></tr>';
+  html += '<tr><td style="font-weight:600;">第二层<br>重大费用</td><td>房租/咨询/广告/运输/维修/设计/软件/保险等——金额较大、一般有合同约定的费用支出。<strong>应当</strong>能通过银行付款匹配。未匹配→需提供合同+对账明细佐证。</td></tr>';
+  html += '<tr><td style="font-weight:600;">第三层<br>日常费用报销</td><td>餐饮/住宿/汽油/差旅/办公/通讯/快递/过路费等——金额较小、员工垫付后凭发票报销。<strong>不参与</strong>供应商名称匹配。这些发票的付款对象是员工而非开票单位，"名称未匹配"属于商业正常现象。只需确保：①发票真实 ②与经营相关 ③非个人消费 ④有费用审批单。</td></tr>';
+  html += '<tr><td style="font-weight:600;">分类方法</td><td>系统通过{20+}个日常报销关键词自动识别发票类别——基于发票"货物或应税劳务名称"字段判断。全行业通用，不依赖行业分类。</td></tr>';
+  html += '<tr><td style="font-weight:600;">稽查影响</td><td>排除日常报销后重新评估"未匹配"风险——如果原来是42张/832,456元未匹配，排除餐饮住宿汽油后只剩5张/643,542元→风险画像从"大面积异常"变为"少数核心供应商需核实"。</td></tr>';
+  html += '</tbody></table>';
+  html += '</div>';
+
   // 三源比对
   html += '<div class="card" style="border-top:3px solid #f59e0b;margin-bottom:16px;">';
-  html += '<h3>5.2 三源比对法</h3>';
+  html += '<h3>5.3 三源比对法</h3>';
   html += '<p style="font-weight:600;">原理：收入确认必须同时满足开票收入、申报收入、银行收款三源一致。</p>';
   html += '<table class="table table-sm"><tbody>';
   html += '<tr><td style="white-space:nowrap;font-weight:600;">源1：开票收入</td><td>金税系统中的销项发票金额合计——这是企业自行开具的法定记录</td></tr>';

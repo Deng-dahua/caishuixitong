@@ -14614,9 +14614,93 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "category": "三角验证"
         })
     
-    # 发票金额 vs 付款金额 是否匹配
-    amt_mismatch = 0
+    # ═══════════ 进项发票分层分类：区分主营业务成本/重大费用/日常报销 ═══════════
+    # 真实企业经营中，不同类别的进项发票有不同的付款模式：
+    # ① 主营业务成本（原料/加工费/设备等）→ 对公付款，必须匹配供应商名称
+    # ② 重大费用（房租/咨询/广告/运输等）→ 对公或合同付款，应当匹配
+    # ③ 日常费用报销（餐饮/住宿/汽油/办公/差旅等）→ 员工先垫付后报销，付款对象是员工而非开票单位
+    # 第三类发票的"供应商名称未匹配"属于商业正常现象，不应计入风险统计。
+    
+    # 日常费用报销关键词（全行业通用，基于发票品名判断）
+    _REIMBURSEMENT_KWS = [
+        # 餐饮
+        '餐饮','餐费','饭店','餐厅','食堂','伙食','外卖',
+        # 住宿
+        '住宿','酒店','宾馆','房费','旅店','民宿',
+        # 交通能源
+        '汽油','柴油','加油','充电','车用','燃油','过路费','停车费','通行费','ETC',
+        # 差旅
+        '旅游','机票','火车票','高铁','大巴','出租车','打车','网约车','代驾',
+        # 办公低值易耗品（报销性采购）
+        '办公用品','文具','打印纸','墨盒','硒鼓','文具',
+        # 通讯
+        '通讯','电话费','手机费','宽带','网络费','邮费','快递',
+        # 小额维修保养
+        '洗车','补胎','年检','验车',
+        # 福利
+        '福利','慰问','礼品','鲜花','蛋糕','水果',
+    ]
+    
+    def _is_reimbursement_expense(goods_name):
+        """判断进项发票是否为日常费用报销（不参与供应商名称匹配）"""
+        g = str(goods_name or "").lower()
+        for kw in _REIMBURSEMENT_KWS:
+            if kw in g:
+                return True
+        return False
+    
+    # 分层统计
+    biz_cost_invs = []      # 主营业务成本/重大费用（需匹配）
+    reimb_invs = []         # 日常费用报销（无需匹配）
+    
     for inv in pur_invs:
+        goods = str(inv.get("goods", "") or "")
+        if _is_reimbursement_expense(goods):
+            reimb_invs.append(inv)
+        else:
+            biz_cost_invs.append(inv)
+    
+    # 统计日常报销发票
+    reimb_count = len(reimb_invs)
+    reimb_total = sum(float(inv.get("total", 0) or 0) for inv in reimb_invs)
+    
+    if reimb_count > 0:
+        findings.append({
+            "type": "进项发票分层——日常费用报销排除",
+            "level": "低风险", "score": 2,
+            "detail": (
+                f"从{len(pur_invs)}张进项发票中识别出{reimb_count}张为日常费用报销（"
+                f"餐饮{sum(1 for i in reimb_invs if any(k in str(i.get('goods','')).lower() for k in ['餐饮','餐费','饭店']))}张、"
+                f"住宿{sum(1 for i in reimb_invs if any(k in str(i.get('goods','')).lower() for k in ['住宿','酒店','宾馆','房费']))}张、"
+                f"汽油{sum(1 for i in reimb_invs if any(k in str(i.get('goods','')).lower() for k in ['汽油','加油','柴油','车用']))}张、"
+                f"其他{sum(1 for i in reimb_invs if not any(k in str(i.get('goods','')).lower() for k in ['餐饮','餐费','住宿','酒店','汽油','加油']))}张），"
+                f"合计{reimb_total:,.0f}元。"
+            ),
+            "description": (
+                f"我在做进项发票与银行付款匹配之前，先对{len(pur_invs)}张进项发票按品名做了三层分类——这是真实稽查的必要步骤。\n\n"
+                f"第一层·主营业务成本（原料/加工费/设备等）：需对公付款，发票销方名称必须能在银行付款记录中找到。\n"
+                f"第二层·重大费用（房租/咨询/广告/运输等）：一般对公或按合同付款，也应能在银行付款中匹配。\n"
+                f"第三层·日常费用报销（餐饮/住宿/汽油/办公/差旅/通讯等）：员工先垫付后报销，\n"
+                f"  对公账户的付款对象是员工而非开票单位。因此'供应商名称未匹配'属于商业正常现象，\n"
+                f"  不应计入进项发票与付款不匹配的风险统计。\n\n"
+                f"本次识别出{reimb_count}张发票属于第三层（日常费用报销），合计{reimb_total:,.0f}元，\n"
+                f"已从匹配分析中排除。剩余{len(biz_cost_invs)}张为业务成本类发票，以下仅对这部分做名称匹配分析。"
+            ),
+            "how_found": (
+                f"我逐张翻阅了{len(pur_invs)}张进项发票的'货物或应税劳务名称'列，"
+                f"按{len(_REIMBURSEMENT_KWS)}个日常报销关键词进行分类——"
+                f"这是从真实企业财务实践中总结的规则：餐饮、住宿、汽油、差旅等费用"
+                f"通常由员工垫付后凭发票报销，付款对象是员工而非开票单位。"
+            ),
+            "tax_impact": "日常费用报销发票本身合规，无需做供应商名称匹配。但需确保：(1)报销发票真实且与经营相关；(2)不得将个人消费发票用于企业进项抵扣；(3)差旅费等需附行程单/审批单等佐证材料。",
+            "policy_ref": "《企业所得税法》第八条（与收入相关的合理支出）；《增值税暂行条例》关于进项税额抵扣的规定。",
+            "suggestion": "日常费用报销发票无需与银行付款匹配——建立费用报销制度，确保每张报销发票有对应的费用审批单、行程单等佐证材料即可。",
+            "category": "三角验证"
+        })
+    
+    # 重新做名称匹配——只对主营业务成本/重大费用类发票（排除日常报销）
+    amt_mismatch = 0
+    for inv in biz_cost_invs:
         seller = str(inv.get("seller", ""))[:30].strip()
         inv_total = float(inv.get("total", 0) or 0)
         if not seller or inv_total <= 0: continue
@@ -14629,7 +14713,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     if amt_mismatch > 5:
         # 收集未匹配发票的详细信息
         unmatched_invs = []
-        for inv in pur_invs:
+        for inv in biz_cost_invs:
             seller = str(inv.get("seller", ""))[:30].strip()
             inv_total = float(inv.get("total", 0) or 0)
             if not seller or inv_total <= 0: continue
@@ -14645,8 +14729,10 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 })
         
         total_unmatched = sum(inv["amount"] for inv in unmatched_invs)
+        total_biz_cost = sum(float(inv.get("total", 0) or 0) for inv in biz_cost_invs)
         total_pur = sum(float(inv.get("total", 0) or 0) for inv in pur_invs)
-        pct = total_unmatched / max(total_pur, 1) * 100
+        pct = total_unmatched / max(total_biz_cost, 1) * 100
+        reimb_excluded_note = f"（已排除日常费用报销{reimb_count}张{reimb_total:,.0f}元——餐饮住宿汽油等以报销形式支付，不参与供应商名称匹配）" if reimb_count > 0 else ""
         
         # 按金额排序取前5
         unmatched_invs.sort(key=lambda x: -x["amount"])
@@ -14656,7 +14742,13 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
         findings.append({
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
-            "detail": f"被查单位{amt_mismatch}张进项发票（占进项发票总数{len(pur_invs)}张的{amt_mismatch/len(pur_invs)*100:.0f}%）的供应商在银行流水付款记录中找不到对应的付款记录，涉及采购金额{total_unmatched:,.0f}元，占进项采购总额{total_pur:,.0f}元的{pct:.0f}%。",
+            "detail": (
+                f"【分层分析结果】我将{len(pur_invs)}张进项发票按品名分为三层——主营业务成本/重大费用/日常报销。\n"
+                f"已排除{reimb_count}张日常费用报销发票（餐饮住宿汽油等，合计{reimb_total:,.0f}元）——这些发票属于员工报销模式，付款对象是员工而非开票单位，不参与供应商名称匹配。\n"
+                f"对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配：{amt_mismatch}张" +
+                (f"（占业务成本类发票的{amt_mismatch/max(len(biz_cost_invs),1)*100:.0f}%）" if len(biz_cost_invs)>0 else "") +
+                f"的供应商在银行流水付款记录中找不到对应付款，涉及采购金额{total_unmatched:,.0f}元，占业务成本采购总额{total_biz_cost:,.0f}元的{pct:.0f}%。"
+            ),
             "description": f"将进项发票的销方名称与银行付款的对方户名进行双向比对。\n\n"
                 + f"【现实认知】实际经营中发票与付款天然不是一一对应关系，而是以下六种模式之一：\n"
                 + f"  ① 自然跨期——发票期末开、付款下期发生，或付款上期完成、发票后到（最常见）\n"
@@ -14674,7 +14766,12 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 + f"· 非对公/代付：通过个人或第三方付款——商业可能属实，但进项税抵扣在稽查中面临被否定\n"
                 + f"· 虚开发票：无真实交易只走票——最需排除但占比通常最低的情况\n\n"
                 + f"【关键供应商明细】{examples}等。",
-            "how_found": f"查阅被查单位提供的进项发票（共{len(pur_invs)}张）和银行账户流水。将进项发票销方名称与银行流水付款对方户名逐条比对，发现{amt_mismatch}张发票的供应商名称在当前银行付款记录中无法匹配。",
+            "how_found": (
+                f"我先将{len(pur_invs)}张进项发票按品名做三层分类——识别出{reimb_count}张为日常费用报销（餐饮住宿汽油差旅等，合计{reimb_total:,.0f}元）并排除。"
+                f"然后对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配——"
+                f"将销方名称与银行付款对方户名逐条比对，发现{amt_mismatch}张发票的供应商名称在当前银行付款记录中无法匹配。"
+                f"（若包含日常费用报销，共{len(pur_invs)}张中{amt_mismatch + reimb_count}张未匹配，但日常报销本就不应参与匹配。）"
+            ),
             "tax_impact": f"纳税影响取决于未匹配发票属于哪种付款模式：\n"
                 f"① 自然跨期 → 低风险——拉长期间验证后消除疑虑\n"
                 f"②③ 合并/分期付款 → 中低风险——需对账明细佐证交易真实性\n"
