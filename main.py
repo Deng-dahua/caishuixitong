@@ -9892,19 +9892,23 @@ async def upload_tax_risk_docs(
 
     files = validated_files
 
-    # 计算已有文件的MD5集合——仅限当前公司
+    # 计算已有文件的MD5集合——仅限当前公司（从内存列表取，避免磁盘残留导致误判重复）
     existing_hashes = set()
-    # 从磁盘扫描（仅当前公司的文件）
-    if os.path.exists(UPLOAD_DIR):
-        for fname in os.listdir(UPLOAD_DIR):
-            parts = fname.split("_")
-            try:
-                if len(parts) >= 1 and int(parts[0]) != company_id: continue
-            except: pass
-            try:
-                with open(os.path.join(UPLOAD_DIR, fname), "rb") as fh:
+    for d in _tax_risk_docs:
+        if d.get("company_id") != company_id:
+            continue
+        md5_val = d.get("md5")
+        if md5_val:
+            existing_hashes.add(md5_val)
+            continue
+        # 兼容旧数据：无 MD5 字段则从磁盘读取
+        try:
+            fpath = d.get("path") or os.path.join(UPLOAD_DIR, d.get("filename", ""))
+            if os.path.exists(fpath):
+                with open(fpath, "rb") as fh:
                     existing_hashes.add(hashlib.md5(fh.read()).hexdigest())
-            except: pass
+        except:
+            pass
 
     uploaded = []
     skipped = 0
