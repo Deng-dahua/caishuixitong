@@ -10431,11 +10431,18 @@ def _parse_bank_sheet(sheet):
                 vals[field] = v
             except: vals[field] = ""
         
-        # 至少要有日期或金额才视为有效行
+        # 至少要有日期或对方名称或合理金额才视为有效行（排除汇总行）
         has_date = bool(vals.get("date", "").strip())
-        has_amount = any(vals.get(k) and vals[k] != "0" for k in ["amount", "income", "expense", "credit", "debit"])
+        has_amount = any(vals.get(k) and str(vals[k]).strip() not in ("", "0", "0.0") for k in ["amount", "income", "expense", "credit", "debit"])
         has_counterparty = bool(vals.get("counterparty", "").strip())
         if not (has_date or has_amount or has_counterparty): continue
+        
+        # 额外检查：无日期+无对方+金额很大 → 可能是汇总行（收入合计/支出合计等）
+        if not has_date and not has_counterparty:
+            try:
+                amt_val = abs(float(vals.get("credit", 0) or 0)) or abs(float(vals.get("debit", 0) or 0))
+                if amt_val > 100000: continue  # 10万以上无日期无对方→汇总行
+            except: pass
         
         # 统一金额
         if "amount" not in vals:
@@ -10444,9 +10451,12 @@ def _parse_bank_sheet(sheet):
                 try: amt = max(amt, abs(float(vals.get(k, 0) or 0)))
                 except: pass
             vals["amount"] = str(amt)
-        # 统一日期格式
-        d = vals.get("date", "").strip()
+        # 统一日期格式（优先用date，其次tx_time，支持datetime带时间组件的格式）
+        d = (vals.get("date", "") or vals.get("tx_time", "")).strip()
         if d:
+            # 先处理带时间的格式: "2025-09-29 10:33:35" → 取前10位日期
+            if " " in d:
+                d = d.split(" ")[0]
             d = d.replace("-", "").replace("/", "").replace(".", "").replace("年", "").replace("月", "").replace("日", "")
             if len(d) == 8: vals["date"] = d
         
@@ -10922,7 +10932,7 @@ def _add_failure_suggestions():
         _trace_diag(f"生成{len(suggestions)}条修复建议", "info")
 
 # ── 数据清洗：跳过小计/合计/空行/重复表头 ──
-_SUBTOTAL_PATTERNS = ["小计", "合计", "总计", "累计", "本页小计", "本页合计", "本期合计", "本年累计", "当月合计"]
+_SUBTOTAL_PATTERNS = ["小计", "合计", "总计", "累计", "本页小计", "本页合计", "本期合计", "本年累计", "当月合计", "收入笔数", "支出笔数", "收入合计", "支出合计"]
 
 def _is_summary_row(vals):
     """判断是否为小计/合计行"""
