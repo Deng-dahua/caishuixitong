@@ -13629,9 +13629,9 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             "detail": f"{len(payment_no_inv)}个付款方向企业支付大额款项（>10万元），但在销项发票中查不到对应客户的开票记录，合计{total_uninvoiced:,.0f}元：\n" + "\n".join(detail_lines),
             "description": (
                 f"逐户穿透中发现了更严重的问题——{len(payment_no_inv)}个付款方向企业支付了合计{total_uninvoiced:,.0f}元，但销项发票库中完全找不到对应的开票记录。\n\n"
-                f"这不是偏差的问题，是"零开票"的问题——企业收了钱但没有开任何发票。"
+                f"这不是偏差的问题，是'零开票'的问题——企业收了钱但没有开任何发票。"
                 f"需要立即核实：这些付款是经营性收款（已交货未开票→隐匿收入），还是非经营性收款（借款/注资/往来款）。\n\n"
-                f"⚠ 稽查关键判断：如果这些付款方是企业而非个人、金额非整数、摘要含"货款""项目款"等经营关键词 → 高度嫌疑为隐匿收入。"
+                f"⚠ 稽查关键判断：如果这些付款方是企业而非个人、金额非整数、摘要含'货款''项目款'等经营关键词 → 高度嫌疑为隐匿收入。"
             ),
             "how_found": (
                 f"逐户穿透反向扫描：对{len(bank_by_payer)}个银行收款方逐一检查——"
@@ -18788,6 +18788,9 @@ def _run_analyze(company_id, db):
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
     
+    # ═══ 稽查报告质量标准执行（6项硬指标）═══
+    all_findings, quality_report = _enforce_report_quality_standards(all_findings, pipeline_log)
+    
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
     _INTERNAL_PATTERNS = [
         "数据验证通过", "数据验证:",
@@ -18845,6 +18848,7 @@ def _run_analyze(company_id, db):
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
         "target_entity": target_entity,
         "low_data_warning": low_data_warning,
+        "quality_report": quality_report,
         "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0)),
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
@@ -18853,6 +18857,107 @@ def _run_analyze(company_id, db):
     # 缓存最近分析结果
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
     return result
+
+# ═══════════ 稽查报告质量标准执行（6项硬指标）══════════
+# 提炼自Finding①"资料完备度综合评估"的标杆质量，全行业适用
+# 标准1: 第一人称稽查员叙事 — how_found/description以"我"为主语
+# 标准2: 事实-证据-后果三要素 — 缺一不可
+# 标准3: 完整因果链 A→B→C→D — 至少三步推导
+# 标准4: 可操作的紧迫感 — suggestion具体到步骤
+# 标准5: 特定法律条款引用 — 不得模糊引用
+# 标准6: 证据明细表(items) — 多项明细必须附items数组
+
+BOILERPLATE_LEGAL_TEXT = "《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。"
+BOILERPLATE_LEGAL_SHORT = "《中华人民共和国税收征收管理法》及相关税收法规。"
+
+def _enforce_report_quality_standards(all_findings, pipeline_log):
+    """对全部发现执行6项质量标准检查，不达标标记问题但不阻塞（降级+标注）
+    
+    Returns: (enforced_findings, quality_report)
+    """
+    enforced = []
+    quality_log = {"total": len(all_findings), "passed": 0, "warnings": [], "stats": {
+        "标准1_叙事": 0, "标准2_三要素": 0, "标准3_因果链": 0,
+        "标准4_建议": 0, "标准5_法律引用": 0, "标准6_items": 0
+    }}
+    
+    for f in all_findings:
+        issues = []
+        ftype = str(f.get("type", ""))
+        how_found = str(f.get("how_found", ""))
+        tax_impact = str(f.get("tax_impact", ""))
+        policy_ref = str(f.get("policy_ref", ""))
+        suggestion = str(f.get("suggestion", ""))
+        description = str(f.get("description", ""))
+        has_items = bool(f.get("items")) and len(f.get("items", [])) > 0
+        
+        # 标准1: 第一人称稽查员叙事
+        # how_found 或 description 必须以"我"为主动语态，不能是"经查""该企业""被发现在"
+        depersonalized = any(k in how_found + description for k in ["经查", "该企业存在", "被发现在", "销项开票与银行收款名称不匹配，需要按"])
+        first_person = "我" in how_found or "我" in description
+        if depersonalized and not first_person:
+            issues.append("标准1_叙事: 缺少第一人称稽查员视角")
+            quality_log["stats"]["标准1_叙事"] += 1
+        elif depersonalized:
+            issues.append("标准1_叙事: 含第三人称模板语")
+            quality_log["stats"]["标准1_叙事"] += 1
+        
+        # 标准2: 事实-证据-后果三要素
+        has_facts = len(tax_impact) > 20 and any(k in tax_impact for k in ["→", "导致", "可能", "将", "无法", "缺失"])
+        has_evidence = len(how_found) > 20
+        has_consequence = len(tax_impact) > 30 and ("→" in tax_impact or "。" in tax_impact)
+        if not (has_facts and has_evidence and has_consequence):
+            issues.append("标准2_三要素: 缺少事实/证据/后果之一")
+            quality_log["stats"]["标准2_三要素"] += 1
+        
+        # 标准3: 完整因果链 A→B→C→D
+        # tax_impact 中"→"的数量反映因果链深度，至少2个"→"
+        arrow_count = tax_impact.count("→")
+        if arrow_count < 1 and len(tax_impact) < 40:
+            issues.append("标准3_因果链: 缺少因果关系推导")
+            quality_log["stats"]["标准3_因果链"] += 1
+        
+        # 标准4: 可操作的紧迫感
+        # suggestion 需具体，不能是"请提供相关资料"等套话
+        boilerplate_suggestion = any(k in suggestion for k in ["请提供相关", "请配合", "请核实相关", "请按要求"])
+        if boilerplate_suggestion or len(suggestion) < 30:
+            issues.append("标准4_建议: 建议过于笼统或为套话")
+            quality_log["stats"]["标准4_建议"] += 1
+        
+        # 标准5: 特定法律条款引用
+        # 不能使用模板化的兜底法律文本
+        if BOILERPLATE_LEGAL_TEXT in policy_ref or BOILERPLATE_LEGAL_SHORT in policy_ref:
+            issues.append("标准5_法律引用: 使用了兜底模板文本")
+            quality_log["stats"]["标准5_法律引用"] += 1
+            # 清除模板文本，保留空或其他引用
+            f["policy_ref"] = policy_ref.replace(BOILERPLATE_LEGAL_TEXT, "").replace(BOILERPLATE_LEGAL_SHORT, "").strip()
+        
+        # 标准6: 证据明细表
+        # 如果detail中包含多个条目（如"缺失11类"）但没有items，标记
+        detail = str(f.get("detail", ""))
+        multi_item_keywords = ["缺失", "家", "个客户", "笔", "张发票", "项", "类"]
+        should_have_items = any(k in ftype + detail for k in multi_item_keywords) and not has_items
+        if should_have_items:
+            issues.append("标准6_items: 涉及多项明细但缺少items数组")
+            quality_log["stats"]["标准6_items"] += 1
+        
+        # 记录质量结果
+        if not issues:
+            quality_log["passed"] += 1
+        else:
+            f["_quality_issues"] = issues
+            quality_log["warnings"].append({"type": ftype[:40], "issues": issues})
+        
+        enforced.append(f)
+    
+    passed_pct = quality_log["passed"] / max(quality_log["total"], 1) * 100
+    pipeline_log.append(
+        f"稽查报告质量标准检查: {quality_log['passed']}/{quality_log['total']}项通过（{passed_pct:.0f}%）——"
+        f"6项标准逐条检查完成"
+    )
+    
+    return enforced, quality_log
+
 
 # ═══════════ 明细注入：为每条发现附加结构化明细数据 ═══════════
 

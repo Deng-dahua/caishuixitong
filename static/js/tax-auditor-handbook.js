@@ -287,6 +287,45 @@ function renderAuditorHandbook(container) {
   html += '</div>';
   html += '</div>';
 
+  // 3.5 稽查报告质量标准
+  html += '<h3 style="margin-top:20px;">3.5 稽查报告质量标准——六项硬指标</h3>';
+  html += '<p style="font-size:13px;color:#6b7280;">以下标准提炼自稽查实战报告的最佳实践（以本系统的"资料完备度综合评估"为标杆模板），适用于全部的稽查发现。每一项发现必须满足全部6项标准，不达标退回重写。</p>';
+
+  html += '<table class="table table-sm">';
+  html += '<thead><tr><th style="width:30px;">#</th><th style="width:140px;">标准名称</th><th>判定规则</th><th style="width:200px;">不合格示例</th></tr></thead><tbody>';
+
+  html += '<tr><td style="font-weight:700;">1</td><td><strong>第一人称稽查员叙事</strong></td>';
+  html += '<td><code>how_found</code> 和 <code>description</code> 必须以"我"为主语，使用"我审查了""我逐一比对了""我发现"等主动语态。禁止第三人称（"经查""该企业"）、禁止被动语态（"被发现在…"）。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "经查，该企业存在少申报收入的情形"<br>❌ "销项开票与银行收款名称不匹配，需要按六种商业模式逐笔分析"</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">2</td><td><strong>事实-证据-后果三要素</strong></td>';
+  html += '<td>每条发现必须同时包含：①具体事实（多少笔/多少金额/哪些主体）②证据来源（来自哪个数据源/如何交叉验证的）③缺失后果（缺失会导致什么→用什么替代→法律后果是什么）。三者缺一不可。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "销项发票购方名称与银行收款付款方名称不匹配" — 未说明具体是哪些主体不匹配、差多少金额</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">3</td><td><strong>完整因果链（A→B→C→D）</strong></td>';
+  html += '<td>每个后果必须写成因果链，至少三步推导：缺失X→导致Y无法验证→税务机关将采取Z替代手段→最终法律后果。禁止一步到位（缺失→罚款）。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "缺失凭证→补税+罚款"<br>✅ "缺失凭证→无法追溯分录准确性/科目运用/原始凭证匹配→会计账簿视为不健全→按《税收征收管理法》第三十五条核定征收"</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">4</td><td><strong>可操作的紧迫感</strong></td>';
+  html += '<td><code>suggestion</code> 必须具体到"做什么、怎么做、分几步"，给企业明确的可执行路径。同时体现时限压力——"你现在不处理，到时来不及"。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "请提供相关合同、单据、凭证等业务佐证材料"<br>✅ "①为{must_total:,.0f}元主营业务交易的供应商补签购销合同（{len(mc_list)}家）；②{should_total:,.0f}元重要费用补签服务合同…"</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">5</td><td><strong>特定法律条款引用</strong></td>';
+  html += '<td><code>policy_ref</code> 必须引用特定条款号+条款名称+摘要内容。禁止"依据相关法律规定""参照有关税收法规"等模糊引用。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "依据相关税收法规"<br>✅ "《税收征收管理法》第三十五条（核定征收）+第五十四条（检查权）+第五十六条（资料提供义务）"</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">6</td><td><strong>证据明细表（items）</strong></td>';
+  html += '<td>凡是涉及多项明细的发现（如多个缺失资料、多个客户、多笔交易），必须附 <code>items</code> 数组，每项含关键字段（名称、金额、后果等），前端渲染为可折叠明细表。不笼统地用一段话带过。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ 一句话带过"缺失11类"但不列明细<br>✅ items数组：[{缺失资料:"记账凭证", 缺失后果:"完整因果链…"}, …]</td></tr>';
+
+  html += '</tbody></table>';
+
+  html += '<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:13px;">';
+  html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行 <code>_enforce_report_quality_standards()</code> 函数对全部发现做6项标准逐条检查——';
+  html += '不达标的发现自动退回重写或补全缺失字段后才进入最终报告。每份报告末尾附质量检查通过数量统计。';
+  html += '</div>';
+  html += '</div>';
+
   // ═══════════════════════════════════════
   // 第四部分：关键法律条文索引
   // ═══════════════════════════════════════
