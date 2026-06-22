@@ -2038,7 +2038,22 @@ def close_period(period: str, company_id: int = Query(...), db: Session = Depend
     return {"message": f"{period} 结账成功，已自动创建 {next_period} 期间"}
 
 
-# ==================== 统计看板（原有，保留）====================
+# ==================== 统计看板 ====================
+
+@app.get("/api/dashboard")
+def dashboard(company_id: int = Query(...), db: Session = Depends(get_db)):
+    """数据看板——各模块数量统计"""
+    from datetime import date
+    period = date.today().strftime("%Y-%m")
+
+    customer_count = db.query(Customer).filter(Customer.company_id == company_id).count()
+    supplier_count = db.query(Supplier).filter(Supplier.company_id == company_id).count()
+    employee_count = db.query(Employee).filter(Employee.company_id == company_id).count()
+    account_count = db.query(Account).filter(Account.company_id == company_id).count()
+    si_count = db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).count()
+    pi_count = db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).count()
+    bi_count = db.query(BookkeepingInvoice).filter(BookkeepingInvoice.company_id == company_id).count()
+
     return {
         "period": period,
         "customer_count": customer_count,
@@ -18317,7 +18332,6 @@ def _run_analyze(company_id, db):
                 )
                 enhanced += 1
                 
-)
             else:
                 # 无明细数据的兜底——至少给出具体方向而非空话
                 f["suggestion"] = (

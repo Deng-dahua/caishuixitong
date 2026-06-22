@@ -243,11 +243,11 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print(f"财税系统自动审查 — 公司ID={company_id}")
     print(f"{'='*60}")
-    print(f"结果: {'✅ 全部通过' if result['passed'] else '❌ 发现问题'}")
+    print(f"结果: {'[PASS] 全部通过' if result['passed'] else '[FAIL] 发现问题'}")
     print(f"错误总数: {result['total_errors']}")
     print()
     for check, count in result['results'].items():
-        icon = "✅" if count == 0 else "❌"
+        icon = "[OK]" if count == 0 else "[ERR]"
         print(f"  {icon} {check}: {count}项")
     if result['errors']:
         print(f"\n详细错误:")
