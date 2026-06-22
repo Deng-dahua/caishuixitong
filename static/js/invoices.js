@@ -525,7 +525,7 @@ async function renderPurchaseInvoices(container) {
       api('/api/purchase-invoices/stats' + (piTab !== 'all' ? '?tab=' + piTab : ''))
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-    let html = '';
+    let html = '<div class="card card-fill">';
 
     html += '<div class="stat-grid-invoice">';
     html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">发票总数</div></div>';

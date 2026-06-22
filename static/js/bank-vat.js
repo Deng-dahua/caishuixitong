@@ -377,7 +377,7 @@ async function renderInputVATDeductions(container) {
 
   document.title = '进项抵扣 - 财税风险防控系统';
   const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-  let html = '';
+  let html = '<div class="card card-fill">';
 
   // 统计卡片
   html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
@@ -473,6 +473,7 @@ async function renderInputVATDeductions(container) {
     });
   }
   html += '</tbody></table></div>';
+  html += '</div>';  // close card-fill
 
   el.innerHTML = html;
   } catch(e) { console.error('[renderInputVATDeductions]', e); el.innerHTML = '<div class="empty-state"><p style="color:var(--danger)">进项抵扣加载失败：' + e.message + '</p></div>'; }

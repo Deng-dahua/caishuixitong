@@ -248,8 +248,7 @@ let currentPaymentTab = 'internal'; // 'internal' = 内部人员, 'external' = �
 async function renderPayments(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
-    '<div class="card card-fill" style="margin-bottom:0;padding:24px">' +
-      '</div>' +
+    '<div class="card card-fill">' +
 
       // Tab bar
       '<div class="payment-tab-bar">' +
