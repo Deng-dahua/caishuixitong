@@ -785,7 +785,7 @@ function renderTaxDocReport(r) {
     }
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);
-      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（明细）</div>';
+      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（' + f.items.length + '项明细）</div>';
       h += '<table class="tbl2"><tr>';
       cols2.forEach(function(c){ h += '<th>'+esc(c)+'</th>'; });
       h += '</tr>';
@@ -796,7 +796,17 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
-    // 证据来源仅在有实际内容且非内部调试信息时显示
+    // 调查过程——始终展示
+    if (f.how_found) {
+      h += '<div class="frow" style="margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">';
+      h += '<span class="flabel">调查过程：</span>' + esc(f.how_found||'') + '</div>';
+    }
+    // 税务影响分析
+    if (f.tax_impact) {
+      h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#fff7ed;border-left:3px solid #f97316;font-size:13px;line-height:1.8">';
+      h += '<span class="flabel" style="color:#c2410c">⚡ 税务影响：</span>' + esc(f.tax_impact||'') + '</div>';
+    }
+    // 证据来源
     var hasEvidence = (f.rule_id && f.rule_id > 100) || (f.source_chain && !f.source_chain.includes('链驱动'));
     if (hasEvidence) {
       h += '<div class="frow"><span class="flabel">证据来源：</span>';
@@ -806,6 +816,10 @@ function renderTaxDocReport(r) {
     }
     h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref) : '《中华人民共和国税收征收管理法》及相关税收法规')+'</div>';
     if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc(f.suggestion||'')+'</div>';
+    // 质量标注
+    if (f._quality_issues && f._quality_issues.length > 0) {
+      h += '<div style="margin-top:4px;font-size:10px;color:#f59e0b;">⚠ 质量标注：' + f._quality_issues.map(function(q){return esc(q);}).join('；') + '</div>';
+    }
     h += '</div>';
   });
 
@@ -1202,14 +1216,19 @@ function renderNarrativeReport(r) {
         + '<p>根据我的稽查经验，正常企业间的对公交易通常发生在工作日且金额零碎。周末交易和整数金额交易往往有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。</p>'
         + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
     } else {
-      narrativeText = '<p>在对' + esc(domainText || '相关领域') + '的审计中，我按照稽查工作规程进行了系统的数据分析和交叉比对。</p>'
-        + '<p>调查过程如下：首先，我从相关数据源提取了全部数据记录；其次，按照稽查规则逐条匹配检查；最后，对发现的问题进行了多维度验证。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+      // 默认叙事——融合 how_found + detail 生成完整的调查叙事
+      var hfText = f.how_found || '';
+      if (hfText) {
+        narrativeText = '<p><strong>我的调查方法：</strong>' + esc(hfText) + '</p>';
+      } else {
+        narrativeText = '<p>在对' + esc(domainText || '相关领域') + '的审计中，我按照稽查工作规程进行了系统的数据分析和交叉比对。</p>';
+      }
+      narrativeText += '<p>具体调查发现：' + esc(descText) + '</p>';
     }
 
     h += '<div class="nr-finding">';
     h += '<div class="nr-f-title">调查事项' + (i+1) + '：' + esc(f.type || '未分类发现') + '<span class="nr-badge ' + badgeCls + '">' + tl + '</span>' + (f.level_fixed ? '<span class="nr-badge nr-badge-red" style="font-size:9px">稽查重点</span>' : '') + '</div>';
-    h += '<div class="nr-f-meta">涉及领域：' + esc(domainText || '综合') + '　|　风险评分：' + (s||0) + '/10　|　' + (f.rule_id && f.rule_id > 100 ? '规则ID-' + f.rule_id : '') + '</div>';
+    h += '<div class="nr-f-meta">涉及领域：' + esc(domainText || '综合') + '　|　风险评分：' + (s||0) + '/10　|　' + (f.rule_id && f.rule_id > 100 ? '规则ID-' + f.rule_id : '') + '　|　' + (f.source_chain ? '线索链：' + esc(f.source_chain) : '') + '</div>';
     
     h += narrativeText;
 
@@ -1226,6 +1245,12 @@ function renderNarrativeReport(r) {
         h += '</tr>';
       });
       h += '</table></div>';
+    }
+
+    // 税务影响分析
+    if (f.tax_impact) {
+      h += '<div style="margin:8px 0;padding:10px 14px;background:#fff7ed;border-left:3px solid #f97316;font-size:13px;line-height:1.8;color:#7c2d12;">'
+        + '<strong>⚡ 我的专业判断（税务影响分析）：</strong><br>' + esc(f.tax_impact||'') + '</div>';
     }
 
     // 法律依据
