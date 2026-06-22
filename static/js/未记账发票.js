@@ -20,7 +20,7 @@ async function renderUnbookkeptInvoices(container) {
       api('/api/bookkeeping-invoices/stats?is_posted=false' + tabQs)
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-    let html = '';
+    let html = '<div class="card card-fill">';
 
     html += '<div class="stat-grid-invoice">';
     html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">未记账发票数</div></div>';
@@ -131,6 +131,7 @@ async function renderUnbookkeptInvoices(container) {
     });
     }
     html += '</tbody></table></div>';
+    html += '</div>';  // close card-fill
     el.innerHTML = html;
   } catch (e) {
     console.error('[UBI]', e);

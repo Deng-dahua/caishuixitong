@@ -13,7 +13,7 @@ function renderTaxDocAnalysis(container) {
   taxDocPageActive = true;  // 标记页面激活
 
   container.innerHTML = ''
-    + '<div class="risk-report-container">'
+    + '<div class="risk-report-container card card-fill">'
     
     // ── 标题区 ──
     + '<div class="risk-report-header">'

@@ -28,7 +28,7 @@ function renderTaxRiskRules(container) {
   window.currentModule = '稽查指令';
 
   container.innerHTML = ''
-    + '<div class="pipeline-page">'
+    + '<div class="pipeline-page card card-fill">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">稽查指令</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0" id="risk-rules-count">1505 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据</p>'

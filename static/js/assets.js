@@ -12,7 +12,7 @@ async function renderFixedAssets(container) {
 }
 
 function _faPageHTML() {
-  return `<div class="card" style="margin-bottom:16px">
+  return `<div class="card card-fill" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:600;color:var(--gray-700)">折旧期间：</span>
@@ -28,7 +28,7 @@ function _faPageHTML() {
     </div>
     <div id="fa-stats" style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap"></div>
   </div>
-  <div class="card" style="margin-bottom:0">
+  <div class="card card-fill" style="margin-bottom:0">
     <div class="table-wrap" id="fa-table">加载中...</div>
   </div>`;
 }
@@ -249,7 +249,7 @@ async function renderIntangibleAssets(container) {
 }
 
 function _iaPageHTML() {
-  return `<div class="card" style="margin-bottom:16px">
+  return `<div class="card card-fill" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:600;color:var(--gray-700)">摊销期间：</span>
@@ -265,7 +265,7 @@ function _iaPageHTML() {
     </div>
     <div id="ia-stats" style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap"></div>
   </div>
-  <div class="card" style="margin-bottom:0">
+  <div class="card card-fill" style="margin-bottom:0">
     <div class="table-wrap" id="ia-table">加载中...</div>
   </div>`;
 }
@@ -473,7 +473,7 @@ async function renderInventory(container) {
 }
 
 function _invPageHTML() {
-  return `<div class="card" style="margin-bottom:16px">
+  return `<div class="card card-fill" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:600;color:var(--gray-700)">余额期间：</span>
@@ -491,7 +491,7 @@ function _invPageHTML() {
     </div>
     <div id="inv-stats" style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap"></div>
   </div>
-  <div class="card" style="margin-bottom:0">
+  <div class="card card-fill" style="margin-bottom:0">
     <div class="table-wrap" id="inv-table">加载中...</div>
   </div>`;
 }
@@ -780,7 +780,7 @@ async function loadInventoryTransactions(page) {
       if (invTable && invTable.parentElement) {
         const div = document.createElement('div');
         div.id = 'inv-tx-section';
-        div.innerHTML = `<div class="card" style="margin-top:16px">
+        div.innerHTML = `<div class="card card-fill" style="margin-top:16px">
           <div class="card-title">最近收发记录</div>
           <div class="table-wrap" id="inv-tx-table"></div>
         </div>`;

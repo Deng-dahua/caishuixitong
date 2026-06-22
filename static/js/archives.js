@@ -429,7 +429,7 @@ async function renderCompany(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   try {
     const data = await api('/api/company');
-    let html = '<div class="card" style="margin-bottom:16px">' +
+    let html = '<div class="card card-fill" style="margin-bottom:16px">' +
       '<div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">' +
       '<span>🏢 公司基本信息</span>' +
       '<button class="btn btn-sm" onclick="exitCompany()" style="font-size:12px;padding:4px 10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">🚪 返回选择公司</button>' +

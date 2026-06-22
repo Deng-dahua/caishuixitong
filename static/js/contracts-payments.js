@@ -1,7 +1,7 @@
 // ==================== 合同管理 ====================
 async function renderContracts(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
-  el.innerHTML = '<div class="card" style="margin-bottom:0">' +
+  el.innerHTML = '<div class="card card-fill" style="margin-bottom:0">' +
     '<div class="filter-bar">' +
       '<input id="contractKeyword" placeholder="搜索合同编号/名称/对方..." style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;width:260px" onkeydown="if(event.key==\'Enter\')loadContracts()">' +
       '<button class="btn-toolbar" onclick="loadContracts()">搜索</button>' +
@@ -248,7 +248,7 @@ let currentPaymentTab = 'internal'; // 'internal' = 内部人员, 'external' = �
 async function renderPayments(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
-    '<div class="card" style="margin-bottom:0;padding:24px">' +
+    '<div class="card card-fill" style="margin-bottom:0;padding:24px">' +
       '</div>' +
 
       // Tab bar

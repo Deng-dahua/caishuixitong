@@ -36,7 +36,7 @@ async function renderSalesInvoices(container) {
       api('/api/sales-invoices/stats' + (siTab !== 'all' ? '?status=' + encodeURIComponent(siTab) : ''))
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-    let html = '';
+    let html = '<div class="card card-fill">';
 
     // 统计卡片
     html += '<div class="stat-grid-invoice">';
@@ -158,6 +158,7 @@ async function renderSalesInvoices(container) {
     });
     }
     html += '</tbody></table></div>';
+    html += '</div>';  // close card-fill
     el.innerHTML = html;
   } catch (e) {
     console.error('[InvoiceRender]', e);
@@ -648,6 +649,7 @@ async function renderPurchaseInvoices(container) {
     });
     }
     html += '</tbody></table></div>';
+    html += '</div>';  // close card-fill
     el.innerHTML = html;
   } catch (e) {
     console.error('[InvoiceRender]', e);

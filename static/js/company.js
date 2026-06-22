@@ -34,7 +34,7 @@ async function showCompanyManager(container) {
     const c = await fetch('/api/company?company_id=' + currentCompanyId).then(r => r.json());
     if (!c || !c.company_name) { el.innerHTML = '<div class="empty-state">暂无公司信息</div>'; return; }
 
-    let html = '';
+    let html = '<div class="card card-fill">';
     html += '<div style="display:flex;justify-content:flex-start;margin-bottom:12px">';
     html += '<button class="btn btn-primary" onclick="showCompanyEditForm()">编辑公司信息</button>';
     html += '</div>';
@@ -95,6 +95,7 @@ async function showCompanyManager(container) {
     } else {
       html += '<div class="empty-state" style="padding:12px">暂无财务负责人信息</div>';
     }
+    html += '</div>';  // close card-fill
 
     el.innerHTML = html;
   } catch (e) {

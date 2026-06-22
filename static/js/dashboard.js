@@ -5,6 +5,7 @@ async function renderDashboard(container) {
   try {
     const data = await api('/api/dashboard');
     el.innerHTML = `
+      <div class="card card-fill">
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">客户档案</div>
@@ -48,6 +49,7 @@ async function renderDashboard(container) {
         <button class="btn btn-primary" onclick="navigateTo('sales-invoices')">开具发票</button>
         <button class="btn btn-secondary" onclick="navigateTo('purchase-invoices')">取得发票</button>
         <button class="btn btn-secondary" onclick="navigateTo('bookkeeping-invoices')">记账发票</button>
+      </div>
       </div>
     `;
   } catch (e) {

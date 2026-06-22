@@ -27,7 +27,7 @@ async function renderBookkeepingInvoices(container) {
       api('/api/bookkeeping-invoices/stats?is_posted=true' + (biTab !== 'all' ? '&tab=' + biTab : ''))
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-    let html = '';
+    let html = '<div class="card card-fill">';
 
     html += '<div class="stat-grid-invoice">';
     html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">发票总数</div></div>';
@@ -133,6 +133,7 @@ async function renderBookkeepingInvoices(container) {
     });
     }
     html += '</tbody></table></div>';
+    html += '</div>';  // close card-fill
     el.innerHTML = html;
   } catch (e) {
     console.error('[BI]', e);
