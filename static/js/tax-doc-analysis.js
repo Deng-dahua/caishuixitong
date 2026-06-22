@@ -28,8 +28,8 @@ function renderTaxDocAnalysis(container) {
     + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
     + '</div>'
     + '<div style="display:flex;gap:10px">'
-    + '<label class="btn-toolbar" for="tda-file-input" style="cursor:pointer">'
-    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
+    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">'
+    + '<button class="btn-toolbar" onclick="document.getElementById(\'tda-file-input\').click()" style="cursor:pointer">上传资料</button>'
     + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
@@ -67,8 +67,12 @@ async function uploadTaxDocs() {
   }
 
   var btn = document.getElementById('tda-analyze-btn');
+  var listEl = document.getElementById('tda-file-list');
+  // 上传时先显示进度
+  if (listEl) listEl.innerHTML = '<div style="padding:10px;color:#2563eb">⏳ 正在上传 ' + input.files.length + ' 个文件...</div>';
+  
   try {
-    btn.disabled = true; btn.textContent = '上传中...';
+    if (btn) { btn.disabled = true; btn.textContent = '上传中...'; }
     var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), {
       method: 'POST', body: formData
     });
@@ -82,8 +86,9 @@ async function uploadTaxDocs() {
     refreshTaxDocList();
   } catch (e) {
     toast('上传失败: ' + e.message, 'error');
+    if (listEl) listEl.innerHTML = '<div style="color:#dc2626;padding:10px">上传出错: ' + esc(String(e.message || e)) + '</div>';
   } finally {
-    btn.disabled = false; btn.textContent = '一键分析';
+    if (btn) { btn.disabled = false; btn.textContent = '一键分析'; }
   }
 }
 
