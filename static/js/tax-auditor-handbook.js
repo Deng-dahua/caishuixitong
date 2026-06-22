@@ -233,16 +233,33 @@ function renderAuditorHandbook(container) {
   html += '<p class="muted">稽查报告是稽查工作的最终成果，必须做到：事实清楚、证据确凿、定性准确、处理适当、程序合法。</p>';
 
   // 报告结构
-  html += '<h3 style="margin-top:16px;">3.1 报告结构</h3>';
+  html += '<h3 style="margin-top:16px;">3.1 报告结构——向上级领导汇报的标准化框架</h3>';
+  html += '<p style="font-size:13px;color:#6b7280;">本系统生成的稽查报告模拟真实稽查员向上级领导汇报的场景。"标准分析报告"采用正式法律文书格式（7章），"叙事增强报告"采用口头汇报体（8章）。两份报告使用同一数据源，展示角度不同。</p>';
+
+  html += '<h4 style="margin-top:12px;">标准分析报告（7章·正式法律文书）</h4>';
   html += '<table class="table table-sm">';
-  html += '<thead><tr><th style="width:40px;">序号</th><th style="width:160px;">章节</th><th>内容要求</th></tr></thead><tbody>';
-  html += '<tr><td>1</td><td>稽查基本情况</td><td>被查单位名称、纳税人识别号、稽查所属期、稽查类型（日常/专项/举报/协查）、稽查起止时间</td></tr>';
-  html += '<tr><td>2</td><td>资料调取情况</td><td>调取资料的清单（14类），逐项标注已提供/未提供/部分提供。未提供的资料标注缺失后果</td></tr>';
-  html += '<tr><td>3</td><td>检查方法</td><td>使用的检查方法：账簿检查、实地核查、外部调查、询问、电子数据取证等</td></tr>';
-  html += '<tr><td>4</td><td>违法事实</td><td>逐项描述违法事实：时间、业务、金额、违反的具体法律条款。每项事实必须有对应的证据支撑</td></tr>';
-  html += '<tr><td>5</td><td>证据材料</td><td>证据清单，每份证据标注来源、日期、证明内容。证据链必须闭环</td></tr>';
-  html += '<tr><td>6</td><td>处理建议</td><td>追缴税款、加收滞纳金、处以罚款的具体金额和计算依据、引用的法律条款</td></tr>';
-  html += '<tr><td>7</td><td>稽查结论</td><td>总结稽查发现、定性结论、处理意见。必须逐项说明理由</td></tr>';
+  html += '<thead><tr><th>章</th><th>内容</th><th>汇报视角</th></tr></thead><tbody>';
+  html += '<tr><td>一</td><td>案件来源及稽查对象基本情况</td><td>受理依据+联网核查结果+工商信息表</td></tr>';
+  html += '<tr><td>二</td><td>稽查实施情况</td><td>六种稽查方法+经营实质核查过程+资金流/发票流分析</td></tr>';
+  html += '<tr><td>三</td><td>稽查结论</td><td>风险评级+发现统计+线索链覆盖+主要高风险事项</td></tr>';
+  html += '<tr><td>四</td><td>稽查发现问题及事实认定</td><td>逐项标注调查过程→线索链→证据→法律→建议</td></tr>';
+  html += '<tr><td>五</td><td>处理处罚建议</td><td>向领导汇报处理意见+请求审议</td></tr>';
+  html += '<tr><td>六</td><td>告知权利义务</td><td>被查单位法定权利告知</td></tr>';
+  html += '<tr><td>七</td><td>签字</td><td>稽查执行人签名+日期</td></tr>';
+  html += '</tbody></table>';
+
+  html += '<h4 style="margin-top:16px;">叙事增强报告（8章·口头汇报体）</h4>';
+  html += '<table class="table table-sm">';
+  html += '<thead><tr><th>章</th><th>内容</th><th>汇报场景</th></tr></thead><tbody>';
+  html += '<tr><td>开篇</td><td>关于XX公司涉税资料的稽查情况汇报</td><td>"领导，现就XX公司的稽查情况向您汇报"</td></tr>';
+  html += '<tr><td>第一章</td><td>案件受理与基本情况</td><td>"本案来源于…我受理后立即启动了稽查工作"</td></tr>';
+  html += '<tr><td>第二章</td><td>稽查方案与工作部署</td><td>"在正式稽查前，我制定了六步工作法…"</td></tr>';
+  html += '<tr><td>第三章</td><td>稽查实施过程</td><td>按方案顺序逐项执行——资金流→发票流→多源交叉验证</td></tr>';
+  html += '<tr><td>第四章</td><td>稽查结论</td><td>"领导，以上稽查工作完成后，我得出以下结论"</td></tr>';
+  html += '<tr><td>第五章</td><td>风险疑点详报与证据链</td><td>逐项详报：调查过程→线索链→证据来源→专业判断</td></tr>';
+  html += '<tr><td>第六章</td><td>证据链组织总结</td><td>"我如何将孤立疑点串联为完整证据链"——四步证据法</td></tr>';
+  html += '<tr><td>第七章</td><td>处理处罚建议</td><td>"根据上述稽查发现和证据链，我提出以下建议…请领导审议"</td></tr>';
+  html += '<tr><td>第八章</td><td>告知事项+双签</td><td>被查单位权利告知+汇报人签名+领导审批意见</td></tr>';
   html += '</tbody></table>';
   html += '<div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-radius:6px;font-size:13px;">';
   html += '<strong>📜 法定依据：</strong>';
@@ -252,16 +269,18 @@ function renderAuditorHandbook(container) {
   html += '</div>';
 
   // 叙事风格
-  html += '<h3 style="margin-top:20px;">3.2 叙事风格——第一人称稽查员视角</h3>';
+  html += '<h3 style="margin-top:20px;">3.2 叙事风格——第一人称稽查员视角 + 汇报体</h3>';
   html += '<div class="card" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:16px;">';
-  html += '<p style="margin:0 0 8px 0;"><strong>核心原则：</strong>报告以稽查员的视角撰写，使用"我审查了""我发现""我核实了"等第一人称叙事，让读者感受到稽查员的专业判断过程，而非模板化的公文堆砌。</p>';
-  html += '<p style="margin:0 0 8px 0;"><strong>示例：</strong></p>';
+  html += '<p style="margin:0 0 8px 0;"><strong>核心原则：</strong>报告模拟稽查员向上级领导汇报的真实场景。标准报告用正式法律语体（"本人经稽查发现…"），叙事报告用口头汇报体（"领导，我做了以下稽查工作…"）。</p>';
+  html += '<p style="margin:0 0 8px 0;"><strong>汇报体示例：</strong></p>';
   html += '<ul style="margin:0;font-size:13px;">';
-  html += '<li>✅ <em>"我审查了被查单位提交的全部14类稽查必查资料，发现缺失8类，具体为：…"</em></li>';
-  html += '<li>✅ <em>"我发现该公司2024年3-6月银行收款合计580万元，同期申报收入仅210万元，差额370万元未申报。"</em></li>';
-  html += '<li>✅ <em>"我逐一比对了销项发票的开票客户与银行回款客户，发现12个回款账户名称与开票客户名称不一致。"</em></li>';
+  html += '<li>✅ <em>"领导，现就XX公司的稽查情况向您详细汇报。"</em>（开篇建立场景）</li>';
+  html += '<li>✅ <em>"在正式稽查前，我制定了六步工作法：第一步…第二步…"</em>（展示稽查方案）</li>';
+  html += '<li>✅ <em>"我审查了被查单位提交的全部14类稽察必查资料，发现缺失8类，具体为：…"</em></li>';
+  html += '<li>✅ <em>"根据上述稽查发现和证据链，我提出以下建议，请领导审议。"</em>（请求上级决策）</li>';
   html += '<li>❌ <em>"经查，该企业存在少申报收入的情形。"</em>（过于概括，缺乏具体数据和判断过程）</li>';
   html += '</ul>';
+  html += '<p style="margin:8px 0 0 0;font-size:12px;color:#6b7280;"><strong>场景纪律：</strong>稽查报告同时是法律文书——所有事实陈述必须有证据支撑，所有法律引用必须有条款号，所有金额必须精确。汇报体不是"随便说"，而是"在严谨证据基础上的清晰汇报"。</p>';
   html += '</div>';
 
   // 证据引用规范

@@ -1650,7 +1650,10 @@ function renderAnalyzeResult(report) {
     {id:'㉖', name:'经营实质点面推理法（全行业适用）', desc:'单点发现→数据扩展→关联维度（供应商/客户/加工商/运输成本）→交叉验证→综合结论（全链条经营实质）。从单点风险推理出面的风险。代码：main.py _domain_geographic_analysis()。适用所有行业。'},
     {id:'㉗', name:'稽查六员跨企业比对（全行业适用）', desc:'联网核查获取六员（法定代表人/董事/监事/财务负责人/股东/经理）后，双重检测：①一人多角——同一人≥3个关键角色→内控缺陷②跨企业人员重叠——六员在其他企业任职→关联关系→资金回流/转移定价/虚开发票连锁风险。代码：main.py:18866 _check_six_personnel_risk() + tax-doc-analysis.js六员风险渲染。全行业各企业适用。'},
     {id:'㉘', name:'供应链联网核查（全链条人员交叉比对）', desc:'不仅查被查单位，还对TOP供应商/客户执行联网核查：发票提取名称→搜索引擎查六员→逐名与本企业六员交叉比对→发现重叠即关联交易信号。同时检测供应商=客户（购销闭环→虚开发票嫌疑）。三段式跨域分析：发票数据+人员信息+资金流。代码：main.py:18977 _lookup_supply_chain()。全行业各企业适用。'},
-    {id:'㉙', name:'主营业务聚焦法（全行业适用）', desc:'判断企业所属行业时，必须以主营业务发票为依据，排除住宿费、餐饮费、加油费、租赁费、差旅费、保险费、通讯费、办公费、快递费、广告费、咨询费、法律费、维修费、物业费、停车费、经纪代理费、代订费等经营费用。经营费用是所有企业共同的日常支出，不反映行业特征。任何行业的经营费用种类相似（房租、水电、差旅、办公），但生产物资品类各行业不同（纺织→棉纱、电子→芯片、食品→原料）。代码：main.py _is_expense() + 规则999504 + _generate_biz_substance_findings()。全行业各企业适用。'}
+    {id:'㉙', name:'主营业务聚焦法（全行业适用）', desc:'判断企业所属行业时，必须以主营业务发票为依据，排除住宿费、餐饮费、加油费、租赁费、差旅费、保险费、通讯费、办公费、快递费、广告费、咨询费、法律费、维修费、物业费、停车费、经纪代理费、代订费等经营费用。经营费用是所有企业共同的日常支出，不反映行业特征。任何行业的经营费用种类相似（房租、水电、差旅、办公），但生产物资品类各行业不同（纺织→棉纱、电子→芯片、食品→原料）。代码：main.py _is_expense() + 规则999504 + _generate_biz_substance_findings()。全行业各企业适用。'},
+    {id:'㉚', name:'12项报告质量标准（全行业适用）', desc:'每条稽查发现必须过12项标准检查：①第一人称叙事 ②三要素 ③因果链 ④可操作建议 ⑤法律条款号 ⑥证据明细表 ⑦方法在前 ⑧反模板句 ⑨事实具体化 ⑩防复制 ⑪空占位符 ⑫法条号。代码：main.py _enforce_report_quality_standards() + _sanitize_finding_boilerplate()。全行业各企业适用。'},
+    {id:'㉛', name:'向上级汇报体（全行业适用）', desc:'叙事报告模拟稽查员向上级领导汇报的真实场景。标准报告用正式法律语体，叙事报告用口头汇报体（"领导，现就XX公司的稽查情况向您详细汇报"）。开篇→稽查方案→实施过程→稽查结论→逐项详报→证据链总结→处理建议→领导审批。8章汇报结构+六步工作法+四步证据法。代码：tax-doc-analysis.js renderNarrativeReport()。全行业各企业适用。'},
+    {id:'㉜', name:'客户维度三源穿透法（全行业适用）', desc:'不只比总额，而是逐客户匹配开票vs收款，逐户标注收款>开票（预收/隐匿收入）、开票>收款（应收/虚开）、零开票大额收款（未申报经营收入）、整数收款（人为构造）、付款方与开票对象不一致（三流不合一）。五时点收入确认（合同→交付→开票→收款→确认）。代码：main.py _domain_customer_revenue_matching()。全行业各企业适用。'}
   ];
 
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
@@ -2340,7 +2343,7 @@ function renderAiRules(container) {
             '<span style="font-size:12px;color:#374151;">📊 ' + totalFindings + '条发现</span>' +
             '<span style="font-size:12px;color:#dc2626;">🔴 高风险 ' + highRisk + '</span>' +
             '<span style="font-size:12px;color:#6b7280;">⚙️ ' + pipelineSteps + '个分析步骤</span>' +
-            '<span style="font-size:11px;color:#10b981;">✅ 本页23条规则——所有铁律在每次提交前自动执行</span>' +
+            '<span style="font-size:11px;color:#10b981;">✅ 本页' + totalRules + '条规则——所有铁律在每次提交前自动执行</span>' +
             '<a href="#" onclick="navigateTo(\'methodology-filter\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看过滤器 →</a>' +
             '</div></div>';
         }
