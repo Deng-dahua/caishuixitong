@@ -464,10 +464,13 @@ function renderAuditorHandbook(container) {
   // 经营实质分析法
   html += '<div class="card" style="border-top:3px solid #06b6d4;margin-bottom:16px;">';
   html += '<h3>5.6 经营实质分析法</h3>';
-  html += '<p style="font-weight:600;">原理：从交易特征反向验证商业合理性。发票数据本身的模式就能暴露问题。</p>';
+  html += '<p style="font-weight:600;">原理：从交易特征反向验证商业合理性——发票数据本身的模式就能暴露问题。包括经营模式核查和地理空间分析两个维度。</p>';
   html += '<table class="table table-sm"><tbody>';
   html += '<tr><td style="white-space:nowrap;font-weight:600;">供应商地理</td><td>企业注册地在A省，主要供应商集中在千里之外的B省→运输成本合理性存疑→可能为开票公司</td></tr>';
   html += '<tr><td style="font-weight:600;">品名逻辑</td><td>生产企业采购大量与其经营范围无关的消费品（如服装厂采购电子产品/食品厂采购建材）→品名与主营业务不符→虚开发票嫌疑</td></tr>';
+  html += '<tr><td style="font-weight:600;">外地加工费</td><td>企业位于A市，但加工费发票来自B市的外地加工商→为什么不找本地加工商？外地加工意味着额外运输成本和更长加工周期，商业上不合理。需核实：委托加工物资往返运输记录、加工费单价是否包含运费、加工地是否真实存在。</td></tr>';
+  html += '<tr><td style="font-weight:600;">运输成本缺失</td><td>原料来自外地、成品销往外地、加工也在外地→必然产生大量运输费。但银行流水中完全没有运输费/物流费/快递费支出→货物流断裂→交易真实性存疑。重物（纺织原料/建材/金属等）的运输成本缺失尤其致命。</td></tr>';
+  html += '<tr><td style="font-weight:600;">点面推理法</td><td>从单一异常点出发，横向扩展到全链条分析。如：加工费来自外地→检查供应商是否也在外地→检查客户是否也在外地→检查是否有运输成本→三地分离+零运输成本=全链条经营实质不可信。这是一个从"点"（单笔异常）推理到"面"（全链条存疑）的系统化方法。</td></tr>';
   html += '<tr><td style="font-weight:600;">金额规律</td><td>长期向某供应商采购，金额稳定在起征点以下→规避发票认证→拆分交易</td></tr>';
   html += '<tr><td style="font-weight:600;">时间规律</td><td>月末/季末集中开票→突击开票冲成本→收入成本配比异常</td></tr>';
   html += '<tr><td style="font-weight:600;">价格合理性</td><td>采购价格显著高于/低于市场均价→关联交易转移定价→特别纳税调整</td></tr>';
