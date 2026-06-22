@@ -631,7 +631,7 @@ function renderTaxDocReport(r) {
   h += '<p class="i2">第六，<b>五步核查法。</b>按照"工商登记→进项审核→销项审核→交叉比对→综合判断"的顺序，对经营实质进行全流程核查，确保每一步都有证据支撑而非推断。</p>';
 
   // （二）核查过程
-  h += '<p class="i2"><b>（二）核查过程。</b></p>
+  h += '<p class="i2"><b>（二）核查过程。</b></p>';
 
   if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
     h += '<p class="i2"><b>1. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
