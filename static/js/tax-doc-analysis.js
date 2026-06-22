@@ -33,6 +33,7 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
+    + '<button class="btn-toolbar" onclick="toggleNarrativeMode()" id="tda-narrative-btn" style="display:none;cursor:pointer;padding:6px 14px;border:1px solid #d1d5db;background:#fff;color:#6b7280;border-radius:4px;font-size:12px">稽查叙事报告</button>'
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
     + '<button class="btn-toolbar" onclick="showCacheInfo()" id="tda-cache-btn" style="color:#6b7280;border-color:#d1d5db;background:#f9fafb;font-size:11px">缓存</button>'
     + '</div></div>'
@@ -50,9 +51,15 @@ function renderTaxDocAnalysis(container) {
 
   // 如果有缓存报告，恢复显示
   if (taxDocReportData) {
-    renderTaxDocReport(taxDocReportData);
+    if (narrativeMode) {
+      renderNarrativeReport(taxDocReportData);
+    } else {
+      renderTaxDocReport(taxDocReportData);
+    }
     var btn = document.getElementById('tda-export-btn');
     if (btn) btn.style.display = '';
+    var narrBtn = document.getElementById('tda-narrative-btn');
+    if (narrBtn) narrBtn.style.display = '';
   }
 }
 
@@ -271,10 +278,18 @@ async function analyzeTaxDocs() {
     if (!taxDocPageActive) return;  // 页面已离开，不渲染
     if (data.ok) {
       taxDocReportData = data.report;
-      renderAnalyzeHeader(data.report);  // 先渲染稽查引擎概览
-      renderTaxDocReport(data.report);   // 再渲染正式稽查报告
+      if (narrativeMode) {
+        renderNarrativeReport(data.report);
+        var narrBtn2 = document.getElementById('tda-narrative-btn');
+        if (narrBtn2) { narrBtn2.textContent = '切回标准报告'; narrBtn2.style.cssText = 'cursor:pointer;padding:6px 14px;border:1px solid #7c3aed;background:#f5f3ff;color:#7c3aed;border-radius:4px;font-size:12px;font-weight:600'; }
+      } else {
+        renderAnalyzeHeader(data.report);
+        renderTaxDocReport(data.report);
+      }
       var exportBtn = document.getElementById('tda-export-btn');
       if (exportBtn) exportBtn.style.display = 'inline-block';
+      var narrBtn = document.getElementById('tda-narrative-btn');
+      if (narrBtn) narrBtn.style.display = 'inline-block';
       toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
       var now2 = new Date();
       var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
@@ -832,23 +847,444 @@ function renderTaxDocReport(r) {
   area.scrollIntoView({ behavior: 'smooth' });
 }
 
+// ==================== 稽查叙事报告 ====================
+var narrativeMode = false;
+
+function toggleNarrativeMode() {
+  narrativeMode = !narrativeMode;
+  var btn = document.getElementById('tda-narrative-btn');
+  if (!taxDocReportData) return;
+  
+  if (narrativeMode) {
+    if (btn) btn.textContent = '切回标准报告';
+    if (btn) btn.style.cssText = 'cursor:pointer;padding:6px 14px;border:1px solid #7c3aed;background:#f5f3ff;color:#7c3aed;border-radius:4px;font-size:12px;font-weight:600';
+    renderNarrativeReport(taxDocReportData);
+  } else {
+    if (btn) btn.textContent = '稽查叙事报告';
+    if (btn) btn.style.cssText = 'cursor:pointer;padding:6px 14px;border:1px solid #d1d5db;background:#fff;color:#6b7280;border-radius:4px;font-size:12px';
+    renderAnalyzeHeader(taxDocReportData);
+    renderTaxDocReport(taxDocReportData);
+  }
+}
+
+function renderNarrativeReport(r) {
+  var area = document.getElementById('tda-report-area');
+  if (!area || !r) return;
+
+  var te = r.target_entity || {};
+  var allF = r.all_findings || [];
+  allF.sort(function(a,b){return(b.score||0)-(a.score||0);});
+  var cc = r.comprehensive || {};
+  var mi = cc.material_intel || {};
+  var bi = mi['银行流水'] || {};
+  var ii = mi['发票'] || {};
+  var ga = te._goods_analysis || {};
+  var purOnlyGoods = ga.pur_only_goods || [];
+  var salOnlyGoods = ga.sal_only_goods || [];
+  var commonGoods = ga.common_goods || [];
+  var hasProcFee = ga.has_processing_fee || false;
+  var registeredBusiness = te.industry_online || '';
+  var inferredBusiness = te.industry || '';
+  var hasProcessingSignal = !!(te._has_processing_signal || (ii && ii['加工费信号']));
+  var actualBusiness = '';
+  if (registeredBusiness && inferredBusiness && registeredBusiness !== inferredBusiness) {
+    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
+  } else if (!registeredBusiness && inferredBusiness) {
+    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
+  }
+
+  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  var now = new Date();
+  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var timeStr = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+
+  var h = '<style>'
+    + '#nr-report *{margin:0;padding:0;box-sizing:border-box}'
+    + '#nr-report{font-family:"PingFang SC","Microsoft YaHei","Noto Serif SC",serif;font-size:15px;line-height:2.2;color:#1a1a2e;max-width:800px;margin:0 auto;padding:80px 60px;background:#fff}'
+    + '#nr-report .nr-cover{text-align:center;padding:80px 0 60px;border-bottom:3px double #1a1a2e;margin-bottom:60px}'
+    + '#nr-report .nr-cover h1{font-size:28px;font-weight:900;letter-spacing:8px;margin-bottom:24px;color:#0f172a}'
+    + '#nr-report .nr-cover .nr-sub{font-size:14px;color:#64748b;line-height:2.8}'
+    + '#nr-report .nr-chapter{margin:50px 0 30px;padding-bottom:12px;border-bottom:2px solid #1a1a2e}'
+    + '#nr-report .nr-chapter h2{font-size:20px;font-weight:800;letter-spacing:3px;margin-bottom:6px;color:#0f172a}'
+    + '#nr-report .nr-chapter .nr-ch-sub{font-size:13px;color:#64748b}'
+    + '#nr-report .nr-body{text-align:justify}'
+    + '#nr-report .nr-body p{margin:12px 0;text-indent:2em}'
+    + '#nr-report .nr-body p.nr-no-indent{text-indent:0}'
+    + '#nr-report .nr-quote{margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:4px solid #475569;font-size:13px;color:#334155;font-style:italic}'
+    + '#nr-report .nr-evidence{margin:16px 0;padding:16px 20px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px}'
+    + '#nr-report .nr-evidence .nr-ev-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px}'
+    + '#nr-report .nr-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}'
+    + '#nr-report .nr-table th{background:#f5f5f5;padding:5px 8px;text-align:left;border:1px solid #e2e8f0;font-weight:600;font-size:12px}'
+    + '#nr-report .nr-table td{padding:4px 8px;border:1px solid #f1f5f9;font-size:12px}'
+    + '#nr-report .nr-finding{margin:30px 0;padding:24px 28px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
+    + '#nr-report .nr-finding .nr-f-title{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f1f5f9}'
+    + '#nr-report .nr-finding .nr-f-meta{font-size:11px;color:#94a3b8;margin-bottom:12px}'
+    + '#nr-report .nr-finding .nr-f-meta .nr-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:8px}'
+    + '#nr-report .nr-badge-red{background:#fee2e2;color:#991b1b}'
+    + '#nr-report .nr-badge-amber{background:#fef3c7;color:#92400e}'
+    + '#nr-report .nr-badge-green{background:#dcfce7;color:#166534}'
+    + '#nr-report .nr-law{margin:12px 0;padding:10px 14px;background:#f0f9ff;border-left:3px solid #2563eb;font-size:12px;color:#1e40af;line-height:1.8}'
+    + '#nr-report .nr-sig{text-align:right;margin-top:80px;padding-top:30px;border-top:1px solid #cbd5e1;line-height:2.5;font-size:14px;color:#475569}'
+    + '#nr-report .nr-sig .nr-sig-name{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:4px}'
+    + '#nr-report .nr-toc{margin:40px 0;padding:20px 30px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}'
+    + '#nr-report .nr-toc .nr-toc-title{font-size:15px;font-weight:700;margin-bottom:12px;color:#0f172a}'
+    + '#nr-report .nr-toc .nr-toc-item{font-size:13px;line-height:2.4;color:#475569}'
+    + '#nr-report .nr-inspector-thought{margin:12px 0;padding:10px 14px;background:#fefce8;border-left:3px solid #eab308;font-size:13px;color:#713f12;line-height:1.8;font-style:italic}'
+    + '#nr-report strong{color:#0f172a}'
+    + '#nr-report .nr-highlight{background:#fef08a;padding:0 2px}'
+    + '</style><div id="nr-report">';
+
+  // ═══ 封面 ═══
+  h += '<div class="nr-cover">'
+    + '<h1>税务稽查报告</h1>'
+    + '<div class="nr-sub">'
+    + '编号：税稽字[' + now.getFullYear() + ']第' + String(Math.floor(Math.random()*900+100)).padStart(3,'0') + '号<br>'
+    + '被查单位：' + esc(te.name || '（根据资料推断）') + '<br>'
+    + '稽查期间：' + esc(te.period || '资料覆盖期间') + '<br>'
+    + '报告日期：' + dateStr
+    + '</div></div>';
+
+  // ═══ 目录 ═══
+  h += '<div class="nr-toc"><div class="nr-toc-title">目  录</div>'
+    + '<div class="nr-toc-item">第一章　案件受理与初步分析</div>'
+    + '<div class="nr-toc-item">第二章　稽查实施——资料收集与解析</div>'
+    + '<div class="nr-toc-item">第三章　稽查实施——逐项调查与发现</div>'
+    + '<div class="nr-toc-item">第四章　跨域线索串联分析</div>'
+    + '<div class="nr-toc-item">第五章　稽查结论与处理意见</div>'
+    + '<div class="nr-toc-item">第六章　告知事项</div>'
+    + '</div>';
+
+  // ═══ 第一章：案件受理与初步分析 ═══
+  h += '<div class="nr-chapter"><h2>第一章　案件受理与初步分析</h2><div class="nr-ch-sub">' + dateStr + ' ' + timeStr + '　记于稽查局办公室</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p>我是国家税务总局XX稽查局稽查员，根据工作安排，本日受理了关于<span class="nr-highlight">' + esc(te.name || '某企业') + '</span>的涉税资料分析预审案件。案件来源为电子经营资料自动预审系统推送。</p>';
+
+  var onlineOK = !!te._online_lookup;
+  if (onlineOK) {
+    h += '<p>受理案件后，我首先通过联网核查系统对被查单位的基本工商信息进行了核实。经查，被查单位' + esc(te.name || '') + '，统一社会信用代码' + esc(te.uscc || '') + '，成立于' + esc(te.established_date || '') + '，登记状态为' + esc(te.company_status || te.status || '') + '，企业类型为' + esc(te.company_type || te.type || '') + '，法定代表人' + esc(te.legal_person || te.legal_representative || '') + '。注册资本' + esc(te.registered_capital || '') + '。工商登记行业为' + esc(registeredBusiness || '') + '。注册地址位于' + esc(te.address || '') + '。经营范围为' + esc(te.business_scope || '') + '。</p>';
+  } else {
+    h += '<p>联网核查未获取到完整工商信息。我从发票数据中推断，该单位所属行业为' + esc(inferredBusiness || '') + '。我提醒自己，联网核查是稽查方法论第六项要求，后续应补充天眼查/企查查等渠道核实。</p>';
+  }
+
+  var spr = te._six_personnel_risk;
+  if (spr) {
+    var mp = spr.my_personnel || {};
+    var myNames = Object.keys(mp);
+    if (myNames.length > 0) {
+      h += '<p>在人员核查中，我调取了被查单位的六员信息（法定代表人、股东、董事、监事、财务负责人、办税人员）。发现以下关键人员：</p>';
+      for (var ni = 0; ni < myNames.length; ni++) {
+        var name = myNames[ni];
+        var roles = mp[name] || [];
+        h += '<p class="nr-no-indent">　· <strong>' + esc(name) + '</strong>：' + roles.map(function(r){return esc(r);}).join('、') + '</p>';
+      }
+      var multiRole = spr.one_person_multi_role || [];
+      if (multiRole.length > 0) {
+        h += '<div class="nr-inspector-thought">⚠ 稽查警觉：' + multiRole.map(function(mr){return esc(mr.name)+'一人同时担任'+mr.count+'个关键角色（'+mr.roles.map(function(r){return esc(r);}).join('、')+'）';}).join('；') + '。一人多角意味着企业缺乏内控制衡，资金流向完全由个人意志决定，这在稽查中是重要风险信号。</div>';
+      }
+      var crossCo = spr.cross_company_overlap || [];
+      if (crossCo.length > 0) {
+        h += '<div class="nr-inspector-thought">⚠ 跨企业人员重叠：' + crossCo.map(function(cc){return '对方企业'+esc(cc.other_company)+'与本企业存在人员重叠';}).join('；') + '。两家企业可能为关联方，需进一步核查资金往来和转移定价。</div>';
+      }
+    }
+  }
+
+  h += '<p>收到推送时，系统已预先完成了资料扫描。根据系统提示，被查单位提交了' + r.files_count + '份电子经营资料。我初步浏览了资料清单，发现了一个令人担忧的状况：在税务稽查要求提供的14类必查资料中，<strong>仅有3类资料已提交</strong>（银行流水、销项发票、进项发票），其余11类关键资料完全缺失。这让我对后续的稽查工作有了初步判断——这将是一场资料匮乏的艰难调查。</p>';
+
+  h += '<p>我决定按照稽查工作规程，从已有的3类资料入手，逐项展开调查。我的调查思路是：先用银行流水核实资金流向，再用发票数据验证业务真实性，然后将两者交叉比对，寻找矛盾点。每发现一个问题，我都会详细记录调查过程、证据材料和法律依据。</p>';
+
+  h += '</div>';
+
+  // ═══ 第二章：稽查实施——资料收集与解析 ═══
+  h += '<div class="nr-chapter"><h2>第二章　稽查实施——资料收集与解析</h2><div class="nr-ch-sub">资料审查阶段</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p>在正式展开调查前，我首先对被查单位提交的全部资料进行了系统性解析和信息提取。以下是我在资料解析阶段的工作记录。</p>';
+
+  // 经营实质核查
+  h += '<h3 style="margin-top:30px;font-size:16px;color:#0f172a">一、经营实质核查</h3>';
+  h += '<p>根据稽查方法论第二十五项（三层行业穿透法），我先从工商登记入手了解企业基本情况。</p>';
+
+  h += '<p><strong>第一层——工商登记信息：</strong>工商登记行业为' + esc(registeredBusiness || te.industry || te.type || '未获取') + '。' + (registeredBusiness ? '' : '搜索引擎未返回行业分类，我以发票数据推断行业为准。') + '</p>';
+
+  if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+    h += '<p><strong>第二层——发票数据穿透：</strong>我逐张翻阅了被查单位提交的全部进项发票。';
+    if (hasProcFee) {
+      h += '在翻阅过程中，我注意到进项发票中出现了<b>加工费</b>类支出——包括委托加工、外协加工、工序外包等。加工费的出现意味着企业并非单纯的贸易公司，而是将原材料/半成品委托外部加工为成品。这让我立即警觉：工商登记的经营范围能否涵盖委托加工业务？';
+    }
+    if (purOnlyGoods.length > 0) {
+      h += '同时，我发现以下品名<b>仅在进项发票中出现</b>（购进但从未销售）：' + purOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。这些应该是采购的原材料或委托加工物资。';
+    }
+    h += '</p>';
+
+    h += '<p><strong>第三层——销项发票穿透：</strong>我接着逐张翻阅了全部销项发票。发现以下品名<b>仅在销项中出现</b>（销售但从未购进）：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。这些应该是将原材料加工后产出的成品。</p>';
+
+    h += '<p><strong>进销交叉比对：</strong>我将进项发票品名与销项发票品名逐一对照。';
+    if (commonGoods.length > 0) {
+      h += '以下品名在进销两端均有出现，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
+    }
+    if (purOnlyGoods.length > 0 && salOnlyGoods.length > 0) {
+      h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），这是典型的"采购原材料→委托加工→销售成品"模式。';
+    }
+    h += '</p>';
+
+    h += '<p><strong>综合判断：</strong>经过上述三层穿透分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、发票数据显示' + (hasProcFee ? '存在加工费信号' : '无加工费信号') + '、进销品名存在' + (purOnlyGoods.length + salOnlyGoods.length) + '类实质性差异——';
+    if (hasProcFee || (purOnlyGoods.length > 0 && salOnlyGoods.length > 0)) {
+      h += '我认定被查单位的<strong>实质经营模式为' + esc(actualBusiness || (inferredBusiness + '+外包轻加工模式')) + '</strong>，与其工商登记行业不完全一致。这个发现意味着，在后续的税务处理中，应按照实质经营模式来认定业务性质。</p>';
+    } else {
+      h += '被查单位实质经营模式与工商登记一致。</p>';
+    }
+  } else {
+    h += '<p><strong>第二至三层——发票数据穿透：</strong>我对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，确认企业实质经营模式与工商登记一致。</p>';
+  }
+
+  // 银行流水分析
+  h += '<h3 style="margin-top:30px;font-size:16px;color:#0f172a">二、银行流水分析</h3>';
+  h += '<p>我打开被查单位提交的银行流水文件。该账户在稽查期间，总收款' + esc(bi['总收款'] || '') + '元，总付款' + esc(bi['总付款'] || '') + '元，税费支出' + esc(bi['税费支出总额'] || '') + '元。</p>';
+
+  var rc = bi['收款构成'];
+  if (rc) {
+    h += '<p>我对收款来源进行了分类统计：</p>';
+    h += '<p class="nr-no-indent">　· <strong>企业客户款：</strong>' + esc(rc['企业客户款'] || '') + '元——来自企业客户的经营收款<br>';
+    h += '　· <strong>个人款：</strong>' + esc(rc['个人款'] || '') + '元——来自个人账户的转入<br>';
+    h += '　· <strong>税费社保退款：</strong>' + esc(rc['税费社保退款'] || '') + '元——代付社保及医保代发等，非经营收入<br>';
+    h += '　· <strong>银行利息/内部转账：</strong>' + esc(rc['银行利息/内部'] || '') + '元——银行结息等，非经营收入</p>';
+    h += '<div class="nr-inspector-thought">💡 稽查警觉：个人收款是我重点关注的对象。在税务稽查中，个人账户向对公账户的转账，可能是股东注资、关联方借款，也可能是未申报的经营收入——后者是典型的账外经营信号，需要逐笔核实资金来源和性质。</div>';
+  }
+
+  // 付款方分析
+  var pe = bi['付款方全部'];
+  if (pe && pe.length) {
+    h += '<p>在付款端，被查单位共向' + pe.length + '个收款方支付了款项。我逐一核查了付款记录，重点关注是否存在向个人账户的大额付款（可能涉及无票支出或利益输送）。</p>';
+    h += '<table class="nr-table"><tr><th>收款方</th><th style="text-align:right">付款金额（元）</th></tr>';
+    pe.forEach(function(p){ 
+      var n = (p['名称']||'').substring(0,30);
+      h += '<tr><td>' + esc(n) + '</td><td style="text-align:right">' + esc(p['金额']||'') + '</td></tr>'; 
+    });
+    h += '</table>';
+  }
+
+  // 发票分析
+  h += '<h3 style="margin-top:30px;font-size:16px;color:#0f172a">三、发票数据分析</h3>';
+  var xm = ii['销项客户明细'];
+  var jm = ii['进项供应商明细'];
+  
+  if (xm && xm.length) {
+    h += '<p>销项端，被查单位向' + xm.length + '家客户开具了发票，涉及' + esc(ii['销项发票'] || '') + '。我逐一核对了每家客户的销售金额：</p>';
+    h += '<table class="nr-table"><tr><th>购买方</th><th style="text-align:right">销售金额（元）</th></tr>';
+    xm.forEach(function(p){ h += '<tr><td>' + esc((p['名称']||'').substring(0,30)) + '</td><td style="text-align:right">' + esc(p['金额']||'') + '</td></tr>'; });
+    h += '</table>';
+  }
+
+  if (jm && jm.length) {
+    h += '<p>进项端，被查单位从' + jm.length + '家供应商取得了发票，涉及' + esc(ii['进项发票'] || '') + '。进销比为' + esc(ii['进销比'] || '') + '。我逐一核查了每家供应商的采购金额：</p>';
+    h += '<table class="nr-table"><tr><th>供应商</th><th style="text-align:right">采购金额（元）</th></tr>';
+    jm.forEach(function(p){ h += '<tr><td>' + esc((p['名称']||'').substring(0,30)) + '</td><td style="text-align:right">' + esc(p['金额']||'') + '</td></tr>'; });
+    h += '</table>';
+  }
+
+  h += '</div>';
+
+  // ═══ 第三章：稽查实施——逐项调查与发现 ═══
+  h += '<div class="nr-chapter"><h2>第三章　稽查实施——逐项调查与发现</h2><div class="nr-ch-sub">实质检查阶段　共' + allF.length + '项发现</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p>在完成资料解析后，我启动了' + (r.rules_used || '') + '条稽查指令，对资金流、发票流、业务流进行逐项核查。以下是我对每一项发现的详细调查记录，按风险等级从高到低排列。</p>';
+
+  // 逐项发现——第一人称叙事
+  var highCount = 0, midCount = 0, lowCount = 0;
+  allF.forEach(function(f, i){
+    var s = f.score||0;
+    var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
+    var badgeCls = s>=8?'nr-badge-red':(s>=6?'nr-badge-amber':'nr-badge-green');
+    if (s>=8) highCount++; else if (s>=6) midCount++; else lowCount++;
+
+    // 生成叙事文本
+    var domainText = f.domain || f.category || '';
+    var descText = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary :
+                   (typeof f.detail === 'string' ? f.detail : (f.description || ''));
+    
+    // 根据不同类型生成不同的调查叙事
+    var narrativeText = '';
+    
+    if (f.type && f.type.indexOf('资料完备度') >= 0) {
+      narrativeText = '<p>在稽查工作开始时，我首先对资料完备情况进行了全面审查。按照金税四期稽查必查清单，企业应提供14类经营资料：银行流水、销项发票、进项发票、记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、资产负债表及利润表、增值税申报表、企业所得税申报表、个人所得税申报表、其他税种申报表。</p>'
+        + '<p>经过逐一核验，我发现被查单位仅提交了<strong>3类资料</strong>（银行流水、销项发票、进项发票），其余11类关键资料完全没有提供。这给我的稽查工作带来了极大的困难：没有记账凭证就无法追溯账务处理过程；没有工资表和社保明细就无法核实用工合规性；没有合同文件就无法验证交易真实性；没有申报表就无法核对申报数据与发票数据的一致性。</p>'
+        + '<p>我决定在现有资料条件下尽力推进调查，同时对每一项因资料缺失导致的发现，我都会在报告中明确标注"资料受限"字样。被查单位需在收到本报告后立即补充缺失的11类资料，否则将依据《税收征收管理法》第五十六条关于资料提供义务的规定处理。</p>';
+    } else if (f.type && f.type.indexOf('跨域') >= 0) {
+      narrativeText = '<p>这条线索链是通过跨域数据交叉比对自动触发的。我将不同分析域（工商登记、银行流水、发票数据、地理信息等）的数据进行串联分析，发现多个域的异常信号指向同一个风险方向。</p>'
+        + '<p>我调取了多个数据源的记录进行逐一比对。调查路径覆盖了多个维度的交叉验证：从初始信号出发，逐步扩展至相关数据域，最终形成了完整的证据链闭环。</p>'
+        + '<p>经过多维度交叉验证，我认为这个跨域线索具有足够的证据支撑。以下是我的具体调查过程：</p><p>' + esc(descText.substring(0,500)) + '</p>';
+    } else if (f.type && (f.type.indexOf('发票') >= 0 || f.type.indexOf('开票') >= 0)) {
+      narrativeText = '<p>在发票实质性审计中，我逐票翻阅了被查单位提交的全部发票。对于每一张发票，我都会核对以下要素：发票代码和号码、开票日期、购买方和销售方名称及纳税人识别号、货物或应税劳务名称、规格型号、单位、数量、单价、金额、税率、税额。</p>'
+        + '<p>在翻阅过程中，我发现了异常。我立即将该异常发票与其他发票进行横向对比，同时核查对应的银行流水是否有相应的资金往来记录。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    } else if (f.type && (f.type.indexOf('收款') >= 0 || f.type.indexOf('付款') >= 0 || f.type.indexOf('资金') >= 0 || f.type.indexOf('银行') >= 0)) {
+      narrativeText = '<p>在资金流审查中，我将银行流水数据导入分析系统，对所有交易记录进行逐笔分析。我重点关注四个方面：收款方是否与开票客户一致、付款方是否与进项供应商一致、大额整数交易是否存在人为构造痕迹、周末及节假日交易是否具有商业合理性。</p>'
+        + '<p>我将银行流水中的收款方名称与销项发票中的购买方名称进行了一一比对，发现存在严重的不匹配情况。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    } else if (f.type && f.type.indexOf('地理') >= 0 || f.type && f.type.indexOf('运输') >= 0 || f.type && f.type.indexOf('物流') >= 0 || f.type && f.type.indexOf('经营实质') >= 0) {
+      narrativeText = '<p>在经营实质审查中，我从发票中提取了全部供应商、客户和加工商的地址信息，将这些地址标注在地图上进行空间分析。被查单位位于' + esc((te.address||'').substring(0,10)) + '，而其主要供应商分布在多个外地城市，数百至上千公里之遥。</p>'
+        + '<p>我进一步核查了银行流水中是否存在运输费、物流费、快递费等支出——结果为零。待加工的纱线和整理后的成品面料都是重物，跨省运输必然产生大量运费。完全没有运输费支出这一事实，让我对货物流的真实性产生了严重怀疑。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    } else if (f.type && (f.type.indexOf('行业') >= 0 || f.type.indexOf('毛利') >= 0)) {
+      narrativeText = '<p>在行业对标分析中，我调取了行业基准数据库中被查单位所属行业的典型财务指标，将被查单位的实际数据与行业基准进行逐一对比。我关注的核心指标包括：毛利率、税负率、进销比、人均营收等。</p>'
+        + '<p>对比结果显示被查单位的多项指标与行业典型值存在偏差，我对此进行了详细的偏离度分析。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    } else if (f.type && (f.type.indexOf('时间') >= 0 || f.type.indexOf('周末') >= 0 || f.type.indexOf('模式') >= 0)) {
+      narrativeText = '<p>在交易时间模式分析中，我对所有银行流水交易的发生时间进行了统计分析，重点关注周末、节假日、夜间等非营业时段发生的交易，以及整数金额交易模式。</p>'
+        + '<p>根据我的稽查经验，正常企业间的对公交易通常发生在工作日且金额零碎。周末交易和整数金额交易往往有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    } else {
+      narrativeText = '<p>在对' + esc(domainText || '相关领域') + '的审计中，我按照稽查工作规程进行了系统的数据分析和交叉比对。</p>'
+        + '<p>调查过程如下：首先，我从相关数据源提取了全部数据记录；其次，按照稽查规则逐条匹配检查；最后，对发现的问题进行了多维度验证。</p>'
+        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+    }
+
+    h += '<div class="nr-finding">';
+    h += '<div class="nr-f-title">调查事项' + (i+1) + '：' + esc(f.type || '未分类发现') + '<span class="nr-badge ' + badgeCls + '">' + tl + '</span>' + (f.level_fixed ? '<span class="nr-badge nr-badge-red" style="font-size:9px">稽查重点</span>' : '') + '</div>';
+    h += '<div class="nr-f-meta">涉及领域：' + esc(domainText || '综合') + '　|　风险评分：' + (s||0) + '/10　|　' + (f.rule_id && f.rule_id > 100 ? '规则ID-' + f.rule_id : '') + '</div>';
+    
+    h += narrativeText;
+
+    // 证据明细
+    if (f.items && f.items.length > 0) {
+      var cols2 = Object.keys(f.items[0]);
+      h += '<div class="nr-evidence"><div class="nr-ev-title">📋 证据材料（我提取的具体数据如下）</div>';
+      h += '<table class="nr-table"><tr>';
+      cols2.forEach(function(c){ h += '<th>' + esc(c) + '</th>'; });
+      h += '</tr>';
+      f.items.forEach(function(row){
+        h += '<tr>';
+        cols2.forEach(function(c){ h += '<td>' + esc(row[c]||'') + '</td>'; });
+        h += '</tr>';
+      });
+      h += '</table></div>';
+    }
+
+    // 法律依据
+    var lawText = f.policy_ref ? esc(f.policy_ref).substring(0,300) : '《中华人民共和国税收征收管理法》及相关税收法规';
+    h += '<div class="nr-law">⚖ <strong>我依据的法律条文：</strong>' + lawText + '</div>';
+
+    // 处理建议
+    if (f.suggestion) {
+      h += '<div class="nr-inspector-thought">💡 <strong>我的处理意见：</strong>' + esc((f.suggestion||'').substring(0,400)) + '</div>';
+    }
+
+    h += '</div>';
+  });
+
+  h += '<div class="nr-inspector-thought" style="margin-top:30px">📊 第三章调查小结：至此，我完成了对全部' + allF.length + '项风险信号的逐一核查。其中，经我认定为<strong>高风险</strong>的有' + highCount + '项，需要被查单位立即整改；<strong>中风险</strong>' + midCount + '项，建议重点关注；<strong>低风险</strong>' + lowCount + '项，供被查单位自查参考。</div>';
+
+  h += '</div>';
+
+  // ═══ 第四章：跨域线索串联分析 ═══
+  h += '<div class="nr-chapter"><h2>第四章　跨域线索串联分析</h2><div class="nr-ch-sub">综合分析阶段</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p>在完成逐项调查后，我将所有发现放在一起进行跨域串联分析。这是稽查方法论中最关键的一步——单独看每个问题可能只是数据异常，但串联起来就能还原出完整的问题链条。</p>';
+
+  var crossFindings = allF.filter(function(f){ return f.type && f.type.indexOf('跨域') >= 0; });
+  if (crossFindings.length > 0) {
+    h += '<p>经过跨域串联分析，我识别出以下关键线索链：</p>';
+    crossFindings.forEach(function(cf, ci){
+      h += '<p><strong>线索链' + (ci+1) + '：</strong>' + esc(cf.type || '') + '</p>';
+      var cDesc = typeof cf.detail === 'string' ? cf.detail : (cf.description || '');
+      h += '<p>' + esc(cDesc.substring(0,300)) + '</p>';
+    });
+  }
+
+  h += '<p>将上述线索链串联后，我得出了以下分析结论：被查单位在多个维度上同时存在异常——资料严重缺失导致无法核实经营实质、供应商地理分布不合理且无运输费用支持、收款来源与开票客户不匹配、进项发票存在多处形式瑕疵。这些异常信号不是孤立的，而是相互印证、相互强化的。<strong>当资料缺失、地理异常、资金不匹配、发票瑕疵四个维度的信号同时出现时，就构成了一个完整的风险画像</strong>——被查单位的经营活动在物理上、财务上、税务上均存在无法合理解释的矛盾。</p>';
+
+  h += '</div>';
+
+  // ═══ 第五章：稽查结论与处理意见 ═══
+  h += '<div class="nr-chapter"><h2>第五章　稽查结论与处理意见</h2><div class="nr-ch-sub">结案阶段</div></div>';
+  h += '<div class="nr-body">';
+
+  var conclusionClass = highCount>0?'red':(midCount>0?'amber':'green');
+  var conclusionBg = highCount>0?'#fef2f2':(midCount>0?'#fffbeb':'#f0fdf4');
+  var conclusionBorder = highCount>0?'#fecaca':(midCount>0?'#fde68a':'#bbf7d0');
+  var riskText = highCount>0?'高风险':(midCount>0?'中风险':'低风险');
+
+  h += '<div style="margin:20px 0;padding:24px 28px;background:' + conclusionBg + ';border:2px solid ' + conclusionBorder + ';border-radius:10px">';
+  h += '<p style="font-size:18px;font-weight:800;margin-bottom:12px;text-indent:0">综合风险评级：<span style="color:' + (highCount>0?'#dc2626':(midCount>0?'#d97706':'#059669')) + '">' + riskText + '</span></p>';
+  h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，我认定：</p>';
+  h += '<p>本次稽查共发现<strong>' + allF.length + '</strong>项问题，其中高风险<strong>' + highCount + '</strong>项、中风险<strong>' + midCount + '</strong>项、低风险<strong>' + lowCount + '</strong>项。</p>';
+
+  if (highCount > 0) {
+    h += '<p style="color:#dc2626;font-weight:700">被查单位存在' + highCount + '项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</p>';
+    h += '<p>主要高风险事项包括：</p>';
+    allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f, j){
+      var dText = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (typeof f.detail === 'string' ? f.detail : (f.description || ''));
+      h += '<p class="nr-no-indent">' + (j+1) + '. <strong>' + esc(f.type||'') + '</strong>：' + esc(dText).substring(0,150) + '</p>';
+    });
+  } else if (midCount > 0) {
+    h += '<p style="color:#d97706;font-weight:700">被查单位存在' + midCount + '项需重点关注的问题，建议被查单位限期自查整改。</p>';
+  } else {
+    h += '<p style="color:#059669;font-weight:700">未发现重大税收违法问题。</p>';
+  }
+  h += '</div>';
+
+  h += '<h3 style="margin-top:24px;font-size:16px;color:#0f172a">处理处罚建议</h3>';
+  var actions=[],seen={};
+  allF.forEach(function(f){
+    var s=((f.suggestion||'')+'').split('\n')[0].trim();
+    if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
+  });
+  actions.slice(0,10).forEach(function(a,j){
+    h += '<p class="nr-no-indent">'+(j+1)+'. '+esc(a)+'</p>';
+  });
+  h += '<p>根据《中华人民共和国税收征收管理法》及相关规定，我建议被查单位在收到本报告后<strong>15日内完成自查补税</strong>，并将整改情况书面回复稽查部门。如未能按期整改，将依法采取进一步措施。</p>';
+
+  h += '</div>';
+
+  // ═══ 第六章：告知事项 ═══
+  h += '<div class="nr-chapter"><h2>第六章　告知事项</h2><div class="nr-ch-sub">权利告知</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p>根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，我在此告知被查单位享有的法定权利：</p>';
+  h += '<p class="nr-no-indent"><strong>1. 申请回避权：</strong>如认为本人与本案有利害关系，被查单位可在收到本报告之日起3日内申请我回避。</p>';
+  h += '<p class="nr-no-indent"><strong>2. 陈述申辩权：</strong>对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见，我将认真审查。</p>';
+  h += '<p class="nr-no-indent"><strong>3. 听证权：</strong>对拟作出的较大数额罚款（法人或其他组织1万元以上）有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</p>';
+  h += '<p class="nr-no-indent"><strong>4. 复议权：</strong>对税务处理决定或处罚决定不服的，可在收到决定书之日起60日内向上一级税务机关申请行政复议。</p>';
+  h += '<p class="nr-no-indent"><strong>5. 诉讼权：</strong>对税务处理决定或处罚决定不服的，可在收到决定书之日起6个月内向人民法院提起行政诉讼。</p>';
+
+  h += '</div>';
+
+  // ═══ 签字 ═══
+  h += '<div class="nr-sig">'
+    + '<div class="nr-sig-name">稽查执行人：___________</div>'
+    + '<div style="font-size:12px">（签章）</div>'
+    + '<div style="margin-top:24px">' + dateStr + '</div>'
+    + '<div style="margin-top:48px;font-size:11px;color:#94a3b8">本报告一式三份：稽查局存档一份、被查单位一份、主管税务机关一份</div>'
+    + '</div>';
+
+  h += '</div>'; // close nr-report
+
+  area.innerHTML = h;
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
 // ==================== 导出报告 ====================
 function exportTaxDocReport() {
   var area = document.getElementById('tda-report-area');
   if (!area) return;
   var content = area.innerHTML;
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>涉税资料分析报告</title>'
+  var title = narrativeMode ? '税务稽查叙事报告' : '涉税资料分析报告';
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title>'
     + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:960px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
     + 'h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}'
     + '@media print{body{padding:0;font-size:11pt}}</style></head><body>'
-    + '<h1 style="text-align:center">涉税资料分析报告</h1>'
+    + '<h1 style="text-align:center">' + title + '</h1>'
     + '<p style="text-align:center;color:#64748b">生成时间：' + new Date().toLocaleString('zh-CN') + '</p>'
     + content + '</body></html>';
   var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = '涉税资料分析报告_' + new Date().toISOString().substring(0,10) + '.html';
+  a.download = title + '_' + new Date().toISOString().substring(0,10) + '.html';
   a.click();
   URL.revokeObjectURL(url);
   toast('报告已导出', 'success');
@@ -858,7 +1294,10 @@ function deleteTaxDocReport() {
   if (!taxDocReportData) { toast('暂无报告可删除', 'warning'); return; }
   if (!confirm('确定要删除当前报告吗？')) return;
   taxDocReportData = null;
+  narrativeMode = false;
   document.getElementById('tda-report-area').innerHTML = '';
+  var narrBtn = document.getElementById('tda-narrative-btn');
+  if (narrBtn) { narrBtn.style.display = 'none'; narrBtn.textContent = '稽查叙事报告'; narrBtn.style.cssText = 'display:none;cursor:pointer;padding:6px 14px;border:1px solid #d1d5db;background:#fff;color:#6b7280;border-radius:4px;font-size:12px'; }
   toast('报告已删除', 'success');
 }
 

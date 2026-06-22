@@ -1,5 +1,5 @@
 """
-中小制造业账务处理系统 - 后端 API
+全行业财税风险防控系统 - 后端 API
 """
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request
 from fastapi.staticfiles import StaticFiles
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     # 启动时不自动处理——单条/批量导入时已自动触发供应商建档+凭证生成+科目创建
     yield
 
-app = FastAPI(title="账务处理系统", description="中小制造业账务管理系统", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
 
 # ==================== 访问日志中间件 ====================
 import time as _time_module

@@ -2245,7 +2245,6 @@ function renderAiRules(container) {
   var tieLvCount = 0, zhunZeCount = 0;
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
-  var html = '';
   html += '<div class="pipeline-page card card-fill">';
 
   // 标题
