@@ -15932,8 +15932,12 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     td = sorted(dim_scores.items(), key=lambda x: -x[1]["weighted_score"])
     comm = []
     for dn, ds in td:
-        c = f"{dn}({ds['score']}分/{ds['count']}条): {dimensions[dn]['d']}"
-        if ds.get("boost"): c += " [" + ds["boost"].rstrip("; ") + "]"
+        score_val = ds.get('score', 0)
+        count_val = ds.get('count', 0)
+        c = f"{dn}({score_val}分/{count_val}条): {dimensions[dn]['d']}"
+        boost_val = ds.get("boost", "")
+        if isinstance(boost_val, str) and boost_val.strip():
+            c += " [" + boost_val.rstrip("; ") + "]"
         comm.append(c)
     if cross_patterns:
         comm.append("交叉模式: " + " | ".join(p[0] for p in cross_patterns))
@@ -17142,7 +17146,8 @@ def _run_analyze(company_id, db):
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
-    domain_results.append({"domain": "资料完备度评估", "findings": _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results)})
+    doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results)
+    domain_results.append({"domain": "资料完备度评估", "findings": doc_cplt_findings})
     # 域14.5: 账务系统缺失风险（有发票/流水但无凭证→无法验证账务真实性）
     _acct_risk = _check_accounting_system_gap(invoices, bank_txs, vouchers)
     if _acct_risk: domain_results.append({"domain": "账务系统风险", "findings": _acct_risk})
@@ -17372,6 +17377,9 @@ def _run_analyze(company_id, db):
     # ═══════════════════════════════════════════════════
     # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
     # ═══════════════════════════════════════════════════
+    # ── 防御：过滤 all_findings 中非 dict 元素（避免 str 无 .get 崩溃）──
+    all_findings = [f for f in all_findings if isinstance(f, dict)]
+    
     comprehensive = {}
     chain_execution = []  # 每条链的执行结果
     chain_findings = []   # 链驱动生成的新发现
@@ -18046,10 +18054,12 @@ def _run_analyze(company_id, db):
         rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
         if os.path.exists(chain_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
-                chains_data = json.load(cf)
+                raw = json.load(cf)
+                chains_data = raw if isinstance(raw, dict) else {}
         if os.path.exists(rules_path):
             with open(rules_path, "r", encoding="utf-8") as rf:
-                rules_data = json.load(rf)
+                raw_r = json.load(rf)
+                rules_data = raw_r if isinstance(raw_r, list) else []
         
         rule_map = {r["id"]: r for r in rules_data}
         
@@ -18270,6 +18280,20 @@ def _run_analyze(company_id, db):
         all_findings.extend(biz_sub_findings)
         pipeline_log.append(f"经营实质核查: {len(biz_sub_findings)}项发现（五步核查法：工商登记→进项审核→销项审核→交叉比对→综合判断）")
     
+    # ═══ 稽查重点等级修正（必须在过滤器之前）：level_fixed标记保护关键发现不被误杀 ═══
+    priority_fixed = 0
+    for f in all_findings:
+        ftype = f.get("type", "")
+        for key, level in AUDIT_PRIORITY_LEVELS.items():
+            if key in ftype:
+                if f.get("level") != level:
+                    f["level"] = level
+                    priority_fixed += 1
+                f["level_fixed"] = True
+                break
+    if priority_fixed:
+        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
+
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
@@ -19997,8 +20021,15 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         skip = False
         reason = ""
         
+            
         # 规则0：稽查重点发现（level_fixed=True）不参与任何过滤，强制保留
         if f.get("level_fixed"):
+            filtered.append(f)
+            continue
+        
+        # 规则0.1：资料完备度评估类发现（资料完备度综合评估+各类缺失评估）
+        # ——这类发现的描述必然提及缺失资料类别，会误中COND_BAN，因此全面豁免
+        if "资料完备度" in f_type or "完备度" in f_type or any(k in f_type for k in ["缺失评估", "文件解析失败"]):
             filtered.append(f)
             continue
         
