@@ -13742,10 +13742,19 @@ def _get_action_paths(ftype, level):
 # ═══════════ 跨域线索链分析引擎 ═══════════
 
 def _domain_cross_domain_clues(all_findings):
-    """加载跨域线索链，匹配发现并记录触发状态到报告中"""
+    """加载跨域线索链，匹配发现并记录触发状态到报告中。
+    增强：调用 narratives_builder 生成结构化叙事 detail（含分步叙事+交叉验证表+证据链闭环）。
+    """
     chain_defs = _load_json("static/cross_domain_clues.json", [])
     if not chain_defs:
         return []
+    
+    # 延迟导入叙事生成器
+    try:
+        from narrative_builder import build_narrative
+        _has_narrative = True
+    except ImportError:
+        _has_narrative = False
     
     findings = []
     for chain_def in chain_defs:
@@ -13765,12 +13774,28 @@ def _domain_cross_domain_clues(all_findings):
             for s in chain_def.get("investigation_path", []):
                 path_steps.append(f"Step{s.get('step','')}: {s.get('domain','')} → {s.get('action','')}")
             
+            # ── 叙事增强：触发发现≥1条时生成结构化叙事 ──
+            narrative_obj = None
+            if _has_narrative and len(triggered_findings) >= 1:
+                try:
+                    narrative_obj = build_narrative(chain_def, triggered_findings, all_findings)
+                except Exception:
+                    narrative_obj = None
+            
+            if narrative_obj:
+                # 用结构化叙事替换单纯的字符串 detail
+                detail = narrative_obj
+                description = narrative_obj.get("narrative", chain_def.get("description", ""))
+            else:
+                detail = f"通过{len(triggered_findings)}条独立发现的交叉验证，确认'{chain_def.get('name','')}'线索成立。"
+                description = chain_def.get("description", "")
+            
             findings.append({
                 "type": chain_def.get('name',''),
                 "level": chain_def.get("level", "中风险"),
                 "score": min(len(triggered_findings) * 2, 9),
-                "detail": f"通过{len(triggered_findings)}条独立发现的交叉验证，确认'{chain_def.get('name','')}'线索成立。",
-                "description": chain_def.get("description",""),
+                "detail": detail,
+                "description": description,
                 "how_found": chain_def.get("how_found", f"从{len(kws)}个线索信号中发现{len(triggered_findings)}条关联发现，触发'{chain_def.get('name','')}'调查路径"),
                 "tax_impact": chain_def.get("tax_impact",""),
                 "policy_ref": chain_def.get("policy_ref",""),
@@ -13778,6 +13803,7 @@ def _domain_cross_domain_clues(all_findings):
                 "category": "多域交叉验证",
                 "_cross_domain_clue": True,
                 "_investigation_path": path_steps,
+                "_triggered_count": len(triggered_findings),
             })
     
     return findings
@@ -17266,7 +17292,6 @@ def _run_analyze(company_id, db):
                 pipeline_log.append(f"{_real_rule_count}条规则引擎: 发现{len(engine_results)}条风险")
             except Exception as re:
                 pipeline_log.append(f"规则引擎异常: {re}")
-            except: pass
         finally:
             # ── 审计基础检查：在临时数据清理前运行 ──
             try:
@@ -17974,12 +17999,20 @@ def _run_analyze(company_id, db):
     comprehensive["data_overview"] = {"present": data_present, "missing": []}
 
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
-    material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory)
+    try:
+        material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory)
+    except Exception as _mie:
+        pipeline_log.append(f"资料情报提取异常: {_mie}")
+        material_intel = {}
     comprehensive["material_intel"] = material_intel
     pipeline_log.append(f"资料情报提取: 已完成{len(material_intel)}个模块的关键信息提取")
 
     # ── 金税四期式多因子风险评分引擎 ──
-    risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
+    try:
+        risk_profile = _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries)
+    except Exception as _rpe:
+        pipeline_log.append(f"风险评分引擎异常: {_rpe}")
+        risk_profile = {"composite_level": "低风险", "composite_score": 0}
     comprehensive["risk_profile"] = risk_profile
 
     # 综合风险等级：优先使用评分引擎结果
@@ -18005,12 +18038,12 @@ def _run_analyze(company_id, db):
 
     # ── 匹配稽查证据链（精确版：规则ID直连）──
     triggered_chains = []
+    chains_data = {}
+    rules_data = []
     try:
         import re as _re_find
         chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
         rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-        chains_data = {}
-        rules_data = []
         if os.path.exists(chain_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 chains_data = json.load(cf)
@@ -18237,23 +18270,6 @@ def _run_analyze(company_id, db):
         all_findings.extend(biz_sub_findings)
         pipeline_log.append(f"经营实质核查: {len(biz_sub_findings)}项发现（五步核查法：工商登记→进项审核→销项审核→交叉比对→综合判断）")
     
-    # ═══ 全量稽查重点修正：在 all_findings 最终确定后（所有来源的发现已汇总）强制修正等级 ═══
-    priority_fixed = 0
-    for f in all_findings:
-        ftype = f.get("type", "")
-        for key, level in AUDIT_PRIORITY_LEVELS.items():
-            if key in ftype:
-                if f.get("level") != level:
-                    f["level"] = level
-                    priority_fixed += 1
-                f["level_fixed"] = True  # 稽查重点标记，无论等级是否已匹配
-                break
-    if priority_fixed:
-        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
-    else:
-        # 兜底：如果没匹配到任何发现，说明 this shouldn't happen
-        pass
-    
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
@@ -18372,7 +18388,6 @@ def _run_analyze(company_id, db):
                     priority_fixed += 1
                 f["level_fixed"] = True  # 稽查重点标记
                 break
-                break
     if priority_fixed:
         pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条发现按审计实务优先级调整等级")
     
@@ -18418,6 +18433,8 @@ def _run_analyze(company_id, db):
         
         # 3. 清理法律依据中的敷衍文本
         pf = f.get("policy_ref", "")
+        if not isinstance(pf, str):
+            pf = str(pf) if pf is not None else ""
         if pf == _BOILERPLATE_LEGAL or pf == _BOILERPLATE_LEGAL_SHORT:
             del f["policy_ref"]
         elif pf and _BOILERPLATE_LEGAL_SHORT in pf:

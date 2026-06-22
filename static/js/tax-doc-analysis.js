@@ -730,7 +730,17 @@ function renderTaxDocReport(r) {
     h += '<div class="ftitle">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
     var domainText = f.domain || f.category || '';
     if (domainText) h += '<div class="frow"><span class="flabel">涉及领域：</span>'+esc(domainText)+'</div>';
-    h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
+    // 叙事增强：detail 是结构化叙事对象时，渲染富文本叙事；否则按原字符串方式
+    if (f.detail && typeof f.detail === 'object' && f.detail.narrative) {
+      h += '<div class="frow"><span class="flabel">调查过程：</span></div>';
+      h += '<div style="padding:0 0 0 16px">' + f.detail.narrative + '</div>';
+      // 也输出 description 作为补充（如果有且不同于叙事HTML）
+      if (f.description && f.description !== f.detail.narrative) {
+        h += '<div class="frow"><span class="flabel">线索描述：</span>'+esc(f.description)+'</div>';
+      }
+    } else {
+      h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
+    }
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);
       h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（明细）</div>';
@@ -770,7 +780,7 @@ function renderTaxDocReport(r) {
   h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+riskC+'">'+riskText+'</span></div>';
   h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+highCount+'</strong> 项，中风险 <strong>'+midCount+'</strong> 项，低风险 <strong>'+lowCount+'</strong> 项。'+(fixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+fixedCount+' 项。</span>':'')+'</p>';
   h+='</div>';
-  if(highCount>0){h+='<h3>主要高风险事实</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f,i){h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(f.detail||f.description||'').substring(0,150)+'</p>';});}
+  if(highCount>0){h+='<h3>主要高风险事实</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'').substring(0,150)+'</p>';});}
   h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有规则ID溯源和≥2域交叉验证，符合稽查证据标准。</p>';
   h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
   if(highCount>0){h+='<span style="color:'+S.red+'">存在'+highCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(midCount>0){h+='<span style="color:'+S.amber+'">存在'+midCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}

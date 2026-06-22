@@ -2,6 +2,14 @@
 var taxRiskReportData = null;
 var taxRiskLoading = false;
 
+// 叙事增强：安全提取 detail 字符串（兼容结构化 narrative 对象）
+function getDetailStr(f) {
+  var d = f.detail;
+  if (typeof d === 'object' && d.summary) return d.summary;
+  if (typeof d === 'string') return d;
+  return '';
+}
+
 function renderTaxRiskReport(container) {
   window.currentModule = '账务风险分析报告';
 
@@ -443,7 +451,7 @@ function renderDocsReport(rpt) {
           + '<b style="font-size:14px">' + escapeHtml(f.type || '') + '</b>'
           + '<span style="font-size:11px;color:var(--gray-400)">风险分值：' + (f.score || '-') + '分</span>'
           + '</div>'
-          + '<div style="color:var(--gray-600);margin-bottom:8px">' + escapeHtml(f.detail || '') + '</div>';
+          + '<div style="color:var(--gray-600);margin-bottom:8px">' + escapeHtml(getDetailStr(f) || '') + '</div>';
         // 详细解释
         if (f.description) {
           html += '<div style="background:' + cfBg + ';border-radius:6px;padding:10px 14px;margin-bottom:6px">'
@@ -486,7 +494,7 @@ function renderDocsReport(rpt) {
       html += '<div style="margin-bottom:6px;padding:10px 12px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:4px">'
         + '<span style="display:inline-block;padding:1px 6px;background:' + cfColor + ';color:#fff;border-radius:3px;font-size:11px;margin-right:8px">' + f.level + '</span>'
         + '<b>' + escapeHtml(f.type || '') + '</b>'
-        + '<div style="font-size:12px;color:var(--gray-600);margin-top:4px">' + escapeHtml(f.detail || '') + '</div>'
+        + '<div style="font-size:12px;color:var(--gray-600);margin-top:4px">' + escapeHtml(getDetailStr(f) || '') + '</div>'
         + '</div>';
     });
   }
@@ -505,8 +513,8 @@ function renderDocsReport(rpt) {
         + '<span style="font-weight:600;font-size:14px">' + escapeHtml(f.type || f.rule_name || '') + '</span>'
         + '<span style="font-size:11px;color:var(--gray-400)">分值:' + (f.score || '-') + '</span>'
         + '</div>'
-        + '<div style="font-size:13px;color:var(--gray-600);margin-bottom:8px;line-height:1.6">' + escapeHtml(f.detail || f.description || '') + '</div>';
-      if (f.description && f.description !== f.detail) {
+        + '<div style="font-size:13px;color:var(--gray-600);margin-bottom:8px;line-height:1.6">' + escapeHtml(getDetailStr(f) || f.description || '') + '</div>';
+      if (f.description && f.description !== getDetailStr(f)) {
         html += '<div style="background:#fff;border-radius:6px;padding:10px 14px;margin-bottom:6px;font-size:12px;color:var(--gray-700);line-height:1.7">'
           + '<div style="font-weight:600;color:var(--gray-500);margin-bottom:4px">📋 详细说明</div>'
           + escapeHtml(f.description) + '</div>';

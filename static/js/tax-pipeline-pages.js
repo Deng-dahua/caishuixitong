@@ -620,10 +620,11 @@ function renderDomainAnalysisResult(report) {
         d.findings.forEach(function(f) {
           var lvlColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#22c55e');
           var lvlBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
+          var dt = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (f.detail || '');
           html += '<div style="padding:10px 12px;margin-bottom:6px;background:' + lvlBg + ';border-radius:6px;border-left:3px solid ' + lvlColor + '">'
             + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">' + escHtml(f.type || '') + '</div>'
-            + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(f.detail || '').replace(/"/g, '&quot;') + '">' + escHtml((f.detail || '').substring(0, 300)) + '</span>'
-            + ((f.detail || '').length > 300 ? ' <a href="#" onclick="var s=this.previousElementSibling;s.textContent=s.getAttribute(\'data-full\');this.remove();return false" style="color:#2563eb;font-size:11px">展开全文</a>' : '')
+            + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(dt).replace(/"/g, '&quot;') + '">' + escHtml(dt.substring(0, 300)) + '</span>'
+            + (dt.length > 300 ? ' <a href="#" onclick="var s=this.previousElementSibling;s.textContent=s.getAttribute(\'data-full\');this.remove();return false" style="color:#2563eb;font-size:11px">展开全文</a>' : '')
             + '</div>'
             + '<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#94a3b8">'
             + '<span style="color:' + lvlColor + ';font-weight:600">' + (f.level || '') + '</span>'
