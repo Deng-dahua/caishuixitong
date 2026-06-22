@@ -11069,7 +11069,7 @@ def _analyze_invoice_time_concentration(db, company_id, ps, pe, results):
 def _analyze_document_completeness(db, company_id, ps, pe, results):
     """ID 218: 资料完备度 — V15升级为完整度评分（数据量/时间覆盖/逻辑一致三维度）"""
     from audit_enhancements import detect_submitted_materials
-    submitted = detect_submitted_materials(db, company_id, ps, pe)
+    submitted = detect_submitted_materials(db, company_id)
 
     # 评估各资料完整度
     doc_status = {}
