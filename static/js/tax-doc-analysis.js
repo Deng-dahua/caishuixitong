@@ -13,7 +13,7 @@ function renderTaxDocAnalysis(container) {
   taxDocPageActive = true;  // 标记页面激活
 
   container.innerHTML = ''
-    + '<div class="card card-fill risk-report-container">'
+    + '<div class="risk-report-container">'
     
     // ── 标题区 ──
     + '<div class="risk-report-header">'
@@ -737,11 +737,14 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
-    h += '<div class="frow"><span class="flabel">证据来源：</span>';
-    if (f.rule_id) h += '规则ID-'+esc(f.rule_id)+' ';
-    if (f.source_chain) h += '| 线索链-'+esc(f.source_chain)+' ';
-    if (f.how_found) h += '| 查证方式-'+esc((f.how_found||'').substring(0,200));
-    h += '</div>';
+    // 证据来源仅在有实际内容且非内部调试信息时显示
+    var hasEvidence = (f.rule_id && f.rule_id > 100) || (f.source_chain && !f.source_chain.includes('链驱动'));
+    if (hasEvidence) {
+      h += '<div class="frow"><span class="flabel">证据来源：</span>';
+      if (f.rule_id && f.rule_id > 100) h += '规则ID-'+esc(f.rule_id)+' ';
+      if (f.source_chain && !f.source_chain.includes('链驱动')) h += '| '+esc(f.source_chain)+' ';
+      h += '</div>';
+    }
     h += '<div class="law-ref">法律依据：《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。</div>';
     if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc((f.suggestion||'').substring(0,300))+'</div>';
     h += '</div>';

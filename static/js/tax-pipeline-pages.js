@@ -71,7 +71,7 @@ function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
   container.innerHTML = ''
-    + '<div class="pipeline-page card card-fill">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">文件解析</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
@@ -381,7 +381,7 @@ function renderDomainAnalysisPage(container) {
   if (!container) return;
   window.currentModule = '域分析';
   container.innerHTML = ''
-    + '<div class="pipeline-page card card-fill">'
+    + '<div class="pipeline-page">'
     + '  <div style="margin-bottom:48px">'
     + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">域分析</h2>'
     + '    <p style="font-size:14px;color:#94a3b8;margin:0">35个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
@@ -649,7 +649,7 @@ function renderCrossDomainEvidencePage(container) {
 
   var hasCache = window._allCrossChains && window._allCrossChains.length > 0;
 
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域证据链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? window._allCrossChains.length : '...') + ' 条证据链 · 多源数据交叉验证 · ≥2个维度同时命中才形成有效证据链</p>'
@@ -918,7 +918,7 @@ function renderChainsPage(container) {
 
   var hasCache = _allClueChains && _allClueChains.length > 0;
 
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
@@ -1137,7 +1137,7 @@ function renderEvidencePage(container) {
 
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
 
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">证据链列表</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? _allEvidenceChains.length : '...') + ' 条证据链 · 含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
@@ -1356,7 +1356,7 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0 0 12px">' + pc('rules','1512') + '规则 + ' + pc('trailChains','396') + '线索链 + ' + pc('evidenceChains','745') + '证据链 → 方法论过滤器 → 正式稽查报告</p>'
@@ -1781,7 +1781,7 @@ function collapseAllDomains() {
 // ==================== 跨域线索链页面 ====================
 function renderCrossDomainCluesPage(container) {
   if (!container) return;
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域线索链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查<span id="cdc-triggered-count"></span></p>'
@@ -1881,7 +1881,7 @@ function loadCrossDomainClues() {
 // ==================== 跨域分析链页面 ====================
 function renderCrossDomainAnalysisPage(container) {
   if (!container) return;
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域分析链</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证<span id="cda-triggered-count"></span></p>'
@@ -2005,7 +2005,7 @@ function renderMethodologyFilterPage(container) {
   if (!container) return;
   window.currentModule = '方法论过滤器';
 
-  container.innerHTML = '<div class="pipeline-page card card-fill">'
+  container.innerHTML = '<div class="pipeline-page">'
     + '<div style="margin-bottom:48px">'
     + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">方法论过滤器</h2>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN + COND_BAN + 去重 —— 三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
@@ -2235,7 +2235,7 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   var html = '';
-  html += '<div class="pipeline-page card card-fill">';
+  html += '<div class="pipeline-page">';
 
   // 标题
   html += '<div style="margin-bottom:48px">'
@@ -2390,7 +2390,7 @@ function renderQualitySystem(container) {
 
   // 构建HTML
   var html = '';
-  html += '<div class="pipeline-page card card-fill">';
+  html += '<div class="pipeline-page">';
 
   // 标题
   html += '<div style="margin-bottom:48px">'
