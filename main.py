@@ -13067,7 +13067,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
                 "description": desc_fn(),
                 "how_found": f"我逐一检测了14类稽查必查资料的提交状态，{ftype.replace('缺失','')}类资料未提交",
                 "tax_impact": impact_fn(),
-                "policy_ref": policy,
+                "policy_ref": policy() if callable(policy) else policy,
                 "suggestion": suggestion,
                 "category": "域14 资料完备度"
             })
