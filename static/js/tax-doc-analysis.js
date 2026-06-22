@@ -78,7 +78,7 @@ async function uploadTaxDocs() {
     });
     var data = await resp.json();
     if (data.ok) {
-      toast('成功上传 ' + input.files.length + ' 个文件', 'success');
+      toast(data.message || ('已上传 ' + input.files.length + ' 个文件'), 'success');
     } else {
       toast(data.message || '上传失败', 'error');
     }

@@ -9960,12 +9960,18 @@ def list_tax_risk_docs(company_id: int = Query(...)):
 @app.get("/api/tax-risk-docs/debug")
 def debug_tax_risk_docs():
     """诊断端点：确认磁盘文件是否可达"""
+    # 统计各 company_id 的文档数
+    cid_counts = {}
+    for d in _tax_risk_docs:
+        cid = d.get("company_id", "?")
+        cid_counts[cid] = cid_counts.get(cid, 0) + 1
     return {
         "upload_dir": UPLOAD_DIR,
         "dir_exists": os.path.exists(UPLOAD_DIR),
         "files_on_disk": len(os.listdir(UPLOAD_DIR)) if os.path.exists(UPLOAD_DIR) else 0,
         "docs_in_memory": len(_tax_risk_docs),
         "scanned": _TAX_DOC_SCANNED,
+        "cid_distribution": cid_counts,
         "file_sample": [{"name": f, "parts": f.split("_", 2)} for f in sorted(os.listdir(UPLOAD_DIR))] if os.path.exists(UPLOAD_DIR) else [],
     }
 
