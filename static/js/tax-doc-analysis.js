@@ -380,7 +380,7 @@ function renderTaxDocReport(r) {
     + '#rr-report p.i2{text-indent:2em}'
     + '#rr-report .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}'
     + '#rr-report .tbl td{padding:6px 12px;border-bottom:1px solid #e8e8e8}'
-    + '#rr-report .tbl .lbl{width:100px;font-weight:600;color:#5c6370}'
+    + '#rr-report .tbl .lbl{width:120px;font-weight:600;color:#5c6370;white-space:nowrap}'
     + '#rr-report .tbl2{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}'
     + '#rr-report .tbl2 th{background:#f5f5f5;padding:6px 10px;text-align:left;border:1px solid #ddd;font-weight:600}'
     + '#rr-report .tbl2 td{padding:5px 10px;border:1px solid #eee}'
@@ -453,7 +453,7 @@ function renderTaxDocReport(r) {
     ['法定代表人', te.legal_person || te.legal_representative || ''],
     ['注册资本', te.registered_capital || ''],
     ['成立日期', te.established_date || ''],
-    ['统一社会信用代码', te.uscc || '', true],
+    ['统一社会信用代码', te.uscc || '', true, 'font-family:monospace;letter-spacing:0'],
     ['登记状态', te.company_status || te.status || ''],
     ['企业类型', te.company_type || te.type || ''],
     ['行业', te.industry_online || te.industry || ''],
@@ -464,7 +464,7 @@ function renderTaxDocReport(r) {
     var label = requiredFields[fi][0];
     var val = requiredFields[fi][1];
     if (val) {
-      var nowrap = requiredFields[fi][2] ? ' style="white-space:nowrap"' : '';
+      var nowrap = requiredFields[fi][2] ? ' style="white-space:nowrap' + (requiredFields[fi][3] ? ';' + requiredFields[fi][3] : '') + '"' : (requiredFields[fi][3] ? ' style="' + requiredFields[fi][3] + '"' : '');
       h += '<tr><td class="lbl">' + label + '</td><td' + nowrap + '>' + esc(val) + '</td></tr>';
     } else if (onlineOK) {
       h += '<tr><td class="lbl">' + label + '</td><td style="color:#9ca3af">搜索未获取</td></tr>';
