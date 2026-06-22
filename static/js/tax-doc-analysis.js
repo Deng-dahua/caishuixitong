@@ -427,8 +427,8 @@ function renderTaxDocReport(r) {
   h += '<div class="toc">'
     + '<div><a href="#sec1"><span class="num">一、</span>案件来源及稽查对象基本情况</a></div>'
     + '<div><a href="#sec2"><span class="num">二、</span>稽查实施情况</a></div>'
-    + '<div><a href="#sec3"><span class="num">三、</span>稽查发现问题及事实认定</a></div>'
-    + '<div><a href="#sec4"><span class="num">四、</span>稽查结论</a></div>'
+    + '<div><a href="#sec3"><span class="num">三、</span>稽查结论</a></div>'
+    + '<div><a href="#sec4"><span class="num">四、</span>稽查发现问题及事实认定</a></div>'
     + '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
     + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'
     + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
@@ -745,8 +745,34 @@ function renderTaxDocReport(r) {
 
   h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
-  // section 3
-  h += '<h2 id="sec3">三、稽查发现问题及事实认定</h2>';
+  // section 3 —— 稽查结论（前置，便于先看结论再看细节）
+  // 预计算统计数据
+  var stdHighCount=allF.filter(function(f){return(f.score||0)>=8;}).length;
+  var stdMidCount=allF.filter(function(f){return(f.score||0)>=6&&(f.score||0)<8;}).length;
+  var stdLowCount=allF.filter(function(f){return(f.score||0)<6;}).length;
+  var stdFixedCount=allF.filter(function(f){return f.level_fixed;}).length;
+  var stdRiskC=stdHighCount>0?S.red:(stdMidCount>0?S.amber:S.green);
+  var stdRiskText=stdHighCount>0?'高风险':(stdMidCount>0?'中风险':'低风险');
+  var stdChainSet = {};
+  allF.forEach(function(f){ if(f.source_chain) stdChainSet[f.source_chain] = true; });
+  var stdChainList = Object.keys(stdChainSet);
+
+  h += '<h2 id="sec3">三、稽查结论</h2>';
+  h+='<div class="conclusion-box '+(stdHighCount>0?'red':(stdMidCount>0?'amber':'green'))+'">';
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+stdRiskC+'">'+stdRiskText+'</span></div>';
+  h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+stdHighCount+'</strong> 项，中风险 <strong>'+stdMidCount+'</strong> 项，低风险 <strong>'+stdLowCount+'</strong> 项。'+(stdFixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+stdFixedCount+' 项。</span>':'')+'</p>';
+  if (stdChainList.length > 0) {
+    h += '<p class="i2"><strong>稽查线索链覆盖：</strong>本次调查共激活' + stdChainList.length + '条稽查线索链：' + stdChainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (stdChainList.length>15?'等':'') + '。</p>';
+  }
+  h+='</div>';
+  if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'').substring(0,200)+'</p>';});}
+  h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有<strong>规则ID溯源</strong>和<strong>≥2域交叉验证</strong>。本次稽查共激活<strong>' + stdChainList.length + '条</strong>线索链，每条发现均可追溯到具体的证据来源和数据域，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+  h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
+  if(stdHighCount>0){h+='<span style="color:'+S.red+'">存在'+stdHighCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(stdMidCount>0){h+='<span style="color:'+S.amber+'">存在'+stdMidCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}
+  h+='</p>';
+
+  // section 4 —— 稽查发现（细节在结论后）
+  h += '<h2 id="sec4">四、稽查发现问题及事实认定</h2>';
 
   // ═══ 发现统计概览 ═══
   var highF = allF.filter(function(f){return(f.score||0)>=8;});
@@ -822,32 +848,6 @@ function renderTaxDocReport(r) {
     }
     h += '</div>';
   });
-
-  // section 4 - 稽查结论
-  h += '<h2 id="sec4">四、稽查结论</h2>';
-
-  var highCount=allF.filter(function(f){return(f.score||0)>=8;}).length;
-  var midCount=allF.filter(function(f){return(f.score||0)>=6&&(f.score||0)<8;}).length;
-  var lowCount=allF.filter(function(f){return(f.score||0)<6;}).length;
-  var fixedCount=allF.filter(function(f){return f.level_fixed;}).length;
-  var riskC=highCount>0?S.red:(midCount>0?S.amber:S.green);
-  var riskText=highCount>0?'高风险':(midCount>0?'中风险':'低风险');
-  h+='<div class="conclusion-box '+(highCount>0?'red':(midCount>0?'amber':'green'))+'">';
-  h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+riskC+'">'+riskText+'</span></div>';
-  h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+highCount+'</strong> 项，中风险 <strong>'+midCount+'</strong> 项，低风险 <strong>'+lowCount+'</strong> 项。'+(fixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+fixedCount+' 项。</span>':'')+'</p>';
-  // 稽查线索覆盖
-  var chainSet = {};
-  allF.forEach(function(f){ if(f.source_chain) chainSet[f.source_chain] = true; });
-  var chainList = Object.keys(chainSet);
-  if (chainList.length > 0) {
-    h += '<p class="i2"><strong>稽查线索链覆盖：</strong>本次调查共激活' + chainList.length + '条稽查线索链，涵盖：' + chainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (chainList.length>15?'等':'') + '。</p>';
-  }
-  h+='</div>';
-  if(highCount>0){h+='<h3>主要高风险事实</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'').substring(0,200)+'</p>';});}
-  h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有<strong>规则ID溯源</strong>和<strong>≥2域交叉验证</strong>。本次稽查共激活<strong>' + chainList.length + '条</strong>线索链，每条发现均可追溯到具体的证据来源和数据域，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
-  h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
-  if(highCount>0){h+='<span style="color:'+S.red+'">存在'+highCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(midCount>0){h+='<span style="color:'+S.amber+'">存在'+midCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}
-  h+='</p>';
 
   // section 5 - 稽查处理意见
   h += '<h2 id="sec5">五、处理处罚建议</h2>';
@@ -997,9 +997,9 @@ function renderNarrativeReport(r) {
   h += '<div class="nr-toc"><div class="nr-toc-title">目  录</div>'
     + '<div class="nr-toc-item">第一章　案件受理与初步分析</div>'
     + '<div class="nr-toc-item">第二章　稽查实施——资料收集与解析</div>'
-    + '<div class="nr-toc-item">第三章　稽查实施——逐项调查与发现</div>'
-    + '<div class="nr-toc-item">第四章　跨域线索串联分析</div>'
-    + '<div class="nr-toc-item">第五章　稽查结论与处理意见</div>'
+    + '<div class="nr-toc-item">第三章　稽查结论</div>'
+    + '<div class="nr-toc-item">第四章　稽查实施——逐项调查与发现</div>'
+    + '<div class="nr-toc-item">第五章　跨域线索串联分析</div>'
     + '<div class="nr-toc-item">第六章　告知事项</div>'
     + '</div>';
 
@@ -1154,8 +1154,40 @@ function renderNarrativeReport(r) {
 
   h += '</div>';
 
-  // ═══ 第三章：稽查实施——逐项调查与发现 ═══
-  h += '<div class="nr-chapter"><h2>第三章　稽查实施——逐项调查与发现</h2><div class="nr-ch-sub">实质检查阶段　共' + allF.length + '项发现</div></div>';
+  // ═══ 第三章：稽查结论（前置——先看结论再看细节）═══
+  // 预计算统计数据
+  var nrHighCount = allF.filter(function(f){return(f.score||0)>=8;}).length;
+  var nrMidCount = allF.filter(function(f){return(f.score||0)>=5&&(f.score||0)<8;}).length;
+  var nrLowCount = allF.filter(function(f){return(f.score||0)<5;}).length;
+  var nrRiskText = nrHighCount>0?'高风险':(nrMidCount>0?'中风险':'低风险');
+  var nrRiskColor = nrHighCount>0?'#dc2626':(nrMidCount>0?'#d97706':'#059669');
+  var nrChainSet = {};
+  allF.forEach(function(f){ if(f.source_chain) nrChainSet[f.source_chain] = true; });
+  var nrChainList = Object.keys(nrChainSet);
+
+  h += '<div class="nr-chapter"><h2>第三章　稽查结论</h2><div class="nr-ch-sub">结案阶段　共' + allF.length + '项发现</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<div style="margin:20px 0;padding:24px 28px;background:' + (nrHighCount>0?'#fef2f2':(nrMidCount>0?'#fffbeb':'#f0fdf4')) + ';border:2px solid ' + (nrHighCount>0?'#fecaca':(nrMidCount>0?'#fde68a':'#bbf7d0')) + ';border-radius:10px">';
+  h += '<p style="font-size:18px;font-weight:800;margin-bottom:12px;text-indent:0">综合风险评级：<span style="color:' + nrRiskColor + '">' + nrRiskText + '</span></p>';
+  h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，本次共发现<strong>' + allF.length + '</strong>项问题：高风险<strong>' + nrHighCount + '</strong>项、中风险<strong>' + nrMidCount + '</strong>项、低风险<strong>' + nrLowCount + '</strong>项。已启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令完成全量核查。</p>';
+  if (nrChainList.length > 0) {
+    h += '<p><strong>稽查线索链覆盖：</strong>本次调查共激活' + nrChainList.length + '条稽查线索链：' + nrChainList.slice(0,12).map(function(c){return esc(c);}).join('、') + (nrChainList.length>12?'等':'') + '。</p>';
+  }
+  if (nrHighCount > 0) {
+    h += '<p style="color:#dc2626;font-weight:700">被查单位存在' + nrHighCount + '项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</p>';
+    h += '<p><strong>主要高风险事项：</strong></p>';
+    allF.filter(function(f){return(f.score||0)>=8;}).slice(0,5).forEach(function(f, j){
+      var dText = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (typeof f.detail === 'string' ? f.detail : (f.description || ''));
+      h += '<p class="nr-no-indent">' + (j+1) + '. <strong>' + esc(f.type||'') + '</strong>：' + esc(dText) + '</p>';
+    });
+  }
+  h += '</div>';
+  h += '<p>以下第四章逐项详述每项发现的具体调查过程、稽查线索、证据材料和处理建议。</p>';
+  h += '</div>';
+
+  // ═══ 第四章：稽查实施——逐项调查与发现 ═══
+  h += '<div class="nr-chapter"><h2>第四章　稽查实施——逐项调查与发现</h2><div class="nr-ch-sub">实质检查阶段　共' + allF.length + '项发现</div></div>';
   h += '<div class="nr-body">';
 
   h += '<p>在完成资料解析后，我启动了' + (r.rules_used || '') + '条稽查指令，对资金流、发票流、业务流进行逐项核查。</p>';
@@ -1269,8 +1301,8 @@ function renderNarrativeReport(r) {
 
   h += '</div>';
 
-  // ═══ 第四章：跨域线索串联分析 ═══
-  h += '<div class="nr-chapter"><h2>第四章　跨域线索串联分析</h2><div class="nr-ch-sub">综合分析阶段</div></div>';
+  // ═══ 第五章：跨域线索串联分析 ═══
+  h += '<div class="nr-chapter"><h2>第五章　跨域线索串联分析</h2><div class="nr-ch-sub">综合分析阶段</div></div>';
   h += '<div class="nr-body">';
 
   h += '<p>在完成逐项调查后，我将所有发现放在一起进行跨域串联分析。这是稽查方法论中最关键的一步——单独看每个问题可能只是数据异常，但串联起来就能还原出完整的问题链条。</p>';
@@ -1287,88 +1319,19 @@ function renderNarrativeReport(r) {
 
   h += '<p>将上述线索链串联后，我得出了以下分析结论：被查单位在多个维度上同时存在异常——资料严重缺失导致无法核实经营实质、供应商地理分布不合理且无运输费用支持、收款来源与开票客户不匹配、进项发票存在多处形式瑕疵。这些异常信号不是孤立的，而是相互印证、相互强化的。<strong>当资料缺失、地理异常、资金不匹配、发票瑕疵四个维度的信号同时出现时，就构成了一个完整的风险画像</strong>——被查单位的经营活动在物理上、财务上、税务上均存在无法合理解释的矛盾。</p>';
 
-  h += '</div>';
-
-  // ═══ 第五章：稽查结论与处理意见 ═══
-  h += '<div class="nr-chapter"><h2>第五章　稽查结论与处理意见</h2><div class="nr-ch-sub">结案阶段</div></div>';
-  h += '<div class="nr-body">';
-
-  var conclusionClass = highCount>0?'red':(midCount>0?'amber':'green');
-  var conclusionBg = highCount>0?'#fef2f2':(midCount>0?'#fffbeb':'#f0fdf4');
-  var conclusionBorder = highCount>0?'#fecaca':(midCount>0?'#fde68a':'#bbf7d0');
-  var riskText = highCount>0?'高风险':(midCount>0?'中风险':'低风险');
-
-  h += '<div style="margin:20px 0;padding:24px 28px;background:' + conclusionBg + ';border:2px solid ' + conclusionBorder + ';border-radius:10px">';
-  h += '<p style="font-size:18px;font-weight:800;margin-bottom:12px;text-indent:0">综合风险评级：<span style="color:' + (highCount>0?'#dc2626':(midCount>0?'#d97706':'#059669')) + '">' + riskText + '</span></p>';
-  h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，我认定：</p>';
-  h += '<p>本次稽查共发现<strong>' + allF.length + '</strong>项问题，其中高风险<strong>' + highCount + '</strong>项、中风险<strong>' + midCount + '</strong>项、低风险<strong>' + lowCount + '</strong>项。已启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令完成全量核查。</p>';
-
-  // 稽查线索汇总
-  var clueChains = [];
-  allF.forEach(function(f){
-    if (f.source_chain) clueChains.push(f.source_chain);
-  });
-  var uniqueChains = [];
-  var chainSeen = {};
-  clueChains.forEach(function(c){
-    if (!chainSeen[c]) { chainSeen[c] = true; uniqueChains.push(c); }
-  });
-
-  h += '<p><strong>稽查线索链覆盖：</strong>本次调查共激活' + uniqueChains.length + '条稽查线索链，覆盖以下调查方向：' + uniqueChains.slice(0,10).map(function(c){return esc(c);}).join('、') + (uniqueChains.length>10?'等':'') + '。</p>';
-
-  if (highCount > 0) {
-    h += '<p style="color:#dc2626;font-weight:700">被查单位存在' + highCount + '项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</p>';
-    h += '<p><strong>主要高风险事项：</strong></p>';
-    allF.filter(function(f){return(f.score||0)>=8;}).slice(0,8).forEach(function(f, j){
-      var dText = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (typeof f.detail === 'string' ? f.detail : (f.description || ''));
-      h += '<p class="nr-no-indent">' + (j+1) + '. <strong>' + esc(f.type||'') + '</strong></p>';
-      h += '<p style="text-indent:0;font-size:13px;color:#475569;">' + esc(dText) + '</p>';
-    });
-  } else if (midCount > 0) {
-    h += '<p style="color:#d97706;font-weight:700">被查单位存在' + midCount + '项需重点关注的问题，建议被查单位限期自查整改。</p>';
-  } else {
-    h += '<p style="color:#059669;font-weight:700">未发现重大税收违法问题。</p>';
-  }
-  h += '</div>';
-
-  // ═══ 证据链汇总 ═══
-  h += '<h3 style="margin-top:24px;font-size:16px;color:#0f172a">稽查证据链汇总</h3>';
-  h += '<p>以下汇总本次稽查中每条发现所依据的核心证据材料：</p>';
-  h += '<table class="nr-table">';
-  h += '<tr><th>序号</th><th>发现类型</th><th>风险等级</th><th>证据来源</th><th>涉及数据域</th></tr>';
-  allF.slice(0, 30).forEach(function(f, j){
-    var tl = (f.level||'') || ((f.score||0)>=8?'高风险':((f.score||0)>=6?'中风险':'低风险'));
-    var tlColor = tl.indexOf('高')>-1?'#dc2626':(tl.indexOf('中')>-1?'#d97706':'#6b7280');
-    var evidence = f.how_found || '';
-    var evidenceShort = (typeof evidence === 'string' ? evidence.split('。')[0].substring(0,60) : '') || '系统自动收集';
-    var domain = f.domain || f.category || '';
-    h += '<tr>'
-      + '<td>' + (j+1) + '</td>'
-      + '<td style="font-size:12px;">' + esc((f.type||'').substring(0,40)) + '</td>'
-      + '<td style="color:' + tlColor + ';font-weight:600;font-size:11px;">' + tl + '</td>'
-      + '<td style="font-size:11px;">' + esc(evidenceShort) + '</td>'
-      + '<td style="font-size:11px;">' + esc(domain.substring(0,20)) + '</td>'
-      + '</tr>';
-  });
-  if (allF.length > 30) {
-    h += '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">...共' + allF.length + '条发现</td></tr>';
-  }
-  h += '</table>';
-
+  // 处理处罚建议（附在跨域分析之后）
   h += '<h3 style="margin-top:24px;font-size:16px;color:#0f172a">处理处罚建议</h3>';
-  var actions=[],seen={};
+  var nrActions=[],nrSeen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
-    if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
+    if(s&&s.substring(0,50)&&!nrSeen[s.substring(0,50)]){nrSeen[s.substring(0,50)]=true;nrActions.push(s);}
   });
-  actions.slice(0,10).forEach(function(a,j){
-    h += '<p class="nr-no-indent">'+(j+1)+'. '+esc(a)+'</p>';
-  });
-  h += '<p>根据《中华人民共和国税收征收管理法》及相关规定，我建议被查单位在收到本报告后<strong>15日内完成自查补税</strong>，并将整改情况书面回复稽查部门。如未能按期整改，将依法采取进一步措施。</p>';
-
+  nrActions.slice(0,8).forEach(function(a,j){h+='<p class="nr-no-indent">'+(j+1)+'. '+esc(a)+'</p>';});
+  h += '</div>';
+  h += '</div>';
   h += '</div>';
 
-  // ═══ 第六章：告知事项 ═══
+  // 第六章：告知事项
   h += '<div class="nr-chapter"><h2>第六章　告知事项</h2><div class="nr-ch-sub">权利告知</div></div>';
   h += '<div class="nr-body">';
 
