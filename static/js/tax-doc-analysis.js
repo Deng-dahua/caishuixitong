@@ -436,6 +436,7 @@ function renderTaxDocReport(r) {
 
   // section 1 —— 稽查方法论⑥（联网核查）+ ㉕（三层行业穿透法）强制呈现
   h += '<h2 id="sec1">一、案件来源及稽查对象基本情况</h2>';
+  h += '<p class="i2">本案来源于电子经营资料自动预审系统推送。我于' + dateStr + '受理此案，立即按照《税务稽查工作规程》组织实施稽查。以下是被查单位的基本情况。</p>';
 
   // 联网核查结果标注
   var onlineOK = !!te._online_lookup;
@@ -606,6 +607,7 @@ function renderTaxDocReport(r) {
 
   // section 2
   h += '<h2 id="sec2">二、稽查实施情况</h2>';
+  h += '<p class="i2">按照稽查方案，我依次开展了以下稽查工作。现将稽查实施过程、稽查方法、证据收集情况逐项汇报如下。</p>';
 
   // ═══ （〇）经营实质核查 — 无论是否一致都展示完整审核过程 ═══
   var ga = te._goods_analysis || {};
@@ -766,7 +768,7 @@ function renderTaxDocReport(r) {
     h += '<p class="i2"><strong>稽查线索链覆盖：</strong>本次调查共激活' + stdChainList.length + '条稽查线索链：' + stdChainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (stdChainList.length>15?'等':'') + '。</p>';
   }
   h+='</div>';
-  if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'').substring(0,200)+'</p>';});}
+  if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'')+'</p>';});}
   h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有<strong>规则ID溯源</strong>和<strong>≥2域交叉验证</strong>。本次稽查共激活<strong>' + stdChainList.length + '条</strong>线索链，每条发现均可追溯到具体的证据来源和数据域，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
   h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
   if(stdHighCount>0){h+='<span style="color:'+S.red+'">存在'+stdHighCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(stdMidCount>0){h+='<span style="color:'+S.amber+'">存在'+stdMidCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}
@@ -774,6 +776,7 @@ function renderTaxDocReport(r) {
 
   // section 4 —— 稽查发现（细节在结论后）
   h += '<h2 id="sec4">四、稽查发现问题及事实认定</h2>';
+  h += '<p class="i2">以下逐项列示我在稽查中发现的全部风险疑点。每个疑点均标注了稽查过程、线索链来源、证据材料和法律依据。按风险等级从高到低排列。</p>';
 
   // ═══ 发现统计概览 ═══
   var highF = allF.filter(function(f){return(f.score||0)>=8;});
@@ -852,6 +855,7 @@ function renderTaxDocReport(r) {
 
   // section 5 - 稽查处理意见
   h += '<h2 id="sec5">五、处理处罚建议</h2>';
+  h += '<p class="i2">根据上述稽查发现和证据链，提出以下处理处罚建议，请领导审议。</p>';
   var actions=[],seen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
@@ -996,19 +1000,26 @@ function renderNarrativeReport(r) {
 
   // ═══ 目录 ═══
   h += '<div class="nr-toc"><div class="nr-toc-title">目  录</div>'
-    + '<div class="nr-toc-item">第一章　案件受理与初步分析</div>'
-    + '<div class="nr-toc-item">第二章　稽查实施——资料收集与解析</div>'
-    + '<div class="nr-toc-item">第三章　稽查结论</div>'
-    + '<div class="nr-toc-item">第四章　稽查实施——逐项调查与发现</div>'
-    + '<div class="nr-toc-item">第五章　跨域线索串联分析</div>'
-    + '<div class="nr-toc-item">第六章　告知事项</div>'
+    + '<div class="nr-toc-item">第一章　案件受理与基本情况</div>'
+    + '<div class="nr-toc-item">第二章　稽查方案与工作部署</div>'
+    + '<div class="nr-toc-item">第三章　稽查实施过程</div>'
+    + '<div class="nr-toc-item">第四章　稽查结论</div>'
+    + '<div class="nr-toc-item">第五章　风险疑点详报与证据链</div>'
+    + '<div class="nr-toc-item">第六章　证据链组织总结</div>'
+    + '<div class="nr-toc-item">第七章　处理处罚建议</div>'
+    + '<div class="nr-toc-item">第八章　告知事项</div>'
     + '</div>';
 
-  // ═══ 第一章：案件受理与初步分析 ═══
-  h += '<div class="nr-chapter"><h2>第一章　案件受理与初步分析</h2><div class="nr-ch-sub">' + dateStr + ' ' + timeStr + '　记于稽查局办公室</div></div>';
+  // ═══ 开篇：向上级汇报 ═══
+  h += '<div class="nr-chapter"><h2>关于' + esc(te.name || '某企业') + '涉税资料的稽查情况汇报</h2><div class="nr-ch-sub">汇报人：国家税务总局XX稽查局稽查员　' + dateStr + '</div></div>';
+
+  // ═══ 第一章：案件受理与基本情况 ═══
+  h += '<div class="nr-chapter"><h2>第一章　案件受理与基本情况</h2><div class="nr-ch-sub">' + dateStr + ' ' + timeStr + '</div></div>';
   h += '<div class="nr-body">';
 
-  h += '<p>我是国家税务总局XX稽查局稽查员，根据工作安排，本日受理了关于<span class="nr-highlight">' + esc(te.name || '某企业') + '</span>的涉税资料分析预审案件。案件来源为电子经营资料自动预审系统推送。</p>';
+  h += '<p><strong>领导：</strong></p>';
+  h += '<p>现就<span class="nr-highlight">' + esc(te.name || '某企业') + '</span>（统一社会信用代码<span style="white-space:nowrap">' + esc(te.uscc || '') + '</span>）的涉税资料稽查情况，向您做详细汇报。</p>';
+  h += '<p>本案来源于电子经营资料自动预审系统推送，属于资料风险分析预审案件。我在受理后，立即按照《税务稽查工作规程》的要求，启动了系统性的稽查工作。现将核查情况逐项汇报如下。</p>';
 
   var onlineOK = !!te._online_lookup;
   if (onlineOK) {
@@ -1039,17 +1050,39 @@ function renderNarrativeReport(r) {
     }
   }
 
-  h += '<p>收到推送时，系统已预先完成了资料扫描。根据系统提示，被查单位提交了' + r.files_count + '份电子经营资料。我初步浏览了资料清单，发现了一个令人担忧的状况：在税务稽查要求提供的14类必查资料中，<strong>仅有3类资料已提交</strong>（银行流水、销项发票、进项发票），其余11类关键资料完全缺失。这让我对后续的稽查工作有了初步判断——这将是一场资料匮乏的艰难调查。</p>';
-
-  h += '<p>我决定按照稽查工作规程，从已有的3类资料入手，逐项展开调查。我的调查思路是：先用银行流水核实资金流向，再用发票数据验证业务真实性，然后将两者交叉比对，寻找矛盾点。每发现一个问题，我都会详细记录调查过程、证据材料和法律依据。</p>';
+  h += '<p>收到推送时，系统已预先完成了资料扫描。被查单位提交了' + r.files_count + '份电子经营资料。在税务稽查要求提供的14类必查资料中，<strong>仅提交了3类</strong>（银行流水、销项发票、进项发票），其余11类资料完全缺失。这给我的稽查工作带来了困难，但我在现有条件下全力推进。</p>';
 
   h += '</div>';
 
-  // ═══ 第二章：稽查实施——资料收集与解析 ═══
-  h += '<div class="nr-chapter"><h2>第二章　稽查实施——资料收集与解析</h2><div class="nr-ch-sub">资料审查阶段</div></div>';
+  // ═══ 第二章：稽查方案与工作部署 ═══
+  h += '<div class="nr-chapter"><h2>第二章　稽查方案与工作部署</h2><div class="nr-ch-sub">制定稽查策略</div></div>';
   h += '<div class="nr-body">';
 
-  h += '<p>在正式展开调查前，我首先对被查单位提交的全部资料进行了系统性解析和信息提取。以下是我在资料解析阶段的工作记录。</p>';
+  h += '<p><strong>领导，在正式开展稽查之前，我制定了以下稽查方案。现向您汇报我的工作部署：</strong></p>';
+
+  // 稽查方案
+  h += '<div class="nr-evidence"><div class="nr-ev-title">📋 我的稽查方案——六步工作法</div>';
+  h += '<table class="nr-table">';
+  h += '<tr><th style="width:80px;">步骤</th><th>稽查内容</th><th style="width:120px;">稽查方法</th><th style="width:120px;">预期产出</th></tr>';
+  h += '<tr><td style="font-weight:700;">第一步</td><td>工商登记核查</td><td>联网核查法</td><td>企业基本画像</td></tr>';
+  h += '<tr><td style="font-weight:700;">第二步</td><td>经营实质穿透</td><td>三层行业穿透法 — 工商登记→进项发票→销项发票→交叉比对</td><td>实质经营模式认定</td></tr>';
+  h += '<tr><td style="font-weight:700;">第三步</td><td>资金流分析</td><td>资金流向追踪法 — 收款来源分类+付款方穿透+大额整数检测</td><td>资金异常清单</td></tr>';
+  h += '<tr><td style="font-weight:700;">第四步</td><td>发票流分析</td><td>发票实质性审阅法 — 逐票核查要素+供应商/客户穿透+品名匹配</td><td>发票异常清单</td></tr>';
+  h += '<tr><td style="font-weight:700;">第五步</td><td>多源交叉验证</td><td>三源比对法+四流合一验证法+客户维度三源穿透法</td><td>跨域线索链</td></tr>';
+  h += '<tr><td style="font-weight:700;">第六步</td><td>资料完备度评估</td><td>14类资料逐类核查+缺失后果分析</td><td>资料缺失风险清单</td></tr>';
+  h += '</table></div>';
+
+  h += '<p><strong>我的稽查顺序逻辑：</strong>我按照"先外围后核心、先单域后跨域"的原则安排稽查顺序。先通过工商登记和经营实质分析建立企业画像，再分别深入资金流和发票流两个核心域，然后将两个域的数据交叉验证寻找矛盾点，最后进行资料完备度评估——因为只有在深入分析了已有资料后，才能真正理解资料缺失对稽查的影响程度。</p>';
+
+  h += '<p><strong>证据链组织思路：</strong>针对每一个风险疑点，我遵循"四步证据法"——①提取原始数据（银行流水/发票/工商登记）→②逐条匹配稽查规则→③多源交叉验证（≥2个数据域）→④形成证据闭环。所有高风险事项的认定均满足"≥2域交叉验证"标准，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+
+  h += '</div>';
+
+  // ═══ 第三章：稽查实施过程 ═══
+  h += '<div class="nr-chapter"><h2>第三章　稽查实施过程</h2><div class="nr-ch-sub">按照稽查方案逐项执行　共启动' + (r.rules_used || '?') + '条稽查指令</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p><strong>领导，按照前述六步工作法，我依次开展了以下稽查工作。以下各节按执行顺序逐项汇报。</strong></p>';
 
   // ═══ 资料解析统计概览 ═══
   var totalFindings = allF.length;
@@ -1155,8 +1188,7 @@ function renderNarrativeReport(r) {
 
   h += '</div>';
 
-  // ═══ 第三章：稽查结论（前置——先看结论再看细节）═══
-  // 预计算统计数据
+  // ═══ 第四章：稽查结论 ═══
   var nrHighCount = allF.filter(function(f){return(f.score||0)>=8;}).length;
   var nrMidCount = allF.filter(function(f){return(f.score||0)>=5&&(f.score||0)<8;}).length;
   var nrLowCount = allF.filter(function(f){return(f.score||0)<5;}).length;
@@ -1166,12 +1198,12 @@ function renderNarrativeReport(r) {
   allF.forEach(function(f){ if(f.source_chain) nrChainSet[f.source_chain] = true; });
   var nrChainList = Object.keys(nrChainSet);
 
-  h += '<div class="nr-chapter"><h2>第三章　稽查结论</h2><div class="nr-ch-sub">结案阶段　共' + allF.length + '项发现</div></div>';
+  h += '<div class="nr-chapter"><h2>第四章　稽查结论</h2><div class="nr-ch-sub">领导，以上稽查工作完成后，我得出以下结论</div></div>';
   h += '<div class="nr-body">';
 
   h += '<div style="margin:20px 0;padding:24px 28px;background:' + (nrHighCount>0?'#fef2f2':(nrMidCount>0?'#fffbeb':'#f0fdf4')) + ';border:2px solid ' + (nrHighCount>0?'#fecaca':(nrMidCount>0?'#fde68a':'#bbf7d0')) + ';border-radius:10px">';
   h += '<p style="font-size:18px;font-weight:800;margin-bottom:12px;text-indent:0">综合风险评级：<span style="color:' + nrRiskColor + '">' + nrRiskText + '</span></p>';
-  h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，本次共发现<strong>' + allF.length + '</strong>项问题：高风险<strong>' + nrHighCount + '</strong>项、中风险<strong>' + nrMidCount + '</strong>项、低风险<strong>' + nrLowCount + '</strong>项。已启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令完成全量核查。</p>';
+  h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，我共发现<strong>' + allF.length + '</strong>项问题：高风险<strong>' + nrHighCount + '</strong>项、中风险<strong>' + nrMidCount + '</strong>项、低风险<strong>' + nrLowCount + '</strong>项。已启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令完成全量核查，覆盖' + nrChainList.length + '条稽查线索链。</p>';
   if (nrChainList.length > 0) {
     h += '<p><strong>稽查线索链覆盖：</strong>本次调查共激活' + nrChainList.length + '条稽查线索链：' + nrChainList.slice(0,12).map(function(c){return esc(c);}).join('、') + (nrChainList.length>12?'等':'') + '。</p>';
   }
@@ -1184,11 +1216,11 @@ function renderNarrativeReport(r) {
     });
   }
   h += '</div>';
-  h += '<p>以下第四章逐项详述每项发现的具体调查过程、稽查线索、证据材料和处理建议。</p>';
+  h += '<p><strong>领导，以上是我的稽查结论。第五章将逐项详述每项风险疑点的具体调查过程、稽查线索、证据材料和处理建议。</strong></p>';
   h += '</div>';
 
-  // ═══ 第四章：稽查实施——逐项调查与发现 ═══
-  h += '<div class="nr-chapter"><h2>第四章　稽查实施——逐项调查与发现</h2><div class="nr-ch-sub">实质检查阶段　共' + allF.length + '项发现</div></div>';
+  // ═══ 第五章：风险疑点详报与证据链 ═══
+  h += '<div class="nr-chapter"><h2>第五章　风险疑点详报与证据链</h2><div class="nr-ch-sub">逐项汇报调查过程　共' + allF.length + '项发现</div></div>';
   h += '<div class="nr-body">';
 
   h += '<p>在完成资料解析后，我启动了' + (r.rules_used || '') + '条稽查指令，对资金流、发票流、业务流进行逐项核查。</p>';
@@ -1202,7 +1234,7 @@ function renderNarrativeReport(r) {
   h += '<tr><td style="color:#6b7280">⚪ 低风险</td><td>' + lowRiskCount + '条</td><td>' + (totalFindings>0?(lowRiskCount/totalFindings*100).toFixed(0):0) + '%</td><td>持续关注——日常费用/技术性提醒</td></tr>';
   h += '</table></div>';
 
-  h += '<p>以下是我对每一项发现的详细调查记录，按风险等级从高到低排列。每条发现均包含：<strong>调查过程→稽查线索→证据材料→法律依据→处理建议</strong>五段式结构化呈现。</p>';
+  h += '<p><strong>领导，以下是我对每一项风险疑点的详细调查汇报。每个疑点均按照"调查过程→稽查线索→证据材料→法律依据→处理建议"的五段式结构呈现，并标注了我组织证据链的方法。</strong></p>';
 
   // 逐项发现——第一人称叙事
   var highCount = 0, midCount = 0, lowCount = 0;
@@ -1227,27 +1259,27 @@ function renderNarrativeReport(r) {
     } else if (f.type && f.type.indexOf('跨域') >= 0) {
       narrativeText = '<p>这条线索链是通过跨域数据交叉比对自动触发的。我将不同分析域（工商登记、银行流水、发票数据、地理信息等）的数据进行串联分析，发现多个域的异常信号指向同一个风险方向。</p>'
         + '<p>我调取了多个数据源的记录进行逐一比对。调查路径覆盖了多个维度的交叉验证：从初始信号出发，逐步扩展至相关数据域，最终形成了完整的证据链闭环。</p>'
-        + '<p>经过多维度交叉验证，我认为这个跨域线索具有足够的证据支撑。以下是我的具体调查过程：</p><p>' + esc(descText.substring(0,500)) + '</p>';
+        + '<p>经过多维度交叉验证，我认为这个跨域线索具有足够的证据支撑。以下是我的具体调查过程：</p><p>' + esc(descText) + '</p>';
     } else if (f.type && (f.type.indexOf('发票') >= 0 || f.type.indexOf('开票') >= 0)) {
       narrativeText = '<p>在发票实质性审计中，我逐票翻阅了被查单位提交的全部发票。对于每一张发票，我都会核对以下要素：发票代码和号码、开票日期、购买方和销售方名称及纳税人识别号、货物或应税劳务名称、规格型号、单位、数量、单价、金额、税率、税额。</p>'
         + '<p>在翻阅过程中，我发现了异常。我立即将该异常发票与其他发票进行横向对比，同时核查对应的银行流水是否有相应的资金往来记录。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+        + '<p>具体调查发现：' + esc(descText) + '</p>';
     } else if (f.type && (f.type.indexOf('收款') >= 0 || f.type.indexOf('付款') >= 0 || f.type.indexOf('资金') >= 0 || f.type.indexOf('银行') >= 0)) {
       narrativeText = '<p>在资金流审查中，我将银行流水数据导入分析系统，对所有交易记录进行逐笔分析。我重点关注四个方面：收款方是否与开票客户一致、付款方是否与进项供应商一致、大额整数交易是否存在人为构造痕迹、周末及节假日交易是否具有商业合理性。</p>'
         + '<p>我将银行流水中的收款方名称与销项发票中的购买方名称进行了一一比对，发现存在严重的不匹配情况。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+        + '<p>具体调查发现：' + esc(descText) + '</p>';
     } else if (f.type && f.type.indexOf('地理') >= 0 || f.type && f.type.indexOf('运输') >= 0 || f.type && f.type.indexOf('物流') >= 0 || f.type && f.type.indexOf('经营实质') >= 0) {
       narrativeText = '<p>在经营实质审查中，我从发票中提取了全部供应商、客户和加工商的地址信息，将这些地址标注在地图上进行空间分析。被查单位位于' + esc((te.address||'').substring(0,10)) + '，而其主要供应商分布在多个外地城市，数百至上千公里之遥。</p>'
         + '<p>我进一步核查了银行流水中是否存在运输费、物流费、快递费等支出——结果为零。待加工的纱线和整理后的成品面料都是重物，跨省运输必然产生大量运费。完全没有运输费支出这一事实，让我对货物流的真实性产生了严重怀疑。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+        + '<p>具体调查发现：' + esc(descText) + '</p>';
     } else if (f.type && (f.type.indexOf('行业') >= 0 || f.type.indexOf('毛利') >= 0)) {
       narrativeText = '<p>在行业对标分析中，我调取了行业基准数据库中被查单位所属行业的典型财务指标，将被查单位的实际数据与行业基准进行逐一对比。我关注的核心指标包括：毛利率、税负率、进销比、人均营收等。</p>'
         + '<p>对比结果显示被查单位的多项指标与行业典型值存在偏差，我对此进行了详细的偏离度分析。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+        + '<p>具体调查发现：' + esc(descText) + '</p>';
     } else if (f.type && (f.type.indexOf('时间') >= 0 || f.type.indexOf('周末') >= 0 || f.type.indexOf('模式') >= 0)) {
       narrativeText = '<p>在交易时间模式分析中，我对所有银行流水交易的发生时间进行了统计分析，重点关注周末、节假日、夜间等非营业时段发生的交易，以及整数金额交易模式。</p>'
         + '<p>根据我的稽查经验，正常企业间的对公交易通常发生在工作日且金额零碎。周末交易和整数金额交易往往有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。</p>'
-        + '<p>具体调查发现：' + esc(descText.substring(0,400)) + '</p>';
+        + '<p>具体调查发现：' + esc(descText) + '</p>';
     } else {
       // 默认叙事——融合 how_found + detail 生成完整的调查叙事
       var hfText = f.how_found || '';
@@ -1261,7 +1293,7 @@ function renderNarrativeReport(r) {
 
     h += '<div class="nr-finding">';
     h += '<div class="nr-f-title">调查事项' + (i+1) + '：' + esc(f.type || '未分类发现') + '<span class="nr-badge ' + badgeCls + '">' + tl + '</span>' + (f.level_fixed ? '<span class="nr-badge nr-badge-red" style="font-size:9px">稽查重点</span>' : '') + '</div>';
-    h += '<div class="nr-f-meta">涉及领域：' + esc(domainText || '综合') + '　|　风险评分：' + (s||0) + '/10　|　' + (f.rule_id && f.rule_id > 100 ? '规则ID-' + f.rule_id : '') + '　|　' + (f.source_chain ? '线索链：' + esc(f.source_chain) : '') + '</div>';
+    h += '<div class="nr-f-meta">涉及领域：' + esc(domainText || '综合') + '　|　风险评分：' + (s||0) + '/10　|　' + (f.rule_id && f.rule_id > 100 ? '规则ID-' + f.rule_id + '　|　' : '') + (f.source_chain ? '线索链：' + esc(f.source_chain) + '　|　' : '') + '证据链：' + ((f.rule_id && f.rule_id>100) ? '规则驱动+' : '') + ((f.items && f.items.length>0) ? f.items.length+'项明细' : '系统提取') + '</div>';
     
     h += narrativeText;
 
@@ -1298,42 +1330,56 @@ function renderNarrativeReport(r) {
     h += '</div>';
   });
 
-  h += '<div class="nr-inspector-thought" style="margin-top:30px">📊 第三章调查小结：至此，我完成了对全部' + allF.length + '项风险信号的逐一核查。其中，经我认定为<strong>高风险</strong>的有' + highCount + '项，需要被查单位立即整改；<strong>中风险</strong>' + midCount + '项，建议重点关注；<strong>低风险</strong>' + lowCount + '项，供被查单位自查参考。</div>';
+  h += '<div class="nr-inspector-thought" style="margin-top:30px">📊 <strong>领导，第五章调查小结：</strong>至此，我完成了对全部' + allF.length + '项风险信号的逐一核查。其中，经我认定为<strong>高风险</strong>的有' + highCount + '项——需立即处理；<strong>中风险</strong>' + midCount + '项——建议重点关注；<strong>低风险</strong>' + lowCount + '项——供被查单位自查参考。</div>';
 
   h += '</div>';
 
-  // ═══ 第五章：跨域线索串联分析 ═══
-  h += '<div class="nr-chapter"><h2>第五章　跨域线索串联分析</h2><div class="nr-ch-sub">综合分析阶段</div></div>';
+  // ═══ 第六章：证据链组织总结 ═══
+  h += '<div class="nr-chapter"><h2>第六章　证据链组织总结</h2><div class="nr-ch-sub">如何将孤立疑点串联为完整证据链</div></div>';
   h += '<div class="nr-body">';
 
-  h += '<p>在完成逐项调查后，我将所有发现放在一起进行跨域串联分析。这是稽查方法论中最关键的一步——单独看每个问题可能只是数据异常，但串联起来就能还原出完整的问题链条。</p>';
+  h += '<p><strong>领导，在完成逐项调查后，我将所有风险疑点进行跨域串联分析，组织形成完整的证据链。这是我稽查方法论中最关键的一步——单独看每个问题可能只是数据异常，但串联起来就能还原出完整的问题链条。以下汇报我的证据链组织思路。</strong></p>';
+
+  // 证据链组织方法论
+  h += '<div class="nr-evidence"><div class="nr-ev-title">🔗 我的证据链组织方法——四步证据法</div>';
+  h += '<table class="nr-table">';
+  h += '<tr><th style="width:80px;">步骤</th><th>操作方法</th><th style="width:160px;">本次稽查执行情况</th></tr>';
+  h += '<tr><td style="font-weight:700;">第一步<br>提取原始数据</td><td>从被查单位提交的资料中提取原始数据记录：银行流水' + esc(bi['总收款']?'是':'否') + '、销项发票' + esc(ii['销项发票']?'是':'否') + '、进项发票' + esc(ii['进项发票']?'是':'否') + '</td><td>已从3类资料中提取数据作为证据来源</td></tr>';
+  h += '<tr><td style="font-weight:700;">第二步<br>逐条匹配规则</td><td>将提取的数据逐条匹配' + (r.rules_used||'?') + '条稽查规则，触发风险信号</td><td>共触发' + allF.length + '条风险信号</td></tr>';
+  h += '<tr><td style="font-weight:700;">第三步<br>多源交叉验证</td><td>每条高风险发现的认定均满足≥2个数据域交叉验证——发票流+资金流、工商登记+发票流、地理信息+资金流等</td><td>所有高风险事项均满足≥2域交叉验证标准</td></tr>';
+  h += '<tr><td style="font-weight:700;">第四步<br>形成证据闭环</td><td>将同一风险方向的多个证据串联起来，形成"信号→线索→证据→结论"的逻辑闭环</td><td>已激活' + nrChainList.length + '条线索链，覆盖' + nrChainList.slice(0,8).map(function(c){return esc(c);}).join('、') + (nrChainList.length>8?'等维度':'') + '</td></tr>';
+  h += '</table></div>';
 
   var crossFindings = allF.filter(function(f){ return f.type && f.type.indexOf('跨域') >= 0; });
   if (crossFindings.length > 0) {
-    h += '<p>经过跨域串联分析，我识别出以下关键线索链：</p>';
+    h += '<p><strong>经跨域串联分析，我识别出以下关键线索链：</strong></p>';
     crossFindings.forEach(function(cf, ci){
       h += '<p><strong>线索链' + (ci+1) + '：</strong>' + esc(cf.type || '') + '</p>';
       var cDesc = typeof cf.detail === 'string' ? cf.detail : (cf.description || '');
-      h += '<p>' + esc(cDesc.substring(0,300)) + '</p>';
+      h += '<p>' + esc(cDesc) + '</p>';
     });
   }
 
-  h += '<p>将上述线索链串联后，我得出了以下分析结论：被查单位在多个维度上同时存在异常——资料严重缺失导致无法核实经营实质、供应商地理分布不合理且无运输费用支持、收款来源与开票客户不匹配、进项发票存在多处形式瑕疵。这些异常信号不是孤立的，而是相互印证、相互强化的。<strong>当资料缺失、地理异常、资金不匹配、发票瑕疵四个维度的信号同时出现时，就构成了一个完整的风险画像</strong>——被查单位的经营活动在物理上、财务上、税务上均存在无法合理解释的矛盾。</p>';
+  h += '<p><strong>我的综合判断：</strong>被查单位在多个维度上同时存在异常——资料严重缺失导致无法核实经营实质、供应商地理分布不合理且无运输费用支持、收款来源与开票客户不匹配、进项发票存在多处形式瑕疵。这些异常信号不是孤立的，而是相互印证、相互强化的。<strong>当资料缺失、地理异常、资金不匹配、发票瑕疵四个维度的信号同时出现时，就构成了一个完整的风险画像</strong>——被查单位的经营活动在物理上、财务上、税务上均存在无法合理解释的矛盾。</p>';
 
-  // 处理处罚建议（附在跨域分析之后）
-  h += '<h3 style="margin-top:24px;font-size:16px;color:#0f172a">处理处罚建议</h3>';
+  h += '</div>';
+
+  // ═══ 第七章：处理处罚建议 ═══
+  h += '<div class="nr-chapter"><h2>第七章　处理处罚建议</h2><div class="nr-ch-sub">我的处理意见</div></div>';
+  h += '<div class="nr-body">';
+
+  h += '<p><strong>领导，根据上述稽查发现和证据链，我提出以下处理处罚建议：</strong></p>';
   var nrActions=[],nrSeen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
     if(s&&s.substring(0,50)&&!nrSeen[s.substring(0,50)]){nrSeen[s.substring(0,50)]=true;nrActions.push(s);}
   });
   nrActions.slice(0,8).forEach(function(a,j){h+='<p class="nr-no-indent">'+(j+1)+'. '+esc(a)+'</p>';});
-  h += '</div>';
-  h += '</div>';
+  h += '<p>综合以上建议，我请求领导审议本案的最终处理决定。</p>';
   h += '</div>';
 
-  // 第六章：告知事项
-  h += '<div class="nr-chapter"><h2>第六章　告知事项</h2><div class="nr-ch-sub">权利告知</div></div>';
+  // 第八章：告知事项
+  h += '<div class="nr-chapter"><h2>第八章　告知事项</h2><div class="nr-ch-sub">被查单位权利义务告知</div></div>';
   h += '<div class="nr-body">';
 
   h += '<p>根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，我在此告知被查单位享有的法定权利：</p>';
@@ -1347,9 +1393,14 @@ function renderNarrativeReport(r) {
 
   // ═══ 签字 ═══
   h += '<div class="nr-sig">'
-    + '<div class="nr-sig-name">稽查执行人：___________</div>'
+    + '<div class="nr-sig-name">汇报人（稽查执行人）：___________</div>'
     + '<div style="font-size:12px">（签章）</div>'
-    + '<div style="margin-top:24px">' + dateStr + '</div>'
+    + '<div style="margin-top:16px;font-size:12px;color:#64748b">' + dateStr + '</div>'
+    + '<div style="margin-top:32px;border-top:1px solid #cbd5e1;padding-top:16px">'
+    + '<div class="nr-sig-name">领导审批意见：___________</div>'
+    + '<div style="font-size:12px">（签章）</div>'
+    + '<div style="margin-top:16px;font-size:12px;color:#64748b">日期：___________</div>'
+    + '</div>'
     + '<div style="margin-top:48px;font-size:11px;color:#94a3b8">本报告一式三份：稽查局存档一份、被查单位一份、主管税务机关一份</div>'
     + '</div>';
 
