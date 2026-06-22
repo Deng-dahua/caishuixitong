@@ -367,6 +367,22 @@ function renderAuditorHandbook(container) {
   html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行两轮质量保障——①<code>_sanitize_finding_boilerplate()</code> 剔除模板句/重复句/空描述 ②<code>_enforce_report_quality_standards()</code> 对全部发现做12项标准逐条检查——';
   html += '每份报告末尾附两轮质量检查统计。模板句先剔除再检查，确保进入报告的文本天然清洁。';
   html += '</div>';
+
+  // 3.6 汇报四要素增强
+  html += '<h3 style="margin-top:20px;">3.6 汇报四要素——真实场景必备</h3>';
+  html += '<p style="font-size:13px;color:#6b7280;">以下四项是模拟真实稽查员向上级领导汇报时不可或缺的要素。系统在生成报告时自动注入。</p>';
+
+  html += '<table class="table table-sm">';
+  html += '<thead><tr><th style="width:120px;">要素</th><th>说明</th><th style="width:200px;">在报告中的位置</th></tr></thead><tbody>';
+  html += '<tr><td style="font-weight:700;">① 处理优先级</td><td>真实汇报结尾必然有一句"领导，我建议优先处理以下最紧急的问题"。报告在结论末尾列出优先处理顺序——高风险立即处理、中风险限期整改、低风险持续关注——并标注每项的紧急理由。</td><td>标准报告：三、稽查结论 → 处理优先级建议<br>叙事报告：第四章结论末尾</td></tr>';
+  html += '<tr><td style="font-weight:700;">② 交叉引用</td><td>真实报告中稽查员会说"如调查事项3所述，收款来源不匹配的问题与调查事项7的供应商地理异常是相互关联的"。每项发现底部自动标注与其共享同一域/线索链的关联发现。</td><td>标准报告：每项发现 → 关联发现行<br>叙事报告：同标准报告</td></tr>';
+  html += '<tr><td style="font-weight:700;">③ 对比基准</td><td>只说有偏差不够，必须说偏差多少、跟什么比。如"开票收入1000万，同行业同规模企业在800-1200万之间——被查单位在此范围内，此项未见异常"。有基准才有说服力。</td><td>稽查管道 → 行业对标域分析<br>（系统已产出域分析发现）</td></tr>';
+  html += '<tr><td style="font-weight:700;">④ 调查时间线</td><td>报告最缺时间叙事——"我收到案件→我调取资料→我发现第一个异常→我顺着线索扩大范围→我锁定核心问题"。叙事报告开篇以六阶段时间线表格呈现从受理到汇报的完整稽查轨迹。</td><td>叙事报告：第一章末尾 → 调查时间线表格</td></tr>';
+  html += '</tbody></table>';
+
+  html += '<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:13px;">';
+  html += '<strong>🔧 系统实现：</strong>以上四要素在每次一键分析时自动注入——①优先级排序在结论输出阶段生成 ②交叉引用通过共享域/线索链自动匹配 ③对比基准来源于域分析中的行业对标数据 ④时间线在叙事报告第一章自动绘制。';
+  html += '</div>';
   html += '</div>';
 
   // ═══════════════════════════════════════

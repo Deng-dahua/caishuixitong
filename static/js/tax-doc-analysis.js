@@ -770,6 +770,21 @@ function renderTaxDocReport(r) {
   h+='</div>';
   if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'')+'</p>';});}
   h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有<strong>规则ID溯源</strong>和<strong>≥2域交叉验证</strong>。本次稽查共激活<strong>' + stdChainList.length + '条</strong>线索链，每条发现均可追溯到具体的证据来源和数据域，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+  h+='<h3>稽查局限性声明</h3><p class="i2">需要如实说明的是，由于被查单位仅提交了3类资料（银行流水、销项发票、进项发票），其余11类必查资料缺失，我无法核实以下事项：①会计凭证的完整性和分录准确性（无法核查账簿是否健全）；②工资费用的真实性和个税代扣代缴履行情况；③社保的合规参保和缴费基数真实性；④存货的账实相符性（无法实地盘点）；⑤合同交易的真实性（无法验证四流合一）；⑥各税种申报的准确性（无法比对申报表与原始数据）。以上受限事项如后续补充资料，需另行补充稽查。</p>';
+
+  h+='<h3>处理优先级建议</h3>';
+  h+='<p class="i2">根据风险等级和潜在后果的严重性，我建议按以下顺序处理：</p>';
+  h += '<table class="tbl2"><tr><th>优先级</th><th>事项</th><th>紧急程度</th><th>理由</th></tr>';
+  var urgentFindings = allF.filter(function(f){return(f.score||0)>=8;}).slice(0,4);
+  urgentFindings.forEach(function(f,pi){
+    var reason = (f.score||0)>=9 ? '涉嫌税收违法——立即处理' : '高风险——尽快处理';
+    h += '<tr><td style="font-weight:700;color:#dc2626">' + (pi+1) + '</td><td>' + esc(f.type||'') + '</td><td style="color:#dc2626;font-weight:600">' + reason + '</td><td>' + esc((f.tax_impact||'').split('→')[0] || '需进一步核查') + '</td></tr>';
+  });
+  if (urgentFindings.length === 0) {
+    h += '<tr><td colspan="4" style="color:#6b7280">暂未发现需要立即处理的高风险事项</td></tr>';
+  }
+  h += '</table>';
+
   h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
   if(stdHighCount>0){h+='<span style="color:'+S.red+'">存在'+stdHighCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。</span>';}else if(stdMidCount>0){h+='<span style="color:'+S.amber+'">存在'+stdMidCount+'项需关注问题，建议自查整改。</span>';}else{h+='<span style="color:'+S.green+'">未发现重大税收违法问题。</span>';}
   h+='</p>';
@@ -826,6 +841,26 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
+    // 交叉引用：查找与本发现相关的其他发现
+    var relatedIndices = [];
+    var thisDomain = f.domain || f.category || '';
+    var thisSource = f.source_chain || '';
+    allF.forEach(function(rf, ri){
+      if (ri !== i) {
+        var rfDomain = rf.domain || rf.category || '';
+        var rfSource = rf.source_chain || '';
+        if ((thisDomain && thisDomain === rfDomain) || (thisSource && thisSource === rfSource)) {
+          if (relatedIndices.length < 3) relatedIndices.push(ri);
+        }
+      }
+    });
+    if (relatedIndices.length > 0) {
+      h += '<div class="frow" style="font-size:11px;color:#6b7280;margin-top:4px"><span class="flabel">关联发现：</span>';
+      h += '参阅 ' + relatedIndices.map(function(ri){ return '<a href="#" onclick="document.getElementById(\\'finding-'+ri+'\\').scrollIntoView({behavior:\\'smooth\\'});return false" style="color:#2563eb">发现'+(ri+1)+'</a>'; }).join('、');
+      var relNames = relatedIndices.map(function(ri){ return esc((allF[ri].type||'').substring(0,20)); }).join(' / ');
+      h += '（' + relNames + '）——同一域/线索链，交叉验证</div>';
+    }
+
     // 调查过程——始终展示
     if (f.how_found) {
       h += '<div class="frow" style="margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">';
@@ -1052,6 +1087,18 @@ function renderNarrativeReport(r) {
 
   h += '<p>收到推送时，系统已预先完成了资料扫描。被查单位提交了' + r.files_count + '份电子经营资料。在税务稽查要求提供的14类必查资料中，<strong>仅提交了3类</strong>（银行流水、销项发票、进项发票），其余11类资料完全缺失。这给我的稽查工作带来了困难，但我在现有条件下全力推进。</p>';
 
+  // ═══ 调查时间线 ═══
+  h += '<div class="nr-evidence" style="margin-top:20px"><div class="nr-ev-title">📅 我的调查时间线</div>';
+  h += '<table class="nr-table">';
+  h += '<tr><th style="width:80px;">阶段</th><th>时间节点</th><th>工作内容</th><th>产出</th></tr>';
+  h += '<tr><td style="font-weight:700;">受理</td><td>' + dateStr + ' ' + timeStr + '</td><td>收到系统推送，受理' + esc(te.name || '被查单位') + '涉税资料分析案件</td><td>案件受理记录</td></tr>';
+  h += '<tr><td style="font-weight:700;">初步审查</td><td>' + dateStr + '（同日）</td><td>联网核查工商信息、审查14类资料提交情况、六员风险分析</td><td>企业基本画像+资料缺失清单</td></tr>';
+  h += '<tr><td style="font-weight:700;">资料解析</td><td>' + dateStr + '（同日）</td><td>解析银行流水（收款' + esc(bi['总收款']||'?') + '元/付款' + esc(bi['总付款']||'?') + '元）、进项发票' + esc(ii['进项发票']||'?') + '、销项发票' + esc(ii['销项发票']||'?') + '</td><td>结构化数据提取</td></tr>';
+  h += '<tr><td style="font-weight:700;">逐域分析</td><td>' + dateStr + '（同日）</td><td>依次执行：经营实质核查→资金流分析→发票流分析→多源交叉验证→资料完备度评估</td><td>' + allF.length + '条风险信号+证据链</td></tr>';
+  h += '<tr><td style="font-weight:700;">综合研判</td><td>' + dateStr + '（同日）</td><td>跨域线索串联、证据链组织、风险定级、处理建议拟定</td><td>本稽查报告</td></tr>';
+  h += '<tr><td style="font-weight:700;">汇报</td><td>' + dateStr + '</td><td>向上级领导提交稽查报告，请求审议</td><td>—</td></tr>';
+  h += '</table></div>';
+
   h += '</div>';
 
   // ═══ 第二章：稽查方案与工作部署 ═══
@@ -1075,6 +1122,9 @@ function renderNarrativeReport(r) {
   h += '<p><strong>我的稽查顺序逻辑：</strong>我按照"先外围后核心、先单域后跨域"的原则安排稽查顺序。先通过工商登记和经营实质分析建立企业画像，再分别深入资金流和发票流两个核心域，然后将两个域的数据交叉验证寻找矛盾点，最后进行资料完备度评估——因为只有在深入分析了已有资料后，才能真正理解资料缺失对稽查的影响程度。</p>';
 
   h += '<p><strong>证据链组织思路：</strong>针对每一个风险疑点，我遵循"四步证据法"——①提取原始数据（银行流水/发票/工商登记）→②逐条匹配稽查规则→③多源交叉验证（≥2个数据域）→④形成证据闭环。所有高风险事项的认定均满足"≥2域交叉验证"标准，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+
+  // 稽查局限性声明
+  h += '<div class="nr-inspector-thought" style="margin-top:16px">⚠ <strong>稽查局限性如实声明：</strong>领导，我必须如实汇报——由于被查单位仅提交了3类资料，本次稽查存在以下无法覆盖的范围：①无法核查记账凭证→会计账簿健全性无法验证 ②无法核查工资表和社保明细→用工合规性和个税代扣代缴无法核实 ③无法核查合同文件→交易真实性无法通过四流合一验证 ④无法核查各税种申报表→申报准确性和完整性问题只能在资料补全后另行稽查。我已在每个因资料缺失导致的结论中明确标注了前提条件，所有结论在现有资料范围内有效。</div>';
 
   h += '</div>';
 
@@ -1216,7 +1266,19 @@ function renderNarrativeReport(r) {
     });
   }
   h += '</div>';
-  h += '<p><strong>领导，以上是我的稽查结论。第五章将逐项详述每项风险疑点的具体调查过程、稽查线索、证据材料和处理建议。</strong></p>';
+  h += '<p><strong>领导，以上是我的稽查结论。</strong></p>';
+
+  // 处理优先级建议
+  var urgentNf = allF.filter(function(f){return(f.score||0)>=8;}).slice(0,4);
+  if (urgentNf.length > 0) {
+    h += '<div class="nr-inspector-thought" style="margin-top:12px">🔴 <strong>领导，我建议优先处理以下' + urgentNf.length + '项最紧急的问题：</strong>';
+    urgentNf.forEach(function(fn, pi){
+      h += '<br>　' + (pi+1) + '. <strong>' + esc(fn.type||'') + '</strong>——' + esc((fn.tax_impact||'').split('→')[0] || '需立即处理') + '。';
+    });
+    h += '<br><br>其余' + (allF.length - urgentNf.length) + '项中高风险及低风险问题建议限期整改。以上建议请领导审议决策。</div>';
+  }
+
+  h += '<p><strong>第五章将逐项详述每项风险疑点的具体调查过程、稽查线索、证据材料和处理建议。</strong></p>';
   h += '</div>';
 
   // ═══ 第五章：风险疑点详报与证据链 ═══
