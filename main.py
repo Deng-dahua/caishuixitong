@@ -9469,8 +9469,14 @@ def _init_tax_docs_from_disk():
     if _TAX_DOC_SCANNED: return
     _TAX_DOC_SCANNED = True
     if os.path.exists(UPLOAD_DIR):
-        for fname in os.listdir(UPLOAD_DIR):
-            parts = fname.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
+        all_files = os.listdir(UPLOAD_DIR)
+        for fname in all_files:
+            # fsdecode 确保 Windows 中文文件名编码正确
+            try:
+                fname_clean = os.fsdecode(os.fsencode(fname))
+            except:
+                fname_clean = fname
+            parts = fname_clean.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
             if len(parts) < 3: continue
             try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
             except: continue
