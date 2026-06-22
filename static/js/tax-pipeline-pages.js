@@ -466,8 +466,8 @@ function renderDomainAnalysisStatic() {
       {name:'经营实质地理分析', fn:'_domain_business_premise_geo', line:'14158', desc:'供应商/客户/加工商地址三角验真 · 重物运输成本 · 点→面推理全链条经营实质'},
       {name:'人员与业务匹配', fn:'_domain_workforce_profiling', line:'13894', desc:'员工vs营收合理性 · 人均薪资vs行业均值 · 社保人数vs工资人数匹配'},
     ]},
-    {cat:'资料完备度', color:'#2563eb', desc:'15类稽查必查资料逐一检测，合同需求四层自动分层。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
-      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'15类稽查必查资料逐一检测 · 合同需求四层分层（必签/应签/可免/小额）'},
+    {cat:'资料完备度', color:'#2563eb', desc:'14类稽查必查资料逐一检测，合同需求四层自动分层。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
+      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'14类稽查必查资料逐一检测 · 合同需求四层分层（必签/应签/可免/小额）'},
     ]},
     {cat:'发票分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性。每一张发票都是稽查线索。', items:[
       {name:'发票深度特征', fn:'_domain_invoice_deep', line:'12763', desc:'开具时间分布 · 价格区间 · 金额尾数 · 连续性 · 顶额开票检测'},
