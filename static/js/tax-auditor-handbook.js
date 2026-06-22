@@ -36,14 +36,52 @@ function renderAuditorHandbook(container) {
 
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px;">';
 
+  // 稽查制度基础
+  html += '<div class="card" style="border-top:3px solid #6366f1;margin-bottom:16px;grid-column:1/-1;">';
+  html += '<h3>稽查制度基础——总则核心要点（《规程》第1-9条）</h3>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:8px;">';
+  
+  html += '<div style="background:#f5f3ff;padding:12px;border-radius:6px;">';
+  html += '<strong style="color:#6366f1;">四分离原则（第5条）</strong>';
+  html += '<p style="margin:6px 0 0;font-size:13px;">稽查局查处税收违法案件时，实行<strong>选案、检查、审理、执行分工制约</strong>原则。四个部门各司其职、相互制衡——选案的人不检查，检查的人不审理，审理的人不执行。这是稽查公正性的制度保障。</p>';
+  html += '</div>';
+  
+  html += '<div style="background:#fef2f2;padding:12px;border-radius:6px;">';
+  html += '<strong style="color:#dc2626;">8项工作纪律（第7-8条）</strong>';
+  html += '<ul style="margin:6px 0 0;font-size:13px;padding-left:16px;">';
+  html += '<li>有回避情形的应当回避（第7条）</li>';
+  html += '<li>不得违反程序/超越权限（第8条）</li>';
+  html += '<li>不得利用职权谋取利益</li>';
+  html += '<li>不得玩忽职守</li>';
+  html += '<li><strong>不得泄露秘密、通风报信、泄露案情</strong></li>';
+  html += '<li>不得弄虚作假、夸大或隐瞒案情</li>';
+  html += '<li>不得接受请客送礼</li>';
+  html += '<li>未经批准不得私自会见被查对象</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  html += '<div style="background:#eff6ff;padding:12px;border-radius:6px;">';
+  html += '<strong style="color:#2563eb;">信息化要求（第9条）</strong>';
+  html += '<p style="margin:6px 0 0;font-size:13px;">税务机关必须<strong>不断提高稽查信息化应用水平</strong>，充分利用现代信息技术采集涉税信息，强化稽查管理和执法监督。<br><span style="color:#6b7280;">💡 本系统的文件解析→域分析→线索链→证据链→分析链→报告生成的自动化管道，正是第9条的实践落地。</span></p>';
+  html += '</div>';
+  
+  html += '<div style="background:#f0fdf4;padding:12px;border-radius:6px;">';
+  html += '<strong style="color:#10b981;">基本任务（第2条）</strong>';
+  html += '<p style="margin:6px 0 0;font-size:13px;">依法查处税收违法行为，保障税收收入，维护税收秩序，促进依法纳税。以<strong>事实为根据，以法律为准绳</strong>，坚持公平、公开、公正、效率原则（第3条）。</p>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
   // 选案
   html += '<div class="card" style="border-top:3px solid #2563eb;">';
-  html += '<h3>① 选案环节</h3>';
+  html += '<h3>① 选案环节（《规程》第14-20条）</h3>';
   html += '<table class="table table-sm"><tbody>';
-  html += '<tr><td style="white-space:nowrap;font-weight:600;width:90px;">数据来源</td><td>金税系统风险预警、举报线索、行业专项检查、随机抽查、上下游协查</td></tr>';
-  html += '<tr><td style="font-weight:600;">选案标准</td><td>税负率异常、发票数据异常、申报数据与第三方数据（电力/海关/银行）差异、长期零申报/亏损、关联交易异常</td></tr>';
-  html += '<tr><td style="font-weight:600;">时限</td><td>收到案源后15日内确定是否立案</td></tr>';
-  html += '<tr><td style="font-weight:600;">法律依据</td><td>《税务稽查工作规程》第十三条至第十九条</td></tr>';
+  html += '<tr><td style="white-space:nowrap;font-weight:600;width:100px;">案源获取<br><span style="font-size:11px;color:#6b7280;">第14条</span></td><td>稽查局通过多种渠道获取案源信息，<strong>集体研究</strong>，合理准确地选择和确定稽查对象。选案部门负责稽查对象选取，并对案件查处情况进行跟踪管理。</td></tr>';
+  html += '<tr><td style="font-weight:600;">稽查计划<br><span style="font-size:11px;color:#6b7280;">第15条</span></td><td>必须有计划地实施稽查，<strong>严格控制检查次数</strong>。年度终了前制定下一年度稽查工作计划，经批准后实施并报上一级备案。</td></tr>';
+  html += '<tr><td style="font-weight:600;">8类案源信息<br><span style="font-size:11px;color:#6b7280;">第16条</span></td><td>①财务指标/税收征管资料/稽查资料/情报交换和协查线索 ②上级交办案件 ③上级安排的专项检查 ④税务局相关部门移交的违法信息 ⑤<strong>检举涉税违法信息</strong> ⑥其他部门和单位转来的信息 ⑦社会公共信息 ⑧其他相关信息<br><span style="color:#dc2626;font-size:12px;">⚠ 第⑤类（检举）是企业的最大不可控风险——任何人（离职员工、竞争对手、纠纷对方）都可以向举报中心实名或匿名检举。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">举报处理<br><span style="font-size:11px;color:#6b7280;">第17-18条</span></td><td>稽查局设立<strong>税收违法案件举报中心</strong>。实名检举经查实为国家挽回损失的，给予奖励。举报中心区分处理：线索清楚→列入案源；内容不详→暂存；属于其他部门职责→转交。</td></tr>';
+  html += '<tr><td style="font-weight:600;">筛选方法<br><span style="font-size:11px;color:#6b7280;">第19条</span></td><td>采取<strong>计算机分析、人工分析、人机结合分析</strong>等方法筛选案源——有税收违法嫌疑的确定为待查对象→填制《税务稽查立案审批表》→经稽查局局长批准后立案。<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：本系统的自动化风险扫描+一键分析，本质上是"计算机分析"端——在稽查立案前模拟税务机关的案源筛选逻辑，让企业提前发现自身风险。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">立案检查<br><span style="font-size:11px;color:#6b7280;">第20条</span></td><td>批准立案后，选案部门制作《税务稽查任务通知书》，连同有关资料移交检查部门。选案部门建立案件管理台账，跟踪查处进展。</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
 
@@ -86,6 +124,21 @@ function renderAuditorHandbook(container) {
   html += '<tr><td style="font-weight:600;">企业权利</td><td>①60日内申请行政复议 ②复议后15日内提起诉讼 ③缴纳税款或提供担保后可申请复议</td></tr>';
   html += '<tr><td style="font-weight:600;">强制执行</td><td>逾期不履行→加收每日万分之五滞纳金→采取税收保全措施（冻结存款/查封财产）→申请法院强制执行</td></tr>';
   html += '<tr><td style="font-weight:600;">法律依据</td><td>《税收征收管理法》第三十二条（滞纳金）、第四十条（强制执行）、第八十八条（复议前置）</td></tr>';
+  html += '</tbody></table>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // ═══ 案卷管理 ═══
+  html += '<div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:4px;">';
+  html += '<div class="card" style="border-top:3px solid #ec4899;">';
+  html += '<h3>⑤ 案卷管理（《规程》第72-77条）</h3>';
+  html += '<table class="table table-sm"><tbody>';
+  html += '<tr><td style="white-space:nowrap;font-weight:600;width:100px;">立卷归档<br><span style="font-size:11px;color:#6b7280;">第72条</span></td><td>处理决定执行完毕（或终结检查/终结执行）后，审理部门在<strong>60日内</strong>收集稽查各环节全部资料，整理成税务稽查案卷，归档保管。</td></tr>';
+  html += '<tr><td style="font-weight:600;">正卷与副卷<br><span style="font-size:11px;color:#6b7280;">第73条</span></td><td>一案一卷，分别立<strong>正卷</strong>和<strong>副卷</strong>：正卷列入各类证据材料、税务文书等可对外公开的材料；副卷列入检举及奖励材料、案件讨论记录、法定秘密材料等不宜公开的材料。副卷作为<strong>密卷</strong>管理。<br><span style="color:#dc2626;font-size:12px;">⚠ 正卷可被查阅（第76条），意味着你的违法事实和证据材料可以被后续检查、复议、诉讼反复调取。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">排列规则<br><span style="font-size:11px;color:#6b7280;">第74条</span></td><td>原则上按实际稽查程序依次排列；证据材料按问题特征分类，主要证据在前、旁证在后；其他材料按时间顺序+重要程度排列。正件在前，附件在后；重要材料在前，其他在后；汇总性在前，基础性在后。</td></tr>';
+  html += '<tr><td style="font-weight:600;color:#dc2626;">保管期限<br><span style="font-size:11px;color:#6b7280;">第75条</span></td><td><strong>偷税、逃避追缴欠税、骗税、抗税案件及涉嫌犯罪案件：永久保存</strong>。一般行政处罚案件：30年。其他案件：10年。<br><span style="color:#dc2626;font-size:12px;">⚠ 这是企业最该恐惧的条款——一旦被认定为偷税，你的案卷永远不会被销毁。30年后你的企业可能不在了，但案卷还在。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">查阅借阅<br><span style="font-size:11px;color:#6b7280;">第76条</span></td><td>税务机关人员查阅需经稽查局局长批准；外部人员查阅需经所属税务局领导批准。未经批准，不得摘抄、复制案卷内容。案卷应在立卷次年6月30日前移交档案管理部门。</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
   html += '</div>';
