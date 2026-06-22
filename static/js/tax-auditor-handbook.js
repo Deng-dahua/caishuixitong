@@ -24,6 +24,7 @@ function renderAuditorHandbook(container) {
   html += '<button class="btn btn-sm" onclick="scrollToSection(\'report\')">📝 报告编制规范</button>';
   html += '<button class="btn btn-sm" onclick="scrollToSection(\'laws\')">⚖️ 关键法律条文</button>';
   html += '<button class="btn btn-sm" onclick="scrollToSection(\'methodology\')">🔬 稽查方法论</button>';
+  html += '<button class="btn btn-sm" onclick="scrollToSection(\'system-mapping\')">🔗 系统与规程映射</button>';
   html += '</div>';
 
   // ═══════════════════════════════════════
@@ -48,24 +49,32 @@ function renderAuditorHandbook(container) {
 
   // 检查
   html += '<div class="card" style="border-top:3px solid #f59e0b;">';
-  html += '<h3>② 检查环节</h3>';
+  html += '<h3>② 检查环节（《规程》第21-45条）</h3>';
   html += '<table class="table table-sm"><tbody>';
-  html += '<tr><td style="white-space:nowrap;font-weight:600;width:90px;">启动方式</td><td>下达《税务检查通知书》→送达《调取账簿资料通知书》→企业3-5日内提供资料</td></tr>';
-  html += '<tr><td style="font-weight:600;">资料调取</td><td>14类稽查必查资料（详见第二部分），企业有义务提供完整的会计凭证、账簿、报表、合同、银行流水</td></tr>';
-  html += '<tr><td style="font-weight:600;">检查方法</td><td>账簿检查、实地核查、询问、外部调查（银行/上下游企业/海关）、电子数据取证</td></tr>';
-  html += '<tr><td style="font-weight:600;">时限</td><td>一般案件60日内完成检查，重大案件可延长</td></tr>';
-  html += '<tr><td style="font-weight:600;">法律依据</td><td>《税收征收管理法》第五十四条；《税务稽查工作规程》第二十二条至第三十七条</td></tr>';
+  html += '<tr><td style="white-space:nowrap;font-weight:600;width:100px;">检查前准备<br><span style="font-size:11px;color:#6b7280;">第21条</span></td><td>查阅被查对象纳税档案，了解生产经营情况、所属行业特点、财务会计制度和会计核算软件，熟悉相关税收政策，确定检查方法。<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：线索链引擎在检查前自动完成上述工作——从数据中自动提取行业特征、识别异常模式、生成初步线索。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">检查时限<br><span style="font-size:11px;color:#6b7280;">第22条</span></td><td>检查应当自实施检查之日起<strong>60日内</strong>完成，确需延长的经稽查局局长批准。检查应当由<strong>两名以上</strong>检查人员共同实施，出示税务检查证和《税务检查通知书》。</td></tr>';
+  html += '<tr><td style="font-weight:600;">检查方法<br><span style="font-size:11px;color:#6b7280;">第23条</span></td><td>①实地检查 ②调取账簿资料 ③询问 ④查询存款账户或储蓄存款 ⑤异地协查。对电子信息系统管理的被查对象，可要求其打开系统或提供电子数据复制件；拒不提供的，经批准可采取技术手段直接检查。<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：文件解析模块（域0）自动提取电子数据→域分析模块逐一检查各数据域→线索链从异常中生成发现。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">证据收集<br><span style="font-size:11px;color:#6b7280;">第24-32条</span></td><td>收集的证据材料应当<strong>真实</strong>，并与所证明的事项<strong>相关联</strong>。禁止偷拍/偷录/窃听/利诱/欺诈/胁迫/暴力取证。证据类型包括：书证（账簿/凭证/合同/发票）、物证（存货/设备）、视听资料（录音/录像）、电子数据、证人证言、当事人陈述、勘验笔录。<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：证据链引擎——每项发现自动收集关联规则ID+数据域→计算触发率→≥60%且≥3规则+≥2域→形成证据闭环。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">调取资料<br><span style="font-size:11px;color:#6b7280;">第25-26条</span></td><td>出具《调取账簿资料通知书》和《调取账簿资料清单》。以前年度资料<strong>3个月</strong>内退还，当年资料<strong>30日</strong>内退还（需经设区的市以上税务局局长批准）。<br><span style="color:#6b7280;font-size:12px;">💡 调取范围即14类稽查必查资料——详见本手册第二部分。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">稽查工作底稿<br><span style="font-size:11px;color:#6b7280;">第40条</span></td><td>检查过程中必须制作《税务稽查工作底稿》，<strong>记录案件事实，归集相关证据材料，并签字注明日期</strong>。工作底稿是稽查报告的基础——没有工作底稿就没有稽查报告。</td></tr>';
+  html += '<tr><td style="font-weight:600;">稽查报告<br><span style="font-size:11px;color:#6b7280;">第42条</span></td><td>检查结束时制作《税务稽查报告》，必须包含<strong>10项内容</strong>：①案件来源 ②被查对象基本情况 ③检查时间和所属期间 ④检查方式方法及措施 ⑤查明的违法事实及性质手段 ⑥是否有拒绝阻挠检查情形 ⑦被查对象对调查事实的意见 ⑧税务处理处罚建议及依据 ⑨其他应说明事项 ⑩检查人员签名和报告时间</td></tr>';
+  html += '<tr><td style="font-weight:600;">移交审理<br><span style="font-size:11px;color:#6b7280;">第43条</span></td><td>检查完毕，将《税务稽查报告》《税务稽查工作底稿》及相关证据材料在<strong>5个工作日内</strong>移交审理部门。</td></tr>';
+  html += '<tr><td style="font-weight:600;">中止/终结<br><span style="font-size:11px;color:#6b7280;">第44-45条</span></td><td>中止检查条件：当事人被限制人身自由、账簿被其他国家机关调取未归还等。终结检查条件：被查对象死亡/注销且无财产、违法行为超过法定追究期限等。</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
 
   // 审理
   html += '<div class="card" style="border-top:3px solid #10b981;">';
-  html += '<h3>③ 审理环节</h3>';
+  html += '<h3>③ 审理环节（《规程》第46-60条）</h3>';
   html += '<table class="table table-sm"><tbody>';
-  html += '<tr><td style="white-space:nowrap;font-weight:600;width:90px;">审理内容</td><td>①违法事实是否清楚→证据是否确实充分→数据是否准确 ②适用法律是否正确 ③程序是否合法 ④处理意见是否适当</td></tr>';
-  html += '<tr><td style="font-weight:600;">关键标准</td><td>每一笔认定的税款必须有对应的法律条款+证据支撑。证据链必须形成闭环——不能凭单一来源数据定案</td></tr>';
-  html += '<tr><td style="font-weight:600;">时限</td><td>收到检查报告后15日内完成审理</td></tr>';
-  html += '<tr><td style="font-weight:600;">法律依据</td><td>《税务稽查工作规程》第三十八条至第四十六条</td></tr>';
+  html += '<tr><td style="white-space:nowrap;font-weight:600;width:100px;">审理审核重点<br><span style="font-size:11px;color:#6b7280;">第47条</span></td><td>审理人员对《税务稽查报告》逐项审核<strong>7项内容</strong>：<br>①被查对象是否准确<br>②<strong>税收违法事实是否清楚、证据是否充分、数据是否准确、资料是否齐全</strong><br>③适用法律是否适当，定性是否正确<br>④是否符合法定程序<br>⑤是否超越或滥用职权<br>⑥税务处理、处罚建议是否适当<br>⑦其他应审核确认的事项<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：分析链引擎——逐条验证每条发现的"how_found→tax_impact→policy_ref"三要素，确保②③④三项均有据可查。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">退回补正<br><span style="font-size:11px;color:#6b7280;">第48条</span></td><td>有下列情形之一的，审理部门<strong>退回检查部门补正或补充调查</strong>：<br>①被查对象认定错误<br>②<strong>税收违法事实不清、证据不足</strong><br>③不符合法定程序<br>④税务文书不规范不完整<br><span style="color:#6b7280;font-size:12px;">💡 系统对应：方法论过滤器——自动剔除"证据不足/数据不支撑/逻辑不闭环"的噪声发现，相当于审理前的预筛选。</span></td></tr>';
+  html += '<tr><td style="font-weight:600;">纠正处理建议<br><span style="font-size:11px;color:#6b7280;">第49条</span></td><td>事实清楚、证据充分，但<strong>适用法律错误或处理建议不当</strong>的，审理部门另行提出处理意见。注意：不是退回补正，而是直接纠正——说明事实层面没问题，法律适用层面需要调整。</td></tr>';
+  html += '<tr><td style="font-weight:600;">审理时限<br><span style="font-size:11px;color:#6b7280;">第50条</span></td><td>收到《税务稽查报告》后<strong>15日内</strong>提出审理意见。检查人员补充调查时间和向上级请示政策时间不计入。案情复杂的经批准可延长。</td></tr>';
+  html += '<tr><td style="font-weight:600;">告知及听证<br><span style="font-size:11px;color:#6b7280;">第51-53条</span></td><td>拟作出税务行政处罚的，须送达《税务行政处罚事项告知书》，告知<strong>陈述权、申辩权、听证权</strong>。当事人要求听证的，应依法组织听证。审理人员对陈述申辩意见必须认真对待并提出判断意见——<strong>不能直接忽略</strong>。</td></tr>';
+  html += '<tr><td style="font-weight:600;">审理报告<br><span style="font-size:11px;color:#6b7280;">第54条</span></td><td>审理完毕制作《税务稽查审理报告》，须包含<strong>6项内容</strong>：①审理基本情况 ②检查人员查明的事实及证据 ③被查对象的陈述申辩情况 ④经审理认定的事实及证据 ⑤税务处理处罚意见及依据 ⑥审理人员和日期</td></tr>';
+  html += '<tr><td style="font-weight:600;">四种处理决定<br><span style="font-size:11px;color:#6b7280;">第55-59条</span></td><td>审理部门区分情形作出：<br>①有税收违法行为→《税务处理决定书》（第56条：含税款金额+滞纳金计算+缴纳期限+救济途径）<br>②应当行政处罚→《税务行政处罚决定书》（第57条：含处罚种类+履行方式+救济途径）<br>③违法行为轻微→《不予税务行政处罚决定书》（第58条：含不予处罚理由）<br>④无违法行为→《税务稽查结论》（第59条：含检查结论）<br>所有文书须注明<strong>文件全称、文号和有关条款</strong>。</td></tr>';
+  html += '<tr><td style="font-weight:600;">涉嫌犯罪移送<br><span style="font-size:11px;color:#6b7280;">第60条</span></td><td>税收违法行为涉嫌犯罪的→制作《涉嫌犯罪案件移送书》→经所属税务局局长批准→移送公安机关。附送：涉嫌犯罪调查报告、处理/处罚决定书复制件、主要证据材料复制件、补缴税款及罚款明细。</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
 
@@ -172,6 +181,12 @@ function renderAuditorHandbook(container) {
   html += '<tr><td>6</td><td>处理建议</td><td>追缴税款、加收滞纳金、处以罚款的具体金额和计算依据、引用的法律条款</td></tr>';
   html += '<tr><td>7</td><td>稽查结论</td><td>总结稽查发现、定性结论、处理意见。必须逐项说明理由</td></tr>';
   html += '</tbody></table>';
+  html += '<div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-radius:6px;font-size:13px;">';
+  html += '<strong>📜 法定依据：</strong>';
+  html += '本报告结构同时覆盖《税务稽查工作规程》第42条（<em>《税务稽查报告》10项内容</em>）和第54条（<em>《税务稽查审理报告》6项内容</em>）的全部要求。';
+  html += '第42条侧重"检查端"（案件来源+违法事实+处理建议），第54条侧重"审理端"（审理认定+陈述申辩+处理意见）。';
+  html += '本系统的"一键分析报告"将两者融合——既包含检查端的发现过程（how_found），也包含审理端的定性依据（tax_impact + policy_ref）。';
+  html += '</div>';
 
   // 叙事风格
   html += '<h3 style="margin-top:20px;">3.2 叙事风格——第一人称稽查员视角</h3>';
@@ -245,6 +260,17 @@ function renderAuditorHandbook(container) {
   html += '<tr><td>社会保险法</td><td>第五十八条/第八十四条</td><td>用人单位应自用工之日起30日内为职工办理社保登记；未办理→责令改正+罚款</td></tr>';
   html += '<tr><td>会计法</td><td>第四十二条</td><td>不依法设置会计账簿/私设账簿/未按规定填制凭证→罚款+责任人处分</td></tr>';
   html += '<tr><td>国家税务总局公告2019年第38号</td><td>全文</td><td>异常增值税扣税凭证管理——走逃/失控/虚开发票的进项税额处理</td></tr>';
+  html += '</tbody></table>';
+  
+  // 处理决定文书规范
+  html += '<h3 style="margin-top:20px;">4.3 稽查处理决定文书规范（《规程》第55-59条）</h3>';
+  html += '<table class="table table-sm">';
+  html += '<thead><tr><th style="width:180px;">文书类型</th><th style="width:100px;">条款</th><th>必须包含的核心内容</th></tr></thead><tbody>';
+  html += '<tr><td>《税务处理决定书》</td><td>第55-56条</td><td>被查对象信息+检查范围和内容+税收违法事实及所属期间+<strong>税款金额、缴纳期限及地点</strong>+<strong>滞纳金计算方法</strong>+不履行责任+行政复议和诉讼途径</td></tr>';
+  html += '<tr><td>《税务行政处罚决定书》</td><td>第55/57条</td><td>被查对象信息+检查范围和内容+税收违法事实及所属期间+<strong>行政处罚种类和依据</strong>+<strong>履行方式、期限和地点</strong>+不履行责任+行政复议和诉讼途径</td></tr>';
+  html += '<tr><td>《不予税务行政处罚决定书》</td><td>第55/58条</td><td>被查对象信息+检查范围和内容+税收违法事实及所属期间+<strong>不予处罚的理由及依据</strong>+行政复议和诉讼途径</td></tr>';
+  html += '<tr><td>《税务稽查结论》</td><td>第55/59条</td><td>被查对象信息+检查范围和内容+检查时间和所属期间+<strong>检查结论</strong></td></tr>';
+  html += '<tr><td style="font-weight:700;color:#dc2626;">共同要求</td><td>第55条</td><td>所有文书引用的法律、行政法规、规章及其他规范性文件，<strong>应当注明文件全称、文号和有关条款</strong>——不得仅写"依据相关法律规定"等模糊表述。</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
 
@@ -327,6 +353,100 @@ function renderAuditorHandbook(container) {
   html += '<tr><td style="font-weight:600;">价格合理性</td><td>采购价格显著高于/低于市场均价→关联交易转移定价→特别纳税调整</td></tr>';
   html += '</tbody></table>';
   html += '</div>';
+  html += '</div>';
+
+  // ═══════════════════════════════════════
+  // 第六部分：系统方法论与法定程序映射
+  // ═══════════════════════════════════════
+  html += '<div id="system-mapping" class="card" style="margin-bottom:20px;">';
+  html += '<h2 style="border-left:4px solid #dc2626;padding-left:12px;">🔗 六、系统方法论与法定程序映射</h2>';
+  html += '<p class="muted">以下展示本系统的五大核心引擎如何一一对应《税务稽查工作规程》的法定程序要求。系统不是替代稽查员，而是将法定程序固化为自动化引擎——确保每一步都有法可依、有据可查。</p>';
+
+  // 映射总览表
+  html += '<table class="table table-sm" style="margin-top:16px;">';
+  html += '<thead><tr><th style="width:140px;">系统引擎</th><th style="width:180px;">法定程序对应</th><th style="width:140px;">《规程》条款</th><th>功能说明</th></tr></thead><tbody>';
+  
+  html += '<tr>';
+  html += '<td style="font-weight:700;color:#2563eb;">📋 线索链引擎</td>';
+  html += '<td>检查前准备 + 违法事实发现</td>';
+  html += '<td>第21条（检查前准备）<br>第24条（收集证据）</td>';
+  html += '<td>从上传的14类资料中自动扫描异常模式，生成初步线索。每条线索包含：触发条件（定量阈值/定性模式/缺失数据）、风险等级、调查步骤。相当于稽查员的"检查前查阅纳税档案+了解生产经营+确定检查方法"的自动化实现。<br><strong>当前规模：391条线索链，覆盖29个数据域。</strong></td>';
+  html += '</tr>';
+  
+  html += '<tr>';
+  html += '<td style="font-weight:700;color:#dc2626;">🔒 证据链引擎</td>';
+  html += '<td>证据收集与固定 + 工作底稿</td>';
+  html += '<td>第24条（证据真实性关联性）<br>第40条（稽查工作底稿）</td>';
+  html += '<td>每条线索自动收集关联的规则ID和所属数据域，计算触发率——≥60%且≥3条规则+≥2个数据域同时触发→形成证据闭环。证据闭环强制升级为高风险。相当于将"工作底稿→归集证据→签字确认"固化为自动计算规则。<br><strong>当前规模：740条证据链+10条跨域证据链，234条证据闭环。</strong></td>';
+  html += '</tr>';
+  
+  html += '<tr>';
+  html += '<td style="font-weight:700;color:#10b981;">⚡ 分析链引擎</td>';
+  html += '<td>审理逐项审核</td>';
+  html += '<td>第47条（审理审核7项）<br>第54条（审理报告6项）</td>';
+  html += '<td>逐条验证每条发现的"how_found→tax_impact→policy_ref"三要素——确保事实清楚（how_found说明发现过程）、证据充分（tax_impact引用具体数据）、适用法律正确（policy_ref逐条标注条款）。相当于审理人员"逐项审核7项内容"的系统化实现。<br><strong>当前覆盖：全29域分析+跨域关联推理。</strong></td>';
+  html += '</tr>';
+  
+  html += '<tr>';
+  html += '<td style="font-weight:700;color:#8b5cf6;">🎯 方法论过滤器</td>';
+  html += '<td>退回补正（预筛选）</td>';
+  html += '<td>第48条（退回补正5项）</td>';
+  html += '<td>在生成最终报告前，自动剔除"不具备数据支撑"的噪声发现——对应审理部门退回补正的"事实不清、证据不足"标准。只有通过过滤器的发现才能进入最终报告。相当于在稽查报告生成前完成一轮预审理。<br><strong>过滤规则：CAP（强制保留标记）/ COND_BAN（禁止条件）/ DEDUP（同类去重）三层。</strong></td>';
+  html += '</tr>';
+  
+  html += '<tr>';
+  html += '<td style="font-weight:700;color:#06b6d4;">🛡️ 全链路质量体系</td>';
+  html += '<td>案卷管理（立卷归档）</td>';
+  html += '<td>第72-75条（案卷管理）</td>';
+  html += '<td>确保从文件解析→域分析→线索生成→证据闭环→报告输出的全流程可追溯——每一份分析报告均可还原到具体的证据链、线索链和原始数据。相当于"一案一卷、目录清晰、资料齐全"的数字化实现。<br><strong>18组件覆盖5大层次：输入层→检查层→审理层→输出层→管理层。</strong></td>';
+  html += '</tr>';
+  html += '</tbody></table>';
+
+  // 法定程序 vs 系统引擎对照流程图
+  html += '<h3 style="margin-top:24px;">6.1 工作流程对照</h3>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+  
+  html += '<div class="card" style="border:2px solid #2563eb;padding:16px;">';
+  html += '<h4 style="color:#2563eb;margin:0 0 12px;">📜 法定稽查流程</h4>';
+  html += '<div style="font-size:13px;line-height:2;">';
+  html += '<div style="background:#eff6ff;padding:8px;border-radius:6px;margin-bottom:4px;">① 选案（第14-20条）→ 确定待查对象</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#fef3c7;padding:8px;border-radius:6px;margin-bottom:4px;">② 检查（第21-45条）→ 收集证据→制作工作底稿→撰写稽查报告</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:4px;">③ 审理（第46-60条）→ 逐项审核→退回补正或提出处理意见→作出处理决定</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#f5f3ff;padding:8px;border-radius:6px;margin-bottom:4px;">④ 执行（第61-71条）→ 送达文书→追缴税款→强制执行</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#fdf2f8;padding:8px;border-radius:6px;">⑤ 案卷管理（第72-77条）→ 立卷归档</div>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="card" style="border:2px solid #10b981;padding:16px;">';
+  html += '<h4 style="color:#10b981;margin:0 0 12px;">⚙️ 系统自动化流程</h4>';
+  html += '<div style="font-size:13px;line-height:2;">';
+  html += '<div style="background:#eff6ff;padding:8px;border-radius:6px;margin-bottom:4px;">① 文件解析（域0）→ 提取结构化数据→识别14类资料</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#fef3c7;padding:8px;border-radius:6px;margin-bottom:4px;">② 域分析（域1-35）→ 线索链引擎扫描390+线索→证据链引擎归集740+证据</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:4px;">③ 方法论过滤器→分析链验证→跨域关联推理→证据闭环升级</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#f5f3ff;padding:8px;border-radius:6px;margin-bottom:4px;">④ 叙事增强层→生成第一人称稽查报告→P0/P1/P2建议分级</div>';
+  html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
+  html += '<div style="background:#fdf2f8;padding:8px;border-radius:6px;">⑤ 全链路质量保障→18组件可追溯→一条发现可还原到原始数据</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // 证据标准对照
+  html += '<h3 style="margin-top:24px;">6.2 证据标准对照——法定要求 vs 系统实现</h3>';
+  html += '<table class="table table-sm">';
+  html += '<thead><tr><th style="width:170px;">法定证据标准（《规程》）</th><th style="width:180px;">条款</th><th>系统如何实现</th></tr></thead><tbody>';
+  html += '<tr><td>证据材料应当<strong>真实</strong>，并与所证明的事项<strong>相关联</strong></td><td>第24条</td><td>证据链引擎要求≥2个独立数据域交叉验证才形成闭环——单源数据只是线索，不能是证据。确保证据的多源性和关联性。</td></tr>';
+  html += '<tr><td>以电子数据的内容证明案件事实的，应打印纸质资料并注明"与电子数据核对无误"</td><td>第30条</td><td>文件解析模块保留原始文件名+解析时间戳，每条数据可追溯到原始文件的具体行列。分析报告中的每条发现均标注数据来源。</td></tr>';
+  html += '<tr><td>检查人员应当制作《税务稽查工作底稿》，记录案件事实，归集相关证据材料</td><td>第40条</td><td>证据链引擎自动归集每条线索关联的所有规则ID→每条规则ID可追溯到tax_risk.py中的具体规则定义（规则编号+触发条件+风险等级+处罚依据）。</td></tr>';
+  html += '<tr><td>稽查报告须包含：查明的违法事实及性质手段 + 税务处理处罚建议及依据</td><td>第42条</td><td>每项发现自动包含：how_found（发现过程=事实）+ tax_impact（税务影响=性质手段）+ policy_ref（法律依据）+ suggestion（处理建议）。四要素一一对应法定报告要求。</td></tr>';
+  html += '<tr><td>审理须审核：事实是否清楚、证据是否充分、适用法律是否适当、程序是否合法</td><td>第47条</td><td>分析链引擎逐条验证三要素，方法论过滤器剔除不达标的发现——相当于自动化预审理。全链路质量体系确保全过程可追溯——相当于程序合法性审查。</td></tr>';
+  html += '</tbody></table>';
   html += '</div>';
 
   // 底部声明
