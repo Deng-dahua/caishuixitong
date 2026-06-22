@@ -17,6 +17,16 @@ function renderAuditorHandbook(container) {
   html += '<p style="font-size:14px;color:#94a3b8;margin:0;">系统总结税务稽查工作要求、报告编制规范、法律依据与稽查方法论。以下内容提炼自《税务稽查工作规程》《税收征收管理法》及实战经验，全行业适用。</p>';
   html += '</div>';
 
+  // ═══ 系统实时状态（连接一键分析管道）═══
+  html += '<div id="handbook-pipeline-status" style="margin-bottom:16px;">';
+  html += '<div class="card" style="padding:12px 16px;background:#f0f9ff;border:1px solid #bae6fd;">';
+  html += '<div style="display:flex;align-items:center;gap:8px;">';
+  html += '<span style="font-size:16px;">🔗</span>';
+  html += '<span style="font-size:13px;color:#0369a1;">正在连接一键分析管道…</span>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
   // ═══ 导航标签 ═══
   html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;">';
   html += '<button class="btn btn-sm" onclick="scrollToSection(\'workflow\')">📋 稽查工作流程</button>';
@@ -511,6 +521,46 @@ function renderAuditorHandbook(container) {
   html += '</div>';
 
   container.innerHTML = html;
+
+  // ═══ 异步加载管道数据：连接一键分析 ═══
+  (function() {
+    try {
+      // 检查 getSharedAnalysis 是否存在（tax-pipeline-pages.js 加载后才可用）
+      if (typeof getSharedAnalysis !== 'function') {
+        document.getElementById('handbook-pipeline-status').innerHTML =
+          '<div class="card" style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;">' +
+          '<span style="font-size:13px;color:#dc2626;">⚠ 稽查管道尚未加载，请先运行一键分析后刷新页面。</span>' +
+          '</div>';
+        return;
+      }
+      getSharedAnalysis().then(function(data) {
+        var report = (data && data.report) ? data.report : {};
+        var allF = report.all_findings || [];
+        var high = report.high_risk || 0;
+        var mid = report.mid_risk || 0;
+        var total = report.total_risks || allF.length;
+        var domains = report.pipeline_log ? report.pipeline_log.filter(function(e) { return e.indexOf('域') > -1 || e.indexOf('分析') > -1; }).length : 0;
+
+        var statusHtml = '<div class="card" style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;">';
+        statusHtml += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:16px;">';
+        statusHtml += '<span style="font-size:14px;">🔗 <strong>已连接一键分析管道</strong></span>';
+        statusHtml += '<span style="font-size:12px;color:#374151;">📊 ' + total + '条发现</span>';
+        statusHtml += '<span style="font-size:12px;color:#dc2626;">🔴 高风险 ' + high + '</span>';
+        statusHtml += '<span style="font-size:12px;color:#f59e0b;">🟡 中风险 ' + mid + '</span>';
+        statusHtml += '<span style="font-size:12px;color:#6b7280;">📁 ' + (report.total_docs || '?') + '个文件</span>';
+        statusHtml += '<a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看完整报告 →</a>';
+        statusHtml += '</div></div>';
+        document.getElementById('handbook-pipeline-status').innerHTML = statusHtml;
+      }).catch(function() {
+        document.getElementById('handbook-pipeline-status').innerHTML =
+          '<div class="card" style="padding:12px 16px;background:#fefce8;border:1px solid #fde68a;">' +
+          '<span style="font-size:13px;color:#92400e;">📋 暂无分析数据 — <a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;">点击运行一键分析</a> 后将显示实时系统状态。</span>' +
+          '</div>';
+      });
+    } catch(e) {
+      document.getElementById('handbook-pipeline-status').innerHTML = '';
+    }
+  })();
 }
 
 // 辅助函数：滚动到指定区域

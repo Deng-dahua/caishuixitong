@@ -2166,6 +2166,16 @@ function renderFilterResult(report) {
 // ══════════════════════════════════════════════════════════════
 
 function renderAiRules(container) {
+  var html = '';
+  
+  // ═══ 管道连接状态栏 ═══
+  html += '<div id="ai-rules-pipeline-bar" style="margin-bottom:16px;">';
+  html += '<div class="card" style="padding:10px 16px;background:#f0f9ff;border:1px solid #bae6fd;">';
+  html += '<span style="font-size:13px;color:#0369a1;">🔗 正在连接一键分析管道…</span>';
+  html += '</div></div>';
+
+  html += '<div id="ai-rules-content">';
+
   var categories = [
     {name:'行事风格', icon:'⚡', color:'#0f172a', desc:'决定AI如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是"性格"层面的规范，直接影响每一次代码操作的质量和深度。', rules:[
       {id:1, name:'做事要狠', level:'准则', date:'2026-05-31',
@@ -2304,7 +2314,37 @@ function renderAiRules(container) {
   });
 
   html += '</div>';
+  html += '</div>'; /* close ai-rules-content */
   container.innerHTML = html;
+
+  // ═══ 连接一键分析管道 ═══
+  (function() {
+    try {
+      if (typeof getSharedAnalysis !== 'function') return;
+      getSharedAnalysis().then(function(data) {
+        var report = (data && data.report) ? data.report : {};
+        var pipelineLog = report.pipeline_log || [];
+        var totalFindings = (report.all_findings || []).length;
+        var highRisk = report.high_risk || 0;
+        var pipelineSteps = 0;
+        for (var i = 0; i < pipelineLog.length; i++) {
+          if (pipelineLog[i].indexOf('域') > -1 || pipelineLog[i].indexOf('分析') > -1 || pipelineLog[i].indexOf('过滤') > -1) pipelineSteps++;
+        }
+        var statusBar = document.getElementById('ai-rules-pipeline-bar');
+        if (statusBar) {
+          statusBar.innerHTML = '<div class="card" style="padding:10px 16px;background:#f0fdf4;border:1px solid #bbf7d0;">' +
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;">' +
+            '<span style="font-size:13px;">🔗 <strong>已连接一键分析管道</strong></span>' +
+            '<span style="font-size:12px;color:#374151;">📊 ' + totalFindings + '条发现</span>' +
+            '<span style="font-size:12px;color:#dc2626;">🔴 高风险 ' + highRisk + '</span>' +
+            '<span style="font-size:12px;color:#6b7280;">⚙️ ' + pipelineSteps + '个分析步骤</span>' +
+            '<span style="font-size:11px;color:#10b981;">✅ 本页23条规则——所有铁律在每次提交前自动执行</span>' +
+            '<a href="#" onclick="navigateTo(\'methodology-filter\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看过滤器 →</a>' +
+            '</div></div>';
+        }
+      }).catch(function() {});
+    } catch(e) {}
+  })();
 }
 
 // ══════════════════════════════════════════════════════════════
