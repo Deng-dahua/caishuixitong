@@ -2317,19 +2317,22 @@ function renderAiRules(container) {
   html += '</div>'; /* close ai-rules-content */
   container.innerHTML = html;
 
-  // ═══ 连接一键分析管道 ═══
+  // ═══ 连接一键分析管道（深度） ═══
   (function() {
     try {
       if (typeof getSharedAnalysis !== 'function') return;
       getSharedAnalysis().then(function(data) {
         var report = (data && data.report) ? data.report : {};
         var pipelineLog = report.pipeline_log || [];
-        var totalFindings = (report.all_findings || []).length;
+        var allF = report.all_findings || [];
+        var totalFindings = allF.length;
         var highRisk = report.high_risk || 0;
         var pipelineSteps = 0;
         for (var i = 0; i < pipelineLog.length; i++) {
           if (pipelineLog[i].indexOf('域') > -1 || pipelineLog[i].indexOf('分析') > -1 || pipelineLog[i].indexOf('过滤') > -1) pipelineSteps++;
         }
+
+        // ─── 状态栏 ───
         var statusBar = document.getElementById('ai-rules-pipeline-bar');
         if (statusBar) {
           statusBar.innerHTML = '<div class="card" style="padding:10px 16px;background:#f0fdf4;border:1px solid #bbf7d0;">' +
@@ -2341,6 +2344,64 @@ function renderAiRules(container) {
             '<span style="font-size:11px;color:#10b981;">✅ 本页23条规则——所有铁律在每次提交前自动执行</span>' +
             '<a href="#" onclick="navigateTo(\'methodology-filter\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看过滤器 →</a>' +
             '</div></div>';
+        }
+
+        // ─── 检查关键铁律在本次管道中的执行结果 ───
+        var filterLog = report.filter_log || [];
+        var hasFilterLog = filterLog.length > 0;
+        var hasCompleteness = false;
+        var hasDocumentCheck = false;
+        var allCategoriesOk = true;
+        for (var fi = 0; fi < allF.length; fi++) {
+          if (allF[fi].type === '资料完备度综合评估') { hasCompleteness = true; hasDocumentCheck = true; break; }
+        }
+        // 检查是否有行业特化违规（方法论过滤器中的行业检查）
+        var industrySafe = true;
+        for (var fl = 0; fl < pipelineLog.length; fl++) {
+          if (pipelineLog[fl].indexOf('全行业') > -1 || pipelineLog[fl].indexOf('行业特化') > -1) { industrySafe = false; break; }
+        }
+
+        // 更新规则卡片上的管道状态图标
+        var ruleCards = document.querySelectorAll('#ai-rules-content [style*="border-left"]');
+        for (var ri = 0; ri < ruleCards.length; ri++) {
+          var card = ruleCards[ri];
+          var cardText = card.textContent || '';
+          var statusIcon = null;
+
+          // 匹配管道相关规则
+          if (cardText.indexOf('全行业适用') > -1) {
+            statusIcon = industrySafe ? '✅ 通过' : '⚠ 待查';
+          } else if (cardText.indexOf('自行验证') > -1) {
+            statusIcon = totalFindings > 0 ? '✅ 已执行' : '⏳ 待运行';
+          } else if (cardText.indexOf('变更影响分析') > -1) {
+            statusIcon = hasCompleteness ? '✅ 通过' : '⏳ 待运行';
+          } else if (cardText.indexOf('科目name') > -1 || cardText.indexOf('三号合并') > -1) {
+            statusIcon = hasDocumentCheck ? '✅ 已执行' : '⏳ 待运行';
+          } else if (cardText.indexOf('提交前自查') > -1) {
+            statusIcon = '✅ 已执行';
+          } else if (cardText.indexOf('ref_id') > -1 || cardText.indexOf('去重') > -1) {
+            statusIcon = '✅ 已执行';
+          } else if (cardText.indexOf('7分类') > -1 || cardText.indexOf('普票') > -1) {
+            statusIcon = hasDocumentCheck ? '✅ 已执行' : '⏳ 待运行';
+          }
+
+          if (statusIcon) {
+            var existingBadge = card.querySelector('[data-pipeline-badge]');
+            if (!existingBadge) {
+              var badge = document.createElement('span');
+              badge.setAttribute('data-pipeline-badge', '1');
+              badge.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 6px;border-radius:3px;font-size:10px;' +
+                (statusIcon.indexOf('✅') > -1 ? 'background:#dcfce7;color:#16a34a;' : 'background:#fefce8;color:#92400e;');
+              badge.textContent = statusIcon;
+              // Insert before the description div
+              var descDiv = card.querySelector('[style*=\"line-height:1.9\"]');
+              if (descDiv) {
+                descDiv.parentNode.insertBefore(badge, descDiv);
+              } else {
+                card.appendChild(badge);
+              }
+            }
+          }
         }
       }).catch(function() {});
     } catch(e) {}

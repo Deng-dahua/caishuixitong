@@ -522,10 +522,9 @@ function renderAuditorHandbook(container) {
 
   container.innerHTML = html;
 
-  // ═══ 异步加载管道数据：连接一键分析 ═══
+  // ═══ 异步加载管道数据：深度串联一键分析 ═══
   (function() {
     try {
-      // 检查 getSharedAnalysis 是否存在（tax-pipeline-pages.js 加载后才可用）
       if (typeof getSharedAnalysis !== 'function') {
         document.getElementById('handbook-pipeline-status').innerHTML =
           '<div class="card" style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;">' +
@@ -536,25 +535,93 @@ function renderAuditorHandbook(container) {
       getSharedAnalysis().then(function(data) {
         var report = (data && data.report) ? data.report : {};
         var allF = report.all_findings || [];
+        var pipelineLog = report.pipeline_log || [];
         var high = report.high_risk || 0;
         var mid = report.mid_risk || 0;
         var total = report.total_risks || allF.length;
-        var domains = report.pipeline_log ? report.pipeline_log.filter(function(e) { return e.indexOf('域') > -1 || e.indexOf('分析') > -1; }).length : 0;
 
+        // ─── 1. 状态栏 ───
+        var domainCount = 0;
+        for (var i = 0; i < pipelineLog.length; i++) {
+          if (pipelineLog[i].indexOf('域') > -1) domainCount++;
+        }
         var statusHtml = '<div class="card" style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;">';
         statusHtml += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:16px;">';
         statusHtml += '<span style="font-size:14px;">🔗 <strong>已连接一键分析管道</strong></span>';
         statusHtml += '<span style="font-size:12px;color:#374151;">📊 ' + total + '条发现</span>';
         statusHtml += '<span style="font-size:12px;color:#dc2626;">🔴 高风险 ' + high + '</span>';
         statusHtml += '<span style="font-size:12px;color:#f59e0b;">🟡 中风险 ' + mid + '</span>';
-        statusHtml += '<span style="font-size:12px;color:#6b7280;">📁 ' + (report.total_docs || '?') + '个文件</span>';
+        statusHtml += '<span style="font-size:12px;color:#6b7280;">📁 ' + domainCount + '个分析域</span>';
         statusHtml += '<a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看完整报告 →</a>';
         statusHtml += '</div></div>';
         document.getElementById('handbook-pipeline-status').innerHTML = statusHtml;
+
+        // ─── 2. 14类必查资料动态标记───
+        var completenessFinding = null;
+        for (var fi = 0; fi < allF.length; fi++) {
+          if (allF[fi].type === '资料完备度综合评估') { completenessFinding = allF[fi]; break; }
+        }
+        if (completenessFinding && completenessFinding.items) {
+          var missingNames = {};
+          for (var mi = 0; mi < completenessFinding.items.length; mi++) {
+            missingNames[completenessFinding.items[mi]['缺失资料']] = completenessFinding.items[mi]['缺失后果'];
+          }
+          // 更新每一张资料卡片的状态
+          var docCards = document.querySelectorAll('#documents .card[style*=\"border-left\"]');
+          for (var dc = 0; dc < docCards.length; dc++) {
+            var card = docCards[dc];
+            var strongEl = card.querySelector('strong');
+            if (strongEl) {
+              var docName = strongEl.textContent.trim();
+              if (missingNames[docName]) {
+                // 未提交 → 标红
+                var badge = document.createElement('span');
+                badge.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 8px;border-radius:3px;font-size:11px;background:#fee2e2;color:#dc2626;';
+                badge.textContent = '❌ 未提交';
+                strongEl.parentNode.insertBefore(badge, strongEl.nextSibling);
+                card.style.borderLeftColor = '#dc2626';
+                card.style.background = '#fef2f2';
+              } else {
+                // 已提交 → 标绿
+                var badge2 = document.createElement('span');
+                badge2.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 8px;border-radius:3px;font-size:11px;background:#dcfce7;color:#16a34a;';
+                badge2.textContent = '✅ 已提交';
+                strongEl.parentNode.insertBefore(badge2, strongEl.nextSibling);
+              }
+            }
+          }
+        }
+
+        // ─── 3. 方法论关联计数 ───
+        var methodCounts = { '四流合一': 0, '三源比对': 0, '资金回流': 0, '多源交叉': 0, '经营实质': 0 };
+        for (var fj = 0; fj < allF.length; fj++) {
+          var ft = allF[fj].type || '';
+          var fd = allF[fj].detail || '';
+          var combined = ft + ' ' + fd;
+          if (combined.indexOf('四流') > -1 || combined.indexOf('合同') > -1 || combined.indexOf('发票') > -1) methodCounts['四流合一']++;
+          if (combined.indexOf('申报') > -1 && (combined.indexOf('开票') > -1 || combined.indexOf('收款') > -1)) methodCounts['三源比对']++;
+          if (combined.indexOf('资金回流') > -1 || combined.indexOf('回流') > -1) methodCounts['资金回流']++;
+          if (combined.indexOf('交叉') > -1 || combined.indexOf('多源') > -1) methodCounts['多源交叉']++;
+          if (combined.indexOf('经营实质') > -1 || combined.indexOf('地理') > -1 || combined.indexOf('品名') > -1) methodCounts['经营实质']++;
+        }
+        // 更新方法论各节标题
+        var methodSections = document.getElementById('methodology');
+        if (methodSections) {
+          var h3s = methodSections.querySelectorAll('h3');
+          for (var h = 0; h < h3s.length; h++) {
+            var hText = h3s[h].textContent;
+            for (var mk in methodCounts) {
+              if (hText.indexOf(mk) > -1 && methodCounts[mk] > 0) {
+                h3s[h].innerHTML += ' <span style="font-size:11px;color:#2563eb;font-weight:400;">（本次分析关联' + methodCounts[mk] + '条发现）</span>';
+                break;
+              }
+            }
+          }
+        }
       }).catch(function() {
         document.getElementById('handbook-pipeline-status').innerHTML =
           '<div class="card" style="padding:12px 16px;background:#fefce8;border:1px solid #fde68a;">' +
-          '<span style="font-size:13px;color:#92400e;">📋 暂无分析数据 — <a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;">点击运行一键分析</a> 后将显示实时系统状态。</span>' +
+          '<span style="font-size:13px;color:#92400e;">📋 暂无分析数据 — <a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;">点击运行一键分析</a> 后将显示实时数据关联。</span>' +
           '</div>';
       });
     } catch(e) {
