@@ -13360,6 +13360,370 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
     return findings
 
 
+# ═══════════ 域15.5: 客户维度三源穿透分析 ═══════════
+# 逐客户匹配开票/收款/合同——资深稽查员逐户穿透逻辑
+
+def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, voucher_revenue=None):
+    """逐客户匹配开票金额与银行收款金额——穿透到每个客户维度的三源交叉验证
+    
+    稽查逻辑（老邓方法论）：
+    只看总额偏差只是信号，逐客户匹配才是证据。
+    ┌ 客户A：开票100万→收款150万→多收50万→查预收账款/合同付款节点
+    ├ 客户B：开票200万→收款80万→少收120万→查应收账款账龄/客户真实性
+    ├ 客户C：开票0→收款300万→未开票大额收款→查是否为隐匿收入
+    └ 客户D：付款方≠开票对象→查代付协议/两套账嫌疑
+    
+    五时点验证：合同签订→发货/交付→开票→收款→会计确认收入
+    """
+    from collections import defaultdict
+    
+    findings = []
+    if not bank_txs or not sal_invs:
+        return findings
+    
+    # ── 1. 构建客户维度数据 ──
+    # 销项发票按客户汇总
+    inv_by_buyer = defaultdict(lambda: {"total": 0, "count": 0, "goods": set(), "dates": []})
+    for inv in sal_invs:
+        buyer = str(inv.get("buyer", "")).strip()
+        if not buyer or len(buyer) < 2:
+            continue
+        key = buyer[:30]  # 取前30字作为匹配键
+        amt = float(inv.get("total", 0) or inv.get("amount", 0) or 0)
+        inv_by_buyer[key]["total"] += amt
+        inv_by_buyer[key]["count"] += 1
+        inv_by_buyer[key]["goods"].add(str(inv.get("goods", "")).strip()[:30])
+        d = inv.get("date", "")
+        if d: inv_by_buyer[key]["dates"].append(str(d)[:10])
+    
+    # 银行收款按付款方汇总
+    bank_by_payer = defaultdict(lambda: {"credit": 0, "debit": 0, "count": 0, "dates": [], "raw": []})
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", "")).strip()
+        if not cp or len(cp) < 2:
+            continue
+        key = cp[:30]
+        credit = float(tx.get("credit", 0) or 0)
+        debit = float(tx.get("debit", 0) or 0)
+        bank_by_payer[key]["credit"] += credit
+        bank_by_payer[key]["debit"] += debit
+        bank_by_payer[key]["count"] += 1
+        d = tx.get("date", "")
+        if d: bank_by_payer[key]["dates"].append(str(d)[:10])
+        # 保存原始交易记录用于特征分析
+        bank_by_payer[key]["raw"].append({
+            "date": str(d)[:10], "credit": credit, "debit": debit,
+            "summary": str(tx.get("summary", ""))[:50]
+        })
+    
+    # 合同数据按对方名称汇总
+    contract_by_party = defaultdict(lambda: {"amount": 0, "count": 0})
+    if contract_data:
+        for ct in contract_data:
+            party = str(ct.get("counterparty", "")).strip()
+            if not party: continue
+            key = party[:30]
+            amt = float(ct.get("amount", 0) or 0)
+            contract_by_party[key]["amount"] += amt
+            contract_by_party[key]["count"] += 1
+    
+    # ── 2. 构建匹配关系 ──
+    # 使用前缀匹配（前6字）和全文包含两种策略
+    def _match_name(a, b):
+        """模糊匹配两个名称"""
+        a, b = a.lower().strip(), b.lower().strip()
+        if not a or not b: return False
+        if a == b: return True
+        if len(a) >= 6 and len(b) >= 6:
+            if a[:6] == b[:6]: return True
+        if len(a) >= 4 and len(b) >= 4:
+            if a in b or b in a: return True
+        # 去除常见后缀后匹配
+        for suffix in ["有限公司", "有限责任公司", "股份公司", "厂", "店", "经营部"]:
+            a_clean = a.replace(suffix, "")
+            b_clean = b.replace(suffix, "")
+        return len(a_clean) >= 4 and len(b_clean) >= 4 and (a_clean in b_clean or b_clean in a_clean)
+    
+    # 建立客户映射：发票客户→银行收款方
+    # 统计总数
+    total_inv_amount = sum(d["total"] for d in inv_by_buyer.values())
+    total_bank_credit = sum(d["credit"] for d in bank_by_payer.values())
+    
+    # ── 3. 逐客户穿透分析 ──
+    customer_details = []  # 逐客户明细
+    gap_customers = []     # 偏差显著客户
+    payment_no_inv = []    # 收款无开票
+    inv_no_payment = []    # 开票无收款
+    party_mismatch = []    # 付款方≠开票对象
+    
+    for buyer_key, inv_data in inv_by_buyer.items():
+        inv_amt = inv_data["total"]
+        if inv_amt < 5000:
+            continue
+        
+        # 找匹配的银行收款
+        matched_credit = 0
+        matched_payers = []
+        for payer_key, bank_data in bank_by_payer.items():
+            if _match_name(buyer_key, payer_key):
+                matched_credit += bank_data["credit"]
+                matched_payers.append(payer_key)
+        
+        gap = matched_credit - inv_amt
+        gap_pct = (gap / max(inv_amt, 1)) * 100
+        
+        # 合同金额
+        contract_amt = 0
+        for ct_key, ct_data in contract_by_party.items():
+            if _match_name(buyer_key, ct_key):
+                contract_amt += ct_data["amount"]
+        
+        detail = {
+            "buyer": buyer_key,
+            "inv_amt": inv_amt,
+            "inv_count": inv_data["count"],
+            "bank_credit": matched_credit,
+            "contract_amt": contract_amt,
+            "gap": gap,
+            "gap_pct": gap_pct,
+            "goods": ", ".join(list(inv_data["goods"])[:3]),
+        }
+        customer_details.append(detail)
+        
+        # 偏差>30%且>5万元 → 高风险客户
+        if abs(gap_pct) > 30 and abs(gap) > 50000:
+            gap_customers.append(detail)
+        
+        # 开票但无收款（赊销/虚开风险）
+        if matched_credit < 1000 and inv_amt > 50000:
+            inv_no_payment.append(detail)
+        
+        # 付款方名称与开票客户不一致
+        if matched_payers and not any(_match_name(buyer_key, p) for p in matched_payers):
+            party_mismatch.append({
+                "buyer": buyer_key,
+                "inv_amt": inv_amt,
+                "bank_credit": matched_credit,
+                "matched_payers": matched_payers
+            })
+    
+    # 检查银行收款中无对应开票的客户
+    for payer_key, bank_data in bank_by_payer.items():
+        credit = bank_data["credit"]
+        if credit < 100000:
+            continue
+        matched = False
+        for buyer_key in inv_by_buyer:
+            if _match_name(payer_key, buyer_key):
+                matched = True
+                break
+        if not matched:
+            # 排除法人/股东/关联方
+            raw_texts = " ".join([r.get("summary", "") for r in bank_data["raw"]])
+            is_personal = any(k in raw_texts for k in ["工资", "报销", "借款", "还款", "往来"])
+            if not is_personal:
+                payment_no_inv.append({
+                    "payer": payer_key,
+                    "credit": credit,
+                    "count": bank_data["count"],
+                    "dates": bank_data["dates"][:3],
+                    "samples": bank_data["raw"][:3]
+                })
+    
+    # ── 4. 大额整数收款特征检测 ──
+    integer_receipts = []
+    for payer_key, bank_data in bank_by_payer.items():
+        for r in bank_data["raw"]:
+            amt = r["credit"]
+            if amt >= 100000 and amt % 10000 == 0:
+                integer_receipts.append({
+                    "payer": payer_key,
+                    "date": r["date"],
+                    "amount": amt,
+                    "summary": r["summary"]
+                })
+    
+    # ── 5. 生成稽查发现 ──
+    
+    # 5.1 逐客户偏差汇总
+    if gap_customers:
+        top_customers = sorted(gap_customers, key=lambda x: abs(x["gap"]), reverse=True)[:5]
+        gap_lines = []
+        for c in top_customers:
+            direction = "多收" if c["gap"] > 0 else "少收"
+            gap_lines.append(
+                f"  {c['buyer'][:15]}：开票{c['inv_amt']:,.0f}元 vs 收款{c['bank_credit']:,.0f}元 → "
+                f"{direction}{abs(c['gap']):,.0f}元（{abs(c['gap_pct']):.0f}%）"
+                + (f" | 合同{c['contract_amt']:,.0f}元" if c['contract_amt'] > 0 else "")
+            )
+        
+        avg_gap_pct = sum(abs(c["gap_pct"]) for c in gap_customers) / len(gap_customers)
+        
+        findings.append({
+            "type": "客户维度开票收款偏差（逐户穿透）",
+            "level": "高风险",
+            "score": 9,
+            "detail": f"逐客户匹配后，{len(gap_customers)}个客户的开票金额与银行收款偏差>30%：\n" + "\n".join(gap_lines),
+            "description": (
+                f"我将销项发票和银行流水做了逐客户匹配——不是看总额，是穿透到每个客户维度：\n\n"
+                f"匹配算法：提取{len(inv_by_buyer)}个发票客户×{len(bank_by_payer)}个银行收款方 → "
+                f"前程匹配+全文包含+去后缀 → 逐对匹配。\n\n"
+                f"结果：{len(gap_customers)}个客户偏差>30%（平均{avg_gap_pct:.0f}%）。\n\n"
+                f"⚠ 这是关键信号——逐客户偏差比总额偏差更有稽查价值。"
+                f"总额偏差可能相互抵消，逐客户偏差暴露真实问题：\n"
+                f"• 收款>开票的客户 → 可能存在已收款未确认收入 → 检查预收账款/合同付款节点/发货记录\n"
+                f"• 开票>收款的客户 → 可能存在已开票未收款 → 检查应收账款账龄/客户真实性/是否存在虚开\n"
+                f"• 无论哪种，都需要逐户调取客户明细账、合同、出库单做五时点比对"
+            ),
+            "how_found": (
+                f"我走了完整的逐户穿透流程：\n"
+                f"(1)从{len(sal_invs)}张销项发票提取{len(inv_by_buyer)}个购方名称→按客户汇总开票金额\n"
+                f"(2)从{len(bank_txs)}条银行流水提取全部贷方(收入)交易→按付款方汇总收款金额\n"
+                f"(3)对{len(inv_by_buyer)}个客户逐一用模糊匹配找对应的银行收款→计算偏差\n"
+                f"(4)合同数据（如有）作为第三方验证——比对合同金额与开票/收款\n"
+                f"(5)发现{len(gap_customers)}个客户偏差超过30%阈值"
+            ),
+            "tax_impact": (
+                f"逐客户偏差揭示了个体风险：\n"
+                f"• 收款>开票的客户：差额可能为已交货未确认收入——需追查预收账款科目、合同结算条款、发货记录。"
+                f"若已交货→延迟确认收入→当期补税+滞纳金\n"
+                f"• 开票>收款的客户：差额可能为虚开发票——需追查应收账款真实性、客户工商状态。"
+                f"若长期挂账→虚开嫌疑→进项转出+移送公安\n\n"
+                f"法律后果：隐匿收入→《税收征收管理法》第六十三条偷税处罚（0.5-5倍罚款）；"
+                f"虚开发票→《发票管理办法》第二十二条+刑法第二百零五条"
+            ),
+            "policy_ref": (
+                "《税收征收管理法》第三十五条（核定征收）、第六十三条（偷税处罚）；"
+                "《增值税暂行条例》关于纳税义务发生时间的规定；"
+                "《发票管理办法》第二十二条（禁止虚开）；"
+                "《企业所得税法实施条例》第九条（权责发生制）"
+            ),
+            "suggestion": (
+                f"① 对{len(gap_customers)}个偏差客户逐户调取：\n"
+                f"  - 客户明细账（应收账款/预收账款科目）\n"
+                f"  - 销售合同（核对金额+付款节点+交货条款）\n"
+                f"  - 出库单/发货记录（核实货物是否已交付）\n"
+                f"② 收款>开票的客户：若已发货→补开票+补申报；若未发货→确认为预收并附合同证明\n"
+                f"③ 开票>收款的客户：核实应收账款账龄，超90天→排查虚开风险\n"
+                f"④ 建立开票与回款逐月勾稽制度——每月按客户维度比对，偏差>30%当月处理"
+            ),
+            "category": "域15.5 客户维度穿透",
+            "rule_id": 310,
+            "source_chain": "客户维度-三源穿透-五时点验证",
+        })
+    
+    # 5.2 大额收款无开票（未开票收入风险）
+    if payment_no_inv:
+        top = sorted(payment_no_inv, key=lambda x: x["credit"], reverse=True)[:5]
+        detail_lines = []
+        total_uninvoiced = 0
+        for p in top:
+            total_uninvoiced += p["credit"]
+            detail_lines.append(f"  {p['payer'][:15]}：收款{p['credit']:,.0f}元（{p['count']}笔，" +
+                               f"样例：{'、'.join(str(r['summary'])[:20] for r in p.get('samples',[]) if r.get('summary'))})")
+        
+        findings.append({
+            "type": "大额收款无对应开票（未开票收入风险）",
+            "level": "高风险",
+            "score": 10,
+            "detail": f"{len(payment_no_inv)}个付款方向企业支付大额款项（>10万元），但在销项发票中查不到对应客户的开票记录，合计{total_uninvoiced:,.0f}元：\n" + "\n".join(detail_lines),
+            "description": (
+                f"逐户穿透中发现了更严重的问题——{len(payment_no_inv)}个付款方向企业支付了合计{total_uninvoiced:,.0f}元，但销项发票库中完全找不到对应的开票记录。\n\n"
+                f"这不是偏差的问题，是"零开票"的问题——企业收了钱但没有开任何发票。"
+                f"需要立即核实：这些付款是经营性收款（已交货未开票→隐匿收入），还是非经营性收款（借款/注资/往来款）。\n\n"
+                f"⚠ 稽查关键判断：如果这些付款方是企业而非个人、金额非整数、摘要含"货款""项目款"等经营关键词 → 高度嫌疑为隐匿收入。"
+            ),
+            "how_found": (
+                f"逐户穿透反向扫描：对{len(bank_by_payer)}个银行收款方逐一检查——"
+                f"是否在{len(inv_by_buyer)}个发票客户中有匹配→未匹配的标记为'无开票收款'→"
+                f"排除法人/股东/关联方/工资/报销等非经营性关键词→"
+                f"筛选金额>10万元的→发现{len(payment_no_inv)}个"
+            ),
+            "tax_impact": (
+                f"合计{total_uninvoiced:,.0f}元收款无开票——若被认定为隐匿收入：\n"
+                f"• 补缴增值税（{total_uninvoiced*0.13:,.0f}元起，按适用税率）\n"
+                f"• 补缴企业所得税（{total_uninvoiced*0.25*0.25:,.0f}元起，按核定利润率）\n"
+                f"• 加收每日万分之五滞纳金\n"
+                f"• 0.5-5倍罚款\n"
+                f"• 情节严重移送公安"
+            ),
+            "policy_ref": (
+                "《税收征收管理法》第六十三条（偷税）；"
+                "《增值税暂行条例》第一条（纳税义务）；"
+                "《发票管理办法》第十九条（销售商品/提供服务必须开具发票）"
+            ),
+            "suggestion": (
+                f"① 逐笔核实{len(payment_no_inv)}个付款方的收款性质：\n"
+                f"  - 经营性收款→立即补开票+补申报增值税及企业所得税\n"
+                f"  - 非经营性收款→保留借款合同/注资决议/往来对账记录\n"
+                f"② 建立收款即开票制度——对公账户收到经营款项后3个工作日内必须开票\n"
+                f"③ 对无法确认性质的收款，先挂预收账款，6个月内未确认收入的做出说明"
+            ),
+            "category": "域15.5 客户维度穿透",
+            "rule_id": 311,
+            "source_chain": "客户维度-零开票收款-隐匿收入",
+        })
+    
+    # 5.3 大额整数收款特征
+    if len(integer_receipts) >= 3:
+        total_int = sum(r["amount"] for r in integer_receipts)
+        int_lines = [f"  {r['date']} {r['payer'][:15]} {r['amount']:,.0f}元" for r in integer_receipts[:5]]
+        
+        findings.append({
+            "type": "大额整数收款特征（客户维度）",
+            "level": "中风险",
+            "score": 5,
+            "detail": f"发现{len(integer_receipts)}笔大额整数收款（≥10万元且金额为万元整倍数），合计{total_int:,.0f}元：\n" + "\n".join(int_lines),
+            "description": (
+                f"逐户分析银行收款记录时，发现{len(integer_receipts)}笔收款金额为整数（≥10万元且为万元整倍数）。"
+                f"真实交易的收款通常有零有整，频繁出现整数金额需引起注意——"
+                f"可能是非经营性资金（借款/注资/往来款）或刻意安排的交易。"
+            ),
+            "how_found": "逐笔扫描所有银行收款交易→筛选金额≥10万元且金额%10000==0→统计数量和来源方。",
+            "tax_impact": "整数收款本身非违规信号，但需核实交易性质——若为经营性收款但未开票，则涉及隐匿收入；若为非经营性，需确认会计处理是否正确。",
+            "policy_ref": "《税收征收管理法》第五十四条（检查权）；《企业会计准则》关于收入确认的规定。",
+            "suggestion": "逐笔核实整数收款的交易背景——确认是否为经营性收入，若是则核对是否已开票申报。",
+            "category": "域15.5 客户维度穿透",
+            "rule_id": 312,
+            "source_chain": "客户维度-整数收款特征",
+        })
+    
+    # 5.4 付款方与开票对象不一致
+    if party_mismatch:
+        mismatch_lines = []
+        for m in party_mismatch[:5]:
+            mismatch_lines.append(
+                f"  开票给'{m['buyer'][:15]}'（{m['inv_amt']:,.0f}元），"
+                f"但收款来自'{m['matched_payers'][0][:15] if m['matched_payers'] else '?'}'（{m['bank_credit']:,.0f}元）"
+            )
+        
+        findings.append({
+            "type": "付款方与开票对象不一致（客户维度）",
+            "level": "中风险",
+            "score": 6,
+            "detail": f"{len(party_mismatch)}个客户存在付款方名称与发票抬头不一致：\n" + "\n".join(mismatch_lines),
+            "description": (
+                f"逐客户匹配时发现{len(party_mismatch)}个客户的付款方名称与销项发票的购方名称不一致。\n\n"
+                f"这可能是代付款（需有代付协议）→也可能是两套账的信号——"
+                f"发票开给A，但B付款，A和B之间无关联关系。"
+                f"稽查会追问：B为什么替A付钱？A和B什么关系？是否有真实的货物交付？"
+            ),
+            "how_found": "逐客户匹配发票购方名称与银行付款方名称→发现名称不一致的客户→排除前缀匹配偏差后确认不一致。",
+            "tax_impact": "付款方与发票抬头不一致→三流不合一→可能被认定为虚开发票→进项税额不得抵扣+罚款。",
+            "policy_ref": "《发票管理办法》第二十二条（如实开具发票）；国家税务总局公告2014年第39号（三流一致）。",
+            "suggestion": (
+                "① 逐笔核实不一致的原因——是否代付？是否有代付协议？\n"
+                "② 代付情况应取得三方代付协议+付款方身份证明\n"
+                "③ 无法解释的不一致→主动红冲原发票并重新开具给实际付款方"
+            ),
+            "category": "域15.5 客户维度穿透",
+            "rule_id": 313,
+            "source_chain": "客户维度-付款方一致性",
+        })
+    
+    return findings
+
+
 # ═══════════ 域16: 扩展规则引擎 ═══════════
 
 def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory):
@@ -17154,6 +17518,11 @@ def _run_analyze(company_id, db):
     # 域15: 多源交叉验证
     if _has_any_data: domain_results.append({"domain": "多源交叉验证", "findings": _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, db, company_id)})
     else: domain_results.append({"domain": "多源交叉验证", "findings": []})
+    # 域15.5: 客户维度三源穿透分析（逐客户开票vs收款+合同验证+五时点确认）
+    if sal_invs and bank_txs:
+        domain_results.append({"domain": "客户维度三源穿透", "findings": _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue)})
+    else:
+        domain_results.append({"domain": "客户维度三源穿透", "findings": []})
     # 域16: 扩展规则
     if _has_any_data: domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
     else: domain_results.append({"domain": "扩展审查规则", "findings": []})

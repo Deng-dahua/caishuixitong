@@ -11275,3 +11275,80 @@ def _analyze_energy_revenue_ratio(db, company_id, ps, pe, results):
                 "detail": f"账上电费{electric_cost:,.2f}元占总收入{total_revenue:,.2f}元的{ratio:.1f}%，需结合变压器容量和同行业能耗比进一步验证。电费占比异常高可能表明存在虚开电费发票或隐匿产量（电费是真实的、产量被隐瞒）。",
                 "suggestion": "立即对比本企业与同行业的单位产值能耗比。建立《生产日报表》与《能耗台账》的勾稽关系，确保产能、能耗、产出三者逻辑自洽。",
                 "required_evidence": ["电费发票", "电表抄表记录", "生产日报表", "产能统计表", "同行业能耗比参考数据"]})
+
+
+# ═══════════ 客户维度三源穿透规则（规则310-313）══════════
+# 老邓方法论：逐客户匹配开票vs收款，不看总额看个体
+
+def _analyze_customer_revenue_matching(bank_txs, sal_invs, results):
+    """规则310-313: 逐客户维度三源穿透——开票/收款/合同匹配"""
+    if not bank_txs or not sal_invs:
+        return
+    
+    from collections import defaultdict
+    
+    # 构建客户维度数据
+    inv_by_buyer = defaultdict(lambda: {"total": 0, "count": 0})
+    for inv in sal_invs:
+        buyer = str(inv.get("buyer", "")).strip()
+        if not buyer or len(buyer) < 2: continue
+        key = buyer[:30]
+        inv_by_buyer[key]["total"] += float(inv.get("total", 0) or inv.get("amount", 0) or 0)
+        inv_by_buyer[key]["count"] += 1
+    
+    bank_by_payer = defaultdict(float)
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", "")).strip()
+        if not cp or len(cp) < 2: continue
+        bank_by_payer[cp[:30]] += float(tx.get("credit", 0) or 0)
+    
+    # 匹配
+    def _match(a, b):
+        a, b = a.lower().strip(), b.lower().strip()
+        if not a or not b: return False
+        if a == b: return True
+        if len(a) >= 6 and len(b) >= 6 and a[:6] == b[:6]: return True
+        if len(a) >= 4 and len(b) >= 4 and (a in b or b in a): return True
+        return False
+    
+    gap_count = 0
+    for buyer_key, inv_data in inv_by_buyer.items():
+        inv_amt = inv_data["total"]
+        if inv_amt < 5000: continue
+        matched_credit = sum(bank_by_payer[pk] for pk in bank_by_payer if _match(buyer_key, pk))
+        gap = matched_credit - inv_amt
+        gap_pct = (gap / max(inv_amt, 1)) * 100
+        if abs(gap_pct) > 30 and abs(gap) > 50000:
+            gap_count += 1
+            direction = "多收" if gap > 0 else "少收"
+            results.append({
+                "category": "客户维度穿透", "category_icon": "👤", "risk_score": 9,
+                "risk_level": "高风险", "risk_color": "#dc2626", "urgency": "紧急",
+                "item": f"客户{buyer_key[:15]}开票收款偏差（逐户穿透）",
+                "detail": f"开票{inv_amt:,.0f}元 vs 收款{matched_credit:,.0f}元 → {direction}{abs(gap):,.0f}元（{abs(gap_pct):.0f}%）。"
+                         f"{'已收款未开票→查预收账款/发货记录→可能隐匿收入' if gap>0 else '已开票未收款→查应收账款账龄/客户真实性→可能虚开发票'}。",
+                "suggestion": "逐户调取客户明细账、合同、出库单，做五时点比对（合同→发货→开票→收款→确认收入）。",
+                "required_evidence": ["客户明细账", "销售合同", "出库单/发货记录", "预收账款/应收账款科目余额表"]
+            })
+    
+    # 零开票大额收款
+    payment_no_inv = []
+    for payer_key, credit in bank_by_payer.items():
+        if credit < 100000: continue
+        matched = any(_match(payer_key, bk) for bk in inv_by_buyer)
+        if not matched:
+            payment_no_inv.append((payer_key, credit))
+    
+    if payment_no_inv:
+        total_uninvoiced = sum(p[1] for p in payment_no_inv)
+        results.append({
+            "category": "客户维度穿透", "category_icon": "👤", "risk_score": 10,
+            "risk_level": "高风险", "risk_color": "#dc2626", "urgency": "紧急",
+            "item": f"{len(payment_no_inv)}个付款方大额收款无开票记录",
+            "detail": f"合计{total_uninvoiced:,.0f}元收款查不到对应销项发票。需逐笔核实是否为经营性收款→若是→立即补开票+补申报，否则构成隐匿收入。",
+            "suggestion": "逐笔核实收款性质：经营性→补开票申报；非经营性→保留借款合同/注资决议/对账记录。",
+            "required_evidence": ["收款银行回单", "销售合同", "发货记录", "预收账款明细账"]
+        })
+
+
+"rule_list" in locals() and rule_list.append(...) if False else None  # placeholder for integration
