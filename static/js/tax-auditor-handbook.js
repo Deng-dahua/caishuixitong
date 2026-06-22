@@ -315,13 +315,17 @@ function renderAuditorHandbook(container) {
   html += '<td style="color:#dc2626;font-size:12px;">❌ "依据相关税收法规"<br>✅ "《税收征收管理法》第三十五条（核定征收）+第五十四条（检查权）+第五十六条（资料提供义务）"</td></tr>';
 
   html += '<tr><td style="font-weight:700;">6</td><td><strong>证据明细表（items）</strong></td>';
-  html += '<td>凡是涉及多项明细的发现（如多个缺失资料、多个客户、多笔交易），必须附 <code>items</code> 数组，每项含关键字段（名称、金额、后果等），前端渲染为可折叠明细表。不笼统地用一段话带过。</td>';
-  html += '<td style="color:#dc2626;font-size:12px;">❌ 一句话带过"缺失11类"但不列明细<br>✅ items数组：[{缺失资料:"记账凭证", 缺失后果:"完整因果链…"}, …]</td></tr>';
+  html += '<td>凡是涉及多项明细的发现，必须附 <code>items</code> 数组，每项含关键字段（名称、金额、后果等），前端渲染为可折叠明细表。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ 一句话带过<br>✅ items数组：[{缺失资料:"记账凭证", 缺失后果:"完整因果链…"}, …]</td></tr>';
+
+  html += '<tr><td style="font-weight:700;">7</td><td><strong>方法在前，过程在后</strong></td>';
+  html += '<td>每条稽查发现必须先声明使用了什么稽查方法（并列清单），再展示方法执行后的核查过程与结果。读者应先看到"我怎么查的"，再看到"我查到了什么"。方法必须是可复用的具体手段——工商登记核查法、进销存数据比对法、资金流发票流核对法、供应商客户穿透法、加工环节穿透法、五步核查法等——而非"通过分析发现"这类空泛陈述。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "需要按六种商业模式逐笔分析" — 没说方法是什么<br>✅ "（一）稽查方法。第一，工商登记核查法…第二，进销存数据比对法…"</td></tr>';
 
   html += '</tbody></table>';
 
   html += '<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:13px;">';
-  html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行 <code>_enforce_report_quality_standards()</code> 函数对全部发现做6项标准逐条检查——';
+  html += '<strong>🔧 系统实现：</strong>本系统在生成最终报告前，自动执行 <code>_enforce_report_quality_standards()</code> 函数对全部发现做7项标准逐条检查——';
   html += '不达标的发现自动退回重写或补全缺失字段后才进入最终报告。每份报告末尾附质量检查通过数量统计。';
   html += '</div>';
   html += '</div>';

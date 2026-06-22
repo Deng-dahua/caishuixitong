@@ -18788,7 +18788,7 @@ def _run_analyze(company_id, db):
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
     
-    # ═══ 稽查报告质量标准执行（6项硬指标）═══
+    # ═══ 稽查报告质量标准执行（7项硬指标）═══
     all_findings, quality_report = _enforce_report_quality_standards(all_findings, pipeline_log)
     
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
@@ -18858,7 +18858,7 @@ def _run_analyze(company_id, db):
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
     return result
 
-# ═══════════ 稽查报告质量标准执行（6项硬指标）══════════
+# ═══════════ 稽查报告质量标准执行（7项硬指标）══════════
 # 提炼自Finding①"资料完备度综合评估"的标杆质量，全行业适用
 # 标准1: 第一人称稽查员叙事 — how_found/description以"我"为主语
 # 标准2: 事实-证据-后果三要素 — 缺一不可
@@ -18866,19 +18866,20 @@ def _run_analyze(company_id, db):
 # 标准4: 可操作的紧迫感 — suggestion具体到步骤
 # 标准5: 特定法律条款引用 — 不得模糊引用
 # 标准6: 证据明细表(items) — 多项明细必须附items数组
+# 标准7: 方法在前过程在后 — 先声明稽查方法再展示核查结果
 
 BOILERPLATE_LEGAL_TEXT = "《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。"
 BOILERPLATE_LEGAL_SHORT = "《中华人民共和国税收征收管理法》及相关税收法规。"
 
 def _enforce_report_quality_standards(all_findings, pipeline_log):
-    """对全部发现执行6项质量标准检查，不达标标记问题但不阻塞（降级+标注）
+    """对全部发现执行7项质量标准检查，不达标标记问题但不阻塞（降级+标注）
     
     Returns: (enforced_findings, quality_report)
     """
     enforced = []
     quality_log = {"total": len(all_findings), "passed": 0, "warnings": [], "stats": {
         "标准1_叙事": 0, "标准2_三要素": 0, "标准3_因果链": 0,
-        "标准4_建议": 0, "标准5_法律引用": 0, "标准6_items": 0
+        "标准4_建议": 0, "标准5_法律引用": 0, "标准6_items": 0, "标准7_方法": 0
     }}
     
     for f in all_findings:
@@ -18940,6 +18941,14 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
         if should_have_items:
             issues.append("标准6_items: 涉及多项明细但缺少items数组")
             quality_log["stats"]["标准6_items"] += 1
+        
+        # 标准7: 方法在前，过程在后
+        # detail/description 应先声明稽查方法再展示结果
+        has_method_keywords = any(k in detail + how_found for k in ["稽查方法", "核查法", "比对法", "穿透法", "核对法", "比对"])
+        has_process_detail = len(detail) > 80
+        if has_process_detail and not has_method_keywords:
+            issues.append("标准7_方法声明: 缺少稽查方法声明——应先讲方法再秀过程")
+            quality_log["stats"]["标准7_方法"] += 1
         
         # 记录质量结果
         if not issues:
