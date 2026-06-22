@@ -17385,11 +17385,22 @@ def _run_analyze(company_id, db):
                     return True  # 非行业链，全部执行
                 if not target_industry:
                     return False  # 不知道行业，跳过所有行业特化链
+                # 提取行业名称
                 chain_industry = chain_name.split("行业-", 1)[1] if "行业-" in chain_name else ""
+                matched_industry = None
                 for ind_kw, chain_prefix in _INDUSTRY_CHAIN_PREFIXES.items():
                     if ind_kw in target_industry and chain_name.startswith(chain_prefix):
-                        return True
-                return False  # 行业不匹配，跳过
+                        matched_industry = ind_kw
+                        break
+                if not matched_industry:
+                    return False
+                # 安全检查：关键词≥3字（排除2字短词的误匹配，如"体育"意外出现在经营范围中）
+                if len(matched_industry) < 3:
+                    # 2字关键词容易误匹配，要求完整词边界
+                    import re as _re_ind
+                    if not _re_ind.search(r'(?:^|\s|；|，|、)' + matched_industry + r'(?:$|\s|；|，|、)', target_industry):
+                        return False
+                return True
             
             # 逐一执行每条线索链
             chain_stats = []
@@ -18223,31 +18234,74 @@ def _run_analyze(company_id, db):
         pipeline_log.append(f"四步稽查分析法执行异常: {_fs_err}")
     
     # ═══ 建议质量增强：确保每个风险点/面都有具体可操作的消除路径 ═══
+    # 铁律：建议必须基于已分析出的数据，不得推给审计师做本该系统完成的分析工作
     enhanced = 0
     for f in all_findings:
         sug = (f.get("suggestion", "") or "").strip()
-        if len(sug) < 30 or "立即整改" in sug or "按实际" in sug[:10]:
-            ftype = f.get("type", "")
-            # 为关键发现生成结构化建议
-            if "发票缺少" in ftype:
-                f["suggestion"] = "① 逐票核实缺少要素的发票对应实际交易；② 要求对方补开合规发票或提供对应的出入库单、物流单据佐证；③ 建立发票接收审核机制，拒收不合规发票。发票要素不完整将影响成本扣除和进项税额抵扣。"
-            elif "顶额分散" in ftype:
-                f["suggestion"] = "① 逐票核实是否存在拆单开票行为；② 如为真实分批发货——提供出库单和物流记录；③ 如为人人为拆单——立即纠正并红冲。人为拆单是虚开发票的常见手段。"
-            elif "未认证" in ftype:
-                f["suggestion"] = "① 逐票核实未认证发票的业务真实性；② 确认真实交易后及时完成认证抵扣；③ 已过认证期的做进项税额转出。超期未认证的税额将永久损失。"
-            elif "办公费用" in ftype:
-                f["suggestion"] = "① 全面清查实际发生的办公费用并向供应商索取发票；② 补记账务处理并保留完整的费用报销凭证和审批记录；③ 任何企业都有基础办公成本，费用为零不符合经营常识。"
-            elif "收款来源" in ftype:
-                f["suggestion"] = "① 编制收入来源分析表逐笔标注收款性质（经营/借款/注资/往来）；② 经营收款——核对是否已开票；③ 借款——提供借款合同；④ 注资——提供出资证明；⑤ 代付——提供委托付款证明。无法说明的按隐匿收入处理。"
-            elif "收款与开票" in ftype:
-                # 保留已生成的逐票匹配明细，不被通用建议覆盖
-                if f.get("items") and len(f.get("items", [])) > 2:
-                    pass  # 已有逐票匹配明细数据，不覆盖
+        ftype = f.get("type", "")
+        
+        # 检测敷衍建议：太短、或纯话术模板
+        _BOILERPLATE_PREFIXES = ("立即整改", "按实际", "逐项核查", "逐项核实", "逐项检查",
+                                 "逐笔核查", "逐笔核实", "逐笔核对", "逐笔检查")
+        is_boilerplate = (len(sug) < 30 or any(sug.startswith(p) for p in _BOILERPLATE_PREFIXES))
+        
+        if is_boilerplate or sug == "":
+            # ── 有明细数据的发现：直接报告分析结果 ──
+            items = f.get("items") or []
+            detail = f.get("detail", "")
+            
+            if "收款与开票" in ftype:
+                if items and len(items) >= 3:
+                    pass  # 已有逐票匹配明细，保留
+                elif "银行入账" in detail and "销项开票" in detail:
+                    # 数据已在 detail 中，补充具体行动路径
+                    f["suggestion"] = (
+                        "银行入账金额与销项开票金额的差额可能由以下原因造成，请逐项排除："
+                        "① 非经营性收款（借款、注资、往来款）——核实银行流水备注/合同；"
+                        "② 未开票收入——核对出库单/合同/收货确认单，确认后申报未开票收入；"
+                        "③ 第三方代付——取得委托付款证明。"
+                        "无法说明来源的差额部分，按隐匿收入处理。"
+                    )
+                    enhanced += 1
                 else:
-                    f["suggestion"] = "① 逐笔核对银行入账区分经营性与非经营性收款；② 经营性收款确保开票或申报未开票收入；③ 借款/注资提供合同或出资证明；④ 第三方代付提供委托付款证明。无法说明来源的按隐匿收入处理。"
+                    f["suggestion"] = (
+                        "银行收款与销项开票存在偏差。可能原因：未开票收入/非经营性收款/第三方代付。"
+                        "需结合收款来源分析逐项排除。无法说明来源的差额按隐匿收入处理。"
+                    )
+                    enhanced += 1
+                    
+            elif "供应商" in ftype and ("异地" in ftype or "集中" in ftype or "空壳" in ftype):
+                # 供应商类发现——给出具体核实路径而非泛泛而谈
+                f["suggestion"] = (
+                    "对同城集中供应商执行以下核查步骤："
+                    "① 逐户在天眼查/企查查核实工商状态（存续/注销/吊销）；"
+                    "② 比对供应商注册地址是否为住宅/虚拟地址；"
+                    "③ 核对银行付款记录——无付款的进项发票进项税额应予转出；"
+                    "④ 核查物流单据——无运输凭证的跨省采购无法证实货物真实流转。"
+                    "上述核查完成后，对无法证实真实性的进项发票主动做进项税额转出。"
+                )
+                enhanced += 1
+                
+            elif items and len(items) >= 2:
+                # 有明细数据：直接给出结论
+                sample_items = items[:3]
+                item_desc = "；".join(
+                    f"{it.get('payee','') or it.get('counterparty','') or it.get('name','')}"
+                    f"({it.get('amount','') or it.get('count','')})"
+                    for it in sample_items
+                )
+                f["suggestion"] = (
+                    f"已识别{len(items)}条关联记录（如：{item_desc}）。"
+                    f"请逐项核实业务真实性并提供对应合同/单据/凭证。"
+                )
+                enhanced += 1
+                
             else:
-                f["suggestion"] = f"① 逐项核查{ftype}的具体情况并提供对应的证明材料；② 如为企业正常经营行为——提供合同、单据、凭证等业务佐证；③ 如为异常情况——主动自查整改并保留整改记录。无法提供合理说明的，按相关税收法律规定处理。"
-            enhanced += 1
+                # 无明细数据的兜底——至少给出具体方向而非空话
+                f["suggestion"] = (
+                    f"请提供与「{ftype[:40]}」相关的合同、单据、凭证等业务佐证材料。"
+                )
+                enhanced += 1
     
     if enhanced:
         pipeline_log.append(f"建议质量增强: {enhanced}条发现补充了具体可操作的消除路径")
@@ -18271,18 +18325,54 @@ def _run_analyze(company_id, db):
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
     total = len(all_findings)
     
-    # ═══ 报告净化：剔除内部技术描述，只保留用户可读信息 ═══
+    # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
     _INTERNAL_PATTERNS = [
-        "数据验证通过", "链驱动分析", "线索链-行业-",
-        "查证方式-", "证据来源：", "规则R", "命中",
+        "数据验证通过", "数据验证:",
+        "链驱动分析", "线索链-行业-", "查证方式-",
+        "证据来源：", "规则R", "命中",
     ]
+    _BOILERPLATE_LEGAL = "《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。"
+    _BOILERPLATE_LEGAL_SHORT = "《中华人民共和国税收征收管理法》及相关税收法规。"
+    
     for f in all_findings:
-        # 清理 how_found 中的内部技术描述
+        # 1. 清理 how_found —— 内部技术描述
         hf = f.get("how_found", "")
         if hf and any(p in hf for p in _INTERNAL_PATTERNS):
-            # 保留但标记为内部字段，前端不渲染
-            f["_how_found_internal"] = hf
-            del f["how_found"]
+            # 尝试提取有意义的查证路径，剔除纯技术噪声
+            cleaned = hf
+            for p in _INTERNAL_PATTERNS:
+                cleaned = cleaned.replace(p, "")
+            cleaned = cleaned.strip().lstrip("：:→|").strip()
+            if cleaned and len(cleaned) > 10:
+                f["how_found"] = cleaned
+            else:
+                del f["how_found"]
+        
+        # 2. 清理 detail / description 中的内部元数据
+        for field in ("detail", "description"):
+            val = f.get(field, "")
+            if val and any(p in val for p in _INTERNAL_PATTERNS):
+                cleaned = val
+                for p in _INTERNAL_PATTERNS:
+                    cleaned = cleaned.replace(p, "")
+                # 去掉残留的竖线、箭头等符号
+                import re as _re2
+                cleaned = _re2.sub(r'\s*[|→]+\s*', '；', cleaned)
+                cleaned = _re2.sub(r'；{2,}', '；', cleaned)
+                f[field] = cleaned.strip().rstrip("；。").strip()
+        
+        # 3. 清理法律依据中的敷衍文本
+        pf = f.get("policy_ref", "")
+        if pf == _BOILERPLATE_LEGAL or pf == _BOILERPLATE_LEGAL_SHORT:
+            del f["policy_ref"]
+        elif pf and _BOILERPLATE_LEGAL_SHORT in pf:
+            # 混合了具体条文+敷衍文本的情况，只保留具体条文
+            cleaned = pf.replace(_BOILERPLATE_LEGAL, "").replace(_BOILERPLATE_LEGAL_SHORT, "")
+            cleaned = cleaned.strip().rstrip("；。;").strip()
+            if cleaned:
+                f["policy_ref"] = cleaned
+            else:
+                del f["policy_ref"]
     
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
