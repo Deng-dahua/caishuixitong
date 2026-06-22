@@ -11,6 +11,46 @@ high_list = data['high_list']
 mid_list = data['mid_list']
 low_list = data['low_list']
 
+# ── 企业信息（从 run_analyze 的 target_entity 获取，不再硬编码） ──
+entity = data.get('target_entity', {})
+entity_name = entity.get('name', '') or '未知企业'
+
+def _short_name(full_name):
+    """从企业全称提取简短名称，如 '中山市达冠纺织有限公司' → '达冠纺织'"""
+    import re
+    if not full_name:
+        return '未知企业'
+    s = re.sub(r'^[\u4e00-\u9fff]{2,4}(省|市|县|区|自治区|自治州)', '', full_name)
+    s = re.sub(r'(有限(责任)?公司|股份有限公司|集团有限公司|集团|合伙企业|个体工商户|农民专业合作社)$', '', s)
+    return s or full_name
+
+short = _short_name(entity_name)
+
+# 资料描述（不再硬编码数字）
+from collections import Counter
+_file_types = Counter(f.get('_file_type', '') for f in data.get('all_findings', []) if f.get('_file_type'))
+_file_desc = ' + '.join(f'{v}份{k}' for k, v in _file_types.items()) if _file_types else f"共{data.get('files_count', 0)}份"
+_file_categories = len(_file_types)
+_low_risk = data.get('low_risk', 0)
+_pipeline_log = data.get('pipeline_log', [])
+_periods = []
+for log in _pipeline_log:
+    if isinstance(log, str) and '期间' in log:
+        import re as _re
+        _m = _re.search(r'(\d{4}-\d{2}).*?(\d{4}-\d{2})', log)
+        if _m:
+            _periods = [_m.group(1), _m.group(2)]
+            break
+_period_from = _periods[0] if len(_periods) > 0 else '未知'
+_period_to = _periods[1] if len(_periods) > 1 else '未知'
+
+# 进销品名描述（从实际发票数据提取，不再硬编码行业特化文本）
+_goods_analysis = entity.get('_goods_analysis', {})
+_input_goods = _goods_analysis.get('input_goods', []) if isinstance(_goods_analysis, dict) else []
+_output_goods = _goods_analysis.get('output_goods', []) if isinstance(_goods_analysis, dict) else []
+_pur_goods_str = '、'.join(_input_goods[:3]) if _input_goods else '各类原材料'
+_sal_goods_str = '、'.join(_output_goods[:3]) if _output_goods else '各类成品'
+
 def esc(s):
     if not s: return ''
     return str(s).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;').replace('"','&quot;')
@@ -94,7 +134,7 @@ html = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>税务稽查报告 — 达冠纺织</title>
+<title>税务稽查报告 — ''' + short + '''</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;background:#f8f9fa}
@@ -140,10 +180,10 @@ p.i2{text-indent:2em}
 <h1>税 务 稽 查 报 告</h1>
 <div class="sub">
 编号：税稽字[2026]第''' + str(data['total_risks']) + '''号<br>
-被查单位：中山市达冠纺织有限公司<br>
-稽查期间：2023年6月 — 2026年9月<br>
+被查单位：''' + entity_name + '''<br>
+稽查期间：''' + _period_from + ''' — ''' + _period_to + '''<br>
 报告日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''<br>
-资料数量：银行流水13份 + 进项发票5份 + 销项发票5份 = 共''' + str(data['files_count']) + '''份
+资料数量：''' + _file_desc + '''
 </div>
 </div>
 
@@ -164,7 +204,6 @@ p.i2{text-indent:2em}
 '''
 
 # ═══════ 企业工商信息（联网核查） ═══════
-entity = data.get('target_entity', {})
 online_lookup = entity.get('_online_lookup', False)
 legal_rep = entity.get('legal_representative', '')
 reg_capital = entity.get('registered_capital', '')
@@ -215,7 +254,7 @@ html += '''
 </div>
 
 <div class="warn">
-<strong>⚠️ 资料完备度严重不足：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料（银行流水13份、进项发票5份、销项发票5份），覆盖银行流水、进项发票、销项发票3类。缺失记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类稽查必查资料。
+<strong>⚠️ 资料完备度严重不足：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料（''' + _file_desc + '''），覆盖''' + str(_file_categories) + '''类。缺失记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等稽查必查资料。
 </div>
 
 <h2>二、高风险发现（''' + str(data['high_risk']) + '''项）</h2>
@@ -235,7 +274,7 @@ for f in low_list:
 html += '''
 <h2>五、综合结论与稽查建议</h2>
 
-<p class="i2">经对被查单位「中山市达冠纺织有限公司」2023年6月至2026年9月期间的''' + str(data['files_count']) + '''份资料进行系统性稽查分析，形成结论如下：</p>
+<p class="i2">经对被查单位「''' + entity_name + '''」''' + _period_from + '''至''' + _period_to + '''期间的''' + str(data['files_count']) + '''份资料进行系统性稽查分析，形成结论如下：</p>
 
 <h3>（一）已查实问题</h3>
 
@@ -245,7 +284,7 @@ html += '''
 
 <p class="i2">3. <strong>收款来源与开票客户不匹配</strong>——银行收款方中含有非开票客户的资金流入，需逐笔核实资金来源性质。</p>
 
-<p class="i2">4. <strong>进销品名存在显著差异</strong>——进项以棉纱/涤纶布等原材料为主，销项以针织布/梭织布等成品为主，表明存在实质加工环节。</p>
+<p class="i2">4. <strong>进销品名存在显著差异</strong>——进项以''' + _pur_goods_str + '''为主，销项以''' + _sal_goods_str + '''为主，表明存在实质加工环节。</p>
 
 <h3>（二）需进一步核实事项</h3>
 
@@ -259,7 +298,7 @@ html += '''
 
 <h3>（三）稽查建议</h3>
 
-<p class="i2">鉴于达冠纺织仅提供了3类核心资料且已暴露多项高风险发现，建议：</p>
+<p class="i2">鉴于''' + short + '''仅提供了''' + str(_file_categories) + '''类核心资料且已暴露多项高风险发现，建议：</p>
 
 <p class="i2"><strong>1. 限期整改（15个工作日）：</strong>补充全部缺失的11类资料，逐笔说明进项发票付款和银行收款的匹配情况。</p>
 
@@ -277,7 +316,9 @@ html += '''
 </html>
 '''
 
-output_path = os.path.join(os.path.dirname(__file__), '稽查报告_达冠纺织_20260619.html')
+ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+safe_name = entity_name.replace('/', '_').replace('\\', '_').replace(':', '_')[:30]
+output_path = os.path.join(os.path.dirname(__file__), f'稽查报告_{safe_name}_{ts}.html')
 with open(output_path, 'w', encoding='utf-8') as f:
     f.write(html)
 

@@ -235,7 +235,10 @@ def _check_source_consistency(db, company_id):
 
 
 if __name__ == "__main__":
-    company_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    if len(sys.argv) < 2:
+        print("用法: python audit.py <company_id>")
+        sys.exit(1)
+    company_id = int(sys.argv[1])
     result = audit_all(company_id)
     print(f"\n{'='*60}")
     print(f"财税系统自动审查 — 公司ID={company_id}")

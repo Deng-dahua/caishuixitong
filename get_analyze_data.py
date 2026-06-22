@@ -19,7 +19,12 @@ def clean_for_json(obj):
 
 db = SessionLocal()
 try:
-    result = _run_analyze(1, db)
+    # 必须从命令行参数获取 company_id
+    if len(sys.argv) < 2:
+        print("用法: python get_analyze_data.py <company_id>")
+        sys.exit(1)
+    company_id = int(sys.argv[1])
+    result = _run_analyze(company_id, db)
     report = result.get('report', {})
     
     comp = report.get('comprehensive', {})

@@ -9,6 +9,24 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
 
+# ── 目标企业名称（不再硬编码「达冠」） ──
+# 优先级：命令行参数 > 环境变量 > 自动检测
+TARGET_COMPANY = None
+for arg in sys.argv[1:]:
+    if arg.startswith('--company='):
+        TARGET_COMPANY = arg.split('=', 1)[1]
+        break
+if not TARGET_COMPANY:
+    TARGET_COMPANY = os.environ.get('TARGET_COMPANY', '')
+
+def _get_company_keyword():
+    """获取目标企业简称用于发票方向判断"""
+    global TARGET_COMPANY
+    if TARGET_COMPANY:
+        # 取前两个字符作为简称关键词
+        return TARGET_COMPANY[:2] if len(TARGET_COMPANY) >= 2 else TARGET_COMPANY
+    return None
+
 def read_excel_rows(fpath):
     """读取 Excel 返回 (header_cols, data_rows)"""
     header_row = []
@@ -109,17 +127,20 @@ def parse_invoices(header_row, data_rows):
                     try: inv[k] = float(v.replace(',', '').replace('¥', '').replace(' ', ''))
                     except: del inv[k]
         
-        # 方向判定
+        # 方向判定（使用动态企业名称，不再硬编码「达冠」）
         buyer = str(inv.get('buyer', ''))
         seller = str(inv.get('seller', ''))
+        kw = _get_company_keyword()
         
-        if '达冠' in buyer:
+        if kw and kw in buyer:
             inv['direction'] = '进项'
-        elif '达冠' in seller:
+        elif kw and kw in seller:
             inv['direction'] = '销项'
         elif buyer and seller:
-            if '达冠' in seller: inv['direction'] = '销项'
-            elif '达冠' in buyer: inv['direction'] = '进项'
+            if kw and kw in seller: inv['direction'] = '销项'
+            elif kw and kw in buyer: inv['direction'] = '进项'
+            else:
+                inv['direction'] = '未知'
         else:
             inv['direction'] = '未知'
         
@@ -193,8 +214,27 @@ def safe_float(v):
 
 # ════════════════ MAIN ════════════════
 
+# 如果没有命令行指定企业名，尝试从银行流水表头自动检测
+if not TARGET_COMPANY:
+    # 扫描第一个银行流水文件的表头，尝试提取户名/账户名
+    for fname in sorted(os.listdir(UPLOAD_DIR)):
+        fpath = os.path.join(UPLOAD_DIR, fname)
+        header_row, _ = read_excel_rows(fpath)
+        htext = ' '.join(h for h in header_row)
+        # 尝试提取 "户名:XXX" 中的企业名
+        m = re.search(r'户名[：:]\s*([\u4e00-\u9fff（）()\w]+)', htext)
+        if m:
+            TARGET_COMPANY = m.group(1).strip()
+            break
+        m = re.search(r'账户名称[：:]\s*([\u4e00-\u9fff（）()\w]+)', htext)
+        if m:
+            TARGET_COMPANY = m.group(1).strip()
+            break
+    if not TARGET_COMPANY:
+        TARGET_COMPANY = '未知企业'
+
 print("=" * 70)
-print("税务稽查分析报告 — 达冠纺织")
+print(f"税务稽查分析报告 — {TARGET_COMPANY}")
 print(f"分析时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 print("=" * 70)
 
@@ -368,7 +408,7 @@ for i, (b, info) in enumerate(sorted(buyer_stats.items(), key=lambda x: -x[1]['a
 # 保存完整数据到JSON
 result = {
     "files": 23,
-    "company": "中山市达冠纺织有限公司",
+    "company": TARGET_COMPANY,
     "period": "2023-06 至 2026-09",
     "pur_invoices": len(pur_invs),
     "sal_invoices": len(sal_invs),

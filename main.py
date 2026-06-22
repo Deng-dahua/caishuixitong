@@ -14299,7 +14299,10 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         seller = str(inv.get("seller","") or inv.get("销方名称","")).strip()
         goods = str(inv.get("goods","") or inv.get("货物或应税劳务名称",""))
         for name in [buyer, seller]:
-            for c in ['中山','东莞','深圳','广州','佛山','珠海','惠州','江门','厦门','福州']:
+            for c in ['中山','东莞','深圳','广州','佛山','珠海','惠州','江门','厦门','福州',
+                       '上海','北京','天津','重庆','成都','南京','苏州','无锡','杭州','宁波',
+                       '武汉','长沙','合肥','南昌','郑州','济南','青岛','石家庄','太原','西安',
+                       '昆明','贵阳','南宁','海口','沈阳','大连','长春','哈尔滨']:
                 if c in name: city_candidates[c] += 1
     company_city = city_candidates.most_common(1)[0][0] if city_candidates else '中山'
     
@@ -14308,7 +14311,11 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         # 从公司名称中提取城市
         city_keywords = ["中山","东莞","深圳","广州","佛山","珠海","惠州","江门","汕头","湛江","茂名","肇庆","揭阳",
                         "厦门","福州","泉州","漳州","台山",
-                        "鄢陵","许昌","郑州","石嘴山","银川","吴江","宜城","襄阳","武汉","淄博","临沂","济南","绍兴","杭州","宁波","义乌"]
+                        "鄢陵","许昌","郑州","石嘴山","银川","吴江","宜城","襄阳","武汉","淄博","临沂","济南","绍兴","杭州","宁波","义乌",
+                        "上海","北京","天津","重庆","成都","绵阳","德阳","南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州",
+                        "长沙","株洲","湘潭","合肥","芜湖","南昌","九江","青岛","烟台","威海","潍坊","石家庄","唐山","太原",
+                        "西安","咸阳","宝鸡","昆明","曲靖","贵阳","遵义","南宁","柳州","桂林","海口","三亚",
+                        "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆","呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁"]
         for c in sorted(city_keywords, key=lambda x: -len(x)):
             if c in name: return c
         return "其他"
@@ -19185,7 +19192,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     }
     
     # 第一步：检查数据库是否已有完整信息（避免重复联网查询）
-    # 必须验证DB中的公司名与查询名一致，防止海更的数据套到达冠头上
+    # 验证DB中的公司名与查询名一致，防止A公司的数据错误关联到B公司
     if db and company_id:
         try:
             company = db.query(Company).filter(Company.id == company_id).first()
