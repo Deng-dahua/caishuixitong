@@ -613,13 +613,28 @@ function renderTaxDocReport(r) {
   var salOnlyGoods = ga.sal_only_goods || [];
   var hasProcFee = ga.has_processing_fee || false;
 
-  h += '<h3>（〇）经营实质核查</h3>';
-  h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。具体过程如下：</p>';
-  h += '<p class="i2"><b>1. 工商登记情况。</b>经联网核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness || te.industry || te.type || '未获取') + '</span>'
-    + (registeredBusiness ? '' : '（搜索引擎未返回行业分类，以下以发票数据推断行业为准）') + '。</p>';
+  h += '<h3>经营实质核查</h3>';
+  h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。</p>';
+
+  // （一）稽查方法——列举具体方法
+  h += '<p class="i2"><b>（一）稽查方法。</b>本次经营实质核查采用了以下具体稽查方法：</p>';
+  h += '<p class="i2">第一，<b>工商登记核查法。</b>通过联网核查获取被查单位在国家企业信用信息公示系统中的登记信息——包括经营范围、注册资本、股东结构、成立日期、经营状态等。经核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness || te.industry || te.type || '未获取') + '</span>' + (registeredBusiness ? '' : '（搜索引擎未返回行业分类，以下以发票数据推断行业为准）') + '。</p>';
+
+  h += '<p class="i2">第二，<b>进销存数据比对法。</b>将进项发票品名与销项发票品名进行逐名比对，判断企业的实际经营模式——是纯贸易（进销品名一致）还是产供销（进项为原材料、销项为成品）。进销比' + esc(ii['进销比'] || '') + '，销项发票' + esc(ii['销项发票'] || '') + '，进项发票' + esc(ii['进项发票'] || '') + '。</p>';
+
+  h += '<p class="i2">第三，<b>资金流与发票流核对法。</b>将银行收款金额与销项开票金额逐户比对，核实回款与开票是否匹配。银行收款' + esc(bi['总收款'] || '') + '，付款' + esc(bi['总付款'] || '') + '，税费支出' + esc(bi['税费支出总额'] || '') + '。</p>';
+
+  h += '<p class="i2">第四，<b>供应商及客户穿透分析法。</b>对供应商和客户进行集中度检测（单一供应商/客户占比是否超过30%）和名称群集检测（多家供应商名称是否存在相同字号/相近注册号的集群特征），排查关联交易和虚开风险。</p>';
+
+  h += '<p class="i2">第五，<b>加工环节穿透法。</b>对进项发票中存在加工费、外协加工、委托加工等品名的交易，逐笔核实委托加工的真实性——是否签有加工合同、加工费单价是否合理、加工后成品是否已入账销售。</p>';
+
+  h += '<p class="i2">第六，<b>五步核查法。</b>按照"工商登记→进项审核→销项审核→交叉比对→综合判断"的顺序，对经营实质进行全流程核查，确保每一步都有证据支撑而非推断。</p>';
+
+  // （二）核查过程
+  h += '<p class="i2"><b>（二）核查过程。</b></p>
 
   if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
-    h += '<p class="i2"><b>2. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
+    h += '<p class="i2"><b>1. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
     if (hasProcFee) {
       h += '发现进项发票中存在<b>加工费</b>项目——加工费属于将原材料委托外部加工为成品/半成品的典型支出，表明企业存在外包委托加工环节。';
     }
@@ -631,7 +646,7 @@ function renderTaxDocReport(r) {
     }
     h += '</p>';
 
-    h += '<p class="i2"><b>3. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
+    h += '<p class="i2"><b>2. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
     if (salOnlyGoods.length > 0) {
       h += '以下品名<span class="hl">仅在销项发票中出现（销售但未购进）</span>，初步判断为加工后的成品：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
     } else {
@@ -639,7 +654,7 @@ function renderTaxDocReport(r) {
     }
     h += '</p>';
 
-    h += '<p class="i2"><b>4. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
+    h += '<p class="i2"><b>3. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
     if (commonGoods.length > 0) {
       h += '以下品名在进项和销项中<span class="hl">均有出现（购进与销售相同）</span>，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
     }
@@ -653,7 +668,7 @@ function renderTaxDocReport(r) {
     h += '</p>';
 
     // 综合判断
-    h += '<p class="i2"><b>5. 综合判断。</b>';
+    h += '<p class="i2"><b>4. 综合判断。</b>';
     var totalDiff = purOnlyGoods.length + salOnlyGoods.length;
     if (hasProcFee || (purOnlyGoods.length > 0 && salOnlyGoods.length > 0)) {
       h += '综合以上分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + totalDiff + '类实质性差异——';
@@ -666,11 +681,9 @@ function renderTaxDocReport(r) {
     h += '</p>';
   } else {
     // 无加工费、无品名差异时的简化版本
-    h += '<p class="i2"><b>2-4. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，确认企业经营模式与工商登记一致。</p>';
-    h += '<p class="i2"><b>5. 综合判断。</b>经五步核查法全流程审核——工商登记<strong>' + esc(registeredBusiness || inferredBusiness || '未获取') + '</strong>、发票数据推断<strong>' + esc(inferredBusiness || registeredBusiness || '未获取') + '</strong>、进销品名一致——被查单位<span class="hl">实质经营模式与登记信息一致</span>，发票数据与工商登记吻合。该结论基于五步核查法（工商登记→进项审核→销项审核→交叉比对→综合判断）的完整审核过程，非简单匹配。</p>';
+    h += '<p class="i2"><b>1-3. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，确认企业经营模式与工商登记一致。</p>';
+    h += '<p class="i2"><b>4. 综合判断。</b>经五步核查法全流程审核——工商登记<strong>' + esc(registeredBusiness || inferredBusiness || '未获取') + '</strong>、发票数据推断<strong>' + esc(inferredBusiness || registeredBusiness || '未获取') + '</strong>、进销品名一致——被查单位<span class="hl">实质经营模式与登记信息一致</span>，发票数据与工商登记吻合。该结论基于五步核查法（工商登记→进项审核→销项审核→交叉比对→综合判断）的完整审核过程，非简单匹配。</p>';
   }
-  h += '<p class="i2">（一）稽查方法。第一，进销存数据比对。'+esc(ii['销项发票']||'')+'，'+esc(ii['进项发票']||'')+'，进销比'+esc(ii['进销比']||'')+'。第二，资金流与发票流核对。银行收款'+esc(bi['总收款']||'')+'，付款'+esc(bi['总付款']||'')+'，税费支出'+esc(bi['税费支出总额']||'')+'。第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
-
   if (rc) {
     h += '<h3>收款来源分析</h3><p>';
     h += '企业客户款：'+rc['企业客户款']+'<br>';
