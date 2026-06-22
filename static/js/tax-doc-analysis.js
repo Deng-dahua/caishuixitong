@@ -767,7 +767,7 @@ function renderTaxDocReport(r) {
         h += '<div class="frow"><span class="flabel">线索描述：</span>'+esc(f.description)+'</div>';
       }
     } else {
-      h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
+      h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||''))+'</div>';
     }
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);
@@ -790,8 +790,8 @@ function renderTaxDocReport(r) {
       if (f.source_chain && !f.source_chain.includes('链驱动')) h += '| '+esc(f.source_chain)+' ';
       h += '</div>';
     }
-    h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref).substring(0,300) : '《中华人民共和国税收征收管理法》及相关税收法规')+'</div>';
-    if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc((f.suggestion||'').substring(0,300))+'</div>';
+    h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref) : '《中华人民共和国税收征收管理法》及相关税收法规')+'</div>';
+    if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc(f.suggestion||'')+'</div>';
     h += '</div>';
   });
 
@@ -1177,12 +1177,12 @@ function renderNarrativeReport(r) {
     }
 
     // 法律依据
-    var lawText = f.policy_ref ? esc(f.policy_ref).substring(0,300) : '《中华人民共和国税收征收管理法》及相关税收法规';
+    var lawText = f.policy_ref ? esc(f.policy_ref) : '《中华人民共和国税收征收管理法》及相关税收法规';
     h += '<div class="nr-law">⚖ <strong>我依据的法律条文：</strong>' + lawText + '</div>';
 
     // 处理建议
     if (f.suggestion) {
-      h += '<div class="nr-inspector-thought">💡 <strong>我的处理意见：</strong>' + esc((f.suggestion||'').substring(0,400)) + '</div>';
+      h += '<div class="nr-inspector-thought">💡 <strong>我的处理意见：</strong>' + esc(f.suggestion||'') + '</div>';
     }
 
     h += '</div>';
