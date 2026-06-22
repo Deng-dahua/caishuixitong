@@ -9490,7 +9490,10 @@ _init_tax_docs_from_disk()
 
 
 def _recover_tax_risk_docs():
-    """启动时从磁盘恢复资料列表"""
+    """启动时从磁盘恢复资料列表（如果 _init_tax_docs_from_disk 已运行则跳过，避免重复）"""
+    global _TAX_DOC_SCANNED
+    if _TAX_DOC_SCANNED:
+        return  # _init_tax_docs_from_disk 已经扫描并初始化，无需重复
     import hashlib
     if not os.path.exists(UPLOAD_DIR):
         return
