@@ -347,7 +347,7 @@ function renderAuditorHandbook(container) {
   html += '<p style="font-weight:600;">原理：从交易特征反向验证商业合理性。发票数据本身的模式就能暴露问题。</p>';
   html += '<table class="table table-sm"><tbody>';
   html += '<tr><td style="white-space:nowrap;font-weight:600;">供应商地理</td><td>企业注册地在A省，主要供应商集中在千里之外的B省→运输成本合理性存疑→可能为开票公司</td></tr>';
-  html += '<tr><td style="font-weight:600;">品名逻辑</td><td>纺织企业采购大量电子产品→品名与经营范围不符→虚开发票嫌疑</td></tr>';
+  html += '<tr><td style="font-weight:600;">品名逻辑</td><td>生产企业采购大量与其经营范围无关的消费品（如服装厂采购电子产品/食品厂采购建材）→品名与主营业务不符→虚开发票嫌疑</td></tr>';
   html += '<tr><td style="font-weight:600;">金额规律</td><td>长期向某供应商采购，金额稳定在起征点以下→规避发票认证→拆分交易</td></tr>';
   html += '<tr><td style="font-weight:600;">时间规律</td><td>月末/季末集中开票→突击开票冲成本→收入成本配比异常</td></tr>';
   html += '<tr><td style="font-weight:600;">价格合理性</td><td>采购价格显著高于/低于市场均价→关联交易转移定价→特别纳税调整</td></tr>';
