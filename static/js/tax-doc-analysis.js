@@ -32,7 +32,6 @@ function renderTaxDocAnalysis(container) {
     + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">上传资料</label>'
     + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
-    + '<button class="btn-toolbar" onclick="reviewTaxDocReport()" id="tda-review-btn" style="color:#0369a1;border-color:#93c5fd;background:#eff6ff">报告复核</button>'
     + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
     + '<button class="btn-toolbar" onclick="showCacheInfo()" id="tda-cache-btn" style="color:#6b7280;border-color:#d1d5db;background:#f9fafb;font-size:11px">缓存</button>'
@@ -722,8 +721,9 @@ function renderTaxDocReport(r) {
     var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">稽查重点</span>':'');
     h += '<div class="fact-sec" style="border-left:4px solid '+bc+'">';
     h += '<div class="ftitle">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
-    h += '<div class="frow"><span class="flabel">违法性质：</span>'+esc(f.type||'')+'</div>';
-    h += '<div class="frow"><span class="flabel">违法事实：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
+    var domainText = f.domain || f.category || '';
+    if (domainText) h += '<div class="frow"><span class="flabel">涉及领域：</span>'+esc(domainText)+'</div>';
+    h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||'').substring(0,500))+'</div>';
     if (f.items && f.items.length > 0) {
       var cols2 = Object.keys(f.items[0]);
       h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（明细）</div>';
@@ -745,7 +745,7 @@ function renderTaxDocReport(r) {
       if (f.source_chain && !f.source_chain.includes('链驱动')) h += '| '+esc(f.source_chain)+' ';
       h += '</div>';
     }
-    h += '<div class="law-ref">法律依据：《中华人民共和国税收征收管理法》及相关税收法规。具体条文由审理环节根据违法事实最终认定。</div>';
+    h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref).substring(0,300) : '《中华人民共和国税收征收管理法》及相关税收法规')+'</div>';
     if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc((f.suggestion||'').substring(0,300))+'</div>';
     h += '</div>';
   });
