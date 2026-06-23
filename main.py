@@ -17235,6 +17235,199 @@ def identify_main_biz_cost(pur_invs, sal_invs=None):
 # 每个阶段读取context中的前置发现，产出注入context供后续使用。
 # ═══════════════════════════════════════════════════════════
 
+class MemoryLearner:
+    """
+    记忆学习器 —— 让推理引擎从历史案例中自我改进
+    
+    三个学习维度：
+    1. 行业风险校准：学习各行业的实际风险分布，动态调整评级阈值
+    2. 信号频率学习：高频信号 → 可能是行业特征而非真正异常 → 降低虚假警报
+    3. 模式热度追踪：哪些风险模式在同类企业中反复出现 → 优先关注
+    
+    用法：
+        learner = MemoryLearner()
+        learner.load("static/audit_memory.json")
+        calibrated = learner.calibrate_risk(ctx)
+    """
+    
+    def __init__(self):
+        self.cases = []
+        self.industry_groups = {}  # {industry: [cases]}
+        self.model_groups = {}     # {biz_model: [cases]}
+        self.is_loaded = False
+        self.insights = {}         # computed insights cache
+    
+    def load(self, memory_path):
+        """加载审计记忆并计算统计"""
+        import json, os
+        from collections import Counter, defaultdict
+        
+        try:
+            with open(memory_path, 'r', encoding='utf-8') as f:
+                self.cases = json.load(f)
+        except Exception:
+            self.cases = []
+            return
+        
+        if not self.cases:
+            return
+        
+        # 按行业分组
+        self.industry_groups = defaultdict(list)
+        self.model_groups = defaultdict(list)
+        for c in self.cases:
+            ind = c.get("industry", "未知")
+            self.industry_groups[ind].append(c)
+            model = c.get("biz_model", "未知")
+            self.model_groups[model].append(c)
+        
+        # 计算行业洞察
+        for ind, cases in self.industry_groups.items():
+            if len(cases) < 2:
+                continue
+            
+            scores = [c.get("risk_score", 0) for c in cases]
+            scores.sort()
+            n = len(scores)
+            
+            # 信号频率（哪些信号频繁出现 → 可能是行业特征）
+            all_yellow = []
+            all_red = []
+            for c in cases:
+                all_yellow.extend(c.get("yellow_flags", []))
+                all_red.extend(c.get("red_flags", []))
+            yellow_freq = Counter(all_yellow)
+            
+            # 找到"过于频繁"的信号（>80%案例都出现）= 可能是行业正常特征
+            ubiquitous_signals = [sig for sig, cnt in yellow_freq.items() if cnt / n > 0.8]
+            high_freq_signals = [sig for sig, cnt in yellow_freq.items() if cnt / n > 0.5]
+            
+            self.insights[ind] = {
+                "case_count": n,
+                "risk_scores": {
+                    "min": scores[0],
+                    "p25": scores[max(0, int(n * 0.25) - 1)],
+                    "p50": scores[max(0, int(n * 0.5) - 1)],
+                    "p75": scores[min(n - 1, int(n * 0.75))],
+                    "p90": scores[min(n - 1, int(n * 0.9))],
+                    "max": scores[-1],
+                    "mean": sum(scores) / n,
+                },
+                "ubiquitous_signals": ubiquitous_signals,  # 80%+出现 → 降权
+                "high_freq_signals": high_freq_signals,    # 50%+出现 → 轻微降权
+                "risk_level_dist": dict(Counter(c.get("risk_level","") for c in cases)),
+                "avg_findings": sum(c.get("total_findings", 0) for c in cases) / n,
+                "avg_concentration": {
+                    "supplier": sum(c.get("supplier_concentration", 0) for c in cases) / n,
+                    "customer": sum(c.get("customer_concentration", 0) for c in cases) / n,
+                },
+                "has_processing_rate": sum(1 for c in cases if c.get("has_processing")) / n,
+            }
+        
+        self.is_loaded = True
+    
+    def calibrate_risk_thresholds(self, ctx):
+        """
+        行业风险阈值校准
+        
+        如果某个行业历史评分普遍偏高，则提高该行业的评级阈值，
+        避免所有该行业的企业都被评为"极高风险"。
+        """
+        cp = ctx.company_profile
+        industry = cp.get("industry", "综合")
+        insight = self.insights.get(industry, {})
+        
+        if not insight:
+            return ctx  # no calibration data
+        
+        scores = insight.get("risk_scores", {})
+        p50 = scores.get("p50", 70)
+        p75 = scores.get("p75", 90)
+        p90 = scores.get("p90", 110)
+        
+        # 如果行业中位数已经很高（>70），说明这是高危行业，调高阈值
+        base = max(70, p50)
+        ctx._calibrated_thresholds = {
+            "极高风险": max(base * 1.1, p75),  # 至少P75才叫"极高"
+            "高风险": max(base * 0.8, p50),
+            "中风险": max(base * 0.5, 30),
+            "低风险": 15,
+            "p50": p50,
+            "p75": p75,
+            "industry": industry,
+            "case_count": insight.get("case_count", 0),
+        }
+        
+        return ctx
+    
+    def get_signal_advice(self, signal_type, industry):
+        """
+        信号权重建议
+        
+        如果某个信号在该行业80%+的案例中都出现，说明它是行业常见特征，
+        建议降低其权重（可能是正常现象而非真正异常）
+        """
+        insight = self.insights.get(industry, {})
+        if not insight:
+            return {"weight_multiplier": 1.0, "advice": ""}
+        
+        if signal_type in insight.get("ubiquitous_signals", []):
+            return {
+                "weight_multiplier": 0.5,
+                "advice": f"该信号在{insight['case_count']}个同类案例中{100*(insight['ubiquitous_signals'].count(signal_type)+1)/insight['case_count']:.0f}%出现→可能是行业固有特征，不是真正的异常"
+            }
+        elif signal_type in insight.get("high_freq_signals", []):
+            return {
+                "weight_multiplier": 0.7,
+                "advice": f"该信号在同类案例中高频出现→需结合其他信号综合判断"
+            }
+        
+        return {"weight_multiplier": 1.0, "advice": ""}
+    
+    def get_industry_memory_insight(self, ctx):
+        """
+        生成行业记忆洞察文本，用于注入综合定性报告
+        """
+        cp = ctx.company_profile
+        industry = cp.get("industry", "综合")
+        biz_model = cp.get("biz_model", "")
+        insight = self.insights.get(industry, {})
+        
+        if not insight:
+            return ""
+        
+        n = insight.get("case_count", 0)
+        rs = insight.get("risk_scores", {})
+        levels = insight.get("risk_level_dist", {})
+        
+        lines = []
+        lines.append(f"系统记忆库中有{n}条{industry}行业（{biz_model}）的历史分析记录。")
+        
+        # 风险分布
+        lines.append(f"历史风险分布: 极高{levels.get('极高风险',0)}次/高{levels.get('高风险',0)}次/中{levels.get('中风险',0)}次/低{levels.get('低风险',0)}次。")
+        
+        # 分数分布
+        if rs:
+            lines.append(f"历史风险评分: 中位数{rs.get('p50',0):.0f}/P75={rs.get('p75',0):.0f}/P90={rs.get('p90',0):.0f}")
+        
+        # 高频信号
+        ub = insight.get("ubiquitous_signals", [])
+        if ub:
+            lines.append(f"行业高频信号（>80%案例）: {'、'.join(ub[:5])}——这些更可能是行业特征而非真正异常")
+        
+        # 浓度均值
+        ac = insight.get("avg_concentration", {})
+        if ac:
+            lines.append(f"行业平均集中度: 供应商{ac.get('supplier',0):.0f}%/客户{ac.get('customer',0):.0f}%")
+        
+        # 加工费率
+        pr = insight.get("has_processing_rate", 0)
+        if pr > 0:
+            lines.append(f"行业外包加工比例: {pr*100:.0f}%的企业有加工费发票——{biz_model}行业的常见特征")
+        
+        return "\n".join(lines)
+
+
 class AuditContext:
     """
     稽查上下文——贯穿4阶段的状态容器
@@ -17288,6 +17481,7 @@ class AuditContext:
         
         # ── 行业自适应 ──
         self.industry_profile = {}      # 当前企业匹配的行业画像配置
+        self.memory_learner = None      # MemoryLearner实例
         
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
@@ -17400,6 +17594,22 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     # ── 1.3 企业画像推断 ──
     _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries)
     pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
+    
+    # ── 1.35 记忆学习器：加载历史案例，学习行业模式 ──
+    try:
+        import os as _os_mem2
+        mem_dir = _os_mem2.path.dirname(_os_mem2.path.abspath(__file__))
+        mem_path = _os_mem2.path.join(mem_dir, "static", "audit_memory.json")
+        learner = MemoryLearner()
+        learner.load(mem_path)
+        ctx.memory_learner = learner
+        if learner.is_loaded:
+            # 行业风险阈值校准
+            learner.calibrate_risk_thresholds(ctx)
+            pipeline_log.append(f"[Phase1] 记忆学习: 已加载{len(learner.cases)}条历史案例, {len(learner.insights)}个行业画像")
+    except Exception as _le2:
+        ctx.memory_learner = None
+        pipeline_log.append(f"[Phase1] 记忆学习器: {type(_le2).__name__} - {_le2}")
     
     # ── 1.4 初查信号检测 ──
     _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs)
@@ -19563,12 +19773,24 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     normalized = (total_score / max(max_possible, 1)) * 100
     adjusted = normalized * cross_bonus
     
-    # 风险等级
-    if adjusted >= 70:    overall_risk = "极高风险"
-    elif adjusted >= 50:  overall_risk = "高风险"
-    elif adjusted >= 30:  overall_risk = "中风险"
-    elif adjusted >= 15:  overall_risk = "低风险"
-    else:                overall_risk = "基本合规"
+    # 风险等级 — 优先使用记忆学习器校准的阈值
+    calibrated = getattr(ctx, '_calibrated_thresholds', None)
+    if calibrated:
+        thresholds = {
+            "极高风险": calibrated.get("极高风险", 70),
+            "高风险": calibrated.get("高风险", 50),
+            "中风险": calibrated.get("中风险", 30),
+            "低风险": 15,
+        }
+        pipeline_log.append(f"[Phase4] 行业阈值校准({calibrated.get('industry','?')}行业/{calibrated.get('case_count',0)}案例): 极高>{thresholds['极高风险']:.0f}/高>{thresholds['高风险']:.0f}/中>{thresholds['中风险']:.0f}")
+    else:
+        thresholds = {"极高风险": 70, "高风险": 50, "中风险": 30, "低风险": 15}
+    
+    if adjusted >= thresholds["极高风险"]: overall_risk = "极高风险"
+    elif adjusted >= thresholds["高风险"]: overall_risk = "高风险"
+    elif adjusted >= thresholds["中风险"]: overall_risk = "中风险"
+    elif adjusted >= thresholds["低风险"]: overall_risk = "低风险"
+    else: overall_risk = "基本合规"
     
     pipeline_log.append(f"[Phase4] 风险评分: {adjusted:.0f}/100 → {overall_risk}")
     
@@ -19814,11 +20036,19 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     else:
         lines.append(f"  企业整体风险可控，建议按常规流程处理。")
     
-    # ═══ 第六段：历史记忆洞察 ═══
-    memory_insight = getattr(ctx, '_memory_insight', '')
-    if memory_insight:
-        lines.append(f"\n【历史记忆洞察】")
-        lines.append(f"  {memory_insight}")
+    # ═══ 第六段：记忆学习洞察 ═══
+    # 优先使用MemoryLearner的行业记忆洞察（更丰富）
+    learner = getattr(ctx, 'memory_learner', None)
+    if learner and learner.is_loaded:
+        learner_insight = learner.get_industry_memory_insight(ctx)
+        if learner_insight:
+            lines.append(f"\n【记忆学习洞察】")
+            lines.append(f"  {learner_insight}")
+    else:
+        memory_insight = getattr(ctx, '_memory_insight', '')
+        if memory_insight:
+            lines.append(f"\n【历史记忆洞察】")
+            lines.append(f"  {memory_insight}")
     
     # ═══ 第七段：质量声明 ═══
     if ctx.data_quality_score < 70:
