@@ -18723,6 +18723,292 @@ def _trigger_missing_consequences(all_items, missing_doc_keys=None):
     return triggered
 
 
+# ═══════════ 结论自洽性检查：矛盾检测规则 ═══════════
+# 引擎产出的结论之间可能存在逻辑互斥，检测并标注矛盾
+CONTRADICTION_RULES = [
+    {
+        "id": "CONTR_001",
+        "name": "高毛利与成本虚列逻辑矛盾",
+        "condition_a": {"type_contains": ["毛利率异常偏高", "毛利率异常高", "毛利偏高"]},
+        "condition_b": {"any_field_contains": ["成本虚列", "虚增成本", "虚增进项", "成本虚高", "成本造假"]},
+        "conflict_level": "极高风险",
+        "explanation": (
+            "毛利率偏高=成本占收入比例偏低；成本虚列=成本被夸大入账。"
+            "两者逻辑互斥——若成本被虚列入账，毛利率应当偏低而非偏高。"
+            "需排查：①毛利率计算是否正确（是否漏记了部分成本）；"
+            "②'成本虚列'指向的具体科目是属于营业成本还是期间费用"
+            "（期间费用虚列不影响毛利率）；"
+            "③如果两者确实都成立，至少有一个结论的指向有误。"
+        ),
+        "resolution": (
+            "分别核实：①若成本虚列指向期间费用（管理/销售/财务费用），"
+            "则不直接与毛利率矛盾，但需注意费用虚列也会虚减利润；"
+            "②若成本虚列指向营业成本，则毛利率偏高结论不成立，需复核毛利率计算。"
+        ),
+        "priority": "P0",
+    },
+    {
+        "id": "CONTR_002",
+        "name": "购销严重倒挂但缺失隐匿收入/虚进信号",
+        "condition_a": {"type_contains": ["购销严重倒挂", "购销倒挂", "进销倒挂"]},
+        "condition_b": {"all_not_contain": ["隐匿收入", "虚增进项", "虚开发票", "未开票"]},
+        "conflict_level": "高风险",
+        "explanation": (
+            "进项发票金额远超销项（倒挂），必须至少存在以下之一："
+            "①存在未开票/隐匿收入（实际销售＞开票金额）；"
+            "②进项虚增（虚开发票/虚增进项）；③大额库存积压。"
+            "但当前未检测到任何一项相关信号——存在分析盲区，"
+            "倒挂的原因未被充分解释。"
+        ),
+        "resolution": (
+            "逐项排查补齐：①比对银行流水收款金额与开票金额"
+            "（检测隐匿收入）；②逐张核查进项发票的三流一致性"
+            "（检测虚进）；③盘点期末存货（检测库存积压）。"
+        ),
+        "priority": "P0",
+    },
+    {
+        "id": "CONTR_003",
+        "name": "有进无销与有销无进在同一核心品类共存",
+        "condition_a": {"type_contains": ["有进无销"]},
+        "condition_b": {"type_contains": ["有销无进"]},
+        "conflict_level": "中风险",
+        "explanation": (
+            "同一企业的核心成本品类同时触发'有进无销'和'有销无进'——"
+            "可能是加工链条导致品名转换（需BOM表验证），"
+            "也可能是分类边界模糊导致进销品名匹配错位。"
+            "如果两者品名不同但属于同一加工链条，则可被BOM合理解释；"
+            "否则两个结论至少有一个存在误判。"
+        ),
+        "resolution": (
+            "检查：①是否已正确识别主营业务成本品名；"
+            "②是否存在加工费（品名经由加工转换）；"
+            "③是否已排除日常费用品名。"
+            "若加工链条存在但BOM缺失，两个结论可能因品名不匹配而存疑。"
+        ),
+        "priority": "P1",
+    },
+    {
+        "id": "CONTR_004",
+        "name": "隐匿收入信号但毛利率未出现异常",
+        "condition_a": {"any_field_contains": ["隐匿收入", "未开票收入", "少记收入", "账外收入"]},
+        "condition_b": {"all_not_contain": ["毛利率异常", "毛利异常", "毛利为负", "毛利率偏低"]},
+        "conflict_level": "中风险",
+        "explanation": (
+            "若存在隐匿收入，已申报收入<实际收入，"
+            "则已申报报表上的毛利率=已申报毛利/已申报收入。"
+            "虽然已申报毛利率未必异常，但如果已申报毛利率已经是正常甚至偏高水平，"
+            "叠加隐匿收入后真实毛利率可能远超行业均值——"
+            "说明被藏匿的很可能是高利润业务。"
+        ),
+        "resolution": (
+            "估算考虑隐匿收入后的真实毛利率："
+            "真实毛利率≈(已申报毛利+隐匿收入估算毛利)/(已申报收入+隐匿收入估算)。"
+            "若真实毛利率远超行业均值，隐匿收入的可能性增大"
+            "（高利润业务被选择性藏匿）。"
+        ),
+        "priority": "P1",
+    },
+    {
+        "id": "CONTR_005",
+        "name": "虚开信号与四流合一完整的冲突",
+        "condition_a": {"any_field_contains": ["虚开发票", "虚开", "对开环开"]},
+        "condition_b": {"any_field_contains": ["四流合一", "三流一致", "四流匹配"]},
+        "conflict_level": "高风险",
+        "explanation": (
+            "四流合一（合同/发票/资金/货物）完整是交易真实性的最强证据。"
+            "若四流合一链完整却同时触发虚开发票信号，需要深入排查："
+            "①虚开信号可能是误报（品名差异有合理解释）；"
+            "②或者四流合一是表面完整——资金回流、货物未实际流转。"
+        ),
+        "resolution": (
+            "深入核查三流真实性：①资金是否真正流向供应商（排除当日转回/关联方回流）；"
+            "②货物是否实际交付（查物流单据/入库单/验收记录）；"
+            "③合同是否真实签署（排除后补/倒签合同）。"
+        ),
+        "priority": "P0",
+    },
+    {
+        "id": "CONTR_006",
+        "name": "加工费存在但BOM缺失的品名差异豁免风险",
+        "condition_a": {"any_field_contains": ["加工费", "委外加工", "外包加工"]},
+        "condition_b": {"all_not_contain": ["BOM表", "BOM"]},
+        "conflict_level": "高风险",
+        "explanation": (
+            "存在加工费发票=确认有外包加工环节。"
+            "外包加工必然导致进项品名（原材料）≠销项品名（成品）。"
+            "在BOM表缺失的情况下，进销品名差异无法被合理解释——"
+            "'有进无销'可能只是正常的原材料投入加工，"
+            "'有销无进'可能只是正常的外购成品销售，"
+            "但两种都因BOM缺失而无法排除虚开嫌疑。"
+        ),
+        "resolution": (
+            "必须取得BOM表验证加工链条。BOM表应包含："
+            "①成品→半成品→原材料的逐级分解关系；"
+            "②每一级的标准用量（单耗）；"
+            "③加工损耗率。"
+            "在BOM缺失前提下，进销品名差异不能简单判定为'正常'或'异常'——"
+            "两个方向的结论都需要标注'置信度受限'。"
+        ),
+        "priority": "P0",
+    },
+    {
+        "id": "CONTR_007",
+        "name": "毛利为负与持续经营假设冲突",
+        "condition_a": {"type_contains": ["毛利为负", "毛利率为负", "负毛利"]},
+        "condition_b": {},  # 无条件触发——毛利为负本身就是矛盾
+        "conflict_level": "极高风险",
+        "explanation": (
+            "销售毛利率为负=售价低于成本，企业每卖一件产品都在亏本。"
+            "正常持续经营的企业不可能长期维持负毛利——"
+            "要么收入被低估（存在隐匿收入），要么成本被高估（存在虚增成本），"
+            "要么企业的真实经营模式不是简单的'买进卖出'（如加工/代理等）。"
+        ),
+        "resolution": (
+            "这是最严重的财务异常信号，直接质疑企业的经营实质。"
+            "①若存在加工费：品名不同→进销比对失效，负毛利可能是误判；"
+            "②若无加工费：收入端→查银行流水是否有未开票收款；"
+            "成本端→查是否有大量存货未结转成本或进项虚开。"
+        ),
+        "priority": "P0",
+    },
+]
+
+
+def _check_conclusion_consistency(all_findings):
+    """
+    结论自洽性检查：扫描所有发现，检测预定义的矛盾模式
+    
+    规则触发逻辑：
+    1. condition_a 必须命中至少一条 finding
+    2. condition_b 的约束也必须满足（正向必须命中/反向必须全部不命中）
+    3. 两个条件用不同finding命中（不要求同一条finding同时命中a和b）
+    """
+    contradictions = []
+    
+    for rule in CONTRADICTION_RULES:
+        cond_a = rule.get("condition_a", {})
+        cond_b = rule.get("condition_b", {})
+        
+        # 检查 condition_a: 至少一条finding满足
+        a_hit = False
+        a_findings = []
+        for f in all_findings:
+            if _match_condition(f, cond_a):
+                a_hit = True
+                a_findings.append(f)
+        
+        if not a_hit:
+            continue
+        
+        # 检查 condition_b: 
+        # - 如果有正向条件(contains类): 至少一条finding满足
+        # - 如果有反向条件(all_not_contain): 所有finding都不满足
+        # - 如果condition_b为空: 直接通过（condition_a命中即触发）
+        b_ok = True
+        b_findings = []
+        
+        if cond_b:
+            # 正向条件检查
+            has_positive = any(k.endswith("_contains") for k in cond_b)
+            has_negative = any(k.endswith("_not_contain") for k in cond_b)
+            
+            if has_positive:
+                b_hit = False
+                for f in all_findings:
+                    if f in a_findings:
+                        continue  # condition b 应该在不同的finding上
+                    if _match_condition(f, {k: v for k, v in cond_b.items() if k.endswith("_contains")}):
+                        b_hit = True
+                        b_findings.append(f)
+                if not b_hit:
+                    b_ok = False
+            
+            if has_negative:
+                for f in all_findings:
+                    neg_conds = {k: v for k, v in cond_b.items() if k.endswith("_not_contain")}
+                    if _match_condition(f, neg_conds):
+                        b_ok = False
+                        break
+        
+        if not b_ok:
+            continue
+        
+        # 矛盾成立，生成结论
+        a_types = list(set(f.get("type", "") for f in a_findings))[:3]
+        description = (
+            f"【矛盾检测】{rule['explanation']}\n\n"
+            f"命中信号A: {'、'.join(a_types)}"
+        )
+        if b_findings:
+            b_types = list(set(f.get("type", "") for f in b_findings))[:3]
+            description += f"\n命中信号B: {'、'.join(b_types)}"
+        description += f"\n\n【解决方向】{rule['resolution']}"
+        
+        contradictions.append({
+            "type": f"结论自洽-{rule['name']}",
+            "level": rule["conflict_level"],
+            "score": 9 if rule["conflict_level"] == "极高风险" else (8 if rule["conflict_level"] == "高风险" else 6),
+            "detail": description,
+            "description": description,
+            "how_found": f"结论自洽性检查引擎检测到矛盾模式'{rule['id']}': {rule['name']}",
+            "tax_impact": rule["explanation"][:200],
+            "suggestion": rule["resolution"],
+            "policy_ref": "《税务稽查工作规程》关于证据链完整性、一致性的要求",
+            "category": "综合定性·结论自洽",
+            "_priority": rule["priority"],
+            "_contradiction_id": rule["id"],
+            "_auto_triggered": True,
+        })
+    
+    return contradictions
+
+
+def _match_condition(finding, condition):
+    """检查finding是否匹配条件"""
+    if not condition:
+        return False
+    
+    for cond_key, keywords in condition.items():
+        # 确定要搜索的字段
+        if cond_key == "type_contains":
+            field = str(finding.get("type", ""))
+        elif cond_key == "type_not_contains":
+            field = str(finding.get("type", ""))
+        elif cond_key == "any_field_contains":
+            field = (
+                str(finding.get("type", "")) + " " +
+                str(finding.get("detail", "")) + " " +
+                str(finding.get("description", "")) + " " +
+                str(finding.get("category", ""))
+            )
+        elif cond_key == "all_not_contain":
+            field = (
+                str(finding.get("type", "")) + " " +
+                str(finding.get("detail", "")) + " " +
+                str(finding.get("description", "")) + " " +
+                str(finding.get("category", ""))
+            )
+        elif cond_key == "domain_contains":
+            field = str(finding.get("domain", ""))
+        elif cond_key == "domain_not_contains":
+            field = str(finding.get("domain", ""))
+        else:
+            continue
+        
+        # 检查是否包含/不包含关键词
+        if cond_key.endswith("_contains"):
+            # 正向：至少一个关键词命中
+            if not any(kw in field for kw in keywords):
+                return False
+        elif cond_key.endswith("_not_contain"):
+            # 反向：任何一个关键词命中即失败
+            if any(kw in field for kw in keywords):
+                return False
+    
+    return True
+
+
 def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     Phase 4 — 综合定性引擎
@@ -18740,6 +19026,12 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     if missing_triggered:
         all_items.extend(missing_triggered)
         pipeline_log.append(f"[Phase4] 缺失后果自动触发: {len(missing_triggered)}项 → {', '.join(mt['_missing_key'] for mt in missing_triggered)}")
+    
+    # ═══ 结论自洽性检查：检测矛盾结论 ═══
+    contradiction_findings = _check_conclusion_consistency(all_items)
+    if contradiction_findings:
+        all_items.extend(contradiction_findings)
+        pipeline_log.append(f"[Phase4] 结论自洽性检查: {len(contradiction_findings)}个矛盾 → {', '.join(cf['_contradiction_id'] for cf in contradiction_findings)}")
     
     if not all_items:
         return {
@@ -18955,6 +19247,14 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for mr in missing_risk_signals[:5]:
             risk_name = mr['type'].replace('资料缺失触发-', '')
             lines.append(f"    → {risk_name}")
+    
+    # ═══ 结论自洽性检查：矛盾信号 ═══
+    contradiction_signals = [i for i in core_issues if i.get("type", "").startswith("结论自洽-")]
+    if contradiction_signals:
+        lines.append(f"  ▸ 结论自洽性警报：检测到{len(contradiction_signals)}个逻辑矛盾——")
+        for cs in contradiction_signals[:5]:
+            name = cs['type'].replace('结论自洽-', '')
+            lines.append(f"    ⚠ {name}")
     
     # 高风险项 TOP3
     if core_issues:
