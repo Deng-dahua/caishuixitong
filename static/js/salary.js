@@ -651,6 +651,11 @@ function importSalaryExcel() {
     formData.append('company_id', currentCompanyId);
     formData.append('period', period);
 
+    // ═══ 工资导入路由已从8888稽查版移除，此功能暂不可用 ═══
+    toast('工资导入功能暂不可用（稽查版已移除该路由）', 'warning');
+    progress.style.display = 'none';
+    return;
+    /* 原路由已移除
     fetch('/api/salary/import?company_id=' + currentCompanyId + '&period=' + encodeURIComponent(period), {
         method: 'POST',
         body: formData
@@ -675,6 +680,7 @@ function importSalaryExcel() {
         progress.style.display = 'none';
         toast(err.message || '导入失败', 'error');
     });
+    */
 }
 
 

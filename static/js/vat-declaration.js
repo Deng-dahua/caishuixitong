@@ -1163,6 +1163,10 @@ async function vatSaveManualData() {
       debugMsg += ' | ' + _fk + '=' + _keys.length + '个字段';
     }
     console.log(debugMsg, allFormData);
+    // ═══ vat保存路由已从8888稽查版移除 ═══
+    toast('增值税申报保存功能暂不可用（稽查版已移除该路由）', 'warning');
+    return;
+    /* 原路由已移除
     var resp = await fetch('/api/vat/declarations/' + vatCurrentData.id + '?company_id=' + (currentCompanyId || 1), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1171,9 +1175,9 @@ async function vatSaveManualData() {
     var result = await resp.json();
     if (!resp.ok) throw new Error(result.detail || '保存失败');
     toast('表单数据已保存', 'success');
-    // 重新加载页面数据
     await openVATDetailInline(vatCurrentData.id);
   } catch (e) { toast('保存失败: ' + (e.message || '未知错误'), 'error'); }
+  */
 }
 
 function vatGenerateVoucher() {
@@ -1200,6 +1204,10 @@ async function fetchPriorPeriodData() {
   var period = vatCurrentData.period;
   var companyId = currentCompanyId || 1;
   try {
+    // ═══ vat prior-data路由已从8888稽查版移除 ═══
+    console.log('[vat] 上期数据获取功能暂不可用（稽查版已移除该路由）');
+    return;
+    /* 原路由已移除
     var resp = await fetch('/api/vat/prior-data?company_id=' + companyId + '&period=' + encodeURIComponent(period));
     var data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || '获取失败');
@@ -1227,6 +1235,7 @@ async function fetchPriorPeriodData() {
   } catch (e) {
     console.error('获取上期数据失败:', e);
   }
+  */
 }
 
 function renderMainForm(data) {

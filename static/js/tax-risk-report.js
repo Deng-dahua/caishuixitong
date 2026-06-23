@@ -278,7 +278,7 @@ function escapeHtml(str) {
 function downloadTaxRiskReport(format) {
   if (!taxRiskReportData) { toast('请先生成报告', 'error'); return; }
   var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
-  var url = '/api/tax-risk/download-report?company_id=' + cid + '&format=' + format;
+  var url = '/api/tax-risk/report/download?company_id=' + cid + '&format=' + format;
   // 使用 hidden iframe 触发下载
   var iframe = document.createElement('iframe');
   iframe.style.display = 'none';

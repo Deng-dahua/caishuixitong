@@ -682,6 +682,10 @@ async function ccfSaveManualData() {
     formData[key] = isNaN(val) ? 0 : val;
   }
   try {
+    // ═══ ccf保存路由已从8888稽查版移除 ═══
+    toast('文化事业建设费申报保存功能暂不可用（稽查版已移除该路由）', 'warning');
+    return;
+    /* 原路由已移除
     var resp = await fetch('/api/cultural-construction-fee/declarations/' + ccfCurrentData.id + '?company_id=' + (currentCompanyId || 1), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -693,6 +697,7 @@ async function ccfSaveManualData() {
     // 重新加载
     await openCCFDetailInline(ccfCurrentData.id);
   } catch (e) { toast('保存失败: ' + (e.message || '未知错误'), 'error'); }
+  */
 }
 
 // ==================== 生成凭证 ====================
