@@ -1,3 +1,18 @@
+# ═══ 全局 AuditContext 传递机制 ═══
+# 域分析函数可以通过 get_audit_ctx() 获取当前分析上下文
+# Phase 2 在执行域函数前自动设置此值
+_current_ctx = None
+
+def set_audit_ctx(ctx):
+    """设置当前线程的 AuditContext（Phase 2 调用）"""
+    global _current_ctx
+    _current_ctx = ctx
+
+def get_audit_ctx():
+    """获取当前 AuditContext（域分析函数调用）"""
+    return _current_ctx
+
+
 class AuditContext:
     """
     稽查上下文——贯穿4阶段的状态容器

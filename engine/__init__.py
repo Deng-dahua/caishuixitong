@@ -1,7 +1,7 @@
 # 稽查员推理引擎 (Audit Reasoning Engine)
 # 模块化架构: context → phase1 → phase2 → phase3 → phase4
 
-from .context import AuditContext
+from .context import AuditContext, set_audit_ctx, get_audit_ctx
 from .main_biz_cost import identify_main_biz_cost, _REIMBURSEMENT_KWS_GLOBAL, _MAJOR_EXPENSE_KWS
 from .phase1_triage import _phase1_triage, _infer_company_profile, _infer_industry_from_goods
 from .phase1_triage import _detect_triage_signals, _detect_invoice_pattern_signals, _detect_consecutive_invoices

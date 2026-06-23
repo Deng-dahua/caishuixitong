@@ -12688,8 +12688,18 @@ def _domain_contract_comparison(db, company_id, sal_invs, pur_invs):
     return findings
 
 def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries):
-    """域12: 经营实质深度稽查 — 多角度、多维度、多样化手段"""
+    """域12: 经营实质深度稽查 — 多角度、多维度、多样化手段（ctx增强版）"""
     findings = []
+    
+    # ── ctx 上下文读取（Phase 2 注入）──
+    try:
+        from engine.context import get_audit_ctx
+        _ctx = get_audit_ctx()
+        _industry = _ctx.company_profile.get("industry", "") if _ctx else ""
+        _biz_model = _ctx.company_profile.get("biz_model", "") if _ctx else ""
+        _has_processing = _ctx.has_processing_fee if _ctx else False
+    except Exception:
+        _ctx, _industry, _biz_model, _has_processing = None, "", "", False
 
     # ═══ 守卫: 进项发票和银行流水全空 → 无法判断费用是否真实缺失（可能是文件解析失败） ═══
     if not pur_invs and not bank_txs:
@@ -15794,7 +15804,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
 # ═══════════ 发票实质性稽查：合规检查+单价分析+BOM缺失 ═══════════
 
 def _domain_invoice_audit(invoices, target_industry=""):
-    """对发票进行实质性审计——逐票检查，而非关键词匹配。
+    """对发票进行实质性审计——逐票检查，而非关键词匹配（ctx增强版）。
     target_industry: 行业代码，用于行业自适应原料/成品关键词匹配
     
     五层深度审计：
@@ -15805,6 +15815,15 @@ def _domain_invoice_audit(invoices, target_industry=""):
     5. 进销品名映射+BOM缺失：原材料→成品逻辑是否成立
     """
     findings = []
+    
+    # ── ctx 增强：如果 Phase 2 已注入企业画像，优先使用 ──
+    try:
+        from engine.context import get_audit_ctx
+        _ctx = get_audit_ctx()
+        if _ctx and not target_industry:
+            target_industry = _ctx.company_profile.get("industry", "")
+    except Exception:
+        pass
     
     if not invoices or len(invoices) < 2:
         return findings

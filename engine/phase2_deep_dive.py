@@ -192,6 +192,10 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
             pipeline_log.append(f"[Phase2] 域'{domain}'无对应分析函数，跳过")
             continue
         
+        # ── ctx 全局注入：域函数可通过 get_audit_ctx() 获取上下文 ──
+        from .context import set_audit_ctx
+        set_audit_ctx(ctx)
+        
         try:
             findings = func()
             # ── ctx 注入：将当前 ctx 的摘要附加到每条发现上 ──
