@@ -287,6 +287,280 @@ function renderAnalyzeHeader(report) {
   area.innerHTML = h;
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  报告增强渲染模块 — 补全13个后端产出但前端未消费的功能
+// ═══════════════════════════════════════════════════════════════
+
+// 全局转义函数
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _fmt(v, dft) {
+  if (v === undefined || v === null) return dft !== undefined ? dft : '';
+  if (typeof v === 'number') return v.toLocaleString ? v.toLocaleString('zh-CN') : String(v);
+  return String(v);
+}
+
+// ── 1. 资料概览（comprehensive.data_overview）──
+function renderDataOverview(cc) {
+  var ov = cc && cc.data_overview;
+  if (!ov) return '';
+  var present = ov.present || [];
+  var missing = ov.missing || [];
+  if (!present.length && !missing.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#0f172a;margin-bottom:8px">📋 资料概览</div>';
+  if (present.length) h += '<div>已获取资料：' + present.map(function(p){return '<span style="display:inline-block;padding:1px 8px;margin:2px 4px;background:#dbeafe;border-radius:3px;font-size:12px">' + esc(p) + '</span>';}).join('') + '</div>';
+  if (missing.length) h += '<div style="margin-top:8px;color:#dc2626">缺失资料：' + missing.map(function(m){return '<span style="display:inline-block;padding:1px 8px;margin:2px 4px;background:#fee2e2;border-radius:3px;font-size:12px">' + esc(m) + '</span>';}).join('') + '</div>';
+  h += '</div>';
+  return h;
+}
+
+// ── 2. 缺失后果触发（comprehensive.missing_consequence_triggers）──
+function renderMissingConsequenceTriggers(cc) {
+  var trs = cc && cc.missing_consequence_triggers;
+  if (!trs || !trs.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ 资料缺失触发风险（叙事增强层自动触发）</div>';
+  h += '<table class="tbl2"><tr><th>缺失资料</th><th>风险等级</th><th>推定后果</th><th>法律依据</th><th>处理行动</th></tr>';
+  for (var i = 0; i < trs.length; i++) {
+    var t = trs[i];
+    var lvl = t.level || '高风险';
+    var lvlColor = lvl === '高风险' ? '#dc2626' : (lvl === '中风险' ? '#d97706' : '#059669');
+    h += '<tr>';
+    h += '<td style="font-weight:600">' + esc(t.missing_doc || '') + '</td>';
+    h += '<td style="color:' + lvlColor + ';font-weight:600">' + esc(lvl) + '</td>';
+    h += '<td style="color:#991b1b">' + esc(t.consequence || '') + '</td>';
+    h += '<td style="font-size:11px">' + esc(t.law_ref || '') + '</td>';
+    h += '<td>' + esc(t.action || '') + '</td>';
+    h += '</tr>';
+  }
+  h += '</table></div>';
+  return h;
+}
+
+// ── 3. 月度资金流（comprehensive.cashflow）──
+function renderCashflowChart(cc) {
+  var cf = cc && cc.cashflow;
+  if (!cf || !cf.months || !cf.months.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">';
+  h += '<div style="font-weight:700;color:#0f172a;margin-bottom:10px">📊 月度资金流分析</div>';
+  h += '<table class="tbl2"><tr><th>月份</th><th class="r">收入（元）</th><th class="r">支出（元）</th><th class="r">税费（元）</th><th class="r">净额（元）</th></tr>';
+  var months = cf.months || [];
+  var income = cf.income || [];
+  var expense = cf.expense || [];
+  var tax = cf.tax || [];
+  var net = cf.net || [];
+  for (var i = 0; i < months.length; i++) {
+    var n = net[i] || 0;
+    var nColor = n < 0 ? '#dc2626' : '#059669';
+    h += '<tr>';
+    h += '<td>' + esc(months[i]) + '</td>';
+    h += '<td class="r">' + _fmt(income[i], 0) + '</td>';
+    h += '<td class="r">' + _fmt(expense[i], 0) + '</td>';
+    h += '<td class="r">' + _fmt(tax[i], 0) + '</td>';
+    h += '<td class="r" style="color:' + nColor + ';font-weight:600">' + _fmt(net[i], 0) + '</td>';
+    h += '</tr>';
+  }
+  h += '</table></div>';
+  return h;
+}
+
+// ── 4. 往来方TOP20（comprehensive.top_receivers / top_payers）──
+function renderTopCounterparties(cc) {
+  var recv = cc && cc.top_receivers;
+  var pay = cc && cc.top_payers;
+  if ((!recv || !recv.length) && (!pay || !pay.length)) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">';
+  h += '<div style="font-weight:700;color:#0f172a;margin-bottom:10px">📋 主要往来方（按金额排序）</div>';
+  if (recv && recv.length) {
+    h += '<div style="display:inline-block;vertical-align:top;width:48%;margin-right:2%">';
+    h += '<div style="font-weight:600;color:#059669;margin-bottom:6px">收款方 TOP10</div>';
+    h += '<table class="tbl2"><tr><th>名称</th><th class="r">金额（元）</th></tr>';
+    for (var i = 0; i < Math.min(recv.length, 10); i++) {
+      h += '<tr><td>' + esc(recv[i].name || '') + '</td><td class="r">' + _fmt(recv[i].amount, 0) + '</td></tr>';
+    }
+    h += '</table></div>';
+  }
+  if (pay && pay.length) {
+    h += '<div style="display:inline-block;vertical-align:top;width:48%;margin-left:2%">';
+    h += '<div style="font-weight:600;color:#dc2626;margin-bottom:6px">付款方 TOP10</div>';
+    h += '<table class="tbl2"><tr><th>名称</th><th class="r">金额（元）</th></tr>';
+    for (var j = 0; j < Math.min(pay.length, 10); j++) {
+      h += '<tr><td>' + esc(pay[j].name || '') + '</td><td class="r">' + _fmt(pay[j].amount, 0) + '</td></tr>';
+    }
+    h += '</table></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── 5. 金税四期风险评分（comprehensive.risk_profile）──
+function renderRiskProfile(cc) {
+  var rp = cc && cc.risk_profile;
+  if (!rp) return '';
+  var level = rp.composite_level || rp.overall_level || '';
+  var score = rp.composite_score || rp.overall_score || 0;
+  var factors = rp.factors || rp.detail_factors || {};
+  var lvlColor = level === '高风险' ? '#dc2626' : (level === '中风险' ? '#d97706' : '#059669');
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#0f172a;margin-bottom:8px">🔢 金税四期式多因子风险评分</div>';
+  h += '<div>综合风险等级：<span style="color:' + lvlColor + ';font-weight:700;font-size:15px">' + esc(level) + '</span></div>';
+  h += '<div>综合评分：<span style="font-weight:700">' + _fmt(score) + '分</span></div>';
+  var factorKeys = Object.keys(factors);
+  if (factorKeys.length > 0) {
+    h += '<div style="margin-top:8px;font-size:12px;color:#475569">';
+    h += '评分因子：';
+    for (var i = 0; i < factorKeys.length; i++) {
+      var k = factorKeys[i];
+      var v = factors[k];
+      h += '<span style="display:inline-block;padding:1px 6px;margin:2px 3px;background:#f1f5f9;border-radius:3px">' + esc(k) + '=' + esc(v) + '</span>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── 6. 链使用统计（comprehensive.chain_usage）──
+function renderChainUsage(cc) {
+  var cu = cc && cc.chain_usage;
+  if (!cu) return '';
+  var keys = Object.keys(cu);
+  if (!keys.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#166534;margin-bottom:8px">🔗 稽查线索链激活统计</div>';
+  h += '<table class="tbl2"><tr><th>线索链</th><th>类型</th><th>命中步数</th><th>总步数</th></tr>';
+  for (var i = 0; i < Math.min(keys.length, 15); i++) {
+    var c = cu[keys[i]];
+    var hitRate = c.steps > 0 ? Math.round(c.hits / c.steps * 100) : 0;
+    h += '<tr><td>' + esc(keys[i]) + '</td><td>' + esc(c.type || '') + '</td><td>' + _fmt(c.hits) + '/' + _fmt(c.steps) + ' (' + hitRate + '%)</td><td>' + _fmt(c.steps) + '</td></tr>';
+  }
+  h += '</table></div>';
+  return h;
+}
+
+// ── 7. P0/P1/P2分级整改建议（comprehensive.actions）──
+function renderActionsTable(cc) {
+  var actions = cc && cc.actions;
+  if (!actions) return '';
+  var p0 = actions.p0_urgent || [];
+  var p1 = actions.p1_important || [];
+  var p2 = actions.p2_normal || [];
+  if (!p0.length && !p1.length && !p2.length) return '';
+  var h = '<div style="margin:16px 0;font-size:13px">';
+  h += '<div style="font-weight:700;color:#0f172a;margin-bottom:10px">📋 分级整改建议（基于风险评分引擎）</div>';
+  if (p0.length) {
+    h += '<div style="margin:10px 0;padding:12px 16px;background:#fef2f2;border-left:4px solid #dc2626;border-radius:4px">';
+    h += '<div style="font-weight:700;color:#dc2626;margin-bottom:6px">🔴 P0 — 立即处理（' + p0.length + '项）</div>';
+    for (var i = 0; i < p0.length; i++) {
+      h += '<div style="margin:4px 0;color:#991b1b"><b>' + esc(p0[i].type || '') + '</b>（评分' + _fmt(p0[i].score) + '）：' + esc(p0[i].suggestion || '') + '</div>';
+    }
+    h += '</div>';
+  }
+  if (p1.length) {
+    h += '<div style="margin:10px 0;padding:12px 16px;background:#fffbeb;border-left:4px solid #d97706;border-radius:4px">';
+    h += '<div style="font-weight:700;color:#d97706;margin-bottom:6px">🟡 P1 — 重点关注（' + p1.length + '项）</div>';
+    for (var j = 0; j < p1.length; j++) {
+      h += '<div style="margin:4px 0;color:#92400e"><b>' + esc(p1[j].type || '') + '</b>（评分' + _fmt(p1[j].score) + '）：' + esc(p1[j].suggestion || '') + '</div>';
+    }
+    h += '</div>';
+  }
+  if (p2.length) {
+    h += '<div style="margin:10px 0;padding:12px 16px;background:#f0fdf4;border-left:4px solid #059669;border-radius:4px">';
+    h += '<div style="font-weight:700;color:#059669;margin-bottom:6px">⚪ P2 — 持续关注（' + p2.length + '项）</div>';
+    for (var k = 0; k < p2.length; k++) {
+      h += '<div style="margin:4px 0;color:#166534"><b>' + esc(p2[k].type || '') + '</b>（评分' + _fmt(p2[k].score) + '）：' + esc(p2[k].suggestion || '') + '</div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── 8. 推荐下一步（comprehensive.recommended_next）──
+function renderRecommendedNext(cc) {
+  var rn = cc && cc.recommended_next;
+  if (!rn || !rn.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#0369a1;margin-bottom:8px">🔄 推荐下一步核查方向</div>';
+  for (var i = 0; i < Math.min(rn.length, 5); i++) {
+    var r = rn[i];
+    h += '<div style="margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px">';
+    h += '<div style="font-weight:600">' + esc(r.chain_name || '') + '（' + esc(r.chain_type || '') + '）';
+    h += ' — 已触发<span style="color:#059669">' + _fmt(r.triggered) + '</span>步，剩余<span style="color:#d97706">' + _fmt(r.remaining) + '</span>步待核查</div>';
+    var steps = r.next_steps || [];
+    if (steps.length) {
+      h += '<div style="margin-top:4px;font-size:12px;color:#475569">';
+      for (var j = 0; j < steps.length; j++) {
+        h += '<div style="margin:2px 0">· ' + esc(steps[j].step || '') + ' [规则' + esc(steps[j].rule_id || '') + ']</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── 9. 供应链风险（target_entity._supply_chain_risk）──
+function renderSupplyChainRisk(te) {
+  var scr = te && te._supply_chain_risk;
+  if (!scr) return '';
+  var results = scr.lookup_results || [];
+  var findings = scr.findings || [];
+  if (!results.length && !findings.length) return '';
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">🔗 供应链联网核查（㉗）</div>';
+  if (results.length) {
+    h += '<div style="color:#374151">已查询<span style="font-weight:600">' + results.length + '</span>家供应商/客户</div>';
+  }
+  if (findings.length) {
+    for (var i = 0; i < findings.length; i++) {
+      var f = findings[i];
+      h += '<div style="margin:6px 0;padding:6px 10px;background:#fff;border-radius:4px;border-left:3px solid #f97316">';
+      h += '<span style="font-weight:600">' + esc(f.type || '') + '</span>';
+      if (f.detail) h += '：' + esc(typeof f.detail === 'string' ? f.detail : '');
+      h += '</div>';
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── 10. 质量报告附录（quality_report）──
+function renderQualityReport(qr, allF) {
+  if (!qr) return '';
+  var total = qr.total || 0;
+  var passed = qr.passed || 0;
+  var warnings = qr.warnings || [];
+  if (!total) return '';
+  var passRate = total > 0 ? Math.round(passed / total * 100) : 0;
+  var rateColor = passRate >= 80 ? '#059669' : (passRate >= 50 ? '#d97706' : '#dc2626');
+  var h = '<div class="appendix" style="margin-top:30px">';
+  h += '<div class="atitle">附件二：稽查报告质量标准自检（12项硬指标）</div>';
+  h += '<div class="aitem">标准执行结果：<span style="color:' + rateColor + ';font-weight:700">' + passed + '/' + total + '项通过（' + passRate + '%）</span></div>';
+  if (warnings.length) {
+    h += '<div class="aitem" style="color:#d97706">⚠️ ' + warnings.length + '条发现存在质量标注（已在正文中标注）</div>';
+  }
+  var stats = qr.stats || {};
+  var statKeys = Object.keys(stats);
+  if (statKeys.length) {
+    h += '<div class="aitem">各标准检出问题数：</div>';
+    h += '<table class="tbl2" style="margin-left:16px;width:auto;min-width:300px"><tr><th>质量标准</th><th class="r">问题数</th></tr>';
+    for (var i = 0; i < statKeys.length; i++) {
+      if (stats[statKeys[i]] > 0) {
+        h += '<tr><td>' + esc(statKeys[i]) + '</td><td class="r" style="color:#d97706">' + _fmt(stats[statKeys[i]]) + '</td></tr>';
+      }
+    }
+    h += '</table>';
+  }
+  h += '</div>';
+  return h;
+}
+
 // ==================== 一键分析 ====================
 async function analyzeTaxDocs() {
   if (taxDocAnalyzing) return;
@@ -387,8 +661,6 @@ function renderTaxDocReport(r) {
 
   // 修正异常期间：无效格式则标记为未知
   if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
-
-  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   var h = '<style>'
     + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
@@ -549,6 +821,10 @@ function renderTaxDocReport(r) {
     + '<tr><td class="lbl">稽查范围</td><td>' + r.files_count + '份经营资料</td></tr>'
     + '<tr><td class="lbl">执行标准</td><td>依据' + r.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
     + '</table>';
+
+  // ── 注入1: 资料概览 + 缺失后果触发 ──
+  h += renderDataOverview(cc);
+  h += renderMissingConsequenceTriggers(cc);
 
   // 六员信息展示（如有联网数据）
   var spr = te._six_personnel_risk;
@@ -717,6 +993,10 @@ function renderTaxDocReport(r) {
     h += '银行利息/内部转账：'+rc['银行利息/内部']+'（结息等，非经营收入）</p>';
   }
 
+  // ── 注入2: 月度资金流 + 往来方TOP20 ──
+  h += renderCashflowChart(cc);
+  h += renderTopCounterparties(cc);
+
   h += '<h3>经营相关收款</h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
   (bi['收款方全部']||[]).forEach(function(p){
     var n = p['名称']||''; if (!n) return;
@@ -770,6 +1050,9 @@ function renderTaxDocReport(r) {
 
   h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
 
+  // ── 注入3: 供应链联网核查 ──
+  h += renderSupplyChainRisk(te);
+
   // section 3 —— 稽查结论（前置，便于先看结论再看细节）
   // 预计算统计数据
   var stdHighCount=allF.filter(function(f){return(f.score||0)>=8;}).length;
@@ -783,6 +1066,10 @@ function renderTaxDocReport(r) {
   var stdChainList = Object.keys(stdChainSet);
 
   h += '<h2 id="sec3">三、稽查结论</h2>';
+
+  // ── 注入4: 金税四期风险评分 ──
+  h += renderRiskProfile(cc);
+
   h+='<div class="conclusion-box '+(stdHighCount>0?'red':(stdMidCount>0?'amber':'green'))+'">';
   h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+stdRiskC+'">'+stdRiskText+'</span></div>';
   h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+stdHighCount+'</strong> 项，中风险 <strong>'+stdMidCount+'</strong> 项，低风险 <strong>'+stdLowCount+'</strong> 项。'+(stdFixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+stdFixedCount+' 项。</span>':'')+'</p>';
@@ -792,6 +1079,10 @@ function renderTaxDocReport(r) {
   h+='</div>';
   if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'')+'</p>';});}
   h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有<strong>规则ID溯源</strong>和<strong>≥2域交叉验证</strong>。本次稽查共激活<strong>' + stdChainList.length + '条</strong>线索链，每条发现均可追溯到具体的证据来源和数据域，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+
+  // ── 注入5: 链激活统计 ──
+  h += renderChainUsage(cc);
+
   h+='<h3>稽查局限性声明</h3><p class="i2">需要如实说明的是，由于被查单位仅提交了3类资料（银行流水、销项发票、进项发票），其余11类必查资料缺失，我无法核实以下事项：①会计凭证的完整性和分录准确性（无法核查账簿是否健全）；②工资费用的真实性和个税代扣代缴履行情况；③社保的合规参保和缴费基数真实性；④存货的账实相符性（无法实地盘点）；⑤合同交易的真实性（无法验证四流合一）；⑥各税种申报的准确性（无法比对申报表与原始数据）。以上受限事项如后续补充资料，需另行补充稽查。</p>';
 
   h+='<h3>处理优先级建议</h3>';
@@ -913,12 +1204,21 @@ function renderTaxDocReport(r) {
   // section 5 - 稽查处理意见
   h += '<h2 id="sec5">五、处理处罚建议</h2>';
   h += '<p class="i2">根据上述稽查发现和证据链，提出以下处理处罚建议，请领导审议。</p>';
+
+  // ── 注入6: P0/P1/P2分级整改建议 + 推荐下一步 ──
+  h += renderActionsTable(cc);
+  h += renderRecommendedNext(cc);
+
+  // 传统建议列表（作为补充，如果enhanced模块无产出则显示）
   var actions=[],seen={};
   allF.forEach(function(f){
     var s=((f.suggestion||'')+'').split('\n')[0].trim();
     if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
   });
-  actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
+  if (actions.length > 0 && (!cc.actions || (!cc.actions.p0_urgent.length && !cc.actions.p1_important.length && !cc.actions.p2_normal.length))) {
+    // 仅当enhanced模块无产出时才显示传统列表
+    actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
+  }
   h += '<p class="i2">根据《中华人民共和国税收征收管理法》及相关规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复稽查部门。</p>';
 
 
@@ -944,12 +1244,30 @@ function renderTaxDocReport(r) {
 
   // 附件：证据清单
   h += '<div class="appendix">';
-  h += '<div class="atitle">附件：证据清单</div>';
+  h += '<div class="atitle">附件一：证据清单</div>';
   h += '<div class="aitem">1. 进销项发票数据（电子版）</div>';
   h += '<div class="aitem">2. 银行流水数据（电子版）</div>';
   h += '<div class="aitem">3. 合同文件（如有）</div>';
   h += '<div class="aitem">4. 其他经营资料（共' + r.files_count + '份）</div>';
   h += '</div>';
+
+  // ── 注入7: 质量报告附录 ──
+  h += renderQualityReport(r.quality_report, allF);
+
+  // ── 注入8: 目标实体完整信息（含供应链风险详情）──
+  if (te._supply_chain_risk && te._supply_chain_risk.lookup_results && te._supply_chain_risk.lookup_results.length) {
+    h += '<div class="appendix">';
+    h += '<div class="atitle">附件三：供应链联网核查详情</div>';
+    var sr = te._supply_chain_risk.lookup_results;
+    for (var si = 0; si < Math.min(sr.length, 20); si++) {
+      var item = sr[si];
+      h += '<div class="aitem">' + esc(item.name || item.company_name || '') + '（' + esc(item.type || '') + '）';
+      if (item.status) h += ' — 状态：' + esc(item.status);
+      if (item.risk_flags && item.risk_flags.length) h += ' — 风险标记：' + item.risk_flags.map(function(f){return esc(f);}).join('、');
+      h += '</div>';
+    }
+    h += '</div>';
+  }
 
   h += '</div>';
 
@@ -1015,8 +1333,6 @@ function renderNarrativeReport(r) {
   } else if (!registeredBusiness && inferredBusiness) {
     actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
   }
-
-  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   var now = new Date();
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
@@ -1203,6 +1519,10 @@ function renderNarrativeReport(r) {
   h += '<tr><td>稽查发现总计</td><td>' + totalFindings + '条（高风险' + highRiskCount + ' / 中风险' + midRiskCount + ' / 低风险' + lowRiskCount + '）</td><td>高风险发现需立即处理</td></tr>';
   h += '</table></div>';
 
+  // ── 叙事增强: 资料概览 + 缺失后果触发 ──
+  h += renderDataOverview(cc);
+  h += renderMissingConsequenceTriggers(cc);
+
   // 经营实质核查
   h += '<h3 style="margin-top:30px;font-size:16px;color:#0f172a">一、经营实质核查</h3>';
   h += '<p>根据稽查方法论第二十五项（三层行业穿透法），我先从工商登记入手了解企业基本情况。</p>';
@@ -1300,6 +1620,9 @@ function renderNarrativeReport(r) {
   h += '<div class="nr-chapter"><h2>第四章　稽查结论</h2><div class="nr-ch-sub">领导，以上稽查工作完成后，我得出以下结论</div></div>';
   h += '<div class="nr-body">';
 
+  // ── 叙事增强: 金税评分 ──
+  h += renderRiskProfile(cc);
+
   h += '<div style="margin:20px 0;padding:24px 28px;background:' + (nrHighCount>0?'#fef2f2':(nrMidCount>0?'#fffbeb':'#f0fdf4')) + ';border:2px solid ' + (nrHighCount>0?'#fecaca':(nrMidCount>0?'#fde68a':'#bbf7d0')) + ';border-radius:10px">';
   h += '<p style="font-size:18px;font-weight:800;margin-bottom:12px;text-indent:0">综合风险评级：<span style="color:' + nrRiskColor + '">' + nrRiskText + '</span></p>';
   h += '<p>经过对' + esc(te.name || '被查单位') + '在' + esc(te.period || '稽查期间') + '经营活动的全面稽查，我共发现<strong>' + allF.length + '</strong>项问题：高风险<strong>' + nrHighCount + '</strong>项、中风险<strong>' + nrMidCount + '</strong>项、低风险<strong>' + nrLowCount + '</strong>项。已启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令完成全量核查，覆盖' + nrChainList.length + '条稽查线索链。</p>';
@@ -1315,6 +1638,11 @@ function renderNarrativeReport(r) {
     });
   }
   h += '</div>';
+
+  // ── 叙事增强: 链激活统计 + 分级建议 ──
+  h += renderChainUsage(cc);
+  h += renderActionsTable(cc);
+
   h += '<p><strong>领导，以上是我的稽查结论。</strong></p>';
 
   // 处理优先级建议
