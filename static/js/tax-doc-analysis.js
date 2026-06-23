@@ -856,7 +856,7 @@ function renderTaxDocReport(r) {
     });
     if (relatedIndices.length > 0) {
       h += '<div class="frow" style="font-size:11px;color:#6b7280;margin-top:4px"><span class="flabel">关联发现：</span>';
-      h += '参阅 ' + relatedIndices.map(function(ri){ return '<a href="#" onclick="document.getElementById(\\'finding-'+ri+'\\').scrollIntoView({behavior:\\'smooth\\'});return false" style="color:#2563eb">发现'+(ri+1)+'</a>'; }).join('、');
+      h += '参阅 ' + relatedIndices.map(function(ri){ return `<a href="#" onclick="document.getElementById('finding-${ri}').scrollIntoView({behavior:'smooth'});return false" style="color:#2563eb">发现${ri+1}</a>`; }).join('、');
       var relNames = relatedIndices.map(function(ri){ return esc((allF[ri].type||'').substring(0,20)); }).join(' / ');
       h += '（' + relNames + '）——同一域/线索链，交叉验证</div>';
     }
