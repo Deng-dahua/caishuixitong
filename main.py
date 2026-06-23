@@ -17834,6 +17834,94 @@ class TrendDetector:
         return [finding]
 
 
+class SensitivityAnalyzer:
+    """
+    假设敏感性分析 —— 把"可能有问题"变成"问题有多大"
+    
+    三大风险 × 三种假设 → 预估补税区间
+    让稽查员和企业老板看到具体数字，而非模糊警告。
+    """
+    
+    SCENARIOS = {
+        "隐匿收入": {
+            "base": "total_sales",
+            "rates": {"低": 0.10, "中": 0.25, "高": 0.50},
+            "vat_rate": 0.13, "cit_rate": 0.25,
+            "description": "已申报销售额{base:,.0f}元，假设隐匿比例为{rate:.0%}",
+            "unit": "元",
+        },
+        "虚列成本": {
+            "base": "total_purchases",
+            "rates": {"低": 0.05, "中": 0.15, "高": 0.30},
+            "vat_rate": 0.13, "cit_rate": 0.25,
+            "description": "已入账采购成本{base:,.0f}元，假设虚列比例为{rate:.0%}",
+            "unit": "元",
+        },
+        "虚抵进项": {
+            "base": "total_purchases",
+            "rates": {"低": 0.05, "中": 0.15, "高": 0.30},
+            "vat_rate": 0.13, "cit_rate": 0.25,
+            "description": "已抵扣进项税额对应采购{base:,.0f}元，假设虚抵比例为{rate:.0%}",
+            "unit": "元",
+        },
+    }
+    
+    @staticmethod
+    def analyze(ctx):
+        """主入口：计算敏感性矩阵并注入ctx"""
+        fs = ctx.financial_snapshot
+        if not fs or fs.get("total_sales", 0) == 0:
+            return None
+        
+        report = {"scenarios": [], "summary": ""}
+        
+        total_tax_impact = 0
+        worst_case_total = 0
+        
+        for risk_name, config in SensitivityAnalyzer.SCENARIOS.items():
+            base_key = config["base"]
+            base_amount = fs.get(base_key, 0)
+            if base_amount <= 0:
+                continue
+            
+            scenario_data = {"risk": risk_name, "base_amount": base_amount, "levels": {}}
+            
+            for level_name, rate in config["rates"].items():
+                unreported = base_amount * rate
+                vat = unreported * config["vat_rate"]
+                cit = unreported * config["cit_rate"]
+                total = vat + cit
+                penalty_low = total * 0.5
+                penalty_high = total * 5
+                late_fee_daily = total * 0.0005  # 每日万分之五
+                
+                scenario_data["levels"][level_name] = {
+                    "rate": rate,
+                    "unreported_amount": round(unreported, 0),
+                    "vat_impact": round(vat, 0),
+                    "cit_impact": round(cit, 0),
+                    "total_tax": round(total, 0),
+                    "penalty_range": f"{round(penalty_low,0):,.0f}~{round(penalty_high,0):,.0f}",
+                    "late_fee_daily": round(late_fee_daily, 0),
+                    "worst_case": round(total + penalty_high, 0),
+                }
+                
+                if level_name == "中":
+                    total_tax_impact += total
+                if level_name == "高":
+                    worst_case_total += round(total + penalty_high, 0)
+            
+            report["scenarios"].append(scenario_data)
+        
+        report["summary"] = (
+            f"中等假设下合计补税约{total_tax_impact:,.0f}元，"
+            f"最坏情况(含5倍罚款)合计约{worst_case_total:,.0f}元"
+        )
+        
+        ctx._sensitivity_report = report
+        return report
+
+
 class AuditContext:
     """
     稽查上下文——贯穿4阶段的状态容器
@@ -20304,6 +20392,16 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
         all_items.extend(trend_findings)
         pipeline_log.append(f"[Phase4] 趋势分析: {len(trend_findings)}条趋势发现已注入综合定性")
     
+    # ═══ 假设敏感性分析：隐匿收入/虚列成本/虚抵进项 × 低中高 ═══
+    sensitivity_report = {}
+    try:
+        sensitivity_report = SensitivityAnalyzer.analyze(ctx)
+        if sensitivity_report:
+            ctx._sensitivity_report = sensitivity_report
+            pipeline_log.append(f"[Phase4] 敏感性分析: {sensitivity_report['summary'][:80]}")
+    except Exception:
+        pass
+    
     # ═══ 证据溯源：标注每条结论的原始数据来源 ═══
     file_results = getattr(ctx, 'file_results', [])
     if file_results:
@@ -20582,6 +20680,17 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for ti in trend_items[:5]:
             name = ti['type'].replace('趋势-', '')
             lines.append(f"    → {name}")
+    
+    # ═══ 假设敏感性：预估补税金额 ═══
+    sr = getattr(ctx, '_sensitivity_report', {})
+    if sr and sr.get("scenarios"):
+        lines.append(f"  ▸ 假设敏感性分析（中假设下）：")
+        for sc in sr["scenarios"][:3]:
+            mid = sc["levels"].get("中", {})
+            if mid:
+                lines.append(f"    {sc['risk']}: 补税{mid['total_tax']:,.0f}元 "
+                           f"(罚{mid['penalty_range']}元)")
+        lines.append(f"    → {sr['summary']}")
     
     # ═══ 结论可信度评估 ═══
     cr = getattr(ctx, '_credibility_report', {})
