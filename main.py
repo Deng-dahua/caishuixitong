@@ -29,11 +29,6 @@ from pypdf import PdfReader
 
 # ═══ 稽查员推理引擎（模块化架构）═══
 from engine import (
-    AuditContext, identify_main_biz_cost,
-    _phase1_triage as _engine_phase1,
-    _phase2_deep_dive as _engine_phase2,
-    _phase3_cross_validate as _engine_phase3,
-    _phase4_synthesis as _engine_phase4,
     save_analysis_memory, query_similar_cases,
 )
 
@@ -19965,8 +19960,8 @@ def _build_causal_narratives(all_findings):
                     opt_hit.append(opt_signal)
                     break
         
-        # 计算置信度
-        base_conf = min(req_hit_count / len(required) * 80, 80)
+        # 计算置信度（>=1触发即给50%底分，避免惩罚部分命中）
+        base_conf = min(50 + req_hit_count / len(required) * 30, 80)
         bonus = len(opt_hit) * 5
         confidence = min(base_conf + bonus, 95)
         
@@ -25491,7 +25486,8 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
     if not report.get("ok"):
         return {"ok": False, "message": "分析失败，无法复核"}
     
-    report = result["report"]
+    # 提取内层报告：_run_analyze 返回 {"ok":True, "report":{...}}，取内层
+    report = report.get("report", report)
     # 解析原始数据做复核
     from datetime import datetime
     
