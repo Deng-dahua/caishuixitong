@@ -23,7 +23,7 @@ function renderEngineDashboard(rpt) {
   // 标签切换 — 始终显示（规则库不需要分析数据）
   var tabBar = '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:8px">' +
     '<div class="eng-tab active" onclick="switchEngineTab(\'status\')" id="tab-status">运行状态</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库 (53条)</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
     '</div><div id="eng-tab-content"></div>';
   
   area.innerHTML = tabBar;
@@ -306,12 +306,10 @@ function renderRulesTab() {
   var h = '';
   var totalRules = 0;
   
-  // Phase 1
+  // ═══ Phase 1：初查信号检测 ═══
   var p1 = rules.phases['Phase1-初查信号检测'];
   if (p1) {
-    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #3b82f6">';
-    h += '<div class="engine-card-title"><span style="color:#3b82f6">■</span> Phase 1 — 初查信号检测 (' + (p1.rules||[]).length + '条规则)</div>';
-    h += '<div style="font-size:12px;color:#64748b;margin-bottom:10px">' + esc(p1.description) + '</div>';
+    h += _renderSection('Phase1-初查信号检测', '3b82f6', p1);
     (p1.rules||[]).forEach(function(r) {
       var lc = r.level === 'red' ? '#dc2626' : r.level === 'yellow' ? '#f59e0b' : '#059669';
       var bg = r.level === 'red' ? '#fef2f2' : r.level === 'yellow' ? '#fffbeb' : '#ecfdf5';
@@ -325,12 +323,29 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  // Phase 2
+  // ═══ Phase 1：资料缺失触发规则 ═══
+  var p1m = rules.phases['Phase1-资料缺失触发规则'];
+  if (p1m) {
+    h += _renderSection('Phase1-资料缺失触发规则', 'dc2626', p1m);
+    (p1m.rules||[]).forEach(function(r) {
+      var lc = r.level === 'red' ? '#dc2626' : r.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      var bg = r.level === 'red' ? '#fef2f2' : r.level === 'yellow' ? '#fffbeb' : '#fff7ed';
+      h += '<div style="padding:10px 12px;margin:4px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
+      h += '<div><strong style="color:' + lc + '">' + esc(r.priority) + '</strong> <strong>' + esc(r.name) + '</strong>缺失</div>';
+      h += '<div style="color:#dc2626;font-weight:600;margin-top:3px">' + esc(r.risk) + '</div>';
+      h += '<div style="color:#475569;margin-top:3px;line-height:1.5">' + esc(r.consequence) + '</div>';
+      h += '<div style="color:#64748b;margin-top:4px;font-size:11px">依据: ' + esc(r.law_ref) + '</div>';
+      h += '<div style="color:#059669;margin-top:4px;font-size:11px">建议: ' + esc(r.action).substring(0,120) + (r.action.length>120?'...':'') + '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+
+  // ═══ Phase 2：信号→域映射 ═══
   var p2 = rules.phases['Phase2-信号→域映射'];
   if (p2 && !p2.error) {
-    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #8b5cf6">';
-    h += '<div class="engine-card-title"><span style="color:#8b5cf6">■</span> Phase 2 — 信号→域映射 (' + (p2.count||0) + '条)</div>';
-    h += '<div style="font-size:12px;color:#64748b;margin-bottom:10px">' + esc(p2.description) + '</div>';
+    h += _renderSection('Phase2-信号→域映射', '8b5cf6', p2);
     var mappings = p2.mappings || {};
     Object.keys(mappings).forEach(function(signal) {
       var m = mappings[signal];
@@ -344,11 +359,38 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  // Phase 3 信号叠加模式
+  // ═══ Phase 2：行业自适应知识库 ═══
+  var p2i = rules.phases['Phase2-行业自适应知识库'];
+  if (p2i && !p2i.error) {
+    h += _renderSection('Phase2-行业自适应知识库', '10b981', p2i);
+    (p2i.industries||[]).forEach(function(ind) {
+      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ind.name);
+      if (ind.subtypes && ind.subtypes.length) h += ' <span style="font-size:11px;color:#94a3b8">(' + esc(ind.subtypes.join('、')) + ')</span>';
+      h += '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">毛利率基准: ' + esc(ind.benchmarks['毛利率范围']) + ' | 购销比基准: ' + esc(ind.benchmarks['购销比范围']) + '</div>';
+      if (ind.focus_domains && ind.focus_domains.length) {
+        h += '<div style="margin-top:3px;font-size:11px;color:#8b5cf6">关注域: ' + esc(ind.focus_domains.join('、')) + '</div>';
+      }
+      if (ind.always_check && ind.always_check.length) {
+        h += '<div style="margin-top:3px;font-size:11px;color:#059669">必查: ' + esc(ind.always_check.join('、')) + '</div>';
+      }
+      if (ind.risk_patterns && ind.risk_patterns.length) {
+        h += '<div style="margin-top:4px">';
+        ind.risk_patterns.forEach(function(rp) {
+          h += '<div style="font-size:11px;color:#ea580c;margin:2px 0">⚠ ' + esc(rp.name) + ': ' + esc(rp.explanation).substring(0,80) + '</div>';
+        });
+        h += '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  
+  // ═══ Phase 3：信号叠加模式 ═══
   var p3p = rules.phases['Phase3-信号叠加模式'];
   if (p3p && !p3p.error) {
-    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #06b6d4">';
-    h += '<div class="engine-card-title"><span style="color:#06b6d4">■</span> Phase 3 — 信号叠加模式 (' + (p3p.count||0) + '条)</div>';
+    h += _renderSection('Phase3-信号叠加模式', '06b6d4', p3p);
     (p3p.patterns||[]).forEach(function(p) {
       h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
       h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(p.id) + ' ' + esc(p.name) + '</div>';
@@ -369,11 +411,10 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  // Phase 3 冲突消解
+  // ═══ Phase 3：冲突消解规则 ═══
   var p3c = rules.phases['Phase3-冲突消解规则'];
   if (p3c && !p3c.error) {
-    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #ec4899">';
-    h += '<div class="engine-card-title"><span style="color:#ec4899">■</span> Phase 3 — 冲突消解规则 (' + (p3c.count||0) + '条)</div>';
+    h += _renderSection('Phase3-冲突消解规则', 'ec4899', p3c);
     (p3c.rules||[]).forEach(function(r) {
       h += '<div style="padding:8px 12px;margin:4px 0;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
       h += '<strong>' + esc(r.id) + '</strong> ' + esc(r.name);
@@ -385,9 +426,140 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  h += '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px">规则库共 ' + totalRules + ' 条规则 | 全行业适用 | 可编辑JSON追加</div>';
+  // ═══ Phase 3：结论自洽性检测 ═══
+  var p3z = rules.phases['Phase3-结论自洽性检测'];
+  if (p3z) {
+    h += _renderSection('Phase3-结论自洽性检测', 'f43f5e', p3z);
+    (p3z.rules||[]).forEach(function(r) {
+      var lc = r.level === 'red' ? '#dc2626' : r.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      var bg = r.level === 'red' ? '#fef2f2' : r.level === 'yellow' ? '#fffbeb' : '#fff7ed';
+      h += '<div style="padding:10px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
+      h += '<div><strong>' + esc(r.id) + '</strong> <span style="color:' + lc + ';font-weight:600">' + esc(r.name) + '</span> ';
+      h += '<span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(r.priority) + '</span></div>';
+      h += '<div style="color:#475569;margin-top:4px;line-height:1.5">' + esc(r.explanation) + '</div>';
+      h += '<div style="color:#059669;margin-top:4px;font-size:11px">消解: ' + esc(r.resolution) + '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  // ═══ Phase 3：跨域分析推理链 ═══
+  var p3xa = rules.phases['Phase3-跨域分析推理链'];
+  if (p3xa && !p3xa.error) {
+    h += _renderSection('Phase3-跨域分析推理链', '0ea5e9', p3xa);
+    (p3xa.rules||[]).forEach(function(xa) {
+      var lc = xa.level === 'red' ? '#dc2626' : xa.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';border-radius:4px;font-size:12px;background:#f8fafc">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xa.id) + ' ' + esc(xa.name) + '</div>';
+      h += '<div style="color:#64748b;margin-top:4px;font-size:11px">触发: ' + esc(xa.trigger_signal||'') + '</div>';
+      if (xa.reasoning_steps && xa.reasoning_steps.length) {
+        h += '<div style="margin-top:6px">';
+        xa.reasoning_steps.forEach(function(step) {
+          h += '<div style="display:flex;align-items:flex-start;margin:3px 0;font-size:11px">';
+          h += '<span style="background:#0ea5e9;color:#fff;min-width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;margin-right:6px;font-weight:700">' + esc(step.order) + '</span>';
+          h += '<span><strong>' + esc(step.from) + '</strong> → ' + esc(step.finding) + ' <span style="color:#0ea5e9">→</span> <em>' + esc(step.to) + ': ' + esc(step.action) + '</em></span></div>';
+        });
+        h += '</div>';
+      }
+      if (xa.methodology) h += '<div style="color:#8b5cf6;font-size:11px;margin-top:4px">方法论: ' + esc(xa.methodology) + '</div>';
+      h += '<div style="color:#475569;font-size:11px;margin-top:3px">' + esc(xa.description||'') + '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  // ═══ Phase 3：跨域线索链 ═══
+  var p3xc = rules.phases['Phase3-跨域线索链'];
+  if (p3xc && !p3xc.error) {
+    h += _renderSection('Phase3-跨域线索链', 'd946ef', p3xc);
+    (p3xc.rules||[]).forEach(function(xc) {
+      var lc = xc.level === 'red' ? '#dc2626' : xc.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xc.id) + ' ' + esc(xc.name);
+      h += ' <span style="font-size:11px;color:#94a3b8">[' + esc(xc.sub_topic||'') + ']</span></div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">关键词: ' + esc((xc.trigger_keywords||[]).join(' | ')) + '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#ea580c">最少证据维度: ' + esc(xc.min_evidence) + '</div>';
+      if (xc.investigation_path && xc.investigation_path.length) {
+        h += '<div style="margin-top:4px;font-size:11px;color:#475569">调查路径: ';
+        xc.investigation_path.forEach(function(s) {
+          h += '<span style="margin:0 4px;color:#8b5cf6">' + esc(s.step) + '.' + esc(s.domain) + '</span>→ ';
+        });
+        h += '</div>';
+      }
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+
+  // ═══ Phase 3：跨域证据链 ═══
+  var p3xe = rules.phases['Phase3-跨域证据链'];
+  if (p3xe && !p3xe.error) {
+    h += _renderSection('Phase3-跨域证据链', '059669', p3xe);
+    (p3xe.rules||[]).forEach(function(xe) {
+      var lc = xe.level === 'red' ? '#dc2626' : xe.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xe.id) + ' ' + esc(xe.name);
+      h += ' <span style="font-size:11px;color:#94a3b8">[' + esc(xe.sub_topic||'') + ']</span></div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">关键词: ' + esc((xe.trigger_keywords||[]).join(' | ')) + '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#ea580c">最少证据维度: ' + esc(xe.min_evidence) + '</div>';
+      if (xe.dimensions && xe.dimensions.length) {
+        h += '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">';
+        xe.dimensions.forEach(function(d) {
+          h += '<div style="padding:4px 8px;background:#ecfdf5;border-radius:4px;font-size:11px"><strong>' + esc(d.code) + '</strong> ' + esc(d.source) + ': ' + esc(d.desc) + '</div>';
+        });
+        h += '</div>';
+      }
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+
+  // ═══ Phase 4：因果叙事链 ═══
+  var p4n = rules.phases['Phase4-因果叙事链'];
+  if (p4n) {
+    h += _renderSection('Phase4-因果叙事链', 'ef4444', p4n);
+    (p4n.rules||[]).forEach(function(ch) {
+      var lc = ch.level === 'red' ? '#dc2626' : ch.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      var bg = ch.level === 'red' ? '#fef2f2' : ch.level === 'yellow' ? '#fffbeb' : '#fff7ed';
+      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ch.id) + ' ' + esc(ch.name) + '</div>';
+      h += '<div style="margin-top:4px;padding:6px 10px;background:#fff;border-radius:4px;font-size:12px;font-weight:600;color:#dc2626">' + esc(ch.narrative) + '</div>';
+      h += '<div style="color:#475569;margin-top:6px;line-height:1.5">' + esc(ch.explanation) + '</div>';
+      h += '<div style="margin-top:4px;font-size:11px">';
+      h += '<span style="color:#8b5cf6">必要信号: ' + esc((ch.required_signals||[]).join('、')) + '</span>';
+      if (ch.optional_signals && ch.optional_signals.length) h += ' | <span style="color:#94a3b8">辅助: ' + esc(ch.optional_signals.join('、')) + '</span>';
+      h += '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">' + esc(ch.confidence_rule) + '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#059669">证据链: ' + esc(ch.evidence_chain) + '</div>';
+      h += '<div style="margin-top:4px"><span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(ch.priority) + '</span> <span style="color:' + lc + ';font-weight:600;font-size:11px">' + esc(ch.level) + '</span></div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  h += '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px">推理引擎规则库共 ' + totalRules + ' 条规则 | 全行业适用 | 可编辑JSON追加</div>';
   
   area.innerHTML = h;
+}
+
+// ── 辅助渲染函数 ──
+function _renderSection(phaseKey, color, data) {
+  var count = data.count || (data.rules ? data.rules.length : '?');
+  var name = phaseKey.replace(/^Phase\d-/, '').replace(/-/g, ' ');
+  var colorMap = {
+    '3b82f6': '#3b82f6', 'dc2626': '#dc2626', '8b5cf6': '#8b5cf6',
+    '10b981': '#10b981', '06b6d4': '#06b6d4', 'ec4899': '#ec4899',
+    'f43f5e': '#f43f5e', 'ef4444': '#ef4444'
+  };
+  var c = colorMap[color] || color;
+  return '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid ' + c + '">' +
+    '<div class="engine-card-title"><span style="color:' + c + '">■</span> ' + esc(phaseKey) + ' (' + count + '条)</div>' +
+    '<div style="font-size:12px;color:#64748b;margin-bottom:10px">' + esc(data.description||'') + '</div>';
 }
 
 // ── 辅助函数 ──

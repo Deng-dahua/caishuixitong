@@ -19920,7 +19920,7 @@ def _build_causal_narratives(all_findings):
     从孤立的发现中检测因果链模式，构建结构化的涉税故事
     
     每个因果链需要：
-    - 至少2个必要信号命中（在不同发现上）
+    - 至少1个必要信号命中（在不同发现上，>=1即触发）
     - 可选辅助信号可提升置信度
     - 生成包含因果链、证据链、置信度评分的结构化叙事
     """
@@ -25663,7 +25663,8 @@ def get_engine_rules():
     
     # Phase 1 信号检测规则（从引擎代码提取描述）
     rules["phases"]["Phase1-初查信号检测"] = {
-        "description": "11个信号检测器，像老稽查员翻一遍资料就能嗅出异常",
+        "description": "16个信号检测器，像老稽查员翻一遍资料就能嗅出异常",
+        "count": 16,
         "rules": [
             {"id": "TRIAGE_001", "name": "购销严重倒挂", "trigger": "进项 > 销项 × 1.5", "level": "red", "detail": "可能虚增进项或隐匿收入"},
             {"id": "TRIAGE_002", "name": "毛利为负", "trigger": "毛利率 < 0%", "level": "red", "detail": "售价低于成本，需核查未开票收入"},
@@ -25720,6 +25721,180 @@ def get_engine_rules():
     except Exception:
         rules["phases"]["Phase3-冲突消解规则"] = {"error": "加载失败"}
     
+    # Phase 1 资料缺失触发规则（从MISSING_CONSEQUENCE_TRIGGER提取）
+    mct_rules = []
+    cat_names = {
+        "bank": "银行流水", "sales_invoice": "销项发票", "purchase_invoice": "进项发票",
+        "voucher": "记账凭证", "salary": "工资表", "social_security": "社保明细",
+        "inventory": "进销存台账", "contract": "合同文件", "trial_balance": "科目余额表",
+        "financial": "资产负债表+利润表", "vat": "增值税申报表", "cit": "企业所得税申报表",
+        "ind_tax": "个人所得税申报表", "other_tax": "小税种申报"
+    }
+    for key, cfg in MISSING_CONSEQUENCE_TRIGGER.items():
+        lv = "red" if cfg["level"] == "极高风险" else ("yellow" if cfg["level"] == "高风险" else "orange")
+        mct_rules.append({
+            "id": f"MISSING_{key.upper()}",
+            "name": cat_names.get(key, key),
+            "level": lv,
+            "risk": cfg["risk"],
+            "consequence": cfg["consequence"],
+            "law_ref": cfg["law"],
+            "action": cfg["action"],
+            "priority": cfg["priority"],
+        })
+    rules["phases"]["Phase1-资料缺失触发规则"] = {
+        "description": "任一资料缺失>=1→自动触发对应风险结论到综合定性。14类资料覆盖全证据链——缺失即风险，不存在'没资料不影响判断'的逻辑。",
+        "count": len(mct_rules),
+        "rules": mct_rules,
+    }
+
+    # Phase 3 结论自洽性检测（从CONTRADICTION_RULES提取）
+    contr_rules = []
+    for cr in CONTRADICTION_RULES:
+        lv = "red" if cr["conflict_level"] == "极高风险" else ("yellow" if cr["conflict_level"] == "高风险" else "orange")
+        contr_rules.append({
+            "id": cr["id"],
+            "name": cr["name"],
+            "level": lv,
+            "conflict_level": cr["conflict_level"],
+            "explanation": cr["explanation"],
+            "resolution": cr["resolution"],
+            "priority": cr["priority"],
+            "condition_a": cr.get("condition_a", {}),
+            "condition_b": cr.get("condition_b", {}),
+        })
+    rules["phases"]["Phase3-结论自洽性检测"] = {
+        "description": "双向条件匹配引擎：扫描所有发现，检测预定义的矛盾模式。发现矛盾→优先展示到core_issues→提醒稽查员结论之间存在逻辑互斥需深入核实。",
+        "count": len(contr_rules),
+        "rules": contr_rules,
+    }
+
+    # Phase 3 跨域分析推理链（从cross_domain_analysis.json加载）
+    try:
+        with open(os.path.join(base, "cross_domain_analysis.json"), "r", encoding="utf-8") as f:
+            cross_analysis = json.load(f)
+        xa_rules = []
+        for xa in cross_analysis:
+            lv = "red" if xa.get("level","") == "极高风险" else ("yellow" if xa.get("level","") == "高风险" else "orange")
+            xa_rules.append({
+                "id": f"XA_{xa['id']:02d}",
+                "name": xa["name"],
+                "level": lv,
+                "trigger_signal": xa.get("trigger_signal", ""),
+                "reasoning_steps": xa.get("reasoning_chain", []),
+                "reversal_points": xa.get("reversal_points", []),
+                "description": xa.get("description", ""),
+                "methodology": xa.get("methodology", ""),
+            })
+        rules["phases"]["Phase3-跨域分析推理链"] = {
+            "description": "从单一风险点出发，逐层扩展分析范围，形成完整的推理链。每条链包含推理步骤+回退路径——只要企业能提供合理解释，风险就会降级或消除。",
+            "count": len(xa_rules),
+            "rules": xa_rules,
+        }
+    except Exception as e:
+        rules["phases"]["Phase3-跨域分析推理链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
+
+    # Phase 3 跨域线索链（从cross_domain_clues.json加载）
+    try:
+        with open(os.path.join(base, "cross_domain_clues.json"), "r", encoding="utf-8") as f:
+            cross_clues = json.load(f)
+        xc_rules = []
+        for xc in cross_clues:
+            lv = "red" if xc.get("level","") == "极高风险" else ("yellow" if xc.get("level","") == "高风险" else "orange")
+            xc_rules.append({
+                "id": f"XC_{xc['id']:02d}",
+                "name": xc["name"],
+                "level": lv,
+                "sub_topic": xc.get("sub_topic", ""),
+                "trigger_keywords": xc.get("trigger_keywords", []),
+                "min_evidence": xc.get("min_evidence", 0),
+                "investigation_path": xc.get("investigation_path", []),
+            })
+        rules["phases"]["Phase3-跨域线索链"] = {
+            "description": "跨域线索是指多个分析域之间信号交叉验证产生的调查线索。每个线索需要至少N个维度的证据才能触发（min_evidence），低于此阈值为待观察状态。",
+            "count": len(xc_rules),
+            "rules": xc_rules,
+        }
+    except Exception as e:
+        rules["phases"]["Phase3-跨域线索链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
+
+    # Phase 3 跨域证据链（从cross_domain_evidence.json加载）
+    try:
+        with open(os.path.join(base, "cross_domain_evidence.json"), "r", encoding="utf-8") as f:
+            cross_evidence = json.load(f)
+        xe_rules = []
+        for xe in cross_evidence:
+            lv = "red" if xe["level"] == "极高风险" else ("yellow" if xe["level"] == "高风险" else "orange")
+            xe_rules.append({
+                "id": f"XE_{xe['id']:02d}",
+                "name": xe["name"],
+                "level": lv,
+                "sub_topic": xe.get("sub_topic", ""),
+                "trigger_keywords": xe.get("trigger_keywords", []),
+                "min_evidence": xe.get("min_evidence", 0),
+                "dimensions": xe.get("dimensions", []),
+            })
+        rules["phases"]["Phase3-跨域证据链"] = {
+            "description": "跨域证据链确保每个结论都有多维度、多来源的证据支撑。每个证据链包含A/B/C/D等多维证据源，全部维度命中的结论等级最高。",
+            "count": len(xe_rules),
+            "rules": xe_rules,
+        }
+    except Exception as e:
+        rules["phases"]["Phase3-跨域证据链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
+
+    # Phase 4 因果叙事链（从CAUSAL_CHAIN_RULES提取）
+    causal_rules = []
+    for ch in CAUSAL_CHAIN_RULES:
+        lv = "red" if ch["level"] == "极高风险" else ("yellow" if ch["level"] == "高风险" else "orange")
+        causal_rules.append({
+            "id": ch["id"],
+            "name": ch["name"],
+            "level": lv,
+            "narrative": ch["narrative"],
+            "required_signals": ch["required"],
+            "optional_signals": ch["optional"],
+            "explanation": ch["explanation"],
+            "evidence_chain": ch["evidence_chain"],
+            "confidence_rule": ch["confidence_rule"],
+            "priority": ch["priority"],
+        })
+    rules["phases"]["Phase4-因果叙事链"] = {
+        "description": "跨域因果叙事引擎：从孤立的发现中检测因果链模式（必要信号>=1即触发），构建'叙事链+证据链+置信度'的结构化涉税故事。",
+        "count": len(causal_rules),
+        "rules": causal_rules,
+    }
+
+    # Phase 2 行业自适应知识库
+    try:
+        with open(os.path.join(base, "industry_profiles.json"), "r", encoding="utf-8") as f:
+            ind_profiles = json.load(f)
+        ind_summary = []
+        for ind_key, ind_cfg in ind_profiles.get("industries", {}).items():
+            bm = ind_cfg.get("benchmarks", {})
+            ind_summary.append({
+                "name": ind_cfg.get("label", ind_key),
+                "subtypes": ind_cfg.get("subtypes", []),
+                "benchmarks": {
+                    "毛利率范围": f"{bm.get('gross_margin_pct',{}).get('normal_low','?')}%-{bm.get('gross_margin_pct',{}).get('normal_high','?')}%",
+                    "购销比范围": f"{bm.get('purchase_sales_ratio',{}).get('normal_low','?')}-{bm.get('purchase_sales_ratio',{}).get('normal_high','?')}",
+                    "毛利率低": bm.get("gross_margin_pct",{}).get("low","?"),
+                    "毛利率高": bm.get("gross_margin_pct",{}).get("high","?"),
+                    "毛利率备注": bm.get("gross_margin_pct",{}).get("note",""),
+                    "购销比备注": bm.get("purchase_sales_ratio",{}).get("note",""),
+                },
+                "focus_domains": ind_cfg.get("focus_domains", []),
+                "always_check": ind_cfg.get("always_check", []),
+                "signal_weights": ind_cfg.get("signal_weights", {}),
+                "risk_patterns": ind_cfg.get("risk_patterns", []),
+            })
+        rules["phases"]["Phase2-行业自适应知识库"] = {
+            "description": ind_profiles.get("description", "不同行业的基准参数、风险权重、重点关注域。自动匹配（精确→子类型→经营模式→默认通用），注入Phase2深挖。"),
+            "count": len(ind_summary),
+            "industries": ind_summary,
+        }
+    except Exception:
+        rules["phases"]["Phase2-行业自适应知识库"] = {"error": "加载失败"}
+
     return {"ok": True, "rules": rules}
 
 
