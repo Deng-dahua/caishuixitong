@@ -248,19 +248,6 @@ function renderAuditorHandbook(container) {
   html += '<tr><td>七</td><td>签字</td><td>稽查执行人签名+日期</td></tr>';
   html += '</tbody></table>';
 
-  html += '<h4 style="margin-top:16px;">叙事增强报告（8章·口头汇报体）</h4>';
-  html += '<table class="table table-sm">';
-  html += '<thead><tr><th>章</th><th>内容</th><th>汇报场景</th></tr></thead><tbody>';
-  html += '<tr><td>开篇</td><td>关于XX公司涉税资料的稽查情况汇报</td><td>"领导，现就XX公司的稽查情况向您汇报"</td></tr>';
-  html += '<tr><td>第一章</td><td>案件受理与基本情况</td><td>"本案来源于…我受理后立即启动了稽查工作"</td></tr>';
-  html += '<tr><td>第二章</td><td>稽查方案与工作部署</td><td>"在正式稽查前，我制定了六步工作法…"</td></tr>';
-  html += '<tr><td>第三章</td><td>稽查实施过程</td><td>按方案顺序逐项执行——资金流→发票流→多源交叉验证</td></tr>';
-  html += '<tr><td>第四章</td><td>稽查结论</td><td>"领导，以上稽查工作完成后，我得出以下结论"</td></tr>';
-  html += '<tr><td>第五章</td><td>风险疑点详报与证据链</td><td>逐项详报：调查过程→线索链→证据来源→专业判断</td></tr>';
-  html += '<tr><td>第六章</td><td>证据链组织总结</td><td>"我如何将孤立疑点串联为完整证据链"——四步证据法</td></tr>';
-  html += '<tr><td>第七章</td><td>处理处罚建议</td><td>"根据上述稽查发现和证据链，我提出以下建议…请领导审议"</td></tr>';
-  html += '<tr><td>第八章</td><td>告知事项+双签</td><td>被查单位权利告知+汇报人签名+领导审批意见</td></tr>';
-  html += '</tbody></table>';
   html += '<div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-radius:6px;font-size:13px;">';
   html += '<strong>📜 法定依据：</strong>';
   html += '本报告结构同时覆盖《税务稽查工作规程》第42条（<em>《税务稽查报告》10项内容</em>）和第54条（<em>《税务稽查审理报告》6项内容</em>）的全部要求。';
@@ -268,19 +255,19 @@ function renderAuditorHandbook(container) {
   html += '本系统的"一键分析报告"将两者融合——既包含检查端的发现过程（how_found），也包含审理端的定性依据（tax_impact + policy_ref）。';
   html += '</div>';
 
-  // 叙事风格
-  html += '<h3 style="margin-top:20px;">3.2 叙事风格——第一人称稽查员视角 + 汇报体</h3>';
+  // 叙事风格 —— 客观第三人称
+  html += '<h3 style="margin-top:20px;">3.2 叙事风格——客观第三人称正式法律语体</h3>';
   html += '<div class="card" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:16px;">';
-  html += '<p style="margin:0 0 8px 0;"><strong>核心原则：</strong>报告模拟稽查员向上级领导汇报的真实场景。标准报告用正式法律语体（"本人经稽查发现…"），叙事报告用口头汇报体（"领导，我做了以下稽查工作…"）。</p>';
-  html += '<p style="margin:0 0 8px 0;"><strong>汇报体示例：</strong></p>';
+  html += '<p style="margin:0 0 8px 0;"><strong>核心原则：</strong>报告采用客观第三人称正式法律文书格式，使用"经查""该企业""被查单位"等客观表述，呈现稽查发现和定性依据。</p>';
+  html += '<p style="margin:0 0 8px 0;"><strong>正式语体示例：</strong></p>';
   html += '<ul style="margin:0;font-size:13px;">';
-  html += '<li>✅ <em>"领导，现就XX公司的稽查情况向您详细汇报。"</em>（开篇建立场景）</li>';
-  html += '<li>✅ <em>"在正式稽查前，我制定了六步工作法：第一步…第二步…"</em>（展示稽查方案）</li>';
-  html += '<li>✅ <em>"我审查了被查单位提交的全部14类稽察必查资料，发现缺失8类，具体为：…"</em></li>';
-  html += '<li>✅ <em>"根据上述稽查发现和证据链，我提出以下建议，请领导审议。"</em>（请求上级决策）</li>';
-  html += '<li>❌ <em>"经查，该企业存在少申报收入的情形。"</em>（过于概括，缺乏具体数据和判断过程）</li>';
+  html += '<li>✅ <em>"经依法受理并按照《税务稽查工作规程》组织实施稽查，以下为被查单位基本情况。"</em></li>';
+  html += '<li>✅ <em>"经审核发现实质经营模式与工商登记存在差异，详见稽查实施情况。"</em></li>';
+  html += '<li>✅ <em>"经联网核查获取被查单位在国家企业信用信息公示系统中的登记信息，被查单位工商登记行业为制造业。"</em></li>';
+  html += '<li>✅ <em>"根据上述稽查发现和证据链，提出以下处理处罚建议。"</em></li>';
+  html += '<li>❌ <em>"我审查了XX资料""领导，我得出以下结论"</em>（禁止第一人称/口头汇报体）</li>';
   html += '</ul>';
-  html += '<p style="margin:8px 0 0 0;font-size:12px;color:#6b7280;"><strong>场景纪律：</strong>稽查报告同时是法律文书——所有事实陈述必须有证据支撑，所有法律引用必须有条款号，所有金额必须精确。汇报体不是"随便说"，而是"在严谨证据基础上的清晰汇报"。</p>';
+  html += '<p style="margin:8px 0 0 0;font-size:12px;color:#6b7280;"><strong>场景纪律：</strong>稽查报告是正式法律文书——所有事实陈述必须有证据支撑，所有法律引用必须有条款号，所有金额必须精确。表述必须客观、中性、可验证。</p>';
   html += '</div>';
 
   // 证据引用规范
@@ -314,8 +301,8 @@ function renderAuditorHandbook(container) {
   html += '<thead><tr><th style="width:30px;">#</th><th style="width:140px;">标准名称</th><th>判定规则</th><th style="width:200px;">不合格示例</th></tr></thead><tbody>';
 
   html += '<tr><td style="font-weight:700;">1</td><td><strong>客观第三人称叙事</strong></td>';
-  html += '<td><code>how_found</code> 和 <code>description</code> 必须以"我"为主语，使用"我审查了""我逐一比对了""我发现"等主动语态。禁止第三人称（"经查""该企业"）、禁止被动语态（"被发现在…"）。</td>';
-  html += '<td style="color:#dc2626;font-size:12px;">❌ "经查，该企业存在少申报收入的情形"<br>❌ "销项开票与银行收款名称不匹配，需要按六种商业模式逐笔分析"</td></tr>';
+  html += '<td><code>how_found</code> 和 <code>description</code> 必须使用"经查""该企业""被查单位"等客观第三人称表述。禁止第一人称（"我"）、禁止口头汇报体（"领导"）。</td>';
+  html += '<td style="color:#dc2626;font-size:12px;">❌ "我审查了被查单位提交的银行流水"<br>❌ "领导，我得出以下结论"<br>✅ "经查，该企业2024年1-12月共取得进项发票XX张"</td></tr>';
 
   html += '<tr><td style="font-weight:700;">2</td><td><strong>事实-证据-后果三要素</strong></td>';
   html += '<td>每条发现必须同时包含：①具体事实（多少笔/多少金额/哪些主体）②证据来源（来自哪个数据源/如何交叉验证的）③缺失后果（缺失会导致什么→用什么替代→法律后果是什么）。三者缺一不可。</td>';
@@ -368,20 +355,20 @@ function renderAuditorHandbook(container) {
   html += '每份报告末尾附两轮质量检查统计。模板句先剔除再检查，确保进入报告的文本天然清洁。';
   html += '</div>';
 
-  // 3.6 汇报四要素增强
-  html += '<h3 style="margin-top:20px;">3.6 汇报四要素——真实场景必备</h3>';
-  html += '<p style="font-size:13px;color:#6b7280;">以下四项是模拟真实稽查员向上级领导汇报时不可或缺的要素。系统在生成报告时自动注入。</p>';
+  // 3.6 报告四要素
+  html += '<h3 style="margin-top:20px;">3.6 报告四要素——稽查报告必备</h3>';
+  html += '<p style="font-size:13px;color:#6b7280;">以下四项是稽查报告不可或缺的要素。系统在生成报告时自动注入。</p>';
 
   html += '<table class="table table-sm">';
   html += '<thead><tr><th style="width:120px;">要素</th><th>说明</th><th style="width:200px;">在报告中的位置</th></tr></thead><tbody>';
-  html += '<tr><td style="font-weight:700;">① 处理优先级</td><td>真实汇报结尾必然有一句"领导，我建议优先处理以下最紧急的问题"。报告在结论末尾列出优先处理顺序——高风险立即处理、中风险限期整改、低风险持续关注——并标注每项的紧急理由。</td><td>标准报告：三、稽查结论 → 处理优先级建议<br>叙事报告：第四章结论末尾</td></tr>';
-  html += '<tr><td style="font-weight:700;">② 交叉引用</td><td>真实报告中稽查员会说"如调查事项3所述，收款来源不匹配的问题与调查事项7的供应商地理异常是相互关联的"。每项发现底部自动标注与其共享同一域/线索链的关联发现。</td><td>标准报告：每项发现 → 关联发现行<br>叙事报告：同标准报告</td></tr>';
-  html += '<tr><td style="font-weight:700;">③ 对比基准</td><td>只说有偏差不够，必须说偏差多少、跟什么比。如"开票收入1000万，同行业同规模企业在800-1200万之间——被查单位在此范围内，此项未见异常"。有基准才有说服力。</td><td>稽查管道 → 行业对标域分析<br>（系统已产出域分析发现）</td></tr>';
-  html += '<tr><td style="font-weight:700;">④ 调查时间线</td><td>报告最缺时间叙事——"我收到案件→我调取资料→我发现第一个异常→我顺着线索扩大范围→我锁定核心问题"。叙事报告开篇以六阶段时间线表格呈现从受理到汇报的完整稽查轨迹。</td><td>叙事报告：第一章末尾 → 调查时间线表格</td></tr>';
+  html += '<tr><td style="font-weight:700;">① 处理优先级</td><td>报告在结论末尾列出优先处理顺序——高风险立即处理、中风险限期整改、低风险持续关注——并标注每项的紧急理由。</td><td>三、稽查结论 → 处理优先级建议</td></tr>';
+  html += '<tr><td style="font-weight:700;">② 交叉引用</td><td>每项发现底部自动标注与其共享同一域/线索链的关联发现，便于审理环节做交叉比对。</td><td>每项发现 → 关联发现行</td></tr>';
+  html += '<tr><td style="font-weight:700;">③ 对比基准</td><td>只说有偏差不够，必须说偏差多少、跟什么比。如"开票收入1000万，同行业同规模企业在800-1200万之间——被查单位在此范围内，此项未见异常"。</td><td>稽查管道 → 行业对标域分析</td></tr>';
+  html += '<tr><td style="font-weight:700;">④ 证据闭环</td><td>证据闭环四步法：提取原始数据→逐票核对→多域交叉→形成证据闭环。每步均有完成情况标注。</td><td>四、稽查发现 → 证据来源 + 关联发现</td></tr>';
   html += '</tbody></table>';
 
   html += '<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:13px;">';
-  html += '<strong>🔧 系统实现：</strong>以上四要素在每次一键分析时自动注入——①优先级排序在结论输出阶段生成 ②交叉引用通过共享域/线索链自动匹配 ③对比基准来源于域分析中的行业对标数据 ④时间线在叙事报告第一章自动绘制。';
+  html += '<strong>🔧 系统实现：</strong>以上四要素在每次一键分析时自动注入——①优先级排序在结论输出阶段生成 ②交叉引用通过共享域/线索链自动匹配 ③对比基准来源于域分析中的行业对标数据 ④证据闭环通过规则ID直连+多域交叉验证自动形成。';
   html += '</div>';
   html += '</div>';
 
@@ -626,7 +613,7 @@ function renderAuditorHandbook(container) {
   html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
   html += '<div style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:4px;">③ 方法论过滤器→分析链验证→跨域关联推理→证据闭环升级</div>';
   html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
-  html += '<div style="background:#f5f3ff;padding:8px;border-radius:6px;margin-bottom:4px;">④ 叙事增强层→生成第一人称稽查报告→P0/P1/P2建议分级</div>';
+  html += '<div style="background:#f5f3ff;padding:8px;border-radius:6px;margin-bottom:4px;">④ 综合定性层→生成正式稽查报告→P0/P1/P2建议分级</div>';
   html += '<div style="text-align:center;color:#94a3b8;">↓</div>';
   html += '<div style="background:#fdf2f8;padding:8px;border-radius:6px;">⑤ 全链路质量保障→18组件可追溯→一条发现可还原到原始数据</div>';
   html += '</div>';
