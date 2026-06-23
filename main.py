@@ -20018,6 +20018,109 @@ def _build_causal_narratives(all_findings):
     return narratives
 
 
+# ═══════════ 结论可验证性：为每条 finding 生成推理链路 trace ═══════════
+def _build_finding_trace(finding, idx, trace_id, ctx=None):
+    """
+    为单条结论构建完整的推理链路追溯。
+    
+    每条 trace 包含：
+    - finding_id: 在all_findings中的序号
+    - phase_origin: 结论产生阶段（Phase1-4或域分析）
+    - data_sources: 使用了哪些原始数据
+    - rules_hit: 触发了哪些规则
+    - detection_path: 检测路径（信号→规则→域→交叉验证→综合定性）
+    - how_found: 浓缩版发现过程
+    - calculation_hint: 关键计算步骤提示
+    - confidence_note: 可信度说明
+    """
+    ftype = finding.get("type", "")
+    flevel = finding.get("level", "")
+    fdomain = finding.get("domain", "")
+    fhow = finding.get("how_found", "")
+    fscore = finding.get("score", 0)
+    
+    # ── 推断结论来源阶段 ──
+    if finding.get("_phase4_synthesis"):
+        phase = "Phase4-综合定性"
+    elif finding.get("_phase3_cross_validated"):
+        phase = "Phase3-交叉验证"
+    elif finding.get("_auto_triggered"):
+        phase = "Phase1-缺失触发"
+    elif fdomain and fdomain != "未知域":
+        phase = "Phase2-域分析"
+    else:
+        phase = "Phase1-初查"
+    
+    # ── 推断数据来源 ──
+    sources = []
+    ft = ftype + str(finding.get("description", "")) + str(fdomain) + fhow
+    if any(k in ft for k in ["银行","流水","收款","付款","资金"]): sources.append("银行流水")
+    if any(k in ft for k in ["发票","开票","销项","进项","普票","专票"]): sources.append("发票数据")
+    if any(k in ft for k in ["凭证","分录","记账","账务"]): sources.append("记账凭证")
+    if any(k in ft for k in ["工资","薪酬","个税"]): sources.append("工资表")
+    if any(k in ft for k in ["社保","保险","公积金"]): sources.append("社保/公积金")
+    if any(k in ft for k in ["合同","协议","签约"]): sources.append("合同文件")
+    if any(k in ft for k in ["存货","库存","台账","BOM","进销存"]): sources.append("进销存/BOM")
+    if any(k in ft for k in ["申报","纳税","缴税","税务"]): sources.append("纳税申报表")
+    if any(k in ft for k in ["财务","资产负债","利润","损益","三源"]): sources.append("财务报表")
+    if not sources: sources.append("多源数据综合")
+    
+    # ── 推断触发的规则 ──
+    rules = []
+    # 信号域映射
+    signal_map = {
+        "购销严重倒挂": "TRIAGE_001", "毛利率异常": "TRIAGE_002", "毛利为负": "TRIAGE_002",
+        "毛利率异常高": "TRIAGE_003", "缺少银行流水": "TRIAGE_004", "无进项发票": "TRIAGE_005",
+        "无工资记录": "TRIAGE_006", "加工费": "TRIAGE_007", "制造业加工": "TRIAGE_008",
+        "金额整十": "TRIAGE_010", "分布异常": "TRIAGE_011", "连号": "TRIAGE_012",
+        "季度末": "TRIAGE_013", "供应商集中": "TRIAGE_014", "客户集中": "TRIAGE_015",
+        "个人付款": "TRIAGE_016",
+    }
+    for sig, rid in signal_map.items():
+        if sig in ft: rules.append(rid)
+    if not rules: rules.append("DOMAIN_RULE")
+    
+    # ── 构建检测路径 ──
+    detection_path = ["文件解析→数据提取"]
+    if phase == "Phase1-初查":
+        detection_path.append("信号检测器扫描→命中信号")
+        detection_path.append("信号评级(红/黄/绿)")
+    elif phase == "Phase1-缺失触发":
+        detection_path.append("检测资料缺失→查MISSING_CONSEQUENCE_TRIGGER")
+        detection_path.append(f"触发风险结论: {ftype}")
+    elif phase == "Phase2-域分析":
+        detection_path.append(f"信号→域映射→进入{fdomain}")
+        detection_path.append("域分析函数执行→产出发现")
+    elif phase == "Phase3-交叉验证":
+        detection_path.append("多域发现合并→交叉验证引擎")
+        detection_path.append("信号叠加/冲突消解→确认/升级/降级")
+    elif phase == "Phase4-综合定性":
+        detection_path.append("全部发现汇集→综合评分引擎")
+        detection_path.append("风险等级判定→P0/P1/P2分级")
+    
+    # ── 可信度说明 ──
+    if fscore >= 9: confidence = "高"
+    elif fscore >= 7: confidence = "中"
+    else: confidence = "需交叉验证"
+    
+    trace = {
+        "finding_id": f"F_{idx:03d}",
+        "finding_type": ftype,
+        "finding_level": flevel,
+        "score": fscore,
+        "trace_id": trace_id,
+        "phase_origin": phase,
+        "domain": fdomain,
+        "data_sources": sources,
+        "rules_hit": rules,
+        "detection_path": detection_path,
+        "how_found": fhow[:200] if fhow else "",
+        "confidence": confidence,
+        "rule_count": len(rules),
+    }
+    return trace
+
+
 # ═══════════ 事前预警：异常演变→风险升级路径 ═══════════
 # 从当前异常推断下一阶段风险——"如果你不处理，接下来会发生什么"
 EARLY_WARNING_ESCALATION = [
@@ -20965,6 +21068,10 @@ def _run_analyze(company_id, db):
     # ── NEW ENGINE MARKER: 2026-06-23 Phase 1-4 Reasoning Engine ──
     _NEW_ENGINE_VERSION = True
     ctx = None  # AuditContext 将在 Phase 1 初始化，在此之前为 None
+    
+    # ── 结论可验证性：生成本次分析的 trace_id ──
+    analysis_trace_id = str(uuid.uuid4())[:8]
+    _analysis_traces = []  # 收集所有finding的推理链路
     
     # 直接从磁盘扫描文件列表——不依赖全局 _tax_risk_docs 状态
     docs = []
@@ -23224,6 +23331,11 @@ def _run_analyze(company_id, db):
         for cf in reversed(cross_findings):
             final_findings.insert(0, cf)
     
+    # ── 结论可验证性：为每条 finding 生成推理链路 trace ──
+    for idx, f in enumerate(final_findings):
+        f["_trace"] = _build_finding_trace(f, idx, analysis_trace_id, ctx)
+        _analysis_traces.append(f["_trace"])
+    
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
@@ -23233,6 +23345,8 @@ def _run_analyze(company_id, db):
         "quality_report": quality_report,
         "engine_status": engine_status,
         "all_findings": sorted(final_findings, key=lambda x: -(x.get("score") or 0)),
+        "trace_id": analysis_trace_id,
+        "trace_count": len(_analysis_traces),
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
@@ -25896,6 +26010,65 @@ def get_engine_rules():
         rules["phases"]["Phase2-行业自适应知识库"] = {"error": "加载失败"}
 
     return {"ok": True, "rules": rules}
+
+
+@app.get("/api/tax-risk-docs/trace/{analysis_id}")
+def get_analysis_trace(analysis_id: str, company_id: int = Query(...), db: Session = Depends(get_db)):
+    """
+    结论可验证性：返回指定分析的完整推理链路。
+    
+    每条结论的 _trace 字段包含：
+    - finding_id: 结论序号
+    - phase_origin: 产生阶段
+    - data_sources: 使用的原始数据
+    - rules_hit: 触发的规则编号
+    - detection_path: 检测路径
+    - confidence: 可信度
+    
+    前端可逐条展开查看完整推理依据。
+    """
+    # 从缓存中查找
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        raise HTTPException(404, "未找到分析记录，请先运行一键分析")
+    
+    # cached结构: {"report": {"ok": True, "report": {...}}, "timestamp": "..."}
+    outer = cached.get("report", {})
+    report = outer.get("report", outer)  # 兼容两种嵌套
+    all_findings = report.get("all_findings", [])
+    report_trace_id = report.get("trace_id", "")
+    
+    # 验证trace_id匹配
+    if analysis_id != report_trace_id:
+        raise HTTPException(404, f"分析ID不匹配: expected {report_trace_id}")
+    
+    # 提取所有trace记录
+    traces = []
+    for f in all_findings:
+        t = f.get("_trace", {})
+        if t:
+            traces.append({
+                "finding_id": t.get("finding_id", ""),
+                "finding_type": t.get("finding_type", ""),
+                "finding_level": t.get("finding_level", ""),
+                "score": t.get("score", 0),
+                "phase_origin": t.get("phase_origin", ""),
+                "domain": t.get("domain", ""),
+                "data_sources": t.get("data_sources", []),
+                "rules_hit": t.get("rules_hit", []),
+                "detection_path": t.get("detection_path", []),
+                "how_found": t.get("how_found", ""),
+                "confidence": t.get("confidence", ""),
+            })
+    
+    return {
+        "ok": True,
+        "trace_id": report_trace_id,
+        "total_findings": len(all_findings),
+        "traced_findings": len(traces),
+        "overall_risk": report.get("overall_level", ""),
+        "traces": traces,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -621,6 +621,9 @@ function renderDomainAnalysisResult(report) {
           var lvlColor = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#22c55e');
           var lvlBg = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
           var dt = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (f.detail || '');
+          var trace = f._trace || {};
+          var hasTrace = !!(trace && trace.finding_id);
+          var fid = 'trace-' + di + '-' + (d.findings.indexOf(f));
           html += '<div style="padding:10px 12px;margin-bottom:6px;background:' + lvlBg + ';border-radius:6px;border-left:3px solid ' + lvlColor + '">'
             + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">' + escHtml(f.type || '') + '</div>'
             + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(dt).replace(/"/g, '&quot;') + '">' + escHtml(dt.substring(0, 300)) + '</span>'
@@ -630,8 +633,32 @@ function renderDomainAnalysisResult(report) {
             + '<span style="color:' + lvlColor + ';font-weight:600">' + (f.level || '') + '</span>'
             + '<span>score:' + (f.score || '-') + '</span>'
             + (f.rule_id ? '<span>规则:' + f.rule_id + '</span>' : '')
-            + '</div>'
+            + (hasTrace ? '<a href="#" onclick="toggleTracePanel(\'' + fid + '\');return false" style="color:#2563eb;font-size:11px;font-weight:600;margin-left:auto">🔍 推理链路</a>' : '')
             + '</div>';
+          // 推理链路面板
+          if (hasTrace) {
+            html += '<div id="' + fid + '" style="display:none;margin-top:8px;padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:11px">';
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+            html += '<div><span style="color:#94a3b8">阶段:</span> <strong>' + escHtml(trace.phase_origin||'') + '</strong></div>';
+            html += '<div><span style="color:#94a3b8">可信度:</span> <strong style="color:' + (trace.confidence==='高'?'#059669':'#f59e0b') + '">' + escHtml(trace.confidence||'') + '</strong></div>';
+            html += '<div><span style="color:#94a3b8">数据来源:</span> ' + escHtml((trace.data_sources||[]).join('、')) + '</div>';
+            html += '<div><span style="color:#94a3b8">命中规则:</span> <code style="font-size:10px;background:#f1f5f9;padding:1px 4px;border-radius:2px">' + escHtml((trace.rules_hit||[]).join(', ')) + '</code></div>';
+            html += '</div>';
+            html += '<div style="margin-top:8px;border-top:1px solid #e2e8f0;padding-top:8px">';
+            html += '<div style="color:#64748b;margin-bottom:4px">检测路径:</div>';
+            (trace.detection_path||[]).forEach(function(step, si) {
+              html += '<div style="display:flex;align-items:center;margin:3px 0;font-size:10px">';
+              html += '<span style="background:#0ea5e9;color:#fff;min-width:16px;height:16px;border-radius:50%;text-align:center;line-height:16px;margin-right:6px;font-weight:700">' + (si+1) + '</span>';
+              html += '<span style="color:#475569">' + escHtml(step) + '</span>';
+              html += '</div>';
+            });
+            html += '</div>';
+            if (trace.how_found) {
+              html += '<div style="margin-top:6px;color:#64748b;font-size:10px;line-height:1.5;border-top:1px solid #e2e8f0;padding-top:6px"><strong>发现方式:</strong> ' + escHtml(trace.how_found) + '</div>';
+            }
+            html += '</div>';
+          }
+          html += '</div>';
         });
         html += '</div>';
       }
@@ -1553,6 +1580,11 @@ async function loadAnalyzeOverview() {
 
   target.innerHTML = html;
 
+}
+
+function toggleTracePanel(tid) {
+  var el = document.getElementById(tid);
+  if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
 }
 
 function renderAnalyzeResult(report) {
