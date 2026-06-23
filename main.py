@@ -19241,6 +19241,205 @@ def _build_causal_narratives(all_findings):
     return narratives
 
 
+# ═══════════ 事前预警：异常演变→风险升级路径 ═══════════
+# 从当前异常推断下一阶段风险——"如果你不处理，接下来会发生什么"
+EARLY_WARNING_ESCALATION = [
+    {
+        "id": "EWARN_001",
+        "finding_pattern": ["毛利为负", "毛利率异常偏低", "毛利率偏低", "毛利率下降"],
+        "forward_projection": (
+            "毛利率持续走低→利润空间消失→企业可能通过隐匿收入或虚增成本维持账面"
+            "→一旦被稽查发现，不仅补税+罚款，还可能触发持续经营能力质疑→被列为风险纳税人"
+        ),
+        "checklist": (
+            "①立即复核成本核算是否准确（有无漏结转成本/虚增进项）；"
+            "②排查是否存在大量未开票收入（隐匿收入导致账面毛利率偏低）；"
+            "③若真实毛利率确实偏低→检查定价策略，评估是否为转移定价问题"
+        ),
+        "timeframe": "未来2-4个申报期",
+        "level": "极高风险",
+    },
+    {
+        "id": "EWARN_002",
+        "finding_pattern": ["供应商高度集中", "供应商集中", "客户高度集中", "客户集中"],
+        "forward_projection": (
+            "单一依赖风险持续→若核心供应商断供或核心客户流失→经营中断"
+            "→资金链紧张→可能诱发虚开发票/骗取贷款等连锁违法行为"
+            "→税务稽查升级为联合执法（税务+公安+市监）"
+        ),
+        "checklist": (
+            "①核查集中供应商/客户是否与企业在股权/人员上关联；"
+            "②评估如核心交易对手退出后的替代方案；"
+            "③保留完整的交易档案（合同+发票+物流+付款）以备稽查。"
+        ),
+        "timeframe": "未来3-6个月",
+        "level": "高风险",
+    },
+    {
+        "id": "EWARN_003",
+        "finding_pattern": ["无工资记录", "无社保记录", "工资表缺失", "社保明细缺失"],
+        "forward_projection": (
+            "长期无工资/社保记录→用工合规性存疑→金税四期人社税务数据联动后"
+            "→个税+社保+企业所得税三税联查→虚列人头/虚增工资/偷逃个税的嫌疑坐实"
+            "→补税+滞纳金+罚款+移送劳动监察"
+        ),
+        "checklist": (
+            "①立即建立工资表和社保缴纳记录；"
+            "②逐人核实身份信息，确保全员申报个税和社保；"
+            "③补缴历史欠缴的社保费用（滞纳金每日万分之五）。"
+        ),
+        "timeframe": "金税四期数据联动后随时触发",
+        "level": "高风险",
+    },
+    {
+        "id": "EWARN_004",
+        "finding_pattern": ["加工费", "BOM缺失", "BOM表缺失"],
+        "forward_projection": (
+            "加工费存在但BOM缺失的现状持续→品名差异始终无法解释"
+            "→税务机关认定为'无法说明来源的进项税额'→全额进项转出"
+            "→同时触发上下游联查→委托加工方和受托加工方双双被查"
+        ),
+        "checklist": (
+            "①立即向加工方索要或自行编制BOM表（含单耗和损耗率）；"
+            "②补签规范的委托加工合同（明确品名、数量、加工费标准）；"
+            "③建立加工出入库台账（原材料发出→成品收回逐笔记录）。"
+        ),
+        "timeframe": "下次稽查前必须就位",
+        "level": "高风险",
+    },
+    {
+        "id": "EWARN_005",
+        "finding_pattern": ["个人付款方", "法定代表人", "私户收款", "个人付款占比"],
+        "forward_projection": (
+            "私户收款行为持续→金税四期银行数据+税务数据交叉比对"
+            "→系统自动标记'公私不分'→触发反洗钱+税务联合调查"
+            "→所有未开票收入被追溯核定→补税+0.5-5倍罚款+滞纳金"
+            "→严重者移交公安经侦"
+        ),
+        "checklist": (
+            "①立即停止使用个人账户收取经营款项；"
+            "②对历史私户收款全额补开发票+补申报纳税；"
+            "③法人/股东个人账户与经营相关的流水整理备查。"
+        ),
+        "timeframe": "金税四期银行数据比对随时触发",
+        "level": "极高风险",
+    },
+    {
+        "id": "EWARN_006",
+        "finding_pattern": ["购销严重倒挂", "进销倒挂", "购销倒挂"],
+        "forward_projection": (
+            "进项持续大于销项→库存积压或收入隐匿→若为库存积压→存货跌价损失"
+            "→资产减值→企业所得税前扣除存疑；若为收入隐匿→一旦查实"
+            "→全额补税+罚款→倒挂金额越大、补税越多→可能直接压垮企业现金流"
+        ),
+        "checklist": (
+            "①盘点期末存货→确认是否为真实库存积压（如是，属正常经营）；"
+            "②比对银行收款与开票金额→确认是否存在未开票收款；"
+            "③若两者均排除→进项发票的真实性需重点核查。"
+        ),
+        "timeframe": "当期即可触发",
+        "level": "极高风险",
+    },
+    {
+        "id": "EWARN_007",
+        "finding_pattern": ["虚开发票", "虚开", "对开环开"],
+        "forward_projection": (
+            "虚开发票信号一旦被金税系统标记→系统自动推送至稽查局"
+            "→启动'一案双查'（查开票方+受票方）→进项税额转出+补税+罚款"
+            "→虚开金额较大→移送公安→法定代表人面临刑事责任（最高无期）"
+        ),
+        "checklist": (
+            "①立即自查全部进项发票的三流一致性（合同/发票/资金/货物）；"
+            "②核实供应商真实经营状况（是否存在走逃/注销/非正常户）；"
+            "③对存疑发票主动做进项转出+补税——比被动稽查处罚轻得多。"
+        ),
+        "timeframe": "系统标记后2-4周",
+        "level": "极高风险",
+    },
+    {
+        "id": "EWARN_008",
+        "finding_pattern": ["发票连号", "季度末集中开票", "金额整十整百"],
+        "forward_projection": (
+            "开票行为异常持续→金税系统'发票行为画像'标记"
+            "→纳入异常开票名录→新开发票被限制→经营受阻"
+            "→同时触发稽查→全面核查发票流向和资金流向"
+        ),
+        "checklist": (
+            "①规范开票行为：按实际交易时间逐笔开票，避免集中/突击开票；"
+            "②按实际交易金额开票，避免人为控制金额为整数；"
+            "③连号发票如确为真实交易，保留完整的合同和物流单据备查。"
+        ),
+        "timeframe": "1-2个申报期",
+        "level": "中风险",
+    },
+]
+
+
+def _build_early_warnings(all_findings, ctx):
+    """
+    事前预警引擎：从当前异常推断下一阶段风险
+    
+    工作原理：
+    1. 扫描当前发现的异常模式
+    2. 匹配预警规则中的上升路径
+    3. 生成"如果继续→接下来会发生什么"的前瞻性警告
+    """
+    warnings = []
+    
+    # 构建信号文本池
+    signal_pool = []
+    for f in all_findings:
+        text = (
+            str(f.get("type", "")) + " " +
+            str(f.get("detail", ""))[:500] + " " +
+            str(f.get("description", ""))[:300]
+        )
+        signal_pool.append(text)
+    combined_text = " ".join(signal_pool)
+    
+    for rule in EARLY_WARNING_ESCALATION:
+        patterns = rule.get("finding_pattern", [])
+        
+        # 检查是否至少命中一个模式
+        matched = [p for p in patterns if p in combined_text]
+        if not matched:
+            continue
+        
+        warning_detail = (
+            f"【事前预警·风险升级路径】\n\n"
+            f"当前状态：检测到'{matched[0]}'信号\n\n"
+            f"演变推演：{rule['forward_projection']}\n\n"
+            f"预计时间窗口：{rule['timeframe']}\n\n"
+            f"【立即应对清单】\n{rule['checklist']}\n\n"
+            f"提醒：以上推演基于税务稽查实战经验——"
+            f"这些不是杞人忧天，而是同类案例中真实发生过的升级路径。"
+            f"现在处理是'自查补税'，等稽查来了就是'立案处罚'——性质完全不同。"
+        )
+        
+        warnings.append({
+            "type": f"事前预警-{rule['id']}",
+            "level": rule["level"],
+            "score": 10 if rule["level"] == "极高风险" else (8 if rule["level"] == "高风险" else 6),
+            "detail": warning_detail,
+            "description": warning_detail,
+            "how_found": (
+                f"事前预警引擎检测到'{matched[0]}'信号"
+                f"→触发'{rule['id']}'风险升级路径推演"
+            ),
+            "tax_impact": rule["forward_projection"][:200],
+            "suggestion": rule["checklist"],
+            "policy_ref": "《税收征收管理法》及金税四期风险监控规则",
+            "category": "综合定性·事前预警",
+            "_priority": "P0" if rule["level"] == "极高风险" else "P1",
+            "_early_warning_id": rule["id"],
+            "_auto_triggered": True,
+            "_matched_pattern": matched[0],
+            "_timeframe": rule["timeframe"],
+        })
+    
+    return warnings
+
+
 def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     Phase 4 — 综合定性引擎
@@ -19270,6 +19469,12 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     if causal_narratives:
         all_items.extend(causal_narratives)
         pipeline_log.append(f"[Phase4] 因果叙事引擎: {len(causal_narratives)}条因果链 → {', '.join(cn['_causal_id'] for cn in causal_narratives)}")
+    
+    # ═══ 事前预警引擎：异常演变→风险升级路径 ═══
+    early_warnings = _build_early_warnings(all_items, ctx)
+    if early_warnings:
+        all_items.extend(early_warnings)
+        pipeline_log.append(f"[Phase4] 事前预警引擎: {len(early_warnings)}条升级路径 → {', '.join(ew['_early_warning_id'] for ew in early_warnings)}")
     
     if not all_items:
         return {
@@ -19479,7 +19684,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         lines.append(f"  ▸ 发票异常风险：{len(invoice_signals)}项信号")
     
     # ═══ 资料缺失触发风险（叙事增强层）═══
-    missing_risk_signals = [i for i in core_issues if i.get("_auto_triggered")]
+    missing_risk_signals = [i for i in core_issues if i.get("type", "").startswith("资料缺失触发-")]
     if missing_risk_signals:
         lines.append(f"  ▸ 资料缺失触发风险：{len(missing_risk_signals)}类关键资料缺失，已自动触发以下风险结论——")
         for mr in missing_risk_signals[:5]:
@@ -19501,6 +19706,14 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for cs in causal_signals[:5]:
             name = cs['type'].replace('因果叙事-', '')
             lines.append(f"    → {name}")
+    
+    # ═══ 事前预警：风险升级路径 ═══
+    warning_signals = [i for i in core_issues if i.get("type", "").startswith("事前预警-")]
+    if warning_signals:
+        lines.append(f"  ▸ 事前预警：{len(warning_signals)}条风险升级路径被推演——")
+        for ws in warning_signals[:5]:
+            eid = ws['type'].replace('事前预警-', '')
+            lines.append(f"    ⏰ {eid}")
     
     # 高风险项 TOP3
     if core_issues:
