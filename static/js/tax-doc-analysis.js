@@ -240,6 +240,28 @@ function renderAnalyzeHeader(report) {
     + '<a href="#" onclick="navigateTo(\'analyze-page\');return false" style="display:inline-block;padding:6px 16px;background:#7c3aed;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">⚡ 查看分析过程 →</a>'
     + '</div>';
 
+  // ── Phase 4 推理引擎综合结论卡片 ──
+  var synthFinding = null;
+  for (var si = 0; si < allF.length; si++) {
+    if (allF[si]._phase4_synthesis) {
+      synthFinding = allF[si];
+      break;
+    }
+  }
+  if (synthFinding) {
+    var riskColor = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#dc2626' : '#f59e0b';
+    var riskBg = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#fef2f2' : '#fffbeb';
+    h += '<div style="margin:16px 0;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+      + '<span style="font-size:24px">⚖️</span>'
+      + '<span style="font-size:18px;font-weight:700;color:#1e293b">推理引擎综合稽查结论</span>'
+      + '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (synthFinding.level || '?') + '</span>'
+      + '<span style="font-size:13px;color:var(--gray-500)">评分 ' + (synthFinding.score || '?') + '/100</span>'
+      + '</div>'
+      + '<div style="font-size:14px;color:var(--gray-700);line-height:1.8;white-space:pre-wrap">' + (synthFinding.description || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'
+      + '</div>';
+  }
+
   // 稽查行为准则
   h += '<h3 style="margin-top:24px">稽查行为准则（已内化）</h3>';
   h += '<div style="font-size:12px;color:#64748b;line-height:2;padding:8px 0">'
