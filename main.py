@@ -17725,6 +17725,7 @@ class AuditContext:
         # ── 行业自适应 ──
         self.industry_profile = {}      # 当前企业匹配的行业画像配置
         self.memory_learner = None      # MemoryLearner实例
+        self.file_results = []          # 文件解析结果（供证据溯源）
         
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
@@ -17807,6 +17808,9 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
       - data_quality_score: 资料质量评分
     """
     from collections import defaultdict
+    
+    # ── 存储文件解析结果到ctx，供Phase 4证据溯源使用 ──
+    ctx.file_results = file_results
     
     ctx.phase_history.append({"phase": 1, "start": True})
     
@@ -19952,6 +19956,139 @@ def _build_early_warnings(all_findings, ctx):
     return warnings
 
 
+def _enrich_evidence_trace(ctx, all_findings, file_results):
+    """
+    证据溯源：为每条结论标注原始数据来源
+    
+    让每条高风险结论都能回答："你凭什么这么说？数据在哪？"
+    向引擎的"透明推理机"目标迈进。
+    """
+    # 构建文件类型索引
+    file_type_index = {}
+    file_name_index = {}
+    import re as _re_rows
+    for fr in (file_results or []):
+        ftype = fr.get("type", fr.get("data_type", "unknown"))
+        fname = fr.get("file", fr.get("file_name", fr.get("original_name", "")))
+        # 从actions字符串中提取行数
+        row_count = 0
+        actions = fr.get("actions", [])
+        if isinstance(actions, list):
+            for act in actions:
+                m = _re_rows.search(r'(\d+)行', str(act))
+                if m:
+                    row_count += int(m.group(1))
+        elif isinstance(actions, str):
+            m = _re_rows.search(r'(\d+)行', actions)
+            if m:
+                row_count = int(m.group(1))
+        row_count = max(row_count, fr.get("row_count", fr.get("count", 0)))
+        if ftype not in file_type_index:
+            file_type_index[ftype] = []
+        file_type_index[ftype].append({"name": fname, "rows": row_count})
+        file_name_index[fname] = {"type": ftype, "rows": row_count}
+    
+    # 数据类型中文映射
+    type_labels = {
+        "bank_statement": "银行流水",
+        "sales_invoice": "销项发票",
+        "purchase_invoice": "进项发票",
+        "salary": "工资表",
+        "social_security": "社保明细",
+        "voucher": "记账凭证",
+        "inventory": "进销存台账",
+        "contract": "合同文件",
+        "trial_balance": "科目余额表",
+        "financial_statement": "财务报表",
+        "tax_return": "申报表",
+    }
+    
+    # 结论类型 → 主要依赖的数据类型
+    finding_data_map = {
+        "毛利": ["sales_invoice", "purchase_invoice"],
+        "进销": ["sales_invoice", "purchase_invoice", "inventory"],
+        "虚开": ["purchase_invoice", "bank_statement", "contract"],
+        "发票": ["sales_invoice", "purchase_invoice"],
+        "银行": ["bank_statement"],
+        "收款": ["bank_statement", "sales_invoice"],
+        "付款": ["bank_statement", "purchase_invoice"],
+        "工资": ["salary", "social_security"],
+        "社保": ["salary", "social_security"],
+        "存货": ["inventory"],
+        "合同": ["contract"],
+        "凭证": ["voucher"],
+        "科目": ["trial_balance"],
+        "申报": ["tax_return"],
+        "集中": ["sales_invoice", "purchase_invoice"],
+        "加工": ["purchase_invoice", "contract", "inventory"],
+        "个人": ["bank_statement"],
+        "成本": ["purchase_invoice", "inventory", "voucher"],
+        "收入": ["sales_invoice", "bank_statement"],
+        "地": ["bank_statement", "contract"],
+        "经营": ["bank_statement", "sales_invoice", "purchase_invoice"],
+        "关联": ["bank_statement", "contract"],
+    }
+    
+    import re as _re_trace
+    
+    for finding in all_findings:
+        ftype = str(finding.get("type", ""))
+        fdetail = str(finding.get("detail", ""))
+        fdesc = str(finding.get("description", ""))
+        combined = ftype + " " + fdetail + " " + fdesc
+        
+        # 推断依赖的数据类型
+        data_types = set()
+        for keyword, dtypes in finding_data_map.items():
+            if keyword in combined:
+                data_types.update(dtypes)
+        if not data_types:
+            data_types.add("bank_statement")  # 默认依赖
+        
+        # 提取关键数值
+        key_values = {}
+        # 百分比
+        pct_matches = _re_trace.findall(r'(\d+\.?\d*)%', combined)
+        if pct_matches:
+            key_values["percentages"] = [float(p) for p in pct_matches[:3]]
+        # 金额
+        amt_matches = _re_trace.findall(r'([\d,]+\.?\d*)元', combined)
+        if amt_matches:
+            key_values["amounts"] = [p.replace(",", "") for p in amt_matches[:3]]
+        # 张数/笔数
+        count_matches = _re_trace.findall(r'(\d+)\s*[张笔条]', combined)
+        if count_matches:
+            key_values["counts"] = [int(c) for c in count_matches[:3]]
+        
+        # 构建文件来源摘要
+        source_files = []
+        total_rows = 0
+        for dt in data_types:
+            if dt in file_type_index:
+                for fi in file_type_index[dt]:
+                    source_files.append(fi["name"])
+                    total_rows += fi["rows"]
+        
+        source_summary = ""
+        for dt in sorted(data_types):
+            if dt in file_type_index:
+                label = type_labels.get(dt, dt)
+                count = len(file_type_index[dt])
+                rows = sum(fi["rows"] for fi in file_type_index[dt])
+                source_summary += f"{label}({count}份/{rows}行) "
+        
+        finding["_source_trace"] = {
+            "data_types": list(data_types),
+            "data_type_labels": [type_labels.get(dt, dt) for dt in data_types],
+            "source_files": list(set(source_files))[:5],
+            "total_data_rows": total_rows,
+            "source_summary": source_summary.strip(),
+            "key_values": key_values,
+        }
+    
+    return all_findings
+
+
 def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     Phase 4 — 综合定性引擎
@@ -19987,6 +20124,12 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     if early_warnings:
         all_items.extend(early_warnings)
         pipeline_log.append(f"[Phase4] 事前预警引擎: {len(early_warnings)}条升级路径 → {', '.join(ew['_early_warning_id'] for ew in early_warnings)}")
+    
+    # ═══ 证据溯源：标注每条结论的原始数据来源 ═══
+    file_results = getattr(ctx, 'file_results', [])
+    if file_results:
+        all_items = _enrich_evidence_trace(ctx, all_items, file_results)
+        pipeline_log.append(f"[Phase4] 证据溯源: 已为{len(all_items)}条发现标注数据来源")
     
     # ═══ 结论可信度评估：引擎自我质疑 ═══
     credibility_report = {}
@@ -21535,6 +21678,12 @@ def _run_analyze(company_id, db):
     if cross_findings:
         for cf in reversed(cross_findings):
             all_findings.insert(0, cf)
+    
+    # ── 证据溯源：为所有发现标注原始数据来源 ──
+    try:
+        all_findings = _enrich_evidence_trace(ctx, all_findings, file_results)
+    except Exception:
+        pass
 
     
     # ── 同类风险合并已移至 _apply_methodology_filter 的去重逻辑中 ──
