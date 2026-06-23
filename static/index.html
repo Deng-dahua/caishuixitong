@@ -26,6 +26,13 @@
       overflow-y: auto;
     }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    /* 推理引擎仪表盘 */
+    .engine-card { background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px }
+    .engine-card-title { font-size:15px;font-weight:700;color:#1e293b;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9 }
+    .engine-table { width:100%;border-collapse:collapse }
+    .engine-table td { padding:6px 8px;font-size:13px;border-bottom:1px solid #f8fafc }
+    .engine-table td:first-child { color:#64748b;width:30%;white-space:nowrap }
+    .engine-table td:last-child { color:#1e293b }
   </style>
 </head>
 <body>
@@ -252,6 +259,10 @@
     <div class="nav-item nav-item-highlight" data-page="auditor-handbook">
       <span class="icon">⚖️</span> 税务稽查员手册
     </div>
+  <div class="nav-group-title">推理引擎</div>
+    <div class="nav-item" data-page="engine-dashboard">
+      <span class="icon">🧠</span> 推理引擎仪表盘
+    </div>
   <div class="nav-group-title">AI行为准则</div>
     <div class="nav-item" data-page="ai-rules">
       <span class="icon">📜</span> AI行为准则
@@ -327,6 +338,7 @@
 <script src="/static/js/system-logs.js?v=20260615" defer></script>
 <script src="/static/js/file-import.js?v=202606151001" defer></script>
 <script src="/static/js/tax-auditor-handbook.js?v=2026062304" defer></script>
+<script src="/static/js/tax-engine-dashboard.js?v=20260623" defer></script>
 
 <script>init();</script>
 

@@ -561,6 +561,7 @@ function navigateTo(page) {
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
     case 'auditor-handbook': renderAuditorHandbook(container); break;
+    case 'engine-dashboard': renderEngineDashboardPage(container); break;
   }
   window.scrollTo(0, 0);
 }

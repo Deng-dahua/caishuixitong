@@ -21036,6 +21036,94 @@ def _run_analyze(company_id, db):
             else:
                 del f["policy_ref"]
     
+    # ── 提取推理引擎完整状态（供独立展示模块使用）──
+    engine_status = {}
+    try:
+        cp = ctx.company_profile
+        fs = ctx.financial_snapshot
+        bcc = ctx.biz_cost_classification or {}
+        
+        biz_cost_summary = {
+            "core_cost_count": len(bcc.get("core_cost_invs", [])),
+            "core_cost_amount": sum(float(inv.get("amount", 0) or 0) for inv in bcc.get("core_cost_invs", [])),
+            "major_expense_count": len(bcc.get("major_expense_invs", [])),
+            "minor_expense_count": len(bcc.get("minor_expense_invs", [])),
+            "core_goods": list(bcc.get("pur_core_goods", []))[:20],
+            "expense_goods": list(bcc.get("pur_expense_goods", []))[:20],
+        }
+
+        try:
+            _domains = list(phase2_domains_covered) if 'phase2_domains_covered' in locals() else []
+        except:
+            _domains = []
+        try:
+            _depths = dict(depth_levels) if 'depth_levels' in locals() else {}
+        except:
+            _depths = {}
+
+        try:
+            _synth = synthesis
+        except:
+            _synth = {}
+
+        engine_status = {
+            "version": "v2.0",
+            "phases": ["Phase1-初查", "Phase2-定向深挖", "Phase3-交叉验证", "Phase4-综合定性"],
+            "company_profile": {
+                "industry": cp.get("industry", "未知"),
+                "biz_model": cp.get("biz_model", "未知"),
+                "scale": cp.get("scale", "未知"),
+                "has_manufacturing": cp.get("has_manufacturing", False),
+                "has_trading": cp.get("has_trading", False),
+            },
+            "financial_snapshot": {
+                "total_sales": fs.get("total_sales", 0),
+                "total_purchases": fs.get("total_purchases", 0),
+                "total_bank_in": fs.get("total_bank_in", 0),
+                "total_bank_out": fs.get("total_bank_out", 0),
+                "total_salary": fs.get("total_salary", 0),
+                "gross_margin_pct": round(fs.get("gross_margin_pct", 0), 1),
+                "sale_count": fs.get("sale_count", 0),
+                "pur_count": fs.get("pur_count", 0),
+                "bank_tx_count": fs.get("bank_tx_count", 0),
+                "salary_count": fs.get("salary_count", 0),
+            },
+            "biz_cost_classification": biz_cost_summary,
+            "red_flags": ctx.red_flags,
+            "yellow_flags": ctx.yellow_flags,
+            "green_signals": ctx.green_signals,
+            "bom_missing": ctx.bom_missing,
+            "has_processing_fee": ctx.has_processing_fee,
+            "has_personal_payments": ctx.has_personal_payments,
+            "supplier_concentration": ctx.supplier_concentration,
+            "customer_concentration": ctx.customer_concentration,
+            "data_quality_score": ctx.data_quality_score,
+            "missing_critical_docs": ctx.missing_critical_docs,
+            "phase2_domains_deep_dived": _domains,
+            "phase2_depth_levels": _depths,
+            "phase3_pattern_hits": [
+                {"name": cf.get("type", ""), "level": cf.get("level", ""), "score": cf.get("score", 0)}
+                for cf in (cross_findings or [])
+            ],
+            "phase3_conflicts": [
+                {"rule_id": cf.get("_conflict_rule_id", ""), "type": cf.get("type", ""), "level": cf.get("level", "")}
+                for cf in (cross_findings or []) if cf.get("_conflict_rule_id")
+            ],
+            "phase4_synthesis": {
+                "risk_score": _synth.get("risk_score", 0),
+                "overall_risk": _synth.get("overall_risk", ""),
+                "cross_validated_patterns": _synth.get("cross_validated_patterns", 0),
+                "p0_count": len(_synth.get("prioritized_actions", {}).get("P0_立即行动", [])),
+                "p1_count": len(_synth.get("prioritized_actions", {}).get("P1_重点关注", [])),
+                "core_issues": _synth.get("core_issues", []),
+            },
+            "finding_index_keys": list(ctx.finding_index.keys())[:20] if ctx.finding_index else [],
+            "memories_count": 0,
+        }
+    except Exception as e:
+        import traceback
+        engine_status = {"error": f"{e}: {traceback.format_exc()[-200:]}", "version": "v2.0-partial"}
+    
     # ── 最终注入：Phase 4 综合定性 + Phase 3 交叉验证（在所有过滤之后）──
     final_findings = list(all_findings)
     if synth_finding is not None:
@@ -21051,6 +21139,7 @@ def _run_analyze(company_id, db):
         "target_entity": target_entity,
         "low_data_warning": low_data_warning,
         "quality_report": quality_report,
+        "engine_status": engine_status,
         "all_findings": sorted(final_findings, key=lambda x: -(x.get("score") or 0)),
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
