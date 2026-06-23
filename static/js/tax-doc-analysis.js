@@ -984,6 +984,19 @@ function renderNarrativeReport(r) {
   var te = r.target_entity || {};
   var allF = r.all_findings || [];
   allF.sort(function(a,b){return(b.score||0)-(a.score||0);});
+  
+  // ── Phase 4 推理引擎综合结论（优先使用）──
+  var synthFinding = null;
+  for (var si = 0; si < allF.length; si++) {
+    if (allF[si]._phase4_synthesis) {
+      synthFinding = allF[si];
+      break;
+    }
+  }
+  
+  // 如果有 Phase 4 引擎结论，用它替换旧叙事层的展示
+  var narrativeTitle = synthFinding ? '推理引擎综合稽查结论（叙事增强层）' : '税务稽查叙事报告';
+  
   var cc = r.comprehensive || {};
   var mi = cc.material_intel || {};
   var bi = mi['银行流水'] || {};
@@ -1069,6 +1082,20 @@ function renderNarrativeReport(r) {
 
   // ═══ 开篇：向上级汇报 ═══
   h += '<div class="nr-chapter"><h2>关于' + esc(te.name || '某企业') + '涉税资料的稽查情况汇报</h2><div class="nr-ch-sub">汇报人：国家税务总局XX稽查局稽查员　' + dateStr + '</div></div>';
+
+  // ── Phase 4 推理引擎综合结论（叙事增强）──
+  if (synthFinding) {
+    var riskLevel = synthFinding.level || '?';
+    var riskColor = (riskLevel === '极高风险' || riskLevel === '高风险') ? '#dc2626' : '#f59e0b';
+    h += '<div style="margin:20px 0;padding:30px;background:#fef2f2;border:3px solid ' + riskColor + ';border-radius:8px">'
+      + '<div style="text-align:center;margin-bottom:16px">'
+      + '<span style="font-size:20px;font-weight:900;color:#1a1a2e">推理引擎综合稽查结论</span>'
+      + '<span style="display:inline-block;margin-left:12px;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:4px;font-size:14px;font-weight:700">' + riskLevel + '</span>'
+      + '<span style="margin-left:8px;font-size:14px;color:#64748b">评分 ' + (synthFinding.score || '?') + '/100</span>'
+      + '</div>'
+      + '<div style="font-size:14px;line-height:2;white-space:pre-wrap">' + (synthFinding.description || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'
+      + '</div>';
+  }
 
   // ═══ 第一章：案件受理与基本情况 ═══
   h += '<div class="nr-chapter"><h2>第一章　案件受理与基本情况</h2><div class="nr-ch-sub">' + dateStr + ' ' + timeStr + '</div></div>';
