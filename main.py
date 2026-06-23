@@ -17369,7 +17369,7 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
     
     # ── 1.4 初查信号检测 ──
-    _detect_triage_signals(ctx)
+    _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs)
     
     # ── 1.5 资料质量评估 ──
     _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries)
@@ -17467,13 +17467,16 @@ def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
         cp["industry"] = "综合"
 
 
-def _detect_triage_signals(ctx):
-    """初查阶段信号检测——只做快速判断，不做深入分析"""
+def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
+    """初查阶段信号检测——像老稽查员翻一遍资料就能嗅出异常"""
     fs = ctx.financial_snapshot
     cp = ctx.company_profile
     
-    # ── 红灯：基础数据严重异常 ──
-    # 购销倒挂（进项>销项）：可能虚增进项或隐匿收入
+    # ═══════════════════════════════════════════
+    # 红灯：基础数据严重异常（立即深挖）
+    # ═══════════════════════════════════════════
+    
+    # 购销倒挂（进项>销项1.5倍）：可能虚增进项或隐匿收入
     if fs["total_purchases"] > fs["total_sales"] * 1.5 and fs["total_sales"] > 0:
         ctx.add_flag("red", "购销严重倒挂", 
                      f"进项{fs['total_purchases']:,.0f}远超销项{fs['total_sales']:,.0f}", "初查")
@@ -17481,22 +17484,25 @@ def _detect_triage_signals(ctx):
     # 毛利率异常（<0%或>80%）
     gm = fs["gross_margin_pct"]
     if gm < 0:
-        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%", "初查")
+        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%，进价高于售价或隐匿收入", "初查")
     elif gm > 80 and fs["total_sales"] > 1000000:
-        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%", "初查")
-    
-    # ── 黄灯：需关注但非紧急 ──
-    # 有销无进（服务/劳务除外，那是正常模式）
-    if fs["sale_count"] > 0 and fs["pur_count"] == 0 and cp["biz_model"] not in ("服务/劳务",):
-        ctx.add_flag("yellow", "无进项发票", f"{fs['sale_count']}张销项但0张进项", "初查")
-    
-    # 工资为0但销项很大（可能虚开发票）
-    if fs["total_sales"] > 5000000 and fs["salary_count"] == 0:
-        ctx.add_flag("yellow", "无工资记录", f"销项{fs['total_sales']:,.0f}但无工资", "初查")
+        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%，可能关联交易定价不公允", "初查")
     
     # 银行业务量异常
     if fs["bank_tx_count"] == 0 and fs["total_sales"] > 0:
-        ctx.add_flag("red", "缺少银行流水", "有销售但无银行流水记录", "初查")
+        ctx.add_flag("red", "缺少银行流水", "有销售但无银行流水记录→资金流无法验证", "初查")
+    
+    # ═══════════════════════════════════════════
+    # 黄灯：需关注但非紧急
+    # ═══════════════════════════════════════════
+    
+    # 有销无进（服务/劳务除外）
+    if fs["sale_count"] > 0 and fs["pur_count"] == 0 and cp["biz_model"] not in ("服务/劳务",):
+        ctx.add_flag("yellow", "无进项发票", f"{fs['sale_count']}张销项但0张进项", "初查")
+    
+    # 工资为0但销项很大
+    if fs["total_sales"] > 5000000 and fs["salary_count"] == 0:
+        ctx.add_flag("yellow", "无工资记录", f"销项{fs['total_sales']:,.0f}但无工资→可能虚开或隐匿人员", "初查")
     
     # 加工信号
     if ctx.has_processing_fee:
@@ -17508,14 +17514,224 @@ def _detect_triage_signals(ctx):
                 ctx.add_flag("yellow", "制造业加工链条待验证",
                             f"核心成本{core_count}张+加工费→需BOM表验证", "初查")
     
-    # ── 绿灯：正常信号（用于后续排除误报）──
+    # ═══════════════════════════════════════════
+    # 增强检测：发票行为模式
+    # ═══════════════════════════════════════════
+    if pur_invs:
+        _detect_invoice_pattern_signals(ctx, pur_invs, "进项")
+    if sal_invs:
+        _detect_invoice_pattern_signals(ctx, sal_invs, "销项")
+    
+    # 进项发票连号检测（连续号码→虚假交易）
+    if pur_invs and len(pur_invs) >= 3:
+        _detect_consecutive_invoices(ctx, pur_invs, "进项")
+    if sal_invs and len(sal_invs) >= 3:
+        _detect_consecutive_invoices(ctx, sal_invs, "销项")
+    
+    # 季度末集中开票检测
+    if sal_invs and len(sal_invs) >= 5:
+        _detect_quarter_end_spike(ctx, sal_invs, "销项")
+    if pur_invs and len(pur_invs) >= 5:
+        _detect_quarter_end_spike(ctx, pur_invs, "进项")
+    
+    # 供应商集中度
+    if pur_invs and len(pur_invs) >= 3:
+        _detect_supplier_concentration(ctx, pur_invs)
+    
+    # 客户集中度
+    if sal_invs and len(sal_invs) >= 3:
+        _detect_customer_concentration(ctx, sal_invs)
+    
+    # 银行流水异常模式
+    if bank_txs and len(bank_txs) >= 5:
+        _detect_bank_pattern_signals(ctx, bank_txs)
+    
+    # ═══════════════════════════════════════════
+    # 绿灯：正常信号
+    # ═══════════════════════════════════════════
     if ctx.biz_cost_classification:
         bcc = ctx.biz_cost_classification
         minor_count = len(bcc["minor_expense_invs"])
         if minor_count > 0:
             ctx.add_flag("green", "存在日常费用报销",
                         f"{minor_count}张日常报销（餐饮住宿等）——正常经营信号", "初查")
+        # 进销品名重合度高 → 贸易模式正常
+        if cp["has_trading"]:
+            ctx.add_flag("green", "贸易模式进销品名匹配", "进销品名重合度高→贸易链条正常", "初查")
 
+
+def _detect_invoice_pattern_signals(ctx, invoices, direction):
+    """发票行为模式检测：金额分布、整十整百比例"""
+    if not invoices or len(invoices) < 5:
+        return
+    
+    amounts = []
+    for inv in invoices:
+        a = float(inv.get("amount", inv.get("total", 0)) or 0)
+        if a > 0:
+            amounts.append(a)
+    
+    if len(amounts) < 5:
+        return
+    
+    # 金额整十整百比例（人为编造发票的典型特征）
+    round_count = sum(1 for a in amounts if a >= 1000 and (a % 1000 == 0 or a % 10000 == 0))
+    round_pct = round_count / len(amounts) * 100
+    if round_pct > 50 and len(amounts) >= 5:
+        ctx.add_flag("yellow", f"{direction}金额整十整百比例高",
+                    f"{round_count}/{len(amounts)}张（{round_pct:.0f}%）金额为整数→可能人为编造", "初查")
+    
+    # 单张发票金额过于均匀（标准差/均值 < 0.2 → 每张金额差不多）
+    if len(amounts) >= 5:
+        avg = sum(amounts) / len(amounts)
+        variance = sum((a - avg) ** 2 for a in amounts) / len(amounts)
+        std = variance ** 0.5
+        if avg > 1000 and std / avg < 0.3:
+            ctx.add_flag("yellow", f"{direction}金额分布异常均匀",
+                        f"标准差/均值={std/avg:.2f}，每张金额接近→可能按计划编造而非真实交易", "初查")
+
+
+def _detect_consecutive_invoices(ctx, invoices, direction):
+    """进销项发票连号检测"""
+    import re
+    
+    inv_nos = []
+    for inv in invoices:
+        no = str(inv.get("inv_no", inv.get("发票号码", ""))).strip()
+        if no:
+            # 提取数字部分
+            nums = re.findall(r'\d+', no)
+            if nums:
+                inv_nos.append((no, int(nums[-1])))
+    
+    if len(inv_nos) < 3:
+        return
+    
+    # 按数字排序，检测连续号码段
+    inv_nos.sort(key=lambda x: x[1])
+    consecutive_groups = []
+    current_group = [inv_nos[0]]
+    
+    for i in range(1, len(inv_nos)):
+        if inv_nos[i][1] - inv_nos[i-1][1] <= 1:
+            current_group.append(inv_nos[i])
+        else:
+            if len(current_group) >= 3:
+                consecutive_groups.append(current_group)
+            current_group = [inv_nos[i]]
+    
+    if len(current_group) >= 3:
+        consecutive_groups.append(current_group)
+    
+    if consecutive_groups:
+        max_group = max(consecutive_groups, key=len)
+        ctx.add_flag("yellow", f"{direction}发票连号",
+                    f"发现{len(consecutive_groups)}组连号发票，最长连续{len(max_group)}张"
+                    f"（{max_group[0][0]}~{max_group[-1][0]}）→可能集中开票或虚假交易", "初查")
+
+
+def _detect_quarter_end_spike(ctx, invoices, direction):
+    """季度末集中开票检测"""
+    from collections import Counter
+    
+    month_counts = Counter()
+    for inv in invoices:
+        date_str = str(inv.get("date", inv.get("inv_date", inv.get("开票日期", "")))).strip()
+        if date_str and len(date_str) >= 7:
+            month = date_str[:7]  # YYYY-MM
+            month_counts[month] += 1
+    
+    if len(month_counts) < 3:
+        return
+    
+    # 季度末月份：3, 6, 9, 12
+    quarter_end_months = set()
+    for m in month_counts:
+        if m.endswith('-03') or m.endswith('-06') or m.endswith('-09') or m.endswith('-12'):
+            quarter_end_months.add(m)
+    
+    if not quarter_end_months:
+        return
+    
+    qe_count = sum(month_counts[m] for m in quarter_end_months)
+    total_count = sum(month_counts.values())
+    qe_pct = qe_count / total_count * 100
+    
+    if qe_pct > 60 and total_count >= 10:
+        ctx.add_flag("yellow", f"{direction}季度末集中开票",
+                    f"季度末月份({','.join(sorted(quarter_end_months))})开票量占总量的{qe_pct:.0f}%"
+                    f"→可能突击开票或人为调节收入", "初查")
+
+
+def _detect_supplier_concentration(ctx, pur_invs):
+    """供应商集中度检测"""
+    from collections import defaultdict
+    supplier_amounts = defaultdict(float)
+    for inv in pur_invs:
+        seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+        if seller and amount > 0:
+            supplier_amounts[seller] += amount
+    
+    if len(supplier_amounts) < 2:
+        return
+    
+    total = sum(supplier_amounts.values())
+    top3 = sorted(supplier_amounts.values(), reverse=True)[:3]
+    top3_pct = sum(top3) / total * 100
+    
+    ctx.supplier_concentration = top3_pct
+    
+    if top3_pct > 80 and len(supplier_amounts) >= 3:
+        ctx.add_flag("yellow", "供应商高度集中",
+                    f"前3大供应商占总采购额{top3_pct:.0f}%→可能存在关联交易或供应商依赖风险", "初查")
+
+
+def _detect_customer_concentration(ctx, sal_invs):
+    """客户集中度检测"""
+    from collections import defaultdict
+    customer_amounts = defaultdict(float)
+    for inv in sal_invs:
+        buyer = str(inv.get("buyer", inv.get("购方名称", ""))).strip()
+        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+        if buyer and amount > 0:
+            customer_amounts[buyer] += amount
+    
+    if len(customer_amounts) < 2:
+        return
+    
+    total = sum(customer_amounts.values())
+    top3 = sorted(customer_amounts.values(), reverse=True)[:3]
+    top3_pct = sum(top3) / total * 100
+    
+    ctx.customer_concentration = top3_pct
+    
+    if top3_pct > 80 and len(customer_amounts) >= 3:
+        ctx.add_flag("yellow", "客户高度集中",
+                    f"前3大客户占总销售额{top3_pct:.0f}%→可能存在关联交易或客户依赖风险", "初查")
+
+
+def _detect_bank_pattern_signals(ctx, bank_txs):
+    """银行流水异常模式检测"""
+    # 个人付款方比例
+    personal_count = 0
+    total_count = 0
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
+        if not cp:
+            continue
+        total_count += 1
+        # 判断个人：长度短、无"公司/有限/企业"等后缀
+        if len(cp) <= 4 and not any(k in cp for k in ["公司", "有限", "企业", "厂", "行"]):
+            personal_count += 1
+    
+    if total_count >= 10:
+        personal_pct = personal_count / total_count * 100
+        if personal_pct > 30:
+            ctx.has_personal_payments = True
+            ctx.add_flag("yellow", "个人交易占比过高",
+                        f"{personal_count}/{total_count}笔（{personal_pct:.0f}%）付款方为个人"
+                        f"→可能私户收款或未申报经营收入", "初查")
 
 def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
     """资料质量评估——影响后续分析的置信度"""
@@ -17636,6 +17852,39 @@ _SIGNAL_DOMAIN_MAP = {
         "depth": "deep",
         "reason": "前3大供应商占比过高→可能存在关联交易或虚开发票"
     },
+    # ── 新增：发票行为异常 ──
+    "发票连号": {
+        "domains": ["发票实质性审计", "经营实质分析"],
+        "depth": "deep",
+        "reason": "连续发票号→可能是集中开票或人为编造交易"
+    },
+    "金额整十整百比例高": {
+        "domains": ["发票实质性审计"],
+        "depth": "normal",
+        "reason": "发票金额大量为整数→不符合真实交易的价格分布"
+    },
+    "金额分布异常均匀": {
+        "domains": ["发票实质性审计", "经营实质分析"],
+        "depth": "normal",
+        "reason": "每张发票金额接近→人为编造而非真实波动"
+    },
+    "季度末集中开票": {
+        "domains": ["发票实质性审计", "收入时间线调查", "经营实质分析"],
+        "depth": "deep",
+        "reason": "季度末突击开票→可能人为调节收入或虚开发票"
+    },
+    # ── 新增：银行异常 ──
+    "个人交易占比过高": {
+        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
+        "depth": "deep",
+        "reason": "大量个人付款方→需核实资金性质+是否为隐匿经营收入"
+    },
+    # ── 新增：客户/供应商结构异常 ──
+    "客户高度集中": {
+        "domains": ["客户维度三源穿透", "关联交易穿透检测", "经营实质分析"],
+        "depth": "deep",
+        "reason": "前3大客户占比过高→可能存在关联交易或客户依赖"
+    },
 }
 
 
@@ -17705,6 +17954,8 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         "工资社保比对": lambda: _domain_salary_ss_hf_compare(salaries, social_security),
         "人员与业务匹配": lambda: _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security),
         "个人交易风险": lambda: _domain_personal_transactions(sal_invs),
+        "收入时间线调查": lambda: _domain_revenue_timeline(vouchers, sal_invs, bank_txs),
+        "客户维度三源穿透": lambda: _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue),
     }
     
     for domain, depth in domains_to_run.items():
