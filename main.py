@@ -17464,34 +17464,32 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
 
 
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
-    """从品名推断行业——通用方法，禁止行业特化关键词列表"""
+    """从发票品名推断行业——全行业自适应，不硬编码任何行业关键词
+    
+    方法：利用中国金税发票的税收分类编码前缀（*XX*格式）
+    例如：*纺织产品*棉布 → 行业=纺织产品
+    无分类编码时用"综合"兜底
+    """
     cp = ctx.company_profile
-    all_goods = " ".join(pur_goods | sal_goods)
     
-    # 通用行业信号（跨行业适用）
-    industry_signals = {
-        "纺织": ["纱","布","棉","麻","丝","纺织","织造","印染","染整","面料","针织","梭织","毛纺"],
-        "服装": ["服装","服饰","衣服","鞋","帽","箱包","皮具"],
-        "电子": ["电子","芯片","半导体","电路板","PCB","元器件","集成电路","传感器"],
-        "机械": ["机械","机床","零件","配件","五金","轴承","齿轮","阀门","泵"],
-        "建材": ["建材","水泥","钢材","钢筋","玻璃","陶瓷","石材","涂料","管材"],
-        "食品": ["食品","饮料","酒","茶","米","面","油","调味","乳制品"],
-        "化工": ["化工","化学","塑料","橡胶","树脂","涂料","颜料","试剂"],
-        "医药": ["药品","医药","药材","制剂","胶囊","片剂","注射"],
-        "汽车": ["汽车","车辆","轮胎","发动机","底盘","零部件","配件"],
-        "家具": ["家具","家居","木","板材","沙发","床","柜","桌椅"],
-        "IT": ["软件","系统","开发","技术","服务","咨询","设计"],
-    }
+    # 从所有品名中提取税收分类编码（*之间的文字）
+    import re
+    all_goods_list = list(pur_goods | sal_goods)
+    cat_counts = {}
     
-    signals_found = {}
-    for industry, keywords in industry_signals.items():
-        count = sum(1 for kw in keywords if kw in all_goods)
-        if count > 0:
-            signals_found[industry] = count
+    for goods in all_goods_list:
+        # 匹配 *分类名称* 格式（金税发票标准格式）
+        match = re.search(r'\*([^*]+)\*', str(goods))
+        if match:
+            cat = match.group(1).strip()
+            # 过滤掉明显不是行业分类的模式（如纯数字、单字）
+            if len(cat) >= 2 and not cat.isdigit():
+                cat_counts[cat] = cat_counts.get(cat, 0) + 1
     
-    if signals_found:
-        best = max(signals_found, key=signals_found.get)
-        cp["industry"] = best
+    if cat_counts:
+        # 取出现最多的分类编码作为行业
+        best_cat = max(cat_counts, key=cat_counts.get)
+        cp["industry"] = best_cat
     else:
         cp["industry"] = "综合"
 
