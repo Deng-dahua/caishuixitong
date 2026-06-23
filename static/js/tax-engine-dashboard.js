@@ -414,15 +414,11 @@ function loadEngineDashboard() {
   fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (d && d.report) {
-        renderEngineDashboard(d.report);
-      } else {
-        document.getElementById('engine-dashboard-area').innerHTML = 
-          '<div style="padding:40px;text-align:center;color:#94a3b8">暂无分析数据。请先在资料风险分析页面运行一键分析。</div>';
-      }
+      // 始终渲染标签系统（规则库不需要分析数据）
+      renderEngineDashboard((d && d.report) ? d.report : null);
     })
     .catch(function() {
-      document.getElementById('engine-dashboard-area').innerHTML = 
-        '<div style="padding:40px;text-align:center;color:#dc2626">加载失败，请确认服务器已启动。</div>';
+      // 即使API失败也渲染标签（规则库走独立API）
+      renderEngineDashboard(null);
     });
 }
