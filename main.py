@@ -27,6 +27,15 @@ import ssl
 import time as _time_module_inner
 from pypdf import PdfReader
 
+# ═══ 稽查员推理引擎（模块化架构）═══
+from engine import (
+    AuditContext, identify_main_biz_cost,
+    _phase1_triage as _engine_phase1,
+    _phase2_deep_dive as _engine_phase2,
+    _phase3_cross_validate as _engine_phase3,
+    _phase4_synthesis as _engine_phase4,
+)
+
 from database import (
     get_db, init_db, init_company_data,
     Company, Department, Employee, Customer, Supplier,
