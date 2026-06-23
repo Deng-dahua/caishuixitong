@@ -19952,9 +19952,9 @@ def _build_causal_narratives(all_findings):
                     if sf["finding"] not in req_matches[req_signal]:
                         req_matches[req_signal].append(sf["finding"])
         
-        # 至少2个必要信号被命中
+        # 至少1个必要信号被命中（发现>=1即触发）
         req_hit_count = len(req_matches)
-        if req_hit_count < 2:
+        if req_hit_count < 1:
             continue
         
         # 检查辅助信号
