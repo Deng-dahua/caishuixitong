@@ -17966,6 +17966,19 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         
         try:
             findings = func()
+            # ── ctx 注入：将当前 ctx 的摘要附加到每条发现上 ──
+            if findings and ctx:
+                ctx_summary = {
+                    "industry": ctx.company_profile.get("industry", ""),
+                    "biz_model": ctx.company_profile.get("biz_model", ""),
+                    "has_processing_fee": ctx.has_processing_fee,
+                    "data_quality_score": ctx.data_quality_score,
+                }
+                for f in findings:
+                    if isinstance(f, dict):
+                        f["_ctx_industry"] = ctx_summary["industry"]
+                        f["_ctx_biz_model"] = ctx_summary["biz_model"]
+                        f["_ctx_has_processing"] = ctx_summary["has_processing_fee"]
             if findings:
                 deep_dive_results.append({
                     "domain": domain,
@@ -17973,7 +17986,6 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
                     "_phase2_depth": depth,
                     "_phase2_triggered": True
                 })
-                # 索引到 ctx，供后续阶段检索
                 ctx.index_findings(findings, domain=domain)
                 pipeline_log.append(f"[Phase2] {domain}({depth}): {len(findings)}项发现")
         except Exception as e:
@@ -18774,42 +18786,176 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
 
 
 def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, score, p0_count, p1_count):
-    """生成综合结论文本"""
+    """生成综合结论文本——带行业洞察和经营模式分析"""
     lines = []
     
-    # 开篇定调
     model = ctx.company_profile.get("biz_model", "未知")
     industry = ctx.company_profile.get("industry", "未知行业")
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
     
-    lines.append(f"经对{industry}{model}企业的多域全量分析（Phase 1初查→Phase 2定向深挖→Phase 3交叉验证），")
-    lines.append(f"综合风险评级为【{overall_risk}】（评分{score:.0f}/100）。")
+    # ═══ 第一段：定调+全景 ═══
+    scale_desc = {"大": "大型", "中": "中型", "小": "小型", "微": "微型"}.get(cp.get("scale", ""), "")
+    risk_advice = _get_risk_advice(overall_risk)
     
-    # 核心发现
+    lines.append(
+        f"【综合稽查结论】\n\n"
+        f"经对{scale_desc}{model}企业（{industry}行业）的多域全量分析——"
+        f"涵盖{fs['bank_tx_count']}笔银行流水、{fs['sale_count']}张销项发票、{fs['pur_count']}张进项发票"
+        f"{'、'+str(fs['salary_count'])+'条工资记录' if fs['salary_count'] > 0 else ''}——"
+        f"综合风险评级为【{overall_risk}】（评分{score:.0f}/100）。\n\n"
+        f"{risk_advice}"
+    )
+    
+    # ═══ 第二段：经营模式诊断 ═══
+    lines.append(f"\n【经营模式诊断】")
+    lines.append(_get_detailed_mode_analysis(model, industry, ctx))
+    
+    # ═══ 第三段：核心风险画像 ═══
+    lines.append(f"\n【核心风险画像】")
+    
+    # 按风险类别聚合
+    fraud_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["虚开","造假","编造","对开","走票"])]
+    revenue_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["隐匿","未开票","账外","体外","少记"])]
+    structure_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["关联","集中","控制","依赖"])]
+    invoice_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["发票","连号","开票","品名","进销"])]
+    
+    if fraud_signals:
+        lines.append(f"  ▸ 虚开发票风险：{len(fraud_signals)}项信号（{'、'.join(i['type'][:20] for i in fraud_signals[:2])}等）")
+    if revenue_signals:
+        lines.append(f"  ▸ 隐匿收入风险：{len(revenue_signals)}项信号")
+    if structure_signals:
+        lines.append(f"  ▸ 关联交易风险：{len(structure_signals)}项信号")
+    if invoice_signals:
+        lines.append(f"  ▸ 发票异常风险：{len(invoice_signals)}项信号")
+    
+    # 高风险项 TOP3
     if core_issues:
-        top3 = core_issues
-        lines.append(f"\n核心发现（共{len(core_issues)}项重点关注）：")
-        for i, issue in enumerate(top3, 1):
-            tag = "🔴" if issue["level"] in ("极高风险", "高风险") else "🟡"
-            xv = " [交叉验证]" if issue["is_cross_validated"] else ""
-            lines.append(f"  {i}. {tag}{issue['type']}{xv} — {issue['summary'][:120]}")
+        high_items = [i for i in core_issues if i["level"] in ("极高风险", "高风险")]
+        if high_items:
+            lines.append(f"\n  前{min(3, len(high_items))}大高风险项：")
+            for i, issue in enumerate(high_items[:3], 1):
+                xv = "★交叉验证" if issue["is_cross_validated"] else ""
+                lines.append(f"  {i}. {issue['type']} (评分{issue['score']}) {xv}")
     
-    # 交叉验证模式
+    # ═══ 第四段：交叉验证洞察 ═══
     if cross_findings:
-        lines.append(f"\n交叉验证触发{len(cross_findings)}个信号叠加模式：")
-        for cf in cross_findings:
-            lines.append(f"  • {cf.get('type','').replace('交叉验证-','')} → {cf.get('level','')}")
+        lines.append(f"\n【交叉验证洞察】")
+        lines.append(f"Phase 3 交叉验证引擎触发{len(cross_findings)}个信号叠加模式，")
+        lines.append(f"意味着多个独立分析域的结论互相印证——不是孤立的异常，而是系统性风险。")
+        for cf in cross_findings[:3]:
+            name = cf.get('type','').replace('交叉验证-','')
+            level = cf.get('level','')
+            lines.append(f"  • {name} ({level})")
     
-    # 建议概览
-    lines.append(f"\n建议优先级：{p0_count}项P0立即行动 + {p1_count}项P1重点关注")
+    # ═══ 第五段：核查优先级 ═══
+    lines.append(f"\n【核查优先级】")
+    lines.append(f"  共有{p0_count}项P0立即行动、{p1_count}项P1重点关注。")
     
-    # 资料质量备注
+    # 根据风险等级给出下一步具体建议
+    if overall_risk in ("极高风险", "高风险"):
+        lines.append(f"  鉴于风险等级为{overall_risk}，建议：")
+        lines.append(f"  1. 立即暂停与该企业的非必要业务往来")
+        lines.append(f"  2. 启动实地核查程序（核查经营场所+库存+产能匹配）")
+        lines.append(f"  3. 调取银行流水+发票台账+合同台账做全量比对")
+        if model == "制造业":
+            lines.append(f"  4. 要求提供BOM表+加工合同+出入库记录验证加工链条")
+        elif model == "贸易":
+            lines.append(f"  4. 要求提供进销存台账+物流单据验证货物流")
+    elif overall_risk == "中风险":
+        lines.append(f"  建议企业限期补充资料，重点核查以上P0/P1项。")
+    else:
+        lines.append(f"  企业整体风险可控，建议按常规流程处理。")
+    
+    # ═══ 第六段：质量声明 ═══
     if ctx.data_quality_score < 70:
-        lines.append(f"\n⚠️ 资料质量评分{ctx.data_quality_score}/100，部分结论置信度受限。建议补充完整资料后复核。")
-    
-    # 经营模式判断
-    lines.append(f"\n经营模式判断：{model}企业。{_get_mode_note(model, ctx)}")
+        lines.append(f"\n【资料质量声明】")
+        lines.append(f"  当前资料质量评分{ctx.data_quality_score}/100。")
+        if ctx.missing_critical_docs:
+            lines.append(f"  缺失关键资料：{'、'.join(ctx.missing_critical_docs)}。")
+        lines.append(f"  部分结论置信度受限，建议补充完整资料后重新分析。")
     
     return "\n".join(lines)
+
+
+def _get_risk_advice(level):
+    """根据风险等级给出行动建议"""
+    if level == "极高风险":
+        return (
+            "该企业的涉税风险已达到'极高'级别——多个独立证据源互相印证，"
+            "存在系统性、组织性的涉税违法嫌疑。建议立即启动稽查程序，"
+            "对企业的资金流、发票流、货物流做全方位穿透核查。"
+        )
+    elif level == "高风险":
+        return (
+            "该企业存在多项高风险涉税问题，虽未达到系统性的'极高风险'程度，"
+            "但多项异常信号的叠加表明涉税违法的主观意图明显。"
+            "建议优先安排稽查力量，逐项核实重点问题。"
+        )
+    elif level == "中风险":
+        return (
+            "该企业存在若干中期风险信号，需要进一步核实。"
+            "部分问题可能是正常的商业行为或核算偏差，"
+            "建议要求企业限期提供补充资料以澄清疑点。"
+        )
+    else:
+        return (
+            "该企业整体涉税风险较低，现有资料未发现重大异常。"
+            "建议按常规管理流程处理，保持定期监控。"
+        )
+
+
+def _get_detailed_mode_analysis(model, industry, ctx):
+    """根据经营模式+行业给出深入诊断"""
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
+    
+    if model == "制造业":
+        analysis = (
+            f"  该企业被识别为{industry}制造业企业。"
+            f"制造业的稽查重点是加工链条真实性——"
+            f"原材料→加工→成品的投入产出逻辑是否成立。\n"
+        )
+        if ctx.has_processing_fee:
+            analysis += (
+                f"  系统已检测到加工费发票信号，确认存在外包加工环节。"
+                f"外包加工模式下，BOM表是最核心的证据——"
+                f"只有在BOM表验证通过后，进销品名差异才能被合理解释为加工链条转换，"
+                f"否则'有进无销/有销无进'的虚开嫌疑无法排除。\n"
+            )
+        else:
+            analysis += (
+                f"  未检测到加工费——可能是自产自销的全流程制造模式。"
+                f"此模式下应能提供完整的生产成本核算和进销存台账验证。\n"
+            )
+        analysis += f"  建议核查方向：{ctx.supplier_concentration:.0f}%的供应商集中度——"
+        if ctx.supplier_concentration > 50:
+            analysis += "供应商过度集中，需核实是否存在关联交易或供应商依赖。"
+        else:
+            analysis += "供应商结构合理分散。"
+        return analysis
+    
+    elif model == "贸易":
+        return (
+            f"  该企业被识别为贸易企业。贸易模式的稽查重点是进销品名一致性——"
+            f"买什么就卖什么，品名应当高度匹配。"
+            f"品名不匹配的差异需要逐一解释（是否为加工转换、是否为变名开票）。\n"
+            f"  建议核查：进销品名重合度、供应商与客户的工商关联、物流单据真实性。"
+        )
+    
+    elif model in ("服务/劳务",):
+        return (
+            f"  该企业被识别为服务/劳务企业。服务业的稽查重点是收入完整性——"
+            f"因为服务不像货物有实物形态，更容易出现账外收入。\n"
+            f"  建议核查：银行收款与开票收入的全量比对、员工人数与业务量的匹配度、"
+            f"主要客户合同的签约时间与金额分布。"
+        )
+    
+    else:
+        return (
+            f"  经营模式未明确识别（{industry}行业）。"
+            f"建议补充营业执照经营范围+主营业务说明，以进行更精准的分析。"
+        )
 
 
 def _get_mode_note(model, ctx):
