@@ -211,7 +211,7 @@ function renderAuditorHandbook(container) {
 
   for (var i = 0; i < docs.length; i++) {
     var d = docs[i];
-    var levelColor = d.level === '高风险' ? '#dc2626' : (d.level === '中风险' ? '#f59e0b' : '#6b7280');
+    var levelColor = d.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#dc2626' : (d.level === '中风险' ? '#f59e0b' : '#6b7280');
     html += '<div class="card" style="padding:12px 16px;border-left:4px solid ' + levelColor + ';">';
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
     html += '<span style="background:' + levelColor + ';color:#fff;padding:2px 8px;border-radius:3px;font-size:12px;">' + d.level + '</span>';

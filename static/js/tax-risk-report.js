@@ -377,8 +377,8 @@ function renderDocsReport(rpt) {
   var reportDiv = document.getElementById('risk-docs-report');
   if (!reportDiv || !rpt) return;
 
-  var lc = rpt.overall_level === '高风险' ? '#dc2626' : (rpt.overall_level === '中风险' ? '#f59e0b' : '#059669');
-  var lb = rpt.overall_level === '高风险' ? '#fef2f2' : (rpt.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
+  var lc = (rpt.overall_level === '极高风险' || rpt.overall_level === '高风险') ? '#dc2626' : (rpt.overall_level === '中风险' ? '#f59e0b' : '#059669');
+  var lb = (rpt.overall_level === '极高风险' || rpt.overall_level === '高风险') ? '#fef2f2' : (rpt.overall_level === '中风险' ? '#fffbeb' : '#ecfdf5');
 
   var html = '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:20px;margin-top:16px">'
     + '<div style="border-bottom:2px solid var(--gray-100);padding-bottom:16px;margin-bottom:16px">'
@@ -443,8 +443,8 @@ function renderDocsReport(rpt) {
         + (dr.mid > 0 ? ' <span style="color:#f59e0b">' + dr.mid + '中</span>' : '')
         + '</span></div>';
       dr.findings.forEach(function(f) {
-        var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
-        var cfBg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#ecfdf5');
+        var cfColor = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
+        var cfBg = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#ecfdf5');
         html += '<div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.7">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           + '<span style="display:inline-block;padding:2px 10px;background:' + cfColor + ';color:#fff;border-radius:4px;font-size:11px;font-weight:600">' + f.level + '</span>'
@@ -490,7 +490,7 @@ function renderDocsReport(rpt) {
   else if (rpt.cross_findings && rpt.cross_findings.length > 0) {
     html += '<div style="margin:16px 0"><b style="font-size:15px">数据交叉比对发现</b></div>';
     rpt.cross_findings.forEach(function(f) {
-      var cfColor = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
+      var cfColor = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
       html += '<div style="margin-bottom:6px;padding:10px 12px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:4px">'
         + '<span style="display:inline-block;padding:1px 6px;background:' + cfColor + ';color:#fff;border-radius:3px;font-size:11px;margin-right:8px">' + f.level + '</span>'
         + '<b>' + escapeHtml(f.type || '') + '</b>'
@@ -503,9 +503,9 @@ function renderDocsReport(rpt) {
   html += '<div style="margin:16px 0"><b style="font-size:15px">详细风险发现（按风险程度排序）</b></div>';
   if (rpt.all_findings && rpt.all_findings.length > 0) {
     rpt.all_findings.forEach(function(f, i) {
-      var color = f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#6b7280');
-      var bg = f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f9fafb');
-      var border = f.level === '高风险' ? '#fecaca' : (f.level === '中风险' ? '#fde68a' : '#e5e7eb');
+      var color = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#6b7280');
+      var bg = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f9fafb');
+      var border = f.level === '极高风险' || f.(level === '极高风险' || level === '高风险') ? '#fecaca' : (f.level === '中风险' ? '#fde68a' : '#e5e7eb');
       html += '<div style="margin-bottom:12px;padding:16px;background:' + bg + ';border-left:4px solid ' + border + ';border-radius:6px">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
         + '<span style="font-weight:700">#' + (i+1) + '</span>'
