@@ -34,6 +34,7 @@ from engine import (
     _phase2_deep_dive as _engine_phase2,
     _phase3_cross_validate as _engine_phase3,
     _phase4_synthesis as _engine_phase4,
+    save_analysis_memory, query_similar_cases,
 )
 
 from database import (
@@ -18782,7 +18783,13 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     else:
         lines.append(f"  企业整体风险可控，建议按常规流程处理。")
     
-    # ═══ 第六段：质量声明 ═══
+    # ═══ 第六段：历史记忆洞察 ═══
+    memory_insight = getattr(ctx, '_memory_insight', '')
+    if memory_insight:
+        lines.append(f"\n【历史记忆洞察】")
+        lines.append(f"  {memory_insight}")
+    
+    # ═══ 第七段：质量声明 ═══
     if ctx.data_quality_score < 70:
         lines.append(f"\n【资料质量声明】")
         lines.append(f"  当前资料质量评分{ctx.data_quality_score}/100。")
@@ -19518,6 +19525,19 @@ def _run_analyze(company_id, db):
     ctx = AuditContext()
     ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
                          salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
+    
+    # ═══════════════════════════════════════════════════════════
+    # 记忆检索：查询同行业/同模式的历史分析案例
+    # ═══════════════════════════════════════════════════════════
+    try:
+        similar_cases = query_similar_cases(ctx)
+        if similar_cases and similar_cases.get("similar_count", 0) > 0:
+            pipeline_log.append(f"[MEMORY] 历史记忆: {similar_cases['similar_count']}条相似案例 (共{similar_cases['total_records']}条)")
+        ctx._memory_insight = similar_cases.get("insight", "")
+        ctx._memory_data = similar_cases
+    except Exception:
+        ctx._memory_insight = ""
+        ctx._memory_data = {}
     
     # ═══════════════════════════════════════════════════════════
     # Phase 2 — 定向深挖：基于 Phase 1 信号选择性分析
@@ -21038,6 +21058,15 @@ def _run_analyze(company_id, db):
     }}
     # 缓存最近分析结果
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
+    
+    # ── 保存分析记忆（引擎越用越聪明）──
+    try:
+        _synth = synthesis  # synthesis 在 Phase 4 代码块中已定义
+        total_memories = save_analysis_memory(ctx, _synth if '_synth' in dir() else None)
+        pipeline_log.append(f"[MEMORY] 分析记忆已保存 (共{total_memories}条)")
+    except Exception:
+        pass
+    
     return result
 
 # ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
