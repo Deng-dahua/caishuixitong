@@ -17185,6 +17185,374 @@ def identify_main_biz_cost(pur_invs, sal_invs=None):
     }
 
 
+# ═══════════════════════════════════════════════════════════
+# 稽查员推理引擎（Audit Reasoning Engine）
+# 
+# 核心设计理念：
+#   不是29个域并行跑完再汇总，而是像人类稽查员一样——
+#   初查发现信号 → 定向深挖 → 交叉验证 → 综合定性
+# 
+# 四个阶段：
+#   Phase 1 — 初查（Triage）：资金流全景、发票全景、主营业务成本识别、
+#             基本比率、资料质量评估。产出全局快照+初步信号。
+#   Phase 2 — 定向深挖（Deep Dive）：基于Phase 1信号，选择性深入分析
+#             关联域。信号驱动，而非全量盲跑。
+#   Phase 3 — 交叉验证（Cross-Validation）：用多域结论互相印证。
+#             利用已有结论验证/反驳/深化新结论。
+#   Phase 4 — 综合定性（Synthesis）：汇总→去重→冲突消解→风险排序→
+#             生成最终报告。
+#
+# AuditContext 是阶段间的状态载体，贯穿4个阶段。
+# 每个阶段读取context中的前置发现，产出注入context供后续使用。
+# ═══════════════════════════════════════════════════════════
+
+class AuditContext:
+    """
+    稽查上下文——贯穿4阶段的状态容器
+    
+    这个对象是推理引擎的"工作记忆"。每个分析阶段：
+    1. 读取context中已有的发现和信号
+    2. 据此决定分析策略和深度
+    3. 产出新的发现注入context
+    """
+    def __init__(self):
+        # ── 企业画像（初查阶段填充）──
+        self.company_profile = {
+            "industry": "",           # 推断行业
+            "biz_model": "",          # 经营模式：制造业/贸易/服务
+            "scale": "",              # 规模：大/中/小/微
+            "has_manufacturing": False,  # 是否有加工信号
+            "has_trading": False,     # 是否有贸易信号
+        }
+        
+        # ── 财务快照（初查阶段填充）──
+        self.financial_snapshot = {
+            "total_sales": 0,         # 销项总额
+            "total_purchases": 0,     # 进项总额
+            "total_bank_in": 0,       # 银行收入总额
+            "total_bank_out": 0,      # 银行支出总额
+            "total_salary": 0,        # 工资总额
+            "gross_margin_pct": 0,    # 毛利率
+            "sale_count": 0,          # 销项发票张数
+            "pur_count": 0,           # 进项发票张数
+            "bank_tx_count": 0,       # 银行交易笔数
+            "salary_count": 0,        # 工资记录数
+        }
+        
+        # ── 主营业务成本三层分类（初查阶段填充）──
+        self.biz_cost_classification = None  # identify_main_biz_cost() 返回值
+        
+        # ── 初查信号（红灯/黄灯/绿灯）──
+        self.red_flags = []     # 需立即深挖的重大信号
+        self.yellow_flags = []  # 需关注的次要信号
+        self.green_signals = [] # 正常的信号（用于排除误报）
+        
+        # ── 跨阶段共享的中间结论 ──
+        self.bom_missing = False        # 是否缺少BOM表
+        self.has_processing_fee = False # 是否有加工费发票
+        self.has_personal_payments = False  # 是否有大量个人付款
+        self.supplier_concentration = 0  # 供应商集中度(%)
+        self.customer_concentration = 0  # 客户集中度(%)
+        self.data_quality_score = 0     # 资料质量评分(0-100)
+        self.missing_critical_docs = [] # 缺失的关键资料
+        
+        # ── 结论索引（供交叉验证时快速检索）──
+        self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
+        
+        # ── 阶段追踪 ──
+        self.current_phase = 0
+        self.phase_history = []   # 每阶段的执行摘要
+    
+    def add_flag(self, level, signal_type, detail, source_domain=""):
+        """添加稽查信号"""
+        entry = {
+            "type": signal_type,
+            "detail": detail,
+            "source": source_domain,
+            "timestamp": None  # 由调用方填充
+        }
+        if level == "red":
+            self.red_flags.append(entry)
+        elif level == "yellow":
+            self.yellow_flags.append(entry)
+        else:
+            self.green_signals.append(entry)
+    
+    def index_findings(self, findings, domain=""):
+        """将一批发现索引到finding_index，供后续阶段快速检索"""
+        for f in findings:
+            if not isinstance(f, dict): continue
+            ftype = f.get("type", "")
+            # 按type前缀索引（取前6个字符作为键）
+            key = ftype[:8] if len(ftype) >= 8 else ftype
+            if key not in self.finding_index:
+                self.finding_index[key] = []
+            self.finding_index[key].append({**f, "_indexed_domain": domain})
+    
+    def query_findings(self, keyword):
+        """在已索引的结论中搜索关键词"""
+        results = []
+        for key, findings in self.finding_index.items():
+            if keyword in key:
+                results.extend(findings)
+            else:
+                for f in findings:
+                    ftype = f.get("type", "")
+                    desc = f.get("description", "")
+                    if keyword in ftype or keyword in desc:
+                        results.append(f)
+        return results
+    
+    def get_snapshot_summary(self):
+        """生成初查快照摘要"""
+        fs = self.financial_snapshot
+        cp = self.company_profile
+        lines = []
+        lines.append(f"行业推断: {cp['industry'] or '未识别'}")
+        lines.append(f"经营模式: {cp['biz_model'] or '待定'}")
+        lines.append(f"销项: {fs['sale_count']}张 {fs['total_sales']:,.0f}元")
+        lines.append(f"进项: {fs['pur_count']}张 {fs['total_purchases']:,.0f}元")
+        lines.append(f"银行: {fs['bank_tx_count']}笔 收{fs['total_bank_in']:,.0f}/支{fs['total_bank_out']:,.0f}")
+        lines.append(f"工资: {fs['salary_count']}条 {fs['total_salary']:,.0f}元")
+        if self.biz_cost_classification:
+            bcc = self.biz_cost_classification
+            lines.append(f"主营成本: 核心{len(bcc['core_cost_invs'])}张/重大费用{len(bcc['major_expense_invs'])}张/日常报销{len(bcc['minor_expense_invs'])}张")
+        lines.append(f"红灯信号: {len(self.red_flags)}个")
+        lines.append(f"黄灯信号: {len(self.yellow_flags)}个")
+        return self, "\n".join(lines)
+
+
+def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log):
+    """
+    Phase 1 — 初查（Triage）
+    
+    目标：快速建立企业画像和财务全景，识别重大信号。
+    不做深入分析，只做"有没有问题"的初步判断。
+    
+    产出入 AuditContext:
+      - company_profile: 行业/经营模式/规模
+      - financial_snapshot: 关键财务指标
+      - biz_cost_classification: 主营业务成本三层分类
+      - red_flags / yellow_flags: 初步信号
+      - data_quality_score: 资料质量评分
+    """
+    from collections import defaultdict
+    
+    ctx.phase_history.append({"phase": 1, "start": True})
+    
+    # ── 1.1 财务快照 ──
+    ctx.financial_snapshot["total_sales"] = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
+    ctx.financial_snapshot["total_purchases"] = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+    ctx.financial_snapshot["total_bank_in"] = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
+    ctx.financial_snapshot["total_bank_out"] = sum(float(tx.get("debit", 0) or 0) for tx in bank_txs)
+    ctx.financial_snapshot["total_salary"] = sum(float(s.get("实发金额", s.get("实发", s.get("amount", 0))) or 0) for s in salaries)
+    ctx.financial_snapshot["sale_count"] = len(sal_invs)
+    ctx.financial_snapshot["pur_count"] = len(pur_invs)
+    ctx.financial_snapshot["bank_tx_count"] = len(bank_txs)
+    ctx.financial_snapshot["salary_count"] = len(salaries)
+    
+    # 毛利率
+    sales_total = ctx.financial_snapshot["total_sales"]
+    pur_total = ctx.financial_snapshot["total_purchases"]
+    if sales_total > 0:
+        ctx.financial_snapshot["gross_margin_pct"] = (sales_total - pur_total) / sales_total * 100
+    
+    pipeline_log.append(f"[Phase1] 财务快照: 销{sales_total:,.0f}/进{pur_total:,.0f}/银行{ctx.financial_snapshot['bank_tx_count']}笔")
+    
+    # ── 1.2 主营业务成本识别（共享函数）──
+    if pur_invs:
+        ctx.biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
+        pipeline_log.append(f"[Phase1] 主营成本识别: 核心{len(ctx.biz_cost_classification['core_cost_invs'])}张/重大费用{len(ctx.biz_cost_classification['major_expense_invs'])}张/日常报销{len(ctx.biz_cost_classification['minor_expense_invs'])}张")
+    
+    # ── 1.3 企业画像推断 ──
+    _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries)
+    pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
+    
+    # ── 1.4 初查信号检测 ──
+    _detect_triage_signals(ctx)
+    
+    # ── 1.5 资料质量评估 ──
+    _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries)
+    
+    ctx.phase_history[-1]["end"] = True
+    ctx.phase_history[-1]["summary"] = (
+        f"Phase1完成: {len(ctx.red_flags)}红灯/{len(ctx.yellow_flags)}黄灯, "
+        f"资料质量{ctx.data_quality_score}分, "
+        f"行业{ctx.company_profile['biz_model']}"
+    )
+    
+    return ctx
+
+
+def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
+    """从数据中推断企业行业和经营模式"""
+    cp = ctx.company_profile
+    
+    # ── 经营模式推断 ──
+    pur_goods_set = set()
+    sal_goods_set = set()
+    for inv in pur_invs:
+        g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+        if g: pur_goods_set.add(g)
+    for inv in sal_invs:
+        g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+        if g: sal_goods_set.add(g)
+    
+    # 加工信号
+    has_processing = any("加工" in g for g in pur_goods_set)
+    ctx.has_processing_fee = has_processing
+    
+    # 品名重合度
+    if pur_goods_set and sal_goods_set:
+        overlap = len(pur_goods_set & sal_goods_set)
+        total_unique = len(pur_goods_set | sal_goods_set)
+        overlap_ratio = overlap / max(total_unique, 1)
+    else:
+        overlap_ratio = 0
+    
+    # 模式判断
+    if has_processing and overlap_ratio < 0.5:
+        cp["biz_model"] = "制造业"
+        cp["has_manufacturing"] = True
+    elif overlap_ratio >= 0.5 and pur_goods_set and sal_goods_set:
+        cp["biz_model"] = "贸易"
+        cp["has_trading"] = True
+    elif not pur_invs and sal_invs:
+        cp["biz_model"] = "服务/劳务"
+    else:
+        cp["biz_model"] = "未确定"
+    
+    # ── 规模推断 ──
+    total_revenue = ctx.financial_snapshot["total_sales"]
+    emp_count = ctx.financial_snapshot["salary_count"]
+    if total_revenue > 50000000: cp["scale"] = "大"
+    elif total_revenue > 10000000: cp["scale"] = "中"
+    elif total_revenue > 1000000: cp["scale"] = "小"
+    else: cp["scale"] = "微"
+    
+    # ── 行业推断（基于品名关键词，不做行业特化）──
+    _infer_industry_from_goods(ctx, pur_goods_set, sal_goods_set)
+
+
+def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
+    """从品名推断行业——通用方法，禁止行业特化关键词列表"""
+    cp = ctx.company_profile
+    all_goods = " ".join(pur_goods | sal_goods)
+    
+    # 通用行业信号（跨行业适用）
+    industry_signals = {
+        "纺织": ["纱","布","棉","麻","丝","纺织","织造","印染","染整","面料","针织","梭织","毛纺"],
+        "服装": ["服装","服饰","衣服","鞋","帽","箱包","皮具"],
+        "电子": ["电子","芯片","半导体","电路板","PCB","元器件","集成电路","传感器"],
+        "机械": ["机械","机床","零件","配件","五金","轴承","齿轮","阀门","泵"],
+        "建材": ["建材","水泥","钢材","钢筋","玻璃","陶瓷","石材","涂料","管材"],
+        "食品": ["食品","饮料","酒","茶","米","面","油","调味","乳制品"],
+        "化工": ["化工","化学","塑料","橡胶","树脂","涂料","颜料","试剂"],
+        "医药": ["药品","医药","药材","制剂","胶囊","片剂","注射"],
+        "汽车": ["汽车","车辆","轮胎","发动机","底盘","零部件","配件"],
+        "家具": ["家具","家居","木","板材","沙发","床","柜","桌椅"],
+        "IT": ["软件","系统","开发","技术","服务","咨询","设计"],
+    }
+    
+    signals_found = {}
+    for industry, keywords in industry_signals.items():
+        count = sum(1 for kw in keywords if kw in all_goods)
+        if count > 0:
+            signals_found[industry] = count
+    
+    if signals_found:
+        best = max(signals_found, key=signals_found.get)
+        cp["industry"] = best
+    else:
+        cp["industry"] = "综合"
+
+
+def _detect_triage_signals(ctx):
+    """初查阶段信号检测——只做快速判断，不做深入分析"""
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
+    
+    # ── 红灯：基础数据严重异常 ──
+    # 购销倒挂（进项>销项）：可能虚增进项或隐匿收入
+    if fs["total_purchases"] > fs["total_sales"] * 1.5 and fs["total_sales"] > 0:
+        ctx.add_flag("red", "购销严重倒挂", 
+                     f"进项{fs['total_purchases']:,.0f}远超销项{fs['total_sales']:,.0f}", "初查")
+    
+    # 毛利率异常（<0%或>80%）
+    gm = fs["gross_margin_pct"]
+    if gm < 0:
+        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%", "初查")
+    elif gm > 80 and fs["total_sales"] > 1000000:
+        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%", "初查")
+    
+    # ── 黄灯：需关注但非紧急 ──
+    # 有销无进（服务/劳务除外，那是正常模式）
+    if fs["sale_count"] > 0 and fs["pur_count"] == 0 and cp["biz_model"] not in ("服务/劳务",):
+        ctx.add_flag("yellow", "无进项发票", f"{fs['sale_count']}张销项但0张进项", "初查")
+    
+    # 工资为0但销项很大（可能虚开发票）
+    if fs["total_sales"] > 5000000 and fs["salary_count"] == 0:
+        ctx.add_flag("yellow", "无工资记录", f"销项{fs['total_sales']:,.0f}但无工资", "初查")
+    
+    # 银行业务量异常
+    if fs["bank_tx_count"] == 0 and fs["total_sales"] > 0:
+        ctx.add_flag("red", "缺少银行流水", "有销售但无银行流水记录", "初查")
+    
+    # 加工信号
+    if ctx.has_processing_fee:
+        ctx.add_flag("yellow", "存在加工费", "进项中有加工费发票→可能为制造业", "初查")
+        if ctx.biz_cost_classification:
+            bcc = ctx.biz_cost_classification
+            core_count = len(bcc["core_cost_invs"])
+            if core_count > 0 and cp["biz_model"] == "制造业":
+                ctx.add_flag("yellow", "制造业加工链条待验证",
+                            f"核心成本{core_count}张+加工费→需BOM表验证", "初查")
+    
+    # ── 绿灯：正常信号（用于后续排除误报）──
+    if ctx.biz_cost_classification:
+        bcc = ctx.biz_cost_classification
+        minor_count = len(bcc["minor_expense_invs"])
+        if minor_count > 0:
+            ctx.add_flag("green", "存在日常费用报销",
+                        f"{minor_count}张日常报销（餐饮住宿等）——正常经营信号", "初查")
+
+
+def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
+    """资料质量评估——影响后续分析的置信度"""
+    score = 100
+    
+    # 基本资料检查
+    has_bank = len(bank_txs) > 0
+    has_invoices = len(invoices) > 0
+    has_salary = len(salaries) > 0
+    
+    if not has_bank:
+        score -= 30
+        ctx.missing_critical_docs.append("银行流水")
+    if not has_invoices:
+        score -= 30
+        ctx.missing_critical_docs.append("发票数据")
+    if not has_salary:
+        score -= 15
+        ctx.missing_critical_docs.append("工资表")
+    
+    # 解析质量
+    unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
+    if unknown_count > 0:
+        score -= unknown_count * 5
+    
+    # 数据量级
+    if has_bank and len(bank_txs) < 10:
+        score -= 10
+        ctx.add_flag("yellow", "银行流水数据量少", f"仅{len(bank_txs)}笔", "资料质量")
+    
+    if has_invoices and len(invoices) < 5:
+        score -= 10
+        ctx.add_flag("yellow", "发票数据量少", f"仅{len(invoices)}张", "资料质量")
+    
+    ctx.data_quality_score = max(0, min(100, score))
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -17439,8 +17807,11 @@ def _run_analyze(company_id, db):
     if sal_invs and pur_invs:
         from collections import defaultdict
         
-        # ── 步骤0：主营业务成本识别（三层分类）──
-        biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
+        # ── 步骤0：主营业务成本识别（从Phase 1 AuditContext读取，避免重复计算）──
+        if ctx and ctx.biz_cost_classification:
+            biz_cost_classification = ctx.biz_cost_classification
+        else:
+            biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
         core_cost_invs = biz_cost_classification["core_cost_invs"]
         major_expense_invs = biz_cost_classification["major_expense_invs"]
         minor_expense_invs = biz_cost_classification["minor_expense_invs"]
@@ -17450,8 +17821,6 @@ def _run_analyze(company_id, db):
         n_core = len(core_cost_invs)
         n_major = len(major_expense_invs)
         n_minor = len(minor_expense_invs)
-        
-        pipeline_log.append(f"主营业务成本识别: 核心成本{n_core}张/重大费用{n_major}张/日常报销{n_minor}张")
         
         # ── 按货物名称聚合（全量+核心成本两层）──
         sale_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
@@ -17486,10 +17855,6 @@ def _run_analyze(company_id, db):
         
         # 排除的费用品名集合（用于有进无销/有销无进的过滤）
         expense_goods_set = set(expense_goods)
-        
-        # ── 跨结论上下文：检查是否已有BOM缺失/加工费等关联发现 ──
-        # 用于后续有销无销判断中的豁免逻辑
-        _has_bom_missing = False  # 将由后续BOM分析填充
         
         # ═══════════════════════════════════════════════════
         # 检查1：有进无销（33）
@@ -17780,6 +18145,16 @@ def _run_analyze(company_id, db):
                 voucher_revenue["uninvoiced"] += credit
             voucher_revenue["total"] += credit
             voucher_revenue["rows"] += 1
+    
+    # ═══════════════════════════════════════════════════════════
+    # Phase 1 — 初查：建立企业画像和全局快照
+    # 推理引擎入口：创建AuditContext，跑初查阶段，
+    # 产出企业画像+财务全景+主营业务成本识别+初查信号
+    # 后续所有分析域都基于此context展开
+    # ═══════════════════════════════════════════════════════════
+    ctx = AuditContext()
+    ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
+                         salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
     
     domain_results = []
 
