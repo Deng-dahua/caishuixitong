@@ -17671,6 +17671,169 @@ class ConfidenceAssessor:
         return "\n".join(lines)
 
 
+class TrendDetector:
+    """
+    时间维度趋势检测 —— 把快照升级为录像
+    
+    按年拆分核心指标，检测恶化/改善/稳定方向，
+    计算变化速度，输出前瞻性趋势洞察。
+    """
+    
+    @staticmethod
+    def analyze(ctx, bank_txs, sal_invs, pur_invs):
+        """主入口：分析全部趋势并注入ctx"""
+        ctx.trend_data = {}
+        ctx.trend_findings = []
+        
+        # 提取年份
+        years = set()
+        for inv in pur_invs + sal_invs:
+            dt = str(inv.get("inv_date", inv.get("issue_date", inv.get("date", ""))))
+            y = TrendDetector._extract_year(dt)
+            if y and 2020 <= y <= 2030:
+                years.add(y)
+        for tx in bank_txs:
+            dt = str(tx.get("tx_date", tx.get("date", tx.get("trade_date", ""))))
+            y = TrendDetector._extract_year(dt)
+            if y and 2020 <= y <= 2030:
+                years.add(y)
+        
+        years = sorted(years)
+        if len(years) < 2:
+            return  # 不足两年，无法分析趋势
+        
+        ctx.trend_data["years"] = years
+        yearly = {}
+        
+        for y in years:
+            # 销项
+            y_sales = [inv for inv in sal_invs if TrendDetector._match_year(inv, "inv_date", y)]
+            y_sales_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in y_sales)
+            y_sales_count = len(y_sales)
+            
+            # 进项
+            y_purchases = [inv for inv in pur_invs if TrendDetector._match_year(inv, "inv_date", y)]
+            y_pur_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in y_purchases)
+            y_pur_count = len(y_purchases)
+            
+            # 银行
+            y_bank = [tx for tx in bank_txs if TrendDetector._match_year(tx, "tx_date", y)]
+            y_bank_in = sum(float(tx.get("credit", tx.get("income", 0)) or 0) for tx in y_bank)
+            y_bank_out = sum(float(tx.get("debit", tx.get("expense", 0)) or 0) for tx in y_bank)
+            y_bank_count = len(y_bank)
+            
+            # 计算指标
+            gm = (y_sales_total - y_pur_total) / y_sales_total * 100 if y_sales_total > 0 else 0
+            ps_ratio = y_pur_total / y_sales_total if y_sales_total > 0 else 0
+            
+            yearly[y] = {
+                "year": y,
+                "sales_total": y_sales_total,
+                "sales_count": y_sales_count,
+                "pur_total": y_pur_total,
+                "pur_count": y_pur_count,
+                "bank_in": y_bank_in,
+                "bank_out": y_bank_out,
+                "bank_count": y_bank_count,
+                "gross_margin_pct": round(gm, 2),
+                "purchase_sales_ratio": round(ps_ratio, 3),
+            }
+        
+        ctx.trend_data["yearly"] = yearly
+        
+        # 趋势分析
+        y_list = list(yearly.values())
+        findings = []
+        
+        findings.extend(TrendDetector._analyze_trend(y_list, "gross_margin_pct", "毛利率", "%", "↓下降=恶化"))
+        findings.extend(TrendDetector._analyze_trend(y_list, "purchase_sales_ratio", "进销比", "", "↑上升=恶化"))
+        findings.extend(TrendDetector._analyze_trend(y_list, "sales_total", "销售额", "元", "↓下降=经营萎缩"))
+        findings.extend(TrendDetector._analyze_trend(y_list, "pur_total", "采购额", "元", "↓下降=减产; ↑上升=囤货或虚进"))
+        findings.extend(TrendDetector._analyze_trend(y_list, "bank_in", "银行收入", "元", "↓下降=资金回笼恶化"))
+        
+        ctx.trend_findings = findings
+        return findings
+    
+    @staticmethod
+    def _extract_year(dt_str):
+        """从日期字符串提取年份"""
+        import re
+        if not dt_str:
+            return None
+        # 匹配 YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD, 或纯年份
+        m = re.search(r'(20\d{2})', str(dt_str))
+        return int(m.group(1)) if m else None
+    
+    @staticmethod
+    def _match_year(item, date_field, year):
+        """判断数据项是否属于指定年份"""
+        for field in [date_field, "issue_date", "date", "trade_date"]:
+            dt = str(item.get(field, ""))
+            if str(year) in dt:
+                return True
+        return False
+    
+    @staticmethod
+    def _analyze_trend(yearly_data, metric, label, unit, direction_hint):
+        """分析单个指标的趋势"""
+        values = [(d["year"], d[metric]) for d in yearly_data if d.get(metric, 0) != 0 or metric == "gross_margin_pct"]
+        if len(values) < 2:
+            return []
+        
+        years = [v[0] for v in values]
+        vals = [v[1] for v in values]
+        
+        # 简单线性趋势：首年→末年变化率
+        first_val = vals[0]
+        last_val = vals[-1]
+        if first_val == 0:
+            return []
+        
+        change_pct = (last_val - first_val) / abs(first_val) * 100
+        total_change = last_val - first_val
+        
+        # 判断趋势强度
+        abs_change = abs(change_pct)
+        if abs_change < 5:
+            trend = "稳定"
+            level = "低风险"
+        elif abs_change < 15:
+            trend = "轻微" + ("下降" if change_pct < 0 else "上升")
+            level = "中风险"
+        elif abs_change < 30:
+            trend = "明显" + ("下降" if change_pct < 0 else "上升")
+            level = "中风险"
+        else:
+            trend = "剧烈" + ("下降" if change_pct < 0 else "上升")
+            level = "高风险"
+        
+        # 构建年份序列描述
+        year_range = f"{years[0]}-{years[-1]}"
+        detail = (
+            f"【{label}趋势】{year_range}年: "
+            + " → ".join(f"{y}年{label}={v:.1f}{unit}" for y, v in values)
+            + f"\n总变化: {change_pct:+.1f}% ({first_val:.1f}→{last_val:.1f}{unit})"
+            + f"\n趋势判定: {trend} ({direction_hint})"
+        )
+        
+        finding = {
+            "type": f"趋势-{label}{trend}",
+            "level": level,
+            "score": 9 if level == "高风险" else (7 if "明显" in trend else 4),
+            "detail": detail,
+            "description": detail,
+            "how_found": f"按年拆分{label}数据，检测{year_range}年间趋势变化",
+            "tax_impact": f"{label}在{year_range}年间{trend}（{change_pct:+.0f}%），{direction_hint}",
+            "suggestion": f"关注{label}的{direction_hint}趋势，分析原因并采取应对措施",
+            "category": "综合定性·趋势分析",
+            "_trend_direction": trend,
+            "_trend_change_pct": round(change_pct, 1),
+            "_trend_years": years,
+        }
+        
+        return [finding]
+
+
 class AuditContext:
     """
     稽查上下文——贯穿4阶段的状态容器
@@ -17726,6 +17889,8 @@ class AuditContext:
         self.industry_profile = {}      # 当前企业匹配的行业画像配置
         self.memory_learner = None      # MemoryLearner实例
         self.file_results = []          # 文件解析结果（供证据溯源）
+        self.trend_data = {}            # 时间维度趋势数据
+        self.trend_findings = []        # 趋势发现列表
         
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
@@ -17832,6 +17997,14 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
         ctx.financial_snapshot["gross_margin_pct"] = (sales_total - pur_total) / sales_total * 100
     
     pipeline_log.append(f"[Phase1] 财务快照: 销{sales_total:,.0f}/进{pur_total:,.0f}/银行{ctx.financial_snapshot['bank_tx_count']}笔")
+    
+    # ── 1.15 时间维度趋势分析 ──
+    try:
+        trend_findings = TrendDetector.analyze(ctx, bank_txs, sal_invs, pur_invs)
+        if trend_findings:
+            pipeline_log.append(f"[Phase1] 趋势检测: {len(ctx.trend_data.get('yearly',{}))}个年度/发现{len(trend_findings)}条趋势")
+    except Exception as _te:
+        pipeline_log.append(f"[Phase1] 趋势检测跳过: {_te}")
     
     # ── 1.2 主营业务成本识别（共享函数）──
     if pur_invs:
@@ -20125,6 +20298,12 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
         all_items.extend(early_warnings)
         pipeline_log.append(f"[Phase4] 事前预警引擎: {len(early_warnings)}条升级路径 → {', '.join(ew['_early_warning_id'] for ew in early_warnings)}")
     
+    # ═══ 时间趋势分析：注入Phase 1的趋势发现 ═══
+    trend_findings = getattr(ctx, 'trend_findings', [])
+    if trend_findings:
+        all_items.extend(trend_findings)
+        pipeline_log.append(f"[Phase4] 趋势分析: {len(trend_findings)}条趋势发现已注入综合定性")
+    
     # ═══ 证据溯源：标注每条结论的原始数据来源 ═══
     file_results = getattr(ctx, 'file_results', [])
     if file_results:
@@ -20395,6 +20574,14 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for ws in warning_signals[:5]:
             eid = ws['type'].replace('事前预警-', '')
             lines.append(f"    ⏰ {eid}")
+    
+    # ═══ 时间趋势洞察 ═══
+    trend_items = [i for i in core_issues if i.get("type", "").startswith("趋势-")]
+    if trend_items:
+        lines.append(f"  ▸ 时间趋势：{len(trend_items)}个指标出现明显变化——")
+        for ti in trend_items[:5]:
+            name = ti['type'].replace('趋势-', '')
+            lines.append(f"    → {name}")
     
     # ═══ 结论可信度评估 ═══
     cr = getattr(ctx, '_credibility_report', {})
@@ -21684,6 +21871,11 @@ def _run_analyze(company_id, db):
         all_findings = _enrich_evidence_trace(ctx, all_findings, file_results)
     except Exception:
         pass
+    
+    # ── 趋势发现：从ctx重新注入（Phase 4已生成但all_findings重建会丢失）──
+    trend_findings_ext = getattr(ctx, 'trend_findings', [])
+    if trend_findings_ext:
+        all_findings.extend(trend_findings_ext)
 
     
     # ── 同类风险合并已移至 _apply_methodology_filter 的去重逻辑中 ──
