@@ -10,28 +10,24 @@ function renderEngineDashboardPage(container) {
 
 function renderEngineDashboard(rpt) {
   var area = document.getElementById('engine-dashboard-area');
-  if (!area || !rpt) return;
+  if (!area) return;
   
-  var es = rpt.engine_status || {};
-  if (!es.version) {
-    area.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">暂无引擎数据。请先运行一键分析。</div>';
-    return;
-  }
+  var es = (rpt && rpt.engine_status) || {};
+  var hasData = !!(es && es.version);
 
   window._engineEs = es;
   window._engineRpt = rpt;
   window._engineRules = null;
+  window._hasEngineData = hasData;
 
-  // 标签切换
+  // 标签切换 — 始终显示（规则库不需要分析数据）
   var tabBar = '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:8px">' +
     '<div class="eng-tab active" onclick="switchEngineTab(\'status\')" id="tab-status">运行状态</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库 (53条)</div>' +
     '</div><div id="eng-tab-content"></div>';
   
   area.innerHTML = tabBar;
   renderStatusTab();
-  
-  // 后台加载规则
   fetchEngineRules();
 }
 
@@ -43,8 +39,19 @@ function switchEngineTab(tab) {
 }
 
 function renderStatusTab() {
-  var es = window._engineEs;
+  var es = window._engineEs || {};
   var area = document.getElementById('eng-tab-content');
+  
+  if (!window._hasEngineData) {
+    area.innerHTML = '<div style="padding:60px 20px;text-align:center">' +
+      '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
+      '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
+      '<div style="font-size:13px;color:#64748b;margin-bottom:16px">运行状态需要先执行一键分析才能查看。</div>' +
+      '<div style="font-size:13px;color:#64748b">请前往 <b>资料风险分析报告</b> 页面运行一键分析，或点击上方 <b>规则库</b> 标签查看全部推理规则。</div>' +
+      '</div>';
+    return;
+  }
+  
   var h = '';
   
   // ═══ 顶部：引擎版本 + 风险总览 ═══
