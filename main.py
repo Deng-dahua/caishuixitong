@@ -25978,6 +25978,26 @@ def get_engine_rules():
         "rules": causal_rules,
     }
 
+    # Phase 4 事前预警升级路径（从EARLY_WARNING_ESCALATION提取）
+    ewarn_rules = []
+    for ew in EARLY_WARNING_ESCALATION:
+        lv = "red" if ew["level"] == "极高风险" else ("yellow" if ew["level"] == "高风险" else "orange")
+        ewarn_rules.append({
+            "id": ew["id"],
+            "name": "→".join(ew.get("finding_pattern", [])[:3]),
+            "level": lv,
+            "risk_level": ew["level"],
+            "forward_projection": ew["forward_projection"],
+            "checklist": ew["checklist"],
+            "timeframe": ew["timeframe"],
+            "patterns": ew.get("finding_pattern", []),
+        })
+    rules["phases"]["Phase4-事前预警升级路径"] = {
+        "description": "从当前异常推断下一阶段风险：若当前发现不处理→下一阶段会演化成什么。预警引擎在Phase 4综合定性时运行，匹配当前异常模式→推演风险升级路径→输出前瞻性警告。",
+        "count": len(ewarn_rules),
+        "rules": ewarn_rules,
+    }
+
     # Phase 2 行业自适应知识库
     try:
         with open(os.path.join(base, "industry_profiles.json"), "r", encoding="utf-8") as f:

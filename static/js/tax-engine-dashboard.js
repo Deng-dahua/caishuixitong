@@ -541,6 +541,28 @@ function renderRulesTab() {
     });
     h += '</div>';
   }
+
+  // ═══ Phase 4：事前预警升级路径 ═══
+  var p4w = rules.phases['Phase4-事前预警升级路径'];
+  if (p4w) {
+    h += _renderSection('Phase4-事前预警升级路径', 'f97316', p4w);
+    (p4w.rules||[]).forEach(function(ew) {
+      var lc = ew.level === 'red' ? '#dc2626' : ew.level === 'yellow' ? '#f59e0b' : '#ea580c';
+      var bg = ew.level === 'red' ? '#fef2f2' : ew.level === 'yellow' ? '#fffbeb' : '#fff7ed';
+      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ew.id) + ' ' + esc(ew.name) + '</div>';
+      h += '<div style="margin-top:6px;padding:8px 10px;background:#fff;border-radius:4px;font-size:12px;line-height:1.6;color:#475569"><strong style="color:#dc2626">演变推演：</strong>' + esc(ew.forward_projection) + '</div>';
+      h += '<div style="margin-top:4px;font-size:11px;color:#059669"><strong>建议：</strong><span style="color:#475569">' + esc(ew.checklist) + '</span></div>';
+      h += '<div style="margin-top:4px;display:flex;gap:8px;align-items:center">';
+      h += '<span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(ew.risk_level) + '</span>';
+      h += '<span style="font-size:11px;color:#64748b">触发时间窗: ' + esc(ew.timeframe) + '</span>';
+      h += '<span style="font-size:10px;color:#94a3b8">匹配模式: ' + esc((ew.patterns||[]).slice(0,3).join(' / ')) + '</span>';
+      h += '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
   
   h += '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px">推理引擎规则库共 ' + totalRules + ' 条规则 | 全行业适用 | 可编辑JSON追加</div>';
   
