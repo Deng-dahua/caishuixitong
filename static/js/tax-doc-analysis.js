@@ -572,6 +572,17 @@ async function analyzeTaxDocs() {
       var exportBtn = document.getElementById('tda-export-btn');
       if (exportBtn) exportBtn.style.display = 'inline-block';
       toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+      
+      // ── 通知仪表盘：新分析已完成 ──
+      try {
+        localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({
+          trace_id: data.report.trace_id || '',
+          risk_level: data.report.overall_level || '',
+          risk_score: data.report.comprehensive ? (data.report.comprehensive.risk_score || 0) : 0,
+          timestamp: Date.now()
+        }));
+      } catch(e) {}
+      
       var now2 = new Date();
       var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
       var el2 = document.getElementById('tda-last-update');

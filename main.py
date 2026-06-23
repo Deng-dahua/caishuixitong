@@ -21840,6 +21840,41 @@ def _run_analyze(company_id, db):
                 all_findings.append({**f, "domain": dr["domain"]})
     # 过滤：确保 all_findings 中所有项都是 dict（防止错误字符串混入）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
+    
+    # ── #5: 报告要求→域分析内建校验（12项标准在分析阶段即注入约束）──
+    _quality_violations = 0
+    for f in all_findings:
+        desc = str(f.get("description", ""))
+        detail = str(f.get("detail", ""))
+        how = str(f.get("how_found", ""))
+        policy = str(f.get("policy_ref", ""))
+        level = str(f.get("level", ""))
+        
+        violations = []
+        # 标准1: 第三人称检查
+        for kw in ["你公司", "贵公司", "你们", "你企业"]:
+            if kw in desc or kw in detail:
+                violations.append("标准1: 非第三人称-" + kw)
+                break
+        # 标准2: 数量具体化
+        if ("很多" in desc or "大量" in desc) and "笔" not in desc and "张" not in desc:
+            violations.append("标准2: 数量模糊-使用了'很多/大量'未附具体数字")
+        # 标准4: 结论可验证
+        if len(how) < 10:
+            violations.append("标准4: 发现过程不完整")
+        # 标准7: 法规引用
+        if len(policy) < 5 and level in ("高风险", "极高风险"):
+            violations.append("标准7: 高风险发现缺少法规引用")
+        # 标准9: 严重度
+        if level not in ("高风险", "极高风险", "中风险", "低风险", "正常"):
+            violations.append("标准9: 缺少风险等级")
+        
+        if violations:
+            f["_quality_tags"] = violations
+            _quality_violations += 1
+    
+    if _quality_violations > 0:
+        pipeline_log.append(f"[质量标准] 内建校验发现{_quality_violations}条结论存在质量标签，将在最终报告中标注")
 
     # ═══════════════════════════════════════════════════════════
     # Phase 3 — 交叉验证：信号叠加检测 + 冲突消解 + 结论互证
@@ -25719,6 +25754,191 @@ def health_check():
         if r.returncode == 0: commit = r.stdout.strip()
     except: pass
     return {"status": "ok", "commit": commit, "port": 8001}
+
+@app.get("/api/audit/status")
+def audit_status(company_id: int = 1):
+    """质量保障状态——返回audit.py 7项检查结果 + 系统健康评分"""
+    try:
+        import importlib
+        import audit as audit_mod
+        importlib.reload(audit_mod)
+        result = audit_mod.audit_all(company_id)
+        
+        # 转换输出格式
+        items = []
+        passed = 0
+        total = 0
+        check_names = {
+            "重复记账": "验证同一银行流水不被多个匹配函数重复记账",
+            "借贷不平": "验证每张凭证借=贷，自动化记账精度检查",
+            "三号拆分": "验证同一(invoice_code,invoice_no,digital_invoice_no)合并为一张凭证",
+            "BK凭证号不一致": "验证记账发票凭证号与序时账凭证号完全一致",
+            "科目名称格式错误": "验证所有科目name字段只存本级名称，不含上级前缀",
+            "档案锁定缺失": "验证已记账数据关联的档案记录已锁定，不可修改",
+            "来源不一致": "验证来源系统记录与实际数据的一致性",
+        }
+        
+        for check_name, count in result["results"].items():
+            total += 1
+            is_ok = count == 0
+            if is_ok: passed += 1
+            items.append({
+                "name": check_name,
+                "description": check_names.get(check_name, ""),
+                "error_count": count,
+                "passed": is_ok,
+                "status": "pass" if is_ok else "fail",
+            })
+        
+        # 额外检查：代码语法（编译检查）
+        syntax_ok = True
+        syntax_msg = "通过"
+        try:
+            import py_compile
+            py_compile.compile(os.path.join(os.path.dirname(__file__) or ".", "main.py"), doraise=True)
+        except py_compile.PyCompileError as pe:
+            syntax_ok = False
+            syntax_msg = str(pe)[:200]
+        except Exception:
+            syntax_ok = False
+            syntax_msg = "语法检查异常"
+        
+        total += 1
+        if syntax_ok: passed += 1
+        items.append({
+            "name": "语法编译检查",
+            "description": "Python语法编译验证（main.py）",
+            "error_count": 0 if syntax_ok else 1,
+            "passed": syntax_ok,
+            "status": "pass" if syntax_ok else "fail",
+        })
+        
+        score = round(passed / total * 100)
+        level = "健康" if score == 100 else ("良好" if score >= 80 else ("警告" if score >= 60 else "危险"))
+        
+        return {
+            "ok": True,
+            "score": score,
+            "level": level,
+            "passed": passed,
+            "total": total,
+            "items": items,
+            "audit_errors": result["errors"][:20],
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e), "score": 0, "level": "未知", "items": []}
+
+@app.get("/api/methodology-audit")
+def methodology_audit():
+    """方法论文档↔执行代码对账——扫描AUDIT_METHODOLOGY.md中的方法论编号，检查main.py中是否有实际引用"""
+    import re as _re
+    base_dir = os.path.dirname(__file__) or "."
+    
+    # 扫描方法论声明（从AUDIT_METHODOLOGY.md）
+    md_path = os.path.join(base_dir, "AUDIT_METHODOLOGY.md")
+    declared = []
+    if os.path.exists(md_path):
+        with open(md_path, "r", encoding="utf-8") as f:
+            md_text = f.read()
+        # 匹配稽查方法论+编号模式：①~㉗ 或 1~N编号
+        for m in _re.finditer(r'(?:稽查方法论|方法论)\s*([①-㉗\d]+(?:[-~]\d+)?)', md_text):
+            declared.append(m.group(1))
+        # 匹配编号方法论引用
+        for m in _re.finditer(r'[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗]', md_text):
+            n = m.group(0)
+            if n not in declared: declared.append(n)
+    
+    # 扫描main.py中的实际引用
+    py_path = os.path.join(base_dir, "main.py")
+    py_text = ""
+    if os.path.exists(py_path):
+        with open(py_path, "r", encoding="utf-8") as f:
+            py_text = f.read()
+    
+    # 查找代码中引用的方法论编号
+    code_refs = set()
+    for m in _re.finditer(r'[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗]', py_text):
+        code_refs.add(m.group(0))
+    
+    # 查找关键词引用（稽查方法论文字描述）
+    kw_map = {
+        "主营业务成本识别": "④",
+        "付款方身份核实": "③", 
+        "联网核查": "⑥",
+        "四步稽查分析法": "㉓",
+        "三层行业穿透法": "㉕",
+        "供应链联网核查": "㉗",
+        "经营实质地理分析": "geo",
+        "进销存分析": "④",
+        "全链路质量保障": "quality",
+        "跨域因果叙事": "causal",
+        "结论自洽性": "contradiction",
+        "缺失后果触发": "missing",
+        "事前预警": "early_warning",
+        "可信度评估": "confidence",
+        "记忆自学习": "memory",
+        "行业自适应": "industry",
+    }
+    kw_code_refs = set()
+    for kw, ref in kw_map.items():
+        if kw in py_text:
+            kw_code_refs.add(ref)
+    code_refs = code_refs | kw_code_refs
+    
+    # 方法论编号→名称映射（从文档中提取或硬编码）
+    method_names = {
+        "③": "付款方身份核实", "④": "主营业务成本识别驱动的进销存分析",
+        "⑥": "联网核查", "㉓": "四步稽查分析法",
+        "㉕": "三层行业穿透法", "㉗": "供应链联网核查",
+        "geo": "经营实质地理分析", "quality": "全链路质量保障体系",
+        "causal": "跨域因果叙事引擎", "contradiction": "结论自洽性检查引擎",
+        "missing": "缺失后果自动触发引擎", "early_warning": "事前预警升级引擎",
+        "confidence": "结论可信度评估引擎", "memory": "记忆自学习引擎",
+        "industry": "行业自适应知识库",
+    }
+    
+    # 构建对账结果
+    results = []
+    for ref_id in sorted(set(list(declared) + list(code_refs))):
+        in_doc = ref_id in declared or any(ref_id in kw_map.values())
+        in_code = ref_id in code_refs
+        name = method_names.get(ref_id, f"方法论{ref_id}")
+        
+        if in_doc and in_code:
+            status = "aligned"
+        elif in_doc and not in_code:
+            status = "doc_only"
+        elif not in_doc and in_code:
+            status = "code_only"
+        else:
+            status = "missing"
+        
+        results.append({
+            "id": ref_id,
+            "name": name,
+            "status": status,
+            "in_doc": in_doc,
+            "in_code": in_code,
+        })
+    
+    aligned = sum(1 for r in results if r["status"] == "aligned")
+    doc_only = sum(1 for r in results if r["status"] == "doc_only")
+    code_only = sum(1 for r in results if r["status"] == "code_only")
+    total_methods = len(results)
+    coverage = round(aligned / max(total_methods, 1) * 100)
+    
+    return {
+        "ok": True,
+        "total_methods": total_methods,
+        "aligned": aligned,
+        "doc_only": doc_only,
+        "code_only": code_only,
+        "coverage_pct": coverage,
+        "methods": results,
+        "verdict": "全部对齐" if doc_only == 0 and code_only == 0 else (
+            f"需修复: {doc_only}条文档声明无代码, {code_only}条代码实现无文档"
+        ),
+    }
 
 @app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):

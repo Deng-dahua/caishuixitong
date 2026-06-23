@@ -24,6 +24,8 @@ function renderEngineDashboard(rpt) {
   var tabBar = '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:8px">' +
     '<div class="eng-tab active" onclick="switchEngineTab(\'status\')" id="tab-status">运行状态</div>' +
     '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'quality\')" id="tab-quality">质量保障</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'methods\')" id="tab-methods">方法论对账</div>' +
     '</div><div id="eng-tab-content"></div>';
   
   area.innerHTML = tabBar;
@@ -33,9 +35,12 @@ function renderEngineDashboard(rpt) {
 
 function switchEngineTab(tab) {
   document.querySelectorAll('.eng-tab').forEach(function(el) { el.classList.remove('active'); });
-  document.getElementById('tab-' + tab).classList.add('active');
+  var tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
   if (tab === 'status') renderStatusTab();
-  else renderRulesTab();
+  else if (tab === 'rules') renderRulesTab();
+  else if (tab === 'quality') renderQualityTab();
+  else if (tab === 'methods') renderMethodsTab();
 }
 
 function renderStatusTab() {
@@ -604,15 +609,162 @@ function esc(s) {
 }
 
 function loadEngineDashboard() {
+  // ── 检查是否有新分析推送（#1：一键分析→仪表盘）──
   var cid = window._currentCompanyId || 1;
+  try {
+    var flag = localStorage.getItem('_tax_engine_new_analysis');
+    if (flag) {
+      var parsed = JSON.parse(flag);
+      if (parsed.timestamp && (Date.now() - parsed.timestamp < 600000)) {
+        console.log('[仪表盘] 检测到新分析:', parsed.trace_id);
+        localStorage.removeItem('_tax_engine_new_analysis');
+      }
+    }
+  } catch(e) {}
+  
+  // ── 检查URL参数：手册联动跳转（#4：手册↔仪表盘）──
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var focusMethod = params.get('focus');
+    if (focusMethod) {
+      window._dashboardFocusMethod = focusMethod;
+      // 延迟切换到对应标签（等渲染完成）
+      setTimeout(function() {
+        switchEngineTab('methods');
+        if (window._methodsData) {
+          highlightMethodInDashboard(focusMethod);
+        }
+      }, 500);
+    }
+  } catch(e) {}
+  
   fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      // 始终渲染标签系统（规则库不需要分析数据）
       renderEngineDashboard((d && d.report) ? d.report : null);
     })
     .catch(function() {
-      // 即使API失败也渲染标签（规则库走独立API）
       renderEngineDashboard(null);
     });
+}
+
+// ═══════════════════════════════════════════════════
+// #2: 质量保障标签页（audit.py 7+1项检查结果）
+// ═══════════════════════════════════════════════════
+function renderQualityTab() {
+  var area = document.getElementById('eng-tab-content');
+  if (!area) return;
+  area.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在运行质量检查...</div>';
+  
+  fetch('/api/audit/status?company_id=' + (window._currentCompanyId || 1))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">质量检查失败: ' + esc(d.error || '') + '</div>'; return; }
+      
+      var h = '';
+      var sc = d.score;
+      var scoreColor = sc === 100 ? '#059669' : sc >= 80 ? '#3b82f6' : sc >= 60 ? '#f59e0b' : '#dc2626';
+      var scoreBg = sc === 100 ? '#ecfdf5' : sc >= 80 ? '#eff6ff' : sc >= 60 ? '#fffbeb' : '#fef2f2';
+      h += '<div style="background:' + scoreBg + ';border:2px solid ' + scoreColor + ';padding:24px 28px;border-radius:12px;margin-bottom:20px;text-align:center">';
+      h += '<div style="font-size:48px;font-weight:700;color:' + scoreColor + ';line-height:1.2">' + sc + '<span style="font-size:20px">/100</span></div>';
+      h += '<div style="font-size:18px;font-weight:600;color:' + scoreColor + ';margin-top:8px">系统健康度: ' + esc(d.level) + '</div>';
+      h += '<div style="font-size:13px;color:#64748b;margin-top:4px">' + d.passed + '/' + d.total + ' 项通过</div>';
+      h += '</div>';
+      
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+      (d.items || []).forEach(function(item) {
+        var icon = item.passed ? 'V' : 'X';
+        var cardBg = item.passed ? '#ecfdf5' : '#fef2f2';
+        var cardBorder = item.passed ? '#059669' : '#dc2626';
+        h += '<div style="background:' + cardBg + ';border:1px solid ' + cardBorder + ';padding:14px 16px;border-radius:8px">';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+        h += '<span style="font-weight:600;font-size:14px;color:' + (item.passed ? '#065f46' : '#991b1b') + '">' + esc(item.name) + '</span>';
+        h += '<span style="font-size:20px;color:' + (item.passed ? '#059669' : '#dc2626') + '">' + icon + '</span>';
+        h += '</div>';
+        h += '<div style="font-size:12px;color:#64748b">' + esc(item.description) + '</div>';
+        if (!item.passed) {
+          h += '<div style="font-size:12px;color:#dc2626;font-weight:600;margin-top:4px">' + item.error_count + '个问题</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+      
+      if (d.audit_errors && d.audit_errors.length > 0) {
+        h += '<div style="margin-top:20px"><div style="font-weight:600;font-size:14px;margin-bottom:10px;color:#991b1b">详细错误</div>';
+        d.audit_errors.forEach(function(err) {
+          h += '<div style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;margin:4px 0;font-size:12px;color:#7f1d1d;border-radius:4px">' + esc(err) + '</div>';
+        });
+        h += '</div>';
+      }
+      
+      area.innerHTML = h;
+    })
+    .catch(function() {
+      area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">质量检查服务不可用</div>';
+    });
+}
+
+// ═══════════════════════════════════════════════════
+// #3: 方法论对账标签页（文档声明 vs 代码实现）
+// ═══════════════════════════════════════════════════
+function renderMethodsTab() {
+  var area = document.getElementById('eng-tab-content');
+  if (!area) return;
+  area.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在分析方法论覆盖...</div>';
+  
+  fetch('/api/methodology-audit')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">对账失败: ' + esc(d.error || '') + '</div>'; return; }
+      window._methodsData = d;
+      
+      var h = '';
+      var covColor = d.coverage_pct === 100 ? '#059669' : d.coverage_pct >= 70 ? '#f59e0b' : '#dc2626';
+      h += '<div style="background:#eff6ff;border:2px solid #3b82f6;padding:20px 24px;border-radius:12px;margin-bottom:20px">';
+      h += '<div style="display:flex;justify-content:space-around;text-align:center">';
+      h += '<div><div style="font-size:36px;font-weight:700;color:' + covColor + '">' + d.coverage_pct + '%</div><div style="font-size:12px;color:#64748b">覆盖率</div></div>';
+      h += '<div><div style="font-size:36px;font-weight:700;color:#059669">' + d.aligned + '</div><div style="font-size:12px;color:#64748b">已对齐</div></div>';
+      h += '<div><div style="font-size:36px;font-weight:700;color:#dc2626">' + d.doc_only + '</div><div style="font-size:12px;color:#64748b">有文档无代码</div></div>';
+      h += '<div><div style="font-size:36px;font-weight:700;color:#f59e0b">' + d.code_only + '</div><div style="font-size:12px;color:#64748b">有代码无文档</div></div>';
+      h += '</div>';
+      h += '<div style="text-align:center;margin-top:12px;font-size:14px;font-weight:600;color:' + (d.doc_only === 0 && d.code_only === 0 ? '#059669' : '#dc2626') + '">' + esc(d.verdict) + '</div>';
+      h += '</div>';
+      
+      h += '<div style="display:grid;grid-template-columns:1fr;gap:8px">';
+      (d.methods || []).forEach(function(m, i) {
+        var mid = 'method-item-' + i;
+        var bg, border, label, labelColor;
+        if (m.status === 'aligned') { bg = '#ecfdf5'; border = '#059669'; label = '已对齐'; labelColor = '#059669'; }
+        else if (m.status === 'doc_only') { bg = '#fef2f2'; border = '#dc2626'; label = '缺代码'; labelColor = '#dc2626'; }
+        else if (m.status === 'code_only') { bg = '#fffbeb'; border = '#f59e0b'; label = '缺文档'; labelColor = '#f59e0b'; }
+        else { bg = '#f8fafc'; border = '#94a3b8'; label = '缺失'; labelColor = '#94a3b8'; }
+        
+        h += '<div id="' + mid + '" style="background:' + bg + ';border:1px solid ' + border + ';padding:12px 16px;border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
+        h += '<div style="flex:1"><span style="font-weight:600;font-size:14px">' + esc(m.id) + '</span>';
+        h += '<span style="font-size:13px;color:#475569;margin-left:10px">' + esc(m.name) + '</span></div>';
+        h += '<div style="display:flex;gap:16px;align-items:center">';
+        h += '<span style="font-size:11px;color:#64748b">文档:' + (m.in_doc ? 'V' : 'X') + '</span>';
+        h += '<span style="font-size:11px;color:#64748b">代码:' + (m.in_code ? 'V' : 'X') + '</span>';
+        h += '<span style="padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + labelColor + ';color:#fff">' + label + '</span>';
+        h += '</div></div>';
+        
+        if (window._dashboardFocusMethod && m.id === window._dashboardFocusMethod) {
+          setTimeout(function() {
+            var el = document.getElementById(mid);
+            if (el) { el.style.boxShadow = '0 0 0 3px #3b82f6'; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+          }, 100);
+        }
+      });
+      h += '</div>';
+      
+      area.innerHTML = h;
+    })
+    .catch(function() {
+      area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">方法论对账服务不可用</div>';
+    });
+}
+
+function highlightMethodInDashboard(methodId) {
+  if (!window._methodsData) return;
+  renderMethodsTab();
 }

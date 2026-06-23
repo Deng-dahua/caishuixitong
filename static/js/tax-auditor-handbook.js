@@ -642,6 +642,9 @@ function renderAuditorHandbook(container) {
 
   container.innerHTML = html;
 
+  // ── #4: 绑定方法论→仪表盘联动 ──
+  setTimeout(bindMethodologyDashboardLinks, 100);
+
   // ═══ 异步加载管道数据：深度串联一键分析 ═══
   (function() {
     try {
@@ -756,4 +759,63 @@ function scrollToSection(id) {
   if (el) {
     el.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
+}
+
+// ── #4: 手册→仪表盘联动：点击方法论→跳转仪表盘对账标签页 ──
+function navigateToDashboardWithMethod(methodId) {
+  if (typeof navigateTo === 'function') {
+    // 更新URL参数后跳转
+    navigateTo('engine-dashboard');
+    setTimeout(function() {
+      if (window.location.hash === '#engine-dashboard' || (typeof currentPage !== 'undefined' && currentPage === 'engine-dashboard')) {
+        if (typeof switchEngineTab === 'function') {
+          switchEngineTab('methods');
+          window._dashboardFocusMethod = methodId;
+        }
+      }
+    }, 300);
+  }
+}
+
+// 为手册中每个方法论卡片绑定仪表盘联动
+function bindMethodologyDashboardLinks() {
+  var cards = document.querySelectorAll('#methodology .card');
+  var methodMap = {
+    '四流合一': '③',
+    '三层分类': '④',
+    '三源比对': '⑥',
+    '资金回流': 'causal',
+    '多源交叉': 'missing',
+    '资料缺失': 'missing',
+    '经营实质': 'geo',
+    '三源穿透': '㉕',
+  };
+  for (var i = 0; i < cards.length; i++) {
+    var h3 = cards[i].querySelector('h3');
+    if (!h3) continue;
+    var hText = h3.textContent || '';
+    for (var kw in methodMap) {
+      if (hText.indexOf(kw) > -1) {
+        var methodId = methodMap[kw];
+        h3.style.cursor = 'pointer';
+        h3.title = '点击查看方法论对账详情';
+        h3.setAttribute('data-method-id', methodId);
+        
+        // 添加仪表盘链接标记
+        var linkSpan = document.createElement('span');
+        linkSpan.style.cssText = 'font-size:10px;color:#3b82f6;margin-left:8px;font-weight:400;opacity:0.8';
+        linkSpan.textContent = '[对账]';
+        h3.appendChild(linkSpan);
+        break;
+      }
+    }
+  }
+  
+  // 委托事件：点击h3跳转仪表盘
+  document.getElementById('methodology').addEventListener('click', function(e) {
+    var target = e.target.closest('h3[data-method-id]');
+    if (target) {
+      navigateToDashboardWithMethod(target.getAttribute('data-method-id'));
+    }
+  });
 }
