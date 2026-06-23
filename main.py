@@ -17286,6 +17286,9 @@ class AuditContext:
         self.missing_critical_docs = [] # 缺失的关键资料（银行/发票/工资）
         self.missing_doc_keys = []      # 缺失的14类资料key列表（供Phase 4缺失后果触发用）
         
+        # ── 行业自适应 ──
+        self.industry_profile = {}      # 当前企业匹配的行业画像配置
+        
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
         
@@ -17493,6 +17496,53 @@ def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
         cp["industry"] = best_cat
     else:
         cp["industry"] = "综合"
+    
+    # ── 加载行业自适应画像 ──
+    _load_industry_profile(ctx)
+
+
+def _load_industry_profile(ctx):
+    """根据检测到的行业加载对应的行业画像配置"""
+    import json, os
+    cp = ctx.company_profile
+    industry = cp.get("industry", "综合")
+    biz_model = cp.get("biz_model", "未确定")
+    
+    try:
+        profile_path = os.path.join(os.path.dirname(__file__), "static", "industry_profiles.json")
+        with open(profile_path, "r", encoding="utf-8") as f:
+            profiles = json.load(f)
+    except Exception:
+        ctx.industry_profile = profiles.get("default_profile", {}) if 'profiles' in dir() else {"label": "加载失败"}
+        return
+    
+    industries = profiles.get("industries", {})
+    default = profiles.get("default_profile", {})
+    
+    # 匹配策略：先精确匹配行业名，再匹配biz_model，再匹配subtypes
+    matched = None
+    
+    # 1. 精确匹配行业标签
+    for key, prof in industries.items():
+        if industry == key:
+            matched = prof
+            break
+        if industry in prof.get("subtypes", []):
+            matched = prof
+            break
+    
+    # 2. 按经营模式匹配（制造业用制造业画像，贸易用贸易/批发画像）
+    if not matched:
+        model_to_key = {
+            "制造业": "制造业",
+            "贸易": "贸易批发",
+            "服务/劳务": "服务业",
+        }
+        matched_key = model_to_key.get(biz_model)
+        if matched_key:
+            matched = industries.get(matched_key)
+    
+    ctx.industry_profile = matched or default
 
 
 def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
@@ -17967,6 +18017,15 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
             current_depth = domains_to_run.get(domain, "shallow")
             if depth_order.get(matched["depth"], 1) > depth_order.get(current_depth, 0):
                 domains_to_run[domain] = matched["depth"]
+    
+    # ── 行业自适应：注入行业特有关注域 ──
+    ind_profile = ctx.industry_profile
+    if ind_profile:
+        industry_focus = ind_profile.get("focus_domains", [])
+        for domain in industry_focus:
+            if domain not in domains_to_run:
+                domains_to_run[domain] = "deep"
+                pipeline_log.append(f"[Phase2] 行业自适应: 注入'{domain}'（{ind_profile.get('label','')}行业特有关注域）")
     
     if not domains_to_run:
         pipeline_log.append("[Phase2] 无信号触发，跳过定向深挖")
@@ -19664,6 +19723,8 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     # ═══ 第二段：经营模式诊断 ═══
     lines.append(f"\n【经营模式诊断】")
     lines.append(_get_detailed_mode_analysis(model, industry, ctx))
+    # ── 行业自适应基准对比 ──
+    lines.append(_get_industry_benchmark_comparison(ctx))
     
     # ═══ 第三段：核心风险画像 ═══
     lines.append(f"\n【核心风险画像】")
@@ -19795,6 +19856,83 @@ def _get_risk_advice(level):
             "该企业整体涉税风险较低，现有资料未发现重大异常。"
             "建议按常规管理流程处理，保持定期监控。"
         )
+
+
+def _get_industry_benchmark_comparison(ctx):
+    """行业自适应基准对比：当前指标 vs 行业典型范围"""
+    ip = ctx.industry_profile
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
+    if not ip or not ip.get("benchmarks"):
+        return ""
+    
+    bm = ip["benchmarks"]
+    label = ip.get("label", cp.get("biz_model", "未知行业"))
+    lines = []
+    lines.append(f"\n{label}行业基准对比（基于行业知识库）：")
+    
+    # 毛利率对比
+    gm_bm = bm.get("gross_margin_pct")
+    gm_actual = fs.get("gross_margin_pct", 0)
+    if gm_bm and gm_actual:
+        deviation = ""
+        if gm_actual < gm_bm.get("low", 0):
+            deviation = f"← 低于{label}行业正常下限({gm_bm['low']}%)，成本控制或收入确认存疑"
+        elif gm_actual > gm_bm.get("high", 100):
+            deviation = f"← 高于{label}行业正常上限({gm_bm['high']}%)，毛利率异常偏高"
+        elif gm_actual < gm_bm.get("normal_low", 0):
+            deviation = f"（偏低但仍在{label}行业可接受范围边缘）"
+        elif gm_actual > gm_bm.get("normal_high", 100):
+            deviation = f"（偏高，但{label}行业部分细分领域可行）"
+        
+        if deviation:
+            lines.append(f"  • 毛利率: 当前{gm_actual:.1f}% {deviation}")
+    
+    # 进销比对比  (converted to purchase/sales ratio for comparison)
+    sales = fs.get("total_sales", 1)
+    purchases = fs.get("total_purchases", 0)
+    ps_bm = bm.get("purchase_sales_ratio")
+    if ps_bm and sales > 0:
+        ps_actual = purchases / sales
+        if ps_actual < ps_bm.get("normal_low", 0) or ps_actual > ps_bm.get("normal_high", 2):
+            lines.append(f"  • 进销比: 当前{ps_actual:.2f}（{label}正常{ps_bm['normal_low']}-{ps_bm['normal_high']}）")
+    
+    # 供应商集中度
+    sc_bm = bm.get("supplier_concentration_warn")
+    if sc_bm and ctx.supplier_concentration > sc_bm:
+        lines.append(f"  • 供应商集中度: {ctx.supplier_concentration:.0f}%（{label}预警线{sc_bm}%）")
+    
+    # 客户集中度
+    cc_bm = bm.get("customer_concentration_warn")
+    if cc_bm and ctx.customer_concentration > cc_bm:
+        lines.append(f"  • 客户集中度: {ctx.customer_concentration:.0f}%（{label}预警线{cc_bm}%）")
+    
+    # 行业特有风险模式
+    risk_patterns = ip.get("risk_patterns", [])
+    if risk_patterns:
+        # 检查是否有关键模式被触发
+        triggered_patterns = []
+        for rp in risk_patterns:
+            sigs = rp.get("signals", [])
+            # 简单检查是否有至少2个信号在现有发现中出现
+            matches = 0
+            for sig in sigs:
+                # 检查是否在ctx的红黄旗信号中
+                for flag in ctx.red_flags + ctx.yellow_flags:
+                    if sig in str(flag.get("type", "")):
+                        matches += 1
+                        break
+            if matches >= 2:
+                triggered_patterns.append(rp)
+        
+        if triggered_patterns:
+            lines.append(f"\n  {label}行业特有风险模式（已触发）：")
+            for tp in triggered_patterns[:3]:
+                lines.append(f"    ▸ {tp['name']}: {tp['explanation'][:100]}")
+    
+    if len(lines) > 1:  # 超过标题行
+        return "\n".join(lines)
+    return ""
 
 
 def _get_detailed_mode_analysis(model, industry, ctx):
