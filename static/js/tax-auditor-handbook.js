@@ -234,7 +234,7 @@ function renderAuditorHandbook(container) {
 
   // 报告结构
   html += '<h3 style="margin-top:16px;">3.1 报告结构——向上级领导汇报的标准化框架</h3>';
-  html += '<p style="font-size:13px;color:#6b7280;">本系统生成的稽查报告模拟真实稽查员向上级领导汇报的场景。"标准分析报告"采用正式法律文书格式（7章），"叙事增强报告"采用口头汇报体（8章）。两份报告使用同一数据源，展示角度不同。</p>';
+  html += '<p style="font-size:13px;color:#6b7280;">本系统生成的稽查报告采用客观第三人称正式法律文书格式（7章），模拟稽查员出具正式稽查报告的标准化框架。</p>';
 
   html += '<h4 style="margin-top:12px;">标准分析报告（7章·正式法律文书）</h4>';
   html += '<table class="table table-sm">';
@@ -313,7 +313,7 @@ function renderAuditorHandbook(container) {
   html += '<table class="table table-sm">';
   html += '<thead><tr><th style="width:30px;">#</th><th style="width:140px;">标准名称</th><th>判定规则</th><th style="width:200px;">不合格示例</th></tr></thead><tbody>';
 
-  html += '<tr><td style="font-weight:700;">1</td><td><strong>第一人称稽查员叙事</strong></td>';
+  html += '<tr><td style="font-weight:700;">1</td><td><strong>客观第三人称叙事</strong></td>';
   html += '<td><code>how_found</code> 和 <code>description</code> 必须以"我"为主语，使用"我审查了""我逐一比对了""我发现"等主动语态。禁止第三人称（"经查""该企业"）、禁止被动语态（"被发现在…"）。</td>';
   html += '<td style="color:#dc2626;font-size:12px;">❌ "经查，该企业存在少申报收入的情形"<br>❌ "销项开票与银行收款名称不匹配，需要按六种商业模式逐笔分析"</td></tr>';
 

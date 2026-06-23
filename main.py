@@ -23451,7 +23451,7 @@ def _sanitize_finding_boilerplate(all_findings):
 
 # ═══════════ 稽查报告质量标准执行（12项硬指标）══════════
 # 提炼自Finding①"资料完备度综合评估"的标杆质量 + 实战缺陷反思，全行业适用
-# 标准1: 第一人称稽查员叙事 — how_found以"我"为主语
+# 标准1: 客观第三人称叙事 — 使用"经查""该企业""被查单位"等客观表述
 # 标准2: 事实-证据-后果三要素 — 缺一不可
 # 标准3: 完整因果链 A→B→C→D — 至少一步推导
 # 标准4: 可操作的紧迫感 — suggestion具体到步骤
@@ -23494,15 +23494,15 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
         detail = str(f.get("detail", ""))
         has_items = bool(f.get("items")) and len(f.get("items", [])) > 0
         
-        # 标准1: 第一人称稽查员叙事
-        # how_found 或 description 必须以"我"为主动语态，不能是"经查""该企业""被发现在"
-        depersonalized = any(k in how_found + description for k in ["经查", "该企业存在", "被发现在", "销项开票与银行收款名称不匹配，需要按"])
-        first_person = "我" in how_found or "我" in description
-        if depersonalized and not first_person:
-            issues.append("标准1_叙事: 缺少第一人称稽查员视角")
+        # 标准1: 客观第三人称叙事
+        # how_found/description 应使用"经查""该企业""被查单位"等客观表述，不得使用第一人称"我"
+        has_first_person = "我" in how_found or "我" in description
+        has_third_person = any(k in how_found + description for k in ["经查", "该企业", "被查单位", "发现", "经核查"])
+        if has_first_person and not has_third_person:
+            issues.append("标准1_叙事: 应使用客观第三人称表述（经查/该企业），避免第一人称")
             quality_log["stats"]["标准1_叙事"] += 1
-        elif depersonalized:
-            issues.append("标准1_叙事: 含第三人称模板语")
+        elif has_first_person:
+            issues.append("标准1_叙事: 含第一人称'我'，建议改为'经查'或'该企业'等客观表述")
             quality_log["stats"]["标准1_叙事"] += 1
         
         # 标准2: 事实-证据-后果三要素

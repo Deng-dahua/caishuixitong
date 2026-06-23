@@ -72,7 +72,8 @@ const pages = {
   'cross-domain-analysis': '跨域分析链',
   'system-logs': '系统日志',
   'ai-rules': 'AI行为准则',
-  'auditor-handbook': '税务稽查员手册'
+  'auditor-handbook': '税务稽查员手册',
+  'report-standards': '报告编制要求'
 };
 
 // ==================== 用户登录 ====================
@@ -561,6 +562,7 @@ function navigateTo(page) {
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
     case 'auditor-handbook': renderAuditorHandbook(container); break;
+    case 'report-standards': renderReportStandards(container); break;
     case 'engine-dashboard': renderEngineDashboardPage(container); break;
   }
   window.scrollTo(0, 0);
