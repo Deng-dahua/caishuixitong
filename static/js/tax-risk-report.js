@@ -499,10 +499,36 @@ function renderDocsReport(rpt) {
     });
   }
 
+  // ── 综合稽查结论卡片（Phase 4 推理引擎产出）──
+  if (rpt.all_findings && rpt.all_findings.length > 0) {
+    var synthFinding = null;
+    for (var si = 0; si < rpt.all_findings.length; si++) {
+      if (rpt.all_findings[si]._phase4_synthesis) {
+        synthFinding = rpt.all_findings[si];
+        break;
+      }
+    }
+    if (synthFinding) {
+      var riskColor = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#dc2626' : '#f59e0b';
+      var riskBg = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#fef2f2' : '#fffbeb';
+      html += '<div style="margin:16px 0;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">'
+        + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+        + '<span style="font-size:28px">⚖️</span>'
+        + '<span style="font-size:20px;font-weight:700;color:#1e293b">推理引擎综合稽查结论</span>'
+        + '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + escapeHtml(synthFinding.level || '?') + '</span>'
+        + '<span style="font-size:13px;color:var(--gray-500)">评分 ' + (synthFinding.score || '?') + '/100</span>'
+        + '</div>'
+        + '<div style="font-size:14px;color:var(--gray-700);line-height:1.8;white-space:pre-wrap">' + escapeHtml(synthFinding.description || '') + '</div>'
+        + '</div>';
+    }
+  }
+
   // 阶段4: 详细发现
   html += '<div style="margin:16px 0"><b style="font-size:15px">详细风险发现（按风险程度排序）</b></div>';
   if (rpt.all_findings && rpt.all_findings.length > 0) {
     rpt.all_findings.forEach(function(f, i) {
+      // 跳过 Phase 4 综合定性（已在顶部卡片展示）
+      if (f._phase4_synthesis) return;
       var color = f.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#6b7280');
       var bg = f.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f9fafb');
       var border = f.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fecaca' : (f.level === '中风险' ? '#fde68a' : '#e5e7eb');

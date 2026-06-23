@@ -17938,11 +17938,23 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
     # ── 步骤1：收集信号并映射域 ──
     all_signals = ctx.red_flags + ctx.yellow_flags
     
+    # ── 加载信号→域映射表：硬编码 + JSON 合并 ──
+    domain_map = dict(_SIGNAL_DOMAIN_MAP)
+    try:
+        json_path = os.path.join(os.path.dirname(__file__), 'static', 'signal_domain_map.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            for signal, cfg in config.get('mappings', {}).items():
+                if signal not in domain_map:
+                    domain_map[signal] = cfg
+    except Exception:
+        pass
+    
     for signal in all_signals:
         signal_type = signal.get("type", "")
-        # 在映射表中查找最匹配的信号
         matched = None
-        for map_signal, config in _SIGNAL_DOMAIN_MAP.items():
+        for map_signal, config in domain_map.items():
             if map_signal in signal_type or signal_type in map_signal:
                 matched = config
                 break
