@@ -186,7 +186,7 @@ function renderAnalyzeHeader(report) {
   if (!area) return;
   var comp = report.comprehensive || {};
   var allF = report.all_findings || [];
-  var highCount = allF.filter(function(f){ return f.level === '极高风险' || f.(level === '极高风险' || level === '高风险'); }).length;
+  var highCount = allF.filter(function(f){ return f.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'); }).length;
   var midCount = allF.filter(function(f){ return f.level === '中风险'; }).length;
 
   var h = '<style>'
