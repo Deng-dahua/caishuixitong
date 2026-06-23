@@ -301,17 +301,43 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
       - risk_adjustments: 对已有结论的评级修正
     
     流程：
-      1. 提取所有结论的类型、级别、域
-      2. 遍历信号叠加模式库，检测是否命中
-      3. 命中→生成综合结论+调整相关结论级别
-      4. 冲突检测：两个结论矛盾→生成冲突消解说明
+      1. 加载信号叠加模式（硬编码 + JSON 配置合并）
+      2. 遍历模式库，检测是否命中
+      3. 命中→生成综合结论
+      4. 冲突检测→生成冲突消解说明
       5. 产出注入 ctx
+    
+    规则外置：可通过 static/signal_patterns.json 追加新规则，无需改代码。
     """
+    import json as _json, os as _os
+    
     cross_findings = []
     risk_adjustments = []
     
     if not all_findings:
         return cross_findings, risk_adjustments
+    
+    # ── 加载信号叠加模式：硬编码基础 + JSON 扩展 ──
+    patterns = list(_SIGNAL_PATTERNS)  # 从硬编码开始
+    
+    # 尝试从 JSON 配置文件加载额外规则
+    json_path = _os.path.join(_os.path.dirname(__file__), '..', 'static', 'signal_patterns.json')
+    try:
+        if _os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                config = _json.load(f)
+                json_patterns = config.get('patterns', [])
+                # 按 id 去重：JSON 中的规则覆盖同 id 的硬编码规则
+                existing_ids = {p['id'] for p in patterns}
+                new_count = 0
+                for jp in json_patterns:
+                    if jp.get('id') not in existing_ids:
+                        patterns.append(jp)
+                        new_count += 1
+                if new_count > 0:
+                    pipeline_log.append(f"[Phase3] JSON配置加载: +{new_count}条新模式 (共{len(patterns)}条)")
+    except Exception as e:
+        pipeline_log.append(f"[Phase3] JSON配置加载跳过: {e}")
     
     # 提取所有发现中的关键信号关键词
     all_types = "|".join(f.get("type", "") for f in all_findings)
@@ -324,7 +350,7 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
         return signal_name in all_text
     
     # ── 遍历信号叠加模式库 ──
-    for pattern in _SIGNAL_PATTERNS:
+    for pattern in patterns:
         must_all = all(_has_signal(s) for s in pattern["triggers"]["must_have"])
         if not must_all:
             continue

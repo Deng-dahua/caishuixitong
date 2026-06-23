@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "description": "Phase 3 冲突消解规则 - 矛盾结论互证",
+  "rules": [
+    {
+      "id": "CONFLICT_MARGIN_VS_QTY",
+      "name": "毛利率正常 vs 进销数量偏差",
+      "signal_a": "毛利率正常",
+      "signal_b": "进销数量严重偏差",
+      "resolution": "库存结转差异或BOM产出率差异可解释",
+      "risk_action": "保持",
+      "note": "获取期初期末库存明细验证"
+    },
+    {
+      "id": "CONFLICT_SALARY_VS_OUTPUT",
+      "name": "工资正常 vs 人均产值低",
+      "signal_a": "工资社保正常",
+      "signal_b": "人均产值低",
+      "resolution": "人员冗余或收入少记",
+      "risk_action": "保持",
+      "note": "按部门统计人员分布+逐月比对产能"
+    },
+    {
+      "id": "CONFLICT_QTY_VS_SUPPLIER",
+      "name": "数量偏差 vs 供应商集中",
+      "signal_a": "进销数量偏差",
+      "signal_b": "供应商高度集中",
+      "resolution": "两个异常互证→虚增进项数量风险升级",
+      "risk_action": "升级",
+      "note": "逐供应商核实实际到货数量"
+    },
+    {
+      "id": "CONFLICT_NEG_MARGIN_VS_ONGOING",
+      "name": "毛利为负 vs 持续经营",
+      "signal_a": "毛利为负",
+      "signal_b": "持续经营",
+      "resolution": "存在未开票收入或体外资金支撑",
+      "risk_action": "升级",
+      "note": "核查银行不明收入+用电量与产能比对"
+    },
+    {
+      "id": "CONFLICT_SELL_NO_BUY_VS_PROCESSING",
+      "name": "有销无进 vs 加工费存在",
+      "signal_a": "有销无进",
+      "signal_b": "加工费",
+      "resolution": "制造业加工链条可解释品名差异",
+      "risk_action": "降级",
+      "note": "BOM表+加工合同验证"
+    },
+    {
+      "id": "CONFLICT_PAY_UNMATCH_VS_REIMB",
+      "name": "付款未匹配 vs 日常报销",
+      "signal_a": "银行付款未匹配",
+      "signal_b": "日常费用报销",
+      "resolution": "员工报销模式→付款对象非开票单位",
+      "risk_action": "降级",
+      "note": "建立费用报销制度"
+    },
+    {
+      "id": "CONFLICT_BUY_NO_SELL_VS_PROCESSING",
+      "name": "有进无销(高风险) vs 加工费",
+      "signal_a": "有进无销",
+      "signal_b": "加工费",
+      "resolution": "制造业加工链条→建议高风险降为中风险",
+      "risk_action": "降级",
+      "note": "BOM表验证投入产出"
+    },
+    {
+      "id": "CONFLICT_CONSECUTIVE_VS_TRADE_NORMAL",
+      "name": "发票连号 vs 贸易模式正常",
+      "signal_a": "发票连号",
+      "signal_b": "贸易模式正常",
+      "resolution": "可能是同批次购票，非虚开证据",
+      "risk_action": "降级",
+      "note": "检查客户分散度+金额零整度+日期跨度"
+    }
+  ]
+}

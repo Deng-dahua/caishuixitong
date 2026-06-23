@@ -18304,26 +18304,28 @@ _SIGNAL_PATTERNS = [
 
 
 def _phase3_cross_validate(ctx, all_findings, pipeline_log):
-    """
-    Phase 3 — 交叉验证引擎
+    """Phase 3 — 交叉验证引擎（支持 JSON 规则外置）"""
+    import json as _json, os as _os
     
-    输入：all_findings（所有域的结论合并后）
-    产出：
-      - cross_findings: 新生成的综合交叉结论
-      - risk_adjustments: 对已有结论的评级修正
-    
-    流程：
-      1. 提取所有结论的类型、级别、域
-      2. 遍历信号叠加模式库，检测是否命中
-      3. 命中→生成综合结论+调整相关结论级别
-      4. 冲突检测：两个结论矛盾→生成冲突消解说明
-      5. 产出注入 ctx
-    """
     cross_findings = []
     risk_adjustments = []
     
     if not all_findings:
         return cross_findings, risk_adjustments
+    
+    # ── 加载信号模式：硬编码 + JSON 合并 ──
+    patterns = list(_SIGNAL_PATTERNS)
+    json_path = _os.path.join(_os.path.dirname(__file__), 'static', 'signal_patterns.json')
+    try:
+        if _os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                config = _json.load(f)
+                existing_ids = {p['id'] for p in patterns}
+                for jp in config.get('patterns', []):
+                    if jp.get('id') not in existing_ids:
+                        patterns.append(jp)
+    except Exception:
+        pass
     
     # 提取所有发现中的关键信号关键词
     all_types = "|".join(f.get("type", "") for f in all_findings)
@@ -18336,7 +18338,7 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
         return signal_name in all_text
     
     # ── 遍历信号叠加模式库 ──
-    for pattern in _SIGNAL_PATTERNS:
+    for pattern in patterns:
         must_all = all(_has_signal(s) for s in pattern["triggers"]["must_have"])
         if not must_all:
             continue
