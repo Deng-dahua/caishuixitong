@@ -23556,6 +23556,80 @@ async def add_cache_headers(request, call_next):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  推理引擎规则库 — 返回全部规则的完整文字内容
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/api/tax-risk-docs/engine-rules")
+def get_engine_rules():
+    """返回推理引擎全部规则的完整文字，供仪表盘展示"""
+    import json, os
+    
+    base = os.path.join(os.path.dirname(__file__), "static")
+    rules = {"version": "v2.0", "phases": {}}
+    
+    # Phase 1 信号检测规则（从引擎代码提取描述）
+    rules["phases"]["Phase1-初查信号检测"] = {
+        "description": "11个信号检测器，像老稽查员翻一遍资料就能嗅出异常",
+        "rules": [
+            {"id": "TRIAGE_001", "name": "购销严重倒挂", "trigger": "进项 > 销项 × 1.5", "level": "red", "detail": "可能虚增进项或隐匿收入"},
+            {"id": "TRIAGE_002", "name": "毛利为负", "trigger": "毛利率 < 0%", "level": "red", "detail": "售价低于成本，需核查未开票收入"},
+            {"id": "TRIAGE_003", "name": "毛利率异常高", "trigger": "毛利率 > 80% 且销项 > 100万", "level": "yellow", "detail": "可能虚增售价或进项未全额入账"},
+            {"id": "TRIAGE_004", "name": "缺少银行流水", "trigger": "有销售但无银行流水记录", "level": "red", "detail": "无法验证资金流真实性"},
+            {"id": "TRIAGE_005", "name": "无进项发票", "trigger": "有销项发票但0张进项（非服务/劳务）", "level": "yellow", "detail": "需要解释进项来源"},
+            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但0条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
+            {"id": "TRIAGE_007", "name": "存在加工费", "trigger": "进项中有加工费发票", "level": "yellow", "detail": "可能为制造业，需BOM表验证加工链条"},
+            {"id": "TRIAGE_008", "name": "制造业加工链条待验证", "trigger": "核心成本>0 + 加工费 + 制造业", "level": "yellow", "detail": "进销品名差异需BOM表解释"},
+            {"id": "TRIAGE_009", "name": "存在日常费用报销", "trigger": "进项中有日常报销（餐饮住宿汽油等）", "level": "green", "detail": "正常经营信号，排除误报"},
+            {"id": "TRIAGE_010", "name": "金额整十整百异常", "trigger": "整十/整百金额占比 > 50%", "level": "yellow", "detail": "金额高度规整→可能人为编造"},
+            {"id": "TRIAGE_011", "name": "金额分布异常均匀", "trigger": "标准差/均值 < 0.3", "level": "yellow", "detail": "开票金额过于均匀→可能按计划编造"},
+            {"id": "TRIAGE_012", "name": "发票连号", "trigger": "≥3张连续发票号", "level": "yellow", "detail": "可能集中开票或虚假交易"},
+            {"id": "TRIAGE_013", "name": "季度末集中开票", "trigger": "季度末月开票占比 > 60%", "level": "yellow", "detail": "可能突击开票人为调节收入"},
+            {"id": "TRIAGE_014", "name": "供应商高度集中", "trigger": "前3大供应商占比 > 80%", "level": "yellow", "detail": "可能关联交易或虚开发票"},
+            {"id": "TRIAGE_015", "name": "客户高度集中", "trigger": "前3大客户占比 > 80%", "level": "yellow", "detail": "可能关联交易或客户依赖"},
+            {"id": "TRIAGE_016", "name": "个人付款方占比过高", "trigger": "银行个人付款方占比 > 30%", "level": "yellow", "detail": "可能私户收款或隐匿收入"},
+        ]
+    }
+    
+    # Phase 2 信号→域映射
+    try:
+        with open(os.path.join(base, "signal_domain_map.json"), "r", encoding="utf-8") as f:
+            domain_map = json.load(f)
+        rules["phases"]["Phase2-信号→域映射"] = {
+            "description": domain_map.get("description", ""),
+            "count": len(domain_map.get("mappings", {})),
+            "mappings": domain_map.get("mappings", {}),
+        }
+    except Exception:
+        rules["phases"]["Phase2-信号→域映射"] = {"error": "加载失败"}
+    
+    # Phase 3 信号叠加模式
+    try:
+        with open(os.path.join(base, "signal_patterns.json"), "r", encoding="utf-8") as f:
+            patterns = json.load(f)
+        rules["phases"]["Phase3-信号叠加模式"] = {
+            "description": patterns.get("description", ""),
+            "count": len(patterns.get("patterns", [])),
+            "patterns": patterns.get("patterns", []),
+        }
+    except Exception:
+        rules["phases"]["Phase3-信号叠加模式"] = {"error": "加载失败"}
+    
+    # Phase 3 冲突消解规则
+    try:
+        with open(os.path.join(base, "conflict_rules.json"), "r", encoding="utf-8") as f:
+            conflicts = json.load(f)
+        rules["phases"]["Phase3-冲突消解规则"] = {
+            "description": conflicts.get("description", ""),
+            "count": len(conflicts.get("rules", [])),
+            "rules": conflicts.get("rules", []),
+        }
+    except Exception:
+        rules["phases"]["Phase3-冲突消解规则"] = {"error": "加载失败"}
+    
+    return {"ok": True, "rules": rules}
+
+
+# ═══════════════════════════════════════════════════════════════
 #  V15新增端点：OCR / Word解析 / 审计日志 / 行业更新 / 数据脱敏
 # ═══════════════════════════════════════════════════════════════
 

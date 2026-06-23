@@ -17,7 +17,34 @@ function renderEngineDashboard(rpt) {
     area.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">暂无引擎数据。请先运行一键分析。</div>';
     return;
   }
+
+  window._engineEs = es;
+  window._engineRpt = rpt;
+  window._engineRules = null;
+
+  // 标签切换
+  var tabBar = '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:8px">' +
+    '<div class="eng-tab active" onclick="switchEngineTab(\'status\')" id="tab-status">运行状态</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
+    '</div><div id="eng-tab-content"></div>';
   
+  area.innerHTML = tabBar;
+  renderStatusTab();
+  
+  // 后台加载规则
+  fetchEngineRules();
+}
+
+function switchEngineTab(tab) {
+  document.querySelectorAll('.eng-tab').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'status') renderStatusTab();
+  else renderRulesTab();
+}
+
+function renderStatusTab() {
+  var es = window._engineEs;
+  var area = document.getElementById('eng-tab-content');
   var h = '';
   
   // ═══ 顶部：引擎版本 + 风险总览 ═══
@@ -237,6 +264,121 @@ function renderEngineDashboard(rpt) {
   }
   h += '<tr><td>结论索引键</td><td style="font-size:11px;color:#64748b">' + esc((es.finding_index_keys || []).join(', ') || '无') + '</td></tr>';
   h += '</table></div>';
+  
+  document.getElementById('eng-tab-content').innerHTML = h;
+}
+
+// ── 规则库渲染 ──
+
+function fetchEngineRules() {
+  fetch('/api/tax-risk-docs/engine-rules')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      window._engineRules = d.rules || {};
+      // 如果已经在规则标签页，刷新显示
+      if (document.getElementById('tab-rules') && document.getElementById('tab-rules').classList.contains('active')) {
+        renderRulesTab();
+      }
+    })
+    .catch(function() {
+      window._engineRules = { error: '加载失败' };
+    });
+}
+
+function renderRulesTab() {
+  var area = document.getElementById('eng-tab-content');
+  var rules = window._engineRules;
+  
+  if (!rules || !rules.phases) {
+    area.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">规则库加载中...</div>';
+    if (rules && rules.error) fetchEngineRules();
+    else setTimeout(function() { if (!window._engineRules || !window._engineRules.phases) fetchEngineRules(); }, 500);
+    return;
+  }
+  
+  var h = '';
+  var totalRules = 0;
+  
+  // Phase 1
+  var p1 = rules.phases['Phase1-初查信号检测'];
+  if (p1) {
+    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #3b82f6">';
+    h += '<div class="engine-card-title"><span style="color:#3b82f6">■</span> Phase 1 — 初查信号检测 (' + (p1.rules||[]).length + '条规则)</div>';
+    h += '<div style="font-size:12px;color:#64748b;margin-bottom:10px">' + esc(p1.description) + '</div>';
+    (p1.rules||[]).forEach(function(r) {
+      var lc = r.level === 'red' ? '#dc2626' : r.level === 'yellow' ? '#f59e0b' : '#059669';
+      var bg = r.level === 'red' ? '#fef2f2' : r.level === 'yellow' ? '#fffbeb' : '#ecfdf5';
+      h += '<div style="padding:8px 12px;margin:4px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
+      h += '<strong>' + esc(r.id) + '</strong> <span style="color:' + lc + ';font-weight:600">' + esc(r.name) + '</span>';
+      h += '<div style="color:#64748b;margin-top:2px">触发条件: ' + esc(r.trigger) + '</div>';
+      h += '<div style="color:#475569;margin-top:2px">' + esc(r.detail) + '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  // Phase 2
+  var p2 = rules.phases['Phase2-信号→域映射'];
+  if (p2 && !p2.error) {
+    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #8b5cf6">';
+    h += '<div class="engine-card-title"><span style="color:#8b5cf6">■</span> Phase 2 — 信号→域映射 (' + (p2.count||0) + '条)</div>';
+    h += '<div style="font-size:12px;color:#64748b;margin-bottom:10px">' + esc(p2.description) + '</div>';
+    var mappings = p2.mappings || {};
+    Object.keys(mappings).forEach(function(signal) {
+      var m = mappings[signal];
+      var depthColor = m.depth === 'deep' ? '#dc2626' : m.depth === 'shallow' ? '#94a3b8' : '#f59e0b';
+      h += '<div style="padding:8px 12px;margin:4px 0;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
+      h += '<strong>' + esc(signal) + '</strong> <span style="color:' + depthColor + ';font-size:11px">' + esc(m.depth) + '</span>';
+      h += '<div style="color:#64748b">→ ' + esc((m.domains||[]).join(' / ')) + '</div>';
+      if (m.reason) h += '<div style="color:#94a3b8;font-size:11px">' + esc(m.reason) + '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  
+  // Phase 3 信号叠加模式
+  var p3p = rules.phases['Phase3-信号叠加模式'];
+  if (p3p && !p3p.error) {
+    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #06b6d4">';
+    h += '<div class="engine-card-title"><span style="color:#06b6d4">■</span> Phase 3 — 信号叠加模式 (' + (p3p.count||0) + '条)</div>';
+    (p3p.patterns||[]).forEach(function(p) {
+      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
+      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(p.id) + ' ' + esc(p.name) + '</div>';
+      h += '<div style="margin-top:4px;font-size:12px;color:#64748b">';
+      h += '必要条件: ' + esc((p.triggers.must_have||[]).join(', '));
+      if (p.triggers.any_of) h += ' | 任一满足: ' + esc(p.triggers.any_of.join(', '));
+      h += '</div>';
+      h += '<div style="margin-top:4px;font-size:12px;color:#1e293b">结论: ' + esc(p.conclusion||'') + '</div>';
+      h += '<div style="margin-top:4px;color:#ea580c;font-size:12px">风险: ' + esc(p.risk_override) + ' | 优先级: ' + esc(p.priority) + '</div>';
+      if (p.actions) {
+        h += '<div style="margin-top:4px;font-size:11px;color:#059669">';
+        p.actions.slice(0,3).forEach(function(a, i) { h += (i+1) + '. ' + esc(a) + '<br>'; });
+        h += '</div>';
+      }
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  // Phase 3 冲突消解
+  var p3c = rules.phases['Phase3-冲突消解规则'];
+  if (p3c && !p3c.error) {
+    h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #ec4899">';
+    h += '<div class="engine-card-title"><span style="color:#ec4899">■</span> Phase 3 — 冲突消解规则 (' + (p3c.count||0) + '条)</div>';
+    (p3c.rules||[]).forEach(function(r) {
+      h += '<div style="padding:8px 12px;margin:4px 0;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
+      h += '<strong>' + esc(r.id) + '</strong> ' + esc(r.name);
+      h += '<div style="color:#64748b;margin-top:2px">' + esc(r.signal_a) + ' + ' + esc(r.signal_b) + ' → ' + esc(r.resolution) + '</div>';
+      h += '<div style="color:#ea580c;font-size:11px">风险操作: ' + esc(r.risk_action) + '</div>';
+      h += '</div>';
+      totalRules++;
+    });
+    h += '</div>';
+  }
+  
+  h += '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px">规则库共 ' + totalRules + ' 条规则 | 全行业适用 | 可编辑JSON追加</div>';
   
   area.innerHTML = h;
 }
