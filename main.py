@@ -19009,6 +19009,238 @@ def _match_condition(finding, condition):
     return True
 
 
+# ═══════════ 跨域因果叙事引擎 ═══════════
+# 从孤立的"相关关系"升级为"因果关系"——
+# 多条独立信号叠加，自动推理出背后的涉税故事
+CAUSAL_CHAIN_RULES = [
+    {
+        "id": "CAUSAL_001",
+        "name": "隐匿收入的资金回流路径",
+        "narrative": (
+            "客户付款→法人/股东私户→再转入公户→未开发票→未申报纳税"
+        ),
+        "required": ["收款偏差", "个人付款", "法人或股东"],
+        "optional": ["大额整数", "季度末集中", "客户集中"],
+        "explanation": (
+            "银行流水收款金额大于开票金额（存在收款偏差），"
+            "且收款方中个人账户占比异常，"
+            "涉及法定代表人或股东账户——"
+            "这三条信号叠加构成了典型的'私户收款→隐匿收入'的资金回流路径。"
+            "企业将部分销售收入直接收入法人/股东私户，"
+            "不开发票、不申报纳税，形成体外循环资金。"
+        ),
+        "evidence_chain": (
+            "①银行流水vs开票金额比对→确认收款偏差金额；"
+            "②个人付款方身份核实→锁定涉及的具体个人账户；"
+            "③资金流向追踪→确认收款后资金去向（是否转回公户/用于经营支出）。"
+        ),
+        "confidence_rule": "命中2个必要信号=70%置信；3个=85%；+辅助信号每项+5%",
+        "level": "极高风险",
+        "priority": "P0",
+    },
+    {
+        "id": "CAUSAL_002",
+        "name": "虚开发票的资金闭环回路",
+        "narrative": (
+            "支付货款→供应商开发票→资金回流至法人/关联方→货物未实际交付→进项税额虚抵"
+        ),
+        "required": ["付款未匹配", "供应商集中", "虚开"],
+        "optional": ["供应商客户重叠", "连号发票", "季度末集中"],
+        "explanation": (
+            "进项发票对应的付款未在银行流水中找到匹配（付款未匹配），"
+            "同时供应商高度集中且存在虚开发票信号——"
+            "这三条信号叠加意味着：企业可能向少数供应商支付款项取得发票，"
+            "但资金在当日或短期内通过关联方/法人账户回流，"
+            "形成'假付款、假发票、真回流'的资金闭环，货物并未实际交付。"
+        ),
+        "evidence_chain": (
+            "①进项发票与银行付款逐笔比对→锁定未匹配的发票和金额；"
+            "②供应商背景穿透→核查供应商是否真实经营、是否存在走逃/注销；"
+            "③资金流向追踪→检查付款后是否有等额资金从供应商/关联方回流；"
+            "④物流单据核查→确认货物是否实际入库（入库单/物流单/验收记录）。"
+        ),
+        "confidence_rule": "命中2个必要信号=65%置信；3个=80%；+辅助信号每项+5%",
+        "level": "极高风险",
+        "priority": "P0",
+    },
+    {
+        "id": "CAUSAL_003",
+        "name": "成本虚列的科目腾挪路径",
+        "narrative": (
+            "个人消费→以公司费用名义入账→虚减利润→逃企业所得税+个税"
+        ),
+        "required": ["费用密集", "个人付款"],
+        "optional": ["毛利异常", "加工费", "工资偏低"],
+        "explanation": (
+            "费用报销类发票密集（咨询/服务/差旅等）+个人付款方占比异常——"
+            "意味着企业可能将股东/高管的个人消费以公司费用名义入账，"
+            "虚减应纳税所得额，同时规避了个人所得税。"
+            "这是'公私不分'型成本虚列的典型路径。"
+        ),
+        "evidence_chain": (
+            "①费用类发票逐笔审查→核实是否与公司经营相关；"
+            "②个人付款方身份比对→判断是否为公司人员/关联方；"
+            "③费用与收入配比分析→判断费用率是否偏离行业合理区间。"
+        ),
+        "confidence_rule": "命中2个必要信号=60%置信；3个=75%；+辅助信号每项+5%",
+        "level": "高风险",
+        "priority": "P1",
+    },
+    {
+        "id": "CAUSAL_004",
+        "name": "加工费掩盖的虚开发票路径",
+        "narrative": (
+            "支付加工费→取得发票→虚构加工环节→品名差异被'合理解释'→虚抵进项"
+        ),
+        "required": ["加工费", "BOM缺失", "有进无销或有销无进"],
+        "optional": ["供应商集中", "付款未匹配"],
+        "explanation": (
+            "存在加工费发票但BOM表缺失，同时触发了'有进无销'或'有销无进'——"
+            "在没有BOM表验证的情况下，加工费可能只是品名差异的'挡箭牌'："
+            "企业声称进项（原材料）经过加工变成销项（成品），"
+            "因此进销品名不同是正常的。但如果没有BOM表证明加工链条真实存在，"
+            "这就是经典的'以加工费掩盖虚开发票'路径。"
+        ),
+        "evidence_chain": (
+            "①取得BOM表→验证投入产出比例（原材料→成品单耗）；"
+            "②加工合同核实→确认加工方真实存在、加工业务真实发生；"
+            "③加工费vs成品数量勾稽→按BOM单耗反算理论产量vs实际销量。"
+        ),
+        "confidence_rule": "命中3个必要信号=80%置信；+辅助信号每项+5%",
+        "level": "高风险",
+        "priority": "P0",
+    },
+    {
+        "id": "CAUSAL_005",
+        "name": "关联交易的利润转移路径",
+        "narrative": (
+            "高价向关联方采购→虚增成本→利润转移至低税负关联方→整体税负降低"
+        ),
+        "required": ["供应商客户重叠", "供应商集中或客户集中"],
+        "optional": ["毛利异常", "定价异常", "付款未匹配"],
+        "explanation": (
+            "供应商与客户存在重叠（同一企业既是供应商又是客户），"
+            "且供应商或客户高度集中——"
+            "这是关联交易的典型信号。企业可能通过关联方之间的定价操纵，"
+            "将利润从高税负主体转移至低税负主体（甚至免税/亏损主体），"
+            "实现整体税负最小化。"
+        ),
+        "evidence_chain": (
+            "①关联关系穿透→核查重叠的供应商/客户是否与企业在股权/人员上关联；"
+            "②定价公允性测试→比对关联交易价格与市场独立交易价格；"
+            "③利润水平比较→比对关联方之间的利润率和行业平均利润率。"
+        ),
+        "confidence_rule": "命中2个必要信号=70%置信；3个=85%；+辅助信号每项+5%",
+        "level": "高风险",
+        "priority": "P0",
+    },
+]
+
+
+def _build_causal_narratives(all_findings):
+    """
+    跨域因果叙事引擎：
+    从孤立的发现中检测因果链模式，构建结构化的涉税故事
+    
+    每个因果链需要：
+    - 至少2个必要信号命中（在不同发现上）
+    - 可选辅助信号可提升置信度
+    - 生成包含因果链、证据链、置信度评分的结构化叙事
+    """
+    narratives = []
+    
+    # 构建信号索引：从all_findings中提取可搜索的信号文本
+    signal_pool = []
+    for f in all_findings:
+        text = (
+            str(f.get("type", "")) + " " +
+            str(f.get("detail", ""))[:300] + " " +
+            str(f.get("description", ""))[:300] + " " +
+            str(f.get("category", "")) + " " +
+            str(f.get("domain", ""))
+        )
+        signal_pool.append({"finding": f, "text": text, "level": f.get("level", "")})
+    
+    for rule in CAUSAL_CHAIN_RULES:
+        required = rule.get("required", [])
+        optional = rule.get("optional", [])
+        
+        # 检查必要信号：每个必要信号至少被一条finding命中
+        req_matches = {}
+        for req_signal in required:
+            for sf in signal_pool:
+                if req_signal in sf["text"]:
+                    if req_signal not in req_matches:
+                        req_matches[req_signal] = []
+                    if sf["finding"] not in req_matches[req_signal]:
+                        req_matches[req_signal].append(sf["finding"])
+        
+        # 至少2个必要信号被命中
+        req_hit_count = len(req_matches)
+        if req_hit_count < 2:
+            continue
+        
+        # 检查辅助信号
+        opt_hit = []
+        for opt_signal in optional:
+            for sf in signal_pool:
+                if opt_signal in sf["text"]:
+                    opt_hit.append(opt_signal)
+                    break
+        
+        # 计算置信度
+        base_conf = min(req_hit_count / len(required) * 80, 80)
+        bonus = len(opt_hit) * 5
+        confidence = min(base_conf + bonus, 95)
+        
+        # 提取证据发现
+        evidence_findings = []
+        for findings_list in req_matches.values():
+            for f in findings_list[:2]:
+                if f not in evidence_findings:
+                    evidence_findings.append(f)
+        
+        # 生成结构化因果叙事
+        hit_signals = list(req_matches.keys())
+        narrative_text = (
+            f"【因果链推理】{rule['narrative']}\n\n"
+            f"触发信号({req_hit_count}个必要+{len(opt_hit)}个辅助): "
+            f"{'、'.join(hit_signals)}"
+            + (f" + {'、'.join(opt_hit)}" if opt_hit else "")
+            + f"\n\n{rule['explanation']}\n\n"
+            f"【证据链核查路径】\n{rule['evidence_chain']}\n\n"
+            f"置信度: {confidence:.0f}% ({rule['confidence_rule']})"
+        )
+        
+        narratives.append({
+            "type": f"因果叙事-{rule['name']}",
+            "level": rule["level"],
+            "score": min(8 + req_hit_count, 10),
+            "detail": narrative_text,
+            "description": narrative_text,
+            "how_found": (
+                f"跨域因果叙事引擎检测到{req_hit_count}个必要信号在{len(evidence_findings)}条独立发现中叠加"
+                f"→触发'{rule['name']}'因果推理链"
+            ),
+            "tax_impact": rule["explanation"][:200],
+            "policy_ref": "《税收征收管理法》关于偷税/骗税/虚开发票的规定",
+            "suggestion": rule["evidence_chain"],
+            "category": "综合定性·因果叙事",
+            "_priority": rule["priority"],
+            "_causal_id": rule["id"],
+            "_confidence": confidence,
+            "_causal_narrative": True,
+            "_auto_triggered": True,
+            "_evidence_findings": [
+                {"type": f.get("type", ""), "level": f.get("level", ""), 
+                 "summary": str(f.get("detail", "") or f.get("description", ""))[:150]}
+                for f in evidence_findings[:5]
+            ],
+        })
+    
+    return narratives
+
+
 def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     Phase 4 — 综合定性引擎
@@ -19032,6 +19264,12 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     if contradiction_findings:
         all_items.extend(contradiction_findings)
         pipeline_log.append(f"[Phase4] 结论自洽性检查: {len(contradiction_findings)}个矛盾 → {', '.join(cf['_contradiction_id'] for cf in contradiction_findings)}")
+    
+    # ═══ 跨域因果叙事引擎：多信号叠加→因果推理 ═══
+    causal_narratives = _build_causal_narratives(all_items)
+    if causal_narratives:
+        all_items.extend(causal_narratives)
+        pipeline_log.append(f"[Phase4] 因果叙事引擎: {len(causal_narratives)}条因果链 → {', '.join(cn['_causal_id'] for cn in causal_narratives)}")
     
     if not all_items:
         return {
@@ -19255,6 +19493,14 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for cs in contradiction_signals[:5]:
             name = cs['type'].replace('结论自洽-', '')
             lines.append(f"    ⚠ {name}")
+    
+    # ═══ 因果叙事链：多信号叠加→涉税故事 ═══
+    causal_signals = [i for i in core_issues if i.get("type", "").startswith("因果叙事-")]
+    if causal_signals:
+        lines.append(f"  ▸ 跨域因果链：{len(causal_signals)}条涉税故事被推理还原——")
+        for cs in causal_signals[:5]:
+            name = cs['type'].replace('因果叙事-', '')
+            lines.append(f"    → {name}")
     
     # 高风险项 TOP3
     if core_issues:
