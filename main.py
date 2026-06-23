@@ -17283,7 +17283,8 @@ class AuditContext:
         self.supplier_concentration = 0  # 供应商集中度(%)
         self.customer_concentration = 0  # 客户集中度(%)
         self.data_quality_score = 0     # 资料质量评分(0-100)
-        self.missing_critical_docs = [] # 缺失的关键资料
+        self.missing_critical_docs = [] # 缺失的关键资料（银行/发票/工资）
+        self.missing_doc_keys = []      # 缺失的14类资料key列表（供Phase 4缺失后果触发用）
         
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}
@@ -18551,6 +18552,177 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
 #   而是一个人能读的、有逻辑的、可操作的综合判断。
 # ═══════════════════════════════════════════════════════════
 
+# ═══════════ 缺失后果→综合定性 自动触发映射 ═══════════
+# 叙事增强层：任一资料缺失≥1 → 自动触发对应风险结论到Phase 4综合定性
+MISSING_CONSEQUENCE_TRIGGER = {
+    "bank": {
+        "risk": "银行流水缺失→资金链路断裂→核定征收风险",
+        "level": "极高风险", "priority": "P0",
+        "consequence": "缺失银行流水→稽查无法验证收入完整性+无法检测资金回流→税务机关从金税系统/第三方数据（电力/海关/上下游企业）倒推核定收入→核定结果远超企业实际→补税+0.5-5倍罚款+滞纳金",
+        "law": "《税收征收管理法》第三十五条（核定征收）、第五十四条；《税务稽查工作规程》第二十二条（检查取证）",
+        "action": "整理全部对公账户银行流水（含已注销账户），覆盖稽查所属期全部月份；法人、主要股东、财务负责人个人账户中与经营相关的流水也应整理备查"
+    },
+    "sales_invoice": {
+        "risk": "销项发票缺失→无法验证申报收入→隐匿收入推定风险",
+        "level": "高风险", "priority": "P0",
+        "consequence": "缺失销项发票→稽查直接从金税系统调取开票数据+银行流水→银行收款>开票金额→推定为隐匿未开票收入→补缴增值税+企业所得税+0.5-5倍罚款+滞纳金",
+        "law": "《增值税暂行条例》；《税收征收管理法》第六十三条（偷税处罚）",
+        "action": "从金税系统导出完整销项发票清单（含正数发票+负数发票/红冲）；按月度与银行收款记录、增值税申报表做三方勾稽"
+    },
+    "purchase_invoice": {
+        "risk": "进项发票缺失→成本真实性无法验证→虚抵虚列风险",
+        "level": "高风险", "priority": "P0",
+        "consequence": "缺失进项发票→稽查逐一核验全部进项税额抵扣凭证→异常发票（走逃/失控/虚开/品名不符）做进项税额转出→补缴增值税+滞纳金；对应成本不得税前扣除→补缴企业所得税",
+        "law": "《增值税暂行条例》；国家税务总局公告2019年第38号（异常增值税扣税凭证）；《企业所得税法》第八条（真实性原则）",
+        "action": "从金税系统导出完整进项发票清单；逐张核实三流一致性（合同→发票→付款），不一致的主动做进项转出"
+    },
+    "voucher": {
+        "risk": "记账凭证缺失→会计账簿视为不健全→核定征收",
+        "level": "高风险", "priority": "P0",
+        "consequence": "缺失凭证→稽查无法追溯分录准确性/科目运用/原始凭证匹配→会计账簿视为不健全→依据《税收征收管理法》第三十五条核定征收（税务机关有权按核定利润率/核定应纳税额的方式确定应纳税额，结果通常远超企业实际税负）",
+        "law": "《税收征收管理法》第三十五条、第五十四条、第五十六条；《税务稽查工作规程》",
+        "action": "确保完整的记账凭证（序时账）随时可调取；每张凭证必须包含：日期、凭证号、摘要、会计科目、借贷金额、附件张数；凭证所附原始凭证（发票/合同/银行回单/入库单等）齐全且一一对应"
+    },
+    "salary": {
+        "risk": "工资表缺失→工资费用不得扣除+个税代扣风险",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失工资表→无法核实人员真实性（虚列人头/虚增工资）→工资费用不得税前扣除+补缴企业所得税；无法核实个税代扣代缴→补缴个税+滞纳金",
+        "law": "《企业所得税法实施条例》第三十四条；《个人所得税法》第九条",
+        "action": "补充完整的工资表（含姓名、身份证号、应发工资、实发工资、个税代扣金额）；与个税申报记录逐月比对一致"
+    },
+    "social_security": {
+        "risk": "社保明细缺失→用工合规性无法验证→人社税务数据联动风险",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失社保明细→无法验证社保缴费基数与工资表的一致性→金税四期人社税务数据联动后会直接推送到稽查局，形成独立案件",
+        "law": "《社会保险法》；金税四期人社税务数据联动机制",
+        "action": "整理社保缴费明细（含参保人员名单、缴费基数、单位+个人缴纳金额）；与工资表人数逐人比对一致"
+    },
+    "inventory": {
+        "risk": "进销存台账缺失→存货真实性无法验证→账外经营/虚增成本风险",
+        "level": "高风险", "priority": "P0",
+        "consequence": "缺失进销存台账→无法核实期末存货是否账实相符→存货账实不符→认定为账外经营/虚增成本→补税+核定征收",
+        "law": "《税收征收管理法》第三十五条；《企业会计准则——存货》",
+        "action": "建立完整的进销存台账（含品名、规格、数量、单价、金额、出入库日期）；按期末存货盘点结果调整账面数量，确保账实相符"
+    },
+    "contract": {
+        "risk": "合同缺失→交易真实性存疑→虚开发票风险",
+        "level": "高风险", "priority": "P0",
+        "consequence": "缺失合同→四流合一断裂→大额交易无合同支撑→稽查可逐笔质疑交易真实性→虚开发票嫌疑→补税+罚款+滞纳金；印花税计税依据缺失",
+        "law": "《税收征收管理法》第五十四条；《印花税法》",
+        "action": "为主要供应商/客户补签购销合同；按合同金额补缴印花税"
+    },
+    "trial_balance": {
+        "risk": "科目余额表缺失→账账不符→会计信息失真→核定征收",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失科目余额表→无法交叉验证账户余额的准确性→账账不符→会计信息失真→依据《会计法》第四十二条处罚+可能触发核定征收",
+        "law": "《会计法》第四十二条；《企业会计准则》",
+        "action": "导出完整的科目余额表（含科目代码、名称、期初余额、本期借方、本期贷方、期末余额）；与序时账的科目汇总数逐科目核对一致"
+    },
+    "financial": {
+        "risk": "财务报表缺失→三源比对失效→隐匿收入/虚列成本无法发现",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失资产负债表+利润表→无法比对报表收入与申报收入/开票收入→三源比对失效→隐匿收入/虚列成本无法被系统发现但稽查可现场调取",
+        "law": "《税收征收管理法》第二十五条（纳税申报）；《企业会计准则第30号——财务报表列报》",
+        "action": "补充完整的资产负债表和利润表（按稽查所属期逐月/逐年）；确保财务报表收入与增值税申报表、企业所得税申报表的收入一致"
+    },
+    "vat": {
+        "risk": "增值税申报表缺失→销项进项无法核实→少报漏报风险",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失增值税申报表→无法确认企业是否足额申报增值税→未申报或少申报→补税+滞纳金+0.5-5倍罚款",
+        "law": "《增值税暂行条例》；《税收征收管理法》第六十三条",
+        "action": "补充稽查所属期全部增值税申报表（含主表+附表）；逐月与销项发票汇总数、进项发票汇总数比对一致"
+    },
+    "cit": {
+        "risk": "企业所得税申报表缺失→所得税汇算无法核实→少缴风险",
+        "level": "中风险", "priority": "P1",
+        "consequence": "缺失企业所得税申报表→无法核实所得税汇算清缴的准确性→少缴企业所得税→补税+滞纳金+罚款",
+        "law": "《企业所得税法》第五十四条（汇算清缴）；《税收征收管理法》第六十三条",
+        "action": "补充稽查所属期全部企业所得税申报表（含主表+附表）；确保收入、成本、费用与财务报表一致"
+    },
+    "ind_tax": {
+        "risk": "个人所得税申报表缺失→代扣代缴无法核实→个税漏缴风险",
+        "level": "中风险", "priority": "P2",
+        "consequence": "缺失个人所得税申报表→无法核实代扣代缴义务是否履行→未代扣代缴→补税+滞纳金+0.5-3倍罚款",
+        "law": "《个人所得税法》第九条；《税收征收管理法》第六十九条",
+        "action": "补充稽查所属期全部个人所得税申报表；与工资表的个税代扣金额逐人逐月比对一致"
+    },
+    "other_tax": {
+        "risk": "小税种申报缺失→多税种叠加风险",
+        "level": "低风险", "priority": "P2",
+        "consequence": "缺失小税种申报→稽查逐项核验→漏缴部分→补缴税款+每日万分之五滞纳金+0.5-5倍罚款→多项累积+滞纳金滚存后数字可观",
+        "law": "《印花税法》；《城市维护建设税法》；《房产税暂行条例》；《城镇土地使用税暂行条例》",
+        "action": "整理所有税种的申报记录和完税凭证；按各税种计税依据逐项自查是否存在漏缴"
+    }
+}
+
+# 资料名称→key 反向映射（从14类ALL_CATEGORIES中提取）
+_CATEGORY_NAME_TO_KEY = {
+    "银行流水": "bank",
+    "销项发票": "sales_invoice",
+    "进项发票": "purchase_invoice",
+    "记账凭证": "voucher",
+    "工资表": "salary",
+    "社保明细": "social_security",
+    "进销存台账": "inventory",
+    "合同文件": "contract",
+    "科目余额表": "trial_balance",
+    "资产负债表+利润表": "financial",
+    "增值税申报表": "vat",
+    "企业所得税申报表": "cit",
+    "个人所得税申报表": "ind_tax",
+    "其他税种申报表": "other_tax",
+}
+
+
+def _trigger_missing_consequences(all_items, missing_doc_keys=None):
+    """
+    叙事增强层：缺失资料自动触发综合定性风险结论
+    
+    规则：任一资料缺失≥1 → 自动触发对应风险结论到综合定性
+    从现有findings中提取缺失资料列表，生成对应的触发结论
+    """
+    if not missing_doc_keys:
+        # 从findings中提取缺失资料key
+        missing_doc_keys = set()
+        for item in all_items:
+            if item.get("category") == "域14 资料完备度" and item.get("type") != "资料完备度综合评估":
+                ftype = item.get("type", "")
+                for name, key in _CATEGORY_NAME_TO_KEY.items():
+                    if name in ftype:
+                        missing_doc_keys.add(key)
+                        break
+    
+    # 转set统一处理
+    missing_doc_keys = set(missing_doc_keys) if not isinstance(missing_doc_keys, set) else missing_doc_keys
+    
+    if not missing_doc_keys:
+        return []
+    
+    triggered = []
+    for key in sorted(missing_doc_keys):
+        t = MISSING_CONSEQUENCE_TRIGGER.get(key)
+        if not t:
+            continue
+        score_map = {"极高风险": 10, "高风险": 8, "中风险": 6, "低风险": 3}
+        triggered.append({
+            "type": f"资料缺失触发-{t['risk']}",
+            "level": t["level"],
+            "score": score_map.get(t["level"], 5),
+            "detail": f"【缺失触发】因未提交对应资料，系统依据稽查实战经验自动触发风险结论：{t['consequence']}",
+            "description": f"因关键资料缺失，系统自动触发该风险结论——这是稽查实战中的标准逻辑推导。{t['consequence']}",
+            "how_found": f"系统检测到关键资料缺失，自动触发'{t['risk']}'风险结论（叙事增强层·缺失后果自动触发）",
+            "tax_impact": t["consequence"],
+            "policy_ref": t["law"],
+            "suggestion": t["action"],
+            "category": "综合定性·缺失触发",
+            "_priority": t["priority"],
+            "_auto_triggered": True,
+            "_missing_key": key,
+        })
+    
+    return triggered
+
+
 def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     Phase 4 — 综合定性引擎
@@ -18561,6 +18733,13 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     """
     # 合并所有发现
     all_items = list(all_findings) + list(cross_findings)
+    
+    # ═══ 叙事增强层：缺失后果→综合定性自动触发 ═══
+    # 任一资料缺失≥1 → 自动触发对应风险结论
+    missing_triggered = _trigger_missing_consequences(all_items, missing_doc_keys=ctx.missing_doc_keys)
+    if missing_triggered:
+        all_items.extend(missing_triggered)
+        pipeline_log.append(f"[Phase4] 缺失后果自动触发: {len(missing_triggered)}项 → {', '.join(mt['_missing_key'] for mt in missing_triggered)}")
     
     if not all_items:
         return {
@@ -18601,21 +18780,44 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
     
     # ── 2. 核心问题提取 ──
     # 按严重程度排序，提取关键问题
+    # 缺失后果触发结论优先展示（叙事增强层：>=1缺失必须触发）
+    auto_items = [f for f in all_items if f.get("_auto_triggered")]
+    other_items = [f for f in all_items if not f.get("_auto_triggered")]
+    
     high_items = sorted(
-        [f for f in all_items if f.get("level") in ("极高风险", "高风险")],
+        [f for f in other_items if f.get("level") in ("极高风险", "高风险")],
         key=lambda f: -f.get("score", 0)
     )
     mid_items = sorted(
-        [f for f in all_items if f.get("level") == "中风险"],
+        [f for f in other_items if f.get("level") == "中风险"],
         key=lambda f: -f.get("score", 0)
     )
     
     # 去重：相似的问题合并
     core_issues = []
     seen_types = set()
+    
+    # 第一轮：auto_triggered 缺失后果优先
+    for f in auto_items:
+        ftype = f.get("type", "")
+        key = ftype[:15]
+        if key in seen_types:
+            continue
+        seen_types.add(key)
+        core_issues.append({
+            "type": ftype,
+            "level": f.get("level", ""),
+            "score": f.get("score", 0),
+            "domain": f.get("domain", f.get("category", "")),
+            "summary": (f.get("detail", "") or f.get("description", ""))[:200],
+            "is_cross_validated": f.get("_phase3_cross_validated", False),
+            "_auto_triggered": True,
+        })
+    
+    # 第二轮：其他发现
     for f in high_items + mid_items:
         ftype = f.get("type", "")
-        # 去重：取前20字符作key
+        # 去重：取前15字符作key
         key = ftype[:15]
         if key in seen_types:
             continue
@@ -18625,9 +18827,10 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
             "type": ftype,
             "level": f.get("level", ""),
             "score": f.get("score", 0),
-            "domain": f.get("domain", ""),
+            "domain": f.get("domain", f.get("category", "")),
             "summary": (f.get("detail", "") or f.get("description", ""))[:200],
             "is_cross_validated": f.get("_phase3_cross_validated", False),
+            "_auto_triggered": False,
         })
         if len(core_issues) >= 8:
             break
@@ -18695,7 +18898,9 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
             f"资料质量评分: {ctx.data_quality_score}/100。"
             + (f" 缺失关键资料: {'、'.join(ctx.missing_critical_docs)}。" if ctx.missing_critical_docs else "")
             + (" 资料不足导致部分结论置信度下降。" if ctx.data_quality_score < 70 else "")
-        )
+        ),
+        "missing_doc_keys": ctx.missing_doc_keys,
+        "missing_triggered_count": len(missing_triggered),
     }
 
 
@@ -18742,6 +18947,14 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         lines.append(f"  ▸ 关联交易风险：{len(structure_signals)}项信号")
     if invoice_signals:
         lines.append(f"  ▸ 发票异常风险：{len(invoice_signals)}项信号")
+    
+    # ═══ 资料缺失触发风险（叙事增强层）═══
+    missing_risk_signals = [i for i in core_issues if i.get("_auto_triggered")]
+    if missing_risk_signals:
+        lines.append(f"  ▸ 资料缺失触发风险：{len(missing_risk_signals)}类关键资料缺失，已自动触发以下风险结论——")
+        for mr in missing_risk_signals[:5]:
+            risk_name = mr['type'].replace('资料缺失触发-', '')
+            lines.append(f"    → {risk_name}")
     
     # 高风险项 TOP3
     if core_issues:
@@ -19598,6 +19811,14 @@ def _run_analyze(company_id, db):
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results)
+    # ── 记录缺失资料key到ctx，供Phase 4缺失后果自动触发使用 ──
+    for f in doc_cplt_findings:
+        if f.get("type") == "资料完备度综合评估" and f.get("items"):
+            for item in f["items"]:
+                missing_name = item.get("缺失资料", "")
+                key = _CATEGORY_NAME_TO_KEY.get(missing_name, "")
+                if key and key not in ctx.missing_doc_keys:
+                    ctx.missing_doc_keys.append(key)
     domain_results.append({"domain": "资料完备度评估", "findings": doc_cplt_findings})
     # 域14.5: 账务系统缺失风险（有发票/流水但无凭证→无法验证账务真实性）
     _acct_risk = _check_accounting_system_gap(invoices, bank_txs, vouchers)
@@ -20558,7 +20779,36 @@ def _run_analyze(company_id, db):
         if label not in seen_labels and count > 0:
             data_present.append(f"{label}({count}份)")
             seen_labels.add(label)
-    comprehensive["data_overview"] = {"present": data_present, "missing": []}
+    # ── 资料缺失信息（从ctx中读取Phase 1的分析结果）──
+    missing_doc_names = []
+    _all_cat_names = {"bank": "银行流水", "sales_invoice": "销项发票", "purchase_invoice": "进项发票",
+                      "voucher": "记账凭证", "salary": "工资表", "social_security": "社保明细",
+                      "inventory": "进销存台账", "contract": "合同文件", "trial_balance": "科目余额表",
+                      "financial": "资产负债表+利润表", "vat": "增值税申报表", "cit": "企业所得税申报表",
+                      "ind_tax": "个人所得税申报表", "other_tax": "其他税种申报表"}
+    for key in ctx.missing_doc_keys:
+        missing_doc_names.append(_all_cat_names.get(key, key))
+    comprehensive["data_overview"] = {"present": data_present, "missing": missing_doc_names}
+    
+    # ── 缺失后果→综合定性自动触发（叙事增强层）──
+    # 任一资料缺失≥1 → 自动触发对应风险结论
+    missing_trigger_list = []
+    for key in ctx.missing_doc_keys:
+        t = MISSING_CONSEQUENCE_TRIGGER.get(key)
+        if t:
+            missing_trigger_list.append({
+                "missing_doc": _all_cat_names.get(key, key),
+                "missing_key": key,
+                "risk": t["risk"],
+                "level": t["level"],
+                "priority": t["priority"],
+                "consequence": t["consequence"],
+                "law_ref": t["law"],
+                "action": t["action"],
+            })
+    comprehensive["missing_consequence_triggers"] = missing_trigger_list
+    if missing_trigger_list:
+        pipeline_log.append(f"[叙事增强层] 缺失后果自动触发: {len(missing_trigger_list)}项 → {', '.join(mt['missing_doc'] for mt in missing_trigger_list)}")
 
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
@@ -21097,6 +21347,7 @@ def _run_analyze(company_id, db):
             "customer_concentration": ctx.customer_concentration,
             "data_quality_score": ctx.data_quality_score,
             "missing_critical_docs": ctx.missing_critical_docs,
+            "missing_doc_keys": ctx.missing_doc_keys,
             "phase2_domains_deep_dived": _domains,
             "phase2_depth_levels": _depths,
             "phase3_pattern_hits": [
