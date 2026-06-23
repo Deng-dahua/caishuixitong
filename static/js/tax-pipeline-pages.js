@@ -684,7 +684,7 @@ function loadCrossDomainStatic() {
 function renderCrossDomainStaticContent(chains) {
   var target = document.getElementById('cde-static');
   if (!target) return;
-  var highCount = chains.filter(function(c) { return c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'); }).length;
+  var highCount = chains.filter(function(c) { return (c.level === '极高风险' || f.level === '高风险'); }).length;
   var totalDim = chains.reduce(function(s, c) { return s + c.dimensions.length; }, 0);
   var totalMinEvidence = chains.reduce(function(s, c) { return s + c.min_evidence; }, 0);
 
@@ -715,8 +715,8 @@ function renderCrossDomainStaticContent(chains) {
   html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、证据链定义</h3>';
 
   chains.forEach(function(c, ci) {
-    var levelColor = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
-    var levelBg = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
+    var levelColor = (c.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
+    var levelBg = (c.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
 
     html += '<div id="cde-chain-' + ci + '" style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
 
@@ -1069,7 +1069,7 @@ function renderChainsList(chains) {
         html += '<div style="margin-bottom:12px">';
         stepList.forEach(function(s, si) {
           var stepNum = s.step || (si + 1);
-          var isHigh = !!(s.level && s.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'));
+          var isHigh = !!(s.level && (s.level === '极高风险' || f.level === '高风险'));
 
           html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
             + '<div style="display:flex;align-items:center;gap:8px">'
@@ -1282,7 +1282,7 @@ function renderEvidenceList(chains) {
           html += '<div style="margin-bottom:12px">';
           (c.steps || []).forEach(function(s, si) {
             var stepNum = s.step || (si + 1);
-            var isHigh = !!(s.level && s.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'));
+            var isHigh = !!(s.level && (s.level === '极高风险' || f.level === '高风险'));
             html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
               + '<div style="display:flex;align-items:center;gap:8px">'
               + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
@@ -1816,7 +1816,7 @@ function loadCrossDomainClues() {
         + '</div>';
 
       // 统计
-      var highCount = clues.filter(function(c) { return c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'); }).length;
+      var highCount = clues.filter(function(c) { return (c.level === '极高风险' || f.level === '高风险'); }).length;
       var totalSteps = clues.reduce(function(s,c){return s+(c.investigation_path||[]).length;},0);
       html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
         + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + clues.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
@@ -1828,8 +1828,8 @@ function loadCrossDomainClues() {
       html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、跨域线索链定义</h3>';
 
       clues.forEach(function(c) {
-        var levelColor = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
-        var levelBg = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
+        var levelColor = (c.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
+        var levelBg = (c.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
 
         html += '<div style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
@@ -1931,8 +1931,8 @@ function loadCrossDomainAnalysis() {
       html += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、跨域分析链定义</h3>';
 
       chains.forEach(function(c) {
-        var levelColor = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
-        var levelBg = c.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
+        var levelColor = (c.level === '极高风险' || f.level === '高风险') ? '#dc2626' : '#f59e0b';
+        var levelBg = (c.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : '#fffbeb';
 
         html += '<div style="padding:20px 24px;margin-bottom:12px;background:' + levelBg + ';border-left:3px solid ' + levelColor + ';border-radius:0 8px 8px 0">'
           // 标题

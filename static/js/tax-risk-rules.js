@@ -90,7 +90,7 @@ function renderTaxRiskRulesList() {
   var html = '';
 
   // 统计概览
-  var high = data.filter(function(r) { return r.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险'); }).length;
+  var high = data.filter(function(r) { return (r.level === '极高风险' || f.level === '高风险'); }).length;
   var mid = data.filter(function(r) { return r.level === '中风险'; }).length;
   var low = data.filter(function(r) { return r.level === '低风险' || r.level === '良好'; }).length;
 
@@ -119,7 +119,7 @@ function renderTaxRiskRulesList() {
     catRules.forEach(function(rule) {
       var color = RISK_LEVEL_COLORS[rule.level] || '#64748b';
       var icon = RISK_LEVEL_ICONS[rule.level] || '⚪';
-      var levelBg = rule.level === '极高风险' || (f.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : (rule.level === '中风险' ? '#fffbeb' : '#f0fdf4');
+      var levelBg = (rule.level === '极高风险' || f.level === '高风险') ? '#fef2f2' : (rule.level === '中风险' ? '#fffbeb' : '#f0fdf4');
 
       html += '<div data-rule-id="' + (rule.id || '') + '" style="padding:16px 20px;margin-bottom:8px;background:' + levelBg + ';border-left:3px solid ' + color + ';border-radius:0 8px 8px 0">'
         // 标题行
