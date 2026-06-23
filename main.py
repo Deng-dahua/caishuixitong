@@ -17737,6 +17737,552 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
     return deep_dive_results
 
 
+# ═══════════════════════════════════════════════════════════
+# Phase 3 — 交叉验证（Cross-Validation）
+#
+# 核心能力：
+#   1. 信号叠加检测 — 多个独立结论组合意味着更大的风险模式
+#   2. 冲突消解 — 两个表面矛盾的结论互相验证
+#   3. 风险提级/降级 — 基于交叉证据自动调整评级
+#   4. 综合结论生成 — 从孤立发现中提炼出模式
+#
+# 设计理念：
+#   人类稽查员不会只看单条结论，而是看"模式"。
+#   比如"购销倒挂+加工费+BOM缺失"三个结论分别看都是中风险，
+#   但三者同时出现→加工链条造假=极高风险。
+#   这就是"1+1+1>3"的交叉验证价值。
+# ═══════════════════════════════════════════════════════════
+
+# ├─ 信号叠加模式库
+# │  每个模式定义：触发信号组合→综合结论+风险调整+行动建议
+_SIGNAL_PATTERNS = [
+    {
+        "id": "PATTERN_FRAUD_CHAIN",
+        "name": "加工链条造假高嫌疑",
+        "triggers": {
+            "must_have": ["购销严重倒挂", "存在加工费"],
+            "any_of": ["有进无销", "有销无进", "缺少BOM"],
+            "at_least": 1  # any_of中至少命中1个
+        },
+        "conclusion": (
+            "多域交叉验证发现：购销倒挂（进项远超销项）+ 加工费存在"
+            " + 进销品名不匹配或BOM缺失。三个信号叠加指向同一方向——"
+            "加工链条的真实性存疑。进项发票可能是为获取进项抵扣而虚开，"
+            "加工费可能是虚构的外包加工，BOM缺失则无法验证投入产出逻辑。"
+        ),
+        "risk_override": "极高风险",
+        "priority": "P0",
+        "actions": [
+            "立即调取全部加工合同、出入库单、物流单据",
+            "要求企业提供每种成品的BOM表（原材料→产成品的投入产出比+损耗率）",
+            "逐供应商核实加工费发票的真实性（电话+实地核查）",
+            "如无法提供→按虚开增值税专用发票立案"
+        ]
+    },
+    {
+        "id": "PATTERN_REVENUE_HIDING",
+        "name": "隐匿销售收入高嫌疑",
+        "triggers": {
+            "must_have": ["购销严重倒挂"],
+            "any_of": ["有进无销", "进销数量严重偏差", "个人交易占比过高"],
+            "at_least": 1
+        },
+        "conclusion": (
+            "购销严重倒挂 + 进销不匹配/数量偏差/个人收款，形成'隐匿销售收入'的完整证据链："
+            "采购了货物（有进项）→没有开票销售（无销项/数量偏差）→但资金仍然流入（个人收款）。"
+            "进项采购的货物去向不明，大概率未开票销售体外循环。"
+        ),
+        "risk_override": "极高风险",
+        "priority": "P0",
+        "actions": [
+            "核对全部银行个人收款方的身份（是否为员工/关联方/疑似客户）",
+            "要求企业提供进项货物的完整去向说明（已售/库存/损耗）",
+            "逐项比对进项数量与销项数量+库存变动，找出差额",
+            "涉及偷税→移送稽查局"
+        ]
+    },
+    {
+        "id": "PATTERN_FAKE_INVOICE_NO_BANK",
+        "name": "进项发票真实性存疑（无资金流佐证）",
+        "triggers": {
+            "must_have": ["银行付款未匹配"],
+            "any_of": ["购销严重倒挂", "供应商高度集中", "缺少银行流水"],
+            "at_least": 1
+        },
+        "conclusion": (
+            "进项发票与银行付款不匹配 + 购销倒挂/供应商集中/缺少流水。"
+            "多域证据交叉指向同一结论：部分进项发票可能没有对应的真实资金流出，"
+            "存在'走票不走钱'的虚开发票嫌疑。供应商高度集中进一步增加了'对开环开'的可能。"
+        ),
+        "risk_override": "高风险",
+        "priority": "P0",
+        "actions": [
+            "逐笔核查未匹配供应商的工商信息（是否存在关联关系）",
+            "要求提供对账明细+分期付款计划+预付/应付账款明细账",
+            "实地核实前3大供应商是否存在+是否有真实办公场所",
+            "资金流断裂的发票→进项税额转出+补税"
+        ]
+    },
+    {
+        "id": "PATTERN_GHOST_WORKFORCE",
+        "name": "虚列人员/吃空饷嫌疑",
+        "triggers": {
+            "must_have": ["无工资记录"],
+            "any_of": ["有销无进", "购销严重倒挂"],
+            "at_least": 1
+        },
+        "conclusion": (
+            "无工资记录 + 存在进销异常（有销无进或购销倒挂）。"
+            "企业有大量经营收入但无工资支出，可能：(1)虚开发票+无真实经营（无人员需求）；"
+            "(2)隐匿人员工资（现金发放未入账）。两种情况都指向经营实质存疑。"
+        ),
+        "risk_override": "高风险",
+        "priority": "P1",
+        "actions": [
+            "现场核查经营场所是否有实际生产经营活动",
+            "比对电费/水费/物业费与申报收入是否匹配",
+            "核查是否有现金工资发放记录或微信/支付宝转账记录"
+        ]
+    },
+    {
+        "id": "PATTERN_TRANSFER_PRICING",
+        "name": "关联交易定价不公允嫌疑",
+        "triggers": {
+            "must_have": ["毛利率异常高"],
+            "any_of": ["供应商高度集中", "关联交易"],
+            "at_least": 1
+        },
+        "conclusion": (
+            "毛利率异常高（>80%）+ 供应商/客户集中或关联交易信号。"
+            "这种情况通常不是真正的核心竞争力，而是通过关联交易将利润转移至低税率环节，"
+            "或将成本转移至其他主体。需要特别核查关联交易的定价是否公允。"
+        ),
+        "risk_override": "高风险",
+        "priority": "P1",
+        "actions": [
+            "获取全部关联方清单及关联交易明细",
+            "对关联交易做转让定价可比性分析（可比非受控价格法）",
+            "要求企业提供关联交易的商业目的说明和定价依据"
+        ]
+    },
+    {
+        "id": "PATTERN_LOW_QUALITY_DATA",
+        "name": "资料质量不足→结论置信度降低",
+        "triggers": {
+            "must_have": [],
+            "any_of": ["银行流水数据量少", "发票数据量少", "缺少银行流水"],
+            "at_least": 1
+        },
+        "conclusion": (
+            "资料质量评分偏低。银行流水或发票数据量不足，部分分析域无法运行或置信度下降。"
+            "当前报告中的结论应在资料补充后复核验证。建议要求企业补充完整资料后重新分析。"
+        ),
+        "risk_override": None,  # 不改变评级，只降低置信度
+        "priority": "P2",
+        "actions": [
+            "要求企业补充完整的银行流水（至少覆盖分析期前3个月至后1个月）",
+            "要求企业补充完整的进销项发票明细",
+            "补充后重新运行一键分析"
+        ]
+    },
+]
+
+
+def _phase3_cross_validate(ctx, all_findings, pipeline_log):
+    """
+    Phase 3 — 交叉验证引擎
+    
+    输入：all_findings（所有域的结论合并后）
+    产出：
+      - cross_findings: 新生成的综合交叉结论
+      - risk_adjustments: 对已有结论的评级修正
+    
+    流程：
+      1. 提取所有结论的类型、级别、域
+      2. 遍历信号叠加模式库，检测是否命中
+      3. 命中→生成综合结论+调整相关结论级别
+      4. 冲突检测：两个结论矛盾→生成冲突消解说明
+      5. 产出注入 ctx
+    """
+    cross_findings = []
+    risk_adjustments = []
+    
+    if not all_findings:
+        return cross_findings, risk_adjustments
+    
+    # 提取所有发现中的关键信号关键词
+    all_types = "|".join(f.get("type", "") for f in all_findings)
+    all_descs = "|".join(f.get("description", "") for f in all_findings)
+    all_text = all_types + "|" + all_descs
+    
+    # ── 辅助函数 ──
+    def _has_signal(signal_name):
+        """检查所有发现中是否存在某个信号"""
+        return signal_name in all_text
+    
+    # ── 遍历信号叠加模式库 ──
+    for pattern in _SIGNAL_PATTERNS:
+        must_all = all(_has_signal(s) for s in pattern["triggers"]["must_have"])
+        if not must_all:
+            continue
+        
+        any_hits = sum(1 for s in pattern["triggers"]["any_of"] if _has_signal(s))
+        if any_hits < pattern["triggers"]["at_least"]:
+            continue
+        
+        # ── 命中模式 → 生成综合结论 ──
+        # 收集触发该模式的具体发现
+        triggered_types = []
+        related_domains = set()
+        for f in all_findings:
+            ftype = f.get("type", "")
+            for signal in pattern["triggers"]["must_have"] + pattern["triggers"]["any_of"]:
+                if signal in ftype:
+                    triggered_types.append(ftype[:30])
+                    related_domains.add(f.get("domain", ""))
+                    break
+        
+        cross_findings.append({
+            "type": f"交叉验证-{pattern['name']}",
+            "level": pattern.get("risk_override", "高风险"),
+            "score": 10,
+            "domain": "Phase3-交叉验证",
+            "detail": f"多域信号叠加触发：{' + '.join(pattern['triggers']['must_have'])} + {any_hits}个关联信号",
+            "description": (
+                f"【Phase 3 — 交叉验证】\n\n"
+                f"触发模式：{pattern['name']}\n"
+                f"必须信号：{' / '.join(pattern['triggers']['must_have'])}\n"
+                f"关联信号（{any_hits}/{len(pattern['triggers']['any_of'])}）："
+                f"{' / '.join(s for s in pattern['triggers']['any_of'] if _has_signal(s))}\n"
+                f"涉及域：{' / '.join(sorted(related_domains))}\n\n"
+                f"{pattern['conclusion']}\n\n"
+                f"【建议行动（{pattern['priority']}）】\n"
+                + "\n".join(f"  {i+1}. {a}" for i, a in enumerate(pattern['actions']))
+            ),
+            "how_found": (
+                f"Phase 3 交叉验证引擎在{len(all_findings)}条发现中检测到多域信号叠加——"
+                f"{' + '.join(pattern['triggers']['must_have'])}"
+                f" + {any_hits}个关联信号同时触发{pattern['name']}模式。"
+                f"这是全量结论交叉比对的自动化结果。"
+            ),
+            "tax_impact": "多域信号叠加→风险级别提升。该模式涉及多个独立证据源互相印证，单一维度的异常解释不足以排除整体嫌疑。",
+            "suggestion": "\n".join(f"{i+1}. {a}" for i, a in enumerate(pattern['actions'])),
+            "category": "交叉验证",
+            "_phase3_cross_validated": True,
+            "_pattern_id": pattern["id"],
+            "_priority": pattern["priority"],
+        })
+        
+        pipeline_log.append(f"[Phase3] 命中模式 {pattern['name']} ({pattern['id']})")
+    
+    # ── 冲突检测 ──
+    _detect_conflicts(all_findings, cross_findings, pipeline_log)
+    
+    ctx.phase_history.append({
+        "phase": 3,
+        "patterns_hit": len(cross_findings),
+        "conflicts_found": sum(1 for f in cross_findings if "冲突" in f.get("type", ""))
+    })
+    
+    return cross_findings, risk_adjustments
+
+
+def _detect_conflicts(all_findings, cross_findings, pipeline_log):
+    """检测表面矛盾的结论对，进行冲突消解"""
+    # ── 冲突1：毛利率正常 vs 进销数量偏差 ──
+    has_normal_margin = any("毛利" in f.get("type","") and "正常" in f.get("description","") for f in all_findings)
+    has_qty_deviation = any("进销数量严重偏差" in f.get("type","") for f in all_findings)
+    
+    if has_normal_margin and has_qty_deviation:
+        cross_findings.append({
+            "type": "交叉验证-冲突消解：毛利正常vs数量偏差",
+            "level": "中风险",
+            "score": 4,
+            "domain": "Phase3-冲突消解",
+            "detail": "毛利率正常与进销数量偏差同时存在，表面矛盾但可解释",
+            "description": (
+                "【冲突消解】毛利率正常，但进销数量存在严重偏差——这两个结论看似矛盾，"
+                "实际上可以共存：\n\n"
+                "可能原因①：库存结转差异。上期库存量大→本期销售中部分来自上期库存→"
+                "进项数量<销项数量，但进价和售价之间的价差正常（毛利不变）。\n"
+                "可能原因②：BOM产出率差异。制造业中原材料投入与成品产出有固定的投入产出比，"
+                "1吨原料产0.8吨成品是正常损耗→按重量比对的数量偏差属正常。\n"
+                "可能原因③：期间性问题。分析期内的进项和销项可能分属不同的生产周期，"
+                "跨期比对天然有偏差。\n\n"
+                "验证方法：获取期初期末库存明细+生产成本计算表来核实数量差异是否可用库存变动解释。"
+            ),
+            "how_found": "Phase 3 交叉验证引擎在遍历全部结论时发现'毛利率正常'和'进销数量偏差'同时存在，触发冲突消解流程。",
+            "tax_impact": "数量偏差+毛利正常→可能只是库存结转问题而非交易造假。应在排除库存变动影响后重新评估。",
+            "suggestion": "①获取期初期末库存明细表 ②提供生产成本计算表 ③按存货变动调整后重新计算进销数量匹配度",
+            "category": "冲突消解",
+            "_phase3_conflict_resolved": True,
+        })
+        pipeline_log.append("[Phase3] 冲突消解: 毛利正常 vs 数量偏差")
+    
+    # ── 冲突2：工资人数正常 vs 人均产值低 ──
+    has_salary = any("工资" in f.get("type","") for f in all_findings)
+    has_low_per_person = any("人均" in f.get("type","") and "低" in f.get("type","") for f in all_findings)
+    
+    if has_salary and has_low_per_person:
+        cross_findings.append({
+            "type": "交叉验证-冲突消解：工资正常vs人均产值低",
+            "level": "中风险",
+            "score": 4,
+            "domain": "Phase3-冲突消解",
+            "detail": "工资表正常但人均产值低→人员效率问题或收入少记",
+            "description": (
+                "工资社保比对正常（人数一致、基数合规），但人均产值偏低。"
+                "这两个结论不矛盾：工资表本身可能是真实的，但产值低说明：\n"
+                "① 人员冗余→存在养闲人的管理问题（不涉税）\n"
+                "② 收入少记→有产值但未开票/未入账（涉税）\n"
+                "③ 大量人员从事非生产性工作（管理/后勤膨胀）→经营效率问题\n\n"
+                "重点关注是否存在第②种情况。"
+            ),
+            "how_found": "Phase 3 冲突检测：工资正常+人均产值低",
+            "tax_impact": "工资表真实但人均产值低，收入少记风险中等。需要逐月比对产能与收入。",
+            "suggestion": "①按部门统计人员分布 ②逐月比对产量与收入 ③访谈生产负责人核实产能",
+            "category": "冲突消解",
+            "_phase3_conflict_resolved": True,
+        })
+        pipeline_log.append("[Phase3] 冲突消解: 工资正常 vs 人均产值低")
+
+
+# ═══════════════════════════════════════════════════════════
+# Phase 4 — 综合定性（Synthesis）
+#
+# 核心能力：
+#   1. 整体风险评级（综合所有发现+资料质量+信号叠加）
+#   2. 核心问题提取（聚合相似发现→提炼3-5个核心问题）
+#   3. 建议优先级排序（P0立即行动/P1重点关注/P2持续监控）
+#   4. 生成综合结论文本
+#
+# 设计理念：
+#   最终输出不是"29个域+交叉验证"的发现列表，
+#   而是一个人能读的、有逻辑的、可操作的综合判断。
+# ═══════════════════════════════════════════════════════════
+
+def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
+    """
+    Phase 4 — 综合定性引擎
+    
+    输入：all_findings + Phase 3 交叉验证结果
+    产出：
+      - overall_assessment: dict，包含整体评级/核心问题/建议/综合结论
+    """
+    # 合并所有发现
+    all_items = list(all_findings) + list(cross_findings)
+    
+    if not all_items:
+        return {
+            "overall_risk": "无法评估",
+            "risk_score": 0,
+            "core_issues": [],
+            "prioritized_actions": [],
+            "executive_summary": "数据不足，无法生成综合定性结论。请补充银行流水和发票数据后重新分析。",
+            "evidence_summary": "",
+            "data_quality_note": f"资料质量评分: {ctx.data_quality_score}/100"
+        }
+    
+    # ── 1. 整体风险评分 ──
+    # 算法：所有发现的加权得分 × 资料质量折扣 × 信号叠加加成
+    base_scores = [f.get("score", 0) for f in all_items if isinstance(f, dict)]
+    max_possible = len(base_scores) * 10
+    total_score = sum(base_scores) if base_scores else 0
+    
+    # 资料质量折扣（资料越差，结论越不可靠，但风险不能因为资料差就降低）
+    quality_factor = ctx.data_quality_score / 100 if ctx.data_quality_score > 0 else 0.5
+    
+    # 信号叠加加成（交叉验证命中的模式越多，叠加效应越强）
+    cross_count = len(cross_findings)
+    cross_bonus = 1.0 + (cross_count * 0.15)  # 每个交叉验证+15%
+    
+    # 综合风险分数（0-100归一化）
+    normalized = (total_score / max(max_possible, 1)) * 100
+    adjusted = normalized * cross_bonus
+    
+    # 风险等级
+    if adjusted >= 70:    overall_risk = "极高风险"
+    elif adjusted >= 50:  overall_risk = "高风险"
+    elif adjusted >= 30:  overall_risk = "中风险"
+    elif adjusted >= 15:  overall_risk = "低风险"
+    else:                overall_risk = "基本合规"
+    
+    pipeline_log.append(f"[Phase4] 风险评分: {adjusted:.0f}/100 → {overall_risk}")
+    
+    # ── 2. 核心问题提取 ──
+    # 按严重程度排序，提取关键问题
+    high_items = sorted(
+        [f for f in all_items if f.get("level") in ("极高风险", "高风险")],
+        key=lambda f: -f.get("score", 0)
+    )
+    mid_items = sorted(
+        [f for f in all_items if f.get("level") == "中风险"],
+        key=lambda f: -f.get("score", 0)
+    )
+    
+    # 去重：相似的问题合并
+    core_issues = []
+    seen_types = set()
+    for f in high_items + mid_items:
+        ftype = f.get("type", "")
+        # 去重：取前20字符作key
+        key = ftype[:15]
+        if key in seen_types:
+            continue
+        seen_types.add(key)
+        
+        core_issues.append({
+            "type": ftype,
+            "level": f.get("level", ""),
+            "score": f.get("score", 0),
+            "domain": f.get("domain", ""),
+            "summary": (f.get("detail", "") or f.get("description", ""))[:200],
+            "is_cross_validated": f.get("_phase3_cross_validated", False),
+        })
+        if len(core_issues) >= 8:
+            break
+    
+    # ── 3. 建议优先级排序 ──
+    p0_actions = []  # 立即行动
+    p1_actions = []  # 重点关注
+    p2_actions = []  # 持续监控
+    
+    # P0：交叉验证命中的模式 + 极高/高风险发现
+    for f in all_items:
+        priority = f.get("_priority", "")
+        suggestion = f.get("suggestion", "")
+        if not suggestion:
+            continue
+        
+        actions = [a.strip() for a in suggestion.split("\n") if a.strip() and not a.strip().startswith("①")] if "\n" in suggestion else []
+        if not actions:
+            actions = [suggestion[:200]]
+        
+        if priority == "P0" or f.get("level") == "极高风险":
+            for a in actions:
+                if a not in p0_actions:
+                    p0_actions.append(a)
+        elif priority == "P1" or f.get("level") == "高风险":
+            for a in actions:
+                if a not in p1_actions:
+                    p1_actions.append(a)
+        elif f.get("level") == "中风险":
+            for a in actions:
+                if a not in p2_actions:
+                    p2_actions.append(a)
+    
+    # 限制数量
+    p0_actions = p0_actions[:5]
+    p1_actions = p1_actions[:5]
+    p2_actions = p2_actions[:5]
+    
+    # ── 4. 综合结论文本 ──
+    executive_summary = _generate_executive_summary(
+        overall_risk, core_issues, cross_findings, 
+        ctx, adjusted, len(p0_actions), len(p1_actions)
+    )
+    
+    # ── 5. 证据链汇总 ──
+    evidence_chain = _summarize_evidence(all_items)
+    
+    return {
+        "overall_risk": overall_risk,
+        "risk_score": round(adjusted, 1),
+        "risk_score_raw": round(normalized, 1),
+        "quality_factor": round(quality_factor, 2),
+        "cross_bonus": round(cross_bonus, 2),
+        "total_findings": len(all_items),
+        "cross_validated_patterns": cross_count,
+        "core_issues": core_issues,
+        "prioritized_actions": {
+            "P0_立即行动": p0_actions,
+            "P1_重点关注": p1_actions,
+            "P2_持续监控": p2_actions,
+        },
+        "executive_summary": executive_summary,
+        "evidence_summary": evidence_chain,
+        "data_quality_note": (
+            f"资料质量评分: {ctx.data_quality_score}/100。"
+            + (f" 缺失关键资料: {'、'.join(ctx.missing_critical_docs)}。" if ctx.missing_critical_docs else "")
+            + (" 资料不足导致部分结论置信度下降。" if ctx.data_quality_score < 70 else "")
+        )
+    }
+
+
+def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, score, p0_count, p1_count):
+    """生成综合结论文本"""
+    lines = []
+    
+    # 开篇定调
+    model = ctx.company_profile.get("biz_model", "未知")
+    industry = ctx.company_profile.get("industry", "未知行业")
+    
+    lines.append(f"经对{industry}{model}企业的多域全量分析（Phase 1初查→Phase 2定向深挖→Phase 3交叉验证），")
+    lines.append(f"综合风险评级为【{overall_risk}】（评分{score:.0f}/100）。")
+    
+    # 核心发现
+    if core_issues:
+        top3 = core_issues
+        lines.append(f"\n核心发现（共{len(core_issues)}项重点关注）：")
+        for i, issue in enumerate(top3, 1):
+            tag = "🔴" if issue["level"] in ("极高风险", "高风险") else "🟡"
+            xv = " [交叉验证]" if issue["is_cross_validated"] else ""
+            lines.append(f"  {i}. {tag}{issue['type']}{xv} — {issue['summary'][:120]}")
+    
+    # 交叉验证模式
+    if cross_findings:
+        lines.append(f"\n交叉验证触发{len(cross_findings)}个信号叠加模式：")
+        for cf in cross_findings:
+            lines.append(f"  • {cf.get('type','').replace('交叉验证-','')} → {cf.get('level','')}")
+    
+    # 建议概览
+    lines.append(f"\n建议优先级：{p0_count}项P0立即行动 + {p1_count}项P1重点关注")
+    
+    # 资料质量备注
+    if ctx.data_quality_score < 70:
+        lines.append(f"\n⚠️ 资料质量评分{ctx.data_quality_score}/100，部分结论置信度受限。建议补充完整资料后复核。")
+    
+    # 经营模式判断
+    lines.append(f"\n经营模式判断：{model}企业。{_get_mode_note(model, ctx)}")
+    
+    return "\n".join(lines)
+
+
+def _get_mode_note(model, ctx):
+    """根据经营模式给出针对性说明"""
+    if model == "制造业":
+        return "重点关注加工链条真实性（BOM表+加工合同+出入库记录）。"
+    elif model == "贸易":
+        return "重点关注进销品名一致性和供应商/客户匹配度。"
+    elif model in ("服务/劳务",):
+        return "重点关注收入完整性和人工成本匹配度（工资社保比对）。"
+    else:
+        return "建议补充公司经营范围和主营业务说明以完善分析。"
+
+
+def _summarize_evidence(all_items):
+    """汇总证据链"""
+    high_findings = [f for f in all_items if f.get("level") in ("极高风险", "高风险")]
+    evidence_domains = set(f.get("domain", "") for f in high_findings)
+    
+    lines = []
+    lines.append(f"共{len(all_items)}项发现，其中高风险{len(high_findings)}项，涉及{len(evidence_domains)}个稽查域。")
+    
+    if evidence_domains:
+        lines.append(f"关键证据域：{' / '.join(sorted(evidence_domains))}")
+    
+    # 提取证据来源
+    sources = set()
+    for f in high_findings:
+        src = f.get("source_chain", "") or f.get("how_found", "")
+        if src and len(src) < 80:
+            sources.add(src[:60])
+    if sources:
+        lines.append(f"证据源：{' / '.join(list(sources)[:5])}")
+    
+    return "\n".join(lines)
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -18490,63 +19036,78 @@ def _run_analyze(company_id, db):
     all_findings = [f for f in all_findings if isinstance(f, dict)]
 
     # ═══════════════════════════════════════════════════════════
-    # 跨结论串联验证（Cross-Conclusion Linking）
-    # 稽查方法论④-E：将各独立分析域的结论串联起来互相验证
-    # 原则：像人类稽查员一样，用A结论来验证/完善B结论
+    # Phase 3 — 交叉验证：信号叠加检测 + 冲突消解 + 结论互证
+    # Phase 4 — 综合定性：风险评级 + 核心问题 + 优先级排序 + 综合结论
     # ═══════════════════════════════════════════════════════════
+    cross_findings, risk_adjustments = _phase3_cross_validate(ctx, all_findings, pipeline_log)
+    
+    # ── 保留原跨结论串联验证的轻量逻辑（Phase 3 的补充）──
     _bom_missing = any("缺少BOM" in f.get("type","") or "BOM" in f.get("type","") for f in all_findings)
-    _has_manufacturing = any("加工费" in f.get("how_found","") or "加工链条" in f.get("description","") for f in all_findings)
     _has_expense_excluded = any("三层分类" in f.get("detail","") or "主营业务成本识别" in f.get("detail","") for f in all_findings)
     
-    cross_linked = 0
+    light_cross = 0
     for f in all_findings:
         ftype = f.get("type", "")
+        desc = f.get("description", "")
         
-        # ── 串联1：有销无进 + BOM缺失 = 非核心销售可豁免 ──
-        if "有销无进" in ftype and _bom_missing:
-            desc = f.get("description", "")
-            if "跨结论串联" not in desc:
-                bom_note = (
-                    f"\n\n【跨结论串联验证】系统已在其他分析域中发现'缺少BOM表'的结论。"
-                    f"根据稽查方法论④（主营业务成本识别+结论串联）："
-                    f"制造业企业缺少BOM表时，主营业务成本外的销项品名差异源于加工链条，"
-                    f"不应简单判定为'有销无进'虚开风险。"
-                    f"上述{ftype}的风险评级已考虑此因素——非核心销售的'有销无进'已从高风险豁免。"
-                    f"真正的核查焦点转移到加工链条真实性（需BOM+加工合同+物流单据）。"
-                )
-                f["description"] = desc + bom_note
-                f["_cross_linked"] = True
-                cross_linked += 1
+        if "有销无进" in ftype and _bom_missing and "跨结论串联" not in desc:
+            f["description"] = desc + (
+                f"\n\n【跨结论串联验证】BOM缺失→非核心销售已豁免'有销无进'标记。核查焦点转移至加工链条。"
+            )
+            f["_cross_linked"] = True
+            light_cross += 1
         
-        # ── 串联2：有进无销 + BOM缺失 = 聚焦加工链条 ──
-        if "有进无销" in ftype and _bom_missing:
-            desc = f.get("description", "")
-            if "跨结论串联" not in desc:
-                bom_note2 = (
-                    f"\n\n【跨结论串联验证】系统已检测到'缺少BOM表'（另一个独立结论）。"
-                    f"两者串联：有进无销的品名差异+缺少BOM表=加工链条真实性无法闭环。"
-                    f"核查优先级提升——要求企业同时提供BOM表+加工合同来验证投入产出逻辑。"
-                )
-                f["description"] = desc + bom_note2
-                f["_cross_linked"] = True
-                cross_linked += 1
+        if "有进无销" in ftype and _bom_missing and "跨结论串联" not in desc:
+            f["description"] = desc + (
+                f"\n\n【跨结论串联验证】BOM缺失→有进无销品名差异聚焦加工链条验证。"
+            )
+            f["_cross_linked"] = True
+            light_cross += 1
         
-        # ── 串联3：进项付款不匹配 + 费用排除 = 合理范围确认 ──
-        if "银行付款未匹配" in ftype and _has_expense_excluded:
-            desc = f.get("description", "")
-            if "跨结论串联" not in desc:
-                expense_note = (
-                    f"\n\n【跨结论串联验证】系统已在进项发票分层中排除了日常费用报销发票。"
-                    f"企业日常经营必有零星费用报销（餐饮住宿汽油等），这部分发票天然不应匹配供应商付款。"
-                    f"当前未匹配统计已排除日常报销，仅统计主营业务成本+重大费用的供应商匹配情况。"
-                )
-                f["description"] = desc + expense_note
-                f["_cross_linked"] = True
-                cross_linked += 1
+        if "银行付款未匹配" in ftype and _has_expense_excluded and "跨结论串联" not in desc:
+            f["description"] = desc + (
+                f"\n\n【跨结论串联验证】日常费用报销已排除→未匹配统计仅含核心成本+重大费用。"
+            )
+            f["_cross_linked"] = True
+            light_cross += 1
     
-    if cross_linked > 0:
-        pipeline_log.append(f"跨结论串联验证: {cross_linked}项发现已互相关联")
-
+    if light_cross > 0:
+        pipeline_log.append(f"轻量跨结论串联: {light_cross}项")
+    
+    # ── Phase 4：综合定性 ──
+    synthesis = _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log)
+    
+    # 注入综合定性到 all_findings 头部
+    if synthesis:
+        all_findings.insert(0, {
+            "type": "综合定性结论",
+            "level": synthesis["overall_risk"],
+            "score": synthesis.get("risk_score", 0),
+            "domain": "Phase4-综合定性",
+            "detail": f"综合风险评分{synthesis['risk_score']}/100，共{synthesis['total_findings']}项发现，交叉验证{synthesis['cross_validated_patterns']}个模式",
+            "description": synthesis["executive_summary"],
+            "how_found": (
+                f"Phase 4 综合定性引擎汇总全部{synthesis['total_findings']}项发现"
+                f"（含Phase 3交叉验证{synthesis['cross_validated_patterns']}个模式），"
+                f"经加权评分+资料质量折扣+信号叠加加成后综合评估。"
+            ),
+            "tax_impact": f"综合风险等级{synthesis['overall_risk']}。{synthesis['data_quality_note']}",
+            "suggestion": "\n".join(
+                [f"【P0 立即行动】{a}" for a in synthesis.get("prioritized_actions", {}).get("P0_立即行动", [])] +
+                [f"【P1 重点关注】{a}" for a in synthesis.get("prioritized_actions", {}).get("P1_重点关注", [])] +
+                [f"【P2 持续监控】{a}" for a in synthesis.get("prioritized_actions", {}).get("P2_持续监控", [])]
+            ),
+            "category": "综合定性",
+            "_phase4_synthesis": True,
+            "_synthesis_data": synthesis,
+        })
+        
+        # 追加交叉验证发现
+        for cf in cross_findings:
+            all_findings.insert(1, cf)
+        
+        pipeline_log.append(f"[Phase4] 综合定性: {synthesis['overall_risk']} (评分{synthesis['risk_score']})")
+    
     # ═══════ 290规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
     engine_results = []
     bk_ids, bt_ids, sr_ids = [], [], []
