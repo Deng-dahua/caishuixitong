@@ -17428,6 +17428,249 @@ class MemoryLearner:
         return "\n".join(lines)
 
 
+class ConfidenceAssessor:
+    """
+    结论可信度评估引擎 —— 让引擎学会质疑自己
+    
+    四维评估：
+    1. 证据充分性 — 几条独立证据源支撑？
+    2. 数据缺口冲击 — 缺失资料是否抽掉了结论的地基？
+    3. 对抗验证 — 有没有反证？有没有更合理的替代解释？
+    4. 稽查就绪度 — 真人稽查员看了，能站住吗？
+    
+    输出：
+    - 每条重点结论的可信度评分(0-100)
+    - 薄弱环节标注
+    - 补强建议(需要什么资料才能使置信度提升)
+    """
+    
+    # ── 缺失资料与结论域的关联映射 ──
+    # 结论类型关键词 → 依赖的资料类型 → 缺失后的惩罚分
+    MISSING_IMPACT_MAP = {
+        "虚开发票": {"depends_on": ["contract", "purchase_invoice", "bank"], "penalty": 25, "note": "缺合同/进项发票/银行流水→虚开结论无法印证三流合一"},
+        "隐匿收入": {"depends_on": ["bank", "sales_invoice"], "penalty": 30, "note": "缺银行流水/销项发票→无法比对收款与开票"},
+        "成本": {"depends_on": ["purchase_invoice", "inventory", "voucher"], "penalty": 20, "note": "缺进项/进销存/凭证→成本真实性无法验证"},
+        "进销": {"depends_on": ["inventory", "purchase_invoice", "sales_invoice"], "penalty": 25, "note": "缺进销存台账→进销匹配只是理论推演"},
+        "毛利": {"depends_on": ["financial", "voucher"], "penalty": 15, "note": "缺财报/凭证→毛利率计算依赖发票推算，非真实账务数据"},
+        "工资": {"depends_on": ["salary", "social_security"], "penalty": 20, "note": "缺工资表/社保→人员真实性无法验证"},
+        "关联": {"depends_on": ["contract", "bank"], "penalty": 20, "note": "缺合同/银行流水→关联关系无法穿透核实"},
+        "加工": {"depends_on": ["contract", "inventory"], "penalty": 25, "note": "缺加工合同/出入库记录→加工链条无法验证"},
+        "集中": {"depends_on": ["contract"], "penalty": 10, "note": "缺合同→无法判断集中是正常商业安排还是关联操纵"},
+        "发票": {"depends_on": ["purchase_invoice", "sales_invoice", "bank"], "penalty": 15, "note": "缺发票/银行流水→发票真实性存疑"},
+    }
+    
+    def __init__(self, ctx, all_findings):
+        self.ctx = ctx
+        self.all_findings = all_findings
+        self.missing_keys = set(ctx.missing_doc_keys) if ctx.missing_doc_keys else set()
+        self.contradictions = [f for f in all_findings if f.get("type", "").startswith("结论自洽-")]
+        self.cross_validated = [f for f in all_findings if f.get("_phase3_cross_validated")]
+    
+    def assess_all(self):
+        """评估所有重点结论，返回可信度报告"""
+        report = {
+            "assessments": [],
+            "overall_credibility": 0,
+            "weakest_conclusions": [],
+            "summary": "",
+        }
+        
+        # 只评估高风险和部分中风险结论
+        candidates = [f for f in self.all_findings 
+                      if f.get("level") in ("极高风险", "高风险", "中风险")
+                      and not f.get("type", "").startswith("资料缺失触发-")
+                      and not f.get("type", "").startswith("事前预警-")]
+        
+        scores = []
+        for finding in candidates[:15]:  # 最多评估15条
+            assessment = self._assess_one(finding)
+            if assessment:
+                report["assessments"].append(assessment)
+                scores.append(assessment["credibility"])
+        
+        if scores:
+            report["overall_credibility"] = sum(scores) / len(scores)
+            
+            # 找出最薄弱的3条结论
+            sorted_assess = sorted(report["assessments"], key=lambda a: a["credibility"])
+            report["weakest_conclusions"] = sorted_assess[:3]
+        
+        report["summary"] = self._generate_summary(report)
+        return report
+    
+    def _assess_one(self, finding):
+        """评估单条结论"""
+        ftype = str(finding.get("type", ""))
+        flevel = str(finding.get("level", ""))
+        fscore = finding.get("score", 5)
+        
+        # ── 1. 证据充分性 (0-30分) ──
+        evidence_score = self._score_evidence(finding)
+        
+        # ── 2. 数据缺口惩罚 (负分) ──
+        gap_penalty = self._score_data_gap(ftype)
+        
+        # ── 3. 对抗验证 (0-20分) ──
+        counter_score = self._score_counter_evidence(ftype, finding)
+        
+        # ── 4. 交叉验证加成 (0-20分) ──
+        cross_bonus = 15 if finding.get("_phase3_cross_validated") else 0
+        if finding.get("_cross_domain_clue"):
+            cross_bonus = max(cross_bonus, 12)
+        
+        # ── 综合可信度 ──
+        base = fscore * 5  # 将score(1-10)映射到(5-50)
+        credibility = base + evidence_score + counter_score + cross_bonus - gap_penalty
+        credibility = max(0, min(100, credibility))
+        
+        # 判定等级
+        if credibility >= 75:
+            grade = "高可信"
+        elif credibility >= 50:
+            grade = "中等可信"
+        elif credibility >= 30:
+            grade = "低可信"
+        else:
+            grade = "不可靠"
+        
+        # 薄弱环节
+        weaknesses = []
+        enhancements = []
+        
+        if gap_penalty >= 15:
+            # 找出缺失的具体资料
+            deps = self._find_dependencies(ftype)
+            missing_deps = [d for d in deps if d in self.missing_keys]
+            if missing_deps:
+                dep_names = {"bank": "银行流水", "sales_invoice": "销项发票", "purchase_invoice": "进项发票",
+                            "voucher": "记账凭证", "salary": "工资表", "social_security": "社保明细",
+                            "inventory": "进销存台账", "contract": "合同文件", "trial_balance": "科目余额表",
+                            "financial": "资产负债表+利润表"}
+                missing_names = [dep_names.get(d, d) for d in missing_deps]
+                weaknesses.append(f"缺少{'、'.join(missing_names)}，无法交叉验证")
+                enhancements.append(f"补充{'、'.join(missing_names)}可使可信度提升{gap_penalty}分")
+        
+        if evidence_score < 15:
+            weaknesses.append("独立证据不足，主要依赖单一数据源")
+            enhancements.append("增加交叉验证数据源（如银行流水+发票+合同三源比对）")
+        
+        if counter_score < 10:
+            weaknesses.append("未经过充分的对抗验证，可能存在替代解释")
+        
+        # 与矛盾检测的关联
+        for contr in self.contradictions:
+            contr_name = str(contr.get("type", ""))
+            if any(kw in ftype for kw in ["虚开","进销","毛利","成本","发票"]):
+                if any(kw in contr_name for kw in ["虚开","进销","毛利","成本","发票"]):
+                    weaknesses.append(f"存在矛盾结论'{contr_name.replace('结论自洽-','')}'，削弱本结论可信度")
+                    break
+        
+        return {
+            "type": ftype[:80],
+            "level": flevel,
+            "credibility": round(credibility, 1),
+            "grade": grade,
+            "evidence_score": evidence_score,
+            "gap_penalty": gap_penalty,
+            "counter_score": counter_score,
+            "cross_bonus": cross_bonus,
+            "weaknesses": weaknesses,
+            "enhancements": enhancements,
+            "original_score": fscore,
+        }
+    
+    def _score_evidence(self, finding):
+        """评估证据充分性"""
+        score = 10  # 基础分：有一条发现本身就有一些证据
+        
+        # 检查detail/description中的内容量
+        detail = str(finding.get("detail", ""))
+        desc = str(finding.get("description", ""))
+        combined = detail + " " + desc
+        
+        # 包含具体数字 → +5分
+        import re
+        if re.search(r'\d[\d,.]*[万元亿%]', combined):
+            score += 5
+        
+        # 包含具体公司/人名 → +3分
+        if re.search(r'[\u4e00-\u9fff]{2,}(公司|厂|行|店)', combined):
+            score += 3
+        
+        # 引用法规 → +5分
+        if any(kw in combined for kw in ["《","条例","公告","第"]):
+            score += 5
+        
+        # 有how_found说明来源 → +5分
+        if finding.get("how_found"):
+            score += 5
+        
+        return min(score, 30)
+    
+    def _score_data_gap(self, ftype):
+        """计算数据缺口对结论的冲击"""
+        total_penalty = 0
+        
+        for keyword, config in self.MISSING_IMPACT_MAP.items():
+            if keyword in ftype:
+                deps = config["depends_on"]
+                missing_deps = [d for d in deps if d in self.missing_keys]
+                if missing_deps:
+                    # 缺失比例越高，惩罚越重
+                    missing_ratio = len(missing_deps) / len(deps)
+                    penalty = int(config["penalty"] * missing_ratio)
+                    total_penalty = max(total_penalty, penalty)
+        
+        return total_penalty
+    
+    def _score_counter_evidence(self, ftype, finding):
+        """对抗验证评分"""
+        score = 15  # 基础分
+        
+        # 如果该结论与矛盾检测有关联 → 减分
+        for contr in self.contradictions:
+            contr_name = str(contr.get("type", ""))
+            if any(kw in ftype for kw in ["虚开","进销","毛利","成本"]):
+                if any(kw in contr_name for kw in ["虚开","进销","毛利","成本"]):
+                    score -= 8
+        
+        # 如果有交叉验证 → 加回
+        if finding.get("_phase3_cross_validated"):
+            score += 5
+        
+        return max(0, min(score, 20))
+    
+    def _find_dependencies(self, ftype):
+        """找到结论类型依赖的资料"""
+        for keyword, config in self.MISSING_IMPACT_MAP.items():
+            if keyword in ftype:
+                return config["depends_on"]
+        return []
+    
+    def _generate_summary(self, report):
+        """生成可信度摘要"""
+        oc = report["overall_credibility"]
+        wc = report["weakest_conclusions"]
+        
+        lines = []
+        if oc >= 70:
+            lines.append(f"整体可信度{oc:.0f}分——结论整体可靠，多数发现有多源证据支撑。")
+        elif oc >= 50:
+            lines.append(f"整体可信度{oc:.0f}分——结论基本可靠，但部分发现因资料缺失导致置信度受限。")
+        elif oc >= 30:
+            lines.append(f"整体可信度{oc:.0f}分——结论需谨慎对待，多条发现缺乏关键证据支撑。")
+        else:
+            lines.append(f"整体可信度{oc:.0f}分——结论不可靠，数据严重不足，建议补充资料后重新分析。")
+        
+        if wc:
+            lines.append(f"\n最薄弱的{len(wc)}条结论：")
+            for w in wc:
+                gaps = "；".join(w["weaknesses"][:2]) if w["weaknesses"] else "无明显薄弱点"
+                lines.append(f"  ▸ {w['type'][:50]} → 可信度{w['credibility']:.0f}分（{gaps}）")
+        
+        return "\n".join(lines)
+
+
 class AuditContext:
     """
     稽查上下文——贯穿4阶段的状态容器
@@ -19745,6 +19988,17 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
         all_items.extend(early_warnings)
         pipeline_log.append(f"[Phase4] 事前预警引擎: {len(early_warnings)}条升级路径 → {', '.join(ew['_early_warning_id'] for ew in early_warnings)}")
     
+    # ═══ 结论可信度评估：引擎自我质疑 ═══
+    credibility_report = {}
+    try:
+        assessor = ConfidenceAssessor(ctx, all_items)
+        credibility_report = assessor.assess_all()
+        ctx._credibility_report = credibility_report
+        pipeline_log.append(f"[Phase4] 可信度评估: 整体{credibility_report['overall_credibility']:.0f}分, 最薄弱{len(credibility_report.get('weakest_conclusions',[]))}条")
+    except Exception as _ce:
+        ctx._credibility_report = {}
+        pipeline_log.append(f"[Phase4] 可信度评估异常: {_ce}")
+    
     if not all_items:
         return {
             "overall_risk": "无法评估",
@@ -19917,6 +20171,7 @@ def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
         ),
         "missing_doc_keys": ctx.missing_doc_keys,
         "missing_triggered_count": len(missing_triggered),
+        "credibility": credibility_report,
     }
 
 
@@ -19997,6 +20252,17 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
         for ws in warning_signals[:5]:
             eid = ws['type'].replace('事前预警-', '')
             lines.append(f"    ⏰ {eid}")
+    
+    # ═══ 结论可信度评估 ═══
+    cr = getattr(ctx, '_credibility_report', {})
+    if cr and cr.get("overall_credibility", 0) > 0:
+        oc = cr["overall_credibility"]
+        wc = cr.get("weakest_conclusions", [])
+        lines.append(f"  ▸ 结论可信度：整体{oc:.0f}分——")
+        lines.append(f"    {cr.get('summary', '').split(chr(10))[0][:100]}")
+        if wc:
+            for w in wc[:2]:
+                lines.append(f"    ⚠ {w['type'][:40]} → 仅{w['credibility']:.0f}分（需补充资料增强）")
     
     # 高风险项 TOP3
     if core_issues:
