@@ -14635,7 +14635,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     # 跨结论：与其他进销结论串联——如已有BOM缺失，供应商匹配的未匹配可能性更高
     
     # 使用共享的主营业务成本识别模块（替代原内联分类逻辑）
-    biz_classification = identify_main_biz_cost(pur_invs, sal_invs)
+    biz_classification = identify_main_biz_cost(pur_invs, None)  # 该函数无 sal_invs 参数
     core_invs = biz_classification["core_cost_invs"]
     major_invs = biz_classification["major_expense_invs"]
     minor_invs = biz_classification["minor_expense_invs"]
@@ -18287,6 +18287,10 @@ def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
 
+    # ── NEW ENGINE MARKER: 2026-06-23 Phase 1-4 Reasoning Engine ──
+    _NEW_ENGINE_VERSION = True
+    ctx = None  # AuditContext 将在 Phase 1 初始化，在此之前为 None
+    
     # 直接从磁盘扫描文件列表——不依赖全局 _tax_risk_docs 状态
     docs = []
     if os.path.exists(UPLOAD_DIR):
@@ -18310,6 +18314,9 @@ def _run_analyze(company_id, db):
     bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
     contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
+
+    # ── NEW ENGINE VERSION CHECK ──
+    pipeline_log.append("[ENGINE] 推理引擎v2.0 — Phase1-4 已加载 (2026-06-23)")
 
     for doc in docs:
         fname, fpath, ext = doc["original_name"], doc["path"], os.path.splitext(doc["original_name"])[1].lower()
@@ -18532,6 +18539,7 @@ def _run_analyze(company_id, db):
     # 而非一刀切地全量比对。费用类发票不参与进销匹配。
     # 分析链：主营业务成本识别 → 核心成本进销匹配 → 制造业加工链条检测 → BOM交叉验证
     # 证据链：进销品名对照表 + 三层分类结果 + 加工费/BOM交叉信号
+    # 注意：ctx 在此处尚未初始化（Phase 1 在后面运行），使用直接调用
     # ═════════════════════════════════════════════════════════==
     inv_match_findings = []
     if sal_invs and pur_invs:
@@ -19077,9 +19085,10 @@ def _run_analyze(company_id, db):
     # ── Phase 4：综合定性 ──
     synthesis = _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log)
     
-    # 注入综合定性到 all_findings 头部
+    # ── 构建综合定性 finding（注入到 domain_results 和 all_findings）──
+    synth_finding = None
     if synthesis:
-        all_findings.insert(0, {
+        synth_finding = {
             "type": "综合定性结论",
             "level": synthesis["overall_risk"],
             "score": synthesis.get("risk_score", 0),
@@ -19100,11 +19109,11 @@ def _run_analyze(company_id, db):
             "category": "综合定性",
             "_phase4_synthesis": True,
             "_synthesis_data": synthesis,
-        })
+        }
+        domain_results.insert(0, {"domain": "Phase4-综合定性", "findings": [synth_finding]})
         
-        # 追加交叉验证发现
-        for cf in cross_findings:
-            all_findings.insert(1, cf)
+        if cross_findings:
+            domain_results.insert(1, {"domain": "Phase3-交叉验证", "findings": cross_findings})
         
         pipeline_log.append(f"[Phase4] 综合定性: {synthesis['overall_risk']} (评分{synthesis['risk_score']})")
     
@@ -19261,6 +19270,14 @@ def _run_analyze(company_id, db):
     all_findings.extend(engine_results)
     # 过滤掉非dict项（某些函数返回字符串混入）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
+    
+    # ── 重建后注入 Phase 4 综合定性和 Phase 3 交叉验证 ──
+    # （此处注入确保不被 _merge_similar_findings + domain_results 重建覆盖）
+    if synthesis:
+        all_findings.insert(0, synth_finding)
+    if cross_findings:
+        for cf in reversed(cross_findings):
+            all_findings.insert(0, cf)
 
     
     # ── 同类风险合并已移至 _apply_methodology_filter 的去重逻辑中 ──
@@ -20374,6 +20391,14 @@ def _run_analyze(company_id, db):
             else:
                 del f["policy_ref"]
     
+    # ── 最终注入：Phase 4 综合定性 + Phase 3 交叉验证（在所有过滤之后）──
+    final_findings = list(all_findings)
+    if synth_finding is not None:
+        final_findings.insert(0, synth_finding)
+    if cross_findings:
+        for cf in reversed(cross_findings):
+            final_findings.insert(0, cf)
+    
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
@@ -20381,7 +20406,7 @@ def _run_analyze(company_id, db):
         "target_entity": target_entity,
         "low_data_warning": low_data_warning,
         "quality_report": quality_report,
-        "all_findings": sorted(all_findings, key=lambda x: -(x.get("score") or 0)),
+        "all_findings": sorted(final_findings, key=lambda x: -(x.get("score") or 0)),
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
@@ -22753,7 +22778,11 @@ def health_check():
 @app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
     """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
-    return _run_analyze(company_id, db)
+    import traceback as _tb
+    try:
+        return _run_analyze(company_id, db)
+    except Exception as _e:
+        return {"ok": False, "message": f"分析异常: {_e}", "traceback": _tb.format_exc()[:2000]}
 
 if __name__ == "__main__":
     import uvicorn
