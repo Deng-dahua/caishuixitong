@@ -2261,5 +2261,98 @@
       "salary": 0,
       "gross_margin_pct": 8.575020669091483
     }
+  },
+  {
+    "timestamp": "2026-06-23T17:44:02.507961",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "小",
+    "risk_score": 135.1,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "无工资记录",
+      "存在加工费",
+      "制造业加工链条待验证",
+      "销项发票连号",
+      "客户高度集中"
+    ],
+    "pattern_hits": 7,
+    "total_findings": 83,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 53.99801270470837,
+    "customer_concentration": 97.19588216412966,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 8045963.23,
+      "purchases": 7356020.22,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.575020669091483
+    }
+  },
+  {
+    "timestamp": "2026-06-23T17:45:38.927400",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "小",
+    "risk_score": 135.1,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "无工资记录",
+      "存在加工费",
+      "制造业加工链条待验证",
+      "销项发票连号",
+      "客户高度集中"
+    ],
+    "pattern_hits": 7,
+    "total_findings": 83,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 53.99801270470837,
+    "customer_concentration": 97.19588216412966,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 8045963.23,
+      "purchases": 7356020.22,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.575020669091483
+    }
+  },
+  {
+    "timestamp": "2026-06-23T17:47:30.487911",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "小",
+    "risk_score": 135.1,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "无工资记录",
+      "存在加工费",
+      "制造业加工链条待验证",
+      "销项发票连号",
+      "客户高度集中"
+    ],
+    "pattern_hits": 7,
+    "total_findings": 83,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 53.99801270470837,
+    "customer_concentration": 97.19588216412966,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 8045963.23,
+      "purchases": 7356020.22,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.575020669091483
+    }
   }
 ]
