@@ -17553,6 +17553,190 @@ def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
     ctx.data_quality_score = max(0, min(100, score))
 
 
+# ═══════════════════════════════════════════════════════════
+# Phase 2 — 定向深挖（Signal-Driven Deep Dive）
+#
+# 设计理念：不是29域全量盲跑，而是基于 Phase 1 的信号，
+# 像人类稽查员一样定向选择深挖方向和深度。
+#
+# 信号→域映射表驱动：
+#   看到"购销倒挂"→深挖毛利率+供应商+资金流向+经营实质
+#   看到"加工费"→深挖BOM+供应商画像+经营实质地理+上下游
+#   多个信号叠加→域组合策略
+#   绿灯信号→证明某方面正常，跳过相关深挖
+#
+# 三级深度：
+#   shallow（浅查）：快速比率计算，确认信号
+#   normal（常规）：标准分析流程
+#   deep（深挖）：多源交叉+关联穿透+证据链串联
+# ═══════════════════════════════════════════════════════════
+
+# ├─ 信号→域映射表
+# │  每个信号定义了应深挖的域及深度
+_SIGNAL_DOMAIN_MAP = {
+    # ── 红灯信号 ──
+    "购销严重倒挂": {
+        "domains": ["进销毛利率分析", "供应商穿透分析", "资金流向追踪", "经营实质分析"],
+        "depth": "deep",
+        "reason": "进>销1.5倍→需验证进项真实性+是否存在隐匿收入+供应商是否真实"
+    },
+    "毛利为负": {
+        "domains": ["进销毛利率分析", "经营实质分析", "行业对标分析"],
+        "depth": "deep",
+        "reason": "毛利为负→可能是虚增进项或隐匿收入或不合理关联交易"
+    },
+    "缺少银行流水": {
+        "domains": ["凭证发票收入对比", "经营实质分析", "增值税申报比对"],
+        "depth": "deep",
+        "reason": "无银行流水→需用凭证和发票替代验证资金流真实性"
+    },
+    # ── 黄灯信号 ──
+    "存在加工费": {
+        "domains": ["发票实质性审计", "经营实质分析", "供应商画像分析", "上下游穿透分析"],
+        "depth": "deep",
+        "reason": "加工费发票→需验证加工链条真实性(BOM+合同+物流)"
+    },
+    "制造业加工链条待验证": {
+        "domains": ["发票实质性审计", "供应商画像分析", "经营实质地理分析", "关联交易穿透检测"],
+        "depth": "deep",
+        "reason": "制造业加工链条+无BOM→需全方位验证加工真实性"
+    },
+    "无进项发票": {
+        "domains": ["经营实质分析", "发票实质性审计", "增值税申报比对"],
+        "depth": "normal",
+        "reason": "有销项无进项→可能是服务/劳务(正常)或虚开发票"
+    },
+    "无工资记录": {
+        "domains": ["工资社保比对", "人员与业务匹配", "经营实质分析"],
+        "depth": "normal",
+        "reason": "有收入无工资→可能虚开发票或未全员申报个税"
+    },
+    "毛利率异常高": {
+        "domains": ["进销毛利率分析", "行业对标分析", "经营实质分析"],
+        "depth": "normal",
+        "reason": "毛利率>80%→可能存在关联交易定价不公允或隐匿采购"
+    },
+    "银行流水数据量少": {
+        "domains": ["凭证发票收入对比", "经营实质分析"],
+        "depth": "shallow",
+        "reason": "流水数据量少→用凭证和发票替代验证，降置信度"
+    },
+    "发票数据量少": {
+        "domains": ["凭证发票收入对比", "增值税申报比对"],
+        "depth": "shallow",
+        "reason": "发票数据量少→用凭证替代验证"
+    },
+    "个人交易占比过高": {
+        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
+        "depth": "deep",
+        "reason": "大量个人付款→需核实资金性质+是否为隐匿经营收入"
+    },
+    "供应商高度集中": {
+        "domains": ["供应商穿透分析", "供应商画像分析", "关联交易穿透检测"],
+        "depth": "deep",
+        "reason": "前3大供应商占比过高→可能存在关联交易或虚开发票"
+    },
+}
+
+
+def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
+                      salaries, social_security, vouchers, inventory, docs, file_results,
+                      contract_data, voucher_revenue, total_parsed, pipeline_log):
+    """
+    Phase 2 — 信号驱动的定向深挖
+    
+    流程：
+    1. 读取 ctx.red_flags + ctx.yellow_flags
+    2. 查信号→域映射表，确定需深挖的域
+    3. 去重：同一域不重复跑
+    4. 对每个选中域按指定深度分析
+    5. 产出注入 ctx（索引到 finding_index）
+    
+    返回：
+        deep_dive_results: [{"domain": "XX", "findings": [...]}, ...]
+    """
+    deep_dive_results = []
+    domains_to_run = {}  # {domain_name: depth}
+    
+    # ── 步骤1：收集信号并映射域 ──
+    all_signals = ctx.red_flags + ctx.yellow_flags
+    
+    for signal in all_signals:
+        signal_type = signal.get("type", "")
+        # 在映射表中查找最匹配的信号
+        matched = None
+        for map_signal, config in _SIGNAL_DOMAIN_MAP.items():
+            if map_signal in signal_type or signal_type in map_signal:
+                matched = config
+                break
+        if not matched:
+            continue
+        
+        for domain in matched["domains"]:
+            # 取最高深度（deep > normal > shallow）
+            depth_order = {"deep": 3, "normal": 2, "shallow": 1}
+            current_depth = domains_to_run.get(domain, "shallow")
+            if depth_order.get(matched["depth"], 1) > depth_order.get(current_depth, 0):
+                domains_to_run[domain] = matched["depth"]
+    
+    if not domains_to_run:
+        pipeline_log.append("[Phase2] 无信号触发，跳过定向深挖")
+        return deep_dive_results
+    
+    pipeline_log.append(f"[Phase2] 信号触发{len(domains_to_run)}个域深挖: {list(domains_to_run.keys())}")
+    
+    # ── 步骤2：执行选中域的分析 ──
+    # 每个域有对应的分析函数，按深度执行
+    
+    # 域函数注册表
+    domain_functions = {
+        "进销毛利率分析": lambda: _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue),
+        "供应商穿透分析": lambda: _domain_supplier_deep(pur_invs),
+        "资金流向追踪": lambda: _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs),
+        "经营实质分析": lambda: _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries),
+        "行业对标分析": lambda: _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, ctx.company_profile.get("industry", "")),
+        "凭证发票收入对比": lambda: _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs),
+        "增值税申报比对": lambda: _domain_vat_declaration_compare(invoices, bank_txs, db, company_id),
+        "发票实质性审计": lambda: _domain_invoice_audit(invoices, ctx.company_profile.get("industry", "")),
+        "供应商画像分析": lambda: _domain_supplier_profiling(pur_invs, bank_txs),
+        "上下游穿透分析": lambda: _domain_supply_chain_deep(invoices, bank_txs),
+        "经营实质地理分析": lambda: _domain_business_premise_geo(bank_txs, invoices, docs, ctx.company_profile.get("industry", "")),
+        "关联交易穿透检测": lambda: _domain_related_party_check(sal_invs, pur_invs, bank_txs),
+        "工资社保比对": lambda: _domain_salary_ss_hf_compare(salaries, social_security),
+        "人员与业务匹配": lambda: _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security),
+        "个人交易风险": lambda: _domain_personal_transactions(sal_invs),
+    }
+    
+    for domain, depth in domains_to_run.items():
+        func = domain_functions.get(domain)
+        if not func:
+            pipeline_log.append(f"[Phase2] 域'{domain}'无对应分析函数，跳过")
+            continue
+        
+        try:
+            findings = func()
+            if findings:
+                deep_dive_results.append({
+                    "domain": domain,
+                    "findings": findings,
+                    "_phase2_depth": depth,
+                    "_phase2_triggered": True
+                })
+                # 索引到 ctx，供后续阶段检索
+                ctx.index_findings(findings, domain=domain)
+                pipeline_log.append(f"[Phase2] {domain}({depth}): {len(findings)}项发现")
+        except Exception as e:
+            pipeline_log.append(f"[Phase2] {domain} 执行异常: {e}")
+    
+    ctx.phase_history.append({
+        "phase": 2,
+        "domains_run": list(domains_to_run.keys()),
+        "findings_count": sum(len(dr["findings"]) for dr in deep_dive_results)
+    })
+    
+    return deep_dive_results
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -18156,8 +18340,18 @@ def _run_analyze(company_id, db):
     ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
                          salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
     
+    # ═══════════════════════════════════════════════════════════
+    # Phase 2 — 定向深挖：基于 Phase 1 信号选择性分析
+    # 信号→域映射表驱动，只深挖触发了信号的域
+    # ═══════════════════════════════════════════════════════════
+    phase2_results = _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
+                                        salaries, social_security, vouchers, inventory, docs, file_results,
+                                        contract_data, voucher_revenue, total_parsed, pipeline_log)
+    # 记录 Phase 2 已覆盖的域名，避免后续 domain_results 重复
+    phase2_domains_covered = set(dr["domain"] for dr in phase2_results)
+    
     domain_results = []
-
+    
     # ═══ 预检测目标行业（供行业对标使用）═══
     _target_industry = ""
     if invoices:
@@ -18271,6 +18465,22 @@ def _run_analyze(company_id, db):
     else:
         domain_results.append({"domain": "发票实质性审计", "findings": []})
 
+    # ═══════════════════════════════════════════════════════════
+    # Phase 2 结果注入 + 去重
+    # Phase 2 深挖的域优于盲跑的域（深挖有更好的上下文和针对性）
+    # 移除被 Phase 2 覆盖的冗余域，再注入 Phase 2 结果
+    # ═══════════════════════════════════════════════════════════
+    if phase2_results:
+        removed_count = 0
+        filtered_results = []
+        for dr in domain_results:
+            if dr["domain"] not in phase2_domains_covered:
+                filtered_results.append(dr)
+            else:
+                removed_count += 1
+        domain_results = phase2_results + filtered_results  # Phase2结果排最前
+        pipeline_log.append(f"[Phase2] 注入{len(phase2_results)}个深挖域, 去重移除{removed_count}个盲跑域")
+    
     all_findings = []
     for dr in domain_results:
         for f in dr["findings"]:
