@@ -1,0 +1,13 @@
+[
+  {
+    "finding_type": "购销严重倒挂",
+    "action": "confirm",
+    "note": "确实存在",
+    "timestamp": "2026-06-24T07:10:21.173456"
+  },
+  {
+    "finding_type": "购销严重倒挂",
+    "action": "confirm",
+    "timestamp": "2026-06-24T07:11:13.925296"
+  }
+]

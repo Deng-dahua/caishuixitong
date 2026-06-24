@@ -2881,5 +2881,47 @@
     "健身": "行业-体育",
     "汽车": "行业-汽车",
     "维修": "行业-汽车"
+  },
+  "benchmarks_coarse": {
+    "制造业": {
+      "gross_margin": 15,
+      "vat_burden": 3.0
+    },
+    "建筑业": {
+      "gross_margin": 10,
+      "vat_burden": 2.5
+    },
+    "批发零售": {
+      "gross_margin": 5,
+      "vat_burden": 1.0
+    },
+    "交通运输": {
+      "gross_margin": 15,
+      "vat_burden": 2.0
+    },
+    "住宿餐饮": {
+      "gross_margin": 40,
+      "vat_burden": 2.5
+    },
+    "信息技术": {
+      "gross_margin": 25,
+      "vat_burden": 3.0
+    },
+    "租赁商务": {
+      "gross_margin": 20,
+      "vat_burden": 2.0
+    },
+    "居民服务": {
+      "gross_margin": 30,
+      "vat_burden": 2.5
+    },
+    "文化体育": {
+      "gross_margin": 25,
+      "vat_burden": 2.5
+    },
+    "房地产": {
+      "gross_margin": 30,
+      "vat_burden": 3.5
+    }
   }
 }

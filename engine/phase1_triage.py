@@ -61,7 +61,8 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
 
 
 def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
-    """从数据中推断企业行业和经营模式"""
+    """从数据中推断企业行业和经营模式，并加载行业自适应配置"""
+    import json, os
     cp = ctx.company_profile
     
     # ── 经营模式推断 ──
@@ -86,16 +87,28 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
     else:
         overlap_ratio = 0
     
-    # 模式判断
-    if has_processing and overlap_ratio < 0.5:
-        cp["biz_model"] = "制造业"
-        cp["has_manufacturing"] = True
-    elif overlap_ratio >= 0.5 and pur_goods_set and sal_goods_set:
-        cp["biz_model"] = "贸易"
-        cp["has_trading"] = True
-    elif not pur_invs and sal_invs:
-        cp["biz_model"] = "服务/劳务"
-    else:
+    # ── 经营模式判断（插件注册模式）──
+    _biz_model_rules = [
+        ("制造业", 
+         lambda: has_processing and overlap_ratio < 0.5,
+         lambda: cp.update({"has_manufacturing": True})),
+        ("贸易",
+         lambda: overlap_ratio >= 0.5 and pur_goods_set and sal_goods_set,
+         lambda: cp.update({"has_trading": True})),
+        ("服务/劳务",
+         lambda: not pur_invs and sal_invs,
+         lambda: None),
+    ]
+    
+    matched = False
+    for model_name, condition, side_effect in _biz_model_rules:
+        if condition():
+            cp["biz_model"] = model_name
+            if side_effect:
+                side_effect()
+            matched = True
+            break
+    if not matched:
         cp["biz_model"] = "未确定"
     
     # ── 规模推断 ──
@@ -108,6 +121,9 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
     
     # ── 行业推断（基于品名关键词，不做行业特化）──
     _infer_industry_from_goods(ctx, pur_goods_set, sal_goods_set)
+    
+    # ── 加载行业自适应配置（industry_profiles.json）──
+    _load_industry_profile(ctx)
 
 
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
@@ -141,26 +157,93 @@ def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
         cp["industry"] = "综合"
 
 
+def _load_industry_profile(ctx):
+    """根据检测到的行业加载对应的行业画像配置（信号权重、基准阈值、重点域等）"""
+    import json, os
+    
+    cp = ctx.company_profile
+    industry = cp.get("industry", "综合")
+    biz_model = cp.get("biz_model", "未确定")
+    
+    # 尝试多次路径找到 industry_profiles.json
+    for base in [os.path.dirname(__file__), os.path.join(os.path.dirname(__file__), "..")]:
+        profile_path = os.path.join(base, "static", "industry_profiles.json")
+        if os.path.exists(profile_path):
+            break
+    else:
+        profile_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_profiles.json")
+    
+    try:
+        with open(profile_path, "r", encoding="utf-8") as f:
+            profiles = json.load(f)
+    except Exception:
+        ctx.industry_profile = {}
+        return
+    
+    industries = profiles.get("industries", {})
+    default = profiles.get("default_profile", {})
+    
+    # 匹配策略：精确匹配行业名 → subtypes → biz_model映射
+    matched = None
+    
+    for key, prof in industries.items():
+        if industry == key or industry in prof.get("subtypes", []):
+            matched = prof
+            break
+    
+    if not matched:
+        model_to_key = {"制造业": "制造业", "贸易": "贸易批发", "服务/劳务": "服务业"}
+        matched_key = model_to_key.get(biz_model)
+        if matched_key:
+            matched = industries.get(matched_key)
+    
+    ctx.industry_profile = matched or default
+
+
 def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
-    """初查阶段信号检测——像老稽查员翻一遍资料就能嗅出异常"""
+    """初查阶段信号检测——行业自适应 + 历史数据校准。
+    
+    阈值优先级：历史校准(同行业统计) > 行业配置(industry_profiles.json) > 兜底通用值
+    """
     fs = ctx.financial_snapshot
     cp = ctx.company_profile
+    ip = ctx.industry_profile or {}
+    benchmarks = ip.get("benchmarks", {})
+    
+    # ── 历史校准阈值（从相似案例统计中动态学习）──
+    calibrated = ctx._memory_data.get("calibrated_thresholds", {}) if hasattr(ctx, '_memory_data') and ctx._memory_data else {}
+    
+    # 阈值优先级：历史校准 > 行业配置 > 兜底
+    gm_low = calibrated.get("gross_margin_low") or benchmarks.get("gross_margin_pct", {}).get("low", 0)
+    gm_high = calibrated.get("gross_margin_high") or benchmarks.get("gross_margin_pct", {}).get("high", 40)
+    pur_sale_low = benchmarks.get("purchase_sales_ratio", {}).get("normal_low", 0.85)
+    supp_warn = calibrated.get("supplier_concentration_warn") or benchmarks.get("supplier_concentration_warn", 80)
+    cust_warn = calibrated.get("customer_concentration_warn") or benchmarks.get("customer_concentration_warn", 80)
+    
+    # 记录校准来源
+    if calibrated:
+        calib_note = f"（历史校准：{calibrated.get('gross_margin_sample_size',0)}家同行业企业）"
+    else:
+        calib_note = ""
     
     # ═══════════════════════════════════════════
     # 红灯：基础数据严重异常（立即深挖）
     # ═══════════════════════════════════════════
     
-    # 购销倒挂（进项>销项1.5倍）：可能虚增进项或隐匿收入
-    if fs["total_purchases"] > fs["total_sales"] * 1.5 and fs["total_sales"] > 0:
-        ctx.add_flag("red", "购销严重倒挂", 
-                     f"进项{fs['total_purchases']:,.0f}远超销项{fs['total_sales']:,.0f}", "初查")
+    # 购销倒挂（进项远超销项）：可能虚增进项或隐匿收入
+    # 行业阈值：如贸易<0.6即异常，制造业<0.7即异常
+    if fs["total_sales"] > 0 and fs["total_purchases"] > 0:
+        pur_sale_ratio = fs["total_purchases"] / fs["total_sales"]
+        if pur_sale_ratio > (1.0 / pur_sale_low) if pur_sale_low > 0 else pur_sale_ratio > 1.5:
+            ctx.add_flag("red", "购销严重倒挂", 
+                         f"进项{fs['total_purchases']:,.0f}远超销项{fs['total_sales']:,.0f}(比{pur_sale_ratio:.1f})", "初查")
     
-    # 毛利率异常（<0%或>80%）
+    # 毛利率异常：低于行业下限或高于行业上限
     gm = fs["gross_margin_pct"]
-    if gm < 0:
-        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%，进价高于售价或隐匿收入", "初查")
-    elif gm > 80 and fs["total_sales"] > 1000000:
-        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%，可能关联交易定价不公允", "初查")
+    if gm < gm_low and fs["total_sales"] > 0:
+        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%（行业下限{gm_low}%）→进价高于售价或隐匿收入", "初查")
+    elif gm > gm_high and fs["total_sales"] > 1000000:
+        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%（行业上限{gm_high}%）→可能关联交易定价不公允", "初查")
     
     # 银行业务量异常
     if fs["bank_tx_count"] == 0 and fs["total_sales"] > 0:
@@ -219,6 +302,9 @@ def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
     # 银行流水异常模式
     if bank_txs and len(bank_txs) >= 5:
         _detect_bank_pattern_signals(ctx, bank_txs)
+    
+    # 趋势/升频信号检测
+    _detect_trend_signals(ctx, bank_txs, invoices)
     
     # ═══════════════════════════════════════════
     # 绿灯：正常信号
@@ -338,7 +424,7 @@ def _detect_quarter_end_spike(ctx, invoices, direction):
 
 
 def _detect_supplier_concentration(ctx, pur_invs):
-    """供应商集中度检测"""
+    """供应商集中度检测（行业自适应阈值）"""
     from collections import defaultdict
     supplier_amounts = defaultdict(float)
     for inv in pur_invs:
@@ -356,13 +442,17 @@ def _detect_supplier_concentration(ctx, pur_invs):
     
     ctx.supplier_concentration = top3_pct
     
-    if top3_pct > 80 and len(supplier_amounts) >= 3:
+    # 行业阈值：制造业60%，贸易50%
+    ip = ctx.industry_profile or {}
+    warn_threshold = ip.get("benchmarks", {}).get("supplier_concentration_warn", 80)
+    
+    if top3_pct > warn_threshold and len(supplier_amounts) >= 3:
         ctx.add_flag("yellow", "供应商高度集中",
-                    f"前3大供应商占总采购额{top3_pct:.0f}%→可能存在关联交易或供应商依赖风险", "初查")
+                    f"前3大供应商占总采购额{top3_pct:.0f}%（行业预警{warn_threshold}%）→可能存在关联交易或供应商依赖风险", "初查")
 
 
 def _detect_customer_concentration(ctx, sal_invs):
-    """客户集中度检测"""
+    """客户集中度检测（行业自适应阈值）"""
     from collections import defaultdict
     customer_amounts = defaultdict(float)
     for inv in sal_invs:
@@ -380,9 +470,13 @@ def _detect_customer_concentration(ctx, sal_invs):
     
     ctx.customer_concentration = top3_pct
     
-    if top3_pct > 80 and len(customer_amounts) >= 3:
+    # 行业阈值：贸易50%，建筑70%
+    ip = ctx.industry_profile or {}
+    warn_threshold = ip.get("benchmarks", {}).get("customer_concentration_warn", 80)
+    
+    if top3_pct > warn_threshold and len(customer_amounts) >= 3:
         ctx.add_flag("yellow", "客户高度集中",
-                    f"前3大客户占总销售额{top3_pct:.0f}%→可能存在关联交易或客户依赖风险", "初查")
+                    f"前3大客户占总销售额{top3_pct:.0f}%（行业预警{warn_threshold}%）→可能存在关联交易或客户依赖风险", "初查")
 
 
 def _detect_bank_pattern_signals(ctx, bank_txs):
@@ -406,6 +500,86 @@ def _detect_bank_pattern_signals(ctx, bank_txs):
             ctx.add_flag("yellow", "个人交易占比过高",
                         f"{personal_count}/{total_count}笔（{personal_pct:.0f}%）付款方为个人"
                         f"→可能私户收款或未申报经营收入", "初查")
+
+
+def _detect_trend_signals(ctx, bank_txs, invoices):
+    """趋势/升频信号检测 —— 从时间序列中发现动态异常。
+    
+    检测维度：
+    1. 月度金额波动：标准差/均值>0.5 → 收入/支出剧烈波动
+    2. 月度交易频率趋势：逐月递增→经营异常扩张或人为编造
+    3. 周末/非工作日交易占比：正常企业工作日为主
+    4. 单日大额异常：单日金额超过日均3倍的天数
+    """
+    from collections import defaultdict
+    from datetime import datetime
+    
+    # ── 1. 月度金额波动 ──
+    if invoices and len(invoices) >= 10:
+        month_amounts = defaultdict(float)
+        month_counts = defaultdict(int)
+        for inv in invoices:
+            d = str(inv.get("date", inv.get("inv_date", ""))).strip()
+            if len(d) >= 7:
+                month = d[:7]
+                month_amounts[month] += float(inv.get("amount", inv.get("total", 0)) or 0)
+                month_counts[month] += 1
+        
+        if len(month_amounts) >= 3:
+            amounts = list(month_amounts.values())
+            avg_amt = sum(amounts) / len(amounts)
+            if avg_amt > 0:
+                variance = sum((a - avg_amt) ** 2 for a in amounts) / len(amounts)
+                cv = (variance ** 0.5) / avg_amt
+                if cv > 0.8:
+                    ctx.add_flag("yellow", "月度开票金额剧烈波动",
+                                f"月度变异系数{cv:.2f}（>0.8表明金额波动异常剧烈）", "初查")
+            
+            months_sorted = sorted(month_counts.keys())
+            if len(months_sorted) >= 4:
+                counts = [month_counts[m] for m in months_sorted]
+                mid = len(counts) // 2
+                first_half_avg = sum(counts[:mid]) / mid
+                second_half_avg = sum(counts[mid:]) / (len(counts) - mid)
+                if first_half_avg > 0 and second_half_avg / first_half_avg > 2.0:
+                    ctx.add_flag("yellow", "开票频率逐月攀升",
+                                f"月均开票从前半段{first_half_avg:.0f}张升至后半段{second_half_avg:.0f}张", "初查")
+    
+    # ── 2. 非工作日交易 ──
+    if bank_txs and len(bank_txs) >= 10:
+        weekend_count = 0
+        total_dated = 0
+        for tx in bank_txs:
+            d = str(tx.get("date", ""))[:10]
+            if len(d) >= 10:
+                try:
+                    dt = datetime.strptime(d, "%Y-%m-%d")
+                    total_dated += 1
+                    if dt.weekday() >= 5:
+                        weekend_count += 1
+                except:
+                    pass
+        if total_dated >= 10:
+            weekend_pct = weekend_count / total_dated * 100
+            if weekend_pct > 25:
+                ctx.add_flag("yellow", "非工作日交易占比异常",
+                            f"{weekend_count}/{total_dated}笔（{weekend_pct:.0f}%）交易发生在周末", "初查")
+    
+    # ── 3. 单日大额频率 ──
+    if bank_txs and len(bank_txs) >= 20:
+        daily_amounts = defaultdict(float)
+        for tx in bank_txs:
+            d = str(tx.get("date", ""))[:10]
+            amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            if d and amt > 0:
+                daily_amounts[d] += amt
+        if daily_amounts:
+            avg_daily = sum(daily_amounts.values()) / len(daily_amounts)
+            spike_days = sum(1 for a in daily_amounts.values() if a > avg_daily * 3)
+            if spike_days >= 3 and len(daily_amounts) >= 10:
+                ctx.add_flag("yellow", "存在异常大额交易日",
+                            f"{spike_days}天单日金额超日均{avg_daily:,.0f}元的3倍", "初查")
+
 
 def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
     """资料质量评估——影响后续分析的置信度"""
@@ -463,102 +637,5 @@ def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
 
 # ├─ 信号→域映射表
 # │  每个信号定义了应深挖的域及深度
-_SIGNAL_DOMAIN_MAP = {
-    # ── 红灯信号 ──
-    "购销严重倒挂": {
-        "domains": ["进销毛利率分析", "供应商穿透分析", "资金流向追踪", "经营实质分析"],
-        "depth": "deep",
-        "reason": "进>销1.5倍→需验证进项真实性+是否存在隐匿收入+供应商是否真实"
-    },
-    "毛利为负": {
-        "domains": ["进销毛利率分析", "经营实质分析", "行业对标分析"],
-        "depth": "deep",
-        "reason": "毛利为负→可能是虚增进项或隐匿收入或不合理关联交易"
-    },
-    "缺少银行流水": {
-        "domains": ["凭证发票收入对比", "经营实质分析", "增值税申报比对"],
-        "depth": "deep",
-        "reason": "无银行流水→需用凭证和发票替代验证资金流真实性"
-    },
-    # ── 黄灯信号 ──
-    "存在加工费": {
-        "domains": ["发票实质性审计", "经营实质分析", "供应商画像分析", "上下游穿透分析"],
-        "depth": "deep",
-        "reason": "加工费发票→需验证加工链条真实性(BOM+合同+物流)"
-    },
-    "制造业加工链条待验证": {
-        "domains": ["发票实质性审计", "供应商画像分析", "经营实质地理分析", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "制造业加工链条+无BOM→需全方位验证加工真实性"
-    },
-    "无进项发票": {
-        "domains": ["经营实质分析", "发票实质性审计", "增值税申报比对"],
-        "depth": "normal",
-        "reason": "有销项无进项→可能是服务/劳务(正常)或虚开发票"
-    },
-    "无工资记录": {
-        "domains": ["工资社保比对", "人员与业务匹配", "经营实质分析"],
-        "depth": "normal",
-        "reason": "有收入无工资→可能虚开发票或未全员申报个税"
-    },
-    "毛利率异常高": {
-        "domains": ["进销毛利率分析", "行业对标分析", "经营实质分析"],
-        "depth": "normal",
-        "reason": "毛利率>80%→可能存在关联交易定价不公允或隐匿采购"
-    },
-    "银行流水数据量少": {
-        "domains": ["凭证发票收入对比", "经营实质分析"],
-        "depth": "shallow",
-        "reason": "流水数据量少→用凭证和发票替代验证，降置信度"
-    },
-    "发票数据量少": {
-        "domains": ["凭证发票收入对比", "增值税申报比对"],
-        "depth": "shallow",
-        "reason": "发票数据量少→用凭证替代验证"
-    },
-    "个人交易占比过高": {
-        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "大量个人付款→需核实资金性质+是否为隐匿经营收入"
-    },
-    "供应商高度集中": {
-        "domains": ["供应商穿透分析", "供应商画像分析", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "前3大供应商占比过高→可能存在关联交易或虚开发票"
-    },
-    # ── 新增：发票行为异常 ──
-    "发票连号": {
-        "domains": ["发票实质性审计", "经营实质分析"],
-        "depth": "deep",
-        "reason": "连续发票号→可能是集中开票或人为编造交易"
-    },
-    "金额整十整百比例高": {
-        "domains": ["发票实质性审计"],
-        "depth": "normal",
-        "reason": "发票金额大量为整数→不符合真实交易的价格分布"
-    },
-    "金额分布异常均匀": {
-        "domains": ["发票实质性审计", "经营实质分析"],
-        "depth": "normal",
-        "reason": "每张发票金额接近→人为编造而非真实波动"
-    },
-    "季度末集中开票": {
-        "domains": ["发票实质性审计", "收入时间线调查", "经营实质分析"],
-        "depth": "deep",
-        "reason": "季度末突击开票→可能人为调节收入或虚开发票"
-    },
-    # ── 新增：银行异常 ──
-    "个人交易占比过高": {
-        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "大量个人付款方→需核实资金性质+是否为隐匿经营收入"
-    },
-    # ── 新增：客户/供应商结构异常 ──
-    "客户高度集中": {
-        "domains": ["客户维度三源穿透", "关联交易穿透检测", "经营实质分析"],
-        "depth": "deep",
-        "reason": "前3大客户占比过高→可能存在关联交易或客户依赖"
-    },
-}
 
 

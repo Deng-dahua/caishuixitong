@@ -3134,20 +3134,29 @@ def _analyze_business_credit(db, company_id, ps, pe, results):
 
 # ═══════════════════════════════════════════════════════════════
 #  二十二、行业专项指标（新增 P2）
+# 数据源：static/industry_data.json → benchmarks_coarse（10大行业粗分）
 # ═══════════════════════════════════════════════════════════════
 
-INDUSTRY_BENCHMARKS = {
-    "制造业": {"gross_margin": 15, "vat_burden": 3.0},
-    "建筑业": {"gross_margin": 10, "vat_burden": 2.5},
-    "批发零售": {"gross_margin": 5, "vat_burden": 1.0},
-    "交通运输": {"gross_margin": 15, "vat_burden": 2.0},
-    "住宿餐饮": {"gross_margin": 40, "vat_burden": 2.5},
-    "信息技术": {"gross_margin": 25, "vat_burden": 3.0},
-    "租赁商务": {"gross_margin": 20, "vat_burden": 2.0},
-    "居民服务": {"gross_margin": 30, "vat_burden": 2.5},
-    "文化体育": {"gross_margin": 25, "vat_burden": 2.5},
-    "房地产": {"gross_margin": 30, "vat_burden": 3.5},
-}
+def _load_coarse_benchmarks():
+    """加载粗分行业基准值（从JSON外部化）"""
+    import os
+    json_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_data.json")
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            return json.load(f).get("benchmarks_coarse", {})
+    except Exception:
+        return {
+            "制造业": {"gross_margin": 15, "vat_burden": 3.0},
+            "建筑业": {"gross_margin": 10, "vat_burden": 2.5},
+            "批发零售": {"gross_margin": 5, "vat_burden": 1.0},
+            "交通运输": {"gross_margin": 15, "vat_burden": 2.0},
+            "住宿餐饮": {"gross_margin": 40, "vat_burden": 2.5},
+            "信息技术": {"gross_margin": 25, "vat_burden": 3.0},
+            "租赁商务": {"gross_margin": 20, "vat_burden": 2.0},
+            "居民服务": {"gross_margin": 30, "vat_burden": 2.5},
+            "文化体育": {"gross_margin": 25, "vat_burden": 2.5},
+            "房地产": {"gross_margin": 30, "vat_burden": 3.5},
+        }
 
 
 def _analyze_industry_specific(db, company_id, ps, pe, results):
@@ -3156,11 +3165,12 @@ def _analyze_industry_specific(db, company_id, ps, pe, results):
     if not company:
         return
     company_info = (company.business_scope or '') + (company.company_type or '')
+    benchmarks = _load_coarse_benchmarks()
     benchmark = None
     found_industry = None
-    for key in INDUSTRY_BENCHMARKS:
+    for key in benchmarks:
         if key in company_info:
-            benchmark = INDUSTRY_BENCHMARKS[key]
+            benchmark = benchmarks[key]
             found_industry = key
             break
 

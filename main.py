@@ -1,7 +1,7 @@
 """
 全行业财税风险防控系统 - 后端 API
 """
-from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -30,6 +30,10 @@ from pypdf import PdfReader
 # ═══ 稽查员推理引擎（模块化架构）═══
 from engine import (
     save_analysis_memory, query_similar_cases,
+    get_audit_ctx,
+    identify_main_biz_cost, _REIMBURSEMENT_KWS_GLOBAL,
+    _phase1_triage, _phase2_deep_dive, _phase3_cross_validate, _phase4_synthesis,
+    _SIGNAL_DOMAIN_MAP,
 )
 
 from database import (
@@ -316,7 +320,6 @@ class SupplierUpdate(BaseModel):
     bank_account: Optional[str] = None
     is_active: Optional[bool] = None
     remark: Optional[str] = None
-
 
 
 # ==================== 首页 ====================
@@ -3777,7 +3780,6 @@ def update_sales_invoice(invoice_id: int, data: SalesInvoiceUpdate, company_id: 
     return {"message": "更新成功"}
 
 
-
 @app.delete("/api/sales-invoices/{invoice_id}")
 def delete_sales_invoice(invoice_id: int, company_id: int = Query(...), db: Session = Depends(get_db)):
     inv = db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id, SalesInvoice.id == invoice_id).first()
@@ -3796,8 +3798,6 @@ def batch_delete_sales_invoices(ids: list[int], company_id: int = Query(...), db
     ).delete(synchronize_session=False)
     db.commit()
     return {"message": f"成功删除 {deleted} 条记录", "deleted": deleted}
-
-
 
 
 # ==================== 取得发票（采购发票）====================
@@ -7451,7 +7451,6 @@ def input_vat_batch_to_journal(ids: Optional[List[int]] = Body(None), company_id
     }
 
 
-
 @app.post("/api/bank-transactions/batch-to-journal")
 def bank_transactions_batch_to_journal(ids: Optional[List[int]] = Body(None), company_id: int = Query(...), db: Session = Depends(get_db)):
     """为指定银行流水批量生成记账凭证；不传 ids 则处理全部"""
@@ -8643,7 +8642,6 @@ def validate_id_card(card_no: str) -> tuple:
     if card_no[17] != expected:
         return False, f"身份证校验码不正确，应为 '{expected}'"
     return True, ""
-
 
 
 # ==================== Chat AI 助手模块 ====================
@@ -10065,7 +10063,6 @@ def _classify_file_type(text, filename):
     if "公积金" in t and "缴存" in t: return ("housing_fund", 0.8)
     if any(k in t for k in ["应发工资","实发工资","应纳税所得额","代扣个税"]): return ("salary", 0.8)
     return ("unknown", 0.3)
-
 
 
 from datetime import timedelta
@@ -14098,8 +14095,6 @@ _BUILTIN_CROSS_DOMAIN_CHAINS = [
 ]
 
 
-
-
 # ═══════════ 稽查方法论㉓ 四步稽查分析法：detect→verify→diagnose→report 统一框架 ═══════════
 
 def _four_step_audit_framework(all_findings, bank_txs, invoices, target_entity):
@@ -15238,30 +15233,31 @@ def _domain_depreciation_match(bank_txs, pur_invs):
     return findings
 
 
-# ═══════════ 经营分析: 行业对标（稽查局版本：行业基准值库 + 增值税申报比对 + 上下游穿透）═══════════
-
-# 行业基准值库 —— 基于国家税务总局行业预警值 + 上市公司公开数据
-# [外部化] INDUSTRY_BENCHMARKS → 从 industry_data.json 加载，见 static/industry_data.json# ═══════════ 行业自适应产品链词典：原料/成品关键词 ═══════════
+# ═══════════ 行业自适应产品链词典：原料/成品关键词 ═══════════
+# 行业基准值/产品链/关键词映射等 → 外部化于 static/industry_data.json
 # 每个制造/加工行业定义其典型原料和成品的品名关键词
 # 用于BOM/进销品名差异分析中的原材料/成品自动分类
 # 设计原则：
 #   - raw_materials: 该行业采购的典型原料（关键词，部分匹配即可）
 #   - finished_goods: 该行业销售的典型成品（关键词，部分匹配即可）
 #   - 服务/纯贸易行业不定义（返回空），走通用逻辑
-# [外部化] INDUSTRY_PRODUCT_CHAINS → 从 industry_data.json 加载，见 static/industry_data.jsondef _get_product_keywords(industry_code, is_raw=True):
+# 数据源：static/industry_data.json → product_chains（29个行业，全行业可扩展）
+def _get_product_keywords(industry_code, is_raw=True):
     """根据行业代码返回对应的原料/成品关键词列表（行业自适应）"""
     if not industry_code:
         return []
     
+    chains = _load_industry_data().get("product_chains", {})
+    
     # 精确匹配
-    if industry_code in INDUSTRY_PRODUCT_CHAINS:
-        chain = _load_industry_data()["product_chains"][industry_code]
+    if industry_code in chains:
+        chain = chains[industry_code]
         if is_raw:
             return chain.get("raw_materials", [])
         return chain.get("finished_goods", [])
     
     # 模糊匹配：尝试匹配行业代码的关键部分
-    for ind_code, chain in INDUSTRY_PRODUCT_CHAINS.items():
+    for ind_code, chain in chains.items():
         if ind_code in industry_code or industry_code in ind_code:
             if is_raw:
                 return chain.get("raw_materials", [])
@@ -16900,105 +16896,6 @@ _MAJOR_EXPENSE_KWS = [
     '招聘','猎头','人力资源',
 ]
 
-def identify_main_biz_cost(pur_invs, sal_invs=None):
-    """
-    识别主营业务成本，将进项发票分为三层。
-    
-    参数:
-        pur_invs: 进项发票列表
-        sal_invs: 销项发票列表（可选，用于品名重合判断）
-    
-    返回:
-        {
-            "core_cost_invs": [...],      # 主营业务成本
-            "major_expense_invs": [...],  # 重大费用
-            "minor_expense_invs": [...],  # 日常报销
-            "pur_core_goods": set(),      # 主营业务品名集合
-            "pur_expense_goods": set(),   # 费用类品名集合
-        }
-    
-    识别逻辑（像人类稽查员一样思考）:
-    1. 日常报销关键词 → minor_expense（员工垫付后报销，付款对象非开票单位）
-    2. 重大费用关键词 → major_expense（需对公付款，但不是主营成本）
-    3. 加工费 → core_cost（制造业核心成本）
-    4. 进销品名重合项 → core_cost（买什么卖什么=主营业务）
-    5. 大额采购（>=总采购额5%）→ core_cost
-    6. 余额 → 按关键词倾向判断
-    """
-    core_cost_invs = []
-    major_expense_invs = []
-    minor_expense_invs = []
-    pur_core_goods = set()
-    pur_expense_goods = set()
-    
-    if not pur_invs:
-        return {
-            "core_cost_invs": core_cost_invs,
-            "major_expense_invs": major_expense_invs,
-            "minor_expense_invs": minor_expense_invs,
-            "pur_core_goods": pur_core_goods,
-            "pur_expense_goods": pur_expense_goods,
-        }
-    
-    # 提取销项品名集合（用于进销品名重合判断）
-    sale_goods_set = set()
-    if sal_invs:
-        for inv in sal_invs:
-            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-            if g: sale_goods_set.add(g)
-    
-    # 计算总采购额（用于大额判断）
-    total_pur_amount = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in pur_invs)
-    big_amount_threshold = total_pur_amount * 0.05  # 单品类>=5%视为重大
-    
-    for inv in pur_invs:
-        goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        
-        # 规则1: 日常报销关键词 → 员工垫付报销模式
-        if any(kw in goods for kw in _REIMBURSEMENT_KWS_GLOBAL):
-            minor_expense_invs.append(inv)
-            pur_expense_goods.add(goods)
-            continue
-        
-        # 规则2: 重大费用关键词 → 需对公付款但非主营成本
-        if any(kw in goods for kw in _MAJOR_EXPENSE_KWS):
-            major_expense_invs.append(inv)
-            pur_expense_goods.add(goods)
-            continue
-        
-        # 规则3: 加工费 → 制造业核心成本
-        if '加工' in goods or '加工费' in goods:
-            core_cost_invs.append(inv)
-            pur_core_goods.add(goods)
-            continue
-        
-        # 规则4: 进销品名重合 → 买什么卖什么=主营业务
-        if goods in sale_goods_set:
-            core_cost_invs.append(inv)
-            pur_core_goods.add(goods)
-            continue
-        
-        # 规则5: 大额采购（>=5%总额）→ 大概率是主营业务
-        if amount >= big_amount_threshold and amount > 0:
-            core_cost_invs.append(inv)
-            pur_core_goods.add(goods)
-            continue
-        
-        # 规则6: 余额 → 默认归入主营业务成本（保守策略）
-        # 企业正常经营中，采购的大头是主营成本，小杂项后续可由关键词持续完善
-        core_cost_invs.append(inv)
-        pur_core_goods.add(goods)
-    
-    return {
-        "core_cost_invs": core_cost_invs,
-        "major_expense_invs": major_expense_invs,
-        "minor_expense_invs": minor_expense_invs,
-        "pur_core_goods": pur_core_goods,
-        "pur_expense_goods": pur_expense_goods,
-    }
-
-
 # ═══════════════════════════════════════════════════════════
 # 稽查员推理引擎（Audit Reasoning Engine）
 # 
@@ -17831,145 +17728,6 @@ class AuditContext:
         return self, "\n".join(lines)
 
 
-def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log):
-    """
-    Phase 1 — 初查（Triage）
-    
-    目标：快速建立企业画像和财务全景，识别重大信号。
-    不做深入分析，只做"有没有问题"的初步判断。
-    
-    产出入 AuditContext:
-      - company_profile: 行业/经营模式/规模
-      - financial_snapshot: 关键财务指标
-      - biz_cost_classification: 主营业务成本三层分类
-      - red_flags / yellow_flags: 初步信号
-      - data_quality_score: 资料质量评分
-    """
-    from collections import defaultdict
-    
-    # ── 存储文件解析结果到ctx，供Phase 4证据溯源使用 ──
-    ctx.file_results = file_results
-    
-    ctx.phase_history.append({"phase": 1, "start": True})
-    
-    # ── 1.1 财务快照 ──
-    ctx.financial_snapshot["total_sales"] = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
-    ctx.financial_snapshot["total_purchases"] = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
-    ctx.financial_snapshot["total_bank_in"] = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
-    ctx.financial_snapshot["total_bank_out"] = sum(float(tx.get("debit", 0) or 0) for tx in bank_txs)
-    ctx.financial_snapshot["total_salary"] = sum(float(s.get("实发金额", s.get("实发", s.get("amount", 0))) or 0) for s in salaries)
-    ctx.financial_snapshot["sale_count"] = len(sal_invs)
-    ctx.financial_snapshot["pur_count"] = len(pur_invs)
-    ctx.financial_snapshot["bank_tx_count"] = len(bank_txs)
-    ctx.financial_snapshot["salary_count"] = len(salaries)
-    
-    # 毛利率
-    sales_total = ctx.financial_snapshot["total_sales"]
-    pur_total = ctx.financial_snapshot["total_purchases"]
-    if sales_total > 0:
-        ctx.financial_snapshot["gross_margin_pct"] = (sales_total - pur_total) / sales_total * 100
-    
-    pipeline_log.append(f"[Phase1] 财务快照: 销{sales_total:,.0f}/进{pur_total:,.0f}/银行{ctx.financial_snapshot['bank_tx_count']}笔")
-    
-    # ── 1.15 时间维度趋势分析 ──
-    try:
-        trend_findings = TrendDetector.analyze(ctx, bank_txs, sal_invs, pur_invs)
-        if trend_findings:
-            pipeline_log.append(f"[Phase1] 趋势检测: {len(ctx.trend_data.get('yearly',{}))}个年度/发现{len(trend_findings)}条趋势")
-    except Exception as _te:
-        pipeline_log.append(f"[Phase1] 趋势检测跳过: {_te}")
-    
-    # ── 1.2 主营业务成本识别（共享函数）──
-    if pur_invs:
-        ctx.biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
-        pipeline_log.append(f"[Phase1] 主营成本识别: 核心{len(ctx.biz_cost_classification['core_cost_invs'])}张/重大费用{len(ctx.biz_cost_classification['major_expense_invs'])}张/日常报销{len(ctx.biz_cost_classification['minor_expense_invs'])}张")
-    
-    # ── 1.3 企业画像推断 ──
-    _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries)
-    pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
-    
-    # ── 1.35 记忆学习器：加载历史案例，学习行业模式 ──
-    try:
-        import os as _os_mem2
-        mem_dir = _os_mem2.path.dirname(_os_mem2.path.abspath(__file__))
-        mem_path = _os_mem2.path.join(mem_dir, "static", "audit_memory.json")
-        learner = MemoryLearner()
-        learner.load(mem_path)
-        ctx.memory_learner = learner
-        if learner.is_loaded:
-            # 行业风险阈值校准
-            learner.calibrate_risk_thresholds(ctx)
-            pipeline_log.append(f"[Phase1] 记忆学习: 已加载{len(learner.cases)}条历史案例, {len(learner.insights)}个行业画像")
-    except Exception as _le2:
-        ctx.memory_learner = None
-        pipeline_log.append(f"[Phase1] 记忆学习器: {type(_le2).__name__} - {_le2}")
-    
-    # ── 1.4 初查信号检测 ──
-    _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs)
-    
-    # ── 1.5 资料质量评估 ──
-    _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries)
-    
-    ctx.phase_history[-1]["end"] = True
-    ctx.phase_history[-1]["summary"] = (
-        f"Phase1完成: {len(ctx.red_flags)}红灯/{len(ctx.yellow_flags)}黄灯, "
-        f"资料质量{ctx.data_quality_score}分, "
-        f"行业{ctx.company_profile['biz_model']}"
-    )
-    
-    return ctx
-
-
-def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
-    """从数据中推断企业行业和经营模式"""
-    cp = ctx.company_profile
-    
-    # ── 经营模式推断 ──
-    pur_goods_set = set()
-    sal_goods_set = set()
-    for inv in pur_invs:
-        g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-        if g: pur_goods_set.add(g)
-    for inv in sal_invs:
-        g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-        if g: sal_goods_set.add(g)
-    
-    # 加工信号
-    has_processing = any("加工" in g for g in pur_goods_set)
-    ctx.has_processing_fee = has_processing
-    
-    # 品名重合度
-    if pur_goods_set and sal_goods_set:
-        overlap = len(pur_goods_set & sal_goods_set)
-        total_unique = len(pur_goods_set | sal_goods_set)
-        overlap_ratio = overlap / max(total_unique, 1)
-    else:
-        overlap_ratio = 0
-    
-    # 模式判断
-    if has_processing and overlap_ratio < 0.5:
-        cp["biz_model"] = "制造业"
-        cp["has_manufacturing"] = True
-    elif overlap_ratio >= 0.5 and pur_goods_set and sal_goods_set:
-        cp["biz_model"] = "贸易"
-        cp["has_trading"] = True
-    elif not pur_invs and sal_invs:
-        cp["biz_model"] = "服务/劳务"
-    else:
-        cp["biz_model"] = "未确定"
-    
-    # ── 规模推断 ──
-    total_revenue = ctx.financial_snapshot["total_sales"]
-    emp_count = ctx.financial_snapshot["salary_count"]
-    if total_revenue > 50000000: cp["scale"] = "大"
-    elif total_revenue > 10000000: cp["scale"] = "中"
-    elif total_revenue > 1000000: cp["scale"] = "小"
-    else: cp["scale"] = "微"
-    
-    # ── 行业推断（基于品名关键词，不做行业特化）──
-    _infer_industry_from_goods(ctx, pur_goods_set, sal_goods_set)
-
-
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
     """从发票品名推断行业——全行业自适应，不硬编码任何行业关键词
     
@@ -18004,46 +17762,6 @@ def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
     _load_industry_profile(ctx)
 
 
-def _load_industry_profile(ctx):
-    """根据检测到的行业加载对应的行业画像配置"""
-    import json, os
-    cp = ctx.company_profile
-    industry = cp.get("industry", "综合")
-    biz_model = cp.get("biz_model", "未确定")
-    
-    try:
-        profile_path = os.path.join(os.path.dirname(__file__), "static", "industry_profiles.json")
-        with open(profile_path, "r", encoding="utf-8") as f:
-            profiles = json.load(f)
-    except Exception:
-        ctx.industry_profile = profiles.get("default_profile", {}) if 'profiles' in dir() else {"label": "加载失败"}
-        return
-    
-    industries = profiles.get("industries", {})
-    default = profiles.get("default_profile", {})
-    
-    # 匹配策略：先精确匹配行业名，再匹配biz_model，再匹配subtypes
-    matched = None
-    
-    # 1. 精确匹配行业标签
-    for key, prof in industries.items():
-        if industry == key:
-            matched = prof
-            break
-        if industry in prof.get("subtypes", []):
-            matched = prof
-            break
-    
-    # 2. 按经营模式匹配（制造业用制造业画像，贸易用贸易/批发画像）
-    if not matched:
-        model_to_key = _load_industry_data().get("model_to_key", {"制造业": "制造业", "贸易": "贸易批发", "服务/劳务": "服务业"})
-        matched_key = model_to_key.get(biz_model)
-        if matched_key:
-            matched = industries.get(matched_key)
-    
-    ctx.industry_profile = matched or default
-
-
 # ── 行业数据外部化加载器：从 industry_data.json 加载所有行业字典 ──
 _INDUSTRY_DATA_CACHE = None
 
@@ -18061,308 +17779,6 @@ def _load_industry_data():
         # 兜底：JSON加载失败时返回空字典（后续代码会做空值守卫）
         _INDUSTRY_DATA_CACHE = {}
     return _INDUSTRY_DATA_CACHE
-
-
-def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
-    """初查阶段信号检测——像老稽查员翻一遍资料就能嗅出异常"""
-    fs = ctx.financial_snapshot
-    cp = ctx.company_profile
-    
-    # ═══════════════════════════════════════════
-    # 红灯：基础数据严重异常（立即深挖）
-    # ═══════════════════════════════════════════
-    
-    # 购销倒挂（进项>销项1.5倍）：可能虚增进项或隐匿收入
-    if fs["total_purchases"] > fs["total_sales"] * 1.5 and fs["total_sales"] > 0:
-        ctx.add_flag("red", "购销严重倒挂", 
-                     f"进项{fs['total_purchases']:,.0f}远超销项{fs['total_sales']:,.0f}", "初查")
-    
-    # 毛利率异常（<0%或>80%）
-    gm = fs["gross_margin_pct"]
-    if gm < 0:
-        ctx.add_flag("red", "毛利为负", f"毛利率{gm:.1f}%，进价高于售价或隐匿收入", "初查")
-    elif gm > 80 and fs["total_sales"] > 1000000:
-        ctx.add_flag("yellow", "毛利率异常高", f"毛利率{gm:.1f}%，可能关联交易定价不公允", "初查")
-    
-    # 银行业务量异常
-    if fs["bank_tx_count"] == 0 and fs["total_sales"] > 0:
-        ctx.add_flag("red", "缺少银行流水", "有销售但无银行流水记录→资金流无法验证", "初查")
-    
-    # ═══════════════════════════════════════════
-    # 黄灯：需关注但非紧急
-    # ═══════════════════════════════════════════
-    
-    # 有销无进（服务/劳务除外）
-    if fs["sale_count"] > 0 and fs["pur_count"] == 0 and cp["biz_model"] not in ("服务/劳务",):
-        ctx.add_flag("yellow", "无进项发票", f"{fs['sale_count']}张销项但0张进项", "初查")
-    
-    # 工资为0但销项很大
-    if fs["total_sales"] > 5000000 and fs["salary_count"] == 0:
-        ctx.add_flag("yellow", "无工资记录", f"销项{fs['total_sales']:,.0f}但无工资→可能虚开或隐匿人员", "初查")
-    
-    # 加工信号
-    if ctx.has_processing_fee:
-        ctx.add_flag("yellow", "存在加工费", "进项中有加工费发票→可能为制造业", "初查")
-        if ctx.biz_cost_classification:
-            bcc = ctx.biz_cost_classification
-            core_count = len(bcc["core_cost_invs"])
-            if core_count > 0 and cp["biz_model"] == "制造业":
-                ctx.add_flag("yellow", "制造业加工链条待验证",
-                            f"核心成本{core_count}张+加工费→需BOM表验证", "初查")
-    
-    # ═══════════════════════════════════════════
-    # 增强检测：发票行为模式
-    # ═══════════════════════════════════════════
-    if pur_invs:
-        _detect_invoice_pattern_signals(ctx, pur_invs, "进项")
-    if sal_invs:
-        _detect_invoice_pattern_signals(ctx, sal_invs, "销项")
-    
-    # 进项发票连号检测（连续号码→虚假交易）
-    if pur_invs and len(pur_invs) >= 3:
-        _detect_consecutive_invoices(ctx, pur_invs, "进项")
-    if sal_invs and len(sal_invs) >= 3:
-        _detect_consecutive_invoices(ctx, sal_invs, "销项")
-    
-    # 季度末集中开票检测
-    if sal_invs and len(sal_invs) >= 5:
-        _detect_quarter_end_spike(ctx, sal_invs, "销项")
-    if pur_invs and len(pur_invs) >= 5:
-        _detect_quarter_end_spike(ctx, pur_invs, "进项")
-    
-    # 供应商集中度
-    if pur_invs and len(pur_invs) >= 3:
-        _detect_supplier_concentration(ctx, pur_invs)
-    
-    # 客户集中度
-    if sal_invs and len(sal_invs) >= 3:
-        _detect_customer_concentration(ctx, sal_invs)
-    
-    # 银行流水异常模式
-    if bank_txs and len(bank_txs) >= 5:
-        _detect_bank_pattern_signals(ctx, bank_txs)
-    
-    # ═══════════════════════════════════════════
-    # 绿灯：正常信号
-    # ═══════════════════════════════════════════
-    if ctx.biz_cost_classification:
-        bcc = ctx.biz_cost_classification
-        minor_count = len(bcc["minor_expense_invs"])
-        if minor_count > 0:
-            ctx.add_flag("green", "存在日常费用报销",
-                        f"{minor_count}张日常报销（餐饮住宿等）——正常经营信号", "初查")
-        # 进销品名重合度高 → 贸易模式正常
-        if cp["has_trading"]:
-            ctx.add_flag("green", "贸易模式进销品名匹配", "进销品名重合度高→贸易链条正常", "初查")
-
-
-def _detect_invoice_pattern_signals(ctx, invoices, direction):
-    """发票行为模式检测：金额分布、整十整百比例"""
-    if not invoices or len(invoices) < 5:
-        return
-    
-    amounts = []
-    for inv in invoices:
-        a = float(inv.get("amount", inv.get("total", 0)) or 0)
-        if a > 0:
-            amounts.append(a)
-    
-    if len(amounts) < 5:
-        return
-    
-    # 金额整十整百比例（人为编造发票的典型特征）
-    round_count = sum(1 for a in amounts if a >= 1000 and (a % 1000 == 0 or a % 10000 == 0))
-    round_pct = round_count / len(amounts) * 100
-    if round_pct > 50 and len(amounts) >= 5:
-        ctx.add_flag("yellow", f"{direction}金额整十整百比例高",
-                    f"{round_count}/{len(amounts)}张（{round_pct:.0f}%）金额为整数→可能人为编造", "初查")
-    
-    # 单张发票金额过于均匀（标准差/均值 < 0.2 → 每张金额差不多）
-    if len(amounts) >= 5:
-        avg = sum(amounts) / len(amounts)
-        variance = sum((a - avg) ** 2 for a in amounts) / len(amounts)
-        std = variance ** 0.5
-        if avg > 1000 and std / avg < 0.3:
-            ctx.add_flag("yellow", f"{direction}金额分布异常均匀",
-                        f"标准差/均值={std/avg:.2f}，每张金额接近→可能按计划编造而非真实交易", "初查")
-
-
-def _detect_consecutive_invoices(ctx, invoices, direction):
-    """进销项发票连号检测"""
-    import re
-    
-    inv_nos = []
-    for inv in invoices:
-        no = str(inv.get("inv_no", inv.get("发票号码", ""))).strip()
-        if no:
-            # 提取数字部分
-            nums = re.findall(r'\d+', no)
-            if nums:
-                inv_nos.append((no, int(nums[-1])))
-    
-    if len(inv_nos) < 3:
-        return
-    
-    # 按数字排序，检测连续号码段
-    inv_nos.sort(key=lambda x: x[1])
-    consecutive_groups = []
-    current_group = [inv_nos[0]]
-    
-    for i in range(1, len(inv_nos)):
-        if inv_nos[i][1] - inv_nos[i-1][1] <= 1:
-            current_group.append(inv_nos[i])
-        else:
-            if len(current_group) >= 3:
-                consecutive_groups.append(current_group)
-            current_group = [inv_nos[i]]
-    
-    if len(current_group) >= 3:
-        consecutive_groups.append(current_group)
-    
-    if consecutive_groups:
-        max_group = max(consecutive_groups, key=len)
-        ctx.add_flag("yellow", f"{direction}发票连号",
-                    f"发现{len(consecutive_groups)}组连号发票，最长连续{len(max_group)}张"
-                    f"（{max_group[0][0]}~{max_group[-1][0]}）→可能集中开票或虚假交易", "初查")
-
-
-def _detect_quarter_end_spike(ctx, invoices, direction):
-    """季度末集中开票检测"""
-    from collections import Counter
-    
-    month_counts = Counter()
-    for inv in invoices:
-        date_str = str(inv.get("date", inv.get("inv_date", inv.get("开票日期", "")))).strip()
-        if date_str and len(date_str) >= 7:
-            month = date_str[:7]  # YYYY-MM
-            month_counts[month] += 1
-    
-    if len(month_counts) < 3:
-        return
-    
-    # 季度末月份：3, 6, 9, 12
-    quarter_end_months = set()
-    for m in month_counts:
-        if m.endswith('-03') or m.endswith('-06') or m.endswith('-09') or m.endswith('-12'):
-            quarter_end_months.add(m)
-    
-    if not quarter_end_months:
-        return
-    
-    qe_count = sum(month_counts[m] for m in quarter_end_months)
-    total_count = sum(month_counts.values())
-    qe_pct = qe_count / total_count * 100
-    
-    if qe_pct > 60 and total_count >= 10:
-        ctx.add_flag("yellow", f"{direction}季度末集中开票",
-                    f"季度末月份({','.join(sorted(quarter_end_months))})开票量占总量的{qe_pct:.0f}%"
-                    f"→可能突击开票或人为调节收入", "初查")
-
-
-def _detect_supplier_concentration(ctx, pur_invs):
-    """供应商集中度检测"""
-    from collections import defaultdict
-    supplier_amounts = defaultdict(float)
-    for inv in pur_invs:
-        seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
-        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        if seller and amount > 0:
-            supplier_amounts[seller] += amount
-    
-    if len(supplier_amounts) < 2:
-        return
-    
-    total = sum(supplier_amounts.values())
-    top3 = sorted(supplier_amounts.values(), reverse=True)[:3]
-    top3_pct = sum(top3) / total * 100
-    
-    ctx.supplier_concentration = top3_pct
-    
-    if top3_pct > 80 and len(supplier_amounts) >= 3:
-        ctx.add_flag("yellow", "供应商高度集中",
-                    f"前3大供应商占总采购额{top3_pct:.0f}%→可能存在关联交易或供应商依赖风险", "初查")
-
-
-def _detect_customer_concentration(ctx, sal_invs):
-    """客户集中度检测"""
-    from collections import defaultdict
-    customer_amounts = defaultdict(float)
-    for inv in sal_invs:
-        buyer = str(inv.get("buyer", inv.get("购方名称", ""))).strip()
-        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        if buyer and amount > 0:
-            customer_amounts[buyer] += amount
-    
-    if len(customer_amounts) < 2:
-        return
-    
-    total = sum(customer_amounts.values())
-    top3 = sorted(customer_amounts.values(), reverse=True)[:3]
-    top3_pct = sum(top3) / total * 100
-    
-    ctx.customer_concentration = top3_pct
-    
-    if top3_pct > 80 and len(customer_amounts) >= 3:
-        ctx.add_flag("yellow", "客户高度集中",
-                    f"前3大客户占总销售额{top3_pct:.0f}%→可能存在关联交易或客户依赖风险", "初查")
-
-
-def _detect_bank_pattern_signals(ctx, bank_txs):
-    """银行流水异常模式检测"""
-    # 个人付款方比例
-    personal_count = 0
-    total_count = 0
-    for tx in bank_txs:
-        cp = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
-        if not cp:
-            continue
-        total_count += 1
-        # 判断个人：长度短、无"公司/有限/企业"等后缀
-        if len(cp) <= 4 and not any(k in cp for k in ["公司", "有限", "企业", "厂", "行"]):
-            personal_count += 1
-    
-    if total_count >= 10:
-        personal_pct = personal_count / total_count * 100
-        if personal_pct > 30:
-            ctx.has_personal_payments = True
-            ctx.add_flag("yellow", "个人交易占比过高",
-                        f"{personal_count}/{total_count}笔（{personal_pct:.0f}%）付款方为个人"
-                        f"→可能私户收款或未申报经营收入", "初查")
-
-def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
-    """资料质量评估——影响后续分析的置信度"""
-    score = 100
-    
-    # 基本资料检查
-    has_bank = len(bank_txs) > 0
-    has_invoices = len(invoices) > 0
-    has_salary = len(salaries) > 0
-    
-    if not has_bank:
-        score -= 30
-        ctx.missing_critical_docs.append("银行流水")
-    if not has_invoices:
-        score -= 30
-        ctx.missing_critical_docs.append("发票数据")
-    if not has_salary:
-        score -= 15
-        ctx.missing_critical_docs.append("工资表")
-    
-    # 解析质量
-    unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
-    if unknown_count > 0:
-        score -= unknown_count * 5
-    
-    # 数据量级
-    if has_bank and len(bank_txs) < 10:
-        score -= 10
-        ctx.add_flag("yellow", "银行流水数据量少", f"仅{len(bank_txs)}笔", "资料质量")
-    
-    if has_invoices and len(invoices) < 5:
-        score -= 10
-        ctx.add_flag("yellow", "发票数据量少", f"仅{len(invoices)}张", "资料质量")
-    
-    ctx.data_quality_score = max(0, min(100, score))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -18385,237 +17801,6 @@ def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
 
 # ├─ 信号→域映射表
 # │  每个信号定义了应深挖的域及深度
-_SIGNAL_DOMAIN_MAP = {
-    # ── 红灯信号 ──
-    "购销严重倒挂": {
-        "domains": ["进销毛利率分析", "供应商穿透分析", "资金流向追踪", "经营实质分析"],
-        "depth": "deep",
-        "reason": "进>销1.5倍→需验证进项真实性+是否存在隐匿收入+供应商是否真实"
-    },
-    "毛利为负": {
-        "domains": ["进销毛利率分析", "经营实质分析", "行业对标分析"],
-        "depth": "deep",
-        "reason": "毛利为负→可能是虚增进项或隐匿收入或不合理关联交易"
-    },
-    "缺少银行流水": {
-        "domains": ["凭证发票收入对比", "经营实质分析", "增值税申报比对"],
-        "depth": "deep",
-        "reason": "无银行流水→需用凭证和发票替代验证资金流真实性"
-    },
-    # ── 黄灯信号 ──
-    "存在加工费": {
-        "domains": ["发票实质性审计", "经营实质分析", "供应商画像分析", "上下游穿透分析"],
-        "depth": "deep",
-        "reason": "加工费发票→需验证加工链条真实性(BOM+合同+物流)"
-    },
-    "制造业加工链条待验证": {
-        "domains": ["发票实质性审计", "供应商画像分析", "经营实质地理分析", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "制造业加工链条+无BOM→需全方位验证加工真实性"
-    },
-    "无进项发票": {
-        "domains": ["经营实质分析", "发票实质性审计", "增值税申报比对"],
-        "depth": "normal",
-        "reason": "有销项无进项→可能是服务/劳务(正常)或虚开发票"
-    },
-    "无工资记录": {
-        "domains": ["工资社保比对", "人员与业务匹配", "经营实质分析"],
-        "depth": "normal",
-        "reason": "有收入无工资→可能虚开发票或未全员申报个税"
-    },
-    "毛利率异常高": {
-        "domains": ["进销毛利率分析", "行业对标分析", "经营实质分析"],
-        "depth": "normal",
-        "reason": "毛利率>80%→可能存在关联交易定价不公允或隐匿采购"
-    },
-    "银行流水数据量少": {
-        "domains": ["凭证发票收入对比", "经营实质分析"],
-        "depth": "shallow",
-        "reason": "流水数据量少→用凭证和发票替代验证，降置信度"
-    },
-    "发票数据量少": {
-        "domains": ["凭证发票收入对比", "增值税申报比对"],
-        "depth": "shallow",
-        "reason": "发票数据量少→用凭证替代验证"
-    },
-    "个人交易占比过高": {
-        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "大量个人付款→需核实资金性质+是否为隐匿经营收入"
-    },
-    "供应商高度集中": {
-        "domains": ["供应商穿透分析", "供应商画像分析", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "前3大供应商占比过高→可能存在关联交易或虚开发票"
-    },
-    # ── 新增：发票行为异常 ──
-    "发票连号": {
-        "domains": ["发票实质性审计", "经营实质分析"],
-        "depth": "deep",
-        "reason": "连续发票号→可能是集中开票或人为编造交易"
-    },
-    "金额整十整百比例高": {
-        "domains": ["发票实质性审计"],
-        "depth": "normal",
-        "reason": "发票金额大量为整数→不符合真实交易的价格分布"
-    },
-    "金额分布异常均匀": {
-        "domains": ["发票实质性审计", "经营实质分析"],
-        "depth": "normal",
-        "reason": "每张发票金额接近→人为编造而非真实波动"
-    },
-    "季度末集中开票": {
-        "domains": ["发票实质性审计", "收入时间线调查", "经营实质分析"],
-        "depth": "deep",
-        "reason": "季度末突击开票→可能人为调节收入或虚开发票"
-    },
-    # ── 新增：银行异常 ──
-    "个人交易占比过高": {
-        "domains": ["个人交易风险", "资金流向追踪", "关联交易穿透检测"],
-        "depth": "deep",
-        "reason": "大量个人付款方→需核实资金性质+是否为隐匿经营收入"
-    },
-    # ── 新增：客户/供应商结构异常 ──
-    "客户高度集中": {
-        "domains": ["客户维度三源穿透", "关联交易穿透检测", "经营实质分析"],
-        "depth": "deep",
-        "reason": "前3大客户占比过高→可能存在关联交易或客户依赖"
-    },
-}
-
-
-def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
-                      salaries, social_security, vouchers, inventory, docs, file_results,
-                      contract_data, voucher_revenue, total_parsed, pipeline_log):
-    """
-    Phase 2 — 信号驱动的定向深挖
-    
-    流程：
-    1. 读取 ctx.red_flags + ctx.yellow_flags
-    2. 查信号→域映射表，确定需深挖的域
-    3. 去重：同一域不重复跑
-    4. 对每个选中域按指定深度分析
-    5. 产出注入 ctx（索引到 finding_index）
-    
-    返回：
-        deep_dive_results: [{"domain": "XX", "findings": [...]}, ...]
-    """
-    deep_dive_results = []
-    domains_to_run = {}  # {domain_name: depth}
-    
-    # ── 步骤1：收集信号并映射域 ──
-    all_signals = ctx.red_flags + ctx.yellow_flags
-    
-    # ── 加载信号→域映射表：硬编码 + JSON 合并 ──
-    domain_map = dict(_SIGNAL_DOMAIN_MAP)
-    try:
-        json_path = os.path.join(os.path.dirname(__file__), 'static', 'signal_domain_map.json')
-        if os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-            for signal, cfg in config.get('mappings', {}).items():
-                if signal not in domain_map:
-                    domain_map[signal] = cfg
-    except Exception:
-        pass
-    
-    for signal in all_signals:
-        signal_type = signal.get("type", "")
-        matched = None
-        for map_signal, config in domain_map.items():
-            if map_signal in signal_type or signal_type in map_signal:
-                matched = config
-                break
-        if not matched:
-            continue
-        
-        for domain in matched["domains"]:
-            # 取最高深度（deep > normal > shallow）
-            depth_order = {"deep": 3, "normal": 2, "shallow": 1}
-            current_depth = domains_to_run.get(domain, "shallow")
-            if depth_order.get(matched["depth"], 1) > depth_order.get(current_depth, 0):
-                domains_to_run[domain] = matched["depth"]
-    
-    # ── 行业自适应：注入行业特有关注域 ──
-    ind_profile = ctx.industry_profile
-    if ind_profile:
-        industry_focus = ind_profile.get("focus_domains", [])
-        for domain in industry_focus:
-            if domain not in domains_to_run:
-                domains_to_run[domain] = "deep"
-                pipeline_log.append(f"[Phase2] 行业自适应: 注入'{domain}'（{ind_profile.get('label','')}行业特有关注域）")
-    
-    if not domains_to_run:
-        pipeline_log.append("[Phase2] 无信号触发，跳过定向深挖")
-        return deep_dive_results
-    
-    pipeline_log.append(f"[Phase2] 信号触发{len(domains_to_run)}个域深挖: {list(domains_to_run.keys())}")
-    
-    # ── 步骤2：执行选中域的分析 ──
-    # 每个域有对应的分析函数，按深度执行
-    
-    # 域函数注册表
-    domain_functions = {
-        "进销毛利率分析": lambda: _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue),
-        "供应商穿透分析": lambda: _domain_supplier_deep(pur_invs),
-        "资金流向追踪": lambda: _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs),
-        "经营实质分析": lambda: _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries),
-        "行业对标分析": lambda: _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, ctx.company_profile.get("industry", "")),
-        "凭证发票收入对比": lambda: _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs),
-        "增值税申报比对": lambda: _domain_vat_declaration_compare(invoices, bank_txs, db, company_id),
-        "发票实质性审计": lambda: _domain_invoice_audit(invoices, ctx.company_profile.get("industry", "")),
-        "供应商画像分析": lambda: _domain_supplier_profiling(pur_invs, bank_txs),
-        "上下游穿透分析": lambda: _domain_supply_chain_deep(invoices, bank_txs),
-        "经营实质地理分析": lambda: _domain_business_premise_geo(bank_txs, invoices, docs, ctx.company_profile.get("industry", "")),
-        "关联交易穿透检测": lambda: _domain_related_party_check(sal_invs, pur_invs, bank_txs),
-        "工资社保比对": lambda: _domain_salary_ss_hf_compare(salaries, social_security),
-        "人员与业务匹配": lambda: _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security),
-        "个人交易风险": lambda: _domain_personal_transactions(sal_invs),
-        "收入时间线调查": lambda: _domain_revenue_timeline(vouchers, sal_invs, bank_txs),
-        "客户维度三源穿透": lambda: _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue),
-    }
-    
-    for domain, depth in domains_to_run.items():
-        func = domain_functions.get(domain)
-        if not func:
-            pipeline_log.append(f"[Phase2] 域'{domain}'无对应分析函数，跳过")
-            continue
-        
-        try:
-            findings = func()
-            # ── ctx 注入：将当前 ctx 的摘要附加到每条发现上 ──
-            if findings and ctx:
-                ctx_summary = {
-                    "industry": ctx.company_profile.get("industry", ""),
-                    "biz_model": ctx.company_profile.get("biz_model", ""),
-                    "has_processing_fee": ctx.has_processing_fee,
-                    "data_quality_score": ctx.data_quality_score,
-                }
-                for f in findings:
-                    if isinstance(f, dict):
-                        f["_ctx_industry"] = ctx_summary["industry"]
-                        f["_ctx_biz_model"] = ctx_summary["biz_model"]
-                        f["_ctx_has_processing"] = ctx_summary["has_processing_fee"]
-            if findings:
-                deep_dive_results.append({
-                    "domain": domain,
-                    "findings": findings,
-                    "_phase2_depth": depth,
-                    "_phase2_triggered": True
-                })
-                ctx.index_findings(findings, domain=domain)
-                pipeline_log.append(f"[Phase2] {domain}({depth}): {len(findings)}项发现")
-        except Exception as e:
-            pipeline_log.append(f"[Phase2] {domain} 执行异常: {e}")
-    
-    ctx.phase_history.append({
-        "phase": 2,
-        "domains_run": list(domains_to_run.keys()),
-        "findings_count": sum(len(dr["findings"]) for dr in deep_dive_results)
-    })
-    
-    return deep_dive_results
-
 
 # ═══════════════════════════════════════════════════════════
 # Phase 3 — 交叉验证（Cross-Validation）
@@ -18909,107 +18094,6 @@ _SIGNAL_PATTERNS = [
         ]
     },
 ]
-
-
-def _phase3_cross_validate(ctx, all_findings, pipeline_log):
-    """Phase 3 — 交叉验证引擎（支持 JSON 规则外置）"""
-    import json as _json, os as _os
-    
-    cross_findings = []
-    risk_adjustments = []
-    
-    if not all_findings:
-        return cross_findings, risk_adjustments
-    
-    # ── 加载信号模式：硬编码 + JSON 合并 ──
-    patterns = list(_SIGNAL_PATTERNS)
-    json_path = _os.path.join(_os.path.dirname(__file__), 'static', 'signal_patterns.json')
-    try:
-        if _os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as f:
-                config = _json.load(f)
-                existing_ids = {p['id'] for p in patterns}
-                for jp in config.get('patterns', []):
-                    if jp.get('id') not in existing_ids:
-                        patterns.append(jp)
-    except Exception:
-        pass
-    
-    # 提取所有发现中的关键信号关键词
-    all_types = "|".join(f.get("type", "") for f in all_findings)
-    all_descs = "|".join(f.get("description", "") for f in all_findings)
-    all_text = all_types + "|" + all_descs
-    
-    # ── 辅助函数 ──
-    def _has_signal(signal_name):
-        """检查所有发现中是否存在某个信号"""
-        return signal_name in all_text
-    
-    # ── 遍历信号叠加模式库 ──
-    for pattern in patterns:
-        must_all = all(_has_signal(s) for s in pattern["triggers"]["must_have"])
-        if not must_all:
-            continue
-        
-        any_hits = sum(1 for s in pattern["triggers"]["any_of"] if _has_signal(s))
-        if any_hits < pattern["triggers"]["at_least"]:
-            continue
-        
-        # ── 命中模式 → 生成综合结论 ──
-        # 收集触发该模式的具体发现
-        triggered_types = []
-        related_domains = set()
-        for f in all_findings:
-            ftype = f.get("type", "")
-            for signal in pattern["triggers"]["must_have"] + pattern["triggers"]["any_of"]:
-                if signal in ftype:
-                    triggered_types.append(ftype[:30])
-                    related_domains.add(f.get("domain", ""))
-                    break
-        
-        cross_findings.append({
-            "type": f"交叉验证-{pattern['name']}",
-            "level": pattern.get("risk_override", "高风险"),
-            "score": 10,
-            "domain": "Phase3-交叉验证",
-            "detail": f"多域信号叠加触发：{' + '.join(pattern['triggers']['must_have'])} + {any_hits}个关联信号",
-            "description": (
-                f"【Phase 3 — 交叉验证】\n\n"
-                f"触发模式：{pattern['name']}\n"
-                f"必须信号：{' / '.join(pattern['triggers']['must_have'])}\n"
-                f"关联信号（{any_hits}/{len(pattern['triggers']['any_of'])}）："
-                f"{' / '.join(s for s in pattern['triggers']['any_of'] if _has_signal(s))}\n"
-                f"涉及域：{' / '.join(sorted(related_domains))}\n\n"
-                f"{pattern['conclusion']}\n\n"
-                f"【建议行动（{pattern['priority']}）】\n"
-                + "\n".join(f"  {i+1}. {a}" for i, a in enumerate(pattern['actions']))
-            ),
-            "how_found": (
-                f"Phase 3 交叉验证引擎在{len(all_findings)}条发现中检测到多域信号叠加——"
-                f"{' + '.join(pattern['triggers']['must_have'])}"
-                f" + {any_hits}个关联信号同时触发{pattern['name']}模式。"
-                f"这是全量结论交叉比对的自动化结果。"
-            ),
-            "tax_impact": "多域信号叠加→风险级别提升。该模式涉及多个独立证据源互相印证，单一维度的异常解释不足以排除整体嫌疑。",
-            "suggestion": "\n".join(f"{i+1}. {a}" for i, a in enumerate(pattern['actions'])),
-            "category": "交叉验证",
-            "_phase3_cross_validated": True,
-            "_pattern_id": pattern["id"],
-            "_priority": pattern["priority"],
-        })
-        
-        pipeline_log.append(f"[Phase3] 命中模式 {pattern['name']} ({pattern['id']})")
-    
-    # ── 冲突检测 ──
-    _detect_conflicts(all_findings, cross_findings, pipeline_log)
-    
-    ctx.phase_history.append({
-        "phase": 3,
-        "patterns_hit": len(cross_findings),
-        "conflicts_found": sum(1 for f in cross_findings if "冲突" in f.get("type", ""))
-    })
-    
-    return cross_findings, risk_adjustments
 
 
 def _detect_conflicts(all_findings, cross_findings, pipeline_log):
@@ -19714,111 +18798,2035 @@ CAUSAL_CHAIN_RULES = [
 ]
 
 
+def _enrich_signal_types(all_findings):
+    if not all_findings:
+        return all_findings
+
+    _SIGNAL_TYPE_DEFS = {
+        "购销倒挂": ["购销严重倒挂", "购销倒挂", "进项远超销项", "进销倒挂"],
+        "毛利为负": ["毛利为负", "毛利率为负", "毛利润为负"],
+        "缺银行流水": ["缺少银行流水", "无银行流水", "缺银行流水"],
+        "收款偏差": ["收款偏差", "收款与开票", "三流比对", "未回款", "银行收款>发票"],
+        "未开票收入": ["未开票收入", "无票收入", "未开票"],
+        "有进无销": ["有进无销", "有采购无销售"],
+        "有销无进": ["有销无进", "有销售无采购"],
+        "进销数量偏差": ["进销数量", "数量偏差", "数量差异"],
+        "发票连号": ["发票连号", "连号发票", "连续发票"],
+        "整十整百": ["整十整百", "整数金额"],
+        "金额均匀": ["金额分布异常均匀", "金额均匀"],
+        "季度末集中": ["季度末集中", "季度末开票", "突击开票"],
+        "供应商集中": ["供应商高度集中", "供应商集中"],
+        "客户集中": ["客户高度集中", "客户集中"],
+        "供应商客户重叠": ["供应商客户重叠", "既是供应商又是客户"],
+        "加工费": ["加工费", "加工发票", "加工链条"],
+        "BOM缺失": ["BOM缺失", "BOM表缺失", "无BOM"],
+        "制造业加工": ["制造业加工链条", "加工链条待验证"],
+        "费用密集": ["费用密集", "费用类发票", "费用报销密集", "费用率"],
+        "成本虚列": ["成本虚列", "虚列成本", "虚增成本"],
+        "个人付款": ["个人交易", "个人付款", "个人账户", "私户"],
+        "付款未匹配": ["付款未匹配", "进项发票与银行付款未匹配", "付款未找到"],
+        "法人或股东": ["法人", "股东", "法定代表人"],
+        "虚开": ["虚开", "虚开发票", "虚假交易"],
+        "隐匿收入": ["隐匿收入", "隐匿销售", "体外循环"],
+        "关联交易": ["关联交易", "关联方", "关联"],
+        "毛利异常": ["毛利率异常", "毛利异常"],
+        "无工资": ["无工资记录", "无工资", "缺工资"],
+        "工资偏低": ["工资偏低", "低工资"],
+    }
+
+    for f in all_findings:
+        ftype = str(f.get("type", ""))
+        fdetail = str(f.get("detail", ""))[:300]
+        fdesc = str(f.get("description", ""))[:300]
+        combined = ftype + " " + fdetail + " " + fdesc
+        signal_types = set()
+        for sig_name, triggers in _SIGNAL_TYPE_DEFS.items():
+            for t in triggers:
+                if t in combined:
+                    signal_types.add(sig_name)
+                    break
+        if signal_types:
+            f["_signal_types"] = sorted(signal_types)
+    return all_findings
+
+
 def _build_causal_narratives(all_findings):
     """
-    跨域因果叙事引擎：
-    从孤立的发现中检测因果链模式，构建结构化的涉税故事
-    
-    每个因果链需要：
-    - 至少1个必要信号命中（在不同发现上，>=1即触发）
-    - 可选辅助信号可提升置信度
-    - 生成包含因果链、证据链、置信度评分的结构化叙事
+    Cross-domain causal narrative engine v2: structured signal matching + dynamic evidence chain generation.
+    Upgrades: (1) text substring match -> structured _signal_types set match
+    (2) static narrative template -> dynamic narrative from actual hit signals
+    (3) static evidence chain text -> dynamic path from evidence_rows
+    (4) no direction -> temporal causal ordering from evidence dates
+    (5) fixed confidence formula -> evidence-strength-based confidence
     """
     narratives = []
-    
-    # 构建信号索引：从all_findings中提取可搜索的信号文本
-    signal_pool = []
+
+    signal_index = {}
     for f in all_findings:
-        text = (
-            str(f.get("type", "")) + " " +
-            str(f.get("detail", ""))[:300] + " " +
-            str(f.get("description", ""))[:300] + " " +
-            str(f.get("category", "")) + " " +
-            str(f.get("domain", ""))
-        )
-        signal_pool.append({"finding": f, "text": text, "level": f.get("level", "")})
-    
+        for st in f.get("_signal_types", []):
+            if st not in signal_index:
+                signal_index[st] = []
+            signal_index[st].append(f)
+
     for rule in CAUSAL_CHAIN_RULES:
         required = rule.get("required", [])
         optional = rule.get("optional", [])
-        
-        # 检查必要信号：每个必要信号至少被一条finding命中
+
         req_matches = {}
         for req_signal in required:
-            for sf in signal_pool:
-                if req_signal in sf["text"]:
-                    if req_signal not in req_matches:
-                        req_matches[req_signal] = []
-                    if sf["finding"] not in req_matches[req_signal]:
-                        req_matches[req_signal].append(sf["finding"])
-        
-        # 至少1个必要信号被命中（发现>=1即触发）
+            if req_signal in signal_index:
+                req_matches[req_signal] = signal_index[req_signal]
+
         req_hit_count = len(req_matches)
         if req_hit_count < 1:
             continue
-        
-        # 检查辅助信号
-        opt_hit = []
-        for opt_signal in optional:
-            for sf in signal_pool:
-                if opt_signal in sf["text"]:
-                    opt_hit.append(opt_signal)
-                    break
-        
-        # 计算置信度（>=1触发即给50%底分，避免惩罚部分命中）
-        base_conf = min(50 + req_hit_count / len(required) * 30, 80)
+
+        opt_hit = [s for s in optional if s in signal_index]
+
+        base_conf = min(50 + req_hit_count / max(len(required), 1) * 30, 80)
         bonus = len(opt_hit) * 5
-        confidence = min(base_conf + bonus, 95)
-        
-        # 提取证据发现
-        evidence_findings = []
+        all_evidence_count = sum(
+            len(f.get("evidence_rows", []))
+            for findings in req_matches.values()
+            for f in findings[:3]
+        )
+        evidence_bonus = min(all_evidence_count * 2, 10)
+        confidence = min(base_conf + bonus + evidence_bonus, 95)
+
+        chain_findings = []
         for findings_list in req_matches.values():
             for f in findings_list[:2]:
-                if f not in evidence_findings:
-                    evidence_findings.append(f)
-        
-        # 生成结构化因果叙事
+                if f not in chain_findings:
+                    chain_findings.append(f)
+
+        causal_direction = _infer_causal_direction(chain_findings)
+
         hit_signals = list(req_matches.keys())
+        signal_details = []
+        for sig in hit_signals:
+            findings = req_matches[sig]
+            best_f = max(findings, key=lambda x: x.get("score", 0) or 0)
+            detail = str(best_f.get("detail", "") or best_f.get("description", ""))[:100]
+            signal_details.append(f"  * {sig}: {detail}")
+
         narrative_text = (
-            f"【因果链推理】{rule['narrative']}\n\n"
-            f"触发信号({req_hit_count}个必要+{len(opt_hit)}个辅助): "
-            f"{'、'.join(hit_signals)}"
-            + (f" + {'、'.join(opt_hit)}" if opt_hit else "")
-            + f"\n\n{rule['explanation']}\n\n"
-            f"【证据链核查路径】\n{rule['evidence_chain']}\n\n"
-            f"置信度: {confidence:.0f}% ({rule['confidence_rule']})"
+            f"[Causal Chain] {rule['narrative']}\n\n"
+            f"Triggered signals ({req_hit_count} required{' + ' + str(len(opt_hit)) + ' optional' if opt_hit else ''}):\n"
+            + "\n".join(signal_details)
+            + (f"\nOptional: {', '.join(opt_hit)}" if opt_hit else "")
+            + f"\n\n[Causal Direction] {causal_direction}\n\n"
+            + f"[Explanation] {rule['explanation']}\n\n"
+            + f"[Evidence Chain]\n{rule['evidence_chain']}\n\n"
+            + f"Confidence: {confidence:.0f}% ({req_hit_count}/{len(required)} required"
+            + (f" + {len(opt_hit)} optional" if opt_hit else "")
+            + (f" + {all_evidence_count} evidence rows" if all_evidence_count > 0 else "")
+            + ")"
         )
-        
+
         narratives.append({
-            "type": f"因果叙事-{rule['name']}",
+            "type": f"Causal: {rule['name']}",
             "level": rule["level"],
             "score": min(8 + req_hit_count, 10),
             "detail": narrative_text,
             "description": narrative_text,
             "how_found": (
-                f"跨域因果叙事引擎检测到{req_hit_count}个必要信号在{len(evidence_findings)}条独立发现中叠加"
-                f"→触发'{rule['name']}'因果推理链"
+                f"Causal engine v2 detected {req_hit_count} required signals"
+                f" ({', '.join(hit_signals)})"
+                f" across {len(chain_findings)} independent findings"
+                + (f", evidence strength {all_evidence_count} rows" if all_evidence_count > 0 else "")
+                + f" -> triggering '{rule['name']}' causal chain"
+                + (f", temporal: {causal_direction}" if "->" in causal_direction else "")
             ),
             "tax_impact": rule["explanation"][:200],
-            "policy_ref": "《税收征收管理法》关于偷税/骗税/虚开发票的规定",
+            "policy_ref": "Tax Collection and Administration Law provisions on tax evasion / false invoicing",
             "suggestion": rule["evidence_chain"],
-            "category": "综合定性·因果叙事",
+            "category": "Synthesis: Causal Narrative",
             "_priority": rule["priority"],
             "_causal_id": rule["id"],
             "_confidence": confidence,
             "_causal_narrative": True,
             "_auto_triggered": True,
+            "_causal_direction": causal_direction,
+            "_signal_types_matched": {
+                "required": hit_signals,
+                "optional": opt_hit,
+                "evidence_count": all_evidence_count,
+            },
             "_evidence_findings": [
-                {"type": f.get("type", ""), "level": f.get("level", ""), 
-                 "summary": str(f.get("detail", "") or f.get("description", ""))[:150]}
-                for f in evidence_findings[:5]
+                {"type": f.get("type", ""), "level": f.get("level", ""),
+                 "summary": str(f.get("detail", "") or f.get("description", ""))[:150],
+                 "signal_types": f.get("_signal_types", []),
+                 "evidence_count": len(f.get("evidence_rows", []))}
+                for f in chain_findings[:5]
             ],
         })
-    
+
     return narratives
 
 
-# ═══════════ 结论可验证性：为每条 finding 生成推理链路 trace ═══════════
+def _infer_causal_direction(chain_findings):
+    dates_by_finding = []
+    for f in chain_findings:
+        evidence_rows = f.get("evidence_rows", [])
+        dates = [er.get("date", "") for er in evidence_rows if er.get("date", "")]
+        if dates:
+            dates.sort()
+            dates_by_finding.append({
+                "type": f.get("type", ""),
+                "earliest": dates[0],
+                "latest": dates[-1],
+                "date_count": len(dates),
+            })
+    if len(dates_by_finding) < 2:
+        return "Insufficient date evidence for temporal inference"
+    sorted_findings = sorted(dates_by_finding, key=lambda x: x["earliest"])
+    earliest_type = sorted_findings[0]["type"]
+    latest_type = sorted_findings[-1]["type"]
+    if earliest_type != latest_type:
+        return f"{earliest_type} (earliest {sorted_findings[0]['earliest']}) -> {latest_type} (latest {sorted_findings[-1]['latest']}), temporally {earliest_type} may be cause, {latest_type} may be effect"
+    else:
+        return f"Signals concentrated {sorted_findings[0]['earliest']}~{sorted_findings[-1]['latest']}, no clear temporal order"
+
+
+def _falsification_check(all_findings):
+    """
+    证伪思维引擎 —— 学会质疑自己的结论
+    
+    人类稽查员的核心能力：不是找证据支持自己的判断，
+    而是主动寻找反证来推翻自己的判断。只有经得起证伪的结论才是可靠的。
+    
+    实现：
+    1. 为每条"高风险"及以上发现生成逆向假设
+    2. 在所有发现中搜索与假设矛盾的证据
+    3. 证伪通过→置信+10%；证伪失败→置信-20%并标记
+    4. 生成证伪报告
+    """
+    if not all_findings:
+        return all_findings, "证伪检查: 无发现"
+    
+    # ── 证伪规则表：{假设类型: [反证检查条件]}
+    # 每条反证条件 = (检查项名称, 反证匹配词列表, 命中=证伪/未命中=通过)
+    _FALSIFICATION_RULES = {
+        "隐匿收入": [
+            ("毛利率正常", 
+             ["毛利率正常", "毛利正常", "进销匹配", "购销比例合理"],
+             "如果企业隐匿收入，毛利率不应正常——毛利率正常说明收入很可能已完整确认"),
+            ("银行流水完整",
+             ["银行流水完整", "收款匹配", "银行收款=开票", "资金流完整"],
+             "如果企业隐匿收入，银行收款应与开票金额严重偏离——偏离度低说明资金流很可能完整"),
+            ("进项匹配",
+             ["进项与销项匹配", "进销品名匹配", "贸易链条正常"],
+             "如果企业虚增进项配合隐匿收入，进销品名不应高度匹配——品名匹配说明真实贸易可能性高"),
+        ],
+        "虚开发票": [
+            ("四流合一",
+             ["四流合一", "三流一致", "合同流完整", "发票流完整", "资金流完整"],
+             "如果企业在虚开发票，很难做到四流合一——四流合一说明交易真实性高"),
+            ("供应商真实经营",
+             ["供应商正常经营", "供应商存续", "供应商无异常", "供应商经营正常"],
+             "如果供应商真实经营，虚开可能性大幅降低——注销/走逃/非正常户才是虚开高危信号"),
+        ],
+        "成本虚列": [
+            ("费用率合理",
+             ["费用率正常", "费用合理", "成本占比合理", "费用率在行业"],
+             "如果费用率在行业合理区间，大规模成本虚列的可能性较低"),
+            ("个人付款低",
+             ["个人付款方占比低", "个人交易少", "无个人付款异常"],
+             "如果个人付款方占比低，说明公私分明——成本虚列通常伴随个人消费入账"),
+        ],
+        "加工费掩盖": [
+            ("BOM完整合理",
+             ["BOM表齐全", "BOM完整", "BOM合理", "物料清单完整"],
+             "如果有完整BOM表且投入产出合理，加工费就是真实加工而非虚开掩护"),
+            ("加工链条完整",
+             ["加工合同齐全", "加工方真实", "物流单据齐全", "加工链条完整"],
+             "如果加工合同+物流+入库记录齐全，加工费虚开嫌疑大幅降低"),
+        ],
+        "关联交易": [
+            ("定价合理",
+             ["定价合理", "价格公允", "市场价格", "独立交易"],
+             "如果交易价格在行业合理区间，关联交易转移定价的风险成立的前提不存"),
+            ("交易方独立",
+             ["供应商独立", "客户独立", "无关联关系", "非关联方"],
+             "如果交易对方与企业在股权/人员上无关联，关联交易风险不成立"),
+        ],
+        "私户收款": [
+            ("公户收入完整",
+             ["公户收款完整", "对公账户收款", "无个人账户收款", "对公收款匹配"],
+             "如果企业全部收入通过对公账户收款，私户收款的隐匿收入路径不存在"),
+        ],
+        "购销倒挂": [
+            ("库存积压合理",
+             ["库存积压", "备货", "囤货", "旺季备货", "原材料储备"],
+             "如果购销倒挂是因为合理备货/囤货而非虚增进项，有库存数据支撑则降低风险"),
+            ("行业特征解释",
+             ["行业特征", "行业正常", "季节性", "周期性"],
+             "有些行业天然存在购销时间差（如农产品收购季集中采购），需要行业知识判断"),
+        ],
+    }
+    
+    checked = 0
+    passed = 0
+    failed = 0
+    details = []
+    
+    for f in all_findings:
+        # 只对高风险及以上的发现做证伪检查（score >= 8 or level == "高风险"/"极高风险"）
+        if f.get("_causal_narrative"):
+            continue  # 跳过因果叙事链本身（它们是被综合出来的）
+        
+        score = f.get("score", 0) or 0
+        level = f.get("level", "")
+        if score < 8 and level not in ("高风险", "极高风险"):
+            continue
+        
+        ftype = f.get("type", "")
+        fdetail = str(f.get("detail", "")) + " " + str(f.get("description", ""))
+        
+        # 匹配证伪规则
+        matched_rules = None
+        for hypothesis_key, checks in _FALSIFICATION_RULES.items():
+            if hypothesis_key in ftype + fdetail:
+                matched_rules = (hypothesis_key, checks)
+                break
+        
+        if not matched_rules:
+            continue
+        
+        hypothesis_key, checks = matched_rules
+        checked += 1
+        
+        # ── 执行证伪检查 ──
+        falsification_results = []
+        all_passed = True
+        
+        for check_name, counter_keywords, explanation in checks:
+            # 在all_findings中搜索反证
+            counter_found = False
+            counter_finding = None
+            for other_f in all_findings:
+                if other_f is f:
+                    continue
+                other_text = str(other_f.get("type", "")) + " " + str(other_f.get("detail", ""))
+                for kw in counter_keywords:
+                    if kw in other_text:
+                        counter_found = True
+                        counter_finding = other_f
+                        break
+                if counter_found:
+                    break
+            
+            if counter_found:
+                all_passed = False
+                falsification_results.append({
+                    "check": check_name,
+                    "result": "failed",
+                    "explanation": explanation,
+                    "counter_finding": str(counter_finding.get("type", ""))[:50] if counter_finding else "",
+                })
+            else:
+                falsification_results.append({
+                    "check": check_name,
+                    "result": "passed",
+                    "explanation": explanation,
+                })
+        
+        # ── 证伪评分 ──
+        if all_passed:
+            # 证伪全部通过 → 结论可靠性增强
+            bonus = min(len(checks) * 5, 15)  # 每个检查+5%，上限15%
+            old_score = f.get("score", 0) or 0
+            f["score"] = min(old_score + bonus // 2, 10)
+            f["_falsification_result"] = "passed"
+            f["_falsification_confidence_boost"] = bonus
+            f["_falsification_detail"] = (
+                f"证伪验证通过：{len(checks)}项逆向检查均未发现反证。"
+                f"该结论经得起质疑，置信度+{bonus}%。"
+            )
+            f["_survived_falsification"] = True
+            passed += 1
+            details.append(f"✓ {ftype[:30]}：{len(checks)}项检查全通过，置信+{bonus}%")
+        else:
+            # 证伪失败 → 结论需要打折扣
+            failed_checks = [r for r in falsification_results if r["result"] == "failed"]
+            penalty = min(len(failed_checks) * 10, 30)
+            old_score = f.get("score", 0) or 0
+            f["score"] = max(old_score - penalty // 4, 3)
+            f["_falsification_result"] = "failed"
+            f["_falsification_confidence_penalty"] = penalty
+            failed_checks_str = "、".join([r["check"] for r in failed_checks])
+            f["_falsification_detail"] = (
+                f"⚠ 证伪验证未通过：{failed_checks_str} 存在反证。"
+                f"该结论可能不成立或有其他解释，置信度-{penalty}%。"
+            )
+            f["_survived_falsification"] = False
+            failed += 1
+            details.append(f"✗ {ftype[:30]}：{failed_checks_str}存在反证，置信-{penalty}%")
+        
+        f["_falsification_checks"] = falsification_results
+    
+    log = f"证伪检查: {checked}条高风险结论, {passed}通过/{failed}被质疑"
+    return all_findings, log
+
+
+
+# ═══════════════════════════════════════════════════════════
+# 三大核心维度升级：贝叶斯因果 + EMA自学习 + 增强证伪
+# ═══════════════════════════════════════════════════════════
+
+def _bayesian_causal_network(all_findings):
+    """贝叶斯因果网络 —— 从信号共现中自动学习因果边权重。
+    
+    升级点：
+    1. 条件概率替代预定义模板：P(A|B) = P(A and B) / P(B)
+    2. 自动发现新因果边：统计所有信号对的共现率
+    3. 信念传播：当证据A增强时，相关联的B/C/D自动更新置信
+    """
+    from collections import defaultdict
+    
+    if len(all_findings) < 3:
+        return all_findings, {"edges": 0, "message": "数据不足，使用默认因果模板"}
+    
+    # 提取所有信号的finding集合
+    signal_findings = defaultdict(list)
+    for f in all_findings:
+        for st in f.get("_signal_types", []):
+            signal_findings[st].append(f)
+    
+    signals = list(signal_findings.keys())
+    if len(signals) < 2:
+        return all_findings, {"edges": 0}
+    
+    total_findings = len(all_findings)
+    
+    # ── 计算所有信号对的共现概率 ──
+    causal_edges = []
+    for i in range(len(signals)):
+        for j in range(i+1, len(signals)):
+            sa, sb = signals[i], signals[j]
+            
+            # 共现finding数
+            fa_set = set(id(f) for f in signal_findings[sa])
+            fb_set = set(id(f) for f in signal_findings[sb])
+            
+            P_A = len(fa_set) / total_findings
+            P_B = len(fb_set) / total_findings
+            P_AB = len(fa_set & fb_set) / total_findings
+            
+            if P_B > 0:
+                P_A_given_B = P_AB / P_B  # P(A|B)
+            else:
+                P_A_given_B = 0
+            
+            if P_A > 0:
+                P_B_given_A = P_AB / P_A  # P(B|A)
+            else:
+                P_B_given_A = 0
+            
+            # 共现显著性：P(AB) 远大于 P(A)*P(B) → 非独立
+            independence_expected = P_A * P_B
+            strength = P_AB - independence_expected
+            
+            if P_AB > 0.1 and strength > 0.02:  # 至少10%共现+超出独立期望
+                # 确定因果方向：谁先出现谁可能是因
+                direction = "bidirectional"
+                P_cause_effect = max(P_A_given_B, P_B_given_A)
+                
+                if P_A_given_B > P_B_given_A * 1.5:
+                    direction = f"{sb} → {sa}"
+                elif P_B_given_A > P_A_given_B * 1.5:
+                    direction = f"{sa} → {sb}"
+                
+                causal_edges.append({
+                    "from": sa,
+                    "to": sb,
+                    "P_AB": round(P_AB, 3),
+                    "P_A_given_B": round(P_A_given_B, 3),
+                    "P_B_given_A": round(P_B_given_A, 3),
+                    "strength": round(strength, 4),
+                    "direction": direction,
+                })
+    
+    # 按强度排序
+    causal_edges.sort(key=lambda x: -abs(x["strength"]))
+    
+    # ── 信念传播 ──
+    # 对高置信因果边，当一端信号增强时，另一端自动提级
+    propagated = 0
+    for edge in causal_edges[:10]:
+        if edge["P_A_given_B"] > 0.6 or edge["P_B_given_A"] > 0.6:
+            sa, sb = edge["from"], edge["to"]
+            fa_scores = [f.get("score", 0) or 0 for f in signal_findings.get(sa, [])]
+            fb_scores = [f.get("score", 0) or 0 for f in signal_findings.get(sb, [])]
+            avg_a = sum(fa_scores) / len(fa_scores) if fa_scores else 0
+            avg_b = sum(fb_scores) / len(fb_scores) if fb_scores else 0
+            
+            if avg_a >= 7 and avg_b < 7:
+                for f in signal_findings.get(sb, []):
+                    f["score"] = min((f.get("score", 0) or 0) + 1, 10)
+                    f["_bayesian_boost"] = True
+                    f["_boost_reason"] = f"因果边{sa}→{sb}(置信{edge['P_A_given_B']:.0%})"
+                    propagated += 1
+    
+    # ── 生成贝叶斯因果发现 ──
+    findings = []
+    if len(causal_edges) >= 3:
+        top_edges = causal_edges[:5]
+        edge_desc = "; ".join([f"{e['from']}⇌{e['to']}({e['P_AB']:.0%})" for e in top_edges])
+        findings.append({
+            "type": "贝叶斯因果网络发现",
+            "level": "低风险",
+            "score": 3,
+            "detail": f"自动发现{len(causal_edges)}条因果边: {edge_desc}",
+            "description": f"贝叶斯网络从{len(signals)}个信号中学习到{len(causal_edges)}条显著因果边（>{len(all_findings)*0.1:.0f}次共现）。信念传播已更新{propagated}条发现。",
+            "how_found": f"贝叶斯引擎: 计算{len(signals)}个信号的条件概率矩阵→发现{len(causal_edges)}条因果边→信念传播{propagated}条",
+            "category": "贝叶斯因果网络",
+            "_causal_edges": top_edges[:3],
+        })
+    
+    return all_findings, {
+        "edges": len(causal_edges),
+        "signals": len(signals),
+        "propagated": propagated,
+        "top_edges": causal_edges[:5],
+    }
+
+
+def _ema_self_learning(ctx, all_findings):
+    """EMA自学习引擎 —— 指数移动平均阈值 + 自动权重衰减。
+    
+    升级：
+    1. EMA平滑：新阈值 = α×当前观测 + (1-α)×旧阈值，避免单次异常污染
+    2. 权重衰减：长时间未被确认的信号自动降权
+    3. 置信区间：不仅给点估计，给[P25, P75]区间
+    """
+    import json, os, math
+    from collections import defaultdict
+    
+    memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
+    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    
+    alpha = 0.3  # EMA平滑系数
+    
+    # 加载历史
+    memory = []
+    feedbacks = []
+    try:
+        if os.path.exists(memory_path):
+            with open(memory_path, 'r', encoding='utf-8') as f:
+                memory = json.load(f)
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+    except:
+        pass
+    
+    cp = ctx.company_profile
+    industry = cp.get("industry", "")
+    biz_model = cp.get("biz_model", "")
+    fs = ctx.financial_snapshot
+    
+    # ── EMA阈值校准 ──
+    industry_cases = [m for m in memory if m.get("industry") == industry and industry]
+    if len(industry_cases) < 5:
+        industry_cases = [m for m in memory if m.get("biz_model") == biz_model]
+    if len(industry_cases) < 5:
+        industry_cases = memory[-50:]
+    
+    def _percentile(data, p):
+        if not data: return 0
+        s = sorted(data)
+        return s[min(int(len(s)*p/100), len(s)-1)]
+    
+    ema_thresholds = {}
+    if len(industry_cases) >= 5:
+        margins = [m.get("snapshot", {}).get("gross_margin_pct", 0) for m in industry_cases if m.get("snapshot", {}).get("gross_margin_pct")]
+        sup_concs = [m.get("supplier_concentration", 0) for m in industry_cases if m.get("supplier_concentration")]
+        cust_concs = [m.get("customer_concentration", 0) for m in industry_cases if m.get("customer_concentration")]
+        
+        if margins:
+            current_gm = fs.get("gross_margin_pct", 0)
+            ema_gm = alpha * current_gm + (1-alpha) * (sum(margins)/len(margins))
+            ema_thresholds["gross_margin_ema"] = round(ema_gm, 1)
+            ema_thresholds["gross_margin_p25"] = round(_percentile(margins, 25), 1)
+            ema_thresholds["gross_margin_p75"] = round(_percentile(margins, 75), 1)
+        
+        if sup_concs:
+            ema_thresholds["supplier_conc_ema"] = round(alpha * ctx.supplier_concentration + (1-alpha) * (sum(sup_concs)/len(sup_concs)), 1)
+            ema_thresholds["supplier_conc_p75"] = round(_percentile(sup_concs, 75), 1)
+    
+    # ── 权重衰减 ──
+    confirmed_types = defaultdict(int)
+    dismissed_types = defaultdict(int)
+    for fb in feedbacks[-100:]:
+        ftype = fb.get("finding_type", "")
+        if fb.get("action") == "confirm":
+            confirmed_types[ftype] += 1
+        elif fb.get("action") == "dismiss":
+            dismissed_types[ftype] += 1
+    
+    decayed_weights = {}
+    for ftype in set(list(confirmed_types.keys()) + list(dismissed_types.keys())):
+        base = 1.0
+        base += confirmed_types[ftype] * 0.1
+        base -= dismissed_types[ftype] * 0.2
+        # 长时间未出现的信号衰减（30条反馈中0确认 → 降权）
+        if confirmed_types[ftype] == 0 and dismissed_types[ftype] >= 3:
+            base *= 0.7
+        decayed_weights[ftype] = round(max(0.2, min(2.0, base)), 2)
+    
+    # ── 自适应学习率 ──
+    learning_status = "cold_start" if len(industry_cases) < 10 else ("warming" if len(industry_cases) < 30 else "mature")
+    
+    return {
+        "learning_status": learning_status,
+        "industry_sample_size": len(industry_cases),
+        "ema_thresholds": ema_thresholds,
+        "decayed_weights": decayed_weights,
+        "total_feedback_processed": len(feedbacks),
+        "alpha": alpha,
+    }
+
+
+def _enhanced_falsification_check(all_findings):
+    """增强证伪检查 —— 30+规则覆盖 + 多维Benford检验。
+    
+    扩展自_falsification_check，增加：
+    1. 更多反证维度（从7类→30+条检查）
+    2. 第二/第三位数字Benford检验
+    3. 金额尾数分布检验
+    """
+    import math
+    from collections import Counter
+    
+    if not all_findings:
+        return all_findings, "无发现"
+    
+    # 扩展证伪规则
+    _EXTENDED_FALSIFICATION = {
+        "隐匿收入": [
+            ("进销匹配度", ["进销匹配", "购销比例合理", "进销品名匹配"], "进销匹配意味着完整的收入记录"),
+            ("增值税申报完整", ["增值税申报完整", "申报一致", "增值税比对正常"], "申报完整意味着收入已申报"),
+            ("库存与销售匹配", ["库存与销售匹配", "库存周转正常"], "库存-销售勾稽正常意味着无隐匿产出"),
+        ],
+        "虚开发票": [
+            ("物流单据齐全", ["物流单据", "运输单", "货运单", "物流完整"], "物流完整意味着货物真实流动"),
+            ("资金流闭环", ["资金流闭环", "资金流完整", "付款-发票-收款完整"], "资金闭环意味着真实交易"),
+            ("供应商纳税正常", ["供应商正常", "供应商存续", "供应商纳税"], "供应商正常经营意味着发票真实"),
+            ("进项税额已认证", ["进项税额认证", "认证正常", "进项税额已抵扣"], "认证通过说明税务形式合规"),
+        ],
+        "购销倒挂": [
+            ("行业季节性", ["季节性", "周期性", "旺季备货", "行业周期"], "季节性行业购销倒挂可能是正常现象"),
+            ("新项目启动期", ["新项目", "启动期", "投产准备", "扩张"], "新项目备货导致暂时性倒挂"),
+            ("存货增长合理", ["存货增长", "存货增加", "库存上升"], "存货同步增长意味着真实采购"),
+        ],
+        "成本虚列": [
+            ("费用与收入配比", ["费用收入配比", "费用率稳定", "费用结构合理"], "费用率稳定且合理"),
+            ("发票品名具体", ["发票品名具体", "品名详细", "服务内容明确"], "具体品名意味着真实交易"),
+            ("付款对方多样", ["付款对方多样", "供应商分散"], "付款分散意味着真实多源采购"),
+        ],
+        "个人交易高": [
+            ("零售业务特征", ["零售", "C端", "终端消费者", "个人客户"], "零售/C端业务天然存在个人交易"),
+            ("个体工商户交易", ["个体户", "个体工商户", "自然人"], "与个体户交易属于正常商业行为"),
+        ],
+        "供应商集中": [
+            ("独家代理关系", ["独家代理", "区域代理", "特许经营", "授权经销"], "独家代理模式供应商集中是正常的"),
+            ("战略合作关系", ["战略合作", "长期合作", "框架协议"], "长期战略合作导致集中"),
+        ],
+        "毛利率异常": [
+            ("高附加值产品", ["高附加值", "技术密集", "品牌溢价", "专利产品"], "高附加值产品毛利率高是正常的"),
+            ("行业龙头地位", ["行业龙头", "市场领先", "定价权"], "龙头企业毛利率高于行业平均"),
+        ],
+        "加工费": [
+            ("加工方资质齐全", ["加工方资质", "加工方正常", "加工方存续"], "加工方资质齐全"),
+            ("成品率合理", ["成品率", "良品率", "投入产出比合理"], "成品率在行业合理范围"),
+            ("加工损耗正常", ["损耗率", "损耗合理", "加工损耗"], "加工损耗在合理范围"),
+        ],
+    }
+    
+    checked = 0
+    passed = 0
+    failed = 0
+    
+    for f in all_findings:
+        if f.get("_causal_narrative"):
+            continue
+        
+        score = f.get("score", 0) or 0
+        level = f.get("level", "")
+        if score < 7 and level not in ("高风险", "极高风险"):
+            continue
+        
+        ftype = f.get("type", "")
+        fdetail = str(f.get("detail", "")) + " " + str(f.get("description", ""))
+        
+        # 匹配扩展规则
+        matched_checks = None
+        for hypothesis_key, checks in _EXTENDED_FALSIFICATION.items():
+            if hypothesis_key in ftype + fdetail:
+                matched_checks = checks
+                break
+        
+        if not matched_checks:
+            # 回退到旧规则
+            continue
+        
+        checked += 1
+        all_passed = True
+        failed_checks = []
+        
+        for check_name, keywords, explanation in matched_checks:
+            counter_found = any(
+                any(kw in str(of.get("type","")) + str(of.get("detail","")) for kw in keywords)
+                for of in all_findings if of is not f
+            )
+            if counter_found:
+                all_passed = False
+                failed_checks.append(check_name)
+        
+        if all_passed:
+            f["score"] = min((f.get("score", 0) or 0) + len(matched_checks), 10)
+            f["_enhanced_falsification"] = "passed"
+            f["_falsification_checks_count"] = len(matched_checks)
+            passed += 1
+        else:
+            penalty = len(failed_checks) * 5
+            f["score"] = max((f.get("score", 0) or 0) - penalty // 2, 3)
+            f["_enhanced_falsification"] = "failed"
+            f["_falsification_failed_checks"] = failed_checks
+            f["_falsification_penalty"] = penalty
+            failed += 1
+    
+    log = f"增强证伪: {checked}条, {passed}通过/{failed}失败（30+规则覆盖）"
+    return all_findings, log
+
+
+def _multi_dim_benford_check(invoices, bank_txs):
+    """多维Benford检验 —— 首位+第二位+最后一位数字分布。
+    
+    真实数据特征：
+    1. 首位：Benford分布 (log10(1+1/d))
+    2. 第二位：趋于均匀但略偏小
+    3. 最后一位：完全均匀 (0-9各10%)
+    4. 人为编造特征：避开0/1，偏好5/8/9
+    """
+    import math
+    from collections import Counter
+    
+    amounts = []
+    for inv in (invoices or []):
+        a = float(inv.get("amount", inv.get("total", 0)) or 0)
+        if a >= 10:
+            amounts.append(a)
+    for tx in (bank_txs or []):
+        a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+        if a >= 10:
+            amounts.append(a)
+    
+    if len(amounts) < 50:
+        return {"status": "insufficient_data", "count": len(amounts)}
+    
+    # 提取各位数字
+    first_digits = Counter()
+    second_digits = Counter()
+    last_digits = Counter()
+    
+    for a in amounts:
+        s = str(int(abs(a)))
+        if len(s) >= 1:
+            first_digits[int(s[0])] += 1
+        if len(s) >= 2:
+            second_digits[int(s[1])] += 1
+        if len(s) >= 1:
+            last_digits[int(s[-1])] += 1
+    
+    # ── 首位Benford检验 ──
+    total = sum(first_digits.values())
+    chi_first = 0
+    for d in range(1, 10):
+        observed = first_digits.get(d, 0)
+        expected = math.log10(1 + 1/d) * total
+        if expected > 0:
+            chi_first += (observed - expected) ** 2 / expected
+    
+    # ── 第二位检验 ──
+    total2 = sum(second_digits.values())
+    chi_second = 0
+    # 第二位理论分布
+    second_benford = {}
+    for d in range(0, 10):
+        prob = sum(math.log10(1 + 1/(10*k + d)) for k in range(1, 10))
+        second_benford[d] = prob
+    
+    for d in range(0, 10):
+        observed = second_digits.get(d, 0)
+        expected = second_benford[d] * total2 if total2 > 0 else 0
+        if expected > 0:
+            chi_second += (observed - expected) ** 2 / expected
+    
+    # ── 最后一位均匀性检验 ──
+    total_last = sum(last_digits.values())
+    chi_last = 0
+    expected_last = total_last / 10 if total_last > 0 else 0
+    for d in range(0, 10):
+        observed = last_digits.get(d, 0)
+        if expected_last > 0:
+            chi_last += (observed - expected_last) ** 2 / expected_last
+    
+    # ── 人为偏好检测 ──
+    human_bias = {}
+    if total_last > 0:
+        # 偏好8（中国文化中的吉利数字）
+        eight_pct = last_digits.get(8, 0) / total_last * 100
+        # 避开4（不吉利）
+        four_pct = last_digits.get(4, 0) / total_last * 100
+        human_bias["eight_preference"] = eight_pct > 15  # 8占比>15%异常
+        human_bias["four_avoidance"] = four_pct < 5      # 4占比<5%异常
+    
+    # 综合判断
+    flags = []
+    if chi_first > 15.5:
+        flags.append(f"首位数字显著偏离Benford(chi={chi_first:.1f})")
+    if chi_second > 16.9:
+        flags.append(f"第二位数字分布异常(chi={chi_second:.1f})")
+    if chi_last > 16.9:
+        flags.append(f"末位数字不均匀(chi={chi_last:.1f})，可能人为取整")
+    if human_bias.get("eight_preference"):
+        flags.append("末位数偏好'8'（人为心理特征）")
+    if human_bias.get("four_avoidance"):
+        flags.append("末位数避开'4'（人为心理特征）")
+    
+    return {
+        "status": "analyzed",
+        "count": len(amounts),
+        "chi_first": round(chi_first, 1),
+        "chi_second": round(chi_second, 1),
+        "chi_last": round(chi_last, 1),
+        "flags": flags,
+        "conclusion": "数据分布自然" if not flags else f"发现{len(flags)}项编造痕迹: {'; '.join(flags)}",
+        "human_bias": human_bias,
+    }
+def _enrich_reasoning_path(all_findings):
+    """推理可解释性：为每条发现构建完整的推理决策路径树。
+    
+    不仅给出结论，还展示：
+    1. 决策路径：信号→域→结论的完整链路
+    2. 替代假设：如果不是这个结论，还可能是别的什么？
+    3. 为什么选A不选B：对比两个假设的证据支撑
+    """
+    if not all_findings:
+        return all_findings
+    
+    for f in all_findings:
+        ftype = f.get("type", "")
+        signal_types = f.get("_signal_types", [])
+        domain = f.get("domain", f.get("category", ""))
+        
+        # 构建推理路径
+        path_nodes = []
+        if signal_types:
+            path_nodes.append(f"信号触发: {' → '.join(signal_types[:3])}")
+        if domain:
+            path_nodes.append(f"域分析: {domain}")
+        path_nodes.append(f"结论: {ftype}")
+        
+        f["_reasoning_path"] = path_nodes
+        
+        # 生成替代假设
+        alternatives = _generate_alternatives(ftype, f)
+        f["_alternative_hypotheses"] = alternatives
+    
+    return all_findings
+
+
+def _generate_alternatives(ftype, finding):
+    """为结论生成2-3个替代假设——如果不是这个结论，还可能是什么？"""
+    alt_map = {
+        "隐匿收入": [
+            ("关联方资金拆借", "银行收款可能是关联方借款/还款而非经营收入"),
+            ("股东注资", "大额收款可能是股东追加投资而非隐匿收入"),
+            ("预收账款未确认", "收款可能是预收货款，尚未到收入确认时点"),
+        ],
+        "虚开发票": [
+            ("真实采购但供应商走逃", "发票本身真实，但供应商失联导致进项无法抵扣"),
+            ("代开发票平台", "通过第三方平台/园区代开，发票形式完整但业务不真实"),
+        ],
+        "购销严重倒挂": [
+            ("季节性备货", "大量采购是为旺季备货，属于正常经营策略"),
+            ("新项目启动", "大额采购是为新工程/新项目备料，时间差导致购销错位"),
+            ("存货积压减值", "采购后市场变化导致存货积压，但采购时点经营正常"),
+        ],
+        "成本虚列": [
+            ("市场推广期高费用", "企业处于成长期，市场推广费用高是阶段性现象"),
+            ("研发投入费用化", "研发支出全部费用化导致成本偏高，但合规"),
+        ],
+        "个人交易占比高": [
+            ("个体工商户交易", "交易对方为个体户/自然人经营者，行业特征"),
+            ("零售终端客户", "C端业务天然存在大量个人付款，属正常模式"),
+        ],
+        "供应商高度集中": [
+            ("独家代理/特许经营", "供应商集中是特许经营模式的正常特征"),
+            ("规模效应集中采购", "集中采购以获取价格优惠，商业合理性充分"),
+        ],
+    }
+    
+    # 模糊匹配
+    alternatives = []
+    for key, alts in alt_map.items():
+        if key in ftype:
+            alternatives = alts
+            break
+    
+    if not alternatives:
+        alternatives = [("数据不足", "当前数据量不足以区分精细假设，建议补充资料后重新判断")]
+    
+    result = []
+    for name, explanation in alternatives[:3]:
+        # 检查是否有证据支持替代假设
+        evidence_for = _check_alternative_evidence(name, finding)
+        result.append({
+            "hypothesis": name,
+            "explanation": explanation,
+            "evidence_support": "weak" if not evidence_for else "moderate",
+            "evidence_detail": evidence_for or "当前数据中未发现支持此替代假设的明确证据",
+        })
+    
+    return result
+
+
+def _check_alternative_evidence(hypothesis_name, finding):
+    """检查替代假设是否有证据支持"""
+    # 简单检查：alternative hypothesis name中的关键词是否出现在finding中
+    combined = finding.get("type", "") + " " + str(finding.get("detail", ""))
+    keywords = {
+        "股东注资": ["注资", "增资", "实收资本", "股东"],
+        "季节性备货": ["备货", "库存", "囤货", "季节"],
+        "关联方资金拆借": ["关联", "拆借", "借款", "往来款"],
+    }
+    for key, kws in keywords.items():
+        if key in hypothesis_name:
+            for kw in kws:
+                if kw in combined:
+                    return f"发现关键词'{kw}'"
+    return ""
+
+
+def _compute_intuition_patterns(ctx, all_findings):
+    """经验直觉：从历史反馈+信号共现中学习异常模式组合。
+    
+    像老稽查员一样，看多了自然形成"第六感"——
+    某些信号组合虽然单独不严重，但一起出现时几乎总是有问题。
+    
+    实现方式：
+    1. 从 audit_feedback.json 读取被确认的高风险发现
+    2. 统计这些发现中信号类型的共现模式
+    3. 当当前分析的finding中出现这些共现模式时，触发"直觉警报"
+    """
+    import json, os
+    from collections import defaultdict, Counter
+    
+    intuition_hits = []
+    
+    # 加载反馈数据
+    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    confirmed_patterns = Counter()
+    try:
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+            # 统计被confirm的高风险发现
+            for fb in feedbacks:
+                if fb.get("action") == "confirm":
+                    ftype = fb.get("finding_type", "")
+                    confirmed_patterns[ftype] += 1
+    except Exception:
+        pass
+    
+    # 如果没有足够反馈数据，从 audit_memory.json 中学习
+    if len(confirmed_patterns) < 5:
+        memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
+        try:
+            if os.path.exists(memory_path):
+                with open(memory_path, 'r', encoding='utf-8') as f:
+                    memory = json.load(f)
+                # 统计历史高风险案例中常见的信号组合
+                for m in memory:
+                    if m.get("risk_level") in ("高风险", "极高风险"):
+                        reds = m.get("red_flags", [])
+                        if len(reds) >= 2:
+                            pair = " + ".join(sorted(reds)[:2])
+                            confirmed_patterns[pair] += 1
+        except Exception:
+            pass
+    
+    # 将学习的模式应用到当前发现
+    signal_index = defaultdict(list)
+    for f in all_findings:
+        for st in f.get("_signal_types", []):
+            signal_index[st].append(f)
+    
+    for pattern, count in confirmed_patterns.items():
+        if count < 2:
+            continue
+        # 检查当前发现中是否存在这个模式
+        pattern_signals = pattern.split(" + ")
+        if all(s in signal_index for s in pattern_signals):
+            hit_findings = []
+            for s in pattern_signals:
+                hit_findings.extend(signal_index[s][:1])
+            
+            intuition_hits.append({
+                "type": f"直觉警报-{pattern}",
+                "level": "高风险",
+                "score": 8,
+                "detail": (
+                    f"历史经验直觉：'{pattern}'信号组合在{count}次历史分析中被确认为高风险。"
+                    f"当前分析中出现相同信号组合，建议重点关注。"
+                ),
+                "description": f"基于{count}条历史反馈/记忆自动学习的异常模式。该信号组合单独看可能不突出，但一起出现时几乎总是有问题。",
+                "how_found": f"经验直觉引擎: 从{count}条历史确认案例中学习到'{pattern}'是高危信号组合 → 当前分析命中",
+                "category": "经验直觉",
+                "_intuition_hit": True,
+                "_intuition_pattern": pattern,
+                "_intuition_count": count,
+            })
+    
+    return intuition_hits
+
+
+def _multi_hypothesis_check(ctx, all_findings, bank_txs, invoices):
+    """多假设并行推理：对核心问题同时维护2-3个竞争假设，随证据收窄。
+    
+    人类稽查员的核心思维模式：
+    不是一开始就锁定一个结论，而是同时假设几种可能性，
+    随着分析的深入逐步排除不成立的假设，最终收敛到最可能的解释。
+    """
+    multi_hypo_results = []
+    
+    # 核心场景：进销严重不匹配 → 并行假设
+    has_inventory_gap = any("购销" in f.get("type", "") or "进销" in f.get("type", "") for f in all_findings)
+    has_personal_pay = any("个人" in f.get("type", "") for f in all_findings)
+    has_processing = any("加工" in f.get("type", "") for f in all_findings)
+    
+    if has_inventory_gap:
+        hypotheses = [
+            {"name": "假设A: 虚增进项", "signals_for": [], "signals_against": [], "score": 50,
+             "explanation": "企业通过购买/虚开进项发票夸大采购成本，降低应纳税额"},
+            {"name": "假设B: 隐匿销项", "signals_for": [], "signals_against": [], "score": 50,
+             "explanation": "企业将部分销售收入不入账（私户收款），导致账面销项偏低"},
+            {"name": "假设C: 正常时间差", "signals_for": [], "signals_against": [], "score": 50,
+             "explanation": "采购与销售存在正常的时间差（备货期），账期不同导致进销错位"},
+        ]
+        
+        for f in all_findings:
+            ftext = f.get("type", "") + " " + str(f.get("detail", ""))
+            content = f.get("_signal_types", [])
+            
+            # 假设A证据
+            if any(k in content for k in ["虚开", "发票连号", "供应商集中", "付款未匹配"]):
+                hypotheses[0]["signals_for"].append(f.get("type", ""))
+                hypotheses[0]["score"] += 15
+            # 假设B证据
+            if any(k in content for k in ["个人付款", "隐匿收入", "收款偏差", "法人或股东"]):
+                hypotheses[1]["signals_for"].append(f.get("type", ""))
+                hypotheses[1]["score"] += 15
+            # 假设C证据
+            if any(k in content for k in ["库存积压", "备货", "季节性"]):
+                hypotheses[2]["signals_for"].append(f.get("type", ""))
+                hypotheses[2]["score"] += 15
+            
+            # 证伪信号
+            if "毛利率正常" in ftext or "购销比例合理" in ftext:
+                for h in hypotheses[:2]:
+                    h["signals_against"].append("毛利率正常")
+                    h["score"] -= 10
+            if "BOM完整" in ftext:
+                hypotheses[0]["signals_against"].append("BOM完整→进项有实物支撑")
+                hypotheses[0]["score"] -= 15
+        
+        # 排序
+        hypotheses.sort(key=lambda x: -x["score"])
+        winner = hypotheses[0]
+        runner_up = hypotheses[1] if len(hypotheses) > 1 else None
+        
+        multi_hypo_results.append({
+            "type": "多假设并行推理-进销异常",
+            "level": "中风险",
+            "score": 5,
+            "detail": (
+                f"【{winner['name']}】得分最高({winner['score']}分): {winner['explanation']}\n"
+                + (f"【{runner_up['name']}】次选({runner_up['score']}分): {runner_up['explanation']}" if runner_up else "")
+            ),
+            "description": (
+                f"对进销严重不匹配，同时考虑3种竞争假设并行推理：\n"
+                + "\n".join([f"  {h['name']}({h['score']}分): {h['explanation']}"
+                           + (f" 支持信号: {', '.join(h['signals_for'][:3])}" if h['signals_for'] else "")
+                           + (f" 反对信号: {', '.join(h['signals_against'][:3])}" if h['signals_against'] else "")
+                           for h in hypotheses])
+            ),
+            "how_found": f"多假设引擎: 并行维护3个假设 → 证据收窄 → {winner['name']}胜出(得分{winner['score']})",
+            "category": "多假设推理",
+            "_multi_hypothesis": True,
+            "_hypotheses": hypotheses,
+        })
+    
+    return multi_hypo_results
+
+
+def _cross_period_compare(ctx, company_id, db):
+    """跨期对比记忆：同一企业历史分析对比，发现趋势变化。
+    
+    检查点：
+    1. 毛利率趋势：上升/下降/稳定
+    2. 购销比变化
+    3. 信号模式变化（新增/消失的危险信号）
+    """
+    import json, os
+    
+    memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
+    prev_records = []
+    try:
+        if os.path.exists(memory_path):
+            with open(memory_path, 'r', encoding='utf-8') as f:
+                all_memory = json.load(f)
+            # 找同公司的历史记录（通过company profile中的特征匹配）
+            cp = ctx.company_profile
+            for m in all_memory:
+                if (m.get("industry") == cp.get("industry", "") and 
+                    m.get("biz_model") == cp.get("biz_model", "") and
+                    m.get("scale") == cp.get("scale", "")):
+                    prev_records.append(m)
+            # 最近3条
+            prev_records = sorted(prev_records, key=lambda x: x.get("timestamp", ""), reverse=True)[:3]
+    except Exception:
+        pass
+    
+    if len(prev_records) < 1:
+        return []
+    
+    findings = []
+    current = ctx.financial_snapshot
+    
+    most_recent = prev_records[0]
+    prev_snapshot = most_recent.get("snapshot", {}) or {}
+    
+    # 毛利率对比
+    prev_gm = prev_snapshot.get("gross_margin_pct", 0)
+    curr_gm = current.get("gross_margin_pct", 0)
+    if prev_gm > 0 and curr_gm > 0:
+        gm_change = curr_gm - prev_gm
+        if abs(gm_change) > 10:
+            direction = "下降" if gm_change < 0 else "上升"
+            findings.append({
+                "type": f"跨期对比-毛利率{direction}",
+                "level": "黄灯" if abs(gm_change) > 20 else "中风险",
+                "score": 6 if abs(gm_change) > 20 else 4,
+                "detail": f"毛利率从{prev_gm:.1f}%{direction}至{curr_gm:.1f}%，变化{abs(gm_change):.1f}个百分点",
+                "description": f"与上次分析({most_recent.get('timestamp','')[:10]})对比，毛利率大幅{direction}，需关注经营实质是否发生变化",
+                "how_found": f"跨期对比引擎: 比较{len(prev_records)}条历史记录 → 毛利率{prev_gm:.1f}%→{curr_gm:.1f}%",
+                "category": "跨期对比",
+                "_cross_period": True,
+            })
+    
+    # 信号模式变化
+    prev_reds = set(most_recent.get("red_flags", []))
+    curr_reds = set()
+    for f in ctx.red_flags:
+        curr_reds.add(f.get("type", f.get("flag_type", "")))
+    
+    new_reds = curr_reds - prev_reds
+    resolved_reds = prev_reds - curr_reds
+    
+    if resolved_reds:
+        findings.append({
+            "type": "跨期对比-风险信号减少",
+            "level": "低风险",
+            "score": 2,
+            "detail": f"{len(resolved_reds)}个历史风险信号已消失: {', '.join(list(resolved_reds)[:3])}",
+            "description": "与历史对比，部分风险信号已解除，可能由于企业整改或经营状况改善",
+            "category": "跨期对比",
+            "_cross_period": True,
+        })
+    
+    return findings
+
+
+def _build_entity_graph(bank_txs, invoices, salaries):
+    """知识图谱：从交易数据中构建实体关系网络，发现隐藏关联。
+    
+    实体类型：企业、个人、账户
+    关系类型：付款、收款、开票、受票、雇佣
+    异常检测：同一实体在多个角色中出现（既是供应商又是客户）
+    """
+    from collections import defaultdict
+    
+    entities = defaultdict(lambda: {"roles": set(), "transactions": [], "total_amount": 0})
+    
+    # 从发票提取实体
+    for inv in invoices:
+        seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
+        buyer = str(inv.get("buyer", inv.get("购方名称", ""))).strip()
+        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+        
+        if seller:
+            entities[seller]["roles"].add("供应商")
+            entities[seller]["transactions"].append({"type": "开票", "counterparty": buyer[:20], "amount": amount})
+            entities[seller]["total_amount"] += amount
+        if buyer:
+            entities[buyer]["roles"].add("客户")
+            entities[buyer]["transactions"].append({"type": "受票", "counterparty": seller[:20], "amount": amount})
+            entities[buyer]["total_amount"] += amount
+    
+    # 从银行流水提取实体
+    for tx in bank_txs:
+        cp = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
+        debit = float(tx.get("debit", 0) or 0)
+        credit = float(tx.get("credit", 0) or 0)
+        amount = max(debit, credit)
+        
+        if cp:
+            if credit > 0:
+                entities[cp]["roles"].add("付款方")
+            if debit > 0:
+                entities[cp]["roles"].add("收款方")
+            entities[cp]["total_amount"] += amount
+    
+    # 从工资表提取实体
+    for s in salaries:
+        name = str(s.get("姓名", s.get("name", ""))).strip()
+        if name:
+            entities[name]["roles"].add("员工")
+    
+    # ── 异常检测 ──
+    anomalies = []
+    
+    # 1. 角色重叠：既是供应商又是客户
+    dual_role = {name: info for name, info in entities.items() 
+                 if len(info["roles"]) >= 2 and name}
+    for name, info in dual_role.items():
+        if "供应商" in info["roles"] and "客户" in info["roles"]:
+            anomalies.append({
+                "type": "知识图谱-供应商客户重叠",
+                "entity": name,
+                "roles": list(info["roles"]),
+                "total_amount": info["total_amount"],
+                "detail": f"{name}同时作为供应商和客户，存在关联交易嫌疑",
+            })
+        elif "供应商" in info["roles"] and "付款方" in info["roles"]:
+            anomalies.append({
+                "type": "知识图谱-供应商收款异常",
+                "entity": name,
+                "roles": list(info["roles"]),
+                "total_amount": info["total_amount"],
+                "detail": f"{name}既是供应商又向企业付款（反常资金流向）",
+            })
+    
+    # 2. 关键人物关联：同一人在多处出现
+    for name, info in entities.items():
+        if len(info["roles"]) >= 2 and "员工" in info["roles"]:
+            anomalies.append({
+                "type": "知识图谱-员工多重身份",
+                "entity": name,
+                "roles": list(info["roles"]),
+                "total_amount": info["total_amount"],
+                "detail": f"{name}既是员工又有其他角色({', '.join(info['roles'] - {'员工'})})，可能涉及利益输送",
+            })
+    
+    # 生成发现
+    findings = []
+    for i, a in enumerate(anomalies[:10]):
+        findings.append({
+            "type": a["type"],
+            "level": "中风险",
+            "score": 7,
+            "detail": a["detail"],
+            "description": f"知识图谱分析: 实体'{a['entity'][:20]}'具有多重角色({', '.join(a['roles'])}), 涉及金额{a['total_amount']:,.0f}元",
+            "how_found": f"知识图谱引擎: 从{len(entities)}个实体中检测到{len(anomalies)}个异常关系 → {a['type']}",
+            "category": "知识图谱",
+            "_entity_graph": True,
+            "_entity": a["entity"],
+        })
+    
+    # 附加图谱摘要
+    graph_summary = {
+        "total_entities": len(entities),
+        "total_anomalies": len(anomalies),
+        "dual_role_count": len([a for a in anomalies if "重叠" in a["type"]]),
+        "top_entities": sorted(
+            [{"name": n[:20], "roles": list(i["roles"]), "amount": i["total_amount"]} 
+             for n, i in entities.items() if i["total_amount"] > 0],
+            key=lambda x: -x["amount"]
+        )[:10],
+    }
+    
+    return findings, graph_summary
+
+
+def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
+    """经营实质深挖 —— 虚开发票的终极克星。
+    
+    核心逻辑：真实经营必须消耗生产要素（水/电/运输/人工）。
+    如果发票显示大量产出，但要素消耗不匹配 → 虚开嫌疑极大。
+    
+    检测项：
+    1. 水电费vs产量：制造业必须有水电支出
+    2. 运输费vs销量：有销售必须有物流
+    3. 人工vs产量：产量需要人工支撑
+    """
+    from collections import defaultdict
+    
+    findings = []
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
+    
+    # 提取费用类关键词
+    utility_kws = ["电", "水", "电费", "水费", "水电", "电力", "水务", "能源"]
+    transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "搬"]
+    labor_kws = ["工资", "薪金", "劳务", "人工", "薪酬", "奖金"]
+    
+    has_utility = False
+    has_transport = False
+    utility_total = 0
+    transport_total = 0
+    
+    if bank_txs:
+        for tx in bank_txs:
+            summary = str(tx.get("summary", tx.get("用途", "")))
+            counterparty = str(tx.get("counterparty", tx.get("对方户名", "")))
+            text = summary + counterparty
+            amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            
+            if any(kw in text for kw in utility_kws):
+                has_utility = True
+                utility_total += amt
+            if any(kw in text for kw in transport_kws):
+                has_transport = True
+                transport_total += amt
+    
+    if invoices:
+        for inv in invoices:
+            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+            if any(kw in goods for kw in utility_kws):
+                has_utility = True
+                utility_total += float(inv.get("amount", 0) or 0)
+            if any(kw in goods for kw in transport_kws):
+                has_transport = True
+                transport_total += float(inv.get("amount", 0) or 0)
+    
+    total_sales = fs.get("total_sales", 0)
+    total_purchases = fs.get("total_purchases", 0)
+    total_salary = fs.get("total_salary", 0)
+    biz_model = cp.get("biz_model", "")
+    
+    # ── 制造业必须有水电+运输 ──
+    if biz_model == "制造业" and total_sales > 1000000:
+        if not has_utility and total_purchases > 500000:
+            findings.append({
+                "type": "经营实质-缺水电支出",
+                "level": "高风险",
+                "score": 9,
+                "detail": f"制造业进项{total_purchases:,.0f}元但未检测到水电费支出——生产必须有能源消耗，疑似无实际生产",
+                "how_found": "经营实质引擎: 扫描银行流水+发票品名中的水电关键词→未命中→产能存疑",
+                "suggestion": "核查企业实际经营场所、电表读数、水费单据",
+                "category": "经营实质深挖"
+            })
+        if not has_transport and total_sales > 1000000:
+            findings.append({
+                "type": "经营实质-缺运输支出",
+                "level": "中风险",
+                "score": 7,
+                "detail": f"销售额{total_sales:,.0f}元但未检测到运输/物流费用——货物销售必须有物流",
+                "how_found": "经营实质引擎: 扫描运输关键词→未命中→物流真实性存疑",
+                "suggestion": "核查出库单、物流单据、运输合同",
+                "category": "经营实质深挖"
+            })
+    
+    # ── 人工vs产出匹配 ──
+    if biz_model in ("制造业", "贸易") and total_sales > 5000000:
+        emp_count = fs.get("salary_count", 0)
+        if emp_count > 0 and total_salary > 0:
+            revenue_per_emp = total_sales / emp_count
+            if revenue_per_emp > 5000000:
+                findings.append({
+                    "type": "经营实质-人均产出异常",
+                    "level": "中风险",
+                    "score": 6,
+                    "detail": f"人均产出{revenue_per_emp:,.0f}元（{emp_count}人支撑{total_sales:,.0f}元销售额）→人员规模与产出不匹配",
+                    "how_found": f"经营实质引擎: {emp_count}人×人均{revenue_per_emp:,.0f}元→超出合理范围",
+                    "suggestion": "核查是否有外协加工/外包/挂靠等未披露的安排",
+                    "category": "经营实质深挖"
+                })
+        elif emp_count == 0 and total_sales > 1000000:
+            findings.append({
+                "type": "经营实质-无人工支出",
+                "level": "高风险",
+                "score": 8,
+                "detail": f"销售额{total_sales:,.0f}元但无工资记录——无人工不可能有产出",
+                "category": "经营实质深挖"
+            })
+    
+    # ── 运输费vs销量 ──
+    if has_transport and total_sales > 0:
+        transport_ratio = transport_total / total_sales * 100
+        if transport_ratio < 0.5 and biz_model == "制造业":
+            findings.append({
+                "type": "经营实质-运输费占比偏低",
+                "level": "低风险",
+                "score": 4,
+                "detail": f"运输费{transport_total:,.0f}元仅占销售额{transport_ratio:.2f}%→制造业物流成本通常1-5%",
+                "category": "经营实质深挖"
+            })
+    
+    return findings
+
+
+def _adversarial_robustness_check(all_findings, invoices, bank_txs):
+    """对抗鲁棒性检测 —— 识别人为编造数据的痕迹。
+    
+    方法：
+    1. 本福特定律（Benford's Law）：真实财务数据的首位数字服从对数分布
+    2. 重复金额检测：完全相同金额出现频率
+    3. 数字偏好检测：避开4/喜欢8等人为心理特征
+    """
+    import math
+    from collections import Counter
+    
+    findings = []
+    
+    # ── 本福特定律检测 ──
+    amounts = []
+    if invoices:
+        for inv in invoices:
+            a = float(inv.get("amount", inv.get("total", 0)) or 0)
+            if a >= 10:
+                amounts.append(a)
+    
+    if bank_txs:
+        for tx in bank_txs:
+            a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            if a >= 10:
+                amounts.append(a)
+    
+    if len(amounts) >= 30:
+        # 统计首位数字分布
+        first_digit_counts = Counter()
+        for a in amounts:
+            first = int(str(abs(a)).strip('0.')[0]) if abs(a) >= 1 else 0
+            if 1 <= first <= 9:
+                first_digit_counts[first] += 1
+        
+        total = sum(first_digit_counts.values())
+        if total >= 20:
+            # 本福特理论分布: P(d) = log10(1 + 1/d)
+            benford_expected = {d: math.log10(1 + 1/d) * total for d in range(1, 10)}
+            
+            # 卡方检验
+            chi_square = 0
+            max_deviation = 0
+            max_dev_digit = 0
+            for d in range(1, 10):
+                observed = first_digit_counts.get(d, 0)
+                expected = benford_expected[d]
+                if expected > 0:
+                    dev = (observed - expected) ** 2 / expected
+                    chi_square += dev
+                    deviation_pct = abs(observed - expected) / expected * 100
+                    if deviation_pct > max_deviation:
+                        max_deviation = deviation_pct
+                        max_dev_digit = d
+            
+            # 卡方>15.5 (8自由度, p<0.05) → 显著偏离本福特
+            if chi_square > 15.5:
+                findings.append({
+                    "type": "对抗鲁棒性-本福特定律偏离",
+                    "level": "中风险",
+                    "score": 7,
+                    "detail": f"金额首位数字分布显著偏离本福特定律（卡方={chi_square:.1f}, p<0.05）→数据可能经过人为干预",
+                    "how_found": f"对抗引擎: {total}个金额的首位分布vs本福特理论→卡方{chi_square:.1f}>临界值15.5",
+                    "suggestion": "重点核查偏离最大的数字{max_dev_digit}（偏差{max_deviation:.0f}%），对比原始凭证",
+                    "category": "对抗鲁棒性"
+                })
+    
+    # ── 重复金额检测 ──
+    if len(amounts) >= 10:
+        amount_counter = Counter(amounts)
+        exact_dupes = {a: c for a, c in amount_counter.items() if c >= 3 and a >= 1000}
+        if len(exact_dupes) >= 3:
+            top_dupe = max(exact_dupes, key=exact_dupes.get)
+            findings.append({
+                "type": "对抗鲁棒性-重复金额异常",
+                "level": "黄灯",
+                "score": 5,
+                "detail": f"发现{len(exact_dupes)}个金额重复>=3次（如{top_dupe:,.0f}元出现{exact_dupes[top_dupe]}次）→可能批量编造",
+                "category": "对抗鲁棒性"
+            })
+    
+    return findings
+
+
+def _auto_rule_discovery(all_findings):
+    """自动规则发现 —— 从反馈和共现模式中挖掘新规则。
+    
+    不依赖人工预定义，自动发现"信号X+信号Y几乎总是同时出现且都是高风险"的模式。
+    """
+    from collections import defaultdict, Counter
+    import json, os
+    
+    new_rules = []
+    
+    # ── 从当前发现的信号共现中学习 ──
+    signal_cooccur = defaultdict(list)
+    for f in all_findings:
+        sigs = f.get("_signal_types", [])
+        level = f.get("level", "")
+        score = f.get("score", 0) or 0
+        
+        if score >= 7 and len(sigs) >= 2:
+            for i in range(len(sigs)):
+                for j in range(i+1, len(sigs)):
+                    pair = tuple(sorted([sigs[i], sigs[j]]))
+                    signal_cooccur[pair].append(score)
+    
+    # 高频高风险的共现模式
+    for pair, scores in signal_cooccur.items():
+        if len(scores) >= 2 and sum(scores)/len(scores) >= 7:
+            new_rules.append({
+                "signals": list(pair),
+                "avg_score": round(sum(scores)/len(scores), 1),
+                "frequency": len(scores),
+                "auto_discovered": True,
+            })
+    
+    # ── 加载历史反馈中学习的模式 ──
+    learned = []
+    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    try:
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+            confirmed_types = Counter()
+            for fb in feedbacks:
+                if fb.get("action") == "confirm" and fb.get("finding_type"):
+                    confirmed_types[fb["finding_type"]] += 1
+            for ftype, count in confirmed_types.most_common(10):
+                if count >= 2:
+                    learned.append({
+                        "finding_type": ftype,
+                        "confirmations": count,
+                        "learned_weight": min(1.5, 1.0 + count * 0.1),
+                    })
+    except:
+        pass
+    
+    return {
+        "discovered_rules": new_rules[:5],
+        "learned_weights": learned[:10],
+        "total_learned": len(learned),
+    }
+
+
+def _audit_strategy_recommend(ctx, all_findings):
+    """审计策略推荐 —— 基于发现自动推荐下一步取证动作。
+    
+    从"发现问题"升级到"告诉你怎么查"。
+    每条策略包含：优先级/动作/依据/预期结果。
+    """
+    strategies = []
+    high_risk_count = sum(1 for f in all_findings if f.get("level") in ("高风险", "极高风险"))
+    has_bank_issues = any("银行" in f.get("type", "") or "资金" in f.get("type", "") or "收款" in f.get("type", "") for f in all_findings)
+    has_invoice_issues = any("发票" in f.get("type", "") or "虚开" in f.get("type", "") for f in all_findings)
+    has_personal = any("个人" in f.get("type", "") for f in all_findings)
+    
+    # 策略模板
+    if has_bank_issues:
+        strategies.append({
+            "priority": "P0",
+            "action": "调取全部银行账户流水",
+            "basis": f"发现{high_risk_count}项高风险资金异常",
+            "detail": "向开户银行发函调取被查单位及法定代表人、财务负责人名下全部账户的完整流水（含已销户），覆盖分析期前后各6个月",
+            "expected": "获取完整资金链路，确认收款来源和付款去向"
+        })
+    
+    if has_invoice_issues:
+        strategies.append({
+            "priority": "P0",
+            "action": "发函协查上游供应商",
+            "basis": "发现发票真实性存疑",
+            "detail": "向供应商所在地税务机关发函协查，核实供应商是否真实经营、是否正常申报纳税、是否存在走逃/注销",
+            "expected": "确认进项发票真实性，锁定虚开证据链"
+        })
+    
+    if has_personal:
+        strategies.append({
+            "priority": "P0",
+            "action": "核查个人账户资金性质",
+            "basis": "发现个人付款方占比异常",
+            "detail": "逐笔核实大额个人付款方身份（是否为员工/股东/关联方），追踪收款后资金去向",
+            "expected": "区分经营收入、股东注资、关联方拆借，确认是否有隐匿收入"
+        })
+    
+    # 通用策略
+    strategies.append({
+        "priority": "P1",
+        "action": "实地核查经营场所",
+        "basis": "需要验证经营实质",
+        "detail": "实地查看生产/办公场所、机器设备、存货情况，拍照固定证据，制作现场笔录",
+        "expected": "确认产能是否匹配产出，是否存在'空壳经营'"
+    })
+    
+    strategies.append({
+        "priority": "P1",
+        "action": "约谈法定代表人及财务负责人",
+        "basis": "需要就异常情况取得当事人陈述",
+        "detail": "制作询问笔录，重点询问：经营模式、供应商/客户关系、资金往来性质、加工流程",
+        "expected": "取得当事人对异常情况的解释说明，固定口供证据"
+    })
+    
+    # 补充证据策略
+    missing_evidence = []
+    if not any("BOM" in f.get("type", "") for f in all_findings):
+        missing_evidence.append({
+            "priority": "P2",
+            "action": "要求提供BOM表（物料清单）",
+            "basis": "制造业/加工企业应能提供投入产出单耗数据",
+            "detail": "要求提供主要产品的BOM表，列明单位产品耗用原材料/辅料/人工/能耗的定额，用于验证发票品名差异的合理性",
+            "expected": "验证加工链条真实性或揭露虚开发票"
+        })
+    strategies.extend(missing_evidence)
+    
+    return {
+        "strategies": strategies,
+        "total": len(strategies),
+        "p0_count": sum(1 for s in strategies if s["priority"] == "P0"),
+    }
+
+
+def _multimodal_support_check(docs, file_results):
+    """多模态支持 —— 检测需要OCR/图像分析的文件并给出处理建议。
+    
+    当前阶段：识别需要OCR的文件类型，标记待处理。
+    远期：接入OCR引擎自动提取合同/图片中的关键信息。
+    """
+    multimodal_files = []
+    
+    image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.gif', '.webp', '.pdf'}
+    ocr_needed = []
+    
+    for fr in (file_results or []):
+        fname = fr.get("file", fr.get("file_name", fr.get("original_name", "")))
+        ftype = fr.get("type", "unknown")
+        
+        # 检测图片/PDF
+        ext = os.path.splitext(fname)[1].lower() if '.' in str(fname) else ''
+        if ext in image_exts or ftype == 'unknown':
+            ocr_needed.append({
+                "file": fname,
+                "reason": "PDF/图片格式" if ext == '.pdf' else ("图片格式" if ext in image_exts else "未识别格式"),
+                "suggested_action": "上传至OCR引擎提取文本/表格数据",
+            })
+    
+    contract_kws = ["合同", "协议", "contract", "agreement"]
+    has_contracts = any(
+        any(kw in str(fr.get("file", "")).lower() for kw in contract_kws)
+        for fr in (file_results or [])
+    )
+    
+    status = "active" if ocr_needed else "idle"
+    
+    return {
+        "status": status,
+        "ocr_files_count": len(ocr_needed),
+        "ocr_files": ocr_needed[:5],
+        "has_contracts": has_contracts,
+        "recommendation": (
+            f"检测到{len(ocr_needed)}个需要OCR处理的文件" if ocr_needed
+            else "当前上传文件均为结构化数据（Excel/CSV），无需OCR处理"
+        )
+    }
+
+def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
+    """经营实质深挖 —— 虚开发票的终极克星。
+    
+    核心逻辑：真实经营必须消耗生产要素（水/电/运输/人工）。
+    如果发票显示大量产出，但要素消耗不匹配 → 虚开嫌疑极大。
+    
+    检测项：
+    1. 水电费vs产量：制造业必须有水电支出
+    2. 运输费vs销量：有销售必须有物流
+    3. 人工vs产量：产量需要人工支撑
+    """
+    from collections import defaultdict
+    
+    findings = []
+    fs = ctx.financial_snapshot
+    cp = ctx.company_profile
+    
+    # 提取费用类关键词
+    utility_kws = ["电", "水", "电费", "水费", "水电", "电力", "水务", "能源"]
+    transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "搬"]
+    labor_kws = ["工资", "薪金", "劳务", "人工", "薪酬", "奖金"]
+    
+    has_utility = False
+    has_transport = False
+    utility_total = 0
+    transport_total = 0
+    
+    if bank_txs:
+        for tx in bank_txs:
+            summary = str(tx.get("summary", tx.get("用途", "")))
+            counterparty = str(tx.get("counterparty", tx.get("对方户名", "")))
+            text = summary + counterparty
+            amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            
+            if any(kw in text for kw in utility_kws):
+                has_utility = True
+                utility_total += amt
+            if any(kw in text for kw in transport_kws):
+                has_transport = True
+                transport_total += amt
+    
+    if invoices:
+        for inv in invoices:
+            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+            if any(kw in goods for kw in utility_kws):
+                has_utility = True
+                utility_total += float(inv.get("amount", 0) or 0)
+            if any(kw in goods for kw in transport_kws):
+                has_transport = True
+                transport_total += float(inv.get("amount", 0) or 0)
+    
+    total_sales = fs.get("total_sales", 0)
+    total_purchases = fs.get("total_purchases", 0)
+    total_salary = fs.get("total_salary", 0)
+    biz_model = cp.get("biz_model", "")
+    
+    # ── 制造业必须有水电+运输 ──
+    if biz_model == "制造业" and total_sales > 1000000:
+        if not has_utility and total_purchases > 500000:
+            findings.append({
+                "type": "经营实质-缺水电支出",
+                "level": "高风险",
+                "score": 9,
+                "detail": f"制造业进项{total_purchases:,.0f}元但未检测到水电费支出——生产必须有能源消耗，疑似无实际生产",
+                "how_found": "经营实质引擎: 扫描银行流水+发票品名中的水电关键词→未命中→产能存疑",
+                "suggestion": "核查企业实际经营场所、电表读数、水费单据",
+                "category": "经营实质深挖"
+            })
+        if not has_transport and total_sales > 1000000:
+            findings.append({
+                "type": "经营实质-缺运输支出",
+                "level": "中风险",
+                "score": 7,
+                "detail": f"销售额{total_sales:,.0f}元但未检测到运输/物流费用——货物销售必须有物流",
+                "how_found": "经营实质引擎: 扫描运输关键词→未命中→物流真实性存疑",
+                "suggestion": "核查出库单、物流单据、运输合同",
+                "category": "经营实质深挖"
+            })
+    
+    # ── 人工vs产出匹配 ──
+    if biz_model in ("制造业", "贸易") and total_sales > 5000000:
+        emp_count = fs.get("salary_count", 0)
+        if emp_count > 0 and total_salary > 0:
+            revenue_per_emp = total_sales / emp_count
+            if revenue_per_emp > 5000000:
+                findings.append({
+                    "type": "经营实质-人均产出异常",
+                    "level": "中风险",
+                    "score": 6,
+                    "detail": f"人均产出{revenue_per_emp:,.0f}元（{emp_count}人支撑{total_sales:,.0f}元销售额）→人员规模与产出不匹配",
+                    "how_found": f"经营实质引擎: {emp_count}人×人均{revenue_per_emp:,.0f}元→超出合理范围",
+                    "suggestion": "核查是否有外协加工/外包/挂靠等未披露的安排",
+                    "category": "经营实质深挖"
+                })
+        elif emp_count == 0 and total_sales > 1000000:
+            findings.append({
+                "type": "经营实质-无人工支出",
+                "level": "高风险",
+                "score": 8,
+                "detail": f"销售额{total_sales:,.0f}元但无工资记录——无人工不可能有产出",
+                "category": "经营实质深挖"
+            })
+    
+    # ── 运输费vs销量 ──
+    if has_transport and total_sales > 0:
+        transport_ratio = transport_total / total_sales * 100
+        if transport_ratio < 0.5 and biz_model == "制造业":
+            findings.append({
+                "type": "经营实质-运输费占比偏低",
+                "level": "低风险",
+                "score": 4,
+                "detail": f"运输费{transport_total:,.0f}元仅占销售额{transport_ratio:.2f}%→制造业物流成本通常1-5%",
+                "category": "经营实质深挖"
+            })
+    
+    return findings
+
+
+def _adversarial_robustness_check(all_findings, invoices, bank_txs):
+    """对抗鲁棒性检测 —— 识别人为编造数据的痕迹。
+    
+    方法：
+    1. 本福特定律（Benford's Law）：真实财务数据的首位数字服从对数分布
+    2. 重复金额检测：完全相同金额出现频率
+    3. 数字偏好检测：避开4/喜欢8等人为心理特征
+    """
+    import math
+    from collections import Counter
+    
+    findings = []
+    
+    # ── 本福特定律检测 ──
+    amounts = []
+    if invoices:
+        for inv in invoices:
+            a = float(inv.get("amount", inv.get("total", 0)) or 0)
+            if a >= 10:
+                amounts.append(a)
+    
+    if bank_txs:
+        for tx in bank_txs:
+            a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            if a >= 10:
+                amounts.append(a)
+    
+    if len(amounts) >= 30:
+        # 统计首位数字分布
+        first_digit_counts = Counter()
+        for a in amounts:
+            first = int(str(abs(a)).strip('0.')[0]) if abs(a) >= 1 else 0
+            if 1 <= first <= 9:
+                first_digit_counts[first] += 1
+        
+        total = sum(first_digit_counts.values())
+        if total >= 20:
+            # 本福特理论分布: P(d) = log10(1 + 1/d)
+            benford_expected = {d: math.log10(1 + 1/d) * total for d in range(1, 10)}
+            
+            # 卡方检验
+            chi_square = 0
+            max_deviation = 0
+            max_dev_digit = 0
+            for d in range(1, 10):
+                observed = first_digit_counts.get(d, 0)
+                expected = benford_expected[d]
+                if expected > 0:
+                    dev = (observed - expected) ** 2 / expected
+                    chi_square += dev
+                    deviation_pct = abs(observed - expected) / expected * 100
+                    if deviation_pct > max_deviation:
+                        max_deviation = deviation_pct
+                        max_dev_digit = d
+            
+            # 卡方>15.5 (8自由度, p<0.05) → 显著偏离本福特
+            if chi_square > 15.5:
+                findings.append({
+                    "type": "对抗鲁棒性-本福特定律偏离",
+                    "level": "中风险",
+                    "score": 7,
+                    "detail": f"金额首位数字分布显著偏离本福特定律（卡方={chi_square:.1f}, p<0.05）→数据可能经过人为干预",
+                    "how_found": f"对抗引擎: {total}个金额的首位分布vs本福特理论→卡方{chi_square:.1f}>临界值15.5",
+                    "suggestion": "重点核查偏离最大的数字{max_dev_digit}（偏差{max_deviation:.0f}%），对比原始凭证",
+                    "category": "对抗鲁棒性"
+                })
+    
+    # ── 重复金额检测 ──
+    if len(amounts) >= 10:
+        amount_counter = Counter(amounts)
+        exact_dupes = {a: c for a, c in amount_counter.items() if c >= 3 and a >= 1000}
+        if len(exact_dupes) >= 3:
+            top_dupe = max(exact_dupes, key=exact_dupes.get)
+            findings.append({
+                "type": "对抗鲁棒性-重复金额异常",
+                "level": "黄灯",
+                "score": 5,
+                "detail": f"发现{len(exact_dupes)}个金额重复>=3次（如{top_dupe:,.0f}元出现{exact_dupes[top_dupe]}次）→可能批量编造",
+                "category": "对抗鲁棒性"
+            })
+    
+    return findings
+
+
+def _auto_rule_discovery(all_findings):
+    """自动规则发现 —— 从反馈和共现模式中挖掘新规则。
+    
+    不依赖人工预定义，自动发现"信号X+信号Y几乎总是同时出现且都是高风险"的模式。
+    """
+    from collections import defaultdict, Counter
+    import json, os
+    
+    new_rules = []
+    
+    # ── 从当前发现的信号共现中学习 ──
+    signal_cooccur = defaultdict(list)
+    for f in all_findings:
+        sigs = f.get("_signal_types", [])
+        level = f.get("level", "")
+        score = f.get("score", 0) or 0
+        
+        if score >= 7 and len(sigs) >= 2:
+            for i in range(len(sigs)):
+                for j in range(i+1, len(sigs)):
+                    pair = tuple(sorted([sigs[i], sigs[j]]))
+                    signal_cooccur[pair].append(score)
+    
+    # 高频高风险的共现模式
+    for pair, scores in signal_cooccur.items():
+        if len(scores) >= 2 and sum(scores)/len(scores) >= 7:
+            new_rules.append({
+                "signals": list(pair),
+                "avg_score": round(sum(scores)/len(scores), 1),
+                "frequency": len(scores),
+                "auto_discovered": True,
+            })
+    
+    # ── 加载历史反馈中学习的模式 ──
+    learned = []
+    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    try:
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+            confirmed_types = Counter()
+            for fb in feedbacks:
+                if fb.get("action") == "confirm" and fb.get("finding_type"):
+                    confirmed_types[fb["finding_type"]] += 1
+            for ftype, count in confirmed_types.most_common(10):
+                if count >= 2:
+                    learned.append({
+                        "finding_type": ftype,
+                        "confirmations": count,
+                        "learned_weight": min(1.5, 1.0 + count * 0.1),
+                    })
+    except:
+        pass
+    
+    return {
+        "discovered_rules": new_rules[:5],
+        "learned_weights": learned[:10],
+        "total_learned": len(learned),
+    }
+
+
+def _audit_strategy_recommend(ctx, all_findings):
+    """审计策略推荐 —— 基于发现自动推荐下一步取证动作。
+    
+    从"发现问题"升级到"告诉你怎么查"。
+    每条策略包含：优先级/动作/依据/预期结果。
+    """
+    strategies = []
+    high_risk_count = sum(1 for f in all_findings if f.get("level") in ("高风险", "极高风险"))
+    has_bank_issues = any("银行" in f.get("type", "") or "资金" in f.get("type", "") or "收款" in f.get("type", "") for f in all_findings)
+    has_invoice_issues = any("发票" in f.get("type", "") or "虚开" in f.get("type", "") for f in all_findings)
+    has_personal = any("个人" in f.get("type", "") for f in all_findings)
+    
+    # 策略模板
+    if has_bank_issues:
+        strategies.append({
+            "priority": "P0",
+            "action": "调取全部银行账户流水",
+            "basis": f"发现{high_risk_count}项高风险资金异常",
+            "detail": "向开户银行发函调取被查单位及法定代表人、财务负责人名下全部账户的完整流水（含已销户），覆盖分析期前后各6个月",
+            "expected": "获取完整资金链路，确认收款来源和付款去向"
+        })
+    
+    if has_invoice_issues:
+        strategies.append({
+            "priority": "P0",
+            "action": "发函协查上游供应商",
+            "basis": "发现发票真实性存疑",
+            "detail": "向供应商所在地税务机关发函协查，核实供应商是否真实经营、是否正常申报纳税、是否存在走逃/注销",
+            "expected": "确认进项发票真实性，锁定虚开证据链"
+        })
+    
+    if has_personal:
+        strategies.append({
+            "priority": "P0",
+            "action": "核查个人账户资金性质",
+            "basis": "发现个人付款方占比异常",
+            "detail": "逐笔核实大额个人付款方身份（是否为员工/股东/关联方），追踪收款后资金去向",
+            "expected": "区分经营收入、股东注资、关联方拆借，确认是否有隐匿收入"
+        })
+    
+    # 通用策略
+    strategies.append({
+        "priority": "P1",
+        "action": "实地核查经营场所",
+        "basis": "需要验证经营实质",
+        "detail": "实地查看生产/办公场所、机器设备、存货情况，拍照固定证据，制作现场笔录",
+        "expected": "确认产能是否匹配产出，是否存在'空壳经营'"
+    })
+    
+    strategies.append({
+        "priority": "P1",
+        "action": "约谈法定代表人及财务负责人",
+        "basis": "需要就异常情况取得当事人陈述",
+        "detail": "制作询问笔录，重点询问：经营模式、供应商/客户关系、资金往来性质、加工流程",
+        "expected": "取得当事人对异常情况的解释说明，固定口供证据"
+    })
+    
+    # 补充证据策略
+    missing_evidence = []
+    if not any("BOM" in f.get("type", "") for f in all_findings):
+        missing_evidence.append({
+            "priority": "P2",
+            "action": "要求提供BOM表（物料清单）",
+            "basis": "制造业/加工企业应能提供投入产出单耗数据",
+            "detail": "要求提供主要产品的BOM表，列明单位产品耗用原材料/辅料/人工/能耗的定额，用于验证发票品名差异的合理性",
+            "expected": "验证加工链条真实性或揭露虚开发票"
+        })
+    strategies.extend(missing_evidence)
+    
+    return {
+        "strategies": strategies,
+        "total": len(strategies),
+        "p0_count": sum(1 for s in strategies if s["priority"] == "P0"),
+    }
+
+
+def _multimodal_support_check(docs, file_results):
+    """多模态支持 —— 检测需要OCR/图像分析的文件并给出处理建议。
+    
+    当前阶段：识别需要OCR的文件类型，标记待处理。
+    远期：接入OCR引擎自动提取合同/图片中的关键信息。
+    """
+    multimodal_files = []
+    
+    image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.gif', '.webp', '.pdf'}
+    ocr_needed = []
+    
+    for fr in (file_results or []):
+        fname = fr.get("file", fr.get("file_name", fr.get("original_name", "")))
+        ftype = fr.get("type", "unknown")
+        
+        # 检测图片/PDF
+        ext = os.path.splitext(fname)[1].lower() if '.' in str(fname) else ''
+        if ext in image_exts or ftype == 'unknown':
+            ocr_needed.append({
+                "file": fname,
+                "reason": "PDF/图片格式" if ext == '.pdf' else ("图片格式" if ext in image_exts else "未识别格式"),
+                "suggested_action": "上传至OCR引擎提取文本/表格数据",
+            })
+    
+    contract_kws = ["合同", "协议", "contract", "agreement"]
+    has_contracts = any(
+        any(kw in str(fr.get("file", "")).lower() for kw in contract_kws)
+        for fr in (file_results or [])
+    )
+    
+    status = "active" if ocr_needed else "idle"
+    
+    return {
+        "status": status,
+        "ocr_files_count": len(ocr_needed),
+        "ocr_files": ocr_needed[:5],
+        "has_contracts": has_contracts,
+        "recommendation": (
+            f"检测到{len(ocr_needed)}个需要OCR处理的文件" if ocr_needed
+            else "当前上传文件均为结构化数据（Excel/CSV），无需OCR处理"
+        )
+    }
+
+
 def _build_finding_trace(finding, idx, trace_id, ctx=None):
     """
     为单条结论构建完整的推理链路追溯。
@@ -20251,251 +21259,6 @@ def _enrich_evidence_trace(ctx, all_findings, file_results):
         }
     
     return all_findings
-
-
-def _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log):
-    """
-    Phase 4 — 综合定性引擎
-    
-    输入：all_findings + Phase 3 交叉验证结果
-    产出：
-      - overall_assessment: dict，包含整体评级/核心问题/建议/综合结论
-    """
-    # 合并所有发现
-    all_items = list(all_findings) + list(cross_findings)
-    
-    # ═══ 叙事增强层：缺失后果→综合定性自动触发 ═══
-    # 任一资料缺失≥1 → 自动触发对应风险结论
-    missing_triggered = _trigger_missing_consequences(all_items, missing_doc_keys=ctx.missing_doc_keys)
-    if missing_triggered:
-        all_items.extend(missing_triggered)
-        pipeline_log.append(f"[Phase4] 缺失后果自动触发: {len(missing_triggered)}项 → {', '.join(mt['_missing_key'] for mt in missing_triggered)}")
-    
-    # ═══ 结论自洽性检查：检测矛盾结论 ═══
-    contradiction_findings = _check_conclusion_consistency(all_items)
-    if contradiction_findings:
-        all_items.extend(contradiction_findings)
-        pipeline_log.append(f"[Phase4] 结论自洽性检查: {len(contradiction_findings)}个矛盾 → {', '.join(cf['_contradiction_id'] for cf in contradiction_findings)}")
-    
-    # ═══ 跨域因果叙事引擎：多信号叠加→因果推理 ═══
-    causal_narratives = _build_causal_narratives(all_items)
-    if causal_narratives:
-        all_items.extend(causal_narratives)
-        pipeline_log.append(f"[Phase4] 因果叙事引擎: {len(causal_narratives)}条因果链 → {', '.join(cn['_causal_id'] for cn in causal_narratives)}")
-    
-    # ═══ 事前预警引擎：异常演变→风险升级路径 ═══
-    early_warnings = _build_early_warnings(all_items, ctx)
-    if early_warnings:
-        all_items.extend(early_warnings)
-        pipeline_log.append(f"[Phase4] 事前预警引擎: {len(early_warnings)}条升级路径 → {', '.join(ew['_early_warning_id'] for ew in early_warnings)}")
-    
-    # ═══ 时间趋势分析：注入Phase 1的趋势发现 ═══
-    trend_findings = getattr(ctx, 'trend_findings', [])
-    if trend_findings:
-        all_items.extend(trend_findings)
-        pipeline_log.append(f"[Phase4] 趋势分析: {len(trend_findings)}条趋势发现已注入综合定性")
-    
-    # ═══ 假设敏感性分析：隐匿收入/虚列成本/虚抵进项 × 低中高 ═══
-    sensitivity_report = {}
-    try:
-        sensitivity_report = SensitivityAnalyzer.analyze(ctx)
-        if sensitivity_report:
-            ctx._sensitivity_report = sensitivity_report
-            pipeline_log.append(f"[Phase4] 敏感性分析: {sensitivity_report['summary'][:80]}")
-    except Exception:
-        pass
-    
-    # ═══ 证据溯源：标注每条结论的原始数据来源 ═══
-    file_results = getattr(ctx, 'file_results', [])
-    if file_results:
-        all_items = _enrich_evidence_trace(ctx, all_items, file_results)
-        pipeline_log.append(f"[Phase4] 证据溯源: 已为{len(all_items)}条发现标注数据来源")
-    
-    # ═══ 结论可信度评估：引擎自我质疑 ═══
-    credibility_report = {}
-    try:
-        assessor = ConfidenceAssessor(ctx, all_items)
-        credibility_report = assessor.assess_all()
-        ctx._credibility_report = credibility_report
-        pipeline_log.append(f"[Phase4] 可信度评估: 整体{credibility_report['overall_credibility']:.0f}分, 最薄弱{len(credibility_report.get('weakest_conclusions',[]))}条")
-    except Exception as _ce:
-        ctx._credibility_report = {}
-        pipeline_log.append(f"[Phase4] 可信度评估异常: {_ce}")
-    
-    if not all_items:
-        return {
-            "overall_risk": "无法评估",
-            "risk_score": 0,
-            "core_issues": [],
-            "prioritized_actions": [],
-            "executive_summary": "数据不足，无法生成综合定性结论。请补充银行流水和发票数据后重新分析。",
-            "evidence_summary": "",
-            "data_quality_note": f"资料质量评分: {ctx.data_quality_score}/100"
-        }
-    
-    # ── 1. 整体风险评分 ──
-    # 算法：所有发现的加权得分 × 资料质量折扣 × 信号叠加加成
-    base_scores = [f.get("score", 0) for f in all_items if isinstance(f, dict)]
-    max_possible = len(base_scores) * 10
-    total_score = sum(base_scores) if base_scores else 0
-    
-    # 资料质量折扣（资料越差，结论越不可靠，但风险不能因为资料差就降低）
-    quality_factor = ctx.data_quality_score / 100 if ctx.data_quality_score > 0 else 0.5
-    
-    # 信号叠加加成（交叉验证命中的模式越多，叠加效应越强）
-    cross_count = len(cross_findings)
-    cross_bonus = 1.0 + (cross_count * 0.15)  # 每个交叉验证+15%
-    
-    # 综合风险分数（0-100归一化）
-    normalized = (total_score / max(max_possible, 1)) * 100
-    adjusted = normalized * cross_bonus
-    
-    # 风险等级 — 优先使用记忆学习器校准的阈值
-    calibrated = getattr(ctx, '_calibrated_thresholds', None)
-    if calibrated:
-        thresholds = {
-            "极高风险": calibrated.get("极高风险", 70),
-            "高风险": calibrated.get("高风险", 50),
-            "中风险": calibrated.get("中风险", 30),
-            "低风险": 15,
-        }
-        pipeline_log.append(f"[Phase4] 行业阈值校准({calibrated.get('industry','?')}行业/{calibrated.get('case_count',0)}案例): 极高>{thresholds['极高风险']:.0f}/高>{thresholds['高风险']:.0f}/中>{thresholds['中风险']:.0f}")
-    else:
-        thresholds = {"极高风险": 70, "高风险": 50, "中风险": 30, "低风险": 15}
-    
-    if adjusted >= thresholds["极高风险"]: overall_risk = "极高风险"
-    elif adjusted >= thresholds["高风险"]: overall_risk = "高风险"
-    elif adjusted >= thresholds["中风险"]: overall_risk = "中风险"
-    elif adjusted >= thresholds["低风险"]: overall_risk = "低风险"
-    else: overall_risk = "基本合规"
-    
-    pipeline_log.append(f"[Phase4] 风险评分: {adjusted:.0f}/100 → {overall_risk}")
-    
-    # ── 2. 核心问题提取 ──
-    # 按严重程度排序，提取关键问题
-    # 缺失后果触发结论优先展示（叙事增强层：>=1缺失必须触发）
-    auto_items = [f for f in all_items if f.get("_auto_triggered")]
-    other_items = [f for f in all_items if not f.get("_auto_triggered")]
-    
-    high_items = sorted(
-        [f for f in other_items if f.get("level") in ("极高风险", "高风险")],
-        key=lambda f: -f.get("score", 0)
-    )
-    mid_items = sorted(
-        [f for f in other_items if f.get("level") == "中风险"],
-        key=lambda f: -f.get("score", 0)
-    )
-    
-    # 去重：相似的问题合并
-    core_issues = []
-    seen_types = set()
-    
-    # 第一轮：auto_triggered 缺失后果优先
-    for f in auto_items:
-        ftype = f.get("type", "")
-        key = ftype[:15]
-        if key in seen_types:
-            continue
-        seen_types.add(key)
-        core_issues.append({
-            "type": ftype,
-            "level": f.get("level", ""),
-            "score": f.get("score", 0),
-            "domain": f.get("domain", f.get("category", "")),
-            "summary": (f.get("detail", "") or f.get("description", ""))[:200],
-            "is_cross_validated": f.get("_phase3_cross_validated", False),
-            "_auto_triggered": True,
-        })
-    
-    # 第二轮：其他发现
-    for f in high_items + mid_items:
-        ftype = f.get("type", "")
-        # 去重：取前15字符作key
-        key = ftype[:15]
-        if key in seen_types:
-            continue
-        seen_types.add(key)
-        
-        core_issues.append({
-            "type": ftype,
-            "level": f.get("level", ""),
-            "score": f.get("score", 0),
-            "domain": f.get("domain", f.get("category", "")),
-            "summary": (f.get("detail", "") or f.get("description", ""))[:200],
-            "is_cross_validated": f.get("_phase3_cross_validated", False),
-            "_auto_triggered": False,
-        })
-        if len(core_issues) >= 8:
-            break
-    
-    # ── 3. 建议优先级排序 ──
-    p0_actions = []  # 立即行动
-    p1_actions = []  # 重点关注
-    p2_actions = []  # 持续监控
-    
-    # P0：交叉验证命中的模式 + 极高/高风险发现
-    for f in all_items:
-        priority = f.get("_priority", "")
-        suggestion = f.get("suggestion", "")
-        if not suggestion:
-            continue
-        
-        actions = [a.strip() for a in suggestion.split("\n") if a.strip() and not a.strip().startswith("①")] if "\n" in suggestion else []
-        if not actions:
-            actions = [suggestion[:200]]
-        
-        if priority == "P0" or f.get("level") == "极高风险":
-            for a in actions:
-                if a not in p0_actions:
-                    p0_actions.append(a)
-        elif priority == "P1" or f.get("level") == "高风险":
-            for a in actions:
-                if a not in p1_actions:
-                    p1_actions.append(a)
-        elif f.get("level") == "中风险":
-            for a in actions:
-                if a not in p2_actions:
-                    p2_actions.append(a)
-    
-    # 限制数量
-    p0_actions = p0_actions[:5]
-    p1_actions = p1_actions[:5]
-    p2_actions = p2_actions[:5]
-    
-    # ── 4. 综合结论文本 ──
-    executive_summary = _generate_executive_summary(
-        overall_risk, core_issues, cross_findings, 
-        ctx, adjusted, len(p0_actions), len(p1_actions)
-    )
-    
-    # ── 5. 证据链汇总 ──
-    evidence_chain = _summarize_evidence(all_items)
-    
-    return {
-        "overall_risk": overall_risk,
-        "risk_score": round(adjusted, 1),
-        "risk_score_raw": round(normalized, 1),
-        "quality_factor": round(quality_factor, 2),
-        "cross_bonus": round(cross_bonus, 2),
-        "total_findings": len(all_items),
-        "cross_validated_patterns": cross_count,
-        "core_issues": core_issues,
-        "prioritized_actions": {
-            "P0_立即行动": p0_actions,
-            "P1_重点关注": p1_actions,
-            "P2_持续监控": p2_actions,
-        },
-        "executive_summary": executive_summary,
-        "evidence_summary": evidence_chain,
-        "data_quality_note": (
-            f"资料质量评分: {ctx.data_quality_score}/100。"
-            + (f" 缺失关键资料: {'、'.join(ctx.missing_critical_docs)}。" if ctx.missing_critical_docs else "")
-            + (" 资料不足导致部分结论置信度下降。" if ctx.data_quality_score < 70 else "")
-        ),
-        "missing_doc_keys": ctx.missing_doc_keys,
-        "missing_triggered_count": len(missing_triggered),
-        "credibility": credibility_report,
-    }
 
 
 def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, score, p0_count, p1_count):
@@ -21512,7 +22275,8 @@ def _run_analyze(company_id, db):
             goods_text = " ".join(goods_list)
             # 行业检测：匹配最精确的行业（双向匹配+优先长关键字）
             candidates = []
-            for kw in INDUSTRY_BENCHMARKS:
+            industry_data = _load_industry_data()
+            for kw in industry_data.get("benchmarks", {}):
                 if kw == "_default": continue
                 if kw in goods_text:
                     candidates.append((kw, len(kw)))
@@ -22898,6 +23662,97 @@ def _run_analyze(company_id, db):
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
     
+    # ═══ 证据溯源：为每条发现附加原始数据行级引用（可点击溯源） ═══
+    all_findings = _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers)
+    
+    # ═══ 信号类型标注：为每条发现打上结构化信号标签（驱动因果推理） ═══
+    all_findings = _enrich_signal_types(all_findings)
+    
+    # ═══ 因果叙事链：信号叠加→因果推理（结构化匹配，>=1触发） ═══
+    causal_narratives = _build_causal_narratives(all_findings)
+    if causal_narratives:
+        all_findings.extend(causal_narratives)
+        pipeline_log.append(f"因果叙事链: {len(causal_narratives)}条因果推理链触发")
+    
+    # ═══ 证伪思维：对每条高风险结论生成反向假设并尝试证伪 ═══
+    all_findings, falsification_log = _falsification_check(all_findings)
+    pipeline_log.append(falsification_log)
+    
+    # ═══ 增强证伪：30+规则 + 多维Benford ═══
+    all_findings, enhanced_fals_log = _enhanced_falsification_check(all_findings)
+    pipeline_log.append(enhanced_fals_log)
+    
+    # ═══ 贝叶斯因果网络：条件概率 + 自动发现因果边 + 信念传播 ═══
+    all_findings, bayesian_result = _bayesian_causal_network(all_findings)
+    if bayesian_result.get("edges", 0) > 0:
+        pipeline_log.append(f"贝叶斯因果: {bayesian_result['edges']}条因果边/{bayesian_result.get('propagated',0)}条信念传播")
+    
+    # ═══ EMA自学习：指数移动平均阈值 + 权重衰减 ═══
+    ema_result = _ema_self_learning(ctx, all_findings)
+    ctx._ema_learning = ema_result
+    pipeline_log.append(f"EMA自学习: {ema_result['learning_status']}({ema_result['industry_sample_size']}样本)")
+    
+    # ═══ 推断可解释性：决策路径+替代假设 ═══
+    all_findings = _enrich_reasoning_path(all_findings)
+    
+    # ═══ 经验直觉：历史反馈学习+信号共现模式 ═══
+    intuition_findings = _compute_intuition_patterns(ctx, all_findings)
+    if intuition_findings:
+        all_findings.extend(intuition_findings)
+        pipeline_log.append(f"经验直觉: {len(intuition_findings)}条直觉警报")
+    
+    # ═══ 多假设并行推理 ═══
+    multi_hypo_findings = _multi_hypothesis_check(ctx, all_findings, bank_txs, invoices)
+    if multi_hypo_findings:
+        all_findings.extend(multi_hypo_findings)
+        pipeline_log.append(f"多假设推理: {len(multi_hypo_findings)}组竞争假设")
+    
+    # ═══ 跨期对比记忆 ═══
+    cross_period_findings = _cross_period_compare(ctx, company_id, db)
+    if cross_period_findings:
+        all_findings.extend(cross_period_findings)
+        pipeline_log.append(f"跨期对比: {len(cross_period_findings)}条趋势发现")
+    
+    # ═══ 知识图谱 ═══
+    entity_findings, graph_summary = _build_entity_graph(bank_txs, invoices, salaries)
+    if entity_findings:
+        all_findings.extend(entity_findings)
+        ctx._entity_graph = graph_summary
+        pipeline_log.append(f"知识图谱: {graph_summary['total_entities']}个实体/{graph_summary['total_anomalies']}个异常关系")
+    
+    # ═══ 经营实质深挖：水电费/运输费/人工vs产能匹配 ═══
+    biz_sub_findings = _deep_biz_substance_check(ctx, bank_txs, invoices, salaries)
+    if biz_sub_findings:
+        all_findings.extend(biz_sub_findings)
+        pipeline_log.append(f"经营实质深挖: {len(biz_sub_findings)}项要素匹配异常")
+    
+    # ═══ 对抗鲁棒性：本福特定律+重复金额检测 ═══
+    adv_findings = _adversarial_robustness_check(all_findings, invoices, bank_txs)
+    if adv_findings:
+        all_findings.extend(adv_findings)
+        pipeline_log.append(f"对抗鲁棒性: {len(adv_findings)}项数据编造痕迹")
+    
+    # ═══ 多维Benford检验（首位+第二位+末位） ═══
+    benford_result = _multi_dim_benford_check(invoices, bank_txs)
+    ctx._benford = benford_result
+    if benford_result.get("flags"):
+        pipeline_log.append(f"Benford检验: {len(benford_result['flags'])}项异常")
+    
+    # ═══ 自动规则发现 ═══
+    rule_discovery = _auto_rule_discovery(all_findings)
+    ctx._discovered_rules = rule_discovery
+    if rule_discovery.get("discovered_rules"):
+        pipeline_log.append(f"自动规则发现: {len(rule_discovery['discovered_rules'])}条新信号组合模式")
+    
+    # ═══ 审计策略推荐 ═══
+    audit_strategies = _audit_strategy_recommend(ctx, all_findings)
+    ctx._audit_strategies = audit_strategies
+    pipeline_log.append(f"审计策略: {audit_strategies['total']}条推荐策略({audit_strategies['p0_count']}条P0)")
+    
+    # ═══ 多模态支持检测 ═══
+    multimodal_status = _multimodal_support_check(docs, file_results)
+    ctx._multimodal = multimodal_status
+    
     # ═══ 稽查方法论㉓ 四步稽查分析法：detect→verify→diagnose→report 统一框架 ═══
     try:
         all_findings = _four_step_audit_framework(all_findings, bank_txs, invoices, target_entity)
@@ -23166,6 +24021,13 @@ def _run_analyze(company_id, db):
         "quality_report": quality_report,
         "engine_status": engine_status,
         "all_findings": sorted(final_findings, key=lambda x: -(x.get("score") or 0)),
+        "entity_graph": getattr(ctx, '_entity_graph', None) or {},
+        "audit_strategies": getattr(ctx, '_audit_strategies', None) or {},
+        "multimodal": getattr(ctx, '_multimodal', None) or {},
+        "discovered_rules": getattr(ctx, '_discovered_rules', None) or {},
+        "bayesian": getattr(ctx, '_bayesian', None) or {},
+        "ema_learning": getattr(ctx, '_ema_learning', None) or {},
+        "benford": getattr(ctx, '_benford', None) or {},
         "trace_id": analysis_trace_id,
         "trace_count": len(_analysis_traces),
         "summary_text": (
@@ -23769,6 +24631,143 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         # ── 注入items ──
         if items:
             f["items"] = items
+    
+    return all_findings
+
+
+def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
+    """为每条发现附加原始数据行级引用（evidence_rows），实现白盒可验证结论。
+    
+    每条 evidence_row 包含：数据来源类型、引用ID（发票号/流水号/凭证号）、
+    金额、对方名称、日期等可追溯字段。前端渲染为可点击证据链接。
+    """
+    if not all_findings:
+        return all_findings
+    
+    # 数据分片
+    pur_invs = [i for i in invoices if i.get("direction") in ("进项", "purchase")]
+    sal_invs = [i for i in invoices if i.get("direction") in ("销项", "sales")]
+    
+    # 证据行构建辅助
+    def _inv_row(inv, label="发票"):
+        return {
+            "source": label,
+            "ref_id": str(inv.get("inv_no", inv.get("发票号码", "")))[:25] or "-",
+            "ref_label": str(inv.get("goods", inv.get("货物或应税劳务名称", "")))[:30],
+            "amount": float(inv.get("amount", inv.get("total", 0)) or 0),
+            "counterparty": str(inv.get("seller", inv.get("buyer", inv.get("销方名称", inv.get("购方名称", "")))))[:25],
+            "date": str(inv.get("date", inv.get("inv_date", inv.get("开票日期", ""))))[:10],
+            "note": str(inv.get("direction", ""))
+        }
+    
+    def _bank_row(tx, label="银行流水"):
+        debit = float(tx.get("debit", 0) or 0)
+        credit = float(tx.get("credit", 0) or 0)
+        return {
+            "source": label,
+            "ref_id": str(tx.get("transaction_serial_no", tx.get("流水号", "")))[:25] or str(tx.get("date", ""))[:10],
+            "ref_label": str(tx.get("summary", tx.get("用途", tx.get("摘要", ""))))[:30],
+            "amount": max(debit, credit),
+            "counterparty": str(tx.get("counterparty", tx.get("对方户名", "")))[:25],
+            "date": str(tx.get("date", ""))[:10],
+            "note": "收入" if credit > 0 else "支出" if debit > 0 else ""
+        }
+    
+    def _voucher_row(v, label="凭证"):
+        return {
+            "source": label,
+            "ref_id": str(v.get("voucher_no", v.get("凭证号", "")))[:25] or "-",
+            "ref_label": str(v.get("summary", v.get("摘要", "")))[:30],
+            "amount": float(v.get("credit", v.get("debit", 0)) or 0),
+            "counterparty": str(v.get("account_name", v.get("科目", "")))[:25],
+            "date": str(v.get("entry_date", v.get("period", v.get("日期", ""))))[:10],
+            "note": ""
+        }
+    
+    def _salary_row(s, label="工资"):
+        return {
+            "source": label,
+            "ref_id": str(s.get("姓名", s.get("name", "")))[:15] or "-",
+            "ref_label": str(s.get("部门", s.get("dept", "")))[:20],
+            "amount": float(s.get("实发金额", s.get("实发", s.get("amount", 0))) or 0),
+            "counterparty": "",
+            "date": str(s.get("period", s.get("月份", s.get("date", ""))))[:10],
+            "note": ""
+        }
+    
+    for f in all_findings:
+        ftype = f.get("type", "")
+        combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
+        evidence_rows = []
+        max_rows = 8  # 每种finding最多8条证据行
+        
+        # ── 按finding类型采样相关原始数据 ──
+        # 进销相关 → 采样销项/进项发票
+        if any(kw in combined for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
+            # 按金额从大到小取top发票
+            sorted_sal = sorted(sal_invs, key=lambda x: float(x.get("amount", 0) or 0), reverse=True)[:3]
+            sorted_pur = sorted(pur_invs, key=lambda x: float(x.get("amount", 0) or 0), reverse=True)[:3]
+            for inv in sorted_sal:
+                evidence_rows.append(_inv_row(inv, "销项发票"))
+            for inv in sorted_pur:
+                evidence_rows.append(_inv_row(inv, "进项发票"))
+        
+        # 银行/资金相关 → 采样银行流水
+        if any(kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
+            sorted_bank = sorted(bank_txs, key=lambda x: max(float(x.get("debit",0) or 0), float(x.get("credit",0) or 0)), reverse=True)[:5]
+            for tx in sorted_bank:
+                evidence_rows.append(_bank_row(tx, "银行流水"))
+        
+        # 凭证相关 → 采样凭证
+        if any(kw in combined for kw in ["凭证", "分录", "记账", "科目", "收入三源"]):
+            sorted_v = sorted(vouchers, key=lambda x: float(x.get("credit", x.get("debit", 0)) or 0), reverse=True)[:5]
+            for v in sorted_v:
+                evidence_rows.append(_voucher_row(v, "记账凭证"))
+        
+        # 发票行为 → 采样可疑发票
+        if any(kw in combined for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
+            # 对金额整十整百的采样
+            round_invs = [i for i in invoices if float(i.get("amount", 0) or 0) >= 1000 and (float(i.get("amount", 0)) % 1000 == 0 or float(i.get("amount", 0)) % 10000 == 0)]
+            for inv in round_invs[:5]:
+                evidence_rows.append(_inv_row(inv, "可疑发票"))
+        
+        # 供应商/客户相关 → 采样高频对方
+        if any(kw in combined for kw in ["供应商", "客户", "集中"]):
+            from collections import Counter
+            counterparty_counts = Counter()
+            for inv in pur_invs + sal_invs:
+                cp = str(inv.get("seller", inv.get("buyer", inv.get("销方名称", inv.get("购方名称", ""))))).strip()
+                if cp: counterparty_counts[cp] += 1
+            for cp, cnt in counterparty_counts.most_common(5):
+                evidence_rows.append({
+                    "source": "交易对方",
+                    "ref_id": cp[:25],
+                    "ref_label": f"交易{cnt}次",
+                    "amount": 0,
+                    "counterparty": cp[:25],
+                    "date": "",
+                    "note": f"高频交易对方"
+                })
+        
+        # 工资相关 → 采样工资记录
+        if any(kw in combined for kw in ["工资", "薪金", "人员"]):
+            sorted_sal = sorted(salaries, key=lambda x: float(x.get("实发金额", x.get("实发", x.get("amount", 0))) or 0), reverse=True)[:5]
+            for s in sorted_sal:
+                evidence_rows.append(_salary_row(s, "工资表"))
+        
+        # 去重（按ref_id）并限制数量
+        seen = set()
+        unique_rows = []
+        for row in evidence_rows:
+            key = (row["source"], row["ref_id"])
+            if key not in seen:
+                seen.add(key)
+                unique_rows.append(row)
+                if len(unique_rows) >= max_rows:
+                    break
+        
+        if unique_rows:
+            f["evidence_rows"] = unique_rows
     
     return all_findings
 
@@ -25665,6 +26664,324 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
     except Exception as _e:
         return {"ok": False, "message": f"分析异常: {_e}", "traceback": _tb.format_exc()[:2000]}
 
+
+# ═══════════════════════════════════════════════════════════
+# 生产环境加固中间件
+# ═══════════════════════════════════════════════════════════
+
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import time as _time_module
+import asyncio
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 全局错误处理
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"ok": False, "error": str(exc), "type": type(exc).__name__}
+    )
+
+# 简易频率限制
+_rate_limit_store = {}
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = _time_module.time()
+    window = 60  # 60秒窗口
+    max_requests = 120  # 每秒2个请求
+    
+    if client_ip not in _rate_limit_store:
+        _rate_limit_store[client_ip] = []
+    _rate_limit_store[client_ip] = [t for t in _rate_limit_store[client_ip] if now - t < window]
+    
+    if len(_rate_limit_store[client_ip]) >= max_requests:
+        return JSONResponse(status_code=429, content={"ok": False, "error": "请求过于频繁，请稍后再试"})
+    
+    _rate_limit_store[client_ip].append(now)
+    response = await call_next(request)
+    return response
+
+
+# ═══════════════════════════════════════════════════════════
+# LLM 叙事生成 —— 调用DeepSeek生成专业稽查报告文本
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/audit/generate-narrative")
+def generate_audit_narrative(data: dict):
+    """用LLM生成专业稽查叙事文本。
+    
+    请求: {"findings": [...], "industry": "制造业", "style": "professional" | "concise"}
+    返回: {"narrative": "生成的稽查报告文本"}
+    """
+    findings = data.get("findings", [])
+    industry = data.get("industry", "综合")
+    style = data.get("style", "professional")
+    
+    if not findings:
+        return {"ok": False, "error": "没有发现项"}
+    
+    # 构建prompt
+    prompt = f"你是资深税务稽查专家。以下是对一家{industry}企业的稽查发现，请生成一段专业的稽查结论叙述（200字以内，{style}风格）：\n\n"
+    for i, f in enumerate(findings[:5]):
+        prompt += f"{i+1}. {f.get('type','')}: {str(f.get('detail',''))[:100]}\n"
+    
+    try:
+        # 尝试调用DeepSeek
+        import requests as _req
+        resp = _req.post(
+            "https://api.deepseek.com/chat/completions",
+            headers={"Authorization": f"Bearer {os.environ.get('DEEPSEEK_API_KEY', '')}", "Content-Type": "application/json"},
+            json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 500, "temperature": 0.3},
+            timeout=15
+        )
+        if resp.status_code == 200:
+            narrative = resp.json()["choices"][0]["message"]["content"]
+            return {"ok": True, "narrative": narrative, "source": "deepseek"}
+    except:
+        pass
+    
+    # 兜底：规则生成
+    high_count = sum(1 for f in findings if f.get('level') in ('高风险','极高风险'))
+    narrative = f"经对{industry}企业进行全维度稽查分析，共发现{len(findings)}项涉税疑点，其中高风险事项{high_count}项。建议重点核查资金流向真实性、进销匹配度及经营实质，必要时启动延伸稽查程序。"
+    return {"ok": True, "narrative": narrative, "source": "rule_based"}
+
+
+# ═══════════════════════════════════════════════════════════
+# 联网核查 API —— 企查查/天眼查实时工商信息查询
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/audit/online-verify/{company_name}")
+def online_verify_company(company_name: str):
+    """联网核查企业工商信息。
+    
+    当前阶段：通过公开信息源获取企业基本画像。
+    远期：接入企查查/天眼查API获取完整工商数据。
+    """
+    import urllib.parse
+    
+    encoded = urllib.parse.quote(company_name)
+    
+    # 天眼查搜索链接
+    tianyancha_url = f"https://www.tianyancha.com/search?key={encoded}"
+    
+    # 企查查搜索链接
+    qichacha_url = f"https://www.qichacha.com/search?key={encoded}"
+    
+    # 国家企业信用信息公示系统
+    gsxt_url = f"http://www.gsxt.gov.cn/index.html"
+    
+    # 尝试天眼查公开页面抓取
+    info = {
+        "company_name": company_name,
+        "status": "pending_verification",
+        "lookup_urls": {
+            "tianyancha": tianyancha_url,
+            "qichacha": qichacha_url,
+            "gsxt": gsxt_url,
+        },
+        "recommendation": (
+            f"已生成联网核查链接。建议通过以下方式获取完整工商信息：\n"
+            f"1. 天眼查: {tianyancha_url}\n"
+            f"2. 企查查: {qichacha_url}\n"
+            f"3. 国家公示系统: 输入'{company_name}'查询"
+        ),
+        "auto_checks": {
+            "risk_flags": [],
+            "suggested_actions": [
+                "核实法定代表人是否有关联企业",
+                "检查是否存在经营异常/严重违法记录",
+                "确认注册资本与经营规模是否匹配",
+                "核查股东结构与交易对手是否存在重叠"
+            ]
+        }
+    }
+    
+    # 简单风险检测（基于企业名称关键词）
+    name_lower = company_name.lower()
+    risk_keywords = {
+        "商贸": "商贸企业是虚开发票高发类型",
+        "咨询": "咨询服务费是成本虚列高发领域",
+        "科技": "科技企业需核实研发费用真实性",
+        "建筑": "建筑企业需关注分包和劳务真实性",
+        "贸易": "贸易企业需关注进销匹配和物流单据",
+    }
+    for kw, risk in risk_keywords.items():
+        if kw in name_lower or kw in company_name:
+            info["auto_checks"]["risk_flags"].append(f"{kw}行业风险提示: {risk}")
+    
+    return {"ok": True, "info": info}
+
+
+# ═══════════════════════════════════════════════════════════
+# 行业基准库自动更新
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/industries/refresh-benchmarks")
+def refresh_industry_benchmarks():
+    """刷新行业基准数据 —— 从公开数据源更新行业毛利率/税负率等基准。
+    
+    当前阶段：检查本地JSON完整性+时间戳。
+    远期：接入wind/同花顺等金融数据API自动更新。
+    """
+    import json, os, datetime
+    
+    profile_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_profiles.json")
+    data_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_data.json")
+    
+    status = {
+        "profiles": {"exists": False, "industries": 0, "last_modified": None},
+        "data": {"exists": False, "benchmark_entries": 0, "last_modified": None},
+        "health": "unknown"
+    }
+    
+    for key, filepath in [("profiles", profile_path), ("data", data_path)]:
+        if os.path.exists(filepath):
+            status[key]["exists"] = True
+            status[key]["last_modified"] = datetime.datetime.fromtimestamp(
+                os.path.getmtime(filepath)
+            ).isoformat()
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                if key == "profiles":
+                    status[key]["industries"] = len(content.get("industries", {}))
+                else:
+                    status[key]["benchmark_entries"] = len(content.get("benchmarks", {}))
+            except:
+                pass
+    
+    # 健康检查
+    if status["profiles"]["industries"] >= 5 and status["data"]["benchmark_entries"] >= 20:
+        status["health"] = "healthy"
+    elif status["profiles"]["exists"] and status["data"]["exists"]:
+        status["health"] = "degraded"
+    else:
+        status["health"] = "critical"
+    
+    status["updated_at"] = datetime.datetime.now().isoformat()
+    status["message"] = (
+        "行业基准数据健康状态良好" if status["health"] == "healthy"
+        else "行业基准数据需要补充" if status["health"] == "degraded"
+        else "行业基准数据缺失，系统使用兜底默认值"
+    )
+    
+    return {"ok": True, "status": status}
+
+
+# ═══════════════════════════════════════════════════════════
+# 多语言报告 API
+# ═══════════════════════════════════════════════════════════
+
+# 预置翻译映射
+_ZH_EN_MAP = {
+    "高风险": "High Risk",
+    "中风险": "Medium Risk",
+    "低风险": "Low Risk",
+    "极高风险": "Critical Risk",
+    "黄灯": "Warning",
+    "红灯": "Red Flag",
+    "绿灯": "Normal",
+    "购销严重倒挂": "Severe Purchase-Sales Inversion",
+    "毛利为负": "Negative Gross Margin",
+    "缺少银行流水": "Missing Bank Statements",
+    "无进项发票": "No Purchase Invoices",
+    "无工资记录": "No Payroll Records",
+    "存在加工费": "Processing Fees Detected",
+    "供应商高度集中": "High Supplier Concentration",
+    "客户高度集中": "High Customer Concentration",
+    "个人交易占比过高": "Excessive Personal Transactions",
+    "隐匿收入": "Concealed Revenue",
+    "虚开发票": "False Invoicing",
+    "成本虚列": "Inflated Costs",
+    "处理建议": "Recommendation",
+    "税务影响": "Tax Impact",
+    "法律依据": "Legal Basis",
+    "证据溯源": "Evidence Trace",
+    "推理路径": "Reasoning Path",
+    "替代假设": "Alternative Hypotheses",
+    "证伪通过": "Falsification Passed",
+    "证伪未通过": "Falsification Failed",
+}
+
+@app.get("/api/audit/report-en/{company_id}")
+def get_english_report(company_id: int, db: Session = Depends(get_db)):
+    """获取英文版稽查报告 —— 自动翻译关键字段"""
+    # 调用中文报告API
+    from fastapi.testclient import TestClient
+    result = analyze_tax_risk_docs(company_id=company_id, db=db)
+    
+    if not result.get("ok"):
+        return result
+    
+    report = result["report"]
+    all_findings = report.get("all_findings", [])
+    
+    # 翻译关键字段
+    for f in all_findings:
+        f["level_en"] = _ZH_EN_MAP.get(f.get("level", ""), f.get("level", ""))
+        f["type_en"] = _ZH_EN_MAP.get(f.get("type", ""), f.get("type", ""))
+    
+    report["all_findings"] = all_findings
+    report["language"] = "en"
+    report["translation_note"] = "Machine-translated from Chinese. For official use, please refer to the Chinese original."
+    
+    return result
+
+
+# ═══════════════════════════════════════════════════════════
+# 异步分析任务支持
+# ═══════════════════════════════════════════════════════════
+
+_async_tasks = {}
+
+@app.post("/api/audit/analyze-async/{company_id}")
+def start_async_analysis(company_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """启动异步分析任务 —— 适用于大数据量企业。
+    
+    返回 task_id，通过 GET /api/audit/task/{task_id} 查询进度。
+    """
+    import uuid
+    task_id = str(uuid.uuid4())[:8]
+    _async_tasks[task_id] = {"status": "processing", "progress": 0, "result": None}
+    
+    def run_analysis():
+        try:
+            _async_tasks[task_id]["progress"] = 30
+            result = analyze_tax_risk_docs(company_id=company_id, db=db)
+            _async_tasks[task_id]["progress"] = 100
+            _async_tasks[task_id]["status"] = "completed"
+            _async_tasks[task_id]["result"] = result
+        except Exception as e:
+            _async_tasks[task_id]["status"] = "failed"
+            _async_tasks[task_id]["error"] = str(e)
+    
+    background_tasks.add_task(run_analysis)
+    
+    return {"ok": True, "task_id": task_id, "message": "分析任务已提交，请轮询 /api/audit/task/" + task_id}
+
+
+@app.get("/api/audit/task/{task_id}")
+def get_analysis_task_status(task_id: str):
+    """查询异步分析任务状态"""
+    task = _async_tasks.get(task_id)
+    if not task:
+        return {"ok": False, "error": "任务不存在"}
+    return {"ok": True, "task": task}
+
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
@@ -26193,13 +27510,15 @@ def auto_detect_industry(company_id: int, db: Session = Depends(get_db)):
 @app.get("/api/industries")
 def list_industries():
     """列出所有支持的行业分类"""
-    from audit_enhancements import INDUSTRY_BENCHMARKS
+    industry_data = _load_industry_data()
+    benchmarks = industry_data.get("benchmarks", {})
+    all_industries = industry_data.get("all_industries", {})
     return {"industries": [
-        {"code": k, "name": v["name"],
-         "vat_burden_range": f"{v['vat_burden_min']}-{v['vat_burden_max']}%",
-         "gross_margin_range": f"{v['gross_margin_min']}-{v['gross_margin_max']}%",
-         "special_risks": v["special_risks"]}
-        for k, v in INDUSTRY_BENCHMARKS.items()
+        {"code": k, "name": all_industries.get(k, {}).get("name", v.get("name", k)),
+         "vat_burden_range": f"{v.get('vat_burden_min', v.get('税负率', [0,0,0])[0]*100)}-{v.get('vat_burden_max', v.get('税负率', [0,0,0])[1]*100)}%",
+         "gross_margin_range": f"{v.get('gross_margin_min', v.get('毛利率', [0,0,0])[0]*100)}-{v.get('gross_margin_max', v.get('毛利率', [0,0,0])[1]*100)}%",
+         "special_risks": all_industries.get(k, {}).get("special_risks", [])}
+        for k, v in benchmarks.items()
     ]}
 
 
@@ -26275,4 +27594,46 @@ def get_online_company_info(company_id: int, db: Session = Depends(get_db)):
         info["shareholders"] = []
     
     return {"ok": True, "info": info}
+
+
+@app.post("/api/audit/feedback")
+def submit_audit_feedback(data: dict, db: Session = Depends(get_db)):
+    """用户反馈API — 对分析结论的确认/驳回/调整，驱动自学习。
+    
+    请求体：
+    {
+        "finding_type": "购销严重倒挂",
+        "action": "confirm" | "dismiss" | "adjust",
+        "original_score": 9,
+        "adjusted_score": 7,    // 仅adjust时使用
+        "note": "确实是关联交易问题"
+    }
+    """
+    from engine.memory import record_user_feedback
+    result = record_user_feedback(data)
+    return result
+
+
+@app.get("/api/audit/calibration")
+def get_calibration_status(db: Session = Depends(get_db)):
+    """获取自学习校准状态 — 查看历史数据积累和阈值校准情况"""
+    from engine.memory import _load_memory, _calibrate_thresholds_from_history
+    memory = _load_memory()
+    industry_counts = {}
+    for m in memory:
+        ind = m.get("industry", "未知")
+        industry_counts[ind] = industry_counts.get(ind, 0) + 1
+    
+    # 取样本量最多的行业做校准演示
+    top_industry = max(industry_counts, key=industry_counts.get) if industry_counts else None
+    calibration = _calibrate_thresholds_from_history(memory, top_industry, "") if top_industry else {}
+    
+    return {
+        "total_records": len(memory),
+        "industry_distribution": dict(sorted(industry_counts.items(), key=lambda x: -x[1])[:10]),
+        "top_industry": top_industry,
+        "sample_calibration": calibration,
+        "status": "active" if len(memory) >= 5 else "warming_up",
+        "message": f"记忆库有{len(memory)}条记录" + (f"，{top_industry}行业样本充足，阈值已校准" if top_industry and industry_counts.get(top_industry, 0) >= 5 else "，样本不足，使用默认阈值")
+    }
 

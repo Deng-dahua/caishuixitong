@@ -564,6 +564,7 @@ function navigateTo(page) {
     case 'auditor-handbook': renderAuditorHandbook(container); break;
     case 'report-standards': renderReportStandards(container); break;
     case 'engine-dashboard': renderEngineDashboardPage(container); break;
+    case 'engine-dimensions': renderEngineDimensions(container); break;
   }
   window.scrollTo(0, 0);
 }

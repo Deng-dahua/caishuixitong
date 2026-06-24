@@ -78,18 +78,15 @@ def save_analysis_memory(ctx, synthesis):
 
 def query_similar_cases(ctx):
     """
-    检索相似案例 — 根据当前企业画像查找历史上同行业/同模式案例
+    检索相似案例 v2 — 加权关键词匹配（准向量检索，无需embedding依赖）
     
-    返回：
-      {
-        "total_records": 总记忆数,
-        "similar_count": 相似案例数,
-        "same_industry": 同行业案例,
-        "same_model": 同经营模式案例,
-        "avg_risk_score": 相似案例平均风险分,
-        "common_red_flags": 相似案例常见红灯信号,
-        "insight": 基于历史数据的洞察文本
-      }
+    匹配维度（加权）：
+      - 同行业（精确匹配）: 权重 3
+      - 行业关键词重叠: 权重 2  
+      - 同经营模式: 权重 2
+      - 收入规模相近: 权重 1
+    
+    返回结构同v1，增加 similarity_scores 和 calibrated_thresholds
     """
     memory = _load_memory()
     
@@ -101,46 +98,253 @@ def query_similar_cases(ctx):
             "same_model": [],
             "avg_risk_score": 0,
             "common_red_flags": [],
-            "insight": "暂无历史分析记录，这是首次分析。"
+            "insight": "暂无历史分析记录。",
+            "calibrated_thresholds": {},
         }
     
     cp = ctx.company_profile
     industry = cp.get("industry", "")
     biz_model = cp.get("biz_model", "")
+    current_sales = ctx.financial_snapshot.get("total_sales", 0)
     
-    # 同行业案例
+    # ── 加权相似度评分 ──
+    scored_cases = []
+    for m in memory:
+        score = 0
+        m_industry = m.get("industry", "")
+        m_model = m.get("biz_model", "")
+        m_sales = (m.get("snapshot", {}) or {}).get("sales", 0)
+        
+        # 同行业精确匹配
+        if industry and m_industry == industry:
+            score += 3
+        
+        # 行业关键词重叠（模糊匹配）
+        if industry and m_industry:
+            ind_words = set(industry)
+            m_words = set(m_industry)
+            overlap = len(ind_words & m_words) / max(len(ind_words | m_words), 1)
+            score += overlap * 2
+        
+        # 同经营模式
+        if biz_model and m_model == biz_model:
+            score += 2
+        
+        # 收入规模相近（同数量级）
+        if current_sales > 0 and m_sales > 0:
+            ratio = max(current_sales, m_sales) / max(min(current_sales, m_sales), 1)
+            if ratio < 3:  # 3倍以内视为相近
+                score += 1
+        
+        if score > 0:
+            scored_cases.append((score, m))
+    
+    scored_cases.sort(key=lambda x: -x[0])
+    
+    # 取相似度>=2 的案例
+    similar = [m for s, m in scored_cases if s >= 2]
+    exact_match = [m for s, m in scored_cases if s >= 4]
     same_industry = [m for m in memory if m.get("industry") == industry and industry]
-    # 同模式案例
     same_model = [m for m in memory if m.get("biz_model") == biz_model and biz_model]
-    # 完全匹配（行业+模式）
-    exact_match = [m for m in memory if m.get("industry") == industry and m.get("biz_model") == biz_model and industry and biz_model]
-    
-    similar = exact_match if exact_match else (same_industry if same_industry else same_model)
     
     # 统计常见信号
     from collections import Counter
     red_counter = Counter()
-    for m in similar:
+    for m in similar[:50]:
         for flag in m.get("red_flags", []):
             red_counter[flag] += 1
     common_red = red_counter.most_common(5)
     
-    # 平均风险评分
     scores = [m.get("risk_score", 0) for m in similar if m.get("risk_score")]
     avg_score = sum(scores) / len(scores) if scores else 0
     
-    # 生成洞察
     insight = _generate_insight(ctx, similar, common_red, avg_score)
+    
+    # ── 历史数据校准阈值 ──
+    calibrated = _calibrate_thresholds_from_history(memory, industry, biz_model)
     
     return {
         "total_records": len(memory),
         "similar_count": len(similar),
+        "exact_match_count": len(exact_match),
         "same_industry": same_industry,
         "same_model": same_model,
         "avg_risk_score": round(avg_score, 1),
         "common_red_flags": common_red,
         "insight": insight,
+        "calibrated_thresholds": calibrated,
     }
+
+
+def _calibrate_thresholds_from_history(memory, industry, biz_model):
+    """从历史数据中自动校准行业阈值。
+    
+    对同行业企业的毛利率、购销比、供应商/客户集中度等指标
+    进行统计分析，产出动态阈值替代硬编码。
+    """
+    if not memory:
+        return {}
+    
+    # 筛选同行业案例
+    industry_cases = [m for m in memory if m.get("industry") == industry and industry]
+    if len(industry_cases) < 3:
+        industry_cases = [m for m in memory if m.get("biz_model") == biz_model and biz_model]
+    if len(industry_cases) < 3:
+        industry_cases = memory[-50:]  # 兜底用最近50条
+    
+    # 提取财务快照
+    snapshots = [(m.get("snapshot") or {}) for m in industry_cases]
+    
+    gross_margins = [s.get("gross_margin_pct", 0) for s in snapshots if s.get("gross_margin_pct", 0) != 0]
+    supplier_concs = [m.get("supplier_concentration", 0) for m in industry_cases if m.get("supplier_concentration")]
+    customer_concs = [m.get("customer_concentration", 0) for m in industry_cases if m.get("customer_concentration")]
+    data_scores = [m.get("data_quality_score", 0) for m in industry_cases if m.get("data_quality_score")]
+    
+    def _percentile(data, p):
+        if not data: return 0
+        s = sorted(data)
+        idx = int(len(s) * p / 100)
+        return s[min(idx, len(s)-1)]
+    
+    calibrated = {}
+    
+    if len(gross_margins) >= 3:
+        calibrated["gross_margin_low"] = _percentile(gross_margins, 10)  # P10 = 异常低
+        calibrated["gross_margin_high"] = _percentile(gross_margins, 90)  # P90 = 异常高
+        calibrated["gross_margin_median"] = _percentile(gross_margins, 50)
+        calibrated["gross_margin_sample_size"] = len(gross_margins)
+    
+    if len(supplier_concs) >= 3:
+        calibrated["supplier_concentration_warn"] = _percentile(supplier_concs, 75)  # P75 = 预警
+        calibrated["supplier_concentration_sample_size"] = len(supplier_concs)
+    
+    if len(customer_concs) >= 3:
+        calibrated["customer_concentration_warn"] = _percentile(customer_concs, 75)
+        calibrated["customer_concentration_sample_size"] = len(customer_concs)
+    
+    if len(data_scores) >= 3:
+        calibrated["data_quality_avg"] = sum(data_scores) / len(data_scores)
+    
+    return calibrated
+
+
+def record_user_feedback(feedback):
+    """记录用户反馈 — 对分析结论的确认/修正/补充。
+    
+    feedback 结构:
+      {
+        "finding_type": "购销严重倒挂",  # 被反馈的发现类型
+        "action": "confirm" | "dismiss" | "adjust",  # 确认/驳回/调整
+        "adjusted_score": 8,            # 调整后的评分(可选)
+        "note": "确实是关联交易问题",    # 备注
+        "timestamp": "2024-01-15T10:00"
+      }
+    
+    反馈数据用于：
+      1. 信号权重自适应调整
+      2. 虚假信号降权
+      3. 漏报信号追偿
+    """
+    feedback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'audit_feedback.json')
+    
+    try:
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+        else:
+            feedbacks = []
+    except Exception:
+        feedbacks = []
+    
+    feedback["timestamp"] = feedback.get("timestamp") or datetime.now().isoformat()
+    feedbacks.append(feedback)
+    
+    # 限制1000条
+    if len(feedbacks) > 1000:
+        feedbacks = feedbacks[-1000:]
+    
+    try:
+        os.makedirs(os.path.dirname(feedback_path), exist_ok=True)
+        with open(feedback_path, 'w', encoding='utf-8') as f:
+            json.dump(feedbacks, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    
+    # ── 根据反馈调整信号权重 ──
+    adjusted = _adjust_signal_weights_from_feedback(feedbacks)
+    
+    return {
+        "ok": True,
+        "total_feedbacks": len(feedbacks),
+        "adjusted_weights": adjusted,
+    }
+
+
+def _adjust_signal_weights_from_feedback(feedbacks):
+    """根据用户反馈调整信号权重。
+    
+    - confirm → 信号权重 +0.1（确认有效）
+    - dismiss → 信号权重 -0.2（驳回=误报）
+    - adjust → 按调整幅度微调
+    """
+    from collections import defaultdict
+    
+    weight_deltas = defaultdict(float)
+    
+    for fb in feedbacks[-50:]:  # 只看最近50条反馈
+        ftype = fb.get("finding_type", "")
+        action = fb.get("action", "")
+        
+        if action == "confirm":
+            weight_deltas[ftype] += 0.1
+        elif action == "dismiss":
+            weight_deltas[ftype] -= 0.2
+        elif action == "adjust" and fb.get("adjusted_score"):
+            orig = fb.get("original_score", 5)
+            adj = fb.get("adjusted_score", 5)
+            weight_deltas[ftype] += (adj - orig) * 0.05
+    
+    # 钳制在 0.3 ~ 2.0 范围
+    clamped = {}
+    for k, v in weight_deltas.items():
+        clamped[k] = round(max(0.3, min(2.0, 1.0 + v)), 2)
+    
+    return clamped
+
+
+def get_adaptive_signal_weights(ctx, base_weights=None):
+    """获取自适应信号权重 — 融合行业配置 + 历史反馈调整。
+    
+    优先级：用户反馈调整 > 行业配置 > 默认值1.0
+    """
+    # 行业配置权重
+    ip = ctx.industry_profile or {}
+    industry_weights = ip.get("signal_weights", {})
+    
+    # 用户反馈权重
+    feedback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'audit_feedback.json')
+    adjusted_weights = {}
+    try:
+        if os.path.exists(feedback_path):
+            with open(feedback_path, 'r', encoding='utf-8') as f:
+                feedbacks = json.load(f)
+            adjusted_weights = _adjust_signal_weights_from_feedback(feedbacks)
+    except Exception:
+        pass
+    
+    # 合并：基础默认1.0 → 行业配置覆盖 → 反馈调整覆盖
+    merged = {}
+    all_signal_names = set(list(industry_weights.keys()) + list(adjusted_weights.keys()))
+    if base_weights:
+        all_signal_names.update(base_weights.keys())
+    
+    for name in all_signal_names:
+        w = base_weights.get(name, 1.0) if base_weights else 1.0
+        w = industry_weights.get(name, w)
+        w = adjusted_weights.get(name, w)
+        merged[name] = round(w, 2)
+    
+    return merged
 
 
 def _generate_insight(ctx, similar, common_red, avg_score):

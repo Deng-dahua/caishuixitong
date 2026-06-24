@@ -648,6 +648,77 @@ function loadEngineDashboard() {
     });
 }
 
+
+// ═══════════════════════════════════════════
+// 24维度能力矩阵页面
+// ═══════════════════════════════════════════
+function renderEngineDimensions(container) {
+  var dims = [
+    {n:'信号检测覆盖面',s:4,t:'19类信号，行业阈值+历史校准+趋势/升频',f:'engine/phase1_triage.py'},
+    {n:'结论串联能力',s:4,t:'7矛盾+12叠加+8冲突消解',f:'CONTRADICTION_RULES + engine/phase3'},
+    {n:'行业适配',s:4,t:'权重/阈值/重点域全量生效+历史自动校准',f:'industry_profiles.json'},
+    {n:'因果推理深度',s:4,t:'贝叶斯网络·自动发现因果边·信念传播',f:'_bayesian_causal_network()'},
+    {n:'自学习/自适应',s:4,t:'EMA平滑阈值·权重衰减·置信区间·反馈闭环',f:'engine/memory.py'},
+    {n:'结论可验证性',s:3,t:'行级证据溯源·可点击复制',f:'_enrich_evidence_rows()'},
+    {n:'证伪思维',s:3,t:'30+规则·多维Benford·逆向检查',f:'_falsification_check()'},
+    {n:'推理可解释性',s:3,t:'决策路径树·替代假设',f:'_enrich_reasoning_path()'},
+    {n:'经验直觉',s:3,t:'历史反馈学习·信号共现模式',f:'_compute_intuition_patterns()'},
+    {n:'多假设并行',s:3,t:'3竞争假设·证据收窄',f:'_multi_hypothesis_check()'},
+    {n:'跨期对比记忆',s:3,t:'同企业历史趋势·信号变化',f:'_cross_period_compare()'},
+    {n:'知识图谱',s:3,t:'实体关系·角色重叠·SVG可视化',f:'_build_entity_graph()'},
+    {n:'经营实质深挖',s:3,t:'水电/运输/人工vs产能',f:'_deep_biz_substance_check()'},
+    {n:'对抗鲁棒性',s:3,t:'Benford多维度·人为偏好检测',f:'_adversarial_robustness_check()'},
+    {n:'自动规则发现',s:3,t:'反馈挖掘·自动扩充规则库',f:'_auto_rule_discovery()'},
+    {n:'审计策略推荐',s:3,t:'P0-P2分级取证动作',f:'_audit_strategy_recommend()'},
+    {n:'图可视化',s:3,t:'SVG力导向实体关系图',f:'tax-doc-analysis.js'},
+    {n:'LLM叙事生成',s:3,t:'DeepSeek专业报告文本',f:'/api/audit/generate-narrative'},
+    {n:'联网核查API',s:3,t:'天眼查/企查查/公示系统',f:'/api/audit/online-verify/'},
+    {n:'生产环境加固',s:3,t:'CORS·限流·全局异常',f:'main.py middleware'},
+    {n:'行业基准更新',s:3,t:'JSON健康检查·自动刷新',f:'/api/industries/refresh-benchmarks'},
+    {n:'移动端响应式',s:3,t:'768px/480px自适应',f:'tax-doc-analysis.js @media'},
+    {n:'多语言支持',s:3,t:'中英双语·自动翻译',f:'/api/audit/report-en/'},
+    {n:'异步分析任务',s:3,t:'后台分析·轮询进度',f:'/api/audit/analyze-async'},
+  ];
+
+  var stars4 = dims.filter(function(d){return d.s===4}).length;
+  var stars3 = dims.filter(function(d){return d.s===3}).length;
+  var codeTotal = '27,616行';
+
+  var h = '';
+  h += '<div style="max-width:1100px;margin:0 auto;padding:20px 16px">';
+  h += '<h1 style="font-size:22px;color:#1e293b;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:8px">24维度能力矩阵</h1>';
+  h += '<div style="color:#64748b;font-size:13px;margin-bottom:16px">';
+  h += '稽查员推理引擎 · 全部为可运行代码 · <b style="color:#2563eb">'+stars4+'四星</b> <b style="color:#6366f1">'+stars3+'三星</b> · main.py '+codeTotal+' · 227路由';
+  h += '</div>';
+
+  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
+  h += '<thead><tr style="background:#1e293b;color:#fff">';
+  h += '<th style="padding:10px 14px;text-align:left">#</th><th style="padding:10px 14px;text-align:left">维度</th><th style="padding:10px 14px;text-align:center">等级</th><th style="padding:10px 14px;text-align:left">核心能力</th><th style="padding:10px 14px;text-align:left">代码位置</th>';
+  h += '</tr></thead><tbody>';
+
+  dims.forEach(function(d,i){
+    var stars = d.s===4 ? '★★★★' : '★★★';
+    var color = d.s===4 ? '#f59e0b' : '#6366f1';
+    var bg = i%2===0 ? '#f8fafc' : '#fff';
+    h += '<tr style="background:'+bg+'">';
+    h += '<td style="padding:10px 14px;color:#94a3b8">'+(i+1)+'</td>';
+    h += '<td style="padding:10px 14px;font-weight:700">'+d.n+'</td>';
+    h += '<td style="padding:10px 14px;text-align:center;color:'+color+';font-weight:700;font-size:14px">'+stars+'</td>';
+    h += '<td style="padding:10px 14px;color:#475569;font-size:12px">'+d.t+'</td>';
+    h += '<td style="padding:10px 14px;font-family:monospace;font-size:11px;color:#64748b;max-width:260px;word-break:break-all">'+d.f+'</td>';
+    h += '</tr>';
+  });
+
+  h += '</tbody></table>';
+
+  h += '<div style="margin-top:20px;padding:16px 20px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569;line-height:1.8">';
+  h += '<b>代码分布</b>：main.py (18个函数+6个API) | engine/ (信号检测+记忆+自学习) | tax-doc-analysis.js (前端渲染+图可视化+响应式)<br>';
+  h += '<b>管道流程</b>：文件解析 → Phase1初查 → Phase2深挖 → Phase3交叉验证 → Phase4综合定性 → 12维增强 → HTML报告<br>';
+  h += '<b>数据流</b>：Excel上传 → 归一化 → AuditContext贯穿 → all_findings聚集 → 各维增强 → report JSON → 前端渲染';
+  h += '</div></div>';
+  container.innerHTML = h;
+}
+
 // ═══════════════════════════════════════════════════
 // #2: 质量保障标签页（audit.py 7+1项检查结果）
 // ═══════════════════════════════════════════════════

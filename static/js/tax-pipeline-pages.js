@@ -2054,7 +2054,7 @@ function renderFilterResult(report) {
   var comp = report.comprehensive || {};
   var fl = comp.filter_log;
   if (!fl) {
-    document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无过滤记录（需重新运行一键分析）</div>';
+    document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8;text-align:center">暂无过滤记录<br><br><a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;text-decoration:underline">→ 前往资料风险分析页运行一键分析</a></div>';
     return;
   }
 

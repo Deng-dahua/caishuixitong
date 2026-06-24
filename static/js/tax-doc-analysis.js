@@ -701,6 +701,28 @@ function renderTaxDocReport(r) {
     + '#rr-report .appendix{margin:20px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
     + '#rr-report .appendix .atitle{font-size:15px;font-weight:700;margin-bottom:10px}'
     + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569}'
+    // ── 移动端响应式 ──
+    + '@media (max-width:768px){'
+    + '#rr-report{padding:8px !important}'
+    + '#rr-report h1{font-size:18px !important}'
+    + '#rr-report h2{font-size:15px !important}'
+    + '#rr-report .fact-sec{padding:10px !important;margin:8px 0 !important}'
+    + '#rr-report .ftitle{font-size:13px !important}'
+    + '#rr-report .frow{font-size:12px !important}'
+    + '#rr-report table.tbl2{font-size:10px !important;display:block;overflow-x:auto}'
+    + '#rr-report table.tbl2 th,#rr-report table.tbl2 td{padding:4px 6px !important}'
+    + '#rr-report .evidence-tbl{font-size:9px !important}'
+    + '#rr-report .tag{font-size:10px !important;padding:1px 6px !important}'
+    + '#rr-report .nav-cards{flex-direction:column;gap:8px}'
+    + '#rr-report .nav-cards .card{padding:12px !important}'
+    + '#rr-report .seal{padding:12px !important;font-size:13px !important}'
+    + '}'
+    + '@media (max-width:480px){'
+    + '#rr-report{padding:4px !important}'
+    + '#rr-report h1{font-size:16px !important}'
+    + '#rr-report .fact-sec{padding:8px !important;margin:6px 0 !important}'
+    + '#rr-report .frow{font-size:11px !important}'
+    + '}'
     + '</style><div id="rr-report">';
 
   var now = new Date();
@@ -715,6 +737,7 @@ function renderTaxDocReport(r) {
     + '<div><a href="#sec2"><span class="num">二、</span>稽查实施情况</a></div>'
     + '<div><a href="#sec3"><span class="num">三、</span>稽查结论</a></div>'
     + '<div><a href="#sec4"><span class="num">四、</span>稽查发现问题及事实认定</a></div>'
+    + '<div><a href="#sec_graph"><span class="num">⊗、</span>知识图谱·实体关系</a></div>'
     + '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
     + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'
     + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
@@ -1100,6 +1123,34 @@ function renderTaxDocReport(r) {
       });
       h += '</table></div>';
     }
+    // ── 证据溯源：原始数据行级引用（可点击溯源）──
+    if (f.evidence_rows && f.evidence_rows.length > 0) {
+      h += '<div style="margin:6px 0"><div style="font-weight:600;font-size:12px;color:#2563eb;margin-bottom:3px">🔍 证据溯源（' + f.evidence_rows.length + '条原始记录 / 点击可跳转）</div>';
+      h += '<table class="tbl2 evidence-tbl" style="font-size:11px"><tr>';
+      h += '<th>来源</th><th>引用ID</th><th>描述</th><th>金额</th><th>对方</th><th>日期</th></tr>';
+      f.evidence_rows.forEach(function(er, eri){
+        var amt = er.amount ? (er.amount >= 10000 ? (er.amount/10000).toFixed(1)+'万' : er.amount.toLocaleString()) : '-';
+        var refId = esc(er.ref_id||'-');
+        var source = esc(er.source||'');
+        var anchorId = 'ev-' + source.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'') + '-' + refId.replace(/[^a-zA-Z0-9]/g,'');
+        // 构建tooltip
+        var tooltip = '来源: ' + source + '\\n引用ID: ' + refId + '\\n描述: ' + esc(er.ref_label||'') + '\\n金额: ' + amt + '\\n对方: ' + esc(er.counterparty||'-') + '\\n日期: ' + esc(er.date||'-') + '\\n备注: ' + esc(er.note||'');
+        h += '<tr id="' + anchorId + '" class="evidence-row" style="cursor:pointer;transition:background 0.2s" '
+          + 'onmouseover="this.style.background=\\'#f0f7ff\\'" onmouseout="this.style.background=\\'\\'" '
+          + 'title="' + tooltip.replace(/"/g,'&quot;') + '。点击复制引用ID" '
+          + 'onclick="navigator.clipboard.writeText(\\'' + refId.replace(/'/g,"\\'") + '\\').then(function(){this.style.background=\\'#d4edda\\';setTimeout(function(){var el=document.getElementById(\\'' + anchorId + '\\');if(el)el.style.background=\\'\\';},800);}.bind(this))">';
+        h += '<td><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px">' + source + '</span></td>';
+        h += '<td style="font-family:monospace;font-size:10px;text-decoration:underline;color:#2563eb">' + refId + '</td>';
+        h += '<td>' + esc(er.ref_label||'') + '</td>';
+        h += '<td style="text-align:right">' + amt + '</td>';
+        h += '<td>' + esc(er.counterparty||'-') + '</td>';
+        h += '<td>' + esc(er.date||'-') + '</td>';
+        h += '</tr>';
+      });
+      h += '</table>';
+      h += '<div style="font-size:10px;color:#6b7280;margin-top:2px">💡 点击任意行可复制引用ID到剪贴板，在原始数据中搜索定位</div>';
+      h += '</div>';
+    }
     var relatedIndices = [];
     var thisDomain = f.domain || f.category || '';
     var thisSource = f.source_chain || '';
@@ -1118,6 +1169,27 @@ function renderTaxDocReport(r) {
       h += '（' + relatedIndices.map(function(ri){ return esc((allF[ri].type||'').substring(0,20)); }).join(' / ') + '）——同一域/线索链，交叉验证</div>';
     }
 
+    // ── 证伪思维标记：展示逆向验证结果 ──
+    if (f._survived_falsification !== undefined) {
+      if (f._survived_falsification) {
+        h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #22c55e;font-size:12px;line-height:1.8">';
+        h += '<span class="flabel" style="color:#166534">✅ 证伪通过：</span>';
+        h += esc(f._falsification_detail||'');
+        if (f._falsification_confidence_boost) {
+          h += ' <span style="color:#16a34a;font-weight:600">(+' + f._falsification_confidence_boost + '%置信)</span>';
+        }
+        h += '</div>';
+      } else {
+        h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#fef2f2;border-left:3px solid #ef4444;font-size:12px;line-height:1.8">';
+        h += '<span class="flabel" style="color:#dc2626">⚠️ 证伪未通过：</span>';
+        h += esc(f._falsification_detail||'');
+        if (f._falsification_confidence_penalty) {
+          h += ' <span style="color:#dc2626;font-weight:600">(-' + f._falsification_confidence_penalty + '%置信)</span>';
+        }
+        h += '</div>';
+      }
+    }
+
     if (f.how_found) {
       h += '<div class="frow" style="margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">';
       h += '<span class="flabel">调查过程：</span>' + esc(f.how_found||'') + '</div>';
@@ -1133,6 +1205,33 @@ function renderTaxDocReport(r) {
       if (f.source_chain && !f.source_chain.includes('链驱动')) h += '| '+esc(f.source_chain)+' ';
       h += '</div>';
     }
+    // ── 推理可解释性：决策路径 + 替代假设 ──
+    if (f._reasoning_path && f._reasoning_path.length > 0) {
+      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#f8fafc;border-radius:4px;font-size:11px">';
+      h += '<span class="flabel">🧠 推理路径：</span>' + f._reasoning_path.map(function(s){return '<span style="color:#475569">'+esc(s)+'</span>';}).join(' <span style="color:#94a3b8">→</span> ');
+      h += '</div>';
+    }
+    if (f._alternative_hypotheses && f._alternative_hypotheses.length > 0) {
+      h += '<div style="margin-top:3px;padding:6px 10px;background:#fffbeb;border-radius:4px;font-size:11px">';
+      h += '<span class="flabel" style="color:#92400e">🤔 替代假设：</span>';
+      f._alternative_hypotheses.forEach(function(alt){
+        var icon = alt.evidence_support === 'moderate' ? '⚠️' : '💡';
+        h += '<div style="margin:2px 0;color:#78350f">' + icon + ' <b>' + esc(alt.hypothesis) + '</b>: ' + esc(alt.explanation) + '</div>';
+      });
+      h += '</div>';
+    }
+    // ── 多假设推理标记 ──
+    if (f._multi_hypothesis) {
+      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#eef2ff;border-left:3px solid #6366f1;font-size:11px">';
+      h += '<span class="flabel" style="color:#4338ca">🔬 多假设并行推理：</span>该结论通过竞争假设收窄得出';
+      h += '</div>';
+    }
+    // ── 经验直觉标记 ──
+    if (f._intuition_hit) {
+      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#fdf4ff;border-left:3px solid #a855f7;font-size:11px">';
+      h += '<span class="flabel" style="color:#7e22ce">🔮 经验直觉：</span>从' + esc(f._intuition_count||'?') + '条历史案例中学习的异常模式';
+      h += '</div>';
+    }
     h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref) : '相关税收法规')+'</div>';
     if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc(f.suggestion||'')+'</div>';
     if (f._quality_issues && f._quality_issues.length > 0) {
@@ -1140,6 +1239,81 @@ function renderTaxDocReport(r) {
     }
     h += '</div>';
   });
+
+  // ── 知识图谱：实体关系网络 ──
+  if (r.entity_graph && r.entity_graph.total_entities > 0) {
+    var eg = r.entity_graph;
+    h += '<h2 id="sec_graph">知识图谱·实体关系网络</h2>';
+    h += '<p class="i2">从发票、银行流水、工资表中提取的实体关系网络。共<strong>' + eg.total_entities + '</strong>个实体，发现<strong>' + eg.total_anomalies + '</strong>个异常关系。</p>';
+    
+    if (eg.dual_role_count > 0) {
+      h += '<div class="fact-sec" style="border-left:4px solid #f59e0b;margin-bottom:12px">';
+      h += '<div class="ftitle">⚠️ 多重角色实体（' + eg.dual_role_count + '个）</div>';
+      h += '<div class="frow">以下实体在交易中同时扮演多个角色（如既是供应商又是客户），可能存在关联交易或资金回流嫌疑。</div>';
+      h += '</div>';
+    }
+    
+    if (eg.top_entities && eg.top_entities.length > 0) {
+      h += '<table class="tbl2" style="margin-top:12px"><tr><th>排名</th><th>实体名称</th><th>角色</th><th>交易总额</th><th>异常标记</th></tr>';
+      eg.top_entities.forEach(function(e, ei){
+        var roles = (e.roles||[]).join(' / ');
+        var amt = e.amount >= 10000 ? (e.amount/10000).toFixed(1)+'万' : e.amount.toLocaleString();
+        var anomaly = e.roles && e.roles.length >= 2 ? '⚠️ 多重身份' : '';
+        h += '<tr><td>' + (ei+1) + '</td><td><b>' + esc(e.name||'') + '</b></td><td>' + esc(roles) + '</td><td style="text-align:right">' + amt + '</td><td style="color:#f59e0b">' + anomaly + '</td></tr>';
+      });
+      h += '</table>';
+    }
+    
+    h += '<div style="margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:4px;font-size:11px;color:#64748b">';
+    h += '💡 <b>提示</b>：实体关系网络可帮助发现隐藏的关联关系。重点关注同时出现在多个角色中的实体，以及交易金额异常集中的实体。';
+    h += '</div>';
+    
+    // ── SVG力导向图 ──
+    if (eg.top_entities && eg.top_entities.length >= 2) {
+      var ents = eg.top_entities.slice(0, 10);
+      var maxAmt = ents[0].amount || 1;
+      // Build nodes and edges
+      var nodes = [];
+      var edges = [];
+      var centerX = 300, centerY = 200, radius = 170;
+      var colors = {'供应商':'#3b82f6','客户':'#22c55e','员工':'#a855f7','付款方':'#f59e0b','收款方':'#ef4444'};
+      
+      ents.forEach(function(e, i){
+        var angle = (i / ents.length) * 2 * Math.PI - Math.PI/2;
+        var r = radius * (0.5 + 0.5 * e.amount / maxAmt);
+        var x = centerX + r * Math.cos(angle);
+        var y = centerY + r * Math.sin(angle);
+        var mainRole = (e.roles||[])[0] || '';
+        var color = colors[mainRole] || '#94a3b8';
+        nodes.push({id: (e.name||'').substring(0,8), x: x, y: y, r: Math.max(15, 30 * e.amount / maxAmt), color: color, roles: (e.roles||[]).join('/'), amt: e.amount});
+      });
+      
+      // Connect overlapping role entities
+      for (var ni = 0; ni < nodes.length; ni++) {
+        for (var nj = ni+1; nj < nodes.length; nj++) {
+          if (ents[ni].roles && ents[nj].roles && ents[ni].roles.some(function(r){return ents[nj].roles.indexOf(r)>=0;})) {
+            edges.push({from: ni, to: nj});
+          }
+        }
+      }
+      
+      var svg = '<svg width="620" height="420" style="background:#f8fafc;border-radius:8px;margin-top:10px">';
+      // Edges
+      edges.forEach(function(e){
+        svg += '<line x1="'+nodes[e.from].x+'" y1="'+nodes[e.from].y+'" x2="'+nodes[e.to].x+'" y2="'+nodes[e.to].y+'" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,2"/>';
+      });
+      // Nodes
+      nodes.forEach(function(n){
+        svg += '<circle cx="'+n.x+'" cy="'+n.y+'" r="'+n.r+'" fill="'+n.color+'" opacity="0.7"/>';
+        svg += '<text x="'+n.x+'" y="'+(n.y+4)+'" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">'+esc(n.id)+'</text>';
+        svg += '<text x="'+n.x+'" y="'+(n.y+n.r+14)+'" text-anchor="middle" font-size="9" fill="#64748b">'+esc(n.roles)+'</text>';
+      });
+      // Legend
+      svg += '<text x="15" y="395" font-size="9" fill="#94a3b8">圆大小=交易金额  |  虚线=角色关联  |  颜色=主要角色</text>';
+      svg += '</svg>';
+      h += svg;
+    }
+  }
 
   h += '<h2 id="sec5">五、处理处罚建议</h2>';
   h += '<p class="i2">根据上述稽查发现和证据链，提出以下处理处罚建议。</p>';
