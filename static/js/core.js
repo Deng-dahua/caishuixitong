@@ -1106,6 +1106,9 @@ function getModulePeriod(prefix) {
 async function init() {
   var user = getCurrentUser();
   if (!user) {
+    // 清除记住的上次选择（因为用户可能已过期）
+    localStorage.removeItem('lastCompanyId');
+    localStorage.removeItem('lastCompanyName');
     document.getElementById('user-register-overlay').style.display = 'flex';
     return;
   }
