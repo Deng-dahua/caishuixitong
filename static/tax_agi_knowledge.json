@@ -2,7 +2,7 @@
   "_meta": {
     "version": "1.0",
     "created_at": "2026-06-25T03:23:16.832680",
-    "updated_at": "2026-06-25T16:02:52.000761",
+    "updated_at": "2026-06-25T16:11:19.000590",
     "description": "税务AGI统一知识库 — 所有模块的知识在此汇聚、生长、进化"
   },
   "policies": {
@@ -2147,6 +2147,11 @@
       "lesson": "文件变更: main.py",
       "category": "⑥代码变更",
       "timestamp": "2026-06-25T16:02:52.000755"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T16:11:19.000583"
     }
   ],
   "analysis_history": [],
