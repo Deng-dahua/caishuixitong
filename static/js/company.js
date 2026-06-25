@@ -6,6 +6,7 @@
 async function loadCompanies() {
   try {
     allCompanies = await fetch('/api/companies').then(r => r.json());
+    window._companiesForPick = allCompanies || [];
     const display = document.getElementById('company-name-display');
     if (allCompanies.length > 0) {
       const cur = allCompanies.find(c => c.id === currentCompanyId) || allCompanies[0];
@@ -17,14 +18,77 @@ async function loadCompanies() {
   }
 }
 
-function switchCompany() {
-  // 顶部栏不再显示下拉选择器，切换账套请使用「退出本账套」回到选择页
-  const cur = allCompanies.find(c => c.id === currentCompanyId);
-  if (cur) {
-    currentCompanyName = cur.name;
-    const display = document.getElementById('company-name-display');
-    if (display) display.textContent = currentCompanyName;
+async function switchCompany() {
+  // 确保公司列表已加载
+  if (!window._companiesForPick || window._companiesForPick.length === 0) {
+    try {
+      window._companiesForPick = await fetch('/api/companies').then(r => r.json());
+    } catch(e) {
+      window._companiesForPick = [];
+    }
   }
+  
+  // 显示账套切换下拉菜单
+  const selector = document.getElementById('company-selector-popup');
+  if (!selector) {
+    // 动态创建下拉菜单
+    const popup = document.createElement('div');
+    popup.id = 'company-selector-popup';
+    popup.style.cssText = 'position:absolute;top:100%;left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.12);z-index:9999;min-width:280px;max-height:360px;overflow-y:auto;padding:8px 0';
+    document.querySelector('.company-selector').style.position = 'relative';
+    document.querySelector('.company-selector').appendChild(popup);
+  }
+  
+  const popup = document.getElementById('company-selector-popup');
+  if (popup.style.display === 'block') {
+    popup.style.display = 'none';
+    return;
+  }
+  
+  // 渲染公司列表
+  const companies = window._companiesForPick || allCompanies || [];
+  if (companies.length === 0) {
+    popup.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">暂无其他账套</div>';
+    popup.style.display = 'block';
+    return;
+  }
+  
+  popup.innerHTML = companies.map(c => {
+    let activeMark = c.id === currentCompanyId ? ' ✅' : '';
+    return '<div style="display:flex;align-items:center;padding:10px 16px;cursor:pointer;transition:background 0.15s"'
+      + ' onmouseover="this.style.background=\\'#f1f5f9\\'" onmouseout="this.style.background=\\'transparent\\'"'
+      + ' onclick="event.stopPropagation();switchToCompany(' + c.id + ',\\'' + c.name.replace(/'/g, "\\'") + '\\')">'
+      + '<span style="flex:1;font-size:14px;font-weight:500;color:#1e293b">' + c.name + activeMark + '</span>'
+      + '<button style="border:none;background:transparent;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:4px;color:#94a3b8"'
+      + ' onmouseover="this.style.background=\\'#fef2f2\\';this.style.color=\\'#ef4444\\'" onmouseout="this.style.background=\\'transparent\\';this.style.color=\\'#94a3b8\\'"'
+      + ' onclick="event.stopPropagation();deleteCompanyFromPick(' + c.id + ',\\'' + c.name.replace(/'/g, "\\'") + '\\');document.getElementById(\\'company-selector-popup\\').style.display=\\'none\\'"'
+      + ' title="删除此账套">🗑</button>'
+      + '</div>';
+  }).join('');
+  
+  popup.style.display = 'block';
+  
+  // 点击其他地方关闭
+  setTimeout(function() {
+    document.addEventListener('click', function closePopup(e) {
+      if (!popup.contains(e.target) && e.target !== document.querySelector('.company-selector')) {
+        popup.style.display = 'none';
+        document.removeEventListener('click', closePopup);
+      }
+    });
+  }, 10);
+}
+
+function switchToCompany(companyId, companyName) {
+  currentCompanyId = companyId;
+  currentCompanyName = companyName;
+  localStorage.setItem('lastCompanyId', companyId);
+  localStorage.setItem('lastCompanyName', companyName);
+  document.getElementById('company-name-display').textContent = companyName;
+  document.getElementById('company-selector-popup').style.display = 'none';
+  loadCurrentPeriod();
+  navigateTo('dashboard');
+  toast('已切换到「' + companyName + '」', 'success');
 }
 
 // ==================== 公司信息 ====================
