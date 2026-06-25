@@ -23622,6 +23622,31 @@ def _run_analyze(company_id, db):
         risk_profile = {"composite_level": "低风险", "composite_score": 0}
     comprehensive["risk_profile"] = risk_profile
 
+    # ═══ 回路1: EMA自学习 → 风险评分动态调权 ═══
+    try:
+        ema_data = getattr(ctx, '_ema_learning', None) or {}
+        if ema_data.get("learning_status") == "mature" and ema_data.get("decayed_weights"):
+            dw = ema_data["decayed_weights"]
+            # 对每个finding应用EMA学习到的衰减权重
+            for f in all_findings:
+                ftype = f.get("type", "")
+                if ftype in dw:
+                    old_score = f.get("score", 5) or 5
+                    # 衰减：风险权重下降 → 置信度降低 → 分数调低
+                    decay = dw[ftype]
+                    new_score = max(2, old_score * (1.0 - (decay - 1.0) * 0.5))
+                    f["score"] = round(new_score, 1)
+                    f["_ema_adjusted"] = True
+                    f["_ema_decay"] = round(decay, 3)
+                    f["_ema_score_before"] = old_score
+            # 读取EMA行业基准阈值，注入行业偏离度
+            thresholds = ema_data.get("ema_thresholds", {})
+            if thresholds:
+                risk_profile["_ema_thresholds_injected"] = list(thresholds.keys())
+                pipeline_log.append(f"[EMA] 行业基准阈值已注入风险评估: {len(thresholds)}项")
+            pipeline_log.append(f"[EMA] 学习权重已反馈风险评估: {len(dw)}条衰减权重")
+    except Exception: pass
+
     # 综合风险等级：优先使用评分引擎结果
     overall = risk_profile.get("composite_level", "低风险")
     # 如果评分引擎算低风险但实际有多个高分数高风险发现+跨域证据链，
@@ -24409,6 +24434,49 @@ def _run_analyze(company_id, db):
         from engine.rule_discovery import run_auto_rule_discovery
         discovery_result = run_auto_rule_discovery(pipeline_log)
         result["rule_discovery"] = discovery_result
+        
+        # ═══ 回路3: 规则发现 → 自动写入规则库 ═══
+        discoveries = discovery_result.get("discoveries", [])
+        auto_signals = [d for d in discoveries if d.get("type") == "auto_signal"]
+        if auto_signals:
+            rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+            try:
+                if os.path.exists(rules_path):
+                    with open(rules_path, "r", encoding="utf-8") as rf:
+                        existing_rules = json.load(rf)
+                else:
+                    existing_rules = []
+                max_id = max((r.get("id", 0) for r in existing_rules), default=1600)
+                new_rules_added = 0
+                for sig in auto_signals:
+                    # 去重：已存在同类型signal才跳过
+                    already_exists = any(
+                        r.get("type") == "auto_signal" and r.get("industry") == sig.get("industry")
+                        for r in existing_rules
+                    )
+                    if already_exists:
+                        continue
+                    max_id += 1
+                    existing_rules.append({
+                        "id": max_id,
+                        "type": "auto_signal",
+                        "rule_category": "自动发现",
+                        "industry": sig.get("industry", ""),
+                        "signal": sig.get("signal", ""),
+                        "prevalence": sig.get("prevalence", ""),
+                        "evidence": sig.get("evidence", ""),
+                        "action": sig.get("action", ""),
+                        "confidence": sig.get("confidence", 0),
+                        "auto_discovered_at": datetime.now().isoformat(),
+                        "severity": "中",
+                        "enabled": True,
+                    })
+                    new_rules_added += 1
+                if new_rules_added > 0:
+                    with open(rules_path, "w", encoding="utf-8") as wf:
+                        json.dump(existing_rules, wf, ensure_ascii=False, indent=2)
+                    pipeline_log.append(f"[DISCOVERY] {new_rules_added}条自动发现的信号已写入规则库 (总数{len(existing_rules)})")
+            except Exception: pass
     except Exception:
         pass
     
@@ -24453,6 +24521,37 @@ def _run_analyze(company_id, db):
                     result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
                     result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
                 pipeline_log.append(f"[AGI] 智能体完成反思: {agent_result.get('reflection',{}).get('total_checked',0)}条结论")
+                
+                # ═══ 回路2: 反思证伪 → 自动降级结论 ═══
+                downgraded_count = 0
+                for f in all_findings:
+                    reflection = f.get("_self_reflection", {})
+                    verdict = reflection.get("verdict", "")
+                    if verdict == "refuted":
+                        old_level = f.get("level", "")
+                        old_score = f.get("score", 5) or 5
+                        # 高风险→中风险，中风险→低风险，分数减半
+                        if old_level == "高风险":
+                            f["level"] = "中风险"
+                            f["score"] = max(2, old_score * 0.4)
+                        elif old_level == "中风险":
+                            f["level"] = "低风险"
+                            f["score"] = max(1, old_score * 0.3)
+                        f["_reflection_downgraded"] = True
+                        f["_reflection_reason"] = reflection.get("reason", "")[:100]
+                        downgraded_count += 1
+                    elif verdict == "uncertain":
+                        old_score = f.get("score", 5) or 5
+                        f["score"] = max(3, old_score * 0.7)
+                        f["_reflection_uncertain"] = True
+                
+                if downgraded_count > 0:
+                    pipeline_log.append(f"[AGI] 反思证伪降级: {downgraded_count}条结论被证伪→自动降低风险等级")
+                    # 重新统计
+                    result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
+                    result["report"]["total_risks"] = len(all_findings)
+                    result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
+                    result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
             else:
                 pipeline_log.append(f"[AGI] 智能体异常: {agent_result['error']}")
     except Exception as _ag_err:
@@ -24559,12 +24658,32 @@ def _run_analyze(company_id, db):
         except Exception as _agi_err:
             pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")
     
-    # ═══ 系统自愈引擎：应用从历史错误中学习的修正规则 ═══
+    # ═══ 回路4: 系统自愈引擎 — 应用从历史错误中学习的修正规则 ═══
     try:
-        from engine.self_healing import apply_healing_rules
+        from engine.self_healing import apply_healing_rules, SelfHealingEngine
         healing_result = apply_healing_rules(all_findings, domain_results, db)
         if healing_result.get("fixed_count", 0) > 0:
-            pipeline_log.append(f"[自愈] {healing_result['fixed_count']}条结论已自动修正 ({healing_result['rules_used']}条规则)")
+            pipeline_log.append(f"[自愈] {healing_result['fixed_count']}条结论已自动修正 ({healing_result.get('rules_used',0)}条规则)")
+            for applied in healing_result.get("applied", []):
+                pipeline_log.append(f"[自愈] · {applied.get('rule_name','')[:50]} → {applied.get('finding','')[:40]}")
+        elif healing_result.get("note") == "无活跃规则":
+            # 尝试自动激活draft规则
+            try:
+                engine = SelfHealingEngine(db)
+                draft_rules = db.query(engine._rule_model).filter(
+                    engine._rule_model.status == "draft",
+                    engine._rule_model.confidence >= 0.5,
+                ).all() if hasattr(engine, '_rule_model') else []
+                if draft_rules:
+                    activated = 0
+                    for rule in draft_rules:
+                        rule.status = "active"
+                        rule.auto_apply = True
+                        activated += 1
+                    if activated > 0:
+                        db.commit()
+                        pipeline_log.append(f"[自愈] 自动激活{activated}条draft规则(confidence>=0.5)")
+            except Exception: pass
         result["self_healing"] = healing_result
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}

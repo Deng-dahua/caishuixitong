@@ -145,6 +145,8 @@ class AGIPipelineConnector:
             except:
                 capability_data = {}
         
+        if not isinstance(capability_data, dict):
+            capability_data = {}
         dims = capability_data.get("dimensions", capability_data.get("summary", {}))
         events = []
         
