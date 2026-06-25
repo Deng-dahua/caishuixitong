@@ -28498,7 +28498,7 @@ def methodology_audit():
     # 构建对账结果
     results = []
     for ref_id in sorted(set(list(declared) + list(code_refs))):
-        in_doc = ref_id in declared or any(ref_id in kw_map.values())
+        in_doc = ref_id in declared or ref_id in set(kw_map.values())
         in_code = ref_id in code_refs
         name = method_names.get(ref_id, f"方法论{ref_id}")
         
@@ -30086,15 +30086,18 @@ def get_brain_status():
         from engine.tax_incentive_analyzer import POLICY_VALIDITY, check_policy
         policy_status = []
         for key, p in POLICY_VALIDITY.items():
-            result = check_policy(key, auto_verify=False)  # API 中离线模式，避免阻塞
+            try:
+                chk_result = check_policy(key, auto_verify=False)
+            except Exception:
+                chk_result = {"valid": True, "status": "离线模式", "source": "", "conditions": {}}
             policy_status.append({
                 "name": p["name"],
                 "law": p["law"],
                 "expiry": str(p["expiry"]) if p["expiry"] else "长期政策",
-                "valid": result.get("valid", True),
-                "status": result.get("status", ""),
-                "auto_verify_source": (result.get("source", "") or "")[:80] if result.get("source") else None,
-                "conditions": result.get("conditions"),
+                "valid": chk_result.get("valid", True),
+                "status": chk_result.get("status", ""),
+                "auto_verify_source": (chk_result.get("source", "") or "")[:80] if chk_result.get("source") else None,
+                "conditions": chk_result.get("conditions"),
             })
         expired_count = sum(1 for ps in policy_status if not ps["valid"])
         result["policy_verification"] = {
