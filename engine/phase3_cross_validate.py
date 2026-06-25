@@ -346,8 +346,13 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
     
     # ── 辅助函数 ──
     def _has_signal(signal_name):
-        """检查所有发现中是否存在某个信号"""
-        return signal_name in all_text
+        """检查所有发现中是否存在某个信号，避免否定前缀误匹配"""
+        import re
+        # 转义特殊字符
+        escaped = re.escape(signal_name)
+        # 确保前面不是否定词（不/未/无/非/没）后面是标点或结尾
+        pattern = r'(?<![不未无非没])' + escaped + r'(?=[，,。.!！；;、\\s\\|]|$)'
+        return bool(re.search(pattern, all_text))
     
     # ── 遍历信号叠加模式库 ──
     for pattern in patterns:

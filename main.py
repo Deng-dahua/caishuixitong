@@ -21819,7 +21819,7 @@ def _run_analyze(company_id, db):
                 })
     if not docs: return {"ok": False, "message": "暂无上传资料"}
     try: db.rollback()
-    except: pass
+    except Exception: pass
 
     bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
     contract_data, related_party_data, trial_balance_data = [], [], []
@@ -22414,11 +22414,18 @@ def _run_analyze(company_id, db):
     # 后续所有分析域都基于此context展开
     # ═══════════════════════════════════════════════════════════
     ctx = AuditContext()
-    ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
-                         salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
+    try:
+        ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
+                             salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
+    except Exception as _p1e:
+        pipeline_log.append(f"[Phase1] 初查异常: {_p1e}，使用默认企业画像继续")
+        ctx.industry_profile = {"industry": "通用", "benchmarks": {}}
+        ctx.red_flags = []
+        ctx.yellow_flags = []
     
     # ═══ 调度中枢 ───
     comprehensive = {}
+    orchestration_plan = {"pipeline_stages": [], "summary": "调度中枢未初始化"}
     try:
         data_profile = build_data_profile(bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, file_results, ctx)
         orchestration_plan = build_orchestration_plan(data_profile)
@@ -22448,6 +22455,12 @@ def _run_analyze(company_id, db):
                                         contract_data, voucher_revenue, total_parsed, pipeline_log)
     # 记录 Phase 2 已覆盖的域名，避免后续 domain_results 重复
     phase2_domains_covered = set(dr["domain"] for dr in phase2_results)
+    # 收集深度信息
+    depth_levels = {}
+    for dr in phase2_results:
+        dom = dr.get("domain", "")
+        if dom and dr.get("depth"):
+            depth_levels[dom] = dr["depth"]
     
     domain_results = []
     
@@ -24324,7 +24337,11 @@ def _run_analyze(company_id, db):
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
     }}
-    # 缓存最近分析结果
+    # 缓存最近分析结果（LRU: 最多保留30条，超出删除最旧）
+    _MAX_CACHE = 30
+    if len(_last_analysis_cache) >= _MAX_CACHE:
+        oldest = min(_last_analysis_cache.keys(), key=lambda k: _last_analysis_cache[k].get("timestamp", ""))
+        del _last_analysis_cache[oldest]
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
     
     # ═══ 假设-验证推理 ───
@@ -24398,8 +24415,18 @@ def _run_analyze(company_id, db):
                     "memory": agent_result.get("memory", {}),
                     "hypotheses": agent_result.get("hypotheses", []),
                 }
-                if agent_result.get("reflected_findings"):
-                    all_findings = agent_result["reflected_findings"]
+                if agent_result.get("reflected_findings") and isinstance(agent_result["reflected_findings"], list) and len(agent_result["reflected_findings"]) > 0:
+                    # v3.0: 合并而非覆盖 — 保留未被反思的原始发现
+                    reflected = agent_result["reflected_findings"]
+                    reflected_types = set()
+                    for rf in reflected:
+                        t = rf.get("_original_type") or rf.get("type", "")
+                        if t: reflected_types.add(t)
+                    # 合并：反思过的用反思版本，未反思的保留原版
+                    merged = [f for f in all_findings if f.get("type", "") not in reflected_types]
+                    merged.extend(reflected)
+                    all_findings = merged
+                    pipeline_log.append(f"[AGI] 反思合并完成: {len(reflected)}条更新, {len(merged)-len(reflected)}条保留")
                     result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
                     result["report"]["total_risks"] = len(all_findings)
                     result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
@@ -24462,7 +24489,8 @@ def _run_analyze(company_id, db):
             # ⑫ 方法论过滤学习
             pre_cnt = len(all_findings)
             agi_pipeline.ingest_filter_results(
-                filter_log or [], pre_cnt, len(all_findings),
+                filter_log.get("reasons", []) if isinstance(filter_log, dict) else (filter_log or []),
+                pre_cnt, len(all_findings),
                 [], analysis_trace_id
             )
             
@@ -24499,6 +24527,10 @@ def _run_analyze(company_id, db):
             )
             result["agi_pipeline"] = agi_result
             pipeline_log.append(f"[AGI] {agi_result['modules_covered']}/16模块已联通({agi_result['events_collected']}事件)")
+            # 收集新模块错误
+            if hasattr(agi_pipeline, 'errors') and agi_pipeline.errors:
+                for err in agi_pipeline.errors:
+                    pipeline_log.append(f"[AGI] {err}")
         except Exception as _agi_err:
             pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")
     

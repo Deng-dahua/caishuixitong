@@ -34,7 +34,8 @@ class AGIPipelineConnector:
     def __init__(self):
         self.events: List[LearningEvent] = []
         self.stats = {"modules_connected": 0, "events_collected": 0, "rules_learned": 0}
-        self.agent = None  # 存勤法税智能体引用（延迟初始化）
+        self.agent = None
+        self.errors: List[str] = []  # 新模块错误日志
     
     def init_agent(self, db_session=None):
         """初始化存勤法税智能体——统一智能入口"""
@@ -758,7 +759,7 @@ class AGIPipelineConnector:
             }, source="agi_pipeline")
             bus.persist_log()
         except Exception as e:
-            print(f"[AGI Pipeline] 事件总线发布失败: {e}")
+            self.errors.append(f"[AGI 事件总线] {e}")
         
         # 2. SCM 因果推理
         scm_report = {}
@@ -770,7 +771,7 @@ class AGIPipelineConnector:
             ]
             scm_report = scm.reasoning_report(all_findings_dicts)
         except Exception as e:
-            print(f"[AGI Pipeline] SCM推理失败: {e}")
+            self.errors.append(f"[AGI SCM推理] {e}")
         
         # 3. 元认知自检
         meta_report = {}
@@ -778,7 +779,7 @@ class AGIPipelineConnector:
             from engine.metacognition import metacog
             meta_report = metacog.metacognitive_report(all_findings_dicts if 'all_findings_dicts' in dir() else [{"type": ft} for ft in finding_types])
         except Exception as e:
-            print(f"[AGI Pipeline] 元认知失败: {e}")
+            self.errors.append(f"[AGI 元认知] {e}")
         
         # 4. 知识图谱导入
         try:
@@ -786,7 +787,7 @@ class AGIPipelineConnector:
             kg.import_from_analysis(company_name, all_findings_dicts if 'all_findings_dicts' in dir() else [])
             kg.persist()
         except Exception as e:
-            print(f"[AGI Pipeline] 知识图谱导入失败: {e}")
+            self.errors.append(f"[AGI 知识图谱] {e}")
         
         # 5. 知识库自生长
         auto_extract = {}
