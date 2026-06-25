@@ -25302,7 +25302,7 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     """从银行流水/发票/工资中自动识别被分析对象"""
     from collections import Counter
     
-    entity = {"name": "", "type": "未知", "industry": "", "period": "", "bank_account": "", "source": []}
+    entity = {"name": "", "biz_model": "", "industry": "", "period": "", "bank_account": "", "source": []}
     
     # 1. 从银行流水表头提取（账户明细/户名）→ 补充公司名称线索
     # 银行流水表头常包含"户名:XXX公司"或"账户名称:XXX"等字段
@@ -25388,20 +25388,20 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
         dates.sort()
         entity["period"] = f"{dates[0][:7]} 至 {dates[-1][:7]}"
     
-    # 7. 推断企业类型
+    # 7. 推断经营模式（注意：不是企业类型company_type，是经营模式biz_model）
     if entity["industry"] in _load_industry_data().get("production_industries", []):
-        entity["type"] = "生产型企业"
+        entity["biz_model"] = "制造业"
     elif entity["industry"] in _load_industry_data().get("service_industries", []):
-        entity["type"] = "服务型企业"
+        entity["biz_model"] = "服务业"
     else:
         # 从进销判断：有加工费/劳务票=生产型
         for inv in invoices:
             goods = str(inv.get("goods", ""))
             if "加工" in goods or "劳务" in goods or "制造" in goods or "生产" in goods:
-                entity["type"] = "生产型企业"
+                entity["biz_model"] = "制造业"
                 break
-        if not entity["type"] or entity["type"] == "未知":
-            entity["type"] = "贸易型企业"
+        if not entity.get("biz_model"):
+            entity["biz_model"] = "贸易业"
     
     return entity
 

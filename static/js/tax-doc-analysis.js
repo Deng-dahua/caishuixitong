@@ -762,7 +762,7 @@ function renderTaxDocReport(r) {
     ['成立日期', te.established_date || ''],
     ['统一社会信用代码', te.uscc || '', true, 'font-family:monospace;letter-spacing:0'],
     ['登记状态', te.company_status || te.status || ''],
-    ['企业类型', te.company_type || te.type || ''],
+    ['企业类型', te.company_type || ''],
     ['行业', te.industry_online || te.industry || ''],
     ['注册地址', te.address || ''],
     ['经营范围', te.business_scope || ''],
@@ -912,7 +912,7 @@ function renderTaxDocReport(r) {
   h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。</p>';
 
   h += '<p class="i2"><b>（一）稽查方法。</b>本次经营实质核查采用了以下具体稽查方法：</p>';
-  h += '<p class="i2">第一，<b>工商登记核查法。</b>通过联网核查获取被查单位在国家企业信用信息公示系统中的登记信息。经核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness || te.industry || te.type || '未获取') + '</span>' + (registeredBusiness ? '' : '（搜索引擎未返回行业分类，以下以发票数据推断行业为准）') + '。</p>';
+  h += '<p class="i2">第一，<b>工商登记核查法。</b>通过联网核查获取被查单位在国家企业信用信息公示系统中的登记信息。经核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness || te.industry || '未获取') + '</span>' + (registeredBusiness ? '' : '（搜索引擎未返回行业分类，以下以发票数据推断行业为准）') + '。</p>';
   h += '<p class="i2">第二，<b>进销存数据比对法。</b>将进项发票品名与销项发票品名进行逐名比对。进销比' + esc(ii['进销比'] || '') + '，销项发票' + esc(ii['销项发票'] || '') + '，进项发票' + esc(ii['进项发票'] || '') + '。</p>';
   h += '<p class="i2">第三，<b>资金流与发票流核对法。</b>将银行收款金额与销项开票金额逐户比对。银行收款' + esc(bi['总收款'] || '') + '，付款' + esc(bi['总付款'] || '') + '，税费支出' + esc(bi['税费支出总额'] || '') + '。</p>';
   h += '<p class="i2">第四，<b>供应商及客户穿透分析法。</b>对供应商和客户进行集中度检测和名称群集检测，排查关联交易和虚开风险。</p>';
