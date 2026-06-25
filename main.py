@@ -28542,6 +28542,8 @@ def methodology_audit():
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
     """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
     import traceback as _tb
+    import socket as _socket
+    _socket.setdefaulttimeout(10)  # 防网络调用挂死
     try:
         return _run_analyze(company_id, db)
     except Exception as _e:
