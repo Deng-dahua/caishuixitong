@@ -620,7 +620,7 @@ class TaxAuditAgent:
         # 未知模式检测器
         self.unknown_detector = None
         try:
-            from engine.unknown_pattern_detector import UnknownPatternDetector
+            from engine.unknown_pattern_detector import UnknownPatternDetector, route_to_zhige
             self.unknown_detector = UnknownPatternDetector()
         except Exception:
             pass
@@ -912,6 +912,10 @@ class TaxAuditAgent:
         
         # 附加未知模式发现
         if discovery:
+            try:
+                from engine.unknown_pattern_detector import route_to_zhige as _r2z
+            except ImportError:
+                _r2z = lambda p: {"id": p.id, "routed": False}
             result["unknown_patterns"] = {
                 "total_discovered": len(discovery.unknown_patterns),
                 "evolution_potential": discovery.evolution_potential,
@@ -926,7 +930,7 @@ class TaxAuditAgent:
                     for p in discovery.unknown_patterns[:10]
                 ],
                 "routing_to_zhige": [
-                    route_to_zhige(p) for p in discovery.unknown_patterns[:3]
+                    _r2z(p) for p in discovery.unknown_patterns[:3]
                 ],
                 "message": f"发现{len(discovery.unknown_patterns)}个未知模式，已路由到智哥进行分析" if discovery.unknown_patterns else "系统认知边界内未发现未知模式"
             }

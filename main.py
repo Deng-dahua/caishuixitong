@@ -14982,7 +14982,9 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
                 break
     
     # ── 行业自适应重物描述 ──
-    heavy_example = _load_industry_data().get("heavy_goods_examples", {}).get(target_industry, "")
+    _industry_data = _load_industry_data()
+    _heavy_goods_examples = _industry_data.get("heavy_goods_examples", {})
+    heavy_example = _heavy_goods_examples.get(target_industry, "")
     if not heavy_example:
         # 模糊匹配
         for ind, example in _heavy_goods_examples.items():
@@ -24333,6 +24335,10 @@ def _run_analyze(company_id, db):
         "benford": getattr(ctx, '_benford', None) or {},
         "trace_id": analysis_trace_id,
         "trace_count": len(_analysis_traces),
+        "blocked": False,
+        "block_reason": "",
+        "blocking_violations_count": 0,
+        "gate_rounds": 0,
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
             else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.0f}元（未开票{voucher_revenue['uninvoiced']:,.0f}元）。")
@@ -24361,12 +24367,27 @@ def _run_analyze(company_id, db):
         if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用")
     except Exception: pass
     
-    # ═══ 合规门禁 ───
+    # ═══ 合规门禁（阻断版）───
+    gate_passed = True
+    gate_rounds = 1
     try:
-        from engine.self_learning import run_compliance_gate
-        gate_result, all_findings = run_compliance_gate(all_findings, pipeline_log, file_results, ctx)
+        from engine.self_learning import run_compliance_gate_blocking
+        gate_result, all_findings, gate_rounds = run_compliance_gate_blocking(
+            all_findings, pipeline_log, file_results, ctx, max_rounds=3
+        )
+        gate_passed = gate_result.get("passed", False)
         result["compliance_gate"] = gate_result
-    except Exception: pass
+        result["report"]["gate_rounds"] = gate_rounds
+        if not gate_passed:
+            blocking_count = len(gate_result.get("blocking_violations", []))
+            pipeline_log.append(f"[GATE-STOP] 合规门禁{gate_rounds}轮未通过：{blocking_count}项阻断性违规——报告禁止自动输出，需人工复核后手动发布")
+            result["report"]["blocked"] = True
+            result["report"]["block_reason"] = gate_result.get("blocked_reason", "")
+            result["report"]["blocking_violations_count"] = blocking_count
+        else:
+            pipeline_log.append(f"[GATE-PASS] 合规门禁第{gate_rounds}轮通过 ✓")
+    except Exception as e:
+        pipeline_log.append(f"[COMPLIANCE] 门禁执行异常: {e}")
     
     # ── 保存分析记忆（引擎越用越聪明）──
     try:
@@ -24519,18 +24540,22 @@ def _run_analyze(company_id, db):
             except: pass
             
             # 汇总持久化
-            agi_result = agi_pipeline.finalize_learning(
-                analysis_trace_id,
-                target_entity.get("name", "") if target_entity else "",
-                _target_industry or "",
-                ctx=ctx if 'ctx' in dir() else None,
-            )
-            result["agi_pipeline"] = agi_result
-            pipeline_log.append(f"[AGI] {agi_result['modules_covered']}/16模块已联通({agi_result['events_collected']}事件)")
-            # 收集新模块错误
-            if hasattr(agi_pipeline, 'errors') and agi_pipeline.errors:
-                for err in agi_pipeline.errors:
-                    pipeline_log.append(f"[AGI] {err}")
+            try:
+                agi_result = agi_pipeline.finalize_learning(
+                    analysis_trace_id,
+                    target_entity.get("name", "") if target_entity else "",
+                    _target_industry or "",
+                    ctx=ctx,
+                )
+                result["agi_pipeline"] = agi_result
+                pipeline_log.append(f"[AGI] {agi_result.get('modules_covered',0)}/16模块已联通({agi_result.get('events_collected',0)}事件)")
+                # 收集新模块错误
+                if hasattr(agi_pipeline, 'errors') and agi_pipeline.errors:
+                    for err in agi_pipeline.errors:
+                        pipeline_log.append(f"[AGI] {err}")
+            except Exception as _agi_finalize_err:
+                pipeline_log.append(f"[AGI] 汇总持久化异常: {_agi_finalize_err}")
+                result["agi_pipeline"] = {"error": str(_agi_finalize_err), "modules_covered": 0, "events_collected": 0}
         except Exception as _agi_err:
             pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")
     

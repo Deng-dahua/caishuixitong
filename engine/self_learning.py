@@ -414,7 +414,10 @@ class ComplianceGate:
     @staticmethod
     def _s09_check(f):
         import re
-        return bool(re.search(r'\\d[\\d,.]*[万元]', str(f.get("detail","")))) or bool(re.search(r'\\d{4}[年]', str(f.get("detail",""))))
+        detail_str = str(f.get("detail",""))
+        if not detail_str:
+            return False
+        return bool(re.search(r'\d[\d,.]*[万元]', detail_str)) or bool(re.search(r'\d{4}[年]', detail_str))
     @staticmethod
     def _s11_check(f): return "()" not in str(f.get("suggestion",""))
     @staticmethod
@@ -473,14 +476,84 @@ class ComplianceGate:
         self.auto_fixed.extend(fixed)
     
     def _verdict(self):
-        """输出裁决"""
+        """输出裁决 — 区分阻断性违规与警告性违规"""
+        # 阻断性违规：M06(法条缺失)、S02(三要素缺失)、S09(数值缺失)
+        BLOCKING_RULES = {"M06-法条引用", "报告标准-S02", "报告标准-S09"}
+        blocking = [v for v in self.violations if v.get("rule", "") in BLOCKING_RULES]
+        warnings = [v for v in self.violations if v.get("rule", "") not in BLOCKING_RULES]
+        
+        can_auto_fix = len([v for v in blocking if v.get("fixable")]) > 0
+        
         return {
-            "passed": not self.blocked and len(self.violations) == 0,
+            "passed": len(blocking) == 0 and not self.blocked,
+            "blocked": len(blocking) > 0 or self.blocked,
+            "blocking_violations": blocking,
+            "warning_violations": warnings,
             "violations": self.violations,
             "auto_fixed": self.auto_fixed,
-            "blocked_reason": "合规门禁不通过" if self.violations else "",
-            "summary": f"门禁检查: {len(self.violations)}项违规/{len(self.auto_fixed)}项自动修复"
+            "can_auto_fix": can_auto_fix,
+            "blocked_reason": f"合规门禁阻断: {len(blocking)}项阻断性违规" if blocking else ("" if not warnings else f"合规门禁警告: {len(warnings)}项"),
+            "summary": f"门禁: {len(blocking)}阻断/{len(warnings)}警告/{len(self.auto_fixed)}修复"
         }
+    
+    def auto_heal(self, all_findings):
+        """自动修复阻断性违规（最多修复一轮）"""
+        fixed_any = False
+        for f in all_findings:
+            # 修复M06：补充法条引用
+            if (f.get("score", 0) or 0) >= 8 and not f.get("law_ref"):
+                ftype = f.get("type", "")
+                f["law_ref"] = self._infer_law_ref(ftype)
+                if f["law_ref"]:
+                    fixed_any = True
+            # 修复S02：补充tax_impact的因果链
+            ti = str(f.get("tax_impact", ""))
+            if len(ti) < 20 or "->" not in ti:
+                detail = str(f.get("detail", ""))
+                if detail:
+                    f["tax_impact"] = detail[:150] + ("..." if len(detail) > 150 else "")
+                    fixed_any = True
+            # 修复S09：补充数值
+            import re
+            detail_str = str(f.get("detail", ""))
+            if not re.search(r'\d[\d,.]*[万元]', detail_str):
+                items = f.get("_source_trace", {}).get("key_values", {})
+                if items:
+                    vals = []
+                    for k, v in items.items():
+                        if isinstance(v, (int, float)):
+                            vals.append(f"{k}={v:,.0f}")
+                    if vals:
+                        f["detail"] = detail_str + " 【数值:" + "; ".join(vals[:3]) + "】"
+                        fixed_any = True
+        return fixed_any
+    
+    def _infer_law_ref(self, ftype):
+        """从发现类型推断可能的法律依据"""
+        LAW_MAP = {
+            "隐匿": "《税收征收管理法》第六十三条第一款",
+            "虚开": "《发票管理办法》第二十二条、《刑法》第二百零五条",
+            "进销": "《增值税暂行条例》第九条",
+            "收款": "《税收征收管理法》第十九条",
+            "付款": "《税收征收管理法》第十九条",
+            "发票": "《发票管理办法》第二十二条",
+            "合同": "《民法典》第四百七十条",
+            "加工": "《增值税暂行条例实施细则》第三条",
+            "账簿": "《税收征收管理法》第十九条、第六十条",
+            "申报": "《税收征收管理法》第二十五条",
+            "社保": "《社会保险法》第五十八条",
+            "工资": "《企业所得税法》第八条",
+            "资产": "《企业所得税法》第十一条",
+            "折旧": "《企业所得税法》第十一条",
+            "存货": "《增值税暂行条例实施细则》第三条",
+            "关联": "《税收征收管理法》第三十六条、《企业所得税法》第四十一条",
+            "转移": "《企业所得税法》第四十一条",
+            "隐匿收入": "《税收征收管理法》第六十三条第一款",
+        }
+        for keyword, law in LAW_MAP.items():
+            if keyword in ftype:
+                return law
+        return ""
 
 
 # ═══════════════ 便捷入口 ═══════════════
@@ -494,6 +567,46 @@ def run_compliance_gate(all_findings, pipeline_log, file_results, ctx):
     if result["auto_fixed"]:
         pipeline_log.append(f"[COMPLIANCE] 自动修复: {', '.join(result['auto_fixed'])}")
     return result, gate.all_findings
+
+
+def run_compliance_gate_blocking(all_findings, pipeline_log, file_results, ctx, max_rounds=3):
+    """
+    合规门禁阻断版：不通过时自动修复+重试。
+    
+    返回 (gate_result, all_findings, rounds_used)
+    - gate_result["passed"] = True → 报告可以输出
+    - gate_result["passed"] = False → 报告禁止输出，需人工复核
+    """
+    for round_num in range(1, max_rounds + 1):
+        gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
+        gate_result = gate.check_all()
+        
+        if gate_result["passed"]:
+            pipeline_log.append(f"[COMPLIANCE] 门禁第{round_num}轮通过 ✓")
+            if gate_result["auto_fixed"]:
+                pipeline_log.append(f"[COMPLIANCE] 自动修复: {', '.join(gate_result['auto_fixed'][:10])}")
+            return gate_result, gate.all_findings, round_num
+        
+        # 不通过 → 尝试自动修复
+        blocking = gate_result.get("blocking_violations", [])
+        pipeline_log.append(f"[COMPLIANCE] 门禁第{round_num}轮不通过: {len(blocking)}项阻断性违规，尝试自动修复...")
+        
+        if gate_result.get("can_auto_fix"):
+            fixed = gate.auto_heal(gate.all_findings)
+            if fixed:
+                pipeline_log.append(f"[COMPLIANCE] 自动修复完成，进入第{round_num+1}轮检查")
+                all_findings = gate.all_findings
+                continue
+        
+        # 不可修复 → 阻断
+        pipeline_log.append(f"[COMPLIANCE] 门禁阻断: {len(blocking)}项不可自动修复 — 报告禁止输出")
+        return gate_result, gate.all_findings, round_num
+    
+    # 超出最大轮数
+    pipeline_log.append(f"[COMPLIANCE] 门禁阻断: {max_rounds}轮修复后仍未通过 — 报告禁止输出")
+    gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
+    final_result = gate.check_all()
+    return final_result, gate.all_findings, max_rounds
 
 
 def get_learner_report():
