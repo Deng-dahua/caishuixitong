@@ -4,7 +4,7 @@
  */
 
 function renderEngineDashboardPage(container) {
-  container.innerHTML = '<div id="engine-dashboard-area" style="max-width:1200px;margin:0 auto;padding:16px"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在加载推理引擎数据...</div></div>';
+  container.innerHTML = '<div class="card card-fill"><div class="page-header"><h1>⚙️ 推理引擎仪表盘</h1><p>智能体感知→推理→学习→表达→记忆五层架构运行状态</p></div><div id="engine-dashboard-area" style="max-width:1200px;margin:0 auto;padding:16px"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在加载推理引擎数据...</div></div></div>';
   setTimeout(loadEngineDashboard, 200);
 }
 
@@ -26,6 +26,7 @@ function renderEngineDashboard(rpt) {
     '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
     '<div class="eng-tab" onclick="switchEngineTab(\'quality\')" id="tab-quality">质量保障</div>' +
     '<div class="eng-tab" onclick="switchEngineTab(\'methods\')" id="tab-methods">方法论对账</div>' +
+    '<div class="eng-tab" onclick="switchEngineTab(\'brain\')" id="tab-brain">智能大脑</div>' +
     '</div><div id="eng-tab-content"></div>';
   
   area.innerHTML = tabBar;
@@ -41,6 +42,7 @@ function switchEngineTab(tab) {
   else if (tab === 'rules') renderRulesTab();
   else if (tab === 'quality') renderQualityTab();
   else if (tab === 'methods') renderMethodsTab();
+  else if (tab === 'brain') renderBrainTab();
 }
 
 function renderStatusTab() {
@@ -653,42 +655,33 @@ function loadEngineDashboard() {
 // 24维度能力矩阵页面
 // ═══════════════════════════════════════════
 function renderEngineDimensions(container) {
-  var dims = [
-    {n:'信号检测覆盖面',s:4,t:'19类信号，行业阈值+历史校准+趋势/升频',f:'engine/phase1_triage.py'},
-    {n:'结论串联能力',s:4,t:'7矛盾+12叠加+8冲突消解',f:'CONTRADICTION_RULES + engine/phase3'},
-    {n:'行业适配',s:4,t:'权重/阈值/重点域全量生效+历史自动校准',f:'industry_profiles.json'},
-    {n:'因果推理深度',s:4,t:'贝叶斯网络·自动发现因果边·信念传播',f:'_bayesian_causal_network()'},
-    {n:'自学习/自适应',s:4,t:'EMA平滑阈值·权重衰减·置信区间·反馈闭环',f:'engine/memory.py'},
-    {n:'结论可验证性',s:3,t:'行级证据溯源·可点击复制',f:'_enrich_evidence_rows()'},
-    {n:'证伪思维',s:3,t:'30+规则·多维Benford·逆向检查',f:'_falsification_check()'},
-    {n:'推理可解释性',s:3,t:'决策路径树·替代假设',f:'_enrich_reasoning_path()'},
-    {n:'经验直觉',s:3,t:'历史反馈学习·信号共现模式',f:'_compute_intuition_patterns()'},
-    {n:'多假设并行',s:3,t:'3竞争假设·证据收窄',f:'_multi_hypothesis_check()'},
-    {n:'跨期对比记忆',s:3,t:'同企业历史趋势·信号变化',f:'_cross_period_compare()'},
-    {n:'知识图谱',s:3,t:'实体关系·角色重叠·SVG可视化',f:'_build_entity_graph()'},
-    {n:'经营实质深挖',s:3,t:'水电/运输/人工vs产能',f:'_deep_biz_substance_check()'},
-    {n:'对抗鲁棒性',s:3,t:'Benford多维度·人为偏好检测',f:'_adversarial_robustness_check()'},
-    {n:'自动规则发现',s:3,t:'反馈挖掘·自动扩充规则库',f:'_auto_rule_discovery()'},
-    {n:'审计策略推荐',s:3,t:'P0-P2分级取证动作',f:'_audit_strategy_recommend()'},
-    {n:'图可视化',s:3,t:'SVG力导向实体关系图',f:'tax-doc-analysis.js'},
-    {n:'LLM叙事生成',s:3,t:'DeepSeek专业报告文本',f:'/api/audit/generate-narrative'},
-    {n:'联网核查API',s:3,t:'天眼查/企查查/公示系统',f:'/api/audit/online-verify/'},
-    {n:'生产环境加固',s:3,t:'CORS·限流·全局异常',f:'main.py middleware'},
-    {n:'行业基准更新',s:3,t:'JSON健康检查·自动刷新',f:'/api/industries/refresh-benchmarks'},
-    {n:'移动端响应式',s:3,t:'768px/480px自适应',f:'tax-doc-analysis.js @media'},
-    {n:'多语言支持',s:3,t:'中英双语·自动翻译',f:'/api/audit/report-en/'},
-    {n:'异步分析任务',s:3,t:'后台分析·轮询进度',f:'/api/audit/analyze-async'},
-  ];
+  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在从引擎读取能力矩阵...</div>';
+  
+  fetch('/api/audit/capabilities')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok || !d.dimensions) { container.innerHTML = '<div style="padding:40px;color:#dc2626">能力矩阵读取失败</div>'; return; }
+      
+      var dims = d.dimensions.map(function(c) {
+        return {n: c.name, s: c.stars, t: c.core, f: c.code};
+      });
+      var stars4 = d.summary.four_star_count;
+      var stars3 = d.summary.three_star_count;
+      var totalDims = d.summary.total_dimensions;
+      var qs = d.quality_system || {};
+      var codeTotal = '27,616行';
+      
+      renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal);
+    });
+}
 
-  var stars4 = dims.filter(function(d){return d.s===4}).length;
-  var stars3 = dims.filter(function(d){return d.s===3}).length;
-  var codeTotal = '27,616行';
-
+function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal) {
   var h = '';
-  h += '<div style="max-width:1100px;margin:0 auto;padding:20px 16px">';
-  h += '<h1 style="font-size:22px;color:#1e293b;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:8px">24维度能力矩阵</h1>';
+  h += '<div class="card card-fill"><div class="page-header"><h1>📐 引擎能力维度</h1><p>推理引擎35域分析能力矩阵 · 星级评估 · 质量保障体系覆盖</p></div><div style="max-width:1100px;margin:0 auto;padding:20px 16px">';
+  h += '<h1 style="font-size:22px;color:#1e293b;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:8px">维度能力矩阵</h1>';
   h += '<div style="color:#64748b;font-size:13px;margin-bottom:16px">';
   h += '稽查员推理引擎 · 全部为可运行代码 · <b style="color:#2563eb">'+stars4+'四星</b> <b style="color:#6366f1">'+stars3+'三星</b> · main.py '+codeTotal+' · 227路由';
+  h += ' · <b style="color:#059669">调度中枢:16模块/7域/16级管线</b>';
   h += '</div>';
 
   h += '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
@@ -715,7 +708,7 @@ function renderEngineDimensions(container) {
   h += '<b>代码分布</b>：main.py (18个函数+6个API) | engine/ (信号检测+记忆+自学习) | tax-doc-analysis.js (前端渲染+图可视化+响应式)<br>';
   h += '<b>管道流程</b>：文件解析 → Phase1初查 → Phase2深挖 → Phase3交叉验证 → Phase4综合定性 → 12维增强 → HTML报告<br>';
   h += '<b>数据流</b>：Excel上传 → 归一化 → AuditContext贯穿 → all_findings聚集 → 各维增强 → report JSON → 前端渲染';
-  h += '</div></div>';
+  h += '</div></div></div>';
   container.innerHTML = h;
 }
 
@@ -839,3 +832,139 @@ function highlightMethodInDashboard(methodId) {
   if (!window._methodsData) return;
   renderMethodsTab();
 }
+
+// ═══════════════════════════════════════════════════
+// #5: 智能大脑标签页 — 调度中枢+渐进学习+纠正规则
+// ═══════════════════════════════════════════════════
+function renderBrainTab() {
+  var area = document.getElementById('eng-tab-content');
+  if (!area) return;
+  area.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在读取智能大脑数据...</div>';
+  
+  fetch('/api/audit/brain-status')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">读取失败: ' + esc(d.error || '') + '</div>'; return; }
+      
+      var h = '<div style="max-width:1100px;margin:0 auto">';
+      
+      // ── 1. 调度中枢 ──
+      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
+      h += '<h3 style="color:#1e293b;border-bottom:2px solid #2563eb;padding-bottom:8px">调度中枢</h3>';
+      
+      var orch = d.orchestrator || {};
+      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+      h += '<div style="flex:1;min-width:160px;background:#f0f9ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#0369a1">' + orch.total_modules + '</div><div style="font-size:12px;color:#64748b">总模块</div></div>';
+      h += '<div style="flex:1;min-width:160px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#059669">' + (orch.domain_count || 7) + '</div><div style="font-size:12px;color:#64748b">领域</div></div>';
+      h += '<div style="flex:1;min-width:160px;background:#fef3c7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#d97706">' + (orch.pipeline_depth || 16) + '</div><div style="font-size:12px;color:#64748b">管线深度</div></div>';
+      h += '</div>';
+      
+      if (orch.domains) {
+        h += '<table class="tbl2" style="margin-top:8px"><tr><th>领域</th><th>模块数</th><th>模块列表</th></tr>';
+        for (var domain in orch.domains) {
+          h += '<tr><td style="font-weight:600">' + esc(domain) + '</td><td>' + orch.domains[domain].length + '</td><td style="font-size:11px;color:#64748b">' + orch.domains[domain].join(', ') + '</td></tr>';
+        }
+        h += '</table>';
+      }
+      h += '</div>';
+      
+      // ── 2. 成长报告 ──
+      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
+      h += '<h3 style="color:#1e293b;border-bottom:2px solid #8b5cf6;padding-bottom:8px">成长曲线</h3>';
+      
+      var growth = d.learner || {};
+      var stageColors = {婴儿期:'#94a3b8',幼儿期:'#f59e0b',成长期:'#059669',成熟期:'#2563eb'};
+      var stageColor = stageColors[growth.stage] || '#64748b';
+      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+      h += '<div style="flex:1;min-width:120px;background:#faf5ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:' + stageColor + '">' + esc(growth.stage || '婴儿期') + '</div><div style="font-size:12px;color:#64748b">成长阶段</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fef2f2;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">' + (growth.total_runs || 0) + '</div><div style="font-size:12px;color:#64748b">累计运行</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + (growth.trusted_module_contexts || 0) + '</div><div style="font-size:12px;color:#64748b">信任模型</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fffbeb;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#d97706">' + (growth.industries_learned || 0) + '</div><div style="font-size:12px;color:#64748b">已学行业</div></div>';
+      h += '</div>';
+      
+      if (growth.top_industries && growth.top_industries.length > 0) {
+        h += '<div style="font-size:12px;color:#64748b;margin-top:8px">已学行业: ';
+        for (var j = 0; j < growth.top_industries.length; j++) {
+          h += '<span style="display:inline-block;margin:2px;padding:2px 8px;background:#f1f5f9;border-radius:10px">' + esc(growth.top_industries[j][0]) + '(' + growth.top_industries[j][1].runs + '次)</span>';
+        }
+        h += '</div>';
+      }
+      h += '</div>';
+      
+      // ── 3. 纠正规则库 ──
+      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
+      h += '<h3 style="color:#1e293b;border-bottom:2px solid #059669;padding-bottom:8px">纠正规则库（老邓教的）</h3>';
+      
+      var corr = d.corrections || {};
+      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+      h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + (corr.total_rules || 0) + '</div><div style="font-size:12px;color:#64748b">规则总数</div></div>';
+      h += '<div style="flex:1;min-width:100px;background:#dcfce7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#166534">' + (corr.auto_rules || 0) + '</div><div style="font-size:12px;color:#64748b">已自动生效</div></div>';
+      h += '</div>';
+      
+      if (corr.rules && corr.rules.length > 0) {
+        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th></tr>';
+        for (var k = 0; k < corr.rules.length; k++) {
+          var r = corr.rules[k];
+          var autoLabel = r.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>';
+          h += '<tr>';
+          h += '<td style="font-weight:600">' + esc(r.finding_type) + '</td>';
+          h += '<td>' + esc(r.industry) + '</td>';
+          h += '<td>' + esc(r.biz_model) + '</td>';
+          h += '<td style="text-align:center">' + r.correction_count + '</td>';
+          h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
+          h += '<td>' + autoLabel + '</td>';
+          h += '</tr>';
+        }
+        h += '</table>';
+      } else {
+        h += '<div style="text-align:center;padding:20px;color:#94a3b8">尚无纠正规则 — 老邓点在报告中发现上点击驳回后，系统将自动学习</div>';
+      }
+      h += '</div>';
+      
+      // ── 4. 税收优惠政策核实 ──
+      var pv = d.policy_verification;
+      if (pv) {
+        h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
+        h += '<h3 style="color:#1e293b;border-bottom:2px solid #8b5cf6;padding-bottom:8px">税收优惠政策核实</h3>';
+        h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+        h += '<div style="flex:1;min-width:100px;background:#f5f3ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed">' + pv.total_policies + '</div><div style="font-size:12px;color:#64748b">政策总数</div></div>';
+        h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + pv.valid_count + '</div><div style="font-size:12px;color:#64748b">有效政策</div></div>';
+        if (pv.expired_count > 0) {
+          h += '<div style="flex:1;min-width:100px;background:#fef2f2;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">' + pv.expired_count + '</div><div style="font-size:12px;color:#64748b">已到期</div></div>';
+        }
+        h += '</div>';
+        var policies = pv.policies || [];
+        if (policies.length > 0) {
+          h += '<table class="tbl2"><tr><th>政策</th><th>文号</th><th>到期日</th><th>状态</th><th>系统核实</th></tr>';
+          for (var pi = 0; pi < policies.length; pi++) {
+            var pol = policies[pi];
+            var icon = pol.valid ? '<span style="color:#059669">✅ 有效</span>' : '<span style="color:#dc2626">⚠ 已到期</span>';
+            var verify = pol.auto_verify_source || pol.status || '';
+            h += '<tr>';
+            h += '<td style="font-weight:600">' + esc(pol.name) + '</td>';
+            h += '<td style="font-size:12px;color:#64748b">' + esc(pol.law) + '</td>';
+            h += '<td>' + esc(pol.expiry) + '</td>';
+            h += '<td>' + icon + '</td>';
+            h += '<td style="font-size:12px;max-width:200px">' + esc(verify) + '</td>';
+            h += '</tr>';
+          }
+          h += '</table>';
+        }
+        h += '</div>';
+      }
+      
+      // ── 5. 学习方法论 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:12px;color:#475569">';
+      h += '<b>智能大脑工作原理：</b><br>';
+      h += '<b>调度中枢</b>：根据数据画像自动决定激活哪些模块、跳过哪些模块。<br>';
+      h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型，长期零产出模块自动降权。<br>';
+      h += '<b>纠正规则</b>：老邓在报告中点击驳回→系统记录模式→累计3次→升级为自动规则→下次同类场景自动修正。<br>';
+      h += '<b>合规门禁</b>：12条稽查铁律作为事前检查，不通过的报告标记违规。<br>';
+      h += '<b>政策核实</b>：9类税收优惠政策自动联网核实有效期，已到期政策自动搜索延续公告。';
+      h += '</div>';
+      
+      h += '</div>';
+      area.innerHTML = h;
+    });
+}
+

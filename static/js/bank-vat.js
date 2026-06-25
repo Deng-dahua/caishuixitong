@@ -49,14 +49,20 @@ async function renderBankTransactions(container) {
   const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
   let html = '<div class="card card-fill">';
 
-  // 统计卡片
-  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
-  html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">流水总数</div></div>';
-  html += '<div class="stat-card"><div class="stat-value" style="color:#e02424;">¥' + fmt(stats.total_income) + '</div><div class="stat-label">收入合计</div></div>';
-  html += '<div class="stat-card"><div class="stat-value" style="color:#0e9f6e;">¥' + fmt(stats.total_expense) + '</div><div class="stat-label">支出合计</div></div>';
+  // ── 页面标题 ──
+  html += '<div class="page-header">';
+  html += '<h1>🏦 银行流水</h1>';
+  html += '<p>银行对账单管理 · 按期间/银行筛选 · 支持批量生成凭证与导出</p>';
+  html += '</div>';
+
+  // 统计卡片 — 增强版
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-card"><div class="kpi-icon slate">📋</div><div class="kpi-info"><div class="kpi-label">流水总数</div><div class="kpi-value">' + stats.total_count + '</div></div></div>';
+  html += '<div class="kpi-card"><div class="kpi-icon red">📥</div><div class="kpi-info"><div class="kpi-label">收入合计</div><div class="kpi-value" style="font-size:20px;color:#dc2626;">¥' + fmt(stats.total_income) + '</div></div></div>';
+  html += '<div class="kpi-card"><div class="kpi-icon green">📤</div><div class="kpi-info"><div class="kpi-label">支出合计</div><div class="kpi-value" style="font-size:20px;color:#16a34a;">¥' + fmt(stats.total_expense) + '</div></div></div>';
   const net = stats.total_income - stats.total_expense;
-  html += '<div class="stat-card"><div class="stat-value" style="color:' + (net >= 0 ? '#e02424' : '#0e9f6e') + ';">¥' + fmt(net) + '</div><div class="stat-label">净流入</div></div>';
-  html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.last_balance) + '</div><div class="stat-label">最新余额</div></div>';
+  html += '<div class="kpi-card"><div class="kpi-icon ' + (net >= 0 ? 'blue' : 'amber') + '">⚡</div><div class="kpi-info"><div class="kpi-label">净流入</div><div class="kpi-value" style="font-size:20px;color:' + (net >= 0 ? '#2563eb' : '#ca8a04') + ';">¥' + fmt(net) + '</div></div></div>';
+  html += '<div class="kpi-card"><div class="kpi-icon purple">💰</div><div class="kpi-info"><div class="kpi-label">最新余额</div><div class="kpi-value" style="font-size:20px;color:#7c3aed;">¥' + fmt(stats.last_balance) + '</div></div></div>';
   html += '</div>';
 
   // 工具栏
@@ -378,6 +384,12 @@ async function renderInputVATDeductions(container) {
   document.title = '进项抵扣 - 财税风险防控系统';
   const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
   let html = '<div class="card card-fill">';
+
+  // ── 页面标题 ──
+  html += '<div class="page-header">';
+  html += '<h1>🔐 进项认证</h1>';
+  html += '<p>增值税进项税额抵扣管理 · 支持勾选认证、异常发票识别、批量操作</p>';
+  html += '</div>';
 
   // 统计卡片
   html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
@@ -991,3 +1003,133 @@ async function confirmGenerateBankVouchers() {
   }
 }
 
+
+
+// ── 银行流水自动分类 ──
+function autoClassifyBankTx(tx) {
+  var text = (tx.counterparty||'') + (tx.summary||'') + (tx.purpose||'');
+  var amount = parseFloat(tx.credit||tx.debit||tx.amount||0);
+  
+  // 收入类
+  if (/货款|销售|营业收入|货款|销货/.test(text)) return '销售收入';
+  if (/服务费|咨询费|劳务费/.test(text)) return '服务收入';
+  
+  // 支出类
+  if (/采购|购货|材料|原料|进货/.test(text)) return '采购支出';
+  if (/工资|薪金|奖金|劳务/.test(text)) return '工资支出';
+  if (/租金|房租|物业/.test(text)) return '租金支出';
+  if (/水电|电费|水费|能源/.test(text)) return '水电支出';
+  if (/税费|税金|纳税|缴税/.test(text)) return '税费支出';
+  if (/运费|物流|快递|运输/.test(text)) return '运输支出';
+  if (/差旅|住宿|餐饮|招待/.test(text)) return '费用支出';
+  
+  // 往来类
+  if (/借款|还款|拆借|往来/.test(text)) return '往来款';
+  if (/注资|投资|资本/.test(text)) return '投资款';
+  
+  // 判断方向
+  var credit = parseFloat(tx.credit||0);
+  if (credit > 0) return '其他收入';
+  return '其他支出';
+}
+
+// 批量分类并统计
+function batchClassifyBank(txs) {
+  var categories = {};
+  txs.forEach(function(tx){
+    var cat = autoClassifyBankTx(tx);
+    if (!categories[cat]) categories[cat] = {count:0, amount:0};
+    categories[cat].count++;
+    var amt = parseFloat(tx.credit||tx.debit||tx.amount||0);
+    categories[cat].amount += amt;
+  });
+  return categories;
+}
+
+
+// ── 银行-发票自动对账 ──
+async function autoMatchBankInvoice(bankTxs, invoices) {
+  var matches = [];
+  var unmatched = [];
+  
+  invoices.forEach(function(inv){
+    var invAmt = parseFloat(inv.amount||inv.total||0);
+    var invParty = (inv.seller||inv.buyer||'').replace(/[\s\(\)（）有限公司]/g,'');
+    var found = false;
+    
+    bankTxs.forEach(function(tx){
+      var txAmt = parseFloat(tx.credit||tx.debit||tx.amount||0);
+      var txParty = (tx.counterparty||'').replace(/[\s\(\)（）有限公司]/g,'');
+      
+      // 金额接近(±5%) 且 名称模糊匹配
+      if (Math.abs(txAmt - invAmt) / Math.max(invAmt, 1) < 0.05) {
+        if (txParty.includes(invParty.substring(0,3)) || invParty.includes(txParty.substring(0,3))) {
+          matches.push({invoice: inv, bank: tx, diff: Math.abs(txAmt-invAmt)});
+          found = true;
+        }
+      }
+    });
+    
+    if (!found) unmatched.push(inv);
+  });
+  
+  return {
+    total: invoices.length,
+    matched: matches.length,
+    unmatched: unmatched.length,
+    matchRate: invoices.length > 0 ? (matches.length/invoices.length*100).toFixed(1) : 0,
+    details: matches.slice(0,10)
+  };
+}
+
+// 渲染对账结果
+function renderMatchResult(result) {
+  var h = '<div style="margin:12px 0;padding:14px;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
+  h += '<div style="font-weight:700;font-size:14px;margin-bottom:8px">🔗 银企对账</div>';
+  h += '<div style="display:flex;gap:16px;font-size:12px;margin-bottom:8px">';
+  h += '<div><span style="color:#16a34a;font-weight:700">'+result.matched+'</span> 匹配</div>';
+  h += '<div><span style="color:#dc2626;font-weight:700">'+result.unmatched+'</span> 未匹配</div>';
+  h += '<div>匹配率: <b>'+result.matchRate+'%</b></div>';
+  h += '</div>';
+  
+  if (result.details.length > 0) {
+    h += '<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="background:#f1f5f9"><th>发票方</th><th>发票金额</th><th>银行对方</th><th>银行金额</th><th>差额</th></tr>';
+    result.details.forEach(function(m){
+      h += '<tr><td>'+(m.invoice.seller||m.invoice.buyer||'').substring(0,15)+'</td>';
+      h += '<td style="text-align:right">'+parseFloat(m.invoice.amount||0).toLocaleString()+'</td>';
+      h += '<td>'+(m.bank.counterparty||'').substring(0,15)+'</td>';
+      h += '<td style="text-align:right">'+parseFloat(m.bank.credit||m.bank.debit||0).toLocaleString()+'</td>';
+      h += '<td style="text-align:right;color:'+(m.diff<100?'#16a34a':'#f59e0b')+'">'+m.diff.toFixed(0)+'</td></tr>';
+    });
+    h += '</table>';
+  }
+  h += '</div>';
+  return h;
+}
+
+
+// 自动添加分类按钮
+setTimeout(function(){
+  var toolbar = document.querySelector('.toolbar, [class*="toolbar"]');
+  if (toolbar && !document.getElementById('classify-btn')) {
+    var btn = document.createElement('button');
+    btn.id = 'classify-btn';
+    btn.textContent = '🤖 自动分类';
+    btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px';
+    btn.onclick = async function(){
+      btn.disabled = true; btn.textContent = '分类中...';
+      try {
+        var resp = await fetch('/api/bank-transactions?company_id='+(currentCompanyId||1)+'&limit=500');
+        var data = await resp.json();
+        var txs = data.items || data || [];
+        var cats = batchClassifyBank(txs);
+        var h = Object.keys(cats).map(function(k){
+          return k+': '+cats[k].count+'笔/'+(cats[k].amount/10000).toFixed(1)+'万';
+        }).join('\n');
+        alert('银行流水自动分类:\n'+h);
+      } catch(e) { alert('分类失败: '+e.message); }
+      btn.disabled = false; btn.textContent = '🤖 自动分类';
+    };
+    toolbar.appendChild(btn);
+  }
+}, 800);

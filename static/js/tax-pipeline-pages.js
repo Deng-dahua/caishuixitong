@@ -72,9 +72,9 @@ function renderFileParsingPage(container) {
   window.currentModule = '文件解析';
   container.innerHTML = ''
     + '<div class="pipeline-page card card-fill">'
-    + '  <div style="margin-bottom:48px">'
-    + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">文件解析</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
+    + '  <div class="page-header">'
+    + '    <h1>📁 文件解析</h1>'
+    + '    <p>三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
     + '  </div>'
     + '  <div id="fp-static"></div>'
     + '  <div id="fp-analysis-result"></div>'
@@ -382,9 +382,9 @@ function renderDomainAnalysisPage(container) {
   window.currentModule = '域分析';
   container.innerHTML = ''
     + '<div class="pipeline-page card card-fill">'
-    + '  <div style="margin-bottom:48px">'
-    + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">域分析</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">35个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
+    + '  <div class="page-header">'
+    + '    <h1>🔬 域分析</h1>'
+    + '    <p>35个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
     + '  </div>'
     + renderDomainAnalysisStatic()
     + '<div id="da-analysis-result"></div>'
@@ -664,8 +664,8 @@ function renderCrossDomainEvidencePage(container) {
   var hasCache = window._allCrossChains && window._allCrossChains.length > 0;
 
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域证据链</h2>'
+    + '<div class="page-header">'
+    + '<h1>🔗 跨域证据链</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? window._allCrossChains.length : '...') + ' 条证据链 · 多源数据交叉验证 · ≥2个维度同时命中才形成有效证据链</p>'
     + '</div>'
     + '<div id="cde-static"></div>'
@@ -933,8 +933,8 @@ function renderChainsPage(container) {
   var hasCache = _allClueChains && _allClueChains.length > 0;
 
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">线索链列表</h2>'
+    + '<div class="page-header">'
+    + '<h1>🔍 线索链列表</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤，触发率=已触发步骤/总步骤</p>'
     + '</div>'
     + '<div id="chains-body"></div></div>';
@@ -1152,8 +1152,8 @@ function renderEvidencePage(container) {
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
 
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">证据链列表</h2>'
+    + '<div class="page-header">'
+    + '<h1>🔒 证据链列表</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">' + (hasCache ? _allEvidenceChains.length : '...') + ' 条证据链 · 含规则ID+处罚依据 · 需≥2域交叉验证形成闭环</p>'
     + '</div>'
     + '<div id="evidence-body"></div></div>';
@@ -1229,8 +1229,7 @@ function renderEvidenceList(chains) {
 
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
-      html += '<div style="margin-bottom:32px">'
-        + (sortedPrefixes.length > 1 ? '<div style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 10px 0;padding:8px 0;border-bottom:1px solid #e2e8f0">' + escHtml(prefix) + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条</span></div>' : '');
+      html += '<div style="margin-bottom:32px">';
 
       groupChains.forEach(function(c) {
         var evExec = evExecMap[c.name];
@@ -1371,8 +1370,8 @@ function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">分析链</h2>'
+    + '<div class="page-header">'
+    + '<h1>⚡ 分析链</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0 0 12px">' + pc('rules','1512') + '规则 + ' + pc('trailChains','396') + '线索链 + ' + pc('evidenceChains','745') + '证据链 → 方法论过滤器 → 正式稽查报告</p>'
     + '<a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="display:inline-block;padding:6px 16px;background:#2563eb;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">📊 查看完整报告 →</a>'
     + '</div>'
@@ -1798,8 +1797,8 @@ function collapseAllDomains() {
 function renderCrossDomainCluesPage(container) {
   if (!container) return;
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域线索链</h2>'
+    + '<div class="page-header">'
+    + '<h1>🔎 跨域线索链</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">多域串联调查路径 · ≥2个数据域触发 · 从单点发现到跨域调查<span id="cdc-triggered-count"></span></p>'
     + '</div>'
     + '<div id="cdc-body"></div>'
@@ -1898,8 +1897,8 @@ function loadCrossDomainClues() {
 function renderCrossDomainAnalysisPage(container) {
   if (!container) return;
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">跨域分析链</h2>'
+    + '<div class="page-header">'
+    + '<h1>📊 跨域分析链</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">点→面推理路径 · 从单域异常到多域结论 · 每步可回退验证<span id="cda-triggered-count"></span></p>'
     + '</div>'
     + '<div id="cda-body"></div>'
@@ -2022,8 +2021,8 @@ function renderMethodologyFilterPage(container) {
   window.currentModule = '方法论过滤器';
 
   container.innerHTML = '<div class="pipeline-page card card-fill">'
-    + '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">方法论过滤器</h2>'
+    + '<div class="page-header">'
+    + '<h1>🎯 方法论过滤器</h1>'
     + '<p style="font-size:14px;color:#94a3b8;margin:0">HARD_BAN + COND_BAN + 去重 —— 三大噪声过滤机制，剔除97%无效发现，确保报告纯净度</p>'
     + '</div>'
     + '<div id="mf-body"></div>'
@@ -2177,13 +2176,13 @@ function renderFilterResult(report) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  AI行为准则页面 —— 全部13条行为准则
+//  智哥行为准则页面 —— 全部13条行为准则
 // ══════════════════════════════════════════════════════════════
 
 function renderAiRules(container) {
   var html = '';
   
-  // ═══ 管道连接状态栏 ═══
+  html += '<div class="card card-fill">';
   html += '<div id="ai-rules-pipeline-bar" style="margin-bottom:16px;">';
   html += '<div class="card" style="padding:10px 16px;background:#f0f9ff;border:1px solid #bae6fd;">';
   html += '<span style="font-size:13px;color:#0369a1;">🔗 正在连接一键分析管道…</span>';
@@ -2192,7 +2191,7 @@ function renderAiRules(container) {
   html += '<div id="ai-rules-content">';
 
   var categories = [
-    {name:'行事风格', icon:'⚡', color:'#0f172a', desc:'决定AI如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是"性格"层面的规范，直接影响每一次代码操作的质量和深度。', rules:[
+    {name:'行事风格', icon:'⚡', color:'#0f172a', desc:'决定智哥如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是"性格"层面的规范，直接影响每一次代码操作的质量和深度。', rules:[
       {id:1, name:'做事要狠', level:'准则', date:'2026-05-31',
        desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根，不要修修补补。',
        why:'针对AI"只改用户指出的那一个点"的惰性行为。'},
@@ -2248,8 +2247,8 @@ function renderAiRules(container) {
        desc:'当发现某个概念/提法/方法论已过时或需要扩展时，主动关联更新所有相关位置。禁止"踢一脚动一下"——用户指出"四合一"提法过时，就要主动搜索全项目所有"四合一"提法并一并更新，而不是只改用户指出的那一个位置。',
        why:'用户指出"四合一"提法过时，但AI没有主动关联更新所有相关位置——这种行为准则自己的规范都不遵守，怎么要求代码质量？'},
       {id:17, name:'自我反思与准则迭代', level:'铁律', date:'2026-06-19',
-       desc:'每次用户批评后，必须反思：我哪些行为准则没做到？准则本身是否遗漏了这条规范？如果发现准则有遗漏，立即补充到AI行为准则中。准则不是静态的，必须持续迭代。',
-       why:'用户批评"你的行为准则是不是应该提醒自己遵照执行呢？如果这种规范你行为的准则你都不主动写入AI行为准则，你怎么能更优秀呢？"——AI行为准则是规范AI自己的，必须主动维护。'},
+       desc:'每次用户批评后，必须反思：我哪些行为准则没做到？准则本身是否遗漏了这条规范？如果发现准则有遗漏，立即补充到智哥行为准则中。准则不是静态的，必须持续迭代。',
+       why:'用户批评"你的行为准则是不是应该提醒自己遵照执行呢？如果这种规范你行为的准则你都不主动写入AI行为准则，你怎么能更优秀呢？"——智哥行为准则是规范智哥自己的，必须主动维护。'},
       {id:18, name:'方法论先行', level:'铁律', date:'2026-06-20',
        desc:'任何功能在上代码之前，必须先有明确的方法论。顺序：总结方法论 → 用到具体位置 → 写入代码并强制执行。禁止只有描述没有代码的方法论，禁止只有代码没有方法论的功能。',
        why:'稽查方法论⑥"联网核查"只有描述文字没有实际查询代码→用户发现后要求全量审计。没有方法论的代码是盲目的，没有代码的方法论是空洞的。'},
@@ -2263,16 +2262,16 @@ function renderAiRules(container) {
   html += '<div class="pipeline-page card card-fill">';
 
   // 标题
-  html += '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">AI行为准则</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">共 ' + totalRules + ' 条准则（' + tieLvCount + ' 铁律 + ' + zhunZeCount + ' 准则）· 4 大分类 · 持续迭代中</p>'
+  html += '<div class="page-header">'
+    + '<h1>🧠 智哥行为准则</h1>'
+    + '<p>共 ' + totalRules + ' 条准则（' + tieLvCount + ' 铁律 + ' + zhunZeCount + ' 准则）· 4 大分类 · 持续迭代中</p>'
     + '</div>';
 
   // ══════ 一、概述 ══════
   html += '<div style="margin-bottom:40px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是AI行为准则</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是智哥行为准则</h3>'
     + '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">'
-    + 'AI行为准则是指导AI在代码编写、系统设计、质量保障等所有工作中的强制性规范。这些准则来自实战中反复踩过的坑——'
+    + '智哥行为准则是指导智哥在代码编写、系统设计、质量保障等所有工作中的强制性规范。这些准则来自实战中反复踩过的坑——'
     + '每一条背后都有一个真实的Bug、一次系统崩溃或一次报告失真。准则不是凭空设计的，是血泪教训的结晶。'
     + '</p>'
     + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
@@ -2329,6 +2328,7 @@ function renderAiRules(container) {
 
   html += '</div>';
   html += '</div>'; /* close ai-rules-content */
+  html += '</div>'; /* close card-fill */
   container.innerHTML = html;
 
   // ═══ 连接一键分析管道（深度） ═══
@@ -2509,9 +2509,9 @@ function renderQualitySystem(container) {
   html += '<div class="pipeline-page card card-fill">';
 
   // 标题
-  html += '<div style="margin-bottom:48px">'
-    + '<h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">全链路稽查质量保障体系</h2>'
-    + '<p style="font-size:14px;color:#94a3b8;margin:0">五大层次 · ' + totalItems + ' 个具体组件 · 开放生态系统（随系统发展持续扩展）</p>'
+  html += '<div class="page-header">'
+    + '<h1>🛡️ 全链路稽查质量保障体系</h1>'
+    + '<p>五大层次 · ' + totalItems + ' 个具体组件 · 开放生态系统（随系统发展持续扩展）</p>'
     + '</div>';
 
   // ══════ 一、体系概述 ══════

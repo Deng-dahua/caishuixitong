@@ -2,6 +2,7 @@
 async function renderContracts(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML = '<div class="card card-fill" style="margin-bottom:0">' +
+    '<div class="page-header"><h1>📄 合同管理</h1><p>购销合同与服务协议管理 · 合同金额与发票金额比对 · 到期预警</p></div>' +
     '<div class="filter-bar">' +
       '<input id="contractKeyword" placeholder="搜索合同编号/名称/对方..." style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;width:260px" onkeydown="if(event.key==\'Enter\')loadContracts()">' +
       '<button class="btn-toolbar" onclick="loadContracts()">搜索</button>' +
@@ -683,3 +684,32 @@ async function showPaymentDetail(paymentId) {
   }
 }
 
+
+
+// ── 合同到期提醒 ──
+function checkContractExpiry(contracts) {
+  var now = new Date();
+  var alerts = [];
+  contracts.forEach(function(c){
+    var endDate = c.end_date || c.expiry_date || '';
+    if (!endDate) return;
+    var days = Math.floor((new Date(endDate) - now) / (1000*60*60*24));
+    if (days <= 30 && days >= 0) {
+      alerts.push({contract: c, days: days, type: 'warning'});
+    } else if (days < 0) {
+      alerts.push({contract: c, days: Math.abs(days), type: 'expired'});
+    }
+  });
+  
+  if (alerts.length > 0) {
+    var h = '<div style="margin:8px 0;padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px;font-size:12px">';
+    h += '<b>⚠️ 合同提醒:</b> ';
+    alerts.forEach(function(a){
+      var text = a.type==='expired' ? '已过期'+a.days+'天' : a.days+'天后到期';
+      h += (a.contract.contract_name||a.contract.name||'合同') + ' ' + text + '; ';
+    });
+    h += '</div>';
+    var container = document.querySelector('.page-content, [class*="content"]');
+    if (container) container.insertAdjacentHTML('afterbegin', h);
+  }
+}

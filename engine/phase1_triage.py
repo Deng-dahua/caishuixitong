@@ -14,6 +14,8 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     """
     from collections import defaultdict
     
+    from .main_biz_cost import identify_main_biz_cost
+    
     ctx.phase_history.append({"phase": 1, "start": True})
     
     # ── 1.1 财务快照 ──
@@ -45,7 +47,7 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
     
     # ── 1.4 初查信号检测 ──
-    _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs)
+    _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs, invoices)
     
     # ── 1.5 资料质量评估 ──
     _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries)
@@ -75,8 +77,11 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
         g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
         if g: sal_goods_set.add(g)
     
-    # 加工信号
-    has_processing = any("加工" in g for g in pur_goods_set)
+    # 加工信号（仅制造/贸易型企业适用，服务型企业跳过）
+    has_processing = False
+    biz_model_check = ctx.company_profile.get("biz_model", "") if hasattr(ctx, 'company_profile') and ctx.company_profile else ""
+    if biz_model_check not in ("服务",):
+        has_processing = any("加工" in g for g in pur_goods_set)
     ctx.has_processing_fee = has_processing
     
     # 品名重合度
@@ -129,18 +134,22 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
     """从发票品名推断行业——全行业自适应，不硬编码任何行业关键词
     
+    ═══ 行业推断铁律 ═══
+    仅以销项发票品名为依据，不参考进项发票品名。
+    WHY: 销项=企业实际经营产出（卖什么就是什么行业）
+         进项=采购投入/成本结构（买什么不代表行业，如传媒公司也会买餐饮服务）
+    
     方法：利用中国金税发票的税收分类编码前缀（*XX*格式）
-    例如：*纺织产品*棉布 → 行业=纺织产品
+    例如：*广告服务*广告发布费 → 行业=广告服务
     无分类编码时用"综合"兜底
     """
     cp = ctx.company_profile
     
-    # 从所有品名中提取税收分类编码（*之间的文字）
+    # ═══ 仅从销项发票品名中提取行业分类编码 ═══
     import re
-    all_goods_list = list(pur_goods | sal_goods)
     cat_counts = {}
     
-    for goods in all_goods_list:
+    for goods in sal_goods:
         # 匹配 *分类名称* 格式（金税发票标准格式）
         match = re.search(r'\*([^*]+)\*', str(goods))
         if match:
@@ -200,7 +209,7 @@ def _load_industry_profile(ctx):
     ctx.industry_profile = matched or default
 
 
-def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None):
+def _detect_triage_signals(ctx, pur_invs=None, sal_invs=None, bank_txs=None, invoices=None):
     """初查阶段信号检测——行业自适应 + 历史数据校准。
     
     阈值优先级：历史校准(同行业统计) > 行业配置(industry_profiles.json) > 兜底通用值

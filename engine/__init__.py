@@ -13,8 +13,25 @@ from .phase3_cross_validate import _phase3_cross_validate, _detect_conflicts, _S
 from .phase4_synthesis import _phase4_synthesis, _generate_executive_summary, _get_risk_advice
 from .phase4_synthesis import _get_detailed_mode_analysis, _get_mode_note, _summarize_evidence
 
+from .capability_matrix import CAPABILITY_MATRIX, META_RULES, get_capability_summary, check_dimension_coverage
+from .capability_matrix import AUDIT_METHODOLOGY, DESIGN_PHILOSOPHY, audit_system_compliance
+from .financial_analyzer import analyze_financial_statements
+from .tax_incentive_analyzer import analyze_tax_incentives, check_policy, POLICY_VALIDITY
+from .orchestrator import MODULE_REGISTRY, build_orchestration_plan, build_data_profile, get_module_registry_summary
+from .self_learning import ModuleLearner, ComplianceGate, record_module_run, run_compliance_gate, get_learner_report
+from .methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
+from .hypothesis_engine import run_hypothesis_verification, HYPOTHESIS_TEMPLATES
+from .rule_discovery import run_auto_rule_discovery, RuleDiscoveryEngine, get_discovered_rules
+from .legal_reasoner import LegalReasoner, run_legal_reasoning, _LEGAL_RULES_DB
+from .cross_enterprise_graph import CrossEnterpriseGraph, run_cross_enterprise_analysis
+from .trend_analyzer import TrendAnalyzer, run_trend_analysis
+
 __all__ = [
     "AuditContext",
     "identify_main_biz_cost",
     "_phase1_triage", "_phase2_deep_dive", "_phase3_cross_validate", "_phase4_synthesis",
+    "CAPABILITY_MATRIX", "META_RULES", "get_capability_summary",
+    "run_hypothesis_verification", "run_auto_rule_discovery",
+    "MODULE_REGISTRY", "build_orchestration_plan",
+    "run_legal_reasoning", "run_cross_enterprise_analysis", "run_trend_analysis",
 ]

@@ -39,12 +39,12 @@ python main.py
 或使用 uvicorn 开发模式：
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ### 3. 访问系统
 
-打开浏览器访问：**http://localhost:8000**
+打开浏览器访问：**http://localhost:8001**
 
 ## 内置会计科目
 
@@ -64,7 +64,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ## API 文档
 
-启动后访问：**http://localhost:8000/docs**（Swagger UI）
+启动后访问：**http://localhost:8001/docs**（Swagger UI）
 
 ## 数据存储
 

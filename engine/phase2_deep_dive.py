@@ -14,6 +14,12 @@
 #   normal（常规）：标准分析流程
 #   deep（深挖）：多源交叉+关联穿透+证据链串联
 # ═══════════════════════════════════════════════════════════
+#
+# 域函数通过 register 机制延迟绑定：main.py 加载后，engine/phase2_deep_dive.py
+# 可调用 sys.modules 获取已加载的 main 模块中的域函数。
+
+# ═══════════════════════════════════════════════════════════
+# Lazy imports inside _phase2_deep_dive (avoids circular import at module load time)
 
 # ├─ 信号→域映射表
 # │  每个信号定义了应深挖的域及深度
@@ -132,6 +138,33 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
     返回：
         deep_dive_results: [{"domain": "XX", "findings": [...]}, ...]
     """
+    # ── 延迟导入 main 中的域函数（避免循环依赖）──
+    import sys as _sys, importlib as _il
+    _m = _sys.modules.get("main") or _sys.modules.get("__main__")
+    if not _m:
+        try: _m = _il.import_module("main")
+        except Exception: pass
+    if _m:
+        for _fname in ["_domain_profit_analysis","_domain_supplier_deep","_domain_fund_flow_mapping",
+                        "_domain_business_substance","_domain_industry_benchmark","_domain_voucher_invoice_revenue_compare",
+                        "_domain_vat_declaration_compare","_domain_invoice_audit","_domain_supplier_profiling",
+                        "_domain_supply_chain_deep","_domain_business_premise_geo","_domain_related_party_check",
+                        "_domain_salary_ss_hf_compare","_domain_workforce_profiling","_domain_personal_transactions",
+                        "_domain_revenue_timeline","_domain_customer_revenue_matching"]:
+            _fn = getattr(_m, _fname, None)
+            if _fn is None:
+                _fn = lambda *a, **kw: []
+            globals()[_fname] = _fn  # 注入到当前模块的全局命名空间，lambda 闭包可访问
+    else:
+        # 绝对兜底：全部用空函数
+        for _fname in ["_domain_profit_analysis","_domain_supplier_deep","_domain_fund_flow_mapping",
+                        "_domain_business_substance","_domain_industry_benchmark","_domain_voucher_invoice_revenue_compare",
+                        "_domain_vat_declaration_compare","_domain_invoice_audit","_domain_supplier_profiling",
+                        "_domain_supply_chain_deep","_domain_business_premise_geo","_domain_related_party_check",
+                        "_domain_salary_ss_hf_compare","_domain_workforce_profiling","_domain_personal_transactions",
+                        "_domain_revenue_timeline","_domain_customer_revenue_matching"]:
+            globals()[_fname] = lambda *a, **kw: []
+    
     deep_dive_results = []
     domains_to_run = {}  # {domain_name: depth}
     
@@ -164,8 +197,9 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
     
     # ── 步骤2：执行选中域的分析 ──
     # 每个域有对应的分析函数，按深度执行
+    # 域函数必须在 lazy import 之后定义，确保闭包捕获正确的函数引用
     
-    # 域函数注册表
+    # 域函数注册表 — 使用完整函数引用而非 lambda，避免闭包作用域问题
     domain_functions = {
         "进销毛利率分析": lambda: _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue),
         "供应商穿透分析": lambda: _domain_supplier_deep(pur_invs),

@@ -1134,11 +1134,11 @@ function renderTaxDocReport(r) {
         var source = esc(er.source||'');
         var anchorId = 'ev-' + source.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'') + '-' + refId.replace(/[^a-zA-Z0-9]/g,'');
         // 构建tooltip
-        var tooltip = '来源: ' + source + '\\n引用ID: ' + refId + '\\n描述: ' + esc(er.ref_label||'') + '\\n金额: ' + amt + '\\n对方: ' + esc(er.counterparty||'-') + '\\n日期: ' + esc(er.date||'-') + '\\n备注: ' + esc(er.note||'');
+        var tooltip = '来源: ' + source + '\n引用ID: ' + refId + '\n描述: ' + esc(er.ref_label||'') + '\n金额: ' + amt + '\n对方: ' + esc(er.counterparty||'-') + '\n日期: ' + esc(er.date||'-') + '\n备注: ' + esc(er.note||'');
         h += '<tr id="' + anchorId + '" class="evidence-row" style="cursor:pointer;transition:background 0.2s" '
-          + 'onmouseover="this.style.background=\\'#f0f7ff\\'" onmouseout="this.style.background=\\'\\'" '
+          + 'onmouseover="this.style.background=\'#f0f7ff\'" onmouseout="this.style.background=\'\'" '
           + 'title="' + tooltip.replace(/"/g,'&quot;') + '。点击复制引用ID" '
-          + 'onclick="navigator.clipboard.writeText(\\'' + refId.replace(/'/g,"\\'") + '\\').then(function(){this.style.background=\\'#d4edda\\';setTimeout(function(){var el=document.getElementById(\\'' + anchorId + '\\');if(el)el.style.background=\\'\\';},800);}.bind(this))">';
+          + 'onclick="navigator.clipboard.writeText(\'' + refId.replace(/'/g,"\\'") + '\').then(function(){this.style.background=\'#d4edda\';setTimeout(function(){var el=document.getElementById(\'' + anchorId + '\');if(el)el.style.background=\'\';},800);}.bind(this))">';
         h += '<td><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px">' + source + '</span></td>';
         h += '<td style="font-family:monospace;font-size:10px;text-decoration:underline;color:#2563eb">' + refId + '</td>';
         h += '<td>' + esc(er.ref_label||'') + '</td>';

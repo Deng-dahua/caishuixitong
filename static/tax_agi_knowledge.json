@@ -1,0 +1,2125 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "created_at": "2026-06-25T03:23:16.832680",
+    "updated_at": "2026-06-25T15:00:05.525446",
+    "description": "税务AGI统一知识库 — 所有模块的知识在此汇聚、生长、进化"
+  },
+  "policies": {
+    "small_micro": {
+      "name": "小型微利企业所得税优惠",
+      "law": "财政部税务总局公告2025年第5号",
+      "expiry": "2027-12-31",
+      "conditions": {
+        "应纳税所得额上限": 3000000,
+        "从业人数上限": 300,
+        "资产总额上限": 50000000,
+        "减按比例": 25,
+        "优惠税率": 20,
+        "有效税率": 5
+      }
+    },
+    "small_taxpayer": {
+      "name": "小规模纳税人增值税减免",
+      "law": "财政部税务总局公告2023年第1号",
+      "expiry": "2027-12-31",
+      "conditions": {
+        "年销售额上限": 5000000
+      }
+    },
+    "rd_deduction": {
+      "name": "研发费用加计扣除",
+      "law": "财政部税务总局公告2023年第7号",
+      "expiry": "长期",
+      "conditions": {
+        "加计比例": 100,
+        "制造业加计比例": 120
+      }
+    },
+    "high_tech": {
+      "name": "高新技术企业15%税率",
+      "law": "企业所得税法第28条",
+      "expiry": "长期",
+      "conditions": {
+        "优惠税率": 15
+      }
+    },
+    "six_tax": {
+      "name": "六税两费减半",
+      "law": "财政部税务总局公告2022年第10号",
+      "expiry": "2027-12-31",
+      "conditions": {
+        "减免比例": 50
+      }
+    },
+    "software_vat": {
+      "name": "软件产品即征即退",
+      "law": "财税[2011]100号",
+      "expiry": "长期",
+      "conditions": {
+        "税负超3%即征即退": true
+      }
+    },
+    "disabled": {
+      "name": "残疾人就业保障金减免",
+      "law": "财政部公告2019年第98号",
+      "expiry": "2027-12-31",
+      "conditions": {
+        "在职职工20人以下免征": true
+      }
+    },
+    "agri": {
+      "name": "农林牧渔所得减免",
+      "law": "企业所得税法第27条",
+      "expiry": "长期",
+      "conditions": {}
+    },
+    "west": {
+      "name": "西部大开发15%税率",
+      "law": "财政部公告2020年第23号",
+      "expiry": "2030-12-31",
+      "conditions": {
+        "优惠税率": 15
+      }
+    }
+  },
+  "causal_edges": [
+    {
+      "signals": [
+        "域:Phase3-交叉验证"
+      ],
+      "finding": "交叉验证-进项发票真实性存疑（无资金流佐证）",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:Phase3-交叉验证"
+      ],
+      "finding": "交叉验证-冲突消解：数量偏差vs供应商集中",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:经营实质分析"
+      ],
+      "finding": "基础经营费用缺失",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:资料完备度评估"
+      ],
+      "finding": "合同文件缺失",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:资料完备度评估"
+      ],
+      "finding": "记账凭证缺失",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:资料完备度评估"
+      ],
+      "finding": "资料完备度综合评估",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:账务系统风险"
+      ],
+      "finding": "缺失序时账/会计凭证",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:客户维度三源穿透"
+      ],
+      "finding": "客户维度开票收款偏差（逐户穿透）",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:客户维度三源穿透"
+      ],
+      "finding": "大额收款无对应开票（未开票收入风险）",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:发票存货付款三角验证"
+      ],
+      "finding": "进项发票与银行付款未匹配——资金去向不明",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:经营实质地理分析"
+      ],
+      "finding": "重物跨省经营缺运输成本",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:发票实质性审计"
+      ],
+      "finding": "加工费发票缺少数量或单位",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域关联推理"
+      ],
+      "finding": "无实质经营证据链",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域关联推理"
+      ],
+      "finding": "全链条经营实质地理异常",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域线索链"
+      ],
+      "finding": "进销品名不匹配→虚开发票线索",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域线索链"
+      ],
+      "finding": "供应商异地集中→空壳/虚开线索",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域线索链"
+      ],
+      "finding": "资料大量缺失→账外经营线索",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    },
+    {
+      "signals": [
+        "域:跨域线索链"
+      ],
+      "finding": "经营实质缺失→空壳公司线索",
+      "confidence": 0.7,
+      "source": "⑧域分析"
+    }
+  ],
+  "signal_patterns": [],
+  "semantic_dict": {
+    "加工": [
+      "加工费",
+      "加工",
+      "染整",
+      "染色",
+      "印花",
+      "涂层",
+      "水洗",
+      "砂洗",
+      "定型",
+      "复合",
+      "贴合",
+      "磨毛",
+      "压光",
+      "刺绣",
+      "绗缝"
+    ],
+    "染整加工": [
+      "染整加工费",
+      "染色加工费",
+      "染费",
+      "委托染整",
+      "外发染色",
+      "外包染色"
+    ],
+    "委托加工": [
+      "委托加工",
+      "外发加工",
+      "外包加工",
+      "来料加工",
+      "委外加工",
+      "代加工"
+    ],
+    "运输物流": [
+      "运输",
+      "运费",
+      "快递",
+      "物流",
+      "装卸",
+      "搬运",
+      "配送",
+      "货运"
+    ],
+    "租金物业": [
+      "房租",
+      "租金",
+      "物业",
+      "水电",
+      "电费",
+      "水费",
+      "租赁"
+    ],
+    "咨询服务": [
+      "咨询",
+      "顾问",
+      "服务费",
+      "技术服务",
+      "管理服务",
+      "居间",
+      "中介"
+    ],
+    "维修保养": [
+      "维修",
+      "保养",
+      "修理",
+      "维护",
+      "检测"
+    ],
+    "办公耗材": [
+      "办公",
+      "文具",
+      "打印",
+      "复印",
+      "纸张",
+      "墨盒",
+      "硒鼓"
+    ],
+    "差旅招待": [
+      "差旅",
+      "住宿",
+      "餐饮",
+      "机票",
+      "火车票",
+      "招待",
+      "宴请"
+    ],
+    "广告推广": [
+      "广告",
+      "推广",
+      "营销",
+      "展会",
+      "展览",
+      "促销"
+    ],
+    "软件服务": [
+      "软件",
+      "系统",
+      "平台",
+      "APP",
+      "小程序",
+      "SaaS",
+      "技术开发",
+      "软件开发"
+    ],
+    "设备采购": [
+      "设备",
+      "机器",
+      "机械",
+      "仪器",
+      "仪表",
+      "工具"
+    ],
+    "纺织品原料": [
+      "坯布",
+      "棉纱",
+      "纱线",
+      "涤纶",
+      "锦纶",
+      "氨纶",
+      "粘胶",
+      "天丝",
+      "莫代尔",
+      "羊毛",
+      "羊绒",
+      "真丝",
+      "麻",
+      "竹纤维",
+      "面料",
+      "布料"
+    ],
+    "化工原料": [
+      "染料",
+      "助剂",
+      "柔软剂",
+      "树脂",
+      "固色剂",
+      "漂白",
+      "双氧水",
+      "烧碱",
+      "醋酸",
+      "液碱",
+      "硫酸",
+      "盐酸"
+    ]
+  },
+  "risk_synonyms": {
+    "隐匿收入": [
+      "隐匿收入",
+      "未申报收入",
+      "账外经营",
+      "少报收入",
+      "不开票收入",
+      "体外循环"
+    ],
+    "虚开发票": [
+      "虚开",
+      "虚开发票",
+      "假发票",
+      "无真实交易",
+      "空转",
+      "走账"
+    ],
+    "品名不匹配": [
+      "品名差异",
+      "品名不匹配",
+      "进销品名不一致",
+      "进销不匹配"
+    ],
+    "账簿问题": [
+      "账外",
+      "内账",
+      "外账",
+      "阴阳账",
+      "假账",
+      "两套账"
+    ],
+    "关联交易": [
+      "关联交易",
+      "关联方",
+      "关联企业",
+      "转移定价",
+      "利润转移"
+    ]
+  },
+  "industry_profiles": {
+    "纺织业": {
+      "typical_risks": [
+        "委托加工真实性",
+        "进销品名差异",
+        "虚开进项"
+      ],
+      "common_goods": [
+        "坯布",
+        "棉纱",
+        "面料",
+        "染整加工费"
+      ],
+      "risk_profiles": {}
+    }
+  },
+  "healing_rules": [],
+  "lessons": [
+    {
+      "lesson": "小型微利政策要联网核查最新公告",
+      "category": "政策",
+      "timestamp": "2026-06-25T03:23:16.832723"
+    },
+    {
+      "lesson": "发票品名要语义匹配不要字符串匹配",
+      "category": "技术",
+      "timestamp": "2026-06-25T03:23:16.833878"
+    },
+    {
+      "lesson": "新增文件: __init__.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.365497"
+    },
+    {
+      "lesson": "新增文件: agent_core.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.366667"
+    },
+    {
+      "lesson": "新增文件: agi_pipeline.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.367372"
+    },
+    {
+      "lesson": "新增文件: auto_patrol.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.367977"
+    },
+    {
+      "lesson": "新增文件: capability_matrix.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.368792"
+    },
+    {
+      "lesson": "新增文件: causal_network.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.369500"
+    },
+    {
+      "lesson": "新增文件: context.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.370362"
+    },
+    {
+      "lesson": "新增文件: external_verifier.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.371824"
+    },
+    {
+      "lesson": "新增文件: financial_analyzer.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.372442"
+    },
+    {
+      "lesson": "新增文件: fix_finalize.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.373177"
+    },
+    {
+      "lesson": "新增文件: hypothesis_engine.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.373782"
+    },
+    {
+      "lesson": "新增文件: knowledge_base.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.374390"
+    },
+    {
+      "lesson": "新增文件: main_biz_cost.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.374943"
+    },
+    {
+      "lesson": "新增文件: memory.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.375836"
+    },
+    {
+      "lesson": "新增文件: methodology_loader.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.376417"
+    },
+    {
+      "lesson": "新增文件: orchestrator.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.377022"
+    },
+    {
+      "lesson": "新增文件: override_engine.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.377573"
+    },
+    {
+      "lesson": "新增文件: parallel_runner.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.378148"
+    },
+    {
+      "lesson": "新增文件: phase1_triage.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.378769"
+    },
+    {
+      "lesson": "新增文件: phase2_deep_dive.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.379318"
+    },
+    {
+      "lesson": "新增文件: phase3_cross_validate.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.380674"
+    },
+    {
+      "lesson": "新增文件: phase4_synthesis.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.381551"
+    },
+    {
+      "lesson": "新增文件: rule_discovery.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.382755"
+    },
+    {
+      "lesson": "新增文件: self_healing.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.383491"
+    },
+    {
+      "lesson": "新增文件: self_learning.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.384426"
+    },
+    {
+      "lesson": "新增文件: semantic_reasoner.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.385305"
+    },
+    {
+      "lesson": "新增文件: tax_incentive_analyzer.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.386164"
+    },
+    {
+      "lesson": "新增文件: unknown_pattern_detector.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.387129"
+    },
+    {
+      "lesson": "新增文件: archives.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.387957"
+    },
+    {
+      "lesson": "新增文件: assets.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.389031"
+    },
+    {
+      "lesson": "新增文件: bank-vat.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.390156"
+    },
+    {
+      "lesson": "新增文件: bookkeeping-invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.390913"
+    },
+    {
+      "lesson": "新增文件: chat.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.392093"
+    },
+    {
+      "lesson": "新增文件: company.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.392866"
+    },
+    {
+      "lesson": "新增文件: constants.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.394119"
+    },
+    {
+      "lesson": "新增文件: contracts-payments.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.395031"
+    },
+    {
+      "lesson": "新增文件: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.395803"
+    },
+    {
+      "lesson": "新增文件: dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.396676"
+    },
+    {
+      "lesson": "新增文件: file-import.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.397883"
+    },
+    {
+      "lesson": "新增文件: housing-fund.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.398902"
+    },
+    {
+      "lesson": "新增文件: invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.399804"
+    },
+    {
+      "lesson": "新增文件: journal.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.400582"
+    },
+    {
+      "lesson": "新增文件: ledgers-reports.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.401583"
+    },
+    {
+      "lesson": "新增文件: new_analyze_page.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.402812"
+    },
+    {
+      "lesson": "新增文件: rewrite_analyze.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.403602"
+    },
+    {
+      "lesson": "新增文件: rewrite_methodology.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.404530"
+    },
+    {
+      "lesson": "新增文件: rewrite_steps.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.405550"
+    },
+    {
+      "lesson": "新增文件: salary.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.406998"
+    },
+    {
+      "lesson": "新增文件: social-security.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.408159"
+    },
+    {
+      "lesson": "新增文件: system-logs.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.408986"
+    },
+    {
+      "lesson": "新增文件: tax-auditor-handbook.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.409781"
+    },
+    {
+      "lesson": "新增文件: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.410786"
+    },
+    {
+      "lesson": "新增文件: tax-engine-dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.412244"
+    },
+    {
+      "lesson": "新增文件: tax-pipeline-pages.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.413915"
+    },
+    {
+      "lesson": "新增文件: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.414969"
+    },
+    {
+      "lesson": "新增文件: tax-risk-report.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.415993"
+    },
+    {
+      "lesson": "新增文件: tax-risk-rules.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.416844"
+    },
+    {
+      "lesson": "新增文件: unbookkept-invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.417614"
+    },
+    {
+      "lesson": "新增文件: update_analyze_page.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.418749"
+    },
+    {
+      "lesson": "新增文件: vat-declaration.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.419565"
+    },
+    {
+      "lesson": "新增文件: 文化事业建设费.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.420417"
+    },
+    {
+      "lesson": "新增文件: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T08:46:50.421860"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T09:10:24.579206"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.537133"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.538570"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.540047"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.542106"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.543215"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.544539"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.545776"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.548075"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.550027"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.551367"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.552576"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.553832"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.555101"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.556555"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.558015"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.559438"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.560778"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.562296"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.563464"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.565587"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.567207"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.568511"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:19:34.569940"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.609027"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.610380"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.611652"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.613021"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.615033"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:19:34.616537"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.605087"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.606351"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.607812"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.609068"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.610313"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.611922"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.613323"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.614706"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.615945"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.617132"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.618741"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.620999"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.622701"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.624069"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.625359"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.626579"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.628095"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.629517"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.630984"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.632553"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.634091"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.635416"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:22:19.637576"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.676877"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.678490"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.680301"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.682685"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.684928"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:22:19.687020"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.611867"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.614053"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.615638"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.617092"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.618443"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.619886"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.621319"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.622988"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.624944"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.626425"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.628185"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.630677"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.632314"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.634072"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.635539"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.637053"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.639039"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.640701"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.642711"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.644355"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.646469"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.648277"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:24:02.650251"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.694085"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.696793"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.698552"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.700218"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.701926"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:24:02.703608"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.092362"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.094008"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.095995"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.097534"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.098955"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.100828"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.102509"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.104296"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.105869"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.108083"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.109979"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.111571"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.113030"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.114615"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.116143"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.117580"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.119023"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.120629"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.122073"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.124342"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.126151"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.128132"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:25:38.129972"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.173612"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.175717"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.177692"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.179834"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.181924"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:25:38.184015"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.775820"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.777542"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.779276"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.781045"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.783072"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.785454"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.787371"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.789432"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.791142"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.793302"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.795004"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.797230"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.799528"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.802098"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.804273"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.807561"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.810174"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.812022"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.814036"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.815913"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.818684"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.821290"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:27:05.823519"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.972139"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.975181"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.978395"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.981274"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.985944"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:27:05.989090"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.615493"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.617593"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.619417"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.621749"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.623424"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.626956"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.629195"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.632108"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.635357"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.637955"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.640577"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.643752"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.646737"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.649238"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.651551"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.654425"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.656383"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.658325"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.660709"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.663307"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.665417"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.667633"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:28:57.670361"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.725031"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.729752"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.732098"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.734928"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.738088"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:28:57.740464"
+    },
+    {
+      "lesson": "文件'2023.6-7.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.463237"
+    },
+    {
+      "lesson": "文件'2023.8.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.465345"
+    },
+    {
+      "lesson": "文件'2023.9.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.467113"
+    },
+    {
+      "lesson": "文件'2023.10.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.469586"
+    },
+    {
+      "lesson": "文件'2023.11.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.472332"
+    },
+    {
+      "lesson": "文件'2023进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.475102"
+    },
+    {
+      "lesson": "文件'2023开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.477703"
+    },
+    {
+      "lesson": "文件'2024.3达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.480072"
+    },
+    {
+      "lesson": "文件'2024进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.482037"
+    },
+    {
+      "lesson": "文件'2024开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.483829"
+    },
+    {
+      "lesson": "文件'2025.3-6.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.486099"
+    },
+    {
+      "lesson": "文件'2025.10-12.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.488099"
+    },
+    {
+      "lesson": "文件'2025进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.489951"
+    },
+    {
+      "lesson": "文件'2025开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.491933"
+    },
+    {
+      "lesson": "文件'2026进项.xlsx'解析为purchase_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.493830"
+    },
+    {
+      "lesson": "文件'2026开票.xlsx'解析为sales_invoice(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.495783"
+    },
+    {
+      "lesson": "文件'202312达冠农行12月份.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.497694"
+    },
+    {
+      "lesson": "文件'202401达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.499391"
+    },
+    {
+      "lesson": "文件'202402达冠农行.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.500960"
+    },
+    {
+      "lesson": "文件'达冠2024.4-8流水.xlsx'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.503206"
+    },
+    {
+      "lesson": "文件'达冠2024.9-12DG.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.505607"
+    },
+    {
+      "lesson": "文件'达冠农2025.1-2.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.507555"
+    },
+    {
+      "lesson": "文件'冠账户明细查询列表2507-09.xls'解析为bank_statement(1步)",
+      "category": "⑦文件解析",
+      "timestamp": "2026-06-25T09:30:42.509465"
+    },
+    {
+      "lesson": "规则338()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.565041"
+    },
+    {
+      "lesson": "规则337()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.567413"
+    },
+    {
+      "lesson": "规则310()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.570679"
+    },
+    {
+      "lesson": "规则311()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.573080"
+    },
+    {
+      "lesson": "规则999502()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.575828"
+    },
+    {
+      "lesson": "规则999503()触发1次",
+      "category": "稽查指令",
+      "timestamp": "2026-06-25T09:30:42.578314"
+    },
+    {
+      "lesson": "文件变更: phase2_deep_dive.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T09:46:55.684382"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T09:46:55.686475"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T09:51:46.045436"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.553292"
+    },
+    {
+      "lesson": "文件变更: tax-auditor-handbook.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.555444"
+    },
+    {
+      "lesson": "文件变更: tax-engine-dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.557417"
+    },
+    {
+      "lesson": "文件变更: tax-pipeline-pages.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.559549"
+    },
+    {
+      "lesson": "文件变更: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.562477"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T10:35:19.565178"
+    },
+    {
+      "lesson": "文件变更: __init__.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.957142"
+    },
+    {
+      "lesson": "文件变更: agi_pipeline.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.963552"
+    },
+    {
+      "lesson": "新增文件: cross_enterprise_graph.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.969870"
+    },
+    {
+      "lesson": "新增文件: legal_reasoner.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.976023"
+    },
+    {
+      "lesson": "新增文件: trend_analyzer.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.980901"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.987678"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:00:16.993651"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:14:43.804134"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:48:56.941988"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T11:51:27.945777"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:38:13.261176"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:38:13.263420"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:39:56.501622"
+    },
+    {
+      "lesson": "文件变更: agent_core.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:49:30.722135"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:49:30.724697"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:49:30.726899"
+    },
+    {
+      "lesson": "文件变更: agi_pipeline.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:55:46.948658"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:55:46.950946"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:55:46.953153"
+    },
+    {
+      "lesson": "文件变更: agi_pipeline.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:57:50.837233"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T12:57:50.841309"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T13:13:16.487564"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T13:13:16.489719"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T13:31:05.607305"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T13:31:05.609233"
+    },
+    {
+      "lesson": "文件变更: tax-auditor-handbook.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:01:33.013416"
+    },
+    {
+      "lesson": "文件变更: bank-vat.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:07:58.267657"
+    },
+    {
+      "lesson": "文件变更: dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:07:58.269997"
+    },
+    {
+      "lesson": "文件变更: invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:07:58.272238"
+    },
+    {
+      "lesson": "文件变更: journal.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:07:58.275026"
+    },
+    {
+      "lesson": "文件变更: ledgers-reports.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:07:58.277187"
+    },
+    {
+      "lesson": "文件变更: bank-vat.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.146364"
+    },
+    {
+      "lesson": "文件变更: bookkeeping-invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.148833"
+    },
+    {
+      "lesson": "文件变更: company.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.151159"
+    },
+    {
+      "lesson": "文件变更: contracts-payments.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.153635"
+    },
+    {
+      "lesson": "文件变更: housing-fund.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.155725"
+    },
+    {
+      "lesson": "文件变更: ledgers-reports.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.157868"
+    },
+    {
+      "lesson": "文件变更: social-security.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.160383"
+    },
+    {
+      "lesson": "文件变更: system-logs.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.163255"
+    },
+    {
+      "lesson": "文件变更: tax-engine-dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.165523"
+    },
+    {
+      "lesson": "文件变更: tax-pipeline-pages.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.167615"
+    },
+    {
+      "lesson": "文件变更: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.169777"
+    },
+    {
+      "lesson": "文件变更: unbookkept-invoices.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.172007"
+    },
+    {
+      "lesson": "文件变更: vat-declaration.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:19:25.174847"
+    },
+    {
+      "lesson": "文件变更: auto_patrol.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:45:58.039247"
+    },
+    {
+      "lesson": "文件变更: methodology_loader.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:45:58.041559"
+    },
+    {
+      "lesson": "文件变更: rule_discovery.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:45:58.043751"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:56:32.575887"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T14:56:32.580105"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:00:05.525438"
+    }
+  ],
+  "analysis_history": [],
+  "signal_definitions": [
+    {
+      "id": "bank_income_excess",
+      "name": "银行收款超额",
+      "threshold": "bank_in_ratio > 1.2"
+    },
+    {
+      "id": "supplier_concentration",
+      "name": "供应商高度集中",
+      "threshold": "> 60%"
+    },
+    {
+      "id": "processing_fee_exists",
+      "name": "存在加工费发票",
+      "threshold": "boolean"
+    },
+    {
+      "id": "pur_without_payment",
+      "name": "进项发票无付款",
+      "threshold": "> 30%"
+    },
+    {
+      "id": "goods_mismatch",
+      "name": "进销品名不匹配",
+      "threshold": "> 30%"
+    },
+    {
+      "id": "low_data_quality",
+      "name": "资料完整度低",
+      "threshold": "< 40分"
+    },
+    {
+      "id": "personnel_overlap",
+      "name": "六员跨企业重叠",
+      "threshold": "boolean"
+    },
+    {
+      "id": "has_related_parties",
+      "name": "存在关联方",
+      "threshold": "boolean"
+    },
+    {
+      "id": "near_micro_limit",
+      "name": "接近小微门槛",
+      "threshold": "boolean"
+    },
+    {
+      "id": "customer_concentration",
+      "name": "客户高度集中",
+      "threshold": "> 60%"
+    }
+  ]
+}

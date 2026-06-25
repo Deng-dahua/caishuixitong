@@ -3,6 +3,10 @@ async function renderGeneralLedger(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML = `
     <div class="card card-fill">
+      <div class="page-header">
+        <h1>📚 总账</h1>
+        <p>科目汇总核算 · 按期间/科目代码筛选 · 支持明细账穿透</p>
+      </div>
       <div class="filter-bar" style="align-items:center;">
         <div id="gl-period-bar" style="display:flex;align-items:center;gap:4px"></div>
       </div>
@@ -78,6 +82,10 @@ async function renderDetailLedger(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   const accountOptions = allAccounts.map(a => '<option value="' + a.code + '">' + a.code + ' ' + a.name + '</option>').join('');
   el.innerHTML = '<div class="card card-fill">' +
+      '<div class="page-header">' +
+        '<h1>📖 科目明细账</h1>' +
+        '<p>按科目代码查看每笔分录的详细记录 · 支持期间筛选与科目选择</p>' +
+      '</div>' +
       '<div class="filter-bar" style="align-items:center;flex-wrap:wrap;flex-shrink:0;">' +
         '<select class="form-control" id="dl-account" style="width:240px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;">' +
           '<option value="">-- 选择科目 --</option>' + accountOptions +
@@ -360,6 +368,10 @@ async function renderProfitLoss(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
     '<div class="card card-fill">' +
+      '<div class="page-header">' +
+        '<h1>📊 利润表</h1>' +
+        '<p>反映企业一定会计期间的经营成果 · 按期间筛选</p>' +
+      '</div>' +
       '<div class="filter-bar" style="flex-wrap:wrap;align-items:center;">' +
         '<div id="pl-period-bar" style="display:flex;align-items:center;gap:4px"></div>' +
       '</div>' +
@@ -398,6 +410,10 @@ async function renderBalanceSheet(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
     '<div class="card card-fill">' +
+      '<div class="page-header">' +
+        '<h1>📋 资产负债表</h1>' +
+        '<p>反映企业在特定日期的财务状况 · 资产=负债+所有者权益</p>' +
+      '</div>' +
       '<div class="filter-bar" style="flex-wrap:wrap;align-items:center;">' +
         '<div id="bs-period-bar" style="display:flex;align-items:center;gap:4px"></div>' +
       '</div>' +
@@ -443,6 +459,10 @@ async function renderCashFlow(container) {
   let el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
     '<div class="card card-fill">' +
+      '<div class="page-header">' +
+        '<h1>💵 现金流量表</h1>' +
+        '<p>反映企业现金及现金等价物的流入和流出 · 按期间筛选</p>' +
+      '</div>' +
       '<div class="filter-bar" style="flex-wrap:wrap;align-items:center;">' +
         '<div id="cf-period-bar" style="display:flex;align-items:center;gap:4px"></div>' +
       '</div>' +
@@ -479,6 +499,10 @@ async function renderEquityChanges(container) {
   let el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML =
     '<div class="card card-fill">' +
+      '<div class="page-header">' +
+        '<h1>📈 所有者权益变动表</h1>' +
+        '<p>反映企业所有者权益各组成部分的增减变动 · 按期间筛选</p>' +
+      '</div>' +
       '<div class="filter-bar" style="flex-wrap:wrap;align-items:center;">' +
         '<div id="ec-period-bar" style="display:flex;align-items:center;gap:4px"></div>' +
       '</div>' +
@@ -517,6 +541,10 @@ async function renderAccountBalance(container) {
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
   el.innerHTML = `
     <div class="card card-fill">
+      <div class="page-header">
+        <h1>📊 科目余额表</h1>
+        <p>按科目查看期初余额、本期发生额及期末余额 · 支持期间筛选</p>
+      </div>
       <div class="filter-bar" style="flex-wrap:wrap;align-items:center;">
         <div id="tb-period-bar" style="display:flex;align-items:center;gap:4px"></div>
       </div>
@@ -605,7 +633,15 @@ async function loadAccountBalance() {
 let _contactCache = {}; // 缓存往来列表
 
 function _contactPageHTML(title, apiPrefix) {
+  var desc = '';
+  if (apiPrefix === 'employee') desc = '按人员查看往来款项明细 · 点击左侧人员查看详细记录';
+  else if (apiPrefix === 'customer') desc = '按客户查看应收账款明细 · 点击左侧客户查看详细记录';
+  else if (apiPrefix === 'supplier') desc = '按供应商查看应付账款明细 · 点击左侧供应商查看详细记录';
   return '<div class="card card-fill">' +
+    '<div class="page-header">' +
+      '<h1>' + title + '</h1>' +
+      '<p>' + desc + '</p>' +
+    '</div>' +
     '<div id="' + apiPrefix + '-period-bar" class="period-selector-bar" style="margin-bottom:12px;flex-shrink:0"></div>' +
     '<div style="display:flex;flex:1;gap:12px;overflow:hidden;min-height:0">' +
       '<div id="' + apiPrefix + '-list" style="width:260px;min-width:200px;overflow-y:auto;border-right:1px solid var(--gray-200);padding-right:8px"></div>' +
@@ -890,3 +926,95 @@ async function renderSupplierLedger(container) {
   _loadContactList('supplier');
 }
 
+
+
+// ── 往来账龄分析 ──
+function renderAgingAnalysis(entries, type) {
+  var now = new Date();
+  var aging = {'0-30天':0, '31-90天':0, '91-180天':0, '181-360天':0, '360天以上':0};
+  var total = 0;
+  
+  entries.forEach(function(e){
+    var date = e.entry_date || e.date || '';
+    var balance = parseFloat(e.balance || e.ending_balance || e.debit - e.credit || 0);
+    if (!date || balance <= 0) return;
+    total += balance;
+    
+    var days = Math.floor((now - new Date(date)) / (1000*60*60*24));
+    if (days <= 30) aging['0-30天'] += balance;
+    else if (days <= 90) aging['31-90天'] += balance;
+    else if (days <= 180) aging['91-180天'] += balance;
+    else if (days <= 360) aging['181-360天'] += balance;
+    else aging['360天以上'] += balance;
+  });
+  
+  if (total === 0) return '';
+  
+  var h = '<div style="margin:12px 0;padding:12px;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
+  h += '<div style="font-weight:700;font-size:13px;margin-bottom:8px">📊 账龄分析 ('+type+')</div>';
+  h += '<div style="display:flex;gap:8px;font-size:11px">';
+  var colors = {'0-30天':'#16a34a','31-90天':'#f59e0b','91-180天':'#f97316','181-360天':'#dc2626','360天以上':'#991b1b'};
+  Object.keys(aging).forEach(function(k){
+    var pct = total>0 ? (aging[k]/total*100).toFixed(0) : 0;
+    h += '<div style="flex:1;text-align:center;padding:8px;background:#f8fafc;border-radius:6px">';
+    h += '<div style="font-size:14px;font-weight:700;color:'+colors[k]+'">'+(aging[k]/10000).toFixed(1)+'万</div>';
+    h += '<div style="color:#64748b">'+k+'</div>';
+    h += '<div style="color:#94a3b8">'+pct+'%</div></div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+// ── 通用导出按钮 ──
+function addExportButton(container, dataFn, filename) {
+  var btn = document.createElement('button');
+  btn.textContent = '📥 导出Excel';
+  btn.style.cssText = 'padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-left:8px';
+  btn.onclick = function(){
+    if (typeof dataFn === 'function') {
+      var data = dataFn();
+      var csv = Object.keys(data[0]||{}).join(',') + '\n' + data.map(function(r){return Object.values(r).join(',')}).join('\n');
+      var blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (filename||'export')+'.csv';
+      a.click();
+    }
+  };
+  var toolbar = document.querySelector('.toolbar, [class*="toolbar"], .page-header');
+  if (toolbar) toolbar.appendChild(btn);
+}
+
+
+// ── 总账异常科目自动标红 ──
+function flagAnomalyAccounts(glData, prevData) {
+  var anomalies = [];
+  glData.forEach(function(row){
+    var acct = row.account_code || row.account || '';
+    var debit = parseFloat(row.total_debit || row.debit || 0);
+    var credit = parseFloat(row.total_credit || row.credit || 0);
+    var balance = parseFloat(row.ending_balance || row.balance || 0);
+    
+    // 大额波动：与上月比变动>50%
+    if (prevData) {
+      var prev = prevData.find(function(p){return (p.account_code||p.account||'') === acct;});
+      if (prev) {
+        var prevAmt = Math.max(parseFloat(prev.total_debit||0), parseFloat(prev.total_credit||0));
+        var currAmt = Math.max(debit, credit);
+        if (prevAmt > 0 && Math.abs(currAmt - prevAmt) / prevAmt > 0.5) {
+          anomalies.push({account: acct, reason: '月变动>'+(Math.abs(currAmt-prevAmt)/prevAmt*100).toFixed(0)+'%', severity: 'high'});
+        }
+      }
+    }
+    
+    // 余额方向异常（资产类应为借方余额）
+    if (acct.startsWith('1') && balance < -100) {
+      anomalies.push({account: acct, reason: '资产科目贷方余额', severity: 'high'});
+    }
+    // 负债类应为贷方余额
+    if (acct.startsWith('2') && balance > 100) {
+      anomalies.push({account: acct, reason: '负债科目借方余额', severity: 'mid'});
+    }
+  });
+  return anomalies;
+}

@@ -950,7 +950,7 @@ def get_tax_risk_report(
     if not industry and company and company.business_scope:
         industry = detect_industry(company.business_scope)
     elif not industry:
-        industry = "manufacturing"
+        industry = "综合"  # 不预设制造业，行业由销项发票品名驱动推断
     industry_benchmark = get_industry_benchmark(industry)
 
     # ── 23 个基础分析维度 ──

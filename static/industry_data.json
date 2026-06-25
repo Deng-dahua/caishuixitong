@@ -2923,5 +2923,19 @@
       "gross_margin": 30,
       "vat_burden": 3.5
     }
+  },
+  "_meta_rules": {
+    "industry_inference": {
+      "rule_id": "META-001",
+      "rule": "行业推断唯一依据为销项发票品名，不参考进项发票品名",
+      "why": "销项反映企业实际经营产出(卖什么=什么行业)，进项仅反映采购投入/成本结构",
+      "how": "从销项发票品名中提取金税分类编码(*XX*格式)，取出现最多的编码作为行业",
+      "applies_to": "全行业各企业",
+      "established": "2026-06-24",
+      "code_locations": [
+        "engine/phase1_triage.py:_infer_industry_from_goods()",
+        "main.py:_extract_material_intel() 第5步"
+      ]
+    }
   }
 }

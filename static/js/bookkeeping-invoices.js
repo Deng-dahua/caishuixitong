@@ -28,6 +28,11 @@ async function renderBookkeepingInvoices(container) {
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
     let html = '<div class="card card-fill">';
+    // ── 页面标题 ──
+    html += '<div class="page-header">';
+    html += '<h1>📒 记账发票</h1>';
+    html += '<p>已生成记账凭证的发票列表 · 按期间/类型筛选 · 支持批量取消记账</p>';
+    html += '</div>';
 
     html += '<div class="stat-grid-invoice">';
     html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">发票总数</div></div>';

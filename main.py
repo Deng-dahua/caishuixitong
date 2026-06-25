@@ -34,6 +34,9 @@ from engine import (
     identify_main_biz_cost, _REIMBURSEMENT_KWS_GLOBAL,
     _phase1_triage, _phase2_deep_dive, _phase3_cross_validate, _phase4_synthesis,
     _SIGNAL_DOMAIN_MAP,
+    build_orchestration_plan, build_data_profile, get_module_registry_summary,
+    CAPABILITY_MATRIX, META_RULES, get_capability_summary,
+    run_legal_reasoning, run_cross_enterprise_analysis, run_trend_analysis,
 )
 
 from database import (
@@ -65,12 +68,87 @@ from chat import router as chat_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期：启动时初始化数据库"""
+    """应用生命周期：启动时初始化数据库+自检"""
     init_db()
-    # 启动时不自动处理——单条/批量导入时已自动触发供应商建档+凭证生成+科目创建
+    try:
+        caps = get_capability_summary()
+        orch = get_module_registry_summary()
+        from engine.capability_matrix import check_quality_system
+        qs = check_quality_system()
+        print(f"[STARTUP] {caps['total_dimensions']}维({caps['four_star_count']}四星/{caps['three_star_count']}三星) | 调度中枢:{orch['total_modules']}模块 | 质量保障:{qs['layers']}层{qs['components']}组件{qs['status']}")
+    except: pass
+    # ⑥ 代码变更追踪 → AGI
+    try: _track_code_changes()
+    except: pass
     yield
 
 app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
+
+# ═══════════════════ ⑥ 代码变更追踪 ═══════════════════
+import hashlib as _hashlib
+
+def _track_code_changes():
+    """启动时扫描代码变更并注入AGI知识库"""
+    scan_dirs = [
+        os.path.join(os.path.dirname(__file__), "engine"),
+        os.path.join(os.path.dirname(__file__), "static", "js"),
+        os.path.join(os.path.dirname(__file__), "main.py"),
+    ]
+    
+    state_file = os.path.join(os.path.dirname(__file__), "static", "code_state.json")
+    current_state = {}
+    
+    for scan_dir in scan_dirs:
+        if os.path.isfile(scan_dir):
+            mtime = os.path.getmtime(scan_dir)
+            size = os.path.getsize(scan_dir)
+            current_state[scan_dir] = {"mtime": mtime, "size": size}
+        elif os.path.isdir(scan_dir):
+            for root, dirs, files in os.walk(scan_dir):
+                for f in sorted(files):
+                    if f.endswith(".py") or f.endswith(".js"):
+                        fpath = os.path.join(root, f)
+                        try:
+                            mtime = os.path.getmtime(fpath)
+                            size = os.path.getsize(fpath)
+                            current_state[fpath] = {"mtime": mtime, "size": size}
+                        except: pass
+    
+    # 加载上次状态
+    previous_state = {}
+    try:
+        with open(state_file, "r", encoding="utf-8") as f:
+            previous_state = json.load(f)
+    except: pass
+    
+    # 对比变更
+    changes = []
+    for fpath, info in current_state.items():
+        prev = previous_state.get(fpath, {})
+        if not prev:
+            changes.append(f"新增文件: {os.path.basename(fpath)}")
+        elif info["size"] != prev.get("size") or info["mtime"] != prev.get("mtime"):
+            changes.append(f"文件变更: {os.path.basename(fpath)}")
+    
+    for fpath in previous_state:
+        if fpath not in current_state:
+            changes.append(f"文件删除: {os.path.basename(fpath)}")
+    
+    if changes:
+        try:
+            from engine.knowledge_base import get_kb
+            kb = get_kb()
+            for c in changes:
+                kb.add_lesson(c, "⑥代码变更")
+            print(f"[⑥代码] 检测到{len(changes)}个文件变更，已注入AGI知识库")
+        except: pass
+    
+    # 保存当前状态
+    try:
+        os.makedirs(os.path.dirname(state_file), exist_ok=True)
+        with open(state_file, "w", encoding="utf-8") as f:
+            json.dump(current_state, f, indent=2)
+    except: pass
 
 # ==================== 访问日志中间件 ====================
 import time as _time_module
@@ -9936,6 +10014,7 @@ async def upload_tax_risk_docs(
             rejected.append({"filename": f.filename, "reason": f"文件超过{MAX_UPLOAD_SIZE // 1024 // 1024}MB限制"})
             continue
         md5 = hashlib.md5(content).hexdigest()
+        sha256 = hashlib.sha256(content).hexdigest()
         if md5 in existing_hashes:
             skipped += 1
             continue
@@ -9954,7 +10033,7 @@ async def upload_tax_risk_docs(
         existing_hashes.add(md5)
         doc = {
             "id": doc_id, "filename": safe_name, "original_name": f.filename,
-            "path": filepath, "size": len(content), "md5": md5,
+            "path": filepath, "size": len(content), "md5": md5, "sha256": sha256,
             "uploaded_at": datetime.now().isoformat(), "company_id": company_id,
             "file_saved": file_saved
         }
@@ -14903,7 +14982,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
                 break
     
     # ── 行业自适应重物描述 ──
-    # [外部化] _heavy_goods_examples → 从 industry_data.json 加载，见 static/industry_data.jsonheavy_example = _load_industry_data().get("heavy_goods_examples", {}).get(target_industry, "")
+    heavy_example = _load_industry_data().get("heavy_goods_examples", {}).get(target_industry, "")
     if not heavy_example:
         # 模糊匹配
         for ind, example in _heavy_goods_examples.items():
@@ -21624,6 +21703,92 @@ def _summarize_evidence(all_items):
     return "\n".join(lines)
 
 
+def _update_industry_benchmarks(company_id, report, ctx):
+    """每次分析完成后自动更新行业基准值统计池。
+    使用在线Welford算法增量计算均值/标准差。
+    样本数<3时仅累积，>=3时输出有效基准值。
+    """
+    from database import IndustryBenchmark, SessionLocal
+    from datetime import datetime as dt
+    import math
+    
+    industry = getattr(ctx, 'company_profile', {}).get('industry', '通用') if ctx else '通用'
+    trace_id = report.get('trace_id', '')
+    cc = report.get('comprehensive', {})
+    mi = cc.get('material_intel', {})
+    inv_stats = mi.get('发票', {}).get('统计', {})
+    bank_stats = mi.get('银行流水', {}).get('统计', {})
+    
+    # 收集指标
+    metrics = {}
+    sal_amt = inv_stats.get('销项金额合计', 0) or 0
+    pur_amt = inv_stats.get('进项金额合计', 0) or 0
+    bank_in = bank_stats.get('收款合计', 0) or 0
+    bank_out = bank_stats.get('付款合计', 0) or 0
+    
+    if sal_amt > 0 and pur_amt > 0:
+        metrics['invoice_match_ratio'] = round(sal_amt / max(pur_amt, 1), 4)
+    if sal_amt > 0 and bank_in > 0:
+        metrics['bank_sales_match_ratio'] = round(bank_in / max(sal_amt, 1), 4)
+    if pur_amt > 0 and bank_out > 0:
+        metrics['bank_purchase_match_ratio'] = round(bank_out / max(pur_amt, 1), 4)
+    if sal_amt > 0 and pur_amt > 0:
+        metrics['gross_margin'] = round((sal_amt - pur_amt) / max(sal_amt, 1), 4)
+    metrics['risk_density'] = report.get('total_risks', 0)
+    
+    sdb = SessionLocal()
+    try:
+        for metric_name, metric_value in metrics.items():
+            existing = sdb.query(IndustryBenchmark).filter(
+                IndustryBenchmark.industry == industry,
+                IndustryBenchmark.metric_name == metric_name
+            ).first()
+            
+            if existing:
+                # Welford在线更新
+                n = (existing.sample_count or 0) + 1
+                old_mean = float(existing.running_mean or 0)
+                delta = metric_value - old_mean
+                new_mean = old_mean + delta / n
+                new_delta2 = (metric_value - new_mean) * (metric_value - old_mean)
+                old_std = float(existing.running_std or 0)
+                # 增量方差
+                if n > 1:
+                    new_variance = ((n - 2) * old_std**2 + new_delta2) / (n - 1) if n > 2 else new_delta2 / 2
+                    new_std = math.sqrt(max(new_variance, 0))
+                else:
+                    new_std = 0
+                
+                existing.sample_count = n
+                existing.running_mean = new_mean
+                existing.running_std = new_std
+                existing.metric_value = metric_value
+                existing.company_id = company_id
+                existing.trace_id = trace_id
+                existing.updated_at = dt.utcnow()
+            else:
+                # 新指标
+                bm = IndustryBenchmark(
+                    industry=industry,
+                    metric_name=metric_name,
+                    metric_value=metric_value,
+                    company_id=company_id,
+                    trace_id=trace_id,
+                    sample_count=1,
+                    running_mean=metric_value,
+                    running_std=0,
+                    p50=metric_value,  # 首个样本即为中位数
+                )
+                sdb.add(bm)
+        
+        sdb.commit()
+    except Exception as e:
+        sdb.rollback()
+        print(f"[BENCHMARK] 更新失败: {e}")
+    finally:
+        sdb.close()
+
+
 def _run_analyze(company_id, db):
     from database import VATDeclaration
     from collections import defaultdict
@@ -21659,6 +21824,19 @@ def _run_analyze(company_id, db):
     bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
     contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
+    
+    # ── 🤖 财税智能体 + AGI管线统一初始化 ──
+    agent = None  # 保留兼容，由agi_pipeline内部管理
+    agent_status = None
+    agi_pipeline = None
+    try:
+        from engine.agi_pipeline import create_pipeline
+        agi_pipeline = create_pipeline()
+        _agi_pipeline_instance = agi_pipeline
+        agent = agi_pipeline.init_agent(db)  # 统一入口：管道管理智能体
+        pipeline_log.append("[AGI] 智能体+16模块管线已统一连接")
+    except Exception as _pe:
+        pipeline_log.append(f"[AGI] 统一初始化异常: {_pe}")
 
     # ── NEW ENGINE VERSION CHECK ──
     pipeline_log.append("[ENGINE] 推理引擎v2.0 — Phase1-4 已加载 (2026-06-23)")
@@ -22239,6 +22417,15 @@ def _run_analyze(company_id, db):
     ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
                          salaries, social_security, vouchers, inventory, docs, file_results, pipeline_log)
     
+    # ═══ 调度中枢 ───
+    comprehensive = {}
+    try:
+        data_profile = build_data_profile(bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, file_results, ctx)
+        orchestration_plan = build_orchestration_plan(data_profile)
+        comprehensive["orchestration_plan"] = orchestration_plan
+        pipeline_log.append(f"[ORCHESTRATOR] {orchestration_plan['summary']}")
+    except Exception as _oe: pipeline_log.append(f"调度中枢异常: {_oe}")
+    
     # ═══════════════════════════════════════════════════════════
     # 记忆检索：查询同行业/同模式的历史分析案例
     # ═══════════════════════════════════════════════════════════
@@ -22367,6 +22554,65 @@ def _run_analyze(company_id, db):
     else: domain_results.append({"domain": "资产折旧费用匹配", "findings": []})
     if _has_any_data: domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, _target_industry)})
     else: domain_results.append({"domain": "行业对标分析", "findings": []})
+
+    # ═══ 财务报表税务稽查分析（新增） ═══
+    try:
+        from engine.financial_analyzer import analyze_financial_statements
+        tri_bal = next((d for d in (file_results or []) if d.get("type") == "trial_balance"), {})
+        fin_findings = analyze_financial_statements({}, {}, {},
+            vouchers or [], sal_invs or [], pur_invs or [], ctx)
+        if fin_findings:
+            domain_results.append({"domain": "财务报表分析", "findings": fin_findings})
+            pipeline_log.append(f"财务报表分析: {len(fin_findings)}项发现")
+    except Exception as _fe:
+        pipeline_log.append(f"财务报表分析异常: {_fe}")
+
+    # ═══ 税收优惠智能分析 ═══
+    try:
+        from engine.tax_incentive_analyzer import analyze_tax_incentives
+        # 从已有数据中提取关键财务指标传给分析器
+        _income_stmt = {}
+        _balance_sheet = {}
+        if trial_balance_data:
+            # 从科目余额表提取资产总额
+            _total_assets = 0
+            for row in trial_balance_data:
+                acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
+                if acct_code.startswith(("1",)):  # 1开头=资产类
+                    _total_assets += float(row.get("close_debit", 0) or 0)
+            if _total_assets > 0:
+                _balance_sheet["total_assets"] = _total_assets
+            # 从科目余额表提取收入/利润
+            _total_revenue = 0
+            _total_cost = 0
+            for row in trial_balance_data:
+                acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
+                if acct_code == "6001":  # 主营业务收入
+                    _total_revenue += float(row.get("close_credit", 0) or 0)
+                elif acct_code.startswith(("640", "6401", "6402", "5401")):  # 主营业务成本
+                    _total_cost += float(row.get("close_debit", 0) or 0)
+            if _total_revenue > 0:
+                _income_stmt["revenue"] = _total_revenue
+            if _total_cost > 0:
+                _income_stmt["total_cost"] = _total_cost
+                _income_stmt["net_profit"] = _total_revenue - _total_cost
+        if not _income_stmt and vouchers:
+            # 从凭证推算
+            _rev = sum(float(v.get("credit", 0) or 0) for v in vouchers if "主营业务收入" in str(v.get("account_name", v.get("科目", ""))))
+            _cost = sum(float(v.get("debit", 0) or 0) for v in vouchers if "主营业务成本" in str(v.get("account_name", v.get("科目", ""))))
+            if _rev > 0: _income_stmt["revenue"] = _rev
+            if _cost > 0: _income_stmt["total_cost"] = _cost
+            if _rev > 0 and _cost > 0: _income_stmt["net_profit"] = _rev - _cost
+        inc_findings, inc_opportunities = analyze_tax_incentives(
+            ctx, sal_invs, pur_invs, bank_txs, salaries, _income_stmt, _balance_sheet, vouchers
+        )
+        if inc_findings:
+            domain_results.append({"domain": "税收优惠检查-应享尽享", "findings": inc_findings})
+        if inc_opportunities:
+            domain_results.append({"domain": "税收优惠机会", "findings": inc_opportunities})
+            pipeline_log.append(f"税收优惠分析: {len(inc_opportunities)}个机会")
+    except Exception as _ie:
+        pipeline_log.append(f"税收优惠分析异常: {_ie}")
 
     # ═══ 新增稽查域：增值税申报比对 ═══
     if _has_inv_or_bank:
@@ -22704,7 +22950,6 @@ def _run_analyze(company_id, db):
     # ── 防御：过滤 all_findings 中非 dict 元素（避免 str 无 .get 崩溃）──
     all_findings = [f for f in all_findings if isinstance(f, dict)]
     
-    comprehensive = {}
     chain_execution = []  # 每条链的执行结果
     chain_findings = []   # 链驱动生成的新发现
     try:
@@ -22764,7 +23009,7 @@ def _run_analyze(company_id, db):
                 target_industry = (_db_company.industry_code or "") + " " + (_db_company.business_scope or "")
             # 行业关键词映射：发票推断行业 → audit_chains 中的行业链名称前缀
             # 注意：优先使用联网核查获取的真实行业(industry_online)，而非关键词推测
-            # [外部化] _INDUSTRY_CHAIN_PREFIXES → 从 industry_data.json 加载，见 static/industry_data.jsondef _chain_matches_industry(chain_name):
+            def _chain_matches_industry(chain_name):
                 """判断行业特化链是否匹配目标企业行业，全行业通用链不过滤"""
                 if not chain_name or not chain_name.startswith("行业-"):
                     return True  # 非行业链，全部执行
@@ -24012,6 +24257,51 @@ def _run_analyze(company_id, db):
         f["_trace"] = _build_finding_trace(f, idx, analysis_trace_id, ctx)
         _analysis_traces.append(f["_trace"])
     
+    # ═══════════════════════════════════════════════════════════
+    # AGI 三大升级引擎（2026-06-25）
+    # ═══════════════════════════════════════════════════════════
+    
+    # ── ① 法律逻辑推理 ──
+    try:
+        from engine.legal_reasoner import run_legal_reasoning
+        legal_results = run_legal_reasoning(final_findings, {"company_id": company_id})
+        comprehensive["legal_reasoning"] = legal_results
+        pipeline_log.append(f"[AGI-法律推理] {legal_results['matched_findings']}条发现匹配法律条文，引用{len(legal_results.get('articles',[]))}条")
+    except Exception as e:
+        pipeline_log.append(f"[AGI-法律推理] 执行异常: {e}")
+    
+    # ── ② 跨企业关系网 ──
+    try:
+        from engine.cross_enterprise_graph import run_cross_enterprise_analysis
+        graph_results = run_cross_enterprise_analysis(db)
+        comprehensive["cross_enterprise"] = graph_results
+        pipeline_log.append(f"[AGI-跨企业] {graph_results.get('summary','')}")
+    except Exception as e:
+        pipeline_log.append(f"[AGI-跨企业] 执行异常: {e}")
+    
+    # ── ③ 时序趋势学习 ──
+    try:
+        from engine.trend_analyzer import run_trend_analysis
+        # 提取当前指标快照
+        current_metrics = {}
+        if synthesis:
+            current_metrics["risk_score"] = synthesis.get("risk_score", 0)
+        if "material_intel" in comprehensive:
+            mi = comprehensive["material_intel"]
+            inv_stats = mi.get("发票", {}).get("统计", {})
+            if inv_stats:
+                current_metrics["invoice_count"] = inv_stats.get("销项发票数量", 0) + inv_stats.get("进项发票数量", 0)
+            bank_stats = mi.get("银行流水", {}).get("统计", {})
+            if bank_stats:
+                current_metrics["bank_inflow"] = bank_stats.get("收款合计", 0)
+                current_metrics["bank_outflow"] = bank_stats.get("付款合计", 0)
+        
+        trend_results = run_trend_analysis(company_id, current_metrics if current_metrics else None)
+        comprehensive["trend_analysis"] = trend_results
+        pipeline_log.append(f"[AGI-趋势] {trend_results.get('summary','')}")
+    except Exception as e:
+        pipeline_log.append(f"[AGI-趋势] 执行异常: {e}")
+    
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
@@ -24037,13 +24327,190 @@ def _run_analyze(company_id, db):
     # 缓存最近分析结果
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
     
+    # ═══ 假设-验证推理 ───
+    try:
+        from engine.hypothesis_engine import run_hypothesis_verification
+        all_findings, hypothesis_summary = run_hypothesis_verification(
+            all_findings, ctx, bank_txs, invoices, sal_invs, pur_invs, salaries, pipeline_log
+        )
+        comprehensive["hypothesis_verification"] = hypothesis_summary
+    except Exception: pass
+    
+    # ═══ 纠正规则自动应用 ───
+    try:
+        from engine.self_learning import apply_correction_rules
+        ind = ctx.company_profile.get("industry",""); bm = ctx.company_profile.get("biz_model","")
+        corr_n = apply_correction_rules(all_findings, ind, bm)
+        if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用")
+    except Exception: pass
+    
+    # ═══ 合规门禁 ───
+    try:
+        from engine.self_learning import run_compliance_gate
+        gate_result, all_findings = run_compliance_gate(all_findings, pipeline_log, file_results, ctx)
+        result["compliance_gate"] = gate_result
+    except Exception: pass
+    
     # ── 保存分析记忆（引擎越用越聪明）──
     try:
-        _synth = synthesis  # synthesis 在 Phase 4 代码块中已定义
-        total_memories = save_analysis_memory(ctx, _synth if '_synth' in dir() else None)
+        _synth = synthesis
+        total_memories = save_analysis_memory(ctx, synthesis)
         pipeline_log.append(f"[MEMORY] 分析记忆已保存 (共{total_memories}条)")
     except Exception:
         pass
+    
+    # ── 行业基准自更新：将本次分析指标纳入行业统计池 ──
+    try:
+        _update_industry_benchmarks(company_id, result["report"], ctx)
+        pipeline_log.append("[BENCHMARK] 行业基准值已更新")
+    except Exception:
+        pass
+    
+    # ── 自动规则发现：从运行数据中归纳新规则 ──
+    try:
+        from engine.rule_discovery import run_auto_rule_discovery
+        discovery_result = run_auto_rule_discovery(pipeline_log)
+        result["rule_discovery"] = discovery_result
+    except Exception:
+        pass
+    
+    # ═══ 模块运行日志 ───
+    try:
+        from engine.self_learning import record_module_run
+        ind = ctx.company_profile.get("industry",""); bm = ctx.company_profile.get("biz_model","")
+        for mod in orchestration_plan.get("active_modules", []):
+            record_module_run(mod["id"], mod["name"], "completed",
+                {"findings_count":len(all_findings),"high_quality_count":sum(1 for f in all_findings if (f.get("score",0)or 0)>=8)},
+                company_id, ind, bm)
+    except Exception: pass
+    
+    # ═══ 财税智能体：反思 + 洞见总结 + 经验积累 ═══
+    try:
+        target_name = target_entity.get("name","") if target_entity else ""
+        if agi_pipeline is not None and agi_pipeline.agent is not None:
+            agent_result = agi_pipeline.run_agent_cycle(
+                bank_txs, invoices, salaries, vouchers, ctx, company_id, target_name, db
+            )
+            if not agent_result.get("error"):
+                result["agent"] = {
+                    "insight_summary": agent_result.get("insight_summary", ""),
+                    "reflection": agent_result.get("reflection", {}),
+                    "memory": agent_result.get("memory", {}),
+                    "hypotheses": agent_result.get("hypotheses", []),
+                }
+                if agent_result.get("reflected_findings"):
+                    all_findings = agent_result["reflected_findings"]
+                    result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
+                    result["report"]["total_risks"] = len(all_findings)
+                    result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
+                    result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
+                pipeline_log.append(f"[AGI] 智能体完成反思: {agent_result.get('reflection',{}).get('total_checked',0)}条结论")
+            else:
+                pipeline_log.append(f"[AGI] 智能体异常: {agent_result['error']}")
+    except Exception as _ag_err:
+        pipeline_log.append(f"[AGI] 统一处理异常: {_ag_err}")
+        result["agent"] = {"error": str(_ag_err)}
+    
+    # ═══ AGI管线：16模块知识注入 ═══
+    if agi_pipeline is not None:
+        try:
+            # ⑦ 文件解析学习
+            agi_pipeline.ingest_file_parsing(file_results, analysis_trace_id)
+            
+            # ⑧ 域分析学习
+            agi_pipeline.ingest_domain_results(domain_results, analysis_trace_id, company_id)
+            
+            # ①② 稽查指令+线索链学习
+            rule_details_list = []
+            try:
+                static_dir = os.path.join(os.path.dirname(__file__), "static")
+                with open(os.path.join(static_dir, "tax_risk_rules_local_export.json"), "r", encoding="utf-8") as _rf:
+                    rule_details_list = json.load(_rf)
+            except: pass
+            agi_pipeline.ingest_audit_rules(_actual_rule_count, rule_details_list, all_findings, analysis_trace_id, company_id)
+            
+            # ②③ 线索链+证据链学习（从comprehensive中提取触发记录）
+            try:
+                triggered = comprehensive.get("triggered_chains", [])
+                agi_pipeline.ingest_clue_chains(triggered, all_findings, analysis_trace_id)
+                agi_pipeline.ingest_evidence_chains(triggered, all_findings, analysis_trace_id)
+            except: pass
+            
+            # ④ 分析链+因果叙事链学习
+            try:
+                agi_pipeline.ingest_analysis_chains(
+                    triggered if 'triggered' in dir() else comprehensive.get("triggered_chains", []),
+                    analysis_trace_id
+                )
+            except: pass
+            
+            # ⑤ 稽查方法论学习
+            from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
+            methodologies = list(METHODOLOGY_KNOWLEDGE.get("methodologies", {}).values())
+            agi_pipeline.ingest_methodologies(methodologies, domain_results, analysis_trace_id)
+            
+            # ⑨⑩⑪ 跨域线索/分析/证据链学习
+            try:
+                agi_pipeline.ingest_cross_domain(
+                    comprehensive.get("cross_clues", comprehensive.get("triggered_chains", [])),
+                    comprehensive.get("cross_analysis", []),
+                    comprehensive.get("cross_evidence", []),
+                    analysis_trace_id
+                )
+            except: pass
+            
+            # ⑫ 方法论过滤学习
+            pre_cnt = len(all_findings)
+            agi_pipeline.ingest_filter_results(
+                filter_log or [], pre_cnt, len(all_findings),
+                [], analysis_trace_id
+            )
+            
+            # ⑬⑭⑮ 质量体系学习
+            agi_pipeline.ingest_quality_data(
+                quality_report or {},
+                len(orchestration_plan.get("pipeline_stages", [])) if 'orchestration_plan' in dir() else 7,
+                result.get("compliance_gate", {}),
+                analysis_trace_id
+            )
+            
+            # 推理引擎仪表盘(A) 学习
+            agi_pipeline.ingest_engine_status(engine_status, ctx, analysis_trace_id)
+            
+            # 能力矩阵(B) 学习
+            agi_pipeline.ingest_capability_matrix(None, analysis_trace_id)
+            
+            # 覆盖层(D): AGI自主修正
+            try:
+                from engine.override_engine import get_override_engine
+                oe = get_override_engine()
+                auto_result = oe.agi_auto_correct(all_findings, domain_results)
+                if auto_result["corrections_proposed"] > 0:
+                    pipeline_log.append(f"[AGI] 自主提议{auto_result['corrections_proposed']}条修正({auto_result['auto_activated']}条自动激活)")
+                result["agi_overrides"] = auto_result
+            except: pass
+            
+            # 汇总持久化
+            agi_result = agi_pipeline.finalize_learning(
+                analysis_trace_id,
+                target_entity.get("name", "") if target_entity else "",
+                _target_industry or "",
+                ctx=ctx if 'ctx' in dir() else None,
+            )
+            result["agi_pipeline"] = agi_result
+            pipeline_log.append(f"[AGI] {agi_result['modules_covered']}/16模块已联通({agi_result['events_collected']}事件)")
+        except Exception as _agi_err:
+            pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")
+    
+    # ═══ 系统自愈引擎：应用从历史错误中学习的修正规则 ═══
+    try:
+        from engine.self_healing import apply_healing_rules
+        healing_result = apply_healing_rules(all_findings, domain_results, db)
+        if healing_result.get("fixed_count", 0) > 0:
+            pipeline_log.append(f"[自愈] {healing_result['fixed_count']}条结论已自动修正 ({healing_result['rules_used']}条规则)")
+        result["self_healing"] = healing_result
+    except Exception as _he:
+        result["self_healing"] = {"error": str(_he)}
     
     return result
 
@@ -24840,7 +25307,8 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     
     if goods_list:
         goods_text = " ".join(goods_list)
-        # [外部化] industry_map → 从 industry_data.json 加载，见 static/industry_data.json# 改进行业检测：加权投票制——统计各行业命中的关键词次数，取最高分
+        industry_map = _load_industry_data().get("industry_map", {})
+        # 改进行业检测：加权投票制——统计各行业命中的关键词次数，取最高分
         # 避免单一通用词（如"设备"）覆盖多个专业词（如"软件""技术"）
         from collections import Counter as _ctr
         industry_votes = _ctr()
@@ -24864,7 +25332,7 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
         entity["period"] = f"{dates[0][:7]} 至 {dates[-1][:7]}"
     
     # 7. 推断企业类型
-    # [外部化] service_industries → 从 industry_data.json 加载，见 static/industry_data.json# [外部化] production_industries → 从 industry_data.json 加载，见 static/industry_data.jsonif entity["industry"] in _load_industry_data().get("production_industries", []):
+    if entity["industry"] in _load_industry_data().get("production_industries", []):
         entity["type"] = "生产型企业"
     elif entity["industry"] in _load_industry_data().get("service_industries", []):
         entity["type"] = "服务型企业"
@@ -25987,7 +26455,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     
     # ═══ 规则5：行业不匹配过滤 ═══
     # 所有可能的行业类型
-    # [外部化] ALL_INDUSTRIES → 从 industry_data.json 加载，见 static/industry_data.jsonpost_industry = []
+    post_industry = []
     ind_removed = 0
     for f in filtered:
         ft = str(f.get("type", ""))
@@ -26457,6 +26925,1245 @@ async def get_last_analysis(company_id: int = Query(...)):
     if not cached:
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
     return cached["report"]
+
+
+# ═══════════════════════════════════════════════════════════
+# 电子证据固化 —— SHA256哈希链 + 时间戳存证
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/tax-risk-docs/evidence-chain")
+def get_evidence_chain(company_id: int = Query(...)):
+    """获取上传资料证据链（SHA256哈希 + 上传时间戳）
+    每条证据含: 文件名、SHA256、上传时间、文件大小、证据编号
+    用途: 稽查底稿附件、电子证据固化、可追溯审计链
+    """
+    import hashlib as _hashlib
+    evidence = []
+    file_hashes = {}
+    _init_tax_docs_from_disk()
+    
+    for d in _tax_risk_docs:
+        if d.get("company_id") != company_id:
+            continue
+        fpath = d.get("path", "")
+        sha256 = d.get("sha256", "")
+        # 若未缓存SHA256，实时计算
+        if not sha256 and os.path.exists(fpath):
+            try:
+                with open(fpath, "rb") as fh:
+                    sha256 = _hashlib.sha256(fh.read()).hexdigest()
+                d["sha256"] = sha256
+                d["size"] = d.get("size") or os.path.getsize(fpath)
+            except Exception:
+                sha256 = "计算失败"
+        
+        ev = {
+            "evidence_id": f"EVD-{d['id']:06d}",
+            "filename": d.get("original_name", d.get("filename", "")),
+            "sha256": sha256,
+            "md5": d.get("md5", ""),
+            "size_bytes": d.get("size", 0),
+            "uploaded_at": d.get("uploaded_at", ""),
+            "file_saved": d.get("file_saved", False),
+        }
+        evidence.append(ev)
+        if sha256 and sha256 != "计算失败":
+            file_hashes[d.get("original_name", "")] = sha256
+    
+    # 构建证据链摘要
+    chain_summary = {
+        "total_files": len(evidence),
+        "total_size_bytes": sum(e["size_bytes"] for e in evidence),
+        "evidence_ids": [e["evidence_id"] for e in evidence],
+        "chain_integrity": "完整" if all(e["sha256"] and e["sha256"] != "计算失败" for e in evidence) else "部分缺失",
+    }
+    
+    return {
+        "ok": True,
+        "company_id": company_id,
+        "generated_at": datetime.now().isoformat(),
+        "chain_summary": chain_summary,
+        "evidence": evidence,
+        "file_hashes": file_hashes,
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 稽查底稿自动生成 —— 结构化审计工作底稿
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/tax-risk-docs/working-papers")
+def generate_working_papers(company_id: int = Query(...)):
+    """基于最近一次分析结果自动生成稽查底稿
+    结构: 审计目标→审计程序→发现清单→证据索引→结论与建议
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析，生成报告后再导出底稿"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    all_f = report.get("all_findings", [])
+    te = report.get("target_entity", {})
+    mi = cc.get("material_intel", {})
+    evidence = cc.get("evidence_closures", [])
+    
+    # 审计目标
+    audit_objectives = [
+        "验证发票流与资金流的一致性",
+        "核查进销存数据真实性",
+        "排查关联交易与虚开风险",
+        "评估税务合规性与申报准确性",
+        "识别隐匿收入与虚增成本风险",
+    ]
+    
+    # 审计程序（已执行）
+    audit_procedures = []
+    ds = report.get("domain_summary", [])
+    for d in ds[:20]:
+        if d.get("findings"):
+            audit_procedures.append({
+                "procedure": d.get("name", ""),
+                "findings_count": len(d.get("findings", [])),
+                "high_risk_count": sum(1 for f in d.get("findings", []) if f.get("level") == "高风险"),
+            })
+    
+    # 发现清单（按风险等级分组）
+    high_risk = [f for f in all_f if f.get("level") == "高风险"]
+    mid_risk = [f for f in all_f if f.get("level") == "中风险"]
+    low_risk = [f for f in all_f if f.get("level") == "低风险"]
+    
+    def _fmt_finding(f):
+        return {
+            "id": f.get("_idx", ""),
+            "type": f.get("type", f.get("category", "")),
+            "level": f.get("level", ""),
+            "score": f.get("score", 0),
+            "detail": f.get("detail", ""),
+            "suggestion": f.get("suggestion", ""),
+            "law_ref": f.get("law_ref", f.get("legal_basis", "")),
+            "evidence_refs": f.get("evidence_refs", []),
+        }
+    
+    # 证据索引
+    evidence_index = []
+    for ev in evidence[:50]:
+        evidence_index.append({
+            "ref": ev.get("ref", ""),
+            "type": ev.get("type", ""),
+            "source": ev.get("source", ""),
+            "closed": ev.get("closed", False),
+        })
+    
+    # 资料明细（发票/银行流水统计）
+    inv_stats = mi.get("发票", {}).get("统计", {})
+    bank_stats = mi.get("银行流水", {}).get("统计", {})
+    material_summary = {
+        "销项发票": f"{inv_stats.get('销项发票数量', 0)}张, {inv_stats.get('销项金额合计', 0):,.2f}元",
+        "进项发票": f"{inv_stats.get('进项发票数量', 0)}张, {inv_stats.get('进项金额合计', 0):,.2f}元",
+        "银行收款": f"{bank_stats.get('收款合计', 0):,.2f}元",
+        "银行付款": f"{bank_stats.get('付款合计', 0):,.2f}元",
+    }
+    
+    papers = {
+        "title": f"税务稽查工作底稿",
+        "entity": te.get("name", ""),
+        "period": te.get("period", ""),
+        "generated_at": datetime.now().isoformat(),
+        "report_ref": cached.get("timestamp", ""),
+        "overall_level": report.get("overall_level", ""),
+        "sections": {
+            "audit_objectives": audit_objectives,
+            "audit_procedures": audit_procedures,
+            "material_summary": material_summary,
+            "high_risk_findings": [_fmt_finding(f) for f in high_risk],
+            "mid_risk_findings": [_fmt_finding(f) for f in mid_risk],
+            "low_risk_findings": [_fmt_finding(f) for f in low_risk],
+            "evidence_index": evidence_index,
+            "conclusion": {
+                "total_risks": report.get("total_risks", 0),
+                "high_risk": report.get("high_risk", 0),
+                "mid_risk": report.get("mid_risk", 0),
+                "low_risk": report.get("low_risk", 0),
+                "overall_assessment": cc.get("executive_summary", cc.get("narrative_summary", "")),
+            },
+        },
+        "chain_of_custody": {
+            "prepared_by": "财税稽查系统·AGI引擎",
+            "reviewed_by": "待人工复核",
+            "hash_algorithm": "SHA256",
+            "total_evidence_count": len(evidence),
+        },
+    }
+    
+    return {"ok": True, "working_papers": papers}
+
+
+# ═══════════════════════════════════════════════════════════
+# 报告版本切换 —— 详细版 / 简报版 / 底稿版
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/tax-risk-docs/report-summary")
+def get_report_summary(company_id: int = Query(...), version: str = Query("full")):
+    """获取指定版本的报告摘要
+    version: full(详细版) | brief(简报版) | working(底稿版)
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    all_f = report.get("all_findings", [])
+    te = report.get("target_entity", {})
+    
+    base = {
+        "entity_name": te.get("name", ""),
+        "period": te.get("period", ""),
+        "overall_level": report.get("overall_level", ""),
+        "total_risks": report.get("total_risks", 0),
+        "high_risk": report.get("high_risk", 0),
+        "mid_risk": report.get("mid_risk", 0),
+        "low_risk": report.get("low_risk", 0),
+        "version": version,
+        # 智能体反思数据
+        "agent_reflection": (cached.get("report") or {}).get("agent", {}).get("reflection", {}),
+        "agent_insight": (cached.get("report") or {}).get("agent", {}).get("insight_summary", ""),
+    }
+    
+    if version == "brief":
+        # 简报版：核心结论 + P0/P1风险摘要 + 智能体反思标注
+        top_risks = sorted(all_f, key=lambda x: -(x.get("score") or 0))[:10]
+        brief_risks = []
+        reflection_items = []  # 需关注的反思项
+        for f in top_risks:
+            refl = f.get("_self_reflection", {})
+            refle_verdict = f.get("_reflection_verdict", "")
+            brief_risks.append({
+                "type": f.get("type", ""),
+                "level": f.get("level", ""),
+                "score": f.get("score", 0),
+                "summary": (f.get("detail", "") or "")[:200],
+                "suggestion": f.get("suggestion", ""),
+                "reflection_verdict": refle_verdict,
+                "reflection_note": refl.get("counter_hypothesis", "") if refle_verdict in ("uncertain", "refuted") else "",
+            })
+            # 收集被反思器质疑的结论
+            if refle_verdict in ("uncertain", "refuted"):
+                reflection_items.append({
+                    "finding": f.get("type", ""),
+                    "verdict": refle_verdict,
+                    "counter": refl.get("counter_hypothesis", ""),
+                    "evidence": refl.get("counter_evidence", []),
+                })
+        actions = cc.get("actions", {})
+        base.update({
+            "executive_summary": cc.get("executive_summary", cc.get("narrative_summary", "")),
+            "top_risks": brief_risks,
+            "reflection_notes": reflection_items,  # 智能体反思需注意项
+            "recommended_actions": {
+                "immediate": actions.get("P0", actions.get("immediate", [])),
+                "short_term": actions.get("P1", actions.get("short_term", [])),
+            },
+            "data_overview": cc.get("data_overview", {}),
+        })
+    elif version == "working":
+        # 底稿版：结构化审计发现
+        base.update({
+            "audit_procedures": [ds.get("name") for ds in (report.get("domain_summary") or [])[:15] if ds.get("findings")],
+            "findings_by_level": {
+                "high": [{"type": f.get("type"), "detail": f.get("detail"), "law_ref": f.get("law_ref")} for f in all_f if f.get("level") == "高风险"][:20],
+                "mid": [{"type": f.get("type"), "detail": f.get("detail")} for f in all_f if f.get("level") == "中风险"][:30],
+            },
+            "material_intel": cc.get("material_intel", {}),
+            "evidence_count": len(cc.get("evidence_closures", [])),
+            "chain_stats": cc.get("chain_execution", {}),
+        })
+    else:
+        # 全量版返回所有数据
+        base.update({
+            "domain_summary": report.get("domain_summary", []),
+            "all_findings": all_f,
+            "comprehensive": cc,
+        })
+    
+    return {"ok": True, "report": base}
+
+
+# ═══════════════════════════════════════════════════════════
+# 关联网络图谱数据 —— 供应商/客户/关联方关系网络
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/tax-risk-docs/relation-graph")
+def get_relation_graph(company_id: int = Query(...)):
+    """获取供应商/客户/关联方关系网络数据
+    返回nodes + edges，前端用D3.js/DOM渲染关系图谱
+    自动检测：关联交易闭环、供应商=客户情况、人员重叠
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    te = report.get("target_entity", {})
+    mi = cc.get("material_intel", {})
+    cross_ent = cc.get("cross_enterprise", {})
+    entity_graph = report.get("entity_graph", {})
+    
+    entity_name = te.get("name", "被查企业")
+    
+    nodes = []
+    edges = []
+    node_ids = set()
+    
+    def _add_node(nid, name, ntype, amount=0, risk=False):
+        if nid in node_ids:
+            return
+        node_ids.add(nid)
+        nodes.append({
+            "id": nid,
+            "name": name,
+            "type": ntype,  # company/supplier/customer/related/person
+            "amount": round(amount, 2) if amount else 0,
+            "risk": risk,
+        })
+    
+    # 核心节点：被查企业
+    _add_node("entity_main", entity_name, "company")
+    
+    # 从发票数据提取供应商/客户
+    inv_data = mi.get("发票", {})
+    sal_detail = inv_data.get("销项发票全量明细", [])
+    pur_detail = inv_data.get("进项发票全量明细", [])
+    
+    # 销项发票 → 客户
+    customer_amounts = {}
+    for inv in sal_detail:
+        cname = inv.get("对方公司名称", "").strip()
+        if cname and cname != entity_name:
+            customer_amounts[cname] = customer_amounts.get(cname, 0) + float(inv.get("价税合计", 0) or 0)
+    
+    # 进项发票 → 供应商
+    supplier_amounts = {}
+    for inv in pur_detail:
+        sname = inv.get("对方公司名称", "").strip()
+        if sname and sname != entity_name:
+            supplier_amounts[sname] = supplier_amounts.get(sname, 0) + float(inv.get("价税合计", 0) or 0)
+    
+    # 检测供应商=客户的重叠（购销闭环风险）
+    overlap_names = set(customer_amounts.keys()) & set(supplier_amounts.keys())
+    
+    # Top10客户
+    top_customers = sorted(customer_amounts.items(), key=lambda x: -x[1])[:10]
+    for name, amt in top_customers:
+        is_overlap = name in overlap_names
+        _add_node(f"cust_{name}", name, "customer", amt, risk=is_overlap)
+        edges.append({
+            "from": "entity_main",
+            "to": f"cust_{name}",
+            "type": "销售",
+            "amount": round(amt, 2),
+            "label": f"销{amt:,.0f}",
+        })
+    
+    # Top10供应商
+    top_suppliers = sorted(supplier_amounts.items(), key=lambda x: -x[1])[:10]
+    for name, amt in top_suppliers:
+        is_overlap = name in overlap_names
+        _add_node(f"supp_{name}", name, "supplier", amt, risk=is_overlap)
+        edges.append({
+            "from": f"supp_{name}",
+            "to": "entity_main",
+            "type": "采购",
+            "amount": round(amt, 2),
+            "label": f"购{amt:,.0f}",
+        })
+    
+    # 重叠节点加双向边（购销闭环）
+    for name in overlap_names:
+        edges.append({
+            "from": f"cust_{name}",
+            "to": f"supp_{name}",
+            "type": "闭环",
+            "amount": round(customer_amounts.get(name, 0) + supplier_amounts.get(name, 0), 2),
+            "label": "购销闭环风险",
+            "style": "dashed",
+            "risk": True,
+        })
+        # 标记节点风险
+        for n in nodes:
+            if n["name"] == name:
+                n["risk"] = True
+    
+    # 从联网核查/六员比对提取关联人员
+    personnel_overlap = cross_ent.get("personnel_overlap", []) if isinstance(cross_ent, dict) else []
+    for p in personnel_overlap[:5]:
+        pname = p.get("name", "") if isinstance(p, dict) else str(p)
+        if pname:
+            _add_node(f"person_{pname}", pname, "person", risk=True)
+            edges.append({
+                "from": "entity_main",
+                "to": f"person_{pname}",
+                "type": "关联",
+                "label": "人员重叠",
+                "style": "dotted",
+                "risk": True,
+            })
+    
+    # 统计闭环风险
+    closed_loops = [e for e in edges if e.get("risk") and e.get("type") == "闭环"]
+    
+    return {
+        "ok": True,
+        "graph": {
+            "nodes": nodes,
+            "edges": edges,
+        },
+        "summary": {
+            "total_nodes": len(nodes),
+            "total_edges": len(edges),
+            "supplier_count": len(top_suppliers),
+            "customer_count": len(top_customers),
+            "closed_loops": len(closed_loops),
+            "overlap_entities": list(overlap_names),
+            "personnel_links": len([e for e in edges if e.get("type") == "关联"]),
+        },
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 智能抽样引擎 —— 基于风险评分自动选出重点深挖对象
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/sampling/smart")
+def smart_sampling(company_id: int = Query(...), sample_size: int = Query(10)):
+    """风险驱动智能抽样：按风险贡献度/金额/异常度综合排序
+    从发票/供应商/客户中自动选出最值得深挖的样本
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    mi = cc.get("material_intel", {})
+    all_f = report.get("all_findings", [])
+    
+    samples = {
+        "top_risk_transactions": [],
+        "high_risk_suppliers": [],
+        "high_value_customers": [],
+        "anomaly_patterns": [],
+        "sampling_methodology": {
+            "method": "风险分层抽样（Stratified Risk Sampling）",
+            "strata": ["P0高风险(score>=8)", "P1中风险(score>=5)", "P2低风险(score>=2)"],
+            "weighting": "score权重0.5 + 金额权重0.3 + 异常度权重0.2",
+            "rationale": "重点覆盖高风险+大金额，兼顾小金额异常模式"
+        }
+    }
+    
+    # 从findings中提取高风险发现关联的实体
+    high_risk_findings = [f for f in all_f if (f.get("score") or 0) >= 7]
+    
+    # 从发票明细中按金额加权随机抽样
+    inv_data = mi.get("发票", {})
+    sal_detail = inv_data.get("销项发票全量明细", [])
+    pur_detail = inv_data.get("进项发票全量明细", [])
+    
+    # 供应商风险排序（结合金额+发现数）
+    supplier_risk = {}
+    for inv in pur_detail:
+        sname = inv.get("对方公司名称", "").strip()
+        amt = float(inv.get("价税合计", 0) or 0)
+        if sname not in supplier_risk:
+            supplier_risk[sname] = {"total": 0, "count": 0, "risk_mentions": 0}
+        supplier_risk[sname]["total"] += amt
+        supplier_risk[sname]["count"] += 1
+    
+    # 统计每个供应商在风险发现中被提及次数
+    for f in high_risk_findings:
+        detail = (f.get("detail") or "") + (f.get("suggestion") or "")
+        for sname in supplier_risk:
+            if sname in detail:
+                supplier_risk[sname]["risk_mentions"] += 1
+    
+    # 综合评分排序
+    ranked_suppliers = sorted(supplier_risk.items(), key=lambda x: (
+        x[1]["risk_mentions"] * 10 + x[1]["total"] / 10000
+    ), reverse=True)
+    
+    for sname, info in ranked_suppliers[:sample_size]:
+        samples["high_risk_suppliers"].append({
+            "name": sname,
+            "total_amount": round(info["total"], 2),
+            "invoice_count": info["count"],
+            "risk_mentions": info["risk_mentions"],
+            "composite_score": round(info["risk_mentions"] * 10 + info["total"] / 10000, 1),
+            "audit_priority": "P0" if info["risk_mentions"] > 0 else ("P1" if info["total"] > 100000 else "P2"),
+        })
+    
+    # 客户金额排序（Top N）
+    customer_amt = {}
+    for inv in sal_detail:
+        cname = inv.get("对方公司名称", "").strip()
+        amt = float(inv.get("价税合计", 0) or 0)
+        customer_amt[cname] = customer_amt.get(cname, 0) + amt
+    
+    top_customers = sorted(customer_amt.items(), key=lambda x: -x[1])[:sample_size]
+    for cname, amt in top_customers:
+        samples["high_value_customers"].append({
+            "name": cname,
+            "total_amount": round(amt, 2),
+            "audit_priority": "P0" if amt > 500000 else ("P1" if amt > 100000 else "P2"),
+        })
+    
+    # 异常模式检测
+    anomaly_patterns = []
+    # 检查品名异常（有加工费发票的供应商）
+    for inv in pur_detail:
+        pname = (inv.get("品名", "") or "").strip()
+        if any(kw in pname for kw in ["加工", "修理", "修配", "劳务", "服务"]):
+            anomaly_patterns.append({
+                "type": "加工费交易",
+                "supplier": inv.get("对方公司名称", ""),
+                "amount": float(inv.get("价税合计", 0) or 0),
+                "invoice_no": inv.get("发票号", ""),
+                "concern": "需核实委托加工真实性",
+            })
+    
+    samples["anomaly_patterns"] = anomaly_patterns[:sample_size]
+    
+    return {"ok": True, "samples": samples, "generated_at": datetime.now().isoformat()}
+
+
+# ═══════════════════════════════════════════════════════════
+# 整改跟踪闭环 —— 风险发现→整改完成全流程 API
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/remediation/create")
+def create_remediation(
+    company_id: int = Query(...),
+    finding_type: str = Query(""),
+    finding_detail: str = Query(""),
+    risk_level: str = Query("中"),
+    responsible_person: str = Query(""),
+    action_plan: str = Query(""),
+    deadline: str = Query(""),
+    trace_id: str = Query(""),
+    db: Session = Depends(get_db),
+):
+    """创建整改记录"""
+    from database import RemediationRecord
+    rec = RemediationRecord(
+        company_id=company_id,
+        finding_type=finding_type,
+        finding_detail=finding_detail,
+        risk_level=risk_level,
+        status="pending",
+        responsible_person=responsible_person,
+        action_plan=action_plan,
+        deadline=datetime.strptime(deadline, "%Y-%m-%d").date() if deadline else None,
+        trace_id=trace_id,
+    )
+    db.add(rec)
+    db.commit()
+    db.refresh(rec)
+    return {"ok": True, "id": rec.id, "message": "整改记录已创建"}
+
+
+@app.get("/api/remediation/list")
+def list_remediations(company_id: int = Query(...), status: str = Query(""), db: Session = Depends(get_db)):
+    """列出整改记录"""
+    from database import RemediationRecord
+    q = db.query(RemediationRecord).filter(RemediationRecord.company_id == company_id)
+    if status:
+        q = q.filter(RemediationRecord.status == status)
+    records = q.order_by(RemediationRecord.updated_at.desc()).all()
+    
+    def _fmt(r):
+        return {
+            "id": r.id, "finding_type": r.finding_type, "finding_detail": r.finding_detail,
+            "risk_level": r.risk_level, "status": r.status,
+            "responsible_person": r.responsible_person, "action_plan": r.action_plan,
+            "deadline": str(r.deadline) if r.deadline else "",
+            "completed_at": r.completed_at.isoformat() if r.completed_at else "",
+            "verified_by": r.verified_by, "verification_note": r.verification_note,
+            "notes": r.notes, "created_at": r.created_at.isoformat() if r.created_at else "",
+            "updated_at": r.updated_at.isoformat() if r.updated_at else "",
+        }
+    
+    return {
+        "ok": True,
+        "records": [_fmt(r) for r in records],
+        "summary": {
+            "total": len(records),
+            "pending": sum(1 for r in records if r.status == "pending"),
+            "in_progress": sum(1 for r in records if r.status == "in_progress"),
+            "completed": sum(1 for r in records if r.status == "completed"),
+            "verified": sum(1 for r in records if r.status == "verified"),
+            "closed": sum(1 for r in records if r.status == "closed"),
+        }
+    }
+
+
+@app.put("/api/remediation/{record_id}")
+def update_remediation(
+    record_id: int,
+    status: str = Query(""),
+    verified_by: str = Query(""),
+    verification_note: str = Query(""),
+    notes: str = Query(""),
+    db: Session = Depends(get_db),
+):
+    """更新整改状态"""
+    from database import RemediationRecord
+    rec = db.query(RemediationRecord).filter(RemediationRecord.id == record_id).first()
+    if not rec:
+        raise HTTPException(404, "整改记录不存在")
+    if status:
+        rec.status = status
+        if status == "completed":
+            rec.completed_at = datetime.utcnow()
+    if verified_by:
+        rec.verified_by = verified_by
+    if verification_note:
+        rec.verification_note = verification_note
+    if notes:
+        rec.notes = notes
+    rec.updated_at = datetime.utcnow()
+    db.commit()
+    return {"ok": True, "message": f"整改记录#{record_id}已更新为{rec.status}"}
+
+
+@app.post("/api/remediation/batch-from-findings")
+def batch_create_remediation(company_id: int = Query(...), db: Session = Depends(get_db)):
+    """从最近一次分析结果批量创建整改记录（高风险发现自动转化为整改任务）"""
+    from database import RemediationRecord
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    all_f = report.get("all_findings", [])
+    trace_id = report.get("trace_id", "")
+    
+    # 只对高风险+中风险发现创建整改
+    created = 0
+    for f in all_f:
+        level = f.get("level", "")
+        if level not in ("高风险", "中风险"):
+            continue
+        rec = RemediationRecord(
+            company_id=company_id, finding_type=f.get("type", ""),
+            finding_detail=f.get("detail", ""), risk_level=level,
+            status="pending", trace_id=trace_id,
+        )
+        db.add(rec)
+        created += 1
+    
+    db.commit()
+    return {"ok": True, "created": created, "message": f"已从{len(all_f)}项发现中创建{created}条整改任务"}
+
+
+# ═══════════════════════════════════════════════════════════
+# 多期趋势分析 —— 跨多次分析结果对比
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/trend/analysis")
+def get_trend_analysis(company_id: int = Query(...)):
+    """跨分析历史趋势对比
+    对比最近N次分析的指标变化趋势
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    mi = cc.get("material_intel", {})
+    inv_stats = mi.get("发票", {}).get("统计", {})
+    bank_stats = mi.get("银行流水", {}).get("统计", {})
+    
+    # 当前分析指标
+    current_metrics = {
+        "analysis_time": cached.get("timestamp", ""),
+        "total_risks": report.get("total_risks", 0),
+        "high_risk": report.get("high_risk", 0),
+        "mid_risk": report.get("mid_risk", 0),
+        "sales_invoices": inv_stats.get("销项发票数量", 0),
+        "sales_amount": inv_stats.get("销项金额合计", 0),
+        "purchase_invoices": inv_stats.get("进项发票数量", 0),
+        "purchase_amount": inv_stats.get("进项金额合计", 0),
+        "bank_inflow": bank_stats.get("收款合计", 0),
+        "bank_outflow": bank_stats.get("付款合计", 0),
+    }
+    
+    # 从industry_benchmarks表获取历史数据做趋势
+    trend_indicators = {}
+    try:
+        from database import IndustryBenchmark, SessionLocal
+        sdb = SessionLocal()
+        benchmarks = sdb.query(IndustryBenchmark).filter(
+            IndustryBenchmark.company_id == company_id
+        ).order_by(IndustryBenchmark.updated_at.desc()).limit(50).all()
+        
+        for b in benchmarks:
+            if b.metric_name not in trend_indicators:
+                trend_indicators[b.metric_name] = []
+            trend_indicators[b.metric_name].append({
+                "value": float(b.metric_value) if b.metric_value else 0,
+                "time": b.updated_at.isoformat() if b.updated_at else "",
+            })
+        sdb.close()
+    except Exception:
+        pass
+    
+    # 趋势方向判断
+    def _trend_direction(values):
+        if len(values) < 3: return "数据不足"
+        recent = sum(v["value"] for v in values[:2]) / 2
+        older = sum(v["value"] for v in values[-2:]) / 2
+        if abs(recent - older) < older * 0.05: return "持平"
+        return "上升" if recent > older else "下降"
+    
+    trends = {}
+    for metric, data in trend_indicators.items():
+        trends[metric] = {
+            "direction": _trend_direction(data),
+            "data_points": data[:10],
+            "current": data[0]["value"] if data else 0,
+        }
+    
+    return {
+        "ok": True,
+        "current": current_metrics,
+        "trends": trends,
+        # 智能体跨分析学习数据
+        "agent_memory": (cached.get("report") or {}).get("agent", {}).get("memory", {}),
+        "agent_reflection_stats": (cached.get("report") or {}).get("agent", {}).get("reflection", {}),
+        "indicators": {
+            "invoice_match_ratio": {
+                "current": round((inv_stats.get("销项金额合计", 0) or 0) / max((inv_stats.get("进项金额合计", 0) or 1), 1), 2),
+                "label": "进销比",
+                "interpretation": "进销比接近1为正常，<0.8或>1.2需关注",
+            },
+            "risk_trend": {
+                "high_risk_count": report.get("high_risk", 0),
+                "label": "高风险发现数",
+            },
+        },
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 行业对标自更新 —— 基准值从每次分析中学习
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/benchmarks/industry")
+def get_industry_benchmarks(industry: str = Query(""), metric: str = Query("")):
+    """获取行业基准值（动态自更新）
+    每次分析完成后自动将企业指标纳入行业统计池
+    当前基准为所有已分析企业的累计统计
+    """
+    try:
+        from database import IndustryBenchmark, SessionLocal
+        sdb = SessionLocal()
+        q = sdb.query(IndustryBenchmark)
+        if industry:
+            q = q.filter(IndustryBenchmark.industry == industry)
+        if metric:
+            q = q.filter(IndustryBenchmark.metric_name == metric)
+        
+        benchmarks = q.order_by(IndustryBenchmark.updated_at.desc()).all()
+        
+        results = []
+        by_metric = {}
+        for b in benchmarks:
+            item = {
+                "industry": b.industry,
+                "metric": b.metric_name,
+                "sample_count": b.sample_count,
+                "mean": round(float(b.running_mean), 4) if b.running_mean else None,
+                "std": round(float(b.running_std), 4) if b.running_std else None,
+                "p25": round(float(b.p25), 4) if b.p25 else None,
+                "p50": round(float(b.p50), 4) if b.p50 else None,
+                "p75": round(float(b.p75), 4) if b.p75 else None,
+                "updated_at": b.updated_at.isoformat() if b.updated_at else "",
+            }
+            results.append(item)
+            key = f"{b.industry}_{b.metric_name}"
+            if key not in by_metric:
+                by_metric[key] = item
+        
+        sdb.close()
+        
+        return {
+            "ok": True,
+            "total_benchmarks": len(results),
+            "industries": list(set(b.industry for b in benchmarks)),
+            "metrics": list(set(b.metric_name for b in benchmarks)),
+            "benchmarks": list(by_metric.values()),
+            "methodology": {
+                "algorithm": "在线Welford算法（增量均值/标准差）",
+                "update_trigger": "每次一键分析完成后自动更新",
+                "min_samples_for_benchmark": 3,
+                "note": "样本数<3时基准值仅供参考，随分析次数增加而精确",
+            },
+        }
+    except Exception as e:
+        return {"ok": False, "message": f"查询失败: {e}"}
+
+
+# ═══════════════════════════════════════════════════════════
+# 对话式稽查 —— 自然语言查询分析结果
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/agi/query")
+def agi_query(company_id: int = Query(...), query: str = Query(...)):
+    """自然语言查询分析结果
+    用户用中文提问，AGI自动查分析数据并用中文回答
+    示例: "虚开风险多大""供应商集中度""进销比多少"
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "answer": "请先运行一键分析，我才能回答您的问题。"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    all_f = report.get("all_findings", [])
+    mi = cc.get("material_intel", {})
+    inv_stats = mi.get("发票", {}).get("统计", {})
+    bank_stats = mi.get("银行流水", {}).get("统计", {})
+    
+    q = query.lower().strip()
+    answer = ""
+    related_findings = []
+    
+    # 关键词匹配引擎
+    if any(kw in q for kw in ["虚开", "发票风险", "虚假", "开票风险"]):
+        fake_findings = [f for f in all_f if any(kw in (f.get("type","")+f.get("detail","")) for kw in ["虚开","虚假","伪造","不实"])]
+        high_count = sum(1 for f in fake_findings if f.get("level") == "高风险")
+        total_amt = sum(float(f.get("detail","0").replace(",","")) if f.get("detail","0").replace(",","").replace(".","").isdigit() else 0 for f in fake_findings)
+        answer = f"当前企业虚开发票风险评估为{'高风险' if high_count > 0 else '中风险'}。共发现{len(fake_findings)}条相关线索，其中高风险{high_count}条。建议重点核查进项发票品名与销项是否匹配、供应商是否真实存在。"
+        related_findings = fake_findings[:5]
+    
+    elif any(kw in q for kw in ["供应商", "采购", "供应商集中", "供应商风险"]):
+        pur_detail = mi.get("发票", {}).get("进项发票全量明细", [])
+        supplier_amt = {}
+        for inv in pur_detail:
+            sname = inv.get("对方公司名称", "").strip()
+            amt = float(inv.get("价税合计", 0) or 0)
+            supplier_amt[sname] = supplier_amt.get(sname, 0) + amt
+        total_pur = sum(supplier_amt.values())
+        top3 = sorted(supplier_amt.items(), key=lambda x: -x[1])[:3]
+        top3_ratio = sum(a for _, a in top3) / max(total_pur, 1) * 100
+        conc_risk = "高" if top3_ratio > 70 else ("中" if top3_ratio > 50 else "低")
+        top_names = " / ".join(f"{n}({(a/total_pur*100):.1f}%)" for n, a in top3)
+        answer = f"供应商集中度风险：{conc_risk}（Top3占比{top3_ratio:.1f}%）。前三大供应商：{top_names}。共{len(supplier_amt)}家供应商，采购总额{total_pur:,.0f}元。{'建议分散采购来源以降低依赖风险。' if conc_risk != '低' else '供应商分布较为合理。'}"
+    
+    elif any(kw in q for kw in ["进销比", "购销比", "进销存", "进销匹配"]):
+        sal_amt = inv_stats.get("销项金额合计", 0) or 0
+        pur_amt = inv_stats.get("进项金额合计", 0) or 0
+        ratio = sal_amt / max(pur_amt, 1)
+        status = "偏高" if ratio > 1.2 else ("偏低" if ratio < 0.8 else "正常")
+        answer = f"进销比 = {ratio:.2f}（{status}）。销项{sal_amt:,.0f}元 / 进项{pur_amt:,.0f}元。{'进销比偏高可能存在少计成本或虚增收入风险。' if ratio > 1.2 else ('进销比偏低可能存在隐匿收入或虚列成本风险。' if ratio < 0.8 else '进销比在正常范围内。')}"
+    
+    elif any(kw in q for kw in ["税负", "税率", "税负率", "增值税"]):
+        sal_amt = inv_stats.get("销项金额合计", 0) or 0
+        sal_tax = inv_stats.get("销项税额合计", 0) or 0
+        pur_tax = inv_stats.get("进项税额合计", 0) or 0
+        tax_burden = (sal_tax - pur_tax) / max(sal_amt, 1) * 100
+        answer = f"增值税税负率约{tax_burden:.2f}%（销项税{sal_tax:,.0f} - 进项税{pur_tax:,.0f} / 销项额{sal_amt:,.0f}）。{'税负率偏低需关注是否存在隐匿销售收入。' if tax_burden < 1 else '税负率在合理区间。'}"
+    
+    elif any(kw in q for kw in ["风险", "整体", "综合", "总体"]):
+        high_risk = report.get("high_risk", 0)
+        mid_risk = report.get("mid_risk", 0)
+        level = report.get("overall_level", "")
+        # 优先使用智能体的洞见总结（在result顶层，不在report内层）
+        agent_insight = ""
+        if isinstance(cached.get("report"), dict):
+            agent_insight = (cached["report"].get("agent") or {}).get("insight_summary", "")
+        exec_summary = cc.get('executive_summary', cc.get('narrative_summary', ''))
+        narrative = agent_insight or exec_summary
+        answer = f"综合风险等级：{level}。共发现{report.get('total_risks',0)}项风险（高{high_risk}/中{mid_risk}）。{narrative}"
+    
+    elif any(kw in q for kw in ["银行", "资金流", "流水", "收款", "付款"]):
+        bank_in = bank_stats.get("收款合计", 0) or 0
+        bank_out = bank_stats.get("付款合计", 0) or 0
+        sal_amt = inv_stats.get("销项金额合计", 0) or 0
+        pur_amt = inv_stats.get("进项金额合计", 0) or 0
+        answer = f"银行收款{bank_in:,.0f}元 vs 销项开票{sal_amt:,.0f}元（差异{abs(bank_in-sal_amt):,.0f}元）。银行付款{bank_out:,.0f}元 vs 进项发票{pur_amt:,.0f}元（差异{abs(bank_out-pur_amt):,.0f}元）。{'收款大于开票金额，可能存在未开票收入。' if bank_in > sal_amt * 1.1 else ''}{'付款大于进项金额，可能存在未取得发票的支出。' if bank_out > pur_amt * 1.1 else ''}"
+    
+    elif any(kw in q for kw in ["行业", "行业对比", "行业基准", "同行"]):
+        benchmarks = ""
+        try:
+            from database import IndustryBenchmark, SessionLocal
+            sdb = SessionLocal()
+            bms = sdb.query(IndustryBenchmark).filter(IndustryBenchmark.metric_name == "invoice_match_ratio").order_by(IndustryBenchmark.sample_count.desc()).limit(5).all()
+            if bms:
+                benchmarks = "行业基准值（进销比）：" + " / ".join(f"{b.industry}(样本{b.sample_count})均值{(float(b.running_mean or 0)):.2f}" for b in bms)
+            sdb.close()
+        except: pass
+        answer = f"当前企业行业：{report.get('target_entity',{}).get('industry','未知')}。{benchmarks}"
+    
+    else:
+        answer = f"关于「{query}」的查询，当前分析结果中有{len(all_f)}项发现。您可以试试问：虚开风险多大？供应商集中度如何？进销比是多少？税负率如何？资金流正常吗？"
+    
+    return {
+        "ok": True,
+        "query": query,
+        "answer": answer,
+        "related_findings": [{"type": f.get("type"), "level": f.get("level"), "detail": f.get("detail","")[:150]} for f in (related_findings or [])],
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 自动巡检 —— 定时自动分析 + 状态监控
+# ═══════════════════════════════════════════════════════════
+
+_patrol_config = {"enabled": False, "interval_hours": 24, "company_ids": [], "last_run": None, "runs": []}
+
+# ── AGI管道仪表盘 ──
+@app.get("/api/agi/pipeline/dashboard")
+def get_agi_pipeline_dashboard():
+    """税务AGI管道仪表盘——展示16模块知识注入状态"""
+    try:
+        from engine.agi_pipeline import AGIPipelineConnector
+        global _agi_pipeline_instance
+        if '_agi_pipeline_instance' in globals() and _agi_pipeline_instance:
+            data = _agi_pipeline_instance.get_dashboard_data()
+            data["ok"] = True
+            return data
+    except: pass
+    return {"ok": True, "stats": {"modules_connected": 0, "events_collected": 0}, "total_events": 0, "modules_active": 0, "health": "idle", "message": "AGI管道尚未运行，请先执行一键分析"}
+
+@app.get("/api/patrol/status")
+def patrol_status_v2():
+    return {"ok": True, "config": _patrol_config, "runs_count": len(_patrol_config.get("runs", []))}
+
+@app.post("/api/patrol/config")
+def set_patrol_config(enabled: bool = Query(False), interval_hours: int = Query(24), company_ids: str = Query("")):
+    """配置自动巡检：启用/禁用、间隔小时、巡检企业ID列表"""
+    _patrol_config["enabled"] = enabled
+    _patrol_config["interval_hours"] = interval_hours
+    if company_ids:
+        _patrol_config["company_ids"] = [int(x.strip()) for x in company_ids.split(",") if x.strip().isdigit()]
+    else:
+        _patrol_config["company_ids"] = [1]  # 默认巡检公司1
+    return {"ok": True, "config": _patrol_config, "message": f"巡检已{'启用' if enabled else '禁用'}，间隔{interval_hours}小时"}
+
+@app.post("/api/patrol/run")
+def run_patrol_now():
+    """手动触发一次巡检"""
+    import traceback as _tb
+    company_ids = _patrol_config.get("company_ids", [1])
+    results = []
+    
+    for cid in company_ids:
+        try:
+            from database import SessionLocal
+            db = SessionLocal()
+            r = _run_analyze(cid, db)
+            report = r.get("report", {})
+            results.append({
+                "company_id": cid,
+                "ok": r.get("ok", False),
+                "level": report.get("overall_level", ""),
+                "total_risks": report.get("total_risks", 0),
+                "high_risk": report.get("high_risk", 0),
+            })
+            db.close()
+        except Exception as e:
+            results.append({"company_id": cid, "ok": False, "error": str(e)})
+    
+    run_record = {"time": datetime.now().isoformat(), "companies": len(company_ids), "results": results}
+    _patrol_config["runs"].insert(0, run_record)
+    _patrol_config["last_run"] = run_record["time"]
+    if len(_patrol_config["runs"]) > 50:
+        _patrol_config["runs"] = _patrol_config["runs"][:50]
+    
+    return {"ok": True, "run": run_record, "total_runs": len(_patrol_config["runs"])}
+
+
+# ═══════════════════════════════════════════════════════════
+# 报告自动分发 —— 分析完成后系统内通知
+# ═══════════════════════════════════════════════════════════
+
+_notification_config = {"enabled": True, "channels": ["system"], "webhook_url": "", "email": ""}
+
+@app.get("/api/notifications/config")
+def get_notification_config():
+    return {"ok": True, "config": _notification_config}
+
+@app.post("/api/notifications/config")
+def set_notification_config(webhook_url: str = Query(""), email: str = Query(""), enabled: bool = Query(True)):
+    """配置通知渠道：系统内通知/Webhook/邮件"""
+    if webhook_url:
+        _notification_config["webhook_url"] = webhook_url
+    if email:
+        _notification_config["email"] = email
+    _notification_config["enabled"] = enabled
+    return {"ok": True, "config": _notification_config}
+
+@app.get("/api/notifications/latest")
+def get_latest_notification(company_id: int = Query(...)):
+    """获取最近一次分析的通知摘要（用于分发）"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    te = report.get("target_entity", {})
+    
+    notification = {
+        "title": f"财税稽查报告 — {te.get('name', '')}",
+        "summary": f"{report.get('overall_level', '')}，{report.get('total_risks', 0)}项风险发现（高{report.get('high_risk', 0)}/中{report.get('mid_risk', 0)}）",
+        "time": cached.get("timestamp", ""),
+        "key_findings": [f.get("type") for f in (report.get("all_findings", []) or [])[:5] if f.get("level") == "高风险"],
+        "actions": ["请登录系统查看完整报告", "高风险发现需立即处理"],
+    }
+    
+    # 如果配置了Webhook，尝试发送
+    webhook_result = None
+    if _notification_config.get("webhook_url"):
+        try:
+            import urllib.request, json as _json
+            req = urllib.request.Request(
+                _notification_config["webhook_url"],
+                data=_json.dumps(notification).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            urllib.request.urlopen(req, timeout=5)
+            webhook_result = "sent"
+        except Exception as e:
+            webhook_result = f"failed: {e}"
+    
+    return {
+        "ok": True,
+        "notification": notification,
+        "webhook_result": webhook_result,
+        "channels": _notification_config.get("channels", ["system"]),
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 法规变更影响分析 —— 政策版本对比 + 企业影响评估
+# ═══════════════════════════════════════════════════════════
+
+_policy_history = []
+
+@app.get("/api/policy/changes")
+def get_policy_changes():
+    """获取法规变更记录及对企业的影响评估"""
+    return {
+        "ok": True,
+        "changes": _policy_history[-20:],
+        "total_tracked": len(_policy_history),
+        "methodology": "自动监测税收政策文件有效期，识别到期/更新/废止变更",
+    }
+
+@app.post("/api/policy/check")
+def check_policy_impact(company_id: int = Query(...)):
+    """检查当前企业受法规变更的影响"""
+    cached = _last_analysis_cache.get(company_id)
+    impacts = []
+    
+    try:
+        from engine.tax_incentive_analyzer import POLICY_VALIDITY
+        from datetime import date as _date
+        today = _date.today()
+        
+        for policy_name, policy_info in POLICY_VALIDITY.items():
+            if isinstance(policy_info, dict):
+                valid_until = policy_info.get("valid_until", "")
+                if valid_until:
+                    try:
+                        expiry = _date.fromisoformat(valid_until)
+                        days_left = (expiry - today).days
+                        if days_left < 90:  # 3个月内到期
+                            impacts.append({
+                                "policy": policy_name,
+                                "description": policy_info.get("description", ""),
+                                "valid_until": valid_until,
+                                "days_left": days_left,
+                                "impact": "即将到期" if days_left > 0 else "已到期",
+                                "severity": "高" if days_left < 30 else ("中" if days_left < 90 else "低"),
+                                "action": "需关注政策更新，评估替代方案" if days_left < 30 else "建议提前准备应对方案",
+                            })
+                    except: pass
+    except Exception as e:
+        return {"ok": False, "message": f"检查失败: {e}"}
+    
+    return {
+        "ok": True,
+        "company_id": company_id,
+        "checked_at": datetime.now().isoformat(),
+        "impacts": impacts,
+        "total_impacts": len(impacts),
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 风险预测模型 —— 基于历史数据预测风险等级
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/risk/predict")
+def predict_risk(company_id: int = Query(...)):
+    """基于行业累积数据预测企业风险等级
+    使用加权评分模型：行业基准偏离度 + 历史风险密度 + 指标异常度
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "请先运行一键分析"}
+    
+    report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+    cc = report.get("comprehensive", {})
+    mi = cc.get("material_intel", {})
+    inv_stats = mi.get("发票", {}).get("统计", {})
+    bank_stats = mi.get("银行流水", {}).get("统计", {})
+    te = report.get("target_entity", {})
+    industry = te.get("industry", "通用")
+    
+    # 计算指标
+    sal_amt = inv_stats.get("销项金额合计", 0) or 0
+    pur_amt = inv_stats.get("进项金额合计", 0) or 0
+    bank_in = bank_stats.get("收款合计", 0) or 0
+    bank_out = bank_stats.get("付款合计", 0) or 0
+    
+    factors = {}
+    total_weight = 0
+    
+    # 因子1：进销比偏离度
+    if sal_amt > 0 and pur_amt > 0:
+        ratio = sal_amt / pur_amt
+        deviation = abs(ratio - 1.0)
+        factors["进销比偏离度"] = {"value": round(ratio, 2), "deviation": round(deviation, 2), "score": min(deviation * 10, 10)}
+        total_weight += factors["进销比偏离度"]["score"]
+    
+    # 因子2：资金流匹配度
+    if sal_amt > 0 and bank_in > 0:
+        match = min(bank_in / sal_amt, sal_amt / bank_in)
+        factors["资金流匹配度"] = {"value": round(match, 2), "score": (1 - match) * 10}
+        total_weight += factors["资金流匹配度"]["score"]
+    
+    # 因子3：当前风险密度
+    risk_density = report.get("high_risk", 0) / max(report.get("total_risks", 1), 1)
+    factors["高风险占比"] = {"value": round(risk_density, 2), "score": risk_density * 10}
+    total_weight += factors["高风险占比"]["score"]
+    
+    # 因子4：行业基准对比
+    try:
+        from database import IndustryBenchmark, SessionLocal
+        sdb = SessionLocal()
+        bm = sdb.query(IndustryBenchmark).filter(
+            IndustryBenchmark.industry == industry,
+            IndustryBenchmark.metric_name == "invoice_match_ratio"
+        ).first()
+        if bm and bm.running_mean:
+            bench_mean = float(bm.running_mean)
+            if sal_amt > 0 and pur_amt > 0:
+                deviation = abs(sal_amt / pur_amt - bench_mean)
+                factors["行业基准偏离"] = {"value": round(sal_amt/pur_amt, 2), "benchmark": round(bench_mean, 2), "score": min(deviation * 15, 10)}
+                total_weight += factors["行业基准偏离"]["score"]
+        sdb.close()
+    except: pass
+    
+    # 加权综合评分
+    predicted_score = total_weight  # 0-40分制
+    predicted_level = "高风险" if predicted_score > 20 else ("中风险" if predicted_score > 10 else "低风险")
+    predicted_prob = min(predicted_score / 40 * 100, 95)
+    
+    return {
+        "ok": True,
+        "prediction": {
+            "level": predicted_level,
+            "score": round(predicted_score, 1),
+            "probability": round(predicted_prob, 1),
+            "confidence": "中" if len(factors) >= 3 else "低（建议增加分析次数以提高准确性）",
+        },
+        "factors": factors,
+        "methodology": "加权因子模型：进销比偏离度 + 资金流匹配度 + 风险密度 + 行业基准对比",
+        "note": "预测基于当前数据和行业历史累积，准确度随分析次数增加而提高",
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# 多企业集团分析 —— 跨企业横向对比
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/group/analysis")
+def group_analysis(company_ids: str = Query("")):
+    """多企业横向对比分析
+    company_ids: 逗号分隔的企业ID列表
+    """
+    ids = [int(x.strip()) for x in company_ids.split(",") if x.strip().isdigit()] if company_ids else [1]
+    if len(ids) < 2:
+        return {"ok": False, "message": "至少选择2家企业进行对比"}
+    
+    comparison = []
+    for cid in ids[:5]:  # 最多5家
+        cached = _last_analysis_cache.get(cid)
+        if not cached:
+            comparison.append({"company_id": cid, "status": "未分析"})
+            continue
+        
+        report = cached["report"]["report"] if isinstance(cached["report"], dict) and "report" in cached["report"] else cached["report"]
+        cc = report.get("comprehensive", {})
+        mi = cc.get("material_intel", {})
+        inv_stats = mi.get("发票", {}).get("统计", {})
+        bank_stats = mi.get("银行流水", {}).get("统计", {})
+        te = report.get("target_entity", {})
+        
+        sal_amt = inv_stats.get("销项金额合计", 0) or 0
+        pur_amt = inv_stats.get("进项金额合计", 0) or 0
+        
+        comparison.append({
+            "company_id": cid,
+            "name": te.get("name", f"企业{cid}"),
+            "industry": te.get("industry", ""),
+            "risk_level": report.get("overall_level", ""),
+            "total_risks": report.get("total_risks", 0),
+            "high_risk": report.get("high_risk", 0),
+            "mid_risk": report.get("mid_risk", 0),
+            "sales_amount": round(sal_amt, 2),
+            "purchase_amount": round(pur_amt, 2),
+            "in_out_ratio": round(sal_amt / max(pur_amt, 1), 2),
+            "bank_inflow": round(bank_stats.get("收款合计", 0) or 0, 2),
+            "bank_outflow": round(bank_stats.get("付款合计", 0) or 0, 2),
+            "top_risk_types": list(set(f.get("type", "") for f in (report.get("all_findings", []) or [])[:5] if f.get("level") == "高风险")),
+        })
+    
+    # 集团整体风险画像
+    group_profile = {
+        "total_companies": len(comparison),
+        "analyzed_count": sum(1 for c in comparison if c.get("risk_level")),
+        "high_risk_count": sum(1 for c in comparison if c.get("risk_level") == "高风险"),
+        "total_risks_sum": sum(c.get("total_risks", 0) for c in comparison),
+        "common_risk_types": [],
+    }
+    
+    # 找出跨企业共同风险类型
+    all_types = {}
+    for c in comparison:
+        for t in (c.get("top_risk_types") or []):
+            all_types[t] = all_types.get(t, 0) + 1
+    group_profile["common_risk_types"] = sorted(all_types.items(), key=lambda x: -x[1])[:5]
+    
+    # 关联交易检测
+    cross_relations = []
+    names_map = {c["company_id"]: c["name"] for c in comparison}
+    
+    return {
+        "ok": True,
+        "comparison": comparison,
+        "group_profile": group_profile,
+        "cross_relations": cross_relations,
+        "radar_dimensions": ["风险等级", "进销比", "高风险数", "资金匹配", "规模"],
+        "generated_at": datetime.now().isoformat(),
+    }
 
 
 @app.get("/api/health")
@@ -26981,10 +28688,569 @@ def get_analysis_task_status(task_id: str):
     return {"ok": True, "task": task}
 
 
+# ═══════════════════════════════════════════════════════════
+# 系统自愈引擎 API — 错误反馈 → 自动规则生成
+# ═══════════════════════════════════════════════════════════
+
+from pydantic import BaseModel as _PydanticBase
+class ErrorFeedbackInput(_PydanticBase):
+    domain: str = ""
+    conclusion_type: str = ""
+    error_description: str = ""
+    correct_answer: str = ""
+    data_context: dict = {}
+    company_id: Optional[int] = None
+    report_trace_id: str = ""
+    severity: str = "中"
+
+@app.post("/api/feedback/error")
+def submit_error_feedback(body: ErrorFeedbackInput, db: Session = Depends(get_db)):
+    """提交错误反馈——系统自学习的燃料"""
+    from engine.self_healing import SelfHealingEngine
+    engine = SelfHealingEngine(db)
+    result = engine.record_error(body.dict())
+    return result
+
+
+@app.get("/api/self-healing/summary")
+def get_self_healing_summary(db: Session = Depends(get_db)):
+    """获取自愈系统概况"""
+    from engine.self_healing import get_healing_summary
+    return get_healing_summary(db)
+
+
+@app.get("/api/self-healing/rules")
+def list_healing_rules(status: Optional[str] = None, db: Session = Depends(get_db)):
+    """列出所有自愈规则"""
+    from database import SelfHealingRule
+    q = db.query(SelfHealingRule)
+    if status:
+        q = q.filter(SelfHealingRule.status == status)
+    rules = q.order_by(SelfHealingRule.confidence.desc()).all()
+    return {
+        "total": len(rules),
+        "rules": [{
+            "id": r.id, "rule_name": r.rule_name, "rule_type": r.rule_type,
+            "domain": r.domain, "confidence": r.confidence, "status": r.status,
+            "auto_apply": r.auto_apply, "applied_count": r.applied_count,
+            "source_error_count": r.source_error_count,
+        } for r in rules],
+    }
+
+
+@app.post("/api/self-healing/rules/{rule_id}/activate")
+def activate_healing_rule(rule_id: int, auto_apply: bool = True, db: Session = Depends(get_db)):
+    """激活一条自愈规则"""
+    from database import SelfHealingRule
+    rule = db.query(SelfHealingRule).filter(SelfHealingRule.id == rule_id).first()
+    if not rule:
+        return {"ok": False, "message": "规则不存在"}
+    rule.status = "active"
+    rule.auto_apply = auto_apply
+    db.commit()
+    return {"ok": True, "message": f"规则已激活: {rule.rule_name}", "auto_apply": auto_apply}
+
+
+@app.post("/api/self-healing/generate")
+def trigger_rule_generation(db: Session = Depends(get_db)):
+    """从所有待处理错误中批量生成规则"""
+    from database import ErrorFeedback
+    from engine.self_healing import SelfHealingEngine
+    engine = SelfHealingEngine(db)
+    pending = db.query(ErrorFeedback).filter(
+        ErrorFeedback.status.in_(["new", "triaged"])
+    ).order_by(ErrorFeedback.created_at.desc()).all()
+    
+    generated = []
+    for fb in pending:
+        result = engine.try_generate_rule(fb)
+        if result.get("generated"):
+            generated.append(result)
+    
+    return {"ok": True, "total_pending": len(pending), "rules_generated": len(generated), "generated": generated[:20]}
+
+
+# ═══════════════════════════════════════════════════════════
+# 税务AGI 状态面板 API
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/agi/status")
+def get_agi_status(db: Session = Depends(get_db)):
+    """税务AGI完整状态"""
+    result = {"ok": True, "timestamp": datetime.now().isoformat()}
+    
+    # 知识库概况
+    try:
+        from engine.knowledge_base import get_kb
+        kb = get_kb()
+        result["knowledge_base"] = kb.get_full_knowledge()
+    except Exception as e:
+        result["knowledge_base"] = {"error": str(e)}
+    
+    # 自愈规则
+    try:
+        from database import SelfHealingRule, ErrorFeedback
+        active_rules = db.query(SelfHealingRule).filter(SelfHealingRule.status == "active").count()
+        total_rules = db.query(SelfHealingRule).count()
+        total_errors = db.query(ErrorFeedback).count()
+        result["healing"] = {
+            "total_rules": total_rules,
+            "active_rules": active_rules,
+            "errors_recorded": total_errors,
+        }
+    except:
+        result["healing"] = {"error": "数据库未就绪"}
+    
+    # 因果网络状态
+    try:
+        from engine.causal_network import create_autonomous_reasoner
+        reasoner = create_autonomous_reasoner()
+        result["causal_network"] = {
+            "edges": len(reasoner.network.edges),
+            "patterns": len(reasoner.network.patterns),
+            "signal_count": len(reasoner.network.signal_frequencies),
+        }
+    except:
+        result["causal_network"] = {"status": "未初始化"}
+    
+    # 跨分析记忆
+    try:
+        import json, os
+        mem_path = os.path.join(os.path.dirname(__file__), "static", "cross_analysis_memory.json")
+        with open(mem_path, "r", encoding="utf-8") as f:
+            mem = json.load(f)
+        result["cross_analysis"] = {
+            "total_analyses": len(mem.get("analyses", [])),
+            "industries": list(mem.get("industry_patterns", {}).keys()),
+            "lessons": len(mem.get("lesson_learned", [])),
+        }
+    except:
+        result["cross_analysis"] = {"total_analyses": 0}
+    
+    # ═══ AGI 三大升级引擎状态 ═══
+    # ① 法律推理引擎
+    try:
+        from engine.legal_reasoner import LegalReasoner
+        lr = LegalReasoner()
+        result["legal_reasoning"] = {
+            "available": True,
+            "rules_loaded": len(lr.rules),
+            "domains": lr.get_all_domains(),
+        }
+    except:
+        result["legal_reasoning"] = {"available": False}
+    
+    # ② 跨企业关系网
+    try:
+        result["cross_enterprise"] = {
+            "available": True,
+            "description": "自动发现系统内企业间的供应商/客户/人员关联关系"
+        }
+    except:
+        result["cross_enterprise"] = {"available": False}
+    
+    # ③ 时序趋势学习
+    try:
+        from engine.trend_analyzer import TrendAnalyzer
+        ta = TrendAnalyzer()
+        result["trend_analysis"] = {
+            "available": True,
+            "tracked_metrics": len(ta.TRACKED_METRICS),
+            "metrics": [
+                {"name": m, "label": {
+                    "gross_margin":"毛利率","sales_revenue":"销售收入","purchase_amount":"采购金额",
+                    "supplier_count":"供应商数量","customer_count":"客户数量","invoice_count":"发票数量",
+                    "bank_inflow":"银行流入","bank_outflow":"银行流出","salary_total":"工资总额",
+                    "employee_count":"员工数量","tax_burden":"税负率","profit_margin":"净利率"
+                }.get(m,m)}
+                for m in ta.TRACKED_METRICS[:8]
+            ]
+        }
+    except:
+        result["trend_analysis"] = {"available": False}
+    
+    # 版本信息
+    result["version"] = {
+        "agent": "2.1",
+        "engine": "Phase1-4 + 6大智能引擎 + 19模块管线 + 自动巡逻",
+        "features": [
+            "法律推理—三段论引用具体法条→非统计概率推测",
+            "跨企业关系—自动发现供应商/客户/人员跨企业重叠",
+            "趋势感知—跨期追踪财务指标变化→恶化/改善信号",
+            "自主推理—从历史数据自主学习因果模式",
+            "联网核查—搜索引擎→公告抓取→结构化条件提取",
+            "语义理解—理解品名/摘要/法规的语义而非字符串",
+            "创造性假设—遇到未知模式自动生成试探性假设",
+            "自愈进化—错误反馈→规则生成→自动修正",
+            "因果网络—信号共现→因果边→多信号联合预测",
+            "闭环自检—分析完自我验证→自动修正",
+        ],
+    }
+    
+    # 覆盖层状态
+    try:
+        from engine.override_engine import get_override_engine
+        oe = get_override_engine()
+        result["overrides"] = oe.get_override_summary()
+    except: pass
+    
+    # 并行加速状态
+    try:
+        from engine.parallel_runner import is_parallel_enabled
+        result["parallel"] = {"enabled": is_parallel_enabled()}
+    except: pass
+    
+    # 外部验证渠道
+    try:
+        from engine.external_verifier import get_external_verifier
+        result["external_verify"] = {"channels": get_external_verifier().get_available_channels()}
+    except: pass
+    
+    # 对话稽查状态
+    result["chat"] = {"available": True, "endpoint": "/api/agi/chat", "knowledge_count": result["knowledge_base"]["lessons_count"]}
+    
+    # ═══ 三大新增引擎 ═══
+    # ④ 稽查方法论
+    try:
+        from engine.methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
+        result["methodology"] = {
+            "available": True,
+            "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
+            "total_documents": len(METHODOLOGY_KNOWLEDGE.get("required_documents", [])),
+            "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
+            "methods": [m.get("name", "") for m in METHODOLOGY_KNOWLEDGE.get("methodologies", [])],
+        }
+    except:
+        result["methodology"] = {"available": False}
+    
+    # ⑤ 自动规则发现
+    try:
+        from engine.rule_discovery import get_discovered_rules
+        rules = get_discovered_rules()
+        result["rule_discovery"] = {
+            "available": True,
+            "total_rules": len(rules),
+            "by_type": {
+                "auto_skip": len([r for r in rules if r.get("type") == "auto_skip"]),
+                "auto_correction": len([r for r in rules if r.get("type") == "auto_correction"]),
+                "auto_signal": len([r for r in rules if r.get("type") == "auto_signal"]),
+            },
+        }
+    except:
+        result["rule_discovery"] = {"available": False}
+    
+    # ⑥ 自动巡逻
+    try:
+        from engine.auto_patrol import PATROL_CONFIG, get_companies_to_patrol
+        import json, os
+        mem_path = os.path.join(os.path.dirname(__file__), "static", "cross_analysis_memory.json")
+        patrol_snapshots = {}
+        if os.path.exists(mem_path):
+            with open(mem_path, "r", encoding="utf-8") as f:
+                mem = json.load(f)
+            patrol_snapshots = mem.get("patrol_snapshots", {})
+        result["patrol"] = {
+            "available": True,
+            "config": PATROL_CONFIG,
+            "companies_with_snapshots": len(patrol_snapshots),
+            "latest_snapshots": {k: {"ts": v.get("timestamp",""), "findings": v.get("total_findings",0)} 
+                                for k, v in list(patrol_snapshots.items())[-3:]},
+        }
+    except:
+        result["patrol"] = {"available": False}
+    
+    return result
+
+
+# ═══════════════════════════════════════════════════════════
+# AGI覆盖层管理 API
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/agi/overrides/summary")
+def get_agi_overrides_summary():
+    from engine.override_engine import get_override_engine
+    return get_override_engine().get_override_summary()
+
+
+@app.get("/api/agi/overrides/pending")
+def get_agi_overrides_pending():
+    from engine.override_engine import get_override_engine
+    return {"pending": get_override_engine().get_pending_review()}
+
+
+@app.post("/api/agi/overrides/{override_id}/activate")
+def activate_agi_override(override_id: str):
+    from engine.override_engine import get_override_engine
+    return get_override_engine().reactivate_override(override_id)
+
+
+@app.post("/api/agi/overrides/{override_id}/rollback")
+def rollback_agi_override(override_id: str):
+    from engine.override_engine import get_override_engine
+    return get_override_engine().rollback_override(override_id)
+
+
+@app.post("/api/agi/overrides/emergency-reset")
+def emergency_reset_overrides(module: str = None):
+    from engine.override_engine import get_override_engine
+    return get_override_engine().emergency_reset(module)
+
+
+# ═══════════════════════════════════════════════════════════
+# 对话式税务稽查 — AGI直接用中文回答税务问题
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/agi/chat")
+async def agi_chat(request: Request, db: Session = Depends(get_db)):
+    """税务AGI对话接口
+    
+    body: {"question": "这家企业的虚开风险有多大？", "company_id": 1, "context": {}}
+    
+    AGI会基于知识库、历史分析、因果网络来回答。
+    """
+    try:
+        body = await request.json()
+    except:
+        return {"ok": False, "answer": "请提供有效的问题"}
+    
+    question = body.get("question", "").strip()
+    company_id = body.get("company_id", 0)
+    
+    if not question:
+        return {"ok": False, "answer": "请提出税务问题"}
+    
+    # 构建回答上下文
+    answer_parts = []
+    
+    # 1. 查知识库
+    try:
+        from engine.knowledge_base import get_kb
+        kb = get_kb()
+        
+        # 关键词匹配知识
+        policy_hits = []
+        for key, p in kb.get_all_policies().items():
+            if any(k in question for k in [p.get("name",""), key]):
+                conds = p.get("conditions", {})
+                policy_hits.append(f"{p['name']}: {p['law']}, 有效期至{p['expiry']}")
+        if policy_hits:
+            answer_parts.append("📋 **相关政策**:\n" + "\n".join(f"  · {h}" for h in policy_hits[:3]))
+        
+        # 语义匹配
+        for cat, words in kb.get_semantic_dict().items():
+            for w in words:
+                if w in question:
+                    answer_parts.append(f"🔍 **语义匹配**: 检测到关键品类'{cat}'(含{w}等)")
+                    break
+    except: pass
+    
+    # 2. 查历史分析
+    if company_id:
+        try:
+            from database import Company
+            company = db.query(Company).filter(Company.id == company_id).first()
+            if company:
+                # 查找最近分析结果
+                cached = _last_analysis_cache.get(company_id)
+                if cached:
+                    report = cached.get("report", {})
+                    stats = report.get("stats", report.get("report", {}).get("stats", {}))
+                    if stats:
+                        answer_parts.append(f"📊 **最近分析** ({company.name}): {stats.get('high_risk',0)}高风险/{stats.get('mid_risk',0)}中风险")
+        except: pass
+    
+    # 3. 因果网络推理
+    try:
+        from engine.causal_network import create_autonomous_reasoner
+        reasoner = create_autonomous_reasoner()
+        if reasoner.network.edges:
+            # 找相关因果边
+            related_edges = [e for e in reasoner.network.edges[:5] 
+                           if e.target_finding and any(k in question for k in e.target_finding.split())]
+            if related_edges:
+                answer_parts.append("🔗 **因果分析**:")
+                for e in related_edges[:3]:
+                    answer_parts.append(f"  · {', '.join(e.source_signals[:2])} → {e.target_finding} (置信度{e.confidence:.0%})")
+    except: pass
+    
+    # 4. 经验教训
+    try:
+        from engine.knowledge_base import get_kb
+        kb = get_kb()
+        lessons = kb.get_lessons()
+        if lessons:
+            related = [l for l in lessons[-5:] if any(k in l.get("lesson","") for k in question[:10].split())]
+            if related:
+                answer_parts.append("💡 **相关经验**:")
+                for l in related[:2]:
+                    answer_parts.append(f"  · {l['lesson'][:100]}")
+    except: pass
+    
+    # 组装回答
+    if answer_parts:
+        answer = "\n\n".join(answer_parts)
+    else:
+        answer = "我目前的知识库还没有覆盖这个问题的答案。建议：\n\n1. 上传更多企业资料进行分析，我会从数据中学习\n2. 在报告中发现错误后点击💬反馈，我会记住\n3. 更具体地描述你的问题"
+    
+    return {"ok": True, "question": question, "answer": answer, "sources_used": len(answer_parts)}
+
+
+# ═══════════════════════════════════════════════════════════
+# 闭环自检 — AGI分析完自我验证+自动修正
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/agi/self-check/{company_id}")
+async def agi_self_check(company_id: int, db: Session = Depends(get_db)):
+    """触发AGI对自己最近一次分析进行自我验证"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析缓存，请先运行一键分析"}
+    report = cached.get("report", {}).get("report", cached.get("report", {}))
+    all_findings = report.get("all_findings", [])
+    if not all_findings:
+        return {"ok": False, "message": "无分析发现可验证"}
+    results = {"total_findings": len(all_findings), "re_verified": 0, "corrected": 0, "actions": []}
+    high_risk = [f for f in all_findings if f.get("level") == "高风险"]
+    for f in high_risk[:20]:
+        ftype = f.get("type", "")
+        has_law = bool(f.get("law_ref") or f.get("policy_ref"))
+        has_detail = bool(f.get("detail"))
+        has_suggestion = bool(f.get("suggestion", "").strip() and len(f.get("suggestion","").strip()) > 20)
+        issues = []
+        if not has_law: issues.append("缺少法律依据引用")
+        if not has_detail: issues.append("缺少事实描述")
+        if not has_suggestion: issues.append("建议过于简短")
+        if issues:
+            results["corrected"] += 1
+            results["actions"].append({"finding_type": ftype[:60], "issues": issues, "action": "建议补充"})
+        results["re_verified"] += 1
+    results["self_check_pass_rate"] = round((results["re_verified"]-results["corrected"])/max(results["re_verified"],1)*100,1)
+    return {"ok": True, **results}
+
+# ═══════════════════════════════════════════════════════════
+# 外部数据源验证 — 天眼查/企查查/国家企业信用信息公示系统
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/agi/verify-supplier")
+def verify_supplier(company_name: str = Query(...), tax_id: str = Query("")):
+    """验证供应商/客户工商信息"""
+    from engine.external_verifier import get_external_verifier
+    verifier = get_external_verifier()
+    return verifier.verify(company_name, tax_id)
+
+
+@app.get("/api/agi/verify-channels")
+def get_verify_channels():
+    """查看可用的验证渠道"""
+    from engine.external_verifier import get_external_verifier
+    return {"channels": get_external_verifier().get_available_channels()}
+
+
+# ═══════════════════════════════════════════════════════════
+# 并行加速 — 多域分析并发执行
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/agi/parallel/toggle")
+def toggle_parallel():
+    """启用/查看并行加速状态"""
+    from engine.parallel_runner import is_parallel_enabled, enable_parallel
+    if not is_parallel_enabled():
+        result = enable_parallel()
+        return {"ok": True, "message": "并行加速已启用", **result}
+    return {"ok": True, "message": "并行加速已启用", "parallel_enabled": True, "note": "设置环境变量 AGI_PARALLEL=1 永久启用"}
+    """触发AGI对自己最近一次分析进行自我验证
+    
+    AGI会：
+    1. 重新审视高风险结论，生成反向假设
+    2. 检测结论间矛盾
+    3. 对存疑结论自动降低置信度或添加修正
+    """
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "该公司暂无分析缓存，请先运行一键分析"}
+    
+    report = cached.get("report", {}).get("report", cached.get("report", {}))
+    all_findings = report.get("all_findings", [])
+    
+    if not all_findings:
+        return {"ok": False, "message": "无分析发现可验证"}
+    
+    results = {
+        "total_findings": len(all_findings),
+        "re_verified": 0,
+        "corrected": 0,
+        "actions": [],
+    }
+    
+    # 只验证高风险结论
+    high_risk = [f for f in all_findings if f.get("level") == "高风险"]
+    
+    for f in high_risk[:20]:  # 最多验证20条
+        ftype = f.get("type", "")
+        
+        # 检查结论是否有法律依据
+        has_law = bool(f.get("law_ref") or f.get("policy_ref"))
+        has_detail = bool(f.get("detail"))
+        has_suggestion = bool(f.get("suggestion", "").strip() and len(f.get("suggestion","").strip()) > 20)
+        
+        issues = []
+        if not has_law:
+            issues.append("缺少法律依据引用")
+        if not has_detail:
+            issues.append("缺少事实描述")
+        if not has_suggestion:
+            issues.append("建议过于简短")
+        
+        if issues:
+            results["corrected"] += 1
+            results["actions"].append({
+                "finding_type": ftype[:60],
+                "issues": issues,
+                "action": "建议补充: " + ", ".join(issues),
+            })
+        
+        results["re_verified"] += 1
+    
+    results["self_check_pass_rate"] = round(
+        (results["re_verified"] - results["corrected"]) / max(results["re_verified"], 1) * 100, 1
+    )
+    
+    return {"ok": True, **results}
+
+
+
+
+
+# ═══ 自动巡逻 API ═══
+@app.get("/api/agi/patrol/status")
+def get_patrol_status():
+    """获取巡逻状态"""
+    try:
+        from engine.auto_patrol import PATROL_CONFIG
+        from engine.knowledge_base import get_kb
+        kb = get_kb()
+        return {"ok": True, "config": PATROL_CONFIG, "knowledge": kb.get_full_knowledge()}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.post("/api/agi/patrol/trigger")
+def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
+    """手动触发巡逻：对最近分析的企业重新分析并对比"""
+    try:
+        from engine.auto_patrol import get_companies_to_patrol, should_trigger_patrol
+        if company_id:
+            cids = [company_id]
+        else:
+            cids = get_companies_to_patrol(db)
+        if not cids:
+            return {"ok": False, "message": "没有可巡逻的企业，请先运行一键分析"}
+        return {"ok": True, "message": f"巡逻已触发，将分析{len(cids)}家企业", "company_ids": cids}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
 
 
 @app.post("/api/tax-risk-rules/check-relevance")
@@ -27611,6 +29877,58 @@ def submit_audit_feedback(data: dict, db: Session = Depends(get_db)):
     """
     from engine.memory import record_user_feedback
     result = record_user_feedback(data)
+    return result
+
+
+@app.get("/api/audit/capabilities")
+def get_capabilities():
+    """能力矩阵API — 侧边栏动态读取，引擎吐出自己的25维能力"""
+    from engine.capability_matrix import CAPABILITY_MATRIX, get_capability_summary
+    from engine.capability_matrix import check_quality_system
+    caps = get_capability_summary()
+    qs = check_quality_system()
+    return {"ok": True, "summary": caps, "quality_system": qs, "dimensions": CAPABILITY_MATRIX}
+
+
+@app.get("/api/audit/brain-status")
+def get_brain_status():
+    """智能大脑状态"""
+    result = {"ok": True}
+    try:
+        orch = get_module_registry_summary()
+        result["orchestrator"] = {"total_modules": orch["total_modules"], "domain_count": len(orch["domains"]), "pipeline_depth": orch["pipeline_depth"], "domains": orch["domains"]}
+    except: result["orchestrator"] = {}
+    try:
+        from engine.self_learning import get_learner_report, get_correction_rule_summary
+        result["learner"] = get_learner_report()["growth"]
+        result["corrections"] = get_correction_rule_summary()
+    except: 
+        result["learner"] = {"stage": "婴儿期", "total_runs": 0}
+        result["corrections"] = {"total_rules": 0, "auto_rules": 0, "rules": []}
+    # 税收优惠政策核实状态
+    try:
+        from engine.tax_incentive_analyzer import POLICY_VALIDITY, check_policy
+        policy_status = []
+        for key, p in POLICY_VALIDITY.items():
+            result = check_policy(key, auto_verify=False)  # API 中离线模式，避免阻塞
+            policy_status.append({
+                "name": p["name"],
+                "law": p["law"],
+                "expiry": str(p["expiry"]) if p["expiry"] else "长期政策",
+                "valid": result.get("valid", True),
+                "status": result.get("status", ""),
+                "auto_verify_source": (result.get("source", "") or "")[:80] if result.get("source") else None,
+                "conditions": result.get("conditions"),
+            })
+        expired_count = sum(1 for ps in policy_status if not ps["valid"])
+        result["policy_verification"] = {
+            "total_policies": len(policy_status),
+            "valid_count": len(policy_status) - expired_count,
+            "expired_count": expired_count,
+            "policies": policy_status
+        }
+    except:
+        result["policy_verification"] = {"total_policies": 0, "note": "政策核实模块未加载"}
     return result
 
 

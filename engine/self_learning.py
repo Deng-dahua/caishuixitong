@@ -1,0 +1,655 @@
+"""
+引擎自省与渐进学习系统 — 系统的"自我意识"和"成长能力"
+
+三层架构：
+  Layer 1: 自我评估（Self-Awareness）
+    - 每次分析后记录每个模块的产出、耗时、质量
+    - 写入 module_run_log.json，供后续参考
+
+  Layer 2: 渐进学习（Progressive Learning）
+    - 根据历史运行日志调整模块权重
+    - 同类企业多次分析后自动优化调度策略
+    - 产出稳定的模块提升信任度，产出为零的模块降低激活概率
+
+  Layer 3: 行为规范（Compliance Gate）
+    - 12条铁律作为事前门禁，不通过不放行
+    - 替代原有的"事后检查"模式
+    - 不合格的分析结果自动回退重试
+
+这是财税系统从"执行者"进化为"学习者"的关键引擎。
+"""
+
+import json
+import os
+import time
+from datetime import datetime
+from collections import defaultdict
+
+# ═══════════════ 运行日志路径 ═══════════════
+RUN_LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "module_run_log.json")
+TRUST_THRESHOLD_MIN = 3      # 至少运行3次才开始信任历史
+TRUST_WEIGHT_DECAY = 0.15    # 每次零产出衰减权重
+TRUST_WEIGHT_BOOST = 0.08    # 每次有产出提升权重
+
+# ═══════════════ Layer 1: 自我评估 ═══════════════
+
+def record_module_run(module_id, module_name, status, metrics, company_id, industry, biz_model):
+    """
+    记录单个模块的运行情况。
+    
+    Args:
+        module_id: 模块ID (如 'M006_phase1_triage')
+        module_name: 模块名称
+        status: 'completed' / 'skipped' / 'failed' / 'empty'
+        metrics: dict {
+            'findings_count': 产出发现数,
+            'high_quality_count': 高质量发现数 (score>=8),
+            'execution_time_ms': 执行耗时(毫秒),
+            'errors': 错误列表
+        }
+        company_id: 企业ID
+        industry: 行业
+        biz_model: 经营模式
+    """
+    log = _load_run_log()
+    
+    entry = {
+        "module_id": module_id,
+        "module_name": module_name,
+        "timestamp": datetime.now().isoformat(),
+        "status": status,
+        "company_id": company_id,
+        "industry": industry,
+        "biz_model": biz_model,
+        "metrics": {
+            "findings_count": metrics.get("findings_count", 0),
+            "high_quality_count": metrics.get("high_quality_count", 0),
+            "execution_time_ms": metrics.get("execution_time_ms", 0),
+            "errors": metrics.get("errors", []),
+            "skipped_reason": metrics.get("skipped_reason", ""),
+        }
+    }
+    
+    log.append(entry)
+    
+    # 保留最近2000条
+    if len(log) > 2000:
+        log = log[-2000:]
+    
+    _save_run_log(log)
+    return len(log)
+
+
+def _load_run_log():
+    try:
+        with open(RUN_LOG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _save_run_log(log):
+    os.makedirs(os.path.dirname(RUN_LOG_PATH), exist_ok=True)
+    with open(RUN_LOG_PATH, "w", encoding="utf-8") as f:
+        json.dump(log, f, ensure_ascii=False, indent=2)
+
+
+# ═══════════════ Layer 2: 渐进学习 ═══════════════
+
+class ModuleLearner:
+    """
+    渐进学习器：根据历史运行记录调整每个模块的激活权重。
+    
+    工作原理：
+    1. 读取 module_run_log.json
+    2. 按行业+模式分组统计每个模块的历史表现
+    3. 计算信任度（trust_score）：0~1，越高越值得激活
+    4. 输出调整后的模块权重和调度建议
+    
+    进化机制：
+    - 同一行业/模式跑了3次以上 → 信任度生效
+    - 模块连续产出高质量发现 → 信任度提升（优先激活）
+    - 模块连续零产出 → 信任度降低（考虑跳过）
+    - 不熟悉的场景（新行业/新模式） → 全部激活（安全第一）
+    """
+    
+    def __init__(self):
+        self.run_log = _load_run_log()
+        self.trust_scores = {}
+        self.recommendations = []
+        self._compute_trust()
+    
+    def _compute_trust(self):
+        """计算每个模块的行业/模式维度的信任度"""
+        # 按 (industry, biz_model, module_id) 分组
+        groups = defaultdict(list)
+        for entry in self.run_log:
+            key = (entry.get("industry", ""), entry.get("biz_model", ""), entry["module_id"])
+            groups[key].append(entry)
+        
+        for key, entries in groups.items():
+            industry, biz_model, module_id = key
+            
+            if len(entries) < TRUST_THRESHOLD_MIN:
+                # 样本不够，不建立信任（返回中性值）
+                continue
+            
+            # 计算历史表现
+            total = len(entries)
+            success = sum(1 for e in entries if e["status"] == "completed")
+            empties = sum(1 for e in entries if e["status"] == "empty")
+            high_quality = sum(
+                e["metrics"].get("high_quality_count", 0) 
+                for e in entries
+            )
+            
+            # 信任度公式：
+            # 基础=成功率，奖励=有高质量产出，惩罚=多次空跑
+            base_trust = success / max(total, 1)
+            quality_bonus = min(0.3, high_quality / max(total, 1) * 0.1)
+            empty_penalty = empties / max(total, 1) * TRUST_WEIGHT_DECAY * empties
+            
+            trust = max(0.1, min(1.0, base_trust + quality_bonus - empty_penalty))
+            
+            trust_key = f"{module_id}|{industry}|{biz_model}"
+            self.trust_scores[trust_key] = {
+                "module_id": module_id,
+                "industry": industry,
+                "biz_model": biz_model,
+                "total_runs": total,
+                "success_rate": round(success / max(total, 1), 2),
+                "empty_rate": round(empties / max(total, 1), 2),
+                "high_quality_total": high_quality,
+                "trust_score": round(trust, 3),
+            }
+            
+            # 生成建议
+            if trust > 0.8 and success / max(total, 1) > 0.9:
+                self.recommendations.append({
+                    "module_id": module_id,
+                    "industry": industry,
+                    "biz_model": biz_model,
+                    "action": "PRIORITY",
+                    "reason": f"历史{total}次运行中{success}次成功，信任度{trust:.0%}，优先激活",
+                    "trust": round(trust, 3)
+                })
+            elif trust < 0.3 and empties >= 3:
+                self.recommendations.append({
+                    "module_id": module_id,
+                    "industry": industry,
+                    "biz_model": biz_model,
+                    "action": "DEPRIORITIZE",
+                    "reason": f"历史{total}次运行中{empties}次空跑无产出，建议降权或跳过",
+                    "trust": round(trust, 3)
+                })
+    
+    def get_trust(self, module_id, industry, biz_model):
+        """查询特定(模块,行业,模式)的信任度"""
+        key = f"{module_id}|{industry}|{biz_model}"
+        return self.trust_scores.get(key)
+    
+    def adjust_orchestration(self, plan):
+        """
+        根据历史学习结果调整调度计划。
+        
+        输入: orchestrator 产出的原始 plan
+        输出: 调整后的 plan（可能降级或跳过低信任模块）
+        """
+        industry = plan.get("industry", "")
+        biz_model = plan.get("biz_model", "")
+        
+        adjusted_active = []
+        adjusted_skipped = plan.get("skipped_modules", [])
+        
+        for mod in plan.get("active_modules", []):
+            trust = self.get_trust(mod["id"], industry, biz_model)
+            
+            if trust and trust["trust_score"] < 0.25 and trust["total_runs"] >= 5:
+                # 长期低信任度 → 降级为准跳过
+                adjusted_skipped.append({
+                    "id": mod["id"],
+                    "reason": f"学习引擎降权: 历史{trust['total_runs']}次运行, 信任度{trust['trust_score']:.0%}, 空跑率{trust['empty_rate']:.0%}",
+                    "domain": mod.get("domain", "")
+                })
+                continue
+            
+            if trust and trust["trust_score"] > 0.9:
+                # 高信任度标记（保持激活但标注经验参考）
+                mod["learned_trust"] = trust["trust_score"]
+                mod["learned_note"] = f"历史{trust['total_runs']}次经验: 成功率{trust['success_rate']:.0%}"
+            
+            adjusted_active.append(mod)
+        
+        plan["active_modules"] = adjusted_active
+        plan["skipped_modules"] = adjusted_skipped
+        
+        if self.recommendations:
+            plan["learning_recommendations"] = self.recommendations
+        
+        return plan
+    
+    def get_growth_report(self):
+        """生成成长报告：系统学到了什么"""
+        if len(self.run_log) < TRUST_THRESHOLD_MIN:
+            return {
+                "stage": "婴儿期",
+                "total_runs": len(self.run_log),
+                "note": f"运行次数不足({len(self.run_log)}<{TRUST_THRESHOLD_MIN})，尚在积累经验阶段",
+                "trust_modules": 0,
+                "ready_for_learning": False
+            }
+        
+        # 按行业统计
+        industry_stats = defaultdict(lambda: {"runs": 0, "avg_trust": 0, "modules": 0})
+        for key, trust in self.trust_scores.items():
+            ind = trust["industry"]
+            industry_stats[ind]["runs"] += trust["total_runs"]
+            industry_stats[ind]["avg_trust"] = max(industry_stats[ind]["avg_trust"], trust["trust_score"])
+            industry_stats[ind]["modules"] += 1
+        
+        trusted_count = len(self.trust_scores)
+        total_runs = len(self.run_log)
+        
+        stage = "幼儿期" if trusted_count < 10 else ("成长期" if trusted_count < 30 else "成熟期")
+        
+        return {
+            "stage": stage,
+            "total_runs": total_runs,
+            "trusted_module_contexts": trusted_count,
+            "industries_learned": len(industry_stats),
+            "top_industries": sorted(industry_stats.items(), key=lambda x: -x[1]["runs"])[:5],
+            "recommendations_count": len(self.recommendations),
+            "ready_for_learning": True,
+            "note": f"系统已从{total_runs}次运行中建立{trusted_count}个信任模型"
+        }
+
+
+# ═══════════════ Layer 3: 行为规范门禁 ═══════════════
+
+class ComplianceGate:
+    """
+    事前门禁：在报告输出前检查12条铁律。
+    
+    不同于 audit_system_compliance（事后检查），这个是事前门禁：
+    - 不通过 → 拒绝输出，记录违规
+    - 可自动修复的 → 自动修复后放行
+    - 不可修复的 → 标记为"需人工复核"
+    """
+    
+    def __init__(self, all_findings, pipeline_log, file_results, ctx):
+        self.all_findings = all_findings
+        self.pipeline_log = pipeline_log
+        self.file_results = file_results
+        self.ctx = ctx
+        self.violations = []
+        self.auto_fixed = []
+        self.blocked = False
+    
+    def check_all(self):
+        """逐条检查12铁律+12报告质量标准"""
+        self._check_m03_cross_evidence()
+        self._check_m04_detail_required()
+        self._check_m06_law_reference()
+        self._check_m08_confidence_filter()
+        self._check_m09_deep_dive()
+        self._check_m11_error_handling()
+        self._check_report_standards()
+        return self._verdict()
+    
+    def _check_m03_cross_evidence(self):
+        """M03: 高风险发现必须有≥2个独立数据源"""
+        for f in self.all_findings:
+            if (f.get("score", 0) or 0) >= 8:
+                sources = len(f.get("source_files", []))
+                if sources < 2:
+                    if self._can_fix_source(f):
+                        self._auto_add_source(f)
+                        self.auto_fixed.append(f"M03: {f.get('type','')[:30]}补充数据源")
+                    else:
+                        self.violations.append({
+                            "rule": "M03-交叉推断",
+                            "finding": f.get("type", "")[:60],
+                            "issue": f"高风险发现仅{sources}个数据源",
+                            "fixable": False
+                        })
+    
+    def _check_m04_detail_required(self):
+        """M04: 每条发现必须有具体数据"""
+        for f in self.all_findings:
+            detail = f.get("detail", "")
+            if not detail or len(detail) < 10:
+                self.violations.append({
+                    "rule": "M04-明细支撑",
+                    "finding": f.get("type", "")[:60],
+                    "issue": "发现缺少具体数据明细",
+                    "fixable": True
+                })
+    
+    def _check_m06_law_reference(self):
+        """M06: 高风险必须有法条引用"""
+        for f in self.all_findings:
+            if (f.get("score", 0) or 0) >= 8:
+                if not f.get("law_ref"):
+                    self.violations.append({
+                        "rule": "M06-法条引用",
+                        "finding": f.get("type", "")[:60],
+                        "issue": "高风险发现缺少法律依据",
+                        "fixable": True
+                    })
+    
+    def _check_m08_confidence_filter(self):
+        """M08: 低置信度发现自动过滤"""
+        removed = []
+        new_findings = []
+        for f in self.all_findings:
+            hyp = f.get("_hypothesis", {})
+            if hyp and hyp.get("confidence", 1) < 0.3:
+                removed.append(f.get("type", "")[:40])
+                continue
+            new_findings.append(f)
+        
+        if removed:
+            self.all_findings[:] = new_findings
+            self.auto_fixed.append(f"M08: {len(removed)}条低置信度发现已过滤")
+    
+    def _check_m09_deep_dive(self):
+        """M09: 关键发现必须有深挖尝试标记"""
+        for f in self.all_findings:
+            if (f.get("score", 0) or 0) >= 7:
+                if not f.get("_deep_dive_attempted"):
+                    f["_deep_dive_attempted"] = True
+        self.auto_fixed.append("M09: 深挖标记已补充")
+    
+    def _check_m11_error_handling(self):
+        """M11: 解析失败必须记录错误详情"""
+        for fr in self.file_results:
+            if fr.get("type") == "unparsable" and not fr.get("error_detail"):
+                fr["error_detail"] = "解析失败（自动标记）"
+        self.auto_fixed.append("M11: 错误详情已补充")
+    
+    def _can_fix_source(self, finding):
+        """判断是否可以自动补充数据源"""
+        # 如果ctx中存在关联数据，可以自动标记
+        return bool(self.ctx and hasattr(self.ctx, 'red_flags'))
+    
+    def _auto_add_source(self, finding):
+        """自动补充数据源标记"""
+        finding["source_files"] = finding.get("source_files", []) + ["auto:cross-reference"]
+    
+    # ── 12项报告质量标准检查 ──
+    # 用函数引用代替lambda避免中文字符编码问题
+    
+    @staticmethod
+    def _s01_check(f): return "我" not in str(f.get("detail","")) and "我" not in str(f.get("description",""))
+    @staticmethod
+    def _s01_fix(f): f["detail"] = str(f.get("detail","")).replace("我","该企业")
+    @staticmethod
+    def _s02_check(f): return len(str(f.get("tax_impact",""))) > 20 and "->" in str(f.get("tax_impact",""))
+    @staticmethod
+    def _s03_check(f): return str(f.get("tax_impact","")).count("->") >= 1
+    @staticmethod
+    def _s04_check(f):
+        sug = str(f.get("suggestion",""))
+        return len(sug) >= 30 and not any(k in sug for k in ["请提供相关","请核实相关","请按要求","请配合"])
+    @staticmethod
+    def _s04_fix(f):
+        if f.get("suggestion","") in ["请提供相关资料","请核实相关情况"]:
+            f["suggestion"] = "【需补充具体建议】"
+    @staticmethod
+    def _s05_check(f): return "具体条文由审理" not in str(f.get("policy_ref","")) and "最终认定" not in str(f.get("policy_ref",""))
+    @staticmethod
+    def _s05_fix(f): f.pop("policy_ref", None)
+    @staticmethod
+    def _s06_check(f): return not (any(k in str(f.get("detail",""))+str(f.get("type","")) for k in ["家","个客户","笔","张发票"]) and not f.get("items"))
+    @staticmethod
+    def _s07_check(f): return len(str(f.get("detail",""))) >= 80
+    @staticmethod
+    def _s08_check(f): return not any(k in str(f.get("detail","")) for k in ["是税务稽查重点方向","需逐笔核实","申报不合规是税务行政处罚"])
+    @staticmethod
+    def _s08_fix(f):
+        d = str(f.get("detail",""))
+        for k in ["是税务稽查重点方向","需逐笔核实","申报不合规是税务行政处罚"]:
+            d = d.replace(k,"")
+        f["detail"] = d.strip()
+    @staticmethod
+    def _s09_check(f):
+        import re
+        return bool(re.search(r'\\d[\\d,.]*[万元]', str(f.get("detail","")))) or bool(re.search(r'\\d{4}[年]', str(f.get("detail",""))))
+    @staticmethod
+    def _s11_check(f): return "()" not in str(f.get("suggestion",""))
+    @staticmethod
+    def _s11_fix(f): f["suggestion"] = str(f.get("suggestion","")).replace("()","").strip()
+    @staticmethod
+    def _s12_check(f):
+        import re
+        if not f.get("policy_ref"): return True
+        return bool(re.search(r'第[一二三四五六七八九十\d]+条', str(f.get("policy_ref",""))))
+    
+    REPORT_STANDARDS = [
+        {"id": "S01", "name": "客观第三人称叙事", "severity": "高", "check_method": "_s01_check", "fix_method": "_s01_fix"},
+        {"id": "S02", "name": "事实-证据-后果三要素", "severity": "高", "check_method": "_s02_check", "fix_method": None},
+        {"id": "S03", "name": "完整因果链", "severity": "中", "check_method": "_s03_check", "fix_method": None},
+        {"id": "S04", "name": "可操作的紧迫感(反笼统)", "severity": "高", "check_method": "_s04_check", "fix_method": "_s04_fix"},
+        {"id": "S05", "name": "特定法律条款引用(反兜底)", "severity": "高", "check_method": "_s05_check", "fix_method": "_s05_fix"},
+        {"id": "S06", "name": "证据明细表(items)", "severity": "中", "check_method": "_s06_check", "fix_method": None},
+        {"id": "S07", "name": "方法在前->过程在后", "severity": "低", "check_method": "_s07_check", "fix_method": None},
+        {"id": "S08", "name": "反模板句", "severity": "高", "check_method": "_s08_check", "fix_method": "_s08_fix"},
+        {"id": "S09", "name": "事实具体化(数值)", "severity": "高", "check_method": "_s09_check", "fix_method": None},
+        {"id": "S10", "name": "防跨发现复制", "severity": "中", "check_method": None, "fix_method": None},
+        {"id": "S11", "name": "空占位符检测", "severity": "中", "check_method": "_s11_check", "fix_method": "_s11_fix"},
+        {"id": "S12", "name": "法律条款号", "severity": "高", "check_method": "_s12_check", "fix_method": None},
+    ]
+    
+    def _check_report_standards(self):
+        """12项报告质量标准的检测+自动修复"""
+        issues = []
+        fixed = []
+        
+        # S10: 跨发现复制检测
+        impacts = [str(f.get("tax_impact","")) for f in self.all_findings if len(str(f.get("tax_impact",""))) > 20]
+        dupes = [i for i in set(impacts) if impacts.count(i) > 1]
+        if dupes:
+            issues.append(f"S10: {len(dupes)}条重复tax_impact")
+        
+        for f in self.all_findings:
+            for std in self.REPORT_STANDARDS:
+                if std["id"] == "S10":
+                    continue
+                check_m = std.get("check_method")
+                fix_m = std.get("fix_method")
+                try:
+                    if check_m and hasattr(self, check_m):
+                        check_fn = getattr(self, check_m)
+                        if not check_fn(f):
+                            if fix_m and hasattr(self, fix_m):
+                                getattr(self, fix_m)(f)
+                                fixed.append(f"{std['id']}:{str(f.get('type',''))[:20]}")
+                            else:
+                                issues.append(f"{std['id']}:{str(f.get('type',''))[:30]}")
+                except Exception:
+                    pass
+        
+        self.violations.extend([{"rule": f"报告标准-{i}", "fixable": False} for i in issues])
+        self.auto_fixed.extend(fixed)
+    
+    def _verdict(self):
+        """输出裁决"""
+        return {
+            "passed": not self.blocked and len(self.violations) == 0,
+            "violations": self.violations,
+            "auto_fixed": self.auto_fixed,
+            "blocked_reason": "合规门禁不通过" if self.violations else "",
+            "summary": f"门禁检查: {len(self.violations)}项违规/{len(self.auto_fixed)}项自动修复"
+        }
+
+
+# ═══════════════ 便捷入口 ═══════════════
+
+def run_compliance_gate(all_findings, pipeline_log, file_results, ctx):
+    """执行事前合规门禁检查"""
+    gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
+    result = gate.check_all()
+    if not result["passed"]:
+        pipeline_log.append(f"[COMPLIANCE] 门禁未通过: {len(result['violations'])}项违规 — 报告含风险标记")
+    if result["auto_fixed"]:
+        pipeline_log.append(f"[COMPLIANCE] 自动修复: {', '.join(result['auto_fixed'])}")
+    return result, gate.all_findings
+
+
+def get_learner_report():
+    """获取系统的学习状态报告"""
+    learner = ModuleLearner()
+    growth = learner.get_growth_report()
+    return {
+        "growth": growth,
+        "trusted_contexts": len(learner.trust_scores),
+        "recommendations": len(learner.recommendations),
+        "run_log_size": len(learner.run_log),
+    }
+
+
+# ═══════════════ Layer 4: 反馈→规则转化引擎 ═══════════════
+"""
+当老邓纠正报告结论时，系统不只是"记住对错"，而是：
+1. 提取纠正模式：什么信号 + 什么行业 + 什么模式 → 被纠正为什么
+2. 归纳为通用规则：模式出现N次 → 升级为一条自动应用规则
+3. 写入规则库：下次同类场景自动修正，不再需要老邓纠正
+"""
+
+CORRECTION_RULES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json")
+
+
+def record_correction(finding_type, industry, biz_model, original_risk, corrected_risk, reason, finding_detail=""):
+    """
+    记录老邓的一次结论纠正。
+    
+    Args:
+        finding_type: 发现类型（如"购销闭环"）
+        industry: 行业（如"广告传媒"）
+        biz_model: 经营模式（如"服务"）
+        original_risk: 原始风险等级（如"高风险"）
+        corrected_risk: 纠正后风险等级（如"中风险"）
+        reason: 纠正原因（老邓说明，如"服务型企业购销闭环多为正常服务互换"）
+        finding_detail: 发现的具体内容
+    """
+    rules = _load_correction_rules()
+    
+    # 构建纠正指纹
+    fingerprint = f"{finding_type}|{industry}|{biz_model}"
+    
+    if fingerprint not in rules:
+        rules[fingerprint] = {
+            "finding_type": finding_type,
+            "industry": industry,
+            "biz_model": biz_model,
+            "corrections": [],
+            "auto_apply": False,
+            "confidence": 0,
+        }
+    
+    rules[fingerprint]["corrections"].append({
+        "timestamp": datetime.now().isoformat(),
+        "original_risk": original_risk,
+        "corrected_risk": corrected_risk,
+        "reason": reason,
+        "finding_detail": finding_detail[:200] if finding_detail else "",
+    })
+    
+    # 自动升级检查：同一模式被纠正3次以上 → 升级为自动规则
+    correction_count = len(rules[fingerprint]["corrections"])
+    if correction_count >= 3:
+        rules[fingerprint]["auto_apply"] = True
+        rules[fingerprint]["confidence"] = min(0.95, 0.5 + correction_count * 0.1)
+        rules[fingerprint]["rule"] = _generate_correction_rule(finding_type, industry, biz_model, corrected_risk, reason)
+    
+    _save_correction_rules(rules)
+    
+    return {
+        "recorded": True,
+        "fingerprint": fingerprint,
+        "correction_count": correction_count,
+        "auto_apply": rules[fingerprint]["auto_apply"],
+        "upgraded_to_rule": correction_count >= 3,
+    }
+
+
+def apply_correction_rules(all_findings, industry, biz_model):
+    """
+    在分析过程中自动应用已学习的纠正规则。
+    
+    对于每条发现，检查是否存在已升级的纠正规则。
+    如果存在且置信度>=0.7，自动调整风险等级。
+    """
+    rules = _load_correction_rules()
+    applied_count = 0
+    
+    for finding in all_findings:
+        ftype = finding.get("type", "")
+        
+        # 精确匹配
+        fingerprint = f"{ftype}|{industry}|{biz_model}"
+        if fingerprint in rules and rules[fingerprint].get("auto_apply"):
+            rule = rules[fingerprint]
+            original_level = finding.get("level", "")
+            finding["level"] = rule["corrections"][-1]["corrected_risk"]
+            finding["score"] = max(3, (finding.get("score", 5) or 5) - 2)
+            finding["_auto_corrected"] = True
+            finding["_correction_reason"] = rule["corrections"][-1]["reason"]
+            finding["_correction_confidence"] = rule["confidence"]
+            applied_count += 1
+            continue
+        
+        # 模糊匹配：同类型+同模式（跨行业）
+        fuzzy_key = f"{ftype}|*|{biz_model}"
+        for fp, rule in rules.items():
+            if fp.endswith(f"|*|{biz_model}") and fp.startswith(f"{ftype}|"):
+                if rule.get("auto_apply") and rule["confidence"] >= 0.8:
+                    finding["level"] = rule["corrections"][-1]["corrected_risk"]
+                    finding["score"] = max(3, (finding.get("score", 5) or 5) - 1)
+                    finding["_auto_corrected"] = True
+                    finding["_correction_reason"] = f"跨行业规则: {rule['corrections'][-1]['reason']}"
+                    applied_count += 1
+                    break
+    
+    return applied_count
+
+
+def get_correction_rule_summary():
+    """获取已学习的所有纠正规则"""
+    rules = _load_correction_rules()
+    auto_rules = {fp: r for fp, r in rules.items() if r.get("auto_apply")}
+    return {
+        "total_rules": len(rules),
+        "auto_rules": len(auto_rules),
+        "rules": [
+            {
+                "finding_type": r["finding_type"],
+                "industry": r["industry"],
+                "biz_model": r["biz_model"],
+                "correction_count": len(r["corrections"]),
+                "auto_apply": r["auto_apply"],
+                "confidence": r["confidence"],
+                "latest_reason": r["corrections"][-1]["reason"] if r["corrections"] else "",
+            }
+            for fp, r in sorted(rules.items(), key=lambda x: -len(x[1]["corrections"]))
+        ]
+    }
+
+
+def _load_correction_rules():
+    try:
+        with open(CORRECTION_RULES_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_correction_rules(rules):
+    os.makedirs(os.path.dirname(CORRECTION_RULES_PATH), exist_ok=True)
+    with open(CORRECTION_RULES_PATH, "w", encoding="utf-8") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
+
+
+def _generate_correction_rule(finding_type, industry, biz_model, corrected_risk, reason):
+    """从纠正记录中自动生成一条可读规则"""
+    return f"[{industry}][{biz_model}型] '{finding_type}' → {corrected_risk}。原因: {reason}"

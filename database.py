@@ -4450,6 +4450,118 @@ class CulturalConstructionFeeDeduction(Base):
     declaration = relationship("CulturalConstructionFeeDeclaration", back_populates="deductions")
 
 
+# ═══════════════════ 系统自愈引擎 ═══════════════════
+
+class ErrorFeedback(Base):
+    """用户错误反馈记录——系统自学习的燃料"""
+    __tablename__ = "error_feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trace_id = Column(String(20), comment="反馈追踪ID")
+    domain = Column(String(200), comment="所属分析域")
+    conclusion_type = Column(String(200), comment="结论类型")
+    error_description = Column(Text, comment="用户描述：哪里错了")
+    correct_answer = Column(Text, comment="正确答案/修正方向")
+    data_context = Column(Text, comment="JSON: 错误发生时的数据上下文")
+    severity = Column(String(20), default="中", comment="严重程度: 高/中/低")
+    error_type = Column(String(50), comment="自动分类: policy_expired/false_positive/...")
+    status = Column(String(20), default="new", comment="new/triaged/resolved/archived")
+    company_id = Column(Integer, comment="公司ID")
+    report_trace_id = Column(String(50), comment="关联的报告追踪ID")
+    matched_rule_id = Column(Integer, comment="匹配的自愈规则ID")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_ef_domain', 'domain'),
+        Index('idx_ef_status', 'status'),
+    )
+
+
+class SelfHealingRule(Base):
+    """自愈规则——从错误中自动生成的修正规则"""
+    __tablename__ = "self_healing_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rule_name = Column(String(200), comment="规则名称")
+    rule_type = Column(String(50), comment="规则类型: policy_expired/false_positive/false_negative/rate_wrong/condition_missing")
+    domain = Column(String(200), comment="适用域")
+    trigger_pattern = Column(Text, comment="JSON: 触发条件模式")
+    correction_action = Column(String(50), comment="修正动作: update_law_ref/add_exemption_condition/lower_threshold/update_value/add_condition")
+    correction_detail = Column(Text, comment="JSON: 修正详情")
+    source_error_count = Column(Integer, default=1, comment="来源错误数量(≥3自动生成)")
+    confidence = Column(Float, default=0.5, comment="置信度 0-1")
+    status = Column(String(20), default="draft", comment="draft/active/disabled")
+    auto_apply = Column(Boolean, default=False, comment="是否自动应用到分析")
+    applied_count = Column(Integer, default=0, comment="已应用次数")
+    last_applied_at = Column(DateTime, comment="上次应用时间")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_shr_type', 'rule_type'),
+        Index('idx_shr_status', 'status'),
+    )
+
+
+# ═══════════════════════════════════════════════════════════
+# 整改跟踪 —— 风险发现→整改完成全流程
+# ═══════════════════════════════════════════════════════════
+
+class RemediationRecord(Base):
+    """整改跟踪记录——每条风险发现的整改进度"""
+    __tablename__ = "remediation_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, comment="公司ID")
+    finding_type = Column(String(200), comment="风险发现类型")
+    finding_detail = Column(Text, comment="风险发现明细")
+    risk_level = Column(String(10), comment="风险等级：高/中/低")
+    status = Column(String(20), default="pending", comment="整改状态: pending/in_progress/completed/verified/closed")
+    responsible_person = Column(String(50), comment="整改责任人")
+    action_plan = Column(Text, comment="整改方案/措施")
+    deadline = Column(Date, comment="整改截止日期")
+    completed_at = Column(DateTime, comment="完成时间")
+    verified_by = Column(String(50), comment="核验人")
+    verification_note = Column(Text, comment="核验意见")
+    evidence_files = Column(Text, comment="JSON: 整改证据文件列表")
+    notes = Column(Text, comment="备注")
+    trace_id = Column(String(50), comment="关联分析追踪ID")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_rr_company_status', 'company_id', 'status'),
+        Index('idx_rr_trace', 'trace_id'),
+    )
+
+
+# ═══════════════════════════════════════════════════════════
+# 行业对标统计池 —— 基准值从数据中自学习
+# ═══════════════════════════════════════════════════════════
+
+class IndustryBenchmark(Base):
+    """行业基准值统计——每次分析完成后自动更新"""
+    __tablename__ = "industry_benchmarks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    industry = Column(String(50), nullable=False, comment="行业代码")
+    metric_name = Column(String(50), nullable=False, comment="指标名称：invoice_match_ratio/tax_burden/gross_margin/in_out_ratio等")
+    metric_value = Column(Numeric(18, 4), comment="本次分析值")
+    company_id = Column(Integer, comment="公司ID")
+    trace_id = Column(String(50), comment="分析追踪ID")
+    sample_count = Column(Integer, default=1, comment="累计样本数")
+    running_mean = Column(Numeric(18, 4), comment="累计均值")
+    running_std = Column(Numeric(18, 4), comment="累计标准差")
+    p25 = Column(Numeric(18, 4), comment="25分位数")
+    p50 = Column(Numeric(18, 4), comment="中位数（benchmark）")
+    p75 = Column(Numeric(18, 4), comment="75分位数")
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_ib_industry_metric', 'industry', 'metric_name'),
+    )
+
+
 def init_db():
     """初始化数据库：建表 → 迁移 → 初始化已有公司的种子数据
 

@@ -1,5 +1,12 @@
 """
 稽查增强模块 - 补充材料缺口报告/数据质量评估/行业检测等功能
+
+═════ META-001 行业推断铁律 ═════
+行业推断唯一依据 = 销项发票品名，不参考进项发票品名。
+WHY: 销项=企业实际经营产出（卖什么=什么行业）
+     进项=采购投入/成本结构（买什么≠行业，如传媒公司买餐饮≠餐饮行业）
+代码位置: detect_industry() + engine/phase1_triage.py + main.py
+═══════════════════════════════════
 """
 from database import SessionLocal
 
@@ -17,11 +24,32 @@ def check_analysis_data_availability(db, company_id, period_start, period_end):
     return []
 
 
-def detect_industry(business_scope=""):
-    """从经营范围文本推断行业"""
-    if not business_scope:
+def detect_industry(business_scope="", company_name=""):
+    """从经营范围文本推断行业（可选的company_name用于消歧）"""
+    if not business_scope and not company_name:
         return "未知行业"
     scope = str(business_scope).lower()
+    name = str(company_name).lower() if company_name else ""
+    
+    # 公司名优先消歧：如果公司名称已经暗示行业，优先使用
+    if any(k in name for k in ("广告","传媒","文化","娱乐","影视","设计")):
+        return "广告传媒"
+    if any(k in name for k in ("软件","信息","互联网","计算机","科技","数据","数字")):
+        return "信息技术"
+    if any(k in name for k in ("咨询","服务","管理")):
+        return "咨询服务"
+    if any(k in name for k in ("建筑","工程","装修","房地产")):
+        return "建筑工程"
+    if any(k in name for k in ("纺织","服装","面料","纱线","布","染整")):
+        return "纺织制造"
+    if any(k in name for k in ("餐饮","酒店","住宿","食品")):
+        return "餐饮服务"
+    if any(k in name for k in ("物流","运输","快递","仓储")):
+        return "物流运输"
+    if any(k in name for k in ("医药","医疗","药品","器械")):
+        return "医药健康"
+    
+    # 经营范围关键词（当公司名无行业暗示时用）
     if any(k in scope for k in ("纺织","服装","面料","纱线")): return "纺织制造"
     if any(k in scope for k in ("建筑","工程","装修","房地产")): return "建筑工程"
     if any(k in scope for k in ("软件","信息","互联网","计算机")): return "信息技术"

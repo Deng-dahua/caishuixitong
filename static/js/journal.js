@@ -17,13 +17,19 @@ async function renderJournal(container) {
     const stats = await api('/api/journal-entries/stats');
     let html = '<div class="card card-fill">';
 
-    // 统计卡片
-    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">';
-    html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">记录总数</div></div>';
-    html += '<div class="stat-card"><div class="stat-value" style="color:var(--primary)">¥' + fmt(stats.total_debit) + '</div><div class="stat-label">借方合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value" style="color:var(--success)">¥' + fmt(stats.total_credit) + '</div><div class="stat-label">贷方合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value" style="color:var(--success)">' + stats.reviewed_count + '</div><div class="stat-label">已复核</div></div>';
-    html += '<div class="stat-card"><div class="stat-value" style="color:var(--warning)">' + stats.unreviewed_count + '</div><div class="stat-label">未复核</div></div>';
+    // ── 页面标题 ──
+    html += '<div class="page-header">';
+    html += '<h1>📒 序时账</h1>';
+    html += '<p>按时间顺序记录的全部会计分录 · 支持期间筛选、批量操作</p>';
+    html += '</div>';
+
+    // 统计卡片 — 增强版
+    html += '<div class="kpi-grid">';
+    html += '<div class="kpi-card"><div class="kpi-icon slate">📋</div><div class="kpi-info"><div class="kpi-label">记录总数</div><div class="kpi-value">' + stats.total_count + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon blue">📥</div><div class="kpi-info"><div class="kpi-label">借方合计</div><div class="kpi-value" style="color:#2563eb;font-size:20px;">¥' + fmt(stats.total_debit) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon green">📤</div><div class="kpi-info"><div class="kpi-label">贷方合计</div><div class="kpi-value" style="color:#16a34a;font-size:20px;">¥' + fmt(stats.total_credit) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon green">✅</div><div class="kpi-info"><div class="kpi-label">已复核</div><div class="kpi-value" style="color:#16a34a;">' + stats.reviewed_count + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon amber">⏳</div><div class="kpi-info"><div class="kpi-label">未复核</div><div class="kpi-value" style="color:#ca8a04;">' + stats.unreviewed_count + '</div></div></div>';
     html += '</div>';
 
     // 期间选择栏 + 批量删除按钮
@@ -674,3 +680,65 @@ function _enforceJePeriodOrder(changedSide) {
     }
   }
 }
+
+
+// ── 凭证智能复核 ──
+async function runJournalSmartReview() {
+  var btn = document.getElementById('smart-review-btn');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '复核中...';
+  
+  try {
+    var resp = await fetch('/api/journal-entries?company_id='+(currentCompanyId||1)+'&limit=500');
+    var data = await resp.json();
+    var entries = data.items || data || [];
+    
+    var issues = [];
+    var voucherGroups = {};
+    
+    entries.forEach(function(e){
+      var vno = e.voucher_no || '';
+      if (!voucherGroups[vno]) voucherGroups[vno] = {debit:0, credit:0, entries:[]};
+      voucherGroups[vno].debit += parseFloat(e.debit||0);
+      voucherGroups[vno].credit += parseFloat(e.credit||0);
+      voucherGroups[vno].entries.push(e);
+      
+      // 负数金额
+      if (parseFloat(e.debit||0) < 0 || parseFloat(e.credit||0) < 0) {
+        issues.push('负数金额: 凭证'+vno+' '+e.account_name);
+      }
+    });
+    
+    // 借贷不平
+    Object.keys(voucherGroups).forEach(function(vno){
+      var g = voucherGroups[vno];
+      var diff = Math.abs(g.debit - g.credit);
+      if (diff > 0.01) {
+        issues.push('借贷不平: 凭证'+vno+' 差'+diff.toFixed(2)+'元');
+      }
+    });
+    
+    if (issues.length === 0) {
+      alert('✅ 凭证复核通过，未发现异常');
+    } else {
+      alert('⚠️ 发现'+issues.length+'项问题:\n'+issues.slice(0,10).join('\n'));
+    }
+  } catch(e) { alert('复核失败: '+e.message); }
+  btn.disabled = false; btn.textContent = '🔍 智能复核';
+}
+
+// 添加复核按钮到工具栏
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    var toolbar = document.querySelector('.toolbar, [class*="toolbar"]');
+    if (toolbar && !document.getElementById('smart-review-btn')) {
+      var btn = document.createElement('button');
+      btn.id = 'smart-review-btn';
+      btn.className = 'btn btn-sm';
+      btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px';
+      btn.textContent = '🔍 智能复核';
+      btn.onclick = runJournalSmartReview;
+      toolbar.appendChild(btn);
+    }
+  }, 500);
+});

@@ -6,9 +6,9 @@ function renderSystemLogs(container) {
 
   container.innerHTML = ''
     + '<div class="pipeline-page card card-fill">'
-    + '  <div style="margin-bottom:32px">'
-    + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">系统日志</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0">上传、分析、导出、修复操作的完整审计追踪记录</p>'
+    + '  <div class="page-header">'
+    + '    <h1>📋 系统日志</h1>'
+    + '    <p>上传、分析、导出、修复操作的完整审计追踪记录</p>'
     + '  </div>'
     + '  <div style="display:flex;gap:8px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f1f5f9">'
     + '    <button onclick="loadSystemLogs()" style="border:none;background:transparent;font-size:13px;color:#0f172a;cursor:pointer;padding:6px 12px">刷新</button>'

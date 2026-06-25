@@ -598,3 +598,28 @@ function exportDocsReport() {
 }
 
 setTimeout(refreshRiskDocsList, 500);
+
+
+// ── 风险处理状态管理 ──
+var _riskStatuses = JSON.parse(localStorage.getItem('risk_statuses') || '{}');
+
+function getRiskStatus(findingType) {
+  return _riskStatuses[findingType] || 'pending';
+}
+
+function setRiskStatus(findingType, status) {
+  _riskStatuses[findingType] = status;
+  localStorage.setItem('risk_statuses', JSON.stringify(_riskStatuses));
+}
+
+function renderRiskStatusBadge(findingType) {
+  var status = getRiskStatus(findingType);
+  var colors = {pending:'#f59e0b', processing:'#2563eb', resolved:'#16a34a', ignored:'#94a3b8'};
+  var labels = {pending:'未处理', processing:'处理中', resolved:'已处理', ignored:'已忽略'};
+  var h = '<select onchange="setRiskStatus(\''+findingType+'\',this.value);this.style.background='+JSON.stringify(colors)+'[this.value]" style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid #e2e8f0;background:'+colors[status]+';color:#fff;cursor:pointer">';
+  Object.keys(labels).forEach(function(k){
+    h += '<option value="'+k+'"'+(k===status?' selected':'')+'>'+labels[k]+'</option>';
+  });
+  h += '</select>';
+  return h;
+}

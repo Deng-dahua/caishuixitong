@@ -95,9 +95,8 @@ function renderReportStandards(container) {
     + '#rpt-stds .pipeline .arrow{color:#94a3b8;margin:0 2px}'
     + '</style>';
 
-  h += '<div id="rpt-stds">';
-  h += '<h2>核查报告编制工作要求</h2>';
-  h += '<div class="subtitle">根据《税务稽查工作规程》及稽查实务标准，系统内置12项硬性质量检查指标。以下逐项列明每条标准的要求、检测方式和正确示例。</div>';
+  h += '<div class="card card-fill"><div id="rpt-stds">';
+  h += '<div class="page-header"><h1>📐 报告编制标准</h1><p>根据《税务稽查工作规程》及稽查实务标准，系统内置12项硬性质量检查指标</p></div>';
 
   // 管线说明
   h += '<div class="overview">';
@@ -158,6 +157,7 @@ function renderReportStandards(container) {
   h += '</div>';
 
   h += '</div>'; // close rpt-stds
+  h += '</div>'; // close card-fill
 
   container.innerHTML = h;
 }

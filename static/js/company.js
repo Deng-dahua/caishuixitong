@@ -35,6 +35,10 @@ async function showCompanyManager(container) {
     if (!c || !c.company_name) { el.innerHTML = '<div class="empty-state">暂无公司信息</div>'; return; }
 
     let html = '<div class="card card-fill">';
+    html += '<div class="page-header">';
+    html += '<h1>🏢 公司管理</h1>';
+    html += '<p>查看和编辑公司基本信息 · 税务登记信息 · 工商注册信息</p>';
+    html += '</div>';
     html += '<div style="display:flex;justify-content:flex-start;margin-bottom:12px">';
     html += '<button class="btn btn-primary" onclick="showCompanyEditForm()">编辑公司信息</button>';
     html += '</div>';
@@ -227,3 +231,58 @@ async function deleteCompany(id) {
   }
 }
 
+
+
+// ── 标准科目模板导入 ──
+var STANDARD_ACCOUNTS_TEMPLATE = {
+  '小企业会计准则': [
+    {code:'1001',name:'库存现金',category:'资产类'},
+    {code:'1002',name:'银行存款',category:'资产类'},
+    {code:'1122',name:'应收账款',category:'资产类'},
+    {code:'1123',name:'预付账款',category:'资产类'},
+    {code:'1221',name:'其他应收款',category:'资产类'},
+    {code:'1405',name:'库存商品',category:'资产类'},
+    {code:'1403',name:'原材料',category:'资产类'},
+    {code:'1601',name:'固定资产',category:'资产类'},
+    {code:'1602',name:'累计折旧',category:'资产类'},
+    {code:'2001',name:'短期借款',category:'负债类'},
+    {code:'2202',name:'应付账款',category:'负债类'},
+    {code:'2203',name:'预收账款',category:'负债类'},
+    {code:'2211',name:'应付职工薪酬',category:'负债类'},
+    {code:'2221',name:'应交税费',category:'负债类'},
+    {code:'4001',name:'实收资本',category:'权益类'},
+    {code:'4101',name:'盈余公积',category:'权益类'},
+    {code:'4104',name:'利润分配',category:'权益类'},
+    {code:'5001',name:'主营业务收入',category:'损益类'},
+    {code:'5401',name:'主营业务成本',category:'损益类'},
+    {code:'5501',name:'销售费用',category:'损益类'},
+    {code:'5502',name:'管理费用',category:'损益类'},
+    {code:'5503',name:'财务费用',category:'损益类'},
+  ]
+};
+
+async function importStandardAccounts(companyId) {
+  if (!confirm('确认导入小企业会计准则标准科目？将新增约22个科目。')) return;
+  
+  var template = STANDARD_ACCOUNTS_TEMPLATE['小企业会计准则'];
+  var count = 0;
+  
+  for (var i = 0; i < template.length; i++) {
+    try {
+      var resp = await fetch('/api/accounts?company_id='+companyId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          code: template[i].code,
+          name: template[i].name,
+          category: template[i].category,
+          company_id: companyId
+        })
+      });
+      if (resp.ok) count++;
+    } catch(e) {}
+  }
+  
+  alert('成功导入'+count+'/'+template.length+'个标准科目');
+  location.reload();
+}

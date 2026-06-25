@@ -797,3 +797,37 @@ async function loadInventoryTransactions(page) {
     }
   } catch(e) {}
 }
+
+
+// ── 折旧到期提醒 ──
+function checkDepreciationExpiry(assets) {
+  var now = new Date();
+  var alerts = [];
+  assets.forEach(function(a){
+    var startDate = a.purchase_date || a.acquisition_date || '';
+    var life = parseInt(a.useful_life || a.depreciation_years || 0);
+    var cost = parseFloat(a.original_cost || a.cost || 0);
+    var accumulated = parseFloat(a.accumulated_depreciation || 0);
+    if (!startDate || !life) return;
+    
+    var endDate = new Date(startDate);
+    endDate.setFullYear(endDate.getFullYear() + life);
+    var days = Math.floor((endDate - now) / (1000*60*60*24));
+    var netValue = cost - accumulated;
+    
+    if (days <= 180 && days >= 0 && netValue > cost * 0.05) {
+      alerts.push({asset: a, days: days, netValue: netValue.toFixed(0)});
+    }
+  });
+  
+  if (alerts.length > 0) {
+    var h = '<div style="margin:8px 0;padding:10px 14px;background:#fef2f2;border-left:3px solid #ef4444;border-radius:6px;font-size:12px">';
+    h += '<b>⚠️ 折旧提醒:</b> ';
+    alerts.forEach(function(a){
+      h += (a.asset.name||a.asset.asset_name||'资产') + ' '+a.days+'天后折旧期满(净值'+a.netValue+'元); ';
+    });
+    h += '</div>';
+    var container = document.querySelector('.page-content, [class*="content"]');
+    if (container) container.insertAdjacentHTML('afterbegin', h);
+  }
+}

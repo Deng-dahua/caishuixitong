@@ -21,6 +21,11 @@ async function renderUnbookkeptInvoices(container) {
     ]);
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
     let html = '<div class="card card-fill">';
+    // ── 页面标题 ──
+    html += '<div class="page-header">';
+    html += '<h1>📝 未记账发票</h1>';
+    html += '<p>已导入但尚未生成凭证的发票 · 支持批量生成凭证 · 同步到序时账</p>';
+    html += '</div>';
 
     html += '<div class="stat-grid-invoice">';
     html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">未记账发票数</div></div>';

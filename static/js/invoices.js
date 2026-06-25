@@ -38,12 +38,18 @@ async function renderSalesInvoices(container) {
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
     let html = '<div class="card card-fill">';
 
-    // 统计卡片
-    html += '<div class="stat-grid-invoice">';
-    html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">发票总数</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_amt) + '</div><div class="stat-label">金额合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_amount) + '</div><div class="stat-label">价税合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_tax) + '</div><div class="stat-label">税额合计</div></div>';
+    // ── 页面标题 ──
+    html += '<div class="page-header">';
+    html += '<h1>📋 开具发票</h1>';
+    html += '<p>销售发票管理 · 按期间/客户/品名筛选 · 支持批量复核与导出</p>';
+    html += '</div>';
+
+    // 统计卡片 — 增强版
+    html += '<div class="kpi-grid">';
+    html += '<div class="kpi-card"><div class="kpi-icon slate">📋</div><div class="kpi-info"><div class="kpi-label">发票总数</div><div class="kpi-value">' + stats.total_count + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon blue">💰</div><div class="kpi-info"><div class="kpi-label">金额合计</div><div class="kpi-value" style="font-size:20px;color:#2563eb;">¥' + fmt(stats.total_amt) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon green">💳</div><div class="kpi-info"><div class="kpi-label">价税合计</div><div class="kpi-value" style="font-size:20px;color:#16a34a;">¥' + fmt(stats.total_amount) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon amber">🧾</div><div class="kpi-info"><div class="kpi-label">税额合计</div><div class="kpi-value" style="font-size:20px;color:#ca8a04;">¥' + fmt(stats.total_tax) + '</div></div></div>';
     html += '</div>';
 
     // 工具栏
@@ -527,11 +533,18 @@ async function renderPurchaseInvoices(container) {
     const fmt = n => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
     let html = '<div class="card card-fill">';
 
-    html += '<div class="stat-grid-invoice">';
-    html += '<div class="stat-card"><div class="stat-value">' + stats.total_count + '</div><div class="stat-label">发票总数</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_amt) + '</div><div class="stat-label">金额合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_raw_tax) + '</div><div class="stat-label">税额合计</div></div>';
-    html += '<div class="stat-card"><div class="stat-value">¥' + fmt(stats.total_amount) + '</div><div class="stat-label">价税合计</div></div>';
+    // ── 页面标题 ──
+    html += '<div class="page-header">';
+    html += '<h1>📥 取得发票</h1>';
+    html += '<p>进项发票管理 · 按期间/供应商/品名筛选 · 支持批量生成凭证与同步到未记账</p>';
+    html += '</div>';
+
+    // 统计卡片 — 增强版
+    html += '<div class="kpi-grid">';
+    html += '<div class="kpi-card"><div class="kpi-icon slate">📋</div><div class="kpi-info"><div class="kpi-label">发票总数</div><div class="kpi-value">' + stats.total_count + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon blue">💰</div><div class="kpi-info"><div class="kpi-label">金额合计</div><div class="kpi-value" style="font-size:20px;color:#2563eb;">¥' + fmt(stats.total_amt) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon amber">🧾</div><div class="kpi-info"><div class="kpi-label">税额合计</div><div class="kpi-value" style="font-size:20px;color:#ca8a04;">¥' + fmt(stats.total_raw_tax) + '</div></div></div>';
+    html += '<div class="kpi-card"><div class="kpi-icon green">💳</div><div class="kpi-info"><div class="kpi-label">价税合计</div><div class="kpi-value" style="font-size:20px;color:#16a34a;">¥' + fmt(stats.total_amount) + '</div></div></div>';
     html += '</div>';
 
     html += '<div class="toolbar" style="flex-wrap:wrap;">';
@@ -1107,3 +1120,40 @@ async function transferPIToUnbookkept() {
   navigateTo('purchase-invoices');
 }
 
+
+async function runComplianceCheck() {
+  var btn = document.getElementById('compliance-check-btn');
+  var result = document.getElementById('compliance-result');
+  btn.disabled = true; btn.textContent = '检测中...';
+  result.textContent = '';
+  
+  try {
+    var resp = await fetch('/api/sales-invoices?company_id='+(currentCompanyId||1));
+    var data = await resp.json();
+    var invoices = data.items || data || [];
+    
+    var issues = [];
+    var seenNos = {};
+    
+    invoices.forEach(function(inv){
+      var no = inv.invoice_no || inv.invoice_code || '';
+      if (no && seenNos[no]) issues.push('号码重复: '+no);
+      if (no) seenNos[no] = true;
+      
+      var rate = parseFloat(inv.tax_rate) || 0;
+      var goods = (inv.goods||inv.spec||'');
+      // 简单品名-税率匹配
+      if (goods.indexOf('农产品')>=0 && rate!==9 && rate!==0) issues.push('农产品税率异常: '+goods.substring(0,20));
+      if (goods.indexOf('服务')>=0 && rate===13) issues.push('服务类税率可能偏高: '+goods.substring(0,20));
+    });
+    
+    if (issues.length === 0) {
+      result.innerHTML = '<span style="color:#16a34a">✅ 未发现合规问题</span>';
+    } else {
+      result.innerHTML = '<span style="color:#dc2626">⚠️ 发现'+issues.length+'项问题: '+issues.slice(0,3).join('; ')+'</span>';
+    }
+  } catch(e) {
+    result.textContent = '检测失败: '+e.message;
+  }
+  btn.disabled = false; btn.textContent = '🔍 发票合规检测';
+}

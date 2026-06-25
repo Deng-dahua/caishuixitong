@@ -4,10 +4,30 @@
   "industries": {
     "制造业": {
       "label": "制造业",
-      "subtypes": ["纺织", "纺织产品", "服装", "电子", "机械", "化工", "食品", "金属制品", "塑料制品"],
+      "subtypes": [
+        "纺织",
+        "纺织产品",
+        "服装",
+        "电子",
+        "机械",
+        "化工",
+        "食品",
+        "金属制品",
+        "塑料制品"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 8, "normal_low": 12, "normal_high": 30, "high": 40, "note": "制造业毛利率因细分行业差异大，纺织/服装偏低(8-20%)，电子/机械偏高(20-40%)"},
-        "purchase_sales_ratio": {"normal_low": 0.85, "normal_high": 1.15, "note": "正常范围0.85-1.15，<0.7为购销严重倒挂"},
+        "gross_margin_pct": {
+          "low": 8,
+          "normal_low": 12,
+          "normal_high": 30,
+          "high": 40,
+          "note": "制造业毛利率因细分行业差异大，纺织/服装偏低(8-20%)，电子/机械偏高(20-40%)"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.85,
+          "normal_high": 1.15,
+          "note": "正常范围0.85-1.15，<0.7为购销严重倒挂"
+        },
         "supplier_concentration_warn": 60,
         "customer_concentration_warn": 60
       },
@@ -24,27 +44,58 @@
         "经营实质地理分析",
         "发票实质性审计"
       ],
-      "always_check": ["BOM表", "加工合同", "出入库记录", "产能匹配"],
-      "exempt_signals": ["高采购金额占比是制造业正常特征，不单独构成警告"],
+      "always_check": [
+        "BOM表",
+        "加工合同",
+        "出入库记录",
+        "产能匹配"
+      ],
+      "exempt_signals": [
+        "高采购金额占比是制造业正常特征，不单独构成警告"
+      ],
       "risk_patterns": [
         {
           "name": "加工链条断裂",
-          "signals": ["存在加工费", "BOM缺失", "有进无销或有销无进"],
+          "signals": [
+            "存在加工费",
+            "BOM缺失",
+            "有进无销或有销无进"
+          ],
           "explanation": "制造业最核心风险：有加工费但无BOM表→品名差异无法解释→虚开嫌疑"
         },
         {
           "name": "产能不匹配",
-          "signals": ["高销项金额", "低工资", "低水电支出"],
+          "signals": [
+            "高销项金额",
+            "低工资",
+            "低水电支出"
+          ],
           "explanation": "产出与投入要素不匹配→可能存在虚开发票或隐匿外协加工"
         }
       ]
     },
     "贸易批发": {
       "label": "贸易/批发",
-      "subtypes": ["贸易", "批发", "零售", "商贸", "进出口"],
+      "subtypes": [
+        "贸易",
+        "批发",
+        "零售",
+        "商贸",
+        "进出口"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 3, "normal_low": 5, "normal_high": 20, "high": 30, "note": "贸易企业毛利率低(3-20%)，批发最低(3-8%)，零售偏高(15-25%)"},
-        "purchase_sales_ratio": {"normal_low": 0.80, "normal_high": 1.05, "note": "贸易企业购销比通常接近1.0，<0.6为异常"},
+        "gross_margin_pct": {
+          "low": 3,
+          "normal_low": 5,
+          "normal_high": 20,
+          "high": 30,
+          "note": "贸易企业毛利率低(3-20%)，批发最低(3-8%)，零售偏高(15-25%)"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.8,
+          "normal_high": 1.05,
+          "note": "贸易企业购销比通常接近1.0，<0.6为异常"
+        },
         "supplier_concentration_warn": 50,
         "customer_concentration_warn": 50
       },
@@ -61,27 +112,57 @@
         "上下游穿透分析",
         "供应商画像分析"
       ],
-      "always_check": ["进销存台账", "物流单据", "购销合同"],
-      "exempt_signals": ["贸易企业不存在加工费，无需BOM表验证"],
+      "always_check": [
+        "进销存台账",
+        "物流单据",
+        "购销合同"
+      ],
+      "exempt_signals": [
+        "贸易企业不存在加工费，无需BOM表验证"
+      ],
       "risk_patterns": [
         {
           "name": "空转贸易",
-          "signals": ["购销金额接近", "供应商客户重叠", "无物流单据"],
+          "signals": [
+            "购销金额接近",
+            "供应商客户重叠",
+            "无物流单据"
+          ],
           "explanation": "贸易企业经典虚开模式：买入卖出金额接近、交易对手重叠→资金空转→无真实货物"
         },
         {
           "name": "毛利率异常",
-          "signals": ["毛利率偏高", "进销价格偏离市场"],
+          "signals": [
+            "毛利率偏高",
+            "进销价格偏离市场"
+          ],
           "explanation": "贸易企业毛利率异常偏高→可能关联交易定价操纵或隐匿部分采购成本"
         }
       ]
     },
     "建筑装饰": {
       "label": "建筑/装饰",
-      "subtypes": ["建筑", "装饰", "装修", "工程", "施工", "建材"],
+      "subtypes": [
+        "建筑",
+        "装饰",
+        "装修",
+        "工程",
+        "施工",
+        "建材"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 5, "normal_low": 8, "normal_high": 25, "high": 35, "note": "建筑企业毛利率中等(8-25%)，项目制特点导致毛利率波动大"},
-        "purchase_sales_ratio": {"normal_low": 0.75, "normal_high": 1.10, "note": "建筑企业有分包/劳务外协，进项可能包含大量分包费"},
+        "gross_margin_pct": {
+          "low": 5,
+          "normal_low": 8,
+          "normal_high": 25,
+          "high": 35,
+          "note": "建筑企业毛利率中等(8-25%)，项目制特点导致毛利率波动大"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.75,
+          "normal_high": 1.1,
+          "note": "建筑企业有分包/劳务外协，进项可能包含大量分包费"
+        },
         "supplier_concentration_warn": 50,
         "customer_concentration_warn": 70
       },
@@ -97,27 +178,61 @@
         "供应商画像分析",
         "工资社保比对"
       ],
-      "always_check": ["项目合同", "工程结算单", "劳务分包合同", "农民工工资专户"],
-      "exempt_signals": ["建筑企业项目制导致收入确认时点集中，季度末集中开票属正常"],
+      "always_check": [
+        "项目合同",
+        "工程结算单",
+        "劳务分包合同",
+        "农民工工资专户"
+      ],
+      "exempt_signals": [
+        "建筑企业项目制导致收入确认时点集中，季度末集中开票属正常"
+      ],
       "risk_patterns": [
         {
           "name": "挂靠经营",
-          "signals": ["无工资或有工资无社保", "大量劳务分包", "项目经理个人签约"],
+          "signals": [
+            "无工资或有工资无社保",
+            "大量劳务分包",
+            "项目经理个人签约"
+          ],
           "explanation": "建筑企业经典挂靠模式：资质方收取管理费，实际施工方自负盈亏→税务责任不清"
         },
         {
           "name": "材料虚列",
-          "signals": ["建材采购占比异常高", "无入库记录", "供应商集中在同一地区"],
+          "signals": [
+            "建材采购占比异常高",
+            "无入库记录",
+            "供应商集中在同一地区"
+          ],
           "explanation": "以材料采购名义虚开发票→虚增进项→虚列成本"
         }
       ]
     },
     "服务业": {
       "label": "服务业",
-      "subtypes": ["服务", "咨询", "餐饮", "住宿", "教育", "医疗", "设计", "广告"],
+      "subtypes": [
+        "服务",
+        "咨询",
+        "餐饮",
+        "住宿",
+        "教育",
+        "医疗",
+        "设计",
+        "广告"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 20, "normal_low": 30, "normal_high": 60, "high": 75, "note": "服务业毛利率较高(30-60%)，主要成本为人工和房租"},
-        "purchase_sales_ratio": {"normal_low": 0.30, "normal_high": 0.70, "note": "服务业进销比较低（主要成本是人工而非货物采购），<0.3需关注"},
+        "gross_margin_pct": {
+          "low": 20,
+          "normal_low": 30,
+          "normal_high": 60,
+          "high": 75,
+          "note": "服务业毛利率较高(30-60%)，主要成本为人工和房租"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.3,
+          "normal_high": 0.7,
+          "note": "服务业进销比较低（主要成本是人工而非货物采购），<0.3需关注"
+        },
         "supplier_concentration_warn": 70,
         "customer_concentration_warn": 60
       },
@@ -134,27 +249,58 @@
         "经营实质分析",
         "发票实质性审计"
       ],
-      "always_check": ["劳动合同", "社保缴纳记录", "服务合同及成果交付"],
-      "exempt_signals": ["服务业不以货物进销为核心，购销倒挂信号降权"],
+      "always_check": [
+        "劳动合同",
+        "社保缴纳记录",
+        "服务合同及成果交付"
+      ],
+      "exempt_signals": [
+        "服务业不以货物进销为核心，购销倒挂信号降权"
+      ],
       "risk_patterns": [
         {
           "name": "虚增人工成本",
-          "signals": ["工资费用高", "人员数量与业务量不匹配", "社保人数≠工资人数"],
+          "signals": [
+            "工资费用高",
+            "人员数量与业务量不匹配",
+            "社保人数≠工资人数"
+          ],
           "explanation": "服务业以人工为主要成本→虚列人头是最常见的偷税手段"
         },
         {
           "name": "服务真实性存疑",
-          "signals": ["大额服务费", "无服务成果交付记录", "服务对象单一"],
+          "signals": [
+            "大额服务费",
+            "无服务成果交付记录",
+            "服务对象单一"
+          ],
           "explanation": "服务交易无形性→是否为真实服务还是以服务名义转移资金"
         }
       ]
     },
     "农牧业": {
       "label": "农牧业",
-      "subtypes": ["农业", "牧业", "养殖", "种植", "水产", "林业"],
+      "subtypes": [
+        "农业",
+        "牧业",
+        "养殖",
+        "种植",
+        "水产",
+        "林业"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 5, "normal_low": 10, "normal_high": 35, "high": 50, "note": "农牧业毛利率波动大，受自然条件/市场价格影响"},
-        "purchase_sales_ratio": {"normal_low": 0.60, "normal_high": 1.00, "note": "农牧业进销比受季节性影响大"},
+        "gross_margin_pct": {
+          "low": 5,
+          "normal_low": 10,
+          "normal_high": 35,
+          "high": 50,
+          "note": "农牧业毛利率波动大，受自然条件/市场价格影响"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.6,
+          "normal_high": 1.0,
+          "note": "农牧业进销比受季节性影响大"
+        },
         "supplier_concentration_warn": 60,
         "customer_concentration_warn": 60
       },
@@ -170,27 +316,57 @@
         "发票实质性审计",
         "人员与业务匹配"
       ],
-      "always_check": ["土地/场地租赁合同", "种苗/饲料采购记录", "销售台账"],
-      "exempt_signals": ["农牧业自产自销免税政策下，购销倒挂和免税申报皆属正常"],
+      "always_check": [
+        "土地/场地租赁合同",
+        "种苗/饲料采购记录",
+        "销售台账"
+      ],
+      "exempt_signals": [
+        "农牧业自产自销免税政策下，购销倒挂和免税申报皆属正常"
+      ],
       "risk_patterns": [
         {
           "name": "虚开农产品收购发票",
-          "signals": ["农产品进项占比高", "供应商为零散农户", "收购金额整十整百"],
+          "signals": [
+            "农产品进项占比高",
+            "供应商为零散农户",
+            "收购金额整十整百"
+          ],
           "explanation": "农产品收购发票可自行开具→虚开重灾区→虚构收购数量/金额"
         },
         {
           "name": "免税政策滥用",
-          "signals": ["全部销售申报为免税", "实际为非自产产品"],
+          "signals": [
+            "全部销售申报为免税",
+            "实际为非自产产品"
+          ],
           "explanation": "将非自产农产品冒充自产享受免税→典型的骗税行为"
         }
       ]
     },
     "科技互联网": {
       "label": "科技/互联网",
-      "subtypes": ["科技", "互联网", "软件", "信息技术", "研发", "电商"],
+      "subtypes": [
+        "科技",
+        "互联网",
+        "软件",
+        "信息技术",
+        "研发",
+        "电商"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 30, "normal_low": 40, "normal_high": 80, "high": 90, "note": "科技企业毛利率高(40-80%)，无形资产为主"},
-        "purchase_sales_ratio": {"normal_low": 0.15, "normal_high": 0.50, "note": "科技企业进销比低（服务/软件为主要产出，原材料极少）"},
+        "gross_margin_pct": {
+          "low": 30,
+          "normal_low": 40,
+          "normal_high": 80,
+          "high": 90,
+          "note": "科技企业毛利率高(40-80%)，无形资产为主"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.15,
+          "normal_high": 0.5,
+          "note": "科技企业进销比低（服务/软件为主要产出，原材料极少）"
+        },
         "supplier_concentration_warn": 70,
         "customer_concentration_warn": 70
       },
@@ -207,27 +383,57 @@
         "关联交易穿透检测",
         "经营实质分析"
       ],
-      "always_check": ["研发费用辅助账", "软件著作权/专利", "人员学历/资质证明"],
-      "exempt_signals": ["科技企业毛利率高是正常特征，进销比低不代表异常"],
+      "always_check": [
+        "研发费用辅助账",
+        "软件著作权/专利",
+        "人员学历/资质证明"
+      ],
+      "exempt_signals": [
+        "科技企业毛利率高是正常特征，进销比低不代表异常"
+      ],
       "risk_patterns": [
         {
           "name": "假高新骗税",
-          "signals": ["享受高新税率", "研发费用不真实", "无核心技术/专利"],
+          "signals": [
+            "享受高新税率",
+            "研发费用不真实",
+            "无核心技术/专利"
+          ],
           "explanation": "虚构研发支出骗取高新技术企业资格→享受15%优惠税率→严重的骗税行为"
         },
         {
           "name": "关联交易利润转移",
-          "signals": ["关联方交易占比高", "跨境支付密集", "IP安排复杂"],
+          "signals": [
+            "关联方交易占比高",
+            "跨境支付密集",
+            "IP安排复杂"
+          ],
           "explanation": "通过无形资产转让定价将利润转移至低税地区→BEPS风险"
         }
       ]
     },
     "物流运输": {
       "label": "物流/运输",
-      "subtypes": ["物流", "运输", "快递", "货运", "仓储"],
+      "subtypes": [
+        "物流",
+        "运输",
+        "快递",
+        "货运",
+        "仓储"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 5, "normal_low": 10, "normal_high": 30, "high": 40, "note": "物流企业毛利率中等偏低(10-25%)，主要成本为燃油和人工"},
-        "purchase_sales_ratio": {"normal_low": 0.70, "normal_high": 1.00, "note": "物流企业进销比较稳定"},
+        "gross_margin_pct": {
+          "low": 5,
+          "normal_low": 10,
+          "normal_high": 30,
+          "high": 40,
+          "note": "物流企业毛利率中等偏低(10-25%)，主要成本为燃油和人工"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.7,
+          "normal_high": 1.0,
+          "note": "物流企业进销比较稳定"
+        },
         "supplier_concentration_warn": 60,
         "customer_concentration_warn": 60
       },
@@ -243,27 +449,57 @@
         "发票实质性审计",
         "经营实质地理分析"
       ],
-      "always_check": ["车辆行驶证/营运证", "燃油采购记录", "运输合同", "过路费记录"],
-      "exempt_signals": ["物流企业油耗占比高是正常特征"],
+      "always_check": [
+        "车辆行驶证/营运证",
+        "燃油采购记录",
+        "运输合同",
+        "过路费记录"
+      ],
+      "exempt_signals": [
+        "物流企业油耗占比高是正常特征"
+      ],
       "risk_patterns": [
         {
           "name": "油票虚抵",
-          "signals": ["燃油进项占比异常高", "无对应车辆", "油品供应商异常"],
+          "signals": [
+            "燃油进项占比异常高",
+            "无对应车辆",
+            "油品供应商异常"
+          ],
           "explanation": "购买大量汽柴油发票虚抵进项→但实际车辆数量与油耗不匹配"
         },
         {
           "name": "挂靠车辆",
-          "signals": ["工资与车辆数不匹配", "大量个体司机", "无社保记录"],
+          "signals": [
+            "工资与车辆数不匹配",
+            "大量个体司机",
+            "无社保记录"
+          ],
           "explanation": "挂靠车辆以公司名义开票→实际车主不申报个税→代扣代缴义务未履行"
         }
       ]
     },
     "房地产": {
       "label": "房地产",
-      "subtypes": ["房地产", "房产", "物业", "开发"],
+      "subtypes": [
+        "房地产",
+        "房产",
+        "物业",
+        "开发"
+      ],
       "benchmarks": {
-        "gross_margin_pct": {"low": 15, "normal_low": 20, "normal_high": 45, "high": 55, "note": "房地产企业毛利率中等偏高(20-45%)，项目制波动大"},
-        "purchase_sales_ratio": {"normal_low": 0.50, "normal_high": 0.90, "note": "房地产企业开发周期长，进销比在不同阶段差异大"},
+        "gross_margin_pct": {
+          "low": 15,
+          "normal_low": 20,
+          "normal_high": 45,
+          "high": 55,
+          "note": "房地产企业毛利率中等偏高(20-45%)，项目制波动大"
+        },
+        "purchase_sales_ratio": {
+          "normal_low": 0.5,
+          "normal_high": 0.9,
+          "note": "房地产企业开发周期长，进销比在不同阶段差异大"
+        },
         "supplier_concentration_warn": 50,
         "customer_concentration_warn": 70
       },
@@ -279,17 +515,32 @@
         "工资社保比对",
         "关联交易穿透检测"
       ],
-      "always_check": ["土地出让合同", "预售许可证", "项目进度表", "融资合同"],
-      "exempt_signals": ["房地产项目开发周期长→购销倒挂/季度波动属行业常态"],
+      "always_check": [
+        "土地出让合同",
+        "预售许可证",
+        "项目进度表",
+        "融资合同"
+      ],
+      "exempt_signals": [
+        "房地产项目开发周期长→购销倒挂/季度波动属行业常态"
+      ],
       "risk_patterns": [
         {
           "name": "虚列建安成本",
-          "signals": ["建安成本占比异常", "施工方与开发商关联", "无工程监理报告"],
+          "signals": [
+            "建安成本占比异常",
+            "施工方与开发商关联",
+            "无工程监理报告"
+          ],
           "explanation": "通过关联施工企业虚增建安成本→减少土地增值税和企业所得税"
         },
         {
           "name": "利息费用化",
-          "signals": ["财务费用高", "关联方借款多", "资本化不足"],
+          "signals": [
+            "财务费用高",
+            "关联方借款多",
+            "资本化不足"
+          ],
           "explanation": "将应资本化的借款利息直接费用化→提前扣除→延迟纳税"
         }
       ]
@@ -298,8 +549,16 @@
   "default_profile": {
     "label": "通用（未知行业）",
     "benchmarks": {
-      "gross_margin_pct": {"low": 5, "normal_low": 10, "normal_high": 40, "high": 60},
-      "purchase_sales_ratio": {"normal_low": 0.60, "normal_high": 1.20},
+      "gross_margin_pct": {
+        "low": 5,
+        "normal_low": 10,
+        "normal_high": 40,
+        "high": 60
+      },
+      "purchase_sales_ratio": {
+        "normal_low": 0.6,
+        "normal_high": 1.2
+      },
       "supplier_concentration_warn": 60,
       "customer_concentration_warn": 60
     },
@@ -308,5 +567,14 @@
     "always_check": [],
     "exempt_signals": [],
     "risk_patterns": []
+  },
+  "_meta_rules": {
+    "industry_inference": {
+      "rule_id": "META-001",
+      "rule": "行业推断唯一依据为销项发票品名，不参考进项发票品名",
+      "why": "销项=企业实际经营产出(卖什么=什么行业)，进项=采购投入(买什么≠行业)",
+      "how": "从销项发票品名提取金税分类编码(*XX*格式)，取最多出现的编码",
+      "established": "2026-06-24"
+    }
   }
 }
