@@ -723,6 +723,19 @@ class TaxAuditAgent:
                 )
                 for i, p in enumerate(result.get("predictions", [])[:8])
             ]
+            
+            # v2.0: SCM因果推理增强
+            try:
+                from engine.scm_reasoner import scm
+                for hp in self.hypotheses:
+                    signals_for_scm = hp.trigger_signals if isinstance(hp.trigger_signals, list) else [hp.trigger_signals]
+                    for sig in signals_for_scm:
+                        intervention = scm.do_intervention(sig, "eliminate")
+                        if intervention.get("total_affected", 0) > 0:
+                            hp.causal_chain.append(f"SCM干预: 消除{sig}→影响{intervention['total_affected']}个下游变量")
+            except Exception:
+                pass
+            
             return self.hypotheses
         
         # 回退到模板生成器

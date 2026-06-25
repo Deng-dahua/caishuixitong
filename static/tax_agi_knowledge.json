@@ -2,7 +2,7 @@
   "_meta": {
     "version": "1.0",
     "created_at": "2026-06-25T03:23:16.832680",
-    "updated_at": "2026-06-25T15:00:05.525446",
+    "updated_at": "2026-06-25T15:20:05.672013",
     "description": "税务AGI统一知识库 — 所有模块的知识在此汇聚、生长、进化"
   },
   "policies": {
@@ -2067,6 +2067,61 @@
       "lesson": "文件变更: core.js",
       "category": "⑥代码变更",
       "timestamp": "2026-06-25T15:00:05.525438"
+    },
+    {
+      "lesson": "文件变更: agent_core.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.649000"
+    },
+    {
+      "lesson": "文件变更: agi_pipeline.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.651773"
+    },
+    {
+      "lesson": "文件变更: auto_patrol.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.654634"
+    },
+    {
+      "lesson": "新增文件: event_bus.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.656769"
+    },
+    {
+      "lesson": "文件变更: knowledge_base.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.658971"
+    },
+    {
+      "lesson": "新增文件: knowledge_graph.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.660925"
+    },
+    {
+      "lesson": "新增文件: metacognition.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.663007"
+    },
+    {
+      "lesson": "新增文件: scm_reasoner.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.664926"
+    },
+    {
+      "lesson": "文件变更: self_healing.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.667282"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.669902"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-06-25T15:20:05.672008"
     }
   ],
   "analysis_history": [],

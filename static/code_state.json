@@ -4,16 +4,16 @@
     "size": 2653
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agent_core.py": {
-    "mtime": 1782362831.9801483,
-    "size": 40991
+    "mtime": 1782371956.76348,
+    "size": 41674
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
-    "mtime": 1782363421.5787172,
-    "size": 36307
+    "mtime": 1782371943.4858751,
+    "size": 40036
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\auto_patrol.py": {
-    "mtime": 1782369549.6984384,
-    "size": 12211
+    "mtime": 1782371890.9964323,
+    "size": 15820
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\capability_matrix.py": {
     "mtime": 1782325136.2337937,
@@ -30,6 +30,10 @@
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_enterprise_graph.py": {
     "mtime": 1782355235.3315952,
     "size": 12310
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\event_bus.py": {
+    "mtime": 1782371716.2228143,
+    "size": 6417
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\external_verifier.py": {
     "mtime": 1782331403.268934,
@@ -48,8 +52,12 @@
     "size": 22854
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\knowledge_base.py": {
-    "mtime": 1782333600.7909682,
-    "size": 15515
+    "mtime": 1782371911.8233464,
+    "size": 18511
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\knowledge_graph.py": {
+    "mtime": 1782371752.3652868,
+    "size": 10050
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\legal_reasoner.py": {
     "mtime": 1782355204.3902829,
@@ -62,6 +70,10 @@
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\memory.py": {
     "mtime": 1782316656.8868594,
     "size": 15401
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\metacognition.py": {
+    "mtime": 1782371825.4158008,
+    "size": 7801
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\methodology_loader.py": {
     "mtime": 1782369511.3720293,
@@ -99,9 +111,13 @@
     "mtime": 1782369515.4351897,
     "size": 11047
   },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\scm_reasoner.py": {
+    "mtime": 1782371795.3141675,
+    "size": 10667
+  },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_healing.py": {
-    "mtime": 1782330906.4424093,
-    "size": 11666
+    "mtime": 1782371867.3836176,
+    "size": 17029
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_learning.py": {
     "mtime": 1782320756.5219836,
@@ -156,8 +172,8 @@
     "size": 42574
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\core.js": {
-    "mtime": 1782370778.7406595,
-    "size": 62816
+    "mtime": 1782371977.672277,
+    "size": 62794
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\dashboard.js": {
     "mtime": 1782367515.9638455,
@@ -256,7 +272,7 @@
     "size": 41313
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\main.py": {
-    "mtime": 1782370563.6799693,
-    "size": 1585075
+    "mtime": 1782371962.5800931,
+    "size": 1585094
   }
 }

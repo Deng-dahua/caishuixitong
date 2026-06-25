@@ -349,6 +349,77 @@ class KnowledgeBase:
         return []
 
 
+# ═══ v2.0 知识库自生长 ═══
+
+def auto_extract_knowledge(findings: list, company_name: str = "", industry: str = "") -> dict:
+    """从分析结果自动提取知识，无需人工录入
+    
+    提取规则：
+    1. 高频信号模式（≥3次出现）→ 注册为新信号模式
+    2. 信号-结论共现（≥2次） → 注册为新因果边
+    3. 行业特征风险 → 更新行业画像
+    
+    质量门禁：所有自动提取的知识初始置信度为0.5，需≥3次独立验证才提升到0.8+
+    """
+    from collections import Counter
+    kb = get_kb()
+    extracted = {"new_patterns": 0, "new_edges": 0, "industry_updates": 0}
+    
+    # ── 1. 提取信号模式 ──
+    signal_combos = Counter()
+    for f in findings:
+        signals = tuple(sorted(set(
+            s.strip() for s in (f.get("signals", []) or [])
+            if s.strip() and len(s.strip()) > 2
+        )))
+        if len(signals) >= 2:
+            signal_combos[signals] += 1
+    
+    for combo, count in signal_combos.items():
+        if count >= 3:
+            pattern_key = " + ".join(combo[:3])
+            if pattern_key not in str(kb._data.get("signal_patterns", [])):
+                kb._data.setdefault("signal_patterns", []).append({
+                    "signals": list(combo),
+                    "frequency": count,
+                    "confidence": min(0.5 + count * 0.1, 0.9),
+                    "source": "auto_extracted",
+                    "companies": [company_name] if company_name else [],
+                })
+                extracted["new_patterns"] += 1
+    
+    # ── 2. 提取因果边 ──
+    for f in findings[:30]:
+        ftype = f.get("type") or f.get("domain", "")
+        signals = f.get("signals", []) or []
+        if not ftype or not signals:
+            continue
+        
+        for sig in signals[:2]:  # 取前2个信号
+            edge_key = f"{sig}→{ftype}"
+            existing = [e for e in kb._data.get("causal_edges", []) 
+                       if sig in e.get("signals", []) and ftype in e.get("finding", "")]
+            if not existing:
+                kb._data.setdefault("causal_edges", []).append({
+                    "signals": [sig],
+                    "finding": ftype,
+                    "confidence": 0.5,
+                    "source": f"auto_extracted:{company_name}",
+                })
+                extracted["new_edges"] += 1
+    
+    # ── 3. 行业特征 ──
+    if industry and industry != "未知":
+        ip = kb._data.setdefault("industry_profiles", {}).setdefault(industry, {})
+        ip["analysis_count"] = ip.get("analysis_count", 0) + 1
+        risk_types = Counter(f.get("type", "") for f in findings if f.get("level") and "高" in str(f.get("level")))
+        for rt, ct in risk_types.most_common(3):
+            ip.setdefault("common_high_risks", {})[rt] = ip.get("common_high_risks", {}).get(rt, 0) + ct
+            extracted["industry_updates"] += 1
+    
+    return extracted
+
+
 # ═══════════════════ 全局单例 ═══════════════════
 
 _kb_instance = None

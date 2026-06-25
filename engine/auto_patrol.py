@@ -264,6 +264,101 @@ def _save_cross_memory(data: Dict):
         json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
 
+# ═══ v2.0 巡逻升级：因果影响分析 ═══
+
+def causal_impact_patrol(new_causal_edges: List[Dict], company_ids: List[int], db) -> Dict:
+    """
+    因果影响分析：新发现的因果边会影响哪些企业的哪些结论？
+    
+    不再盲目重跑所有企业，而是计算每条新因果边的"影响半径"——
+    只对信号匹配的企业定向重分析。
+    """
+    results = []
+    patrol_memories = _load_cross_memory().get("patrol_snapshots", {})
+    
+    for edge in new_causal_edges[:10]:
+        signals = edge.get("signals", [])
+        finding = edge.get("finding", "")
+        confidence = edge.get("confidence", 0)
+        
+        if confidence < 0.5:
+            continue
+        
+        # 检查每家企业是否有匹配的信号
+        impacted_companies = []
+        for cid in company_ids:
+            cid_str = str(cid)
+            snapshot = patrol_memories.get(cid_str, {})
+            prev_findings = snapshot.get("findings", [])
+            
+            # 匹配：该企业的历史结论是否包含该因果边的信号
+            matched_findings = []
+            for pf in prev_findings:
+                pf_text = str(pf.get("s", "")) + str(pf.get("d", ""))
+                if any(sig in pf_text for sig in signals):
+                    matched_findings.append(pf)
+            
+            if matched_findings:
+                impacted_companies.append({
+                    "company_id": cid,
+                    "matched_signals_count": len(matched_findings),
+                    "findings_to_review": [
+                        {"signature": mf["s"][:80], "domain": mf.get("d", "")}
+                        for mf in matched_findings[:5]
+                    ],
+                })
+        
+        if impacted_companies:
+            results.append({
+                "causal_edge": {
+                    "signals": signals,
+                    "finding": finding,
+                    "confidence": confidence,
+                },
+                "impacted_companies": len(impacted_companies),
+                "companies": impacted_companies[:5],
+            })
+    
+    return {
+        "total_edges_evaluated": len(new_causal_edges),
+        "edges_with_impact": len(results),
+        "total_impacted": sum(r["impacted_companies"] for r in results),
+        "details": results,
+        "recommendation": f"建议对{sum(r['impacted_companies'] for r in results)}家受影响企业执行定向巡逻" if results else "新因果边暂未影响已有分析",
+    }
+
+
+def smart_patrol_recommendation(kb_stats: Dict, db) -> Dict:
+    """
+    智能巡逻推荐：不是"知识库变了就巡逻"，而是"新知识可能影响谁就巡谁"
+    
+    返回：{should_patrol: bool, target_companies: [...], reason: str}
+    """
+    new_edges = kb_stats.get("new_causal_edges", [])
+    if not new_edges:
+        return {"should_patrol": False, "reason": "无新因果边生成"}
+    
+    company_ids = get_companies_to_patrol(db)
+    if not company_ids:
+        return {"should_patrol": False, "reason": "无可巡逻企业"}
+    
+    impact = causal_impact_patrol(new_edges, company_ids, db)
+    
+    if impact["total_impacted"] > 0:
+        return {
+            "should_patrol": True,
+            "target_companies": company_ids,
+            "reason": f"新因果边影响{impact['total_impacted']}家企业",
+            "impact_analysis": impact,
+        }
+    else:
+        return {
+            "should_patrol": False,
+            "reason": "新因果边暂未影响已有企业的结论",
+            "impact_analysis": impact,
+        }
+
+
 def get_companies_to_patrol(db, max_count: int = None) -> List[int]:
     """获取需要巡逻的企业列表（最近分析过的N家企业）"""
     max_count = max_count or PATROL_CONFIG["max_companies_per_patrol"]

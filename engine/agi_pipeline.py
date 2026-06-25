@@ -736,6 +736,77 @@ class AGIPipelineConnector:
             import traceback
             traceback.print_exc()
         
+        # ═══ v2.0 智能进化层 ═══
+        # 1. 事件总线 — 模块间通信
+        try:
+            from engine.event_bus import bus, AGIEvents
+            for edge in edges:
+                bus.publish(AGIEvents.CAUSAL_EDGE_DISCOVERED, {
+                    "signals": edge.source_signals,
+                    "finding": edge.target_finding,
+                    "confidence": edge.confidence,
+                }, source="causal_network")
+            for pattern in patterns:
+                bus.publish(AGIEvents.CAUSAL_PATTERN_FORMED, {
+                    "signals": pattern.signals,
+                    "finding": pattern.target_finding,
+                    "joint_probability": pattern.joint_probability,
+                }, source="causal_network")
+            bus.publish(AGIEvents.ANALYSIS_COMPLETED, {
+                "company": company_name, "findings_count": len(finding_types),
+                "causal_edges": len(edges), "patterns": len(patterns),
+            }, source="agi_pipeline")
+            bus.persist_log()
+        except Exception as e:
+            print(f"[AGI Pipeline] 事件总线发布失败: {e}")
+        
+        # 2. SCM 因果推理
+        scm_report = {}
+        try:
+            from engine.scm_reasoner import scm
+            all_findings_dicts = [
+                {"type": ft, "signals": [e.data.get("signal","") for e in self.events if e.event_type == "rule_triggered" and e.data.get("finding_type") == ft]}
+                for ft in finding_types[:15]
+            ]
+            scm_report = scm.reasoning_report(all_findings_dicts)
+        except Exception as e:
+            print(f"[AGI Pipeline] SCM推理失败: {e}")
+        
+        # 3. 元认知自检
+        meta_report = {}
+        try:
+            from engine.metacognition import metacog
+            meta_report = metacog.metacognitive_report(all_findings_dicts if 'all_findings_dicts' in dir() else [{"type": ft} for ft in finding_types])
+        except Exception as e:
+            print(f"[AGI Pipeline] 元认知失败: {e}")
+        
+        # 4. 知识图谱导入
+        try:
+            from engine.knowledge_graph import kg
+            kg.import_from_analysis(company_name, all_findings_dicts if 'all_findings_dicts' in dir() else [])
+            kg.persist()
+        except Exception as e:
+            print(f"[AGI Pipeline] 知识图谱导入失败: {e}")
+        
+        # 5. 知识库自生长
+        auto_extract = {}
+        try:
+            from engine.knowledge_base import auto_extract_knowledge
+            auto_extract = auto_extract_knowledge(
+                all_findings_dicts if 'all_findings_dicts' in dir() else [],
+                company_name, industry
+            )
+        except Exception as e:
+            print(f"[AGI Pipeline] 知识提取失败: {e}")
+        
+        # 6. 自愈自动检测
+        auto_heal_issues = []
+        try:
+            from engine.self_healing import auto_detect_inconsistencies
+            auto_heal_issues = auto_detect_inconsistencies(all_findings_dicts if 'all_findings_dicts' in dir() else [])
+        except Exception as e:
+            print(f"[AGI Pipeline] 自愈检测失败: {e}")
+        
         # 模块覆盖度报告
         module_coverage = Counter()
         for e in self.events:
@@ -745,6 +816,15 @@ class AGIPipelineConnector:
             "events_collected": self.stats["events_collected"],
             "modules_covered": len(module_coverage),
             "module_breakdown": dict(module_coverage.most_common()),
+            "causal_edges": causal_edges_found,
+            "patterns": patterns_found,
+            # v2.0 新增
+            "scm_reasoning": scm_report,
+            "metacognition": meta_report,
+            "auto_healing_issues": len(auto_heal_issues),
+            "auto_healing_details": auto_heal_issues[:5],
+            "knowledge_auto_extract": auto_extract,
+            "cross_module_chains": len(bus.get_cross_module_chains()) if 'bus' in dir() else 0,
             "all_modules": [
                 "①稽查指令","②线索链","③证据链","④分析链","⑤稽查方法论",
                 "⑥代码","⑦文件解析","⑧域分析","⑨⑩⑪跨域","⑫方法论过滤",

@@ -28871,8 +28871,8 @@ def get_agi_status(db: Session = Depends(get_db)):
     
     # 版本信息
     result["version"] = {
-        "agent": "2.1",
-        "engine": "Phase1-4 + 6大智能引擎 + 19模块管线 + 自动巡逻",
+        "agent": "3.0",
+        "engine": "Phase1-4 + 6引擎 + SCM因果推理 + 元认知 + 知识图谱 + 事件总线",
         "features": [
             "法律推理—三段论引用具体法条→非统计概率推测",
             "跨企业关系—自动发现供应商/客户/人员跨企业重叠",

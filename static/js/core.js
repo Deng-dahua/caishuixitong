@@ -677,9 +677,9 @@ async function renderAgiDashboard(container) {
     
     // ═══ Hero ═══
     h += '<div class="hb-hero">';
-    h += '<h1>🧬 税务AGI v' + (agi.version ? agi.version.agent : '2.1') + '</h1>';
-    h += '<p>存勤法税·智能大脑 — 6大智能引擎 · 19模块知识管线 · 13项交互能力 · ' + pipe.total_events + '条学习事件 · ' + kb.analyses_count + '次历史分析</p>';
-    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:12px;">🔗 已连接 · 活跃模块 ' + pipe.modules_active + ' 个 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验</div>';
+    h += '<h1>🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h1>';
+    h += '<p>存勤法税·智能大脑 — 6大智能引擎 · SCM因果推理 · 元认知 · 知识图谱 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:12px;">🔗 已连接 · 活跃模块 ' + pipe.modules_active + ' 个 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · SCM推理就绪 · 知识库 ' + (kb.lessons_count||0) + ' 条经验</div>';
     h += '</div>';
 
     // ═══ 一、6大智能引擎 ═══

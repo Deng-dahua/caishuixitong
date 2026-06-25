@@ -294,3 +294,133 @@ def get_healing_summary(db_session=None) -> dict:
         "total_auto_fixes": total_fixes,
         "health_status": "健康" if total_rules > 0 else "冷启动",
     }
+
+
+# ═══ v2.0 自愈升级：自动检测逻辑不一致 ═══
+
+def auto_detect_inconsistencies(findings: list) -> list:
+    """自动检测结论中的逻辑不一致，无需人工反馈
+    
+    检测维度：
+    1. 矛盾检测：两条结论互相矛盾
+    2. 三要素缺失：缺少 how_found/tax_impact/policy_ref
+    3. 模板句检测：包含禁止模板句
+    4. 空占位符：变量未注入
+    5. 因果链过短：后果推导不足3步
+    """
+    issues = []
+    
+    # ── 矛盾检测 ──
+    type_pairs = findings_by_type(findings)
+    _CONTRADICT_PAIRS = [
+        (["隐匿收入", "少报收入"], ["申报完整", "收入确认正常"]),
+        (["虚开发票"], ["发票合规", "进项正常"]),
+        (["账外经营"], ["销售记录完整"]),
+        (["成本虚列"], ["成本合理", "费用正常"]),
+    ]
+    for (neg_kws, pos_kws) in _CONTRADICT_PAIRS:
+        has_neg = [f for f in findings if any(kw in str(f.get("type","")) for kw in neg_kws)]
+        has_pos = [f for f in findings if any(kw in str(f.get("type","")) for kw in pos_kws)]
+        if has_neg and has_pos:
+            issues.append({
+                "type": "contradiction",
+                "severity": "high",
+                "detail": f"矛盾结论：既有{'/'.join(neg_kws)}风险({len(has_neg)}条)，又有{'/'.join(pos_kws)}结论({len(has_pos)}条)",
+                "fix": "需人工裁定哪个结论成立，或补充证据消除矛盾",
+            })
+    
+    # ── 三要素检测 ──
+    for f in findings[:50]:
+        missing = []
+        if not f.get("how_found") and not f.get("description"):
+            missing.append("发现过程(how_found)")
+        if not f.get("tax_impact"):
+            missing.append("税务影响(tax_impact)")
+        if not f.get("policy_ref"):
+            missing.append("法律依据(policy_ref)")
+        if missing:
+            issues.append({
+                "type": "missing_elements",
+                "severity": "medium",
+                "finding": (f.get("type","") or f.get("domain",""))[:60],
+                "detail": f"缺少: {', '.join(missing)}",
+                "fix": "补充缺失要素或降级为低风险提示",
+            })
+    
+    # ── 模板句检测 ──
+    _BOILERPLATE = [
+        "是税务稽查重点方向", "需逐笔核实", "请提供相关佐证材料",
+        "申报不合规是税务行政处罚的常见案由", "通过调取企业各税种申报表",
+    ]
+    for f in findings:
+        text = str(f.get("description","")) + str(f.get("how_found","")) + str(f.get("suggestion",""))
+        for bp in _BOILERPLATE:
+            if bp in text:
+                issues.append({
+                    "type": "boilerplate",
+                    "severity": "low",
+                    "finding": (f.get("type","") or f.get("domain",""))[:60],
+                    "detail": f"包含模板句: {bp}",
+                    "fix": "删除模板句，替换为具体事实描述",
+                })
+                break
+    
+    # ── 空占位符检测 ──
+    for f in findings:
+        sug = str(f.get("suggestion",""))
+        if "()" in sug or "（）" in sug:
+            issues.append({
+                "type": "empty_placeholder",
+                "severity": "low",
+                "finding": (f.get("type","") or f.get("domain",""))[:60],
+                "detail": "建议中包含空占位符()——变量未注入",
+                "fix": "补全变量或删除该句",
+            })
+    
+    # ── 因果链检测 ──
+    for f in findings:
+        tax_impact = f.get("tax_impact", "")
+        steps = tax_impact.count("→") + tax_impact.count("导致") + tax_impact.count("无法")
+        if len(tax_impact) < 30:
+            issues.append({
+                "type": "short_causal_chain",
+                "severity": "medium",
+                "finding": (f.get("type","") or f.get("domain",""))[:60],
+                "detail": f"因果链过短——仅{len(tax_impact)}字符，应≥3步推导",
+                "fix": "扩展为: 缺失X→无法验证Y→税务机关采用Z→法律后果",
+            })
+    
+    return issues
+
+
+def findings_by_type(findings: list) -> dict:
+    """按类型分组发现"""
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for f in findings:
+        t = f.get("type") or f.get("domain", "其他")
+        grouped[t].append(f)
+    return dict(grouped)
+
+
+def auto_apply_fixes(findings: list, issues: list) -> tuple:
+    """自动应用可修复的问题，返回修正后的findings列表和修复计数"""
+    fixed_count = 0
+    
+    for issue in issues:
+        if issue["type"] == "boilerplate":
+            for f in findings:
+                for bp in _BOILERPLATE:
+                    for field in ["description", "how_found", "suggestion"]:
+                        if bp in str(f.get(field, "")):
+                            f[field] = str(f[field]).replace(bp, "")
+                            fixed_count += 1
+        
+        if issue["type"] == "empty_placeholder":
+            for f in findings:
+                sug = str(f.get("suggestion", ""))
+                if "()" in sug:
+                    f["suggestion"] = sug.replace("()", "").replace("（）", "")
+                    fixed_count += 1
+    
+    return findings, fixed_count
