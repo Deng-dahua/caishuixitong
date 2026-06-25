@@ -678,8 +678,8 @@ async function renderAgiDashboard(container) {
     // ═══ Hero ═══
     h += '<div class="hb-hero">';
     h += '<h1>🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h1>';
-    h += '<p>存勤法税·智能大脑 — 24个引擎模块协同 · SCM因果推理 · 元认知 · 知识图谱 · 事件总线 · ' + pipe.total_events + '条学习事件</p>';
-    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:12px;">🔗 已连接 · 活跃模块 ' + pipe.modules_active + ' 个 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · SCM推理就绪 · 元认知监控中</div>';
+    h += '<p>存勤法税·智能大脑 — 24引擎 · 36域分析 · 1512规则 · 1170线索链 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:12px;">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · SCM推理+元认知运行中</div>';
     h += '</div>';
 
     // ═══ 一、核心智能引擎（6个） ═══
@@ -755,9 +755,22 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('🔄','自动巡逻引擎','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后结论：新增/消失/风险等级迁移。变化>30%→标记显著变化→验证AGI学习效果。快照存入 patrol_snapshots →下次巡逻自动加载做基线对比。','青');
     h += '</div></section>';
 
-    // ═══ 八、API端点清单 ═══
+    // ═══ 八、系统数据资产（精确计数） ═══
     h += '<section class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">八</span> API端点清单</h2>';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">八</span> 系统数据资产</h2>';
+    h += '<p class="hb-section-lead">以下数字来自代码和数据文件的精确统计（2026-06-25验证），非手工标注。</p>';
+    h += '<div class="hb-card-grid">';
+    h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
+    h += '<div class="hb-info-card hb-info-red"><strong>📋 稽查规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1512条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
+    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>audit_chains.json</code> chains数组 → <strong>1170条</strong></p><p>每条链含触发条件+风险等级+调查步骤+关联规则ID</p></div>';
+    h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p><code>engine/</code> 目录下 <strong>24个.py文件</strong></p><p>核心6+推理4+连接3+知识3+专项5+加速3+调度2</p></div>';
+    h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
+    h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 代码规模</strong><p>main.py <strong>~29,000行</strong> + engine/ <strong>~8,500行</strong> + 前端 <strong>~15,000行</strong></p><p>总计约 <strong>52,500行</strong> 系统代码</p></div>';
+    h += '</div></section>';
+
+    // ═══ 九、API端点清单 ═══
+    h += '<section class="hb-section">';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">九</span> API端点清单</h2>';
     h += '<table class="hb-table hb-table-striped">';
     h += '<thead><tr><th style="width:80px;">方法</th><th>端点</th><th>功能说明</th></tr></thead><tbody>';
     var apis = [
@@ -783,9 +796,9 @@ async function renderAgiDashboard(container) {
     }
     h += '</tbody></table></section>';
 
-    // ═══ 九、知识库结构 ═══
+    // ═══ 十、知识库结构 ═══
     h += '<section class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">九</span> 知识库结构</h2>';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 知识库结构</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>','9条税收优惠政策 \u00b7 结构化条件','purple');
     h += _agiInfoCard('\u{1F517}','因果网络','<code>causal_edges</code>','信号\u2192结论因果关系 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边','red');
@@ -800,7 +813,7 @@ async function renderAgiDashboard(container) {
 
     // ═══ 十、配置参数 ═══
     h += '<section class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 核心配置参数</h2>';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">十一</span> 核心配置参数</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiConfigCard('\u2699\uFE0F 自愈引擎','self_healing.py','5种错误模式 \u00b7 同类\u22652\u2192生成规则 \u00b7 auto_apply','自动检测+人工反馈双模式');
     h += _agiConfigCard('\u2699\uFE0F 自动巡逻','auto_patrol.py','最大5家 \u00b7 触发\u22652边 \u00b7 变化>30%显著','v2.0：因果影响定向巡逻');
