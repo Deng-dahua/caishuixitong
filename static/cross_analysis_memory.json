@@ -737,11 +737,59 @@
         "supplier_concentration": 32.04462711846971,
         "goods_match_ratio": 0.02
       }
+    },
+    {
+      "trace_id": "0363dfc0",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "信息技术服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-27T00:42:24.541273",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.89,
+        "supplier_concentration": 32.45436482351876,
+        "goods_match_ratio": 0.08
+      }
+    },
+    {
+      "trace_id": "3af1865e",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-27T00:46:38.942599",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.89,
+        "supplier_concentration": 32.45436482351876,
+        "goods_match_ratio": 0.08
+      }
     }
   ],
   "industry_patterns": {
     "现代服务": {
       "analyses_count": 41,
+      "common_high_risks": {},
+      "avg_risk_score": 0,
+      "typical_data_profile": {}
+    },
+    "信息技术服务": {
+      "analyses_count": 1,
+      "common_high_risks": {},
+      "avg_risk_score": 0,
+      "typical_data_profile": {}
+    },
+    "广告服务": {
+      "analyses_count": 1,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

@@ -10068,6 +10068,7 @@ async def upload_tax_risk_docs(
 
 @app.get("/api/tax-risk-docs/list")
 def list_tax_risk_docs(company_id: int = Query(...)):
+    global _tax_risk_docs
     # 确保已初始化（仅首次扫描磁盘）
     _init_tax_docs_from_disk()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
@@ -10087,7 +10088,6 @@ def list_tax_risk_docs(company_id: int = Query(...)):
         valid.append(d)
     # 清理无效条目（文件已被外部删除）
     if stale_indices:
-        global _tax_risk_docs
         for i in sorted(stale_indices, reverse=True):
             _tax_risk_docs.remove(docs[i])
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
