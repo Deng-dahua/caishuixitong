@@ -19735,6 +19735,137 @@ def _run_fix_verification(auto_fixes, all_findings, bank_txs, sal_invs, pur_invs
         "manual_required": sum(1 for f in verified_fixes if f.get("action_required") != "auto_fixed"),
     }
 
+
+# ═══════════ 分析记忆持久化（第④⑤步）═══════════
+AUDIT_MEMORY_PATH = os.path.join(os.path.dirname(__file__), "static", "audit_memory.json")
+
+def _save_analysis_memory(company_id, company_name, industry, backtrack_report, fix_verification, pipeline_log):
+    """保存本次分析的诊断记忆到 audit_memory.json，供后续跨案例泛化"""
+    import json as _json4, datetime as _dt4
+    try:
+        # 加载现有记忆
+        mem = []
+        if os.path.exists(AUDIT_MEMORY_PATH):
+            try:
+                with open(AUDIT_MEMORY_PATH, "r", encoding="utf-8") as f:
+                    mem = _json4.load(f)
+                    if not isinstance(mem, list): mem = []
+            except: mem = []
+        
+        # 构建本次记忆
+        entry = {
+            "type": "auto_diagnosis",
+            "timestamp": _dt4.datetime.now().isoformat(),
+            "company_id": company_id,
+            "company_name": company_name,
+            "industry": industry,
+            "total_contradictions": backtrack_report.get("total", 0) if backtrack_report else 0,
+            "auto_fixes": [],
+            "manual_flags": [],
+            "fix_results": [],
+        }
+        
+        if backtrack_report:
+            for af in backtrack_report.get("auto_fixes", []):
+                entry["auto_fixes"].append({
+                    "id": af.get("contradiction_id", ""),
+                    "desc": af.get("fix_desc", ""),
+                    "sources_a": af.get("sources_a", []),
+                    "sources_b": af.get("sources_b", []),
+                })
+            for mf in backtrack_report.get("manual_flags", []):
+                entry["manual_flags"].append({
+                    "id": mf.get("contradiction_id", ""),
+                    "reason": mf.get("reason", ""),
+                    "action": mf.get("action", ""),
+                })
+        
+        if fix_verification:
+            for vf in fix_verification.get("verified_fixes", []):
+                entry["fix_results"].append({
+                    "id": vf.get("contradiction_id", ""),
+                    "action": vf.get("action_required", ""),
+                    "before": vf.get("before", ""),
+                    "after": vf.get("after", ""),
+                })
+        
+        # 追加并保存（保留最近100条）
+        mem.append(entry)
+        if len(mem) > 100:
+            mem = mem[-100:]
+        
+        with open(AUDIT_MEMORY_PATH, "w", encoding="utf-8") as f:
+            _json4.dump(mem, f, ensure_ascii=False, indent=2, default=str)
+        
+        pipeline_log.append(f"[分析记忆] 已保存诊断记录: {entry['total_contradictions']}条矛盾, {len(entry['auto_fixes'])}可修正, {len(entry['manual_flags'])}需人工")
+    except Exception as _me:
+        pipeline_log.append(f"[分析记忆] 保存失败: {_me}")
+
+
+def _load_analysis_memory(company_id=None, pipeline_log=None):
+    """加载历史分析记忆，对比：同一矛盾是否反复出现？跨公司泛化模式？
+    
+    Returns:
+        dict with 'recurring': 反复出现的矛盾, 'cross_company': 跨公司泛化模式
+    """
+    import json as _json5
+    try:
+        if not os.path.exists(AUDIT_MEMORY_PATH):
+            return {"recurring": [], "cross_company": [], "total_records": 0}
+        
+        with open(AUDIT_MEMORY_PATH, "r", encoding="utf-8") as f:
+            mem = _json5.load(f)
+            if not isinstance(mem, list): return {"recurring": [], "cross_company": [], "total_records": 0}
+        
+        # 过滤 auto_diagnosis 类型的记录
+        diag_records = [r for r in mem if r.get("type") == "auto_diagnosis"]
+        
+        # 找出反复出现的矛盾（相同ID在不同分析中出现）
+        recurring = {}
+        cross_company = {}
+        for r in diag_records:
+            cid = r.get("company_id", 0)
+            for af in r.get("auto_fixes", []):
+                aid = af.get("id", "")
+                if aid not in recurring:
+                    recurring[aid] = {"count": 0, "companies": set()}
+                recurring[aid]["count"] += 1
+                recurring[aid]["companies"].add(cid)
+            for mf in r.get("manual_flags", []):
+                mid = mf.get("id", "")
+                if mid not in recurring:
+                    recurring[mid] = {"count": 0, "companies": set()}
+                recurring[mid]["count"] += 1
+                recurring[mid]["companies"].add(cid)
+        
+        # 跨公司泛化：出现在>1个公司的矛盾
+        cross_list = []
+        for aid, info in recurring.items():
+            if len(info["companies"]) > 1:
+                cross_list.append({
+                    "contradiction_id": aid,
+                    "occurrence_count": info["count"],
+                    "companies_affected": len(info["companies"]),
+                    "pattern": "cross_company_recurring",
+                })
+        
+        # 当前公司专有记忆
+        current_mem = [r for r in diag_records if r.get("company_id") == company_id] if company_id else []
+        
+        if pipeline_log:
+            pipeline_log.append(f"[分析记忆] 加载: {len(diag_records)}条记录, {len(cross_list)}个跨公司模式, {len(current_mem)}条当前公司专有")
+        
+        return {
+            "recurring": [{k: {"count": v["count"], "companies": len(v["companies"])}} for k, v in recurring.items() if v["count"] > 1],
+            "cross_company": cross_list,
+            "total_records": len(diag_records),
+            "current_company_records": len(current_mem),
+        }
+    except Exception as _e:
+        if pipeline_log:
+            pipeline_log.append(f"[分析记忆] 加载失败: {_e}")
+        return {"recurring": [], "cross_company": [], "total_records": 0, "current_company_records": 0}
+
 def _backtrack_engine(contradictions, all_findings, pipeline_log):
     """
     回溯引擎：对每条触发的矛盾，分析是否可以自动修正。
@@ -25160,6 +25291,15 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _ol_err:
             pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
     
+    # ═══ 第⑤步：加载历史分析记忆，对比跨案例模式 ═══
+    try:
+        analysis_memory = _load_analysis_memory(company_id, pipeline_log)
+        comprehensive["analysis_memory"] = analysis_memory
+        if analysis_memory.get("cross_company"):
+            pipeline_log.append(f"[分析记忆] 发现{len(analysis_memory['cross_company'])}个跨公司泛化模式")
+    except Exception as _amle:
+        pipeline_log.append(f"[分析记忆] 加载异常: {_amle}")
+    
     # ═══ 稽查方法论③ 付款方身份核实：联网获取法人/股东信息后，补充匹配 ═══
     if target_entity.get("_online_lookup") and bank_txs:
         try:
@@ -25721,6 +25861,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                         fix_verification = _run_fix_verification(auto_fixes, all_findings, bank_txs, sal_invs, pur_invs, pipeline_log)
                         comprehensive["fix_verification"] = fix_verification
                         pipeline_log.append(f"[修正验证] {fix_verification['auto_resolved']}条已自动修正, {fix_verification['manual_required']}条仍需人工")
+                        
+                        # ═══ 第④步：保存分析记忆（矛盾+修正结果） ═══
+                        industry = target_entity.get("industry", ctx.company_profile.get("industry", "未知"))
+                        _save_analysis_memory(company_id, target_entity.get("name", ""), industry, backtrack_report, fix_verification, pipeline_log)
                     except Exception as _fve:
                         pipeline_log.append(f"[修正验证] 异常: {_fve}")
             except Exception as _bte:

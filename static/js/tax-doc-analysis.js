@@ -240,9 +240,10 @@ function renderAnalyzeHeader(report) {
     + '<a href="#" onclick="navigateTo(\'analyze-page\');return false" style="display:inline-block;padding:6px 16px;background:#7c3aed;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">⚡ 查看分析过程 →</a>'
     + '</div>';
 
-  // ═══ ⑧ 系统自诊：矛盾检测 + 回溯定位 + 修正验证 ═══
+    // ═══ ⑧ 系统自诊：矛盾检测 + 回溯定位 + 修正验证 ═══
   var btReport = comp.backtrack_report;
   var fixVerify = comp.fix_verification;
+  var anaMem = comp.analysis_memory;
   if (btReport && btReport.total > 0) {
     h += '<h3 style="margin-top:24px">🤖 系统自诊与自我修正</h3>';
     h += '<div class="stats-row" style="font-size:12px;line-height:1.8">'
@@ -286,6 +287,22 @@ function renderAnalyzeHeader(report) {
           + (mf.contradiction_id || '') + ': ' + (mf.reason || '') + '</div></div>';
       });
       h += '</div>';
+    }
+    
+    // 跨案例分析记忆
+    if (anaMem && anaMem.cross_company && anaMem.cross_company.length > 0) {
+      h += '<div style="margin:8px 0;padding:12px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px">';
+      h += '<div style="font-size:13px;font-weight:600;color:#7c3aed;margin-bottom:8px">🧠 跨公司泛化模式 (' + anaMem.cross_company.length + '个)</div>';
+      anaMem.cross_company.slice(0, 3).forEach(function(cc) {
+        h += '<div class="step-block" style="padding:4px 0"><div class="sd" style="font-size:11px">'
+          + (cc.contradiction_id || '') + ': 出现在 ' + cc.companies_affected + ' 个公司(' + cc.occurrence_count + '次)</div></div>';
+      });
+      h += '</div>';
+    }
+    if (anaMem && anaMem.total_records > 0) {
+      h += '<div style="font-size:10px;color:#94a3b8;padding:4px 0">'
+        + '已积累' + anaMem.total_records + '条分析记忆 · 当前公司' + (anaMem.current_company_records || 0) + '条'
+        + '</div>';
     }
   }
 
