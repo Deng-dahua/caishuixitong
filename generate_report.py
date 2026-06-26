@@ -139,12 +139,21 @@ p.i2{text-indent:2em}
 <div class="cover">
 <h1>税 务 稽 查 报 告</h1>
 <div class="sub">
-编号：税稽字[2026]第''' + str(data['total_risks']) + '''号<br>
+编号：税稽字[''' + str(datetime.now().year) + ''']第''' + str(data['total_risks']) + '''号<br>
 被查单位：''' + esc(entity.get('name', '未获取')) + '''<br>
 稽查期间：''' + esc(entity.get('period', data.get('period', '资料覆盖期间'))) + '''<br>
 报告日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''<br>
-资料数量：银行流水13份 + 进项发票5份 + 销项发票5份 = 共''' + str(data['files_count']) + '''份
-</div>
+资料数量：共''' + str(data['files_count']) + '''份
+'''
+
+# 文件类型分类如果有数据则展示
+files_by_type = data.get('files_by_type', {})
+if files_by_type:
+    type_parts = []
+    for label, count in sorted(files_by_type.items(), key=lambda x: -x[1]):
+        type_parts.append(f"{label}{count}份")
+    html += '<div class="sub">分类：' + '、'.join(type_parts) + '</div>\n'
+html += '''</div>
 </div>
 
 <h2>稽查引擎执行标准</h2>
@@ -215,7 +224,7 @@ html += '''
 </div>
 
 <div class="warn">
-<strong>⚠️ 资料完备度严重不足：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料（银行流水13份、进项发票5份、销项发票5份），覆盖银行流水、进项发票、销项发票3类。缺失记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类稽查必查资料。
+<strong>⚠️ 资料完备度警告：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料。资料完备度直接影响分析结论的置信度——资料越完整，结论越可靠。
 </div>
 
 <h2>二、高风险发现（''' + str(data['high_risk']) + '''项）</h2>
@@ -235,42 +244,51 @@ for f in low_list:
 html += '''
 <h2>五、综合结论与稽查建议</h2>
 
-<p class="i2">经对被查单位「''' + esc(entity.get('name', '企业')) + '''」''' + str(data['total_risks']) + '''项数据''' + '''进行系统性稽查分析，形成结论如下：</p>
+<p class="i2">经对被查单位「''' + esc(entity.get('name', '企业')) + '''」进行系统性稽查分析，共发现''' + str(data['total_risks']) + '''项风险（高风险''' + str(data['high_risk']) + '''项、中风险''' + str(data['mid_risk']) + '''项、低风险''' + str(data['low_risk']) + '''项），形成结论如下：</p>
 
-<h3>（一）已查实问题</h3>
+<h3>（一）高风险问题摘要</h3>
+'''
 
-<p class="i2">1. <strong>资料完备度极低</strong>——仅提交3类资料，缺失11类稽查必查资料。根据《税收征收管理法》第五十四条、第五十六条，税务机关有权要求纳税人提供完整的涉税资料。</p>
+# 动态生成高风险摘要列表
+if high_list:
+    for i, f in enumerate(high_list[:10]):
+        ftype = f.get('type', '未知风险')
+        detail = f.get('detail', '')
+        html += '<p class="i2"><strong>' + str(i+1) + '. ' + esc(ftype) + '</strong>'
+        if detail:
+            html += '——' + esc(detail[:200])
+        html += '</p>\n'
+else:
+    html += '<p class="i2">本次分析未发现高风险问题。</p>\n'
 
-<p class="i2">2. <strong>进项发票与银行付款记录存在未匹配</strong>——部分进项发票供应商在银行付款记录中找不到对应付款。但需注意：发票与付款天然不是一一对应关系——存在自然跨期、合并付款、分期付款、预付账款、应付账款、非对公/代付等六种正常商业场景，未匹配不等于虚开。</p>
+html += '''
+<h3>（二）稽查建议</h3>
 
-<p class="i2">3. <strong>收款来源与开票客户不匹配</strong>——银行收款方中含有非开票客户的资金流入，需逐笔核实资金来源性质。</p>
+<p class="i2">基于本次分析发现的''' + str(data['total_risks']) + '''项风险，建议按风险等级分步处理：</p>
+'''
 
-<p class="i2">4. <strong>进销品名存在显著差异</strong>——进项以棉纱/涤纶布等原材料为主，销项以针织布/梭织布等成品为主，表明存在实质加工环节。</p>
+# 动态生成建议
+if any('资料' in f.get('type', '') or '缺失' in f.get('type', '') for f in high_list + mid_list):
+    html += '<p class="i2"><strong>1. 补充资料：</strong>资料完备度直接影响分析结论的置信度。缺失资料导致的推论需标注"置信度受限"，建议补全后再执行深度分析。</p>\n'
 
-<h3>（二）需进一步核实事项</h3>
+has_inv_issues = any(kw in str(f.get('type','')) for f in high_list + mid_list for kw in ['发票', '进项', '销项', '品名', '虚开'])
+if has_inv_issues:
+    html += '<p class="i2"><strong>2. 发票核查：</strong>对发票相关风险逐笔核实，重点关注品名差异、三流一致性（合同/发票/资金/货物）和供应商/客户集中度。</p>\n'
 
-<p class="i2">1. 要求被查单位补充提供：记账凭证、工资表、社保明细、进销存台账、合同文件、科目余额表、财务报表、各类申报表等11类资料。</p>
+has_bank_issues = any(kw in str(f.get('type','')) for f in high_list + mid_list for kw in ['收款', '付款', '银行', '资金', '流水'])
+if has_bank_issues:
+    html += '<p class="i2"><strong>3. 资金核查：</strong>逐笔核实异常银行流水的交易对方身份和交易性质。个人打款需区分股东注资/关联方借款/隐匿经营收入。大额对公付款需核对合同与发票。</p>\n'
 
-<p class="i2">2. 对进项发票与银行付款未匹配的供应商，逐笔核实属于六种付款模式中的哪一种，并提供对应佐证材料。</p>
+has_emp_issues = any(kw in str(f.get('type','')) for f in high_list + mid_list for kw in ['工资', '社保', '人员', '薪酬'])
+if has_emp_issues:
+    html += '<p class="i2"><strong>4. 人员核查：</strong>核实工资表、社保名单与个税申报的一致性。差额人员需逐人排查用工形式。</p>\n'
 
-<p class="i2">3. 对银行收款中非开票客户的资金来源，逐笔标注性质并提供合同或凭证。</p>
-
-<p class="i2">4. 核实加工链条真实性和加工费发票合规性。</p>
-
-<h3>（三）稽查建议</h3>
-
-<p class="i2">鉴于''' + esc(entity.get('name', '被查单位')) + '''仅提供了3类核心资料且已暴露多项高风险发现，建议：</p>
-
-<p class="i2"><strong>1. 限期整改（15个工作日）：</strong>补充全部缺失的11类资料，逐笔说明进项发票付款和银行收款的匹配情况。</p>
-
-<p class="i2"><strong>2. 重点核查：</strong>（1）银行收款中个人账户的资金性质——法定代表人/股东打款可能为注资或关联方往来；（2）进项发票供应商与银行付款方的匹配度——重点关注无付款记录的大额供应商。</p>
-
-<p class="i2"><strong>3. 风险提示：</strong>如在限期内未能提供完整资料或对异常事项做出合理解释，将面临核定征收、虚开发票专项核查、纳税信用等级降级等后果。</p>
-
+html += '''
 <div class="seal">
 <p>稽查员（签名）：_______________</p>
 <p>日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''</p>
 </div>
+'''
 
 </div>
 </body>

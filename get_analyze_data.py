@@ -35,9 +35,18 @@ try:
     ii = mi.get('发票', {})
     
     # 构建报告数据
+    # 文件类型统计
+    type_label = {"bank_statement":"银行流水","sales_invoice":"销项发票","purchase_invoice":"进项发票","salary":"工资表","social_security":"社保明细","housing_fund":"公积金","voucher":"记账凭证","inventory":"进销存台账","contract":"合同文件","contract_list":"合同清单","trial_balance":"科目余额表","financial_statements":"财务报表","vat_declaration":"增值税申报","cit_declaration":"企业所得税申报","employee_list":"员工名册","individual_tax":"个税申报","expense_detail":"费用明细"}
+    files_by_type = {}
+    for fr in report.get("file_results", []):
+        ft = fr.get("type", "other")
+        label = type_label.get(ft, ft)
+        files_by_type[label] = files_by_type.get(label, 0) + 1
+    
     report_data = {
         'ok': True,
         'files_count': report.get('files_count', 0),
+        'files_by_type': files_by_type,
         'total_risks': len(allF),
         'high_risk': len(high_risks),
         'mid_risk': len(mid_risks),
