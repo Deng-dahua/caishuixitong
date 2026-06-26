@@ -104,12 +104,17 @@ async function refreshTaxDocList() {
   try {
     var resp = await fetch('/api/tax-risk-docs/list?company_id=' + _tdaCid());
     var docs = await resp.json();
+    // 守卫：API 可能返回错误对象而非数组
+    if (!Array.isArray(docs)) {
+      console.error('[tax-doc] 文件列表API返回非数组:', typeof docs, docs);
+      docs = [];
+    }
     var listEl = document.getElementById('tda-file-list');
     if (!listEl) { console.error('[tax-doc] tda-file-list 元素不存在'); return; }
 
     // 更新文件数量显示
     var countEl = document.getElementById('tda-file-count');
-    if (countEl) countEl.textContent = '(' + (docs ? docs.length : 0) + ' 份)';
+    if (countEl) countEl.textContent = '(' + (docs.length || 0) + ' 份)';
 
     if (!docs || docs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">暂无上传资料，请点击上方按钮上传</div>';
@@ -782,75 +787,25 @@ function renderTaxDocReport(r) {
   if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
 
   // ── 使用模块化引擎渲染报告 ──
+  // ── 自由编制报告：系统根据数据自行装配模块 ──
   var ctx;
   if (typeof ReportEngine !== 'undefined' && ReportEngine.render) {
     try {
-      // 支持 URL 参数切换模板: ?template=concise
-      var urlParams = new URLSearchParams(window.location.search);
-      var tplId = urlParams.get('template') || null;
-      var opts = tplId ? { templateId: tplId } : {};
-      ctx = ReportEngine.render(r, opts);
-      console.log('[report-modules] 模块引擎渲染完成: ' + ctx.renderedModules.length + '个模块, 模板=' + (tplId || 'auto') + ', 跳过' + ctx.skippedModules.length + '个');
-      if (ctx.skippedModules.length > 0) {
-        console.log('[report-modules] 跳过的模块:', ctx.skippedModules.map(function(s){return s.id + '(' + s.reason + ')';}).join(', '));
-      }
+      ctx = ReportEngine.render(r, {});
+      console.log('[report-modules] 自由编制报告: ' + ctx.renderedModules.length + '个模块, 跳过' + ctx.skippedModules.length + '个');
     } catch(e) {
-      console.error('[report-modules] 模块引擎渲染失败，降级到内联渲染:', e);
+      console.error('[report-modules] 渲染失败，降级:', e);
       ctx = null;
     }
   }
 
-  // 降级：如果模块引擎不可用，用内联渲染（保留旧逻辑作为 fallback）
   if (!ctx || !ctx.html) {
     ctx = _renderReportFallback(r, allF);
   }
 
-  // ── 模板选择器工具栏 ──
-  var tplBar = '';
-  if (typeof ReportEngine !== 'undefined' && ReportEngine.listTemplates) {
-    var tpls = ReportEngine.listTemplates();
-    var curTpl = (ctx && ctx.template && ctx.template.id) || 'default';
-    tplBar = '<div style="margin:0 auto 12px;max-width:960px;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;flex-wrap:wrap">'
-      + '<span style="font-weight:600">📋 报告模板：</span>';
-    tpls.forEach(function(t) {
-      var isActive = (t.id === curTpl);
-      tplBar += '<a href="javascript:void(0)" onclick="window._switchReportTemplate(\'' + t.id + '\')" '
-        + 'style="padding:4px 12px;border-radius:4px;text-decoration:none;'
-        + (isActive ? 'background:#1a1a2e;color:#fff;font-weight:600' : 'background:#f1f5f9;color:#475569')
-        + ';font-size:12px">' + (t.name || t.id) + '</a>';
-    });
-    tplBar += '</div>';
-  }
-
-  area.innerHTML = tplBar + ctx.html;
+  area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
 }
-
-// ── 模板切换函数 ──
-window._switchReportTemplate = function(tplId) {
-  if (!window._reportData) return;
-  var area = document.getElementById('tda-report-area');
-  if (!area) return;
-  try {
-    var ctx2 = ReportEngine.render(window._reportData, { templateId: tplId });
-    // 重新构建模板栏
-    var tpls2 = ReportEngine.listTemplates();
-    var newBar = '<div style="margin:0 auto 12px;max-width:960px;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;flex-wrap:wrap">'
-      + '<span style="font-weight:600">📋 报告模板：</span>';
-    tpls2.forEach(function(t) {
-      var isActive = (t.id === tplId);
-      newBar += '<a href="javascript:void(0)" onclick="window._switchReportTemplate(\'' + t.id + '\')" '
-        + 'style="padding:4px 12px;border-radius:4px;text-decoration:none;'
-        + (isActive ? 'background:#1a1a2e;color:#fff;font-weight:600' : 'background:#f1f5f9;color:#475569')
-        + ';font-size:12px">' + (t.name || t.id) + '</a>';
-    });
-    newBar += '</div>';
-    area.innerHTML = newBar + ctx2.html;
-    localStorage.setItem('_tax_report_template', tplId);
-  } catch(e) {
-    toast('模板切换失败: ' + e.message, 'error');
-  }
-};
 
 // ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
 function _renderReportFallback(r, allF) {

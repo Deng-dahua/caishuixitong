@@ -10071,16 +10071,27 @@ def list_tax_risk_docs(company_id: int = Query(...)):
     # 确保已初始化（仅首次扫描磁盘）
     _init_tax_docs_from_disk()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
-    # 去重
+    # 去重 + 验证磁盘文件实际存在（用户可能手动删除了文件）
     seen = set()
-    unique = []
-    for d in docs:
+    valid = []
+    stale_indices = []
+    for i, d in enumerate(docs):
         key = (d["id"], d["original_name"])
-        if key not in seen:
-            seen.add(key)
-            unique.append(d)
+        if key in seen:
+            stale_indices.append(i)
+            continue
+        seen.add(key)
+        if not os.path.exists(d["path"]):
+            stale_indices.append(i)
+            continue
+        valid.append(d)
+    # 清理无效条目（文件已被外部删除）
+    if stale_indices:
+        global _tax_risk_docs
+        for i in sorted(stale_indices, reverse=True):
+            _tax_risk_docs.remove(docs[i])
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
-             "uploaded_at": d["uploaded_at"]} for d in unique]
+             "uploaded_at": d["uploaded_at"]} for d in valid]
 
 @app.get("/api/tax-risk-docs/debug")
 def debug_tax_risk_docs(company_id: int = Query(...)):
@@ -10725,28 +10736,28 @@ def _parse_by_content(names, get_sheet, original_name=""):
             
             # 标题行方向检测：给对应指纹加分（文件名+单元格双重检测）
             title_bonus = {}
-            # 文件名关键词检测
+            # 文件名关键词检测（高权重：文件名是用户对文件内容的直接标注，可信度最高）
             fn_lower = original_name.lower()
             if any(k in fn_lower for k in ["进销存", "台账", "明细账", "存货", "库存明细", "收发存"]):
                 title_bonus["inventory"] = 5
             elif any(k in fn_lower for k in ["销项", "销售发票", "销货", "开票"]):
-                title_bonus["sales_invoice"] = 4
+                title_bonus["sales_invoice"] = 8
             elif any(k in fn_lower for k in ["进项", "采购发票", "购货", "取得发票", "取票"]):
-                title_bonus["purchase_invoice"] = 4
+                title_bonus["purchase_invoice"] = 8
             elif any(k in fn_lower for k in ["银行", "流水", "bank"]):
-                title_bonus["bank_statement"] = 4
+                title_bonus["bank_statement"] = 8
             elif any(k in fn_lower for k in ["工资", "薪金", "所得"]):
-                title_bonus["salary"] = 4
+                title_bonus["salary"] = 8
             elif any(k in fn_lower for k in ["社保", "社会保险"]):
-                title_bonus["social_security"] = 4
+                title_bonus["social_security"] = 8
             elif any(k in fn_lower for k in ["公积金"]):
-                title_bonus["housing_fund"] = 4
+                title_bonus["housing_fund"] = 8
             elif any(k in fn_lower for k in ["抵扣"]):
-                title_bonus["input_vat_deduction"] = 4
+                title_bonus["input_vat_deduction"] = 8
             elif any(k in fn_lower for k in ["凭证", "记账", "序时"]):
-                title_bonus["voucher"] = 4
+                title_bonus["voucher"] = 8
             elif any(k in fn_lower for k in ["客户", "供应商", "人员", "部门", "档案"]):
-                title_bonus["archive"] = 3
+                title_bonus["archive"] = 5
             # 单元格内容检测（作为补充）
             if "销项发票" in row0_text or "销售发票" in row0_text:
                 title_bonus["sales_invoice"] = max(title_bonus.get("sales_invoice", 0), 3)
@@ -23155,16 +23166,82 @@ _block("methods", "稽查方法",
     ),
     lambda ctx: _build_methods_data(ctx))
 
+# ── 加工环节综合判断（多维度评分系统 v2） ──
+# 核心认知：纯服务业的进销品名差异是正常经营特征，不是加工信号
+# 广告传媒买零食/机票/日用品(进)卖广告服务(出)→品名不同≠加工，只是采购消耗品≠生产物资
+# 只有制造业/贸易/建筑/餐饮等行业的品名差异才可能意味着加工转化
+
+# ── 行业分类 ──
+_PROCESSING_PRONE_KW = ["制造", "加工", "食品", "纺织", "印染", "服装", "化工", "电子",
+                        "机械", "家具", "电器", "冶炼", "铸造", "电镀", "涂装"]
+_PARTIAL_PROCESSING_KW = ["建筑", "装饰", "装修", "工程", "施工", "餐饮", "建材",
+                          "五金", "塑料", "木业", "纸业", "皮革", "橡胶", "陶瓷", "玻璃"]
+# 纯服务业：产出是无形服务，进项采购是日常消耗非生产物资，进销品名天然不同
+_PURE_SERVICE_KW = ["广告", "传媒", "咨询", "软件", "设计", "法律", "会计", "税务",
+                    "保险", "金融", "教育", "医疗", "中介", "代理", "经纪", "会展",
+                    "文化", "娱乐", "旅游", "人力资源", "物业", "科技", "互联网"]
+
+def _compute_processing_score(industry, has_proc_fee, has_goods_diff, has_spec_diff, has_qty_inflation):
+    """多维度综合评分：企业存在加工环节的可能性（0-1）。
+    纯服务业的进销品名差异直接归零——买零食机票≠进原料，卖广告服务≠出成品。
+    返回 (score, signals_explanation)"""
+    score = 0.0
+    signals = []
+    ind = industry.strip() if industry else ""
+    is_pure_service = any(kw in ind for kw in _PURE_SERVICE_KW)
+    is_manufacturing = any(kw in ind for kw in _PROCESSING_PRONE_KW)
+    is_partial = any(kw in ind for kw in _PARTIAL_PROCESSING_KW)
+    
+    # 信号1: 加工费发票（权重0.40 — 最强信号，任何行业）
+    if has_proc_fee:
+        score += 0.40
+        signals.append("加工费发票")
+    
+    # 信号2: 进销品名实质性差异（权重0.30 — 纯服务业不参与）
+    # WHY: 广告公司买水果≠原材料采购，卖广告服务≠加工产出
+    #       服务业的进项是经营消耗，不是生产投入
+    if has_goods_diff and not is_pure_service:
+        score += 0.30
+        signals.append("进销品名差异")
+    elif has_goods_diff and is_pure_service:
+        signals.append("进销品名差异(纯服务业-不构成加工信号)")
+    
+    # 信号3: 同品名规格变化（权重0.20 — 任何行业，瓷砖切割等物理加工）
+    if has_spec_diff:
+        score += 0.20
+        signals.append("同品名规格变化")
+    
+    # 信号4: 同品名数量膨胀（权重0.15 — 进少出多暗示切割/分装）
+    if has_qty_inflation:
+        score += 0.15
+        signals.append("数量膨胀(进少出多)")
+    
+    # 信号5: 行业属性加成/降权
+    if is_manufacturing:
+        score += 0.10
+        signals.append("行业制造属性")
+    elif is_partial:
+        score += 0.05
+        signals.append("行业部分加工属性")
+    elif is_pure_service:
+        score -= 0.15
+        signals.append("纯服务业(整体降权)")
+    
+    score = min(max(score, 0.0), 1.0)
+    return round(score, 2), signals
+    
+    score = min(max(score, 0.0), 1.0)
+    return round(score, 2), signals
+
 def _build_methods_data(ctx):
     te = ctx["entity"]
     ga = te.get("_goods_analysis", {})
-    # 数据驱动：仅基于发票中实际检测到的加工费信号判断（已修复排除分类码误判）
-    has_processing = ga.get("has_processing_fee", False) or (
-        len(ga.get("pur_only_goods", [])) > 0 and len(ga.get("sal_only_goods", [])) > 0
-    )
+    # 从 goods_analysis 直接读取综合判断结果（后端一站式计算，前端只消费）
+    processing_applicable = ga.get("_processing_applicable", False)
+    processing_score = ga.get("_processing_score", 0.0)
     
     methods = ["工商登记核查法", "进销存数据比对法", "资金流与发票流核对法", "供应商及客户穿透分析法"]
-    if has_processing:
+    if processing_applicable:
         methods.append("加工环节穿透法")
     methods.append("五步核查法")
     return {
@@ -23172,6 +23249,13 @@ def _build_methods_data(ctx):
         "registered_business": te.get("industry_online", "") or te.get("industry", ""),
         "invoice_stats": ctx["invoices"],
         "bank_stats": ctx["bank"],
+        "_processing_check": {
+            "industry": detected_industry,
+            "industry_supports": industry_supports_processing,
+            "has_processing_fee": has_processing_fee,
+            "has_pur_sal_diff": has_pur_sal_diff,
+            "lists_processing_method": has_processing,
+        },
     }
 
 # 发现项：每条 finding 生成一个 block
@@ -23588,13 +23672,8 @@ def _auto_verify_file_types(file_results, pipeline_log):
     """
     资料智能复核：结构指纹学习法（无监督）。
     
-    流程：
-    1. 提取所有文件的结构指纹
-    2. 按当前类型分组 → 计算每类平均指纹 → 跨类型对比纠正
-    3. 【新增】组内聚类分析：同一类型文件如果形成两个明显不同的结构簇，
-       自动拆分为两个子类型（系统自己"发现"新类型，无需人工定义）
-    
-    纯结构驱动，零硬编码关键词。全行业通用。
+    跳过文件名直接分类的文件（_from_filename=True），
+    因为这些文件的分类来自用户标注的元数据，可信度最高。
     """
     import math as _math
     import json as _json_local
@@ -23602,12 +23681,13 @@ def _auto_verify_file_types(file_results, pipeline_log):
     
     corrections = []
     
-    # ── Step 1: 提取所有文件的结构指纹 ──
-    file_fingerprints = {}  # filename → fingerprint dict
+    # ── Step 1: 提取所有文件的结构指纹（跳过文件名直接分类的文件）──
+    file_fingerprints = {}
     for fr in file_results:
         fname = fr.get("file", "")
         rows = fr.get("_rows", [])
-        if rows:
+        if fr.get("_from_filename"):
+            continue  # 文件名直接分类的文件不参与验证
             file_fingerprints[fname] = _extract_structural_fingerprint(rows)
     
     if len(file_fingerprints) < 5:
@@ -24126,9 +24206,117 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 对每个已分类的文件，交叉验证其内容是否与声明类型匹配
     # 发现误分类→自动纠正类型→数据自动重新路由到正确列表
     # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════
+    #  资料分类决策方法论（系统化，写入代码逻辑）
+    #
+    #  Layer 0 — 文件名直接分类
+    #    文件名是用户对内容的直接标注，可信度最高。
+    #    例: "开票"→销项发票  "取票"→进项发票  "抵扣"→进项认证
+    #    标记 _from_filename=True → 后续验证跳过此文件
+    #
+    #  Layer 1 — 指纹关键词匹配
+    #    解析文件表头，匹配34类指纹关键词库，取最高分。
+    #    适用于文件名无明确提示的文件。
+    #
+    #  Layer 2 — 结构指纹验证
+    #    提取列数/数值比/累计字段/借贷对等抽象特征。
+    #    同类文件求平均指纹，偏离者自动纠正。
+    #    跳过 _from_filename=True 的文件。
+    #
+    #  Layer 3 — 自审计
+    #    检查每个类型组内部是否结构一致。
+    #    发现组内混入异类文件 → 标记并报告。
+    #
+    #  决策优先级: 文件名 > 结构指纹 > 关键词匹配
+    # ═══════════════════════════════════════════════════════════════
+    
+    # ── 尝试加载外部配置（filename_type_map.json），失败则用内置映射 ──
+    _FN_TYPE_MAP = []
+    _fn_config_loaded = False
+    for _fn_cfg_path in [
+        os.path.join(os.path.dirname(__file__), "static", "filename_type_map.json"),
+        "static/filename_type_map.json",
+    ]:
+        if os.path.exists(_fn_cfg_path):
+            try:
+                with open(_fn_cfg_path, 'r', encoding='utf-8') as _fn_f:
+                    _fn_cfg = json.loads(_fn_f.read())
+                for _m in _fn_cfg.get("mappings", []):
+                    _FN_TYPE_MAP.append((_m["keywords"], _m["type"]))
+                _fn_config_loaded = True
+                pipeline_log.append(f"[配置] 已加载文件名映射表: {_fn_cfg_path}")
+            except Exception as _fn_e:
+                pipeline_log.append(f"[配置] 文件名映射表加载失败({_fn_e})，使用内置默认")
+            if _fn_config_loaded:
+                break
+    
+    if not _fn_config_loaded:
+        _FN_TYPE_MAP = [
+        (["银行", "流水", "bank_statement"], "bank_statement"),
+        (["开票", "销项", "销售发票", "销货"], "sales_invoice"),
+        (["取票", "进项", "采购发票", "购货", "取得发票"], "purchase_invoice"),
+        (["抵扣", "勾选", "认证"], "input_vat_deduction"),
+        (["工资", "薪金", "所得", "个税"], "salary"),
+        (["社保", "社会保险"], "social_security"),
+        (["公积金", "住房"], "housing_fund"),
+            (["凭证", "记账", "序时账"], "voucher"),
+            (["进销存", "台账", "存货", "库存"], "inventory"),
+            (["档案"], "archive"),
+        ]
+    for _fr in file_results:
+        _fn = _fr.get("file", "").lower()
+        _cur_type = _fr.get("type", "unknown")
+        for _kws, _target_type in _FN_TYPE_MAP:
+            if any(kw.lower() in _fn for kw in _kws):
+                if _cur_type != _target_type:
+                    pipeline_log.append(f"[文件名纠偏] {_fr['file']}: {_cur_type} → {_target_type} (文件名含{_kws[0]})")
+                    _fr["type"] = _target_type
+                    _fr["_from_filename"] = True  # 标记：避免被后续验证覆盖
+                    _rows = _fr.get("_rows", [])
+                    if _target_type == "bank_statement" and _cur_type in ("invoice", "invoice_universal", "sales_invoice", "purchase_invoice"):
+                        for _r in _rows:
+                            try:
+                                _tx = dict(_r)
+                                _tx["date"] = str(_tx.get("date") or _tx.get("tx_time") or _tx.get("交易日期") or _tx.get("交易时间") or _tx.get("记账日期") or _tx.get("会计期间") or "").strip()[:10]
+                                _tx["counterparty"] = str(_tx.get("counterparty", _tx.get("对方名称", _tx.get("对方户名", "")))).strip()
+                                _tx["summary"] = str(_tx.get("summary", _tx.get("摘要", ""))).strip()
+                                _tx["debit"] = float(_tx.get("debit", 0) or 0)
+                                _tx["credit"] = float(_tx.get("credit", 0) or 0)
+                                bank_txs.append(_tx)
+                            except: pass
+                break
+    
     _corrections = _auto_verify_file_types(file_results, pipeline_log)
     if _corrections:
         pipeline_log.append(f"[智能复核] 完成：共修正{len(_corrections)}个文件的分类")
+    
+    # ═══ Layer 3: 自审计 — 检查每个类型组内部结构一致性 ═══
+    _type_groups_audit = {}
+    for _fr in file_results:
+        _t = _fr.get("type", "unknown")
+        if _t not in _type_groups_audit:
+            _type_groups_audit[_t] = []
+        _type_groups_audit[_t].append(_fr)
+    
+    _audit_warnings = []
+    for _t, _members in _type_groups_audit.items():
+        if len(_members) < 3 or _t in ("unknown",):
+            continue
+        # 计算组内文件名的前缀多样性——如果同类型文件有不同的文件名前缀，说明可能混入了不同类型
+        _fn_prefixes = {}
+        for _m in _members:
+            _fn = _m.get("file", "")
+            # 提取文件名中的关键词（去掉数字和日期部分）
+            import re as _re_audit
+            _clean = _re_audit.sub(r'[\d\-_]+', '', _fn.lower())
+            _fn_prefixes[_clean] = _fn_prefixes.get(_clean, 0) + 1
+        # 如果组内有3种以上不同的文件名模式 → 可能存在混入
+        if len(_fn_prefixes) >= 3:
+            _audit_warnings.append(f"[自审计] {_t}组内文件名模式不统一({len(_fn_prefixes)}种): {list(_fn_prefixes.keys())[:5]}")
+    
+    if _audit_warnings:
+        for _w in _audit_warnings:
+            pipeline_log.append(_w)
         # ── 重新路由被修正文件的数据 ──
         # 策略：新增到正确列表 + 标记旧分类用于报告
         for _cor in _corrections:
@@ -26106,13 +26294,73 @@ def _run_analyze(company_id, db, progress_callback=None):
         common_goods = sorted(pur_production & sal_goods)
         pur_only = sorted(pur_production - sal_goods)
         sal_only = sorted(sal_goods - pur_production)
-        target_entity["_has_processing_signal"] = has_processing_fee or (bool(pur_only) and bool(sal_only))
+        # ── 综合加工信号检测：多维度评分 ──
+        # 不是"有品名差异→触发"，而是收集多个独立信号综合判断
+        # 信号1: 加工费发票（最强国税证据）
+        # 信号2: 进销品名实质性差异
+        # 信号3: 同品名规格变化（瓷板800×800→300×300，品名不变但加工了）
+        # 信号4: 同品名数量膨胀（进1块大板→卖4块小板，可能切割加工）
+        # 信号5: 行业属性加成（制造业→加权，纯服务业→降权）
+        detected_ind = target_entity.get("industry", "")
+        has_pur_sal_diff = bool(pur_only) and bool(sal_only)
+        
+        # ═══ 信号3: 同品名规格差异 ═══
+        # 例：进"瓷砖800×800"→销"瓷砖300×300"，品名相同但实质在加工
+        spec_diff_goods = []
+        if common_goods:
+            def _get_spec(inv):
+                s = str(inv.get("spec", "") or inv.get("规格", "") or inv.get("specification", "") or "").strip()
+                return s.replace(" ", "").replace("　", "").lower()  # 归一化空格
+            for g in common_goods:
+                pur_specs = set()
+                sal_specs = set()
+                for i in pur_invs:
+                    if _get_goods(i).strip() == g:
+                        s = _get_spec(i)
+                        if s: pur_specs.add(s)
+                for i in sal_invs:
+                    if _get_goods(i).strip() == g:
+                        s = _get_spec(i)
+                        if s: sal_specs.add(s)
+                if pur_specs and sal_specs and pur_specs != sal_specs:
+                    spec_diff_goods.append({"goods": g, "pur_specs": sorted(pur_specs), "sal_specs": sorted(sal_specs)})
+        
+        # ═══ 信号4: 同品名数量膨胀 ═══
+        # 进1块→卖4块，说明经过切割/分装，存在加工
+        qty_inflation_goods = []
+        if common_goods:
+            def _get_qty(inv):
+                try:
+                    return float(inv.get("qty", 0) or inv.get("quantity", 0) or inv.get("数量", 0) or 0)
+                except:
+                    return 0.0
+            for g in common_goods:
+                pur_qty = sum(_get_qty(i) for i in pur_invs if _get_goods(i).strip() == g)
+                sal_qty = sum(_get_qty(i) for i in sal_invs if _get_goods(i).strip() == g)
+                if pur_qty > 0 and sal_qty > pur_qty * 1.15:
+                    qty_inflation_goods.append({"goods": g, "pur_qty": round(pur_qty, 2), "sal_qty": round(sal_qty, 2), "ratio": round(sal_qty / pur_qty, 2)})
+        
+        # ═══ 综合评分 ═══
+        processing_score, processing_signals = _compute_processing_score(
+            detected_ind, has_processing_fee, has_pur_sal_diff,
+            len(spec_diff_goods) > 0, len(qty_inflation_goods) > 0
+        )
+        # >=0.40 高置信度触发 | >=0.20 低置信度触发 | <0.20 不触发
+        processing_applicable = processing_score >= 0.20
+        
+        target_entity["_has_processing_signal"] = processing_applicable
         target_entity["_goods_analysis"] = {
             "common_goods": common_goods, "pur_only_goods": pur_only,
             "sal_only_goods": sal_only, "has_processing_fee": has_processing_fee,
-            "has_goods_mismatch": bool(pur_only) and bool(sal_only),
+            "has_goods_mismatch": has_pur_sal_diff,
+            "spec_diff_goods": spec_diff_goods,
+            "qty_inflation_goods": qty_inflation_goods,
+            "_processing_score": processing_score,
+            "_processing_signals": processing_signals,
+            "_processing_confidence": "high" if processing_score >= 0.40 else ("low" if processing_applicable else "none"),
+            "_processing_applicable": processing_applicable,
         }
-        pipeline_log.append(f"经营实质信号: pur={len(pur_invs)} sal={len(sal_invs)} proc_fee={has_processing_fee}")
+        pipeline_log.append(f"加工信号评分: {processing_score:.2f}, signals={processing_signals}, applicable={processing_applicable}")
     else:
         target_entity["_has_processing_signal"] = False
         target_entity["_goods_analysis"] = {}

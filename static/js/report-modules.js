@@ -6,6 +6,32 @@
 var ReportEngine = (function() {
   'use strict';
 
+  // ── 加工环节综合判断 ──
+  // 后端已通过5维度评分系统完成计算，前端直接消费结果
+  // _goods_analysis._processing_applicable = bool
+  // 兜底逻辑也遵循同一原则：纯服务业的品名差异不构成加工信号
+  function _isProcessingApplicable(ga, industry) {
+    if (ga && typeof ga._processing_applicable === 'boolean') {
+      return ga._processing_applicable;
+    }
+    // 兜底：后端数据缺失时的简化判断
+    if (!ga) return false;
+    var hasProcFee = ga.has_processing_fee || false;
+    if (hasProcFee) return true;  // 加工费→任何行业
+    var purOnly = ga.pur_only_goods || [];
+    var salOnly = ga.sal_only_goods || [];
+    if (purOnly.length === 0 || salOnly.length === 0) return false;
+    // 纯服务业品名差异正常，不构成加工信号
+    var ind = (industry || '').toLowerCase();
+    var PURE_SVC = ['广告', '传媒', '咨询', '软件', '设计', '法律', '会计', '税务',
+                    '保险', '金融', '教育', '医疗', '中介', '代理', '经纪', '会展',
+                    '文化', '娱乐', '旅游', '人力资源', '物业', '科技', '互联网'];
+    for (var i = 0; i < PURE_SVC.length; i++) {
+      if (ind.indexOf(PURE_SVC[i]) !== -1) return false;
+    }
+    return true;
+  }
+
   // ── 模块注册表 ──
   var _registry = {};
 
@@ -130,18 +156,9 @@ var ReportEngine = (function() {
     });
   }
 
-  /** 根据数据自动选择最合适的模板 */
+  /** 获取模板（系统只有自由编制一个结构） */
   function selectTemplate(data) {
-    // 先同步 JSON 模板
-    _syncJsonTemplates();
-    
-    var ids = Object.keys(_templates);
-    for (var i = 0; i < ids.length; i++) {
-      var tpl = _templates[ids[i]];
-      if (tpl.condition && tpl.condition(data)) return tpl;
-    }
-    // fallback 到 default
-    return _templates['default'] || null;
+    return _templates['freeform'] || null;
   }
 
   /** 获取指定模板 */
@@ -755,12 +772,9 @@ var ReportEngine = (function() {
       var ii = mi['发票'] || {};
       var bi = mi['银行流水'] || {};
       var registeredBusiness = te.industry_online || '';
-      // 系统自行判断是否涉及加工环节
+      // 直接读取后端多维度评分结果（一站式判断，前端不重复计算）
       var ga = te._goods_analysis || {};
-      var hasProcFee = ga.has_processing_fee || false;
-      var purOnlyLen = (ga.pur_only_goods || []).length;
-      var salOnlyLen = (ga.sal_only_goods || []).length;
-      var hasProcessing = hasProcFee || (purOnlyLen > 0 && salOnlyLen > 0);
+      var hasProcessing = _isProcessingApplicable(ga, te.industry);
 
       var h = '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。</p>';
       h += '<p class="i2"><b>（一）稽查方法。</b>本次经营实质核查采用了以下具体稽查方法：</p>';
@@ -795,11 +809,13 @@ var ReportEngine = (function() {
       var hasProcFee = ga.has_processing_fee || false;
       var registeredBusiness = te.industry_online || '';
       var inferredBusiness = te.industry || '';
-      var hasProcessingSignal = !!(te._has_processing_signal);
+      // 直接读取后端多维度评分结果
+      var hasMeaningfulProcessingSignal = _isProcessingApplicable(ga, inferredBusiness);
 
       var h = '<p class="i2"><b>（二）核查过程。</b></p>';
 
-      if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+      if (hasMeaningfulProcessingSignal) {
+        // ── 制造业相关行业：进销品名差异→加工信号 ──
         // 1. 进项发票审核
         h += '<p class="i2"><b>1. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
         if (hasProcFee) {
@@ -839,17 +855,24 @@ var ReportEngine = (function() {
         // 4. 综合判断
         h += '<p class="i2"><b>4. 综合判断。</b>';
         var totalDiff = purOnlyGoods.length + salOnlyGoods.length;
-        var actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
-        if (hasProcFee || (purOnlyGoods.length > 0 && salOnlyGoods.length > 0)) {
-          h += '综合以上分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + totalDiff + '类实质性差异——';
-          h += '判断被查单位实质经营模式为' + esc(actualBusiness || (inferredBusiness + '+外包轻加工模式')) + '，与其工商登记行业不完全一致。';
-          h += '应在稽查中按实质经营模式进行税务处理。';
-        } else {
-          h += '综合以上分析，进销品名未见实质性差异，判断被查单位实质经营模式与工商登记一致。';
-        }
+        h += '综合以上分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + totalDiff + '类实质性差异——';
+        h += '判断被查单位实质经营模式包含委托加工环节，与其工商登记行业可能不完全一致。';
+        h += '应在稽查中按实质经营模式进行税务处理。';
         h += '</p>';
+      } else if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
+        // ── 非制造业行业：进销品名差异是正常经营特征，非加工信号 ──
+        h += '<p class="i2"><b>1-2. 进销审核。</b>对进项和销项发票品名进行逐票审核。';
+        h += '被查单位发票推断行业为' + esc(inferredBusiness) + '，属非制造业。';
+        if (purOnlyGoods.length > 0) {
+          h += '进项中存在' + purOnlyGoods.length + '类仅购进不销售的品名（如' + purOnlyGoods.slice(0, 5).map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '等），属正常经营采购物资/服务。';
+        }
+        if (salOnlyGoods.length > 0) {
+          h += '销项中存在' + salOnlyGoods.length + '类仅销售不购进的品名（如' + salOnlyGoods.slice(0, 5).map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '等），属企业正常经营产出。';
+        }
+        h += '进销品名差异与企业行业属性相符，不构成加工环节信号。</p>';
+        h += '<p class="i2"><b>3. 综合判断。</b>经五步核查法审核，被查单位属于' + esc(inferredBusiness) + '行业，进销品名差异反映的是采购物资/服务与实际经营产出的自然区别，与工商登记信息吻合。</p>';
       } else {
-        h += '<p class="i2"><b>1-3. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，确认企业经营模式与工商登记一致。</p>';
+        h += '<p class="i2"><b>1-3. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，进销品名一致，确认企业经营模式与工商登记一致。</p>';
         h += '<p class="i2"><b>4. 综合判断。</b>经五步核查法全流程审核，被查单位实质经营模式与登记信息一致，发票数据与工商登记吻合。</p>';
       }
 
@@ -1661,40 +1684,21 @@ var ReportEngine = (function() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  报告模板定义 — 按行业/企业类型自适应
+  //  报告结构 — 系统根据数据自由编制，不再用固定模板
+  //  每个模块通过 enabled(data) 自行决定是否渲染
+  //  模块按 section + priority 自动排列
   // ═══════════════════════════════════════════════════════════
 
-  /** 帮助函数：从 data 中提取行业关键词 */
-  function _getIndustry(data) {
-    var te = data.target_entity || {};
-    var industry = (te.industry || '').toLowerCase();
-    var industryOnline = (te.industry_online || '').toLowerCase();
-    var combined = industry + ' ' + industryOnline;
-
-    // 制造业关键词
-    var mfgKws = ['制造', '加工', '生产', '纺织', '染整', '服装', '电子', '机械', '化工', '建材', '制造加工'];
-    for (var i = 0; i < mfgKws.length; i++) {
-      if (combined.indexOf(mfgKws[i]) >= 0) return 'manufacturing';
-    }
-    // 批发零售关键词
-    var tradeKws = ['批发', '零售', '贸易', '商贸', '经销'];
-    for (var j = 0; j < tradeKws.length; j++) {
-      if (combined.indexOf(tradeKws[j]) >= 0) return 'trading';
-    }
-    // 检查是否有加工费信号 → 制造业
-    if (data.comprehensive && data.comprehensive._has_processing_signal) return 'manufacturing';
-    return 'default';
-  }
-
-  // 默认模板 — 完整7章标准报告
+  // 唯一的报告结构：全模块自由装配
+  // 模块自己判断 enabled=true/false，系统不替模块做决定
   R.defineTemplate({
-    id: 'default',
-    name: '标准税务稽查报告',
-    description: '完整的标准稽查报告，涵盖全部模块。编辑 static/report_template.json 可自定义模块排列。',
+    id: 'freeform',
+    name: '自由编制稽查报告',
+    description: '系统根据稽查数据实际情况，自行决定渲染哪些模块、排列顺序，不受固定模板约束。',
     condition: function() { return true; },
     sections: [
-      { id: 'cover', label: '', modules: ['cover_page'] },
-      { id: 'toc', label: '', modules: ['toc'] },
+      { id: 'cover', label: '', modules: [] },
+      { id: 'toc', label: '', modules: [] },
       { id: 'sec1', label: '一、案件来源及稽查对象基本情况', modules: [] },
       { id: 'sec2', label: '二、稽查实施情况', modules: [] },
       { id: 'sec3', label: '三、稽查结论', modules: [] },
@@ -1706,57 +1710,6 @@ var ReportEngine = (function() {
     ]
   });
 
-  // 制造业模板
-  R.defineTemplate({
-    id: 'manufacturing',
-    name: '制造业专项稽查报告',
-    description: '强化加工环节、BOM验证、委托加工真实性',
-    condition: function(data) { return false; },  // 不自动匹配，显式指定
-    sections: [
-      { id: 'cover', label: '', modules: ['cover_page'] },
-      { id: 'sec1', label: '一、稽查对象基本情况', modules: ['case_source', 'entity_basic_info', 'business_nature_verdict'] },
-      { id: 'sec2', label: '二、加工环节穿透分析', modules: ['purchase_supplier_detail', 'supply_chain_risk'] },
-      { id: 'sec3', label: '三、稽查结论', modules: ['conclusion_risk_profile', 'conclusion_synthesis'] },
-      { id: 'sec4', label: '四、发现问题', modules: ['findings_detail'] },
-      { id: 'sec5', label: '五、处理建议', modules: ['actions_table', 'penalty_suggestions'] },
-      { id: 'sec7', label: '', modules: ['signature_block'] },
-      { id: 'appendix', label: '附件', modules: ['appendix_evidence', 'appendix_supply_chain'] }
-    ]
-  });
-
-  // 商贸企业模板
-  R.defineTemplate({
-    id: 'trading',
-    name: '商贸企业稽查报告',
-    description: '强化资金流发票流核对、进销品名比对',
-    condition: function(data) { return false; },  // 不自动匹配，显式指定
-    sections: [
-      { id: 'cover', label: '', modules: ['cover_page'] },
-      { id: 'sec1', label: '一、稽查对象基本情况', modules: ['case_source', 'entity_basic_info', 'data_overview_sec1'] },
-      { id: 'sec2', label: '二、资金流与发票流核对', modules: ['receipt_analysis', 'cashflow_chart', 'bank_receipts_biz', 'bank_payments_detail', 'sales_customer_detail', 'purchase_supplier_detail'] },
-      { id: 'sec3', label: '三、稽查结论', modules: ['conclusion_risk_profile', 'conclusion_synthesis'] },
-      { id: 'sec4', label: '四、供应链风险', modules: ['supply_chain_risk', 'top_counterparties', 'findings_detail'] },
-      { id: 'sec5', label: '五、处理建议', modules: ['actions_table', 'recommended_next'] },
-      { id: 'sec7', label: '', modules: ['signature_block'] },
-      { id: 'appendix', label: '附件', modules: ['appendix_evidence', 'appendix_quality'] }
-    ]
-  });
-
-  // 精简模板 — 仅核心7模块，适合日常抽查
-  R.defineTemplate({
-    id: 'concise',
-    name: '精简稽查报告',
-    description: '仅包含核心章节的快速报告，适合日常抽查',
-    condition: function() { return false; },  // 不自动匹配，需显式指定 templateId
-    sections: [
-      { id: 'cover', label: '', modules: ['cover_page'] },
-      { id: 'sec1', label: '一、案件来源及稽查对象基本情况', modules: ['case_source'] },
-      { id: 'sec3', label: '三、稽查结论', modules: ['conclusion_risk_profile', 'conclusion_synthesis'] },
-      { id: 'sec7', label: '七、稽查人员签字', modules: ['signature_block'] }
-    ]
-  });
-
-  console.log('[report-modules] 已加载 ' + Object.keys(R.listModules()).length + ' 个报告模块, '
-    + R.listTemplates().length + ' 个模板（系统根据数据自行判断模块启用/模板选择）');
+  console.log('[report-modules] 已加载 ' + Object.keys(R.listModules()).length + ' 个模块 — 自由编制模式：每个模块自行判断启用/禁用，系统不替模块做决定');
 
 })();
