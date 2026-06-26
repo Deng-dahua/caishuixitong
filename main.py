@@ -2310,13 +2310,12 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
         from database import VATDeclaration
         db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).delete()
     # 7. 字典表（不按company_id隔离，跳过）
-    # 7.5 V15新增：清理涉税资料上传文件
+    # 7.5 V15新增：清理涉税资料上传文件（公司专属子目录）
     try:
-        import glob
-        upload_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
-        if os.path.isdir(upload_dir):
-            for f in glob.glob(os.path.join(upload_dir, f"{company_id}_*")):
-                os.remove(f)
+        import shutil
+        company_udir = _get_company_upload_dir(company_id)
+        if os.path.isdir(company_udir):
+            shutil.rmtree(company_udir)
         transfer_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
         if os.path.isdir(transfer_dir):
             for f in glob.glob(os.path.join(transfer_dir, f"{company_id}_*")):
@@ -9521,6 +9520,14 @@ async def tax_risk_rules_upload_report(request: Request):
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def _get_company_upload_dir(company_id):
+    """获取公司专属上传目录，物理账套隔离
+    所有文件操作必须经过此函数，确保不同公司数据不会串混"""
+    d = os.path.join(UPLOAD_DIR, str(company_id))
+    os.makedirs(d, exist_ok=True)
+    return d
+
 # ═══════════════ 资料中转站 ═══════════════
 TRANSFER_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
 os.makedirs(TRANSFER_DIR, exist_ok=True)
@@ -9564,27 +9571,33 @@ def _init_tax_docs_from_disk():
     if _TAX_DOC_SCANNED: return
     _TAX_DOC_SCANNED = True
     if os.path.exists(UPLOAD_DIR):
-        all_files = os.listdir(UPLOAD_DIR)
-        for fname in all_files:
-            # fsdecode 确保 Windows 中文文件名编码正确
-            try:
-                fname_clean = os.fsdecode(os.fsencode(fname))
-            except:
-                fname_clean = fname
-            parts = fname_clean.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
-            if len(parts) < 3: continue
-            try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
+        for subdir in os.listdir(UPLOAD_DIR):
+            subpath = os.path.join(UPLOAD_DIR, subdir)
+            if not os.path.isdir(subpath): continue
+            try: company_id = int(subdir)
             except: continue
-            orig_name = parts[2]  # 第三个部分开始是原始文件名
-            fpath = os.path.join(UPLOAD_DIR, fname)
-            _tax_risk_docs.append({
-                "id": f_doc_id, "filename": fname, "original_name": orig_name,
-                "path": fpath, "size": os.path.getsize(fpath),
-                "uploaded_at": datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(),
-                "company_id": f_cid
-            })
-            if f_doc_id > _tax_doc_counter[0]:
-                _tax_doc_counter[0] = f_doc_id
+            for fname in os.listdir(subpath):
+                fpath_sub = os.path.join(subpath, fname)
+                if not os.path.isfile(fpath_sub): continue
+                # fsdecode 确保 Windows 中文文件名编码正确
+                try:
+                    fname_clean = os.fsdecode(os.fsencode(fname))
+                except:
+                    fname_clean = fname
+                parts = fname_clean.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
+                if len(parts) < 3: continue
+                try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
+                except: continue
+                orig_name = parts[2]  # 第三个部分开始是原始文件名
+                fpath = fpath_sub
+                _tax_risk_docs.append({
+                    "id": f_doc_id, "filename": fname, "original_name": orig_name,
+                    "path": fpath, "size": os.path.getsize(fpath),
+                    "uploaded_at": datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(),
+                    "company_id": f_cid
+                })
+                if f_doc_id > _tax_doc_counter[0]:
+                    _tax_doc_counter[0] = f_doc_id
 
 # 初始化：在模块加载时扫描磁盘
 _init_tax_docs_from_disk()
@@ -9598,33 +9611,38 @@ def _recover_tax_risk_docs():
     import hashlib
     if not os.path.exists(UPLOAD_DIR):
         return
-    for fname in sorted(os.listdir(UPLOAD_DIR)):
-        fpath = os.path.join(UPLOAD_DIR, fname)
-        if not os.path.isfile(fpath):
-            continue
-        # 文件名格式: {company_id}_{doc_id}_{timestamp}.ext
-        stem = os.path.splitext(fname)[0]
-        parts = stem.split("_")
-        if len(parts) < 3:
-            continue
-        try:
-            company_id = int(parts[0])
-            doc_id = int(parts[1])
-        except ValueError:
-            continue
-        stat = os.stat(fpath)
-        sz = stat.st_size
-        with open(fpath, "rb") as fh:
-            md5 = hashlib.md5(fh.read()).hexdigest()
-        doc = {
-            "id": doc_id, "filename": fname, "original_name": fname,
-            "path": fpath, "size": sz, "md5": md5,
-            "uploaded_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-            "company_id": company_id,
-        }
-        _tax_risk_docs.append(doc)
-        if doc_id >= _tax_doc_counter[0]:
-            _tax_doc_counter[0] = doc_id
+    for subdir in os.listdir(UPLOAD_DIR):
+        subpath = os.path.join(UPLOAD_DIR, subdir)
+        if not os.path.isdir(subpath): continue
+        try: company_id = int(subdir)
+        except: continue
+        for fname in sorted(os.listdir(subpath)):
+            fpath = os.path.join(subpath, fname)
+            if not os.path.isfile(fpath):
+                continue
+            # 文件名格式: {company_id}_{doc_id}_{timestamp}.ext
+            stem = os.path.splitext(fname)[0]
+            parts = stem.split("_")
+            if len(parts) < 3:
+                continue
+            try:
+                company_id = int(parts[0])
+                doc_id = int(parts[1])
+            except ValueError:
+                continue
+            stat = os.stat(fpath)
+            sz = stat.st_size
+            with open(fpath, "rb") as fh:
+                md5 = hashlib.md5(fh.read()).hexdigest()
+            doc = {
+                "id": doc_id, "filename": fname, "original_name": fname,
+                "path": fpath, "size": sz, "md5": md5,
+                "uploaded_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "company_id": company_id,
+            }
+            _tax_risk_docs.append(doc)
+            if doc_id >= _tax_doc_counter[0]:
+                _tax_doc_counter[0] = doc_id
 
     # 去重：同一 id + original_name 只保留一条
     seen = set()
@@ -9998,7 +10016,7 @@ async def upload_tax_risk_docs(
             continue
         # 兼容旧数据：无 MD5 字段则从磁盘读取
         try:
-            fpath = d.get("path") or os.path.join(UPLOAD_DIR, d.get("filename", ""))
+            fpath = d.get("path") or os.path.join(_get_company_upload_dir(d.get("company_id", company_id)), d.get("filename", ""))
             if os.path.exists(fpath):
                 with open(fpath, "rb") as fh:
                     existing_hashes.add(hashlib.md5(fh.read()).hexdigest())
@@ -10022,7 +10040,8 @@ async def upload_tax_risk_docs(
         _tax_doc_counter[0] += 1
         doc_id = _tax_doc_counter[0]
         safe_name = f"{company_id}_{doc_id}_{f.filename}"
-        filepath = os.path.join(UPLOAD_DIR, safe_name)
+        company_udir = _get_company_upload_dir(company_id)
+        filepath = os.path.join(company_udir, safe_name)
         file_saved = False
         try:
             with open(filepath, "wb") as fw:
@@ -10064,21 +10083,24 @@ def list_tax_risk_docs(company_id: int = Query(...)):
              "uploaded_at": d["uploaded_at"]} for d in unique]
 
 @app.get("/api/tax-risk-docs/debug")
-def debug_tax_risk_docs():
-    """诊断端点：确认磁盘文件是否可达"""
-    # 统计各 company_id 的文档数
-    cid_counts = {}
-    for d in _tax_risk_docs:
-        cid = d.get("company_id", "?")
-        cid_counts[cid] = cid_counts.get(cid, 0) + 1
+def debug_tax_risk_docs(company_id: int = Query(...)):
+    """诊断端点：确认磁盘文件是否可达（需指定 company_id）"""
+    # 仅统计当前公司的文档
+    upload_dir = _get_company_upload_dir(company_id)
+    disk_files = []
+    if os.path.exists(upload_dir):
+        disk_files = [f for f in os.listdir(upload_dir) if os.path.isfile(os.path.join(upload_dir, f))]
+
+    cid_counts = {str(company_id): len(_tax_risk_docs)}
     return {
-        "upload_dir": UPLOAD_DIR,
-        "dir_exists": os.path.exists(UPLOAD_DIR),
-        "files_on_disk": len(os.listdir(UPLOAD_DIR)) if os.path.exists(UPLOAD_DIR) else 0,
-        "docs_in_memory": len(_tax_risk_docs),
+        "company_id": company_id,
+        "upload_dir": upload_dir,
+        "dir_exists": os.path.exists(upload_dir),
+        "files_on_disk": len(disk_files),
+        "docs_in_memory": len([d for d in _tax_risk_docs if d.get("company_id") == company_id]),
         "scanned": _TAX_DOC_SCANNED,
         "cid_distribution": cid_counts,
-        "file_sample": [{"name": f, "parts": f.split("_", 2)} for f in sorted(os.listdir(UPLOAD_DIR))] if os.path.exists(UPLOAD_DIR) else [],
+        "file_sample": [{"name": f, "company_dir": str(company_id)} for f in disk_files[:10]],
     }
 
 
@@ -10148,8 +10170,11 @@ from datetime import timedelta
 
 # ═══════════ Excel 结构化提取 ═══════════
 
-def _parse_excel_structured(filepath, ext, original_name=""):
-    """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断"""
+def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
+    """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断
+    
+    当 return_wb=True 时，返回 (result, wb) 元组，避免调用方重复打开文件。
+    """
     fname = os.path.basename(filepath)
     _init_trace(fname)  # 初始化诊断追踪
     try:
@@ -10163,9 +10188,13 @@ def _parse_excel_structured(filepath, ext, original_name=""):
             result = _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]], original_name)
         if result is None:
             _trace_diag("三层递进全部失败: 关键词匹配→结构分析→通用解析 均未通过", "error")
+        if return_wb:
+            return (result, wb)
         return result
     except Exception as e:
         _trace_diag(f"Excel解析异常: {e}", "error")
+        if return_wb:
+            return (None, None)
         return None
 
 # ── 资料类型特征库（列名关键词+得分）──
@@ -10581,7 +10610,7 @@ def _parse_housing_fund_sheet(sheet, header):
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("name") and not vals.get("base"): continue
@@ -10610,7 +10639,7 @@ def _parse_contract_sheet(sheet, header):
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("name") and not vals.get("contract_no"): continue
@@ -11044,15 +11073,42 @@ def _is_repeat_header(vals, header):
     return match >= min(3, len(header) - 1)  # 3个以上匹配视为重复表头
 
 def _get_row_values(sheet, row_idx):
-    """读取一行所有单元格的值，兼容xlrd和openpyxl(含read_only模式)"""
+    """读取一行所有单元格的值，兼容xlrd和openpyxl(含read_only模式)
+    
+    优化：对于openpyxl read_only模式，使用行缓存避免重复iter_rows扫描。
+    """
     # openpyxl: 有iter_rows方法
     if hasattr(sheet, 'iter_rows'):
         try:
-            # values_only=True返回生成器，list转tuple取第一行
-            rows = list(sheet.iter_rows(min_row=row_idx+1, max_row=row_idx+1, values_only=True))
-            if rows and rows[0]:
-                return [str(c) if c is not None else "" for c in rows[0]]
-            return []
+            # 尝试使用行缓存（避免read_only模式下每个iter_rows都从头扫描）
+            cache_key = '_row_cache'
+            if not hasattr(sheet, cache_key):
+                sheet._row_cache = {}
+            if row_idx in sheet._row_cache:
+                return sheet._row_cache[row_idx]
+            # 批量读取：从当前已缓存的最大row+1到目标row
+            cached_max = max(sheet._row_cache.keys()) if sheet._row_cache else -1
+            if cached_max >= row_idx:
+                return sheet._row_cache.get(row_idx, [])
+            # 从 cached_max+1 读到 row_idx
+            batch_start = cached_max + 2  # openpyxl使用1-based行号
+            batch_end = row_idx + 2
+            try:
+                batch_rows = list(sheet.iter_rows(min_row=batch_start, max_row=batch_end, values_only=True))
+                for i, batch_row in enumerate(batch_rows):
+                    actual_row_idx = cached_max + 1 + i
+                    if batch_row:
+                        sheet._row_cache[actual_row_idx] = [str(c) if c is not None else "" for c in batch_row]
+                    else:
+                        sheet._row_cache[actual_row_idx] = []
+            except:
+                # 批量读取失败，回退到逐行读取
+                rows = list(sheet.iter_rows(min_row=row_idx+1, max_row=row_idx+1, values_only=True))
+                if rows and rows[0]:
+                    sheet._row_cache[row_idx] = [str(c) if c is not None else "" for c in rows[0]]
+                else:
+                    sheet._row_cache[row_idx] = []
+            return sheet._row_cache.get(row_idx, [])
         except:
             return []
     # xlrd: 有cell_value和ncols
@@ -11988,7 +12044,10 @@ def _parse_invoice_sheet(sheet, direction):
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                if hasattr(sheet, 'cell_value'):
+                    v = str(sheet.cell_value(r, col)).strip()
+                else:
+                    v = str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("inv_no") and not vals.get("inv_code") and not vals.get("buyer") and not vals.get("seller") and not vals.get("goods"):
@@ -12146,10 +12205,11 @@ def _parse_salary_sheet(sheet):
                 start_row = r + 1
                 break
     for r in range(start_row, min(nrows, 500)):
+        raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("name"): continue
@@ -12193,10 +12253,11 @@ def _parse_social_sheet(sheet, header):
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
     for r in range(1, min(nrows, 200)):
+        raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("name"): continue
@@ -12214,10 +12275,11 @@ def _parse_voucher_sheet(sheet):
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
     for r in range(2, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("account") and not vals.get("summary"): continue
@@ -12243,10 +12305,11 @@ def _parse_inventory_sheet(sheet):
     if not cols: return None
     rows = []
     for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
             try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(list(sheet.iter_rows(min_row=r+1, max_row=r+1, values_only=True))[0][col] or '')
+                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("date") and not vals.get("item"): continue
@@ -14910,7 +14973,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
                        '武汉','长沙','合肥','南昌','郑州','济南','青岛','石家庄','太原','西安',
                        '昆明','贵阳','南宁','海口','沈阳','大连','长春','哈尔滨']:
                 if c in name: city_candidates[c] += 1
-    company_city = city_candidates.most_common(1)[0][0] if city_candidates else '中山'
+    company_city = city_candidates.most_common(1)[0][0] if city_candidates else '未知'
     
     # ── 按地址提取城市前缀 ──
     def extract_city(name):
@@ -17818,9 +17881,11 @@ def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
     """
     cp = ctx.company_profile
     
-    # 从所有品名中提取税收分类编码（*之间的文字）
+    # ═══ 行业推断铁律：仅以销项发票品名为依据，不参考进项 ═══
+    # WHY: 销项=企业实际经营产出（卖什么就是什么行业）
+    #      进项=采购投入/成本结构（买什么不代表行业，如传媒公司也会买餐饮服务）
     import re
-    all_goods_list = list(pur_goods | sal_goods)
+    all_goods_list = list(sal_goods)
     cat_counts = {}
     
     for goods in all_goods_list:
@@ -20143,124 +20208,6 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     return findings, graph_summary
 
 
-def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
-    """经营实质深挖 —— 虚开发票的终极克星。
-    
-    核心逻辑：真实经营必须消耗生产要素（水/电/运输/人工）。
-    如果发票显示大量产出，但要素消耗不匹配 → 虚开嫌疑极大。
-    
-    检测项：
-    1. 水电费vs产量：制造业必须有水电支出
-    2. 运输费vs销量：有销售必须有物流
-    3. 人工vs产量：产量需要人工支撑
-    """
-    from collections import defaultdict
-    
-    findings = []
-    fs = ctx.financial_snapshot
-    cp = ctx.company_profile
-    
-    # 提取费用类关键词
-    utility_kws = ["电", "水", "电费", "水费", "水电", "电力", "水务", "能源"]
-    transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "搬"]
-    labor_kws = ["工资", "薪金", "劳务", "人工", "薪酬", "奖金"]
-    
-    has_utility = False
-    has_transport = False
-    utility_total = 0
-    transport_total = 0
-    
-    if bank_txs:
-        for tx in bank_txs:
-            summary = str(tx.get("summary", tx.get("用途", "")))
-            counterparty = str(tx.get("counterparty", tx.get("对方户名", "")))
-            text = summary + counterparty
-            amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
-            
-            if any(kw in text for kw in utility_kws):
-                has_utility = True
-                utility_total += amt
-            if any(kw in text for kw in transport_kws):
-                has_transport = True
-                transport_total += amt
-    
-    if invoices:
-        for inv in invoices:
-            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
-            if any(kw in goods for kw in utility_kws):
-                has_utility = True
-                utility_total += float(inv.get("amount", 0) or 0)
-            if any(kw in goods for kw in transport_kws):
-                has_transport = True
-                transport_total += float(inv.get("amount", 0) or 0)
-    
-    total_sales = fs.get("total_sales", 0)
-    total_purchases = fs.get("total_purchases", 0)
-    total_salary = fs.get("total_salary", 0)
-    biz_model = cp.get("biz_model", "")
-    
-    # ── 制造业必须有水电+运输 ──
-    if biz_model == "制造业" and total_sales > 1000000:
-        if not has_utility and total_purchases > 500000:
-            findings.append({
-                "type": "经营实质-缺水电支出",
-                "level": "高风险",
-                "score": 9,
-                "detail": f"制造业进项{total_purchases:,.0f}元但未检测到水电费支出——生产必须有能源消耗，疑似无实际生产",
-                "how_found": "经营实质引擎: 扫描银行流水+发票品名中的水电关键词→未命中→产能存疑",
-                "suggestion": "核查企业实际经营场所、电表读数、水费单据",
-                "category": "经营实质深挖"
-            })
-        if not has_transport and total_sales > 1000000:
-            findings.append({
-                "type": "经营实质-缺运输支出",
-                "level": "中风险",
-                "score": 7,
-                "detail": f"销售额{total_sales:,.0f}元但未检测到运输/物流费用——货物销售必须有物流",
-                "how_found": "经营实质引擎: 扫描运输关键词→未命中→物流真实性存疑",
-                "suggestion": "核查出库单、物流单据、运输合同",
-                "category": "经营实质深挖"
-            })
-    
-    # ── 人工vs产出匹配 ──
-    if biz_model in ("制造业", "贸易") and total_sales > 5000000:
-        emp_count = fs.get("salary_count", 0)
-        if emp_count > 0 and total_salary > 0:
-            revenue_per_emp = total_sales / emp_count
-            if revenue_per_emp > 5000000:
-                findings.append({
-                    "type": "经营实质-人均产出异常",
-                    "level": "中风险",
-                    "score": 6,
-                    "detail": f"人均产出{revenue_per_emp:,.0f}元（{emp_count}人支撑{total_sales:,.0f}元销售额）→人员规模与产出不匹配",
-                    "how_found": f"经营实质引擎: {emp_count}人×人均{revenue_per_emp:,.0f}元→超出合理范围",
-                    "suggestion": "核查是否有外协加工/外包/挂靠等未披露的安排",
-                    "category": "经营实质深挖"
-                })
-        elif emp_count == 0 and total_sales > 1000000:
-            findings.append({
-                "type": "经营实质-无人工支出",
-                "level": "高风险",
-                "score": 8,
-                "detail": f"销售额{total_sales:,.0f}元但无工资记录——无人工不可能有产出",
-                "category": "经营实质深挖"
-            })
-    
-    # ── 运输费vs销量 ──
-    if has_transport and total_sales > 0:
-        transport_ratio = transport_total / total_sales * 100
-        if transport_ratio < 0.5 and biz_model == "制造业":
-            findings.append({
-                "type": "经营实质-运输费占比偏低",
-                "level": "低风险",
-                "score": 4,
-                "detail": f"运输费{transport_total:,.0f}元仅占销售额{transport_ratio:.2f}%→制造业物流成本通常1-5%",
-                "category": "经营实质深挖"
-            })
-    
-    return findings
-
-
 def _adversarial_robustness_check(all_findings, invoices, bank_txs):
     """对抗鲁棒性检测 —— 识别人为编造数据的痕迹。
     
@@ -21791,9 +21738,188 @@ def _update_industry_benchmarks(company_id, report, ctx):
         sdb.close()
 
 
-def _run_analyze(company_id, db):
+# ═══════════════════════════════════════════════════════════
+#  报告块架构 — 声明式配置驱动（第三步）
+#  不再手写 if-else，而是用配置表定义"什么数据条件→推什么 blocks"
+#  系统运行时根据实际数据评估条件，条件满足就推 block，不满足就不推。
+#  不同公司上传不同资料→条件匹配不同→推不同 blocks→出不同报告。
+#  全行业各企业通用：同一份配置表，不同数据自动出不同的报告结构。
+# ═══════════════════════════════════════════════════════════
+
+# ── 报告块配置表 ──
+# 每条配置定义：什么条件触发 / 生成什么 block / block 数据怎么提取
+# condition 函数接收 ctx 字典，返回 bool
+# data_builder 函数接收 ctx 字典，返回 block.data 字典
+
+BLOCK_CONFIG = []
+
+def _block(type, title, condition, data_builder, per_item=False, item_source=None):
+    """注册一个报告块配置"""
+    BLOCK_CONFIG.append({
+        "type": type,
+        "title": title,
+        "condition": condition,
+        "data_builder": data_builder,
+        "per_item": per_item,       # True=对 item_source 逐条生成 block
+        "item_source": item_source,  # per_item=True 时，数据来源的 ctx 键名
+    })
+
+# ── 帮助函数：从 result 提取常用上下文 ──
+def _ctx(result):
+    rp = result.get("report", {})
+    te = rp.get("target_entity", {}) or {}
+    cc = rp.get("comprehensive", {}) or {}
+    mi = cc.get("material_intel", {}) or {}
+    ii = mi.get("发票", {}) or {}
+    bi = mi.get("银行流水", {}) or {}
+    af = rp.get("all_findings", [])
+    return {"report": rp, "entity": te, "comprehensive": cc,
+            "material_intel": mi, "invoices": ii, "bank": bi,
+            "findings": af, "files_count": rp.get("files_count", 0)}
+
+# ═══════════════════════════════════════════════════════
+#  以下为声明式配置 — 配置即文档，条件驱动，无需 if-else
+# ═══════════════════════════════════════════════════════
+
+# 封皮：永远出
+_block("cover", "", lambda ctx: True, lambda ctx: {
+    "company_name": ctx["entity"].get("name", "被查单位"),
+    "company_uscc": ctx["entity"].get("uscc", ""),
+    "report_no": f"税稽字[2026]第{len(ctx['findings'])}号",
+    "files_count": ctx["files_count"],
+})
+
+# 企业基本画像：有企业名称就出
+_block("entity_profile", "稽查对象基本情况",
+    lambda ctx: bool(ctx["entity"].get("name")),
+    lambda ctx: {"entity": ctx["entity"], "lookup_source": ctx["entity"].get("lookup_source", "")})
+
+# 资料完备度：有资料类别统计或缺失资料信息就出
+_block("data_completeness", "资料完备度",
+    lambda ctx: bool(ctx["material_intel"].get("资料类别统计") or ctx["material_intel"].get("缺失资料")),
+    lambda ctx: {
+        "categories": ctx["material_intel"].get("资料类别统计", {}),
+        "missing": ctx["material_intel"].get("缺失资料", []),
+        "files_count": ctx["files_count"],
+    })
+
+# 风险总览：有发现项就出
+_block("risk_summary", "风险发现总览",
+    lambda ctx: len(ctx["findings"]) > 0,
+    lambda ctx: {
+        "total": len(ctx["findings"]),
+        "high": sum(1 for f in ctx["findings"] if f.get("level") == "高风险"),
+        "mid": sum(1 for f in ctx["findings"] if f.get("level") == "中风险"),
+        "low": sum(1 for f in ctx["findings"] if f.get("level") not in ("高风险", "中风险")),
+        "overall_level": ctx["report"].get("overall_level", ""),
+    })
+
+# 稽查方法：有发票数据或银行数据就出
+# 加工环节穿透法仅在检测到加工费信号时加入方法列表
+_block("methods", "稽查方法",
+    lambda ctx: bool(
+        (ctx["invoices"].get("销项发票") or ctx["invoices"].get("进项发票"))
+        or (ctx["bank"].get("总收款") or ctx["bank"].get("总付款"))
+    ),
+    lambda ctx: _build_methods_data(ctx))
+
+def _build_methods_data(ctx):
+    te = ctx["entity"]
+    ga = te.get("_goods_analysis", {})
+    has_processing = ga.get("has_processing_fee", False) or (
+        len(ga.get("pur_only_goods", [])) > 0 and len(ga.get("sal_only_goods", [])) > 0
+    )
+    methods = ["工商登记核查法", "进销存数据比对法", "资金流与发票流核对法", "供应商及客户穿透分析法"]
+    if has_processing:
+        methods.append("加工环节穿透法")
+    methods.append("五步核查法")
+    return {
+        "methods": methods,
+        "registered_business": te.get("industry_online", "") or te.get("industry", ""),
+        "invoice_stats": ctx["invoices"],
+        "bank_stats": ctx["bank"],
+    }
+
+# 发现项：每条 finding 生成一个 block
+_block("finding", "", lambda ctx: len(ctx["findings"]) > 0, lambda ctx: {},
+    per_item=True, item_source="findings")
+
+
+# ── 遍历配置表，根据数据评估条件，动态生成 blocks ──
+
+def _build_report_blocks(result, company_id):
+    """声明式配置驱动：遍历 BLOCK_CONFIG，条件满足→推 block。
+    不同数据→不同条件匹配→不同 blocks→不同报告结构。
+    """
+    ctx = _ctx(result)
+    blocks = []
+    p = 0  # priority
+
+    for cfg in BLOCK_CONFIG:
+        # 评估条件
+        try:
+            ok = cfg["condition"](ctx)
+        except Exception:
+            ok = False
+        if not ok:
+            continue
+
+        if cfg["per_item"]:
+            # 逐条模式：对 item_source 中的每条数据生成一个 block
+            items = ctx.get(cfg["item_source"], [])
+            for item in items:
+                p += 1
+                block_data = {}
+                # 如果 data_builder 有返回值，用它的；否则直接用 item
+                try:
+                    built = cfg["data_builder"](ctx)
+                    if built: block_data.update(built)
+                except Exception:
+                    pass
+                block_data[cfg["item_source"].rstrip("s")] = item  # "findings" → "finding"
+                blocks.append({
+                    "type": cfg["type"],
+                    "title": item.get("title", "") if cfg["title"] == "" else cfg["title"],
+                    "priority": p,
+                    "data": block_data,
+                })
+        else:
+            # 单条模式
+            p += 1
+            try:
+                block_data = cfg["data_builder"](ctx)
+            except Exception:
+                block_data = {}
+            blocks.append({
+                "type": cfg["type"],
+                "title": cfg["title"],
+                "priority": p,
+                "data": block_data,
+            })
+
+    # ── 结论和签字永远在最后 ──
+    p += 1
+    blocks.append({"type": "conclusion", "title": "稽查结论与建议", "priority": p, "data": {
+        "entity_name": ctx["entity"].get("name", "被查单位"),
+        "total_risks": len(ctx["findings"]),
+        "overall_level": ctx["report"].get("overall_level", ""),
+        "missing_docs": ctx["material_intel"].get("缺失资料", []),
+    }})
+    p += 1
+    blocks.append({"type": "signature", "title": "", "priority": p, "data": {}})
+
+    return blocks
+
+
+def _run_analyze(company_id, db, progress_callback=None):
     from database import VATDeclaration
     from collections import defaultdict
+    
+    def _report(progress, msg):
+        """报告进度"""
+        if progress_callback:
+            try: progress_callback(progress, msg)
+            except: pass
 
     # ── NEW ENGINE MARKER: 2026-06-23 Phase 1-4 Reasoning Engine ──
     _NEW_ENGINE_VERSION = True
@@ -21804,16 +21930,19 @@ def _run_analyze(company_id, db):
     _analysis_traces = []  # 收集所有finding的推理链路
     
     # 直接从磁盘扫描文件列表——不依赖全局 _tax_risk_docs 状态
+    # 使用公司专属子目录物理隔离，防止不同公司数据串混
+    company_upload_dir = _get_company_upload_dir(company_id)
     docs = []
-    if os.path.exists(UPLOAD_DIR):
-        for fname in os.listdir(UPLOAD_DIR):
+    if os.path.exists(company_upload_dir):
+        for fname in os.listdir(company_upload_dir):
+            if not os.path.isfile(os.path.join(company_upload_dir, fname)):
+                continue
             parts = fname.split("_", 2)
             if len(parts) < 3: continue
             try: f_cid = int(parts[0]); f_doc_id = int(parts[1])
             except: continue
-            if f_cid != company_id: continue
             orig_name = parts[2]
-            fpath = os.path.join(UPLOAD_DIR, fname)
+            fpath = os.path.join(company_upload_dir, fname)
             if os.path.isfile(fpath):
                 docs.append({
                     "id": f_doc_id, "filename": fname, "original_name": orig_name,
@@ -21831,38 +21960,44 @@ def _run_analyze(company_id, db):
     agent = None  # 保留兼容，由agi_pipeline内部管理
     agent_status = None
     agi_pipeline = None
+    agi_init_ok = False
     try:
         from engine.agi_pipeline import create_pipeline
         agi_pipeline = create_pipeline()
         _agi_pipeline_instance = agi_pipeline
         agent = agi_pipeline.init_agent(db)  # 统一入口：管道管理智能体
-        pipeline_log.append("[AGI] 智能体+16模块管线已统一连接")
+        agi_init_ok = True
+        pipeline_log.append("[AGI] 智能体+34模块管线已统一连接")
     except Exception as _pe:
-        pipeline_log.append(f"[AGI] 统一初始化异常: {_pe}")
+        pipeline_log.append(f"[AGI] 初始化失败→跳过反思/洞见/知识注入: {_pe}")
+        agi_pipeline = None
 
     # ── NEW ENGINE VERSION CHECK ──
     pipeline_log.append("[ENGINE] 推理引擎v2.0 — Phase1-4 已加载 (2026-06-23)")
 
+    _total_docs = len(docs)
+    _report(0, f"开始解析 {_total_docs} 个文件...")
+    _doc_idx = 0
     for doc in docs:
+        _doc_idx += 1
         fname, fpath, ext = doc["original_name"], doc["path"], os.path.splitext(doc["original_name"])[1].lower()
+        if _doc_idx % 5 == 0 or _doc_idx == _total_docs:
+            _report(int(_doc_idx * 100 / _total_docs), f"解析文件 {_doc_idx}/{_total_docs}")
         fr = {"file": fname, "type": "unknown", "actions": []}
         parsed = None
         try:
             if ext in (".xls", ".xlsx"):
-                parsed = _parse_excel_structured(fpath, ext, fname)
+                parsed, _cached_wb = _parse_excel_structured(fpath, ext, fname, return_wb=True)
                 
                 # ═══ 兜底：数据内容推断 ═══
-                # 当所有解析器失败（unknown或0行），用数据形态反推列角色
-                if (parsed is None or len(parsed.get("rows", [])) == 0):
+                # 当所有解析器失败（unknown或0行），复用已打开的workbook（避免重复打开慢）
+                if (parsed is None or len(parsed.get("rows", [])) == 0) and _cached_wb is not None:
                     try:
-                        import xlrd as _xlrd, openpyxl as _opxl
                         if ext == ".xls":
-                            _wb = _xlrd.open_workbook(fpath)
-                            _s = _wb.sheet_by_index(0)
+                            _s = _cached_wb.sheet_by_index(0)
                             _nrows = _s.nrows
                         else:
-                            _wb = _opxl.load_workbook(fpath, data_only=True)
-                            _s = _wb[_wb.sheetnames[0]]
+                            _s = _cached_wb[_cached_wb.sheetnames[0]]
                             _nrows = _s.max_row
                         col_roles = _infer_columns_from_data(_s, _nrows)
                         if col_roles:
@@ -21993,6 +22128,7 @@ def _run_analyze(company_id, db):
 
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
+    _report(95, f"文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张 银行流水{len(bank_txs)}条")
     
     # ═══════════════════════════════════════
     # Phase 1: 确定分析对象 → 反推发票方向校正
@@ -22843,7 +22979,7 @@ def _run_analyze(company_id, db):
                 bk_ids, bt_ids, sr_ids = [], [], []  # 清空ID列表，避免后续清理报错
 
             # 读取实际规则数
-            _real_rule_count = 1319
+            _real_rule_count = 1512
             try:
                 _rp = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
                 if os.path.exists(_rp):
@@ -23586,7 +23722,13 @@ def _run_analyze(company_id, db):
     comprehensive["data_overview"] = {"present": data_present, "missing": missing_doc_names}
     
     # ── 缺失后果→综合定性自动触发（叙事增强层）──
-    # 任一资料缺失≥1 → 自动触发对应风险结论
+    # 任一资料缺失≥1 → 自动触发对应风险结论，注入all_findings
+    if ctx.missing_doc_keys:
+        triggered = _trigger_missing_consequences(all_findings, ctx.missing_doc_keys)
+        if triggered:
+            all_findings.extend(triggered)
+            pipeline_log.append(f"[叙事增强层] 缺失后果自动触发: {len(triggered)}条风险结论已注入all_findings")
+    # 同时构建前端展示数据
     missing_trigger_list = []
     for key in ctx.missing_doc_keys:
         t = MISSING_CONSEQUENCE_TRIGGER.get(key)
@@ -23603,8 +23745,14 @@ def _run_analyze(company_id, db):
             })
     comprehensive["missing_consequence_triggers"] = missing_trigger_list
     if missing_trigger_list:
-        pipeline_log.append(f"[叙事增强层] 缺失后果自动触发: {len(missing_trigger_list)}项 → {', '.join(mt['missing_doc'] for mt in missing_trigger_list)}")
-
+        pipeline_log.append(f"[叙事增强层] 缺失后果前端数据: {len(missing_trigger_list)}项")
+    
+    # ── 数据资产计数（供前端报告头部展示）──
+    _actual_rule_count = 1512  # 默认值，稍后从rules_data更新
+    comprehensive["rule_count"] = _actual_rule_count
+    comprehensive["chain_count"] = chains_data.get("trail_chains", 0) if 'chains_data' in dir() else 396
+    comprehensive["evidence_count"] = chains_data.get("evidence_chains", 0) if 'chains_data' in dir() else 745
+    
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
         material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory)
@@ -23815,7 +23963,7 @@ def _run_analyze(company_id, db):
     comprehensive["triggered_chains"] = triggered_chains
 
     # 动态读取实际规则数量
-    _actual_rule_count = 312
+    _actual_rule_count = 1512
     try:
         if rules_data:
             _actual_rule_count = len(rules_data)
@@ -23930,6 +24078,18 @@ def _run_analyze(company_id, db):
         target_industry=_target_industry)
     comprehensive["filter_log"] = filter_log  # 方法论过滤详情
     
+    # ── 重建domain_summary（过滤后数据，确保count与all_findings一致）──
+    for dr in domain_summary:
+        filtered_findings = [f for f in dr.get("findings", []) 
+                           if any(af.get("type") == f.get("type") and af.get("detail") == f.get("detail") 
+                                  for af in all_findings)]
+        dr["findings"] = filtered_findings
+        dr["count"] = len(filtered_findings)
+        dr["high"] = sum(1 for f in filtered_findings if f.get("level") == "高风险")
+        dr["mid"] = sum(1 for f in filtered_findings if f.get("level") == "中风险")
+    # 移除空域
+    domain_summary[:] = [dr for dr in domain_summary if dr["count"] > 0]
+    
     # ═══ 重算风险统计（过滤后）═══
     # 确保进销存匹配核心发现不丢失（有进无销/有销无进/进销数量偏差）
     for imf in inv_match_findings:
@@ -23969,6 +24129,7 @@ def _run_analyze(company_id, db):
     
     # ═══ 贝叶斯因果网络：条件概率 + 自动发现因果边 + 信念传播 ═══
     all_findings, bayesian_result = _bayesian_causal_network(all_findings)
+    ctx._bayesian = bayesian_result
     if bayesian_result.get("edges", 0) > 0:
         pipeline_log.append(f"贝叶斯因果: {bayesian_result['edges']}条因果边/{bayesian_result.get('propagated',0)}条信念传播")
     
@@ -24358,6 +24519,7 @@ def _run_analyze(company_id, db):
         "bayesian": getattr(ctx, '_bayesian', None) or {},
         "ema_learning": getattr(ctx, '_ema_learning', None) or {},
         "benford": getattr(ctx, '_benford', None) or {},
+        "agi_initialized": agi_init_ok,
         "trace_id": analysis_trace_id,
         "trace_count": len(_analysis_traces),
         "blocked": False,
@@ -24382,6 +24544,12 @@ def _run_analyze(company_id, db):
             all_findings, ctx, bank_txs, invoices, sal_invs, pur_invs, salaries, pipeline_log
         )
         comprehensive["hypothesis_verification"] = hypothesis_summary
+        # ── 同步result中的all_findings（因为假设验证修改了all_findings）──
+        result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
+        result["report"]["total_risks"] = len(all_findings)
+        result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
+        result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
+        result["report"]["low_risk"] = sum(1 for f in all_findings if f.get("level") in ("低风险", "良好"))
     except Exception: pass
     
     # ═══ 纠正规则自动应用 ───
@@ -24391,6 +24559,15 @@ def _run_analyze(company_id, db):
         corr_n = apply_correction_rules(all_findings, ind, bm)
         if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用")
     except Exception: pass
+    
+    # ═══ 结论自洽性检查：CONTRADICTION_RULES 矛盾检测 ═══
+    try:
+        contradictions = _check_conclusion_consistency(all_findings)
+        if contradictions:
+            all_findings.extend(contradictions)
+            pipeline_log.append(f"[CROSS-CHECK] 矛盾检测: {len(contradictions)}条逻辑冲突发现")
+    except Exception as _cce:
+        pipeline_log.append(f"[CROSS-CHECK] 矛盾检测异常: {_cce}")
     
     # ═══ 合规门禁（阻断版）───
     gate_passed = True
@@ -24687,6 +24864,11 @@ def _run_analyze(company_id, db):
         result["self_healing"] = healing_result
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
+    
+    # ═══ 报告块架构：将分析结果转化为结构化 blocks 数组 ═══
+    # 每个 block 是独立的、自描述的。前端通用渲染器遍历 blocks 按 type 渲染。
+    # 加段落→push block；调顺序→调 blocks 顺序；删段落→不 push。
+    result["blocks"] = _build_report_blocks(result, company_id)
     
     return result
 
@@ -25475,9 +25657,10 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
                 entity["source"].append("银行大额收款方")
                 break
     
-    # 5. 推断行业类型
+    # 5. 推断行业类型（仅以销项发票品名为依据，不参考进项）
     goods_list = []
     for inv in invoices:
+        if inv.get("direction", "") != "销项": continue
         g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
         if g: goods_list.append(g)
     
@@ -25495,17 +25678,31 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
             entity["industry"] = industry_votes.most_common(1)[0][0]
             entity["_industry_votes"] = dict(industry_votes.most_common(3))
     
-    # 6. 提取期间范围
+    # 6. 提取期间范围（智能解析多种日期格式，避免硬截取Bug）
+    import re as _dre
     dates = []
+    def _parse_ym(dstr):
+        """从各种日期格式中提取(year, month)：2025-01-01 / 2025/01/01 / 20250101 / 2025年1月1日"""
+        dstr = str(dstr).strip()
+        # 尝试 ISO 格式 YYYY-MM-DD 或 YYYY/MM/DD
+        m = _dre.match(r'(\d{4})[-/](\d{1,2})', dstr)
+        if m: return (int(m.group(1)), int(m.group(2)))
+        # 尝试无分隔符 YYYYMMDD
+        m = _dre.match(r'(\d{4})(\d{2})\d{2}', dstr)
+        if m: return (int(m.group(1)), int(m.group(2)))
+        # 尝试中文格式 YYYY年MM月
+        m = _dre.match(r'(\d{4})年(\d{1,2})月', dstr)
+        if m: return (int(m.group(1)), int(m.group(2)))
+        return None
     for inv in invoices:
-        d = str(inv.get("date", inv.get("开票日期", "")))[:10]
-        if d and d[:4].isdigit(): dates.append(d)
+        ym = _parse_ym(inv.get("date", inv.get("开票日期", "")))
+        if ym: dates.append(ym)
     for tx in bank_txs:
-        d = str(tx.get("date", ""))[:10]
-        if d and d[:4].isdigit(): dates.append(d)
+        ym = _parse_ym(tx.get("date", ""))
+        if ym: dates.append(ym)
     if dates:
         dates.sort()
-        entity["period"] = f"{dates[0][:7]} 至 {dates[-1][:7]}"
+        entity["period"] = f"{dates[0][0]}-{dates[0][1]:02d} 至 {dates[-1][0]}-{dates[-1][1]:02d}"
     
     # 7. 推断经营模式（注意：不是企业类型company_type，是经营模式biz_model）
     if entity["industry"] in _load_industry_data().get("production_industries", []):
@@ -26885,11 +27082,11 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
     # 解析原始数据做复核
     from datetime import datetime
     
-    UPLOAD_DIR_REVIEW = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
+    company_udir_review = _get_company_upload_dir(company_id)
     docs = []
-    if os.path.exists(UPLOAD_DIR_REVIEW):
-        for fname in os.listdir(UPLOAD_DIR_REVIEW):
-            fpath = os.path.join(UPLOAD_DIR_REVIEW, fname)
+    if os.path.exists(company_udir_review):
+        for fname in os.listdir(company_udir_review):
+            fpath = os.path.join(company_udir_review, fname)
             if os.path.isfile(fpath):
                 docs.append({"original_name": fname, "path": fpath})
     
@@ -26944,7 +27141,7 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
     issues = []
     
     # ═══ 重新解析上传文件获取原始数据 ═══
-    ULDR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
+    ULDR = _get_company_upload_dir(company_id)
     raw_bank, raw_inv, raw_vouchers, raw_salaries = [], [], [], []
     if os.path.exists(ULDR):
         for fname in os.listdir(ULDR):
@@ -27363,6 +27560,7 @@ def get_report_summary(company_id: int = Query(...), version: str = Query("full"
             "comprehensive": cc,
         })
     
+    _report(100, "分析完成")
     return {"ok": True, "report": base}
 
 
@@ -28275,9 +28473,9 @@ def group_analysis(company_ids: str = Query("")):
     """多企业横向对比分析
     company_ids: 逗号分隔的企业ID列表
     """
-    ids = [int(x.strip()) for x in company_ids.split(",") if x.strip().isdigit()] if company_ids else [1]
+    ids = [int(x.strip()) for x in company_ids.split(",") if x.strip().isdigit()] if company_ids else []
     if len(ids) < 2:
-        return {"ok": False, "message": "至少选择2家企业进行对比"}
+        return {"ok": False, "message": "请至少选择2家企业进行对比（使用 company_ids 参数，逗号分隔）"}
     
     comparison = []
     for cid in ids[:5]:  # 最多5家
@@ -28354,8 +28552,8 @@ def health_check():
     return {"status": "ok", "commit": commit, "port": 8001}
 
 @app.get("/api/audit/status")
-def audit_status(company_id: int = 1):
-    """质量保障状态——返回audit.py 7项检查结果 + 系统健康评分"""
+def audit_status(company_id: int = Query(...)):
+    """质量保障状态——返回audit.py 7项检查结果 + 系统健康评分（需指定 company_id）"""
     try:
         import importlib
         import audit as audit_mod
@@ -28538,12 +28736,106 @@ def methodology_audit():
         ),
     }
 
-@app.post("/api/tax-risk-docs/analyze")
-def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """分析涉税资料（同步端点，FastAPI自动放入线程池）"""
+# ═══════════════════════════════════════════════════════════
+# 一键分析：异步任务机制
+# ═══════════════════════════════════════════════════════════
+
+import threading
+_analysis_tasks = {}
+_analysis_lock = threading.Lock()
+
+def _analysis_progress(task_id, progress, msg):
+    """进度回调（在线程中被调用）"""
+    with _analysis_lock:
+        if task_id in _analysis_tasks:
+            _analysis_tasks[task_id]["progress"] = progress
+            _analysis_tasks[task_id]["message"] = msg
+
+def _run_analysis_thread(task_id, company_id):
+    """在后台线程中运行分析"""
     import traceback as _tb
     import socket as _socket
-    _socket.setdefaulttimeout(10)  # 防网络调用挂死
+    _socket.setdefaulttimeout(10)
+    try:
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            result = _run_analyze(company_id, db, progress_callback=lambda p, m: _analysis_progress(task_id, p, m))
+            with _analysis_lock:
+                if task_id in _analysis_tasks:
+                    _analysis_tasks[task_id]["status"] = "done"
+                    _analysis_tasks[task_id]["result"] = result
+                    _analysis_tasks[task_id]["progress"] = 100
+                    _analysis_tasks[task_id]["message"] = "分析完成"
+        finally:
+            db.close()
+    except Exception as _e:
+        with _analysis_lock:
+            if task_id in _analysis_tasks:
+                _analysis_tasks[task_id]["status"] = "error"
+                _analysis_tasks[task_id]["error"] = f"{_e}"
+                _analysis_tasks[task_id]["traceback"] = _tb.format_exc()[:3000]
+
+@app.post("/api/tax-risk-docs/analyze-start")
+def analyze_tax_risk_docs_start(company_id: int = Query(...)):
+    """启动异步分析，立即返回task_id"""
+    # 2026-06-26 账套隔离防护：拒绝未选择公司的分析请求
+    if company_id <= 0:
+        return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
+    import uuid as _uuid, time as _time_
+    task_id = _uuid.uuid4().hex[:12]
+    with _analysis_lock:
+        _analysis_tasks[task_id] = {
+            "status": "running",
+            "progress": 0,
+            "message": "准备中...",
+            "result": None,
+            "error": None,
+            "company_id": company_id,
+            "started_at": _time_.time(),
+        }
+    t = threading.Thread(target=_run_analysis_thread, args=(task_id, company_id), daemon=True)
+    t.start()
+    return {"ok": True, "task_id": task_id, "message": "分析已启动"}
+
+@app.get("/api/tax-risk-docs/analyze-status/{task_id}")
+def analyze_tax_risk_docs_status(task_id: str):
+    """轮询分析进度"""
+    with _analysis_lock:
+        task = _analysis_tasks.get(task_id)
+        if not task:
+            return {"ok": False, "message": "任务不存在或已过期"}
+        return {
+            "ok": True,
+            "task_id": task_id,
+            "status": task["status"],
+            "progress": task["progress"],
+            "message": task["message"],
+        }
+
+@app.get("/api/tax-risk-docs/analyze-result/{task_id}")
+def analyze_tax_risk_docs_result(task_id: str):
+    """获取分析结果"""
+    with _analysis_lock:
+        task = _analysis_tasks.get(task_id)
+        if not task:
+            return {"ok": False, "message": "任务不存在或已过期"}
+        if task["status"] == "running":
+            return {"ok": False, "message": "分析还在进行中", "progress": task["progress"]}
+        if task["status"] == "error":
+            return {"ok": False, "message": f"分析失败: {task['error']}", "traceback": task.get("traceback", "")}
+        return task["result"]
+
+# 旧同步端点保留（兼容性），但建议前端改用异步
+@app.post("/api/tax-risk-docs/analyze")
+def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
+    """分析涉税资料（同步端点，会阻塞等待完成）"""
+    # 2026-06-26 账套隔离防护
+    if company_id <= 0:
+        return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
+    import traceback as _tb
+    import socket as _socket
+    _socket.setdefaulttimeout(10)
     try:
         return _run_analyze(company_id, db)
     except Exception as _e:

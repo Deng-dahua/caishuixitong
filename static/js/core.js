@@ -4,7 +4,7 @@ var currentPeriod = '';
 var allAccounts = [];
 
 // 多公司全局状态（供所有模块访问）
-var currentCompanyId = 1;
+var currentCompanyId = 0;  // 0=未选择，必须显式选公司后才有效
 var currentCompanyName = '';
 var allCompanies = [];
 
@@ -139,6 +139,11 @@ async function initAppFlow() {
       return;
     }
   }
+  // 首次使用或无记录时，自动进入第一个公司（避免选择页无法点击）
+  if (companies && companies.length > 0) {
+    await enterApp(companies[0].id, companies[0].name);
+    return;
+  }
   showCompanyPick(companies);
 }
 
@@ -168,21 +173,43 @@ function showCompanyPick(companies) {
     showRegistration();
     return;
   }
-  const list = document.getElementById('pick-list');
-  list.innerHTML = companies.map(c => {
-    const initial = c.name ? c.name.charAt(0) : '公';
-    return '<li onclick="enterApp(' + c.id + ', \'' + escapeHtml(c.name) + '\')">'
+  var list = document.getElementById('pick-list');
+  if (!list) { console.error('pick-list 元素未找到！'); return; }
+  list.innerHTML = companies.map(function(c) {
+    var initial = c.name ? c.name.charAt(0) : '公';
+    var safeName = escapeHtml(c.name);
+    return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '" style="cursor:pointer;" onclick="window._pickEnter(' + c.id + ')">'
       + '<div class="av">' + initial + '</div>'
-      + '<div class="info"><div class="cn">' + escapeHtml(c.name) + '</div>'
+      + '<div class="info"><div class="cn">' + safeName + '</div>'
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
       + '</div><div class="arr">→</div>'
-      + '<button class="pick-del-btn" onclick="event.stopPropagation();deleteCompanyFromPick(' + c.id + ',\'' + escapeHtml(c.name) + '\')" title="删除此账套">🗑</button>'
+      + '<button class="pick-del-btn" data-del-id="' + c.id + '" data-del-name="' + safeName + '" title="删除此账套">🗑</button>'
       + '</li>';
   }).join('');
+
+  // 删除按钮事件委托
+  list.addEventListener('click', function(e) {
+    var btn = e.target.closest('.pick-del-btn');
+    if (btn) {
+      e.stopPropagation();
+      e.preventDefault();
+      var delId = parseInt(btn.getAttribute('data-del-id'));
+      var delName = btn.getAttribute('data-del-name');
+      if (delId) deleteCompanyFromPick(delId, delName);
+    }
+  });
+
   document.getElementById('registration-view').classList.add('hidden');
   document.getElementById('company-pick-view').classList.remove('hidden');
   document.getElementById('app-view').classList.add('hidden');
 }
+
+// 全局入口——供 inline onclick 调用
+window._pickEnter = function(companyId) {
+  var li = document.querySelector('[data-company-id="' + companyId + '"]');
+  var name = li ? li.getAttribute('data-company-name') : '';
+  if (name) enterApp(parseInt(companyId), name);
+};
 
 async function deleteCompanyFromPick(companyId, companyName) {
   if (!confirm('确定要删除账套「' + companyName + '」吗？\n\n⚠️ 此操作不可逆，该账套下的所有数据（凭证、发票、报表等）将一并删除。')) return;
@@ -191,7 +218,7 @@ async function deleteCompanyFromPick(companyId, companyName) {
     if (currentCompanyId === companyId) {
       localStorage.removeItem('lastCompanyId');
       localStorage.removeItem('lastCompanyName');
-      currentCompanyId = 1;
+      currentCompanyId = 0;  // 退出时清空，防止后续操作错误关联
       currentCompanyName = '';
     }
     await fetch('/api/companies/' + companyId, { method: 'DELETE' });
@@ -212,6 +239,7 @@ async function deleteCompanyFromPick(companyId, companyName) {
 }
 
 async function enterApp(companyId, companyName) {
+window.enterApp = enterApp;  // 确保全局可访问
   sessionStorage.removeItem('onRegistrationPage');
   currentCompanyId = companyId;
   currentCompanyName = companyName;
@@ -236,7 +264,7 @@ async function exitCompany() {
   localStorage.removeItem('lastCompanyId');
   localStorage.removeItem('lastCompanyName');
   localStorage.removeItem('lastPage');
-  currentCompanyId = 1;
+  currentCompanyId = 0;  // 退出时清空，防止后续操作错误关联
   currentCompanyName = '';
   const companies = await loadCompaniesRaw();
   window._companiesForPick = companies || [];
@@ -609,7 +637,8 @@ async function api(method, url, body) {
     for (var k in extraQuery) {
       if (extraQuery.hasOwnProperty(k)) params.set(k, extraQuery[k]);
     }
-    params.set('company_id', currentCompanyId || 1);
+    // 2026-06-26 修复：未选公司时默认为0而非1，防止跨公司数据混淆
+    params.set('company_id', currentCompanyId > 0 ? currentCompanyId : 0);
     url = base + '?' + params.toString();
   }
   const isFormData = body instanceof FormData;

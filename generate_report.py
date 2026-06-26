@@ -94,7 +94,7 @@ html = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>税务稽查报告 — 达冠纺织</title>
+<title>税务稽查报告 — ''' + esc(entity.get('name', '企业')) + '''</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;background:#f8f9fa}
@@ -140,8 +140,8 @@ p.i2{text-indent:2em}
 <h1>税 务 稽 查 报 告</h1>
 <div class="sub">
 编号：税稽字[2026]第''' + str(data['total_risks']) + '''号<br>
-被查单位：中山市达冠纺织有限公司<br>
-稽查期间：2023年6月 — 2026年9月<br>
+被查单位：''' + esc(entity.get('name', '未获取')) + '''<br>
+稽查期间：''' + esc(entity.get('period', data.get('period', '资料覆盖期间'))) + '''<br>
 报告日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''<br>
 资料数量：银行流水13份 + 进项发票5份 + 销项发票5份 = 共''' + str(data['files_count']) + '''份
 </div>
@@ -235,7 +235,7 @@ for f in low_list:
 html += '''
 <h2>五、综合结论与稽查建议</h2>
 
-<p class="i2">经对被查单位「中山市达冠纺织有限公司」2023年6月至2026年9月期间的''' + str(data['files_count']) + '''份资料进行系统性稽查分析，形成结论如下：</p>
+<p class="i2">经对被查单位「''' + esc(entity.get('name', '企业')) + '''」''' + str(data['total_risks']) + '''项数据''' + '''进行系统性稽查分析，形成结论如下：</p>
 
 <h3>（一）已查实问题</h3>
 
@@ -259,7 +259,7 @@ html += '''
 
 <h3>（三）稽查建议</h3>
 
-<p class="i2">鉴于达冠纺织仅提供了3类核心资料且已暴露多项高风险发现，建议：</p>
+<p class="i2">鉴于''' + esc(entity.get('name', '被查单位')) + '''仅提供了3类核心资料且已暴露多项高风险发现，建议：</p>
 
 <p class="i2"><strong>1. 限期整改（15个工作日）：</strong>补充全部缺失的11类资料，逐笔说明进项发票付款和银行收款的匹配情况。</p>
 
@@ -277,7 +277,7 @@ html += '''
 </html>
 '''
 
-output_path = os.path.join(os.path.dirname(__file__), '稽查报告_达冠纺织_20260619.html')
+output_path = os.path.join(os.path.dirname(__file__), '稽查报告_' + esc(entity.get('name', '企业')).replace('/', '_') + '_' + datetime.now().strftime('%Y%m%d') + '.html')
 with open(output_path, 'w', encoding='utf-8') as f:
     f.write(html)
 
