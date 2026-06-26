@@ -404,8 +404,13 @@ class SupplierUpdate(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return f.read()
+    for enc in ("utf-8-sig", "gbk", "gb18030", "utf-8"):
+        try:
+            with open("static/index.html", "r", encoding=enc) as f:
+                return f.read()
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return "<h1>Encoding error</h1>"
 
 
 # ==================== 公司信息 ====================
