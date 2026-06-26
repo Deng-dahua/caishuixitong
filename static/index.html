@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>财税风险防控系统 - 中小企业�?/title>
+  <title>财税风险防控系统 - 中小企业�?/title>
   <link rel="stylesheet" href="/static/css/app.css?v=2026062521">
   <link rel="stylesheet" href="/static/css/pipeline-unified.css?v=2026061901">
   <style>
@@ -23,13 +23,13 @@
       table-layout: auto;
       width: 100%;
     }
-    /* 科目余额表纵向滚�?*/
+    /* 科目余额表纵向滚�?*/
     #tb-table .table-wrap {
       max-height: calc(100vh - 260px);
       overflow-y: auto;
     }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    /* 推理引擎仪表�?*/
+    /* 推理引擎仪表�?*/
     .engine-card { background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px }
     .engine-card-title { font-size:15px;font-weight:700;color:#1e293b;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9 }
     .engine-table { width:100%;border-collapse:collapse }
@@ -45,10 +45,10 @@
 <body>
 
 <!-- ====== 注册/建档页面 ====== -->
-<!-- ====== 用户注册（姓�?手机号） ====== -->
+<!-- ====== 用户注册（姓�?手机号） ====== -->
 <div id="user-register-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0f172a,#1e3a5f);z-index:99999;display:flex;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:40px;width:400px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-    <div style="font-size:48px;margin-bottom:8px">🛡�?/div>
+    <div style="font-size:48px;margin-bottom:8px">🛡�?/div>
     <h2 style="font-size:20px;color:#1e293b;margin-bottom:4px">财税风险防控系统</h2>
     <p style="font-size:13px;color:#94a3b8;margin-bottom:24px">请输入您的信息以使用系统</p>
     <form id="user-login-form" onsubmit="handleUserLogin(event)" style="display:flex;flex-direction:column;gap:12px">
@@ -63,13 +63,13 @@
   <div class="reg-card">
     <div class="reg-icon">🏢</div>
     <h2 class="reg-card-title">新建公司账套</h2>
-    <p class="reg-card-subtitle">为您的企业创建第一个账套，开始财税管�?/p>
+    <p class="reg-card-subtitle">为您的企业创建第一个账套，开始财税管�?/p>
     <form class="reg-form" id="reg-form" onsubmit="handleCompanyRegister(event)">
       <input type="text" id="reg-name" placeholder="公司全称（必填）*" required>
-      <input type="text" id="reg-uscc" placeholder="统一社会信用代码（选填�?>
-      <button type="submit" class="reg-btn" id="reg-submit-btn">�?创建账套，进入系�?/button>
+      <input type="text" id="reg-uscc" placeholder="统一社会信用代码（选填�?>
+      <button type="submit" class="reg-btn" id="reg-submit-btn">�?创建账套，进入系�?/button>
       <div id="reg-back-hint" class="reg-back-hint">
-        <a onclick="exitCompany()">�?返回选择公司</a>
+        <a onclick="exitCompany()">�?返回选择公司</a>
       </div>
     </form>
   </div>
@@ -82,19 +82,19 @@
     <p class="pick-card-subtitle">请选择要进入的公司账套</p>
     <ul id="pick-list" class="pick-list"></ul>
     <div class="pick-new-btn-container">
-      <button class="pick-new-btn" onclick="showRegistration()">创建新公�?/button>
+      <button class="pick-new-btn" onclick="showRegistration()">创建新公�?/button>
     </div>
   </div>
 </div>
 
-<!-- ====== 主应�?====== -->
+<!-- ====== 主应�?====== -->
 <div id="app-view" class="hidden">
 
-<!-- 侧边�?-->
+<!-- 侧边�?-->
 <nav id="sidebar">
   <div class="sidebar-logo">
     财税风险防控系统
-    <span>中小企业�?v1.0</span>
+    <span>中小企业�?v1.0</span>
     <div id="sidebar-user" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);font-size:11px;opacity:0.8">
       👤 <span id="sidebar-user-name">-</span>
     </div>
@@ -107,19 +107,19 @@
 
     <div class="nav-group-title">账务处理</div>
     <div class="nav-item" data-page="journal">
-      <span class="icon">📝</span> 序时�?
+      <span class="icon">📝</span> 序时�?
     </div>
     <div class="nav-item" data-page="general-ledger">
       <span class="icon">📒</span> 总账
     </div>
     <div class="nav-item" data-page="detail-ledger">
-      <span class="icon">📋</span> 科目明细�?
+      <span class="icon">📋</span> 科目明细�?
     </div>
     <div class="nav-item" data-page="employee-ledger">
-      <span class="icon">👤</span> 人员明细�?
+      <span class="icon">👤</span> 人员明细�?
     </div>
     <div class="nav-item" data-page="customer-ledger">
-      <span class="icon">🤝</span> 客户明细�?
+      <span class="icon">🤝</span> 客户明细�?
     </div>
     <div class="nav-item" data-page="supplier-ledger">
       <span class="icon">🏗</span> 供应商明细账
@@ -127,19 +127,19 @@
 
     <div class="nav-group-title">财务报表</div>
     <div class="nav-item" data-page="profit-loss">
-      <span class="icon">💰</span> 利润�?
+      <span class="icon">💰</span> 利润�?
     </div>
     <div class="nav-item" data-page="balance-sheet">
       <span class="icon">🏦</span> 资产负债表
     </div>
     <div class="nav-item" data-page="cash-flow">
-      <span class="icon">💵</span> 现金流量�?
+      <span class="icon">💵</span> 现金流量�?
     </div>
     <div class="nav-item" data-page="equity-changes">
-      <span class="icon">📈</span> 权益变动�?
+      <span class="icon">📈</span> 权益变动�?
     </div>
     <div class="nav-item" data-page="account-balance">
-      <span class="icon">📑</span> 科目余额�?
+      <span class="icon">📑</span> 科目余额�?
     </div>
 
     <div class="nav-group-title">基础档案</div>
@@ -159,7 +159,7 @@
       <span class="icon">🤝</span> 客户档案
     </div>
     <div class="nav-item" data-page="suppliers">
-      <span class="icon">🏗</span> 供应商档�?
+      <span class="icon">🏗</span> 供应商档�?
     </div>
 
     <div class="nav-group-title">业务管理</div>
@@ -179,7 +179,7 @@
       <span class="icon">💳</span> 付款管理
     </div>
     <div class="nav-item" data-page="sales-invoices">
-      <span class="icon">🧾</span> 开具发�?
+      <span class="icon">🧾</span> 开具发�?
     </div>
     <div class="nav-item" data-page="purchase-invoices">
       <span class="icon">📥</span> 取得发票
@@ -187,8 +187,8 @@
     <div class="nav-item" data-page="bookkeeping-invoices">
       <span class="icon">📒</span> 记账发票
     </div>
-    <div class="nav-item" data-page="未记账发�?>
-      <span class="icon">📋</span> 未记账发�?
+    <div class="nav-item" data-page="未记账发�?>
+      <span class="icon">📋</span> 未记账发�?
     </div>
     <div class="nav-item" data-page="input-vat-deductions">
       <span class="icon">🔍</span> 进项认证
@@ -198,15 +198,15 @@
     </div>
   </div>
 
-  <div class="nav-group-title">📐 稽查方法�?/div>
+  <div class="nav-group-title">📐 稽查方法�?/div>
     <div class="nav-item nav-item-highlight" data-page="auditor-handbook">
-      <span class="icon">⚖️</span> 税务稽查员手�?
+      <span class="icon">⚖️</span> 税务稽查员手�?
     </div>
     <div class="nav-item nav-item-highlight" data-page="report-standards">
       <span class="icon">📐</span> 报告编制要求
     </div>
     <div class="nav-item" data-page="quality-system">
-      <span class="icon">🛡�?/span> 全链路质量保障体�?
+      <span class="icon">🛡�?/span> 全链路质量保障体�?
     </div>
     <div class="nav-item" data-page="methodology-filter">
       <span class="icon">🎯</span> 方法论过滤器
@@ -217,7 +217,7 @@
 
   <div class="nav-group-title">⚙️ 推理引擎</div>
     <div class="nav-item nav-item-highlight" data-page="engine-dashboard">
-      <span class="icon">🧠</span> 推理引擎仪表�?
+      <span class="icon">🧠</span> 推理引擎仪表�?
     </div>
     <div class="nav-item nav-item-highlight" data-page="engine-dimensions">
       <span class="icon">📊</span> 24维度能力矩阵
@@ -229,36 +229,36 @@
       <span class="icon">📄</span> 文件解析
     </div>
     <div class="nav-item" data-page="domain-analysis">
-      <span class="icon">🔍</span> 域分�?
+      <span class="icon">🔍</span> 域分�?
     </div>
     <div class="nav-item" data-page="pipeline-rules">
       <span class="icon">📋</span> 稽查指令
     </div>
     <div class="nav-item" data-page="chains-page">
-      <span class="icon">🔗</span> 线索�?
+      <span class="icon">🔗</span> 线索�?
     </div>
     <div class="nav-item" data-page="cross-domain-clues" style="padding-left:28px;font-size:12px;opacity:0.85">
-      <span class="icon">�?/span> 跨域线索�?
+      <span class="icon">�?/span> 跨域线索�?
     </div>
     <div class="nav-item" data-page="evidence-page">
-      <span class="icon">🔒</span> 证据�?
+      <span class="icon">🔒</span> 证据�?
     </div>
     <div class="nav-item" data-page="cross-domain-evidence" style="padding-left:28px;font-size:12px;opacity:0.85">
-      <span class="icon">�?/span> 跨域证据�?
+      <span class="icon">�?/span> 跨域证据�?
     </div>
     <div class="nav-item" data-page="analyze-page">
-      <span class="icon">�?/span> 分析�?
+      <span class="icon">�?/span> 分析�?
     </div>
     <div class="nav-item" data-page="cross-domain-analysis" style="padding-left:28px;font-size:12px;opacity:0.85">
-      <span class="icon">�?/span> 跨域分析�?
+      <span class="icon">�?/span> 跨域分析�?
     </div>
     <div class="nav-item" data-page="system-logs">
       <span class="icon">📋</span> 系统日志
     </div>
 
-  <div class="nav-group-title">🛡�?风险分析</div>
+  <div class="nav-group-title">🛡�?风险分析</div>
     <div class="nav-item nav-item-highlight" data-page="tax-risk-report">
-      <span class="icon">🛡�?/span> 账务风险分析报告
+      <span class="icon">🛡�?/span> 账务风险分析报告
     </div>
     <div class="nav-item nav-item-highlight" data-page="tax-doc-analysis">
       <span class="icon">📁</span> 资料风险分析报告
@@ -266,7 +266,7 @@
   </div>
 </nav>
 
-<!-- 主内�?-->
+<!-- 主内�?-->
 <div id="main">
   <div class="topbar">
     <div class="topbar-left">
@@ -274,29 +274,29 @@
     </div>
     <div class="topbar-right">
       <div class="company-selector" onclick="switchCompany()" style="cursor:pointer;position:relative">
-        <span class="label">账套�?/span>
+        <span class="label">账套�?/span>
         <span id="company-name-display" style="border-bottom:2px dashed #94a3b8;padding-bottom:2px"></span>
-        <span style="font-size:10px;color:#94a3b8;margin-left:4px">�?/span>
+        <span style="font-size:10px;color:#94a3b8;margin-left:4px">�?/span>
       </div>
       <div class="period-selector-bar">
         <div class="period-stepper">
-          <select id="period-year" class="period-selector-year"><option value="">�?/option></select>
+          <select id="period-year" class="period-selector-year"><option value="">�?/option></select>
           <div class="stepper-arrows">
-            <button class="stepper-btn stepper-up" onclick="stepPeriodYear(1)" title="下一�?>�?/button>
-            <button class="stepper-btn stepper-down" onclick="stepPeriodYear(-1)" title="上一�?>�?/button>
+            <button class="stepper-btn stepper-up" onclick="stepPeriodYear(1)" title="下一�?>�?/button>
+            <button class="stepper-btn stepper-down" onclick="stepPeriodYear(-1)" title="上一�?>�?/button>
           </div>
         </div>
         <div class="period-stepper">
           <select id="period-month" class="period-selector-month">
-            <option value="">�?/option>
-            <option value="01">01�?/option><option value="02">02�?/option><option value="03">03�?/option>
-            <option value="04">04�?/option><option value="05">05�?/option><option value="06">06�?/option>
-            <option value="07">07�?/option><option value="08">08�?/option><option value="09">09�?/option>
-            <option value="10">10�?/option><option value="11">11�?/option><option value="12">12�?/option>
+            <option value="">�?/option>
+            <option value="01">01�?/option><option value="02">02�?/option><option value="03">03�?/option>
+            <option value="04">04�?/option><option value="05">05�?/option><option value="06">06�?/option>
+            <option value="07">07�?/option><option value="08">08�?/option><option value="09">09�?/option>
+            <option value="10">10�?/option><option value="11">11�?/option><option value="12">12�?/option>
           </select>
           <div class="stepper-arrows">
-            <button class="stepper-btn stepper-up" onclick="stepPeriodMonth(1)" title="下一�?>�?/button>
-            <button class="stepper-btn stepper-down" onclick="stepPeriodMonth(-1)" title="上一�?>�?/button>
+            <button class="stepper-btn stepper-up" onclick="stepPeriodMonth(1)" title="下一�?>�?/button>
+            <button class="stepper-btn stepper-down" onclick="stepPeriodMonth(-1)" title="上一�?>�?/button>
           </div>
         </div>
       </div>
@@ -305,7 +305,7 @@
     </div>
   </div>
   <div class="content-area" id="content-area">
-    <!-- 动态内�?-->
+    <!-- 动态内�?-->
   </div>
 </div>
 
@@ -338,10 +338,10 @@
 <script src="/static/js/social-security.js?v=2026062501" defer></script>
 <script src="/static/js/housing-fund.js?v=2026062501" defer></script>
 <script src="/static/js/vat-declaration.js?v=2026062501" defer></script>
-<script src="/static/js/文化事业建设�?js?v=2026062501" defer></script>
+<script src="/static/js/文化事业建设�?js?v=2026062501" defer></script>
 <script src="/static/js/new_analyze_page.js?v=2026062501" defer></script>
 
-<!-- init() �?core.js �?DOMContentLoaded 监听器自动调�?-->
+<!-- init() �?core.js �?DOMContentLoaded 监听器自动调�?-->
 
 </div><!-- /#app-view -->
 
