@@ -81,7 +81,14 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
     has_processing = False
     biz_model_check = ctx.company_profile.get("biz_model", "") if hasattr(ctx, 'company_profile') and ctx.company_profile else ""
     if biz_model_check not in ("服务",):
-        has_processing = any("加工" in g for g in pur_goods_set)
+        # ═══ 2026-06-26 修复：排除商品分类码误判（*果类加工品*/*水产加工品*）═══
+        import re as _re_proc
+        has_processing = False
+        for g in pur_goods_set:
+            if '加工费' in g:
+                has_processing = True; break
+            if '加工' in g and not _re_proc.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', g):
+                has_processing = True; break
     ctx.has_processing_fee = has_processing
     
     # 品名重合度

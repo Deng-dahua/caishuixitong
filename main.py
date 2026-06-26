@@ -13104,18 +13104,33 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     # 构建名称映射
     present_names = []
     # ═══ 数据驱动：根据进项发票品名判断是否需要进销存台账 ═══
-    # 如果绝大部分进项都是日常消费品（员工报销），则不需要进销存台账
+    # 逻辑：过滤掉消费品/服务后，如果还有实物商品进项→需要存货台账
+    # 办公用品/日用品/食品饮料等=消费品→不产生存货
+    # 原材料/商品/设备等=实物商品→需要进销存跟踪
     if pur_invs:
         from engine.main_biz_cost import _REIMBURSEMENT_KWS_GLOBAL
-        _reimb_count = 0
+        _service_kw = ["服务费", "服务", "咨询", "设计", "广告", "策划", "制作", "推广", "租赁", "维修", "维护",
+                       "运输", "配送", "快递", "物流", "培训", "会议", "展览", "软件", "会员", "预付卡", "充值"]
+        _goods_count = 0
+        _goods_amount = 0.0
         for inv in pur_invs:
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+            amt = float(inv.get("amount", inv.get("total", 0)) or 0)
+            # 排除消费品
             if any(kw in g for kw in _REIMBURSEMENT_KWS_GLOBAL):
-                _reimb_count += 1
-        _reimb_ratio = _reimb_count / len(pur_invs) if pur_invs else 0
-        _needs_inventory = _reimb_ratio < 0.7  # 70%以上是消费品→不需要存货台账
+                continue
+            # 排除纯服务
+            if any(kw in g for kw in _service_kw):
+                continue
+            # 剩余的=实物商品
+            _goods_count += 1
+            _goods_amount += amt
+        total_amount = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in pur_invs)
+        _goods_ratio = _goods_amount / total_amount if total_amount > 0 else 0
+        # 实物商品占比>10%且金额>5000→需要进销存台账
+        _needs_inventory = _goods_count >= 3 and _goods_ratio > 0.10
     else:
-        _needs_inventory = False  # 无进项发票→不需要
+        _needs_inventory = False
     
     ALL_CATEGORIES = [
         ("bank", "银行流水", "验证资金全链路，稽查第一调取对象。缺失→无法验证收入完整性+无法检测资金回流→税务机关从金税系统/第三方数据倒推核定收入→结果远超企业实际"),
@@ -15046,8 +15061,8 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
             if seller and len(seller) >= 4:
                 city = extract_city(seller)
                 sellers[seller] = city
-                # 加工费特殊标记
-                if "加工" in goods:
+                # 加工费特殊标记（已修复：排除分类码误判）
+                if '加工费' in goods or ('加工' in goods and not re.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', goods)):
                     processors[seller] = city
     
     # ── 统计本地 vs 外地 ──
@@ -15832,8 +15847,8 @@ def _domain_invoice_audit(invoices, target_industry=""):
         if not has_price and has_qty:
             missing_price.append({"goods": goods[:30], "amount": amount, "seller": seller, "direction": direction})
         
-        # 1d. 加工费专项
-        if "加工" in goods:
+        # 1d. 加工费专项（已修复：排除分类码*X加工品*误判）
+        if '加工费' in goods or ('加工' in goods and not re.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', goods)):
             if not has_qty:
                 proc_fee_no_qty.append({"goods": goods[:40], "amount": amount, "seller": seller})
             if not has_unit:
@@ -15988,8 +16003,17 @@ def _domain_invoice_audit(invoices, target_industry=""):
     pure_sal = sal_goods - pur_goods  # 只出不进的品名——可能是成品
     
     # 加工证据：①有加工费发票 ②有只进不出的原料+只出不进的成品
-    has_processing_fee = any("加工" in str(i.get("goods","")) for i in pur_invs)
-    has_value_chain = len(pure_pur) > 0 and len(pure_sal) > 0
+    # ═══ 2026-06-26 修复：排除商品分类码误判 ═══
+    import re as _re_proc2
+    def _has_real_processing_fee(inv_list):
+        """检测是否存在真正的加工费（排除*X加工品*等分类码误判）"""
+        for i in inv_list:
+            g = str(i.get("goods", ""))
+            if '加工费' in g: return True
+            if '加工' in g and not _re_proc2.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', g):
+                return True
+        return False
+    has_processing_fee = _has_real_processing_fee(pur_invs)
     
     if has_processing_fee or has_value_chain:
         # 行业自适应原料/成品关键词（稽查方法论㉕：三层行业穿透法）
@@ -25302,8 +25326,15 @@ def _run_analyze(company_id, db, progress_callback=None):
         def _is_expense(goods_name):
             return any(kw in goods_name for kw in _EXPENSE_KWS)
         
-        # 加工费信号——从全部进项中检测（含费用类，但加工费本身就是生产信号）
-        has_processing_fee = any("加工" in _get_goods(i) for i in pur_invs)
+        # 加工费信号——从全部进项中检测（已修复：排除分类码*X加工品*误判）
+        import re as _re_proc3
+        has_processing_fee = False
+        for i in pur_invs:
+            g = _get_goods(i)
+            if '加工费' in g:
+                has_processing_fee = True; break
+            if '加工' in g and not _re_proc3.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', g):
+                has_processing_fee = True; break
         
         # 品名分析——仅分析生产物资，排除经营费用
         pur_production = set()
@@ -27061,10 +27092,13 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     elif entity["industry"] in _load_industry_data().get("service_industries", []):
         entity["biz_model"] = "服务业"
     else:
-        # 从进销判断：有加工费/劳务票=生产型
+        # 从进销判断：有加工费/劳务票=生产型（已修复：排除分类码*X加工品*误判）
+        import re as _re_biz
         for inv in invoices:
             goods = str(inv.get("goods", ""))
-            if "加工" in goods or "劳务" in goods or "制造" in goods or "生产" in goods:
+            real_processing = ('加工费' in goods or 
+                ('加工' in goods and not _re_biz.search(r'\*[\u4e00-\u9fa5]+加工[品物食料]\*', goods)))
+            if real_processing or "劳务" in goods or "制造" in goods or "生产" in goods:
                 entity["biz_model"] = "制造业"
                 break
         if not entity.get("biz_model"):
