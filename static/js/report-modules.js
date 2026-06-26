@@ -1070,8 +1070,30 @@ var ReportEngine = (function() {
         h += renderChainUsage(data.comprehensive || {});
       }
 
-      // 稽查局限性声明
-      h += '<h3>稽查局限性声明</h3><p class="i2">由于被查单位仅提交了部分资料，其他必查资料缺失，无法核实以下事项：①会计凭证的完整性和分录准确性；②工资费用的真实性和个税代扣代缴履行情况；③社保的合规参保和缴费基数真实性；④存货的账实相符性；⑤合同交易的真实性；⑥各税种申报的准确性。以上受限事项如后续补充资料，需另行补充稽查。</p>';
+      // 稽查局限性声明——从实际缺失资料动态生成
+      var missingDocs = [];
+      for (var fi = 0; fi < allF.length; fi++) {
+        var f = allF[fi];
+        if (f.type === '资料完备度综合评估' && f.items && f.items.length > 0) {
+          for (var ii = 0; ii < f.items.length; ii++) {
+            var mn = f.items[ii]['缺失资料'];
+            if (mn) missingDocs.push(mn);
+          }
+          break;
+        }
+      }
+      if (missingDocs.length > 0) {
+        h += '<h3>稽查局限性声明</h3><p class="i2">本次稽查缺少以下资料，相应领域的分析结论置信度受限，无法核实：';
+        var limitItems = ['记账凭证→分录准确性','工资表→工资费用真实性','社保明细→参保合规性','进销存台账→存货账实相符','合同文件→交易真实性','科目余额表→账账一致性','资产负债表+利润表→财务匹配性','增值税申报表→销进项一致性','企业所得税申报表→所得税准确性','个人所得税申报表→代扣代缴','其他税种申报表→小税种合规'];
+        missingDocs.forEach(function(doc, di){
+          var desc = doc;
+          for (var li = 0; li < limitItems.length; li++) {
+            if (limitItems[li].indexOf(doc) === 0) { desc = limitItems[li]; break; }
+          }
+          h += '（'+(di+1)+'）' + esc(desc) + '；';
+        });
+        h += '以上受限事项如后续补充资料，需另行补充稽查。</p>';
+      }
 
       // 处理优先级建议
       h += '<h3>处理优先级建议</h3>';
@@ -1079,7 +1101,7 @@ var ReportEngine = (function() {
       h += '<table class="tbl2"><tr><th>优先级</th><th>事项</th><th>紧急程度</th><th>理由</th></tr>';
       var urgentFindings = allF.filter(function(f){return(f.score||0)>=8;}).slice(0,4);
       urgentFindings.forEach(function(f,pi){
-        var reason = (f.score||0)>=9 ? '涉嫌税收违法——立即处理' : '高风险——尽快处理';
+        var reason = (f.score||0)>=10 ? '极高风险——立即处理' : ((f.score||0)>=9 ? '高风险——优先处理' : '需关注——尽快处理');
         h += '<tr><td style="font-weight:700;color:#dc2626">' + (pi+1) + '</td><td>' + esc(f.type||'') + '</td><td style="color:#dc2626;font-weight:600">' + reason + '</td><td>' + esc((f.tax_impact||'').split('→')[0] || '需进一步核查') + '</td></tr>';
       });
       if (urgentFindings.length === 0) {
@@ -1090,7 +1112,7 @@ var ReportEngine = (function() {
       // 总体结论
       h += '<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
       if (highCount > 0) {
-        h += '存在'+highCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。';
+        h += '存在'+highCount+'项高风险问题，建议依法核查；'+midCount+'项中风险事项，建议自查整改。';
       } else if (midCount > 0) {
         h += '存在'+midCount+'项需关注问题，建议自查整改。';
       } else {
