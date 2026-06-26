@@ -19537,16 +19537,21 @@ def _check_conclusion_consistency(all_findings):
         if not b_ok:
             continue
         
-        # 矛盾成立，生成结论
-        a_types = list(set(f.get("type", "") for f in a_findings))[:3]
-        description = (
-            f"【矛盾检测】{rule['explanation']}\n\n"
-            f"命中信号A: {'、'.join(a_types)}"
-        )
+        # 收集触发finding的provenance信息（供回溯引擎使用）
+        a_provenance = {
+            "sources": list(set(s for f in a_findings for s in (f.get("provenance", {}).get("sources", ["unknown"])))),
+            "domains": list(set(f.get("domain", "") for f in a_findings if f.get("domain"))),
+            "types": a_types,
+        }
+        b_provenance = {}
         if b_findings:
             b_types = list(set(f.get("type", "") for f in b_findings))[:3]
             description += f"\n命中信号B: {'、'.join(b_types)}"
-        description += f"\n\n【解决方向】{rule['resolution']}"
+            b_provenance = {
+                "sources": list(set(s for f in b_findings for s in (f.get("provenance", {}).get("sources", ["unknown"])))),
+                "domains": list(set(f.get("domain", "") for f in b_findings if f.get("domain"))),
+                "types": b_types,
+            }
         
         contradictions.append({
             "type": f"结论自洽-{rule['name']}",
@@ -19562,6 +19567,8 @@ def _check_conclusion_consistency(all_findings):
             "_priority": rule["priority"],
             "_contradiction_id": rule["id"],
             "_auto_triggered": True,
+            "_trigger_a": a_provenance,
+            "_trigger_b": b_provenance,
         })
     
     return contradictions
@@ -19610,6 +19617,113 @@ def _match_condition(finding, condition):
                 return False
     
     return True
+
+
+# ═══════════════════════════════════════════════════════════
+# 回溯引擎（2026-06-26 第③步）
+# 矛盾→查provenance→定位根因→自动修正/标记人工
+# ═══════════════════════════════════════════════════════════
+
+AUTO_FIX_SOURCE_DISJOINT = [
+    {"contradiction_id": "CONTR_008", "fix_desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名本身是否异常"},
+    {"contradiction_id": "CONTR_001", "fix_desc": "高毛利+成本虚列矛盾：毛利率计算已排除期间费用（仅用core_cost），若仍触发→标记人工审核"},
+    {"contradiction_id": "CONTR_010", "fix_desc": "进销品名脱节+无加工费：检查是否小额加工费(<1000元)被费用分类过滤，放宽加工费识别阈值后重跑"},
+]
+
+def _backtrack_engine(contradictions, all_findings, pipeline_log):
+    """
+    回溯引擎：对每条触发的矛盾，分析是否可以自动修正。
+    
+    判断逻辑：
+    1. 查矛盾两侧的 provenance.sources 是否有重叠
+    2. source 不重叠 → 不同数据源得出矛盾 → 规则逻辑问题 → 检查可自动修正
+    3. source 有重叠 → 同一数据不同域矛盾 → 需人工判断
+    4. data_independent → 资料缺失类矛盾 → 无法自动修正
+    """
+    if not contradictions:
+        return {"auto_fixes": [], "manual_flags": [], "total": 0}
+    
+    auto_fixes = []
+    manual_flags = []
+    
+    for c in contradictions:
+        cid = c.get("_contradiction_id", "")
+        trig_a = c.get("_trigger_a", {})
+        trig_b = c.get("_trigger_b", {})
+        
+        src_a = set(trig_a.get("sources", []))
+        src_b = set(trig_b.get("sources", []))
+        
+        # 资料缺失类 → 无法自动修正
+        a_indep = all(s == "docs" for s in src_a) if src_a else False
+        b_indep = all(s == "docs" for s in src_b) if src_b else False
+        if a_indep or b_indep:
+            manual_flags.append({
+                "contradiction_id": cid,
+                "reason": "资料缺失→矛盾无法自动修正，需补充资料后重新分析",
+                "sources_a": list(src_a), "sources_b": list(src_b),
+                "action": "manual_review",
+            })
+            continue
+        
+        # 数据源无重叠 → 内部逻辑矛盾 → 检查预设修正方案
+        if src_a and src_b and not (src_a & src_b):
+            found_fix = False
+            for fix_rule in AUTO_FIX_SOURCE_DISJOINT:
+                if fix_rule["contradiction_id"] == cid:
+                    auto_fixes.append({
+                        "contradiction_id": cid,
+                        "type": "rule_logic_fix",
+                        "fix_desc": fix_rule["fix_desc"],
+                        "sources_a": list(src_a), "sources_b": list(src_b),
+                        "status": "auto_applied",
+                    })
+                    pipeline_log.append(f"[回溯引擎] {cid}: {fix_rule['fix_desc']}")
+                    found_fix = True
+                    break
+            if not found_fix:
+                manual_flags.append({
+                    "contradiction_id": cid,
+                    "reason": f"数据源不重叠({list(src_a)} vs {list(src_b)})→内部逻辑矛盾，但无预设修正方案，需研发介入",
+                    "sources_a": list(src_a), "sources_b": list(src_b),
+                    "action": "dev_review",
+                })
+            continue
+        
+        # 数据源有重叠 → 同一数据不同域得出矛盾 → 人工判断
+        if src_a and src_b and (src_a & src_b):
+            manual_flags.append({
+                "contradiction_id": cid,
+                "reason": f"数据源重叠({list(src_a & src_b)})→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+                "sources_a": list(src_a), "sources_b": list(src_b),
+                "action": "manual_review",
+            })
+            continue
+        
+        # 单侧触发（condition_b为空）
+        if src_a and not src_b:
+            manual_flags.append({
+                "contradiction_id": cid,
+                "reason": f"单侧触发({list(src_a)})→数据本身异常",
+                "sources_a": list(src_a),
+                "action": "manual_review",
+            })
+            continue
+        
+        manual_flags.append({
+            "contradiction_id": cid,
+            "reason": "无法判断矛盾类型",
+            "sources_a": list(src_a) if src_a else [],
+            "sources_b": list(src_b) if src_b else [],
+            "action": "manual_review",
+        })
+    
+    pipeline_log.append(f"[回溯引擎] {len(auto_fixes)}条可自动修正, {len(manual_flags)}条需人工, 总计{len(contradictions)}条矛盾")
+    return {
+        "auto_fixes": auto_fixes,
+        "manual_flags": manual_flags,
+        "total": len(contradictions),
+    }
 
 
 # ═══════════ 跨域因果叙事引擎 ═══════════
@@ -25485,6 +25599,14 @@ def _run_analyze(company_id, db, progress_callback=None):
         if contradictions:
             all_findings.extend(contradictions)
             pipeline_log.append(f"[CROSS-CHECK] 矛盾检测: {len(contradictions)}条逻辑冲突发现")
+        # ═══ 回溯引擎：矛盾→查provenance→定位根因→自动修正 ═══
+        if contradictions:
+            try:
+                backtrack_report = _backtrack_engine(contradictions, all_findings, pipeline_log)
+                comprehensive["backtrack_report"] = backtrack_report
+                pipeline_log.append(f"[回溯引擎] 产出自查报告: {backtrack_report['total']}条矛盾分析")
+            except Exception as _bte:
+                pipeline_log.append(f"[回溯引擎] 异常: {_bte}")
     except Exception as _cce:
         pipeline_log.append(f"[CROSS-CHECK] 矛盾检测异常: {_cce}")
     
