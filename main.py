@@ -26375,7 +26375,27 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _ol_err:
             pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
     
-    # ═══ 第⑤步：加载历史分析记忆，对比跨案例模式 ═══
+    # ═══ 行业修正：联网核查返回经营范围后，验证发票推断行业是否合理 ═══
+    # 问题：只看销项发票品名推断行业→卖了纺织品就被判"纺织制造"
+    #       但实际上可能是综合贸易商，经营范围涵盖多种品类
+    # 修正：经营范围包含≥3个不同品类→判定为贸易/批发而非制造
+    if target_entity.get("_online_lookup") and target_entity.get("industry"):
+        biz_scope = target_entity.get("biz_scope", "") or target_entity.get("business_scope", "")
+        if biz_scope:
+            # 统计经营范围中的品类多样性
+            _TRADE_CATEGORY_KW = ["销售", "零售", "批发", "贸易", "进出口", "日用百货",
+                                  "五金", "化妆品", "食品", "服装", "鞋帽", "箱包", "家具",
+                                  "电器", "电子", "办公", "体育", "玩具", "礼品", "饰品"]
+            category_hits = sum(1 for kw in _TRADE_CATEGORY_KW if kw in biz_scope)
+            # 经营范围含多种销售品类 + 发票推断为制造 → 实际应为贸易
+            inferred_ind = target_entity.get("industry", "")
+            _MANUFACTURING_ONLY = ["制造", "纺织", "服装", "化工", "电子制造", "机械制造"]
+            is_mfg_inferred = any(kw in inferred_ind for kw in _MANUFACTURING_ONLY)
+            if category_hits >= 3 and is_mfg_inferred:
+                corrected = "综合贸易/批发"
+                pipeline_log.append(f"行业修正: 发票推断={inferred_ind}, 经营范围含{category_hits}个贸易品类→修正为{corrected}")
+                target_entity["industry"] = corrected
+                target_entity["_industry_corrected"] = True
     try:
         analysis_memory = _load_analysis_memory(company_id, pipeline_log)
         comprehensive["analysis_memory"] = analysis_memory
@@ -28130,19 +28150,21 @@ _COMPANY_LOOKUP_SOURCES = [
     },
 ]
 
-def _http_get(url, timeout=8):
-    """带重试的 HTTP GET，返回 (status, body_text)"""
+def _http_get(url, timeout=8, headers=None):
+    """带重试的 HTTP GET，返回 (status, body_text)。headers 可选，用于 API 认证。"""
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    headers = {
+    hdrs = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     }
+    if headers:
+        hdrs.update(headers)
     for attempt in range(2):
         try:
-            req = urllib.request.Request(url, headers=headers)
+            req = urllib.request.Request(url, headers=hdrs)
             with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
                 body = resp.read()
                 charset = resp.headers.get_content_charset() or "utf-8"
@@ -28343,6 +28365,124 @@ def _extract_company_from_html(html_text, source_name):
     return info
 
 
+# ═══════════════ 天眼查 / 企查查 API 集成 ═══════════════
+# 配置优先级：环境变量 → 配置文件 → 搜索引擎兜底
+# 天眼查开放平台: https://open.tianyancha.com
+# 企查查开放平台: https://openapi.qcc.com
+
+def _load_api_config():
+    """加载天眼查/企查查 API 配置（环境变量或 config 文件）"""
+    config = {"tyc_appkey": "", "tyc_token": "", "qcc_appkey": "", "qcc_secret_key": ""}
+    # 环境变量优先
+    for k in config:
+        env_val = os.environ.get(k.upper(), "")
+        if env_val:
+            config[k] = env_val
+    # 配置文件兜底
+    cfg_path = os.path.join(os.path.dirname(__file__) or ".", "api_config.json")
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg_json = json.load(f)
+                for k in config:
+                    if not config[k] and cfg_json.get(k):
+                        config[k] = cfg_json[k]
+        except:
+            pass
+    return config
+
+def _try_tyc_api(company_name):
+    """天眼查工商信息查询。需要 TYC_APPKEY + TYC_TOKEN 环境变量或 api_config.json"""
+    cfg = _load_api_config()
+    if not cfg["tyc_appkey"] or not cfg["tyc_token"]:
+        return None
+    try:
+        import time, hashlib
+        ts = str(int(time.time()))
+        sign_str = cfg["tyc_appkey"] + ts + cfg["tyc_token"]
+        sign = hashlib.sha1(sign_str.encode()).hexdigest()
+        headers = {
+            "Authorization": f"Bearer {cfg['tyc_token']}",
+            "appkey": cfg["tyc_appkey"],
+            "timestamp": ts,
+            "sign": sign,
+        }
+        url = f"https://open.api.tianyancha.com/services/open/company/baseinfo?keyword={urllib.parse.quote(company_name)}"
+        status, body = _http_get(url, timeout=8, headers=headers)
+        if status == 200 and body:
+            data = json.loads(body)
+            if data.get("error_code") == 0 and data.get("result"):
+                r = data["result"]
+                return {
+                    "success": True,
+                    "data": {
+                        "source": "天眼查",
+                        "company_name": r.get("name", company_name),
+                        "legal_representative": r.get("legalPersonName", ""),
+                        "registered_capital": str(r.get("regCapital", "")),
+                        "established_date": r.get("estiblishTime", ""),
+                        "business_scope": r.get("businessScope", ""),
+                        "address": r.get("regLocation", ""),
+                        "industry": r.get("industry", {}).get("category", "") if isinstance(r.get("industry"), dict) else "",
+                        "company_type": r.get("companyOrgType", ""),
+                        "uscc": r.get("creditCode", ""),
+                        "status": r.get("regStatus", ""),
+                        "shareholders": [{"name": s.get("name", ""), "ratio": str(s.get("percentTotal", ""))} for s in r.get("holders", [])],
+                        "directors": [{"name": d.get("name", ""), "roles": d.get("type", "")} for d in r.get("staffList", []) if "董事" in (d.get("type", "") or "")],
+                        "supervisors": [{"name": d.get("name", ""), "roles": d.get("type", "")} for d in r.get("staffList", []) if "监事" in (d.get("type", "") or "")],
+                        "finance_contacts": [],
+                    }
+                }
+    except:
+        pass
+    return None
+
+def _try_qcc_api(company_name):
+    """企查查工商信息查询。需要 QCC_APPKEY + QCC_SECRET_KEY 环境变量或 api_config.json"""
+    cfg = _load_api_config()
+    if not cfg["qcc_appkey"] or not cfg["qcc_secret_key"]:
+        return None
+    try:
+        import time, hashlib
+        ts = str(int(time.time()))
+        sign_str = cfg["qcc_appkey"] + ts + cfg["qcc_secret_key"]
+        sign = hashlib.sha256(sign_str.encode()).hexdigest()
+        headers = {
+            "AppKey": cfg["qcc_appkey"],
+            "Timestamp": ts,
+            "Sign": sign,
+        }
+        url = f"https://api.qcc.com/Company/GetCompanyDetail?key={urllib.parse.quote(company_name)}"
+        status, body = _http_get(url, timeout=8, headers=headers)
+        if status == 200 and body:
+            data = json.loads(body)
+            if data.get("Status") == "200" and data.get("Result"):
+                r = data["Result"]
+                return {
+                    "success": True,
+                    "data": {
+                        "source": "企查查",
+                        "company_name": r.get("CompanyName", company_name),
+                        "legal_representative": r.get("OperName", ""),
+                        "registered_capital": str(r.get("RegistCapi", "")),
+                        "established_date": r.get("StartDate", ""),
+                        "business_scope": r.get("Scope", ""),
+                        "address": r.get("Address", ""),
+                        "industry": r.get("Industry", {}).get("Industry", "") if isinstance(r.get("Industry"), dict) else "",
+                        "company_type": r.get("CompanyType", ""),
+                        "uscc": r.get("CreditCode", ""),
+                        "status": r.get("Status", ""),
+                        "shareholders": [],
+                        "directors": [],
+                        "supervisors": [],
+                        "finance_contacts": [],
+                    }
+                }
+    except:
+        pass
+    return None
+
+
 def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     """
     联网查询企业工商信息 —— 稽查方法论⑥核心实现
@@ -28430,20 +28570,37 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     # URL编码公司名称
     encoded_name = urllib.parse.quote(company_name)
     
-    for src in _COMPANY_LOOKUP_SOURCES:
-        try:
-            url = src["url_template"].format(company_name=encoded_name)
-            status, body = _http_get(url, timeout=10)
-            if status and body and status == 200:
-                info = _extract_company_from_html(body, src["name"])
-                if info and (info.get("legal_representative") or info.get("registered_capital") or info.get("uscc")):
-                    online_info = info
-                    online_info["source_url"] = url
-                    online_info["_raw_html"] = body  # 保存原始HTML供历史任期核查
-                    result["source"] = f"联网查询({src['name']})"
-                    break
-        except Exception:
-            continue
+    # ── 2a. 优先天眼查 API（精确、实时、覆盖全量企业）──
+    tyc_result = _try_tyc_api(company_name)
+    if tyc_result and tyc_result.get("success"):
+        online_info = tyc_result["data"]
+        online_info["source_url"] = f"天眼查API: {company_name}"
+        result["source"] = "天眼查API"
+    
+    # ── 2b. 企查查 API ──
+    if not online_info:
+        qcc_result = _try_qcc_api(company_name)
+        if qcc_result and qcc_result.get("success"):
+            online_info = qcc_result["data"]
+            online_info["source_url"] = f"企查查API: {company_name}"
+            result["source"] = "企查查API"
+    
+    # ── 2c. 搜索引擎兜底 ──
+    if not online_info:
+        for src in _COMPANY_LOOKUP_SOURCES:
+            try:
+                url = src["url_template"].format(company_name=encoded_name)
+                status, body = _http_get(url, timeout=10)
+                if status and body and status == 200:
+                    info = _extract_company_from_html(body, src["name"])
+                    if info and (info.get("legal_representative") or info.get("registered_capital") or info.get("uscc")):
+                        online_info = info
+                        online_info["source_url"] = url
+                        online_info["_raw_html"] = body
+                        result["source"] = f"联网查询({src['name']})"
+                        break
+            except Exception:
+                continue
     
     # 第三步：合并结果
     if online_info:
