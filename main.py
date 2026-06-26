@@ -24916,10 +24916,18 @@ def _run_analyze(company_id, db, progress_callback=None):
     if bank_txs:
         from collections import defaultdict
         monthly = defaultdict(lambda: {"income": 0, "expense": 0, "tax": 0})
+        import re as _dre2
         for tx in bank_txs:
             d = str(tx.get("transaction_date") or tx.get("date", ""))
             if not d: continue
-            m = d[:7]  # YYYY-MM
+            # 智能解析月份: 支持 YYYY-MM-DD / YYYY/MM/DD / YYYYMMDD / YYYY年MM月DD日
+            m_match = _dre2.match(r'(\d{4})[-/年]?(\d{1,2})', d)
+            if not m_match:
+                m_match = _dre2.match(r'(\d{4})(\d{2})\d{2}', d)
+            if m_match:
+                m = f"{m_match.group(1)}-{int(m_match.group(2)):02d}"
+            else:
+                continue
             if m and len(m) == 7:
                 debit = float(tx.get("debit", 0) or 0)
                 credit = float(tx.get("credit", 0) or 0)
