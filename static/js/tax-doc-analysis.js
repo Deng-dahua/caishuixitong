@@ -3,6 +3,13 @@ var taxDocReportData = null;
 var taxDocAnalyzing = false;
 var taxDocPageActive = false;
 
+// 安全获取当前 company_id（无 fallback，宁可报错也不错查）
+function _tdaCid() {
+  var cid = (typeof currentCompanyId !== 'undefined' && currentCompanyId) ? currentCompanyId : 0;
+  if (!cid) console.warn('[tax-doc] currentCompanyId 未设置，API 调用可能失败');
+  return cid;
+}
+
 // 确保 esc 可用
 if (typeof esc === 'undefined') {
   var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
@@ -73,7 +80,7 @@ async function uploadTaxDocs() {
   
   try {
     if (btn) { btn.disabled = true; btn.textContent = '上传中...'; }
-    var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), {
+    var resp = await fetch('/api/tax-risk-docs/upload?company_id=' + _tdaCid(), {
       method: 'POST', body: formData
     });
     var data = await resp.json();
@@ -95,7 +102,7 @@ async function uploadTaxDocs() {
 // ==================== 文件列表 ====================
 async function refreshTaxDocList() {
   try {
-    var resp = await fetch('/api/tax-risk-docs/list?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1));
+    var resp = await fetch('/api/tax-risk-docs/list?company_id=' + _tdaCid());
     var docs = await resp.json();
     var listEl = document.getElementById('tda-file-list');
     if (!listEl) { console.error('[tax-doc] tda-file-list 元素不存在'); return; }
@@ -144,7 +151,7 @@ async function refreshTaxDocList() {
 async function delTaxDoc(id) {
   if (!confirm('确认删除该文件？')) return;
   try {
-    var resp = await fetch('/api/tax-risk-docs/' + id + '?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'DELETE' });
+    var resp = await fetch('/api/tax-risk-docs/' + id + '?company_id=' + _tdaCid(), { method: 'DELETE' });
     var data = await resp.json();
     if (data.ok) toast('已删除', 'success');
     refreshTaxDocList();
@@ -166,7 +173,7 @@ async function batchDelTdaDocs() {
   var fail = 0;
   for (var i = 0; i < ids.length; i++) {
     try {
-      await fetch('/api/tax-risk-docs/' + ids[i] + '?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'DELETE' });
+      await fetch('/api/tax-risk-docs/' + ids[i] + '?company_id=' + _tdaCid(), { method: 'DELETE' });
     } catch(e) { fail++; }
   }
   toast('已删除 ' + (ids.length - fail) + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
@@ -203,7 +210,7 @@ function renderAnalyzeHeader(report) {
     { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
     { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
     { title: '③ 资料情报提取 + 数据分析', desc: '银行流水深度分析：收款构成+收款方TOP10。进销存比对：商品明细匹配+进销比+毛利率。供应商穿透：集中度+群集+双向交易。发票深度审计：五层检查。' },
-    { title: '④ 规则引擎 + 链驱动检查', desc: '1505条规则逐条匹配 + 391条线索链驱动 + 740条证据链闭环（≥3条触发+≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
+    { title: '④ 规则引擎 + 链驱动检查', desc: '1512条规则逐条匹配 + 396条线索链驱动 + 745条证据链闭环（≥3条触发+≥2域交叉验证）→ 方法论过滤器剔除97%噪声。' },
     { title: '⑤ 方法论噪声过滤器', desc: '硬删除：禁止词40+。条件过滤：无资料→对应结论全删。行业匹配：不报非本行业发现。去重+正常结论排除。' },
     { title: '⑥ 行业对标 + 申报比对', desc: '66行业基准值自动对标（毛利率/税负率/进销比/人均营收）。申报表vs发票实际数据比对。' },
     { title: '⑦ 正式稽查报告输出', desc: '已查实问题+需进一步核实问题，两级分类。查证过程/问题定性/法律依据完整呈现。' },
@@ -215,9 +222,9 @@ function renderAnalyzeHeader(report) {
   // 分析结果统计
   h += '<h3 style="margin-top:24px">本次分析结果</h3>';
   h += '<div class="stats-row">'
-    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1505') + '</strong> 则 · '
-    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '395') + '</strong> 条 · '
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '744') + '</strong> 条 · '
+    + '规则 <strong style="color:#0f172a">' + (comp.rule_count || '1512') + '</strong> 则 · '
+    + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '396') + '</strong> 条 · '
+    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '745') + '</strong> 条 · '
     + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
     + '</div>'
     + '<div class="stats-row" style="padding-top:0">'
@@ -232,6 +239,55 @@ function renderAnalyzeHeader(report) {
     + '<div style="margin-top:12px">'
     + '<a href="#" onclick="navigateTo(\'analyze-page\');return false" style="display:inline-block;padding:6px 16px;background:#7c3aed;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">⚡ 查看分析过程 →</a>'
     + '</div>';
+
+  // ═══ ⑧ 系统自诊：矛盾检测 + 回溯定位 + 修正验证 ═══
+  var btReport = comp.backtrack_report;
+  var fixVerify = comp.fix_verification;
+  if (btReport && btReport.total > 0) {
+    h += '<h3 style="margin-top:24px">🤖 系统自诊与自我修正</h3>';
+    h += '<div class="stats-row" style="font-size:12px;line-height:1.8">'
+      + '发现问题 <strong style="color:#dc2626">' + btReport.total + '</strong> 条矛盾 · '
+      + '可自动修正 <strong style="color:#16a34a">' + (btReport.auto_fixes ? btReport.auto_fixes.length : 0) + '</strong> 条 · '
+      + '需人工 <strong style="color:#d97706">' + (btReport.manual_flags ? btReport.manual_flags.length : 0) + '</strong> 条'
+      + '</div>';
+    
+    // 自动修正列表
+    if (btReport.auto_fixes && btReport.auto_fixes.length > 0) {
+      h += '<div style="margin:8px 0;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">';
+      h += '<div style="font-size:13px;font-weight:600;color:#166534;margin-bottom:8px">✅ 系统已自动修正</div>';
+      btReport.auto_fixes.forEach(function(af) {
+        h += '<div class="step-block" style="padding:6px 0"><div class="st" style="font-size:12px;color:#166534">' + (af.contradiction_id || '') + '</div>';
+        h += '<div class="sd" style="font-size:11px">' + (af.fix_desc || '') + '</div></div>';
+      });
+      h += '</div>';
+    }
+    
+    // 修正验证结果
+    if (fixVerify && fixVerify.verified_fixes && fixVerify.verified_fixes.length > 0) {
+      h += '<div style="margin:8px 0;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px">';
+      h += '<div style="font-size:13px;font-weight:600;color:#1e40af;margin-bottom:8px">🔍 修正前后对比</div>';
+      fixVerify.verified_fixes.forEach(function(vf) {
+        h += '<div class="step-block" style="padding:4px 0">';
+        h += '<div style="font-size:11px;color:#64748b">← 修正前: 矛盾存在 | 修正后: ' + (vf.after || '') + '</div>';
+        if (vf.verification_detail) {
+          h += '<div style="font-size:10px;color:#94a3b8">' + vf.verification_detail + '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+    
+    // 需要人工的列表
+    if (btReport.manual_flags && btReport.manual_flags.length > 0) {
+      h += '<div style="margin:8px 0;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">';
+      h += '<div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:8px">⚠️ 需人工审查 (' + btReport.manual_flags.length + '条)</div>';
+      btReport.manual_flags.slice(0, 5).forEach(function(mf) {
+        h += '<div class="step-block" style="padding:4px 0"><div class="sd" style="font-size:11px">'
+          + (mf.contradiction_id || '') + ': ' + (mf.reason || '') + '</div></div>';
+      });
+      h += '</div>';
+    }
+  }
 
   // ── Phase 4 推理引擎综合结论卡片 ──
   var synthFinding = null;
@@ -554,42 +610,92 @@ function renderQualityReport(qr, allF) {
   return h;
 }
 
-// ==================== 一键分析 ====================
+// ==================== 一键分析（异步任务机制） ====================
 async function analyzeTaxDocs() {
   if (taxDocAnalyzing) return;
+  var cid = _tdaCid();
+  if (!cid) { toast('请先选择公司账套', 'error'); return; }
   taxDocAnalyzing = true;
   var btn = document.getElementById('tda-analyze-btn');
-  btn.disabled = true; btn.textContent = '⏳ 分析中...（约2-3分钟）';
+  btn.disabled = true; btn.textContent = '⏳ 启动分析...';
 
   try {
-    var resp = await fetch('/api/tax-risk-docs/analyze?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'POST' });
-    var data = await resp.json();
-    if (!taxDocPageActive) return;
-    if (data.ok) {
-      taxDocReportData = data.report;
-      renderAnalyzeHeader(data.report);
-      renderTaxDocReport(data.report);
-      var exportBtn = document.getElementById('tda-export-btn');
-      if (exportBtn) exportBtn.style.display = 'inline-block';
-      toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+    // 1. 启动异步任务
+    var startResp = await fetch('/api/tax-risk-docs/analyze-start?company_id=' + cid, { method: 'POST' });
+    var startData = await startResp.json();
+    if (!startData.ok) { throw new Error(startData.message); }
+    var taskId = startData.task_id;
+    
+    // 2. 轮询进度
+    var maxPolls = 600; // 最多等10分钟（1秒一次）
+    var pollCount = 0;
+    while (pollCount < maxPolls) {
+      await new Promise(function(r) { setTimeout(r, 1000); });
+      pollCount++;
       
-      // ── 通知仪表盘：新分析已完成 ──
-      try {
-        localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({
-          trace_id: data.report.trace_id || '',
-          risk_level: data.report.overall_level || '',
-          risk_score: data.report.comprehensive ? (data.report.comprehensive.risk_score || 0) : 0,
-          timestamp: Date.now()
-        }));
-      } catch(e) {}
+      var statusResp = await fetch('/api/tax-risk-docs/analyze-status/' + taskId);
+      var statusData = await statusResp.json();
+      if (!statusData.ok) { throw new Error(statusData.message); }
       
-      var now2 = new Date();
-      var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
-      var el2 = document.getElementById('tda-last-update');
-      if (el2) el2.textContent = '最近更新: ' + ts2;
-    } else {
-      toast(data.message || '分析失败', 'error');
+      var pct = statusData.progress || 0;
+      var msg = statusData.message || '';
+      btn.textContent = '⏳ ' + pct + '% ' + msg.substring(0, 20);
+      
+      if (statusData.status === 'done') {
+        btn.textContent = '✅ 分析完成，正在加载报告...';
+        break;
+      }
+      if (statusData.status === 'error') {
+        throw new Error(statusData.message || '分析服务异常');
+      }
     }
+    
+    if (pollCount >= maxPolls) {
+      throw new Error('分析超时，请稍后重试');
+    }
+    
+    // 3. 获取结果
+    var resultResp = await fetch('/api/tax-risk-docs/analyze-result/' + taskId);
+    var resultData = await resultResp.json();
+    if (!resultData.ok) { throw new Error(resultData.message); }
+    
+    // 4. 渲染报告
+    var data = resultData;
+    if (!taxDocPageActive) return;
+    taxDocReportData = data.report;
+    renderAnalyzeHeader(data.report);
+    
+    // ── 报告块架构（新）：后端推 blocks → 前端通用渲染 ──
+    if (data.blocks && data.blocks.length && typeof renderReportBlocks === 'function') {
+      var area = document.getElementById('tax-doc-result');
+      if (area) {
+        area.innerHTML = '';
+        renderReportBlocks(data.blocks, area);
+      }
+    } else {
+      // 降级：使用 ReportEngine 模块化渲染
+      renderTaxDocReport(data.report);
+    }
+    
+    var exportBtn = document.getElementById('tda-export-btn');
+    if (exportBtn) exportBtn.style.display = 'inline-block';
+    toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+    
+    // ── 通知仪表盘：新分析已完成 ──
+    try {
+      localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({
+        trace_id: data.report.trace_id || '',
+        risk_level: data.report.overall_level || '',
+        risk_score: data.report.comprehensive ? (data.report.comprehensive.risk_score || 0) : 0,
+        timestamp: Date.now()
+      }));
+    } catch(e) {}
+    
+    var now2 = new Date();
+    var ts2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
+    var el2 = document.getElementById('tda-last-update');
+    if (el2) el2.textContent = '最近更新: ' + ts2;
+    
   } catch (e) {
     toast('分析失败: ' + e.message, 'error');
   } finally {
@@ -629,10 +735,10 @@ function renderTaxDocReport(r) {
   }
   if (typeof refreshTaxDocList === 'function') refreshTaxDocList();
 
-  var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
-  var te = r.target_entity || {};
+  // 预处理——数据规整
   var allF = r.all_findings || [];
   allF.sort(function(a,b){return(b.score||0)-(a.score||0);});
+  // 确保资料完备度发现排最前
   var hasCompleteness = false;
   for (var fi = 0; fi < allF.length; fi++) { if (allF[fi].type && allF[fi].type.indexOf('资料完备度综合') >= 0) { hasCompleteness = true; break; } }
   if (!hasCompleteness && r.domain_summary) {
@@ -648,13 +754,46 @@ function renderTaxDocReport(r) {
       }
     }
   }
+  r.all_findings = allF; // 写回
+
+  var te = r.target_entity || {};
+  if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
+
+  // ── 使用模块化引擎渲染报告 ──
+  var ctx;
+  if (typeof ReportEngine !== 'undefined' && ReportEngine.render) {
+    try {
+      ctx = ReportEngine.render(r);
+      console.log('[report-modules] 模块引擎渲染完成: ' + ctx.renderedModules.length + '个模块, 跳过' + ctx.skippedModules.length + '个');
+      if (ctx.skippedModules.length > 0) {
+        console.log('[report-modules] 跳过的模块:', ctx.skippedModules.map(function(s){return s.id + '(' + s.reason + ')';}).join(', '));
+      }
+    } catch(e) {
+      console.error('[report-modules] 模块引擎渲染失败，降级到内联渲染:', e);
+      ctx = null;
+    }
+  }
+
+  // 降级：如果模块引擎不可用，用内联渲染（保留旧逻辑作为 fallback）
+  if (!ctx || !ctx.html) {
+    ctx = _renderReportFallback(r, allF);
+  }
+
+  area.innerHTML = ctx.html;
+  area.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
+function _renderReportFallback(r, allF) {
+  var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
+  var te = r.target_entity || {};
   var cc = (r.comprehensive||{});
   var mi = cc.material_intel || {};
   var bi = mi['银行流水'] || {};
   var ii = mi['发票'] || {};
   var rc = bi['收款构成'];
-
-  if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
+  var now = new Date();
+  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
 
   var h = '<style>'
     + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
@@ -677,19 +816,6 @@ function renderTaxDocReport(r) {
     + '#rr-report .rtag{color:#c92a2a;font-weight:700}'
     + '#rr-report .atag{color:#e67700;font-weight:600}'
     + '#rr-report .gtag{color:#2b8a3e}'
-    + '#rr-report .f{margin:12px 0;padding:14px 18px;border:1px solid #e0e0e0;border-radius:6px;background:#fff}'
-    + '#rr-report .f .ft{font-weight:700;font-size:15px;margin-bottom:8px}'
-    + '#rr-report .f .fb{font-size:13px;color:#334155;line-height:1.9}'
-    + '#rr-report .f .fs{font-size:12px;color:#475569;margin-top:6px;padding-top:6px;border-top:1px dashed #e8e8e8}'
-    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd;line-height:2.2}'
-    + '#rr-report .toc{margin:30px 0;padding:0 40px}'
-    + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:15px;line-height:2.4}'
-    + '#rr-report .toc a:hover{color:#2563eb;text-decoration:underline}'
-    + '#rr-report .toc .num{display:inline-block;min-width:28px;font-weight:700}'
-    + '#rr-report .conclusion-box{margin:16px 0;padding:16px 20px;border-radius:8px;line-height:2}'
-    + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
-    + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
-    + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
     + '#rr-report .fact-sec{margin:16px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
     + '#rr-report .fact-sec .ftitle{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:10px}'
     + '#rr-report .fact-sec .frow{margin:6px 0;font-size:13px;line-height:1.9}'
@@ -701,7 +827,15 @@ function renderTaxDocReport(r) {
     + '#rr-report .appendix{margin:20px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
     + '#rr-report .appendix .atitle{font-size:15px;font-weight:700;margin-bottom:10px}'
     + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569}'
-    // ── 移动端响应式 ──
+    + '#rr-report .conclusion-box{margin:16px 0;padding:16px 20px;border-radius:8px;line-height:2}'
+    + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
+    + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
+    + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
+    + '#rr-report .toc{margin:30px 0;padding:0 40px}'
+    + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:15px;line-height:2.4}'
+    + '#rr-report .toc a:hover{color:#2563eb;text-decoration:underline}'
+    + '#rr-report .toc .num{display:inline-block;min-width:28px;font-weight:700}'
+    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd;line-height:2.2}'
     + '@media (max-width:768px){'
     + '#rr-report{padding:8px !important}'
     + '#rr-report h1{font-size:18px !important}'
@@ -711,673 +845,24 @@ function renderTaxDocReport(r) {
     + '#rr-report .frow{font-size:12px !important}'
     + '#rr-report table.tbl2{font-size:10px !important;display:block;overflow-x:auto}'
     + '#rr-report table.tbl2 th,#rr-report table.tbl2 td{padding:4px 6px !important}'
-    + '#rr-report .evidence-tbl{font-size:9px !important}'
     + '#rr-report .tag{font-size:10px !important;padding:1px 6px !important}'
-    + '#rr-report .nav-cards{flex-direction:column;gap:8px}'
-    + '#rr-report .nav-cards .card{padding:12px !important}'
     + '#rr-report .seal{padding:12px !important;font-size:13px !important}'
-    + '}'
-    + '@media (max-width:480px){'
-    + '#rr-report{padding:4px !important}'
-    + '#rr-report h1{font-size:16px !important}'
-    + '#rr-report .fact-sec{padding:8px !important;margin:6px 0 !important}'
-    + '#rr-report .frow{font-size:11px !important}'
     + '}'
     + '</style><div id="rr-report">';
 
-  var now = new Date();
-  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  // fallback 使用简化版渲染，只输出最核心的内容段
   h += '<div class="cover"><h1>税务稽查报告</h1><div class="sub">'
-    + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
-    + '报告日期：'+dateStr
+    + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>报告日期：'+dateStr
     + '</div></div>';
 
-  h += '<div class="toc">'
-    + '<div><a href="#sec1"><span class="num">一、</span>案件来源及稽查对象基本情况</a></div>'
-    + '<div><a href="#sec2"><span class="num">二、</span>稽查实施情况</a></div>'
-    + '<div><a href="#sec3"><span class="num">三、</span>稽查结论</a></div>'
-    + '<div><a href="#sec4"><span class="num">四、</span>稽查发现问题及事实认定</a></div>'
-    + '<div><a href="#sec_graph"><span class="num">⊗、</span>知识图谱·实体关系</a></div>'
-    + '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
-    + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'
-    + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
+  h += '<div style="padding:40px;text-align:center;color:#e67700;font-size:14px;line-height:2.2">'
+    + '⚠️ <b>报告模块引擎暂未加载</b><br>'
+    + '请刷新页面后重试。如问题持续，请检查控制台错误日志。<br>'
+    + '<span style="font-size:12px;color:#94a3b8">提示：内联降级渲染仅显示基本信息，完整报告需模块引擎支持。</span>'
     + '</div>';
 
-  h += '<h2 id="sec1">一、案件来源及稽查对象基本情况</h2>';
-  h += '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务稽查工作规程》组织实施稽查，以下为被查单位基本情况。</p>';
-
-  var onlineOK = !!te._online_lookup;
-  var onlineSource = te.lookup_source || (onlineOK ? '联网核查' : '');
-  var infoSourceTag = onlineOK
-    ? '<span style="color:#059669;font-size:12px;margin-left:6px">✅ 联网核查确认</span>'
-    : '<span style="color:#d97706;font-size:12px;margin-left:6px">⚠️ 发票数据推断（联网核查未成功）</span>';
-
-  h += '<table class="tbl">'
-    + '<tr><td class="lbl">案件来源</td><td>资料风险分析（基于电子经营资料预审）</td></tr>'
-    + '<tr><td class="lbl">被查单位</td><td>' + esc(te.name || '') + infoSourceTag + '</td></tr>';
-
-  var requiredFields = [
-    ['法定代表人', te.legal_person || te.legal_representative || ''],
-    ['注册资本', te.registered_capital || ''],
-    ['成立日期', te.established_date || ''],
-    ['统一社会信用代码', te.uscc || '', true, 'font-family:monospace;letter-spacing:0'],
-    ['登记状态', te.company_status || te.status || ''],
-    ['企业类型', te.company_type || ''],
-    ['行业', te.industry_online || te.industry || ''],
-    ['注册地址', te.address || ''],
-    ['经营范围', te.business_scope || ''],
-  ];
-  for (var fi = 0; fi < requiredFields.length; fi++) {
-    var label = requiredFields[fi][0];
-    var val = requiredFields[fi][1];
-    if (val) {
-      var nowrap = requiredFields[fi][2] ? ' style="white-space:nowrap' + (requiredFields[fi][3] ? ';' + requiredFields[fi][3] : '') + '"' : (requiredFields[fi][3] ? ' style="' + requiredFields[fi][3] + '"' : '');
-      h += '<tr><td class="lbl">' + label + '</td><td' + nowrap + '>' + esc(val) + '</td></tr>';
-    } else if (onlineOK) {
-      h += '<tr><td class="lbl">' + label + '</td><td style="color:#9ca3af">搜索未获取</td></tr>';
-    }
-  }
-
-  var spr = te._six_personnel_risk;
-  var mp = spr ? (spr.my_personnel || {}) : {};
-  var myNames = Object.keys(mp);
-
-  var shareholders = te.shareholders || [];
-  if (shareholders.length > 0) {
-    var shNames = shareholders.map(function(s){ return s.name || s; }).filter(function(n){ return n && n.length >= 2; });
-    h += '<tr><td class="lbl">股东名单</td><td>' + shNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
-  } else if (onlineOK) {
-    h += '<tr><td class="lbl">股东名单</td><td style="color:#9ca3af">搜索未获取</td></tr>';
-  }
-
-  var directors = te.directors || [];
-  if (directors.length > 0) {
-    var dNames = directors.map(function(d){ return d.name || d; }).filter(function(n){ return n && n.length >= 2; });
-    h += '<tr><td class="lbl">董事</td><td>' + dNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
-  } else if (onlineOK) {
-    h += '<tr><td class="lbl">董事</td><td style="color:#9ca3af">搜索未获取</td></tr>';
-  }
-
-  var supervisors = te.supervisors || [];
-  if (supervisors.length > 0) {
-    var supNames = supervisors.map(function(s){ return s.name || s; }).filter(function(n){ return n && n.length >= 2; });
-    h += '<tr><td class="lbl">监事</td><td>' + supNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
-  } else if (onlineOK) {
-    h += '<tr><td class="lbl">监事</td><td style="color:#9ca3af">搜索未获取</td></tr>';
-  }
-
-  var financeContacts = te.finance_contacts || [];
-  if (financeContacts.length > 0) {
-    var fcNames = financeContacts.map(function(f){ return f.name || f; }).filter(function(n){ return n && n.length >= 2; });
-    h += '<tr><td class="lbl">财务负责人</td><td>' + fcNames.map(function(n){return esc(n);}).join('、') + '</td></tr>';
-  } else if (onlineOK) {
-    h += '<tr><td class="lbl">财务负责人</td><td style="color:#9ca3af">搜索未获取</td></tr>';
-  }
-
-  var naFields = [
-    ['办税人员', '需从天眼查/企查查会员页面另行查询，或从税务申报记录中提取'],
-    ['实际控制人', '需通过股权穿透分析确定，搜索知识图谱不直接提供'],
-    ['最终受益人', '需通过股权穿透+受益人分析确定，搜索知识图谱不直接提供'],
-  ];
-  for (var nj = 0; nj < naFields.length; nj++) {
-    h += '<tr><td class="lbl">' + naFields[nj][0] + '</td><td style="color:#9ca3af">' + naFields[nj][1] + '</td></tr>';
-  }
-
-  h += '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
-    + '<tr><td class="lbl">稽查范围</td><td>' + r.files_count + '份经营资料</td></tr>'
-    + '<tr><td class="lbl">执行标准</td><td>依据' + r.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
-    + '</table>';
-
-  h += renderDataOverview(cc);
-  h += renderMissingConsequenceTriggers(cc);
-
-  var spr2 = te._six_personnel_risk;
-  if (spr2) {
-    var mp2 = spr2.my_personnel || {};
-    var myNames2 = Object.keys(mp2);
-    if (myNames2.length > 0) {
-      var multiRole = spr2.one_person_multi_role || [];
-      var crossCo = spr2.cross_company_overlap || [];
-      
-      h += '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2.2">';
-      h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">ⓘ 稽查六员清单（联网核查获取）</div>';
-      h += '<div style="color:#374151">';
-      for (var ix = 0; ix < myNames2.length; ix++) {
-        var name2 = myNames2[ix];
-        var roles2 = mp2[name2] || [];
-        h += esc(name2) + '：' + roles2.map(function(r){return '<span style="display:inline-block;padding:1px 6px;margin:0 2px;background:#fef3c7;border:1px solid #fcd34d;border-radius:3px;font-size:11px">' + esc(r) + '</span>';}).join(' ') + '<br>';
-      }
-      h += '</div>';
-      
-      if (multiRole.length > 0) {
-        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #fed7aa">';
-        h += '<div style="font-weight:700;color:#dc2626">⚠️ 六员风险 — 一人多角（内控缺陷）</div>';
-        for (var j2 = 0; j2 < multiRole.length; j2++) {
-          var mr2 = multiRole[j2];
-          h += '<div style="color:#991b1b;font-size:12px">' + esc(mr2.name) + '在本企业同时担任' + mr2.count + '个关键角色：' + mr2.roles.map(function(r){return esc(r);}).join('、') + '。缺乏内控制衡，资金流向完全由个人意志决定。</div>';
-        }
-        h += '</div>';
-      }
-      
-      if (crossCo.length > 0) {
-        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #fed7aa">';
-        h += '<div style="font-weight:700;color:#dc2626">⚠️ 六员风险 — 跨企业人员重叠（关联交易嫌疑）</div>';
-        for (var k2 = 0; k2 < crossCo.length; k2++) {
-          var cc2 = crossCo[k2];
-          var ops2 = cc2.overlap_personnel || [];
-          h += '<div style="font-size:12px;color:#991b1b">对方企业：<b>' + esc(cc2.other_company) + '</b></div>';
-          for (var l2 = 0; l2 < ops2.length; l2++) {
-            var op2 = ops2[l2];
-            h += '<div style="font-size:11px;color:#7f1d1d;padding-left:16px">' + esc(op2.name) + '：我方' + op2.my_roles.map(function(r){return esc(r);}).join('/') + '；对方' + op2.other_roles.map(function(r){return esc(r);}).join('/') + '</div>';
-          }
-        }
-        h += '<div style="margin-top:6px;font-size:11px;color:#9a3412">→ 两家企业存在关联关系，需进一步核查资金往来、共用供应商、转移定价等。</div>';
-        h += '</div>';
-      }
-      h += '</div>';
-    }
-  }
-
-  var registeredBusiness = te.industry_online || '';
-  var inferredBusiness = te.industry || '';
-  var hasProcessingSignal = !!(te._has_processing_signal || (ii && ii['加工费信号']));
-  var actualBusiness = '';
-  var showJudgment = false;
-  if (registeredBusiness && inferredBusiness && registeredBusiness !== inferredBusiness) {
-    showJudgment = true;
-    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
-  } else if (!registeredBusiness && inferredBusiness) {
-    actualBusiness = inferredBusiness + (hasProcessingSignal ? '+外包轻加工模式' : '');
-  }
-
-  h += '<p class="i2">' + esc(
-    '本案为资料风险分析预审案件。被查单位' +
-    (te.name || '') +
-    (registeredBusiness ? '，工商登记为' + registeredBusiness : (inferredBusiness ? '，所属行业为' + inferredBusiness : '')) +
-    (showJudgment ? '。经审核发现实质经营模式与工商登记存在差异（详见稽查实施情况-经营实质核查）' : '') +
-    (te.legal_person || te.legal_representative ? '，法定代表人' + (te.legal_person || te.legal_representative) : '') +
-    '。'
-    ) + '</p>';
-
-  h += '<h2 id="sec2">二、稽查实施情况</h2>';
-  h += '<p class="i2">按照稽查方案，依次开展了以下稽查工作。现将稽查实施过程、稽查方法、证据收集情况逐项汇报如下。</p>';
-
-  var ga = te._goods_analysis || {};
-  var commonGoods = ga.common_goods || [];
-  var purOnlyGoods = ga.pur_only_goods || [];
-  var salOnlyGoods = ga.sal_only_goods || [];
-  var hasProcFee = ga.has_processing_fee || false;
-
-  h += '<h3>经营实质核查</h3>';
-  h += '<p class="i2">根据资料驱动稽查方法论，对被查单位经营实质进行复核。</p>';
-
-  h += '<p class="i2"><b>（一）稽查方法。</b>本次经营实质核查采用了以下具体稽查方法：</p>';
-  h += '<p class="i2">第一，<b>工商登记核查法。</b>通过联网核查获取被查单位在国家企业信用信息公示系统中的登记信息。经核查，被查单位工商登记行业为<span class="hl">' + esc(registeredBusiness || te.industry || '未获取') + '</span>' + (registeredBusiness ? '' : '（搜索引擎未返回行业分类，以下以发票数据推断行业为准）') + '。</p>';
-  h += '<p class="i2">第二，<b>进销存数据比对法。</b>将进项发票品名与销项发票品名进行逐名比对。进销比' + esc(ii['进销比'] || '') + '，销项发票' + esc(ii['销项发票'] || '') + '，进项发票' + esc(ii['进项发票'] || '') + '。</p>';
-  h += '<p class="i2">第三，<b>资金流与发票流核对法。</b>将银行收款金额与销项开票金额逐户比对。银行收款' + esc(bi['总收款'] || '') + '，付款' + esc(bi['总付款'] || '') + '，税费支出' + esc(bi['税费支出总额'] || '') + '。</p>';
-  h += '<p class="i2">第四，<b>供应商及客户穿透分析法。</b>对供应商和客户进行集中度检测和名称群集检测，排查关联交易和虚开风险。</p>';
-  h += '<p class="i2">第五，<b>加工环节穿透法。</b>对进项发票中存在加工费等品名的交易，逐笔核实委托加工的真实性。</p>';
-  h += '<p class="i2">第六，<b>五步核查法。</b>按照工商登记→进项审核→销项审核→交叉比对→综合判断的顺序，对经营实质进行全流程核查。</p>';
-
-  h += '<p class="i2"><b>（二）核查过程。</b></p>';
-
-  if (hasProcFee || purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
-    h += '<p class="i2"><b>1. 进项发票审核。</b>对全部进项发票的货物名称进行逐票审核。';
-    if (hasProcFee) {
-      h += '发现进项发票中存在<b>加工费</b>项目，表明企业存在外包委托加工环节。';
-    }
-    if (purOnlyGoods.length > 0) {
-      h += '以下品名仅在进项发票中出现（购进但未销售），初步判断为原材料或委托加工物资：' + purOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
-    }
-    if (!hasProcFee && purOnlyGoods.length === 0) {
-      h += '未发现加工费项目，进项品名均为常见经营物资。';
-    }
-    h += '</p>';
-
-    h += '<p class="i2"><b>2. 销项发票审核。</b>对全部销项发票的货物名称进行逐票审核。';
-    if (salOnlyGoods.length > 0) {
-      h += '以下品名仅在销项发票中出现（销售但未购进），初步判断为加工后的成品：' + salOnlyGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
-    } else {
-      h += '销项品名均在进项中有对应购进记录。';
-    }
-    h += '</p>';
-
-    h += '<p class="i2"><b>3. 进销交叉比对。</b>将进项发票品名与销项发票品名进行逐名比对。';
-    if (commonGoods.length > 0) {
-      h += '以下品名在进项和销项中均有出现，属于纯贸易行为：' + commonGoods.map(function(g){return '<b>' + esc(g) + '</b>';}).join('、') + '。';
-    }
-    if (purOnlyGoods.length > 0 && salOnlyGoods.length > 0) {
-      h += '同时存在仅购进不销售的品名（' + purOnlyGoods.length + '类）和仅销售不购进的品名（' + salOnlyGoods.length + '类），表明企业存在将原材料转化为成品的经营活动。';
-    } else if (purOnlyGoods.length > 0) {
-      h += '存在仅购进不销售的品名（' + purOnlyGoods.length + '类），可能为原材料采购后全部用于委托加工。';
-    } else if (salOnlyGoods.length > 0) {
-      h += '存在仅销售不购进的品名（' + salOnlyGoods.length + '类），可能为委托加工收回的成品。';
-    }
-    h += '</p>';
-
-    h += '<p class="i2"><b>4. 综合判断。</b>';
-    var totalDiff = purOnlyGoods.length + salOnlyGoods.length;
-    if (hasProcFee || (purOnlyGoods.length > 0 && salOnlyGoods.length > 0)) {
-      h += '综合以上分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + totalDiff + '类实质性差异——';
-      h += '判断被查单位实质经营模式为' + esc(actualBusiness || (inferredBusiness + '+外包轻加工模式')) + '，与其工商登记行业不完全一致。';
-      h += '应在稽查中按实质经营模式进行税务处理。';
-    } else {
-      h += '综合以上分析，进销品名未见实质性差异，判断被查单位实质经营模式与工商登记一致。';
-    }
-    h += '</p>';
-  } else {
-    h += '<p class="i2"><b>1-3. 进销审核。</b>对进项和销项发票品名进行逐票审核和交叉比对，未发现加工费项目，进销品名一致，确认企业经营模式与工商登记一致。</p>';
-    h += '<p class="i2"><b>4. 综合判断。</b>经五步核查法全流程审核，被查单位实质经营模式与登记信息一致，发票数据与工商登记吻合。</p>';
-  }
-  if (rc) {
-    h += '<h3>收款来源分析</h3><p>';
-    h += '企业客户款：'+rc['企业客户款']+'<br>';
-    h += '个人款：'+rc['个人款']+'<br>';
-    h += '税费社保退款：'+rc['税费社保退款']+'（代付社保、医保代发等，非经营收入）<br>';
-    h += '银行利息/内部转账：'+rc['银行利息/内部']+'（结息等，非经营收入）</p>';
-  }
-
-  h += renderCashflowChart(cc);
-  h += renderTopCounterparties(cc);
-
-  h += '<h3>经营相关收款</h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
-  (bi['收款方全部']||[]).forEach(function(p){
-    var n = p['名称']||''; if (!n) return;
-    var isBiz = /公司|厂|店|中心|集团|社|行|院|校|所/.test(n);
-    if (isBiz)
-      h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
-  });
-  h += '</table>';
-
-  h += '<h3>非经营收款 <span style="font-size:12px;color:#999">（不纳入经营收入判断）</span></h3><table class="tbl2"><tr><th>付款方</th><th class="r">金额（元）</th></tr>';
-  (bi['收款方全部']||[]).forEach(function(p){
-    var n = p['名称']||''; if (!n) return;
-    var isBiz = /公司|厂|店|中心|集团|社|行|院|校|所/.test(n);
-    if (!isBiz)
-      h += '<tr><td>'+esc(n)+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>';
-  });
-  h += '</table>';
-
-  h += '<p><span style="color:'+S.red+';font-weight:700">联网核查：</span>' +
-    esc(te.legal_person || '法定代表人') +
-    (te.legal_person_role ? '系' + esc(te.legal_person_role) : '') +
-    '，个人账户转入资金性质待核实' +
-    '——可能股东注资、关联方借款或未申报经营收入。</p>';
-
-  var pe = bi['付款方全部'];
-  if (pe && pe.length) {
-    h += '<h3>银行付款明细 <span style="font-size:12px;color:#999">（共'+pe.length+'个收款方）</span></h3>';
-    h += '<table class="tbl2"><tr><th>收款方（' + esc((te.name||'').substring(0,6)) + '付款给）</th><th class="r">付款金额（元）</th></tr>';
-    pe.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
-    h += '</table>';
-  }
-
-  var xm = ii['销项客户明细'];
-  if (xm && xm.length) {
-    h += '<h3>销项客户明细 <span style="font-size:12px;color:#999">（共'+xm.length+'个购买方）</span></h3>';
-    h += '<table class="tbl2"><tr><th>购买方</th><th class="r">销售金额（元）</th></tr>';
-    xm.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
-    h += '</table>';
-  }
-
-  var jm = ii['进项供应商明细'];
-  if (jm && jm.length) {
-    h += '<h3>进项供应商明细 <span style="font-size:12px;color:#999">（共'+jm.length+'个供应商）</span></h3>';
-    h += '<table class="tbl2"><tr><th>供应商</th><th class="r">采购金额（元）</th></tr>';
-    jm.forEach(function(p){ h += '<tr><td>'+esc((p['名称']||'').substring(0,40))+'</td><td class="r">'+esc(p['金额']||'')+'</td></tr>'; });
-    h += '</table>';
-  }
-
-  h += '<p class="i2">第三，供应商及客户穿透分析（集中度检测+名称群集检测）。</p>';
-  h += renderSupplyChainRisk(te);
-
-  var stdHighCount=allF.filter(function(f){return(f.score||0)>=8;}).length;
-  var stdMidCount=allF.filter(function(f){return(f.score||0)>=6&&(f.score||0)<8;}).length;
-  var stdLowCount=allF.filter(function(f){return(f.score||0)<6;}).length;
-  var stdFixedCount=allF.filter(function(f){return f.level_fixed;}).length;
-  var stdRiskC=stdHighCount>0?S.red:(stdMidCount>0?S.amber:S.green);
-  var stdRiskText=stdHighCount>0?'高风险':(stdMidCount>0?'中风险':'低风险');
-  var stdChainSet = {};
-  allF.forEach(function(f){ if(f.source_chain) stdChainSet[f.source_chain] = true; });
-  var stdChainList = Object.keys(stdChainSet);
-
-  h += '<h2 id="sec3">三、稽查结论</h2>';
-  h += renderRiskProfile(cc);
-
-  h+='<div class="conclusion-box '+(stdHighCount>0?'red':(stdMidCount>0?'amber':'green'))+'">';
-  h+='<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+stdRiskC+'">'+stdRiskText+'</span></div>';
-  h+='<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+stdHighCount+'</strong> 项，中风险 <strong>'+stdMidCount+'</strong> 项，低风险 <strong>'+stdLowCount+'</strong> 项。'+(stdFixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+stdFixedCount+' 项。</span>':'')+'</p>';
-  if (stdChainList.length > 0) {
-    h += '<p class="i2"><strong>稽查线索链覆盖：</strong>本次调查共激活' + stdChainList.length + '条稽查线索链：' + stdChainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (stdChainList.length>15?'等':'') + '。</p>';
-  }
-  h+='</div>';
-  if(stdHighCount>0){h+='<h3>主要高风险事项</h3>';allF.filter(function(f){return(f.score||0)>=8;}).slice(0,6).forEach(function(f,i){var detailText=typeof f.detail==='object'&&f.detail.summary?f.detail.summary:(typeof f.detail==='string'?f.detail:'');h+='<p class="i2">'+(i+1)+'. <b>'+esc(f.type||'')+'</b>：'+(detailText||f.description||'')+'</p>';});}
-  h+='<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有规则ID溯源和≥2域交叉验证。本次稽查共激活<strong>' + stdChainList.length + '条</strong>线索链，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
-
-  h += renderChainUsage(cc);
-
-  h+='<h3>稽查局限性声明</h3><p class="i2">由于被查单位仅提交了部分资料，其他必查资料缺失，无法核实以下事项：①会计凭证的完整性和分录准确性；②工资费用的真实性和个税代扣代缴履行情况；③社保的合规参保和缴费基数真实性；④存货的账实相符性；⑤合同交易的真实性；⑥各税种申报的准确性。以上受限事项如后续补充资料，需另行补充稽查。</p>';
-
-  h+='<h3>处理优先级建议</h3>';
-  h+='<p class="i2">根据风险等级和潜在后果的严重性，建议按以下顺序处理：</p>';
-  h += '<table class="tbl2"><tr><th>优先级</th><th>事项</th><th>紧急程度</th><th>理由</th></tr>';
-  var urgentFindings = allF.filter(function(f){return(f.score||0)>=8;}).slice(0,4);
-  urgentFindings.forEach(function(f,pi){
-    var reason = (f.score||0)>=9 ? '涉嫌税收违法——立即处理' : '高风险——尽快处理';
-    h += '<tr><td style="font-weight:700;color:#dc2626">' + (pi+1) + '</td><td>' + esc(f.type||'') + '</td><td style="color:#dc2626;font-weight:600">' + reason + '</td><td>' + esc((f.tax_impact||'').split('→')[0] || '需进一步核查') + '</td></tr>';
-  });
-  if (urgentFindings.length === 0) {
-    h += '<tr><td colspan="4" style="color:#6b7280">暂未发现需要立即处理的高风险事项</td></tr>';
-  }
-  h += '</table>';
-
-  h+='<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
-  if(stdHighCount>0){h+='存在'+stdHighCount+'项高风险问题，涉嫌税收违法行为，建议依法进一步核查处理。';}else if(stdMidCount>0){h+='存在'+stdMidCount+'项需关注问题，建议自查整改。';}else{h+='未发现重大税收违法问题。';}
-  h+='</p>';
-
-  h += '<h2 id="sec4">四、稽查发现问题及事实认定</h2>';
-  h += '<p class="i2">以下逐项列示稽查中发现的全部风险疑点，标注了稽查过程、线索链来源、证据材料和法律依据，按风险等级从高到低排列。</p>';
-
-  var highF = allF.filter(function(f){return(f.score||0)>=8;});
-  var midF = allF.filter(function(f){return(f.score||0)>=5&&(f.score||0)<8;});
-  var lowF = allF.filter(function(f){return(f.score||0)<5;});
-  h += '<div class="appendix" style="margin-bottom:20px"><div class="atitle">📊 发现统计概览</div>';
-  h += '<table class="tbl2">';
-  h += '<tr><th>风险等级</th><th>数量</th><th>占比</th><th>涉及数据域</th><th>处理优先级</th></tr>';
-  h += '<tr><td style="color:#c92a2a;font-weight:600">🔴 高风险</td><td>' + highF.length + '条</td><td>' + (allF.length>0?(highF.length/allF.length*100).toFixed(0):0) + '%</td><td>资金流/发票流/申报流多源交叉</td><td>立即处理</td></tr>';
-  h += '<tr><td style="color:#e67700;font-weight:600">🟡 中风险</td><td>' + midF.length + '条</td><td>' + (allF.length>0?(midF.length/allF.length*100).toFixed(0):0) + '%</td><td>合规/资料/差异</td><td>限期整改</td></tr>';
-  h += '<tr><td style="color:#2b8a3e">⚪ 低风险</td><td>' + lowF.length + '条</td><td>' + (allF.length>0?(lowF.length/allF.length*100).toFixed(0):0) + '%</td><td>日常费用/技术提醒</td><td>持续关注</td></tr>';
-  h += '</table></div>';
-
-  h += '<p class="i2">本次稽查共启动<strong>' + (r.rules_used||'?') + '条</strong>稽查指令，覆盖<strong>' + (r.pipeline_log ? r.pipeline_log.filter(function(e){return e.indexOf('域')>-1;}).length : '?') + '个</strong>分析域。</p>';
-
-  allF.forEach(function(f,i){
-    var s = f.score||0;
-    var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
-    var bc = f.level_fixed ? S.red : (s>=8?S.red:(s>=6?S.amber:'#94a3b8'));
-    var tc = f.level_fixed ? 'rtag' : (s>=8?'rtag':(s>=6?'atag':'gtag'));
-    var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">稽查重点</span>':'');
-    h += '<div class="fact-sec" style="border-left:4px solid '+bc+'">';
-    h += '<div class="ftitle">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
-    var domainText = f.domain || f.category || '';
-    if (domainText) h += '<div class="frow"><span class="flabel">涉及领域：</span>'+esc(domainText)+'</div>';
-    if (f.detail && typeof f.detail === 'object' && f.detail.narrative) {
-      h += '<div class="frow"><span class="flabel">调查过程：</span></div>';
-      h += '<div style="padding:0 0 0 16px">' + f.detail.narrative + '</div>';
-      if (f.description && f.description !== f.detail.narrative) {
-        h += '<div class="frow"><span class="flabel">线索描述：</span>'+esc(f.description)+'</div>';
-      }
-    } else {
-      h += '<div class="frow"><span class="flabel">事实描述：</span>'+esc((f.detail||'')+(f.description||''))+'</div>';
-    }
-    if (f.items && f.items.length > 0) {
-      var cols2 = Object.keys(f.items[0]);
-      h += '<div style="margin:8px 0"><div style="font-weight:600;font-size:12px;color:#475569;margin-bottom:4px">证据材料（' + f.items.length + '项明细）</div>';
-      h += '<table class="tbl2"><tr>';
-      cols2.forEach(function(c){ h += '<th>'+esc(c)+'</th>'; });
-      h += '</tr>';
-      f.items.forEach(function(row){
-        h += '<tr>';
-        cols2.forEach(function(c){ h += '<td>'+esc(row[c]||'')+'</td>'; });
-        h += '</tr>';
-      });
-      h += '</table></div>';
-    }
-    // ── 证据溯源：原始数据行级引用（可点击溯源）──
-    if (f.evidence_rows && f.evidence_rows.length > 0) {
-      h += '<div style="margin:6px 0"><div style="font-weight:600;font-size:12px;color:#2563eb;margin-bottom:3px">🔍 证据溯源（' + f.evidence_rows.length + '条原始记录 / 点击可跳转）</div>';
-      h += '<table class="tbl2 evidence-tbl" style="font-size:11px"><tr>';
-      h += '<th>来源</th><th>引用ID</th><th>描述</th><th>金额</th><th>对方</th><th>日期</th></tr>';
-      f.evidence_rows.forEach(function(er, eri){
-        var amt = er.amount ? (er.amount >= 10000 ? (er.amount/10000).toFixed(1)+'万' : er.amount.toLocaleString()) : '-';
-        var refId = esc(er.ref_id||'-');
-        var source = esc(er.source||'');
-        var anchorId = 'ev-' + source.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'') + '-' + refId.replace(/[^a-zA-Z0-9]/g,'');
-        // 构建tooltip
-        var tooltip = '来源: ' + source + '\n引用ID: ' + refId + '\n描述: ' + esc(er.ref_label||'') + '\n金额: ' + amt + '\n对方: ' + esc(er.counterparty||'-') + '\n日期: ' + esc(er.date||'-') + '\n备注: ' + esc(er.note||'');
-        h += '<tr id="' + anchorId + '" class="evidence-row" style="cursor:pointer;transition:background 0.2s" '
-          + 'onmouseover="this.style.background=\'#f0f7ff\'" onmouseout="this.style.background=\'\'" '
-          + 'title="' + tooltip.replace(/"/g,'&quot;') + '。点击复制引用ID" '
-          + 'onclick="navigator.clipboard.writeText(\'' + refId.replace(/'/g,"\\'") + '\').then(function(){this.style.background=\'#d4edda\';setTimeout(function(){var el=document.getElementById(\'' + anchorId + '\');if(el)el.style.background=\'\';},800);}.bind(this))">';
-        h += '<td><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px">' + source + '</span></td>';
-        h += '<td style="font-family:monospace;font-size:10px;text-decoration:underline;color:#2563eb">' + refId + '</td>';
-        h += '<td>' + esc(er.ref_label||'') + '</td>';
-        h += '<td style="text-align:right">' + amt + '</td>';
-        h += '<td>' + esc(er.counterparty||'-') + '</td>';
-        h += '<td>' + esc(er.date||'-') + '</td>';
-        h += '</tr>';
-      });
-      h += '</table>';
-      h += '<div style="font-size:10px;color:#6b7280;margin-top:2px">💡 点击任意行可复制引用ID到剪贴板，在原始数据中搜索定位</div>';
-      h += '</div>';
-    }
-    var relatedIndices = [];
-    var thisDomain = f.domain || f.category || '';
-    var thisSource = f.source_chain || '';
-    allF.forEach(function(rf, ri){
-      if (ri !== i) {
-        var rfDomain = rf.domain || rf.category || '';
-        var rfSource = rf.source_chain || '';
-        if ((thisDomain && thisDomain === rfDomain) || (thisSource && thisSource === rfSource)) {
-          if (relatedIndices.length < 3) relatedIndices.push(ri);
-        }
-      }
-    });
-    if (relatedIndices.length > 0) {
-      h += '<div class="frow" style="font-size:11px;color:#6b7280;margin-top:4px"><span class="flabel">关联发现：</span>';
-      h += '参阅 ' + relatedIndices.map(function(ri){ return '<a href="#" style="color:#2563eb">发现'+(ri+1)+'</a>'; }).join('、');
-      h += '（' + relatedIndices.map(function(ri){ return esc((allF[ri].type||'').substring(0,20)); }).join(' / ') + '）——同一域/线索链，交叉验证</div>';
-    }
-
-    // ── 证伪思维标记：展示逆向验证结果 ──
-    if (f._survived_falsification !== undefined) {
-      if (f._survived_falsification) {
-        h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #22c55e;font-size:12px;line-height:1.8">';
-        h += '<span class="flabel" style="color:#166534">✅ 证伪通过：</span>';
-        h += esc(f._falsification_detail||'');
-        if (f._falsification_confidence_boost) {
-          h += ' <span style="color:#16a34a;font-weight:600">(+' + f._falsification_confidence_boost + '%置信)</span>';
-        }
-        h += '</div>';
-      } else {
-        h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#fef2f2;border-left:3px solid #ef4444;font-size:12px;line-height:1.8">';
-        h += '<span class="flabel" style="color:#dc2626">⚠️ 证伪未通过：</span>';
-        h += esc(f._falsification_detail||'');
-        if (f._falsification_confidence_penalty) {
-          h += ' <span style="color:#dc2626;font-weight:600">(-' + f._falsification_confidence_penalty + '%置信)</span>';
-        }
-        h += '</div>';
-      }
-    }
-
-    if (f.how_found) {
-      h += '<div class="frow" style="margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0">';
-      h += '<span class="flabel">调查过程：</span>' + esc(f.how_found||'') + '</div>';
-    }
-    if (f.tax_impact) {
-      h += '<div class="frow" style="margin-top:4px;padding:8px 12px;background:#fff7ed;border-left:3px solid #f97316;font-size:13px;line-height:1.8">';
-      h += '<span class="flabel" style="color:#c2410c">⚡ 税务影响：</span>' + esc(f.tax_impact||'') + '</div>';
-    }
-    var hasEvidence = (f.rule_id && f.rule_id > 100) || (f.source_chain && !f.source_chain.includes('链驱动'));
-    if (hasEvidence) {
-      h += '<div class="frow"><span class="flabel">证据来源：</span>';
-      if (f.rule_id && f.rule_id > 100) h += '规则ID-'+esc(f.rule_id)+' ';
-      if (f.source_chain && !f.source_chain.includes('链驱动')) h += '| '+esc(f.source_chain)+' ';
-      h += '</div>';
-    }
-    // ── 推理可解释性：决策路径 + 替代假设 ──
-    if (f._reasoning_path && f._reasoning_path.length > 0) {
-      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#f8fafc;border-radius:4px;font-size:11px">';
-      h += '<span class="flabel">🧠 推理路径：</span>' + f._reasoning_path.map(function(s){return '<span style="color:#475569">'+esc(s)+'</span>';}).join(' <span style="color:#94a3b8">→</span> ');
-      h += '</div>';
-    }
-    if (f._alternative_hypotheses && f._alternative_hypotheses.length > 0) {
-      h += '<div style="margin-top:3px;padding:6px 10px;background:#fffbeb;border-radius:4px;font-size:11px">';
-      h += '<span class="flabel" style="color:#92400e">🤔 替代假设：</span>';
-      f._alternative_hypotheses.forEach(function(alt){
-        var icon = alt.evidence_support === 'moderate' ? '⚠️' : '💡';
-        h += '<div style="margin:2px 0;color:#78350f">' + icon + ' <b>' + esc(alt.hypothesis) + '</b>: ' + esc(alt.explanation) + '</div>';
-      });
-      h += '</div>';
-    }
-    // ── 多假设推理标记 ──
-    if (f._multi_hypothesis) {
-      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#eef2ff;border-left:3px solid #6366f1;font-size:11px">';
-      h += '<span class="flabel" style="color:#4338ca">🔬 多假设并行推理：</span>该结论通过竞争假设收窄得出';
-      h += '</div>';
-    }
-    // ── 经验直觉标记 ──
-    if (f._intuition_hit) {
-      h += '<div class="frow" style="margin-top:3px;padding:6px 10px;background:#fdf4ff;border-left:3px solid #a855f7;font-size:11px">';
-      h += '<span class="flabel" style="color:#7e22ce">🔮 经验直觉：</span>从' + esc(f._intuition_count||'?') + '条历史案例中学习的异常模式';
-      h += '</div>';
-    }
-    h += '<div class="law-ref">法律依据：'+(f.policy_ref ? esc(f.policy_ref) : '相关税收法规')+'</div>';
-    if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>'+esc(f.suggestion||'')+'</div>';
-    if (f._quality_issues && f._quality_issues.length > 0) {
-      h += '<div style="margin-top:4px;font-size:10px;color:#f59e0b;">⚠ 质量标注：' + f._quality_issues.map(function(q){return esc(q);}).join('；') + '</div>';
-    }
-    h += '</div>';
-  });
-
-  // ── 知识图谱：实体关系网络 ──
-  if (r.entity_graph && r.entity_graph.total_entities > 0) {
-    var eg = r.entity_graph;
-    h += '<h2 id="sec_graph">知识图谱·实体关系网络</h2>';
-    h += '<p class="i2">从发票、银行流水、工资表中提取的实体关系网络。共<strong>' + eg.total_entities + '</strong>个实体，发现<strong>' + eg.total_anomalies + '</strong>个异常关系。</p>';
-    
-    if (eg.dual_role_count > 0) {
-      h += '<div class="fact-sec" style="border-left:4px solid #f59e0b;margin-bottom:12px">';
-      h += '<div class="ftitle">⚠️ 多重角色实体（' + eg.dual_role_count + '个）</div>';
-      h += '<div class="frow">以下实体在交易中同时扮演多个角色（如既是供应商又是客户），可能存在关联交易或资金回流嫌疑。</div>';
-      h += '</div>';
-    }
-    
-    if (eg.top_entities && eg.top_entities.length > 0) {
-      h += '<table class="tbl2" style="margin-top:12px"><tr><th>排名</th><th>实体名称</th><th>角色</th><th>交易总额</th><th>异常标记</th></tr>';
-      eg.top_entities.forEach(function(e, ei){
-        var roles = (e.roles||[]).join(' / ');
-        var amt = e.amount >= 10000 ? (e.amount/10000).toFixed(1)+'万' : e.amount.toLocaleString();
-        var anomaly = e.roles && e.roles.length >= 2 ? '⚠️ 多重身份' : '';
-        h += '<tr><td>' + (ei+1) + '</td><td><b>' + esc(e.name||'') + '</b></td><td>' + esc(roles) + '</td><td style="text-align:right">' + amt + '</td><td style="color:#f59e0b">' + anomaly + '</td></tr>';
-      });
-      h += '</table>';
-    }
-    
-    h += '<div style="margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:4px;font-size:11px;color:#64748b">';
-    h += '💡 <b>提示</b>：实体关系网络可帮助发现隐藏的关联关系。重点关注同时出现在多个角色中的实体，以及交易金额异常集中的实体。';
-    h += '</div>';
-    
-    // ── SVG力导向图 ──
-    if (eg.top_entities && eg.top_entities.length >= 2) {
-      var ents = eg.top_entities.slice(0, 10);
-      var maxAmt = ents[0].amount || 1;
-      // Build nodes and edges
-      var nodes = [];
-      var edges = [];
-      var centerX = 300, centerY = 200, radius = 170;
-      var colors = {'供应商':'#3b82f6','客户':'#22c55e','员工':'#a855f7','付款方':'#f59e0b','收款方':'#ef4444'};
-      
-      ents.forEach(function(e, i){
-        var angle = (i / ents.length) * 2 * Math.PI - Math.PI/2;
-        var r = radius * (0.5 + 0.5 * e.amount / maxAmt);
-        var x = centerX + r * Math.cos(angle);
-        var y = centerY + r * Math.sin(angle);
-        var mainRole = (e.roles||[])[0] || '';
-        var color = colors[mainRole] || '#94a3b8';
-        nodes.push({id: (e.name||'').substring(0,8), x: x, y: y, r: Math.max(15, 30 * e.amount / maxAmt), color: color, roles: (e.roles||[]).join('/'), amt: e.amount});
-      });
-      
-      // Connect overlapping role entities
-      for (var ni = 0; ni < nodes.length; ni++) {
-        for (var nj = ni+1; nj < nodes.length; nj++) {
-          if (ents[ni].roles && ents[nj].roles && ents[ni].roles.some(function(r){return ents[nj].roles.indexOf(r)>=0;})) {
-            edges.push({from: ni, to: nj});
-          }
-        }
-      }
-      
-      var svg = '<svg width="620" height="420" style="background:#f8fafc;border-radius:8px;margin-top:10px">';
-      // Edges
-      edges.forEach(function(e){
-        svg += '<line x1="'+nodes[e.from].x+'" y1="'+nodes[e.from].y+'" x2="'+nodes[e.to].x+'" y2="'+nodes[e.to].y+'" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,2"/>';
-      });
-      // Nodes
-      nodes.forEach(function(n){
-        svg += '<circle cx="'+n.x+'" cy="'+n.y+'" r="'+n.r+'" fill="'+n.color+'" opacity="0.7"/>';
-        svg += '<text x="'+n.x+'" y="'+(n.y+4)+'" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">'+esc(n.id)+'</text>';
-        svg += '<text x="'+n.x+'" y="'+(n.y+n.r+14)+'" text-anchor="middle" font-size="9" fill="#64748b">'+esc(n.roles)+'</text>';
-      });
-      // Legend
-      svg += '<text x="15" y="395" font-size="9" fill="#94a3b8">圆大小=交易金额  |  虚线=角色关联  |  颜色=主要角色</text>';
-      svg += '</svg>';
-      h += svg;
-    }
-  }
-
-  h += '<h2 id="sec5">五、处理处罚建议</h2>';
-  h += '<p class="i2">根据上述稽查发现和证据链，提出以下处理处罚建议。</p>';
-
-  h += renderActionsTable(cc);
-  h += renderRecommendedNext(cc);
-
-  var actions=[],seen={};
-  allF.forEach(function(f){
-    var s=((f.suggestion||'')+'').split('\n')[0].trim();
-    if(s&&s.substring(0,50)&&!seen[s.substring(0,50)]){seen[s.substring(0,50)]=true;actions.push(s);}
-  });
-  if (actions.length > 0 && (!cc.actions || (!cc.actions.p0_urgent.length && !cc.actions.p1_important.length && !cc.actions.p2_normal.length))) {
-    actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
-  }
-  h += '<p class="i2">根据相关税收法规规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复稽查部门。</p>';
-
-
-  h += '<h2 id="sec6">六、告知权利义务</h2>';
-  h += '<div class="rights-sec">';
-  h += '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位享有以下权利：</div>';
-  h += '<div class="ritem">1. <b>申请回避权</b>：认为稽查人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>';
-  h += '<div class="ritem">2. <b>陈述申辩权</b>：对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见。</div>';
-  h += '<div class="ritem">3. <b>听证权</b>：对拟作出的较大数额罚款有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</div>';
-  h += '<div class="ritem">4. <b>复议权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起60日内向上一级税务机关申请行政复议。</div>';
-  h += '<div class="ritem">5. <b>诉讼权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起6个月内向人民法院提起行政诉讼。</div>';
   h += '</div>';
-
-  h += '<h2 id="sec7">七、稽查人员签字</h2>';
-  h += '<div class="seal">';
-  h += '<div>稽查执行人：___________ （签名）  ' + dateStr + '</div>';
-  h += '<div style="margin-top:10px">审理人：___________ （签名）</div>';
-  h += '<div style="margin-top:20px">稽查部门（盖章）：___________</div>';
-  h += '<div style="margin-top:20px">报告日期：' + dateStr + '</div>';
-  h += '</div>';
-
-  h += '<div class="appendix">';
-  h += '<div class="atitle">附件一：证据清单</div>';
-  h += '<div class="aitem">1. 进销项发票数据（电子版）</div>';
-  h += '<div class="aitem">2. 银行流水数据（电子版）</div>';
-  h += '<div class="aitem">3. 合同文件（如有）</div>';
-  h += '<div class="aitem">4. 其他经营资料（共' + r.files_count + '份）</div>';
-  h += '</div>';
-
-  h += renderQualityReport(r.quality_report, allF);
-
-  if (te._supply_chain_risk && te._supply_chain_risk.lookup_results && te._supply_chain_risk.lookup_results.length) {
-    h += '<div class="appendix">';
-    h += '<div class="atitle">附件三：供应链联网核查详情</div>';
-    var sr = te._supply_chain_risk.lookup_results;
-    for (var si = 0; si < Math.min(sr.length, 20); si++) {
-      var item = sr[si];
-      h += '<div class="aitem">' + esc(item.name || item.company_name || '') + '（' + esc(item.type || '') + '）';
-      if (item.status) h += ' — 状态：' + esc(item.status);
-      if (item.risk_flags && item.risk_flags.length) h += ' — 风险标记：' + item.risk_flags.map(function(f){return esc(f);}).join('、');
-      h += '</div>';
-    }
-    h += '</div>';
-  }
-
-  h += '</div>';
-
-  area.innerHTML = h;
-  area.scrollIntoView({ behavior: 'smooth' });
+  return { html: h, renderedModules: [], skippedModules: [{id: 'all', reason: '模块引擎不可用，使用降级渲染'}] };
 }
 
 // ==================== 导出报告 ====================
@@ -1420,7 +905,7 @@ async function reviewTaxDocReport() {
   btn.disabled = true; btn.textContent = '复核中...';
 
   try {
-    var resp = await fetch('/api/tax-risk-docs/review?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'POST' });
+    var resp = await fetch('/api/tax-risk-docs/review?company_id=' + _tdaCid(), { method: 'POST' });
     var data = await resp.json();
     if (!data.ok) { toast(data.message || '复核失败', 'error'); return; }
 
@@ -1516,7 +1001,7 @@ async function reviewSingleFinding(btn) {
   btn.disabled = true; btn.textContent = '复核中...';
 
   try {
-    var resp = await fetch('/api/tax-risk-docs/review-single?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), {
+    var resp = await fetch('/api/tax-risk-docs/review-single?company_id=' + _tdaCid(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(finding)
@@ -1559,7 +1044,7 @@ async function reviewSingleFinding(btn) {
 // ==================== 缓存管理 ====================
 async function showCacheInfo() {
   try {
-    var listResp = await fetch('/api/tax-risk-docs/list?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1));
+    var listResp = await fetch('/api/tax-risk-docs/list?company_id=' + _tdaCid());
     var docs = await listResp.json();
     var fileCount = docs ? docs.length : 0;
     var html = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;max-width:400px">'
@@ -1584,7 +1069,7 @@ async function showCacheInfo() {
 async function clearTransferCache() {
   if (!confirm('确认清除所有解析缓存？下次分析需要重新解析文件。')) return;
   try {
-    var resp = await fetch('/api/tax-risk-docs/clear-transfer?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1), { method: 'DELETE' });
+    var resp = await fetch('/api/tax-risk-docs/clear-transfer?company_id=' + _tdaCid(), { method: 'DELETE' });
     var data = await resp.json();
     if (data.ok) { toast('缓存已清除', 'success'); var m = document.getElementById('tda-cache-modal'); if(m) m.remove(); }
     else { toast('清除失败', 'error'); }
