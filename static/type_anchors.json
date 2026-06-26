@@ -1,0 +1,125 @@
+{
+  "_description": "资料类型结构锚点配置。系统通过无监督聚类发现子类型后，用此配置匹配聚类中心以确定类型名称。所有特征均为纯结构特征（列数/数值比/累计字段等），无任何中文关键词或行业特化内容。修改此文件即可调整类型识别行为，无需改代码。",
+  "_version": "2026-06-26",
+  "anchors": {
+    "salary": {
+      "label": "工资表",
+      "priority": 10,
+      "match": {
+        "col_count": [5, 18],
+        "numeric_ratio": [0.3, 0.7],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "has_id_pattern": true,
+        "invoice_no_like": false,
+        "has_balance": false
+      },
+      "explanation": "列数少(5-18)、无累计字段、无期间范围、无借贷对、含ID模式、含金额列"
+    },
+    "individual_tax": {
+      "label": "个税扣缴申报表",
+      "priority": 15,
+      "match": {
+        "col_count": [25, 65],
+        "numeric_ratio": [0.6, 0.95],
+        "has_cumulative": true,
+        "has_period_range": true,
+        "has_paired_dr_cr": false,
+        "has_id_pattern": true,
+        "invoice_no_like": false,
+        "has_balance": false
+      },
+      "explanation": "列数多(25-65)、有累计字段(多个递增数值列)、有期间范围、高数值占比、含ID模式——个税申报表累计预扣法结构特征"
+    },
+    "bank_statement": {
+      "label": "银行流水",
+      "priority": 10,
+      "match": {
+        "col_count": [8, 20],
+        "numeric_ratio": [0.3, 0.7],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "has_balance": true,
+        "invoice_no_like": false,
+        "unique_vals_ratio": [0.5, 1.0]
+      },
+      "explanation": "有余额列、无累计字段、无借贷对、唯一值比例高、无发票号模式"
+    },
+    "voucher": {
+      "label": "记账凭证",
+      "priority": 10,
+      "match": {
+        "col_count": [6, 20],
+        "numeric_ratio": [0.3, 0.7],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": true,
+        "has_balance": false,
+        "invoice_no_like": false
+      },
+      "explanation": "有借贷成对列、无累计字段、无余额列、无发票号模式"
+    },
+    "sales_invoice": {
+      "label": "销项发票",
+      "priority": 10,
+      "match": {
+        "col_count": [15, 40],
+        "numeric_ratio": [0.3, 0.7],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "invoice_no_like": true,
+        "has_id_pattern": true,
+        "has_balance": false
+      },
+      "explanation": "有发票号模式、含ID模式(税号)、中等列数(15-40)、无累计/借贷/余额"
+    },
+    "input_vat_deduction": {
+      "label": "进项抵扣清单",
+      "priority": 9,
+      "match": {
+        "col_count": [8, 25],
+        "numeric_ratio": [0.3, 0.7],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "invoice_no_like": true,
+        "has_id_pattern": false,
+        "has_balance": false
+      },
+      "explanation": "有发票号模式、无ID模式(无税号列)、列数少(8-25)、纯清单结构"
+    },
+    "social_security": {
+      "label": "社保明细",
+      "priority": 10,
+      "match": {
+        "col_count": [8, 25],
+        "numeric_ratio": [0.5, 0.9],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "has_id_pattern": true,
+        "invoice_no_like": false,
+        "has_balance": false
+      },
+      "explanation": "含ID模式、数值占比高、无发票号/累计/借贷/余额"
+    },
+    "inventory": {
+      "label": "进销存台账",
+      "priority": 5,
+      "match": {
+        "col_count": [8, 25],
+        "numeric_ratio": [0.5, 0.9],
+        "has_cumulative": false,
+        "has_period_range": false,
+        "has_paired_dr_cr": false,
+        "has_id_pattern": false,
+        "invoice_no_like": false,
+        "has_balance": false
+      },
+      "explanation": "数值占比高、无任何特殊模式(发票/ID/累计/借贷/余额)——纯数据表"
+    }
+  }
+}

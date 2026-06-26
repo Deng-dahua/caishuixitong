@@ -72,8 +72,10 @@ def detect_type(header_row):
         return "其他"
 
 
-def parse_invoices(header_row, data_rows):
-    """解析发票数据，返回 [{...}, ...]"""
+def parse_invoices(header_row, data_rows, company_name=''):
+    """解析发票数据，返回 [{...}, ...]
+    company_name: 被查单位名称，用于判定发票方向（销项=本公司是销售方，进项=本公司是购买方）
+    """
     # 建立列索引
     col_map = {}
     for i, h in enumerate(header_row):
@@ -109,19 +111,22 @@ def parse_invoices(header_row, data_rows):
                     try: inv[k] = float(v.replace(',', '').replace('¥', '').replace(' ', ''))
                     except: del inv[k]
         
-        # 方向判定
+        # 方向判定 — 用公司名称判断，不硬编码
         buyer = str(inv.get('buyer', ''))
         seller = str(inv.get('seller', ''))
         
-        if '达冠' in buyer:
-            inv['direction'] = '进项'
-        elif '达冠' in seller:
+        if company_name and company_name in seller:
             inv['direction'] = '销项'
-        elif buyer and seller:
-            if '达冠' in seller: inv['direction'] = '销项'
-            elif '达冠' in buyer: inv['direction'] = '进项'
+        elif company_name and company_name in buyer:
+            inv['direction'] = '进项'
         else:
-            inv['direction'] = '未知'
+            # 公司名未提供或找不到 → 按发票字段模糊推断
+            if seller and not buyer:
+                inv['direction'] = '进项'
+            elif buyer and not seller:
+                inv['direction'] = '销项'
+            else:
+                inv['direction'] = '未知'
         
         invoices.append(inv)
     return invoices
@@ -194,7 +199,7 @@ def safe_float(v):
 # ════════════════ MAIN ════════════════
 
 print("=" * 70)
-print("税务稽查分析报告 — 达冠纺织")
+print("税务稽查分析报告")
 print(f"分析时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 print("=" * 70)
 
@@ -368,7 +373,7 @@ for i, (b, info) in enumerate(sorted(buyer_stats.items(), key=lambda x: -x[1]['a
 # 保存完整数据到JSON
 result = {
     "files": 23,
-    "company": "中山市达冠纺织有限公司",
+    "company": company_name or "被查单位",
     "period": "2023-06 至 2026-09",
     "pur_invoices": len(pur_invs),
     "sal_invoices": len(sal_invs),

@@ -26781,5 +26781,19 @@
     "suggestion": "①将进项发票按生产物资/经营费用分类核算；②行业判断聚焦主营物资（原材料/半成品/加工费），排除期间费用；③经营费用单独分析其合理性和真实性。全行业各企业适用。",
     "urgency": "提醒",
     "detectable": true
+  },
+  {
+    "id": 999505,
+    "type": "auto_signal",
+    "rule_category": "自动发现",
+    "industry": "现代服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在10家现代服务企业中，10家(100%)出现此信号",
+    "action": "该信号在现代服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "auto_discovered_at": "2026-06-26T15:57:19.848868",
+    "severity": "中",
+    "enabled": true
   }
 ]

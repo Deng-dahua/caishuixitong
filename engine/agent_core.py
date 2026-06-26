@@ -345,7 +345,7 @@ class SelfReflector:
 class CrossAnalysisLearner:
     """从多企业分析中归纳行业通用模式
     
-    核心：达冠纺织遇到的问题，下次分析佛山市棉纺厂时自动应用。
+    核心：一家企业发现的规律，下次分析同行业企业时自动应用。
     """
     
     MEMORY_FILE = None

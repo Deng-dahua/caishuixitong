@@ -1,0 +1,110 @@
+{
+  "_description": "稽查报告结构配置。编辑此文件即可自由调整报告的章节顺序和模块开关，无需改代码。",
+  "_version": "2026-06-26",
+  "_instructions": "sections = 报告章节列表。每章含 id/label/modules 三个字段。modules 为空数组 [] 表示该章自动加载所有匹配模块。设为具体模块ID列表则只渲染列出的模块。要删掉某章 → 直接删掉该条目。要调整顺序 → 调整 entries 顺序。",
+  
+  "templates": {
+    "default": {
+      "name": "标准税务稽查报告",
+      "sections": [
+        { "id": "cover", "label": "", "modules": ["cover_page"] },
+        { "id": "toc", "label": "", "modules": ["toc"] },
+        { "id": "sec1", "label": "一、案件来源及稽查对象基本情况", "modules": [] },
+        { "id": "sec2", "label": "二、稽查实施情况", "modules": [] },
+        { "id": "sec3", "label": "三、稽查结论", "modules": [] },
+        { "id": "sec4", "label": "四、稽查发现问题及事实认定", "modules": [] },
+        { "id": "sec5", "label": "五、处理处罚建议", "modules": [] },
+        { "id": "sec6", "label": "六、告知权利义务", "modules": [] },
+        { "id": "sec7", "label": "七、稽查人员签字", "modules": [] },
+        { "id": "appendix", "label": "附件", "modules": [] }
+      ]
+    },
+    
+    "concise": {
+      "name": "精简报告（仅核心结论）",
+      "sections": [
+        { "id": "cover", "label": "", "modules": ["cover_page"] },
+        { "id": "sec1", "label": "一、稽查对象基本情况", "modules": ["case_source", "entity_basic_info"] },
+        { "id": "sec3", "label": "二、稽查结论", "modules": ["conclusion_risk_profile", "conclusion_synthesis"] },
+        { "id": "sec4", "label": "三、主要发现问题", "modules": ["findings_detail"] },
+        { "id": "sec5", "label": "四、处理建议", "modules": ["actions_table"] },
+        { "id": "sec7", "label": "", "modules": ["signature_block"] }
+      ]
+    },
+    
+    "executive": {
+      "name": "高管摘要（一页纸）",
+      "sections": [
+        { "id": "cover", "label": "", "modules": ["cover_page"] },
+        { "id": "sec1", "label": "稽查摘要", "modules": ["entity_basic_info", "data_overview_sec1", "conclusion_risk_profile"] },
+        { "id": "sec3", "label": "核心发现", "modules": ["findings_detail"] },
+        { "id": "sec5", "label": "建议措施", "modules": ["actions_table", "recommended_next"] }
+      ]
+    },
+    
+    "data_only": {
+      "name": "纯数据分析报告（无法律格式）",
+      "sections": [
+        { "id": "sec1", "label": "数据概览", "modules": ["entity_basic_info", "data_overview_sec1"] },
+        { "id": "sec2", "label": "资金流分析", "modules": ["receipt_analysis", "cashflow_chart", "top_counterparties", "bank_receipts_biz", "bank_payments_detail"] },
+        { "id": "sec3", "label": "发票流分析", "modules": ["sales_customer_detail", "purchase_supplier_detail"] },
+        { "id": "sec4", "label": "风险发现", "modules": ["findings_stats", "findings_detail"] },
+        { "id": "sec5", "label": "建议", "modules": ["actions_table"] },
+        { "id": "appendix", "label": "附件", "modules": ["appendix_evidence", "appendix_quality"] }
+      ]
+    }
+  },
+  
+  "_module_catalog": {
+    "sec1": [
+      { "id": "case_source", "description": "案件来源说明" },
+      { "id": "entity_basic_info", "description": "被查单位基本信息表" },
+      { "id": "six_personnel", "description": "六员跨企业比对" },
+      { "id": "business_nature_verdict", "description": "经营实质判定" },
+      { "id": "data_overview_sec1", "description": "资料概览" },
+      { "id": "missing_consequences_sec1", "description": "资料缺失后果说明" }
+    ],
+    "sec2": [
+      { "id": "inspection_intro", "description": "稽查实施介绍" },
+      { "id": "inspection_methods", "description": "稽查方法清单" },
+      { "id": "inspection_process", "description": "稽查过程详述" },
+      { "id": "receipt_analysis", "description": "收款分析" },
+      { "id": "cashflow_chart", "description": "资金流向图" },
+      { "id": "top_counterparties", "description": "往来方TOP20" },
+      { "id": "bank_receipts_biz", "description": "经营收款明细" },
+      { "id": "bank_receipts_nonbiz", "description": "非经营收款" },
+      { "id": "online_legal_person_funds", "description": "法人个人账户转入资金分析" },
+      { "id": "bank_payments_detail", "description": "付款明细" },
+      { "id": "sales_customer_detail", "description": "销项客户明细" },
+      { "id": "purchase_supplier_detail", "description": "进项供应商明细" },
+      { "id": "supply_chain_risk", "description": "供应链风险" }
+    ],
+    "sec3": [
+      { "id": "conclusion_risk_profile", "description": "风险画像" },
+      { "id": "conclusion_synthesis", "description": "综合定性结论" }
+    ],
+    "sec4": [
+      { "id": "findings_intro", "description": "发现问题引述" },
+      { "id": "findings_stats", "description": "发现统计" },
+      { "id": "findings_detail", "description": "发现问题明细列表" },
+      { "id": "entity_graph", "description": "知识图谱实体关系" }
+    ],
+    "sec5": [
+      { "id": "penalty_intro", "description": "处罚引述" },
+      { "id": "actions_table", "description": "处理措施表" },
+      { "id": "recommended_next", "description": "后续建议" },
+      { "id": "penalty_suggestions", "description": "处罚建议详情" }
+    ],
+    "sec6": [
+      { "id": "rights_obligations", "description": "权利义务告知" }
+    ],
+    "sec7": [
+      { "id": "signature_block", "description": "签字栏" }
+    ],
+    "appendix": [
+      { "id": "appendix_evidence", "description": "证据链清单" },
+      { "id": "appendix_quality", "description": "质量保障报告" },
+      { "id": "appendix_supply_chain", "description": "供应链核查详情" }
+    ]
+  }
+}

@@ -65,8 +65,76 @@ var ReportEngine = (function() {
     return tpl;
   }
 
+  // ── JSON 模板加载 ──
+  var _jsonTemplates = null;
+  var _jsonLoadAttempted = false;
+
+  function _loadJsonTemplates() {
+    if (_jsonLoadAttempted) return _jsonTemplates;
+    _jsonLoadAttempted = true;
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/static/report_template.json?_=' + Date.now(), false);
+      xhr.send();
+      if (xhr.status === 200) {
+        _jsonTemplates = JSON.parse(xhr.responseText);
+        console.log('[report-modules] 已加载 report_template.json，含 ' + Object.keys(_jsonTemplates.templates || {}).length + ' 个模板');
+      }
+    } catch(e) {
+      console.log('[report-modules] report_template.json 加载失败，使用内置模板:', e.message);
+    }
+    return _jsonTemplates;
+  }
+
+  /** 从 JSON 模板加载到引擎 */
+  function _syncJsonTemplates() {
+    var jt = _loadJsonTemplates();
+    if (!jt || !jt.templates) return;
+    Object.keys(jt.templates).forEach(function(tid) {
+      var jtpl = jt.templates[tid];
+      // 不覆盖已有的同名模板（内置模板优先，除非 JSON 定义了相同的 id）
+      if (_templates[tid] && tid === 'default') {
+        // default 模板用 JSON 的 sections
+        _templates[tid].sections = _resolveSections(jtpl.sections);
+        _templates[tid].name = jtpl.name || _templates[tid].name;
+      } else if (!_templates[tid]) {
+        _templates[tid] = {
+          id: tid,
+          name: jtpl.name || tid,
+          description: jtpl.name || '',
+          condition: function() { return false; },  // JSON 模板不自动选中，需显式指定
+          sections: _resolveSections(jtpl.sections)
+        };
+      }
+    });
+  }
+
+  /** 解析 sections：modules 为空数组的章节自动填充 */
+  function _resolveSections(sections) {
+    return sections.map(function(sec) {
+      if (sec.modules && sec.modules.length > 0) {
+        return sec;  // 有显式列表，直接使用
+      }
+      // 空数组 → 自动从注册模块填充该章节的所有模块
+      var autoMods = [];
+      Object.keys(_registry).forEach(function(mid) {
+        var m = _registry[mid];
+        if (m.section === sec.id) {
+          autoMods.push(mid);
+        }
+      });
+      autoMods.sort(function(a, b) {
+        return (_registry[a].priority||50) - (_registry[b].priority||50);
+      });
+      return { id: sec.id, label: sec.label, modules: autoMods };
+    });
+  }
+
   /** 根据数据自动选择最合适的模板 */
   function selectTemplate(data) {
+    // 先同步 JSON 模板
+    _syncJsonTemplates();
+    
     var ids = Object.keys(_templates);
     for (var i = 0; i < ids.length; i++) {
       var tpl = _templates[ids[i]];
@@ -122,6 +190,10 @@ var ReportEngine = (function() {
     // 按 section 渲染
     var sections = tpl.sections;
     if (sections === 'auto') sections = _autoSections(data, opts);
+    // 处理 sections 中 modules 为空数组的章节 → 自动填充
+    else if (Array.isArray(sections)) {
+      sections = _resolveSections(sections);
+    }
 
     sections.forEach(function(sec) {
       h += _renderSection(sec, data, ctx, opts);
@@ -1618,27 +1690,56 @@ var ReportEngine = (function() {
   R.defineTemplate({
     id: 'default',
     name: '标准税务稽查报告',
-    description: '完整的7章标准稽查报告，适用于所有企业类型',
+    description: '完整的标准稽查报告，涵盖全部模块。编辑 static/report_template.json 可自定义模块排列。',
     condition: function() { return true; },
-    sections: 'auto'
+    sections: [
+      { id: 'cover', label: '', modules: ['cover_page'] },
+      { id: 'toc', label: '', modules: ['toc'] },
+      { id: 'sec1', label: '一、案件来源及稽查对象基本情况', modules: [] },
+      { id: 'sec2', label: '二、稽查实施情况', modules: [] },
+      { id: 'sec3', label: '三、稽查结论', modules: [] },
+      { id: 'sec4', label: '四、稽查发现问题及事实认定', modules: [] },
+      { id: 'sec5', label: '五、处理处罚建议', modules: [] },
+      { id: 'sec6', label: '六、告知权利义务', modules: [] },
+      { id: 'sec7', label: '七、稽查人员签字', modules: [] },
+      { id: 'appendix', label: '附件', modules: [] }
+    ]
   });
 
-  // 制造业模板 — 强化加工环节穿透
+  // 制造业模板
   R.defineTemplate({
     id: 'manufacturing',
     name: '制造业专项稽查报告',
-    description: '适用于制造业企业，强化加工环节穿透分析、BOM验证、委托加工真实性',
-    condition: function(data) { return _getIndustry(data) === 'manufacturing'; },
-    sections: 'auto'
+    description: '强化加工环节、BOM验证、委托加工真实性',
+    condition: function(data) { return false; },  // 不自动匹配，显式指定
+    sections: [
+      { id: 'cover', label: '', modules: ['cover_page'] },
+      { id: 'sec1', label: '一、稽查对象基本情况', modules: ['case_source', 'entity_basic_info', 'business_nature_verdict'] },
+      { id: 'sec2', label: '二、加工环节穿透分析', modules: ['purchase_supplier_detail', 'supply_chain_risk'] },
+      { id: 'sec3', label: '三、稽查结论', modules: ['conclusion_risk_profile', 'conclusion_synthesis'] },
+      { id: 'sec4', label: '四、发现问题', modules: ['findings_detail'] },
+      { id: 'sec5', label: '五、处理建议', modules: ['actions_table', 'penalty_suggestions'] },
+      { id: 'sec7', label: '', modules: ['signature_block'] },
+      { id: 'appendix', label: '附件', modules: ['appendix_evidence', 'appendix_supply_chain'] }
+    ]
   });
 
-  // 批发零售模板 — 强化进销匹配和资金流
+  // 商贸企业模板
   R.defineTemplate({
     id: 'trading',
     name: '商贸企业稽查报告',
-    description: '适用于批发零售企业，强化进销品名比对、资金流发票流核对',
-    condition: function(data) { return _getIndustry(data) === 'trading'; },
-    sections: 'auto'
+    description: '强化资金流发票流核对、进销品名比对',
+    condition: function(data) { return false; },  // 不自动匹配，显式指定
+    sections: [
+      { id: 'cover', label: '', modules: ['cover_page'] },
+      { id: 'sec1', label: '一、稽查对象基本情况', modules: ['case_source', 'entity_basic_info', 'data_overview_sec1'] },
+      { id: 'sec2', label: '二、资金流与发票流核对', modules: ['receipt_analysis', 'cashflow_chart', 'bank_receipts_biz', 'bank_payments_detail', 'sales_customer_detail', 'purchase_supplier_detail'] },
+      { id: 'sec3', label: '三、稽查结论', modules: ['conclusion_risk_profile', 'conclusion_synthesis'] },
+      { id: 'sec4', label: '四、供应链风险', modules: ['supply_chain_risk', 'top_counterparties', 'findings_detail'] },
+      { id: 'sec5', label: '五、处理建议', modules: ['actions_table', 'recommended_next'] },
+      { id: 'sec7', label: '', modules: ['signature_block'] },
+      { id: 'appendix', label: '附件', modules: ['appendix_evidence', 'appendix_quality'] }
+    ]
   });
 
   // 精简模板 — 仅核心7模块，适合日常抽查

@@ -1,247 +1,517 @@
 {
   "analyses": [
     {
-      "trace_id": "402b4be2",
-      "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "trace_id": "a43410e5",
+      "company_id": 3,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:06:44.969862",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
-      "generated_hypotheses": 3,
-      "verified_hypotheses": 0,
-      "learning_points": [],
-      "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
-      }
-    },
-    {
-      "trace_id": "6fb0e9eb",
-      "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
-      "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:11:30.351064",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
-      "generated_hypotheses": 3,
-      "verified_hypotheses": 0,
-      "learning_points": [],
-      "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
-      }
-    },
-    {
-      "trace_id": "d7ee0a2a",
-      "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
-      "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:13:44.180609",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
-      "generated_hypotheses": 3,
-      "verified_hypotheses": 0,
-      "learning_points": [],
-      "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
-      }
-    },
-    {
-      "trace_id": "9874e493",
-      "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
-      "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:15:07.917175",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
-      "generated_hypotheses": 3,
-      "verified_hypotheses": 0,
-      "learning_points": [],
-      "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
-      }
-    },
-    {
-      "trace_id": "76a91814",
-      "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
-      "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:19:09.411750",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-25T20:30:51.332930",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "b76977d0",
+      "trace_id": "d317502d",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T03:24:27.923589",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-25T22:01:08.939780",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "ca1563b4",
+      "trace_id": "8cef8c43",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:19:34.511691",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-25T22:37:37.989242",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "a9902149",
+      "trace_id": "c768e56f",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:22:19.603918",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-25T22:45:53.728526",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "f42debe3",
+      "trace_id": "da6bde54",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:24:02.610497",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-26T14:39:45.937224",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "adbd5d43",
+      "trace_id": "8332b91f",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:25:38.091089",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-26T14:46:06.137917",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "e21dd2e9",
+      "trace_id": "fa5e916b",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:27:05.774652",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-26T14:54:17.339559",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "01cad5b3",
+      "trace_id": "47975fcc",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:28:57.613981",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-26T14:55:53.440689",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     },
     {
-      "trace_id": "6837dc04",
+      "trace_id": "bcc7d32e",
       "company_id": 1,
-      "company_name": "中山市达冠纺织有限公司",
-      "industry": "纺织产品",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
       "biz_model": "制造业",
-      "timestamp": "2026-06-25T09:30:42.462054",
-      "key_findings_count": 55,
-      "high_risk_count": 20,
+      "timestamp": "2026-06-26T15:21:12.176201",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
       "generated_hypotheses": 0,
       "verified_hypotheses": 0,
       "learning_points": [],
       "data_profile": {
-        "bank_in_ratio": 1.3,
-        "supplier_concentration": 53.99801270470837,
-        "goods_match_ratio": 0.03
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "a75ecefa",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "制造业",
+      "timestamp": "2026-06-26T15:57:20.087693",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "99c5b446",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "制造业",
+      "timestamp": "2026-06-26T15:59:48.734645",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "57d6c576",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "制造业",
+      "timestamp": "2026-06-26T16:12:15.226416",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "19aba34a",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "制造业",
+      "timestamp": "2026-06-26T16:36:49.079295",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "890093f7",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T19:34:08.029763",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "f1a3d794",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T19:37:21.292541",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "2fade98a",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T19:49:38.779391",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "4e04010f",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T19:55:41.558356",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c97f6705",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:05:44.519041",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "05dd348f",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:08:50.674959",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "21112466",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:11:55.359958",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "4fcaa9b7",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:19:29.736238",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "a60d57a8",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:23:00.950753",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.77,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "7aa72288",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:49:39.410383",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c3caf2c9",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:57:40.206025",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "d9e66c60",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T20:59:36.739342",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "cde8a764",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T21:06:57.527489",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "380687ce",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T21:08:46.665545",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "ef122362",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-26T21:13:34.751214",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 32.04462711846971,
+        "goods_match_ratio": 0.02
       }
     }
   ],
   "industry_patterns": {
-    "纺织产品": {
-      "analyses_count": 13,
+    "现代服务": {
+      "analyses_count": 28,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
     }
   },
-  "lesson_learned": []
+  "version": "1.0"
 }

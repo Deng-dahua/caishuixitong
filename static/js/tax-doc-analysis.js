@@ -668,7 +668,7 @@ async function analyzeTaxDocs() {
         break;
       }
       if (statusData.status === 'error') {
-        throw new Error(statusData.message || '分析服务异常');
+        throw new Error(statusData.error || statusData.message || '分析服务异常');
       }
     }
     
@@ -785,8 +785,12 @@ function renderTaxDocReport(r) {
   var ctx;
   if (typeof ReportEngine !== 'undefined' && ReportEngine.render) {
     try {
-      ctx = ReportEngine.render(r);
-      console.log('[report-modules] 模块引擎渲染完成: ' + ctx.renderedModules.length + '个模块, 跳过' + ctx.skippedModules.length + '个');
+      // 支持 URL 参数切换模板: ?template=concise
+      var urlParams = new URLSearchParams(window.location.search);
+      var tplId = urlParams.get('template') || null;
+      var opts = tplId ? { templateId: tplId } : {};
+      ctx = ReportEngine.render(r, opts);
+      console.log('[report-modules] 模块引擎渲染完成: ' + ctx.renderedModules.length + '个模块, 模板=' + (tplId || 'auto') + ', 跳过' + ctx.skippedModules.length + '个');
       if (ctx.skippedModules.length > 0) {
         console.log('[report-modules] 跳过的模块:', ctx.skippedModules.map(function(s){return s.id + '(' + s.reason + ')';}).join(', '));
       }
@@ -801,9 +805,52 @@ function renderTaxDocReport(r) {
     ctx = _renderReportFallback(r, allF);
   }
 
-  area.innerHTML = ctx.html;
+  // ── 模板选择器工具栏 ──
+  var tplBar = '';
+  if (typeof ReportEngine !== 'undefined' && ReportEngine.listTemplates) {
+    var tpls = ReportEngine.listTemplates();
+    var curTpl = (ctx && ctx.template && ctx.template.id) || 'default';
+    tplBar = '<div style="margin:0 auto 12px;max-width:960px;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;flex-wrap:wrap">'
+      + '<span style="font-weight:600">📋 报告模板：</span>';
+    tpls.forEach(function(t) {
+      var isActive = (t.id === curTpl);
+      tplBar += '<a href="javascript:void(0)" onclick="window._switchReportTemplate(\'' + t.id + '\')" '
+        + 'style="padding:4px 12px;border-radius:4px;text-decoration:none;'
+        + (isActive ? 'background:#1a1a2e;color:#fff;font-weight:600' : 'background:#f1f5f9;color:#475569')
+        + ';font-size:12px">' + (t.name || t.id) + '</a>';
+    });
+    tplBar += '</div>';
+  }
+
+  area.innerHTML = tplBar + ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
 }
+
+// ── 模板切换函数 ──
+window._switchReportTemplate = function(tplId) {
+  if (!window._reportData) return;
+  var area = document.getElementById('tda-report-area');
+  if (!area) return;
+  try {
+    var ctx2 = ReportEngine.render(window._reportData, { templateId: tplId });
+    // 重新构建模板栏
+    var tpls2 = ReportEngine.listTemplates();
+    var newBar = '<div style="margin:0 auto 12px;max-width:960px;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;flex-wrap:wrap">'
+      + '<span style="font-weight:600">📋 报告模板：</span>';
+    tpls2.forEach(function(t) {
+      var isActive = (t.id === tplId);
+      newBar += '<a href="javascript:void(0)" onclick="window._switchReportTemplate(\'' + t.id + '\')" '
+        + 'style="padding:4px 12px;border-radius:4px;text-decoration:none;'
+        + (isActive ? 'background:#1a1a2e;color:#fff;font-weight:600' : 'background:#f1f5f9;color:#475569')
+        + ';font-size:12px">' + (t.name || t.id) + '</a>';
+    });
+    newBar += '</div>';
+    area.innerHTML = newBar + ctx2.html;
+    localStorage.setItem('_tax_report_template', tplId);
+  } catch(e) {
+    toast('模板切换失败: ' + e.message, 'error');
+  }
+};
 
 // ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
 function _renderReportFallback(r, allF) {
