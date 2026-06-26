@@ -19839,6 +19839,125 @@ def _generate_alternatives(ftype, finding):
     
     return result
 
+# ═══════════════════════════════════════════════════════════
+# Provenance 溯源追踪体系（2026-06-26）
+# 为每条 finding 注入"这个结论是怎么得出来的"，支撑矛盾检测→回溯→自动修正闭环
+# ═══════════════════════════════════════════════════════════
+
+# 域→数据源映射：每个分析域使用的数据来源
+# 用于自动注入 provenance.sources
+DOMAIN_DATA_MAP = {
+    "资金全链路追踪": ["bank_txs"],
+    "进销毛利率分析": ["sal_invs", "pur_invs"],
+    "个人交易风险": ["sal_invs"],
+    "供应商穿透分析": ["pur_invs"],
+    "凭证科目异常": ["vouchers"],
+    "存货周转预警": ["inventory", "sal_invs", "pur_invs"],
+    "税务缴纳一致性": ["bank_txs"],
+    "工资社保比对": ["salaries", "social_security"],
+    "发票生命周期": ["invoices"],
+    "进销存匹配分析": ["sal_invs", "pur_invs", "inventory"],
+    "合同比对分析": ["sal_invs", "pur_invs", "contract_data"],
+    "经营实质分析": ["sal_invs", "pur_invs", "bank_txs", "salaries"],
+    "发票深度特征": ["invoices"],
+    "资料完备度评估": ["docs"],
+    "账务系统风险": ["invoices", "bank_txs", "vouchers"],
+    "多源交叉验证": ["bank_txs", "sal_invs", "pur_invs", "salaries", "social_security", "vouchers", "inventory"],
+    "客户维度三源穿透": ["bank_txs", "sal_invs"],
+    "扩展审查规则": ["bank_txs", "sal_invs", "pur_invs", "salaries", "social_security", "vouchers", "inventory"],
+    "凭证发票收入对比": ["vouchers", "sal_invs", "bank_txs"],
+    "收入时间线调查": ["vouchers", "sal_invs", "bank_txs"],
+    "供应商画像分析": ["pur_invs", "bank_txs"],
+    "资金流向追踪": ["bank_txs", "sal_invs", "pur_invs"],
+    "人员与业务匹配": ["salaries", "vouchers", "bank_txs", "social_security"],
+    "发票存货付款三角验证": ["pur_invs", "inventory", "bank_txs"],
+    "红冲作废发票追踪": ["invoices"],
+    "经营实质地理分析": ["bank_txs", "invoices"],
+    "利润现金流矛盾检测": ["vouchers", "bank_txs", "pur_invs"],
+    "异常交易时间分析": ["bank_txs"],
+    "关联交易穿透检测": ["sal_invs", "pur_invs", "bank_txs"],
+    "资产折旧费用匹配": ["bank_txs", "pur_invs"],
+    "规则全覆盖验证": ["bank_txs", "sal_invs", "pur_invs", "salaries", "social_security", "vouchers", "inventory"],
+    "跨域关联推理": ["bank_txs", "sal_invs", "pur_invs", "salaries", "social_security", "vouchers", "inventory"],
+    "跨域线索链": ["bank_txs", "sal_invs", "pur_invs"],
+    "跨域分析链": ["bank_txs", "sal_invs", "pur_invs", "inventory"],
+    "综合定性": ["bank_txs", "sal_invs", "pur_invs", "salaries", "social_security", "vouchers", "inventory"],
+}
+
+def _inject_provenance(all_findings):
+    """为每条 finding 注入 provenance（溯源链），支撑矛盾检测→回溯→自动修正闭环。
+    
+    provenance 结构：
+    {
+        "sources": ["sal_invs", "bank_txs"],   # 使用了哪些数据源
+        "domain": "资金全链路追踪",              # 来自哪个分析域
+        "stage": "domain",                      # domain | engine | rule | cross | synthesis
+        "data_independent": False,              # 是否不依赖具体数据（仅缺资料等）
+    }
+    
+    回溯引擎消费 provenance：
+    1. 矛盾检测触发 → 查此 finding 的 provenance.sources
+    2. 回到那些数据源的原始数据 → 验证数据是否有问题
+    3. 如果是数据问题 → 标记；如果是逻辑问题 → 修正规则 → 重跑
+    """
+    if not all_findings:
+        return all_findings
+    
+    for f in all_findings:
+        if not isinstance(f, dict):
+            continue
+        
+        # 已有 provenance 的跳过（避免重复注入）
+        if f.get("provenance"):
+            continue
+        
+        domain = f.get("domain", f.get("category", ""))
+        ftype = f.get("type", f.get("item", ""))
+        
+        # 确定数据源
+        sources = DOMAIN_DATA_MAP.get(domain, [])
+        
+        # 无 domain 但有 how_found 的：从 how_found 文本推断数据源
+        if not sources and f.get("how_found"):
+            hf = f["how_found"]
+            if "银行" in hf or "收款" in hf or "付款" in hf or "流水" in hf:
+                sources.append("bank_txs")
+            if "销项" in hf or "销售发票" in hf:
+                sources.append("sal_invs")
+            if "进项" in hf or "采购发票" in hf:
+                sources.append("pur_invs")
+            if "工资" in hf or "薪资" in hf or "薪酬" in hf:
+                sources.append("salaries")
+            if "社保" in hf:
+                sources.append("social_security")
+            if "凭证" in hf or "科目" in hf:
+                sources.append("vouchers")
+            if "存货" in hf or "库存" in hf:
+                sources.append("inventory")
+        
+        # 确定阶段
+        stage = "domain"
+        if f.get("source", "").startswith("规则引擎"):
+            stage = "rule"
+        elif f.get("_from_engine"):
+            stage = "engine"
+        elif f.get("_from_cross"):
+            stage = "cross"
+        elif ftype in ("综合定性", "综合风险评估"):
+            stage = "synthesis"
+        
+        # 数据独立性判定：缺资料类 finding 不依赖具体数据
+        data_independent = any(kw in ftype for kw in ["资料完备", "资料缺失", "缺失", "无此资料"])
+        
+        f["provenance"] = {
+            "sources": sources if sources else ["unknown"],
+            "domain": domain or "unknown",
+            "stage": stage,
+            "data_independent": data_independent,
+        }
+    
+    return all_findings
+
 
 def _check_alternative_evidence(hypothesis_name, finding):
     """检查替代假设是否有证据支持"""
@@ -24140,6 +24259,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 推断可解释性：决策路径+替代假设 ═══
     all_findings = _enrich_reasoning_path(all_findings)
+    
+    # ═══ Provenance 溯源链注入：每个 finding 记录"怎么来的" → 支撑矛盾检测回溯 ═══
+    all_findings = _inject_provenance(all_findings)
+    pipeline_log.append(f"[Provenance] 溯源链注入完成: {len(all_findings)}条finding")
     
     # ═══ 经验直觉：历史反馈学习+信号共现模式 ═══
     intuition_findings = _compute_intuition_patterns(ctx, all_findings)
