@@ -28371,24 +28371,36 @@ def _extract_company_from_html(html_text, source_name):
 # 企查查开放平台: https://openapi.qcc.com
 
 def _load_api_config():
-    """加载天眼查/企查查 API 配置（环境变量或 config 文件）"""
+    """加载天眼查/企查查 API 配置。完全防崩，出错返回空配置。"""
     config = {"tyc_appkey": "", "tyc_token": "", "qcc_appkey": "", "qcc_secret_key": ""}
-    # 环境变量优先
-    for k in config:
-        env_val = os.environ.get(k.upper(), "")
-        if env_val:
-            config[k] = env_val
-    # 配置文件兜底
-    cfg_path = os.path.join(os.path.dirname(__file__) or ".", "api_config.json")
-    if os.path.exists(cfg_path):
-        try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg_json = json.load(f)
+    try:
+        # 环境变量优先
+        for k in config:
+            env_val = os.environ.get(k.upper(), "")
+            if env_val:
+                config[k] = env_val
+        # 配置文件兜底
+        cfg_path = os.path.join(os.path.dirname(__file__) or ".", "api_config.json")
+        if os.path.exists(cfg_path) and os.path.getsize(cfg_path) > 2:
+            content = None
+            # 尝试 UTF-8
+            try:
+                with open(cfg_path, "rb") as f:
+                    raw = f.read()
+                content = raw.decode("utf-8")
+            except:
+                # 尝试 GBK
+                try:
+                    content = raw.decode("gbk")
+                except:
+                    pass
+            if content:
+                cfg_json = json.loads(content)
                 for k in config:
                     if not config[k] and cfg_json.get(k):
                         config[k] = cfg_json[k]
-        except:
-            pass
+    except:
+        pass
     return config
 
 def _try_tyc_api(company_name):
@@ -28571,7 +28583,10 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     encoded_name = urllib.parse.quote(company_name)
     
     # ── 2a. 优先天眼查 API（精确、实时、覆盖全量企业）──
-    tyc_result = _try_tyc_api(company_name)
+    try:
+        tyc_result = _try_tyc_api(company_name)
+    except Exception:
+        tyc_result = None
     if tyc_result and tyc_result.get("success"):
         online_info = tyc_result["data"]
         online_info["source_url"] = f"天眼查API: {company_name}"
@@ -28579,7 +28594,10 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     
     # ── 2b. 企查查 API ──
     if not online_info:
-        qcc_result = _try_qcc_api(company_name)
+        try:
+            qcc_result = _try_qcc_api(company_name)
+        except Exception:
+            qcc_result = None
         if qcc_result and qcc_result.get("success"):
             online_info = qcc_result["data"]
             online_info["source_url"] = f"企查查API: {company_name}"
