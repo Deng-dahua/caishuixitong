@@ -467,8 +467,13 @@ function renderTopCounterparties(cc) {
 function renderRiskProfile(cc) {
   var rp = cc && cc.risk_profile;
   if (!rp) return '';
-  var level = rp.composite_level || rp.overall_level || '';
   var score = rp.composite_score || rp.overall_score || 0;
+  // 统一风险等级：优先用finding-based level，维度评分为0时用overall_level兜底
+  var level = rp.composite_level;
+  if ((!level || score <= 0) && cc.overall_level) {
+    level = cc.overall_level;
+  }
+  if (!level) level = '无法评估';
   var factors = rp.factors || rp.detail_factors || {};
   var lvlColor = level === '高风险' ? '#dc2626' : (level === '中风险' ? '#d97706' : '#059669');
   var h = '<div style="margin:16px 0;padding:16px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;line-height:2">';
