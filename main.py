@@ -13103,10 +13103,19 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     
     # 构建名称映射
     present_names = []
-    # ═══ 行业自适应：非制造/贸易企业不需要进销存台账 ═══
-    _no_inventory_industries = {"广告传媒", "信息技术", "咨询服务", "数字传媒", "软件服务", "设计服务", "文化娱乐", "商务服务",
-                                 "餐饮服务", "住宿服务", "教育培训", "金融服务", "法律服务", "人力资源", "物流运输"}
-    _needs_inventory = industry not in _no_inventory_industries and not any(kw in str(industry) for kw in ["服务", "传媒", "软件", "咨询", "设计", "科技"])
+    # ═══ 数据驱动：根据进项发票品名判断是否需要进销存台账 ═══
+    # 如果绝大部分进项都是日常消费品（员工报销），则不需要进销存台账
+    if pur_invs:
+        from engine.main_biz_cost import _REIMBURSEMENT_KWS_GLOBAL
+        _reimb_count = 0
+        for inv in pur_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+            if any(kw in g for kw in _REIMBURSEMENT_KWS_GLOBAL):
+                _reimb_count += 1
+        _reimb_ratio = _reimb_count / len(pur_invs) if pur_invs else 0
+        _needs_inventory = _reimb_ratio < 0.7  # 70%以上是消费品→不需要存货台账
+    else:
+        _needs_inventory = False  # 无进项发票→不需要
     
     ALL_CATEGORIES = [
         ("bank", "银行流水", "验证资金全链路，稽查第一调取对象。缺失→无法验证收入完整性+无法检测资金回流→税务机关从金税系统/第三方数据倒推核定收入→结果远超企业实际"),
@@ -23123,16 +23132,13 @@ _block("methods", "稽查方法",
 def _build_methods_data(ctx):
     te = ctx["entity"]
     ga = te.get("_goods_analysis", {})
+    # 数据驱动：仅基于发票中实际检测到的加工费信号判断（已修复排除分类码误判）
     has_processing = ga.get("has_processing_fee", False) or (
         len(ga.get("pur_only_goods", [])) > 0 and len(ga.get("sal_only_goods", [])) > 0
     )
-    # 行业自适应：传媒/服务/科技/软件等行业不适用加工环节穿透法
-    _no_processing_industries = {"广告传媒", "信息技术", "咨询服务", "数字传媒", "软件服务", "设计服务", "文化娱乐", "商务服务", "住宿服务", "教育培训"}
-    industry = te.get("industry", "")
-    _needs_processing = has_processing and not any(kw in str(industry) for kw in _no_processing_industries)
     
     methods = ["工商登记核查法", "进销存数据比对法", "资金流与发票流核对法", "供应商及客户穿透分析法"]
-    if _needs_processing:
+    if has_processing:
         methods.append("加工环节穿透法")
     methods.append("五步核查法")
     return {
