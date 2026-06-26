@@ -486,7 +486,7 @@ var ReportEngine = (function() {
         + '<div><a href="#sec3"><span class="num">三、</span>稽查结论</a></div>'
         + '<div><a href="#sec4"><span class="num">四、</span>稽查发现问题及事实认定</a></div>';
       if (data.entity_graph && data.entity_graph.total_entities > 0) {
-        h += '<div><a href="#sec_graph"><span class="num">⊗、</span>知识图谱·实体关系</a></div>';
+        h += '<div><a href="#sec_graph"><span class="num"></span>附：知识图谱·实体关系</a></div>';
       }
       h += '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
         + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'

@@ -773,6 +773,24 @@
         "supplier_concentration": 32.45436482351876,
         "goods_match_ratio": 0.08
       }
+    },
+    {
+      "trace_id": "2fcb9095",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "信息技术服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-27T00:54:54.169625",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.89,
+        "supplier_concentration": 32.45436482351876,
+        "goods_match_ratio": 0.08
+      }
     }
   ],
   "industry_patterns": {
@@ -783,7 +801,7 @@
       "typical_data_profile": {}
     },
     "信息技术服务": {
-      "analyses_count": 1,
+      "analyses_count": 2,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
