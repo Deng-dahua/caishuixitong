@@ -468,7 +468,7 @@ async function fetchParseDebug(autoShow) {
     // 最终结果
     var fd = data.final_decision || {};
     if (fd.type) {
-      var labelMap = {bank_statement:'银行流水',salary:'工资',invoice:'发票',housing_fund:'公积金',social_security:'社保',trial_balance:'科目余额表',contract_list:'合同',generic_data:'通用数据'};
+      var labelMap = {bank_statement:'银行流水',salary:'工资',invoice:'发票',housing_fund:'公积金',social_security:'社保',trial_balance:'科目余额表',contract_list:'合同',generic_data:'通用数据',expense_report:'费用报销',attendance:'考勤表',contact_list:'通讯录'};
       html += '<div style="margin-bottom:8px;"><b>识别结果：</b>' + (labelMap[fd.type] || fd.type) + ' (来源:' + (fd.source||'?') + ', 置信度:' + (fd.confidence != null ? Math.round(fd.confidence*100)+'%' : '?') + ')</div>';
     } else {
       html += '<div style="margin-bottom:8px;color:#dc2626;"><b>识别结果：</b>失败（无法识别文件类型）</div>';

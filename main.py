@@ -10480,6 +10480,27 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "import_export", "rows": _parse_generic_table(s, h)}
     },
+    # ══════════ 常见办公/HR类文件（2026-06-26 扩充：减少generic兜底）══════════
+    "expense_report": {
+        "keywords": ["报销", "费用报销", "差旅", "招待", "交通", "办公用品", "通讯费",
+                     "报销人", "报销日期", "费用类别", "发票张数", "报销金额", "审批人",
+                     "行程", "住宿", "餐费", "出租车", "加油", "过路费", "停车费"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "expense_report", "rows": _parse_generic_table(s, h)}
+    },
+    "attendance": {
+        "keywords": ["考勤", "出勤", "缺勤", "迟到", "早退", "请假", "旷工", "加班",
+                     "打卡", "工时", "排班", "调休", "年假", "病假", "事假",
+                     "签到", "签退", "应出勤", "实际出勤", "出勤天数"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "attendance", "rows": _parse_generic_table(s, h)}
+    },
+    "contact_list": {
+        "keywords": ["联系人", "电话", "手机", "邮箱", "地址", "邮编", "传真",
+                     "部门", "职位", "QQ", "微信", "网址", "负责人"],
+        "score_threshold": 3,
+        "parser": lambda s, h: {"type": "contact_list", "rows": _parse_generic_table(s, h)}
+    },
     # ══════════ 兜底：纯数值表（含大量数字列但无明确分类特征）══════════
     "generic_data": {
         "keywords": ["日期", "金额", "数量", "序号", "编码", "名称", "类型", "备注",
@@ -13027,7 +13048,7 @@ def _domain_invoice_deep(invoices):
 # ═══════════ 域14: 资料完备度评估 ═══════════
 
 def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory,
-                                   trial_balance_data=None, contract_data=None, file_results=None):
+                                   trial_balance_data=None, contract_data=None, file_results=None, industry=""):
     """评估提交资料的完整度，逐项量化缺失资料的稽查风险和牵连影响
     稽查必查14类资料：银行流水/销项发票/进项发票/记账凭证/工资表/社保明细/进销存台账/
     合同文件/科目余额表/资产负债表/利润表/增值税申报表/企业所得税申报表/个税申报表/其他税种申报表"""
@@ -13082,6 +13103,11 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     
     # 构建名称映射
     present_names = []
+    # ═══ 行业自适应：非制造/贸易企业不需要进销存台账 ═══
+    _no_inventory_industries = {"广告传媒", "信息技术", "咨询服务", "数字传媒", "软件服务", "设计服务", "文化娱乐", "商务服务",
+                                 "餐饮服务", "住宿服务", "教育培训", "金融服务", "法律服务", "人力资源", "物流运输"}
+    _needs_inventory = industry not in _no_inventory_industries and not any(kw in str(industry) for kw in ["服务", "传媒", "软件", "咨询", "设计", "科技"])
+    
     ALL_CATEGORIES = [
         ("bank", "银行流水", "验证资金全链路，稽查第一调取对象。缺失→无法验证收入完整性+无法检测资金回流→税务机关从金税系统/第三方数据倒推核定收入→结果远超企业实际"),
         ("sales_invoice", "销项发票", "验证开票收入与申报收入匹配。缺失→稽查直接从金税系统调取开票数据与银行流水比对→收款大于开票金额→推定为隐匿收入→补税+0.5-5倍罚款"),
@@ -13098,6 +13124,9 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         ("ind_tax", "个人所得税申报表", "验证个税申报与工资表的一致性。缺失→无法核实代扣代缴义务是否履行→未代扣代缴→补税+滞纳金+0.5-3倍罚款"),
         ("other_tax", "其他税种申报表", "验证印花税/城建税/教育费附加/房产税/土地使用税等申报完整性。缺失→无法确认小税种是否申报→漏缴各项附加税费→逐项补缴+滞纳金+罚款"),
     ]
+    # 行业自适应过滤：非制造/贸易/批发行业不需要进销存台账
+    if not _needs_inventory:
+        ALL_CATEGORIES = [(k, n, d) for (k, n, d) in ALL_CATEGORIES if k != "inventory"]
     
     for key, name, reason in ALL_CATEGORIES:
         if key in doc_types_present:
@@ -23097,8 +23126,13 @@ def _build_methods_data(ctx):
     has_processing = ga.get("has_processing_fee", False) or (
         len(ga.get("pur_only_goods", [])) > 0 and len(ga.get("sal_only_goods", [])) > 0
     )
+    # 行业自适应：传媒/服务/科技/软件等行业不适用加工环节穿透法
+    _no_processing_industries = {"广告传媒", "信息技术", "咨询服务", "数字传媒", "软件服务", "设计服务", "文化娱乐", "商务服务", "住宿服务", "教育培训"}
+    industry = te.get("industry", "")
+    _needs_processing = has_processing and not any(kw in str(industry) for kw in _no_processing_industries)
+    
     methods = ["工商登记核查法", "进销存数据比对法", "资金流与发票流核对法", "供应商及客户穿透分析法"]
-    if has_processing:
+    if _needs_processing:
         methods.append("加工环节穿透法")
     methods.append("五步核查法")
     return {
@@ -23919,7 +23953,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
-    doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results)
+    doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results, ctx.company_profile.get("industry", ""))
     # ── 记录缺失资料key到ctx，供Phase 4缺失后果自动触发使用 ──
     for f in doc_cplt_findings:
         if f.get("type") == "资料完备度综合评估" and f.get("items"):
