@@ -180,7 +180,7 @@ function showCompanyPick(companies) {
       + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
       + '<div class="info"><div class="cn">' + safeName + '</div>'
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
-      + '</div><div class="arr">→</div>'
+      + '</div>'
       + '</a>'
       + '<button class="pick-del-btn" data-del-id="' + c.id + '" data-del-name="' + safeName + '" title="删除此账套">🗑</button>'
       + '</li>';
