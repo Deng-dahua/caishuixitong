@@ -1348,5 +1348,36 @@
       "salary": 0.0,
       "gross_margin_pct": -122.94235463792862
     }
+  },
+  {
+    "timestamp": "2026-06-27T01:32:09.176951",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 73.0,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "客户高度集中",
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 2,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 32.45436482351876,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 209223.25,
+      "purchases": 466447.24,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -122.94235463792862
+    }
   }
 ]

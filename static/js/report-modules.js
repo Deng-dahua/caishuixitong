@@ -6,6 +6,27 @@
 var ReportEngine = (function() {
   'use strict';
 
+  // ── 服务端配置缓存（从 /api/meta/processing-keywords 加载）──
+  var _serverConfigLoaded = false;
+  var _serverPureSvc = null;
+  
+  function _loadServerConfig() {
+    if (_serverConfigLoaded) return;
+    _serverConfigLoaded = true;
+    fetch('/api/meta/processing-keywords')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var kw = d.data && d.data.keywords;
+        if (kw && kw.length === 3) {
+          _serverPureSvc = kw[2];  // index 2 = pure_service
+          console.log('[report-modules] server config loaded, pure_service:', _serverPureSvc.length, 'keywords');
+        }
+      })
+      .catch(function(e) {
+        console.warn('[report-modules] failed to load server config, using fallback:', e);
+      });
+  }
+
   // ── 加工环节综合判断 ──
   // 后端已通过5维度评分系统完成计算，前端直接消费结果
   // _goods_analysis._processing_applicable = bool
@@ -24,7 +45,8 @@ var ReportEngine = (function() {
     if (purOnly.length === 0 || salOnly.length === 0) return false;
     // 纯服务业品名差异正常，不构成加工信号
     var ind = (industry || '').toLowerCase();
-    var PURE_SVC = ['广告', '传媒', '咨询', '软件', '设计', '法律', '会计', '税务',
+    // 优先使用服务端配置，兜底用内置列表
+    var PURE_SVC = _serverPureSvc || ['广告', '传媒', '咨询', '软件', '设计', '法律', '会计', '税务',
                     '保险', '金融', '教育', '医疗', '中介', '代理', '经纪', '会展',
                     '文化', '娱乐', '旅游', '人力资源', '物业', '科技', '互联网'];
     for (var i = 0; i < PURE_SVC.length; i++) {
@@ -1712,5 +1734,8 @@ var ReportEngine = (function() {
   });
 
   console.log('[report-modules] 已加载 ' + Object.keys(R.listModules()).length + ' 个模块 — 自由编制模式：每个模块自行判断启用/禁用，系统不替模块做决定');
+
+  // 启动加载服务端配置（加工判定关键词等）
+  _loadServerConfig();
 
 })();

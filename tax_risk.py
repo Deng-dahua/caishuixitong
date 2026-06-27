@@ -34,6 +34,24 @@ import os
 import calendar
 import io
 import tempfile
+import re as _tax_re_module
+
+# ═══ 统一城市列表（与 main.py 同步，同一来源）═══
+_TAX_CHINA_CITIES = sorted([
+    "广州","深圳","东莞","佛山","珠海","惠州","江门","中山","汕头","湛江","茂名","肇庆","揭阳","台山",
+    "福州","厦门","泉州","漳州",
+    "杭州","宁波","温州","嘉兴","绍兴","金华","台州","湖州","义乌",
+    "南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州","镇江","吴江",
+    "济南","青岛","烟台","威海","潍坊","淄博","临沂",
+    "武汉","襄阳","宜城","长沙","株洲","湘潭","郑州","许昌","鄢陵","石家庄","唐山",
+    "太原","西安","咸阳","宝鸡","成都","绵阳","德阳","昆明","曲靖",
+    "贵阳","遵义","南宁","柳州","桂林","海口","三亚",
+    "合肥","芜湖","南昌","九江",
+    "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆",
+    "北京","天津","上海","重庆",
+    "呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁","银川","石嘴山",
+], key=lambda x: (-len(x), x))
+_TAX_CITY_REGEX = _tax_re_module.compile(r'(' + '|'.join(_tax_re_module.escape(c) for c in _TAX_CHINA_CITIES) + r')')
 
 from database import get_db, Company, Account, JournalEntry
 from database import SalesInvoice, PurchaseInvoice, BookkeepingInvoice
@@ -10186,11 +10204,13 @@ def _name_pattern_match(seller_name):
     # 例如: 广州鸿逸酒店管理有限公司 → city=广州, industry=酒店管理
     # 深圳市西北领头羊餐饮有限公司 → city=深圳市, industry=餐饮
     # 注: 长模式（XX市）优先匹配，短模式（广州/深圳）兜底
+    # 城市名称部分：统一列表生成的"广州市|深圳市|..." + 泛化"XX市/XX省" + 裸市名
+    _city_alt = [c + "市" for c in _TAX_CHINA_CITIES] + [c + "省" for c in _TAX_CHINA_CITIES] + list(_TAX_CHINA_CITIES)
+    _city_alt.append(r'[\u4e00-\u9fff]{2,3}市')  # 泛化：未收录的城市
+    _city_alt.append(r'[\u4e00-\u9fff]{2,3}省')  # 泛化：省份名
+    _city_pattern = '|'.join(re.escape(p) if not p.startswith(r'[\u4e00') else p for p in sorted(set(_city_alt), key=lambda x: (-len(x), x)))
     m = re.match(
-        r'(深圳市|广州市|北京市|上海市|杭州市|成都市|武汉市|南京市|重庆市|天津市|苏州市|东莞市|佛山市'
-        r'|[\u4e00-\u9fff]{2,3}市'
-        r'|[\u4e00-\u9fff]{2,3}省'
-        r'|广州|深圳|北京|上海|杭州|成都|武汉|南京|重庆|天津|苏州|东莞|佛山)'
+        r'(' + _city_pattern + r')'
         r'(.+?)'
         r'(餐饮管理|酒店管理|餐饮|酒店|住宿)'
         r'(有限公司|有限责任公司)',
@@ -10835,8 +10855,8 @@ def _analyze_supplier_naming_pattern(db, company_id, ps, pe, results):
     patterns = {}  # key: (城市, 行业), value: [seller_name, ...]
     for inv in pis:
         seller = (inv.seller_name or "").strip()
-        m = re.search(r'(广州|深圳|北京|上海|杭州|成都|武汉|南京|天津|重庆|苏州|东莞|佛山)' +
-                      r'(.{1,8}?)(餐饮|酒店|广告|信息技术|设计|咨询|贸易)(.*?)有限公司', seller)
+        m = re.search(_TAX_CITY_REGEX.pattern[1:-1] +  # 去掉外层括号，嵌入更大正则
+                      r')(.{1,8}?)(餐饮|酒店|广告|信息技术|设计|咨询|贸易)(.*?)有限公司', seller)
         if m:
             city = m.group(1)
             biz = m.group(3)

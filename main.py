@@ -66,6 +66,59 @@ from tax_risk import router as tax_risk_router
 from chat import router as chat_router
 
 
+# ═══ 统一城市列表（全代码唯一来源）═══
+# 所有城市提取操作必须使用此列表，禁止在各处散落硬编码城市列表
+_CHINA_CITIES_UNIFIED = sorted([
+    # 广东
+    "广州","深圳","东莞","佛山","珠海","惠州","江门","中山","汕头","湛江","茂名","肇庆","揭阳","台山",
+    # 福建
+    "福州","厦门","泉州","漳州",
+    # 浙江
+    "杭州","宁波","温州","嘉兴","绍兴","金华","台州","湖州","义乌",
+    # 江苏
+    "南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州","镇江","吴江",
+    # 山东
+    "济南","青岛","烟台","威海","潍坊","淄博","临沂",
+    # 湖北
+    "武汉","襄阳","宜城",
+    # 湖南
+    "长沙","株洲","湘潭",
+    # 河南
+    "郑州","许昌","鄢陵",
+    # 河北
+    "石家庄","唐山",
+    # 山西
+    "太原",
+    # 陕西
+    "西安","咸阳","宝鸡",
+    # 四川
+    "成都","绵阳","德阳",
+    # 云南
+    "昆明","曲靖",
+    # 贵州
+    "贵阳","遵义",
+    # 广西
+    "南宁","柳州","桂林",
+    # 海南
+    "海口","三亚",
+    # 安徽
+    "合肥","芜湖",
+    # 江西
+    "南昌","九江",
+    # 东北
+    "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆",
+    # 华北
+    "北京","天津",
+    # 西北
+    "呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁","银川","石嘴山",
+    # 直辖市/特别
+    "上海","重庆",
+], key=lambda x: (-len(x), x))  # 长城市名优先，避免"江门"匹配到"江"
+
+# 预编译正则：城市名提取（用于 re.search/match）
+_CHINA_CITY_REGEX = re.compile(r'(' + '|'.join(re.escape(c) for c in _CHINA_CITIES_UNIFIED) + r')')
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化数据库+自检"""
@@ -412,6 +465,11 @@ async def index():
             continue
     return "<h1>Encoding error</h1>"
 
+
+@app.get("/api/meta/processing-keywords")
+def get_processing_keywords():
+    """返回加工判定关键词（供前端使用，来源：industry_profiles.json）"""
+    return {"data": {"keywords": _get_processing_keywords()}}
 
 # ==================== 公司信息 ====================
 
@@ -12542,7 +12600,7 @@ def _domain_supplier_deep(pur_invs):
     import re
     for i in pur_invs:
         name = i.get("seller", ""); by_supplier[name] += float(i.get("total", i.get("amount", 0)) or 0)
-        m = re.search(r'(广州|深圳|北京|上海|杭州|武汉|成都|重庆|南京|天津|苏州)', name)
+        m = _CHINA_CITY_REGEX.search(name)
         if m: by_city[m.group(1)].add(name)
     total_pur = sum(by_supplier.values())
     top3 = sorted(by_supplier.items(), key=lambda x: -x[1])
@@ -13377,40 +13435,8 @@ def _analyze_contract_tiers(pur_invs, sal_invs):
     """
     from collections import defaultdict
     
-    # ── 日常消费关键词（发票即可，无需合同）──
-    DAILY_GOODS = [
-        '汽油','柴油','加油','燃料','充电','酒店','住宿','餐饮','餐费','饭店','外卖',
-        '旅行社','机票','火车票','打车','滴滴','快递','通信','电话','网络','宽带',
-        '办公用品','饮用水','打印','复印','墨盒','纸张','文具',
-        '物业','停车','保洁','水费','电费','燃气','暖气',
-        '银行','手续费','利息','滞纳金','罚款','工本费','账户管理',
-    ]
-    
-    # ── 主营业务关键词（必有合同）──
-    MAIN_BIZ_KWS = [
-        '加工','材料','原料','配件','零件','包装','辅料','半成品',
-        '纱','丝','棉','布','料','线','染料','助剂','面料','坯布',
-        '钢材','铝材','铜材','板','管','棒','型材',
-        '模具','组件','部件','总成','毛坯','锻件','铸件',
-        '芯片','PCB','电路板','电子','电器','元器件',
-        '化工','树脂','塑料','橡胶','涂料','胶水','油墨',
-        '食品','面粉','粮油','肉','禽','蛋','水产','蔬菜','水果',
-        '药品','试剂','器械','敷料','消毒','医用',
-        '木材','板材','实木','密度板','五金',
-    ]
-    
-    # ── 重要费用关键词（建议签合同，非主营业务但金额重大）──
-    IMPORTANT_EXPENSE_KWS = [
-        '设备','机器','车辆','仪器','固定资产','生产线','成套',
-        '软件','系统','开发','技术','专利','授权','许可',
-        '广告','推广','宣传','展会','展览','发布',
-        '咨询','顾问','服务费','外包','代理','中介',
-        '法律','审计','评估','鉴定','检测','认证',
-        '设计','制作','安装','施工','装修','改造',
-        '租赁','房租','仓库','冷库','叉车','吊车',
-        '维修','保养','年检','保险','承运','运输','物流','货运',
-        '培训','教育','年会','活动','策划',
-    ]
+    # ── 业务关键词（从 industry_profiles.json 加载，JSON可编辑） ──
+    DAILY_GOODS, MAIN_BIZ_KWS, IMPORTANT_EXPENSE_KWS = _load_biz_keywords()
     
     supplier_goods = defaultdict(set)
     supplier_amt = defaultdict(float)
@@ -15037,24 +15063,14 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         seller = str(inv.get("seller","") or inv.get("销方名称","")).strip()
         goods = str(inv.get("goods","") or inv.get("货物或应税劳务名称",""))
         for name in [buyer, seller]:
-            for c in ['中山','东莞','深圳','广州','佛山','珠海','惠州','江门','厦门','福州',
-                       '上海','北京','天津','重庆','成都','南京','苏州','无锡','杭州','宁波',
-                       '武汉','长沙','合肥','南昌','郑州','济南','青岛','石家庄','太原','西安',
-                       '昆明','贵阳','南宁','海口','沈阳','大连','长春','哈尔滨']:
+            for c in _CHINA_CITIES_UNIFIED:
                 if c in name: city_candidates[c] += 1
     company_city = city_candidates.most_common(1)[0][0] if city_candidates else '未知'
     
     # ── 按地址提取城市前缀 ──
     def extract_city(name):
-        # 从公司名称中提取城市
-        city_keywords = ["中山","东莞","深圳","广州","佛山","珠海","惠州","江门","汕头","湛江","茂名","肇庆","揭阳",
-                        "厦门","福州","泉州","漳州","台山",
-                        "鄢陵","许昌","郑州","石嘴山","银川","吴江","宜城","襄阳","武汉","淄博","临沂","济南","绍兴","杭州","宁波","义乌",
-                        "上海","北京","天津","重庆","成都","绵阳","德阳","南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州",
-                        "长沙","株洲","湘潭","合肥","芜湖","南昌","九江","青岛","烟台","威海","潍坊","石家庄","唐山","太原",
-                        "西安","咸阳","宝鸡","昆明","曲靖","贵阳","遵义","南宁","柳州","桂林","海口","三亚",
-                        "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆","呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁"]
-        for c in sorted(city_keywords, key=lambda x: -len(x)):
+        # 从公司名称中提取城市（使用统一城市列表）
+        for c in _CHINA_CITIES_UNIFIED:  # 已按长度降序排列，长城市名优先
             if c in name: return c
         return "其他"
     
@@ -15762,7 +15778,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
         import re as _sr
         city_clusters = _c2()
         for s in suppliers.keys():
-            m = _sr.match(r'(广州|深圳|北京|上海|杭州|武汉|成都|重庆|南京|天津|苏州|东莞|佛山|惠州|珠海|中山|江门|肇庆|长沙|郑州|西安|合肥|南昌|昆明|贵阳|南宁|海口|厦门|福州|宁波|温州|青岛|大连|沈阳|哈尔滨|长春|石家庄|太原|济南|无锡|常州|南通|徐州|扬州|盐城|泰州|镇江|嘉兴|绍兴|金华|台州|湖州)', s)
+            m = _CHINA_CITY_REGEX.match(s)
             if m:
                 city_clusters[m.group(1)] += 1
         for city, cnt in city_clusters.most_common(5):
@@ -23176,15 +23192,56 @@ _block("methods", "稽查方法",
 # 广告传媒买零食/机票/日用品(进)卖广告服务(出)→品名不同≠加工，只是采购消耗品≠生产物资
 # 只有制造业/贸易/建筑/餐饮等行业的品名差异才可能意味着加工转化
 
-# ── 行业分类 ──
-_PROCESSING_PRONE_KW = ["制造", "加工", "食品", "纺织", "印染", "服装", "化工", "电子",
-                        "机械", "家具", "电器", "冶炼", "铸造", "电镀", "涂装"]
-_PARTIAL_PROCESSING_KW = ["建筑", "装饰", "装修", "工程", "施工", "餐饮", "建材",
-                          "五金", "塑料", "木业", "纸业", "皮革", "橡胶", "陶瓷", "玻璃"]
-# 纯服务业：产出是无形服务，进项采购是日常消耗非生产物资，进销品名天然不同
-_PURE_SERVICE_KW = ["广告", "传媒", "咨询", "软件", "设计", "法律", "会计", "税务",
-                    "保险", "金融", "教育", "医疗", "中介", "代理", "经纪", "会展",
-                    "文化", "娱乐", "旅游", "人力资源", "物业", "科技", "互联网"]
+# ── 行业分类（从 industry_profiles.json 加载，JSON可编辑） ──
+def _load_processing_keywords():
+    """从 industry_profiles.json 加载加工判定关键词（替代硬编码列表）"""
+    import json, os
+    for base in [os.path.dirname(__file__) or ".", "."]:
+        pp = os.path.join(base, "static", "industry_profiles.json")
+        if os.path.exists(pp):
+            with open(pp, "r", encoding="utf-8") as f:
+                pk = json.load(f).get("_processing_keywords", {})
+                return (
+                    pk.get("processing_prone", []),
+                    pk.get("partial_processing", []),
+                    pk.get("pure_service", [])
+                )
+    # 极端兜底：JSON文件不存在时用内置默认值
+    return (
+        ["制造", "加工", "食品", "纺织", "印染", "服装", "化工", "电子", "机械", "家具", "电器", "冶炼", "铸造", "电镀", "涂装"],
+        ["建筑", "装饰", "装修", "工程", "施工", "餐饮", "建材", "五金", "塑料", "木业", "纸业", "皮革", "橡胶", "陶瓷", "玻璃"],
+        ["广告", "传媒", "咨询", "软件", "设计", "法律", "会计", "税务", "保险", "金融", "教育", "医疗", "中介", "代理", "经纪", "会展", "文化", "娱乐", "旅游", "人力资源", "物业", "科技", "互联网"]
+    )
+
+# 延迟加载（首次调用时从JSON读取，后续使用缓存）
+_PROCESSING_KW_CACHE = None
+
+def _get_processing_keywords():
+    global _PROCESSING_KW_CACHE
+    if _PROCESSING_KW_CACHE is None:
+        _PROCESSING_KW_CACHE = _load_processing_keywords()
+    return _PROCESSING_KW_CACHE
+
+# ── 业务关键词加载（从 industry_profiles.json）──
+def _load_biz_keywords():
+    """从 industry_profiles.json 加载主营业务识别关键词"""
+    import json, os
+    for base in [os.path.dirname(__file__) or ".", "."]:
+        pp = os.path.join(base, "static", "industry_profiles.json")
+        if os.path.exists(pp):
+            with open(pp, "r", encoding="utf-8") as f:
+                bk = json.load(f).get("_biz_keywords", {})
+                return (
+                    bk.get("daily_goods", []),
+                    bk.get("main_biz_keywords", []),
+                    bk.get("important_expense_keywords", [])
+                )
+    # 极端兜底
+    return (
+        ['汽油','柴油','加油','酒店','住宿','餐饮','快递','办公用品','水费','电费','银行','手续费'],
+        ['加工','材料','原料','配件','零件','包装','辅料','钢材','铝材','电子','食品','化工','木材','五金'],
+        ['设备','机器','软件','广告','咨询','设计','租赁','维修','运输','培训']
+    )
 
 def _compute_processing_score(industry, has_proc_fee, has_goods_diff, has_spec_diff, has_qty_inflation):
     """多维度综合评分：企业存在加工环节的可能性（0-1）。
@@ -23193,9 +23250,10 @@ def _compute_processing_score(industry, has_proc_fee, has_goods_diff, has_spec_d
     score = 0.0
     signals = []
     ind = industry.strip() if industry else ""
-    is_pure_service = any(kw in ind for kw in _PURE_SERVICE_KW)
-    is_manufacturing = any(kw in ind for kw in _PROCESSING_PRONE_KW)
-    is_partial = any(kw in ind for kw in _PARTIAL_PROCESSING_KW)
+    processing_prone, partial_processing, pure_service = _get_processing_keywords()
+    is_pure_service = any(kw in ind for kw in pure_service)
+    is_manufacturing = any(kw in ind for kw in processing_prone)
+    is_partial = any(kw in ind for kw in partial_processing)
     
     # 信号1: 加工费发票（权重0.40 — 最强信号，任何行业）
     if has_proc_fee:

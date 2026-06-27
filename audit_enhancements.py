@@ -9,6 +9,7 @@ WHY: 销项=企业实际经营产出（卖什么=什么行业）
 ═══════════════════════════════════
 """
 from database import SessionLocal
+import json, os
 
 
 def assess_data_quality(db, company_id, period_start, period_end):
@@ -62,54 +63,52 @@ def detect_industry(business_scope="", company_name=""):
 
 
 def get_industry_benchmark(industry):
-    """获取行业基准值 - 返回格式需匹配tax_risk.py的用法"""
-    benchmarks = {
-        "纺织制造": {
-            "name": "纺织制造", "vat_burden_min": 1.5, "vat_burden_max": 5.0,
-            "gross_margin_min": 8, "gross_margin_max": 25, "net_margin_min": 2, "net_margin_max": 10,
-            "per_person_rev_low": 20, "per_person_rev_high": 80, "io_ratio_low": 0.5, "io_ratio_high": 1.0
-        },
-        "信息技术": {
-            "name": "信息技术", "vat_burden_min": 2.0, "vat_burden_max": 8.0,
-            "gross_margin_min": 40, "gross_margin_max": 80, "net_margin_min": 10, "net_margin_max": 35,
-            "per_person_rev_low": 30, "per_person_rev_high": 150, "io_ratio_low": 0.1, "io_ratio_high": 0.5
-        },
-        "建筑工程": {
-            "name": "建筑工程", "vat_burden_min": 2.0, "vat_burden_max": 6.0,
-            "gross_margin_min": 5, "gross_margin_max": 20, "net_margin_min": 2, "net_margin_max": 8,
-            "per_person_rev_low": 40, "per_person_rev_high": 150, "io_ratio_low": 0.6, "io_ratio_high": 0.92
-        },
-        "餐饮服务": {
-            "name": "餐饮服务", "vat_burden_min": 2.0, "vat_burden_max": 6.0,
-            "gross_margin_min": 45, "gross_margin_max": 70, "net_margin_min": 5, "net_margin_max": 20,
-            "per_person_rev_low": 8, "per_person_rev_high": 25, "io_ratio_low": 0.2, "io_ratio_high": 0.55
-        },
-        "物流运输": {
-            "name": "物流运输", "vat_burden_min": 1.5, "vat_burden_max": 5.0,
-            "gross_margin_min": 10, "gross_margin_max": 30, "net_margin_min": 3, "net_margin_max": 12,
-            "per_person_rev_low": 20, "per_person_rev_high": 80, "io_ratio_low": 0.3, "io_ratio_high": 0.7
-        },
-        "广告传媒": {
-            "name": "广告传媒", "vat_burden_min": 1.5, "vat_burden_max": 5.0,
-            "gross_margin_min": 30, "gross_margin_max": 65, "net_margin_min": 5, "net_margin_max": 25,
-            "per_person_rev_low": 15, "per_person_rev_high": 60, "io_ratio_low": 0.1, "io_ratio_high": 0.5
-        },
-        "咨询服务": {
-            "name": "咨询服务", "vat_burden_min": 2.0, "vat_burden_max": 8.0,
-            "gross_margin_min": 50, "gross_margin_max": 90, "net_margin_min": 15, "net_margin_max": 45,
-            "per_person_rev_low": 20, "per_person_rev_high": 80, "io_ratio_low": 0.05, "io_ratio_high": 0.3
-        },
-        "医药健康": {
-            "name": "医药健康", "vat_burden_min": 3.0, "vat_burden_max": 9.0,
-            "gross_margin_min": 30, "gross_margin_max": 70, "net_margin_min": 8, "net_margin_max": 30,
-            "per_person_rev_low": 25, "per_person_rev_high": 100, "io_ratio_low": 0.2, "io_ratio_high": 0.6
-        },
-    }
-    return benchmarks.get(industry, {
-        "name": industry or "未知", "vat_burden_min": 0.5, "vat_burden_max": 8.0,
-        "gross_margin_min": 5, "gross_margin_max": 60, "net_margin_min": 1, "net_margin_max": 30,
-        "per_person_rev_low": 15, "per_person_rev_high": 200, "io_ratio_low": 0.2, "io_ratio_high": 0.95
-    })
+    """获取行业基准值 — 从 industry_profiles.json 加载（替代硬编码字典）"""
+    try:
+        for base in [os.path.dirname(__file__) or ".", "."]:
+            pp = os.path.join(base, "static", "industry_profiles.json")
+            if os.path.exists(pp):
+                with open(pp, "r", encoding="utf-8") as f:
+                    profiles = json.load(f)
+                industries = profiles.get("industries", {})
+                # 匹配：精确行业名 → subtypes → 默认
+                for key, prof in industries.items():
+                    if industry == key or industry in prof.get("subtypes", []):
+                        bm = prof.get("benchmarks", {})
+                        gp = bm.get("gross_margin_pct", {})
+                        return {
+                            "name": prof.get("label", industry),
+                            "vat_burden_min": 0.5, "vat_burden_max": 8.0,
+                            "gross_margin_min": gp.get("low", 5), "gross_margin_max": gp.get("high", 40),
+                            "net_margin_min": 1, "net_margin_max": 30,
+                            "per_person_rev_low": 15, "per_person_rev_high": 200,
+                            "io_ratio_low": 0.2, "io_ratio_high": 0.95
+                        }
+                # 兜底
+                return {
+                    "name": industry or "未知", "vat_burden_min": 0.5, "vat_burden_max": 8.0,
+                    "gross_margin_min": 5, "gross_margin_max": 60, "net_margin_min": 1, "net_margin_max": 30,
+                    "per_person_rev_low": 15, "per_person_rev_high": 200, "io_ratio_low": 0.2, "io_ratio_high": 0.95
+                }
+    except Exception:
+        pass
+    return {"name": industry or "未知", "vat_burden_min": 0.5, "vat_burden_max": 8.0,
+            "gross_margin_min": 5, "gross_margin_max": 60, "net_margin_min": 1, "net_margin_max": 30,
+            "per_person_rev_low": 15, "per_person_rev_high": 200, "io_ratio_low": 0.2, "io_ratio_high": 0.95}
+
+
+# 行业关键词映射（供 main.py API 使用，从 detect_industry 逻辑提取）
+INDUSTRY_KEYWORD_MAP = {  # pragma: no cover — 与 detect_industry() 保持一致
+    "广告传媒": ["广告","传媒","文化","娱乐","影视","设计"],
+    "信息技术": ["软件","信息","互联网","计算机","科技","数据","数字"],
+    "咨询服务": ["咨询","服务","管理"],
+    "建筑工程": ["建筑","工程","装修","房地产"],
+    "纺织制造": ["纺织","服装","面料","纱线","布","染整"],
+    "餐饮服务": ["餐饮","酒店","住宿","食品"],
+    "物流运输": ["物流","运输","快递","仓储"],
+    "医药健康": ["医药","医疗","药品","器械"],
+    "商贸": ["贸易","商贸","批发","零售"],
+}
 
 
 def analyze_industry_specific_risks(db, company_id, industry, period_start, period_end):
