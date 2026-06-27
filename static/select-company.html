@@ -28,10 +28,6 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 .card .btn-del{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#f87171;font-size:14px;line-height:28px;text-align:center;cursor:pointer;transition:all 0.2s}
 .card .btn-del:hover{background:rgba(239,68,68,0.3);color:#fca5a5}
 .loading{text-align:center;color:#94a3b8;padding:60px}
-.empty{text-align:center;padding:60px}
-.empty .empty-icon{font-size:48px;margin-bottom:16px}
-.empty p{color:#94a3b8;font-size:15px}
-.empty .btn{display:inline-block;margin-top:16px;padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none}
 </style>
 </head>
 <body>
@@ -47,11 +43,6 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
   </div>
   <div class="loading" id="loading">加载中...</div>
   <div class="grid" id="company-grid" style="display:none"></div>
-  <div class="empty" id="empty" style="display:none">
-    <div class="empty-icon">📭</div>
-    <p>暂无账套</p>
-    <a href="/new-company" class="btn">新建账套</a>
-  </div>
 </div>
 
 <script>
@@ -68,11 +59,6 @@ async function init() {
     }
     var companies = Array.isArray(data) ? data : (data.companies || data.data || []);
     document.getElementById('loading').style.display = 'none';
-    
-    if (companies.length === 0) {
-      document.getElementById('empty').style.display = 'block';
-      return;
-    }
     
     var grid = document.getElementById('company-grid');
     grid.style.display = 'grid';
