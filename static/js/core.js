@@ -172,6 +172,21 @@ function showCompanyPick(companies) {
   document.getElementById('registration-view').classList.add('hidden');
   document.getElementById('company-pick-view').classList.remove('hidden');
   document.getElementById('app-view').classList.add('hidden');
+
+  // 用事件委托绑定"创建新公司"按钮（比 inline onclick 更可靠）
+  var pickCard = document.querySelector('.pick-card');
+  if (pickCard) {
+    // 移除旧监听避免重复绑定
+    var oldHandler = pickCard._showRegHandler;
+    if (oldHandler) pickCard.removeEventListener('click', oldHandler);
+    pickCard._showRegHandler = function(e) {
+      if (e.target.classList.contains('pick-new-btn')) {
+        e.preventDefault();
+        showRegistration();
+      }
+    };
+    pickCard.addEventListener('click', pickCard._showRegHandler);
+  }
 }
 
 // 全局入口——供 inline onclick 调用
