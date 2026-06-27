@@ -54,6 +54,8 @@ var ReportEngine = (function() {
     }
     return true;
   }
+  // 全局暴露：确保任何代码路径都能调用到此函数
+  window._isProcessingApplicable = _isProcessingApplicable;
 
   // ── 模块注册表 ──
   var _registry = {};
