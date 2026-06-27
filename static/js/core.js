@@ -1148,8 +1148,34 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  // 预绑定账套选择页按钮（确保第一时间生效，不依赖 init 流程）
+  _bindPickPageButtons();
   init().catch(function (e) {
     console.error('初始化失败', e);
   });
 });
+
+// 兜底：如果脚本执行时 DOM 已载入，直接绑定
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  _bindPickPageButtons();
+}
+
+function _bindPickPageButtons() {
+  // 创建新公司按钮
+  var createBtn = document.querySelector('.pick-new-btn');
+  if (createBtn) {
+    createBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      showRegistration();
+    });
+  }
+  // 退出登录链接
+  var logoutLink = document.querySelector('#company-pick-view a[onclick*=\"logoutUser\"]');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      logoutUser();
+    });
+  }
+}
 
