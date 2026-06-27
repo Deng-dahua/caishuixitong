@@ -4575,29 +4575,14 @@ def init_db():
     try:
         migrate_schema(db)
 
-        # 新环境无公司时，自动创建演示公司
-        if db.query(Company).count() == 0:
-            demo = Company(
-                name="演示公司",
-                uscc="91110000DEMO00001",
-                registered_capital=1000000.0,
-                established_date=date.today(),
-                legal_representative="管理员",
-                address="系统自动创建",
-                business_scope="演示用途",
-            )
-            db.add(demo)
-            db.flush()  # 拿到 demo.id
-            print(f"[init_db] 自动创建演示公司: id={demo.id}")
-            init_company_data(db, demo.id)
-            companies = [demo]
-        else:
-            companies = db.query(Company).order_by(Company.id).all()
-            for company in companies:
-                try:
-                    init_company_data(db, company.id)
-                except Exception as e:
-                    print(f"[init_db] 警告：公司{company.id} 数据初始化失败: {e}")
+        # 新环境无公司时，不再自动创建演示公司
+        # 用户可通过页面"创建新公司"自行创建
+        companies = db.query(Company).order_by(Company.id).all()
+        for company in companies:
+            try:
+                init_company_data(db, company.id)
+            except Exception as e:
+                print(f"[init_db] 警告：公司{company.id} 数据初始化失败: {e}")
 
 
         db.commit()
