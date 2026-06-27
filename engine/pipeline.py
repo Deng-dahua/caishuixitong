@@ -42,6 +42,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         _parse_excel_structured, _parse_pdf_bank_statement, _save_to_transfer,
         _score_tax_relevance,
     )
+    from engine.main_biz_cost import identify_main_biz_cost
+    from engine.phase1_triage import _phase1_triage
+    from engine.phase2_deep_dive import _phase2_deep_dive
+    from engine.phase3_cross_validate import _phase3_cross_validate
+    from engine.phase4_synthesis import _phase4_synthesis
+    from engine.orchestrator import build_data_profile, build_orchestration_plan
+    from engine.memory import save_analysis_memory, query_similar_cases
     
     def _report(progress, msg):
         """报告进度"""

@@ -2522,6 +2522,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     # 跨结论：与其他进销结论串联——如已有BOM缺失，供应商匹配的未匹配可能性更高
     
     # 使用共享的主营业务成本识别模块（替代原内联分类逻辑）
+    from engine.main_biz_cost import identify_main_biz_cost
     biz_classification = identify_main_biz_cost(pur_invs, None)  # 该函数无 sal_invs 参数
     core_invs = biz_classification["core_cost_invs"]
     major_invs = biz_classification["major_expense_invs"]
