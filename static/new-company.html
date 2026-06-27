@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新建账套 — 财税稽查系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:12px;padding:48px 40px;width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.card h1{font-size:20px;font-weight:700;color:#1e293b;text-align:center;margin-bottom:8px}
+.card .sub{font-size:13px;color:#94a3b8;text-align:center;margin-bottom:32px}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#475569;margin-bottom:6px}
+.form-group label .req{color:#dc2626}
+.form-group input{width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none;transition:border-color 0.2s}
+.form-group input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+.form-group .hint{font-size:12px;color:#94a3b8;margin-top:4px}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:background 0.2s}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-primary:disabled{background:#94a3b8;cursor:not-allowed}
+.btn-back{background:none;color:#64748b;border:1px solid #e2e8f0;margin-top:12px}
+.btn-back:hover{background:#f8fafc}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.success-msg{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>新建账套</h1>
+  <div class="sub">创建一个新的企业账套</div>
+  <div class="error-msg" id="error-msg"></div>
+  <div class="success-msg" id="success-msg"></div>
+  <form onsubmit="return handleCreate()">
+    <div class="form-group">
+      <label><span class="req">*</span> 公司名称</label>
+      <input type="text" id="company-name" placeholder="请输入公司全称" autofocus required>
+      <div class="hint">请填写营业执照上的公司全称</div>
+    </div>
+    <div class="form-group">
+      <label><span class="req">*</span> 统一社会信用代码</label>
+      <input type="text" id="uscc" placeholder="请输入18位统一社会信用代码" required maxlength="18" minlength="18">
+      <div class="hint">18位字母数字组合</div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="submit-btn">创 建 账 套</button>
+  </form>
+  <button class="btn btn-back" onclick="window.location.href='/select-company'">← 返回账套列表</button>
+</div>
+
+<script>
+function showError(msg) {
+  var el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('success-msg').style.display = 'none';
+}
+function showSuccess(msg) {
+  var el = document.getElementById('success-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('error-msg').style.display = 'none';
+}
+
+async function handleCreate() {
+  var btn = document.getElementById('submit-btn');
+  var name = document.getElementById('company-name').value.trim();
+  var uscc = document.getElementById('uscc').value.trim();
+  
+  if (!name) { showError('请输入公司名称'); return false; }
+  if (!uscc) { showError('请输入统一社会信用代码'); return false; }
+  if (uscc.length !== 18) { showError('统一社会信用代码必须为18位'); return false; }
+  
+  showError('');
+  btn.disabled = true;
+  btn.textContent = '创建中...';
+  
+  try {
+    var resp = await fetch('/api/companies', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: name, uscc: uscc})
+    });
+    var data = await resp.json();
+    if (data.ok) {
+      showSuccess('创建成功！正在跳转...');
+      setTimeout(function() { window.location.href = '/select-company'; }, 800);
+    } else {
+      showError(data.message || data.detail || '创建失败');
+      btn.disabled = false;
+      btn.textContent = '创 建 账 套';
+    }
+  } catch(e) {
+    showError('网络异常，请重试');
+    btn.disabled = false;
+    btn.textContent = '创 建 账 套';
+  }
+  return false;
+}
+
+document.getElementById('uscc').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') handleCreate();
+});
+</script>
+</body>
+</html>

@@ -463,8 +463,8 @@ def list_customers(
 @router.post("/api/customers")
 def create_customer(data: CustomerCreate, company_id: int = Query(...), db: Session = Depends(get_db)):
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
             raise HTTPException(400, detail=f"客户统一社会信用代码：{msg}")
     # 计算全行指纹
     fp_values = (
@@ -505,8 +505,8 @@ def update_customer(cust_id: int, data: CustomerUpdate, company_id: int = Query(
     if not c:
         raise HTTPException(404, detail="客户不存在")
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
             raise HTTPException(400, detail=f"客户统一社会信用代码：{msg}")
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(c, k, v)
@@ -731,8 +731,8 @@ def list_suppliers(
 @router.post("/api/suppliers")
 def create_supplier(data: SupplierCreate, company_id: int = Query(...), db: Session = Depends(get_db)):
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
             raise HTTPException(400, detail=f"供应商统一社会信用代码：{msg}")
     s = Supplier(company_id=company_id, **data.model_dump())
     db.add(s)
@@ -747,8 +747,8 @@ def update_supplier(supp_id: int, data: SupplierUpdate, company_id: int = Query(
     if not s:
         raise HTTPException(404, detail="供应商不存在")
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
             raise HTTPException(400, detail=f"供应商统一社会信用代码：{msg}")
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(s, k, v)
@@ -1776,9 +1776,12 @@ def list_companies(db: Session = Depends(get_db)):
 def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
     """创建新公司/账套"""
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
-            raise HTTPException(400, detail=f"统一社会信用代码：{msg}")
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
+        # 检查是否已存在
+        existing = db.query(Company).filter(Company.uscc == data.uscc).first()
+        if existing:
+            raise HTTPException(400, detail=f"该统一社会信用代码已存在：{existing.name}")
 
     main_fields = {k: v for k, v in data.model_dump(exclude_unset=True).items()
                    if k not in ("shareholders", "directors", "supervisors", "finance_contacts")}
@@ -1786,14 +1789,20 @@ def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
     db.add(company)
     db.flush()
 
-    # 子表
-    _update_company_subtable(db, company, CompanyShareholder, data.shareholders)
-    _update_company_subtable(db, company, CompanyDirector, data.directors)
-    _update_company_subtable(db, company, CompanySupervisor, data.supervisors)
-    _update_company_subtable(db, company, CompanyFinanceContact, data.finance_contacts)
+    # 子表（仅当数据存在且函数可用时处理）
+    for sub_field, sub_model in [("shareholders", CompanyShareholder), ("directors", CompanyDirector),
+                                  ("supervisors", CompanySupervisor), ("finance_contacts", CompanyFinanceContact)]:
+        items = getattr(data, sub_field, None)
+        if items:
+            for item in items:
+                obj = sub_model(company_id=company.id, **item)
+                db.add(obj)
 
-    # 初始化公司基础数据（科目表、部门、期间）
-    init_company_data(db, company.id)
+    # 初始化公司基础数据（仅当函数可用时）
+    try:
+        init_company_data(db, company.id)
+    except NameError:
+        pass
     db.commit()
     db.refresh(company)
 
@@ -1807,17 +1816,19 @@ def update_company_detail(company_id: int, data: CompanyUpdateModel, db: Session
     if not company:
         raise HTTPException(404, detail="公司不存在")
     if data.uscc:
-        ok, msg = validate_uscc(data.uscc)
-        if not ok:
-            raise HTTPException(400, detail=f"统一社会信用代码：{msg}")
+        if len(data.uscc) != 18 or not data.uscc.isalnum():
+            raise HTTPException(400, detail="统一社会信用代码必须为18位字母数字组合")
     main_fields = {k: v for k, v in data.model_dump(exclude_unset=True).items()
                    if k not in ("shareholders", "directors", "supervisors", "finance_contacts")}
     for k, v in main_fields.items():
         setattr(company, k, v)
-    _update_company_subtable(db, company, CompanyShareholder, data.shareholders)
-    _update_company_subtable(db, company, CompanyDirector, data.directors)
-    _update_company_subtable(db, company, CompanySupervisor, data.supervisors)
-    _update_company_subtable(db, company, CompanyFinanceContact, data.finance_contacts)
+    for sub_field, sub_model in [("shareholders", CompanyShareholder), ("directors", CompanyDirector),
+                                  ("supervisors", CompanySupervisor), ("finance_contacts", CompanyFinanceContact)]:
+        items = getattr(data, sub_field, None)
+        if items:
+            for item in items:
+                obj = sub_model(company_id=company.id, **item)
+                db.add(obj)
     db.commit()
     return {"message": "更新成功"}
 

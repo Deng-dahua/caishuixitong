@@ -47,7 +47,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
   <div class="empty" id="empty" style="display:none">
     <div class="empty-icon">📭</div>
     <p>暂无账套</p>
-    <a href="/" class="btn">进入系统新建</a>
+    <a href="/new-company" class="btn">新建账套</a>
   </div>
 </div>
 
@@ -60,7 +60,7 @@ async function init() {
       window.location.href = '/login';
       return;
     }
-    var companies = data.companies || data.data || [];
+    var companies = Array.isArray(data) ? data : (data.companies || data.data || []);
     document.getElementById('loading').style.display = 'none';
     
     if (companies.length === 0) {
@@ -94,7 +94,7 @@ async function init() {
     var addBtn = document.createElement('div');
     addBtn.className = 'btn-add';
     addBtn.textContent = '+ 新建账套';
-    addBtn.onclick = function() { window.location.href = '/'; };
+    addBtn.onclick = function() { window.location.href = '/new-company'; };
     grid.appendChild(addBtn);
     
   } catch(e) {

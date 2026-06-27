@@ -117,7 +117,7 @@ _AUTH_SESSIONS = {}
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    skip_paths = ["/login", "/select-company", "/api/auth/", "/static/", "/favicon.ico"]
+    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
         return await call_next(request)
     is_api = path.startswith("/api/")
@@ -169,6 +169,11 @@ async def api_logout(request: Request):
 @app.get("/select-company", response_class=HTMLResponse)
 async def select_company_page():
     return _read_html("static/select-company.html")
+
+
+@app.get("/new-company", response_class=HTMLResponse)
+async def new_company_page():
+    return _read_html("static/new-company.html")
 
 
 @app.post("/api/auth/select-company")
