@@ -112,7 +112,26 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
 
 # ═══════════════ 个人登录 ═══════════════
+_AUTH_SESSIONS_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
 _AUTH_SESSIONS = {}
+
+def _load_sessions():
+    if os.path.exists(_AUTH_SESSIONS_FILE):
+        try:
+            with open(_AUTH_SESSIONS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def _save_sessions():
+    try:
+        with open(_AUTH_SESSIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_AUTH_SESSIONS, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+_AUTH_SESSIONS = _load_sessions()
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -156,6 +175,7 @@ async def api_login(request: Request):
         return {"ok": False, "message": "请输入有效的11位手机号码"}
     token = secrets.token_hex(32)
     _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": float("inf")}
+    _save_sessions()
     resp = JSONResponse({"ok": True, "name": name})
     resp.set_cookie("auth_token", token, httponly=True, samesite="lax")
     # cookie不支持中文，需要URL编码
@@ -190,6 +210,7 @@ async def api_select_company(data: dict, request: Request):
     if not token or token not in _AUTH_SESSIONS:
         return {"ok": False, "message": "请先登录"}
     _AUTH_SESSIONS[token]["company_id"] = cid
+    _save_sessions()
     resp = JSONResponse({"ok": True})
     resp.set_cookie("company_id", str(cid), samesite="lax")
     return resp

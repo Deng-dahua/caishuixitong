@@ -13,3 +13,4 @@ tax_risk_rules_default.json
 server.log
 static/uploads/
 auth.json
+sessions.json
