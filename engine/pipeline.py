@@ -36,6 +36,12 @@ from engine.domain_analysis import *  # 35域分析函数
 def _run_analyze(company_id, db, progress_callback=None):
     from database import VATDeclaration
     from collections import defaultdict
+    # 懒加载 main.py 中的私有函数（避免循环导入）
+    from main import (
+        _get_company_upload_dir, _get_row_values, _infer_columns_from_data,
+        _parse_excel_structured, _parse_pdf_bank_statement, _save_to_transfer,
+        _score_tax_relevance,
+    )
     
     def _report(progress, msg):
         """报告进度"""
