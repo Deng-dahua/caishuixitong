@@ -61,9 +61,13 @@ from database import (
     auto_generate_purchase_journal, auto_generate_bookkeeping_journal, _next_voucher_no, _classify_purchase_debit,
 )
 
-# vat/salary/social/housing/ccf/chat 模块已删除（8888稽查版）
 from tax_risk import router as tax_risk_router
 from chat import router as chat_router
+from salary import router as salary_router
+from vat import router as vat_router
+from housing_fund import router as housing_fund_router
+from social_security import router as social_security_router
+from cultural_construction_fee import router as cultural_construction_fee_router
 
 
 # ═══ 统一城市列表（全代码唯一来源）═══
@@ -326,9 +330,13 @@ async def add_cache_headers(request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
-# vat/salary/social/housing/ccf 路由已移除（8888稽查版）
 app.include_router(tax_risk_router)
 app.include_router(chat_router)
+app.include_router(salary_router)
+app.include_router(vat_router)
+app.include_router(housing_fund_router)
+app.include_router(social_security_router)
+app.include_router(cultural_construction_fee_router)
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -466,8 +474,17 @@ def _read_html(filename):
 
 @app.get("/", response_class=HTMLResponse)
 async def login_page():
-    """个人登录页"""
-    return _read_html("static/login.html")
+    """直接进入账套选择页（免登录）"""
+    html = _read_html("static/index.html")
+    # 注入默认用户，跳过登录步骤
+    default_user_script = """<script>
+if (!localStorage.getItem('taxUser')) {
+  localStorage.setItem('taxUser', JSON.stringify({name:'用户', phone:'13800000000', pinyin:'auto', loginAt: new Date().toISOString()}));
+}
+</script>"""
+    # 插入到 core.js 之前
+    html = html.replace('<script src="/static/js/core.js', default_user_script + '\n<script src="/static/js/core.js')
+    return html
 
 @app.get("/api/pinyin")
 def get_pinyin(name: str = Query(...)):
@@ -16264,7 +16281,7 @@ RULE_DATA_REQUIREMENTS = {
 }
 
 def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs):
-    """对312条规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
+    """对全量规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
     findings = []
     
     # 读取规则库
@@ -16337,7 +16354,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         findings.append({
             "type": "规则已触发验证",
             "level": "低风险", "score": 2,
-            "detail": f"312条规则中{verified_count}条已被触发并产出结论。",
+            "detail": f"{total_rule_count}条规则中{verified_count}条已被触发并产出结论。",
             "description": f"已触发的{verified_count}条规则覆盖了本报告各分析域的风险发现。这些规则的结论已经过数据源复核。",
             "how_found": "我逐一核对了本次分析产生的每条发现与底层规则引擎的映射关系——确认每条风险发现都有对应的规则支撑和数据验证。".format(total_rules=len(all_rules)),
             "category": "域18 全覆盖验证"
@@ -26246,10 +26263,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"[叙事增强层] 缺失后果前端数据: {len(missing_trigger_list)}项")
     
     # ── 数据资产计数（供前端报告头部展示）──
-    _actual_rule_count = 1512  # 默认值，稍后从rules_data更新
+    _actual_rule_count = 1512  # 默认值，稍后从rules_data动态更新
     comprehensive["rule_count"] = _actual_rule_count
-    comprehensive["chain_count"] = chains_data.get("trail_chains", 0) if 'chains_data' in dir() else 396
-    comprehensive["evidence_count"] = chains_data.get("evidence_chains", 0) if 'chains_data' in dir() else 745
+    # chain_count / evidence_count 从上方 chain_execution 块获取（如果已执行），否则为0
+    comprehensive["chain_count"] = comprehensive.get("chain_total_count", 0)
+    comprehensive["evidence_count"] = len(comprehensive.get("evidence_closures", []))
     
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
@@ -26467,6 +26485,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             _actual_rule_count = len(rules_data)
     except:
         pass
+    comprehensive["rule_count"] = _actual_rule_count  # 用动态值覆盖可能存在的默认值
 
     # ═══ 确定分析对象 ═══
     target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
@@ -28223,7 +28242,8 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     """从银行流水/发票/工资中自动识别被分析对象"""
     from collections import Counter
     
-    entity = {"name": "", "biz_model": "", "industry": "", "period": "", "bank_account": "", "source": []}
+    entity = {"name": "", "biz_model": "", "industry": "", "period": "", "bank_account": "", "source": [],
+              "legal_person": "", "legal_person_role": ""}
     
     # 1. 从银行流水表头提取（账户明细/户名）→ 补充公司名称线索
     # 银行流水表头常包含"户名:XXX公司"或"账户名称:XXX"等字段
@@ -29388,6 +29408,8 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     if lookup.get("success"):
         target_entity["_online_lookup"] = True
         target_entity["legal_representative"] = lookup.get("legal_representative", "")
+        target_entity["legal_person"] = target_entity["legal_representative"]  # 前端别名
+        target_entity["legal_person_role"] = lookup.get("legal_person_role", "") or (target_entity.get("legal_person_role", ""))
         target_entity["registered_capital"] = lookup.get("registered_capital", "")
         target_entity["established_date"] = lookup.get("established_date", "")
         target_entity["business_scope"] = lookup.get("business_scope", "")
