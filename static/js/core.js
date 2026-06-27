@@ -182,7 +182,7 @@ function showCompanyPick(companies) {
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
       + '</div>'
       + '</a>'
-      + '<button class="pick-del-btn" data-del-id="' + c.id + '" data-del-name="' + safeName + '" title="删除此账套">🗑</button>'
+      + '<button class="pick-del-btn" onclick="event.stopPropagation();deleteCompanyFromPick(' + c.id + ',\'' + safeName + '\')" title="删除此账套">🗑</button>'
       + '</li>';
   }).join('');
 
