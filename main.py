@@ -153,6 +153,7 @@ async def api_login(data: dict):
     _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": float("inf")}
     resp = JSONResponse({"ok": True, "name": name})
     resp.set_cookie("auth_token", token, httponly=True, samesite="lax")
+    resp.set_cookie("user_name", name, samesite="lax")  # JS可读，显示用户名用
     return resp
 
 

@@ -53,6 +53,10 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 
 <script>
 async function init() {
+  // 读取登录时设置的用户名
+  var name = document.cookie.split('; ').find(function(c){ return c.startsWith('user_name='); });
+  if (name) document.getElementById('user-name').textContent = decodeURIComponent(name.split('=')[1]);
+  
   try {
     var resp = await fetch('/api/companies');
     var data = await resp.json();
