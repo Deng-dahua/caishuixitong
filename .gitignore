@@ -12,3 +12,4 @@ tax_risk_rules_default.json
 *.err
 server.log
 static/uploads/
+auth.json
