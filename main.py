@@ -12106,7 +12106,7 @@ def _parse_input_vat_sheet(sheet):
             except: vals[k] = 0
         vals["direction"] = "进项"
         rows.append(vals)
-    return {"type": "purchase_invoice", "rows": rows, "sub_type": "input_vat_deduction"}
+    return {"type": "input_vat_deduction", "rows": rows, "sub_type": "进项认证抵扣"}
 
 def _parse_invoice_sheet(sheet, direction):
     # 智能表头检测：row 0 或 row 1
@@ -16690,7 +16690,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
 # 资料情报提取引擎 —— 从资料数据中提取稽查所需信息
 # ═══════════════════════════════════════════════════
 
-def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory):
+def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions=None):
     """从各类资料中提取关键审计情报——让系统真正'读懂'资料"""
     intel = {}
     from collections import Counter, defaultdict
@@ -16830,9 +16830,22 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 cat_name = goods[:4]
                 categories[cat_name] += 1
         
+        # ═══ 按发票号去重统计（行数≠发票张数，相同号码算一张）═══
+        sal_unique_nos = set()
+        pur_unique_nos = set()
+        for inv in invoices:
+            inv_no = str(inv.get("inv_no", "") or inv.get("发票号码", "") or inv.get("digital_invoice_no", "")).strip()
+            if not inv_no:
+                continue
+            direction = str(inv.get("direction", "")).strip()
+            if direction == "销项":
+                sal_unique_nos.add(inv_no)
+            elif direction == "进项":
+                pur_unique_nos.add(inv_no)
+        
         intel["发票"] = {
-            "销项发票": f"{len(sal_invs)}张，金额{sal_total:,.2f}元，税额{sal_tax:,.2f}元",
-            "进项发票": f"{len(pur_invs)}张，金额{pur_total:,.2f}元，税额{pur_tax:,.2f}元",
+            "销项发票": f"{len(sal_invs)}行，去重{len(sal_unique_nos)}张，金额{sal_total:,.2f}元，税额{sal_tax:,.2f}元",
+            "进项发票": f"{len(pur_invs)}行，去重{len(pur_unique_nos)}张，金额{pur_total:,.2f}元，税额{pur_tax:,.2f}元",
             "进销比": f"{pur_total/sal_total:.2f}" if sal_total > 0 else "N/A",
             "主要货物类别": dict(categories.most_common(5)) if categories else {},
         }
@@ -16864,7 +16877,42 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         # 进项供应商明细（全部，按金额排序）
         if seller_amt:
             intel["发票"]["进项供应商明细"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(seller_amt.items(), key=lambda x: -x[1])]
+        
+        # ═══ 发票统计（供报告生成器读取，区分行数 vs 发票张数）═══
+        intel["发票"]["统计"] = {
+            "销项发票行数": len(sal_invs),      # Excel原始行数
+            "销项发票张数": len(sal_unique_nos),  # 按发票号去重
+            "销项金额合计": sal_total,
+            "进项发票行数": len(pur_invs),
+            "进项发票张数": len(pur_unique_nos),
+            "进项金额合计": pur_total,
+        }
     
+    # ── 进项认证抵扣情报（独立于进项发票，两者不是一回事）──
+    if input_vat_deductions:
+        deds = input_vat_deductions
+        # 按勾选状态分类
+        ded_by_status = defaultdict(lambda: {"count": 0, "amount": 0.0, "tax": 0.0})
+        for d in deds:
+            status = str(d.get("status", "") or d.get("勾选状态", "")).strip()
+            amt = float(d.get("amount", 0) or 0)
+            tax = float(d.get("tax", 0) or 0)
+            ded_by_status[status]["count"] += 1
+            ded_by_status[status]["amount"] += amt
+            ded_by_status[status]["tax"] += tax
+        # 已勾选（有效认证抵扣）
+        checked = ded_by_status.get("已勾选", {"count": 0, "amount": 0.0, "tax": 0.0})
+        # 未勾选/已作废等
+        total_ded_rows = len(deds)
+        intel["进项认证抵扣"] = {
+            "总行数": total_ded_rows,
+            "已认证抵扣_张数": checked["count"],
+            "已认证抵扣_金额": f"{checked['amount']:,.2f}元",
+            "已认证抵扣_税额": f"{checked['tax']:,.2f}元",
+            "状态分布": {k: v["count"] for k, v in ded_by_status.items()},
+        }
+        intel["进项认证抵扣"]["摘要"] = f"共{total_ded_rows}行，其中已勾选认证{checked['count']}张，金额{checked['amount']:,.2f}元，税额{checked['tax']:,.2f}元"
+
     # ── 工资情报 ──
     if salaries:
         total_salary = sum(float(s.get("amount", 0) or s.get("实发工资", 0) or 0) for s in salaries)
@@ -24077,6 +24125,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception: pass
 
     bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
+    input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
     
@@ -24180,7 +24229,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                     if ftype == "salary": salaries.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条工资")
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
                     elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
-                    elif ftype in ("purchase_invoice", "input_vat_deduction"): invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
+                    elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
+                    elif ftype == "input_vat_deduction": input_vat_deductions.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项认证抵扣")
                     elif ftype == "invoice":  # 通用发票 → 按列内容判断进销方向
                         rows = parsed["rows"]
                         for r in rows:
@@ -26103,7 +26153,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
-        material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory)
+        material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions)
     except Exception as _mie:
         pipeline_log.append(f"资料情报提取异常: {_mie}")
         material_intel = {}
