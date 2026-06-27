@@ -70,7 +70,7 @@ async function handleLogin() {
     });
     var data = await resp.json();
     if (data.ok) {
-      window.location.href = '/';
+      window.location.href = '/select-company';
     } else {
       showError(data.message || '登录失败');
       btn.disabled = false;
