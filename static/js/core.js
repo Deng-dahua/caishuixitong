@@ -129,21 +129,8 @@ async function initAppFlow() {
     showRegistration();
     return;
   }
-  // 记住上次选择的公司，刷新直接进入
-  const lastCompanyId = localStorage.getItem('lastCompanyId');
-  const lastCompanyName = localStorage.getItem('lastCompanyName');
-  if (lastCompanyId && lastCompanyName) {
-    const exists = companies.some(c => String(c.id) === String(lastCompanyId));
-    if (exists) {
-      await enterApp(parseInt(lastCompanyId), lastCompanyName);
-      return;
-    }
-  }
-  // 首次使用或无记录时，自动进入第一个公司（避免选择页无法点击）
-  if (companies && companies.length > 0) {
-    await enterApp(companies[0].id, companies[0].name);
-    return;
-  }
+  // 始终进入账套选择页（不自动进入）
+  showCompanyPick(companies);
   showCompanyPick(companies);
 }
 

@@ -93,13 +93,9 @@
 <!-- 侧边栏 -->
 <nav id="sidebar">
   <div class="sidebar-logo">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
-      <div style="flex:1">
-        财税风险防控系统
-        <span>中小企业版 v1.0</span>
-      </div>
-      <button onclick="logoutUser()" title="退出登录" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;line-height:1.4;">🚪 退出</button>
-    </div>
+    财税风险防控系统
+    <span>中小企业版 v1.0</span>
+    <button onclick="logoutUser()" title="退出登录" style="margin-top:8px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 12px;font-size:11px;cursor:pointer;width:100%;">🚪 退出登录</button>
     <div id="sidebar-user" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);font-size:11px;opacity:0.8">
       👤 <span id="sidebar-user-name">-</span>
     </div>
@@ -275,38 +271,9 @@
 <div id="main">
   <div class="topbar">
     <div class="topbar-left">
-      <span class="topbar-title" id="page-title">数据看板</span>
+      <span id="company-name-display" style="font-size:14px;font-weight:600;color:#1e293b;border-bottom:2px dashed #94a3b8;padding-bottom:2px;"></span>
     </div>
     <div class="topbar-right">
-      <div class="company-selector" onclick="switchCompany()" style="cursor:pointer;position:relative">
-        <span class="label">账套：</span>
-        <span id="company-name-display" style="border-bottom:2px dashed #94a3b8;padding-bottom:2px"></span>
-        <span style="font-size:10px;color:#94a3b8;margin-left:4px">▼</span>
-      </div>
-      <div class="period-selector-bar">
-        <div class="period-stepper">
-          <select id="period-year" class="period-selector-year"><option value="">年</option></select>
-          <div class="stepper-arrows">
-            <button class="stepper-btn stepper-up" onclick="stepPeriodYear(1)" title="下一年">▲</button>
-            <button class="stepper-btn stepper-down" onclick="stepPeriodYear(-1)" title="上一年">▼</button>
-          </div>
-        </div>
-        <div class="period-stepper">
-          <select id="period-month" class="period-selector-month">
-            <option value="">月</option>
-            <option value="01">01月</option><option value="02">02月</option><option value="03">03月</option>
-            <option value="04">04月</option><option value="05">05月</option><option value="06">06月</option>
-            <option value="07">07月</option><option value="08">08月</option><option value="09">09月</option>
-            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
-          </select>
-          <div class="stepper-arrows">
-            <button class="stepper-btn stepper-up" onclick="stepPeriodMonth(1)" title="下一月">▲</button>
-            <button class="stepper-btn stepper-down" onclick="stepPeriodMonth(-1)" title="上一月">▼</button>
-          </div>
-        </div>
-      </div>
-      <button class="btn btn-confirm-period" onclick="globalPeriodConfirm()" title="将顶格栏期间同步到所有模块并刷新数据">确定</button>
-      <button class="btn btn-exit-company" onclick="exitCompany()" title="退出当前账套，返回公司选择">退出本账套</button>
     </div>
   </div>
   <div class="content-area" id="content-area">
