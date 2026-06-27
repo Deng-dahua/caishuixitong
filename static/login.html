@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财税风险防控系统 - 登录</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  background: rgba(255,255,255,0.95);
+  border-radius: 16px;
+  padding: 40px;
+  width: 400px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-card .icon { font-size: 48px; margin-bottom: 8px; }
+.login-card h2 { font-size: 20px; color: #1e293b; margin-bottom: 4px; }
+.login-card .sub { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+.login-card form { display: flex; flex-direction: column; gap: 12px; }
+.login-card input {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s;
+}
+.login-card input:focus { border-color: #2563eb; }
+.login-card button {
+  padding: 14px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .1s;
+}
+.login-card button:active { transform: scale(0.97); }
+.login-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+.toast-msg {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; border-radius: 8px; font-size: 14px;
+  z-index: 9999; display: none;
+}
+.toast-msg.warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.toast-msg.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="icon">🛡️</div>
+  <h2>财税风险防控系统</h2>
+  <p class="sub">请输入您的信息以使用系统</p>
+  <form onsubmit="handleLogin(event)">
+    <input type="text" id="login-name" placeholder="您的姓名" required>
+    <input type="tel" id="login-phone" placeholder="手机号码" required pattern="1[3-9]\d{9}">
+    <button type="submit" id="login-btn">进入系统</button>
+  </form>
+</div>
+
+<div id="toast" class="toast-msg"></div>
+
+<script>
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast-msg ' + (type || 'warning');
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  var name = document.getElementById('login-name').value.trim();
+  var phone = document.getElementById('login-phone').value.trim();
+  if (!name || !phone) { toast('请填写姓名和手机号', 'warning'); return; }
+  if (!/^1[3-9]\d{9}$/.test(phone)) { toast('手机号格式不正确', 'warning'); return; }
+
+  var btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = '进入中...';
+
+  var user = { name: name, phone: phone, loginAt: new Date().toISOString() };
+  localStorage.setItem('taxUser', JSON.stringify(user));
+  // 跳转到主应用
+  window.location.href = '/app';
+}
+</script>
+
+</body>
+</html>

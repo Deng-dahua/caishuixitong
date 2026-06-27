@@ -101,17 +101,9 @@ function getCurrentUser() {
 })();
 
 function handleUserLogin(e) {
+  // 已废弃：登录页分离到 login.html，此函数保留兼容旧代码
   e.preventDefault();
-  var name = document.getElementById('user-login-name').value.trim();
-  var phone = document.getElementById('user-login-phone').value.trim();
-  if (!name || !phone) { toast('请填写姓名和手机号', 'warning'); return; }
-  if (!/^1[3-9]\d{9}$/.test(phone)) { toast('手机号格式不正确', 'warning'); return; }
-  
-  var user = { name: name, phone: phone, loginAt: new Date().toISOString() };
-  localStorage.setItem('taxUser', JSON.stringify(user));
-  document.getElementById('user-register-overlay').style.display = 'none';
-  // 继续正常初始化流程
-  initAppFlow();
+  window.location.href = '/app';
 }
 
 // 分离出应用入口，登录后再调用
@@ -142,9 +134,6 @@ async function loadCompaniesRaw() {
 }
 
 function showRegistration() {
-  // 先确保登录遮罩不挡住建档页
-  const overlay = document.getElementById('user-register-overlay');
-  if (overlay) overlay.style.display = 'none';
   document.getElementById('registration-view').classList.remove('hidden');
   document.getElementById('company-pick-view').classList.add('hidden');
   document.getElementById('app-view').classList.add('hidden');
@@ -268,11 +257,8 @@ function logoutUser() {
   localStorage.removeItem('lastPage');
   currentCompanyId = 0;
   currentCompanyName = '';
-  document.getElementById('app-view').classList.add('hidden');
-  document.getElementById('registration-view').classList.add('hidden');
-  document.getElementById('company-pick-view').classList.add('hidden');
-  document.getElementById('user-register-overlay').style.display = 'flex';
-  document.getElementById('user-register-overlay').style.zIndex = '99999';
+  // 跳转到登录页
+  window.location.href = '/';
 }
 
 // ==================== 全局 AI 自动处理 ====================
@@ -1140,13 +1126,10 @@ function getModulePeriod(prefix) {
 async function init() {
   var user = getCurrentUser();
   if (!user) {
-    // 清除记住的上次选择（因为用户可能已过期）
-    localStorage.removeItem('lastCompanyId');
-    localStorage.removeItem('lastCompanyName');
-    document.getElementById('user-register-overlay').style.display = 'flex';
+    // 未登录 → 跳转回登录页
+    window.location.replace('/');
     return;
   }
-  document.getElementById('user-register-overlay').style.display = 'none';
   return initAppFlow();
 }
 

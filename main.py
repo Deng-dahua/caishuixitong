@@ -455,15 +455,24 @@ class SupplierUpdate(BaseModel):
 
 # ==================== 首页 ====================
 
-@app.get("/", response_class=HTMLResponse)
-async def index():
+def _read_html(filename):
     for enc in ("utf-8-sig", "gbk", "gb18030", "utf-8"):
         try:
-            with open("static/index.html", "r", encoding=enc) as f:
+            with open(filename, "r", encoding=enc) as f:
                 return f.read()
         except (UnicodeDecodeError, LookupError):
             continue
     return "<h1>Encoding error</h1>"
+
+@app.get("/", response_class=HTMLResponse)
+async def login_page():
+    """个人登录页"""
+    return _read_html("static/login.html")
+
+@app.get("/app", response_class=HTMLResponse)
+async def app_page():
+    """主应用（账套选择/系统）"""
+    return _read_html("static/index.html")
 
 
 @app.get("/api/meta/processing-keywords")
@@ -32437,8 +32446,11 @@ def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
         return {"ok": False, "error": str(e)}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    import uvicorn, argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8080)
+    args, _ = parser.parse_known_args()
+    uvicorn.run("main:app", host="0.0.0.0", port=args.port, reload=False)
 
 
 @app.post("/api/tax-risk-rules/check-relevance")
