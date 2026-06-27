@@ -221,6 +221,10 @@
     targetEl.innerHTML = h;
   }
 
+  // ── 挂载到全局 ──
+  window.renderReportBlocks = renderReportBlocks;
+  window.renderBlock = renderBlock;
+
   // ── 驳回处理：老邓点击报告中发现的驳回按钮 ──
   window._dismissTaxFinding = function(btn) {
     try {
