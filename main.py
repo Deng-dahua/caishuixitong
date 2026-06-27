@@ -12132,7 +12132,7 @@ def _parse_invoice_sheet(sheet, direction):
     if not cols: return None
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    start_row = 2 if text_count >= 3 else 1  # row 0有表头则从row 1或2读
+    start_row = 1 if text_count >= 3 else 2  # row 0就是表头→数据从row 1开始; row 0标题行→表头在row 1→数据从row 2开始
     for r in range(start_row, min(nrows, 5000)):
         raw_vals = _get_row_values(sheet, r)
         if _is_summary_row(raw_vals): continue
