@@ -28,11 +28,11 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
   <div class="error-msg" id="error-msg"></div>
   <form id="login-form" onsubmit="return handleLogin()">
     <div class="form-group">
-      <label>姓名</label>
+      <label><span style="color:#dc2626">*</span> 姓名</label>
       <input type="text" id="name" placeholder="请输入您的姓名" autofocus required>
     </div>
     <div class="form-group">
-      <label>手机号码</label>
+      <label><span style="color:#dc2626">*</span> 手机号码</label>
       <input type="tel" id="phone" placeholder="请输入手机号码" required maxlength="11">
     </div>
     <button type="submit" class="btn-login" id="login-btn">登 录</button>
