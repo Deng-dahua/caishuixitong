@@ -668,11 +668,11 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         "finding_detail": finding_detail[:200] if finding_detail else "",
     })
     
-    # 自动升级检查：同一模式被纠正3次以上 → 升级为自动规则
+    # 自动升级检查：同一模式被纠正1次以上 → 升级为自动规则
     correction_count = len(rules[fingerprint]["corrections"])
-    if correction_count >= 3:
+    if correction_count >= 1:
         rules[fingerprint]["auto_apply"] = True
-        rules[fingerprint]["confidence"] = min(0.95, 0.5 + correction_count * 0.1)
+        rules[fingerprint]["confidence"] = min(0.95, 0.5 + correction_count * 0.3)
         rules[fingerprint]["rule"] = _generate_correction_rule(finding_type, industry, biz_model, corrected_risk, reason)
     
     _save_correction_rules(rules)
@@ -682,7 +682,7 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         "fingerprint": fingerprint,
         "correction_count": correction_count,
         "auto_apply": rules[fingerprint]["auto_apply"],
-        "upgraded_to_rule": correction_count >= 3,
+        "upgraded_to_rule": correction_count >= 1,
     }
 
 

@@ -771,7 +771,7 @@ async function renderAgiDashboard(container) {
     h += '<h2 class="hb-section-title"><span class="hb-section-num">四</span> 知识层</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('📚','统一知识库','<code>knowledge_base.py</code> · 9域','政策/因果边/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史。线程安全写锁，全局单例，JSON持久化。','purple');
-    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：模块效率评估(历史运行日志)→反馈规则转化(纠正模式累积≥3→自动规则)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
+    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：模块效率评估(历史运行日志)→反馈规则转化(纠正模式累积≥1→自动规则)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
     h += _agiInfoCard('📈','趋势分析器','<code>trend_analyzer.py</code>','12项指标跨期追踪：毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率。趋势方向：上升/下降/持平。','green');
     h += '</div></section>';
 

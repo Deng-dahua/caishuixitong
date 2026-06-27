@@ -127,12 +127,16 @@
     var f = b.data.finding || {};
     var level = f.level || '中风险';
     var cls = level === '高风险' ? 'finding-high' : (level === '中风险' ? 'finding-mid' : 'finding-low');
-    var h = '<div class="finding-block ' + cls + '">';
+    var findingId = b.data._idx !== undefined ? b.data._idx : (f.fingerprint || '');
+    var h = '<div class="finding-block ' + cls + '" data-finding-id="' + esc(String(findingId)) + '">';
     h += '<div class="finding-title">' + (f.title || f.category || '风险发现') + '</div>';
     if (f.summary) h += '<div class="finding-body">' + esc(f.summary) + '</div>';
     if (f.detail) h += '<div class="finding-detail">' + esc(f.detail) + '</div>';
     if (f.law_ref) h += '<div class="finding-law">法规依据：' + esc(f.law_ref) + '</div>';
     if (f.action) h += '<div class="finding-action">建议：' + esc(f.action) + '</div>';
+    h += '<div class="finding-actions" style="margin-top:8px;text-align:right">';
+    h += '<button class="btn-dismiss" onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type: f.type||'', title: f.title||'', level: f.level||'', category: f.category||'', detail: (f.detail||'').substring(0,200), fingerprint: findingId}).replace(/'/g, "&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer" title="驳回此发现（将自动学习）">❌ 驳回</button>';
+    h += '</div>';
     h += '</div>';
     return h;
   };
@@ -217,8 +221,44 @@
     targetEl.innerHTML = h;
   }
 
-  // 挂载到全局
-  window.renderReportBlocks = renderReportBlocks;
-  window.renderBlock = renderBlock;
-  console.log('[block-renderer] 报告块渲染器已就绪');
+  // ── 驳回处理：老邓点击报告中发现的驳回按钮 ──
+  window._dismissTaxFinding = function(btn) {
+    try {
+      var f = JSON.parse(btn.getAttribute('data-finding'));
+      var reason = prompt('请说明驳回原因（此反馈将记录并用于自学习）：', f.title || '');
+      if (!reason) return;
+      
+      var payload = {
+        action: 'dismiss',
+        finding_type: f.type || '',
+        finding_title: f.title || '',
+        original_level: f.level || '',
+        reason: reason,
+        detail: f.detail || '',
+        fingerprint: f.fingerprint || '',
+        timestamp: new Date().toISOString()
+      };
+      
+      fetch('/api/feedback', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) {
+          btn.textContent = '已驳回';
+          btn.style.borderColor = '#16a34a';
+          btn.style.color = '#16a34a';
+          btn.disabled = true;
+          if (data.upgraded) toast('纠正规则已自动生效（累计1次即升级）', 'success');
+          else toast('已记录纠正反馈', 'success');
+        } else {
+          toast('驳回失败: ' + (data.error || '未知错误'), 'error');
+        }
+      }).catch(function() {
+        toast('网络错误，请重试', 'error');
+      });
+    } catch(e) {
+      console.error('dismiss error:', e);
+    }
+  };
 })();

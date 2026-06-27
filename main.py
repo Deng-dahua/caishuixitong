@@ -7146,6 +7146,33 @@ def submit_audit_feedback(data: dict, db: Session = Depends(get_db)):
     return result
 
 
+@app.post("/api/feedback")
+def submit_feedback(data: dict):
+    """老邓纠正反馈API — 报告发现上的驳回按钮调用
+    请求体：{action: "dismiss", finding_type, finding_title, original_level, reason, detail, fingerprint}
+    """
+    from engine.self_learning import record_correction
+    # 从公司ID推断行业和经营模式（保守默认值）
+    company_id = data.get("company_id", 1)
+    industry = data.get("industry", "综合")
+    biz_model = data.get("biz_model", "未确定")
+    finding_type = data.get("finding_type") or data.get("finding_title") or ""
+    original_level = data.get("original_level") or data.get("level") or "中风险"
+    reason = data.get("reason") or ""
+    detail = data.get("detail") or ""
+    
+    result = record_correction(
+        finding_type=finding_type,
+        industry=industry,
+        biz_model=biz_model,
+        original_risk=original_level,
+        corrected_risk="低风险（用户驳回）",
+        reason=reason,
+        finding_detail=detail
+    )
+    return {"ok": True, "recorded": result["recorded"], "auto_rule": result.get("auto_apply", False), "count": result.get("correction_count", 0)}
+
+
 @app.get("/api/audit/capabilities")
 def get_capabilities():
     """能力矩阵API — 侧边栏动态读取，引擎吐出自己的25维能力"""
