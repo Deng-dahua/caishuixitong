@@ -49,6 +49,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.phase4_synthesis import _phase4_synthesis
     from engine.orchestrator import build_data_profile, build_orchestration_plan
     from engine.memory import save_analysis_memory, query_similar_cases
+    from engine.context import AuditContext
     
     def _report(progress, msg):
         """报告进度"""
