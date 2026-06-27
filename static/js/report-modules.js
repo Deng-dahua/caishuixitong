@@ -469,9 +469,19 @@ var ReportEngine = (function() {
   }
 
   // ── 工具函数 ──
+  // 全局统一：金额数字一律保留2位小数
   function _fmtMoney(v) {
     if (v === undefined || v === null) return '';
-    if (typeof v === 'number') return v.toLocaleString('zh-CN');
+    if (typeof v === 'number') {
+      if (Math.abs(v) >= 10000) return (v/10000).toFixed(2) + '万';
+      return v.toFixed(2);
+    }
+    // 尝试解析字符串
+    var n = parseFloat(v);
+    if (!isNaN(n)) {
+      if (Math.abs(n) >= 10000) return (n/10000).toFixed(2) + '万';
+      return n.toFixed(2);
+    }
     return String(v);
   }
 
@@ -1342,7 +1352,7 @@ var ReportEngine = (function() {
           h += '<table class="tbl2 evidence-tbl" style="font-size:11px"><tr>';
           h += '<th>来源</th><th>引用ID</th><th>描述</th><th>金额</th><th>对方</th><th>日期</th></tr>';
           f.evidence_rows.forEach(function(er){
-            var amt = er.amount ? (er.amount >= 10000 ? (er.amount/10000).toFixed(1)+'万' : er.amount.toLocaleString()) : '-';
+            var amt = er.amount ? _fmtMoney(er.amount) : '-';
             var refId = esc(er.ref_id||'-');
             var source = esc(er.source||'');
             var anchorId = 'ev-' + source.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'') + '-' + refId.replace(/[^a-zA-Z0-9]/g,'');
@@ -1480,7 +1490,7 @@ var ReportEngine = (function() {
         h += '<table class="tbl2" style="margin-top:12px"><tr><th>排名</th><th>实体名称</th><th>角色</th><th>交易总额</th><th>异常标记</th></tr>';
         eg.top_entities.forEach(function(e, ei){
           var roles = (e.roles||[]).join(' / ');
-          var amt = e.amount >= 10000 ? (e.amount/10000).toFixed(1)+'万' : e.amount.toLocaleString();
+          var amt = _fmtMoney(e.amount);
           var anomaly = e.roles && e.roles.length >= 2 ? '⚠️ 多重身份' : '';
           h += '<tr><td>' + (ei+1) + '</td><td><b>' + esc(e.name||'') + '</b></td><td>' + esc(roles) + '</td><td style="text-align:right">' + amt + '</td><td style="color:#f59e0b">' + anomaly + '</td></tr>';
         });

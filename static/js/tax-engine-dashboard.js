@@ -601,8 +601,8 @@ function fmtMoney(v) {
   if (!v && v !== 0) return '-';
   var n = Number(v);
   if (Math.abs(n) >= 100000000) return (n / 100000000).toFixed(2) + ' 亿';
-  if (Math.abs(n) >= 10000) return (n / 10000).toFixed(0) + ' 万';
-  return n.toLocaleString('zh-CN') + ' 元';
+  if (Math.abs(n) >= 10000) return (n / 10000).toFixed(2) + ' 万';
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' 元';
 }
 
 function esc(s) {

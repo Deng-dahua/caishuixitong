@@ -23,7 +23,7 @@
 
   function fmtMoney(v) {
     if (v === undefined || v === null || v === '') return '';
-    return Number(v).toLocaleString('zh-CN');
+    return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   // ── block 渲染函数映射 ──

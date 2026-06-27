@@ -370,7 +370,16 @@ function esc(s) {
 
 function _fmt(v, dft) {
   if (v === undefined || v === null) return dft !== undefined ? dft : '';
-  if (typeof v === 'number') return v.toLocaleString ? v.toLocaleString('zh-CN') : String(v);
+  if (typeof v === 'number') {
+    if (Math.abs(v) >= 10000) return (v/10000).toFixed(2) + '万';
+    return v.toFixed(2);
+  }
+  // 尝试解析字符串数字
+  var n = parseFloat(v);
+  if (!isNaN(n)) {
+    if (Math.abs(n) >= 10000) return (n/10000).toFixed(2) + '万';
+    return n.toFixed(2);
+  }
   return String(v);
 }
 
