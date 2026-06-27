@@ -10105,6 +10105,25 @@ async def upload_tax_risk_docs(
         safe_name = f"{company_id}_{doc_id}_{f.filename}"
         company_udir = _get_company_upload_dir(company_id)
         filepath = os.path.join(company_udir, safe_name)
+        
+        # ═══ 同名覆盖：删除公司目录下同名旧文件（同一份资料只保留最新版）═══
+        _removed_old = 0
+        if os.path.exists(company_udir):
+            for _old_fname in os.listdir(company_udir):
+                # 旧文件名格式: {cid}_{docid}_{original_name}
+                _parts = _old_fname.split("_", 2)
+                if len(_parts) >= 3 and _parts[2] == f.filename:
+                    _old_path = os.path.join(company_udir, _old_fname)
+                    try:
+                        os.remove(_old_path)
+                        _removed_old += 1
+                    except Exception:
+                        pass
+                    # 同步从内存列表中移除
+                    _tax_risk_docs[:] = [d for d in _tax_risk_docs if d.get("original_name") != f.filename or d.get("company_id") != company_id]
+        if _removed_old > 0:
+            pass  # 旧文件已从磁盘和内存列表中移除
+        
         file_saved = False
         try:
             with open(filepath, "wb") as fw:

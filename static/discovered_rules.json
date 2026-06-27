@@ -1024,5 +1024,61 @@
     "action": "自动更新广告服务行业风险基准为74.3分",
     "discovered_at": "2026-06-27T11:04:36.638330",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-0",
+    "industry": "现代服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在41家现代服务企业中，41家(100%)出现此信号",
+    "action": "该信号在现代服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-06-27T11:17:52.244095",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 77.4,
+    "sample_size": 41,
+    "action": "自动更新现代服务行业风险基准为77.4分",
+    "discovered_at": "2026-06-27T11:17:52.244108",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-2",
+    "industry": "广告服务",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在8家广告服务企业中，8家(100%)出现此信号",
+    "action": "该信号在广告服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-06-27T11:17:52.244122",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-3",
+    "industry": "广告服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在8家广告服务企业中，8家(100%)出现此信号",
+    "action": "该信号在广告服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-06-27T11:17:52.244124",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "广告服务",
+    "avg_risk_score": 73.3,
+    "sample_size": 8,
+    "action": "自动更新广告服务行业风险基准为73.3分",
+    "discovered_at": "2026-06-27T11:17:52.244127",
+    "source": "audit_memory.json"
   }
 ]
