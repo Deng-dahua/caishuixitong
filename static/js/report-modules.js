@@ -811,13 +811,20 @@ var ReportEngine = (function() {
       var hasProcessing = _isProcessingApplicable(ga, te.industry);
 
       // ── 提取原始数字用于交叉计算 ──
+      // 优先使用后端原始数值（统计字段），兜底从格式化字符串解析
       function _parseNum(str) {
         if (!str) return 0;
-        var m = String(str).match(/[\d,]+\.?\d*/);
-        return m ? parseFloat(m[0].replace(/,/g, '')) : 0;
+        // 匹配金额后面的数字（"金额209,223.00元"→209223）
+        var m = String(str).match(/金额([\d,]+\.?\d*)/);
+        if (m) return parseFloat(m[1].replace(/,/g, ''));
+        // 兜底：取最后一个数字
+        var all = String(str).match(/[\d,]+\.?\d*/g);
+        if (all && all.length > 0) return parseFloat(all[all.length-1].replace(/,/g, ''));
+        return 0;
       }
       function _parseCount(str) {
         if (!str) return 0;
+        // 匹配开头数字（"8张"→8 或 "8行"→8）
         var m = String(str).match(/^(\d+)/);
         return m ? parseInt(m[1]) : 0;
       }
@@ -831,14 +838,12 @@ var ReportEngine = (function() {
         return b > 0 ? ((a / b - 1) * 100).toFixed(2) : '0.00';
       }
 
-      // 解析发票数据
-      var salStr = ii['销项发票'] || '';
-      var purStr = ii['进项发票'] || '';
-      var salCount = _parseCount(salStr);
-      var salAmt = _parseNum(salStr);
-      var purCount = _parseCount(purStr);
-      var purAmt = _parseNum(purStr);
-      var ioRatio = _ratio(purAmt, salAmt);
+      // 优先用后端统计数据（raw numbers），兜底从字符串解析
+      var invStats = ii['统计'] || {};
+      var salCount = invStats['销项发票张数'] || _parseCount(ii['销项发票']);
+      var salAmt = invStats['销项金额合计'] || _parseNum(ii['销项发票']);
+      var purCount = invStats['进项发票张数'] || _parseCount(ii['进项发票']);
+      var purAmt = invStats['进项金额合计'] || _parseNum(ii['进项发票']);
       
       // 解析银行数据
       var bankRecv = _parseNum(bi['总收款']);

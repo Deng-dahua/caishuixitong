@@ -26795,5 +26795,19 @@
     "auto_discovered_at": "2026-06-26T15:57:19.848868",
     "severity": "中",
     "enabled": true
+  },
+  {
+    "id": 999506,
+    "type": "auto_signal",
+    "rule_category": "自动发现",
+    "industry": "广告服务",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在5家广告服务企业中，5家(100%)出现此信号",
+    "action": "该信号在广告服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "auto_discovered_at": "2026-06-27T10:52:37.673728",
+    "severity": "中",
+    "enabled": true
   }
 ]
