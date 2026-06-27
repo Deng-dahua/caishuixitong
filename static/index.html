@@ -68,13 +68,22 @@
     <p class="pick-card-subtitle">请选择要进入的公司账套</p>
     <ul id="pick-list" class="pick-list"></ul>
     <div class="pick-new-btn-container">
-      <button class="pick-new-btn" onclick="showRegistration()">创建新公司</button>
+      <button class="pick-new-btn" id="btn-create-company" onclick="showRegistration()">创建新公司</button>
     </div>
     <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.06)">
-      <a onclick="logoutUser()" style="color:#94a3b8;font-size:13px;cursor:pointer;text-decoration:none">退出登录</a>
+      <a onclick="logoutUser()" id="link-logout" style="color:#94a3b8;font-size:13px;cursor:pointer;text-decoration:none">退出登录</a>
     </div>
   </div>
 </div>
+<script>
+// 立即绑定账套选择页按钮（不依赖 defer/DOMContentLoaded 时序）
+(function() {
+  var b = document.getElementById('btn-create-company');
+  if (b && !b._inlined) { b._inlined = true; b.onclick = function(e){ e.preventDefault(); showRegistration(); }; }
+  var l = document.getElementById('link-logout');
+  if (l && !l._inlined) { l._inlined = true; l.onclick = function(e){ e.preventDefault(); logoutUser(); }; }
+})();
+</script>
 
 <!-- ====== 主应用 ====== -->
 <div id="app-view" class="hidden">
