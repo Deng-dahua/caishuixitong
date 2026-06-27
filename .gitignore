@@ -14,3 +14,4 @@ server.log
 static/uploads/
 auth.json
 sessions.json
+sessions.json
