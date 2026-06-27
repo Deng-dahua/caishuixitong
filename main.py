@@ -482,7 +482,19 @@ def get_pinyin(name: str = Query(...)):
 @app.get("/{user_name}/xuanzezhangtao/", response_class=HTMLResponse)
 async def app_page(user_name: str, request: Request):
     """账套选择页/主应用"""
-    return _read_html("static/index.html")
+    html = _read_html("static/index.html")
+    try:
+        from database import SessionLocal, Company
+        db = SessionLocal()
+        companies = db.query(Company).order_by(Company.id).all()
+        company_data = [{"id": c.id, "name": c.name, "uscc": c.uscc or ""} for c in companies]
+        import json as _json
+        inject = "<script>window.__PRELOAD_COMPANIES__ = " + _json.dumps(company_data, ensure_ascii=False) + ";</script>"
+        html = html.replace("</head>", inject + "\n</head>")
+        db.close()
+    except:
+        pass
+    return html
 
 @app.get("/{user_name}/xinjianzhangtao/", response_class=HTMLResponse)
 async def register_page(user_name: str):
