@@ -162,8 +162,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 # 检查表头是否有工资关键词
                                 hdr_text = " ".join(str(v) for v in _header)
                                 is_salary = any(k in hdr_text for k in ["工资","代扣社保","养老保险","本期收入","实发","个税","应纳税","累计收入","费用类型","所得项目"])
+                                is_deduction = any(k in hdr_text for k in ["有效抵扣税额","勾选状态","勾选时间","用途确认","抵扣勾选","不抵扣","认证状态"])
+                                is_sales_inv = any(k in hdr_text for k in ["购买方名称","购买方纳税人识别号"]) and not any(k in hdr_text for k in ["销售方名称","销售方纳税人识别号"])
+                                is_pur_inv = any(k in hdr_text for k in ["销售方名称","销售方纳税人识别号"]) and not any(k in hdr_text for k in ["购买方名称","购买方纳税人识别号"])
                                 inferred_type = "generic_data"
                                 if is_salary: inferred_type = "salary"
+                                elif is_deduction: inferred_type = "input_vat_deduction"
+                                elif is_sales_inv: inferred_type = "sales_invoice"
+                                elif is_pur_inv: inferred_type = "purchase_invoice"
                                 elif has_date and has_amount and has_name: inferred_type = "bank_statement"
                                 elif has_date and has_amount: inferred_type = "voucher"
                                 parsed = {"type": inferred_type, "rows": rows}
@@ -497,7 +503,12 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
-    _report(95, f"文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张 银行流水{len(bank_txs)}条")
+    suspect_invs = [i for i in invoices if i["direction"] == "存疑"]
+    _report(95, f"文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张" + (f" 存疑{len(suspect_invs)}张" if suspect_invs else ""))
+    
+    # 存疑发票不参与分析，但记录在案
+    if suspect_invs:
+        pipeline_log.append(f"[ISOLATION] {len(suspect_invs)}张发票买卖双方均不匹配当前公司，已排除出分析（防A账套混入B公司资料）")
     
     # ═══════════════════════════════════════
     # Phase 1: 确定分析对象 → 反推发票方向校正
