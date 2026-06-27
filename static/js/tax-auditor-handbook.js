@@ -204,14 +204,14 @@ function renderAuditorHandbook(container) {
   // 3.1 报告结构
   html += '<h3 class="hb-subtitle">3.1 标准分析报告结构（7章·正式法律文书）</h3>';
   html += '<table class="hb-table hb-table-striped">';
-  html += '<thead><tr><th style="width:40px;">章</th><th>内容</th><th style="width:200px;">汇报视角</th></tr></thead><tbody>';
-  html += '<tr><td class="hb-td-num">一</td><td>案件来源及稽查对象基本情况</td><td>受理依据+联网核查结果+工商信息表</td></tr>';
-  html += '<tr><td class="hb-td-num">二</td><td>稽查实施情况</td><td>六种稽查方法+经营实质核查+资金流/发票流分析</td></tr>';
-  html += '<tr><td class="hb-td-num">三</td><td>稽查结论</td><td>风险评级+发现统计+线索链覆盖+主要高风险事项</td></tr>';
-  html += '<tr><td class="hb-td-num">四</td><td>稽查发现问题及事实认定</td><td>逐项标注调查过程→线索链→证据→法律→建议</td></tr>';
-  html += '<tr><td class="hb-td-num">五</td><td>处理处罚建议</td><td>向领导汇报处理意见+请求审议</td></tr>';
-  html += '<tr><td class="hb-td-num">六</td><td>告知权利义务</td><td>被查单位法定权利告知</td></tr>';
-  html += '<tr><td class="hb-td-num">七</td><td>签字</td><td>稽查执行人签名+日期</td></tr>';
+  html += '<thead><tr><th style="width:40px;">章</th><th>内容</th><th style="width:280px;">汇报视角</th></tr></thead><tbody>';
+  html += '<tr><td class="hb-td-num">一</td><td>案件来源及稽查对象基本情况</td><td><strong>立案定性：</strong>交代案件来龙去脉（谁交办的/系统推送/举报/转办）→联网核查结果（工商状态/经营异常/关联企业）→被查单位工商登记全貌（法定代表人/注册资本/经营范围/股权结构/历史变更）→划定稽查期间与资料范围</td></tr>';
+  html += '<tr><td class="hb-td-num">二</td><td>稽查实施情况</td><td><strong>方法论汇报：</strong>采用的检查手段（资料审阅/数据分析/交叉比对/外部协查/实地核查/询问笔录）→经营实质核查结论（注册地址与实际经营是否一致/有无空壳嫌疑）→资金流与发票流双向核对结果（收款匹配销项+付款匹配进项）→供应链穿透分析（供应商/客户集中度与关联关系）</td></tr>';
+  html += '<tr><td class="hb-td-num">三</td><td>稽查结论</td><td><strong>定调性结论：</strong>金税四期式多因子综合评分→风险等级定性（极高/高/中/低）→发现统计（按风险等级分列数量+占比）→激活的线索链覆盖范围→列举主要高风险事项（不展开细节，点到为止）→证据链完整性声明+稽查局限性声明（缺资料导致的盲区如实报告）</td></tr>';
+  html += '<tr><td class="hb-td-num">四</td><td>稽查发现问题及事实认定</td><td><strong>逐项说理：</strong>每条发现按照"调查过程→事实认定→证据溯源（规则ID+线索链+原始数据）→关联发现交叉引用→证伪验证结果→替代假设讨论→法律依据→税务影响→处理建议"的完整链条展开。高风险事项优先，每一项都可独立成篇，领导可逐条审阅</td></tr>';
+  html += '<tr><td class="hb-td-num">五</td><td>处理处罚建议</td><td><strong>决策支持：</strong>按优先级分列处理建议（P0立即处理/P1限期整改/P2持续关注）→每项简述处理措施+预期效果+紧迫性理由→附量化预估（补税金额/罚款倍数/滞纳天数）→呈领导审议决策</td></tr>';
+  html += '<tr><td class="hb-td-num">六</td><td>告知权利义务</td><td><strong>程序正义：</strong>告知被查单位法定权利（陈述申辩权/申请回避权/要求听证权/申请复议权/提起行政诉讼权）→注明法定期限→程序合规声明</td></tr>';
+  html += '<tr><td class="hb-td-num">七</td><td>签字</td><td><strong>责任锚定：</strong>稽查执行人亲笔签名（不得代签/不得打印）→注明执法证件号→写明报告日期（精确到日）→归档编号</td></tr>';
   html += '</tbody></table>';
   html += '<div class="hb-callout hb-callout-info">📜 本报告结构同时覆盖《规程》第42条（稽查报告10项）和第54条（审理报告6项）的全部要求。</div>';
 
