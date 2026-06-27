@@ -10599,21 +10599,13 @@ def _parse_generic_table(sheet, header):
 
 def _parse_bank_sheet(sheet):
     """解析银行流水：自适应表头+提取交易记录"""
-    # 扫描前5行找到真正的表头行（跳过标题/空行）
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    header_row = 0
-    header = []
-    kw_bank = {"交易日期", "记账日期", "对方户名", "对方账号", "收入金额", "支出金额",
-               "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言",
-               # 双语表头
-               "Transaction Date", "Counterparty", "Debit Amount", "Credit Amount",
-               "Bank Name", "Currency", "Order", "Notes"}
-    for r in range(min(8, nrows)):
-        h = _get_row_values(sheet, r)
-        if sum(1 for v in h if any(k in str(v) for k in kw_bank)) >= 2:
-            header = h; header_row = r; break
-    if not header:
-        header = _get_row_values(sheet, 0)
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "交易日期", "记账日期", "对方户名", "对方账号", "收入金额", "支出金额",
+        "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言",
+        "Transaction Date", "Counterparty", "Debit Amount", "Credit Amount"
+    ])
+    header = _get_row_values(sheet, header_row)
     
     cols = _find_cols_semantic(header, {
         # 中文列名
@@ -11211,6 +11203,41 @@ def _get_row_values(sheet, row_idx):
         return [str(sheet.cell_value(row_idx, c)) for c in range(sheet.ncols)]
     except:
         return []
+
+# ═══════════════ 通用表头检测（自适应任何行位置）═══════════════
+# 核心哲学：人类看表格时自动扫描前几行找到"列名行"——系统也这样做
+# 不再硬编码"表头在第1行"或"表头在第2行"
+
+def _detect_header_row(sheet, nrows, column_keywords, scan_rows=20):
+    """扫描前N行，找到包含最多列名关键词的那一行，返回该行索引。
+    
+    工作原理：
+    1. 对第0到scan_rows-1行，每行统计含有的column_keywords数量（打分）
+    2. 返回得分最高的行号（即表头行）
+    3. 若最高分<2，说明前20行都不像表头→回退到第0行（安全兜底，不会报错）
+    
+    返回: (header_row_idx, header_scores_dict)
+    - header_row_idx: 表头行索引（0-based）
+    - header_scores_dict: {row_idx: score} 用于诊断
+    """
+    scores = {}
+    for r in range(min(scan_rows, nrows)):
+        row_vals = _get_row_values(sheet, r)
+        # 拼接所有单元格为纯文本（忽略格式，只看内容）
+        row_text = " ".join(str(v) for v in row_vals if v)
+        # 统计命中的列名关键词（因为同义词多，允许模糊匹配）
+        score = sum(1 for kw in column_keywords if kw in row_text)
+        if score > 0:
+            scores[r] = score
+    if not scores:
+        return 0, {}  # 没有匹配到任何关键词→回退第0行
+
+    # 取最高分
+    best_row = max(scores, key=scores.get)
+    best_score = scores[best_row]
+    if best_score < 2:
+        return 0, scores  # 最高分<2→不像表头→回退第0行
+    return best_row, scores
 
 # ═══════════════ 语义化列检测 ═══════════════
 # 核心哲学：不依赖精确列名匹配，而是理解列的「语义角色」
@@ -12084,7 +12111,11 @@ def _parse_by_structure_only(sheet):
 def _parse_input_vat_sheet(sheet):
     """解析进项认证抵扣明细"""
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    header = _get_row_values(sheet, 0)
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "数电发票号码", "发票代码", "发票号码", "开票日期",
+        "金额", "税额", "有效抵扣税额", "勾选状态", "发票来源"
+    ])
+    header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {
         "数电发票号码": "digital_invoice_no", "发票代码": "invoice_code",
         "发票号码": "invoice_no", "开票日期": "date",
@@ -12095,7 +12126,8 @@ def _parse_input_vat_sheet(sheet):
     })
     if not cols: return None
     rows = []
-    for r in range(1, min(nrows, 5000)):
+    start_row = header_row + 1
+    for r in range(start_row, min(nrows, 5000)):
         vals = {}
         for field, col in cols.items():
             try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
@@ -12109,11 +12141,13 @@ def _parse_input_vat_sheet(sheet):
     return {"type": "input_vat_deduction", "rows": rows, "sub_type": "进项认证抵扣"}
 
 def _parse_invoice_sheet(sheet, direction):
-    # 智能表头检测：row 0 或 row 1
-    header = _get_row_values(sheet, 0)
-    text_count = sum(1 for v in header if isinstance(v, str) and len(str(v)) >= 2)
-    if text_count < 3:
-        header = _get_row_values(sheet, 1)
+    # ═══ 自适应表头检测：扫描前20行找真正的列名行 ═══
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "发票号码", "发票代码", "数电发票号码", "开票日期", "购方名称", "销方名称",
+        "金额", "税额", "价税合计", "货物或应税劳务名称", "规格型号", "数量", "单价"
+    ])
+    header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {
         "发票类型": "inv_type", "发票号码": "inv_no", "发票代码": "inv_code",
         "购方名称": "buyer", "购方税号": "buyer_tax", "购买方名称": "buyer", "购买方纳税人识别号": "buyer_tax",
@@ -12131,8 +12165,7 @@ def _parse_invoice_sheet(sheet, direction):
     })
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    start_row = 1 if text_count >= 3 else 2  # row 0就是表头→数据从row 1开始; row 0标题行→表头在row 1→数据从row 2开始
+    start_row = header_row + 1  # 数据从表头的下一行开始
     for r in range(start_row, min(nrows, 5000)):
         raw_vals = _get_row_values(sheet, r)
         if _is_summary_row(raw_vals): continue
@@ -12231,17 +12264,13 @@ def _parse_related_party_sheet(sheet, header):
     return rows
 
 def _parse_salary_sheet(sheet):
-    # 智能表头检测：扫描行0-6，选关键词命中最多的一行
+    # ═══ 自适应表头检测 ═══
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    best_header = _get_row_values(sheet, 0)
-    best_score = sum(1 for kw in ["姓名","工号","工资","本期收入"] if any(kw in str(h) for h in best_header))
-    for r in range(min(7, nrows)):
-        candidate = _get_row_values(sheet, r)
-        score = sum(1 for kw in ["姓名","工号","工资","本期收入","应发","实发","证件","身份证","应税"] if any(kw in str(h) for h in candidate))
-        if score > best_score:
-            best_score = score
-            best_header = candidate
-    header = best_header
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "姓名", "工号", "工资", "本期收入", "应发", "实发", "证件", "身份证",
+        "应税", "应纳税所得额", "代扣个税", "基本养老保险", "住房公积金"
+    ])
+    header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {
         "姓名": "name", "员工": "name", "姓名/员工": "name",
         "证件号码": "id_card", "工资": "salary",
@@ -12268,37 +12297,8 @@ def _parse_salary_sheet(sheet):
     })
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    # 智能定位数据起始行：跳过标题行和表头行
-    start_row = 1
-    # 从第0行开始找第一个有数据行（有姓名或数字开头）
-    for r in range(min(10, nrows)):
-        row_vals = _get_row_values(sheet, r)
-        # 如果该行有姓名列的值（不是表头关键词），说明是数据起始行
-        has_name = False
-        if cols.get("name") is not None:
-            try:
-                v = str(row_vals[cols["name"]]).strip() if cols["name"] < len(row_vals) else ""
-                if v and v not in ("姓名","员工","人员") and not v.startswith("企业"):
-                    has_name = True
-            except: pass
-        if has_name:
-            start_row = r
-            break
-        # 如果该行第一列是数字（序号），也判断为数据起始行
-        try:
-            first_val = str(row_vals[0]).strip() if len(row_vals) > 0 else ""
-            if first_val.isdigit():
-                start_row = r
-                break
-        except: pass
-    else:
-        # 没找到数据起始行，从表头+1开始
-        for r in range(min(6, nrows)):
-            h = _get_row_values(sheet, r)
-            if sum(1 for v in h if "姓名" in str(v) or "工号" in str(v) or "序号" in str(v)) >= 1:
-                start_row = r + 1
-                break
+    # 使用已检测到的表头行：数据从表头下一行开始
+    start_row = header_row + 1
     for r in range(start_row, min(nrows, 500)):
         raw_vals = _get_row_values(sheet, r)
         vals = {}
@@ -12363,13 +12363,17 @@ def _parse_social_sheet(sheet, header):
     return rows
 
 def _parse_voucher_sheet(sheet):
-    header = _get_row_values(sheet, 1)
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "日期", "凭证字号", "凭证号", "摘要", "科目", "借方", "贷方"
+    ])
+    header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no", "摘要": "summary",
         "科目": "account", "借方": "debit", "贷方": "credit"})
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(2, min(nrows, 5000)):
+    start_row = header_row + 1
+    for r in range(start_row, min(nrows, 5000)):
         raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
@@ -12385,16 +12389,12 @@ def _parse_voucher_sheet(sheet):
     return {"type": "voucher", "rows": rows}
 
 def _parse_inventory_sheet(sheet):
-    # 扫描前5行找到表头行
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    header_row = 0
-    header = []
-    for r in range(min(5, nrows)):
-        h = _get_row_values(sheet, r)
-        if sum(1 for v in h if any(k in str(v) for k in ("日期","凭证","入库","出库","存货","数量","金额"))) >= 2:
-            header = h; header_row = r; break
-    if not header:
-        header = _get_row_values(sheet, 0); header_row = 0
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "日期", "凭证", "入库", "出库", "存货", "数量", "金额",
+        "产品编码", "产品名称", "期初库存", "期末库存", "本期入库", "本期出库"
+    ])
+    header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no",
         "入库": "in_qty", "出库": "out_qty", "存货": "item", "数量": "qty", "金额": "amount"})
     if not cols: return None
