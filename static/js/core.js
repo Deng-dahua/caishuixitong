@@ -1161,16 +1161,19 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  // 预绑定账套选择页按钮（确保第一时间生效，不依赖 init 流程）
+  _startApp();
+});
+
+// 兜底：如果脚本执行时 DOM 已载入，直接启动
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  _startApp();
+}
+
+function _startApp() {
   _bindPickPageButtons();
   init().catch(function (e) {
     console.error('初始化失败', e);
   });
-});
-
-// 兜底：如果脚本执行时 DOM 已载入，直接绑定
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  _bindPickPageButtons();
 }
 
 function _bindPickPageButtons() {
