@@ -12,24 +12,26 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 .top-bar .logout{color:#94a3b8;font-size:13px;cursor:pointer;background:none;border:1px solid rgba(255,255,255,0.2);padding:6px 16px;border-radius:6px;color:#e2e8f0}
 .top-bar .logout:hover{background:rgba(255,255,255,0.1)}
 .container{max-width:960px;margin:0 auto;padding:40px 24px}
-.header{text-align:center;margin-bottom:40px}
+.header{text-align:center;margin-bottom:24px}
 .header h1{font-size:24px;font-weight:700;color:#f1f5f9;margin-bottom:8px}
-.header p{font-size:14px;color:#94a3b8}
+.header p{font-size:14px;color:#94a3b8;margin-bottom:20px}
+.btn-new{display:inline-block;padding:10px 28px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:background 0.2s}
+.btn-new:hover{background:#1d4ed8}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;cursor:pointer;transition:all 0.2s}
+.card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;position:relative;cursor:pointer;transition:all 0.2s}
 .card:hover{background:rgba(255,255,255,0.12);border-color:rgba(37,99,235,0.5);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
-.card .name{font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:8px}
+.card .name{font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:8px;padding-right:32px}
 .card .meta{font-size:13px;color:#94a3b8;line-height:1.8}
 .card .status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-top:8px}
 .card .status.active{background:rgba(22,163,74,0.2);color:#4ade80}
 .card .status.inactive{background:rgba(239,68,68,0.2);color:#f87171}
+.card .btn-del{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#f87171;font-size:14px;line-height:28px;text-align:center;cursor:pointer;transition:all 0.2s}
+.card .btn-del:hover{background:rgba(239,68,68,0.3);color:#fca5a5}
 .loading{text-align:center;color:#94a3b8;padding:60px}
 .empty{text-align:center;padding:60px}
 .empty .empty-icon{font-size:48px;margin-bottom:16px}
 .empty p{color:#94a3b8;font-size:15px}
 .empty .btn{display:inline-block;margin-top:16px;padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none}
-.btn-add{display:block;text-align:center;padding:24px;border:2px dashed rgba(255,255,255,0.15);border-radius:12px;color:#94a3b8;cursor:pointer;font-size:14px;transition:all 0.2s}
-.btn-add:hover{border-color:rgba(37,99,235,0.4);color:#e2e8f0}
 </style>
 </head>
 <body>
@@ -41,6 +43,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
   <div class="header">
     <h1>选择账套</h1>
     <p>选择一个公司开始稽查工作</p>
+    <a href="/new-company" class="btn-new">+ 新建账套</a>
   </div>
   <div class="loading" id="loading">加载中...</div>
   <div class="grid" id="company-grid" style="display:none"></div>
@@ -53,7 +56,6 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 
 <script>
 async function init() {
-  // 读取登录时设置的用户名
   var name = document.cookie.split('; ').find(function(c){ return c.startsWith('user_name='); });
   if (name) document.getElementById('user-name').textContent = decodeURIComponent(name.split('=')[1]);
   
@@ -78,10 +80,14 @@ async function init() {
     companies.forEach(function(c) {
       var card = document.createElement('div');
       card.className = 'card';
-      card.onclick = function() { selectCompany(c.id); };
+      card.onclick = function(e) {
+        if (e.target.classList.contains('btn-del')) return;
+        selectCompany(c.id);
+      };
       
       var statusClass = (c.status === '存续' || c.status === '正常' || c.status === 'active') ? 'active' : 'inactive';
       card.innerHTML = 
+        '<button class="btn-del" title="删除此账套">&times;</button>' +
         '<div class="name">' + (c.name || c.company_name || '未命名') + '</div>' +
         '<div class="meta">' +
         (c.uscc ? '信用代码：' + c.uscc.substring(0,18) + '<br>' : '') +
@@ -90,16 +96,16 @@ async function init() {
         '</div>' +
         '<span class="status ' + statusClass + '">' + (c.status || '未核实') + '</span>';
       
+      // 删除按钮事件
+      var delBtn = card.querySelector('.btn-del');
+      delBtn.onclick = function(e) {
+        e.stopPropagation();
+        deleteCompany(c.id, c.name);
+      };
+      
       grid.appendChild(card);
-      card.style.order = -(c.id || 0);  // 最新创建的排前面
+      card.style.order = -(c.id || 0);
     });
-    
-    // 底部新增加号
-    var addBtn = document.createElement('div');
-    addBtn.className = 'btn-add';
-    addBtn.textContent = '+ 新建账套';
-    addBtn.onclick = function() { window.location.href = '/new-company'; };
-    grid.appendChild(addBtn);
     
   } catch(e) {
     document.getElementById('loading').innerHTML = '加载失败，请刷新重试';
@@ -122,13 +128,26 @@ async function selectCompany(cid) {
   }
 }
 
+async function deleteCompany(cid, cname) {
+  if (!confirm('确定删除账套「' + (cname || '') + '」吗？此操作不可恢复。')) return;
+  try {
+    var resp = await fetch('/api/companies/' + cid, { method: 'DELETE' });
+    var data = await resp.json();
+    if (data.ok) {
+      window.location.reload();
+    } else {
+      alert(data.detail || data.message || '删除失败');
+    }
+  } catch(e) {
+    alert('删除失败，请重试');
+  }
+}
+
 async function doLogout() {
   await fetch('/api/auth/logout', {method: 'POST'});
   window.location.href = '/login';
 }
 
-// 显示用户名
-fetch('/api/auth/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}).catch(function(){});
 init();
 </script>
 </body>
