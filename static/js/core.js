@@ -117,16 +117,24 @@ async function initAppFlow() {
     return;
   }
 
-  // 从账套选择页点击后重载，自动进入已选公司
-  var lastId = localStorage.getItem('lastCompanyId');
-  var lastName = localStorage.getItem('lastCompanyName');
-  if (lastId && lastName && companies && companies.length > 0) {
-    var found = companies.find(function(c) { return String(c.id) === String(lastId); });
-    if (found) {
-      enterApp(found.id, found.name);
-      return;
+  // 从账套选择页点击后重载（URL带?_参数），自动进入已选公司
+  if (window.location.search.indexOf('_=') !== -1 || window.location.search.indexOf('?_') !== -1) {
+    var lastId = localStorage.getItem('lastCompanyId');
+    var lastName = localStorage.getItem('lastCompanyName');
+    if (lastId && lastName && companies && companies.length > 0) {
+      var found = companies.find(function(c) { return String(c.id) === String(lastId); });
+      if (found) {
+        localStorage.removeItem('lastCompanyId');
+        localStorage.removeItem('lastCompanyName');
+        enterApp(found.id, found.name);
+        return;
+      }
     }
   }
+
+  // 直接访问时清除上次选择，显示选择页
+  localStorage.removeItem('lastCompanyId');
+  localStorage.removeItem('lastCompanyName');
 
   // 始终进入账套选择页（不自动进入、不自动跳建档页）
   showCompanyPick(companies);
