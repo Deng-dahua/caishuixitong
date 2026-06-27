@@ -62,6 +62,22 @@ class AuditContext:
         self.customer_concentration = 0  # 客户集中度(%)
         self.data_quality_score = 0     # 资料质量评分(0-100)
         self.missing_critical_docs = [] # 缺失的关键资料
+        self.missing_doc_keys = []      # 缺失的14类资料key列表（供Phase 4缺失后果触发用）
+        self.all_findings = []          # 所有阶段的发现汇总
+        self.file_results = []          # 文件解析结果
+        self.industry_profile = None    # 行业画像（_load_industry_profile返回值）
+        self.memory_learner = None      # 记忆学习器
+        self.trend_data = None          # 趋势数据
+        self.trend_findings = []        # 趋势发现
+        self._memory_data = None        # 记忆数据
+        self._memory_insight = None     # 记忆洞察
+        self._ema_learning = None       # EMA学习数据
+        self._entity_graph = None       # 实体关系图
+        self._bayesian = None           # 贝叶斯网络
+        self._benford = None            # 本福特定律结果
+        self._multimodal = None         # 多模态支持
+        self._audit_strategies = None   # 审计策略
+        self._discovered_rules = {}     # 发现的规则
         
         # ── 结论索引（供交叉验证时快速检索）──
         self.finding_index = {}   # {"type_prefix": [finding_dict, ...]}

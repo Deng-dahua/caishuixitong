@@ -88,58 +88,8 @@ from intangible_assets import router as intangible_assets_router
 from fixed_assets import router as fixed_assets_router
 from dashboard import router as dashboard_router
 
-
-# ═══ 统一城市列表（全代码唯一来源）═══
-# 所有城市提取操作必须使用此列表，禁止在各处散落硬编码城市列表
-_CHINA_CITIES_UNIFIED = sorted([
-    # 广东
-    "广州","深圳","东莞","佛山","珠海","惠州","江门","中山","汕头","湛江","茂名","肇庆","揭阳","台山",
-    # 福建
-    "福州","厦门","泉州","漳州",
-    # 浙江
-    "杭州","宁波","温州","嘉兴","绍兴","金华","台州","湖州","义乌",
-    # 江苏
-    "南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州","镇江","吴江",
-    # 山东
-    "济南","青岛","烟台","威海","潍坊","淄博","临沂",
-    # 湖北
-    "武汉","襄阳","宜城",
-    # 湖南
-    "长沙","株洲","湘潭",
-    # 河南
-    "郑州","许昌","鄢陵",
-    # 河北
-    "石家庄","唐山",
-    # 山西
-    "太原",
-    # 陕西
-    "西安","咸阳","宝鸡",
-    # 四川
-    "成都","绵阳","德阳",
-    # 云南
-    "昆明","曲靖",
-    # 贵州
-    "贵阳","遵义",
-    # 广西
-    "南宁","柳州","桂林",
-    # 海南
-    "海口","三亚",
-    # 安徽
-    "合肥","芜湖",
-    # 江西
-    "南昌","九江",
-    # 东北
-    "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆",
-    # 华北
-    "北京","天津",
-    # 西北
-    "呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁","银川","石嘴山",
-    # 直辖市/特别
-    "上海","重庆",
-], key=lambda x: (-len(x), x))  # 长城市名优先，避免"江门"匹配到"江"
-
-# 预编译正则：城市名提取（用于 re.search/match）
-_CHINA_CITY_REGEX = re.compile(r'(' + '|'.join(re.escape(c) for c in _CHINA_CITIES_UNIFIED) + r')')
+# ═══ 统一城市列表 — 从 shared_state 导入 ═══
+from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs
 
 
 @asynccontextmanager
@@ -975,7 +925,6 @@ def _get_company_upload_dir(company_id):
 TRANSFER_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
 os.makedirs(TRANSFER_DIR, exist_ok=True)
 # ═══════════════ 最近分析结果缓存 ═══════════════
-_last_analysis_cache = {}  # {company_id: {report, timestamp}}
 
 def _save_to_transfer(company_id, doc_id, original_name, parsed_data):
     path = os.path.join(TRANSFER_DIR, f"{company_id}_{doc_id}.json")
@@ -1004,7 +953,6 @@ def _clear_transfer(company_id=None):
                     pass  # 沙箱/权限不足时静默跳过
 
 
-_tax_risk_docs = []
 _tax_doc_counter = [0]
 
 # 启动时扫描磁盘上已有文件，初始化文件列表

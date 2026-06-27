@@ -10,7 +10,23 @@ from sqlalchemy import func
 from typing import Optional, List, Dict, Any
 import json, os, re, math
 
+from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX  # 城市列表+正则
+
+# 数据库模型引用 — 这些函数在 _run_analyze 上下文调用，需要直接引用模型
+from database import (
+    VATDeclaration, JournalEntry, BankTransaction, Account,
+    SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
+    InputVATDeduction, SalaryRecord, Company, Contract,
+)
+
+# 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 __all__ = [
+    "_CATEGORY_NAME_TO_KEY",
+    "MISSING_CONSEQUENCE_TRIGGER",
+    "AUDIT_PRIORITY_LEVELS",
+    "CONTRADICTION_RULES",
     "_adversarial_robustness_check",
     "_analyze_contract_tiers",
     "_apply_type_corrections",
@@ -115,6 +131,9 @@ __all__ = [
     "_trigger_missing_consequences",
     "_update_industry_benchmarks",
     "_verify_rule_against_data",
+    # 常量/字典
+    "MISSING_CONSEQUENCE_TRIGGER",
+    "_CATEGORY_NAME_TO_KEY",
 ]
 
 
@@ -3795,7 +3814,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     findings = []
     
     # 读取规则库
-    rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
     try:
         with open(rules_path, "r", encoding="utf-8") as f:
             all_rules = json.load(f)
@@ -3860,6 +3879,8 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
             continue
 
     # ═══ 产出发现 ═══
+    total_rule_count = len(all_rules)
+    
     if verified_count > 0:
         findings.append({
             "type": "规则已触发验证",
@@ -5688,7 +5709,8 @@ def _load_industry_data():
     if _INDUSTRY_DATA_CACHE is not None:
         return _INDUSTRY_DATA_CACHE
     
-    json_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_data.json")
+    # 从 engine/ 往上跳一级到项目根目录
+    json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             _INDUSTRY_DATA_CACHE = json.load(f)
@@ -7508,7 +7530,7 @@ def _run_fix_verification(auto_fixes, all_findings, bank_txs, sal_invs, pur_invs
 
 
 # ═══════════ 分析记忆持久化（第④⑤步）═══════════
-AUDIT_MEMORY_PATH = os.path.join(os.path.dirname(__file__), "static", "audit_memory.json")
+AUDIT_MEMORY_PATH = os.path.join(_PROJECT_ROOT, "static", "audit_memory.json")
 
 def _save_analysis_memory(company_id, company_name, industry, backtrack_report, fix_verification, pipeline_log):
     """保存本次分析的诊断记忆到 audit_memory.json，供后续跨案例泛化"""
@@ -8369,8 +8391,8 @@ def _ema_self_learning(ctx, all_findings):
     import json, os, math
     from collections import defaultdict
     
-    memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
-    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    memory_path = os.path.join(_PROJECT_ROOT, "static", 'audit_memory.json')
+    feedback_path = os.path.join(_PROJECT_ROOT, "static", 'audit_feedback.json')
     
     alpha = 0.3  # EMA平滑系数
     
@@ -8913,7 +8935,7 @@ def _compute_intuition_patterns(ctx, all_findings):
     intuition_hits = []
     
     # 加载反馈数据
-    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    feedback_path = os.path.join(_PROJECT_ROOT, "static", 'audit_feedback.json')
     confirmed_patterns = Counter()
     try:
         if os.path.exists(feedback_path):
@@ -8929,7 +8951,7 @@ def _compute_intuition_patterns(ctx, all_findings):
     
     # 如果没有足够反馈数据，从 audit_memory.json 中学习
     if len(confirmed_patterns) < 5:
-        memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
+        memory_path = os.path.join(_PROJECT_ROOT, "static", 'audit_memory.json')
         try:
             if os.path.exists(memory_path):
                 with open(memory_path, 'r', encoding='utf-8') as f:
@@ -9068,7 +9090,7 @@ def _cross_period_compare(ctx, company_id, db):
     """
     import json, os
     
-    memory_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_memory.json')
+    memory_path = os.path.join(_PROJECT_ROOT, "static", 'audit_memory.json')
     prev_records = []
     try:
         if os.path.exists(memory_path):
@@ -9366,7 +9388,7 @@ def _auto_rule_discovery(all_findings):
     
     # ── 加载历史反馈中学习的模式 ──
     learned = []
-    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    feedback_path = os.path.join(_PROJECT_ROOT, "static", 'audit_feedback.json')
     try:
         if os.path.exists(feedback_path):
             with open(feedback_path, 'r', encoding='utf-8') as f:
@@ -9748,7 +9770,7 @@ def _auto_rule_discovery(all_findings):
     
     # ── 加载历史反馈中学习的模式 ──
     learned = []
-    feedback_path = os.path.join(os.path.dirname(__file__), 'static', 'audit_feedback.json')
+    feedback_path = os.path.join(_PROJECT_ROOT, "static", 'audit_feedback.json')
     try:
         if os.path.exists(feedback_path):
             with open(feedback_path, 'r', encoding='utf-8') as f:
@@ -10871,7 +10893,7 @@ _block("methods", "稽查方法",
 def _load_processing_keywords():
     """从 industry_profiles.json 加载加工判定关键词（替代硬编码列表）"""
     import json, os
-    for base in [os.path.dirname(__file__) or ".", "."]:
+    for base in [_PROJECT_ROOT, "."]:
         pp = os.path.join(base, "static", "industry_profiles.json")
         if os.path.exists(pp):
             with open(pp, "r", encoding="utf-8") as f:
@@ -10901,7 +10923,7 @@ def _get_processing_keywords():
 def _load_biz_keywords():
     """从 industry_profiles.json 加载主营业务识别关键词"""
     import json, os
-    for base in [os.path.dirname(__file__) or ".", "."]:
+    for base in [_PROJECT_ROOT, "."]:
         pp = os.path.join(base, "static", "industry_profiles.json")
         if os.path.exists(pp):
             with open(pp, "r", encoding="utf-8") as f:

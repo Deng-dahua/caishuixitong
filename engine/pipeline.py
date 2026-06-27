@@ -32,6 +32,9 @@ from database import (
 )
 
 from engine.domain_analysis import *  # 35域分析函数
+# 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
 
 def _run_analyze(company_id, db, progress_callback=None):
     from database import VATDeclaration
@@ -311,7 +314,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _FN_TYPE_MAP = []
     _fn_config_loaded = False
     for _fn_cfg_path in [
-        os.path.join(os.path.dirname(__file__), "static", "filename_type_map.json"),
+        os.path.join(_PROJECT_ROOT, "static", "filename_type_map.json"),
         "static/filename_type_map.json",
     ]:
         if os.path.exists(_fn_cfg_path):
@@ -1328,7 +1331,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             # 读取实际规则数
             _real_rule_count = 1512
             try:
-                _rp = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+                _rp = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
                 if os.path.exists(_rp):
                     with open(_rp, "r", encoding="utf-8") as _rf:
                         _real_rule_count = len(json.load(_rf))
@@ -1458,8 +1461,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     chain_execution = []  # 每条链的执行结果
     chain_findings = []   # 链驱动生成的新发现
     try:
-        chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
-        rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+        chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
+        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         if os.path.exists(chain_path) and os.path.exists(rules_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 chains_data = json.load(cf)
@@ -2185,8 +2188,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     rules_data = []
     try:
         import re as _re_find
-        chain_path = os.path.join(os.path.dirname(__file__), "static", "audit_chains.json")
-        rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+        chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
+        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         if os.path.exists(chain_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 raw = json.load(cf)
@@ -3102,7 +3105,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         discoveries = discovery_result.get("discoveries", [])
         auto_signals = [d for d in discoveries if d.get("type") == "auto_signal"]
         if auto_signals:
-            rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+            rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
             try:
                 if os.path.exists(rules_path):
                     with open(rules_path, "r", encoding="utf-8") as rf:
@@ -3233,7 +3236,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             # ①② 稽查指令+线索链学习
             rule_details_list = []
             try:
-                static_dir = os.path.join(os.path.dirname(__file__), "static")
+                static_dir = os.path.join(_PROJECT_ROOT, "static")
                 with open(os.path.join(static_dir, "tax_risk_rules_local_export.json"), "r", encoding="utf-8") as _rf:
                     rule_details_list = json.load(_rf)
             except: pass
@@ -4460,7 +4463,7 @@ def _load_api_config():
             if env_val:
                 config[k] = env_val
         # 配置文件兜底
-        cfg_path = os.path.join(os.path.dirname(__file__) or ".", "api_config.json")
+        cfg_path = os.path.join(_PROJECT_ROOT, "api_config.json")
         if os.path.exists(cfg_path) and os.path.getsize(cfg_path) > 2:
             content = None
             # 尝试 UTF-8
