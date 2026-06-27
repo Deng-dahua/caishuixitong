@@ -504,6 +504,66 @@ def _run_analyze(company_id, db, progress_callback=None):
     if _audit_warnings:
         for _w in _audit_warnings:
             pipeline_log.append(_w)
+    
+    # ═══════════════════════════════════════════════════════════
+    # 综合判断层：对比文件名暗示/列头推理/数据匹配三方证据，
+    # 当证据冲突时做综合判定而非盲信单一来源。
+    # ═══════════════════════════════════════════════════════════
+    pipeline_log.append("[综合判断] 开始三方证据交叉验证")
+    for _fr in file_results:
+        _fn = _fr.get("file", "")
+        _type = _fr.get("type", "unknown")
+        _actions = _fr.get("actions", [])
+        _hdr = _fr.get("_header_row", "")
+        
+        # 收集证据
+        _evidences = []
+        
+        # 证据1: 文件名暗示的类型
+        _fn_lower = _fn.lower()
+        _fn_type = None
+        for _kws, _tp in _FN_TYPE_MAP:
+            if any(k.lower() in _fn_lower for k in _kws):
+                _fn_type = _tp; break
+        if _fn_type:
+            _evidences.append(("文件名", _fn_type, "高" if _fn_type == _type else "中"))
+        
+        # 证据2: 数据推理的类型（从actions中提取）
+        for _a in _actions:
+            if _a.startswith("推理判定:"):
+                _reason_type = _a.split(":")[1].split("(")[0]
+                _evidences.append(("数据推理", _reason_type, "高"))
+                break
+        
+        # 证据3: 公司身份匹配
+        _has_co_match = any("本公司" in _a or "购买方=本" in _a or "销售方=本" in _a for _a in _actions)
+        if _has_co_match:
+            _evidences.append(("公司匹配", "身份确认", "高"))
+        elif "不匹配本公司" in str(_actions):
+            _evidences.append(("公司匹配", "不匹配", "高"))
+        
+        # 综合判定：收集所有证据类型
+        _ev_types = set(e[1] for e in _evidences)
+        _all_agree = len(_ev_types) <= 1  # 所有证据指向同一类型
+        
+        if not _all_agree and len(_evidences) >= 2:
+            # 证据冲突 → 优先相信数据推理
+            _data_type = next((e[1] for e in _evidences if e[0] == "数据推理"), None)
+            if _data_type and _data_type != _type:
+                _old_type = _type
+                _fr["type"] = _data_type
+                _fr["_comprehensive_override"] = True
+                _fr.setdefault("actions", []).append(
+                    f"[综合判断] 文件名暗示{_fn_type or '未知'}但数据推理为{_data_type}，以数据推理为准"
+                )
+                pipeline_log.append(f"[综合判断] {_fn}: {_old_type}→{_data_type} (数据推理优先，文件名暗示不符)")
+            elif _type == "generic_data" and _fn_type:
+                _fr["type"] = _fn_type
+                _fr["_comprehensive_override"] = True
+                _fr.setdefault("actions", []).append(
+                    f"[综合判断] 数据未能判定，采纳文件名暗示为{_fn_type}"
+                )
+                pipeline_log.append(f"[综合判断] {_fn}: generic_data→{_fn_type} (数据不足，采纳文件名)")
         # ── 重新路由被修正文件的数据 ──
         # 策略：新增到正确列表 + 标记旧分类用于报告
         for _cor in _corrections:
