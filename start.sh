@@ -1,6 +1,6 @@
 #!/bin/bash
 # 财税系统启动脚本（Git Bash/Linux）
-PORT=8000
+PORT=8001
 VENV="C:/Users/26726/.workbuddy/binaries/python/envs/zhangwu/Scripts/python.exe"
 
 echo "[1/4] 清除端口 $PORT..."
