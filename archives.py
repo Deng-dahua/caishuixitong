@@ -1839,82 +1839,27 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(404, detail="公司不存在")
-
-    # 级联删除顺序：先删子表（有外键的表），再删中间表，最后删主表
-    # 1. 公司治理层子表
-    db.query(CompanyShareholder).filter(CompanyShareholder.company_id == company_id).delete()
-    db.query(CompanyDirector).filter(CompanyDirector.company_id == company_id).delete()
-    db.query(CompanySupervisor).filter(CompanySupervisor.company_id == company_id).delete()
-    db.query(CompanyFinanceContact).filter(CompanyFinanceContact.company_id == company_id).delete()
-    # 2. 档案类
-    db.query(Department).filter(Department.company_id == company_id).delete()
-    db.query(Employee).filter(Employee.company_id == company_id).delete()
-    db.query(Customer).filter(Customer.company_id == company_id).delete()
-    db.query(Supplier).filter(Supplier.company_id == company_id).delete()
-    db.query(Account).filter(Account.company_id == company_id).delete()
-    db.query(Period).filter(Period.company_id == company_id).delete()
-    # 3. 资产/库存
-    db.query(FixedAssetDepreciation).filter(FixedAssetDepreciation.company_id == company_id).delete()
-    db.query(FixedAsset).filter(FixedAsset.company_id == company_id).delete()
-    db.query(IntangibleAssetAmortization).filter(IntangibleAssetAmortization.company_id == company_id).delete()
-    db.query(IntangibleAsset).filter(IntangibleAsset.company_id == company_id).delete()
-    db.query(InventoryTransaction).filter(InventoryTransaction.company_id == company_id).delete()
-    db.query(InventoryBalance).filter(InventoryBalance.company_id == company_id).delete()
-    db.query(InventoryItem).filter(InventoryItem.company_id == company_id).delete()
-    # 4. 合同/付款
-    db.query(ContractPayment).filter(ContractPayment.company_id == company_id).delete()
-    db.query(Contract).filter(Contract.company_id == company_id).delete()
-    db.query(Payment).filter(Payment.company_id == company_id).delete()
-    # 5. 业务核心
-    db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).delete()
-    db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).delete()
-    db.query(BookkeepingInvoice).filter(BookkeepingInvoice.company_id == company_id).delete()
-    db.query(InputVATDeduction).filter(InputVATDeduction.company_id == company_id).delete()
-    db.query(BankTransaction).filter(BankTransaction.company_id == company_id).delete()
-    db.query(BankConfig).filter(BankConfig.company_id == company_id).delete()
-    db.query(JournalEntry).filter(JournalEntry.company_id == company_id).delete()
-    db.query(ColumnTemplate).filter(ColumnTemplate.company_id == company_id).delete()
-    # 6. 子模块表（salary_records / vat_declarations 通过 raw SQL 确保兼容）
-    import importlib
     try:
-        salary_mod = importlib.import_module('salary')
-        vat_mod = importlib.import_module('vat')
-    except Exception:
-        salary_mod = None; vat_mod = None
-    if salary_mod:
-        from database import SalaryRecord
-        db.query(SalaryRecord).filter(SalaryRecord.company_id == company_id).delete()
-    if vat_mod:
-        from database import VATDeclaration
-        db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).delete()
-    # 7. 字典表（不按company_id隔离，跳过）
-    # 7.5 V15新增：清理涉税资料上传文件（公司专属子目录）
-    try:
-        import shutil
-        company_udir = _get_company_upload_dir(company_id)
-        if os.path.isdir(company_udir):
-            shutil.rmtree(company_udir)
-        transfer_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
-        if os.path.isdir(transfer_dir):
-            for f in glob.glob(os.path.join(transfer_dir, f"{company_id}_*")):
-                os.remove(f)
-    except Exception:
-        pass
-    # 7.6 V15新增：清理其他子模块表
-    try:
-        from database import SocialSecurityDeclaration, SocialSecurityDetail
-        from database import HousingFundDetail, HousingFundDeclaration
-        from database import CulturalConstructionFeeDeclaration
-        db.query(SocialSecurityDeclaration).filter(SocialSecurityDeclaration.company_id == company_id).delete()
-        db.query(SocialSecurityDetail).filter(SocialSecurityDetail.company_id == company_id).delete()
-        db.query(HousingFundDetail).filter(HousingFundDetail.company_id == company_id).delete()
-        db.query(HousingFundDeclaration).filter(HousingFundDeclaration.company_id == company_id).delete()
-        db.query(CulturalConstructionFeeDeclaration).filter(CulturalConstructionFeeDeclaration.company_id == company_id).delete()
-    except Exception:
-        pass
-    # 8. 终删公司
-    db.delete(company)
-    db.commit()
-    return {"message": "公司及全部关联数据已删除"}
-
+        # SQLite级联删除：先删关联子表数据
+        from sqlalchemy.sql import text
+        tables = ['company_shareholders','company_directors','company_supervisors','company_finance_contacts',
+                  'departments','employees','customers','suppliers','accounts','periods',
+                  'sales_invoices','purchase_invoices','bookkeeping_invoices','bank_transactions',
+                  'bank_configs','journal_entries','column_templates','bank_rules',
+                  'input_vat_deductions','vat_declarations','salary_records','housing_fund_details',
+                  'housing_fund_declarations','social_security_declarations','contracts','contract_payments',
+                  'payments','inventory_items','inventory_balances','inventory_transactions',
+                  'fixed_assets','fixed_asset_depreciations','intangible_assets','intangible_asset_amortizations']
+        for tbl in tables:
+            try:
+                db.execute(text(f"DELETE FROM {tbl} WHERE company_id = :cid"), {"cid": company_id})
+            except Exception:
+                pass
+        db.commit()
+        db.delete(company)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, detail=f"删除失败：{e}")
+    return {"ok": True, "message": f"已删除 {company.name}"}
 
