@@ -302,6 +302,61 @@
 <script src="/static/js/文化事业建设费.js?v=2026062501" defer></script>
 <script src="/static/js/new_analyze_page.js?v=2026062501" defer></script>
 
+<script>
+// 兜底：在所有 defer 脚本加载后，确保账套选择页按钮和列表项可点击
+setTimeout(function() {
+  // 创建新公司 — 确保可跳转
+  var createBtn = document.getElementById('btn-create-company');
+  if (createBtn) {
+    createBtn.style.cursor = 'pointer';
+    createBtn.onclick = function(e) {
+      e.preventDefault();
+      window.location.href = '/register';
+    };
+  }
+  // 退出登录
+  var logoutLink = document.getElementById('link-logout');
+  if (logoutLink) {
+    logoutLink.onclick = function() {
+      localStorage.removeItem('taxUser');
+      localStorage.removeItem('lastCompanyId');
+      localStorage.removeItem('lastCompanyName');
+      localStorage.removeItem('lastPage');
+      window.location.href = '/';
+    };
+  }
+  // 公司列表项 — 重新绑定点击
+  var list = document.getElementById('pick-list');
+  if (list) {
+    list.onclick = function(e) {
+      var li = e.target.closest('[data-company-id]');
+      if (li) {
+        var id = li.getAttribute('data-company-id');
+        var name = li.getAttribute('data-company-name');
+        if (id && name) {
+          // 直接绑定的进入逻辑
+          window._currentCompanyId = parseInt(id);
+          window._currentCompanyName = name;
+          localStorage.setItem('lastCompanyId', id);
+          localStorage.setItem('lastCompanyName', name);
+          document.getElementById('company-pick-view').classList.add('hidden');
+          document.getElementById('app-view').classList.remove('hidden');
+          // 显示公司名
+          var display = document.getElementById('company-name-display');
+          if (display) display.textContent = name;
+          // 触发其他初始化
+          if (typeof enterApp === 'function') {
+            enterApp(parseInt(id), name);
+          } else if (typeof navigateTo === 'function') {
+            navigateTo('dashboard');
+          }
+        }
+      }
+    };
+  }
+}, 200);
+</script>
+
 <!-- init() 由 core.js 的 DOMContentLoaded 监听器自动调用 -->
 
 </div><!-- /#app-view -->
