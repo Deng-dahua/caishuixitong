@@ -469,9 +469,34 @@ async def login_page():
     """个人登录页"""
     return _read_html("static/login.html")
 
+@app.get("/api/pinyin")
+def get_pinyin(name: str = Query(...)):
+    """将中文姓名转为拼音"""
+    try:
+        from pypinyin import pinyin, Style
+        result = ''.join([item[0] for item in pinyin(name, style=Style.NORMAL)])
+        return {"pinyin": result}
+    except:
+        return {"pinyin": name}
+
+@app.get("/{user_name}/xuanzezhangtao/", response_class=HTMLResponse)
+async def app_page(user_name: str, request: Request):
+    """账套选择页/主应用"""
+    return _read_html("static/index.html")
+
+@app.get("/{user_name}/xinjianzhangtao/", response_class=HTMLResponse)
+async def register_page(user_name: str):
+    """新建公司账套页"""
+    return _read_html("static/register.html")
+
+# 兼容旧路由
 @app.get("/xuanzezhangtao/", response_class=HTMLResponse)
-async def app_page(request: Request):
-    """账套选择页/主应用 —— 预注入公司数据避免依赖 AJAX"""
+async def app_page_legacy(request: Request):
+    return _read_html("static/index.html")
+
+@app.get("/xinjianzhangtao/", response_class=HTMLResponse)
+async def register_page_legacy():
+    return _read_html("static/register.html")
     html = _read_html("static/index.html")
     try:
         from database import SessionLocal, Company

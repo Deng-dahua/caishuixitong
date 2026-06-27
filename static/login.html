@@ -80,7 +80,7 @@ function toast(msg, type) {
   setTimeout(function() { el.style.display = 'none'; }, 3000);
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   var name = document.getElementById('login-name').value.trim();
   var phone = document.getElementById('login-phone').value.trim();
@@ -91,10 +91,20 @@ function handleLogin(e) {
   btn.disabled = true;
   btn.textContent = '进入中...';
 
-  var user = { name: name, phone: phone, loginAt: new Date().toISOString() };
-  localStorage.setItem('taxUser', JSON.stringify(user));
-  // 跳转到主应用
-  window.location.href = '/xuanzezhangtao/';
+  try {
+    // 获取姓名拼音
+    var pinyinResp = await fetch('/api/pinyin?name=' + encodeURIComponent(name));
+    var pinyinData = await pinyinResp.json();
+    var pinyin = pinyinData.pinyin || name;
+
+    var user = { name: name, phone: phone, pinyin: pinyin, loginAt: new Date().toISOString() };
+    localStorage.setItem('taxUser', JSON.stringify(user));
+    window.location.href = '/' + pinyin + '/xuanzezhangtao/';
+  } catch(e) {
+    toast('网络错误，请重试', 'error');
+    btn.disabled = false;
+    btn.textContent = '进入账套';
+  }
 }
 </script>
 

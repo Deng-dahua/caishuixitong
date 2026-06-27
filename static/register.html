@@ -67,16 +67,16 @@ body {
 <div id="toast" class="toast"></div>
 
 <script>
-function toast(msg, type) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast ' + (type || 'error');
-  el.style.display = 'block';
-  setTimeout(function() { el.style.display = 'none'; }, 3000);
+function getUserPath() {
+  try {
+    var u = JSON.parse(localStorage.getItem('taxUser') || 'null');
+    var pinyin = (u && u.pinyin) ? u.pinyin : '';
+    return pinyin ? '/' + pinyin : '';
+  } catch(e) { return ''; }
 }
 
 function goBack() {
-  window.location.href = '/xuanzezhangtao/';
+  window.location.href = getUserPath() + '/xuanzezhangtao/';
 }
 
 async function doRegister() {
@@ -96,7 +96,7 @@ async function doRegister() {
       return r.json();
     });
     // 创建成功，返回账套选择页
-    window.location.href = '/xuanzezhangtao/';
+    window.location.href = getUserPath() + '/xuanzezhangtao/';
   } catch(e) {
     toast('创建失败：' + e.message);
     btn.disabled = false;
