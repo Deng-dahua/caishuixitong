@@ -10810,26 +10810,26 @@ def _parse_by_content(names, get_sheet, original_name=""):
             
             # 标题行方向检测：给对应指纹加分（文件名+单元格双重检测）
             title_bonus = {}
-            # 文件名关键词检测（高权重：文件名是用户对文件内容的直接标注，可信度最高）
+            # 文件名关键词检测（超级权重99：文件名是用户对文件内容的直接标注，必须碾压任何指纹匹配）
             fn_lower = original_name.lower()
             if any(k in fn_lower for k in ["进销存", "台账", "明细账", "存货", "库存明细", "收发存"]):
-                title_bonus["inventory"] = 5
+                title_bonus["inventory"] = 99
             elif any(k in fn_lower for k in ["销项", "销售发票", "销货", "开票"]):
-                title_bonus["sales_invoice"] = 8
+                title_bonus["sales_invoice"] = 99
             elif any(k in fn_lower for k in ["进项", "采购发票", "购货", "取得发票", "取票"]):
-                title_bonus["purchase_invoice"] = 8
+                title_bonus["purchase_invoice"] = 99
             elif any(k in fn_lower for k in ["银行", "流水", "bank"]):
-                title_bonus["bank_statement"] = 8
+                title_bonus["bank_statement"] = 99
             elif any(k in fn_lower for k in ["工资", "薪金", "所得"]):
-                title_bonus["salary"] = 8
+                title_bonus["salary"] = 99
             elif any(k in fn_lower for k in ["社保", "社会保险"]):
-                title_bonus["social_security"] = 8
+                title_bonus["social_security"] = 99
             elif any(k in fn_lower for k in ["公积金"]):
-                title_bonus["housing_fund"] = 8
+                title_bonus["housing_fund"] = 99
             elif any(k in fn_lower for k in ["抵扣"]):
-                title_bonus["input_vat_deduction"] = 8
+                title_bonus["input_vat_deduction"] = 99
             elif any(k in fn_lower for k in ["凭证", "记账", "序时"]):
-                title_bonus["voucher"] = 8
+                title_bonus["voucher"] = 99
             elif any(k in fn_lower for k in ["客户", "供应商", "人员", "部门", "档案"]):
                 title_bonus["archive"] = 5
             # 单元格内容检测（作为补充）
@@ -10977,10 +10977,16 @@ def _parse_by_content(names, get_sheet, original_name=""):
                 cv["reason"] = f"关键词({kw_type})与结构({st_type})属结构同形类型，信任关键词语义"
                 _trace_diag(f"⚠ 交叉验证冲突: {kw_type}↔{st_type}结构同形，采用关键词(得分{best_score})", "warn")
             # 结构分析置信度 ≥ 0.90 时，信任结构分析
-            elif best_struct_conf >= 0.90:
+            # 结构分析置信度 ≥ 0.90 时，通常信任结构分析
+            # 但文件名明确标注时（score>=50），用户意图优先于结构分析
+            elif best_struct_conf >= 0.90 and best_score < 50:
                 cv["winner"] = "structure"
                 cv["reason"] = f"结构分析置信度极高({best_struct_conf:.0%})，覆写关键词({kw_type})"
                 _trace_diag(f"⚠ 交叉验证冲突: 结构分析置信度{best_struct_conf:.0%}极高，采用结构结果={st_type}，覆写关键词={kw_type}", "warn")
+            elif best_score >= 50:
+                cv["winner"] = "keyword"
+                cv["reason"] = f"关键词得分极高({best_score}分/文件名明确)，覆写结构分析({st_type})"
+                _trace_diag(f"⚠ 交叉验证冲突: 文件名明确标注，采用关键词={kw_type}(得分{best_score})", "warn")
             elif best_score >= 8:
                 cv["winner"] = "keyword"
                 cv["reason"] = f"关键词得分极高({best_score}分)，覆写结构分析({st_type})"
@@ -11032,7 +11038,9 @@ def _parse_by_content(names, get_sheet, original_name=""):
                 return None
         
         # 修正发票方向：销项发票的购方名称应在首列或前几列
-        if best_type in ("purchase_invoice", "invoice_universal"):
+        # ⚠ 此修正仅在文件名未明确标识方向时才生效（文件名标注是用户最直接可信的佐证）
+        _fn_has_direction_hint = any(k in fn_lower for k in ["开票","销项","销售","进项","取得","取票","抵扣"])
+        if best_type in ("purchase_invoice", "invoice_universal") and not _fn_has_direction_hint:
             hdr = " ".join(header)
             if "购方名称" in hdr or "购方税号" in hdr or "购买方" in hdr:
                 result["type"] = "sales_invoice"
@@ -11040,10 +11048,10 @@ def _parse_by_content(names, get_sheet, original_name=""):
                     row["direction"] = "销项"
                 _trace_diag("发票方向修正: 检测到购方关键词 → 标记为销项发票")
         
-        # 文件名修正发票方向（更高优先级）
+        # 文件名修正发票方向（最高优先级：文件名是用户对文件内容的直接标注）
         if result and result.get("type") in ("sales_invoice", "purchase_invoice", "invoice", "invoice_universal"):
             fn_lower = original_name.lower()
-            if "进项" in fn_lower or "取得" in fn_lower or "抵扣" in fn_lower:
+            if "进项" in fn_lower or "取得" in fn_lower or "取票" in fn_lower or "抵扣" in fn_lower:
                 result["type"] = "purchase_invoice"
                 for row in result.get("rows", []):
                     row["direction"] = "进项"
