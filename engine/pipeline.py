@@ -155,27 +155,109 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 if any(v for v in _vals.values()):
                                     rows.append(_vals)
                             if rows:
-                                # 根据列角色推断文件类型
+                                # ═══ 智能文件类型推理：先想关系，再定类型 ═══
+                                hdr_text = " ".join(str(v) for v in _header)
+                                
+                                # 第1步：获取公司身份（当前账套主体）
+                                from database import Company as _CoModel
+                                _co = db.query(_CoModel).filter(_CoModel.id == company_id).first()
+                                _co_name = (_co.name or "") if _co else ""
+                                _co_uscc = (_co.uscc or "") if _co else ""
+                                
+                                # 第2步：扫描数据，判断公司与文件的关系
+                                # 收集所有行中出现的购买方和销售方信息
+                                all_buyers = set(); all_sellers = set()
+                                all_buyer_tax = set(); all_seller_tax = set()
+                                for _r in rows:
+                                    for _k, _v in _r.items():
+                                        _vs = str(_v).strip() if _v else ""
+                                        if not _vs: continue
+                                        if any(x in _k for x in ['买方','购方','购买方']):
+                                            if '税号' in _k or '识别号' in _k or '信用' in _k:
+                                                all_buyer_tax.add(_vs)
+                                            else:
+                                                all_buyers.add(_vs)
+                                        if any(x in _k for x in ['卖方','销方','销售方']):
+                                            if '税号' in _k or '识别号' in _k or '信用' in _k:
+                                                all_seller_tax.add(_vs)
+                                            else:
+                                                all_sellers.add(_vs)
+                                
+                                # 判断公司与数据的关系
+                                buyer_matches = (_co_name and any(_co_name in b for b in all_buyers)) or (_co_uscc and _co_uscc in all_buyer_tax)
+                                seller_matches = (_co_name and any(_co_name in s for s in all_sellers)) or (_co_uscc and _co_uscc in all_seller_tax)
+                                
+                                # 扫描文件是否有抵扣相关字段
+                                has_deduction_info = any(k in hdr_text for k in [
+                                    "有效抵扣税额","勾选状态","勾选时间","用途确认",
+                                    "抵扣勾选","不抵扣","认证状态","进项税额","可抵扣"
+                                ])
+                                
+                                # 扫描文件是否有工资相关字段
+                                has_salary_info = any(k in hdr_text for k in [
+                                    "工资","代扣社保","养老保险","本期收入","实发",
+                                    "个税","应纳税","累计收入","费用类型","所得项目"
+                                ])
+                                
+                                # 列角色辅助
                                 has_amount = any("amount_col" in r for r in col_roles.values())
                                 has_date = any("date_col" in r for r in col_roles.values())
                                 has_name = any("person_name" in r or "counterparty" in r for r in col_roles.values())
-                                # 检查表头是否有工资关键词
-                                hdr_text = " ".join(str(v) for v in _header)
-                                is_salary = any(k in hdr_text for k in ["工资","代扣社保","养老保险","本期收入","实发","个税","应纳税","累计收入","费用类型","所得项目"])
-                                is_deduction = any(k in hdr_text for k in ["有效抵扣税额","勾选状态","勾选时间","用途确认","抵扣勾选","不抵扣","认证状态"])
-                                is_sales_inv = any(k in hdr_text for k in ["购买方名称","购买方纳税人识别号"]) and not any(k in hdr_text for k in ["销售方名称","销售方纳税人识别号"])
-                                is_pur_inv = any(k in hdr_text for k in ["销售方名称","销售方纳税人识别号"]) and not any(k in hdr_text for k in ["购买方名称","购买方纳税人识别号"])
-                                inferred_type = "generic_data"
-                                if is_salary: inferred_type = "salary"
-                                elif is_deduction: inferred_type = "input_vat_deduction"
-                                elif is_sales_inv: inferred_type = "sales_invoice"
-                                elif is_pur_inv: inferred_type = "purchase_invoice"
-                                elif has_date and has_amount and has_name: inferred_type = "bank_statement"
-                                elif has_date and has_amount: inferred_type = "voucher"
+                                
+                                # 第3步：综合推理，确定文件类型
+                                if has_salary_info:
+                                    inferred_type = "salary"
+                                elif buyer_matches and not seller_matches:
+                                    # 公司是购买方 → 进项相关
+                                    if has_deduction_info:
+                                        inferred_type = "input_vat_deduction"  # 进项抵扣认证
+                                    else:
+                                        inferred_type = "purchase_invoice"  # 进项发票
+                                elif seller_matches and not buyer_matches:
+                                    # 公司是销售方 → 销项发票
+                                    inferred_type = "sales_invoice"
+                                elif buyer_matches and seller_matches:
+                                    # 买卖双方都有公司信息 → 进项（保守）
+                                    if has_deduction_info:
+                                        inferred_type = "input_vat_deduction"
+                                    else:
+                                        inferred_type = "purchase_invoice"
+                                elif not buyer_matches and not seller_matches:
+                                    # 公司与文件中任何一方都不匹配 → 可能不是本公司的
+                                    if all_buyers and all_sellers:
+                                        inferred_type = "suspect"  # 存疑：不属于本公司
+                                    elif all_sellers and not all_buyers:
+                                        inferred_type = "purchase_invoice"  # 仅卖方信息，按进项处理
+                                    elif all_buyers and not all_sellers:
+                                        inferred_type = "sales_invoice"
+                                    elif has_deduction_info and all_sellers:
+                                        inferred_type = "input_vat_deduction"
+                                    elif has_date and has_amount and has_name:
+                                        inferred_type = "bank_statement"
+                                    elif has_date and has_amount:
+                                        inferred_type = "voucher"
+                                    else:
+                                        inferred_type = "generic_data"
+                                else:
+                                    if has_date and has_amount and has_name:
+                                        inferred_type = "bank_statement"
+                                    elif has_date and has_amount:
+                                        inferred_type = "voucher"
+                                    else:
+                                        inferred_type = "generic_data"
+                                
+                                # 第4步：记录推理过程
+                                reason_parts = []
+                                if buyer_matches: reason_parts.append("购买方=本公司→进项相关")
+                                if seller_matches: reason_parts.append("销售方=本公司→销项相关")
+                                if has_deduction_info: reason_parts.append("含抵扣认证字段")
+                                if has_salary_info: reason_parts.append("含工资相关字段")
+                                if not buyer_matches and not seller_matches: reason_parts.append("双方均不匹配本公司")
+                                
                                 parsed = {"type": inferred_type, "rows": rows}
                                 fr["type"] = inferred_type
-                                fr["actions"].append(f"数据推断:{len(rows)}条")
-                                pipeline_log.append(f"{fname} -> 数据推断兜底({len(rows)}条)")
+                                fr["actions"].append(f"推理判定:{inferred_type}({';'.join(reason_parts)}) {len(rows)}条")
+                                pipeline_log.append(f"{fname} -> 推理判定: {inferred_type} ({';'.join(reason_parts)})")
                                 _save_to_transfer(company_id, doc["id"], fname, parsed)
                     except Exception as _ie:
                         fr["actions"].append(f"推断失败: {_ie}")
