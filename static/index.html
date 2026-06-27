@@ -44,40 +44,8 @@
 </head>
 <body>
 
-<!-- ====== 注册/建档页面 ====== -->
-<div id="registration-view" class="hidden">
-  <div class="reg-card">
-    <div class="reg-icon">🏢</div>
-    <h2 class="reg-card-title">新建公司账套</h2>
-    <p class="reg-card-subtitle">为您的企业创建第一个账套，开始财税管理</p>
-    <form class="reg-form" id="reg-form" onsubmit="handleCompanyRegister(event)">
-      <input type="text" id="reg-name" placeholder="公司全称（必填）*" required>
-      <input type="text" id="reg-uscc" placeholder="统一社会信用代码（选填）">
-      <button type="submit" class="reg-btn" id="reg-submit-btn">✅ 创建账套，进入系统</button>
-      <div id="reg-back-hint" class="reg-back-hint">
-        <a onclick="exitCompany()">← 返回选择公司</a>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ====== 公司选择页面 ====== -->
-<div id="company-pick-view" class="hidden">
-  <div class="pick-card">
-    <h2 class="pick-card-title">选择账套</h2>
-    <p class="pick-card-subtitle">请选择要进入的公司账套</p>
-    <ul id="pick-list" class="pick-list"></ul>
-    <div class="pick-new-btn-container">
-      <button class="pick-new-btn" id="btn-create-company">创建新账套</button>
-    </div>
-    <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.06)">
-      <button id="btn-logout" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer">退出登录</button>
-    </div>
-  </div>
-</div>
-
 <!-- ====== 主应用 ====== -->
-<div id="app-view" class="hidden">
+<div id="app-view">
 
 <!-- 侧边栏 -->
 <nav id="sidebar">
@@ -263,7 +231,7 @@
   </div>
 </div>
 
-<script src="/static/js/core.js?v=2026062722"></script>
+<script src="/static/js/core.js?v=2026062725"></script>
 <script src="/static/js/constants.js?v=202606081853" defer></script>
 <script src="/static/js/dashboard.js?v=2026062501" defer></script>
 <script src="/static/js/journal.js?v=2026062501" defer></script>
@@ -294,63 +262,6 @@
 <script src="/static/js/vat-declaration.js?v=2026062501" defer></script>
 <script src="/static/js/文化事业建设费.js?v=2026062501" defer></script>
 <script src="/static/js/new_analyze_page.js?v=2026062501" defer></script>
-
-<script>
-// 从 URL 提取拼音前缀，例如 /dengdahua/xuanzezhangtao/ → dengdahua
-function getPinyinFromURL() {
-  var parts = window.location.pathname.split('/').filter(Boolean);
-  // 如果是 /{pinyin}/xuanzezhangtao/ 格式，parts[0] 就是拼音
-  if (parts.length >= 2 && (parts[1] === 'xuanzezhangtao' || parts[1] === 'xinjianzhangtao')) {
-    return parts[0];
-  }
-  if (parts.length >= 1 && (parts[0] === 'xuanzezhangtao' || parts[0] === 'xinjianzhangtao')) {
-    // 旧格式，无拼音前缀，尝试从 localStorage 读取
-    try { return JSON.parse(localStorage.getItem('taxUser') || '{}').pinyin || ''; } catch(e) { return ''; }
-  }
-  return parts[0] || '';
-}
-
-// 兜底：确保所有按钮可点击（不依赖任何外部函数）
-setTimeout(function() {
-  // 创建新账套按钮
-  var createBtn = document.getElementById('btn-create-company');
-  if (createBtn) {
-    createBtn.style.cursor = 'pointer';
-    createBtn.onclick = function() {
-      var py = getPinyinFromURL();
-      window.location.href = '/' + py + '/xinjianzhangtao/';
-    };
-  }
-  // 退出登录按钮
-  var logoutBtn = document.getElementById('btn-logout');
-  if (logoutBtn) {
-    logoutBtn.style.cursor = 'pointer';
-    logoutBtn.onclick = function() {
-      localStorage.removeItem('taxUser');
-      localStorage.removeItem('lastCompanyId');
-      localStorage.removeItem('lastCompanyName');
-      localStorage.removeItem('lastPage');
-      window.location.href = '/';
-    };
-  }
-  // 公司列表项点击
-  var list = document.getElementById('pick-list');
-  if (list) {
-    list.style.cursor = 'pointer';
-    list.onclick = function(e) {
-      var li = e.target.closest('[data-company-id]');
-      if (!li) return;
-      var id = li.getAttribute('data-company-id');
-      var name = li.getAttribute('data-company-name');
-      if (!id || !name) return;
-      localStorage.setItem('lastCompanyId', id);
-      localStorage.setItem('lastCompanyName', name);
-      // 强制重载，确保 init 流程重新执行
-      window.location.href = window.location.pathname + '?_=' + Date.now();
-    };
-  }
-}, 100);
-</script>
 
 <!-- init() 由 core.js 的 DOMContentLoaded 监听器自动调用 -->
 

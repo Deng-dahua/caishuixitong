@@ -3,7 +3,7 @@
 """
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from sqlalchemy import func, and_, or_
@@ -473,18 +473,9 @@ def _read_html(filename):
     return "<h1>Encoding error</h1>"
 
 @app.get("/", response_class=HTMLResponse)
-async def login_page():
-    """直接进入账套选择页（免登录）"""
-    html = _read_html("static/index.html")
-    # 注入默认用户，跳过登录步骤
-    default_user_script = """<script>
-if (!localStorage.getItem('taxUser')) {
-  localStorage.setItem('taxUser', JSON.stringify({name:'用户', phone:'13800000000', pinyin:'auto', loginAt: new Date().toISOString()}));
-}
-</script>"""
-    # 插入到 core.js 之前
-    html = html.replace('<script src="/static/js/core.js', default_user_script + '\n<script src="/static/js/core.js')
-    return html
+async def root():
+    """直接进入系统"""
+    return _read_html("static/index.html")
 
 @app.get("/api/pinyin")
 def get_pinyin(name: str = Query(...)):
@@ -496,55 +487,13 @@ def get_pinyin(name: str = Query(...)):
     except:
         return {"pinyin": name}
 
-@app.get("/{user_name}/xuanzezhangtao/", response_class=HTMLResponse)
-async def app_page(user_name: str, request: Request):
-    """账套选择页/主应用"""
-    html = _read_html("static/index.html")
-    try:
-        from database import SessionLocal, Company
-        db = SessionLocal()
-        companies = db.query(Company).order_by(Company.id).all()
-        company_data = [{"id": c.id, "name": c.name, "uscc": c.uscc or ""} for c in companies]
-        import json as _json
-        inject = "<script>window.__PRELOAD_COMPANIES__ = " + _json.dumps(company_data, ensure_ascii=False) + ";</script>"
-        html = html.replace("</head>", inject + "\n</head>")
-        db.close()
-    except:
-        pass
-    return html
-
-@app.get("/{user_name}/xinjianzhangtao/", response_class=HTMLResponse)
-async def register_page(user_name: str):
-    """新建公司账套页"""
-    return _read_html("static/register.html")
-
-# 兼容旧路由
-@app.get("/xuanzezhangtao/", response_class=HTMLResponse)
-async def app_page_legacy(request: Request):
-    return _read_html("static/index.html")
-
-@app.get("/xinjianzhangtao/", response_class=HTMLResponse)
-async def register_page_legacy():
-    return _read_html("static/register.html")
-    html = _read_html("static/index.html")
-    try:
-        from database import SessionLocal, Company
-        db = SessionLocal()
-        companies = db.query(Company).order_by(Company.id).all()
-        # 注入公司数据到页面
-        company_data = [{"id": c.id, "name": c.name, "uscc": c.uscc or ""} for c in companies]
-        import json as _json
-        inject = "<script>window.__PRELOAD_COMPANIES__ = " + _json.dumps(company_data, ensure_ascii=False) + ";</script>"
-        html = html.replace("</head>", inject + "\n</head>")
-        db.close()
-    except:
-        pass
-    return html
-
-@app.get("/xinjianzhangtao/", response_class=HTMLResponse)
-async def register_page():
-    """新建公司账套页（独立页面）"""
-    return _read_html("static/register.html")
+@app.get("/{user_name}/xuanzezhangtao/")
+@app.get("/{user_name}/xinjianzhangtao/")
+@app.get("/xuanzezhangtao/")
+@app.get("/xinjianzhangtao/")
+async def redirect_to_root():
+    """旧路由统一跳转到根路径"""
+    return RedirectResponse("/", status_code=302)
 
 
 @app.get("/api/meta/processing-keywords")
@@ -31004,7 +30953,6 @@ _patrol_config = {"enabled": False, "interval_hours": 24, "company_ids": [], "la
 def get_agi_pipeline_dashboard():
     """税务AGI管道仪表盘——展示16模块知识注入状态"""
     try:
-        from engine.agi_pipeline import AGIPipelineConnector
         global _agi_pipeline_instance
         if '_agi_pipeline_instance' in globals() and _agi_pipeline_instance:
             data = _agi_pipeline_instance.get_dashboard_data()
@@ -31903,7 +31851,6 @@ _ZH_EN_MAP = {
 def get_english_report(company_id: int, db: Session = Depends(get_db)):
     """获取英文版稽查报告 —— 自动翻译关键字段"""
     # 调用中文报告API
-    from fastapi.testclient import TestClient
     result = analyze_tax_risk_docs(company_id=company_id, db=db)
     
     if not result.get("ok"):
@@ -32189,7 +32136,7 @@ def get_agi_status(db: Session = Depends(get_db)):
     # ═══ 三大新增引擎 ═══
     # ④ 稽查方法论
     try:
-        from engine.methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
+        from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
         result["methodology"] = {
             "available": True,
             "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
@@ -32514,7 +32461,7 @@ def get_patrol_status():
 def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
     """手动触发巡逻：对最近分析的企业重新分析并对比"""
     try:
-        from engine.auto_patrol import get_companies_to_patrol, should_trigger_patrol
+        from engine.auto_patrol import get_companies_to_patrol
         if company_id:
             cids = [company_id]
         else:

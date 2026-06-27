@@ -117,33 +117,21 @@ async function initAppFlow() {
   const companies = await loadCompaniesRaw();
   window._companiesForPick = companies || [];
 
-  // 如果刷新前在建档页，保持建档页
-  if (sessionStorage.getItem('onRegistrationPage') === '1') {
+  if (!companies || companies.length === 0) {
+    // 没有账套 → 创建页（保留新建能力）
     showRegistration();
     return;
   }
 
-  // 从账套选择页点击后重载（URL带?_参数），自动进入已选公司
-  if (window.location.search.indexOf('_=') !== -1 || window.location.search.indexOf('?_') !== -1) {
-    var lastId = localStorage.getItem('lastCompanyId');
-    var lastName = localStorage.getItem('lastCompanyName');
-    if (lastId && lastName && companies && companies.length > 0) {
-      var found = companies.find(function(c) { return String(c.id) === String(lastId); });
-      if (found) {
-        localStorage.removeItem('lastCompanyId');
-        localStorage.removeItem('lastCompanyName');
-        enterApp(found.id, found.name);
-        return;
-      }
-    }
+  // 自动选择：优先上次使用的账套，其次第一个
+  var lastId = localStorage.getItem('lastCompanyId');
+  var target = null;
+  if (lastId) {
+    target = companies.find(function(c) { return String(c.id) === String(lastId); });
   }
+  if (!target) target = companies[0];
 
-  // 直接访问时清除上次选择，显示选择页
-  localStorage.removeItem('lastCompanyId');
-  localStorage.removeItem('lastCompanyName');
-
-  // 始终进入账套选择页（不自动进入、不自动跳建档页）
-  showCompanyPick(companies);
+  enterApp(target.id, target.name);
 }
 
 async function loadCompaniesRaw() {
@@ -159,14 +147,17 @@ async function loadCompaniesRaw() {
 }
 
 function showRegistration() {
-  document.getElementById('registration-view').classList.remove('hidden');
-  document.getElementById('company-pick-view').classList.add('hidden');
-  document.getElementById('app-view').classList.add('hidden');
-  // 标记用户在建档页，刷新时保留
-  sessionStorage.setItem('onRegistrationPage', '1');
-  // 如果有已有公司，显示"返回选择"链接
-  const hasExisting = (window._companiesForPick && window._companiesForPick.length > 0);
-  document.getElementById('reg-back-hint').style.display = hasExisting ? '' : 'none';
+  // 无账套时自动创建默认账套
+  var cname = '默认公司';
+  fetch('/api/companies', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: cname, uscc: ''})
+  }).then(function(r) { return r.json(); }).then(function(c) {
+    enterApp(c.id, cname);
+  }).catch(function() {
+    alert('无法创建账套，请检查服务器');
+  });
 }
 
 function showCompanyPick(companies) {
@@ -1166,11 +1157,9 @@ function getModulePeriod(prefix) {
 
 // ==================== 启动 ====================
 async function init() {
-  var user = getCurrentUser();
-  if (!user) {
-    // 未登录 → 跳转回登录页
-    window.location.replace('/');
-    return;
+  // 免登录模式：直接进入系统
+  if (!getCurrentUser()) {
+    localStorage.setItem('taxUser', JSON.stringify({name:'用户', phone:'13800000000', pinyin:'auto', loginAt: new Date().toISOString()}));
   }
   return initAppFlow();
 }
@@ -1185,7 +1174,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 }
 
 function _startApp() {
-  _bindPickPageButtons();
   init().catch(function (e) {
     console.error('初始化失败', e);
   });
