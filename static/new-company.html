@@ -82,9 +82,9 @@ async function handleCreate() {
       body: JSON.stringify({name: name, uscc: uscc})
     });
     var data = await resp.json();
-    if (data.ok) {
-      showSuccess('创建成功！正在跳转...');
-      setTimeout(function() { window.location.href = '/select-company'; }, 800);
+    if (data.id) {
+      showSuccess('创建成功！正在返回...');
+      setTimeout(function() { window.location.href = '/select-company'; }, 600);
     } else {
       showError(data.message || data.detail || '创建失败');
       btn.disabled = false;
