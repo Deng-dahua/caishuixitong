@@ -167,8 +167,8 @@ function showCompanyPick(companies) {
   list.innerHTML = companies.map(function(c) {
     var safeName = escapeHtml(c.name);
     return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '">'
-      + '<a href="/app" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
-      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\')">'
+      + '<a href="#" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
+      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\');location.href=\'/app?_\'+Date.now();return false">'
       + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
       + '<div class="info"><div class="cn">' + safeName + '</div>'
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
