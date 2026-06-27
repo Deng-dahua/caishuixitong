@@ -93,8 +93,13 @@
 <!-- 侧边栏 -->
 <nav id="sidebar">
   <div class="sidebar-logo">
-    财税风险防控系统
-    <span>中小企业版 v1.0</span>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div style="flex:1">
+        财税风险防控系统
+        <span>中小企业版 v1.0</span>
+      </div>
+      <button onclick="logoutUser()" title="退出登录" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;line-height:1.4;">🚪 退出</button>
+    </div>
     <div id="sidebar-user" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);font-size:11px;opacity:0.8">
       👤 <span id="sidebar-user-name">-</span>
     </div>

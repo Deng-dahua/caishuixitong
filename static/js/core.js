@@ -271,6 +271,21 @@ async function exitCompany() {
   showCompanyPick(companies);
 }
 
+function logoutUser() {
+  // 完全退出登录，返回个人登录页
+  localStorage.removeItem('taxUser');
+  localStorage.removeItem('lastCompanyId');
+  localStorage.removeItem('lastCompanyName');
+  localStorage.removeItem('lastPage');
+  currentCompanyId = 0;
+  currentCompanyName = '';
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('registration-view').classList.add('hidden');
+  document.getElementById('company-pick-view').classList.add('hidden');
+  document.getElementById('user-register-overlay').style.display = 'flex';
+  document.getElementById('user-register-overlay').style.zIndex = '99999';
+}
+
 // ==================== 全局 AI 自动处理 ====================
 async function globalAIAutoProcess() {
   const btn = document.querySelector('.btn-ai-auto');
