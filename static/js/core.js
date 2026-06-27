@@ -86,8 +86,16 @@ const pages = {
 // ==================== 用户登录 ====================
 function getCurrentUser() {
   try {
+    // 优先从 localStorage 读取
     var data = JSON.parse(localStorage.getItem('taxUser') || 'null');
-    return data || null;
+    if (data) return data;
+    // 从 cookie 读取 user_name
+    var cookie = document.cookie.split('; ').find(function(c){ return c.startsWith('user_name='); });
+    if (cookie) {
+      var name = decodeURIComponent(cookie.split('=')[1]);
+      return {name: name, phone: ''};
+    }
+    return null;
   } catch(e) { return null; }
 }
 
@@ -259,7 +267,15 @@ window.enterApp = enterApp;  // 确保全局可访问
   // 显示当前用户
   var user = getCurrentUser();
   var userEl = document.getElementById('sidebar-user-name');
-  if (userEl && user) userEl.textContent = user.name + ' (' + user.phone + ')';
+  if (userEl && user) userEl.textContent = user.name;
+  // 显示当前账套信息
+  var coNameEl = document.getElementById('sidebar-company-name');
+  var coUsccEl = document.getElementById('sidebar-company-uscc');
+  if (coNameEl) coNameEl.textContent = companyName || '';
+  // 从公司列表中获取USCC
+  var coList = window._companiesForPick || [];
+  var co = coList.find(function(c){ return (c.id === companyId); });
+  if (coUscc && co) coUsccEl.textContent = co.uscc ? '信用代码：' + co.uscc : '';
   await loadCompanies();
   await loadCurrentPeriod();
   await loadAllAccounts();
