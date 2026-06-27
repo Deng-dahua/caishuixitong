@@ -203,15 +203,13 @@ function showCompanyPick(companies) {
       if (dId && dName) window.deleteCompanyFromPick(dId, dName);
       return;
     }
-    // 点击 li 进入系统
+    // 点击 li 进入系统（直接调用 enterApp，不跳转）
     var li = e.target.closest('li[data-company-id]');
     if (li) {
       var id = parseInt(li.getAttribute('data-company-id'));
       var name = li.getAttribute('data-company-name');
       if (id && name) {
-        localStorage.setItem('lastCompanyId', id);
-        localStorage.setItem('lastCompanyName', name);
-        window.location.href = '/' + py + '/xuanzezhangtao/?_' + Date.now();
+        enterApp(id, name);
       }
     }
   };
