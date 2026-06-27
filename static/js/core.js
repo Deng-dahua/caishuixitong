@@ -161,13 +161,16 @@ function showCompanyPick(companies) {
   var list = document.getElementById('pick-list');
   if (!list) { console.error('pick-list 元素未找到！'); return; }
   list.innerHTML = companies.map(function(c) {
-    var initial = c.name ? c.name.charAt(0) : '公';
     var safeName = escapeHtml(c.name);
-    return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '" style="cursor:pointer;" onclick="window._pickEnter(' + c.id + ')">'
-      + '<div class="av">' + initial + '</div>'
+    // 使用 <a> 标签而非 onclick，确保浏览器原生导航可用
+    return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '">'
+      + '<a href="/app?cid=' + c.id + '" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
+      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\')">'
+      + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
       + '<div class="info"><div class="cn">' + safeName + '</div>'
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
       + '</div><div class="arr">→</div>'
+      + '</a>'
       + '<button class="pick-del-btn" data-del-id="' + c.id + '" data-del-name="' + safeName + '" title="删除此账套">🗑</button>'
       + '</li>';
   }).join('');
