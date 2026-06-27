@@ -71,16 +71,15 @@ async function init() {
         selectCompany(c.id);
       };
       
-      var statusClass = (c.status === '存续' || c.status === '正常' || c.status === 'active') ? 'active' : 'inactive';
       card.innerHTML = 
         '<button class="btn-del" title="删除此账套">&times;</button>' +
         '<div class="name">' + (c.name || c.company_name || '未命名') + '</div>' +
         '<div class="meta">' +
         (c.uscc ? '信用代码：' + c.uscc.substring(0,18) + '<br>' : '') +
         (c.industry ? '行业：' + c.industry + '<br>' : '') +
-        (c.company_type ? '类型：' + c.company_type : '') +
-        '</div>' +
-        '<span class="status ' + statusClass + '">' + (c.status || '未核实') + '</span>';
+        (c.company_type ? '类型：' + c.company_type + '<br>' : '') +
+        (c.established_date ? '成立日期：' + c.established_date + '<br>' : '') +
+        '</div>';
       
       // 删除按钮事件
       var delBtn = card.querySelector('.btn-del');
