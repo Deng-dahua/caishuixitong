@@ -103,7 +103,7 @@ function getCurrentUser() {
 function handleUserLogin(e) {
   // 已废弃：登录页分离到 login.html，此函数保留兼容旧代码
   e.preventDefault();
-  window.location.href = '/app';
+  window.location.href = '/xuanzezhangtao/';
 }
 
 // 分离出应用入口，登录后再调用
@@ -168,7 +168,7 @@ function showCompanyPick(companies) {
     var safeName = escapeHtml(c.name);
     return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '">'
       + '<a href="#" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
-      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\');location.href=\'/app?_\'+Date.now();return false">'
+      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\');location.href=\'/xuanzezhangtao/?_\'+Date.now();return false">'
       + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
       + '<div class="info"><div class="cn">' + safeName + '</div>'
       + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')

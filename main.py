@@ -469,9 +469,9 @@ async def login_page():
     """个人登录页"""
     return _read_html("static/login.html")
 
-@app.get("/app", response_class=HTMLResponse)
+@app.get("/xuanzezhangtao/", response_class=HTMLResponse)
 async def app_page(request: Request):
-    """主应用（账套选择/系统）—— 预注入公司数据避免依赖 AJAX"""
+    """账套选择页/主应用 —— 预注入公司数据避免依赖 AJAX"""
     html = _read_html("static/index.html")
     try:
         from database import SessionLocal, Company
@@ -487,9 +487,9 @@ async def app_page(request: Request):
         pass
     return html
 
-@app.get("/register", response_class=HTMLResponse)
+@app.get("/xinjianzhangtao/", response_class=HTMLResponse)
 async def register_page():
-    """独立新建公司账套页（不依赖主应用 JS）"""
+    """新建公司账套页（独立页面）"""
     return _read_html("static/register.html")
 
 
@@ -32466,7 +32466,7 @@ def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
 if __name__ == "__main__":
     import uvicorn, argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--port", type=int, default=8001)
     args, _ = parser.parse_known_args()
     uvicorn.run("main:app", host="0.0.0.0", port=args.port, reload=False)
 
