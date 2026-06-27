@@ -133,6 +133,10 @@ async function initAppFlow() {
 }
 
 async function loadCompaniesRaw() {
+  // 优先用服务端预注入的数据，避免依赖 AJAX fetch
+  if (window.__PRELOAD_COMPANIES__ && window.__PRELOAD_COMPANIES__.length > 0) {
+    return window.__PRELOAD_COMPANIES__;
+  }
   try {
     return await fetch('/api/companies').then(r => r.json());
   } catch (e) {

@@ -470,9 +470,22 @@ async def login_page():
     return _read_html("static/login.html")
 
 @app.get("/app", response_class=HTMLResponse)
-async def app_page():
-    """主应用（账套选择/系统）"""
-    return _read_html("static/index.html")
+async def app_page(request: Request):
+    """主应用（账套选择/系统）—— 预注入公司数据避免依赖 AJAX"""
+    html = _read_html("static/index.html")
+    try:
+        from database import SessionLocal, Company
+        db = SessionLocal()
+        companies = db.query(Company).order_by(Company.id).all()
+        # 注入公司数据到页面
+        company_data = [{"id": c.id, "name": c.name, "uscc": c.uscc or ""} for c in companies]
+        import json as _json
+        inject = "<script>window.__PRELOAD_COMPANIES__ = " + _json.dumps(company_data, ensure_ascii=False) + ";</script>"
+        html = html.replace("</head>", inject + "\n</head>")
+        db.close()
+    except:
+        pass
+    return html
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page():
