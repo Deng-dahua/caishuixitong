@@ -198,6 +198,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                                     "工资","代扣社保","养老保险","本期收入","实发",
                                     "个税","应纳税","累计收入","费用类型","所得项目"
                                 ])
+                                has_housing_fund_info = any(k in hdr_text for k in [
+                                    "缴存月份","缴存基数","单位缴存额","个人缴存额",
+                                    "缴存比例","公积金"
+                                ])
+                                has_salary_tax_info = any(k in hdr_text for k in [
+                                    "征收项目","征收品目","应纳税额","累计应扣缴税额",
+                                    "已缴税额","应补退税额","个人所得税"
+                                ])
                                 
                                 # 列角色辅助
                                 has_amount = any("amount_col" in r for r in col_roles.values())
@@ -207,6 +215,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 # 第3步：综合推理，确定文件类型
                                 if has_salary_info:
                                     inferred_type = "salary"
+                                elif has_salary_tax_info:
+                                    inferred_type = "salary_tax"
+                                elif has_housing_fund_info:
+                                    inferred_type = "housing_fund"
                                 elif buyer_matches and not seller_matches:
                                     # 公司是购买方 → 进项相关
                                     if has_deduction_info:
@@ -445,6 +457,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         (["抵扣", "勾选", "认证"], "input_vat_deduction"),
         (["工资", "薪金", "所得", "个税"], "salary"),
         (["社保", "社会保险"], "social_security"),
+        (["公积金", "缴存"], "housing_fund"),
+        (["申报", "扣缴", "个人所得税"], "salary_tax"),
         (["公积金", "住房"], "housing_fund"),
             (["凭证", "记账", "序时账"], "voucher"),
             (["进销存", "台账", "存货", "库存"], "inventory"),
