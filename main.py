@@ -147,9 +147,9 @@ async def api_login(data: dict):
     if not phone or not phone.isdigit() or len(phone) != 11:
         return {"ok": False, "message": "请输入有效的11位手机号码"}
     token = secrets.token_hex(32)
-    _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": time.time() + 86400 * 30}
+    _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": float("inf")}
     resp = JSONResponse({"ok": True, "name": name})
-    resp.set_cookie("auth_token", token, httponly=True, max_age=86400*30, samesite="lax")
+    resp.set_cookie("auth_token", token, httponly=True, samesite="lax")
     return resp
 
 
