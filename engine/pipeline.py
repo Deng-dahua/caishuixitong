@@ -2089,7 +2089,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ── 缺失后果→综合定性自动触发（叙事增强层）──
     # 任一资料缺失≥1 → 自动触发对应风险结论，注入all_findings
     if ctx.missing_doc_keys:
-        triggered = _trigger_missing_consequences(all_findings, ctx.missing_doc_keys)
+        triggered = _trigger_missing_consequences(all_findings, ctx.missing_doc_keys, ctx.industry_profile)
         if triggered:
             all_findings.extend(triggered)
             pipeline_log.append(f"[叙事增强层] 缺失后果自动触发: {len(triggered)}条风险结论已注入all_findings")

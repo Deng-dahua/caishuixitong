@@ -6274,13 +6274,19 @@ _CATEGORY_NAME_TO_KEY = {
 }
 
 
-def _trigger_missing_consequences(all_items, missing_doc_keys=None):
+def _trigger_missing_consequences(all_items, missing_doc_keys=None, industry_profile=None):
     """
     叙事增强层：缺失资料自动触发综合定性风险结论
     
     规则：任一资料缺失≥1 → 自动触发对应风险结论到综合定性
     从现有findings中提取缺失资料列表，生成对应的触发结论
+    
+    行业自适应：非存货行业（服务业/科技互联网/物流运输）自动跳过进销存缺失触发
     """
+    # 判断行业是否需要存货
+    has_inventory = True  # 默认有存货（保守假设）
+    if industry_profile:
+        has_inventory = industry_profile.get("has_inventory", True)
     if not missing_doc_keys:
         # 从findings中提取缺失资料key
         missing_doc_keys = set()
@@ -6300,6 +6306,9 @@ def _trigger_missing_consequences(all_items, missing_doc_keys=None):
     
     triggered = []
     for key in sorted(missing_doc_keys):
+        # 行业自适应：非存货行业自动跳过进销存缺失触发
+        if key == "inventory" and not has_inventory:
+            continue
         t = MISSING_CONSEQUENCE_TRIGGER.get(key)
         if not t:
             continue
