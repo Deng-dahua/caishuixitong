@@ -117,13 +117,13 @@ async function initAppFlow() {
     return;
   }
 
-  // 兜底点击：账套选择页点击公司后带 ?cid= 参数重载
-  var params = new URLSearchParams(window.location.search);
-  var cid = params.get('cid');
-  if (cid && companies && companies.length > 0) {
-    var company = companies.find(function(c) { return String(c.id) === String(cid); });
-    if (company) {
-      enterApp(company.id, company.name);
+  // 从账套选择页点击后重载，自动进入已选公司
+  var lastId = localStorage.getItem('lastCompanyId');
+  var lastName = localStorage.getItem('lastCompanyName');
+  if (lastId && lastName && companies && companies.length > 0) {
+    var found = companies.find(function(c) { return String(c.id) === String(lastId); });
+    if (found) {
+      enterApp(found.id, found.name);
       return;
     }
   }
@@ -162,9 +162,8 @@ function showCompanyPick(companies) {
   if (!list) { console.error('pick-list 元素未找到！'); return; }
   list.innerHTML = companies.map(function(c) {
     var safeName = escapeHtml(c.name);
-    // 使用 <a> 标签而非 onclick，确保浏览器原生导航可用
     return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '">'
-      + '<a href="/app?cid=' + c.id + '" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
+      + '<a href="/app" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
       + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\')">'
       + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
       + '<div class="info"><div class="cn">' + safeName + '</div>'
