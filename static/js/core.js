@@ -131,7 +131,6 @@ async function initAppFlow() {
   }
   // 始终进入账套选择页（不自动进入）
   showCompanyPick(companies);
-  showCompanyPick(companies);
 }
 
 async function loadCompaniesRaw() {
