@@ -11208,36 +11208,45 @@ def _get_row_values(sheet, row_idx):
 # 核心哲学：人类看表格时自动扫描前几行找到"列名行"——系统也这样做
 # 不再硬编码"表头在第1行"或"表头在第2行"
 
-def _detect_header_row(sheet, nrows, column_keywords, scan_rows=100):
-    """扫描前N行，找到包含最多列名关键词的那一行，返回该行索引。
+def _detect_header_row(sheet, nrows, column_keywords, max_scan=2000):
+    """动态自适应表头检测：不预设表头在第N行之内，而是扫描直到找到确信的表头。
     
     工作原理：
-    1. 对第0到scan_rows-1行，每行统计含有的column_keywords数量（打分）
-    2. 返回得分最高的行号（即表头行）
-    3. 若最高分<2，说明前20行都不像表头→回退到第0行（安全兜底，不会报错）
+    1. 从第0行开始逐行打分（命中column_keywords的数量）
+    2. 当某行得分>=3 → 立即认定为表头（高置信度，直接返回）
+    3. 如果连续100行得分都<=1 → 说明已进入数据区，取之前的最高分行为表头
+    4. 如果到max_scan行仍未找到→取扫描范围内最高分（>=2才用，<2回退第0行）
     
-    返回: (header_row_idx, header_scores_dict)
-    - header_row_idx: 表头行索引（0-based）
-    - header_scores_dict: {row_idx: score} 用于诊断
+    这个算法不依赖任何预设行号上限——表头在42行、100行、10000行都能找到。
     """
-    scores = {}
-    for r in range(min(scan_rows, nrows)):
+    best_row, best_score = 0, 0
+    low_score_streak = 0  # 连续低分行计数
+    
+    for r in range(min(max_scan + 1, nrows)):
         row_vals = _get_row_values(sheet, r)
-        # 拼接所有单元格为纯文本（忽略格式，只看内容）
         row_text = " ".join(str(v) for v in row_vals if v)
-        # 统计命中的列名关键词（因为同义词多，允许模糊匹配）
         score = sum(1 for kw in column_keywords if kw in row_text)
-        if score > 0:
-            scores[r] = score
-    if not scores:
-        return 0, {}  # 没有匹配到任何关键词→回退第0行
-
-    # 取最高分
-    best_row = max(scores, key=scores.get)
-    best_score = scores[best_row]
-    if best_score < 2:
-        return 0, scores  # 最高分<2→不像表头→回退第0行
-    return best_row, scores
+        
+        if score > best_score:
+            best_score = score
+            best_row = r
+        
+        # 高置信度命中：立即返回，不继续扫描（效率优化）
+        if score >= 3:
+            return r, {r: score}
+        
+        # 追踪连续低分行：连续100行都<=1说明已过表头进入数据区
+        if score <= 1:
+            low_score_streak += 1
+            if low_score_streak >= 100 and best_score >= 2:
+                return best_row, {best_row: best_score}
+        else:
+            low_score_streak = 0
+    
+    # 扫描结束：取最高分，>=2才认，<2回退
+    if best_score >= 2:
+        return best_row, {best_row: best_score}
+    return 0, {}
 
 # ═══════════════ 语义化列检测 ═══════════════
 # 核心哲学：不依赖精确列名匹配，而是理解列的「语义角色」
