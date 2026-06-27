@@ -142,13 +142,14 @@ function showRegistration() {
 
 function showCompanyPick(companies) {
   sessionStorage.removeItem('onRegistrationPage');
+  // 没有公司时直接跳建档页（绕过按钮点击问题）
+  if (!companies || companies.length === 0) {
+    showRegistration();
+    return;
+  }
   var list = document.getElementById('pick-list');
   if (!list) { console.error('pick-list 元素未找到！'); return; }
-  // 始终渲染列表（空数组则显示空列表+创建按钮）
-  if (!companies || companies.length === 0) {
-    list.innerHTML = '<div class="empty-state" style="text-align:center;padding:32px 16px;color:#94a3b8;font-size:14px">暂无公司账套，请点击下方按钮创建</div>';
-  } else {
-    list.innerHTML = companies.map(function(c) {
+  list.innerHTML = companies.map(function(c) {
     var initial = c.name ? c.name.charAt(0) : '公';
     var safeName = escapeHtml(c.name);
     return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '" style="cursor:pointer;" onclick="window._pickEnter(' + c.id + ')">'
@@ -159,7 +160,6 @@ function showCompanyPick(companies) {
       + '<button class="pick-del-btn" data-del-id="' + c.id + '" data-del-name="' + safeName + '" title="删除此账套">🗑</button>'
       + '</li>';
   }).join('');
-  }  // close else
 
   // 删除按钮事件委托
   list.addEventListener('click', function(e) {
