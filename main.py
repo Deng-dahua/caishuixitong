@@ -111,20 +111,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
 
-# ═══════════════ 登录认证 ═══════════════
-_AUTH_FILE = os.path.join(os.path.dirname(__file__), "auth.json")
+# ═══════════════ 个人登录 ═══════════════
 _AUTH_SESSIONS = {}
-
-def _load_auth():
-    if os.path.exists(_AUTH_FILE):
-        with open(_AUTH_FILE, "r", encoding="utf-8") as f:
-            return _json.load(f)
-    default = {"username": "laodeng", "password": hashlib.sha256("caishui2026".encode()).hexdigest()}
-    with open(_AUTH_FILE, "w", encoding="utf-8") as f:
-        _json.dump(default, f, ensure_ascii=False, indent=2)
-    return default
-
-_AUTH_CONFIG = _load_auth()
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -141,7 +129,7 @@ async def auth_middleware(request: Request, call_next):
         else:
             del _AUTH_SESSIONS[token]
     if is_api:
-        return JSONResponse({"ok": False, "message": "未登录", "code": 401}, status_code=401)
+        return JSONResponse({"ok": False, "message": "请先登录", "code": 401}, status_code=401)
     return RedirectResponse("/login", status_code=302)
 
 
@@ -152,17 +140,16 @@ async def login_page():
 
 @app.post("/api/auth/login")
 async def api_login(data: dict):
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    if not username or not password:
-        return {"ok": False, "message": "请输入用户名和密码"}
-    pw_hash = hashlib.sha256(password.encode()).hexdigest()
-    if username != _AUTH_CONFIG["username"] or pw_hash != _AUTH_CONFIG["password"]:
-        return {"ok": False, "message": "用户名或密码错误"}
+    name = data.get("name", "").strip()
+    phone = data.get("phone", "").strip()
+    if not name:
+        return {"ok": False, "message": "请输入姓名"}
+    if not phone or not phone.isdigit() or len(phone) != 11:
+        return {"ok": False, "message": "请输入有效的11位手机号码"}
     token = secrets.token_hex(32)
-    _AUTH_SESSIONS[token] = {"username": username, "expires": time.time() + 86400 * 7}
-    resp = JSONResponse({"ok": True, "message": "登录成功"})
-    resp.set_cookie("auth_token", token, httponly=True, max_age=86400*7, samesite="lax")
+    _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": time.time() + 86400 * 30}
+    resp = JSONResponse({"ok": True, "name": name})
+    resp.set_cookie("auth_token", token, httponly=True, max_age=86400*30, samesite="lax")
     return resp
 
 
@@ -171,7 +158,7 @@ async def api_logout(request: Request):
     token = request.cookies.get("auth_token")
     if token and token in _AUTH_SESSIONS:
         del _AUTH_SESSIONS[token]
-    resp = JSONResponse({"ok": True, "message": "已退出"})
+    resp = JSONResponse({"ok": True})
     resp.delete_cookie("auth_token")
     return resp
 
