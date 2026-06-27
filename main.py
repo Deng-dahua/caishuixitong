@@ -117,7 +117,7 @@ _AUTH_SESSIONS = {}
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    skip_paths = ["/login", "/api/auth/", "/static/", "/favicon.ico"]
+    skip_paths = ["/login", "/select-company", "/api/auth/", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
         return await call_next(request)
     is_api = path.startswith("/api/")
@@ -125,6 +125,9 @@ async def auth_middleware(request: Request, call_next):
     if token and token in _AUTH_SESSIONS:
         sess = _AUTH_SESSIONS[token]
         if sess["expires"] > time.time():
+            # 已登录但未选账套 → 跳转账套选择页
+            if not request.cookies.get("company_id") and not is_api:
+                return RedirectResponse("/select-company", status_code=302)
             return await call_next(request)
         else:
             del _AUTH_SESSIONS[token]
@@ -160,6 +163,23 @@ async def api_logout(request: Request):
         del _AUTH_SESSIONS[token]
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("auth_token")
+    return resp
+
+
+@app.get("/select-company", response_class=HTMLResponse)
+async def select_company_page():
+    return _read_html("static/select-company.html")
+
+
+@app.post("/api/auth/select-company")
+async def api_select_company(data: dict, request: Request):
+    cid = data.get("company_id", 0)
+    token = request.cookies.get("auth_token")
+    if not token or token not in _AUTH_SESSIONS:
+        return {"ok": False, "message": "请先登录"}
+    _AUTH_SESSIONS[token]["company_id"] = cid
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie("company_id", str(cid), samesite="lax")
     return resp
 
 
