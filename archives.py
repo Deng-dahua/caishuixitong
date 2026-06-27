@@ -1858,6 +1858,14 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.delete(company)
         db.commit()
+        # 清理文件目录
+        import shutil
+        upload_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs", str(company_id))
+        if os.path.exists(upload_dir):
+            try:
+                shutil.rmtree(upload_dir)
+            except Exception:
+                pass
     except Exception as e:
         db.rollback()
         raise HTTPException(500, detail=f"删除失败：{e}")

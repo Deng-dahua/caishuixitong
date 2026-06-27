@@ -75,7 +75,7 @@ async function init() {
         '<button class="btn-del" title="删除此账套">&times;</button>' +
         '<div class="name">' + (c.name || c.company_name || '未命名') + '</div>' +
         '<div class="meta">' +
-        (c.uscc ? '信用代码：' + c.uscc.substring(0,18) + '<br>' : '') +
+        (c.uscc ? c.uscc + '<br>' : '') +
         (c.industry ? '行业：' + c.industry + '<br>' : '') +
         (c.company_type ? '类型：' + c.company_type + '<br>' : '') +
         (c.established_date ? '成立日期：' + c.established_date + '<br>' : '') +

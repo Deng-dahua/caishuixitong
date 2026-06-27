@@ -52,12 +52,13 @@
   <div class="sidebar-logo">
     财税风险防控系统
     <span>中小企业版 v1.0</span>
-    <div id="sidebar-user" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:left">
+    <div id="sidebar-user" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center">
       <div style="margin-bottom:4px">👤 <span id="sidebar-user-name">-</span></div>
       <div id="sidebar-company-info" style="opacity:0.7">
         🏢 <span id="sidebar-company-name">-</span><br>
         <span style="font-size:10px" id="sidebar-company-uscc"></span>
       </div>
+      <button onclick="exitToCompanyPick()" style="margin-top:6px;width:100%;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);border-radius:4px;padding:3px 0;font-size:11px;cursor:pointer">↩ 退出本账套</button>
     </div>
   </div>
   <div class="sidebar-nav">
@@ -333,11 +334,16 @@ window._dismissTaxFinding = function(btn) {
         var cnEl = document.getElementById('sidebar-company-name');
         var cuEl = document.getElementById('sidebar-company-uscc');
         if (cnEl) cnEl.textContent = co.name || '';
-        if (cuEl) cuEl.textContent = co.uscc ? '信用代码：' + co.uscc : '';
+        if (cuEl) cuEl.textContent = co.uscc || '';
       }
     }).catch(function(){});
   }
 })();
+
+// ═══ 退出本账套 ═══
+function exitToCompanyPick() {
+  window.location.href = '/select-company';
+}
 </script>
 
 <!-- init() 由 core.js 的 DOMContentLoaded 监听器自动调用 -->

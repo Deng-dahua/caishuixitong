@@ -131,10 +131,15 @@ async function initAppFlow() {
     return;
   }
 
-  // 自动选择：优先上次使用的账套，其次第一个
+  // 自动选择：优先cookie中的company_id，其次上次使用的，最后第一个
+  var cookieCid = document.cookie.split('; ').find(function(c){ return c.startsWith('company_id='); });
+  if (cookieCid) cookieCid = cookieCid.split('=')[1];
   var lastId = localStorage.getItem('lastCompanyId');
   var target = null;
-  if (lastId) {
+  if (cookieCid) {
+    target = companies.find(function(c) { return String(c.id) === String(cookieCid); });
+  }
+  if (!target && lastId) {
     target = companies.find(function(c) { return String(c.id) === String(lastId); });
   }
   if (!target) target = companies[0];
@@ -275,7 +280,7 @@ window.enterApp = enterApp;  // 确保全局可访问
   // 从公司列表中获取USCC
   var coList = window._companiesForPick || [];
   var co = coList.find(function(c){ return (c.id === companyId); });
-  if (coUscc && co) coUsccEl.textContent = co.uscc ? '信用代码：' + co.uscc : '';
+  if (coUscc && co) coUsccEl.textContent = co.uscc || '';
   await loadCompanies();
   await loadCurrentPeriod();
   await loadAllAccounts();
