@@ -525,7 +525,7 @@
     .reg-header h1 { font-size: 24px; color: #1a1a2e; margin: 0 0 8px; font-weight: 700; }
     .reg-header p { font-size: 14px; color: #6b7280; margin: 0; }
 
-    .reg-card { background: #fff; border-radius: 16px; padding: 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .reg-card { background: transparent; padding: 36px 32px; }
     .reg-card h2 { font-size: 18px; color: #1a1a2e; margin: 0 0 24px; text-align: center; }
 
     .reg-form .form-group { margin-bottom: 18px; }

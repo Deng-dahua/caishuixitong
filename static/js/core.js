@@ -142,6 +142,9 @@ async function loadCompaniesRaw() {
 }
 
 function showRegistration() {
+  // 先确保登录遮罩不挡住建档页
+  const overlay = document.getElementById('user-register-overlay');
+  if (overlay) overlay.style.display = 'none';
   document.getElementById('registration-view').classList.remove('hidden');
   document.getElementById('company-pick-view').classList.add('hidden');
   document.getElementById('app-view').classList.add('hidden');
