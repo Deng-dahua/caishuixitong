@@ -142,7 +142,12 @@ async def login_page():
 
 
 @app.post("/api/auth/login")
-async def api_login(data: dict):
+async def api_login(request: Request):
+    try:
+        body = await request.body()
+        data = json.loads(body.decode("utf-8"))
+    except Exception:
+        return {"ok": False, "message": "请求数据格式错误"}
     name = data.get("name", "").strip()
     phone = data.get("phone", "").strip()
     if not name:
@@ -153,7 +158,8 @@ async def api_login(data: dict):
     _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": float("inf")}
     resp = JSONResponse({"ok": True, "name": name})
     resp.set_cookie("auth_token", token, httponly=True, samesite="lax")
-    resp.set_cookie("user_name", name, samesite="lax")  # JS可读，显示用户名用
+    # cookie不支持中文，需要URL编码
+    resp.set_cookie("user_name", urllib.parse.quote(name), samesite="lax")
     return resp
 
 
