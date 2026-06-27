@@ -327,22 +327,10 @@ setTimeout(function() {
         var id = li.getAttribute('data-company-id');
         var name = li.getAttribute('data-company-name');
         if (id && name) {
-          // 直接绑定的进入逻辑
-          window._currentCompanyId = parseInt(id);
-          window._currentCompanyName = name;
           localStorage.setItem('lastCompanyId', id);
           localStorage.setItem('lastCompanyName', name);
-          document.getElementById('company-pick-view').classList.add('hidden');
-          document.getElementById('app-view').classList.remove('hidden');
-          // 显示公司名
-          var display = document.getElementById('company-name-display');
-          if (display) display.textContent = name;
-          // 触发其他初始化
-          if (typeof enterApp === 'function') {
-            enterApp(parseInt(id), name);
-          } else if (typeof navigateTo === 'function') {
-            navigateTo('dashboard');
-          }
+          // 直接跳转，让 init 流程接管
+          window.location.href = '/app?cid=' + id;
         }
       }
     };

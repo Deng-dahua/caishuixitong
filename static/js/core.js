@@ -117,6 +117,17 @@ async function initAppFlow() {
     return;
   }
 
+  // 兜底点击：账套选择页点击公司后带 ?cid= 参数重载
+  var params = new URLSearchParams(window.location.search);
+  var cid = params.get('cid');
+  if (cid && companies && companies.length > 0) {
+    var company = companies.find(function(c) { return String(c.id) === String(cid); });
+    if (company) {
+      enterApp(company.id, company.name);
+      return;
+    }
+  }
+
   // 始终进入账套选择页（不自动进入、不自动跳建档页）
   showCompanyPick(companies);
 }
