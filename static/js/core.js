@@ -117,11 +117,7 @@ async function initAppFlow() {
     return;
   }
 
-  if (!companies || companies.length === 0) {
-    showRegistration();
-    return;
-  }
-  // 始终进入账套选择页（不自动进入）
+  // 始终进入账套选择页（不自动进入、不自动跳建档页）
   showCompanyPick(companies);
 }
 
@@ -146,13 +142,9 @@ function showRegistration() {
 
 function showCompanyPick(companies) {
   sessionStorage.removeItem('onRegistrationPage');
-  // 没有公司时直接跳建档页
-  if (!companies || companies.length === 0) {
-    showRegistration();
-    return;
-  }
   var list = document.getElementById('pick-list');
   if (!list) { console.error('pick-list 元素未找到！'); return; }
+  // 始终渲染列表（空数组则显示空列表+创建按钮）
   list.innerHTML = companies.map(function(c) {
     var initial = c.name ? c.name.charAt(0) : '公';
     var safeName = escapeHtml(c.name);
@@ -207,7 +199,7 @@ async function deleteCompanyFromPick(companyId, companyName) {
     if (!companies || companies.length === 0) {
       localStorage.removeItem('lastCompanyId');
       localStorage.removeItem('lastCompanyName');
-      showRegistration();
+      showCompanyPick([]);
     } else {
       showCompanyPick(companies);
     }
@@ -324,8 +316,11 @@ async function handleCompanyRegister(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     }).then(r => { if (!r.ok) return r.json().then(err => { throw new Error(err.detail || '创建失败'); }); return r.json(); });
-    toast('公司「' + data.name + '」创建成功，正在进入系统...', 'success');
-    setTimeout(() => enterApp(data.id, data.name), 600);
+    toast('公司「' + data.name + '」创建成功', 'success');
+    // 创建成功后返回账套选择页（不自动进入系统）
+    const companies = await loadCompaniesRaw();
+    window._companiesForPick = companies || [];
+    showCompanyPick(companies);
   } catch (err) {
     toast('创建失败：' + err.message, 'error');
     btn.disabled = false;
