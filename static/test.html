@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>测试</title>
+<style>
+body { font-family: sans-serif; padding: 40px; }
+li { padding: 12px; border: 1px solid #ccc; margin: 8px 0; cursor: pointer; }
+.pass { color: green; }
+.fail { color: red; }
+</style>
+</head>
+<body>
+<h2>JS 执行测试</h2>
+<div id="results"></div>
+
+<script>
+var results = document.getElementById('results');
+function log(msg, pass) {
+  var div = document.createElement('div');
+  div.className = pass ? 'pass' : 'fail';
+  div.textContent = (pass ? '✅ ' : '❌ ') + msg;
+  results.appendChild(div);
+}
+
+// 测试1: localStorage
+try {
+  var u = JSON.parse(localStorage.getItem('taxUser') || 'null');
+  log('localStorage taxUser: ' + (u ? u.name : 'null'), !!u);
+} catch(e) { log('localStorage 异常: ' + e.message, false); }
+
+// 测试2: fetch API
+fetch('/api/companies').then(r => r.json()).then(function(companies) {
+  log('API companies: ' + companies.length + ' 家', companies.length > 0);
+  companies.forEach(function(c) {
+    var li = document.createElement('li');
+    li.textContent = c.name + ' (ID:' + c.id + ')';
+    li.onclick = function() {
+      localStorage.setItem('lastCompanyId', c.id);
+      localStorage.setItem('lastCompanyName', c.name);
+      location.href = '/app';
+    };
+    results.appendChild(li);
+  });
+}).catch(function(e) {
+  log('API 请求失败: ' + e.message, false);
+});
+
+// 测试3: 页面元素
+log('document.body 存在', !!document.body);
+log('页面在运行', true);
+</script>
+</body>
+</html>
