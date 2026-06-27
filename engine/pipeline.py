@@ -221,8 +221,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 r["direction"] = "销项"  # 公司是销售方，公司开给别人
                             elif buyer_match and seller_match:
                                 r["direction"] = "进项"  # 都匹配时优先进项（更保守）
+                            elif not buyer_match and not seller_match and seller_name and buyer_name:
+                                # 买卖双方都有信息但都不匹配当前公司 → 不属于本账套
+                                r["direction"] = "存疑"
+                                fr.setdefault("_mismatch_warnings", []).append(f"发票买卖双方均不匹配当前公司'{co_name}'，可能误传了其他公司的资料")
                             elif seller_name and seller_tax:
-                                r["direction"] = "进项"  # 有销方信息但未匹配到公司
+                                r["direction"] = "进项"  # 有销方信息但未匹配到公司（可能是公司简称/曾用名）
                             elif buyer_name and buyer_tax:
                                 r["direction"] = "销项"  # 有购方信息但未匹配到公司
                             elif seller_name:
@@ -230,7 +234,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                             elif buyer_name:
                                 r["direction"] = "销项"
                             else:
-                                r["direction"] = "进项"  # 默认进项
+                                r["direction"] = "存疑"  # 无法判定
                             invoices.append(r)
                         fr["actions"].append(f"提取{n}条发票")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
