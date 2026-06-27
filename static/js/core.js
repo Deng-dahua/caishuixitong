@@ -171,57 +171,54 @@ function showRegistration() {
 
 function showCompanyPick(companies) {
   sessionStorage.removeItem('onRegistrationPage');
-  // 没有公司时直接跳建档页（绕过按钮点击问题）
   if (!companies || companies.length === 0) {
     showRegistration();
     return;
   }
   var list = document.getElementById('pick-list');
-  if (!list) { console.error('pick-list 元素未找到！'); return; }
+  if (!list) { console.error('pick-list 元素未找到'); return; }
+  // 从 URL 提取拼音前缀
+  var py = '';
+  var pp = window.location.pathname.split('/').filter(Boolean);
+  if (pp[0] && pp[0] !== 'xuanzezhangtao' && pp[0] !== 'xinjianzhangtao') py = pp[0];
+  else { try { py = JSON.parse(localStorage.getItem('taxUser')||'{}').pinyin || ''; } catch(e) {} }
   list.innerHTML = companies.map(function(c) {
-    var safeName = escapeHtml(c.name);
-    return '<li data-company-id="' + c.id + '" data-company-name="' + safeName + '">'
-      + '<a href="#" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%" '
-      + 'onclick="localStorage.setItem(\'lastCompanyId\',\'' + c.id + '\');localStorage.setItem(\'lastCompanyName\',\'' + safeName + '\');location.href=getUserPath()+\'/xuanzezhangtao/?_\'+Date.now();return false">'
-      + '<div class="av">' + (c.name ? c.name.charAt(0) : '公') + '</div>'
-      + '<div class="info"><div class="cn">' + safeName + '</div>'
-      + (c.uscc ? '<div class="us">' + escapeHtml(c.uscc) + '</div>' : '')
-      + '</div>'
-      + '</a>'
-      + '<button class="pick-del-btn" onclick="event.stopPropagation();deleteCompanyFromPick(' + c.id + ',\'' + safeName + '\')" title="删除此账套">🗑</button>'
+    var sn = escapeHtml(c.name);
+    var si = parseInt(c.id);
+    return '<li data-company-id="' + si + '" data-company-name="' + sn + '" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,0.85);border:1px solid rgba(0,0,0,0.06)">'
+      + '<div class="av">' + (c.name?escapeHtml(c.name.charAt(0)):'公') + '</div>'
+      + '<div style="flex:1"><div class="cn" style="font-weight:600;color:#1e293b">' + sn + '</div>' + (c.uscc?'<div class="us" style="font-size:12px;color:#94a3b8">'+escapeHtml(c.uscc)+'</div>':'') + '</div>'
+      + '<button class="pick-del-btn" data-del-id="' + si + '" data-del-name="' + sn + '" style="opacity:1;background:none;border:none;font-size:16px;cursor:pointer" title="删除此账套">🗑</button>'
       + '</li>';
   }).join('');
-
-  // 删除按钮事件委托
-  list.addEventListener('click', function(e) {
-    var btn = e.target.closest('.pick-del-btn');
-    if (btn) {
+  // 事件委托：点击 li 进入系统，点击 .pick-del-btn 删除
+  if (list._pickHandler) list.removeEventListener('click', list._pickHandler);
+  list._pickHandler = function(e) {
+    // 删除按钮
+    var delBtn = e.target.closest('.pick-del-btn');
+    if (delBtn) {
       e.stopPropagation();
-      e.preventDefault();
-      var delId = parseInt(btn.getAttribute('data-del-id'));
-      var delName = btn.getAttribute('data-del-name');
-      if (delId) deleteCompanyFromPick(delId, delName);
+      var dId = parseInt(delBtn.getAttribute('data-del-id'));
+      var dName = delBtn.getAttribute('data-del-name');
+      if (dId && dName) window.deleteCompanyFromPick(dId, dName);
+      return;
     }
-  });
-
+    // 点击 li 进入系统
+    var li = e.target.closest('li[data-company-id]');
+    if (li) {
+      var id = parseInt(li.getAttribute('data-company-id'));
+      var name = li.getAttribute('data-company-name');
+      if (id && name) {
+        localStorage.setItem('lastCompanyId', id);
+        localStorage.setItem('lastCompanyName', name);
+        window.location.href = '/' + py + '/xuanzezhangtao/?_' + Date.now();
+      }
+    }
+  };
+  list.addEventListener('click', list._pickHandler);
   document.getElementById('registration-view').classList.add('hidden');
   document.getElementById('company-pick-view').classList.remove('hidden');
   document.getElementById('app-view').classList.add('hidden');
-
-  // 用事件委托绑定"创建新公司"按钮（比 inline onclick 更可靠）
-  var pickCard = document.querySelector('.pick-card');
-  if (pickCard) {
-    // 移除旧监听避免重复绑定
-    var oldHandler = pickCard._showRegHandler;
-    if (oldHandler) pickCard.removeEventListener('click', oldHandler);
-    pickCard._showRegHandler = function(e) {
-      if (e.target.classList.contains('pick-new-btn')) {
-        e.preventDefault();
-        showRegistration();
-      }
-    };
-    pickCard.addEventListener('click', pickCard._showRegHandler);
-  }
 }
 
 // 全局入口——供 inline onclick 调用
@@ -243,8 +240,9 @@ async function deleteCompanyFromPick(companyId, companyName) {
     }
     await fetch('/api/companies/' + companyId, { method: 'DELETE' });
     toast('账套「' + companyName + '」已删除', 'success');
-    // 刷新选择列表
-    const companies = await loadCompaniesRaw();
+    // 强制走API刷新（不能用预注入旧数据）
+    window.__PRELOAD_COMPANIES__ = null;
+    const companies = await fetch('/api/companies').then(r => r.json()).catch(() => []);
     window._companiesForPick = companies || [];
     if (!companies || companies.length === 0) {
       localStorage.removeItem('lastCompanyId');
@@ -257,6 +255,7 @@ async function deleteCompanyFromPick(companyId, companyName) {
     toast('删除失败：' + e.message, 'error');
   }
 }
+window.deleteCompanyFromPick = deleteCompanyFromPick;
 
 async function enterApp(companyId, companyName) {
 window.enterApp = enterApp;  // 确保全局可访问
@@ -1195,21 +1194,7 @@ function _startApp() {
 }
 
 function _bindPickPageButtons() {
-  // 创建新公司按钮
-  var createBtn = document.querySelector('.pick-new-btn');
-  if (createBtn) {
-    createBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      showRegistration();
-    });
-  }
-  // 退出登录链接
-  var logoutLink = document.querySelector('#company-pick-view a[onclick*=\"logoutUser\"]');
-  if (logoutLink) {
-    logoutLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      logoutUser();
-    });
-  }
+  // 退出登录链接（兜底，HTML已有inline onclick，此处不重复绑定）
+  // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
 }
 

@@ -10,7 +10,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>财税风险防控系统 - 中小企业版</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=2026062713">
+  <link rel="stylesheet" href="/static/css/app.css?v=2026062719">
   <link rel="stylesheet" href="/static/css/pipeline-unified.css?v=2026061901">
   <style>
     .single-line-table td.single-line {
@@ -68,10 +68,10 @@
     <p class="pick-card-subtitle">请选择要进入的公司账套</p>
     <ul id="pick-list" class="pick-list"></ul>
     <div class="pick-new-btn-container">
-      <a href="/xinjianzhangtao/" class="pick-new-btn" id="btn-create-company" style="display:block;text-decoration:none">创建新账套</a>
+      <button class="pick-new-btn" id="btn-create-company">创建新账套</button>
     </div>
     <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.06)">
-      <a href="/" style="color:#94a3b8;font-size:13px;text-decoration:none">退出登录</a>
+      <button id="btn-logout" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer">退出登录</button>
     </div>
   </div>
 </div>
@@ -263,7 +263,7 @@
   </div>
 </div>
 
-<script src="/static/js/core.js?v=2026062712"></script>
+<script src="/static/js/core.js?v=2026062720"></script>
 <script src="/static/js/constants.js?v=202606081853" defer></script>
 <script src="/static/js/dashboard.js?v=2026062501" defer></script>
 <script src="/static/js/journal.js?v=2026062501" defer></script>
@@ -296,21 +296,36 @@
 <script src="/static/js/new_analyze_page.js?v=2026062501" defer></script>
 
 <script>
-// 兜底：在所有 defer 脚本加载后，确保账套选择页按钮和列表项可点击
+// 从 URL 提取拼音前缀，例如 /dengdahua/xuanzezhangtao/ → dengdahua
+function getPinyinFromURL() {
+  var parts = window.location.pathname.split('/').filter(Boolean);
+  // 如果是 /{pinyin}/xuanzezhangtao/ 格式，parts[0] 就是拼音
+  if (parts.length >= 2 && (parts[1] === 'xuanzezhangtao' || parts[1] === 'xinjianzhangtao')) {
+    return parts[0];
+  }
+  if (parts.length >= 1 && (parts[0] === 'xuanzezhangtao' || parts[0] === 'xinjianzhangtao')) {
+    // 旧格式，无拼音前缀，尝试从 localStorage 读取
+    try { return JSON.parse(localStorage.getItem('taxUser') || '{}').pinyin || ''; } catch(e) { return ''; }
+  }
+  return parts[0] || '';
+}
+
+// 兜底：确保所有按钮可点击（不依赖任何外部函数）
 setTimeout(function() {
-  // 创建新公司 — 确保可跳转
+  // 创建新账套按钮
   var createBtn = document.getElementById('btn-create-company');
   if (createBtn) {
     createBtn.style.cursor = 'pointer';
-    createBtn.onclick = function(e) {
-      e.preventDefault();
-      window.location.href = '/xinjianzhangtao/';
+    createBtn.onclick = function() {
+      var py = getPinyinFromURL();
+      window.location.href = '/' + py + '/xinjianzhangtao/';
     };
   }
-  // 退出登录
-  var logoutLink = document.getElementById('link-logout');
-  if (logoutLink) {
-    logoutLink.onclick = function() {
+  // 退出登录按钮
+  var logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.style.cursor = 'pointer';
+    logoutBtn.onclick = function() {
       localStorage.removeItem('taxUser');
       localStorage.removeItem('lastCompanyId');
       localStorage.removeItem('lastCompanyName');
@@ -318,24 +333,23 @@ setTimeout(function() {
       window.location.href = '/';
     };
   }
-  // 公司列表项 — 重新绑定点击
+  // 公司列表项点击
   var list = document.getElementById('pick-list');
   if (list) {
+    list.style.cursor = 'pointer';
     list.onclick = function(e) {
       var li = e.target.closest('[data-company-id]');
-      if (li) {
-        var id = li.getAttribute('data-company-id');
-        var name = li.getAttribute('data-company-name');
-        if (id && name) {
-          localStorage.setItem('lastCompanyId', id);
-          localStorage.setItem('lastCompanyName', name);
-          // 直接跳转，让 init 流程接管
-          window.location.href = '/xuanzezhangtao/';
-        }
-      }
+      if (!li) return;
+      var id = li.getAttribute('data-company-id');
+      var name = li.getAttribute('data-company-name');
+      if (!id || !name) return;
+      localStorage.setItem('lastCompanyId', id);
+      localStorage.setItem('lastCompanyName', name);
+      // 强制重载，确保 init 流程重新执行
+      window.location.href = window.location.pathname + '?_=' + Date.now();
     };
   }
-}, 200);
+}, 100);
 </script>
 
 <!-- init() 由 core.js 的 DOMContentLoaded 监听器自动调用 -->
