@@ -11064,6 +11064,7 @@ def _build_report_blocks(result, company_id):
                 except Exception:
                     pass
                 block_data[cfg["item_source"].rstrip("s")] = item  # "findings" → "finding"
+                block_data["_idx"] = p  # 用于前端驳回追踪
                 blocks.append({
                     "type": cfg["type"],
                     "title": item.get("title", "") if cfg["title"] == "" else cfg["title"],
