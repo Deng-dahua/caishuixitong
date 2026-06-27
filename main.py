@@ -11208,7 +11208,7 @@ def _get_row_values(sheet, row_idx):
 # 核心哲学：人类看表格时自动扫描前几行找到"列名行"——系统也这样做
 # 不再硬编码"表头在第1行"或"表头在第2行"
 
-def _detect_header_row(sheet, nrows, column_keywords, scan_rows=20):
+def _detect_header_row(sheet, nrows, column_keywords, scan_rows=100):
     """扫描前N行，找到包含最多列名关键词的那一行，返回该行索引。
     
     工作原理：
