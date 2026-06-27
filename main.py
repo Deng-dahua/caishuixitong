@@ -32466,7 +32466,7 @@ def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
 if __name__ == "__main__":
     import uvicorn, argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--port", type=int, default=8000)
     args, _ = parser.parse_known_args()
     uvicorn.run("main:app", host="0.0.0.0", port=args.port, reload=False)
 
