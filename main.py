@@ -31657,9 +31657,12 @@ _rate_limit_store = {}
 @app.middleware("http")
 async def rate_limit_middleware(request, call_next):
     client_ip = request.client.host if request.client else "unknown"
+    # 本地请求不限制
+    if client_ip in ("127.0.0.1", "::1", "localhost"):
+        return await call_next(request)
     now = _time_module.time()
-    window = 60  # 60秒窗口
-    max_requests = 120  # 每秒2个请求
+    window = 60
+    max_requests = 300
     
     if client_ip not in _rate_limit_store:
         _rate_limit_store[client_ip] = []
