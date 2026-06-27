@@ -530,7 +530,8 @@ function navigateTo(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
   });
-  document.getElementById('page-title').textContent = pages[page] || page;
+  const pt = document.getElementById('page-title');
+  if (pt) pt.textContent = pages[page] || page;
 
   // 隐藏所有页面容器，只显示当前页
   document.querySelectorAll('#content-area > [id^="page-"]').forEach(el => el.style.display = 'none');

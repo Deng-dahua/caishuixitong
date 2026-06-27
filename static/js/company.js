@@ -35,8 +35,11 @@ async function switchCompany() {
     const popup = document.createElement('div');
     popup.id = 'company-selector-popup';
     popup.style.cssText = 'position:absolute;top:100%;left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.12);z-index:9999;min-width:280px;max-height:360px;overflow-y:auto;padding:8px 0';
-    document.querySelector('.company-selector').style.position = 'relative';
-    document.querySelector('.company-selector').appendChild(popup);
+    const companySelector = document.querySelector('.company-selector');
+    if (companySelector) {
+      companySelector.style.position = 'relative';
+      companySelector.appendChild(popup);
+    }
   }
   
   const popup = document.getElementById('company-selector-popup');
@@ -84,8 +87,10 @@ function switchToCompany(companyId, companyName) {
   currentCompanyName = companyName;
   localStorage.setItem('lastCompanyId', companyId);
   localStorage.setItem('lastCompanyName', companyName);
-  document.getElementById('company-name-display').textContent = companyName;
-  document.getElementById('company-selector-popup').style.display = 'none';
+  const nameDisplay = document.getElementById('company-name-display');
+  if (nameDisplay) nameDisplay.textContent = companyName;
+  const popupEl = document.getElementById('company-selector-popup');
+  if (popupEl) popupEl.style.display = 'none';
   loadCurrentPeriod();
   navigateTo('dashboard');
   toast('已切换到「' + companyName + '」', 'success');
