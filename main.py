@@ -474,6 +474,11 @@ async def app_page():
     """主应用（账套选择/系统）"""
     return _read_html("static/index.html")
 
+@app.get("/register", response_class=HTMLResponse)
+async def register_page():
+    """独立新建公司账套页（不依赖主应用 JS）"""
+    return _read_html("static/register.html")
+
 
 @app.get("/api/meta/processing-keywords")
 def get_processing_keywords():
