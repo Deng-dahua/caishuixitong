@@ -702,11 +702,27 @@ async function analyzeTaxDocs() {
     renderAnalyzeHeader(data.report);
     
     // ── 报告块架构（新）：后端推 blocks → 前端通用渲染 ──
-    if (data.blocks && data.blocks.length && typeof renderReportBlocks === 'function') {
+    if (data.blocks && data.blocks.length) {
       var area = document.getElementById('tax-doc-result');
-      if (area) {
+      if (area && typeof window.renderReportBlocks === 'function') {
         area.innerHTML = '';
-        renderReportBlocks(data.blocks, area);
+        window.renderReportBlocks(data.blocks, area);
+      } else if (area) {
+        // 降级：内嵌简约渲染
+        var h = '';
+        data.blocks.forEach(function(b) {
+          if (b.type === 'finding' && b.data && b.data.finding) {
+            var f = b.data.finding;
+            var lvl = f.level || '中风险';
+            var cls = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : '#f0fdf4');
+            h += '<div style="margin:12px 0;padding:14px 18px;border-left:4px solid ' + (lvl==='高风险'?'#dc2626':(lvl==='中风险'?'#e67700':'#16a34a')) + ';border-radius:6px;background:' + cls + ';border:1px solid #eee">';
+            h += '<div style="font-weight:700;margin-bottom:6px">' + (f.title || f.category || '') + ' [' + lvl + ']</div>';
+            if (f.detail) h += '<div style="font-size:13px;color:#333;margin-bottom:6px">' + (f.detail||'') + '</div>';
+            h += '<div style="text-align:right"><button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type:f.type||'',title:f.title||'',level:lvl,category:f.category||'',detail:(f.detail||'').substring(0,200)}).replace(/'/g,"&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">❌ 驳回</button></div>';
+            h += '</div>';
+          }
+        });
+        area.innerHTML = h;
       }
     } else {
       // 降级：使用 ReportEngine 模块化渲染

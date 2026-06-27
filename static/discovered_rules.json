@@ -1,0 +1,52 @@
+[
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 87.6,
+    "sample_size": 10,
+    "action": "自动更新广告服务行业风险基准为87.6分",
+    "discovered_at": "2026-06-27T22:41:27.611381",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 87.6,
+    "sample_size": 11,
+    "action": "自动更新广告服务行业风险基准为87.6分",
+    "discovered_at": "2026-06-27T22:48:40.492311",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 87.6,
+    "sample_size": 12,
+    "action": "自动更新广告服务行业风险基准为87.6分",
+    "discovered_at": "2026-06-27T22:52:28.051826",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 87.6,
+    "sample_size": 13,
+    "action": "自动更新广告服务行业风险基准为87.6分",
+    "discovered_at": "2026-06-27T22:55:01.317878",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 87.6,
+    "sample_size": 14,
+    "action": "自动更新广告服务行业风险基准为87.6分",
+    "discovered_at": "2026-06-27T22:58:18.297514",
+    "source": "audit_memory.json"
+  }
+]
