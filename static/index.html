@@ -311,6 +311,33 @@ window._dismissTaxFinding = function(btn) {
   }, 800);
   setTimeout(function(){}, 1); // keep alive
 })();
+
+// ═══ 侧边栏个人信息：从 cookie 直接读取 ═══
+(function(){
+  function getCookie(name) {
+    var c = document.cookie.split('; ').find(function(x){ return x.startsWith(name + '='); });
+    return c ? decodeURIComponent(c.split('=')[1]) : '';
+  }
+  var uname = getCookie('user_name');
+  var cid = getCookie('company_id');
+  if (uname) {
+    var uEl = document.getElementById('sidebar-user-name');
+    if (uEl) uEl.textContent = uname;
+  }
+  if (cid) {
+    // 从API获取公司信息
+    fetch('/api/companies').then(function(r){ return r.json(); }).then(function(list){
+      if (!Array.isArray(list)) return;
+      var co = list.find(function(c){ return String(c.id) === String(cid); });
+      if (co) {
+        var cnEl = document.getElementById('sidebar-company-name');
+        var cuEl = document.getElementById('sidebar-company-uscc');
+        if (cnEl) cnEl.textContent = co.name || '';
+        if (cuEl) cuEl.textContent = co.uscc ? '信用代码：' + co.uscc : '';
+      }
+    }).catch(function(){});
+  }
+})();
 </script>
 
 <!-- init() 由 core.js 的 DOMContentLoaded 监听器自动调用 -->
