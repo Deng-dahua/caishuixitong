@@ -205,11 +205,26 @@ def _run_analyze(company_id, db, progress_callback=None):
                             buyer_name = str(r.get("buyer", "")).strip()
                             seller_tax = str(r.get("seller_tax", "")).strip()
                             buyer_tax = str(r.get("buyer_tax", "")).strip()
-                            # 正确判断：销方名非空=进项(公司付给销方)，购方名非空=销项(公司卖给购方)
-                            if seller_name and seller_tax:
-                                r["direction"] = "进项"
+                            # 根据当前账套公司信息判定发票方向
+                            # 规则：购买方=当前公司 → 进项；销售方=当前公司 → 销项
+                            from database import Company
+                            company = db.query(Company).filter(Company.id == company_id).first()
+                            co_name = (company.name or "") if company else ""
+                            co_uscc = (company.uscc or "") if company else ""
+                            
+                            buyer_match = (buyer_name and co_name and buyer_name in co_name) or (buyer_tax and co_uscc and buyer_tax == co_uscc)
+                            seller_match = (seller_name and co_name and seller_name in co_name) or (seller_tax and co_uscc and seller_tax == co_uscc)
+                            
+                            if buyer_match and not seller_match:
+                                r["direction"] = "进项"  # 公司是购买方，别人开给公司
+                            elif seller_match and not buyer_match:
+                                r["direction"] = "销项"  # 公司是销售方，公司开给别人
+                            elif buyer_match and seller_match:
+                                r["direction"] = "进项"  # 都匹配时优先进项（更保守）
+                            elif seller_name and seller_tax:
+                                r["direction"] = "进项"  # 有销方信息但未匹配到公司
                             elif buyer_name and buyer_tax:
-                                r["direction"] = "销项"
+                                r["direction"] = "销项"  # 有购方信息但未匹配到公司
                             elif seller_name:
                                 r["direction"] = "进项"
                             elif buyer_name:
