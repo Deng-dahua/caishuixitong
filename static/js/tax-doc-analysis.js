@@ -241,9 +241,7 @@ function renderAnalyzeHeader(report) {
     + '<div style="font-size:12px;color:#94a3b8;padding-top:4px">'
     + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓ · 证据链闭环 ✓ · 跨域证据链 ✓'
     + '</div>'
-    + '<div style="margin-top:12px">'
-    + '<a href="#" onclick="navigateTo(\'analyze-page\');return false" style="display:inline-block;padding:6px 16px;background:#7c3aed;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">⚡ 查看分析过程 →</a>'
-    + '</div>';
+    + '<div id="tax-doc-result" style="margin-top:16px"></div>';
 
     // ═══ ⑧ 系统自诊：矛盾检测 + 回溯定位 + 修正验证 ═══
   var btReport = comp.backtrack_report;
@@ -732,6 +730,10 @@ async function analyzeTaxDocs() {
     var exportBtn = document.getElementById('tda-export-btn');
     if (exportBtn) exportBtn.style.display = 'inline-block';
     toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+    
+    // 自动滚动到报告区域
+    var area = document.getElementById('tax-doc-result');
+    setTimeout(function() { if (area) area.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 200);
     
     // ── 通知仪表盘：新分析已完成 ──
     try {
