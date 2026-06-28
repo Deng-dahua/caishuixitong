@@ -1,0 +1,8 @@
+Rule engine error: True
+Chain engine error: True
+Evidence chain error: True
+Contradiction check: True
+Compliance gate: True
+Invoice tables: True
+Findings: 31
+CHAIN: 链驱动引擎异常: cannot access local variable 'Company' where it is not associated with a value
