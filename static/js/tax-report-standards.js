@@ -163,8 +163,8 @@ function renderReportStandards(container) {
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第三章</div><div class="std-name">稽查发现问题及事实认定</div></div>';
   h += '<div class="std-section"><span class="std-label">📋 板块内容</span>每条发现必须按<strong>六要素</strong>格式逐项呈现，高风险优先排列：<br>';
-  h += '① <strong>违法性质</strong>——发现类型标题（如"收款来源与开票客户不匹配""进项发票缺少计量单位"）<br>';
-  h += '② <strong>违法事实</strong>——具体描述+明细数据（必须含：供应商名称/金额/发票号/品名/数量/日期，禁止泛泛说"存在XX问题"）<br>';
+  h += '① <strong>稽查性质</strong>——发现类型标题（如"收款来源与开票客户不匹配""进项发票缺少计量单位"）<br>';
+  h += '② <strong>稽查事实</strong>——具体描述+明细数据（必须含：供应商名称/金额/发票号/品名/数量/日期，禁止泛泛说"存在XX问题"）<br>';
   h += '③ <strong>证据材料</strong>——逐笔列示的证据明细表（不截断、不缺斤短两）<br>';
   h += '④ <strong>证据来源</strong>——规则ID（可点击溯源）+ 线索链编号 + 查证方式（如"银行流水与发票双向核对法"）<br>';
   h += '⑤ <strong>法律依据</strong>——完整法条名称+具体条款号（如《税收征收管理法》第六十三条第一款），不得笼统引用<br>';

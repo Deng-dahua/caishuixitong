@@ -995,8 +995,8 @@ function _renderReportFallback(r, allF) {
     h += '</div>';
     
     // ── 六要素格式 ──
-    h += '<div class="frow"><span class="flabel">① 违法性质：</span>' + finType + '</div>';
-    h += '<div class="frow"><span class="flabel">② 违法事实：</span>' + (f.description || f.detail || '') + '</div>';
+    h += '<div class="frow"><span class="flabel">① 稽查性质：</span>' + finType + '</div>';
+    h += '<div class="frow"><span class="flabel">② 稽查事实：</span>' + (f.description || f.detail || '') + '</div>';
     
     // ③ 证据材料
     h += '<div class="frow"><span class="flabel">③ 证据材料：</span>';
