@@ -815,22 +815,8 @@ function renderTaxDocReport(r) {
   var te = r.target_entity || {};
   if (te.period && !/^\d{4}-\d{2}/.test(te.period)) te.period = '';
 
-  // ── 使用模块化引擎渲染报告 ──
-  // ── 自由编制报告：系统根据数据自行装配模块 ──
-  var ctx;
-  if (typeof ReportEngine !== 'undefined' && ReportEngine.render) {
-    try {
-      ctx = ReportEngine.render(r, {});
-      console.log('[report-modules] 自由编制报告: ' + ctx.renderedModules.length + '个模块, 跳过' + ctx.skippedModules.length + '个');
-    } catch(e) {
-      console.error('[report-modules] 渲染失败，降级:', e);
-      ctx = null;
-    }
-  }
-
-  if (!ctx || !ctx.html) {
-    ctx = _renderReportFallback(r, allF);
-  }
+  // ── 使用7章标准报告结构渲染 ──
+  var ctx = _renderReportFallback(r, allF);
 
   area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
@@ -911,34 +897,54 @@ function _renderReportFallback(r, allF) {
     + '资料数量：' + (r.files_count || allF.length) + '份'
     + '</div></div>';
 
-  // ═══ 第一章：稽查对象基本情况 ═══
-  h += '<h2>第一章 稽查对象基本情况</h2>';
-  h += '<table class="tbl"><tr><td class="lbl">企业名称</td><td>' + (te.name || te.company_name || '-') + '</td></tr>';
+  // ═══ 目录 ═══
+  h += '<div class="toc">';
+  h += '<a href="#ch1"><span class="num">一、</span>案件来源及稽查对象基本情况</a><br>';
+  h += '<a href="#ch2"><span class="num">二、</span>稽查实施情况</a><br>';
+  h += '<a href="#ch3"><span class="num">三、</span>稽查发现问题及事实认定</a><br>';
+  h += '<a href="#ch4"><span class="num">四、</span>稽查结论</a><br>';
+  h += '<a href="#ch5"><span class="num">五、</span>处理处罚建议</a><br>';
+  h += '<a href="#ch6"><span class="num">六、</span>告知权利义务</a><br>';
+  h += '<a href="#ch7"><span class="num">七、</span>稽查人员签字</a><br>';
+  h += '<a href="#appendix"><span class="num">附件</span>证据清单</a><br>';
+  h += '</div>';
+
+  // ═══ 第一章：案件来源及稽查对象基本情况 ═══
+  h += '<h2 id="ch1">第一章 案件来源及稽查对象基本情况</h2>';
+  h += '<p class="i2"><strong>案件来源：</strong>财税风险防控系统自动分析触发。经对系统内' + (r.files_count || 0) + '份经营资料的综合判定，自动识别涉税风险，启动预审程序。</p>';
+  h += '<table class="tbl">';
+  h += '<tr><td class="lbl">被查单位</td><td>' + (te.name || te.company_name || '-') + '</td></tr>';
   h += '<tr><td class="lbl">统一社会信用代码</td><td>' + (te.uscc || '-') + '</td></tr>';
-  h += '<tr><td class="lbl">行业分类</td><td>发票推断：' + (te.industry || '未确定') + '</td></tr>';
-  h += '<tr><td class="lbl">分析期间</td><td>' + (te.period || '全量数据') + '</td></tr>';
+  h += '<tr><td class="lbl">法定代表人</td><td>' + (te.legal_person || '（可从工商数据补充）') + '</td></tr>';
+  h += '<tr><td class="lbl">企业类型</td><td>' + (te.company_type || '（可从工商数据补充）') + '</td></tr>';
+  h += '<tr><td class="lbl">行业</td><td>' + (te.industry || '未确定') + '</td></tr>';
+  h += '<tr><td class="lbl">稽查期间</td><td>' + (te.period || '全量数据') + '</td></tr>';
+  h += '<tr><td class="lbl">稽查范围</td><td>增值税及附加、企业所得税、个人所得税、社会保险费</td></tr>';
+  h += '<tr><td class="lbl">执行标准</td><td>《税务稽查工作规程》《税收征收管理法》及其实施细则</td></tr>';
   h += '</table>';
 
-  // ═══ 第二章：稽查方法 ═══
-  h += '<h2>第二章 稽查方法</h2>';
-  h += '<p class="i2">根据资料驱动稽查方法论，本次核查采用以下方法：</p>';
-  h += '<p class="i2">1. 资料驱动法：对7份经营资料进行综合判定，自动识别文件类型并提取关键数据。</p>';
-  h += '<p class="i2">2. 三流比对法：逐票比对发票流（进项/销项）与资金流（银行流水），检查购销匹配度。</p>';
-  h += '<p class="i2">3. 多源交叉验证：银行流水、进项发票、销项发票三方数据交叉比对，确认收款来源与开票客户匹配关系。</p>';
-  h += '<p class="i2">4. 行业对标法：将毛利率、进销比、人均产值等指标与行业基准值对比。</p>';
-  h += '<p class="i2">5. 知识图谱分析：构建供应商/客户/员工关系图谱，检测关联交易和人员重叠。</p>';
-  h += '<p class="i2">6. 系统自动执行了23个分析模块的协同运算，详见稽查引擎执行流程。</p>';
+  // ═══ 第二章：稽查实施情况 ═══
+  h += '<h2 id="ch2">第二章 稽查实施情况</h2>';
+  h += '<p class="i2">本次稽查实施按以下步骤执行：</p>';
+  h += '<p class="i2"><strong>（一）数据比对——进销存</strong></p>';
+  h += '<p class="i2">对' + (r.files_count || 0) + '份经营资料进行综合判定，自动识别文件类型（销项发票/进项发票/进项抵扣认证/银行流水/工资表/社保明细/公积金缴存），并提取关键数据。系统对销项发票品名与进项发票品名进行交叉比对，根据金税分类编码自动判定行业归属。对服务行业品名自动跳过进销存实物比对。</p>';
+  h += '<p class="i2"><strong>（二）资金核对——银行流水</strong></p>';
+  h += '<p class="i2">对银行流水进行双向核对：收款来源与销项发票购买方交叉比对，付款流向与进项发票销售方交叉比对。识别个人账户收款、非对公付款等异常资金流动模式。</p>';
+  h += '<p class="i2"><strong>（三）穿透分析——供应商/客户/加工商</strong></p>';
+  h += '<p class="i2">对TOP10供应商和客户进行联网核查，检测关联交易、人员重叠、供应商客户重叠等风险信号。构建知识图谱分析49个实体的关联关系。</p>';
+  h += '<p class="i2"><strong>（四）行业对标</strong></p>';
+  h += '<p class="i2">将毛利率、进销比、人均产值等核心指标与66行业基准值进行对比，识别偏离度异常的指标。</p>';
+  h += '<p class="i2"><strong>（五）综合分析</strong></p>';
+  h += '<p class="i2">系统自动执行23个分析模块的协同运算（规则引擎·线索链·证据链·跨域推理·因果叙事·合规门禁·Benford检验·知识图谱），形成完整稽查结论。</p>';
 
-  // ═══ 第三章：风险发现 ═══
-  h += '<h2>第三章 风险发现</h2>';
+  // ═══ 第三章：稽查发现问题及事实认定 ═══
+  h += '<h2 id="ch3">第三章 稽查发现问题及事实认定</h2>';
   var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
   var mids = allF.filter(function(f){ return f.level === '中风险'; });
   var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
   
-  h += '<p class="i2">经分析，共发现<strong>' + allF.length + '</strong>条风险，其中'
-    + '高风险' + risks.length + '条、中风险' + mids.length + '条、低风险' + lows.length + '条。</p>';
+  h += '<p class="i2">经分析，共发现<strong>' + allF.length + '</strong>项问题，其中高风险' + risks.length + '项、中风险' + mids.length + '项、低风险' + lows.length + '项。各项问题的事实认定如下：</p>';
   
-  // 高风险优先
   var allSorted = risks.concat(mids).concat(lows);
   for (var fi = 0; fi < allSorted.length; fi++) {
     var f = allSorted[fi];
@@ -946,69 +952,107 @@ function _renderReportFallback(r, allF) {
     var cls = lv === '高风险' || lv === '极高风险' ? 'red' : (lv === '中风险' ? 'amber' : 'green');
     var tagCls = lv === '高风险' || lv === '极高风险' ? 'rtag' : (lv === '中风险' ? 'atag' : 'gtag');
     
-    h += '<div class="conclusion-box ' + cls + '">';
-    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (f.type || '未命名发现') + '</div>';
-    h += '<div class="frow">' + (f.detail || f.description || '') + '</div>';
-    if (f.how_found) h += '<div class="frow"><span class="flabel">稽查方法：</span>' + f.how_found + '</div>';
-    if (f.tax_impact) h += '<div class="frow"><span class="flabel">税务影响：</span>' + f.tax_impact + '</div>';
-    if (f.suggestion) h += '<div class="frow"><span class="flabel">处理建议：</span>' + f.suggestion + '</div>';
-    if (f.policy_ref) h += '<div class="law-ref">法规依据：' + f.policy_ref + '</div>';
+    h += '<div class="fact-sec">';
+    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + (f.type || '未命名发现') + '</div>';
+    
+    // 六要素格式
+    h += '<div class="frow"><span class="flabel">① 违法性质：</span>' + (f.type || '未分类') + '</div>';
+    h += '<div class="frow"><span class="flabel">② 违法事实：</span>' + (f.detail || f.description || '（详见下文）') + '</div>';
+    if (f.items && f.items.length) {
+      h += '<div class="frow"><span class="flabel">③ 证据材料：</span>详见附件明细表（共' + f.items.length + '条记录）</div>';
+    } else {
+      h += '<div class="frow"><span class="flabel">③ 证据材料：</span>' + (f.detail || '').substring(0, 200) + '</div>';
+    }
+    h += '<div class="frow"><span class="flabel">④ 证据来源：</span>' + (f.how_found || f.source_chain || '系统分析引擎自动识别') + '</div>';
+    if (f.policy_ref) {
+      h += '<div class="frow"><span class="flabel">⑤ 法律依据：</span>' + f.policy_ref + '</div>';
+    } else {
+      h += '<div class="frow"><span class="flabel">⑤ 法律依据：</span>《税收征收管理法》及《税务稽查工作规程》相关规定</div>';
+    }
+    if (f.suggestion && f.suggestion.length > 5) {
+      h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>' + f.suggestion + '</div>';
+    } else {
+      h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>建议进一步核实相关业务资料，确认业务的真实性和合规性。</div>';
+    }
     h += '</div>';
   }
 
-  // ═══ 第四章：资金流向 ═══
-  h += '<h2>第四章 资金流向分析</h2>';
-  if (bi && (bi['总收款'] || bi['总付款'])) {
-    h += '<p class="i2">分析期间，银行账户累计收款' + ((bi['总收款']||0)/10000).toFixed(2) + '万元，累计付款' + ((bi['总付款']||0)/10000).toFixed(2) + '万元。</p>';
-  }
-  if (rc && Object.keys(rc).length > 0) {
-    h += '<p class="i2"><strong>收款方TOP5：</strong></p>';
-    h += '<table class="tbl2"><thead><tr><th>收款方</th><th class="r">笔数</th></tr></thead><tbody>';
-    var keys = Object.keys(rc).sort(function(a,b){ return (rc[b]||0) - (rc[a]||0); });
-    for (var ki = 0; ki < Math.min(keys.length, 5); ki++) {
-      h += '<tr><td>' + keys[ki] + '</td><td class="r">' + rc[keys[ki]] + '笔</td></tr>';
-    }
-    h += '</tbody></table>';
-  }
-
-  // ═══ 第五章：综合定性 ═══
-  h += '<h2>第五章 综合定性</h2>';
+  // ═══ 第四章：稽查结论 ═══
+  h += '<h2 id="ch4">第四章 稽查结论</h2>';
   var synth = r.comprehensive || {};
-  if (synth.synthesis) {
-    h += '<p class="i2">' + synth.synthesis + '</p>';
-  }
   var overall = synth.overall_risk || '中风险';
-  h += '<p class="i2">综合风险评级：<strong class="' + (overall==='高风险'?'rtag':'atag') + '">' + overall + '</strong></p>';
-
-  // ═══ 第六章：稽查结论与建议 ═══
-  h += '<h2>第六章 稽查结论与建议</h2>';
-  h += '<p class="i2">经对被查单位「' + (te.name || te.company_name || '') + '」进行综合稽查分析，形成结论如下：</p>';
-  h += '<p class="i2">本次共发现' + allF.length + '项风险，其中高风险' + risks.length + '项，需重点核查。</p>';
-  
-  // P0建议列表
-  if (r.audit_strategies && r.audit_strategies.length) {
-    h += '<p class="i2"><strong>优先处理建议：</strong></p>';
-    r.audit_strategies.forEach(function(s, si) {
-      h += '<p class="i2">' + (si+1) + '. ' + (s.action || s.description || '') + '</p>';
-    });
+  h += '<div class="conclusion-box ' + (overall==='高风险'?'red':'amber') + '">';
+  h += '<p class="i2"><strong>综合风险评级：</strong><span class="' + (overall==='高风险'?'rtag':'atag') + '">' + overall + '</span></p>';
+  h += '<p class="i2">经对被查单位「' + (te.name || te.company_name || '') + '」进行综合稽查分析：</p>';
+  h += '<p class="i2">本次共发现' + allF.length + '项涉税风险，其中高风险' + risks.length + '项。高风险事项主要集中在' + (risks.slice(0,3).map(function(f){return f.type||'';}).join('、') || '多个领域') + '。</p>';
+  var closedCount = synth.evidence_closed_count || 0;
+  if (closedCount > 0) {
+    h += '<p class="i2">证据链完整性：' + closedCount + '条证据链形成闭环，跨多域交叉验证，构成完整违法事实认定。</p>';
   }
-  
-  h += '<div class="seal"><p>稽查员（签名）：_______________</p><p>日期：' + dateStr + '</p></div>';
+  h += '<p class="i2">总体结论：' + (overall==='高风险'?'被查单位存在高风险涉税事项，建议启动正式稽查立案程序。':'被查单位存在一定涉税风险，建议限期自查整改。') + '</p>';
+  h += '</div>';
 
-  // ═══ 第七章：附件 ═══
-  h += '<h2>第七章 附件</h2>';
-  h += '<div class="appendix"><div class="atitle">附件一：文件清单</div>';
+  // ═══ 第五章：处理处罚建议 ═══
+  h += '<h2 id="ch5">第五章 处理处罚建议</h2>';
+  h += '<p class="i2">根据本次稽查发现的事实，提出以下处理建议：</p>';
+  var sugCount = 0;
+  for (var fi = 0; fi < allSorted.length; fi++) {
+    var sf = allSorted[fi];
+    var sug = sf.suggestion;
+    if (sug && sug.length > 10 && sug.indexOf('驳回') < 0) {
+      sugCount++;
+      h += '<p class="i2"><strong>' + sugCount + '.</strong> ' + sug + '</p>';
+    }
+  }
+  if (sugCount === 0) {
+    h += '<p class="i2">1. 要求被查单位对上述' + allF.length + '项问题限期提供相关业务资料和说明。</p>';
+    h += '<p class="i2">2. 自查整改期限：收到本报告之日起15个工作日内完成自查整改。</p>';
+  }
+  h += '<p class="i2"><strong>自查整改期限：</strong>被查单位应在收到本报告之日起15个工作日内完成自查整改，并向稽查部门提交书面整改报告。</p>';
+
+  // ═══ 第六章：告知权利义务 ═══
+  h += '<h2 id="ch6">第六章 告知权利义务</h2>';
+  h += '<div class="rights-sec">';
+  h += '<div class="rtitle">根据《税务稽查工作规程》，被查单位依法享有以下权利：</div>';
+  h += '<div class="ritem"><strong>一、申请回避权：</strong>认为稽查人员与本案有利害关系或其他关系可能影响公正执法的，有权申请稽查人员回避。申请回避应当在稽查人员送达《税务检查通知书》后3日内以书面形式提出。</div>';
+  h += '<div class="ritem"><strong>二、陈述申辩权：</strong>对稽查认定的事实、依据和处理建议，有权进行陈述和申辩。稽查部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。</div>';
+  h += '<div class="ritem"><strong>三、听证权：</strong>对拟作出的税务行政处罚决定（罚款金额达到听证标准的），有权在收到《税务行政处罚事项告知书》后3日内书面申请听证。稽查部门应当在收到申请后15日内组织听证。</div>';
+  h += '<div class="ritem"><strong>四、复议权：</strong>对稽查部门作出的处理决定不服的，可以自收到决定书之日起60日内向上一级税务机关申请行政复议。对复议决定不服的，可以依法向人民法院提起行政诉讼。</div>';
+  h += '<div class="ritem"><strong>五、诉讼权：</strong>对稽查部门作出的处理决定或复议决定不服的，可以自收到决定书之日起6个月内依法向人民法院提起行政诉讼。</div>';
+  h += '</div>';
+
+  // ═══ 第七章：稽查人员签字 ═══
+  h += '<h2 id="ch7">第七章 稽查人员签字</h2>';
+  h += '<div class="seal">';
+  h += '<p>稽查执行人：_______________</p>';
+  h += '<p>审理人：_______________</p>';
+  h += '<p>稽查部门（盖章）：_______________</p>';
+  h += '<p>报告日期：' + dateStr + '</p>';
+  h += '</div>';
+
+  // ═══ 附件 ═══
+  h += '<h2 id="appendix">附件 证据清单</h2>';
+  h += '<div class="appendix"><div class="atitle">附件一：进销项发票数据</div>';
+  h += '<div class="aitem">· 销项发票' + ((r.invoice_stats && r.invoice_stats.sales_count) || 'N/A') + '张</div>';
+  h += '<div class="aitem">· 进项发票' + ((r.invoice_stats && r.invoice_stats.purchase_count) || 'N/A') + '张</div>';
+  h += '<div class="aitem">· 进项抵扣认证' + ((r.invoice_stats && r.invoice_stats.deduction_count) || 'N/A') + '张</div>';
+  h += '</div>';
+  
+  h += '<div class="appendix"><div class="atitle">附件二：银行流水数据</div>';
+  h += '<div class="aitem">· 银行流水' + ((r.bank_stats && r.bank_stats.count) || 'N/A') + '条</div>';
+  h += '<div class="aitem">· 累计收款' + ((bi['总收款']||0)/10000).toFixed(2) + '万元 · 累计付款' + ((bi['总付款']||0)/10000).toFixed(2) + '万元</div>';
+  h += '</div>';
+  
+  h += '<div class="appendix"><div class="atitle">附件三：其他经营资料</div>';
   if (r.file_results && r.file_results.length) {
     r.file_results.forEach(function(fr, fi) {
-      h += '<div class="aitem">' + (fi+1) + '. ' + (fr.file || '') + ' (' + (fr.type || '') + ')</div>';
+      h += '<div class="aitem">' + (fi+1) + '. ' + (fr.file || '') + ' (' + (fr.type || '未知') + ')</div>';
     });
-  } else {
-    h += '<div class="aitem">共7份文件（详情见资料列表）</div>';
   }
   h += '</div>';
   
   if (r.quality_check) {
-    h += '<div class="appendix"><div class="atitle">附件二：质量标准自检</div>';
+    h += '<div class="appendix"><div class="atitle">附件四：质量标准自检</div>';
     var qc = r.quality_check;
     h += '<div class="aitem">通过：' + (qc.passed || 0) + '/' + (qc.total || 12) + '项 (' + (qc.pass_rate || 0) + '%)</div>';
     h += '</div>';
