@@ -307,7 +307,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                             buyer_tax = str(r.get("buyer_tax", "")).strip()
                             # 根据当前账套公司信息判定发票方向
                             # 规则：购买方=当前公司 → 进项；销售方=当前公司 → 销项
-                            from database import Company
+                            # Company已从顶部导入，不需重复import
                             company = db.query(Company).filter(Company.id == company_id).first()
                             co_name = (company.name or "") if company else ""
                             co_uscc = (company.uscc or "") if company else ""
@@ -1784,6 +1784,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             skipped_chains = 0
             
             for chain in chains_data.get("chains", []):
+                if not isinstance(chain, dict): continue
                 if chain.get("chain_type") != "线索链": continue  # 只执行线索链
                 
                 # 行业特化链过滤：仅匹配时才执行
@@ -1798,6 +1799,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 chain_triggered = False
                 
                 for step in chain.get("investigation_path", []):
+                    if not isinstance(step, dict): continue
                     rid = step.get("rule_id")
                     rule = rule_map.get(rid) if rid else None
                     step_name = step.get("step", "")
@@ -2463,9 +2465,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         chain_map = {}  # chain_name → full chain data
         rule_to_chains = {}
         for chain in chains_data.get("chains", []):
+            if not isinstance(chain, dict): continue
             cn = chain["name"]
             chain_map[cn] = chain
             for step in chain.get("investigation_path", []):
+                if not isinstance(step, dict): continue
                 rid = step.get("rule_id")
                 if rid:
                     if rid not in rule_to_chains:
