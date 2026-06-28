@@ -4462,22 +4462,29 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         for tx in bank_txs:
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
-            cp = str(tx.get("counterparty", "")).strip()
-            summary = str(tx.get("summary", "")).strip()
+            cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            summary = str(tx.get("summary", "") or "")
+            # 收集全部可用文本字段用于综合分析
+            remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
+            purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
+            # 合并所有文本字段为综合分析文本
+            all_text = f"{cp} {summary} {remark} {purpose}"
+            
             if not cp:
-                if any(k in summary for k in ['结息','利息']): cp = "(银行结息)"
-                elif any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
+                if any(k in all_text for k in ['结息','利息']): cp = "(银行结息)"
+                elif any(k in all_text for k in ['社保','ETS','扣税','代扣']): cp = "(税费扣款)"
+                elif any(k in all_text for k in ['年费','管理费','短信','账户','手续费']): cp = "(银行费用)"
                 else: cp = "(未记录名称)"
-            # 按规则顺序逐层匹配（同时检查付款方名称和交易摘要）
+            
+            # 三信息综合分析：对方户名 + 摘要 + 交易附言 联合匹配
             matched = False
             for rule in rc_rules_cfg:
                 if rule.get("is_default"): continue
                 kws = rule.get("keywords", [])
                 sums = rule.get("summaries", [])
-                # 匹配付款方名称
-                name_match = kws and any(k in cp for k in kws)
-                # 匹配交易摘要
-                summary_match = sums and any(s in summary for s in sums)
+                # 在全部文本字段中匹配
+                name_match = kws and any(k in all_text for k in kws)
+                summary_match = sums and any(s in all_text for s in sums)
                 if name_match or summary_match:
                     pay_cats[rule["label"]][cp] += credit
                     matched = True
@@ -4495,8 +4502,11 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         for tx in bank_txs:
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
-            cp = str(tx.get("counterparty", "")).strip()
-            summary = str(tx.get("summary", ""))
+            cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            summary = str(tx.get("summary", "") or "")
+            remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
+            purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
+            all_text = f"{cp} {summary} {remark} {purpose}"
             # 已经在个人款中的极小金额 → 检查是否为银行利息
             in_individual = False
             if cp in pay_cats.get("个人款", {}):
@@ -4510,20 +4520,19 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 # 放宽条件：极小金额(<20元)只要有零有整，几乎肯定是银行利息
                 # 银行利息特征：结息金额通常精确到分(如9.62/3.17/0.48)，人为转账多为整数
                 is_micro_amount = credit < 20
-                # 名称特征
-                is_empty_name = not cp or len(cp) < 4
-                is_bank_name = any(k in cp for k in ['银行','农行','建行','工行','交行','招行','农商','信用社','分行','支行'])
-                # 摘要特征
-                is_bank_summary = any(k in summary for k in ['结息','利息','季度','活期','定期','扣息','手续费','账户管理','管理费'])
+                # 综合三信息分析（对方户名 + 摘要 + 交易附言）——不能只看单一字段
+                is_empty_all = len(all_text.strip()) < 5  # 所有文本字段几乎为空
+                is_bank_in_all = any(k in all_text for k in ['银行','农行','建行','工行','交行','招行','农商','信用社','分行','支行','结息','利息','季度','活期','定期','扣息','手续费','账户管理','管理费','年费'])
                 is_numeric_summary = _re.match(r'^\d{4,8}$', summary.strip()) is not None
-                # 小额精确金额 + 空摘要 = 极大概率银行自动扣息
-                has_empty_summary = not summary or len(summary.strip()) < 2
+                # 摘要+附言联合判断
+                summary_remark = f"{summary} {remark}".strip()
+                has_empty_text = len(summary_remark) < 3
                 
                 should_correct = False
-                if is_decimal and is_micro_amount and has_empty_summary:
-                    should_correct = True  # <20元+有零有整+空摘要→银行利息
-                elif is_decimal and (is_empty_name or is_bank_name or is_bank_summary or is_numeric_summary):
-                    should_correct = True  # 有零有整+银行特征→银行利息
+                if is_decimal and is_micro_amount and has_empty_text:
+                    should_correct = True  # <20元+有零有整+摘要附言都空→银行利息（常识：没人会转9.62元）
+                elif is_decimal and (is_empty_all or is_bank_in_all or is_numeric_summary):
+                    should_correct = True  # 有零有整+综合分析有银行特征→银行利息
                 
                 if should_correct:
                     # 重新分到银行内部款项
