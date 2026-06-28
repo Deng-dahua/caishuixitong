@@ -144,7 +144,16 @@ function renderFileParsingStatic() {
     + '</div>'
 
     + '</div>'
-    + '</div>';
+    + '</div>'
+
+    // Step 4: 综合判断（2026-06-28新增）
+    + '<div style="flex:1;padding:20px;background:#f0fdf4;border-radius:8px;border-top:3px solid #16a34a">'
+    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 4 · 2026-06-28新</div>'
+    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">综合判断 · 四方交叉验证</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
+    + '前三层都无法确定时，启动四方证据交叉验证：文件名暗示→列头推理→数据扫描（买卖方身份）→公司匹配。证据冲突优先数据推理。'
+    + '</div>'
+    + '</div></div>';
 
   // ══════ 二、兼容策略 ══════
   html += '<div style="margin-bottom:48px;padding:20px 24px;background:#fafafa;border-radius:8px">'
