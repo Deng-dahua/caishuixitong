@@ -214,7 +214,7 @@ function renderAuditorHandbook(container) {
   html += '<tr><td class="hb-td-num">六</td><td>告知权利义务</td><td>5项法定权利（回避/陈述申辩/听证/复议/诉讼）→注明法定期限</td></tr>';
   html += '<tr><td class="hb-td-num">七</td><td>稽查人员签字</td><td>稽查执行人+审理人+稽查部门（盖章）+报告日期</td></tr>';
   html += '</tbody></table>';
-  html += '<div class="hb-callout hb-callout-info">📜 本报告结构覆盖《规程》第42条和第54条的全部要求。<br>📐 详细的12项质量标准、六要素格式示例、判定可靠性要求，请参见 <strong>「📐 报告编制要求」模块</strong>。</div>';
+  html += '<div class="hb-callout hb-callout-info">📜 本报告结构覆盖《规程》第42条和第54条的全部要求。<br>📐 <strong>完整的编制指南（各章板块内容要求 + 编制方法 + 格式范例）请参见「📐 报告编制要求」模块</strong>，包含：每章必须包含的具体内容板块、每板块的编写方法和字数要求、六要素格式的详细示例、附件发票明细的11列标准格式。</div>';
 
   // 3.2 叙事风格
   html += '<h3 class="hb-subtitle">3.2 叙事风格——客观第三人称正式法律语体</h3>';

@@ -123,23 +123,116 @@ function renderReportStandards(container) {
   h += '<div style="flex:1;text-align:center;padding:12px;background:#f0fdf4;border-radius:6px;font-size:13px"><div style="font-size:24px;font-weight:800;color:#059669">' + lowCount + '</div><div style="color:#166534">建议</div></div>';
   h += '</div>';
 
-  // ══════ 报告7章结构 ══════
-  h += '<div class="rpt-section" style="margin-bottom:0">';
+  // ══════ 报告7章结构 · 各章编制要求 ══════
   h += '<h3>📄 报告结构（7章节 + 附件）</h3>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2;padding:0 8px">';
-  h += '<div><strong>封面</strong>：编号（税稽字[YYYY]第XXX号）+ 报告日期</div>';
-  h += '<div><strong>目录</strong>：7章节锚点跳转</div>';
-  h += '<div><strong>一、案件来源及稽查对象基本情况</strong>：案件来源 / 被查单位 / 法定代表人 / 企业类型 / 行业 / 稽查期间 / 稽查范围 / 执行标准</div>';
-  h += '<div><strong>二、稽查实施情况</strong>：数据比对（进销存）→ 资金核对（银行流水）→ 穿透分析（供应商/客户）→ 行业对标 → 综合分析</div>';
-  h += '<div><strong>三、稽查发现问题及事实认定</strong>：每条发现按六要素格式（违法性质/违法事实/证据材料/证据来源/法律依据/处理建议）</div>';
-  h += '<div><strong>四、稽查结论</strong>：综合风险评级 + 主要高风险事项 + 证据链完整性 + 总体结论</div>';
-  h += '<div><strong>五、处理处罚建议</strong>：去重后的处理建议列表 + 自查整改期限</div>';
-  h += '<div><strong>六、告知权利义务</strong>：5项法定权利（回避/陈述申辩/听证/复议/诉讼）</div>';
-  h += '<div><strong>七、稽查人员签字</strong>：稽查执行人 + 审理人 + 稽查部门（盖章）+ 报告日期</div>';
-  h += '<div><strong>附件：证据清单</strong>：进销项发票数据 / 银行流水数据 / 其他经营资料</div>';
+  
+  // 封面
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">封 面</div><div class="std-name">编号格式 + 报告日期</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 内容要求</span>标题"税 务 稽 查 报 告"，居中。编号格式：税稽字[YYYY]第XXX号（年份+3位序号）。报告日期精确到日。</div>';
   h += '</div>';
-  h += '<div style="margin:8px 0;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#166534">⚖️ 与正式税务稽查报告对照：✅ 已符合 6项 · ⚠️ 部分符合 1项（基本情况缺少工商数据） · ❌ 待补充 3项（需税务局内部流程）</div>';
+  
+  // 一
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第一章</div><div class="std-name">案件来源及稽查对象基本情况</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下8项：<br>';
+  h += '① <strong>案件来源</strong>——交代来龙去脉：系统分析推送/举报/转办/协查，说明稽查启动原因<br>';
+  h += '② <strong>被查单位</strong>——企业全称（须与工商登记完全一致）<br>';
+  h += '③ <strong>统一社会信用代码</strong>——18位信用代码，精确到每一位<br>';
+  h += '④ <strong>法定代表人</strong>——姓名+身份证号脱敏后6位<br>';
+  h += '⑤ <strong>企业类型</strong>——有限责任公司/股份有限公司/个体工商户等<br>';
+  h += '⑥ <strong>行业分类</strong>——发票推断行业+联网核查结果<br>';
+  h += '⑦ <strong>稽查期间</strong>——起止年月，精确到月份<br>';
+  h += '⑧ <strong>稽查范围</strong>——本次检查的税种+资料范围+分析维度</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>以表格形式呈现8项基本信息，格式统一。行业分类应注明推断依据（销项发票品名金税分类编码）。联网核查结果应注明数据来源（天眼查/企查查/国家公示系统）。</div>';
   h += '</div>';
+  
+  // 二
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第二章</div><div class="std-name">稽查实施情况</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下5个执行段落：<br>';
+  h += '① <strong>资料审阅</strong>——列出本次分析加载的全部资料（份数+类型+记录数），说明文件识别方法（四方交叉验证）<br>';
+  h += '② <strong>数据比对</strong>——说明进销项发票与银行流水的对比方法（如有进销存则说明进销比对方法，服务行业则声明跳过原因）<br>';
+  h += '③ <strong>资金核对</strong>——银行流水收款与销项开票的双向核对方法、付款与进项采购的双向核对方法<br>';
+  h += '④ <strong>穿透分析</strong>——供应商/客户集中度分析、关联关系检测、知识图谱异常关系检测<br>';
+  h += '⑤ <strong>行业对标</strong>——适用的行业基准指标及对比结果（服务行业则声明跳过原因）</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每个执行段落200字以上，使用客观第三人称（"本次稽查采用…"）。注明每个方法对应的域分析函数编号。服务行业跳过的指标必须明确声明+说明原因。系统自动计算，报告人工审核。</div>';
+  h += '</div>';
+  
+  // 三
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第三章</div><div class="std-name">稽查发现问题及事实认定</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>每条发现必须按<strong>六要素</strong>格式逐项呈现，高风险优先排列：<br>';
+  h += '① <strong>违法性质</strong>——发现类型标题（如"收款来源与开票客户不匹配""进项发票缺少计量单位"）<br>';
+  h += '② <strong>违法事实</strong>——具体描述+明细数据（必须含：供应商名称/金额/发票号/品名/数量/日期，禁止泛泛说"存在XX问题"）<br>';
+  h += '③ <strong>证据材料</strong>——逐笔列示的证据明细表（不截断、不缺斤短两）<br>';
+  h += '④ <strong>证据来源</strong>——规则ID（可点击溯源）+ 线索链编号 + 查证方式（如"银行流水与发票双向核对法"）<br>';
+  h += '⑤ <strong>法律依据</strong>——完整法条名称+具体条款号（如《税收征收管理法》第六十三条第一款），不得笼统引用<br>';
+  h += '⑥ <strong>处理建议</strong>——具体消除路径（"提供XX资料→如果A则做XX→无法做到的后果是XX"格式）</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每条发现独立成段，结构统一：标题行 → 违法事实段（≥80字）→ 税务影响段（含"→"因果链）→ 法律依据行 → 处理建议段。事实描述必须含具体数值（金额/数量/百分比/日期）。禁止出现"该企业存在XX问题，需进一步核实"这种笼统表述——要么列出具体数据，要么不报。高风险发现必须附带items明细数组。</div>';
+  h += '</div>';
+  
+  // 四
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第四章</div><div class="std-name">稽查结论</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下5个结论段落：<br>';
+  h += '① <strong>综合风险评级</strong>——极高风险/高风险/中风险/低风险，含评级依据（风险发现数量+严重度分布）<br>';
+  h += '② <strong>主要高风险事项</strong>——列举TOP高风险发现（不超过5条），每条一句话概括<br>';
+  h += '③ <strong>证据链完整性</strong>——说明已触发的线索链/证据链数量、覆盖的域分析范围<br>';
+  h += '④ <strong>稽查局限性</strong>——因资料缺失无法确认的事项（如实列出"因未提交XX资料，以下疑点无法进一步确认"）<br>';
+  h += '⑤ <strong>总体结论</strong>——一句话定调性结论（如"经查，该企业财务管理基本规范，但存在XX方面风险"）</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>结论应定调性而非定论性——使用"存在XX疑点""涉嫌XX""提示XX风险"等表述，不使用"确定""认定"等已定性词汇。风险评级必须基于实际发现数量（高/中/低分别计数）。局限性声明必须诚实——缺什么资料就报什么局限性。</div>';
+  h += '</div>';
+  
+  // 五
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第五章</div><div class="std-name">处理处罚建议</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>按优先级分列处理建议：<br>';
+  h += '① <strong>P0立即处理</strong>——涉及逃税/虚开等红线问题，必须立即启动深度核查<br>';
+  h += '② <strong>P1限期整改</strong>——发票合规/账务调整等问题，限期补充资料或整改<br>';
+  h += '③ <strong>P2持续关注</strong>——行业对标偏差/资料完备度等问题，纳入后续持续监管<br>';
+  h += '每项建议必须包含：处理措施+预期效果+紧迫性理由+量化预估（补税金额/罚款倍数/滞纳天数）</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>建议必须具体到可执行步骤（如"逐户在天眼查核实3家供应商工商状态"），禁止"请提供相关资料""请核实相关情况"等笼统表述。每条建议≤3个具体动作。去重：同类型建议合并为1条。</div>';
+  h += '</div>';
+  
+  // 六
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第六章</div><div class="std-name">告知权利义务</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须告知被查单位以下5项法定权利：<br>';
+  h += '① <strong>申请回避权</strong>——如稽查人员与案件有利害关系，可申请回避<br>';
+  h += '② <strong>陈述申辩权</strong>——对发现的问题有权进行陈述和申辩<br>';
+  h += '③ <strong>要求听证权</strong>——涉及较重处罚时有权要求举行听证<br>';
+  h += '④ <strong>申请复议权</strong>——对稽查决定不服可向上级税务机关申请复议<br>';
+  h += '⑤ <strong>提起行政诉讼权</strong>——对复议结果不服可向人民法院提起诉讼</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每项权利注明法定期限（申请回避→收到通知3日内、陈述申辩→收到告知书7日内、听证→收到告知书3日内、复议→收到决定书60日内、诉讼→收到复议决定15日内）。附法律依据：分别引用《税收征收管理法》第十二条、《行政处罚法》第三十二条、第四十二条、《行政复议法》第九条、《行政诉讼法》第四十五条。</div>';
+  h += '</div>';
+  
+  // 七
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第七章</div><div class="std-name">稽查人员签字</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下4项签名/盖章：<br>';
+  h += '① <strong>稽查执行人</strong>——亲笔签名（不得代签/不得打印），注明执法证件号<br>';
+  h += '② <strong>审理人</strong>——审理岗位人员签名<br>';
+  h += '③ <strong>稽查部门盖章</strong>——税务机关公章<br>';
+  h += '④ <strong>报告日期</strong>——精确到日</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>系统自动预留签名栏位（"稽查员签名：_______________"）及日期。正式税务文书需人工手签。</div>';
+  h += '</div>';
+  
+  // 附件
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">附 件</div><div class="std-name">证据清单</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下附件：<br>';
+  h += '① <strong>销项发票全量明细</strong>——11列格式（购买方/品名/规格/单位/数量/金额/税额/价税合计/日期/票种/发票号）<br>';
+  h += '② <strong>进项发票全量明细</strong>——11列格式（销售方/品名/规格/单位/数量/金额/税额/价税合计/日期/票种/发票号）<br>';
+  h += '③ <strong>主营业务成本发票明细</strong>——核心成本供应商+品名+金额<br>';
+  h += '④ <strong>重大费用发票明细</strong>——费用类供应商+品名+金额<br>';
+  h += '⑤ <strong>银行流水汇总</strong>——收款/付款总额+收款方TOP5<br>';
+  h += '⑥ <strong>各资料文件清单</strong>——文件名+类型+有效记录数<br>';
+  h += '⑦ <strong>质量标准自检结果</strong>——12项标准的通过/未通过统计</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>附件一至四为发票明细表（11列标准格式），附件五为银行流水摘要，附件六为文件清单，附件七为质量自检。发票明细表必须按11列全量展示（上限200条），不可截断不可简化。系统自动生成。</div>';
+  h += '</div>';
+  
+  h += '<div style="margin:8px 0;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#166534">⚖️ 与正式税务稽查报告对照：✅ 已符合 封编号/7章结构/六要素/5项权利/签字栏位/证据清单 · ⚠️ 部分符合 基本情况缺少工商数据 · ❌ 待补充 送达回证/审理意见书/行政处罚告知书（需税务局内部流程）</div>';
 
   // 逐条标准
   h += '<h3>逐条标准</h3>';
