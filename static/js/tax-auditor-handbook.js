@@ -468,7 +468,7 @@ function renderAuditorHandbook(container) {
   html += '<div class="hb-method-card">';
   html += '<div class="hb-method-icon hb-m-icon-yellow">👥</div>';
   html += '<h3>5.12 六员跨企业比对法</h3>';
-  html += '<p class="hb-method-principle">一人多角检测+跨企业人员重叠检测→发现关联关系→触发连锁稽查点。</p>';
+  html += '<p class="hb-method-principle">稽查核心：法定代表人、董事、监事、财务负责人、股东、经理六类关键人员，逐名跨企业比对。①一人多角检测——同一人是否在本企业兼任多个角色（如法定代表人兼财务）；②跨企业人员重叠——本企业六员是否同时在其他企业（供应商/客户）任职；③供应链交叉比对——供应商/客户六员与本企业六员逐名比对→人员重叠=关联交易嫌疑→购销闭环→虚开发票风险。联网失败时从本地数据库回退读取，不死等网络。</p>';
   html += '</div>';
 
   // 5.13 供应链联网核查
