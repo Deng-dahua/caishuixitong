@@ -14,6 +14,49 @@
        进项=采购投入/成本结构（买什么不代表行业）
   代码位置: engine/phase1_triage.py _infer_industry_from_goods()
             main.py _extract_material_intel() 第5步
+
+═════ 系统稽查判定规则（2026-06-28 老邓亲授，写入引擎记忆）═════
+
+【规则一：公司身份锚定】
+  所有分析以当前账套公司为锚点（侧边栏公司名+信用代码）
+  销项发票的销售方只有一个=账套公司
+  进项发票的购买方只有一个=账套公司
+  代码: engine/pipeline.py 综合判断层
+
+【规则二：发票方向自动判定】
+  上传发票→逐行扫描购买方/销售方名称+税号→与公司身份比对
+  公司名/USCC在购买方→进项 | 在销售方→销项 | 双方都不含公司→存疑
+  存疑发票排除出分析，不参与记账和风险计算
+  代码: engine/pipeline.py 发票方向判定
+
+【规则三：综合判断·四方交叉验证】
+  文件名暗示→列头推理→数据扫描（买卖方身份）→公司匹配
+  证据一致→高置信度 | 冲突→优先数据推理 | 全不匹配→存疑
+  代码: engine/pipeline.py 综合判断层
+
+【规则四：进项发票再分类】
+  进项+含"有效抵扣税额/勾选状态/勾选时间"→进项抵扣认证（抵税用）
+  进项+无上述列→进项发票（记账用）
+  两种用途不可混淆
+  代码: engine/pipeline.py 列头推理
+
+【规则五：服务行业闸门】
+  销项品名金税分类编码∈服务行业（广告/IT/咨询/金融等25类）
+  →跳过进销存台账/BOM表/进销比/毛利率行业对标
+  三层闸门：管道层→域分析层→引擎输出层
+  配置: static/industry_data.json service_industries
+
+【规则六：品名级精准过滤】
+  公司既有服务又有实物品名→服务跳过进销存，实物正常检查
+  按品名金税编码逐项判定，不搞公司级别一刀切
+  代码: engine/pipeline.py _is_service_goods()
+
+【规则七：配置外部化】
+  服务行业编码→static/industry_data.json
+  文件名映射→static/filename_type_map.json
+  列结构锚点→static/type_anchors.json
+  新增行业/类型只改JSON，不改Python代码
+
 ═════ 假设-验证推理引擎（引擎"思考"能力）═════
   每条重要发现 → 生成2-3个竞争假设 → 逐条证据验证 → 加权判决
   代码位置: engine/hypothesis_engine.py run_hypothesis_verification()
