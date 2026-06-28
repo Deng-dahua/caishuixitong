@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
 
+from database import get_db, JournalEntry
+
 from database import get_db
 
 router = APIRouter(tags=["序时账"])
