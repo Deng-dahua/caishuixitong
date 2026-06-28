@@ -742,298 +742,322 @@ def _run_analyze(company_id, db, progress_callback=None):
     if sal_invs and pur_invs:
         from collections import defaultdict
         
-        # ═══ 步骤0反：服务行业闸门 — 服务类公司天然无进销存 ═══
-        # 从销项品名的金税分类编码判断是否为服务行业
+        # ═══ 服务行业品名过滤：精准到品名级别，而非公司级别 ═══
+        # 逻辑：服务品名（广告/咨询/IT等）天然无实物货物流转，不参与进销存比对
+        #       实物商品品名（纺织/金属/食品等）继续正常比对
+        # 结果：一家公司既有服务又有货物 → 服务跳过，货物照查
         import re
-        service_cats = set()
+        # 从 industry_data.json 加载服务行业编码（外部化配置，支持全行业扩展）
+        try:
+            _ind_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
+            with open(_ind_path, 'r', encoding='utf-8') as _f:
+                _ind_data = json.loads(_f.read())
+            SERVICE_INDUSTRY_CODES = _ind_data.get("service_industries", {}).get("codes", [
+                "广告服务","信息技术服务","研发和技术服务","文化创意服务",
+                "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
+                "金融服务","现代服务","生活服务","电信服务","建筑服务",
+                "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
+                "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
+                "安全保护服务","会议展览服务","租赁服务","无形资产",
+            ])
+        except Exception:
+            SERVICE_INDUSTRY_CODES = [
+                "广告服务","信息技术服务","研发和技术服务","文化创意服务",
+                "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
+                "金融服务","现代服务","生活服务","电信服务","建筑服务",
+                "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
+                "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
+                "安全保护服务","会议展览服务","租赁服务","无形资产",
+            ]
+        
+        def _is_service_goods(goods_name):
+            """判断品名是否为服务类（非实物）"""
+            m = re.search(r'\*([^*]+)\*', str(goods_name))
+            if not m: return False
+            cat = m.group(1)
+            return any(s in cat for s in SERVICE_INDUSTRY_CODES)
+        
+        # 扫描所有品名的服务/实物分类
+        all_sale_cats = set()
+        svc_sale_count = 0; phys_sale_count = 0
         for inv in sal_invs:
-            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
-            m = re.search(r'\*([^*]+)\*', goods)
-            if m: service_cats.add(m.group(1))
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+            if _is_service_goods(g): svc_sale_count += 1
+            else: phys_sale_count += 1
+            m = re.search(r'\*([^*]+)\*', g)
+            if m: all_sale_cats.add(m.group(1))
         
-        # 服务行业分类编码（无实物货物流转，不需要进销存台账）
-        SERVICE_INDUSTRY_CODES = [
-            "广告服务","信息技术服务","研发和技术服务","文化创意服务",
-            "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
-            "金融服务","现代服务","生活服务","电信服务","建筑服务",
-            "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
-            "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
-            "安全保护服务","会议展览服务","租赁服务","无形资产",
-        ]
+        if svc_sale_count + phys_sale_count > 0:
+            svc_pct = svc_sale_count / (svc_sale_count + phys_sale_count) * 100
+            pipeline_log.append(f"[进销存] 销项品名分类：服务类{svc_sale_count}条({svc_pct:.0f}%) 实物类{phys_sale_count}条 — 服务类品名跳过进销存比对，实物类正常检查")
         
-        sales_service_ratio = sum(1 for c in service_cats if any(s in c for s in SERVICE_INDUSTRY_CODES))
-        total_cats = len(service_cats)
-        is_service_company = total_cats > 0 and sales_service_ratio / total_cats >= 0.5
-        
-        if is_service_company:
-            pipeline_log.append(f"[进销存] 跳过：销项品名分类{service_cats}属服务行业（{sales_service_ratio}/{total_cats}类≥50%），无实物货物流转，不适用进销存分析")
+        # ── 步骤0：主营业务成本识别（从Phase 1 AuditContext读取，避免重复计算）──
+        if ctx and ctx.biz_cost_classification:
+            biz_cost_classification = ctx.biz_cost_classification
         else:
+            biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
+        core_cost_invs = biz_cost_classification["core_cost_invs"]
+        major_expense_invs = biz_cost_classification["major_expense_invs"]
+        minor_expense_invs = biz_cost_classification["minor_expense_invs"]
+        core_cost_goods = biz_cost_classification["pur_core_goods"]
+        expense_goods = biz_cost_classification["pur_expense_goods"]
         
-            # ── 步骤0：主营业务成本识别（从Phase 1 AuditContext读取，避免重复计算）──
-            if ctx and ctx.biz_cost_classification:
-                biz_cost_classification = ctx.biz_cost_classification
-            else:
-                biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
-            core_cost_invs = biz_cost_classification["core_cost_invs"]
-            major_expense_invs = biz_cost_classification["major_expense_invs"]
-            minor_expense_invs = biz_cost_classification["minor_expense_invs"]
-            core_cost_goods = biz_cost_classification["pur_core_goods"]
-            expense_goods = biz_cost_classification["pur_expense_goods"]
+        n_core = len(core_cost_invs)
+        n_major = len(major_expense_invs)
+        n_minor = len(minor_expense_invs)
         
-            n_core = len(core_cost_invs)
-            n_major = len(major_expense_invs)
-            n_minor = len(minor_expense_invs)
+        # ── 按货物名称聚合（全量+核心成本两层）──
+        sale_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
+        pur_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
+        pur_core_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
         
-            # ── 按货物名称聚合（全量+核心成本两层）──
-            sale_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
-            pur_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
-            pur_core_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
+        for inv in sal_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            if not g: g = "未命名商品"
+            # 服务类品名跳过进销存数量比对
+            if _is_service_goods(g): continue
+            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
+            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            sale_by_goods[g]["qty"] += q
+            sale_by_goods[g]["amount"] += a
+            sale_by_goods[g]["count"] += 1
+        for inv in pur_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            if not g: g = "未命名商品"
+            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
+            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            pur_by_goods[g]["qty"] += q
+            pur_by_goods[g]["amount"] += a
+            pur_by_goods[g]["count"] += 1
+        # ── 核心成本层独立聚合 ──
+        for inv in core_cost_invs:
+            g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            if not g: g = "未命名商品"
+            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
+            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            pur_core_by_goods[g]["qty"] += q
+            pur_core_by_goods[g]["amount"] += a
+            pur_core_by_goods[g]["count"] += 1
         
-            for inv in sal_invs:
-                g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-                if not g: g = "未命名商品"
-                q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-                a = float(inv.get("amount", inv.get("金额", 0)) or 0)
-                sale_by_goods[g]["qty"] += q
-                sale_by_goods[g]["amount"] += a
-                sale_by_goods[g]["count"] += 1
-            for inv in pur_invs:
-                g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-                if not g: g = "未命名商品"
-                q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-                a = float(inv.get("amount", inv.get("金额", 0)) or 0)
-                pur_by_goods[g]["qty"] += q
-                pur_by_goods[g]["amount"] += a
-                pur_by_goods[g]["count"] += 1
-            # ── 核心成本层独立聚合 ──
-            for inv in core_cost_invs:
-                g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-                if not g: g = "未命名商品"
-                q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-                a = float(inv.get("amount", inv.get("金额", 0)) or 0)
-                pur_core_by_goods[g]["qty"] += q
-                pur_core_by_goods[g]["amount"] += a
-                pur_core_by_goods[g]["count"] += 1
+        # 排除的费用品名集合（用于有进无销/有销无进的过滤）
+        expense_goods_set = set(expense_goods)
         
-            # 排除的费用品名集合（用于有进无销/有销无进的过滤）
-            expense_goods_set = set(expense_goods)
+        # ═══════════════════════════════════════════════════
+        # 检查1：有进无销（33）
+        # 稽查方法论④-A：只对主营业务成本的采购做有进无销判断
+        # 费用类进项（餐饮住宿汽油等）天然不需要销售，不应标记为"有进无销"
+        # 分析链：核心成本进项品名 → 销项品名交叉比对 → 制造业加工信号检测 → BOM验证
+        # 证据链：核心成本进项清单 + 销项清单 + 加工费/BOM关联信号
+        # ═══════════════════════════════════════════════════
+        core_only_buy = [g for g in pur_core_by_goods if g not in sale_by_goods]
+        # 统计被排除的费用类"仅采购"（不标记为风险，仅作说明）
+        expense_only_buy = [g for g in pur_by_goods if g not in sale_by_goods and g in expense_goods_set]
         
-            # ═══════════════════════════════════════════════════
-            # 检查1：有进无销（33）
-            # 稽查方法论④-A：只对主营业务成本的采购做有进无销判断
-            # 费用类进项（餐饮住宿汽油等）天然不需要销售，不应标记为"有进无销"
-            # 分析链：核心成本进项品名 → 销项品名交叉比对 → 制造业加工信号检测 → BOM验证
-            # 证据链：核心成本进项清单 + 销项清单 + 加工费/BOM关联信号
-            # ═══════════════════════════════════════════════════
-            core_only_buy = [g for g in pur_core_by_goods if g not in sale_by_goods]
-            # 统计被排除的费用类"仅采购"（不标记为风险，仅作说明）
-            expense_only_buy = [g for g in pur_by_goods if g not in sale_by_goods and g in expense_goods_set]
+        if core_only_buy:
+            pur_core_total = sum(pur_core_by_goods[g]["amount"] for g in pur_core_by_goods)
+            pur_amount_only = sum(pur_core_by_goods[g]["amount"] for g in core_only_buy)
+            pct = pur_amount_only / max(pur_core_total, 1) * 100
         
-            if core_only_buy:
-                pur_core_total = sum(pur_core_by_goods[g]["amount"] for g in pur_core_by_goods)
-                pur_amount_only = sum(pur_core_by_goods[g]["amount"] for g in core_only_buy)
-                pct = pur_amount_only / max(pur_core_total, 1) * 100
+            # 制造业诊断：核心成本中有加工费+有与销项品名不同的采购→可能是原材料加工为成品
+            has_processing = any("加工费" in g or "加工" in g for g in pur_core_by_goods)
+            expense_keywords_local = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
+            raw_like = [g for g in core_only_buy if not any(k in g for k in expense_keywords_local) and "加工" not in g]
+            is_manufacturing = has_processing and len(raw_like) > 0
+        
+            # 排除说明
+            excluded_note = ""
+            if expense_only_buy:
+                exp_amount = sum(pur_by_goods[g]["amount"] for g in expense_only_buy)
+                excluded_note = f"（已排除{len(expense_only_buy)}类费用/报销类进项{exp_amount:,.2f}元——日常经营必有零星报销，不纳入主营业务进销比对）"
+        
+            if is_manufacturing:
+                pur_raw_list = raw_like
+                processing = [g for g in core_only_buy if "加工" in g]
+                only_sell_goods = [g for g in sale_by_goods if g not in pur_core_by_goods]
             
-                # 制造业诊断：核心成本中有加工费+有与销项品名不同的采购→可能是原材料加工为成品
-                has_processing = any("加工费" in g or "加工" in g for g in pur_core_by_goods)
-                expense_keywords_local = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
-                raw_like = [g for g in core_only_buy if not any(k in g for k in expense_keywords_local) and "加工" not in g]
-                is_manufacturing = has_processing and len(raw_like) > 0
+                desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_by_goods)}种商品逐票交叉比对。{excluded_note}\n\n"
+                desc += f"核心成本中发现{len(core_only_buy)}种商品仅采购无销售——"
+                desc += f"采购了{'、'.join(pur_raw_list[:5])}等{len(core_only_buy)}种（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现同名产品的销售记录。\n\n"
             
-                # 排除说明
-                excluded_note = ""
-                if expense_only_buy:
-                    exp_amount = sum(pur_by_goods[g]["amount"] for g in expense_only_buy)
-                    excluded_note = f"（已排除{len(expense_only_buy)}类费用/报销类进项{exp_amount:,.2f}元——日常经营必有零星报销，不纳入主营业务进销比对）"
+                desc += f"进一步核查进项结构，发现：\n"
+                desc += f"① 加工费发票{len(processing)}笔（{'、'.join(processing) if processing else '外包加工'}）\n"
+                desc += f"② 非费用类原材料采购{len(raw_like)}种（{'、'.join(pur_raw_list[:5])}等）\n"
+                desc += f"上述两个信号同时存在，表明企业采用'采购原材料→委托加工→销售成品'的经营模式。\n\n"
             
-                if is_manufacturing:
-                    pur_raw_list = raw_like
-                    processing = [g for g in core_only_buy if "加工" in g]
-                    only_sell_goods = [g for g in sale_by_goods if g not in pur_core_by_goods]
-                
-                    desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_by_goods)}种商品逐票交叉比对。{excluded_note}\n\n"
-                    desc += f"核心成本中发现{len(core_only_buy)}种商品仅采购无销售——"
-                    desc += f"采购了{'、'.join(pur_raw_list[:5])}等{len(core_only_buy)}种（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现同名产品的销售记录。\n\n"
-                
-                    desc += f"进一步核查进项结构，发现：\n"
-                    desc += f"① 加工费发票{len(processing)}笔（{'、'.join(processing) if processing else '外包加工'}）\n"
-                    desc += f"② 非费用类原材料采购{len(raw_like)}种（{'、'.join(pur_raw_list[:5])}等）\n"
-                    desc += f"上述两个信号同时存在，表明企业采用'采购原材料→委托加工→销售成品'的经营模式。\n\n"
-                
-                    desc += f"进项品名与销项品名不匹配的根本原因是制造业的正常加工链条——进项是原料（{'、'.join(pur_raw_list[:3])}等），"
-                    if only_sell_goods: desc += f"经过加工变成成品（{'、'.join(only_sell_goods[:3])}），"
-                    desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
-                    desc += f"因此，{len(core_only_buy)}种商品'有进无销'不是隐匿收入，而是制造业的正常加工链条。\n\n"
-                
-                    desc += f"风险焦点从'有进无销=隐匿收入'转移到了'加工链条是否真实'："
-                    desc += f"① BOM表能否证明原材料投入→加工→成品产出的逻辑（投入产出比、损耗率）；"
-                    desc += f"② 加工费发票真实性（是否虚开）；"
-                    desc += f"③ 费用类进项（共{len(expense_only_buy)}类，如住宿、餐饮、汽油等）是否已通过报销制度管理，去向是否与经营规模匹配。"
-                
-                    inv_match_findings.append({
-                        "type": "有进无销风险",
-                        "level": "中风险", "score": 5,
-                        "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
-                        "description": desc,
-                        "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除{len(minor_expense_invs)}张日常报销+{len(major_expense_invs)}张重大费用后，对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类进项商品从未出现在销项中。进一步检索进项中是否存在加工费——发现{has_processing}，同时存在{len(raw_like)}类非费用类原材料采购——判定为制造业加工链条而非隐匿收入。",
-                        "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但BOM表缺失则无法证明投入产出逻辑，加工费发票真实性无法验证，风险仍存在。",
-                        "policy_ref": "《增值税暂行条例》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
-                        "suggestion": f"① 提供BOM表验证原材料→加工→成品的完整链条（投入产出比、损耗率）；② 提供加工合同、送料单、收货单；③ 费用类进项提供报销凭证和业务说明。以上三项齐全可排除隐匿收入嫌疑。",
-                        "category": "进销存匹配",
-                        "rule_id": 338,
-                        "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                        "_cross_refs": ["缺少BOM表"]  # 跨结论引用标记
-                    })
-                else:
-                    inv_match_findings.append({
-                        "type": "有进无销风险",
-                        "level": "高风险", "score": 8,
-                        "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
-                        "description": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_cost_invs)}张核心成本发票做进销比对。被查单位采购了{'、'.join(core_only_buy[:3])}等{len(core_only_buy)}种核心商品（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现对应产品的销售记录。\n\n"
-                            + f"【人类稽查员行为判断】{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
-                        "how_found": f"对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除费用类后对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类核心进项的品名从未出现在销项中。",
-                        "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。",
-                        "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
-                        "suggestion": f"要求被查单位逐项说明{len(core_only_buy)}种核心商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录。无法说明去向的，按隐匿收入处理。",
-                        "category": "进销存匹配",
-                        "rule_id": 338,
-                        "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                    })
-        
-            # ═══════════════════════════════════════════════════
-            # 检查2：有销无进（34）
-            # 稽查方法论④-B：只对主营业务成本对应的销售做有销无进判断
-            # 如果已经判断缺少BOM表（制造业加工链条），则主营业务成本外
-            # 的销售由加工产出，属于正常现象，不应标记为"有销无进"
-            # ═══════════════════════════════════════════════════
-            # 对销项品名做分类：哪些是核心成本相关，哪些是费用类
-            sale_core_related = {}
-            sale_non_core = {}
-            for g in sale_by_goods:
-                if g in core_cost_goods or any(kw in g for kw in ['加工','制品','成品','产品']):
-                    sale_core_related[g] = sale_by_goods[g]
-                elif g in expense_goods_set:
-                    sale_non_core[g] = sale_by_goods[g]
-                else:
-                    # 无法确定归属的 → 保守归入核心相关
-                    sale_core_related[g] = sale_by_goods[g]
-        
-            only_sell = [g for g in sale_core_related if g not in pur_core_by_goods]
-            # 被排除的非核心销售（BOM缺失→可豁免）
-            non_core_sell = [g for g in sale_non_core if g not in pur_core_by_goods]
-        
-            if only_sell:
-                sell_amount_only = sum(sale_core_related[g]["amount"] for g in only_sell)
-                sell_total_all = sum(sale_core_related[g]["amount"] for g in sale_core_related)
-                pct = sell_amount_only / max(sell_total_all, 1) * 100
+                desc += f"进项品名与销项品名不匹配的根本原因是制造业的正常加工链条——进项是原料（{'、'.join(pur_raw_list[:3])}等），"
+                if only_sell_goods: desc += f"经过加工变成成品（{'、'.join(only_sell_goods[:3])}），"
+                desc += f"品名天然不同。这跟面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
+                desc += f"因此，{len(core_only_buy)}种商品'有进无销'不是隐匿收入，而是制造业的正常加工链条。\n\n"
             
-                # 制造业诊断：核心成本中有加工费+原材料→销售的是加工后的成品
-                has_processing = any("加工费" in g or "加工" in g for g in pur_core_by_goods)
-                expense_keywords_local = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
-                pur_raw = [g for g in pur_core_by_goods if not any(k in g for k in expense_keywords_local) and "加工" not in g]
-                is_manufacturing = has_processing and len(pur_raw) > 0
-            
-                # BOM豁免说明
-                bom_exempt_note = ""
-                if non_core_sell:
-                    nc_amount = sum(sale_non_core[g]["amount"] for g in non_core_sell)
-                    bom_exempt_note = f"（已排除{len(non_core_sell)}类非核心销售{nc_amount:,.2f}元——若为制造业加工链条产出，BOM表缺失时不应将非核心销售标记为'有销无进'风险）"
-            
-                if is_manufacturing:
-                    pur_raw_list = pur_raw
-                    sell_list = only_sell
-                    raw_total = sum(pur_core_by_goods[g]["amount"] for g in pur_raw)
-                    proc_items = [g for g in pur_core_by_goods if "加工" in g]
-                    proc_total = sum(pur_core_by_goods[g]["amount"] for g in proc_items)
-                
-                    desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_core_related)}种商品逐票交叉比对。{bom_exempt_note}\n\n"
-                    desc += f"发现{len(only_sell)}种商品仅销售无直接采购——"
-                    desc += f"销售了{'、'.join(sell_list[:3])}（金额{sell_amount_only:,.2f}元，占核心销项{pct:.2f}%），但核心进项中未发现同名商品的采购记录。\n\n"
-                
-                    desc += f"进一步核查进项结构：\n"
-                    desc += f"① 加工费发票{len(proc_items)}笔（{'、'.join(proc_items[:3])}，合计{proc_total:,.2f}元）\n"
-                    desc += f"② 非费用类原材料{len(pur_raw)}种（{'、'.join(pur_raw_list[:3])}等，合计约{raw_total:,.2f}元）\n"
-                    desc += f"上述两个信号同时存在，表明原材料+加工费→成品，这是销项品名与进项品名不同的合理解释。\n\n"
-                
-                    desc += f"销售的是加工后的成品（{'、'.join(sell_list[:2])}），采购的是原料（{'、'.join(pur_raw_list[:2])}），品名天然不同——买原料→委托加工→卖成品是制造业的标准流程。"
-                    desc += f"这与面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
-                    desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果。\n\n"
-                
-                    desc += f"风险焦点从'有销无进=虚开'转移到了'加工链条是否真实'：\n"
-                    desc += f"① 进项原材料（{len(pur_raw)}种）能否通过加工真实产出销项成品（{len(only_sell)}种）？（需BOM表验证）\n"
-                    desc += f"② 加工费发票是真实外包加工还是仅为解释品名差异而虚开？（需加工合同和出入库记录）\n"
-                    desc += f"③ 如果纯贸易直接买成品，为什么找不到成品采购发票？（这才是真正的虚开风险）"
-                
-                    inv_match_findings.append({
-                        "type": "有销无进风险",
-                        "level": "中风险", "score": 5,
-                        "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无直接采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
-                        "description": desc,
-                        "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品从未出现在核心进项中。进一步检索进项中是否存在加工费（{has_processing}）和原材料采购（{len(pur_raw)}类），判定为制造业加工后产出成品——销项品名不匹配源于加工链条。",
-                        "tax_impact": "制造业加工链条导致销项品名与进项品名不同属正常现象。但BOM表缺失则投入产出逻辑无法验证，加工费真实性无法判断。",
-                        "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；制造业加工链条导致的品名差异不自动构成虚开。",
-                        "suggestion": f"① 提供BOM表验证加工链条（原料+加工费→能否产出成品）；② 提供委托加工合同、送料单、收货单；③ 如为纯贸易（直接买成品再卖），提供采购端对应的成品采购发票。资料齐全可排除虚开嫌疑。",
-                        "category": "进销存匹配",
-                        "rule_id": 337,
-                        "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                        "_cross_refs": ["缺少BOM表"]
-                    })
-                else:
-                    inv_match_findings.append({
-                        "type": "有销无进风险",
-                        "level": "高风险", "score": 9,
-                        "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
-                        "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但进项核心成本中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征。",
-                        "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品的品名从未出现在核心进项中。",
-                        "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
-                        "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
-                        "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料。无法提供真实采购来源的，按虚开发票立案处理。",
-                        "category": "进销存匹配",
-                        "rule_id": 337,
-                        "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                    })
-        
-            # ═══════════════════════════════════════════════════
-            # 检查3：进销数量严重偏差（32）
-            # 稽查方法论④-C：只对主营业务成本品名的进销数量做比对
-            # 费用类品名（餐饮住宿汽油等）无数量概念参与无意义
-            # ═══════════════════════════════════════════════════
-            # 仅对核心成本品名（同时出现在进销中的）做数量比对
-            core_goods_in_both = [g for g in sale_by_goods if g in pur_core_by_goods]
-            matched = [(g, (sale_by_goods[g]["qty"] - pur_core_by_goods[g]["qty"])) 
-                       for g in core_goods_in_both]
-            big_diff = [(g, d) for g, d in matched if abs(d) > 100 and pur_core_by_goods[g]["qty"] > 0]
-            if big_diff:
-                big_diff.sort(key=lambda x: -abs(x[1]))
-                top_diff = big_diff
-                detail_parts = [f"{g}（销{sale_by_goods[g]['qty']:.2f}/进{pur_core_by_goods[g]['qty']:.2f}，差{d:.2f}）" for g,d in top_diff[:5]]
-            
-                # 排除说明：费用类不参与数量比对
-                excluded_qty_note = f"本次仅对{len(core_goods_in_both)}种核心成本品名做进销数量比对，已排除{len(expense_goods_set & set(pur_by_goods.keys()))}类费用/报销品名（餐饮住宿汽油等无数量概念）。"
+                desc += f"风险焦点从'有进无销=隐匿收入'转移到了'加工链条是否真实'："
+                desc += f"① BOM表能否证明原材料投入→加工→成品产出的逻辑（投入产出比、损耗率）；"
+                desc += f"② 加工费发票真实性（是否虚开）；"
+                desc += f"③ 费用类进项（共{len(expense_only_buy)}类，如住宿、餐饮、汽油等）是否已通过报销制度管理，去向是否与经营规模匹配。"
             
                 inv_match_findings.append({
-                    "type": "进销数量严重偏差", "level": "中风险", "score": 6,
-                    "detail": f"【主营业务成本识别后】{len(big_diff)}类核心商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
-                    "description": f"【主营业务成本识别后分析】{excluded_qty_note}\n\n"
-                        + f"进销数量偏差分析：将{len(core_goods_in_both)}种核心成本品名的进销数量逐品名配对。"
-                        + f"以'{top_diff[0][0]}'为例，销项开票数量{sale_by_goods[top_diff[0][0]]['qty']:.2f}但进项采购数量{pur_core_by_goods[top_diff[0][0]]['qty']:.2f}，差额{abs(top_diff[0][1]):.2f}。"
-                        + f"如果销项数量>进项数量，可能存在：(1)未开票采购（原材料来源不明）；(2)上期库存结转未计入。"
-                        + f"如果进项数量>销项数量，可能存在：(1)未开票销售（隐匿收入）；(2)存货积压未售出；(3)原材料损耗或用于非生产用途。",
-                    "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_goods_in_both)}种核心品名做进销数量配对——逐品名对比进项采购数量和销项开票数量——发现{len(big_diff)}种核心商品的进销数量偏差超过100件，这不是正常库存波动能解释的。",
-                    "tax_impact": "进销数量严重偏差是账外经营和不实申报的典型特征。若销>进且无合理库存解释→可能存在未开票采购或虚开发票；若进>销且无合理库存解释→可能存在隐匿销售或存货异常损失。涉及增值税和企业所得税的少缴风险。",
-                    "suggestion": "要求企业提供：(1)每种偏差商品的期初期末库存数量；(2)偏差商品对应的采购合同和销售合同；(3)如为正常库存变动，提供进销存台账佐证。",
+                    "type": "有进无销风险",
+                    "level": "中风险", "score": 5,
+                    "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
+                    "description": desc,
+                    "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除{len(minor_expense_invs)}张日常报销+{len(major_expense_invs)}张重大费用后，对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类进项商品从未出现在销项中。进一步检索进项中是否存在加工费——发现{has_processing}，同时存在{len(raw_like)}类非费用类原材料采购——判定为制造业加工链条而非隐匿收入。",
+                    "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但BOM表缺失则无法证明投入产出逻辑，加工费发票真实性无法验证，风险仍存在。",
+                    "policy_ref": "《增值税暂行条例》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
+                    "suggestion": f"① 提供BOM表验证原材料→加工→成品的完整链条（投入产出比、损耗率）；② 提供加工合同、送料单、收货单；③ 费用类进项提供报销凭证和业务说明。以上三项齐全可排除隐匿收入嫌疑。",
                     "category": "进销存匹配",
+                    "rule_id": 338,
+                    "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                    "_cross_refs": ["缺少BOM表"]  # 跨结论引用标记
+                })
+            else:
+                inv_match_findings.append({
+                    "type": "有进无销风险",
+                    "level": "高风险", "score": 8,
+                    "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
+                    "description": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_cost_invs)}张核心成本发票做进销比对。被查单位采购了{'、'.join(core_only_buy[:3])}等{len(core_only_buy)}种核心商品（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现对应产品的销售记录。\n\n"
+                        + f"【人类稽查员行为判断】{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                    "how_found": f"对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除费用类后对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类核心进项的品名从未出现在销项中。",
+                    "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。",
+                    "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《增值税暂行条例》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
+                    "suggestion": f"要求被查单位逐项说明{len(core_only_buy)}种核心商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录。无法说明去向的，按隐匿收入处理。",
+                    "category": "进销存匹配",
+                    "rule_id": 338,
+                    "source_chain": "进销存-主营业务成本识别-进销品名匹配",
                 })
         
-            # 总额概括
-            sale_total = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
-            pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
-            pur_core_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in core_cost_invs)
-            inv_match_findings.insert(0, {
-                "type": "进销存虚拟匹配概览", "level": "低风险", "score": 2,
-                "detail": f"基于{len(sal_invs)}张销项发票×{len(pur_invs)}张进项发票构建虚拟进销存。销项总额{sale_total:,.2f}元，进项总额{pur_total:,.2f}元（其中核心成本{pur_core_total:,.2f}元/{n_core}张，重大费用{n_major}张，日常报销{n_minor}张）。货物品类：销{len(sale_by_goods)}种/进{len(pur_by_goods)}种。",
+        # ═══════════════════════════════════════════════════
+        # 检查2：有销无进（34）
+        # 稽查方法论④-B：只对主营业务成本对应的销售做有销无进判断
+        # 如果已经判断缺少BOM表（制造业加工链条），则主营业务成本外
+        # 的销售由加工产出，属于正常现象，不应标记为"有销无进"
+        # ═══════════════════════════════════════════════════
+        # 对销项品名做分类：哪些是核心成本相关，哪些是费用类
+        sale_core_related = {}
+        sale_non_core = {}
+        for g in sale_by_goods:
+            if g in core_cost_goods or any(kw in g for kw in ['加工','制品','成品','产品']):
+                sale_core_related[g] = sale_by_goods[g]
+            elif g in expense_goods_set:
+                sale_non_core[g] = sale_by_goods[g]
+            else:
+                # 无法确定归属的 → 保守归入核心相关
+                sale_core_related[g] = sale_by_goods[g]
+        
+        only_sell = [g for g in sale_core_related if g not in pur_core_by_goods]
+        # 被排除的非核心销售（BOM缺失→可豁免）
+        non_core_sell = [g for g in sale_non_core if g not in pur_core_by_goods]
+        
+        if only_sell:
+            sell_amount_only = sum(sale_core_related[g]["amount"] for g in only_sell)
+            sell_total_all = sum(sale_core_related[g]["amount"] for g in sale_core_related)
+            pct = sell_amount_only / max(sell_total_all, 1) * 100
+        
+            # 制造业诊断：核心成本中有加工费+原材料→销售的是加工后的成品
+            has_processing = any("加工费" in g or "加工" in g for g in pur_core_by_goods)
+            expense_keywords_local = ["住宿","餐饮","餐费","加油","租赁","房租","物业","保险","通信","快递","办公","维修","服务费","咨询","广告","培训","差旅"]
+            pur_raw = [g for g in pur_core_by_goods if not any(k in g for k in expense_keywords_local) and "加工" not in g]
+            is_manufacturing = has_processing and len(pur_raw) > 0
+        
+            # BOM豁免说明
+            bom_exempt_note = ""
+            if non_core_sell:
+                nc_amount = sum(sale_non_core[g]["amount"] for g in non_core_sell)
+                bom_exempt_note = f"（已排除{len(non_core_sell)}类非核心销售{nc_amount:,.2f}元——若为制造业加工链条产出，BOM表缺失时不应将非核心销售标记为'有销无进'风险）"
+        
+            if is_manufacturing:
+                pur_raw_list = pur_raw
+                sell_list = only_sell
+                raw_total = sum(pur_core_by_goods[g]["amount"] for g in pur_raw)
+                proc_items = [g for g in pur_core_by_goods if "加工" in g]
+                proc_total = sum(pur_core_by_goods[g]["amount"] for g in proc_items)
+            
+                desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_core_related)}种商品逐票交叉比对。{bom_exempt_note}\n\n"
+                desc += f"发现{len(only_sell)}种商品仅销售无直接采购——"
+                desc += f"销售了{'、'.join(sell_list[:3])}（金额{sell_amount_only:,.2f}元，占核心销项{pct:.2f}%），但核心进项中未发现同名商品的采购记录。\n\n"
+            
+                desc += f"进一步核查进项结构：\n"
+                desc += f"① 加工费发票{len(proc_items)}笔（{'、'.join(proc_items[:3])}，合计{proc_total:,.2f}元）\n"
+                desc += f"② 非费用类原材料{len(pur_raw)}种（{'、'.join(pur_raw_list[:3])}等，合计约{raw_total:,.2f}元）\n"
+                desc += f"上述两个信号同时存在，表明原材料+加工费→成品，这是销项品名与进项品名不同的合理解释。\n\n"
+            
+                desc += f"销售的是加工后的成品（{'、'.join(sell_list[:2])}），采购的是原料（{'、'.join(pur_raw_list[:2])}），品名天然不同——买原料→委托加工→卖成品是制造业的标准流程。"
+                desc += f"这与面包店买面粉卖面包、家具厂买木材卖桌椅是同一个道理。\n"
+                desc += f"因此，{len(only_sell)}种商品'有销无进'不是虚开发票，而是制造业加工链条的正常结果。\n\n"
+            
+                desc += f"风险焦点从'有销无进=虚开'转移到了'加工链条是否真实'：\n"
+                desc += f"① 进项原材料（{len(pur_raw)}种）能否通过加工真实产出销项成品（{len(only_sell)}种）？（需BOM表验证）\n"
+                desc += f"② 加工费发票是真实外包加工还是仅为解释品名差异而虚开？（需加工合同和出入库记录）\n"
+                desc += f"③ 如果纯贸易直接买成品，为什么找不到成品采购发票？（这才是真正的虚开风险）"
+            
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "中风险", "score": 5,
+                    "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无直接采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
+                    "description": desc,
+                    "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品从未出现在核心进项中。进一步检索进项中是否存在加工费（{has_processing}）和原材料采购（{len(pur_raw)}类），判定为制造业加工后产出成品——销项品名不匹配源于加工链条。",
+                    "tax_impact": "制造业加工链条导致销项品名与进项品名不同属正常现象。但BOM表缺失则投入产出逻辑无法验证，加工费真实性无法判断。",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；制造业加工链条导致的品名差异不自动构成虚开。",
+                    "suggestion": f"① 提供BOM表验证加工链条（原料+加工费→能否产出成品）；② 提供委托加工合同、送料单、收货单；③ 如为纯贸易（直接买成品再卖），提供采购端对应的成品采购发票。资料齐全可排除虚开嫌疑。",
+                    "category": "进销存匹配",
+                    "rule_id": 337,
+                    "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                    "_cross_refs": ["缺少BOM表"]
+                })
+            else:
+                inv_match_findings.append({
+                    "type": "有销无进风险",
+                    "level": "高风险", "score": 9,
+                    "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
+                    "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但进项核心成本中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征。",
+                    "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品的品名从未出现在核心进项中。",
+                    "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
+                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
+                    "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料。无法提供真实采购来源的，按虚开发票立案处理。",
+                    "category": "进销存匹配",
+                    "rule_id": 337,
+                    "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                })
+        
+        # ═══════════════════════════════════════════════════
+        # 检查3：进销数量严重偏差（32）
+        # 稽查方法论④-C：只对主营业务成本品名的进销数量做比对
+        # 费用类品名（餐饮住宿汽油等）无数量概念参与无意义
+        # ═══════════════════════════════════════════════════
+        # 仅对核心成本品名（同时出现在进销中的）做数量比对
+        core_goods_in_both = [g for g in sale_by_goods if g in pur_core_by_goods]
+        matched = [(g, (sale_by_goods[g]["qty"] - pur_core_by_goods[g]["qty"])) 
+                   for g in core_goods_in_both]
+        big_diff = [(g, d) for g, d in matched if abs(d) > 100 and pur_core_by_goods[g]["qty"] > 0]
+        if big_diff:
+            big_diff.sort(key=lambda x: -abs(x[1]))
+            top_diff = big_diff
+            detail_parts = [f"{g}（销{sale_by_goods[g]['qty']:.2f}/进{pur_core_by_goods[g]['qty']:.2f}，差{d:.2f}）" for g,d in top_diff[:5]]
+        
+            # 排除说明：费用类不参与数量比对
+            excluded_qty_note = f"本次仅对{len(core_goods_in_both)}种核心成本品名做进销数量比对，已排除{len(expense_goods_set & set(pur_by_goods.keys()))}类费用/报销品名（餐饮住宿汽油等无数量概念）。"
+        
+            inv_match_findings.append({
+                "type": "进销数量严重偏差", "level": "中风险", "score": 6,
+                "detail": f"【主营业务成本识别后】{len(big_diff)}类核心商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
+                "description": f"【主营业务成本识别后分析】{excluded_qty_note}\n\n"
+                    + f"进销数量偏差分析：将{len(core_goods_in_both)}种核心成本品名的进销数量逐品名配对。"
+                    + f"以'{top_diff[0][0]}'为例，销项开票数量{sale_by_goods[top_diff[0][0]]['qty']:.2f}但进项采购数量{pur_core_by_goods[top_diff[0][0]]['qty']:.2f}，差额{abs(top_diff[0][1]):.2f}。"
+                    + f"如果销项数量>进项数量，可能存在：(1)未开票采购（原材料来源不明）；(2)上期库存结转未计入。"
+                    + f"如果进项数量>销项数量，可能存在：(1)未开票销售（隐匿收入）；(2)存货积压未售出；(3)原材料损耗或用于非生产用途。",
+                "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_goods_in_both)}种核心品名做进销数量配对——逐品名对比进项采购数量和销项开票数量——发现{len(big_diff)}种核心商品的进销数量偏差超过100件，这不是正常库存波动能解释的。",
+                "tax_impact": "进销数量严重偏差是账外经营和不实申报的典型特征。若销>进且无合理库存解释→可能存在未开票采购或虚开发票；若进>销且无合理库存解释→可能存在隐匿销售或存货异常损失。涉及增值税和企业所得税的少缴风险。",
+                "suggestion": "要求企业提供：(1)每种偏差商品的期初期末库存数量；(2)偏差商品对应的采购合同和销售合同；(3)如为正常库存变动，提供进销存台账佐证。",
                 "category": "进销存匹配",
             })
+        
+        # 总额概括
+        sale_total = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
+        pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+        pur_core_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in core_cost_invs)
+        inv_match_findings.insert(0, {
+            "type": "进销存虚拟匹配概览", "level": "低风险", "score": 2,
+            "detail": f"基于{len(sal_invs)}张销项发票×{len(pur_invs)}张进项发票构建虚拟进销存。销项总额{sale_total:,.2f}元，进项总额{pur_total:,.2f}元（其中核心成本{pur_core_total:,.2f}元/{n_core}张，重大费用{n_major}张，日常报销{n_minor}张）。货物品类：销{len(sale_by_goods)}种/进{len(pur_by_goods)}种。",
+            "category": "进销存匹配",
+        })
     
     if inv_match_findings:
         pipeline_log.append(f"虚拟进销存分析: {len(inv_match_findings)}项发现")

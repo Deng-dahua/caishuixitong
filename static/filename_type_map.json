@@ -1,15 +1,20 @@
 {
   "_description": "文件名→类型映射表。文件名包含左侧任一关键词即判定为该类型。优先级从上到下：第一个匹配的生效。编辑此文件即可调整识别规则，无需改代码。",
-  "_version": "2026-06-26",
+  "_version": "2026-06-28",
   "_methodology": "决策优先级: 文件名 > 结构指纹 > 关键词匹配",
+  "_rules_log": [
+    "2026-06-28: 新增 个税申报(salary_tax)、公积金(housing_fund) 关键词",
+    "2026-06-28: 新增综合判定逻辑——文件名暗示+列头推理+公司匹配三方交叉验证"
+  ],
   "mappings": [
     { "keywords": ["银行", "流水", "bank_statement"], "type": "bank_statement", "label": "银行流水" },
     { "keywords": ["开票", "销项", "销售发票", "销货"], "type": "sales_invoice", "label": "销项发票" },
     { "keywords": ["取票", "进项", "采购发票", "购货", "取得发票"], "type": "purchase_invoice", "label": "进项发票" },
     { "keywords": ["抵扣", "勾选", "认证"], "type": "input_vat_deduction", "label": "进项抵扣认证" },
-    { "keywords": ["工资", "薪金", "所得", "个税"], "type": "salary", "label": "工资薪金/个税申报" },
+    { "keywords": ["工资", "薪金", "个税申报", "扣缴"], "type": "salary", "label": "工资薪金/个税申报" },
+    { "keywords": ["所得", "个税"], "type": "salary_tax", "label": "个人所得税扣缴申报" },
     { "keywords": ["社保", "社会保险"], "type": "social_security", "label": "社保明细" },
-    { "keywords": ["公积金", "住房"], "type": "housing_fund", "label": "公积金明细" },
+    { "keywords": ["公积金", "住房", "缴存"], "type": "housing_fund", "label": "公积金缴存明细" },
     { "keywords": ["凭证", "记账", "序时账"], "type": "voucher", "label": "记账凭证" },
     { "keywords": ["进销存", "台账", "存货", "库存"], "type": "inventory", "label": "进销存台账" },
     { "keywords": ["档案"], "type": "archive", "label": "档案/基础资料" }
