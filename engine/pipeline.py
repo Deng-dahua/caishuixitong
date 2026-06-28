@@ -3670,10 +3670,40 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 加段落→push block；调顺序→调 blocks 顺序；删段落→不 push。
     result["blocks"] = _build_report_blocks(result, company_id)
     
+    # ═══ 报告文本增强：简短的detail自动扩充为规范结构 ═══
+    _enrich_short_findings(all_findings, pipeline_log)
+    
     return result
 
 # ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
 # 必须在质量标准执行之前运行，确保进入报告的是可读的专业文本
+
+def _enrich_short_findings(all_findings, pipeline_log):
+    """将简短的finding扩充为规范的报告结构：现象→证据→影响→法条→建议"""
+    enriched = 0
+    for f in all_findings:
+        detail = str(f.get("detail", ""))
+        if len(detail) < 60:
+            # 拼合各字段为完整段落
+            parts = []
+            parts.append(detail)
+            how = str(f.get("how_found", "")).strip()
+            if how and len(how) > 10:
+                parts.append("稽查方法：" + how)
+            tax_impact = str(f.get("tax_impact", "")).strip()
+            if tax_impact and len(tax_impact) > 10:
+                parts.append("税务影响：" + tax_impact)
+            policy = str(f.get("policy_ref", "")).strip()
+            if policy and len(policy) > 5 and "法规依据" not in detail:
+                parts.append("法规依据：" + policy)
+            suggestion = str(f.get("suggestion", "")).strip()
+            if suggestion and len(suggestion) > 10 and "驳回" not in suggestion and "立即整改" not in suggestion:
+                parts.append("处理建议：" + suggestion)
+            if len(parts) > 1:
+                f["detail"] = "。".join(parts)
+                enriched += 1
+    if enriched:
+        pipeline_log.append(f"报告增强: {enriched}条简短发现已扩充为规范结构")
 
 _BOILERPLATE_PREFIXES = [
     "是税务稽查重点方向。",
