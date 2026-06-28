@@ -341,7 +341,40 @@ function renderReportStandards(container) {
   
   h += '<tr><td>7</td><td><strong>品名级精度</strong></td>';
   h += '<td>混合行业（服务+货物）必须品名级区分：服务品名跳过进销存，实物品名正常检查。混为一谈视为质量事故</td><td style="color:#2563eb">高</td></tr>';
+
+  h += '<tr><td>8</td><td><strong>段落格式规范</strong></td>';
+  h += '<td>禁止一逗到底、禁止多逻辑挤一段、禁止括号堆叠判定链、子项必须独立成段、数据与解释分层。违者退回重写</td><td style="color:#2563eb">高</td></tr>';
+  
+  h += '<tr><td>9</td><td><strong>语音播报覆盖</strong></td>';
+  h += '<td>报告必须内置播报功能——全文播报+点击任意段落从该处播至结束，新闻联播级6档语调，橙色底纹跟随</td><td style="color:#059669">中</td></tr>';
   h += '</tbody></table></div>';
+
+  // ── 段落格式规范（新增）──
+  h += '<h2 class="rpt-title">📝 段落格式规范（规则二十六·2026-06-28确立）</h2>';
+  h += '<div class="std-card" style="margin-bottom:12px">';
+  h += '<div class="std-section"><span class="std-label">🚫 五大禁止反模式</span><br>';
+  h += '① <strong>禁止一逗到底</strong>——多个完整逻辑句子不得用逗号、分号串联为一个整块段落，必须各自独立成段<br>';
+  h += '② <strong>禁止多逻辑挤一段</strong>——同一段落内不得混杂2个以上不相关的分析维度（如同时描述"供应商穿透"和"客户穿透"）<br>';
+  h += '③ <strong>禁止括号堆叠</strong>——不得使用"(若A→B)(若C→D)(若E→F)"的方式在括号内堆砌多段判定逻辑<br>';
+  h += '④ <strong>子项必须独立成段</strong>——"①②③④"等序号引导的子项内容必须各自独立为一段，不得全部塞入同一段<br>';
+  h += '⑤ <strong>数据与解释分层</strong>——先陈述数据事实（独立段），再解释分析方法（独立段），最后给出结论（独立段）</div>';
+  h += '<div class="std-section"><span class="std-label">✅ 正确范例</span>身份锚定：判定一/判定二/判定三各自独立一段，每段100-150字。行业闸门：四条跳过各自独立一段，每段含逻辑+原因+后果。穿透分析：四项穿透各自独立一段，每段含方法+检测对象+风险含义。综合分析：五环节各自独立一段，每段含环节名+输入+处理+输出</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每写完一段自问：这段只有一个主题吗？这段能用一句话概括主旨吗？这段超过200字了吗（超了就拆）。拆分标准：换主题=换段，换视角=换段，换分析对象=换段。不得因为"反正写得下"就把三四个意思堆在同一段里。代码位置：static/js/tax-doc-analysis.js _renderReportFallback() Ch2各段</div>';
+  h += '</div>';
+
+  // ── 语音播报规范（新增）──
+  h += '<h2 class="rpt-title">🔊 语音播报标准（规则二十七·2026-06-28确立）</h2>';
+  h += '<div class="std-card">';
+  h += '<div class="std-section"><span class="std-label">📋 功能要求</span><br>';
+  h += '① <strong>全文播报</strong>——报告顶部固定播报控制条，一键从封面播至附件结束<br>';
+  h += '② <strong>点击播报</strong>——点击报告任意段落文字，从该处开始播报并持续至报告结束<br>';
+  h += '③ <strong>播放控制</strong>——暂停/继续/停止，语速0.85x-1.3x可调<br>';
+  h += '④ <strong>视觉跟随</strong>——当前播报段落橙色底纹高亮（#fef3c7），自动滚动至视野中央<br>';
+  h += '⑤ <strong>音色标准</strong>——中文男声（zh-CN male），低沉严肃的中年稽查员声线</div>';
+  h += '<div class="std-section"><span class="std-label">🎙️ 新闻联播级情感语调（6档）</span><br>';
+  h += '章节标题 0.65音调/0.7x语速 庄严缓慢有力 · 小节标题 0.72/0.8x 沉稳 · 高风险内容 0.68/0.75x 严肃凝重 · 法律条文 0.70/0.72x 清晰郑重 · 处理建议 0.80/0.85x 清晰有力 · 普通叙述 0.78/0.88x 新闻联播标准</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>使用浏览器内置SpeechSynthesis API，不依赖外部服务。系统自动检测可用中文男声，降级策略：zh-CN male→zh-CN non-Tingting→zh任意。代码位置：static/js/tax-doc-analysis.js TTS函数族（_initReportTTS/_ttsSpeakNext/_ttsSetNewsTone/_bindClickToSpeak）</div>';
+  h += '</div>';
 
   h += '</div>'; // close rpt-stds
   h += '</div>'; // close card-fill
