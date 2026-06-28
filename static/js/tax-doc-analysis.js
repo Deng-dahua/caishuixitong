@@ -1016,7 +1016,14 @@ function _renderReportFallback(r, allF) {
     r.file_results.forEach(function(fr, fi) {
       var fn = (fr.file || '').replace('AI账务系统','').replace(/20\d{4,5}/,'').replace('.xlsx','').replace('.xls','').replace(/\s+/g,'');
       var acts = (fr.actions || []).filter(function(a) { return a.indexOf('提取') >= 0 || a.indexOf('判定') >= 0; });
-      h += '<tr><td>' + (fi+1) + '</td><td>' + fn + '</td><td>' + (fr.type || '') + '</td><td>' + (fr.records || fr.rows || '-') + '条</td><td>' + (acts[0] || fr.verdict || '四方交叉验证一致') + '</td></tr>';
+      // 从actions文本中提取数量，如"提取8条销项"→8
+      var recCount = fr.records || fr.rows;
+      if (!recCount) {
+        var allActs = (fr.actions || []).join(' ');
+        var m = allActs.match(/(\d+)条/);
+        if (m) recCount = parseInt(m[1]);
+      }
+      h += '<tr><td>' + (fi+1) + '</td><td>' + fn + '</td><td>' + (fr.type || '') + '</td><td>' + (recCount || '-') + '条</td><td>' + (acts[0] || fr.verdict || '四方交叉验证一致') + '</td></tr>';
     });
     h += '</tbody></table>';
     h += '<p class="i2">以上' + (r.files_count || 0) + '份文件经四方交叉验证后全部成功识别，共提取' + (totalRecords || '-') + '条有效数据记录（已自动过滤空白行、小计行、合计行等无效数据），涵盖销项发票、进项发票、进项抵扣认证、银行流水、工资表、社保明细、公积金缴存共7种资料类型，为后续稽查分析提供了完整的数据基础。</p>';
