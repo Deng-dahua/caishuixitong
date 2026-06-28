@@ -4472,12 +4472,23 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             else:
                 individual_pay[cp] += credit
         
-        intel["银行流水"]["收款构成"] = {
-            "企业客户款": f"{sum(enterprise_pay.values()):,.2f}元（{len(enterprise_pay)}家）",
-            "个人款": f"{sum(individual_pay.values()):,.2f}元（{len(individual_pay)}位）",
-            "税费社保退款": f"{sum(tax_pay.values()):,.2f}元",
-            "银行利息/内部": f"{sum(bank_internal.values()):,.2f}元",
-        }
+        intel["银行流水"]["收款构成"] = {}
+        raw_cats = [
+            ("企业客户款", enterprise_pay, "家"),
+            ("个人款", individual_pay, "位"),
+            ("税费社保退款", tax_pay, ""),
+            ("银行利息/内部", bank_internal, ""),
+        ]
+        for label, data, unit in raw_cats:
+            total_val = sum(data.values())
+            entity_cnt = len(data)
+            if total_val > 0.01:
+                if unit:
+                    intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元（{entity_cnt}{unit}）"
+                else:
+                    intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元"
+        if not intel["银行流水"]["收款构成"]:
+            intel["银行流水"]["收款构成"]["未检测到收款数据"] = "0.00元"
         # TOP付款方明细
         all_payers = {}
         for d in [enterprise_pay, individual_pay, tax_pay, bank_internal]:
