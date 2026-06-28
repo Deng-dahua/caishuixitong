@@ -1203,7 +1203,7 @@ function _renderReportFallback(r, allF) {
     if (itemCount > 0) h += '，并形成<strong>' + itemCount + '项</strong>结构化证据明细';
     h += '。</div>';
     if (f.matched_chain_count > 0) {
-      h += '<div style="padding:4px 0">上述证据通过<strong>' + (f.matched_chain_count || 0) + '条</strong>关联证据链进行交叉验证，确保不同数据源的证据之间相互印证、形成闭环。</div>';
+      h += '<div style="padding:4px 0">上述证据经多源数据交叉验证，不同来源的证据之间相互印证。</div>';
     } else if (f.matched_rule_count > 0) {
       h += '<div style="padding:4px 0">上述发现由<strong>' + (f.matched_rule_count || 0) + '条</strong>稽查规则触发，经规则引擎逐条校验后确认。</div>';
     }
@@ -1261,14 +1261,7 @@ function _renderReportFallback(r, allF) {
       h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>建议进一步核实相关业务资料。</div>';
     }
     
-    // 证据链追溯
-    if (f.matched_chain_details && f.matched_chain_details.length > 0) {
-      h += '<div class="frow"><span class="flabel">🔗 关联证据链：</span>';
-      f.matched_chain_details.forEach(function(ch) {
-        h += '<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:#eff6ff;border-radius:3px;font-size:11px;color:#1e40af">' + (ch.name||'') + '</span>';
-      });
-      h += '</div>';
-    }
+    // 证据链追溯 → 不暴露给报告读者
     h += '</div>';
   }
 
