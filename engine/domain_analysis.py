@@ -4442,57 +4442,57 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             "往来方TOP5": [{"名称": n, "金额": f"{a:,.2f}"} for n, a in counterparties.most_common(5)],
         }
         
-        # ── 收款类型分析：区分企业/个人/税费/社保/银行内部 ──
-        enterprise_pay = defaultdict(float); individual_pay = defaultdict(float)
-        tax_pay = defaultdict(float); bank_internal = defaultdict(float)
+        # ── 收款类型分析：配置驱动自适应分类（不由预设类别决定，按关键词逐层匹配）──
+        # 规则存储于 industry_data.json → 收款分类规则，可随行业扩展而增加类型
+        pay_cats = {}  # label -> {payer_name: amount}
+        rc_rules_cfg = _load_industry_data().get("收款分类规则", {}).get("rules", [])
+        if not rc_rules_cfg:
+            # 兜底：内置默认规则
+            rc_rules_cfg = [
+                {"label": "税费社保退款", "keywords": ["社保","医保","税","国库","ETS"]},
+                {"label": "银行内部款项", "keywords": ["结息","利息","银行","农行"]},
+                {"label": "企业客户款", "keywords": ["有限公司","公司","企业","厂","店","集团"]},
+                {"label": "个人款", "is_default": True},
+            ]
+        for rule in rc_rules_cfg:
+            if not rule.get("is_default"):
+                pay_cats[rule["label"]] = defaultdict(float)
+        pay_cats["个人款"] = defaultdict(float)  # 兜底默认分类
+        
         for tx in bank_txs:
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "")).strip()
             summary = str(tx.get("summary", "")).strip()
-            # 空名称时用摘要兜底
             if not cp:
                 if any(k in summary for k in ['结息','利息']): cp = "(银行结息)"
                 elif any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
-                elif any(k in summary for k in ['费用','外收','短信','账户']): cp = "(银行费用)"
                 else: cp = "(未记录名称)"
-            # 分类
-            if any(k in cp for k in ['代付社保','医保代发','社保资金','社保','医保']):
-                tax_pay[cp] += credit
-            elif any(k in cp for k in ['银行结息','结息','利息','批量']):
-                bank_internal[cp] += credit
-            elif any(k in cp for k in ['有限公司','有限责任公司','股份有限公司','合伙企业','个人独资企业',
-                                          '厂','店','部','中心','局','院','所','社','会','馆','场','园','苑','山庄','大厦',
-                                          '集团','公司','企业','合作社','农场','牧场','渔场','林场']):
-                enterprise_pay[cp] += credit
-            elif any(k in cp for k in ['国家金库','税务局','ETS','国库','税','财政','待报解']):
-                tax_pay[cp] += credit
-            elif any(k in cp for k in ['银行','农行','清算','资金','费用']):
-                bank_internal[cp] += credit
-            else:
-                individual_pay[cp] += credit
+            # 按规则顺序逐层匹配
+            matched = False
+            for rule in rc_rules_cfg:
+                if rule.get("is_default"): continue
+                kws = rule.get("keywords", [])
+                if kws and any(k in cp for k in kws):
+                    pay_cats[rule["label"]][cp] += credit
+                    matched = True
+                    break
+            if not matched:
+                pay_cats["个人款"][cp] += credit
         
+        # 自适应输出：只输出有数据的类别
         intel["银行流水"]["收款构成"] = {}
-        raw_cats = [
-            ("企业客户款", enterprise_pay, "家"),
-            ("个人款", individual_pay, "位"),
-            ("税费社保退款", tax_pay, ""),
-            ("银行利息/内部", bank_internal, ""),
-        ]
-        for label, data, unit in raw_cats:
+        for label, data in pay_cats.items():
             total_val = sum(data.values())
             entity_cnt = len(data)
             if total_val > 0.01:
-                if unit:
-                    intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元（{entity_cnt}{unit}）"
-                else:
-                    intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元"
+                intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元（{entity_cnt}个收款方）"
         if not intel["银行流水"]["收款构成"]:
             intel["银行流水"]["收款构成"]["未检测到收款数据"] = "0.00元"
-        # TOP付款方明细
+        # TOP收款方明细（从配置驱动的分类中汇总）
         all_payers = {}
-        for d in [enterprise_pay, individual_pay, tax_pay, bank_internal]:
-            for k, v in d.items(): all_payers[k[:25]] = v
+        for data in pay_cats.values():
+            for k, v in data.items(): all_payers[k[:25]] = v
         intel["银行流水"]["收款方TOP10"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
         intel["银行流水"]["收款方全部"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
         
