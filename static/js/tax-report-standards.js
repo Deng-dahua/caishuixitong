@@ -156,6 +156,32 @@ function renderReportStandards(container) {
   h += '未通过的项目在正文对应发现的底部以 <span style="background:#fef3c7;padding:0 4px;border-radius:2px;font-size:11px">⚠ 质量标注</span> 形式呈现，不影响报告整体合规性，仅作为审理环节的补充参考。';
   h += '</div>';
 
+  h += '<div class="rpt-section" style="margin-top:40px">';
+  h += '<h2 class="rpt-title">🔍 判定可靠性要求（2026-06-28新增）</h2>';
+  h += '<table class="rpt-table"><thead><tr><th style="width:6%">#</th><th style="width:18%">规则</th><th style="width:40%">报告中的体现</th><th style="width:12%">质量等级</th></tr></thead><tbody>';
+  
+  h += '<tr><td>1</td><td><strong>公司身份锚定</strong></td>';
+  h += '<td>报告开头必须声明当前分析的公司名称+信用代码，每项发现必须明确对应的账套主体</td><td style="color:#dc2626">致命</td></tr>';
+  
+  h += '<tr><td>2</td><td><strong>发票方向判定</strong></td>';
+  h += '<td>报告中的进项/销项分类必须有判定依据：购买方=公司→进项，销售方=公司→销项。存疑发票必须在附件中单独列出排除原因</td><td style="color:#dc2626">致命</td></tr>';
+  
+  h += '<tr><td>3</td><td><strong>综合判断</strong></td>';
+  h += '<td>文件类型判定必须经过四方证据交叉验证，不得仅凭文件名判定。证据冲突时必须在报告中说明原因</td><td style="color:#dc2626">致命</td></tr>';
+  
+  h += '<tr><td>4</td><td><strong>只读有效信息</strong></td>';
+  h += '<td>所有数据统计必须基于有效行（排除空白/小计/合计），不得将Excel行数直接当作数据量</td><td style="color:#2563eb">高</td></tr>';
+
+  h += '<tr><td>5</td><td><strong>存疑排除</strong></td>';
+  h += '<td>买卖双方都不含公司的发票必须排除出所有计算和结论，不得以任何默认值处理</td><td style="color:#2563eb">高</td></tr>';
+  
+  h += '<tr><td>6</td><td><strong>服务行业闸门</strong></td>';
+  h += '<td>服务行业（25类）不得出现进销存/BOM/进销比/毛利率对标等实物商品的发现。已跳过时需在报告"分析方法"段声明</td><td style="color:#2563eb">高</td></tr>';
+  
+  h += '<tr><td>7</td><td><strong>品名级精度</strong></td>';
+  h += '<td>混合行业（服务+货物）必须品名级区分：服务品名跳过进销存，实物品名正常检查。混为一谈视为质量事故</td><td style="color:#2563eb">高</td></tr>';
+  h += '</tbody></table></div>';
+
   h += '</div>'; // close rpt-stds
   h += '</div>'; // close card-fill
 
