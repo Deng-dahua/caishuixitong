@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
 
-from database import get_db
+from database import get_db, Contract, ContractPayment
 
 router = APIRouter(tags=["合同"])
 

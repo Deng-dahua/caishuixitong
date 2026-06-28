@@ -12,13 +12,7 @@ from typing import Optional, List
 import json
 import calendar
 
-from database import (
-    CulturalConstructionFeeDeclaration,
-    CulturalConstructionFeeDeduction,
-    Company, get_db,
-    SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
-    JournalEntry, Account, Supplier,
-)
+from database import get_db, JournalEntry, Account, SalesInvoice, PurchaseInvoice, BankTransaction, BookkeepingInvoice, Supplier, Company, CulturalConstructionFeeDeclaration, CulturalConstructionFeeDeduction
 
 router = APIRouter(prefix="/api/cultural-construction-fee", tags=["文化事业建设费"])
 
@@ -866,7 +860,7 @@ def _generate_ccf_voucher(db, company_id: int, decl, fee_amount: float,
 def _match_ccf_payment_voucher(db, company_id: int, decl, fee_amount: float,
                                entry_date, period: str) -> dict:
     """匹配银行流水中的文化事业建设费支付记录"""
-    from database import BankTransaction
+    from database import get_db, JournalEntry, Account, SalesInvoice, PurchaseInvoice, BankTransaction, BookkeepingInvoice, Supplier, Company, CulturalConstructionFeeDeclaration, CulturalConstructionFeeDeduction
 
     # 查找银行流水中对方户名含"国家金库"且金额匹配的支付
     bank_txs = db.query(BankTransaction).filter(

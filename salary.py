@@ -18,12 +18,7 @@ import logging
 import openpyxl
 import json
 
-from database import (
-    get_db, SessionLocal,
-    SalaryRecord, Company, Employee,
-    JournalEntry,
-    _generate_salary_journals,
-)
+from database import get_db, JournalEntry, SalaryRecord, Employee, Company
 
 router = APIRouter(prefix="/api/salary", tags=["工资薪金"])
 
@@ -865,7 +860,7 @@ def generate_salary_journals(period: str = Query(...), company_id: int = Query(.
     ).first()
     if je:
         raise HTTPException(400, f"该期间({period})已生成工资凭证(记-{je.voucher_no})，请勿重复生成。如需重做，请先删除已有凭证。")
-    from database import _generate_salary_journals
+    from database import get_db, JournalEntry, SalaryRecord, Employee, Company
     result = _generate_salary_journals(db, company_id, period)
     db.commit()
     return result

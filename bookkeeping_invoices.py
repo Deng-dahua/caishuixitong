@@ -9,7 +9,7 @@ from typing import Optional, List
 from datetime import date, datetime
 import os, io, json, openpyxl, re as _re_module
 
-from database import get_db
+from database import get_db, JournalEntry, PurchaseInvoice, BookkeepingInvoice
 
 router = APIRouter(tags=["记账发票"])
 

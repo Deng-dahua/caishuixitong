@@ -9,7 +9,7 @@ from typing import Optional, List
 from datetime import date, datetime
 import os, io, json, openpyxl, re as _re_module
 
-from database import get_db
+from database import get_db, JournalEntry, Account, SalesInvoice, InputVATDeduction
 
 router = APIRouter(tags=["财务报表"])
 
@@ -1042,7 +1042,7 @@ def sales_invoice_batch_to_journal(
                 skipped += 1
                 continue
 
-            from database import auto_generate_single_invoice
+            from database import get_db, JournalEntry, Account, SalesInvoice, InputVATDeduction
             auto_generate_single_invoice(db, inv)
             generated += 1
         except Exception as e:
@@ -1079,7 +1079,7 @@ def sales_invoice_auto_voucher(company_id: int = Query(...), db=Depends(get_db))
     errors = []
     for inv in invoices:
         try:
-            from database import auto_generate_single_invoice
+            from database import get_db, JournalEntry, Account, SalesInvoice, InputVATDeduction
             auto_generate_single_invoice(db, inv)
             generated += 1
         except Exception as e:

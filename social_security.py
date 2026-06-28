@@ -11,11 +11,7 @@ import openpyxl
 import io
 from typing import Optional, List
 
-from database import (
-    SocialSecurityDeclaration, SocialSecurityDetail, Company, get_db,
-    _generate_ss_accrual_journals, _match_ss_payment_journals,
-    JournalEntry,
-)
+from database import get_db, JournalEntry, SocialSecurityDeclaration, SocialSecurityDetail, Company
 
 router = APIRouter(prefix="/api/social-security", tags=["社保申报"])
 
