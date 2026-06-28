@@ -169,7 +169,19 @@ function renderReportStandards(container) {
   h += '④ <strong>证据来源</strong>——规则ID（可点击溯源）+ 线索链编号 + 查证方式（如"银行流水与发票双向核对法"）<br>';
   h += '⑤ <strong>法律依据</strong>——完整法条名称+具体条款号（如《税收征收管理法》第六十三条第一款），不得笼统引用<br>';
   h += '⑥ <strong>处理建议</strong>——具体消除路径（"提供XX资料→如果A则做XX→无法做到的后果是XX"格式）</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每条发现独立成段，结构统一：标题行 → 违法事实段（≥80字）→ 税务影响段（含"→"因果链）→ 法律依据行 → 处理建议段。事实描述必须含具体数值（金额/数量/百分比/日期）。禁止出现"该企业存在XX问题，需进一步核实"这种笼统表述——要么列出具体数据，要么不报。高风险发现必须附带items明细数组。</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每条发现独立成段，结构统一：标题行 → 稽查过程叙事段 → 六要素格式 → 证据链路。事实描述必须含具体数值（金额/数量/百分比/日期）。禁止出现"该企业存在XX问题，需进一步核实"这种笼统表述——要么列出具体数据，要么不报。高风险发现必须附带items明细数组。</div>';
+  h += '</div>';
+  
+  // 第三章补充：稽查过程叙事规范
+  h += '<div class="std-card">';
+  h += '<div class="std-header"><div class="std-num" style="background:#2563eb;width:auto;padding:0 12px;border-radius:4px">第三章·附</div><div class="std-name">稽查过程叙事规范（2026-06-28新增）</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 每条发现必须包含以下四段稽查叙事：</span><br>';
+  h += '① <strong>📡 线索获取</strong>——说明该发现是如何被检测到的：从哪些数据源（银行流水/进项发票/销项发票/工资表/社保明细等）提取了哪些关键信号，通过什么方法（逐票比对/三方交叉/穿透分析等）锁定了异常。<br>';
+  h += '② <strong>🔬 分析过程</strong>——展开稽查步骤：从证据链（matched_chain_details）中提取调查步骤，按序号排列，展示从初查到深挖的完整推理路径。每条发现至少列出3个以上分析步骤。<br>';
+  h += '③ <strong>📋 证据组织</strong>——说明证据如何组织：提取了多少条证据记录（evidence_rows），形成了多少项证据明细（items），证据如何交叉验证形成闭环。必须在六要素③中渲染证据明细表。<br>';
+  h += '④ <strong>⚡ 税务影响</strong>——从稽查发现推导税务后果：该异常→导致什么税种少缴→涉及多少金额→面临什么处罚。必须含"→"因果链。<br>';
+  h += '</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>稽查过程叙事放在六要素之前，作为每条发现的"前传"——让读者先理解稽查是怎么发现这个问题的、证据是怎么来的，再看法条和结论。四段叙事必须基于finding对象中的实际字段（provenance.sources / matched_chain_details.steps_detail / evidence_rows / items / tax_impact），不得凭空编造。篇幅控制在200-500字。</div>';
   h += '</div>';
   
   // 四
