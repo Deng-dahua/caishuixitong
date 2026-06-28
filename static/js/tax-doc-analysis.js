@@ -892,6 +892,29 @@ function _renderReportFallback(r, allF) {
   h += '<a href="#appendix"><span class="num">附件</span>证据清单</a><br>';
   h += '</div>';
 
+  // ═══ 发现审查面板（折叠，供稽查员逐条审核/驳回，不影响报告正文）═══
+  var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
+  var mids = allF.filter(function(f){ return f.level === '中风险'; });
+  var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
+  var allSorted = risks.concat(mids).concat(lows);
+  h += '<details style="margin-bottom:40px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px" id="review-panel">';
+  h += '<summary style="cursor:pointer;font-size:14px;font-weight:700;color:#0f172a">🔍 发现审查（' + allF.length + '条 · 逐条审核/驳回 · 驳回反馈驱动引擎自我学习）</summary>';
+  h += '<div style="margin-top:12px;font-size:11px;color:#94a3b8;margin-bottom:8px">驳回某条发现 = 告诉引擎"这个判定不对"，引擎记录模式并自动调整后续分析。不驳回=默认可信。</div>';
+  for (var fi = 0; fi < allSorted.length; fi++) {
+    var f = allSorted[fi];
+    var lv = f.level || '中风险';
+    var lvColor = lv==='高风险'?'#dc2626':(lv==='中风险'?'#e67700':'#16a34a');
+    h += '<div class="review-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">';
+    h += '<span style="color:'+lvColor+';font-weight:600;min-width:40px">' + lv + '</span>';
+    h += '<span style="flex:1;color:#334155">' + (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').substring(0,80) + '</span>';
+    h += '<button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({
+      type: f.type||'', title: f.type||'', level: lv, 
+      detail: (f.detail||'').substring(0,200), category: f.category||''
+    }).replace(/'/g,"&#39;") + '\' style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">驳回</button>';
+    h += '</div>';
+  }
+  h += '</details>';
+
   // ═══ 第一章：案件来源及稽查对象基本情况 ═══
   h += '<h2 id="ch1">第一章 案件来源及稽查对象基本情况</h2>';
   h += '<p class="i2"><strong>案件来源：</strong>财税风险防控系统自动分析触发。经对系统内' + (r.files_count || 0) + '份经营资料的综合判定，自动识别涉税风险，启动预审程序。</p>';
@@ -922,13 +945,9 @@ function _renderReportFallback(r, allF) {
 
   // ═══ 第三章：稽查发现问题及事实认定 ═══
   h += '<h2 id="ch3">第三章 稽查发现问题及事实认定</h2>';
-  var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
-  var mids = allF.filter(function(f){ return f.level === '中风险'; });
-  var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
   
   h += '<p class="i2">经分析，共发现<strong>' + allF.length + '</strong>项问题，其中高风险' + risks.length + '项、中风险' + mids.length + '项、低风险' + lows.length + '项。各项问题的事实认定如下：</p>';
   
-  var allSorted = risks.concat(mids).concat(lows);
   for (var fi = 0; fi < allSorted.length; fi++) {
     var f = allSorted[fi];
     var lv = f.level || '中风险';

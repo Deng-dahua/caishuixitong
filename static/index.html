@@ -281,37 +281,8 @@ window._dismissTaxFinding = function(btn) {
   } catch(e) {}
 };
 
-// ═══ 自动注入驳回按钮 — 已禁用：报告按7章规范呈现，不附加内部调试工具 ═══
-/* DISABLED 2026-06-28: 驳回功能移至系统后台
-(function(){
-  var _injected = new Set();
-  setInterval(function(){
-    document.querySelectorAll('*').forEach(function(el){
-      if (_injected.has(el)) return;
-      var txt = el.textContent || '';
-      // 匹配报告中的发现条目：包含风险等级标记
-      var hasLevel = txt.indexOf('高风险')!==-1 || txt.indexOf('中风险')!==-1 || txt.indexOf('低风险')!==-1;
-      var hasFinding = txt.indexOf('涉及领域')!==-1 || txt.indexOf('事实描述')!==-1 || 
-                       txt.indexOf('调查过程')!==-1 || txt.indexOf('税务影响')!==-1 ||
-                       txt.indexOf('处理建议')!==-1 || txt.indexOf('法律依据')!==-1 ||
-                       txt.indexOf('证据溯源')!==-1;
-      var isCard = el.tagName==='DIV' && el.children.length >= 2 && txt.length > 200;
-      if (isCard && hasLevel && hasFinding) {
-        _injected.add(el);
-        var lv = txt.indexOf('高风险')!==-1 ? '高风险' : (txt.indexOf('中风险')!==-1 ? '中风险' : '低风险');
-        var btn = document.createElement('button');
-        btn.textContent = '✕';
-        btn.title = '驳回此发现';
-        btn.setAttribute('data-finding', JSON.stringify({type:'',title:'',level:lv,detail:txt.substring(0,200)}));
-        btn.onclick = function(){ window._dismissTaxFinding(this); };
-        btn.style.cssText = 'position:absolute;top:8px;right:8px;width:22px;height:22px;line-height:20px;text-align:center;background:#fff;border:1px solid #e2e8f0;color:#94a3b8;border-radius:50%;font-size:11px;cursor:pointer;opacity:0.5;padding:0';
-        el.appendChild(btn);
-      }
-    });
-  }, 800);
-  setTimeout(function(){}, 1); // keep alive
-})();
-*/
+// ═══ 驳回按钮注入 — 仅在发现审查面板中运行，不影响报告正文 ═══
+// 实际按钮通过 renderTaxDocReport 内部的审查面板渲染，不全局扫描DOM
 
 // ═══ 侧边栏个人信息：从 cookie 直接读取 ═══
 (function(){
