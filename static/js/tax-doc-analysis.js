@@ -1005,7 +1005,15 @@ function _renderReportFallback(r, allF) {
   h += '<p class="i2"><strong>（一）资料审阅与类型识别</strong></p>';
   if (r.file_results && r.file_results.length) {
     var totalRecords = 0;
-    r.file_results.forEach(function(fr) { totalRecords += (fr.records || fr.rows || 0); });
+    r.file_results.forEach(function(fr) { 
+      var n = fr.records || fr.rows;
+      if (!n) {
+        var allA = (fr.actions || []).join(' ');
+        var m2 = allA.match(/(\d+)条/);
+        if (m2) n = parseInt(m2[1]);
+      }
+      totalRecords += (n || 0); 
+    });
     h += '<p class="i2">稽查启动后，首先对被查单位提交的' + (r.files_count || 0) + '份经营资料进行逐一审阅和类型识别。识别过程采用"四方交叉验证"法，从四个维度独立判定、交叉校验：</p>';
     h += '<p class="i2"><strong>第一方（文件名关键词扫描）——</strong>扫描文件名中的业务关键词（如"工资薪金""抵扣""开票""取票""社保""公积金""银行"等），形成初步类型假设，为后续深度分析提供方向指引。</p>';
     h += '<p class="i2"><strong>第二方（Excel表头结构解析）——</strong>解析文件表头列名，提取字段指纹进行特征匹配。例如：检测到"有效抵扣税额"或"勾选状态"列→判定为进项抵扣认证文件；检测到"缴存基数"或"单位缴存额"列→判定为公积金缴存文件；检测到"征收项目"或"累计应扣缴税额"列→判定为个税申报文件。通过字段指纹进一步锁定文件类型。</p>';
