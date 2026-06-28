@@ -199,14 +199,15 @@ function renderReportStandards(container) {
   
   // 第三章补充：稽查过程叙事规范
   h += '<div class="std-card">';
-  h += '<div class="std-header"><div class="std-num" style="background:#2563eb;width:auto;padding:0 12px;border-radius:4px">第三章·附</div><div class="std-name">稽查过程叙事规范（2026-06-28新增）</div></div>';
-  h += '<div class="std-section"><span class="std-label">📋 每条发现必须包含以下四段稽查叙事：</span><br>';
-  h += '① <strong>📡 线索获取</strong>——说明该发现是如何被检测到的：从哪些数据源（银行流水/进项发票/销项发票/工资表/社保明细等）提取了哪些关键信号，通过什么方法（逐票比对/三方交叉/穿透分析等）锁定了异常。<br>';
-  h += '② <strong>🔬 分析过程</strong>——展开稽查步骤：从证据链（matched_chain_details）中提取调查步骤，按序号排列，展示从初查到深挖的完整推理路径。每条发现至少列出3个以上分析步骤。<br>';
-  h += '③ <strong>📋 证据组织</strong>——说明证据如何组织：提取了多少条证据记录（evidence_rows），形成了多少项证据明细（items），证据如何交叉验证形成闭环。必须在六要素③中渲染证据明细表。<br>';
-  h += '④ <strong>⚡ 税务影响</strong>——从稽查发现推导税务后果：该异常→导致什么税种少缴→涉及多少金额→面临什么处罚。必须含"→"因果链。<br>';
+  h += '<div class="std-header"><div class="std-num" style="background:#2563eb;width:auto;padding:0 12px;border-radius:4px">第三章·附</div><div class="std-name">稽查过程叙事规范（2026-06-28确立）</div></div>';
+  h += '<div class="std-section"><span class="std-label">📋 每条发现必须包含以下五段稽查叙事，将稽查过程写得明明白白、通俗易懂：</span><br>';
+  h += '① <strong>📌 发现要点</strong>——通俗描述这个风险是什么、为什么会被关注。用外行也能看懂的语言，让被查单位一眼就明白问题所在。取finding.description或finding.detail的前300字。<br>';
+  h += '② <strong>📡 线索获取</strong>——这个风险是怎么被发现的？说明从哪些数据源（银行流水/销项发票/进项发票/工资表/社保明细等）开始排查，通过什么方法（逐票比对/三方交叉/百分比阈值等）锁定了异常。基于finding.provenance.sources和finding.how_found。<br>';
+  h += '③ <strong>🔬 分析过程</strong>——稽查是怎么一层层查下去的？当finding.matched_chain_details存在时，从中提取steps_detail，按序号展开调查步骤（带风险等级图标🔴🟡🟢）。当无证据链时，自动生成4步默认分析路径（初步筛查→交叉比对→阈值判定→深度核查）。<br>';
+  h += '④ <strong>📋 证据组织</strong>——证据是怎么串起来的？说明调用了多少类数据源，提取了多少条证据记录（evidence_rows数量），形成了多少项证据明细（items数量），通过多少条关联证据链进行交叉验证（matched_chain_count）。<br>';
+  h += '⑤ <strong>💡 通俗理解</strong>——为什么会这样？用关键数据（偏差百分比/涉及金额/异常项数）解释问题的严重性。从finding.tax_impact中提取税务影响，从finding.detail中提取百分比和金额数据做通俗化表述。<br>';
   h += '</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>稽查过程叙事放在六要素之前，作为每条发现的"前传"——让读者先理解稽查是怎么发现这个问题的、证据是怎么来的，再看法条和结论。四段叙事必须基于finding对象中的实际字段（provenance.sources / matched_chain_details.steps_detail / evidence_rows / items / tax_impact），不得凭空编造。篇幅控制在200-500字。</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>五段叙事必须基于finding对象中的实际字段动态生成，不得硬编码固定文本。每段2-5句话，总字数控制在300-500字。语言风格：像老稽查员在给新人讲解——既专业又通俗，既有数据又有解释。无证据链时自动生成默认路径，确保每条发现都有完整的分析过程描述。</div>';
   h += '</div>';
   
   // 四

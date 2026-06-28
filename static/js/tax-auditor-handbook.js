@@ -208,7 +208,7 @@ function renderAuditorHandbook(container) {
   html += '<thead><tr><th style="width:40px;">章</th><th>内容</th><th style="width:280px;">汇报视角</th></tr></thead><tbody>';
   html += '<tr><td class="hb-td-num">一</td><td>案件来源及稽查对象基本情况</td><td>案件来源→联网核查→工商登记全貌→稽查期间与范围</td></tr>';
   html += '<tr><td class="hb-td-num">二</td><td>稽查实施情况</td><td>数据比对→资金核对→穿透分析→行业对标→综合分析</td></tr>';
-  html += '<tr><td class="hb-td-num">三</td><td>稽查发现问题及事实认定</td><td>每条发现按"稽查过程叙事（线索→分析→证据→影响）+ 六要素（稽查性质→稽查事实→证据材料→证据来源→法律依据→处理建议）"呈现</td></tr>';
+  html += '<tr><td class="hb-td-num">三</td><td>稽查发现问题及事实认定</td><td>每条发现按"五段稽查叙事（发现要点→线索获取→分析过程→证据组织→通俗理解）+ 六要素（稽查性质→稽查事实→证据材料→证据来源→法律依据→处理建议）+ 关联证据链"呈现，通俗易懂让被查单位也能看懂</td></tr>';
   html += '<tr><td class="hb-td-num">四</td><td>稽查结论</td><td>综合风险评级→主要高风险事项→证据链完整性→总体结论</td></tr>';
   html += '<tr><td class="hb-td-num">五</td><td>处理处罚建议</td><td>去重后的处理建议列表→自查整改期限</td></tr>';
   html += '<tr><td class="hb-td-num">六</td><td>告知权利义务</td><td>5项法定权利（回避/陈述申辩/听证/复议/诉讼）→注明法定期限</td></tr>';
