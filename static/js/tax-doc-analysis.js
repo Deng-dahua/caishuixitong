@@ -1052,6 +1052,7 @@ function _renderReportFallback(r, allF) {
   var bankTotalIn = parseFloat(String(bi['总收款'] || '0').replace(/[^0-9.]/g,'')) || 0;
   var bankTotalOut = parseFloat(String(bi['总付款'] || '0').replace(/[^0-9.]/g,'')) || 0;
   var rc = bi['收款构成'] || {};
+  var rcKeys = Object.keys(rc);
   h += '<p class="i2">对银行流水进行系统性的双向核查，核查方向分为收款端与付款端，两端同时进行、交叉验证：</p>';
   h += '<p class="i2"><strong>①收款端核查——</strong>汇总银行账户全部贷方（收入）发生额，累计收款' + (bankTotalIn > 0 ? (bankTotalIn/10000).toFixed(2) + '万元' : 'N/A') + '。逐笔提取收款对方户名，将对方户名与销项发票的购买方名称做交叉比对。';
   if (rcKeys.length > 0) {
