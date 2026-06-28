@@ -214,46 +214,48 @@ function renderReportStandards(container) {
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第四章</div><div class="std-name">稽查结论</div></div>';
   h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下5个结论段落：<br>';
-  h += '① <strong>综合风险评级</strong>——极高风险/高风险/中风险/低风险，含评级依据（风险发现数量+严重度分布）<br>';
-  h += '② <strong>主要高风险事项</strong>——列举TOP高风险发现（不超过5条），每条一句话概括<br>';
-  h += '③ <strong>证据链完整性</strong>——说明已触发的线索链/证据链数量、覆盖的域分析范围<br>';
-  h += '④ <strong>稽查局限性</strong>——因资料缺失无法确认的事项（如实列出"因未提交XX资料，以下疑点无法进一步确认"）<br>';
-  h += '⑤ <strong>总体结论</strong>——一句话定调性结论（如"经查，该企业财务管理基本规范，但存在XX方面风险"）</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>结论应定调性而非定论性——使用"存在XX疑点""涉嫌XX""提示XX风险"等表述，不使用"确定""认定"等已定性词汇。风险评级必须基于实际发现数量（高/中/低分别计数）。局限性声明必须诚实——缺什么资料就报什么局限性。</div>';
+  h += '① <strong>推理引擎综合结论卡片</strong>——若存在_phase4_synthesis发现则渲染，展示综合评分+风险等级+完整结论叙述<br>';
+  h += '② <strong>风险分布表</strong>——四级风险等级（极高/高/中/低）各列出：数量、占总发现百分比、代表性事项举例。以表格形式呈现，一目了然<br>';
+  h += '③ <strong>证据链完整性</strong>——说明跨18域分析的覆盖范围、多源数据交叉验证构成的核心证据闭环、每条发现的证据追溯能力<br>';
+  h += '④ <strong>稽查局限性声明</strong>——如实列出因资料缺失无法进一步确认的事项。缺什么资料就报什么局限性，不存在"没资料不影响判断"的逻辑<br>';
+  h += '⑤ <strong>定调性总体结论</strong>——按风险等级自适应：高风险→建议启动立案程序/中风险→建议限期自查整改/低风险→建议持续规范完善。使用"存在XX疑点""涉嫌XX""提示XX风险"等发现性表述</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>结论应定调性而非定论性。风险分布表的数据（数量/占比）从all_findings实时计算。局限性声明从MISSING_CONSEQUENCE_TRIGGER中提取缺失资料清单。总体结论根据risk_score和overall_risk自适应生成，不硬编码固定文字。</div>';
   h += '</div>';
   
   // 五
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第五章</div><div class="std-name">处理处罚建议</div></div>';
-  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>按优先级分列处理建议：<br>';
-  h += '① <strong>P0立即处理</strong>——涉及逃税/虚开等红线问题，必须立即启动深度核查<br>';
-  h += '② <strong>P1限期整改</strong>——发票合规/账务调整等问题，限期补充资料或整改<br>';
-  h += '③ <strong>P2持续关注</strong>——行业对标偏差/资料完备度等问题，纳入后续持续监管<br>';
-  h += '每项建议必须包含：处理措施+预期效果+紧迫性理由+量化预估（补税金额/罚款倍数/滞纳天数）</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>建议必须具体到可执行步骤（如"逐户在天眼查核实3家供应商工商状态"），禁止"请提供相关资料""请核实相关情况"等笼统表述。每条建议≤3个具体动作。去重：同类型建议合并为1条。</div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>按紧急程度分为三级，每级独立卡片，红/黄/绿三色区分：<br>';
+  h += '🔴 <strong>P0立即处理</strong>——极高风险/高风险发现的处理建议。涉及逃税、虚开等红线问题。从all_findings中筛选level为极高/高风险且有suggestion的发现，取前5条。卡片标注"5工作日内书面回复"。<br>';
+  h += '🟡 <strong>P1限期整改</strong>——中风险发现的处理建议。涉及发票合规、账务调整等问题。从all_findings中筛选level为中风险且有suggestion的发现，取前5条。卡片标注"15工作日内完成整改"。<br>';
+  h += '🟢 <strong>P2持续关注</strong>——低风险/优惠机会的处理建议。涉及资料完善、合规提醒、优惠政策享受等。从all_findings中筛选level为低风险/优惠机会且有suggestion的发现，取前5条。卡片标注"30工作日内完善"。<br>';
+  h += '最后附《自查整改期限》总说明：包含P0/P1/P2各级的具体时限、逾期后果、异议处理指引。</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每级建议从all_findings中按level筛选并取前5条suggestion。建议文本必须具体（含可执行步骤），禁止笼统模板。三级卡片间用空行+色块边框分隔，视觉上一目了然。整改期限附法律依据。</div>';
   h += '</div>';
   
   // 六
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第六章</div><div class="std-name">告知权利义务</div></div>';
-  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须告知被查单位以下5项法定权利：<br>';
-  h += '① <strong>申请回避权</strong>——如稽查人员与案件有利害关系，可申请回避<br>';
-  h += '② <strong>陈述申辩权</strong>——对发现的问题有权进行陈述和申辩<br>';
-  h += '③ <strong>要求听证权</strong>——涉及较重处罚时有权要求举行听证<br>';
-  h += '④ <strong>申请复议权</strong>——对稽查决定不服可向上级税务机关申请复议<br>';
-  h += '⑤ <strong>提起行政诉讼权</strong>——对复议结果不服可向人民法院提起诉讼</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每项权利注明法定期限（申请回避→收到通知3日内、陈述申辩→收到告知书7日内、听证→收到告知书3日内、复议→收到决定书60日内、诉讼→收到复议决定15日内）。附法律依据：分别引用《税收征收管理法》第十二条、《行政处罚法》第三十二条、第四十二条、《行政复议法》第九条、《行政诉讼法》第四十五条。</div>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>五项法定权利各独立卡片，每卡包含4项要素：<br>';
+  h += '① <strong>权利名称+法律解释</strong>——用通俗语言说明该权利的含义<br>';
+  h += '② <strong>行使条件+操作方式</strong>——什么情况下可以行使、如何操作（书面申请/向谁提出/需要什么材料）<br>';
+  h += '③ <strong>法定期限</strong>——精确到日（如"收到通知后3日内""收到决定书后60日内"）<br>';
+  h += '④ <strong>法律依据</strong>——具体法条号（如《税收征收管理法》第十二条）<br>';
+  h += '权利顺序按程序递进排列：回避→陈述申辩→听证→复议→诉讼<br>';
+  h += '文本开头须包含被查单位名称（"被查单位「XX」在本次稽查过程中依法享有以下权利"）</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每张权利卡片左边蓝色竖线+灰色背景，与其他章节视觉区分。法定人数/金额标准（如听证标准"法人10000元以上"）必须明确标注。语言既要法律严谨又要通俗易懂。</div>';
   h += '</div>';
   
   // 七
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#1a1a2e;width:auto;padding:0 12px;border-radius:4px">第七章</div><div class="std-name">稽查人员签字</div></div>';
-  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含以下4项签名/盖章：<br>';
-  h += '① <strong>稽查执行人</strong>——亲笔签名（不得代签/不得打印），注明执法证件号<br>';
-  h += '② <strong>审理人</strong>——审理岗位人员签名<br>';
+  h += '<div class="std-section"><span class="std-label">📋 板块内容</span>必须包含：<br>';
+  h += '① <strong>稽查执行人签名+执法证件号</strong>——亲笔签名，不得代签/打印，同时注明执法证件编号<br>';
+  h += '② <strong>审理人签名+执法证件号</strong>——审理岗位人员亲笔签名<br>';
   h += '③ <strong>稽查部门盖章</strong>——税务机关公章<br>';
-  h += '④ <strong>报告日期</strong>——精确到日</div>';
-  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>系统自动预留签名栏位（"稽查员签名：_______________"）及日期。正式税务文书需人工手签。</div>';
+  h += '④ <strong>报告日期</strong>——精确到日<br>';
+  h += '⑤ <strong>存档说明</strong>——"本报告一式三份：稽查部门留存一份，被查单位一份，报送上一级税务机关备案一份"</div>';
+  h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>系统自动预留签名栏位及执法证件号栏位。正式税务文书需人工手签和盖章。报告日期从系统时间自动获取。</div>';
   h += '</div>';
   
   // 附件
