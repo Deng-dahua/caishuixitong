@@ -208,6 +208,16 @@ function renderReportStandards(container) {
   h += '⑤ <strong>💡 通俗理解</strong>——为什么会这样？用关键数据（偏差百分比/涉及金额/异常项数）解释问题的严重性。从finding.tax_impact中提取税务影响，从finding.detail中提取百分比和金额数据做通俗化表述。<br>';
   h += '</div>';
   h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>五段叙事必须基于finding对象中的实际字段动态生成，不得硬编码固定文本。每段2-5句话，总字数控制在300-500字。语言风格：像老稽查员在给新人讲解——既专业又通俗，既有数据又有解释。无证据链时自动生成默认路径，确保每条发现都有完整的分析过程描述。</div>';
+  h += '<div class="std-section" style="background:#fffbeb;border-left:3px solid #e67700"><span class="std-label">🔗 同类风险合并规则（规则二十五·2026-06-28新增）</span><br>';
+  h += '同一风险类型（type字段相同）出现的多条发现，<strong>必须合并为一条</strong>在报告中呈现，不得逐条罗列导致报告冗长重复。合并规则：<br>';
+  h += '① 按type字段分组（去除Synthesis:/Causal:等内部前缀后trim比对）<br>';
+  h += '② 同一组取最高风险等级作为合并后的等级<br>';
+  h += '③ 合并后标题显示"N项同类风险合并"标签<br>';
+  h += '④ 合并后的detail列出所有子项：格式为"（同类风险共N项，合并列示如下）\\n\\n【子项1】...\\n\\n【子项2】..."<br>';
+  h += '⑤ 每条子项独立展示：子项标题、细节描述、税务影响、处理建议<br>';
+  h += '⑥ 合并所有子项的items/evidence_rows/matched_chain_details到父项<br>';
+  h += '⑦ 适用场景：知识图谱系列（供应商客户重叠/员工多重身份等）、发票合规系列（缺数量/缺单位等）、资料缺失触发系列等同一type反复出现的发现<br>';
+  h += '代码：static/js/tax-doc-analysis.js _renderReportFallback() 同类风险合并段</div>';
   h += '</div>';
   
   // 四
