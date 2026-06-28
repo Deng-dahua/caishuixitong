@@ -679,9 +679,10 @@ async function analyzeTaxDocs() {
     var data = resultData;
     if (!taxDocPageActive) return;
     taxDocReportData = data.report;
-    renderAnalyzeHeader(data.report);
+    // 系统内部信息不再渲染到报告区域，保护引擎机密
+    // renderAnalyzeHeader(data.report);
     
-    // ── 统一使用7章标准格式渲染（跳过旧的blocks渲染器）──
+    // ── 统一使用7章标准格式渲染 ──
     allF = data.report.all_findings || [];
     var ctx = _renderReportFallback(data.report, allF);
     if (ctx && ctx.html) {
