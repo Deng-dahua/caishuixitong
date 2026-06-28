@@ -9294,13 +9294,37 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     # 2. 关键人物关联：同一人在多处出现
     for name, info in entities.items():
         if len(info["roles"]) >= 2 and "员工" in info["roles"]:
+            other_roles = info['roles'] - {'员工'}
             anomalies.append({
                 "type": "知识图谱-员工多重身份",
                 "entity": name,
                 "roles": list(info["roles"]),
                 "total_amount": info["total_amount"],
-                "detail": f"{name}既是员工又有其他角色({', '.join(info['roles'] - {'员工'})})，可能涉及利益输送",
+                "detail": f"{name}既是员工又有其他角色({', '.join(other_roles)})，可能涉及利益输送",
             })
+    
+    # 3. 二层穿透：员工收款金额与工资对比（资金流向深度分析）
+    if salaries:
+        salary_map = {}
+        for s in salaries:
+            sn = str(s.get("姓名", s.get("name", ""))).strip()
+            sa = float(s.get("实发金额", s.get("应发金额", s.get("amount", 0))) or 0)
+            if sn and sa > 0:
+                salary_map[sn] = salary_map.get(sn, 0) + sa
+        
+        for name, info in entities.items():
+            if "员工" in info["roles"] and name in salary_map:
+                emp_salary = salary_map[name]
+                emp_receive = info["total_amount"]
+                if emp_receive > emp_salary * 3:  # 收款额超过工资3倍
+                    multiplier = emp_receive / max(emp_salary, 1)
+                    anomalies.append({
+                        "type": "知识图谱-员工资金异常",
+                        "entity": name,
+                        "roles": list(info["roles"]),
+                        "total_amount": info["total_amount"],
+                        "detail": f"{name}：银行收款{emp_receive:,.2f}元，工资{emp_salary:,.2f}元，收款/工资倍数{multiplier:.1f}倍。该员工账户大额收款远超出正常工资水平，可能为经营收入回流个人账户、代收货款、或为他人过账。需核查该员工岗位职责与收款金额是否匹配。",
+                    })
     
     # 生成发现
     findings = []
