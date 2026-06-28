@@ -1044,6 +1044,26 @@ function _renderReportFallback(r, allF) {
 
   // ═══ 第四章：稽查结论 ═══
   h += '<h2 id="ch4">第四章 稽查结论</h2>';
+  
+  // ── 推理引擎综合结论卡片 ──
+  var synthFinding = null;
+  for (var si = 0; si < allF.length; si++) {
+    if (allF[si]._phase4_synthesis) { synthFinding = allF[si]; break; }
+  }
+  if (synthFinding) {
+    var riskColor = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#dc2626' : '#f59e0b';
+    var riskBg = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#fef2f2' : '#fffbeb';
+    h += '<div style="margin:0 0 20px;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">';
+    h += '<span style="font-size:24px">⚖️</span>';
+    h += '<span style="font-size:18px;font-weight:700;color:#1e293b">综合稽查结论</span>';
+    h += '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (synthFinding.level || '?') + '</span>';
+    h += '<span style="font-size:13px;color:#64748b">评分 ' + (synthFinding.score || '?') + '/100</span>';
+    h += '</div>';
+    h += '<div style="font-size:14px;color:#334155;line-height:2">' + (synthFinding.description || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    h += '</div>';
+  }
+  
   var synth = r.comprehensive || {};
   var overall = synth.overall_risk || '中风险';
   h += '<div class="conclusion-box ' + (overall==='高风险'?'red':'amber') + '">';
