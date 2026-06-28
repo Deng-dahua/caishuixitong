@@ -936,11 +936,68 @@ function _renderReportFallback(r, allF) {
     var finType = (f.type || '未命名发现').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').replace(/^[\w]+:\s*/,'');
     h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + finType + '</div>';
     
-    // 六要素格式
-    h += '<div class="frow"><span class="flabel">① 违法性质：</span>' + (f.type || '未分类').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '</div>';
-    h += '<div class="frow"><span class="flabel">② 违法事实：</span>' + (f.description || f.detail || '（详见下文）') + '</div>';
+    // ── 稽查过程叙事 ──
+    h += '<div class="audit-narrative" style="margin:10px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0;font-size:13px;line-height:2;color:#334155">';
     
-    // ③ 证据材料：渲染items明细表 + evidence_rows
+    // 1. 线索获取
+    var howFound = f.how_found || '';
+    var provenance = f.provenance || {};
+    var sources = (provenance.sources || []).join('、');
+    if (howFound || sources) {
+      h += '<div><strong>📡 线索获取：</strong>';
+      if (sources) h += '数据来源为' + sources + '。';
+      if (howFound) h += howFound.replace(/^我/g,'经');
+      h += '</div>';
+    }
+    
+    // 2. 分析过程（从证据链步骤提取）
+    if (f.matched_chain_details && f.matched_chain_details.length > 0) {
+      var allSteps = [];
+      f.matched_chain_details.forEach(function(ch) {
+        if (ch.steps_detail) {
+          ch.steps_detail.forEach(function(s) {
+            allSteps.push({step: s.step || '', level: s.level || '', chain: ch.name || ''});
+          });
+        }
+      });
+      if (allSteps.length > 0) {
+        h += '<div style="margin-top:6px"><strong>🔬 分析过程：</strong>';
+        h += '沿以下稽查步骤逐层推进——';
+        var uniqueSteps = [];
+        var seen = {};
+        allSteps.forEach(function(s) {
+          var key = s.step.substring(0, 30);
+          if (!seen[key]) { seen[key] = true; uniqueSteps.push(s); }
+        });
+        uniqueSteps.slice(0, 8).forEach(function(s, si) {
+          h += '<span style="display:inline-block;margin:2px 3px;padding:1px 8px;background:#e0e7ff;border-radius:3px;font-size:11px">' + (si+1) + '. ' + s.step.substring(0, 40) + '</span>';
+        });
+        h += '</div>';
+      }
+    }
+    
+    // 3. 证据组织
+    var evidenceCount = (f.evidence_rows || []).length;
+    var itemCount = (f.items || []).length;
+    if (evidenceCount > 0 || itemCount > 0) {
+      h += '<div style="margin-top:6px"><strong>📋 证据组织：</strong>';
+      if (evidenceCount > 0) h += '从' + sources + '中提取' + evidenceCount + '条证据记录';
+      if (itemCount > 0) h += '，形成' + itemCount + '项证据明细';
+      h += '，逐笔编号、交叉比对、构建完整证据闭环。</div>';
+    }
+    
+    // 4. tax_impact
+    if (f.tax_impact && f.tax_impact.length > 10) {
+      h += '<div style="margin-top:6px"><strong>⚡ 税务影响：</strong>' + f.tax_impact + '</div>';
+    }
+    
+    h += '</div>';
+    
+    // ── 六要素格式 ──
+    h += '<div class="frow"><span class="flabel">① 违法性质：</span>' + finType + '</div>';
+    h += '<div class="frow"><span class="flabel">② 违法事实：</span>' + (f.description || f.detail || '') + '</div>';
+    
+    // ③ 证据材料
     h += '<div class="frow"><span class="flabel">③ 证据材料：</span>';
     if (f.items && f.items.length > 0) {
       h += '<table class="tbl" style="font-size:12px;margin:6px 0"><thead><tr>';
@@ -954,30 +1011,29 @@ function _renderReportFallback(r, allF) {
       });
       h += '</tbody></table>';
     } else if (f.evidence_rows && f.evidence_rows.length > 0) {
-      h += '<span style="color:#64748b">共' + f.evidence_rows.length + '条证据记录</span>';
       h += '<table class="tbl" style="font-size:11px;margin:4px 0"><thead><tr><th>来源</th><th>对方</th><th>金额</th><th>日期</th><th>备注</th></tr></thead><tbody>';
       f.evidence_rows.slice(0, 10).forEach(function(er) {
         h += '<tr><td>' + (er.source||'') + '</td><td>' + (er.counterparty||'') + '</td><td class="r">' + (_fmt(er.amount,'')) + '</td><td>' + (er.date||'') + '</td><td>' + (er.note||er.ref_label||'') + '</td></tr>';
       });
-      if (f.evidence_rows.length > 10) h += '<tr><td colspan="5" style="text-align:center;color:#94a3b8">...共' + f.evidence_rows.length + '条，已展示前10条</td></tr>';
+      if (f.evidence_rows.length > 10) h += '<tr><td colspan="5" style="text-align:center;color:#94a3b8">...共' + f.evidence_rows.length + '条，以上为前10条</td></tr>';
       h += '</tbody></table>';
     } else {
-      h += (f.detail || f.description || '').substring(0, 500);
+      h += (f.detail || '').substring(0, 500);
     }
     h += '</div>';
     
-    h += '<div class="frow"><span class="flabel">④ 证据来源：</span>' + (f.how_found || f.source_chain || f.provenance && f.provenance.sources && f.provenance.sources.join('+') || '系统分析引擎自动识别') + '</div>';
+    h += '<div class="frow"><span class="flabel">④ 证据来源：</span>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</div>';
     h += '<div class="frow"><span class="flabel">⑤ 法律依据：</span>' + (f.policy_ref || '《税收征收管理法》及《税务稽查工作规程》相关规定') + '</div>';
     if (f.suggestion && f.suggestion.length > 5) {
       h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>' + f.suggestion + '</div>';
     } else {
-      h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>建议进一步核实相关业务资料，确认业务的真实性和合规性。</div>';
+      h += '<div class="frow"><span class="flabel">⑥ 处理建议：</span>建议进一步核实相关业务资料。</div>';
     }
     
     // 证据链追溯
     if (f.matched_chain_details && f.matched_chain_details.length > 0) {
-      h += '<div class="frow"><span class="flabel">🔗 证据链路：</span>';
-      f.matched_chain_details.slice(0,3).forEach(function(ch) {
+      h += '<div class="frow"><span class="flabel">🔗 关联证据链：</span>';
+      f.matched_chain_details.forEach(function(ch) {
         h += '<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:#eff6ff;border-radius:3px;font-size:11px;color:#1e40af">' + (ch.name||'') + '</span>';
       });
       h += '</div>';
