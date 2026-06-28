@@ -706,6 +706,9 @@ async function analyzeTaxDocs() {
     var area = document.getElementById('tax-doc-result');
     setTimeout(function() { if (area) area.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 200);
     
+    // ── 语音播报功能初始化 ──
+    setTimeout(function() { _initReportTTS(); }, 300);
+    
     // ── 通知仪表盘：新分析已完成 ──
     try {
       localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({
@@ -1684,6 +1687,187 @@ async function showCacheInfo() {
     modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
     document.body.appendChild(modal);
   } catch(e) { toast('获取缓存信息失败', 'error'); }
+}
+
+// ═══════════ 报告语音播报系统 ═══════════
+var _ttsState = { speaking: false, paused: false, utterance: null, speed: 1.0, currentText: '', currentIdx: 0 };
+var _ttsChunks = [];
+
+function _initReportTTS() {
+  var area = document.getElementById('tax-doc-result');
+  if (!area) return;
+  
+  // 移除旧控制条
+  var oldBar = document.getElementById('tts-bar');
+  if (oldBar) oldBar.remove();
+  
+  // 创建播报控制条
+  var bar = document.createElement('div');
+  bar.id = 'tts-bar';
+  bar.innerHTML = 
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+    '<span style="font-size:13px;font-weight:700;color:#1a1a2e">🔊 稽查报告语音播报</span>' +
+    '<button id="tts-play-all" style="padding:6px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">▶ 全文播报</button>' +
+    '<button id="tts-pause" style="padding:6px 16px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;cursor:pointer;display:none">⏸ 暂停</button>' +
+    '<button id="tts-stop" style="padding:6px 16px;background:#fff;border:1px solid #dc2626;color:#dc2626;border-radius:6px;font-size:13px;cursor:pointer;display:none">⏹ 停止</button>' +
+    '<select id="tts-speed" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;cursor:pointer">' +
+    '<option value="0.8">0.8x 慢速</option><option value="1.0" selected>1.0x 正常</option><option value="1.2">1.2x 快速</option><option value="1.5">1.5x 加快</option>' +
+    '</select>' +
+    '<span id="tts-progress" style="font-size:12px;color:#94a3b8"></span>' +
+    '</div>' +
+    '<div style="font-size:11px;color:#94a3b8;margin-top:4px">💡 点击报告任意段落可从该处开始播报 · 音色：严肃中年男性稽查员</div>';
+  bar.style.cssText = 'position:sticky;top:0;z-index:100;margin-bottom:20px;padding:14px 18px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06)';
+  
+  area.insertBefore(bar, area.firstChild);
+  
+  // 绑定按钮
+  document.getElementById('tts-play-all').onclick = function() { _ttsPlayFrom(area, 0); };
+  document.getElementById('tts-pause').onclick = _ttsTogglePause;
+  document.getElementById('tts-stop').onclick = _ttsStop;
+  document.getElementById('tts-speed').onchange = function() { _ttsState.speed = parseFloat(this.value); };
+  
+  // 点击报告任意位置播报
+  _bindClickToSpeak(area);
+  
+  // 预加载语音列表（浏览器异步加载voices）
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
+  }
+}
+
+function _bindClickToSpeak(container) {
+  // 用事件委托：点击报告正文区域任意段落触发播报
+  container.addEventListener('click', function(e) {
+    // 排除按钮、链接、控制条
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+    if (e.target.closest('#tts-bar') || e.target.closest('#review-panel')) return;
+    
+    // 找到被点击的最近文本容器
+    var el = e.target;
+    while (el && el !== container) {
+      if (el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'TD' || el.tagName === 'TH' || el.tagName === 'LI' || el.tagName === 'DIV') {
+        var text = (el.textContent || '').trim();
+        if (text.length > 10) {
+          _ttsStop();
+          _ttsSpeakChunk(el, text);
+          // 高亮当前播报元素
+          el.style.transition = 'background 0.3s';
+          el.style.background = '#fef3c7';
+          setTimeout(function() { el.style.background = ''; }, 2000);
+          return;
+        }
+      }
+      el = el.parentElement;
+    }
+  });
+}
+
+function _ttsPlayFrom(container, startIdx) {
+  if (!window.speechSynthesis) { toast('您的浏览器不支持语音播报', 'error'); return; }
+  
+  // 收集所有可读文本块
+  _ttsChunks = [];
+  var els = container.querySelectorAll('p, h2, h3, td, th, li, .ftitle, .frow, .flabel, .ritem, .atitle, .aitem, .seal p');
+  els.forEach(function(el) {
+    // 跳过控制条和审查面板内的
+    if (el.closest('#tts-bar') || el.closest('#review-panel') || el.closest('details')) return;
+    var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (t.length > 5) _ttsChunks.push({el: el, text: t});
+  });
+  
+  _ttsState.currentIdx = startIdx;
+  _ttsSpeakNext();
+  _updateTtsUI(true);
+}
+
+function _ttsSpeakChunk(el, text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  _ttsState.utterance = new SpeechSynthesisUtterance(text);
+  _ttsState.utterance.lang = 'zh-CN';
+  _ttsState.utterance.rate = _ttsState.speed;
+  _ttsState.utterance.pitch = 0.8;  // 低沉男声
+  _ttsState.utterance.volume = 1;
+  
+  // 选择中文男声
+  var voices = window.speechSynthesis.getVoices();
+  var maleVoice = voices.find(function(v) { return v.lang.indexOf('zh') >= 0 && v.name.indexOf('Male') >= 0; }) ||
+                  voices.find(function(v) { return v.lang.indexOf('zh-CN') >= 0 && v.name.indexOf('Tingting') < 0; }) ||
+                  voices.find(function(v) { return v.lang.indexOf('zh') >= 0; });
+  if (maleVoice) _ttsState.utterance.voice = maleVoice;
+  
+  _ttsState.speaking = true;
+  window.speechSynthesis.speak(_ttsState.utterance);
+  _updateTtsUI(true);
+}
+
+function _ttsSpeakNext() {
+  if (_ttsState.currentIdx >= _ttsChunks.length) { _ttsStop(); return; }
+  
+  var chunk = _ttsChunks[_ttsState.currentIdx];
+  window.speechSynthesis.cancel();
+  _ttsState.utterance = new SpeechSynthesisUtterance(chunk.text);
+  _ttsState.utterance.lang = 'zh-CN';
+  _ttsState.utterance.rate = _ttsState.speed;
+  _ttsState.utterance.pitch = 0.8;
+  _ttsState.utterance.volume = 1;
+  
+  var voices = window.speechSynthesis.getVoices();
+  var maleVoice = voices.find(function(v) { return v.lang.indexOf('zh') >= 0 && v.name.indexOf('Male') >= 0; }) ||
+                  voices.find(function(v) { return v.lang.indexOf('zh-CN') >= 0 && v.name.indexOf('Tingting') < 0; }) ||
+                  voices.find(function(v) { return v.lang.indexOf('zh') >= 0; });
+  if (maleVoice) _ttsState.utterance.voice = maleVoice;
+  
+  _ttsState.utterance.onend = function() {
+    _ttsState.currentIdx++;
+    document.getElementById('tts-progress').textContent = (_ttsState.currentIdx + 1) + ' / ' + _ttsChunks.length;
+    _ttsSpeakNext();
+  };
+  
+  _ttsState.speaking = true;
+  window.speechSynthesis.speak(_ttsState.utterance);
+  document.getElementById('tts-progress').textContent = (_ttsState.currentIdx + 1) + ' / ' + _ttsChunks.length;
+}
+
+function _ttsTogglePause() {
+  if (_ttsState.paused) {
+    window.speechSynthesis.resume();
+    _ttsState.paused = false;
+    document.getElementById('tts-pause').textContent = '⏸ 暂停';
+  } else {
+    window.speechSynthesis.pause();
+    _ttsState.paused = true;
+    document.getElementById('tts-pause').textContent = '▶ 继续';
+  }
+}
+
+function _ttsStop() {
+  window.speechSynthesis.cancel();
+  _ttsState.speaking = false;
+  _ttsState.paused = false;
+  _ttsState.currentIdx = 0;
+  _ttsChunks = [];
+  _updateTtsUI(false);
+}
+
+function _updateTtsUI(active) {
+  var playBtn = document.getElementById('tts-play-all');
+  var pauseBtn = document.getElementById('tts-pause');
+  var stopBtn = document.getElementById('tts-stop');
+  var progEl = document.getElementById('tts-progress');
+  if (!playBtn) return;
+  
+  if (active) {
+    playBtn.style.display = 'none';
+    pauseBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'inline-block';
+  } else {
+    playBtn.style.display = 'inline-block';
+    pauseBtn.style.display = 'none';
+    stopBtn.style.display = 'none';
+    if (progEl) progEl.textContent = '';
+  }
 }
 
 async function clearTransferCache() {
