@@ -5674,7 +5674,7 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     if lookup.get("success"):
         target_entity["_online_lookup"] = True
         target_entity["legal_representative"] = lookup.get("legal_representative", "")
-        target_entity["legal_person"] = target_entity["legal_representative"]  # 前端别名
+        target_entity["legal_person"] = target_entity["legal_representative"]
         target_entity["legal_person_role"] = lookup.get("legal_person_role", "") or (target_entity.get("legal_person_role", ""))
         target_entity["registered_capital"] = lookup.get("registered_capital", "")
         target_entity["established_date"] = lookup.get("established_date", "")
@@ -5687,17 +5687,23 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
         target_entity["supervisors"] = lookup.get("supervisors", [])
         target_entity["finance_contacts"] = lookup.get("finance_contacts", [])
         target_entity["lookup_source"] = lookup.get("source", "")
-        
-        # 稽查六员风险检测
+    else:
+        pipeline_log.append(f"联网核查未成功，六员信息从本地数据库获取")
+    
+    # 稽查六员风险检测——不依赖联网核查结果，从本地DB读取
+    try:
+        six_risk = _check_six_personnel_risk(db, company_id)
+        target_entity["_six_personnel_risk"] = six_risk
+        # 本地六员数据可用即启用供应链核查
+        if not target_entity.get("_online_lookup"):
+            target_entity["_online_lookup"] = True
+            pipeline_log.append("六员比对已启用（基于本地数据库+发票交易对方）")
+    except Exception as _sx_err:
+        pipeline_log.append(f"六员比对跳过: {_sx_err}")
+    
+    # 联网查询未获取六员数据时，从DB已有数据回填
+    if not target_entity.get("directors") or not target_entity.get("supervisors") or not target_entity.get("finance_contacts"):
         try:
-            six_risk = _check_six_personnel_risk(db, company_id)
-            target_entity["_six_personnel_risk"] = six_risk
-        except:
-            pass
-        
-        # 联网查询未获取六员数据时，从DB已有数据回填（名实相符才回填）
-        if not target_entity["directors"] or not target_entity["supervisors"] or not target_entity["finance_contacts"]:
-            try:
                 from database import Company as _C2
                 _c = db.query(_C2).filter(_C2.id == company_id, _C2.name == company_name).first()
                 if _c:
