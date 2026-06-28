@@ -1,0 +1,80 @@
+{
+  "bank_total_in": "423,605.31元",
+  "bank_total_out": "330,536.72元",
+  "bank_tx_count": 0,
+  "收款构成": {
+    "企业客户款": "388,595.69元（4家）",
+    "个人款": "35,009.62元（2位）",
+    "税费社保退款": "0.00元",
+    "银行利息/内部": "0.00元"
+  },
+  "entity_total": 0,
+  "anomaly_total": 0,
+  "file_results": [
+    {
+      "file": "AI账务系统公积金3.xlsx",
+      "type": "housing_fund",
+      "actions": [
+        "推理判定:housing_fund(双方均不匹配本公司) 5条",
+        "提取5条公积金"
+      ]
+    },
+    {
+      "file": "AI账务系统开票3.xlsx",
+      "type": "sales_invoice",
+      "actions": [
+        "提取8条销项"
+      ]
+    },
+    {
+      "file": "AI账务系统取票3.xlsx",
+      "type": "purchase_invoice",
+      "actions": [
+        "提取103条进项"
+      ]
+    },
+    {
+      "file": "AI账务系统社保3.xlsx",
+      "type": "social_security",
+      "actions": [
+        "提取9条社保"
+      ]
+    },
+    {
+      "file": "AI账务系统银行3.xlsx",
+      "type": "bank_statement",
+      "actions": [
+        "提取42条流水（共43行）"
+      ]
+    },
+    {
+      "file": "AI账务系统202503工资薪金所得.xls",
+      "type": "salary",
+      "actions": [
+        "提取4条工资"
+      ]
+    },
+    {
+      "file": "AI账务系统抵扣3.xlsx",
+      "type": "input_vat_deduction",
+      "actions": [
+        "提取23条进项认证抵扣"
+      ]
+    }
+  ],
+  "invoice_counts": {
+    "sales": 8,
+    "purchases": 103,
+    "core_cost": 53,
+    "major_expense": 5
+  },
+  "files_count": 7,
+  "industry": "广告传媒",
+  "name": "深圳海更数字传媒有限公司",
+  "uscc": "91440300MA5H824G7M",
+  "legal_person": "张晓冬",
+  "total_findings": 76,
+  "high_risk": 35,
+  "mid_risk": 30,
+  "low_risk": 4
+}
