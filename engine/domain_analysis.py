@@ -4468,12 +4468,17 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 if any(k in summary for k in ['结息','利息']): cp = "(银行结息)"
                 elif any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
                 else: cp = "(未记录名称)"
-            # 按规则顺序逐层匹配
+            # 按规则顺序逐层匹配（同时检查付款方名称和交易摘要）
             matched = False
             for rule in rc_rules_cfg:
                 if rule.get("is_default"): continue
                 kws = rule.get("keywords", [])
-                if kws and any(k in cp for k in kws):
+                sums = rule.get("summaries", [])
+                # 匹配付款方名称
+                name_match = kws and any(k in cp for k in kws)
+                # 匹配交易摘要
+                summary_match = sums and any(s in summary for s in sums)
+                if name_match or summary_match:
                     pay_cats[rule["label"]][cp] += credit
                     matched = True
                     break
