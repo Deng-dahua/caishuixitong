@@ -1,0 +1,7 @@
+Inline/stub pages: 1
+  company: <div class="card card-fill"><div class="page-header"><h1>🏢 公司信息</h1></div><div style="padding:24px">
+  vat-declaration.js: 2897 lines
+  housing-fund.js: 666 lines
+  social-security.js: 734 lines
+  system-logs.js: 102 lines
+  salary.js: 744 lines
