@@ -93,7 +93,10 @@
   5. 服务行业是否已跳过进销存？（规则五）
   6. 品名是否精准过滤？（规则六）
   7. 每条发现是否包含稽查过程叙事？（规则十二）
-  上述7项全部通过，本次分析才算可靠。
+  8. 证据数据是否完整渲染？（规则十三）
+  9. 报告是否遵循7章标准格式？（规则十四）
+  10. 报告是否纯净（无驳回按钮/内部标签）？（规则十五）
+  上述10项全部通过，本次分析才算可靠。
 
 【规则十二：稽查过程叙事】
   每条发现必须包含四段稽查叙事：
@@ -104,6 +107,45 @@
   叙事基于finding实际字段(provenance/matched_chain_details/evidence_rows/items/tax_impact)
   代码: static/js/tax-doc-analysis.js _renderReportFallback()
   规范: static/js/tax-report-standards.js 第三章·附
+
+【规则十三：证据数据完整渲染】
+  引擎内部丰富的证据数据必须在报告中完整呈现：
+  - evidence_rows → 逐笔证据明细表（来源/对方/金额/日期/备注）
+  - items → 逐项证据明细表（表头动态生成）
+  - matched_chain_details → 关联证据链标签+调查步骤展示
+  禁止只显示"共XX条记录"的计数而不渲染实际数据
+  代码: static/js/tax-doc-analysis.js ③证据材料渲染
+
+【规则十四：报告7章标准格式】
+  报告必须遵循7章正式法律文书结构：
+  封面 → 目录 → 一(基本情况) → 二(实施情况) → 三(发现问题) → 四(结论) → 五(建议) → 六(权利) → 七(签字) → 附件
+  禁止使用简化版或内部调试版格式（如blocks渲染器）
+  代码: static/js/tax-doc-analysis.js _renderReportFallback()
+  规范: static/js/tax-report-standards.js
+
+【规则十五：报告纯净度】
+  正式报告中禁止出现以下内容：
+  - 驳回按钮/审查面板（审查面板应独立于报告之外，折叠显示）
+  - 内部技术标签（Synthesis:/Causal:/[AGI]/[Phase]等中英混杂前缀）
+  - 稽查行为准则/稽查方法论演进（属于系统内部文档）
+  - 系统自诊/修正记录（属于引擎内部工作日志）
+  代码: static/js/tax-doc-analysis.js 文本清理逻辑
+
+【规则十六：审查驳回学习闭环】
+  稽查员通过审查面板驳回某条发现 → 引擎记录驳回（finding_type + action:dismiss）
+  → 自动调整对应信号权重（dismiss→-0.2） → 下次分析时该信号降权
+  → 多次驳回的信号将被自动禁用到方法论过滤器
+  这是引擎"越用越聪明"的核心学习机制
+  代码: engine/memory.py record_user_feedback() / _adjust_signal_weights_from_feedback()
+  前端: static/js/tax-doc-analysis.js 发现审查面板
+  前端: static/index.html window._dismissTaxFinding()
+
+【规则十七：发票附件11列标准】
+  报告附件必须按11列标准表全量展示发票明细：
+  销项：购买方/品名/规格/单位/数量/金额/税额/价税合计/日期/票种/发票号
+  进项：销售方/品名/规格/单位/数量/金额/税额/价税合计/日期/票种/发票号
+  核心成本发票+重大费用发票各5列（销售方/品名/金额/价税合计/日期）
+  代码: engine/pipeline.py 发票明细数据注入 / static/js/tax-doc-analysis.js 附件渲染
 
 ═════ 假设-验证推理引擎（引擎"思考"能力）═════
   每条重要发现 → 生成2-3个竞争假设 → 逐条证据验证 → 加权判决
