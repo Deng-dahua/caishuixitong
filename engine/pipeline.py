@@ -3750,9 +3750,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # 注入 material_intel 到报告结果，供前端资金流渲染
     try:
-        if comprehensive and 'material_intel' in comprehensive:
+        if 'comprehensive' in dir() and 'material_intel' in comprehensive:
             result["report"]["material_intel"] = comprehensive["material_intel"]
-    except: pass
+        elif 'material_intel' in dir():
+            result["report"]["material_intel"] = material_intel
+    except Exception as _inj_err:
+        pipeline_log.append(f"material_intel注入失败: {_inj_err}")
     
     return result
 
