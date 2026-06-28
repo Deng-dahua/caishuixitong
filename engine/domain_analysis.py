@@ -8061,36 +8061,33 @@ def _build_causal_narratives(all_findings):
             detail = str(best_f.get("detail", "") or best_f.get("description", ""))[:100]
             signal_details.append(f"  * {sig}: {detail}")
 
-        narrative_text = (
-            f"[Causal Chain] {rule['narrative']}\n\n"
-            f"Triggered signals ({req_hit_count} required{' + ' + str(len(opt_hit)) + ' optional' if opt_hit else ''}):\n"
-            + "\n".join(signal_details)
-            + (f"\nOptional: {', '.join(opt_hit)}" if opt_hit else "")
-            + f"\n\n[Causal Direction] {causal_direction}\n\n"
-            + f"[Explanation] {rule['explanation']}\n\n"
-            + f"[Evidence Chain]\n{rule['evidence_chain']}\n\n"
-            + f"Confidence: {confidence:.2f}% ({req_hit_count}/{len(required)} required"
-            + (f" + {len(opt_hit)} optional" if opt_hit else "")
-            + (f" + {all_evidence_count} evidence rows" if all_evidence_count > 0 else "")
-            + ")"
+        # 格式化因果叙事（去除内部技术标记，符合报告编制规范——客观第三人称）
+        signal_list = "\n".join(
+            f"  · {sig}: {detail}" 
+            for sig, detail in zip(hit_signals, [str(req_matches[s][0].get("detail", "") or "")[:100] for s in hit_signals])
         )
-
+        clean_narrative = (
+            f"经综合推断，{rule['narrative']}\n\n"
+            f"触发信号：\n{signal_list}"
+            + (f"\n辅助信号：{', '.join(opt_hit)}" if opt_hit else "")
+            + f"\n\n因果方向：{causal_direction}\n\n"
+            + f"分析说明：{rule['explanation']}\n\n"
+            + f"核查路径：{rule['evidence_chain']}"
+        )
+        
         narratives.append({
             "type": f"Causal: {rule['name']}",
             "level": rule["level"],
             "score": min(8 + req_hit_count, 10),
-            "detail": narrative_text,
-            "description": narrative_text,
+            "detail": clean_narrative,
+            "description": clean_narrative,
             "how_found": (
-                f"Causal engine v2 detected {req_hit_count} required signals"
-                f" ({', '.join(hit_signals)})"
-                f" across {len(chain_findings)} independent findings"
-                + (f", evidence strength {all_evidence_count} rows" if all_evidence_count > 0 else "")
-                + f" -> triggering '{rule['name']}' causal chain"
-                + (f", temporal: {causal_direction}" if "->" in causal_direction else "")
+                f"经交叉验证，{req_hit_count}个关键信号同时触发"
+                f"（{'，'.join(hit_signals)}），"
+                f"触发'{rule['name']}'因果推断链"
             ),
             "tax_impact": rule["explanation"][:200],
-            "policy_ref": "Tax Collection and Administration Law provisions on tax evasion / false invoicing",
+            "policy_ref": "《税收征收管理法》关于偷税/虚开发票的相关规定",
             "suggestion": rule["evidence_chain"],
             "category": "Synthesis: Causal Narrative",
             "_priority": rule["priority"],
