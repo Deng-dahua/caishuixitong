@@ -209,8 +209,8 @@ function renderAnalyzeHeader(report) {
 
   h += '<div id="analyze-header">';
 
-  // 7步执行流程
-  h += '<h3>稽查引擎执行流程</h3>';
+  // 7步执行流程（默认折叠）
+  h += '<details style="margin-bottom:12px"><summary style="cursor:pointer;font-size:14px;font-weight:700;color:#0f172a;padding:6px 0;border-bottom:1px solid #e2e8f0">⚙️ 稽查引擎执行流程</summary><div style="padding:8px 0">';
   var steps = [
     { title: '① 资料扫描与类型识别', desc: '34类文件指纹 + 三层递进识别（关键词→结构分析→数据推断）。自动判定发票方向。' },
     { title: '② 目标实体识别', desc: '进项购买方 ∩ 销项销售方 → 自动确定被查单位。66个行业分类（加权投票制）。' },
@@ -223,6 +223,7 @@ function renderAnalyzeHeader(report) {
   steps.forEach(function(s) {
     h += '<div class="step-block"><div class="st">' + s.title + '</div><div class="sd">' + s.desc + '</div></div>';
   });
+  h += '</div></details>';
 
   // 分析结果统计
   h += '<h3 style="margin-top:24px">本次分析结果</h3>';
@@ -248,7 +249,7 @@ function renderAnalyzeHeader(report) {
   var fixVerify = comp.fix_verification;
   var anaMem = comp.analysis_memory;
   if (btReport && btReport.total > 0) {
-    h += '<h3 style="margin-top:24px">🤖 系统自诊与自我修正</h3>';
+    h += '<details style="margin-bottom:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:#64748b;padding:4px 0">🤖 系统自诊与自我修正（' + btReport.total + '条矛盾）</summary><div style="padding:8px 0">';
     h += '<div class="stats-row" style="font-size:12px;line-height:1.8">'
       + '发现问题 <strong style="color:#dc2626">' + btReport.total + '</strong> 条矛盾 · '
       + '可自动修正 <strong style="color:#16a34a">' + (btReport.auto_fixes ? btReport.auto_fixes.length : 0) + '</strong> 条 · '
@@ -307,6 +308,7 @@ function renderAnalyzeHeader(report) {
         + '已积累' + anaMem.total_records + '条分析记忆 · 当前公司' + (anaMem.current_company_records || 0) + '条'
         + '</div>';
     }
+    h += '</div></details>';
   }
 
   // ── Phase 4 推理引擎综合结论卡片 ──

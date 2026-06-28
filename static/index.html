@@ -302,10 +302,11 @@ window._dismissTaxFinding = function(btn) {
         _injected.add(el);
         var lv = txt.indexOf('高风险')!==-1 ? '高风险' : (txt.indexOf('中风险')!==-1 ? '中风险' : '低风险');
         var btn = document.createElement('button');
-        btn.textContent = '❌ 驳回';
+        btn.textContent = '✕';
+        btn.title = '驳回此发现';
         btn.setAttribute('data-finding', JSON.stringify({type:'',title:'',level:lv,detail:txt.substring(0,200)}));
         btn.onclick = function(){ window._dismissTaxFinding(this); };
-        btn.style.cssText = 'display:block;margin:8px 0 0 auto;background:#fff;border:2px solid #dc2626;color:#dc2626;padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600';
+        btn.style.cssText = 'position:absolute;top:8px;right:8px;width:22px;height:22px;line-height:20px;text-align:center;background:#fff;border:1px solid #e2e8f0;color:#94a3b8;border-radius:50%;font-size:11px;cursor:pointer;opacity:0.5;padding:0';
         el.appendChild(btn);
       }
     });
