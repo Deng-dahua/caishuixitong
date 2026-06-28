@@ -386,7 +386,17 @@ def get_system_logs(limit: int = 200, company_id: int = None):
             ts = _dt.fromtimestamp(l["t"]).isoformat() if "t" in l else None
             ip = l.get("ip","")
             loc = ip_locations.get(ip, "")
-            logs[i] = {"id": i+1, "company_id": l.get("cid"), "timestamp": ts,
+            cid = l.get("cid")
+            cn = ""
+            if cid:
+                try:
+                    from database import SessionLocal, Company
+                    _db = SessionLocal()
+                    _co = _db.query(Company).filter(Company.id == cid).first()
+                    if _co: cn = _co.name or ""
+                    _db.close()
+                except: pass
+            logs[i] = {"id": i+1, "company_id": cid, "company_name": cn, "timestamp": ts,
                        "method": l.get("m",""), "path": l.get("p",""), "status_code": l.get("s",0),
                        "client_ip": ip, "location": loc, "response_time_ms": l.get("ms",0),
                        "user_name": l.get("un",""), "user_phone": l.get("up",""),

@@ -1028,11 +1028,73 @@
         "经营实质-工商登记与发票推断不一致"
       ],
       "timestamp": "2026-06-28T12:53:11.460109"
+    },
+    {
+      "trace_id": "223c45d2",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T13:12:30.377225",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "13434b01",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "收款与开票金额偏差大（三源交叉）",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-06-28T13:12:30.400153"
+    },
+    {
+      "trace_id": "d7a8cc32",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T13:14:12.551388",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "361f7e31",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "收款与开票金额偏差大（三源交叉）",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-06-28T13:14:12.578800"
     }
   ],
   "industry_patterns": {
     "广告服务": {
-      "analyses_count": 55,
+      "analyses_count": 57,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
