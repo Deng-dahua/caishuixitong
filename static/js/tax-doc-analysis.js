@@ -1032,18 +1032,75 @@ function _renderReportFallback(r, allF) {
 
   // ═══ 附件 ═══
   h += '<h2 id="appendix">附件 证据清单</h2>';
-  h += '<div class="appendix"><div class="atitle">附件一：进销项发票数据</div>';
-  h += '<div class="aitem">· 销项发票' + ((r.invoice_stats && r.invoice_stats.sales_count) || 'N/A') + '张</div>';
-  h += '<div class="aitem">· 进项发票' + ((r.invoice_stats && r.invoice_stats.purchase_count) || 'N/A') + '张</div>';
-  h += '<div class="aitem">· 进项抵扣认证' + ((r.invoice_stats && r.invoice_stats.deduction_count) || 'N/A') + '张</div>';
-  h += '</div>';
   
-  h += '<div class="appendix"><div class="atitle">附件二：银行流水数据</div>';
+  // 附件一：发票明细
+  var it = r.invoice_tables;
+  var ic = r.invoice_counts;
+  if (it && it.sales && it.sales.length > 0) {
+    h += '<div class="appendix"><div class="atitle">附件一：销项发票全量明细（' + (ic.sales||it.sales.length) + '张）</div>';
+    h += '<div style="overflow-x:auto"><table class="tbl inv-detail"><thead><tr>'
+      + '<th>购买方</th><th>品名</th><th>规格</th><th>单位</th><th>数量</th>'
+      + '<th>金额</th><th>税额</th><th>价税合计</th><th>日期</th><th>票种</th><th>发票号</th>'
+      + '</tr></thead><tbody>';
+    it.sales.forEach(function(inv) {
+      h += '<tr><td>' + (inv.counterparty||'') + '</td><td>' + (inv.goods||'') + '</td>'
+        + '<td>' + (inv.spec||'') + '</td><td>' + (inv.unit||'') + '</td>'
+        + '<td class="r">' + (inv.qty||'') + '</td><td class="r">' + (inv.amount||'') + '</td>'
+        + '<td class="r">' + (inv.tax||'') + '</td><td class="r">' + (inv.total||'') + '</td>'
+        + '<td>' + (inv.date||'') + '</td><td>' + (inv.inv_type||'') + '</td><td class="mono">' + (inv.inv_no||'') + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+  }
+  
+  if (it && it.purchases && it.purchases.length > 0) {
+    h += '<div class="appendix"><div class="atitle">附件二：进项发票全量明细（' + (ic.purchases||it.purchases.length) + '张）</div>';
+    h += '<div style="overflow-x:auto"><table class="tbl inv-detail"><thead><tr>'
+      + '<th>销售方</th><th>品名</th><th>规格</th><th>单位</th><th>数量</th>'
+      + '<th>金额</th><th>税额</th><th>价税合计</th><th>日期</th><th>票种</th><th>发票号</th>'
+      + '</tr></thead><tbody>';
+    it.purchases.forEach(function(inv) {
+      h += '<tr><td>' + (inv.counterparty||'') + '</td><td>' + (inv.goods||'') + '</td>'
+        + '<td>' + (inv.spec||'') + '</td><td>' + (inv.unit||'') + '</td>'
+        + '<td class="r">' + (inv.qty||'') + '</td><td class="r">' + (inv.amount||'') + '</td>'
+        + '<td class="r">' + (inv.tax||'') + '</td><td class="r">' + (inv.total||'') + '</td>'
+        + '<td>' + (inv.date||'') + '</td><td>' + (inv.inv_type||'') + '</td><td class="mono">' + (inv.inv_no||'') + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+  }
+  
+  if (it && it.core_cost && it.core_cost.length > 0) {
+    h += '<div class="appendix"><div class="atitle">附件三：主营业务成本发票明细（' + (ic.core_cost||it.core_cost.length) + '张）</div>';
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>销售方</th><th>品名</th><th>金额</th><th>价税合计</th><th>日期</th>'
+      + '</tr></thead><tbody>';
+    it.core_cost.forEach(function(inv) {
+      h += '<tr><td>' + (inv.counterparty||'') + '</td><td>' + (inv.goods||'') + '</td>'
+        + '<td class="r">' + (inv.amount||'') + '</td><td class="r">' + (inv.total||'') + '</td>'
+        + '<td>' + (inv.date||'') + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+  }
+  
+  if (it && it.major_expense && it.major_expense.length > 0) {
+    h += '<div class="appendix"><div class="atitle">附件四：重大费用发票明细（' + (ic.major_expense||it.major_expense.length) + '张）</div>';
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>销售方</th><th>品名</th><th>金额</th><th>价税合计</th><th>日期</th>'
+      + '</tr></thead><tbody>';
+    it.major_expense.forEach(function(inv) {
+      h += '<tr><td>' + (inv.counterparty||'') + '</td><td>' + (inv.goods||'') + '</td>'
+        + '<td class="r">' + (inv.amount||'') + '</td><td class="r">' + (inv.total||'') + '</td>'
+        + '<td>' + (inv.date||'') + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+  }
+  
+  // 附件五：银行流水
+  h += '<div class="appendix"><div class="atitle">附件五：银行流水数据</div>';
   h += '<div class="aitem">· 银行流水' + ((r.bank_stats && r.bank_stats.count) || 'N/A') + '条</div>';
   h += '<div class="aitem">· 累计收款' + ((bi['总收款']||0)/10000).toFixed(2) + '万元 · 累计付款' + ((bi['总付款']||0)/10000).toFixed(2) + '万元</div>';
   h += '</div>';
   
-  h += '<div class="appendix"><div class="atitle">附件三：其他经营资料</div>';
+  h += '<div class="appendix"><div class="atitle">附件六：其他经营资料</div>';
   if (r.file_results && r.file_results.length) {
     r.file_results.forEach(function(fr, fi) {
       h += '<div class="aitem">' + (fi+1) + '. ' + (fr.file || '') + ' (' + (fr.type || '未知') + ')</div>';
@@ -1052,7 +1109,7 @@ function _renderReportFallback(r, allF) {
   h += '</div>';
   
   if (r.quality_check) {
-    h += '<div class="appendix"><div class="atitle">附件四：质量标准自检</div>';
+    h += '<div class="appendix"><div class="atitle">附件七：质量标准自检</div>';
     var qc = r.quality_check;
     h += '<div class="aitem">通过：' + (qc.passed || 0) + '/' + (qc.total || 12) + '项 (' + (qc.pass_rate || 0) + '%)</div>';
     h += '</div>';

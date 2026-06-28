@@ -3680,6 +3680,70 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 报告文本增强：简短的detail自动扩充为规范结构 ═══
     _enrich_short_findings(all_findings, pipeline_log)
     
+    # ═══ 发票明细数据注入（供报告附件使用）═══
+    try:
+        if sal_invs or pur_invs:
+            invoice_tables = {"sales": [], "purchases": [], "core_cost": [], "major_expense": []}
+            # 销项发票11列
+            for inv in sal_invs[:200]:
+                invoice_tables["sales"].append({
+                    "counterparty": str(inv.get("buyer", inv.get("购买方",""))),
+                    "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
+                    "spec": str(inv.get("spec", inv.get("规格",""))),
+                    "unit": str(inv.get("unit", inv.get("单位",""))),
+                    "qty": inv.get("qty", inv.get("数量", "")),
+                    "amount": inv.get("amount", inv.get("金额", "")),
+                    "tax": inv.get("tax", inv.get("税额", "")),
+                    "total": inv.get("total", inv.get("价税合计", "")),
+                    "date": str(inv.get("date", inv.get("开票日期",""))),
+                    "inv_type": str(inv.get("inv_type", inv.get("发票类型",""))),
+                    "inv_no": str(inv.get("inv_no", inv.get("发票号",""))),
+                })
+            # 进项发票11列
+            for inv in pur_invs[:200]:
+                row = {
+                    "counterparty": str(inv.get("seller", inv.get("销售方",""))),
+                    "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
+                    "spec": str(inv.get("spec", inv.get("规格",""))),
+                    "unit": str(inv.get("unit", inv.get("单位",""))),
+                    "qty": inv.get("qty", inv.get("数量", "")),
+                    "amount": inv.get("amount", inv.get("金额", "")),
+                    "tax": inv.get("tax", inv.get("税额", "")),
+                    "total": inv.get("total", inv.get("价税合计", "")),
+                    "date": str(inv.get("date", inv.get("开票日期",""))),
+                    "inv_type": str(inv.get("inv_type", inv.get("发票类型",""))),
+                    "inv_no": str(inv.get("inv_no", inv.get("发票号",""))),
+                }
+                invoice_tables["purchases"].append(row)
+            # 主营业务成本发票
+            if 'core_cost_invs' in dir() and core_cost_invs:
+                for inv in core_cost_invs[:100]:
+                    invoice_tables["core_cost"].append({
+                        "counterparty": str(inv.get("seller", inv.get("销售方",""))),
+                        "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
+                        "amount": inv.get("amount", inv.get("金额", "")),
+                        "total": str(inv.get("total", inv.get("价税合计", ""))),
+                        "date": str(inv.get("date", inv.get("开票日期",""))),
+                    })
+            # 重大费用发票
+            if 'major_expense_invs' in dir() and major_expense_invs:
+                for inv in major_expense_invs[:100]:
+                    invoice_tables["major_expense"].append({
+                        "counterparty": str(inv.get("seller", inv.get("销售方",""))),
+                        "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
+                        "amount": inv.get("amount", inv.get("金额", "")),
+                        "total": str(inv.get("total", inv.get("价税合计", ""))),
+                        "date": str(inv.get("date", inv.get("开票日期",""))),
+                    })
+            result["report"]["invoice_tables"] = invoice_tables
+            result["report"]["invoice_counts"] = {
+                "sales": len(sal_invs), "purchases": len(pur_invs),
+                "core_cost": len(core_cost_invs) if 'core_cost_invs' in dir() and core_cost_invs else 0,
+                "major_expense": len(major_expense_invs) if 'major_expense_invs' in dir() and major_expense_invs else 0,
+            }
+    except Exception:
+        pass
+    
     return result
 
 # ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
