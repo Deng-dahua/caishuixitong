@@ -174,22 +174,27 @@ def journal_entry_stats(
     period: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    base = db.query(JournalEntry).filter(JournalEntry.company_id == company_id)
-    if period:
-        base = base.filter(JournalEntry.period == period)
-    total_count = base.count()
-    total_debit = base.with_entities(func.sum(JournalEntry.debit_amount)).scalar() or 0
-    total_credit = base.with_entities(func.sum(JournalEntry.credit_amount)).scalar() or 0
-    reviewed_count = base.filter(JournalEntry.is_reviewed == True).count()
-    unreviewed_count = base.filter(JournalEntry.is_reviewed == False).count()
-    period_count = base.with_entities(func.count(func.distinct(JournalEntry.period))).scalar() or 0
-    return {
-        "total_count": total_count,
-        "total_debit": round(total_debit, 2),
-        "total_credit": round(total_credit, 2),
-        "reviewed_count": reviewed_count,
-        "unreviewed_count": unreviewed_count,
-        "period_count": period_count,
-    }
+    try:
+        base = db.query(JournalEntry).filter(JournalEntry.company_id == company_id)
+        if period:
+            base = base.filter(JournalEntry.period == period)
+        total_count = base.count()
+        if total_count == 0:
+            return {"total_count": 0, "total_debit": 0, "total_credit": 0, "reviewed_count": 0, "unreviewed_count": 0, "period_count": 0}
+        total_debit = base.with_entities(func.sum(JournalEntry.debit_amount)).scalar() or 0.0
+        total_credit = base.with_entities(func.sum(JournalEntry.credit_amount)).scalar() or 0.0
+        reviewed_count = base.filter(JournalEntry.is_reviewed == True).count()
+        unreviewed_count = base.filter(JournalEntry.is_reviewed == False).count()
+        period_count = base.with_entities(func.count(func.distinct(JournalEntry.period))).scalar() or 0
+        return {
+            "total_count": total_count,
+            "total_debit": round(float(total_debit), 2),
+            "total_credit": round(float(total_credit), 2),
+            "reviewed_count": reviewed_count,
+            "unreviewed_count": unreviewed_count,
+            "period_count": period_count,
+        }
+    except Exception as e:
+        raise HTTPException(500, detail=f"查询统计失败: {e}")
 
 
