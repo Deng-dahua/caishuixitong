@@ -1118,5 +1118,215 @@
     "action": "自动更新信息技术服务行业风险基准为62.6分",
     "discovered_at": "2026-06-28T19:19:37.847966",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.7,
+    "sample_size": 73,
+    "action": "自动更新广告服务行业风险基准为79.7分",
+    "discovered_at": "2026-06-28T19:29:50.559786",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 13,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:29:50.559803",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 8,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:29:50.559812",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.7,
+    "sample_size": 73,
+    "action": "自动更新广告服务行业风险基准为79.7分",
+    "discovered_at": "2026-06-28T19:32:22.189202",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 13,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:32:22.189220",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 8,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:32:22.189228",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.7,
+    "sample_size": 73,
+    "action": "自动更新广告服务行业风险基准为79.7分",
+    "discovered_at": "2026-06-28T19:33:23.126397",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 14,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:33:23.126429",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 8,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:33:23.126438",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.7,
+    "sample_size": 73,
+    "action": "自动更新广告服务行业风险基准为79.7分",
+    "discovered_at": "2026-06-28T19:34:11.191889",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:34:11.191910",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 8,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:34:11.191918",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.7,
+    "sample_size": 73,
+    "action": "自动更新广告服务行业风险基准为79.7分",
+    "discovered_at": "2026-06-28T19:37:20.984075",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:37:20.984133",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 9,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:37:20.984165",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.5,
+    "sample_size": 74,
+    "action": "自动更新广告服务行业风险基准为79.5分",
+    "discovered_at": "2026-06-28T19:40:24.148087",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:40:24.148126",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 9,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:40:24.148146",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 79.3,
+    "sample_size": 75,
+    "action": "自动更新广告服务行业风险基准为79.3分",
+    "discovered_at": "2026-06-28T19:41:25.555517",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.6,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为63.6分",
+    "discovered_at": "2026-06-28T19:41:25.555541",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.6,
+    "sample_size": 9,
+    "action": "自动更新信息技术服务行业风险基准为62.6分",
+    "discovered_at": "2026-06-28T19:41:25.555555",
+    "source": "audit_memory.json"
   }
 ]

@@ -1062,10 +1062,14 @@ function _renderReportFallback(r, allF) {
   
   // （四）资金流与发票流双向核对
   h += '<p class="i2"><strong>（四）资金流与发票流双向核对</strong></p>';
-  var mi = (r.comprehensive||{}).material_intel || {};
-  var bi = mi['银行流水'] || {};
-  var bankTotalIn = parseFloat(String(bi['总收款'] || '0').replace(/[^0-9.]/g,'')) || 0;
-  var bankTotalOut = parseFloat(String(bi['总付款'] || '0').replace(/[^0-9.]/g,'')) || 0;
+  var mi = (r.comprehensive||{}).material_intel || r.material_intel || {};
+  var bi = mi['银行流水'] || mi['bank'] || {};
+  var bankTotalIn = 0;
+  var rawIn = bi['总收款'] || bi['total_in'] || bi['total_credit'] || '';
+  try { bankTotalIn = parseFloat(String(rawIn).replace(/[^0-9.]/g,'')) || 0; } catch(e) {}
+  var bankTotalOut = 0;
+  var rawOut = bi['总付款'] || bi['total_out'] || bi['total_debit'] || '';
+  try { bankTotalOut = parseFloat(String(rawOut).replace(/[^0-9.]/g,'')) || 0; } catch(e) {}
   var rc = bi['收款构成'] || {};
   var rcKeys = Object.keys(rc);
   h += '<p class="i2">对银行流水进行系统性的双向核查，核查方向分为收款端与付款端，两端同时进行、交叉验证：</p>';
