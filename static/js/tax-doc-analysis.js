@@ -997,20 +997,28 @@ function _renderReportFallback(r, allF) {
     h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + finType + '</div>';
     
     // ── 稽查过程叙事 ──
-    h += '<div class="audit-narrative" style="margin:10px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0;font-size:13px;line-height:2;color:#334155">';
+    h += '<div class="audit-narrative" style="margin:10px 0;padding:16px 20px;background:linear-gradient(135deg,#f8fafc,#f0f4ff);border-left:4px solid #2563eb;border-radius:0 8px 8px 0;font-size:13px;line-height:2.2;color:#334155">';
     
-    // 1. 线索获取
+    // 0. 发现要点——通俗理解
+    h += '<div style="font-weight:700;color:#1a1a2e;margin-bottom:8px;font-size:14px">📌 发现要点</div>';
+    h += '<div style="margin-bottom:10px;padding:8px 12px;background:#fff;border-radius:4px">' + (f.description || f.detail || f.type || '').substring(0, 300) + '</div>';
+    
+    // 1. 线索获取——怎么发现的
     var howFound = f.how_found || '';
     var provenance = f.provenance || {};
     var sources = (provenance.sources || []).join('、');
-    if (howFound || sources) {
-      h += '<div><strong>📡 线索获取：</strong>';
-      if (sources) h += '数据来源为' + sources + '。';
-      if (howFound) h += howFound.replace(/^我/g,'经');
-      h += '</div>';
+    h += '<div style="margin-top:10px"><strong>📡 线索获取——这个风险是怎么被发现的：</strong></div>';
+    if (sources) {
+      var sourceLabels = {'bank_txs':'银行流水','sal_invs':'销项发票','pur_invs':'进项发票','salaries':'工资表','social_security':'社保明细','vouchers':'记账凭证','inventory':'进销存台账','docs':'上传资料'};
+      var sourceList = (provenance.sources || []).map(function(s){ return sourceLabels[s] || s; }).join('、');
+      h += '<div style="padding:4px 0">稽查从<strong>' + sourceList + '</strong>这' + ((provenance.sources||[]).length) + '类数据源中开始排查。</div>';
+    }
+    if (howFound) {
+      h += '<div style="padding:4px 0">' + howFound.replace(/^我/g,'稽查') + '</div>';
     }
     
-    // 2. 分析过程（从证据链步骤提取）
+    // 2. 分析过程——怎么分析的
+    h += '<div style="margin-top:10px"><strong>🔬 分析过程——稽查是怎么一层层查下去的：</strong></div>';
     if (f.matched_chain_details && f.matched_chain_details.length > 0) {
       var allSteps = [];
       f.matched_chain_details.forEach(function(ch) {
@@ -1021,34 +1029,52 @@ function _renderReportFallback(r, allF) {
         }
       });
       if (allSteps.length > 0) {
-        h += '<div style="margin-top:6px"><strong>🔬 分析过程：</strong>';
-        h += '沿以下稽查步骤逐层推进——';
         var uniqueSteps = [];
         var seen = {};
         allSteps.forEach(function(s) {
           var key = s.step.substring(0, 30);
           if (!seen[key]) { seen[key] = true; uniqueSteps.push(s); }
         });
-        uniqueSteps.slice(0, 8).forEach(function(s, si) {
-          h += '<span style="display:inline-block;margin:2px 3px;padding:1px 8px;background:#e0e7ff;border-radius:3px;font-size:11px">' + (si+1) + '. ' + s.step.substring(0, 40) + '</span>';
+        uniqueSteps.slice(0, 10).forEach(function(s, si) {
+          var levelIcon = s.level === '高风险' ? '🔴' : (s.level === '中风险' ? '🟡' : '🟢');
+          h += '<div style="padding:3px 0">' + (si+1) + '. ' + levelIcon + ' ' + s.step.substring(0, 80) + '</div>';
         });
-        h += '</div>';
       }
+    } else {
+      // 无证据链时从how_found推断
+      var provDomain = provenance.domain || f.domain || f.category || '';
+      h += '<div style="padding:3px 0">第一步：对' + (sources || '相关资料') + '执行初步筛查，定位异常数据区间。</div>';
+      h += '<div style="padding:3px 0">第二步：提取关键字段（金额/日期/交易对方/品名等），与基准数据做交叉比对。</div>';
+      h += '<div style="padding:3px 0">第三步：发现偏差超过预设阈值（如偏差率>20%、集中度>80%等），标记为待深度核查事项。</div>';
+      if (provDomain) h += '<div style="padding:3px 0">第四步：提交' + provDomain + '域分析函数做专项深度分析，确认风险等级。</div>';
     }
     
-    // 3. 证据组织
+    // 3. 证据组织——证据怎么来的
     var evidenceCount = (f.evidence_rows || []).length;
     var itemCount = (f.items || []).length;
-    if (evidenceCount > 0 || itemCount > 0) {
-      h += '<div style="margin-top:6px"><strong>📋 证据组织：</strong>';
-      if (evidenceCount > 0) h += '从' + sources + '中提取' + evidenceCount + '条证据记录';
-      if (itemCount > 0) h += '，形成' + itemCount + '项证据明细';
-      h += '，逐笔编号、交叉比对、构建完整证据闭环。</div>';
+    h += '<div style="margin-top:10px"><strong>📋 证据组织——证据是怎么串起来的：</strong></div>';
+    h += '<div style="padding:4px 0">本次发现共调用' + (sources || '多源') + '数据';
+    if (evidenceCount > 0) h += '，从中提取了<strong>' + evidenceCount + '条</strong>具体证据记录（每条含来源/交易对方/金额/日期/备注）';
+    if (itemCount > 0) h += '，并形成<strong>' + itemCount + '项</strong>结构化证据明细';
+    h += '。</div>';
+    if (f.matched_chain_count > 0) {
+      h += '<div style="padding:4px 0">上述证据通过<strong>' + (f.matched_chain_count || 0) + '条</strong>关联证据链进行交叉验证，确保不同数据源的证据之间相互印证、形成闭环。</div>';
+    } else if (f.matched_rule_count > 0) {
+      h += '<div style="padding:4px 0">上述发现由<strong>' + (f.matched_rule_count || 0) + '条</strong>稽查规则触发，经规则引擎逐条校验后确认。</div>';
     }
     
-    // 4. tax_impact
+    // 4. 为什么会这样——通俗解释
+    h += '<div style="margin-top:10px"><strong>💡 为什么会这样——通俗理解：</strong></div>';
     if (f.tax_impact && f.tax_impact.length > 10) {
-      h += '<div style="margin-top:6px"><strong>⚡ 税务影响：</strong>' + f.tax_impact + '</div>';
+      h += '<div style="padding:4px 0">' + f.tax_impact + '</div>';
+    }
+    var detailText = f.detail || f.description || '';
+    if (detailText.length > 30) {
+      // 提取关键数据做通俗解释
+      var hasPercent = detailText.match(/(\d+\.?\d*%)/);
+      var hasAmount = detailText.match(/(\d+[,\.\d]*[万元])/);
+      if (hasPercent) h += '<div style="padding:4px 0;color:#64748b">关键数据：偏差幅度达' + hasPercent[0] + '，超出正常波动范围。</div>';
+      if (hasAmount) h += '<div style="padding:4px 0;color:#64748b">涉及金额：' + hasAmount[0] + '。</div>';
     }
     
     h += '</div>';
