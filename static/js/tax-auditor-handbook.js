@@ -23,6 +23,7 @@ function renderAuditorHandbook(container) {
   html += '<a class="toc-item" data-target="report">📝 报告编制规范</a>';
   html += '<a class="toc-item" data-target="laws">⚖️ 关键法律条文</a>';
   html += '<a class="toc-item" data-target="methodology">🔬 稽查方法论</a>';
+  html += '<a class="toc-item" data-target="judgment-rules">🔍 稽查判定规则</a>';
   html += '<a class="toc-item" data-target="system-mapping">🔗 系统与规程映射</a>';
   html += '</nav>';
 
@@ -433,9 +434,70 @@ function renderAuditorHandbook(container) {
   html += '</div>'; // hb-method-grid
   html += '</section>';
 
-  // ═══ 第六部分：系统与规程映射 ═══
+  // ═══ 第六部分：稽查判定规则（2026-06-28 老邓亲授）═══
+  html += '<section id="judgment-rules" class="hb-section">';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 稽查判定规则</h2>';
+  html += '<p class="hb-section-lead">以下规则定义了系统如何综合分析资料——不是靠硬编码关键词，而是通过思考、对比、交叉验证得出综合判断结论。所有规则已写入代码自动执行。</p>';
+
+  // 规则1: 公司身份锚定
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">📌 规则一：公司身份锚定</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">所有分析必须以当前账套公司为锚点。系统从主页侧边栏读取公司名称与统一社会信用代码，作为后续所有判断的基准。销项发票的销售方只有一个——就是账套公司；进项发票的购买方也只有一个——就是账套公司。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>engine/pipeline.py 综合判断层 · engine/domain_analysis.py _is_service_industry</p>';
+  html += '</div>';
+
+  // 规则2: 发票方向自动判定
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">🧭 规则二：发票方向自动判定</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">上传发票资料后，系统逐行扫描购买方名称/税号与销售方名称/税号，与当前账套公司比对：</p>';
+  html += '<ul style="font-size:13px;color:#475569;margin:6px 0;padding-left:20px">';
+  html += '<li><strong>公司名/USCC出现在购买方列</strong> → 进项发票（供应商开给公司）</li>';
+  html += '<li><strong>公司名/USCC出现在销售方列</strong> → 销项发票（公司开给客户）</li>';
+  html += '<li><strong>买卖双方都有信息但都不含公司</strong> → 存疑（此发票不属于本账套，排除出分析）</li>';
+  html += '<li><strong>仅有销售方信息无购买方</strong> → 进项（公司推断为购买方）</li>';
+  html += '</ul>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>engine/pipeline.py 发票方向判定 · 存疑过滤</p>';
+  html += '</div>';
+
+  // 规则3: 综合判断
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">🧩 规则三：综合判断（四方交叉验证）</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">系统判定文件类型不依赖单一来源，而是收集四方证据交叉验证：<strong>文件名暗示 → 列头推理 → 数据扫描（买卖方身份收集）→ 公司匹配</strong>。证据一致→高置信度确认；证据冲突→优先相信数据推理（因为文件名可能误命名，但数据说了真话）；全部不匹配→标注存疑。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>engine/pipeline.py _is_service_goods · 综合判断层 · 三方证据记录</p>';
+  html += '</div>';
+
+  // 规则4: 进项再分类
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">📊 规则四：进项发票再分类</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">判定为进项后，系统进一步区分用途：含<strong>"有效抵扣税额""勾选状态""勾选时间"</strong>等列的 → 进项抵扣认证（用于增值税进项税额抵扣）；不含上述列的 → 进项发票（用于记账）。两种用途不可混淆——抵扣认证独立于记账发票。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>engine/pipeline.py 列头推理 · filename_type_map.json</p>';
+  html += '</div>';
+
+  // 规则5: 服务行业闸门
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">🚫 规则五：服务行业闸门</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">销项品名的金税分类编码属于服务行业（广告服务/信息技术服务/咨询服务/金融服务等25类）时，自动跳过以下分析：<strong>进销存台账、BOM表（物料清单）、进销比、毛利率行业对标</strong>。服务行业以人力/知识/创意为核心成本，不适用基于实物商品流转的指标。三层闸门确保全覆盖：管道层→域分析层→引擎输出层。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>industry_data.json service_industries · pipeline.py 三层过滤 · domain_analysis.py _is_service_industry</p>';
+  html += '</div>';
+
+  // 规则6: 品名级精准过滤
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">🎯 规则六：品名级精准过滤</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">当一家公司既有服务品名又有实物品名时，系统不搞一刀切：<strong>服务品名（如*广告服务*广告发布）跳过进销存比对，实物品名（如*印刷品*宣传册）正常纳入进销存检查</strong>。按品名的金税分类编码逐项判定，精准到品名级别。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>执行位置：</strong>engine/pipeline.py _is_service_goods() · sale_by_goods 过滤</p>';
+  html += '</div>';
+
+  // 规则7: 配置外部化
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">⚙️ 规则七：规则配置外部化</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">服务行业编码、文件名类型映射、行业基准值等规则数据全部从JSON配置文件读取，不硬编码在代码中。新增行业或文件类型只需修改配置文件（industry_data.json / filename_type_map.json），无需改动任何Python代码。确保跨行业扩展时核心逻辑不受影响。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>配置文件：</strong>static/industry_data.json · static/filename_type_map.json · static/type_anchors.json</p>';
+  html += '</div>';
+  html += '</section>';
+
+  // ═══ 第七部分：系统与规程映射 ═══
   html += '<section id="system-mapping" class="hb-section">';
-  html += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 系统方法论与法定程序映射</h2>';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">七</span> 系统方法论与法定程序映射</h2>';
   html += '<p class="hb-section-lead">本系统五大核心引擎一一对应《税务稽查工作规程》的法定程序——确保每一步都有法可依、有据可查。</p>';
 
   // 映射总览
