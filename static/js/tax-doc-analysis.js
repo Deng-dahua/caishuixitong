@@ -1734,9 +1734,8 @@ function _initReportTTS() {
     '<span id="tts-progress" style="font-size:12px;color:#94a3b8"></span>' +
     '</div>' +
     '<div style="font-size:11px;color:#94a3b8;margin-top:4px">💡 点击报告任意段落可从此处开始播报至报告结束 · 播音标准：新闻联播级专业播报 · 橙色底纹=正在播报的段落</div>';
-  bar.style.cssText = 'position:sticky;top:0;z-index:100;margin-bottom:20px;padding:14px 18px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06)';
-  
-  area.insertBefore(bar, area.firstChild);
+  bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;min-width:620px;max-width:920px;padding:12px 18px;background:rgba(255,255,255,0.96);border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);backdrop-filter:blur(10px)';
+  document.body.appendChild(bar);
   
   document.getElementById('tts-play-all').onclick = function() { _ttsBuildChunks(area); _ttsState.currentIdx = 0; _ttsSpeakNext(); _updateTtsUI(true); };
   document.getElementById('tts-pause').onclick = _ttsTogglePause;
@@ -1753,12 +1752,48 @@ function _initReportTTS() {
 
 function _ttsBuildChunks(container) {
   _ttsChunks = [];
-  var els = container.querySelectorAll('p, h2, h3, td, th, li, .ftitle, .frow, .flabel, .ritem, .atitle, .aitem, .seal p, .fact-sec, .conclusion-box');
+  // 覆盖全部报告内容元素——确保不漏播
+  var els = container.querySelectorAll('p, h1, h2, h3, h4, td, th, li, .ftitle, .frow, .flabel, .ritem, .atitle, .aitem, .seal p, .fact-sec, .conclusion-box, .i2, .cover h1, .cover .sub, .tag, .law-ref, .std-label, .rpt-title');
   els.forEach(function(el) {
-    if (el.closest('#tts-bar') || el.closest('#review-panel') || el.closest('details')) return;
-    var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (el.closest('#tts-bar') || el.closest('#review-panel') || el.closest('details') || el.closest('style')) return;
+    var t = _ttsCleanText((el.textContent || ''));
     if (t.length > 5) _ttsChunks.push({el: el, text: t});
   });
+}
+
+// 文本清洗：去标点符号、修正多音字
+function _ttsCleanText(text) {
+  var t = text.replace(/\s+/g, ' ').trim();
+  // 去除播报不需要的标点
+  t = t.replace(/[_→●◆■★☆✓✕⚠📌📡🔬📋💡🔗🎯⚖️🧠📚🔊🎙️📝💻📄📁📐📜🛡️⚙️🔍📊🔒⚡📋🔴🟡🟢❌✅]/g, '');
+  // 去除Markdown/技术符号
+  t = t.replace(/[`*~#>\-\[\](){}|]/g, '');
+  // 去除多余空格
+  t = t.replace(/\s{2,}/g, ' ');
+  // 多音字修正（财税稽查场景常见）
+  t = t.replace(/行/g, function(match, offset, str) {
+    // "银行"→hang, "行为/执行/进行"→xing
+    var before = str.substring(Math.max(0, offset-2), offset);
+    if (before.indexOf('银') >= 0) return '航';
+    return '形';
+  });
+  t = t.replace(/率/g, '律');  // 税率/毛利率→律
+  t = t.replace(/差/g, function(match, offset, str) {
+    var before = str.substring(Math.max(0, offset-2), offset);
+    if (before.indexOf('偏') >= 0 || before.indexOf('误') >= 0) return '叉';
+    return '插';
+  });
+  t = t.replace(/调/g, function(match, offset, str) {
+    var before = str.substring(Math.max(0, offset-2), offset);
+    if (before.indexOf('空') >= 0 || before.indexOf('协') >= 0 || before.indexOf('声') >= 0) return '条';
+    return '掉';
+  });
+  // 重→众(严重/重大/重要)
+  t = t.replace(/重([大要处罚])/g, '众$1');
+  // 长→常(法定代表人)
+  t = t.replace(/法定代表人/g, '法定代理人');
+  t = t.replace(/长期/g, '常期');
+  return t;
 }
 
 function _bindClickToSpeak(container) {
