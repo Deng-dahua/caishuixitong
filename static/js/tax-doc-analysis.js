@@ -1197,12 +1197,10 @@ function _renderReportFallback(r, allF) {
         });
       }
     } else {
-      // 无证据链时从how_found推断
+      // 无证据链时从how_found生成自然语言描述，不暴露内部流程步骤
       var provDomain = provenance.domain || f.domain || f.category || '';
-      h += '<div style="padding:3px 0">第一步：对' + (sources || '相关资料') + '执行初步筛查，定位异常数据区间。</div>';
-      h += '<div style="padding:3px 0">第二步：提取关键字段（金额/日期/交易对方/品名等），与基准数据做交叉比对。</div>';
-      h += '<div style="padding:3px 0">第三步：发现偏差超过预设阈值（如偏差率>20%、集中度>80%等），标记为待深度核查事项。</div>';
-      if (provDomain) h += '<div style="padding:3px 0">第四步：提交' + provDomain + '域分析函数做专项深度分析，确认风险等级。</div>';
+      var howFoundClean = (f.how_found || '').replace(/^我/g,'').replace(/我/g,'系统');
+      h += '<div style="padding:3px 0">' + howFoundClean + '</div>';
     }
     
     // 3. 证据组织——证据怎么来的

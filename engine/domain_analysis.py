@@ -8139,18 +8139,30 @@ def _build_causal_narratives(all_findings):
             detail = str(best_f.get("detail", "") or best_f.get("description", ""))[:100]
             signal_details.append(f"  * {sig}: {detail}")
 
-        # 格式化因果叙事（去除内部技术标记，符合报告编制规范——客观第三人称）
-        signal_list = "\n".join(
-            f"  · {sig}: {detail}" 
-            for sig, detail in zip(hit_signals, [str(req_matches[s][0].get("detail", "") or "")[:100] for s in hit_signals])
-        )
+        # 格式化因果叙事（纯自然中文，无内部标签）
+        signal_details_natural = []
+        for sig, matches in req_matches.items():
+            d = str(matches[0].get("detail", "") or "")
+            # 去掉第一人称
+            d = d.replace('我将','将').replace('我审查','审查').replace('我逐','逐').replace('我比对','比对')
+            signal_details_natural.append(f"· {sig}：{d[:150]}")
+        signal_text = "\n".join(signal_details_natural)
+        opt_text = f"此外还观察到{', '.join(opt_hit)}等现象" if opt_hit else ""
+        
+        # 因果方向转自然语言
+        causal_natural = causal_direction
+        if '->' in causal_natural:
+            parts = [p.strip() for p in causal_natural.split('->')]
+            if len(parts) >= 2:
+                causal_natural = f"从时间顺序分析，{parts[0]}发生于前，{parts[-1]}发生于后，两者存在时序关联。"
+        
         clean_narrative = (
             f"经综合推断，{rule['narrative']}\n\n"
-            f"触发信号：\n{signal_list}"
-            + (f"\n辅助信号：{', '.join(opt_hit)}" if opt_hit else "")
-            + f"\n\n因果方向：{causal_direction}\n\n"
-            + f"分析说明：{rule['explanation']}\n\n"
-            + f"核查路径：{rule['evidence_chain']}"
+            f"本次核查发现以下关键迹象：\n{signal_text}\n"
+            + (f"{opt_text}\n" if opt_text else "")
+            + f"\n{causal_natural}\n\n"
+            + f"分析认为：{rule['explanation']}\n\n"
+            + f"建议进一步核查：{rule['evidence_chain']}"
         )
         
         narratives.append({

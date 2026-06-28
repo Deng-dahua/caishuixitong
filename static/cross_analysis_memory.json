@@ -2914,6 +2914,39 @@
         "经营实质-工商登记与发票推断不一致"
       ],
       "timestamp": "2026-06-28T20:34:51.283145"
+    },
+    {
+      "trace_id": "18d58e17",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "信息技术服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T20:41:03.870436",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "2ab60518",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-06-28T20:41:03.916276"
     }
   ],
   "industry_patterns": {
@@ -2930,7 +2963,7 @@
       "typical_data_profile": {}
     },
     "信息技术服务": {
-      "analyses_count": 13,
+      "analyses_count": 14,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
