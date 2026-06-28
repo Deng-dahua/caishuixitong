@@ -1585,7 +1585,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     period_from=period_start, period_to=period_end)
                 # ═══ 行业过滤：排除不适用行业的制造专有规则 ═══
                 _manu_only_rules = {"考勤记录与计件工资的产量反推", "计件工资"}
-                ind = target_entity.get("industry", ctx.company_profile.get("industry", ""))
+                ind = (ctx.company_profile or {}).get("industry", "")
                 _is_manu = any(kw in str(ind) for kw in ["制造", "生产", "加工", "工业", "工厂", "车间"])
                 if not _is_manu:
                     engine_results = [r for r in engine_results if r.get("item", "") not in _manu_only_rules]
