@@ -57,6 +57,43 @@
   列结构锚点→static/type_anchors.json
   新增行业/类型只改JSON，不改Python代码
 
+═══ 缺失的关键规则（2026-06-28 补充写入） ═══
+
+【规则八：只读有效信息，空白全部忽略】
+  解析Excel/文件时，跳过所有空白行、小计行、合计行、重复表头行
+  只统计有实际数据的有效记录
+  140行Excel→可能只有7条有效，不能把空行计入分析
+  代码: main.py _is_summary_row() / engine/pipeline.py 有效行过滤
+
+【规则九：文件类型识别体系（13类）】
+  引擎必须通过四步推理识别文件类型，不得仅靠文件名或单一关键词：
+  bank_statement / sales_invoice / purchase_invoice / input_vat_deduction /
+  salary / salary_tax / social_security / housing_fund / voucher /
+  contract / inventory / trial_balance / tax_declaration
+  代码: engine/pipeline.py 综合判断层 / static/filename_type_map.json
+
+【规则十：存疑发票绝对排除】
+  买卖双方都有名称+税号但都不含当前公司→此发票不属于本账套
+  标记"存疑"后必须排除出所有后续分析（记账/风险计算/税务推断）
+  不得以任何默认值（如默认进项）继续处理
+  代码: engine/pipeline.py 存疑标记+排除逻辑
+
+【规则十一：账套数据物理隔离】
+  所有分析数据按company_id隔离，文件存储在{company_id}/子目录
+  删除账套=32张数据表级联删除+文件目录全部清除
+  不同账套的分析结果互不影响
+  代码: engine/pipeline.py _get_company_upload_dir() / archives.py delete_company()
+
+═══ 引擎自省能力 ═══
+  每次分析完成后，引擎必须自问：
+  1. 公司身份是否已锚定？（规则一）
+  2. 发票方向是否已比对判定？（规则二）
+  3. 存疑发票是否已排除？（规则十）
+  4. 空白行是否已跳过？（规则八）
+  5. 服务行业是否已跳过进销存？（规则五）
+  6. 品名是否精准过滤？（规则六）
+  上述6项全部通过，本次分析才算可靠。
+
 ═════ 假设-验证推理引擎（引擎"思考"能力）═════
   每条重要发现 → 生成2-3个竞争假设 → 逐条证据验证 → 加权判决
   代码位置: engine/hypothesis_engine.py run_hypothesis_verification()
