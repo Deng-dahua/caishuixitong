@@ -4505,17 +4505,27 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 in_individual = True  # 空名称通常也在个人款兜底
             
             if in_individual and credit < 100:
-                # 金额特征验证：银行利息通常是有整有零的精确小数，不会是整数
-                is_decimal = credit != int(credit)  # 有小数部分
-                # 名称特征：银行利息的付款方通常为空、短、或含"银行"
+                # 金额特征验证：银行利息/费用通常是有整有零的精确小数
+                is_decimal = credit != int(credit)
+                # 放宽条件：极小金额(<20元)只要有零有整，几乎肯定是银行利息
+                # 银行利息特征：结息金额通常精确到分(如9.62/3.17/0.48)，人为转账多为整数
+                is_micro_amount = credit < 20
+                # 名称特征
                 is_empty_name = not cp or len(cp) < 4
-                is_bank_name = any(k in cp for k in ['银行','农行','建行','工行','交行','招行','农商','信用社'])
+                is_bank_name = any(k in cp for k in ['银行','农行','建行','工行','交行','招行','农商','信用社','分行','支行'])
                 # 摘要特征
-                is_bank_summary = any(k in summary for k in ['结息','利息','季度','活期','定期','扣息','手续费','账户管理'])
-                # 纯数字型摘要（如"202502"） + 极小金额 → 银行自动扣费
+                is_bank_summary = any(k in summary for k in ['结息','利息','季度','活期','定期','扣息','手续费','账户管理','管理费'])
                 is_numeric_summary = _re.match(r'^\d{4,8}$', summary.strip()) is not None
+                # 小额精确金额 + 空摘要 = 极大概率银行自动扣息
+                has_empty_summary = not summary or len(summary.strip()) < 2
                 
-                if is_decimal and (is_empty_name or is_bank_name or is_bank_summary or is_numeric_summary):
+                should_correct = False
+                if is_decimal and is_micro_amount and has_empty_summary:
+                    should_correct = True  # <20元+有零有整+空摘要→银行利息
+                elif is_decimal and (is_empty_name or is_bank_name or is_bank_summary or is_numeric_summary):
+                    should_correct = True  # 有零有整+银行特征→银行利息
+                
+                if should_correct:
                     # 重新分到银行内部款项
                     if cp in pay_cats.get("个人款", {}):
                         del pay_cats["个人款"][cp]
