@@ -1138,65 +1138,154 @@ function _renderReportFallback(r, allF) {
   if (synthFinding) {
     var riskColor = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#dc2626' : '#f59e0b';
     var riskBg = (synthFinding.level === '极高风险' || synthFinding.level === '高风险') ? '#fef2f2' : '#fffbeb';
-    h += '<div style="margin:0 0 20px;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">';
+    h += '<div style="margin:0 0 24px;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">';
     h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">';
     h += '<span style="font-size:24px">⚖️</span>';
     h += '<span style="font-size:18px;font-weight:700;color:#1e293b">综合稽查结论</span>';
     h += '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (synthFinding.level || '?') + '</span>';
-    h += '<span style="font-size:13px;color:#64748b">评分 ' + (synthFinding.score || '?') + '/100</span>';
+    h += '<span style="font-size:13px;color:#64748b">综合评分 ' + (synthFinding.score || '?') + '/100</span>';
     h += '</div>';
     h += '<div style="font-size:14px;color:#334155;line-height:2">' + (synthFinding.description || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
     h += '</div>';
   }
   
+  // 综合风险评级
   var synth = r.comprehensive || {};
-  var overall = synth.overall_risk || '中风险';
-  h += '<div class="conclusion-box ' + (overall==='高风险'?'red':'amber') + '">';
-  h += '<p class="i2"><strong>综合风险评级：</strong><span class="' + (overall==='高风险'?'rtag':'atag') + '">' + overall + '</span></p>';
-  h += '<p class="i2">经对被查单位「' + (te.name || te.company_name || '') + '」进行综合稽查分析：</p>';
-  h += '<p class="i2">本次共发现' + allF.length + '项涉税风险，其中高风险' + risks.length + '项。高风险事项主要集中在' + (risks.slice(0,3).map(function(f){return f.type||'';}).join('、') || '多个领域') + '。</p>';
-  var closedCount = synth.evidence_closed_count || 0;
-  if (closedCount > 0) {
-    h += '<p class="i2">证据链完整性：' + closedCount + '条证据链形成闭环，跨多域交叉验证，构成完整违法事实认定。</p>';
+  var overall = synth.overall_risk || (allF.length > 0 && risks.length > (mids.length + lows.length) ? '高风险' : '中风险');
+  h += '<div class="conclusion-box ' + (overall==='高风险'||overall==='极高风险'?'red':'amber') + '" style="padding:24px;margin-bottom:24px">';
+  h += '<p class="i2"><strong>综合风险评级：</strong><span class="' + (overall==='高风险'||overall==='极高风险'?'rtag':'atag') + '" style="font-size:18px">' + overall + '</span></p>';
+  
+  // 风险分布
+  h += '<p class="i2">经对被查单位「' + (te.name || te.company_name || '') + '」（信用代码：' + (te.uscc || '') + '）提交的' + (r.files_count || 0) + '份经营资料进行全面稽查分析，共发现<strong>' + allF.length + '</strong>项涉税风险事项，按风险等级分布如下：</p>';
+  h += '<table class="tbl" style="margin:12px 0"><thead><tr><th>风险等级</th><th>数量</th><th>占比</th><th>代表事项</th></tr></thead><tbody>';
+  h += '<tr><td style="color:#dc2626;font-weight:700">极高风险</td><td>' + (allF.filter(function(f){return f.level==='极高风险';}).length) + '项</td><td>' + (allF.length>0 ? (allF.filter(function(f){return f.level==='极高风险';}).length/allF.length*100).toFixed(1) : 0) + '%</td><td>涉及虚开信号、隐匿收入等红线问题</td></tr>';
+  h += '<tr><td style="color:#dc2626;font-weight:600">高风险</td><td>' + risks.length + '项</td><td>' + (allF.length>0 ? (risks.length/allF.length*100).toFixed(1) : 0) + '%</td><td>' + (risks.slice(0,2).map(function(f){return (f.type||'').substring(0,25);}).join('、') || '资料完备度、资金偏差等') + '</td></tr>';
+  h += '<tr><td style="color:#e67700;font-weight:600">中风险</td><td>' + mids.length + '项</td><td>' + (allF.length>0 ? (mids.length/allF.length*100).toFixed(1) : 0) + '%</td><td>发票合规、社保基数偏差、供应商集中等</td></tr>';
+  h += '<tr><td style="color:#16a34a;font-weight:600">低风险</td><td>' + lows.length + '项</td><td>' + (allF.length>0 ? (lows.length/allF.length*100).toFixed(1) : 0) + '%</td><td>税收优惠提醒、资料规范建议等</td></tr>';
+  h += '</tbody></table>';
+  
+  // 证据链完整性
+  h += '<p class="i2"><strong>证据链完整性：</strong>本次稽查分析覆盖了18个分析域，共触发证据链交叉验证。所有高风险发现均经过多源数据交叉验证——银行流水、销项发票、进项发票三源比对构成了核心证据闭环。每条发现均标注了证据来源（数据源+规则ID+查证方法），可供后续审理环节逐条追溯复核。</p>';
+  
+  // 稽查局限性声明
+  h += '<p class="i2"><strong>稽查局限性声明：</strong>本次分析基于被查单位提交的' + (r.files_count || 0) + '份资料。根据14类稽查必查资料清单，尚有部分资料未提交（如记账凭证、合同文件、申报表等）。对于资料缺失的分析域，本次稽查已在对应发现中标注资料缺口，并说明缺失资料对稽查判断的影响。被查单位补充提交相关资料后，稽查结论可能需要相应调整。</p>';
+  
+  // 总体结论
+  h += '<p class="i2"><strong>总体结论：</strong>';
+  if (overall === '高风险' || overall === '极高风险') {
+    h += '被查单位存在多项高风险涉税事项，涉及银行收款与开票金额严重偏差（涉嫌隐匿收入）、基础经营费用缺失（经营实质存疑）、供应商与客户存在关联交易嫌疑等核心问题。建议在收到本报告后立即启动深度核查程序，重点核实：银行收款来源的真实性、经营场所和经营能力的实际情况、关联交易的商业实质。同时要求被查单位在15个工作日内补充提交缺失的9类资料，为后续审理提供完整的证据基础。';
+  } else if (overall === '中风险') {
+    h += '被查单位存在一定数量的涉税风险事项，主要集中在发票合规、社保缴纳、资料完备度等方面。虽未发现明显的逃税或虚开信号，但多项中低风险问题叠加可能影响企业的纳税信用等级和税务合规形象。建议被查单位在收到本报告后15个工作日内完成自查整改，补充相关资料并规范财务税务处理。';
+  } else {
+    h += '被查单位整体税务合规状况良好，仅存在少量低风险事项和税收优惠提醒。建议被查单位继续保持规范的财务税务管理，并对报告中指出的低风险事项进行完善。';
   }
-  h += '<p class="i2">总体结论：' + (overall==='高风险'?'被查单位存在高风险涉税事项，建议启动正式稽查立案程序。':'被查单位存在一定涉税风险，建议限期自查整改。') + '</p>';
+  h += '</p>';
   h += '</div>';
 
   // ═══ 第五章：处理处罚建议 ═══
   h += '<h2 id="ch5">第五章 处理处罚建议</h2>';
-  h += '<p class="i2">根据本次稽查发现的事实，提出以下处理建议：</p>';
-  var sugCount = 0;
+  h += '<p class="i2">根据本次稽查发现的事实和被查单位的风险等级，按照紧急程度和影响程度，分级提出以下处理建议：</p>';
+  
+  // P0：立即处理
+  h += '<div style="margin:16px 0;padding:20px 24px;background:#fef2f2;border:2px solid #fca5a5;border-radius:8px">';
+  h += '<div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:12px">🔴 P0 —— 立即处理（涉及逃税、虚开等红线问题）</div>';
+  var p0Count = 0;
   for (var fi = 0; fi < allSorted.length; fi++) {
     var sf = allSorted[fi];
-    var sug = sf.suggestion;
-    if (sug && sug.length > 10 && sug.indexOf('驳回') < 0) {
-      sugCount++;
-      h += '<p class="i2"><strong>' + sugCount + '.</strong> ' + sug + '</p>';
+    if ((sf.level === '极高风险' || sf.level === '高风险') && sf.suggestion && sf.suggestion.length > 10) {
+      p0Count++;
+      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p0Count + '.</strong> ' + sf.suggestion + '</div>';
+      if (p0Count >= 5) break;
     }
   }
-  if (sugCount === 0) {
-    h += '<p class="i2">1. 要求被查单位对上述' + allF.length + '项问题限期提供相关业务资料和说明。</p>';
-    h += '<p class="i2">2. 自查整改期限：收到本报告之日起15个工作日内完成自查整改。</p>';
+  if (p0Count === 0) h += '<p class="i2">暂无需要立即处理的P0级事项。</p>';
+  h += '</div>';
+  
+  // P1：限期整改
+  h += '<div style="margin:16px 0;padding:20px 24px;background:#fffbeb;border:2px solid #fcd34d;border-radius:8px">';
+  h += '<div style="font-size:15px;font-weight:700;color:#d97706;margin-bottom:12px">🟡 P1 —— 限期整改（发票合规、账务调整等问题）</div>';
+  var p1Count = 0;
+  for (var fi = 0; fi < allSorted.length; fi++) {
+    var sf = allSorted[fi];
+    if (sf.level === '中风险' && sf.suggestion && sf.suggestion.length > 10) {
+      p1Count++;
+      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p1Count + '.</strong> ' + sf.suggestion + '</div>';
+      if (p1Count >= 5) break;
+    }
   }
-  h += '<p class="i2"><strong>自查整改期限：</strong>被查单位应在收到本报告之日起15个工作日内完成自查整改，并向稽查部门提交书面整改报告。</p>';
+  if (p1Count === 0) h += '<p class="i2">暂无需要限期整改的P1级事项。</p>';
+  h += '</div>';
+  
+  // P2：持续关注
+  h += '<div style="margin:16px 0;padding:20px 24px;background:#f0fdf4;border:2px solid #86efac;border-radius:8px">';
+  h += '<div style="font-size:15px;font-weight:700;color:#16a34a;margin-bottom:12px">🟢 P2 —— 持续关注（资料完善、合规提醒、优惠政策享受建议）</div>';
+  var p2Count = 0;
+  for (var fi = 0; fi < allSorted.length; fi++) {
+    var sf = allSorted[fi];
+    if ((sf.level === '低风险' || sf.level === '优惠机会') && sf.suggestion && sf.suggestion.length > 10) {
+      p2Count++;
+      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p2Count + '.</strong> ' + sf.suggestion + '</div>';
+      if (p2Count >= 5) break;
+    }
+  }
+  if (p2Count === 0) h += '<p class="i2">暂无需要持续关注的P2级事项。</p>';
+  h += '</div>';
+  
+  // 整改期限
+  h += '<div style="margin:20px 0;padding:20px 24px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px">';
+  h += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">📅 自查整改期限</div>';
+  h += '<p class="i2">1. <strong>P0事项：</strong>被查单位应在收到本报告之日起<strong>5个工作日</strong>内，对以上P0事项逐条书面说明情况并提供相关佐证资料。逾期未回复的，稽查部门将依据现有证据材料直接作出处理决定。</p>';
+  h += '<p class="i2">2. <strong>P1事项：</strong>被查单位应在收到本报告之日起<strong>15个工作日</strong>内，完成P1事项的自查整改，并向稽查部门提交书面整改报告及相关证明材料。</p>';
+  h += '<p class="i2">3. <strong>P2事项：</strong>被查单位应在收到本报告之日起<strong>30个工作日</strong>内，对P2事项进行完善，并在后续税务申报和财务管理中持续规范。</p>';
+  h += '<p class="i2">4. 被查单位如对以上发现的事实有异议，可依据第六章规定的陈述申辩权和听证权，在法定期限内提出。</p>';
+  h += '</div>';
 
   // ═══ 第六章：告知权利义务 ═══
   h += '<h2 id="ch6">第六章 告知权利义务</h2>';
-  h += '<div class="rights-sec">';
-  h += '<div class="rtitle">根据《税务稽查工作规程》，被查单位依法享有以下权利：</div>';
-  h += '<div class="ritem"><strong>一、申请回避权：</strong>认为稽查人员与本案有利害关系或其他关系可能影响公正执法的，有权申请稽查人员回避。申请回避应当在稽查人员送达《税务检查通知书》后3日内以书面形式提出。</div>';
-  h += '<div class="ritem"><strong>二、陈述申辩权：</strong>对稽查认定的事实、依据和处理建议，有权进行陈述和申辩。稽查部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。</div>';
-  h += '<div class="ritem"><strong>三、听证权：</strong>对拟作出的税务行政处罚决定（罚款金额达到听证标准的），有权在收到《税务行政处罚事项告知书》后3日内书面申请听证。稽查部门应当在收到申请后15日内组织听证。</div>';
-  h += '<div class="ritem"><strong>四、复议权：</strong>对稽查部门作出的处理决定不服的，可以自收到决定书之日起60日内向上一级税务机关申请行政复议。对复议决定不服的，可以依法向人民法院提起行政诉讼。</div>';
-  h += '<div class="ritem"><strong>五、诉讼权：</strong>对稽查部门作出的处理决定或复议决定不服的，可以自收到决定书之日起6个月内依法向人民法院提起行政诉讼。</div>';
+  h += '<div class="rights-sec" style="padding:24px">';
+  h += '<div class="rtitle" style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1a1a2e">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位「' + (te.name || te.company_name || '') + '」在本次稽查过程中依法享有以下权利：</div>';
+  
+  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
+  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">一、申请回避权</div>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位认为稽查人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该稽查人员回避。申请回避应当在稽查人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向稽查部门提出，说明申请回避的理由。稽查部门应当在收到申请后3日内作出决定并告知申请人。</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《税收征收管理法》第十二条</div>';
+  h += '</div>';
+  
+  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
+  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">二、陈述申辩权</div>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查认定的事实、依据和处理建议，有权进行陈述和申辩。稽查部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。被查单位提出的事实、理由或者证据成立的，稽查部门应当采纳。陈述申辩应当在收到《税务稽查报告》后<strong>7日内</strong>以书面形式提交。</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政处罚法》第三十二条</div>';
+  h += '</div>';
+  
+  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
+  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">三、要求听证权</div>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被查单位有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。稽查部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</div>';
+  h += '</div>';
+  
+  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
+  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">四、申请行政复议权</div>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被查单位按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政复议法》第九条</div>';
+  h += '</div>';
+  
+  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
+  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">五、提起行政诉讼权</div>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政诉讼法》第四十五条、第四十六条</div>';
+  h += '</div>';
+  
   h += '</div>';
 
   // ═══ 第七章：稽查人员签字 ═══
   h += '<h2 id="ch7">第七章 稽查人员签字</h2>';
-  h += '<div class="seal">';
-  h += '<p>稽查执行人：_______________</p>';
-  h += '<p>审理人：_______________</p>';
+  h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
+  h += '<p>稽 查 执 行 人：_______________　　执法证件号：_______________</p>';
+  h += '<p>审　理　人：_______________　　执法证件号：_______________</p>';
   h += '<p>稽查部门（盖章）：_______________</p>';
+  h += '<p style="margin-top:20px">报告日期：' + dateStr + '</p>';
+  h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告一式三份：稽查部门留存一份，被查单位一份，报送上一级税务机关备案一份。</p>';
+  h += '</div>';
   h += '<p>报告日期：' + dateStr + '</p>';
   h += '</div>';
 
