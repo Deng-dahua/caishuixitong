@@ -681,36 +681,13 @@ async function analyzeTaxDocs() {
     taxDocReportData = data.report;
     renderAnalyzeHeader(data.report);
     
-    // ── 报告块架构（新）：后端推 blocks → 前端通用渲染 ──
-    if (data.blocks && data.blocks.length) {
-      var area = document.getElementById('tax-doc-result');
-      if (area && typeof window.renderReportBlocks === 'function') {
-        area.innerHTML = '';
-        window.renderReportBlocks(data.blocks, area);
-      } else if (area) {
-        // 降级：内嵌简约渲染
-        var h = '';
-        data.blocks.forEach(function(b) {
-          if (b.type === 'finding' && b.data && b.data.finding) {
-            var f = b.data.finding;
-            var lvl = f.level || '中风险';
-            var cls = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : '#f0fdf4');
-            h += '<div style="margin:12px 0;padding:14px 18px;border-left:4px solid ' + (lvl==='高风险'?'#dc2626':(lvl==='中风险'?'#e67700':'#16a34a')) + ';border-radius:6px;background:' + cls + ';border:1px solid #eee">';
-            h += '<div style="font-weight:700;margin-bottom:6px">' + (f.title || f.category || '') + ' [' + lvl + ']</div>';
-            if (f.detail) h += '<div style="font-size:13px;color:#333;margin-bottom:6px">' + (f.detail||'') + '</div>';
-            h += '</div>';
-          }
-        });
-        area.innerHTML = h;
-      }
+    // ── 统一使用7章标准格式渲染（跳过旧的blocks渲染器）──
+    allF = data.report.all_findings || [];
+    var ctx = _renderReportFallback(data.report, allF);
+    if (ctx && ctx.html) {
+      document.getElementById('tax-doc-result').innerHTML = ctx.html;
     } else {
-      // 降级：使用7章标准结构渲染
-      var ctx = _renderReportFallback(data.report, allF);
-      if (ctx && ctx.html) {
-        area.innerHTML = ctx.html;
-      } else {
-        area.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
-      }
+      document.getElementById('tax-doc-result').innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
     }
     
     var exportBtn = document.getElementById('tda-export-btn');
