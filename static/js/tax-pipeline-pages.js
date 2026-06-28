@@ -2508,6 +2508,7 @@ function renderQualitySystem(container) {
     + '<span style="color:#7c3aed;font-weight:600">② 全行业适用：</span>所有方法论和代码逻辑适用于全行业各企业，禁止行业特化硬编码。<br>'
     + '<span style="color:#059669;font-weight:600">③ 来源可追溯：</span>每个组件标注来源模块和代码位置，可独立验证和学习。<br>'
     + '<span style="color:#f59e0b;font-weight:600">④ 开放生态：</span>体系持续扩展新的保障维度，不固定为"X合一"数字提法。'
+    + '<br><span style="color:#2563eb;font-weight:600">⑤ 新增：判定可靠性保障（2026-06-28）：</span>公司身份锚定+发票方向判定+存疑排除+服务行业闸门+品名级过滤+综合判断——7条稽查判定规则确保每条发现的判定逻辑可追溯可验证。'
     + '</div>'
     + '</div>';
 
