@@ -81,7 +81,6 @@ from file_parser import router as file_parser_router
 from archives import router as archives_router
 from financial_reports import router as financial_reports_router
 from bank_transactions import router as bank_transactions_router
-from bank_transactions import router as bank_transactions_router
 from bookkeeping_invoices import router as bookkeeping_invoices_router
 from contracts import router as contracts_router
 from inventory import router as inventory_router

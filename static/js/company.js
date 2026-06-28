@@ -57,17 +57,39 @@ async function switchCompany() {
   }
   
   popup.innerHTML = companies.map(c => {
-    let activeMark = c.id === currentCompanyId ? ' ✅' : '';
-    return '<div style="display:flex;align-items:center;padding:10px 16px;cursor:pointer;transition:background 0.15s"'
-      + ' onmouseover="this.style.background=\\'#f1f5f9\\'" onmouseout="this.style.background=\\'transparent\\'"'
-      + ' onclick="event.stopPropagation();switchToCompany(' + c.id + ',\\'' + c.name.replace(/'/g, "\\'") + '\\')">'
-      + '<span style="flex:1;font-size:14px;font-weight:500;color:#1e293b">' + c.name + activeMark + '</span>'
-      + '<button style="border:none;background:transparent;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:4px;color:#94a3b8"'
-      + ' onmouseover="this.style.background=\\'#fef2f2\\';this.style.color=\\'#ef4444\\'" onmouseout="this.style.background=\\'transparent\\';this.style.color=\\'#94a3b8\\'"'
-      + ' onclick="event.stopPropagation();deleteCompanyFromPick(' + c.id + ',\\'' + c.name.replace(/'/g, "\\'") + '\\');document.getElementById(\\'company-selector-popup\\').style.display=\\'none\\'"'
+    var activeMark = c.id === currentCompanyId ? ' ✅' : '';
+    var cnameSafe = c.name.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return '<div class="co-pick-item" data-cid="' + c.id + '" data-cname="' + cnameSafe + '"'
+      + ' style="display:flex;align-items:center;padding:10px 16px;cursor:pointer;transition:background 0.15s">'
+      + '<span style="flex:1;font-size:14px;font-weight:500;color:#1e293b">' + cnameSafe + activeMark + '</span>'
+      + '<button class="co-pick-del-btn" style="border:none;background:transparent;font-size:14px;cursor:pointer;padding:4px 8px;border-radius:4px;color:#94a3b8"'
       + ' title="删除此账套">🗑</button>'
       + '</div>';
   }).join('');
+  
+  // Event delegation instead of inline handlers
+  popup.querySelectorAll('.co-pick-item').forEach(function(item) {
+    item.addEventListener('mouseover', function() { this.style.background = '#f1f5f9'; });
+    item.addEventListener('mouseout', function() { this.style.background = 'transparent'; });
+    item.addEventListener('click', function(e) {
+      if (e.target.classList.contains('co-pick-del-btn')) return;
+      var cid = parseInt(this.getAttribute('data-cid'));
+      var cname = this.getAttribute('data-cname');
+      switchToCompany(cid, cname);
+    });
+  });
+  popup.querySelectorAll('.co-pick-del-btn').forEach(function(btn) {
+    btn.addEventListener('mouseover', function() { this.style.background = '#fef2f2'; this.style.color = '#ef4444'; });
+    btn.addEventListener('mouseout', function() { this.style.background = 'transparent'; this.style.color = '#94a3b8'; });
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var item = this.closest('.co-pick-item');
+      var cid = parseInt(item.getAttribute('data-cid'));
+      var cname = item.getAttribute('data-cname');
+      deleteCompanyFromPick(cid, cname);
+      popup.style.display = 'none';
+    });
+  });
   
   popup.style.display = 'block';
   
