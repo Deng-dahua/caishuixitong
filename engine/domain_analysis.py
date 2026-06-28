@@ -171,9 +171,51 @@ def _domain_bank_tracking(txs):
         "category": "域1 资金全链路"})
     return findings
 
+# ═══════════════════════════════════════════════════════════════
+# 共享判断函数：服务行业检测
+# ═══════════════════════════════════════════════════════════════
+def _is_service_industry(sal_invs):
+    """判断销项发票品名是否全部/主要属于服务行业（无实物货物流转）
+    返回 (is_service, svc_ratio) 元组
+    """
+    if not sal_invs: return (False, 0.0)
+    import re, json, os
+    try:
+        _ind_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
+        with open(_ind_path, 'r', encoding='utf-8') as _f:
+            SERVICE_CODES = json.loads(_f.read()).get("service_industries", {}).get("codes", [])
+    except Exception:
+        SERVICE_CODES = ["广告服务","信息技术服务","研发和技术服务","文化创意服务",
+            "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
+            "金融服务","现代服务","生活服务","电信服务","建筑服务",
+            "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
+            "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
+            "安全保护服务","会议展览服务","租赁服务","无形资产"]
+    svc = 0; total = 0
+    for inv in sal_invs:
+        goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+        m = re.search(r'\*([^*]+)\*', goods)
+        if m:
+            total += 1
+            cat = m.group(1)
+            if any(s in cat for s in SERVICE_CODES):
+                svc += 1
+    ratio = svc / total if total > 0 else 0.0
+    return (ratio >= 0.5, ratio)
+
 def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
     """域2: 进销毛利率 — 发票对比用开票收入，总收入用主营业务收入"""
     findings = []
+    
+    # 服务行业闸门：服务类品名占比>=50% → 跳过进销比等实物商品分析
+    is_svc, svc_pct = _is_service_industry(sal_invs)
+    if is_svc:
+        findings.append({"type": "进销存跳过-服务行业",
+            "level": "低风险", "score": 2,
+            "detail": f"销项品名中服务类占比{svc_pct*100:.0f}%≥50%，属于服务行业，不适用进销存比值分析。进销比/进销毛利率/品名匹配等基于实物商品流转的指标已自动跳过。",
+            "category": "进销存匹配"})
+        return findings
+    
     s_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
     p_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in pur_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
     s_count, p_count = len(sal_invs), len(pur_invs)
@@ -771,6 +813,9 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     """评估提交资料的完整度，逐项量化缺失资料的稽查风险和牵连影响
     稽查必查14类资料：银行流水/销项发票/进项发票/记账凭证/工资表/社保明细/进销存台账/
     合同文件/科目余额表/资产负债表/利润表/增值税申报表/企业所得税申报表/个税申报表/其他税种申报表"""
+    
+    # 服务行业闸门：BOM表/进销存台账等实物商品相关要求不适用
+    is_svc, svc_pct = _is_service_industry(sal_invs) if sal_invs else (False, 0.0)
     findings = []
     if trial_balance_data is None: trial_balance_data = []
     if contract_data is None: contract_data = []
@@ -3150,6 +3195,16 @@ def _get_product_keywords(industry_code, is_raw=True):
 def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, inventory, target_industry=""):
     """与行业基准值对比——基于国家税总局行业预警值"""
     findings = []
+    
+    # 服务行业闸门：进销比等基于实物商品流转的指标不适用
+    is_svc, svc_pct = _is_service_industry(sal_invs)
+    if is_svc:
+        findings.append({"type": "进销比跳过-服务行业",
+            "level": "低风险", "score": 2,
+            "detail": f"销项品名服务类占比{svc_pct*100:.0f}%，进销比/毛利率行业对标不适用于服务行业。服务行业以人力/知识/创意为核心成本，非实物采购成本驱动。已自动跳过进销比和毛利率行业对标。",
+            "category": "行业对标"})
+        return findings
+    
     bm = _load_industry_data().get("benchmarks", {}).get(target_industry, _load_industry_data()["benchmarks"]["_default"])
     
     vr_total = voucher_rev.get("total", 0) if voucher_rev else 0

@@ -2769,6 +2769,56 @@ def _run_analyze(company_id, db, progress_callback=None):
     if priority_fixed:
         pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
 
+    # ═══ 服务行业后处理：剔除不适用服务行业的进销存/BOM/进销比发现 ═══
+    # WHY: 服务行业(广告/IT/咨询等)天然无实物货物流转，进销存台账/BOM表/进销比等基于实物商品的指标不适用
+    # 在 all_findings 合并后统一过滤，确保域分析/管道/跨域结论中的进销存误报全部清除
+    try:
+        import re, json as _json2
+        _ind_path2 = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
+        with open(_ind_path2, 'r', encoding='utf-8') as _f2:
+            _svc_codes = _json2.loads(_f2.read()).get("service_industries", {}).get("codes", [])
+    except Exception:
+        _svc_codes = ["广告服务","信息技术服务","研发和技术服务","文化创意服务",
+            "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
+            "金融服务","现代服务","生活服务","电信服务","建筑服务",
+            "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
+            "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
+            "安全保护服务","会议展览服务","租赁服务","无形资产"]
+    _svc_sal = 0; _total_sal = 0
+    for inv in sal_invs:
+        g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+        m = re.search(r'\*([^*]+)\*', g)
+        if m:
+            _total_sal += 1
+            if any(s in m.group(1) for s in _svc_codes):
+                _svc_sal += 1
+    _is_svc_final = _total_sal > 0 and _svc_sal / _total_sal >= 0.5
+    
+    if _is_svc_final:
+        # 需剔除的发现类型（关键词匹配）
+        _svc_exclude_patterns = [
+            "进销比","进销存","有进无销","有销无进","品名不匹配","品名差异",
+            "BOM表","物料清单","进销品名","购销商品种不匹配","购销售商品种",
+            "加工费掩盖","缺少BOM","商品种不匹配","加工链条","存货积压",
+            "库存周转","进销异常","购销严重倒挂","原材料.*成品","原料.*加工",
+        ]
+        _filtered_out = 0
+        _new_findings = []
+        for f in all_findings:
+            ftype = f.get("type", "")
+            if any(re.search(pat, ftype) for pat in _svc_exclude_patterns):
+                _filtered_out += 1
+                continue
+            # 也过滤detail中含有"BOM表"但type不匹配的
+            fdetail = f.get("detail", "")
+            if "BOM表" in fdetail and "进销" in fdetail:
+                _filtered_out += 1
+                continue
+            _new_findings.append(f)
+        all_findings = _new_findings
+        if _filtered_out:
+            pipeline_log.append(f"[服务行业过滤] 剔除{_filtered_out}条不适用服务行业的进销存/BOM相关发现（销项服务类占比{_svc_sal/_total_sal*100:.0f}%）")
+    
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
@@ -3150,6 +3200,30 @@ def _run_analyze(company_id, db, progress_callback=None):
         engine_status = {"error": f"{e}: {traceback.format_exc()[-200:]}", "version": "v2.0-partial"}
     
     # ── 最终注入：Phase 4 综合定性 + Phase 3 交叉验证（在所有过滤之后）──
+    # ═══ 服务行业二次过滤：确保Phase 3/4引擎新增的进销存发现也被清除 ═══
+    if _is_svc_final:
+        _svc_exclude_patterns2 = [
+            "进销比","进销存","有进无销","有销无进","品名不匹配","品名差异",
+            "BOM表","物料清单","进销品名","购销商品种不匹配","购销售商品种",
+            "加工费掩盖","缺少BOM","商品种不匹配","加工链条","存货积压",
+            "库存周转","进销异常","购销严重倒挂","原材料.*成品","原料.*加工",
+        ]
+        _filtered2 = 0
+        _new_all = []
+        for f in all_findings:
+            ftype = f.get("type", "")
+            if any(re.search(pat, ftype) for pat in _svc_exclude_patterns2):
+                _filtered2 += 1
+                continue
+            fdetail = f.get("detail", "")
+            if "BOM表" in fdetail and "进销" in fdetail:
+                _filtered2 += 1
+                continue
+            _new_all.append(f)
+        all_findings = _new_all
+        if _filtered2:
+            pipeline_log.append(f"[服务行业二次过滤] 追加剔除{_filtered2}条引擎阶段产生的进销存发现")
+    
     final_findings = list(all_findings)
     if synth_finding is not None:
         final_findings.insert(0, synth_finding)

@@ -503,11 +503,137 @@
         "supplier_concentration": 52.98142384523668,
         "goods_match_ratio": 0.0
       }
+    },
+    {
+      "trace_id": "5808f3af",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T09:59:16.410099",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "f925e88c",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T09:59:29.830340",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "44de2316",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T09:59:44.360869",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "89c8c503",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T10:00:02.062221",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "f89f344a",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T10:00:31.169754",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "fcd7c8e5",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T10:04:38.709149",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "cd393123",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-06-28T10:05:49.820673",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.53,
+        "supplier_concentration": 52.98142384523668,
+        "goods_match_ratio": 0.0
+      }
     }
   ],
   "industry_patterns": {
     "广告服务": {
-      "analyses_count": 28,
+      "analyses_count": 35,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
