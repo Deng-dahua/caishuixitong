@@ -910,7 +910,7 @@ function _renderReportFallback(r, allF) {
       base._mergedItems = grp.findings.map(function(sub, si) {
         return {
           title: (sub.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,''),
-          detail: (sub.detail || sub.description || '').substring(0, 300),
+          detail: (sub.detail || sub.description || ''),
           level: sub.level || '?',
           items: sub.items || null,
           how_found: sub.how_found || '',
@@ -921,7 +921,7 @@ function _renderReportFallback(r, allF) {
       
       // 扩充主描述：列出所有子项
       var subDescs = grp.findings.map(function(sub, si) {
-        var sd = (sub.detail || sub.description || '').substring(0, 200);
+        var sd = (sub.detail || sub.description || '');
         return '【子项' + (si+1) + '】' + sd;
       });
       base.detail = '（同类风险共' + grp.findings.length + '项，合并列示如下）\n\n' + subDescs.join('\n\n');
@@ -997,7 +997,7 @@ function _renderReportFallback(r, allF) {
   h += '<tr><td class="lbl">企业类型</td><td>' + (te.company_type || '（工商数据未获取）') + '</td></tr>';
   h += '<tr><td class="lbl">行业</td><td>' + (te.industry || '未确定') + '</td></tr>';
   var scope = te.business_scope || te.biz_scope || '';
-  if (scope) h += '<tr><td class="lbl">经营范围</td><td>' + (scope.length > 200 ? scope.substring(0,200) + '...' : scope) + '</td></tr>';
+  if (scope) h += '<tr><td class="lbl">经营范围</td><td>' + scope + '</td></tr>';
   h += '<tr><td class="lbl">稽查期间</td><td>' + (te.period || '全量数据') + '</td></tr>';
   h += '<tr><td class="lbl">稽查范围</td><td>增值税及附加、企业所得税、个人所得税、社会保险费、文化事业建设费</td></tr>';
   h += '<tr><td class="lbl">执行标准</td><td>《税务稽查工作规程》（国税发[2009]157号）、《税收征收管理法》及其实施细则</td></tr>';
@@ -1142,10 +1142,10 @@ function _renderReportFallback(r, allF) {
         h += '<div style="font-weight:600;color:#1e293b;margin-bottom:4px"><span style="color:' + (sub.level==='高风险'?'#dc2626':(sub.level==='中风险'?'#e67700':'#16a34a')) + '">[' + sub.level + ']</span> 子项' + (si+1) + '：' + (sub.title || '') + '</div>';
         h += '<div style="font-size:12px;color:#475569;line-height:1.8">' + (sub.detail || '') + '</div>';
         if (sub.tax_impact && sub.tax_impact.length > 10) {
-          h += '<div style="font-size:11px;color:#dc2626;margin-top:4px">⚠ ' + sub.tax_impact.substring(0, 150) + '</div>';
+          h += '<div style="font-size:11px;color:#dc2626;margin-top:4px">⚠ ' + sub.tax_impact + '</div>';
         }
         if (sub.suggestion && sub.suggestion.length > 10) {
-          h += '<div style="font-size:11px;color:#059669;margin-top:2px">→ ' + sub.suggestion.substring(0, 150) + '</div>';
+          h += '<div style="font-size:11px;color:#059669;margin-top:2px">→ ' + sub.suggestion + '</div>';
         }
         h += '</div>';
       });
@@ -1157,7 +1157,7 @@ function _renderReportFallback(r, allF) {
     
     // 0. 发现要点——通俗理解
     h += '<div style="font-weight:700;color:#1a1a2e;margin-bottom:8px;font-size:14px">📌 发现要点</div>';
-    h += '<div style="margin-bottom:10px;padding:8px 12px;background:#fff;border-radius:4px">' + (f.description || f.detail || f.type || '').substring(0, 300) + '</div>';
+    h += '<div style="margin-bottom:10px;padding:8px 12px;background:#fff;border-radius:4px">' + (f.description || f.detail || f.type || '') + '</div>';
     
     // 1. 线索获取——怎么发现的
     var howFound = f.how_found || '';
@@ -1191,7 +1191,7 @@ function _renderReportFallback(r, allF) {
           var key = s.step.substring(0, 30);
           if (!seen[key]) { seen[key] = true; uniqueSteps.push(s); }
         });
-        uniqueSteps.slice(0, 10).forEach(function(s, si) {
+        uniqueSteps.forEach(function(s, si) {
           var levelIcon = s.level === '高风险' ? '🔴' : (s.level === '中风险' ? '🟡' : '🟢');
           h += '<div style="padding:3px 0">' + (si+1) + '. ' + levelIcon + ' ' + s.step.substring(0, 80) + '</div>';
         });
@@ -1254,13 +1254,12 @@ function _renderReportFallback(r, allF) {
       h += '</tbody></table>';
     } else if (f.evidence_rows && f.evidence_rows.length > 0) {
       h += '<table class="tbl" style="font-size:11px;margin:4px 0"><thead><tr><th>来源</th><th>对方</th><th>金额</th><th>日期</th><th>备注</th></tr></thead><tbody>';
-      f.evidence_rows.slice(0, 10).forEach(function(er) {
+      f.evidence_rows.forEach(function(er) {
         h += '<tr><td>' + (er.source||'') + '</td><td>' + (er.counterparty||'') + '</td><td class="r">' + (_fmt(er.amount,'')) + '</td><td>' + (er.date||'') + '</td><td>' + (er.note||er.ref_label||'') + '</td></tr>';
       });
-      if (f.evidence_rows.length > 10) h += '<tr><td colspan="5" style="text-align:center;color:#94a3b8">...共' + f.evidence_rows.length + '条，以上为前10条</td></tr>';
       h += '</tbody></table>';
     } else {
-      h += (f.detail || '').substring(0, 500);
+      h += (f.detail || '');
     }
     h += '</div>';
     
