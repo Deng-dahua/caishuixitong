@@ -1,0 +1,12 @@
+[进销存] 销项品名分类：服务类2条(100%) 实物类0条 — 服务类品名跳过进销存比对，实物类正常检查
+[ORCHESTRATOR] 激活16/21个模块, 跳过5个. 分布: 分析:7 数据准备:3 核查:3 质量控制:2 输出:1
+规则引擎异常: cannot access local variable 'target_entity' where it is not associated with a value
+链驱动引擎异常: cannot access local variable 'Company' where it is not associated with a value
+证据链匹配异常: 'str' object has no attribute 'get'
+知识图谱: 49个实体/5个异常关系
+Benford检验: 1项异常
+[COMPLIANCE] 门禁第1轮不通过: 16项阻断性违规，尝试自动修复...
+[DISCOVERY] 自动发现1条新规则: 跳过0/修正0/信号0
+
+Total error lines: 9
+QC: {}

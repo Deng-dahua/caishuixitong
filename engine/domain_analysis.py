@@ -7395,6 +7395,8 @@ def _check_conclusion_consistency(all_findings):
             continue
         
         # 收集触发finding的provenance信息（供回溯引擎使用）
+        a_types = list(set(f.get("type", "") for f in a_findings))[:3]
+        description = f"矛盾检测命中模式'{rule['id']}': {rule['name']}\n命中信号A: {'、'.join(a_types)}"
         a_provenance = {
             "sources": list(set(s for f in a_findings for s in (f.get("provenance", {}).get("sources", ["unknown"])))),
             "domains": list(set(f.get("domain", "") for f in a_findings if f.get("domain"))),

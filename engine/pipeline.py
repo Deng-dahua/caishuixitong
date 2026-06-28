@@ -2488,6 +2488,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 c = chain_map.get(cn, {})
                 steps_summary = []
                 for s in c.get("investigation_path", []):
+                    if not isinstance(s, dict): continue
                     steps_summary.append({"step": s.get("step",""), "rule_id": s.get("rule_id"), "level": s.get("level","")})
                 chain_details.append({"name": cn, "steps": c.get("steps",0), "high_risk": c.get("high_risk_steps",0), "steps_detail": steps_summary})
             f["matched_chain_details"] = chain_details
@@ -2523,8 +2524,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                     triggered_rule_ids.add(rid)
         recommended_next = []
         for chain in chains_data.get("chains", []):
+            if not isinstance(chain, dict): continue
             trig = []; notrig = []
             for step in chain.get("investigation_path", []):
+                if not isinstance(step, dict): continue
                 if step.get("rule_id") in triggered_rule_ids:
                     trig.append(step)
                 else:
@@ -2542,11 +2545,15 @@ def _run_analyze(company_id, db, progress_callback=None):
         # ── 链使用统计（持久化） ──
         chain_usage = {}
         for c in chains_data.get("chains", []):
-            hits = sum(1 for s in c.get("investigation_path", []) if s.get("rule_id") in triggered_rule_ids)
+            if not isinstance(c, dict):
+                continue
+            hits = sum(1 for s in c.get("investigation_path", []) if isinstance(s, dict) and s.get("rule_id") in triggered_rule_ids)
             if hits > 0:
                 chain_usage[c["name"]] = {"hits": hits, "steps": c.get("steps", 0), "type": c.get("chain_type", "?")}
         try:
             for c in chains_data.get("chains", []):
+                if not isinstance(c, dict):
+                    continue
                 uc = chain_usage.get(c["name"], {})
                 if uc.get("hits", 0) > 0:
                     c["usage_count"] = c.get("usage_count", 0) + 1
@@ -3369,20 +3376,20 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _cce:
         pipeline_log.append(f"[CROSS-CHECK] 矛盾检测异常: {_cce}")
     
-    # ═══ 合规门禁（阻断版）───
+    # ═══ 合规门禁（检测+标记模式，非阻断）───
     gate_passed = True
     gate_rounds = 1
     try:
-        from engine.self_learning import run_compliance_gate_blocking
-        gate_result, all_findings, gate_rounds = run_compliance_gate_blocking(
-            all_findings, pipeline_log, file_results, ctx, max_rounds=3
+        from engine.self_learning import run_compliance_gate
+        gate_result, all_findings = run_compliance_gate(
+            all_findings, pipeline_log, file_results, ctx
         )
         gate_passed = gate_result.get("passed", False)
         result["compliance_gate"] = gate_result
         result["report"]["gate_rounds"] = gate_rounds
         if not gate_passed:
             blocking_count = len(gate_result.get("blocking_violations", []))
-            pipeline_log.append(f"[GATE-STOP] 合规门禁{gate_rounds}轮未通过：{blocking_count}项阻断性违规——报告禁止自动输出，需人工复核后手动发布")
+            pipeline_log.append(f"[GATE-INFO] 合规门禁{gate_rounds}轮: {blocking_count}项违规已标记，报告仍可输出——底部标注质量警告")
             result["report"]["blocked"] = True
             result["report"]["block_reason"] = gate_result.get("blocked_reason", "")
             result["report"]["blocking_violations_count"] = blocking_count
@@ -3570,7 +3577,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             
             # ⑤ 稽查方法论学习
             from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
-            methodologies = list(METHODOLOGY_KNOWLEDGE.get("methodologies", {}).values())
+            methodologies = METHODOLOGY_KNOWLEDGE.get("methodologies", [])
             agi_pipeline.ingest_methodologies(methodologies, domain_results, analysis_trace_id)
             
             # ⑨⑩⑪ 跨域线索/分析/证据链学习

@@ -326,7 +326,11 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
         if _os.path.exists(json_path):
             with open(json_path, 'r', encoding='utf-8') as f:
                 config = _json.load(f)
-                json_patterns = config.get('patterns', [])
+                if not isinstance(config, dict):
+                    pipeline_log.append(f"[Phase3] JSON配置文件格式错误: 期望object，实际为{type(config).__name__}")
+                    json_patterns = []
+                else:
+                    json_patterns = config.get('patterns', [])
                 # 按 id 去重：JSON 中的规则覆盖同 id 的硬编码规则
                 existing_ids = {p['id'] for p in patterns}
                 new_count = 0
