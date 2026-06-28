@@ -432,6 +432,165 @@ function renderAuditorHandbook(container) {
   html += '</div>';
 
   html += '</div>'; // hb-method-grid
+
+  // 补充方法论（5.8-5.29，共21条）
+  html += '<div class="hb-method-grid">';
+
+  // 5.8 发票五层审计
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">🧾</div>';
+  html += '<h3>5.8 发票五层审计法</h3>';
+  html += '<p class="hb-method-principle">合规检查（数量/单位）→ 同品名单价 → 加工费专项 → 金额合理性 → BOM/进销映射。</p>';
+  html += '</div>';
+
+  // 5.9 发票≠收付款1:1
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-purple">🔀</div>';
+  html += '<h3>5.9 发票≠收付款1:1方法论</h3>';
+  html += '<p class="hb-method-principle">双边适用同一套六种收付款模式：自然跨期/合并/分期/预付/预收/应付/非对公代付。未匹配≠虚开/隐匿收入→分级判断。</p>';
+  html += '</div>';
+
+  // 5.10 合同分层判断
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-green">📋</div>';
+  html += '<h3>5.10 合同分层判断法</h3>';
+  html += '<p class="hb-method-principle">品名/金额/类型三标准自动判断合同需求等级：必签/应签/可免/小额。印花税预估=must_total×0.03%。</p>';
+  html += '</div>';
+
+  // 5.11 经营实质地理分析
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-red">🌍</div>';
+  html += '<h3>5.11 经营实质地理分析法</h3>';
+  html += '<p class="hb-method-principle">点→面推理：供应商/客户/加工商地址三角验真→重物运输成本→跨省经营合理性→全链条物流验证。</p>';
+  html += '</div>';
+
+  // 5.12 六员跨企业比对
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-yellow">👥</div>';
+  html += '<h3>5.12 六员跨企业比对法</h3>';
+  html += '<p class="hb-method-principle">一人多角检测+跨企业人员重叠检测→发现关联关系→触发连锁稽查点。</p>';
+  html += '</div>';
+
+  // 5.13 供应链联网核查
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">🌐</div>';
+  html += '<h3>5.13 供应链联网核查法</h3>';
+  html += '<p class="hb-method-principle">进销发票TOP10→搜狗联网查每家→六员交叉比对→人员重叠=关联交易→供应商=客户=购销闭环。</p>';
+  html += '</div>';
+
+  // 5.14 主营业务成本识别
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-purple">🎯</div>';
+  html += '<h3>5.14 主营业务成本识别法</h3>';
+  html += '<p class="hb-method-principle">通过品名关键词匹配三层分类（core/major/minor），只对核心成本做进销匹配，排除费用类干扰。</p>';
+  html += '</div>';
+
+  // 5.15 三流比对
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-green">📊</div>';
+  html += '<h3>5.15 三流比对法（资金流/发票流/货物流）</h3>';
+  html += '<p class="hb-method-principle">资金流与发票流双向核对：收款vs销项+付款vs进项，四象限匹配判定异常。</p>';
+  html += '</div>';
+
+  // 5.16 联网核查·知识图谱
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">🔍</div>';
+  html += '<h3>5.16 联网核查·知识图谱提取法</h3>';
+  html += '<p class="hb-method-principle">三层数据源：数据库缓存→搜狗搜索KG→360搜索备用。正则提取工商信息。</p>';
+  html += '</div>';
+
+  // 5.17 四步稽查分析法
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-red">🔄</div>';
+  html += '<h3>5.17 四步稽查分析法</h3>';
+  html += '<p class="hb-method-principle">detect检测→verify交叉验证→diagnose根因诊断→report输出结论。风险转移而非消除。</p>';
+  html += '</div>';
+
+  // 5.18 行业推断法
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-yellow">🏭</div>';
+  html += '<h3>5.18 行业推断法（仅销项品名）</h3>';
+  html += '<p class="hb-method-principle">行业推断唯一依据=销项发票品名（金税编码分类），不参考进项。卖什么=什么行业。</p>';
+  html += '</div>';
+
+  // 5.19 三层行业穿透
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-purple">📐</div>';
+  html += '<h3>5.19 三层行业穿透法</h3>';
+  html += '<p class="hb-method-principle">工商登记（法律形式）→发票数据（经营实质）→加工信号（业务模式），三者不一致时实质重于形式。</p>';
+  html += '</div>';
+
+  // 5.20 供应商深挖
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-red">🏗️</div>';
+  html += '<h3>5.20 供应商深度穿透法</h3>';
+  html += '<p class="hb-method-principle">集中度分析+同城群集检测+名称异常识别+双向交易检测+注册时间交叉比对。</p>';
+  html += '</div>';
+
+  // 5.21 公司身份锚定
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">⚓</div>';
+  html += '<h3>5.21 公司身份锚定法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">所有分析以当前账套公司为锚点。销项销售方=公司，进项购买方=公司。买方位/销方位匹配判定发票方向。</p>';
+  html += '</div>';
+
+  // 5.22 综合判断法
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-green">🧩</div>';
+  html += '<h3>5.22 综合判断·四方交叉验证（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">文件名暗示→列头推理→数据扫描→公司匹配。证据冲突时优先数据推理。</p>';
+  html += '</div>';
+
+  // 5.23 服务行业闸门
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-yellow">🚫</div>';
+  html += '<h3>5.23 服务行业闸门法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">服务行业（广告/IT/咨询等25类）自动跳过进销存/BOM/进销比/毛利率对标。三层闸门全覆盖。</p>';
+  html += '</div>';
+
+  // 5.24 存疑排除
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-red">❓</div>';
+  html += '<h3>5.24 存疑排除法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">买卖双方都有信息但都不含公司→此发票不属于本账套→标记存疑→排除出分析。</p>';
+  html += '</div>';
+
+  // 5.25 品名级精准过滤
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">🎯</div>';
+  html += '<h3>5.25 品名级精准过滤（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">服务品名跳过进销存，实物品名正常检查。按金税编码逐项判定，不搞一刀切。</p>';
+  html += '</div>';
+
+  // 5.26 空白信息过滤
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-green">📋</div>';
+  html += '<h3>5.26 有效信息提取法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">只读有效信息，空白/小计/合计/重复表头全部忽略。140行Excel可能只有7条有效。</p>';
+  html += '</div>';
+
+  // 5.27 配置外部化
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-purple">⚙️</div>';
+  html += '<h3>5.27 规则配置外部化（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">行业编码/文件类型映射从JSON配置读取，不硬编码。新增行业只改配置不动代码。</p>';
+  html += '</div>';
+
+  // 5.28 报告增强
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-blue">📄</div>';
+  html += '<h3>5.28 报告文本自动增强法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">简短发现自动扩充为规范结构：现象→证据→影响→法条→建议。五要素自动拼合。</p>';
+  html += '</div>';
+
+  // 5.29 进项再分类
+  html += '<div class="hb-method-card">';
+  html += '<div class="hb-method-icon hb-m-icon-red">📊</div>';
+  html += '<h3>5.29 进项发票再分类法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">进项+含有效抵扣税额/勾选状态→进项抵扣认证（抵税用），不含→进项发票（记账用）。两种用途不可混淆。</p>';
+  html += '</div>';
+
+  html += '</div>'; // hb-method-grid
   html += '</section>';
 
   // ═══ 第六部分：稽查判定规则（2026-06-28 老邓亲授）═══
