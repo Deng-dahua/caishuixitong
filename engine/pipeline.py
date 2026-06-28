@@ -5704,17 +5704,17 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     # 联网查询未获取六员数据时，从DB已有数据回填
     if not target_entity.get("directors") or not target_entity.get("supervisors") or not target_entity.get("finance_contacts"):
         try:
-                from database import Company as _C2
-                _c = db.query(_C2).filter(_C2.id == company_id, _C2.name == company_name).first()
-                if _c:
-                    if not target_entity["directors"]:
-                        target_entity["directors"] = [{"name": d.name, "id_number": d.id_number or ""} for d in (_c.directors or [])]
-                    if not target_entity["supervisors"]:
-                        target_entity["supervisors"] = [{"name": s.name, "id_number": s.id_number or ""} for s in (_c.supervisors or [])]
-                    if not target_entity["finance_contacts"]:
-                        target_entity["finance_contacts"] = [{"name": f.name, "id_number": f.id_number or "", "phone": f.phone or ""} for f in (_c.finance_contacts or [])]
-            except:
-                pass
+            from database import Company as _C2
+            _c = db.query(_C2).filter(_C2.id == company_id, _C2.name == company_name).first()
+            if _c:
+                if not target_entity["directors"]:
+                    target_entity["directors"] = [{"name": d.name, "id_number": d.id_number or ""} for d in (_c.directors or [])]
+                if not target_entity["supervisors"]:
+                    target_entity["supervisors"] = [{"name": s.name, "id_number": s.id_number or ""} for s in (_c.supervisors or [])]
+                if not target_entity["finance_contacts"]:
+                    target_entity["finance_contacts"] = [{"name": f.name, "id_number": f.id_number or "", "phone": f.phone or ""} for f in (_c.finance_contacts or [])]
+        except:
+            pass
         
         # 如果联网查到了行业分类，替换发票关键词推断的行业（联网数据更权威）
         if lookup.get("industry"):
