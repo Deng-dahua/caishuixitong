@@ -3748,6 +3748,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception:
         pass
     
+    # 注入 material_intel 到报告结果，供前端资金流渲染
+    try:
+        if comprehensive and 'material_intel' in comprehensive:
+            result["report"]["material_intel"] = comprehensive["material_intel"]
+    except: pass
+    
     return result
 
 # ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
