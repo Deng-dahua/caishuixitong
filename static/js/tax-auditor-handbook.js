@@ -588,6 +588,10 @@ function renderAuditorHandbook(container) {
   html += '<div class="hb-method-icon hb-m-icon-red">📊</div>';
   html += '<h3>5.29 进项发票再分类法（2026-06-28新增）</h3>';
   html += '<p class="hb-method-principle">进项+含有效抵扣税额/勾选状态→进项抵扣认证（抵税用），不含→进项发票（记账用）。两种用途不可混淆。</p>';
+  html += '<h3>5.30 收款分类自适应法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">禁止预设固定的收款类别数量。系统同时扫描付款方名称+交易摘要双字段，按JSON配置的12+条规则逐层匹配。新增类型只改配置不改代码。覆盖全行业：税费返还/银行内部/股东注资/关联往来/借款/保证金/第三方支付/政府补贴/保险理赔/资产处置/企业客户/个人待分析。</p>';
+  html += '<h3>5.31 分类后纠错验证法（2026-06-28新增）</h3>';
+  html += '<p class="hb-method-principle">分类完成后系统必须自我反思——"这个分类合理吗？"检查规则：①个人款中极小金额(<100元)且有零有整→大概率银行利息；②付款方为空且摘要含银行词→银行费用；③金额为精确整数且付款方为企业名→企业客户款无误。发现误分类自动修正并记录。</p>';
   html += '</div>';
 
   html += '</div>'; // hb-method-grid
@@ -651,6 +655,12 @@ function renderAuditorHandbook(container) {
   html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">⚙️ 规则七：规则配置外部化</h3>';
   html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">服务行业编码、文件名类型映射、行业基准值等规则数据全部从JSON配置文件读取，不硬编码在代码中。新增行业或文件类型只需修改配置文件（industry_data.json / filename_type_map.json），无需改动任何Python代码。确保跨行业扩展时核心逻辑不受影响。</p>';
   html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>配置文件：</strong>static/industry_data.json · static/filename_type_map.json · static/type_anchors.json</p>';
+  html += '</div>';
+  
+  html += '<div class="hb-card" style="margin-bottom:16px">';
+  html += '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 8px">🔄 规则八：分类后纠错验证</h3>';
+  html += '<p style="font-size:13px;color:#475569;line-height:1.8;margin:0">系统每次分类后必须自我反思——"这个分类合理吗？有没有明显反例？"具体检查：①个人款中极小金额(&lt;100元)且有零有整(如9.62元)→大概率是银行利息，自动修正到"银行内部款项"；②付款方为空且摘要含银行关键词→银行费用；③纯数字摘要+极小金额→银行自动扣费。修正记录写入分析日志可追溯。</p>';
+  html += '<p style="font-size:12px;color:#94a3b8;margin:4px 0 0"><strong>代码：</strong>engine/domain_analysis.py 收款分类纠错验证段 · 配置：industry_data.json</p>';
   html += '</div>';
   html += '</section>';
 

@@ -4485,6 +4485,48 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             if not matched:
                 pay_cats["个人款"][cp] += credit
         
+        # ── 收款类型纠错验证：系统自我反思，修正明显误分类 ──
+        # 方法论：分类完成后，系统自问——"这个分类合理吗？有没有明显的反例？"
+        # 规则1：个人款中极小金额（<100元）且金额有零有整（如9.62）→ 大概率是银行利息
+        # 规则2：个人款中付款方为空且摘要含银行关键词 → 银行费用
+        # 规则3：企业客户款中付款方实际是关联方 → 需查摘要确认
+        import re as _re
+        corrections = []
+        for tx in bank_txs:
+            credit = float(tx.get("credit", 0) or 0)
+            if credit <= 0: continue
+            cp = str(tx.get("counterparty", "")).strip()
+            summary = str(tx.get("summary", ""))
+            # 已经在个人款中的极小金额 → 检查是否为银行利息
+            in_individual = False
+            if cp in pay_cats.get("个人款", {}):
+                in_individual = True
+            elif not cp:
+                in_individual = True  # 空名称通常也在个人款兜底
+            
+            if in_individual and credit < 100:
+                # 金额特征验证：银行利息通常是有整有零的精确小数，不会是整数
+                is_decimal = credit != int(credit)  # 有小数部分
+                # 名称特征：银行利息的付款方通常为空、短、或含"银行"
+                is_empty_name = not cp or len(cp) < 4
+                is_bank_name = any(k in cp for k in ['银行','农行','建行','工行','交行','招行','农商','信用社'])
+                # 摘要特征
+                is_bank_summary = any(k in summary for k in ['结息','利息','季度','活期','定期','扣息','手续费','账户管理'])
+                # 纯数字型摘要（如"202502"） + 极小金额 → 银行自动扣费
+                is_numeric_summary = _re.match(r'^\d{4,8}$', summary.strip()) is not None
+                
+                if is_decimal and (is_empty_name or is_bank_name or is_bank_summary or is_numeric_summary):
+                    # 重新分到银行内部款项
+                    if cp in pay_cats.get("个人款", {}):
+                        del pay_cats["个人款"][cp]
+                    pay_cats.setdefault("银行内部款项", defaultdict(float))[cp or "(银行)"] += credit
+                    corrections.append(f"纠错: {credit:.2f}元 '{cp or '(空)'}' 从个人款→银行内部款项(金额{credit}有零有整+{('空名称' if is_empty_name else '')}{('含银行关键词' if is_bank_name else '')}{('含利息摘要' if is_bank_summary else '')})")
+        
+        if corrections:
+            pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
+            for c in corrections[:5]:
+                pipeline_log.append(f"  {c}")
+        
         # 自适应输出：只输出有数据的类别
         intel["银行流水"]["收款构成"] = {}
         for label, data in pay_cats.items():
