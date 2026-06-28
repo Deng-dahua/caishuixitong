@@ -277,6 +277,18 @@
   顺序：回避→陈述申辩→听证→复议→诉讼（程序递进）
   代码: static/js/tax-doc-analysis.js Ch6
 
+【规则二十五：同类风险合并展示】
+  同一风险类型（type字段相同）出现的多条发现，必须合并为一条在报告中呈现。
+  合并逻辑：
+  ① 按type字段分组（去除Synthesis:/Causal:等前缀后trim比对）
+  ② 同一组取最高风险等级作为合并后等级
+  ③ 合并后的detail列出所有子项：格式为"（同类风险共N项，合并列示如下）\n\n【子项1】...\n\n【子项2】..."
+  ④ 合并所有子项的items/evidence_rows/matched_chain_details到父项
+  ⑤ 合并后的标题显示"N项同类风险合并"标签
+  ⑥ 每条子项独立展示：子项标题、细节描述、税务影响、处理建议
+  代码位置: static/js/tax-doc-analysis.js _renderReportFallback() 同类风险合并段
+  示例: 2条"知识图谱-供应商客户重叠"→1条，显示子项1(中风险)+子项2(中风险)
+
 ═════ 假设-验证推理引擎（引擎"思考"能力）═════
   每条重要发现 → 生成2-3个竞争假设 → 逐条证据验证 → 加权判决
   代码位置: engine/hypothesis_engine.py run_hypothesis_verification()

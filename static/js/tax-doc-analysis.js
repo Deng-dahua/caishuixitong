@@ -878,6 +878,85 @@ function _renderReportFallback(r, allF) {
   h += '<a href="#appendix"><span class="num">附件</span>证据清单</a><br>';
   h += '</div>';
 
+  // ═══ 同类风险合并：同一类型多条发现合并为一条，子项在描述中展示 ═══
+  var mergeMap = {};
+  allF.forEach(function(f) {
+    var key = (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').trim();
+    if (!key) key = '未分类';
+    if (!mergeMap[key]) {
+      mergeMap[key] = { type: key, findings: [], highestLevel: f.level || '低风险' };
+    }
+    mergeMap[key].findings.push(f);
+    // 保留最高风险等级
+    var lvOrder = {'极高风险':4,'高风险':3,'中风险':2,'低风险':1};
+    if ((lvOrder[f.level] || 0) > (lvOrder[mergeMap[key].highestLevel] || 0)) {
+      mergeMap[key].highestLevel = f.level;
+    }
+  });
+
+  // 将合并后的发现还原为allF
+  var mergedF = [];
+  Object.keys(mergeMap).forEach(function(key) {
+    var grp = mergeMap[key];
+    var base = JSON.parse(JSON.stringify(grp.findings[0])); // 深拷贝第一条件为基础
+    base.level = grp.highestLevel;
+    base._mergeCount = grp.findings.length;
+    
+    if (grp.findings.length > 1) {
+      // 合并多个子发现
+      base._mergedItems = grp.findings.map(function(sub, si) {
+        return {
+          title: (sub.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,''),
+          detail: (sub.detail || sub.description || '').substring(0, 300),
+          level: sub.level || '?',
+          items: sub.items || null,
+          how_found: sub.how_found || '',
+          tax_impact: sub.tax_impact || '',
+          suggestion: sub.suggestion || ''
+        };
+      });
+      
+      // 扩充主描述：列出所有子项
+      var subDescs = grp.findings.map(function(sub, si) {
+        var sd = (sub.detail || sub.description || '').substring(0, 200);
+        return '【子项' + (si+1) + '】' + sd;
+      });
+      base.detail = '（同类风险共' + grp.findings.length + '项，合并列示如下）\n\n' + subDescs.join('\n\n');
+      
+      // 合并所有 items
+      var allItems = [];
+      grp.findings.forEach(function(sub) {
+        if (sub.items && sub.items.length) {
+          allItems = allItems.concat(sub.items);
+        }
+      });
+      if (allItems.length > 0) base.items = allItems;
+      
+      // 合并 evidence_rows
+      var allEvidence = [];
+      grp.findings.forEach(function(sub) {
+        if (sub.evidence_rows && sub.evidence_rows.length) {
+          allEvidence = allEvidence.concat(sub.evidence_rows);
+        }
+      });
+      if (allEvidence.length > 0) base.evidence_rows = allEvidence;
+      
+      // 合并 matched_chain_details
+      var allChains = [];
+      grp.findings.forEach(function(sub) {
+        if (sub.matched_chain_details && sub.matched_chain_details.length) {
+          allChains = allChains.concat(sub.matched_chain_details);
+        }
+      });
+      if (allChains.length > 0) base.matched_chain_details = allChains;
+    }
+    
+    mergedF.push(base);
+  });
+  
+  // 用合并后的发现替换原有allF
+  allF = mergedF;
+  
   // ═══ 发现审查面板（折叠，供稽查员逐条审核/驳回，不影响报告正文）═══
   var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
   var mids = allF.filter(function(f){ return f.level === '中风险'; });
@@ -994,7 +1073,31 @@ function _renderReportFallback(r, allF) {
     
     h += '<div class="fact-sec">';
     var finType = (f.type || '未命名发现').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').replace(/^[\w]+:\s*/,'');
-    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + finType + '</div>';
+    var mergeCount = f._mergeCount || 0;
+    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + finType;
+    if (mergeCount > 1) {
+      h += ' <span style="background:#e0e7ff;color:#3730a3;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600">' + mergeCount + '项同类风险合并</span>';
+    }
+    h += '</div>';
+    
+    // ── 合并子项展示（同类风险多项合并时，逐一列出各项细节）──
+    if (f._mergedItems && f._mergedItems.length > 1) {
+      h += '<div style="margin:12px 0;padding:12px 16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px">';
+      h += '<div style="font-weight:700;color:#92400e;margin-bottom:10px;font-size:13px">📋 该类风险共发现' + f._mergedItems.length + '项具体问题，逐一列示如下：</div>';
+      f._mergedItems.forEach(function(sub, si) {
+        h += '<div style="margin:8px 0;padding:10px 14px;background:#fff;border-radius:6px;border-left:3px solid ' + (sub.level==='高风险'?'#dc2626':(sub.level==='中风险'?'#e67700':'#16a34a')) + '">';
+        h += '<div style="font-weight:600;color:#1e293b;margin-bottom:4px"><span style="color:' + (sub.level==='高风险'?'#dc2626':(sub.level==='中风险'?'#e67700':'#16a34a')) + '">[' + sub.level + ']</span> 子项' + (si+1) + '：' + (sub.title || '') + '</div>';
+        h += '<div style="font-size:12px;color:#475569;line-height:1.8">' + (sub.detail || '') + '</div>';
+        if (sub.tax_impact && sub.tax_impact.length > 10) {
+          h += '<div style="font-size:11px;color:#dc2626;margin-top:4px">⚠ ' + sub.tax_impact.substring(0, 150) + '</div>';
+        }
+        if (sub.suggestion && sub.suggestion.length > 10) {
+          h += '<div style="font-size:11px;color:#059669;margin-top:2px">→ ' + sub.suggestion.substring(0, 150) + '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    }
     
     // ── 稽查过程叙事 ──
     h += '<div class="audit-narrative" style="margin:10px 0;padding:16px 20px;background:linear-gradient(135deg,#f8fafc,#f0f4ff);border-left:4px solid #2563eb;border-radius:0 8px 8px 0;font-size:13px;line-height:2.2;color:#334155">';
