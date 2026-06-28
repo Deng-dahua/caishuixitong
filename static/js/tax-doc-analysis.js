@@ -684,11 +684,18 @@ async function analyzeTaxDocs() {
     
     // ── 统一使用7章标准格式渲染 ──
     allF = data.report.all_findings || [];
+    var resultArea = document.getElementById('tax-doc-result');
+    if (!resultArea) {
+      resultArea = document.createElement('div');
+      resultArea.id = 'tax-doc-result';
+      var tdaArea = document.getElementById('tda-report-area');
+      if (tdaArea) tdaArea.appendChild(resultArea);
+    }
     var ctx = _renderReportFallback(data.report, allF);
     if (ctx && ctx.html) {
-      document.getElementById('tax-doc-result').innerHTML = ctx.html;
+      resultArea.innerHTML = ctx.html;
     } else {
-      document.getElementById('tax-doc-result').innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
+      resultArea.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
     }
     
     var exportBtn = document.getElementById('tda-export-btn');
