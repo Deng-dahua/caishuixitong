@@ -597,7 +597,7 @@ function navigateTo(page) {
     case 'account-balance': renderAccountBalance(container); break;
     case 'accounts': renderAccounts(container); break;
     case 'periods': renderPeriods(container); break;
-    case 'company': showCompanyManager(container); break;
+    case 'company': container.innerHTML = '<div class="card card-fill"><div class="page-header"><h1>🏢 公司信息</h1></div><div style="padding:24px"><div class="card" style="padding:20px;text-align:center;color:#64748b">公司基础档案管理页面。<br>在账套选择页新建或管理公司信息。</div></div></div>'; break;
     case 'departments': renderDepartments(container); break;
     case 'employees': renderEmployees(container); break;
     case 'customers': renderCustomers(container); break;
