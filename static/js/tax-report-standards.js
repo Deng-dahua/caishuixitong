@@ -123,6 +123,24 @@ function renderReportStandards(container) {
   h += '<div style="flex:1;text-align:center;padding:12px;background:#f0fdf4;border-radius:6px;font-size:13px"><div style="font-size:24px;font-weight:800;color:#059669">' + lowCount + '</div><div style="color:#166534">建议</div></div>';
   h += '</div>';
 
+  // ══════ 报告7章结构 ══════
+  h += '<div class="rpt-section" style="margin-bottom:0">';
+  h += '<h3>📄 报告结构（7章节 + 附件）</h3>';
+  h += '<div style="font-size:13px;color:#475569;line-height:2;padding:0 8px">';
+  h += '<div><strong>封面</strong>：编号（税稽字[YYYY]第XXX号）+ 报告日期</div>';
+  h += '<div><strong>目录</strong>：7章节锚点跳转</div>';
+  h += '<div><strong>一、案件来源及稽查对象基本情况</strong>：案件来源 / 被查单位 / 法定代表人 / 企业类型 / 行业 / 稽查期间 / 稽查范围 / 执行标准</div>';
+  h += '<div><strong>二、稽查实施情况</strong>：数据比对（进销存）→ 资金核对（银行流水）→ 穿透分析（供应商/客户）→ 行业对标 → 综合分析</div>';
+  h += '<div><strong>三、稽查发现问题及事实认定</strong>：每条发现按六要素格式（违法性质/违法事实/证据材料/证据来源/法律依据/处理建议）</div>';
+  h += '<div><strong>四、稽查结论</strong>：综合风险评级 + 主要高风险事项 + 证据链完整性 + 总体结论</div>';
+  h += '<div><strong>五、处理处罚建议</strong>：去重后的处理建议列表 + 自查整改期限</div>';
+  h += '<div><strong>六、告知权利义务</strong>：5项法定权利（回避/陈述申辩/听证/复议/诉讼）</div>';
+  h += '<div><strong>七、稽查人员签字</strong>：稽查执行人 + 审理人 + 稽查部门（盖章）+ 报告日期</div>';
+  h += '<div><strong>附件：证据清单</strong>：进销项发票数据 / 银行流水数据 / 其他经营资料</div>';
+  h += '</div>';
+  h += '<div style="margin:8px 0;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#166534">⚖️ 与正式税务稽查报告对照：✅ 已符合 6项 · ⚠️ 部分符合 1项（基本情况缺少工商数据） · ❌ 待补充 3项（需税务局内部流程）</div>';
+  h += '</div>';
+
   // 逐条标准
   h += '<h3>逐条标准</h3>';
 
