@@ -627,7 +627,7 @@ function navigateTo(page) {
     case 'pipeline-rules': renderTaxRiskRules(container); break;
     case 'chains-page': renderChainsPage(container); break;
     case 'evidence-page': renderEvidencePage(container); break;
-    case 'analyze-page': renderAnalyzePage(container); break;
+    case 'analyze-page': container.innerHTML = '<div class="card card-fill"><div class="page-header"><h1>⚡ 分析链</h1><p>分析链系统支撑稽查推理的中间步骤，连接线索到证据。</p></div><div style="padding:24px"><div class="card" style="padding:20px;background:#f8fafc;text-align:center;color:#64748b;font-size:14px">📊 分析链数据通过规则引擎和域分析自动生成。<br>点击下方"线索链"或"证据链"可查看完整分析链路。</div></div></div>'; break;
     case 'quality-system': renderQualitySystem(container); break;
     case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
     case 'cross-domain-clues': renderCrossDomainCluesPage(container); break;
