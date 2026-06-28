@@ -4439,7 +4439,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             "税费支出笔数": len(tax_payments),
             "税费支出总额": f"{sum(x['amount'] for x in tax_payments):,.2f}元",
             "大额交易(>50万)": len(large_txs),
-            "往来方TOP5": [{"名称": n, "金额": f"{a:,.2f}"} for n, a in counterparties.most_common(5)],
+            "往来方全部": [{"名称": n, "金额": f"{a:,.2f}"} for n, a in counterparties.most_common()],
         }
         
         # ── 收款类型分析：配置驱动自适应分类（不由预设类别决定，按关键词逐层匹配）──
@@ -4559,7 +4559,6 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         all_payers = {}
         for data in pay_cats.values():
             for k, v in data.items(): all_payers[k[:25]] = v
-        intel["银行流水"]["收款方TOP10"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
         intel["银行流水"]["收款方全部"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(all_payers.items(), key=lambda x: -x[1])]
         
         # ── 付款方分析（全部列示，不截断）──

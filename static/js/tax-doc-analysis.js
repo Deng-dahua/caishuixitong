@@ -428,7 +428,7 @@ function renderCashflowChart(cc) {
   return h;
 }
 
-// ── 4. 往来方TOP20（comprehensive.top_receivers / top_payers）──
+// ── 4. 往来方全部列示（comprehensive.top_receivers / top_payers）──
 function renderTopCounterparties(cc) {
   var recv = cc && cc.top_receivers;
   var pay = cc && cc.top_payers;
@@ -437,18 +437,18 @@ function renderTopCounterparties(cc) {
   h += '<div style="font-weight:700;color:#0f172a;margin-bottom:10px">📋 主要往来方（按金额排序）</div>';
   if (recv && recv.length) {
     h += '<div style="display:inline-block;vertical-align:top;width:48%;margin-right:2%">';
-    h += '<div style="font-weight:600;color:#059669;margin-bottom:6px">收款方 TOP10</div>';
+    h += '<div style="font-weight:600;color:#059669;margin-bottom:6px">收款方（全部列示）</div>';
     h += '<table class="tbl2"><tr><th>名称</th><th class="r">金额（元）</th></tr>';
-    for (var i = 0; i < Math.min(recv.length, 10); i++) {
+    for (var i = 0; i < recv.length; i++) {
       h += '<tr><td>' + esc(recv[i].name || '') + '</td><td class="r">' + _fmt(recv[i].amount, 0) + '</td></tr>';
     }
     h += '</table></div>';
   }
   if (pay && pay.length) {
     h += '<div style="display:inline-block;vertical-align:top;width:48%;margin-left:2%">';
-    h += '<div style="font-weight:600;color:#dc2626;margin-bottom:6px">付款方 TOP10</div>';
+    h += '<div style="font-weight:600;color:#dc2626;margin-bottom:6px">付款方（全部列示）</div>';
     h += '<table class="tbl2"><tr><th>名称</th><th class="r">金额（元）</th></tr>';
-    for (var j = 0; j < Math.min(pay.length, 10); j++) {
+    for (var j = 0; j < pay.length; j++) {
       h += '<tr><td>' + esc(pay[j].name || '') + '</td><td class="r">' + _fmt(pay[j].amount, 0) + '</td></tr>';
     }
     h += '</table></div>';
@@ -1086,8 +1086,8 @@ function _renderReportFallback(r, allF) {
   h += '<p class="i2"><strong>（五）穿透分析与知识图谱构建</strong></p>';
   h += '<p class="i2">从全部发票的买卖方信息和银行流水的收付款方信息中提取交易对方实体，构建多维关系知识图谱。知识图谱将所有交易对方归类为供应商、客户、员工、收款方、付款方五类角色，通过角色重叠检测发现隐藏的关联关系。</p>';
   h += '<p class="i2">具体执行了以下四项穿透分析，从不同维度交叉验证企业经营实质：</p>';
-  h += '<p class="i2"><strong>①供应商穿透——</strong>统计全部进项发票的供应商分布，计算前三大供应商的采购金额及占比，评估供应商集中度风险。同时按供应商注册城市进行地理聚类分析，检测同一城市是否存在大量供应商群集（如同一城市出现5家以上供应商，且注册地址相近——可能为同一控制人分散注册的壳公司群，用于虚构采购交易、虚抵进项税额）。</p>';
-  h += '<p class="i2"><strong>②客户穿透——</strong>统计全部销项发票的客户分布，计算前三大客户的销售金额及占比，评估客户集中度风险。重点检测客户与供应商是否重叠——同一企业的名称同时出现在供应商名单和客户名单中，既有采购又有销售（可能涉及对倒开票、虚增交易流水、人为做大经营规模以骗取贷款或政府补贴）。</p>';
+  h += '<p class="i2"><strong>①供应商穿透——</strong>统计全部进项发票的供应商分布，计算全部供应商各自的采购金额及占比，逐户评估供应商集中度风险。同时按供应商注册城市进行地理聚类分析，检测同一城市是否存在大量供应商群集（如同一城市出现5家以上供应商，且注册地址相近——可能为同一控制人分散注册的壳公司群，用于虚构采购交易、虚抵进项税额）。不设TOP限制，全部列示。</p>';
+  h += '<p class="i2"><strong>②客户穿透——</strong>统计全部销项发票的客户分布，计算全部客户各自的销售金额及占比，逐户评估客户集中度风险。重点检测客户与供应商是否重叠——同一企业的名称同时出现在供应商名单和客户名单中，既有采购又有销售（可能涉及对倒开票、虚增交易流水、人为做大经营规模以骗取贷款或政府补贴）。不设TOP限制，全部列示。</p>';
   h += '<p class="i2"><strong>③人员穿透——</strong>将工资表的在职人员名单与银行流水的收付款方姓名做交叉比对。检测以下异常模式：员工姓名出现在收款方名单中（员工同时从公司收取款项——可能涉及代收款、利益输送、账外工资）、员工姓名出现在付款方名单中（员工向公司付款——可能涉及个人卡归集收入后转回公户的隐匿收入模式）。</p>';
   h += '<p class="i2"><strong>④关联方穿透——</strong>将工商登记信息中的法定代表人、股东、高管姓名及关联企业名单，与供应商/客户名单做交叉比对。检测以下关联交易风险：法定代表人/股东名下的其他企业与本公司存在购销交易（关联交易未披露）、供应商/客户的法定代表人同时出现在本公司员工名单中（人员混同，可能涉及关联方资金占用或利润转移）。</p>';
   
