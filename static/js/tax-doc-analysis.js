@@ -333,27 +333,6 @@ function renderAnalyzeHeader(report) {
       + '</div>';
   }
 
-  // 稽查行为准则
-  h += '<h3 style="margin-top:24px">稽查行为准则（已内化）</h3>';
-  h += '<div style="font-size:12px;color:#64748b;line-height:2;padding:8px 0">'
-    + '① 必有明细：每条结论必须有具体数据支撑——列出供应商名、金额、发票号、商品名，不可泛泛计数。<br>'
-    + '② 自行解决：遇到解析错误、格式不兼容、字段缺失等自身问题，不提问不墨迹，直接读文件查格式修复。<br>'
-    + '③ 不墨迹：报告未出完、修复未验证、下一步工作必须做时，不等不提问，自动继续直到交付完整结果。'
-    + '</div>';
-
-  // 稽查方法论演进
-  h += '<h3 style="margin-top:24px">稽查方法论演进</h3>';
-  h += '<div style="font-size:12px;color:#64748b;line-height:2;padding:8px 0">'
-    + '① 多格式兼容 ② 汇总行过滤 ③ 付款方身份核实 ④ 关键词≠事实 ⑤ 行业认知补算法<br>'
-    + '⑥ 联网核查 ✅ ⑦ 明细即信服力 ⑧ 不墨迹直接干 ⑨ 合同分层判断 ⑩ 完备度明细<br>'
-    + '⑪ 完备度升级 ⑫ 凭证描述纠正 ⑬ 进销诊断升级 ⑭ 行业基准库 ⑮ 结论分析法<br>'
-    + '⑯ COND_BAN防误杀 ⑰ 稽查重点强制等级 ⑱ 报告纯净度 ⑲ 发票≠收付款1:1<br>'
-    + '⑳ 经营实质地理分析 ㉑ 规则detail业务化 ㉒ 建议质量增强 ㉓ 四步稽查分析法<br>'
-    + '㉔ 禁止数据截断：报告所有明细全量展示，不设上限不截断，不缺斤短两<br>'
-    + '㉕ 三层行业穿透法：工商登记→发票数据→加工信号，行业自适应产品链词典<br>'
-    + '㉖ 经营实质点面推理法：从单点异常→扩展面分析→全链条经营实质判断'
-    + '</div>';
-
   h += '</div>';
   area.innerHTML = h;
 }
@@ -718,15 +697,19 @@ async function analyzeTaxDocs() {
             h += '<div style="margin:12px 0;padding:14px 18px;border-left:4px solid ' + (lvl==='高风险'?'#dc2626':(lvl==='中风险'?'#e67700':'#16a34a')) + ';border-radius:6px;background:' + cls + ';border:1px solid #eee">';
             h += '<div style="font-weight:700;margin-bottom:6px">' + (f.title || f.category || '') + ' [' + lvl + ']</div>';
             if (f.detail) h += '<div style="font-size:13px;color:#333;margin-bottom:6px">' + (f.detail||'') + '</div>';
-            h += '<div style="text-align:right"><button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type:f.type||'',title:f.title||'',level:lvl,category:f.category||'',detail:(f.detail||'').substring(0,200)}).replace(/'/g,"&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">❌ 驳回</button></div>';
             h += '</div>';
           }
         });
         area.innerHTML = h;
       }
     } else {
-      // 降级：使用 ReportEngine 模块化渲染
-      renderTaxDocReport(data.report);
+      // 降级：使用7章标准结构渲染
+      var ctx = _renderReportFallback(data.report, allF);
+      if (ctx && ctx.html) {
+        area.innerHTML = ctx.html;
+      } else {
+        area.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
+      }
     }
     
     var exportBtn = document.getElementById('tda-export-btn');
@@ -953,7 +936,8 @@ function _renderReportFallback(r, allF) {
     var tagCls = lv === '高风险' || lv === '极高风险' ? 'rtag' : (lv === '中风险' ? 'atag' : 'gtag');
     
     h += '<div class="fact-sec">';
-    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + (f.type || '未命名发现') + '</div>';
+    var finType = (f.type || '未命名发现').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').replace(/^[\w]+:\s*/,'');
+    h += '<div class="ftitle"><span class="tag ' + tagCls + '">' + lv + '</span> ' + (fi+1) + '. ' + finType + '</div>';
     
     // 六要素格式
     h += '<div class="frow"><span class="flabel">① 违法性质：</span>' + (f.type || '未分类') + '</div>';

@@ -281,7 +281,8 @@ window._dismissTaxFinding = function(btn) {
   } catch(e) {}
 };
 
-// ═══ 自动注入驳回按钮（每800ms扫描一次，持续15秒）═══
+// ═══ 自动注入驳回按钮 — 已禁用：报告按7章规范呈现，不附加内部调试工具 ═══
+/* DISABLED 2026-06-28: 驳回功能移至系统后台
 (function(){
   var _injected = new Set();
   setInterval(function(){
@@ -310,6 +311,7 @@ window._dismissTaxFinding = function(btn) {
   }, 800);
   setTimeout(function(){}, 1); // keep alive
 })();
+*/
 
 // ═══ 侧边栏个人信息：从 cookie 直接读取 ═══
 (function(){
