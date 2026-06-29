@@ -2062,6 +2062,11 @@ def _domain_cross_domain_clues(all_findings):
     if not chain_defs:
         return []
     
+    # 只执行 executable=True 的链（旧方法链仅用于UI展示）
+    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    if not chain_defs:
+        return []
+    
     # 延迟导入叙事生成器
     try:
         from narrative_builder import build_narrative

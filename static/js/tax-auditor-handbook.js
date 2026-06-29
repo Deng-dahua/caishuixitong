@@ -20,9 +20,9 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第0章 ═══
   h += '<div id="hb-s0" class="hb-sec"><div class="hb-sec-title"><span class="num">0</span>系统数据概览</div>';
-  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1514条稽查规则+396条线索链+745条证据链+33条方法论+36个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
+  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1608条稽查规则+41条可执行线索链+22条跨域证据链+13条跨域分析链+42个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。线索链合并audit_chains.json的1174条方法链后总计1215条。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
-  [{n:'1514',l:'稽查规则',d:'20个分类，每条含触发条件+风险等级+调查步骤+处罚依据，覆盖收入/成本/费用/存货/资产/往来款/特殊交易/税务申报'},{n:'396',l:'线索链',d:'定量阈值/定性模式/缺失资料三类验证触发链驱动发现，每条链含多个调查步骤'},{n:'745',l:'证据链',d:'≥60%触发率+≥3规则+≥2域→证据闭环，11条跨域证据链增强跨维度证伪能力'},{n:'33',l:'方法论',d:'全部代码化，覆盖文件识别→数据提取→分析推理→结论输出→质量保障五大处理层'},{n:'1174',l:'总链数',d:'线索链+证据链+方法论合计，各链含触发条件+风险等级+调查步骤+处罚依据'},{n:'36',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/资料完备度/经营实质八大类'}].forEach(function(s){
+  [{n:'1608',l:'稽查规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据，覆盖收入/成本/费用/存货/资产/往来款/特殊交易/税务申报'},{n:'1215',l:'线索链',d:'41条可执行链(引擎驱动keyword匹配)+1174条方法链(展示用),合并管理于cross_domain_clues.json'},{n:'22',l:'证据链',d:'dimensions[]多源交叉验证，≥min_evidence触发，跨域证据闭环'},{n:'13',l:'分析链',d:'reasoning_path[]多步推理链，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/资料完备度/经营实质/跨域推理等13大类'},{n:'28',l:'引擎模块',d:'engine/*.py共28个模块，各模块独立加载，协同工作'}].forEach(function(s){
     h += '<div class="hb-stat" style="flex:1;min-width:110px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:4px">'+s.d+'</div></div>';
   });
   h += '</div>';
@@ -167,9 +167,9 @@ function renderAuditorHandbook(container) {
   h += '<table class="hb-tbl">';
   [['一键分析','第21-45条(检查)','_run_analyze自动执行全部分析域+四步核查法+链驱动引擎+协商引擎+方法论语料对账。一次点击=完整模拟稽查检查环节——从文件上传到报告输出，全部自动化。'],
    ['文件解析','第22条(取证)','34类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。'],
-   ['线索链','第22条(取证逻辑)','396条线索链含调查步骤→规则ID→法律依据。定量/定性/缺失三类验证触发链驱动发现。每条线索链=一个稽查员的调查思路——"从这里开始查，每一步查什么，查到了怎么办"。'],
-   ['证据链','第24条(证据真实性)','745条证据链≥2域交叉→触发率≥60%+≥3规则→闭环验证。11条跨域证据链从不同数据源收集支撑证据。满足三重门禁→证据闭环→结论的证明力达到可交付标准。'],
-   ['分析链','第46条(审理审核)','36域+1514规则+四步稽查分析法→层层推进→方法论过滤器→合规门禁→综合评分。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性。'],
+   ['线索链','第22条(取证逻辑)','1215条线索链(41可执行+1174方法论),合并管理于cross_domain_clues.json。可执行链含keyword触发匹配+investigation_path调查步骤+rule_refs关联规则ID。每条线索链=一个稽查员的调查思路——\"从这里开始查，每一步查什么，查到了怎么办\"。'],
+   ['证据链','第24条(证据真实性)','22条跨域证据链≥2域交叉→≥min_evidence触发→多维印证闭环。dimensions[]数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
+   ['分析链','第46条(审理审核)','13条跨域分析链→reasoning_path[]多步推理→从证据→结论的综合判定。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性→0-7维异常评分→定案。'],
    ['方法论过滤器','第46条(审核重点)','33条方法论自动匹配发现→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→稽查重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
    ['跨域协商引擎','第46条(审核重点)','15条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
    ['风险评分','第49条(审理意见)','综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成稽查结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。'],
@@ -206,7 +206,7 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">引擎记忆（engine/memory.py）是系统的核心知识库，分为两层：<b>文档层</b>（26章规则+架构，存储在docstring中）+ <b>代码层</b>（Python函数：存储/检索/学习/纠正）。一键分析驱动数据层（audit_memory.json分析记忆 + correction_rules.json纠正规则），四触发机制确保文档层自动与代码层同步——任何时候启动系统，数据一致性自检自动运行。</div>';
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl">代码位置</td><td class="val" style="font-size:12px">audit_consistency.py（扫描引擎+同步引擎）+ system_config.json（权威数据源）+ engine/system_config.py（Python端配置）</td></tr>';
-  h += '<tr><td class="lbl">权威数据源</td><td class="val" style="font-size:12px">从原始数据文件实时统计生成：tax_risk_rules_local_export.json→规则数 / audit_chains.json→链数+方法论数 / domain_analysis.py→域函数数。每次--calibrate重新统计。</td></tr>';
+  h += '<tr><td class="lbl">权威数据源</td><td class="val" style="font-size:12px">从原始数据文件实时统计生成：tax_risk_rules_local_export.json→规则数 / cross_domain_clues.json→线索链数 / cross_domain_evidence.json→证据链数 / cross_domain_analysis.json→分析链数。每次--calibrate重新统计。</td></tr>';
   h += '<tr><td class="lbl">扫描范围</td><td class="val" style="font-size:12px">所有JS文件（static/js/*.js）+ 所有PY文件（engine/*.py + *.py）。扫描硬编码数字与权威数据对比，跳过system_config/getConfig等动态获取行。</td></tr>';
   h += '<tr><td class="lbl">四触发机制</td><td class="val" style="font-size:12px">①手动：python audit_consistency.py --sync ②start.bat启动：先--sync再审计验证 ③git commit：.git/hooks/pre-commit自动--sync ④一键分析：pipeline.py启动时subprocess调用--sync。任一入口触发→全项目扫描→修正→报告。</td></tr>';
   h += '<tr><td class="lbl">同步范围</td><td class="val" style="font-size:12px">代码层：硬编码数字 vs 权威数据，逐行替换。文档层：engine/memory.py docstring中的规则数/链数/方法论数/域函数数/权威数据区块，正则匹配更新。</td></tr>';

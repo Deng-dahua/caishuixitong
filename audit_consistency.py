@@ -132,26 +132,46 @@ def calibrate(authority):
     """闭环校准——将当前数据写入配置，并检查是否需要更新引用"""
     # 重新统计权威数据
     rules_file = ROOT / "static" / "tax_risk_rules_local_export.json"
-    chains_file = ROOT / "static" / "audit_chains.json"
+    clues_file = ROOT / "static" / "cross_domain_clues.json"
+    evidence_file = ROOT / "static" / "cross_domain_evidence.json"
+    analysis_file = ROOT / "static" / "cross_domain_analysis.json"
     
     if rules_file.exists():
-        with open(rules_file) as f:
+        with open(rules_file, encoding='utf-8') as f:
             authority["rules_count"] = len(json.load(f))
     
-    if chains_file.exists():
-        with open(chains_file) as f:
-            chains = json.load(f)
-        authority["clue_chains"] = sum(1 for c in chains["chains"] if c.get("chain_type") == "线索链")
-        authority["evidence_chains"] = sum(1 for c in chains["chains"] if c.get("chain_type") == "证据链")
-        authority["methodology_count"] = sum(1 for c in chains["chains"] if c.get("chain_type") == "方法论")
-        authority["total_chains"] = len(chains["chains"])
+    # 线索链：从 cross_domain_clues.json 统计
+    if clues_file.exists():
+        with open(clues_file, encoding='utf-8') as f:
+            clues = json.load(f)
+        authority["clue_chains"] = len(clues)  # 总线索链数=1215
+        authority["executable_clues"] = sum(1 for c in clues if c.get("executable", True))
+        authority["legacy_clues"] = sum(1 for c in clues if c.get("legacy", False))
+    
+    # 证据链：从 cross_domain_evidence.json 统计
+    if evidence_file.exists():
+        with open(evidence_file, encoding='utf-8') as f:
+            evidence = json.load(f)
+        authority["evidence_chains"] = len(evidence)
+    
+    # 分析链：从 cross_domain_analysis.json 统计
+    if analysis_file.exists():
+        with open(analysis_file, encoding='utf-8') as f:
+            analysis = json.load(f)
+        authority["analysis_chains"] = len(analysis)
+    
+    # 总链数（线索+证据+分析）
+    authority["total_chains"] = authority.get("clue_chains", 0) + \
+                                 authority.get("evidence_chains", 0) + \
+                                 authority.get("analysis_chains", 0)
+    authority["methodology_count"] = authority.get("legacy_clues", 0)  # 旧方法链=legacy数
     
     da_file = ROOT / "engine" / "domain_analysis.py"
     if da_file.exists():
-        with open(da_file) as f:
+        with open(da_file, encoding='utf-8') as f:
             authority["domain_functions"] = len(re.findall(r"def _domain_", f.read()))
     
-    authority["_calibrated"] = "2026-06-29-auto"
+    authority["_calibrated"] = "2026-06-30-merged"
     
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(authority, f, ensure_ascii=False, indent=2)
@@ -342,8 +362,8 @@ if __name__ == "__main__":
     
     print("🔍 审计启动：扫描系统数据一致性...")
     print(f"   权威配置：rules={authority['rules_count']} clues={authority['clue_chains']} "
-          f"evidence={authority['evidence_chains']} method={authority['methodology_count']} "
-          f"total={authority['total_chains']} domains={authority['domain_functions']}")
+          f"evidence={authority['evidence_chains']} analysis={authority.get('analysis_chains', 0)} "
+          f"legacy={authority.get('legacy_clues', 0)} total={authority['total_chains']} domains={authority['domain_functions']}")
     
     issues = scan_files(authority)
     

@@ -5659,7 +5659,10 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         256,
-        1
+        1,
+        257,
+        107,
+        2
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -6149,7 +6152,15 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        286
+        286,
+        718,
+        68,
+        21,
+        540,
+        245,
+        19,
+        268,
+        307
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -6584,7 +6595,11 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        212
+        212,
+        188,
+        854,
+        1382,
+        98
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -6715,7 +6730,10 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        190
+        190,
+        1401,
+        309,
+        19
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -9862,7 +9880,8 @@
       "covered_rule_ids": [
         1,
         330,
-        7
+        7,
+        545
       ],
       "covered_rule_count": 3,
       "related_chains": [
@@ -10006,7 +10025,11 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        282
+        282,
+        1224,
+        615,
+        257,
+        4
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -10170,7 +10193,13 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        199
+        199,
+        2,
+        418,
+        198,
+        278,
+        1463,
+        202
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -13003,7 +13032,9 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        1348
+        1348,
+        202,
+        1016
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -13327,7 +13358,9 @@
       "covered_rule_ids": [
         1,
         227,
-        397
+        397,
+        1331,
+        421
       ],
       "covered_rule_count": 3,
       "related_chains": [
@@ -17782,7 +17815,9 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        243
+        243,
+        1486,
+        1408
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -18310,7 +18345,9 @@
       "covered_rule_ids": [
         1,
         476,
-        196
+        196,
+        140,
+        181
       ],
       "covered_rule_count": 3,
       "related_chains": [
@@ -22260,7 +22297,8 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        695
+        695,
+        120
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -22987,7 +23025,8 @@
       "chain_type": "线索链",
       "covered_rule_ids": [
         1,
-        773
+        773,
+        34
       ],
       "covered_rule_count": 2,
       "related_chains": [
@@ -106247,5 +106286,9 @@
     "evidence_count": 22,
     "analysis_count": 13,
     "description": "2026-06-30新增：跨域线索链/证据链/分析链与1097条原始链条双向关联。原始链通过cross_domain_clue_refs引用跨域链ID。"
-  }
+  },
+  "_deprecated": true,
+  "_deprecation_note": "chains已迁移至cross_domain_clues.json，本文件保留trail_chains/evidence_chains/cross_domain_integration元数据",
+  "_migrated_to": "static/cross_domain_clues.json",
+  "_migrated_count": 1174
 }

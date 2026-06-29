@@ -441,7 +441,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   【当前权威数据（2026-06-29）】
   rules_count=1514 | clue_chains=396 | evidence_chains=745
   methodology_count=33 | total_chains=1174 | domain_functions=36
-  cross_domain_clues=11 | cross_domain_evidence=11 | engine_modules=24
+  cross_domain_clues=1215 (41 executable + 1174 legacy) | cross_domain_evidence=22 | engine_modules=28
   file_fingerprints=34 | quality_standards=12 | noise_filter_rate=97
 
 ═════ 跨模块内容一致性铁律（2026-06-30 新增·引擎铁律第七条）═════
