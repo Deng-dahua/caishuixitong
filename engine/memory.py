@@ -361,7 +361,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
 ══════════════════════════════════════════════════════════════
 
 ═════ 跨域协商引擎（2026-06-29 新增）═════
-  域分析独立运行后，36个域产生的发现可能存在逻辑矛盾。
+  域分析独立运行后，39个域产生的发现可能存在逻辑矛盾。
   跨域协商引擎在 all_findings 生成后、进入过滤管线前自动执行。
   代码: engine/cross_domain_negotiation.py → run_negotiation()
 
@@ -439,9 +439,9 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   python audit_consistency.py --calibrate → 校准模式：重新统计权威数据源
 
   【当前权威数据（2026-06-29）】
-  rules_count=1514 | clue_chains=396 | evidence_chains=745
-  methodology_count=33 | total_chains=1174 | domain_functions=36
-  cross_domain_clues=1215 (41 executable + 1174 legacy) | cross_domain_evidence=22 | engine_modules=28
+  rules_count=1608 | clue_chains=396 | evidence_chains=745
+  methodology_count=1250 | total_chains=1250 | domain_functions=39
+  cross_domain_clues=1215 (41 executable + 1250 legacy) | cross_domain_evidence=22 | engine_modules=28
   file_fingerprints=34 | quality_standards=12 | noise_filter_rate=97
 
 ═════ 跨模块内容一致性铁律（2026-06-30 新增·引擎铁律第七条）═════
@@ -549,7 +549,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   【Phase2 深挖（deep_dive）】
   对Phase1识别的异常信号执行深度分析。每一类信号触发对应的分析域函数，
   域分析函数从原始数据中提取结构化证据（如逐笔比对银行流水与发票）。
-  代码: engine/phase2_deep_dive.py / engine/domain_analysis.py（36个域函数）
+  代码: engine/phase2_deep_dive.py / engine/domain_analysis.py（39个域函数）
 
   【Phase3 交叉验证（cross_validate）】
   将Phase2的结果放入跨域分析框架——检查不同域之间的结论是否一致。
@@ -677,9 +677,9 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   代码: static/js/tax-engine-dashboard.js
 
   【#1 运行状态】引擎实时状态/内存使用/缓存命中率/最近分析记录
-  【#2 规则库】1514条稽查指令按分类浏览/搜索/详情查看
+  【#2 规则库】1608条稽查指令按分类浏览/搜索/详情查看
   【#3 质量保障】4条质量标准逐条检查/合规报告生成
-  【#4 方法论对账】33条方法论与audit_chains.json的实时核对
+  【#4 方法论对账】1250条方法论与audit_chains.json的实时核对
   【#5 跨域协商】15条协商规则四类场景的可视化矩阵
   【#6 智能大脑】调度中枢进度/学习事件/纠正规则库/渐进学习曲线
 
@@ -758,7 +758,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
 
   【核心引擎】
   engine/pipeline.py（主分析管线，本文档主要引用对象）
-  engine/domain_analysis.py（36个域分析函数）
+  engine/domain_analysis.py（39个域分析函数）
   engine/phase1_triage.py / phase2_deep_dive.py / phase3_cross_validate.py / phase4_synthesis.py
   engine/cross_domain_negotiation.py（跨域协商）
   engine/self_learning.py（审核反馈闭环）
@@ -775,7 +775,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   static/audit_chains.json（线索链/证据链/方法论）
   static/correction_rules.json（纠正规则存储）
   static/industry_data.json（25行业产品链词典+12条收款分类规则）
-  static/tax_risk_rules_local_export.json（1514条稽查指令）
+  static/tax_risk_rules_local_export.json（1608条稽查指令）
   static/audit_memory.json（500条分析记忆）
   audit_consistency.py（数据一致性自检+联动修改）
 
