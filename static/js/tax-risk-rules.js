@@ -46,6 +46,8 @@ function renderTaxRiskRules(container) {
     + '.rr-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}'
     + '.rr-main{flex:1;min-width:0;background:#fff}'
     + '.rr-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 12px!important}'
+    + '.rr-main .rr-rule-card{transition:box-shadow 0.15s}'
+    + '.rr-main .rr-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}'
     + '</style>'
     + '<div class="rr-layout">'
     + '<nav class="rr-toc" id="rr-toc"><div class="toc-title">📖 分类</div></nav>'
@@ -262,7 +264,7 @@ function renderTaxRiskRulesList() {
       var borderWidth = isTriggered ? '4px' : '3px';
 
       html += '<div data-rule-id="' + rid + '" data-level="' + (rule.level || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '"'
-        + ' style="padding:16px 20px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px">'
+        + ' style="padding:16px 20px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px" class="rr-rule-card">'
         
         // 标题行
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">'
