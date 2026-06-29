@@ -82,17 +82,19 @@ function getSharedAnalysis() {
 function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
-  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.fp-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.fp-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.fp-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.fp-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-toc a:hover,.fp-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.fp-main{flex:1;min-width:0;background:#fff}.fp-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.fp-main .fp-step{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}</style>'
     + '<div class="fp-layout">'
     + '<nav class="fp-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#fp-mechanism">一 识别机制</a>'
     + '<a href="#fp-compat">二 兼容策略</a>'
-    + '<a href="#fp-fingerprint">三 文件指纹库</a>'
-    + '<a href="#fp-result">四 本次解析结果</a>'
+    + '<a href="#fp-formats">三 格式扩展</a>'
+    + '<a href="#fp-fingerprint">四 文件指纹库</a>'
+    + '<a href="#fp-flow">五 解析流程</a>'
+    + '<a href="#fp-result">六 本次解析结果</a>'
     + '</nav>'
     + '<div class="fp-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📁 文件解析</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">三层递进识别 · 34类文件指纹 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">34类文件指纹 · 三层递进识别 · 四方交叉验证 · 8种格式全兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
     + '<div id="fp-static"></div>'
     + '<div id="fp-analysis-result"></div>'
     + '</div></div>';
@@ -108,114 +110,306 @@ function renderFileParsingStatic() {
   var fps = fpFingerprints();
   var html = '';
 
-  // ══════ 一、识别机制详解 ══════
+  // ═══════════════════════════════════════════════
+  // 一、识别机制：四层递进 + 四方交叉验证
+  // ═══════════════════════════════════════════════
   html += '<div id="fp-mechanism" style="margin-bottom:48px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、识别机制：三层递进</h3>'
-    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 20px">'
-    + '系统接收到文件后，不会依赖文件扩展名（因为用户上传的 .xls 可能是任何内容），'
-    + '而是执行三层递进识别，从粗到细逐步确定文件类型：'
+    + '<h3>一、识别机制：四层递进 + 四方交叉验证</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 20px">'
+    + '系统接收到文件后，不依赖文件扩展名判断（用户上传的 .xls 可能是任何内容），'
+    + '而是执行四层递进识别——从粗糙到精细、从单一证据到多方交叉验证，逐步锁定文件真实类型。'
+    + '整个过程模拟人类专家的判断逻辑：先看表头关键词 → 再看列结构 → '
+    + '再看数据样本 → 最后综合文件名/列头/数据/公司身份四方证据做最终裁决。'
     + '</p>'
 
-    + '<div style="display:flex;gap:20px;margin-bottom:24px">'
-
     // Step 1
-    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #0f172a">'
-    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 1</div>'
-    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">关键词匹配 · 打分制</div>'
-    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
-    + '读取 Excel 文件的前200行表头区域，将表头中的每个词与34类文件指纹的关键词库进行匹配。<br><br>'
-    + '每匹配一个关键词得1分，得分超过该类指纹的阈值（通常2-4分）即判定为该类型。<br><br>'
-    + '例如：表头出现"对方户名""交易日期""收入金额"三个词→银行流水指纹得3分→≥阈值3→判定为银行流水。<br><br>'
-    + '多个类型同时超过阈值时，取得分最高的类型。'
+    + '<div class="fp-step" style="margin-bottom:16px;border-left:4px solid #0f172a">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    + '<span style="display:inline-flex;align-items:center;justify-content:center;'
+    + 'width:28px;height:28px;border-radius:6px;background:#0f172a;color:#fff;font-size:13px;font-weight:700">1</span>'
+    + '<span style="font-size:15px;font-weight:700;color:#0f172a">关键词匹配 \u00b7 打分制</span>'
+    + '<span style="font-size:11px;color:#94a3b8">最高优先级 \u00b7 识别率 ~80%</span>'
+    + '</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<p style="margin:0 0 8px"><strong>执行逻辑：</strong>'
+    + '读取 Excel 文件的前200行表头区域（不只是第1行），将表头中的每一个词与34类文件指纹的关键词库做交叉匹配。'
+    + '每命中一个关键词得1分，得分超过该类型指纹的评分阈值（通常2-4分）即判定为该类型。'
+    + '多类型同时超过阈值时，取得分最高的类型作为主判定。'
+    + '</p>'
+    + '<p style="margin:0 0 8px"><strong>实际例子：</strong>'
+    + '表头出现 \u201c对方户名\u201d\u201c交易日期\u201d\u201c收入金额\u201d三个词'
+    + '\u2192 银行流水指纹得3分 \u2192 \u2265阈值3 \u2192 判定为银行流水。'
+    + '表头出现 \u201c发票号码\u201d\u201c开票日期\u201d\u201c金额\u201d\u201c税额\u201d四个词'
+    + '\u2192 通用发票指纹得4分 \u2192 \u2265阈值4 \u2192 判定为通用发票。'
+    + '</p>'
+    + '<p style="margin:0"><strong>边缘情况：</strong>'
+    + '当多个类型得分非常接近（相差\u22641分）时，标记为\u201c存疑\u201d，进入结构分析做二次判定。'
+    + '关键词库持续迭代——每发现一种新的列名变体，自动补充到对应类型的关键词集中。'
+    + '目前银行流水关键词23个、工资表关键词60+个、通用发票关键词20个。'
+    + '</p>'
     + '</div>'
     + '</div>'
 
     // Step 2
-    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #94a3b8">'
-    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 2</div>'
-    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">结构分析 · 列模式</div>'
-    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
-    + '当关键词匹配不够明确时（多个类型分数接近），进入结构分析阶段。<br><br>'
-    + '检查列数、列位置、表头的组合模式——例如银行流水通常包含日期列+对方户名列+金额列+余额列；'
-    + '工资表通常包含姓名列+收入列+扣除列+实发列。<br><br>'
-    + '系统维护了每种文件类型的列模式模板，按模式相似度进行二次判定。'
+    + '<div class="fp-step" style="margin-bottom:16px;border-left:4px solid #64748b">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    + '<span style="display:inline-flex;align-items:center;justify-content:center;'
+    + 'width:28px;height:28px;border-radius:6px;background:#64748b;color:#fff;font-size:13px;font-weight:700">2</span>'
+    + '<span style="font-size:15px;font-weight:700;color:#0f172a">结构分析 \u00b7 列模式匹配</span>'
+    + '<span style="font-size:11px;color:#94a3b8">第二优先级 \u00b7 多类型接近时激活</span>'
+    + '</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<p style="margin:0 0 8px"><strong>激活条件：</strong>'
+    + '关键词匹配阶段，前两名得分差距\u22641分，或最高分类型得分恰好等于阈值（临界状态）。'
+    + '此时不是简单地\u201c取最高分\u201d，而是进入更深层次的结构分析。'
+    + '</p>'
+    + '<p style="margin:0 0 8px"><strong>分析方法：</strong>'
+    + '系统为每种文件类型维护了一套列模式模板——包括列数范围、关键列的位置、列的排列顺序。'
+    + '例如银行流水的列模式模板：日期列(前3列) + 对方户名列(前3-5列) + 金额列(第4-8列) + 余额列(最后1-2列)。'
+    + '工资表的列模式模板：姓名列(第1列) + 收入列(第2-5列) + 扣除列(第6-8列) + 实发列(倒数1-2列)。'
+    + '</p>'
+    + '<p style="margin:0"><strong>容错设计：</strong>'
+    + '列位置允许\u00b13列的偏移（不同企业/不同财务软件导出的表头顺序可能不同），'
+    + '关键列必须存在但位置可以浮动。模式相似度计算公式：命中列数/模板总列数 \u2265 60% 即匹配。'
+    + '例如银行流水模板要求8列关键列，实际命中5列（5/8=62.5%\u226560%）\u2192 匹配成功。'
+    + '</p>'
     + '</div>'
     + '</div>'
 
     // Step 3
-    + '<div style="flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-top:3px solid #94a3b8">'
-    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 3</div>'
-    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">数据推断 · 兜底</div>'
-    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
-    + '当关键词和结构都无法确定时，进入数据推断阶段。系统逐列读取前200行数据样本，按照语义角色自动化分类：<br><br>'
-    + '→ 日期格式（2023-01-01、2023/1/1等）→ 日期列<br>'
-    + '→ 纯数字无明显小数 → 数量/编号列<br>'
-    + '→ 含"公司""有限""厂""店" → 企业名称列<br>'
-    + '→ 含"元""金额""￥" → 金额列<br>'
-    + '→ 含"税""%""税率" → 税率列<br><br>'
-    + '不因无法识别而丢弃数据——标注为"通用数据"（generic_data），交由下游分析模块自行判断数据用途。'
+    + '<div class="fp-step" style="margin-bottom:16px;border-left:4px solid #94a3b8">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    + '<span style="display:inline-flex;align-items:center;justify-content:center;'
+    + 'width:28px;height:28px;border-radius:6px;background:#94a3b8;color:#fff;font-size:13px;font-weight:700">3</span>'
+    + '<span style="font-size:15px;font-weight:700;color:#0f172a">数据推断 \u00b7 逐列语义分类</span>'
+    + '<span style="font-size:11px;color:#94a3b8">兜底机制 \u00b7 绝不丢弃数据</span>'
+    + '</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<p style="margin:0 0 8px"><strong>触发场景：</strong>'
+    + '关键词匹配和结构分析都无法确定文件类型时（例如企业自制的非标准表格、极少见的资料类型），'
+    + '系统不会拒绝解析或丢弃数据，而是进入数据推断阶段——逐列读取前200行数据样本，'
+    + '按每一个单元格的语义角色自动分类。'
+    + '</p>'
+    + '<p style="margin:0 0 8px"><strong>语义分类规则（5类）：</strong><br>'
+    + '\u2192 日期格式（2023-01-01、2023/1/1、2023年1月1日、20230101等）\u2192 日期列<br>'
+    + '\u2192 纯数字无明显小数位（整数、序号）\u2192 数量/编号列<br>'
+    + '\u2192 含\u201c公司\u201d\u201c有限\u201d\u201c厂\u201d\u201c店\u201d\u201c集团\u201d等企业标识词 \u2192 企业名称列<br>'
+    + '\u2192 含\u201c元\u201d\u201c金额\u201d\u201c￥\u201d\u201c¥\u201d\u201c合计\u201d或纯数字含2位小数 \u2192 金额列<br>'
+    + '\u2192 含\u201c税\u201d\u201c%\u201d\u201c税率\u201d \u2192 税率列'
+    + '</p>'
+    + '<p style="margin:0"><strong>兜底输出：</strong>'
+    + '数据推断无法确定具体类型时，标注为\u201c通用数据\u201d（generic_data），'
+    + '保留完整的原始行列结构，交由下游分析模块（域分析引擎/规则匹配引擎）自行判断数据用途。'
+    + '核心原则：不因无法识别而丢弃任何一行数据。'
+    + '</p>'
     + '</div>'
     + '</div>'
 
+    // Step 4
+    + '<div class="fp-step" style="margin-bottom:24px;border-left:4px solid #16a34a">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    + '<span style="display:inline-flex;align-items:center;justify-content:center;'
+    + 'width:28px;height:28px;border-radius:6px;background:#16a34a;color:#fff;font-size:13px;font-weight:700">4</span>'
+    + '<span style="font-size:15px;font-weight:700;color:#0f172a">四方交叉验证 \u00b7 最终裁决</span>'
+    + '<span style="font-size:11px;color:#94a3b8">2026-06-28新增 \u00b7 证据冲突时数据优先</span>'
     + '</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<p style="margin:0 0 8px"><strong>设计目的：</strong>'
+    + '前三层都是\u201c文件内部\u201d的推理——仅依据表头和数据本身判断。但有时文件内部的线索可能产生歧义'
+    + '（例如一份银行流水表头被改了列名，看起来像费用明细）。四方交叉验证引入\u201c外部证据\u201d——'
+    + '包括文件名暗示、公司身份锚定、买卖方关系匹配——从多角度验证前三层的结论。'
+    + '</p>'
+    + '<p style="margin:0 0 8px"><strong>四方证据：</strong><br>'
+    + '\u2460 <strong>文件名暗示</strong>：文件名含\u201c开票\u201d\u201c销项\u201d\u2192倾向销项发票；含\u201c取票\u201d\u201c进项\u201d\u201c抵扣\u201d\u2192倾向进项发票。'
+    + '但仅作为参考权重，不直接决定类型——因为文件名可能错误标注。<br>'
+    + '\u2461 <strong>列头推理</strong>：前三层的结果，带置信度。不同类型的关键词得分和列模式相似度作为主证据。<br>'
+    + '\u2462 <strong>数据扫描（买卖方身份）</strong>：读取数据样本中的企业名称字段，与公司身份做双向比对。'
+    + '购方名称=当前公司\u2192进项发票；销方名称=当前公司\u2192销项发票。'
+    + '双方都不匹配\u2192存疑排除（可能是其他公司的文件误上传）。<br>'
+    + '\u2463 <strong>公司匹配</strong>：通过企业名称和统一社会信用代码（USCC）双向锚定当前账套的企业身份，'
+    + '确保发票方向判定的正确性。'
+    + '</p>'
+    + '<p style="margin:0"><strong>冲突裁决规则：</strong>'
+    + '当四方证据出现矛盾时，优先级：数据扫描（买卖方匹配）> 列头推理（关键词得分）> '
+    + '文件名暗示。因为数据不会说谎——如果数据中购方名称=当前公司，那么无论文件名写什么、'
+    + '表头怎么命名，这份文件就是进项发票。文件名可能错误标注，表头可能不规范，但数据本身的身份关系是铁证。'
+    + '</p>'
     + '</div>'
-
-    // Step 4: 综合判断（2026-06-28新增）
-    + '<div style="flex:1;padding:20px;background:#f0fdf4;border-radius:8px;border-top:3px solid #16a34a">'
-    + '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Step 4 · 2026-06-28新</div>'
-    + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px">综合判断 · 四方交叉验证</div>'
-    + '<div style="font-size:13px;color:#475569;line-height:1.9">'
-    + '前三层都无法确定时，启动四方证据交叉验证：文件名暗示→列头推理→数据扫描（买卖方身份）→公司匹配。证据冲突优先数据推理。'
-    + '</div>'
-    + '</div></div>';
-
-  // ══════ 二、兼容策略 ══════
-  html += '<div id="fp-compat" style="margin-bottom:48px;padding:20px 24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">二、兼容策略</h3>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
-    + '<strong>银行流水</strong>：兼容5种日期列名（交易日期/记账日期/交易时间/日期/申请日期），'
-    + '对方户名兼容4种命名（counterparty/对方户名/交易对方/对方名称），金额自动去除￥/元/逗号等非数字字符。<br>'
-    + '<strong>发票</strong>：兼容购方名称/购买方名称、销方名称/销售方名称/供应商名称等多种命名习惯，'
-    + '进项/销项方向通过购方税号与公司税号比对自动判定。<br>'
-    + '<strong>工资表</strong>：兼容60+个列名变体（本期收入/应发工资/实发合计等）。<br>'
-    + '<strong>汇总行过滤</strong>：自动识别并剔除"小计""合计""总计""本页合计""本年累计""当月合计"等汇总行，'
-    + '防止汇总数据污染分析结果。<br>'
-    + '<strong>社保/公积金</strong>：区分缴费基数、单位缴纳、个人缴纳三列数据。'
     + '</div>'
     + '</div>';
 
-  // ══════ 三、34类文件指纹 ══════
-  html += '<div id="fp-fingerprint" style="margin-bottom:48px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">三、文件指纹库 · ' + fps.length + ' 类</h3>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">每类指纹由 关键词集 + 得分阈值 + 专用解析器 三部分组成。按使用频率分梯队排列。</p>';
+  // ═══════════════════════════════════════════════
+  // 二、兼容策略（全部34类 + 跨格式）
+  // ═══════════════════════════════════════════════
+  html += '<div id="fp-compat" style="margin-bottom:48px">'
+    + '<h3>二、兼容策略</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'
+    + '企业上传的资料格式千差万别——不同ERP系统、不同财务软件、不同银行导出的表格结构各不相同。'
+    + '文件解析模块通过列名映射表（82+变体）和智能自适应机制，兼容主要的命名习惯差异。'
+    + '</p>';
 
-  // 分组显示
+  // 各类型兼容详情
+  var compatItems = [
+    {title:'银行流水', icon:'\u{1f3e7}', detail:'' +
+      '<strong>日期列兼容：</strong>交易日期、记账日期、交易时间、日期、申请日期、起息日 共6种。<br>' +
+      '<strong>对方户名兼容：</strong>对方户名、交易对方、对方名称、counterparty、对方单位、收款人名称 共6种。<br>' +
+      '<strong>金额兼容：</strong>收入金额、支出金额、贷方金额、借方金额、交易金额、发生额 共6种——' +
+      '自动去除\u00a5/\u5143/\u9017\u53f7/\u7a7a\u683c等非数字字符。金额符号按借贷方向或交易关键词自动判断。<br>' +
+      '<strong>余额兼容：</strong>本次余额、交易余额、账户余额 共3种。<br>' +
+      '<strong>汇总行过滤：</strong>自动识别并剔除所有含\u201c小计\u201d\u201c合计\u201d\u201c总计\u201d\u201c本页合计\u201d\u201c本年累计\u201d\u201c当月合计\u201d的行。'},
+    {title:'发票', icon:'\u{1f9fe}', detail:'' +
+      '<strong>方向自动判定：</strong>购方名称/税号=当前公司\u2192进项发票；销方名称/税号=当前公司\u2192销项发票；双方都不匹配\u2192存疑排除。<br>' +
+      '<strong>购买方列名兼容：</strong>购方名称、购买方名称、购方、买方、客户名称、付款方 共6种。<br>' +
+      '<strong>销售方列名兼容：</strong>销方名称、销售方名称、销方、卖方、供应商名称、供方名称、收款方 共7种。<br>' +
+      '<strong>发票号码兼容：</strong>发票号码、发票号、数电发票号码、票据号码 共4种。<br>' +
+      '<strong>税收分类：</strong>货物或应税劳务名称、\u203b品名、商品名称、服务名称、项目名称 共5种——自动按最长子串匹配归类。<br>' +
+      '<strong>金额兼容：</strong>金额、不含税金额、含税金额、价税合计、小写金额——自动识别含税/不含税并补齐缺失字段。'},
+    {title:'工资表', icon:'\u{1f4b0}', detail:'' +
+      '<strong>60+列名变体：</strong>本期收入/应发工资/实发工资/应发合计/实发合计/代扣个税/'
+      + '基本养老保险/基本医疗保险/住房公积金/专项扣除/子女教育/赡养老人/基本工资/绩效工资/'
+      + '岗位工资/加班工资/交通补贴/通讯补贴/餐补/高温补贴/奖金/年终奖/提成工资等。<br>' +
+      '<strong>个税申报格式兼容：</strong>累计收入/累计减除费用/累计专项扣除/累计应纳税额/已预缴税额/应补退税额——'
+      + '与工资表自动区分，按关键词集不同走不同解析器。<br>' +
+      '<strong>合计行过滤：</strong>自动剔除\u201c合计\u201d\u201c总计\u201d\u201c小计\u201d行，防止重复统计。'},
+    {title:'社保/公积金', icon:'\u{1f3e5}', detail:'' +
+      '<strong>社保三列数据自动区分：</strong>缴费基数（工资基数/社保基数）、'
+      + '单位缴纳（单位缴费/公司缴纳）、个人缴纳（个人缴费/个人承担）。<br>' +
+      '<strong>五险自动识别：</strong>养老保险/医疗保险/失业保险/工伤保险/生育保险——各险种可能独立Sheet或以合并列出现。<br>' +
+      '<strong>公积金兼容：</strong>公积金/住房公积金/住房储金、缴存基数/公积金基数、'
+      + '缴存比例（自动识别单位+个人两部分）、月缴存额。'},
+    {title:'申报表', icon:'\u{1f4cb}', detail:'' +
+      '<strong>增值税申报表：</strong>销售额/销项税额/进项税额/应纳税额/期末留抵税额/即征即退——'
+      + '兼容一般纳税人和小规模纳税人两种表格式。<br>' +
+      '<strong>企业所得税申报表：</strong>营业收入/营业成本/利润总额/纳税调整增加额/纳税调整减少额/'
+      + '应纳税所得额/税率/应纳所得税额——兼容查账征收和核定征收。<br>' +
+      '<strong>个税申报表：</strong>与工资表通过关键词区分（含\u201c累计预扣预缴\u201d\u201c应补退税额\u201d\u201c所得项目\u201d等个税专属词）。<br>' +
+      '<strong>印花税/完税证明：</strong>按税种名称和缴款日期格式自动识别。'},
+    {title:'财务报表', icon:'\u{1f4ca}', detail:'' +
+      '<strong>科目余额表：</strong>科目编码/科目名称/期初余额/本期借方/本期贷方/期末余额——兼容借贷方向和余额方向两种格式。<br>' +
+      '<strong>财务报表（资产负债表/利润表）：</strong>按报表项目名称（流动资产、非流动资产、营业收入、营业成本等）自动区分。<br>' +
+      '<strong>进销存台账：</strong>期初库存/本期入库/本期出库/期末库存/存货编码/产品名称——兼容数量和金额两类台账。'},
+    {title:'合同/往来/资产', icon:'\u{1f4c4}', detail:'' +
+      '<strong>合同台账：</strong>合同编号/合同名称/甲方/乙方/合同金额/已付金额/未付金额/签订日期/生效日期/到期日期——14字段全覆盖。<br>' +
+      '<strong>应收/应付账款：</strong>客户/供应商名称、欠款金额/应付金额、账龄、账期、逾期标志。<br>' +
+      '<strong>固定资产：</strong>资产名称/原值/累计折旧/净值/入账日期/折旧年限/残值率。<br>' +
+      '<strong>无形资产/资产损失/费用明细/研发费用：</strong>各有专属关键词集和解析器，按列名自动路由。'},
+    {title:'特殊类型', icon:'\u{1f50d}', detail:'' +
+      '<strong>人员清单：</strong>姓名/身份证号/入职/离职/岗位/部门——与工资表通过关键词区分（无金额列）。<br>' +
+      '<strong>股权交易：</strong>出让方/受让方/转让比例/转让价格/审批日期。<br>' +
+      '<strong>借款合同：</strong>借款人/出借人/借款金额/利率/期限/担保方式。<br>' +
+      '<strong>进出口报关：</strong>报关单号/进出口类型/商品名称/金额/币种/口岸。<br>' +
+      '<strong>关联交易：</strong>关联方名称/交易类型/关联关系/交易金额/定价政策。<br>' +
+      '<strong>通用数据（兜底）：</strong>以上所有类型均不匹配时，标注为generic_data——保留原始结构不变，将数据原样输出供下游模块自行判断。'}
+  ];
+
+  compatItems.forEach(function(ci) {
+    html += '<details style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">'
+      + '<summary style="padding:12px 16px;background:#fafafa;cursor:pointer;font-size:14px;font-weight:600;color:#0f172a;user-select:none">'
+      + ci.icon + ' ' + ci.title + '</summary>'
+      + '<div style="padding:14px 16px;font-size:13px;color:#475569;line-height:2.0;background:#fff">'
+      + ci.detail + '</div>'
+      + '</details>';
+  });
+
+  html += '</div>';
+
+  // ═══════════════════════════════════════════════
+  // 三、格式扩展（PDF/DOCX/CSV/OCR图片）
+  // ═══════════════════════════════════════════════
+  html += '<div id="fp-formats" style="margin-bottom:48px">'
+    + '<h3>三、格式扩展：多格式全兼容</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 20px">'
+    + '除了传统的 Excel 格式（.xls/.xlsx），文件解析模块已扩展到支持以下格式的自动解析：'
+    + '</p>'
+
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px">'
+
+    // PDF
+    + '<div class="fp-step">'
+    + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px">\u{1f4c4} PDF文档</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<strong>双引擎架构：</strong>pdfplumber表格提取（优先）+ pypdf文本解析（兜底）。<br>'
+    + '<strong>自适应策略：</strong>逐页提取所有表格 \u2192 取最大表格 \u2192 表头走34类指纹匹配 \u2192 '
+    + '成功则按类型路由，失败则回退旧格式解析器。<br>'
+    + '<strong>优势：</strong>不再硬编码特定银行格式（旧版仅支持招商银行大兴支行），任何银行/税务PDF均可识别。<br>'
+    + '<strong>格式：</strong>支持 .pdf'
+    + '</div>'
+    + '</div>'
+
+    // DOCX
+    + '<div class="fp-step">'
+    + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px">\u{1f4dd} Word文档</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<strong>表格提取：</strong>python-docx遍历所有表格 \u2192 合并多表格 \u2192 表头指纹匹配。<br>'
+    + '<strong>文本兜底：</strong>无表格时提取段落文本，标注为 document_text 类型。<br>'
+    + '<strong>应用场景：</strong>合同文件、申报说明、审计报告等Word格式资料。<br>'
+    + '<strong>格式：</strong>支持 .docx'
+    + '</div>'
+    + '</div>'
+
+    // CSV
+    + '<div class="fp-step">'
+    + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px">\u{1f4ca} CSV文本</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<strong>管道原生支持：</strong>csv.reader读取 \u2192 CsvSheet模拟Sheet接口 \u2192 指纹匹配。<br>'
+    + '<strong>编码自动检测：</strong>UTF-8-BOM优先，自动处理逗号分隔和引号转义。<br>'
+    + '<strong>应用场景：</strong>银行系统导出的流水、ERP导出的数据表等CSV格式。<br>'
+    + '<strong>格式：</strong>支持 .csv'
+    + '</div>'
+    + '</div>'
+
+    // OCR images
+    + '<div class="fp-step">'
+    + '<div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px">\u{1f4f7} OCR图片识别</div>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
+    + '<strong>双引擎OCR：</strong>EasyOCR（中文优先，文字块坐标提取）+ Tesseract（系统兜底）。<br>'
+    + '<strong>表格重建：</strong>Y坐标聚类（<15px=同行）\u2192 X排序 \u2192 构建行\u00d7列矩阵 \u2192 指纹匹配。<br>'
+    + '<strong>字段提取：</strong>无表格结构时，正则提取发票号/代码/日期/金额等关键字段。<br>'
+    + '<strong>首次使用：</strong>需联网下载EasyOCR模型（~200MB，一次性），之后本地缓存。<br>'
+    + '<strong>格式：</strong>支持 .jpg .jpeg .png .bmp .tiff'
+    + '</div>'
+    + '</div>'
+
+    + '</div>'
+    + '</div>';
+
+  // ═══════════════════════════════════════════════
+  // 四、34类文件指纹库
+  // ═══════════════════════════════════════════════
+  html += '<div id="fp-fingerprint" style="margin-bottom:48px">'
+    + '<h3>四、文件指纹库 \u00b7 ' + fps.length + ' 类</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 20px">'
+    + '每类指纹由 <strong>关键词集</strong> + <strong>得分阈值</strong> + <strong>专用解析器</strong> 三部分组成。'
+    + '关键词决定了\u201c怎么看\u201d，阈值决定了\u201c多确定才能算\u201d，解析器决定了\u201c识别后怎么提取\u201d。'
+    + '按使用频率分六梯队排列，第一梯队是稽查中最常见的高频类型。'
+    + '</p>';
+
   var groups = [
-    {title:'第一梯队 · 高频核心（用户最常上传）', items: fps.slice(0,12),
-     desc:'这12类文件是稽查中最常出现的材料，拥有最完善的关键词库和解析器。得分阈值2-4分。'},
-    {title:'第二梯队 · 合同/权证/关联交易', items: fps.slice(12,17),
-     desc:'合同和关联交易文件的识别需要更细致的结构分析，阈值通常为2分。'},
-    {title:'第三梯队 · 申报表与财务报表', items: fps.slice(17,23),
-     desc:'各类税务申报表和财务报表，关键词含税种名称、报表项目等专业术语。'},
-    {title:'第四梯队 · 往来与合同清单', items: fps.slice(23,27),
-     desc:'应收账款、应付账款、预收预付、其他应收付等往来类数据表。'},
-    {title:'第五梯队 · 资产与费用', items: fps.slice(27,31),
-     desc:'固定资产、无形资产、资产损失、费用明细、研发费用等资产和费用类表格。'},
-    {title:'第六梯队 · 特殊交易与兜底', items: fps.slice(31),
-     desc:'人员清单、股权交易、借款合同、进出口报关等特殊类型，以及通用数据的兜底识别。'},
+    {title:'第一梯队 \u00b7 高频核心（用户最常上传）', items: fps.slice(0,12),
+     desc:'这12类文件是稽查中最常出现的材料——银行流水、发票、工资表、社保公积金等。拥有最完善的关键词库（20-60+个关键词）和最成熟的解析器。得分阈值2-4分，识别率>95%。'},
+    {title:'第二梯队 \u00b7 合同/权证/关联交易', items: fps.slice(12,17),
+     desc:'合同和关联交易文件的识别依赖更细致的结构分析——关键词数量较少（9-12个），阈值通常为2分。这类文件的列结构比关键词更有特征性。'},
+    {title:'第三梯队 \u00b7 申报表与财务报表', items: fps.slice(17,23),
+     desc:'各类税务申报表和财务报表——关键词含税种名称、报表项目、会计科目等专业术语。阈值3分，因为申报表的列名专业性强、不易与其他类型混淆。'},
+    {title:'第四梯队 \u00b7 往来与合同清单', items: fps.slice(23,27),
+     desc:'应收账款、应付账款、预收预付等往来类数据表。特征：通常含对方单位名称+金额+账龄三要素。'},
+    {title:'第五梯队 \u00b7 资产与费用', items: fps.slice(27,31),
+     desc:'固定资产、无形资产、资产损失、费用明细、研发费用等资产和费用类表格。各有关键词特征，阈值2分。'},
+    {title:'第六梯队 \u00b7 特殊交易与兜底', items: fps.slice(31),
+     desc:'人员清单、股权交易、借款合同、进出口报关等特殊类型。最后是通用数据（generic_data）作为兜底——关键词阈值仅1分，确保任何有结构的表格都不会被丢弃。'},
   ];
 
   groups.forEach(function(g) {
-    html += '<div style="margin-bottom:24px">'
-      + '<div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:6px">' + escHtml(g.title) + '</div>'
-      + '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">' + escHtml(g.desc) + '</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px">';
+    html += '<div style="margin-bottom:28px">'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">' + escHtml(g.title) + '</div>'
+      + '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.8">' + escHtml(g.desc) + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">';
 
     g.items.forEach(function(item) {
-      html += '<div style="padding:10px 12px;border:1px solid #f1f5f9;border-radius:6px;font-size:13px;line-height:1.7">'
+      html += '<div style="padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;line-height:1.7">'
         + '<div style="font-weight:600;color:#0f172a;margin-bottom:4px"><span style="font-size:16px">' + item.icon + '</span> ' + escHtml(item.name) + '</div>'
         + '<div style="color:#64748b;font-size:12px;margin-bottom:4px">' + escHtml(item.sig) + '</div>'
-        + '<div style="color:#94a3b8;font-size:11px">阈值：' + item.threshold + ' · 解析器：' + item.parser + '</div>'
+        + '<div style="color:#94a3b8;font-size:11px">阈值：' + item.threshold + ' \u00b7 ' + item.parser + '</div>'
         + '</div>';
     });
 
@@ -224,20 +418,69 @@ function renderFileParsingStatic() {
 
   html += '</div>';
 
-  // ══════ 四、解析流程 ══════
-  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">四、解析流程</h3>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
-    + '<strong>1. 磁盘扫描</strong> → 遍历 uploads/ 目录下所有 .xls/.xlsx/.csv/.pdf 文件，按修改时间排序。<br>'
-    + '<strong>2. 格式检测</strong> → 读取文件前5KB数据，判断是 xls/xlsx/csv/pdf 格式，调用对应的文件读取库（openpyxl / xlrd / csv / pypdf）。<br>'
-    + '<strong>3. 表头提取</strong> → 逐 sheet 读取前200行，提取每列的表头文字和历史数据样本。<br>'
-    + '<strong>4. 指纹匹配</strong> → 将表头文字与34类指纹关键词库做交叉匹配，计算每类的得分。<br>'
-    + '<strong>5. 类型判定</strong> → 取得分最高的类型（需超过阈值），未超过的进入结构分析和数据推断。<br>'
-    + '<strong>6. 解析器调用</strong> → 根据确定的文件类型，调用对应的专用解析器（如 _parse_bank_sheet / _parse_invoice_sheet 等），将原始表格转换为结构化数据。<br>'
-    + '<strong>7. 标准化输出</strong> → 统一字段命名（date/amount/seller/buyer/goods等），输出可在后续分析中直接使用的结构化数据。<br>'
-    + '<strong>8. 逻辑层</strong> → 统计每条解析动作（如 "bank_statement: 13条"），输出 file_results 和 pipeline_log。'
-    + '</div>'
-    + '</div>';
+  // ═══════════════════════════════════════════════
+  // 五、解析流程（8步详解）
+  // ═══════════════════════════════════════════════
+  html += '<div id="fp-flow" style="margin-bottom:48px">'
+    + '<h3>五、解析流程：8步全链路</h3>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 20px">'
+    + '从磁盘上的原始文件到结构化的分析数据，文件解析引擎执行8个步骤：'
+    + '</p>';
+
+  var steps = [
+    {num:'1', title:'磁盘扫描', detail:'' +
+      '遍历 uploads/ 目录下所有支持格式的文件（.xls .xlsx .csv .pdf .docx .jpg .png 等），按文件修改时间排序。' +
+      '跳过系统临时文件（~$开头、.tmp结尾）。同一文件MD5去重——内容相同的文件只解析一次，避免重复工作。'},
+    {num:'2', title:'格式检测', detail:'' +
+      '读取文件前5KB数据，通过二进制签名（magic bytes）判断真实格式——不是依赖扩展名。' +
+      'xls/xlsx: OLE2/ZIP签名；CSV: 纯文本逗号分隔；PDF: %PDF-头部；DOCX: ZIP+[Content_Types].xml；' +
+      '图片: JPEG/PNG/BMP/TIFF头部签名。调用对应的文件读取库：openpyxl / xlrd / csv / pdfplumber / python-docx / PIL。'},
+    {num:'3', title:'表头提取', detail:'' +
+      '逐Sheet读取前200行（非硬编码\u201c第1行\u201d——自适应扫描直到找到列名行）。' +
+      '对每一列：提取列名文本 + 前200个数据样本，构建\u201c表头特征向量\u201d。' +
+      '自动跳过空行、纯数字行（不太可能是表头）、以及明显的合计行。'},
+    {num:'4', title:'指纹匹配', detail:'' +
+      '将表头特征向量与34类指纹关键词库做交叉匹配：遍历每一种文件类型的关键词集，' +
+      '对表头中出现的每个词检查是否命中，每命中1词得1分。记录每种类型的总得分。' +
+      '同时检查\u201c关键识别词\u201d——某些词的出现足以直接判定类型（如\u201c发票号码\u201d+3个其他词\u2192通用发票）。'},
+    {num:'5', title:'类型判定', detail:'' +
+      '取得分最高的类型：①最高分\u2265阈值 \u2192 直接判定为该类型；' +
+      '②最高分<阈值 且 前两名差距\u22641分 \u2192 进入结构分析做二次判定；' +
+      '③所有类型得分均<阈值且无接近候选人 \u2192 进入数据推断（第3层）。' +
+      '四方交叉验证在判定存疑时介入——综合文件名/列头/数据/公司匹配做最终裁决。'},
+    {num:'6', title:'解析器调用', detail:'' +
+      '根据最终确定的文件类型，调用对应的专用解析器函数。' +
+      '每个解析器负责将原始表格转换为字段标准化的结构化数据：' +
+      '银行流水\u2192_parse_bank_sheet、发票\u2192_parse_invoice_sheet、' +
+      '工资\u2192_parse_salary_sheet、合同\u2192_parse_contract_sheet等。' +
+      '解析器内部完成：列名映射归一化（82+变体\u2192标准字段名）、数据类型转换（字符串\u2192float/date）、无效行过滤。'},
+    {num:'7', title:'标准化输出', detail:'' +
+      '统一字段命名规范：date（日期）、amount（金额）、counterparty（对方）、' +
+      'seller（销售方）、buyer（购买方）、goods（品名）、quantity（数量）、' +
+      'tax_rate（税率）、tax_amount（税额）、total（价税合计）。' +
+      '所有金额统一为float（去除千分位逗号/货币符号）、日期统一为YYYY-MM-DD格式。' +
+      '输出为可在后续分析中直接使用的结构化JSON数据。'},
+    {num:'8', title:'日志与路由', detail:'' +
+      '将每个文件的解析结果写入 file_results 数组和 pipeline_log 日志。' +
+      '按文件类型自动路由到对应的数据列表：银行流水\u2192bank_txs、发票\u2192invoice_data、' +
+      '工资\u2192salary_data、合同\u2192contract_data等。' +
+      '解析失败的标注error原因，供诊断面板回溯。所有日志持久化到分析缓存中。'}
+  ];
+
+  steps.forEach(function(st) {
+    html += '<div class="fp-step" style="margin-bottom:12px">'
+      + '<div style="display:flex;gap:12px">'
+      + '<span style="display:inline-flex;align-items:center;justify-content:center;'
+      + 'flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#f1f5f9;'
+      + 'color:#64748b;font-size:13px;font-weight:700">' + st.num + '</span>'
+      + '<div>'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">' + st.title + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2.0">' + st.detail + '</div>'
+      + '</div></div>'
+      + '</div>';
+  });
+
+  html += '</div>';
 
   target.innerHTML = html;
 }
@@ -314,7 +557,7 @@ function renderFileParsingResult(report) {
   var failed = frs.filter(function(f) { return f.error; }).length;
 
   var html = '<div id="fp-result">'
-    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 6px">四、本次解析结果</h3>'
+    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 6px">六、本次解析结果</h3>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">本次分析共解析 ' + frs.length + ' 个文件，成功识别 ' + parsed + ' 个，未识别 ' + failed + ' 个</p>'
 
     // 统计卡片
