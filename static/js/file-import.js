@@ -7,7 +7,7 @@ function showUploadModal(module) {
     <div style="border:2px dashed var(--gray-300);border-radius:8px;padding:30px;text-align:center;margin-bottom:16px;cursor:pointer;" onclick="document.getElementById('upload-file-input').click()">
       <div style="font-size:32px;margin-bottom:8px;"></div>
       <div style="color:var(--gray-500);">点击选择文件 或拖拽到此处</div>
-      <div style="font-size:12px;color:var(--gray-400);margin-top:4px;">支持 .xlsx .csv</div>
+      <div style="font-size:12px;color:var(--gray-400);margin-top:4px;">支持 .xlsx .xls .csv</div>
     </div>
     <input type="file" id="upload-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileSelect(this, '${module}')">
     <div id="upload-progress" style="display:none;text-align:center;color:var(--primary);"></div>

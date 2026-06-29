@@ -1707,14 +1707,43 @@ from datetime import timedelta
 # ═══════════ Excel 结构化提取 ═══════════
 
 def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
-    """智能识别Excel内容——不依赖Sheet名，纯靠表头和数据推断
+    """智能识别Excel/CSV内容——不依赖Sheet名，纯靠表头和数据推断
     
     当 return_wb=True 时，返回 (result, wb) 元组，避免调用方重复打开文件。
     """
     fname = os.path.basename(filepath)
     _init_trace(fname)  # 初始化诊断追踪
     try:
-        if ext == ".xls":
+        if ext == ".csv":
+            import csv, io
+            with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
+                reader = csv.reader(f)
+                raw_data = list(reader)
+            if not raw_data:
+                _trace_diag("CSV文件为空", "error")
+                if return_wb: return (None, None)
+                return None
+            # 将CSV数据模拟为单Sheet：header是第一行，后续为数据行
+            class CsvSheet:
+                def __init__(self, data):
+                    self.data = data
+                    self.nrows = len(data)
+                    self.max_row = len(data)
+                    self.ncols = max(len(row) for row in data) if data else 0
+                def cell_value(self, r, c):
+                    if r < len(self.data) and c < len(self.data[r]):
+                        return self.data[r][c]
+                    return ''
+                def __iter__(self): return iter(self.data)
+            sheet = CsvSheet(raw_data)
+            header = raw_data[0] if raw_data else []
+            result = _parse_by_content(["Sheet1"], lambda i: sheet, original_name)
+            if result is None:
+                _trace_diag("三层递进全部失败: CSV关键词匹配→结构分析→通用解析 均未通过", "error")
+            if return_wb:
+                return (result, sheet)
+            return result
+        elif ext == ".xls":
             import xlrd
             wb = xlrd.open_workbook(filepath)
             result = _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i), original_name)
@@ -1728,7 +1757,7 @@ def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
             return (result, wb)
         return result
     except Exception as e:
-        _trace_diag(f"Excel解析异常: {e}", "error")
+        _trace_diag(f"Excel/CSV解析异常: {e}", "error")
         if return_wb:
             return (None, None)
         return None
@@ -2168,34 +2197,6 @@ def _parse_housing_fund_sheet(sheet, header):
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "housing_fund", "rows": rows}
-
-def _parse_contract_sheet(sheet, header):
-    """解析合同清单"""
-    cols = _find_cols_semantic(header, {
-        "合同编号": "contract_no", "合同名称": "name", "合同类型": "contract_type",
-        "甲方": "party_a", "乙方": "party_b", "对方单位": "party_b",
-        "合同金额": "amount", "已付金额": "paid_amount", "未付金额": "unpaid_amount",
-        "签订日期": "signing_date", "签约日期": "signing_date",
-        "生效日期": "effective_date", "到期日期": "expiry_date", "终止日期": "expiry_date",
-        "履行状态": "status", "负责人": "responsible",
-        "付款方式": "payment_method", "付款条件": "payment_terms",
-        "备注": "remark", "条款": "terms",
-    })
-    if not cols: return None
-    rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(1, min(nrows, 2000)):
-        vals = {}
-        for field, col in cols.items():
-            try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col] or '') if col < len(raw_vals) else ''
-                vals[field] = v
-            except: vals[field] = ""
-        if not vals.get("name") and not vals.get("contract_no"): continue
-        try: vals["amount"] = float(vals.get("amount", 0) or 0)
-        except: vals["amount"] = 0
-        rows.append(vals)
-    return {"type": "contract_list", "rows": rows}
 
 # ═══════════════ 诊断追踪系统 ═══════════════
 # 目的：让系统能解释自己的每一个决策——为什么选这个类型、为什么排除那个类型、哪里出了问题
@@ -3697,13 +3698,18 @@ def _parse_trial_balance_sheet(sheet, header):
     return rows
 
 def _parse_contract_sheet(sheet, header):
-    """解析合同台账"""
+    """解析合同台账（合并合同清单+台账字段）"""
     cols = _find_cols_semantic(header, {
         "合同名称": "name", "合同编号": "contract_no", "合同类型": "contract_type",
         "甲方": "party_a", "甲方名称": "party_a", "乙方": "party_b", "乙方名称": "party_b",
-        "合同金额": "amount", "签订日期": "sign_date", "签订时间": "sign_date",
+        "对方单位": "party_b",
+        "合同金额": "amount", "已付金额": "paid_amount", "未付金额": "unpaid_amount",
+        "签订日期": "sign_date", "签订时间": "sign_date", "签约日期": "sign_date",
         "合同期限": "term", "合同内容": "content", "付款方式": "payment_method",
-        "合同状态": "status", "备注": "remark", "签约方": "party",
+        "生效日期": "effective_date", "到期日期": "expiry_date", "终止日期": "expiry_date",
+        "合同状态": "status", "履行状态": "status", "负责人": "responsible",
+        "付款条件": "payment_terms",
+        "备注": "remark", "签约方": "party",
     })
     if not cols: return None
     rows = []
@@ -3968,6 +3974,115 @@ def _parse_pdf_bank_statement(filepath):
             "raw": line[:200]
         })
     return txs
+
+# ═══════════ 通用PDF表格解析（pdfplumber） ═══════════
+
+def _parse_pdf_generic(filepath, original_name=""):
+    """通用PDF解析——用pdfplumber提取表格，适配任意银行/报表PDF格式
+    
+    策略：逐页提取表格 → 取最大表格 → 表头走_FINGERPRINT匹配
+    兜底：无表格时提取纯文本 → 尝试按行解析
+    """
+    try:
+        import pdfplumber
+    except ImportError:
+        return _parse_pdf_bank_statement(filepath)
+    
+    try:
+        all_rows = []
+        headers = []
+        with pdfplumber.open(filepath) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                for tbl in tables:
+                    if tbl and len(tbl) > 1:
+                        if not headers and tbl[0]:
+                            headers = [str(c or '').strip() for c in tbl[0]]
+                        for row in tbl[1:]:
+                            clean = [str(c or '').strip() for c in row]
+                            if any(clean):
+                                all_rows.append(clean)
+        
+        if not all_rows:
+            # 兜底：用pypdf提取文本行
+            return _parse_pdf_bank_statement(filepath)
+        
+        # 组装成类Sheet结构走指纹匹配
+        class PdfSheet:
+            def __init__(self, headers, rows):
+                self.data = [headers] + rows
+                self.nrows = len(self.data)
+                self.max_row = len(self.data)
+                self.ncols = max(len(row) for row in self.data) if self.data else 0
+            def cell_value(self, r, c):
+                if r < len(self.data) and c < len(self.data[r]):
+                    return self.data[r][c]
+                return ''
+        
+        sheet = PdfSheet(headers, all_rows)
+        result = _parse_by_content(["PDF表格"], lambda i: sheet, original_name)
+        if result is None:
+            # 指纹匹配失败，回退到旧解析器
+            return _parse_pdf_bank_statement(filepath)
+        return result
+    except Exception as e:
+        # pdfplumber失败 → 回退旧解析器
+        return _parse_pdf_bank_statement(filepath)
+
+# ═══════════ DOCX文档解析（python-docx） ═══════════
+
+def _parse_docx(filepath, original_name=""):
+    """解析Word文档——提取表格，适配合同/申报表等结构化文档
+    
+    策略：提取所有表格 → 取最大表格 → 表头走_FINGERPRINT匹配
+    兜底：无表格时提取段落文本
+    """
+    try:
+        from docx import Document
+    except ImportError:
+        return None
+    
+    try:
+        doc = Document(filepath)
+        all_rows = []
+        headers = []
+        
+        for tbl in doc.tables:
+            rows_data = []
+            for row in tbl.rows:
+                cells = [cell.text.strip() for cell in row.cells]
+                rows_data.append(cells)
+            if rows_data:
+                if not headers and rows_data[0]:
+                    headers = rows_data[0]
+                all_rows.extend(rows_data[1:] if len(rows_data) > 1 and rows_data[0] == headers else rows_data)
+        
+        if not all_rows:
+            # 无表格 → 提取段落文本
+            paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+            if paragraphs:
+                return {"type": "document_text", "rows": paragraphs, "source": os.path.basename(filepath)}
+            return None
+        
+        # 组装类Sheet结构走指纹匹配
+        class DocxSheet:
+            def __init__(self, headers, rows):
+                self.data = [headers] + rows
+                self.nrows = len(self.data)
+                self.max_row = len(self.data)
+                self.ncols = max(len(row) for row in self.data) if self.data else 0
+            def cell_value(self, r, c):
+                if r < len(self.data) and c < len(self.data[r]):
+                    return self.data[r][c]
+                return ''
+        
+        sheet = DocxSheet(headers, all_rows)
+        result = _parse_by_content(["DOCX表格"], lambda i: sheet, original_name)
+        if result is None:
+            return {"type": "document_text", "rows": [str(r) for r in all_rows], "source": os.path.basename(filepath)}
+        return result
+    except Exception:
+        return None
 
 @app.post("/api/tax-risk-docs/review")
 async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):

@@ -42,7 +42,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 懒加载 main.py 中的私有函数（避免循环导入）
     from main import (
         _get_company_upload_dir, _get_row_values, _infer_columns_from_data,
-        _parse_excel_structured, _parse_pdf_bank_statement, _save_to_transfer,
+        _parse_excel_structured, _parse_pdf_bank_statement, _parse_pdf_generic, _parse_docx, _save_to_transfer,
         _score_tax_relevance,
     )
     from engine.main_biz_cost import identify_main_biz_cost
@@ -126,7 +126,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         fr = {"file": fname, "type": "unknown", "actions": []}
         parsed = None
         try:
-            if ext in (".xls", ".xlsx"):
+            if ext in (".xls", ".xlsx", ".csv"):
                 parsed, _cached_wb = _parse_excel_structured(fpath, ext, fname, return_wb=True)
                 
                 # ═══ 兜底：数据内容推断 ═══
@@ -135,6 +135,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                     try:
                         if ext == ".xls":
                             _s = _cached_wb.sheet_by_index(0)
+                            _nrows = _s.nrows
+                        elif ext == ".csv":
+                            _s = _cached_wb
                             _nrows = _s.nrows
                         else:
                             _s = _cached_wb[_cached_wb.sheetnames[0]]
@@ -284,6 +287,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                         try:
                             if ext == ".xls":
                                 _hdr_sheet = _cached_wb.sheet_by_index(0)
+                            elif ext == ".csv":
+                                _hdr_sheet = _cached_wb
                             else:
                                 _hdr_sheet = _cached_wb[_cached_wb.sheetnames[0]]
                             _hdr_row = _get_row_values(_hdr_sheet, 0)
@@ -395,8 +400,35 @@ def _run_analyze(company_id, db, progress_callback=None):
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
-                txs = _parse_pdf_bank_statement(fpath)
-                if txs: bank_txs.extend(txs); fr["type"] = "bank"; fr["actions"].append(f"提取{len(txs)}条流水")
+                # 优先用通用PDF解析（pdfplumber表格提取），回退旧格式解析
+                parsed = _parse_pdf_generic(fpath, fname)
+                if isinstance(parsed, dict) and parsed.get("rows"):
+                    # 通用解析成功 → 按类型路由
+                    ftype = parsed.get("type", "unknown")
+                    n = len(parsed.get("rows", []))
+                    fr["type"] = ftype
+                    if ftype == "bank_statement": bank_txs.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}条流水")
+                    elif ftype == "invoice_universal": invoice_data.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}张发票")
+                    else: fr["actions"].append(f"PDF通用解析: {ftype}({n}条)")
+                    pipeline_log.append(f"{fname} -> {ftype}: {n}条 (PDF通用)")
+                else:
+                    # 回退旧解析器
+                    txs = _parse_pdf_bank_statement(fpath)
+                    if txs: bank_txs.extend(txs); fr["type"] = "bank"; fr["actions"].append(f"PDF旧解析: {len(txs)}条流水")
+            elif ext == ".docx":
+                parsed = _parse_docx(fpath, fname)
+                if isinstance(parsed, dict) and parsed.get("rows"):
+                    ftype = parsed.get("type", "unknown")
+                    n = len(parsed.get("rows", []))
+                    fr["type"] = ftype
+                    if isinstance(parsed["rows"][0], str):
+                        fr["actions"].append(f"DOCX文本: {n}段")
+                    elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"DOCX解析: {n}份合同")
+                    elif ftype == "invoice_universal": invoice_data.extend(parsed["rows"]); fr["actions"].append(f"DOCX解析: {n}张发票")
+                    else: fr["actions"].append(f"DOCX解析: {ftype}({n}条)")
+                    pipeline_log.append(f"{fname} -> {ftype}: {n}条 (DOCX)")
+                else:
+                    fr["actions"].append("DOCX无有效表格数据")
         except Exception as e: fr["actions"].append(f"失败: {e}")
         file_results.append(fr)
 

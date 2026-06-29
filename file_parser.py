@@ -93,7 +93,7 @@ async def analyze_file_headers(
     fname = file.filename or "unknown"
     ext = os.path.splitext(fname)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(400, f"不支持的文件类型: {ext}，仅接受 xlsx/xls/csv/pdf/txt")
+        raise HTTPException(400, f"不支持的文件类型: {ext}，仅接受 xlsx/xls/csv/pdf/docx")
     try:
         content_bytes = await file.read()
         if len(content_bytes) > MAX_UPLOAD_SIZE:
@@ -131,8 +131,8 @@ async def analyze_file_headers(
                 total_rows = len(rows) - 1
             else:
                 headers, total_rows = [], 0
-        else:
-            return {"error": f"不支持的文件格式：{ext}。请上传 xlsx 或 csv 文件。"}
+        elif ext == ".pdf" or ext == ".docx":
+            raise HTTPException(400, f"{ext} 文件请在「资料风险分析」页面上传，系统将自动解析表格内容。")
 
         # 获取已知的列映射模板
         field_groups = {}

@@ -770,7 +770,7 @@ async function renderAgiDashboard(container) {
     var patrol = agi.patrol || {};
 
     var h = '';
-    h += '<style>.agi-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.agi-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.agi-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.agi-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.agi-toc a:hover,.agi-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.agi-main{flex:1;min-width:0;background:#fff}.agi-main h2.hb-section-title{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:10px!important;border-bottom:2px solid #e2e8f0!important;margin-bottom:16px!important;background:none!important}.agi-main .hb-section-num{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:24px!important;height:24px!important;background:#1e293b!important;color:#fff!important;border-radius:4px!important;font-size:12px!important;font-weight:700!important;margin-right:8px!important}.agi-main section{margin-bottom:36px!important}.agi-hero{background:#f8fafc;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:28px}.agi-hero h2{font-size:20px!important;margin:0 0 4px!important}.agi-hero p{font-size:13px;color:#475569;line-height:2;margin:0 0 8px}.agi-hero .hb-status-bar{font-size:12px;color:#64748b;line-height:2}.agi-main .hb-section-lead{font-size:13px;color:#64748b;line-height:2;margin:0 0 12px}.agi-main .hb-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}.agi-main .hb-table{width:100%;border-collapse:collapse;font-size:13px;line-height:2}.agi-main .hb-table th{padding:10px 14px;text-align:left;font-weight:600;background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0}.agi-main .hb-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9}.agi-main .hb-table-striped tr:nth-child(even){background:#fafbfc}.agi-main .hb-status-connected{color:#059669;font-weight:600}</style>';
+    h += '<style>.agi-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.agi-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.agi-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.agi-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.agi-toc a:hover,.agi-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.agi-main{flex:1;min-width:0;background:#fff}.agi-main h2.hb-section-title{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:10px!important;border-bottom:2px solid #e2e8f0!important;margin-bottom:16px!important;background:none!important}.agi-main .hb-section-num{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:24px!important;height:24px!important;background:#1e293b!important;color:#fff!important;border-radius:4px!important;font-size:12px!important;font-weight:700!important;margin-right:8px!important}.agi-main section{margin-bottom:36px!important}.agi-hero{background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:28px}.agi-hero h2{font-size:20px!important;margin:0 0 4px!important}.agi-hero p{font-size:13px;color:#475569;line-height:2.0;margin:0 0 8px}.agi-hero .hb-status-bar{font-size:12px;color:#64748b;line-height:2.0}.agi-main .hb-section-lead{font-size:13px;color:#64748b;line-height:2.0;margin:0 0 12px}.agi-main .hb-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}.agi-main .agi-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}.agi-main .hb-table{width:100%;border-collapse:collapse;font-size:13px;line-height:2.0}.agi-main .hb-table th{padding:10px 14px;text-align:left;font-weight:600;background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0}.agi-main .hb-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9}.agi-main .hb-table-striped tr:nth-child(even){background:#fafbfc}.agi-main .hb-status-connected{color:#059669;font-weight:600}</style>';
     h += '<div class="agi-layout">';
     
     // TOC
@@ -783,8 +783,9 @@ async function renderAgiDashboard(container) {
     h += '<a href="#agi-special">五 专项引擎层</a>';
     h += '<a href="#agi-perf">六 加速与保护层</a>';
     h += '<a href="#agi-schedule">七 调度中枢</a>';
-    h += '<a href="#agi-assets">八 系统数据资产</a>';
+    h += '<a href="#agi-assets">八 数据资产</a>';
     h += '<a href="#agi-api">九 API端点</a>';
+    h += '<a href="#agi-knowledge-config">十 知识库与配置</a>';
     h += '</nav>';
     
     h += '<div class="agi-main">';
@@ -792,7 +793,7 @@ async function renderAgiDashboard(container) {
     // ═══ Hero ═══
     h += '<div id="agi-hero" class="agi-hero">';
     h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 26引擎 · 36域分析 · 1514规则 · 1174条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 28引擎 · 36域分析 · 1514规则 · 1174条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
     h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
     h += '</div>';
 
@@ -865,11 +866,6 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('📋','21模块调度','Orchestrator','<code>orchestrator.py</code>','21模块调度中枢——根据数据画像自适应激活判定。模块注册结构含skip_if/priority/requires/max_workers四字段。行业自适应：服务行业→跳过进销存/BOM/毛利率对标等5个制造域；贸易企业→跳过加工费检测；制造企业→全部激活。调度决策日志写入orchestration_log.json。','蓝');
     h += _agiEngineCard('🔗','AGI管线','AGIPipeline','<code>agi_pipeline.py</code>','21模块事件采集+6步进化流程：①事件总线汇总 ②SCM因果推理提取新因果 ③元认知自检评估推理质量 ④知识图谱导入新节点 ⑤知识库自生长写入新经验 ⑥自愈自动检测生成覆盖建议。全部在分析后自动执行，无需人工触发。','紫');
     h += '</div></section>';
-    h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','多企业分析经验积累+行业通用模式归纳。每个行业独立记忆：常见高风险模式、典型数据画像。跨分析记忆持久化到 cross_analysis_memory.json。','绿');
-    h += _agiEngineCard('📐','稽查方法论引擎','MethodologyEngine','<code>methodology_loader.py</code>','31条稽查方法论：资料驱动/四步分析/进销存比对/资金流双向核对/供应商穿透/经营实质/客户三源穿透/发票五层审计/六员跨企业比对/地理分析等。按域自动匹配适用方法论。','紫');
-    h += _agiEngineCard('🔍','自动规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层归纳引擎——Layer A：模块效率分析→空跑率>80%→跳过规则；Layer B：纠正模式→同类纠正≥5次→通用修正；Layer C：信号模式对比→>60%同类企业出现→行业特征信号。结果输出到 discovered_rules.json。','橙');
-    h += _agiEngineCard('🔄','自动巡逻引擎','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后结论：新增/消失/风险等级迁移。变化>30%→标记显著变化→验证AGI学习效果。快照存入 patrol_snapshots →下次巡逻自动加载做基线对比。','青');
-    h += '</div></section>';
 
     // ═══ 八、系统数据资产（精确计数） ═══
     h += '<section id="agi-assets" class="hb-section">';
@@ -879,7 +875,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
     h += '<div class="hb-info-card hb-info-red"><strong>📋 稽查规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1514条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
     h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>audit_chains.json</code> chains数组 → <strong>1174条</strong></p><p>每条链含触发条件+风险等级+调查步骤+关联规则ID</p></div>';
-    h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p><code>engine/</code> 目录下 <strong>24个.py文件</strong></p><p>核心6+推理4+连接3+知识3+专项5+加速3+调度2</p></div>';
+    h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p>7层架构 <strong>28个引擎</strong></p><p>核心6+推理4+连接3+知识3+专项7+加速3+调度2</p></div>';
     h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
     h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 代码规模</strong><p>main.py <strong>~29,000行</strong> + engine/ <strong>~8,500行</strong> + 前端 <strong>~15,000行</strong></p><p>总计约 <strong>52,500行</strong> 系统代码</p></div>';
     h += '</div></section>';
@@ -890,7 +886,7 @@ async function renderAgiDashboard(container) {
     h += '<table class="hb-table hb-table-striped">';
     h += '<thead><tr><th style="width:80px;">方法</th><th>端点</th><th>功能说明</th></tr></thead><tbody>';
     var apis = [
-      ['GET','/api/agi/status','AGI完整状态面板（24引擎+知识库+因果网络+SCM+元认知+知识图谱+自愈+巡逻）'],
+      ['GET','/api/agi/status','AGI完整状态面板（28引擎+知识库+因果网络+SCM+元认知+知识图谱+自愈+巡逻）'],
       ['GET','/api/agi/pipeline/dashboard','Pipeline仪表盘数据'],
       ['POST','/api/agi/query','自然语言查询分析结果'],
       ['POST','/api/agi/chat','对话式税务稽查'],
@@ -912,9 +908,9 @@ async function renderAgiDashboard(container) {
     }
     h += '</tbody></table></section>';
 
-    // ═══ 十、知识库结构 ═══
-    h += '<section class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 知识库结构</h2>';
+    // ═══ 十、知识库与核心配置 ═══
+    h += '<section id="agi-knowledge-config" class="hb-section">';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 知识库与核心配置</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>','9条税收优惠政策 \u00b7 结构化条件','purple');
     h += _agiInfoCard('\u{1F517}','因果网络','<code>causal_edges</code>','信号\u2192结论因果关系 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边','red');
@@ -925,11 +921,8 @@ async function renderAgiDashboard(container) {
     h += _agiInfoCard('\u{1F393}','经验教训','<code>lessons</code>','跨分析积累 \u00b7 ' + (kb.lessons_count||0) + '条','green');
     h += _agiInfoCard('\u{1F4DD}','分析历史','<code>analysis_history</code>','最近100条','slate');
     h += _agiInfoCard('\u{1F50D}','巡逻快照','<code>patrol_snapshots</code>','巡逻基线 \u00b7 ' + (patrol.companies_with_snapshots||0) + '家','cyan');
-    h += '</div></section>';
-
-    // ═══ 十、配置参数 ═══
-    h += '<section class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">十一</span> 核心配置参数</h2>';
+    h += '</div>';
+    h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">⚙️ 核心配置参数</h3>';
     h += '<div class="hb-card-grid">';
     h += _agiConfigCard('\u2699\uFE0F 自愈引擎','self_healing.py','5种错误模式 \u00b7 同类\u22652\u2192生成规则 \u00b7 auto_apply','自动检测+人工反馈双模式');
     h += _agiConfigCard('\u2699\uFE0F 自动巡逻','auto_patrol.py','最大5家 \u00b7 触发\u22652边 \u00b7 变化>30%显著','v2.0：因果影响定向巡逻');
@@ -945,7 +938,7 @@ async function renderAgiDashboard(container) {
 
     // ═══ 底部 ═══
     h += '<div class="hb-footer">';
-    h += '<p>\u{1F9EC} 税务AGI v3.0 \u00b7 存勤法税智能大脑 \u00b7 24引擎模块 \u00b7 ' + pipe.total_events + '条学习事件 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边 \u00b7 ' + ((agi.healing||{}).active_rules||0) + '条自愈规则 \u00b7 每次一键分析自动进化</p>';
+    h += '<p>\u{1F9EC} 税务AGI v3.0 \u00b7 存勤法税智能大脑 \u00b7 28引擎模块 \u00b7 ' + pipe.total_events + '条学习事件 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边 \u00b7 ' + ((agi.healing||{}).active_rules||0) + '条自愈规则 \u00b7 每次一键分析自动进化</p>';
     h += '</div>';
 
     h += '</div></div>'; // agi-main + agi-layout
@@ -971,14 +964,14 @@ function _agiInfoCard(icon, name, code, desc, color) {
   return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px">'
     + '<strong style="display:block;font-size:13px;color:#0f172a;margin-bottom:4px">'+icon+' '+name+'</strong>'
     + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+code+'</div>'
-    + '<div style="font-size:12px;color:#475569;line-height:1.8">'+desc+'</div></div>';
+    + '<div style="font-size:12px;color:#475569;line-height:2.0">'+desc+'</div></div>';
 }
 
 function _agiConfigCard(name, file, params, note) {
   return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:8px">'
     + '<strong style="display:block;font-size:13px;color:#0f172a;margin-bottom:4px">⚙️ '+name+'</strong>'
     + '<span style="font-size:11px;color:#2563eb;background:#eff6ff;padding:2px 8px;border-radius:10px;margin-bottom:6px;display:inline-block">'+file+'</span>'
-    + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-top:6px">'+params+'</div>'
+    + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-top:6px">'+params+'</div>'
     + '<div style="font-size:11px;color:#64748b;margin-top:4px">💡 '+note+'</div></div>';
 }
 
