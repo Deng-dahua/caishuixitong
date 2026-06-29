@@ -1,0 +1,230 @@
+{
+  "version": "2.0",
+  "description": "跨模块共享内容映射——定义每个共享内容块的权威源和依赖模块。--sync时自动同步text_sync类，审计时验证concept_link类。",
+  "text_sync_blocks": [
+    {"id":"report_cover","label":"封面","title":"编号格式+报告日期","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch1","label":"第一章","title":"案件来源及稽查对象基本情况","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch2","label":"第二章","title":"稽查实施情况","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch3","label":"第三章","title":"稽查发现问题及事实认定","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch4","label":"第四章","title":"稽查结论","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch5","label":"第五章","title":"处理处罚建议","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch6","label":"第六章","title":"告知权利义务","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_ch7","label":"第七章","title":"稽查人员签字","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
+    {"id":"report_appendix","label":"附件","title":"证据清单","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0}
+  ],
+  "concept_links": [
+    {
+      "id": "concept_methodology",
+      "name": "33条稽查方法论",
+      "source_module": "static/audit_chains.json (chain_type=方法论)",
+      "linked_modules": [
+        "手册§3 稽查方法论",
+        "全链路质量保障§2 方法论体系",
+        "分析链§4 稽查方法论",
+        "方法论过滤器§1 过滤规则体系",
+        "引擎仪表盘#4 方法论对账"
+      ],
+      "sync_via": "数量由 system_config.json → audit_consistency.py --sync 自动保证一致"
+    },
+    {
+      "id": "concept_pipeline_7step",
+      "name": "七步执行流程",
+      "source_module": "engine/pipeline.py → _run_analyze()",
+      "linked_modules": [
+        "分析链§4 分析链概述",
+        "全链路质量保障§5 执行管线"
+      ]
+    },
+    {
+      "id": "concept_4step_audit",
+      "name": "四步稽查分析法(detect→verify→diagnose→report)",
+      "source_module": "engine/pipeline.py → Phase4",
+      "linked_modules": [
+        "手册§3 方法论⑱",
+        "全链路质量保障§2",
+        "引擎记忆§10 假设-验证推理引擎"
+      ]
+    },
+    {
+      "id": "concept_judge_rules",
+      "name": "33条/8条判定规则",
+      "source_module": "engine/memory.py §03 系统稽查判定规则",
+      "linked_modules": [
+        "手册§4 稽查判定规则（8条精简版）",
+        "引擎记忆§03（33条完整版）"
+      ],
+      "note": "手册为8条精简版（面向用户），引擎记忆为33条完整版（面向系统）——内容不同但概念一致"
+    },
+    {
+      "id": "concept_reliability",
+      "name": "7项判定可靠性要求",
+      "source_module": "static/js/tax-report-standards.js §7",
+      "linked_modules": [
+        "编制要求§7",
+        "引擎记忆§06 账务处理引擎铁律",
+        "全链路质量保障§3"
+      ],
+      "note": "手册无独立章节，但在§4判定规则中覆盖了相同概念"
+    },
+    {
+      "id": "concept_12_standards",
+      "name": "12项报告质量标准",
+      "source_module": "static/js/tax-report-standards.js §6",
+      "linked_modules": [
+        "编制要求§6",
+        "全链路质量保障§3",
+        "手册§5 报告编制规范(附件七引用)"
+      ]
+    },
+    {
+      "id": "concept_receipt_rules",
+      "name": "12条收款分类规则",
+      "source_module": "static/industry_data.json → 收款分类规则",
+      "linked_modules": [
+        "域分析引擎 engine/domain_analysis.py §05",
+        "手册§2 14类必查资料(银行流水说明)",
+        "审核模板 #场景5 数据源问题",
+        "引擎记忆§05 收款分类规则"
+      ]
+    },
+    {
+      "id": "concept_6_capabilities",
+      "name": "6项核心能力(记忆/学习/思考/判断/决策/自知)",
+      "source_module": "engine/memory.py §01",
+      "linked_modules": [
+        "手册§0 系统数据概览",
+        "引擎记忆§01",
+        "分析链§1 数据看板"
+      ]
+    },
+    {
+      "id": "concept_negotiation",
+      "name": "15条跨域协商规则",
+      "source_module": "engine/cross_domain_negotiation.py",
+      "linked_modules": [
+        "全链路质量保障§6 跨域协商引擎",
+        "手册§9 跨域协商引擎",
+        "编制要求§15 协商工作流程",
+        "引擎记忆§11 跨域协商引擎",
+        "引擎仪表盘#5 跨域协商"
+      ]
+    },
+    {
+      "id": "concept_filter",
+      "name": "7类方法论过滤器",
+      "source_module": "engine/pipeline.py → _apply_methodology_filter()",
+      "linked_modules": [
+        "方法论过滤器§1 过滤规则体系",
+        "全链路质量保障§3 质量保障机制",
+        "引擎记忆§14 方法论过滤器体系"
+      ]
+    },
+    {
+      "id": "concept_feedback_loop",
+      "name": "审核反馈闭环机制",
+      "source_module": "engine/self_learning.py",
+      "linked_modules": [
+        "手册§11 审核反馈闭环",
+        "编制要求§14 审核迭代闭环",
+        "引擎记忆§12 审核反馈闭环",
+        "全链路质量保障§3(审核反馈闭环组件)"
+      ]
+    },
+    {
+      "id": "concept_4_triggers",
+      "name": "四触发同步机制",
+      "source_module": "audit_consistency.py / start.bat / .git/hooks/pre-commit / pipeline.py",
+      "linked_modules": [
+        "引擎记忆§13 联动修改与数据一致性",
+        "手册§10 数据一致性自检",
+        "编制要求§13 同步交付机制"
+      ]
+    },
+    {
+      "id": "concept_data_numbers",
+      "name": "1514/396/745/33/1174/36/25/15 权威数据",
+      "source_module": "static/system_config.json",
+      "linked_modules": [
+        "引擎记忆 docstring",
+        "手册§0 数据概览统计卡片",
+        "引擎仪表盘#1 运行状态",
+        "分析链§4 分析链概述",
+        "全链路质量保障 统计卡片",
+        "系统配置"
+      ],
+      "sync_via": "数量由 system_config.json → audit_consistency.py --sync 自动同步到所有模块"
+    },
+    {
+      "id": "concept_laws",
+      "name": "12条关键法律条文",
+      "source_module": "手册§6 关键法律条文",
+      "linked_modules": [
+        "手册§6",
+        "编制要求(各章法律依据引用)"
+      ],
+      "note": "手册为完整条文表，编制要求仅在法律依据字段中引用"
+    },
+    {
+      "id": "concept_industry_dict",
+      "name": "25行业产品链词典",
+      "source_module": "static/industry_data.json",
+      "linked_modules": [
+        "全链路质量保障§4 行业认知体系"
+      ]
+    },
+    {
+      "id": "concept_66_benchmark",
+      "name": "66行业基准值库",
+      "source_module": "static/industry_data.json",
+      "linked_modules": [
+        "全链路质量保障§4",
+        "手册§1 稽查工作流程(行业对标引用)"
+      ]
+    },
+    {
+      "id": "concept_file_list",
+      "name": "系统文件关联清单(30+文件)",
+      "source_module": "engine/memory.py §27",
+      "linked_modules": [
+        "引擎记忆§27",
+        "手册§14 系统文件关联"
+      ]
+    },
+    {
+      "id": "concept_ai_rules",
+      "name": "智哥行为准则(7条)",
+      "source_module": "static/js/tax-pipeline-pages.js → renderAiRules()",
+      "linked_modules": [
+        "AI行为准则页面",
+        "手册§0 系统数据概览(六项能力中引用)"
+      ],
+      "note": "AI页面为主展示，手册仅概览引用"
+    },
+    {
+      "id": "concept_iron_rules",
+      "name": "引擎铁律编号体系(12条)",
+      "source_module": "engine/memory.py §06+§07+§08",
+      "linked_modules": [
+        "引擎记忆§13 引擎铁律编号",
+        "手册§13 引擎铁律编号体系",
+        "编制要求§12 铁律质量映射"
+      ]
+    },
+    {
+      "id": "concept_cross_module_consistency",
+      "name": "跨模块内容一致性标准",
+      "source_module": "engine/memory.py §08 + static/shared_content_map.json",
+      "linked_modules": [
+        "引擎记忆§08",
+        "手册§12 引擎记忆体系(隐式引用)"
+      ],
+      "note": "本标准本身也是共享内容——引擎记忆为定义，手册引用该标准"
+    }
+  ],
+  "summary": {
+    "text_sync_blocks": 9,
+    "concept_links": 20,
+    "total_shared_items": 29,
+    "sync_triggers": ["start.bat --sync", "git pre-commit --sync", "一键分析 subprocess --sync", "手动 --sync"]
+  }
+}

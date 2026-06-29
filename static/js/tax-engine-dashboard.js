@@ -4,10 +4,10 @@
  */
 
 function renderEngineDashboardPage(container) {
-  container.innerHTML = '<div style="max-width:1200px;margin:0 auto;padding:20px">'
-    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚙️ 推理引擎仪表盘</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">智能体感知→推理→学习→表达→记忆五层架构运行状态</p>'
-    + '<div id="engine-dashboard-area"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在加载推理引擎数据...</div></div></div>';
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">⚙️ 推理引擎仪表盘</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">推理引擎 v2.0 运行监控中心——6个标签页覆盖运行状态/规则库/质量保障/方法论对账/跨域协商/智能大脑。数据来源：系统实时API + 分析缓存。每项指标可追溯到具体的代码位置和数据文件。</p>'
+    + '<div id="engine-dashboard-area"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在连接推理引擎数据接口...</div></div></div>';
   setTimeout(loadEngineDashboard, 200);
 }
 
@@ -33,7 +33,7 @@ function renderEngineDashboard(rpt) {
   ];
 
   // TOC sidebar layout
-  var html = '<style>.ed-layout{display:flex;gap:24px}.ed-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start}.ed-toc a{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:4px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;color:#475569;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s}.ed-toc a:hover,.ed-toc a.active{background:#eff6ff;border-color:#2563eb;color:#2563eb;font-weight:700}.ed-main{flex:1;min-width:0}</style>';
+  var html = '<style>.ed-layout{display:flex;gap:28px}.ed-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;max-height:calc(100vh-40px);overflow-y:auto}.ed-toc a{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:4px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;color:#475569;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;line-height:1.5}.ed-toc a:hover,.ed-toc a.active{background:#eff6ff;border-color:#2563eb;color:#2563eb;font-weight:700}.ed-main{flex:1;min-width:0;background:#fff}</style>';
   html += '<div class="ed-layout">';
   
   // TOC — vertical tab nav
@@ -72,8 +72,8 @@ function renderStatusTab() {
     area.innerHTML = '<div style="padding:60px 20px;text-align:center">' +
       '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
       '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
-      '<div style="font-size:13px;color:#64748b;margin-bottom:16px">运行状态需要先执行一键分析才能查看。</div>' +
-      '<div style="font-size:13px;color:#64748b">请前往 <b>资料风险分析报告</b> 页面运行一键分析，或点击上方 <b>规则库</b> 标签查看全部推理规则。</div>' +
+      '<div style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:2">运行状态需要先执行一键分析才能查看引擎内部数据。<br>一键分析会触发完整的Phase1-4推理管线，生成包含全部中间状态的分析报告。</div>' +
+      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>资料风险分析报告</b> 页面运行一键分析，或点击上方 <b>规则库</b> 标签查看1514条稽查指令的完整定义。<br>其他标签页（质量保障/方法论对账/跨域协商/智能大脑）也需要分析数据作为输入。</div>' +
       '</div>';
     return;
   }
@@ -81,26 +81,26 @@ function renderStatusTab() {
   var h = '';
   
   // ═══ 顶部：引擎版本 + 风险总览 ═══
-  h += '<div style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
-  h += '<div style="font-size:22px;font-weight:700">推理引擎仪表盘 <span style="font-size:14px;color:#93c5fd;margin-left:12px">' + esc(es.version) + '</span></div>';
+  h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a">推理引擎仪表盘 <span style="font-size:13px;color:#94a3b8;margin-left:12px">' + esc(es.version) + '</span></div>';
   h += '<div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap">';
   
   if (es.phase4_synthesis && es.phase4_synthesis.overall_risk) {
     var riskColor = (es.phase4_synthesis.overall_risk === '极高风险') ? '#dc2626' : 
                     (es.phase4_synthesis.overall_risk === '高风险') ? '#dc2626' : 
                     (es.phase4_synthesis.overall_risk === '中风险') ? '#f59e0b' : '#059669';
-    h += '<div style="background:rgba(255,255,255,0.1);padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">综合风险</div>';
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">综合风险</div>';
     h += '<div style="font-size:20px;font-weight:700;color:' + riskColor + '">' + esc(es.phase4_synthesis.overall_risk) + '</div></div>';
-    h += '<div style="background:rgba(255,255,255,0.1);padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">评分</div>';
-    h += '<div style="font-size:20px;font-weight:700;color:#fbbf24">' + esc(es.phase4_synthesis.risk_score) + '/100</div></div>';
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">评分</div>';
+    h += '<div style="font-size:20px;font-weight:700;color:#f59e0b">' + esc(es.phase4_synthesis.risk_score) + '/100</div></div>';
   }
   
-  h += '<div style="background:rgba(255,255,255,0.1);padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">资料质量</div>';
-  h += '<div style="font-size:20px;font-weight:700;color:' + (es.data_quality_score >= 70 ? '#4ade80' : '#fbbf24') + '">' + esc(es.data_quality_score) + '/100</div></div>';
+  h += '<div style="background:#fff;border:1px solid #e2e8f0;padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">资料质量</div>';
+  h += '<div style="font-size:20px;font-weight:700;color:' + (es.data_quality_score >= 70 ? '#059669' : '#f59e0b') + '">' + esc(es.data_quality_score) + '/100</div></div>';
   
   if (es.memories_count) {
-    h += '<div style="background:rgba(255,255,255,0.1);padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">记忆库</div>';
-    h += '<div style="font-size:20px;font-weight:700;color:#c084fc">' + esc(es.memories_count) + '条</div></div>';
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;padding:12px 18px;border-radius:8px"><div style="font-size:11px;color:#94a3b8">记忆库</div>';
+    h += '<div style="font-size:20px;font-weight:700;color:#7c3aed">' + esc(es.memories_count) + '条</div></div>';
   }
   
   h += '</div>';
@@ -108,7 +108,7 @@ function renderStatusTab() {
   // 4阶段进度条
   h += '<div style="display:flex;gap:8px;margin-top:16px">';
   es.phases.forEach(function(p) {
-    h += '<div style="flex:1;background:rgba(255,255,255,0.15);padding:8px 12px;border-radius:6px;text-align:center;font-size:12px;font-weight:600">' + esc(p) + '</div>';
+    h += '<div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;padding:8px 12px;border-radius:6px;text-align:center;font-size:12px;font-weight:600;color:#2563eb">' + esc(p) + '</div>';
   });
   h += '</div></div>';
   
@@ -616,6 +616,39 @@ function flagBadge(v) {
   return v ? '<span style="color:#059669;font-weight:600">是</span>' : '<span style="color:#94a3b8">否</span>';
 }
 
+function editCorrectionRule(fingerprint, rowIndex) {
+  var reason = prompt('修改审核意见（保留四段式模板）：\n【判断结论】\n【具体问题】\n【正确逻辑】\n【需要证据】', '');
+  if (!reason || !reason.trim()) return;
+  fetch('/api/feedback/update', { 
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({fingerprint: decodeURIComponent(fingerprint), reason: reason})
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        renderBrainTab();
+      } else {
+        alert('修改失败: ' + (d.message || ''));
+      }
+    });
+}
+
+function deleteCorrectionRule(fingerprint, rowIndex) {
+  if (!confirm('确定删除此纠正规则吗？删除后该类型的发现将恢复原始风险等级判断。')) return;
+  fetch('/api/feedback/delete?fingerprint=' + fingerprint, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        var row = document.getElementById('cr-row-' + rowIndex);
+        if (row) { row.style.opacity = '0.3'; row.style.textDecoration = 'line-through'; }
+        setTimeout(function() { renderBrainTab(); }, 600);
+      } else {
+        alert('删除失败: ' + (d.message || ''));
+      }
+    });
+}
+
 function fmtMoney(v) {
   if (!v && v !== 0) return '-';
   var n = Number(v);
@@ -696,42 +729,50 @@ function renderEngineDimensions(container) {
 
 function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal) {
   var h = '';
-  h += '<style>.dim-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.dim-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.dim-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.dim-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.dim-main{flex:1;min-width:0}</style>';
+  h += '<style>.dim-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.dim-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.dim-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.dim-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.dim-toc a:hover,.dim-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.dim-main{flex:1;min-width:0;background:#fff}.dim-stat{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.dim-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2;color:#475569}</style>';
   h += '<div class="dim-layout">';
 
   // TOC
   h += '<nav class="dim-toc"><div class="toc-title">📖 导航</div>';
   h += '<a href="#dim-overview">总览</a>';
   h += '<a href="#dim-table">维度明细</a>';
-  h += '<a href="#dim-pipeline">管道信息</a>';
+  h += '<a href="#dim-pipeline">管道与数据流</a>';
   h += '</nav>';
 
   h += '<div class="dim-main">';
-  h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📐 引擎能力维度</h2>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">推理引擎'+totalDims+'维能力矩阵 · 星级评估 · 质量保障体系覆盖</p>';
+  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">📐 引擎能力维度</h2>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">推理引擎'+totalDims+'维能力矩阵——从文件解析到报告输出，覆盖全部分析域和工具链。每个维度按实现完整度分为四星（已完全代码化并验证）和三星（已实现核心功能）。数据来源：capability_matrix.py 动态提取代码中的实际实现，非人工维护的数字。当前进度：四星'+stars4+'个、三星'+stars3+'个、总计代码'+codeTotal+'。</p>';
+
+  // ═══ 说明 ═══
+  h += '<div class="dim-info" style="margin-bottom:24px">';
+  h += '<strong style="color:#059669;font-size:14px">星级评定标准</strong><br><br>';
+  h += '<b>★★★★ 四星</b>：功能完整实现——有完整的代码实现+对应的API端点+前端渲染页面+报告中的输出呈现。四星维度是引擎的"完全体"能力，可直接用于正式稽查报告生成。<br><br>';
+  h += '<b>★★★ 三星</b>：核心功能实现——有主要的代码逻辑和API，但前端展示或报告集成仍需完善。三星维度在引擎内部正常运行（管线能调用、结果能产出），面向用户的产品化程度不如四星完整。<br><br>';
+  h += '<b>评定方式</b>：capability_matrix.py 扫描各模块代码中的函数定义、API路由注册、前端渲染函数和报告注入逻辑，自动统计每个维度的实现状态。非主观评分——每一个星级对应代码中可验证的实现证据。</div>';
 
   // Stats
-  h += '<div id="dim-overview" style="display:flex;gap:12px;margin-bottom:24px">';
-  h += '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">'+totalDims+'</div><div style="font-size:12px;color:#64748b">总维度</div></div>';
-  h += '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">'+stars4+'</div><div style="font-size:12px;color:#64748b">★★★★ 四星</div></div>';
-  h += '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#6366f1">'+stars3+'</div><div style="font-size:12px;color:#64748b">★★★ 三星</div></div>';
-  h += '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">'+codeTotal+'</div><div style="font-size:12px;color:#64748b">代码总量</div></div>';
+  h += '<div id="dim-overview" style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">';
+  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#0f172a">'+totalDims+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">总维度</div></div>';
+  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#f59e0b">'+stars4+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">★★★★ 四星</div></div>';
+  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#6366f1">'+stars3+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">★★★ 三星</div></div>';
+  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#059669">'+codeTotal+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">代码总量</div></div>';
   h += '</div>';
 
   // Table
   h += '<div id="dim-table">';
-  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
-  h += '<thead><tr style="background:#1e293b;color:#fff">';
-  h += '<th style="padding:10px 14px;text-align:left">#</th><th style="padding:10px 14px;text-align:left">维度</th><th style="padding:10px 14px;text-align:center">等级</th><th style="padding:10px 14px;text-align:left">核心能力</th><th style="padding:10px 14px;text-align:left">代码位置</th>';
+  h += '<div style="margin-bottom:12px;font-size:12px;color:#94a3b8;line-height:2">表格列说明：<b>#</b>序号 | <b>维度</b>能力模块名称 | <b>等级</b>四星/三星 | <b>核心能力</b>该维度实现的关键功能描述 | <b>代码位置</b>对应的源文件和函数名，可跳转查看实现细节</div>';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;line-height:2;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">';
+  h += '<thead><tr style="background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0">';
+  h += '<th style="padding:10px 14px;text-align:left;font-weight:600">#</th><th style="padding:10px 14px;text-align:left;font-weight:600">维度</th><th style="padding:10px 14px;text-align:center;font-weight:600">等级</th><th style="padding:10px 14px;text-align:left;font-weight:600">核心能力</th><th style="padding:10px 14px;text-align:left;font-weight:600">代码位置</th>';
   h += '</tr></thead><tbody>';
 
   dims.forEach(function(d,i){
     var stars = d.s===4 ? '★★★★' : '★★★';
     var color = d.s===4 ? '#f59e0b' : '#6366f1';
-    var bg = i%2===0 ? '#f8fafc' : '#fff';
-    h += '<tr style="background:'+bg+'">';
+    var bg = i%2===0 ? '#fafbfc' : '#fff';
+    h += '<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9">';
     h += '<td style="padding:10px 14px;color:#94a3b8">'+(i+1)+'</td>';
-    h += '<td style="padding:10px 14px;font-weight:700">'+d.n+'</td>';
+    h += '<td style="padding:10px 14px;font-weight:700;color:#0f172a">'+d.n+'</td>';
     h += '<td style="padding:10px 14px;text-align:center;color:'+color+';font-weight:700;font-size:14px">'+stars+'</td>';
     h += '<td style="padding:10px 14px;color:#475569;font-size:12px">'+d.t+'</td>';
     h += '<td style="padding:10px 14px;font-family:monospace;font-size:11px;color:#64748b;max-width:260px;word-break:break-all">'+d.f+'</td>';
@@ -741,11 +782,18 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '</tbody></table></div>';
 
   // Footer
-  h += '<div id="dim-pipeline" style="margin-top:20px;padding:16px 20px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569;line-height:1.8">';
-  h += '<b>代码分布</b>：main.py (18个函数+6个API) | engine/ (信号检测+记忆+自学习) | tax-doc-analysis.js (前端渲染+图可视化+响应式)<br>';
-  h += '<b>管道流程</b>：文件解析 → Phase1初查 → Phase2深挖 → Phase3交叉验证 → Phase4综合定性 → 12维增强 → HTML报告<br>';
-  h += '<b>数据流</b>：Excel上传 → 归一化 → AuditContext贯穿 → all_findings聚集 → 各维增强 → report JSON → 前端渲染';
-  h += '</div>';
+  h += '<div id="dim-pipeline" class="dim-info" style="margin-top:20px">';
+  h += '<strong style="color:#059669;font-size:14px">管道与数据流</strong><br><br>';
+  h += '<b>代码分布</b><br>';
+  h += '· main.py（约20,000+行）：18个核心函数+6个数据分析API+227个路由+文件解析引擎+域分析调度+规则引擎整合+方法论过滤器+稽查员推理引擎——系统的主体逻辑全部在此文件中<br>';
+  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（36个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（15条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
+  h += '· static/js/（约6,000行）：tax-doc-analysis.js（报告渲染+六要素格式+跨域协商标记展示）、tax-pipeline-pages.js（11个独立页面——文件解析/域分析/方法论过滤器/分析链/线索链/证据链/跨域系列/质量保障/AI准则）、tax-auditor-handbook.js（14章稽查员手册）、tax-report-standards.js（15节编制要求）、tax-feedback-template.js（20场景审核模板）、tax-engine-dashboard.js（6标签页仪表盘+'+totalDims+'维能力矩阵）<br><br>';
+  h += '<b>管道流程（10步）</b><br>';
+  h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1514规则+396线索+745证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：15条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
+  h += '<b>数据流（10步）</b><br>';
+  h += 'Excel上传 → 34类文件指纹识别 → 数据归一化 → AuditContext贯穿 → 情报提取 → 36域并行分析 → all_findings聚集 → run_negotiation跨域协商 → _apply_methodology_filter过滤 → report JSON → 前端渲染<br><br>';
+  h += '<b>当前统计</b>：'+totalDims+'维能力 · '+stars4+'四星 + '+stars3+'三星 · 代码'+codeTotal+' · 227路由 · 审计全部通过<br><br>';
+  h += '<b>关联模块</b>：<code>engine/capability_matrix.py</code>（维度定义+星级评分）→ <code>static/system_config.json</code>（权威数据源）→ <code>audit_consistency.py --sync</code>（自动同步所有模块中的数字）→ <a href="#" onclick="navigateTo(\'quality-system\');return false" style="color:#2563eb">全链路质量保障体系</a>（25组件六大层次）→ <a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb">税务稽查员手册</a>（14章完整规范）</div>';
 
   h += '</div></div>';
   container.innerHTML = h;
@@ -929,11 +977,13 @@ function renderNegotiationTab() {
     h += '</tbody></table></div>';
   });
 
-  h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;line-height:2">';
-  h += '<b>执行时序</b>：所有域分析完成→跨域协商引擎运行→链驱动分析引擎→报告生成<br>';
-  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>（15条NEGOTIATION_RULES）<br>';
-  h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br>';
-  h += '<b>规则扩展</b>：编辑 <code>NEGOTIATION_RULES</code> 列表即可追加新协商规则。</div>';
+  h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">';
+  h += '<strong style="font-size:14px;color:#0f172a">技术说明</strong><br><br>';
+  h += '<b>执行时序</b>：所有36个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配15条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
+  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——15条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
+  h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br><br>';
+  h += '<b>与过滤器的关系</b>：协商引擎消解的是域之间的矛盾（两个域各说各的），过滤器剔除的是不具备数据支撑的噪声（缺资料还瞎下结论）。协商在过滤之前运行——先让发现自洽，再删不具备证据的。如果顺序颠倒（先过滤再协商），可能过滤掉驱动协商的关键发现。<br><br>';
+  h += '<b>规则扩展</b>：编辑 <code>engine/cross_domain_negotiation.py</code> 中的 <code>NEGOTIATION_RULES</code> 列表即可追加新协商规则。扩展后运行 python audit_consistency.py --sync 确保引擎记忆文档层同步更新。</div>';
 
   area.innerHTML = h;
 }
@@ -1007,17 +1057,19 @@ function renderBrainTab() {
       h += '</div>';
       
       if (corr.rules && corr.rules.length > 0) {
-        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th></tr>';
+        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:60px">操作</th></tr>';
         for (var k = 0; k < corr.rules.length; k++) {
           var r = corr.rules[k];
+          var fp = r.fingerprint || r.id || '';
           var autoLabel = r.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>';
-          h += '<tr>';
+          h += '<tr id="cr-row-'+k+'">';
           h += '<td style="font-weight:600">' + esc(r.finding_type) + '</td>';
           h += '<td>' + esc(r.industry) + '</td>';
           h += '<td>' + esc(r.biz_model) + '</td>';
           h += '<td style="text-align:center">' + r.correction_count + '</td>';
           h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
           h += '<td>' + autoLabel + '</td>';
+          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="修改此纠正规则">✏</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="删除此纠正规则">🗑</button></td>';
           h += '</tr>';
         }
         h += '</table>';
@@ -1059,13 +1111,15 @@ function renderBrainTab() {
       }
       
       // ── 5. 学习方法论 ──
-      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:12px;color:#475569">';
-      h += '<b>智能大脑工作原理：</b><br>';
-      h += '<b>调度中枢</b>：根据数据画像自动决定激活哪些模块、跳过哪些模块。<br>';
-      h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型，长期零产出模块自动降权。<br>';
-      h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写意见→存入correction_rules.json→累计1次→升级为自动规则→四级回退匹配→下次自动修正。<br>';
-      h += '<b>合规门禁</b>：12条稽查铁律作为事前检查，不通过的报告标记违规。<br>';
-      h += '<b>政策核实</b>：9类税收优惠政策自动联网核实有效期，已到期政策自动搜索延续公告。';
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:13px;color:#475569;line-height:2">';
+      h += '<strong style="font-size:14px;color:#0f172a">智能大脑工作原理</strong><br><br>';
+      h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有36个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
+      h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型——记录该行业的常见信号模式、合理阈值区间、典型异常特征。后续分析依次检索历史案例进行行业对标校准。长期零产出的模块自动降权（降低分析优先级但不关闭），信任模型支持12维度加权相似度检索。<br><br>';
+      h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写审核意见→存入correction_rules.json→按"发现类型|行业|经营模式"生成指纹→累计1次纠正→升级为自动规则→四级回退匹配（精确→行业→通用→名称）→下次同类发现自动标注审核标记。审核不改变原始风险等级，仅在报告中展示绿色审核横幅。<br><br>';
+      h += '<b>合规门禁</b>：12条稽查铁律（虚开发票/骗取退税/隐匿收入等）作为事前检查引擎——任何一条铁律被触发的报告自动标记违规，在报告正式输出前拦截。门禁独立于方法论过滤器运行，不受HARD_BAN/COND_BAN影响。<br><br>';
+      h += '<b>政策核实</b>：9类税收优惠政策（高新技术15%、小微减免、研发加计扣除等）自动联网核实有效期——已到期政策自动搜索国家税务总局公告判断是否有延续，有延续则更新有效期，无延续则标记"已到期需补税"。<br><br>';
+      h += '<b>数据一致性</b>：audit_consistency.py --sync 双维度自检——数字维度（扫描所有JS/PY文件中的硬编码数字与system_config.json对比，不一致自动修复）+文本维度（29项跨模块共享内容双层验证：9个text_sync块逐字哈希对比权威源→不一致自动覆盖，20个concept_link概念关联存在性验证）。四触发全覆盖：start.bat启动时/git pre-commit/一键分析pipeline子进程/手动--sync。<br><br>';
+      h += '<b>内容同步</b>：shared_content_map.json v2.0 管理跨模块文本一致性——9个报告7章结构章节（封面+第一章~第七章+附件）在"报告编制要求"（权威源）与"税务稽查员手册"（依赖副本）之间自动同步。任一权威源变更→--sync自动覆盖依赖副本→确保两份文档永远一致。';
       h += '</div>';
       
       h += '</div>';

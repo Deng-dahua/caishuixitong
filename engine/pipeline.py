@@ -1160,6 +1160,21 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _oe: pipeline_log.append(f"调度中枢异常: {_oe}")
     
     # ═══════════════════════════════════════════════════════════
+    # 数据一致性自检：分析启动前同步引擎记忆文档层
+    # ═══════════════════════════════════════════════════════════
+    try:
+        import subprocess, os
+        result = subprocess.run(
+            ["python", "audit_consistency.py", "--sync"],
+            capture_output=True, text=True, timeout=30,
+            cwd=os.path.join(os.path.dirname(__file__), "..")
+        )
+        if result.returncode == 0:
+            pipeline_log.append("[SYNC] 引擎记忆文档层已同步")
+    except Exception as _se:
+        pipeline_log.append(f"[SYNC] 同步跳过: {_se}")
+    
+    # ═══════════════════════════════════════════════════════════
     # 记忆检索：查询同行业/同模式的历史分析案例
     # ═══════════════════════════════════════════════════════════
     try:

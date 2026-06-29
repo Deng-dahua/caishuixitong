@@ -11,7 +11,10 @@ for /d /r . %%d in (__pycache__) do if exist "%%d" rd /s /q "%%d" 2>nul
 del /s /q *.pyc 2>nul
 
 echo.
-echo Running system consistency audit...
+echo Running system consistency sync...
+echo   1/2 audit_consistency.py --sync (fix code + engine memory docstring)
+"%VENV%" audit_consistency.py --sync
+echo   2/2 audit_consistency.py (verify all pass)
 "%VENV%" audit_consistency.py
 echo.
 

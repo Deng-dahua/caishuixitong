@@ -7295,6 +7295,72 @@ def submit_feedback(data: dict):
     return {"ok": True, "recorded": result["recorded"], "auto_rule": result.get("auto_apply", False), "count": result.get("correction_count", 0)}
 
 
+@app.delete("/api/feedback/delete")
+def delete_correction_rule(fingerprint: str = ""):
+    """删除纠正规则 — 智能大脑纠正规则库的删除按钮调用"""
+    import os, json
+    from urllib.parse import unquote
+    cr_file = os.path.join("static", "correction_rules.json")
+    fingerprint = unquote(fingerprint)
+    
+    if not os.path.exists(cr_file):
+        return {"ok": False, "message": "纠正规则文件不存在"}
+    
+    with open(cr_file, "r", encoding="utf-8") as f:
+        rules = json.load(f)
+    
+    if fingerprint not in rules:
+        return {"ok": False, "message": f"未找到规则: {fingerprint}"}
+    
+    deleted_rule = rules.pop(fingerprint)
+    
+    with open(cr_file, "w", encoding="utf-8") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
+    
+    return {"ok": True, "deleted": fingerprint, "rule": deleted_rule.get("corrections", [{}])[-1].get("reason", "")[:60]}
+
+
+@app.put("/api/feedback/update")
+def update_correction_rule(data: dict):
+    """修改纠正规则 — 智能大脑纠正规则库的编辑按钮调用"""
+    import os, json
+    from urllib.parse import unquote
+    cr_file = os.path.join("static", "correction_rules.json")
+    fingerprint = unquote(data.get("fingerprint", ""))
+    
+    if not fingerprint:
+        return {"ok": False, "message": "指纹不能为空"}
+    if not os.path.exists(cr_file):
+        return {"ok": False, "message": "纠正规则文件不存在"}
+    
+    with open(cr_file, "r", encoding="utf-8") as f:
+        rules = json.load(f)
+    
+    if fingerprint not in rules:
+        return {"ok": False, "message": f"未找到规则: {fingerprint}"}
+    
+    new_reason = data.get("reason", "").strip()
+    if not new_reason:
+        return {"ok": False, "message": "修改原因不能为空"}
+    
+    rule = rules[fingerprint]
+    if "corrections" not in rule:
+        rule["corrections"] = []
+    rule["corrections"].append({
+        "timestamp": __import__("datetime").datetime.now().isoformat(),
+        "previous_reason": rule["corrections"][-1]["reason"] if rule["corrections"] else "",
+        "corrected_risk": data.get("corrected_risk", rule["corrections"][-1].get("corrected_risk", "低风险（用户审核）")),
+        "reason": new_reason,
+        "edited": True
+    })
+    rule["correction_count"] = len(rule["corrections"])
+    
+    with open(cr_file, "w", encoding="utf-8") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
+    
+    return {"ok": True, "updated": fingerprint, "count": rule["correction_count"]}
+
+
 @app.get("/api/audit/capabilities")
 def get_capabilities():
     """能力矩阵API — 侧边栏动态读取，引擎吐出自己的25维能力"""

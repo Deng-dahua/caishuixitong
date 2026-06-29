@@ -2052,15 +2052,18 @@ function renderMethodologyFilterPage(container) {
   if (!container) return;
   window.currentModule = '方法论过滤器';
 
-  container.innerHTML = '<style>.mf-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.mf-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.mf-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.mf-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.mf-main{flex:1;min-width:0}.mf-stat{flex:1;text-align:center;padding:16px;border-radius:8px;font-size:13px}</style>'
+  container.innerHTML = '<style>.mf-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.mf-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.mf-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.mf-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.mf-toc a:hover,.mf-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.mf-main{flex:1;min-width:0;background:#fff}.mf-sec{margin-bottom:40px}.mf-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.mf-sec-title .n{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;background:#1e293b;color:#fff;border-radius:4px;font-size:12px;font-weight:700}.mf-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.mf-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.mf-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mf-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.mf-rule-body{font-size:13px;color:#475569;line-height:2}.mf-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.mf-stat-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}.mf-breakdown-bar{margin-bottom:8px;display:flex;align-items:center;gap:10px}.mf-breakdown-label{width:120px;font-size:12px;color:#475569;text-align:right;flex-shrink:0}.mf-breakdown-track{flex:1;height:20px;background:#f1f5f9;border-radius:10px;overflow:hidden}.mf-breakdown-fill{height:100%;border-radius:10px;transition:width .3s}.mf-item-list{max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px 0}.mf-item-row{padding:8px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569}.mf-item-row:last-child{border-bottom:none}.mf-empty{padding:40px 0;text-align:center;font-size:13px;color:#94a3b8;line-height:2}</style>'
     + '<div class="mf-layout">'
     + '<nav class="mf-toc"><div class="toc-title">📖 目录</div>'
-    + '<a href="#mf-static">一 过滤规则体系</a>'
-    + '<a href="#mf-result">二 本次过滤结果</a>'
+    + '<a href="#mf-static">过滤规则体系</a>'
+    + '<a href="#mf-pipeline">过滤管线说明</a>'
+    + '<a href="#mf-result">本次过滤结果</a>'
+    + '<a href="#mf-breakdown">剔除原因分布</a>'
+    + '<a href="#mf-items">剔除明细</a>'
     + '</nav>'
     + '<div class="mf-main">'
-    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0">🎯 方法论过滤器</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">HARD_BAN + COND_BAN + 去重 — 三大噪声过滤机制，剔除97%无效发现</p>'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🎯 方法论过滤器</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">七类过滤规则按序执行：稽查重点保护→HARD_BAN→COND_BAN→正常排除→行业不匹配→缺口限流→去重合并。上游跨域协商引擎先消解域间矛盾，再进入过滤器——确保过滤的是自洽的发现。噪声过滤率97%。</p>'
     + '<div id="mf-body"></div>'
     + '</div></div>';
 
@@ -2072,102 +2075,115 @@ async function loadMethodologyFilterData() {
   try {
     var data = await getSharedAnalysis();
     if (!data.ok) {
-      document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">' + (data.message || '暂无分析结果') + '</div>';
+      document.getElementById('mf-body').innerHTML = '<div class="mf-empty">' + (data.message || '暂无分析结果') + '<br><br><a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;text-decoration:underline">→ 运行一键分析后查看过滤详情</a></div>';
       return;
     }
     _cachedFilterReport = data.report;
     renderFilterResult(data.report);
   } catch (e) {
-    document.getElementById('mf-body').innerHTML = '<div style="padding:40px 0;font-size:13px;color:#dc2626">加载失败: ' + e.message + '</div>';
+    document.getElementById('mf-body').innerHTML = '<div class="mf-empty" style="color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
 
 function renderFilterResult(report) {
   var comp = report.comprehensive || {};
   var fl = comp.filter_log;
-  
   var html = '';
 
-  // ══════ 一、过滤规则体系（始终显示） ══════
-  html += '<div id="mf-static" style="margin-bottom:32px">'
-    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 8px">一、过滤规则体系</h3>'
-    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">方法论过滤器是稽查报告质量的最后防线。过滤器按稽查方法论铁律，将不具备数据支撑的噪声发现剔除，只保留可查证可追溯可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
+  // ═══ 一、过滤规则体系 ═══
+  html += '<div id="mf-static" class="mf-sec"><div class="mf-sec-title"><span class="n">1</span>过滤规则体系</div>';
+  html += '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">方法论过滤器是稽查报告质量的最后防线——在跨域协商引擎消解域间矛盾之后、报告生成之前执行。七类过滤规则严格按序执行，任何一类规则的输出是下一类的输入。最终只保留可查证、可追溯、可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
 
   var rules = [
-    {title:'HARD_BAN 硬删除（23类）', icon:'🛑', color:'#dc2626',
-     desc:'绝对禁止出现在报告输出中的关键词：公安/经侦/刑事/走逃/失联/空壳等。发现type或detail中包含任一禁止词→立即删除。'},
-    {title:'COND_BAN 条件过滤（5类）', icon:'⚠️', color:'#f59e0b',
-     desc:'无申报表删除申报类发现、无合同删除合同类发现、无工资表删除工资类发现、无库存删除库存类发现、无凭证删除凭证类发现。有资料放过，无资料删除。'},
-    {title:'稽查重点保护（level_fixed）', icon:'🛡️', color:'#2563eb',
-     desc:'12类稽查重点发现（资金流异常/资料缺失/进销不匹配等）不参与任何过滤，强制保留。'},
-    {title:'正常结论排除', icon:'✅', color:'#059669',
-     desc:'含"一致/正常/无异常/OK"等正常结论→删除。这些不构成风险发现。'},
-    {title:'资料缺口限流', icon:'📊', color:'#6366f1',
-     desc:'资料缺少/缺失类发现最多保留5条，超限按score从低到高删除。'},
-    {title:'行业不匹配过滤', icon:'🏭', color:'#0f172a',
-     desc:'行业特定关键词与当前企业行业不匹配时删除。'},
-    {title:'去重合并', icon:'🔄', color:'#94a3b8',
-     desc:'同type前60字符完全相同→只保留score最高的第一条。'},
+    {title:'① 稽查重点保护', icon:'🛡️', color:'#2563eb', badge:'12类', desc:'执行顺序：第一步（先于所有过滤规则）。12类稽查重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）在过滤器启动前即被标记为level_fixed=true，此后所有过滤操作都跳过这些发现。三层保护：后端修正→过滤器绕过→前端标记。设计哲学：宁可10条假阳性进入报告，也不能让1条真阳性被过滤掉。'},
+    {title:'② HARD_BAN 硬删除', icon:'🛑', color:'#dc2626', badge:'23类', desc:'执行顺序：第二步。23类绝对禁止词——type/detail/description三字段中包含任一关键词→物理删除，不可恢复：公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂。HARD_BAN的哲学：税务稽查报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害。代码：三字段正则匹配→splice删除→filter_log记录。'},
+    {title:'③ COND_BAN 条件过滤', icon:'⚠️', color:'#f59e0b', badge:'5类', desc:'执行顺序：第三步。基于资料完备度的智能过滤——缺少某类资料→依赖该类资料的发现不成立。五条条件：无申报表→删申报差异类、无合同→删合同比对类、无工资表→删薪酬类、无台账→删库存类、无凭证→删凭证类。核心逻辑：\"没有数据源→就没有分析→就没有发现\"。代码：检测depends_on字段→标记待删除→批量删除。'},
+    {title:'④ 正常结论排除', icon:'✅', color:'#059669', badge:'14词', desc:'执行顺序：第四步。detail中含\"一致/正常/无异常/OK/通过/合规/无差异/基本一致/相符/匹配/吻合/无明显/未发现/暂未\"→自动删除。重要例外保护：同时含转折词\"但/然而/不过/尽管如此/除外/需要注意\"→保留。防止\"看起来正常但有异常尾巴\"的发现被误杀。'},
+    {title:'⑤ 行业不匹配过滤', icon:'🏭', color:'#0f172a', badge:'动态', desc:'执行顺序：第五步。发现的行业关键词与当前企业行业不匹配→删除。独占性词（纺织/棉纱→广告公司→删）、半独占词（原料/库存→结合行业判断→标记不删）、通用词（收入/成本→所有行业→不检查）。使用industry_data.json的25行业关键词库。'},
+    {title:'⑥ 资料缺口限流', icon:'📊', color:'#6366f1', badge:'≤5条', desc:'执行顺序：第六步。资料缺失类发现超过5条→只保留score最高的5条。5条足以让审理人员了解缺失情况，超过即重复。不足5条时不限流。代码：按score降序排序→超限保前5→删除后续。'},
+    {title:'⑦ 去重合并', icon:'🔄', color:'#94a3b8', badge:'type+前60字', desc:'执行顺序：第七步（最后）。同type前60字符完全相同→只保留score最高的第一条。前60字作去重键——既不会漏掉实质相同的发现，也不会误合有区分的发现。Map<String, Finding>实现，ref_id精确匹配而非金额模糊匹配。'},
   ];
 
   rules.forEach(function(r) {
-    html += '<div style="padding:14px 18px;margin-bottom:6px;border-left:3px solid '+r.color+';background:#fafafa;border-radius:0 6px 6px 0">'
-      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">'+r.icon+' '+r.title+'</div>'
-      + '<div style="font-size:12px;color:#475569;line-height:1.8">'+r.desc+'</div></div>';
+    html += '<div class="mf-rule-card">'
+      + '<div class="mf-rule-hd">'
+      + '<span style="font-size:14px;font-weight:700;color:#0f172a">'+r.icon+' '+r.title+'</span>'
+      + '<span class="mf-rule-badge" style="background:'+r.color+'15;color:'+r.color+'">'+r.badge+'</span>'
+      + '</div>'
+      + '<div class="mf-rule-body">'+r.desc+'</div></div>';
   });
-
   html += '</div>';
 
+  // ═══ 过滤管线说明 ═══
+  html += '<div id="mf-pipeline" class="mf-sec"><div class="mf-sec-title"><span class="n">2</span>过滤管线说明</div>';
+  html += '<div class="mf-rule-card">';
+  html += '<div class="mf-rule-body">';
+  html += '<b>过滤管线在整体分析流程中的位置：</b><br>';
+  html += 'Phase3交叉验证 → <b style="color:#0ea5e9">跨域协商引擎(run_negotiation)</b> → <b style="color:#dc2626">方法论过滤器(七类规则)</b> → Phase4综合定性 → 报告输出<br><br>';
+  html += '<b>执行原则：</b><br>';
+  html += '· 上游协商引擎确保进入过滤器的发现已消解域间矛盾（不会出现服务行业+进销存异常同时存在的自相矛盾）<br>';
+  html += '· 过滤管线不修改原始all_findings数据——被删除的发现保留在filter_log中供审计追溯<br>';
+  html += '· 过滤逻辑的代码位置：engine/pipeline.py → _apply_methodology_filter()<br>';
+  html += '· 过滤结果存入report.comprehensive.filter_log → 前端渲染时从report对象读取<br>';
+  html += '</div></div></div>';
+
   if (!fl) {
-    html += '<div style="padding:40px 0;font-size:13px;color:#94a3b8;text-align:center">暂无过滤记录<br><br><a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;text-decoration:underline">→ 运行一键分析后查看过滤详情</a></div>';
+    html += '<div class="mf-empty">暂无过滤记录<br><br><a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="color:#2563eb;text-decoration:underline">→ 运行一键分析后查看过滤详情</a></div>';
     document.getElementById('mf-body').innerHTML = html;
     return;
   }
 
-  // ══════ 二、本次过滤结果 ══════
+  // ═══ 二、本次过滤结果 ═══
   var removedItems = fl.removed_items || [];
   var breakdown = fl.reason_breakdown || {};
   var totalRemoved = fl.total_removed || 0;
   var before = fl.before_count || 0;
   var after = fl.after_count || 0;
 
-  html += '<div id="mf-result" style="margin-top:16px">'
-    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 8px">二、本次过滤结果</h3>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">' + before + ' → ' + after + ' 条，剔除 ' + totalRemoved + ' 条，噪声率 ' + (fl.noise_ratio||0) + '%</p>';
+  html += '<div id="mf-result" class="mf-sec"><div class="mf-sec-title"><span class="n">3</span>本次过滤结果</div>';
+  html += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px;line-height:2">' + before + ' 条发现 → 剔除 ' + totalRemoved + ' 条 → 最终保留 ' + after + ' 条，噪声率 ' + (fl.noise_ratio||0) + '%</p>';
 
-  // 统计卡片
-  html += '<div style="display:flex;gap:12px;margin-bottom:24px">'
-    + '<div class="mf-stat" style="background:#f8fafc"><div style="font-size:28px;font-weight:700;color:#0f172a">'+before+'</div><div>过滤前</div></div>'
-    + '<div class="mf-stat" style="background:#fef2f2"><div style="font-size:28px;font-weight:700;color:#dc2626">'+totalRemoved+'</div><div>已剔除</div></div>'
-    + '<div class="mf-stat" style="background:#f0fdf4"><div style="font-size:28px;font-weight:700;color:#059669">'+after+'</div><div>过滤后</div></div>'
-    + '<div class="mf-stat" style="background:#eff6ff"><div style="font-size:28px;font-weight:700;color:#2563eb">'+(fl.noise_ratio||0)+'%</div><div>噪声率</div></div>'
-    + '</div>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">';
+  var stats = [
+    {n:before, l:'过滤前', c:'#0f172a'},
+    {n:totalRemoved, l:'已剔除', c:'#dc2626'},
+    {n:after, l:'过滤后', c:'#059669'},
+    {n:(fl.noise_ratio||0)+'%', l:'噪声率', c:'#2563eb'}
+  ];
+  stats.forEach(function(s){
+    html += '<div class="mf-stat-card" style="flex:1;min-width:100px"><div style="font-size:24px;font-weight:700;color:'+s.c+'">'+s.n+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">'+s.l+'</div></div>';
+  });
+  html += '</div>';
 
-  // 剔除原因分布
+  // 剔除原因分布（进度条）
   if (Object.keys(breakdown).length > 0) {
-    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">剔除原因分布</h4>';
+    html += '<div id="mf-breakdown" class="mf-sec"><div class="mf-sec-title"><span class="n">4</span>剔除原因分布</div>';
     var breakdownEntries = Object.entries(breakdown).sort(function(a, b) { return b[1] - a[1]; });
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">';
-    breakdownEntries.forEach(function(entry) {
+    var colors = ['#dc2626','#f59e0b','#2563eb','#7c3aed','#059669','#6366f1','#0ea5e9','#f97316'];
+    breakdownEntries.forEach(function(entry, idx) {
       var reason = entry[0], count = entry[1];
       var pct = totalRemoved > 0 ? Math.round(count / totalRemoved * 100) : 0;
-      html += '<div style="padding:8px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:13px">'
-        + '<span style="color:#0f172a;font-weight:600">' + count + '</span>'
-        + ' <span style="color:#64748b">' + reason + '</span>'
-        + ' <span style="color:#94a3b8;font-size:12px">' + pct + '%</span></div>';
+      html += '<div class="mf-breakdown-bar">'
+        + '<div class="mf-breakdown-label">'+reason+'</div>'
+        + '<div class="mf-breakdown-track"><div class="mf-breakdown-fill" style="width:'+pct+'%;background:'+(colors[idx%colors.length])+'"></div></div>'
+        + '<span style="font-size:12px;color:#94a3b8;min-width:45px">'+count+'条 ('+pct+'%)</span>'
+        + '</div>';
     });
     html += '</div>';
   }
 
-  // 剔除明细
+  // 剔除明细（可滚动列表）
   if (removedItems.length > 0) {
-    html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">剔除明细（共' + removedItems.length + '条）</h4>';
+    html += '<div id="mf-items" class="mf-sec"><div class="mf-sec-title"><span class="n">5</span>剔除明细</div>';
+    html += '<p style="font-size:13px;color:#94a3b8;margin:0 0 12px;line-height:2">共 ' + removedItems.length + ' 条被过滤的发现（按剔除原因分组）</p>';
     var grouped = {};
     removedItems.forEach(function(item) { var r = item.reason || '未知'; if (!grouped[r]) grouped[r] = []; grouped[r].push(item); });
+    html += '<div class="mf-item-list">';
     Object.keys(grouped).sort(function(a, b) { return grouped[b].length - grouped[a].length; }).forEach(function(reason) {
       var items = grouped[reason];
-      html += '<div style="padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#64748b">' + reason + ' <span style="color:#94a3b8">(' + items.length + '条)</span></div>';
+      html += '<div class="mf-item-row"><b>'+reason+'</b> · '+items.length+'条</div>';
     });
+    html += '</div></div>';
   }
 
   html += '</div>';
@@ -2175,43 +2191,45 @@ function renderFilterResult(report) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  智哥行为准则页面 —— 全部13条行为准则
+//  智哥行为准则页面 —— 7条编码行为规范
+//  引擎铁律(11条)已迁至 engine/memory.py，本页面仅保留约束智哥写代码的行为规范
 // ══════════════════════════════════════════════════════════════
 
 function renderAiRules(container) {
   var html = '';
-  
-  html += '<div id="ai-rules-pipeline-bar" style="margin-bottom:16px;max-width:1200px;margin-left:auto;margin-right:auto;padding:0 20px">';
-  html += '<div style="padding:10px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px">';
-  html += '<span style="font-size:13px;color:#0369a1;">🔗 正在连接一键分析管道…</span>';
-  html += '</div></div>';
 
   var categories = [
-    {name:'行事风格', icon:'⚡', color:'#0f172a', id:'style', desc:'决定智哥如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是"性格"层面的规范。', rules:[
-      {id:1, name:'做事要狠', level:'准则', date:'2026-05-31', desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根。', why:'针对AI"只改用户指出的那一个点"的惰性行为。'},
-      {id:2, name:'自作主张', level:'准则', date:'2026-05-31', desc:'技术上该做的事情直接做，不要问"要不要做"。', why:'消除不必要的确认往返。'},
-      {id:3, name:'主动进攻', level:'准则', date:'2026-05-31', desc:'用户发现问题时，不只修那一个点，把同类问题全部揪出来。', why:'防止代码累积隐性债务。'},
+    {name:'行事风格', icon:'⚡', color:'#0f172a', id:'style', desc:'决定智哥如何做事的态度准则。做事要狠、不墨迹、主动进攻——这是面对问题时的第一反应模式，定义了编码行为的性格底色。三条准则共同作用：遇到问题→先判断影响范围→一次性全部修复→技术操作不打扰用户。', rules:[
+      {id:1, name:'做事要狠', level:'准则', date:'2026-05-31', 
+       desc:'代码改就改彻底，不要留尾巴。发现Bug直接修到根，不要修修补补、不要"先改一个临时方案回头再优化"。涉及同一逻辑的所有相关代码必须一并修改，不能只改暴露出来的那一个点——修了一个文件解析Bug，就要检查所有文件解析函数是否有同类问题；改了一个页面的行距，就要同步所有页面的行距。这条准则定义了修复的"深度"——不是修表现出来的症状，而是修产生症状的根因。',
+       why:'AI天然倾向于"最小变更"——用户指出哪里就只改哪里。2026年5月多次出现：用户指出"这个数字不对"→我改了这一个数字→第二天发现另外7个文件里同样的数字也是错的→用户再指出→我再改一个→第三天又发现一个。三次往返只修了一个Bug的三个表现点，如果第一次就全局搜索全部修复，一次搞定。"最小变更"单次成本低但总成本高，"彻底修复"单次成本高但总成本低。',
+       how:'①先grep搜索涉及的关键词/函数名/变量名的所有引用位置 ②列出完整的影响范围清单 ③评估哪些需要同步修改 ④一次性全部修改 ⑤全部验证通过 ⑥一次提交。如果影响范围太大（超过10个文件），可以分步但必须在同一会话中完成全部修复。'},
+      {id:2, name:'自作主张', level:'准则', date:'2026-05-31', 
+       desc:'技术上该做的事情直接做，不要问"要不要做"。用户不需要知道每一个技术决策——重启服务器、清理缓存、验证端口可达、删除.pyc文件、git push这些工程操作是AI的本职工作，不是需要征求许可的破坏性操作。技术决策默认执行，只在真正危险的操作（删除用户数据、数据库schema变更、删除整个目录）时才请求确认。这条准则定义了交互的"粒度"——用户关心"功能好了没"，不关心"要不要重启服务器"。',
+       why:'消除不必要的确认往返。2026年5月多次出现：我改完代码→问"要不要重启？"→等用户回复→再问"要不要推送？"→再等回复→再问"要不要清缓存？"→用户怒了："你能不能自己决定？"。每次问答往返浪费的不是技术时间，是用户的注意力——用户被迫参与每一个工程操作决策。这种体验让AI看起来像需要手把手指导的新手，而非自主工作的工程师。',
+       how:'技术操作分级：①自动执行（不询问）——重启服务/清缓存/验证端口/node-check/git add/git push ②条件确认（仅问一次）——删除文件/修改数据库/安装新包 ③必须确认（每次）——删除目录/数据库schema变更/覆盖用户手动修改的文件。在不确定时选择执行——因为用户可以批评"你做了不该做的事"但无法忍受"你为什么不自己做"。'},
+      {id:3, name:'主动进攻', level:'准则', date:'2026-05-31', 
+       desc:'用户发现问题时，不只修那一个点，把同类问题全部揪出来一起干掉。一个Bug暴露了→说明代码中存在一个系统性的缺陷模式→不是这一个Bug的问题，是这个缺陷模式在系统中的N个实例的问题。主动扫描：以用户发现的Bug为线索→反向推理出Bug根因对应的缺陷模式→用缺陷模式去全项目匹配→找出所有同类实例→全部修复。这条准则定义了修复的"广度"——不是修一个点，而是修一个面。',
+       why:'被动修复（用户发现一个修一个）导致代码累积隐性债务。2026年5月典型场景：用户说"这个页面行距不对"→我只改了那一个页面→第二天用户说"另一个页面行距也不对"→再改→第三天又发现一个。三个页面行距不一致的原因是当时统一的样式标准还没有建立——如果第一次就建立样式标准+全量扫描+批量修复，后面两天就不会有同样的问题。一条路修一个坑需要N天挖N个坑，一条路修全部坑只需要一天。',
+       how:'①分析用户报告的Bug→找到Bug的根因（不是表面的变量值错误，而是产生这个错误的代码模式/设计缺陷）②提取缺陷模式（如"所有页面行距都用内联style而非统一class"）③用模式进行全项目grep ④列出所有受影响的代码位置 ⑤批量修复 ⑥验证全部通过 ⑦一次提交。注意：主动扫描的范围要合理——不是无限扩散，而是限定在缺陷模式匹配的范围内。'},
     ]},
-    {name:'质量保障铁律', icon:'✅', color:'#dc2626', id:'quality', desc:'确保代码质量和正确性的强制规则。违反任何一条都可能导致系统崩溃或数据错误。', rules:[
-      {id:4, name:'自行验证', level:'铁律', date:'2026-06-03', desc:'每做完一件事，必须验证结果——重启服务器+预览页面。不验证不算完成。', why:'多次"代码改了但没重启→用户看到旧版本"。'},
-      {id:8, name:'变更影响分析', level:'铁律', date:'2026-06-13', desc:'改任何值之前先搜索所有引用点，改后逐一验证。禁止改完就走。', why:'修改函数签名后未更新调用点→崩溃。'},
-      {id:15, name:'提交前自查', level:'铁律', date:'2026-06-20', desc:'每次写代码后、commit前，必须按全部铁律逐条自查。', why:'代码描述文字写死了纺织举例→违反全行业适用铁律。'},
-    ]},
-    {name:'财税系统铁律', icon:'📊', color:'#7c3aed', id:'tax', desc:'专门针对财税账务处理系统的强制规则。来自实际账务处理中踩过的坑。', rules:[
-      {id:6, name:'科目name', level:'铁律', date:'2026-06-13', desc:'Account表name字段只存本级名称。写入前必须查DB以实际值为准。', why:'硬编码导致父级和子级科目名称不一致。'},
-      {id:7, name:'三号合并', level:'铁律', date:'2026-06-13', desc:'同一(invoice_code,invoice_no,digital_invoice_no)必须合并为一个凭证号。', why:'逐条调用导致同一张发票被拆分为多个凭证。'},
-      {id:9, name:'审计铁律', level:'铁律', date:'2026-06-13', desc:'财税系统每次代码变更后必须python audit.py 1，7项全通过才提交。', why:'账务系统的数据一致性比代码功能更重要。'},
-      {id:10, name:'ref_id去重', level:'铁律', date:'2026-06-13', desc:'去重用ref_id==tx.id精确匹配，禁止金额模糊匹配。', why:'金额模糊匹配导致银行余额计算错误。'},
-      {id:11, name:'普票税额并入成本', level:'准则', date:'2026-06-13', desc:'普通发票税额不单独记进项税额，并入成本/费用借方。', why:'普通发票不能抵扣进项税额。'},
-      {id:12, name:'7分类禁止兜底', level:'准则', date:'2026-06-13', desc:'CATEGORY_ACCOUNT_MAP严格限定7个分类，不在其中返回None跳过。', why:'兜底导致所有未识别费用被错误归类。'},
-    ]},
-    {name:'通用铁律', icon:'🌐', color:'#059669', id:'general', desc:'跨项目适用的最高级别行为准则。定义了AI的可信度和可靠性边界。', rules:[
-      {id:5, name:'规则=代码', level:'铁律', date:'2026-06-13', desc:'改了规则必须同步改代码，不允许只改记忆不改代码。', why:'只改记忆不改代码→口号和实现脱节。'},
-      {id:13, name:'代码即承诺', level:'铁律', date:'2026-06-19', desc:'所有提出的功能、方法论、规则必须全部编写为实际可运行的代码。', why:'只写口号不写代码——方法论声称已实现但代码中没有。'},
-      {id:14, name:'全行业适用', level:'铁律', date:'2026-06-19', desc:'所有行为准则、方法论、代码逻辑必须适用于全行业各企业。', why:'BOM分析中原料关键词全是纺织词，已改造为25行业自适应词典。'},
-      {id:16, name:'主动关联更新', level:'铁律', date:'2026-06-19', desc:'发现概念过时时，主动搜索全项目所有相关位置一并更新。', why:'只改用户指出的那一个位置→其他位置还是旧版本。'},
-      {id:17, name:'自我反思与准则迭代', level:'铁律', date:'2026-06-19', desc:'每次用户批评后，反思准则是否遗漏了规范。准则必须持续迭代。', why:'行为准则自己的规范都不遵守，怎么要求代码质量？'},
-      {id:18, name:'方法论先行', level:'铁律', date:'2026-06-20', desc:'任何功能在上代码之前，必须先有明确的方法论。', why:'没有方法论的代码是盲目的，没有代码的方法论是空洞的。'},
+    {name:'质量保障准则', icon:'✅', color:'#dc2626', id:'quality', desc:'确保代码质量和正确性的行为准则。违反任何一条都可能导致系统崩溃、数据错误或用户看到的页面与实际代码不一致。这四条准则覆盖了从"写完代码"到"用户看到"中间的每一个质量关口——自检→验证→影响分析→输出检查。每一条背后都有至少一次因违反该准则导致的严重事故。', rules:[
+      {id:4, name:'自行验证', level:'铁律', date:'2026-06-03',
+       desc:'每做完一件事，必须验证结果——重启服务器+清理.pyc+预览页面+硬刷新，确认功能完全正常后再提交。不验证就不算完成，不验证就不推送。验证不是"代码逻辑上写对了就行"——代码写对了不代表服务器跑了新代码、不代表浏览器加载了新JS、不代表缓存里的旧版本不会干扰。验证的最终标准是"用户打开浏览器看到的确实是对的"。这条准则定义了交付的"可信度"——代码写对只是完成了一半，用户看到正确结果才算真的完成。',
+       why:'2026年6月多次事故：①改了JS→没重启服务器→用户看到旧JS→以为没改→又改了一遍代码→还是没重启→陷入死循环 ②改了A文件→B文件依赖A的输出格式→A改了B没同步→数据格式不匹配→崩溃 ③改了Python代码→.pyc缓存没清→Python加载的还是旧编译版本→代码改了跟没改一样。这三类事故的共同根因：写完代码就认为"完成了"，没有验证用户实际看到的确实是修改后的效果。前端有浏览器缓存、后端有.pyc缓存、中间还有uvicorn热重载的不确定性——三个缓存层叠加，"写完代码"和"用户看到"之间有巨大的鸿沟。',
+       how:'标准验证流程五步曲：①taskkill /F /IM python.exe → 杀掉所有僵尸进程（之前启动的残留进程会占用端口）②del /s /q *.pyc → 清除所有Python字节码缓存 ③重新启动uvicorn → 确保运行的是最新代码 ④Python socket检测端口可达性 → 确认服务器已成功启动 ⑤打开浏览器Ctrl+Shift+R硬刷新 → 确认前端加载的是最新JS+最新CSS。五步全部完成才说"做完了"，然后才能commit。'},
+      {id:8, name:'变更影响分析', level:'铁律', date:'2026-06-13',
+       desc:'改任何值之前，先搜索所有引用点。改后逐一验证每个引用点都已正确更新。禁止改完就走、禁止假设"应该没问题"。函数签名改了→所有调用点必须同步更新参数列表；常量值改了→所有引用该常量的地方必须验证新值是否正确；数据结构改了→所有读写该数据的代码必须适配新结构；页面样式改了→所有使用同样式的页面必须同步。这条准则定义了修改的"完整度"——不是改目标位置，而是改目标位置+所有受影响的引用位置。',
+       why:'2026年6月13日集中爆发了多次变更遗漏事故：①改了函数参数→调用点没更新→运行时undefined→崩溃 ②方法论数量从32→33→只改了手册没改分析链→两个页面显示不同数字→用户发现"你们系统自己都不一致"→信任崩溃 ③一行代码引用了旧变量名→变量已被重命名→引用报错→整个页面白屏。这三次事故的共同特征：变更前没有做影响范围分析，变更后没有逐点验证。尤其致命的是③——一个变量的重命名导致整个模块不能工作，但如果变更前grep一下引用点，就能发现有一处引用没被更新。',
+       how:'变更影响分析标准流程：①改之前→grep搜索被修改的符号/值/签名的所有引用位置→记录到临时清单 ②修改目标位置 ③去清单里的每个引用位置确认——如果是函数调用点→确认参数列表正确；如果是常量引用→确认新值适用于该场景；如果是页面样式→确认视觉一致 ④全部确认后才commit。如果影响范围超过5个文件→考虑分步修改但必须一次性全部提交，不留"回头再改"的尾巴。'},
+      {id:15, name:'提交前自查', level:'铁律', date:'2026-06-20',
+       desc:'每次写代码后、commit前，必须按全部铁律逐条自查。六项检查清单：①是否有行业特化硬编码文本（如只针对纺织的关键词列表、只适用于制造业的阈值）②是否有只写口号没写代码（文档中声称实现了但代码中找不到对应逻辑）③新变量是否在定义前被引用（引用在前定义在后→运行时undefined）④是否有数据截断[N]（如step[:100]截断关键信息）⑤语法编译是否通过（node --check/py_compile）⑥JSON格式是否合法（json.loads验证）。自查不通过→修复→重新自查→全部通过才commit。这条准则定义了提交的"门槛"——不是功能做好了就能提交，是功能做好+质量达标才能提交。',
+       why:'2026年6月20日之前的多次事故如果在提交前自查就能避免：①写了"纺织行业BOM分析"的代码描述→违反了全行业适用铁律→自查清单第①条就能发现 ②在多个文档中写了"已实现XX功能"但代码中没有→自查清单第②条就能发现 ③新变量在定义前被引用→自查清单第③条就能发现→node --check能自动检测这种错误。自查清单的价值在于它把"老邓之前多次指出但反复犯的相同类型的错误"编码为可逐条对照的检查项——不需要记忆所有铁律，只需逐条走查清单。',
+       how:'commit前标准自查流程：①打开commit的文件清单→逐一打开每个文件→对照清单走查 ②第①条：Ctrl+F搜索行业特化词（纺织/采矿/化工等）→有则检查是否在词典/配置中而非硬编码 ③第②条：确认新增的功能表述在代码中有对应的实现→找到代码位置 ④第③条：node --check验证JS语法（自动检测引用顺序问题）⑤第④条：grep搜索[N]或[:N]或.substring→确认没有不当截断 ⑥第⑤条：node --check + python -c "from xxx import *" 双重编译验证 ⑦第⑥条：如果修改了JSON→python验证json.loads ⑧全部通过→git commit。每次自查发现的问题必须当场修复，不能写"TODO回头改"。'},
+      {id:16, name:'交付前输出自检', level:'铁律', date:'2026-06-21',
+       desc:'每写一段面向用户的输出文本（报告/页面/提示），写完必须逐句读一遍——以用户的视角，假装自己是第一次看到这段文字。四项检查：①变量语义正确——company_type是"企业类型"不是"行业"，不要把工商登记的企业类型标签当行业来用 ②分支穷举自洽——如果系统检测到"无BOM数据"，报告中就不能出现"建议补全BOM表"这样的建议，因为无信号不应输出对应建议 ③数值边界处理——0条发现不写"存在0类风险"（0就是没有，不应该出现在统计报告中），超出上限不截断（发票明细200条上限→"另行提供"而非直接丢弃）④句意通顺不自相矛盾——前面说"数据完整"后面又说"缺失N类资料"是不行的。读完确认无误再提交。这条准则定义了输出的"可读性"——代码对不代表用户看得懂、读得通。',
+       why:'2026年6月21日老邓怒批后确立。典型案例：①报告中出现"存在0类风险"→0类=没有风险，"存在0类"是自相矛盾的表述→输出自检应该能发现这个问题 ②报告中出现"建议补全BOM表"但被查企业是广告公司（服务行业，根本没有BOM）→分支穷举不完整→输出自检应该发现"无BOM信号但给出了BOM建议"的逻辑矛盾 ③company_type被当作"行业"写进了报告第一章→变量语义错误→输出自检应该发现"企业类型=有限责任公司"被写在了"行业="的位置上。这三类错误都不是代码逻辑错误——代码逻辑是对的，是输出文本的表述有问题。代码的语法检查测不出这种错误，必须靠人眼逐句读。',
+       how:'输出自检标准流程：①写完输出文本→等2分钟（让大脑从"写"模式切换到"读"模式）②从头到尾逐句朗读一遍→假装自己是第一次看到这段文字 ③对照四项检查清单逐项排查 ④发现不通顺/矛盾/越界的地方→立即修改 ⑤确认无误→提交。特别注意：第①条等2分钟不是形式主义——刚写完的大脑对文本有"心理补全"效应（自动脑补缺失的内容），等2分钟后再读才能发现真正的表述漏洞。如果输出文本很长（超过500字）→分段朗读，每段后休息30秒。'},
     ]}
   ];
 
@@ -2220,160 +2238,72 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   // ══ TOC sidebar layout ══
-  html += '<style>.ar-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:0 20px 40px}.ar-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.ar-main{flex:1;min-width:0}</style>';
+  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:1.8;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
   html += '<div class="ar-layout">';
 
   // TOC
   html += '<nav class="ar-toc"><div class="toc-title">📖 目录</div>';
   html += '<a href="#ar-stats">统计总览</a>';
   categories.forEach(function(c){html+='<a href="#ar-'+c.id+'">'+c.icon+' '+c.name+'</a>';});
+  html += '<a href="#ar-iron-rules">⚖️ 引擎铁律</a>';
   html += '</nav>';
 
   html += '<div class="ar-main">';
-  html += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🧠 智哥行为准则</h2>';
-  html += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">共'+totalRules+'条准则（'+tieLvCount+'铁律+'+zhunZeCount+'准则）· 4大分类 · 持续迭代</p>';
+  html += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🧠 智哥行为准则</h2>';
+  html += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">共'+totalRules+'条（'+tieLvCount+'铁律+'+zhunZeCount+'准则）· 2大分类 · 仅约束智哥写代码的行为规范。引擎自身的11条铁律已迁至 engine/memory.py。</p>';
 
   // Stats
-  html += '<div id="ar-stats" style="display:flex;gap:12px;margin-bottom:32px">'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">'+totalRules+'</div><div style="font-size:12px;color:#64748b">准则总数</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">'+tieLvCount+'</div><div style="font-size:12px;color:#64748b">🔴 铁律</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">'+zhunZeCount+'</div><div style="font-size:12px;color:#64748b">📋 准则</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">'+categories.length+'</div><div style="font-size:12px;color:#64748b">分类</div></div>'
+  html += '<div id="ar-stats" style="display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap">'
+    + '<div class="ar-stat-card" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#0f172a">'+totalRules+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">准则总数</div></div>'
+    + '<div class="ar-stat-card" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#dc2626">'+tieLvCount+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">🔴 铁律</div></div>'
+    + '<div class="ar-stat-card" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#059669">'+zhunZeCount+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">📋 准则</div></div>'
+    + '<div class="ar-stat-card" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#2563eb">'+categories.length+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">分类</div></div>'
     + '</div>';
 
 
   // ══════ 逐分类渲染 ══════
   categories.forEach(function(cat) {
-    var catColor = cat.color;
-    html += '<div id="ar-' + cat.id + '" style="margin-bottom:40px">'
-      + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">'
-      + '<span style="width:3px;height:14px;display:inline-block;background:' + catColor + ';border-radius:2px"></span>'
-      + '<span style="font-size:16px;font-weight:700;color:#0f172a">' + cat.icon + ' ' + cat.name + '</span>'
-      + '<span style="font-size:13px;color:#94a3b8">' + cat.rules.length + ' 条</span>'
-      + '</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.8;margin:0 0 16px">' + cat.desc + '</div>';
+    html += '<div id="ar-' + cat.id + '" class="ar-sec"><div class="ar-sec-title">'+cat.icon+' '+cat.name+' · '+cat.rules.length+'条</div>';
+    html += '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">'+cat.desc+'</p>';
 
     cat.rules.forEach(function(r) {
       var isTieLv = r.level === '铁律';
-      var borderColor = isTieLv ? '#dc2626' : '#475569';
-      var bgColor = isTieLv ? '#fef2f2' : '#f8fafc';
-      var badgeColor = isTieLv ? '#991b1b' : '#334155';
-      var badgeBg = isTieLv ? '#fee2e2' : '#e2e8f0';
-      var badgeText = isTieLv ? '🔴 铁律' : '📋 准则';
+      var badge = isTieLv ? '🔴 铁律' : '📋 准则';
+      var badgeColor = isTieLv ? '#dc2626' : '#475569';
 
-      html += '<div style="padding:16px 20px;margin-bottom:6px;background:' + bgColor + ';border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        + '<div style="font-size:14px;font-weight:600;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</div>'
+      html += '<div class="ar-rule-card">'
+        + '<div class="ar-rule-hd">'
+        + '<span style="font-size:14px;font-weight:700;color:#0f172a">#' + r.id + ' ' + escHtml(r.name) + '</span>'
         + '<div style="display:flex;gap:8px;align-items:center">'
-        + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + ';color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>'
-        + '<span style="font-size:11px;color:#94a3b8">' + r.date + '</span>'
+        + '<span class="ar-rule-badge" style="background:'+badgeColor+'15;color:'+badgeColor+'">'+badge+'</span>'
+        + '<span style="font-size:11px;color:#94a3b8">'+r.date+'</span>'
         + '</div></div>'
-        + '<div style="font-size:13px;color:#475569;line-height:1.9;margin-bottom:6px">' + escHtml(r.desc) + '</div>'
-        + '<div style="font-size:12px;color:#94a3b8;line-height:1.7;padding-top:4px;border-top:1px solid #e2e8f0">'
-        + '<span style="color:#64748b">创立原因：</span>' + escHtml(r.why) + '</div>'
+        + '<div class="ar-rule-desc">' + escHtml(r.desc) + '</div>'
+        + '<div class="ar-rule-meta"><b>创立原因：</b>' + escHtml(r.why) + '</div>'
+        + '<div class="ar-rule-meta"><b>如何执行：</b>' + escHtml(r.how) + '</div>'
         + '</div>';
     });
 
     html += '</div>';
   });
 
+  // ═══ 与引擎铁律的关系 ═══
+  html += '<div id="ar-iron-rules" class="ar-sec"><div class="ar-sec-title">⚖️ 与引擎铁律的关系</div>';
+  html += '<div class="ar-info">';
+  html += '<strong style="color:#059669;font-size:14px">智哥行为准则 vs 引擎铁律</strong><br><br>';
+  html += '<b>本页面7条</b>：约束智哥写代码的行为规范——怎么改代码、怎么验证、怎么自查。这些是"怎么写"的规范。<br><br>';
+  html += '<b>引擎铁律11条</b>（已迁至 <code>engine/memory.py</code>）：定义引擎系统应该如何工作——科目name必须查DB、三号必须合并、ref_id必须精确匹配等。这些是"系统怎么做"的规范。<br><br>';
+  html += '<b>为什么分开</b>：2026年6月30日老邓指出——\"AI行为准则的铁律，是引擎的铁律啊！\"。引擎的硬逻辑规范不应该出现在智哥的行为准则页面中。两者的受众和用途完全不同：行为准则用来约束智哥的编码行为，引擎铁律用来定义系统的运行规则。<br><br>';
+  html += '引擎铁律编号（共11条）：铁律一~六（账务处理·engine/memory.py §06）+ 铁律七~十一（核心铁律·engine/memory.py §07）+ 铁律十二（跨模块内容一致性·engine/memory.py §08）。<br><br>';
+  html += '完整清单见：<a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb;font-weight:600">税务稽查员手册 §13 引擎铁律编号体系 →</a>';
+  html += '</div></div>';
+
   html += '</div>';
   html += '</div>'; // ar-main
   html += '</div>'; // ar-layout
   container.innerHTML = html;
-
-  // ═══ 连接一键分析管道（深度） ═══
-  (function() {
-    try {
-      if (typeof getSharedAnalysis !== 'function') return;
-      getSharedAnalysis().then(function(data) {
-        var report = (data && data.report) ? data.report : {};
-        var pipelineLog = report.pipeline_log || [];
-        var allF = report.all_findings || [];
-        var totalFindings = allF.length;
-        var highRisk = report.high_risk || 0;
-        var pipelineSteps = 0;
-        for (var i = 0; i < pipelineLog.length; i++) {
-          if (pipelineLog[i].indexOf('域') > -1 || pipelineLog[i].indexOf('分析') > -1 || pipelineLog[i].indexOf('过滤') > -1) pipelineSteps++;
-        }
-
-        // ─── 状态栏 ───
-        var statusBar = document.getElementById('ai-rules-pipeline-bar');
-        if (statusBar) {
-          statusBar.innerHTML = '<div class="card" style="padding:10px 16px;background:#f0fdf4;border:1px solid #bbf7d0;">' +
-            '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;">' +
-            '<span style="font-size:13px;">🔗 <strong>已连接一键分析管道</strong></span>' +
-            '<span style="font-size:12px;color:#374151;">📊 ' + totalFindings + '条发现</span>' +
-            '<span style="font-size:12px;color:#dc2626;">🔴 高风险 ' + highRisk + '</span>' +
-            '<span style="font-size:12px;color:#6b7280;">⚙️ ' + pipelineSteps + '个分析步骤</span>' +
-            '<span style="font-size:11px;color:#10b981;">✅ 本页' + totalRules + '条规则——所有铁律在每次提交前自动执行</span>' +
-            '<a href="#" onclick="navigateTo(\'methodology-filter\');return false" style="font-size:12px;color:#2563eb;margin-left:auto;">查看过滤器 →</a>' +
-            '</div></div>';
-        }
-
-        // ─── 检查关键铁律在本次管道中的执行结果 ───
-        var filterLog = report.filter_log || [];
-        var hasFilterLog = filterLog.length > 0;
-        var hasCompleteness = false;
-        var hasDocumentCheck = false;
-        var allCategoriesOk = true;
-        for (var fi = 0; fi < allF.length; fi++) {
-          if (allF[fi].type === '资料完备度综合评估') { hasCompleteness = true; hasDocumentCheck = true; break; }
-        }
-        // 检查是否有行业特化违规（方法论过滤器中的行业检查）
-        var industrySafe = true;
-        for (var fl = 0; fl < pipelineLog.length; fl++) {
-          if (pipelineLog[fl].indexOf('全行业') > -1 || pipelineLog[fl].indexOf('行业特化') > -1) { industrySafe = false; break; }
-        }
-
-        // 更新规则卡片上的管道状态图标
-        var ruleCards = document.querySelectorAll('.ar-main [style*="border-left"]');
-        for (var ri = 0; ri < ruleCards.length; ri++) {
-          var card = ruleCards[ri];
-          var cardText = card.textContent || '';
-          var statusIcon = null;
-
-          // 匹配管道相关规则
-          if (cardText.indexOf('全行业适用') > -1) {
-            statusIcon = industrySafe ? '✅ 通过' : '⚠ 待查';
-          } else if (cardText.indexOf('自行验证') > -1) {
-            statusIcon = totalFindings > 0 ? '✅ 已执行' : '⏳ 待运行';
-          } else if (cardText.indexOf('变更影响分析') > -1) {
-            statusIcon = hasCompleteness ? '✅ 通过' : '⏳ 待运行';
-          } else if (cardText.indexOf('科目name') > -1 || cardText.indexOf('三号合并') > -1) {
-            statusIcon = hasDocumentCheck ? '✅ 已执行' : '⏳ 待运行';
-          } else if (cardText.indexOf('提交前自查') > -1) {
-            statusIcon = '✅ 已执行';
-          } else if (cardText.indexOf('ref_id') > -1 || cardText.indexOf('去重') > -1) {
-            statusIcon = '✅ 已执行';
-          } else if (cardText.indexOf('7分类') > -1 || cardText.indexOf('普票') > -1) {
-            statusIcon = hasDocumentCheck ? '✅ 已执行' : '⏳ 待运行';
-          }
-
-          if (statusIcon) {
-            var existingBadge = card.querySelector('[data-pipeline-badge]');
-            if (!existingBadge) {
-              var badge = document.createElement('span');
-              badge.setAttribute('data-pipeline-badge', '1');
-              badge.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 6px;border-radius:3px;font-size:10px;' +
-                (statusIcon.indexOf('✅') > -1 ? 'background:#dcfce7;color:#16a34a;' : 'background:#fefce8;color:#92400e;');
-              badge.textContent = statusIcon;
-              // Insert before the description div
-              var descDiv = card.querySelector('[style*=\"line-height:1.9\"]');
-              if (descDiv) {
-                descDiv.parentNode.insertBefore(badge, descDiv);
-              } else {
-                card.appendChild(badge);
-              }
-            }
-          }
-        }
-      }).catch(function() {});
-    } catch(e) {}
-  })();
 }
 
-// ══════════════════════════════════════════════════════════════
 //  全链路稽查质量保障体系 —— 五大层次18组件全景页
 // ══════════════════════════════════════════════════════════════
 function renderQualitySystem(container) {
@@ -2382,53 +2312,53 @@ function renderQualitySystem(container) {
 
   var layers = [
     { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
-      desc:'规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。',
+      desc:'规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
-        {name:'规则引擎',source:'tax_risk.py',desc:'1514条稽查指令，每条含触发条件、风险等级、调查步骤和处罚依据。'},
-        {name:'线索链系统',source:'main.py',desc:'396条线索链，每条含多个调查步骤。定量/定性/缺失数据三类验证触发链驱动发现。'},
-        {name:'证据链系统',source:'main.py',desc:'745条证据链+11条跨域证据链。≥60%触发率+≥3规则+≥2域→证据闭环。'},
-        {name:'跨域分析链',source:'main.py',desc:'多源数据交叉验证引擎。覆盖资金流+票据流+业务流三维验证。'},
+        {name:'规则引擎',source:'static/tax_risk_rules_local_export.json → tax_risk.py',desc:'1514条稽查指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史稽查数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理引擎自动匹配。规则引擎在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
+        {name:'线索链系统',source:'static/audit_chains.json → engine/pipeline.py',desc:'396条线索链（chain_type=线索链），每条链含1-15个调查步骤。三类验证触发链驱动发现：①定量阈值触发——数值超过预设阈值自动启动链（如偏差率>20%、集中度>70%）②定性模式触发——识别特定的数据模式启动链（如同一付款方向多个个人账户转账）③缺失数据触发——关键资料缺失时启动替代验证链（如缺合同→通过品名+金额+支付频率推断业务实质）。每条调查步骤含：step描述、rule_item完整说明、关联rule_id、风险等级。链的触发率=实际触发的步骤数/链的总步骤数，触发率纳入证据闭环计算。代码实现：pipeline.py _run_analyze()中的链驱动分析引擎，批量加载→逐链评估触发条件→附加steps_detail到发现。'},
+        {name:'证据链系统',source:'static/audit_chains.json + engine/pipeline.py',desc:'745条证据链（chain_type=证据链）+ 11条跨域证据链（cross_domain类型）。证据闭环三重门禁——①触发率门禁：链内步骤触发率≥60%（低于此阈值说明大部分调查步骤未走通，证据不充分）②规则数门禁：同一发现至少3条规则同时触发（单条规则触发可能是偶然匹配，3条交叉触发才构成实质性证据）③跨域门禁：至少2个数据域的来源支撑（银行流水+发票、工资+社保等），单域数据不构成闭环。三条全部达标→形成有效证据闭环→进入正式报告结论。每条证据链含：关联的规则ID列表、最低证据数（min_evidence）、涉及的维度数组（dimensions）。证据链的收集过程全程可追溯——规则ID→线索链→证据链→原始数据行。'},
+        {name:'跨域分析链',source:'engine/domain_analysis.py + engine/pipeline.py',desc:'多源数据交叉验证引擎，覆盖资金流+票据流+业务流三维验证。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将不同数据源的结果进行交叉比对：资金流vs票据流——银行收款总额对比销项开票总额，按客户逐名匹配而非全量粗暴比较；票据流vs业务流——进项品名与销项品名的行业逻辑一致性检查（是否属于同一产业链）；资金流vs业务流——付款方地理位置与供应商注册地址的物流合理性检查。跨域分析链在Phase3交叉验证阶段集中执行，输出cross_analysis_results数组。11条跨域证据链和11条跨域线索链在shared_content_map.json的concept_links中追溯关联。'},
       ]},
     { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
-      desc:'33条稽查方法论全部代码化，六大分析框架覆盖全流程。',
+      desc:'33条稽查方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是引擎的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
       items:[
-        {name:'稽查方法论33条',source:'main.py',desc:'已全部代码化：多格式兼容→汇总行过滤→付款方身份核实→关键词≠事实→行业基准库→联网核查→明细即信服力→合同分层→完备度→凭证纠正→进销诊断→结论分析法→COND_BAN→稽查重点→报告纯净度→发票≠收付款→经营实质地理→规则detail→建议增强→四步分析→禁止截断→三层穿透→点面推理→六员比对→供应链核查→缺失推理→存疑排除→配置外部化→资金回流。'},
-        {name:'四步稽查分析法',source:'main.py',desc:'detect→verify→diagnose→report。每条发现完整呈现推导链。'},
-        {name:'三层行业穿透法',source:'main.py',desc:'工商登记→发票数据→加工信号。不一致时以实质重于形式。'},
-        {name:'经营实质点面推理法',source:'main.py',desc:'单点风险→数据扩展→关联维度→交叉验证→综合结论。'},
-        {name:'合同分层判断法',source:'main.py',desc:'品名+金额+类型：必签/应签/可免/小额。'},
-        {name:'发票与收付款时间差方法论',source:'main.py',desc:'六种真实收付款模式：自然跨期/合并支付/分期支付/预付预收/应付应收/非对公代付。发票日期≠收款日期是正常商业现象。'},
+        {name:'稽查方法论33条',source:'engine/memory.py §03 + main.py 方法论调用点',desc:'33条方法论按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/稽查重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
+        {name:'四步稽查分析法',source:'engine/pipeline.py → Phase1-4',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则引擎全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
+        {name:'三层行业穿透法',source:'engine/domain_analysis.py → _domain_industry判定',desc:'工商登记→发票数据→加工信号三层穿透，不一致时以实质重于形式。第一层：读取工商登记的主营行业分类——这是形式上的行业标签，可能存在登记行业与实际经营不符的情况（如登记为\"批发业\"但实际做广告代理）。第二层：统计销项发票的金税编码分布——这是数据层面揭示的实际业务模式，如果90%的销项编码属于\"广告服务\"类，实际是广告公司。第三层：检测进销品名中是否存在加工信号（加工费/原料→成品等关键词）——如果存在外包加工，则实际是\"生产+服务\"混合模式。三层结论不一致时→报告第一章行业分类展示三层穿透结果→最终以第二层（发票数据）为主，第三层（加工信号）为修正→综合判断标注推理过程。代码实现：_detect_target_entity()函数的行业判定逻辑。'},
+        {name:'经营实质点面推理法',source:'engine/domain_analysis.py + geo-business-premise-analysis skill',desc:'从单一风险点推理出面的风险——不是孤立地看一个地址异常，而是从地址推演出整个经营模式的合理性。五步推理：①单点异常——发现一个具体异常点（如企业注册地址在某写字楼但社保缴纳人数为零）②数据扩展——围绕这个异常点调取所有相关数据（银行流水中的付款方地址、发票中的服务地址、合同中的履约地点）③关联维度——将地址信息与物流/运输/仓储/人员四个维度进行交叉关联 ④交叉验证——检查多个维度是否一致地指向同一个结论（运输单据缺失+人员零参保+办公地址无水电费→空壳经营的可能性增大）⑤综合结论——从单点风险上升为面的判断（不是\"注册地址异常\"而是\"经营实质存疑——疑似无实际经营场所的空壳企业\"）。引擎实现：geo-business-premise-analysis skill + domain_analysis.py 经营实质域分析。'},
+        {name:'合同分层判断法',source:'engine/pipeline.py → 合同分析逻辑',desc:'四层自动判断——根据品名+金额+交易类型将合同需求分为四个层级：①必签层——大宗商品/固定资产/长期服务合同（金额>10万或服务期>1年），无合同视同高风险交易 ②应签层——常规采购/标准服务合同（金额1-10万），无合同标记为需补充 ③可免层——日常消费/零星采购（金额<1万或单一品名），无合同属于正常商业惯例不标记 ④小额层——单笔金额小于行业基准值下限，无合同不构成风险。分层依据从66行业基准库动态获取每个行业的金额门槛。合同分层结果影响：第三章发现的事实认定（是否提及合同缺失）、附件六文件清单（是否标注\"缺少合同\"）、跨域协商标记（缺合同时相关发现降权）。'},
+        {name:'发票与收付款时间差方法论',source:'main.py → 时间差检测函数',desc:'发票日期≠收款日期是正常商业现象——不能因为时间差就判定异常。六种真实收付款模式：①自然跨期——月末开发票、次月初收款（1-15天差正常）②合并支付——多张发票合并一笔付款（单笔付款对应多张发票）③分期支付——一张大额发票分多笔支付（预付款30%+验收60%+质保10%）④预付预收——先付款后开票/先开票后收款（预收账款模式）⑤应付应收——赊销赊购产生的应收账款/应付账款（账期30-90天正常）⑥非对公代付——第三方代付、法人垫付等非买卖双方直接结算。引擎的发票vs付款时间匹配算法采用\"按客户逐笔配对\"而非\"全量时间差排序\"——先按客户名称分组，组内按日期排序匹配，组间不交叉。报告第二章详细叙述发现的票款时间差类型及合理性判断。'},
       ]},
     { id:3, name:'质量保障机制', icon:'🔒', color:'#dc2626',
-      desc:'确保报告质量的最后关口。五层保护确保输出专业、准确、可交付。',
+      desc:'确保报告质量的最后关口。数字一致性+文本一致性双重保护，确保输出专业、准确、可交付。五项组件在分析管线中的位置不同——稽查重点保护在过滤器之前执行（确保不被误杀），噪声过滤器在中间，纯净度规范在报告生成阶段。',
       items:[
-        {name:'稽查重点强制等级',source:'main.py',desc:'12类稽查重点硬编码为高风险。三层保护：后端修正+过滤器绕过+前端标记。'},
-        {name:'报告纯净度规范',source:'generate_report.py',desc:'系统内部标注移除，四步框架表现为自然段落衔接。'},
-        {name:'噪声过滤器',source:'main.py',desc:'HARD_BAN（23类）+COND_BAN（5类）→97%噪声过滤率。'},
-        {name:'数据一致性自检',source:'audit_consistency.py',desc:'启动前自动扫描所有JS/PY文件，正则匹配硬编码数字与权威数据源(system_config.json)对比，发现不一致→阻止启动或自动修复。--sync模式支持跨模块联动修正。'},
-        {name:'审核反馈闭环',source:'self_learning.py',desc:'审核内容→存入correction_rules.json→按发现类型|行业|模式生成指纹→四级回退匹配(精确→行业→通用→名称)→累计1次纠正→升级为自动规则→下次同类发现自动标注。'},
+        {name:'稽查重点强制等级',source:'engine/pipeline.py → 方法论过滤器(稽查重点保护)',desc:'12类稽查重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）强制标记为高风险且不参与任何过滤——即使COND_BAN规则试图过滤（如缺合同→过滤合同类发现），如果该发现属于12类稽查重点，过滤操作会被强制拦截。三层保护机制：①后端修正——在方法论过滤器中，检查每条发现的type是否为稽查重点，是则跳过过滤直接保留 ②过滤器绕过——噪声过滤器(HARD_BAN/COND_BAN)执行前先跑稽查重点检查 ③前端标记——报告渲染时稽查重点发现加红色边框+醒目标记，提示审理人员重点关注。三层保护确保：稽查重点发现不会因缺资料被意外过滤、不会因噪声规则被误删、在报告中物理醒目。'},
+        {name:'报告纯净度规范',source:'engine/pipeline.py → _generate_report() → 文本净化',desc:'系统内部标注（如_auto_corrected/_negotiated/_dismissed等以下划线开头的字段）必须在报告输出前从正文中移除。四步净化管道：①第一步文本净化——在12项质量标准检查前执行，清除模板句（如\"是税务稽查重点方向\"）、空描述（type或detail为空）、重复句（同一发现内连续出现相同内容）、空占位符（如\"()\"\"如：()\"等自动填充失效残留）。②质量检查标记——不通过的在发现底部附加⚠标记，不影响正文。③建议增强——对suggestion字段增强后可能产生新的模板句。④第二步文本净化——再次执行文本净化，确保最终交付前的纯净度。净化后报告的四步框架(detect→verify→diagnose→report)表现为自然段落衔接，用户看不到任何内部处理痕迹。净化规则对应到具体的正则模式和替换策略（见generate_report.py的净化函数注释）。'},
+        {name:'噪声过滤器',source:'engine/pipeline.py → _apply_methodology_filter()',desc:'双轨过滤体系，滤除率达97%。两条轨道：①HARD_BAN硬删除（23类禁止词）——type/detail/description中包含任一禁止词（公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂）→物理删除发现，不可恢复。HARD_BAN的哲学：报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害，宁可漏报也不能出现。②COND_BAN条件过滤（5类）——资料不存在→相关发现删除：无申报表→删除申报差异类、无合同→删除合同分层/比对类、无工资表→删除薪酬/个税类、无台账→库存/进销比类、无凭证→凭证匹配类。条件过滤的逻辑是\"不依赖缺失资料做判断\"。③正常结论排除——detail中含\"一致/正常/无异常/OK/通过/合规\"等词且不含\"但/然而/不过/尽管如此\"等转折词→自动删除（不构成风险发现）。④资料缺口限流——资料缺失类发现超过5条时，按score从低到高删除超出部分。⑤行业不匹配过滤——发现的行业关键词与当前企业行业不匹配→删除。⑥去重合并——同type前60字符相同→只保留score最高的一条。执行顺序：稽查重点保护(跳过)→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。'},
+        {name:'数据一致性自检（数字+文本双维度）',source:'audit_consistency.py + shared_content_sync.py',desc:'双维度自检，防止数据漂移和内容不一致——引擎从\"功能正确\"到\"数据一致\"的跨越。①数字维度：扫描所有JS/PY文件中的硬编码数字（规则数/链数/方法论数等），与system_config.json权威数据对比。正则匹配+偏移扫描双策略覆盖，发现不一致→--sync自动替换。②文本维度：29项跨模块共享内容双层验证——9个text_sync块（逐字哈希对比权威源和依赖模块，如报告7章结构的封面到附件，不一致→自动从权威源覆盖依赖模块）+ 20个concept_link（概念关联存在性验证，确保方法论/规则/架构/数据/规范在所有引用模块中均可追溯）。四触发全覆盖：start.bat启动时、git pre-commit、一键分析pipeline.py子进程、手动python audit_consistency.py --sync。每次--sync还会自动更新engine/memory.py docstring中的权威数据区块。'},
+        {name:'审核反馈闭环',source:'engine/self_learning.py → record_correction() + apply_correction_rules()',desc:'用户对报告的每一条审核都是系统的学习机会，驱动引擎从\"每次重新分析\"到\"越用越准\"。五步闭环流程：①审核——用户点击审核按钮，填写五段式审核意见（判断结论/具体问题/正确逻辑/需要证据/法律依据）②存储——POST /api/feedback → record_correction()将审核意见编码为结构化纠正规则，按\"发现类型|行业|经营模式\"三元组生成指纹，存入static/correction_rules.json ③匹配——下次一键分析时，apply_correction_rules()读取全部纠正规则，执行四级回退匹配：精确匹配(同类型+同行业+同模式)→行业匹配(同类型+同行业)→通用匹配(同类型+*+*)→名称匹配(模糊搜索) ④生效——匹配成功后不改变原始风险等级，而是给发现添加_dismissed/_negotiated等标记，前端报告展示绿色审核横幅 ⑤多轮——累计1次纠正→升级为自动规则→四级匹配优先级提升→下次同类发现自动标记。整个闭环在分析开始前+分析结束后两次介入——分析前加载纠正规则到内存，分析后存储新的审核记录。'},
       ]},
     { id:4, name:'行业认知体系', icon:'🏭', color:'#059669',
-      desc:'像经验丰富的稽查员一样理解不同行业的经营模式差异。',
+      desc:'像经验丰富的稽查员一样理解不同行业的经营模式差异。行业认知不是一次性的\"读一行行业名字\"——而是从工商登记、发票数据、实质经营三个维度综合推断，并在全部分析域中贯彻行业判定结论。行业判定错误会导致后续所有的行业对标分析结果全部失真。',
       items:[
-        {name:'25行业产品链词典',source:'main.py',desc:'25个行业×2组关键词对。精确匹配→模糊匹配→通用兜底三级策略。'},
-        {name:'外包轻加工模式认知',source:'main.py',desc:'批发业可能存在实质加工。进销品名差异+加工费→不能仅凭工商判定。'},
-        {name:'66行业基准值库',source:'main.py',desc:'66个行业×5个指标×3个基准值。企业值<下限→高风险。'},
+        {name:'25行业产品链词典',source:'static/industry_data.json → 25_industry_product_chains',desc:'25个行业×2组关键词对（原料/投入关键词 vs 产品/产出关键词），覆盖中国主要行业的典型产品链关系。三级匹配策略：①精确匹配——企业的进项品名和销项品名分别与词典中的原料关键词和产品关键词完全匹配→行业确认 ②模糊匹配——企业销项品名含服务类金税编码前缀（6/7/8开头）→不执行精确的产品链匹配，直接进入服务行业判定流程 ③通用兜底——销项品名不在任何行业的产品链词典中→通过金税编码反查行业分类→如果金税编码也无法判定→使用工商登记行业为默认值同时标记\"行业未确认\"。词典的作用不仅是\"判断行业\"，更是\"验证行业\"——当进销品名与词典的行业预期一致时，该行业的分析域置信度提升；不一致时，触发外包/轻加工模式检测。'},
+        {name:'外包轻加工模式认知',source:'engine/pipeline.py → 加工费检测逻辑',desc:'批发业可能存在实质加工——不能仅凭工商登记的\"批发业\"判定没有进销存分析需求，也不能仅凭进销品名差异判定为\"进销不匹配\"。检测逻辑：①扫描银行流水的付款摘要中是否含\"加工费/代工/贴牌/OEM/委外\"等关键词 ②如果是→企业存在外包加工（将原材料发给加工商、加工后收回成品），实质是\"采购原材料+外包加工+销售成品\"的三段经营模式 ③此时进销品名差异是合理的——进的是原材料、销的是成品、中间存在加工环节 ④加工模式下→执行进销存分析但放宽匹配标准（进项品名与销项品名不要求一致，只要求同属一个产品链）⑤报告第一章行业分类中展示\"批发业（存在外包加工实质）\"，第二章详细解释加工模式对分析结果的影响。外包轻加工模式的识别结果会通过跨域协商引擎通知毛利率对标域（制造业对标改为批发+加工混合对标）。'},
+        {name:'66行业基准值库',source:'static/industry_data.json → 66_industry_benchmarks',desc:'66个行业×5个核心指标×3个基准值（下限/中位/上限），构成全行业财务基准参考体系。五个核心指标：①毛利率——（营业收入-营业成本）/营业收入，反映主营业务的盈利空间 ②净利率——净利润/营业收入，反映综合盈利水平 ③人均产值——营业收入/员工人数，反映劳动效率 ④费用收入比——期间费用/营业收入，反映费用管控水平 ⑤资产周转率——营业收入/总资产，反映资产使用效率。三个基准值的使用逻辑：企业值<下限→高风险（显著低于行业正常水平，可能存在成本虚列/收入少计）→企业值在下限与上限之间→中风险（属于行业正常波动范围）→企业值>上限→可能低风险但也可能是异常（如毛利率异常偏高可能是隐匿了成本）。基准库从公开数据（上市公司年报/行业统计年鉴）编制，定期可通过--calibrate模式更新。代码实现：_domain_industry_benchmarking()函数，行业匹配后自动加载对应的基准值进行对比。'},
       ]},
     { id:5, name:'执行管线', icon:'⚙️', color:'#f59e0b',
-      desc:'从原始资料到正式报告的七步处理流程，数据单向流动不丢失不污染不截断。',
+      desc:'从原始资料到正式报告的七步处理流程，数据单向流动不丢失不污染不截断。管线的设计原则：上游步骤的输出是下游步骤的输入、下游步骤不能修改上游步骤的原始数据、每一步骤有独立的日志和中间数据、任何步骤出错只影响该步骤及后续步骤、不会回写污染上游。',
       items:[
-        {name:'七步执行流程',source:'main.py',desc:'①资料扫描→②实体识别→③情报提取→④规则引擎(1514+396+745)→⑤噪声过滤→⑥行业对标→⑦报告输出。'},
-        {name:'36个域分析函数',source:'main.py',desc:'覆盖稽查全领域：银行流水、进销存、费用、往来款、固定资产、税务、资料完备度、经营实质。'},
-        {name:'全链路溯源体系',source:'tax-doc-analysis.js',desc:'规则ID→线索链→证据来源→一键分析→证据闭环→跨域证据链。六步溯源。'},
+        {name:'七步执行流程',source:'engine/pipeline.py → _run_analyze()',desc:'系统化地处理从用户上传文件到最终报告生成的完整流程，每一步都有明确的输入/输出/日志：①资料扫描——文件解析引擎启动，34类文件指纹+三层递进识别（文件名→列头→数据内容→公司匹配），四方交叉验证确认每个文件的类型和归属账套。输入：用户上传的Excel文件数组。输出：分类后的文件对象数组（每个文件含：类型标签/有效记录数/解析状态/错误日志）。②实体识别——从已分类的文件中提取目标企业身份信息（公司全称/统一社会信用代码/法定代表人/行业/经营范围），通过联网核查（天眼查/企查查API）补充工商登记数据。输入：银行流水文件+销项发票文件+进项发票文件。输出：目标实体对象（含所有识别出的公司信息和置信度）。③情报提取——_extract_material_intel()函数对每个文件的每行数据执行深度提取：银行流水→收款来源分类（12条规则逐条匹配）、销项发票→销售额分布（按购买方+品名+月份三维汇总）、进项发票→成本结构（主营业务成本/重大费用/日常报销三层分类）、工资表→人员结构与薪酬分布、社保明细→缴费基数与工资比对。输入：所有已分类文件。输出：material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）。④规则引擎——1514条规则+396条线索链+745条证据链全量激活。Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性。输入：material_intel + 目标实体。输出：all_findings数组（每条含type/level/score/detail/items/matched_chain_details等字段）。⑤噪声过滤——七类过滤规则依次执行：稽查重点保护→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。输入：all_findings。输出：过滤后的all_findings（减少约97%噪声）。⑥跨域协商——run_negotiation()消解域间矛盾（服务行业vs进销存异常→消解）、降级不适用发现（制造业毛利率对标用于服务行业→降为提示）、标记资料受限结论（缺合同→合同相关发现标注\"待补充\"）。输入：过滤后的all_findings。输出：协商后的all_findings。⑦报告输出——_generate_final_report()生成7章正式报告：第一章案件来源及基本情况→第二章稽查实施情况→第三章发现问题及事实认定→第四章稽查结论→第五章处理处罚建议→第六章告知权利义务→第七章稽查人员签字+附件证据清单。同时执行报告纯净度净化（去内部标记）、建议增强（补齐可执行步骤）、12项质量标准检测、语音播报适配。输入：协商后的all_findings + material_intel + 目标实体。输出：完整报告HTML或结构化JSON。'},
+        {name:'36个域分析函数',source:'engine/domain_analysis.py → _domain_XX系列',desc:'36个域分析函数覆盖稽查全领域，按功能分为八大分类：①银行与资金流(3域)——收款来源分析（_domain_receipt_classification）、付款去向分析（_domain_payment_classification）、资金收支对比（_domain_cashflow_comparison）②发票与票据流(4域)——销项发票分析（_domain_sales_invoice）、进项发票分析（_domain_purchase_invoice）、发票合规检查（_domain_invoice_compliance）、红冲/作废分析（_domain_red_void）③进销存与存货(4域)——进销存匹配（_domain_inventory_match）、存货周转（_domain_inventory_turnover）、BOM分析（_domain_bom）、进销比对标（_domain_purchase_sales_ratio）④费用与成本(5域)——费用完整性（_domain_expense_completeness）、费用结构合理性（_domain_expense_structure）、大额费用分析（_domain_large_expenses）、主营业务成本分析（_domain_cogs）、研发费用分析（_domain_rd_expenses）⑤往来款(3域)——应收账款分析（_domain_ar）、应付账款分析（_domain_ap）、关联交易分析（_domain_related_party）⑥资产与负债(3域)——固定资产分析（_domain_fixed_assets）、无形资产分析（_domain_intangible）、长短期借款分析（_domain_loans）⑦工资与人力(3域)——工资发放分析（_domain_salary）、社保缴纳分析（_domain_social_security）、个税扣缴分析（_domain_personal_tax）⑧综合诊断(11域)——行业判定(_domain_industry)、资料完备度(_domain_completeness)、经营实质(_domain_business_substance)、行业对标(_domain_benchmarking)、申报比对(_domain_tax_declaration)、六员比对(_domain_six_personnel)、供应链核查(_domain_supply_chain)、经营风险预警(_domain_risk_alert)、税收优惠审核(_domain_tax_preference)、资金回流检测(_domain_money_laundering)、存疑排除(_domain_exclusion)。数量由system_config.json实时统计保证准确。'},
+        {name:'全链路溯源体系',source:'static/js/tax-doc-analysis.js → 报告渲染中的溯源逻辑',desc:'每条发现的结论都可以通过六步溯源路径反向验证——用户看到报告中任何一条发现，都可以追溯到它是从哪一行原始数据、通过哪条规则、经过哪些验证步骤得出的。六步溯源路径：①规则ID——发现的描述中标注触发的规则编号（如\"R-0321\"），点击可跳转到稽查指令页面查看该规则的完整定义 ②线索链ID——发现的调查路径中标注驱动的线索链编号（如\"CL-0187\"），点击可查看该链的全部调查步骤和触发条件 ③证据来源——发现的evidence_source字段列出所有参与验证的数据文件（如\"银行流水→收款分类→2025年3月\"）④一键分析结果——all_findings数组中该发现的完整JSON（含原始items明细表和matched_chain_details）⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率是多少）⑥原始数据行——通过rule_id反查主文件中的extract函数（_extract_material_intel），定位到原始Excel文件的对应行。每一步在报告中有对应的超链接或展开详情按钮。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需要沿着六步路径反向检查。'},
       ]},
     { id:6, name:'跨域协商引擎', icon:'🤝', color:'#0ea5e9',
-      desc:'域名分析独立运行后自动跨域对话消解/降级/增强。15条协商规则覆盖四类场景。',
+      desc:'域分析函数独立运行后，引擎自动执行跨域对话，消解/降级/增强发现的结论。15条协商规则覆盖四类场景——不依赖人工干预，引擎自我发现和修正分析矛盾。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行，确保进入过滤器的发现已经是自洽的。',
       items:[
-        {name:'行业闸门消解',source:'cross_domain_negotiation.py',desc:'服务行业自动跳过进销存/存货/BOM/毛利率对标，消除假阳性。NEG-001~005（5条）'},
-        {name:'资料驱动的跨域标记',source:'cross_domain_negotiation.py',desc:'缺少某类资料→相关域标注资料受限。NEG-010~040（4条）'},
-        {name:'证据矛盾消解',source:'cross_domain_negotiation.py',desc:'域A正面证据推翻域B负面结论。NEG-020~030（3条）'},
-        {name:'联合增强',source:'cross_domain_negotiation.py',desc:'多域异常同时触发→合成更高级别新发现。NEG-AUG-001~003（3条）'},
+        {name:'行业闸门消解（NEG-001~005·5条）',source:'engine/cross_domain_negotiation.py → NEG-001~005',desc:'核心逻辑：服务行业自动跳过实物商品域的分析结论，消除假阳性。当域15（行业判定）的结论为\"服务行业\"时，协商引擎自动检测以下5类发现的冲突：①进销存匹配异常→消解（服务行业无进销存概念）②存货积压预警→消解（服务行业无实物库存）③BOM表缺失→消解（服务行业无BOM）④毛利率对标异常→降为提示（服务行业毛利率不可比制造业）⑤进销比行业对标异常→消解（服务行业不存在进销比）。消解后的发现的原始数据保留在all_findings中但标记_negotiated_drop=true，不出现在正式报告中。降级的发现保留但标记_negotiated_level=提示。如果行业判定本身存在不确定性（三层穿透不一致），协商引擎会保守处理——不消解但标记\"行业判定存疑\"。'},
+        {name:'资料驱动的跨域标记（NEG-010~040·4条）',source:'engine/cross_domain_negotiation.py → NEG-010~040',desc:'当域14（资料完备度）发现某类资料缺失时，协商引擎自动通知所有依赖该资料的发现打上\"资料受限\"标记，但不下结论。四种典型场景：①缺少合同→合同分层/合同比对类发现标记\"待补充合同后重新评估\"，不生成合同缺失相关的高风险发现 ②缺少银行流水→资金流分析相关发现标记\"资料受限\"（银行流水是资金流分析的唯一数据源，无流水则所有资金类分析无基础）③缺少工资社保→薪酬/人力类发现标记\"资料受限\"④缺少申报表→申报比对类发现标记\"资料受限\"。标记不影响原始风险等级但前端渲染时展示黄色横幅，提示审理人员\"此结论基于部分资料，补充后可增强\"。标记的哲学是\"缺资料不是你的错，但在没资料的情况下下结论就是我的错\"——既不因为缺资料就假装没发现问题，也不因为缺资料就武断下结论。'},
+        {name:'证据矛盾消解（NEG-020~030·3条）',source:'engine/cross_domain_negotiation.py → NEG-020~030',desc:'当两个域的输出产生逻辑矛盾时，协商引擎根据证据强度自动判断哪个结论更可信。三种消解模式：①强证据撤销弱结论——域A（银行流水→收款分类→个人大额转账）标记\"隐匿收入高风险\"，域B（销项发票→同一付款方→含税号的正规发票）标记\"开票合规\"。协商逻辑：正规发票的证据强度>银行流水关键词匹配的证据强度→撤销隐匿收入高风险→标记\"可能为个人供应商收款，已开票\"。②数据缺失限制结论——域A（缺合同→合同比对不适用标记），域B（进销发票品名匹配→业务实质与发票一致）。协商逻辑：发票证据虽强但无合同无法确认交易真实性→结论从\"一致\"降为\"基本一致但缺合同验证\"。③时空不一致消解——域A（发票日期2025年3月）标记\"收入正常\"，域B（银行流水日期2025年5月）标记\"收款延迟\"。协商逻辑：时间差>60天→触发跨域时间差检查→如果付款方与购买方一致→标记\"应收账款\";如果不一致→标记\"存疑收款\"。证据矛盾消解的关键原则：两个域打架时，谁的数据更完整、更直接，谁的结论权重更高。'},
+        {name:'联合增强（NEG-AUG-001~003·3条）',source:'engine/cross_domain_negotiation.py → NEG-AUG-001~003',desc:'多个域同时触发异常信号时，协商引擎不仅不消解，反而合成一条更高级别的新发现——\"三个域的警报一起响，比一个域的警报响一百次更可怕\"。三种增强场景：①收入隐匿增强——域A（银行流水→大额个人转账）+ 域B（销项发票→对应月度开票为零）+ 域C（工资表→员工人数无变化但收入骤降）→合成\"疑似账外经营\"高风险发现 ②虚构成本增强——域A（进项发票→大额咨询费）+ 域B（销项品名→咨询费与主营毫无关联）+ 域C（银行流水→付款方为税收优惠地企业）→合成\"疑似虚开咨询费发票转移利润\"极高风险发现 ③资金回流增强——域A（银行流水→A→B→C→A循环转账）+ 域B（发票→A向B开票、B向C开票、C向A开票，品名相同金额相同）+ 域C（人员→三个公司法人为同一人或亲属关系）→合成\"疑似闭环虚开\"连锁发现。联合增强的新发现不覆盖原始发现的等级——原始发现保持原来的等级在报告中单独排列，新发现作为补充列在组顶用红色边框标识。'},
       ]},
   ];
 

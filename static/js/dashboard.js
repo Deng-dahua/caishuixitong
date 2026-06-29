@@ -31,13 +31,60 @@ async function renderDashboard(container) {
 
     // ── 快捷操作 ──
     h += '<div class="quick-actions">';
-    h += '<div class="quick-actions-title">快捷操作</div>';
-    h += '<button class="btn btn-primary" onclick="navigateTo(\'sales-invoices\')">📋 开具发票</button>';
-    h += '<button class="btn btn-outline" onclick="navigateTo(\'purchase-invoices\')">📥 取得发票</button>';
-    h += '<button class="btn btn-outline" onclick="navigateTo(\'bookkeeping-invoices\')">📒 记账发票</button>';
-    h += '<button class="btn btn-outline" onclick="navigateTo(\'tax-doc-analysis\')">🔬 一键分析</button>';
-    h += '<button class="btn btn-outline" onclick="navigateTo(\'bank-transactions\')">🏦 银行流水</button>';
-    h += '</div>';
+    h += '<div class="quick-actions-title">快捷操作 · 全部模块</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    
+    var allActions = [
+      {group:'账务处理', items:[
+        {page:'sales-invoices', label:'📋 销项发票', cls:'btn-primary'},
+        {page:'purchase-invoices', label:'📥 进项发票', cls:'btn-outline'},
+        {page:'bookkeeping-invoices', label:'📒 记账发票', cls:'btn-outline'},
+        {page:'bank-transactions', label:'🏦 银行流水', cls:'btn-outline'},
+      ]},
+      {group:'税务申报', items:[
+        {page:'vat-declaration', label:'📊 增值税', cls:'btn-outline'},
+        {page:'salary', label:'💳 工资薪金', cls:'btn-outline'},
+        {page:'social-security', label:'🛡️ 社保', cls:'btn-outline'},
+        {page:'housing-fund', label:'🏠 公积金', cls:'btn-outline'},
+      ]},
+      {group:'稽查分析', items:[
+        {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
+        {page:'tax-risk-rules', label:'📋 稽查指令', cls:'btn-outline'},
+        {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
+        {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
+        {page:'domain-analysis', label:'🔬 域分析', cls:'btn-outline'},
+        {page:'methodology-filter', label:'🎯 方法论过滤', cls:'btn-outline'},
+      ]},
+      {group:'线索证据链', items:[
+        {page:'chains-page', label:'🔍 线索链', cls:'btn-outline'},
+        {page:'evidence-page', label:'🔒 证据链', cls:'btn-outline'},
+        {page:'analyze-page', label:'⚡ 分析链', cls:'btn-outline'},
+        {page:'cross-domain-clues', label:'🔎 跨域线索', cls:'btn-outline'},
+        {page:'cross-domain-evidence', label:'🔗 跨域证据', cls:'btn-outline'},
+        {page:'cross-domain-analysis', label:'📊 跨域分析', cls:'btn-outline'},
+      ]},
+      {group:'系统引擎', items:[
+        {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
+        {page:'quality-system', label:'🛡️ 质量保障', cls:'btn-outline'},
+        {page:'ai-rules', label:'🧠 行为准则', cls:'btn-outline'},
+        {page:'tax-agi', label:'🧬 税务AGI', cls:'btn-outline'},
+        {page:'system-logs', label:'📜 系统日志', cls:'btn-outline'},
+      ]},
+      {group:'规范手册', items:[
+        {page:'auditor-handbook', label:'⚖️ 稽查员手册', cls:'btn-outline'},
+        {page:'report-standards', label:'📐 编制要求', cls:'btn-outline'},
+        {page:'feedback-template', label:'📝 审核模板', cls:'btn-outline'},
+      ]}
+    ];
+    
+    allActions.forEach(function(group){
+      h += '<div style="width:100%;margin-top:4px"><span style="font-size:11px;color:#94a3b8;font-weight:600">'+group.group+'</span></div>';
+      group.items.forEach(function(item){
+        h += '<button class="btn '+item.cls+'" onclick="navigateTo(\''+item.page+'\')">'+item.label+'</button>';
+      });
+    });
+    
+    h += '</div></div>';
 
     h += '</div>'; // card-fill
     el.innerHTML = h;

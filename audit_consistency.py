@@ -5,6 +5,8 @@
 1. 启动时自动扫描所有 JS/PY 文件，对比 system_config.json 权威数据
 2. 发现硬编码数字不一致 → 生成报告 → 可选自动修复
 3. 支持 --fix 参数自动替换不一致的数字
+4. 支持 --sync 联动同步（代码层+文档层+共享内容层）
+5. 跨模块内容一致性标准 —— 同一内容在多模块出现时必须一致
 """
 import json, re, os, sys
 from pathlib import Path
@@ -188,12 +190,126 @@ def sync_all(authority):
             with open(fp, "w", encoding="utf-8") as f:
                 f.write(content)
     
+    # 同步引擎记忆文档层
+    mem_changes = sync_memory_docstring(authority)
+    changes.extend(mem_changes)
+    
     if changes:
         print(f"\n🔗 联动同步完成：{len(changes)}处修改")
         for ch in changes:
             print(f"  {ch[0]}: {ch[1]} → {ch[2]}")
     else:
         print("\n✅ 全部模块已一致，无需同步")
+    return changes
+
+
+def sync_memory_docstring(authority):
+    """同步引擎记忆文档层——将 system_config.json 的数据写入 engine/memory.py 的 docstring"""
+    memory_file = ROOT / "engine" / "memory.py"
+    if not memory_file.exists():
+        return []
+    
+    with open(memory_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    original = content
+    changes = []
+    
+    # 获取权威数据
+    rc = authority.get("rules_count", 1514)
+    cc = authority.get("clue_chains", 396)
+    ec = authority.get("evidence_chains", 745)
+    mc = authority.get("methodology_count", 33)
+    tc = authority.get("total_chains", 1174)
+    dc = authority.get("domain_functions", 36)
+    
+    # 获取额外的动态数据
+    ff = authority.get("file_fingerprints", 34)
+    qs = authority.get("quality_standards", 12)
+    
+    # 统计 correction_rules.json 中的规则数
+    cr_count = 0
+    cr_file = ROOT / "static" / "correction_rules.json"
+    if cr_file.exists():
+        with open(cr_file, "r", encoding="utf-8") as f:
+            cr = json.load(f)
+            cr_count = len(cr)
+    
+    # 统计 industry_data.json 中的收款分类规则数
+    rc_rules = 12  # 固定12条，数据结构为多级嵌套，不便自动统计
+    
+    # 定义替换映射：旧值模式 → 新值（支持正则）
+    replacements = [
+        # 核心数据
+        (r"(?<!\w)1514(?!\d)", str(rc), "规则数"),
+        (r"(?<!\w)396(?!\d)(?=.*线索)", str(cc), "线索链数"),
+        (r"(?<!\w)745(?!\d)(?=.*证据)", str(ec), "证据链数"),
+        (r"(?<!\w)33(?!\d)(?=.*方法论|条稽查方法论|条方法)", str(mc), "方法论数"),
+        (r"(?<!\w)1174(?!\d)", str(tc), "总链数"),
+        (r"(?<!\w)36(?!\d)(?=.*域分析|域函数|个域)", str(dc), "域分析函数数"),
+        (r"(?<!\w)34(?!\d)(?=.*文件指纹|类指纹)", str(ff), "文件指纹数"),
+        (r"(?<!\w)12(?!\d)(?=.*质量标准|质量保障标准)", str(qs), "质量标准数"),
+        
+        # 收款分类
+        (r"(?<!\w)12条(?=.*收款.*分类|分类规则)", str(rc_rules) + "条", "收款分类规则数"),
+        
+        # 引擎铁律章节
+        (r"23类.*HARD_BAN|HARD_BAN.*23类", "23类", "HARD_BAN数"),
+        
+        # 知识库
+        (r"(?<!\w)500条(?=.*记忆)", "500条", "知识库上限"),
+        
+        # 调度中枢
+        (r"(?<!\w)16(?!\d)(?=.*功能模块|个模块)", "16", "功能模块数"),
+        (r"(?<!\w)7(?!\d)(?=.*数据域|个域)", "7", "数据域数"),
+        
+        # 仪表盘
+        (r"(?<!\w)6(?!\d)(?=.*标签页|个标签)", "6", "标签页数"),
+        
+        # 前端页面
+        (r"(?<!\w)17(?!\d)(?=.*页面|个页面)", "17", "前端页面数"),
+    ]
+    
+    # 只更新docstring内的内容（在首尾"""之间）
+    # docstring从第一行"""开始，到下一个单独的"""结束
+    ds_start = content.find('"""\n', 0)  # opening """
+    if ds_start < 0:
+        ds_start = content.find('"""')
+    ds_end = content.find('\n"""', ds_start + 3)  # closing """
+    if ds_end < 0:
+        ds_end = content.find('"""', ds_start + 3)
+    
+    if ds_start < 0 or ds_end < 0:
+        return []
+    
+    before = content[:ds_start + 3]
+    docstring = content[ds_start + 3:ds_end]
+    after = content[ds_end:]
+    
+    for pattern, new_val, desc in replacements:
+        matches = list(re.finditer(pattern, docstring))
+        for m in matches:
+            old_val = m.group(0)
+            if old_val != new_val:
+                docstring = docstring.replace(old_val, new_val, 1)
+                changes.append(("engine/memory.py [docstring]", old_val, new_val))
+    
+    # 更新权威数据区块
+    auth_block_pattern = r"(rules_count=\d+.*?noise_filter_rate=\d+)"
+    auth_match = re.search(auth_block_pattern, docstring)
+    if auth_match:
+        old_auth = auth_match.group(1)
+        new_auth = (f"rules_count={rc} | clue_chains={cc} | evidence_chains={ec} | "
+                   f"methodology_count={mc} | total_chains={tc} | domain_functions={dc}")
+        if old_auth != new_auth:
+            docstring = docstring.replace(old_auth, new_auth)
+            changes.append(("engine/memory.py [权威数据]", "过时数据", "已更新"))
+    
+    if changes:
+        content = before + docstring + after
+        with open(memory_file, "w", encoding="utf-8") as f:
+            f.write(content)
+    
     return changes
 
 
@@ -206,9 +322,22 @@ if __name__ == "__main__":
     if "--calibrate" in sys.argv:
         calibrate(authority)
         sys.exit(0)
+
+    if "--rebuild-shared-map" in sys.argv:
+        from engine.shared_content_sync import rebuild_shared_map
+        log = rebuild_shared_map()
+        for l in log:
+            print(l)
+        sys.exit(0)
     
     if "--sync" in sys.argv:
         sync_all(authority)
+        # 同步共享内容（跨模块文本一致性）
+        from engine.shared_content_sync import sync_shared_content
+        shared_log = sync_shared_content()
+        print("\n📋 共享内容同步：")
+        for l in shared_log:
+            print(f"  {l}")
         sys.exit(0)
     
     print("🔍 审计启动：扫描系统数据一致性...")
@@ -217,6 +346,18 @@ if __name__ == "__main__":
           f"total={authority['total_chains']} domains={authority['domain_functions']}")
     
     issues = scan_files(authority)
+    
+    # 验证共享内容一致性
+    from engine.shared_content_sync import verify_shared_content
+    shared_ok, shared_log = verify_shared_content()
+    if not shared_ok:
+        print("\n📋 共享内容一致性检查（发现问题）：")
+        for l in shared_log:
+            print(f"  {l}")
+    else:
+        # Print first line of shared_log (the summary line)
+        if shared_log:
+            print(f"  {shared_log[0]}")
     
     if "--fix" in sys.argv:
         if issues:

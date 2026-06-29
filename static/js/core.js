@@ -770,7 +770,7 @@ async function renderAgiDashboard(container) {
     var patrol = agi.patrol || {};
 
     var h = '';
-    h += '<style>.agi-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto}.agi-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.agi-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.agi-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.agi-main{flex:1;min-width:0}</style>';
+    h += '<style>.agi-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.agi-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.agi-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.agi-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.agi-toc a:hover,.agi-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.agi-main{flex:1;min-width:0;background:#fff}.agi-main h2.hb-section-title{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:10px!important;border-bottom:2px solid #e2e8f0!important;margin-bottom:16px!important;background:none!important}.agi-main .hb-section-num{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:24px!important;height:24px!important;background:#1e293b!important;color:#fff!important;border-radius:4px!important;font-size:12px!important;font-weight:700!important;margin-right:8px!important}.agi-main section{margin-bottom:36px!important}.agi-hero{background:#f8fafc;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:28px}.agi-hero h2{font-size:20px!important;margin:0 0 4px!important}.agi-hero p{font-size:13px;color:#475569;line-height:2;margin:0 0 8px}.agi-hero .hb-status-bar{font-size:12px;color:#64748b;line-height:2}.agi-main .hb-section-lead{font-size:13px;color:#64748b;line-height:2;margin:0 0 12px}.agi-main .hb-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}.agi-main .hb-table{width:100%;border-collapse:collapse;font-size:13px;line-height:2}.agi-main .hb-table th{padding:10px 14px;text-align:left;font-weight:600;background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0}.agi-main .hb-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9}.agi-main .hb-table-striped tr:nth-child(even){background:#fafbfc}.agi-main .hb-status-connected{color:#059669;font-weight:600}</style>';
     h += '<div class="agi-layout">';
     
     // TOC
@@ -790,29 +790,29 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-main">';
     
     // ═══ Hero ═══
-    h += '<div id="agi-hero">';
-    h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 24引擎 · 36域分析 · 1514规则 · 1174条链 · ' + pipe.total_events + '条学习事件</p>';
-    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验</div>';
+    h += '<div id="agi-hero" class="agi-hero">';
+    h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 26引擎 · 36域分析 · 1514规则 · 1174条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
     h += '</div>';
 
     // ═══ 一、核心智能引擎（6个） ═══
-    h += '<section id="agi-core" class="hb-section">';
+    h += '<section id="agi-core">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">一</span> 核心智能引擎</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('🪞','自我反思器','SelfReflector','<code>agent_core.py</code>','14维反向假设验证：隐匿收入←个人转账、虚开发票←长期合作、品名不匹配←外发加工。阈值：adj<-0.05→不确定，adj<-0.15→推翻。','红');
-    h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','五段式报告：企业画像→风险全景→核心问题→行业对标→行动建议。','蓝');
-    h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','多企业行业模式归纳，同行业经验自动复用。cross_analysis_memory.json持久化。','绿');
-    h += _agiEngineCard('📐','稽查方法论','MethodologyEngine','<code>methodology_loader.py</code>','33条方法论+14类资料+7条法律。按域关键词自动匹配适用方法论。','紫');
-    h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层归纳：空跑→修正→信号→基准。discovered_rules.json输出。','橙');
-    h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','重分析→前后对比→因果影响定向巡逻→变化率>30%标记显著。','青');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('🪞','自我反思器','SelfReflector','<code>agent_core.py</code>','14维反向假设验证——对每条高风险发现生成竞争假设并逐条证据验证：隐匿收入←个人大额转账且无对应开票、虚开发票←长期合作供应商突然新增大量交易、品名不匹配←外发加工模式。调整规则：adj<-0.05→不确定（证据不足但存疑）、adj<-0.15→推翻（足够反证据）、累积信号≥3且无推翻→确认（升级为因果边输入SCM）。每次分析后更新记录用于下次先验校准。','红');
+    h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','从all_findings自动组织为五段式结构化报告：①企业画像——行业+模式+规模+关键财务指标 ②风险全景——四级分布（极高/高/中/低各数量+占比+典型发现类型）③核心问题——TOP5高风险发现的详细因果推演 ④行业对标——66行业基准库五维指标偏离度 ⑤行动建议——P0/P1/P2三级分级建议+具体执行路径。每段从report对象动态提取，不使用预置模板文本。','蓝');
+    h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','跨企业分析经验积累——不是每次从零开始。功能：①行业通用模式——同类企业分析≥3次后提取该行业常见高风险模式 ②典型数据画像——记录每个行业的合理收入/毛利率/费用率/人均产值基准 ③经验自动复用——分析新企业时先检索同行业已分析企业作为参考基线 ④持久化到cross_analysis_memory.json，12维度加权相似度检索。','绿');
+    h += _agiEngineCard('📐','稽查方法论','MethodologyEngine','<code>methodology_loader.py</code>','33条稽查方法论（全部代码化）+14类必查资料+12条核心法律条文。引擎按分析域的domain_key自动匹配适用的方法论——收款分析域→加载方法论②③④，进销存域→加载方法论⑥⑦⑧。根据实际数据特征动态选择组合，非写死checklist。','紫');
+    h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层递进归纳引擎——Layer A：模块效率分析，空跑率>80%→自动标记为可跳过→下次同行业降权不调用。Layer B：纠正模式，用户对同类发现纠正≥3次→自动提取通用修正规则→写入correction_rules.json→四级回退匹配。Layer C：信号模式对比，同类企业中出现>60%的信号→标记为行业特征信号→降低权重。输出到discovered_rules.json。','橙');
+    h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后两次报告的差异：①新增风险——上次无本次有 ②消失风险——上次有本次无（AGI修正消解的假阳性）③风险等级迁移——升级或降级 ④变化率>30%→标记显著→触发因果影响定向巡逻→分析引擎改动导致的变化方向→正确保留、错误回滚。快照存入patrol_snapshots做基线对比。','青');
     h += '</div></section>';
 
     // ═══ 二、因果推理层（4个） ═══
     h += '<section id="agi-causal" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">二</span> 因果推理层</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果：do-干预分析（消除信号X→对下游影响）、反事实推理（如果当初有合同→风险降多少）、混淆因子检测、因果链查询。预置9条税务领域因果先验。','红');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果推理——不是「X和Y相关」而是「X导致Y」。四种推理：①do-干预——假设消除信号X→计算对下游结论的影响幅度 ②反事实——如果当初有合同/申报表/台账→风险会降级多少（量化缺资料影响）③混淆因子——检测信号X和Y是否存在共同驱动力Z ④因果链查询——从一条发现沿因果边遍历上游和下游→构建完整因果推演。预置9条税务因果先验。','红');
     h += _agiEngineCard('🧠','元认知引擎','Metacognition','<code>metacognition.py</code>','四维推理质量评估（因果链完整性/证据充分性/法律依据/可操作性）→质量分→不确定性检测→信息缺口识别→行动建议。站在更高层看"反思器做得对不对"。','蓝');
     h += _agiEngineCard('📖','法律三段论','LegalReasoner','<code>legal_reasoner.py</code>','11条结构化法律规则。大前提(法条)+小前提(本案事实)→结论(法律定性)。含征管法第63条、发票管理办法第22条、刑法第205条等。','紫');
     h += _agiEngineCard('🕸️','因果网络','CausalNetwork','<code>causal_network.py</code>','条件概率矩阵+多信号联合预测+自主推理器(AutonomousReasoner)。信号共现→因果边→置信度=P(结论|信号)×log(lift+1)。','绿');
@@ -821,10 +821,10 @@ async function renderAgiDashboard(container) {
     // ═══ 三、连接通信层（3个） ═══
     h += '<section id="agi-connect" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">三</span> 连接通信层</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('🔄','事件总线','EventBus','<code>event_bus.py</code>','模块间实时通信中枢。pub/sub模式：因果网络发现新边→发布事件→假设生成器更新→巡逻引擎响应。跨模块因果链追踪。14种标准事件类型。','青');
-    h += _agiEngineCard('🕸️','知识图谱','KnowledgeGraph','<code>knowledge_graph.py</code>','实体-关系-属性图推理。节点：企业/供应商/客户/人员/发票/法条/风险。多跳查询：企业→供应商→关联人员→其他企业。购销闭环检测。','紫');
-    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重模式：①人工反馈→5种错误分类→自动生成修正规则→auto_apply ②自动检测：矛盾结论/三要素缺失/模板句/空占位符/因果链过短→无需人工反馈。','橙');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('🔄','事件总线','EventBus','<code>event_bus.py</code>','模块间实时通信中枢——pub/sub松耦合协作。14种标准事件覆盖全分析生命周期。事件路由：因果网络发现新边→发布causal_edge_found→假设生成器订阅并更新规则→巡逻引擎订阅并标记重查。跨模块因果链追踪：一条发现从触发引擎→经过哪些引擎→最终哪个引擎输出→全程通过事件ID回溯。','青');
+    h += _agiEngineCard('🕸️','知识图谱','KnowledgeGraph','<code>knowledge_graph.py</code>','实体-关系-属性图推理——将稽查实体建模为知识图谱。节点类型：企业/供应商/客户/人员/发票/法条/风险。多跳查询示例：企业A→供应商B→关联人员C（B的法人=C）→其他企业D（C也是D的法人）→A/B/D是否闭环交易？购销闭环检测：A→B→C→A品名金额相同→疑似闭环虚开。图谱持久化到knowledge_graph.json。','紫');
+    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重自愈模式——人工+自动。人工反馈：5种错误分类→制定修正规则→存入correction_rules.json→自动应用。自动检测：矛盾结论（服务行业+进销存异常并存→标记矛盾）、三要素缺失（缺金额/偏差/基准→自动增强）、模板句（空话→自动移除）、空占位符（如：()→自动清理）、因果链过短（仅1条信号→补充交叉验证）。','橙');
     h += '</div></section>';
 
     // ═══ 四、知识层（3个） ═══
@@ -833,35 +833,37 @@ async function renderAgiDashboard(container) {
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('📚','统一知识库','<code>knowledge_base.py</code> · 9域','政策/因果边/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史。线程安全写锁，全局单例，JSON持久化。','purple');
     h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：审核反馈规则转化(纠正模式累积≥1→四级回退匹配自动规则)→模块效率评估(历史运行日志)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
-    h += _agiInfoCard('📈','趋势分析器','<code>trend_analyzer.py</code>','12项指标跨期追踪：毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率。趋势方向：上升/下降/持平。','green');
+    h += _agiInfoCard('📈','趋势分析器','<code>trend_analyzer.py</code>','12项经营指标跨期追踪——对比本次vs上次或本次vs行业平均。追踪：毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率。连续两期间变化>10%→标记趋势方向。毛利率下降→成本上升或售价下降，收入增长→市场份额扩大，采购金额与收入对比→购销比合理性。','green');
     h += '</div></section>';
 
-    // ═══ 五、专项引擎层（5个） ═══
+    // ═══ 五、专项引擎层（7个） ═══
     h += '<section id="agi-special" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">五</span> 专项引擎层</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('🏷️','语义推理器','SemanticReasoner','<code>semantic_reasoner.py</code>','手工同义词库(14类品名)→子字符串匹配+编辑距离→语义归类。创造性假设引擎：Jaccard相似度→找到最近已知模式→类比推理生成试探假设。','蓝');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('🏷️','语义推理器','SemanticReasoner','<code>semantic_reasoner.py</code>','手工维护14类品名同义词库——如「棉纱/棉线/纱线」→同一语义组。两层匹配：①子字符串匹配→最长匹配原则归类 ②编辑距离→短品名≤4字无法子串归类→Levenshtein距离≤2→同一组。创造性假设引擎：无归类品名→Jaccard相似度→找最近已知模式→类比推理生成试探假设→标记「语义存疑待确认」。','蓝');
     h += _agiEngineCard('🔍','未知模式检测','UnknownPatternDetector','<code>unknown_pattern_detector.py</code>','规则覆盖度检查+异常检测器(7种：结构化转账/幽灵供应商/价格异常/数量尖峰/月末突击/个人大额转账/营收平滑)→标记未知模式→路由"智哥"人工分析。','橙');
-    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','竞争假设：每条重要发现生成2-3条互斥假设→逐条证据检查→贝叶斯更新后验概率→选出最佳假设。7种信号类型各2-3条预置竞争模板。','红');
-    h += _agiEngineCard('🌐','跨企业关系网','CrossEnterpriseGraph','<code>cross_enterprise_graph.py</code>','全系统企业间供应商/客户/人员关联检测。一人多角：同一人在多家企业任不同角色→关联交易→连锁稽查点。','绿');
+    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现生成2-3条互斥竞争假设→逐条检查正反证据→贝叶斯更新后验概率→推荐最高概率假设但保留其他假设及置信度供人工判断。7种信号类型各有预置竞争模板：①隐匿收入（未开票收入vs代垫报销）②虚开发票 ③进销不匹配（外发加工vs商品倒卖）④毛利率异常（成本虚增vs售价偏低）⑤费用率异常（费用虚列vs收入低估）⑥供应商集中（依赖风险vs行业特性）⑦账期异常（商业信用vs资金困难）。验证结果存入hypothesis_history.json用于下次先验校准。','红');
+    h += _agiEngineCard('🌐','跨企业关系网','CrossEnterpriseGraph','<code>cross_enterprise_graph.py</code>','跨企业关系图谱——检测全系统企业的供应商/客户/人员交叉关联。一人多角检测：同一自然人在企业A是法人/B是股东/C是财务负责人→A↔B↔C交易是否构成关联交易。连锁稽查点：A→B→C→A品名金额相同→疑似闭环虚开。图持久化到cross_enterprise_graph.json→O(N²)交叉扫描通过图索引优化。','绿');
     h += _agiEngineCard('💰','税收优惠分析','TaxIncentiveAnalyzer','<code>tax_incentive_analyzer.py</code>','9类优惠(小微/小规模/研发/高新/六税两费/软件即征即退/残保金/农林/西部大开发)。联网核查三步法：搜索URL→抓取页面→提取结构化条件。90天缓存。','紫');
+    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','15条协商规则四类场景：行业闸门消解(服务行业跳过进销存等5域)+资料驱动标记(缺资料标注受限)+证据矛盾消解(域A正面推翻域B负面)+联合增强(多域异常合成新发现)。','蓝');
+    h += _agiEngineCard('🔐','数据一致性引擎','ConsistencyEngine','<code>audit_consistency.py + shared_content_sync.py</code>','双维度自检：数字维度(硬编码vs权威源自动修复)+文本维度(29项跨模块共享内容逐字哈希+概念关联验证)。四触发全覆盖：start.bat/git pre-commit/一键分析/手动--sync。','绿');
     h += '</div></section>';
 
     // ═══ 六、加速与保护层（3个） ═══
     h += '<section id="agi-perf" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 加速与保护层</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('⚡','并行加速','ParallelRunner','<code>parallel_runner.py</code>','多模块并行执行，依赖DAG自动排序。可开关切换串行/并行模式。预计提升分析速度30-50%。','青');
-    h += _agiEngineCard('🛡️','覆盖层引擎','OverrideEngine','<code>override_engine.py</code>','AGI自主修正→安全回滚机制。待审核→激活→生效/回滚→紧急恢复。防止错误修正造成连锁反应。','红');
-    h += _agiEngineCard('🔒','外部验证','ExternalVerifier','<code>external_verifier.py</code>','4通道验证：天眼查API/企查查API/工商信息/搜索引擎后备。企业工商数据交叉验证。','蓝');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('⚡','并行加速','ParallelRunner','<code>parallel_runner.py</code>','多模块并行执行——基于模块间依赖DAG自动计算并行执行计划。有依赖→串行，无依赖→并行（36个域分析函数间互不依赖→全部并行）。max_workers默认4，可配置调整。串行/并行可开关切换——调试用串行追踪错误，生产用并行加速。性能：36域串行约45秒→并行约25-30秒→提升35-45%。','青');
+    h += _agiEngineCard('🛡️','覆盖层引擎','OverrideEngine','<code>override_engine.py</code>','AGI自主修正安全回滚机制——防止自学习过度修正。四阶段状态机：①待审核→覆盖建议等待确认 ②激活→人工确认后生效 ③生效中→监控效果→假阴性触发回滚 ④紧急恢复→一键回滚所有激活覆盖→清零AGI修正。完整审计日志记录每次激活/回滚，持久化到overrides_storage.json。','红');
+    h += _agiEngineCard('🔒','外部验证','ExternalVerifier','<code>external_verifier.py</code>','4通道工商数据验证——任一通道成功即更新企业信息。①天眼查API（需配置Key）②企查查API（备用）③国家企业信用信息公示系统（免费）④搜索引擎后备（仅供参考标注「待核实」）。结果写入entity_profile.json→24小时缓存有效期。','蓝');
     h += '</div></section>';
 
     // ═══ 七、调度中枢（2个） ═══
     h += '<section id="agi-schedule" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">七</span> 调度中枢</h2>';
-    h += '<div class="hb-method-grid">';
-    h += _agiEngineCard('📋','21模块调度','Orchestrator','<code>orchestrator.py</code>','数据画像→自适应激活判定→依赖DAG→执行顺序。行业自适应（服务/制造/贸易）。每个模块含skip_if/priority/requires条件。','蓝');
-    h += _agiEngineCard('🔗','AGI管线','AGIPipeline','<code>agi_pipeline.py</code>','21模块学习事件采集+6步智能进化：事件总线→SCM推理→元认知自检→知识图谱导入→知识库自生长→自愈自动检测。每次分析结束自动执行。','紫');
+    h += '<div class="agi-card-grid">';
+    h += _agiEngineCard('📋','21模块调度','Orchestrator','<code>orchestrator.py</code>','21模块调度中枢——根据数据画像自适应激活判定。模块注册结构含skip_if/priority/requires/max_workers四字段。行业自适应：服务行业→跳过进销存/BOM/毛利率对标等5个制造域；贸易企业→跳过加工费检测；制造企业→全部激活。调度决策日志写入orchestration_log.json。','蓝');
+    h += _agiEngineCard('🔗','AGI管线','AGIPipeline','<code>agi_pipeline.py</code>','21模块事件采集+6步进化流程：①事件总线汇总 ②SCM因果推理提取新因果 ③元认知自检评估推理质量 ④知识图谱导入新节点 ⑤知识库自生长写入新经验 ⑥自愈自动检测生成覆盖建议。全部在分析后自动执行，无需人工触发。','紫');
     h += '</div></section>';
     h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','多企业分析经验积累+行业通用模式归纳。每个行业独立记忆：常见高风险模式、典型数据画像。跨分析记忆持久化到 cross_analysis_memory.json。','绿');
     h += _agiEngineCard('📐','稽查方法论引擎','MethodologyEngine','<code>methodology_loader.py</code>','31条稽查方法论：资料驱动/四步分析/进销存比对/资金流双向核对/供应商穿透/经营实质/客户三源穿透/发票五层审计/六员跨企业比对/地理分析等。按域自动匹配适用方法论。','紫');
@@ -954,20 +956,30 @@ async function renderAgiDashboard(container) {
 }
 
 function _agiEngineCard(icon, name, engName, codeRef, desc, color) {
-  var colors = {红:'hb-m-icon-red',蓝:'hb-m-icon-blue',绿:'hb-m-icon-green',紫:'hb-m-icon-purple',橙:'hb-m-icon-yellow',青:'hb-m-icon-cyan'};
-  return '<div class="hb-method-card"><div class="hb-method-icon '+colors[color]+'">'+icon+'</div><h3>'+name+' <span style="font-size:11px;font-weight:400;color:#94a3b8;">'+engName+'</span></h3><p class="hb-method-principle" style="font-size:11px;color:#64748b;margin:0 0 8px;">'+codeRef+'</p><div class="hb-method-items"><div class="hb-mi">'+desc+'</div></div></div>';
+  var colorMap = {红:'#fee2e2',蓝:'#dbeafe',绿:'#dcfce7',紫:'#f3e8ff',橙:'#ffedd5',青:'#cffafe'};
+  var bg = colorMap[color] || '#f1f5f9';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.06)\'" onmouseout="this.style.boxShadow=\'none\'">'
+    + '<div style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:'+bg+';font-size:16px;margin-bottom:8px">'+icon+'</div>'
+    + '<h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 2px">'+name+' <span style="font-size:11px;font-weight:400;color:#94a3b8">'+engName+'</span></h3>'
+    + '<div style="font-size:11px;color:#94a3b8;margin:0 0 6px">'+codeRef+'</div>'
+    + '<div style="font-size:12px;color:#475569;line-height:2">'+desc+'</div></div>';
 }
 
 function _agiInfoCard(icon, name, code, desc, color) {
-  var colors = {purple:'hb-info-purple',red:'hb-info-red',blue:'hb-info-blue',green:'hb-info-green',yellow:'hb-info-yellow',slate:'',cyan:''};
-  var cls = colors[color] || '';
-  var bg = color==='slate'?'background:#f1f5f9;':'';
-  var bd = color==='cyan'?'background:#ecfeff;border-color:#a5f3fc;':'';
-  return '<div class="hb-info-card '+cls+'" style="'+bg+bd+'"><strong>'+icon+' '+name+'</strong><p style="font-size:11px;color:#64748b;margin-top:4px;">'+code+'</p><p>'+desc+'</p></div>';
+  var colors = {purple:'#f3e8ff',red:'#fee2e2',blue:'#dbeafe',green:'#dcfce7',yellow:'#ffedd5',slate:'#f1f5f9',cyan:'#cffafe'};
+  var bg = colors[color] || '#f8fafc';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px">'
+    + '<strong style="display:block;font-size:13px;color:#0f172a;margin-bottom:4px">'+icon+' '+name+'</strong>'
+    + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+code+'</div>'
+    + '<div style="font-size:12px;color:#475569;line-height:1.8">'+desc+'</div></div>';
 }
 
 function _agiConfigCard(name, file, params, note) {
-  return '<div class="hb-law-card"><strong>⚙️ '+name+'</strong><span class="hb-law-tag">'+file+'</span><p style="font-size:12px;color:#475569;line-height:1.5;">'+params+'</p><p style="font-size:11px;color:#64748b;">💡 '+note+'</p></div>';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:8px">'
+    + '<strong style="display:block;font-size:13px;color:#0f172a;margin-bottom:4px">⚙️ '+name+'</strong>'
+    + '<span style="font-size:11px;color:#2563eb;background:#eff6ff;padding:2px 8px;border-radius:10px;margin-bottom:6px;display:inline-block">'+file+'</span>'
+    + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-top:6px">'+params+'</div>'
+    + '<div style="font-size:11px;color:#64748b;margin-top:4px">💡 '+note+'</div></div>';
 }
 
 function _agiCardMini(bg, color, value, label) {
