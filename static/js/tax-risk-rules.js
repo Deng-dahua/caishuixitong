@@ -62,6 +62,7 @@ function renderTaxRiskRules(container) {
     + '税务合规、薪酬社保、关联交易等20个分类。每条指令包含稽查标准、风险等级、评分、详细检查方法、'
     + '处理建议和法律依据。运行一键分析后，系统自动将域分析发现与规则库交叉匹配，触发对应指令——'
     + '被触发的规则高亮显示并展示触发溯源（是哪个域分析的哪项发现触发了该规则），形成"发现→规则→结论"的完整证据链。'
+    + '此外，系统还会自动发现行业普遍信号（同行业≥3家&出现率>60%），生成蓝色🤖校准规则以降低误报。'
     + '</p>'
     + '</div>'
     // 使用说明
@@ -246,13 +247,21 @@ function renderTaxRiskRulesList() {
     var group = grouped[cat];
     var catDesc = CATEGORY_DESCRIPTIONS[cat] || '';
     var catRules = group.rules;
+    var isAutoCat = cat === '自动发现';
 
     html += '<div id="rr-cat-' + encodeURIComponent(cat) + '" style="margin-bottom:40px">'
       + '<div style="margin-bottom:16px">'
       + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px">'
-      + (group.icon ? '<span style="font-size:18px">' + group.icon + '</span> ' : '') + escHtml(cat)
+      + (isAutoCat ? '🤖 ' : (group.icon ? '<span style="font-size:18px">' + group.icon + '</span> ' : '')) + escHtml(cat)
       + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + catRules.length + ' 条指令' + (catDesc ? ' · ' + catDesc : '') + '</span>'
       + '</div>'
+      // 自动发现规则的特殊说明
+      + (isAutoCat ? '<div style="margin-bottom:12px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;color:#1e40af;line-height:2.0">'
+        + '<strong>📌 说明：</strong>这些是系统自动发现的行业校准规则。'
+        + '当同一个信号（如"毛利率为零"）在某个行业的<strong>≥3家</strong>企业中<strong>出现率超过60%</strong>时，'
+        + '系统判定该信号为该行业的普遍现象而非风险异常，自动生成规则以降低误报。'
+        + '<strong>不限特定行业</strong>——随着分析企业增多，任何行业都可能自动生成校准规则。'
+        + '</div>' : '')
       + '</div>';
 
     catRules.forEach(function(rule) {
