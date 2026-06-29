@@ -4105,26 +4105,21 @@ def _parse_image_ocr(filepath, original_name=""):
     
     text_blocks = []
     
-    # ═══ 引擎1: EasyOCR（中文优化，需一次下载模型） ═══
+    # ═══ 引擎1: EasyOCR（中文优化，首次使用自动下载模型~200MB） ═══
     easyocr_reader = None
     try:
         import easyocr
         import numpy as np
         
         if not hasattr(_parse_image_ocr, '_easyocr_reader'):
-            # 检查模型是否已缓存（避免首次使用时的长时间下载阻塞）
-            model_dir = os.path.join(os.path.expanduser('~'), '.EasyOCR', 'model')
-            has_detection = os.path.exists(os.path.join(model_dir, 'craft_mlt_25k.pth'))
-            has_zh_recognition = os.path.exists(os.path.join(model_dir, 'zh_sim_g2.pth'))
-            has_en_recognition = os.path.exists(os.path.join(model_dir, 'english_g2.pth'))
-            
-            if has_detection and (has_zh_recognition or has_en_recognition):
-                try:
-                    _parse_image_ocr._easyocr_reader = easyocr.Reader(['ch_sim', 'en'], gpu=False)
-                except Exception:
-                    _parse_image_ocr._easyocr_reader = None
-            else:
+            # 首次调用时自动下载模型（~200MB，仅一次）
+            # Reader初始化时检测缓存，无缓存则自动联网下载，有缓存则直接加载
+            try:
+                _parse_image_ocr._easyocr_reader = easyocr.Reader(['ch_sim', 'en'], gpu=False)
+            except Exception as e:
+                # 网络不通或下载失败 → 标记不可用，后续不再重试
                 _parse_image_ocr._easyocr_reader = None
+                _parse_image_ocr._download_failed = True
         
         easyocr_reader = _parse_image_ocr._easyocr_reader
     except Exception:

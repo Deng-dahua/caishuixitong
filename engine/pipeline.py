@@ -430,6 +430,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                 else:
                     fr["actions"].append("DOCX无有效表格数据")
             elif ext in (".jpg", ".jpeg", ".png", ".bmp", ".tiff"):
+                # 首次OCR触发模型下载（~200MB，仅一次）
+                if not hasattr(_parse_image_ocr, '_easyocr_reader'):
+                    _report(int(_doc_idx * 100 / _total_docs), f"首次OCR识别，正在下载模型(~200MB)...")
                 parsed = _parse_image_ocr(fpath, fname)
                 if isinstance(parsed, dict) and parsed.get("rows"):
                     ftype = parsed.get("type", "ocr_text")
