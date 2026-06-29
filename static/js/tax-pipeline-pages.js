@@ -1490,7 +1490,7 @@ async function loadAnalyzeOverview() {
        + '行业识别：90+关键词×66行业加权投票制，扫描全部发票品名，每个行业命中的关键词次数作为投票权重，取最高分。'
        + '同时联网查询工商登记信息（法定代表人/注册资本/经营范围/股东），与发票推断结果做双源比对。'},
     {n:'③', title:'资料情报提取与数据分析', icon:'🔍',
-     desc:'将各类型文件数据导入35个域分析函数。包括：银行流水收款构成分析 + 付款方身份核实（联网法人/股东比对）；'
+     desc:'将各类型文件数据导入36个域分析函数。包括：银行流水收款构成分析 + 付款方身份核实（联网法人/股东比对）；'
        + '进销存比对比——商品明细匹配 + 进销比 + 毛利率；五层发票审计——格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射；'
        + '供应商穿透——集中度+群集+名称异常+双向交易检测；合同分层——四层自动分类（必签/应签/可免/小额）。'},
     {n:'④', title:'规则引擎与链驱动检查', icon:'⚙️',
@@ -1540,7 +1540,7 @@ async function loadAnalyzeOverview() {
     + '</div>'
     // 第二层：方法论体系
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">② 方法论体系</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查方法论32条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等32条实战方法论。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查方法论33条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等33条实战方法论。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>四步稽查分析法</strong> → detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #7c3aed"><strong>三层行业穿透法</strong> → 工商登记+发票数据+加工信号，三者不一致时以实质重于形式为原则。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #059669"><strong>经营实质点面推理法</strong> → 单点发现→数据扩展→关联维度→交叉验证→综合结论。</div>'
@@ -1562,14 +1562,14 @@ async function loadAnalyzeOverview() {
     // 第五层：执行管线
     + '<div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">⑤ 执行管线</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>七步执行流程</strong> → 资料扫描→目标实体识别→数据分析→规则引擎→方法论过滤→行业对标→报告输出。</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>35个域分析函数</strong> → 银行流水+进销存比+五层发票审计+供应商穿透+合同分层等。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>36个域分析函数</strong> → 银行流水+进销存比+五层发票审计+供应商穿透+合同分层等。</div>'
     + '<div style="padding:10px 16px;background:#fff;border-radius:6px;border-left:3px solid #059669"><strong>全链路溯源体系</strong> → 规则ID追溯✓+线索链追溯✓+证据来源✓+一键分析溯源✓+证据链闭环✓+跨域证据链✓。</div>'
     + '</div>'
     + '</div>'
     + '</div>';
   // ══════ 四、稽查方法论（㉛条详解）══════
   html += '<div style="margin-bottom:48px;padding:24px;background:#fafafa;border-radius:8px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（32条已全部代码化）</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（33条已全部代码化）</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 20px">'
     + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
     + '</p>'
@@ -1652,7 +1652,7 @@ function renderAnalyzeResult(report) {
     + '<div style="margin-bottom:40px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#475569;line-height:1.9">'
     + '<div style="padding:14px 16px;background:#f0f9ff;border-radius:6px;border-left:3px solid #2563eb"><strong style="color:#0f172a;font-size:13px">① 资料扫描与类型识别</strong><br>34类文件指纹库+三层递进识别（关键词打分→结构分析→数据推断），自动判定发票方向。</div>'
     + '<div style="padding:14px 16px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed"><strong style="color:#0f172a;font-size:13px">② 目标实体识别</strong><br>进项购买方∩销项销售方确定企业全称，90+关键词×66行业加权投票，联网工商比对。</div>'
-    + '<div style="padding:14px 16px;background:#ecfdf5;border-radius:6px;border-left:3px solid #059669"><strong style="color:#0f172a;font-size:13px">③ 资料情报提取与分析</strong><br>35个域分析函数并行执行：银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层。</div>'
+    + '<div style="padding:14px 16px;background:#ecfdf5;border-radius:6px;border-left:3px solid #059669"><strong style="color:#0f172a;font-size:13px">③ 资料情报提取与分析</strong><br>36个域分析函数并行执行：银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层。</div>'
     + '<div style="padding:14px 16px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626"><strong style="color:#0f172a;font-size:13px">④ 规则引擎与链驱动检查</strong><br>' + pc('rules','1514') + '条稽查指令逐条匹配，' + pc('trailChains','396') + '条线索链触发（行业不匹配链自动跳过），' + pc('evidenceChains','745') + '条证据链闭环检测。</div>'
     + '<div style="padding:14px 16px;background:#fffbeb;border-radius:6px;border-left:3px solid #f59e0b"><strong style="color:#0f172a;font-size:13px">⑤ 方法论噪声过滤器</strong><br>HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。稽查重点发现不受过滤影响。</div>'
     + '<div style="padding:14px 16px;background:#fdf2f8;border-radius:6px;border-left:3px solid #ec4899"><strong style="color:#0f172a;font-size:13px">⑥ 行业对标与申报比对</strong><br>66行业基准值自动对标（毛利率/净利率/税负率/进销比/人均营收五维），申报表vs发票实际比对。</div>'
@@ -1776,7 +1776,7 @@ function renderAnalyzeResult(report) {
     + '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">开放生态系统 · 五大层次 · 持续扩展</p>'
     + '<div style="font-size:12px;color:#475569;line-height:2">'
     + '<div>🗄️ <strong>核心数据资产</strong>：规则引擎(' + pc('rules','1514') + '条) + 线索链(' + pc('trailChains','396') + '条) + 证据链(' + pc('evidenceChains','745') + '条) + 跨域分析链</div>'
-    + '<div>📐 <strong>方法论体系</strong>：稽查方法论32条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
+    + '<div>📐 <strong>方法论体系</strong>：稽查方法论33条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
     + '<div>🔒 <strong>质量保障机制</strong>：稽查重点强制等级 + 报告纯净度 + 噪声过滤器(97%)</div>'
     + '<div>🏭 <strong>行业认知体系</strong>：25行业词典 + 外包轻加工认知 + 66行业基准值库</div>'
     + '<div>⚙️ <strong>执行管线</strong>：七步流程 + 35域函数 + 全链路溯源</div>'
@@ -2380,128 +2380,87 @@ function renderQualitySystem(container) {
   if (!container) return;
   window.currentModule = '全链路质量保障体系';
 
-  // 五大层次18组件定义
   var layers = [
-    {
-      id: 1, name: '核心数据资产', icon: '🗄️', color: '#2563eb',
-      desc: '税务稽查系统的数据基础设施。规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。',
-      items: [
-        {name:'规则引擎', source:'tax_risk.py',
-         desc:'1514条稽查指令，每条指令含触发条件、风险等级、调查步骤和处罚依据。涵盖收入、成本、费用、存货、固定资产、往来款、特殊交易等29个域。'},
-        {name:'线索链系统', source:'main.py',
-         desc:'396条线索链，每条链包含多个调查步骤。通过定量数据（阈值触发）、定性数据（模式匹配）、缺失数据（资料缺失触发）三类验证后触发，产生链驱动发现。'},
-        {name:'证据链系统', source:'main.py',
-         desc:'745条证据链 + 11条跨域证据链。收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。'},
-        {name:'跨域分析链', source:'main.py',
-         desc:'多源数据交叉验证引擎。覆盖资金流+票据流+业务流三维验证，跨越单一数据域进行分析，形成跨域证据闭环。'},
-      ]
-    },
-    {
-      id: 2, name: '方法论体系', icon: '📐', color: '#7c3aed',
-      desc: '32条稽查方法论全部代码化，六大分析框架覆盖从资料解析到结论输出的全流程。',
-      items: [
-        {name:'稽查方法论32条', source:'main.py',
-         desc:'已全部代码化的32条实战方法论：多格式兼容→汇总行过滤→付款方身份核实→关键词≠事实→行业认知补算法→联网核查→明细即信服力→不墨迹直接干→合同分层判断→完备度明细→完备度升级→凭证描述纠正→进销诊断升级→行业基准库→结论分析法→COND_BAN防误杀→稽查重点强制等级→报告纯净度→发票≠收付款1:1→经营实质地理分析→规则detail业务化→建议质量增强→四步稽查分析法→禁止数据截断→三层行业穿透法→经营实质点面推理法→稽查六员跨企业比对→供应链联网核查→资料缺失风险推理→存疑排除法→规则配置外部化→资金回流检测法。'},
-        {name:'四步稽查分析法', source:'main.py',
-         desc:'核心分析框架。detect→verify→diagnose→report。四大核心发现全部应用四步法，每条发现必须完整呈现推导链。'},
-        {name:'三层行业穿透法', source:'main.py',
-         desc:'第一层工商登记→第二层发票数据→第三层加工信号。三者不一致时以实质重于形式为原则。'},
-        {name:'经营实质点面推理法', source:'main.py',
-         desc:'从单一风险点推理出面的风险。点→数据扩展→关联维度→交叉验证→综合结论。'},
-        {name:'合同分层判断法', source:'main.py',
-         desc:'品名+金额+类型三标准自动判定合同需求等级：必签/应签/可免/小额。'},
-        {name:'发票≠收付款1:1方法论', source:'main.py',
-         desc:'六种真实收付款模式：自然跨期/合并/分期/预付预收/应付应收/非对公代付。'},
-      ]
-    },
-    {
-      id: 3, name: '质量保障机制', icon: '🔒', color: '#dc2626',
-      desc: '确保报告质量的最后关口。三层保护确保输出报告专业、准确、可交付。',
-      items: [
-        {name:'稽查重点强制等级', source:'main.py',
-         desc:'12类稽查重点发现直接硬编码为高风险。三层保护机制：后端强制修正+过滤器绕过+前端红色标记。'},
-        {name:'报告纯净度规范', source:'generate_report.py',
-         desc:'所有系统内部标注必须移除，四步框架在报告中表现为自然段落衔接。'},
-        {name:'方法论噪声过滤器', source:'main.py',
-         desc:'HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤）→ 97%噪声过滤率。'},
-      ]
-    },
-    {
-      id: 4, name: '行业认知体系', icon: '🏭', color: '#059669',
-      desc: '让算法理解行业的认知框架——像经验丰富的稽查员一样理解不同行业的经营模式差异。',
-      items: [
-        {name:'25行业产品链词典', source:'main.py',
-         desc:'25个制造/加工行业×2组关键词对。兼客匹配→模糊匹配→通用兜底三级匹配策略。'},
-        {name:'外包轻加工模式认知', source:'main.py',
-         desc:'工商登记为批发业的企业可能存在实质加工环节。进销品名差异+加工费发票→不能仅凭工商登记判定。'},
-        {name:'66行业基准值库', source:'main.py',
-         desc:'66个行业×5个指标×3个基准值。企业值<下限→高风险，企业值<典型值×0.85→中风险。'},
-      ]
-    },
-    {
-      id: 5, name: '执行管线', icon: '⚙️', color: '#f59e0b',
-      desc: '从原始资料到正式报告的七步处理流程。数据在管线中单向流动，不丢失、不污染、不截断。',
-      items: [
-        {name:'七步执行流程', source:'main.py',
-         desc:'①资料扫描与类型识别→②目标实体识别→③资料情报提取与分析→④规则引擎与链驱动检查（1514条+396线索+745证据）→⑤方法论噪声过滤器→⑥行业对标与申报比对→⑦正式稽查报告输出。'},
-        {name:'36个域分析函数', source:'main.py',
-         desc:'36个域分析函数覆盖稽查全领域：银行流水、进销存、费用、往来款、固定资产、税务、资料完备度、经营实质等。'},
-        {name:'全链路溯源体系', source:'tax-doc-analysis.js',
-         desc:'规则ID追溯→线索链追溯→证据来源→一键分析溯源→证据链闭环→跨域证据链。六步溯源确保查证闭环。'},
-      ]
-    }
+    { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
+      desc:'规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。',
+      items:[
+        {name:'规则引擎',source:'tax_risk.py',desc:'1514条稽查指令，每条含触发条件、风险等级、调查步骤和处罚依据。'},
+        {name:'线索链系统',source:'main.py',desc:'396条线索链，每条含多个调查步骤。定量/定性/缺失数据三类验证触发链驱动发现。'},
+        {name:'证据链系统',source:'main.py',desc:'745条证据链+11条跨域证据链。≥60%触发率+≥3规则+≥2域→证据闭环。'},
+        {name:'跨域分析链',source:'main.py',desc:'多源数据交叉验证引擎。覆盖资金流+票据流+业务流三维验证。'},
+      ]},
+    { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
+      desc:'33条稽查方法论全部代码化，六大分析框架覆盖全流程。',
+      items:[
+        {name:'稽查方法论33条',source:'main.py',desc:'已全部代码化：多格式兼容→汇总行过滤→付款方身份核实→关键词≠事实→行业基准库→联网核查→明细即信服力→合同分层→完备度→凭证纠正→进销诊断→结论分析法→COND_BAN→稽查重点→报告纯净度→发票≠收付款→经营实质地理→规则detail→建议增强→四步分析→禁止截断→三层穿透→点面推理→六员比对→供应链核查→缺失推理→存疑排除→配置外部化→资金回流。'},
+        {name:'四步稽查分析法',source:'main.py',desc:'detect→verify→diagnose→report。每条发现完整呈现推导链。'},
+        {name:'三层行业穿透法',source:'main.py',desc:'工商登记→发票数据→加工信号。不一致时以实质重于形式。'},
+        {name:'经营实质点面推理法',source:'main.py',desc:'单点风险→数据扩展→关联维度→交叉验证→综合结论。'},
+        {name:'合同分层判断法',source:'main.py',desc:'品名+金额+类型：必签/应签/可免/小额。'},
+        {name:'发票与收付款时间差方法论',source:'main.py',desc:'六种真实收付款模式：自然跨期/合并支付/分期支付/预付预收/应付应收/非对公代付。发票日期≠收款日期是正常商业现象。'},
+      ]},
+    { id:3, name:'质量保障机制', icon:'🔒', color:'#dc2626',
+      desc:'确保报告质量的最后关口。五层保护确保输出专业、准确、可交付。',
+      items:[
+        {name:'稽查重点强制等级',source:'main.py',desc:'12类稽查重点硬编码为高风险。三层保护：后端修正+过滤器绕过+前端标记。'},
+        {name:'报告纯净度规范',source:'generate_report.py',desc:'系统内部标注移除，四步框架表现为自然段落衔接。'},
+        {name:'噪声过滤器',source:'main.py',desc:'HARD_BAN（23类）+COND_BAN（5类）→97%噪声过滤率。'},
+        {name:'数据一致性自检',source:'audit_consistency.py',desc:'启动前自动扫描所有JS/PY文件，正则匹配硬编码数字与权威数据源(system_config.json)对比，发现不一致→阻止启动或自动修复。--sync模式支持跨模块联动修正。'},
+        {name:'审核反馈闭环',source:'self_learning.py',desc:'审核内容→存入correction_rules.json→按发现类型|行业|模式生成指纹→四级回退匹配(精确→行业→通用→名称)→累计1次纠正→升级为自动规则→下次同类发现自动标注。'},
+      ]},
+    { id:4, name:'行业认知体系', icon:'🏭', color:'#059669',
+      desc:'像经验丰富的稽查员一样理解不同行业的经营模式差异。',
+      items:[
+        {name:'25行业产品链词典',source:'main.py',desc:'25个行业×2组关键词对。精确匹配→模糊匹配→通用兜底三级策略。'},
+        {name:'外包轻加工模式认知',source:'main.py',desc:'批发业可能存在实质加工。进销品名差异+加工费→不能仅凭工商判定。'},
+        {name:'66行业基准值库',source:'main.py',desc:'66个行业×5个指标×3个基准值。企业值<下限→高风险。'},
+      ]},
+    { id:5, name:'执行管线', icon:'⚙️', color:'#f59e0b',
+      desc:'从原始资料到正式报告的七步处理流程，数据单向流动不丢失不污染不截断。',
+      items:[
+        {name:'七步执行流程',source:'main.py',desc:'①资料扫描→②实体识别→③情报提取→④规则引擎(1514+396+745)→⑤噪声过滤→⑥行业对标→⑦报告输出。'},
+        {name:'36个域分析函数',source:'main.py',desc:'覆盖稽查全领域：银行流水、进销存、费用、往来款、固定资产、税务、资料完备度、经营实质。'},
+        {name:'全链路溯源体系',source:'tax-doc-analysis.js',desc:'规则ID→线索链→证据来源→一键分析→证据闭环→跨域证据链。六步溯源。'},
+      ]},
+    { id:6, name:'跨域协商引擎', icon:'🤝', color:'#0ea5e9',
+      desc:'域名分析独立运行后自动跨域对话消解/降级/增强。15条协商规则覆盖四类场景。',
+      items:[
+        {name:'行业闸门消解',source:'cross_domain_negotiation.py',desc:'服务行业自动跳过进销存/存货/BOM/毛利率对标，消除假阳性。NEG-001~005（5条）'},
+        {name:'资料驱动的跨域标记',source:'cross_domain_negotiation.py',desc:'缺少某类资料→相关域标注资料受限。NEG-010~040（4条）'},
+        {name:'证据矛盾消解',source:'cross_domain_negotiation.py',desc:'域A正面证据推翻域B负面结论。NEG-020~030（3条）'},
+        {name:'联合增强',source:'cross_domain_negotiation.py',desc:'多域异常同时触发→合成更高级别新发现。NEG-AUG-001~003（3条）'},
+      ]},
   ];
 
-  // 统计
-  var totalItems = layers.reduce(function(s, l) { return s + l.items.length; }, 0);
+  var totalItems = layers.reduce(function(s,l){return s+l.items.length;},0);
+  var h='<style>.qs-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.qs-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.qs-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.qs-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.qs-toc a:hover,.qs-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.qs-main{flex:1;min-width:0;background:#fff}.qs-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px}.qs-layer{margin-bottom:28px;padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.qs-layer-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid}.qs-item{padding:12px 16px;margin-bottom:6px;background:#fafbfc;border-radius:4px;border-left:3px solid #e2e8f0}.qs-stat{text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.qs-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
 
-  var html = '';
-  html += '<style>.qs-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.qs-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.qs-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.qs-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.qs-main{flex:1;min-width:0}.qs-layer{margin-bottom:32px;padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:10px}.qs-item{padding:12px 16px;margin-bottom:8px;background:#fafbfc;border-radius:6px;border-left:3px solid #e0e7ff}</style>';
-  
-  html += '<div class="qs-layout">';
+  h+='<div class="qs-layout">';
+  h+='<nav class="qs-toc"><div class="toc-title">📖 目录</div>';
+  layers.forEach(function(l){h+='<a href="#qs-layer'+l.id+'">'+l.icon+' '+l.name+'</a>';});
+  h+='</nav><div class="qs-main">';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🛡️ 全链路稽查质量保障体系</h2>';
+  h+='<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
 
-  // TOC
-  html += '<nav class="qs-toc"><div class="toc-title">📖 目录</div>';
-  html += '<a href="#qs-overview">一 体系概述</a><a href="#qs-stats">二 数据总览</a>';
-  layers.forEach(function(l){html+='<a href="#qs-layer'+l.id+'">'+l.icon+' '+l.name+'</a>';});
-  html += '</nav>';
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px">';
+  [{n:'1514',l:'稽查规则'},{n:'396',l:'线索链'},{n:'745',l:'证据链'},{n:'33',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}].forEach(function(s){
+    h+='<div class="qs-stat" style="flex:1;min-width:100px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div></div>';
+  });
+  h+='</div>';
 
-  html += '<div class="qs-main">';
-  html += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0">🛡️ 全链路稽查质量保障体系</h2>';
-  html += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">五大层次 · '+totalItems+'个组件 · 开放生态系统</p>';
-
-  // 一、体系概述
-  html += '<div id="qs-overview" style="margin-bottom:32px;padding:20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px"><h3 style="font-size:16px;font-weight:700;color:#0369a1;margin:0 0 12px">一、什么是全链路稽查质量保障体系</h3><p style="font-size:13px;color:#475569;line-height:2;margin:0 0 12px">从规则触发到报告输出，每条发现可追溯可验证可复核。五大层次、'+totalItems+'个组件，每个有明确代码位置。</p><div style="font-size:12px;color:#475569;line-height:2"><span style="color:#dc2626;font-weight:600">① 代码即承诺</span> 每个组件有可运行代码。&nbsp;&nbsp;<span style="color:#7c3aed;font-weight:600">② 全行业适用</span> 禁止行业特化。&nbsp;&nbsp;<span style="color:#059669;font-weight:600">③ 来源可追溯</span> 标注代码位置。&nbsp;&nbsp;<span style="color:#f59e0b;font-weight:600">④ 开放生态</span> 持续扩展新维度。</div></div>';
-
-  // 二、数据总览
-  html += '<div id="qs-stats" style="margin-bottom:32px"><h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 16px">二、数据总览</h3><div style="display:flex;gap:12px;flex-wrap:wrap">';
-  var sdata=[{n:'1514',l:'稽查规则'},{n:'396',l:'线索链'},{n:'745',l:'证据链'},{n:'32',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}];
-  sdata.forEach(function(s){html+='<div style="flex:1;min-width:100px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div></div>';});
-  html += '</div></div>';
-
-  // 三、逐层详览
-  html += '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 8px">三、逐层详览</h3>';
-
-  layers.forEach(function(l) {
-    html += '<div id="qs-layer'+l.id+'" class="qs-layer"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid '+l.color+'"><span style="font-size:24px">'+l.icon+'</span><div><div style="font-size:16px;font-weight:700;color:#0f172a">'+l.name+' ('+l.items.length+'组件)</div><div style="font-size:12px;color:#64748b">'+l.desc+'</div></div></div>';
+  layers.forEach(function(l){
+    h+='<div id="qs-layer'+l.id+'" class="qs-layer">';
+    h+='<div class="qs-layer-hd" style="border-color:'+l.color+'"><span style="font-size:22px">'+l.icon+'</span><div><div style="font-size:15px;font-weight:700;color:#0f172a">'+l.name+'（'+l.items.length+'组件）</div><div style="font-size:12px;color:#64748b">'+l.desc+'</div></div></div>';
     l.items.forEach(function(item,idx){
-      html += '<div class="qs-item"><div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px">'+(idx+1)+'. '+item.name+'</div><div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:6px">'+item.desc+'</div><div style="font-size:11px;color:#6366f1">📁 '+item.source+'</div></div>';
+      h+='<div class="qs-item"><div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">'+(idx+1)+'. '+item.name+'</div><div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px">'+item.desc+'</div><div style="font-size:11px;color:#6366f1">📁 '+item.source+'</div></div>';
     });
-    html += '</div>';
+    h+='</div>';
   });
 
-  // 四、开放生态
-  html += '<div style="padding:20px;background:#f0fdf4;border-radius:10px;border-left:4px solid #059669;font-size:13px;color:#475569;line-height:2"><strong style="color:#059669;font-size:14px">🔓 开放生态系统</strong><br>当前'+totalItems+'个组件只是当前状态。新增稽查能力模块必须同步更新此页面。禁止固定数字提法——体系随发展持续扩展。</div>';
-
-  html += '</div></div>';
-  container.innerHTML = html;
-}
-
-// ═══════════ 页面加载时自动预取模块数量 ═══════════
-setTimeout(function(){ loadPipelineCounts(); }, 100);
-
-// ==================== 稽查方法论加载函数 ====================
-function loadMethodologies() {
+  h+='<div class="qs-info"><strong style="color:#059669;font-size:14px">🔓 开放生态系统</strong><br>当前'+totalItems+'个组件只是当前状态。新增稽查能力模块须同步更新此页面。体系随发展持续扩展。</div>';
+  h+='</div></div>';
+  container.innerHTML = h;
+}function loadMethodologies() {
   var target = document.getElementById('methods-body');
   if (!target) return;
   

@@ -960,14 +960,14 @@ function _renderReportFallback(r, allF) {
   // 用合并后的发现替换原有allF
   allF = mergedF;
   
-  // ═══ 发现审查面板（折叠，供稽查员逐条审核/驳回，不影响报告正文）═══
+  // ═══ 发现审查面板（折叠，供稽查员逐条审核，不影响报告正文）═══
   var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
   var mids = allF.filter(function(f){ return f.level === '中风险'; });
   var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
   var allSorted = risks.concat(mids).concat(lows);
   h += '<details style="margin-bottom:40px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px" id="review-panel">';
-  h += '<summary style="cursor:pointer;font-size:14px;font-weight:700;color:#0f172a">🔍 发现审查（' + allF.length + '条 · 逐条审核/驳回 · 驳回反馈驱动引擎自我学习）</summary>';
-  h += '<div style="margin-top:12px;font-size:11px;color:#94a3b8;margin-bottom:8px">驳回某条发现 = 告诉引擎"这个判定不对"，引擎记录模式并自动调整后续分析。不驳回=默认可信。</div>';
+  h += '<summary style="cursor:pointer;font-size:14px;font-weight:700;color:#0f172a">🔍 发现审查（' + allF.length + '条 · 逐条审核 · 审核反馈驱动引擎自我学习）</summary>';
+  h += '<div style="margin-top:12px;font-size:11px;color:#94a3b8;margin-bottom:8px">审核某条发现 = 告诉引擎"这个判定不对"，引擎记录模式并自动调整后续分析。不审核=默认可信。</div>';
   for (var fi = 0; fi < allSorted.length; fi++) {
     var f = allSorted[fi];
     var lv = f.level || '中风险';
@@ -978,7 +978,7 @@ function _renderReportFallback(r, allF) {
     h += '<button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({
       type: f.type||'', title: f.type||'', level: lv, 
       detail: (f.detail||''), category: f.category||''
-    }).replace(/'/g,"&#39;") + '\' style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">驳回</button>';
+    }).replace(/'/g,"&#39;") + '\' style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">审核</button>';
     h += '</div>';
   }
   h += '</details>';
@@ -1153,7 +1153,7 @@ function _renderReportFallback(r, allF) {
         h += '<div style="margin:4px 0;padding:6px 12px;background:#f8fafc;border-left:3px solid #94a3b8;border-radius:0 4px 4px 0;font-size:12px;color:#475569"><strong>🏷️ 跨域标记：</strong>' + tagLabels + '</div>';
       }
     } else if (f._dismissed) {
-      h += '<div style="margin:4px 0;padding:6px 12px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 4px 4px 0;font-size:12px;color:#065f46"><strong>✅ 已驳回：</strong>' + (f._correction_reason || '用户反馈已记录') + '</div>';
+      h += '<div style="margin:4px 0;padding:6px 12px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 4px 4px 0;font-size:12px;color:#065f46"><strong>✅ 已审核：</strong>' + (f._correction_reason || '用户反馈已记录') + '</div>';
     }
     
     // ── 合并子项展示（同类风险多项合并时，逐一列出各项细节）──

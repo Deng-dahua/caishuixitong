@@ -101,7 +101,7 @@ const pages = {
   'ai-rules': '智哥行为准则',
   'auditor-handbook': '税务稽查员手册',
   'report-standards': '报告编制要求',
-  'feedback-template': '驳回内容模板',
+  'feedback-template': '审核内容模板',
   'tax-agi': '税务AGI'
 };
 
@@ -803,7 +803,7 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('🪞','自我反思器','SelfReflector','<code>agent_core.py</code>','14维反向假设验证：隐匿收入←个人转账、虚开发票←长期合作、品名不匹配←外发加工。阈值：adj<-0.05→不确定，adj<-0.15→推翻。','红');
     h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','五段式报告：企业画像→风险全景→核心问题→行业对标→行动建议。','蓝');
     h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','多企业行业模式归纳，同行业经验自动复用。cross_analysis_memory.json持久化。','绿');
-    h += _agiEngineCard('📐','稽查方法论','MethodologyEngine','<code>methodology_loader.py</code>','32条方法论+14类资料+7条法律。按域关键词自动匹配适用方法论。','紫');
+    h += _agiEngineCard('📐','稽查方法论','MethodologyEngine','<code>methodology_loader.py</code>','33条方法论+14类资料+7条法律。按域关键词自动匹配适用方法论。','紫');
     h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层归纳：空跑→修正→信号→基准。discovered_rules.json输出。','橙');
     h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','重分析→前后对比→因果影响定向巡逻→变化率>30%标记显著。','青');
     h += '</div></section>';
@@ -832,7 +832,7 @@ async function renderAgiDashboard(container) {
     h += '<h2 class="hb-section-title"><span class="hb-section-num">四</span> 知识层</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('📚','统一知识库','<code>knowledge_base.py</code> · 9域','政策/因果边/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史。线程安全写锁，全局单例，JSON持久化。','purple');
-    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：模块效率评估(历史运行日志)→反馈规则转化(纠正模式累积≥1→自动规则)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
+    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：审核反馈规则转化(纠正模式累积≥1→四级回退匹配自动规则)→模块效率评估(历史运行日志)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
     h += _agiInfoCard('📈','趋势分析器','<code>trend_analyzer.py</code>','12项指标跨期追踪：毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率。趋势方向：上升/下降/持平。','green');
     h += '</div></section>';
 

@@ -156,6 +156,47 @@ def calibrate(authority):
     
     print("📐 校准完成：数据已从数据源重新统计并写入 system_config.json")
 
+def sync_all(authority):
+    """联动同步模式：扫描所有模块，修正全部不一致"""
+    from glob import glob
+    changes = []
+    
+    # 数值映射：过时值→正确值
+    value_map = {
+        "33条方法论": "33条方法论",
+        "33条方法": "33条方法",
+        "33条实战方法论": "33条实战方法论",
+        "1514条": "1514条",
+        "1514条": "1514条",
+        "396条线索": "396条线索",
+        "745条证据": "745条证据",
+        "1174条": "1174条",
+        "36个分析域": "36个分析域",
+        "36个域分析": "36个域分析",
+        "25维度": "25维度",
+    }
+    
+    for fp in glob("static/js/*.js") + glob("engine/*.py") + glob("*.py"):
+        with open(fp, "r", encoding="utf-8") as f:
+            content = f.read()
+        original = content
+        for old, new in value_map.items():
+            if old in content:
+                content = content.replace(old, new)
+                changes.append((fp, old, new))
+        if content != original:
+            with open(fp, "w", encoding="utf-8") as f:
+                f.write(content)
+    
+    if changes:
+        print(f"\n🔗 联动同步完成：{len(changes)}处修改")
+        for ch in changes:
+            print(f"  {ch[0]}: {ch[1]} → {ch[2]}")
+    else:
+        print("\n✅ 全部模块已一致，无需同步")
+    return changes
+
+
 if __name__ == "__main__":
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -164,6 +205,10 @@ if __name__ == "__main__":
     
     if "--calibrate" in sys.argv:
         calibrate(authority)
+        sys.exit(0)
+    
+    if "--sync" in sys.argv:
+        sync_all(authority)
         sys.exit(0)
     
     print("🔍 审计启动：扫描系统数据一致性...")

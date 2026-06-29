@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="UTF-8"><title>驳回内容模板 - 稽查系统</title>
+<head><meta charset="UTF-8"><title>审核内容模板 - 稽查系统</title>
 <style>
 body{font-family:'Microsoft YaHei',sans-serif;max-width:860px;margin:40px auto;padding:0 20px;color:#1e293b;line-height:1.8}
 h1{font-size:22px;border-bottom:3px solid #2563eb;padding-bottom:12px}
@@ -16,7 +16,7 @@ h2{font-size:16px;color:#2563eb;margin-top:32px}
 </style></head>
 <body>
 
-<h1>📋 驳回内容填写模板</h1>
+<h1>📋 审核内容填写模板</h1>
 <p style="color:#64748b;font-size:13px">照着填，系统就能在下一次分析时自动识别并纠正同类发现。</p>
 
 <h2>模板结构</h2>
@@ -94,9 +94,9 @@ h2{font-size:16px;color:#2563eb;margin-top:32px}
 
 <h2>系统怎么用这个内容</h2>
 <div style="background:#f0f4ff;padding:16px;border-radius:8px;font-size:13px;line-height:2">
-<b>存入</b>：驳回内容存入 <code>static/correction_rules.json</code>，按"发现类型|行业|经营模式"生成指纹。<br>
+<b>存入</b>：审核内容存入 <code>static/correction_rules.json</code>，按"发现类型|行业|经营模式"生成指纹。<br>
 <b>匹配</b>：下次分析时，<code>apply_correction_rules()</code> 四级回退匹配（精确→行业→通用→名称）。<br>
-<b>生效</b>：匹配成功后，给发现打标签（_dismissed/_negotiated），不影响原始等级但标注已驳回。<br>
+<b>生效</b>：匹配成功后，给发现打标签（_dismissed/_negotiated），不影响原始等级但标注已审核。<br>
 <b>查看</b>：推理引擎仪表盘 → #6 智能大脑 → 纠正规则库。
 </div>
 

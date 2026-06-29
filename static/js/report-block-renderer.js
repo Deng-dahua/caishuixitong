@@ -135,7 +135,7 @@
     if (f.law_ref) h += '<div class="finding-law">法规依据：' + esc(f.law_ref) + '</div>';
     if (f.action) h += '<div class="finding-action">建议：' + esc(f.action) + '</div>';
     h += '<div class="finding-actions" style="margin-top:8px;text-align:right">';
-    h += '<button class="btn-dismiss" onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type: f.type||'', title: f.title||'', level: f.level||'', category: f.category||'', detail: (f.detail||'').substring(0,200), fingerprint: findingId}).replace(/'/g, "&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer" title="驳回此发现（将自动学习）">❌ 驳回</button>';
+    h += '<button class="btn-dismiss" onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type: f.type||'', title: f.title||'', level: f.level||'', category: f.category||'', detail: (f.detail||'').substring(0,200), fingerprint: findingId}).replace(/'/g, "&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer" title="审核此发现（反馈将用于自学习）">🔍 审核</button>';
     h += '</div>';
     h += '</div>';
     return h;
@@ -225,11 +225,11 @@
   window.renderReportBlocks = renderReportBlocks;
   window.renderBlock = renderBlock;
 
-  // ── 驳回处理：老邓点击报告中发现的驳回按钮 ──
+  // ── 审核处理：老邓点击报告中发现上的审核按钮 ──
   window._dismissTaxFinding = function(btn) {
     try {
       var f = JSON.parse(btn.getAttribute('data-finding'));
-      var reason = prompt('请说明驳回原因（此反馈将记录并用于自学习）：', f.title || '');
+      var reason = prompt('请说明审核意见（此反馈将记录并用于自学习）：', f.title || '');
       if (!reason) return;
       
       var payload = {
@@ -249,7 +249,7 @@
         body: JSON.stringify(payload)
       }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.ok) {
-          btn.textContent = '已驳回';
+          btn.textContent = '已审核';
           btn.style.borderColor = '#16a34a';
           btn.style.color = '#16a34a';
           btn.disabled = true;
@@ -257,9 +257,9 @@
           if (typeof _analysisCacheData !== 'undefined') _analysisCacheData = null;
           if (typeof _analysisCachePromise !== 'undefined') _analysisCachePromise = null;
           if (typeof _cachedFilterReport !== 'undefined') _cachedFilterReport = null;
-          toast('已记录驳回反馈，请重新运行一键分析以应用更新', 'success');
+          toast('已记录审核反馈，请重新运行一键分析以应用更新', 'success');
         } else {
-          toast('驳回失败: ' + (data.error || '未知错误'), 'error');
+          toast('审核失败: ' + (data.error || '未知错误'), 'error');
         }
       }).catch(function() {
         toast('网络错误，请重试', 'error');
