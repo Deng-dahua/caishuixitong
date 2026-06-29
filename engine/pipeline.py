@@ -1357,6 +1357,14 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "资产折旧费用匹配", "findings": []})
     if _has_any_data: domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, _target_industry)})
     else: domain_results.append({"domain": "行业对标分析", "findings": []})
+    
+    # ═══ 补充域：印花税/CIT汇算/出口退税 ═══
+    if _has_any_data: domain_results.append({"domain": "印花税检查", "findings": _domain_stamp_duty_check(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
+    else: domain_results.append({"domain": "印花税检查", "findings": []})
+    if _has_any_data: domain_results.append({"domain": "CIT汇算清缴", "findings": _domain_cit_reconciliation(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
+    else: domain_results.append({"domain": "CIT汇算清缴", "findings": []})
+    if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, vouchers=vouchers)})
+    else: domain_results.append({"domain": "出口退税验证", "findings": []})
 
     # ═══ 财务报表税务稽查分析（新增） ═══
     try:

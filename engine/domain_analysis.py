@@ -58,6 +58,7 @@ __all__ = [
     "_domain_bank_tracking",
     "_domain_business_premise_geo",
     "_domain_business_substance",
+    "_domain_cit_reconciliation",
     "_domain_contract_comparison",
     "_domain_cross_domain_analysis",
     "_domain_cross_domain_clues",
@@ -65,6 +66,7 @@ __all__ = [
     "_domain_customer_revenue_matching",
     "_domain_depreciation_match",
     "_domain_document_completeness",
+    "_domain_export_vat_verification",
     "_domain_fund_flow_mapping",
     "_domain_industry_benchmark",
     "_domain_inventory_turnover",
@@ -80,6 +82,7 @@ __all__ = [
     "_domain_revenue_timeline",
     "_domain_rule_coverage",
     "_domain_salary_ss_hf_compare",
+    "_domain_stamp_duty_check",
     "_domain_supplier_deep",
     "_domain_supplier_profiling",
     "_domain_supply_chain_deep",
@@ -186,12 +189,7 @@ def _is_service_industry(sal_invs):
         with open(_ind_path, 'r', encoding='utf-8') as _f:
             SERVICE_CODES = json.loads(_f.read()).get("service_industries", {}).get("codes", [])
     except Exception:
-        SERVICE_CODES = ["广告服务","信息技术服务","研发和技术服务","文化创意服务",
-            "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
-            "金融服务","现代服务","生活服务","电信服务","建筑服务",
-            "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
-            "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
-            "安全保护服务","会议展览服务","租赁服务","无形资产"]
+        SERVICE_CODES = SERVICE_CODES_FALLBACK
     svc = 0; total = 0
     for inv in sal_invs:
         goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
@@ -639,24 +637,14 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
 
     # ═══════ 维度1: 基础经营费用六要素检测 ═══════
     biz_types = set()
-    biz_keywords = {
-        "租赁": ["租金","租赁","房租","场地","物业费-房租"],
-        "水电": ["电费","水费","电","水","自来水","供电","用水"],
-        "物业": ["物业","物管","管理费-物业","物业管理"],
-        "通信": ["通信","网络","宽带","电话","电信","移动","联通"],
-        "物流": ["快递","物流","运输","配送","货运","快运"],
-        "办公": ["办公用品","文具","打印","复印","墨盒","硒鼓","纸张"],
-        "维修": ["维修","维护","保养","修缮","修理"],
-        "安保": ["保安","安保","门卫","监控","消防"],
-    }
+    biz_keywords = BIZ_EXPENSE_KEYWORDS
     for i in pur_invs:
         g = str(i.get("goods", ""))
         for bt, kws in biz_keywords.items():
             if any(k in g for k in kws): biz_types.add(bt)
     # 也从银行流水检查
     bank_biz_types = set()
-    bank_kw_map = {"租赁": ("房租","租金","租赁","场地费"), "水电": ("电费","水费","自来水"),
-                   "物业": ("物业费","物管费"), "工资": ("工资","代发","薪")}
+    bank_kw_map = BANK_KW_MAP
     for tx in bank_txs:
         raw = tx.get("raw", "")
         for bt, kws in bank_kw_map.items():
@@ -777,7 +765,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
 def _domain_invoice_deep(invoices):
     """域13: 发票深度特征"""
     findings = []
-    sensitive_kws = ["咨询","服务费","技术","设计","广告","推广","策划"]
+    sensitive_kws = SENSITIVE_INVOICE_KEYWORDS
     sensitive = []
     for i in invoices:
         g = str(i.get("goods", ""))
@@ -874,8 +862,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     # 原材料/商品/设备等=实物商品→需要进销存跟踪
     if pur_invs:
         from engine.main_biz_cost import _REIMBURSEMENT_KWS_GLOBAL
-        _service_kw = ["服务费", "服务", "咨询", "设计", "广告", "策划", "制作", "推广", "租赁", "维修", "维护",
-                       "运输", "配送", "快递", "物流", "培训", "会议", "展览", "软件", "会员", "预付卡", "充值"]
+        _service_kw = SERVICE_EXCLUDE_KEYWORDS
         _goods_count = 0
         _goods_amount = 0.0
         for inv in pur_invs:
@@ -12053,4 +12040,190 @@ def _build_material_intel_findings(material_intel, bank_txs, invoices):
                 "domain": "资料情报摘要",
             })
     
+    return findings
+
+
+# ═══════════════════════════════════════════════
+#  补充域：印花税/CIT汇算清缴/出口退税
+# ═══════════════════════════════════════════════
+
+def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouchers=None,
+                              sal_invs=None, pur_invs=None, inventory=None, salaries=None,
+                              social_security=None, ctx=None, pipeline_log=None, **kwargs):
+    """印花税合规检查——应税凭证识别与税负偏差检测"""
+    findings = []
+    try:
+        total_inv_amount = 0.0
+        if sal_invs: total_inv_amount += sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
+        if pur_invs: total_inv_amount += sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+        
+        if total_inv_amount > 0:
+            expected_stamp = total_inv_amount * 0.0003
+            stamp_paid = 0.0
+            if bank_txs:
+                for tx in bank_txs:
+                    if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["印花税","印花","贴花"]):
+                        stamp_paid += abs(float(tx.get("amount", 0) or 0))
+            if stamp_paid < expected_stamp * 0.5:
+                findings.append({
+                    "type": "印花税 — 购销合同税负不足",
+                    "level": "中风险", "score": 6,
+                    "detail": f"发票总额{total_inv_amount:,.0f}元，推算印花税{expected_stamp:,.0f}元，实际缴纳{stamp_paid:,.0f}元。偏差>50%→可能漏缴购销合同印花税。",
+                    "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
+                    "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
+                    "policy_ref": "印花税法 第5条、第8条",
+                    "category": "印花税合规", "domain": "印花税检查",
+                })
+        
+        if vouchers and len(vouchers) > 0:
+            has_book_stamp = any(any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["账簿","账本","营业账簿"]) for tx in (bank_txs or []))
+            if not has_book_stamp:
+                findings.append({
+                    "type": "印花税 — 营业账簿贴花缺失",
+                    "level": "低风险", "score": 3,
+                    "detail": f"存在{len(vouchers)}张凭证，未检测到营业账簿印花税支出。每本账簿贴花5元。",
+                    "suggestion": "确认营业账簿印花税已缴纳。",
+                    "policy_ref": "印花税法 税目税率表",
+                    "category": "印花税合规", "domain": "印花税检查",
+                })
+        
+        large_loans = []
+        if bank_txs:
+            for tx in bank_txs:
+                amt = abs(float(tx.get("amount", 0) or 0))
+                summary = str(tx.get("summary", tx.get("raw", "")))
+                if amt > 100000 and any(k in summary for k in ["借款","贷款","融资","授信"]):
+                    large_loans.append(amt)
+        if large_loans:
+            findings.append({
+                "type": "印花税 — 借款合同税负提醒",
+                "level": "注意", "score": 4,
+                "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
+                "suggestion": "核查借款合同印花税缴纳情况。",
+                "policy_ref": "印花税法 第5条",
+                "category": "印花税合规", "domain": "印花税检查",
+            })
+        
+        if not findings:
+            findings.append({"type": "印花税 — 检查通过", "level": "信息", "score": 0,
+                "detail": "印花税基本检查未发现明显异常。",
+                "category": "印花税合规", "domain": "印花税检查"})
+    except Exception:
+        pass
+    return findings
+
+
+def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
+                                sal_invs=None, pur_invs=None, inventory=None,
+                                ctx=None, pipeline_log=None, **kwargs):
+    """企业所得税汇算清缴分析——纳税调整项目检测"""
+    findings = []
+    try:
+        inv_revenue = sum(float(inv.get("amount", 0) or 0) for inv in (sal_invs or []))
+        vch_revenue = 0.0
+        if vouchers:
+            for v in vouchers:
+                if any(k in str(v.get("account_name", v.get("科目名称", ""))) for k in ["主营业务收入","营业收入","销售收入"]):
+                    vch_revenue += abs(float(v.get("credit_amount", v.get("贷方金额", 0)) or 0))
+        
+        if inv_revenue > 0 and vch_revenue > 0:
+            diff_pct = abs(inv_revenue - vch_revenue) / max(inv_revenue, 1) * 100
+            if diff_pct > 10:
+                findings.append({
+                    "type": "CIT汇算 — 收入确认差异",
+                    "level": "中风险", "score": 7,
+                    "detail": f"发票收入{inv_revenue:,.0f}元 vs 凭证收入{vch_revenue:,.0f}元，差异{diff_pct:.1f}%→可能存在跨期收入。",
+                    "description": "发票流与凭证流收入差异反映收入确认时点不一致，需在汇算清缴中调整。",
+                    "suggestion": "核实收入确认时点差异，确认纳税调增/调减。",
+                    "policy_ref": "企业所得税法实施条例 第9条",
+                    "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                })
+        
+        if bank_txs and pur_invs:
+            pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+            bank_pur = sum(abs(float(tx.get("amount", 0) or 0)) for tx in bank_txs if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["货款","采购","材料","货"]))
+            if bank_pur > pur_total * 1.3:
+                findings.append({
+                    "type": "CIT汇算 — 大额无票采购支出",
+                    "level": "高风险", "score": 8,
+                    "detail": f"银行采购支出{bank_pur:,.0f}元 > 进项发票{pur_total:,.0f}元，差额{bank_pur-pur_total:,.0f}元→可能无票支出，税前不得扣除。",
+                    "description": "无票采购支出企业所得税前不得扣除，需纳税调增。",
+                    "suggestion": "核查无票采购真实性，确认纳税调增金额。",
+                    "policy_ref": "企业所得税法 第8条；国家税务总局公告2018年第28号",
+                    "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                })
+        
+        if vouchers and inv_revenue > 0:
+            entertainment = 0.0
+            for v in vouchers:
+                text = str(v.get("account_name", "")) + str(v.get("summary", ""))
+                if any(k in text for k in ["招待费","业务招待","应酬","餐饮"]):
+                    entertainment += abs(float(v.get("debit_amount", v.get("借方金额", 0)) or 0))
+            if entertainment > 0:
+                limit = min(entertainment*0.6, inv_revenue*0.005)
+                if entertainment > limit:
+                    findings.append({
+                        "type": "CIT汇算 — 业务招待费超限",
+                        "level": "中风险", "score": 6,
+                        "detail": f"业务招待费{entertainment:,.0f}元，扣除限额{limit:,.0f}元，超限{entertainment-limit:,.0f}元需纳税调增。",
+                        "description": "业务招待费扣除限额为发生额60%与收入5‰的孰低值。",
+                        "policy_ref": "企业所得税法实施条例 第43条",
+                        "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                    })
+        
+        if not findings:
+            findings.append({"type": "CIT汇算 — 初检通过", "level": "信息", "score": 0,
+                "detail": "企业所得税汇算清缴基础检查未发现明显异常。",
+                "category": "企业所得税汇算", "domain": "CIT汇算清缴"})
+    except Exception:
+        pass
+    return findings
+
+
+def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None, pur_invs=None,
+                                     vouchers=None, ctx=None, pipeline_log=None, **kwargs):
+    """出口退税验证——出口收入确认与退税合规检测"""
+    findings = []
+    try:
+        export_revenue = 0.0
+        if sal_invs:
+            for inv in sal_invs:
+                if any(k in str(inv.get("goods", "")) for k in ["出口","外销","EXPORT"]):
+                    export_revenue += float(inv.get("amount", 0) or 0)
+        if not export_revenue and vouchers:
+            for v in vouchers:
+                text = str(v.get("account_name", "")) + str(v.get("summary", ""))
+                if any(k in text for k in ["出口","外销","出口退税"]):
+                    export_revenue += abs(float(v.get("credit_amount", v.get("贷方金额", 0)) or 0))
+        
+        if export_revenue > 0:
+            estimated_refund = export_revenue * 0.13
+            refund_received = 0.0
+            if bank_txs:
+                for tx in bank_txs:
+                    if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["出口退税","退税","出口退"]):
+                        refund_received += float(tx.get("credit", tx.get("收入金额", 0)) or 0)
+            
+            findings.append({
+                "type": "出口退税 — 收入与退税匹配",
+                "level": "信息", "score": 3,
+                "detail": f"出口收入{export_revenue:,.0f}元，推算退税额{estimated_refund:,.0f}元（13%），银行退税入账{refund_received:,.0f}元。",
+                "description": "出口收入对应增值税退税核对。",
+                "suggestion": "核对出口退税申报表，确认退税率和退税金额准确。",
+                "policy_ref": "出口货物退（免）税管理办法",
+                "category": "出口退税", "domain": "出口退税验证",
+            })
+            
+            if refund_received > 0 and abs(refund_received - estimated_refund) > estimated_refund * 0.3:
+                findings.append({
+                    "type": "出口退税 — 退税偏差",
+                    "level": "中风险", "score": 7,
+                    "detail": f"推算退税额{estimated_refund:,.0f}元 vs 实际退税{refund_received:,.0f}元，偏差>30%。",
+                    "description": "退税偏差>30%需核查退税率差异或申报错误。",
+                    "suggestion": "逐票核对出口退税申报明细。",
+                    "policy_ref": "出口货物退（免）税管理办法",
+                    "category": "出口退税", "domain": "出口退税验证",
+                })
+    except Exception:
+        pass
     return findings
