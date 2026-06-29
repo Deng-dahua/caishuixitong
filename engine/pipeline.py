@@ -42,7 +42,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 懒加载 main.py 中的私有函数（避免循环导入）
     from main import (
         _get_company_upload_dir, _get_row_values, _infer_columns_from_data,
-        _parse_excel_structured, _parse_pdf_bank_statement, _parse_pdf_generic, _parse_docx, _save_to_transfer,
+        _parse_excel_structured, _parse_pdf_bank_statement, _parse_pdf_generic, _parse_docx, _parse_image_ocr, _save_to_transfer,
         _score_tax_relevance,
     )
     from engine.main_biz_cost import identify_main_biz_cost
@@ -429,6 +429,20 @@ def _run_analyze(company_id, db, progress_callback=None):
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条 (DOCX)")
                 else:
                     fr["actions"].append("DOCX无有效表格数据")
+            elif ext in (".jpg", ".jpeg", ".png", ".bmp", ".tiff"):
+                parsed = _parse_image_ocr(fpath, fname)
+                if isinstance(parsed, dict) and parsed.get("rows"):
+                    ftype = parsed.get("type", "ocr_text")
+                    n = len(parsed.get("rows", []))
+                    fr["type"] = ftype
+                    inv_fields = parsed.get("invoice_fields")
+                    if inv_fields:
+                        fr["actions"].append(f"OCR识别: {n}条，提取发票号={inv_fields.get('invoice_no','?')}，金额={inv_fields.get('amount','?')}")
+                    else:
+                        fr["actions"].append(f"OCR识别: {n}个文本块")
+                    pipeline_log.append(f"{fname} -> OCR: {n}块")
+                else:
+                    fr["actions"].append("OCR无有效文字")
         except Exception as e: fr["actions"].append(f"失败: {e}")
         file_results.append(fr)
 

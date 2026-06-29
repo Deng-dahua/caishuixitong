@@ -93,7 +93,7 @@ async def analyze_file_headers(
     fname = file.filename or "unknown"
     ext = os.path.splitext(fname)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(400, f"不支持的文件类型: {ext}，仅接受 xlsx/xls/csv/pdf/docx")
+        raise HTTPException(400, f"不支持的文件类型: {ext}，仅接受 xlsx/xls/csv/pdf/docx/图片")
     try:
         content_bytes = await file.read()
         if len(content_bytes) > MAX_UPLOAD_SIZE:

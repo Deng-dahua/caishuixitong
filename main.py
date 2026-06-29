@@ -452,7 +452,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==================== 文件上传安全常数 (P2-4/5) ====================
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt', '.docx', '.doc'}
+ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt', '.docx', '.doc',
+                    '.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 
 def _validate_upload(file: UploadFile):
@@ -4083,6 +4084,179 @@ def _parse_docx(filepath, original_name=""):
         return result
     except Exception:
         return None
+
+# ═══════════ 图片OCR解析（EasyOCR + Tesseract双引擎） ═══════════
+
+def _parse_image_ocr(filepath, original_name=""):
+    """扫描件/拍照件OCR解析——EasyOCR优先(中文优化)，Tesseract兜底
+    
+    策略：
+    1. EasyOCR提取所有文字块（含坐标）→ 中文识别最佳(需首次下载模型~200MB)
+    2. EasyOCR不可用时 → Tesseract OCR(需系统安装)
+    3. Y坐标聚类检测表格结构 → 按行组织
+    4. 组装类Sheet → _FILE_FINGERPRINTS匹配
+    5. 非表格文本 → 提取关键字段（发票号/日期/金额等）
+    """
+    import re
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    
+    text_blocks = []
+    
+    # ═══ 引擎1: EasyOCR（中文优化，需一次下载模型） ═══
+    easyocr_reader = None
+    try:
+        import easyocr
+        import numpy as np
+        
+        if not hasattr(_parse_image_ocr, '_easyocr_reader'):
+            # 检查模型是否已缓存（避免首次使用时的长时间下载阻塞）
+            model_dir = os.path.join(os.path.expanduser('~'), '.EasyOCR', 'model')
+            has_detection = os.path.exists(os.path.join(model_dir, 'craft_mlt_25k.pth'))
+            has_zh_recognition = os.path.exists(os.path.join(model_dir, 'zh_sim_g2.pth'))
+            has_en_recognition = os.path.exists(os.path.join(model_dir, 'english_g2.pth'))
+            
+            if has_detection and (has_zh_recognition or has_en_recognition):
+                try:
+                    _parse_image_ocr._easyocr_reader = easyocr.Reader(['ch_sim', 'en'], gpu=False)
+                except Exception:
+                    _parse_image_ocr._easyocr_reader = None
+            else:
+                _parse_image_ocr._easyocr_reader = None
+        
+        easyocr_reader = _parse_image_ocr._easyocr_reader
+    except Exception:
+        pass
+    
+    if easyocr_reader is not None:
+        try:
+            img = Image.open(filepath)
+            w, h = img.size
+            if max(w, h) > 2000:
+                ratio = 2000 / max(w, h)
+                img = img.resize((int(w*ratio), int(h*ratio)), Image.LANCZOS)
+            
+            results = easyocr_reader.readtext(np.array(img))
+            for (bbox, text, conf) in results:
+                if conf >= 0.3 and text.strip():
+                    y_center = (bbox[0][1] + bbox[2][1]) / 2
+                    x_left = min(bbox[0][0], bbox[3][0])
+                    text_blocks.append({'text': text.strip(), 'y': y_center, 'x': x_left, 'conf': conf})
+        except Exception:
+            pass
+    
+    # ═══ 引擎2: Tesseract OCR（系统级兜底） ═══
+    if not text_blocks:
+        try:
+            import pytesseract
+            img = Image.open(filepath)
+            # 尝试常见Tesseract路径
+            for tpath in [r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                         r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                         '/usr/bin/tesseract', '/usr/local/bin/tesseract']:
+                if os.path.exists(tpath):
+                    pytesseract.pytesseract.tesseract_cmd = tpath
+                    break
+            
+            # 中英文混合OCR
+            raw_text = pytesseract.image_to_string(img, lang='chi_sim+eng')
+            lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
+            for li, line in enumerate(lines):
+                text_blocks.append({'text': line, 'y': li * 20, 'x': 0, 'conf': 0.7})
+        except Exception:
+            pass
+    
+    if not text_blocks:
+        return None
+    
+    # ═══ 表格检测：按Y坐标聚类 ═══
+    text_blocks.sort(key=lambda b: b['y'])
+    
+    rows = []
+    current_row = [text_blocks[0]]
+    row_y = text_blocks[0]['y']
+    
+    for b in text_blocks[1:]:
+        if abs(b['y'] - row_y) < 15:
+            current_row.append(b)
+        else:
+            current_row.sort(key=lambda x: x['x'])
+            rows.append(current_row)
+            current_row = [b]
+            row_y = b['y']
+    if current_row:
+        current_row.sort(key=lambda x: x['x'])
+        rows.append(current_row)
+    
+    col_counts = [len(r) for r in rows]
+    avg_cols = sum(col_counts) / len(col_counts) if col_counts else 0
+    
+    if len(rows) >= 2 and avg_cols >= 3:
+        # 表格模式
+        max_cols = max(col_counts)
+        table_rows = []
+        for row_blocks in rows:
+            row_data = [''] * max_cols
+            for bi, b in enumerate(row_blocks):
+                row_data[min(bi, max_cols - 1)] = b['text']
+            table_rows.append(row_data)
+        
+        class OcrSheet:
+            def __init__(self, data):
+                self.data = data
+                self.nrows = len(data)
+                self.max_row = len(data)
+                self.ncols = max(len(r) for r in data) if data else 0
+            def cell_value(self, r, c):
+                if r < len(self.data) and c < len(self.data[r]):
+                    return self.data[r][c]
+                return ''
+        
+        sheet = OcrSheet(table_rows)
+        result = _parse_by_content(["OCR表格"], lambda i: sheet, original_name)
+        if result:
+            return result
+        
+        all_text = ' '.join(b['text'] for b in text_blocks)
+        invoice_keys = _extract_invoice_fields_from_text(all_text)
+        return {"type": "ocr_text", "rows": table_rows, "invoice_fields": invoice_keys, "source": os.path.basename(filepath)}
+    
+    # 非表格模式
+    all_text = ' '.join(b['text'] for b in text_blocks)
+    invoice_keys = _extract_invoice_fields_from_text(all_text)
+    text_lines = [b['text'] for b in text_blocks]
+    return {"type": "ocr_text", "rows": text_lines, "invoice_fields": invoice_keys, "source": os.path.basename(filepath)}
+
+def _extract_invoice_fields_from_text(text):
+    """从OCR文本中提取发票关键字段"""
+    import re
+    fields = {}
+    
+    # 发票号码：8-10位数字
+    inv_no = re.search(r'(?:发票号码|发票号|号码)\s*[:：]?\s*(\d{8,10})', text)
+    if not inv_no:
+        inv_no = re.search(r'(?:No\.?|NO\.?)\s*[:：]?\s*(\d{8,10})', text)
+    if inv_no:
+        fields['invoice_no'] = inv_no.group(1)
+    
+    # 发票代码：10-12位数字
+    inv_code = re.search(r'(?:发票代码|代码)\s*[:：]?\s*(\d{10,12})', text)
+    if inv_code:
+        fields['invoice_code'] = inv_code.group(1)
+    
+    # 日期：YYYY-MM-DD或YYYY年MM月DD日
+    date_pat = re.search(r'(?:开票日期|日期|年月日)\s*[:：]?\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2}[日]?)', text)
+    if date_pat:
+        fields['date'] = date_pat.group(1)
+    
+    # 金额
+    amt_pat = re.search(r'(?:金额|价税合计|合计|小写)[:：]?\s*[¥￥]?\s*([\d,]+\.?\d{0,2})', text)
+    if amt_pat:
+        fields['amount'] = amt_pat.group(1).replace(',', '')
+    
+    return fields if fields else None
 
 @app.post("/api/tax-risk-docs/review")
 async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
