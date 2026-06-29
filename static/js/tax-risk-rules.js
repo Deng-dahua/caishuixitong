@@ -31,6 +31,7 @@ var CATEGORY_DESCRIPTIONS = {
   '成本费用': '成本和费用的真实性、合理性与配比性检查——虚列成本、费用资本化等。',
   '发票合规': '发票开具、取得、保管的全流程合规检查——虚开、代开、非法取得等。',
   '增值税': '增值税销项税额、进项税额、应纳税额的计算准确性和申报及时性。',
+  '自动发现': '系统自动发现的行业校准规则——当某个信号在同行业多家企业中普遍出现(>60%)时，系统判定该信号为该行业常态，自动降低风险权重，避免误报。这是AGI自学习机制的Layer C输出。',
 };
 
 function renderTaxRiskRules(container) {
@@ -205,7 +206,7 @@ function renderTaxRiskRulesList() {
   // 按分类分组
   var grouped = {};
   data.forEach(function(r) {
-    var cat = r.category || '其他';
+    var cat = r.category || r.rule_category || '其他';
     if (!grouped[cat]) { grouped[cat] = { icon: r.categoryIcon || '', rules: [] }; }
     grouped[cat].rules.push(r);
   });
@@ -255,25 +256,43 @@ function renderTaxRiskRulesList() {
       + '</div>';
 
     catRules.forEach(function(rule) {
-      var color = RISK_LEVEL_COLORS[rule.level] || '#64748b';
-      var icon = RISK_LEVEL_ICONS[rule.level] || '⚪';
+      // 自动发现规则的字段映射
+      var isAutoRule = rule.type === 'auto_signal';
+      var itemName = rule.item || rule.signal || '';
+      var levelName = rule.level || rule.severity || '';
+      var scoreVal = rule.score !== undefined ? rule.score : (rule.confidence !== undefined ? Math.round(rule.confidence * 10) : '-');
+      var detailText = rule.detail || '';
+      var suggestText = rule.suggestion || rule.action || '';
+      var evidenceText = rule.evidence || '';
+      var impactText = rule.tax_impact || '';
+      var policyText = rule.policy_ref || '';
+      
+      // 自动发现规则用蓝色标识
+      var color = isAutoRule ? '#2563eb' : (RISK_LEVEL_COLORS[levelName] || '#64748b');
+      var icon = isAutoRule ? '🤖' : (RISK_LEVEL_ICONS[levelName] || '⚪');
       var rid = String(rule.id || '').trim();
       var triggered = _triggeredRuleFindings[rid] || [];
       var isTriggered = triggered.length > 0;
       var borderColor = isTriggered ? '#dc2626' : color;
       var borderWidth = isTriggered ? '4px' : '3px';
 
-      html += '<div data-rule-id="' + rid + '" data-level="' + (rule.level || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '"'
+      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '"'
         + ' style="padding:16px 20px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px" class="rr-rule-card">'
         
         // 标题行
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">'
-        + '<div style="font-size:15px;font-weight:600;color:#0f172a">' + escHtml(rule.item)
+        + '<div style="font-size:15px;font-weight:600;color:#0f172a">'
+        + (isAutoRule ? '🤖 ' : '') + escHtml(itemName)
+        + (isAutoRule ? '<span style="margin-left:6px;font-size:11px;font-weight:400;color:#64748b">[' + escHtml(rule.industry || '') + ']</span>' : '')
         + (isTriggered ? '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:600">✅ 本次触发(' + triggered.length + ')</span>' : '')
         + '</div>'
         + '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px">'
-        + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (rule.level || '') + '</span>'
-        + '<span style="font-size:11px;color:#94a3b8">评分 ' + (rule.score !== undefined ? rule.score : '-') + '</span>'
+        + (isAutoRule 
+            ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#2563eb;font-weight:600">🤖 自动发现</span>'
+            : '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
+        + (isAutoRule 
+            ? '<span style="font-size:11px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
+            : '<span style="font-size:11px;color:#94a3b8">评分 ' + scoreVal + '</span>')
         + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
         + '</div>'
         + '</div>'
@@ -287,11 +306,24 @@ function renderTaxRiskRulesList() {
         + '</div>' : '')
 
         // 详细内容
-        + (rule.detail ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:8px">' + escHtml(rule.detail) + '</div>' : '')
+        + (detailText ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:8px">' + escHtml(detailText) + '</div>' : '')
 
         // 建议 + 佐证
-        + (rule.suggestion ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">稽查建议：</span>' + escHtml(rule.suggestion) + '</div>' : '')
-        + (rule.evidence ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">所需佐证：</span>' + escHtml(rule.evidence) + '</div>' : '')
+        + (suggestText ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '稽查建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
+        + (evidenceText ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
+        
+        // 自动发现额外信息
+        + (isAutoRule ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
+        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
+
+        // 底栏
+        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
+        + (impactText ? '<span><span style="color:#64748b">税务影响：</span>' + escHtml(impactText.substring(0, 120)) + (impactText.length > 120 ? '...' : '') + '</span>' : '')
+        + (policyText ? '<span><span style="color:#64748b">法条：</span>' + escHtml(policyText.substring(0, 100)) + (policyText.length > 100 ? '...' : '') + '</span>' : '')
+        + (rule.dataSource ? '<span><span style="color:#64748b">数据源：</span>' + escHtml(rule.dataSource) + '</span>' : '')
+        + (rule.detectable !== undefined ? '<span>' + (rule.detectable ? '✅ 可自动检测' : '⚠️ 需人工') + '</span>' : '')
+        + '</div>'
+        + '</div>';
 
         // 底栏
         + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
