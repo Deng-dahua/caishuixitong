@@ -20,9 +20,9 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第0章 ═══
   h += '<div id="hb-s0" class="hb-sec"><div class="hb-sec-title"><span class="num">0</span>系统数据概览</div>';
-  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1608条稽查规则+41条可执行线索链+22条跨域证据链+13条跨域分析链+42个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。线索链合并audit_chains.json的1174条方法链后总计1215条。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
+  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1608条稽查规则+41条可执行线索链+22条跨域证据链+13条跨域分析链+42个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。线索链合并audit_chains.json的1250条方法链后总计1215条。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
-  [{n:'1608',l:'稽查规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据，覆盖收入/成本/费用/存货/资产/往来款/特殊交易/税务申报'},{n:'1215',l:'线索链',d:'41条可执行链(引擎驱动keyword匹配)+1174条方法链(展示用),合并管理于cross_domain_clues.json'},{n:'22',l:'证据链',d:'dimensions[]多源交叉验证，≥min_evidence触发，跨域证据闭环'},{n:'13',l:'分析链',d:'reasoning_path[]多步推理链，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/资料完备度/经营实质/跨域推理等13大类'},{n:'28',l:'引擎模块',d:'engine/*.py共28个模块，各模块独立加载，协同工作'}].forEach(function(s){
+  [{n:'1608',l:'稽查规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据，覆盖收入/成本/费用/存货/资产/往来款/特殊交易/税务申报'},{n:'1215',l:'线索链',d:'41条可执行链(引擎驱动keyword匹配)+1250条方法链(展示用),合并管理于cross_domain_clues.json'},{n:'22',l:'证据链',d:'dimensions[]多源交叉验证，≥min_evidence触发，跨域证据闭环'},{n:'13',l:'分析链',d:'reasoning_path[]多步推理链，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/资料完备度/经营实质/跨域推理等13大类'},{n:'28',l:'引擎模块',d:'engine/*.py共28个模块，各模块独立加载，协同工作'}].forEach(function(s){
     h += '<div class="hb-stat" style="flex:1;min-width:110px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:4px">'+s.d+'</div></div>';
   });
   h += '</div>';
@@ -75,7 +75,7 @@ function renderAuditorHandbook(container) {
   });
   h += '</tbody></table></div>';
 
-  // ═══ 第三章（33条方法论保持原有详细内容） ═══
+  // ═══ 第三章（1250条方法链(legacy)保持原有详细内容） ═══
   h += '<div id="hb-s3" class="hb-sec"><div class="hb-sec-title"><span class="num">3</span>稽查方法论33条</div>';
   h += '<div class="hb-detail">每条方法论均来自审计准则和稽查实战。方法本身全行业适用——仅数据不同，逻辑通用。33条按处理阶段分为五层：<b>文件识别层</b>（①②）→<b>数据提取层</b>（③④⑤⑥）→<b>分析推理层</b>（⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔）→<b>结论输出层</b>（㉕㉖㉗㉘㉙）→<b>质量保障层</b>（㉚㉛㉜㉝）。</div>';
   h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:25px">#</td><td class="lbl" style="width:100px">名称</td><td class="val">详解</td></tr></thead><tbody>';
@@ -170,7 +170,7 @@ function renderAuditorHandbook(container) {
    ['线索链','第22条(取证逻辑)','1215条线索链(41可执行+1174方法论),合并管理于cross_domain_clues.json。可执行链含keyword触发匹配+investigation_path调查步骤+rule_refs关联规则ID。每条线索链=一个稽查员的调查思路——\"从这里开始查，每一步查什么，查到了怎么办\"。'],
    ['证据链','第24条(证据真实性)','22条跨域证据链≥2域交叉→≥min_evidence触发→多维印证闭环。dimensions[]数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
    ['分析链','第46条(审理审核)','13条跨域分析链→reasoning_path[]多步推理→从证据→结论的综合判定。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性→0-7维异常评分→定案。'],
-   ['方法论过滤器','第46条(审核重点)','33条方法论自动匹配发现→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→稽查重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
+   ['方法论过滤器','第46条(审核重点)','1250条方法链(legacy)自动匹配发现→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→稽查重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
    ['跨域协商引擎','第46条(审核重点)','15条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
    ['风险评分','第49条(审理意见)','综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成稽查结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。'],
    ['报告生成','第51条(报告格式)','自动生成封面+7章+附件：案件来源→基本情况→实施情况→发现问题→稽查结论→处理建议→告知权利→签字→证据清单。完全符合规程第42条规定的10项内容格式要求。'],
@@ -184,7 +184,7 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">6大维度25个组件覆盖从数据输入到报告输出的完整质量链。每个维度有明确的检查项、检查方法和代码位置。质量保障是递进式而非一次性——数据质量→规则质量→发现质量→证据质量→报告质量→合规性保障，前一层不合格直接影响后一层。代码位置：static/js/tax-pipeline-pages.js renderQualitySystem()。</div>';
   h += '<div class="hb-card-grid">';
   [['数据质量保障','文件解析前验证数据有效性/结构完整性/字段合法性。自动过滤空白行/汇总行/无效行。含82+列名映射和四方交叉验证，确保解析正确。文件格式识别失败→降级到数据推断兜底模式。'],
-   ['规则质量保障','1514条规则全部经格式校验+触发条件校对+法律依据核实。规则ID可全程回溯至原始数据行。每条规则含9个结构化字段（触发条件/风险等级/调查步骤/处罚依据等）。规则变更时运行audit_consistency.py确保全局一致。'],
+   ['规则质量保障','1608条规则全部经格式校验+触发条件校对+法律依据核实。规则ID可全程回溯至原始数据行。每条规则含9个结构化字段（触发条件/风险等级/调查步骤/处罚依据等）。规则变更时运行audit_consistency.py确保全局一致。'],
    ['发现质量保障','双重验证(COND_BAN防误杀：条件A+条件B同时满足才触发)+自洽检查(7项逻辑矛盾检测)+证据闭环验证(≥60%触发率+≥3规则+≥2域)。跨域协商引擎在发现之间执行对话消解——确保不同域的发现不矛盾。'],
    ['证据质量保障','≥2数据域交叉触发+≥3条规则支持+≥60%触发率→有效证据链。11条跨域证据链从不同数据源独立收集证据。SHA256哈希存证保证证据不可篡改。证据链完整度在报告中量化展示（X/Y条链形成闭环）。'],
    ['报告质量保障','12项质量标准：模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除。报告纯净度规范在生成管线末端执行——系统内部标注全部移除，四步框架表现为自然段落衔接。'],
@@ -193,7 +193,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第九章 ═══
   h += '<div id="hb-s9" class="hb-sec"><div class="hb-sec-title"><span class="num">9</span>跨域协商引擎</div>';
-  h += '<div class="hb-detail">36个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。15条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
+  h += '<div class="hb-detail">39个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。15条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
   h += '<table class="hb-tbl">';
   [['行业闸门消解（5条）','NEG-001~005。服务行业判定成立→自动消解进销存/存货/BOM/进销比/毛利率五个制造业域的发现。例如：行业判定="服务行业"→域1的"进销存匹配异常"发现被自动标记为"不适用"，从高风险降为弱提示。','消除假阳性——服务行业不存在实物商品的进销存，这些域的发现没有分析意义。'],
    ['资料驱动标记（4条）','NEG-010~040。资料完备度域检测到某类文件缺失→通知所有依赖该文件的域标注"资料受限"。例如：缺合同→合同分层判断法的"无正式合同"发现从高风险降为提示级并标注蓝色横幅"此结论基于不完整资料"。','防止因缺数据而产生的伪发现——没有合同≠交易不真实。'],
@@ -253,9 +253,9 @@ function renderAuditorHandbook(container) {
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">核心引擎（12个文件）</td></tr>';
   h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（15条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
-  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ correction_rules.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1514条稽查指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
+  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ correction_rules.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1608条稽查指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
-  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（报告编制要求·11节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（1514条稽查指令浏览）</td></tr>';
+  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（报告编制要求·11节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（1608条稽查指令浏览）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">基础设施（4个文件）</td></tr>';
   h += '<tr><td class="lbl">根目录</td><td class="val" style="font-size:12px">main.py（主入口·25000行·227路由·FastAPI服务器）/ start.bat（启动脚本·杀僵尸+清缓存+--sync+审计+启动）/ audit_consistency.py（数据一致性自检+联动修改+引擎记忆文档同步）/ static/index.html（侧边栏导航+全部JS加载）</td></tr>';
   h += '</table></div>';

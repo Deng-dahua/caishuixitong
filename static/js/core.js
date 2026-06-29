@@ -793,7 +793,7 @@ async function renderAgiDashboard(container) {
     // ═══ Hero ═══
     h += '<div id="agi-hero" class="agi-hero">';
     h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 28引擎 · 36域分析 · 1514规则 · 1174条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 28引擎 · 36域分析 · 1514规则 · 1250条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
     h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
     h += '</div>';
 
@@ -854,7 +854,7 @@ async function renderAgiDashboard(container) {
     h += '<section id="agi-perf" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 加速与保护层</h2>';
     h += '<div class="agi-card-grid">';
-    h += _agiEngineCard('⚡','并行加速','ParallelRunner','<code>parallel_runner.py</code>','多模块并行执行——基于模块间依赖DAG自动计算并行执行计划。有依赖→串行，无依赖→并行（36个域分析函数间互不依赖→全部并行）。max_workers默认4，可配置调整。串行/并行可开关切换——调试用串行追踪错误，生产用并行加速。性能：36域串行约45秒→并行约25-30秒→提升35-45%。','青');
+    h += _agiEngineCard('⚡','并行加速','ParallelRunner','<code>parallel_runner.py</code>','多模块并行执行——基于模块间依赖DAG自动计算并行执行计划。有依赖→串行，无依赖→并行（39个域分析函数间互不依赖→全部并行）。max_workers默认4，可配置调整。串行/并行可开关切换——调试用串行追踪错误，生产用并行加速。性能：36域串行约45秒→并行约25-30秒→提升35-45%。','青');
     h += _agiEngineCard('🛡️','覆盖层引擎','OverrideEngine','<code>override_engine.py</code>','AGI自主修正安全回滚机制——防止自学习过度修正。四阶段状态机：①待审核→覆盖建议等待确认 ②激活→人工确认后生效 ③生效中→监控效果→假阴性触发回滚 ④紧急恢复→一键回滚所有激活覆盖→清零AGI修正。完整审计日志记录每次激活/回滚，持久化到overrides_storage.json。','红');
     h += _agiEngineCard('🔒','外部验证','ExternalVerifier','<code>external_verifier.py</code>','4通道工商数据验证——任一通道成功即更新企业信息。①天眼查API（需配置Key）②企查查API（备用）③国家企业信用信息公示系统（免费）④搜索引擎后备（仅供参考标注「待核实」）。结果写入entity_profile.json→24小时缓存有效期。','蓝');
     h += '</div></section>';
@@ -873,7 +873,7 @@ async function renderAgiDashboard(container) {
     h += '<p class="hb-section-lead">以下数字来自代码和数据文件的精确统计（2026-06-25验证），非手工标注。</p>';
     h += '<div class="hb-card-grid">';
     h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
-    h += '<div class="hb-info-card hb-info-red"><strong>📋 稽查规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1514条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
+    h += '<div class="hb-info-card hb-info-red"><strong>📋 稽查规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1608条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
     h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>1215条</strong>(41可执行+1174方法论)</p><p>可执行链含触发关键词/调查步骤/关联规则ID；方法链含完整稽查步骤和法规引用</p></div>';
     h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p>7层架构 <strong>28个引擎</strong></p><p>核心6+推理4+连接3+知识3+专项7+加速3+调度2</p></div>';
     h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
