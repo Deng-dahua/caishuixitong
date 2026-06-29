@@ -40,6 +40,7 @@ __all__ = [
     "_build_early_warnings",
     "_build_entity_graph",
     "_build_finding_trace",
+    "_build_material_intel_findings",
     "_build_methods_data",
     "_build_report_blocks",
     "_calc_fingerprint_distance",
@@ -11911,3 +11912,145 @@ def _apply_type_corrections(corrections, file_results, salaries, invoices, bank_
         pipeline_log.append(f"[数据迁移] {fname}: {n}条从{old_type}迁移至{new_type}")
 
 
+def _build_material_intel_findings(material_intel, bank_txs, invoices):
+    """将_extract_material_intel的结果转换为结构化的域发现列表
+    
+    使资料情报在域分析结果中可见，不再隐藏在管道内部状态中。
+    """
+    findings = []
+    if not material_intel:
+        return findings
+    
+    # 银行流水情报
+    bank_intel = material_intel.get("bank", {})
+    if bank_intel:
+        total_in = bank_intel.get("total_in", 0)
+        total_out = bank_intel.get("total_out", 0)
+        net = bank_intel.get("net_flow", total_in - total_out)
+        months = bank_intel.get("months_covered", 0)
+        tax_pay = bank_intel.get("tax_payments_total", 0)
+        
+        findings.append({
+            "type": "资料情报摘要 — 银行流水",
+            "level": "信息",
+            "score": 2,
+            "detail": f"银行流水：{len(bank_txs)}笔交易，{months}个月覆盖。流入{total_in:,.0f}元，流出{total_out:,.0f}元，净流入{net:,.0f}元。税务支出{tax_pay:,.0f}元。",
+            "description": "银行流水整体画像——资金规模、净流向、税务支出",
+            "category": "资料情报",
+            "domain": "资料情报摘要",
+        })
+        
+        # 收款分类
+        receipt_cats = bank_intel.get("receipt_categories", {})
+        if receipt_cats:
+            cats_summary = " · ".join(f"{k}:{v:,.0f}" for k, v in sorted(receipt_cats.items(), key=lambda x: -x[1])[:5])
+            findings.append({
+                "type": "资料情报摘要 — 收款来源分类",
+                "level": "信息",
+                "score": 2,
+                "detail": f"收款来源TOP5：{cats_summary}",
+                "description": "自适应收款分类——系统根据实际数据特征自动分类，无预设行业限制",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+        
+        # 付款方分类
+        payer_cats = bank_intel.get("payer_categories", {})
+        if payer_cats:
+            corp_pct = payer_cats.get("企业", 0) / max(total_out, 1) * 100
+            personal_pct = payer_cats.get("个人", 0) / max(total_out, 1) * 100
+            findings.append({
+                "type": "资料情报摘要 — 付款方构成",
+                "level": "信息",
+                "score": 2,
+                "detail": f"付款方：企业{corp_pct:.0f}% · 个人{personal_pct:.0f}%。个人付款占比高→需核查是否与个人供应商/员工报销匹配。",
+                "description": "付款方身份分析——企业/个人/税务/银行占比",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+        
+        # 大额交易
+        large_txs = bank_intel.get("large_transactions", [])
+        if large_txs:
+            findings.append({
+                "type": "资料情报摘要 — 大额交易",
+                "level": "注意",
+                "score": 4,
+                "detail": f"检测到{len(large_txs)}笔大额交易（>50万元），合计{sum(t.get('amount',0) for t in large_txs):,.0f}元。需逐笔核查交易背景和对方身份。",
+                "description": "大额交易列表——单笔>50万需重点核查",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+    
+    # 发票情报
+    inv_intel = material_intel.get("invoice", {})
+    if inv_intel:
+        sal_count = inv_intel.get("sales_count", 0)
+        pur_count = inv_intel.get("purchase_count", 0)
+        sal_total = inv_intel.get("sales_total", 0)
+        pur_total = inv_intel.get("purchase_total", 0)
+        service_pct = inv_intel.get("service_invoice_pct", 0)
+        
+        if sal_count or pur_count:
+            findings.append({
+                "type": "资料情报摘要 — 发票结构",
+                "level": "信息",
+                "score": 2,
+                "detail": f"销项{sal_count}张（{sal_total:,.0f}元）· 进项{pur_count}张（{pur_total:,.0f}元）· 服务类占比{service_pct:.0f}%。进销比{(pur_total/max(sal_total,1)):.2f}。",
+                "description": "发票整体画像——销进项数量/金额/进销比/服务占比",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+        
+        # 发票类型分布
+        inv_types = inv_intel.get("type_distribution", {})
+        if inv_types:
+            type_summary = " · ".join(f"{k}:{v}张" for k, v in sorted(inv_types.items(), key=lambda x: -x[1]))
+            findings.append({
+                "type": "资料情报摘要 — 发票类型分布",
+                "level": "信息",
+                "score": 1,
+                "detail": f"发票类型：{type_summary}",
+                "description": "增值税专票/普票/数电票等类型分布",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+    
+    # 凭证情报
+    voucher_intel = material_intel.get("voucher", {})
+    if voucher_intel:
+        vc_count = voucher_intel.get("count", 0)
+        revenue = voucher_intel.get("revenue_total", 0)
+        cost = voucher_intel.get("cost_total", 0)
+        expense = voucher_intel.get("expense_total", 0)
+        
+        if vc_count:
+            findings.append({
+                "type": "资料情报摘要 — 凭证概况",
+                "level": "信息",
+                "score": 2,
+                "detail": f"共{vc_count}张凭证。收入科目{revenue:,.0f}元 · 成本科目{cost:,.0f}元 · 费用科目{expense:,.0f}元。毛利率{(1-cost/max(revenue,1))*100:.1f}%。",
+                "description": "凭证整体画像——数量/收入/成本/费用/毛利率",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+    
+    # 人员情报
+    hr_intel = material_intel.get("hr", {})
+    if hr_intel:
+        emp_count = hr_intel.get("employee_count", 0)
+        total_salary = hr_intel.get("total_salary", 0)
+        
+        if emp_count:
+            avg_salary = total_salary / max(emp_count, 1)
+            findings.append({
+                "type": "资料情报摘要 — 人员概况",
+                "level": "信息",
+                "score": 2,
+                "detail": f"员工{emp_count}人，薪酬总额{total_salary:,.0f}元，人均{avg_salary:,.0f}元/人。",
+                "description": "人员与薪酬基本信息",
+                "category": "资料情报",
+                "domain": "资料情报摘要",
+            })
+    
+    return findings

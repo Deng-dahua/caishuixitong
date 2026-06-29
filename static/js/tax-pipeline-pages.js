@@ -655,7 +655,7 @@ function renderFileParsingResult(report) {
 function renderDomainAnalysisPage(container) {
   if (!container) return;
   window.currentModule = '域分析';
-  container.innerHTML = '<style>.da-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.da-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.da-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.da-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.da-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.da-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.da-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.da-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.da-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.da-toc a:hover,.da-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.da-main{flex:1;min-width:0;background:#fff}.da-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.da-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="da-layout">'
     + '<nav class="da-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#da-intro">一 什么是域分析</a>'
@@ -665,7 +665,7 @@ function renderDomainAnalysisPage(container) {
     + '</nav>'
     + '<div class="da-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔬 域分析</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">36个域分析函数 · 跨域关联推理 · 多源证据链串联</p>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">36个域分析函数 · 12大分类 · 跨域关联推理 · 多源证据链串联 · 资料情报自适应分类</p>'
     + renderDomainAnalysisStatic()
     + '<div id="da-analysis-result"></div>'
     + '</div></div>';
@@ -680,13 +680,13 @@ function renderDomainAnalysisStatic() {
   // ══════ 一、什么是域分析 ══════
   html += '<div id="da-intro" style="margin-bottom:48px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是域分析</h3>'
-    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
     + '域分析是税务稽查系统的核心工作台。系统将从资料中提取的全部数据导入多个独立的分析域（Domain），'
     + '每个域由专门的域分析函数（<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_domain_*</code>）驱动，'
     + '从不同维度对同一份数据做交叉审视。域与域之间不孤立——跨域关联推理将所有域的发现串联为多源交叉证据链，'
     + '形成完整的稽查判断体系。'
     + '</p>'
-    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+    + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
     + '<strong>分析原理</strong>：每个域分析函数接收原始数据（银行流水 / 发票 / 工资表 / 社保 / 凭证 / 库存等），输出结构化发现列表。'
     + '每条发现包含：发现类型（type）、风险等级（level/score）、详细数据（detail）、稽查解读（description）、'
     + '处理建议（suggestion）、法律依据（policy_ref）、发现方法（how_found）、分类标签（category）。'
@@ -697,15 +697,15 @@ function renderDomainAnalysisStatic() {
   html += '<div id="da-arch" style="margin-bottom:48px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、域分析架构</h3>'
     + '<div style="display:flex;gap:16px;margin-bottom:20px">'
-    + '<div style="flex:1;padding:16px;background:#f8fafc;border-radius:8px;border-left:3px solid #dc2626">'
+    + '<div style="flex:1;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #dc2626">'
     + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:6px">资料驱动域</div>'
     + '<div style="font-size:12px;color:#64748b;line-height:1.8">依赖上传资料进行判断。<br>资料完备度越高，结论置信度越高。<br>缺资料时标注资料缺口，不做无依据结论。</div>'
     + '</div>'
-    + '<div style="flex:1;padding:16px;background:#f8fafc;border-radius:8px;border-left:3px solid #2563eb">'
+    + '<div style="flex:1;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #2563eb">'
     + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:6px">算法驱动域</div>'
     + '<div style="font-size:12px;color:#64748b;line-height:1.8">基于数据内在特征自动计算。<br>如进销比、毛利率、周转率。<br>只要有发票数据即可运行。</div>'
     + '</div>'
-    + '<div style="flex:1;padding:16px;background:#f8fafc;border-radius:8px;border-left:3px solid #7c3aed">'
+    + '<div style="flex:1;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #7c3aed">'
     + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:6px">知识驱动域</div>'
     + '<div style="font-size:12px;color:#64748b;line-height:1.8">内置66行业基准库、税务法规库。<br>将企业数据与行业均值对比。<br>与法律法规要求对照验证。</div>'
     + '</div>'
@@ -728,57 +728,78 @@ function renderDomainAnalysisStatic() {
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">每个域由独立的域分析函数驱动，按类别分组。右侧数字为该域的分析函数在 main.py 中的行号。</p>';
 
   var domainGroups = [
-    {cat:'进销存（供应链核心）', color:'#dc2626', desc:'发票品名交叉比对，进销平衡分析，制造业加工链条诊断。有进无销/有销无进是税务稽查的核心切入点。', items:[
-      {name:'进销存匹配分析', fn:'_domain_invoice_deep', line:'12763', desc:'进销品名交叉映射 · 进销比检测 · 有进无销/有销无进触发制造业加工诊断 · BOM表需求判断'},
-      {name:'发票实质性审计', fn:'_domain_invoice_audit', line:'14966', desc:'五层递进审计：格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射'},
-      {name:'存货周转预警', fn:'_domain_inventory_turnover', line:'12393', desc:'周转率+库龄分析+库存结构合理性 · 入库>>出库→积压预警'},
+    // ══════ 一、资金流分析（4域） ══════
+    {cat:'一、资金流分析', color:'#dc2626', desc:'银行流水收款来源分类、付款方身份核实、大额转账追踪、个人交易检测。资金流是稽查的血液——每一笔资金流动都可能隐藏着未申报收入或虚开发票。', items:[
+      {name:'资金全链路追踪', fn:'_domain_bank_tracking', line:'12137', desc:'收款来源自适应分类 · 第三方平台收款占比 · 付款方身份（企业/个人/税务/银行）· 税费支付自动识别'},
+      {name:'资金流向追踪', fn:'_domain_fund_flow_mapping', line:'13806', desc:'收款方与开票客户匹配 · 付款方与进项供应商匹配 · 法人/股东交叉引用 · 个人大额转账预警'},
+      {name:'异常交易时间分析', fn:'_domain_temporal_anomaly', line:'14298', desc:'非工作时间交易（深夜/凌晨/周末）· 节假日突击交易 · 月末集中大额行为识别'},
+      {name:'个人交易风险', fn:'_domain_personal_transactions', line:'12251', desc:'个人买家发票占比异常 · 无票个人大额收入 · 个人转账收款未开票 · 个人卡收款规模评估'},
     ]},
-    {cat:'供应商与客户分析', color:'#f59e0b', desc:'供应商集中度、地理分布、身份验证；客户结构分析。识别供应商群集和关联交易风险。', items:[
-      {name:'供应商穿透分析', fn:'_domain_supplier_deep', line:'12286', desc:'供应商集中度 · 同城群集检测 · 名称异常检测 · 前3大占比>70%触发依赖预警'},
-      {name:'供应商画像分析', fn:'_domain_supplier_profiling', line:'13757', desc:'行业/地域/注册资本综合分析 · 新注册零实缴→可疑交易方'},
-      {name:'上下游穿透分析', fn:'_domain_supply_chain_deep', line:'14661', desc:'客户vs供应商关联 · 同一企业既是客户又是供应商→对倒开票嫌疑'},
+    // ══════ 二、进销存分析（4域） ══════
+    {cat:'二、进销存分析', color:'#f59e0b', desc:'发票品名交叉映射、进销平衡分析、存货周转率、制造业加工链条诊断。进销不匹配是虚开发票的核心线索。', items:[
+      {name:'进销毛利率分析', fn:'_domain_profit_analysis', line:'12203', desc:'进项品名vs销项品名交叉映射 · 进销比自动计算 · 有进无销/有销无进触发制造业加工诊断 · BOM表需求判断'},
+      {name:'发票实质性审计', fn:'_domain_invoice_audit', line:'14966', desc:'五层递进审计——①格式合规检查 ②同品名单价波动 ③加工费专项（外发加工真实性）④金额/数量合理性 ⑤进销品名映射+BOM缺失检测'},
+      {name:'存货周转预警', fn:'_domain_inventory_turnover', line:'12393', desc:'周转率计算+库龄分析+库存结构合理性 · 入库>>出库→库存积压预警 · 仓储成本vs库存价值验证'},
+      {name:'发票存货付款三角验证', fn:'_domain_triangle_invoice_inventory_payment', line:'13949', desc:'进项发票金额 vs 存货入库金额 vs 银行付款金额三向验证——票货分离、虚开嫌疑、付款对象不一致'},
     ]},
-    {cat:'资金流分析', color:'#dc2626', desc:'银行流水收款/付款结构，资金流向追踪，付款方身份核实，异常交易检测。', items:[
-      {name:'资金流向追踪', fn:'_domain_fund_flow_mapping', line:'13806', desc:'收款方/付款方分类 · 个人转账/关联方/税费 · 第三方占比预警 · 付款方身份核实'},
-      {name:'异常交易时间分析', fn:'_domain_temporal_anomaly', line:'14298', desc:'非工作时间交易 · 特殊日期突击交易检测 · 月末集中行为识别'},
+    // ══════ 三、供应商与客户分析（4域） ══════
+    {cat:'三、供应商与客户分析', color:'#f59e0b', desc:'供应商集中度、地理分布、身份验证、空壳识别；客户结构分析与收入穿透。供应商群集和关联交易是偷逃税的高发区。', items:[
+      {name:'供应商穿透分析', fn:'_domain_supplier_deep', line:'12286', desc:'前3大供应商占比 · 同城群集检测 · 名称异常检测（短名/***遮掩）· 占比>70%触发依赖预警'},
+      {name:'供应商画像分析', fn:'_domain_supplier_profiling', line:'13757', desc:'行业/地域/注册资本/成立时间综合分析 · 新注册零实缴→可疑交易方 · 高频低额（刷票嫌疑）· 单月突击开票检测'},
+      {name:'上下游穿透分析', fn:'_domain_supply_chain_deep', line:'14661', desc:'客户vs供应商关联关系穿透 · 同一企业既是客户又是供应商→对倒开票嫌疑 · 名称相似度群集 · 地域群集 · 进销双向交易循环'},
+      {name:'客户维度三源穿透', fn:'_domain_customer_revenue_matching', line:'13317', desc:'按客户匹配开票金额vs收款金额 · 五时点对比法 · 大额无开票收款 · 整数特征可疑 · 付款方名称不一致检测'},
     ]},
-    {cat:'交叉验证（多源串联）', color:'#7c3aed', desc:'两个以上数据源相互比对，验证数据一致性。单源异常可能是巧合，多源交叉指向真实问题。', items:[
-      {name:'多源交叉验证', fn:'_domain_multi_source_cross', line:'13111', desc:'资金流+发票流+货物流三源采购验证 · 收入+发票双源 · 合同+发票+付款三角'},
-      {name:'发票存货付款三角验证', fn:'_domain_triangle_invoice_inventory_payment', line:'13949', desc:'进项发票vs存货入库vs银行付款三向验证——票货分离、虚开嫌疑'},
-      {name:'凭证发票收入对比', fn:'_domain_voucher_invoice_revenue_compare', line:'13416', desc:'主营业务收入vs销项发票金额vs银行入账三源对比 · 偏差>20%预警'},
-      {name:'利润现金流矛盾检测', fn:'_domain_profit_cashflow_gap', line:'14268', desc:'账面利润vs经营现金流背离 · 利润正/现金流负→利润质量存疑'},
+    // ══════ 四、交叉验证（5域） ══════
+    {cat:'四、多源交叉验证', color:'#7c3aed', desc:'两源以上数据相互比对，验证数据一致性。单源异常可能是巧合，多源交叉同时指向同一问题才是高置信度发现。', items:[
+      {name:'多源交叉验证', fn:'_domain_multi_source_cross', line:'13111', desc:'资金流+发票流+货物流三源采购验证 · 收款vs开票偏差 · 薪酬三源（工资表vs银行vs个税）· 税务四源交叉'},
+      {name:'凭证发票收入对比', fn:'_domain_voucher_invoice_revenue_compare', line:'13416', desc:'主营业务收入 vs 销项发票金额 vs 银行入账三源对比 · 偏差>20%→收入确认存疑 · 趋势对比（月度/季度）'},
+      {name:'利润现金流矛盾检测', fn:'_domain_profit_cashflow_gap', line:'14268', desc:'账面利润 vs 经营现金流背离 · 利润正/现金流负→利润质量存疑 · 应收激增伴随现金枯竭→可能虚增收入'},
+      {name:'收入时间线调查', fn:'_domain_revenue_timeline', line:'13500', desc:'收入月度波动异常检测 · 开票vs银行入账月度错配 · 年末突击开票 · 季度末/月末集中确认收入'},
+      {name:'扩展审查规则', fn:'_domain_advanced_rules', line:'13392', desc:'大额整数交易 · 周末交易 · 购销品名匹配度 · 发票连号检测 · 人均效能 · 发票备注栏合规 · 供应商名称异常'},
     ]},
-    {cat:'经营实质分析', color:'#059669', desc:'验证企业是否具备真实经营条件——有无费用/场地/仓储/运输/人员。空壳企业最怕经营实质分析。', items:[
-      {name:'经营实质分析', fn:'_domain_business_substance', line:'12618', desc:'基础经营费用检测 · 企业能力评估 · 发票与人员规模匹配 · 业务链条完整性'},
-      {name:'经营实质地理分析', fn:'_domain_business_premise_geo', line:'14158', desc:'供应商/客户/加工商地址三角验真 · 重物运输成本 · 点→面推理全链条经营实质'},
-      {name:'人员与业务匹配', fn:'_domain_workforce_profiling', line:'13894', desc:'员工vs营收合理性 · 人均薪资vs行业均值 · 社保人数vs工资人数匹配'},
+    // ══════ 五、经营实质分析（3域） ══════
+    {cat:'五、经营实质分析', color:'#059669', desc:'验证企业是否具备真实经营条件——有无费用/场地/仓储/运输/人员。空壳企业最怕经营实质分析——没有经营痕迹却有大量开票。', items:[
+      {name:'经营实质分析', fn:'_domain_business_substance', line:'12618', desc:'7维度综合评估——①基础费用6要素（租金/水电/物业/办公/通讯/交通）②购销弹性分析 ③人均产值 ④资金沉淀率 ⑤固定资产折旧缺失 ⑥服务行业适应性闸门 ⑦综合预警评分'},
+      {name:'经营实质地理分析', fn:'_domain_business_premise_geo', line:'14158', desc:'供应商/客户/加工商地址三角验真 · 跨省重物运输成本推算 · 无物流发票→运输真实性存疑 · 点→面推理全链条经营实质'},
+      {name:'人员与业务匹配', fn:'_domain_workforce_profiling', line:'13894', desc:'人均营收vs行业均值 · 人均薪资合理性 · 工资增长率vs收入增长率 · 社保人数vs工资人数一致性 · 员工规模vs业务量匹配'},
     ]},
-    {cat:'资料完备度', color:'#2563eb', desc:'14类稽查必查资料逐一检测，合同需求四层自动分层。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
-      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'14类稽查必查资料逐一检测 · 合同需求四层分层（必签/应签/可免/小额）'},
+    // ══════ 六、资料完备度 ══════
+    {cat:'六、资料完备度与情报', color:'#2563eb', desc:'14类稽查必查资料逐一检测，合同需求四层自动分层。资料情报自动分类并统计收款结构/付款方/发票模式。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
+      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'14类稽查必查资料逐项检测 · 合同需求四层分层（必签/应签/可免/小额）· 缺失资料后果列明 · 综合资料完备度评分'},
+      {name:'资料情报摘要', fn:'_extract_material_intel', line:'16992', desc:'银行收款类型自适应分类 · 付款方企业/个人/税务/银行占比 · 进销发票结构 · 凭证收入成本费用汇总 · 大额交易(>50万)识别'},
     ]},
-    {cat:'发票分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性。每一张发票都是稽查线索。', items:[
-      {name:'发票深度特征', fn:'_domain_invoice_deep', line:'12763', desc:'开具时间分布 · 价格区间 · 金额尾数 · 连续性 · 顶额开票检测'},
-      {name:'发票生命周期', fn:'_domain_invoice_lifecycle', line:'12576', desc:'未认证占比 · 超期未认证 · 税率异常 · 类型分布 · 红冲作废追踪'},
-      {name:'红冲作废发票追踪', fn:'_domain_red_void_invoice', line:'14244', desc:'红冲率+作废率+时间模式+金额占比+集中度 · 月末/季末突击'},
+    // ══════ 七、发票分析（3域） ══════
+    {cat:'七、发票深度分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性/服务vs货物占比。每一张发票都是稽查线索，发票异常模式能暴露系统性风险。', items:[
+      {name:'发票深度特征', fn:'_domain_invoice_deep', line:'12763', desc:'服务类发票占比（服务行业特征判断）· 普票vs专票占比 · 开具时间分布 · 价格区间集中度 · 金额尾数分析 · 顶额开票检测'},
+      {name:'发票生命周期', fn:'_domain_invoice_lifecycle', line:'12576', desc:'未认证占比统计 · 超期未认证预警 · 税率异常检测（同一品名不同税率）· 发票类型分布 · 红冲/作废率趋势'},
+      {name:'红冲作废发票追踪', fn:'_domain_red_void_invoice', line:'14244', desc:'红冲率+作废率+时间集中度模式+金额集中度 · 月末/季末突击红冲作废 · 同一对方频繁红冲→异常交易关系'},
     ]},
-    {cat:'合同与凭证', color:'#0f172a', desc:'合同流与发票流/资金流比对；凭证规范性、科目使用、借贷平衡检查。', items:[
-      {name:'合同比对分析', fn:'_domain_contract_comparison', line:'12592', desc:'合同与发票/付款的对应关系验证 · 合同覆盖度+金额偏差检测'},
-      {name:'凭证科目异常', fn:'_domain_voucher_anomaly', line:'12320', desc:'科目使用合规性 · 借贷方向 · 摘要规范性 · 异常科目组合检测'},
-      {name:'凭证发票收入对比', fn:'_domain_voucher_invoice_revenue_compare', line:'13416', desc:'三源收入交叉验证——主营业务收入 vs 销项发票 vs 银行入账'},
+    // ══════ 八、合同与凭证（2域） ══════
+    {cat:'八、合同与凭证', color:'#0f172a', desc:'合同流与发票流/资金流比对；凭证规范性、科目使用、借贷平衡检查。凭证是财务数据的原子单元。', items:[
+      {name:'合同比对分析', fn:'_domain_contract_comparison', line:'12592', desc:'发票客户vs合同当事方一致性 · 合同金额vs发票金额偏差 · 合同覆盖度评估 · 无合同大额交易风险标注'},
+      {name:'凭证科目异常', fn:'_domain_voucher_anomaly', line:'12320', desc:'科目使用合规性检查 · 借贷方向正确性 · 分录借贷平衡 · 异常科目组合检测 · 凭证号连续性验证'},
     ]},
-    {cat:'税务与社保', color:'#065f46', desc:'各税种申报数据与发票/银行数据交叉比对，社保与工资数据一致性验证。', items:[
-      {name:'税务缴纳一致性', fn:'_domain_tax_consistency', line:'12524', desc:'银行税费支出vs发票推算应纳税额差异 · 申报表vs实际数据偏差'},
-      {name:'增值税申报比对', fn:'_domain_vat_declaration_compare', line:'14569', desc:'销项税额/进项税额/应纳税额vs申报表 · 差异>1000元预警'},
-      {name:'工资社保比对', fn:'_domain_salary_ss_hf_compare', line:'12546', desc:'工资表vs社保明细交叉验证——基数匹配 · 人数一致 · 比例合规'},
+    // ══════ 九、税务与社保（3域） ══════
+    {cat:'九、税务与社保', color:'#065f46', desc:'各税种申报数据与发票/银行数据交叉比对，社保与工资数据一致性验证。申报表与基础数据的偏差是偷漏税的直接证据。', items:[
+      {name:'税务缴纳一致性', fn:'_domain_tax_consistency', line:'12524', desc:'银行税费支出vs发票推算应纳税额差异 · 申报表vs实际数据偏差 · 税种覆盖完整性检查'},
+      {name:'增值税申报比对', fn:'_domain_vat_declaration_compare', line:'14569', desc:'进项发票vs认证抵扣vs申报进项三方比对 · 销项vs申报 · 差异>1000元→预警 · 期末留抵税额验证'},
+      {name:'工资社保比对', fn:'_domain_salary_ss_hf_compare', line:'12546', desc:'工资表vs社保明细交叉验证——缴费基数匹配 · 参保人数一致 · 单位/个人缴纳比例合规 · 公积金缴存一致性'},
     ]},
-    {cat:'资产与关联交易', color:'#047857', desc:'固定资产折旧匹配、无形资产摊销、关联交易穿透、资产损失核实。', items:[
-      {name:'资产折旧费用匹配', fn:'_domain_depreciation_match', line:'14373', desc:'固定资产采购vs折旧匹配 · 有资产无折旧→利润虚增'},
-      {name:'关联交易穿透检测', fn:'_domain_related_party_check', line:'14339', desc:'名称相似度+同法人+同注册地+同电话→关联交易未披露'},
+    // ══════ 十、资产与关联交易（2域） ══════
+    {cat:'十、资产与关联交易', color:'#047857', desc:'固定资产折旧匹配、关联交易穿透、资产损失核实。关联交易未披露是利润转移和资产掏空的常见手法。', items:[
+      {name:'资产折旧费用匹配', fn:'_domain_depreciation_match', line:'14373', desc:'固定资产采购vs累计折旧匹配 · 有资产无折旧→利润虚增 · 折旧年限合理性 · 资产减值与处置核实'},
+      {name:'关联交易穿透检测', fn:'_domain_related_party_check', line:'14339', desc:'名称相似度比对 · 同法人代表 · 同注册地 · 同联系电话→关联关系未披露 · 买卖双方重叠（同名对倒）'},
     ]},
-    {cat:'行业对标与规则', color:'#6366f1', desc:'66行业基准库对标，' + pc('rules','1514') + '条规则全覆盖验证，审计基础检查。', items:[
-      {name:'行业对标分析', fn:'_domain_industry_benchmark', line:'14475', desc:'66个行业基准——毛利率/税负率/进销比/人均营收/费用率五维对标'},
-      {name:'规则全覆盖验证', fn:'_domain_rule_coverage', line:'15114', desc:'' + pc('rules','1514') + '条规则逐条检查 · 数据不足→资料缺口 · 不作无依据结论'},
-      {name:'跨域关联推理', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点→多域印证→10条跨域证据链 · A域+B域+C域异常→闭环'},
+    // ══════ 十一、行业对标与规则引擎（4域） ══════
+    {cat:'十一、行业对标与规则引擎', color:'#6366f1', desc:"66行业基准库对标，1514条规则全覆盖验证。行业对标告诉你“正常范围”，规则引擎告诉你“合规底线”。", items:[
+      {name:'行业对标分析', fn:'_domain_industry_benchmark', line:'14475', desc:'66个行业基准——毛利率/税负率/进销比/人均营收/费用率五维对标 · 偏离度>2σ→行业异常预警 · 自动匹配行业代码'},
+      {name:'规则全覆盖验证', fn:'_domain_rule_coverage', line:'15114', desc:'1514条规则逐条检查 · 已触发vs未触发分类 · 未触发→标注资料缺口 · 数据不足时作无依据结论（不作无证据判断）'},
+      {name:'跨域关联推理', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点发现→多域交叉印证→证据链闭环 · 7条内置跨域证据链（JSON驱动+内置回退）· A域+B域+C域同时异常→高置信度'},
+      {name:'跨域线索链', fn:'_domain_cross_domain_clues', line:'14000', desc:'从cross_domain_clues.json加载跨域线索定义 · 线索→发现→证据三级转换 · 叙事生成器集成 · 线索链可视化追溯'},
+    ]},
+    // ══════ 十二、跨域分析链 ══════
+    {cat:'十二、跨域分析链', color:'#8b5cf6', desc:'跨域分析链是最上层的推理引擎——它不直接分析数据，而是基于所有域的发现结果进行二阶推理，从交叉异常中推导出更深层的稽查结论。', items:[
+      {name:'跨域分析链', fn:'_domain_cross_domain_analysis', line:'14080', desc:'从cross_domain_analysis.json加载分析路径 · 二阶推理引擎——基于域发现而非原始数据 · 多域异常→综合结论 · 因果链追溯'},
     ]},
   ];
 
@@ -791,7 +812,7 @@ function renderDomainAnalysisStatic() {
       + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 0;line-height:1.7">' + escHtml(g.desc) + '</div>';
 
     g.items.forEach(function(d) {
-      html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:2px solid ' + g.color + ';background:#fafafa;border-radius:0 6px 6px 0">'
+      html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:2px solid ' + g.color + ';background:#fff;border-radius:0 6px 6px 0">'
         + '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(d.name) + '</div>'
         + '<div style="font-size:11px;color:#94a3b8">' + escHtml(d.fn) + '() · 行' + d.line + '</div>'
@@ -806,7 +827,7 @@ function renderDomainAnalysisStatic() {
   html += '</div>';
 
   // ══════ 四、域间关系 ══════
-  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fff;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">四、域间关系与数据流</h3>'
     + '<div style="font-size:13px;color:#475569;line-height:2.2">'
     + '<strong>资料完备度</strong>（顶层）→ 决定所有域分析的置信度上限。缺合同→合同比对无法运行→标记缺口。<br>'
@@ -902,7 +923,7 @@ function renderDomainAnalysisResult(report) {
 
       // 展开的发现详情
       if (hasFindings) {
-        html += '<div id="dd-' + di + '" style="display:none;margin-top:12px;padding:12px 16px;background:#fafafa;border-radius:6px">';
+        html += '<div id="dd-' + di + '" style="display:none;margin-top:12px;padding:12px 16px;background:#fff;border-radius:6px">';
         d.findings.forEach(function(f) {
           var lvlColor = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#22c55e');
           var lvlBg = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
@@ -985,12 +1006,12 @@ function renderCrossDomainStaticContent(chains) {
 
   html += '<div id="cde-intro" style="margin-bottom:40px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域证据链</h3>'
-    + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
     + '跨域证据链是系统最高价值的输出——它不依赖单一数据源的孤立异常，而是将来自不同数据域（资金流、发票流、'
     + '经营实质、资料完备等）的发现串联起来，形成多源交叉验证的证据闭环。单维度触发视为孤证，不形成证据链闭环。'
     + '只有≥2个维度同时命中，才算形成有效证据链。这是税务稽查中"证据链"概念在AI系统中的实现。'
     + '</p>'
-    + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+    + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
     + '<strong>工作流程</strong>：domain_results中发现 → 关键词匹配各链维度 → 累计触发维度数 → 达到min_evidence阈值 → 生成跨域证据链发现 → 多源交叉闭环保高风险输出。'
     + '</div>'
     + '</div>';
@@ -1024,7 +1045,7 @@ function renderCrossDomainStaticContent(chains) {
       + '</div>'
 
       // 描述
-      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>'
 
       // 维度详情
       + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
@@ -1047,7 +1068,7 @@ function renderCrossDomainStaticContent(chains) {
       + '</div>';
   });
 
-  html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+  html += '<div style="margin-top:20px;padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
     + '<strong>证据链 ≠ 结论</strong>：每条证据链需要≥2个维度同时命中才能触发。单维度触发视为孤证，不形成证据链闭环。'
     + '换一个稽查员拿同样资料，同样会得出相同结论——这就是证据链闭环的意义。'
     + '</div>';
@@ -1152,10 +1173,10 @@ function renderCrossDomainDynamic(report) {
 
     // 统计
     + '<div style="display:flex;gap:12px;margin-bottom:32px">'
-    + '<div style="flex:1;text-align:center;padding:14px;background:#f8fafc;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + allEvidence.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链发现</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + allEvidence.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链发现</div></div>'
     + '<div style="flex:1;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
     + '<div style="flex:1;text-align:center;padding:14px;background:#eff6ff;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">' + chainExecution.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
-    + '<div style="flex:1;text-align:center;padding:14px;background:#f8fafc;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + triggeredChains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">含规则</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + triggeredChains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">含规则</div></div>'
     + '</div>';
 
   // 证据链闭环
@@ -1181,7 +1202,7 @@ function renderCrossDomainDynamic(report) {
       var lvlBg = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
       html += '<div style="padding:14px 16px;margin-bottom:6px;background:' + lvlBg + ';border-left:3px solid ' + lvlColor + ';border-radius:0 6px 6px 0">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:6px">' + escHtml(f.type || '') + '</div>'
-        + (f.description ? '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:6px">' + escHtml(f.description) + '</div>' : '')
+        + (f.description ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(f.description) + '</div>' : '')
         + (f.how_found ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">溯源：' + escHtml(f.how_found) + '</div>' : '')
         + (f.tax_impact ? '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px">纳税影响：' + escHtml(f.tax_impact) + '</div>' : '')
         + (f.suggestion ? '<div style="font-size:12px;color:#94a3b8">建议：' + escHtml(f.suggestion) + '</div>' : '')
@@ -1386,7 +1407,7 @@ function renderChainsList(chains) {
         stepList.forEach(function(s, si) {
           var sText = typeof s === 'string' ? s : (s.step || s.action || s.rule_item || '');
           var lvl = s.level || '';
-          html += '<div style="padding:8px 14px;margin-bottom:4px;background:#fafafa;border-radius:4px;font-size:13px;color:#475569">'
+          html += '<div style="padding:8px 14px;margin-bottom:4px;background:#fff;border-radius:4px;font-size:13px;color:#475569">'
             + '<span style="color:#94a3b8;margin-right:8px">#' + (si + 1) + '</span>'
             + (lvl ? '<span style="color:' + (lvl==='高风险'?'#dc2626':lvl==='中风险'?'#f59e0b':'#94a3b8') + ';margin-right:8px">[' + lvl + ']</span>' : '')
             + escHtml(sText)
@@ -1705,7 +1726,7 @@ async function loadAnalyzeOverview() {
     + '</div></div>';
 
   // ══════ 一、分析链概述 ══════
-  html += '<div style="margin-bottom:48px;padding:20px 24px;background:#f8fafc;border-radius:8px">'
+  html += '<div style="margin-bottom:48px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 12px">一、什么是分析链</h3>'
     + '<p style="font-size:14px;color:#475569;line-height:2.2;margin:0 0 16px">'
     + '分析链是税务稽查系统的核心执行管线，负责将用户上传的原始资料转化为结构化稽查报告。'
@@ -1726,7 +1747,7 @@ async function loadAnalyzeOverview() {
   // ══════ 二、七步执行流程详解 ══════
   html += '<div style="margin-bottom:48px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">二、七步执行流程详解</h3>'
-    + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 20px">'
+    + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
     + '分析链的执行过程分为七个步骤，每一步都是前一步的延伸和深化。下面详细说明每一步的输入、处理逻辑和输出。'
     + '</p>';
 
@@ -1767,7 +1788,7 @@ async function loadAnalyzeOverview() {
   ];
 
   steps.forEach(function(s) {
-    html += '<div style="padding:16px 20px;margin-bottom:6px;border-left:3px solid #2563eb;background:#fafafa;border-radius:0 6px 6px 0">'
+    html += '<div style="padding:16px 20px;margin-bottom:6px;border-left:3px solid #2563eb;background:#fff;border-radius:0 6px 6px 0">'
       + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px"><span style="font-size:18px">' + s.icon + '</span> ' + s.n + ' ' + s.title + '</div>'
       + '<div style="font-size:13px;color:#475569;line-height:2">' + s.desc + '</div>'
       + '</div>';
@@ -1776,9 +1797,9 @@ async function loadAnalyzeOverview() {
   html += '</div>';
 
   // ══════ 三、全链路稽查质量保障体系 ══════
-  html += '<div style="margin-bottom:48px;padding:24px;background:#f8fafc;border-radius:8px">'
+  html += '<div style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、全链路稽查质量保障体系</h3>'
-    + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 16px">'
+    + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 16px">'
     + '全链路稽查质量保障体系是一个开放的质量保障生态系统，从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。'
     + '体系持续扩展新的保障维度，随系统发展而演进，不固定为"X合一"。下面按五大层次展示当前体系内容。'
     + '</p>'
@@ -1820,9 +1841,9 @@ async function loadAnalyzeOverview() {
     + '</div>'
     + '</div>';
   // ══════ 四、稽查方法论（㉛条详解）══════
-  html += '<div style="margin-bottom:48px;padding:24px;background:#fafafa;border-radius:8px">'
+  html += '<div style="margin-bottom:48px;padding:24px;background:#fff;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（33条已全部代码化）</h3>'
-    + '<p style="font-size:14px;color:#64748b;line-height:2;margin:0 0 20px">'
+    + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
     + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
     + '</p>'
     + '<div style="font-size:13px;color:#475569;line-height:2.2">'
@@ -1890,7 +1911,7 @@ function renderAnalyzeResult(report) {
 
   // ══════ 一、什么是分析链 ══════
   h += '<div style="margin-bottom:40px">'
-    + '<div style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '分析链是税务稽查系统的核心执行管线——<strong>七步串联的数据处理流水线</strong>，数据在管线中单向流动，不丢失、不污染、不截断。'
     + '从资料扫描开始，经过多轮交叉验证，最终形成证据闭环：资料驱动+诚实边界+交叉推断+明细支撑。'
     + '</div>'
@@ -1980,7 +2001,7 @@ function renderAnalyzeResult(report) {
     {id:'㉟', name:'资金回流检测法（全行业适用）', desc:'三源比对中发现付款方与收款方有重叠时，追踪资金是否形成闭环（A付B→B付C→C付回A）。资金在三方及以上主体间形成闭环+间隔<30天+金额相近→高概率虚开发票。代码：main.py 三源比对+资金回流检测段。全行业各企业适用。'}
   ];
 
-  h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafafa;border-radius:8px">'
+  h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fff;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉛条已全部代码化）</h3>'
     + '<div id="methods-body" style="font-size:13px;color:#475569;line-height:2">加载中...</div>'
     + '</div>';
@@ -2023,7 +2044,7 @@ function renderAnalyzeResult(report) {
   }, 100);
 
   // ══════ 六、全链路稽查质量保障体系 ══════
-  h += '<div style="margin-bottom:32px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #059669">'
+  h += '<div style="margin-bottom:32px;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #059669">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px">全链路稽查质量保障体系</h3>'
     + '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">开放生态系统 · 五大层次 · 持续扩展</p>'
     + '<div style="font-size:12px;color:#475569;line-height:2">'
@@ -2098,12 +2119,12 @@ function loadCrossDomainClues() {
       // ══════ 一、概述 ══════
       html += '<div id="cdc-intro" style="margin-bottom:40px">'
         + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域线索链</h3>'
-        + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+        + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
         + '跨域线索链是从单一数据异常出发，跨多个数据域进行串联调查的标准化路径。每条线索链定义了从首域发现到多域验证的完整调查步骤，'
         + '确保每个疑点都被多源数据交叉验证——不依赖单一数据源的孤立异常下结论。'
         + '与跨域证据链不同：线索链定义的是<strong>调查路径</strong>（怎么查），证据链定义的是<strong>验证标准</strong>（怎么判）。'
         + '</p>'
-        + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+        + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
         + '<strong>与跨域证据链的关系</strong>：线索链（调查路径）→ 证据链（验证标准）→ 结论。线索链告诉稽查人员"从哪里开始查，每一步查什么"，证据链告诉稽查人员"满足什么条件才算发现问题"。'
         + '</div>'
         + '</div>';
@@ -2132,7 +2153,7 @@ function loadCrossDomainClues() {
           + '<span style="font-size:11px;color:#94a3b8">需≥' + c.min_evidence + '域</span>'
           + '</div>'
           + '</div>'
-          + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>'
 
           // 调查路径
           + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
@@ -2153,7 +2174,7 @@ function loadCrossDomainClues() {
           + '</div>';
       });
 
-      html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+      html += '<div style="margin-top:20px;padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
         + '<strong>线索链 ≠ 证据链</strong>：线索链告诉你"怎么查"——从哪个域开始、每一步查什么、需要什么资料；证据链告诉你"怎么判"——满足什么条件才算形成证据闭环。'
         + '两者结合使用：线索链指导取证，证据链指导认证。'
         + '</div>';
@@ -2202,12 +2223,12 @@ function loadCrossDomainAnalysis() {
       // ══════ 一、概述 ══════
       html += '<div id="cda-intro" style="margin-bottom:40px">'
         + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是跨域分析链</h3>'
-        + '<p style="font-size:13px;color:#64748b;line-height:2;margin:0 0 16px">'
+        + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
         + '跨域分析链定义的是<strong>推理路径</strong>——从一个域的异常信号开始，通过多步逻辑推理，逐步扩展到其他域，'
         + '最终得出跨域综合结论。每条链都有<strong>回退点</strong>——只要某个环节能提供合理解释，风险就会降级或消除。'
         + '与线索链（调查路径）和证据链（验证标准）不同，分析链关注的是<strong>推理逻辑</strong>本身。'
         + '</p>'
-        + '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
+        + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
         + '<strong>三个跨域链的关系</strong><br>'
         + '🔎 跨域线索链 → 告诉稽查人员「怎么查」（调查步骤）<br>'
         + '🔗 跨域证据链 → 告诉稽查人员「怎么判」（验证标准）<br>'
@@ -2240,7 +2261,7 @@ function loadCrossDomainAnalysis() {
           + '<div style="font-size:13px;color:#475569;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发信号：</span>' + escHtml(c.trigger_signal) + '</div>'
 
           // 描述
-          + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>'
 
           // 推理链
           + '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px">'
@@ -2278,7 +2299,7 @@ function loadCrossDomainAnalysis() {
           + '</div>';
       });
 
-      html += '<div style="margin-top:20px;padding:16px 20px;background:#fafafa;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
+      html += '<div style="margin-top:20px;padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
         + '<strong>跨域分析链的核心价值</strong>：不是给出结论，而是展示推理过程。每一步从哪个域出发、在哪个域发现了什么、从而导向哪个域。'
         + '更重要的是——每一步都有回退条件。最终结论取决于每个环节是否可以被合理解释——这正是税务稽查中「证据链」思维在AI系统中的完整实现。'
         + '</div>';
@@ -2344,7 +2365,7 @@ function renderFilterResult(report) {
 
   // ═══ 一、过滤规则体系 ═══
   html += '<div id="mf-static" class="mf-sec"><div class="mf-sec-title"><span class="n">1</span>过滤规则体系</div>';
-  html += '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">方法论过滤器是稽查报告质量的最后防线——在跨域协商引擎消解域间矛盾之后、报告生成之前执行。七类过滤规则严格按序执行，任何一类规则的输出是下一类的输入。最终只保留可查证、可追溯、可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
+  html += '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">方法论过滤器是稽查报告质量的最后防线——在跨域协商引擎消解域间矛盾之后、报告生成之前执行。七类过滤规则严格按序执行，任何一类规则的输出是下一类的输入。最终只保留可查证、可追溯、可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
 
   var rules = [
     {title:'① 稽查重点保护', icon:'🛡️', color:'#2563eb', badge:'12类', desc:'执行顺序：第一步（先于所有过滤规则）。12类稽查重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）在过滤器启动前即被标记为level_fixed=true，此后所有过滤操作都跳过这些发现。三层保护：后端修正→过滤器绕过→前端标记。设计哲学：宁可10条假阳性进入报告，也不能让1条真阳性被过滤掉。'},
@@ -2490,7 +2511,7 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   // ══ TOC sidebar layout ══
-  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:1.8;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
+  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:1.8;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
   html += '<div class="ar-layout">';
 
   // TOC
@@ -2516,7 +2537,7 @@ function renderAiRules(container) {
   // ══════ 逐分类渲染 ══════
   categories.forEach(function(cat) {
     html += '<div id="ar-' + cat.id + '" class="ar-sec"><div class="ar-sec-title">'+cat.icon+' '+cat.name+' · '+cat.rules.length+'条</div>';
-    html += '<p style="font-size:13px;color:#475569;line-height:2;margin:0 0 16px">'+cat.desc+'</p>';
+    html += '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'+cat.desc+'</p>';
 
     cat.rules.forEach(function(r) {
       var isTieLv = r.level === '铁律';
@@ -2668,7 +2689,7 @@ function renderQualitySystem(container) {
         var codePos = m.code_position || '';
         var callLocs = m.call_locations || [];
         
-        html += '<div style="margin-bottom:16px;padding:16px 20px;background:#f8fafc;border-radius:8px;border-left:3px solid #2563eb">'
+        html += '<div style="margin-bottom:16px;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #2563eb">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
           + '<span style="font-size:11px;color:#94a3b8;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'">展开/折叠</span>'

@@ -2440,6 +2440,12 @@ def _run_analyze(company_id, db, progress_callback=None):
         material_intel = {}
     comprehensive["material_intel"] = material_intel
     pipeline_log.append(f"资料情报提取: 已完成{len(material_intel)}个模块的关键信息提取")
+    
+    # 将资料情报作为可见域分析结果注入
+    _intel_findings = _build_material_intel_findings(material_intel, bank_txs, clean_invs)
+    if _intel_findings:
+        all_findings.extend(_intel_findings)
+        pipeline_log.append(f"资料情报摘要: {len(_intel_findings)}条结构化发现")
 
     # ── 金税四期式多因子风险评分引擎 ──
     try:
