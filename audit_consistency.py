@@ -183,19 +183,32 @@ def sync_all(authority):
     from glob import glob
     changes = []
     
-    # 数值映射：过时值→正确值
+    rc = authority.get("rules_count", 1608)
+    cc = authority.get("clue_chains", 1215)
+    ec = authority.get("evidence_chains", 22)
+    ac = authority.get("analysis_chains", 13)
+    mc = authority.get("methodology_count", 1174)
+    tc = authority.get("total_chains", 1250)
+    dc = authority.get("domain_functions", 39)
+    
+    # 数值映射：可能在文件中出现的旧值→正确的权威值
     value_map = {
-        "33条方法论": "33条方法论",
-        "33条方法": "33条方法",
-        "33条实战方法论": "33条实战方法论",
-        "1514条": "1514条",
-        "1514条": "1514条",
-        "396条线索": "396条线索",
-        "745条证据": "745条证据",
-        "1174条": "1174条",
-        "36个分析域": "36个分析域",
-        "36个域分析": "36个域分析",
-        "25维度": "25维度",
+        # 规则数：多种旧写法都映射到当前权威值
+        "1514条": f"{rc}条",
+        # 线索链
+        "396条线索": "1215条线索(41可执行+1174方法论)",
+        "41条线索": f"{cc}条",
+        # 证据链
+        "745条证据": "22条跨域证据",
+        # 方法论
+        "33条方法论": "1174条方法链(legacy)",
+        "33条方法": "1174条方法链",
+        "33条实战方法论": "1174条方法链",
+        # 总链
+        "1174条": f"{tc}条",
+        # 域分析
+        "36个分析域": f"{dc}个分析域",
+        "36个域分析": f"{dc}个域分析",
     }
     
     for fp in glob("static/js/*.js") + glob("engine/*.py") + glob("*.py"):
@@ -236,12 +249,12 @@ def sync_memory_docstring(authority):
     changes = []
     
     # 获取权威数据
-    rc = authority.get("rules_count", 1514)
-    cc = authority.get("clue_chains", 396)
-    ec = authority.get("evidence_chains", 745)
-    mc = authority.get("methodology_count", 33)
-    tc = authority.get("total_chains", 1174)
-    dc = authority.get("domain_functions", 36)
+    rc = authority.get("rules_count", 1608)
+    cc = authority.get("clue_chains", 1215)
+    ec = authority.get("evidence_chains", 22)
+    mc = authority.get("methodology_count", 1174)
+    tc = authority.get("total_chains", 1250)
+    dc = authority.get("domain_functions", 39)
     
     # 获取额外的动态数据
     ff = authority.get("file_fingerprints", 34)
