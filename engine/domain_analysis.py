@@ -12072,7 +12072,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
                     "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
                     "policy_ref": "印花税法 第5条、第8条",
-                    "category": "印花税合规", "domain": "印花税检查",
+                    "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
                 })
         
         if vouchers and len(vouchers) > 0:
@@ -12084,7 +12084,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     "detail": f"存在{len(vouchers)}张凭证，未检测到营业账簿印花税支出。每本账簿贴花5元。",
                     "suggestion": "确认营业账簿印花税已缴纳。",
                     "policy_ref": "印花税法 税目税率表",
-                    "category": "印花税合规", "domain": "印花税检查",
+                    "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
                 })
         
         large_loans = []
@@ -12101,13 +12101,13 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                 "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
                 "suggestion": "核查借款合同印花税缴纳情况。",
                 "policy_ref": "印花税法 第5条",
-                "category": "印花税合规", "domain": "印花税检查",
+                "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
             })
         
         if not findings:
             findings.append({"type": "印花税 — 检查通过", "level": "信息", "score": 0,
                 "detail": "印花税基本检查未发现明显异常。",
-                "category": "印花税合规", "domain": "印花税检查"})
+                "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660})
     except Exception:
         pass
     return findings
@@ -12136,7 +12136,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "description": "发票流与凭证流收入差异反映收入确认时点不一致，需在汇算清缴中调整。",
                     "suggestion": "核实收入确认时点差异，确认纳税调增/调减。",
                     "policy_ref": "企业所得税法实施条例 第9条",
-                    "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                    "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         
         if bank_txs and pur_invs:
@@ -12150,7 +12150,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "description": "无票采购支出企业所得税前不得扣除，需纳税调增。",
                     "suggestion": "核查无票采购真实性，确认纳税调增金额。",
                     "policy_ref": "企业所得税法 第8条；国家税务总局公告2018年第28号",
-                    "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                    "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         
         if vouchers and inv_revenue > 0:
@@ -12168,13 +12168,13 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                         "detail": f"业务招待费{entertainment:,.0f}元，扣除限额{limit:,.0f}元，超限{entertainment-limit:,.0f}元需纳税调增。",
                         "description": "业务招待费扣除限额为发生额60%与收入5‰的孰低值。",
                         "policy_ref": "企业所得税法实施条例 第43条",
-                        "category": "企业所得税汇算", "domain": "CIT汇算清缴",
+                        "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                     })
         
         if not findings:
             findings.append({"type": "CIT汇算 — 初检通过", "level": "信息", "score": 0,
                 "detail": "企业所得税汇算清缴基础检查未发现明显异常。",
-                "category": "企业所得税汇算", "domain": "CIT汇算清缴"})
+                "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670})
     except Exception:
         pass
     return findings
@@ -12211,7 +12211,7 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
                 "description": "出口收入对应增值税退税核对。",
                 "suggestion": "核对出口退税申报表，确认退税率和退税金额准确。",
                 "policy_ref": "出口货物退（免）税管理办法",
-                "category": "出口退税", "domain": "出口退税验证",
+                "category": "出口退税", "domain": "出口退税验证", "rule_id": 999680,
             })
             
             if refund_received > 0 and abs(refund_received - estimated_refund) > estimated_refund * 0.3:
@@ -12222,7 +12222,7 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
                     "description": "退税偏差>30%需核查退税率差异或申报错误。",
                     "suggestion": "逐票核对出口退税申报明细。",
                     "policy_ref": "出口货物退（免）税管理办法",
-                    "category": "出口退税", "domain": "出口退税验证",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999680,
                 })
     except Exception:
         pass
