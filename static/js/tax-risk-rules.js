@@ -27,17 +27,16 @@ function renderTaxRiskRules(container) {
   if (!container) return;
   window.currentModule = '稽查指令';
 
-  container.innerHTML = ''
-    + '<div class="pipeline-page card card-fill">'
-    + '  <div style="margin-bottom:48px">'
-    + '    <h2 style="font-size:24px;font-weight:700;color:#0f172a;margin:0 0 6px">稽查指令</h2>'
-    + '    <p style="font-size:14px;color:#94a3b8;margin:0" id="risk-rules-count">1505 条稽查指令 · 按分类分组 · 每条含详细稽查标准和法律依据</p>'
-    + '  </div>'
-    + '  <div id="risk-rules-list"></div>'
-    + '  <div id="risk-rules-stats" style="text-align:center;padding:24px;font-size:13px;color:#94a3b8"></div>'
-    + '</div>';
+  container.innerHTML = '<style>.rr-layout{display:flex;gap:24px;max-width:1300px;margin:0 auto;padding:20px}.rr-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.rr-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.rr-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.rr-toc a:hover,.rr-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.rr-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.rr-main{flex:1;min-width:0}</style>'
+    + '<div class="rr-layout">'
+    + '<nav class="rr-toc" id="rr-toc"><div class="toc-title">📖 分类</div></nav>'
+    + '<div class="rr-main">'
+    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📋 稽查指令</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px" id="risk-rules-count">加载中...</p>'
+    + '<div id="risk-rules-list"></div>'
+    + '<div id="risk-rules-stats" style="text-align:center;padding:24px;font-size:13px;color:#94a3b8"></div>'
+    + '</div></div>';
 
-  // 每次进入页面都重新加载，不使用缓存
   loadTaxRiskRules();
 }
 
@@ -87,6 +86,21 @@ function renderTaxRiskRulesList() {
     return grouped[b].rules.length - grouped[a].rules.length;
   });
 
+  // 统计概览
+  var high = data.filter(function(r) { return (r.level === '极高风险' || r.level === '高风险'); }).length;
+  var mid = data.filter(function(r) { return r.level === '中风险'; }).length;
+  var low = data.filter(function(r) { return r.level === '低风险' || r.level === '良好'; }).length;
+
+  // 填充左侧目录
+  var tocEl = document.getElementById('rr-toc');
+  if (tocEl) {
+    tocEl.innerHTML = '<div class="toc-title">📖 ' + data.length + ' 条指令</div>'
+      + '<a href="#rr-stats">📊 统计总览</a>';
+    sortedCats.forEach(function(cat) {
+      tocEl.innerHTML += '<a href="#rr-cat-' + encodeURIComponent(cat) + '">' + (grouped[cat].icon||'📋') + ' ' + cat + ' <span class="cnt">' + grouped[cat].rules.length + '</span></a>';
+    });
+  }
+
   var html = '';
 
   // 统计概览
@@ -94,7 +108,7 @@ function renderTaxRiskRulesList() {
   var mid = data.filter(function(r) { return r.level === '中风险'; }).length;
   var low = data.filter(function(r) { return r.level === '低风险' || r.level === '良好'; }).length;
 
-  html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
+  html += '<div id="rr-stats" style="display:flex;gap:12px;margin-bottom:32px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + data.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">指令总数</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fef2f2;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + high + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + mid + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">中风险</div></div>'
@@ -107,7 +121,7 @@ function renderTaxRiskRulesList() {
     var catDesc = CATEGORY_DESCRIPTIONS[cat] || '';
     var catRules = group.rules;
 
-    html += '<div style="margin-bottom:40px">'
+    html += '<div id="rr-cat-' + encodeURIComponent(cat) + '" style="margin-bottom:40px">'
       + '<div style="margin-bottom:16px">'
       + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px">'
       + (group.icon ? '<span style="font-size:18px">' + group.icon + '</span> ' : '') + escHtml(cat)

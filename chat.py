@@ -75,7 +75,7 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
         if company:
             name = company.name or "未设置"
             ctype = company.company_type or "未填写"
-            scope = (company.business_scope or "")[:100]
+            scope = (company.business_scope or "")
             ctx_parts.append(f"当前企业：{name}（类型：{ctype}）")
             if scope.strip():
                 ctx_parts.append(f"经营范围：{scope}")

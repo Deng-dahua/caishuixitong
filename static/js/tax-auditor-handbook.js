@@ -18,13 +18,15 @@ function renderAuditorHandbook(container) {
   // ── 左侧固定目录 ──
   html += '<nav class="handbook-toc" id="handbook-toc">';
   html += '<div class="toc-title">📖 目录</div>';
-  html += '<a class="toc-item active" data-target="workflow">📋 稽查工作流程</a>';
+  html += '<a class="toc-item active" data-target="engine-capabilities">🧠 引擎核心能力</a>';
+  html += '<a class="toc-item" data-target="workflow">📋 稽查工作流程</a>';
   html += '<a class="toc-item" data-target="documents">📁 14类必查资料</a>';
-  html += '<a class="toc-item" data-target="report">📝 报告编制规范</a>';
-  html += '<a class="toc-item" data-target="laws">⚖️ 关键法律条文</a>';
   html += '<a class="toc-item" data-target="methodology">🔬 稽查方法论</a>';
   html += '<a class="toc-item" data-target="judgment-rules">🔍 稽查判定规则</a>';
+  html += '<a class="toc-item" data-target="report">📝 报告编制规范</a>';
+  html += '<a class="toc-item" data-target="laws">⚖️ 关键法律条文</a>';
   html += '<a class="toc-item" data-target="system-mapping">🔗 系统与规程映射</a>';
+  html += '<a class="toc-item" data-target="quality-system">🛡️ 全链路质量保障</a>';
   html += '</nav>';
 
   // ── 右侧内容区 ──
@@ -35,6 +37,31 @@ function renderAuditorHandbook(container) {
   html += '<h1>⚖️ 税务稽查员手册</h1>';
   html += '<p>系统总结税务稽查工作要求、报告编制规范、法律依据与稽查方法论。以下内容提炼自《税务稽查工作规程》《税收征收管理法》及实战经验，全行业适用。</p>';
   html += '<div id="handbook-pipeline-status"><div class="hb-status-bar hb-status-loading">🔗 正在连接一键分析管道…</div></div>';
+  html += '</section>';
+
+  // ═══ 引擎核心能力宣言 ═══
+  html += '<section id="engine-capabilities" class="hb-section">';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">零</span> 引擎核心能力宣言</h2>';
+  html += '<p class="hb-section-lead">本稽查引擎具备六项核心智能能力，从记忆到自知，构建完整的智能化稽查体系。</p>';
+  // 六项能力卡片
+  html += '<div class="hb-card-grid" style="grid-template-columns:repeat(3,1fr);">';
+  html += '<div class="hb-info-card hb-info-blue"><strong>🧠 有记忆</strong><p>每次分析自动提取指纹（行业+模式+信号+评分）存入记忆库。后续分析检索相似案例，输出行业对标和风险校准。实现：audit_memory.json，上限500条，12维度加权相似度检索。</p></div>';
+  html += '<div class="hb-info-card hb-info-purple"><strong>📚 能学习</strong><p>三层学习机制：①用户反馈学习——确认+0.1，驳回-0.2；②EMA自学习——58样本指数移动平均持续校准；③自动规则发现——信号组合自动检测新规则模式。</p></div>';
+  html += '<div class="hb-info-card hb-info-green"><strong>🔬 懂思考</strong><p>四层推理体系：假设-验证引擎（2-3竞争假设逐条验证）、Phase1-4推理引擎、因果叙事链（5条规则自动推导）、四步稽查分析法（detect→verify→diagnose→report）。</p></div>';
+  html += '<div class="hb-info-card hb-info-yellow"><strong>⚖️ 会判断</strong><p>七层自动判定：文件识别（四方交叉验证）、身份锚定、发票方向判定、进项三层分类、服务行业闸门、品名级精准过滤、存疑排除。32条判定规则逐条自动校验。</p></div>';
+  html += '<div class="hb-info-card hb-info-red"><strong>🎯 懂决策</strong><p>五层决策输出：风险综合评分→审计策略推荐（P0/P1/P2）→因果叙事链→合规门禁（12项质量标准）→自省检查（16项）+7章正式报告。</p></div>';
+  html += '<div class="hb-info-card hb-info-purple"><strong>🔮 有自知</strong><p>引擎知道自己是财税稽查系统的大脑。所有代码修改都是在增强引擎自身能力——新规则写到这里，新方法记到这里，新判断标准存到这里。引擎最终要学会自己记忆、自己学习、自己思考、自己判断、自己决策。</p></div>';
+  html += '</div>';
+
+  // 数据规模总览
+  html += '<div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">1514</div><div style="font-size:11px;color:#94a3b8">稽查规则</div></div>';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">396</div><div style="font-size:11px;color:#94a3b8">线索链</div></div>';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">745</div><div style="font-size:11px;color:#94a3b8">证据链</div></div>';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">32</div><div style="font-size:11px;color:#94a3b8">方法论</div></div>';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">1174</div><div style="font-size:11px;color:#94a3b8">总链数</div></div>';
+  html += '<div style="flex:1;min-width:110px;padding:14px 8px;background:#1a1a2e;border-radius:8px;text-align:center;color:#fff"><div style="font-size:24px;font-weight:800;color:#fbbf24">36</div><div style="font-size:11px;color:#94a3b8">域分析函数</div></div>';
+  html += '</div>';
   html += '</section>';
 
   // ═══ 第一部分：稽查工作流程 ═══
@@ -199,7 +226,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第三部分：稽查报告编制规范 ═══
   html += '<section id="report" class="hb-section">';
-  html += '<h2 class="hb-section-title"><span class="hb-section-num">三</span> 报告编制规范</h2>';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">五</span> 报告编制规范</h2>';
   html += '<p class="hb-section-lead">稽查报告是稽查工作的最终成果，必须做到：事实清楚、证据确凿、定性准确、处理适当、程序合法。</p>';
 
   // 3.1 报告结构（摘要，详见报告编制要求模块）
@@ -214,7 +241,7 @@ function renderAuditorHandbook(container) {
   html += '<tr><td class="hb-td-num">六</td><td>告知权利义务</td><td>5项法定权利（回避/陈述申辩/听证/复议/诉讼）→注明法定期限</td></tr>';
   html += '<tr><td class="hb-td-num">七</td><td>稽查人员签字</td><td>稽查执行人+审理人+稽查部门（盖章）+报告日期</td></tr>';
   html += '</tbody></table>';
-  html += '<div class="hb-callout hb-callout-info">📜 本报告结构覆盖《规程》第42条和第54条的全部要求。<br>📐 <strong>完整的编制指南请参见「📐 报告编制要求」模块</strong>——含7章编制指南、段落格式规范(5条反模式)、语音播报标准(6档新闻联播语调)、同类风险合并规则、12项质量标准、7条判定可靠性要求。共计27条引擎规则+14项自省检查。</div>';
+  html += '<div class="hb-callout hb-callout-info">📜 本报告结构覆盖《规程》第42条和第54条的全部要求。<br>📐 <strong>完整的编制指南请参见「📐 报告编制要求」模块</strong>——含7章编制指南、段落格式规范(5条反模式)、语音播报标准(6档新闻联播语调)、同类风险合并规则、12项质量标准、7条判定可靠性要求。共计31条引擎规则+16项自省检查。</div>';
 
   // 3.2 叙事风格
   html += '<h3 class="hb-subtitle">3.2 叙事风格——客观第三人称正式法律语体</h3>';
@@ -282,7 +309,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第四部分：关键法律条文索引 ═══
   html += '<section id="laws" class="hb-section">';
-  html += '<h2 class="hb-section-title"><span class="hb-section-num">四</span> 关键法律条文索引</h2>';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 关键法律条文索引</h2>';
   html += '<p class="hb-section-lead">以下为税务稽查中最常引用的核心法律条款，稽查员应熟练掌握。</p>';
 
   html += '<h3 class="hb-subtitle">4.1 《税收征收管理法》核心条款</h3>';
@@ -331,7 +358,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第五部分：稽查方法论 ═══
   html += '<section id="methodology" class="hb-section">';
-  html += '<h2 class="hb-section-title"><span class="hb-section-num">五</span> 稽查方法论</h2>';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">三</span> 稽查方法论</h2>';
   html += '<p class="hb-section-lead">以下方法论提炼自实战经验，全行业适用。每个方法均包含原理、验证路径和常见突破口。</p>';
 
   html += '<div class="hb-method-grid">';
@@ -433,7 +460,7 @@ function renderAuditorHandbook(container) {
 
   html += '</div>'; // hb-method-grid
 
-  // 补充方法论（5.8-5.29，共21条）
+  // 补充方法论（5.8-5.31，共24条）
   html += '<div class="hb-method-grid">';
 
   // 5.8 发票五层审计
@@ -599,7 +626,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第六部分：稽查判定规则（2026-06-28 老邓亲授）═══
   html += '<section id="judgment-rules" class="hb-section">';
-  html += '<h2 class="hb-section-title"><span class="hb-section-num">六</span> 稽查判定规则</h2>';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">四</span> 稽查判定规则</h2>';
   html += '<p class="hb-section-lead">以下规则定义了系统如何综合分析资料——不是靠硬编码关键词，而是通过思考、对比、交叉验证得出综合判断结论。所有规则已写入代码自动执行。</p>';
 
   // 规则1: 公司身份锚定
@@ -672,8 +699,8 @@ function renderAuditorHandbook(container) {
   // 映射总览
   html += '<div class="hb-engine-grid">';
   var engines = [
-    {icon:'📋', name:'线索链引擎', color:'#2563eb', law:'第21条(检查前准备)<br>第24条(收集证据)', desc:'自动扫描14类资料异常模式，生成初步线索。每条含触发条件、风险等级、调查步骤。<strong>当前391条线索链，覆盖29个数据域。</strong>'},
-    {icon:'🔒', name:'证据链引擎', color:'#dc2626', law:'第24条(证据真实关联)<br>第40条(稽查底稿)', desc:'每条线索自动收集关联规则ID和数据域→触发率≥60%+≥3规则+≥2域→证据闭环。<strong>当前740条证据链+10条跨域链，234条闭环。</strong>'},
+    {icon:'📋', name:'线索链引擎', color:'#2563eb', law:'第21条(检查前准备)<br>第24条(收集证据)', desc:'自动扫描14类资料异常模式，生成初步线索。每条含触发条件、风险等级、调查步骤。<strong>当前396条线索链，覆盖29个数据域。</strong>'},
+    {icon:'🔒', name:'证据链引擎', color:'#dc2626', law:'第24条(证据真实关联)<br>第40条(稽查底稿)', desc:'每条线索自动收集关联规则ID和数据域→触发率≥60%+≥3规则+≥2域→证据闭环。<strong>当前745条证据链+11条跨域链，234条闭环。</strong>'},
     {icon:'⚡', name:'分析链引擎', color:'#10b981', law:'第47条(审理7项)<br>第54条(审理报告)', desc:'逐条验证how_found→tax_impact→policy_ref三要素，确保事实清楚、证据充分、法律适用正确。'},
     {icon:'🎯', name:'方法论过滤器', color:'#8b5cf6', law:'第48条(退回补正)', desc:'自动剔除不具备数据支撑的噪声发现，只有通过过滤的发现才进入最终报告。CAP/COND_BAN/DEDUP三层。'},
     {icon:'🛡️', name:'全链路质量体系', color:'#06b6d4', law:'第72-75条(案卷管理)', desc:'全流程可追溯——每份报告可还原到证据链、线索链和原始数据。<strong>18组件覆盖5大层次。</strong>'}
@@ -707,7 +734,7 @@ function renderAuditorHandbook(container) {
   html += '<h4>⚙️ 系统自动化流程</h4>';
   html += '<div class="hb-compare-step">① 文件解析（域0）<br><small>提取结构化数据→识别14类资料</small></div>';
   html += '<div class="hb-compare-arrow">↓</div>';
-  html += '<div class="hb-compare-step">② 域分析（域1-35）<br><small>线索链391+证据链740+</small></div>';
+  html += '<div class="hb-compare-step">② 域分析（域1-35）<br><small>线索链396+证据链745+</small></div>';
   html += '<div class="hb-compare-arrow">↓</div>';
   html += '<div class="hb-compare-step">③ 方法论过滤+分析链验证<br><small>跨域关联推理→证据闭环升级</small></div>';
   html += '<div class="hb-compare-arrow">↓</div>';
@@ -727,6 +754,34 @@ function renderAuditorHandbook(container) {
   html += '<tr><td>稽查报告须含违法事实+处理处罚建议及依据</td><td>第42条</td><td>每项发现含：how_found+tax_impact+policy_ref+suggestion</td></tr>';
   html += '<tr><td>审理须审核：事实是否清楚+证据是否充分+法律是否适当+程序是否合法</td><td>第47条</td><td>分析链引擎+方法论过滤器=自动化预审理</td></tr>';
   html += '</tbody></table>';
+  html += '</section>';
+
+  // ═══ 第八部分：全链路稽查质量保障体系 ═══
+  html += '<section id="quality-system" class="hb-section">';
+  html += '<h2 class="hb-section-title"><span class="hb-section-num">八</span> 全链路稽查质量保障体系</h2>';
+  html += '<p class="hb-section-lead">五层开放生态体系，确保从数据到报告的每一个环节都有质量保障机制。</p>';
+
+  html += '<div class="hb-card-grid">';
+  html += '<div class="hb-info-card hb-info-red"><strong>① 核心数据资产</strong><p>稽查指令1514 + 线索链396 + 证据链745 + 分析链38 + 方法论32（总链1174）</p></div>';
+  html += '<div class="hb-info-card hb-info-blue"><strong>② 方法论体系</strong><p>稽查方法论32条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</p></div>';
+  html += '<div class="hb-info-card hb-info-purple"><strong>③ 质量保障机制</strong><p>稽查重点强制等级 + 报告纯净度 + 方法论噪声过滤器（97%过滤率）</p></div>';
+  html += '<div class="hb-info-card hb-info-green"><strong>④ 行业认知体系</strong><p>行业自适应产品链词典（25行业）+ 外包轻加工认知 + 66行业基准值库</p></div>';
+  html += '<div class="hb-info-card hb-info-yellow"><strong>⑤ 执行管线</strong><p>七步流程 + 36域分析函数 + 全链路溯源体系</p></div>';
+  html += '</div>';
+
+  html += '<h3 class="hb-subtitle">质量保障铁律</h3>';
+  html += '<div class="hb-callout hb-callout-green">';
+  html += '<ul style="margin:0;font-size:13px;padding-left:16px">';
+  html += '<li><strong>资料驱动：</strong>有什么资料审什么，不凭空臆测</li>';
+  html += '<li><strong>诚实边界：</strong>缺什么资料报什么，不胡编结论</li>';
+  html += '<li><strong>交叉推断：</strong>多源数据串联形成完整稽查闭环</li>';
+  html += '<li><strong>明细支撑：</strong>每条发现必须有具体数据（名称/金额/发票号）</li>';
+  html += '<li><strong>行业对标：</strong>每条偏差必须有行业基准值+企业值+偏离百分比</li>';
+  html += '<li><strong>法条引用：</strong>每条违法事实必须有法律依据（条款号+内容摘要）</li>';
+  html += '<li><strong>查证闭环：</strong>每条结论可追溯可复核，通过规则ID→线索链ID→证据链ID→原始数据</li>';
+  html += '<li><strong>宁可报告长，不可漏一字：</strong>税务稽查不放过任何一个细节</li>';
+  html += '</ul>';
+  html += '</div>';
   html += '</section>';
 
   // 底部声明

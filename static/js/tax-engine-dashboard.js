@@ -4,7 +4,10 @@
  */
 
 function renderEngineDashboardPage(container) {
-  container.innerHTML = '<div class="card card-fill"><div class="page-header"><h1>⚙️ 推理引擎仪表盘</h1><p>智能体感知→推理→学习→表达→记忆五层架构运行状态</p></div><div id="engine-dashboard-area" style="max-width:1200px;margin:0 auto;padding:16px"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在加载推理引擎数据...</div></div></div>';
+  container.innerHTML = '<div style="max-width:1200px;margin:0 auto;padding:20px">'
+    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚙️ 推理引擎仪表盘</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">智能体感知→推理→学习→表达→记忆五层架构运行状态</p>'
+    + '<div id="engine-dashboard-area"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在加载推理引擎数据...</div></div></div>';
   setTimeout(loadEngineDashboard, 200);
 }
 
@@ -20,29 +23,45 @@ function renderEngineDashboard(rpt) {
   window._engineRules = null;
   window._hasEngineData = hasData;
 
-  // 标签切换 — 始终显示（规则库不需要分析数据）
-  var tabBar = '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:8px">' +
-    '<div class="eng-tab active" onclick="switchEngineTab(\'status\')" id="tab-status">运行状态</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'rules\')" id="tab-rules">规则库</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'quality\')" id="tab-quality">质量保障</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'methods\')" id="tab-methods">方法论对账</div>' +
-    '<div class="eng-tab" onclick="switchEngineTab(\'brain\')" id="tab-brain">智能大脑</div>' +
-    '</div><div id="eng-tab-content"></div>';
+  var tabs = [
+    {id:'status',icon:'📊',name:'运行状态',color:'#2563eb'},
+    {id:'rules',icon:'📋',name:'规则库',color:'#7c3aed'},
+    {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},
+    {id:'methods',icon:'🔬',name:'方法论对账',color:'#f59e0b'},
+    {id:'negotiation',icon:'🤝',name:'跨域协商',color:'#0ea5e9'},
+    {id:'brain',icon:'🧠',name:'智能大脑',color:'#dc2626'}
+  ];
+
+  // TOC sidebar layout
+  var html = '<style>.ed-layout{display:flex;gap:24px}.ed-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start}.ed-toc a{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:4px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;color:#475569;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s}.ed-toc a:hover,.ed-toc a.active{background:#eff6ff;border-color:#2563eb;color:#2563eb;font-weight:700}.ed-main{flex:1;min-width:0}</style>';
+  html += '<div class="ed-layout">';
   
-  area.innerHTML = tabBar;
+  // TOC — vertical tab nav
+  html += '<nav class="ed-toc">';
+  tabs.forEach(function(t){
+    html += '<a class="ed-tab-link" data-tab="'+t.id+'" onclick="switchEngineTab(\''+t.id+'\')"><span style="font-size:18px">'+t.icon+'</span> '+t.name+'</a>';
+  });
+  html += '</nav>';
+
+  // Main content
+  html += '<div class="ed-main"><div id="eng-tab-content"></div></div>';
+  html += '</div>';
+  
+  area.innerHTML = html;
   renderStatusTab();
   fetchEngineRules();
 }
 
 function switchEngineTab(tab) {
-  document.querySelectorAll('.eng-tab').forEach(function(el) { el.classList.remove('active'); });
-  var tabEl = document.getElementById('tab-' + tab);
-  if (tabEl) tabEl.classList.add('active');
-  if (tab === 'status') renderStatusTab();
-  else if (tab === 'rules') renderRulesTab();
-  else if (tab === 'quality') renderQualityTab();
-  else if (tab === 'methods') renderMethodsTab();
-  else if (tab === 'brain') renderBrainTab();
+  document.querySelectorAll('.ed-tab-link').forEach(function(el){el.classList.remove('active');});
+  var links = document.querySelectorAll('.ed-tab-link');
+  links.forEach(function(l){if(l.getAttribute('data-tab')===tab)l.classList.add('active');});
+  if (tab==='status') renderStatusTab();
+  else if (tab==='rules') renderRulesTab();
+  else if (tab==='quality') renderQualityTab();
+  else if (tab==='methods') renderMethodsTab();
+  else if (tab==='negotiation') renderNegotiationTab();
+  else if (tab==='brain') renderBrainTab();
 }
 
 function renderStatusTab() {
@@ -652,15 +671,15 @@ function loadEngineDashboard() {
 
 
 // ═══════════════════════════════════════════
-// 24维度能力矩阵页面
+// 引擎能力维度页面
 // ═══════════════════════════════════════════
 function renderEngineDimensions(container) {
-  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在从引擎读取能力矩阵...</div>';
+  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在从引擎读取能力维度...</div>';
   
   fetch('/api/audit/capabilities')
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (!d.ok || !d.dimensions) { container.innerHTML = '<div style="padding:40px;color:#dc2626">能力矩阵读取失败</div>'; return; }
+      if (!d.ok || !d.dimensions) { container.innerHTML = '<div style="padding:40px;color:#dc2626">引擎能力维度读取失败</div>'; return; }
       
       var dims = d.dimensions.map(function(c) {
         return {n: c.name, s: c.stars, t: c.core, f: c.code};
@@ -677,13 +696,30 @@ function renderEngineDimensions(container) {
 
 function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal) {
   var h = '';
-  h += '<div class="card card-fill"><div class="page-header"><h1>📐 引擎能力维度</h1><p>推理引擎35域分析能力矩阵 · 星级评估 · 质量保障体系覆盖</p></div><div style="max-width:1100px;margin:0 auto;padding:20px 16px">';
-  h += '<h1 style="font-size:22px;color:#1e293b;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:8px">维度能力矩阵</h1>';
-  h += '<div style="color:#64748b;font-size:13px;margin-bottom:16px">';
-  h += '稽查员推理引擎 · 全部为可运行代码 · <b style="color:#2563eb">'+stars4+'四星</b> <b style="color:#6366f1">'+stars3+'三星</b> · main.py '+codeTotal+' · 227路由';
-  h += ' · <b style="color:#059669">调度中枢:16模块/7域/16级管线</b>';
+  h += '<style>.dim-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.dim-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.dim-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.dim-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.dim-main{flex:1;min-width:0}</style>';
+  h += '<div class="dim-layout">';
+
+  // TOC
+  h += '<nav class="dim-toc"><div class="toc-title">📖 导航</div>';
+  h += '<a href="#dim-overview">总览</a>';
+  h += '<a href="#dim-table">维度明细</a>';
+  h += '<a href="#dim-pipeline">管道信息</a>';
+  h += '</nav>';
+
+  h += '<div class="dim-main">';
+  h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📐 引擎能力维度</h2>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">推理引擎'+totalDims+'维能力矩阵 · 星级评估 · 质量保障体系覆盖</p>';
+
+  // Stats
+  h += '<div id="dim-overview" style="display:flex;gap:12px;margin-bottom:24px">';
+  h += '<div style="flex:1;text-align:center;padding:16px;background:#f8fafc;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">'+totalDims+'</div><div style="font-size:12px;color:#64748b">总维度</div></div>';
+  h += '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">'+stars4+'</div><div style="font-size:12px;color:#64748b">★★★★ 四星</div></div>';
+  h += '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#6366f1">'+stars3+'</div><div style="font-size:12px;color:#64748b">★★★ 三星</div></div>';
+  h += '<div style="flex:1;text-align:center;padding:16px;background:#f0fdf4;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">'+codeTotal+'</div><div style="font-size:12px;color:#64748b">代码总量</div></div>';
   h += '</div>';
 
+  // Table
+  h += '<div id="dim-table">';
   h += '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">';
   h += '<thead><tr style="background:#1e293b;color:#fff">';
   h += '<th style="padding:10px 14px;text-align:left">#</th><th style="padding:10px 14px;text-align:left">维度</th><th style="padding:10px 14px;text-align:center">等级</th><th style="padding:10px 14px;text-align:left">核心能力</th><th style="padding:10px 14px;text-align:left">代码位置</th>';
@@ -702,13 +738,16 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
     h += '</tr>';
   });
 
-  h += '</tbody></table>';
+  h += '</tbody></table></div>';
 
-  h += '<div style="margin-top:20px;padding:16px 20px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569;line-height:1.8">';
+  // Footer
+  h += '<div id="dim-pipeline" style="margin-top:20px;padding:16px 20px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569;line-height:1.8">';
   h += '<b>代码分布</b>：main.py (18个函数+6个API) | engine/ (信号检测+记忆+自学习) | tax-doc-analysis.js (前端渲染+图可视化+响应式)<br>';
   h += '<b>管道流程</b>：文件解析 → Phase1初查 → Phase2深挖 → Phase3交叉验证 → Phase4综合定性 → 12维增强 → HTML报告<br>';
   h += '<b>数据流</b>：Excel上传 → 归一化 → AuditContext贯穿 → all_findings聚集 → 各维增强 → report JSON → 前端渲染';
-  h += '</div></div></div>';
+  h += '</div>';
+
+  h += '</div></div>';
   container.innerHTML = h;
 }
 
@@ -834,7 +873,73 @@ function highlightMethodInDashboard(methodId) {
 }
 
 // ═══════════════════════════════════════════════════
-// #5: 智能大脑标签页 — 调度中枢+渐进学习+纠正规则
+// #5: 跨域协商标签页 — 域间对话/消解/降级/增强
+// ═══════════════════════════════════════════════════
+function renderNegotiationTab() {
+  var area = document.getElementById('eng-tab-content');
+  area.innerHTML = '';
+
+  var rules = [
+    {id:'NEG-001',scene:'行业闸门消解',action:'消解',from:'行业判定→"服务行业"',to:'进销存/存货域',desc:'服务行业不存在实物进销存和库存，该域风险不适用。闸门已在分析入口跳过，此发现为无效残留。'},
+    {id:'NEG-002',scene:'行业闸门消解',action:'消解',from:'行业判定→"服务行业"',to:'BOM表需求判定',desc:'服务产品无物料清单概念，BOM判定不适用。'},
+    {id:'NEG-003',scene:'行业闸门消解',action:'消解',from:'行业判定→"服务行业"',to:'存货周转/库存预警',desc:'服务行业无实物库存，存货相关预警不适用。'},
+    {id:'NEG-004',scene:'行业闸门消解',action:'降级',from:'行业判定→"服务行业"',to:'进销比行业对标',desc:'降低为提示等级——服务行业进销比无实体对标意义。'},
+    {id:'NEG-005',scene:'行业闸门消解',action:'降级',from:'行业判定→"服务行业"',to:'毛利率行业对标',desc:'降低为提示等级——服务行业毛利率受品牌溢价/人力成本影响，不可制造业对标。'},
+    {id:'NEG-010',scene:'资料驱动的跨域标记',action:'标记',from:'资料完备度→"缺合同"',to:'合同比对/关联交易',desc:'加标签"资料受限结论"——缺少合同/关联方资料，该域结论仅基于发票数据推测。'},
+    {id:'NEG-011',scene:'资料驱动的跨域标记',action:'标记',from:'资料完备度→"缺关联方资料"',to:'关联交易检测',desc:'加标签"资料受限结论"——缺少股权结构/关联方名单，关联交易检测不完整。'},
+    {id:'NEG-012',scene:'资料驱动的跨域标记',action:'标记',from:'资料完备度→"缺申报表"',to:'申报比对域',desc:'加标签"资料受限结论"——缺少增值税/企业所得税申报表，申报比对无法执行。'},
+    {id:'NEG-020',scene:'证据矛盾消解',action:'消解',from:'经营实质域→"检测到经营费用"',to:'"无经营场所"结论',desc:'经营实质检测到水电/物业/租金费用，证明经营场所存在。"无经营场所"结论与证据矛盾，以经营实质域为准。'},
+    {id:'NEG-021',scene:'证据矛盾消解',action:'降级',from:'经营实质域→"检测到运输费用"',to:'"运输成本缺失"结论',desc:'降低为低风险——经营实质域已检测到物流/运输费用，运输缺失的判断不成立。'},
+    {id:'NEG-030',scene:'证据矛盾消解',action:'标记',from:'资金流域→"收款构成含非经营项"',to:'"收款vs开票偏差大"',desc:'加标签"含非经营收款"——银行流水含股东注资/借款/往来款，全量比对夸大偏差。需按客户逐名匹配。'},
+    {id:'NEG-040',scene:'资料驱动的跨域标记',action:'标记',from:'资料完备度→"任意缺资料"',to:'所有依赖缺失资料的域',desc:'全域加标签"资料受限结论"——依赖缺失资料的分析域缺少完整数据支撑。'},
+    {id:'NEG-AUG-001',scene:'联合增强（触发新发现）',action:'增强',from:'经营费用缺失+运输缺失+场所异常',to:'综合生成"空壳企业预警"',desc:'三域交叉指向企业可能无实际经营场所和物流活动。跨域协商引擎自动合成极高风险发现，引用《刑法》第205条（虚开发票罪）。'},
+    {id:'NEG-AUG-002',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+收款待分析+个人交易',to:'综合生成"隐匿收入预警"',desc:'三域独立检测均指向个人账户收款。协商引擎自动合成极高风险发现，引用《征管法》第63条（偷税处罚）。'},
+    {id:'NEG-AUG-003',scene:'联合增强（触发新发现）',action:'增强',from:'供应商异常+关联重叠+集中度过高',to:'综合生成"对倒开票预警"',desc:'三域独立检测供应商结构异常，协商引擎自动合成高风险发现，引用《发票管理办法》第22条和《刑法》第205条。'},
+  ];
+
+  var h = '';
+  h += '<h3 style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 4px">🤝 跨域协商规则</h3>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。15条协商规则覆盖四类场景：行业闸门消解 / 资料驱动的跨域标记 / 证据矛盾消解 / 联合增强。</p>';
+
+  var scenes = {
+    '行业闸门消解': {desc:'服务行业自动跳过不适用域（进销存/存货/BOM/毛利率对标），消除假阳性',color:'#059669',bg:'#ecfdf5'},
+    '资料驱动的跨域标记': {desc:'缺少某类资料→相关域结论标注"资料受限"，避免无数据基础的高风险判定',color:'#3b82f6',bg:'#eff6ff'},
+    '证据矛盾消解': {desc:'域A的正面证据推翻域B的负面结论（如检测到经营费用→推翻"无经营场所"）',color:'#f59e0b',bg:'#fffbeb'},
+    '联合增强（触发新发现）': {desc:'多域异常信号同时触发→协商引擎自动合成更高级别的新风险发现',color:'#dc2626',bg:'#fef2f2'},
+  };
+
+  Object.keys(scenes).forEach(function(scene){
+    var sc = scenes[scene];
+    var sceneRules = rules.filter(function(r){return r.scene===scene;});
+    h += '<div style="margin-bottom:20px;padding:16px 20px;background:'+sc.bg+';border-left:4px solid '+sc.color+';border-radius:0 8px 8px 0">';
+    h += '<div style="font-size:14px;font-weight:700;color:'+sc.color+';margin-bottom:4px">' + scene + '</div>';
+    h += '<div style="font-size:12px;color:#64748b;margin-bottom:12px">' + sc.desc + '</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden">';
+    h += '<thead><tr style="background:#f8fafc;color:#475569"><th style="padding:8px 10px;text-align:left;width:60px">编号</th><th style="padding:8px 10px;text-align:center;width:50px">动作</th><th style="padding:8px 10px;text-align:left;width:180px">触发端</th><th style="padding:8px 10px;text-align:left;width:180px">影响端</th><th style="padding:8px 10px;text-align:left">说明</th></tr></thead><tbody>';
+    sceneRules.forEach(function(r,i){
+      var actColor = r.action==='消解'?'#dc2626':(r.action==='降级'?'#f59e0b':(r.action==='增强'?'#7c3aed':'#3b82f6'));
+      h += '<tr style="'+(i%2?'background:#fafafa':'')+'">';
+      h += '<td style="padding:8px 10px;font-family:monospace;color:#94a3b8">'+r.id+'</td>';
+      h += '<td style="padding:8px 10px;text-align:center;font-weight:700;color:'+actColor+'">'+r.action+'</td>';
+      h += '<td style="padding:8px 10px;font-size:11px;color:#475569">'+r.from+'</td>';
+      h += '<td style="padding:8px 10px;font-size:11px;color:#475569">'+r.to+'</td>';
+      h += '<td style="padding:8px 10px;font-size:11px;color:#475569;line-height:1.6">'+r.desc+'</td>';
+      h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+  });
+
+  h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;line-height:2">';
+  h += '<b>执行时序</b>：所有域分析完成→跨域协商引擎运行→链驱动分析引擎→报告生成<br>';
+  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>（15条NEGOTIATION_RULES）<br>';
+  h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br>';
+  h += '<b>规则扩展</b>：编辑 <code>NEGOTIATION_RULES</code> 列表即可追加新协商规则。</div>';
+
+  area.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════════
+// #6: 智能大脑标签页 — 调度中枢+渐进学习+纠正规则
 // ═══════════════════════════════════════════════════
 function renderBrainTab() {
   var area = document.getElementById('eng-tab-content');

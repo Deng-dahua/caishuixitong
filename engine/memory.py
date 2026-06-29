@@ -1,3 +1,6 @@
+# 数据驱动——所有数量从配置中心动态读取
+from engine.system_config import rules_count, clue_chains, evidence_chains, methodology_count, total_chains, domain_functions
+
 """
 稽查引擎记忆系统 — 历史分析经验积累与检索
 

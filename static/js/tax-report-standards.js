@@ -68,38 +68,62 @@ function renderReportStandards(container) {
   ];
 
   var h = '<style>'
+    + '.rpt-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto}'
+    + '.rpt-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}'
+    + '.rpt-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}'
+    + '.rpt-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;transition:all 0.15s}'
+    + '.rpt-toc a:hover,.rpt-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}'
     + '#rpt-stds *{margin:0;padding:0;box-sizing:border-box}'
-    + '#rpt-stds{max-width:960px;margin:0 auto;padding:40px;font-family:"PingFang SC","Microsoft YaHei",serif;font-size:14px;line-height:2;color:#1a1a2e}'
+    + '#rpt-stds{flex:1;min-width:0;font-family:"PingFang SC","Microsoft YaHei",serif;font-size:14px;line-height:2;color:#1a1a2e}'
     + '#rpt-stds h2{font-size:20px;font-weight:800;margin:0 0 8px 0;color:#0f172a}'
     + '#rpt-stds h3{font-size:15px;font-weight:700;color:#0f172a;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid #2563eb;display:inline-block}'
     + '#rpt-stds .subtitle{font-size:13px;color:#64748b;margin-bottom:24px}'
-    + '#rpt-stds .std-card{margin:16px 0;padding:20px 24px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
-    + '#rpt-stds .std-card .std-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}'
-    + '#rpt-stds .std-card .std-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}'
+    + '#rpt-stds .std-card{margin:12px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '#rpt-stds .std-card .std-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}'
+    + '#rpt-stds .std-card .std-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}'
     + '#rpt-stds .std-card .std-num.high{background:#dc2626}'
     + '#rpt-stds .std-card .std-num.mid{background:#d97706}'
     + '#rpt-stds .std-card .std-num.low{background:#059669}'
-    + '#rpt-stds .std-card .std-name{font-size:16px;font-weight:700;color:#0f172a}'
-    + '#rpt-stds .std-card .std-sev{font-size:11px;padding:2px 8px;border-radius:3px;font-weight:600}'
+    + '#rpt-stds .std-card .std-name{font-size:15px;font-weight:700;color:#0f172a}'
+    + '#rpt-stds .std-card .std-sev{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600}'
     + '#rpt-stds .std-card .std-sev.high{background:#fee2e2;color:#dc2626}'
     + '#rpt-stds .std-card .std-sev.mid{background:#fef3c7;color:#d97706}'
     + '#rpt-stds .std-card .std-sev.low{background:#dcfce7;color:#059669}'
-    + '#rpt-stds .std-card .std-section{margin:8px 0;font-size:13px}'
+    + '#rpt-stds .std-card .std-section{margin:6px 0;font-size:13px}'
     + '#rpt-stds .std-card .std-label{font-weight:600;color:#475569;min-width:70px;display:inline-block}'
     + '#rpt-stds .std-card .std-example{margin:8px 0;padding:10px 14px;background:#f8fafc;border-left:3px solid #6366f1;font-size:12px;color:#334155;border-radius:0 4px 4px 0;line-height:1.8}'
     + '#rpt-stds .std-card .std-example .ex-label{font-size:10px;color:#6366f1;font-weight:600;margin-bottom:4px;text-transform:uppercase}'
-    + '#rpt-stds .overview{margin:20px 0;padding:20px 24px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px}'
+    + '#rpt-stds .overview{margin:16px 0;padding:16px 20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px}'
     + '#rpt-stds .overview h3{color:#0369a1;margin:0 0 12px 0;padding:0;border:none;font-size:15px}'
     + '#rpt-stds .pipeline{font-size:13px;color:#475569;line-height:2.2}'
     + '#rpt-stds .pipeline .step{display:inline-block;padding:2px 10px;margin:2px 4px;background:#e0e7ff;border-radius:3px;font-weight:600;color:#3730a3;font-size:12px}'
     + '#rpt-stds .pipeline .arrow{color:#94a3b8;margin:0 2px}'
+    + '.rpt-table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}'
+    + '.rpt-table th{background:#f8fafc;padding:10px 12px;text-align:left;font-weight:600;border-bottom:2px solid #e2e8f0;color:#475569}'
+    + '.rpt-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top}'
     + '</style>';
 
-  h += '<div class="card card-fill"><div id="rpt-stds">';
-  h += '<div class="page-header"><h1>📐 报告编制标准</h1><p>根据《税务稽查工作规程》及稽查实务标准，系统内置12项硬性质量检查指标</p></div>';
+  h += '<div class="rpt-layout">';
+  
+  // ── 左侧目录 ──
+  h += '<nav class="rpt-toc">';
+  h += '<div class="toc-title">📖 目录</div>';
+  h += '<a href="#rpt-overview" class="active">一 质量保障管线</a>';
+  h += '<a href="#rpt-structure">二 报告7章结构</a>';
+  h += '<a href="#rpt-terms">三 术语与机密规范</a>';
+  h += '<a href="#rpt-narrative">四 稽查过程叙事规范</a>';
+  h += '<a href="#rpt-merge">五 同类风险合并规则</a>';
+  h += '<a href="#rpt-12std">六 12项质量标准</a>';
+  h += '<a href="#rpt-reliability">七 7项判定可靠性要求</a>';
+  h += '</nav>';
 
-  // 管线说明
-  h += '<div class="overview">';
+  h += '<div id="rpt-stds">';
+  h += '<h2>📐 报告编制标准</h2>';
+  h += '<p class="subtitle">根据《税务稽查工作规程》及稽查实务标准，系统内置12项硬性质量检查指标</p>';
+
+
+  // ══════ 一、质量保障管线 ══════
+  h += '<div id="rpt-overview" class="overview">';
   h += '<h3>⚙️ 质量保障管线</h3>';
   h += '<div class="pipeline">';
   h += '报告生成后按以下顺序自动执行质量保障：<br>';
@@ -123,7 +147,8 @@ function renderReportStandards(container) {
   h += '<div style="flex:1;text-align:center;padding:12px;background:#f0fdf4;border-radius:6px;font-size:13px"><div style="font-size:24px;font-weight:800;color:#059669">' + lowCount + '</div><div style="color:#166534">建议</div></div>';
   h += '</div>';
 
-  // ══════ 报告7章结构 · 各章编制要求 ══════
+  // ══════ 二、报告7章结构 ══════
+  h += '<div id="rpt-structure">';
   h += '<h3>📄 报告结构（7章节 + 附件）</h3>';
   
   // 封面
@@ -161,6 +186,8 @@ function renderReportStandards(container) {
   h += '<div class="std-section"><span class="std-label">✏️ 编制方法</span>每段200-400字，必须基于实际分析数据动态生成（文件数/记录数/金额/占比等均从report对象实时提取），不得硬编码固定模板文本。使用客观第三人称（"本次核查采用…""经逐行比对…""系统自动执行…"）。第二章整体篇幅应在2000字以上，呈现完整的稽查实施画卷。</div>';
   h += '</div>';
   
+  // ══════ 三、术语与机密规范 ══════
+  h += '<div id="rpt-terms">';
   // 稽查术语规范
   h += '<div class="std-card">';
   h += '<div class="std-header"><div class="std-num" style="background:#dc2626;width:auto;padding:0 12px;border-radius:4px">术语规范</div><div class="std-name">稽查报告用语规范（2026-06-28确立）</div></div>';
@@ -377,7 +404,7 @@ function renderReportStandards(container) {
   h += '</div>';
 
   h += '</div>'; // close rpt-stds
-  h += '</div>'; // close card-fill
+  h += '</div>'; // close rpt-layout
 
   container.innerHTML = h;
 }

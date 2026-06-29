@@ -660,6 +660,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     suspect_invs = [i for i in invoices if i["direction"] == "存疑"]
+    clean_invs = sal_invs + pur_invs  # 只含已确认公司身份的发票，存疑发票绝对排除
     _report(95, f"文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张" + (f" 存疑{len(suspect_invs)}张" if suspect_invs else ""))
     
     # 存疑发票不参与分析，但记录在案
@@ -1225,7 +1226,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
     if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
-    if invoices: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(invoices)})
+    if clean_invs: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(clean_invs)})
     if inv_match_findings: domain_results.append({"domain": "进销存匹配分析", "findings": inv_match_findings})
     # 无条件域加数据守卫：关键数据全空的域跳过，避免空数据触发误报
     _has_any_data = total_parsed > 0
@@ -1236,7 +1237,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "合同比对分析", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "经营实质分析", "findings": _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries)})
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
-    if invoices: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(invoices)})
+    if clean_invs: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(clean_invs)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results, ctx.company_profile.get("industry", ""))
     # ── 记录缺失资料key到ctx，供Phase 4缺失后果自动触发使用 ──
@@ -1249,7 +1250,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     ctx.missing_doc_keys.append(key)
     domain_results.append({"domain": "资料完备度评估", "findings": doc_cplt_findings})
     # 域14.5: 账务系统缺失风险（有发票/流水但无凭证→无法验证账务真实性）
-    _acct_risk = _check_accounting_system_gap(invoices, bank_txs, vouchers)
+    _acct_risk = _check_accounting_system_gap(clean_invs, bank_txs, vouchers)
     if _acct_risk: domain_results.append({"domain": "账务系统风险", "findings": _acct_risk})
     # 域15: 多源交叉验证
     if _has_any_data: domain_results.append({"domain": "多源交叉验证", "findings": _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, db, company_id)})
@@ -1277,7 +1278,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "人员与业务匹配", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "发票存货付款三角验证", "findings": _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs)})
     else: domain_results.append({"domain": "发票存货付款三角验证", "findings": []})
-    if invoices: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(invoices)})
+    if clean_invs: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(clean_invs)})
     else: domain_results.append({"domain": "红冲作废发票追踪", "findings": []})
     # 经营实质地理分析
     if invoices and bank_txs: domain_results.append({"domain": "经营实质地理分析", "findings": _domain_business_premise_geo(bank_txs, invoices, docs, _target_industry)})
@@ -1354,19 +1355,19 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     # ═══ 新增稽查域：增值税申报比对 ═══
     if _has_inv_or_bank:
-        domain_results.append({"domain": "增值税申报比对", "findings": _domain_vat_declaration_compare(invoices, bank_txs, db, company_id)})
+        domain_results.append({"domain": "增值税申报比对", "findings": _domain_vat_declaration_compare(clean_invs, bank_txs, db, company_id)})
     else:
         domain_results.append({"domain": "增值税申报比对", "findings": []})
     
     # ═══ 新增稽查域：上下游穿透分析 ═══
     if invoices:
-        domain_results.append({"domain": "上下游穿透分析", "findings": _domain_supply_chain_deep(invoices, bank_txs)})
+        domain_results.append({"domain": "上下游穿透分析", "findings": _domain_supply_chain_deep(clean_invs, bank_txs)})
     else:
         domain_results.append({"domain": "上下游穿透分析", "findings": []})
     
     # ═══ 新增稽查域：发票实质性审计（合规/单价/BOM）═══
     if invoices:
-        domain_results.append({"domain": "发票实质性审计", "findings": _domain_invoice_audit(invoices, _target_industry)})
+        domain_results.append({"domain": "发票实质性审计", "findings": _domain_invoice_audit(clean_invs, _target_industry)})
     else:
         domain_results.append({"domain": "发票实质性审计", "findings": []})
 
@@ -1518,8 +1519,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                 except: return D("0")
             
             # ═══ 临时导入: 全量导入 ═══
-            # 发票
-            for inv in invoices:
+            # 发票（只导入已确认公司身份的，存疑发票绝对排除）
+            for inv in clean_invs:
                 try:
                     bk = BookkeepingInvoice(company_id=company_id,
                         digital_invoice_no=str(inv.get("inv_no", ""))[:50],
@@ -1566,7 +1567,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 bk_ids, bt_ids, sr_ids = [], [], []  # 清空ID列表，避免后续清理报错
 
             # 读取实际规则数
-            _real_rule_count = 1512
+            _real_rule_count = 1514
             try:
                 _rp = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
                 if os.path.exists(_rp):
@@ -1690,6 +1691,15 @@ def _run_analyze(company_id, db, progress_callback=None):
     merged_count = 0
 
     # ═══════════════════════════════════════════════════
+    # 跨域协商引擎：域间自动对话，消解/降级/增强
+    # ═══════════════════════════════════════════════════
+    try:
+        from engine.cross_domain_negotiation import run_negotiation
+        all_findings, _neg_log = run_negotiation(all_findings, pipeline_log)
+    except Exception as _ne:
+        pipeline_log.append(f"[协商引擎] 异常: {_ne}")
+
+    # ═══════════════════════════════════════════════════
     # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
     # ═══════════════════════════════════════════════════
     # ── 防御：过滤 all_findings 中非 dict 元素（避免 str 无 .get 崩溃）──
@@ -1741,7 +1751,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             # 提取数据中的数值特征
             bank_total_in = sum(tx.get("credit", 0) for tx in bank_txs)
             bank_total_out = sum(tx.get("debit", 0) for tx in bank_txs)
-            inv_total = sum(float(inv.get("amount", 0) or 0) for inv in invoices)
+            inv_total = sum(float(inv.get("amount", 0) or 0) for inv in clean_invs)
             sal_total = sum(float(sal.get("salary", sal.get("本期收入", 0)) or 0) for sal in salaries)
             # 第三方收款检测
             third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
@@ -2352,7 +2362,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"[叙事增强层] 缺失后果前端数据: {len(missing_trigger_list)}项")
     
     # ── 数据资产计数（供前端报告头部展示）──
-    _actual_rule_count = 1512  # 默认值，稍后从rules_data动态更新
+    _actual_rule_count = 1514  # 默认值，稍后从rules_data动态更新
     comprehensive["rule_count"] = _actual_rule_count
     # chain_count / evidence_count 从上方 chain_execution 块获取（如果已执行），否则为0
     comprehensive["chain_count"] = comprehensive.get("chain_total_count", 0)
@@ -2360,7 +2370,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
-        material_intel = _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions)
+        material_intel = _extract_material_intel(bank_txs, clean_invs, salaries, social_security, vouchers, inventory, input_vat_deductions)
     except Exception as _mie:
         pipeline_log.append(f"资料情报提取异常: {_mie}")
         material_intel = {}
@@ -2493,7 +2503,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                 steps_summary = []
                 for s in c.get("investigation_path", []):
                     if not isinstance(s, dict): continue
-                    steps_summary.append({"step": s.get("step",""), "rule_id": s.get("rule_id"), "level": s.get("level","")})
+                    step_desc = s.get("rule_item","") or s.get("detail","") or s.get("step","")
+                    steps_summary.append({"step": step_desc, "rule_id": s.get("rule_id"), "level": s.get("level","")})
                 chain_details.append({"name": cn, "steps": c.get("steps",0), "high_risk": c.get("high_risk_steps",0), "steps_detail": steps_summary})
             f["matched_chain_details"] = chain_details
         
@@ -2577,7 +2588,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     comprehensive["triggered_chains"] = triggered_chains
 
     # 动态读取实际规则数量
-    _actual_rule_count = 1512
+    _actual_rule_count = 1514
     try:
         if rules_data:
             _actual_rule_count = len(rules_data)
@@ -2944,7 +2955,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"对抗鲁棒性: {len(adv_findings)}项数据编造痕迹")
     
     # ═══ 多维Benford检验（首位+第二位+末位） ═══
-    benford_result = _multi_dim_benford_check(invoices, bank_txs)
+    benford_result = _multi_dim_benford_check(clean_invs, bank_txs)
     ctx._benford = benford_result
     if benford_result.get("flags"):
         pipeline_log.append(f"Benford检验: {len(benford_result['flags'])}项异常")
@@ -4520,6 +4531,25 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     entity = {"name": "", "biz_model": "", "industry": "", "period": "", "bank_account": "", "source": [],
               "legal_person": "", "legal_person_role": ""}
     
+    # ═══ Step 0：从DB加载公司信息（主数据源，非"兜底"——系统已知的信息不需要"推断"） ═══
+    try:
+        from database import Company as _CE
+        _c = db.query(_CE).filter(_CE.id == company_id).first()
+        if _c:
+            entity["name"] = _c.name or ""
+            entity["uscc"] = _c.uscc or ""
+            entity["business_scope"] = _c.business_scope or ""
+            entity["company_type"] = _c.company_type or ""
+            entity["address"] = _c.address or ""
+            entity["established_date"] = str(_c.established_date or "")
+            entity["registered_capital"] = str(_c.registered_capital or "")
+            entity["legal_representative"] = _c.legal_representative or ""
+            entity["legal_representative_id"] = _c.legal_representative_id or ""
+            if _c.legal_representative:
+                entity["legal_person"] = _c.legal_representative
+    except Exception as _ce_err:
+        pipeline_log.append(f"target_entity DB加载失败: {_ce_err}")
+    
     # 1. 从银行流水表头提取（账户明细/户名）→ 补充公司名称线索
     # 银行流水表头常包含"户名:XXX公司"或"账户名称:XXX"等字段
     for tx in bank_txs:
@@ -4786,13 +4816,13 @@ def _extract_company_from_html(html_text, source_name):
     
     # —— 经营范围
     for pat in [
-        r'经营范围[：:]\s*(.{10,500}?)(?:\s{2,}|行业分类|工商信息)',
+        r'经营范围[：:]\s*(.{10,}?)(?:\s{2,}|行业分类|工商信息)',
     ]:
         m = re.search(pat, clean)
         if m:
             scope = m.group(1).strip()
             if len(scope) >= 10:
-                info["business_scope"] = scope[:500]
+                info["business_scope"] = scope  # 不截断，全文保留
                 break
     
     # —— 统一社会信用代码（18位数字+字母）
@@ -5687,8 +5717,18 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
         target_entity["legal_person_role"] = lookup.get("legal_person_role", "") or (target_entity.get("legal_person_role", ""))
         target_entity["registered_capital"] = lookup.get("registered_capital", "")
         target_entity["established_date"] = lookup.get("established_date", "")
-        target_entity["business_scope"] = lookup.get("business_scope", "")
-        target_entity["address"] = lookup.get("address", "")
+        # business_scope: 在线查到的如果比DB已有的短，保留DB原文（防截断覆盖）
+        _online_scope = lookup.get("business_scope", "")
+        if _online_scope and len(_online_scope) > len(target_entity.get("business_scope", "")):
+            target_entity["business_scope"] = _online_scope
+        elif not target_entity.get("business_scope"):
+            target_entity["business_scope"] = _online_scope
+        # 地址同理：更长优先
+        _online_addr = lookup.get("address", "")
+        if _online_addr and len(_online_addr) > len(target_entity.get("address", "")):
+            target_entity["address"] = _online_addr
+        elif not target_entity.get("address"):
+            target_entity["address"] = _online_addr
         target_entity["company_type"] = lookup.get("company_type", "")
         target_entity["uscc"] = lookup.get("uscc", "")
         target_entity["shareholders"] = lookup.get("shareholders", [])

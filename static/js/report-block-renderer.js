@@ -253,8 +253,11 @@
           btn.style.borderColor = '#16a34a';
           btn.style.color = '#16a34a';
           btn.disabled = true;
-          if (data.upgraded) toast('纠正规则已自动生效（累计1次即升级）', 'success');
-          else toast('已记录纠正反馈', 'success');
+          // 清除分析缓存，确保下次一键分析使用新反馈
+          if (typeof _analysisCacheData !== 'undefined') _analysisCacheData = null;
+          if (typeof _analysisCachePromise !== 'undefined') _analysisCachePromise = null;
+          if (typeof _cachedFilterReport !== 'undefined') _cachedFilterReport = null;
+          toast('已记录驳回反馈，请重新运行一键分析以应用更新', 'success');
         } else {
           toast('驳回失败: ' + (data.error || '未知错误'), 'error');
         }

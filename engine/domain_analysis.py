@@ -417,7 +417,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
             estimated_stock_value = 0
         
         findings.append({"type": "存货严重积压", "level": "高风险", "score": 8,
-        "how_found": f"我对{len(inventory)}条进销存台账逐行汇总：入库{total_in:.2f}件、出库{total_out:.2f}件，出库率仅{out_rate:.2f}%，周转率{turnover:.3f}次——出库远低于入库说明库存积压严重。",
+        "how_found": f"对{len(inventory)}条进销存台账逐行汇总：入库{total_in:.2f}件、出库{total_out:.2f}件，出库率仅{out_rate:.2f}%，周转率{turnover:.3f}次——出库远低于入库说明库存积压严重。",
             "detail": f"入库{total_in:.2f}件，出库{total_out:.2f}件，出库率仅{out_rate:.2f}%。库存积压约{total_in-total_out:.2f}件。" + (f"估算占用资金{estimated_stock_value:,.2f}元。" if estimated_stock_value > 0 else ""),
             "description": f"分析期间存货入库{total_in:.2f}件（金额{total_in_val:,.2f}元），出库仅{total_out:.2f}件（金额{total_out_val:,.2f}元），出库率{out_rate:.2f}%，周转率{turnover:.3f}次。期末库存约{total_in-total_out:.2f}件" + (f"，估算占用资金{estimated_stock_value:,.2f}元" if estimated_stock_value > 0 else "") + f"。\n\n存货周转率是衡量企业运营效率的核心指标：健康企业周转率通常>3次/年，你的存货周转仅{turnover:.3f}次，意味着存货需要{1/max(turnover,0.01):.2f}个经营周期才能消化完毕，资金被深度套牢在库存里。",
             "tax_impact": "税务层面：存货周转异常→税务机关怀疑存在已销售未确认收入（账外销售）→补缴增值税和企业所得税。存货最终形成损失需专项申报方可税前扣除。\n\n经营层面：大量资金被库存占用→现金流紧张→可能影响经营周转和偿债能力。",
@@ -829,7 +829,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
             "level": "高风险", "score": 10,
             "detail": f"{len(docs_list)}个文件全部解析失败，无法评估资料完备度。",
             "description": "所有上传的文件均未能提取到结构化数据。这通常是因为：(1)文件格式不是财税标准模板——如简单的记账表格、非标准报表、截图嵌入Excel等；(2)表头列名与系统识别的关键词不匹配；(3)数据行在Sheet中的位置异常。注意：系统已识别到文件并进行了分析尝试，但无法提取有效数据。这不意味着企业真实缺失这些资料，而是系统无法解析当前文件格式。",
-            "how_found": f"我逐一读取了被查单位提交的{len(docs_list)}个文件，但所有文件均无法提取到结构化数据——文件格式与系统预期模板不匹配，不是企业缺资料。",
+            "how_found": f"读取了被查单位提交的{len(docs_list)}个文件，但所有文件均无法提取到结构化数据——文件格式与系统预期模板不匹配，不是企业缺资料。",
             "tax_impact": "资料无法解析意味着无法进行风险分析。但请注意：这些资料在企业手中是完整的，只是导出格式不兼容——稽查时可直接提供原始格式，不存在真实缺失。",
             "policy_ref": "本结论仅反映系统识别能力，不代表企业实际缺资料。建议按标准模板重新导出数据。",
             "suggestion": "① 确认Excel文件第一行为表头行（列名）；② 确认文件内容为财税相关数据；③ 尝试用金税系统标准导出格式重新生成文件。",
@@ -1060,7 +1060,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
                 "level": level, "score": score,
                 "detail": detail_fn(),
                 "description": desc_fn(),
-                "how_found": f"我逐一检测了14类稽查必查资料的提交状态，{ftype.replace('缺失','')}类资料未提交",
+                "how_found": f"逐一检测了14类稽查必查资料的提交状态，{ftype.replace('缺失','')}类资料未提交",
                 "tax_impact": impact_fn(),
                 "policy_ref": policy() if callable(policy) else policy,
                 "suggestion": suggestion,
@@ -1089,12 +1089,12 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
             "type": "资料完备度综合评估",
             "level": "高风险" if missing_count >= 5 else ("中风险" if missing_count >= 2 else "低风险"),
             "score": total_score,
-            "detail": f"我已审查全部{total_categories}类稽查必查资料：已提交{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类：{missing_detail}。",
-            "description": f"我审查了本次提交的全部资料，共计{total_categories}类稽查必查资料，覆盖了{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类。\n\n根据《税务稽查工作规程》，接到稽查通知后通常只有3-5天准备时间——我现在点出来的这些缺失资料，你现在不整理好，到时候根本来不及凑。每缺一类资料，稽查来的时候你就少一道防线。\n\n我已经处理了已提交资料对应的分析域，结果详见本报告各分析域。缺失资料的每一项后果我都在下面的证据材料中一一列出——每一个'缺失后果'都不是危言耸听，都是稽查实战中真实会发生的情形。",
-            "how_found": f"我逐一检测了{total_categories}类稽查必查资料的提交状态——从文件解析结果的数据类型和文件名称判断。",
-            "tax_impact": "稽查通知下达后，无法在限期内提供完整资料的→面临罚款（单位最高5万元）+ 税务机关将从其他数据源倒推核定应纳税额。每一类缺失的资料，都是在给稽查递刀子。",
+            "detail": f"经审核全部{total_categories}类稽查必查资料：已提交{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类：{missing_detail}。",
+            "description": f"经审核本次提交的全部资料，共计{total_categories}类稽查必查资料，已覆盖{len(present_names)}类（{'、'.join(present_names)}），缺失{missing_count}类（{missing_detail}）。\n\n根据《税务稽查工作规程》第二十二条，被查单位应在稽查通知下达后按税务机关要求及时、完整提交相关资料。每缺一类资料，对应分析域无法执行，稽查结论的完整性和精确性将受实质性影响。已提交资料对应的分析域均已执行完毕，缺失资料的后果逐一列明于下方证据材料。",
+            "how_found": f"逐一检测{total_categories}类稽查必查资料的提交状态——从文件解析结果的数据类型和文件名称判定。",
+            "tax_impact": "稽查通知下达后无法在限期内提供完整资料→面临罚款（单位最高5万元）→税务机关从其他数据源（金税系统、银行流水、第三方信息）倒推核定应纳税额→核定结果通常高于企业实际→补税+滞纳金+罚款。",
             "policy_ref": "《税收征收管理法》第五十四条、第五十六条（资料提供义务及罚则）；《税务稽查工作规程》第二十二条（检查取证）。",
-            "suggestion": f"立即补充缺失的{missing_count}类资料。按照金税四期稽查必查清单，企业应确保以下{total_categories}类资料随时可调取、完整、规范：" + "、".join([f"{name}" for _, name, _ in ALL_CATEGORIES]) + "。",
+            "suggestion": f"补充缺失的{missing_count}类资料。按照金税四期稽查必查清单，企业应确保以下{total_categories}类资料随时可调取、完整、规范：" + "、".join([f"{name}" for _, name, _ in ALL_CATEGORIES]) + "。",
             "items": missing_items,
             "category": "域14 资料完备度"
         })
@@ -1104,7 +1104,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
             "level": "低风险", "score": 2,
             "detail": f"已提交全部{total_categories}类稽查必查资料：{'、'.join(present_names)}。",
             "description": f"本次分析覆盖了全部{total_categories}类稽查必查核心资料，资料完整度高，能够支撑全面的涉税风险分析和稽查应对。",
-            "how_found": f"我逐一检测了{total_categories}类稽查必查资料的提交状态，全部检测通过。",
+            "how_found": f"逐一检测{total_categories}类稽查必查资料的提交状态，全部检测通过。",
             "category": "域14 资料完备度"
         })
 
@@ -1221,7 +1221,7 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
                 "level": "高风险", "score": 9,
                 "detail": f"银行流水中向{len(pay_no_inv)}个供应商付款但无对应进项发票：{'、'.join(pay_no_inv)}等。",
                 "description": f"结合银行流水支出、进项发票、存货入库三源交叉比对发现：银行账户向以下供应商支付了货款，但进项发票中未找到对应供应商的开票记录：{'、'.join(pay_no_inv)}。这意味着企业付了款却没有取得发票，存在以下可能：供应商未开票或延迟开票、账外采购、或以采购名义转移资金。",
-                "how_found": f"我走了三组独立交叉比对：(1)从{len(bank_txs)}条银行流水提取所有支出交易→按对方名称分组→筛选金额>5000元的付款 (2)从{len(pur_invs)}张进项发票提取所有销方名称 (3)两组名单逐名模糊匹配→发现{len(pay_no_inv)}家供应商收了货款但查不到进项发票。",
+                "how_found": f"执行了三组独立交叉比对：(1)从{len(bank_txs)}条银行流水提取所有支出交易→按对方名称分组→筛选金额>5000元的付款 (2)从{len(pur_invs)}张进项发票提取所有销方名称 (3)两组名单逐名模糊匹配→发现{len(pay_no_inv)}家供应商收了货款但查不到进项发票。",
                 "tax_impact": "付款未取得发票，相关支出不得在企业所得税前扣除；若被认定为无真实交易的资金支出，可能涉及抽逃资金或利益输送。",
                 "policy_ref": "《企业所得税法》第八条（税前扣除须有合法凭证）；国家税务总局公告2018年第28号（税前扣除凭证管理）。",
                 "suggestion": "1）逐笔核实无票付款的真实交易背景，联系供应商补开发票；2）建立付款前审核发票的制度；3）对于确实无法取得发票的小额零星支出，保留收款凭证及内部审批记录。",
@@ -1291,7 +1291,7 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
                     "level": "中风险", "score": 7,
                     "detail": f"工资表实发{total_salary:,.2f}元 vs 银行工资代发{bank_salary:,.2f}元（{ratio*100:.2f}%）。",
                     "description": f"将工资表的实发金额、银行流水中的工资代发记录、社保参保人数进行三源交叉比对。工资表显示实发合计{total_salary:,.2f}元，银行流水识别到的工资代发金额{bank_salary:,.2f}元（{ratio*100:.2f}%），社保参保{ss_people}人。三者不一致可能意味着：部分工资以现金发放、工资表人数与实际不符、或存在未通过银行代发的避税安排。",
-                    "how_found": f"我做了三源交叉验证：(1)从工资表汇总{len(salaries)}人实发工资{total_salary:,.2f}元 (2)从{len(bank_txs)}条银行流水识别含'工资''代发'关键词的交易{bank_salary:,.2f}元 (3)统计社保明细{ss_people}人参保——三方偏差超过50%即确认异常。",
+                    "how_found": f"执行了三源交叉验证：(1)从工资表汇总{len(salaries)}人实发工资{total_salary:,.2f}元 (2)从{len(bank_txs)}条银行流水识别含'工资''代发'关键词的交易{bank_salary:,.2f}元 (3)统计社保明细{ss_people}人参保——三方偏差超过50%即确认异常。",
                     "tax_impact": "工资通过现金发放且无社保参保记录，个人所得税代扣代缴义务可能存在遗漏，企业所得税税前扣除的工资费用真实性存疑。",
                     "policy_ref": "《个人所得税法》第九条（扣缴义务人）；《企业所得税法实施条例》第三十四条（工资薪金扣除条件）。",
                     "suggestion": "1）统一通过银行代发工资，保留发放凭证；2）确保工资表、个税申报、社保参保三方人数和金额一致；3）如存在劳务用工，单独签订劳务合同并代开发票。",
@@ -1316,7 +1316,7 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
                 "level": "低风险", "score": 3,
                 "detail": f"发票销项税额{vat_output:,.2f} - 进项税额{vat_input:,.2f} = {vat_net:,.2f}元；申报应缴{vat_payable:,.2f}元；银行缴税{tax_from_bank:,.2f}元。",
                 "description": f"将四个维度的税务数据进行交叉比对：发票税额（销项{vat_output:,.2f} - 进项{vat_input:,.2f} = {vat_net:,.2f}）、申报表填报应缴税额{vat_payable:,.2f}元、银行实际缴税{tax_from_bank:,.2f}元。这四源数据如果一致或差异在合理范围内，说明税务合规性较好；如果存在较大偏差，需要逐环节排查。",
-                "how_found": f"我做了四源交叉验证：(1)从{len(sal_invs)}张销项发票提取销项税额{vat_output:,.2f}元 (2)从{len(pur_invs)}张进项发票提取进项税额{vat_input:,.2f}元 (3)从申报表取应缴税额{vat_payable:,.2f}元 (4)从银行流水提取实际缴税{tax_from_bank:,.2f}元——四源比对，追溯差异根源。",
+                "how_found": f"执行了四源交叉验证：(1)从{len(sal_invs)}张销项发票提取销项税额{vat_output:,.2f}元 (2)从{len(pur_invs)}张进项发票提取进项税额{vat_input:,.2f}元 (3)从申报表取应缴税额{vat_payable:,.2f}元 (4)从银行流水提取实际缴税{tax_from_bank:,.2f}元——四源比对，追溯差异根源。",
                 "category": "域15 多源交叉"
             })
 
@@ -3224,7 +3224,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
                 "level": "高风险", "score": 9,
                 "detail": f"被查单位毛利率{gm_pct:.2f}%（=（销售收入{actual_rev:,.2f}元-进项采购成本{pur_total:,.2f}元）/销售收入{actual_rev:,.2f}元）。{target_industry}行业毛利率正常区间为{low*100:.2f}%~{high*100:.2f}%，典型值{typical*100:.2f}%。被查单位毛利率已低于行业下限{low*100:.2f}%，偏离度{gross_margin/low-1:.0%}。",
                 "description": f"毛利率低于行业基准下限{low*100:.2f}%，这一偏差在稽查中有明确的指向意义：①进项发票可能存在虚增——采购成本被人为做高以虚抵进项税、虚列成本少缴企业所得税；②销售收入可能被隐匿——部分收入未入账、未开票，导致收入端偏低、毛利率被拉低。{target_industry}行业毛利率典型值为{typical*100:.2f}%，被查单位{gm_pct:.2f}%已处于行业尾部。需结合产能、能耗、人工投入等经营数据做交叉验证。",
-                "how_found": f"我计算了被查单位的毛利率：销售收入{actual_rev:,.2f}元减去进项采购成本{pur_total:,.2f}元，除以销售收入，得出{gm_pct:.2f}%。然后我查阅了{target_industry}行业的毛利率基准数据（下限{low*100:.2f}%、典型{typical*100:.2f}%、上限{high*100:.2f}%），发现被查单位毛利率已低于行业下限。",
+                "how_found": f"计算出被查单位的毛利率：销售收入{actual_rev:,.2f}元减去进项采购成本{pur_total:,.2f}元，除以销售收入，得出{gm_pct:.2f}%。然后查阅了{target_industry}行业的毛利率基准数据（下限{low*100:.2f}%、典型{typical*100:.2f}%、上限{high*100:.2f}%），发现被查单位毛利率已低于行业下限。",
                 "tax_impact": f"若进项虚增：补缴增值税+企业所得税+滞纳金+罚款；若收入隐匿：补缴增值税+企业所得税+滞纳金+0.5-5倍罚款，情节严重移送公安。",
                 "suggestion": f"核查方向：1)逐笔核实大额进项发票的真实性（与物流单、入库单、银行付款单三单比对）——重点核查偏离度最大的品类；2)将银行流水贷方发生额与销项发票总额做逐月比对，找出银行收款＞开票收入的月份，追查未开票收入；3)要求企业提供成本核算明细和BOM表，核实料工费配比是否合理。",
                 "category": "行业对标"
@@ -3608,7 +3608,7 @@ def _domain_invoice_audit(invoices, target_industry=""):
             "level": "中风险", "score": 7,
             "detail": f"{total_inv}张发票中{len(missing_qty)}张({len(missing_qty)/total_inv*100:.2f}%)金额>0但无数量。",
             "description": f"《发票管理办法》第二十二条：发票须如实开具品名、数量、单价、金额。无数量则无法计算单价、无法验证进销存数量逻辑、无法核实交易真实性。涉及：{'；'.join(examples)}等。",
-                "how_found": f"我对{total_inv}张发票逐票审核了数量字段——发现{len(missing_qty)}张发票有金额但无数量，我无法验证单价合理性，无法排除虚增金额。",
+                "how_found": f"对{total_inv}张发票逐票审核了数量字段——发现{len(missing_qty)}张发票有金额但无数量，无法验证单价合理性，无法排除虚增金额。",
             "suggestion": "① 逐票核实缺少数量单位的发票对应实际交易量；② 要求供应商补开含有数量和单位的合规发票；③ 如无法补开——提供对应的入库单、物流签收单、称重记录等佐证交易数量；④ 同时提供采购合同中的数量条款作为交叉验证。数量和单位是发票的基本要素，长期缺失将影响成本核算和企业所得税税前扣除。",
             "category": "发票合规"
         })
@@ -3619,7 +3619,7 @@ def _domain_invoice_audit(invoices, target_industry=""):
             "type": "发票缺少计量单位",
             "level": "中风险", "score": 6,
             "detail": f"{total_inv}张发票中{len(missing_unit)}张({len(missing_unit)/total_inv*100:.2f}%)金额>0但无计量单位。",
-                "how_found": f"我对{total_inv}张发票逐票审核了计量单位字段——发现{len(missing_unit)}张发票未填计量单位，我无法判断交易数量是否与品名逻辑一致。",
+                "how_found": f"对{total_inv}张发票逐票审核了计量单位字段——发现{len(missing_unit)}张发票未填计量单位，无法判断交易数量是否与品名逻辑一致。",
             "suggestion": "要求企业规范开票，补全计量单位（如kg、米、吨、件等）。无单位无法判断数量含义。",
             "category": "发票合规"
         })
@@ -3942,7 +3942,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
             "level": "低风险", "score": 2,
             "detail": f"{total_rule_count}条规则中{verified_count}条已被触发并产出结论。",
             "description": f"已触发的{verified_count}条规则覆盖了本报告各分析域的风险发现。这些规则的结论已经过数据源复核。",
-            "how_found": "我逐一核对了本次分析产生的每条发现与底层规则引擎的映射关系——确认每条风险发现都有对应的规则支撑和数据验证。".format(total_rules=len(all_rules)),
+            "how_found": "逐一核对了本次分析产生的每条发现与底层规则引擎的映射关系——确认每条风险发现都有对应的规则支撑和数据验证。".format(total_rules=len(all_rules)),
             "category": "域18 全覆盖验证"
         })
     
@@ -4452,12 +4452,12 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 {"label": "税费社保退款", "keywords": ["社保","医保","税","国库","ETS"]},
                 {"label": "银行内部款项", "keywords": ["结息","利息","银行","农行"]},
                 {"label": "企业客户款", "keywords": ["有限公司","公司","企业","厂","店","集团"]},
-                {"label": "个人款", "is_default": True},
+                {"label": "个人待分析", "is_default": True},
             ]
         for rule in rc_rules_cfg:
             if not rule.get("is_default"):
                 pay_cats[rule["label"]] = defaultdict(float)
-        pay_cats["个人款"] = defaultdict(float)  # 兜底默认分类
+        pay_cats["个人待分析"] = defaultdict(float)  # 兜底默认分类，标注"待分析"提示稽查员关注
         
         for tx in bank_txs:
             credit = float(tx.get("credit", 0) or 0)
@@ -4490,7 +4490,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                     matched = True
                     break
             if not matched:
-                pay_cats["个人款"][cp] += credit
+                pay_cats["个人待分析"][cp] += credit
         
         # ── 收款类型纠错验证：系统自我反思，修正明显误分类 ──
         # 方法论：分类完成后，系统自问——"这个分类合理吗？有没有明显的反例？"
@@ -4507,9 +4507,9 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
             purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
             all_text = f"{cp} {summary} {remark} {purpose}"
-            # 已经在个人款中的极小金额 → 检查是否为银行利息
+            # 已经在个人待分析中的极小金额 → 检查是否为银行利息
             in_individual = False
-            if cp in pay_cats.get("个人款", {}):
+            if cp in pay_cats.get("个人待分析", {}):
                 in_individual = True
             elif not cp:
                 in_individual = True  # 空名称通常也在个人款兜底
@@ -4536,15 +4536,18 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 
                 if should_correct:
                     # 重新分到银行内部款项
-                    if cp in pay_cats.get("个人款", {}):
-                        del pay_cats["个人款"][cp]
+                    if cp in pay_cats.get("个人待分析", {}):
+                        del pay_cats["个人待分析"][cp]
                     pay_cats.setdefault("银行内部款项", defaultdict(float))[cp or "(银行)"] += credit
-                    corrections.append(f"纠错: {credit:.2f}元 '{cp or '(空)'}' 从个人款→银行内部款项(金额{credit}有零有整+{('空名称' if is_empty_name else '')}{('含银行关键词' if is_bank_name else '')}{('含利息摘要' if is_bank_summary else '')})")
+                    corrections.append(f"纠错: {credit:.2f}元 '{cp or '(空)'}' 从个人待分析→银行内部款项(金额{credit}有零有整+{('空文本' if is_empty_all else '')}{('含银行关键词' if is_bank_in_all else '')}{('摘要空' if has_empty_text else '')})")
         
         if corrections:
-            pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
-            for c in corrections[:5]:
-                pipeline_log.append(f"  {c}")
+            try:
+                pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
+                for c in corrections[:5]:
+                    pipeline_log.append(f"  {c}")
+            except NameError:
+                pass  # pipeline_log 不在当前作用域时静默跳过
         
         # 自适应输出：只输出有数据的类别
         intel["银行流水"]["收款构成"] = {}

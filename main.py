@@ -7267,11 +7267,9 @@ def submit_audit_feedback(data: dict, db: Session = Depends(get_db)):
 
 @app.post("/api/feedback")
 def submit_feedback(data: dict):
-    """老邓纠正反馈API — 报告发现上的驳回按钮调用
-    请求体：{action: "dismiss", finding_type, finding_title, original_level, reason, detail, fingerprint}
-    """
+    """老邓纠正反馈API — 报告发现上的驳回按钮调用"""
     from engine.self_learning import record_correction
-    # 从公司ID推断行业和经营模式（保守默认值）
+    from shared_state import _last_analysis_cache
     company_id = data.get("company_id", 1)
     industry = data.get("industry", "综合")
     biz_model = data.get("biz_model", "未确定")
@@ -7289,6 +7287,11 @@ def submit_feedback(data: dict):
         reason=reason,
         finding_detail=detail
     )
+    
+    # 清除该公司的分析缓存，确保重新分析时使用更新后的反馈数据
+    if company_id > 0:
+        _last_analysis_cache.pop(company_id, None)
+    
     return {"ok": True, "recorded": result["recorded"], "auto_rule": result.get("auto_apply", False), "count": result.get("correction_count", 0)}
 
 

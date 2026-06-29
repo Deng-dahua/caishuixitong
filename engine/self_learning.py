@@ -697,39 +697,47 @@ def apply_correction_rules(all_findings, industry, biz_model):
     """
     在分析过程中自动应用已学习的纠正规则。
     
-    对于每条发现，检查是否存在已升级的纠正规则。
-    如果存在且置信度>=0.7，自动调整风险等级。
+    匹配策略（三级回退）：
+    1. 精确匹配: ftype|industry|biz_model → confidence>=0.7
+    2. 行业匹配: ftype|industry|* → confidence>=0.8
+    3. 通用匹配: ftype|*|* → confidence>=0.9（跨行业通用规则）
     """
     rules = _load_correction_rules()
     applied_count = 0
     
     for finding in all_findings:
         ftype = finding.get("type", "")
+        fingerprint = f"{ftype}|{industry}|{biz_model}"
         
         # 精确匹配
-        fingerprint = f"{ftype}|{industry}|{biz_model}"
+        matched_rule = None
         if fingerprint in rules and rules[fingerprint].get("auto_apply"):
-            rule = rules[fingerprint]
-            original_level = finding.get("level", "")
-            finding["level"] = rule["corrections"][-1]["corrected_risk"]
-            finding["score"] = max(3, (finding.get("score", 5) or 5) - 2)
-            finding["_auto_corrected"] = True
-            finding["_correction_reason"] = rule["corrections"][-1]["reason"]
-            finding["_correction_confidence"] = rule["confidence"]
-            applied_count += 1
-            continue
+            matched_rule = rules[fingerprint]
+        # 行业匹配
+        if not matched_rule:
+            industry_key = f"{ftype}|{industry}|*"
+            if industry_key in rules and rules[industry_key].get("auto_apply") and rules[industry_key]["confidence"] >= 0.8:
+                matched_rule = rules[industry_key]
+        # 通用匹配（跨行业），从1次纠正后即可生效
+        if not matched_rule:
+            generic_key = f"{ftype}|*|*"
+            if generic_key in rules and rules[generic_key].get("auto_apply") and rules[generic_key]["confidence"] >= 0.5:
+                matched_rule = rules[generic_key]
+        # 指纹名称匹配
+        if not matched_rule:
+            for fp, rule in rules.items():
+                if fp.startswith(f"{ftype}|") and rule.get("auto_apply"):
+                    if rule["confidence"] >= 0.7:
+                        matched_rule = rule
+                        break
         
-        # 模糊匹配：同类型+同模式（跨行业）
-        fuzzy_key = f"{ftype}|*|{biz_model}"
-        for fp, rule in rules.items():
-            if fp.endswith(f"|*|{biz_model}") and fp.startswith(f"{ftype}|"):
-                if rule.get("auto_apply") and rule["confidence"] >= 0.8:
-                    finding["level"] = rule["corrections"][-1]["corrected_risk"]
-                    finding["score"] = max(3, (finding.get("score", 5) or 5) - 1)
-                    finding["_auto_corrected"] = True
-                    finding["_correction_reason"] = f"跨行业规则: {rule['corrections'][-1]['reason']}"
-                    applied_count += 1
-                    break
+        if matched_rule:
+            finding["_auto_corrected"] = True
+            finding["_correction_reason"] = matched_rule["corrections"][-1]["reason"]
+            finding["_correction_confidence"] = matched_rule["confidence"]
+            # 不修改原始level，保留原风险等级+标记驳回状态，让报告能继续展示
+            finding["_dismissed"] = True
+            applied_count += 1
     
     return applied_count
 
