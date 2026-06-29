@@ -411,7 +411,7 @@ function renderFileParsingStatic() {
   groups.forEach(function(g) {
     html += '<div style="margin-bottom:28px">'
       + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">' + escHtml(g.title) + '</div>'
-      + '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.8">' + escHtml(g.desc) + '</div>'
+      + '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:2.0">' + escHtml(g.desc) + '</div>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">';
 
     g.items.forEach(function(item) {
@@ -782,7 +782,7 @@ function renderDomainAnalysisStatic() {
     + '资料完备度越高，发现结论的置信度越高。缺资料时标注资料缺口，'
     + '不做无依据结论——这是稽查工作的基本原则。'
     + '</div>'
-    + '<div style="margin-top:12px;padding:10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#991b1b;line-height:1.8">'
+    + '<div style="margin-top:12px;padding:10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#991b1b;line-height:2.0">'
     + '<strong>代表域：</strong>资金流向追踪（需银行流水）、'
     + '工资社保比对（需工资表+社保明细）、'
     + '合同比对（需合同台账+发票）'
@@ -798,7 +798,7 @@ function renderDomainAnalysisStatic() {
     + '<strong>基于数据内在特征自动计算。</strong>只要有对应的基础数据即可运行，'
     + '无需外部参考资料。结果基于数学和统计学方法，客观性强。'
     + '</div>'
-    + '<div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;line-height:1.8">'
+    + '<div style="margin-top:12px;padding:10px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;line-height:2.0">'
     + '<strong>代表域：</strong>进销毛利率（需进销发票）、'
     + '存货周转预警（需进销存台账）、'
     + '异常交易时间分析（需银行流水）'
@@ -814,7 +814,7 @@ function renderDomainAnalysisStatic() {
     + '<strong>内置行业基准库和法规库。</strong>将企业实际数据与66个行业的统计基准值对比，'
     + '与税收法律法规的要求对照验证。偏差超出正常范围时触发预警。'
     + '</div>'
-    + '<div style="margin-top:12px;padding:10px;background:#f5f3ff;border-radius:6px;font-size:11px;color:#5b21b6;line-height:1.8">'
+    + '<div style="margin-top:12px;padding:10px;background:#f5f3ff;border-radius:6px;font-size:11px;color:#5b21b6;line-height:2.0">'
     + '<strong>代表域：</strong>行业对标分析（需66行业基准库）、'
     + '规则全覆盖验证（需1514条规则库）、'
     + 'CIT汇算清缴（需企业所得税法+实施条例）'
@@ -931,12 +931,12 @@ function renderDomainAnalysisStatic() {
       + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 0;line-height:1.7">' + escHtml(g.desc) + '</div>';
 
     g.items.forEach(function(d) {
-      html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:2px solid ' + g.color + ';background:#fff;border-radius:0 6px 6px 0">'
+      html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:3px solid ' + g.color + ';background:#fff;border:1px solid #e2e8f0;border-left-width:3px;border-radius:6px">'
         + '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a">' + escHtml(d.name) + '</div>'
         + '<div style="font-size:11px;color:#94a3b8">' + escHtml(d.fn) + '() · 行' + d.line + '</div>'
         + '</div>'
-        + '<div style="font-size:13px;color:#64748b;line-height:1.8">' + escHtml(d.desc) + '</div>'
+        + '<div style="font-size:13px;color:#64748b;line-height:2.0">' + escHtml(d.desc) + '</div>'
         + '</div>';
     });
 
@@ -1009,7 +1009,7 @@ function renderDomainAnalysisResult(report) {
     // 统计卡片
     + '<div style="display:flex;gap:12px;margin-bottom:40px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + totalDomains + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">分析域</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredDomains + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已触发</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredDomains + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已触发</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highTotal + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + midTotal + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">中风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + allF.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">合计发现</div></div>'
@@ -1050,7 +1050,7 @@ function renderDomainAnalysisResult(report) {
           var trace = f._trace || {};
           html += '<div style="padding:10px 12px;margin-bottom:6px;background:' + lvlBg + ';border-radius:6px;border-left:3px solid ' + lvlColor + '">'
             + '<div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">' + escHtml(f.type || '') + '</div>'
-            + '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(dt).replace(/"/g, '&quot;') + '">' + escHtml(dt.substring(0, 300)) + '</span>'
+            + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:4px"><span class="d-find-detail" data-full="' + escHtml(dt).replace(/"/g, '&quot;') + '">' + escHtml(dt.substring(0, 300)) + '</span>'
             + (dt.length > 300 ? ' <a href="#" onclick="var s=this.previousElementSibling;s.textContent=s.getAttribute(\'data-full\');this.remove();return false" style="color:#2563eb;font-size:11px">展开全文</a>' : '')
             + '</div>'
             + '<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#94a3b8">'
@@ -1139,7 +1139,7 @@ function renderCrossDomainStaticContent(chains) {
   html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">总维度</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalDim + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">总维度</div></div>'
     + '<div id="cde-triggered-count" style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">—</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
     + '</div>';
 
@@ -1170,7 +1170,7 @@ function renderCrossDomainStaticContent(chains) {
       + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
       + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">触发维度 · ' + c.dimensions.length + ' 个</div>';
     c.dimensions.forEach(function(d) {
-      html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:1.8">'
+      html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:2.0">'
         + '<span style="font-weight:600;color:#0f172a">' + escHtml(d.code) + '</span>'
         + ' <span style="color:#64748b">' + escHtml(d.source) + '</span>'
         + '<span style="color:#94a3b8;margin-left:6px">→ ' + escHtml(d.desc) + '</span>'
@@ -1179,10 +1179,10 @@ function renderCrossDomainStaticContent(chains) {
     html += '</div>'
 
       // 完整字段
-      + (c.how_found ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">溯源：</span>' + escHtml(c.how_found) + '</div>' : '')
-      + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
-      + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
-      + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
+      + (c.how_found ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">溯源：</span>' + escHtml(c.how_found) + '</div>' : '')
+      + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
+      + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
+      + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
 
       + '</div>';
   });
@@ -1294,7 +1294,7 @@ function renderCrossDomainDynamic(report) {
     + '<div style="display:flex;gap:12px;margin-bottom:32px">'
     + '<div style="flex:1;text-align:center;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + allEvidence.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链发现</div></div>'
     + '<div style="flex:1;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
-    + '<div style="flex:1;text-align:center;padding:14px;background:#eff6ff;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">' + chainExecution.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">' + chainExecution.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
     + '<div style="flex:1;text-align:center;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#0f172a">' + triggeredChains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">含规则</div></div>'
     + '</div>';
 
@@ -1436,7 +1436,7 @@ function renderChainsList(chains) {
 
     html += '<div id="ch-stats" style="display:flex;gap:12px;margin-bottom:32px">'
       + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链总数</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
       + '</div>';
 
     chains.forEach(function(c, ci) {
@@ -1635,7 +1635,7 @@ function renderEvidenceList(chains) {
   // 统计卡片
   html += '<div id="ev-stats" style="display:flex;gap:12px;margin-bottom:32px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链总数</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
     + '</div>';
 
@@ -1835,7 +1835,7 @@ async function loadAnalyzeOverview() {
   // ══════ 引擎核心能力（六项）═══
   html += '<div id="al-cap" style="margin-bottom:32px;padding:20px 24px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;color:#e2e8f0">'
     + '<h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 16px;text-align:center">引擎核心能力宣言</h3>'
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;line-height:1.8">'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;line-height:2.0">'
     + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🧠 有记忆</strong><br>每次分析自动提取指纹存入记忆库，后续分析检索相似案例，输出行业对标和风险校准。实现：audit_memory.json，上限500条，12维度加权检索。</div>'
     + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">📚 能学习</strong><br>三层学习机制：用户反馈学习（驳回→降权0.2）、EMA自学习（58样本指数移动平均）、自动规则发现（信号组合→新规则）。</div>'
     + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🔬 懂思考</strong><br>四层推理：假设-验证引擎（2-3竞争假设逐条验证）、Phase1-4推理引擎、因果叙事链（5条因果规则）、四步稽查分析法。</div>'
@@ -2034,14 +2034,14 @@ function renderAnalyzeResult(report) {
     + '分析链是税务稽查系统的核心执行管线——<strong>七步串联的数据处理流水线</strong>，数据在管线中单向流动，不丢失、不污染、不截断。'
     + '从资料扫描开始，经过多轮交叉验证，最终形成证据闭环：资料驱动+诚实边界+交叉推断+明细支撑。'
     + '</div>'
-    + '<div style="font-size:12px;color:#94a3b8;line-height:1.8;padding:12px 16px;background:#f8fafc;border-radius:6px">'
+    + '<div style="font-size:12px;color:#94a3b8;line-height:2.0;padding:12px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">'
     + '代码位置：main.py _run_analyze() · 数据规模：' + pc('rules','1514') + '条指令 + ' + pc('trailChains','396') + '条线索链 + ' + pc('evidenceChains','745') + '条证据链 · 处理能力：97%噪声过滤 · 66行业基准库 · 35域分析函数'
     + '</div>'
     + '</div>';
 
   // ══════ 二、七步执行流程 ══════
   h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 16px">七步执行流程</h3>'
-    + '<div style="margin-bottom:40px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#475569;line-height:1.9">'
+    + '<div style="margin-bottom:40px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#475569;line-height:2.0">'
     + '<div style="padding:14px 16px;background:#f0f9ff;border-radius:6px;border-left:3px solid #2563eb"><strong style="color:#0f172a;font-size:13px">① 资料扫描与类型识别</strong><br>34类文件指纹库+三层递进识别（关键词打分→结构分析→数据推断），自动判定发票方向。</div>'
     + '<div style="padding:14px 16px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed"><strong style="color:#0f172a;font-size:13px">② 目标实体识别</strong><br>进项购买方∩销项销售方确定企业全称，90+关键词×66行业加权投票，联网工商比对。</div>'
     + '<div style="padding:14px 16px;background:#ecfdf5;border-radius:6px;border-left:3px solid #059669"><strong style="color:#0f172a;font-size:13px">③ 资料情报提取与分析</strong><br>42个域分析函数并行执行：银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层。</div>'
@@ -2055,7 +2055,7 @@ function renderAnalyzeResult(report) {
   h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 16px">本次分析结果</h3>'
     + '<div style="display:flex;gap:12px;margin-bottom:20px">'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + (report.files_count||0) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">资料文件</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (comp.rule_count||pc('rules','1514')) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">匹配规则</div></div>'
+    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + (comp.rule_count||pc('rules','1514')) + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">匹配规则</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">' + midCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">中风险</div></div>'
     + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + lowCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">低风险</div></div>'
@@ -2148,8 +2148,8 @@ function renderAnalyzeResult(report) {
             + '<div style="font-size:14px;font-weight:700;color:#0f172a">' + escHtml(id + ' ' + name) + '</div>'
             + '<span style="font-size:11px;color:#94a3b8;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'block\':\'none\'">展开/折叠</span>'
             + '</div>'
-            + '<div style="font-size:12px;color:#475569;line-height:1.8">' + escHtml(desc) + '</div>'
-            + '<div style="display:none;margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:2">'
+            + '<div style="font-size:12px;color:#475569;line-height:2.0">' + escHtml(desc) + '</div>'
+            + '<div style="display:none;margin-top:8px;padding:8px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#475569;line-height:2">'
             + (requirement ? '<div><span style="font-weight:600;color:#0f172a">要求：</span>' + escHtml(requirement) + '</div>' : '')
             + (purpose ? '<div><span style="font-weight:600;color:#0f172a">用途：</span>' + escHtml(purpose) + '</div>' : '')
             + (codePos ? '<div><span style="font-weight:600;color:#0f172a">代码位置：</span><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
@@ -2254,7 +2254,7 @@ function loadCrossDomainClues() {
       html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
         + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + clues.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链</div></div>'
         + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
-        + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
         + '</div>';
 
       html += '<h3 id="cdc-list" style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">二、跨域线索链定义</h3>';
@@ -2278,7 +2278,7 @@ function loadCrossDomainClues() {
           + '<div style="margin-bottom:8px;padding:10px 12px;background:#fff;border-radius:6px">'
           + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">调查路径 · ' + (c.investigation_path||[]).length + ' 步</div>';
         (c.investigation_path||[]).forEach(function(s) {
-          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:1.8">'
+          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:2.0">'
             + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">Step ' + s.step + '</span>'
             + '<span style="font-weight:600;color:#2563eb">' + escHtml(s.domain) + '</span>'
             + '<span style="color:#64748b"> → ' + escHtml(s.action) + '</span>'
@@ -2287,9 +2287,9 @@ function loadCrossDomainClues() {
         });
         html += '</div>'
 
-          + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
-          + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:1.8;margin-bottom:4px"><span style="font-weight:600">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
-          + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:1.8"><span style="font-weight:600">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
+          + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
+          + (c.policy_ref ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
+          + (c.suggestion ? '<div style="font-size:13px;color:#64748b;line-height:2.0"><span style="font-weight:600">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
           + '</div>';
       });
 
@@ -2359,7 +2359,7 @@ function loadCrossDomainAnalysis() {
       html += '<div style="display:flex;gap:12px;margin-bottom:40px">'
         + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">分析链</div></div>'
         + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + highCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">高风险链</div></div>'
-        + '<div style="flex:1;text-align:center;padding:16px;background:#eff6ff;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">推理步骤</div></div>'
+        + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">推理步骤</div></div>'
         + '</div>';
 
       // ══════ 二、分析链定义 ══════
@@ -2377,7 +2377,7 @@ function loadCrossDomainAnalysis() {
           + '</div>'
 
           // 触发信号
-          + '<div style="font-size:13px;color:#475569;line-height:1.8;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发信号：</span>' + escHtml(c.trigger_signal) + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发信号：</span>' + escHtml(c.trigger_signal) + '</div>'
 
           // 描述
           + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>'
@@ -2387,7 +2387,7 @@ function loadCrossDomainAnalysis() {
           + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + (c.reasoning_chain||[]).length + ' 步</div>';
 
         (c.reasoning_chain||[]).forEach(function(s, si) {
-          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:1.8">'
+          html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:2.0">'
             + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + s.order + '</span>'
             + '<span style="font-weight:600;color:#2563eb">' + escHtml(s.from) + '</span>'
             + '<span style="color:#94a3b8"> → </span>'
@@ -2405,7 +2405,7 @@ function loadCrossDomainAnalysis() {
           + '<div style="padding:12px 16px;background:#f0fdf4;border-radius:6px;margin-bottom:8px">'
           + '<div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:6px">回退点 · ' + (c.reversal_points||[]).length + ' 处</div>';
         (c.reversal_points||[]).forEach(function(r) {
-          html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:1.8">'
+          html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:2.0">'
             + '<span style="color:#94a3b8;font-size:12px">Step ' + r.at_step + '</span>'
             + '<span style="color:#059669;font-weight:600"> 如果</span> ' + escHtml(r.if)
             + '<span style="color:#059669;font-weight:600"> → 则</span> ' + escHtml(r.then)
@@ -2630,7 +2630,7 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   // ══ TOC sidebar layout ══
-  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:1.8;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
+  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:2.0;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
   html += '<div class="ar-layout">';
 
   // TOC
@@ -2774,7 +2774,7 @@ function renderQualitySystem(container) {
     h+='<div id="qs-layer'+l.id+'" class="qs-layer">';
     h+='<div class="qs-layer-hd" style="border-color:'+l.color+'"><span style="font-size:22px">'+l.icon+'</span><div><div style="font-size:15px;font-weight:700;color:#0f172a">'+l.name+'（'+l.items.length+'组件）</div><div style="font-size:12px;color:#64748b">'+l.desc+'</div></div></div>';
     l.items.forEach(function(item,idx){
-      h+='<div class="qs-item"><div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">'+(idx+1)+'. '+item.name+'</div><div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:4px">'+item.desc+'</div><div style="font-size:11px;color:#6366f1">📁 '+item.source+'</div></div>';
+      h+='<div class="qs-item"><div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:4px">'+(idx+1)+'. '+item.name+'</div><div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:4px">'+item.desc+'</div><div style="font-size:11px;color:#6366f1">📁 '+item.source+'</div></div>';
     });
     h+='</div>';
   });
@@ -2813,7 +2813,7 @@ function renderQualitySystem(container) {
           + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
           + '<span style="font-size:11px;color:#94a3b8;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'">展开/折叠</span>'
           + '</div>'
-          + '<div style="font-size:13px;color:#475569;line-height:1.8">' + escHtml(desc) + '</div>'
+          + '<div style="font-size:13px;color:#475569;line-height:2.0">' + escHtml(desc) + '</div>'
           + '<div style="display:none;margin-top:12px;padding:12px 16px;background:#fff;border-radius:6px;font-size:13px;color:#475569;line-height:2">'
           + (requirement ? '<div style="margin-bottom:8px"><span style="font-weight:600;color:#0f172a">要求：</span>' + escHtml(requirement) + '</div>' : '')
           + (purpose ? '<div style="margin-bottom:8px"><span style="font-weight:600;color:#0f172a">用途：</span>' + escHtml(purpose) + '</div>' : '')
