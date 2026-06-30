@@ -5013,7 +5013,6 @@ class MemoryLearner:
     
     def load(self, memory_path):
         """加载审计记忆并计算统计"""
-        import json, os
         from collections import Counter, defaultdict
         
         try:
@@ -8544,7 +8543,6 @@ def _ema_self_learning(ctx, all_findings):
     2. 权重衰减：长时间未被确认的信号自动降权
     3. 置信区间：不仅给点估计，给[P25, P75]区间
     """
-    import json, os, math
     from collections import defaultdict
     
     memory_path = os.path.join(_PROJECT_ROOT, "static", 'audit_memory.json')
@@ -9085,7 +9083,6 @@ def _compute_intuition_patterns(ctx, all_findings):
     2. 统计这些发现中信号类型的共现模式
     3. 当当前分析的finding中出现这些共现模式时，触发"直觉警报"
     """
-    import json, os
     from collections import defaultdict, Counter
     
     intuition_hits = []
@@ -9244,7 +9241,6 @@ def _cross_period_compare(ctx, company_id, db):
     2. 购销比变化
     3. 信号模式变化（新增/消失的危险信号）
     """
-    import json, os
     
     memory_path = os.path.join(_PROJECT_ROOT, "static", 'audit_memory.json')
     prev_records = []
@@ -9539,7 +9535,6 @@ def _auto_rule_discovery(all_findings):
     不依赖人工预定义，自动发现"信号X+信号Y几乎总是同时出现且都是高风险"的模式。
     """
     from collections import defaultdict, Counter
-    import json, os
     
     new_rules = []
     
@@ -9921,7 +9916,6 @@ def _auto_rule_discovery(all_findings):
     不依赖人工预定义，自动发现"信号X+信号Y几乎总是同时出现且都是高风险"的模式。
     """
     from collections import defaultdict, Counter
-    import json, os
     
     new_rules = []
     
@@ -11072,7 +11066,6 @@ _block("methods", "稽查方法",
 # ── 行业分类（从 industry_profiles.json 加载，JSON可编辑） ──
 def _load_processing_keywords():
     """从 industry_profiles.json 加载加工判定关键词（替代硬编码列表）"""
-    import json, os
     for base in [_PROJECT_ROOT, "."]:
         pp = os.path.join(base, "static", "industry_profiles.json")
         if os.path.exists(pp):
@@ -11102,7 +11095,6 @@ def _get_processing_keywords():
 # ── 业务关键词加载（从 industry_profiles.json）──
 def _load_biz_keywords():
     """从 industry_profiles.json 加载主营业务识别关键词"""
-    import json, os
     for base in [_PROJECT_ROOT, "."]:
         pp = os.path.join(base, "static", "industry_profiles.json")
         if os.path.exists(pp):
@@ -11617,8 +11609,6 @@ def _auto_verify_file_types(file_results, pipeline_log):
     因为这些文件的分类来自用户标注的元数据，可信度最高。
     """
     import math as _math
-    import json as _json_local
-    import os as _os_local
     
     corrections = []
     
@@ -11737,13 +11727,13 @@ def _auto_verify_file_types(file_results, pipeline_log):
         # 对两个聚类分别计算平均指纹，匹配 type_anchors.json
         _anchors_loaded = {}
         for _ap in [
-            _os_local.path.join(_os_local.path.dirname(__file__), "static", "type_anchors.json"),
-            _os_local.path.join("static", "type_anchors.json"),
+            os.path.join(os.path.dirname(__file__), "static", "type_anchors.json"),
+            os.path.join("static", "type_anchors.json"),
         ]:
-            if _os_local.path.exists(_ap):
+            if os.path.exists(_ap):
                 try:
                     with open(_ap, 'r', encoding='utf-8') as _af:
-                        _anchors_loaded = _json_local.load(_af).get("anchors", {})
+                        _anchors_loaded = json.load(_af).get("anchors", {})
                     break
                 except Exception:
                     pass

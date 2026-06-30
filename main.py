@@ -6582,7 +6582,6 @@ async def add_cache_headers(request, call_next):
 @app.get("/api/tax-risk-docs/engine-rules")
 def get_engine_rules():
     """返回推理引擎全部规则的完整文字，供仪表盘展示"""
-    import json, os
     from engine.domain_analysis import MISSING_CONSEQUENCE_TRIGGER, CONTRADICTION_RULES, CAUSAL_CHAIN_RULES
     
     base = os.path.join(os.path.dirname(__file__), "static")
