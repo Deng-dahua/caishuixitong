@@ -1841,7 +1841,7 @@ function renderAnalyzePage(container) {
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
     + '分析链是税务稽查系统的核心执行管线——从用户上传原始资料到输出结构化稽查报告的完整流水线。'
-    + '七步串联处理 + 42域分析 + 1608规则 + 1266条链条 + 10条协商规则，97%噪声过滤率。'
+    + '七步串联处理 + 42域分析 + 1608规则 + 1266条链条 + 15条协商规则，97%噪声过滤率。'
     + '</p>'
     + '<div id="analyze-body"></div>'
     + '</div></div>';
