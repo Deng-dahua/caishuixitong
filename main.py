@@ -872,7 +872,6 @@ async def tax_risk_rules_parse_report(request: Request):
 async def tax_risk_rules_upload_report(request: Request):
     """接收上传的报告文件（PDF/Word/TXT），提取文本并解析为规则"""
     import io as _io
-    import os as _os
 
     try:
         form = await request.form()
@@ -6118,7 +6117,6 @@ def refresh_industry_benchmarks():
     当前阶段：检查本地JSON完整性+时间戳。
     远期：接入wind/同花顺等金融数据API自动更新。
     """
-    import json, os, datetime
     
     profile_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_profiles.json")
     data_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_data.json")
@@ -7213,7 +7211,6 @@ def submit_feedback(data: dict):
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
     """删除纠正规则 — 智能大脑纠正规则库的删除按钮调用"""
-    import os, json
     from urllib.parse import unquote
     cr_file = os.path.join("static", "correction_rules.json")
     fingerprint = unquote(fingerprint)
@@ -7238,7 +7235,6 @@ def delete_correction_rule(fingerprint: str = ""):
 @app.put("/api/feedback/update")
 def update_correction_rule(data: dict):
     """修改纠正规则 — 智能大脑纠正规则库的编辑按钮调用"""
-    import os, json
     from urllib.parse import unquote
     cr_file = os.path.join("static", "correction_rules.json")
     fingerprint = unquote(data.get("fingerprint", ""))
