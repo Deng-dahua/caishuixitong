@@ -1356,7 +1356,9 @@ function renderChainsPage(container) {
     + '<nav class="ch-toc" id="ch-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="ch-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔍 线索链</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px" id="chains-subtitle">' + (hasCache ? _allClueChains.length + ' 条线索链' : '加载中...') + ' · 每条链含若干调查步骤</p>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px" id="chains-subtitle">'
+    + (hasCache ? '437条线索链（41条可执行+396条旧方法） · 串行工作流引擎 · 三大触发方式 · 每步一个调查动作' : '加载中...')
+    + '</p>'
     + '<div id="chains-body"></div></div></div>';
 
   if (hasCache) { renderChainsList(_allClueChains); updateChainsSubtitle(); }
@@ -1420,13 +1422,27 @@ function renderChainsList(chains) {
     html = '<div style="text-align:center;padding:40px;color:#94a3b8">无匹配线索链</div>';
   } else {
     var triggeredCount = _chainDynamic ? (_chainDynamic.triggered_count || 0) : 0;
+
+    // 概念说明
+    html += '<div id="ch-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
+      + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">线索链是什么</h3>'
+      + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
+      + '线索链是从<strong>稽查指令（点）到调查路径（线）的串行工作流引擎</strong>。每条线索链定义一条完整的调查路径（investigation_path[]），从触发关键词开始逐步执行各步骤。与证据链的并行多源验证不同，线索链是单路径顺序推进──\"从哪里查、查什么、查到了怎么办\"。'
+      + '</p>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
+      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">串行调查路径</strong><br>一个规则触发→多条调查步骤<br>investigation_path[]顺序执行</div>'
+      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">三类触发方式</strong><br>定量阈值（数值超限）<br>定性模式（特定匹配）<br>缺失数据（资料缺口触发替代链）</div>'
+      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">线索→证据→分析</strong><br>线索链发现累积<br>→触发证据链多源交叉验证<br>→闭环后输入分析链推理判定</div>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
     
     // 按 type 分组填充 TOC
     var typeGroups = {};
     chains.forEach(function(c){ var t = c.chain_type || '其他'; if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
     var tocEl = document.getElementById('ch-toc');
     if (tocEl) {
-      tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条线索链</div>';
+      tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条线索链</div><a href="#ch-concept">概念说明</a>';
       Object.keys(typeGroups).sort().forEach(function(t){ tocEl.innerHTML += '<a href="#ch-type-'+encodeURIComponent(t)+'">'+t+' <span class="cnt">'+typeGroups[t].length+'</span></a>'; });
     }
 
