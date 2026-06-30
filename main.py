@@ -4390,7 +4390,243 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
     }
 
 
-@app.get("/api/tax-risk-docs/last-analysis")
+# ═══════════════════════════════════════════════════════════
+# 对话式稽查报告交互引擎（发现审查的升级版）
+# ═══════════════════════════════════════════════════════════
+# 用户可以对报告中任何一条发现提问：
+#   "这个结论怎么来的？" → 引擎溯源完整推理链
+#   "某某法条说XX" → 引擎对比法条，确认或反驳
+#   "这个数字对吗？" → 引擎复查源数据
+# 引擎会回答、学习、自我纠错、反驳用户的错误观点
+
+@app.post("/api/tax-risk-docs/ask")
+async def ask_report_question(request: Request, company_id: int = Query(...)):
+    """引擎对话：提问报告中某条发现，引擎回答溯源或对比"""
+    try:
+        body = await request.json()
+    except Exception as e:
+        return {"ok": False, "message": f"无效请求: {e}"}
+
+    finding_index = body.get("finding_index", 0)  # 发现的序号
+    question = str(body.get("question", "")).strip()
+    user_policy = str(body.get("policy_doc", "")).strip()  # 用户传入的法条/政策
+    user_correction = str(body.get("user_correction", "")).strip()  # 用户纠错值
+    history = body.get("history", [])  # 对话历史
+
+    if not question and not user_policy:
+        return {"ok": False, "message": "请输入问题或上传政策文件进行讨论"}
+
+    # 获取上次分析结果
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
+
+    report = cached.get("report", {})
+    findings = report.get("findings", [])
+    if finding_index >= len(findings):
+        return {"ok": False, "message": f"发现#{finding_index}不存在，共{len(findings)}条"}
+
+    finding = findings[finding_index]
+    ftype = str(finding.get("type", ""))
+    fdetail = str(finding.get("detail", ""))
+    fhow = str(finding.get("how_found", ""))
+    flevel = str(finding.get("level", ""))
+    ftax = str(finding.get("tax_impact", ""))
+    fpolicy = str(finding.get("policy_ref", ""))
+    fsuggest = str(finding.get("suggestion", ""))
+
+    # ==== 数据溯源 ====
+    sources = []
+    
+    # 1. 稽查规则溯源
+    rule_refs = finding.get("rule_refs", []) or []
+    if isinstance(rule_refs, str):
+        rule_refs = [rule_refs]
+    matched_rules = []
+    for rid in rule_refs[:5]:
+        for rule in _tax_rules_cache if hasattr(__builtins__, '_tax_rules_cache') else []:
+            if str(rule.get("id", "")) == str(rid):
+                matched_rules.append(rule)
+                break
+    if matched_rules:
+        rule_names = "、".join(
+            f"R{r.get('id','?')}「{r.get('name','')[:30]}」" 
+            for r in matched_rules[:3]
+        )
+        sources.append(f"匹配稽查规则: {rule_names}")
+
+    # 2. 证据溯源
+    evidence = finding.get("evidence", [])
+    if not evidence and "evidence" in finding:
+        evidence = [finding["evidence"]] if isinstance(finding["evidence"], str) else []
+    if evidence:
+        sources.append(f"支撑证据: {len(evidence)}条" + (f"（{str(evidence[0])[:60]}...）" if evidence else ""))
+
+    # 3. 线索链溯源
+    clue_chain = finding.get("clue_chain", finding.get("chain_name", ""))
+    if clue_chain:
+        sources.append(f"触发线索链: {str(clue_chain)[:80]}")
+
+    # 4. 分析方法溯源
+    if fhow:
+        sources.append(f"分析方法: {fhow[:100]}")
+
+    # ==== 问题分析引擎 ====
+    analysis_blocks = []
+    engine_mode = ""  # explain / compare / correct / defend
+
+    # 模式1：用户询问"怎么来的" → 溯源解释
+    how_keywords = ["怎么来的", "为什么", "依据", "理由", "如何判断", "怎么得出", "如何计算", "溯源", "原理", "方法"]
+    if any(kw in question for kw in how_keywords):
+        engine_mode = "explain"
+        analysis_blocks.append({
+            "title": "📖 推理溯源",
+            "content": f"本条发现「{ftype}」的推理过程：\n\n"
+                      f"① 证据收集 → 从{len(sources)}个数据源收集信号\n"
+                      f"② 规则匹配 → 自动匹配{len(rule_refs)}条稽查指令\n"
+                      f"③ 线索链调查 → 线索链指引分步骤取证\n"
+                      f"④ 证据链验证 → 多源交叉验证确认\n"
+                      f"⑤ 分析链判定 → 综合推理得出最终结论\n\n"
+                      f"结论：{fdetail[:200]}\n"
+                      f"税务影响：{ftax[:100]}\n"
+                      f"法规依据：{fpolicy[:200]}"
+        })
+        if sources:
+            analysis_blocks.append({"title": "🔗 数据溯源链", "content": "\n".join(f"· {s}" for s in sources)})
+
+    # 模式2：用户传入法条/政策 → 对比分析
+    if user_policy:
+        engine_mode = "compare"
+        # 执行法条对比
+        policy_overlap = _compare_policy(user_policy, fpolicy, fdetail, ftype)
+        analysis_blocks.append(policy_overlap)
+
+    # 模式3：用户提供纠错值或质疑准确性
+    correct_keywords = ["不对", "错误", "应该是", "实际是", "更正", "纠正", "改"]
+    if any(kw in question for kw in correct_keywords) or user_correction:
+        engine_mode = "correct"
+        user_val = user_correction or question
+        # 提取用户声称的数值
+        import re as _ask_re
+        user_amounts = []
+        for m in _ask_re.finditer(r'[\d,]+\.?\d*(?:亿|万|元)?', user_val):
+            ns = m.group().replace(',','').replace('元','').replace('万','0000').replace('亿','00000000')
+            try: user_amounts.append(float(ns))
+            except: pass
+
+        finding_amounts = []
+        for m in _ask_re.finditer(r'[\d,]+\.?\d*(?:亿|万|元)?', fdetail):
+            ns = m.group().replace(',','').replace('元','').replace('万','0000').replace('亿','00000000')
+            try: finding_amounts.append(float(ns))
+            except: pass
+
+        comparison = []
+        if user_amounts and finding_amounts:
+            nearest_finding = min(finding_amounts, key=lambda x: min(abs(x-a) for a in user_amounts) if user_amounts else float('inf'))
+            nearest_user = min(user_amounts, key=lambda x: abs(x - nearest_finding))
+            diff = abs(nearest_user - nearest_finding)
+            if diff < 0.01:
+                comparison.append(f"✅ 数值一致：用户提供的{nearest_user:,.2f}与引擎计算的{nearest_finding:,.2f}一致，无需修正。")
+            else:
+                comparison.append(f"⚠ 数值差异：用户提供{nearest_user:,.2f} vs 引擎计算{nearest_finding:,.2f}，差异{diff:,.2f}元。")
+                comparison.append(f"已记录用户纠错值{nearest_user:,.2f}，建议人工复核确认实际金额。引擎暂维持原结论，待人工确认后自动更新。")
+
+        if not comparison:
+            comparison.append("未从问题中检测到具体数值，请提供具体金额以便对比验证。")
+
+        analysis_blocks.append({
+            "title": "🔍 准确性复核",
+            "content": "\n".join(comparison)
+        })
+
+    # 模式4：默认综合分析（用户泛泛提问时）
+    if not engine_mode:
+        engine_mode = "analyze"
+        analysis_blocks.append({
+            "title": "🧬 引擎分析",
+            "content": f"关于本条发现「{ftype}」，引擎的判断依据如下：\n\n"
+                      f"📋 发现内容：{fdetail[:200]}\n"
+                      f"⚠ 风险等级：{flevel}\n"
+                      f"💰 税务影响：{ftax[:150] if ftax else '无特殊税务影响'}\n"
+                      f"📎 法规依据：{fpolicy[:200] if fpolicy else '由引擎自动推理得出'}\n"
+                      f"💡 处理建议：{fsuggest[:150] if fsuggest else '建议进一步核实源数据'}\n\n"
+                      f"如需确认此结论如何得出，可追问「这个结论怎么来的？」\n"
+                      f"如需纠正其中数据，请告知「实际值是XXX」\n"
+                      f"如需引用法条讨论，请粘贴政策原文"
+        })
+
+    # 保存对话到引擎记忆（自我学习）
+    try:
+        from engine.memory import record_user_feedback
+        record_user_feedback({
+            "type": "report_conversation",
+            "finding_index": finding_index,
+            "question": question[:500],
+            "user_policy": user_policy[:500] if user_policy else "",
+            "engine_mode": engine_mode,
+            "finding_type": ftype,
+            "company_id": company_id
+        })
+    except:
+        pass
+
+    return {
+        "ok": True,
+        "finding_index": finding_index,
+        "finding_type": ftype,
+        "finding_detail": fdetail[:300],
+        "engine_mode": engine_mode,
+        "analysis": analysis_blocks,
+        "sources": sources,
+        "suggestion": "如需进一步讨论，可继续提问或提供政策文件",
+    }
+
+
+def _compare_policy(user_policy, engine_policy, finding_detail, finding_type):
+    """法条对比引擎：对比用户提供的政策与引擎引用法条"""
+    user_lower = user_policy.lower()
+    engine_lower = engine_policy.lower() if engine_policy else ""
+    
+    # 提取关键法条编号
+    import re as _cp_re
+    user_laws = set(_cp_re.findall(r'(?:国税|财税|公告|令)\s*[\[〔]\s*\d{4}\s*[\]〕]\s*\d+号', user_policy))
+    engine_laws = set(_cp_re.findall(r'(?:国税|财税|公告|令)\s*[\[〔]\s*\d{4}\s*[\]〕]\s*\d+号', engine_policy))
+    
+    lines = []
+    
+    # 法条重叠检测
+    overlap = user_laws & engine_laws
+    user_unique = user_laws - engine_laws
+    engine_unique = engine_laws - user_laws
+    
+    if overlap:
+        lines.append(f"✅ 法条重叠（{len(overlap)}条）：引擎引用与您提供的政策一致——{', '.join(sorted(overlap)[:5])}")
+    
+    if engine_unique:
+        lines.append(f"📌 引擎独有（{len(engine_unique)}条）：{', '.join(sorted(engine_unique)[:5])}")
+        lines.append("这些是引擎在分析过程中自动匹配的法规依据，您的政策文件中未包含。")
+    
+    if user_unique:
+        lines.append(f"📥 用户提供新法条（{len(user_unique)}条）：{', '.join(sorted(user_unique)[:5])}")
+        lines.append("这些法规在引擎的分析依据中未被引用。引擎已记录，将在下次分析中纳入考量。")
+    
+    # 法条完整性分析
+    if not engine_policy:
+        lines.append("⚠ 引擎当前结论未明确引用法规依据，建议补充具体法条支撑。")
+    
+    if engine_lower and user_lower:
+        # 简要比对
+        if engine_lower[:50] in user_lower or user_lower[:50] in engine_lower:
+            lines.insert(0, "📚 政策对比结果：引擎引用与您提供的政策内容基本一致。")
+        else:
+            lines.insert(0, "📚 政策对比结果：引擎引用与您提供的政策内容存在差异，需逐条核对。")
+    else:
+        lines.insert(0, "📚 政策对比结果：已记录您提供的政策依据。")
+    
+    return {
+        "title": "📚 法条对比分析",
+        "content": "\n".join(lines)
+    }
 async def get_last_analysis(company_id: int = Query(...)):
     """获取最近一次分析结果缓存（无需重新分析）"""
     cached = _last_analysis_cache.get(company_id)

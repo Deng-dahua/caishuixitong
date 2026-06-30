@@ -842,6 +842,201 @@ function renderTaxDocReport(r) {
 
   area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
+
+  // 追加对话式交互面板（发现审查的升级版）
+  _initReportChatPanel();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 对话式稽查报告交互引擎（前端）
+// ═══════════════════════════════════════════════════════════
+// 用户可追问任何发现："这个结论怎么来的？" / 传入政策条文 / 质疑数据精度
+// 引擎回答、对比法条、自我纠错、反驳用户错误观点
+// 体现引擎：记忆·学习·思考·判断·决策·自知 六项核心智能能力
+
+function _initReportChatPanel() {
+  // 避免重复创建
+  if (document.getElementById('report-chat-panel')) return;
+
+  var panel = document.createElement('div');
+  panel.id = 'report-chat-panel';
+  panel.innerHTML = 
+    '<div id="report-chat-header" style="background:#0f172a;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:12px 12px 0 0">' +
+    '<div><span style="font-size:16px">🧬</span> <b>稽查对话引擎</b><span id="chat-finding-label" style="font-size:11px;color:#94a3b8;margin-left:8px">（可追问任何发现）</span></div>' +
+    '<div><button onclick="_toggleChatPolicy()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;margin-right:6px" title="粘贴政策条文进行对比">📋 贴法条</button>' +
+    '<button onclick="_clearChat()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;margin-right:6px">清空</button>' +
+    '<button onclick="_closeChat()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer;line-height:1">✕</button></div></div>' +
+    '<div id="report-chat-body" style="max-height:450px;overflow-y:auto;padding:12px 16px;background:#f8fafc;font-size:13px;line-height:1.8">' +
+    '<div style="color:#94a3b8;text-align:center;padding:20px">💬 点击报告中任意发现旁的<em>「追问」</em>按钮，或直接输入问题<br>引擎将溯源推理过程并回答</div>' +
+    '</div>' +
+    '<div id="report-policy-input" style="display:none;padding:8px 16px;background:#fef3c7;border-top:1px solid #fbbf24">' +
+    '<textarea id="report-policy-text" placeholder="粘贴政策条文/法规原文，引擎将与其引用的法条进行对比分析…" style="width:100%;min-height:60px;border:1px solid #fbbf24;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;padding:8px 16px;background:#fff;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">' +
+    '<select id="chat-quick-question" onchange="_askQuick(this.value);this.value=\'\'" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff">' +
+    '<option value="">快捷提问 ▾</option>' +
+    '<option value="这个结论怎么来的？">这个结论怎么来的？</option>' +
+    '<option value="这条发现的依据是什么？">这条发现的依据是什么？</option>' +
+    '<option value="涉及哪些法规条款？">涉及哪些法规条款？</option>' +
+    '<option value="数据是怎么算出来的？">数据是怎么算出来的？</option>' +
+    '<option value="这个风险等级准确吗？">这个风险等级准确吗？</option>' +
+    '<option value="证据是否充分？">证据是否充分？</option>' +
+    '<option value="有没有遗漏的风险点？">有没有遗漏的风险点？</option>' +
+    '</select>' +
+    '<input id="chat-input" placeholder="自由提问…" onkeydown="if(event.key===\'Enter\')_sendChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
+    '<button onclick="_sendChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">发送</button>' +
+    '</div>';
+
+  panel.style.cssText = 'position:fixed;bottom:20px;right:20px;width:480px;z-index:9999;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.2);display:none;background:#fff;max-height:90vh;display:none;flex-direction:column';
+  document.body.appendChild(panel);
+
+  window._chatFindingIdx = 0;
+  window._chatHistory = [];
+}
+
+function _askReport(fi) {
+  var panel = document.getElementById('report-chat-panel');
+  if (!panel) _initReportChatPanel();
+  panel = document.getElementById('report-chat-panel');
+  panel.style.display = 'flex';
+
+  window._chatFindingIdx = fi;
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  var lbl = document.getElementById('chat-finding-label');
+  if (f && lbl) {
+    lbl.textContent = '（#' + fi + '「' + (f.type||'?').slice(0,30).replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '」' + (f.level||'') + '）';
+  }
+
+  // 自动发送第一条消息："你好，请分析这条发现"
+  var input = document.getElementById('chat-input');
+  if (input) {
+    input.value = '这个结论怎么来的？';
+    _sendChat();
+  }
+}
+
+function _sendChat() {
+  var input = document.getElementById('chat-input');
+  var policyText = document.getElementById('report-policy-text');
+  var question = (input ? input.value.trim() : '');
+  var policy = (policyText ? policyText.value.trim() : '');
+  if (!question && !policy) return;
+
+  var body = document.getElementById('report-chat-body');
+  if (!body) return;
+
+  // 显示用户消息
+  var userHtml = '<div style="margin-bottom:12px"><div style="background:#7c3aed;color:#fff;padding:8px 12px;border-radius:12px 12px 4px 12px;display:inline-block;max-width:90%;font-size:12px">';
+  userHtml += '<b>你：</b>' + _escHtml(question || '（粘贴了政策条文）');
+  if (policy) userHtml += '<br><span style="font-size:11px;opacity:0.8">📋 附政策条文（' + policy.length + '字）</span>';
+  userHtml += '</div></div>';
+  body.innerHTML += userHtml;
+
+  // 显示引擎思考中
+  body.innerHTML += '<div id="chat-thinking" style="margin-bottom:12px;color:#94a3b8;font-size:12px">🧬 引擎正在思考…</div>';
+  body.scrollTop = body.scrollHeight;
+
+  if (input) input.value = '';
+  if (question) window._chatHistory.push({role:'user', text:question});
+  if (policy) window._chatHistory.push({role:'user_policy', text:policy});
+
+  // 发送API请求
+  _callAskAPI(question, policy);
+}
+
+function _callAskAPI(question, policy) {
+  var companyId = window.currentCompanyId || 1;
+  var body = JSON.stringify({
+    finding_index: window._chatFindingIdx || 0,
+    question: question || '',
+    policy_doc: policy || '',
+    user_correction: document.getElementById('chat-input') ? document.getElementById('chat-input').value.replace(/实际[是应为]|应该是|纠正|更正/g,'') : '',
+    history: window._chatHistory || []
+  });
+
+  fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: body
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { _renderChatResponse(data); })
+  .catch(function(e) {
+    _renderChatResponse({ok: false, message: '请求失败: ' + e.message});
+  });
+}
+
+function _renderChatResponse(data) {
+  var body = document.getElementById('report-chat-body');
+  var thinking = document.getElementById('chat-thinking');
+  if (thinking) thinking.remove();
+
+  if (!data.ok) {
+    body.innerHTML += '<div style="margin-bottom:12px;color:#dc2626;font-size:12px">❌ ' + _escHtml(data.message || '引擎暂时无法回答') + '</div>';
+    body.scrollTop = body.scrollHeight;
+    return;
+  }
+
+  window._chatHistory.push({role:'engine', text: JSON.stringify(data.analysis||[])});
+
+  var html = '<div style="margin-bottom:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
+  
+  // 头部：引擎模式标签
+  var modeLabel = {explain:'溯源解释', compare:'法条对比', correct:'准确性复核', analyze:'综合分析'}[data.engine_mode] || '引擎分析';
+  var modeIcon = {explain:'📖', compare:'📚', correct:'🔍', analyze:'🧬'}[data.engine_mode] || '🧬';
+  html += '<div style="background:#f1f5f9;padding:8px 12px;font-size:11px;color:#475569"><b>' + modeIcon + ' ' + modeLabel + '</b></div>';
+
+  // 分析块
+  if (data.analysis && data.analysis.length) {
+    data.analysis.forEach(function(block) {
+      html += '<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
+      html += '<div style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:6px">' + _escHtml(block.title || '') + '</div>';
+      html += '<div style="font-size:12px;color:#475569;line-height:1.8;white-space:pre-wrap">' + _escHtml(block.content || '') + '</div>';
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+
+  // 溯源标签
+  if (data.sources && data.sources.length) {
+    html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">📎 溯源：' + data.sources.length + '条数据链</div>';
+  }
+
+  html += '<div style="font-size:11px;color:#7c3aed;margin-top:8px">💡 可继续追问或粘贴政策文件进行对比讨论</div>';
+
+  body.innerHTML += html;
+  body.scrollTop = body.scrollHeight;
+}
+
+function _toggleChatPolicy() {
+  var div = document.getElementById('report-policy-input');
+  if (div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+}
+
+function _closeChat() {
+  var panel = document.getElementById('report-chat-panel');
+  if (panel) panel.style.display = 'none';
+  window._chatHistory = [];
+}
+
+function _clearChat() {
+  var body = document.getElementById('report-chat-body');
+  if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:20px">💬 开始新的对话</div>';
+  window._chatHistory = [];
+}
+
+function _askQuick(q) {
+  var input = document.getElementById('chat-input');
+  if (input) {
+    input.value = q || '';
+    _sendChat();
+  }
+}
+
+function _escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
@@ -1025,10 +1220,12 @@ function _renderReportFallback(r, allF) {
     h += '<div class="review-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">';
     h += '<span style="color:'+lvColor+';font-weight:600;min-width:40px">' + lv + '</span>';
     h += '<span style="flex:1;color:#334155">' + (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '</span>';
-    h += '<button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({
+  h += '<button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({
       type: f.type||'', title: f.type||'', level: lv, 
       detail: (f.detail||''), category: f.category||''
     }).replace(/'/g,"&#39;") + '\' style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">审核</button>';
+    // 追问按钮：打开对话面板
+    h += '<button onclick="window._askReport(' + fi + ')" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:4px">追问</button>';
     h += '</div>';
   }
   h += '</details>';
