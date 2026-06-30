@@ -1474,7 +1474,7 @@ function renderChainsList(chains) {
         var bColor = ratio >= 60 ? '#dc2626' : '#059669';
         badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + bColor + '15;color:' + bColor + ';font-weight:600">' + triggeredSteps + '/' + totalS + ' (' + ratio + '%)</span>';
       } else if (exec) {
-        badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-weight:500">未触发</span>';
+        badge = ' <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fff;border:1px solid #e2e8f0;color:#94a3b8;font-weight:500">未触发</span>';
       }
 
       // 子主题标签
@@ -1516,7 +1516,7 @@ function renderChainsList(chains) {
             + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
             + '</div>'
             + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
-            + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:8px 12px;background:#f0fdf4;border-radius:4px">💡 建议：' + escHtml(s.suggestion) + '</div>' : '')
+            + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:8px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:4px">💡 建议：' + escHtml(s.suggestion) + '</div>' : '')
             + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
             + '</div>';
         });
@@ -1542,7 +1542,7 @@ function renderChainsList(chains) {
           var stepNum = s.step || (si + 1);
           var isHigh = !!(s.level && (s.level === '极高风险' || c.level === '高风险'));
 
-          html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
+          html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
             + '<div style="display:flex;align-items:center;gap:8px">'
             + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
             + '<span style="font-size:13px;color:#334155;line-height:2.0">' + escHtml(s.action || '') + '</span>'
@@ -1587,7 +1587,7 @@ function renderChainsList(chains) {
       }
 
       // ══ 底部元信息栏 ═══
-      html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
+      html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
         + '<span>📝 步骤 <b style="color:#475569">' + totalS + '</b> 条</span>'
         + (highRiskStepCount > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskStepCount + '</b> 个</span>' : '')
         + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
