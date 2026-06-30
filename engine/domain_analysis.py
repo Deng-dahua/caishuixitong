@@ -1937,6 +1937,9 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
         # 回退：JSON加载失败时使用内置定义（保持系统可用性）
         chain_defs = _BUILTIN_CROSS_DOMAIN_CHAINS
     
+    # 只执行 executable=True 且非 legacy 的链（旧证据链仅用于UI展示）
+    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    
     # ═══ 构建关键词索引 ═══
     def keyword_match(finding, keywords):
         if not isinstance(finding, dict):

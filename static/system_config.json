@@ -1,14 +1,16 @@
 {
   "rules_count": 1608,
-  "clue_chains": 1215,
-  "evidence_chains": 22,
+  "clue_chains": 470,
+  "evidence_chains": 767,
   "analysis_chains": 13,
-  "methodology_count": 1174,
+  "methodology_count": 429,
   "total_chains": 1250,
   "domain_functions": 39,
   "executable_clues": 41,
-  "legacy_clues": 1174,
+  "legacy_clues": 429,
   "file_fingerprints": 34,
   "quality_standards": 12,
-  "_calibrated": "2026-06-30-merged"
+  "_calibrated": "2026-06-30-merged",
+  "executable_evidence": 22,
+  "legacy_evidence": 745
 }

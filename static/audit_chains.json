@@ -106290,5 +106290,8 @@
   "_deprecated": true,
   "_deprecation_note": "chains已迁移至cross_domain_clues.json，本文件保留trail_chains/evidence_chains/cross_domain_integration元数据",
   "_migrated_to": "static/cross_domain_clues.json",
-  "_migrated_count": 1174
+  "_migrated_count": 1174,
+  "_evidence_migrated": true,
+  "_evidence_migrated_count": 745,
+  "_evidence_migrated_to": "static/cross_domain_evidence.json"
 }

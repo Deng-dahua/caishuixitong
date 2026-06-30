@@ -153,6 +153,8 @@ def calibrate(authority):
         with open(evidence_file, encoding='utf-8') as f:
             evidence = json.load(f)
         authority["evidence_chains"] = len(evidence)
+        authority["executable_evidence"] = sum(1 for e in evidence if e.get("executable", True))
+        authority["legacy_evidence"] = sum(1 for e in evidence if e.get("legacy", False))
     
     # 分析链：从 cross_domain_analysis.json 统计
     if analysis_file.exists():
