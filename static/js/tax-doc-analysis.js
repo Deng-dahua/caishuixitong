@@ -1347,9 +1347,18 @@ window._saveAskAsCorrection = function(fi, mode) {
 };
 
 window._deleteFindingFromReport = function(fi) {
-  if (!confirm('Reset this finding to original engine output?')) return;
   var allF = window._allFindings || [];
   var f = allF[fi];
+  var cc = 0;
+  if (f) {
+    if (f._dismissed) cc++;
+    if (f._verified) cc++;
+    if (f._deleted) cc++;
+    if (f._correction_reason) cc++;
+  }
+  var msg = 'Reset to original engine output?';
+  if (cc > 0) msg += '\n\n' + cc + ' corrections recorded for this finding. Engine knowledge is preserved in correction rules — only display resets.';
+  if (!confirm(msg)) return;
   // 清除所有修改，回到引擎初始状态
   if (f) {
     f._dismissed = false;
