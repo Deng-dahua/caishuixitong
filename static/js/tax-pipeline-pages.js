@@ -635,7 +635,7 @@ function renderFileParsingResult(report) {
   // 管线日志（详尽版）
   if (plogs.length > 0) {
     html += '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;margin:40px 0 12px">管线日志 — 共 ' + plogs.length + ' 条</h4>';
-    html += '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:500px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.2">';
+    html += '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:500px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.0">';
     plogs.forEach(function(log, i) {
       var color = '#64748b';
       if (/异常|失败|错误/.test(log)) color = '#fca5a5';
@@ -948,7 +948,7 @@ function renderDomainAnalysisStatic() {
   // ══════ 四、域间关系 ══════
   html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fff;border-radius:8px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">四、域间关系与数据流</h3>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
     + '<strong>资料完备度</strong>（顶层）→ 决定所有域分析的置信度上限。缺合同→合同比对无法运行→标记缺口。<br>'
     + '<strong>经营实质分析</strong>（基础层）→ 提供企业画像：制造业/贸易型/服务型、本地/跨省、自加工/外包。<br>'
     + '<strong>发票+银行+凭证</strong>（数据层）→ 三大主数据源，支撑进销存、资金流、税务、薪酬、资产等15个分析域。<br>'
@@ -1922,7 +1922,7 @@ async function loadAnalyzeOverview() {
     + '全链路稽查质量保障体系是一个开放的质量保障生态系统，从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。'
     + '体系持续扩展新的保障维度，随系统发展而演进，不固定为"X合一"。下面按五大层次展示当前体系内容。'
     + '</p>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
     // 第一层：核心数据资产
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">① 核心数据资产</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #2563eb"><strong>规则引擎</strong> → ' + pc('rules','1514') + '条稽查指令（tax_risk_rules_local_export.json），每条发现必须可追溯到具体规则ID。</div>'
@@ -1965,7 +1965,7 @@ async function loadAnalyzeOverview() {
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
     + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
     + '</p>'
-    + '<div style="font-size:13px;color:#475569;line-height:2.2">'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0">'
 
   var methods = [
     {id:'①', name:'多格式兼容', desc:'银行文件date/tx_time/交易日期/交易时间/记账日期五种命名全兼容。PDF发票PDFPlumber解析+OCR兜底。Excel多引擎（openpyxl/xlrd/pandas）。不因格式不兼容而丢弃数据。'},
@@ -2077,7 +2077,7 @@ function renderAnalyzeResult(report) {
   // ══════ 四、管线日志 ══════
   if (plogs.length > 0) {
     h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px">管线执行日志 · ' + plogs.length + ' 条</h3>'
-      + '<div style="margin-bottom:40px;background:#0f172a;border-radius:6px;padding:20px 24px;max-height:400px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.2">';
+      + '<div style="margin-bottom:40px;background:#0f172a;border-radius:6px;padding:20px 24px;max-height:400px;overflow-y:auto;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:12px;line-height:2.0">';
     plogs.forEach(function(log, i) {
       var color = '#64748b';
       if (/异常|失败|错误/.test(log)) color = '#fca5a5';
@@ -2223,7 +2223,7 @@ function collapseAllDomains() {
 // ==================== 跨域线索链页面 ====================
 function renderCrossDomainCluesPage(container) {
   if (!container) return;
-  container.innerHTML = '<style>.cdc-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cdc-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.cdc-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cdc-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cdc-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.cdc-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cdc-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0}.cdc-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cdc-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cdc-main{flex:1;min-width:0}</style>'
     + '<div class="cdc-layout">'
     + '<nav class="cdc-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#cdc-intro">一 概述</a><a href="#cdc-list">二 线索链定义</a>'
@@ -2325,7 +2325,7 @@ function loadCrossDomainClues() {
 // ==================== 跨域分析链页面 ====================
 function renderCrossDomainAnalysisPage(container) {
   if (!container) return;
-  container.innerHTML = '<style>.cda-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cda-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2}.cda-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cda-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cda-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.cda-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cda-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0}.cda-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cda-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cda-main{flex:1;min-width:0}</style>'
     + '<div class="cda-layout">'
     + '<nav class="cda-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#cda-intro">一 概述</a><a href="#cda-list">二 分析链定义</a>'
