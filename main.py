@@ -7589,6 +7589,22 @@ def update_correction_rule(data: dict):
     return {"ok": True, "updated": fingerprint, "count": rule["correction_count"]}
 
 
+@app.post("/api/feedback/sync-modules")
+def sync_corrections_to_modules():
+    """手动触发纠正规则→源模块同步"""
+    from engine.self_learning import manual_sync_corrections_to_modules, get_sync_status
+    result = manual_sync_corrections_to_modules()
+    status = get_sync_status()
+    return {"ok": True, "sync_result": result, "status": status}
+
+
+@app.get("/api/feedback/sync-status")
+def get_sync_status():
+    """查看当前纠正→模块同步状态和待同步规则"""
+    from engine.self_learning import get_sync_status as gss
+    return {"ok": True, **gss()}
+
+
 @app.get("/api/audit/capabilities")
 def get_capabilities():
     """能力矩阵API — 侧边栏动态读取，引擎吐出自己的25维能力"""

@@ -1066,6 +1066,10 @@ function renderBrainTab() {
       h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + (corr.total_rules || 0) + '</div><div style="font-size:12px;color:#64748b">规则总数</div></div>';
       h += '<div style="flex:1;min-width:100px;background:#dcfce7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#166534">' + (corr.auto_rules || 0) + '</div><div style="font-size:12px;color:#64748b">已自动生效</div></div>';
       h += '</div>';
+      // 同步按钮
+      h += '<div style="margin:8px 0"><button onclick="syncCorrectionsToModules()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Sync Corrections to Modules</button> ';
+      h += '<button onclick="loadSyncStatus()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">Check Sync Status</button>';
+      h += '<span id="sync-status" style="margin-left:10px;font-size:11px;color:#94a3b8"></span></div>';
       
       if (corr.rules && corr.rules.length > 0) {
         h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:60px">操作</th></tr>';
@@ -1195,5 +1199,49 @@ function renderBrainTab() {
         list.innerHTML = ah;
       });
     });
+}
+
+function syncCorrectionsToModules() {
+  var btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  fetch('/api/feedback/sync-modules', {method:'POST'}).then(function(r){return r.json();}).then(function(data){
+    var st = document.getElementById('sync-status');
+    if (data.ok && data.sync_result) {
+      var sr = data.sync_result;
+      if (sr.updated) {
+        st.innerHTML = 'Updated ' + sr.modules_updated.join(', ') + ' (' + sr.changes_count + ' changes)';
+        st.style.color = '#059669';
+        alert('Sync complete: ' + sr.changes_count + ' changes written to ' + sr.modules_updated.join(', '));
+      } else {
+        st.innerHTML = 'No eligible rules found (need 1+ corrections at 60%+ confidence)';
+        st.style.color = '#94a3b8';
+      }
+    }
+    btn.disabled = false;
+    btn.textContent = 'Sync Corrections to Modules';
+  }).catch(function(e){
+    btn.disabled = false;
+    btn.textContent = 'Sync Corrections to Modules';
+    var st = document.getElementById('sync-status');
+    st.innerHTML = 'Error: ' + e.message;
+    st.style.color = '#dc2626';
+  });
+}
+
+function loadSyncStatus() {
+  var st = document.getElementById('sync-status');
+  st.innerHTML = 'Loading...';
+  st.style.color = '#94a3b8';
+  fetch('/api/feedback/sync-status').then(function(r){return r.json();}).then(function(data){
+    if (data.ok) {
+      var eligible = data.eligible_rules || 0;
+      st.innerHTML = eligible + ' rules eligible for sync';
+      st.style.color = eligible > 0 ? '#059669' : '#94a3b8';
+    }
+  }).catch(function(){
+    st.innerHTML = 'Status unavailable';
+    st.style.color = '#dc2626';
+  });
 }
 

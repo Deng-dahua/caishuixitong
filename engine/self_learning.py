@@ -710,12 +710,18 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         synth_result = {"synthesized": False}
     
     # 高置信度规则自动写回源模块
-    module_update_result = {"updated": False}
+    module_update_result = {"updated": False, "error": None}
     try:
         if correction_count >= 1 and rules[fingerprint]["confidence"] >= 0.60:
             module_update_result = auto_update_module_content(min_confidence=0.60, min_corrections=1)
-    except Exception:
-        pass
+    except Exception as e:
+        module_update_result = {"updated": False, "error": f"{type(e).__name__}: {e}"}
+        # 记录到日志中，不静默丢弃
+        try:
+            import traceback
+            _log_auto_update_error(fingerprint, str(e), traceback.format_exc())
+        except:
+            pass
     
     return {
         "recorded": True,
@@ -1221,4 +1227,74 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
         "modules_updated": list(updated_modules.keys()),
         "changes": changes,
         "note": "引擎已将高置信度纠正自动写入对应模块。变更日志已保存。"
+    }
+
+
+def _log_auto_update_error(fingerprint, error_msg, traceback_str=""):
+    """记录自动更新失败的错误日志"""
+    log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "auto_update_errors.json")
+    try:
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                errors = json.load(f)
+        except:
+            errors = []
+        errors.append({
+            "timestamp": datetime.now().isoformat(),
+            "fingerprint": fingerprint,
+            "error": error_msg,
+            "traceback": traceback_str[:1000],
+        })
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump(errors, f, ensure_ascii=False, indent=2)
+    except:
+        pass
+
+
+def manual_sync_corrections_to_modules():
+    """
+    手动触发纠正→模块同步（可在API中调用）。
+    扫描所有满足阈值的纠正规则，写回到源模块。
+    返回详细的变更报告。
+    """
+    return auto_update_module_content(min_confidence=0.60, min_corrections=1)
+
+
+def get_sync_status():
+    """获取当前纠正→模块同步状态"""
+    rules = _load_correction_rules()
+    eligible = []
+    synced = []
+    
+    for fp, rule in rules.items():
+        if fp.startswith("__CROSS__"):
+            continue
+        conf = rule.get("confidence", 0)
+        corr = len(rule.get("corrections", []))
+        if conf >= 0.60 and corr >= 1:
+            ftype = rule.get("finding_type", "")
+            industry = rule.get("industry", "")
+            module, _ = classify_correction_to_module(ftype, rule["corrections"][-1].get("reason",""), industry)
+            eligible.append({
+                "finding_type": ftype,
+                "industry": industry,
+                "confidence": conf,
+                "corrections": corr,
+                "target_module": module,
+            })
+    
+    # Check for auto-update log
+    log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "module_auto_update_log.json")
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            log = json.load(f)
+        last_sync = log[-1] if log else None
+    except:
+        last_sync = None
+    
+    return {
+        "eligible_rules": len(eligible),
+        "eligible_details": eligible,
+        "last_sync": last_sync,
+        "note": "满足条件(≥1次纠正+≥60%置信)的规则将自动写回源模块"
     }

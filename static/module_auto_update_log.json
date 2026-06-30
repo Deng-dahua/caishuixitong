@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2026-07-01T07:41:48.859941",
+    "changes": [
+      {
+        "finding_type": "多域交叉验证升级",
+        "module": "analysis_chains",
+        "change_type": "分析链推理逻辑调整",
+        "industry": "",
+        "confidence": 0.8,
+        "correction_count": 1
+      },
+      {
+        "finding_type": "行业基准对标降级",
+        "module": "evidence_chains",
+        "change_type": "证据链阈值/触发条件调整",
+        "industry": "",
+        "confidence": 0.8,
+        "correction_count": 1
+      },
+      {
+        "finding_type": "收款与开票金额偏差",
+        "module": "evidence_chains",
+        "change_type": "证据链阈值/触发条件调整",
+        "industry": "广告传媒",
+        "confidence": 0.8,
+        "correction_count": 1
+      }
+    ],
+    "summary": "自动更新了2个模块，共3条规则"
+  }
+]
