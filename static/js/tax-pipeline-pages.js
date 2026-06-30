@@ -1454,8 +1454,8 @@ function renderChainsList(chains) {
     chains.forEach(function(c, ci) {
       var exec = execMap[c.name];
       var isOldFormat = !!(c.investigation_path && c.investigation_path.length > 0 && c.investigation_path[0].rule_id);
-      var isNewFormat = !!(c.steps && Array.isArray(c.steps) && c.steps.length > 0 && c.steps[0].action);
-      var stepList = isOldFormat ? c.investigation_path : (isNewFormat ? c.steps : (c.investigation_path || []));
+      var isNewFormat = !!(c.investigation_path && c.investigation_path.length > 0 && !c.investigation_path[0].rule_id && c.investigation_path[0].domain);
+      var stepList = isOldFormat ? c.investigation_path : (c.investigation_path || []);
       var totalS = stepList.length;
       var highRiskStepCount = (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
       var triggeredSteps = exec ? exec.triggered_steps : 0;
@@ -1513,6 +1513,20 @@ function renderChainsList(chains) {
             + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
             + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:8px 12px;background:#f0fdf4;border-radius:4px">💡 建议：' + escHtml(s.suggestion) + '</div>' : '')
             + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
+            + '</div>';
+        });
+        html += '</div>';
+      } else if (isNewFormat) {
+        // 可执行格式：investigation_path 含 step/domain/action/data_required
+        html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#2563eb;margin-bottom:8px">📋 调查路径（' + stepList.length + ' 步）</div>';
+        stepList.forEach(function(s, si) {
+          html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid #2563eb">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2563eb">' + (s.step || (si+1)) + '</span>'
+            + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.domain || '') + '</b>'
+            + '</div>'
+            + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:4px;padding-left:30px">' + escHtml(s.action || '') + '</div>'
+            + (s.data_required ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:30px">需要数据: ' + escHtml(s.data_required) + '</div>' : '')
             + '</div>';
         });
         html += '</div>';
