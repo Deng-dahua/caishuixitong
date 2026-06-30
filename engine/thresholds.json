@@ -1,0 +1,92 @@
+{
+  "_description": "财税稽查系统税种税率及阈值配置",
+  "_rule": "所有稽查逻辑中的数值必须引用此文件，禁止硬编码",
+  "_calibrated": "2026-06-30",
+
+  "vat_rates": {
+    "standard": 0.13,
+    "transport": 0.09,
+    "modern_service": 0.06,
+    "small_scale": 0.03,
+    "zero_rate": 0.00
+  },
+  "surtax_rates": {
+    "urban": 0.07,
+    "county": 0.05,
+    "other": 0.01,
+    "education": 0.03,
+    "local_education": 0.02
+  },
+  "cit_rates": {
+    "standard": 0.25,
+    "preferential": 0.20,
+    "high_tech": 0.15,
+    "small_profit": 0.10
+  },
+  "stamp_duty_rates": {
+    "loan_contract": 0.00005,
+    "property_transfer": 0.0003,
+    "technology_contract": 0.0003,
+    "construction_contract": 0.0003,
+    "sales_contract": 0.0003,
+    "lease_contract": 0.001,
+    "freight_contract": 0.0005,
+    "warehouse_contract": 0.001,
+    "insurance_contract": 0.001
+  },
+  "property_tax_rates": {
+    "self_use": 0.012,
+    "rental": 0.12
+  },
+
+  "ratios": {
+    "significant_deviation": 0.20,
+    "material_deviation": 0.30,
+    "high_risk_deviation": 0.50,
+    "minor_deviation": 0.10,
+    "substantial": 0.40,
+    "overwhelming": 0.75,
+    "dominant": 0.85,
+    "half": 0.50,
+    "double_ratio": 2.0,
+    "material_ratio": 0.05,
+    "threshold_1pct": 0.01,
+    "threshold_2pct": 0.02,
+    "threshold_5pct": 0.05
+  },
+
+  "amount_thresholds": {
+    "small_transaction": 50000,
+    "medium_transaction": 100000,
+    "large_transaction": 500000,
+    "major_transaction": 1000000,
+    "huge_transaction": 5000000,
+    "extreme_transaction": 10000000,
+    "massive_transaction": 100000000
+  },
+
+  "time_windows": {
+    "short_term_days": 30,
+    "medium_term_days": 60,
+    "long_term_days": 90,
+    "quarter_days": 90,
+    "half_year_days": 180,
+    "year_days": 365,
+    "one_month": 30,
+    "three_months": 90,
+    "twelve_months": 365
+  },
+
+  "industry_thresholds": {
+    "manufacturing_gross_margin_low": 0.10,
+    "manufacturing_gross_margin_high": 0.30,
+    "service_gross_margin_low": 0.20,
+    "service_gross_margin_high": 0.50,
+    "retail_gross_margin_low": 0.05,
+    "retail_gross_margin_high": 0.20,
+    "concentration_high": 0.70,
+    "concentration_medium": 0.50,
+    "growth_excessive": 0.30,
+    "decline_material": 0.20
+  }
+}

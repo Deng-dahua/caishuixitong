@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List, Dict, Any
 import json, os, re, math
+from engine.thresholds import T  # 税率阈值统一配置
 
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX  # 城市列表+正则
 
@@ -924,7 +925,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     ms_text = '\n'.join(f"    {n}：{r}，交易额{amt:,.2f}元" for n, amt, r in ms_list) if ms_list else "    （无）"
     mc_more = f"\n    ... 还有{len(mc_list)-10}家" if len(mc_list) > 10 else ""
     ms_more = f"\n    ... 还有{len(ms_list)-10}家" if len(ms_list) > 10 else ""
-    stamp_tax_est = (must_total + should_total) * 0.0003  # 购销合同印花税税率0.03%
+    stamp_tax_est = (must_total + should_total) * T.stamp_duty_rates.sales_contract  # 购销合同印花税
 
     # 缺失项定义：(key, finding_type, level, score, detail, description, tax_impact, policy, suggestion)
     MISSING_DEFS = [
@@ -5598,22 +5599,22 @@ class SensitivityAnalyzer:
     SCENARIOS = {
         "隐匿收入": {
             "base": "total_sales",
-            "rates": {"低": 0.10, "中": 0.25, "高": 0.50},
-            "vat_rate": 0.13, "cit_rate": 0.25,
+            "rates": {"低": T.ratios.threshold_5pct * 2, "中": T.ratios.significant_deviation + 0.05, "高": T.ratios.half},
+            "vat_rate": T.vat_rates.standard, "cit_rate": T.cit_rates.standard,
             "description": "已申报销售额{base:,.2f}元，假设隐匿比例为{rate:.0%}",
             "unit": "元",
         },
         "虚列成本": {
             "base": "total_purchases",
-            "rates": {"低": 0.05, "中": 0.15, "高": 0.30},
-            "vat_rate": 0.13, "cit_rate": 0.25,
+            "rates": {"低": T.ratios.threshold_5pct, "中": T.ratios.significant_deviation - 0.05, "高": T.ratios.material_deviation},
+            "vat_rate": T.vat_rates.standard, "cit_rate": T.cit_rates.standard,
             "description": "已入账采购成本{base:,.2f}元，假设虚列比例为{rate:.0%}",
             "unit": "元",
         },
         "虚抵进项": {
             "base": "total_purchases",
-            "rates": {"低": 0.05, "中": 0.15, "高": 0.30},
-            "vat_rate": 0.13, "cit_rate": 0.25,
+            "rates": {"低": T.ratios.threshold_5pct, "中": T.ratios.significant_deviation - 0.05, "高": T.ratios.material_deviation},
+            "vat_rate": T.vat_rates.standard, "cit_rate": T.cit_rates.standard,
             "description": "已抵扣进项税额对应采购{base:,.2f}元，假设虚抵比例为{rate:.0%}",
             "unit": "元",
         },
@@ -5646,7 +5647,7 @@ class SensitivityAnalyzer:
                 total = vat + cit
                 penalty_low = total * 0.5
                 penalty_high = total * 5
-                late_fee_daily = total * 0.0005  # 每日万分之五
+                late_fee_daily = total * T.stamp_duty_rates.loan_contract * 10  # 每日万分之五 = 借款合同印花税税率×10
                 
                 scenario_data["levels"][level_name] = {
                     "rate": rate,
