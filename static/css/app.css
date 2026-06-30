@@ -59,7 +59,7 @@
       background: var(--primary-light); color: var(--primary); border-radius: 6px;
       padding: 4px 12px; font-size: 13px; font-weight: 500; cursor: pointer;
     }
-    .content-area { flex: 1; min-height: 0; padding: 0; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; }
+    .content-area { flex: 1; min-height: 0; padding: 0; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; background: #fff; }
     /* 统一页面容器 — 全系统所有功能页面共用此 padding/max-width，与 .card 20px padding 对齐 */
     #content-area > [id^="page-"] { padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
