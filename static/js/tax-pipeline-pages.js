@@ -415,7 +415,7 @@ function renderFileParsingStatic() {
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">';
 
     g.items.forEach(function(item) {
-      html += '<div style="padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;line-height:1.7">'
+      html += '<div style="padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;line-height:2.0">'
         + '<div style="font-weight:600;color:#0f172a;margin-bottom:4px"><span style="font-size:16px">' + item.icon + '</span> ' + escHtml(item.name) + '</div>'
         + '<div style="color:#64748b;font-size:12px;margin-bottom:4px">' + escHtml(item.sig) + '</div>'
         + '<div style="color:#94a3b8;font-size:11px">阈值：' + item.threshold + ' \u00b7 ' + item.parser + '</div>'
@@ -928,7 +928,7 @@ function renderDomainAnalysisStatic() {
       + '<span style="width:3px;height:14px;display:inline-block;background:' + g.color + ';border-radius:2px"></span>'
       + '<span style="font-size:13px;font-weight:700;color:#0f172a">' + escHtml(g.cat) + '</span>'
       + '</div>'
-      + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 0;line-height:1.7">' + escHtml(g.desc) + '</div>';
+      + '<div style="font-size:12px;color:#94a3b8;margin:0 0 12px 0;line-height:2.0">' + escHtml(g.desc) + '</div>';
 
     g.items.forEach(function(d) {
       html += '<div style="padding:10px 12px 10px 0;margin-bottom:4px;border-left:3px solid ' + g.color + ';background:#fff;border:1px solid #e2e8f0;border-left-width:3px;border-radius:6px">'
@@ -1062,7 +1062,7 @@ function renderDomainAnalysisResult(report) {
           if (trace && trace.finding_id) {
             var pathText = (trace.detection_path||[]).join(' → ');
             var confColor = trace.confidence === '高' ? '#059669' : '#f59e0b';
-            html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(59,130,246,0.06);border-radius:4px;font-size:10px;color:#64748b;line-height:1.6">'
+            html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(59,130,246,0.06);border-radius:4px;font-size:10px;color:#64748b;line-height:2.0">'
               + '<span>📋 ' + escHtml(trace.phase_origin||'') + '</span>'
               + '<span style="margin-left:8px;color:' + confColor + '">可信度:' + escHtml(trace.confidence||'?') + '</span>'
               + '<span style="margin-left:8px">| 来源:' + escHtml((trace.data_sources||[]).slice(0,4).join('、')) + '</span>'
@@ -1475,9 +1475,9 @@ function renderChainsList(chains) {
 
       // 描述（新格式链有 description/desc）
       if (c.description) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.description) + '</div>';
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
       } else if (c.desc) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.desc) + '</div>';
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.desc) + '</div>';
       }
 
       // ══ 步骤列表 ═══
@@ -1498,7 +1498,7 @@ function renderChainsList(chains) {
             + (s.score ? '<span style="font-size:11px;color:#94a3b8">score=' + s.score + '</span>' : '')
             + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
             + '</div>'
-            + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:1.7;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
+            + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
             + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:8px 12px;background:#f0fdf4;border-radius:4px">💡 建议：' + escHtml(s.suggestion) + '</div>' : '')
             + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
             + '</div>';
@@ -1514,7 +1514,7 @@ function renderChainsList(chains) {
           html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
             + '<div style="display:flex;align-items:center;gap:8px">'
             + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
-            + '<span style="font-size:13px;color:#334155;line-height:1.7">' + escHtml(s.action || '') + '</span>'
+            + '<span style="font-size:13px;color:#334155;line-height:2.0">' + escHtml(s.action || '') + '</span>'
             + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
             + '</div>'
             + '</div>';
@@ -1540,7 +1540,7 @@ function renderChainsList(chains) {
         html += '<div style="margin-bottom:10px">'
           + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
         c.policies.forEach(function(p) {
-          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fffbeb;border-radius:4px;font-size:12px;color:#854d0e;line-height:1.6">• ' + escHtml(p) + '</div>';
+          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
         });
         html += '</div>';
       }
@@ -1550,7 +1550,7 @@ function renderChainsList(chains) {
         html += '<div style="margin-bottom:10px">'
           + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
         c.tax_impacts.forEach(function(t) {
-          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fef2f2;border-radius:4px;font-size:12px;color:#991b1b;line-height:1.6">• ' + escHtml(t) + '</div>';
+          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
         });
         html += '</div>';
       }
@@ -1677,7 +1677,7 @@ function renderEvidenceList(chains) {
         var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
         var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-        html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04)">'
+        html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">'
 
           // ══ 标题行 ═══
           + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
@@ -1685,9 +1685,9 @@ function renderEvidenceList(chains) {
           + (badgeText ? '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + badgeColor + '15;color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>' : '')
           + '</div>';
 
-        // ══ 描述（新格式证据链有 description） ═══
+        // ══ 描述 ═══
         if (c.description) {
-          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:1.7">' + escHtml(c.description) + '</div>';
+          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
         }
 
         // ══ 调查路径 ═══
@@ -1700,21 +1700,21 @@ function renderEvidenceList(chains) {
             var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
             var isHigh = lvl === '高风险';
 
-            html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
+            html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
               + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
               + '<span style="color:#94a3b8;font-size:12px;font-weight:600">#' + (si + 1) + '</span>'
               + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;font-weight:600;background:#eef2ff;padding:1px 6px;border-radius:3px">R' + s.rule_id + '</span>' : '')
               + (lvl ? '<span style="font-size:11px;font-weight:600;color:' + lvlColor + ';background:' + lvlBg + ';padding:1px 6px;border-radius:3px">' + lvl + '</span>' : '')
               + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.rule_item || s.step || '') + '</b>'
               + '</div>'
-              + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:1.7;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
+              + (s.detail ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail) + '</div>' : '')
               + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
               + '</div>';
           });
           html += '</div>';
         } else if (isStringFormat) {
           // 新格式：investigation_path 是字符串描述（如 "人员信息→发票数据→资金流→进销存四维交叉验证"）
-          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#eef2ff;border-radius:6px;font-size:13px;color:#3730a3;line-height:1.7">'
+          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;color:#475569;line-height:2.0">'
             + '<b style="color:#4338ca">🔍 调查路径：</b>' + escHtml(ip)
             + '</div>';
         } else if (isStepsFormat) {
@@ -1726,7 +1726,7 @@ function renderEvidenceList(chains) {
             html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
               + '<div style="display:flex;align-items:center;gap:8px">'
               + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
-              + '<span style="font-size:13px;color:#334155;line-height:1.7">' + escHtml(s.action || '') + '</span>'
+              + '<span style="font-size:13px;color:#334155;line-height:2.0">' + escHtml(s.action || '') + '</span>'
               + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
               + '</div>'
               + '</div>';
@@ -1754,7 +1754,7 @@ function renderEvidenceList(chains) {
           html += '<div style="margin-bottom:10px">'
             + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
           c.policies.forEach(function(p) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fffbeb;border-radius:4px;font-size:12px;color:#854d0e;line-height:1.6">• ' + escHtml(p) + '</div>';
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
           });
           html += '</div>';
         }
@@ -1764,7 +1764,7 @@ function renderEvidenceList(chains) {
           html += '<div style="margin-bottom:10px">'
             + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
           c.tax_impacts.forEach(function(t) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fef2f2;border-radius:4px;font-size:12px;color:#991b1b;line-height:1.6">• ' + escHtml(t) + '</div>';
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
           });
           html += '</div>';
         }
@@ -1774,7 +1774,7 @@ function renderEvidenceList(chains) {
           html += '<div style="margin-bottom:10px">'
             + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">🔗 关联线索链</div>';
           c.related_chains.forEach(function(rc) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#f0f9ff;border-radius:4px;font-size:12px;color:#0369a1;line-height:1.6">• ' + escHtml(rc) + '</div>';
+            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#f0f9ff;border-radius:4px;font-size:12px;color:#0369a1;line-height:2.0">• ' + escHtml(rc) + '</div>';
           });
           html += '</div>';
         }
