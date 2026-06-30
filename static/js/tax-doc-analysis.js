@@ -1097,30 +1097,20 @@ window._submitFindingEdit = function(fi) {
   var content = text.value.trim();
   if (!content) { alert('Please enter content'); return; }
   
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  
-  var companyId = window.currentCompanyId || 1;
+  var payload = _buildCorrectionPayload(fi, content, 'edit');
+  if (!payload) return;
   fetch('/api/feedback', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      company_id: companyId,
-      action: 'dismiss',
-      finding_type: (f.type || '').replace(/^Synthesis:\\s*/,'').replace(/^Causal:\\s*/,''),
-      finding_title: f.type || '',
-      original_level: f.level || '',
-      reason: content,
-      detail: f.detail || '',
-      timestamp: new Date().toISOString()
-    })
+    body: JSON.stringify(payload)
   }).then(function(r){ return r.json(); }).then(function(data){
     var p = document.getElementById('finding-edit-popup');
     if (p) p.remove();
     if (data.ok) {
-      f._dismissed = true;
-      f._correction_reason = content.slice(0,100);
-      alert('Feedback submitted. Re-run analysis to apply.');
+      var af = window._allFindings || [];
+      var f = af[fi];
+      if (f) { f._dismissed = true; f._correction_reason = content.slice(0,100); }
+      alert(data.auto_rule ? 'Auto-applied to '+data.count+' findings.' : 'Saved to correction rules engine.');
     } else {
       alert('Failed: ' + (data.error || 'Unknown'));
     }
@@ -1130,39 +1120,16 @@ window._submitFindingEdit = function(fi) {
 };
 
 window._auditFindingInReport = function(fi) {
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  if (!f) return;
-  
-  var ftype = (f.type || '').replace(/^Synthesis:\\s*/,'').replace(/^Causal:\\s*/,'');
-  var reason = prompt('Review comment (engines learns from feedback):', ftype || '');
+  var reason = prompt('Review (correction rules engine):', '');
   if (!reason) return;
-  
-  var payload = {
-    action: 'dismiss',
-    finding_type: f.type || '',
-    finding_title: ftype || '',
-    original_level: f.level || '',
-    reason: reason,
-    detail: f.detail || '',
-    timestamp: new Date().toISOString()
-  };
-  
-  fetch('/api/feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  }).then(function(r){ return r.json(); }).then(function(data){
-    if (data.ok) {
-      f._dismissed = true;
-      f._correction_reason = reason;
-      alert('Reviewed. Re-run analysis to apply.');
-    } else {
-      alert('Failed: ' + (data.error || 'Unknown'));
-    }
-  }).catch(function(){
-    alert('Network error');
-  });
+  var payload = _buildCorrectionPayload(fi, reason, 'dismiss');
+  if (!payload) return;
+  fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  .then(function(r){return r.json();}).then(function(data){
+    if(data.ok){var af=window._allFindings||[];var f=af[fi];if(f){f._dismissed=true;f._correction_reason=reason;}
+    alert(data.auto_rule?'Auto-applied to '+data.count+' findings.':'Saved to correction rules engine.');}
+    else{alert('Failed: '+(data.error||'Unknown'));}
+  }).catch(function(){alert('Network error');});
 };
 
 window._askAboutFinding = function(fi) {
@@ -1320,38 +1287,15 @@ window._saveAskAsCorrection = function(fi, mode) {
 };
 
 window._deleteFindingFromReport = function(fi) {
-  if (!confirm('Delete this finding from the report? (re-run analysis to undo)')) return;
-  
+  if (!confirm('Delete this finding? (re-run analysis to undo)')) return;
   var allF = window._allFindings || [];
   var f = allF[fi];
-  if (f) {
-    f._dismissed = true;
-    f._deleted = true;
-    f.level = 'deleted';
-    f._correction_reason = 'User deleted from report';
-  }
-  
-  // Submit deletion to feedback system so it persists
-  fetch('/api/feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      action: 'delete',
-      finding_type: (f.type || ''),
-      finding_title: (f.type || ''),
-      reason: 'User deleted from report',
-      detail: (f.detail || ''),
-      timestamp: new Date().toISOString()
-    })
-  }).catch(function(){});
-  
-  // Re-render immediately
-  if (window._reportData) {
-    renderTaxDocReport(window._reportData);
-  }
+  var payload = _buildCorrectionPayload(fi, 'User deleted from report', 'delete');
+  if (f) { f._dismissed = true; f._deleted = true; f.level = 'deleted'; }
+  if (payload) { fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){}); }
+  if (window._reportData) { renderTaxDocReport(window._reportData); }
 };
 
-// ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
 function _renderReportFallback(r, allF) {
   var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
   var te = r.target_entity || {};
@@ -2616,4 +2560,25 @@ async function clearTransferCache() {
     if (data.ok) { toast('缓存已清除', 'success'); var m = document.getElementById('tda-cache-modal'); if(m) m.remove(); }
     else { toast('清除失败', 'error'); }
   } catch(e) { toast('清除失败: ' + e.message, 'error'); }
+}
+
+// ═══ 纠正规则引擎接口：统一构建完整反馈数据 ═══
+function _buildCorrectionPayload(fi, reason, action) {
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  if (!f) return null;
+  var rpt = window._reportData || {};
+  var te = rpt.target_entity || {};
+  return {
+    company_id: window.currentCompanyId || 1,
+    industry: te.industry || '',
+    biz_model: te.company_type || '',
+    finding_type: (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,''),
+    original_level: f.level || '',
+    corrected_risk: action === 'delete' ? '已删除' : '低风险（用户纠正）',
+    reason: reason,
+    detail: (f.detail || f.description || ''),
+    action: action || 'dismiss',
+    timestamp: new Date().toISOString()
+  };
 }
