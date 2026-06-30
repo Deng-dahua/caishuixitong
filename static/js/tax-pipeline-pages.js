@@ -1605,7 +1605,7 @@ function renderEvidencePage(container) {
     + '<div class="ev-layout"><nav class="ev-toc" id="ev-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
-    + '证据链是税务稽查的证据质量保障体系——<strong>781条证据链（36条可执行+745条旧方法），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
+    + '证据链是税务稽查的证据质量保障体系——<strong>781条证据链（全部可执行），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
     + '每条可执行证据链定义多个独立维度的数据源，当 ≥min_evidence 个维度同时触发时形成有效证据，闭环后自动输入分析链做综合推理判定。'
     + '</p>'
     + '<div id="evidence-body"></div></div></div>';
@@ -1655,7 +1655,7 @@ function renderEvidenceList(chains) {
   // Populate TOC
   var tocEl = document.getElementById('ev-toc');
   if (tocEl) {
-    tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条 (' + execChains.length + '可执行+' + legacyChains.length + '方法论)</div><a href="#ev-stats">统计总览</a>';
+    tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条（全部可执行）</div><a href="#ev-stats">统计总览</a>';
   }
 
   var html = '';
