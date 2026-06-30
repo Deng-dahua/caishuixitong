@@ -1438,7 +1438,13 @@ function renderChainsList(chains) {
     
     // 统计卡片
     var typeGroups = {};
-    chains.forEach(function(c){ var t = c.chain_type || (c.sub_topic || '其他'); if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
+    chains.forEach(function(c){ 
+      var raw = (c.chain_type && c.chain_type != '线索链') ? c.chain_type : (c.sub_topic || '其他');
+      var merge = {'经营实质核查':'经营实质','资产负债项目':'资产负债','成本费用核查':'成本费用','虚开发票核查':'虚开发票','增值税核查':'增值税','企业所得税核查':'企业所得税','个人所得税核查':'个税','财产税核查':'财产税','发票核查':'发票','跨境税源核查':'跨境','行业专项检查':'行业专项','申报合规核查':'申报','纳税人分类分级核查':'检测技术','分析方法核查':'检测技术','审计报告核查':'检测技术','稽查技术':'检测技术','成本偏差检测':'成本','隐匿收入核查':'隐匿收入','税种合规核查':'各税种'};
+      var t = merge[raw] || raw;
+      if(!typeGroups[t])typeGroups[t]=[];
+      typeGroups[t].push(c);
+    });
     var tocEl = document.getElementById('ch-toc');
     if (tocEl) {
       tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条线索链</div><a href="#ch-concept">概念说明</a>';
