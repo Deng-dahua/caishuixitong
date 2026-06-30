@@ -1693,10 +1693,12 @@ function renderEvidenceList(chains) {
   if (!chains.length) {
     html += '<div style="text-align:center;padding:40px;color:#94a3b8">无证据链数据</div>';
   } else {
-    // 分组：按名称前缀分类
+    // 分组：按sub_topic分类（合并碎类）
     var groups = {};
     chains.forEach(function(c) {
-      var prefix = (c.name || '其他').split('-')[0] || '其他';
+      var raw = c.sub_topic || (c.name || '').split('-')[0] || '其他';
+      var merge = {销项:'发票',进项:'发票',虚开:'发票',异常:'发票',税率:'增值税',个税:'个税',社保:'薪酬',工资薪金:'薪酬',人员:'薪酬',印花税:'印花税',增值税:'增值税',企业所得税:'企业所得税',成本:'成本',费用:'成本',折旧:'资产',资产:'资产',摊销:'资产',关联交易:'关联',关联:'关联',虚开:'虚开发票',合同:'合同',跨境:'跨境',出口退税:'出口退税','全税种':'全税种',资金回流:'资金',资金流:'资金',银行:'资金',现金:'资金',综合:'综合',经营实质:'经营实质'};
+      var prefix = merge[raw] || raw;
       if (!groups[prefix]) groups[prefix] = [];
       groups[prefix].push(c);
     });
