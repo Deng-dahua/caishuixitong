@@ -679,7 +679,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   【#1 运行状态】引擎实时状态/内存使用/缓存命中率/最近分析记录
   【#2 规则库】1608条稽查指令按分类浏览/搜索/详情查看
   【#3 质量保障】4条质量标准逐条检查/合规报告生成
-  【#4 方法论对账】1250条方法论与audit_chains.json的实时核对
+  【#4 方法论对账】1256条方法论与audit_chains.json的实时核对
   【#5 跨域协商】15条协商规则四类场景的可视化矩阵
   【#6 智能大脑】调度中枢进度/学习事件/纠正规则库/渐进学习曲线
 

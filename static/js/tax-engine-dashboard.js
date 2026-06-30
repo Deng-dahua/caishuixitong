@@ -1074,7 +1074,7 @@ function renderBrainTab() {
         }
         h += '</table>';
       } else {
-        h += '<div style="text-align:center;padding:20px;color:#94a3b8">尚无纠正规则 — 老邓点在报告中发现上点击审核后→记录模式→累计1次纠正→升级为自动规则→1250条方法链(legacy)体系持续进化</div>';
+        h += '<div style="text-align:center;padding:20px;color:#94a3b8">尚无纠正规则 — 老邓点在报告中发现上点击审核后→记录模式→累计1次纠正→升级为自动规则→1256条方法链(legacy)体系持续进化</div>';
       }
       h += '</div>';
       
