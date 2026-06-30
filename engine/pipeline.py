@@ -2856,7 +2856,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             len(spec_diff_goods) > 0, len(qty_inflation_goods) > 0
         )
         # >=0.40 高置信度触发 | >=0.20 低置信度触发 | <0.20 不触发
-        processing_applicable = processing_score >= 0.20
+        processing_applicable = processing_score >= T.ratios.significant_deviation
         
         target_entity["_has_processing_signal"] = processing_applicable
         target_entity["_goods_analysis"] = {
@@ -2867,7 +2867,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             "qty_inflation_goods": qty_inflation_goods,
             "_processing_score": processing_score,
             "_processing_signals": processing_signals,
-            "_processing_confidence": "high" if processing_score >= 0.40 else ("low" if processing_applicable else "none"),
+            "_processing_confidence": "high" if processing_score >= T.ratios.substantial else ("low" if processing_applicable else "none"),
             "_processing_applicable": processing_applicable,
         }
         pipeline_log.append(f"加工信号评分: {processing_score:.2f}, signals={processing_signals}, applicable={processing_applicable}")
