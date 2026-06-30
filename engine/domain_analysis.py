@@ -185,6 +185,7 @@ def _is_service_industry(sal_invs):
     """
     if not sal_invs: return (False, 0.0)
     import re, json
+    SERVICE_CODES_FALLBACK = ["信息技术服务","咨询服务","设计服务","广告服务","会议展览","租赁服务","认证服务","鉴证服务","培训服务","物流辅助","文化创意","研发技术","电信服务","金融服务","生活服务","现代服务","商务辅助","人力资源","安全保护","教育医疗","旅游娱乐","餐饮住宿","居民日常"]
     try:
         _ind_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
         with open(_ind_path, 'r', encoding='utf-8') as _f:
