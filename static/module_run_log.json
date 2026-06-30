@@ -1,21 +1,5 @@
 [
   {
-    "module_id": "M001_document_scan",
-    "module_name": "文件扫描与类型识别",
-    "timestamp": "2026-06-28T09:59:44.038626",
-    "status": "completed",
-    "company_id": 1,
-    "industry": "广告服务",
-    "biz_model": "未确定",
-    "metrics": {
-      "findings_count": 39,
-      "high_quality_count": 13,
-      "execution_time_ms": 0,
-      "errors": [],
-      "skipped_reason": ""
-    }
-  },
-  {
     "module_id": "M002_data_normalize",
     "module_name": "数据标准化",
     "timestamp": "2026-06-28T09:59:44.065197",
@@ -31994,6 +31978,22 @@
     "metrics": {
       "findings_count": 89,
       "high_quality_count": 38,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M099_cross_synthesis",
+    "module_name": "跨公司规则合成",
+    "timestamp": "2026-06-30T23:55:06.960394",
+    "status": "completed",
+    "company_id": 0,
+    "industry": "Textile",
+    "biz_model": "Manufacturing",
+    "metrics": {
+      "findings_count": 0,
+      "high_quality_count": 0,
       "execution_time_ms": 0,
       "errors": [],
       "skipped_reason": ""

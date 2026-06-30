@@ -684,12 +684,22 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
     
     _save_correction_rules(rules)
     
+    # 自动触发跨公司规则合成
+    try:
+        synth_result = synthesize_cross_company_rules()
+        if synth_result.get("synthesized"):
+            record_module_run("M099_cross_synthesis", "跨公司规则合成", "completed",
+                {"synthesized_rules": synth_result.get("new_rules", 0)}, 0, industry, biz_model)
+    except Exception:
+        pass
+    
     return {
         "recorded": True,
         "fingerprint": fingerprint,
         "correction_count": correction_count,
         "auto_apply": rules[fingerprint]["auto_apply"],
         "upgraded_to_rule": correction_count >= 1,
+        "cross_synthesized": synth_result.get("synthesized", False) if 'synth_result' in dir() else False,
     }
 
 
@@ -697,10 +707,11 @@ def apply_correction_rules(all_findings, industry, biz_model):
     """
     在分析过程中自动应用已学习的纠正规则。
     
-    匹配策略（三级回退）：
-    1. 精确匹配: ftype|industry|biz_model → confidence>=0.7
-    2. 行业匹配: ftype|industry|* → confidence>=0.8
-    3. 通用匹配: ftype|*|* → confidence>=0.9（跨行业通用规则）
+    匹配策略（四级回退 + 跨公司合成）：
+    1. 精确匹配: ftype|industry|biz_model → confidence>=0.5
+    2. 行业匹配: ftype|industry|* → confidence>=0.7
+    3. 通用匹配: ftype|*|* → confidence>=0.8（跨行业通用规则）
+    4. 跨公司合成: __CROSS__{ftype} → 根据当前行业匹配 industry_rules
     """
     rules = _load_correction_rules()
     applied_count = 0
@@ -711,18 +722,27 @@ def apply_correction_rules(all_findings, industry, biz_model):
         
         # 精确匹配
         matched_rule = None
-        if fingerprint in rules and rules[fingerprint].get("auto_apply"):
+        if fingerprint in rules and rules[fingerprint].get("auto_apply") and rules[fingerprint]["confidence"] >= 0.5:
             matched_rule = rules[fingerprint]
         # 行业匹配
         if not matched_rule:
             industry_key = f"{ftype}|{industry}|*"
-            if industry_key in rules and rules[industry_key].get("auto_apply") and rules[industry_key]["confidence"] >= 0.8:
+            if industry_key in rules and rules[industry_key].get("auto_apply") and rules[industry_key]["confidence"] >= 0.7:
                 matched_rule = rules[industry_key]
-        # 通用匹配（跨行业），从1次纠正后即可生效
+        # 通用匹配（跨行业）
         if not matched_rule:
             generic_key = f"{ftype}|*|*"
-            if generic_key in rules and rules[generic_key].get("auto_apply") and rules[generic_key]["confidence"] >= 0.5:
+            if generic_key in rules and rules[generic_key].get("auto_apply") and rules[generic_key]["confidence"] >= 0.8:
                 matched_rule = rules[generic_key]
+        # ══ 跨公司合成规则匹配 ══
+        if not matched_rule:
+            cross_key = f"__CROSS__{ftype}"
+            if cross_key in rules and rules[cross_key].get("auto_apply"):
+                cross_rule = rules[cross_key]
+                ind_rules = cross_rule.get("industry_rules", {})
+                if industry in ind_rules:
+                    matched_rule = cross_rule
+                    finding["_cross_industry_insight"] = ind_rules[industry]
         # 指纹名称匹配
         if not matched_rule:
             for fp, rule in rules.items():
@@ -767,7 +787,32 @@ def get_correction_rule_summary():
 def _load_correction_rules():
     try:
         with open(CORRECTION_RULES_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        # 兼容旧格式（list→dict）
+        if isinstance(data, list):
+            # 将旧规则列表转换为新的指纹格式
+            converted = {}
+            for rule in data:
+                name = rule.get("name", rule.get("finding_type", ""))
+                if name:
+                    fingerprint = f"{name}||*"
+                    converted[fingerprint] = {
+                        "finding_type": name,
+                        "industry": "",
+                        "biz_model": "",
+                        "corrections": [{
+                            "timestamp": rule.get("condition", ""),
+                            "original_risk": "",
+                            "corrected_risk": rule.get("effect", ""),
+                            "reason": rule.get("description", ""),
+                            "finding_detail": "",
+                        }],
+                        "auto_apply": rule.get("auto_trigger", True),
+                        "confidence": 0.8,
+                        "rule": rule.get("description", ""),
+                    }
+            return converted
+        return data
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
@@ -781,3 +826,162 @@ def _save_correction_rules(rules):
 def _generate_correction_rule(finding_type, industry, biz_model, corrected_risk, reason):
     """从纠正记录中自动生成一条可读规则"""
     return f"[{industry}][{biz_model}型] '{finding_type}' → {corrected_risk}。原因: {reason}"
+
+
+# ═══════════════════════════════════════════════════════════
+# Layer 4: 跨公司规则合成 — 引擎从多公司纠正中提炼通用规则
+# ═══════════════════════════════════════════════════════════
+
+def synthesize_cross_company_rules():
+    """
+    扫描所有纠正记录，对比不同公司/行业的反馈，自动合成上下文感知规则。
+    
+    核心发现逻辑：
+    - 同一个 finding_type，A行业纠正为"驳回"，B行业审核为"确认"
+      → 生成规则："该发现仅在X行业适用，在Y行业应跳过"
+    - 同一个 finding_type，多个同行业公司都给出相同纠正
+      → 提升置信度，升级为全行业该行业的通用规则
+    
+    Returns:
+        dict with synthesis_summary and new_rules
+    """
+    rules = _load_correction_rules()
+    if len(rules) < 2:
+        return {"synthesized": False, "reason": "需要至少2条纠正记录才能合成规则"}
+    
+    # 按 finding_type 分组
+    by_type = defaultdict(list)
+    for fp, rule in rules.items():
+        ftype = rule.get("finding_type", "")
+        if ftype:
+            by_type[ftype].append(rule)
+    
+    synthesized = []
+    
+    for ftype, entries in by_type.items():
+        if len(entries) < 2:
+            continue
+        
+        # 分析不同行业的纠正差异
+        industry_actions = defaultdict(list)
+        for entry in entries:
+            ind = entry.get("industry", "未知")
+            biz = entry.get("biz_model", "未知")
+            # 取最新纠正的动作
+            latest = entry["corrections"][-1] if entry["corrections"] else {}
+            corrected = latest.get("corrected_risk", "")
+            reason = latest.get("reason", "")
+            industry_actions[ind].append({
+                "biz_model": biz,
+                "corrected_risk": corrected,
+                "reason": reason,
+                "correction_count": len(entry["corrections"]),
+            })
+        
+        # 发现跨行业差异
+        actions_set = set()
+        for ind, acts in industry_actions.items():
+            for a in acts:
+                actions_set.add(a["corrected_risk"])
+        
+        # 同一个 finding_type 在不同行业有不同结论 → 这是有价值的交叉规则
+        if len(actions_set) >= 2 or len(industry_actions) >= 2:
+            composite_rule = {
+                "finding_type": ftype,
+                "type": "cross_industry",
+                "pattern": "context_dependent",  # 取决于行业上下文
+                "industry_rules": {},
+                "default_action": "consult",  # 默认需要人工判断
+                "confidence": 0.7,
+                "auto_apply": True,
+                "synthesized_from": [e.get("biz_model", "") for e in entries],
+                "synthesized_at": datetime.now().isoformat(),
+            }
+            
+            for ind, acts in industry_actions.items():
+                # 取该行业最多数的纠正动作
+                risk_counter = defaultdict(int)
+                for a in acts:
+                    risk_counter[a["corrected_risk"]] += 1
+                dominant_risk = max(risk_counter, key=risk_counter.get)
+                
+                composite_rule["industry_rules"][ind] = {
+                    "action": dominant_risk,
+                    "confidence": min(0.95, 0.5 + len(acts) * 0.15),
+                    "correction_count": sum(a["correction_count"] for a in acts),
+                    "biz_models": list(set(a["biz_model"] for a in acts)),
+                }
+            
+            # 生成可读总结
+            industry_summaries = []
+            for ind, rule in composite_rule["industry_rules"].items():
+                industry_summaries.append(f"{ind}: {rule['action']} (置信度{rule['confidence']:.0%}, {rule['correction_count']}次)")
+            composite_rule["summary"] = f"跨行业合成规则: '{ftype}' → {' | '.join(industry_summaries)}"
+            
+            # 保存合成规则
+            synth_key = f"__CROSS__{ftype}"
+            rules[synth_key] = composite_rule
+            synthesized.append(composite_rule)
+    
+    _save_correction_rules(rules)
+    
+    return {
+        "synthesized": len(synthesized) > 0,
+        "new_rules": len(synthesized),
+        "summary": [r["summary"] for r in synthesized],
+        "details": synthesized,
+    }
+
+
+def apply_cross_company_synthesis():
+    """
+    在每次分析前调用，将已学习的跨公司规则注入当前公司的分析上下文。
+    引擎根据当前公司的行业属性，匹配跨行业合成规则，决定哪些发现应自动调整。
+    """
+    rules = _load_correction_rules()
+    
+    cross_rules = {}
+    for fp, rule in rules.items():
+        if fp.startswith("__CROSS__") and rule.get("auto_apply"):
+            ftype = rule["finding_type"]
+            cross_rules[ftype] = rule
+    
+    return {
+        "cross_rules_count": len(cross_rules),
+        "rules": cross_rules,
+        "note": "这些规则是根据不同公司/行业的纠正记录自动合成的上下文感知规则"
+    }
+
+
+def get_cross_industry_insight(finding_type):
+    """
+    查询某个发现类型在所有行业的纠正历史，
+    返回跨行业洞察：哪些行业确认了、哪些行业驳回了。
+    """
+    rules = _load_correction_rules()
+    
+    insight = {
+        "finding_type": finding_type,
+        "by_industry": {},
+        "total_corrections": 0,
+        "cross_pattern_detected": False,
+    }
+    
+    for fp, rule in rules.items():
+        if rule.get("finding_type") == finding_type and not fp.startswith("__CROSS__"):
+            ind = rule.get("industry", "未知")
+            latest = rule["corrections"][-1] if rule["corrections"] else {}
+            insight["by_industry"][ind] = {
+                "action": latest.get("corrected_risk", ""),
+                "reason": latest.get("reason", ""),
+                "count": len(rule["corrections"]),
+                "confidence": rule.get("confidence", 0),
+            }
+            insight["total_corrections"] += len(rule["corrections"])
+    
+    # 检测是否存在行业分歧
+    actions = set(v["action"] for v in insight["by_industry"].values())
+    insight["cross_pattern_detected"] = len(actions) >= 2
+    insight["industries_agree"] = len(actions) == 1
+    
+    return insight
