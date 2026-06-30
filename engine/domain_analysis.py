@@ -176,15 +176,11 @@ def _domain_bank_tracking(txs):
         "category": "域1 资金全链路"})
     return findings
 
-# 从引擎记忆加载共享常量（避免循环导入）
-try:
-    from engine.memory import BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS, SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK
-except ImportError:
-    BANK_KW_MAP = {"租赁":("房租","租金","租赁","场地费"),"水电":("电费","水费","自来水"),"物业":("物业费","物管费"),"工资":("工资","代发","薪")}
-    BIZ_EXPENSE_KEYWORDS = {"租赁":["租金","租赁","房租","场地"],"水电":["电费","水费","电","水"],"物业":["物业","物管","管理费-物业"],"通信":["通信","网络","宽带","电话"],"物流":["快递","物流","运输","配送"],"办公":["办公用品","文具","打印","复印"],"维修":["维修","维护","保养","修缮"],"安保":["保安","安保","门卫","监控"]}
-    SENSITIVE_INVOICE_KEYWORDS = ["咨询","服务费","技术","设计","广告","推广","策划"]
-    SERVICE_EXCLUDE_KEYWORDS = ["服务费","服务","咨询","设计","广告","策划","制作","推广","租赁","维修","维护","运输","配送","快递","物流","培训","会议","展览","软件","会员","预付卡","充值"]
-    SERVICE_CODES_FALLBACK = ["广告服务","信息技术服务","研发和技术服务","文化创意服务","物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务","教育医疗服务","旅游娱乐服务","餐饮住宿服务","居民日常服务"]
+from engine.memory import (
+    BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS,
+    SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK
+)
+
 
 # ═══════════════════════════════════════════════════════════════
 # 共享判断函数：服务行业检测
