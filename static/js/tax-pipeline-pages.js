@@ -1793,19 +1793,22 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<style>.al-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.al-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.al-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.al-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.al-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.al-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.al-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.al-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.al-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.al-toc a:hover,.al-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.al-main{flex:1;min-width:0}.al-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="al-layout">'
     + '<nav class="al-toc">'
-    + '<div class="toc-title">📖 '+pc('rules','1514')+'规则 + '+pc('trailChains','396')+'线索 + '+pc('evidenceChains','745')+'证据</div>'
-    + '<a href="#al-cap">引擎核心能力</a>'
+    + '<div class="toc-title">📖 导航</div>'
     + '<a href="#al-overview">一 什么是分析链</a>'
     + '<a href="#al-steps">二 七步执行流程</a>'
+    + '<a href="#al-quality">三 质量保障体系</a>'
     + '<a href="#al-methods">四 稽查方法论</a>'
-    + '<a href="#al-result">结果</a>'
+    + '<a href="#al-chains">五 分析链定义</a>'
     + '</nav>'
     + '<div class="al-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px"><a href="#" onclick="navigateTo(\'tax-doc-analysis\');return false" style="display:inline-block;padding:6px 16px;background:#2563eb;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">📊 查看完整报告 →</a></p>'
+    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
+    + '分析链是税务稽查系统的核心执行管线——从用户上传原始资料到输出结构化稽查报告的完整流水线。'
+    + '七步串联处理 + 42域分析 + 1608规则 + 1256条链条 + 10条协商规则，97%噪声过滤率。'
+    + '</p>'
     + '<div id="analyze-body"></div>'
     + '</div></div>';
   loadAnalyzeOverview();
@@ -1832,20 +1835,8 @@ async function loadAnalyzeOverview() {
   // 兜底：无分析数据时显示完整静态说明
   var html = '';
 
-  // ══════ 引擎核心能力（六项）═══
-  html += '<div id="al-cap" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
-    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">引擎核心能力宣言</h3>'
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;line-height:2.0">'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🧠 有记忆</strong><br>每次分析自动提取指纹存入记忆库，后续分析检索相似案例，输出行业对标和风险校准。实现：audit_memory.json，上限500条，12维度加权检索。</div>'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">📚 能学习</strong><br>三层学习机制：用户反馈学习（驳回→降权0.2）、EMA自学习（58样本指数移动平均）、自动规则发现（信号组合→新规则）。</div>'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🔬 懂思考</strong><br>四层推理：假设-验证引擎（2-3竞争假设逐条验证）、Phase1-4推理引擎、因果叙事链（5条因果规则）、四步稽查分析法。</div>'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">⚖️ 会判断</strong><br>七层判定：文件识别（四方交叉验证）、身份锚定、发票方向、进项分类、服务闸门、品名过滤、存疑排除。32条判定规则逐条校验。</div>'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🎯 懂决策</strong><br>五层决策：风险综合评分、审计策略推荐（P0/P1/P2）、因果叙事链、合规门禁（12项质量标准）、自省检查（16项）+7章报告输出。</div>'
-    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🔮 有自知</strong><br>引擎知道自己是财税稽查系统的大脑。所有代码修改都是在增强引擎自身能力——新规则写到这里，新方法记到这里，新判断标准存到这里。</div>'
-    + '</div></div>';
-
   // ══════ 一、分析链概述 ══════
-  html += '<div style="margin-bottom:48px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
+  html += '<div id="al-overview" style="margin-bottom:48px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 12px">一、什么是分析链</h3>'
     + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '分析链是税务稽查系统的核心执行管线，负责将用户上传的原始资料转化为结构化稽查报告。'
@@ -1876,7 +1867,7 @@ async function loadAnalyzeOverview() {
     + '</div>';
 
   // ══════ 二、七步执行流程详解 ══════
-  html += '<div style="margin-bottom:48px">'
+  html += '<div id="al-steps" style="margin-bottom:48px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">二、七步执行流程详解</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
     + '分析链的执行过程分为七个步骤，每一步都是前一步的延伸和深化。下面详细说明每一步的输入、处理逻辑和输出。'
@@ -1934,7 +1925,7 @@ async function loadAnalyzeOverview() {
   html += '</div>';
 
   // ══════ 三、全链路稽查质量保障体系 ══════
-  html += '<div style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
+  html += '<div id="al-quality" style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、全链路稽查质量保障体系</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 16px">'
     + '全链路稽查质量保障体系是一个开放的质量保障生态系统，从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。'
@@ -1978,7 +1969,7 @@ async function loadAnalyzeOverview() {
     + '</div>'
     + '</div>';
   // ══════ 四、稽查方法论（㉛条详解）══════
-  html += '<div style="margin-bottom:48px;padding:24px;background:#fff;border-radius:8px">'
+  html += '<div id="al-methods" style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（33条已全部代码化）</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
     + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
@@ -2031,7 +2022,7 @@ async function loadAnalyzeOverview() {
   html += '</div></div>';
 
   // ══════ 五、分析链定义列表（从 cross_domain_analysis.json 加载） ══════
-  html += '<div style="margin-bottom:48px">'
+  html += '<div id="al-chains" style="margin-bottom:48px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">五、分析链定义一览（15 条可执行分析链）</h3>'
     + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">每条分析链由 evidence→reasoning_path→conclusion 三段组成。推理步骤顺序执行，前一步的输出是后一步的输入。</p>'
     + '<div id="al-chains-list" style="display:flex;flex-direction:column;gap:12px">'
