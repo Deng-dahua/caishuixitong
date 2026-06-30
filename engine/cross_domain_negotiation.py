@@ -180,6 +180,191 @@ NEGOTIATION_RULES = [
             "_negotiated": True,
         }
     },
+    
+    # ── 新增：消解层扩展（覆盖原来15条规则外的常见矛盾）──
+    {
+        "id": "NEG-050",
+        "match_a": {"type_contains": "服务行业"},
+        "negate_b": {"type_contains": "制造业成本"},
+        "action": "drop",
+        "reason": "企业判定为服务行业，制造业成本分析（BOM/进销存/加工费）不适用。"
+    },
+    {
+        "id": "NEG-051",
+        "match_a": {"type_contains": "个体户"},
+        "negate_b": {"type_contains": "企业所得税"},
+        "action": "drop",
+        "reason": "个体工商户不缴纳企业所得税，相关风险标记不适用。"
+    },
+    {
+        "id": "NEG-052",
+        "match_a": {"type_contains": "小规模纳税人"},
+        "negate_b": {"domain_contains": "增值税", "type_contains": "进项税额"},
+        "action": "drop",
+        "reason": "小规模纳税人不抵扣进项税额，进项税额异常标记不适用。"
+    },
+    
+    # ── 降级层扩展 ──
+    {
+        "id": "NEG-060",
+        "match_a": {"type_contains": "收款与开票金额偏差"},
+        "negate_b": {"type_contains": "隐匿收入"},
+        "action": "downgrade",
+        "new_level": "中风险（需排除非经营收款干扰）",
+        "reason": "收款偏差可能含非经营收款（注资/借款/税费返还），不能直接等于隐匿收入。需逐笔核对方可升级。"
+    },
+    {
+        "id": "NEG-061",
+        "match_a": {"type_contains": "付款与进项金额偏差"},
+        "negate_b": {"type_contains": "虚列成本"},
+        "action": "downgrade",
+        "new_level": "中风险（需排除非经营付款干扰）",
+        "reason": "付款偏差可能含投资/往来款/借款等非采购付款，不能直接等于虚列成本。需逐笔核对方可升级。"
+    },
+    {
+        "id": "NEG-062",
+        "match_a": {"domain_contains": "经营实质", "type_contains": "经营费用"},
+        "negate_b": {"type_contains": "无实际经营"},
+        "action": "drop",
+        "reason": "经营实质域已检测到经营费用（水电/物业/租金/通信/物流），企业存在实际经营活动。'无实际经营'结论被否定。"
+    },
+    {
+        "id": "NEG-063",
+        "match_a": {"domain_contains": "银行流水"},
+        "has_field": "收款构成",
+        "negate_b": {"domain_contains": "增值税", "type_contains": "申报销售额偏差"},
+        "action": "downgrade",
+        "new_level": "低风险（银行流水≠应税收入）",
+        "reason": "银行流水含股东注资/借款/往来款/退款等非应税收入，与增值税申报销售额口径不一致。不能直接以银行流水比对申报表。"
+    },
+    
+    # ── 增强层扩展：新增联合触发规则 ──
+    {
+        "id": "NEG-AUG-004",
+        "trigger_a": {"domain_contains": "发票", "type_contains": "红冲"},
+        "trigger_b": {"domain_contains": "收款", "type_contains": "收款与开票"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "红冲发票+收款偏离综合预警",
+            "level": "高风险",
+            "score": 8,
+            "detail": "跨域协商引擎综合信号：存在红冲/作废发票+银行收款与开票金额偏差。可能为开票后红冲但货款已收的交易，或虚假交易后冲销——需核实红冲发票对应的资金流向。",
+            "how_found": "跨域协商引擎：发票异常检测+收款分类跨域联合研判。",
+            "tax_impact": "开票后红冲但货款未退→涉嫌虚开发票（发票管理办法第22条）。补税+0.5-5倍罚款。",
+            "policy_ref": "《发票管理办法》第二十二条、第三十七条",
+            "suggestion": "逐笔核实红冲发票的商业实质：退货/折让/开票错误。如无商业实质→移送稽查。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-005",
+        "trigger_a": {"domain_contains": "个税", "type_contains": "工资"},
+        "trigger_b": {"domain_contains": "社保", "type_contains": "基数"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "工资个税+社保基数双重偏离预警",
+            "level": "高风险",
+            "score": 8,
+            "detail": "跨域协商引擎综合信号：个税域发现工资异常+社保域发现基数偏低。两个独立域同时检出薪酬类异常——可能为两套工资表/账外发放工资/虚列人头。",
+            "how_found": "跨域协商引擎：个税分析域+社保分析域跨域联合研判。",
+            "tax_impact": "两套工资表→偷逃个税+社保费。补税+滞纳金+0.5-5倍罚款。",
+            "policy_ref": "《个人所得税法》；《社会保险法》第八十六条",
+            "suggestion": "比对：银行代发工资流水 vs 个税申报表 vs 社保缴费基数。检查是否存在未申报的账外工资。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-006",
+        "trigger_a": {"domain_contains": "发票", "type_contains": "专票超期"},
+        "trigger_b": {"domain_contains": "增值税", "type_contains": "进项税额"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "专票超期未认证综合预警",
+            "level": "中风险",
+            "score": 7,
+            "detail": "跨域协商引擎综合信号：存在增值税专用发票超期未认证+进项税额异常。可能原因：取得发票但故意不认证（隐匿采购→收入成本不配比）或发票来源存疑。",
+            "how_found": "跨域协商引擎：发票认证域+增值税域跨域联合研判。",
+            "tax_impact": "进项税额未充分抵扣→多缴增值税（可更正申报退税）或隐匿采购→企业所得税少列成本→多缴所得税（不利企业但可能为虚增利润需求）。",
+            "policy_ref": "《增值税暂行条例》第八条；国家税务总局公告2019年第45号",
+            "suggestion": "核实专票未认证原因。如为真实采购→申请逾期抵扣；如为不实发票→启动稽查。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-007",
+        "trigger_a": {"domain_contains": "资金流", "type_contains": "个人"},
+        "trigger_b": {"domain_contains": "关联交易", "type_contains": "股东"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "股东个人账户与企业资金混同预警",
+            "level": "极高风险",
+            "score": 10,
+            "detail": "跨域协商引擎综合信号：资金流向追踪检测到大量个人账户交易+关联交易域检测到股东资金往来。股东个人账户与企业公户资金混同→涉嫌公司人格混同+偷逃税款。",
+            "how_found": "跨域协商引擎：资金流向追踪+关联交易检测跨域联合研判。",
+            "tax_impact": "公司人格混同→股东对公司债务承担连带责任。个人账户收款未申报→偷税（征管法第63条）。视同分红→20%个税。",
+            "policy_ref": "《公司法》第二十条；《税收征收管理法》第六十三条；《个人所得税法》",
+            "suggestion": "立即核实股东个人账户流水的性质和用途。经营性收入→补申报+补税；借款→补签借款协议并约定利息。建议企业开设独立的对公账户。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-008",
+        "trigger_a": {"domain_contains": "经营实质", "type_contains": "新办企业"},
+        "trigger_b": {"domain_contains": "发票", "type_contains": "大额开票"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "新办企业大额开票综合预警",
+            "level": "极高风险",
+            "score": 10,
+            "detail": "跨域协商引擎综合信号：经营实质域判定为新办企业+发票域检测到大额开票。新办企业在短期内大额开票——可能为虚开团伙设立的空壳开票公司。",
+            "how_found": "跨域协商引擎：经营实质分析+发票异常检测跨域联合研判。",
+            "tax_impact": "开票后注销跑路→暴力虚开→刑法第205条虚开增值税专用发票罪。",
+            "policy_ref": "《刑法》第二百零五条；《发票管理办法》第二十二条",
+            "suggestion": "立即核实：企业实际经营场所+员工+设备+银行流水。如为空壳→立即移送公安经侦。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-009",
+        "trigger_a": {"domain_contains": "成本费用", "type_contains": "劳务"},
+        "trigger_b": {"domain_contains": "个税", "type_contains": "多处"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "劳务派遣+多处工资综合预警",
+            "level": "高风险",
+            "score": 8,
+            "detail": "跨域协商引擎综合信号：成本费用域检测到劳务派遣成本+个税域检测到多处取得工资。可能通过劳务派遣公司拆分工资、虚列人头降低个税和社保基数。",
+            "how_found": "跨域协商引擎：成本费用域+个税域跨域联合研判。",
+            "tax_impact": "拆分工资→少缴个税+社保。劳务派遣无实际业务→虚开发票。补税+滞纳金+罚款。",
+            "policy_ref": "《个人所得税法》；《劳务派遣暂行规定》",
+            "suggestion": "核实劳务派遣合同+派遣人员名单+考勤记录+工资发放记录。如无实际用工→移送稽查。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
+    {
+        "id": "NEG-AUG-010",
+        "trigger_a": {"domain_contains": "资金流", "type_contains": "境外"},
+        "trigger_b": {"domain_contains": "跨境", "type_contains": "外汇"},
+        "action": "synthesize",
+        "new_finding": {
+            "type": "境外付款+外汇管理综合预警",
+            "level": "高风险",
+            "score": 8,
+            "detail": "跨域协商引擎综合信号：资金流域检测到境外付款+跨域分析域检测到外汇相关信号。境外付款可能涉及：①代扣代缴义务（增值税+预提所得税）②转让定价③利润转移。",
+            "how_found": "跨域协商引擎：资金流向追踪+跨域分析联合研判。",
+            "tax_impact": "未扣缴预提所得税→补税+滞纳金。转让定价→特别纳税调整。",
+            "policy_ref": "《企业所得税法》第三十七条（预提所得税）；《特别纳税调整实施办法》",
+            "suggestion": "核实：①境外收款方身份（是否关联方）②合同内容（特许权/服务费/利息/股息）③是否已扣缴税款。",
+            "category": "跨域协商综合",
+            "_negotiated": True,
+        }
+    },
 ]
 
 def run_negotiation(all_findings, pipeline_log=None):
