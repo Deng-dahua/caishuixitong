@@ -1088,7 +1088,7 @@ function renderCrossDomainEvidencePage(container) {
   if (!container) return;
   window.currentModule = '跨域证据链';
   var hasCache = window._allCrossChains && window._allCrossChains.length > 0;
-  container.innerHTML = '<style>.cde-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cde-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.cde-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cde-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cde-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.cde-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.cde-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.cde-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.cde-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.cde-main{flex:1;min-width:0}</style>'
     + '<div class="cde-layout"><nav class="cde-toc" id="cde-toc"><div class="toc-title">📖 导航</div></nav>'
     + '<div class="cde-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔗 跨域证据链</h2>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">'+ (hasCache?window._allCrossChains.length:'...') +' 条证据链 · 多源交叉验证</p>'
@@ -1351,7 +1351,7 @@ function renderChainsPage(container) {
 
   var hasCache = _allClueChains && _allClueChains.length > 0;
 
-  container.innerHTML = '<style>.ch-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.ch-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ch-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ch-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ch-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ch-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ch-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.ch-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.ch-toc{width:200px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.ch-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ch-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ch-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ch-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ch-main{flex:1;min-width:0}</style>'
     + '<div class="ch-layout">'
     + '<nav class="ch-toc" id="ch-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="ch-main">'
@@ -1576,7 +1576,7 @@ function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
-  container.innerHTML = '<style>.ev-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.ev-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ev-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ev-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ev-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ev-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ev-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.ev-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.ev-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.ev-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ev-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ev-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ev-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ev-main{flex:1;min-width:0}</style>'
     + '<div class="ev-layout"><nav class="ev-toc" id="ev-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">'+ (hasCache?_allEvidenceChains.length:'...') +' 条证据链 · ≥2域交叉验证形成闭环</p>'
@@ -1793,7 +1793,7 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<style>.al-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.al-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.al-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.al-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.al-main{flex:1;min-width:0}</style>'
+  container.innerHTML = '<style>.al-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.al-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.al-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.al-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.al-main{flex:1;min-width:0}</style>'
     + '<div class="al-layout">'
     + '<nav class="al-toc">'
     + '<div class="toc-title">📖 '+pc('rules','1514')+'规则 + '+pc('trailChains','396')+'线索 + '+pc('evidenceChains','745')+'证据</div>'
@@ -1833,30 +1833,30 @@ async function loadAnalyzeOverview() {
   var html = '';
 
   // ══════ 引擎核心能力（六项）═══
-  html += '<div id="al-cap" style="margin-bottom:32px;padding:20px 24px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;color:#e2e8f0">'
-    + '<h3 style="font-size:18px;font-weight:800;color:#fff;margin:0 0 16px;text-align:center">引擎核心能力宣言</h3>'
+  html += '<div id="al-cap" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
+    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">引擎核心能力宣言</h3>'
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;line-height:2.0">'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🧠 有记忆</strong><br>每次分析自动提取指纹存入记忆库，后续分析检索相似案例，输出行业对标和风险校准。实现：audit_memory.json，上限500条，12维度加权检索。</div>'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">📚 能学习</strong><br>三层学习机制：用户反馈学习（驳回→降权0.2）、EMA自学习（58样本指数移动平均）、自动规则发现（信号组合→新规则）。</div>'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🔬 懂思考</strong><br>四层推理：假设-验证引擎（2-3竞争假设逐条验证）、Phase1-4推理引擎、因果叙事链（5条因果规则）、四步稽查分析法。</div>'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">⚖️ 会判断</strong><br>七层判定：文件识别（四方交叉验证）、身份锚定、发票方向、进项分类、服务闸门、品名过滤、存疑排除。32条判定规则逐条校验。</div>'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🎯 懂决策</strong><br>五层决策：风险综合评分、审计策略推荐（P0/P1/P2）、因果叙事链、合规门禁（12项质量标准）、自省检查（16项）+7章报告输出。</div>'
-    + '<div style="padding:12px;background:rgba(255,255,255,0.08);border-radius:8px"><strong style="color:#fbbf24;font-size:14px">🔮 有自知</strong><br>引擎知道自己是财税稽查系统的大脑。所有代码修改都是在增强引擎自身能力——新规则写到这里，新方法记到这里，新判断标准存到这里。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🧠 有记忆</strong><br>每次分析自动提取指纹存入记忆库，后续分析检索相似案例，输出行业对标和风险校准。实现：audit_memory.json，上限500条，12维度加权检索。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">📚 能学习</strong><br>三层学习机制：用户反馈学习（驳回→降权0.2）、EMA自学习（58样本指数移动平均）、自动规则发现（信号组合→新规则）。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🔬 懂思考</strong><br>四层推理：假设-验证引擎（2-3竞争假设逐条验证）、Phase1-4推理引擎、因果叙事链（5条因果规则）、四步稽查分析法。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">⚖️ 会判断</strong><br>七层判定：文件识别（四方交叉验证）、身份锚定、发票方向、进项分类、服务闸门、品名过滤、存疑排除。32条判定规则逐条校验。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🎯 懂决策</strong><br>五层决策：风险综合评分、审计策略推荐（P0/P1/P2）、因果叙事链、合规门禁（12项质量标准）、自省检查（16项）+7章报告输出。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:8px"><strong style="color:#e67e22;font-size:14px">🔮 有自知</strong><br>引擎知道自己是财税稽查系统的大脑。所有代码修改都是在增强引擎自身能力——新规则写到这里，新方法记到这里，新判断标准存到这里。</div>'
     + '</div></div>';
 
   // ══════ 一、分析链概述 ══════
   html += '<div style="margin-bottom:48px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 12px">一、什么是分析链</h3>'
-    + '<p style="font-size:14px;color:#475569;line-height:2.2;margin:0 0 16px">'
+    + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '分析链是税务稽查系统的核心执行管线，负责将用户上传的原始资料转化为结构化稽查报告。'
     + '这条管线不是简单的函数调用链，而是一个<strong>七步串联的数据处理流水线</strong>——每一步都有明确的输入、处理逻辑和输出，'
     + '数据在管线中单向流动，不丢失、不污染、不截断。'
     + '</p>'
-    + '<p style="font-size:14px;color:#475569;line-height:2.2;margin:0 0 16px">'
+    + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '管线的设计理念来自稽查实战：真实稽查不是看一个数字就下结论，而是<strong>从资料扫描开始，经过多轮交叉验证，最终形成证据闭环</strong>。'
     + '分析链模拟的就是这个完整过程——资料驱动（有什么资料审什么）、诚实边界（缺什么资料报什么）、交叉推断（多源数据串联）、明细支撑（每条发现必须有具体数据）。'
     + '</p>'
-    + '<div style="padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2.2;border-left:3px solid #2563eb">'
+    + '<div style="padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2.0;border-left:3px solid #2563eb">'
     + '<strong>代码位置：</strong>main.py 中的 <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> 函数（约第8540行）<br>'
     + '<strong>数据规模：</strong>' + pc('rules','1514') + ' 条稽查指令 · ' + pc('trailChains','396') + ' 条线索链 · ' + pc('evidenceChains','745') + ' 条证据链 · 11 条跨域证据链<br>'
     + '<strong>处理结果：</strong>97% 噪声过滤率 · 66 行业基准库 · 35 个域分析函数 · 7 步执行流程'
@@ -2012,6 +2012,14 @@ async function loadAnalyzeOverview() {
 
   html += '</div></div>';
 
+  // ══════ 五、分析链定义列表（从 cross_domain_analysis.json 加载） ══════
+  html += '<div style="margin-bottom:48px">'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">五、分析链定义一览（15 条可执行分析链）</h3>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">每条分析链由 evidence→reasoning_path→conclusion 三段组成。推理步骤顺序执行，前一步的输出是后一步的输入。</p>'
+    + '<div id="al-chains-list" style="display:flex;flex-direction:column;gap:12px">'
+    + '<p style="font-size:13px;color:#94a3b8">加载中...</p>'
+    + '</div>'
+    + '</div>';
   target.innerHTML = html;
 
 }
@@ -2444,7 +2452,7 @@ function renderMethodologyFilterPage(container) {
   if (!container) return;
   window.currentModule = '方法论过滤器';
 
-  container.innerHTML = '<style>.mf-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.mf-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.mf-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.mf-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.mf-toc a:hover,.mf-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.mf-main{flex:1;min-width:0;background:#fff}.mf-sec{margin-bottom:40px}.mf-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.mf-sec-title .n{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;background:#1e293b;color:#fff;border-radius:4px;font-size:12px;font-weight:700}.mf-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.mf-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.mf-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mf-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.mf-rule-body{font-size:13px;color:#475569;line-height:2}.mf-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.mf-stat-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}.mf-breakdown-bar{margin-bottom:8px;display:flex;align-items:center;gap:10px}.mf-breakdown-label{width:120px;font-size:12px;color:#475569;text-align:right;flex-shrink:0}.mf-breakdown-track{flex:1;height:20px;background:#f1f5f9;border-radius:10px;overflow:hidden}.mf-breakdown-fill{height:100%;border-radius:10px;transition:width .3s}.mf-item-list{max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px 0}.mf-item-row{padding:8px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569}.mf-item-row:last-child{border-bottom:none}.mf-empty{padding:40px 0;text-align:center;font-size:13px;color:#94a3b8;line-height:2}</style>'
+  container.innerHTML = '<style>.mf-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.mf-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.mf-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.mf-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.mf-toc a:hover,.mf-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.mf-main{flex:1;min-width:0;background:#fff}.mf-sec{margin-bottom:40px}.mf-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.mf-sec-title .n{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;background:#1e293b;color:#fff;border-radius:4px;font-size:12px;font-weight:700}.mf-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.mf-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.mf-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mf-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.mf-rule-body{font-size:13px;color:#475569;line-height:2}.mf-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.mf-stat-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}.mf-breakdown-bar{margin-bottom:8px;display:flex;align-items:center;gap:10px}.mf-breakdown-label{width:120px;font-size:12px;color:#475569;text-align:right;flex-shrink:0}.mf-breakdown-track{flex:1;height:20px;background:#f1f5f9;border-radius:10px;overflow:hidden}.mf-breakdown-fill{height:100%;border-radius:10px;transition:width .3s}.mf-item-list{max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px 0}.mf-item-row{padding:8px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569}.mf-item-row:last-child{border-bottom:none}.mf-empty{padding:40px 0;text-align:center;font-size:13px;color:#94a3b8;line-height:2}</style>'
     + '<div class="mf-layout">'
     + '<nav class="mf-toc"><div class="toc-title">📖 目录</div>'
     + '<a href="#mf-static">过滤规则体系</a>'
@@ -2630,7 +2638,7 @@ function renderAiRules(container) {
   categories.forEach(function(c) { c.rules.forEach(function(r) { if (r.level==='铁律') tieLvCount++; else zhunZeCount++; }); });
 
   // ══ TOC sidebar layout ══
-  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:2.0;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
+  html += '<style>.ar-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.ar-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.ar-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ar-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.ar-toc a:hover,.ar-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.ar-main{flex:1;min-width:0;background:#fff}.ar-sec{margin-bottom:36px}.ar-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.ar-rule-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;margin-bottom:10px}.ar-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}.ar-rule-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.ar-rule-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}.ar-rule-desc{font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px}.ar-rule-meta{font-size:12px;color:#94a3b8;line-height:2.0;padding-top:8px;border-top:1px solid #f1f5f9}.ar-rule-meta b{color:#64748b}.ar-stat-card{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.ar-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
   html += '<div class="ar-layout">';
 
   // TOC
@@ -2755,7 +2763,7 @@ function renderQualitySystem(container) {
   ];
 
   var totalItems = layers.reduce(function(s,l){return s+l.items.length;},0);
-  var h='<style>.qs-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.qs-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.qs-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.qs-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.qs-toc a:hover,.qs-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.qs-main{flex:1;min-width:0;background:#fff}.qs-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px}.qs-layer{margin-bottom:28px;padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.qs-layer-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid}.qs-item{padding:12px 16px;margin-bottom:6px;background:#fafbfc;border-radius:4px;border-left:3px solid #e2e8f0}.qs-stat{text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.qs-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
+  var h='<style>.qs-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.qs-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.qs-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.qs-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.qs-toc a:hover,.qs-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.qs-main{flex:1;min-width:0;background:#fff}.qs-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px}.qs-layer{margin-bottom:28px;padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.qs-layer-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid}.qs-item{padding:12px 16px;margin-bottom:6px;background:#fafbfc;border-radius:4px;border-left:3px solid #e2e8f0}.qs-stat{text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.qs-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2}</style>';
 
   h+='<div class="qs-layout">';
   h+='<nav class="qs-toc"><div class="toc-title">📖 目录</div>';
@@ -2824,8 +2832,45 @@ function renderQualitySystem(container) {
       });
       
       target.innerHTML = html;
+  loadAnalysisChains();
     })
     .catch(function(e) {
       target.innerHTML = '<div style="color:#dc2626;padding:20px">加载方法论失败：' + e.message + '</div>';
     });
+}
+
+
+
+async function loadAnalysisChains() {
+  var container = document.getElementById('al-chains-list');
+  if (!container) return;
+  try {
+    var resp = await fetch('/static/cross_domain_analysis.json');
+    var chains = await resp.json();
+    var execChains = chains.filter(function(c) { return c.executable && !c.legacy; });
+    var html = '';
+    execChains.forEach(function(a, i) {
+      var steps = a.reasoning_path || [];
+      var refs = a.rule_refs || [];
+      var kws = a.trigger_keywords || [];
+      var stepHtml = steps.map(function(s) {
+        return '<div style="padding:4px 8px;font-size:12px;color:#334155">Step' + s.step + ': <strong>' + (s.domain||'') + '</strong> → ' + (s.action||'');
+      }).join('');
+      html += '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:4px solid #7c3aed">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#7c3aed15;color:#7c3aed;font-weight:600">ID' + (a.id||'') + '</span>'
+        + '<span style="font-size:14px;font-weight:600;color:#0f172a">' + (a.name||'') + '</span>'
+        + '</div>'
+        + '<div style="font-size:12px;color:#64748b;line-height:2.0;margin-bottom:8px">' + (a.description||'') + '</div>'
+        + '<div style="margin-bottom:6px"><span style="font-size:11px;color:#7c3aed;font-weight:600">触发词: </span><span style="font-size:11px;color:#64748b">' + kws.slice(0,5).join(' / ') + '</span></div>'
+        + '<div style="margin-bottom:6px"><span style="font-size:11px;color:#7c3aed;font-weight:600">推理步数: </span><span style="font-size:11px;color:#64748b">' + steps.length + '步</span>'
+        + '<span style="margin-left:16px;font-size:11px;color:#7c3aed;font-weight:600">关联规则: </span><span style="font-size:11px;color:#64748b">' + refs.length + '条</span></div>'
+        + '<div style="padding:8px 12px;background:#f8fafc;border-radius:4px">' + stepHtml + '</div>'
+        + (a.suggestion ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0"><strong>建议: </strong>' + a.suggestion + '</div>' : '')
+        + '</div>';
+    });
+    container.innerHTML = html || '<p style="font-size:13px;color:#94a3b8">暂无分析链数据</p>';
+  } catch(e) {
+    container.innerHTML = '<p style="font-size:13px;color:#dc2626">加载失败: ' + (e.message||'') + '</p>';
+  }
 }
