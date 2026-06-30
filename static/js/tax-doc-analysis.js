@@ -843,6 +843,9 @@ function renderTaxDocReport(r) {
   area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
 
+  // 报告正文每段右侧注入编辑/审核/交互/重置按钮
+  setTimeout(function(){ _injectParagraphButtons(); }, 100);
+
   // 追加对话式交互面板（发现审查的升级版）
   _initReportChatPanel();
 }
@@ -2079,6 +2082,226 @@ function _renderReportFallback(r, allF) {
 
   h += '</div>';
   return { html: h, renderedModules: ['cover','ch1-entity','ch2-methods','ch3-findings','ch4-funds','ch5-synthesis','ch6-conclusion','ch7-appendix'], skippedModules: [] };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 报告正文段落右侧注入编辑/审核/交互/重置按钮
+// ═══════════════════════════════════════════════════════════
+// 覆盖第一章至第七章全部正文段落（<p class="i2">标签）
+// 每个段落右侧显示4个操作按钮，对应当前发现索引（按段落在页面中的序号）
+
+window._paraCounter = 0;
+
+function _injectParagraphButtons() {
+  var area = document.getElementById('tda-report-area');
+  if (!area) return;
+  
+  // 查找所有章节内的正文段落（位于h2和下一个h2之间）
+  var chapters = area.querySelectorAll('h2[id^="ch"]');
+  window._paraCounter = 0;
+  
+  chapters.forEach(function(h2) {
+    var next = h2.nextElementSibling;
+    var paraIndex = 0;
+    
+    while (next && !(next.tagName === 'H2' && next.id && next.id.indexOf('ch') === 0)) {
+      if (next.tagName === 'P' && next.className.indexOf('i2') >= 0) {
+        _addParaButtons(next, paraIndex);
+        paraIndex++;
+      }
+      next = next.nextElementSibling;
+    }
+  });
+}
+
+function _addParaButtons(para, idx) {
+  var globalIdx = window._paraCounter++;
+  
+  // 包装为flex容器：正文在左，按钮在右
+  para.style.display = 'flex';
+  para.style.alignItems = 'flex-start';
+  para.style.gap = '8px';
+  
+  var content = para.innerHTML;
+  para.innerHTML = '<span style="flex:1;min-width:0">' + content + '</span>';
+  
+  var btns = document.createElement('span');
+  btns.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-top:2px;min-width:28px';
+  btns.innerHTML = 
+    '<button onclick="event.stopPropagation();window._editParagraph(' + globalIdx + ')" title="Edit" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">E</button>' +
+    '<button onclick="event.stopPropagation();window._auditParagraph(' + globalIdx + ')" title="Audit" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">A</button>' +
+    '<button onclick="event.stopPropagation();window._askParagraph(' + globalIdx + ')" title="Ask" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">Q</button>' +
+    '<button onclick="event.stopPropagation();window._resetParagraph(' + globalIdx + ')" title="Reset" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">R</button>';
+  
+  para.appendChild(btns);
+  
+  // Store paragraph content for reset
+  para.setAttribute('data-para-idx', globalIdx);
+  if (!para._originalContent) para._originalContent = content;
+}
+
+// 段落级操作函数 — 连接到纠正规则引擎
+window._editParagraph = function(i) {
+  var content = _getParagraphContent(i);
+  if (!content) return;
+  
+  var old = document.getElementById('finding-edit-popup');
+  if (old) old.remove();
+  
+  var popup = document.createElement('div');
+  popup.id = 'finding-edit-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  
+  var textSample = content.replace(/<[^>]+>/g,'').slice(0,200);
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between">' +
+    '<b style="font-size:16px">Edit Paragraph #' + i + '</b>' +
+    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="border:none;background:transparent;font-size:20px;cursor:pointer">X</button></div>' +
+    '<div style="padding:20px 24px">' +
+    '<div style="margin-bottom:8px;font-size:11px;color:#94a3b8">Current text:</div>' +
+    '<div style="background:#f8fafc;padding:10px;border-radius:6px;font-size:12px;margin-bottom:12px;max-height:120px;overflow-y:auto">' + textSample + '</div>' +
+    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">Template: [Judgment] [Specific issue] [Correct logic] [Required evidence] [Legal basis]</div>' +
+    '<textarea id="finding-edit-text" style="width:100%;min-height:180px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;box-sizing:border-box">[Judgment] need correction\n[Specific issue] Regarding paragraph content:\n\n[Correct logic]\n\n[Required evidence]\n\n[Legal basis]</textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
+    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;cursor:pointer">Cancel</button>' +
+    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:600">Submit</button>' +
+    '</div></div></div>';
+  document.body.appendChild(popup);
+};
+
+window._submitParaEdit = function(i) {
+  var text = document.getElementById('finding-edit-text');
+  var content = (text ? text.value.trim() : '');
+  if (!content) { alert('Please enter content'); return; }
+  
+  var p = document.getElementById('finding-edit-popup');
+  if (p) p.remove();
+  
+  // Submit to correction engine
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      company_id: window.currentCompanyId || 1,
+      industry: ((window._reportData||{}).target_entity||{}).industry || '',
+      biz_model: ((window._reportData||{}).target_entity||{}).company_type || '',
+      finding_type: 'Paragraph#' + i,
+      original_level: '',
+      corrected_risk: '纠正',
+      reason: content,
+      detail: _getParagraphContent(i) || '',
+      action: 'edit_paragraph',
+      timestamp: new Date().toISOString()
+    })
+  }).then(function(r){return r.json();}).then(function(data){
+    alert(data.auto_rule ? 'Auto-applied.' : 'Saved to correction rules engine.');
+  }).catch(function(){});
+};
+
+window._auditParagraph = function(i) {
+  if (!confirm('Confirm this paragraph is correct?')) return;
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      company_id: window.currentCompanyId || 1,
+      industry: ((window._reportData||{}).target_entity||{}).industry || '',
+      biz_model: ((window._reportData||{}).target_entity||{}).company_type || '',
+      finding_type: 'Paragraph#' + i,
+      original_level: '',
+      corrected_risk: '已确认',
+      reason: 'Confirmed correct by user',
+      action: 'verify_paragraph',
+      timestamp: new Date().toISOString()
+    })
+  }).catch(function(){});
+  alert('Confirmed. Engine keeps this logic.');
+};
+
+window._askParagraph = function(i) {
+  var content = _getParagraphContent(i) || '';
+  
+  var old = document.getElementById('finding-ask-popup');
+  if (old) old.remove();
+  
+  var popup = document.createElement('div');
+  popup.id = 'finding-ask-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  
+  var textSample = content.replace(/<[^>]+>/g,'').slice(0,200);
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;flex-direction:column;display:flex;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between">' +
+    '<b style="font-size:14px">Chat: Paragraph #' + i + '</b>' +
+    '<button onclick="document.getElementById(\'finding-ask-popup\').remove()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button></div>' +
+    '<div id="ask-chat-body-para" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;max-height:55vh">' +
+    '<div style="background:#f0f4ff;padding:10px;border-radius:6px;font-size:11px;margin-bottom:8px">Paragraph text: ' + textSample + '</div>' +
+    '<div style="color:#94a3b8;text-align:center;padding:20px">Ask the engine about this paragraph</div></div>' +
+    '<div style="display:flex;gap:8px;padding:10px 20px;border-top:1px solid #e2e8f0">' +
+    '<input id="ask-chat-input-para" placeholder="Ask about this paragraph..." onkeydown="if(event.key===\'Enter\')window._sendParaChat(' + i + ')" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">' +
+    '<button onclick="window._sendParaChat(' + i + ')" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">Send</button>' +
+    '</div></div>';
+  document.body.appendChild(popup);
+};
+
+window._sendParaChat = function(i) {
+  var inp = document.getElementById('ask-chat-input-para');
+  var q = inp ? inp.value.trim() : '';
+  if (!q) return;
+  
+  var body = document.getElementById('ask-chat-body-para');
+  if (!body) return;
+  
+  body.innerHTML += '<div style="margin-bottom:8px"><span style="background:#7c3aed;color:#fff;padding:4px 10px;border-radius:8px;font-size:11px">You: ' + q + '</span></div>';
+  body.innerHTML += '<div style="font-size:12px;color:#94a3b8">Thinking...</div>';
+  body.scrollTop = body.scrollHeight;
+  
+  if (inp) inp.value = '';
+  
+  var companyId = window.currentCompanyId || 1;
+  fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({finding_index:0, question: q, policy_doc:'', history:[]})
+  }).then(function(r){return r.json();}).then(function(data){
+    var html = '<div style="margin-top:8px;font-size:12px;color:#475569">';
+    if (data.ok && data.analysis) {
+      data.analysis.forEach(function(b){ html += '<div style="margin:4px 0;font-weight:600">' + (b.title||'') + '</div><div style="font-size:11px">' + (b.content||'').slice(0,300) + '</div>'; });
+    } else {
+      html += 'Error: ' + (data.message||'');
+    }
+    html += '</div>';
+    body.innerHTML += html;
+    body.scrollTop = body.scrollHeight;
+  }).catch(function(e){
+    body.innerHTML += '<div style="color:#dc2626;font-size:12px">Error: ' + e.message + '</div>';
+  });
+};
+
+window._resetParagraph = function(i) {
+  if (!confirm('Reset this paragraph to original engine output?')) return;
+  var para = document.querySelector('[data-para-idx="' + i + '"]');
+  if (para && para._originalContent) {
+    para.querySelector('span').innerHTML = para._originalContent;
+  }
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      company_id: window.currentCompanyId || 1,
+      finding_type: 'Paragraph#' + i,
+      corrected_risk: '已重置',
+      reason: 'Reset to original',
+      action: 'reset_paragraph',
+      timestamp: new Date().toISOString()
+    })
+  }).catch(function(){});
+};
+
+function _getParagraphContent(i) {
+  var para = document.querySelector('[data-para-idx="' + i + '"]');
+  return para ? (para.querySelector('span') ? para.querySelector('span').innerHTML : para.innerHTML) : '';
 }
 
 // ==================== 导出报告 ====================
