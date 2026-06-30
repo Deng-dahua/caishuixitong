@@ -20,9 +20,9 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第0章 ═══
   h += '<div id="hb-s0" class="hb-sec"><div class="hb-sec-title"><span class="num">0</span>系统数据概览</div>';
-  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1608条稽查规则+41条可执行线索链+22条跨域证据链+13条跨域分析链+42个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。线索链合并audit_chains.json的1266条方法链后总计437条。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
+  h += '<div class="hb-detail">税务稽查系统是存勤法税的智能化稽查推理引擎。基于<b>1608条稽查规则+437条线索链+781条证据链+48条分析链+42个域分析函数</b>构建，实现从原始资料上传到正式稽查报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
-  [{n:'1608',l:'稽查规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据，覆盖收入/成本/费用/存货/资产/往来款/特殊交易/税务申报'},{n:'1215',l:'线索链',d:'41条可执行链(引擎驱动keyword匹配)+1266条方法链(展示用),合并管理于cross_domain_clues.json'},{n:'22',l:'证据链',d:'dimensions[]多源交叉验证，≥min_evidence触发，跨域证据闭环'},{n:'13',l:'分析链',d:'reasoning_path[]多步推理链，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/资料完备度/经营实质/跨域推理等13大类'},{n:'28',l:'引擎模块',d:'engine/*.py共28个模块，各模块独立加载，协同工作'}].forEach(function(s){
+  [{n:'1608',l:'稽查规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据'},{n:'437',l:'线索链',d:'全部可执行，含触发关键词+rule_id+风险等级+建议+法条'},{n:'781',l:'证据链',d:'investigation_path多源交叉验证，≥2维独立数据源形成证据闭环'},{n:'48',l:'分析链',d:'reasoning_path多步推理，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/经营实质等13大类'},{n:'41',l:'引擎模块',d:'engine/*.py共41个模块，各模块独立加载，协同工作'}].forEach(function(s){
     h += '<div class="hb-stat" style="flex:1;min-width:110px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:4px">'+s.d+'</div></div>';
   });
   h += '</div>';
