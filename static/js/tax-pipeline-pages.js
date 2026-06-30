@@ -1434,10 +1434,9 @@ function renderChainsList(chains) {
       + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">三类触发方式</strong><br>定量阈值（数值超限）<br>定性模式（特定匹配）<br>缺失数据（资料缺口触发替代链）</div>'
       + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">线索→证据→分析</strong><br>线索链发现累积<br>→触发证据链多源交叉验证<br>→闭环后输入分析链推理判定</div>'
       + '</div>'
-      + '</div>'
       + '</div>';
     
-    // 按 type 分组填充 TOC
+    // 统计卡片
     var typeGroups = {};
     chains.forEach(function(c){ var t = c.chain_type || '其他'; if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
     var tocEl = document.getElementById('ch-toc');
