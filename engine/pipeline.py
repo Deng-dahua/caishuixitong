@@ -37,7 +37,8 @@ from engine.domain_analysis import *  # 35域分析函数
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
 
-def _auto_assign_rule_ids(all_findings):
+def _auto_assign_rule_ids(all_findings, pipeline_log=None):
+    """自动为每条发现分配规则ID——没有匹配规则的发现也有兜底"""
     """域→规则自动分配：为没有rule_id的发现自动匹配稽查指令
     
     策略：
@@ -121,7 +122,8 @@ def _auto_assign_rule_ids(all_findings):
             f['rule_id'] = best_rid
             assigned += 1
     
-    pipeline_log.append(f"域→规则自动分配: {assigned}条发现获得rule_id")
+    if pipeline_log is not None:
+        pipeline_log.append(f"域→规则自动分配: {assigned}条发现获得rule_id")
     return all_findings
 
 def _run_analyze(company_id, db, progress_callback=None):
@@ -1813,7 +1815,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
 
     # ── 域→规则自动分配：为没有rule_id的发现自动匹配稽查指令 ──
-    all_findings = _auto_assign_rule_ids(all_findings)
+    all_findings = _auto_assign_rule_ids(all_findings, pipeline_log)
 
     # ── 同类风险合并：将仅参数不同的同类发现合并为一条 ──
     for dr in domain_results:
