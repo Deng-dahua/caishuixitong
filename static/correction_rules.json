@@ -1,1 +1,102 @@
-{}
+[
+  {
+    "id": 1,
+    "type": "消解",
+    "trigger": "服务行业进销存异常",
+    "action": "消解",
+    "condition": "行业=现代服务/信息技术/广告服务/咨询服务和进销存域发现高风险",
+    "reason": "服务企业无实物存货，进销存分析结果不适用，自动消解为无风险",
+    "new_level": "良好",
+    "_fingerprint": "negotiation|1|服务行业进销存消解"
+  },
+  {
+    "id": 2,
+    "type": "降级",
+    "trigger": "毛利率为零在服务行业",
+    "action": "降级",
+    "condition": "行业包含服务关键词且毛利率为零或为负",
+    "reason": "服务企业毛利率为零或偏低是行业常态（无货物成本），自动降级为低风险",
+    "new_level": "低风险",
+    "_fingerprint": "negotiation|2|服务毛利率降级"
+  },
+  {
+    "id": 3,
+    "type": "降级",
+    "trigger": "制造业进销存正常但资金异常",
+    "action": "降级",
+    "condition": "进销存域无高风险发现且资金流域有高风险发现",
+    "reason": "进销存正常+资金异常→可能是资金管理不规范而非财务造假，降级为中风险",
+    "new_level": "中风险",
+    "_fingerprint": "negotiation|3|制造资金降级"
+  },
+  {
+    "id": 4,
+    "type": "升级",
+    "trigger": "进销存+资金流+经营实质三域同时异常",
+    "action": "升级",
+    "condition": "进销存域高风险+资金流域高风险+经营实质域高风险同时触发",
+    "reason": "三域同时高风险→系统性造假概率极高，升级为极高风险",
+    "new_level": "极高",
+    "_fingerprint": "negotiation|4|三域升级"
+  },
+  {
+    "id": 5,
+    "type": "标记",
+    "trigger": "资料缺口不影响其他域",
+    "action": "标记",
+    "condition": "资料完备度域发现高风险且其他域发现不超过中风险",
+    "reason": "仅有资料缺失但其他域无异常→标注\"待补充资料后复核\"，不直接定论",
+    "tag": "资料待补充",
+    "_fingerprint": "negotiation|5|资料缺口标记"
+  },
+  {
+    "id": 6,
+    "type": "消解",
+    "trigger": "贸易行业无加工费",
+    "action": "消解",
+    "condition": "行业=批发零售/贸易且加工费域触发高风险",
+    "reason": "纯贸易企业不涉及加工环节，加工费相关规则不适用，自动消解",
+    "new_level": "良好",
+    "_fingerprint": "negotiation|6|贸易无加工消解"
+  },
+  {
+    "id": 7,
+    "type": "升级",
+    "trigger": "个人大额收款+未开票+公转私三信号齐发",
+    "action": "升级",
+    "condition": "个人大额收款+未开票收入+公转私频繁三域同时高风险",
+    "reason": "三信号齐发=典型隐匿收入+利益输送模式，升级为极高风险",
+    "new_level": "极高",
+    "_fingerprint": "negotiation|7|三信号升级"
+  },
+  {
+    "id": 8,
+    "type": "降级",
+    "trigger": "自动发现规则标记的行业普遍信号",
+    "action": "降级",
+    "condition": "发现匹配自动发现规则(discovered_rules.json)且置信度≥70%",
+    "reason": "该信号在同行业>60%企业中出现，是行业普遍现象而非风险异常",
+    "new_level": "低风险",
+    "_fingerprint": "negotiation|8|行业普遍降级"
+  },
+  {
+    "id": 9,
+    "type": "消解",
+    "trigger": "建筑业无社保但属劳务外包",
+    "action": "消解",
+    "condition": "行业=建筑且社保域触发高风险且银行流水有劳务公司付款",
+    "reason": "建筑业普遍采用劳务外包，工人由劳务公司缴纳社保，企业自身不直接缴纳，消解社保异常",
+    "new_level": "良好",
+    "_fingerprint": "negotiation|9|建筑劳务外包消解"
+  },
+  {
+    "id": 10,
+    "type": "升级",
+    "trigger": "发票+资金+物流三流全无",
+    "action": "升级",
+    "condition": "发票域无物流记录+资金域无对应付款+物流域无运输记录",
+    "reason": "三流全无=纯票无货的虚开发票，升级为极高风险并建议移送",
+    "new_level": "极高",
+    "_fingerprint": "negotiation|10|三流全无升级"
+  }
+]

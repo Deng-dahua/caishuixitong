@@ -1499,5 +1499,108 @@
     "suggestion": "",
     "rule_refs": [],
     "_quality_score": 0
+  },
+  {
+    "id": 100,
+    "name": "全税种综合判定模型",
+    "sub_topic": "综合",
+    "level": "高风险",
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
+    "trigger_keywords": [
+      "增值税",
+      "所得税",
+      "个税",
+      "印花税",
+      "多税种"
+    ],
+    "min_evidence": 2,
+    "reasoning_path": [
+      {
+        "step": 1,
+        "domain": "跨税种",
+        "action": "收集各税种触发发现",
+        "output": "触发税种列表"
+      },
+      {
+        "step": 2,
+        "domain": "申报比对",
+        "action": "逐税种比对申报vs实际",
+        "output": "差异金额和税率"
+      },
+      {
+        "step": 3,
+        "domain": "综合",
+        "action": "≥3税种异常→系统性偷逃税",
+        "output": "综合风险等级"
+      },
+      {
+        "step": 4,
+        "domain": "处罚",
+        "action": "多税种累计偷税额→处罚档次",
+        "output": "建议处罚幅度"
+      }
+    ],
+    "description": "多税种交叉验证。单一税种异常可能是疏忽，3+税种同时异常=系统性偷逃税。综合判定降低误报。",
+    "tax_impact": "多税种补缴+滞纳金+罚款",
+    "policy_ref": "征管法第63条",
+    "suggestion": "逐税种核实并补申报，多税种系统性异常应移送稽查",
+    "rule_refs": []
+  },
+  {
+    "id": 101,
+    "name": "物耗能耗产能三线归一分析",
+    "sub_topic": "经营实质",
+    "level": "高风险",
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
+    "trigger_keywords": [
+      "产能",
+      "电",
+      "水",
+      "设备",
+      "原材料",
+      "产量"
+    ],
+    "min_evidence": 2,
+    "reasoning_path": [
+      {
+        "step": 1,
+        "domain": "产能推算",
+        "action": "设备铭牌×工时→理论最大产量",
+        "output": "理论产量范围"
+      },
+      {
+        "step": 2,
+        "domain": "能耗推算",
+        "action": "电费÷行业单位电耗→推算产量",
+        "output": "能耗推算产量"
+      },
+      {
+        "step": 3,
+        "domain": "物耗推算",
+        "action": "原材料投入÷行业投入产出比→推算产量",
+        "output": "物耗推算产量"
+      },
+      {
+        "step": 4,
+        "domain": "综合",
+        "action": "三维推算→中位数 vs 账面产量",
+        "output": "偏差→造假概率"
+      },
+      {
+        "step": 5,
+        "domain": "判定",
+        "action": "三维全偏低且偏差>30%→系统性造假",
+        "output": "定案结论"
+      }
+    ],
+    "description": "产量可以从产能、电耗、物耗三个独立维度推算。三维交叉印证→单一维偏差可能是统计误差，三维全偏=造假。",
+    "tax_impact": "虚减产量→隐匿收入→补缴增值税+企业所得税",
+    "policy_ref": "征管法第35条",
+    "suggestion": "三维推算产量与账面对比，偏差>30%需获取生产台账和出入库记录实地核实",
+    "rule_refs": []
   }
 ]

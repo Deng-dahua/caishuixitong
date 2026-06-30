@@ -36,6 +36,93 @@ from engine.domain_analysis import *  # 35域分析函数
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
 
+def _auto_assign_rule_ids(all_findings):
+    """域→规则自动分配：为没有rule_id的发现自动匹配稽查指令
+    
+    策略：
+    1. 加载 RULE_DOMAIN_MAP（域名称→规则分类映射）
+    2. 对每条发现，根据其 domain 查找对应分类
+    3. 在对应分类的规则中，用关键词匹配找到最匹配的 rule_id
+    4. 已带 rule_id 的发现不覆盖
+    """
+    import json as _json
+    import re as _re
+    
+    if not all_findings:
+        return all_findings
+    
+    # 加载规则
+    rules_path = os.path.join(_PROJECT_ROOT, 'static', 'tax_risk_rules_local_export.json')
+    try:
+        with open(rules_path, 'r', encoding='utf-8') as _f:
+            rules = _json.load(_f)
+    except Exception:
+        return all_findings
+    
+    # 构建规则关键词索引
+    rule_kw_index = {}
+    for r in rules:
+        rid = r.get('id')
+        text = str(r.get('item', '')) + ' ' + str(r.get('detail', '')) + ' ' + str(r.get('category', ''))
+        words = _re.findall(r'[\u4e00-\u9fff]{2,4}', text)
+        for w in words:
+            rule_kw_index.setdefault(w, []).append(rid)
+    
+    # 加载域映射
+    try:
+        from engine.memory import RULE_DOMAIN_MAP
+    except ImportError:
+        RULE_DOMAIN_MAP = {}
+    
+    assigned = 0
+    for f in all_findings:
+        if not isinstance(f, dict):
+            continue
+        if f.get('rule_id') or f.get('_rule_id'):
+            continue  # 已有rule_id，不覆盖
+        
+        domain = str(f.get('domain', ''))
+        ftype = str(f.get('type', ''))
+        fdetail = str(f.get('detail', ''))
+        
+        # 从域映射获取目标分类
+        target_cats = RULE_DOMAIN_MAP.get(domain, [])
+        
+        # 从发现文本提取关键词
+        ftext = ftype + ' ' + fdetail
+        fwords = _re.findall(r'[\u4e00-\u9fff]{2,4}', ftext)
+        
+        # 找到匹配的规则
+        candidates = {}
+        for w in fwords:
+            for rid in rule_kw_index.get(w, []):
+                candidates[rid] = candidates.get(rid, 0) + 1
+        
+        if not candidates:
+            continue
+        
+        # 优先选择属于目标分类的规则
+        best_rid = None
+        best_score = 0
+        for rid, score in candidates.most_common(20) if hasattr(type(candidates), 'most_common') else sorted(candidates.items(), key=lambda x: -x[1])[:20]:
+            rid = rid if isinstance(rid, str) else rid
+            rule = next((r for r in rules if r.get('id') == rid), None)
+            if not rule:
+                continue
+            rcat = str(rule.get('category', ''))
+            in_target = rcat in target_cats if target_cats else True
+            weighted = score + (3 if in_target else 0)
+            if weighted > best_score:
+                best_score = weighted
+                best_rid = rid
+        
+        if best_rid:
+            f['rule_id'] = best_rid
+            assigned += 1
+    
+    pipeline_log.append(f"域→规则自动分配: {assigned}条发现获得rule_id")
+    return all_findings
+
 def _run_analyze(company_id, db, progress_callback=None):
     from database import VATDeclaration
     from collections import defaultdict
@@ -1723,6 +1810,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 跨域分析链：加载 cross_domain_analysis.json 推理分析
     if all_findings:
         domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
+
+    # ── 域→规则自动分配：为没有rule_id的发现自动匹配稽查指令 ──
+    all_findings = _auto_assign_rule_ids(all_findings)
 
     # ── 同类风险合并：将仅参数不同的同类发现合并为一条 ──
     for dr in domain_results:
