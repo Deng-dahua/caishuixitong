@@ -1120,15 +1120,15 @@ window._submitFindingEdit = function(fi) {
 };
 
 window._auditFindingInReport = function(fi) {
-  var reason = prompt('Review (correction rules engine):', '');
-  if (!reason) return;
-  var payload = _buildCorrectionPayload(fi, reason, 'dismiss');
+  if (!confirm('Confirm this finding is correct?')) return;
+  var payload = _buildCorrectionPayload(fi, 'User confirmed correct - no change needed', 'verify');
   if (!payload) return;
+  payload.corrected_risk = payload.original_level;  // 保持原风险等级
   fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
   .then(function(r){return r.json();}).then(function(data){
-    if(data.ok){var af=window._allFindings||[];var f=af[fi];if(f){f._dismissed=true;f._correction_reason=reason;}
-    alert(data.auto_rule?'Auto-applied to '+data.count+' findings.':'Saved to correction rules engine.');}
-    else{alert('Failed: '+(data.error||'Unknown'));}
+    var af=window._allFindings||[];var f=af[fi];
+    if(f){f._verified=true;f._dismissed=false;}
+    alert(data.auto_rule?'Auto-applied to '+data.count+' findings.':'Confirmed. Engine will keep this logic.');
   }).catch(function(){alert('Network error');});
 };
 
@@ -1347,12 +1347,19 @@ window._saveAskAsCorrection = function(fi, mode) {
 };
 
 window._deleteFindingFromReport = function(fi) {
-  if (!confirm('Delete this finding? (re-run analysis to undo)')) return;
+  if (!confirm('Reset this finding to original engine output?')) return;
   var allF = window._allFindings || [];
   var f = allF[fi];
-  var payload = _buildCorrectionPayload(fi, 'User deleted from report', 'delete');
-  if (f) { f._dismissed = true; f._deleted = true; f.level = 'deleted'; }
-  if (payload) { fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){}); }
+  // 清除所有修改，回到引擎初始状态
+  if (f) {
+    f._dismissed = false;
+    f._deleted = false;
+    f._verified = false;
+    f._correction_reason = '';
+    f.level = f._originalLevel || f.level || '中风险';
+  }
+  var payload = _buildCorrectionPayload(fi, 'Reset to original engine output', 'reset');
+  if (payload) { payload.corrected_risk = '已重置'; fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){}); }
   if (window._reportData) { renderTaxDocReport(window._reportData); }
 };
 
@@ -1809,7 +1816,7 @@ function _renderReportFallback(r, allF) {
     h += '<button onclick="window._editFindingInReport(' + fi + ')" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">✏️ 编辑</button>';
     h += '<button onclick="window._auditFindingInReport(' + fi + ')" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">🔍 审核</button>';
     h += '<button onclick="window._askAboutFinding(' + fi + ')" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">💬 追问</button>';
-    h += '<button onclick="window._deleteFindingFromReport(' + fi + ')" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">🗑 删除</button>';
+    h += '<button onclick="window._deleteFindingFromReport(' + fi + ')" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">🗑 重置</button>';
     h += '</div>';
     h += '</div>';
   }
