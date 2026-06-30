@@ -5,6 +5,7 @@
 import json
 import re
 import sys
+import os
 from database import get_db, JournalEntry, Account, BookkeepingInvoice, PurchaseInvoice
 from database import BankTransaction, Supplier, Customer, Employee, Department
 from sqlalchemy import func, or_, and_
@@ -51,6 +52,11 @@ def audit_all(company_id: int) -> dict:
     source_issues = _check_source_consistency(db, company_id)
     results["来源不一致"] = len(source_issues)
     errors.extend(source_issues)
+
+    # 8. 系统一致性（数据源+字段完整性+数字核对）
+    sys_issues = _check_system_consistency()
+    results["系统一致性"] = len(sys_issues)
+    errors.extend(sys_issues)
 
     return {
         "company_id": company_id,
@@ -266,6 +272,82 @@ def _check_source_consistency(db, company_id):
     ).count()
     if old_source > 0:
         errors.append(f"[来源不一致] 还有 {old_source} 条分录 source='取得发票'，应改为'未记账发票'")
+
+    return errors
+
+
+def _check_system_consistency() -> list:
+    """系统一致性审计：JSON字段完整+system_config核对+JS数字过时检查"""
+    errors = []
+    base = os.path.dirname(os.path.abspath(__file__)) or "."
+
+    # ═══ 1. 数据源计数核对 ═══
+    try:
+        sc_path = os.path.join(base, "static", "system_config.json")
+        with open(sc_path, "r", encoding="utf-8") as f:
+            sc = json.load(f)
+        data_files = {
+            "rules_count": "tax_risk_rules_local_export.json",
+            "clue_chains": "cross_domain_clues.json",
+            "evidence_chains": "cross_domain_evidence.json",
+            "analysis_chains": "cross_domain_analysis.json",
+        }
+        for key, filename in data_files.items():
+            path = os.path.join(base, "static", filename)
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    actual = len(json.load(f))
+                config_val = sc.get(key)
+                if config_val != actual:
+                    errors.append(
+                        f"[系统一致性] system_config.{key}={config_val} ≠ {filename}实际{actual}"
+                    )
+    except Exception as e:
+        errors.append(f"[系统一致性] 数据源核对失败: {e}")
+
+    # ═══ 2. 链字段完整性 ═══
+    for name, filename, required in [
+        ("线索链", "cross_domain_clues.json", ["name", "rule_refs", "sub_topic"]),
+        ("证据链", "cross_domain_evidence.json", ["name", "sub_topic", "level"]),
+        ("分析链", "cross_domain_analysis.json", ["name", "sub_topic", "level", "suggestion"]),
+    ]:
+        try:
+            path = os.path.join(base, "static", filename)
+            with open(path, "r", encoding="utf-8") as f:
+                items = json.load(f)
+            for item in items:
+                for field in required:
+                    if field not in item:  # 字段不存在才算缺失，空值不算
+                        item_name = item.get("name", item.get("id", "?"))[:30]
+                        errors.append(
+                            f"[系统一致性] {name} \"{item_name}\" 缺少字段 {field}"
+                        )
+                        break
+        except Exception as e:
+            errors.append(f"[系统一致性] {filename}检查失败: {e}")
+
+    # ═══ 3. JS过时数字扫描 ═══
+    try:
+        js_path = os.path.join(base, "static", "js", "tax-pipeline-pages.js")
+        with open(js_path, "r", encoding="utf-8") as f:
+            js = f.read()
+        stale_patterns = [
+            ("pc('rules','1514')", "规则回退值1514应为1608"),
+            ("pc('trailChains','396')", "线索回退值396应为437"),
+            ("pc('evidenceChains','745')", "证据回退值745应为781"),
+        ]
+        for pattern, desc in stale_patterns:
+            if pattern in js:
+                errors.append(f"[系统一致性] JS过时引用: {desc}")
+    except Exception as e:
+        errors.append(f"[系统一致性] JS扫描失败: {e}")
+
+    # ═══ 4. 僵尸文件检查 ═══
+    zombie_files = ["report-custom-modules.js", "report-module-panel.js"]
+    for zf in zombie_files:
+        path = os.path.join(base, "static", "js", zf)
+        if os.path.exists(path):
+            errors.append(f"[系统一致性] 僵尸文件仍存在: static/js/{zf}")
 
     return errors
 
