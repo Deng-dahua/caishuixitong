@@ -2891,7 +2891,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         desc += f"③若货物需要在{company_city}↔外地之间往返运输，运输成本在哪里？"
         
         level = "高风险" if (all_remote and remote_sellers >= 3 and not has_transport) else "中风险"
-        score = 8 if level == "高风险" else 6
+        score = T.scoring_weights.risk_high_score if level == "高风险" else 6
         
         findings.append({
             "type": "外地加工费存疑",
@@ -4804,7 +4804,7 @@ def _generate_biz_substance_findings(target_entity, pur_invs, sal_invs):
         return findings
     
     risk_level = "高风险" if (has_proc_fee and pur_only and sal_only) else "中风险"
-    risk_score = 8 if risk_level == "高风险" else 5
+    risk_score = T.scoring_weights.risk_high_score if risk_level == "高风险" else 5
     
     pur_str = "、".join(pur_only[:8]) if pur_only else "无"
     sal_str = "、".join(sal_only[:8]) if sal_only else "无"
@@ -5335,7 +5335,7 @@ class ConfidenceAssessor:
     
     def _score_evidence(self, finding):
         """评估证据充分性"""
-        score = 10  # 基础分：有一条发现本身就有一些证据
+        score = T.scoring_weights.base_discovery_score  # 基础分：有一条发现本身就有一些证据
         
         # 检查detail/description中的内容量
         detail = str(finding.get("detail", ""))
@@ -5345,19 +5345,19 @@ class ConfidenceAssessor:
         # 包含具体数字 → +5分
         import re
         if re.search(r'\d[\d,.]*[万元亿%]', combined):
-            score += 5
+            score += T.scoring_weights.dimension_match
         
         # 包含具体公司/人名 → +3分
         if re.search(r'[\u4e00-\u9fff]{2,}(公司|厂|行|店)', combined):
-            score += 3
+            score += T.scoring_weights.cross_domain_match
         
         # 引用法规 → +5分
         if any(kw in combined for kw in ["《","条例","公告","第"]):
-            score += 5
+            score += T.scoring_weights.dimension_match
         
         # 有how_found说明来源 → +5分
         if finding.get("how_found"):
-            score += 5
+            score += T.scoring_weights.dimension_match
         
         return min(score, 30)
     
@@ -5379,7 +5379,7 @@ class ConfidenceAssessor:
     
     def _score_counter_evidence(self, ftype, finding):
         """对抗验证评分"""
-        score = 15  # 基础分
+        score = T.scoring_weights.base_evidence_score  # 基础分
         
         # 如果该结论与矛盾检测有关联 → 减分
         for contr in self.contradictions:
@@ -5390,7 +5390,7 @@ class ConfidenceAssessor:
         
         # 如果有交叉验证 → 加回
         if finding.get("_phase3_cross_validated"):
-            score += 5
+            score += T.scoring_weights.dimension_match
         
         return max(0, min(score, 20))
     
@@ -11134,34 +11134,34 @@ def _compute_processing_score(industry, has_proc_fee, has_goods_diff, has_spec_d
     
     # 信号1: 加工费发票（权重0.40 — 最强信号，任何行业）
     if has_proc_fee:
-        score += 0.40
+        score += T.scoring_weights.extremely_high
         signals.append("加工费发票")
     
     # 信号2: 进销品名实质性差异（权重0.30 — 纯服务业不参与）
     # WHY: 广告公司买水果≠原材料采购，卖广告服务≠加工产出
     #       服务业的进项是经营消耗，不是生产投入
     if has_goods_diff and not is_pure_service:
-        score += 0.30
+        score += T.scoring_weights.very_high
         signals.append("进销品名差异")
     elif has_goods_diff and is_pure_service:
         signals.append("进销品名差异(纯服务业-不构成加工信号)")
     
     # 信号3: 同品名规格变化（权重0.20 — 任何行业，瓷砖切割等物理加工）
     if has_spec_diff:
-        score += 0.20
+        score += T.scoring_weights.high
         signals.append("同品名规格变化")
     
     # 信号4: 同品名数量膨胀（权重0.15 — 进少出多暗示切割/分装）
     if has_qty_inflation:
-        score += 0.15
+        score += T.scoring_weights.moderate
         signals.append("数量膨胀(进少出多)")
     
     # 信号5: 行业属性加成/降权
     if is_manufacturing:
-        score += 0.10
+        score += T.scoring_weights.low
         signals.append("行业制造属性")
     elif is_partial:
-        score += 0.05
+        score += T.scoring_weights.negligible
         signals.append("行业部分加工属性")
     elif is_pure_service:
         score -= 0.15

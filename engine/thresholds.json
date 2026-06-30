@@ -92,5 +92,21 @@
     "concentration_medium": 0.50,
     "growth_excessive": 0.30,
     "decline_material": 0.20
+  },
+
+  "scoring_weights": {
+    "extremely_high": 0.40,
+    "very_high": 0.30,
+    "high": 0.20,
+    "moderate": 0.15,
+    "low": 0.10,
+    "negligible": 0.05,
+    "risk_high_score": 8,
+    "risk_medium_score": 6,
+    "risk_low_score": 5,
+    "base_discovery_score": 10,
+    "base_evidence_score": 15,
+    "dimension_match": 5,
+    "cross_domain_match": 3
   }
 }
