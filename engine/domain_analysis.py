@@ -184,7 +184,7 @@ def _is_service_industry(sal_invs):
     返回 (is_service, svc_ratio) 元组
     """
     if not sal_invs: return (False, 0.0)
-    import re, json, os
+    import re, json
     try:
         _ind_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
         with open(_ind_path, 'r', encoding='utf-8') as _f:
@@ -2194,8 +2194,6 @@ def _domain_cross_domain_analysis(all_findings):
 # ═══════════ 通用JSON加载 ═══════════
 
 def _load_json(rel_path, default=None):
-    import json as _json
-    import os as _os
     path = os.path.join(os.path.dirname(__file__), rel_path)
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -6170,7 +6168,6 @@ _SIGNAL_PATTERNS = [
 
 def _detect_conflicts(all_findings, cross_findings, pipeline_log):
     """JSON 驱动的冲突消解引擎——规则从 conflict_rules.json 加载"""
-    import json as _json, os as _os
     
     # 构建全量文本索引（用于关键词匹配）
     all_text = "|".join(

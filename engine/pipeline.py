@@ -1300,7 +1300,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 数据一致性自检：分析启动前同步引擎记忆文档层
     # ═══════════════════════════════════════════════════════════
     try:
-        import subprocess, os
+        import subprocess
         result = subprocess.run(
             ["python", "audit_consistency.py", "--sync"],
             capture_output=True, text=True, timeout=30,
