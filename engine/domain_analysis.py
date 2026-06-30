@@ -4397,7 +4397,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
 # 资料情报提取引擎 —— 从资料数据中提取稽查所需信息
 # ═══════════════════════════════════════════════════
 
-def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions=None):
+def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions=None, pipeline_log=None):
     """从各类资料中提取关键审计情报——让系统真正'读懂'资料"""
     intel = {}
     from collections import Counter, defaultdict
@@ -4545,13 +4545,10 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                     pay_cats.setdefault("银行内部款项", defaultdict(float))[cp or "(银行)"] += credit
                     corrections.append(f"纠错: {credit:.2f}元 '{cp or '(空)'}' 从个人待分析→银行内部款项(金额{credit}有零有整+{('空文本' if is_empty_all else '')}{('含银行关键词' if is_bank_in_all else '')}{('摘要空' if has_empty_text else '')})")
         
-        if corrections:
-            try:
-                pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
-                for c in corrections[:5]:
-                    pipeline_log.append(f"  {c}")
-            except NameError:
-                pass  # pipeline_log 不在当前作用域时静默跳过
+        if corrections and pipeline_log is not None:
+            pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
+            for c in corrections[:5]:
+                pipeline_log.append(f"  {c}")
         
         # 自适应输出：只输出有数据的类别
         intel["银行流水"]["收款构成"] = {}

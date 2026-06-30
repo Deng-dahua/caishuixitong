@@ -2533,7 +2533,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ── 资料情报提取：从数据中自动提取关键审计信息 ──
     try:
-        material_intel = _extract_material_intel(bank_txs, clean_invs, salaries, social_security, vouchers, inventory, input_vat_deductions)
+        material_intel = _extract_material_intel(bank_txs, clean_invs, salaries, social_security, vouchers, inventory, input_vat_deductions, pipeline_log)
     except Exception as _mie:
         pipeline_log.append(f"资料情报提取异常: {_mie}")
         material_intel = {}
