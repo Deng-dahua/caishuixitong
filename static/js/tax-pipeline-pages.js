@@ -19,12 +19,12 @@ async function loadPipelineCounts() {
     var cdc = await cdcResp.json();
     var cde = await cdeResp.json();
     var cda = await cdaResp.json();
-    var chains = chainsData.chains || [];
     _pipelineCounts = {
       rules: rules.length,
-      trailChains: chains.filter(function(c){return c.chain_type==='线索链'}).length,
-      evidenceChains: chains.filter(function(c){return c.chain_type==='证据链'}).length,
-      totalChains: chains.length,
+      trailChains: cdc.length,
+      evidenceChains: cde.length,
+      analysisChains: cda.length,
+      totalChains: cdc.length + cde.length + cda.length,
       crossEvidence: cde.length,
       crossClues: cdc.length,
       crossAnalysis: cda.length
@@ -39,6 +39,7 @@ async function loadPipelineCounts() {
     _pipelineCounts.rules = window._systemConfig.rules_count || _pipelineCounts.rules;
     _pipelineCounts.trailChains = window._systemConfig.clue_chains || _pipelineCounts.trailChains;
     _pipelineCounts.evidenceChains = window._systemConfig.evidence_chains || _pipelineCounts.evidenceChains;
+    _pipelineCounts.analysisChains = window._systemConfig.analysis_chains || _pipelineCounts.analysisChains;
     _pipelineCounts.totalChains = window._systemConfig.total_chains || _pipelineCounts.totalChains;
   }
   return _pipelineCounts;
@@ -1841,7 +1842,7 @@ function renderAnalyzePage(container) {
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
     + '分析链是税务稽查系统的核心执行管线——从用户上传原始资料到输出结构化稽查报告的完整流水线。'
-    + '七步串联处理 + 42域分析 + 1608规则 + 1266条链条 + 15条协商规则，97%噪声过滤率。'
+    + '七步串联处理 + 42域分析 + ' + pc('rules','1608') + '规则 + ' + pc('totalChains','1266') + '条链条 + 15条协商规则，97%噪声过滤率。'
     + '</p>'
     + '<div id="analyze-body"></div>'
     + '</div></div>';
@@ -1889,9 +1890,9 @@ async function loadAnalyzeOverview() {
     + '</div>'
     + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
     + '分析链底层引擎工作顺序为：<strong>域分析→稽查指令匹配→线索链触发→证据链闭环→分析链推理→协商引擎消解→同类合并→报告输出</strong>。'
-    + '每个环节的输出都是下一个环节的输入：42个域分析函数产出发现→关键词+域分类自动匹配1608条稽查指令获得rule_id→'
-    + '触发的规则通过rule_refs激活437条线索链展开串行调查→线索链发现累积后送入781条证据链做多源交叉验证→'
-    + '证据闭环后进入48条分析链做综合推理判定→最后经15条协商规则消解冲突、同类发现合并→输出最终稽查报告。'
+    + '每个环节的输出都是下一个环节的输入：42个域分析函数产出发现→关键词+域分类自动匹配' + pc('rules','1608') + '条稽查指令获得rule_id→'
+    + '触发的规则通过rule_refs激活' + pc('trailChains','437') + '条线索链展开串行调查→线索链发现累积后送入' + pc('evidenceChains','781') + '条证据链做多源交叉验证→'
+    + '证据闭环后进入' + pc('analysisChains','48') + '条分析链做综合推理判定→最后经15条协商规则消解冲突、同类发现合并→输出最终稽查报告。'
     + '</p>'
     + '<div style="padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2.0;border-left:3px solid #2563eb">'
     + '<strong>代码位置：</strong>engine/pipeline.py → <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> · engine/domain_analysis.py → 42个域分析函数<br>'
