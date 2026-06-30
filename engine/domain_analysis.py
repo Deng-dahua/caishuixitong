@@ -179,7 +179,8 @@ def _domain_bank_tracking(txs):
 from engine.memory import (
     BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS,
     SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK,
-    VAT_DEDUCTIBLE_VOUCHER_TYPES, VAT_NON_DEDUCTIBLE_TYPES
+    VAT_DEDUCTIBLE_VOUCHER_TYPES, VAT_NON_DEDUCTIBLE_TYPES,
+    VAT_INPUT_TAX_REVERSAL_RULES
 )
 
 
@@ -287,8 +288,27 @@ def _classify_voucher_deductibility(invoice_dict):
         is_deductible = False
         signals.append("无明确扣税凭证信号→保守判定为不可抵扣")
     
+    # 信号7（终审）：凭证类型可抵扣，但用途不可抵扣 → 进项税额转出
+    # 如：招待用酒开了增值税专用发票 → 形式上可抵扣，实质上必须转出
+    # 依据：《增值税暂行条例》第十条、财税[2016]36号
+    needs_reversal = False
+    reversal_reason = ""
+    if is_deductible and VAT_INPUT_TAX_REVERSAL_RULES:
+        all_text = " ".join(str(v) for v in invoice_dict.values())
+        all_text_lower = all_text.lower()
+        for rule in VAT_INPUT_TAX_REVERSAL_RULES.get("non_deductible_uses", []):
+            for kw in rule.get("keywords", []):
+                if kw in all_text or kw in all_text_lower:
+                    is_deductible = False  # 实质上不可抵扣！
+                    needs_reversal = True
+                    reversal_reason = f"用途为「{rule['item']}」({kw})→即使取得扣税凭证也须进项税额转出"
+                    signals.append(f"⚠ {reversal_reason}")
+                    break
+            if needs_reversal:
+                break
+    
     rationale = " | ".join(signals) if signals else "默认"
-    return (is_deductible, voucher_type, rationale)
+    return (is_deductible, voucher_type, rationale, needs_reversal, reversal_reason)
 
 
 def _classify_purchase_voucher_distribution(pur_invs):
@@ -315,10 +335,10 @@ def _classify_purchase_voucher_distribution(pur_invs):
     non_deductible_types = set()
     
     for inv in pur_invs:
-        is_ded, vt_name, rationale = _classify_voucher_deductibility(inv)
+        is_ded, vt_name, rationale, needs_reversal, reversal_reason = _classify_voucher_deductibility(inv)
         
         if vt_name not in by_type:
-            by_type[vt_name] = {"count": 0, "deductible": is_ded, "rationale_sample": rationale}
+            by_type[vt_name] = {"count": 0, "deductible": is_ded, "rationale_sample": rationale, "needs_reversal": needs_reversal}
         by_type[vt_name]["count"] += 1
         
         if is_ded:
@@ -327,6 +347,11 @@ def _classify_purchase_voucher_distribution(pur_invs):
         else:
             non_deductible_count += 1
             non_deductible_types.add(vt_name)
+            if needs_reversal:
+                reversal_key = "进项税额转出（" + reversal_reason[:40] + "）"
+                if reversal_key not in by_type:
+                    by_type[reversal_key] = {"count": 0, "deductible": False, "rationale_sample": reversal_reason, "is_reversal": True}
+                by_type[reversal_key]["count"] += 1
     
     total = deductible_count + non_deductible_count
     summary_parts = []

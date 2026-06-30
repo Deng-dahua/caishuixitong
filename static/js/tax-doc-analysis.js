@@ -1315,6 +1315,15 @@ function _renderReportFallback(r, allF) {
   if (ic.voucher_summary) {
     voucherInfo += ' 扣税凭证引擎判定：' + (ic.voucher_summary || '') + '。';
   }
+  // 进项税额转出提示（凭证类型可抵扣但用途不可抵扣）
+  var vt = ic.voucher_types || {};
+  var reversalWarn = '';
+  for (var key in vt) {
+    if (vt[key] && vt[key].is_reversal) {
+      reversalWarn += '⚠ 检测到「' + key + '」情形：即使取得增值税专用发票，其进项税额也必须做转出处理（《增值税暂行条例》第十条）。';
+    }
+  }
+  if (reversalWarn) voucherInfo += ' ' + reversalWarn;
   h += '<p class="i2"><strong>第二级（成本费用三层分类）——</strong>对全部进项发票的品名执行主营业务成本识别。按品名关键词与公司经营产出的关联程度，将' + (ic.purchases || 0) + '张进项发票分为三个层级：主营业务成本' + (ic.core_cost || 0) + '张——品名与' + ((te.industry||'主营业务') + '').slice(0,20) + '经营产出直接相关的采购' + voucherInfo + '；重大费用' + (ic.major_expense || 0) + '张——金额较大但与主营产出无直接对应关系的费用支出（如设备采购、装修、咨询费等），需结合业务合同判断其资本化或费用化处理；日常报销' + ((ic.purchases||0) - (ic.core_cost||0) - (ic.major_expense||0)) + '张——差旅、办公、餐饮、交通等日常经营消耗，按会计准则计入管理费用或销售费用。</p>';
   
   // （三）行业判定与服务行业闸门
