@@ -104,8 +104,7 @@ def get_agi_status(db: Session = Depends(get_db)):
     
     # 跨分析记忆
     try:
-        import json, os
-        mem_path = os.path.join(os.path.dirname(__file__), "static", "cross_analysis_memory.json")
+        mem_path = os.path.join(os.path.dirname(__file__), "..", "static", "cross_analysis_memory.json")
         with open(mem_path, "r", encoding="utf-8") as f:
             mem = json.load(f)
         result["cross_analysis"] = {
@@ -231,8 +230,7 @@ def get_agi_status(db: Session = Depends(get_db)):
     # ⑥ 自动巡逻
     try:
         from engine.auto_patrol import PATROL_CONFIG, get_companies_to_patrol
-        import json, os
-        mem_path = os.path.join(os.path.dirname(__file__), "static", "cross_analysis_memory.json")
+        mem_path = os.path.join(os.path.dirname(__file__), "..", "static", "cross_analysis_memory.json")
         patrol_snapshots = {}
         if os.path.exists(mem_path):
             with open(mem_path, "r", encoding="utf-8") as f:
