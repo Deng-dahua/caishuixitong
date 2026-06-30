@@ -1478,7 +1478,7 @@ function renderChainsList(chains) {
       // 质量分标签
       var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-      html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04)">'
+      html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">'
 
         // ══ 卡片头部：名称 + 标签行 ═══
         + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
@@ -1487,9 +1487,9 @@ function renderChainsList(chains) {
 
       // 描述（新格式链有 description/desc）
       if (c.description) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
       } else if (c.desc) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.desc) + '</div>';
+        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.desc) + '</div>';
       }
 
       // ══ 步骤列表 ═══
@@ -1502,7 +1502,7 @@ function renderChainsList(chains) {
           var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
           var isHigh = lvl === '高风险';
 
-          html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
+          html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
             + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
             + '<span style="color:#94a3b8;font-size:12px;font-weight:600">#' + (si + 1) + '</span>'
             + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;font-weight:600;background:#eef2ff;padding:1px 6px;border-radius:3px">R' + s.rule_id + '</span>' : '')
