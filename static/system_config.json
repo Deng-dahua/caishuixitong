@@ -4,6 +4,7 @@
   "evidence_chains": 781,
   "analysis_chains": 48,
   "total_chains": 1266,
-  "domain_functions": 39,
-  "_calibrated": "2026-06-30-final"
+  "domain_functions": 42,
+  "_calibrated": "2026-06-30-v2",
+  "cross_evidence": 0
 }
