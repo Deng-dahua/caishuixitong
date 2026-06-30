@@ -4366,5 +4366,593 @@
       "salary": 0.0,
       "gross_margin_pct": 46.52806793241623
     }
+  },
+  {
+    "timestamp": "2026-07-01T00:46:39.824048",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:47:19.206030",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:48:20.887262",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:49:55.301841",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:51:05.717814",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:51:35.967098",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:52:09.878191",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:52:41.418077",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:53:14.961983",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:53:56.205047",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:55:25.548441",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:57:45.427995",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:58:16.546095",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T00:58:52.453356",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:00:20.705718",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:02:01.059154",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:02:33.227825",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:03:03.924971",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:04:43.896740",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 61.6,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 61,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:05:15.528206",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
+  },
+  {
+    "timestamp": "2026-07-01T01:07:37.977339",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 62.7,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "供应商高度集中",
+      "客户高度集中"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 64.19185581777482,
+    "customer_concentration": 84.77166952043308,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 832578.07,
+      "purchases": 445195.58,
+      "bank_in": 423605.31,
+      "bank_out": 330536.72,
+      "salary": 0.0,
+      "gross_margin_pct": 46.52806793241623
+    }
   }
 ]

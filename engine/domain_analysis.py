@@ -139,6 +139,8 @@ __all__ = [
     # 常量/字典
     "MISSING_CONSEQUENCE_TRIGGER",
     "_CATEGORY_NAME_TO_KEY",
+    "_classify_purchase_voucher_distribution",
+    "_classify_voucher_deductibility",
 ]
 
 

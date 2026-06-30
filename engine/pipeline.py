@@ -33,6 +33,7 @@ from database import (
 )
 
 from engine.domain_analysis import *  # 35域分析函数
+from engine.domain_analysis import _classify_purchase_voucher_distribution, _classify_voucher_deductibility  # 扣税凭证引擎
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
@@ -392,7 +393,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
                     elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
                     elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
-                    elif ftype == "input_vat_deduction": input_vat_deductions.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项认证抵扣")
+                    elif ftype == "input_vat_deduction": input_vat_deductions.extend([{**r, "direction": "进项", "_file_type": "input_vat_deduction", "_has_deduction_columns": True} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项认证抵扣")
                     elif ftype == "invoice":  # 通用发票 → 按列内容判断进销方向
                         rows = parsed["rows"]
                         for r in rows:
@@ -3928,7 +3929,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             except Exception:
                 all_pur_invs = pur_invs
             try:
-                voucher_classification = _classify_purchase_voucher_distribution(all_pur_invs) if all_pur_invs else {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"无进项数据"}
+                voucher_classification = _classify_purchase_voucher_distribution(all_pur_invs) if all_pur_invs else {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"无进项"}
             except Exception:
                 voucher_classification = {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"分类失败"}
             result["report"]["invoice_counts"] = {
