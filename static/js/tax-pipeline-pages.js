@@ -1633,9 +1633,6 @@ function renderEvidenceList(chains) {
   var tocEl = document.getElementById('ev-toc');
   if (tocEl) {
     tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条 (' + execChains.length + '可执行+' + legacyChains.length + '方法论)</div><a href="#ev-stats">统计总览</a>';
-    sortedPrefixes.forEach(function(p) {
-      tocEl.innerHTML += '<a href="#ev-grp-' + encodeURIComponent(p) + '">' + p + '<span class="cnt">' + groups[p].length + '</span></a>';
-    });
   }
 
   var html = '';
@@ -1659,6 +1656,13 @@ function renderEvidenceList(chains) {
       groups[prefix].push(c);
     });
     var sortedPrefixes = Object.keys(groups).sort(function(a,b) { return groups[b].length - groups[a].length; });
+
+    // 补充 TOC 导航项
+    if (tocEl) {
+      sortedPrefixes.forEach(function(p) {
+        tocEl.innerHTML += '<a href="#ev-grp-' + encodeURIComponent(p) + '">' + p + '<span class="cnt">' + groups[p].length + '</span></a>';
+      });
+    }
 
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
