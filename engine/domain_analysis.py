@@ -178,8 +178,172 @@ def _domain_bank_tracking(txs):
 
 from engine.memory import (
     BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS,
-    SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK
+    SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK,
+    VAT_DEDUCTIBLE_VOUCHER_TYPES, VAT_NON_DEDUCTIBLE_TYPES
 )
+
+
+# ═══════════════════════════════════════════════════════════════
+# 扣税凭证引擎：智能判定每张发票是否属于可抵扣进项税额的扣税凭证
+# ═══════════════════════════════════════════════════════════════
+# 依据：engine/memory.py → VAT_DEDUCTIBLE_VOUCHER_TYPES（9类法定扣税凭证）
+#       除9类凭证以外的其他发票（如增值税普通发票、定额发票等），
+#       其进项税额不得抵扣，应并入采购成本或费用。
+
+def _classify_voucher_deductibility(invoice_dict):
+    """判定单张发票是否属于可抵扣进项税额的扣税凭证。
+    
+    检测逻辑（多信号综合判定）：
+    1. 发票代码前缀识别（国家标准：01/04=专票，07/08=普票不可抵扣）
+    2. 表头抵扣字段检测（有效抵扣税额/勾选状态/认证状态/用途确认）
+    3. 税率与税额信号（有非零税率+非零税额→可能可抵扣）
+    4. 关键词匹配（"增值税专用发票"等字样）
+    
+    Returns:
+        (is_deductible: bool, voucher_type: str, rationale: str)
+    """
+    signals = []
+    is_deductible = False
+    voucher_type = "未识别"
+    
+    inv_code = str(invoice_dict.get("invoice_code", "") or invoice_dict.get("发票代码", "")).strip()
+    
+    # 信号1：发票代码前缀（全国统一编码规则）
+    if inv_code:
+        prefix = inv_code[:2]
+        deductible_prefixes = {"01", "04", "10", "11"}  # 增值税专用发票
+        regular_prefixes = {"07", "08"}  # 增值税普通发票
+        if prefix in deductible_prefixes:
+            is_deductible = True
+            voucher_type = "增值税专用发票"
+            signals.append(f"发票代码{inv_code}→专票(prefix={prefix})")
+        elif prefix in regular_prefixes:
+            is_deductible = False
+            voucher_type = "增值税普通发票"
+            signals.append(f"发票代码{inv_code}→普票不可抵扣(prefix={prefix})")
+    
+    # 信号2：表头抵扣认证字段（文件解析时检测到的列名）
+    has_deduction_cols = invoice_dict.get("_has_deduction_columns", False)
+    if has_deduction_cols:
+        if not is_deductible:
+            is_deductible = True
+            voucher_type = "增值税专用发票"
+        signals.append("含抵扣认证列(有效抵扣税额/勾选状态等)")
+    
+    # 信号3：文件推断类型
+    file_type = invoice_dict.get("_file_type", "") or invoice_dict.get("_inferred_type", "")
+    if file_type == "input_vat_deduction":
+        if not is_deductible:
+            is_deductible = True
+            voucher_type = "增值税专用发票"
+        signals.append("文件类型=input_vat_deduction(进项抵扣认证)")
+    elif file_type == "purchase_invoice":
+        signals.append("文件类型=purchase_invoice(普票)")
+    
+    # 信号4：税率与税额综合判断
+    tax_rate = float(invoice_dict.get("tax_rate", 0) or invoice_dict.get("税率", 0) or 0)
+    tax_amount = float(invoice_dict.get("tax_amount", 0) or invoice_dict.get("税额", 0) or 0)
+    if tax_rate > 0 and tax_amount > 0 and not inv_code:
+        is_deductible = True
+        voucher_type = "增值税专用发票"
+        signals.append(f"税率{tax_rate}|税额{tax_amount}→有税专票")
+    elif tax_amount == 0 and not is_deductible and not inv_code:
+        voucher_type = "增值税普通发票" if not voucher_type or voucher_type == "未识别" else voucher_type
+        signals.append("无税额→可能普票")
+    
+    # 信号5：发票类别字段
+    inv_cat = str(invoice_dict.get("invoice_category", "") or invoice_dict.get("发票类别", "") or "").strip()
+    if "专用" in inv_cat:
+        is_deductible = True
+        voucher_type = "增值税专用发票"
+        signals.append(f"发票类别={inv_cat}→专票")
+    elif "普通" in inv_cat:
+        is_deductible = False
+        voucher_type = "增值税普通发票"
+        signals.append(f"发票类别={inv_cat}→普票")
+    
+    # 信号6：全文本匹配 —— 检查所有字段拼接后是否含专票/普票关键词
+    if voucher_type == "未识别":
+        all_text = " ".join(str(v) for v in invoice_dict.values())
+        for vt_name in VAT_DEDUCTIBLE_VOUCHER_TYPES:
+            if vt_name in all_text:
+                if vt_name in ("收费公路通行费增值税电子普通发票", "国内旅客运输服务增值税电子普通发票",
+                               "航空运输电子客票行程单", "铁路车票", "公路、水路等其他客票"):
+                    is_deductible = True
+                    voucher_type = vt_name
+                    signals.append(f"全文本匹配→{vt_name}")
+                    break
+        if voucher_type == "未识别":
+            for non_ded_type in VAT_NON_DEDUCTIBLE_TYPES:
+                if non_ded_type in all_text and non_ded_type != "其他普通发票":
+                    is_deductible = False
+                    voucher_type = non_ded_type
+                    signals.append(f"全文本匹配→{non_ded_type}不可抵扣")
+                    break
+    
+    # 默认：无任何信号时，保守判定为不可抵扣
+    if voucher_type == "未识别":
+        voucher_type = "待确认"
+        is_deductible = False
+        signals.append("无明确扣税凭证信号→保守判定为不可抵扣")
+    
+    rationale = " | ".join(signals) if signals else "默认"
+    return (is_deductible, voucher_type, rationale)
+
+
+def _classify_purchase_voucher_distribution(pur_invs):
+    """对全部进项发票做扣税凭证分类统计。
+    
+    将进项发票分为：
+    - 可抵扣扣税凭证：增值税专用发票、海关缴款书等9类
+    - 不可抵扣进项发票：增值税普通发票、定额发票等
+    
+    Returns:
+        dict with counts by voucher type and deductibility
+    """
+    if not pur_invs:
+        return {
+            "deductible_count": 0, "non_deductible_count": 0,
+            "by_type": {}, "deductible_types": [], "non_deductible_types": [],
+            "summary": "无进项发票数据"
+        }
+    
+    by_type = {}
+    deductible_count = 0
+    non_deductible_count = 0
+    deductible_types = set()
+    non_deductible_types = set()
+    
+    for inv in pur_invs:
+        is_ded, vt_name, rationale = _classify_voucher_deductibility(inv)
+        
+        if vt_name not in by_type:
+            by_type[vt_name] = {"count": 0, "deductible": is_ded, "rationale_sample": rationale}
+        by_type[vt_name]["count"] += 1
+        
+        if is_ded:
+            deductible_count += 1
+            deductible_types.add(vt_name)
+        else:
+            non_deductible_count += 1
+            non_deductible_types.add(vt_name)
+    
+    total = deductible_count + non_deductible_count
+    summary_parts = []
+    if deductible_count > 0:
+        summary_parts.append(f"可抵扣{deductible_count}张" + (f"({', '.join(sorted(deductible_types))})" if deductible_types else ""))
+    if non_deductible_count > 0:
+        summary_parts.append(f"不可抵扣{non_deductible_count}张" + (f"({', '.join(sorted(non_deductible_types))})" if non_deductible_types else ""))
+    
+    return {
+        "deductible_count": deductible_count,
+        "non_deductible_count": non_deductible_count,
+        "total": total,
+        "by_type": by_type,
+        "deductible_types": sorted(deductible_types),
+        "non_deductible_types": sorted(non_deductible_types),
+        "summary": f"进项发票{total}张：{'; '.join(summary_parts)}" if summary_parts else "无数据"
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -3922,13 +3922,17 @@ def _run_analyze(company_id, db, progress_callback=None):
                         "date": str(inv.get("date", inv.get("开票日期",""))),
                     })
             result["report"]["invoice_tables"] = invoice_tables
+            # 扣税凭证引擎：对全部进项发票做可抵扣/不可抵扣分类
+            all_pur_invs = pur_invs + (input_vat_deductions if 'input_vat_deductions' in dir() else [])
+            voucher_classification = _classify_purchase_voucher_distribution(all_pur_invs) if all_pur_invs else {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"无进项数据"}
             result["report"]["invoice_counts"] = {
-                "sales": len(sal_invs), "purchases": len(pur_invs),
+                "sales": len(sal_invs), "purchases": len(all_pur_invs),
                 "core_cost": len(core_cost_invs) if 'core_cost_invs' in dir() and core_cost_invs else 0,
                 "major_expense": len(major_expense_invs) if 'major_expense_invs' in dir() and major_expense_invs else 0,
-                # 可抵扣进项税额的扣税凭证计数（仅增值税专用发票等法定凭证）
-                "deductible_vouchers": len(input_vat_deductions) if 'input_vat_deductions' in dir() else 0,
-                "non_deductible_vouchers": len(pur_invs) - (len(input_vat_deductions) if 'input_vat_deductions' in dir() else 0),
+                "deductible_vouchers": voucher_classification["deductible_count"],
+                "non_deductible_vouchers": voucher_classification["non_deductible_count"],
+                "voucher_types": voucher_classification["by_type"],
+                "voucher_summary": voucher_classification["summary"],
             }
     except Exception:
         pass
