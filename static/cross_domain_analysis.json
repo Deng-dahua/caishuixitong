@@ -967,9 +967,9 @@
     "name": "多格式兼容",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "多格式兼容"
@@ -989,9 +989,9 @@
     "name": "汇总行过滤",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "汇总行过滤"
@@ -1011,9 +1011,9 @@
     "name": "付款方身份核实",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "付款方身份核实"
@@ -1033,9 +1033,9 @@
     "name": "关键词≠事实",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "关键词",
@@ -1056,9 +1056,9 @@
     "name": "行业认知补算法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "行业认知补算法"
@@ -1078,9 +1078,9 @@
     "name": "联网核查（搜索引擎知识图谱提取法）",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "联网核查",
@@ -1101,9 +1101,9 @@
     "name": "明细即信服力",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "明细即信服力"
@@ -1123,9 +1123,9 @@
     "name": "不墨迹直接干",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "不墨迹直接干"
@@ -1145,9 +1145,9 @@
     "name": "合同分层判断",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "合同分层判断"
@@ -1167,9 +1167,9 @@
     "name": "完备度明细",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "完备度明细"
@@ -1189,9 +1189,9 @@
     "name": "完备度升级",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "完备度升级"
@@ -1211,9 +1211,9 @@
     "name": "凭证描述纠正",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "凭证描述纠正"
@@ -1233,9 +1233,9 @@
     "name": "进销诊断升级",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "进销诊断升级"
@@ -1255,9 +1255,9 @@
     "name": "行业基准库",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "行业基准库"
@@ -1277,9 +1277,9 @@
     "name": "结论分析法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "结论分析法"
@@ -1299,9 +1299,9 @@
     "name": "COND_BAN防误杀",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "防误杀"
@@ -1321,9 +1321,9 @@
     "name": "稽查重点强制等级",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "稽查重点强制等级"
@@ -1343,9 +1343,9 @@
     "name": "报告纯净度",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "报告纯净度"
@@ -1365,9 +1365,9 @@
     "name": "发票≠收付款1:1",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "发票",
@@ -1388,9 +1388,9 @@
     "name": "经营实质地理分析",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "经营实质地理分析"
@@ -1410,9 +1410,9 @@
     "name": "规则detail业务化",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "规则",
@@ -1433,9 +1433,9 @@
     "name": "建议质量增强",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "建议质量增强"
@@ -1455,9 +1455,9 @@
     "name": "四步稽查分析法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "四步稽查分析法"
@@ -1477,9 +1477,9 @@
     "name": "禁止数据截断",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "禁止数据截断"
@@ -1499,9 +1499,9 @@
     "name": "三层行业穿透法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "三层行业穿透法"
@@ -1521,9 +1521,9 @@
     "name": "经营实质点面推理法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "经营实质点面推理法"
@@ -1543,9 +1543,9 @@
     "name": "稽查六员跨企业比对",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "稽查六员跨企业比对"
@@ -1565,9 +1565,9 @@
     "name": "供应链联网核查（全链条人员交叉比对）",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "供应链联网核查",
@@ -1588,9 +1588,9 @@
     "name": "主营业务聚焦法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "主营业务聚焦法",
@@ -1616,9 +1616,9 @@
     "name": "资料缺失风险推理",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "资料缺失风险推理"
@@ -1638,9 +1638,9 @@
     "name": "存疑排除法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "存疑排除法"
@@ -1660,9 +1660,9 @@
     "name": "规则配置外部化",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "规则配置外部化"
@@ -1682,9 +1682,9 @@
     "name": "资金回流检测法",
     "sub_topic": "",
     "level": "中风险",
-    "executable": false,
-    "legacy": true,
-    "format_version": 1,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2,
     "legacy_source": "audit_chains.json",
     "trigger_keywords": [
       "资金回流检测法"

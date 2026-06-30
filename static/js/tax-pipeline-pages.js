@@ -2101,7 +2101,7 @@ async function loadAnalyzeOverview() {
 
   // ══════ 五、分析链定义列表（从 cross_domain_analysis.json 加载） ══════
   html += '<div id="al-chains" style="margin-bottom:48px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">五、分析链定义一览（15 条可执行分析链）</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">五、分析链定义一览（48 条全部可执行）</h3>'
     + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">每条分析链由 evidence→reasoning_path→conclusion 三段组成。推理步骤顺序执行，前一步的输出是后一步的输入。</p>'
     + '<div id="al-chains-list" style="display:flex;flex-direction:column;gap:12px">'
     + '<p style="font-size:13px;color:#94a3b8">加载中...</p>'
