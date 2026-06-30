@@ -1268,6 +1268,10 @@ window._sendAskChat = function() {
       });
     }
     html += '</div>';
+    // 当引擎模式为compare/correct时，自动记录到纠正规则库
+    if (data.engine_mode === 'compare' || data.engine_mode === 'correct') {
+      html += '<div style="margin-top:6px"><button onclick="window._saveAskAsCorrection(' + JSON.stringify(data.finding_index) + ',\'' + (data.engine_mode||'') + '\')" style="background:#059669;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">Save to Correction Rules</button></div>';
+    }
     body.innerHTML += html;
     body.scrollTop = body.scrollHeight;
   }).catch(function(e){
@@ -1285,6 +1289,34 @@ window._askQuickFromPopup = function(q) {
 window._clearAskChat = function() {
   var body = document.getElementById('ask-chat-body');
   if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
+};
+
+// 追问对话中保存纠正到规则库
+window._saveAskAsCorrection = function(fi, mode) {
+  var inp = document.getElementById('ask-chat-input');
+  var reason = inp ? inp.value.trim() : '';
+  if (!reason) { reason = prompt('Enter the correct answer:'); if (!reason) return; }
+  var payload = {
+    company_id: window.currentCompanyId || 1,
+    industry: ((window._reportData||{}).target_entity||{}).industry || '',
+    biz_model: ((window._reportData||{}).target_entity||{}).company_type || '',
+    finding_type: ((window._allFindings||[])[fi]||{}).type || '',
+    original_level: ((window._allFindings||[])[fi]||{}).level || '',
+    corrected_risk: '已纠正（经追问确认）',
+    reason: reason,
+    detail: ((window._allFindings||[])[fi]||{}).detail || '',
+    action: 'ask_correction',
+    timestamp: new Date().toISOString()
+  };
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.ok){
+      alert(data.auto_rule ? 'Correction AUTO-APPLIED to ' + data.count + ' findings.' : 'Saved to correction rules engine.');
+    }
+  }).catch(function(){});
 };
 
 window._deleteFindingFromReport = function(fi) {
