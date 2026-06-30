@@ -1579,7 +1579,12 @@ function renderEvidencePage(container) {
   container.innerHTML = '<style>.ev-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px}.ev-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.ev-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ev-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ev-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ev-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ev-main{flex:1;min-width:0}.ev-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.ev-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="ev-layout"><nav class="ev-toc" id="ev-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">'+ (hasCache?_allEvidenceChains.length:'...') +' 条证据链 · ≥2域交叉验证形成闭环</p>'
+    + '<div style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 8px">'
+    + '证据链是稽查质量的核心保障——<strong>单一数据源的孤立信号不能作为证据，必须从2个以上独立维度交叉验证形成闭环</strong>。'
+    + '每条证据链定义多个维度(dimensions[])，每个维度对应一个数据源。当 ≥min_evidence 个维度同时触发时，形成有效证据闭环。'
+    + '</div>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">'
+    + (hasCache?_allEvidenceChains.length:'...') + ' 条 · ≥2维交叉验证 · min_evidence阈值触发 · 闭环后进入分析链推理</p>'
     + '<div id="evidence-body"></div></div></div>';
   if (hasCache) { renderEvidenceList(_allEvidenceChains); }
   else { loadEvidenceData(); }
@@ -1723,6 +1728,21 @@ function renderEvidenceList(chains) {
               + '<span style="font-size:13px;color:#334155;line-height:1.7">' + escHtml(s.action || '') + '</span>'
               + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
               + '</div>'
+              + '</div>';
+          });
+          html += '</div>';
+        }
+
+        // ══ dimensions[] 维度举证(新格式可执行证据链) ═══
+        var dims = c.dimensions;
+        if (Array.isArray(dims) && dims.length > 0) {
+          html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:8px">📐 证据维度（需 ≥' + (c.min_evidence||2) + ' 维同时触发形成闭环）</div>';
+          dims.forEach(function(d, di) {
+            var dimCode = d.code || d.dim_code || ('D' + (di+1));
+            html += '<div style="padding:10px 14px;margin-bottom:6px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:12px;line-height:1.8">'
+              + '<span style="font-weight:700;color:#059669;margin-right:8px">' + escHtml(dimCode) + '</span>'
+              + '<span style="color:#166534;font-weight:600">' + escHtml(d.source||'') + '</span>'
+              + '<span style="color:#64748b;margin-left:6px">— ' + escHtml(d.desc||'') + '</span>'
               + '</div>';
           });
           html += '</div>';
