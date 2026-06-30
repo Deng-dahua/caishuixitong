@@ -1854,10 +1854,22 @@ async function loadAnalyzeOverview() {
     + '</p>'
     + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '管线的设计理念来自稽查实战：真实稽查不是看一个数字就下结论，而是<strong>从资料扫描开始，经过多轮交叉验证，最终形成证据闭环</strong>。'
-    + '分析链模拟的就是这个完整过程——资料驱动（有什么资料审什么）、诚实边界（缺什么资料报什么）、交叉推断（多源数据串联）、明细支撑（每条发现必须有具体数据）。'
+    + '分析链模拟的就是这个完整过程，遵循以下四条核心原则：'
+    + '</p>'
+    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">① 资料驱动</strong><br>有什么资料就审什么——不预设"应该有合同"，只能对已有资料做出判断。缺资料的领域标注为"资料缺口"而非凭空猜测。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#dc2626">② 诚实边界</strong><br>缺什么资料就报什么——不编造、不脑补、不把"可能"写成"确定"。每行数据标注来源文件位置，每条发现标注置信度和资料依赖。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">③ 交叉推断</strong><br>孤立信号不构成发现——银行流水异常+发票异常同时出现才升级为中风险，加经营实质异常才升级为高风险。多源数据串联形成证据链闭环。</div>'
+    + '<div style="padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">④ 明细支撑</strong><br>每条发现必须有具体明细数据——不能写"供应商集中度高"，必须写具体占比、名称和金额。</div>'
+    + '</div>'
+    + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
+    + '分析链底层引擎工作顺序为：<strong>域分析→稽查指令匹配→线索链触发→证据链闭环→分析链推理→协商引擎消解→同类合并→报告输出</strong>。'
+    + '每个环节的输出都是下一个环节的输入：39个域分析函数产出发现→关键词+域分类自动匹配1608条稽查指令获得rule_id→'
+    + '触发的规则通过rule_refs激活41条可执行线索链展开串行调查→线索链发现累积后送入26条可执行证据链做多源交叉验证→'
+    + '证据闭环后进入15条跨域分析链做综合推理判定→最后经10条协商规则消解冲突、同类发现合并→输出最终稽查报告。'
     + '</p>'
     + '<div style="padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2.0;border-left:3px solid #2563eb">'
-    + '<strong>代码位置：</strong>main.py 中的 <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> 函数（约第8540行）<br>'
+    + '<strong>代码位置：</strong>engine/pipeline.py → <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> · engine/domain_analysis.py → 42个域分析函数<br>'
     + '<strong>数据规模：</strong>' + pc('rules','1514') + ' 条稽查指令 · ' + pc('trailChains','396') + ' 条线索链 · ' + pc('evidenceChains','745') + ' 条证据链 · 11 条跨域证据链<br>'
     + '<strong>处理结果：</strong>97% 噪声过滤率 · 66 行业基准库 · 35 个域分析函数 · 7 步执行流程'
     + '</div>'
@@ -1907,9 +1919,15 @@ async function loadAnalyzeOverview() {
   ];
 
   steps.forEach(function(s) {
-    html += '<div style="padding:16px 20px;margin-bottom:6px;border-left:3px solid #2563eb;background:#fff;border-radius:0 6px 6px 0">'
-      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px"><span style="font-size:18px">' + s.icon + '</span> ' + s.n + ' ' + s.title + '</div>'
-      + '<div style="font-size:13px;color:#475569;line-height:2">' + s.desc + '</div>'
+    html += '<div style="padding:16px 20px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:4px solid #2563eb">'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px"><span style="font-size:18px">' + s.icon + '</span> ' + s.n + ' ' + s.title + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:10px">' + s.desc + '</div>'
+      + (s.input ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;line-height:1.8">'
+      + '<div style="padding:8px 10px;background:#f8fafc;border-radius:4px"><strong style="color:#2563eb">输入：</strong>' + s.input + '</div>'
+      + '<div style="padding:8px 10px;background:#f8fafc;border-radius:4px"><strong style="color:#059669">输出：</strong>' + s.output + '</div>'
+      + '</div>' : '')
+      + (s.process ? '<details style="margin-top:8px"><summary style="font-size:11px;color:#2563eb;cursor:pointer;font-weight:600">展开处理逻辑</summary><pre style="margin-top:6px;font-size:11px;color:#475569;line-height:1.8;background:#fafafa;padding:10px;border-radius:4px;white-space:pre-wrap;word-break:break-all">' + s.process + '</pre></details>' : '')
+      + (s.edge ? '<div style="margin-top:8px;font-size:11px;color:#94a3b8"><strong>边缘情况：</strong>' + s.edge + '</div>' : '')
       + '</div>';
   });
 
