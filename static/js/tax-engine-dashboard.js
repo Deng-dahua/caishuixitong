@@ -650,6 +650,16 @@ function deleteCorrectionRule(fingerprint, rowIndex, correctionCount, industry) 
     });
 }
 
+window._restoreRule = function(fingerprint) {
+  if (!confirm('Restore this archived rule?')) return;
+  fetch('/api/feedback/restore?fingerprint=' + fingerprint, { method: 'POST' })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.ok){alert('Restored ' + d.correction_count + ' corrections.'); renderBrainTab();}
+      else{alert('Failed: ' + (d.message||''));}
+    });
+};
+
 function fmtMoney(v) {
   if (!v && v !== 0) return '-';
   var n = Number(v);
@@ -1079,6 +1089,11 @@ function renderBrainTab() {
       }
       h += '</div>';
       
+      // ── 已归档规则（可恢复）──
+      h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:#94a3b8">Archived Rules (click to expand · restorable)</summary>';
+      h += '<div id="archived-rules-list" style="margin-top:8px;font-size:12px;color:#94a3b8">Loading...</div>';
+      h += '</details>';
+      
       // ── 4. 税收优惠政策核实 ──
       var pv = d.policy_verification;
       if (pv) {
@@ -1125,6 +1140,19 @@ function renderBrainTab() {
       
       h += '</div>';
       area.innerHTML = h;
+      // 加载已归档规则
+      fetch('/api/feedback/archived').then(function(r){return r.json();}).then(function(d){
+        var list = document.getElementById('archived-rules-list');
+        if (!list || !d.rules || !d.rules.length) { if(list) list.innerHTML = 'No archived rules'; return; }
+        var ah = '';
+        d.rules.forEach(function(a){
+          ah += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f1f5f9">';
+          ah += '<span style="flex:1">' + (a.finding_type||'?').slice(0,40) + ' (' + a.correction_count + ' corrections, ' + (a.industry||'?') + ')</span>';
+          ah += '<button onclick="window._restoreRule(\'' + encodeURIComponent(a.fingerprint) + '\')" style="background:#059669;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer">Restore</button>';
+          ah += '</div>';
+        });
+        list.innerHTML = ah;
+      });
     });
 }
 

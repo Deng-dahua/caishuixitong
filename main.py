@@ -7493,6 +7493,62 @@ def delete_correction_rule(fingerprint: str = ""):
     }
 
 
+@app.post("/api/feedback/restore")
+def restore_correction_rule(fingerprint: str = ""):
+    """恢复已归档的纠正规则"""
+    from urllib.parse import unquote
+    cr_file = os.path.join("static", "correction_rules.json")
+    archive_file = os.path.join("static", "_deleted_correction_rules.json")
+    fingerprint = unquote(fingerprint)
+    
+    if not os.path.exists(archive_file):
+        return {"ok": False, "message": "归档文件不存在"}
+    
+    with open(archive_file, "r", encoding="utf-8") as f:
+        archive = json.load(f)
+    
+    if fingerprint not in archive:
+        return {"ok": False, "message": f"未找到归档规则: {fingerprint}"}
+    
+    restored = archive.pop(fingerprint)
+    
+    with open(cr_file, "r", encoding="utf-8") as f:
+        rules = json.load(f)
+    
+    rules[fingerprint] = restored["rule"]
+    
+    with open(cr_file, "w", encoding="utf-8") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
+    with open(archive_file, "w", encoding="utf-8") as f:
+        json.dump(archive, f, ensure_ascii=False, indent=2)
+    
+    return {
+        "ok": True, "restored": fingerprint,
+        "correction_count": restored.get("correction_count", 0),
+        "finding_type": restored.get("finding_type", ""),
+    }
+
+
+@app.get("/api/feedback/archived")
+def get_archived_rules():
+    """获取已归档的纠正规则列表"""
+    archive_file = os.path.join("static", "_deleted_correction_rules.json")
+    if not os.path.exists(archive_file):
+        return {"ok": True, "rules": []}
+    with open(archive_file, "r", encoding="utf-8") as f:
+        archive = json.load(f)
+    return {"ok": True, "rules": [
+        {
+            "fingerprint": fp,
+            "finding_type": v.get("finding_type", ""),
+            "industry": v.get("industry", ""),
+            "correction_count": v.get("correction_count", 0),
+            "deleted_at": v.get("deleted_at", ""),
+        }
+        for fp, v in archive.items()
+    ]}
+
+
 @app.put("/api/feedback/update")
 def update_correction_rule(data: dict):
     """修改纠正规则 — 智能大脑纠正规则库的编辑按钮调用"""
