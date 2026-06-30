@@ -1039,6 +1039,141 @@ function _escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ═══════════════════════════════════════════════════════════
+// 报告正文内嵌操作：编辑/审核/追问/删除
+// ═══════════════════════════════════════════════════════════
+
+window._editFindingInReport = function(fi) {
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  if (!f) return;
+  
+  // 关闭已有弹窗
+  var old = document.getElementById('finding-edit-popup');
+  if (old) old.remove();
+  
+  var popup = document.createElement('div');
+  popup.id = 'finding-edit-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  
+  var lv = f.level || '中风险';
+  var ftype = (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'');
+  var fdetail = (f.detail || f.description || '');
+  var fsuggest = f.suggestion || '';
+  var fpolicy = f.policy_ref || '';
+  var ftax = f.tax_impact || '';
+  var escapedFtype = ftype.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+    '<div><b style="font-size:16px">✏️ 编辑发现</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">#' + fi + ' ' + _escHtml(ftype.slice(0,40)) + '</span></div>' +
+    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">&times;</button>' +
+    '</div>' +
+    '<div style="padding:20px 24px">' +
+    '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
+    '<b>当前引擎输出：</b><br>' + _escHtml(fdetail.slice(0,300)) + '</div>' +
+    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">📋 请参照审核内容填写模板格式进行编辑：</div>' +
+    '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
+    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
+    '【具体问题】[指出系统哪里判断错了]<br>' +
+    '【正确逻辑】[说明正确的判断方法]<br>' +
+    '【需要证据】[需要什么资料才能正确判断]<br>' +
+    '【法律依据】[引用的法条或法规]</div>' +
+    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
+    '【判断结论】需纠正\n' +
+    '【具体问题】关于"' + escapedFtype + '"的判定：\n\n' +
+    '【正确逻辑】\n\n' +
+    '【需要证据】\n\n' +
+    '【法律依据】\n' +
+    '</textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
+    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
+    '<button onclick="window._submitFindingEdit(' + fi + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交编辑</button>' +
+    '</div></div></div>';
+  
+  document.body.appendChild(popup);
+};
+
+window._submitFindingEdit = function(fi) {
+  var text = document.getElementById('finding-edit-text');
+  if (!text) return;
+  var content = text.value.trim();
+  if (!content) { alert('请填写编辑内容'); return; }
+  
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  
+  // 提交到审核引擎
+  var companyId = window.currentCompanyId || 1;
+  fetch('/api/audit/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      company_id: companyId,
+      finding_type: (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,''),
+      finding_detail: (f.detail || ''),
+      correction: content,
+      level: f.level || '中风险',
+      source: 'report_edit'
+    })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    document.getElementById('finding-edit-popup').remove();
+    alert('✅ 编辑已提交，引擎已记录。下次分析时将自动学习此纠正。');
+    // 标记发现为已编辑
+    f._dismissed = true;
+    f._correction_reason = content.slice(0,100);
+  }).catch(function(e){
+    alert('提交失败: ' + e.message);
+  });
+};
+
+window._auditFindingInReport = function(fi) {
+  // 审核按钮：直接调用现有审核弹窗
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  if (!f) return;
+  
+  // 使用发现审查的审核功能
+  window._dismissTaxFinding({
+    getAttribute: function(attr) {
+      return JSON.stringify({
+        type: f.type||'', title: f.type||'', level: f.level||'中风险',
+        detail: (f.detail||''), category: f.category||''
+      }).replace(/'/g,"&#39;");
+    }
+  });
+};
+
+window._askAboutFinding = function(fi) {
+  // 追问按钮：打开更大的对话面板
+  var panel = document.getElementById('report-chat-panel');
+  if (!panel) { _initReportChatPanel(); panel = document.getElementById('report-chat-panel'); }
+  
+  // 增大面板尺寸
+  panel.style.width = '640px';
+  panel.style.maxHeight = '92vh';
+  panel.style.display = 'flex';
+  
+  window._askReport(fi);
+};
+
+window._deleteFindingFromReport = function(fi) {
+  if (!confirm('确认从报告中删除该发现？此操作不可撤销。')) return;
+  
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  if (f) {
+    f._dismissed = true;
+    f._deleted = true;
+    f.level = '已删除';
+    f._correction_reason = '用户从报告中手动删除';
+  }
+  
+  // 重新渲染
+  alert('已删除。刷新页面后该发现将从报告中移除。');
+};
+
 // ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
 function _renderReportFallback(r, allF) {
   var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
@@ -1487,6 +1622,13 @@ function _renderReportFallback(r, allF) {
     }
     
     // 证据链追溯 → 不暴露给报告读者
+    // ══ 报告正文内嵌操作按钮（编辑/审核/追问/删除）══
+    h += '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button onclick="window._editFindingInReport(' + fi + ')" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">✏️ 编辑</button>';
+    h += '<button onclick="window._auditFindingInReport(' + fi + ')" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">🔍 审核</button>';
+    h += '<button onclick="window._askAboutFinding(' + fi + ')" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">💬 追问</button>';
+    h += '<button onclick="window._deleteFindingFromReport(' + fi + ')" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">🗑 删除</button>';
+    h += '</div>';
     h += '</div>';
   }
 
