@@ -1166,16 +1166,125 @@ window._auditFindingInReport = function(fi) {
 };
 
 window._askAboutFinding = function(fi) {
-  // 追问按钮：打开更大的对话面板
-  var panel = document.getElementById('report-chat-panel');
-  if (!panel) { _initReportChatPanel(); panel = document.getElementById('report-chat-panel'); }
+  var allF = window._allFindings || [];
+  var f = allF[fi];
+  if (!f) return;
   
-  // 增大面板尺寸
-  panel.style.width = '640px';
-  panel.style.maxHeight = '92vh';
-  panel.style.display = 'flex';
+  var old = document.getElementById('finding-ask-popup');
+  if (old) old.remove();
   
-  window._askReport(fi);
+  var popup = document.createElement('div');
+  popup.id = 'finding-ask-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  
+  var ftype = (f.type || '').replace(/^Synthesis:\\s*/,'').replace(/^Causal:\\s*/,'');
+  window._chatFindingIdx = fi;
+  
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+    '<div><b style="font-size:14px">Chat: Ask Engine</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">#' + fi + ' ' + (ftype||'').slice(0,40) + '</span></div>' +
+    '<div style="display:flex;gap:6px">' +
+    '<button onclick="window._toggleChatPolicy()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">Paste Law</button>' +
+    '<button onclick="window._clearAskChat()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">Clear</button>' +
+    '<button onclick="(function(){var p=document.getElementById(\'finding-ask-popup\');if(p)p.remove();})()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button>' +
+    '</div></div>' +
+    '<div id="ask-chat-body" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;min-height:200px;max-height:55vh">' +
+    '<div style="color:#94a3b8;text-align:center;padding:30px">Click a quick question or type to ask the engine about this finding</div>' +
+    '</div>' +
+    '<div id="ask-policy-input" style="display:none;padding:8px 20px;background:#fef3c7;border-top:1px solid #fbbf24">' +
+    '<textarea id="ask-policy-text" placeholder="Paste policy text, the engine will compare with its cited laws..." style="width:100%;min-height:60px;border:1px solid #fbbf24;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;padding:10px 20px;background:#fff;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px;flex-shrink:0">' +
+    '<select id="ask-quick-question" onchange="window._askQuickFromPopup(this.value);this.value=\'\'" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff">' +
+    '<option value="">Quick ask</option>' +
+    '<option value="How was this conclusion reached?">How was this conclusion reached?</option>' +
+    '<option value="What evidence supports this?">What evidence supports this?</option>' +
+    '<option value="Which laws are involved?">Which laws are involved?</option>' +
+    '<option value="How was the data calculated?">How was the data calculated?</option>' +
+    '<option value="Is the risk level accurate?">Is the risk level accurate?</option>' +
+    '<option value="Are there missed risk points?">Are there missed risk points?</option>' +
+    '</select>' +
+    '<input id="ask-chat-input" placeholder="Ask anything..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
+    '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Send</button>' +
+    '</div></div>';
+  
+  document.body.appendChild(popup);
+  
+  // Auto-send first question
+  setTimeout(function(){
+    var inp = document.getElementById('ask-chat-input');
+    if (inp) { inp.value = 'How was this conclusion reached?'; window._sendAskChat(); }
+  }, 300);
+};
+
+window._sendAskChat = function() {
+  var input = document.getElementById('ask-chat-input');
+  var policyText = document.getElementById('ask-policy-text');
+  var question = (input ? input.value.trim() : '');
+  var policy = (policyText ? policyText.value.trim() : '');
+  if (!question && !policy) return;
+  
+  var body = document.getElementById('ask-chat-body');
+  if (!body) return;
+  
+  var userHtml = '<div style="margin-bottom:12px"><div style="background:#7c3aed;color:#fff;padding:8px 12px;border-radius:12px 12px 4px 12px;display:inline-block;max-width:90%;font-size:12px">';
+  userHtml += '<b>You:</b> ' + (question || '(pasted policy text)');
+  if (policy) userHtml += '<br><span style="font-size:11px;opacity:0.8">policy (' + policy.length + ' chars)</span>';
+  userHtml += '</div></div>';
+  body.innerHTML += userHtml;
+  body.innerHTML += '<div id="ask-thinking" style="color:#94a3b8;font-size:12px;margin-bottom:12px">Thinking...</div>';
+  body.scrollTop = body.scrollHeight;
+  
+  if (input) input.value = '';
+  
+  var companyId = window.currentCompanyId || 1;
+  fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      finding_index: window._chatFindingIdx || 0,
+      question: question || '',
+      policy_doc: policy || '',
+      history: []
+    })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    var t = document.getElementById('ask-thinking');
+    if (t) t.remove();
+    
+    if (!data.ok) {
+      body.innerHTML += '<div style="color:#dc2626;font-size:12px">Error: ' + (data.message || 'unknown') + '</div>';
+      return;
+    }
+    
+    var html = '<div style="margin-bottom:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
+    html += '<div style="background:#f1f5f9;padding:8px 12px;font-size:11px;color:#475569"><b>Engine (' + (data.engine_mode||'analyze') + ')</b></div>';
+    if (data.analysis) {
+      data.analysis.forEach(function(block){
+        html += '<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
+        html += '<div style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:6px">' + (block.title||'') + '</div>';
+        html += '<div style="font-size:12px;color:#475569;line-height:1.8;white-space:pre-wrap">' + (block.content||'') + '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+    body.innerHTML += html;
+    body.scrollTop = body.scrollHeight;
+  }).catch(function(e){
+    var t = document.getElementById('ask-thinking');
+    if (t) t.remove();
+    body.innerHTML += '<div style="color:#dc2626">Network error: ' + e.message + '</div>';
+  });
+};
+
+window._askQuickFromPopup = function(q) {
+  var inp = document.getElementById('ask-chat-input');
+  if (inp) { inp.value = q || ''; window._sendAskChat(); }
+};
+
+window._clearAskChat = function() {
+  var body = document.getElementById('ask-chat-body');
+  if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
 };
 
 window._deleteFindingFromReport = function(fi) {
