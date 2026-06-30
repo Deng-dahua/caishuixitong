@@ -3926,6 +3926,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "sales": len(sal_invs), "purchases": len(pur_invs),
                 "core_cost": len(core_cost_invs) if 'core_cost_invs' in dir() and core_cost_invs else 0,
                 "major_expense": len(major_expense_invs) if 'major_expense_invs' in dir() and major_expense_invs else 0,
+                # 可抵扣进项税额的扣税凭证计数（仅增值税专用发票等法定凭证）
+                "deductible_vouchers": len(input_vat_deductions) if 'input_vat_deductions' in dir() else 0,
+                "non_deductible_vouchers": len(pur_invs) - (len(input_vat_deductions) if 'input_vat_deductions' in dir() else 0),
             }
     except Exception:
         pass
