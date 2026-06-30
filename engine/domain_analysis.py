@@ -3346,7 +3346,7 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
         
         if decl_sales > 0:
             gap = inv_sales - decl_sales
-            if abs(gap) > max(decl_sales * 0.05, 10000):
+            if abs(gap) > max(decl_sales * T.ratios.threshold_5pct, T.amount_thresholds.mini_transaction):
                 gap_count += 1
                 total_gap += abs(gap)
                 level = "高风险" if abs(gap) > decl_sales * 0.2 else "中风险"
