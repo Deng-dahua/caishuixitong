@@ -758,7 +758,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
 
   【核心引擎】
   engine/pipeline.py（主分析管线，本文档主要引用对象）
-  engine/domain_analysis.py（39个域分析函数）
+  engine/domain_analysis.py（42个域分析函数）
   engine/phase1_triage.py / phase2_deep_dive.py / phase3_cross_validate.py / phase4_synthesis.py
   engine/cross_domain_negotiation.py（跨域协商）
   engine/self_learning.py（审核反馈闭环）

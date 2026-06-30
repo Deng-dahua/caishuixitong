@@ -209,8 +209,8 @@ def sync_all(authority):
         # 总链
         "1266条": f"{tc}条",
         # 域分析
-        "39个分析域": f"{dc}个分析域",
-        "39个域分析": f"{dc}个域分析",
+        "42个分析域": f"{dc}个分析域",
+        "42个域分析": f"{dc}个域分析",
     }
     
     for fp in glob("static/js/*.js") + glob("engine/*.py") + glob("*.py"):

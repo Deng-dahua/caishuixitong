@@ -786,7 +786,7 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '<strong style="color:#059669;font-size:14px">管道与数据流</strong><br><br>';
   h += '<b>代码分布</b><br>';
   h += '· main.py（约20,000+行）：18个核心函数+6个数据分析API+227个路由+文件解析引擎+域分析调度+规则引擎整合+方法论过滤器+稽查员推理引擎——系统的主体逻辑全部在此文件中<br>';
-  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（39个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（15条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
+  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（42个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（15条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
   h += '· static/js/（约6,000行）：tax-doc-analysis.js（报告渲染+六要素格式+跨域协商标记展示）、tax-pipeline-pages.js（11个独立页面——文件解析/域分析/方法论过滤器/分析链/线索链/证据链/跨域系列/质量保障/AI准则）、tax-auditor-handbook.js（14章稽查员手册）、tax-report-standards.js（15节编制要求）、tax-feedback-template.js（20场景审核模板）、tax-engine-dashboard.js（6标签页仪表盘+'+totalDims+'维能力矩阵）<br><br>';
   h += '<b>管道流程（10步）</b><br>';
   h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1514规则+396线索+745证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：15条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
@@ -979,7 +979,7 @@ function renderNegotiationTab() {
 
   h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">';
   h += '<strong style="font-size:14px;color:#0f172a">技术说明</strong><br><br>';
-  h += '<b>执行时序</b>：所有39个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配15条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
+  h += '<b>执行时序</b>：所有42个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配15条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
   h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——15条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
   h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br><br>';
   h += '<b>与过滤器的关系</b>：协商引擎消解的是域之间的矛盾（两个域各说各的），过滤器剔除的是不具备数据支撑的噪声（缺资料还瞎下结论）。协商在过滤之前运行——先让发现自洽，再删不具备证据的。如果顺序颠倒（先过滤再协商），可能过滤掉驱动协商的关键发现。<br><br>';
@@ -1113,7 +1113,7 @@ function renderBrainTab() {
       // ── 5. 学习方法论 ──
       h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:13px;color:#475569;line-height:2">';
       h += '<strong style="font-size:14px;color:#0f172a">智能大脑工作原理</strong><br><br>';
-      h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有39个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
+      h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有42个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
       h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型——记录该行业的常见信号模式、合理阈值区间、典型异常特征。后续分析依次检索历史案例进行行业对标校准。长期零产出的模块自动降权（降低分析优先级但不关闭），信任模型支持12维度加权相似度检索。<br><br>';
       h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写审核意见→存入correction_rules.json→按"发现类型|行业|经营模式"生成指纹→累计1次纠正→升级为自动规则→四级回退匹配（精确→行业→通用→名称）→下次同类发现自动标注审核标记。审核不改变原始风险等级，仅在报告中展示绿色审核横幅。<br><br>';
       h += '<b>合规门禁</b>：12条稽查铁律（虚开发票/骗取退税/隐匿收入等）作为事前检查引擎——任何一条铁律被触发的报告自动标记违规，在报告正式输出前拦截。门禁独立于方法论过滤器运行，不受HARD_BAN/COND_BAN影响。<br><br>';
