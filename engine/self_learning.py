@@ -1013,38 +1013,48 @@ MODULE_PATHS = {
     "evidence_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_evidence.json"),
     "analysis_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_analysis.json"),
     "correction_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json"),
+    "engine_memory": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "engine", "memory.py"),
+    "tax_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "tax_risk_rules_local_export.json"),
+    "thresholds": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "engine", "thresholds.json"),
+    "audit_methodology": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_clues.json"),  # 方法论写入线索链
 }
 
 def classify_correction_to_module(finding_type, reason, industry):
     """
     根据发现类型和纠正原因，自动判定应写入哪个模块。
     
-    分类规则：
-    - 提到"调低阈值"/"提高阈值"/"数字偏差" → 证据链（阈值调整）
-    - 提到"调查步骤"/"应该先查"/"不应该查" → 线索链（调查流程）
-    - 提到"法规"/"法条"/"政策"/"依据错误" → 稽查指令（规则更新）
-    - 提到"综合判定"/"逻辑链"/"推理" → 分析链（推理逻辑）
-    - 提到"方法"/"方法论"/"对比方法" → 稽查方法论
-    - 提到"BOM"/"加工"/"委托加工"/"存货" → 域分析函数
-    - 默认 → 稽查指令
+    分类规则（全覆盖15模块中的可写模块）：
+    - 提到"阈值"/"触发"/"门限" → evidence_chains
+    - 提到"调查步骤"/"检查流程" → clue_chains
+    - 提到"法规"/"法条"/"政策" → tax_rules（1608稽查指令）
+    - 提到"综合判定"/"推理"/"交叉验证" → analysis_chains
+    - 提到"关键词"/"品类"/"品名"/"词典" → engine_memory（关键词列表）
+    - 提到"税率"/"扣除率"/"加计"/"金额" → thresholds（税率阈值配置）
+    - 提到"方法"/"流程"/"步骤" → audit_methodology（稽查方法论）
+    - 默认 → correction_rules（不写回自身）
     """
     text = (finding_type + " " + reason).lower()
     
-    if any(kw in text for kw in ["阈值", "触发率", "触发条件", "门限", "数字偏差", "金额偏差",
-                                   "threshold", "trigger", "min_evidence"]):
-        return "evidence_chains", "阈值/触发条件调整"
-    if any(kw in text for kw in ["调查步骤", "应该先查", "不应该查", "检查顺序", "先验证", "再查",
-                                   "investigation", "step", "应先", "后查"]):
-        return "clue_chains", "调查流程调整"
-    if any(kw in text for kw in ["法规", "法条", "政策", "依据错误", "法律适用", "引用错误",
-                                   "law", "legal", "regulation"]):
-        return "correction_rules", "法规依据更新"
+    if any(kw in text for kw in ["阈值", "触发率", "触发条件", "门限", "threshold", "trigger", "min_evidence"]):
+        return "evidence_chains", "证据链阈值/触发条件调整"
+    if any(kw in text for kw in ["调查步骤", "检查顺序", "先查", "后查", "应先", "不应查",
+                                   "investigation", "step", "调查流程"]):
+        return "clue_chains", "线索链调查流程调整"
+    if any(kw in text for kw in ["法规", "法条", "政策", "依据", "法律适用", "引用", "处罚",
+                                   "law", "legal", "regulation", "penalty"]):
+        return "tax_rules", "1608稽查指令法规更新"
     if any(kw in text for kw in ["综合判定", "逻辑链", "推理", "多源", "交叉验证", "最终结论",
-                                   "reasoning", "synthesis", "综合", "判定"]):
-        return "analysis_chains", "分析推理逻辑调整"
-    if any(kw in text for kw in ["方法", "方法论", "对比方法", "税率", "计算方式", "公式",
-                                   "method", "formula", "rate"]):
-        return "evidence_chains", "方法论/计算方式更新"
+                                   "reasoning", "synthesis"]):
+        return "analysis_chains", "分析链推理逻辑调整"
+    if any(kw in text for kw in ["关键词", "品类", "品名", "词典", "排除", "添加", "应该包含", "不应该触发",
+                                   "keyword", "dictionary", "词库"]):
+        return "engine_memory", "引擎记忆关键词词典更新"
+    if any(kw in text for kw in ["税率", "扣除率", "加计", "个百分点", "应该用", "不应该用", "金额阈值",
+                                   "rate", "percent", "amount", "deduction_rate"]):
+        return "thresholds", "税率/阈值配置文件更新"
+    if any(kw in text for kw in ["方法", "方法论", "对比方法", "计算方式", "公式", "流程", "步骤",
+                                   "method", "formula", "process", "procedure"]):
+        return "audit_methodology", "稽查方法论更新"
     
     return "correction_rules", "通用规则更新"
 
@@ -1090,20 +1100,33 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
             continue
         
         # 加载目标模块
-        try:
-            with open(module_path, "r", encoding="utf-8") as f:
-                module_data = json.load(f)
-        except Exception:
+        if module_path.endswith(".py"):
+            # Python文件：以注释形式追加
+            try:
+                with open(module_path, "r", encoding="utf-8") as f:
+                    py_src = f.read()
+                annotation = f"\n# [引擎自更新 {datetime.now().strftime('%Y-%m-%d')}] {change_type}：{reason[:100]}（行业:{industry}，置信度:{rule['confidence']:.0%}）\n"
+                if annotation not in py_src:
+                    with open(module_path, "a", encoding="utf-8") as f:
+                        f.write(annotation)
+                    updated = True
+            except Exception:
+                continue
+        elif module_path.endswith(".json"):
+            try:
+                with open(module_path, "r", encoding="utf-8") as f:
+                    module_data = json.load(f)
+            except Exception:
+                continue
+        else:
             continue
         
-        # 查找是否需要更新已有条目
+        # 查找是否需要更新已有条目（仅JSON模块）
         updated = False
-        if isinstance(module_data, list):
+        if module_path.endswith(".json") and isinstance(module_data, list):
             for item in module_data:
                 item_name = item.get("name", item.get("type", ""))
-                # 模糊匹配：发现类型与链名称相似
                 if ftype[:20] in item_name or item_name[:20] in ftype:
-                    # 追加更新说明
                     if "description" in item:
                         update_note = f"\n\n[引擎自更新 {datetime.now().strftime('%Y-%m-%d')}] " \
                                      f"{change_type}：{reason[:100]}（行业:{industry}，置信度:{rule['confidence']:.0%}）"
@@ -1112,14 +1135,12 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
                             updated = True
                     break
         
-        # 如果没找到匹配条目，追加一条新链
-        if not updated and isinstance(module_data, list):
+        # JSON模块：没找到匹配条目→追加新条目
+        if not updated and module_path.endswith(".json") and isinstance(module_data, list):
             new_entry = {
                 "name": f"[引擎自学习]{ftype}",
                 "description": f"自动生成规则 — {change_type}（来源:{industry}行业{rule.get('biz_model','')}型，置信度{rule['confidence']:.0%}）\n"
-                              f"原始发现: {ftype}\n"
-                              f"纠正为: {corrected_risk}\n"
-                              f"原因: {reason}",
+                              f"原始发现: {ftype}\n纠正为: {corrected_risk}\n原因: {reason}",
                 "rule_refs": [],
                 "sub_topic": ftype[:30],
                 "level": corrected_risk,
@@ -1132,10 +1153,11 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
             updated = True
         
         if updated:
-            # 写回文件
+            # 写回文件（JSON用json.dump，Python已用append写入）
             try:
-                with open(module_path, "w", encoding="utf-8") as f:
-                    json.dump(module_data, f, ensure_ascii=False, indent=2)
+                if module_path.endswith(".json"):
+                    with open(module_path, "w", encoding="utf-8") as f:
+                        json.dump(module_data, f, ensure_ascii=False, indent=2)
             except Exception:
                 continue
             

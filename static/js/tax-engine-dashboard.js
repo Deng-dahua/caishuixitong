@@ -1089,6 +1089,12 @@ function renderBrainTab() {
       }
       h += '</div>';
       
+      // ── 跨行业合成规则 ──
+      h += '<div id="cross-rules-section" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin-bottom:12px">';
+      h += '<div style="font-weight:700;color:#166534;font-size:13px;margin-bottom:8px">Cross-Industry Synthesized Rules</div>';
+      h += '<div id="cross-rules-list" style="font-size:12px;color:#166534">Loading...</div>';
+      h += '</div>';
+      
       // ── 已归档规则（可恢复）──
       h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:#94a3b8">Archived Rules (click to expand · restorable)</summary>';
       h += '<div id="archived-rules-list" style="margin-top:8px;font-size:12px;color:#94a3b8">Loading...</div>';
@@ -1140,6 +1146,41 @@ function renderBrainTab() {
       
       h += '</div>';
       area.innerHTML = h;
+      // 加载跨行业合成规则
+      fetch('/api/tax-risk-docs/ask?company_id=' + (window.currentCompanyId||1), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({finding_index:0, question:'cross_rules', policy_doc:'', history:[]})
+      }).then(function(){ return fetch('/api/feedback'); }).catch(function(){
+        // Fallback: check correction_rules.json directly for __CROSS__ entries
+        return {json:function(){return Promise.resolve({ok:true,auto_rules:0,rules:[]});}};
+      });
+      // Use the existing correction rules data from the page
+      var crossList = document.getElementById('cross-rules-list');
+      if (crossList && window._brainData && window._brainData.correction_rules) {
+        var cr = window._brainData.correction_rules;
+        var crossRules = [];
+        for (var fp in cr.rules || cr) {
+          if (fp.indexOf('__CROSS__') === 0) {
+            var r = cr.rules ? cr.rules[fp] : cr[fp];
+            crossRules.push({fingerprint: fp, finding: r.finding_type, industries: r.industry_rules, summary: r.summary});
+          }
+        }
+        if (crossRules.length) {
+          var ch = '';
+          crossRules.forEach(function(cr){
+            ch += '<div style="padding:6px 0;border-bottom:1px solid #dcfce7">';
+            ch += '<div style="font-weight:600">' + (cr.finding||'?') + '</div>';
+            ch += '<div style="color:#64748b;font-size:11px">' + (cr.summary||'') + '</div>';
+            ch += '</div>';
+          });
+          crossList.innerHTML = ch;
+        } else {
+          crossList.innerHTML = 'No cross-industry rules yet — edit the same finding type for 2+ different industries to trigger synthesis.';
+        }
+      } else {
+        crossList.innerHTML = 'Not yet synthesized';
+      }
       // 加载已归档规则
       fetch('/api/feedback/archived').then(function(r){return r.json();}).then(function(d){
         var list = document.getElementById('archived-rules-list');
