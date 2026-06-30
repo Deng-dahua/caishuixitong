@@ -1634,8 +1634,8 @@ function renderEvidenceList(chains) {
     + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">证据→分析桥接</strong><br>证据闭环→风险升级判定<br>经营实质+资金+发票+税费<br>四维全异常→系统性造假</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11px;line-height:2.0">'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#2563eb">可执行链 (31条)</strong><br>dimensions[] 格式 | engine/keyword 自动匹配 findings | executable=true, legacy=false | 每条含触发关键词+多维度数据源+闭环阈值</div>'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#94a3b8">方法链 (750条)</strong><br>investigation_path[] 格式 | 仅 UI 展示参考 | executable=false, legacy=true | 含串联调查步骤+关联规则ID+风险等级+法条引用</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#2563eb">全部可执行 (781条)</strong><br>dimensions[] 格式 — 引擎通过 keyword 自动匹配 findings。每条含触发关键词+多维度数据源+闭环阈值（min_evidence），≥2维同时触发形成证据闭环。</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#7c3aed">investigation_path[] 格式</strong><br>原方法链已全部升级为可执行。步骤含 rule_id + level + detail + suggestion + policy_ref，按串联规则逐一调查，每个步骤连接一条稽查指令。</div>'
     + '</div>'
     + '</div>';
 
