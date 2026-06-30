@@ -106293,5 +106293,9 @@
   "_migrated_count": 1174,
   "_evidence_migrated": true,
   "_evidence_migrated_count": 745,
-  "_evidence_migrated_to": "static/cross_domain_evidence.json"
+  "_evidence_migrated_to": "static/cross_domain_evidence.json",
+  "_methodology_migrated": true,
+  "_methodology_migrated_count": 33,
+  "_methodology_migrated_to": "static/cross_domain_analysis.json",
+  "_all_chains_migrated": true
 }

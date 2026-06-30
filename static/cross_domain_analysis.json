@@ -57,7 +57,10 @@
     "trigger_keywords": [
       "银行收款与销项发票客户不匹配，偏差超过阈值"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 2,
@@ -129,7 +132,10 @@
     "trigger_keywords": [
       "发现加工费发票来自企业所在城市之外的供应商"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 3,
@@ -189,7 +195,10 @@
     "trigger_keywords": [
       "进项品名与销项品名存在显著差异，无法直接用贸易模式解释"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 4,
@@ -249,7 +258,10 @@
     "trigger_keywords": [
       "进项发票中存在商品仅采购无销售记录（有进无销）"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 5,
@@ -309,7 +321,10 @@
     "trigger_keywords": [
       "14类稽查必查资料中合同文件缺失，但存在N个供应商的大额交易"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 6,
@@ -369,7 +384,10 @@
     "trigger_keywords": [
       "进项供应商和销项客户均分布在外地城市，但无任何运输费用记录"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 7,
@@ -429,7 +447,10 @@
     "trigger_keywords": [
       "费用类进项发票在总进项中占比异常，或特定费用科目占比偏高"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 8,
@@ -489,7 +510,10 @@
     "trigger_keywords": [
       "进项采购金额远超销项开票金额（进销比 >> 1.0），且存在连续零申报期"
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 9,
@@ -527,7 +551,10 @@
         "output": "资金往来记录→流向判断"
       }
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 10,
@@ -566,7 +593,10 @@
         "output": "资金回流/循环迹象"
       }
     ],
-    "min_evidence": 2
+    "min_evidence": 2,
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 11,
@@ -617,7 +647,10 @@
     "description": "单一矛盾可能是偶然→两个矛盾高度可疑→三个以上矛盾几乎可以定案。仓库装不下+设备产不出+电量不够用+物流费对不上=企业的账面经营纯粹是虚构的。",
     "tax_impact": "系统性造假→全税种追缴+罚款+刑事责任",
     "policy_ref": "征管法第35条、第63条",
-    "suggestion": "①四维交叉验证 ②两维不通过→深度核查 ③三维以上不通过→启动全面稽查 ④四维全不通过→企业不具备真实经营条件"
+    "suggestion": "①四维交叉验证 ②两维不通过→深度核查 ③三维以上不通过→启动全面稽查 ④四维全不通过→企业不具备真实经营条件",
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 12,
@@ -679,7 +712,10 @@
     "description": "七维交叉验证模型——从经营实质、供应商穿透、资金流、三流合一、跨税种、关联交易七个维度综合评估企业造假可能性。单维异常是线索，多维异常是定案。七维全异常=企业账务大概率全面造假。",
     "tax_impact": "系统性造假→全税种追缴+顶格处罚+刑事责任",
     "policy_ref": "征管法第35条、第63条",
-    "suggestion": "①七维逐一评分 ②任一维度异常→启动该维度深度稽查 ③三维异常→启动全面稽查 ④五维以上→系统性造假→移送公安"
+    "suggestion": "①七维逐一评分 ②任一维度异常→启动该维度深度稽查 ③三维异常→启动全面稽查 ④五维以上→系统性造假→移送公安",
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
   },
   {
     "id": 13,
@@ -722,6 +758,746 @@
     "description": "三线归一法：资金偏差线(收款-开票)=来源分类线(未开票收入)=消费验证线(超申报消费)。三条线独立推算的隐匿收入金额应当大致相等。金额越接近→证据越强→结论越不可辩驳。",
     "tax_impact": "隐匿收入确认→补增值税+企业所得税+个人所得税",
     "policy_ref": "征管法第63条",
-    "suggestion": "①三线独立推算隐匿金额 ②金额偏差<20%→高度可信 ③偏差>50%→补充证据"
+    "suggestion": "①三线独立推算隐匿金额 ②金额偏差<20%→高度可信 ③偏差>50%→补充证据",
+    "executable": true,
+    "legacy": false,
+    "format_version": 2
+  },
+  {
+    "id": 14,
+    "name": "多格式兼容",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "多格式兼容"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 15,
+    "name": "汇总行过滤",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "汇总行过滤"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 16,
+    "name": "付款方身份核实",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "付款方身份核实"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 17,
+    "name": "关键词≠事实",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "关键词",
+      "事实"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 18,
+    "name": "行业认知补算法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "行业认知补算法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 19,
+    "name": "联网核查（搜索引擎知识图谱提取法）",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "联网核查",
+      "搜索引擎知识图谱提取法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 20,
+    "name": "明细即信服力",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "明细即信服力"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 21,
+    "name": "不墨迹直接干",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "不墨迹直接干"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 22,
+    "name": "合同分层判断",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "合同分层判断"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 23,
+    "name": "完备度明细",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "完备度明细"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 24,
+    "name": "完备度升级",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "完备度升级"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 25,
+    "name": "凭证描述纠正",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "凭证描述纠正"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 26,
+    "name": "进销诊断升级",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "进销诊断升级"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 27,
+    "name": "行业基准库",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "行业基准库"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 28,
+    "name": "结论分析法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "结论分析法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 29,
+    "name": "COND_BAN防误杀",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "防误杀"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 30,
+    "name": "稽查重点强制等级",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "稽查重点强制等级"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 31,
+    "name": "报告纯净度",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "报告纯净度"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 32,
+    "name": "发票≠收付款1:1",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "发票",
+      "收付款"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 33,
+    "name": "经营实质地理分析",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "经营实质地理分析"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 34,
+    "name": "规则detail业务化",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "规则",
+      "业务化"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 35,
+    "name": "建议质量增强",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "建议质量增强"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 36,
+    "name": "四步稽查分析法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "四步稽查分析法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 37,
+    "name": "禁止数据截断",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "禁止数据截断"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 38,
+    "name": "三层行业穿透法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "三层行业穿透法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 39,
+    "name": "经营实质点面推理法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "经营实质点面推理法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 40,
+    "name": "稽查六员跨企业比对",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "稽查六员跨企业比对"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 41,
+    "name": "供应链联网核查（全链条人员交叉比对）",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "供应链联网核查",
+      "全链条人员交叉比对"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 42,
+    "name": "主营业务聚焦法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "主营业务聚焦法",
+      "判断企业所属行业时",
+      "必须以主营业务发票为依据",
+      "排除住宿费",
+      "餐饮费"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "判断企业所属行业时，必须以主营业务发票为依据，排除住宿费、餐饮费、加油费、租赁费、旅游费、差旅费等经营费用。经营费用是所有企业共同的日常支出，不反映行业特征。全行业适用：任何行业的经营费用种类相似（房租、水电、差旅、办公），但生产物资品类各行业不同（纺织业的棉纱、电子业的芯片、食品业的原料）。",
+    "tax_impact": "经营费用误归入生产物资→行业判断偏差→税务处理方向性错误",
+    "policy_ref": "《企业所得税法》第八条——成本费用真实性原则",
+    "suggestion": "",
+    "rule_refs": [
+      999504
+    ],
+    "_quality_score": 18
+  },
+  {
+    "id": 43,
+    "name": "资料缺失风险推理",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "资料缺失风险推理"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 44,
+    "name": "存疑排除法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "存疑排除法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 45,
+    "name": "规则配置外部化",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "规则配置外部化"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
+  },
+  {
+    "id": 46,
+    "name": "资金回流检测法",
+    "sub_topic": "",
+    "level": "中风险",
+    "executable": false,
+    "legacy": true,
+    "format_version": 1,
+    "legacy_source": "audit_chains.json",
+    "trigger_keywords": [
+      "资金回流检测法"
+    ],
+    "min_evidence": 1,
+    "reasoning_path": [],
+    "investigation_path": [],
+    "description": "",
+    "tax_impact": "",
+    "policy_ref": "",
+    "suggestion": "",
+    "rule_refs": [],
+    "_quality_score": 0
   }
 ]

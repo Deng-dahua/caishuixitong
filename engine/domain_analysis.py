@@ -2138,6 +2138,11 @@ def _domain_cross_domain_analysis(all_findings):
     if not chain_defs:
         return []
     
+    # 只执行 executable=True 且非 legacy 的链（旧方法论仅用于UI展示）
+    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    if not chain_defs:
+        return []
+    
     findings = []
     for chain_def in chain_defs:
         trigger = chain_def.get("trigger_signal", "")
