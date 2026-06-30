@@ -94,9 +94,6 @@ const pages = {
   'evidence-page': '证据链',
   'analyze-page': '分析链',
   'quality-system': '全链路质量保障体系',
-  'cross-domain-evidence': '跨域证据链',
-  'cross-domain-clues': '跨域线索链',
-  'cross-domain-analysis': '跨域分析链',
   'system-logs': '系统日志',
   'ai-rules': '智哥行为准则',
   'auditor-handbook': '税务稽查员手册',
@@ -651,9 +648,10 @@ function navigateTo(page) {
     case 'evidence-page': renderEvidencePage(container); break;
     case 'analyze-page': renderAnalyzePage(container); break;
     case 'quality-system': renderQualitySystem(container); break;
-    case 'cross-domain-evidence': renderCrossDomainEvidencePage(container); break;
-    case 'cross-domain-clues': renderCrossDomainCluesPage(container); break;
-    case 'cross-domain-analysis': renderCrossDomainAnalysisPage(container); break;
+    // 已合并到线索/证据/分析链（sidebar已移除，保留兼容路由不执行任何操作）
+    case 'cross-domain-evidence': break;
+    case 'cross-domain-clues': break;
+    case 'cross-domain-analysis': break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
     case 'auditor-handbook': renderAuditorHandbook(container); break;

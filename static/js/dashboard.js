@@ -59,9 +59,6 @@ async function renderDashboard(container) {
         {page:'chains-page', label:'🔍 线索链', cls:'btn-outline'},
         {page:'evidence-page', label:'🔒 证据链', cls:'btn-outline'},
         {page:'analyze-page', label:'⚡ 分析链', cls:'btn-outline'},
-        {page:'cross-domain-clues', label:'🔎 跨域线索', cls:'btn-outline'},
-        {page:'cross-domain-evidence', label:'🔗 跨域证据', cls:'btn-outline'},
-        {page:'cross-domain-analysis', label:'📊 跨域分析', cls:'btn-outline'},
       ]},
       {group:'系统引擎', items:[
         {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
