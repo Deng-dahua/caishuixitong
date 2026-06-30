@@ -57,6 +57,7 @@ from tax_risk_utils import *
 
 def _check_premise_expenses_from_invoices(db: Session, company_id: int, ps: str, pe: str):
     """从原始发票（取得发票+记账发票）中检测经营场所相关支出。
+import os
     
     序时账可能因未及时入账而缺失租赁费/水电费/物业费记录，
     但取得发票是最原始的业务证据——发票已到即意味着费用已发生。
@@ -3031,7 +3032,6 @@ def _analyze_business_credit(db, company_id, ps, pe, results):
 
 def _load_coarse_benchmarks():
     """加载粗分行业基准值（从JSON外部化）"""
-    import os
     json_path = os.path.join(os.path.dirname(__file__) or ".", "static", "industry_data.json")
     try:
         with open(json_path, "r", encoding="utf-8") as f:

@@ -1929,11 +1929,9 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
     # ═══ 加载跨域证据链定义（JSON驱动） ═══
     chain_defs = []
     try:
-        import json as _json
-        import os as _os
-        chain_path = _os.path.join(_os.path.dirname(__file__), "static", "cross_domain_evidence.json")
+        chain_path = os.path.join(os.path.dirname(__file__), "static", "cross_domain_evidence.json")
         with open(chain_path, 'r', encoding='utf-8') as _f:
-            chain_defs = _json.load(_f)
+            chain_defs = json.load(_f)
     except Exception as _e:
         # 回退：JSON加载失败时使用内置定义（保持系统可用性）
         chain_defs = _BUILTIN_CROSS_DOMAIN_CHAINS
@@ -2198,10 +2196,10 @@ def _domain_cross_domain_analysis(all_findings):
 def _load_json(rel_path, default=None):
     import json as _json
     import os as _os
-    path = _os.path.join(_os.path.dirname(__file__), rel_path)
+    path = os.path.join(os.path.dirname(__file__), rel_path)
     try:
         with open(path, 'r', encoding='utf-8') as f:
-            return _json.load(f)
+            return json.load(f)
     except Exception:
         return default if default is not None else []
 
@@ -6190,11 +6188,11 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
     
     # ── 加载冲突规则 ──
     rules = []
-    json_path = _os.path.join(_os.path.dirname(__file__), 'static', 'conflict_rules.json')
+    json_path = os.path.join(os.path.dirname(__file__), 'static', 'conflict_rules.json')
     try:
-        if _os.path.exists(json_path):
+        if os.path.exists(json_path):
             with open(json_path, 'r', encoding='utf-8') as f:
-                rules = _json.load(f).get('rules', [])
+                rules = json.load(f).get('rules', [])
     except Exception as e:
         pipeline_log.append(f"[Phase3] 冲突规则加载失败: {e}")
         return  # JSON 加载失败时静默跳过（硬编码规则仍可用）
