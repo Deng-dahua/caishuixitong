@@ -37,6 +37,7 @@ import tempfile
 
 # ═══ 统一城市列表（与 main.py/shered_state 同步）═══
 from shared_state import _CHINA_CITIES_UNIFIED as _TAX_CHINA_CITIES, _CHINA_CITY_REGEX as _TAX_CITY_REGEX
+from database import get_db, Company, Account, JournalEntry
 from database import SalesInvoice, PurchaseInvoice, BookkeepingInvoice
 from database import VATDeclaration, InputVATDeduction, BankTransaction
 from database import SalaryRecord, SocialSecurityDetail, HousingFundDetail
@@ -54,11 +55,10 @@ from audit_enhancements import (
 
 router = APIRouter(prefix="/api/tax-risk", tags=["涉税风险分析"])
 from tax_risk_utils import *
+import os
 
 def _check_premise_expenses_from_invoices(db: Session, company_id: int, ps: str, pe: str):
     """从原始发票（取得发票+记账发票）中检测经营场所相关支出。
-import os
-    
     序时账可能因未及时入账而缺失租赁费/水电费/物业费记录，
     但取得发票是最原始的业务证据——发票已到即意味着费用已发生。
     
