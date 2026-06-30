@@ -9,17 +9,15 @@ async function loadPipelineCounts() {
   if (_pipelineCounts) return _pipelineCounts;
   try {
     var t0 = Date.now();
-    var [rulesResp, chainsResp, cdeResp, cdcResp, cdaResp] = await Promise.all([
+    var [rulesResp, cdcResp, cdeResp, cdaResp] = await Promise.all([
       fetch('/static/tax_risk_rules_local_export.json?_t=' + t0),
-      fetch('/static/audit_chains.json?_t=' + t0),
-      fetch('/static/cross_domain_evidence.json?_t=' + t0),
       fetch('/static/cross_domain_clues.json?_t=' + t0),
+      fetch('/static/cross_domain_evidence.json?_t=' + t0),
       fetch('/static/cross_domain_analysis.json?_t=' + t0)
     ]);
     var rules = await rulesResp.json();
-    var chainsData = await chainsResp.json();
-    var cde = await cdeResp.json();
     var cdc = await cdcResp.json();
+    var cde = await cdeResp.json();
     var cda = await cdaResp.json();
     var chains = chainsData.chains || [];
     _pipelineCounts = {
