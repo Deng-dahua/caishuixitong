@@ -691,6 +691,14 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
             record_module_run("M099_cross_synthesis", "跨公司规则合成", "completed",
                 {"synthesized_rules": synth_result.get("new_rules", 0)}, 0, industry, biz_model)
     except Exception:
+        synth_result = {"synthesized": False}
+    
+    # 高置信度规则自动写回源模块
+    module_update_result = {"updated": False}
+    try:
+        if correction_count >= 2 and rules[fingerprint]["confidence"] >= 0.80:
+            module_update_result = auto_update_module_content(min_confidence=0.80, min_corrections=2)
+    except Exception:
         pass
     
     return {
@@ -699,7 +707,9 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         "correction_count": correction_count,
         "auto_apply": rules[fingerprint]["auto_apply"],
         "upgraded_to_rule": correction_count >= 1,
-        "cross_synthesized": synth_result.get("synthesized", False) if 'synth_result' in dir() else False,
+        "cross_synthesized": synth_result.get("synthesized", False),
+        "module_auto_updated": module_update_result.get("updated", False),
+        "modules_updated": module_update_result.get("modules_updated", []),
     }
 
 
@@ -985,3 +995,192 @@ def get_cross_industry_insight(finding_type):
     insight["industries_agree"] = len(actions) == 1
     
     return insight
+
+
+# ═══════════════════════════════════════════════════════════
+# Layer 5: 模块内容自动更新 — 纠正写回源文件
+# ═══════════════════════════════════════════════════════════
+# 当某条纠正积累足够置信度后，引擎自动：
+#   ① 将纠正内容分类到对应模块（稽查指令/线索链/证据链/分析链/方法论）
+#   ② 更新或新增对应模块的文字内容
+#   ③ 记录变更日志（可回滚）
+#
+# 这是引擎从"学习"进化为"自我进化"的关键一步
+
+# 模块路径映射
+MODULE_PATHS = {
+    "clue_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_clues.json"),
+    "evidence_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_evidence.json"),
+    "analysis_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_analysis.json"),
+    "correction_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json"),
+}
+
+def classify_correction_to_module(finding_type, reason, industry):
+    """
+    根据发现类型和纠正原因，自动判定应写入哪个模块。
+    
+    分类规则：
+    - 提到"调低阈值"/"提高阈值"/"数字偏差" → 证据链（阈值调整）
+    - 提到"调查步骤"/"应该先查"/"不应该查" → 线索链（调查流程）
+    - 提到"法规"/"法条"/"政策"/"依据错误" → 稽查指令（规则更新）
+    - 提到"综合判定"/"逻辑链"/"推理" → 分析链（推理逻辑）
+    - 提到"方法"/"方法论"/"对比方法" → 稽查方法论
+    - 提到"BOM"/"加工"/"委托加工"/"存货" → 域分析函数
+    - 默认 → 稽查指令
+    """
+    text = (finding_type + " " + reason).lower()
+    
+    if any(kw in text for kw in ["阈值", "触发率", "触发条件", "门限", "数字偏差", "金额偏差",
+                                   "threshold", "trigger", "min_evidence"]):
+        return "evidence_chains", "阈值/触发条件调整"
+    if any(kw in text for kw in ["调查步骤", "应该先查", "不应该查", "检查顺序", "先验证", "再查",
+                                   "investigation", "step", "应先", "后查"]):
+        return "clue_chains", "调查流程调整"
+    if any(kw in text for kw in ["法规", "法条", "政策", "依据错误", "法律适用", "引用错误",
+                                   "law", "legal", "regulation"]):
+        return "correction_rules", "法规依据更新"
+    if any(kw in text for kw in ["综合判定", "逻辑链", "推理", "多源", "交叉验证", "最终结论",
+                                   "reasoning", "synthesis", "综合", "判定"]):
+        return "analysis_chains", "分析推理逻辑调整"
+    if any(kw in text for kw in ["方法", "方法论", "对比方法", "税率", "计算方式", "公式",
+                                   "method", "formula", "rate"]):
+        return "evidence_chains", "方法论/计算方式更新"
+    
+    return "correction_rules", "通用规则更新"
+
+
+def auto_update_module_content(min_confidence=0.85, min_corrections=3):
+    """
+    扫描纠正规则库，对满足置信度和纠正次数的规则，
+    自动更新对应模块的JSON文件。
+    
+    安全机制：
+    1. 仅 confidence >= min_confidence 且 corrections >= min_corrections
+    2. 每次更新记录 change_log
+    3. 不覆盖已有内容，仅在链的 description 字段尾部追加
+    4. 返回变更清单供审核
+    """
+    rules = _load_correction_rules()
+    changes = []
+    updated_modules = {}
+    
+    for fp, rule in rules.items():
+        # 跳过跨公司合成规则（单独处理）
+        if fp.startswith("__CROSS__"):
+            continue
+        if not rule.get("auto_apply"):
+            continue
+        if rule.get("confidence", 0) < min_confidence:
+            continue
+        if len(rule.get("corrections", [])) < min_corrections:
+            continue
+        
+        ftype = rule.get("finding_type", "")
+        industry = rule.get("industry", "")
+        latest = rule["corrections"][-1]
+        reason = latest.get("reason", "")
+        corrected_risk = latest.get("corrected_risk", "")
+        
+        # 分类到模块
+        module, change_type = classify_correction_to_module(ftype, reason, industry)
+        if module == "correction_rules":
+            continue  # 不写回自身，避免循环
+        module_path = MODULE_PATHS.get(module)
+        if not module_path or not os.path.exists(module_path):
+            continue
+        
+        # 加载目标模块
+        try:
+            with open(module_path, "r", encoding="utf-8") as f:
+                module_data = json.load(f)
+        except Exception:
+            continue
+        
+        # 查找是否需要更新已有条目
+        updated = False
+        if isinstance(module_data, list):
+            for item in module_data:
+                item_name = item.get("name", item.get("type", ""))
+                # 模糊匹配：发现类型与链名称相似
+                if ftype[:20] in item_name or item_name[:20] in ftype:
+                    # 追加更新说明
+                    if "description" in item:
+                        update_note = f"\n\n[引擎自更新 {datetime.now().strftime('%Y-%m-%d')}] " \
+                                     f"{change_type}：{reason[:100]}（行业:{industry}，置信度:{rule['confidence']:.0%}）"
+                        if update_note not in item["description"]:
+                            item["description"] += update_note
+                            updated = True
+                    break
+        
+        # 如果没找到匹配条目，追加一条新链
+        if not updated and isinstance(module_data, list):
+            new_entry = {
+                "name": f"[引擎自学习]{ftype}",
+                "description": f"自动生成规则 — {change_type}（来源:{industry}行业{rule.get('biz_model','')}型，置信度{rule['confidence']:.0%}）\n"
+                              f"原始发现: {ftype}\n"
+                              f"纠正为: {corrected_risk}\n"
+                              f"原因: {reason}",
+                "rule_refs": [],
+                "sub_topic": ftype[:30],
+                "level": corrected_risk,
+                "auto_generated": True,
+                "generated_at": datetime.now().isoformat(),
+                "source_industry": industry,
+                "confidence": rule["confidence"],
+            }
+            module_data.append(new_entry)
+            updated = True
+        
+        if updated:
+            # 写回文件
+            try:
+                with open(module_path, "w", encoding="utf-8") as f:
+                    json.dump(module_data, f, ensure_ascii=False, indent=2)
+            except Exception:
+                continue
+            
+            changes.append({
+                "finding_type": ftype,
+                "module": module,
+                "change_type": change_type,
+                "industry": industry,
+                "confidence": rule["confidence"],
+                "correction_count": len(rule["corrections"]),
+            })
+            
+            if module not in updated_modules:
+                updated_modules[module] = []
+            updated_modules[module].append(ftype)
+    
+    # 记录变更日志
+    if changes:
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "module_auto_update_log.json")
+        try:
+            if os.path.exists(log_path):
+                with open(log_path, "r", encoding="utf-8") as f:
+                    log = json.load(f)
+            else:
+                log = []
+        except Exception:
+            log = []
+        
+        log.append({
+            "timestamp": datetime.now().isoformat(),
+            "changes": changes,
+            "summary": f"自动更新了{len(updated_modules)}个模块，共{len(changes)}条规则",
+        })
+        
+        try:
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            with open(log_path, "w", encoding="utf-8") as f:
+                json.dump(log, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+    
+    return {
+        "updated": len(changes) > 0,
+        "changes_count": len(changes),
+        "modules_updated": list(updated_modules.keys()),
+        "changes": changes,
+        "note": "引擎已将高置信度纠正自动写入对应模块。变更日志已保存。"
+    }
