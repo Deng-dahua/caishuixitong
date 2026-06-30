@@ -1179,19 +1179,35 @@ window._askAboutFinding = function(fi) {
 };
 
 window._deleteFindingFromReport = function(fi) {
-  if (!confirm('确认从报告中删除该发现？此操作不可撤销。')) return;
+  if (!confirm('Delete this finding from the report? (re-run analysis to undo)')) return;
   
   var allF = window._allFindings || [];
   var f = allF[fi];
   if (f) {
     f._dismissed = true;
     f._deleted = true;
-    f.level = '已删除';
-    f._correction_reason = '用户从报告中手动删除';
+    f.level = 'deleted';
+    f._correction_reason = 'User deleted from report';
   }
   
-  // 重新渲染
-  alert('已删除。刷新页面后该发现将从报告中移除。');
+  // Submit deletion to feedback system so it persists
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      action: 'delete',
+      finding_type: (f.type || ''),
+      finding_title: (f.type || ''),
+      reason: 'User deleted from report',
+      detail: (f.detail || ''),
+      timestamp: new Date().toISOString()
+    })
+  }).catch(function(){});
+  
+  // Re-render immediately
+  if (window._reportData) {
+    renderTaxDocReport(window._reportData);
+  }
 };
 
 // ── 报告渲染降级方案（旧逻辑保留，当模块引擎不可用时使用）──
@@ -1553,6 +1569,7 @@ function _renderReportFallback(r, allF) {
   
   for (var fi = 0; fi < allSorted.length; fi++) {
     var f = allSorted[fi];
+    if (f._deleted) continue;
     var lv = f.level || '中风险';
     var cls = lv === '高风险' || lv === '极高风险' ? 'red' : (lv === '中风险' ? 'amber' : 'green');
     var tagCls = lv === '高风险' || lv === '极高风险' ? 'rtag' : (lv === '中风险' ? 'atag' : 'gtag');
