@@ -615,7 +615,7 @@ class AGIPipelineConnector:
                 "company_name": company_name,
                 "industry": industry,
                 "findings_count": self.stats["events_collected"],
-                "high_risk_count": sum(1 for e in self.events if "高风险" in str(e.data.get("level", ""))),
+                "high_risk_count": sum(1 for e in self.events if hasattr(e, 'data') and isinstance(e.data, dict) and "高风险" in str(e.data.get("level", ""))),
             })
             kb.add_lesson(f"完成一次全模块分析，采集{self.stats['events_collected']}个学习事件", "综合")
         except: pass
@@ -690,6 +690,8 @@ class AGIPipelineConnector:
         # ─── 触发因果网络学习 ───
         causal_edges_found = 0
         patterns_found = 0
+        edges = []
+        patterns = []
         try:
             from engine.causal_network import CausalNetwork
             network = CausalNetwork()

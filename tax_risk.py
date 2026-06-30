@@ -57,6 +57,15 @@ router = APIRouter(prefix="/api/tax-risk", tags=["涉税风险分析"])
 from tax_risk_utils import *
 import os
 
+# 兜底：确保 _normalize_period 始终可用
+if '_normalize_period' not in dir():
+    import re as _np_re
+    def _normalize_period(ym):
+        ym = str(ym).strip()
+        m = _np_re.match(r'(\d{4})[/-]?(\d{1,2})', ym)
+        return f"{m.group(1)}-{m.group(2):0>2}" if m else ym
+
+
 def _check_premise_expenses_from_invoices(db: Session, company_id: int, ps: str, pe: str):
     """从原始发票（取得发票+记账发票）中检测经营场所相关支出。
     序时账可能因未及时入账而缺失租赁费/水电费/物业费记录，
