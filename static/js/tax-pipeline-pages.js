@@ -1371,12 +1371,8 @@ function updateChainsSubtitle() {
 async function loadChainsData() {
   var target = document.getElementById('chains-body');
   try {
-    var resp = await fetch('/static/cross_domain_evidence.json?_t=' + Date.now());
-    var data = await resp.json();
-    _allChains = data.chains || [];
-    var clueChains = _allChains.filter(function(c) { return c.chain_type === '线索链' || !c.chain_type; });
-    if (!clueChains.length) clueChains = _allChains.filter(function(c) { return c.chain_type !== '证据链'; });
-    if (!clueChains.length) clueChains = _allChains;
+    var resp = await fetch('/static/cross_domain_clues.json?_t=' + Date.now());
+    var clueChains = await resp.json();
 
     // 加载动态触发状态
     await loadChainDynamicStatus();

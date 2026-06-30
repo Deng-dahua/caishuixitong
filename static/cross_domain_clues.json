@@ -507,7 +507,15 @@
     "suggestion": "①逐项核实可疑费用的经营相关性；②股东个人消费转出计税；③建立费用报销审批制度",
     "executable": true,
     "legacy": false,
-    "format_version": 2
+    "format_version": 2,
+    "rule_refs": [
+      108,
+      199,
+      212,
+      302,
+      822,
+      999504
+    ]
   },
   {
     "id": 7,
@@ -774,7 +782,16 @@
     "suggestion": "①解释发票时间集中的商业原因（如季节性业务）；②逐票核实红冲作废原因；③建立均衡开票的内控制度",
     "executable": true,
     "legacy": false,
-    "format_version": 2
+    "format_version": 2,
+    "rule_refs": [
+      272,
+      333,
+      488,
+      1320,
+      1352,
+      1353,
+      1503
+    ]
   },
   {
     "id": 9,
