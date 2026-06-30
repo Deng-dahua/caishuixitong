@@ -1636,15 +1636,18 @@ function renderEvidenceList(chains) {
   var html = '';
 
   // ══════ 证据链概念说明 ══════
-  html += '<div style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
+  html += '<div id="ev-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">';
+  // 补充 TOC
+  if (tocEl) tocEl.innerHTML += '<a href="#ev-concept">概念说明</a>';
+  html += ''
     + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">证据链是什么</h3>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
     + '证据链是<strong>多源交叉验证形成证据闭环的规则集合</strong>。与线索链（单路径串行调查）不同，证据链同时从多个独立维度收集证据，当 ≥min_evidence 个维度同时匹配时形成有效证据。'
     + '</p>'
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">'
-    + '<div style="padding:10px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">线索链 vs 证据链</strong><br>线索链 = 串行追查（一条线到底）<br>证据链 = 并行印证（多源同时验证）<br>线索链发现触发证据链闭环</div>'
-    + '<div style="padding:10px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">闭环条件</strong><br>≥min_evidence 个维度同时触发<br>每维来自独立数据源<br>闭环后自动输入分析链推理</div>'
-    + '<div style="padding:10px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">证据→分析桥接</strong><br>证据闭环→风险升级判定<br>经营实质+资金+发票+跨税种<br>四维全异常→系统性造假</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">线索链 vs 证据链</strong><br>线索链 = 串行追查（一条线到底）<br>证据链 = 并行印证（多源同时验证）<br>线索链发现触发证据链闭环</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">闭环条件</strong><br>≥min_evidence 个维度同时触发<br>每维来自独立数据源<br>闭环后自动输入分析链推理</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">证据→分析桥接</strong><br>证据闭环→风险升级判定<br>经营实质+资金+发票+跨税种<br>四维全异常→系统性造假</div>'
     + '</div>'
     + '</div>';
 
