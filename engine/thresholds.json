@@ -46,9 +46,10 @@
     "minor_deviation": 0.10,
     "substantial": 0.40,
     "overwhelming": 0.75,
-    "dominant": 0.85,
+    "dominant": 0.80,
     "half": 0.50,
     "double_ratio": 2.0,
+    "overtrade_ratio": 1.5,
     "material_ratio": 0.05,
     "threshold_1pct": 0.01,
     "threshold_2pct": 0.02,
@@ -56,6 +57,9 @@
   },
 
   "amount_thresholds": {
+    "micro_transaction": 1000,
+    "tiny_transaction": 5000,
+    "mini_transaction": 10000,
     "small_transaction": 50000,
     "medium_transaction": 100000,
     "large_transaction": 500000,

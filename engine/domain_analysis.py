@@ -159,7 +159,7 @@ def _domain_bank_tracking(txs):
         elif "税务" in raw: cats["tax"] += tx["debit"]
     income = sum(tx["credit"] for tx in txs)
     expense = sum(tx["debit"] for tx in txs)
-    if income > 0 and cats.get("third_party", 0) / income > 0.5:
+    if income > 0 and cats.get("third_party", 0) / income > T.ratios.half:
         pct = cats['third_party']/income*100
         findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
         "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
@@ -223,7 +223,7 @@ def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
     # 获取主营业务收入(凭证)作为总收入口径
     vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
     
-    if s_total > 0 and p_total > 0 and p_total / s_total > 1.5:
+    if s_total > 0 and p_total > 0 and p_total / s_total > T.ratios.overtrade_ratio:
         ratio = p_total/s_total
         
         # 如果有凭证收入数据，同时给出两个比率
@@ -291,7 +291,7 @@ def _domain_supplier_deep(pur_invs):
         if m: by_city[m.group(1)].add(name)
     total_pur = sum(by_supplier.values())
     top3 = sorted(by_supplier.items(), key=lambda x: -x[1])
-    if top3 and sum(v for _, v in top3) / max(total_pur, 1) > 0.7:
+    if top3 and sum(v for _, v in top3) / max(total_pur, 1) > T.industry_thresholds.concentration_high:
         top3_pct = sum(v for _,v in top3)/total_pur*100
         top3_names = '、'.join([f"{n[:12]}({v:,.2f}元)" for n,v in top3])
         findings.append({"type": "供应商高度集中", "level": "中风险", "score": 6,
@@ -426,7 +426,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
             "category": "域6 存货"})
     
     # ── CEO视角1: 库存真实性延伸——仓储能力审核 ──
-    if total_in > 1000 and total_out > 0 and out_rate < 10:
+    if total_in > T.amount_thresholds.micro_transaction and total_out > 0 and out_rate < 10:
         warehouse_check = []
         # 检查是否有仓库相关费用
         has_rent = any("租赁" in str(b.get("raw","")) or "仓库" in str(b.get("raw","")) or "仓租" in str(b.get("raw","")) for b in bank_txs) if bank_txs else False
@@ -503,7 +503,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     if stock_val > 0 and bank_txs:
         # 查找银行流水中总支出金额
         bank_out = sum(b.get("debit", 0) for b in bank_txs)
-        if bank_out > 0 and stock_val / bank_out > 0.3:
+        if bank_out > 0 and stock_val / bank_out > T.ratios.material_deviation:
             findings.append({
                 "type": "存货占压资金比例过高——资金链风险",
                 "level": "高风险", "score": 7,
@@ -535,9 +535,9 @@ def _domain_tax_consistency(bank_txs, db, company_id):
         payable = float(main.get("row19_tax_payable", 0) or 0)
         if payable > 0 and tax_paid > 0 and abs(payable - tax_paid) > 100:
             diff = abs(payable - tax_paid)
-            findings.append({"type": "缴税与申报不一致", "level": "高风险" if diff>1000 else "中风险",
+            findings.append({"type": "缴税与申报不一致", "level": "高风险" if diff>T.amount_thresholds.micro_transaction else "中风险",
             "how_found": "从银行流水中提取含'税务'关键词的借方（支出）交易汇总缴税金额；从增值税申报表读取应缴税额。两者差异>100元触发预警。",
-                "score": 9 if diff>1000 else 6,
+                "score": 9 if diff>T.amount_thresholds.micro_transaction else 6,
                 "detail": f"申报应缴{payable:,.2f}元 vs 银行实际扣款{tax_paid:,.2f}元，差异{diff:,.2f}元。",
                 "description": f"增值税申报表填报的应缴税额为{payable:,.2f}元，但银行流水显示实际向税务机关缴纳的税款为{tax_paid:,.2f}元，两者相差{diff:,.2f}元（差异率{diff/max(payable,1)*100:.2f}%）。造成差异的常见原因包括：申报表填报错误、税款缴纳延迟（跨期扣款）、存在滞纳金或罚款附加、银行自动扣款金额与申报不一致、或者部分税款未足额缴纳。",
                 "tax_impact": "若确实存在少缴税款，税务机关将依法追缴税款并从滞纳之日起按日加收万分之五的滞纳金。情节严重的可能被认定为偷税，处以少缴税款50%以上5倍以下的罚款。",
@@ -581,7 +581,7 @@ def _domain_invoice_lifecycle(invoices):
     findings, types = [], {}
     for i in invoices: types[i.get("inv_type", "")] = types.get(i.get("inv_type", ""), 0) + 1
     voided = types.get("作废", 0) + types.get("红冲", 0)
-    if len(invoices) > 0 and voided / len(invoices) > 0.1:
+    if len(invoices) > 0 and voided / len(invoices) > T.ratios.minor_deviation:
         findings.append({"type": "发票作废率偏高", "level": "中风险", "score": 6,
         "how_found": "统计所有发票中发票类型为'作废'或'红冲'的数量，计算占总发票数的比例。超过10%触发预警。",
             "detail": f"{voided}张作废/红冲发票，占全部{len(invoices)}张的{voided/len(invoices)*100:.2f}%。",
@@ -681,7 +681,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
     if total_sales > 0 and total_purchases > 0:
         # 购销弹性 = 销货成本/销售收入，正常应<1
         purchase_ratio = total_purchases / total_sales
-        if purchase_ratio > 2:
+        if purchase_ratio > T.ratios.double_ratio:
             findings.append({"type": "购销弹性严重失衡", "level": "高风险", "score": 9,
                 "how_found": f"进项总额{total_purchases:,.2f}÷销项总额{total_sales:,.2f}={purchase_ratio:.2f}倍。购销比=(进货/销货)，正常<1，>2表示严重的进销脱节。",
                 "detail": f"进项总额是销项的{purchase_ratio:.2f}倍，远超正常范围。",
@@ -695,7 +695,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
     emp_count = len(set(s.get("name", "") for s in salaries if s.get("name")))
     if total_sales > 0 and emp_count > 0:
         rev_per_person = total_sales / emp_count
-        if rev_per_person < 50000:
+        if rev_per_person < T.amount_thresholds.small_transaction:
             findings.append({"type": "人均产值过低", "level": "中风险", "score": 6,
                 "how_found": f"销项{total_sales:,.2f}元÷{emp_count}人=人均{rev_per_person:,.2f}元。低于5万元/人触发预警。",
                 "detail": f"{emp_count}名员工，人均产值仅{rev_per_person:,.2f}元（月均{rev_per_person/3:,.2f}元）。",
@@ -709,7 +709,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
     if bank_txs:
         tx_count = len(bank_txs)
         avg_tx = (bank_in + bank_out) / max(tx_count, 1)
-        if avg_tx > 100000:
+        if avg_tx > T.amount_thresholds.medium_transaction:
             findings.append({"type": "单笔平均交易额过大", "level": "中风险", "score": 5,
                 "how_found": f"银行流水{tx_count}笔，总进出{(bank_in+bank_out):,.2f}元，笔均{avg_tx:,.2f}元。>10万触发预警。",
                 "detail": f"{tx_count}笔交易，笔均{avg_tx:,.2f}元。",
@@ -725,7 +725,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
         g = str(i.get("goods", ""))
         if any(k in g for k in ("设备","机器","电脑","车辆","家具","空调","装修")):
             has_fixed_asset = True; break
-    if not has_fixed_asset and total_sales > 500000:
+    if not has_fixed_asset and total_sales > T.amount_thresholds.large_transaction:
         findings.append({"type": "无固定资产购置记录", "level": "中风险", "score": 5,
             "how_found": f"扫描进项发票品名，未找到设备/机器/电脑/车辆/家具/空调/装修等固定资产类采购。销项>{total_sales:,.2f}元触发。",
             "detail": f"销项{total_sales:,.2f}元，但无任何固定资产采购记录。",
@@ -773,7 +773,7 @@ def _domain_invoice_deep(invoices):
         if any(k in g for k in sensitive_kws):
             sensitive.append(i)
     total = len(invoices)
-    if total > 0 and len(sensitive) / total > 0.3:
+    if total > 0 and len(sensitive) / total > T.ratios.material_deviation:
         s_total = sum(i.get("total", 0) for i in sensitive)
         findings.append({"type": "服务类发票占比异常", "level": "中风险", "score": 7,
         "how_found": "扫描进项发票的货物名称，检测是否包含咨询、服务费、技术、设计、广告、推广、策划等关键词。计算服务类发票占比，超过30%触发预警。",
@@ -784,7 +784,7 @@ def _domain_invoice_deep(invoices):
             "suggestion": "1）逐笔核实服务类发票对应的服务合同、服务成果及验收记录；2）大额服务采购应保留比价记录和供应商资质文件；3）关联方之间的服务交易应特别注意符合独立交易原则；4）建议适当降低服务类发票占比，增加实物类采购比重。",
             "category": "域13 发票深度"})
     general = sum(1 for i in invoices if "普通" in str(i.get("inv_type", "")))
-    if total > 0 and general / total > 0.8:
+    if total > 0 and general / total > T.ratios.dominant:
         findings.append({"type": "普通发票占比过高", "level": "中风险", "score": 6,
         "how_found": "统计所有发票中发票类型包含'普通'字样的数量及占比。超过80%触发预警。",
             "detail": f"{general}/{total}张普通发票（{general/total*100:.2f}%），可抵扣的专用发票仅{total-general}张。",
@@ -1146,7 +1146,7 @@ def _analyze_contract_tiers(pur_invs, sal_invs):
         
         # ── 第3层：重要费用品名 + 金额>5000 → 应签合同 ──
         if any(kw in goods_text for kw in IMPORTANT_EXPENSE_KWS):
-            if amt > 5000:
+            if amt > T.amount_thresholds.tiny_transaction:
                 should_contract.append((name, amt, f'重要费用(设备/服务/维修等) {amt:,.2f}元'))
             else:
                 may_skip.append((name, amt, f'小额服务({amt:,.2f}元)'))
@@ -1155,7 +1155,7 @@ def _analyze_contract_tiers(pur_invs, sal_invs):
         # ── 第4层：纯金额判断 ──
         if amt > 50000:
             must_contract.append((name, amt, f'重大支出({amt:,.2f}元)品名不明确'))
-        elif amt > 20000:
+        elif amt > T.amount_thresholds.tiny_transaction * 4:
             should_contract.append((name, amt, f'中等支出({amt:,.2f}元)建议合同'))
         else:
             may_skip.append((name, amt, f'小额({amt:,.2f}元)'))
@@ -1196,12 +1196,12 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
         pay_no_inv = []
         for name, amt in sorted(bank_payees.items(), key=lambda x: -x[1]):
             matched = any(name[:6] in s for s in inv_sellers)
-            if not matched and amt > 5000:
+            if not matched and amt > T.amount_thresholds.tiny_transaction:
                 pay_no_inv.append(f"{name}({amt:,.2f}元)")
         inv_no_pay = []
         for name, amt in sorted(inv_sellers.items(), key=lambda x: -x[1]):
             matched = any(name[:6] in p for p in bank_payees)
-            if not matched and amt > 5000:
+            if not matched and amt > T.amount_thresholds.tiny_transaction:
                 inv_no_pay.append(f"{name}({amt:,.2f}元)")
 
         if pay_no_inv:
@@ -1274,7 +1274,7 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
         ss_people = len(set(s.get("name", "") for s in social_security)) if social_security else 0
         if bank_salary > 0 and total_salary > 0:
             ratio = bank_salary / max(total_salary, 1)
-            if ratio < 0.5 or ratio > 2:
+            if ratio < T.ratios.half or ratio > T.ratios.double_ratio:
                 findings.append({
                     "type": "工资发放与银行记录不匹配（三源交叉）",
                     "level": "中风险", "score": 7,
@@ -1462,7 +1462,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
     # 检查银行收款中无对应开票的客户
     for payer_key, bank_data in bank_by_payer.items():
         credit = bank_data["credit"]
-        if credit < 100000:
+        if credit < T.amount_thresholds.medium_transaction:
             continue
         matched = False
         for buyer_key in inv_by_buyer:
@@ -1803,7 +1803,7 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
     # ── 规则6: 发票备注栏合规检测 ──
     if sal_invs:
         no_remark = sum(1 for inv in sal_invs if not inv.get("remark", "").strip())
-        if sal_invs and no_remark / len(sal_invs) > 0.5:
+        if sal_invs and no_remark / len(sal_invs) > T.ratios.half:
             findings.append({
                 "type": "发票备注栏信息缺失",
                 "level": "低风险", "score": 3,
@@ -1867,7 +1867,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     })
     
     # 未开票收入占比过大
-    if vr_total > 0 and vr_uninvoiced / vr_total > 0.3:
+    if vr_total > 0 and vr_uninvoiced / vr_total > T.ratios.material_deviation:
         pct = vr_uninvoiced / vr_total * 100
         findings.append({
             "type": "未开票收入占比过高",
@@ -1884,7 +1884,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     # 凭证开票收入 vs 销项发票差异
     if vr_invoiced > 0 and inv_total > 0:
         gap = abs(vr_invoiced - inv_total)
-        if gap / max(vr_invoiced, 1) > 0.1:
+        if gap / max(vr_invoiced, 1) > T.ratios.minor_deviation:
             findings.append({
                 "type": "凭证开票收入与发票金额不一致",
                 "level": "高风险", "score": 8,
@@ -2496,7 +2496,7 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
     per_person_revenue = vr_total / max(emp_count, 1)
     
     if emp_count > 0 and vr_total > 0:
-        if per_person_revenue > 500000:
+        if per_person_revenue > T.amount_thresholds.large_transaction:
             findings.append({
                 "type": "人均营收异常高——人员不足或收入虚高",
                 "level": "中风险", "score": 5,
@@ -2506,7 +2506,7 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
                 "suggestion": "① 如存在外包/派遣人员，补充相关合同和付款凭证；② 核实收入确认口径是否准确。",
                 "category": "人员画像"
             })
-        elif per_person_revenue < 100000 and vr_total > 100000:
+        elif per_person_revenue < 100000 and vr_total > T.amount_thresholds.medium_transaction:
             findings.append({
                 "type": "人均营收过低——人员冗余或收入少记",
                 "level": "中风险", "score": 5,
@@ -3418,7 +3418,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
     if suppliers:
         total_pur = sum(supplier_amounts.values())
         top3_ratio = sum(a for _, a in sorted(supplier_amounts.items(), key=lambda x: -x[1])) / max(total_pur, 1)
-        if top3_ratio > 0.7:
+        if top3_ratio > T.industry_thresholds.concentration_high:
             findings.append({
                 "type": f"前3大供应商占比{top3_ratio*100:.2f}%——高度集中",
                 "level": "中风险", "score": 6,
@@ -3451,7 +3451,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
     if customers:
         total_sal = sum(customer_amounts.values())
         top3_cust_ratio = sum(a for _, a in sorted(customer_amounts.items(), key=lambda x: -x[1])) / max(total_sal, 1)
-        if top3_cust_ratio > 0.8:
+        if top3_cust_ratio > T.ratios.dominant:
             findings.append({
                 "type": f"前3大客户占比{top3_cust_ratio*100:.2f}%——高度集中",
                 "level": "中风险", "score": 5,
@@ -3501,7 +3501,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
         sorted_suppliers = sorted(supplier_amounts.items(), key=lambda x: -x[1])
         for name, amt in sorted_suppliers:
             ratio = amt / max(sum(supplier_amounts.values()), 1)
-            if ratio > 0.3 and amt > 500000:
+            if ratio > 0.3 and amt > T.amount_thresholds.large_transaction:
                 findings.append({
                     "type": f"单一供应商'{name[:15]}'占采购额{ratio*100:.2f}%",
                     "level": "中风险", "score": 6,
@@ -4044,7 +4044,7 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         if oil_cost > 50000:
             dim_scores["经营真实度"]["score"] = min(100, dim_scores["经营真实度"]["score"] + 5)
             dim_scores["经营真实度"]["boost"] += f"油费{int(oil_cost)}元偏高; "
-        if third_party_ratio > 0.5:
+        if third_party_ratio > T.ratios.half:
             dim_scores["经营真实度"]["score"] = min(100, dim_scores["经营真实度"]["score"] + 8)
             dim_scores["经营真实度"]["boost"] += f"第三方收款占比{third_party_ratio:.0%}; "
         if pub2pri_ratio > 0.2:
@@ -4107,7 +4107,7 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
             m = sum(vals)/len(vals)
             if m > 0:
                 cv = math.sqrt(sum((x-m)**2 for x in vals)/len(vals)) / m
-                if cv > 0.5:
+                if cv > T.ratios.half:
                     dim_scores["行业偏离度"]["score"] = min(100, dim_scores["行业偏离度"]["score"]+5)
                     dim_scores["行业偏离度"]["boost"] += f"月度收入波动CV={cv:.2f}; "
         if total_tx > 20 and wkend/total_tx > 0.15:
@@ -4419,7 +4419,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             
             # 大额交易（>50万）
             max_amt = max(debit, credit)
-            if max_amt > 500000:
+            if max_amt > T.amount_thresholds.large_transaction:
                 large_txs.append({"date": d[:10], "amount": round(max_amt, 2), 
                                 "type": "支出" if debit > credit else "收款",
                                 "counterparty": cp[:30], "summary": summary[:30]})
@@ -9770,8 +9770,8 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
     biz_model = cp.get("biz_model", "")
     
     # ── 制造业必须有水电+运输 ──
-    if biz_model == "制造业" and total_sales > 1000000:
-        if not has_utility and total_purchases > 500000:
+    if biz_model == "制造业" and total_sales > T.amount_thresholds.micro_transaction000:
+        if not has_utility and total_purchases > T.amount_thresholds.large_transaction:
             findings.append({
                 "type": "经营实质-缺水电支出",
                 "level": "高风险",
@@ -9781,7 +9781,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
                 "suggestion": "核查企业实际经营场所、电表读数、水费单据",
                 "category": "经营实质深挖"
             })
-        if not has_transport and total_sales > 1000000:
+        if not has_transport and total_sales > T.amount_thresholds.micro_transaction000:
             findings.append({
                 "type": "经营实质-缺运输支出",
                 "level": "中风险",
@@ -9807,7 +9807,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
                     "suggestion": "核查是否有外协加工/外包/挂靠等未披露的安排",
                     "category": "经营实质深挖"
                 })
-        elif emp_count == 0 and total_sales > 1000000:
+        elif emp_count == 0 and total_sales > T.amount_thresholds.micro_transaction000:
             findings.append({
                 "type": "经营实质-无人工支出",
                 "level": "高风险",
@@ -9819,7 +9819,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
     # ── 运输费vs销量 ──
     if has_transport and total_sales > 0:
         transport_ratio = transport_total / total_sales * 100
-        if transport_ratio < 0.5 and biz_model == "制造业":
+        if transport_ratio < T.ratios.half and biz_model == "制造业":
             findings.append({
                 "type": "经营实质-运输费占比偏低",
                 "level": "低风险",
@@ -11349,7 +11349,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
                 numeric_count += 1
             except (ValueError, TypeError):
                 pass
-        if total > 0 and numeric_count / total > 0.7:
+        if total > 0 and numeric_count / total > T.industry_thresholds.concentration_high:
             numeric_cols += 1
             float_cols.append(k)
     
@@ -11393,7 +11393,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
             # 15-20位含数字+字母 = 税号
             elif _re_fp.match(r'^[0-9A-Z]{15,20}$', sv):
                 id_count += 1
-        if total > 0 and id_count / total > 0.5:
+        if total > 0 and id_count / total > T.ratios.half:
             id_pattern_cols += 1
     
     # 金额列检测（浮点数，非整数模式）
@@ -11412,7 +11412,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
                     nonzero_count += 1
             except (ValueError, TypeError):
                 pass
-        if total > 0 and float_count / total > 0.3:
+        if total > 0 and float_count / total > T.ratios.material_deviation:
             amount_cols += 1
     
     # 累计字段检测（行间数值递增）
@@ -11432,7 +11432,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
             if increasing and len(numeric_vals) >= 2:
                 first = numeric_vals[0]
                 last = numeric_vals[-1]
-                if first > 0 and last / first > 1.5:
+                if first > 0 and last / first > T.ratios.overtrade_ratio:
                     # 额外验证：检查是否有另一列也具有累计特征（多重确认）
                     # 如果只有一列累计可能是巧合，多列累计则很可能是税务累计
                     has_cumulative = True
@@ -11447,7 +11447,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
                         except: pass
                     if len(fvals) >= 2 and all(fvals[i] >= fvals[i-1] for i in range(1, min(len(fvals), 20))):
                         incr_cols += 1
-                if len(float_cols) > 0 and incr_cols / max(len(float_cols), 1) > 0.3:
+                if len(float_cols) > 0 and incr_cols / max(len(float_cols), 1) > T.ratios.material_deviation:
                     has_cumulative = True
     
     # 期间范围检测（成对日期列：开始日期+结束日期）
@@ -11548,7 +11548,7 @@ def _extract_structural_fingerprint(rows, fpath=None):
                 inv_count += 1
             elif sv.isdigit() and len(sv) >= 8:
                 inv_count += 1
-        if total > 0 and inv_count / total > 0.5:
+        if total > 0 and inv_count / total > T.ratios.half:
             invoice_no_like += 1
     
     return {
@@ -12106,7 +12106,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
             for tx in bank_txs:
                 amt = abs(float(tx.get("amount", 0) or 0))
                 summary = str(tx.get("summary", tx.get("raw", "")))
-                if amt > 100000 and any(k in summary for k in ["借款","贷款","融资","授信"]):
+                if amt > T.amount_thresholds.micro_transaction00 and any(k in summary for k in ["借款","贷款","融资","授信"]):
                     large_loans.append(amt)
         if large_loans:
             findings.append({
