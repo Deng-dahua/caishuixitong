@@ -3923,19 +3923,34 @@ def _run_analyze(company_id, db, progress_callback=None):
                     })
             result["report"]["invoice_tables"] = invoice_tables
             # 扣税凭证引擎：对全部进项发票做可抵扣/不可抵扣分类
-            all_pur_invs = pur_invs + (input_vat_deductions if 'input_vat_deductions' in dir() else [])
-            voucher_classification = _classify_purchase_voucher_distribution(all_pur_invs) if all_pur_invs else {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"无进项数据"}
+            try:
+                all_pur_invs = pur_invs + (input_vat_deductions if 'input_vat_deductions' in dir() else [])
+            except Exception:
+                all_pur_invs = pur_invs
+            try:
+                voucher_classification = _classify_purchase_voucher_distribution(all_pur_invs) if all_pur_invs else {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"无进项数据"}
+            except Exception:
+                voucher_classification = {"deductible_count":0,"non_deductible_count":0,"by_type":{},"deductible_types":[],"non_deductible_types":[],"summary":"分类失败"}
             result["report"]["invoice_counts"] = {
-                "sales": len(sal_invs), "purchases": len(all_pur_invs),
+                "sales": len(sal_invs) if 'sal_invs' in dir() else 0,
+                "purchases": len(all_pur_invs),
                 "core_cost": len(core_cost_invs) if 'core_cost_invs' in dir() and core_cost_invs else 0,
                 "major_expense": len(major_expense_invs) if 'major_expense_invs' in dir() and major_expense_invs else 0,
-                "deductible_vouchers": voucher_classification["deductible_count"],
-                "non_deductible_vouchers": voucher_classification["non_deductible_count"],
-                "voucher_types": voucher_classification["by_type"],
-                "voucher_summary": voucher_classification["summary"],
+                "deductible_vouchers": voucher_classification.get("deductible_count", 0),
+                "non_deductible_vouchers": voucher_classification.get("non_deductible_count", 0),
+                "voucher_types": voucher_classification.get("by_type", {}),
+                "voucher_summary": voucher_classification.get("summary", ""),
             }
     except Exception:
         pass
+    
+    # ══ 兜底：确保 invoice_counts 始终存在（即使上述分类失败）══
+    if "invoice_counts" not in result.get("report", {}):
+        result.setdefault("report", {})["invoice_counts"] = {
+            "sales": 0, "purchases": 0, "core_cost": 0, "major_expense": 0,
+            "deductible_vouchers": 0, "non_deductible_vouchers": 0,
+            "voucher_types": {}, "voucher_summary": ""
+        }
     
     # 注入 material_intel 到报告结果，供前端资金流渲染
     try:
