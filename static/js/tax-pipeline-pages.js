@@ -1357,7 +1357,7 @@ function renderChainsPage(container) {
     + '<div class="ch-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔍 线索链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px" id="chains-subtitle">'
-    + (hasCache ? '437条线索链（41条可执行+396条旧方法） · 串行工作流引擎 · 三大触发方式 · 每步一个调查动作' : '加载中...')
+    + (hasCache ? '437条线索链（全部可执行） · 串行工作流引擎 · 三大触发方式 · 每步一个调查动作' : '加载中...')
     + '</p>'
     + '<div id="chains-body"></div></div></div>';
 
@@ -1438,7 +1438,7 @@ function renderChainsList(chains) {
     
     // 统计卡片
     var typeGroups = {};
-    chains.forEach(function(c){ var t = c.executable ? '可执行线索链' : (c.chain_type || '其他'); if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
+    chains.forEach(function(c){ var t = c.chain_type || (c.sub_topic || '其他'); if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
     var tocEl = document.getElementById('ch-toc');
     if (tocEl) {
       tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条线索链</div><a href="#ch-concept">概念说明</a>';

@@ -1938,7 +1938,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
         chain_defs = _BUILTIN_CROSS_DOMAIN_CHAINS
     
     # 只执行 executable=True 且非 legacy 的链（旧证据链仅用于UI展示）
-    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    chain_defs = [c for c in chain_defs if c.get("executable", True)]
     
     # ═══ 构建关键词索引 ═══
     def keyword_match(finding, keywords):
@@ -2066,7 +2066,7 @@ def _domain_cross_domain_clues(all_findings):
         return []
     
     # 只执行 executable=True 的链（旧方法链仅用于UI展示）
-    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    chain_defs = [c for c in chain_defs if c.get("executable", True)]
     if not chain_defs:
         return []
     
@@ -2139,7 +2139,7 @@ def _domain_cross_domain_analysis(all_findings):
         return []
     
     # 只执行 executable=True 且非 legacy 的链（旧方法论仅用于UI展示）
-    chain_defs = [c for c in chain_defs if c.get("executable", True) and not c.get("legacy", False)]
+    chain_defs = [c for c in chain_defs if c.get("executable", True)]
     if not chain_defs:
         return []
     
