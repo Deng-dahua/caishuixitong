@@ -1631,7 +1631,12 @@ function renderEvidenceList(chains) {
 
   // Populate TOC
   var tocEl = document.getElementById('ev-toc');
-  if (tocEl) { tocEl.innerHTML = '<div class="toc-title">📖 '+chains.length+' 条 ('+execChains.length+'可执行+'+legacyChains.length+'方法论)</div><a href="#ev-stats">统计总览</a>'; }
+  if (tocEl) {
+    tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条 (' + execChains.length + '可执行+' + legacyChains.length + '方法论)</div><a href="#ev-stats">统计总览</a>';
+    sortedPrefixes.forEach(function(p) {
+      tocEl.innerHTML += '<a href="#ev-grp-' + encodeURIComponent(p) + '">' + p + '<span class="cnt">' + groups[p].length + '</span></a>';
+    });
+  }
 
   var html = '';
 
@@ -1657,7 +1662,11 @@ function renderEvidenceList(chains) {
 
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
-      html += '<div style="margin-bottom:32px">';
+      var groupExec = groupChains.filter(function(c) { return c.executable !== false && !c.legacy; });
+      var groupLegacy = groupChains.filter(function(c) { return c.legacy; });
+      html += '<section id="ev-grp-' + encodeURIComponent(prefix) + '" style="margin-bottom:48px;scroll-margin-top:20px">';
+      html += '<h3 style="font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important">' + prefix
+        + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条' + (groupExec.length > 0 ? ' (' + groupExec.length + '可执行)' : '') + '</span></h3>';
 
       groupChains.forEach(function(c) {
         var evExec = evExecMap[c.name];
@@ -1801,7 +1810,7 @@ function renderEvidenceList(chains) {
         html += '</div>';
       });
 
-      html += '</div>';
+      html += '</section>';
     });
   }
 
