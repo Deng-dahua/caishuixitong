@@ -1438,7 +1438,7 @@ function renderChainsList(chains) {
     
     // 统计卡片
     var typeGroups = {};
-    chains.forEach(function(c){ var t = c.chain_type || '其他'; if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
+    chains.forEach(function(c){ var t = c.executable ? '可执行线索链' : (c.chain_type || '其他'); if(!typeGroups[t])typeGroups[t]=[]; typeGroups[t].push(c); });
     var tocEl = document.getElementById('ch-toc');
     if (tocEl) {
       tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条线索链</div><a href="#ch-concept">概念说明</a>';
