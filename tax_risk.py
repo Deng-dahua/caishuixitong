@@ -34,26 +34,9 @@ import os
 import calendar
 import io
 import tempfile
-import re as _tax_re_module
 
-# ═══ 统一城市列表（与 main.py 同步，同一来源）═══
-_TAX_CHINA_CITIES = sorted([
-    "广州","深圳","东莞","佛山","珠海","惠州","江门","中山","汕头","湛江","茂名","肇庆","揭阳","台山",
-    "福州","厦门","泉州","漳州",
-    "杭州","宁波","温州","嘉兴","绍兴","金华","台州","湖州","义乌",
-    "南京","苏州","无锡","常州","徐州","南通","扬州","盐城","泰州","镇江","吴江",
-    "济南","青岛","烟台","威海","潍坊","淄博","临沂",
-    "武汉","襄阳","宜城","长沙","株洲","湘潭","郑州","许昌","鄢陵","石家庄","唐山",
-    "太原","西安","咸阳","宝鸡","成都","绵阳","德阳","昆明","曲靖",
-    "贵阳","遵义","南宁","柳州","桂林","海口","三亚",
-    "合肥","芜湖","南昌","九江",
-    "沈阳","大连","鞍山","长春","吉林","哈尔滨","大庆",
-    "北京","天津","上海","重庆",
-    "呼和浩特","包头","乌鲁木齐","拉萨","兰州","西宁","银川","石嘴山",
-], key=lambda x: (-len(x), x))
-_TAX_CITY_REGEX = _tax_re_module.compile(r'(' + '|'.join(_tax_re_module.escape(c) for c in _TAX_CHINA_CITIES) + r')')
-
-from database import get_db, Company, Account, JournalEntry
+# ═══ 统一城市列表（与 main.py/shered_state 同步）═══
+from shared_state import _CHINA_CITIES_UNIFIED as _TAX_CHINA_CITIES, _CHINA_CITY_REGEX as _TAX_CITY_REGEX
 from database import SalesInvoice, PurchaseInvoice, BookkeepingInvoice
 from database import VATDeclaration, InputVATDeduction, BankTransaction
 from database import SalaryRecord, SocialSecurityDetail, HousingFundDetail
