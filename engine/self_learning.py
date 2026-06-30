@@ -696,8 +696,8 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
     # 高置信度规则自动写回源模块
     module_update_result = {"updated": False}
     try:
-        if correction_count >= 2 and rules[fingerprint]["confidence"] >= 0.80:
-            module_update_result = auto_update_module_content(min_confidence=0.80, min_corrections=2)
+        if correction_count >= 1 and rules[fingerprint]["confidence"] >= 0.60:
+            module_update_result = auto_update_module_content(min_confidence=0.60, min_corrections=1)
     except Exception:
         pass
     
