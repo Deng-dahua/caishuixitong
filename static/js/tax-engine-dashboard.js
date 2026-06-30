@@ -634,8 +634,9 @@ function editCorrectionRule(fingerprint, rowIndex) {
     });
 }
 
-function deleteCorrectionRule(fingerprint, rowIndex) {
-  if (!confirm('确定删除此纠正规则吗？删除后该类型的发现将恢复原始风险等级判断。')) return;
+function deleteCorrectionRule(fingerprint, rowIndex, correctionCount, industry) {
+  var msg = 'Delete this correction rule?\n\n' + correctionCount + ' corrections recorded' + (industry ? ' for ' + industry : '') + '.\n\nDeleted rules are archived to _deleted_correction_rules.json and can be restored.';
+  if (!confirm(msg)) return;
   fetch('/api/feedback/delete?fingerprint=' + fingerprint, { method: 'DELETE' })
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -1069,7 +1070,7 @@ function renderBrainTab() {
           h += '<td style="text-align:center">' + r.correction_count + '</td>';
           h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
           h += '<td>' + autoLabel + '</td>';
-          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="修改此纠正规则">✏</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="删除此纠正规则">🗑</button></td>';
+          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="Edit">Edit</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ',' + r.correction_count + ',\'' + (r.industry||'') + '\')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="Archive (recoverable)">Archive</button></td>';
           h += '</tr>';
         }
         h += '</table>';

@@ -7446,9 +7446,10 @@ def submit_feedback(data: dict):
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
-    """删除纠正规则 — 智能大脑纠正规则库的删除按钮调用"""
+    """软删除纠正规则 — 归档到 _deleted_correction_rules.json，不丢失数据"""
     from urllib.parse import unquote
     cr_file = os.path.join("static", "correction_rules.json")
+    archive_file = os.path.join("static", "_deleted_correction_rules.json")
     fingerprint = unquote(fingerprint)
     
     if not os.path.exists(cr_file):
@@ -7461,11 +7462,35 @@ def delete_correction_rule(fingerprint: str = ""):
         return {"ok": False, "message": f"未找到规则: {fingerprint}"}
     
     deleted_rule = rules.pop(fingerprint)
+    correction_count = len(deleted_rule.get("corrections", []))
+    
+    # 归档到删除记录（可恢复）
+    try:
+        if os.path.exists(archive_file):
+            with open(archive_file, "r", encoding="utf-8") as f:
+                archive = json.load(f)
+        else:
+            archive = {}
+        archive[fingerprint] = {
+            "deleted_at": datetime.now().isoformat(),
+            "rule": deleted_rule,
+            "correction_count": correction_count,
+            "industry": deleted_rule.get("industry", ""),
+            "finding_type": deleted_rule.get("finding_type", ""),
+        }
+        with open(archive_file, "w", encoding="utf-8") as f:
+            json.dump(archive, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
     
     with open(cr_file, "w", encoding="utf-8") as f:
         json.dump(rules, f, ensure_ascii=False, indent=2)
     
-    return {"ok": True, "deleted": fingerprint, "rule": deleted_rule.get("corrections", [{}])[-1].get("reason", "")[:60]}
+    return {
+        "ok": True, "deleted": fingerprint, "correction_count": correction_count,
+        "reason_sample": deleted_rule.get("corrections", [{}])[-1].get("reason", "")[:60],
+        "note": f"已归档{correction_count}条纠正记录，可从 _deleted_correction_rules.json 恢复"
+    }
 
 
 @app.put("/api/feedback/update")
