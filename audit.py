@@ -198,9 +198,10 @@ def _check_account_names(db, company_id):
 
 
 def _check_archive_locks(db, company_id):
-    """检查被序时账引用的档案是否有锁定标记"""
+    """检查被序时账引用的档案（人员/客户/供应商）是否有锁定标记"""
     errors = []
-    # 收集序时账中出现的人员/客户/供应商名称
+    
+    # 收集序时账中引用的人员/客户/供应商名称
     je_contacts = set()
     for (cp,) in db.query(JournalEntry.contact_project).filter(
         JournalEntry.company_id == company_id,
@@ -209,13 +210,48 @@ def _check_archive_locks(db, company_id):
     ).distinct().all():
         if cp:
             je_contacts.add(cp.strip())
-
-    # 检查客户
-    for cust in db.query(Customer).filter(Customer.company_id == company_id).all():
+    
+    if not je_contacts:
+        return errors  # 无数据时不误报
+    
+    # 检查客户档案
+    customers = db.query(Customer).filter(Customer.company_id == company_id).all()
+    for cust in customers:
         if cust.name and cust.name in je_contacts:
-            # 检查 API 是否返回 has_journal (通过调用 API 太复杂，这里只标记)
-            pass
-
+            # 检查该客户是否在序时账中有可以删除的引用（即未被锁定的）
+            ref_count = db.query(JournalEntry).filter(
+                JournalEntry.company_id == company_id,
+                JournalEntry.contact_project == cust.name
+            ).count()
+            # 如果客户被引用但没有is_active标记或标记为不可删除
+            if ref_count > 0 and hasattr(cust, 'is_active') and cust.is_active is False:
+                errors.append(f"[档案锁定缺失] 客户{cust.name}被{ref_count}条分录引用但标记为非活跃，建议锁定")
+            elif ref_count > 0 and not hasattr(cust, 'is_active'):
+                # 客户被引用但没有锁定机制，至少记录引用关系
+                pass  # 当前模型可能没有is_active字段，不做误报
+    
+    # 检查供应商档案
+    suppliers = db.query(Supplier).filter(Supplier.company_id == company_id).all()
+    for supp in suppliers:
+        if supp.name and supp.name in je_contacts:
+            ref_count = db.query(JournalEntry).filter(
+                JournalEntry.company_id == company_id,
+                JournalEntry.contact_project == supp.name
+            ).count()
+            if ref_count > 0 and hasattr(supp, 'is_active') and supp.is_active is False:
+                errors.append(f"[档案锁定缺失] 供应商{supp.name}被{ref_count}条分录引用但标记为非活跃，建议锁定")
+    
+    # 检查人员档案
+    employees = db.query(Employee).filter(Employee.company_id == company_id).all()
+    for emp in employees:
+        if emp.name and emp.name in je_contacts:
+            ref_count = db.query(JournalEntry).filter(
+                JournalEntry.company_id == company_id,
+                JournalEntry.contact_project == emp.name
+            ).count()
+            if ref_count > 0 and hasattr(emp, 'is_active') and emp.is_active is False:
+                errors.append(f"[档案锁定缺失] 人员{emp.name}被{ref_count}条分录引用但标记为非活跃，建议锁定")
+    
     return errors
 
 
