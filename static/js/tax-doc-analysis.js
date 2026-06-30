@@ -733,6 +733,56 @@ async function analyzeTaxDocs() {
 }
 
 // ==================== 报告渲染 ====================
+
+// 智能判断稽查涉及税种（根据主营业务+实际数据分析）
+function _detectTaxScope(r, te) {
+  var taxes = ['增值税'];
+  var industry = (te.industry || '').toString();
+  var scope = (te.business_scope || te.biz_scope || '').toString();
+  var companyType = (te.company_type || '').toString();
+  var files = r.files || [];
+  var fileTypes = files.map(function(f){return f.type||f.file_type||''});
+  
+  // 附加税：增值税必有
+  taxes.push('城市维护建设税','教育费附加','地方教育附加');
+  
+  // 企业所得税：所有企业
+  taxes.push('企业所得税');
+  
+  // 个人所得税：有工资表或社保数据
+  var hasSalary = fileTypes.some(function(t){return t==='salary'||t==='工资表'});
+  var hasSS = fileTypes.some(function(t){return t==='social_security'||t==='社保'});
+  if (hasSalary || hasSS) taxes.push('个人所得税');
+  
+  // 印花税：有购销合同、借款合同等
+  var hasContracts = fileTypes.some(function(t){return t==='contract'||t==='合同'});
+  var hasBank = fileTypes.some(function(t){return t==='bank_statement'||t==='bank_transactions'||t==='银行流水'});
+  if (hasContracts || hasBank) taxes.push('印花税');
+  
+  // 房产税：制造业/建筑业/零售业有固定资产
+  var hasFixedAsset = fileTypes.some(function(t){return t==='fixed_asset'||t==='固定资产'||t==='fixed_assets'});
+  var isManufacturing = /制造|加工|生产|纺织|服装|电子|机械|化工|建材/.test(industry + scope);
+  if (hasFixedAsset || isManufacturing) taxes.push('房产税','城镇土地使用税');
+  
+  // 社会保险费
+  if (hasSS) taxes.push('社会保险费','住房公积金');
+  
+  // 文化事业建设费：广告/娱乐/传媒行业
+  if (/广告|娱乐|传媒|文化|影视|媒体/.test(industry + scope)) taxes.push('文化事业建设费');
+  
+  // 出口退税：有出口业务或外贸行业
+  var hasExport = fileTypes.some(function(t){return t==='export_vat'||t==='出口退税'});
+  if (hasExport || /出口|外贸|进出口/.test(scope)) taxes.push('出口退(免)税');
+  
+  // 消费税：烟酒/化妆品/成品油等行业
+  if (/烟|酒|化妆品|成品油|汽车|摩托车|轮胎|电池|涂料/.test(scope)) taxes.push('消费税');
+  
+  // 环保税：排污企业
+  if (/化工|印染|电镀|造纸|采矿|冶炼/.test(scope)) taxes.push('环境保护税');
+  
+  return taxes;
+}
+
 function renderTaxDocReport(r) {
   var area = document.getElementById('tda-report-area');
   if (!area || !r) return;
@@ -999,7 +1049,7 @@ function _renderReportFallback(r, allF) {
   var scope = te.business_scope || te.biz_scope || '';
   if (scope) h += '<tr><td class="lbl">经营范围</td><td>' + scope + '</td></tr>';
   h += '<tr><td class="lbl">稽查期间</td><td>' + (te.period || '全量数据分析期间') + '</td></tr>';
-  h += '<tr><td class="lbl">稽查范围</td><td>增值税及附加、企业所得税、个人所得税、社会保险费</td></tr>';
+  h += '<tr><td class="lbl">稽查范围</td><td>' + _detectTaxScope(r, te).join('、') + '</td></tr>';
   h += '<tr><td class="lbl">执行标准</td><td>《税务稽查工作规程》（国税发[2009]157号）、《税收征收管理法》及其实施细则</td></tr>';
   h += '</table>';
 

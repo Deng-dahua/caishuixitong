@@ -3,6 +3,30 @@
 //  让报告从硬编码变成可自由装配的模块化系统
 // ═══════════════════════════════════════════════════════════════
 
+// 智能判断税种范围（根据公司行业+文件类型自适应）
+function _modulesDetectTaxScope(data) {
+  var taxes = ['增值税','城市维护建设税','教育费附加','地方教育附加','企业所得税'];
+  var industry = (data.company_type||'') + (data.industry||'');
+  var scope = data.business_scope || '';
+  
+  var hasSalary = /工资|salary/i.test(data.file_types||'');
+  var hasSS = /社保|social/i.test(data.file_types||'');
+  var hasAsset = /固定资产|fixed_asset/i.test(data.file_types||'');
+  var hasContract = /合同|contract/i.test(data.file_types||'');
+  var hasBank = /银行|bank/i.test(data.file_types||'');
+  
+  if (hasSalary || hasSS) taxes.push('个人所得税');
+  if (hasSS) taxes.push('社会保险费','住房公积金');
+  if (hasContract || hasBank) taxes.push('印花税');
+  if (hasAsset || /制造|加工|生产|纺织|建材/.test(industry+scope)) taxes.push('房产税','城镇土地使用税');
+  if (/广告|娱乐|传媒|文化/.test(industry+scope)) taxes.push('文化事业建设费');
+  if (/出口|外贸|进出口/.test(scope)) taxes.push('出口退(免)税');
+  if (/烟|酒|化妆品|成品油/.test(scope)) taxes.push('消费税');
+  if (/化工|印染|电镀|造纸/.test(scope)) taxes.push('环境保护税');
+  
+  return taxes;
+}
+
 var ReportEngine = (function() {
   'use strict';
 
@@ -634,8 +658,9 @@ var ReportEngine = (function() {
         h += '<tr><td class="lbl">' + nf[0] + '</td><td style="color:#9ca3af">' + nf[1] + '</td></tr>';
       });
 
+      var scopeTaxes = _modulesDetectTaxScope(data);
       h += '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
-        + '<tr><td class="lbl">稽查范围</td><td>' + data.files_count + '份经营资料</td></tr>'
+        + '<tr><td class="lbl">稽查范围</td><td>涉税范围：' + scopeTaxes.join('、') + '（共' + data.files_count + '份经营资料）</td></tr>'
         + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
         + '</table>';
 
