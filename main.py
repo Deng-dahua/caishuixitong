@@ -135,7 +135,7 @@ _AUTH_SESSIONS = _load_sessions()
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/static/", "/favicon.ico"]
+    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
         return await call_next(request)
     is_api = path.startswith("/api/")
