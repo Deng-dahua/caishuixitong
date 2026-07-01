@@ -311,28 +311,22 @@ window.enterApp = enterApp;  // 确保全局可访问
 
 // ═══ API Key状态检查 ═══
 function checkApiKeyStatus() {
-  fetch('/api/apikey')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      var dot = document.getElementById('api-status-dot');
-      var txt = document.getElementById('api-status-text');
-      if (!dot || !txt) return;
-      if (data.ok && data.key) {
-        dot.style.background = '#4ade80';
-        txt.textContent = '已接入API Key';
-        txt.style.color = '#4ade80';
-      } else {
-        dot.style.background = '#94a3b8';
-        txt.textContent = '未接入API Key';
-        txt.style.color = '#94a3b8';
-      }
-    })
-    .catch(function(){
-      var dot = document.getElementById('api-status-dot');
-      var txt = document.getElementById('api-status-text');
-      if (dot) dot.style.background = '#ef4444';
-      if (txt) { txt.textContent = '检测失败'; txt.style.color = '#ef4444'; }
-    });
+  var dot = document.getElementById('api-status-dot');
+  var txt = document.getElementById('api-status-text');
+  if (!dot || !txt) return;
+  
+  // 直接读取服务器注入的状态，不走异步请求
+  var status = window._apiKeyStatus;
+  if (status && status.has_key) {
+    dot.style.background = '#4ade80';
+    txt.textContent = status.status_text || '已接入API Key';
+    txt.style.color = '#4ade80';
+  } else if (status && !status.has_key) {
+    dot.style.background = '#94a3b8';
+    txt.textContent = status.status_text || '未接入API Key';
+    txt.style.color = '#94a3b8';
+  }
+  // 如果window._apiKeyStatus不存在（旧缓存），保持HTML默认显示
 }
 
 async function exitCompany() {

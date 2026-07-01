@@ -571,8 +571,13 @@ def _read_html(filename):
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """直接进入系统"""
-    return _read_html("static/index.html")
+    """直接进入系统，注入API Key状态"""
+    html = _read_html("static/index.html")
+    key = _load_api_key()
+    has_key = bool(key)
+    inject = f'\n<script>window._apiKeyStatus = {{has_key: {str(has_key).lower()}, status_text: "{("已接入API Key" if has_key else "未接入API Key")}"}};</script>\n</body>'
+    html = html.replace("</body>", inject)
+    return html
 
 @app.get("/api/pinyin")
 def get_pinyin(name: str = Query(...)):
