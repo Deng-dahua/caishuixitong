@@ -4426,9 +4426,10 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
     
     # 段落追问模式：基于段落文本+全报告上下文回答
     if finding_index < 0 and paragraph_text:
-        target_entity = report.get("target_entity", {})
-        comprehensive = report.get("comprehensive", {})
-        analysis_blocks = []
+        # result结构: {"ok": True, "report": {target_entity, comprehensive, all_findings, ...}}
+        report_data = report.get("report", {})
+        target_entity = report_data.get("target_entity", {})
+        comprehensive = report_data.get("comprehensive", {})
         
         # 构建上下文摘要（安全取值，防止KeyError）
         ctx_parts = []
@@ -4442,41 +4443,93 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
             ctx_parts.append(f"风险评分: {comprehensive.get('risk_score')}/100")
         context_summary = "；".join(ctx_parts) if ctx_parts else "暂无企业画像数据"
         
-        # 查找段落相关的发现
-        all_findings = report.get("all_findings", []) or report.get("findings", [])
+        analysis_blocks = []
+        
+        # 查找全报告中与问题相关的内容
+        all_findings = report_data.get("all_findings", []) or report.get("findings", [])
+        
+        # 从问题中提取关键词
+        qwords = [w for w in question.replace('？','').replace('?','').replace('的','').replace('了','').split() if len(w) >= 2]
+        
+        # 搜索 all_findings 中与问题关键词匹配的内容
         relevant_findings = []
-        for f in all_findings[:20]:
+        for f in all_findings:
+            ftext = str(f.get("type","")) + " " + str(f.get("detail","")) + " " + str(f.get("description","")) + " " + str(f.get("suggestion",""))
+            score = sum(1 for kw in qwords if kw in ftext)
+            if score >= 2:
+                relevant_findings.append((score, f))
+        
+        relevant_findings.sort(key=lambda x: -x[0])
+        
+        # 也在段落本身内容中搜索
+        para_findings = []
+        for f in all_findings:
             ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description",""))
-            if any(kw in ftext for kw in paragraph_text[:30].split() if len(kw) >= 2):
-                relevant_findings.append(f)
+            if any(kw in ftext for kw in paragraph_text[:50].split() if len(kw) >= 2):
+                para_findings.append(f)
         
         # 构建回答
         analysis_blocks.append({
             "title": "📋 段落内容",
-            "content": paragraph_text[:300]
+            "content": paragraph_text[:400]
         })
         analysis_blocks.append({
             "title": "🏢 分析上下文",
             "content": context_summary or "（暂无企业画像数据）"
         })
         
+        # 优先展示与问题关键词匹配的发现
         if relevant_findings:
             blocks = []
-            for f in relevant_findings[:5]:
-                blocks.append(f"• {f.get('type','')} [{f.get('level','')}]: {f.get('detail','')[:100]}")
+            for score, f in relevant_findings[:5]:
+                blocks.append(f"• {f.get('type','')} [{f.get('level','')}] (匹配度{score}): {f.get('detail','')[:150]}")
             analysis_blocks.append({
-                "title": f"🔗 关联发现（{len(relevant_findings)}条）",
+                "title": f"🔗 问题相关发现（{len(relevant_findings)}条）",
+                "content": "\n".join(blocks) or "（无详情）"
+            })
+        elif para_findings:
+            blocks = []
+            for f in para_findings[:5]:
+                blocks.append(f"• {f.get('type','')} [{f.get('level','')}]: {f.get('detail','')[:150]}")
+            analysis_blocks.append({
+                "title": f"🔗 段落关联发现（{len(para_findings)}条）",
                 "content": "\n".join(blocks) or "（无详情）"
             })
         else:
-            analysis_blocks.append({
-                "title": "📝 引擎回答",
-                "content": f"关于「{question[:60]}」，该段落内容与稽查报告整体上下文关联。\n\n上下文：{context_summary}\n\n如需更详细的分析，请指定具体的发现项进行追问，或通过编辑按钮对段落内容进行纠正。"
-            })
+            # 尝试搜索整个报告的相关内容
+            material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
+            domain_summary = report_data.get("domain_summary", [])
+            
+            summary_lines = []
+            for ds in domain_summary[:10]:
+                if ds.get("findings"):
+                    for f in ds["findings"]:
+                        ftext = str(f.get("type","")) + str(f.get("detail",""))
+                        if any(kw in ftext for kw in qwords):
+                            summary_lines.append(f"[{ds.get('name','')}] {f.get('type','')}: {f.get('detail','')[:100]}")
+                            if len(summary_lines) >= 5:
+                                break
+                if len(summary_lines) >= 5:
+                    break
+            
+            if summary_lines:
+                analysis_blocks.append({
+                    "title": "🔍 全报告搜索匹配",
+                    "content": "\n".join(summary_lines)
+                })
+            else:
+                analysis_blocks.append({
+                    "title": "📝 引擎回答",
+                    "content": f"关于「{question[:80]}」，未在全报告中发现直接匹配的发现项。\n\n报告上下文：{context_summary}\n\n该段落属于「{paragraph_text[:50]}...」，如需深入分析，请使用编辑按钮补充更多信息。"
+                })
         
         return {"ok": True, "analysis": analysis_blocks}
     
-    findings = report.get("findings", [])
+    # 注意: result = {"ok": True, "report": {all_findings, target_entity, ...}}
+    # cached = {"report": result, ...}, 所以 report = result
+    # 实际数据在 result["report"] = report_data 中
+    report_data = report.get("report", {})
+    findings = report_data.get("all_findings", report.get("findings", []))
     if finding_index >= len(findings):
         return {"ok": False, "message": f"发现#{finding_index}不存在，共{len(findings)}条"}
 
