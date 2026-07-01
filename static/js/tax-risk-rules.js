@@ -341,15 +341,6 @@ function renderTaxRiskRulesList() {
         + (rule.detectable !== undefined ? '<span>' + (rule.detectable ? '✅ 可自动检测' : '⚠️ 需人工') + '</span>' : '')
         + '</div>'
         + '</div>';
-
-        // 底栏
-        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
-        + (rule.tax_impact ? '<span><span style="color:#64748b">税务影响：</span>' + escHtml(rule.tax_impact.substring(0, 120)) + (rule.tax_impact.length > 120 ? '...' : '') + '</span>' : '')
-        + (rule.policy_ref ? '<span><span style="color:#64748b">法条：</span>' + escHtml(rule.policy_ref.substring(0, 100)) + (rule.policy_ref.length > 100 ? '...' : '') + '</span>' : '')
-        + (rule.dataSource ? '<span><span style="color:#64748b">数据源：</span>' + escHtml(rule.dataSource) + '</span>' : '')
-        + (rule.detectable !== undefined ? '<span>' + (rule.detectable ? '✅ 可自动检测' : '⚠️ 需人工') + '</span>' : '')
-        + '</div>'
-        + '</div>';
     });
 
     html += '</div>';

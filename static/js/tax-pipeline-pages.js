@@ -2429,42 +2429,36 @@ function loadCrossDomainAnalysis() {
           + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + c.level + '</span>'
           + '</div>'
 
-          // 触发信号
-          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发信号：</span>' + escHtml(c.trigger_signal) + '</div>'
+          // 触发关键词（实际字段是trigger_keywords数组）
+          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">触发关键词：</span>' + escHtml((c.trigger_keywords||[]).join(' · ')) + '</div>'
 
           // 描述
-          + '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>'
+          + (c.description ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>' : '')
 
-          // 推理链
+          // 推理链（实际字段是reasoning_path，子字段在action嵌套对象中）
           + '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px">'
-          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + (c.reasoning_chain||[]).length + ' 步</div>';
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + (c.reasoning_path||[]).length + ' 步</div>';
 
-        (c.reasoning_chain||[]).forEach(function(s, si) {
+        (c.reasoning_path||[]).forEach(function(s, si) {
+          var act = s.action || {};
           html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:2.0">'
-            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + s.order + '</span>'
-            + '<span style="font-weight:600;color:#2563eb">' + escHtml(s.from) + '</span>'
+            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + (act.order || s.step || '') + '</span>'
+            + '<span style="font-weight:600;color:#2563eb">' + escHtml(act.from || s.domain || '') + '</span>'
             + '<span style="color:#94a3b8"> → </span>'
-            + '<span style="font-weight:600;color:#7c3aed">' + escHtml(s.to) + '</span>'
-            + '<div style="color:#64748b;margin-top:2px">发现：' + escHtml(s.finding) + '</div>'
-            + '<div style="color:#94a3b8;font-size:12px">动作：' + escHtml(s.action) + '</div>'
+            + '<span style="font-weight:600;color:#7c3aed">' + escHtml(act.to || '') + '</span>'
+            + (act.finding ? '<div style="color:#64748b;margin-top:2px">发现：' + escHtml(act.finding) + '</div>' : '')
+            + (act.action ? '<div style="color:#94a3b8;font-size:12px">动作：' + escHtml(act.action) + '</div>' : '')
             + '</div>';
-          if (si < (c.reasoning_chain||[]).length - 1) {
+          if (si < (c.reasoning_path||[]).length - 1) {
             html += '<div style="text-align:center;color:#94a3b8;font-size:18px;padding:4px 0">↓</div>';
           }
         });
         html += '</div>'
 
-          // 回退点
-          + '<div style="padding:12px 16px;background:#f0fdf4;border-radius:6px;margin-bottom:8px">'
-          + '<div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:6px">回退点 · ' + (c.reversal_points||[]).length + ' 处</div>';
-        (c.reversal_points||[]).forEach(function(r) {
-          html += '<div style="padding:4px 0;font-size:13px;color:#475569;line-height:2.0">'
-            + '<span style="color:#94a3b8;font-size:12px">Step ' + r.at_step + '</span>'
-            + '<span style="color:#059669;font-weight:600"> 如果</span> ' + escHtml(r.if)
-            + '<span style="color:#059669;font-weight:600"> → 则</span> ' + escHtml(r.then)
-            + '</div>';
-        });
-        html += '</div>'
+          // 处理建议 / 法律依据 / 纳税影响
+          + (c.suggestion ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
+          + (c.policy_ref ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">法律依据：</span>' + escHtml(c.policy_ref) + '</div>' : '')
+          + (c.tax_impact ? '<div style="font-size:13px;color:#64748b;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">纳税影响：</span>' + escHtml(c.tax_impact) + '</div>' : '')
 
           // 方法论
           + (c.methodology ? '<div style="font-size:12px;color:#94a3b8">关联方法论：' + escHtml(c.methodology) + '</div>' : '')

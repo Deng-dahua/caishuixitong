@@ -1069,20 +1069,39 @@ MODULE_PATHS = {
     "audit_methodology": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_clues.json"),  # 方法论写入线索链
 }
 
+# ── 协商规则名→模块精确映射 ──
+RULE_NAME_TO_MODULE = {
+    "服务行业闸门消解":           ("evidence_chains",  "证据链—服务行业域过滤规则"),
+    "单源数据限制降级":           ("evidence_chains",  "证据链—单源信号置信度规则"),
+    "小额交易程度降级":           ("evidence_chains",  "证据链—小额交易过滤阈值"),
+    "多域交叉验证升级":           ("analysis_chains",  "分析链—多域交叉验证规则"),
+    "行业基准对标降级":           ("evidence_chains",  "证据链—行业基准对标阈值"),
+    "资料缺口降级+标记":          ("evidence_chains",  "证据链—资料完备度标记规则"),
+    "同源互斥消解":               ("analysis_chains",  "分析链—矛盾结论消解规则"),
+    "加工链合理性防御降级":       ("evidence_chains",  "证据链—加工费合理性规则"),
+    "新成立企业时限豁免":         ("thresholds",       "阈值配置—新企业缓冲时限"),
+    "稽查重点强制保留":           ("tax_rules",        "稽查指令—12类重点强制保留"),
+    "现金交易模式识别升级":       ("evidence_chains",  "证据链—现金模式触发规则"),
+    "关联方交易穿透升级":         ("analysis_chains",  "分析链—关联方穿透规则"),
+    "发票时间倒挂消解":           ("evidence_chains",  "证据链—发票时间容差规则"),
+    "个体工商户规模豁免":         ("thresholds",       "阈值配置—个体户规模豁免"),
+    "三流不一致综合消解":         ("evidence_chains",  "证据链—三流解释规则"),
+}
+
 def classify_correction_to_module(finding_type, reason, industry):
     """
     根据发现类型和纠正原因，自动判定应写入哪个模块。
     
-    分类规则（全覆盖15模块中的可写模块）：
-    - 提到"阈值"/"触发"/"门限" → evidence_chains
-    - 提到"调查步骤"/"检查流程" → clue_chains
-    - 提到"法规"/"法条"/"政策" → tax_rules（1608稽查指令）
-    - 提到"综合判定"/"推理"/"交叉验证" → analysis_chains
-    - 提到"关键词"/"品类"/"品名"/"词典" → engine_memory（关键词列表）
-    - 提到"税率"/"扣除率"/"加计"/"金额" → thresholds（税率阈值配置）
-    - 提到"方法"/"流程"/"步骤" → audit_methodology（稽查方法论）
-    - 默认 → correction_rules（不写回自身）
+    分级判定：
+    1. 精确匹配：检查 finding_type 是否在15条协商规则名中
+    2. 关键词匹配：按原有6类关键词判定
+    3. 兜底：correction_rules（不写回自身）
     """
+    # 1. 精确匹配——协商规则名直接映射
+    if finding_type in RULE_NAME_TO_MODULE:
+        return RULE_NAME_TO_MODULE[finding_type]
+    
+    # 2. 关键词匹配
     text = (finding_type + " " + reason).lower()
     
     if any(kw in text for kw in ["阈值", "触发率", "触发条件", "门限", "threshold", "trigger", "min_evidence"]):
@@ -1182,8 +1201,24 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
                                      f"{change_type}：{reason[:100]}（行业:{industry}，置信度:{rule['confidence']:.0%}）"
                         if update_note not in item["description"]:
                             item["description"] += update_note
-                            updated = True
+                    updated = True  # 已匹配到条目→阻止重复创建
                     break
+        
+        # dict模块：检查是否已有同key（防重复）
+        if not updated and module_path.endswith(".json") and isinstance(module_data, dict):
+            safe_key = f"_auto_{ftype[:20].replace(' ','_').replace('/','_')}"
+            if safe_key in module_data:
+                updated = True  # key已存在→跳过，不重复写入
+            else:
+                module_data[safe_key] = {
+                    "name": f"[引擎自学习]{ftype}",
+                    "description": f"自动生成规则 — {change_type}（来源:{industry}行业{rule.get('biz_model','')}型，置信度{rule['confidence']:.0%}）\n原发现:{ftype}\n纠正:{corrected_risk}\n原因:{reason[:200]}",
+                    "auto_generated": True,
+                    "generated_at": datetime.now().isoformat(),
+                    "source_industry": industry,
+                    "confidence": rule["confidence"],
+                }
+                updated = True
         
         # JSON模块：没找到匹配条目→追加新条目
         if not updated and module_path.endswith(".json") and isinstance(module_data, list):

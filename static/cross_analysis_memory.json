@@ -5536,6 +5536,210 @@
         "经营实质-工商登记与发票推断不一致"
       ],
       "timestamp": "2026-07-01T17:11:24.212834"
+    },
+    {
+      "trace_id": "8b14ade4",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:37:27.801899",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "5cdbf899",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:37:27.835634"
+    },
+    {
+      "trace_id": "ca93d206",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:39:25.788640",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "39da28d6",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:39:25.891628"
+    },
+    {
+      "trace_id": "66307da8",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:47:01.261210",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "70c00e1b",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:47:01.372615"
+    },
+    {
+      "trace_id": "612dfbdb",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:48:40.406890",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "c7316a4b",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:48:40.449630"
+    },
+    {
+      "trace_id": "ba4da22a",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:52:27.159679",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "682a264c",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:52:27.308973"
+    },
+    {
+      "trace_id": "dacaef86",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T17:52:37.815729",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "a00ca447",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T17:52:37.850434"
     }
   ],
   "industry_patterns": {
@@ -5546,7 +5750,7 @@
       "typical_data_profile": {}
     },
     "现代服务": {
-      "analyses_count": 36,
+      "analyses_count": 42,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

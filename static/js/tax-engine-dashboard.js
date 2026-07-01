@@ -140,9 +140,12 @@ function renderStatusTab() {
   h += '<tr><td>银行收入</td><td><strong>' + fmtMoney(fs.total_bank_in) + '</strong></td></tr>';
   h += '<tr><td>银行支出</td><td><strong>' + fmtMoney(fs.total_bank_out) + '</strong> (' + esc(fs.bank_tx_count) + '笔)</td></tr>';
   h += '<tr><td>工资总额</td><td><strong>' + fmtMoney(fs.total_salary) + '</strong> (' + esc(fs.salary_count) + '条)</td></tr>';
-  h += '<tr><td>毛利率</td><td><strong style="color:' + (fs.gross_margin_pct < 0 ? '#dc2626' : fs.gross_margin_pct > 50 ? '#f59e0b' : '#059669') + '">' + esc(fs.gross_margin_pct) + '%</strong></td></tr>';
-  var ratio = fs.total_purchases > 0 ? (fs.total_sales / fs.total_purchases * 100) : 0;
-  h += '<tr><td>购销比</td><td><strong style="color:' + (ratio < 80 ? '#dc2626' : ratio > 200 ? '#f59e0b' : '#059669') + '">' + ratio.toFixed(0) + '%</strong></td></tr>';
+  var marginPct = fs.gross_margin_pct;
+  if (marginPct === undefined || marginPct === null || isNaN(marginPct)) marginPct = 0;
+  h += '<tr><td>毛利率</td><td><strong style="color:' + (marginPct < 0 ? '#dc2626' : marginPct > 50 ? '#f59e0b' : '#059669') + '">' + esc(marginPct) + '%</strong></td></tr>';
+  var ratio = (fs.total_purchases > 0 && fs.total_sales != null) ? (fs.total_sales / fs.total_purchases * 100) : 0;
+  if (!isFinite(ratio)) ratio = 0;
+  h += '<tr><td>购销比</td><td><strong style="color:' + (ratio < 80 ? '#dc2626' : ratio > 200 ? '#f59e0b' : '#059669') + '">' + Math.round(ratio) + '%</strong></td></tr>';
   h += '</table></div>';
   
   h += '</div>';
@@ -849,9 +852,9 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（42个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（29条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
   h += '· static/js/（约6,000行）：tax-doc-analysis.js（报告渲染+六要素格式+跨域协商标记展示）、tax-pipeline-pages.js（11个独立页面——文件解析/域分析/方法论过滤器/分析链/线索链/证据链/跨域系列/质量保障/AI准则）、tax-auditor-handbook.js（14章稽查员手册）、tax-report-standards.js（15节编制要求）、tax-feedback-template.js（20场景审核模板）、tax-engine-dashboard.js（6标签页仪表盘+'+totalDims+'维能力矩阵）<br><br>';
   h += '<b>管道流程（10步）</b><br>';
-  h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1514规则+396线索+745证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：15条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
+  h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1608规则+437线索+781证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：29条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
   h += '<b>数据流（10步）</b><br>';
-  h += 'Excel上传 → 34类文件指纹识别 → 数据归一化 → AuditContext贯穿 → 情报提取 → 36域并行分析 → all_findings聚集 → run_negotiation跨域协商 → _apply_methodology_filter过滤 → report JSON → 前端渲染<br><br>';
+  h += 'Excel上传 → 34类文件指纹识别 → 数据归一化 → AuditContext贯穿 → 情报提取 → 42域并行分析 → all_findings聚集 → run_negotiation跨域协商 → _apply_methodology_filter过滤 → report JSON → 前端渲染<br><br>';
   h += '<b>当前统计</b>：'+totalDims+'维能力 · '+stars4+'四星 + '+stars3+'三星 · 代码'+codeTotal+' · 227路由 · 审计全部通过<br><br>';
   h += '<b>关联模块</b>：<code>engine/capability_matrix.py</code>（维度定义+星级评分）→ <code>static/system_config.json</code>（权威数据源）→ <code>audit_consistency.py --sync</code>（自动同步所有模块中的数字）→ <a href="#" onclick="navigateTo(\'quality-system\');return false" style="color:#2563eb">全链路质量保障体系</a>（25组件六大层次）→ <a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb">税务稽查员手册</a>（14章完整规范）</div>';
 
@@ -1088,7 +1091,7 @@ function renderBrainTab() {
       h += '<div style="flex:1;min-width:160px;background:#fef3c7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#d97706">' + (orch.pipeline_depth || 16) + '</div><div style="font-size:12px;color:#64748b">管线深度</div></div>';
       h += '</div>';
       
-      if (orch.domains) {
+      if (orch.domains && Object.keys(orch.domains).length > 0) {
         h += '<table class="tbl2" style="margin-top:8px"><tr><th>领域</th><th>模块数</th><th>模块列表</th></tr>';
         for (var domain in orch.domains) {
           h += '<tr><td style="font-weight:600">' + esc(domain) + '</td><td>' + orch.domains[domain].length + '</td><td style="font-size:11px;color:#64748b">' + orch.domains[domain].join(', ') + '</td></tr>';
@@ -1114,7 +1117,8 @@ function renderBrainTab() {
       if (growth.top_industries && growth.top_industries.length > 0) {
         h += '<div style="font-size:12px;color:#64748b;margin-top:8px">已学行业: ';
         for (var j = 0; j < growth.top_industries.length; j++) {
-          h += '<span style="display:inline-block;margin:2px;padding:2px 8px;background:#f1f5f9;border-radius:10px">' + esc(growth.top_industries[j][0]) + '(' + growth.top_industries[j][1].runs + '次)</span>';
+          var ti = growth.top_industries[j];
+          if (ti && ti[1]) h += '<span style="display:inline-block;margin:2px;padding:2px 8px;background:#f1f5f9;border-radius:10px">' + esc(ti[0]) + '(' + (ti[1].runs || 0) + '次)</span>';
         }
         h += '</div>';
       }

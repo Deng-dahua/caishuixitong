@@ -682,29 +682,12 @@ async function analyzeTaxDocs() {
     // 系统内部信息不再渲染到报告区域，保护引擎机密
     // renderAnalyzeHeader(data.report);
     
-    // ── 统一使用7章标准格式渲染 ──
-    allF = data.report.all_findings || [];
-    var resultArea = document.getElementById('tax-doc-result');
-    if (!resultArea) {
-      resultArea = document.createElement('div');
-      resultArea.id = 'tax-doc-result';
-      var tdaArea = document.getElementById('tda-report-area');
-      if (tdaArea) tdaArea.appendChild(resultArea);
-    }
-    var ctx = _renderReportFallback(data.report, allF);
-    if (ctx && ctx.html) {
-      resultArea.innerHTML = ctx.html;
-    } else {
-      resultArea.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">报告渲染失败，请刷新重试</div>';
-    }
+    // ── 统一走 renderTaxDocReport（含按钮注入+7章结构+交互面板）──
+    renderTaxDocReport(data.report);
     
     var exportBtn = document.getElementById('tda-export-btn');
     if (exportBtn) exportBtn.style.display = 'inline-block';
     toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
-    
-    // 自动滚动到报告区域
-    var area = document.getElementById('tax-doc-result');
-    setTimeout(function() { if (area) area.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 200);
     
     // ── 语音播报功能初始化 ──
     setTimeout(function() { _initReportTTS(); }, 300);
@@ -840,28 +823,38 @@ function renderTaxDocReport(r) {
   // ── 使用7章标准报告结构渲染 ──
   var ctx = _renderReportFallback(r, allF);
 
-  // ═══ 直接在HTML字符串中注入按钮（不依赖DOM就绪时序）═══
+  // ═══ 段落和表格右侧注入4按钮（flex布局：内容在左，按钮在右）═══
   var html = ctx.html;
   var paraIdx = 0;
-  html = html.replace(/<p class="i2">/g, function(match) {
+  
+  function _mkBtnBar(idx) {
+    return '<div class="rpt-btn-bar" style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-left:6px;padding-top:1px">' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._editParagraph('+idx+')" title="编辑" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">编辑</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._auditParagraph('+idx+')" title="审核" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">审核</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._askParagraph('+idx+')" title="追问" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">追问</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._resetParagraph('+idx+')" title="重置" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">重置</button>' +
+      '</div>';
+  }
+  
+  // 段落：包裹在 flex 容器中，按钮在右侧
+  html = html.replace(/<p class="i2">([\s\S]*?)<\/p>/g, function(match, inner) {
     var idx = paraIdx++;
-    var btnBar = '<span class="rpt-btn-bar" style="display:inline-flex;flex-direction:column;gap:2px;margin-left:8px;vertical-align:top">' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._editParagraph('+idx+')" title="编辑此段" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">编辑</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._auditParagraph('+idx+')" title="确认正确" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">审核</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._askParagraph('+idx+')" title="追问引擎" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">追问</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._resetParagraph('+idx+')" title="重置原文" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">重置</button>' +
-      '</span>';
-    return match + btnBar;
+    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx) + '</div>';
   });
+  
+  // 表格(tbl/tbl2)：同样包裹，按钮在右侧
+  html = html.replace(/<table class="tbl">([\s\S]*?)<\/table>/g, function(match, inner) {
+    var idx = paraIdx++;
+    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0;overflow-x:auto"><table class="tbl">' + inner + '</table></div>' + _mkBtnBar(idx) + '</div>';
+  });
+  html = html.replace(/<table class="tbl2">([\s\S]*?)<\/table>/g, function(match, inner) {
+    var idx = paraIdx++;
+    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0;overflow-x:auto"><table class="tbl2">' + inner + '</table></div>' + _mkBtnBar(idx) + '</div>';
+  });
+  
   window._paraCount = paraIdx;
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
-
-  // 报告正文每段右侧注入按钮（立即执行 + 延迟重试确保DOM就绪）
-  _injectParagraphButtons();
-  setTimeout(function(){ _injectParagraphButtons(); }, 200);
-  setTimeout(function(){ _injectParagraphButtons(); }, 600);
-  setTimeout(function(){ _injectParagraphButtons(); }, 1200);
 
   // 追加对话式交互面板（发现审查的升级版）
   _initReportChatPanel();
@@ -2105,76 +2098,11 @@ function _renderReportFallback(r, allF) {
 // 报告正文段落右侧注入编辑/审核/交互/重置按钮
 // ═══════════════════════════════════════════════════════════
 // 覆盖第一章至第七章全部正文段落（<p class="i2">标签）
-// 每个段落右侧显示4个操作按钮，对应当前发现索引（按段落在页面中的序号）
-
-window._paraCounter = 0;
-
-function _injectParagraphButtons() {
-  var area = document.getElementById('tda-report-area');
-  if (!area) { 
-    // 如果还没渲染完，300ms后再试一次
-    setTimeout(_injectParagraphButtons, 300);
-    return;
-  }
-  
-  // 直接找到所有 class="i2" 的段落，不走章节边界遍历
-  var allPars = area.querySelectorAll('p.i2');
-  if (!allPars || allPars.length === 0) {
-    // 再试一次（可能有延迟渲染的表格内容）
-    setTimeout(_injectParagraphButtons, 500);
-    return;
-  }
-  
-  window._paraCounter = 0;
-  allPars.forEach(function(p, idx) {
-    try {
-      // 跳过已经注入过的段落
-      if (p.getAttribute('data-para-idx') !== null) return;
-      _addParaButtons(p, idx);
-    } catch(e) {
-      console.error('Button injection error at para', idx, e);
-    }
-  });
-}
-
-function _addParaButtons(para, idx) {
-  // 跳过已处理的段落
-  if (para.getAttribute('data-para-idx') !== null) return;
-  
-  var globalIdx = window._paraCounter++;
-  
-  // 保存原始内容用于重置
-  if (!para._originalContent) para._originalContent = para.innerHTML;
-  
-  // 包装：正文在左flex占满，按钮在右固定宽度
-  para.style.display = 'flex';
-  para.style.alignItems = 'flex-start';
-  para.style.gap = '6px';
-  
-  // 用wrapper span包裹原有内容
-  var wrapper = document.createElement('span');
-  wrapper.style.cssText = 'flex:1;min-width:0';
-  while (para.firstChild) {
-    wrapper.appendChild(para.firstChild);
-  }
-  para.appendChild(wrapper);
-  
-  var btns = document.createElement('span');
-  btns.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:2px;min-width:30px';
-  btns.innerHTML = 
-    '<button onclick="event.stopPropagation();window._editParagraph(' + globalIdx + ')" title="编辑此段" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">编辑</button>' +
-    '<button onclick="event.stopPropagation();window._auditParagraph(' + globalIdx + ')" title="确认正确" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">审核</button>' +
-    '<button onclick="event.stopPropagation();window._askParagraph(' + globalIdx + ')" title="追问引擎" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">追问</button>' +
-    '<button onclick="event.stopPropagation();window._resetParagraph(' + globalIdx + ')" title="重置原文" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">重置</button>';
-  
-  para.appendChild(btns);
-  para.setAttribute('data-para-idx', globalIdx);
-}
-
 // 段落级操作函数 — 连接到纠正规则引擎
+// 弹窗样式对齐纠正规则库的编辑弹窗（_editFindingInReport）
 window._editParagraph = function(i) {
   var content = _getParagraphContent(i);
-  if (!content) return;
+  if (!content) { toast('未找到段落内容', 'error'); return; }
   
   var old = document.getElementById('finding-edit-popup');
   if (old) old.remove();
@@ -2183,51 +2111,78 @@ window._editParagraph = function(i) {
   popup.id = 'finding-edit-popup';
   popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
   
-  var textSample = content.replace(/<[^>]+>/g,'').slice(0,200);
+  var textSample = content.replace(/<[^>]+>/g,'').slice(0,300);
   popup.innerHTML = 
     '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between">' +
-    '<b style="font-size:16px">Edit Paragraph #' + i + '</b>' +
-    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="border:none;background:transparent;font-size:20px;cursor:pointer">X</button></div>' +
+    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+    '<div><b style="font-size:16px">编辑段落</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">#' + i + '</span></div>' +
+    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">X</button>' +
+    '</div>' +
     '<div style="padding:20px 24px">' +
-    '<div style="margin-bottom:8px;font-size:11px;color:#94a3b8">当前文本：</div>' +
-    '<div style="background:#f8fafc;padding:10px;border-radius:6px;font-size:12px;margin-bottom:12px;max-height:120px;overflow-y:auto">' + textSample + '</div>' +
-    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">模板：【判断结论】【具体问题】【正确逻辑】【需要证据】【法律依据】</div>' +
-    '<textarea id="finding-edit-text" style="width:100%;min-height:180px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;box-sizing:border-box">【判断结论】需纠正\n【具体问题】关于该段落内容：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】</textarea>' +
+    '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
+    '<b>当前段落内容：</b><br>' + _escHtml(textSample) + '</div>' +
+    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">模板格式：</div>' +
+    '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
+    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
+    '【具体问题】[指出哪里判断错了]<br>' +
+    '【正确逻辑】[说明正确的判断方法]<br>' +
+    '【需要证据】[需要什么资料才能正确判断]<br>' +
+    '【法律依据】[引用的法条或法规]</div>' +
+    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
+    '【判断结论】需纠正\n' +
+    '【具体问题】关于段落#' + i + '的内容：\n\n' +
+    '【正确逻辑】\n\n' +
+    '【需要证据】\n\n' +
+    '【法律依据】\n' +
+    '</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
-    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;cursor:pointer">取消</button>' +
-    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:600">提交</button>' +
+    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
+    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交</button>' +
     '</div></div></div>';
+  
+  // 点击遮罩关闭
+  popup.addEventListener('click', function(e) {
+    if (e.target === popup) popup.remove();
+  });
   document.body.appendChild(popup);
 };
 
 window._submitParaEdit = function(i) {
   var text = document.getElementById('finding-edit-text');
   var content = (text ? text.value.trim() : '');
-  if (!content) { alert('请填写内容'); return; }
+  if (!content) { toast('请填写内容', 'warning'); return; }
   
   var p = document.getElementById('finding-edit-popup');
   if (p) p.remove();
   
-  // Submit to correction engine
+  var paraContent = _getParagraphContent(i) || '';
+  var rpt = window._reportData || {};
+  var te = rpt.target_entity || {};
+  
   fetch('/api/feedback', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       company_id: window.currentCompanyId || 1,
-      industry: ((window._reportData||{}).target_entity||{}).industry || '',
-      biz_model: ((window._reportData||{}).target_entity||{}).company_type || '',
+      industry: te.industry || '',
+      biz_model: te.company_type || '',
       finding_type: 'Paragraph#' + i,
       original_level: '',
-      corrected_risk: '纠正',
+      corrected_risk: '低风险（用户纠正）',
       reason: content,
-      detail: _getParagraphContent(i) || '',
+      detail: paraContent.slice(0, 500),
       action: 'edit_paragraph',
       timestamp: new Date().toISOString()
     })
-  }).then(function(r){return r.json();}).then(function(data){
-    alert(data.auto_rule ? '已自动应用。' : '已保存到纠正规则库。');
-  }).catch(function(){});
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if (data.ok) {
+      toast(data.auto_rule ? '已自动应用到' + (data.count||0) + '条发现' : '已保存到纠正规则库', 'success');
+    } else {
+      toast('提交失败: ' + (data.error || '未知错误'), 'error');
+    }
+  }).catch(function(e){
+    toast('网络错误，请稍后重试', 'error');
+  });
 };
 
 window._auditParagraph = function(i) {
@@ -2331,12 +2286,15 @@ window._resetParagraph = function(i) {
 };
 
 function _getParagraphContent(i) {
-  // 按钮通过 data-pi 属性定位，段落是其父辈p.i2
+  // btn → .rpt-btn-bar → flex wrapper → firstChild(内容div) → p.i2
   var btn = document.querySelector('button[data-pi="' + i + '"]');
   if (!btn) return '';
-  var para = btn.closest('p.i2');
+  var bar = btn.closest('.rpt-btn-bar');
+  if (!bar) return '';
+  var wrapper = bar.parentElement;
+  if (!wrapper) return '';
+  var para = wrapper.querySelector('p.i2');
   if (!para) return '';
-  // 排除按钮栏，只取正文
   var clone = para.cloneNode(true);
   var btns = clone.querySelectorAll('.rpt-btn-bar');
   btns.forEach(function(b) { b.remove(); });
@@ -2346,7 +2304,11 @@ function _getParagraphContent(i) {
 function _getParagraphHTML(i) {
   var btn = document.querySelector('button[data-pi="' + i + '"]');
   if (!btn) return '';
-  var para = btn.closest('p.i2');
+  var bar = btn.closest('.rpt-btn-bar');
+  if (!bar) return '';
+  var wrapper = bar.parentElement;
+  if (!wrapper) return '';
+  var para = wrapper.querySelector('p.i2');
   if (!para) return '';
   var clone = para.cloneNode(true);
   var btns = clone.querySelectorAll('.rpt-btn-bar');
