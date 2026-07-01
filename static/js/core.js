@@ -791,7 +791,7 @@ async function renderAgiDashboard(container) {
     // ═══ Hero ═══
     h += '<div id="agi-hero" class="agi-hero">';
     h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 28引擎 · 36域分析 · 1514规则 · 1266条链 · 15条协商规则 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 28引擎 · 36域分析 · 1514规则 · 1266条链 · 29条协商规则 · ' + pipe.total_events + '条学习事件</p>';
     h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
     h += '</div>';
 
@@ -844,7 +844,7 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现生成2-3条互斥竞争假设→逐条检查正反证据→贝叶斯更新后验概率→推荐最高概率假设但保留其他假设及置信度供人工判断。7种信号类型各有预置竞争模板：①隐匿收入（未开票收入vs代垫报销）②虚开发票 ③进销不匹配（外发加工vs商品倒卖）④毛利率异常（成本虚增vs售价偏低）⑤费用率异常（费用虚列vs收入低估）⑥供应商集中（依赖风险vs行业特性）⑦账期异常（商业信用vs资金困难）。验证结果存入hypothesis_history.json用于下次先验校准。','红');
     h += _agiEngineCard('🌐','跨企业关系网','CrossEnterpriseGraph','<code>cross_enterprise_graph.py</code>','跨企业关系图谱——检测全系统企业的供应商/客户/人员交叉关联。一人多角检测：同一自然人在企业A是法人/B是股东/C是财务负责人→A↔B↔C交易是否构成关联交易。连锁稽查点：A→B→C→A品名金额相同→疑似闭环虚开。图持久化到cross_enterprise_graph.json→O(N²)交叉扫描通过图索引优化。','绿');
     h += _agiEngineCard('💰','税收优惠分析','TaxIncentiveAnalyzer','<code>tax_incentive_analyzer.py</code>','9类优惠(小微/小规模/研发/高新/六税两费/软件即征即退/残保金/农林/西部大开发)。联网核查三步法：搜索URL→抓取页面→提取结构化条件。90天缓存。','紫');
-    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','15条协商规则四类场景：行业闸门消解(服务行业跳过进销存等5域)+资料驱动标记(缺资料标注受限)+证据矛盾消解(域A正面推翻域B负面)+联合增强(多域异常合成新发现)。','蓝');
+    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','29条协商规则：消解8条(行业闸门+个体户+小规模+无经营场所等) + 降级6条(收款偏差≠隐匿/付款≠虚列/流水≠应税收入等) + 标记5条(资料受限标注) + 联合增强10条(空壳/隐匿/对倒/红冲/两套工资/专票超期/人格混同/新办开票/拆分工资/跨境)。','蓝');
     h += _agiEngineCard('🔐','数据一致性引擎','ConsistencyEngine','<code>audit_consistency.py + shared_content_sync.py</code>','双维度自检：数字维度(硬编码vs权威源自动修复)+文本维度(29项跨模块共享内容逐字哈希+概念关联验证)。四触发全覆盖：start.bat/git pre-commit/一键分析/手动--sync。','绿');
     h += '</div></section>';
 

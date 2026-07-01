@@ -797,7 +797,7 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '<strong style="color:#059669;font-size:14px">管道与数据流</strong><br><br>';
   h += '<b>代码分布</b><br>';
   h += '· main.py（约20,000+行）：18个核心函数+6个数据分析API+227个路由+文件解析引擎+域分析调度+规则引擎整合+方法论过滤器+稽查员推理引擎——系统的主体逻辑全部在此文件中<br>';
-  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（42个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（15条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
+  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（42个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（29条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
   h += '· static/js/（约6,000行）：tax-doc-analysis.js（报告渲染+六要素格式+跨域协商标记展示）、tax-pipeline-pages.js（11个独立页面——文件解析/域分析/方法论过滤器/分析链/线索链/证据链/跨域系列/质量保障/AI准则）、tax-auditor-handbook.js（14章稽查员手册）、tax-report-standards.js（15节编制要求）、tax-feedback-template.js（20场景审核模板）、tax-engine-dashboard.js（6标签页仪表盘+'+totalDims+'维能力矩阵）<br><br>';
   h += '<b>管道流程（10步）</b><br>';
   h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1514规则+396线索+745证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：15条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
@@ -954,11 +954,18 @@ function renderNegotiationTab() {
     {id:'NEG-AUG-001',scene:'联合增强（触发新发现）',action:'增强',from:'经营费用缺失+运输缺失+场所异常',to:'综合生成"空壳企业预警"',desc:'三域交叉指向企业可能无实际经营场所和物流活动。跨域协商引擎自动合成极高风险发现，引用《刑法》第205条（虚开发票罪）。'},
     {id:'NEG-AUG-002',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+收款待分析+个人交易',to:'综合生成"隐匿收入预警"',desc:'三域独立检测均指向个人账户收款。协商引擎自动合成极高风险发现，引用《征管法》第63条（偷税处罚）。'},
     {id:'NEG-AUG-003',scene:'联合增强（触发新发现）',action:'增强',from:'供应商异常+关联重叠+集中度过高',to:'综合生成"对倒开票预警"',desc:'三域独立检测供应商结构异常，协商引擎自动合成高风险发现，引用《发票管理办法》第22条和《刑法》第205条。'},
+    {id:'NEG-AUG-004',scene:'联合增强（触发新发现）',action:'增强',from:'红冲/作废发票+收款偏离',to:'综合生成"虚开发票预警"',desc:'开票后红冲但货款已收→可能为虚假交易后冲销。协商引擎自动合成高风险发现，引用《发票管理办法》第22条。'},
+    {id:'NEG-AUG-005',scene:'联合增强（触发新发现）',action:'增强',from:'工资个税异常+社保基数偏低',to:'综合生成"两套工资表预警"',desc:'个税域+社保域同时检出异常→可能为账外工资/虚列人头。协商引擎自动合成高风险发现。'},
+    {id:'NEG-AUG-006',scene:'联合增强（触发新发现）',action:'增强',from:'专票超期未认证+进项税额异常',to:'综合生成"隐匿采购预警"',desc:'取得专票但故意不认证→收入成本不配比。协商引擎自动合成中风险发现。'},
+    {id:'NEG-AUG-007',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+股东资金往来',to:'综合生成"公司人格混同预警"',desc:'股东个人账户与企业公户资金混同→涉嫌偷逃税款+公司法人格混同。协商引擎自动合成极高风险发现。'},
+    {id:'NEG-AUG-008',scene:'联合增强（触发新发现）',action:'增强',from:'新办企业+大额开票',to:'综合生成"空壳开票预警"',desc:'新办企业短期内大额开票→可能为虚开团伙设立的空壳公司。协商引擎自动合成极高风险发现，引用《刑法》第205条。'},
+    {id:'NEG-AUG-009',scene:'联合增强（触发新发现）',action:'增强',from:'劳务派遣成本+多处取得工资',to:'综合生成"拆分工资预警"',desc:'通过劳务派遣公司拆分工资、虚列人头降低个税和社保基数。协商引擎自动合成高风险发现。'},
+    {id:'NEG-AUG-010',scene:'联合增强（触发新发现）',action:'增强',from:'境外付款+外汇相关信号',to:'综合生成"跨境税务预警"',desc:'境外付款可能涉及代扣代缴义务（增值税+预提所得税）/转让定价/利润转移。协商引擎自动合成高风险发现。'},
   ];
 
   var h = '';
   h += '<h3 style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 4px">🤝 跨域协商规则</h3>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。15条协商规则覆盖四类场景：行业闸门消解 / 资料驱动的跨域标记 / 证据矛盾消解 / 联合增强。</p>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。29条协商规则：消解层8条 / 降级层6条 / 标记层5条 / 联合增强层10条。</p>';
 
   var scenes = {
     '行业闸门消解': {desc:'服务行业自动跳过不适用域（进销存/存货/BOM/毛利率对标），消除假阳性',color:'#059669',bg:'#ecfdf5'},
@@ -990,8 +997,8 @@ function renderNegotiationTab() {
 
   h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">';
   h += '<strong style="font-size:14px;color:#0f172a">技术说明</strong><br><br>';
-  h += '<b>执行时序</b>：所有42个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配15条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
-  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——15条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
+  h += '<b>执行时序</b>：所有42个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配29条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
+  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——29条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
   h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br><br>';
   h += '<b>与过滤器的关系</b>：协商引擎消解的是域之间的矛盾（两个域各说各的），过滤器剔除的是不具备数据支撑的噪声（缺资料还瞎下结论）。协商在过滤之前运行——先让发现自洽，再删不具备证据的。如果顺序颠倒（先过滤再协商），可能过滤掉驱动协商的关键发现。<br><br>';
   h += '<b>规则扩展</b>：编辑 <code>engine/cross_domain_negotiation.py</code> 中的 <code>NEGOTIATION_RULES</code> 列表即可追加新协商规则。扩展后运行 python audit_consistency.py --sync 确保引擎记忆文档层同步更新。</div>';

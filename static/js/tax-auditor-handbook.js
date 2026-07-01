@@ -171,7 +171,7 @@ function renderAuditorHandbook(container) {
    ['证据链','第24条(证据真实性)','781条证据链≥2域交叉→≥min_evidence触发→多维印证闭环。investigation_path数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
    ['分析链','第46条(审理审核)','48条分析链→reasoning_path[]多步推理→从证据→结论的综合判定。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性→0-7维异常评分→定案。'],
    ['方法论过滤器','第46条(审核重点)','全链路质量保障体系→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→稽查重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
-   ['跨域协商引擎','第46条(审核重点)','15条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
+   ['跨域协商引擎','第46条(审核重点)','29条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
    ['风险评分','第49条(审理意见)','综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成稽查结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。'],
    ['报告生成','第51条(报告格式)','自动生成封面+7章+附件：案件来源→基本情况→实施情况→发现问题→稽查结论→处理建议→告知权利→签字→证据清单。完全符合规程第42条规定的10项内容格式要求。'],
    ['合规门禁','第60条(程序合法)','12项质量标准(模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除)+16项自省检查。全通过→绿色交付。'],
@@ -193,7 +193,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第九章 ═══
   h += '<div id="hb-s9" class="hb-sec"><div class="hb-sec-title"><span class="num">9</span>跨域协商引擎</div>';
-  h += '<div class="hb-detail">42个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。15条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
+  h += '<div class="hb-detail">42个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。29条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
   h += '<table class="hb-tbl">';
   [['行业闸门消解（5条）','NEG-001~005。服务行业判定成立→自动消解进销存/存货/BOM/进销比/毛利率五个制造业域的发现。例如：行业判定="服务行业"→域1的"进销存匹配异常"发现被自动标记为"不适用"，从高风险降为弱提示。','消除假阳性——服务行业不存在实物商品的进销存，这些域的发现没有分析意义。'],
    ['资料驱动标记（4条）','NEG-010~040。资料完备度域检测到某类文件缺失→通知所有依赖该文件的域标注"资料受限"。例如：缺合同→合同分层判断法的"无正式合同"发现从高风险降为提示级并标注蓝色横幅"此结论基于不完整资料"。','防止因缺数据而产生的伪发现——没有合同≠交易不真实。'],
@@ -251,7 +251,7 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">核心文件共30+个，按职责分为四组。此清单同时记录在engine/memory.py末尾的"系统文件关联清单"章节中，每次--sync自动更新其中的数字和文件引用。清单帮助快速定位任何功能的代码位置。</div>';
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">核心引擎（12个文件）</td></tr>';
-  h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（15条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
+  h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（29条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
   h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ correction_rules.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1608条稽查指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
