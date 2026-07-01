@@ -843,8 +843,10 @@ function renderTaxDocReport(r) {
   area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
 
-  // 报告正文每段右侧注入编辑/审核/交互/重置按钮
-  setTimeout(function(){ _injectParagraphButtons(); }, 100);
+  // 报告正文每段右侧注入编辑/审核/交互/重置按钮（DOM就绪后再执行）
+  setTimeout(function(){ 
+    try { _injectParagraphButtons(); } catch(e) { console.error('Button injection failed:', e); }
+  }, 300);
 
   // 追加对话式交互面板（发现审查的升级版）
   _initReportChatPanel();
@@ -2096,17 +2098,26 @@ function _injectParagraphButtons() {
   var area = document.getElementById('tda-report-area');
   if (!area) return;
   
-  // 查找所有章节内的正文段落（位于h2和下一个h2之间）
+  // 查找所有章节内的正文段落
   var chapters = area.querySelectorAll('h2[id^="ch"]');
-  window._paraCounter = 0;
+  if (!chapters || chapters.length === 0) {
+    // 回退: 直接找所有<p class="i2">
+    var allPars = area.querySelectorAll('p.i2, p[class*="i2"]');
+    window._paraCounter = 0;
+    allPars.forEach(function(p, idx) {
+      try { _addParaButtons(p, idx); } catch(e) {}
+    });
+    return;
+  }
   
+  window._paraCounter = 0;
   chapters.forEach(function(h2) {
     var next = h2.nextElementSibling;
     var paraIndex = 0;
     
     while (next && !(next.tagName === 'H2' && next.id && next.id.indexOf('ch') === 0)) {
-      if (next.tagName === 'P' && next.className.indexOf('i2') >= 0) {
-        _addParaButtons(next, paraIndex);
+      if (next.tagName === 'P' && next.className && next.className.indexOf('i2') >= 0) {
+        try { _addParaButtons(next, paraIndex); } catch(e) {}
         paraIndex++;
       }
       next = next.nextElementSibling;
