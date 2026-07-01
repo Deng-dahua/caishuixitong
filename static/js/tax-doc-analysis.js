@@ -1088,17 +1088,17 @@ window._editFindingInReport = function(fi) {
     '</div>' +
     '<div style="padding:20px 24px">' +
     '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
-    '<b>Current output:</b><br>' + (fdetail||'').slice(0,300) + '</div>' +
-    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">Template format:</div>' +
+    '<b>当前引擎输出：</b><br>' + (fdetail||'').slice(0,300) + '</div>' +
+    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">模板格式：</div>' +
     '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
-    '[Judgment] [correct / need correction / not applicable]<br>' +
-    '[Specific issue]<br>' +
-    '【正确逻辑】<br>' +
-    '【需要证据】<br>' +
-    '【法律依据】</div>' +
+    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
+    '【具体问题】[指出系统哪里判断错了]<br>' +
+    '【正确逻辑】[说明正确的判断方法]<br>' +
+    '【需要证据】[需要什么资料才能正确判断]<br>' +
+    '【法律依据】[引用的法条或法规]</div>' +
     '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
     '【判断结论】需纠正\n' +
-    '[Specific issue] Regarding "' + escapedFtype + '":\n\n' +
+    '【具体问题】关于"' + escapedFtype + '"的判定：\n\n' +
     '【正确逻辑】\n\n' +
     '【需要证据】\n\n' +
     '【法律依据】\n' +
@@ -2192,7 +2192,7 @@ window._editParagraph = function(i) {
     '<div style="padding:20px 24px">' +
     '<div style="margin-bottom:8px;font-size:11px;color:#94a3b8">当前文本：</div>' +
     '<div style="background:#f8fafc;padding:10px;border-radius:6px;font-size:12px;margin-bottom:12px;max-height:120px;overflow-y:auto">' + textSample + '</div>' +
-    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">Template: [Judgment] [Specific issue] 【正确逻辑】 【需要证据】 【法律依据】</div>' +
+    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">模板：【判断结论】【具体问题】【正确逻辑】【需要证据】【法律依据】</div>' +
     '<textarea id="finding-edit-text" style="width:100%;min-height:180px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;box-sizing:border-box">【判断结论】需纠正\n【具体问题】关于该段落内容：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
     '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;cursor:pointer">取消</button>' +
