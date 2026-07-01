@@ -1836,7 +1836,7 @@ function _renderReportFallback(r, allF) {
   // 综合风险评级
   var synth = r.comprehensive || {};
   var overall = synth.overall_risk || (allF.length > 0 && risks.length > (mids.length + lows.length) ? '高风险' : '中风险');
-  h += '<div class="conclusion-box ' + (overall==='高风险'||overall==='极高风险'?'red':'amber') + '" style="padding:24px;margin-bottom:24px">';
+  // conclusion-box wrapper removed
   h += '<p class="i2"><strong>综合风险评级：</strong><span class="' + (overall==='高风险'||overall==='极高风险'?'rtag':'atag') + '" style="font-size:18px">' + overall + '</span></p>';
   
   // 风险分布
@@ -1864,65 +1864,56 @@ function _renderReportFallback(r, allF) {
     h += '被查单位整体税务合规状况良好，仅存在少量低风险事项和税收优惠提醒。建议被查单位继续保持规范的财务税务管理，并对报告中指出的低风险事项进行完善。';
   }
   h += '</p>';
-  h += '</div>';
 
   // ═══ 第五章：处理处罚建议 ═══
   h += '<h2 id="ch5">第五章 处理处罚建议</h2>';
   h += '<p class="i2">根据本次稽查发现的事实和被查单位的风险等级，按照紧急程度和影响程度，分级提出以下处理建议：</p>';
   
   // P0：立即处理
-  h += '<div style="margin:16px 0;padding:20px 24px;background:#fef2f2;border:2px solid #fca5a5;border-radius:8px">';
-  h += '<div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:12px">🔴 P0 —— 立即处理（涉及逃税、虚开等红线问题）</div>';
+  h += '<p class=\"i2\"><strong>一、P0 —— 立即处理（涉及逃税、虚开等红线问题）</strong></p>';;
   var p0Count = 0;
   for (var fi = 0; fi < allSorted.length; fi++) {
     var sf = allSorted[fi];
     if ((sf.level === '极高风险' || sf.level === '高风险') && sf.suggestion && sf.suggestion.length > 10) {
       p0Count++;
-      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p0Count + '.</strong> ' + sf.suggestion + '</div>';
+      h += '<p class=\"i2\">' + p0Count + '. ' + sf.suggestion + '</p>';
       if (p0Count >= 5) break;
     }
   }
   if (p0Count === 0) h += '<p class="i2">暂无需要立即处理的P0级事项。</p>';
-  h += '</div>';
   
   // P1：限期整改
-  h += '<div style="margin:16px 0;padding:20px 24px;background:#fffbeb;border:2px solid #fcd34d;border-radius:8px">';
-  h += '<div style="font-size:15px;font-weight:700;color:#d97706;margin-bottom:12px">🟡 P1 —— 限期整改（发票合规、账务调整等问题）</div>';
+  h += '<p class=\"i2\"><strong>二、P1 —— 限期整改（发票合规、账务调整等问题）</strong></p>';;
   var p1Count = 0;
   for (var fi = 0; fi < allSorted.length; fi++) {
     var sf = allSorted[fi];
     if (sf.level === '中风险' && sf.suggestion && sf.suggestion.length > 10) {
       p1Count++;
-      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p1Count + '.</strong> ' + sf.suggestion + '</div>';
+      h += '<p class=\"i2\">' + p1Count + '. ' + sf.suggestion + '</p>';
       if (p1Count >= 5) break;
     }
   }
   if (p1Count === 0) h += '<p class="i2">暂无需要限期整改的P1级事项。</p>';
-  h += '</div>';
   
   // P2：持续关注
-  h += '<div style="margin:16px 0;padding:20px 24px;background:#f0fdf4;border:2px solid #86efac;border-radius:8px">';
-  h += '<div style="font-size:15px;font-weight:700;color:#16a34a;margin-bottom:12px">🟢 P2 —— 持续关注（资料完善、合规提醒、优惠政策享受建议）</div>';
+  h += '<p class=\"i2\"><strong>三、P2 —— 持续关注（资料完善、合规提醒、优惠政策享受建议）</strong></p>';;
   var p2Count = 0;
   for (var fi = 0; fi < allSorted.length; fi++) {
     var sf = allSorted[fi];
     if ((sf.level === '低风险' || sf.level === '优惠机会') && sf.suggestion && sf.suggestion.length > 10) {
       p2Count++;
-      h += '<div class="frow" style="font-size:13px;margin:8px 0;padding:8px 12px;background:#fff;border-radius:4px"><strong>' + p2Count + '.</strong> ' + sf.suggestion + '</div>';
+      h += '<p class=\"i2\">' + p2Count + '. ' + sf.suggestion + '</p>';
       if (p2Count >= 5) break;
     }
   }
   if (p2Count === 0) h += '<p class="i2">暂无需要持续关注的P2级事项。</p>';
-  h += '</div>';
   
   // 整改期限
-  h += '<div style="margin:20px 0;padding:20px 24px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px">';
-  h += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">📅 自查整改期限</div>';
+  h += '<p class=\"i2\"><strong>四、自查整改期限</strong></p>';
   h += '<p class="i2">1. <strong>P0事项：</strong>被查单位应在收到本报告之日起<strong>5个工作日</strong>内，对以上P0事项逐条书面说明情况并提供相关佐证资料。逾期未回复的，稽查部门将依据现有证据材料直接作出处理决定。</p>';
   h += '<p class="i2">2. <strong>P1事项：</strong>被查单位应在收到本报告之日起<strong>15个工作日</strong>内，完成P1事项的自查整改，并向稽查部门提交书面整改报告及相关证明材料。</p>';
   h += '<p class="i2">3. <strong>P2事项：</strong>被查单位应在收到本报告之日起<strong>30个工作日</strong>内，对P2事项进行完善，并在后续税务申报和财务管理中持续规范。</p>';
   h += '<p class="i2">4. 被查单位如对以上发现的事实有异议，可依据第六章规定的陈述申辩权和听证权，在法定期限内提出。</p>';
-  h += '</div>';
 
   // ═══ 第六章：告知权利义务 ═══
   h += '<h2 id="ch6">第六章 告知权利义务</h2>';
