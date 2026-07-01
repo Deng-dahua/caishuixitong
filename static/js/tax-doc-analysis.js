@@ -1076,19 +1076,19 @@ window._editFindingInReport = function(fi) {
     '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
     '[Judgment] [correct / need correction / not applicable]<br>' +
     '[Specific issue]<br>' +
-    '[Correct logic]<br>' +
-    '[Required evidence]<br>' +
-    '[Legal basis]</div>' +
+    '【正确逻辑】<br>' +
+    '【需要证据】<br>' +
+    '【法律依据】</div>' +
     '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
-    '[Judgment] need correction\n' +
+    '【判断结论】需纠正\n' +
     '[Specific issue] Regarding "' + escapedFtype + '":\n\n' +
-    '[Correct logic]\n\n' +
-    '[Required evidence]\n\n' +
-    '[Legal basis]\n' +
+    '【正确逻辑】\n\n' +
+    '【需要证据】\n\n' +
+    '【法律依据】\n' +
     '</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">Cancel</button>' +
-    '<button onclick="window._submitFindingEdit(' + fi + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Submit</button>' +
+    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
+    '<button onclick="window._submitFindingEdit(' + fi + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交</button>' +
     '</div></div></div>';
   
   document.body.appendChild(popup);
@@ -1098,7 +1098,7 @@ window._submitFindingEdit = function(fi) {
   var text = document.getElementById('finding-edit-text');
   if (!text) return;
   var content = text.value.trim();
-  if (!content) { alert('Please enter content'); return; }
+  if (!content) { alert('请填写内容'); return; }
   
   var payload = _buildCorrectionPayload(fi, content, 'edit');
   if (!payload) return;
@@ -1113,26 +1113,26 @@ window._submitFindingEdit = function(fi) {
       var af = window._allFindings || [];
       var f = af[fi];
       if (f) { f._dismissed = true; f._correction_reason = content.slice(0,100); }
-      alert(data.auto_rule ? 'Auto-applied to '+data.count+' findings.' : 'Saved to correction rules engine.');
+      alert(data.auto_rule ? '已自动应用到'+data.count+'条发现。' : '已保存到纠正规则库。');
     } else {
-      alert('Failed: ' + (data.error || 'Unknown'));
+      alert('提交失败: ' + (data.error || '未知错误'));
     }
   }).catch(function(e){
-    alert('Network error: ' + e.message);
+    alert('网络错误: ' + e.message);
   });
 };
 
 window._auditFindingInReport = function(fi) {
-  if (!confirm('Confirm this finding is correct?')) return;
-  var payload = _buildCorrectionPayload(fi, 'User confirmed correct - no change needed', 'verify');
+  if (!confirm('确认此发现判定正确？')) return;
+  var payload = _buildCorrectionPayload(fi, '用户确认正确，无需修改', 'verify');
   if (!payload) return;
   payload.corrected_risk = payload.original_level;  // 保持原风险等级
   fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
   .then(function(r){return r.json();}).then(function(data){
     var af=window._allFindings||[];var f=af[fi];
     if(f){f._verified=true;f._dismissed=false;}
-    alert(data.auto_rule?'Auto-applied to '+data.count+' findings.':'Confirmed. Engine will keep this logic.');
-  }).catch(function(){alert('Network error');});
+    alert(data.auto_rule?'已自动应用到'+data.count+'条发现。':'已确认，引擎将保持此判断逻辑。');
+  }).catch(function(){alert('网络错误');});
 };
 
 window._askAboutFinding = function(fi) {
@@ -1153,30 +1153,30 @@ window._askAboutFinding = function(fi) {
   popup.innerHTML = 
     '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
-    '<div><b style="font-size:14px">Chat: Ask Engine</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">#' + fi + ' ' + (ftype||'').slice(0,40) + '</span></div>' +
+    '<div><b style="font-size:14px">对话：追问引擎</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">#' + fi + ' ' + (ftype||'').slice(0,40) + '</span></div>' +
     '<div style="display:flex;gap:6px">' +
-    '<button onclick="window._toggleChatPolicy()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">Paste Law</button>' +
-    '<button onclick="window._clearAskChat()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">Clear</button>' +
+    '<button onclick="window._toggleChatPolicy()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">贴法条</button>' +
+    '<button onclick="window._clearAskChat()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">清除</button>' +
     '<button onclick="(function(){var p=document.getElementById(\'finding-ask-popup\');if(p)p.remove();})()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button>' +
     '</div></div>' +
     '<div id="ask-chat-body" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;min-height:200px;max-height:55vh">' +
-    '<div style="color:#94a3b8;text-align:center;padding:30px">Click a quick question or type to ask the engine about this finding</div>' +
+    '<div style="color:#94a3b8;text-align:center;padding:30px">点击快捷提问或输入问题，追问引擎关于此发现的推理过程</div>' +
     '</div>' +
     '<div id="ask-policy-input" style="display:none;padding:8px 20px;background:#fef3c7;border-top:1px solid #fbbf24">' +
     '<textarea id="ask-policy-text" placeholder="Paste policy text, the engine will compare with its cited laws..." style="width:100%;min-height:60px;border:1px solid #fbbf24;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>' +
     '</div>' +
     '<div style="display:flex;gap:8px;padding:10px 20px;background:#fff;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px;flex-shrink:0">' +
     '<select id="ask-quick-question" onchange="window._askQuickFromPopup(this.value);this.value=\'\'" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff">' +
-    '<option value="">Quick ask</option>' +
-    '<option value="How was this conclusion reached?">How was this conclusion reached?</option>' +
-    '<option value="What evidence supports this?">What evidence supports this?</option>' +
-    '<option value="Which laws are involved?">Which laws are involved?</option>' +
-    '<option value="How was the data calculated?">How was the data calculated?</option>' +
-    '<option value="Is the risk level accurate?">Is the risk level accurate?</option>' +
-    '<option value="Are there missed risk points?">Are there missed risk points?</option>' +
+    '<option value="">快捷提问</option>' +
+    '<option value="这个结论是怎么来的？">这个结论是怎么来的？</option>' +
+    '<option value="有什么证据支持？">有什么证据支持？</option>' +
+    '<option value="涉及哪些法律？">涉及哪些法律？</option>' +
+    '<option value="数据怎么算的？">数据怎么算的？</option>' +
+    '<option value="风险等级准确吗？">风险等级准确吗？</option>' +
+    '<option value="有遗漏的风险点吗？">有遗漏的风险点吗？</option>' +
     '</select>' +
-    '<input id="ask-chat-input" placeholder="Ask anything..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
-    '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Send</button>' +
+    '<input id="ask-chat-input" placeholder="输入问题..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
+    '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">发送</button>' +
     '</div></div>';
   
   document.body.appendChild(popup);
@@ -1184,7 +1184,7 @@ window._askAboutFinding = function(fi) {
   // Auto-send first question
   setTimeout(function(){
     var inp = document.getElementById('ask-chat-input');
-    if (inp) { inp.value = 'How was this conclusion reached?'; window._sendAskChat(); }
+    if (inp) { inp.value = '这个结论是怎么来的？'; window._sendAskChat(); }
   }, 300);
 };
 
@@ -1277,7 +1277,7 @@ window._clearAskChat = function() {
 // 自动总结多轮对话并保存为纠正规则
 window._summarizeAskChat = function() {
   var history = window._askChatHistory || [];
-  if (history.length < 2) { alert('Need more conversation to summarize.'); return; }
+  if (history.length < 2) { alert('需要更多对话才能总结。'); return; }
   
   // 提取核心内容
   var userMessages = history.filter(function(h){return h.role==='user';}).map(function(h){return h.text;});
@@ -1344,7 +1344,7 @@ window._saveAskAsCorrection = function(fi, mode) {
     body: JSON.stringify(payload)
   }).then(function(r){return r.json();}).then(function(data){
     if(data.ok){
-      alert(data.auto_rule ? 'Correction AUTO-APPLIED to ' + data.count + ' findings.' : 'Saved to correction rules engine.');
+      alert(data.auto_rule ? '已自动应用到'+data.count+'条发现。' : 'Saved to correction rules engine.');
     }
   }).catch(function(){});
 };
@@ -2159,13 +2159,13 @@ window._editParagraph = function(i) {
     '<b style="font-size:16px">Edit Paragraph #' + i + '</b>' +
     '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="border:none;background:transparent;font-size:20px;cursor:pointer">X</button></div>' +
     '<div style="padding:20px 24px">' +
-    '<div style="margin-bottom:8px;font-size:11px;color:#94a3b8">Current text:</div>' +
+    '<div style="margin-bottom:8px;font-size:11px;color:#94a3b8">当前文本：</div>' +
     '<div style="background:#f8fafc;padding:10px;border-radius:6px;font-size:12px;margin-bottom:12px;max-height:120px;overflow-y:auto">' + textSample + '</div>' +
-    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">Template: [Judgment] [Specific issue] [Correct logic] [Required evidence] [Legal basis]</div>' +
-    '<textarea id="finding-edit-text" style="width:100%;min-height:180px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;box-sizing:border-box">[Judgment] need correction\n[Specific issue] Regarding paragraph content:\n\n[Correct logic]\n\n[Required evidence]\n\n[Legal basis]</textarea>' +
+    '<div style="font-size:11px;color:#6366f1;margin-bottom:6px">Template: [Judgment] [Specific issue] 【正确逻辑】 【需要证据】 【法律依据】</div>' +
+    '<textarea id="finding-edit-text" style="width:100%;min-height:180px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;box-sizing:border-box">【判断结论】需纠正\n【具体问题】关于该段落内容：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
-    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;cursor:pointer">Cancel</button>' +
-    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:600">Submit</button>' +
+    '<button onclick="document.getElementById(\'finding-edit-popup\').remove()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;cursor:pointer">取消</button>' +
+    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:600">提交</button>' +
     '</div></div></div>';
   document.body.appendChild(popup);
 };
@@ -2173,7 +2173,7 @@ window._editParagraph = function(i) {
 window._submitParaEdit = function(i) {
   var text = document.getElementById('finding-edit-text');
   var content = (text ? text.value.trim() : '');
-  if (!content) { alert('Please enter content'); return; }
+  if (!content) { alert('请填写内容'); return; }
   
   var p = document.getElementById('finding-edit-popup');
   if (p) p.remove();
@@ -2195,12 +2195,12 @@ window._submitParaEdit = function(i) {
       timestamp: new Date().toISOString()
     })
   }).then(function(r){return r.json();}).then(function(data){
-    alert(data.auto_rule ? 'Auto-applied.' : 'Saved to correction rules engine.');
+    alert(data.auto_rule ? '已自动应用。' : '已保存到纠正规则库。');
   }).catch(function(){});
 };
 
 window._auditParagraph = function(i) {
-  if (!confirm('Confirm this paragraph is correct?')) return;
+  if (!confirm('确认此段落内容正确？')) return;
   fetch('/api/feedback', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -2211,12 +2211,12 @@ window._auditParagraph = function(i) {
       finding_type: 'Paragraph#' + i,
       original_level: '',
       corrected_risk: '已确认',
-      reason: 'Confirmed correct by user',
+      reason: '用户确认正确',
       action: 'verify_paragraph',
       timestamp: new Date().toISOString()
     })
   }).catch(function(){});
-  alert('Confirmed. Engine keeps this logic.');
+  alert('已确认，引擎将保持此逻辑。');
 };
 
 window._askParagraph = function(i) {
@@ -2233,14 +2233,14 @@ window._askParagraph = function(i) {
   popup.innerHTML = 
     '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;flex-direction:column;display:flex;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between">' +
-    '<b style="font-size:14px">Chat: Paragraph #' + i + '</b>' +
+    '<b style="font-size:14px">对话：段落 #' + i + '</b>' +
     '<button onclick="document.getElementById(\'finding-ask-popup\').remove()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button></div>' +
     '<div id="ask-chat-body-para" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;max-height:55vh">' +
-    '<div style="background:#f0f4ff;padding:10px;border-radius:6px;font-size:11px;margin-bottom:8px">Paragraph text: ' + textSample + '</div>' +
-    '<div style="color:#94a3b8;text-align:center;padding:20px">Ask the engine about this paragraph</div></div>' +
+    '<div style="background:#f0f4ff;padding:10px;border-radius:6px;font-size:11px;margin-bottom:8px">段落文本： ' + textSample + '</div>' +
+    '<div style="color:#94a3b8;text-align:center;padding:20px">追问引擎关于此段落的内容</div></div>' +
     '<div style="display:flex;gap:8px;padding:10px 20px;border-top:1px solid #e2e8f0">' +
-    '<input id="ask-chat-input-para" placeholder="Ask about this paragraph..." onkeydown="if(event.key===\'Enter\')window._sendParaChat(' + i + ')" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">' +
-    '<button onclick="window._sendParaChat(' + i + ')" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">Send</button>' +
+    '<input id="ask-chat-input-para" placeholder="追问此段落..." onkeydown="if(event.key===\'Enter\')window._sendParaChat(' + i + ')" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">' +
+    '<button onclick="window._sendParaChat(' + i + ')" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">发送</button>' +
     '</div></div>';
   document.body.appendChild(popup);
 };
@@ -2269,18 +2269,18 @@ window._sendParaChat = function(i) {
     if (data.ok && data.analysis) {
       data.analysis.forEach(function(b){ html += '<div style="margin:4px 0;font-weight:600">' + (b.title||'') + '</div><div style="font-size:11px">' + (b.content||'').slice(0,300) + '</div>'; });
     } else {
-      html += 'Error: ' + (data.message||'');
+      html += '错误: ' + (data.message||'');
     }
     html += '</div>';
     body.innerHTML += html;
     body.scrollTop = body.scrollHeight;
   }).catch(function(e){
-    body.innerHTML += '<div style="color:#dc2626;font-size:12px">Error: ' + e.message + '</div>';
+    body.innerHTML += '<div style="color:#dc2626;font-size:12px">错误: ' + e.message + '</div>';
   });
 };
 
 window._resetParagraph = function(i) {
-  if (!confirm('Reset this paragraph to original engine output?')) return;
+  if (!confirm('重置此段落到引擎原始输出？')) return;
   var para = document.querySelector('[data-para-idx="' + i + '"]');
   if (para && para._originalContent) {
     para.querySelector('span').innerHTML = para._originalContent;
