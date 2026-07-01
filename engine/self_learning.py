@@ -1203,7 +1203,6 @@ def auto_update_module_content(min_confidence=0.85, min_corrections=3):
             try:
                 with open(module_path, "r", encoding="utf-8") as f:
                     py_src = f.read()
-                annotation = f"\n# [引擎自更新 {datetime.now().strftime('%Y-%m-%d')}] {change_type}：{reason[:100]}（行业:{industry}，置信度:{rule['confidence']:.0%}）\n"
                 if annotation not in py_src:
                     with open(module_path, "a", encoding="utf-8") as f:
                         f.write(annotation)
