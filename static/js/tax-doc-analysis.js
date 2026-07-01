@@ -842,16 +842,6 @@ function renderTaxDocReport(r) {
     return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx) + '</div>';
   });
   
-  // 表格(tbl/tbl2)：同样包裹，按钮在右侧
-  html = html.replace(/<table class="tbl">([\s\S]*?)<\/table>/g, function(match, inner) {
-    var idx = paraIdx++;
-    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0;overflow-x:auto"><table class="tbl">' + inner + '</table></div>' + _mkBtnBar(idx) + '</div>';
-  });
-  html = html.replace(/<table class="tbl2">([\s\S]*?)<\/table>/g, function(match, inner) {
-    var idx = paraIdx++;
-    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0;overflow-x:auto"><table class="tbl2">' + inner + '</table></div>' + _mkBtnBar(idx) + '</div>';
-  });
-  
   window._paraCount = paraIdx;
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });

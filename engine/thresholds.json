@@ -2,13 +2,12 @@
   "_description": "财税稽查系统税种税率及阈值配置",
   "_rule": "所有稽查逻辑中的数值必须引用此文件，禁止硬编码",
   "_calibrated": "2026-06-30",
-
   "vat_rates": {
     "standard": 0.13,
     "transport": 0.09,
     "modern_service": 0.06,
     "small_scale": 0.03,
-    "zero_rate": 0.00
+    "zero_rate": 0.0
   },
   "surtax_rates": {
     "urban": 0.07,
@@ -19,12 +18,12 @@
   },
   "cit_rates": {
     "standard": 0.25,
-    "preferential": 0.20,
+    "preferential": 0.2,
     "high_tech": 0.15,
-    "small_profit": 0.10
+    "small_profit": 0.1
   },
   "stamp_duty_rates": {
-    "loan_contract": 0.00005,
+    "loan_contract": 5e-05,
     "property_transfer": 0.0003,
     "technology_contract": 0.0003,
     "construction_contract": 0.0003,
@@ -38,16 +37,15 @@
     "self_use": 0.012,
     "rental": 0.12
   },
-
   "ratios": {
-    "significant_deviation": 0.20,
-    "material_deviation": 0.30,
-    "high_risk_deviation": 0.50,
-    "minor_deviation": 0.10,
-    "substantial": 0.40,
+    "significant_deviation": 0.2,
+    "material_deviation": 0.3,
+    "high_risk_deviation": 0.5,
+    "minor_deviation": 0.1,
+    "substantial": 0.4,
     "overwhelming": 0.75,
-    "dominant": 0.80,
-    "half": 0.50,
+    "dominant": 0.8,
+    "half": 0.5,
     "double_ratio": 2.0,
     "overtrade_ratio": 1.5,
     "material_ratio": 0.05,
@@ -55,7 +53,6 @@
     "threshold_2pct": 0.02,
     "threshold_5pct": 0.05
   },
-
   "amount_thresholds": {
     "micro_transaction": 1000,
     "tiny_transaction": 5000,
@@ -68,7 +65,6 @@
     "extreme_transaction": 10000000,
     "massive_transaction": 100000000
   },
-
   "time_windows": {
     "short_term_days": 30,
     "medium_term_days": 60,
@@ -80,26 +76,24 @@
     "three_months": 90,
     "twelve_months": 365
   },
-
   "industry_thresholds": {
-    "manufacturing_gross_margin_low": 0.10,
-    "manufacturing_gross_margin_high": 0.30,
-    "service_gross_margin_low": 0.20,
-    "service_gross_margin_high": 0.50,
+    "manufacturing_gross_margin_low": 0.1,
+    "manufacturing_gross_margin_high": 0.3,
+    "service_gross_margin_low": 0.2,
+    "service_gross_margin_high": 0.5,
     "retail_gross_margin_low": 0.05,
-    "retail_gross_margin_high": 0.20,
-    "concentration_high": 0.70,
-    "concentration_medium": 0.50,
-    "growth_excessive": 0.30,
-    "decline_material": 0.20
+    "retail_gross_margin_high": 0.2,
+    "concentration_high": 0.7,
+    "concentration_medium": 0.5,
+    "growth_excessive": 0.3,
+    "decline_material": 0.2
   },
-
   "scoring_weights": {
-    "extremely_high": 0.40,
-    "very_high": 0.30,
-    "high": 0.20,
+    "extremely_high": 0.4,
+    "very_high": 0.3,
+    "high": 0.2,
     "moderate": 0.15,
-    "low": 0.10,
+    "low": 0.1,
     "negligible": 0.05,
     "risk_high_score": 8,
     "risk_medium_score": 6,
@@ -108,5 +102,21 @@
     "base_evidence_score": 15,
     "dimension_match": 5,
     "cross_domain_match": 3
+  },
+  "_auto_新成立企业时限豁免": {
+    "name": "[引擎自学习]新成立企业时限豁免",
+    "description": "自动生成规则 — 阈值配置—新企业缓冲时限（来源:行业型，置信度80%）\n原发现:新成立企业时限豁免\n纠正:消解该发现——新企业数据不足12个月，年度趋势无意义\n原因:企业成立不满一年时，年度趋势指标无对比基准。对新企业的税负率/毛利率年度监控自动消解，改为标注\"新企业，建议持续跟踪\"。首年指标仅作参考。",
+    "auto_generated": true,
+    "generated_at": "2026-07-01T21:00:36.013107",
+    "source_industry": "",
+    "confidence": 0.8
+  },
+  "_auto_个体工商户规模豁免": {
+    "name": "[引擎自学习]个体工商户规模豁免",
+    "description": "自动生成规则 — 阈值配置—个体户规模豁免（来源:行业型，置信度80%）\n原发现:个体工商户规模豁免\n纠正:降一级，标注\"个体工商户，适用简易征收\"\n原因:个体工商户内控制度不完善是普遍性特征。对年收入<500万的小规模个体工商户的\"制度性\"发现自动降级——但不影响税务类发现的风险等级。",
+    "auto_generated": true,
+    "generated_at": "2026-07-01T21:00:37.154307",
+    "source_industry": "",
+    "confidence": 0.8
   }
 }
