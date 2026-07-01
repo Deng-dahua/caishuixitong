@@ -4828,5 +4828,45 @@
     "action": "自动更新设计服务行业风险基准为63.3分",
     "discovered_at": "2026-07-01T12:13:17.459377",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告服务",
+    "avg_risk_score": 75.2,
+    "sample_size": 100,
+    "action": "自动更新广告服务行业风险基准为75.2分",
+    "discovered_at": "2026-07-01T17:11:22.240031",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 63.3,
+    "sample_size": 36,
+    "action": "自动更新现代服务行业风险基准为63.3分",
+    "discovered_at": "2026-07-01T17:11:22.240118",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "信息技术服务",
+    "avg_risk_score": 62.1,
+    "sample_size": 31,
+    "action": "自动更新信息技术服务行业风险基准为62.1分",
+    "discovered_at": "2026-07-01T17:11:22.240185",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "设计服务",
+    "avg_risk_score": 63.3,
+    "sample_size": 24,
+    "action": "自动更新设计服务行业风险基准为63.3分",
+    "discovered_at": "2026-07-01T17:11:22.240234",
+    "source": "audit_memory.json"
   }
 ]

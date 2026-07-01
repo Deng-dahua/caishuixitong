@@ -229,38 +229,47 @@ class ModuleLearner:
         return plan
     
     def get_growth_report(self):
-        """生成成长报告：系统学到了什么"""
-        if len(self.run_log) < TRUST_THRESHOLD_MIN:
-            return {
-                "stage": "婴儿期",
-                "total_runs": len(self.run_log),
-                "note": f"运行次数不足({len(self.run_log)}<{TRUST_THRESHOLD_MIN})，尚在积累经验阶段",
-                "trust_modules": 0,
-                "ready_for_learning": False
-            }
+        """生成成长报告：统计实际分析运行次数和纠正学习成果"""
+        from collections import defaultdict
         
-        # 按行业统计
-        industry_stats = defaultdict(lambda: {"runs": 0, "avg_trust": 0, "modules": 0})
-        for key, trust in self.trust_scores.items():
-            ind = trust["industry"]
-            industry_stats[ind]["runs"] += trust["total_runs"]
-            industry_stats[ind]["avg_trust"] = max(industry_stats[ind]["avg_trust"], trust["trust_score"])
-            industry_stats[ind]["modules"] += 1
+        # 按公司+小时去重得到实际分析运行次数
+        actual_runs = set()
+        industry_runs = defaultdict(int)
         
-        trusted_count = len(self.trust_scores)
-        total_runs = len(self.run_log)
+        for entry in self.run_log:
+            cid = entry.get("company_id", 0)
+            ts = entry.get("timestamp", "")[:13]  # 精确到小时 YYYY-MM-DDTHH
+            key = f"{cid}|{ts}"
+            actual_runs.add(key)
+            ind = entry.get("industry", "")
+            if ind and len(ind) < 20 and ind != "unknown":
+                industry_runs[ind] = 1  # 每行业每轮运行只计1次
         
-        stage = "幼儿期" if trusted_count < 10 else ("成长期" if trusted_count < 30 else "成熟期")
+        total_runs = len(actual_runs)
+        
+        # 从纠正规则库统计学习成果
+        rules = _load_correction_rules()
+        correction_count = sum(len(r.get("corrections", [])) for r in rules.values())
+        trusted = sum(1 for r in rules.values() if r.get("auto_apply") and r.get("confidence", 0) >= 0.7)
+        
+        if total_runs < 3:
+            stage = "婴儿期"
+        elif correction_count < 1:
+            stage = "幼儿期"
+        elif correction_count < 5:
+            stage = "成长期"
+        else:
+            stage = "成熟期"
         
         return {
             "stage": stage,
             "total_runs": total_runs,
-            "trusted_module_contexts": trusted_count,
-            "industries_learned": len(industry_stats),
-            "top_industries": sorted(industry_stats.items(), key=lambda x: -x[1]["runs"])[:5],
-            "recommendations_count": len(self.recommendations),
-            "ready_for_learning": True,
-            "note": f"系统已从{total_runs}次运行中建立{trusted_count}个信任模型"
+            "trusted_module_contexts": trusted,
+            "industries_learned": len(industry_runs),
+            "correction_count": correction_count,
+            "top_industries": sorted(industry_runs.items(), key=lambda x: -1)[:3],
+            "ready_for_learning": correction_count > 0,
+            "note": f"系统已从{total_runs}次分析运行中建立{trusted}个高置信度模型，累计{correction_count}次纠正"
         }
 
 
