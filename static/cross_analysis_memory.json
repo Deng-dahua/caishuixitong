@@ -5298,6 +5298,74 @@
         "经营实质-工商登记与发票推断不一致"
       ],
       "timestamp": "2026-07-01T10:35:33.738457"
+    },
+    {
+      "trace_id": "1df132c2",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "设计服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T10:47:45.774096",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "f25c4f37",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T10:47:45.887626"
+    },
+    {
+      "trace_id": "cbff3dd9",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "设计服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-01T11:08:57.533377",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.51,
+        "supplier_concentration": 64.19185581777482,
+        "goods_match_ratio": 0.07
+      }
+    },
+    {
+      "trace_id": "2a4770f9",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "收款与开票金额偏差大（三源交叉）",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-01T11:08:57.638502"
     }
   ],
   "industry_patterns": {
@@ -5320,7 +5388,7 @@
       "typical_data_profile": {}
     },
     "设计服务": {
-      "analyses_count": 20,
+      "analyses_count": 22,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

@@ -2096,59 +2096,64 @@ window._paraCounter = 0;
 
 function _injectParagraphButtons() {
   var area = document.getElementById('tda-report-area');
-  if (!area) return;
+  if (!area) { 
+    // 如果还没渲染完，300ms后再试一次
+    setTimeout(_injectParagraphButtons, 300);
+    return;
+  }
   
-  // 查找所有章节内的正文段落
-  var chapters = area.querySelectorAll('h2[id^="ch"]');
-  if (!chapters || chapters.length === 0) {
-    // 回退: 直接找所有<p class="i2">
-    var allPars = area.querySelectorAll('p.i2, p[class*="i2"]');
-    window._paraCounter = 0;
-    allPars.forEach(function(p, idx) {
-      try { _addParaButtons(p, idx); } catch(e) {}
-    });
+  // 直接找到所有 class="i2" 的段落，不走章节边界遍历
+  var allPars = area.querySelectorAll('p.i2');
+  if (!allPars || allPars.length === 0) {
+    // 再试一次（可能有延迟渲染的表格内容）
+    setTimeout(_injectParagraphButtons, 500);
     return;
   }
   
   window._paraCounter = 0;
-  chapters.forEach(function(h2) {
-    var next = h2.nextElementSibling;
-    var paraIndex = 0;
-    
-    while (next && !(next.tagName === 'H2' && next.id && next.id.indexOf('ch') === 0)) {
-      if (next.tagName === 'P' && next.className && next.className.indexOf('i2') >= 0) {
-        try { _addParaButtons(next, paraIndex); } catch(e) {}
-        paraIndex++;
-      }
-      next = next.nextElementSibling;
+  allPars.forEach(function(p, idx) {
+    try {
+      // 跳过已经注入过的段落
+      if (p.getAttribute('data-para-idx') !== null) return;
+      _addParaButtons(p, idx);
+    } catch(e) {
+      console.error('Button injection error at para', idx, e);
     }
   });
 }
 
 function _addParaButtons(para, idx) {
+  // 跳过已处理的段落
+  if (para.getAttribute('data-para-idx') !== null) return;
+  
   var globalIdx = window._paraCounter++;
   
-  // 包装为flex容器：正文在左，按钮在右
+  // 保存原始内容用于重置
+  if (!para._originalContent) para._originalContent = para.innerHTML;
+  
+  // 包装：正文在左flex占满，按钮在右固定宽度
   para.style.display = 'flex';
   para.style.alignItems = 'flex-start';
-  para.style.gap = '8px';
+  para.style.gap = '6px';
   
-  var content = para.innerHTML;
-  para.innerHTML = '<span style="flex:1;min-width:0">' + content + '</span>';
+  // 用wrapper span包裹原有内容
+  var wrapper = document.createElement('span');
+  wrapper.style.cssText = 'flex:1;min-width:0';
+  while (para.firstChild) {
+    wrapper.appendChild(para.firstChild);
+  }
+  para.appendChild(wrapper);
   
   var btns = document.createElement('span');
-  btns.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-top:2px;min-width:28px';
+  btns.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:2px;min-width:30px';
   btns.innerHTML = 
-    '<button onclick="event.stopPropagation();window._editParagraph(' + globalIdx + ')" title="Edit" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">E</button>' +
-    '<button onclick="event.stopPropagation();window._auditParagraph(' + globalIdx + ')" title="Audit" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">A</button>' +
-    '<button onclick="event.stopPropagation();window._askParagraph(' + globalIdx + ')" title="Ask" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">Q</button>' +
-    '<button onclick="event.stopPropagation();window._resetParagraph(' + globalIdx + ')" title="Reset" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap">R</button>';
+    '<button onclick="event.stopPropagation();window._editParagraph(' + globalIdx + ')" title="编辑此段" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">编辑</button>' +
+    '<button onclick="event.stopPropagation();window._auditParagraph(' + globalIdx + ')" title="确认正确" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">审核</button>' +
+    '<button onclick="event.stopPropagation();window._askParagraph(' + globalIdx + ')" title="追问引擎" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">追问</button>' +
+    '<button onclick="event.stopPropagation();window._resetParagraph(' + globalIdx + ')" title="重置原文" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">重置</button>';
   
   para.appendChild(btns);
-  
-  // Store paragraph content for reset
   para.setAttribute('data-para-idx', globalIdx);
-  if (!para._originalContent) para._originalContent = content;
 }
 
 // 段落级操作函数 — 连接到纠正规则引擎
