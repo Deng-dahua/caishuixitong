@@ -4399,6 +4399,149 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 #   "这个数字对吗？" → 引擎复查源数据
 # 引擎会回答、学习、自我纠错、反驳用户的错误观点
 
+@app.get("/api/tax-risk-docs/report-smart")
+async def get_report_intelligence(company_id: int = Query(...)):
+    """报告智能增强：风险叙事+税负模拟+资料缺口影响链"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
+    
+    report = cached.get("report", {})
+    report_data = report.get("report", {})
+    target_entity = report_data.get("target_entity", {})
+    all_findings = report_data.get("all_findings", []) or report.get("findings", [])
+    
+    # 1. 风险叙事
+    level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
+    for f in all_findings:
+        lv = f.get("level", "")
+        if lv in level_stats: level_stats[lv] += 1
+    
+    company_name = target_entity.get("name", "被查单位")
+    industry = target_entity.get("industry", "")
+    overall = report_data.get("comprehensive", {}).get("overall_risk", "中风险")
+    
+    high_types = [f.get("type","")[:40] for f in all_findings if f.get("level") in ("高风险","极高风险")][:5]
+    mid_types = [f.get("type","")[:40] for f in all_findings if f.get("level") == "中风险"][:3]
+    
+    if overall in ("高风险", "极高风险"):
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面稽查分析，发现该企业存在{level_stats['高风险']+level_stats['极高风险']}项高风险问题，主要集中在{', '.join(high_types[:3]) if high_types else '多个领域'}。"
+        if level_stats['中风险'] > 0:
+            narrative += f"另有{level_stats['中风险']}项中风险事项涉及{', '.join(mid_types[:2]) if mid_types else '其他方面'}。"
+        narrative += "综合证据链显示，该企业存在较为严重的税务合规问题，建议立即启动深度核查程序，重点核实资金往来真实性、经营实质和关联交易商业目的。"
+    elif overall == "中风险":
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面稽查，发现{level_stats['高风险']+level_stats['极高风险']}项高风险问题和{level_stats['中风险']}项中风险事项。整体风险可控，但多项问题叠加可能影响纳税信用等级。建议限期完成自查整改。"
+    else:
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行稽查分析，仅发现少量低风险事项。企业整体税务合规状况良好，建议继续保持规范的财税管理。"
+    
+    # 2. 税负模拟
+    tax_burden = []
+    for f in all_findings:
+        items = f.get("items", []) or f.get("evidence_rows", []) or []
+        total_amt = 0
+        for item in items:
+            try:
+                amt = float(str(item.get("amount", item.get("金额", item.get("invoice_amount", "0"))).replace(",","")))
+                total_amt += amt
+            except: pass
+        if total_amt > 100:
+            tax_burden.append({
+                "type": f.get("type","")[:40],
+                "level": f.get("level",""),
+                "amount": round(total_amt, 2),
+                "vat_est": round(total_amt * 0.13, 2),
+                "income_tax_est": round(total_amt * 0.25, 2),
+            })
+    
+    tax_total = sum(t["amount"] for t in tax_burden)
+    vat_total = sum(t["vat_est"] for t in tax_burden)
+    inc_total = sum(t["income_tax_est"] for t in tax_burden)
+    
+    # 3. 资料缺口影响链
+    material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
+    gap_chain = []
+    gap_mapping = {
+        "合同": {"risk": "无法核定印花税，无法排除虚开发票嫌疑", "impact": "影响印花税核定+虚开风险排除", "chain": "缺合同 → 无法核定印花税 → 无法验证交易真实性 → 虚开风险无法排除"},
+        "记账凭证": {"risk": "无法验证账务真实性，无法确认收入确认时点", "impact": "影响收入确认+成本核实", "chain": "缺记账凭证 → 无法验证账务记录 → 收入成本无法确认 → 纳税申报准确性存疑"},
+        "申报表": {"risk": "无法比对申报数据与实际数据，可能存在申报偏差", "impact": "影响申报比对+差额发现", "chain": "缺申报表 → 无法比对申报数据 → 申报准确性问题无法发现 → 漏报风险存在"},
+        "工资表": {"risk": "无法核实个税申报和社保基数，存在漏缴风险", "impact": "影响个税+社保核实", "chain": "缺工资表 → 无法核实个税申报 → 社保基数无法确定 → 个人所得税+社保费风险存在"},
+        "进销存台账": {"risk": "无法验证进销存逻辑，BOM分析无数据支撑", "impact": "影响进销比+BOM映射分析", "chain": "缺进销存台账 → 无法做进销比分析 → BOM品名映射无基础数据 → 加工业务判断缺少依据"},
+        "银行对账单": {"risk": "无法比对银行流水真实性，资金回流检测失效", "impact": "影响资金流水验证+回流检测", "chain": "缺银行对账单 → 无法比对资金流水 → 资金回流检测失效 → 隐匿收入/虚开发票风险无法排除"},
+    }
+    
+    if isinstance(material_intel, dict):
+        for k, v in material_intel.items():
+            if isinstance(v, dict) and not v.get("exists"):
+                info = gap_mapping.get(k, {"risk": "资料缺失影响判断", "impact": f"缺少{k}无法进行相关分析", "chain": f"缺{k} → 对应分析域无法运行 → 相关风险无法排除"})
+                gap_chain.append({"material": k, "risk": info["risk"], "impact": info["impact"], "chain": info["chain"]})
+    
+    return {
+        "ok": True,
+        "narrative": narrative,
+        "risk_stats": level_stats,
+        "tax_burden": tax_burden[:5],
+        "tax_total": round(tax_total, 2),
+        "vat_total": round(vat_total, 2),
+        "income_tax_total": round(inc_total, 2),
+        "gap_chain": gap_chain[:7],
+    }
+
+@app.post("/api/tax-risk-docs/edit-preview")
+async def preview_edit_effect(request: Request, company_id: int = Query(...)):
+    """编辑发现前预览修改效果：显示关联发现+修改前后风险对比"""
+    try:
+        body = await request.json()
+    except Exception as e:
+        return {"ok": False, "message": f"无效请求: {e}"}
+    
+    finding_index = body.get("finding_index", 0)
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
+    
+    report = cached.get("report", {})
+    report_data = report.get("report", {})
+    all_findings = report_data.get("all_findings", []) or report.get("findings", [])
+    
+    if finding_index >= len(all_findings):
+        return {"ok": False, "message": f"发现#{finding_index}不存在"}
+    
+    target = all_findings[finding_index]
+    
+    # 1. 关联发现检测（同源数据或同类发现）
+    related = []
+    target_domain = target.get("domain", target.get("category", ""))
+    target_type = str(target.get("type", ""))[:30]
+    for i, f in enumerate(all_findings):
+        if i == finding_index: continue
+        f_domain = f.get("domain", f.get("category", ""))
+        f_type = str(f.get("type", ""))
+        score = 0
+        if f_domain and target_domain and f_domain == target_domain:
+            score += 3
+        if any(w in f_type for w in target_type[:10].split() if len(w) >= 2):
+            score += 2
+        if score >= 3:
+            related.append({"index": i, "type": f.get("type",""), "level": f.get("level",""), "score": score})
+    
+    # 2. 风险等级预览
+    current_level = target.get("level", "中风险")
+    preview_levels = {
+        "极高风险": "如果确认该发现实际不存在，风险等级可降级。建议补充佐证材料。",
+        "高风险": "如果确认该发现判定不准确，可降为中风险或低风险。请提供相反证据。",
+        "中风险": "如果该发现实际更为严重，可升级为高风险。需要交叉验证数据。",
+        "低风险": "该发现风险较低，但如果与其他发现形成证据闭环，可能升级。",
+    }
+    
+    return {
+        "ok": True,
+        "current_level": current_level,
+        "level_preview": preview_levels.get(current_level, "修改可能影响风险判定"),
+        "related_findings": related[:5],
+        "related_count": len(related),
+        "target_type": target_type,
+    }
+
 @app.post("/api/tax-risk-docs/ask")
 async def ask_report_question(request: Request, company_id: int = Query(...)):
     """引擎对话：提问报告中某条发现，引擎回答溯源或对比"""
@@ -4436,24 +4579,34 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         # ── 问题意图分类 ──
         q = question
         
-        # HOW: 怎么得出/怎么算/怎么判定
-        is_how = any(kw in q for kw in ["怎么得出", "怎么算", "怎么判定", "如何判断", "如何得出", "如何计算", "怎样得出", "怎样判断", "怎么来的", "怎么确定", "如何确定", "来源"])
-        # WHY: 为什么/凭什么
-        is_why = any(kw in q for kw in ["为什么", "凭什么", "为何", "原因", "理由", "依据什么"])
-        # WHAT: 什么/哪些/具体/明细
-        is_what = any(kw in q for kw in ["哪些", "具体", "明细", "列出", "逐一", "详细", "什么迹象", "什么数据", "什么证据", "分别", "哪几"])
-        # LAW: 法条/法律/法规/处罚
-        is_law = any(kw in q for kw in ["法条", "法律", "法规", "条例", "第几条", "处罚", "罚款", "刑事责任"])
-        # LEVEL: 风险等级/高低
-        is_level = any(kw in q for kw in ["风险等级", "高风险", "低风险", "中风险", "等级判定", "风险高低", "严重程度"])
+        # ── 十意图分类器 ──
+        is_how = any(kw in q for kw in ["怎么得出","怎么算","怎么判定","如何判断","如何得出","如何计算","怎样得出","怎样判断","怎么来的","怎么确定","如何确定","来源","判定逻辑","判定依据"])
+        is_why = any(kw in q for kw in ["为什么","凭什么","为何","原因","理由","依据什么"])
+        is_what = any(kw in q for kw in ["哪些","具体","明细","列出","逐一","详细","什么迹象","什么数据","什么证据","分别","哪几"])
+        is_law = any(kw in q for kw in ["法条","法律","法规","条例","第几条","处罚","罚款","刑事责任","依据哪条"])
+        is_level = any(kw in q for kw in ["风险等级","高风险","低风险","中风险","等级判定","风险高低","严重程度"])
+        is_calc = any(kw in q for kw in ["多少钱","要补多少","金额多少","应纳税","补税","税额","税款","计算金额","少缴","多缴","补缴","滞纳金"])
+        is_compare = any(kw in q for kw in ["哪个最","对比","相比","哪个更","排名","排序","最严重","最大","最小","最高","最低","对比一下","比较"])
+        is_check = any(kw in q for kw in ["有没有漏洞","是否有问题","会不会漏","是否完整","是否准确","是否可靠","可信吗","靠谱吗","严密","有没有缺"])
+        is_benchmark = any(kw in q for kw in ["同行","行业水平","行业平均","行业对比","行业基准","正常吗","偏低","偏高","合理吗","行业标准","同行业","利润率","税负率"])
         
-        # 没有命中则为通用搜索
         intent = "general"
         if is_how: intent = "how"
         elif is_why: intent = "why"
         elif is_what: intent = "what"
         elif is_law: intent = "law"
         elif is_level: intent = "level"
+        elif is_calc: intent = "calc"
+        elif is_compare: intent = "compare"
+        elif is_check: intent = "check"
+        elif is_benchmark: intent = "benchmark"
+        
+        # ── 多轮对话状态 ──
+        prev_intent = ""
+        prev_finding_idx = -1
+        if history and len(history) > 0:
+            prev_intent = history[-1].get("intent", "")
+            prev_finding_idx = history[-1].get("finding_idx", -1)
         
         # ── 构建上下文 ──
         ctx_parts = []
@@ -4613,6 +4766,136 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
             
             analysis_blocks.append({"title": "⚠️ 风险等级说明", "content": "\n".join(lines)})
         
+        elif intent == "calc":
+            # 金额计算：从发现数据中提取金额×计算逻辑
+            analysis_blocks.append({"title": "💰 金额计算", "content": "以下为该发现的金额计算过程："})
+            # 搜索段落中的数字
+            import re
+            nums = re.findall(r'[\d,]+\.?\d*', paragraph_text)
+            # 搜索关联发现的金额
+            calc_lines = []
+            for f in all_findings:
+                items = f.get("items", []) or f.get("evidence_rows", []) or []
+                for item in items[:3]:
+                    amt = item.get("amount") or item.get("金额") or item.get("invoice_amount") or ""
+                    if amt:
+                        calc_lines.append(f"• [{f.get('level','')}] {f.get('type','')}: {amt}")
+                        if len(calc_lines) >= 5: break
+                if len(calc_lines) >= 5: break
+            if calc_lines:
+                analysis_blocks.append({"title": "📊 涉税金额明细", "content": "\n".join(calc_lines)})
+                # 估算税负
+                total = 0
+                for f in all_findings:
+                    items = f.get("items", []) or f.get("evidence_rows", []) or []
+                    for item in items:
+                        amt = str(item.get("amount") or item.get("金额") or item.get("invoice_amount") or "0")
+                        try: total += float(amt.replace(",",""))
+                        except: pass
+                if total > 0:
+                    vat_est = total * 0.13
+                    inc_est = total * 0.25
+                    analysis_blocks.append({"title": "🧮 预估税款", "content": f"涉税金额合计: ¥{total:,.0f}\n预估增值税(13%): ¥{vat_est:,.0f}\n预估企业所得税(25%): ¥{inc_est:,.0f}\n合计预估: ¥{(vat_est+inc_est):,.0f}\n\n⚠️ 以上为基于现有数据的机器估算，最终以税务机关核定为准。"})
+            else:
+                analysis_blocks.append({"title": "📝 说明", "content": "未在发现数据中找到具体金额明细。请在报告中发现旁的「③证据材料」表格中查看原始金额数据。"})
+        
+        elif intent == "compare":
+            # 跨发现对比排序
+            analysis_blocks.append({"title": "📊 发现对比排名", "content": "按严重程度排序如下："})
+            scored = []
+            for f in all_findings:
+                lv_score = {"极高风险": 10, "高风险": 7, "中风险": 4, "低风险": 2}.get(f.get("level",""), 3)
+                items = f.get("items", []) or f.get("evidence_rows", []) or []
+                max_amt = 0
+                for item in items:
+                    amt = str(item.get("amount") or item.get("金额") or item.get("invoice_amount") or "0")
+                    try: max_amt = max(max_amt, float(amt.replace(",","")))
+                    except: pass
+                scored.append((lv_score + min(max_amt/10000, 5), f))
+            scored.sort(key=lambda x: -x[0])
+            compare_lines = []
+            for i, (s, f) in enumerate(scored[:10]):
+                items = f.get("items", []) or f.get("evidence_rows", []) or []
+                amt_str = ""
+                for item in items[:1]:
+                    amt = str(item.get("amount") or item.get("金额") or "0")
+                    if amt and amt != "0": amt_str = f" | ¥{amt}"
+                compare_lines.append(f"{i+1}. [{f.get('level','')}] {f.get('type','')[:50]}{amt_str}")
+            analysis_blocks.append({"title": f"🔝 TOP{min(10,len(scored))} 严重发现", "content": "\n".join(compare_lines)})
+        
+        elif intent == "check":
+            # 自查漏洞
+            analysis_blocks.append({"title": "🔍 质量审查", "content": "对该发现进行多维质量检查："})
+            check_results = []
+            qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
+            related = []
+            for f in all_findings:
+                ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description",""))
+                if any(kw in ftext for kw in qwords if len(kw) >= 2):
+                    related.append(f)
+            
+            for f in related[:3]:
+                issues = []
+                evidence_count = len(f.get("evidence", []) or [])
+                evidence_rows = len(f.get("evidence_rows", []) or f.get("items", []) or [])
+                has_policy = bool(f.get("policy_ref","").strip())
+                has_source = bool(f.get("how_found","").strip())
+                has_domain = bool(f.get("domain","") or f.get("category",""))
+                
+                if evidence_count < 1 and evidence_rows < 1:
+                    issues.append("⚠ 缺少明确证据材料——该发现的判断可能缺乏数据支撑")
+                if not has_policy:
+                    issues.append("⚠ 缺少法律条文引用——无法追溯法律依据")
+                if not has_source:
+                    issues.append("⚠ 缺少证据来源说明——无法验证数据路径")
+                if not has_domain:
+                    issues.append("ℹ 未标注分析域——可能无法追溯到具体分析模块")
+                if f.get("level") == "高风险" and evidence_count < 2:
+                    issues.append("⚠ 高风险发现证据<2条——强判定但证据薄弱，建议补充验证")
+                
+                check_results.append(f"[{f.get('level','')}] {f.get('type','')[:40]}:")
+                check_results.extend(issues if issues else ["✅ 各项检查通过"])
+                check_results.append("")
+            
+            if check_results:
+                analysis_blocks.append({"title": "📋 审查结果", "content": "\n".join(check_results)})
+            
+            # 资料缺口检查
+            material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
+            if material_intel:
+                missing = []
+                for k, v in material_intel.items():
+                    if isinstance(v, dict) and not v.get("exists"):
+                        missing.append(f"• {k}: {v.get('risk', '数据缺失影响判断')}")
+                if missing:
+                    analysis_blocks.append({"title": "📂 资料缺口影响", "content": "\n".join(missing[:5]) or "所有资料均已提交"})
+            else:
+                analysis_blocks.append({"title": "📂 资料缺口", "content": "未检测到资料完整性检查记录。建议补充提交合同/申报表/记账凭证等9类稽查必查资料。"})
+        
+        elif intent == "benchmark":
+            # 行业对标
+            industry = target_entity.get("industry", "未识别")
+            analysis_blocks.append({"title": "📊 行业对标分析", "content": f"被查单位行业：{industry}"})
+            # 从66行业基准库查找
+            try:
+                benchmarks_path = "engine/thresholds.json"
+                if os.path.exists(benchmarks_path):
+                    with open(benchmarks_path, encoding="utf-8") as bf:
+                        benchmarks = json.load(bf)
+                    ind_data = benchmarks.get(industry, {})
+                    if ind_data:
+                        blines = []
+                        for metric, vals in ind_data.items():
+                            if isinstance(vals, dict):
+                                blines.append(f"• {metric}: 下限{vals.get('min','?')} / 典型{vals.get('typical','?')} / 上限{vals.get('max','?')}")
+                        if blines:
+                            analysis_blocks.append({"title": f"🏭 {industry}行业基准", "content": "\n".join(blines)})
+                        analysis_blocks.append({"title": "📝 对标说明", "content": f"被查单位属于{industry}行业。将企业实际指标与行业基准对比：低于下限→高风险，低于典型值85%→中风险，高于上限→需关注。建议在报告中第四章查看具体的行业对标结果。"})
+                    else:
+                        analysis_blocks.append({"title": "📝 说明", "content": f"未找到「{industry}」行业的基准数据。系统内置66个行业基准库，该行业可能不在覆盖范围内。建议手动对比同行业公开数据。"})
+            except:
+                analysis_blocks.append({"title": "📝 说明", "content": "行业基准库暂不可用。系统内置66个行业×5个指标×3个基准值，可通过编辑按钮补充行业对标阈值。"})
+        
         else:
             # 通用搜索
             qwords = [w for w in q.replace('？','').replace('?','').replace('的','').replace('了','').split() if len(w) >= 2]
@@ -4635,7 +4918,7 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         if ctx_parts:
             analysis_blocks.append({"title": "🏢 企业概况", "content": "；".join(ctx_parts)})
         
-        return {"ok": True, "analysis": analysis_blocks, "intent": intent}
+        return {"ok": True, "analysis": analysis_blocks, "intent": intent, "conversation_id": conversation_id or str(hash(question))[:8]}
     
     # 注意: result = {"ok": True, "report": {all_findings, target_entity, ...}}
     # cached = {"report": result, ...}, 所以 report = result

@@ -845,6 +845,62 @@ function renderTaxDocReport(r) {
   window._paraCount = paraIdx;
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
+  
+  // ── 报告智能增强：异步加载风险叙事+税负模拟+资料缺口影响链 ──
+  setTimeout(function(){
+    var cid = window.currentCompanyId || 1;
+    fetch('/api/tax-risk-docs/report-smart?company_id=' + cid)
+      .then(function(resp){ return resp.json(); })
+      .then(function(smart){
+        if (!smart.ok) return;
+        var smartHtml = '';
+        
+        // ① 风险叙事
+        smartHtml += '<div id="rpt-smart-narrative" style="margin:24px 0;padding:20px 24px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:2px solid #7dd3fc;border-radius:12px">';
+        smartHtml += '<div style="font-size:15px;font-weight:700;color:#0369a1;margin-bottom:12px">🧠 引擎智能分析总览</div>';
+        smartHtml += '<p style="font-size:14px;color:#1e293b;line-height:2.0;margin:0">' + (smart.narrative||'') + '</p>';
+        smartHtml += '</div>';
+        
+        // ② 税负模拟
+        if (smart.tax_burden && smart.tax_burden.length > 0) {
+          smartHtml += '<div id="rpt-smart-tax" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #e2e8f0;border-radius:12px">';
+          smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">💰 预估税负模拟</div>';
+          smartHtml += '<table class="tbl" style="font-size:12px;margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>涉税金额</th><th>增值税预估(13%)</th><th>所得税预估(25%)</th></tr></thead><tbody>';
+          smart.tax_burden.forEach(function(tb){
+            smartHtml += '<tr><td>' + (tb.type||'') + '</td><td style="color:' + (tb.level==='高风险'?'#dc2626':tb.level==='中风险'?'#d97706':'#16a34a') + '">' + tb.level + '</td><td class="r">¥' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (tb.vat_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
+          });
+          smartHtml += '<tr style="font-weight:700;background:#f8fafc"><td colspan="2">合计预估</td><td class="r">¥' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
+          smartHtml += '</tbody></table>';
+          smartHtml += '<p style="font-size:11px;color:#94a3b8;margin:4px 0 0">⚠️ 以上为基于现有数据的机器估算，不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
+          smartHtml += '</div>';
+        }
+        
+        // ③ 资料缺口影响链
+        if (smart.gap_chain && smart.gap_chain.length > 0) {
+          smartHtml += '<div id="rpt-smart-gap" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #fca5a5;border-radius:12px">';
+          smartHtml += '<div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:12px">🔗 资料缺口影响链</div>';
+          smartHtml += '<p style="font-size:13px;color:#475569;margin-bottom:12px">以下为缺失资料对稽查判断的影响链——缺少一份资料会影响多个分析域的判定：</p>';
+          smart.gap_chain.forEach(function(gap){
+            smartHtml += '<div style="margin:8px 0;padding:10px 14px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;font-size:12px;line-height:1.8">';
+            smartHtml += '<strong style="color:#dc2626">' + (gap.material||'') + '</strong><br>';
+            smartHtml += '<span style="color:#991b1b">⚠ ' + (gap.risk||'') + '</span><br>';
+            smartHtml += '<span style="color:#64748b">🔗 影响链：' + (gap.chain||'') + '</span>';
+            smartHtml += '</div>';
+          });
+          smartHtml += '</div>';
+        }
+        
+        if (smartHtml) {
+          var area = document.getElementById('tda-report-area');
+          if (area) {
+            var smartDiv = document.createElement('div');
+            smartDiv.innerHTML = smartHtml;
+            area.insertBefore(smartDiv, area.firstChild);
+          }
+        }
+      })
+      .catch(function(){});
+  }, 500);
 
   // 追加对话式交互面板（发现审查的升级版）
   _initReportChatPanel();
@@ -1063,28 +1119,37 @@ window._editFindingInReport = function(fi) {
   var fdetail = (f.detail || f.description || '');
   var escapedFtype = (ftype || '未命名').replace(/'/g,"\\'");
   
+  // ── 智能预填：根据发现类型生成模板 ──
+  var smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"的判定：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】\n';
+  if (ftype.indexOf('发票') >= 0) {
+    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：发票的品名/金额/税率需核实\n\n【正确逻辑】请检查发票品名是否与实际业务一致，发票金额是否与合同/银行流水匹配\n\n【需要证据】业务合同、银行回单、入库单/出库单\n\n【法律依据】《中华人民共和国发票管理办法》第22条\n';
+  } else if (ftype.indexOf('收入') >= 0 || ftype.indexOf('收款') >= 0) {
+    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：收入确认的时点和金额需核实\n\n【正确逻辑】请确认该笔收款是否为经营收入，是否有对应的开票记录\n\n【需要证据】银行对账单、销售合同、出库记录\n\n【法律依据】《中华人民共和国增值税法》\n';
+  } else if (ftype.indexOf('成本') >= 0 || ftype.indexOf('采购') >= 0) {
+    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：成本的真实性和相关性需核实\n\n【正确逻辑】请确认该笔采购是否与企业主营业务直接相关，是否存在虚增成本\n\n【需要证据】采购合同、入库单、付款凭证\n\n【法律依据】《中华人民共和国企业所得税法》第8条\n';
+  } else if (ftype.indexOf('社保') >= 0 || ftype.indexOf('工资') >= 0) {
+    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：社保缴费基数和人数需核实\n\n【正确逻辑】请核对应发工资与社保申报基数的差异，确认是否存在漏缴\n\n【需要证据】工资表、社保申报表、银行代发记录\n\n【法律依据】《中华人民共和国社会保险法》\n';
+  }
+  
+  // 构建弹窗HTML
   popup.innerHTML = 
-    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="background:#fff;border-radius:12px;max-width:760px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:16px">Edit Finding</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">#' + fi + ' ' + (ftype||'').slice(0,40) + '</span></div>' +
+    '<div><b style="font-size:16px">编辑发现 #' + fi + '</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">' + (ftype||'').slice(0,40) + '</span><span style="margin-left:8px;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (lv==='高风险'?'#fee2e2':lv==='中风险'?'#fef3c7':'#dcfce7') + ';color:' + (lv==='高风险'?'#dc2626':lv==='中风险'?'#d97706':'#16a34a') + '">' + lv + '</span></div>' +
     '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">X</button>' +
     '</div>' +
     '<div style="padding:20px 24px">' +
+    // 关联提醒区域
+    '<div id="edit-related-alert" style="margin-bottom:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6;display:none">' +
+    '<strong>⚠️ 关联提醒：</strong>正在检测...</div>' +
+    // 修改预览区域
+    '<div id="edit-preview-area" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;font-size:11px;color:#065f46;line-height:1.6;display:none">' +
+    '<strong>📋 修改预览：</strong>当前等级 <b>' + lv + '</b></div>' +
+    // 当前引擎输出
     '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
     '<b>当前引擎输出：</b><br>' + (fdetail||'').slice(0,300) + '</div>' +
-    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">模板格式：</div>' +
-    '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
-    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
-    '【具体问题】[指出系统哪里判断错了]<br>' +
-    '【正确逻辑】[说明正确的判断方法]<br>' +
-    '【需要证据】[需要什么资料才能正确判断]<br>' +
-    '【法律依据】[引用的法条或法规]</div>' +
-    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
-    '【判断结论】需纠正\n' +
-    '【具体问题】关于"' + escapedFtype + '"的判定：\n\n' +
-    '【正确逻辑】\n\n' +
-    '【需要证据】\n\n' +
-    '【法律依据】\n' +
+    '<div style="font-size:12px;color:#6366f1;margin-bottom:8px;font-weight:600">' + (smartTemplate !== '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"的判定：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】\n' ? '🤖 已根据发现类型智能预填模板' : '模板格式：') + '</div>' +
+    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' + smartTemplate +
     '</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
     '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
@@ -1092,6 +1157,29 @@ window._editFindingInReport = function(fi) {
     '</div></div></div>';
   
   document.body.appendChild(popup);
+  
+  // ── 异步加载关联发现和修改预览 ──
+  var cid = window.currentCompanyId || 1;
+  fetch('/api/tax-risk-docs/edit-preview?company_id=' + cid, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({finding_index: fi})
+  }).then(function(r){return r.json();}).then(function(data){
+    if (!data.ok) return;
+    // 关联提醒
+    var alertEl = document.getElementById('edit-related-alert');
+    if (alertEl && data.related_count > 0) {
+      var relNames = data.related_findings.slice(0,3).map(function(r){return '#' + r.index + '「' + (r.type||'').slice(0,30) + '」';}).join('、');
+      alertEl.innerHTML = '<strong>⚠️ 关联提醒：</strong>修改此发现可能影响以下关联发现——' + relNames + '。它们与当前发现共享数据源或属于同一分析域，请一并核实。';
+      alertEl.style.display = '';
+    }
+    // 修改预览
+    var previewEl = document.getElementById('edit-preview-area');
+    if (previewEl && data.level_preview) {
+      previewEl.innerHTML = '<strong>📋 修改预览：</strong>当前等级 <b>' + data.current_level + '</b> — ' + data.level_preview;
+      previewEl.style.display = '';
+    }
+  }).catch(function(){});
 };
 
 window._submitFindingEdit = function(fi) {
@@ -1171,9 +1259,11 @@ window._askAboutFinding = function(fi) {
     '<option value="这个结论是怎么来的？">这个结论是怎么来的？</option>' +
     '<option value="有什么证据支持？">有什么证据支持？</option>' +
     '<option value="涉及哪些法律？">涉及哪些法律？</option>' +
-    '<option value="数据怎么算的？">数据怎么算的？</option>' +
+    '<option value="要补多少税？">要补多少税？</option>' +
+    '<option value="哪个发现最严重？">哪个发现最严重？</option>' +
+    '<option value="这个结论有漏洞吗？">这个结论有漏洞吗？</option>' +
+    '<option value="我们行业正常吗？">我们行业正常吗？</option>' +
     '<option value="风险等级准确吗？">风险等级准确吗？</option>' +
-    '<option value="有遗漏的风险点吗？">有遗漏的风险点吗？</option>' +
     '</select>' +
     '<input id="ask-chat-input" placeholder="输入问题..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
     '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">发送</button>' +
@@ -1208,8 +1298,9 @@ window._sendAskChat = function() {
   
   // Track conversation per popup session
   if (!window._askChatHistory) window._askChatHistory = [];
+  if (!window._conversationId) window._conversationId = '';
   
-  window._askChatHistory.push({role:'user', text: question || '', policy: policy || ''});
+  window._askChatHistory.push({role:'user', text: question || '', policy: policy || '', intent: '', finding_idx: window._chatFindingIdx});
   if (input) input.value = '';
   
   var companyId = window.currentCompanyId || 1;
@@ -1220,7 +1311,8 @@ window._sendAskChat = function() {
       finding_index: window._chatFindingIdx || 0,
       question: question || '',
       policy_doc: policy || '',
-      history: window._askChatHistory || []
+      history: window._askChatHistory || [],
+      conversation_id: window._conversationId || ''
     })
   }).then(function(r){ return r.json(); }).then(function(data){
     var t = document.getElementById('ask-thinking');
@@ -1243,7 +1335,8 @@ window._sendAskChat = function() {
     }
     html += '</div>';
     // 引擎回应记入对话历史
-    window._askChatHistory.push({role:'engine', text: JSON.stringify(data.analysis||[]), mode: data.engine_mode||''});
+    window._askChatHistory.push({role:'engine', text: JSON.stringify(data.analysis||[]), mode: data.engine_mode||'', intent: data.intent||''});
+    if (data.conversation_id) window._conversationId = data.conversation_id;
     // compare/correct模式→保存纠正按钮
     if (data.engine_mode === 'compare' || data.engine_mode === 'correct') {
       html += '<div style="margin-top:6px"><button onclick="window._saveAskAsCorrection(' + JSON.stringify(data.finding_index) + ',\'' + (data.engine_mode||'') + '\')" style="background:#059669;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">Save to Correction Rules</button></div>';
@@ -1272,6 +1365,7 @@ window._clearAskChat = function() {
   var body = document.getElementById('ask-chat-body');
   if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
   window._askChatHistory = [];
+  window._conversationId = '';
 };
 
 // 自动总结多轮对话并保存为纠正规则
