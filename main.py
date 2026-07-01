@@ -218,7 +218,11 @@ async def get_api_key():
     return {"ok": True, "key": key, "has_key": bool(key), "status_text": "已配置" if key else "未配置"}
 
 @app.post("/api/apikey")
-async def save_api_key(data: dict):
+async def save_api_key(request: Request):
+    try:
+        data = await request.json()
+    except:
+        data = {}
     key = str(data.get("api_key", "")).strip()
     do_probe = data.get("probe", False)
     _save_api_key(key)
