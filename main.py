@@ -6167,13 +6167,14 @@ def analyze_tax_risk_docs_result(task_id: str):
 # 旧同步端点保留（兼容性），但建议前端改用异步
 @app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """分析涉税资料（同步端点，会阻塞等待完成）"""
-    # 2026-06-26 账套隔离防护
+    """分析涉税资料（同步端点）——每次强制重新分析，不使用缓存"""
     if company_id <= 0:
         return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
     import traceback as _tb
     import socket as _socket
     _socket.setdefaulttimeout(10)
+    # 清除旧缓存，强制重新分析
+    _last_analysis_cache.pop(company_id, None)
     try:
         return _run_analyze(company_id, db)
     except Exception as _e:

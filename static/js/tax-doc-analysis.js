@@ -843,10 +843,11 @@ function renderTaxDocReport(r) {
   area.innerHTML = ctx.html;
   area.scrollIntoView({ behavior: 'smooth' });
 
-  // 报告正文每段右侧注入编辑/审核/交互/重置按钮（DOM就绪后再执行）
-  setTimeout(function(){ 
-    try { _injectParagraphButtons(); } catch(e) { console.error('Button injection failed:', e); }
-  }, 300);
+  // 报告正文每段右侧注入按钮（立即执行 + 延迟重试确保DOM就绪）
+  _injectParagraphButtons();
+  setTimeout(function(){ _injectParagraphButtons(); }, 200);
+  setTimeout(function(){ _injectParagraphButtons(); }, 600);
+  setTimeout(function(){ _injectParagraphButtons(); }, 1200);
 
   // 追加对话式交互面板（发现审查的升级版）
   _initReportChatPanel();
