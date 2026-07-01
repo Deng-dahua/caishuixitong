@@ -215,11 +215,12 @@ def get_global_api_key() -> str:
 @app.get("/api/apikey")
 async def get_api_key():
     key = _load_api_key()
-    return {"ok": True, "key": key, "has_key": bool(key)}
+    return {"ok": True, "key": key, "has_key": bool(key), "status_text": "已配置" if key else "未配置"}
 
 @app.post("/api/apikey")
 async def save_api_key(data: dict):
     key = str(data.get("api_key", "")).strip()
+    do_probe = data.get("probe", False)
     _save_api_key(key)
     # 触发LLM重载
     try:
@@ -227,7 +228,39 @@ async def save_api_key(data: dict):
         reload_llm_client(key)
     except:
         pass
-    return {"ok": True, "has_key": bool(key)}
+    
+    result = {"ok": True, "has_key": bool(key)}
+    
+    # 如果请求检测，尝试连通性验证
+    if do_probe and key:
+        try:
+            import httpx
+            resp = httpx.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={"model": "deepseek-chat", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
+                timeout=8.0,
+            )
+            if resp.status_code == 200:
+                result["verified"] = True
+                result["provider"] = "API可连通"
+            elif resp.status_code == 401:
+                result["verified"] = False
+                result["message"] = "API Key无效(401)"
+            else:
+                result["verified"] = False
+                result["message"] = f"服务返回{resp.status_code}"
+            result["status_text"] = "配置成功 - 已连通" if result["verified"] else "已保存 - 连通失败"
+        except Exception as e:
+            result["verified"] = False
+            result["message"] = str(e)[:100]
+            result["status_text"] = "已保存 - 无法连通"
+    elif key:
+        result["status_text"] = "已配置"
+    else:
+        result["status_text"] = "未配置"
+    
+    return result
 
 @app.delete("/api/apikey")
 async def delete_api_key():

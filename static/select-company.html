@@ -32,10 +32,12 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 </head>
 <body>
 <div class="top-bar">
-  <div class="user" style="display:flex;align-items:center;gap:12px">
+  <div class="user" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <span>👤 <span id="user-name">---</span></span>
-    <input id="apikey-input" type="password" placeholder="填入API Key（DeepSeek/智谱/豆包等）" style="width:280px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="saveApiKey();this.style.borderColor='rgba(255,255,255,0.2)'">
-    <span id="apikey-status" style="font-size:11px;color:#94a3b8"></span>
+    <input id="apikey-input" type="password" placeholder="填入API Key（DeepSeek/智谱/豆包等）" style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
+    <button onclick="confirmApiKey()" style="padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">确定</button>
+    <button onclick="deleteApiKey()" style="padding:6px 14px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;cursor:pointer">删除</button>
+    <span id="apikey-status" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
   </div>
   <button class="logout" onclick="doLogout()">退出登录</button>
 </div>
@@ -51,44 +53,62 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 
 <script>
 // ═══ API Key管理 ═══
+function setApiStatus(text, color, loading) {
+  var el = document.getElementById('apikey-status');
+  if (!el) return;
+  el.textContent = loading ? '⏳ ' + text : text;
+  el.style.color = color;
+}
+
 async function loadApiKey() {
   try {
     var resp = await fetch('/api/apikey');
     var data = await resp.json();
     if (data.ok && data.key) {
       document.getElementById('apikey-input').value = data.key;
-      document.getElementById('apikey-status').textContent = '✅ 已配置';
-      document.getElementById('apikey-status').style.color = '#4ade80';
+      setApiStatus(data.status_text || '✅ 已配置', '#4ade80', false);
     } else {
-      document.getElementById('apikey-status').textContent = '未配置';
-      document.getElementById('apikey-status').style.color = '#94a3b8';
+      document.getElementById('apikey-input').value = '';
+      setApiStatus('未配置', '#94a3b8', false);
     }
   } catch(e) {
-    document.getElementById('apikey-status').textContent = '加载失败';
+    setApiStatus('加载失败', '#f87171', false);
   }
 }
-async function saveApiKey() {
+
+async function confirmApiKey() {
   var key = document.getElementById('apikey-input').value.trim();
-  if (!key) {
-    // 删除API Key
-    await fetch('/api/apikey', {method:'DELETE'});
-    document.getElementById('apikey-status').textContent = '未配置';
-    document.getElementById('apikey-status').style.color = '#94a3b8';
-    return;
-  }
+  if (!key) { setApiStatus('请先输入API Key', '#fbbf24', false); return; }
+  setApiStatus('检测中...', '#94a3b8', true);
   try {
     var resp = await fetch('/api/apikey', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({api_key: key})
+      body: JSON.stringify({api_key: key, probe: true})
     });
     var data = await resp.json();
     if (data.ok) {
-      document.getElementById('apikey-status').textContent = '✅ 已配置';
-      document.getElementById('apikey-status').style.color = '#4ade80';
+      if (data.verified) {
+        setApiStatus('✅ 配置成功 - ' + (data.provider || '已接入'), '#4ade80', false);
+      } else {
+        setApiStatus('⚠️ 已保存 - 无法验证连通性', '#fbbf24', false);
+      }
+    } else {
+      setApiStatus('保存失败: ' + (data.message||''), '#f87171', false);
     }
   } catch(e) {
-    document.getElementById('apikey-status').textContent = '保存失败';
-    document.getElementById('apikey-status').style.color = '#f87171';
+    setApiStatus('网络错误', '#f87171', false);
+  }
+}
+
+async function deleteApiKey() {
+  if (!confirm('确定删除API Key？删除后追问将使用本地引擎。')) return;
+  setApiStatus('删除中...', '#94a3b8', true);
+  try {
+    await fetch('/api/apikey', {method:'DELETE'});
+    document.getElementById('apikey-input').value = '';
+    setApiStatus('已删除 - 未配置', '#94a3b8', false);
+  } catch(e) {
+    setApiStatus('删除失败', '#f87171', false);
   }
 }
 
