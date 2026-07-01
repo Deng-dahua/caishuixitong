@@ -24,24 +24,22 @@ class LLMClient:
         self._scan()
     
     def _scan(self):
-        """扫描可用后端"""
-        # 1. DeepSeek
+        """扫描可用后端（仅当真正可连通时加入）"""
+        # 1. DeepSeek（国内首选，API免费额度30元）
         ds_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        if ds_key:
+        if ds_key and self._probe_http("https://api.deepseek.com"):
             self._backends.append(("deepseek", {
                 "url": "https://api.deepseek.com/v1/chat/completions",
                 "key": ds_key,
                 "model": "deepseek-chat",
             }))
         
-        # 2. Ollama (本地)
-        try:
+        # 2. Ollama (本地，需验证实际响应)
+        if self._probe_ollama():
             self._backends.append(("ollama", {
                 "url": "http://localhost:11434/api/chat",
                 "model": "qwen2.5:7b",
             }))
-        except:
-            pass
         
         # 3. OpenRouter (免费模型)
         or_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -62,8 +60,31 @@ class LLMClient:
                 "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
             }))
         
-        if self._backends:
-            self._active = self._backends[0]
+        self._set_active()
+        
+    def _probe_http(self, base_url: str) -> bool:
+        """探测HTTP服务是否可连通"""
+        try:
+            resp = httpx.get(base_url, timeout=3.0)
+            return resp.status_code < 500
+        except:
+            return False
+    
+    def _probe_ollama(self) -> bool:
+        """探测Ollama是否实际在运行且有模型"""
+        try:
+            resp = httpx.get("http://localhost:11434/api/tags", timeout=3.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = data.get("models", [])
+                return len(models) > 0
+            return False
+        except:
+            return False
+    
+    def _set_active(self):
+        """设置当前活跃后端"""
+        self._active = self._backends[0] if self._backends else None
     
     @property
     def available(self) -> bool:

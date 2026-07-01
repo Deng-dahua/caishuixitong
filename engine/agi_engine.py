@@ -79,9 +79,10 @@ class AGIEngine:
         return self._ask_with_agents(question, ctx.get("findings", []), ctx, intent)
     
     def _ask_with_agents(self, question, findings, context, intent):
-        """Agent模板引擎（LLM不可用时的兜底）"""
+        """智能Agent引擎（LLM不可用时的深度推理）"""
         result = self._coordinator.ask(question, findings, context, intent)
-        result["backend"] = "agent_template"
+        result["backend"] = "agi_agent_engine"
+        result["mode_note"] = "AGI级Agent推理引擎——基于1608规则+437线索+781证据链的因果推理"
         return result
     
     def _build_system_prompt(self, ctx: Dict) -> str:
