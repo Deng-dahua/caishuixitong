@@ -32,7 +32,11 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 </head>
 <body>
 <div class="top-bar">
-  <div class="user">👤 <span id="user-name">---</span></div>
+  <div class="user" style="display:flex;align-items:center;gap:12px">
+    <span>👤 <span id="user-name">---</span></span>
+    <input id="apikey-input" type="password" placeholder="填入API Key（DeepSeek/智谱/豆包等）" style="width:280px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="saveApiKey();this.style.borderColor='rgba(255,255,255,0.2)'">
+    <span id="apikey-status" style="font-size:11px;color:#94a3b8"></span>
+  </div>
   <button class="logout" onclick="doLogout()">退出登录</button>
 </div>
 <div class="container">
@@ -46,7 +50,50 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 </div>
 
 <script>
+// ═══ API Key管理 ═══
+async function loadApiKey() {
+  try {
+    var resp = await fetch('/api/apikey');
+    var data = await resp.json();
+    if (data.ok && data.key) {
+      document.getElementById('apikey-input').value = data.key;
+      document.getElementById('apikey-status').textContent = '✅ 已配置';
+      document.getElementById('apikey-status').style.color = '#4ade80';
+    } else {
+      document.getElementById('apikey-status').textContent = '未配置';
+      document.getElementById('apikey-status').style.color = '#94a3b8';
+    }
+  } catch(e) {
+    document.getElementById('apikey-status').textContent = '加载失败';
+  }
+}
+async function saveApiKey() {
+  var key = document.getElementById('apikey-input').value.trim();
+  if (!key) {
+    // 删除API Key
+    await fetch('/api/apikey', {method:'DELETE'});
+    document.getElementById('apikey-status').textContent = '未配置';
+    document.getElementById('apikey-status').style.color = '#94a3b8';
+    return;
+  }
+  try {
+    var resp = await fetch('/api/apikey', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({api_key: key})
+    });
+    var data = await resp.json();
+    if (data.ok) {
+      document.getElementById('apikey-status').textContent = '✅ 已配置';
+      document.getElementById('apikey-status').style.color = '#4ade80';
+    }
+  } catch(e) {
+    document.getElementById('apikey-status').textContent = '保存失败';
+    document.getElementById('apikey-status').style.color = '#f87171';
+  }
+}
+
 async function init() {
+  loadApiKey();
   var name = document.cookie.split('; ').find(function(c){ return c.startsWith('user_name='); });
   if (name) document.getElementById('user-name').textContent = decodeURIComponent(name.split('=')[1]);
   

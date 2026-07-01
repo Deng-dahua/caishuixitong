@@ -192,6 +192,53 @@ async def api_logout(request: Request):
     return resp
 
 
+# ═══════════════════════════════════════════════════════════
+# API Key管理 — 全局LLM接入配置
+# ═══════════════════════════════════════════════════════════
+_API_KEY_PATH = os.path.join("static", "api_key.json")
+
+def _load_api_key():
+    try:
+        with open(_API_KEY_PATH, encoding="utf-8") as f:
+            return json.load(f).get("key", "")
+    except:
+        return ""
+
+def _save_api_key(key: str):
+    os.makedirs(os.path.dirname(_API_KEY_PATH), exist_ok=True)
+    with open(_API_KEY_PATH, "w", encoding="utf-8") as f:
+        json.dump({"key": key, "updated_at": datetime.now().isoformat()}, f)
+
+def get_global_api_key() -> str:
+    return _load_api_key()
+
+@app.get("/api/apikey")
+async def get_api_key():
+    key = _load_api_key()
+    return {"ok": True, "key": key, "has_key": bool(key)}
+
+@app.post("/api/apikey")
+async def save_api_key(data: dict):
+    key = str(data.get("api_key", "")).strip()
+    _save_api_key(key)
+    # 触发LLM重载
+    try:
+        from engine.llm_client import reload_llm_client
+        reload_llm_client(key)
+    except:
+        pass
+    return {"ok": True, "has_key": bool(key)}
+
+@app.delete("/api/apikey")
+async def delete_api_key():
+    _save_api_key("")
+    try:
+        from engine.llm_client import reload_llm_client
+        reload_llm_client("")
+    except:
+        pass
+    return {"ok": True, "has_key": False}
+
 @app.get("/select-company", response_class=HTMLResponse)
 async def select_company_page():
     return _read_html("static/select-company.html")

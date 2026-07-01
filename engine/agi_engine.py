@@ -35,6 +35,9 @@ class AGIEngine:
         1. 如果LLM可用 → LLM生成自然人语言回答
         2. 如果LLM不可用 → Agent模板引擎兜底
         """
+        """每次追问前重新检测LLM可用性（API Key可能刚被配置）"""
+        self._llm_ready = is_llm_available()
+        
         # 构建上下文
         ctx = self._build_context(context, findings)
         

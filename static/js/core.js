@@ -292,6 +292,8 @@ window.enterApp = enterApp;  // 确保全局可访问
   var user = getCurrentUser();
   var userEl = document.getElementById('sidebar-user-name');
   if (userEl && user) userEl.textContent = user.name;
+  // 检查API Key状态
+  checkApiKeyStatus();
   // 显示当前账套信息
   var coNameEl = document.getElementById('sidebar-company-name');
   var coUsccEl = document.getElementById('sidebar-company-uscc');
@@ -305,6 +307,32 @@ window.enterApp = enterApp;  // 确保全局可访问
   await loadAllAccounts();
   const lastPage = localStorage.getItem('lastPage') || 'dashboard';
   navigateTo(lastPage);
+}
+
+// ═══ API Key状态检查 ═══
+function checkApiKeyStatus() {
+  fetch('/api/apikey')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var dot = document.getElementById('api-status-dot');
+      var txt = document.getElementById('api-status-text');
+      if (!dot || !txt) return;
+      if (data.ok && data.key) {
+        dot.style.background = '#4ade80';
+        txt.textContent = '已接入API Key';
+        txt.style.color = '#4ade80';
+      } else {
+        dot.style.background = '#94a3b8';
+        txt.textContent = '未接入API Key';
+        txt.style.color = '#94a3b8';
+      }
+    })
+    .catch(function(){
+      var dot = document.getElementById('api-status-dot');
+      var txt = document.getElementById('api-status-text');
+      if (dot) dot.style.background = '#ef4444';
+      if (txt) { txt.textContent = '检测失败'; txt.style.color = '#ef4444'; }
+    });
 }
 
 async function exitCompany() {

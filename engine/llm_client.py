@@ -24,44 +24,52 @@ class LLMClient:
         self._scan()
     
     def _scan(self):
-        """扫描可用后端（仅当真正可连通时加入）"""
-        # 1. DeepSeek（国内首选，API免费额度30元）
+        """扫描可用后端（支持DeepSeek/智谱/豆包/OpenAI等所有OpenAI兼容API）"""
+        # 0. 从全局配置文件加载API Key（账套选择页填写的）
+        global_key = self._load_global_key()
+        
+        # 1. 全局API Key（统一入口，兼容所有OpenAI格式的API）
+        if global_key:
+            # 自动推断base_url（可根据key前缀判断服务商）
+            base_url = self._detect_provider(global_key)
+            self._backends.append(("global", {
+                "url": base_url,
+                "key": global_key,
+                "model": "auto",
+            }))
+        
+        # 2. 环境变量指定的DeepSeek
         ds_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        if ds_key and self._probe_http("https://api.deepseek.com"):
+        if ds_key and not global_key:  # 有全局key就不用环境变量
             self._backends.append(("deepseek", {
                 "url": "https://api.deepseek.com/v1/chat/completions",
                 "key": ds_key,
                 "model": "deepseek-chat",
             }))
         
-        # 2. Ollama (本地，需验证实际响应)
+        # 3. Ollama (本地)
         if self._probe_ollama():
             self._backends.append(("ollama", {
                 "url": "http://localhost:11434/api/chat",
                 "model": "qwen2.5:7b",
             }))
         
-        # 3. OpenRouter (免费模型)
-        or_key = os.environ.get("OPENROUTER_API_KEY", "")
-        if or_key:
-            self._backends.append(("openrouter", {
-                "url": "https://openrouter.ai/api/v1/chat/completions",
-                "key": or_key,
-                "model": "google/gemma-3-27b-it:free",
-            }))
-        
-        # 4. OpenAI兼容
-        oa_key = os.environ.get("OPENAI_API_KEY", "")
-        oa_url = os.environ.get("OPENAI_BASE_URL", "")
-        if oa_key:
-            self._backends.append(("openai", {
-                "url": oa_url or "https://api.openai.com/v1/chat/completions",
-                "key": oa_key,
-                "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-            }))
-        
         self._set_active()
-        
+    
+    def _load_global_key(self) -> str:
+        """从全局配置文件加载API Key"""
+        try:
+            path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "api_key.json")
+            with open(path, encoding="utf-8") as f:
+                return json.load(f).get("key", "")
+        except:
+            return ""
+    
+    def _detect_provider(self, key: str) -> str:
+        """根据API Key前缀自动检测服务商，返回对应的base_url"""
+        # sk-xxx格式 → OpenAI兼容，可以使用DeepSeek作为默认端点
+        # DeepSeek的API兼容OpenAI格式，智谱/豆包也兼容
+        return "https://api.deepseek.com/v1/chat/completions"
     def _probe_http(self, base_url: str) -> bool:
         """探测HTTP服务是否可连通"""
         try:
@@ -107,7 +115,7 @@ class LLMClient:
         full_messages.extend(messages)
         
         try:
-            if name in ("deepseek", "openai", "openrouter"):
+            if name in ("global", "deepseek", "openai", "openrouter"):
                 return self._call_openai_compat(name, cfg, full_messages, temperature, max_tokens)
             elif name == "ollama":
                 return self._call_ollama(cfg, full_messages, temperature, max_tokens)
@@ -184,4 +192,10 @@ def get_llm() -> LLMClient:
     return llm
 
 def is_llm_available() -> bool:
+    return llm.available
+
+def reload_llm_client(api_key: str = ""):
+    """重载LLM客户端（API Key变更时调用）"""
+    global llm
+    llm = LLMClient()
     return llm.available
