@@ -2580,8 +2580,62 @@ function _initReportTTS() {
     '<span id="tts-progress" style="font-size:12px;color:#94a3b8"></span>' +
     '</div>' +
     '<div style="font-size:11px;color:#94a3b8;margin-top:4px">💡 点击报告任意段落可从此处开始播报至报告结束 · 播音标准：新闻联播级专业播报 · 橙色底纹=正在播报的段落</div>';
-  bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;min-width:620px;max-width:920px;padding:12px 18px;background:rgba(255,255,255,0.96);border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);backdrop-filter:blur(10px)';
+  bar.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;min-width:380px;max-width:920px;padding:12px 18px;background:rgba(255,255,255,0.96);border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);backdrop-filter:blur(10px);cursor:grab';
+  bar.setAttribute('data-draggable', 'true');
   document.body.appendChild(bar);
+  
+  // ── 拖拽移动 ──
+  var dragHandle = bar.querySelector('div:first-child');
+  if (dragHandle) dragHandle.style.cursor = 'grab';
+  var dragging = false, dragX = 0, dragY = 0, startLeft = 0, startTop = 0;
+  
+  bar.addEventListener('mousedown', function(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+    dragging = true;
+    bar.style.cursor = 'grabbing';
+    bar.style.transition = 'none';
+    dragX = e.clientX; dragY = e.clientY;
+    var rect = bar.getBoundingClientRect();
+    startLeft = rect.left; startTop = rect.top;
+    e.preventDefault();
+  });
+  
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var dx = e.clientX - dragX, dy = e.clientY - dragY;
+    bar.style.left = (startLeft + dx) + 'px';
+    bar.style.top = (startTop + dy) + 'px';
+    bar.style.right = 'auto'; bar.style.bottom = 'auto';
+    bar.style.transform = 'none';
+  });
+  
+  document.addEventListener('mouseup', function() {
+    if (dragging) { dragging = false; bar.style.cursor = 'grab'; }
+  });
+  
+  // 触摸支持
+  bar.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+    if (e.touches.length !== 1) return;
+    dragging = true; bar.style.cursor = 'grabbing'; bar.style.transition = 'none';
+    dragX = e.touches[0].clientX; dragY = e.touches[0].clientY;
+    var rect = bar.getBoundingClientRect();
+    startLeft = rect.left; startTop = rect.top;
+  }, {passive: false});
+  
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    var dx = e.touches[0].clientX - dragX, dy = e.touches[0].clientY - dragY;
+    bar.style.left = (startLeft + dx) + 'px';
+    bar.style.top = (startTop + dy) + 'px';
+    bar.style.right = 'auto'; bar.style.bottom = 'auto';
+    bar.style.transform = 'none';
+    e.preventDefault();
+  }, {passive: false});
+  
+  document.addEventListener('touchend', function() {
+    if (dragging) { dragging = false; bar.style.cursor = 'grab'; }
+  });
   
   document.getElementById('tts-play-all').onclick = function() { _ttsBuildChunks(area); _ttsState.currentIdx = 0; _ttsSpeakNext(); _updateTtsUI(true); };
   document.getElementById('tts-pause').onclick = _ttsTogglePause;
