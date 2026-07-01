@@ -1813,15 +1813,16 @@ function _renderReportFallback(r, allF) {
     var mergeCount = f._mergeCount || 0;
     
     // ── 发现标题（含发现级编辑/审核/追问/重置按钮）──
+    var realIdx = f._idx !== undefined ? f._idx : fi;
     h += '<p style="text-indent:2em;margin:8px 0;text-align:justify;display:flex;align-items:flex-start;gap:0">' +
       '<span style="flex:1;min-width:0"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + lv;
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
       '<span class="rpt-btn-bar" style="display:inline-flex;flex-direction:column;gap:2px;flex-shrink:0;margin-left:6px;padding-top:1px">' +
-      '<button onclick="event.stopPropagation();window._editFindingInReport(' + fi + ')" title="编辑此发现" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">编辑</button>' +
-      '<button onclick="event.stopPropagation();window._auditFindingInReport(' + fi + ')" title="审核此发现" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">审核</button>' +
-      '<button onclick="event.stopPropagation();window._askAboutFinding(' + fi + ')" title="追问此发现" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">追问</button>' +
-      '<button onclick="event.stopPropagation();window._deleteFindingFromReport(' + fi + ')" title="重置此发现" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">重置</button>' +
+      '<button onclick="event.stopPropagation();window._editFindingInReport(' + realIdx + ')" title="编辑此发现" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">编辑</button>' +
+      '<button onclick="event.stopPropagation();window._auditFindingInReport(' + realIdx + ')" title="审核此发现" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">审核</button>' +
+      '<button onclick="event.stopPropagation();window._askAboutFinding(' + realIdx + ')" title="追问此发现" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">追问</button>' +
+      '<button onclick="event.stopPropagation();window._deleteFindingFromReport(' + realIdx + ')" title="重置此发现" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">重置</button>' +
       '</span>' +
       '</p>';
     
