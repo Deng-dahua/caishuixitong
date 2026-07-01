@@ -691,11 +691,19 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         "finding_detail": finding_detail[:200] if finding_detail else "",
     })
     
-    # 自动升级检查：同一模式被纠正1次以上 → 升级为自动规则
+    # 自动升级 + 自适应学习率：纠正越多，越激进
     correction_count = len(rules[fingerprint]["corrections"])
+    rules[fingerprint]["correction_count"] = correction_count
+    
     if correction_count >= 1:
         rules[fingerprint]["auto_apply"] = True
-        rules[fingerprint]["confidence"] = min(0.95, 0.5 + correction_count * 0.3)
+        # 自适应置信度：0-1次=0.5, 2次=0.8, 3次=0.9, 5+次=0.95
+        base_conf = 0.5 + correction_count * 0.3
+        # 同行业多次纠正加成
+        same_industry = sum(1 for c in rules[fingerprint]["corrections"] if c.get("industry") == industry)
+        if same_industry >= 3:
+            base_conf = min(0.98, base_conf + 0.1)
+        rules[fingerprint]["confidence"] = min(0.98, base_conf)
         rules[fingerprint]["rule"] = _generate_correction_rule(finding_type, industry, biz_model, corrected_risk, reason)
     
     _save_correction_rules(rules)
@@ -723,15 +731,26 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
         except:
             pass
     
+    # 累计学习指标
+    total_rules = sum(1 for r in rules.values() if r.get("auto_apply") and not r.get("fingerprint","").startswith("__CROSS__"))
+    total_corrections = sum(len(r.get("corrections",[])) for r in rules.values())
+    
     return {
         "recorded": True,
         "fingerprint": fingerprint,
         "correction_count": correction_count,
         "auto_apply": rules[fingerprint]["auto_apply"],
+        "confidence": rules[fingerprint]["confidence"],
         "upgraded_to_rule": correction_count >= 1,
         "cross_synthesized": synth_result.get("synthesized", False),
         "module_auto_updated": module_update_result.get("updated", False),
         "modules_updated": module_update_result.get("modules_updated", []),
+        "learning_metrics": {
+            "total_auto_rules": total_rules,
+            "total_corrections": total_corrections,
+            "adaptive_confidence": rules[fingerprint]["confidence"],
+            "same_industry_count": same_industry if 'same_industry' in dir() else 0,
+        }
     }
 
 

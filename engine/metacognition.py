@@ -11,7 +11,7 @@
   - 反思器：针对每条结论生成反向假设
   - 元认知：站在更高一层看"反思器做得对不对"
 """
-from typing import Dict, List, Any, Optional
+import json, os
 from datetime import datetime
 
 
@@ -161,15 +161,89 @@ class MetacognitionEngine:
         if len(gaps) >= 3:
             report["action_items"].append(f"发现{len(gaps)}个信息缺口，补充后可显著提升分析质量")
         
-        # 记录推理日志
+        # 记录推理日志，持久化用于跨运行比较
         self.reasoning_log.append({
             "timestamp": report["timestamp"],
             "avg_quality": avg_quality,
             "findings_count": len(findings),
             "issues": sum(len(q["issues"]) for q in quality_evaluations),
         })
+        self._persist_log()
+        
+        # ═══ 自知增强：六维能力自评分 ═══
+        report["agi_capability_scores"] = self._score_capabilities(findings, avg_quality)
+        report["vs_baseline"] = self._compare_to_baseline(avg_quality, len(findings))
+        report["anomalies"] = self._detect_anomalies(quality_evaluations)
         
         return report
+    
+    def _score_capabilities(self, findings, avg_quality):
+        """六维能力自评分（自知层核心）"""
+        has_correction_rules = os.path.exists(
+            os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json"))
+        has_memory = len(self.reasoning_log) > 1
+        total_findings = len(findings)
+        high_risk = sum(1 for f in findings if f.get("level") in ("高风险","极高风险"))
+        has_evidence = sum(1 for f in findings if f.get("items") or f.get("evidence"))
+        has_law = sum(1 for f in findings if "第" in str(f.get("policy_ref","")) and "条" in str(f.get("policy_ref","")))
+        
+        return {
+            "记忆": min(0.95, 0.6 + 0.15 * has_memory + 0.1 * min(total_findings/50, 1)),
+            "学习": min(0.95, 0.5 + 0.3 * has_correction_rules + 0.15 * min(len(self.reasoning_log)/5, 1)),
+            "思考": min(0.95, 0.5 + 0.2 * min(has_evidence/total_findings, 1) if total_findings else 0.5),
+            "判断": min(0.95, 0.6 + 0.2 * min(has_law/total_findings, 1) + 0.1 * avg_quality),
+            "决策": min(0.95, 0.5 + 0.25 * min(high_risk/5, 1) + 0.2 * avg_quality),
+            "自知": min(0.95, 0.4 + 0.3 * has_memory + 0.15 * avg_quality),
+        }
+    
+    def _compare_to_baseline(self, current_quality, current_count):
+        """与历史基线比较（自知的核心：我知道自己进步了还是退步了）"""
+        if len(self.reasoning_log) < 2:
+            return {"status": "baseline", "message": "首轮分析，无历史基线可对比"}
+        
+        prev = [r for r in self.reasoning_log[:-1]]
+        avg_prev_quality = sum(r["avg_quality"] for r in prev) / len(prev)
+        avg_prev_count = sum(r["findings_count"] for r in prev) / len(prev)
+        
+        q_change = current_quality - avg_prev_quality
+        c_change = current_count - avg_prev_count
+        
+        status = "improving" if q_change > 0.05 else ("declining" if q_change < -0.05 else "stable")
+        return {
+            "status": status,
+            "current_quality": round(current_quality, 3),
+            "baseline_quality": round(avg_prev_quality, 3),
+            "quality_delta": round(q_change, 3),
+            "finding_count_delta": int(c_change),
+            "total_runs": len(self.reasoning_log),
+            "message": f"推理质量{'提升' if status=='improving' else ('下降' if status=='declining' else '稳定')}（当前{current_quality:.2f} vs 基线{avg_prev_quality:.2f}）"
+        }
+    
+    def _detect_anomalies(self, quality_evaluations):
+        """检测异常：突然出现大量低质量结论"""
+        anomalies = []
+        very_low = [q for q in quality_evaluations if q["quality_score"] < 0.2]
+        if len(very_low) > 3:
+            anomalies.append(f"检测到{len(very_low)}条极低质量结论（<0.2），可能数据源存在问题")
+        
+        # 检查评分方差（过高方差=不稳定）
+        scores = [q["quality_score"] for q in quality_evaluations]
+        if len(scores) > 5:
+            avg = sum(scores) / len(scores)
+            variance = sum((s - avg) ** 2 for s in scores) / len(scores)
+            if variance > 0.15:
+                anomalies.append(f"结论质量方差过大（{variance:.3f}），引擎输出不够稳定")
+        
+        return anomalies
+    
+    def _persist_log(self):
+        """持久化推理日志，跨运行保留"""
+        try:
+            log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "metacognition_log.json")
+            with open(log_path, "w", encoding="utf-8") as f:
+                json.dump(self.reasoning_log[-20:], f, ensure_ascii=False, indent=2)
+        except:
+            pass
 
 
 # ── 全局单例 ──
