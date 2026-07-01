@@ -1,5 +1,5 @@
 """
-AGI推理引擎 — 连接因果网络+假设验证+历史记忆三大推理基础设施
+AGI推理引擎 — 连接因果发现+语义理解+创造性假设+历史记忆
 
 让追问引擎真正调用因果推理、贝叶斯验证、案例匹配，而非模板填空。
 """
@@ -17,9 +17,16 @@ class ReasoningResult:
     causal_predictions: List[Dict] = field(default_factory=list)
     causal_unknown: List[Dict] = field(default_factory=list)
     
+    # 语义理解
+    semantic_matches: List[Dict] = field(default_factory=list)
+    
     # 假设验证
     hypotheses: List[Dict] = field(default_factory=list)
     best_hypothesis: Optional[Dict] = None
+    
+    # 创造性推理
+    creative_hypotheses: List[Dict] = field(default_factory=list)
+    analogies: int = 0
     
     # 历史案例
     similar_cases: List[Dict] = field(default_factory=list)
@@ -62,20 +69,70 @@ class AGIReasoner:
         # 构建推理上下文
         ctx = self._build_ctx(context, findings)
         
-        # 1. 因果推理 (causal_network)
+        # 1. 语义理解 (NEW)
+        self._reason_semantic(question, findings, result)
+        
+        # 2. 因果推理 (causal_network)
         self._reason_causal(ctx, result)
         
-        # 2. 假设验证 (hypothesis_engine)
+        # 3. 假设验证 (hypothesis_engine)
         if intent in ("why", "how", "check"):
             self._reason_hypotheses(ctx, result)
         
-        # 3. 历史案例匹配 (memory)
+        # 4. 创造性推理 (NEW) — 对未知模式做类比推理
+        self._reason_creative(ctx, result)
+        
+        # 5. 历史案例匹配 (memory)
         self._reason_similar(ctx, result)
         
-        # 4. 综合结论
+        # 6. 综合结论
         self._synthesize(result)
         
         return result
+    
+    def _reason_semantic(self, question: str, findings: List[Dict], result: ReasoningResult):
+        """语义理解：标准化品名、识别同义表达"""
+        try:
+            from engine.semantic_reasoner import get_semantic_engine
+            sem = get_semantic_engine()
+            
+            matches = []
+            for f in findings[:5]:
+                ft = f.get("type", "")
+                fd = f.get("detail", "")
+                if ft:
+                    norm = sem.normalize(ft)
+                    kw = sem.extract_tax_keywords(ft + (fd or ""))
+                    if norm != ft or kw:
+                        matches.append({
+                            "original": ft[:60],
+                            "normalized": norm[:100],
+                            "keywords": kw[:5],
+                        })
+            
+            result.semantic_matches = matches[:5]
+        except:
+            pass
+    
+    def _reason_creative(self, ctx: Dict, result: ReasoningResult):
+        """创造性推理：未知信号组合→类比推理→生成假设"""
+        if not result.causal_unknown:
+            return
+        
+        try:
+            from engine.creative_hypothesis import get_creative_engine
+            creative = get_creative_engine()
+            
+            unknown = []
+            for u in result.causal_unknown[:2]:
+                unknown.extend(u.get("signals", []))
+            
+            if unknown:
+                cr = creative.reason_analogically(unknown, ctx.get("findings", [])[:5], ctx)
+                result.creative_hypotheses = cr.get("hypotheses", [])
+                result.analogies = cr.get("analogies_found", 0)
+        except:
+            pass
     
     def _build_ctx(self, context: Dict, findings: List[Dict]) -> Dict:
         """构建推理上下文"""

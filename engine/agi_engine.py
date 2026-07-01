@@ -95,11 +95,13 @@ class AGIEngine:
         self._inject_reasoning(result, reasoning)
         
         result["backend"] = "agi_reasoning_engine"
-        result["mode_note"] = "因果网络+假设验证+历史记忆+1608规则——全栈AGI推理"
+        result["mode_note"] = "因果发现+语义理解+创造性假设+历史记忆+1608规则——六层AGI推理"
         result["reasoning"] = {
             "signals": reasoning.causal_signals[:5],
             "predictions": reasoning.causal_predictions[:3],
+            "semantic": reasoning.semantic_matches[:3],
             "hypothesis_count": len(reasoning.hypotheses),
+            "creative": reasoning.analogies,
             "similar_cases": len(reasoning.similar_cases),
             "confidence": reasoning.confidence,
             "evidence_strength": reasoning.evidence_strength,
@@ -109,6 +111,19 @@ class AGIEngine:
     def _inject_reasoning(self, result: Dict, reasoning: ReasoningResult):
         """将推理结果注入到回答块中"""
         analysis = result.get("analysis", [])
+        
+        # 语义理解
+        if reasoning.semantic_matches:
+            sem_lines = []
+            for sm in reasoning.semantic_matches[:3]:
+                sem_lines.append(f"• {sm['original']} → {sm['normalized']}")
+                if sm.get("keywords"):
+                    sem_lines.append(f"  关键词: {', '.join(sm['keywords'][:5])}")
+            if sem_lines:
+                analysis.append({
+                    "title": "🔤 语义理解",
+                    "content": "\n".join(sem_lines)
+                })
         
         # 因果信号
         if reasoning.causal_signals:
@@ -134,6 +149,18 @@ class AGIEngine:
                 "title": f"🔬 假设验证（{len(reasoning.hypotheses)}条）",
                 "content": "\n".join(hyp_lines)
             })
+        
+        # 创造性推理
+        if reasoning.creative_hypotheses:
+            creative_lines = []
+            for ch in reasoning.creative_hypotheses[:2]:
+                creative_lines.append(f"▎{ch.get('type','')}: {ch.get('hypothesis','')[:150]}")
+                creative_lines.append(f"  置信度: {ch.get('confidence',0):.0%} | 来源: {ch.get('source','')}")
+            if creative_lines:
+                analysis.append({
+                    "title": f"💡 创造性推理（{reasoning.analogies}个类比）",
+                    "content": "\n".join(creative_lines)
+                })
         
         # 历史案例
         if reasoning.similar_cases:
