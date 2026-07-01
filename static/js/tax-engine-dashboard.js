@@ -617,20 +617,69 @@ function flagBadge(v) {
 }
 
 function editCorrectionRule(fingerprint, rowIndex) {
-  var reason = prompt('修改审核意见（保留四段式模板）：\n【判断结论】\n【具体问题】\n【正确逻辑】\n【需要证据】', '');
-  if (!reason || !reason.trim()) return;
+  // 关闭已有弹窗
+  var old = document.getElementById('cr-edit-popup');
+  if (old) old.remove();
+
+  // 获取当前规则数据
+  var cr = (window._brainData && window._brainData.corrections && window._brainData.corrections.rules) || [];
+  var rule = null;
+  for (var i = 0; i < cr.length; i++) {
+    if ((cr[i].fingerprint || cr[i].id || '') === decodeURIComponent(fingerprint)) {
+      rule = cr[i]; break;
+    }
+  }
+  
+  var ftype = (rule ? rule.finding_type : '') || '';
+  var lastReason = (rule && rule.corrections && rule.corrections.length > 0) ? rule.corrections[rule.corrections.length-1].reason : '';
+  var escapedFtype = ftype.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+
+  var popup = document.createElement('div');
+  popup.id = 'cr-edit-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+    '<div><b style="font-size:16px">编辑纠正规则</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">' + esc(ftype.slice(0,40)) + '</span></div>' +
+    '<button onclick="(function(){var p=document.getElementById(\'cr-edit-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">&times;</button>' +
+    '</div>' +
+    '<div style="padding:20px 24px">' +
+    '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
+    '<b>当前纠正内容：</b><br>' + esc(lastReason.slice(0,300) || '(无)') + '</div>' +
+    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">请参照审核内容填写模板格式进行编辑：</div>' +
+    '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
+    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
+    '【具体问题】[指出哪里判断错了]<br>' +
+    '【正确逻辑】[说明正确的判断方法]<br>' +
+    '【需要证据】[需要什么资料才能正确判断]<br>' +
+    '【法律依据】[引用的法条或法规]</div>' +
+    '<textarea id="cr-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
+    esc(lastReason || ('【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"的判定：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】\n')) +
+    '</textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
+    '<button onclick="(function(){var p=document.getElementById(\'cr-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
+    '<button onclick="window._submitCrEdit(\'' + fingerprint + '\',' + rowIndex + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交修改</button>' +
+    '</div></div></div>';
+  
+  document.body.appendChild(popup);
+}
+
+window._submitCrEdit = function(fingerprint, rowIndex) {
+  var text = document.getElementById('cr-edit-text');
+  if (!text) return;
+  var content = text.value.trim();
+  if (!content) { alert('请填写编辑内容'); return; }
   fetch('/api/feedback/update', { 
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({fingerprint: decodeURIComponent(fingerprint), reason: reason})
+    body: JSON.stringify({fingerprint: decodeURIComponent(fingerprint), reason: content})
   })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (d.ok) {
-        renderBrainTab();
-      } else {
-        alert('修改失败: ' + (d.message || ''));
-      }
+      var p = document.getElementById('cr-edit-popup');
+      if (p) p.remove();
+      if (d.ok) { renderBrainTab(); } else { alert('修改失败: ' + (d.message || '')); }
     });
 }
 
@@ -1074,8 +1123,8 @@ function renderBrainTab() {
       h += '<div style="flex:1;min-width:100px;background:#dcfce7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#166534">' + (corr.auto_rules || 0) + '</div><div style="font-size:12px;color:#64748b">已自动生效</div></div>';
       h += '</div>';
       // 同步按钮
-      h += '<div style="margin:8px 0"><button onclick="syncCorrectionsToModules()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Sync Corrections to Modules</button> ';
-      h += '<button onclick="loadSyncStatus()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">Check Sync Status</button>';
+      h += '<div style="margin:8px 0"><button onclick="syncCorrectionsToModules()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">同步纠正到模块</button> ';
+      h += '<button onclick="loadSyncStatus()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">查看同步状态</button>';
       h += '<span id="sync-status" style="margin-left:10px;font-size:11px;color:#94a3b8"></span></div>';
       
       if (corr.rules && corr.rules.length > 0) {
@@ -1085,13 +1134,13 @@ function renderBrainTab() {
           var fp = r.fingerprint || r.id || '';
           var autoLabel = r.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>';
           h += '<tr id="cr-row-'+k+'">';
-          h += '<td style="font-weight:600">' + esc(r.finding_type) + '</td>';
+          h += '<td style="font-weight:600;cursor:pointer;color:#2563eb" onclick="showCorrectionDetail(' + k + ')" title="点击查看纠正详情">' + esc(r.finding_type) + '</td>';
           h += '<td>' + esc(r.industry) + '</td>';
           h += '<td>' + esc(r.biz_model) + '</td>';
           h += '<td style="text-align:center">' + r.correction_count + '</td>';
           h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
           h += '<td>' + autoLabel + '</td>';
-          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="Edit">Edit</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ',' + r.correction_count + ',\'' + (r.industry||'') + '\')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="Archive (recoverable)">Archive</button></td>';
+          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="修改此纠正规则">编辑</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ',' + r.correction_count + ',\'' + (r.industry||'') + '\')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="归档（可恢复）">归档</button></td>';
           h += '</tr>';
         }
         h += '</table>';
@@ -1102,12 +1151,12 @@ function renderBrainTab() {
       
       // ── 跨行业合成规则 ──
       h += '<div id="cross-rules-section" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin-bottom:12px">';
-      h += '<div style="font-weight:700;color:#166534;font-size:13px;margin-bottom:8px">Cross-Industry Synthesized Rules</div>';
+      h += '<div style="font-weight:700;color:#166534;font-size:13px;margin-bottom:8px">跨行业合成规则</div>';
       h += '<div id="cross-rules-list" style="font-size:12px;color:#166534">Loading...</div>';
       h += '</div>';
       
       // ── 已归档规则（可恢复）──
-      h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:#94a3b8">Archived Rules (click to expand · restorable)</summary>';
+      h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:#94a3b8">已归档规则（点击展开 · 可恢复）</summary>';
       h += '<div id="archived-rules-list" style="margin-top:8px;font-size:12px;color:#94a3b8">Loading...</div>';
       h += '</details>';
       
@@ -1187,20 +1236,20 @@ function renderBrainTab() {
           });
           crossList.innerHTML = ch;
         } else {
-          crossList.innerHTML = 'No cross-industry rules yet — edit the same finding type for 2+ different industries to trigger synthesis.';
+          crossList.innerHTML = '暂无跨行业规则 — 对同发现在2种以上不同行业编辑后将自动合成';
         }
       } else {
-        crossList.innerHTML = 'Not yet synthesized';
+        crossList.innerHTML = '暂未合成跨行业规则';
       }
       // 加载已归档规则
       fetch('/api/feedback/archived').then(function(r){return r.json();}).then(function(d){
         var list = document.getElementById('archived-rules-list');
-        if (!list || !d.rules || !d.rules.length) { if(list) list.innerHTML = 'No archived rules'; return; }
+        if (!list || !d.rules || !d.rules.length) { if(list) list.innerHTML = '无已归档规则'; return; }
         var ah = '';
         d.rules.forEach(function(a){
           ah += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f1f5f9">';
-          ah += '<span style="flex:1">' + (a.finding_type||'?').slice(0,40) + ' (' + a.correction_count + ' corrections, ' + (a.industry||'?') + ')</span>';
-          ah += '<button onclick="window._restoreRule(\'' + encodeURIComponent(a.fingerprint) + '\')" style="background:#059669;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer">Restore</button>';
+          ah += '<span style="flex:1">' + (a.finding_type||'?').slice(0,40) + '（' + a.correction_count + '次纠正, ' + (a.industry||'?') + '）</span>';
+          ah += '<button onclick="window._restoreRule(\'' + encodeURIComponent(a.fingerprint) + '\')" style="background:#059669;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer">恢复</button>';
           ah += '</div>';
         });
         list.innerHTML = ah;
@@ -1211,44 +1260,87 @@ function renderBrainTab() {
 function syncCorrectionsToModules() {
   var btn = event.target;
   btn.disabled = true;
-  btn.textContent = 'Syncing...';
+  btn.textContent = '同步中...';
   fetch('/api/feedback/sync-modules', {method:'POST'}).then(function(r){return r.json();}).then(function(data){
     var st = document.getElementById('sync-status');
     if (data.ok && data.sync_result) {
       var sr = data.sync_result;
       if (sr.updated) {
-        st.innerHTML = 'Updated ' + sr.modules_updated.join(', ') + ' (' + sr.changes_count + ' changes)';
+        st.innerHTML = '已更新 ' + sr.modules_updated.join(', ') + '（' + sr.changes_count + '处变更）';
         st.style.color = '#059669';
-        alert('Sync complete: ' + sr.changes_count + ' changes written to ' + sr.modules_updated.join(', '));
+        alert('同步完成：' + sr.changes_count + '处变更已写入 ' + sr.modules_updated.join(', '));
       } else {
-        st.innerHTML = 'No eligible rules found (need 1+ corrections at 60%+ confidence)';
+        st.innerHTML = '无满足条件的规则（需≥1次纠正且≥60%置信度）';
         st.style.color = '#94a3b8';
       }
     }
     btn.disabled = false;
-    btn.textContent = 'Sync Corrections to Modules';
+    btn.textContent = '同步纠正到模块';
   }).catch(function(e){
     btn.disabled = false;
-    btn.textContent = 'Sync Corrections to Modules';
+    btn.textContent = '同步纠正到模块';
     var st = document.getElementById('sync-status');
-    st.innerHTML = 'Error: ' + e.message;
+    st.innerHTML = '错误: ' + e.message;
     st.style.color = '#dc2626';
   });
 }
 
 function loadSyncStatus() {
   var st = document.getElementById('sync-status');
-  st.innerHTML = 'Loading...';
+  st.innerHTML = '加载中...';
   st.style.color = '#94a3b8';
   fetch('/api/feedback/sync-status').then(function(r){return r.json();}).then(function(data){
     if (data.ok) {
       var eligible = data.eligible_rules || 0;
-      st.innerHTML = eligible + ' rules eligible for sync';
+      st.innerHTML = eligible + '条规则待同步';
       st.style.color = eligible > 0 ? '#059669' : '#94a3b8';
     }
   }).catch(function(){
-    st.innerHTML = 'Status unavailable';
+    st.innerHTML = '状态不可用';
     st.style.color = '#dc2626';
   });
+}
+
+function showCorrectionDetail(rowIndex) {
+  var cr = (window._brainData && window._brainData.corrections && window._brainData.corrections.rules) || [];
+  var rule = cr[rowIndex];
+  if (!rule) return;
+  
+  var old = document.getElementById('cr-detail-popup');
+  if (old) old.remove();
+
+  var corrections = rule.corrections || [];
+  var detailHtml = '';
+  for (var i = 0; i < corrections.length; i++) {
+    var c = corrections[i];
+    detailHtml += '<div style="margin-bottom:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #6366f1">';
+    detailHtml += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">第' + (i+1) + '次纠正 · ' + (c.timestamp || '未知时间').slice(0,16) + '</div>';
+    detailHtml += '<div style="font-size:12px;color:#1e40af;font-weight:600">原风险: ' + esc(c.original_risk || '?') + ' → 纠正为: ' + esc(c.corrected_risk || '?') + '</div>';
+    detailHtml += '<div style="font-size:12px;color:#475569;margin-top:4px;line-height:1.8">' + esc(c.reason || '无详情') + '</div>';
+    if (c.finding_detail) {
+      detailHtml += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">原始发现: ' + esc(c.finding_detail.slice(0,100)) + '</div>';
+    }
+    detailHtml += '</div>';
+  }
+
+  var popup = document.createElement('div');
+  popup.id = 'cr-detail-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
+  popup.innerHTML = 
+    '<div style="background:#fff;border-radius:12px;max-width:680px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+    '<div><b style="font-size:16px">纠正详情</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">' + esc(rule.finding_type || '').slice(0,40) + '</span></div>' +
+    '<button onclick="(function(){var p=document.getElementById(\'cr-detail-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">&times;</button>' +
+    '</div>' +
+    '<div style="padding:20px 24px">' +
+    '<div style="margin-bottom:12px;font-size:13px;color:#475569">' +
+    '行业: ' + esc(rule.industry || '未指定') + ' · 模式: ' + esc(rule.biz_model || '未指定') + ' · 置信度: ' + ((rule.confidence||0)*100).toFixed(0) + '% · 状态: ' + (rule.auto_apply ? '已生效' : '学习中') +
+    '</div>' +
+    '<div style="font-weight:600;font-size:13px;color:#1e293b;margin-bottom:8px">共 ' + corrections.length + ' 次纠正记录：</div>' +
+    detailHtml +
+    '<div style="text-align:right;margin-top:12px">' +
+    '<button onclick="(function(){var p=document.getElementById(\'cr-detail-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">关闭</button>' +
+    '</div></div></div>';
+  document.body.appendChild(popup);
 }
 
