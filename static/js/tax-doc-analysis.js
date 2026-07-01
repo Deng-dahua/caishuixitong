@@ -840,7 +840,21 @@ function renderTaxDocReport(r) {
   // ── 使用7章标准报告结构渲染 ──
   var ctx = _renderReportFallback(r, allF);
 
-  area.innerHTML = ctx.html;
+  // ═══ 直接在HTML字符串中注入按钮（不依赖DOM就绪时序）═══
+  var html = ctx.html;
+  var paraIdx = 0;
+  html = html.replace(/<p class="i2">/g, function(match) {
+    var idx = paraIdx++;
+    var btnBar = '<span class="rpt-btn-bar" style="display:inline-flex;flex-direction:column;gap:2px;margin-left:8px;vertical-align:top">' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._editParagraph('+idx+')" title="编辑此段" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">编辑</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._auditParagraph('+idx+')" title="确认正确" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">审核</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._askParagraph('+idx+')" title="追问引擎" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">追问</button>' +
+      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._resetParagraph('+idx+')" title="重置原文" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;white-space:nowrap">重置</button>' +
+      '</span>';
+    return match + btnBar;
+  });
+  window._paraCount = paraIdx;
+  area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
 
   // 报告正文每段右侧注入按钮（立即执行 + 延迟重试确保DOM就绪）
@@ -2298,9 +2312,9 @@ window._sendParaChat = function(i) {
 
 window._resetParagraph = function(i) {
   if (!confirm('重置此段落到引擎原始输出？')) return;
-  var para = document.querySelector('[data-para-idx="' + i + '"]');
-  if (para && para._originalContent) {
-    para.querySelector('span').innerHTML = para._originalContent;
+  // 重新渲染整个报告以恢复原始内容
+  if (window._reportData) {
+    renderTaxDocReport(window._reportData);
   }
   fetch('/api/feedback', {
     method: 'POST',
@@ -2317,8 +2331,27 @@ window._resetParagraph = function(i) {
 };
 
 function _getParagraphContent(i) {
-  var para = document.querySelector('[data-para-idx="' + i + '"]');
-  return para ? (para.querySelector('span') ? para.querySelector('span').innerHTML : para.innerHTML) : '';
+  // 按钮通过 data-pi 属性定位，段落是其父辈p.i2
+  var btn = document.querySelector('button[data-pi="' + i + '"]');
+  if (!btn) return '';
+  var para = btn.closest('p.i2');
+  if (!para) return '';
+  // 排除按钮栏，只取正文
+  var clone = para.cloneNode(true);
+  var btns = clone.querySelectorAll('.rpt-btn-bar');
+  btns.forEach(function(b) { b.remove(); });
+  return clone.textContent || clone.innerText || '';
+}
+
+function _getParagraphHTML(i) {
+  var btn = document.querySelector('button[data-pi="' + i + '"]');
+  if (!btn) return '';
+  var para = btn.closest('p.i2');
+  if (!para) return '';
+  var clone = para.cloneNode(true);
+  var btns = clone.querySelectorAll('.rpt-btn-bar');
+  btns.forEach(function(b) { b.remove(); });
+  return clone.innerHTML;
 }
 
 // ==================== 导出报告 ====================

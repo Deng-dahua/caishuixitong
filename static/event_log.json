@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-07-01T11:59:06.366753",
-  "total_events": 2,
+  "updated_at": "2026-07-01T12:13:19.031325",
+  "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
@@ -11,20 +11,8 @@
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-07-01T11:57:49.234947",
+      "timestamp": "2026-07-01T12:13:19.030609",
       "id": "evt_000000"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 5,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-07-01T11:59:06.365611",
-      "id": "evt_000001"
     }
   ]
 }
