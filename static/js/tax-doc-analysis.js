@@ -2598,11 +2598,14 @@ function _initReportTTS() {
 
 function _ttsBuildChunks(container) {
   _ttsChunks = [];
-  // 覆盖全部报告内容元素——确保不漏播
   var els = container.querySelectorAll('p, h1, h2, h3, h4, td, th, li, .ftitle, .frow, .flabel, .ritem, .atitle, .aitem, .seal p, .fact-sec, .conclusion-box, .i2, .cover h1, .cover .sub, .tag, .law-ref, .std-label, .rpt-title');
   els.forEach(function(el) {
-    if (el.closest('#tts-bar') || el.closest('#review-panel') || el.closest('details') || el.closest('style')) return;
-    var t = _ttsCleanText((el.textContent || ''));
+    if (el.closest('#tts-bar') || el.closest('#review-panel') || el.closest('details') || el.closest('style') || el.closest('.rpt-btn-bar')) return;
+    // 克隆元素去除按钮栏，取纯文本
+    var clone = el.cloneNode(true);
+    var btns = clone.querySelectorAll('.rpt-btn-bar');
+    btns.forEach(function(b) { b.remove(); });
+    var t = _ttsCleanText((clone.textContent || ''));
     if (t.length > 5) _ttsChunks.push({el: el, text: t});
   });
 }
@@ -2720,13 +2723,17 @@ function _ttsCleanText(text) {
 function _bindClickToSpeak(container) {
   container.addEventListener('click', function(e) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
-    if (e.target.closest('#tts-bar') || e.target.closest('#review-panel')) return;
+    if (e.target.closest('#tts-bar') || e.target.closest('#review-panel') || e.target.closest('.rpt-btn-bar')) return;
     
     // 找到被点击的文本容器元素
     var el = e.target;
     while (el && el !== container) {
       if (el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'TD' || el.tagName === 'TH' || el.tagName === 'LI' || el.tagName === 'DIV') {
-        var text = (el.textContent || '').trim();
+        // 克隆并去除按钮栏，取纯文本用于匹配
+        var clickClone = el.cloneNode(true);
+        var clickBtns = clickClone.querySelectorAll('.rpt-btn-bar');
+        clickBtns.forEach(function(b) { b.remove(); });
+        var text = (clickClone.textContent || '').trim();
         if (text.length > 10) {
           _ttsStop();
           // 重新构建文本块列表，找到点击元素的索引
