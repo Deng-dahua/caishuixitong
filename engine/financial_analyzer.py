@@ -411,7 +411,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"预收账款占比过高","level":"高风险","score":9,
             "detail":f"预收账款{adv_recv:,.0f}元，占收入{adv_recv/revenue:.0%}",
             "tax_impact":"可能货物已发出但未确认收入→延迟纳税/隐匿收入→少缴增值税和企业所得税",
-            "law_ref":"增值税暂行条例第19条；征管法第63条",
+            "law_ref":"中华人民共和国增值税法第19条；征管法第63条",
             "suggestion":f"逐笔核实预收账款对应的发货记录，已发货未开票的应确认收入补税约{adv_recv*0.13:,.0f}元(增值税)"})
     
     # -- 预付账款 --

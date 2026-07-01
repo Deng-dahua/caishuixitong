@@ -4841,7 +4841,7 @@ def _analyze_vat_input_transfer_omission(db, company_id, ps, pe, results):
                     "category": "增值税专项", "category_icon": "📋", "risk_score": 9, "risk_level": "高风险",
                     "risk_color": "#dc2626", "urgency": "紧急",
                     "item": "免税收入进项税额未转出",
-                    "detail": f"{v.period} 期存在免税销售额（{tax_free:,.2f}元）或简易计税销售额（{simple_tax:,.2f}元），同时有 {input_cnt} 张进项发票，但申报表中进项税额转出为0。根据增值税暂行条例，用于免税项目、简易计税项目的进项税额不得抵扣，必须做进项税额转出。",
+                    "detail": f"{v.period} 期存在免税销售额（{tax_free:,.2f}元）或简易计税销售额（{simple_tax:,.2f}元），同时有 {input_cnt} 张进项发票，但申报表中进项税额转出为0。根据中华人民共和国增值税法，用于免税项目、简易计税项目的进项税额不得抵扣，必须做进项税额转出。",
                     "suggestion": "①立即核算不得抵扣的进项税额并补做转出申报；②建立进项税额分摊台账（按月、按项目）；③不得抵扣进项税额=当月全部进项税额×(当月免税/简易销售额÷当月全部销售额)。",
                     "required_evidence": ["免税/简易计税项目收入明细", "进项税额分摊计算表", "进项税额转出明细（按项目）", "修正后的增值税申报表"]
                 })
@@ -9121,7 +9121,7 @@ def _analyze_price_surcharge(db, company_id, ps, pe, results):
             "risk_score": 7, "risk_level": "高风险", "risk_color": "#ef4444", "urgency": "紧急",
             "item": "价外费用可能未并入销售额申报增值税",
             "detail": f"序时账中发现 {len(found_surcharge)} 笔含价外费用关键词的收入分录（合计{total_amt:,.2f}元）。"
-                       f"根据增值税暂行条例第六条，销售额为全部价款+价外费用。"
+                       f"根据中华人民共和国增值税法第六条，销售额为全部价款+价外费用。"
                        f"价外费用包括手续费/违约金/包装费/延期付款利息等，无论会计如何核算均应并入销售额计算增值税。"
                        f"涉及：{'；'.join(detail_parts)}"
                        + (f"等{len(found_surcharge)}笔" if len(found_surcharge) > 5 else ""),

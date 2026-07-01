@@ -1630,7 +1630,7 @@ function _renderReportFallback(r, allF) {
   var reversalWarn = '';
   for (var key in vt) {
     if (vt[key] && vt[key].is_reversal) {
-      reversalWarn += '⚠ 检测到「' + key + '」情形：即使取得增值税专用发票，其进项税额也必须做转出处理（《增值税暂行条例》第十条）。';
+      reversalWarn += '⚠ 检测到「' + key + '」情形：即使取得增值税专用发票，其进项税额也必须做转出处理（《中华人民共和国增值税法》第十条）。';
     }
   }
   if (reversalWarn) voucherInfo += ' ' + reversalWarn;
