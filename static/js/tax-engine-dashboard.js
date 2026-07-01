@@ -1165,7 +1165,7 @@ function renderBrainTab() {
         h += '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;background:#fafbfc;border-radius:6px;margin:8px 0">暂无用户纠正规则 — 在报告中点击审核按钮，按模板填写审核意见后生成</div>';
       }
       
-      // 协商规则（来自correction_rules.json）
+      // 协商规则（来自user_corrections.json）
       if (negotiationRules.length > 0) {
         h += '<div style="font-size:12px;color:#64748b;margin:12px 0 4px;font-weight:600">协商规则（' + negotiationRules.length + '条，来自系统内置规则库）</div>';
         h += '<table class="tbl2"><tr><th>规则名称</th><th>类型</th><th>置信度</th><th>状态</th></tr>';
@@ -1233,7 +1233,7 @@ function renderBrainTab() {
       h += '<strong style="font-size:14px;color:#0f172a">智能大脑工作原理</strong><br><br>';
       h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有42个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
       h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型——记录该行业的常见信号模式、合理阈值区间、典型异常特征。后续分析依次检索历史案例进行行业对标校准。长期零产出的模块自动降权（降低分析优先级但不关闭），信任模型支持12维度加权相似度检索。<br><br>';
-      h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写审核意见→存入correction_rules.json→按"发现类型|行业|经营模式"生成指纹→累计1次纠正→升级为自动规则→四级回退匹配（精确→行业→通用→名称）→下次同类发现自动标注审核标记。审核不改变原始风险等级，仅在报告中展示绿色审核横幅。<br><br>';
+      h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写审核意见→存入user_corrections.json→按"发现类型|行业|经营模式"生成指纹→累计1次纠正→升级为自动规则→四级回退匹配（精确→行业→通用→名称）→下次同类发现自动标注审核标记。审核不改变原始风险等级，仅在报告中展示绿色审核横幅。<br><br>';
       h += '<b>合规门禁</b>：12条稽查铁律（虚开发票/骗取退税/隐匿收入等）作为事前检查引擎——任何一条铁律被触发的报告自动标记违规，在报告正式输出前拦截。门禁独立于方法论过滤器运行，不受HARD_BAN/COND_BAN影响。<br><br>';
       h += '<b>政策核实</b>：9类税收优惠政策（高新技术15%、小微减免、研发加计扣除等）自动联网核实有效期——已到期政策自动搜索国家税务总局公告判断是否有延续，有延续则更新有效期，无延续则标记"已到期需补税"。<br><br>';
       h += '<b>数据一致性</b>：audit_consistency.py --sync 双维度自检——数字维度（扫描所有JS/PY文件中的硬编码数字与system_config.json对比，不一致自动修复）+文本维度（29项跨模块共享内容双层验证：9个text_sync块逐字哈希对比权威源→不一致自动覆盖，20个concept_link概念关联存在性验证）。四触发全覆盖：start.bat启动时/git pre-commit/一键分析pipeline子进程/手动--sync。<br><br>';
@@ -1248,7 +1248,7 @@ function renderBrainTab() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({finding_index:0, question:'cross_rules', policy_doc:'', history:[]})
       }).then(function(){ return fetch('/api/feedback'); }).catch(function(){
-        // Fallback: check correction_rules.json directly for __CROSS__ entries
+        // Fallback: check user_corrections.json directly for __CROSS__ entries
         return {json:function(){return Promise.resolve({ok:true,auto_rules:0,rules:[]});}};
       });
       // Use the existing correction rules data from the page

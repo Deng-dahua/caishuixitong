@@ -7503,7 +7503,7 @@ def submit_feedback(data: dict):
 def delete_correction_rule(fingerprint: str = ""):
     """软删除纠正规则 — 归档到 _deleted_correction_rules.json，不丢失数据"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "correction_rules.json")
+    cr_file = os.path.join("static", "user_corrections.json")
     archive_file = os.path.join("static", "_deleted_correction_rules.json")
     fingerprint = unquote(fingerprint)
     
@@ -7552,7 +7552,7 @@ def delete_correction_rule(fingerprint: str = ""):
 def restore_correction_rule(fingerprint: str = ""):
     """恢复已归档的纠正规则"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "correction_rules.json")
+    cr_file = os.path.join("static", "user_corrections.json")
     archive_file = os.path.join("static", "_deleted_correction_rules.json")
     fingerprint = unquote(fingerprint)
     
@@ -7608,7 +7608,7 @@ def get_archived_rules():
 def update_correction_rule(data: dict):
     """修改纠正规则 — 智能大脑纠正规则库的编辑按钮调用"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "correction_rules.json")
+    cr_file = os.path.join("static", "user_corrections.json")
     fingerprint = unquote(data.get("fingerprint", ""))
     
     if not fingerprint:

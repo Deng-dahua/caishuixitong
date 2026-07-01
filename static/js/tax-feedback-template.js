@@ -36,7 +36,7 @@ function renderFeedbackTemplate(container) {
     + '<a href="#ft-effect">系统怎么用</a>'
     + '</nav><div class="ft-main">'
     + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">📋 审核内容填写模板</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px">照着填，系统就能在下一次分析时自动识别并纠正同类发现。每场景含"为什么误判→典型症状→类似发现→审核范文"四段对比分析。审核内容存入correction_rules.json，四级回退匹配。</p>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px">照着填，系统就能在下一次分析时自动识别并纠正同类发现。每场景含"为什么误判→典型症状→类似发现→审核范文"四段对比分析。审核内容存入user_corrections.json，四级回退匹配。</p>'
 
     + '<div id="ft-struct" class="ft-sec"><div class="ft-sec-title">模板结构</div>' + TPL_STRUCT + '</div>'
 
@@ -63,7 +63,7 @@ function renderFeedbackTemplate(container) {
     + '④ 需要什么 → <b>什么资料能验证</b>'
     + '</div>'
     + '<div style="font-size:11px;color:#14532d;line-height:1.8;padding:10px;background:#dcfce7;border-radius:4px">'
-    + '→ 系统提取指纹（类型|行业|模式）<br>→ 存入纠正规则库 correction_rules.json<br>→ 下次一键分析自动识别同类问题<br>→ 四级回退匹配，跨行业跨模式可移植'
+    + '→ 系统提取指纹（类型|行业|模式）<br>→ 存入纠正规则库 user_corrections.json<br>→ 下次一键分析自动识别同类问题<br>→ 四级回退匹配，跨行业跨模式可移植'
     + '</div></div></div></div>'
 
     + sceneHTML('ft-s1', '场景1：对比方法错误',
@@ -206,7 +206,7 @@ function renderFeedbackTemplate(container) {
       '所有税收优惠地的大额服务费/特许权使用费',
       '<div class="ft-tpl">【判断结论】需纠正<br>【具体问题】系统检测到进项发票中有大量品名为咨询费的发票且开票方在税收优惠地区判定涉嫌虚开转移利润。但供应商是行业知名咨询机构有实质经营团队和完整交付物。<br>【正确逻辑】咨询费实质判断需三方验证：①供应商资质——团队/经验/案例/资质 ②交付物——可验证成果（报告/方案/代码等）③定价合理性——费用与服务内容和市场行情匹配。三方通过→真实交易。税收优惠地≠虚开，必须有证据链断裂才可判定。<br>【需要证据】咨询合同/SOW+交付物+会议纪要+咨询机构团队介绍和资质。<br>【法律依据】《企业所得税法》第八条；国家税务总局公告2018年第28号（税前扣除凭证管理办法）</div>')
 
-    + '<div id="ft-effect" class="ft-info"><strong style="font-size:14px">系统怎么用这个内容</strong><br><b>存入</b>：审核内容存入 correction_rules.json，按发现类型|行业|经营模式生成指纹。<br><b>匹配</b>：下次分析时，apply_correction_rules() 四级回退匹配（精确→行业→通用→名称）。<br><b>生效</b>：匹配成功后，给发现打标签（_dismissed/_negotiated），不影响原始等级但标注已审核。<br><b>查看</b>：推理引擎仪表盘 → 智能大脑 → 纠正规则库。</div>'
+    + '<div id="ft-effect" class="ft-info"><strong style="font-size:14px">系统怎么用这个内容</strong><br><b>存入</b>：审核内容存入 user_corrections.json，按发现类型|行业|经营模式生成指纹。<br><b>匹配</b>：下次分析时，apply_correction_rules() 四级回退匹配（精确→行业→通用→名称）。<br><b>生效</b>：匹配成功后，给发现打标签（_dismissed/_negotiated），不影响原始等级但标注已审核。<br><b>查看</b>：推理引擎仪表盘 → 智能大脑 → 纠正规则库。</div>'
     + '</div></div>';
 
   container.innerHTML = content;

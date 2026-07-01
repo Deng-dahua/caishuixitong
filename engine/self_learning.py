@@ -671,7 +671,7 @@ def get_learner_report():
 3. 写入规则库：下次同类场景自动修正，不再需要老邓纠正
 """
 
-CORRECTION_RULES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json")
+CORRECTION_RULES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "user_corrections.json")
 
 
 def record_correction(finding_type, industry, biz_model, original_risk, corrected_risk, reason, finding_detail=""):
@@ -1091,7 +1091,7 @@ MODULE_PATHS = {
     "clue_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_clues.json"),
     "evidence_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_evidence.json"),
     "analysis_chains": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "cross_domain_analysis.json"),
-    "correction_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "correction_rules.json"),
+    "correction_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "user_corrections.json"),
     "engine_memory": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "engine", "memory.py"),
     "tax_rules": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "tax_risk_rules_local_export.json"),
     "thresholds": os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "engine", "thresholds.json"),

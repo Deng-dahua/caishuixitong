@@ -9,7 +9,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   引擎（memory.py中的硬逻辑）= 系统做什么 | 智哥（AI行为准则页面）= 怎么写代码
 
   🧠【有记忆】知识库系统 → static/audit_memory.json，上限500条，12维加权检索
-  📚【能学习】审核反馈闭环 → correction_rules.json → 四级回退匹配 → 自进化
+  📚【能学习】审核反馈闭环 → user_corrections.json → 四级回退匹配 → 自进化
   🔬【懂思考】四阶段推理管线 → Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性
   ⚖️【会判断】七层判定体系 → 文件识别/身份锚定/发票方向/进项分类/服务闸门/品名过滤/存疑排除
   🎯【懂决策】五层决策输出 → 风险评分/P0-P2策略/因果叙事/合规门禁/自省检查 → 正式报告
@@ -413,7 +413,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
 ═════ 审核反馈闭环（2026-06-29 新增）═════
   用户对报告发现的每一条审核都是系统的学习机会。
   代码: engine/self_learning.py → record_correction() + apply_correction_rules()
-  存储: static/correction_rules.json → 按"发现类型|行业|经营模式"生成唯一指纹
+  存储: static/user_corrections.json → 按"发现类型|行业|经营模式"生成唯一指纹
 
   【五步闭环流程】
   第一步：用户点击审核 → 按审核内容模板填写 → 前端 postFeedback()
@@ -784,7 +784,7 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
   【数据与配置】
   static/system_config.json（权威数据源）
   static/audit_chains.json（线索链/证据链/方法论）
-  static/correction_rules.json（纠正规则存储）
+  static/user_corrections.json（纠正规则存储）
   static/industry_data.json（25行业产品链词典+12条收款分类规则）
   static/tax_risk_rules_local_export.json（1608条稽查指令）
   static/audit_memory.json（500条分析记忆）

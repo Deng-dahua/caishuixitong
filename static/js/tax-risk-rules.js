@@ -83,7 +83,7 @@ function renderTaxRiskRules(container) {
     + '展开规则可见红色溯源卡片，列出每一项触发了该规则的域分析发现——包含发现类型、数据详情和风险等级，支持从规则反向追溯到原始发现。</p>'
     + '<p style="margin:0 0 8px"><strong>4. 规则结构：</strong>每条指令包含11个标准字段——指令名称(item)、风险等级(level)、评分(score)、详细标准(detail)、'
     + '稽查建议(suggestion)、所需佐证(evidence)、税务影响(tax_impact)、法律依据(policy_ref)、数据来源(dataSource)、可检测性(detectable)、分类(category)。</p>'
-    + '<p style="margin:0"><strong>5. 学习闭环：</strong>用户通过报告审核功能对发现的准确性进行反馈，纠正规则存入correction_rules.json。'
+    + '<p style="margin:0"><strong>5. 学习闭环：</strong>用户通过报告审核功能对发现的准确性进行反馈，纠正规则存入user_corrections.json。'
     + '同类纠正累计≥1次后自动升级为系统规则——下次一键分析自动应用四级回退匹配，无需人工干预。形成"分析→审核→纠正→自动应用"的完整学习闭环。</p>'
     + '</div>'
     + '</details>'

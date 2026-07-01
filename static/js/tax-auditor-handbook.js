@@ -28,7 +28,7 @@ function renderAuditorHandbook(container) {
   h += '</div>';
   h += '<div class="hb-card-grid">';
   h += '<div class="hb-card"><strong>🧠 有记忆</strong><p>每次分析自动提取指纹（行业+模式+信号+评分）存入audit_memory.json。上限500条，12维度加权相似度检索——行业(×3)>经营模式(×2)>信号类型(×2)>风险等级(×1.5)。后续分析自动检索相似案例，输出行业对标校准和常见信号预警。</p></div>';
-  h += '<div class="hb-card"><strong>📚 能学习</strong><p>三层渐进学习：①审核反馈学习——用户审核发现→存入correction_rules.json→四级回退匹配→累计1次即升级自动规则 ②EMA自学习——58样本指数移动平均，行业阈值动态校准 ③自动规则发现——从重复出现的信号组合中检测新模式→写入规则库。代码：self_learning.py。</p></div>';
+  h += '<div class="hb-card"><strong>📚 能学习</strong><p>三层渐进学习：①审核反馈学习——用户审核发现→存入user_corrections.json→四级回退匹配→累计1次即升级自动规则 ②EMA自学习——58样本指数移动平均，行业阈值动态校准 ③自动规则发现——从重复出现的信号组合中检测新模式→写入规则库。代码：self_learning.py。</p></div>';
   h += '<div class="hb-card"><strong>🔬 懂思考</strong><p>四层推理：假设验证引擎（每条发现2-3个竞争假设+逐条证据验证+加权判决）→Phase1-4推理引擎（初查信号检测→定向深挖→交叉验证→综合定性）→因果叙事链（多信号叠加自动推演因果链条）→四步稽查分析法（detect→verify→diagnose→report）。</p></div>';
   h += '<div class="hb-card"><strong>⚖️ 会判断</strong><p>七层自动判定体系：四方交叉验证（文件名→列头→数据→公司匹配）→身份锚定（购买方/销售方vs公司名+统一社会信用代码）→发票方向判定→进项三层分类→服务行业闸门→品名级精准过滤→存疑排除。33条判定规则逐条自动校验，每层独立运行。</p></div>';
   h += '<div class="hb-card"><strong>🎯 懂决策</strong><p>五层决策输出：风险综合评分（76/100→四级等级）→审计策略推荐（P0立即处理/P1限期整改/P2持续关注）→因果叙事链（从信号推演因果）→合规门禁（12项质量标准+16项自省检查）→正式报告（7章格式+六要素+同类合并+语音播报）。</p></div>';
@@ -176,7 +176,7 @@ function renderAuditorHandbook(container) {
    ['报告生成','第51条(报告格式)','自动生成封面+7章+附件：案件来源→基本情况→实施情况→发现问题→稽查结论→处理建议→告知权利→签字→证据清单。完全符合规程第42条规定的10项内容格式要求。'],
    ['合规门禁','第60条(程序合法)','12项质量标准(模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除)+16项自省检查。全通过→绿色交付。'],
    ['数据一致性自检','全文','audit_consistency.py启动前扫描全部JS/PY文件→对比system_config.json权威数据源→发现不一致→自动标记或一键修复(--sync)。从tax_risk_rules/audit_chains/domain_analysis实时统计权威值。四触发机制覆盖手动/启动/提交/分析。'],
-   ['审核反馈闭环','第46条(审核重点)','每条发现右侧"审核"按钮→按模板填写审核意见→存入correction_rules.json→生成指纹→四级回退匹配→累计1次即升级自动规则→下次分析自动应用。人工审核→系统学习→自动修正→持续进化的完整闭环。']].forEach(function(m){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+m[0]+'</td><td class="lbl" style="color:#2563eb;font-size:11px">'+m[1]+'</td><td class="val" style="font-size:12px">'+m[2]+'</td></tr>';});
+   ['审核反馈闭环','第46条(审核重点)','每条发现右侧"审核"按钮→按模板填写审核意见→存入user_corrections.json→生成指纹→四级回退匹配→累计1次即升级自动规则→下次分析自动应用。人工审核→系统学习→自动修正→持续进化的完整闭环。']].forEach(function(m){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+m[0]+'</td><td class="lbl" style="color:#2563eb;font-size:11px">'+m[1]+'</td><td class="val" style="font-size:12px">'+m[2]+'</td></tr>';});
   h += '</table></div>';
 
   // ═══ 第八章 ═══
@@ -203,7 +203,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第十章 ═══
   h += '<div id="hb-s10" class="hb-sec"><div class="hb-sec-title"><span class="num">10</span>数据一致性自检</div>';
-  h += '<div class="hb-detail">引擎记忆（engine/memory.py）是系统的核心知识库，分为两层：<b>文档层</b>（26章规则+架构，存储在docstring中）+ <b>代码层</b>（Python函数：存储/检索/学习/纠正）。一键分析驱动数据层（audit_memory.json分析记忆 + correction_rules.json纠正规则），四触发机制确保文档层自动与代码层同步——任何时候启动系统，数据一致性自检自动运行。</div>';
+  h += '<div class="hb-detail">引擎记忆（engine/memory.py）是系统的核心知识库，分为两层：<b>文档层</b>（26章规则+架构，存储在docstring中）+ <b>代码层</b>（Python函数：存储/检索/学习/纠正）。一键分析驱动数据层（audit_memory.json分析记忆 + user_corrections.json纠正规则），四触发机制确保文档层自动与代码层同步——任何时候启动系统，数据一致性自检自动运行。</div>';
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl">代码位置</td><td class="val" style="font-size:12px">audit_consistency.py（扫描引擎+同步引擎）+ system_config.json（权威数据源）+ engine/system_config.py（Python端配置）</td></tr>';
   h += '<tr><td class="lbl">权威数据源</td><td class="val" style="font-size:12px">从原始数据文件实时统计生成：tax_risk_rules_local_export.json→规则数 / cross_domain_clues.json→线索链数 / cross_domain_evidence.json→证据链数 / cross_domain_analysis.json→分析链数。每次--calibrate重新统计。</td></tr>';
@@ -219,7 +219,7 @@ function renderAuditorHandbook(container) {
   h += '<table class="hb-tbl">';
   [['审核入口','报告中每条发现右侧的"🔍审核"按钮。点击弹窗→按模板填写→提交。每次审核后立即清空前后端分析缓存，确保重新分析时使用最新纠正规则。'],
    ['模板结构','五段式：①判断结论（正确/需纠正/不适用）②具体问题（指出系统哪里判断错了）③正确逻辑（说明正确的判断方法）④需要证据（列出做正确判断所需资料）⑤法律依据（可选，引用法条增强可信度）。详细范文参见审核内容模板页面（20个场景）。'],
-   ['存储机制','POST /api/feedback → record_correction() → 按"发现类型|行业|经营模式"生成唯一指纹 → 存入static/correction_rules.json → 累加纠正计数 → 累计1次即标记auto_apply=true（升级为自动规则）。同指纹多次审核累积计数，不同行业/模式的审核生成不同指纹独立存储。'],
+   ['存储机制','POST /api/feedback → record_correction() → 按"发现类型|行业|经营模式"生成唯一指纹 → 存入static/user_corrections.json → 累加纠正计数 → 累计1次即标记auto_apply=true（升级为自动规则）。同指纹多次审核累积计数，不同行业/模式的审核生成不同指纹独立存储。'],
    ['匹配策略','每次一键分析→apply_correction_rules()在all_findings生成后执行四级回退匹配：L1精确匹配（类型+行业+模式三者一致）→置信度0.7 / L2行业匹配（类型+行业一致）→0.7 / L3通用匹配（仅类型一致）→0.8 / L4名称匹配（类型名称模糊匹配）→0.8。L1-L4均未匹配→无纠正规则，按原始逻辑输出。'],
    ['生效方式','匹配成功→给发现打_dismissed标签（不影响原始风险等级，不改变六要素中的法律依据和处理建议）→前端渲染时展示绿色审核横幅，内容为审核意见摘要。纠正不降级、不改变——保持稽查逻辑的严肃性，审核只是标记。'],
    ['查看入口','推理引擎仪表盘→#6智能大脑标签页→"纠正规则库"区域。展示每条规则：指纹/纠正次数/最近审核原因/置信度/是否已升级为自动规则。审核记录全程可追溯。']].forEach(function(r){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+r[0]+'</td><td class="val" style="font-size:12px">'+r[1]+'</td></tr>';});
@@ -231,7 +231,7 @@ function renderAuditorHandbook(container) {
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl">规则篇9章</td><td class="val" style="font-size:12px">行业推断铁律/系统稽查判定规则33条/缺失的关键信息处理/收款分类规则12条/账务处理引擎铁律6条/引擎核心铁律5条/报告呈现规则/报告后四章规则/审核反馈闭环规则</td></tr>';
   h += '<tr><td class="lbl">架构篇16章</td><td class="val" style="font-size:12px">假设验证推理引擎/跨域协商引擎/审核反馈闭环/联动修改与数据一致性/方法论过滤器体系/模块联动关系矩阵/四阶段推理管线/调度中枢/知识库系统/法律推理引擎/财务分析引擎/文件解析引擎/账套隔离机制/登录与会话管理/推理引擎仪表盘/前端页面体系</td></tr>';
-  h += '<tr><td class="lbl">代码层7函数</td><td class="val" style="font-size:12px">save_analysis_memory()保存分析指纹→audit_memory.json(500条)/ query_similar_cases()12维加权检索/ record_correction()审核→指纹→correction_rules.json/ apply_correction_rules()四级回退匹配/ record_user_feedback()用户反馈记录/ _adjust_signal_weights_from_feedback()信号权重调整/ get_adaptive_signal_weights()自适应权重获取</td></tr>';
+  h += '<tr><td class="lbl">代码层7函数</td><td class="val" style="font-size:12px">save_analysis_memory()保存分析指纹→audit_memory.json(500条)/ query_similar_cases()12维加权检索/ record_correction()审核→指纹→user_corrections.json/ apply_correction_rules()四级回退匹配/ record_user_feedback()用户反馈记录/ _adjust_signal_weights_from_feedback()信号权重调整/ get_adaptive_signal_weights()自适应权重获取</td></tr>';
   h += '<tr><td class="lbl">关联清单</td><td class="val" style="font-size:12px">引擎记忆末尾的系统文件关联清单列出30+核心文件的路径、用途和关系。每次--sync自动更新清单中的数字和文件引用。</td></tr>';
   h += '</table></div>';
 
@@ -253,7 +253,7 @@ function renderAuditorHandbook(container) {
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">核心引擎（12个文件）</td></tr>';
   h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（29条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
-  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ correction_rules.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1608条稽查指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
+  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ user_corrections.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1608条稽查指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
   h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（报告编制要求·11节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（1608条稽查指令浏览）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">基础设施（4个文件）</td></tr>';

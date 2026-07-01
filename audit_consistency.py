@@ -262,9 +262,9 @@ def sync_memory_docstring(authority):
     ff = authority.get("file_fingerprints", 34)
     qs = authority.get("quality_standards", 12)
     
-    # 统计 correction_rules.json 中的规则数
+    # 统计 user_corrections.json 中的规则数
     cr_count = 0
-    cr_file = ROOT / "static" / "correction_rules.json"
+    cr_file = ROOT / "static" / "user_corrections.json"
     if cr_file.exists():
         with open(cr_file, "r", encoding="utf-8") as f:
             cr = json.load(f)
