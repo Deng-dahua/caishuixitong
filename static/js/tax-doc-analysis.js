@@ -846,6 +846,9 @@ function renderTaxDocReport(r) {
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
   
+  // ── 语音播报条初始化 ──
+  setTimeout(function() { _initReportTTS(); }, 300);
+  
   // ── 报告智能增强：异步加载风险叙事+税负模拟+资料缺口影响链 ──
   setTimeout(function(){
     var cid = window.currentCompanyId || 1;
@@ -2565,7 +2568,7 @@ var _ttsState = { speaking: false, paused: false, utterance: null, speed: 1.0, c
 var _ttsChunks = [];
 
 function _initReportTTS() {
-  var area = document.getElementById('tax-doc-result');
+  var area = document.getElementById('tda-report-area');
   if (!area) return;
   
   var oldBar = document.getElementById('tts-bar');
