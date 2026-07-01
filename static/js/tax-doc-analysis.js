@@ -1718,44 +1718,44 @@ function _renderReportFallback(r, allF) {
     var finType = (f.type || '未命名发现').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').replace(/^[\w]+:\s*/,'');
     var mergeCount = f._mergeCount || 0;
     
-    // ── 发现标题（段落式）──
+    // ── 发现标题（段落式，含按钮）──
     h += '<p class="i2"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + lv;
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</p>';
     
-    // ── 跨域协商标记 ──
+    // ── 跨域协商标记（无按钮）──
     if (f._negotiated_drop) {
-      h += '<p class="i2">⛔ 跨域协商已消解：' + (f._drop_reason || f._negotiation_reason || '') + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">⛔ 跨域协商已消解：' + (f._drop_reason || f._negotiation_reason || '') + '</p>';
     } else if (f._negotiated) {
-      h += '<p class="i2">🔄 跨域协商已调整：' + (f._negotiation_reason || '') + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">🔄 跨域协商已调整：' + (f._negotiation_reason || '') + '</p>';
     } else if (f._tags && f._tags.length > 0) {
       var tagLabels = f._tags.join(' · ');
-      h += '<p class="i2">🏷️ 跨域协商标记：' + tagLabels + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">🏷️ 跨域协商标记：' + tagLabels + '</p>';
     } else if (f._dismissed) {
-      h += '<p class="i2">✅ 已审核：' + (f._correction_reason || '用户反馈已记录') + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">✅ 已审核：' + (f._correction_reason || '用户反馈已记录') + '</p>';
     }
     
-    // ── 合并子项 ──
+    // ── 合并子项（无按钮）──
     if (f._mergedItems && f._mergedItems.length > 1) {
-      h += '<p class="i2">该类风险共发现' + f._mergedItems.length + '项具体问题，逐一列示如下：</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">该类风险共发现' + f._mergedItems.length + '项具体问题，逐一列示如下：</p>';
       f._mergedItems.forEach(function(sub, si) {
-        h += '<p class="i2"><strong>子项' + (si+1) + '：' + (sub.title || '') + '</strong> [' + (sub.level || '') + '] —— ' + (sub.detail || '') + '</p>';
+        h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>子项' + (si+1) + '：' + (sub.title || '') + '</strong> [' + (sub.level || '') + '] —— ' + (sub.detail || '') + '</p>';
         if (sub.tax_impact && sub.tax_impact.length > 10) {
-          h += '<p class="i2">⚠ 纳税影响：' + sub.tax_impact + '</p>';
+          h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">⚠ 纳税影响：' + sub.tax_impact + '</p>';
         }
         if (sub.suggestion && sub.suggestion.length > 10) {
-          h += '<p class="i2">→ 处理建议：' + sub.suggestion + '</p>';
+          h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">→ 处理建议：' + sub.suggestion + '</p>';
         }
       });
     }
     
-    // ── 六要素（段落式）──
+    // ── 六要素（无按钮，用内联样式保持缩进）──
     var provenance = f.provenance || {};
-    h += '<p class="i2"><strong>① 稽查性质：</strong>' + finType + '</p>';
-    h += '<p class="i2"><strong>② 稽查事实：</strong>' + (f.description || f.detail || '') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>① 稽查性质：</strong>' + finType + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>② 稽查事实：</strong>' + (f.description || f.detail || '') + '</p>';
     
-    // ③ 证据材料（保留表格）
-    h += '<p class="i2"><strong>③ 证据材料：</strong></p>';
+    // ③ 证据材料（表格无按钮）
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>③ 证据材料：</strong></p>';
     if (f.items && f.items.length > 0) {
       h += '<table class="tbl" style="font-size:12px;margin:6px 0"><thead><tr>';
       var itemKeys = Object.keys(f.items[0] || {});
@@ -1774,15 +1774,15 @@ function _renderReportFallback(r, allF) {
       });
       h += '</tbody></table>';
     } else {
-      h += '<p class="i2">' + (f.detail || '详见稽查事实部分') + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">' + (f.detail || '详见稽查事实部分') + '</p>';
     }
     
-    h += '<p class="i2"><strong>④ 证据来源：</strong>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</p>';
-    h += '<p class="i2"><strong>⑤ 法律依据：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务稽查工作规程》相关规定') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>④ 证据来源：</strong>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 法律依据：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务稽查工作规程》相关规定') + '</p>';
     if (f.suggestion && f.suggestion.length > 5) {
-      h += '<p class="i2"><strong>⑥ 处理建议：</strong>' + f.suggestion + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 处理建议：</strong>' + f.suggestion + '</p>';
     } else {
-      h += '<p class="i2"><strong>⑥ 处理建议：</strong>建议进一步核实相关业务资料。</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 处理建议：</strong>建议进一步核实相关业务资料。</p>';
     }
     
     // 发现间分隔线
