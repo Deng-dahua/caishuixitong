@@ -12,7 +12,6 @@ from engine.system_config import rules_count, clue_chains, evidence_chains, meth
 4. 任何生成"政策引用"的代码必须使用上述最新名称，不得使用历史名称
 
 代码实现：engine/legal_reasoner.py 负责政策引用和法条匹配
-"""
 
 ═════ 引擎核心能力宣言与角色边界 ═════
   本引擎具备六项核心智能能力，全部为可运行代码而非纸上设计。
