@@ -4430,17 +4430,17 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         comprehensive = report.get("comprehensive", {})
         analysis_blocks = []
         
-        # 构建上下文摘要
+        # 构建上下文摘要（安全取值，防止KeyError）
         ctx_parts = []
         if target_entity.get("name"):
-            ctx_parts.append(f"被查单位: {target_entity['name']}")
+            ctx_parts.append(f"被查单位: {target_entity.get('name')}")
         if target_entity.get("industry"):
-            ctx_parts.append(f"行业: {target_entity['industry']}")
+            ctx_parts.append(f"行业: {target_entity.get('industry')}")
         if comprehensive.get("overall_risk"):
-            ctx_parts.append(f"综合风险: {comprehensive['overall_risk']}")
-        if comprehensive.get("risk_score"):
-            ctx_parts.append(f"风险评分: {comprehensive['risk_score']}/100")
-        context_summary = "；".join(ctx_parts)
+            ctx_parts.append(f"综合风险: {comprehensive.get('overall_risk')}")
+        if comprehensive.get("risk_score") is not None:
+            ctx_parts.append(f"风险评分: {comprehensive.get('risk_score')}/100")
+        context_summary = "；".join(ctx_parts) if ctx_parts else "暂无企业画像数据"
         
         # 查找段落相关的发现
         all_findings = report.get("all_findings", []) or report.get("findings", [])
