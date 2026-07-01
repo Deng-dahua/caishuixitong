@@ -4552,536 +4552,105 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
 
     finding_index = body.get("finding_index", 0)  # -1=段落追问，>=0=发现追问
     question = str(body.get("question", "")).strip()
-    user_policy = str(body.get("policy_doc", "")).strip()  # 用户传入的法条/政策
-    user_correction = str(body.get("user_correction", "")).strip()  # 用户纠错值
-    history = body.get("history", [])  # 对话历史
-    paragraph_text = str(body.get("paragraph_text", "")).strip()  # 段落追问的上下文
+    user_policy = str(body.get("policy_doc", "")).strip()
+    history = body.get("history", [])
+    paragraph_text = str(body.get("paragraph_text", "")).strip()
 
     if not question and not user_policy:
         return {"ok": False, "message": "请输入问题或上传政策文件进行讨论"}
 
-    # 获取上次分析结果
+    # 获取分析结果
     cached = _last_analysis_cache.get(company_id)
     if not cached:
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
 
-    report = cached.get("report", {})
+    # ═══════════════════════════════════════════════════
+    # AGI追问引擎：LLM优先 → Agent模板兜底
+    # ═══════════════════════════════════════════════════
     
-    # ═══════════════════════════════════════
-    # 段落追问智能引擎
-    # ═══════════════════════════════════════
-    if finding_index < 0 and paragraph_text:
-        report_data = report.get("report", {})
-        target_entity = report_data.get("target_entity", {})
-        comprehensive = report_data.get("comprehensive", {})
-        all_findings = report_data.get("all_findings", []) or report.get("findings", [])
-        
-        # ── 问题意图分类 ──
-        q = question
-        
-        # ── 十意图分类器 ──
-        is_how = any(kw in q for kw in ["怎么得出","怎么算","怎么判定","如何判断","如何得出","如何计算","怎样得出","怎样判断","怎么来的","怎么确定","如何确定","来源","判定逻辑","判定依据"])
-        is_why = any(kw in q for kw in ["为什么","凭什么","为何","原因","理由","依据什么"])
-        is_what = any(kw in q for kw in ["哪些","具体","明细","列出","逐一","详细","什么迹象","什么数据","什么证据","分别","哪几"])
-        is_law = any(kw in q for kw in ["法条","法律","法规","条例","第几条","处罚","罚款","刑事责任","依据哪条"])
-        is_level = any(kw in q for kw in ["风险等级","高风险","低风险","中风险","等级判定","风险高低","严重程度"])
-        is_calc = any(kw in q for kw in ["多少钱","要补多少","金额多少","应纳税","补税","税额","税款","计算金额","少缴","多缴","补缴","滞纳金"])
-        is_compare = any(kw in q for kw in ["哪个最","对比","相比","哪个更","排名","排序","最严重","最大","最小","最高","最低","对比一下","比较"])
-        is_check = any(kw in q for kw in ["有没有漏洞","是否有问题","会不会漏","是否完整","是否准确","是否可靠","可信吗","靠谱吗","严密","有没有缺"])
-        is_benchmark = any(kw in q for kw in ["同行","行业水平","行业平均","行业对比","行业基准","正常吗","偏低","偏高","合理吗","行业标准","同行业","利润率","税负率"])
-        
-        intent = "general"
-        if is_how: intent = "how"
-        elif is_why: intent = "why"
-        elif is_what: intent = "what"
-        elif is_law: intent = "law"
-        elif is_level: intent = "level"
-        elif is_calc: intent = "calc"
-        elif is_compare: intent = "compare"
-        elif is_check: intent = "check"
-        elif is_benchmark: intent = "benchmark"
-        
-        # ── 多轮对话状态 ──
-        prev_intent = ""
-        prev_finding_idx = -1
-        if history and len(history) > 0:
-            prev_intent = history[-1].get("intent", "")
-            prev_finding_idx = history[-1].get("finding_idx", -1)
-        
-        # ── 构建上下文 ──
-        ctx_parts = []
-        if target_entity.get("name"):
-            ctx_parts.append(f"被查单位: {target_entity.get('name')}")
-        if target_entity.get("industry"):
-            ctx_parts.append(f"行业: {target_entity.get('industry')}")
-        if comprehensive.get("overall_risk"):
-            ctx_parts.append(f"综合风险: {comprehensive.get('overall_risk')}")
-        
-        analysis_blocks = []
-        analysis_blocks.append({"title": "📋 段落内容", "content": paragraph_text[:400]})
-        
-        # ── 意图驱动的回答 ──
-        
-        if intent == "how":
-            # 回答"怎么得出的"：追溯判定逻辑
-            analysis_blocks.append({"title": "🔍 判定方法", "content": "以下为该发现的判定逻辑和计算过程："})
-            
-            # 1. 在段落内容中找税种关键字
-            tax_keywords_map = {
-                "增值税": "增值税覆盖所有货物销售和劳务提供，系统从销项发票提取销售额、从进项发票提取进项税额，通过销项税额-进项税额计算应纳税额。触发条件：存在增值税发票或企业类型含销售/贸易/加工/服务。",
-                "企业所得税": "企业所得税覆盖全部经营所得。系统从利润表提取营业收入、成本费用，按25%税率计算应纳税额（小微企业适用优惠税率）。触发条件：企业为正常经营状态。",
-                "个人所得税": "个人所得税覆盖工资薪金和股东分红。系统从工资表提取个税申报数据，检测六项专项附加扣除适用情况。触发条件：存在工资表或股东分红记录。",
-                "房产税": "房产税对自用房产按房产原值×1.2%征收，对出租房产按租金收入×12%征收。触发条件：企业经营费用中含房产税缴纳记录或固定资产含房产。",
-                "城镇土地使用税": "城镇土地使用税对占用城镇土地的企业按面积×税额征收。触发条件：企业经营场所含城镇地址或缴纳过土地使用税。",
-                "消费税": "消费税对特定消费品（烟酒、化妆品、汽车等）在生产或进口环节征收。触发条件：企业销项品名含应税消费品类目。",
-                "印花税": "印花税对合同、账簿、权利许可证照等凭证征收。触发条件：存在购销合同或注册资本登记。",
-                "环保税": "环境保护税对排污企业按排放量征收。触发条件：企业行业涉及化工/印染/电镀/造纸/采矿/冶炼。",
-                "社保费": "社保费依法必须申报缴纳。触发条件：存在工资表或有员工雇佣关系。",
-            }
-            
-            matched_taxes = []
-            for tax, desc in tax_keywords_map.items():
-                if tax in paragraph_text:
-                    matched_taxes.append(f"【{tax}】{desc}")
-            
-            if matched_taxes:
-                analysis_blocks.append({"title": "📊 税种判定依据", "content": "\n\n".join(matched_taxes)})
-            
-            # 2. 搜索关联发现的how_found
-            qwords = [w for w in q.replace('？','').replace('?','').replace('的','').replace('了','').split() if len(w) >= 2]
-            how_lines = []
-            for f in all_findings:
-                ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("how_found",""))
-                score = sum(1 for kw in qwords if kw in ftext)
-                if score >= 2 and f.get("how_found"):
-                    how_lines.append(f"• {f.get('type','')}: {f.get('how_found','')[:200]}")
-                    if len(how_lines) >= 3: break
-            
-            if how_lines:
-                analysis_blocks.append({"title": "🔗 溯源数据", "content": "\n".join(how_lines)})
-            elif not matched_taxes:
-                analysis_blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，该段落内容可能基于报告的系统性分析得出。如需了解具体判定依据，请在报告中查看对应发现的③证据材料和④证据来源。"})
-        
-        elif intent == "why":
-            # 回答"为什么"：追证据链
-            qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
-            why_findings = []
-            for f in all_findings:
-                ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description","")) + str(f.get("how_found",""))
-                score = sum(1 for kw in qwords if kw in ftext)
-                if score >= 2:
-                    why_findings.append((score, f))
-            why_findings.sort(key=lambda x: -x[0])
-            
-            if why_findings:
-                analysis_blocks.append({"title": "🔍 原因分析", "content": f"匹配到{len(why_findings)}条关联发现："})
-                for i, (score, f) in enumerate(why_findings[:5]):
-                    evidence = (f.get("evidence", []) or [])[:3]
-                    domain = f.get("domain", f.get("category", ""))
-                    how = f.get("how_found", "")
-                    detail = f.get("detail", "")[:150]
-                    lines = [f"• {f.get('type','')} [{f.get('level','')}]"]
-                    if how: lines.append(f"  溯源: {how[:120]}")
-                    if detail: lines.append(f"  详情: {detail}")
-                    analysis_blocks[-1]["content"] += "\n\n" + "\n".join(lines)
-            else:
-                analysis_blocks.append({"title": "📝 说明", "content": "未找到与问题直接关联的证据链。建议在报告中发现旁使用'审核'按钮标记异议，或使用'编辑'按钮补充判断依据。"})
-        
-        elif intent == "what":
-            # 回答"哪些/具体"：列明细
-            qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
-            what_items = []
-            for f in all_findings:
-                ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description",""))
-                if any(kw in ftext for kw in qwords if len(kw) >= 2):
-                    items = f.get("items", []) or f.get("evidence_rows", []) or []
-                    for item in items[:3]:
-                        what_items.append({"finding": f.get("type",""), "item": item, "level": f.get("level","")})
-                    if not items and f.get("detail"):
-                        what_items.append({"finding": f.get("type",""), "item": f.get("detail","")[:150], "level": f.get("level","")})
-            
-            if what_items:
-                lines = []
-                for wi in what_items[:10]:
-                    item = wi["item"]
-                    if isinstance(item, dict):
-                        lines.append(f"• [{wi['level']}] {wi['finding']}: {json.dumps(item, ensure_ascii=False)[:200]}")
-                    else:
-                        lines.append(f"• [{wi['level']}] {wi['finding']}: {str(item)[:200]}")
-                analysis_blocks.append({"title": f"📊 明细数据（{len(what_items)}条）", "content": "\n".join(lines)})
-            else:
-                analysis_blocks.append({"title": "📝 说明", "content": "未找到与问题匹配的明细数据。建议在报告中发现旁使用'追问'按钮针对具体发现进行查询。"})
-        
-        elif intent == "law":
-            # 回答法条相关问题
-            qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
-            law_lines = []
-            seen = set()
-            for f in all_findings:
-                policy = str(f.get("policy_ref", ""))
-                if policy and any(kw in policy for kw in qwords if len(kw) >= 2):
-                    if policy not in seen:
-                        law_lines.append(f"• [{f.get('level','')}] {f.get('type','')}: 依据 {policy[:200]}")
-                        seen.add(policy)
-                        if len(law_lines) >= 5: break
-            
-            if law_lines:
-                analysis_blocks.append({"title": "⚖️ 法律依据", "content": "\n".join(law_lines)})
-            
-            # Also search the tax scope logic for legal basis
-            tax_scope_laws = {
-                "增值税": "《中华人民共和国增值税法》第一条：在中华人民共和国境内销售货物、服务、无形资产、不动产的单位和个人为增值税纳税人。",
-                "企业所得税": "《中华人民共和国企业所得税法》第一条：在中华人民共和国境内，企业和其他取得收入的组织为企业所得税的纳税人。",
-                "个人所得税": "《中华人民共和国个人所得税法》第一条：在中国境内有住所，或者无住所而一个纳税年度内在中国境内居住累计满183天的个人为居民个人。",
-                "房产税": "《中华人民共和国房产税暂行条例》第一条：房产税在城市、县城、建制镇和工矿区征收。",
-            }
-            for tax, law in tax_scope_laws.items():
-                if tax in q:
-                    analysis_blocks.append({"title": f"📜 {tax}法律原文", "content": law})
-            
-            if not law_lines and not any(tax in q for tax in tax_scope_laws):
-                analysis_blocks.append({"title": "📝 说明", "content": "未找到与该问题直接对应的法条引用。报告中的发现均标注了法律依据（⑤法律依据），请查看具体发现。"})
-        
-        elif intent == "level":
-            # 回答风险等级问题
-            level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
-            for f in all_findings:
-                lv = f.get("level", "")
-                if lv in level_stats:
-                    level_stats[lv] += 1
-            
-            overall = comprehensive.get("overall_risk", "未知")
-            score = comprehensive.get("risk_score", "N/A")
-            
-            lines = [
-                f"综合风险等级: {overall}（评分: {score}）",
-                f"极高风险: {level_stats['极高风险']}项",
-                f"高风险: {level_stats['高风险']}项",
-                f"中风险: {level_stats['中风险']}项",
-                f"低风险: {level_stats['低风险']}项",
-            ]
-            if overall == "高风险" or overall == "极高风险":
-                lines.append("\n判定为高风险的主要依据：多源数据交叉验证形成证据闭环，涉及虚开/隐匿收入/对倒开票等稽查重点。")
-                lines.append("每条高风险发现均标注了「③证据材料」和「④证据来源」，可追溯至原始数据。")
-            
-            analysis_blocks.append({"title": "⚠️ 风险等级说明", "content": "\n".join(lines)})
-        
-        elif intent == "calc":
-            # 金额计算：从发现数据中提取金额×计算逻辑
-            analysis_blocks.append({"title": "💰 金额计算", "content": "以下为该发现的金额计算过程："})
-            # 搜索段落中的数字
-            import re
-            nums = re.findall(r'[\d,]+\.?\d*', paragraph_text)
-            # 搜索关联发现的金额
-            calc_lines = []
-            for f in all_findings:
-                items = f.get("items", []) or f.get("evidence_rows", []) or []
-                for item in items[:3]:
-                    amt = item.get("amount") or item.get("金额") or item.get("invoice_amount") or ""
-                    if amt:
-                        calc_lines.append(f"• [{f.get('level','')}] {f.get('type','')}: {amt}")
-                        if len(calc_lines) >= 5: break
-                if len(calc_lines) >= 5: break
-            if calc_lines:
-                analysis_blocks.append({"title": "📊 涉税金额明细", "content": "\n".join(calc_lines)})
-                # 估算税负
-                total = 0
-                for f in all_findings:
-                    items = f.get("items", []) or f.get("evidence_rows", []) or []
-                    for item in items:
-                        amt = str(item.get("amount") or item.get("金额") or item.get("invoice_amount") or "0")
-                        try: total += float(amt.replace(",",""))
-                        except: pass
-                if total > 0:
-                    vat_est = total * 0.13
-                    inc_est = total * 0.25
-                    analysis_blocks.append({"title": "🧮 预估税款", "content": f"涉税金额合计: ¥{total:,.0f}\n预估增值税(13%): ¥{vat_est:,.0f}\n预估企业所得税(25%): ¥{inc_est:,.0f}\n合计预估: ¥{(vat_est+inc_est):,.0f}\n\n⚠️ 以上为基于现有数据的机器估算，最终以税务机关核定为准。"})
-            else:
-                analysis_blocks.append({"title": "📝 说明", "content": "未在发现数据中找到具体金额明细。请在报告中发现旁的「③证据材料」表格中查看原始金额数据。"})
-        
-        elif intent == "compare":
-            # 跨发现对比排序
-            analysis_blocks.append({"title": "📊 发现对比排名", "content": "按严重程度排序如下："})
-            scored = []
-            for f in all_findings:
-                lv_score = {"极高风险": 10, "高风险": 7, "中风险": 4, "低风险": 2}.get(f.get("level",""), 3)
-                items = f.get("items", []) or f.get("evidence_rows", []) or []
-                max_amt = 0
-                for item in items:
-                    amt = str(item.get("amount") or item.get("金额") or item.get("invoice_amount") or "0")
-                    try: max_amt = max(max_amt, float(amt.replace(",","")))
-                    except: pass
-                scored.append((lv_score + min(max_amt/10000, 5), f))
-            scored.sort(key=lambda x: -x[0])
-            compare_lines = []
-            for i, (s, f) in enumerate(scored[:10]):
-                items = f.get("items", []) or f.get("evidence_rows", []) or []
-                amt_str = ""
-                for item in items[:1]:
-                    amt = str(item.get("amount") or item.get("金额") or "0")
-                    if amt and amt != "0": amt_str = f" | ¥{amt}"
-                compare_lines.append(f"{i+1}. [{f.get('level','')}] {f.get('type','')[:50]}{amt_str}")
-            analysis_blocks.append({"title": f"🔝 TOP{min(10,len(scored))} 严重发现", "content": "\n".join(compare_lines)})
-        
-        elif intent == "check":
-            # 自查漏洞
-            analysis_blocks.append({"title": "🔍 质量审查", "content": "对该发现进行多维质量检查："})
-            check_results = []
-            qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
-            related = []
-            for f in all_findings:
-                ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description",""))
-                if any(kw in ftext for kw in qwords if len(kw) >= 2):
-                    related.append(f)
-            
-            for f in related[:3]:
-                issues = []
-                evidence_count = len(f.get("evidence", []) or [])
-                evidence_rows = len(f.get("evidence_rows", []) or f.get("items", []) or [])
-                has_policy = bool(f.get("policy_ref","").strip())
-                has_source = bool(f.get("how_found","").strip())
-                has_domain = bool(f.get("domain","") or f.get("category",""))
-                
-                if evidence_count < 1 and evidence_rows < 1:
-                    issues.append("⚠ 缺少明确证据材料——该发现的判断可能缺乏数据支撑")
-                if not has_policy:
-                    issues.append("⚠ 缺少法律条文引用——无法追溯法律依据")
-                if not has_source:
-                    issues.append("⚠ 缺少证据来源说明——无法验证数据路径")
-                if not has_domain:
-                    issues.append("ℹ 未标注分析域——可能无法追溯到具体分析模块")
-                if f.get("level") == "高风险" and evidence_count < 2:
-                    issues.append("⚠ 高风险发现证据<2条——强判定但证据薄弱，建议补充验证")
-                
-                check_results.append(f"[{f.get('level','')}] {f.get('type','')[:40]}:")
-                check_results.extend(issues if issues else ["✅ 各项检查通过"])
-                check_results.append("")
-            
-            if check_results:
-                analysis_blocks.append({"title": "📋 审查结果", "content": "\n".join(check_results)})
-            
-            # 资料缺口检查
-            material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
-            if material_intel:
-                missing = []
-                for k, v in material_intel.items():
-                    if isinstance(v, dict) and not v.get("exists"):
-                        missing.append(f"• {k}: {v.get('risk', '数据缺失影响判断')}")
-                if missing:
-                    analysis_blocks.append({"title": "📂 资料缺口影响", "content": "\n".join(missing[:5]) or "所有资料均已提交"})
-            else:
-                analysis_blocks.append({"title": "📂 资料缺口", "content": "未检测到资料完整性检查记录。建议补充提交合同/申报表/记账凭证等9类稽查必查资料。"})
-        
-        elif intent == "benchmark":
-            # 行业对标
-            industry = target_entity.get("industry", "未识别")
-            analysis_blocks.append({"title": "📊 行业对标分析", "content": f"被查单位行业：{industry}"})
-            # 从66行业基准库查找
-            try:
-                benchmarks_path = "engine/thresholds.json"
-                if os.path.exists(benchmarks_path):
-                    with open(benchmarks_path, encoding="utf-8") as bf:
-                        benchmarks = json.load(bf)
-                    ind_data = benchmarks.get(industry, {})
-                    if ind_data:
-                        blines = []
-                        for metric, vals in ind_data.items():
-                            if isinstance(vals, dict):
-                                blines.append(f"• {metric}: 下限{vals.get('min','?')} / 典型{vals.get('typical','?')} / 上限{vals.get('max','?')}")
-                        if blines:
-                            analysis_blocks.append({"title": f"🏭 {industry}行业基准", "content": "\n".join(blines)})
-                        analysis_blocks.append({"title": "📝 对标说明", "content": f"被查单位属于{industry}行业。将企业实际指标与行业基准对比：低于下限→高风险，低于典型值85%→中风险，高于上限→需关注。建议在报告中第四章查看具体的行业对标结果。"})
-                    else:
-                        analysis_blocks.append({"title": "📝 说明", "content": f"未找到「{industry}」行业的基准数据。系统内置66个行业基准库，该行业可能不在覆盖范围内。建议手动对比同行业公开数据。"})
-            except:
-                analysis_blocks.append({"title": "📝 说明", "content": "行业基准库暂不可用。系统内置66个行业×5个指标×3个基准值，可通过编辑按钮补充行业对标阈值。"})
-        
-        else:
-            # 通用搜索
-            qwords = [w for w in q.replace('？','').replace('?','').replace('的','').replace('了','').split() if len(w) >= 2]
-            found = []
-            for f in all_findings:
-                ftext = str(f.get("type","")) + " " + str(f.get("detail","")) + " " + str(f.get("description","")) + " " + str(f.get("suggestion",""))
-                score = sum(1 for kw in qwords if kw in ftext)
-                if score >= 2:
-                    found.append((score, f))
-            found.sort(key=lambda x: -x[0])
-            
-            if found:
-                lines = []
-                for score, f in found[:5]:
-                    lines.append(f"• [{f.get('level','')}] {f.get('type','')}: {f.get('detail','')[:150]}")
-                analysis_blocks.append({"title": f"🔗 相关发现（{len(found)}条）", "content": "\n".join(lines)})
-            else:
-                analysis_blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，未在全报告中发现直接匹配的内容。建议使用具体关键词追问，或对报告段落进行编辑补充。"})
-        
-        if ctx_parts:
-            analysis_blocks.append({"title": "🏢 企业概况", "content": "；".join(ctx_parts)})
-        
-        return {"ok": True, "analysis": analysis_blocks, "intent": intent, "conversation_id": conversation_id or str(hash(question))[:8]}
+    # 从缓存中提取数据
+    report_wrapper = cached.get("report", {})
+    report_data = report_wrapper.get("report", report_wrapper)
+    target_entity = report_data.get("target_entity", {})
+    all_findings = report_data.get("all_findings", []) or report_wrapper.get("findings", [])
+    comprehensive = report_data.get("comprehensive", {})
     
-    # 注意: result = {"ok": True, "report": {all_findings, target_entity, ...}}
-    # cached = {"report": result, ...}, 所以 report = result
-    # 实际数据在 result["report"] = report_data 中
-    report_data = report.get("report", {})
-    findings = report_data.get("all_findings", report.get("findings", []))
-    if finding_index >= len(findings):
-        return {"ok": False, "message": f"发现#{finding_index}不存在，共{len(findings)}条"}
-
-    finding = findings[finding_index]
-    ftype = str(finding.get("type", ""))
-    fdetail = str(finding.get("detail", ""))
-    fhow = str(finding.get("how_found", ""))
-    flevel = str(finding.get("level", ""))
-    ftax = str(finding.get("tax_impact", ""))
-    fpolicy = str(finding.get("policy_ref", ""))
-    fsuggest = str(finding.get("suggestion", ""))
-
-    # ==== 数据溯源 ====
-    sources = []
+    # 意图分类
+    q = question
+    is_how = any(kw in q for kw in ["怎么得出","怎么算","怎么判定","如何判断","如何得出","如何计算","怎样得出","怎样判断","怎么来的","怎么确定","来源","判定逻辑"])
+    is_why = any(kw in q for kw in ["为什么","凭什么","为何","原因","理由","依据什么"])
+    is_what = any(kw in q for kw in ["哪些","具体","明细","列出","逐一","详细","什么迹象","什么数据","什么证据","分别","哪几"])
+    is_law = any(kw in q for kw in ["法条","法律","法规","条例","第几条","处罚","罚款","刑事责任","依据哪条"])
+    is_level = any(kw in q for kw in ["风险等级","高风险","低风险","中风险","等级判定","风险高低","严重程度"])
+    is_calc = any(kw in q for kw in ["多少钱","要补多少","金额多少","应纳税","补税","税额","税款","计算金额","滞纳金"])
+    is_compare = any(kw in q for kw in ["哪个最","对比","相比","哪个更","排名","排序","最严重","最大","最小","最高","最低","比较"])
+    is_check = any(kw in q for kw in ["有没有漏洞","是否有问题","会不会漏","是否完整","是否准确","是否可靠","可信吗","靠谱吗","有没有缺"])
+    is_benchmark = any(kw in q for kw in ["同行","行业水平","行业平均","行业基准","正常吗","偏低","偏高","合理吗","行业标准"])
     
-    # 1. 稽查规则溯源
-    rule_refs = finding.get("rule_refs", []) or []
-    if isinstance(rule_refs, str):
-        rule_refs = [rule_refs]
-    matched_rules = []
-    for rid in rule_refs[:5]:
-        for rule in _tax_rules_cache if hasattr(__builtins__, '_tax_rules_cache') else []:
-            if str(rule.get("id", "")) == str(rid):
-                matched_rules.append(rule)
-                break
-    if matched_rules:
-        rule_names = "、".join(
-            f"R{r.get('id','?')}「{r.get('name','')[:30]}」" 
-            for r in matched_rules[:3]
-        )
-        sources.append(f"匹配稽查规则: {rule_names}")
-
-    # 2. 证据溯源
-    evidence = finding.get("evidence", [])
-    if not evidence and "evidence" in finding:
-        evidence = [finding["evidence"]] if isinstance(finding["evidence"], str) else []
-    if evidence:
-        sources.append(f"支撑证据: {len(evidence)}条" + (f"（{str(evidence[0])[:60]}...）" if evidence else ""))
-
-    # 3. 线索链溯源
-    clue_chain = finding.get("clue_chain", finding.get("chain_name", ""))
-    if clue_chain:
-        sources.append(f"触发线索链: {str(clue_chain)[:80]}")
-
-    # 4. 分析方法溯源
-    if fhow:
-        sources.append(f"分析方法: {fhow[:100]}")
-
-    # ==== 问题分析引擎 ====
-    analysis_blocks = []
-    engine_mode = ""  # explain / compare / correct / defend
-
-    # 模式1：用户询问"怎么来的" → 溯源解释
-    how_keywords = ["怎么来的", "为什么", "依据", "理由", "如何判断", "怎么得出", "如何计算", "溯源", "原理", "方法"]
-    if any(kw in question for kw in how_keywords):
-        engine_mode = "explain"
-        analysis_blocks.append({
-            "title": "📖 推理溯源",
-            "content": f"本条发现「{ftype}」的推理过程：\n\n"
-                      f"① 证据收集 → 从{len(sources)}个数据源收集信号\n"
-                      f"② 规则匹配 → 自动匹配{len(rule_refs)}条稽查指令\n"
-                      f"③ 线索链调查 → 线索链指引分步骤取证\n"
-                      f"④ 证据链验证 → 多源交叉验证确认\n"
-                      f"⑤ 分析链判定 → 综合推理得出最终结论\n\n"
-                      f"结论：{fdetail[:200]}\n"
-                      f"税务影响：{ftax[:100]}\n"
-                      f"法规依据：{fpolicy[:200]}"
-        })
-        if sources:
-            analysis_blocks.append({"title": "🔗 数据溯源链", "content": "\n".join(f"· {s}" for s in sources)})
-
-    # 模式2：用户传入法条/政策 → 对比分析
-    if user_policy:
-        engine_mode = "compare"
-        # 执行法条对比
-        policy_overlap = _compare_policy(user_policy, fpolicy, fdetail, ftype)
-        analysis_blocks.append(policy_overlap)
-
-    # 模式3：用户提供纠错值或质疑准确性
-    correct_keywords = ["不对", "错误", "应该是", "实际是", "更正", "纠正", "改"]
-    if any(kw in question for kw in correct_keywords) or user_correction:
-        engine_mode = "correct"
-        user_val = user_correction or question
-        # 提取用户声称的数值
-        import re as _ask_re
-        user_amounts = []
-        for m in _ask_re.finditer(r'[\d,]+\.?\d*(?:亿|万|元)?', user_val):
-            ns = m.group().replace(',','').replace('元','').replace('万','0000').replace('亿','00000000')
-            try: user_amounts.append(float(ns))
-            except: pass
-
-        finding_amounts = []
-        for m in _ask_re.finditer(r'[\d,]+\.?\d*(?:亿|万|元)?', fdetail):
-            ns = m.group().replace(',','').replace('元','').replace('万','0000').replace('亿','00000000')
-            try: finding_amounts.append(float(ns))
-            except: pass
-
-        comparison = []
-        if user_amounts and finding_amounts:
-            nearest_finding = min(finding_amounts, key=lambda x: min(abs(x-a) for a in user_amounts) if user_amounts else float('inf'))
-            nearest_user = min(user_amounts, key=lambda x: abs(x - nearest_finding))
-            diff = abs(nearest_user - nearest_finding)
-            if diff < 0.01:
-                comparison.append(f"✅ 数值一致：用户提供的{nearest_user:,.2f}与引擎计算的{nearest_finding:,.2f}一致，无需修正。")
-            else:
-                comparison.append(f"⚠ 数值差异：用户提供{nearest_user:,.2f} vs 引擎计算{nearest_finding:,.2f}，差异{diff:,.2f}元。")
-                comparison.append(f"已记录用户纠错值{nearest_user:,.2f}，建议人工复核确认实际金额。引擎暂维持原结论，待人工确认后自动更新。")
-
-        if not comparison:
-            comparison.append("未从问题中检测到具体数值，请提供具体金额以便对比验证。")
-
-        analysis_blocks.append({
-            "title": "🔍 准确性复核",
-            "content": "\n".join(comparison)
-        })
-
-    # 模式4：默认综合分析（用户泛泛提问时）
-    if not engine_mode:
-        engine_mode = "analyze"
-        analysis_blocks.append({
-            "title": "🧬 引擎分析",
-            "content": f"关于本条发现「{ftype}」，引擎的判断依据如下：\n\n"
-                      f"📋 发现内容：{fdetail[:200]}\n"
-                      f"⚠ 风险等级：{flevel}\n"
-                      f"💰 税务影响：{ftax[:150] if ftax else '无特殊税务影响'}\n"
-                      f"📎 法规依据：{fpolicy[:200] if fpolicy else '由引擎自动推理得出'}\n"
-                      f"💡 处理建议：{fsuggest[:150] if fsuggest else '建议进一步核实源数据'}\n\n"
-                      f"如需确认此结论如何得出，可追问「这个结论怎么来的？」\n"
-                      f"如需纠正其中数据，请告知「实际值是XXX」\n"
-                      f"如需引用法条讨论，请粘贴政策原文"
-        })
-
-    # 保存对话到引擎记忆（自我学习）
+    intent = "general"
+    if is_how: intent = "how"
+    elif is_why: intent = "why"
+    elif is_what: intent = "what"
+    elif is_law: intent = "law"
+    elif is_level: intent = "level"
+    elif is_calc: intent = "calc"
+    elif is_compare: intent = "compare"
+    elif is_check: intent = "check"
+    elif is_benchmark: intent = "benchmark"
+    
+    # 发现级追问：精确定位单条发现
+    if finding_index >= 0 and finding_index < len(all_findings):
+        target_finding = all_findings[finding_index]
+        context = {
+            "company_name": target_entity.get("name", ""),
+            "industry": target_entity.get("industry", ""),
+            "overall_risk": comprehensive.get("overall_risk", ""),
+            "paragraph_text": str(target_finding.get("detail", target_finding.get("description", "")))[:500],
+            "material_intel": report_data.get("comprehensive", {}).get("material_intel", {}),
+            "benchmarks": {},
+        }
+        findings = [target_finding] + all_findings[:5]
+    else:
+        # 段落追问或全局追问
+        context = {
+            "company_name": target_entity.get("name", ""),
+            "industry": target_entity.get("industry", ""),
+            "overall_risk": comprehensive.get("overall_risk", ""),
+            "paragraph_text": paragraph_text[:500] if paragraph_text else "",
+            "material_intel": report_data.get("comprehensive", {}).get("material_intel", {}),
+            "benchmarks": {},
+        }
+        # 加载行业基准
+        try:
+            bp = "engine/thresholds.json"
+            if os.path.exists(bp):
+                with open(bp, encoding="utf-8") as bf:
+                    benchmarks = json.load(bf)
+                    ind = target_entity.get("industry", "")
+                    if ind in benchmarks:
+                        context["benchmarks"] = benchmarks[ind]
+        except: pass
+        findings = all_findings[:20]
+    
+    # ═══ AGI引擎调用 ═══
     try:
-        from engine.memory import record_user_feedback
-        record_user_feedback({
-            "type": "report_conversation",
-            "finding_index": finding_index,
-            "question": question[:500],
-            "user_policy": user_policy[:500] if user_policy else "",
-            "engine_mode": engine_mode,
-            "finding_type": ftype,
-            "company_id": company_id
-        })
-    except:
-        pass
+        from engine.agi_engine import agi
+        result = agi.ask(question, findings, context, intent, history)
+        
+        # 附加上下文信息
+        ctx_parts = []
+        if target_entity.get("name"): ctx_parts.append(f"被查单位: {target_entity.get('name')}")
+        if target_entity.get("industry"): ctx_parts.append(f"行业: {target_entity.get('industry')}")
+        if comprehensive.get("overall_risk"): ctx_parts.append(f"综合风险: {comprehensive.get('overall_risk')}")
+        if ctx_parts:
+            result["analysis"].append({"title": "🏢 企业概况", "content": "；".join(ctx_parts)})
+        
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"ok": False, "message": f"AGI引擎异常: {str(e)[:200]}"}
 
-    return {
-        "ok": True,
-        "finding_index": finding_index,
-        "finding_type": ftype,
-        "finding_detail": fdetail[:300],
-        "engine_mode": engine_mode,
-        "analysis": analysis_blocks,
-        "sources": sources,
-        "suggestion": "如需进一步讨论，可继续提问或提供政策文件",
-    }
 
 
 def _compare_policy(user_policy, engine_policy, finding_detail, finding_type):
@@ -5129,6 +4698,8 @@ def _compare_policy(user_policy, engine_policy, finding_detail, finding_type):
         "title": "📚 法条对比分析",
         "content": "\n".join(lines)
     }
+
+@app.get("/api/tax-risk-docs/last-analysis")
 async def get_last_analysis(company_id: int = Query(...)):
     """获取最近一次分析结果缓存（无需重新分析）"""
     cached = _last_analysis_cache.get(company_id)
@@ -7945,6 +7516,24 @@ def submit_feedback(data: dict):
         _last_analysis_cache.pop(company_id, None)
     
     return {"ok": True, "recorded": result["recorded"], "auto_rule": result.get("auto_apply", False), "count": result.get("correction_count", 0)}
+
+@app.post("/api/agi/learn")
+def agi_learn(data: dict):
+    """AGI学习端点：从纠正反馈中进化"""
+    from engine.agi_engine import agi
+    finding_type = data.get("finding_type", "")
+    industry = data.get("industry", "")
+    level = data.get("level", "中风险")
+    reason = data.get("reason", "")
+    
+    result = agi.learn(finding_type, industry, level, reason)
+    return {"ok": True, "result": result}
+
+@app.get("/api/agi/status")
+def agi_status():
+    """AGI引擎状态"""
+    from engine.agi_engine import agi
+    return {"ok": True, "status": agi.status()}
 
 
 @app.delete("/api/feedback/delete")
