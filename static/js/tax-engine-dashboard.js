@@ -684,7 +684,7 @@ window._submitCrEdit = function(fingerprint, rowIndex) {
 }
 
 function deleteCorrectionRule(fingerprint, rowIndex, correctionCount, industry) {
-  var msg = 'Delete this correction rule?\n\n' + correctionCount + ' corrections recorded' + (industry ? ' for ' + industry : '') + '.\n\nDeleted rules are archived to _deleted_correction_rules.json and can be restored.';
+  var msg = '归档此纠正规则？\n\n已记录 ' + correctionCount + ' 次纠正' + (industry ? '（行业：' + industry + '）' : '') + '。\n\n归档后可从「已归档规则」中恢复，数据不会丢失。';
   if (!confirm(msg)) return;
   fetch('/api/feedback/delete?fingerprint=' + fingerprint, { method: 'DELETE' })
     .then(function(r) { return r.json(); })
@@ -700,12 +700,12 @@ function deleteCorrectionRule(fingerprint, rowIndex, correctionCount, industry) 
 }
 
 window._restoreRule = function(fingerprint) {
-  if (!confirm('Restore this archived rule?')) return;
+  if (!confirm('恢复此归档规则？')) return;
   fetch('/api/feedback/restore?fingerprint=' + fingerprint, { method: 'POST' })
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d.ok){alert('Restored ' + d.correction_count + ' corrections.'); renderBrainTab();}
-      else{alert('Failed: ' + (d.message||''));}
+      if(d.ok){alert('已恢复 ' + d.correction_count + ' 次纠正记录。'); renderBrainTab();}
+      else{alert('恢复失败: ' + (d.message||''));}
     });
 };
 
@@ -1135,7 +1135,7 @@ function renderBrainTab() {
       h += '<span id="sync-status" style="margin-left:10px;font-size:11px;color:#94a3b8"></span></div>';
       
       if (corr.rules && corr.rules.length > 0) {
-        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:60px">操作</th></tr>';
+        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:80px">操作</th></tr>';
         for (var k = 0; k < corr.rules.length; k++) {
           var r = corr.rules[k];
           var fp = r.fingerprint || r.id || '';
