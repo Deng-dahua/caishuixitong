@@ -4407,11 +4407,12 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
     except Exception as e:
         return {"ok": False, "message": f"无效请求: {e}"}
 
-    finding_index = body.get("finding_index", 0)  # 发现的序号
+    finding_index = body.get("finding_index", 0)  # -1=段落追问，>=0=发现追问
     question = str(body.get("question", "")).strip()
     user_policy = str(body.get("policy_doc", "")).strip()  # 用户传入的法条/政策
     user_correction = str(body.get("user_correction", "")).strip()  # 用户纠错值
     history = body.get("history", [])  # 对话历史
+    paragraph_text = str(body.get("paragraph_text", "")).strip()  # 段落追问的上下文
 
     if not question and not user_policy:
         return {"ok": False, "message": "请输入问题或上传政策文件进行讨论"}
@@ -4422,6 +4423,59 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
 
     report = cached.get("report", {})
+    
+    # 段落追问模式：基于段落文本+全报告上下文回答
+    if finding_index < 0 and paragraph_text:
+        target_entity = report.get("target_entity", {})
+        comprehensive = report.get("comprehensive", {})
+        analysis_blocks = []
+        
+        # 构建上下文摘要
+        ctx_parts = []
+        if target_entity.get("name"):
+            ctx_parts.append(f"被查单位: {target_entity['name']}")
+        if target_entity.get("industry"):
+            ctx_parts.append(f"行业: {target_entity['industry']}")
+        if comprehensive.get("overall_risk"):
+            ctx_parts.append(f"综合风险: {comprehensive['overall_risk']}")
+        if comprehensive.get("risk_score"):
+            ctx_parts.append(f"风险评分: {comprehensive['risk_score']}/100")
+        context_summary = "；".join(ctx_parts)
+        
+        # 查找段落相关的发现
+        all_findings = report.get("all_findings", []) or report.get("findings", [])
+        relevant_findings = []
+        for f in all_findings[:20]:
+            ftext = str(f.get("type","")) + str(f.get("detail","")) + str(f.get("description",""))
+            if any(kw in ftext for kw in paragraph_text[:30].split() if len(kw) >= 2):
+                relevant_findings.append(f)
+        
+        # 构建回答
+        analysis_blocks.append({
+            "title": "📋 段落内容",
+            "content": paragraph_text[:300]
+        })
+        analysis_blocks.append({
+            "title": "🏢 分析上下文",
+            "content": context_summary or "（暂无企业画像数据）"
+        })
+        
+        if relevant_findings:
+            blocks = []
+            for f in relevant_findings[:5]:
+                blocks.append(f"• {f.get('type','')} [{f.get('level','')}]: {f.get('detail','')[:100]}")
+            analysis_blocks.append({
+                "title": f"🔗 关联发现（{len(relevant_findings)}条）",
+                "content": "\n".join(blocks) or "（无详情）"
+            })
+        else:
+            analysis_blocks.append({
+                "title": "📝 引擎回答",
+                "content": f"关于「{question[:60]}」，该段落内容与稽查报告整体上下文关联。\n\n上下文：{context_summary}\n\n如需更详细的分析，请指定具体的发现项进行追问，或通过编辑按钮对段落内容进行纠正。"
+            })
+        
+        return {"ok": True, "analysis": analysis_blocks}
+    
     findings = report.get("findings", [])
     if finding_index >= len(findings):
         return {"ok": False, "message": f"发现#{finding_index}不存在，共{len(findings)}条"}

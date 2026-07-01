@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-07-01T17:52:37.873489",
-  "total_events": 7,
+  "updated_at": "2026-07-01T19:27:21.712754",
+  "total_events": 10,
   "events": [
     {
       "type": "analysis_completed",
@@ -85,6 +85,42 @@
       "source": "agi_pipeline",
       "timestamp": "2026-07-01T17:52:37.873066",
       "id": "evt_000006"
+    },
+    {
+      "type": "analysis_completed",
+      "data": {
+        "company": "深圳海更数字传媒有限公司",
+        "findings_count": 5,
+        "causal_edges": 0,
+        "patterns": 0
+      },
+      "source": "agi_pipeline",
+      "timestamp": "2026-07-01T19:19:26.348125",
+      "id": "evt_000007"
+    },
+    {
+      "type": "analysis_completed",
+      "data": {
+        "company": "深圳海更数字传媒有限公司",
+        "findings_count": 5,
+        "causal_edges": 0,
+        "patterns": 0
+      },
+      "source": "agi_pipeline",
+      "timestamp": "2026-07-01T19:25:52.974690",
+      "id": "evt_000008"
+    },
+    {
+      "type": "analysis_completed",
+      "data": {
+        "company": "深圳海更数字传媒有限公司",
+        "findings_count": 5,
+        "causal_edges": 0,
+        "patterns": 0
+      },
+      "source": "agi_pipeline",
+      "timestamp": "2026-07-01T19:27:21.712376",
+      "id": "evt_000009"
     }
   ]
 }

@@ -240,17 +240,27 @@ class ModuleLearner:
             cid = entry.get("company_id", 0)
             ts = entry.get("timestamp", "")[:13]  # 精确到小时 YYYY-MM-DDTHH
             key = f"{cid}|{ts}"
+            if key in actual_runs:
+                continue  # 同一分析运行只计一次
             actual_runs.add(key)
             ind = entry.get("industry", "")
             if ind and len(ind) < 20 and ind != "unknown":
-                industry_runs[ind] = 1  # 每行业每轮运行只计1次
+                industry_runs[ind] += 1  # 每个不同的小时窗口+1
         
         total_runs = len(actual_runs)
         
-        # 从纠正规则库统计学习成果
+        # 从纠正规则库统计学习成果（排除协商规则）
         rules = _load_correction_rules()
-        correction_count = sum(len(r.get("corrections", [])) for r in rules.values())
-        trusted = sum(1 for r in rules.values() if r.get("auto_apply") and r.get("confidence", 0) >= 0.7)
+        correction_count = sum(
+            len(r.get("corrections", []))
+            for r in rules.values()
+            if r.get("industry") or r.get("biz_model")  # 只算用户反馈的纠正
+        )
+        trusted = sum(
+            1 for r in rules.values()
+            if r.get("auto_apply") and r.get("confidence", 0) >= 0.7
+            and (r.get("industry") or r.get("biz_model"))  # 只算用户反馈
+        )
         
         if total_runs < 3:
             stage = "婴儿期"
@@ -823,14 +833,17 @@ def apply_correction_rules(all_findings, industry, biz_model):
 
 
 def get_correction_rule_summary():
-    """获取已学习的所有纠正规则"""
+    """获取已学习的所有纠正规则（区分协商规则和用户反馈纠正规则）"""
     rules = _load_correction_rules()
     auto_rules = {fp: r for fp, r in rules.items() if r.get("auto_apply")}
-    return {
-        "total_rules": len(rules),
-        "auto_rules": len(auto_rules),
-        "rules": [
-            {
+    
+    # 分离：协商规则（行业和模式均为空）vs 用户反馈纠正规则（有行业或模式）
+    negotiation_items = []
+    correction_items = []
+    
+    for fp, r in sorted(rules.items(), key=lambda x: -len(x[1]["corrections"])):
+        if not r.get("industry") and not r.get("biz_model"):
+            negotiation_items.append({
                 "finding_type": r["finding_type"],
                 "industry": r["industry"],
                 "biz_model": r["biz_model"],
@@ -838,9 +851,25 @@ def get_correction_rule_summary():
                 "auto_apply": r["auto_apply"],
                 "confidence": r["confidence"],
                 "latest_reason": r["corrections"][-1]["reason"] if r["corrections"] else "",
-            }
-            for fp, r in sorted(rules.items(), key=lambda x: -len(x[1]["corrections"]))
-        ]
+            })
+        else:
+            correction_items.append({
+                "finding_type": r["finding_type"],
+                "industry": r["industry"],
+                "biz_model": r["biz_model"],
+                "correction_count": len(r["corrections"]),
+                "auto_apply": r["auto_apply"],
+                "confidence": r["confidence"],
+                "latest_reason": r["corrections"][-1]["reason"] if r["corrections"] else "",
+            })
+    
+    return {
+        "total_rules": len(rules),
+        "auto_rules": len(auto_rules),
+        "rules": correction_items,           # 用户反馈纠正规则
+        "negotiation_rules": negotiation_items,  # 协商规则
+        "has_negotiation": len(negotiation_items) > 0,
+        "has_correction": len(correction_items) > 0,
     }
 
 

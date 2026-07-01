@@ -1126,28 +1126,34 @@ function renderBrainTab() {
       
       // ── 3. 纠正规则库 ──
       h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
-      h += '<h3 style="color:#1e293b;border-bottom:2px solid #059669;padding-bottom:8px">纠正规则库（老邓教的）</h3>';
+      h += '<h3 style="color:#1e293b;border-bottom:2px solid #059669;padding-bottom:8px">纠正规则库（用户反馈）</h3>';
       
       var corr = d.corrections || {};
+      var correctionRules = corr.rules || [];
+      var negotiationRules = corr.negotiation_rules || [];
+      
       h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
-      h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + (corr.total_rules || 0) + '</div><div style="font-size:12px;color:#64748b">规则总数</div></div>';
+      h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + correctionRules.length + '</div><div style="font-size:12px;color:#64748b">纠正规则</div></div>';
+      h += '<div style="flex:1;min-width:100px;background:#f5f3ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed">' + negotiationRules.length + '</div><div style="font-size:12px;color:#64748b">协商规则</div></div>';
       h += '<div style="flex:1;min-width:100px;background:#dcfce7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#166534">' + (corr.auto_rules || 0) + '</div><div style="font-size:12px;color:#64748b">已自动生效</div></div>';
       h += '</div>';
-      // 同步按钮
+      // 同步按钮（对纠正规则和协商规则都适用）
       h += '<div style="margin:8px 0"><button onclick="syncCorrectionsToModules()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">同步纠正到模块</button> ';
       h += '<button onclick="loadSyncStatus()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">查看同步状态</button>';
       h += '<span id="sync-status" style="margin-left:10px;font-size:11px;color:#94a3b8"></span></div>';
       
-      if (corr.rules && corr.rules.length > 0) {
+      // 用户纠正规则（空时显示提示）
+      if (correctionRules.length > 0) {
+        h += '<div style="font-size:12px;color:#64748b;margin:8px 0 4px;font-weight:600">用户纠正规则（' + correctionRules.length + '条）</div>';
         h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:80px">操作</th></tr>';
-        for (var k = 0; k < corr.rules.length; k++) {
-          var r = corr.rules[k];
+        for (var k = 0; k < correctionRules.length; k++) {
+          var r = correctionRules[k];
           var fp = r.fingerprint || r.id || '';
           var autoLabel = r.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>';
           h += '<tr id="cr-row-'+k+'">';
           h += '<td style="font-weight:600;cursor:pointer;color:#2563eb" onclick="showCorrectionDetail(' + k + ')" title="点击查看纠正详情">' + esc(r.finding_type) + '</td>';
-          h += '<td>' + esc(r.industry) + '</td>';
-          h += '<td>' + esc(r.biz_model) + '</td>';
+          h += '<td>' + esc(r.industry || '-') + '</td>';
+          h += '<td>' + esc(r.biz_model || '-') + '</td>';
           h += '<td style="text-align:center">' + r.correction_count + '</td>';
           h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
           h += '<td>' + autoLabel + '</td>';
@@ -1156,8 +1162,27 @@ function renderBrainTab() {
         }
         h += '</table>';
       } else {
-        h += '<div style="text-align:center;padding:20px;color:#94a3b8">尚无纠正规则 — 老邓点在报告中发现上点击审核后→记录模式→累计1次纠正→升级为自动规则→1266条方法链(legacy)体系持续进化</div>';
+        h += '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;background:#fafbfc;border-radius:6px;margin:8px 0">暂无用户纠正规则 — 在报告中点击审核按钮，按模板填写审核意见后生成</div>';
       }
+      
+      // 协商规则（来自correction_rules.json）
+      if (negotiationRules.length > 0) {
+        h += '<div style="font-size:12px;color:#64748b;margin:12px 0 4px;font-weight:600">协商规则（' + negotiationRules.length + '条，来自系统内置规则库）</div>';
+        h += '<table class="tbl2"><tr><th>规则名称</th><th>类型</th><th>置信度</th><th>状态</th></tr>';
+        for (var n = 0; n < negotiationRules.length; n++) {
+          var nr = negotiationRules[n];
+          h += '<tr>';
+          h += '<td style="font-weight:600">' + esc(nr.finding_type) + '</td>';
+          h += '<td><span style="font-size:11px;padding:1px 6px;border-radius:3px;background:#f0fdf4;color:#059669">协商规则</span></td>';
+          h += '<td style="text-align:center">' + (nr.confidence*100).toFixed(0) + '%</td>';
+          h += '<td>' + (nr.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>') + '</td>';
+          h += '</tr>';
+        }
+        h += '</table>';
+      }
+      
+      // 同步日志清理提示
+      h += '<div style="font-size:11px;color:#94a3b8;margin-top:8px">💡 "同步纠正到模块"将符合条件的规则（≥60%置信度+≥1次纠正）写入对应模块文件。已同步的规则带[引擎自学习]标签。</div>';
       h += '</div>';
       
       // ── 跨行业合成规则 ──

@@ -2246,10 +2246,11 @@ window._sendParaChat = function(i) {
   if (inp) inp.value = '';
   
   var companyId = window.currentCompanyId || 1;
+  var paraContent = _getParagraphContent(i) || '';
   fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({finding_index:0, question: q, policy_doc:'', history:[]})
+    body: JSON.stringify({finding_index:-1, paragraph_text: paraContent, question: q, policy_doc:'', history:[]})
   }).then(function(r){return r.json();}).then(function(data){
     var html = '<div style="margin-top:8px;font-size:12px;color:#475569">';
     if (data.ok && data.analysis) {

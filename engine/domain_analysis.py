@@ -2408,48 +2408,54 @@ def _domain_cross_domain_analysis(all_findings):
     
     findings = []
     for chain_def in chain_defs:
-        trigger = chain_def.get("trigger_signal", "")
-        reasoning = chain_def.get("reasoning_chain", [])
-        reversals = chain_def.get("reversal_points", [])
+        trigger_kws = chain_def.get("trigger_keywords", [])
+        reasoning = chain_def.get("reasoning_path", [])
+        min_evidence = chain_def.get("min_evidence", 1)
         
-        if not trigger or not reasoning:
+        if not trigger_kws or not reasoning:
             continue
         
-        # 检查触发信号是否在发现的type/detail/description中出现
+        # 检查触发关键词是否在发现的type/detail/description中出现
         triggered = False
         for f in all_findings:
             ftype = str(f.get("type", ""))
             fdetail = str(f.get("detail", ""))
-            # 提取触发信号中的关键词检查
-            trigger_kws = [w for w in trigger.replace("→"," ").replace("，"," ").replace("、"," ").split() if len(w)>=3]
-            match_count = sum(1 for kw in trigger_kws if kw in ftype or kw in fdetail)
-            if match_count >= 2:
+            fdesc = str(f.get("description", ""))
+            combined = ftype + fdetail + fdesc
+            match_count = sum(1 for kw in trigger_kws if kw in combined)
+            if match_count >= min_evidence:
                 triggered = True
                 break
         
         if triggered:
             reasoning_desc = ""
             for rs in reasoning:
-                reasoning_desc += f"Step{rs.get('order','')}: {rs.get('from','')} → {rs.get('to','')}\n"
-                reasoning_desc += f"  发现: {rs.get('finding','')}\n"
-                reasoning_desc += f"  动作: {rs.get('action','')}\n\n"
+                action = rs.get("action", "")
+                if isinstance(action, dict):
+                    reasoning_desc += f"Step{action.get('order',rs.get('step',''))}: {action.get('from','')} → {action.get('to','')}\n"
+                    if action.get("finding"):
+                        reasoning_desc += f"  发现: {action['finding']}\n"
+                    if action.get("action"):
+                        reasoning_desc += f"  动作: {action['action']}\n"
+                else:
+                    reasoning_desc += f"Step{rs.get('step','')}: {str(action)[:100]}\n"
+                reasoning_desc += "\n"
             
-            reversal_text = ""
-            for rp in reversals:
-                reversal_text += f"· Step{rp.get('at_step','')}: 如果{rp.get('if','')[:80]} → 则{rp.get('then','')[:60]}\n"
+            # 从 description 或 suggestion 中提取回退条件提示
+            desc = chain_def.get("description", "")
+            suggestion = chain_def.get("suggestion", "")
             
             findings.append({
                 "type": chain_def.get('name',''),
                 "level": chain_def.get("level", "中风险"),
                 "score": min(len(reasoning) * 2, 9),
-                "detail": f"检测到'{trigger[:100]}'信号——经{len(reasoning)}步推理分析，发现{len(reasoning)}条异常线索。",
-                "description": f"【推理路径】\n{reasoning_desc}\n【回退条件】\n{reversal_text}\n\n{chain_def.get('description','')}",
-                "how_found": chain_def.get("how_found", f"自动监测到'{trigger[:60]}'信号，启动'{chain_def.get('name','')}'推理链进行{len(reasoning)}步因果推导"),
-                "suggestion": f"按{len(reasoning)}步推理链逐步验证，每步有对应回退条件。关联方法论: {chain_def.get('methodology','')}",
+                "detail": f"检测到{len(trigger_kws)}个触发关键词——经{len(reasoning)}步推理分析，发现{len(reasoning)}条异常线索。",
+                "description": f"【推理路径】\n{reasoning_desc}\n\n{desc}\n\n{suggestion}",
+                "how_found": f"自动监测到'{', '.join(trigger_kws[:5])}'等关键词，启动'{chain_def.get('name','')}'推理链进行{len(reasoning)}步因果推导",
+                "suggestion": suggestion or f"按{len(reasoning)}步推理链逐步验证。",
                 "category": "跨域推理分析",
                 "_cross_domain_analysis": True,
                 "_reasoning_chain": reasoning,
-                "_reversal_points": reversals,
             })
     
     return findings

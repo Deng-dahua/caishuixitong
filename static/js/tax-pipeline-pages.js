@@ -2426,7 +2426,11 @@ function loadCrossDomainAnalysis() {
           // 标题
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + '</div>'
-          + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + c.level + '</span>'
+          + '<div style="display:flex;gap:8px;align-items:center">'
+          + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + levelColor + '15;color:' + levelColor + ';font-weight:600">' + escHtml(c.level) + '</span>'
+          + '<span style="font-size:11px;color:#94a3b8">' + escHtml(c.sub_topic) + '</span>'
+          + '<span style="font-size:11px;color:#94a3b8">需≥' + (c.min_evidence||1) + '域</span>'
+          + '</div>'
           + '</div>'
 
           // 触发关键词（实际字段是trigger_keywords数组）
@@ -2435,25 +2439,33 @@ function loadCrossDomainAnalysis() {
           // 描述
           + (c.description ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:12px">' + escHtml(c.description) + '</div>' : '')
 
-          // 推理链（实际字段是reasoning_path，子字段在action嵌套对象中）
-          + '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px">'
-          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + (c.reasoning_path||[]).length + ' 步</div>';
+          // 推理链（有步骤才渲染）
+          + ((c.reasoning_path||[]).length > 0 ? '<div style="margin-bottom:12px;padding:12px 16px;background:#fff;border-radius:6px">'
+          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">推理链 · ' + c.reasoning_path.length + ' 步</div>' : '')
 
         (c.reasoning_path||[]).forEach(function(s, si) {
-          var act = s.action || {};
+          // 兼容两种action格式：dict{from,to,finding,action} 或 string(直接当动作描述)
+          var act = s.action;
+          var isDict = (typeof act === 'object' && act !== null);
+          var stepFrom = isDict ? (act.from || s.domain || '') : '';
+          var stepTo = isDict ? (act.to || '') : '';
+          var stepFinding = isDict ? (act.finding || '') : '';
+          var stepAction = isDict ? (act.action || '') : (typeof act === 'string' ? act : '');
+          var stepOrder = isDict ? (act.order || s.step || '') : (s.step || si+1);
+          
           html += '<div style="padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;line-height:2.0">'
-            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + (act.order || s.step || '') + '</span>'
-            + '<span style="font-weight:600;color:#2563eb">' + escHtml(act.from || s.domain || '') + '</span>'
-            + '<span style="color:#94a3b8"> → </span>'
-            + '<span style="font-weight:600;color:#7c3aed">' + escHtml(act.to || '') + '</span>'
-            + (act.finding ? '<div style="color:#64748b;margin-top:2px">发现：' + escHtml(act.finding) + '</div>' : '')
-            + (act.action ? '<div style="color:#94a3b8;font-size:12px">动作：' + escHtml(act.action) + '</div>' : '')
+            + '<span style="color:#94a3b8;font-size:12px;margin-right:8px">' + escHtml(stepOrder) + '</span>'
+            + (stepFrom ? '<span style="font-weight:600;color:#2563eb">' + escHtml(stepFrom) + '</span>' : '')
+            + (stepFrom && stepTo ? '<span style="color:#94a3b8"> → </span>' : '')
+            + (stepTo ? '<span style="font-weight:600;color:#7c3aed">' + escHtml(stepTo) + '</span>' : '')
+            + (stepFinding ? '<div style="color:#64748b;margin-top:2px">发现：' + escHtml(stepFinding) + '</div>' : '')
+            + (stepAction ? '<div style="color:#334155;margin-top:2px;font-size:12px">' + escHtml(stepAction) + '</div>' : '')
             + '</div>';
           if (si < (c.reasoning_path||[]).length - 1) {
             html += '<div style="text-align:center;color:#94a3b8;font-size:18px;padding:4px 0">↓</div>';
           }
         });
-        html += '</div>'
+        if ((c.reasoning_path||[]).length > 0) html += '</div>';
 
           // 处理建议 / 法律依据 / 纳税影响
           + (c.suggestion ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">处理建议：</span>' + escHtml(c.suggestion) + '</div>' : '')
@@ -2893,14 +2905,18 @@ async function loadAnalysisChains() {
       var refs = a.rule_refs || [];
       var kws = a.trigger_keywords || [];
       var stepHtml = steps.map(function(s) {
-        return '<div style="padding:4px 8px;font-size:12px;color:#334155">Step' + s.step + ': <strong>' + (s.domain||'') + '</strong> → ' + (s.action||'');
+        var act = s.action;
+        if (typeof act === 'object' && act !== null) {
+          return '<div style="padding:4px 8px;font-size:12px;color:#334155;line-height:1.8">Step' + (act.order || s.step || '') + ': <strong>' + (act.from || s.domain || '') + '</strong> → <strong>' + (act.to || '') + '</strong>' + (act.finding ? '<br><span style="color:#64748b;font-size:11px">发现：' + act.finding + '</span>' : '') + '</div>';
+        }
+        return '<div style="padding:4px 8px;font-size:12px;color:#334155">Step' + (s.step || '') + ': ' + (typeof act === 'string' ? act : (s.domain || '')) + '</div>';
       }).join('');
       html += '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:4px solid #7c3aed">'
         + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
         + '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#7c3aed15;color:#7c3aed;font-weight:600">ID' + (a.id||'') + '</span>'
         + '<span style="font-size:14px;font-weight:600;color:#0f172a">' + (a.name||'') + '</span>'
         + '</div>'
-        + '<div style="font-size:12px;color:#64748b;line-height:2.0;margin-bottom:8px">' + (a.description||'') + '</div>'
+        + (a.description ? '<div style="font-size:12px;color:#64748b;line-height:2.0;margin-bottom:8px">' + (a.description) + '</div>' : '')
         + '<div style="margin-bottom:6px"><span style="font-size:11px;color:#7c3aed;font-weight:600">触发词: </span><span style="font-size:11px;color:#64748b">' + kws.slice(0,5).join(' / ') + '</span></div>'
         + '<div style="margin-bottom:6px"><span style="font-size:11px;color:#7c3aed;font-weight:600">推理步数: </span><span style="font-size:11px;color:#64748b">' + steps.length + '步</span>'
         + '<span style="margin-left:16px;font-size:11px;color:#7c3aed;font-weight:600">关联规则: </span><span style="font-size:11px;color:#64748b">' + refs.length + '条</span></div>'
