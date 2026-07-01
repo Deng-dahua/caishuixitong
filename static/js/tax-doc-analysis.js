@@ -1540,31 +1540,6 @@ function _renderReportFallback(r, allF) {
   // 用合并后的发现替换原有allF
   allF = mergedF;
   
-  // ═══ 发现审查面板（折叠，供稽查员逐条审核，不影响报告正文）═══
-  var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
-  var mids = allF.filter(function(f){ return f.level === '中风险'; });
-  var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
-  var allSorted = risks.concat(mids).concat(lows);
-  h += '<details style="margin-bottom:40px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px" id="review-panel">';
-  h += '<summary style="cursor:pointer;font-size:14px;font-weight:700;color:#0f172a">🔍 发现审查（' + allF.length + '条 · 逐条审核 · 审核反馈驱动引擎自我学习）</summary>';
-  h += '<div style="margin-top:12px;font-size:11px;color:#94a3b8;margin-bottom:8px">审核某条发现 = 告诉引擎"这个判定不对"，引擎记录模式并自动调整后续分析。不审核=默认可信。</div>';
-  for (var fi = 0; fi < allSorted.length; fi++) {
-    var f = allSorted[fi];
-    var lv = f.level || '中风险';
-    var lvColor = lv==='高风险'?'#dc2626':(lv==='中风险'?'#e67700':'#16a34a');
-    h += '<div class="review-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px">';
-    h += '<span style="color:'+lvColor+';font-weight:600;min-width:40px">' + lv + '</span>';
-    h += '<span style="flex:1;color:#334155">' + (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '</span>';
-  h += '<button onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({
-      type: f.type||'', title: f.type||'', level: lv, 
-      detail: (f.detail||''), category: f.category||''
-    }).replace(/'/g,"&#39;") + '\' style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">审核</button>';
-    // 追问按钮：打开对话面板
-    h += '<button onclick="window._askReport(' + fi + ')" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:4px">追问</button>';
-    h += '</div>';
-  }
-  h += '</details>';
-
   // ═══ 第一章：案件来源及稽查对象基本情况 ═══
   h += '<h2 id="ch1">第一章 案件来源及稽查对象基本情况</h2>';
   h += '<p class="i2">根据《税务稽查工作规程》第二十一条之规定，本系统在对账套内' + (r.files_count || 0) + '份经营资料执行涉税风险自动预审时，检出多项涉税风险指标异常，触发稽查预审程序。预审程序启动后，系统依法对被查单位提交的全部经营资料进行了系统性综合判定。以下为被查单位的基本情况及本稽查事项的立案依据。</p>';
@@ -1728,6 +1703,11 @@ function _renderReportFallback(r, allF) {
 
   // ═══ 第三章：稽查发现问题及事实认定 ═══
   h += '<h2 id="ch3">第三章 稽查发现问题及事实认定</h2>';
+  
+  var risks = allF.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; });
+  var mids = allF.filter(function(f){ return f.level === '中风险'; });
+  var lows = allF.filter(function(f){ return f.level !== '高风险' && f.level !== '极高风险' && f.level !== '中风险'; });
+  var allSorted = risks.concat(mids).concat(lows);
   
   h += '<p class="i2">经分析，共发现<strong>' + allF.length + '</strong>项问题，其中高风险' + risks.length + '项、中风险' + mids.length + '项、低风险' + lows.length + '项。各项问题的事实认定如下：</p>';
   
