@@ -575,7 +575,17 @@ async def root():
     html = _read_html("static/index.html")
     key = _load_api_key()
     has_key = bool(key)
-    inject = f'\n<script>window._apiKeyStatus = {{has_key: {str(has_key).lower()}, status_text: "{("已接入API Key" if has_key else "未接入API Key")}"}};</script>\n</body>'
+    status = "已接入API Key" if has_key else "未接入API Key"
+    color = "#4ade80" if has_key else "#94a3b8"
+    inject = f'''<script>
+(function(){{
+  var d=document.getElementById("api-status-dot");
+  var t=document.getElementById("api-status-text");
+  if(d){{d.style.background="{color}";}}
+  if(t){{t.textContent="{status}";t.style.color="{color}";}}
+}})();
+</script>
+</body>'''
     html = html.replace("</body>", inject)
     return html
 

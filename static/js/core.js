@@ -311,22 +311,8 @@ window.enterApp = enterApp;  // 确保全局可访问
 
 // ═══ API Key状态检查 ═══
 function checkApiKeyStatus() {
-  var dot = document.getElementById('api-status-dot');
-  var txt = document.getElementById('api-status-text');
-  if (!dot || !txt) return;
-  
-  // 直接读取服务器注入的状态，不走异步请求
-  var status = window._apiKeyStatus;
-  if (status && status.has_key) {
-    dot.style.background = '#4ade80';
-    txt.textContent = status.status_text || '已接入API Key';
-    txt.style.color = '#4ade80';
-  } else if (status && !status.has_key) {
-    dot.style.background = '#94a3b8';
-    txt.textContent = status.status_text || '未接入API Key';
-    txt.style.color = '#94a3b8';
-  }
-  // 如果window._apiKeyStatus不存在（旧缓存），保持HTML默认显示
+  // 状态已由服务器在HTML中直接注入，无需异步请求
+  // 此处保留空函数以防调用报错
 }
 
 async function exitCompany() {
