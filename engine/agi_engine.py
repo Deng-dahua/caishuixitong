@@ -1,7 +1,7 @@
 """
 AGI引擎 — 财税系统智能核心
 
-整合LLM + 知识图谱 + 4 Agent + 自主学习 = 税务稽查AGI
+整合LLM + 因果网络 + 假设验证 + 历史记忆 + 4 Agent + 自主学习 = 税务稽查AGI
 
 使用方式：
   from engine.agi_engine import agi
@@ -12,6 +12,7 @@ import json, os, re
 from typing import Dict, List, Any, Optional
 from engine.llm_client import llm, is_llm_available
 from engine.agents.coordinator import get_coordinator
+from engine.agi_reasoning import get_reasoner, ReasoningResult
 
 class AGIEngine:
     """财税稽查AGI核心引擎"""
@@ -79,11 +80,71 @@ class AGIEngine:
         return self._ask_with_agents(question, ctx.get("findings", []), ctx, intent)
     
     def _ask_with_agents(self, question, findings, context, intent):
-        """智能Agent引擎（LLM不可用时的深度推理）"""
+        """智能Agent引擎（三层推理基础设施 + DialogAgent）"""
+        # ── 1. 因果网络+假设验证+历史记忆推理 ──
+        reasoner = get_reasoner()
+        reasoning = reasoner.reason(question, intent, findings, context)
+        
+        # ── 2. DialogAgent知识库推理 ──
         result = self._coordinator.ask(question, findings, context, intent)
-        result["backend"] = "agi_agent_engine"
-        result["mode_note"] = "AGI级Agent推理引擎——基于1608规则+437线索+781证据链的因果推理"
+        
+        # ── 3. 融合推理结果到回答中 ──
+        self._inject_reasoning(result, reasoning)
+        
+        result["backend"] = "agi_reasoning_engine"
+        result["mode_note"] = "因果网络+假设验证+历史记忆+1608规则——全栈AGI推理"
+        result["reasoning"] = {
+            "signals": reasoning.causal_signals[:5],
+            "predictions": reasoning.causal_predictions[:3],
+            "hypothesis_count": len(reasoning.hypotheses),
+            "similar_cases": len(reasoning.similar_cases),
+            "confidence": reasoning.confidence,
+            "evidence_strength": reasoning.evidence_strength,
+        }
         return result
+    
+    def _inject_reasoning(self, result: Dict, reasoning: ReasoningResult):
+        """将推理结果注入到回答块中"""
+        analysis = result.get("analysis", [])
+        
+        # 因果信号
+        if reasoning.causal_signals:
+            sigs = [s for s in reasoning.causal_signals if not s.startswith("因果")][:5]
+            if sigs:
+                analysis.append({
+                    "title": "🧬 因果推理",
+                    "content": f"检测到{len(sigs)}个因果信号: {', '.join(sigs)}\n" +
+                    f"证据强度: {reasoning.evidence_strength}"
+                })
+        
+        # 假设验证
+        if reasoning.hypotheses:
+            hyp_lines = []
+            for h in reasoning.hypotheses[:3]:
+                hyp_lines.append(f"▎{h.get('type','')[:40]}")
+                hyps = h.get("hypotheses",[])
+                for hi in hyps[:2]:
+                    hyp_lines.append(f"  {hi}")
+                hyp_lines.append(f"  结论: {h.get('best','?')} (置信度{h.get('confidence',0):.0%})")
+                hyp_lines.append("")
+            analysis.append({
+                "title": f"🔬 假设验证（{len(reasoning.hypotheses)}条）",
+                "content": "\n".join(hyp_lines)
+            })
+        
+        # 历史案例
+        if reasoning.similar_cases:
+            case_lines = []
+            for c in reasoning.similar_cases[:3]:
+                ind = c.get("industry","")
+                sigs = c.get("signals",[]) if isinstance(c.get("signals"), list) else []
+                case_lines.append(f"• {ind}行业: {', '.join(sigs[:3]) if sigs else '记录'}")
+            analysis.append({
+                "title": f"📚 历史案例（{len(reasoning.similar_cases)}个相似）",
+                "content": "\n".join(case_lines) if case_lines else "暂无相似历史案例"
+            })
+        
+        result["analysis"] = analysis
     
     def _build_system_prompt(self, ctx: Dict) -> str:
         """构建税务稽查AGI的system prompt"""
