@@ -4556,28 +4556,102 @@ async def get_report_intelligence(company_id: int = Query(...)):
     else:
         narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行稽查分析，仅发现少量低风险事项。企业整体税务合规状况良好，建议继续保持规范的财税管理。"
     
-    # 2. 税负模拟
+    # 2. 税负模拟（精准版：发票去重+实际税额+企业所得税分级）
+    # ── 2.1 收集所有evidence_rows中的发票，按(invoice_code,invoice_no)去重 ──
+    seen_invoices = set()  # (invoice_code, invoice_no) 去重key
     tax_burden = []
+    # 按风险类型分组，记录每类涉及的发票
+    type_invoices = {}  # {风险类型: {(发票key, amount, tax_amt, invoice_type)}}
+    
     for f in all_findings:
+        ftype = f.get("type","")[:40]
         items = f.get("items", []) or f.get("evidence_rows", []) or []
-        total_amt = 0
+        if ftype not in type_invoices:
+            type_invoices[ftype] = []
         for item in items:
+            # 提取发票标识
+            inv_code = str(item.get("invoice_code", item.get("发票代码", "")))
+            inv_no = str(item.get("invoice_no", item.get("发票号码", item.get("digital_invoice_no", ""))))
+            # 去重key：优先发票号，否则用金额+对方名组合
+            if inv_code and inv_no:
+                key = (inv_code, inv_no)
+            else:
+                amt = str(item.get("amount", item.get("金额", "0")))
+                cp = str(item.get("counterparty", item.get("对方名称", "")))
+                key = (amt, cp, "no_code")
+            
+            if key in seen_invoices:
+                continue  # 同一张发票已计入，跳过
+            seen_invoices.add(key)
+            
             try:
                 amt = float(str(item.get("amount", item.get("金额", item.get("invoice_amount", "0"))).replace(",","")))
-                total_amt += amt
-            except: pass
-        if total_amt > 100:
-            tax_burden.append({
-                "type": f.get("type","")[:40],
-                "level": f.get("level",""),
-                "amount": round(total_amt, 2),
-                "vat_est": round(total_amt * 0.13, 2),
-                "income_tax_est": round(total_amt * 0.25, 2),
+            except:
+                amt = 0
+            
+            # 提取实际税额（非预估）
+            try:
+                actual_tax = float(str(item.get("tax_amount", item.get("税额", item.get("tax", "0"))).replace(",","")))
+            except:
+                actual_tax = 0
+            
+            inv_type = str(item.get("invoice_type", item.get("发票类型", "")))
+            
+            type_invoices[ftype].append({
+                "key": key, "amount": amt, "tax_amt": actual_tax, 
+                "invoice_type": inv_type,
             })
     
-    tax_total = sum(t["amount"] for t in tax_burden)
-    vat_total = sum(t["vat_est"] for t in tax_burden)
-    inc_total = sum(t["income_tax_est"] for t in tax_burden)
+    # ── 2.2 按风险类型汇总，使用实际税额 ──
+    for ftype, invoices in type_invoices.items():
+        total_amt = sum(inv["amount"] for inv in invoices)
+        if total_amt <= 100:
+            continue
+        
+        # 增值税 = 专用发票的实际税额之和（普票税额并入成本，不计增值税）
+        vat_amt = sum(inv["tax_amt"] for inv in invoices 
+                      if "专用" in inv["invoice_type"] or "专票" in inv["invoice_type"])
+        
+        # 企业所得税税率按企业类型分级
+        ent_type = target_entity.get("enterprise_type", "") or target_entity.get("company_type", "")
+        is_small = any(kw in str(ent_type) for kw in ["小微","小型","小规模"])
+        is_high_tech = any(kw in str(ent_type) for kw in ["高新","科技","软件"])
+        if is_small:
+            inc_rate = 0.05   # 小微企业优惠税率5%
+        elif is_high_tech:
+            inc_rate = 0.15   # 高新技术企业15%
+        else:
+            inc_rate = 0.25   # 一般企业25%
+        
+        # 所得税基数 = 不含税金额（专票）或 价税合计（普票）
+        inc_base = 0
+        for inv in invoices:
+            if inv["tax_amt"] > 0:
+                inc_base += inv["amount"]  # 专票：金额不含税
+            else:
+                inc_base += inv["amount"] + inv["tax_amt"]  # 普票：价税合计计入成本
+        
+        # 获取该类型的风险等级
+        level = ""
+        for f in all_findings:
+            if f.get("type","")[:40] == ftype:
+                level = f.get("level","")
+                break
+        
+        tax_burden.append({
+            "type": ftype,
+            "level": level,
+            "invoice_count": len(invoices),
+            "amount": round(total_amt, 2),
+            "vat_actual": round(vat_amt, 2),
+            "vat_type": "实际税额（专票）" if vat_amt > 0 else "无增值税（普票税额并入成本）",
+            "income_tax_rate": f"{int(inc_rate*100)}%",
+            "income_tax_est": round(inc_base * inc_rate, 2),
+        })
+    
+    tax_total = round(sum(t["amount"] for t in tax_burden), 2)
+    vat_total = round(sum(t["vat_actual"] for t in tax_burden), 2)
+    inc_total = round(sum(t["income_tax_est"] for t in tax_burden), 2)
     
     # 3. 资料缺口影响链
     material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
