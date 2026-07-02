@@ -827,14 +827,17 @@ function renderTaxDocReport(r) {
   var html = ctx.html;
   var paraIdx = 0;
   
-  function _mkBtnBar(idx) {
-    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();var p=document.querySelector(\x27.edt-icon-inline[data-pi=\x27'+idx+'\x27]\x27);if(!p)return;var div=p.closest(\x27div\x27);var pEl=div?div.querySelector(\x27p.i2, p.i1, p\x27):null;var ct=pEl?pEl.textContent.trim():\x27\x27;window._editScope={level:\x27paragraph\x27,id:\x27p-'+idx+'\x27,title:\x27报告段落\x27,content:ct};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2"> ✏️</span>';
+  function _mkBtnBar(idx, pText) {
+    // 把段落文本中的特殊字符转义后内联到onclick
+    var escText = pText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();window._editScope={level:\'paragraph\',id:\'p-'+idx+'\',title:\'报告段落\',content:\''+escText+'\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2"> ✏️</span>';
   }
   
   // 段落：包裹在 flex 容器中，按钮在右侧
   html = html.replace(/<p class="i2">([\s\S]*?)<\/p>/g, function(match, inner) {
     var idx = paraIdx++;
-    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx) + '</div>';
+    var plainText = inner.replace(/<[^>]*>/g, '').trim();
+    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx, plainText) + '</div>';
   });
   
   window._paraCount = paraIdx;
