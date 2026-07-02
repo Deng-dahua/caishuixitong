@@ -7,9 +7,25 @@
     "mtime": 1782443884.8722987,
     "size": 41872
   },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_core.py": {
+    "mtime": 1782961236.3259442,
+    "size": 31959
+  },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_engine.py": {
-    "mtime": 1782957405.0126147,
-    "size": 16350
+    "mtime": 1782959166.5989292,
+    "size": 21896
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_enhanced.py": {
+    "mtime": 1782959893.6258783,
+    "size": 18370
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_final.py": {
+    "mtime": 1782958989.4029315,
+    "size": 20668
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_meta.py": {
+    "mtime": 1782960129.0641954,
+    "size": 18809
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
     "mtime": 1782840079.8957443,
@@ -328,8 +344,8 @@
     "size": 68909
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1782955392.5592616,
-    "size": 191372
+    "mtime": 1782961637.7718928,
+    "size": 194473
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
     "mtime": 1782913932.0893567,
@@ -372,7 +388,7 @@
     "size": 41313
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\main.py": {
-    "mtime": 1782955481.9412162,
-    "size": 384205
+    "mtime": 1782961057.6499054,
+    "size": 393064
   }
 }

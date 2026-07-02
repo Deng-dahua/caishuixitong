@@ -893,6 +893,31 @@ function renderTaxDocReport(r) {
           smartHtml += '</div>';
         }
         
+        // ④ AGI自审评分
+        if (smart.agi_enhanced && smart.agi_enhanced.meta_audit) {
+          var audit = smart.agi_enhanced.meta_audit;
+          var gradeColor = audit.grade === 'A' ? '#16a34a' : (audit.grade === 'B' ? '#d97706' : '#dc2626');
+          smartHtml += '<div id="rpt-smart-audit" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid ' + gradeColor + ';border-radius:12px">';
+          smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">🔍 AGI自审报告</div>';
+          smartHtml += '<div style="display:flex;gap:24px;align-items:center;margin-bottom:12px">';
+          smartHtml += '<div style="font-size:36px;font-weight:800;color:' + gradeColor + '">' + (audit.grade||'?') + '</div>';
+          smartHtml += '<div style="font-size:13px;color:#475569;line-height:1.8">总分: <b>' + (audit.overall_score||0) + '</b><br>严重问题: ' + (audit.critical_count||0) + ' | 警告: ' + (audit.warning_count||0) + '</div>';
+          smartHtml += '</div>';
+          // 6维度评分条
+          var dims = audit.dimensions || {};
+          var dimColors = {'证据充分性':'#3b82f6','法条准确性':'#8b5cf6','逻辑一致性':'#10b981','覆盖面完整性':'#f59e0b','可操作性':'#ef4444','表达质量':'#6366f1'};
+          Object.keys(dims).forEach(function(d){
+            var sc = dims[d].score || 0;
+            var st = dims[d].status || '';
+            smartHtml += '<div style="margin:4px 0;font-size:11px;color:#475569">' + d + ': <span style="color:' + (dimColors[d]||'#6366f1') + '">' + st + '</span>';
+            smartHtml += '<div style="background:#f1f5f9;border-radius:4px;height:6px;margin:2px 0"><div style="background:' + (dimColors[d]||'#6366f1') + ';width:' + Math.round(sc*100) + '%;height:100%;border-radius:4px"></div></div></div>';
+          });
+          if (audit.critical_issues && audit.critical_issues.length > 0) {
+            smartHtml += '<div style="margin-top:8px;font-size:11px;color:#dc2626">🔴 严重: ' + audit.critical_issues.slice(0,2).map(function(i){return i.issue;}).join(' | ') + '</div>';
+          }
+          smartHtml += '</div>';
+        }
+        
         if (smartHtml) {
           var area = document.getElementById('tda-report-area');
           if (area) {
