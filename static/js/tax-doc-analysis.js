@@ -1478,7 +1478,7 @@ window._makeEditIcon = function(tip) {
   var btn = document.createElement('span');
   btn.className = 'edt-icon';
   btn.innerHTML = ' ✏️';
-  btn.title = tip + ' --- 编辑/审核/追问/重置';
+  btn.title = '编辑 / 审核 / 追问 / 重置';
   btn.style.cssText = 'font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px';
   btn.onmouseenter = function(){ this.style.opacity = '1'; };
   btn.onmouseleave = function(){ this.style.opacity = '0.35'; };
