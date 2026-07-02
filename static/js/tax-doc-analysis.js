@@ -1420,7 +1420,7 @@ window._initAllEditIcons = function() {
 
   // 3. 每段<p>加✏️
   area.querySelectorAll('p').forEach(function(p, pi) {
-    if (p.querySelector('.edt-icon') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
+    if (p.querySelector('.edt-icon') || p.querySelector('.edt-icon-inline') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
     if (p.style.display === 'flex' || p.style.display === 'inline-flex') return;  // 已是flex容器（如发现标题）
     var txt = p.textContent.trim();
     if (!txt) return;  // 空段跳过
