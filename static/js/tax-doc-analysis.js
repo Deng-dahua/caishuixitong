@@ -846,6 +846,9 @@ function renderTaxDocReport(r) {
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
   
+  // ── 章节追问图标：每个<h2>后加💬，先问原因再纠正 ──
+  setTimeout(function() { _initChapterFeedbackIcons(); }, 200);
+  
   // ── 语音播报条初始化 ──
   setTimeout(function() { _initReportTTS(); }, 300);
   
@@ -1447,6 +1450,169 @@ window._clearAskChat = function() {
 };
 
 // ═══════════ 报告内容反馈 ═══════════
+// ── 章节💬图标：先追问原因，再纠正内容 ──
+window._chapterFeedbackTarget = null;
+
+window._initChapterFeedbackIcons = function() {
+  var area = document.getElementById('tda-report-area');
+  if (!area) return;
+  
+  var headings = area.querySelectorAll('h2[id]');
+  headings.forEach(function(h2) {
+    if (h2.querySelector('.ch-fb-btn')) return; // 已添加
+    var btn = document.createElement('span');
+    btn.className = 'ch-fb-btn';
+    btn.innerHTML = ' 💬';
+    btn.title = '点击追问或纠正此章内容';
+    btn.style.cssText = 'font-size:14px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;margin-left:6px';
+    btn.onmouseenter = function(){ this.style.opacity = '1'; };
+    btn.onmouseleave = function(){ this.style.opacity = '0.5'; };
+    btn.onclick = function(e){ 
+      e.stopPropagation();
+      window._chapterFeedbackPopup(h2.id, h2.textContent.replace('💬','').trim());
+    };
+    h2.appendChild(btn);
+  });
+};
+
+window._chapterFeedbackPopup = function(chId, chTitle) {
+  window._chapterFeedbackTarget = chId;
+  
+  // 移除旧弹窗
+  var old = document.getElementById('cfb-popup');
+  if (old) old.remove();
+  
+  // 收集本章所有段落文本
+  var area = document.getElementById('tda-report-area');
+  var chEl = area.querySelector('#' + chId);
+  var contentSamples = [];
+  if (chEl) {
+    var next = chEl;
+    while (next && (next = next.nextElementSibling) && !(next.tagName === 'H2')) {
+      var txt = next.textContent.trim();
+      if (txt && txt.length > 10) contentSamples.push(txt.slice(0, 150));
+    }
+  }
+  
+  var popup = document.createElement('div');
+  popup.id = 'cfb-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
+  popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
+  
+  var samplesHtml = contentSamples.slice(0,5).map(function(s,i){ 
+    return '<div style="padding:6px 10px;margin:3px 0;background:#f8fafc;border-radius:4px;font-size:11px;color:#475569;max-height:60px;overflow:hidden">' + (i+1) + '. ' + s + '</div>';
+  }).join('');
+  
+  popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+    '<div><b style="font-size:15px">📋 ' + (chTitle||'') + '</b></div>' +
+    '<button onclick="var p=document.getElementById(\'cfb-popup\');if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
+    '</div>' +
+    '<div id="cfb-popup-body" style="padding:16px 20px">' +
+    '<div style="font-size:12px;color:#64748b;margin-bottom:12px">你想了解本章哪段内容的判断逻辑？选择一段后先追问原因，再决定如何纠正。</div>' +
+    samplesHtml +
+    '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">' +
+    '<textarea id="cfb-popup-content" placeholder="或直接粘贴有疑问的报告内容..." style="width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical"></textarea>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button id="cfb-ask-btn" onclick="window._cfbAskWhy()" style="flex:1;background:#0f172a;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">🔍 先追问：为什么引擎这样判断？</button>' +
+    '<button id="cfb-fix-btn" onclick="window._cfbOpenFix()" style="flex:1;background:#fff;color:#b45309;border:1px solid #d97706;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">📝 直接纠正：我知道正确的答案</button>' +
+    '</div>' +
+    '<div id="cfb-ask-result" style="margin-top:12px;padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.8;display:none"></div>' +
+    '<div id="cfb-fix-area" style="margin-top:12px;display:none">' +
+    '<textarea id="cfb-fix-content" placeholder="【正确内容】应该是什么？\" style=\"width:100%;min-height:60px;border:1px solid #d97706;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical\"></textarea>' +
+    '<button onclick=\"window._cfbSubmitFix()\" style=\"margin-top:8px;background:#d97706;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交纠正</button>' +
+    '</div>' +
+    '</div></div></div>';
+  
+  document.body.appendChild(popup);
+  
+  // 点击示例文字自动填入
+  contentSamples.forEach(function(s, i) {
+    setTimeout(function(){
+      var el = popup.querySelectorAll('div[style*="f8fafc"]')[i];
+      if (el) {
+        el.style.cursor = 'pointer';
+        el.onclick = function(){
+          document.getElementById('cfb-popup-content').value = s;
+        };
+      }
+    }, 100);
+  });
+};
+
+window._cfbAskWhy = function() {
+  var content = (document.getElementById('cfb-popup-content')||{}).value || '';
+  if (!content) { 
+    var resultEl = document.getElementById('cfb-ask-result');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<span style="color:#dc2626">请先选择或粘贴一段报告内容</span>';
+    return;
+  }
+  
+  var resultEl = document.getElementById('cfb-ask-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<span style="color:#7c3aed">🔍 引擎正在分析这段内容的判断逻辑...</span>';
+  
+  var companyId = window.currentCompanyId || 1;
+  fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      finding_index: -1,  // 段落追问模式
+      question: '报告中有这样一段内容：「' + content.slice(0,200) + '」。请问系统是如何得出这个结论的？基于什么数据？用了什么分析逻辑？',
+      paragraph_text: content.slice(0,500),
+    })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok && d.analysis) {
+      var txt = d.analysis.map(function(b){ return '<b>' + (b.title||'') + '</b><br>' + (b.content||''); }).join('<br><br>');
+      resultEl.innerHTML = '<div style="margin-bottom:8px;font-weight:600;color:#0f172a">🔍 引擎分析：</div>' + txt +
+        '<div style="margin-top:12px"><button onclick="window._cfbOpenFix()" style="background:#d97706;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">📝 还不满意？纠正此内容</button></div>';
+    } else {
+      resultEl.innerHTML = '<span style="color:#dc2626">追问失败: ' + (d.message||'') + '</span>';
+    }
+  }).catch(function(){
+    resultEl.innerHTML = '<span style="color:#dc2626">追问失败，请重试</span>';
+  });
+};
+
+window._cfbOpenFix = function() {
+  var fixArea = document.getElementById('cfb-fix-area');
+  if (fixArea) {
+    fixArea.style.display = 'block';
+    // 预填错误内容
+    var content = (document.getElementById('cfb-popup-content')||{}).value || '';
+    if (content && !document.getElementById('cfb-fix-content').value) {
+      document.getElementById('cfb-fix-content').placeholder = '请在此输入正确内容（当前错误内容已捕获）';
+    }
+  }
+};
+
+window._cfbSubmitFix = function() {
+  var content = (document.getElementById('cfb-popup-content')||{}).value || '';
+  var fix = (document.getElementById('cfb-fix-content')||{}).value || '';
+  var chId = window._chapterFeedbackTarget || '';
+  var chTitle = document.getElementById(chId) ? document.getElementById(chId).textContent.replace('💬','').trim() : '';
+  
+  if (!fix) { alert('请填写正确内容'); return; }
+  
+  fetch('/api/agi/content-feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      chapter: chTitle || '未指定章节',
+      wrong_content: content || '（用户直接纠正文中内容）',
+      correct_content: fix,
+    })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) {
+      var p = document.getElementById('cfb-popup');
+      if (p) p.remove();
+      alert('✅ 已记录（ID: ' + d.feedback_id + '），感谢反馈！');
+    } else {
+      alert('提交失败: ' + (d.message||''));
+    }
+  });
+};
 window._submitContentFeedback = function() {
   var chapter = (document.getElementById('cfb-chapter')||{}).value || '';
   var content = (document.getElementById('cfb-content')||{}).value || '';
