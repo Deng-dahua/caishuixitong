@@ -2157,6 +2157,7 @@ function _renderReportFallback(r, allF) {
     if (f._deleted) continue;
     var lv = f.level || '中风险';
     var finType = (f.type || '未命名发现').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'').replace(/^[\w]+:\s*/,'');
+    var safeFinType = finType.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var mergeCount = f._mergeCount || 0;
     
     // ── 发现标题（含发现级编辑/审核/追问/重置按钮）──
@@ -2188,7 +2189,7 @@ function _renderReportFallback(r, allF) {
     }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
-      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:fi,title:\'发现'+(fi+1)+'·'+finType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2;display:inline-block"> ✏️</span>' +
+      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2;display:inline-block"> ✏️</span>' +
       '</p>';
     
     // ── 跨域协商标记（无按钮）──
