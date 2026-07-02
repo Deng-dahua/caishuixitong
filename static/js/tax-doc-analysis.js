@@ -5399,7 +5399,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-  popup.innerHTML = "<style>#edt-report-content table{font-size:10px;width:100%;border-collapse:collapse}#edt-report-content td,#edt-report-content th{border:1px solid #e2e8f0;padding:3px 6px;font-size:10px}#edt-report-content h2{font-size:13px;margin:6px 0 4px}#edt-report-content h3{font-size:12px;margin:4px 0 3px}#edt-report-content p{font-size:11px;margin:2px 0;line-height:1.5}#edt-report-content .i2{font-size:11px}#edt-report-content .i3{font-size:10px}#edt-report-content strong{font-size:inherit}#edt-report-content ul,#edt-report-content ol{margin:2px 0;padding-left:16px}#edt-report-content li{font-size:10px;line-height:1.5}</style>" +
+  popup.innerHTML = "<style>#edt-report-content,#edt-report-content *{font-size:11px!important;line-height:1.5!important}#edt-report-content table{width:100%;border-collapse:collapse}#edt-report-content td,#edt-report-content th{border:1px solid #e2e8f0;padding:3px 6px}#edt-report-content h2,#edt-report-content h3,#edt-report-content p{margin:2px 0}#edt-report-content ul,#edt-report-content ol{margin:2px 0;padding-left:16px}</style>" +
 
 
 
