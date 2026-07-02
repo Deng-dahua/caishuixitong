@@ -869,7 +869,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<div id="rpt-smart-tax" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #e2e8f0;border-radius:12px">';
           smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px">💰 税负模拟</div>';
           smartHtml += '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">基于发票实际税额（专票税额/普票为0），企业所得税按企业类型分级。同一张发票涉及多个风险类型时仅计算一次。</div>';
-          smartHtml += '<table class="tbl" style="font-size:12px;margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
+          smartHtml += '<table class="tbl" style="font-size:12px;margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（最高' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
           smart.tax_burden.forEach(function(tb){
             var vatShow = tb.vat_actual > 0 ? '¥' + (tb.vat_actual||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) : '<span style="color:#94a3b8">0（普票）</span>';
             smartHtml += '<tr><td>' + (tb.type||'') + '</td><td style="color:' + (tb.level==='高风险'?'#dc2626':tb.level==='中风险'?'#d97706':'#16a34a') + '">' + tb.level + '</td><td class="r">' + (tb.invoice_count||0) + '张</td><td class="r">¥' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">' + vatShow + '</td><td class="r">¥' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
