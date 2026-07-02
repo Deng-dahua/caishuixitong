@@ -911,6 +911,8 @@ function renderTaxDocReport(r) {
             smartDiv.innerHTML = smartHtml;
             smartDiv.style.cssText = 'margin:0;padding:0;border:none;background:transparent;font-family:inherit;font-size:inherit;line-height:inherit;color:inherit';
             rr.insertBefore(smartDiv, rr.firstChild);
+            // 重新扫描新增的表格，加上✏️
+            _initAllEditIcons();
           }
         }
       })
