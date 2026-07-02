@@ -576,17 +576,19 @@ async def root():
     key = _load_api_key()
     has_key = bool(key)
     
-    # 检测Ollama是否在线
+    # 检测Ollama是否在线（异步，不阻塞）
     has_ollama = False
     try:
-        import httpx
-        r = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
-        if r.status_code == 200:
-            models = r.json().get("models", [])
-            has_ollama = len(models) > 0
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.5)
+        if s.connect_ex(("127.0.0.1", 11434)) == 0:
+            has_ollama = True
+        s.close()
     except:
         pass
     
+    import html as _htmlescape
     if has_key:
         status = "已接入API Key"
         color = "#4ade80"
@@ -602,7 +604,7 @@ async def root():
   var d=document.getElementById("api-status-dot");
   var t=document.getElementById("api-status-text");
   if(d){{d.style.background="{color}";}}
-  if(t){{t.textContent="{status}";t.style.color="{color}";}}
+  if(t){{t.textContent="{_htmlescape.escape(status)}";t.style.color="{color}";}}
 }})();
 </script>
 </body>'''
