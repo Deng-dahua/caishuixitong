@@ -6558,7 +6558,8 @@ function _renderReportFallback(r, allF) {
 
 
 
-    + '#tda-report-area h3{font-size:14px;font-weight:600;margin:18px 0 10px;color:#1a1a2e}'
+    + '#tda-report-area h3{font-size:14px;font-weight:600;margin:18px 0 10px;color:#1a1a2e;display:flex;align-items:center;justify-content:space-between}'
+    + '#tda-report-area h3 .edt-icon{flex-shrink:0;margin-left:8px}'
 
 
 
@@ -7206,7 +7207,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（一）资料审阅与类型识别</strong></p>';
+  h += '<h3>（一）资料审阅与类型识别</h3>';
 
 
 
@@ -7350,7 +7351,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（二）公司身份锚定与发票方向判定</strong></p>';
+  h += '<h3>（二）公司身份锚定与发票方向判定</h3>';
 
 
 
@@ -7494,7 +7495,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（三）行业判定与服务行业闸门</strong></p>';
+  h += '<h3>（三）行业判定与服务行业闸门</h3>';
 
 
 
@@ -7534,7 +7535,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（四）资金流与发票流双向核对</strong></p>';
+  h += '<h3>（四）资金流与发票流双向核对</h3>';
 
 
 
@@ -7654,7 +7655,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（五）穿透分析与知识图谱构建</strong></p>';
+  h += '<h3>（五）穿透分析与知识图谱构建</h3>';
 
 
 
@@ -7694,7 +7695,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（六）行业对标</strong></p>';
+  h += '<h3>（六）行业对标</h3>';
 
 
 
@@ -7714,7 +7715,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>（七）综合分析与结论形成</strong></p>';
+  h += '<h3>（七）综合分析与结论形成</h3>';
 
 
 
@@ -8458,7 +8459,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class=\"i2\"><strong>一、P0 —— 立即处理（涉及逃税、虚开等红线问题）</strong></p>';;
+  h += '<h3>一、P0 —— 立即处理（涉及逃税、虚开等红线问题）</h3>';
 
 
 
@@ -8510,7 +8511,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class=\"i2\"><strong>二、P1 —— 限期整改（发票合规、账务调整等问题）</strong></p>';;
+  h += '<h3>二、P1 —— 限期整改（发票合规、账务调整等问题）</h3>';
 
 
 
@@ -8562,7 +8563,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class=\"i2\"><strong>三、P2 —— 持续关注（资料完善、合规提醒、优惠政策享受建议）</strong></p>';;
+  h += '<h3>三、P2 —— 持续关注（资料完善、合规提醒、优惠政策享受建议）</h3>';
 
 
 
@@ -8614,7 +8615,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class=\"i2\"><strong>四、自查整改期限</strong></p>';
+  h += '<h3>四、自查整改期限</h3>';
 
 
 
@@ -8654,7 +8655,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>一、申请回避权</strong></p>';
+  h += '<h3>一、申请回避权</h3>';
 
 
 
@@ -8670,7 +8671,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>二、陈述申辩权</strong></p>';
+  h += '<h3>二、陈述申辩权</h3>';
 
 
 
@@ -8686,7 +8687,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>三、要求听证权</strong></p>';
+  h += '<h3>三、要求听证权</h3>';
 
 
 
@@ -8702,7 +8703,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>四、申请行政复议权</strong></p>';
+  h += '<h3>四、申请行政复议权</h3>';
 
 
 
@@ -8718,7 +8719,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-  h += '<p class="i2"><strong>五、提起行政诉讼权</strong></p>';
+  h += '<h3>五、提起行政诉讼权</h3>';
 
 
 
