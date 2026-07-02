@@ -4906,6 +4906,7 @@ window._initAllEditIcons = function() {
 
 
 
+    if (h2.id === 'appendix') return;
     if (h2.querySelector('.edt-icon')) return;
 
 
@@ -4951,6 +4952,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
+    if (h3.closest('.appendix')) return;
     if (h3.querySelector('.edt-icon')) return;
 
 
@@ -5004,7 +5006,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
-    if (p.querySelector('.edt-icon') || p.querySelector('.edt-icon-inline') || p.closest('#tts-bar') || p.closest('#edt-popup') || p.closest('.edt-block')) return;
+    if (p.closest('.appendix') || p.querySelector('.edt-icon') || p.querySelector('.edt-icon-inline') || p.closest('#tts-bar') || p.closest('#edt-popup') || p.closest('.edt-block')) return;
 
 
 
@@ -5116,7 +5118,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
-    if (table.closest('.edt-block')) return;  // 块级已有✏️
+    if (table.closest('.appendix') || table.closest('.edt-block')) return;  // 附件表格不开编辑，块级已有✏️
 
 
 
