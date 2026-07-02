@@ -875,11 +875,15 @@ function renderTaxDocReport(r) {
           smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
         }
         
-        // ③ 资料缺口影响链——纯段落
+        // ③ 资料缺口影响链——表格
         if (smart.gap_chain && smart.gap_chain.length > 0) {
+          smartHtml += '<p class="i2" style="margin-bottom:8px"><strong>🔗 资料缺口影响链</strong></p>';
+          smartHtml += '<p class="i1" style="font-size:12px;color:#64748b;margin-bottom:6px">以下为缺失资料对稽查判断的影响链——缺少一份资料会影响多个分析域的判定：</p>';
+          smartHtml += '<table class="tbl2" style="margin:8px 0"><thead><tr><th>缺失资料</th><th>风险</th><th>影响链</th></tr></thead><tbody>';
           smart.gap_chain.forEach(function(gap){
-            smartHtml += '<p class="i2"><strong>🔗 资料缺口·' + (gap.material||'') + '：</strong>' + (gap.chain||'') + '</p>';
+            smartHtml += '<tr><td><strong>' + (gap.material||'') + '</strong></td><td style="color:#dc2626">⚠ ' + (gap.risk||'') + '</td><td style="color:#475569">' + (gap.chain||'') + '</td></tr>';
           });
+          smartHtml += '</tbody></table>';
         }
         
         // ④ AGI自审评分——纯段落
