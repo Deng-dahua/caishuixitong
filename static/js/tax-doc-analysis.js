@@ -4959,7 +4959,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
-    (function(idx, txt){
+    (function(idx, txt, el){
 
 
 
@@ -4967,7 +4967,8 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
-        window._editScope = {level:'paragraph', id:'h3-'+idx, title:'节标题·'+txt.slice(0,40), content:txt};
+        var subHtml=''; var ns=el.nextElementSibling; while(ns&&ns.tagName!=='H2'&&ns.tagName!=='H3'){var tmp=ns.cloneNode(true);var eis=tmp.querySelectorAll('.edt-icon,.edt-icon-inline,.edt-block-icon');for(var ei=0;ei<eis.length;ei++)eis[ei].remove();subHtml+=tmp.outerHTML;ns=ns.nextElementSibling;}
+        window._editScope = {level:'paragraph', id:'h3-'+idx, title:'节标题·'+txt.slice(0,40), content: subHtml||txt, isHtml: !!subHtml};
 
 
 
@@ -4979,7 +4980,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
 
 
 
-    })(hi, h3.textContent.trim());
+    })(hi, h3.textContent.trim(), h3);
 
 
 
