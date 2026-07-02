@@ -6475,6 +6475,17 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
         if result.get("ok") and result.get("report"):
             result["report"] = _inject_agi_into_report(result["report"], company_id)
         
+        # ═══ 缓存回写 ═══
+        # pipeline.py 在_inject_agi_into_report之前写缓存，需要再次回写
+        if result.get("ok"):
+            _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
+            try:
+                import json as _json
+                _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
+                with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
+                    _json.dump(_disk, _f, ensure_ascii=False, default=str)
+            except: pass
+        
         return result
     except Exception as _e:
         return {"ok": False, "message": f"分析异常: {_e}", "traceback": _tb.format_exc()[:2000]}
