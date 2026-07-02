@@ -471,8 +471,237 @@ class AutonomousRunner:
         return {"alert": True, "level": "info", "reason": "有变化", "changes": changes}
 
 
+# ═══════════════════════════════════════
+# 边界认知 (Boundary Awareness)
+# "知道自己不知道什么" — AGI的自我认知
+# ═══════════════════════════════════════
+
+class BoundaryAwareness:
+    """边界认知引擎 — 知道自己不知道什么，主动说出来"""
+    
+    UNCERTAINTY_THRESHOLDS = {
+        "高把握": 0.7,   # 置信度>=70%：有把握
+        "中等把握": 0.4,  # 40-70%：需要进一步核实
+        "低把握": 0.0,    # <40%：坦诚承认不确定性
+    }
+    
+    # 需要承认"我不确定"的场景
+    UNCERTAIN_PATTERNS = [
+        ("单源证据", "仅有一个数据源支撑，缺乏交叉验证，建议补充第二个数据源"),
+        ("新行业", "该行业在历史分析中从未出现，部分行业特定规则可能不适用"),
+        ("资料严重缺失", f"资料完备度<30%，多项关键分析域无法运行"),
+        ("矛盾信号", "多个分析域给出相反结论，需要人工介入裁决"),
+        ("边缘案例", "数据刚好卡在阈值边界上（如税负率恰好=2.5%），小波动即可改变结论"),
+        ("法规模糊区域", "相关法规存在解释空间或仍在征求意见阶段"),
+    ]
+    
+    def assess(self, finding: Dict, analysis_context: Dict) -> Dict:
+        """
+        评估系统对这种判断的把握程度
+        返回：把握等级 + 不确定原因 + 建议
+        """
+        # 基础证据评估
+        ev = finding.get("evidence", []) or finding.get("evidence_rows", []) or finding.get("items", []) or []
+        ev_count = len(ev)
+        has_policy = bool((finding.get("policy_ref", "") or "").strip())
+        has_source = bool((finding.get("how_found", "") or "").strip())
+        
+        confidence_signals = []
+        uncertainty_reasons = []
+        
+        # 正向信号
+        if ev_count >= 3:
+            confidence_signals.append("多源证据交叉验证")
+        elif ev_count >= 1:
+            confidence_signals.append("单一证据源")
+            uncertainty_reasons.append(self.UNCERTAIN_PATTERNS[0])
+        else:
+            uncertainty_reasons.append(("无证据材料", "该发现无任何具体证据支撑"))
+        
+        if has_policy:
+            confidence_signals.append("有明确法律依据")
+        
+        if has_source:
+            confidence_signals.append("数据可追溯")
+        
+        # 资料完备度
+        material_intel = analysis_context.get("material_intel", {})
+        total_materials = 9  # 稽查必查9类资料
+        available = sum(1 for v in material_intel.values() if isinstance(v, dict) and v.get("exists", False))
+        completeness = available / max(total_materials, 1)
+        
+        if completeness < 0.3:
+            uncertainty_reasons.append(self.UNCERTAIN_PATTERNS[2])
+        
+        # 行业新颖度
+        industry = analysis_context.get("industry", "")
+        if industry and analysis_context.get("industry_seen_before") is False:
+            uncertainty_reasons.append(self.UNCERTAIN_PATTERNS[1])
+        
+        # 综合置信度
+        base_conf = 0.3
+        base_conf += ev_count * 0.1
+        if has_policy: base_conf += 0.15
+        if has_source: base_conf += 0.1
+        base_conf *= (0.5 + completeness * 0.5)
+        base_conf = min(0.95, max(0.05, base_conf))
+        
+        # 确定把握等级
+        if base_conf >= 0.7:
+            level = "高把握"
+        elif base_conf >= 0.4:
+            level = "中等把握"
+        else:
+            level = "低把握"
+        
+        # 生成坦诚声明
+        if level == "高把握":
+            statement = f"此判断有较高把握（置信度{base_conf:.0%}），基于{'、'.join(confidence_signals)}"
+        elif level == "中等把握":
+            missing = [r[1] for r in uncertainty_reasons[:2]]
+            statement = f"此判断把握程度中等（{base_conf:.0%}）。不确定因素：{'；'.join(missing)}"
+        else:
+            missing = [r[1] for r in uncertainty_reasons[:3]]
+            statement = f"⚠️ 坦诚地说，对此判断把握较低（{base_conf:.0%}）。主要不确定因素：{'；'.join(missing)}。建议补充资料后重新分析。"
+        
+        return {
+            "level": level,
+            "confidence": round(base_conf, 2),
+            "strengths": confidence_signals,
+            "uncertainties": [{"reason": r[0], "explanation": r[1]} for r in uncertainty_reasons],
+            "statement": statement,
+            "what_i_dont_know": [r[0] for r in uncertainty_reasons[:3]],
+        }
+
+
+# ═══════════════════════════════════════
+# 未知行业泛化推理 (Industry Generalization)
+# "看到从未见过的行业也能推理"
+# ═══════════════════════════════════════
+
+class IndustryGeneralizer:
+    """行业泛化引擎 — 从未见过的行业也能基于通用原则推理"""
+    
+    # 行业通用分类（任何行业都可归入）
+    UNIVERSAL_CATEGORIES = {
+        "生产型": {
+            "indicators": ["制造", "生产", "加工", "装配", "冶炼", "化工", "纺织", "印染"],
+            "risk_focus": ["原材料消耗与产出匹配", "水电能耗与产能对应", "进项税额合理性"],
+            "skip_domains": [],
+            "enable_domains": ["进销存分析", "BOM映射", "加工费专项"],
+        },
+        "贸易型": {
+            "indicators": ["贸易", "经销", "批发", "零售", "进出口", "商贸"],
+            "risk_focus": ["进销品名匹配", "供应商/客户集中度", "购销价格合理性"],
+            "skip_domains": ["BOM映射", "加工费专项"],
+            "enable_domains": ["进销存分析", "购销品名映射"],
+        },
+        "服务型": {
+            "indicators": ["服务", "咨询", "设计", "软件", "科技", "信息", "互联网", "广告", "传媒", "文化", "教育", "培训"],
+            "risk_focus": ["人均产值合理性", "经营费用完整性", "工资社保合规性"],
+            "skip_domains": ["进销存分析", "BOM映射", "加工费专项", "水电能耗分析", "存货周转"],
+            "enable_domains": ["人均产值分析", "费用完整性分析"],
+        },
+        "建筑型": {
+            "indicators": ["建筑", "工程", "施工", "装修", "装饰", "园林", "市政"],
+            "risk_focus": ["项目成本归集", "分包合规性", "甲供材处理"],
+            "skip_domains": ["BOM映射", "加工费专项", "进销存分析"],
+            "enable_domains": ["工程项目分析"],
+        },
+        "混合型": {
+            "indicators": [],
+            "risk_focus": ["同时具备生产和服务的特征，需分别分析"],
+            "skip_domains": [],
+            "enable_domains": ["全量分析域"],
+        },
+    }
+    
+    def classify(self, company_name: str, industry: str) -> Dict:
+        """根据企业名称和行业分类到通用类别"""
+        text = company_name + industry
+        
+        best_match = "混合型"
+        best_score = 0
+        
+        for category, config in self.UNIVERSAL_CATEGORIES.items():
+            score = sum(1 for ind in config["indicators"] if ind in text)
+            if score > best_score:
+                best_score = score
+                best_match = category
+        
+        return {
+            "category": best_match,
+            "config": self.UNIVERSAL_CATEGORIES[best_match],
+            "is_known_industry": best_score > 0,
+            "confidence": "高" if best_score >= 2 else ("中" if best_score >= 1 else "低"),
+        }
+    
+    def generalize(self, findings: List[Dict], company_name: str, industry: str) -> Dict:
+        """
+        泛化推理：即使行业不在66行业库中，也能基于通用原则推理
+        
+        核心逻辑：
+        1. 分类：把企业归到5个通用类型之一
+        2. 适配：套用该通用类型的风险焦点
+        3. 推理：基于财务/税务基本原则推理
+        """
+        classification = self.classify(company_name, industry)
+        category = classification["category"]
+        config = classification["config"]
+        
+        # 通用推理原则（跨所有行业适用）
+        universal_principles = []
+        
+        # 原则1：收入必须足额申报
+        if any("收入" in (f.get("type","")+" "+f.get("detail","")) for f in findings):
+            universal_principles.append({
+                "principle": "收入完整性原则",
+                "logic": "不论行业，所有经营收入均需依法申报。收入确认的核心是实质重于形式——收款时点、交付时点、合同约定时点中孰早。",
+                "applies": True,
+            })
+        
+        # 原则2：成本费用必须真实且与收入相关
+        if any("成本" in (f.get("type","")+" "+f.get("detail","")) or "费用" in (f.get("type","")+" "+f.get("detail","")) for f in findings):
+            universal_principles.append({
+                "principle": "成本真实性原则",
+                "logic": "企业所得税法第八条规定，与取得收入有关的合理支出方可扣除。判断标准：三单一致（合同+发票+付款）。",
+                "applies": True,
+            })
+        
+        # 原则3：发票必须真实
+        if any("发票" in (f.get("type","")+f.get("detail","")) for f in findings):
+            universal_principles.append({
+                "principle": "发票真实性原则",
+                "logic": "发票管理办法第二十二条规定，开具发票必须与实际经营业务一致。三流一致（货物流+资金流+发票流）是核心判断标准。",
+                "applies": True,
+            })
+        
+        # 原则4：关联交易必须公允
+        universal_principles.append({
+            "principle": "独立交易原则",
+            "logic": "关联企业间的交易需符合独立交易原则。如定价偏离市场水平且无合理商业目的，税务机关有权调整。此原则适用于所有行业的所有关联交易。",
+            "applies": True,
+        })
+        
+        return {
+            "classification": classification,
+            "industry": industry,
+            "is_in_66_base": industry in classification.get("known_industries", []),
+            "risk_focus": config["risk_focus"],
+            "skip_domains": config["skip_domains"],
+            "enable_domains": config["enable_domains"],
+            "universal_principles": universal_principles,
+            "generalization_logic": (
+                f"行业「{industry}」不在66行业基准库中，但基于名称和特征自动归类为「{category}」。"
+                f"适配该类型的通用风险模型进行分析。"
+            ),
+            "recommendation": (
+                f"重点关注{'、'.join(config['risk_focus'][:3])}。"
+                + (f"跳过{'、'.join(config['skip_domains'][:3])}分析（{category}通常不需要）。" if config["skip_domains"] else "")
+            ),
+        }
+
+
 # 全局实例
-memory = PersistentMemory()
-one_shot = OneShotLearner()
-counterfactual = CounterfactualReasoner()
-autonomous = AutonomousRunner()
+boundary = BoundaryAwareness()
+generalizer = IndustryGeneralizer()

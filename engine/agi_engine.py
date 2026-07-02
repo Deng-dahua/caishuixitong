@@ -111,6 +111,21 @@ class AGIEngine:
             cf = counterfactual.reason(findings[0], context.get("material_intel", {}))
             dir_result["counterfactual"] = cf
         
+        # ── 边界认知 ──
+        from engine.agi_core import boundary
+        for f in findings[:3]:
+            ba = boundary.assess(f, context)
+            dir_result.setdefault("boundaries", []).append(ba)
+        
+        # ── 行业泛化 ──
+        from engine.agi_core import generalizer
+        gen = generalizer.generalize(
+            findings,
+            context.get("company_name", ""),
+            context.get("industry", ""),
+        )
+        dir_result["generalization"] = gen
+        
         # ── 一次学会：应用已学规则 ──
         from engine.agi_core import one_shot
         applied = one_shot.apply_rules(findings)
@@ -230,6 +245,25 @@ class AGIEngine:
                 analysis.append({
                     "title": "🔄 反事实推理",
                     "content": f"场景: {cfd['scenario']}\n预期: {cfd['expected_data']}\n验证: {cfd['test_method']}\n结论: {cf['conclusion']}",
+                })
+        
+        # ── 边界认知 ──
+        if dir_result and dir_result.get("boundaries"):
+            for ba in dir_result["boundaries"][:1]:
+                analysis.append({
+                    "title": f"🧠 自我认知（{ba['level']}·{ba['confidence']:.0%}）",
+                    "content": ba["statement"] + (
+                        f"\n\n我不知道的: {'、'.join(ba['what_i_dont_know'])}" if ba['what_i_dont_know'] else ""
+                    ),
+                })
+        
+        # ── 行业泛化 ──
+        if dir_result and dir_result.get("generalization"):
+            gen = dir_result["generalization"]
+            if not gen.get("is_in_66_base", True):
+                analysis.append({
+                    "title": f"🌐 行业泛化推理（{gen['classification']['category']}）",
+                    "content": gen["generalization_logic"] + "\n\n" + gen["recommendation"],
                 })
         
         # ── 一次学会 ──
