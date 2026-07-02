@@ -1394,7 +1394,7 @@ window._initAllEditIcons = function() {
   var area = document.getElementById('tda-report-area');
   if (!area) return;
 
-  // 1. 每章<h2>加✏
+  // 1. 每章<h2>加✏️
   area.querySelectorAll('h2[id]').forEach(function(h2) {
     if (h2.querySelector('.edt-icon')) return;
     var btn = _makeEditIcon('该章内容');
@@ -1405,7 +1405,48 @@ window._initAllEditIcons = function() {
     h2.appendChild(btn);
   });
 
-  // 3. 表格行加✏️
+  // 2. 每节<h3>加✏️
+  area.querySelectorAll('h3').forEach(function(h3, hi) {
+    if (h3.querySelector('.edt-icon')) return;
+    var btn = _makeEditIcon('该小节标题');
+    (function(idx, txt){
+      btn.onclick = function(e){ e.stopPropagation();
+        window._editScope = {level:'paragraph', id:'h3-'+idx, title:'节标题·'+txt.slice(0,40), content:txt};
+        window._unifiedEditPopup();
+      };
+    })(hi, h3.textContent.trim());
+    h3.appendChild(btn);
+  });
+
+  // 3. 每段<p>加✏️
+  area.querySelectorAll('p').forEach(function(p, pi) {
+    if (p.querySelector('.edt-icon') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
+    var txt = p.textContent.trim();
+    if (txt.length < 10) return;  // 太短的跳过
+    // 把p改为flex容器，原文在左，✏️在右
+    if (!p.classList.contains('edt-p-flex')) {
+      p.classList.add('edt-p-flex');
+      p.style.display = 'flex';
+      p.style.alignItems = 'flex-start';
+      p.style.gap = '0';
+      var inner = document.createElement('span');
+      inner.style.flex = '1';
+      inner.style.minWidth = '0';
+      while (p.firstChild) inner.appendChild(p.firstChild);
+      p.appendChild(inner);
+    }
+    var contentSpan = p.querySelector('span');
+    var btn = _makeEditIcon('此段落');
+    (function(idx, ct){
+      btn.onclick = function(e){ e.stopPropagation();
+        window._editScope = {level:'paragraph', id:'p-'+idx, title:'报告段落', content:ct};
+        window._unifiedEditPopup();
+      };
+    })(pi, txt);
+    p.appendChild(btn);
+  });
+
+  // 4. 表格行加✏️
   area.querySelectorAll('table.tbl, table.tbl2').forEach(function(table, ti) {
     if (table.querySelector('.edt-tbl-col')) return;
     var theadRow = table.querySelector('thead tr') || table.querySelector('tr');
@@ -1783,6 +1824,10 @@ function _renderReportFallback(r, allF) {
     + '#tda-report-area h3{font-size:14px;font-weight:600;margin:18px 0 10px;color:#1a1a2e}'
     + '#tda-report-area p{margin:8px 0;text-align:justify;line-height:1.85;color:#1a1a2e}'
     + '#tda-report-area p.i2,#tda-report-area p[class*=\"i2\"]{text-indent:2em}'
+    + '#tda-report-area p.edt-p-flex{display:flex !important;align-items:flex-start;gap:0}'
+    + '#tda-report-area p.edt-p-flex > span:first-child{flex:1;min-width:0;text-align:justify}'
+    + '#tda-report-area p.edt-p-flex.i2 > span:first-child,#tda-report-area p.edt-p-flex[class*=\"i2\"] > span:first-child{text-indent:2em}'
+    + '#tda-report-area p.edt-p-flex .edt-icon{flex-shrink:0;margin-left:4px;align-self:flex-start;line-height:1.85}'
     // 表格
     + '#tda-report-area table.tbl,#tda-report-area table.tbl2{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
     + '#tda-report-area table.tbl th,#tda-report-area table.tbl2 th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
