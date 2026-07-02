@@ -1423,7 +1423,7 @@ window._initAllEditIcons = function() {
     if (p.querySelector('.edt-icon') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
     if (p.style.display === 'flex' || p.style.display === 'inline-flex') return;  // 已是flex容器（如发现标题）
     var txt = p.textContent.trim();
-    if (txt.length < 10) return;  // 太短的跳过
+    if (txt.length < 3) return;  // 极短的跳过（如纯符号行）
     // 把p改为flex容器，原文在左，✏️在右
     if (!p.classList.contains('edt-p-flex')) {
       p.classList.add('edt-p-flex');
@@ -1506,7 +1506,7 @@ window._unifiedEditPopup = function(rowData) {
     popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
     popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
       '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-      '<div><b style="font-size:15px">✏️ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">发现级</span></div>' +
+      '<div><b style="font-size:15px">✏️ '+title+'</b></div>' +
       '<button onclick="var p=document.getElementById(\x27edt-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
       '</div>' +
       '<div style="padding:20px 24px">' +
@@ -1549,7 +1549,7 @@ window._unifiedEditPopup = function(rowData) {
 
   popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:15px">✏️ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">'+scopeTag+'</span></div>' +
+    '<div><b style="font-size:15px">✏️ '+title+'</b></div>' +
     '<button onclick="var p=document.getElementById(\x27edt-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
     '</div>' +
     '<div style="padding:16px 20px">' +
