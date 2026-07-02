@@ -1421,6 +1421,7 @@ window._initAllEditIcons = function() {
   // 3. 每段<p>加✏️
   area.querySelectorAll('p').forEach(function(p, pi) {
     if (p.querySelector('.edt-icon') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
+    if (p.style.display === 'flex' || p.style.display === 'inline-flex') return;  // 已是flex容器（如发现标题）
     var txt = p.textContent.trim();
     if (txt.length < 10) return;  // 太短的跳过
     // 把p改为flex容器，原文在左，✏️在右
@@ -1435,8 +1436,7 @@ window._initAllEditIcons = function() {
       while (p.firstChild) inner.appendChild(p.firstChild);
       p.appendChild(inner);
     }
-    var contentSpan = p.querySelector('span');
-    var btn = _makeEditIcon('此段落');
+    var btn = _makeEditIcon();
     (function(idx, ct){
       btn.onclick = function(e){ e.stopPropagation();
         window._editScope = {level:'paragraph', id:'p-'+idx, title:'报告段落', content:ct};
@@ -2166,7 +2166,7 @@ function _renderReportFallback(r, allF) {
     }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
-      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
+      '<span class="edt-icon" onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
       '</p>';
     
     // ── 跨域协商标记（无按钮）──
