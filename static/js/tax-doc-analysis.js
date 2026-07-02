@@ -1773,7 +1773,7 @@ function _renderReportFallback(r, allF) {
 
   var h = '<style>'
     // 全局容器——所有报告内容统一在此
-    + '#tda-report-area{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.85;color:#1a1a2e;max-width:960px;margin:0 auto;padding:40px 40px;background:#fff}'
+    + '#tda-report-area{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.85;color:#1a1a2e;max-width:900px;margin:0 auto;padding:16px 0;background:#fff}'
     + '#tda-report-area *{margin:0;padding:0;box-sizing:border-box}'
     + '#tda-report-area p,#tda-report-area div,#tda-report-area span,#tda-report-area li{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}'
     + '#tda-report-area h2{font-size:17px;font-weight:700;margin:32px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between;color:#1a1a2e}'
