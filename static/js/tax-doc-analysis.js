@@ -1621,7 +1621,7 @@ function _renderReportFallback(r, allF) {
     // 表格
     + '#tda-report-area table.tbl,#tda-report-area table.tbl2{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
     + '#tda-report-area table.tbl th,#tda-report-area table.tbl2 th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
-    + '#tda-report-area table.tbl td,#tda-report-area table.tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;white-space:nowrap;line-height:1.7;vertical-align:top;font-size:12px;color:#334155}'
+    + '#tda-report-area table.tbl td,#tda-report-area table.tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;white-space:normal;line-height:1.7;vertical-align:top;font-size:12px;color:#334155}'
     + '#tda-report-area .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}'
     + '#tda-report-area tbody tr:hover{background:#f8fafc}'
     // 封面
