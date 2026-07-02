@@ -1,0 +1,15 @@
+[
+  {
+    "type": "质疑",
+    "trigger": "这个不对，这家是纯服务企业不应该触发进销存分析",
+    "correction_content": "是纯服务企业不应该触发进销存分析",
+    "context_snapshot": {
+      "finding_types": [
+        "进销存异常"
+      ],
+      "industry": ""
+    },
+    "learned_at": "2026-07-02T10:28:22.861709",
+    "applied_count": 0
+  }
+]

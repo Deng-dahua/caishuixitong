@@ -7886,6 +7886,32 @@ def auto_status(company_id: int = Query(...)):
     mem = memory.recall(company_id)
     return {"ok": True, "should_run": should, "memory": mem}
 
+# ═══════════ AGI终极能力API ═══════════
+
+@app.post("/api/agi/tools")
+def get_tool_decisions(data: dict):
+    """自主工具调用"""
+    from engine.agi_final import tools
+    return {"ok": True, "tools": tools.decide_tools(
+        data.get("question", ""),
+        data.get("findings", []),
+    )}
+
+@app.post("/api/agi/chain")
+def get_reasoning_chain(data: dict):
+    """多步推理链"""
+    from engine.agi_final import chains
+    return {"ok": True, "chain": chains.build_chain(
+        data.get("findings", []),
+        data.get("question", ""),
+    )}
+
+@app.get("/api/agi/causal-why")
+def deep_causal_why(topic: str = Query("")):
+    """因果理解"""
+    from engine.agi_final import causal_why
+    return {"ok": True, "explanation": causal_why.explain_deep_why(topic)}
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):

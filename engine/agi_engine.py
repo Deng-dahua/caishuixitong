@@ -126,7 +126,27 @@ class AGIEngine:
         )
         dir_result["generalization"] = gen
         
-        # ── 一次学会：应用已学规则 ──
+        # ── 无声学习 ──
+        from engine.agi_final import silent_learner
+        silent_result = silent_learner.listen(question, context)
+        if silent_result:
+            dir_result["silent_learning"] = silent_result
+        
+        # ── 自主工具调用 ──
+        from engine.agi_final import tools
+        decided = tools.decide_tools(question, findings)
+        if decided:
+            dir_result["tools_decided"] = decided
+        
+        # ── 多步推理链 ──
+        from engine.agi_final import chains
+        chain = chains.build_chain(findings, question)
+        dir_result["reasoning_chain"] = chain
+        
+        # ── 因果理解 ──
+        from engine.agi_final import causal_why
+        cw = causal_why.explain_deep_why(question)
+        dir_result["causal_understanding"] = cw
         from engine.agi_core import one_shot
         applied = one_shot.apply_rules(findings)
         if applied:
@@ -264,6 +284,42 @@ class AGIEngine:
                 analysis.append({
                     "title": f"🌐 行业泛化推理（{gen['classification']['category']}）",
                     "content": gen["generalization_logic"] + "\n\n" + gen["recommendation"],
+                })
+        
+        # ── 自主工具调用 ──
+        if dir_result and dir_result.get("tools_decided"):
+            tool_lines = [f"• {t['tool_name']}: {t['why']}" for t in dir_result["tools_decided"][:3]]
+            analysis.append({
+                "title": f"🔧 自主工具调用（{len(dir_result['tools_decided'])}个工具）",
+                "content": "AGI自主决定调用以下工具:\n" + "\n".join(tool_lines),
+            })
+        
+        # ── 多步推理链 ──
+        if dir_result and dir_result.get("reasoning_chain"):
+            rc = dir_result["reasoning_chain"]
+            chain_lines = [f"{s['step']}. {s['question']}" for s in rc.get("steps", [])[:6]]
+            analysis.append({
+                "title": f"🔗 推理链（{rc.get('chain_name','?')}·{rc.get('total_steps',0)}步）",
+                "content": rc.get("summary", "") + "\n\n" + "\n".join(chain_lines),
+            })
+        
+        # ── 无声学习 ──
+        if dir_result and dir_result.get("silent_learning"):
+            sl = dir_result["silent_learning"]
+            analysis.append({
+                "title": f"👂 无声学习（{sl['intent']}）",
+                "content": f"从对话中检测到「{sl['intent']}」意图\n动作: {sl['action']}",
+            })
+        
+        # ── 因果理解 ──
+        if dir_result and dir_result.get("causal_understanding"):
+            cw = dir_result["causal_understanding"]
+            if cw.get("deep_why"):
+                analysis.append({
+                    "title": "💡 因果理解",
+                    "content": cw.get("question", "") + "\n\n"
+                    + "表面规则: " + cw.get("surface", "")[:200] + "\n\n"
+                    + "深层逻辑: " + cw.get("deep_why", "")[:500],
                 })
         
         # ── 一次学会 ──
