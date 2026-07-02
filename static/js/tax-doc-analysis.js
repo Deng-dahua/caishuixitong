@@ -4918,8 +4918,8 @@ window._initAllEditIcons = function() {
 
 
 
-      var chContent = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { chContent += (nextSib.textContent || '').trim() + '\n'; nextSib = nextSib.nextElementSibling; } chContent = chContent.trim().slice(0, 1000);
-window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim(), content: chContent};
+      var chHtml = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { chHtml += nextSib.outerHTML; nextSib = nextSib.nextElementSibling; }
+window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim(), content: chHtml, isHtml: true};
 
 
 
@@ -5299,7 +5299,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-  var reportContent = "";
+  var reportContentHtml = ""; var reportContent = "";
 
 
 
@@ -5323,7 +5323,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-    reportContent = (clone.textContent || "").trim().slice(0, 1000);
+    reportContent = (clone.textContent || "").trim(); reportContentHtml = clone.innerHTML;
 
 
 
@@ -5335,7 +5335,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-  else if (scope.content) { reportContent = scope.content; }
+  else if (scope.content) { reportContent = scope.isHtml ? (function(){var d=document.createElement('div');d.innerHTML=scope.content;return d.textContent||'';})() : scope.content; reportContentHtml = scope.isHtml ? scope.content : (scope.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
 
 
@@ -5363,7 +5363,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-      reportContent = (clone.textContent || "").trim().slice(0, 500);
+      reportContent = (clone.textContent || "").trim(); reportContentHtml = clone.innerHTML;
 
 
 
@@ -5399,11 +5399,11 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-  popup.innerHTML = 
+  popup.innerHTML = "<style>#edt-report-content table{font-size:10px;width:100%;border-collapse:collapse}#edt-report-content td,#edt-report-content th{border:1px solid #e2e8f0;padding:3px 6px;font-size:10px}#edt-report-content h2{font-size:13px;margin:6px 0 4px}#edt-report-content h3{font-size:12px;margin:4px 0 3px}#edt-report-content p{font-size:11px;margin:2px 0;line-height:1.5}#edt-report-content .i2{font-size:11px}#edt-report-content .i3{font-size:10px}#edt-report-content strong{font-size:inherit}#edt-report-content ul,#edt-report-content ol{margin:2px 0;padding-left:16px}#edt-report-content li{font-size:10px;line-height:1.5}</style>" +
 
 
 
-    "<div style=\"background:#fff;border-radius:12px;width:800px;height:600px;max-width:94vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
+    "<div style=\"background:#fff;border-radius:12px;width:96vw;max-width:1400px;height:90vh;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
 
 
 
@@ -5423,15 +5423,15 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-    "<div style=\"padding:10px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;max-height:120px;overflow-y:auto\">" +
+    "<div style=\"padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;max-height:50vh;overflow-y:auto\">" +
 
 
 
-    "<div style=\"font-size:11px;color:#94a3b8;margin-bottom:3px\">报告内容：</div>" +
+    "<div style=\"font-size:10px;color:#94a3b8;margin-bottom:4px\">报告内容：</div>" +
 
 
 
-    "<div style=\"font-size:12px;color:#334155;line-height:1.7;word-break:break-word\">"+(reportContent||"(无)")+"</div>" +
+    "<div id=\"edt-report-content\" style=\"font-size:11px;color:#334155;line-height:1.6;word-break:break-word\">"+(reportContentHtml||reportContent||"(无)")+"</div>" +
 
 
 
@@ -5723,7 +5723,7 @@ window._edtSubmitEdit = function() {
 
 
 
-    body: JSON.stringify({ chapter: scope.title||"", wrong_content: (scope.content||"").slice(0,300), correct_content: content })
+    body: JSON.stringify({ chapter: scope.title||"", wrong_content: ((scope.content||"").replace(/<[^>]*>/g,'').slice(0,2000)), correct_content: content })
 
 
 
@@ -5859,7 +5859,7 @@ window._edtSendAsk = function() {
 
 
 
-    body: JSON.stringify({ finding_index: -1, question: q, paragraph_text: (scope.content||"").slice(0,500) })
+    body: JSON.stringify({ finding_index: -1, question: q, paragraph_text: ((scope.content||"").replace(/<[^>]*>/g,'').slice(0,2000)) })
 
 
 
