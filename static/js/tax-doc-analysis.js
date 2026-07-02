@@ -859,86 +859,44 @@ function renderTaxDocReport(r) {
         if (!smart.ok) return;
         var smartHtml = '';
         
-        // ① 风险叙事
-        smartHtml += '<div class="smart-card" id="rpt-smart-narrative" style="margin:20px 0;padding:18px 24px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:10px">';
-        smartHtml += '<div style="font-size:15px;font-weight:700;color:#0369a1;margin-bottom:12px">🧠 引擎智能分析总览</div>';
-        smartHtml += '<p style="font-size:14px;color:#1e293b;line-height:2.0;margin:0">' + (smart.narrative||'') + '</p>';
-        smartHtml += '</div>';
+        // ① 风险叙事——纯段落
+        smartHtml += '<p class="i2"><strong>🧠 引擎智能分析总览：</strong>' + (smart.narrative||'') + '</p>';
         
-        // ② 税负模拟（精准版：发票去重+实际税额+企业所得税分级）
+        // ② 税负模拟——纯段落
         if (smart.tax_burden && smart.tax_burden.length > 0) {
-          smartHtml += '<div class="smart-card" id="rpt-smart-tax" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">';
-          smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px">💰 税负模拟</div>';
-          smartHtml += '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">基于发票实际税额（专票税额/普票为0），企业所得税按企业类型分级。同一张发票涉及多个风险类型时仅计算一次。</div>';
-          smartHtml += '<table class="tbl" style="font-size:12px;margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（最高' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
           smart.tax_burden.forEach(function(tb){
-            var vatShow = tb.vat_actual > 0 ? '¥' + (tb.vat_actual||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) : '<span style="color:#94a3b8">0（普票）</span>';
-            smartHtml += '<tr><td>' + (tb.type||'') + '</td><td style="color:' + (tb.level==='高风险'?'#dc2626':tb.level==='中风险'?'#d97706':'#16a34a') + '">' + tb.level + '</td><td class="r">' + (tb.invoice_count||0) + '张</td><td class="r">¥' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">' + vatShow + '</td><td class="r">¥' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
+            var vatShow = tb.vat_actual > 0 ? '增值税' + tb.vat_actual.toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元' : '无增值税（普票）';
+            smartHtml += '<p class="i2"><strong>💰 税负模拟·' + (tb.type||'') + '：</strong>' + tb.level + '，涉及' + (tb.invoice_count||0) + '张发票，涉税金额' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。' + vatShow + '，企业所得税（最高' + (tb.income_tax_rate||'25%') + '）预估' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。</p>';
           });
-          smartHtml += '<tr style="font-weight:700;background:#f8fafc"><td colspan="3">合计预估</td><td class="r">¥' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
-          smartHtml += '</tbody></table>';
-          smartHtml += '<p style="font-size:11px;color:#94a3b8;margin:4px 0 0">⚠️ 以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
-          smartHtml += '</div>';
+          if (smart.tax_burden.length > 1) {
+            smartHtml += '<p class="i2">合计涉税金额' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元，增值税合计' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元，企业所得税合计' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。</p>';
+          }
+          smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
         }
         
-        // ③ 资料缺口影响链
+        // ③ 资料缺口影响链——纯段落
         if (smart.gap_chain && smart.gap_chain.length > 0) {
-          smartHtml += '<div class="smart-card" id="rpt-smart-gap" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid #fca5a5;border-radius:10px">';
-          smartHtml += '<div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:12px">🔗 资料缺口影响链</div>';
-          smartHtml += '<p style="font-size:13px;color:#475569;margin-bottom:12px">以下为缺失资料对稽查判断的影响链——缺少一份资料会影响多个分析域的判定：</p>';
           smart.gap_chain.forEach(function(gap){
-            smartHtml += '<div style="margin:8px 0;padding:10px 14px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;font-size:12px;line-height:1.8">';
-            smartHtml += '<strong style="color:#dc2626">' + (gap.material||'') + '</strong><br>';
-            smartHtml += '<span style="color:#991b1b">⚠ ' + (gap.risk||'') + '</span><br>';
-            smartHtml += '<span style="color:#64748b">🔗 影响链：' + (gap.chain||'') + '</span>';
-            smartHtml += '</div>';
+            smartHtml += '<p class="i2"><strong>🔗 资料缺口·' + (gap.material||'') + '：</strong>' + (gap.chain||'') + '</p>';
           });
-          smartHtml += '</div>';
         }
         
-        // ④ AGI自审评分
+        // ④ AGI自审评分——纯段落
         if (smart.agi_enhanced && smart.agi_enhanced.meta_audit) {
           var audit = smart.agi_enhanced.meta_audit;
           var gradeColor = audit.grade === 'A' ? '#16a34a' : (audit.grade === 'B' ? '#d97706' : '#dc2626');
-          smartHtml += '<div class="smart-card" id="rpt-smart-audit" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid ' + gradeColor + ';border-radius:10px">';
-          smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">🔍 AGI自审报告</div>';
-          smartHtml += '<div style="display:flex;gap:24px;align-items:center;margin-bottom:12px">';
-          smartHtml += '<div style="font-size:36px;font-weight:800;color:' + gradeColor + '">' + (audit.grade||'?') + '</div>';
-          smartHtml += '<div style="font-size:13px;color:#475569;line-height:1.8">总分: <b>' + (audit.overall_score||0) + '</b><br>严重问题: ' + (audit.critical_count||0) + ' | 警告: ' + (audit.warning_count||0) + '</div>';
-          smartHtml += '</div>';
-          // 6维度评分条
+          smartHtml += '<p class="i2"><strong>🔍 AGI自审报告：</strong>综合等级 ' + (audit.grade||'?') + '级，总分 ' + (audit.overall_score||0) + '，严重问题 ' + (audit.critical_count||0) + ' 个，警告 ' + (audit.warning_count||0) + ' 个。</p>';
           var dims = audit.dimensions || {};
-          var dimColors = {'证据充分性':'#3b82f6','法条准确性':'#8b5cf6','逻辑一致性':'#10b981','覆盖面完整性':'#f59e0b','可操作性':'#ef4444','表达质量':'#6366f1'};
-          Object.keys(dims).forEach(function(d){
-            var sc = dims[d].score || 0;
-            var st = dims[d].status || '';
-            smartHtml += '<div style="margin:4px 0;font-size:11px;color:#475569">' + d + ': <span style="color:' + (dimColors[d]||'#6366f1') + '">' + st + '</span>';
-            smartHtml += '<div style="background:#f1f5f9;border-radius:4px;height:6px;margin:2px 0"><div style="background:' + (dimColors[d]||'#6366f1') + ';width:' + Math.round(sc*100) + '%;height:100%;border-radius:4px"></div></div></div>';
-          });
+          var dimLines = [];
+          Object.keys(dims).forEach(function(d){ dimLines.push(d + ' ' + (dims[d].status||'') + '(' + (dims[d].score||0) + '%)'); });
+          if (dimLines.length) smartHtml += '<p class="i2">六维度评分：' + dimLines.join('、') + '。</p>';
           if (audit.critical_issues && audit.critical_issues.length > 0) {
-            smartHtml += '<div style="margin-top:8px;font-size:11px;color:#dc2626">🔴 严重: ' + audit.critical_issues.slice(0,2).map(function(i){return i.issue;}).join(' | ') + '</div>';
+            smartHtml += '<p class="i2"><strong>严重问题：</strong>' + audit.critical_issues.slice(0,3).map(function(i){return i.issue;}).join('；') + '。</p>';
           }
-          // 逐条发现审核结果
           if (audit.per_finding_audits && audit.per_finding_audits.length > 0) {
-            smartHtml += '<div style="margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:11px;max-height:200px;overflow-y:auto">';
-            smartHtml += '<div style="font-weight:600;color:#1a1a2e;margin-bottom:6px">📋 第三章逐条审核</div>';
-            audit.per_finding_audits.forEach(function(pfa){
-              var vc = pfa.verdict_color || '#94a3b8';
-              smartHtml += '<div style="margin:3px 0;padding:4px 8px;background:#f8fafc;border-radius:4px">';
-              smartHtml += '<span style="font-weight:600">发现' + pfa.index + '</span> ';
-              smartHtml += '<span style="color:' + vc + '">' + (pfa.verdict||'?') + '</span>';
-              smartHtml += ' <span style="color:#64748b;font-size:10px">(' + (pfa.score||0) + '分·' + (pfa.issue_count||0) + '个问题)</span>';
-              if (pfa.severe_count > 0) smartHtml += ' <span style="color:#dc2626;font-size:10px">🔴</span>';
-              if (pfa.warning_count > 0) smartHtml += ' <span style="color:#d97706;font-size:10px">🟡</span>';
-              smartHtml += '</div>';
-            });
-            smartHtml += '</div>';
+            var lines = audit.per_finding_audits.map(function(pfa){ return '发现' + pfa.index + ' ' + (pfa.verdict||'?') + '(' + (pfa.score||0) + '分)'; });
+            smartHtml += '<p class="i2">第三章逐条审核：' + lines.join('、') + '。成立' + (audit.valid_findings||0) + '条，存疑' + (audit.questionable_findings||0) + '条。</p>';
           }
-          // 统计
-          smartHtml += '<div style="margin-top:8px;font-size:11px;color:#475569">';
-          smartHtml += '成立: ' + (audit.valid_findings||0) + ' | 存疑: ' + (audit.questionable_findings||0);
-          smartHtml += '</div>';
-          smartHtml += '</div>';
         }
         
         if (smartHtml) {
@@ -1810,7 +1768,7 @@ function _renderReportFallback(r, allF) {
 
   var h = '<style>'
     // 全局容器——所有报告内容统一在此
-    + '#tda-report-area{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.85;color:#1a1a2e;max-width:900px;margin:0 auto;padding:32px 52px;background:#fff}'
+    + '#tda-report-area{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.85;color:#1a1a2e;max-width:960px;margin:0 auto;padding:40px 40px;background:#fff}'
     + '#tda-report-area *{margin:0;padding:0;box-sizing:border-box}'
     + '#tda-report-area p,#tda-report-area div,#tda-report-area span,#tda-report-area li{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}'
     + '#tda-report-area h2{font-size:17px;font-weight:700;margin:32px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between;color:#1a1a2e}'
