@@ -161,42 +161,108 @@ class FullReportWriter:
 # ═══════════ 2. 天眼查API对接 ═══════════
 
 class TianyanchaClient:
-    """天眼查工商信息查询客户端"""
+    """天眼查工商信息查询客户端 — 通过天眼AI CLI (tyc) 或环境变量调用"""
     
     def __init__(self):
-        self._base = "https://api.tianyancha.com"
+        self._use_cli = False
+        self._tyc_path = None
+        # 优先检测 tyc CLI（多路径尝试）
+        import subprocess, shutil
+        for candidate in ["tyc", shutil.which("tyc") or "", 
+                          "/c/Users/26726/.workbuddy/binaries/node/versions/22.22.2/tyc",
+                          "/c/Users/26726/.workbuddy/binaries/node/versions/22.22.2/bin/tyc"]:
+            if not candidate:
+                continue
+            try:
+                r = subprocess.run([candidate, "--version"], capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace")
+                if r.returncode == 0:
+                    self._use_cli = True
+                    self._tyc_path = candidate
+                    break
+            except:
+                continue
+        # 兜底：环境变量
         self._key = os.environ.get("TIANYANCHA_API_KEY", "")
     
     def check_company(self, name: str) -> Dict:
         """查询企业工商信息"""
-        if not self._key:
-            return {"status": "no_key", "message": "未配置天眼查API Key。前往 https://open.tianyancha.com 申请。"}
+        # 优先使用 tyc CLI
+        if self._use_cli:
+            return self._check_via_cli(name)
         
-        # 实际API调用（当前用模拟数据演示，配好Key即可真实调用）
+        # 兜底：HTTP API
+        if self._key:
+            return self._check_via_http(name)
+        
+        return {"status": "no_key", "message": "未配置天眼查API Key。前往 https://www.tianyancha.com/ai 申请天眼AI Key。"}
+    
+    def _check_via_cli(self, name: str) -> Dict:
+        """通过 tyc CLI 查询"""
+        try:
+            import subprocess, json as _j
+            r = subprocess.run(
+                [self._tyc_path, "company", "registration-info", name, "--head", "60"],
+                capture_output=True, text=True, timeout=15.0, encoding="utf-8", errors="replace",
+            )
+            if r.returncode != 0:
+                return {"status": "error", "message": f"天眼AI查询失败: {r.stderr[:200]}"}
+            
+            # 解析 CLI 输出（JSON格式: {"sources":{"base":{...}}}）
+            try:
+                data = _j.loads(r.stdout)
+                # CLI 输出结构: sources.base 或 data.sources.base
+                base = {}
+                if isinstance(data, dict):
+                    src = data.get("sources", data.get("data", data))
+                    if isinstance(src, dict):
+                        base = src.get("base", src)
+                    elif isinstance(src, list) and len(src) > 0:
+                        base = src[0] if isinstance(src[0], dict) else src
+                return {
+                    "status": "ok",
+                    "backend": "tyc-cli",
+                    "data": {
+                        "company_name": base.get("name", name),
+                        "uscc": base.get("creditCode", ""),
+                        "status": base.get("regStatus", "未知"),
+                        "legal_person": base.get("legalPersonName", ""),
+                        "registered_capital": base.get("regCapital", ""),
+                        "established": base.get("estiblishTime", ""),
+                        "business_scope": (base.get("businessScope", "") or "")[:200],
+                        "industry": base.get("industry", ""),
+                        "staff_count": base.get("staffNumRange", ""),
+                        "tags": base.get("tags", ""),
+                    },
+                }
+            except _j.JSONDecodeError:
+                # 非JSON输出，返回原始摘要
+                return {"status": "ok", "backend": "tyc-cli", "data": {"raw": r.stdout[:500]}}
+        except FileNotFoundError:
+            self._use_cli = False
+            return self._check_via_fallback(name)
+        except Exception as e:
+            return {"status": "error", "message": str(e)[:200]}
+    
+    def _check_via_http(self, name: str) -> Dict:
+        """通过 HTTP API 查询"""
         try:
             resp = httpx.get(
-                f"{self._base}/search/v3",
+                "https://api.tianyancha.com/search/v3",
                 params={"keyword": name},
                 headers={"Authorization": self._key},
                 timeout=10.0,
             )
             if resp.status_code == 200:
-                return {"status": "ok", "data": resp.json()}
+                return {"status": "ok", "backend": "http-api", "data": resp.json()}
         except:
             pass
-        
-        # 降级：返回占位信息提示用户
+        return self._check_via_fallback(name)
+    
+    def _check_via_fallback(self, name: str) -> Dict:
         return {
             "status": "demo",
-            "message": f"天眼查API未配置或不可用。可通过以下方式查询「{name}」:\n"
-                       "1. 前往 https://www.tianyancha.com 手动查询\n"
-                       "2. 配置 TIANYANCHA_API_KEY 环境变量启用自动查询",
-            "demo_data": {
-                "company_name": name,
-                "status": "存续",
-                "registered_capital": "未知（需API Key）",
-                "business_scope": "未知（需API Key）",
-            },
+            "message": f"天眼AI不可用，可前往 https://www.tianyancha.com 手动查询「{name}」",
+            "demo_data": {"company_name": name, "status": "未知"},
         }
     
     def verify_supplier(self, supplier_name: str) -> Dict:
