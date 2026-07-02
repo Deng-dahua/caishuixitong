@@ -8146,6 +8146,48 @@ def get_meta_status():
 
 
 # ═════════════════════════════════════════════════════════
+# 报告内容反馈（2026-07-02 老邓要求）
+# 报告表格/段落中具体数据有误时直接纠正
+# ═════════════════════════════════════════════════════════
+@app.post("/api/agi/content-feedback")
+async def post_content_feedback(request: Request):
+    """报告内容反馈：指出报告中某句话/某个数据/某个表格内容有误"""
+    try:
+        body = await request.json()
+    except:
+        return {"ok": False, "message": "请求格式错误"}
+
+    chapter = str(body.get("chapter", "")).strip()
+    wrong_content = str(body.get("wrong_content", "")).strip()
+    correct_content = str(body.get("correct_content", "")).strip()
+
+    if not wrong_content or not correct_content:
+        return {"ok": False, "message": "请填写【错误内容】和【正确内容】"}
+
+    import datetime
+    feedback = {
+        "id": f"CFBK-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "time": datetime.datetime.now().isoformat(),
+        "chapter": chapter or "未指定",
+        "wrong_content": wrong_content,
+        "correct_content": correct_content,
+    }
+
+    cf_path = os.path.join("static", "content_feedback.json")
+    existing = []
+    try:
+        with open(cf_path, encoding="utf-8") as f:
+            existing = json.load(f)
+    except:
+        existing = []
+    existing.append(feedback)
+    with open(cf_path, "w", encoding="utf-8") as f:
+        json.dump(existing[-100:], f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "feedback_id": feedback["id"], "total": len(existing)}
+
+
+# ═════════════════════════════════════════════════════════
 # 引擎全局反馈（2026-07-02 老邓要求）
 # 用户直接对系统级规则/计算逻辑/报告呈现提意见
 # 引擎自动分析影响范围并写入记忆

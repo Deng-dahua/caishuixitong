@@ -940,7 +940,20 @@ function renderTaxDocReport(r) {
           smartHtml += '</div>';
         }
         
-        // ⑤ 引擎全局反馈 — 老邓直接对系统规则/计算逻辑/报告呈现提意见
+        // ⑤ 报告内容反馈 — 表格/段落中的具体数据有误，点此纠正
+        smartHtml += '<div id=\"rpt-content-feedback\" style=\"margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #fbbf24;border-radius:12px\">';
+        smartHtml += '<div style=\"font-size:15px;font-weight:700;color:#b45309;margin-bottom:4px\">📝 报告内容反馈</div>';
+        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-bottom:12px\">报告中某句话、某个数据、某个表格内容有误？点此告知引擎。</div>';
+        smartHtml += '<div style=\"display:flex;flex-direction:column;gap:8px\">';
+        smartHtml += '<input id=\"cfb-chapter\" placeholder=\"所在章节（如：第一章·法定代表人信息）\" style=\"width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box\">';
+        smartHtml += '<textarea id=\"cfb-content\" placeholder=\"【错误内容】报告中写的是什么？例如：法定代表人是担任宁夏长隆\" style=\"width:100%;min-height:50px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
+        smartHtml += '<textarea id=\"cfb-fix\" placeholder=\"【正确内容】应该是什么？例如：法定代表人应为张晓冬\" style=\"width:100%;min-height:50px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
+        smartHtml += '<div style=\"display:flex;gap:8px;justify-content:flex-end;align-items:center\">';
+        smartHtml += '<span id=\"cfb-result\" style=\"font-size:11px;color:#94a3b8;flex:1\"></span>';
+        smartHtml += '<button onclick=\"window._submitContentFeedback()\" style=\"background:#d97706;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交内容反馈</button>';
+        smartHtml += '</div></div></div>';
+        
+        // ⑥ 引擎全局反馈 — 老邓直接对系统规则/计算逻辑/报告呈现提意见
         smartHtml += '<div id=\"rpt-engine-feedback\" style=\"margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #c4b5fd;border-radius:12px\">';
         smartHtml += '<div style=\"font-size:15px;font-weight:700;color:#6d28d9;margin-bottom:4px\">⚙️ 引擎全局反馈</div>';
         smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-bottom:12px\">不限于某条发现——对系统规则、计算逻辑、报告呈现有意见，直接告诉引擎。引擎自动分析影响范围并学习。</div>';
@@ -1431,6 +1444,40 @@ window._clearAskChat = function() {
   if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
   window._askChatHistory = [];
   window._conversationId = '';
+};
+
+// ═══════════ 报告内容反馈 ═══════════
+window._submitContentFeedback = function() {
+  var chapter = (document.getElementById('cfb-chapter')||{}).value || '';
+  var content = (document.getElementById('cfb-content')||{}).value || '';
+  var fix = (document.getElementById('cfb-fix')||{}).value || '';
+  var resultEl = document.getElementById('cfb-result');
+  
+  if (!content || !fix) {
+    if (resultEl) { resultEl.textContent = '请填写【错误内容】和【正确内容】'; resultEl.style.color = '#dc2626'; }
+    return;
+  }
+  
+  if (resultEl) { resultEl.textContent = '提交中...'; resultEl.style.color = '#d97706'; }
+  
+  fetch('/api/agi/content-feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({chapter: chapter, wrong_content: content, correct_content: fix})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) {
+      if (resultEl) { 
+        resultEl.innerHTML = '✅ 已记录（ID: ' + d.feedback_id + '），反馈次数: ' + d.total; 
+        resultEl.style.color = '#16a34a';
+      }
+      document.getElementById('cfb-content').value = '';
+      document.getElementById('cfb-fix').value = '';
+    } else {
+      if (resultEl) { resultEl.textContent = d.message || '提交失败'; resultEl.style.color = '#dc2626'; }
+    }
+  }).catch(function(){
+    if (resultEl) { resultEl.textContent = '提交失败'; resultEl.style.color = '#dc2626'; }
+  });
 };
 
 // ═══════════ 引擎全局反馈 ═══════════
