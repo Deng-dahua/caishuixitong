@@ -862,15 +862,16 @@ function renderTaxDocReport(r) {
         // ① 风险叙事——纯段落
         smartHtml += '<p class="i2"><strong>🧠 引擎智能分析总览：</strong>' + (smart.narrative||'') + '</p>';
         
-        // ② 税负模拟——纯段落
+        // ② 税负模拟——表格（数值类内容表格化更清晰）
         if (smart.tax_burden && smart.tax_burden.length > 0) {
+          smartHtml += '<p class="i2" style="margin-bottom:8px"><strong>💰 税负模拟</strong></p>';
+          smartHtml += '<table class="tbl2" style="margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（最高' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
           smart.tax_burden.forEach(function(tb){
-            var vatShow = tb.vat_actual > 0 ? '增值税' + tb.vat_actual.toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元' : '无增值税（普票）';
-            smartHtml += '<p class="i2"><strong>💰 税负模拟·' + (tb.type||'') + '：</strong>' + tb.level + '，涉及' + (tb.invoice_count||0) + '张发票，涉税金额' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。' + vatShow + '，企业所得税（最高' + (tb.income_tax_rate||'25%') + '）预估' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。</p>';
+            var vatShow = tb.vat_actual > 0 ? '¥' + (tb.vat_actual||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) : '<span style="color:#94a3b8">0（普票）</span>';
+            smartHtml += '<tr><td>' + (tb.type||'') + '</td><td style="color:' + (tb.level==='高风险'?'#dc2626':tb.level==='中风险'?'#d97706':'#16a34a') + '">' + tb.level + '</td><td class="r">' + (tb.invoice_count||0) + '张</td><td class="r">¥' + (tb.amount||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">' + vatShow + '</td><td class="r">¥' + (tb.income_tax_est||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
           });
-          if (smart.tax_burden.length > 1) {
-            smartHtml += '<p class="i2">合计涉税金额' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元，增值税合计' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元，企业所得税合计' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '元。</p>';
-          }
+          smartHtml += '<tr style="font-weight:700;background:#f8fafc"><td colspan="3">合计</td><td class="r">¥' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
+          smartHtml += '</tbody></table>';
           smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
         }
         
