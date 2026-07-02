@@ -83,7 +83,12 @@ class AGIEngine:
         return self._ask_with_agents(question, ctx.get("findings", []), ctx, intent)
     
     def _ask_with_agents(self, question, findings, context, intent):
-        """智能Agent引擎（三层推理基础设施 + DialogAgent）"""
+        """智能Agent引擎（7大能力 + 六层推理 + DialogAgent）"""
+        # ── 0. 处长引擎：不确定性量化+经济实质穿透+跨税种 ──
+        from engine.director import get_director
+        director = get_director()
+        dir_result = {"uncertainties": [], "cross_tax": {}, "probing": [], "planning": ""}
+        
         # ── 1. 因果网络+假设验证+历史记忆推理 ──
         reasoner = get_reasoner()
         reasoning = reasoner.reason(question, intent, findings, context)
@@ -91,8 +96,23 @@ class AGIEngine:
         # ── 2. DialogAgent知识库推理 ──
         result = self._coordinator.ask(question, findings, context, intent)
         
-        # ── 3. 融合推理结果到回答中 ──
-        self._inject_reasoning(result, reasoning)
+        # ── 3. 处长引擎分析 ──
+        for f in findings[:5]:
+            uc = director.quantify_uncertainty(f, context.get("material_intel", {}))
+            dir_result["uncertainties"].append(uc)
+            if not dir_result.get("penetration"):
+                pen = director.penetrate_essence(f)
+                if pen.get("flags"):
+                    dir_result["penetration"] = pen
+        dir_result["cross_tax"] = director.cross_tax_chain(findings)
+        if findings:
+            dir_result["probing"] = director.generate_probing_questions(findings[0], dir_result["uncertainties"][0] if dir_result["uncertainties"] else {})
+            dir_result["planning"] = director.get_planning_advice(findings[0]) if findings else ""
+        dir_result["lifecycle"] = director.get_lifecycle_context(context.get("company_age", 3))
+        dir_result["investigation"] = director.generate_investigation_plan(findings, context.get("material_intel", {}))
+        
+        # ── 4. 融合推理结果到回答中 ──
+        self._inject_reasoning(result, reasoning, dir_result)
         
         result["backend"] = "agi_reasoning_engine"
         result["mode_note"] = "因果发现+语义理解+创造性假设+历史记忆+1608规则——六层AGI推理"
@@ -108,9 +128,86 @@ class AGIEngine:
         }
         return result
     
-    def _inject_reasoning(self, result: Dict, reasoning: ReasoningResult):
+    def _inject_reasoning(self, result: Dict, reasoning: ReasoningResult, dir_result: Dict = None):
         """将推理结果注入到回答块中"""
         analysis = result.get("analysis", [])
+        
+        # ── P0: 不确定性量化 ──
+        if dir_result and dir_result.get("uncertainties"):
+            uc = dir_result["uncertainties"][0]
+            analysis.append({
+                "title": f"🎯 置信度评估（{uc.get('level','?')} {uc.get('confidence',0):.0%}）",
+                "content": uc.get("summary", "") + "\n" + (
+                    "\n".join(f"• {u['source']}: {u['desc'][:80]}" for u in uc.get("uncertainties", [])[:3])
+                ),
+            })
+        
+        # ── P1: 经济实质穿透 ──
+        if dir_result and dir_result.get("penetration"):
+            pen = dir_result["penetration"]
+            if pen.get("flags"):
+                analysis.append({
+                    "title": f"🔍 经济实质穿透（{pen.get('substance_risk','?')}）",
+                    "content": f"检测到{len(pen['flags'])}个红旗信号:\n" + "\n".join(f"• {f}" for f in pen["flags"][:3])
+                    + f"\n\n{pen.get('penetration_analysis','')}\n\n{pen.get('recommendation','')}",
+                })
+        
+        # ── P1: 跨税种影响 ──
+        if dir_result and dir_result.get("cross_tax"):
+            ct = dir_result["cross_tax"]
+            if ct.get("chains_found"):
+                lines = []
+                for ch in ct["chains_found"][:2]:
+                    lines.append(f"▎{ch['trigger']}")
+                    for ci in ch["cross_impacts"]:
+                        lines.append(f"  {ci['tax']}: {ci['impact']}（{ci['estimation']}）")
+                if lines:
+                    analysis.append({
+                        "title": f"🔗 跨税种影响链（{ct.get('summary','')}）",
+                        "content": "\n".join(lines),
+                    })
+            
+            if ct.get("potential_gaps"):
+                analysis.append({
+                    "title": "⚠️ 潜在盲区",
+                    "content": "\n".join(ct["potential_gaps"]),
+                })
+        
+        # ── P2: 深度探测问题 ──
+        if dir_result and dir_result.get("probing"):
+            analysis.append({
+                "title": "💡 建议继续调查",
+                "content": "\n".join(dir_result["probing"][:4]) + "\n\n回答以上问题可进一步提升判断准确性。",
+            })
+        
+        # ── P2: 税务筹划 ──
+        if dir_result and dir_result.get("planning"):
+            analysis.append({
+                "title": "📋 合规优化建议",
+                "content": dir_result["planning"],
+            })
+        
+        # ── P3: 生命周期 ──
+        if dir_result and dir_result.get("lifecycle"):
+            lc = dir_result["lifecycle"]
+            analysis.append({
+                "title": f"🏭 企业阶段（{lc.get('stage','?')}·{lc.get('years',0)}年）",
+                "content": lc.get("advice", ""),
+            })
+        
+        # ── P3: 自主调查计划 ──
+        if dir_result and dir_result.get("investigation"):
+            inv = dir_result["investigation"]
+            if inv.get("priority_actions"):
+                lines = []
+                for pa in inv["priority_actions"][:3]:
+                    lines.append(f"• {pa['action']}")
+                    for d in pa.get("details", [])[:3]:
+                        lines.append(f"  - {d}")
+                analysis.append({
+                    "title": "📋 自主调查计划",
+                    "content": "\n".join(lines),
+                })
         
         # 语义理解
         if reasoning.semantic_matches:
