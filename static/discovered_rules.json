@@ -1348,5 +1348,233 @@
     "action": "自动更新综合行业风险基准为48.5分",
     "discovered_at": "2026-07-02T20:38:11.710467",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "设计服务",
+    "avg_risk_score": 62.7,
+    "sample_size": 9,
+    "action": "自动更新设计服务行业风险基准为62.7分",
+    "discovered_at": "2026-07-02T20:50:12.441879",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 67.5,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为67.5分",
+    "discovered_at": "2026-07-02T20:50:12.441929",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-2",
+    "industry": "饲料",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:50:12.441957",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-3",
+    "industry": "饲料",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:50:12.441963",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-4",
+    "industry": "饲料",
+    "signal": "缺少银行流水",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:50:12.441969",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "饲料",
+    "avg_risk_score": 85.1,
+    "sample_size": 5,
+    "action": "自动更新饲料行业风险基准为85.1分",
+    "discovered_at": "2026-07-02T20:50:12.441975",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "综合",
+    "avg_risk_score": 48.5,
+    "sample_size": 10,
+    "action": "自动更新综合行业风险基准为48.5分",
+    "discovered_at": "2026-07-02T20:50:12.441991",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "设计服务",
+    "avg_risk_score": 62.7,
+    "sample_size": 9,
+    "action": "自动更新设计服务行业风险基准为62.7分",
+    "discovered_at": "2026-07-02T20:51:14.261327",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 67.5,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为67.5分",
+    "discovered_at": "2026-07-02T20:51:14.261376",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-2",
+    "industry": "饲料",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:51:14.261406",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-3",
+    "industry": "饲料",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:51:14.261414",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-4",
+    "industry": "饲料",
+    "signal": "缺少银行流水",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:51:14.261419",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "饲料",
+    "avg_risk_score": 85.1,
+    "sample_size": 5,
+    "action": "自动更新饲料行业风险基准为85.1分",
+    "discovered_at": "2026-07-02T20:51:14.261427",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "综合",
+    "avg_risk_score": 48.5,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.5分",
+    "discovered_at": "2026-07-02T20:51:14.261447",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "设计服务",
+    "avg_risk_score": 62.7,
+    "sample_size": 9,
+    "action": "自动更新设计服务行业风险基准为62.7分",
+    "discovered_at": "2026-07-02T20:54:27.411191",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 67.5,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为67.5分",
+    "discovered_at": "2026-07-02T20:54:27.411236",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-2",
+    "industry": "饲料",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:54:27.411262",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-3",
+    "industry": "饲料",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:54:27.411270",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-4",
+    "industry": "饲料",
+    "signal": "缺少银行流水",
+    "prevalence": "100%",
+    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
+    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-02T20:54:27.411275",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "饲料",
+    "avg_risk_score": 85.1,
+    "sample_size": 5,
+    "action": "自动更新饲料行业风险基准为85.1分",
+    "discovered_at": "2026-07-02T20:54:27.411282",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "综合",
+    "avg_risk_score": 48.5,
+    "sample_size": 12,
+    "action": "自动更新综合行业风险基准为48.5分",
+    "discovered_at": "2026-07-02T20:54:27.411298",
+    "source": "audit_memory.json"
   }
 ]

@@ -830,14 +830,14 @@ function renderTaxDocReport(r) {
   function _mkBtnBar(idx, pText) {
     // 把段落文本中的特殊字符转义后内联到onclick
     var escText = pText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
-    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();window._editScope={level:\'paragraph\',id:\'p-'+idx+'\',title:\'报告段落\',content:\''+escText+'\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2"> ✏️</span>';
+    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();window._editScope={level:\'paragraph\',id:\'p-'+idx+'\',title:\'报告段落\',content:\''+escText+'\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>';
   }
   
   // 段落：包裹在 flex 容器中，按钮在右侧
   html = html.replace(/<p class="i2">([\s\S]*?)<\/p>/g, function(match, inner) {
     var idx = paraIdx++;
     var plainText = inner.replace(/<[^>]*>/g, '').trim();
-    return '<div style="display:flex;align-items:flex-start;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx, plainText) + '</div>';
+    return '<div style="display:flex;align-items:center;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx, plainText) + '</div>';
   });
   
   window._paraCount = paraIdx;
@@ -1442,7 +1442,7 @@ window._initAllEditIcons = function() {
     if (h2.querySelector('.edt-icon')) return;
     var btn = _makeEditIcon('该章内容');
     btn.onclick = function(e){ e.stopPropagation();
-      window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏','').trim()};
+      window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim()};
       window._unifiedEditPopup();
     };
     h2.appendChild(btn);
@@ -1455,7 +1455,7 @@ window._initAllEditIcons = function() {
     bar.id = 'cover-edit-bar';
     bar.style.cssText = 'margin:8px 0;padding:4px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:space-between;font-size:11px';
     bar.innerHTML = '<span style="color:#64748b">封面及基本信息</span>' +
-      '<button onclick="window._editScope={level:\'cover\',id:\'cover\',title:\'报告封面及基本信息\'};window._unifiedEditPopup()" style="background:#475569;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">✏ 反馈</button>';
+      '<button onclick="window._editScope={level:\'cover\',id:\'cover\',title:\'报告封面及基本信息\'};window._unifiedEditPopup()" style="background:#475569;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">✏️ 反馈</button>';
     firstH2.parentNode.insertBefore(bar, firstH2);
   }
 
@@ -1490,7 +1490,7 @@ window._initAllEditIcons = function() {
 window._makeEditIcon = function(tip) {
   var btn = document.createElement('span');
   btn.className = 'edt-icon';
-  btn.innerHTML = ' ✏';
+  btn.innerHTML = ' ✏️';
   btn.title = tip + ' --- 编辑/审核/追问/重置';
   btn.style.cssText = 'font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px';
   btn.onmouseenter = function(){ this.style.opacity = '1'; };
@@ -1562,7 +1562,7 @@ window._unifiedEditPopup = function(rowData) {
 
   popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:15px">✏ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">'+scopeTag+'</span></div>' +
+    '<div><b style="font-size:15px">✏️ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">'+scopeTag+'</span></div>' +
     '<button onclick="var p=document.getElementById(\x27edt-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
     '</div>' +
     '<div style="padding:16px 20px">' +
@@ -1833,7 +1833,8 @@ function _renderReportFallback(r, allF) {
     + '#rr-report .cover{text-align:center;padding:50px 0 40px;border-bottom:3px double #1a1a2e;margin-bottom:32px}'
     + '#rr-report .cover h1{font-size:24px;font-weight:900;letter-spacing:8px;margin-bottom:16px}'
     + '#rr-report .cover .sub{font-size:14px;color:#555;line-height:2.4}'
-    + '#rr-report h2{font-size:17px;font-weight:700;margin:32px 0 14px;padding-bottom:6px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px}'
+    + '#rr-report h2{font-size:17px;font-weight:700;margin:32px 0 14px;padding-bottom:6px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}'
+    + '#rr-report h2 .edt-icon{flex-shrink:0;margin-left:8px}'
     + '#rr-report h3{font-size:14px;font-weight:600;margin:18px 0 8px;color:#1a1a2e}'
     + '#rr-report p{margin:6px 0;text-align:justify;line-height:1.9}'
     + '#rr-report p.i2{text-indent:2em}'
@@ -2179,7 +2180,7 @@ function _renderReportFallback(r, allF) {
     
     // ── 发现标题（含发现级编辑/审核/追问/重置按钮）──
     var realIdx = f._idx !== undefined ? f._idx : fi;
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify;display:flex;align-items:flex-start;gap:0">' +
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify;display:flex;align-items:center;gap:0">' +
       '<span style="flex:1;min-width:0"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + lv;
     // ── AGI增强徽章 ──
     if (f._agi_enhanced) {
@@ -2206,7 +2207,7 @@ function _renderReportFallback(r, allF) {
     }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
-      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2;display:inline-block"> ✏️</span>' +
+      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
       '</p>';
     
     // ── 跨域协商标记（无按钮）──
