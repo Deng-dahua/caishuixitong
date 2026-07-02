@@ -3574,7 +3574,6 @@ function renderTaxDocReport(r) {
 
 
 
-          smartHtml += '</div>';
 
 
 
@@ -3619,6 +3618,7 @@ function renderTaxDocReport(r) {
 
 
           }
+          smartHtml += '</div>';
 
 
 
