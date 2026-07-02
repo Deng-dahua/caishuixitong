@@ -860,14 +860,14 @@ function renderTaxDocReport(r) {
         var smartHtml = '';
         
         // ① 风险叙事
-        smartHtml += '<div id="rpt-smart-narrative" style="margin:24px 0;padding:20px 24px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:2px solid #7dd3fc;border-radius:12px">';
+        smartHtml += '<div class="smart-card" id="rpt-smart-narrative" style="margin:20px 0;padding:18px 24px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:10px">';
         smartHtml += '<div style="font-size:15px;font-weight:700;color:#0369a1;margin-bottom:12px">🧠 引擎智能分析总览</div>';
         smartHtml += '<p style="font-size:14px;color:#1e293b;line-height:2.0;margin:0">' + (smart.narrative||'') + '</p>';
         smartHtml += '</div>';
         
         // ② 税负模拟（精准版：发票去重+实际税额+企业所得税分级）
         if (smart.tax_burden && smart.tax_burden.length > 0) {
-          smartHtml += '<div id="rpt-smart-tax" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #e2e8f0;border-radius:12px">';
+          smartHtml += '<div class="smart-card" id="rpt-smart-tax" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">';
           smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px">💰 税负模拟</div>';
           smartHtml += '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">基于发票实际税额（专票税额/普票为0），企业所得税按企业类型分级。同一张发票涉及多个风险类型时仅计算一次。</div>';
           smartHtml += '<table class="tbl" style="font-size:12px;margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（最高' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
@@ -883,7 +883,7 @@ function renderTaxDocReport(r) {
         
         // ③ 资料缺口影响链
         if (smart.gap_chain && smart.gap_chain.length > 0) {
-          smartHtml += '<div id="rpt-smart-gap" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #fca5a5;border-radius:12px">';
+          smartHtml += '<div class="smart-card" id="rpt-smart-gap" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid #fca5a5;border-radius:10px">';
           smartHtml += '<div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:12px">🔗 资料缺口影响链</div>';
           smartHtml += '<p style="font-size:13px;color:#475569;margin-bottom:12px">以下为缺失资料对稽查判断的影响链——缺少一份资料会影响多个分析域的判定：</p>';
           smart.gap_chain.forEach(function(gap){
@@ -900,7 +900,7 @@ function renderTaxDocReport(r) {
         if (smart.agi_enhanced && smart.agi_enhanced.meta_audit) {
           var audit = smart.agi_enhanced.meta_audit;
           var gradeColor = audit.grade === 'A' ? '#16a34a' : (audit.grade === 'B' ? '#d97706' : '#dc2626');
-          smartHtml += '<div id="rpt-smart-audit" style="margin:24px 0;padding:20px 24px;background:#fff;border:2px solid ' + gradeColor + ';border-radius:12px">';
+          smartHtml += '<div class="smart-card" id="rpt-smart-audit" style="margin:20px 0;padding:18px 24px;background:#fff;border:1px solid ' + gradeColor + ';border-radius:10px">';
           smartHtml += '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px">🔍 AGI自审报告</div>';
           smartHtml += '<div style="display:flex;gap:24px;align-items:center;margin-bottom:12px">';
           smartHtml += '<div style="font-size:36px;font-weight:800;color:' + gradeColor + '">' + (audit.grade||'?') + '</div>';
@@ -1829,49 +1829,66 @@ function _renderReportFallback(r, allF) {
 
   var h = '<style>'
     + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
-    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;max-width:960px;margin:0 auto;padding:60px 40px;background:#fff}'
-    + '#rr-report .cover{text-align:center;padding:60px 0;border-bottom:3px double #1a1a2e;margin-bottom:40px}'
-    + '#rr-report .cover h1{font-size:26px;font-weight:900;letter-spacing:6px;margin-bottom:20px}'
-    + '#rr-report .cover .sub{font-size:15px;color:#555;line-height:2.5}'
-    + '#rr-report h2{font-size:18px;font-weight:700;margin:36px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;text-align:center;letter-spacing:3px}'
-    + '#rr-report h3{font-size:15px;font-weight:600;margin:20px 0 10px;color:#1a1a2e}'
-    + '#rr-report p{margin:8px 0;text-align:justify}'
+    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.9;color:#1a1a2e;max-width:900px;margin:0 auto;padding:40px 48px;background:#fff}'
+    + '#rr-report .cover{text-align:center;padding:50px 0 40px;border-bottom:3px double #1a1a2e;margin-bottom:32px}'
+    + '#rr-report .cover h1{font-size:24px;font-weight:900;letter-spacing:8px;margin-bottom:16px}'
+    + '#rr-report .cover .sub{font-size:14px;color:#555;line-height:2.4}'
+    + '#rr-report h2{font-size:17px;font-weight:700;margin:32px 0 14px;padding-bottom:6px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px}'
+    + '#rr-report h3{font-size:14px;font-weight:600;margin:18px 0 8px;color:#1a1a2e}'
+    + '#rr-report p{margin:6px 0;text-align:justify;line-height:1.9}'
     + '#rr-report p.i2{text-indent:2em}'
-    + '#rr-report .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}'
-    + '#rr-report .tbl td{padding:6px 12px;border-bottom:1px solid #e8e8e8;word-break:break-word;white-space:normal}'
+    + '#rr-report p.i1{text-indent:0}'
+    // 表格样式
+    + '#rr-report .tbl{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
+    + '#rr-report .tbl th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
+    + '#rr-report .tbl td{padding:7px 12px;border:1px solid #e2e8f0;word-break:break-word;white-space:normal;line-height:1.7;vertical-align:top}'
     + '#rr-report .tbl .lbl{width:120px;font-weight:600;color:#5c6370;white-space:nowrap;word-break:keep-all;flex-shrink:0}'
-    + '#rr-report .tbl2{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}'
-    + '#rr-report .tbl2 th{background:#f5f5f5;padding:6px 10px;text-align:left;border:1px solid #ddd;font-weight:600}'
-    + '#rr-report .tbl2 td{padding:5px 10px;border:1px solid #eee}'
-    + '#rr-report .tbl2 .r{text-align:right}'
-    + '#rr-report .tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:12px;font-weight:500}'
+    + '#rr-report .tbl .r{text-align:right;font-variant-numeric:tabular-nums}'
+    + '#rr-report .tbl2{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
+    + '#rr-report .tbl2 th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
+    + '#rr-report .tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;word-break:break-word;white-space:normal;line-height:1.7;vertical-align:top}'
+    + '#rr-report .tbl2 .r{text-align:right;font-variant-numeric:tabular-nums}'
+    + '#rr-report .tbl tbody tr:hover,#rr-report .tbl2 tbody tr:hover{background:#f8fafc}'
+    // 标签
+    + '#rr-report .tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:500}'
     + '#rr-report .rtag{color:#c92a2a;font-weight:700}'
     + '#rr-report .atag{color:#e67700;font-weight:600}'
     + '#rr-report .gtag{color:#2b8a3e}'
-    + '#rr-report .fact-sec{margin:16px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
-    + '#rr-report .fact-sec .ftitle{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:10px}'
-    + '#rr-report .fact-sec .frow{margin:6px 0;font-size:13px;line-height:1.9}'
+    // 事实段
+    + '#rr-report .fact-sec{margin:14px 0;padding:14px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
+    + '#rr-report .fact-sec .ftitle{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:8px}'
+    + '#rr-report .fact-sec .frow{margin:5px 0;font-size:13px;line-height:1.9}'
     + '#rr-report .fact-sec .flabel{font-weight:600;color:#475569}'
-    + '#rr-report .law-ref{margin:8px 0;padding:8px 12px;background:#f8fafc;border-left:3px solid #2563eb;font-size:12px;color:#334155}'
-    + '#rr-report .rights-sec{margin:20px 0;padding:20px 24px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
-    + '#rr-report .rights-sec .rtitle{font-size:15px;font-weight:700;margin-bottom:12px}'
-    + '#rr-report .rights-sec .ritem{margin:6px 0;font-size:13px;line-height:1.8}'
-    + '#rr-report .appendix{margin:20px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
-    + '#rr-report .appendix .atitle{font-size:15px;font-weight:700;margin-bottom:10px}'
-    + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569}'
-    + '#rr-report .conclusion-box{margin:16px 0;padding:16px 20px;border-radius:8px;line-height:2}'
+    // 法条引用
+    + '#rr-report .law-ref{margin:8px 0;padding:8px 14px;background:#f8fafc;border-left:3px solid #2563eb;font-size:12px;color:#334155;line-height:1.8}'
+    // 权利段
+    + '#rr-report .rights-sec{margin:18px 0;padding:18px 24px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
+    + '#rr-report .rights-sec .rtitle{font-size:14px;font-weight:700;margin-bottom:10px}'
+    + '#rr-report .rights-sec .ritem{margin:5px 0;font-size:13px;line-height:1.8}'
+    // 附件
+    + '#rr-report .appendix{margin:18px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
+    + '#rr-report .appendix .atitle{font-size:14px;font-weight:700;margin-bottom:8px}'
+    + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569;line-height:1.9}'
+    // 结论框
+    + '#rr-report .conclusion-box{margin:14px 0;padding:14px 20px;border-radius:8px;line-height:1.9;font-size:13px}'
     + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
     + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
     + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
-    + '#rr-report .toc{margin:30px 0;padding:0 40px}'
-    + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:15px;line-height:2.4}'
+    // 目录
+    + '#rr-report .toc{margin:28px 0;padding:0 40px}'
+    + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:14px;line-height:2.4}'
     + '#rr-report .toc a:hover{color:#2563eb;text-decoration:underline}'
     + '#rr-report .toc .num{display:inline-block;min-width:28px;font-weight:700}'
-    + '#rr-report .seal{text-align:right;margin-top:60px;padding-top:20px;border-top:1px solid #ddd;line-height:2.2}'
+    // 签章
+    + '#rr-report .seal{text-align:right;margin-top:50px;padding-top:18px;border-top:1px solid #ddd;line-height:2.2;font-size:13px}'
+    // 智能卡片统一风格
+    + '#rr-report .smart-card{margin:20px 0;padding:18px 24px;border-radius:10px;font-size:13px;line-height:1.9}'
+    + '#rr-report .smart-card .sc-title{font-size:14px;font-weight:700;margin-bottom:8px}'
+    + '#rr-report .smart-card table.tbl,#rr-report .smart-card table.tbl2{margin:10px 0}'
     + '@media (max-width:768px){'
-    + '#rr-report{padding:8px !important}'
+    + '#rr-report{padding:16px 12px !important;font-size:13px !important}'
     + '#rr-report h1{font-size:18px !important}'
-    + '#rr-report h2{font-size:15px !important}'
+    + '#rr-report h2{font-size:15px !important;text-align:left !important}'
     + '#rr-report .fact-sec{padding:10px !important;margin:8px 0 !important}'
     + '#rr-report .ftitle{font-size:13px !important}'
     + '#rr-report .frow{font-size:12px !important}'

@@ -11,5 +11,16 @@
     },
     "learned_at": "2026-07-02T10:28:22.861709",
     "applied_count": 0
+  },
+  {
+    "type": "质疑",
+    "trigger": "关于报告中这段内容的判断逻辑：「不是接入了天眼AI，怎么还会查不到信息？」。请解释引擎是如何得出这个结论的？基于什么数据？",
+    "correction_content": "是如何得出这个结论的？基于什么数据？",
+    "context_snapshot": {
+      "finding_types": [],
+      "industry": ""
+    },
+    "learned_at": "2026-07-02T20:43:50.714389",
+    "applied_count": 0
   }
 ]

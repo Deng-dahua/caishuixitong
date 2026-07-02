@@ -1155,5 +1155,30 @@
       "salary": 0,
       "gross_margin_pct": 0
     }
+  },
+  {
+    "timestamp": "2026-07-02T20:38:11.664727",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
   }
 ]
