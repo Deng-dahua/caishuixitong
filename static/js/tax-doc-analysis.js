@@ -823,17 +823,12 @@ function renderTaxDocReport(r) {
   // ── 使用7章标准报告结构渲染 ──
   var ctx = _renderReportFallback(r, allF);
 
-  // ═══ 段落和表格右侧注入4按钮（flex布局：内容在左，按钮在右）═══
+  // ═══ 段落统一✏️入口：替换4按钮 ───
   var html = ctx.html;
   var paraIdx = 0;
   
   function _mkBtnBar(idx) {
-    return '<div class="rpt-btn-bar" style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-left:6px;padding-top:1px">' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._editParagraph('+idx+')" title="编辑" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">编辑</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._auditParagraph('+idx+')" title="审核" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">审核</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._askParagraph('+idx+')" title="追问" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">追问</button>' +
-      '<button data-pi="'+idx+'" onclick="event.stopPropagation();window._resetParagraph('+idx+')" title="重置" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">重置</button>' +
-      '</div>';
+    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();var p=document.querySelector(\x27.edt-icon-inline[data-pi=\x27'+idx+'\x27]\x27);if(!p)return;var div=p.closest(\x27div\x27);var pEl=div?div.querySelector(\x27p.i2, p.i1, p\x27):null;var ct=pEl?pEl.textContent.trim():\x27\x27;window._editScope={level:\x27paragraph\x27,id:\x27p-'+idx+'\x27,title:\x27报告段落\x27,content:ct};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2"> ✏️</span>';
   }
   
   // 段落：包裹在 flex 容器中，按钮在右侧
@@ -1509,9 +1504,34 @@ window._unifiedEditPopup = function(rowData) {
   var isCover = scope.level === 'cover';
   var isChapter = scope.level === 'chapter';
   var isRow = scope.level === 'table_row';
+  var isFinding = scope.level === 'finding';
+  var isParagraph = scope.level === 'paragraph';
   var title = (scope.title || '报告反馈');
 
-  // 收集文本样本
+  // 发现级：简化弹窗，只显示标题+4按钮（委托给现有函数）
+  if (isFinding) {
+    var popup = document.createElement('div');
+    popup.id = 'edt-popup';
+    popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
+    popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
+    popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+      '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
+      '<div><b style="font-size:15px">✏️ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">发现级</span></div>' +
+      '<button onclick="var p=document.getElementById(\x27edt-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
+      '</div>' +
+      '<div style="padding:20px 24px">' +
+      '<div style="font-size:13px;color:#64748b;margin-bottom:16px">对该发现的处理：</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+      '<button onclick="window._edtAction(\x27ask\x27)" style="flex:1;min-width:80px;background:#0f172a;color:#fff;border:none;padding:10px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">🔍 追问</button>' +
+      '<button onclick="window._edtAction(\x27edit\x27)" style="flex:1;min-width:80px;background:#6366f1;color:#fff;border:none;padding:10px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">📝 编辑</button>' +
+      '<button onclick="window._edtAction(\x27audit\x27)" style="flex:1;min-width:80px;background:#dc2626;color:#fff;border:none;padding:10px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">✅ 审核</button>' +
+      '<button onclick="window._edtAction(\x27reset\x27)" style="flex:1;min-width:80px;background:#fff;color:#64748b;border:1px solid #cbd5e1;padding:10px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">🔄 重置</button>' +
+      '</div></div></div>';
+    document.body.appendChild(popup);
+    return;
+  }
+
+  // 收集文本样本（封面/章节/段落/表格行）
   var samplesHtml = '';
   if (isCover) {
     var area = document.getElementById('tda-report-area');
@@ -1532,9 +1552,10 @@ window._unifiedEditPopup = function(rowData) {
   popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
   popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
 
-  var scopeTag = isCover ? '封面' : (isChapter ? '章节' : (isRow ? '表格行' : ''));
+  var scopeTag = isCover ? '封面' : (isChapter ? '章节' : (isRow ? '表格行' : (isParagraph ? '段落' : '')));
   var samplesSection = samplesHtml ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">点击下方段落选择，或直接输入：</div>'+samplesHtml : '';
   var rowDisplay = (rowData && isRow) ? '<div style="padding:10px 14px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.6;max-height:150px;overflow-y:auto;margin-bottom:8px">'+rowData+'</div>' : '';
+  var prefillContent = (isParagraph && scope.content) ? scope.content : '';
 
   popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
@@ -1543,7 +1564,7 @@ window._unifiedEditPopup = function(rowData) {
     '</div>' +
     '<div style="padding:16px 20px">' +
     samplesSection + rowDisplay +
-    '<textarea id="edt-content" placeholder="描述问题或粘贴有疑问的内容..." style="width:100%;min-height:70px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical;margin-top:6px"></textarea>' +
+    '<textarea id="edt-content" placeholder="描述问题或粘贴有疑问的内容..." style="width:100%;min-height:70px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical;margin-top:6px">'+prefillContent+'</textarea>' +
     '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
     '<button onclick="window._edtAction(\x27ask\x27)" style="flex:1;min-width:80px;background:#0f172a;color:#fff;border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔍 追问</button>' +
     '<button onclick="window._edtAction(\x27edit\x27)" style="flex:1;min-width:80px;background:#6366f1;color:#fff;border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">📝 编辑</button>' +
@@ -1573,6 +1594,20 @@ window._unifiedEditPopup = function(rowData) {
 
 // ═══ 四个按钮动作 ═══
 window._edtAction = function(action) {
+  var scope = window._editScope;
+  
+  // 发现级：委托给现有专用函数
+  if (scope.level === 'finding' && scope.findingIdx !== undefined) {
+    var p = document.getElementById('edt-popup'); if (p) p.remove();
+    var fi = scope.findingIdx;
+    if (action === 'ask') window._askAboutFinding(fi);
+    else if (action === 'edit') window._editFindingInReport(fi);
+    else if (action === 'audit') window._auditFindingInReport(fi);
+    else if (action === 'reset') { if (confirm('确定重置此发现？')) window._deleteFindingFromReport(fi); }
+    return;
+  }
+  
+  // 通用级：追问/编辑/审核走统一流程
   var content = (document.getElementById('edt-content')||{}).value || '';
   if (!content) { alert('请先输入或选择内容'); return; }
 
@@ -1595,7 +1630,7 @@ window._edtAction = function(action) {
     return;
   }
 
-  if (action === 'edit' || action === 'audit') {
+  if (action === 'edit' || action === 'audit' || action === 'reset') {
     window._edtShowFix();
     document.getElementById('edt-fix-input').focus();
   }
@@ -2150,12 +2185,7 @@ function _renderReportFallback(r, allF) {
     }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
-      '<span class="rpt-btn-bar" style="display:inline-flex;flex-direction:column;gap:2px;flex-shrink:0;margin-left:6px;padding-top:1px">' +
-      '<button onclick="event.stopPropagation();window._editFindingInReport(' + realIdx + ')" title="编辑此发现" style="background:#fff;border:1px solid #6366f1;color:#6366f1;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">编辑</button>' +
-      '<button onclick="event.stopPropagation();window._auditFindingInReport(' + realIdx + ')" title="审核此发现" style="background:#fff;border:1px solid #dc2626;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">审核</button>' +
-      '<button onclick="event.stopPropagation();window._askAboutFinding(' + realIdx + ')" title="追问此发现" style="background:#fff;border:1px solid #7c3aed;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">追问</button>' +
-      '<button onclick="event.stopPropagation();window._deleteFindingFromReport(' + realIdx + ')" title="重置此发现" style="background:#fff;border:1px solid #ef4444;color:#ef4444;padding:1px 6px;border-radius:3px;font-size:10px;cursor:pointer;white-space:nowrap;line-height:1.4">重置</button>' +
-      '</span>' +
+      '<span onclick="event.stopPropagation();window._editScope={level:\'finding\',id:fi,title:\'发现'+(fi+1)+'·'+finType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;vertical-align:top;line-height:1.2;display:inline-block"> ✏️</span>' +
       '</p>';
     
     // ── 跨域协商标记（无按钮）──
