@@ -4918,7 +4918,7 @@ window._initAllEditIcons = function() {
 
 
 
-      var chHtml = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { chHtml += nextSib.outerHTML; nextSib = nextSib.nextElementSibling; }
+      var chHtml = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { var tmp=nextSib.cloneNode(true); var eis=tmp.querySelectorAll('.edt-icon,.edt-icon-inline,.edt-block-icon'); for(var ei=0;ei<eis.length;ei++)eis[ei].remove(); chHtml += tmp.outerHTML; nextSib = nextSib.nextElementSibling; }
 window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim(), content: chHtml, isHtml: true};
 
 
@@ -5403,7 +5403,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-    "<div style=\"background:#fff;border-radius:12px;width:96vw;max-width:1400px;height:90vh;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
+    "<div style=\"background:#fff;border-radius:12px;width:96vw;max-width:1400px;height:96vh;max-height:96vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
 
 
 
