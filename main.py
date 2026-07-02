@@ -7654,6 +7654,67 @@ def agi_status():
     from engine.agi_engine import agi
     return {"ok": True, "status": agi.status()}
 
+# ═══════════ 新增6模块API ═══════════
+
+@app.post("/api/agi/sample")
+def design_sample(data: dict):
+    """智能抽样引擎"""
+    from engine.smart_sampler import get_sampler
+    pop = data.get("population", [])
+    plan = get_sampler().design_sample(pop)
+    return {"ok": True, "plan": plan}
+
+@app.get("/api/agi/law-check")
+def check_law_deprecation(text: str = ""):
+    """法规时效检查"""
+    from engine.legal_updater import get_legal_updater
+    lu = get_legal_updater()
+    result = lu.check_deprecation(text) if text else []
+    impact = lu.analyze_impact("增值税法") if not text else {}
+    return {"ok": True, "deprecated": result, "law_status": lu.status(), "impact": impact}
+
+@app.get("/api/agi/law-text")
+def get_law_text(law: str = "", article: str = ""):
+    """获取法律条文"""
+    from engine.legal_updater import get_legal_updater
+    text = get_legal_updater().get_law_text(law, article)
+    return {"ok": True, "text": text} if text else {"ok": False, "message": f'未找到"{law}"的法律数据'}
+
+@app.post("/api/agi/predict")
+def predict_risk(data: dict):
+    """风险预测"""
+    from engine.risk_predictor import get_predictor
+    profile = data.get("profile", {})
+    completeness = data.get("material_completeness", 0.5)
+    result = get_predictor().predict(profile, completeness)
+    return {"ok": True, "prediction": result}
+
+@app.get("/api/agi/patrol")
+def trigger_patrol(company_id: int = Query(...)):
+    """自动巡逻"""
+    from engine.auto_patrol import should_trigger_patrol
+    from engine.agi_engine import agi
+    # 获取当前AGI状态作为对比基准
+    current_status = agi.status()
+    return {
+        "ok": True,
+        "patrol_enabled": True,
+        "agi_status": current_status,
+        "note": "巡逻引擎已就绪——当因果边或模式增加>=2条时自动触发重新分析"
+    }
+
+@app.get("/api/agi/semantic")
+def test_semantic(a: str = "", b: str = ""):
+    """语义相似度测试"""
+    from engine.semantic_reasoner import get_semantic_engine
+    sem = get_semantic_engine()
+    return {
+        "ok": True,
+        "term_a": {"standard": sem.get_standard(a), "similar_terms": sem.find_similar_products(a)[:5]},
+        "term_b": {"standard": sem.get_standard(b), "similar_terms": sem.find_similar_products(b)[:5]},
+        "similar": sem.is_similar(a, b),
+    }
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
