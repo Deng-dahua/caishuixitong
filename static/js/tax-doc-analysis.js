@@ -4918,7 +4918,8 @@ window._initAllEditIcons = function() {
 
 
 
-      window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim()};
+      var chContent = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { chContent += (nextSib.textContent || '').trim() + '\n'; nextSib = nextSib.nextElementSibling; } chContent = chContent.trim().slice(0, 1000);
+window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim(), content: chContent};
 
 
 
