@@ -40,7 +40,7 @@
     "target": "Causal: 隐匿收入的资金回流路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431930",
-    "applied_count": 5,
+    "applied_count": 6,
     "status": "active"
   },
   {
@@ -51,7 +51,7 @@
     "target": "Causal: 虚开发票的资金闭环回路",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431965",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -62,7 +62,7 @@
     "target": "股票期权行权未扣税",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431985",
-    "applied_count": 3,
+    "applied_count": 4,
     "status": "active"
   },
   {
@@ -73,7 +73,7 @@
     "target": "Causal: 关联交易的利润转移路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431999",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -84,7 +84,7 @@
     "target": "新办企业短期内大量开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432013",
-    "applied_count": 4,
+    "applied_count": 5,
     "status": "active"
   },
   {
@@ -95,7 +95,7 @@
     "target": "注销前突击开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432026",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -106,7 +106,7 @@
     "target": "办公费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432039",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -117,7 +117,7 @@
     "target": "资料不完备",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432051",
-    "applied_count": 3,
+    "applied_count": 4,
     "status": "active"
   },
   {
@@ -128,7 +128,7 @@
     "target": "未认证发票超期",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432063",
-    "applied_count": 3,
+    "applied_count": 4,
     "status": "active"
   },
   {
@@ -139,7 +139,7 @@
     "target": "顶额分散开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432075",
-    "applied_count": 3,
+    "applied_count": 4,
     "status": "active"
   },
   {
@@ -150,7 +150,7 @@
     "target": "资料缺失触发-记账凭证缺失→会计账簿视为不健全→核定征收",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432087",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -161,7 +161,7 @@
     "target": "基础经营费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432099",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -172,7 +172,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432112",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
