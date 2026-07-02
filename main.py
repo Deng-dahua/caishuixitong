@@ -7947,6 +7947,30 @@ def analyze_group(data: dict):
     result = group_analyzer.analyze_group(companies, findings_by_company)
     return {"ok": True, "result": result}
 
+# ═══════════ AGI元认知闭环：自审+规则调整 ═══════════
+
+@app.post("/api/agi/meta-audit")
+def run_meta_audit(data: dict):
+    """
+    AGI自审报告质量 → 发现问题 → 自动调整规则
+    
+    输入: {findings, company, materials}
+    输出: 自审评分(A-D) + 发现的问题 + 自动调整的规则
+    """
+    from engine.agi_meta import meta_loop
+    result = meta_loop.run(
+        data.get("findings", []),
+        data.get("company", {}),
+        data.get("materials", {}),
+    )
+    return {"ok": True, "result": result}
+
+@app.get("/api/agi/meta-status")
+def get_meta_status():
+    """AGI元认知状态"""
+    from engine.agi_meta import meta_loop
+    return {"ok": True, "status": meta_loop.get_status()}
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):

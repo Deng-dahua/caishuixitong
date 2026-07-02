@@ -1,0 +1,35 @@
+[
+  {
+    "id": "ADJ-0001",
+    "rule_id": "99fff93a",
+    "trigger": "高风险发现#1仅1条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "增值税税负率异常",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-02T10:45:04.316294",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0002",
+    "rule_id": "276620bc",
+    "trigger": "高风险发现#3仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "未开票收入",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-02T10:45:04.316306",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0003",
+    "rule_id": "b9187c97",
+    "trigger": "发现#1引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "增值税税负率异常",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-02T10:45:04.316310",
+    "applied_count": 0,
+    "status": "active"
+  }
+]

@@ -1,0 +1,105 @@
+[
+  {
+    "timestamp": "2026-07-02T10:45:04.315648",
+    "company": "测试公司",
+    "finding_count": 3,
+    "overall_score": 0.74,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0.55,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "增值税税负率异常",
+            "issue": "高风险发现#1仅1条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "增值税税负率异常",
+            "issue": "发现#1缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 2,
+            "finding_type": "未开票收入",
+            "issue": "高风险发现#3仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          }
+        ],
+        "status": "需改进"
+      },
+      "法条准确性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "法条准确性",
+            "finding_index": 0,
+            "finding_type": "增值税税负率异常",
+            "issue": "发现#1引用了已废止的《增值税暂行条例》",
+            "severity": "严重",
+            "fix": "替换为《中华人民共和国增值税法》(2024.1.1施行)"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 2,
+            "finding_type": "未开票收入",
+            "issue": "高风险发现#3缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          }
+        ],
+        "status": "通过"
+      },
+      "逻辑一致性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          },
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含企业所得税检查",
+            "severity": "提示",
+            "fix": "收入/发票问题通常同时影响企业所得税"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 0.85,
+        "issues": [
+          {
+            "dimension": "覆盖面完整性",
+            "issue": "缺失2类资料但报告中未见资料完备度分析",
+            "severity": "警告",
+            "fix": "在报告中增加资料缺口影响分析: 银行对账单, 合同"
+          }
+        ],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 3,
+    "warning_count": 4,
+    "grade": "B"
+  }
+]
