@@ -1829,14 +1829,18 @@ function _renderReportFallback(r, allF) {
     + '#rr-report .tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;word-break:break-word;white-space:normal;line-height:1.7;vertical-align:top}'
     + '#rr-report .tbl2 .r{text-align:right;font-variant-numeric:tabular-nums}'
     + '#rr-report .tbl tbody tr:hover,#rr-report .tbl2 tbody tr:hover{background:#f8fafc}'
-    // 段落式统一：所有卡片/盒子改为纯段落
-    + '#rr-report .fact-sec,#rr-report .rights-sec,#rr-report .appendix,#rr-report .conclusion-box,#rr-report .law-ref,#rr-report .smart-card{margin:14px 0;padding:0;border:none;border-radius:0;background:transparent;line-height:1.85;font-size:14px}'
+    // 段落式统一：所有卡片/盒子改为纯段落——!important暴力覆盖所有内联样式
+    + '#rr-report .fact-sec,#rr-report .rights-sec,#rr-report .appendix,#rr-report .conclusion-box,#rr-report .law-ref,#rr-report .smart-card{margin:14px 0 !important;padding:0 !important;border:none !important;border-radius:0 !important;background:transparent !important;line-height:1.85 !important;font-size:14px !important;box-shadow:none !important}'
     + '#rr-report .fact-sec .ftitle,#rr-report .rights-sec .rtitle,#rr-report .appendix .atitle{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:8px;line-height:1.85}'
-    + '#rr-report .fact-sec .frow,#rr-report .rights-sec .ritem,#rr-report .appendix .aitem{margin:5px 0;font-size:14px;line-height:1.85;padding:0;border:none;background:transparent;border-radius:0}'
-    + '#rr-report .conclusion-box.red p,#rr-report .conclusion-box.red{color:#dc2626}'
-    + '#rr-report .conclusion-box.amber p,#rr-report .conclusion-box.amber{color:#d97706}'
-    + '#rr-report .conclusion-box.green p,#rr-report .conclusion-box.green{color:#16a34a}'
-    + '#rr-report .law-ref{margin:6px 0;font-size:12px;color:#334155;text-indent:2em;border:none;border-radius:0;padding:0;background:transparent}'
+    + '#rr-report .fact-sec .frow,#rr-report .rights-sec .ritem,#rr-report .appendix .aitem{margin:5px 0 !important;font-size:14px;line-height:1.85;padding:0 !important;border:none !important;background:transparent !important;border-radius:0 !important}'
+    + '#rr-report .rights-sec .ritem div,#rr-report .rights-sec div[style]{padding:0 !important;margin:5px 0 !important;background:transparent !important;border:none !important;border-left:none !important;border-radius:0 !important;font-size:14px !important;color:#1a1a2e !important;line-height:1.85 !important}'
+    + '#rr-report .rights-sec div[style*=\"f8fafc\"],#rr-report .rights-sec div[style*=\"2563eb\"],#rr-report .rights-sec div[style*=\"e2e8f0\"]{padding:0 !important;margin:5px 0 !important;background:transparent !important;border:none !important;border-left:none !important;border-radius:0 !important;font-size:14px !important;color:#1a1a2e !important;line-height:1.85 !important}'
+    + '#rr-report .conclusion-box.red p,#rr-report .conclusion-box.red{color:#dc2626 !important;background:transparent !important;border:none !important}'
+    + '#rr-report .conclusion-box.amber p,#rr-report .conclusion-box.amber{color:#d97706 !important;background:transparent !important;border:none !important}'
+    + '#rr-report .conclusion-box.green p,#rr-report .conclusion-box.green{color:#16a34a !important;background:transparent !important;border:none !important}'
+    + '#rr-report .law-ref{margin:6px 0 !important;font-size:12px;color:#334155;text-indent:2em;border:none !important;border-radius:0 !important;padding:0 !important;background:transparent !important;border-left:none !important}'
+    // 智能卡片彻底裸奔
+    + '#rr-report .smart-card,#rr-report div[id^=\"rpt-smart\"]{margin:16px 0 !important;padding:0 !important;border:none !important;border-radius:0 !important;background:transparent !important;box-shadow:none !important}'
     // 标签
     + '#rr-report .tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:500}'
     + '#rr-report .rtag{color:#c92a2a;font-weight:700}'
@@ -2060,7 +2064,7 @@ function _renderReportFallback(r, allF) {
   
   // （三）行业判定与服务行业闸门
   h += '<p class="i2"><strong>（三）行业判定与服务行业闸门</strong></p>';
-  h += '<p class="i2">提取全部' + (ic.sales || 0) + '张销项发票的品名字段，解析其中的金税分类编码前缀（格式为*分类名称*品名）。统计发现：销项品名的金税分类编码100%属于"广告服务"等现代服务类编码。根据中国税法对服务行业的定义——以人力、知识、创意、渠道为核心生产要素，不以实物商品的生产和流转为经营模式——被查单位属于典型的服务行业。</p>';
+  h += '<p class="i2">提取全部' + (ic.sales || 0) + '张销项发票的品名字段，解析其中的金税分类编码前缀（格式为*分类名称*品名）。统计发现：销项品名的金税分类编码类别为"' + ((te.industry||'服务').slice(0,20)) + '"等行业编码。系统根据金税分类编码自动判定被查单位所属行业为' + (te.industry||'未识别') + '。</p>';
   h += '<p class="i2">据此启动服务行业闸门规则，自动跳过以下不适用于服务行业的分析域：</p>';
   h += '<p class="i2"><strong>跳过进销存台账比对——</strong>服务行业以人力、知识、创意为核心生产要素，不存在制造业的"原材料采购→生产加工→产成品销售"的实物转换过程，因此无需建立进销存台账来进行进销数量匹配。</p>';
   h += '<p class="i2"><strong>跳过BOM表需求判定——</strong>服务产品无物料清单概念，广告创意、媒体投放、策划咨询等活动不可拆解为"原料A+原料B=成品C"的BOM结构，系统自动豁免该判定。</p>';

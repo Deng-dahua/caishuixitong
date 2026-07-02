@@ -16,16 +16,16 @@
     "size": 21896
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_enhanced.py": {
-    "mtime": 1782959893.6258783,
-    "size": 18370
+    "mtime": 1782965446.8381708,
+    "size": 21509
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_final.py": {
     "mtime": 1782958989.4029315,
     "size": 20668
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_meta.py": {
-    "mtime": 1782962120.0142143,
-    "size": 23803
+    "mtime": 1782981180.047758,
+    "size": 23865
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
     "mtime": 1782840079.8957443,
@@ -116,8 +116,8 @@
     "size": 12199
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\memory.py": {
-    "mtime": 1782918298.1782172,
-    "size": 88180
+    "mtime": 1782985062.3382359,
+    "size": 98436
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\metacognition.py": {
     "mtime": 1782914484.8292043,
@@ -344,8 +344,8 @@
     "size": 68909
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1782962325.645622,
-    "size": 196343
+    "mtime": 1783000797.331252,
+    "size": 211930
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
     "mtime": 1782913932.0893567,
@@ -356,8 +356,8 @@
     "size": 32081
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
-    "mtime": 1782913932.1045423,
-    "size": 295028
+    "mtime": 1782963281.487306,
+    "size": 294868
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-report-standards.js": {
     "mtime": 1782917711.7768898,
@@ -388,7 +388,7 @@
     "size": 41313
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\main.py": {
-    "mtime": 1782962254.8784816,
-    "size": 393532
+    "mtime": 1782993300.6168554,
+    "size": 404831
   }
 }
