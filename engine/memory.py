@@ -1601,3 +1601,54 @@ VAT_NON_DEDUCTIBLE_TYPES = [
     "其他普通发票",
 ]
 
+# ══════════════════════════════════════════════════════════════
+# 天眼AI 集成（2026-07-02 接入）
+# ══════════════════════════════════════════════════════════════
+TYC_INTEGRATION = {
+    "enabled": True,
+    "access_method": "CLI + Skill",
+    "cli": {
+        "package": "tyc-cli",
+        "version": "0.3.8",
+        "install_path": "~/.workbuddy/binaries/node/versions/22.22.2/tyc",
+        "config_path": "~/.tyc/config.json",
+        "endpoint": "https://mcp.tianyancha.com/v1",
+    },
+    "skill": {
+        "path": "~/.workbuddy/skills/tyc-it/SKILL.md",
+        "tools": 162,
+        "intent_categories": 12,
+    },
+    "engine_integration": {
+        "module": "engine/agi_enhanced.py → TianyanchaClient",
+        "method": "subprocess调用 tyc CLI，多路径自动探测（tyc / which(tyc) / 绝对路径）",
+        "encoding": "UTF-8（Windows GBK兼容）",
+        "output_parse": "sources.base → company_name/uscc/regStatus/legalPerson/capital/industry/established/staff",
+    },
+    "capabilities": [
+        "企业工商登记信息查询（名称/USCC/法人/注册资本/经营范围/成立日期/行业/社保人数/标签）",
+        "供应商资质核查（工商状态+注册资本+经营范围+关联关系四维验证）",
+        "风险信息查询（经营异常/行政处罚/严重违法/失信/被执行/税收违法）",
+        "股权与控制关系（股东/实控人/受益所有人/股权穿透/集团关系）",
+        "关联关系路径（公司间最短关联路径/共同股东/共同高管）",
+        "经营真实性（招投标/资质许可/招聘/客户供应商/产品信息）",
+        "知识产权（专利/商标/软著/知识产权评分）",
+    ],
+    "usage_in_system": {
+        "追问时自动触发": "用户问'查一下这家供应商'→ AGI引擎调用TianyanchaClient.check_company()",
+        "经济实质穿透": "供应商信息导入后自动核查工商状态+经营范围匹配度",
+        "报告增强": "一键分析时对高风险供应商自动调天眼AI补充工商数据",
+    },
+    "self_check": {
+        "宁德时代": "91350900587527783P | 曾毓群 | 存续 | 电气机械 | 456360万 | 10000人以上",
+        "深圳海更": "91440300MA5H824G7M | 张晓冬 | 存续 | 零售业 | 1000万 | <50人",
+        "check_time": "2026-07-02",
+    },
+    "note": (
+        "天眼AI通过tyc CLI调用，API Key存储在~/.tyc/config.json（非环境变量/非代码仓库）。"
+        "在不支持CLI的环境中自动降级为HTTP API调用。"
+        "调用消耗账号额度，每次查询约消耗1次额度。"
+        "系统追问时仅在用户明确要求查供应商/客户信息时才调用，不会对每个发现自动查询。"
+    ),
+}
+
