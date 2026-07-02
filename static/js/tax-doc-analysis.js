@@ -7938,7 +7938,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-      '<span class="edt-icon" onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
+      '<span class="edt-icon" onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+',content:(function(){var tp=this.closest(\'p\');var h=\'\';var ns=tp.nextElementSibling;while(ns&&ns.textContent.indexOf(\'【发现\')===-1){var t=ns.cloneNode(true);var eis=t.querySelectorAll(\'.edt-icon,.edt-icon-inline,.edt-block-icon\');for(var ei=0;ei<eis.length;ei++)eis[ei].remove();h+=t.outerHTML;ns=ns.nextElementSibling;}return h;}).call(this),isHtml:true};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
 
 
 
