@@ -915,6 +915,26 @@ function renderTaxDocReport(r) {
           if (audit.critical_issues && audit.critical_issues.length > 0) {
             smartHtml += '<div style="margin-top:8px;font-size:11px;color:#dc2626">🔴 严重: ' + audit.critical_issues.slice(0,2).map(function(i){return i.issue;}).join(' | ') + '</div>';
           }
+          // 逐条发现审核结果
+          if (audit.per_finding_audits && audit.per_finding_audits.length > 0) {
+            smartHtml += '<div style="margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:11px;max-height:200px;overflow-y:auto">';
+            smartHtml += '<div style="font-weight:600;color:#1a1a2e;margin-bottom:6px">📋 第三章逐条审核</div>';
+            audit.per_finding_audits.forEach(function(pfa){
+              var vc = pfa.verdict_color || '#94a3b8';
+              smartHtml += '<div style="margin:3px 0;padding:4px 8px;background:#f8fafc;border-radius:4px">';
+              smartHtml += '<span style="font-weight:600">发现' + pfa.index + '</span> ';
+              smartHtml += '<span style="color:' + vc + '">' + (pfa.verdict||'?') + '</span>';
+              smartHtml += ' <span style="color:#64748b;font-size:10px">(' + (pfa.score||0) + '分·' + (pfa.issue_count||0) + '个问题)</span>';
+              if (pfa.severe_count > 0) smartHtml += ' <span style="color:#dc2626;font-size:10px">🔴</span>';
+              if (pfa.warning_count > 0) smartHtml += ' <span style="color:#d97706;font-size:10px">🟡</span>';
+              smartHtml += '</div>';
+            });
+            smartHtml += '</div>';
+          }
+          // 统计
+          smartHtml += '<div style="margin-top:8px;font-size:11px;color:#475569">';
+          smartHtml += '成立: ' + (audit.valid_findings||0) + ' | 存疑: ' + (audit.questionable_findings||0);
+          smartHtml += '</div>';
           smartHtml += '</div>';
         }
         
@@ -1916,6 +1936,12 @@ function _renderReportFallback(r, allF) {
       }
       if (agi.penetration) {
         h += ' <span style="font-size:10px;color:#f59e0b;border:1px solid #f59e0b;border-radius:3px;padding:0 4px">已穿透</span>';
+      }
+      // 审核结论
+      if (agi.audit_verdict) {
+        var av = agi.audit_verdict;
+        var avc = av.verdict_color || '#16a34a';
+        h += ' <span style="font-size:10px;color:' + avc + ';border:1px solid ' + avc + ';border-radius:3px;padding:0 4px">审核:' + (av.verdict||'成立') + '</span>';
       }
     }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';

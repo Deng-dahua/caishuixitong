@@ -92,10 +92,17 @@ class ReportAuditor:
         """
         自审一份报告
         
-        返回: 各维度评分 + 发现的问题 + 改进建议
+        返回: 各维度评分 + 发现的问题 + 改进建议 + 逐条发现审核
         """
         dimension_scores = {}
         all_issues = []
+        
+        # ── 0. 逐条发现深度审核 ──
+        per_finding_audits = []
+        for i, f in enumerate(findings):
+            pfa = self._audit_finding(f, i+1, company)
+            per_finding_audits.append(pfa)
+            all_issues.extend(pfa["issues"])
         
         for dim_name, dim_config in self.AUDIT_DIMENSIONS.items():
             issues = self._check_dimension(dim_name, dim_config["checks"], findings, company, materials)
@@ -134,10 +141,98 @@ class ReportAuditor:
         
         return {
             **audit_record,
+            "per_finding_audits": per_finding_audits,
+            "valid_findings": sum(1 for p in per_finding_audits if p["verdict"] == "成立"),
+            "questionable_findings": sum(1 for p in per_finding_audits if p["verdict"] != "成立"),
             "critical_issues": critical[:5],
             "warnings": warning[:5],
             "suggestions": self._generate_suggestions(critical, warning),
             "auto_adjustments": self._generate_adjustments(critical, findings),
+        }
+    
+    def _audit_finding(self, f: Dict, idx: int, company: Dict) -> Dict:
+        """逐条深度审核：这个发现是否成立？文字是否准确？"""
+        issues = []
+        ftype = f.get("type", "未命名")
+        flevel = f.get("level", "")
+        fdetail = f.get("detail", f.get("description", ""))
+        fhow = f.get("how_found", "")
+        fpolicy = f.get("policy_ref", "")
+        ev = f.get("evidence", []) or f.get("evidence_rows", []) or f.get("items", []) or []
+        
+        # ── 文字质量检查 ──
+        # 1. 模糊表述
+        vague_count = sum(1 for w in ["可能", "大概", "也许", "似乎", "好像", "或许", "大约"] if w in (fdetail or ""))
+        if vague_count >= 2:
+            issues.append({"type": "文字质量", "severity": "提示",
+                          "detail": f"含{vague_count}处模糊表述，建议用定量数据替代", "fix": "用具体数字和百分比替代模糊词"})
+        if vague_count >= 4:
+            issues.append({"type": "文字质量", "severity": "警告",
+                          "detail": f"表述过于模糊({vague_count}处)，严重影响判断可信度", "fix": "需要大幅改写，提供更精确的数据"})
+        
+        # 2. 术语准确性
+        if "暂行条例" in (fpolicy or "") and "增值税" in (fpolicy or ""):
+            issues.append({"type": "法条错误", "severity": "严重",
+                          "detail": "引用了已废止的《增值税暂行条例》，应使用2024年1月1日施行的《增值税法》", 
+                          "fix": "替换为《中华人民共和国增值税法》"})
+        
+        # 3. 数值规范性
+        import re
+        nums = re.findall(r'\d+\.?\d*', fdetail or "")
+        if nums and not any(u in (fdetail or "") for u in ["万元", "元", "%", "倍", "张", "笔"]):
+            issues.append({"type": "表达质量", "severity": "提示",
+                          "detail": "数值未带单位，可能导致理解歧义", "fix": "为所有数值添加单位（万元/元/%等）"})
+        
+        # ── 逻辑有效性检查 ──
+        # 4. 证据与结论的一致性
+        if flevel in ("高风险", "极高风险") and len(ev) < 2:
+            issues.append({"type": "逻辑有效性", "severity": "警告",
+                          "detail": f"高风险发现仅有{len(ev)}条证据，结论与证据强度不匹配",
+                          "fix": "降级至中风险，或补充≥2个独立数据源的证据"})
+        
+        # 5. 是否有how_found
+        if not (fhow or "").strip():
+            issues.append({"type": "逻辑有效性", "severity": "警告",
+                          "detail": "缺少发现方法(how_found)，无法追溯判定依据", "fix": "补充判定方法和数据来源描述"})
+        
+        # 6. 证据描述是否具体
+        has_specific_evidence = any(
+            isinstance(ei, dict) and (ei.get("amount") or ei.get("counterparty") or ei.get("date"))
+            for ei in ev[:3]
+        ) if ev else False
+        
+        if ev and not has_specific_evidence and flevel in ("高风险", "极高风险"):
+            issues.append({"type": "逻辑有效性", "severity": "提示",
+                          "detail": "证据行缺少金额/对方/日期等关键信息", "fix": "补充证据行的具体数据字段"})
+        
+        # ── 结论判定 ──
+        severe = [i for i in issues if i["severity"] == "严重"]
+        warnings = [i for i in issues if i["severity"] == "警告"]
+        
+        if severe:
+            verdict = "存疑——存在严重问题需要修正"
+            verdict_color = "#dc2626"
+        elif len(warnings) >= 2:
+            verdict = "基本成立——有警告需要关注"
+            verdict_color = "#d97706"
+        elif warnings:
+            verdict = "成立——有小问题"
+            verdict_color = "#f59e0b"
+        else:
+            verdict = "成立"
+            verdict_color = "#16a34a"
+        
+        return {
+            "index": idx,
+            "type": ftype[:60],
+            "level": flevel,
+            "verdict": verdict,
+            "verdict_color": verdict_color,
+            "issues": issues,
+            "issue_count": len(issues),
+            "severe_count": len(severe),
+            "warning_count": len(warnings),
+            "score": round(max(0, 1.0 - len(issues) * 0.15), 2),
         }
     
     def _check_dimension(self, dim_name: str, checks: List[str], findings: List[Dict],

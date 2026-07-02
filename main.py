@@ -6434,6 +6434,15 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
         materials = comprehensive.get("material_intel", {})
         meta_result = meta_loop.run(all_findings, target, materials)
         
+        # 将逐条审核结果注入到每条发现
+        per_finding = meta_result.get("audit", {}).get("per_finding_audits", [])
+        for pfa in per_finding:
+            idx = pfa.get("index", 0) - 1
+            if 0 <= idx < len(all_findings):
+                if not all_findings[idx].get("_agi_enhanced"):
+                    all_findings[idx]["_agi_enhanced"] = {}
+                all_findings[idx]["_agi_enhanced"]["audit_verdict"] = pfa
+        
         # 注入到报告顶层
         report_data["_agi_report_level"] = {
             "cross_tax": ct,
