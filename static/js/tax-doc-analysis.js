@@ -1423,7 +1423,7 @@ window._initAllEditIcons = function() {
     if (p.querySelector('.edt-icon') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
     if (p.style.display === 'flex' || p.style.display === 'inline-flex') return;  // 已是flex容器（如发现标题）
     var txt = p.textContent.trim();
-    if (txt.length < 3) return;  // 极短的跳过（如纯符号行）
+    if (!txt) return;  // 空段跳过
     // 把p改为flex容器，原文在左，✏️在右
     if (!p.classList.contains('edt-p-flex')) {
       p.classList.add('edt-p-flex');
