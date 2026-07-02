@@ -1339,7 +1339,7 @@ window._unifiedEditPopup = function(rowData) {
   popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
 
   popup.innerHTML = 
-    "<div style=\"background:#fff;border-radius:12px;max-width:680px;width:94%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
+    "<div style=\"background:#fff;border-radius:12px;width:800px;height:600px;max-width:94vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
     "<div style=\"padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0\">" +
     "<b style=\"font-size:15px\">✏️ "+title+"</b>" +
     "<button onclick=\"var p=document.getElementById(&#39;edt-popup&#39;);if(p)p.remove()\" style=\"border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8\">✕</button>" +
