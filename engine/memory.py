@@ -1615,7 +1615,7 @@ TYC_INTEGRATION = {
         "endpoint": "https://mcp.tianyancha.com/v1",
     },
     "skill": {
-        "path": "~/.workbuddy/skills/tyc-it/SKILL.md",
+        "path": ".workbuddy/skills/tyc-it/SKILL.md（项目级Skill，随财税系统分发）",
         "tools": 162,
         "intent_categories": 12,
     },
