@@ -1,0 +1,28 @@
+[
+  {
+    "id": "RECT-0001",
+    "company_id": 1,
+    "company_name": "测试公司",
+    "finding_type": "虚开进项",
+    "finding_detail": "测试",
+    "risk_level": "高风险",
+    "status": "已通知",
+    "deadline_days": 15,
+    "created_at": "2026-07-02T09:18:07.403658",
+    "deadline": "2026-07-17T09:18:07.403663",
+    "history": [
+      {
+        "status": "已识别",
+        "timestamp": "2026-07-02T09:18:07.403667",
+        "note": "系统自动创建"
+      },
+      {
+        "status": "已通知",
+        "timestamp": "2026-07-02T09:18:07.404055",
+        "note": "已下达整改通知"
+      }
+    ],
+    "evidence": [],
+    "result": ""
+  }
+]

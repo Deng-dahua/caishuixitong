@@ -13,7 +13,7 @@ from threading import Lock
 from typing import List, Dict, Any, Callable
 import time
 
-PARALLEL_ENABLED = os.environ.get("AGI_PARALLEL", "0") == "1"
+PARALLEL_ENABLED = os.environ.get("AGI_PARALLEL", "1") == "1"  # 默认启用并行加速
 MAX_WORKERS = min(8, os.cpu_count() or 4)
 
 _results_lock = Lock()

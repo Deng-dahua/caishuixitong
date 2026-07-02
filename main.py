@@ -7715,6 +7715,53 @@ def test_semantic(a: str = "", b: str = ""):
         "similar": sem.is_similar(a, b),
     }
 
+# ═══════════ 新版块API：整改+趋势+集团+巡逻 ═══════════
+
+@app.post("/api/agi/rectify")
+def create_rectification(data: dict):
+    from engine.rectification import get_tracker
+    return get_tracker().create(
+        finding=data.get("finding", {}),
+        company_id=data.get("company_id", 1),
+        company_name=data.get("company_name", ""),
+    )
+
+@app.post("/api/agi/rectify/update")
+def update_rectification(data: dict):
+    from engine.rectification import get_tracker
+    return get_tracker().update_status(data.get("id",""), data.get("status",""), data.get("note",""))
+
+@app.get("/api/agi/rectify/pending")
+def get_pending_rectifications(company_id: int = Query(None)):
+    from engine.rectification import get_tracker
+    return {"ok": True, "items": get_tracker().get_pending(company_id)}
+
+@app.get("/api/agi/rectify/stats")
+def get_rectification_stats(company_id: int = Query(None)):
+    from engine.rectification import get_tracker
+    return {"ok": True, "stats": get_tracker().get_stats(company_id)}
+
+@app.get("/api/agi/trends")
+def get_trends(company_id: int = Query(...)):
+    from engine.trend_group import trend_analyzer
+    return {"ok": True, "trends": trend_analyzer.analyze_trends(company_id)}
+
+@app.get("/api/agi/group")
+def get_group_analysis(company: str = Query("")):
+    from engine.trend_group import group_analyzer
+    cluster = group_analyzer.find_risk_cluster(company) if company else {}
+    anomalies = group_analyzer.detect_anomalies()
+    return {"ok": True, "cluster": cluster, "anomalies": anomalies}
+
+@app.get("/api/agi/patrol/start")
+def start_patrol(company_id: int = Query(...)):
+    from engine.auto_patrol import PATROL_CONFIG
+    from engine.causal_discovery import get_discovery_engine
+    rules_count = len(get_discovery_engine().get_inference_rules(min_count=1))
+    return {"ok": True, "patrol_config": PATROL_CONFIG, "causal_rules": rules_count,
+            "trigger": rules_count >= PATROL_CONFIG.get("significant_change_threshold", 2),
+            "message": "巡逻触发条件已满足" if rules_count >= 2 else "需更多因果规则"}
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
