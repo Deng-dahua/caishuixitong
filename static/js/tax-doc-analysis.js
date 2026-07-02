@@ -941,15 +941,6 @@ function renderTaxDocReport(r) {
           smartHtml += '</div>';
         }
         
-        // 统一✏️系统已覆盖所有入口——此卡片仅作兜底快捷入口
-        smartHtml += '<div id=\"rpt-engine-feedback\" style=\"margin:24px 0;padding:16px 20px;background:#fff;border:2px solid #c4b5fd;border-radius:12px\">';
-        smartHtml += '<div style=\"display:flex;align-items:center;justify-content:space-between\">';
-        smartHtml += '<div style=\"font-size:13px;font-weight:700;color:#6d28d9\">⚙️ 全局反馈（兜底）</div>';
-        smartHtml += '<button onclick=\"window._editScope={level:\'system\',id:\'system\',title:\'系统级全局反馈\'};window._unifiedEditPopup()\" style=\"background:#7c3aed;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">✏️ 打开统一反馈</button>';
-        smartHtml += '</div>';
-        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-top:6px\">报告里任何地方有 ✏️ 图标点它就反馈。这里是不确定位置的兜底入口。</div>';
-        smartHtml += '</div>';
-        
         if (smartHtml) {
           var area = document.getElementById('tda-report-area');
           if (area) {
@@ -1448,18 +1439,7 @@ window._initAllEditIcons = function() {
     h2.appendChild(btn);
   });
 
-  // 2. 封面区
-  var firstH2 = area.querySelector('h2');
-  if (firstH2 && !document.getElementById('cover-edit-bar')) {
-    var bar = document.createElement('div');
-    bar.id = 'cover-edit-bar';
-    bar.style.cssText = 'margin:8px 0;padding:4px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:space-between;font-size:11px';
-    bar.innerHTML = '<span style="color:#64748b">封面及基本信息</span>' +
-      '<button onclick="window._editScope={level:\'cover\',id:\'cover\',title:\'报告封面及基本信息\'};window._unifiedEditPopup()" style="background:#475569;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">✏️ 反馈</button>';
-    firstH2.parentNode.insertBefore(bar, firstH2);
-  }
-
-  // 3. 表格行加✏
+  // 3. 表格行加✏️
   area.querySelectorAll('table.tbl, table.tbl2').forEach(function(table, ti) {
     if (table.querySelector('.edt-tbl-col')) return;
     var theadRow = table.querySelector('thead tr') || table.querySelector('tr');
@@ -1829,52 +1809,39 @@ function _renderReportFallback(r, allF) {
 
   var h = '<style>'
     + '#rr-report *{margin:0;padding:0;box-sizing:border-box}'
-    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.9;color:#1a1a2e;max-width:900px;margin:0 auto;padding:40px 48px;background:#fff}'
+    + '#rr-report{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;font-size:14px;line-height:1.85;color:#1a1a2e;max-width:900px;margin:0 auto;padding:40px 52px;background:#fff}'
     + '#rr-report .cover{text-align:center;padding:50px 0 40px;border-bottom:3px double #1a1a2e;margin-bottom:32px}'
     + '#rr-report .cover h1{font-size:24px;font-weight:900;letter-spacing:8px;margin-bottom:16px}'
     + '#rr-report .cover .sub{font-size:14px;color:#555;line-height:2.4}'
-    + '#rr-report h2{font-size:17px;font-weight:700;margin:32px 0 14px;padding-bottom:6px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}'
+    + '#rr-report h2{font-size:17px;font-weight:700;margin:32px 0 16px;padding-bottom:8px;border-bottom:2px solid #1a1a2e;text-align:left;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}'
     + '#rr-report h2 .edt-icon{flex-shrink:0;margin-left:8px}'
-    + '#rr-report h3{font-size:14px;font-weight:600;margin:18px 0 8px;color:#1a1a2e}'
-    + '#rr-report p{margin:6px 0;text-align:justify;line-height:1.9}'
+    + '#rr-report h3{font-size:14px;font-weight:600;margin:18px 0 10px;color:#1a1a2e}'
+    + '#rr-report p{margin:6px 0;text-align:justify;line-height:1.85}'
     + '#rr-report p.i2{text-indent:2em}'
     + '#rr-report p.i1{text-indent:0}'
-    // 表格样式
+    // 表格：统一全边框+蓝灰表头
     + '#rr-report .tbl{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
     + '#rr-report .tbl th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
     + '#rr-report .tbl td{padding:7px 12px;border:1px solid #e2e8f0;word-break:break-word;white-space:normal;line-height:1.7;vertical-align:top}'
-    + '#rr-report .tbl .lbl{width:120px;font-weight:600;color:#5c6370;white-space:nowrap;word-break:keep-all;flex-shrink:0}'
     + '#rr-report .tbl .r{text-align:right;font-variant-numeric:tabular-nums}'
     + '#rr-report .tbl2{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}'
     + '#rr-report .tbl2 th{background:#f1f5f9;padding:8px 12px;text-align:left;border:1px solid #cbd5e1;font-weight:600;font-size:12px;color:#334155;white-space:nowrap}'
     + '#rr-report .tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;word-break:break-word;white-space:normal;line-height:1.7;vertical-align:top}'
     + '#rr-report .tbl2 .r{text-align:right;font-variant-numeric:tabular-nums}'
     + '#rr-report .tbl tbody tr:hover,#rr-report .tbl2 tbody tr:hover{background:#f8fafc}'
+    // 段落式统一：所有卡片/盒子改为纯段落
+    + '#rr-report .fact-sec,#rr-report .rights-sec,#rr-report .appendix,#rr-report .conclusion-box,#rr-report .law-ref,#rr-report .smart-card{margin:14px 0;padding:0;border:none;border-radius:0;background:transparent;line-height:1.85;font-size:14px}'
+    + '#rr-report .fact-sec .ftitle,#rr-report .rights-sec .rtitle,#rr-report .appendix .atitle{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:8px;line-height:1.85}'
+    + '#rr-report .fact-sec .frow,#rr-report .rights-sec .ritem,#rr-report .appendix .aitem{margin:5px 0;font-size:14px;line-height:1.85;padding:0;border:none;background:transparent;border-radius:0}'
+    + '#rr-report .conclusion-box.red p,#rr-report .conclusion-box.red{color:#dc2626}'
+    + '#rr-report .conclusion-box.amber p,#rr-report .conclusion-box.amber{color:#d97706}'
+    + '#rr-report .conclusion-box.green p,#rr-report .conclusion-box.green{color:#16a34a}'
+    + '#rr-report .law-ref{margin:6px 0;font-size:12px;color:#334155;text-indent:2em;border:none;border-radius:0;padding:0;background:transparent}'
     // 标签
     + '#rr-report .tag{display:inline-block;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:500}'
     + '#rr-report .rtag{color:#c92a2a;font-weight:700}'
     + '#rr-report .atag{color:#e67700;font-weight:600}'
     + '#rr-report .gtag{color:#2b8a3e}'
-    // 事实段
-    + '#rr-report .fact-sec{margin:14px 0;padding:14px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
-    + '#rr-report .fact-sec .ftitle{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:8px}'
-    + '#rr-report .fact-sec .frow{margin:5px 0;font-size:13px;line-height:1.9}'
-    + '#rr-report .fact-sec .flabel{font-weight:600;color:#475569}'
-    // 法条引用
-    + '#rr-report .law-ref{margin:8px 0;padding:8px 14px;background:#f8fafc;border-left:3px solid #2563eb;font-size:12px;color:#334155;line-height:1.8}'
-    // 权利段
-    + '#rr-report .rights-sec{margin:18px 0;padding:18px 24px;border:1px solid #e2e8f0;border-radius:8px;background:#fafbfc}'
-    + '#rr-report .rights-sec .rtitle{font-size:14px;font-weight:700;margin-bottom:10px}'
-    + '#rr-report .rights-sec .ritem{margin:5px 0;font-size:13px;line-height:1.8}'
-    // 附件
-    + '#rr-report .appendix{margin:18px 0;padding:16px 20px;border:1px solid #e2e8f0;border-radius:8px}'
-    + '#rr-report .appendix .atitle{font-size:14px;font-weight:700;margin-bottom:8px}'
-    + '#rr-report .appendix .aitem{margin:4px 0;font-size:13px;color:#475569;line-height:1.9}'
-    // 结论框
-    + '#rr-report .conclusion-box{margin:14px 0;padding:14px 20px;border-radius:8px;line-height:1.9;font-size:13px}'
-    + '#rr-report .conclusion-box.red{background:#fef2f2;border:1px solid #fecaca}'
-    + '#rr-report .conclusion-box.amber{background:#fffbeb;border:1px solid #fde68a}'
-    + '#rr-report .conclusion-box.green{background:#f0fdf4;border:1px solid #bbf7d0}'
     // 目录
     + '#rr-report .toc{margin:28px 0;padding:0 40px}'
     + '#rr-report .toc a{color:#1a1a2e;text-decoration:none;font-size:14px;line-height:2.4}'
@@ -1882,10 +1849,6 @@ function _renderReportFallback(r, allF) {
     + '#rr-report .toc .num{display:inline-block;min-width:28px;font-weight:700}'
     // 签章
     + '#rr-report .seal{text-align:right;margin-top:50px;padding-top:18px;border-top:1px solid #ddd;line-height:2.2;font-size:13px}'
-    // 智能卡片统一风格
-    + '#rr-report .smart-card{margin:20px 0;padding:18px 24px;border-radius:10px;font-size:13px;line-height:1.9}'
-    + '#rr-report .smart-card .sc-title{font-size:14px;font-weight:700;margin-bottom:8px}'
-    + '#rr-report .smart-card table.tbl,#rr-report .smart-card table.tbl2{margin:10px 0}'
     + '@media (max-width:768px){'
     + '#rr-report{padding:16px 12px !important;font-size:13px !important}'
     + '#rr-report h1{font-size:18px !important}'
