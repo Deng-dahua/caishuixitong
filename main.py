@@ -8145,6 +8145,124 @@ def get_meta_status():
     return {"ok": True, "status": meta_loop.get_status()}
 
 
+# ═════════════════════════════════════════════════════════
+# 引擎全局反馈（2026-07-02 老邓要求）
+# 用户直接对系统级规则/计算逻辑/报告呈现提意见
+# 引擎自动分析影响范围并写入记忆
+# ═════════════════════════════════════════════════════════
+@app.post("/api/agi/engine-feedback")
+async def post_engine_feedback(request: Request):
+    """引擎全局反馈：用户提系统级意见，引擎分析影响模块并记录"""
+    try:
+        body = await request.json()
+    except:
+        return {"ok": False, "message": "请求格式错误"}
+
+    scope = str(body.get("scope", "")).strip()          # 全局/某模块/某规则
+    problem = str(body.get("problem", "")).strip()       # 当前逻辑错在哪
+    correct = str(body.get("correct", "")).strip()       # 应该怎么做
+    basis = str(body.get("basis", "")).strip()           # 法律依据
+
+    if not problem or not correct:
+        return {"ok": False, "message": "请至少填写【问题描述】和【正确逻辑】"}
+
+    # 分析影响范围
+    affected_modules = _analyze_feedback_impact(problem, correct, scope)
+    
+    # 构建反馈记录
+    import datetime
+    feedback = {
+        "id": f"EFBK-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "time": datetime.datetime.now().isoformat(),
+        "scope": scope or "未指定",
+        "problem": problem,
+        "correct": correct,
+        "basis": basis,
+        "affected_modules": affected_modules,
+        "status": "已记录",
+    }
+
+    # 保存
+    fb_path = os.path.join("static", "engine_feedback.json")
+    existing = []
+    try:
+        with open(fb_path, encoding="utf-8") as f:
+            existing = json.load(f)
+    except:
+        existing = []
+    existing.append(feedback)
+    with open(fb_path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+    
+    # 注入引擎记忆
+    _inject_feedback_to_memory(feedback)
+
+    return {
+        "ok": True,
+        "feedback_id": feedback["id"],
+        "affected_modules": affected_modules,
+        "total_feedbacks": len(existing),
+        "message": f"反馈已记录。预计影响{len(affected_modules)}个模块，下次分析时生效。",
+    }
+
+
+def _analyze_feedback_impact(problem: str, correct: str, scope: str) -> list:
+    """分析反馈影响哪些代码模块"""
+    impacts = []
+    keywords = (problem + correct).lower()
+    
+    module_map = {
+        "税负模拟": {"files": ["main.py → get_report_intelligence"], "section": "税负模拟计算"},
+        "税负": {"files": ["main.py → get_report_intelligence"], "section": "税负计算逻辑"},
+        "增值税": {"files": ["main.py → get_report_intelligence", "engine/agi_enhanced.py"], "section": "增值税计算"},
+        "所得税": {"files": ["main.py → get_report_intelligence", "engine/agi_enhanced.py"], "section": "所得税计算"},
+        "企业所得税": {"files": ["main.py → get_report_intelligence", "engine/agi_enhanced.py"], "section": "企业所得税计算"},
+        "发票": {"files": ["engine/domain_analysis.py", "main.py → _extract_material_intel"], "section": "发票解析"},
+        "去重": {"files": ["main.py → get_report_intelligence"], "section": "去重逻辑"},
+        "税率": {"files": ["main.py → get_report_intelligence", "engine/legal_reasoner.py"], "section": "税率应用"},
+        "普票": {"files": ["main.py", "engine/memory.py"], "section": "普票税额处理"},
+        "专票": {"files": ["main.py", "engine/domain_analysis.py"], "section": "专票抵扣逻辑"},
+        "报告": {"files": ["static/js/tax-doc-analysis.js", "main.py"], "section": "报告生成"},
+        "发现": {"files": ["engine/pipeline.py", "engine/agi_meta.py"], "section": "发现生成与审核"},
+        "证据": {"files": ["main.py → _inject_agi_into_report", "engine/agi_meta.py"], "section": "证据链处理"},
+        "风险等级": {"files": ["engine/pipeline.py", "main.py"], "section": "风险定级"},
+        "法律": {"files": ["engine/legal_reasoner.py", "engine/memory.py"], "section": "法律引用"},
+        "法条": {"files": ["engine/legal_reasoner.py", "engine/memory.py"], "section": "法律引用"},
+        "行业": {"files": ["engine/phase1_triage.py", "engine/memory.py"], "section": "行业判断"},
+        "计算": {"files": ["main.py → get_report_intelligence", "engine/agi_enhanced.py"], "section": "计算逻辑"},
+    }
+    
+    if scope:
+        keywords = scope.lower() + " " + keywords
+    
+    for kw, info in module_map.items():
+        if kw in keywords:
+            if info not in impacts:
+                impacts.append(info)
+    
+    if not impacts:
+        impacts = [{"files": ["需人工确认"], "section": "待分析"}]
+    
+    return impacts
+
+
+def _inject_feedback_to_memory(feedback: dict):
+    """将反馈注入引擎记忆（动态更新 memory.py 中的知识）"""
+    try:
+        from engine import memory as mem_module
+        if not hasattr(mem_module, 'ENGINE_FEEDBACKS'):
+            mem_module.ENGINE_FEEDBACKS = []
+        mem_module.ENGINE_FEEDBACKS.append({
+            "id": feedback["id"],
+            "scope": feedback["scope"],
+            "problem": feedback["problem"],
+            "correct": feedback["correct"],
+            "basis": feedback["basis"],
+        })
+    except:
+        pass
+
+
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
     """软删除纠正规则 — 归档到 _deleted_correction_rules.json，不丢失数据"""

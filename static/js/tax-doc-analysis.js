@@ -940,6 +940,20 @@ function renderTaxDocReport(r) {
           smartHtml += '</div>';
         }
         
+        // ⑤ 引擎全局反馈 — 老邓直接对系统规则/计算逻辑/报告呈现提意见
+        smartHtml += '<div id=\"rpt-engine-feedback\" style=\"margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #c4b5fd;border-radius:12px\">';
+        smartHtml += '<div style=\"font-size:15px;font-weight:700;color:#6d28d9;margin-bottom:4px\">⚙️ 引擎全局反馈</div>';
+        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-bottom:12px\">不限于某条发现——对系统规则、计算逻辑、报告呈现有意见，直接告诉引擎。引擎自动分析影响范围并学习。</div>';
+        smartHtml += '<div style=\"display:flex;flex-direction:column;gap:8px\">';
+        smartHtml += '<select id=\"efb-scope\" style=\"padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff\"><option value=\"\">影响范围（可选）</option><option value=\"全局\">全局</option><option value=\"税负模拟\">税负模拟</option><option value=\"报告生成\">报告生成</option><option value=\"风险定级\">风险定级</option><option value=\"发票解析\">发票解析</option><option value=\"法律引用\">法律引用</option><option value=\"证据链\">证据链</option><option value=\"行业判断\">行业判断</option><option value=\"其他\">其他</option></select>';
+        smartHtml += '<textarea id=\"efb-problem\" placeholder=\"【问题描述】当前逻辑错在哪？例如：税负模拟的增值税不能用13%预估，要用发票实际税额\" style=\"width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
+        smartHtml += '<textarea id=\"efb-correct\" placeholder=\"【正确逻辑】应该怎么做？例如：增值税专用发票取实际税额字段，普通发票增值税为0（税额并入成本）\" style=\"width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
+        smartHtml += '<textarea id=\"efb-basis\" placeholder=\"【法律依据】依据什么税法条文？（可选）例如：增值税法第十条、企业所得税法第八条\" style=\"width:100%;min-height:40px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
+        smartHtml += '<div style=\"display:flex;gap:8px;justify-content:flex-end;align-items:center\">';
+        smartHtml += '<span id=\"efb-result\" style=\"font-size:11px;color:#94a3b8;flex:1\"></span>';
+        smartHtml += '<button onclick=\"window._submitEngineFeedback()\" style=\"background:#7c3aed;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交引擎反馈</button>';
+        smartHtml += '</div></div></div>';
+        
         if (smartHtml) {
           var area = document.getElementById('tda-report-area');
           if (area) {
@@ -1417,6 +1431,44 @@ window._clearAskChat = function() {
   if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
   window._askChatHistory = [];
   window._conversationId = '';
+};
+
+// ═══════════ 引擎全局反馈 ═══════════
+window._submitEngineFeedback = function() {
+  var scope = (document.getElementById('efb-scope')||{}).value || '';
+  var problem = (document.getElementById('efb-problem')||{}).value || '';
+  var correct = (document.getElementById('efb-correct')||{}).value || '';
+  var basis = (document.getElementById('efb-basis')||{}).value || '';
+  var resultEl = document.getElementById('efb-result');
+  
+  if (!problem || !correct) {
+    if (resultEl) { resultEl.textContent = '请至少填写【问题描述】和【正确逻辑】'; resultEl.style.color = '#dc2626'; }
+    return;
+  }
+  
+  if (resultEl) { resultEl.textContent = '提交中...'; resultEl.style.color = '#7c3aed'; }
+  
+  fetch('/api/agi/engine-feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({scope: scope, problem: problem, correct: correct, basis: basis})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) {
+      var mods = d.affected_modules.map(function(m){ return m.section; }).join('、');
+      if (resultEl) { 
+        resultEl.innerHTML = '✅ 已记录（ID: ' + d.feedback_id + '），影响' + d.affected_modules.length + '个模块: ' + mods; 
+        resultEl.style.color = '#16a34a';
+      }
+      // 清空输入
+      document.getElementById('efb-problem').value = '';
+      document.getElementById('efb-correct').value = '';
+      document.getElementById('efb-basis').value = '';
+    } else {
+      if (resultEl) { resultEl.textContent = d.message || '提交失败'; resultEl.style.color = '#dc2626'; }
+    }
+  }).catch(function(){
+    if (resultEl) { resultEl.textContent = '提交失败，请检查网络'; resultEl.style.color = '#dc2626'; }
+  });
 };
 
 // ═══════════ 语音输入 ═══════════
