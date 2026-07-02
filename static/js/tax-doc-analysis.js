@@ -3164,6 +3164,8 @@ function _ttsSpeakNext() {
   if (_ttsState.currentChunk && _ttsState.currentChunk.el) {
     _ttsState.currentChunk.el.style.background = '';
     _ttsState.currentChunk.el.style.transition = '';
+    _ttsState.currentChunk.el.style.padding = '';
+    _ttsState.currentChunk.el.style.borderRadius = '';
   }
   
   var chunk = _ttsChunks[_ttsState.currentIdx];
@@ -3218,10 +3220,12 @@ function _ttsTogglePause() {
 
 function _ttsStop() {
   window.speechSynthesis.cancel();
-  // 清除高亮
+  // 清除高亮——包括padding/borderRadius，恢复原样
   if (_ttsState.currentChunk && _ttsState.currentChunk.el) {
     _ttsState.currentChunk.el.style.background = '';
     _ttsState.currentChunk.el.style.transition = '';
+    _ttsState.currentChunk.el.style.padding = '';
+    _ttsState.currentChunk.el.style.borderRadius = '';
   }
   _ttsState.speaking = false;
   _ttsState.paused = false;
