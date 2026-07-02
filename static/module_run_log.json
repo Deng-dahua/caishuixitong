@@ -16638,5 +16638,1285 @@
       "errors": [],
       "skipped_reason": ""
     }
+  },
+  {
+    "module_id": "M001_document_scan",
+    "module_name": "文件扫描与类型识别",
+    "timestamp": "2026-07-03T01:45:21.579496",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M002_data_normalize",
+    "module_name": "数据标准化",
+    "timestamp": "2026-07-03T01:45:21.621272",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M003_entity_recognition",
+    "module_name": "目标实体识别",
+    "timestamp": "2026-07-03T01:45:21.653347",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M004_online_verification",
+    "module_name": "联网核查",
+    "timestamp": "2026-07-03T01:45:21.692738",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M005_supply_chain_check",
+    "module_name": "供应链联网核查",
+    "timestamp": "2026-07-03T01:45:21.727190",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M006_phase1_triage",
+    "module_name": "初查(Phase1)-信号检测",
+    "timestamp": "2026-07-03T01:45:21.760311",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M007_phase2_deep_dive",
+    "module_name": "定向深挖(Phase2)",
+    "timestamp": "2026-07-03T01:45:21.791735",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M008_domain_analysis",
+    "module_name": "18域分析",
+    "timestamp": "2026-07-03T01:45:21.813060",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M009_rule_engine",
+    "module_name": "规则引擎(1608条)",
+    "timestamp": "2026-07-03T01:45:21.842181",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M017_financial_analysis",
+    "module_name": "财务报表税务稽查",
+    "timestamp": "2026-07-03T01:45:21.875123",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M018_tax_incentives",
+    "module_name": "税收优惠智能分析",
+    "timestamp": "2026-07-03T01:45:21.909151",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M019_policy_verification",
+    "module_name": "税收优惠政策有效期联网核实",
+    "timestamp": "2026-07-03T01:45:21.931457",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M010_chain_engine",
+    "module_name": "链驱动引擎",
+    "timestamp": "2026-07-03T01:45:21.965827",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M016_report_render",
+    "module_name": "报告渲染",
+    "timestamp": "2026-07-03T01:45:21.990583",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M020_rule_discovery",
+    "module_name": "自动规则发现",
+    "timestamp": "2026-07-03T01:45:22.022721",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M021_compliance_gate",
+    "module_name": "合规门禁与渐进学习",
+    "timestamp": "2026-07-03T01:45:22.052891",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M001_document_scan",
+    "module_name": "文件扫描与类型识别",
+    "timestamp": "2026-07-03T01:53:47.040659",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M002_data_normalize",
+    "module_name": "数据标准化",
+    "timestamp": "2026-07-03T01:53:47.078331",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M003_entity_recognition",
+    "module_name": "目标实体识别",
+    "timestamp": "2026-07-03T01:53:47.110363",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M004_online_verification",
+    "module_name": "联网核查",
+    "timestamp": "2026-07-03T01:53:47.156147",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M005_supply_chain_check",
+    "module_name": "供应链联网核查",
+    "timestamp": "2026-07-03T01:53:47.195214",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M006_phase1_triage",
+    "module_name": "初查(Phase1)-信号检测",
+    "timestamp": "2026-07-03T01:53:47.231394",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M007_phase2_deep_dive",
+    "module_name": "定向深挖(Phase2)",
+    "timestamp": "2026-07-03T01:53:47.275726",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M008_domain_analysis",
+    "module_name": "18域分析",
+    "timestamp": "2026-07-03T01:53:47.323649",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M009_rule_engine",
+    "module_name": "规则引擎(1608条)",
+    "timestamp": "2026-07-03T01:53:47.368078",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M017_financial_analysis",
+    "module_name": "财务报表税务稽查",
+    "timestamp": "2026-07-03T01:53:47.405659",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M018_tax_incentives",
+    "module_name": "税收优惠智能分析",
+    "timestamp": "2026-07-03T01:53:47.446872",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M019_policy_verification",
+    "module_name": "税收优惠政策有效期联网核实",
+    "timestamp": "2026-07-03T01:53:47.493176",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M010_chain_engine",
+    "module_name": "链驱动引擎",
+    "timestamp": "2026-07-03T01:53:47.536299",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M016_report_render",
+    "module_name": "报告渲染",
+    "timestamp": "2026-07-03T01:53:47.577011",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M020_rule_discovery",
+    "module_name": "自动规则发现",
+    "timestamp": "2026-07-03T01:53:47.620815",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M021_compliance_gate",
+    "module_name": "合规门禁与渐进学习",
+    "timestamp": "2026-07-03T01:53:47.654908",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M001_document_scan",
+    "module_name": "文件扫描与类型识别",
+    "timestamp": "2026-07-03T01:55:56.714197",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M002_data_normalize",
+    "module_name": "数据标准化",
+    "timestamp": "2026-07-03T01:55:56.752324",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M003_entity_recognition",
+    "module_name": "目标实体识别",
+    "timestamp": "2026-07-03T01:55:56.776158",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M004_online_verification",
+    "module_name": "联网核查",
+    "timestamp": "2026-07-03T01:55:56.802828",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M005_supply_chain_check",
+    "module_name": "供应链联网核查",
+    "timestamp": "2026-07-03T01:55:56.835528",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M006_phase1_triage",
+    "module_name": "初查(Phase1)-信号检测",
+    "timestamp": "2026-07-03T01:55:56.868475",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M007_phase2_deep_dive",
+    "module_name": "定向深挖(Phase2)",
+    "timestamp": "2026-07-03T01:55:56.892182",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M008_domain_analysis",
+    "module_name": "18域分析",
+    "timestamp": "2026-07-03T01:55:56.914737",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M009_rule_engine",
+    "module_name": "规则引擎(1608条)",
+    "timestamp": "2026-07-03T01:55:56.939892",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M017_financial_analysis",
+    "module_name": "财务报表税务稽查",
+    "timestamp": "2026-07-03T01:55:56.963421",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M018_tax_incentives",
+    "module_name": "税收优惠智能分析",
+    "timestamp": "2026-07-03T01:55:56.995780",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M019_policy_verification",
+    "module_name": "税收优惠政策有效期联网核实",
+    "timestamp": "2026-07-03T01:55:57.030637",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M010_chain_engine",
+    "module_name": "链驱动引擎",
+    "timestamp": "2026-07-03T01:55:57.057072",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M016_report_render",
+    "module_name": "报告渲染",
+    "timestamp": "2026-07-03T01:55:57.084023",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M020_rule_discovery",
+    "module_name": "自动规则发现",
+    "timestamp": "2026-07-03T01:55:57.108523",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M021_compliance_gate",
+    "module_name": "合规门禁与渐进学习",
+    "timestamp": "2026-07-03T01:55:57.139143",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M001_document_scan",
+    "module_name": "文件扫描与类型识别",
+    "timestamp": "2026-07-03T01:57:12.813550",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M002_data_normalize",
+    "module_name": "数据标准化",
+    "timestamp": "2026-07-03T01:57:12.858452",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M003_entity_recognition",
+    "module_name": "目标实体识别",
+    "timestamp": "2026-07-03T01:57:12.899287",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M004_online_verification",
+    "module_name": "联网核查",
+    "timestamp": "2026-07-03T01:57:12.935100",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M005_supply_chain_check",
+    "module_name": "供应链联网核查",
+    "timestamp": "2026-07-03T01:57:12.987518",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M006_phase1_triage",
+    "module_name": "初查(Phase1)-信号检测",
+    "timestamp": "2026-07-03T01:57:13.029184",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M007_phase2_deep_dive",
+    "module_name": "定向深挖(Phase2)",
+    "timestamp": "2026-07-03T01:57:13.069027",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M008_domain_analysis",
+    "module_name": "18域分析",
+    "timestamp": "2026-07-03T01:57:13.107082",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M009_rule_engine",
+    "module_name": "规则引擎(1608条)",
+    "timestamp": "2026-07-03T01:57:13.149695",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M017_financial_analysis",
+    "module_name": "财务报表税务稽查",
+    "timestamp": "2026-07-03T01:57:13.197366",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M018_tax_incentives",
+    "module_name": "税收优惠智能分析",
+    "timestamp": "2026-07-03T01:57:13.244008",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M019_policy_verification",
+    "module_name": "税收优惠政策有效期联网核实",
+    "timestamp": "2026-07-03T01:57:13.286159",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M010_chain_engine",
+    "module_name": "链驱动引擎",
+    "timestamp": "2026-07-03T01:57:13.326069",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M016_report_render",
+    "module_name": "报告渲染",
+    "timestamp": "2026-07-03T01:57:13.369069",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M020_rule_discovery",
+    "module_name": "自动规则发现",
+    "timestamp": "2026-07-03T01:57:13.415576",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M021_compliance_gate",
+    "module_name": "合规门禁与渐进学习",
+    "timestamp": "2026-07-03T01:57:13.464992",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M001_document_scan",
+    "module_name": "文件扫描与类型识别",
+    "timestamp": "2026-07-03T02:03:11.805092",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M002_data_normalize",
+    "module_name": "数据标准化",
+    "timestamp": "2026-07-03T02:03:11.830624",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M003_entity_recognition",
+    "module_name": "目标实体识别",
+    "timestamp": "2026-07-03T02:03:11.857136",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M004_online_verification",
+    "module_name": "联网核查",
+    "timestamp": "2026-07-03T02:03:11.882676",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M005_supply_chain_check",
+    "module_name": "供应链联网核查",
+    "timestamp": "2026-07-03T02:03:11.918704",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M006_phase1_triage",
+    "module_name": "初查(Phase1)-信号检测",
+    "timestamp": "2026-07-03T02:03:11.952174",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M007_phase2_deep_dive",
+    "module_name": "定向深挖(Phase2)",
+    "timestamp": "2026-07-03T02:03:11.985999",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M008_domain_analysis",
+    "module_name": "18域分析",
+    "timestamp": "2026-07-03T02:03:12.017789",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M009_rule_engine",
+    "module_name": "规则引擎(1608条)",
+    "timestamp": "2026-07-03T02:03:12.049252",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M017_financial_analysis",
+    "module_name": "财务报表税务稽查",
+    "timestamp": "2026-07-03T02:03:12.085026",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M018_tax_incentives",
+    "module_name": "税收优惠智能分析",
+    "timestamp": "2026-07-03T02:03:12.120539",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M019_policy_verification",
+    "module_name": "税收优惠政策有效期联网核实",
+    "timestamp": "2026-07-03T02:03:12.159882",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M010_chain_engine",
+    "module_name": "链驱动引擎",
+    "timestamp": "2026-07-03T02:03:12.197280",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M016_report_render",
+    "module_name": "报告渲染",
+    "timestamp": "2026-07-03T02:03:12.233544",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M020_rule_discovery",
+    "module_name": "自动规则发现",
+    "timestamp": "2026-07-03T02:03:12.271057",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
+  },
+  {
+    "module_id": "M021_compliance_gate",
+    "module_name": "合规门禁与渐进学习",
+    "timestamp": "2026-07-03T02:03:12.306077",
+    "status": "completed",
+    "company_id": 1,
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "metrics": {
+      "findings_count": 87,
+      "high_quality_count": 37,
+      "execution_time_ms": 0,
+      "errors": [],
+      "skipped_reason": ""
+    }
   }
 ]

@@ -94,8 +94,19 @@ from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysi
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期：启动时初始化数据库+自检"""
+    """应用生命周期：启动时初始化数据库+自检+恢复分析缓存"""
     init_db()
+    # 从磁盘恢复分析缓存（服务器重启不丢、跨进程共享）
+    try:
+        import json as _j
+        _path = os.path.join(os.path.dirname(__file__), "static", "last_analysis_cache.json")
+        if os.path.exists(_path):
+            with open(_path, "r", encoding="utf-8") as _f:
+                _disk = _j.load(_f)
+            for _cid, _v in _disk.items():
+                _last_analysis_cache[int(_cid)] = _v
+            print(f"[STARTUP] 恢复缓存: {len(_disk)}条分析记录")
+    except: pass
     try:
         caps = get_capability_summary()
         orch = get_module_registry_summary()

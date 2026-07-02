@@ -3508,6 +3508,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         oldest = min(_last_analysis_cache.keys(), key=lambda k: _last_analysis_cache[k].get("timestamp", ""))
         del _last_analysis_cache[oldest]
     _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
+    # 持久化到磁盘——服务器重启不丢、跨进程共享
+    try:
+        import json as _json
+        _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
+        with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
+            _json.dump(_disk, _f, ensure_ascii=False, default=str)
+    except: pass
     
     # ═══ 假设-验证推理 ───
     try:
