@@ -1119,182 +1119,9 @@ function _escHtml(s) {
 // 报告正文内嵌操作：编辑/审核/追问/删除
 // ═══════════════════════════════════════════════════════════
 
-window._editFindingInReport = function(fi) {
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  if (!f) return;
-  
-  var old = document.getElementById('finding-edit-popup');
-  if (old) old.remove();
-  
-  var popup = document.createElement('div');
-  popup.id = 'finding-edit-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
-  
-  var lv = f.level || '';
-  var ftype = (f.type || '').replace(/^Synthesis:\\s*/,'').replace(/^Causal:\\s*/,'');
-  var fdetail = (f.detail || f.description || '');
-  var escapedFtype = (ftype || '未命名').replace(/'/g,"\\'");
-  
-  // ── 智能预填：根据发现类型生成模板 ──
-  var smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"的判定：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】\n';
-  if (ftype.indexOf('发票') >= 0) {
-    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：发票的品名/金额/税率需核实\n\n【正确逻辑】请检查发票品名是否与实际业务一致，发票金额是否与合同/银行流水匹配\n\n【需要证据】业务合同、银行回单、入库单/出库单\n\n【法律依据】《中华人民共和国发票管理办法》第22条\n';
-  } else if (ftype.indexOf('收入') >= 0 || ftype.indexOf('收款') >= 0) {
-    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：收入确认的时点和金额需核实\n\n【正确逻辑】请确认该笔收款是否为经营收入，是否有对应的开票记录\n\n【需要证据】银行对账单、销售合同、出库记录\n\n【法律依据】《中华人民共和国增值税法》\n';
-  } else if (ftype.indexOf('成本') >= 0 || ftype.indexOf('采购') >= 0) {
-    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：成本的真实性和相关性需核实\n\n【正确逻辑】请确认该笔采购是否与企业主营业务直接相关，是否存在虚增成本\n\n【需要证据】采购合同、入库单、付款凭证\n\n【法律依据】《中华人民共和国企业所得税法》第8条\n';
-  } else if (ftype.indexOf('社保') >= 0 || ftype.indexOf('工资') >= 0) {
-    smartTemplate = '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"：社保缴费基数和人数需核实\n\n【正确逻辑】请核对应发工资与社保申报基数的差异，确认是否存在漏缴\n\n【需要证据】工资表、社保申报表、银行代发记录\n\n【法律依据】《中华人民共和国社会保险法》\n';
-  }
-  
-  // 构建弹窗HTML
-  popup.innerHTML = 
-    '<div style="background:#fff;border-radius:12px;max-width:760px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:16px">编辑发现 #' + fi + '</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">' + (ftype||'').slice(0,40) + '</span><span style="margin-left:8px;padding:2px 8px;border-radius:4px;font-size:11px;background:' + (lv==='高风险'?'#fee2e2':lv==='中风险'?'#fef3c7':'#dcfce7') + ';color:' + (lv==='高风险'?'#dc2626':lv==='中风险'?'#d97706':'#16a34a') + '">' + lv + '</span></div>' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">X</button>' +
-    '</div>' +
-    '<div style="padding:20px 24px">' +
-    // 关联提醒区域
-    '<div id="edit-related-alert" style="margin-bottom:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6;display:none">' +
-    '<strong>⚠️ 关联提醒：</strong>正在检测...</div>' +
-    // 修改预览区域
-    '<div id="edit-preview-area" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;font-size:11px;color:#065f46;line-height:1.6;display:none">' +
-    '<strong>📋 修改预览：</strong>当前等级 <b>' + lv + '</b></div>' +
-    // 当前引擎输出
-    '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
-    '<b>当前引擎输出：</b><br>' + (fdetail||'').slice(0,300) + '</div>' +
-    '<div style="font-size:12px;color:#6366f1;margin-bottom:8px;font-weight:600">' + (smartTemplate !== '【判断结论】需纠正\n【具体问题】关于"' + escapedFtype + '"的判定：\n\n【正确逻辑】\n\n【需要证据】\n\n【法律依据】\n' ? '🤖 已根据发现类型智能预填模板' : '模板格式：') + '</div>' +
-    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' + smartTemplate +
-    '</textarea>' +
-    '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
-    '<button onclick="window._submitFindingEdit(' + fi + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交</button>' +
-    '</div></div></div>';
-  
-  document.body.appendChild(popup);
-  
-  // ── 异步加载关联发现和修改预览 ──
-  var cid = window.currentCompanyId || 1;
-  fetch('/api/tax-risk-docs/edit-preview?company_id=' + cid, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({finding_index: fi})
-  }).then(function(r){return r.json();}).then(function(data){
-    if (!data.ok) return;
-    // 关联提醒
-    var alertEl = document.getElementById('edit-related-alert');
-    if (alertEl && data.related_count > 0) {
-      var relNames = data.related_findings.slice(0,3).map(function(r){return '#' + r.index + '「' + (r.type||'').slice(0,30) + '」';}).join('、');
-      alertEl.innerHTML = '<strong>⚠️ 关联提醒：</strong>修改此发现可能影响以下关联发现——' + relNames + '。它们与当前发现共享数据源或属于同一分析域，请一并核实。';
-      alertEl.style.display = '';
-    }
-    // 修改预览
-    var previewEl = document.getElementById('edit-preview-area');
-    if (previewEl && data.level_preview) {
-      previewEl.innerHTML = '<strong>📋 修改预览：</strong>当前等级 <b>' + data.current_level + '</b> — ' + data.level_preview;
-      previewEl.style.display = '';
-    }
-  }).catch(function(){});
-};
 
-window._submitFindingEdit = function(fi) {
-  var text = document.getElementById('finding-edit-text');
-  if (!text) return;
-  var content = text.value.trim();
-  if (!content) { alert('请填写内容'); return; }
-  
-  var payload = _buildCorrectionPayload(fi, content, 'edit');
-  if (!payload) return;
-  fetch('/api/feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  }).then(function(r){ return r.json(); }).then(function(data){
-    var p = document.getElementById('finding-edit-popup');
-    if (p) p.remove();
-    if (data.ok) {
-      var af = window._allFindings || [];
-      var f = af[fi];
-      if (f) { f._dismissed = true; f._correction_reason = content.slice(0,100); }
-      alert(data.auto_rule ? '已自动应用到'+data.count+'条发现。' : '已保存到纠正规则库。');
-    } else {
-      alert('提交失败: ' + (data.error || '未知错误'));
-    }
-  }).catch(function(e){
-    alert('网络错误: ' + e.message);
-  });
-};
 
-window._auditFindingInReport = function(fi) {
-  if (!confirm('确认此发现判定正确？')) return;
-  var payload = _buildCorrectionPayload(fi, '用户确认正确，无需修改', 'verify');
-  if (!payload) return;
-  payload.corrected_risk = payload.original_level;  // 保持原风险等级
-  fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-  .then(function(r){return r.json();}).then(function(data){
-    var af=window._allFindings||[];var f=af[fi];
-    if(f){f._verified=true;f._dismissed=false;}
-    alert(data.auto_rule?'已自动应用到'+data.count+'条发现。':'已确认，引擎将保持此判断逻辑。');
-  }).catch(function(){alert('网络错误');});
-};
 
-window._askAboutFinding = function(fi) {
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  if (!f) return;
-  
-  var old = document.getElementById('finding-ask-popup');
-  if (old) old.remove();
-  
-  var popup = document.createElement('div');
-  popup.id = 'finding-ask-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
-  
-  var ftype = (f.type || '').replace(/^Synthesis:\\s*/,'').replace(/^Causal:\\s*/,'');
-  window._chatFindingIdx = fi;
-  
-  popup.innerHTML = 
-    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-    '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
-    '<div><b style="font-size:14px">对话：追问引擎</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">#' + fi + ' ' + (ftype||'').slice(0,40) + '</span></div>' +
-    '<div style="display:flex;gap:6px">' +
-    '<button onclick="window._toggleChatPolicy()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">贴法条</button>' +
-    '<button onclick="window._clearAskChat()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">清除</button>' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-ask-popup\');if(p)p.remove();})()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button>' +
-    '</div></div>' +
-    '<div id="ask-chat-body" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;min-height:200px;max-height:55vh">' +
-    '<div style="color:#94a3b8;text-align:center;padding:30px">点击快捷提问或输入问题，追问引擎关于此发现的推理过程</div>' +
-    '</div>' +
-    '<div id="ask-policy-input" style="display:none;padding:8px 20px;background:#fef3c7;border-top:1px solid #fbbf24">' +
-    '<textarea id="ask-policy-text" placeholder="Paste policy text, the engine will compare with its cited laws..." style="width:100%;min-height:60px;border:1px solid #fbbf24;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>' +
-    '</div>' +
-    '<div style="display:flex;gap:8px;padding:10px 20px;background:#fff;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px;flex-shrink:0">' +
-    '<select id="ask-quick-question" onchange="window._askQuickFromPopup(this.value);this.value=\'\'" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff">' +
-    '<option value="">快捷提问</option>' +
-    '<option value="这个结论是怎么来的？">这个结论是怎么来的？</option>' +
-    '<option value="有什么证据支持？">有什么证据支持？</option>' +
-    '<option value="涉及哪些法律？">涉及哪些法律？</option>' +
-    '<option value="要补多少税？">要补多少税？</option>' +
-    '<option value="哪个发现最严重？">哪个发现最严重？</option>' +
-    '<option value="这个结论有漏洞吗？">这个结论有漏洞吗？</option>' +
-    '<option value="我们行业正常吗？">我们行业正常吗？</option>' +
-    '<option value="风险等级准确吗？">风险等级准确吗？</option>' +
-    '</select>' +
-    '<input id="ask-chat-input" placeholder="输入问题..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
-    '<button onclick="window._startVoiceInput()" id="voice-btn" title="语音输入" style="background:#f59e0b;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0">🎤</button>' +
-    '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">发送</button>' +
-    '</div></div>';
-  
-  document.body.appendChild(popup);
-  
-  // Auto-send first question
-  setTimeout(function(){
-    var inp = document.getElementById('ask-chat-input');
-    if (inp) { inp.value = '这个结论是怎么来的？'; window._sendAskChat(); }
-  }, 300);
-};
 
 window._sendAskChat = function() {
   var input = document.getElementById('ask-chat-input');
@@ -1781,31 +1608,6 @@ window._saveAskAsCorrection = function(fi, mode) {
   }).catch(function(){});
 };
 
-window._deleteFindingFromReport = function(fi) {
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  var cc = 0;
-  if (f) {
-    if (f._dismissed) cc++;
-    if (f._verified) cc++;
-    if (f._deleted) cc++;
-    if (f._correction_reason) cc++;
-  }
-  var msg = 'Reset to original engine output?';
-  if (cc > 0) msg += '\n\n' + cc + ' corrections recorded for this finding. Engine knowledge is preserved in correction rules — only display resets.';
-  if (!confirm(msg)) return;
-  // 清除所有修改，回到引擎初始状态
-  if (f) {
-    f._dismissed = false;
-    f._deleted = false;
-    f._verified = false;
-    f._correction_reason = '';
-    f.level = f._originalLevel || f.level || '中风险';
-  }
-  var payload = _buildCorrectionPayload(fi, 'Reset to original engine output', 'reset');
-  if (payload) { payload.corrected_risk = '已重置'; fetch('/api/feedback', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){}); }
-  if (window._reportData) { renderTaxDocReport(window._reportData); }
-};
 
 function _renderReportFallback(r, allF) {
   var S = { red: '#c92a2a', amber: '#e67700', green: '#2b8a3e' };
@@ -2475,52 +2277,6 @@ function _renderReportFallback(r, allF) {
 // 覆盖第一章至第七章全部正文段落（<p class="i2">标签）
 // 段落级操作函数 — 连接到纠正规则引擎
 // 弹窗样式对齐纠正规则库的编辑弹窗（_editFindingInReport）
-window._editParagraph = function(i) {
-  var content = _getParagraphContent(i);
-  if (!content) { toast('未找到段落内容', 'error'); return; }
-  
-  var old = document.getElementById('finding-edit-popup');
-  if (old) old.remove();
-  
-  var popup = document.createElement('div');
-  popup.id = 'finding-edit-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
-  
-  var textSample = content.replace(/<[^>]+>/g,'').slice(0,300);
-  popup.innerHTML = 
-    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-    '<div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:16px">编辑段落</b><span style="color:#94a3b8;font-size:12px;margin-left:8px">#' + i + '</span></div>' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:#94a3b8">X</button>' +
-    '</div>' +
-    '<div style="padding:20px 24px">' +
-    '<div style="margin-bottom:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;line-height:1.8">' +
-    '<b>当前段落内容：</b><br>' + _escHtml(textSample) + '</div>' +
-    '<div style="font-size:12px;color:#6366f1;margin-bottom:12px;font-weight:600">模板格式：</div>' +
-    '<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:11px;color:#1e40af;line-height:2">' +
-    '【判断结论】[正确 / 需纠正 / 不适用]<br>' +
-    '【具体问题】[指出哪里判断错了]<br>' +
-    '【正确逻辑】[说明正确的判断方法]<br>' +
-    '【需要证据】[需要什么资料才能正确判断]<br>' +
-    '【法律依据】[引用的法条或法规]</div>' +
-    '<textarea id="finding-edit-text" style="width:100%;min-height:200px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical;box-sizing:border-box">' +
-    '【判断结论】需纠正\n' +
-    '【具体问题】关于段落#' + i + '的内容：\n\n' +
-    '【正确逻辑】\n\n' +
-    '【需要证据】\n\n' +
-    '【法律依据】\n' +
-    '</textarea>' +
-    '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
-    '<button onclick="(function(){var p=document.getElementById(\'finding-edit-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">取消</button>' +
-    '<button onclick="window._submitParaEdit(' + i + ')" style="background:#6366f1;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">提交</button>' +
-    '</div></div></div>';
-  
-  // 点击遮罩关闭
-  popup.addEventListener('click', function(e) {
-    if (e.target === popup) popup.remove();
-  });
-  document.body.appendChild(popup);
-};
 
 window._submitParaEdit = function(i) {
   var text = document.getElementById('finding-edit-text');
@@ -2560,51 +2316,7 @@ window._submitParaEdit = function(i) {
   });
 };
 
-window._auditParagraph = function(i) {
-  if (!confirm('确认此段落内容正确？')) return;
-  fetch('/api/feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      company_id: window.currentCompanyId || 1,
-      industry: ((window._reportData||{}).target_entity||{}).industry || '',
-      biz_model: ((window._reportData||{}).target_entity||{}).company_type || '',
-      finding_type: 'Paragraph#' + i,
-      original_level: '',
-      corrected_risk: '已确认',
-      reason: '用户确认正确',
-      action: 'verify_paragraph',
-      timestamp: new Date().toISOString()
-    })
-  }).catch(function(){});
-  alert('已确认，引擎将保持此逻辑。');
-};
 
-window._askParagraph = function(i) {
-  var content = _getParagraphContent(i) || '';
-  
-  var old = document.getElementById('finding-ask-popup');
-  if (old) old.remove();
-  
-  var popup = document.createElement('div');
-  popup.id = 'finding-ask-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center';
-  
-  var textSample = content.replace(/<[^>]+>/g,'').slice(0,200);
-  popup.innerHTML = 
-    '<div style="background:#fff;border-radius:12px;max-width:720px;width:90%;max-height:85vh;flex-direction:column;display:flex;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-    '<div style="padding:12px 20px;background:#0f172a;color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between">' +
-    '<b style="font-size:14px">对话：段落 #' + i + '</b>' +
-    '<button onclick="document.getElementById(\'finding-ask-popup\').remove()" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer">X</button></div>' +
-    '<div id="ask-chat-body-para" style="flex:1;overflow-y:auto;padding:12px 20px;background:#f8fafc;font-size:13px;line-height:1.8;max-height:55vh">' +
-    '<div style="background:#f0f4ff;padding:10px;border-radius:6px;font-size:11px;margin-bottom:8px">段落文本： ' + textSample + '</div>' +
-    '<div style="color:#94a3b8;text-align:center;padding:20px">追问引擎关于此段落的内容</div></div>' +
-    '<div style="display:flex;gap:8px;padding:10px 20px;border-top:1px solid #e2e8f0">' +
-    '<input id="ask-chat-input-para" placeholder="追问此段落..." onkeydown="if(event.key===\'Enter\')window._sendParaChat(' + i + ')" style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">' +
-    '<button onclick="window._sendParaChat(' + i + ')" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">发送</button>' +
-    '</div></div>';
-  document.body.appendChild(popup);
-};
 
 window._sendParaChat = function(i) {
   var inp = document.getElementById('ask-chat-input-para');
@@ -2641,25 +2353,6 @@ window._sendParaChat = function(i) {
   });
 };
 
-window._resetParagraph = function(i) {
-  if (!confirm('重置此段落到引擎原始输出？')) return;
-  // 重新渲染整个报告以恢复原始内容
-  if (window._reportData) {
-    renderTaxDocReport(window._reportData);
-  }
-  fetch('/api/feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      company_id: window.currentCompanyId || 1,
-      finding_type: 'Paragraph#' + i,
-      corrected_risk: '已重置',
-      reason: 'Reset to original',
-      action: 'reset_paragraph',
-      timestamp: new Date().toISOString()
-    })
-  }).catch(function(){});
-};
 
 function _getParagraphContent(i) {
   // btn → .rpt-btn-bar → flex wrapper → firstChild(内容div) → p.i2
@@ -3315,22 +3008,3 @@ async function clearTransferCache() {
 }
 
 // ═══ 纠正规则引擎接口：统一构建完整反馈数据 ═══
-function _buildCorrectionPayload(fi, reason, action) {
-  var allF = window._allFindings || [];
-  var f = allF[fi];
-  if (!f) return null;
-  var rpt = window._reportData || {};
-  var te = rpt.target_entity || {};
-  return {
-    company_id: window.currentCompanyId || 1,
-    industry: te.industry || '',
-    biz_model: te.company_type || '',
-    finding_type: (f.type || '').replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,''),
-    original_level: f.level || '',
-    corrected_risk: action === 'delete' ? '已删除' : '低风险（用户纠正）',
-    reason: reason,
-    detail: (f.detail || f.description || ''),
-    action: action || 'dismiss',
-    timestamp: new Date().toISOString()
-  };
-}
