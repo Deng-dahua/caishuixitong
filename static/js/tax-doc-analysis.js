@@ -2329,7 +2329,6 @@ function _renderReportFallback(r, allF) {
   h += '<p style="margin-top:20px">报告日期：' + dateStr + '</p>';
   h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告一式三份：稽查部门留存一份，被查单位一份，报送上一级税务机关备案一份。</p>';
   h += '</div>';
-  h += '<p>报告日期：' + dateStr + '</p>';
   h += '</div>';
 
   // ═══ 附件 ═══
