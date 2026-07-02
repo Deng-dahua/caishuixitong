@@ -846,12 +846,8 @@ function renderTaxDocReport(r) {
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
   
-  // ── 章节追问图标：每个<h2>后加💬，先问原因再纠正 ──
-  setTimeout(function() { _initChapterFeedbackIcons(); }, 200);
-  
-  // ── 封面与表格反馈入口 ──
-  setTimeout(function() { _initCoverFeedback(); }, 250);
-  setTimeout(function() { _initTableFeedback(); }, 300);
+  // ── 统一✏️图标：章节/封面/表格行/发现——一键全入口 ──
+  setTimeout(function() { _initAllEditIcons(); }, 200);
   
   // ── 语音播报条初始化 ──
   setTimeout(function() { _initReportTTS(); }, 300);
@@ -947,32 +943,14 @@ function renderTaxDocReport(r) {
           smartHtml += '</div>';
         }
         
-        // ⑤ 报告内容反馈 — 表格/段落中的具体数据有误，点此纠正
-        smartHtml += '<div id=\"rpt-content-feedback\" style=\"margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #fbbf24;border-radius:12px\">';
-        smartHtml += '<div style=\"font-size:15px;font-weight:700;color:#b45309;margin-bottom:4px\">📝 报告内容反馈</div>';
-        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-bottom:12px\">报告中某句话、某个数据、某个表格内容有误？点此告知引擎。</div>';
-        smartHtml += '<div style=\"display:flex;flex-direction:column;gap:8px\">';
-        smartHtml += '<input id=\"cfb-chapter\" placeholder=\"所在章节（如：第一章·法定代表人信息）\" style=\"width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box\">';
-        smartHtml += '<textarea id=\"cfb-content\" placeholder=\"【错误内容】报告中写的是什么？例如：法定代表人是担任宁夏长隆\" style=\"width:100%;min-height:50px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
-        smartHtml += '<textarea id=\"cfb-fix\" placeholder=\"【正确内容】应该是什么？例如：法定代表人应为张晓冬\" style=\"width:100%;min-height:50px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
-        smartHtml += '<div style=\"display:flex;gap:8px;justify-content:flex-end;align-items:center\">';
-        smartHtml += '<span id=\"cfb-result\" style=\"font-size:11px;color:#94a3b8;flex:1\"></span>';
-        smartHtml += '<button onclick=\"window._submitContentFeedback()\" style=\"background:#d97706;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交内容反馈</button>';
-        smartHtml += '</div></div></div>';
-        
-        // ⑥ 引擎全局反馈 — 老邓直接对系统规则/计算逻辑/报告呈现提意见
-        smartHtml += '<div id=\"rpt-engine-feedback\" style=\"margin:24px 0;padding:20px 24px;background:#fff;border:2px solid #c4b5fd;border-radius:12px\">';
-        smartHtml += '<div style=\"font-size:15px;font-weight:700;color:#6d28d9;margin-bottom:4px\">⚙️ 引擎全局反馈</div>';
-        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-bottom:12px\">不限于某条发现——对系统规则、计算逻辑、报告呈现有意见，直接告诉引擎。引擎自动分析影响范围并学习。</div>';
-        smartHtml += '<div style=\"display:flex;flex-direction:column;gap:8px\">';
-        smartHtml += '<select id=\"efb-scope\" style=\"padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff\"><option value=\"\">影响范围（可选）</option><option value=\"全局\">全局</option><option value=\"税负模拟\">税负模拟</option><option value=\"报告生成\">报告生成</option><option value=\"风险定级\">风险定级</option><option value=\"发票解析\">发票解析</option><option value=\"法律引用\">法律引用</option><option value=\"证据链\">证据链</option><option value=\"行业判断\">行业判断</option><option value=\"其他\">其他</option></select>';
-        smartHtml += '<textarea id=\"efb-problem\" placeholder=\"【问题描述】当前逻辑错在哪？例如：税负模拟的增值税不能用13%预估，要用发票实际税额\" style=\"width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
-        smartHtml += '<textarea id=\"efb-correct\" placeholder=\"【正确逻辑】应该怎么做？例如：增值税专用发票取实际税额字段，普通发票增值税为0（税额并入成本）\" style=\"width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
-        smartHtml += '<textarea id=\"efb-basis\" placeholder=\"【法律依据】依据什么税法条文？（可选）例如：增值税法第十条、企业所得税法第八条\" style=\"width:100%;min-height:40px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical\"></textarea>';
-        smartHtml += '<div style=\"display:flex;gap:8px;justify-content:flex-end;align-items:center\">';
-        smartHtml += '<span id=\"efb-result\" style=\"font-size:11px;color:#94a3b8;flex:1\"></span>';
-        smartHtml += '<button onclick=\"window._submitEngineFeedback()\" style=\"background:#7c3aed;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交引擎反馈</button>';
-        smartHtml += '</div></div></div>';
+        // 统一✏️系统已覆盖所有入口——此卡片仅作兜底快捷入口
+        smartHtml += '<div id=\"rpt-engine-feedback\" style=\"margin:24px 0;padding:16px 20px;background:#fff;border:2px solid #c4b5fd;border-radius:12px\">';
+        smartHtml += '<div style=\"display:flex;align-items:center;justify-content:space-between\">';
+        smartHtml += '<div style=\"font-size:13px;font-weight:700;color:#6d28d9\">⚙️ 全局反馈（兜底）</div>';
+        smartHtml += '<button onclick=\"window._editScope={level:\'system\',id:\'system\',title:\'系统级全局反馈\'};window._unifiedEditPopup()\" style=\"background:#7c3aed;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">✏️ 打开统一反馈</button>';
+        smartHtml += '</div>';
+        smartHtml += '<div style=\"font-size:11px;color:#94a3b8;margin-top:6px\">报告里任何地方有 ✏️ 图标点它就反馈。这里是不确定位置的兜底入口。</div>';
+        smartHtml += '</div>';
         
         if (smartHtml) {
           var area = document.getElementById('tda-report-area');
@@ -1453,338 +1431,197 @@ window._clearAskChat = function() {
   window._conversationId = '';
 };
 
-// ═══════════ 报告内容反馈 ═══════════
-// ── 封面基本信息反馈 ──
-window._initCoverFeedback = function() {
+// ═══════════ 统一✏反馈系统 ═══════════
+
+window._editScope = {};
+
+window._initAllEditIcons = function() {
   var area = document.getElementById('tda-report-area');
   if (!area) return;
+
+  // 1. 每章<h2>加✏
+  area.querySelectorAll('h2[id]').forEach(function(h2) {
+    if (h2.querySelector('.edt-icon')) return;
+    var btn = _makeEditIcon('该章内容');
+    btn.onclick = function(e){ e.stopPropagation();
+      window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏','').trim()};
+      window._unifiedEditPopup();
+    };
+    h2.appendChild(btn);
+  });
+
+  // 2. 封面区
   var firstH2 = area.querySelector('h2');
-  if (!firstH2) return;
-  var container = document.createElement('div');
-  container.id = 'cover-feedback-bar';
-  container.style.cssText = 'margin:8px 0;padding:6px 10px;background:#f0f9ff;border:1px dashed #93c5fd;border-radius:6px;display:flex;align-items:center;justify-content:space-between;font-size:11px';
-  container.innerHTML = '<span style="color:#2563eb">📋 封面及基本信息有误？</span>' +
-    '<button onclick="window._coverFeedbackPopup()" style="background:#2563eb;color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">追问/纠正</button>';
-  firstH2.parentNode.insertBefore(container, firstH2);
-};
-
-window._coverFeedbackPopup = function() {
-  window._chapterFeedbackTarget = 'cover';
-  var old = document.getElementById('cfb-popup'); if (old) old.remove();
-  var area = document.getElementById('tda-report-area');
-  var coverTexts = [];
-  var walker = area.firstChild;
-  while (walker) {
-    if (walker.tagName === 'H2') break;
-    if (walker.textContent) {
-      var txt = walker.textContent.trim();
-      if (txt && txt.length > 5 && !txt.includes('追问/纠正')) coverTexts.push(txt.slice(0,200));
-    }
-    walker = walker.nextElementSibling || walker.nextSibling;
+  if (firstH2 && !document.getElementById('cover-edit-bar')) {
+    var bar = document.createElement('div');
+    bar.id = 'cover-edit-bar';
+    bar.style.cssText = 'margin:8px 0;padding:4px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;display:flex;align-items:center;justify-content:space-between;font-size:11px';
+    bar.innerHTML = '<span style="color:#64748b">封面及基本信息</span>' +
+      '<button onclick="window._editScope={level:\'cover\',id:\'cover\',title:\'报告封面及基本信息\'};window._unifiedEditPopup()" style="background:#475569;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">✏ 反馈</button>';
+    firstH2.parentNode.insertBefore(bar, firstH2);
   }
-  var popup = document.createElement('div');
-  popup.id = 'cfb-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
-  popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
-  var samplesHtml = coverTexts.slice(0,8).map(function(s,i){ return '<div class=\"cfb-sample\" style=\"padding:6px 10px;margin:3px 0;background:#f8fafc;border-radius:4px;font-size:11px;color:#475569;max-height:50px;overflow:hidden;cursor:pointer\">'+(i+1)+'. '+s+'</div>'; }).join('');
-  popup.innerHTML = _cfbPopupHTML('📋 报告封面及基本信息', '公司名称、USCC、法定代表人、行业等基础信息有误？', samplesHtml);
-  document.body.appendChild(popup);
-  setTimeout(function(){ popup.querySelectorAll('.cfb-sample').forEach(function(el){ el.onclick=function(){ var t=document.getElementById('cfb-popup-content'); if(t) t.value=el.textContent.replace(/^\\d+\\.\\s*/,''); }; }); }, 100);
-};
 
-// ── 附件表格行反馈 ──
-window._initTableFeedback = function() {
-  var area = document.getElementById('tda-report-area');
-  if (!area) return;
-  var tables = area.querySelectorAll('table.tbl, table.tbl2');
-  tables.forEach(function(table, ti) {
-    if (table.querySelector('.tbl-fb-col')) return;
+  // 3. 表格行加✏
+  area.querySelectorAll('table.tbl, table.tbl2').forEach(function(table, ti) {
+    if (table.querySelector('.edt-tbl-col')) return;
     var theadRow = table.querySelector('thead tr') || table.querySelector('tr');
-    if (theadRow && !theadRow.querySelector('.tbl-fb-col')) {
-      var th = document.createElement('th'); th.textContent = ''; th.className = 'tbl-fb-col'; th.style.cssText = 'width:30px;font-size:10px;text-align:center;color:#94a3b8'; theadRow.appendChild(th);
+    if (theadRow && !theadRow.querySelector('.edt-tbl-col')) {
+      var th = document.createElement('th'); th.textContent = ''; th.className = 'edt-tbl-col'; th.style.cssText = 'width:28px'; theadRow.appendChild(th);
     }
     var bodyRows = table.querySelectorAll('tbody tr');
     if (!bodyRows.length) bodyRows = table.querySelectorAll('tr');
     var ri = 0;
     bodyRows.forEach(function(row) {
-      if (row.querySelector('th') && !row.parentNode || row === theadRow) return;
-      ri++; if (row.querySelector('.tbl-fb-cell')) return;
-      var td = document.createElement('td'); td.className = 'tbl-fb-cell'; td.style.cssText = 'text-align:center;padding:2px';
-      var btn = document.createElement('span'); btn.textContent = '✏️'; btn.title = '指出此行数据有误'; btn.style.cssText = 'font-size:12px;cursor:pointer;opacity:0.35;transition:opacity 0.2s';
-      btn.onmouseenter = function(){ this.style.opacity = '1'; };
-      btn.onmouseleave = function(){ this.style.opacity = '0.35'; };
-      (function(rr,rn,tn){
+      if (row === theadRow || (row.querySelector('th') && !row.closest('tbody'))) return;
+      ri++; if (row.querySelector('.edt-cell')) return;
+      var td = document.createElement('td'); td.className = 'edt-cell'; td.style.cssText = 'text-align:center;padding:1px';
+      var cells = []; row.querySelectorAll('td:not(.edt-cell)').forEach(function(c){ cells.push(c.textContent.trim()); });
+      var rowData = cells.join(' | ');
+      var btn = _makeEditIcon('此行数据');
+      (function(rd, rn){
         btn.onclick = function(e){ e.stopPropagation();
-          var cells = []; rr.querySelectorAll('td:not(.tbl-fb-cell)').forEach(function(c){ cells.push(c.textContent.trim()); });
-          var popup = document.createElement('div'); popup.id = 'cfb-popup';
-          popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
-          popup.onclick = function(e){ if(e.target===popup) popup.remove(); };
-          var rowTxt = cells.join(' | ');
-          popup.innerHTML = _cfbPopupHTML('📊 附件表格 · 第'+rn+'行', '<div style=\"padding:10px 14px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.6;max-height:200px;overflow-y:auto;margin-bottom:8px\">'+rowTxt+'</div>', '');
-          document.body.appendChild(popup);
-          var ct = document.getElementById('cfb-popup-content'); if(ct) ct.value = rowTxt;
+          window._editScope = {level:'table_row', id:'row'+rn, title:'附件表格·第'+rn+'行', content:rd};
+          window._unifiedEditPopup(rd);
         };
-      })(row, ri, ti);
+      })(rowData, ri);
       td.appendChild(btn); row.appendChild(td);
     });
   });
 };
 
-// ── 通用弹窗HTML模板 ──
-window._cfbPopupHTML = function(title, hint, samplesHtml) {
-  return '<div style=\"background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">' +
-    '<div style=\"padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center\">' +
-    '<div><b style=\"font-size:15px\">' + title + '</b></div>' +
-    '<button onclick="var p=document.getElementById(\x27cfb-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
-    '</div><div style=\"padding:16px 20px\">' +
-    '<div style=\"font-size:12px;color:#64748b;margin-bottom:12px\">' + hint + '</div>' +
-    (samplesHtml || '') +
-    '<textarea id=\"cfb-popup-content\" placeholder=\"或直接粘贴有疑问的内容...\" style=\"width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical;margin-top:8px\"></textarea>' +
-    '<div style=\"display:flex;gap:8px;margin-top:8px\">' +
-    '<button id=\"cfb-ask-btn\" onclick=\"window._cfbAskWhy()\" style=\"flex:1;background:#0f172a;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">🔍 追问：为什么这样判断？</button>' +
-    '<button id=\"cfb-fix-btn\" onclick=\"window._cfbOpenFix()\" style=\"flex:1;background:#fff;color:#b45309;border:1px solid #d97706;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">📝 纠正：我知道正确答案</button>' +
-    '</div><div id=\"cfb-ask-result\" style=\"margin-top:12px;padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.8;display:none\"></div>' +
-    '<div id=\"cfb-fix-area\" style=\"margin-top:12px;display:none\">' +
-    '<textarea id=\"cfb-fix-content\" placeholder=\"【正确内容】应该是什么？\" style=\"width:100%;min-height:60px;border:1px solid #d97706;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical\"></textarea>' +
-    '<button onclick=\"window._cfbSubmitFix()\" style=\"margin-top:8px;background:#d97706;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交纠正</button>' +
-    '</div></div></div>';
+window._makeEditIcon = function(tip) {
+  var btn = document.createElement('span');
+  btn.className = 'edt-icon';
+  btn.innerHTML = ' ✏';
+  btn.title = tip + ' --- 编辑/审核/追问/重置';
+  btn.style.cssText = 'font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px';
+  btn.onmouseenter = function(){ this.style.opacity = '1'; };
+  btn.onmouseleave = function(){ this.style.opacity = '0.35'; };
+  return btn;
 };
 
-// ── 章节💬图标：先追问原因，再纠正内容 ──
-window._chapterFeedbackTarget = null;
-
-window._initChapterFeedbackIcons = function() {
-  var area = document.getElementById('tda-report-area');
-  if (!area) return;
-  
-  var headings = area.querySelectorAll('h2[id]');
-  headings.forEach(function(h2) {
-    if (h2.querySelector('.ch-fb-btn')) return; // 已添加
-    var btn = document.createElement('span');
-    btn.className = 'ch-fb-btn';
-    btn.innerHTML = ' 💬';
-    btn.title = '点击追问或纠正此章内容';
-    btn.style.cssText = 'font-size:14px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;margin-left:6px';
-    btn.onmouseenter = function(){ this.style.opacity = '1'; };
-    btn.onmouseleave = function(){ this.style.opacity = '0.5'; };
-    btn.onclick = function(e){ 
-      e.stopPropagation();
-      window._chapterFeedbackPopup(h2.id, h2.textContent.replace('💬','').trim());
-    };
-    h2.appendChild(btn);
-  });
-};
-
-window._chapterFeedbackPopup = function(chId, chTitle) {
-  window._chapterFeedbackTarget = chId;
-  
-  // 移除旧弹窗
-  var old = document.getElementById('cfb-popup');
+// ═══ 统一弹窗 ═══
+window._unifiedEditPopup = function(rowData) {
+  var old = document.getElementById('edt-popup');
   if (old) old.remove();
-  
-  // 收集本章所有段落文本
-  var area = document.getElementById('tda-report-area');
-  var chEl = area.querySelector('#' + chId);
-  var contentSamples = [];
-  if (chEl) {
-    var next = chEl;
-    while (next && (next = next.nextElementSibling) && !(next.tagName === 'H2')) {
-      var txt = next.textContent.trim();
-      if (txt && txt.length > 10) contentSamples.push(txt.slice(0, 150));
-    }
+
+  var scope = window._editScope;
+  var isCover = scope.level === 'cover';
+  var isChapter = scope.level === 'chapter';
+  var isRow = scope.level === 'table_row';
+  var title = (scope.title || '报告反馈');
+
+  // 收集文本样本
+  var samplesHtml = '';
+  if (isCover) {
+    var area = document.getElementById('tda-report-area');
+    var texts = []; var w = area.firstChild;
+    while (w) { if (w.tagName === 'H2') break; if (w.textContent) { var t = w.textContent.trim(); if (t && t.length > 5 && t.indexOf('反馈') < 0) texts.push(t.slice(0,200)); } w = w.nextElementSibling || w.nextSibling; }
+    samplesHtml = texts.slice(0,8).map(function(s,i){ return '<div class="edt-sample" style="padding:5px 10px;margin:2px 0;background:#f8fafc;border-radius:4px;font-size:11px;color:#475569;cursor:pointer;max-height:44px;overflow:hidden">'+s+'</div>'; }).join('');
   }
-  
+  if (isChapter) {
+    var area = document.getElementById('tda-report-area');
+    var chEl = document.getElementById(scope.id);
+    var texts = [];
+    if (chEl) { var n = chEl; while (n && (n = n.nextElementSibling) && !(n.tagName === 'H2')) { var t = n.textContent.trim(); if (t && t.length > 10) texts.push(t.slice(0,150)); } }
+    samplesHtml = texts.slice(0,5).map(function(s,i){ return '<div class="edt-sample" style="padding:5px 10px;margin:2px 0;background:#f8fafc;border-radius:4px;font-size:11px;color:#475569;cursor:pointer;max-height:44px;overflow:hidden">'+s+'</div>'; }).join('');
+  }
+
   var popup = document.createElement('div');
-  popup.id = 'cfb-popup';
+  popup.id = 'edt-popup';
   popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center';
   popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
-  
-  var samplesHtml = contentSamples.slice(0,5).map(function(s,i){ 
-    return '<div style="padding:6px 10px;margin:3px 0;background:#f8fafc;border-radius:4px;font-size:11px;color:#475569;max-height:60px;overflow:hidden">' + (i+1) + '. ' + s + '</div>';
-  }).join('');
-  
-  popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+
+  var scopeTag = isCover ? '封面' : (isChapter ? '章节' : (isRow ? '表格行' : ''));
+  var samplesSection = samplesHtml ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">点击下方段落选择，或直接输入：</div>'+samplesHtml : '';
+  var rowDisplay = (rowData && isRow) ? '<div style="padding:10px 14px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.6;max-height:150px;overflow-y:auto;margin-bottom:8px">'+rowData+'</div>' : '';
+
+  popup.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:640px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
     '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">' +
-    '<div><b style="font-size:15px">📋 ' + (chTitle||'') + '</b></div>' +
-    '<button onclick="var p=document.getElementById(\'cfb-popup\');if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
+    '<div><b style="font-size:15px">✏ '+title+'</b><span style="font-size:11px;color:#94a3b8;margin-left:8px">'+scopeTag+'</span></div>' +
+    '<button onclick="var p=document.getElementById(\x27edt-popup\x27);if(p)p.remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8">✕</button>' +
     '</div>' +
-    '<div id="cfb-popup-body" style="padding:16px 20px">' +
-    '<div style="font-size:12px;color:#64748b;margin-bottom:12px">你想了解本章哪段内容的判断逻辑？选择一段后先追问原因，再决定如何纠正。</div>' +
-    samplesHtml +
-    '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">' +
-    '<textarea id="cfb-popup-content" placeholder="或直接粘贴有疑问的报告内容..." style="width:100%;min-height:60px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical"></textarea>' +
-    '<div style="display:flex;gap:8px">' +
-    '<button id="cfb-ask-btn" onclick="window._cfbAskWhy()" style="flex:1;background:#0f172a;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">🔍 先追问：为什么引擎这样判断？</button>' +
-    '<button id="cfb-fix-btn" onclick="window._cfbOpenFix()" style="flex:1;background:#fff;color:#b45309;border:1px solid #d97706;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">📝 直接纠正：我知道正确的答案</button>' +
+    '<div style="padding:16px 20px">' +
+    samplesSection + rowDisplay +
+    '<textarea id="edt-content" placeholder="描述问题或粘贴有疑问的内容..." style="width:100%;min-height:70px;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical;margin-top:6px"></textarea>' +
+    '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
+    '<button onclick="window._edtAction(\x27ask\x27)" style="flex:1;min-width:80px;background:#0f172a;color:#fff;border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔍 追问</button>' +
+    '<button onclick="window._edtAction(\x27edit\x27)" style="flex:1;min-width:80px;background:#6366f1;color:#fff;border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">📝 编辑</button>' +
+    '<button onclick="window._edtAction(\x27audit\x27)" style="flex:1;min-width:80px;background:#dc2626;color:#fff;border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✅ 审核</button>' +
+    '<button onclick="document.getElementById(\x27edt-content\x27).value=\x27\x27" style="flex:1;min-width:80px;background:#fff;color:#64748b;border:1px solid #cbd5e1;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔄 重置</button>' +
     '</div>' +
-    '<div id="cfb-ask-result" style="margin-top:12px;padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.8;display:none"></div>' +
-    '<div id="cfb-fix-area" style="margin-top:12px;display:none">' +
-    '<textarea id="cfb-fix-content" placeholder="【正确内容】应该是什么？\" style=\"width:100%;min-height:60px;border:1px solid #d97706;border-radius:6px;padding:8px;font-size:12px;box-sizing:border-box;resize:vertical\"></textarea>' +
-    '<button onclick=\"window._cfbSubmitFix()\" style=\"margin-top:8px;background:#d97706;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer\">提交纠正</button>' +
-    '</div>' +
-    '</div></div></div>';
-  
+    '<div id="edt-ask-result" style="margin-top:10px;padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569;line-height:1.8;display:none"></div>' +
+    '<div id="edt-fix-area" style="margin-top:10px;display:none">' +
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">正确内容：</div>' +
+    '<textarea id="edt-fix-input" placeholder="写下正确的内容/逻辑/判断..." style="width:100%;min-height:60px;border:1px solid #d97706;border-radius:6px;padding:8px;font-size:12px;line-height:1.6;box-sizing:border-box;resize:vertical"></textarea>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">' +
+    '<button onclick="window._edtSubmitFix()" style="background:#d97706;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">提交纠正</button>' +
+    '<span id="edt-submit-result" style="font-size:11px;color:#94a3b8"></span>' +
+    '</div></div>' +
+    '</div></div>';
+
   document.body.appendChild(popup);
-  
-  // 点击示例文字自动填入
-  contentSamples.forEach(function(s, i) {
+
+  if (samplesHtml) {
     setTimeout(function(){
-      var el = popup.querySelectorAll('div[style*="f8fafc"]')[i];
-      if (el) {
-        el.style.cursor = 'pointer';
-        el.onclick = function(){
-          document.getElementById('cfb-popup-content').value = s;
-        };
-      }
+      popup.querySelectorAll('.edt-sample').forEach(function(el){
+        el.onclick = function(){ document.getElementById('edt-content').value = el.textContent; };
+      });
     }, 100);
-  });
+  }
 };
 
-window._cfbAskWhy = function() {
-  var content = (document.getElementById('cfb-popup-content')||{}).value || '';
-  if (!content) { 
-    var resultEl = document.getElementById('cfb-ask-result');
+// ═══ 四个按钮动作 ═══
+window._edtAction = function(action) {
+  var content = (document.getElementById('edt-content')||{}).value || '';
+  if (!content) { alert('请先输入或选择内容'); return; }
+
+  if (action === 'ask') {
+    var resultEl = document.getElementById('edt-ask-result');
     resultEl.style.display = 'block';
-    resultEl.innerHTML = '<span style="color:#dc2626">请先选择或粘贴一段报告内容</span>';
+    resultEl.innerHTML = '<span style="color:#7c3aed">🔍 引擎正在分析...</span>';
+    var cid = window.currentCompanyId || 1;
+    fetch('/api/tax-risk-docs/ask?company_id=' + cid, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ finding_index: -1, question: '关于报告中这段内容的判断逻辑：「' + content.slice(0,300) + '」。请解释引擎是如何得出这个结论的？基于什么数据？', paragraph_text: content.slice(0,500) })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok && d.analysis) {
+        var txt = d.analysis.map(function(b){ return '<b>'+(b.title||'')+'</b><br>'+(b.content||''); }).join('<br><br>');
+        resultEl.innerHTML = txt + '<div style="margin-top:10px"><button onclick="window._edtShowFix()" style="background:#d97706;color:#fff;border:none;padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer">📝 需要纠正？点此输入</button></div>';
+      } else {
+        resultEl.innerHTML = '<span style="color:#dc2626">追问失败: '+(d.message||'')+'</span>';
+      }
+    }).catch(function(){ resultEl.innerHTML = '<span style="color:#dc2626">网络错误</span>'; });
     return;
   }
-  
-  var resultEl = document.getElementById('cfb-ask-result');
-  resultEl.style.display = 'block';
-  resultEl.innerHTML = '<span style="color:#7c3aed">🔍 引擎正在分析这段内容的判断逻辑...</span>';
-  
-  var companyId = window.currentCompanyId || 1;
-  fetch('/api/tax-risk-docs/ask?company_id=' + companyId, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      finding_index: -1,  // 段落追问模式
-      question: '报告中有这样一段内容：「' + content.slice(0,200) + '」。请问系统是如何得出这个结论的？基于什么数据？用了什么分析逻辑？',
-      paragraph_text: content.slice(0,500),
-    })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.ok && d.analysis) {
-      var txt = d.analysis.map(function(b){ return '<b>' + (b.title||'') + '</b><br>' + (b.content||''); }).join('<br><br>');
-      resultEl.innerHTML = '<div style="margin-bottom:8px;font-weight:600;color:#0f172a">🔍 引擎分析：</div>' + txt +
-        '<div style="margin-top:12px"><button onclick="window._cfbOpenFix()" style="background:#d97706;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">📝 还不满意？纠正此内容</button></div>';
-    } else {
-      resultEl.innerHTML = '<span style="color:#dc2626">追问失败: ' + (d.message||'') + '</span>';
-    }
-  }).catch(function(){
-    resultEl.innerHTML = '<span style="color:#dc2626">追问失败，请重试</span>';
-  });
-};
 
-window._cfbOpenFix = function() {
-  var fixArea = document.getElementById('cfb-fix-area');
-  if (fixArea) {
-    fixArea.style.display = 'block';
-    // 预填错误内容
-    var content = (document.getElementById('cfb-popup-content')||{}).value || '';
-    if (content && !document.getElementById('cfb-fix-content').value) {
-      document.getElementById('cfb-fix-content').placeholder = '请在此输入正确内容（当前错误内容已捕获）';
-    }
+  if (action === 'edit' || action === 'audit') {
+    window._edtShowFix();
+    document.getElementById('edt-fix-input').focus();
   }
 };
 
-window._cfbSubmitFix = function() {
-  var content = (document.getElementById('cfb-popup-content')||{}).value || '';
-  var fix = (document.getElementById('cfb-fix-content')||{}).value || '';
-  var chId = window._chapterFeedbackTarget || '';
-  var chTitle = document.getElementById(chId) ? document.getElementById(chId).textContent.replace('💬','').trim() : '';
-  
+window._edtShowFix = function() {
+  document.getElementById('edt-fix-area').style.display = 'block';
+};
+
+window._edtSubmitFix = function() {
+  var content = (document.getElementById('edt-content')||{}).value || '';
+  var fix = (document.getElementById('edt-fix-input')||{}).value || '';
   if (!fix) { alert('请填写正确内容'); return; }
-  
+  var scope = window._editScope;
+  var chapter = (scope.title || '') + ' (' + (scope.level || '') + ')';
   fetch('/api/agi/content-feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      chapter: chTitle || '未指定章节',
-      wrong_content: content || '（用户直接纠正文中内容）',
-      correct_content: fix,
-    })
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ chapter: chapter, wrong_content: content, correct_content: fix })
   }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.ok) {
-      var p = document.getElementById('cfb-popup');
-      if (p) p.remove();
-      alert('✅ 已记录（ID: ' + d.feedback_id + '），感谢反馈！');
-    } else {
-      alert('提交失败: ' + (d.message||''));
-    }
-  });
-};
-window._submitContentFeedback = function() {
-  var chapter = (document.getElementById('cfb-chapter')||{}).value || '';
-  var content = (document.getElementById('cfb-content')||{}).value || '';
-  var fix = (document.getElementById('cfb-fix')||{}).value || '';
-  var resultEl = document.getElementById('cfb-result');
-  
-  if (!content || !fix) {
-    if (resultEl) { resultEl.textContent = '请填写【错误内容】和【正确内容】'; resultEl.style.color = '#dc2626'; }
-    return;
-  }
-  
-  if (resultEl) { resultEl.textContent = '提交中...'; resultEl.style.color = '#d97706'; }
-  
-  fetch('/api/agi/content-feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({chapter: chapter, wrong_content: content, correct_content: fix})
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.ok) {
-      if (resultEl) { 
-        resultEl.innerHTML = '✅ 已记录（ID: ' + d.feedback_id + '），反馈次数: ' + d.total; 
-        resultEl.style.color = '#16a34a';
-      }
-      document.getElementById('cfb-content').value = '';
-      document.getElementById('cfb-fix').value = '';
-    } else {
-      if (resultEl) { resultEl.textContent = d.message || '提交失败'; resultEl.style.color = '#dc2626'; }
-    }
-  }).catch(function(){
-    if (resultEl) { resultEl.textContent = '提交失败'; resultEl.style.color = '#dc2626'; }
+    var el = document.getElementById('edt-submit-result');
+    if (d.ok) { el.textContent = '已记录 (ID: '+d.feedback_id+')'; el.style.color = '#16a34a'; }
+    else { el.textContent = d.message || '失败'; el.style.color = '#dc2626'; }
   });
 };
 
-// ═══════════ 引擎全局反馈 ═══════════
-window._submitEngineFeedback = function() {
-  var scope = (document.getElementById('efb-scope')||{}).value || '';
-  var problem = (document.getElementById('efb-problem')||{}).value || '';
-  var correct = (document.getElementById('efb-correct')||{}).value || '';
-  var basis = (document.getElementById('efb-basis')||{}).value || '';
-  var resultEl = document.getElementById('efb-result');
-  
-  if (!problem || !correct) {
-    if (resultEl) { resultEl.textContent = '请至少填写【问题描述】和【正确逻辑】'; resultEl.style.color = '#dc2626'; }
-    return;
-  }
-  
-  if (resultEl) { resultEl.textContent = '提交中...'; resultEl.style.color = '#7c3aed'; }
-  
-  fetch('/api/agi/engine-feedback', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({scope: scope, problem: problem, correct: correct, basis: basis})
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.ok) {
-      var mods = d.affected_modules.map(function(m){ return m.section; }).join('、');
-      if (resultEl) { 
-        resultEl.innerHTML = '✅ 已记录（ID: ' + d.feedback_id + '），影响' + d.affected_modules.length + '个模块: ' + mods; 
-        resultEl.style.color = '#16a34a';
-      }
-      // 清空输入
-      document.getElementById('efb-problem').value = '';
-      document.getElementById('efb-correct').value = '';
-      document.getElementById('efb-basis').value = '';
-    } else {
-      if (resultEl) { resultEl.textContent = d.message || '提交失败'; resultEl.style.color = '#dc2626'; }
-    }
-  }).catch(function(){
-    if (resultEl) { resultEl.textContent = '提交失败，请检查网络'; resultEl.style.color = '#dc2626'; }
-  });
-};
-
-// ═══════════ 语音输入 ═══════════
+// ═══════════ 语音输入 ═══════════// ═══════════ 语音输入 ═══════════
 window._voiceRecognition = null;
 
 window._startVoiceInput = function() {
