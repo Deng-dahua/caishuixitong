@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1ca3e353",
+    "finding_type": "服务行业进销存异常",
+    "pattern": "服务行业跳过进销存分析",
+    "keywords": [
+      "进销存",
+      "BOM",
+      "加工费",
+      "实物分析"
+    ],
+    "action": "降级",
+    "affected_count": 1,
+    "industry": "服务业",
+    "created_at": "2026-07-02T10:10:15.808899",
+    "auto_apply": true
+  }
+]

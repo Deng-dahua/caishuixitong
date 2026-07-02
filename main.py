@@ -7840,6 +7840,52 @@ def list_report_versions():
         ]
     }
 
+# ═══════════ AGI核心能力API：记忆+一次学会+反事实+自主运行 ═══════════
+
+@app.get("/api/agi/memory")
+def get_memory(company_id: int = Query(...)):
+    """持续记忆：该企业的历史分析摘要"""
+    from engine.agi_core import memory
+    return {"ok": True, "memory": memory.recall(company_id)}
+
+@app.post("/api/agi/learn-once")
+def learn_once(data: dict):
+    """一次学会：纠正1次就分析模式"""
+    from engine.agi_core import one_shot
+    return {"ok": True, "result": one_shot.learn_once(
+        data.get("finding_type", ""),
+        data.get("reason", ""),
+        data.get("findings", []),
+        data.get("industry", ""),
+    )}
+
+@app.get("/api/agi/counterfactual")
+def counterfactual_reason(finding_type: str = Query(""), detail: str = Query("")):
+    """反事实推理"""
+    from engine.agi_core import counterfactual
+    return {"ok": True, "result": counterfactual.reason(
+        {"type": finding_type, "detail": detail},
+        {},
+    )}
+
+@app.post("/api/agi/auto-schedule")
+def auto_schedule(data: dict):
+    """设置自动巡检"""
+    from engine.agi_core import autonomous
+    return {"ok": True, "result": autonomous.schedule(
+        data.get("company_id", 1),
+        data.get("interval_hours", 24),
+        data.get("notify", True),
+    )}
+
+@app.get("/api/agi/auto-status")
+def auto_status(company_id: int = Query(...)):
+    """自主运行状态"""
+    from engine.agi_core import autonomous, memory
+    should = autonomous.should_run(company_id)
+    mem = memory.recall(company_id)
+    return {"ok": True, "should_run": should, "memory": mem}
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):

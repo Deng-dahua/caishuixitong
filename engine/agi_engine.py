@@ -104,6 +104,19 @@ class AGIEngine:
                 pen = director.penetrate_essence(f)
                 if pen.get("flags"):
                     dir_result["penetration"] = pen
+        
+        # ── 反事实推理 ──
+        from engine.agi_core import counterfactual
+        if findings:
+            cf = counterfactual.reason(findings[0], context.get("material_intel", {}))
+            dir_result["counterfactual"] = cf
+        
+        # ── 一次学会：应用已学规则 ──
+        from engine.agi_core import one_shot
+        applied = one_shot.apply_rules(findings)
+        if applied:
+            dir_result["one_shot_applied"] = applied[:5]
+        
         dir_result["cross_tax"] = director.cross_tax_chain(findings)
         if findings:
             dir_result["probing"] = director.generate_probing_questions(findings[0], dir_result["uncertainties"][0] if dir_result["uncertainties"] else {})
@@ -115,7 +128,7 @@ class AGIEngine:
         self._inject_reasoning(result, reasoning, dir_result)
         
         result["backend"] = "agi_reasoning_engine"
-        result["mode_note"] = "因果发现+语义理解+创造性假设+历史记忆+1608规则——六层AGI推理"
+        result["mode_note"] = "因果发现+语义理解+创造性假设+历史记忆+处长引擎+13层全链路AGI推理"
         result["reasoning"] = {
             "signals": reasoning.causal_signals[:5],
             "predictions": reasoning.causal_predictions[:3],
@@ -208,6 +221,25 @@ class AGIEngine:
                     "title": "📋 自主调查计划",
                     "content": "\n".join(lines),
                 })
+        
+        # ── 反事实推理 ──
+        if dir_result and dir_result.get("counterfactual"):
+            cf = dir_result["counterfactual"]
+            if cf.get("status") == "reasoned":
+                cfd = cf["counterfactual"]
+                analysis.append({
+                    "title": "🔄 反事实推理",
+                    "content": f"场景: {cfd['scenario']}\n预期: {cfd['expected_data']}\n验证: {cfd['test_method']}\n结论: {cf['conclusion']}",
+                })
+        
+        # ── 一次学会 ──
+        if dir_result and dir_result.get("one_shot_applied"):
+            applied = dir_result["one_shot_applied"]
+            lines = [f"• {a['type'][:40]}: {a['original_level']} → {a['action']}（{a['pattern']}）" for a in applied[:3]]
+            analysis.append({
+                "title": f"✅ 一次学会（{len(applied)}条已自动修正）",
+                "content": "\n".join(lines),
+            })
         
         # 语义理解
         if reasoning.semantic_matches:

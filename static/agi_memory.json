@@ -1,0 +1,31 @@
+{
+  "analyses": {
+    "1": [
+      {
+        "timestamp": "2026-07-02T10:10:15.807149",
+        "risk_level": "高风险",
+        "risk_score": 80,
+        "finding_count": 1,
+        "finding_types": [
+          "虚开进项"
+        ],
+        "high_risk_count": 1,
+        "signals": [],
+        "industry": "纺织业"
+      }
+    ]
+  },
+  "corrections": [],
+  "fingerprints": {
+    "1": {
+      "first_analyzed": "2026-07-02T10:10:15.807160",
+      "total_analyses": 1,
+      "trend": "stable",
+      "common_risks": [
+        "虚开进项"
+      ],
+      "last_risk_level": "高风险",
+      "last_analyzed": "2026-07-02T10:10:15.807162"
+    }
+  }
+}

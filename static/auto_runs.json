@@ -1,0 +1,14 @@
+{
+  "schedules": [
+    {
+      "id": "AUTO-0001",
+      "company_id": 1,
+      "interval_hours": 24,
+      "created_at": "2026-07-02T10:10:15.810489",
+      "next_run": "2026-07-03T10:10:15.810494",
+      "notify": true,
+      "enabled": true
+    }
+  ],
+  "runs": []
+}

@@ -8,8 +8,8 @@
     "size": 41872
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_engine.py": {
-    "mtime": 1782931653.9928923,
-    "size": 11543
+    "mtime": 1782957405.0126147,
+    "size": 16350
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
     "mtime": 1782840079.8957443,
@@ -50,6 +50,10 @@
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_enterprise_graph.py": {
     "mtime": 1782355235.3315952,
     "size": 12310
+  },
+  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\director.py": {
+    "mtime": 1782956990.1427207,
+    "size": 22972
   },
   "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\domain_analysis.py": {
     "mtime": 1782917711.645936,
