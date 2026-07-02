@@ -7762,6 +7762,84 @@ def start_patrol(company_id: int = Query(...)):
             "trigger": rules_count >= PATROL_CONFIG.get("significant_change_threshold", 2),
             "message": "巡逻触发条件已满足" if rules_count >= 2 else "需更多因果规则"}
 
+# ═══════════ 报告导出 + 移动端 ═══════════
+
+@app.get("/api/agi/report/export")
+def export_report(company_id: int = Query(...), format: str = "txt"):
+    """导出稽查报告（txt/json/html）"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果"}
+    
+    report = cached.get("report", {})
+    report_data = report.get("report", report if isinstance(report, dict) else {})
+    findings = report_data.get("all_findings", [])
+    target = report_data.get("target_entity", {})
+    comp = report_data.get("comprehensive", {})
+    
+    if format == "json":
+        return {"ok": True, "data": report_data, "format": "json"}
+    
+    # 生成纯文本报告
+    lines = [
+        "══════════════════════════",
+        "    税务稽查分析报告",
+        "══════════════════════════",
+        "",
+        f"被查单位: {target.get('name', '')}",
+        f"统一社会信用代码: {target.get('uscc', '')}",
+        f"行业: {target.get('industry', '')}",
+        f"分析期间: {target.get('period', '')}",
+        f"综合风险: {comp.get('overall_risk', '')}",
+        f"风险评分: {comp.get('risk_score', '')}",
+        "",
+        f"共发现 {len(findings)} 项风险问题",
+        "",
+        "── 高风险发现 ──",
+    ]
+    
+    for f in findings:
+        if f.get("level") in ("高风险", "极高风险"):
+            lines.append(f"\n【{f.get('level','')}】{f.get('type','')}")
+            lines.append(f"  事实: {f.get('detail', f.get('description',''))[:200]}")
+            lines.append(f"  依据: {f.get('policy_ref', '')[:200]}")
+            lines.append(f"  建议: {f.get('suggestion', '')[:200]}")
+    
+    lines.extend([
+        "",
+        "── 中风险发现 ──",
+    ])
+    for f in findings:
+        if f.get("level") == "中风险":
+            lines.append(f"\n【中风险】{f.get('type','')}")
+            lines.append(f"  事实: {f.get('detail', f.get('description',''))[:200]}")
+    
+    lines.extend([
+        "",
+        "══════════════════════════",
+        f"报告生成时间: {_time_module_inner.strftime('%Y-%m-%d %H:%M:%S', _time_module_inner.localtime())}",
+        "系统: 财税风险防控系统 AGI版",
+    ])
+    
+    if format == "html":
+        html = "<h1>税务稽查分析报告</h1>" + "<br>".join(lines).replace("\n", "<br>")
+        return HTMLResponse(content=html)
+    
+    return {"ok": True, "report": "\n".join(lines), "format": "txt"}
+
+@app.get("/api/agi/report/versions")
+def list_report_versions():
+    """列出可用的报告版本模板"""
+    return {
+        "ok": True,
+        "versions": [
+            {"id": "standard", "name": "标准稽查报告", "desc": "7章完整格式"},
+            {"id": "executive", "name": "管理层简报", "desc": "1页摘要+TOP5风险"},
+            {"id": "detail", "name": "详细底稿", "desc": "含全部证据行+原始数据表"},
+            {"id": "compliance", "name": "合规检查报告", "desc": "逐条法条对照+合规评分"},
+        ]
+    }
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):

@@ -37,6 +37,15 @@
     .eng-tab { padding:8px 20px;border-radius:6px 6px 0 0;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;background:#f1f5f9;transition:all 0.2s }
     .eng-tab.active { color:#fff;background:#3b82f6 }
     .eng-tab:hover:not(.active) { color:#1e293b;background:#e2e8f0 }
+    /* 移动端适配 */
+    @media (max-width:768px){
+      #sidebar{width:100%;height:auto;position:relative;overflow-y:visible}
+      #sidebar .sidebar-nav{max-height:200px;overflow-y:auto}
+      #main{margin-left:0;padding:8px}
+      .content-area{padding:12px}
+      .nav-item{padding:8px 12px;font-size:12px}
+      #tda-report-area{font-size:13px}
+    }
   </style>
 </head>
 <body>

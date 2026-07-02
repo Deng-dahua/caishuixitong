@@ -1269,6 +1269,7 @@ window._askAboutFinding = function(fi) {
     '<option value="风险等级准确吗？">风险等级准确吗？</option>' +
     '</select>' +
     '<input id="ask-chat-input" placeholder="输入问题..." onkeydown="if(event.key===\'Enter\')window._sendAskChat()" style="flex:3;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box">' +
+    '<button onclick="window._startVoiceInput()" id="voice-btn" title="语音输入" style="background:#f59e0b;color:#fff;border:none;padding:8px 12px;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0">🎤</button>' +
     '<button onclick="window._sendAskChat()" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">发送</button>' +
     '</div></div>';
   
@@ -1369,6 +1370,62 @@ window._clearAskChat = function() {
   if (body) body.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:30px">Chat cleared</div>';
   window._askChatHistory = [];
   window._conversationId = '';
+};
+
+// ═══════════ 语音输入 ═══════════
+window._voiceRecognition = null;
+
+window._startVoiceInput = function() {
+  var btn = document.getElementById('voice-btn');
+  var inp = document.getElementById('ask-chat-input');
+  if (!btn || !inp) return;
+  
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('您的浏览器不支持语音识别，请使用Chrome浏览器。');
+    return;
+  }
+  
+  if (window._voiceRecognition) {
+    window._voiceRecognition.stop();
+    return;
+  }
+  
+  var recognition = new SpeechRecognition();
+  recognition.lang = 'zh-CN';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  
+  recognition.onstart = function() {
+    btn.style.background = '#dc2626';
+    btn.textContent = '⏺';
+    inp.placeholder = '正在聆听...';
+  };
+  
+  recognition.onresult = function(event) {
+    var text = event.results[0][0].transcript;
+    inp.value = text;
+    inp.focus();
+  };
+  
+  recognition.onerror = function(event) {
+    window._voiceRecognition = null;
+    btn.style.background = '#f59e0b';
+    btn.textContent = '🎤';
+    inp.placeholder = '输入问题...';
+  };
+  
+  recognition.onend = function() {
+    window._voiceRecognition = null;
+    btn.style.background = '#f59e0b';
+    btn.textContent = '🎤';
+    if (inp.value && inp.value.length > 1) {
+      window._sendAskChat();
+    }
+  };
+  
+  window._voiceRecognition = recognition;
+  recognition.start();
 };
 
 // 自动总结多轮对话并保存为纠正规则
