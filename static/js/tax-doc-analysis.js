@@ -1876,6 +1876,23 @@ function _renderReportFallback(r, allF) {
     var realIdx = f._idx !== undefined ? f._idx : fi;
     h += '<p style="text-indent:2em;margin:8px 0;text-align:justify;display:flex;align-items:flex-start;gap:0">' +
       '<span style="flex:1;min-width:0"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + lv;
+    // ── AGI增强徽章 ──
+    if (f._agi_enhanced) {
+      var agi = f._agi_enhanced;
+      var cf = agi.confidence || {};
+      var bw = agi.boundary || {};
+      if (cf.confidence !== undefined) {
+        var sc = cf.confidence;
+        var cfColor = sc >= 0.7 ? '#16a34a' : (sc >= 0.4 ? '#d97706' : '#dc2626');
+        h += ' <span style="font-size:10px;color:' + cfColor + ';border:1px solid ' + cfColor + ';border-radius:3px;padding:0 4px">置信度' + Math.round(sc*100) + '%</span>';
+      }
+      if (bw.level) {
+        h += ' <span style="font-size:10px;color:#6366f1;border:1px solid #6366f1;border-radius:3px;padding:0 4px">' + bw.level + '</span>';
+      }
+      if (agi.penetration) {
+        h += ' <span style="font-size:10px;color:#f59e0b;border:1px solid #f59e0b;border-radius:3px;padding:0 4px">已穿透</span>';
+      }
+    }
     if (mergeCount > 1) h += '（' + mergeCount + '项同类风险合并）';
     h += '</span>' +
       '<span class="rpt-btn-bar" style="display:inline-flex;flex-direction:column;gap:2px;flex-shrink:0;margin-left:6px;padding-top:1px">' +

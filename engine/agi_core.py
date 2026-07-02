@@ -703,5 +703,11 @@ class IndustryGeneralizer:
 
 
 # 全局实例
+memory = PersistentMemory()
+one_shot = OneShotLearner()
+counterfactual = CounterfactualReasoner()
+autonomous = AutonomousRunner()
+boundary = BoundaryAwareness()
+generalizer = IndustryGeneralizer()# 全局实例
 boundary = BoundaryAwareness()
 generalizer = IndustryGeneralizer()

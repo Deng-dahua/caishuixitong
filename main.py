@@ -4520,7 +4520,7 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 
 @app.get("/api/tax-risk-docs/report-smart")
 async def get_report_intelligence(company_id: int = Query(...)):
-    """报告智能增强：风险叙事+税负模拟+资料缺口影响链"""
+    """报告智能增强：风险叙事+税负模拟+资料缺口影响链 + AGI全量注入"""
     cached = _last_analysis_cache.get(company_id)
     if not cached:
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
@@ -4529,6 +4529,9 @@ async def get_report_intelligence(company_id: int = Query(...)):
     report_data = report.get("report", {})
     target_entity = report_data.get("target_entity", {})
     all_findings = report_data.get("all_findings", []) or report.get("findings", [])
+    
+    # 0. AGI报告级增强数据（已在分析时注入）
+    agi_report = report_data.get("_agi_report_level", {})
     
     # 1. 风险叙事
     level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
@@ -4603,6 +4606,16 @@ async def get_report_intelligence(company_id: int = Query(...)):
         "vat_total": round(vat_total, 2),
         "income_tax_total": round(inc_total, 2),
         "gap_chain": gap_chain[:7],
+        # AGI全量注入数据
+        "agi_enhanced": agi_report,
+        "agi_findings": [
+            {"index": i, "type": f.get("type","")[:40], "level": f.get("level",""), 
+             "confidence": (f.get("_agi_enhanced",{}).get("confidence",{}).get("confidence",0)),
+             "boundary": (f.get("_agi_enhanced",{}).get("boundary",{}).get("level","")),
+             "penetrated": bool(f.get("_agi_enhanced",{}).get("penetration")),
+            }
+            for i, f in enumerate(all_findings[:15])
+        ] if any(f.get("_agi_enhanced") for f in all_findings[:5]) else [],
     }
 
 @app.post("/api/tax-risk-docs/edit-preview")
@@ -6368,9 +6381,86 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
     # 清除旧缓存，强制重新分析
     _last_analysis_cache.pop(company_id, None)
     try:
-        return _run_analyze(company_id, db)
+        result = _run_analyze(company_id, db)
+        
+        # ═══ AGI注入报告生成 ═══
+        # 分析完成后，用AGI引擎增强每条发现，注入到report中
+        if result.get("ok") and result.get("report"):
+            result["report"] = _inject_agi_into_report(result["report"], company_id)
+        
+        return result
     except Exception as _e:
         return {"ok": False, "message": f"分析异常: {_e}", "traceback": _tb.format_exc()[:2000]}
+
+
+def _inject_agi_into_report(report: dict, company_id: int) -> dict:
+    """将AGI全量推理注入到报告的每一章"""
+    try:
+        from engine.agi_engine import agi
+        from engine.director import get_director
+        from engine.agi_core import memory, boundary, generalizer, counterfactual
+        from engine.agi_meta import meta_loop
+        
+        director = get_director()
+        report_data = report.get("report", report)
+        all_findings = report_data.get("all_findings", []) or report.get("findings", [])
+        target = report_data.get("target_entity", {})
+        comprehensive = report_data.get("comprehensive", {})
+        
+        if not all_findings:
+            return report
+        
+        # 为每条发现注入AGI分析
+        for f in all_findings[:20]:
+            uc = director.quantify_uncertainty(f, comprehensive.get("material_intel", {}))
+            pen = director.penetrate_essence(f)
+            ba = boundary.assess(f, {"industry": target.get("industry",""), "material_intel": comprehensive.get("material_intel", {})})
+            cf = counterfactual.reason(f, comprehensive.get("material_intel", {}))
+            
+            f["_agi_enhanced"] = {
+                "confidence": uc,
+                "penetration": pen if pen.get("flags") else None,
+                "boundary": ba,
+                "counterfactual": cf if cf.get("status") == "reasoned" else None,
+            }
+        
+        # 报告级AGI增强
+        ct = director.cross_tax_chain(all_findings)
+        gen = generalizer.generalize(all_findings, target.get("name",""), target.get("industry",""))
+        inv = director.generate_investigation_plan(all_findings, comprehensive.get("material_intel", {}))
+        lifecycle = director.get_lifecycle_context(report_data.get("company_age", 3))
+        
+        # 自审
+        materials = comprehensive.get("material_intel", {})
+        meta_result = meta_loop.run(all_findings, target, materials)
+        
+        # 注入到报告顶层
+        report_data["_agi_report_level"] = {
+            "cross_tax": ct,
+            "generalization": gen,
+            "investigation_plan": inv,
+            "lifecycle": lifecycle,
+            "meta_audit": meta_result.get("audit", {}),
+            "planning_advice": {
+                f.get("type","")[:40]: director.get_planning_advice(f)
+                for f in all_findings[:5] if director.get_planning_advice(f)
+            },
+        }
+        
+        # 写入记忆
+        memory.remember_analysis(company_id, {
+            "findings": all_findings,
+            "overall_risk": comprehensive.get("overall_risk", ""),
+            "risk_score": comprehensive.get("risk_score", 0),
+            "industry": target.get("industry", ""),
+            "active_signals": [],
+        })
+        
+        return report
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return report
 
 
 # ═══════════════════════════════════════════════════════════
