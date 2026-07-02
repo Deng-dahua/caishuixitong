@@ -418,5 +418,412 @@
       "salary": 0.0,
       "gross_margin_pct": 46.52806793241623
     }
+  },
+  {
+    "timestamp": "2026-07-02T13:04:56.973446",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-02T13:05:27.847114",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 85.1,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负",
+      "缺少银行流水"
+    ],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 70,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
+    }
+  },
+  {
+    "timestamp": "2026-07-02T13:05:29.529756",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T13:24:35.707151",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T13:25:11.465438",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 85.1,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负",
+      "缺少银行流水"
+    ],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 70,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
+    }
+  },
+  {
+    "timestamp": "2026-07-02T13:29:04.713323",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-02T15:51:12.674020",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T15:51:28.071948",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T15:51:34.461355",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 85.1,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负",
+      "缺少银行流水"
+    ],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 70,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
+    }
+  },
+  {
+    "timestamp": "2026-07-02T15:52:31.542711",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-02T16:31:10.582012",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T16:31:28.649113",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 85.1,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负",
+      "缺少银行流水"
+    ],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 70,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
+    }
+  },
+  {
+    "timestamp": "2026-07-02T16:35:47.800608",
+    "industry": "综合",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 48.5,
+    "risk_level": "中风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 0,
+    "total_findings": 20,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 0,
+    "customer_concentration": 0,
+    "data_quality_score": 25,
+    "snapshot": {
+      "sales": 0,
+      "purchases": 0,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0,
+      "gross_margin_pct": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-02T16:36:29.169125",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 85.1,
+    "risk_level": "极高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负",
+      "缺少银行流水"
+    ],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 60,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 70,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
+    }
+  },
+  {
+    "timestamp": "2026-07-02T16:39:55.694809",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
   }
 ]

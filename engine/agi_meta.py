@@ -79,7 +79,8 @@ class ReportAuditor:
         path = os.path.join(os.path.dirname(__file__), "..", "static", "report_audits.json")
         try:
             with open(path, encoding="utf-8") as f:
-                self._audits = json.load(f)
+                data = json.load(f)
+                self._audits = data if isinstance(data, list) else []
         except:
             self._audits = []
     
