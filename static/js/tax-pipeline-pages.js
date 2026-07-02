@@ -993,7 +993,7 @@ function renderDomainAnalysisResult(report) {
 
   var totalDomains = domainNames.length;
   var triggeredDomains = domainNames.filter(function(n) { return domainMap[n].count > 0; }).length;
-  var highTotal = allF.filter(function(f) { return f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险'); }).length;
+  var highTotal = allF.filter(function(f) { return f.level === '极高风险' || f.level === '高风险'; }).length;
   var midTotal = allF.filter(function(f) { return f.level === '中风险'; }).length;
 
   var html = '<div id="da-result">'
@@ -1043,8 +1043,8 @@ function renderDomainAnalysisResult(report) {
       if (hasFindings) {
         html += '<div id="dd-' + di + '" style="display:none;margin-top:12px;padding:12px 16px;background:#fff;border-radius:6px">';
         d.findings.forEach(function(f) {
-          var lvlColor = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#22c55e');
-          var lvlBg = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
+          var lvlColor = f.level === '极高风险' || f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#22c55e');
+          var lvlBg = f.level === '极高风险' || f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
           var dt = typeof f.detail === 'object' && f.detail.summary ? f.detail.summary : (f.detail || '');
           var trace = f._trace || {};
           html += '<div style="padding:10px 12px;margin-bottom:6px;background:' + lvlBg + ';border-radius:6px;border-left:3px solid ' + lvlColor + '">'
@@ -1316,8 +1316,8 @@ function renderCrossDomainDynamic(report) {
   if (allEvidence.length > 0) {
     html += '<h4 style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px">跨域关联推理详情</h4>';
     allEvidence.forEach(function(f) {
-      var lvlColor = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
-      var lvlBg = f.level === '极高风险' || (f.level === '极高风险' || c.level === '高风险') ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
+      var lvlColor = f.level === '极高风险' || f.level === '高风险' ? '#dc2626' : (f.level === '中风险' ? '#f59e0b' : '#059669');
+      var lvlBg = f.level === '极高风险' || f.level === '高风险' ? '#fef2f2' : (f.level === '中风险' ? '#fffbeb' : '#f0fdf4');
       html += '<div style="padding:14px 16px;margin-bottom:6px;background:' + lvlBg + ';border-left:3px solid ' + lvlColor + ';border-radius:0 6px 6px 0">'
         + '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:6px">' + escHtml(f.type || '') + '</div>'
         + (f.description ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(f.description) + '</div>' : '')
@@ -1738,7 +1738,7 @@ function renderEvidenceList(chains) {
           html += '<div style="margin-bottom:12px">';
           (c.steps || []).forEach(function(s, si) {
             var stepNum = s.step || (si + 1);
-            var isHigh = !!(s.level && (s.level === '极高风险' || c.level === '高风险'));
+            var isHigh = !!(s.level && (s.level === '极高风险' || s.level === '高风险'));
             html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
               + '<div style="display:flex;align-items:center;gap:8px">'
               + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
