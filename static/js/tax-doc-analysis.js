@@ -823,24 +823,8 @@ function renderTaxDocReport(r) {
   // ── 使用7章标准报告结构渲染 ──
   var ctx = _renderReportFallback(r, allF);
 
-  // ═══ 段落统一✏️入口：替换4按钮 ───
+  // ✏️由_initAllEditIcons统一注入，这里不再内联
   var html = ctx.html;
-  var paraIdx = 0;
-  
-  function _mkBtnBar(idx, pText) {
-    // 把段落文本中的特殊字符转义后内联到onclick
-    var escText = pText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
-    return '<span class="edt-icon-inline" data-pi="'+idx+'" onclick="event.stopPropagation();window._editScope={level:\'paragraph\',id:\'p-'+idx+'\',title:\'报告段落\',content:\''+escText+'\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>';
-  }
-  
-  // 段落：包裹在 flex 容器中，按钮在右侧
-  html = html.replace(/<p class="i2">([\s\S]*?)<\/p>/g, function(match, inner) {
-    var idx = paraIdx++;
-    var plainText = inner.replace(/<[^>]*>/g, '').trim();
-    return '<div style="display:flex;align-items:center;gap:0;margin:4px 0"><div style="flex:1;min-width:0"><p class="i2">' + inner + '</p></div>' + _mkBtnBar(idx, plainText) + '</div>';
-  });
-  
-  window._paraCount = paraIdx;
   area.innerHTML = html;
   area.scrollIntoView({ behavior: 'smooth' });
   
