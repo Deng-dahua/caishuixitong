@@ -2333,41 +2333,28 @@ function _renderReportFallback(r, allF) {
 
   // ═══ 第六章：告知权利义务 ═══
   h += '<h2 id="ch6">第六章 告知权利义务</h2>';
-  h += '<div class="rights-sec" style="padding:24px">';
-  h += '<div class="rtitle" style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1a1a2e">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位「' + (te.name || te.company_name || '') + '」在本次稽查过程中依法享有以下权利：</div>';
+  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位「' + (te.name || te.company_name || '') + '」在本次稽查过程中依法享有以下权利：</p>';
   
-  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">一、申请回避权</div>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位认为稽查人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该稽查人员回避。申请回避应当在稽查人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向稽查部门提出，说明申请回避的理由。稽查部门应当在收到申请后3日内作出决定并告知申请人。</div>';
-  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《税收征收管理法》第十二条</div>';
-  h += '</div>';
+  h += '<p class="i2"><strong>一、申请回避权</strong></p>';
+  h += '<p class="i2">被查单位认为稽查人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该稽查人员回避。申请回避应当在稽查人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向稽查部门提出，说明申请回避的理由。稽查部门应当在收到申请后3日内作出决定并告知申请人。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《税收征收管理法》第十二条</p>';
   
-  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">二、陈述申辩权</div>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查认定的事实、依据和处理建议，有权进行陈述和申辩。稽查部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。被查单位提出的事实、理由或者证据成立的，稽查部门应当采纳。陈述申辩应当在收到《税务稽查报告》后<strong>7日内</strong>以书面形式提交。</div>';
-  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政处罚法》第三十二条</div>';
-  h += '</div>';
+  h += '<p class="i2"><strong>二、陈述申辩权</strong></p>';
+  h += '<p class="i2">被查单位对稽查认定的事实、依据和处理建议，有权进行陈述和申辩。稽查部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。被查单位提出的事实、理由或者证据成立的，稽查部门应当采纳。陈述申辩应当在收到《税务稽查报告》后<strong>7日内</strong>以书面形式提交。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政处罚法》第三十二条</p>';
   
-  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">三、要求听证权</div>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被查单位有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。稽查部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</div>';
-  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</div>';
-  h += '</div>';
+  h += '<p class="i2"><strong>三、要求听证权</strong></p>';
+  h += '<p class="i2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被查单位有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。稽查部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</p>';
   
-  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">四、申请行政复议权</div>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被查单位按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</div>';
-  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政复议法》第九条</div>';
-  h += '</div>';
+  h += '<p class="i2"><strong>四、申请行政复议权</strong></p>';
+  h += '<p class="i2">被查单位对稽查部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被查单位按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政复议法》第九条、第二十一条</p>';
   
-  h += '<div class="ritem" style="margin:16px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:0 6px 6px 0">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:6px">五、提起行政诉讼权</div>';
-  h += '<div style="font-size:13px;color:#475569;line-height:2">被查单位对稽查部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</div>';
-  h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">法律依据：《中华人民共和国行政诉讼法》第四十五条、第四十六条</div>';
-  h += '</div>';
+  h += '<p class="i2"><strong>五、提起行政诉讼权</strong></p>';
+  h += '<p class="i2">被查单位对稽查部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
   
-  h += '</div>';
-
   // ═══ 第七章：稽查人员签字 ═══
   h += '<h2 id="ch7">第七章 稽查人员签字</h2>';
   h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
