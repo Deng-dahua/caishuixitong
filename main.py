@@ -7912,6 +7912,41 @@ def deep_causal_why(topic: str = Query("")):
     from engine.agi_final import causal_why
     return {"ok": True, "explanation": causal_why.explain_deep_why(topic)}
 
+# ═══════════ 4大更好功能API ═══════════
+
+@app.post("/api/agi/report/full")
+def generate_full_report(data: dict):
+    """LLM生成完整稽查报告(5000字)"""
+    from engine.agi_enhanced import report_writer
+    finding_list = data.get("findings", [])
+    report = report_writer.generate_report(finding_list, data.get("company", {}))
+    return {"ok": True, "report": report}
+
+@app.get("/api/agi/tianyancha")
+def check_tianyancha(name: str = Query("")):
+    """天眼查企业查询"""
+    from engine.agi_enhanced import tianyancha
+    return {"ok": True, "result": tianyancha.check_company(name)}
+
+@app.post("/api/agi/training-case")
+def generate_training_case(data: dict):
+    """生成培训案例"""
+    from engine.agi_enhanced import training_gen
+    case = training_gen.generate_case(
+        data.get("finding", {}),
+        data.get("company", {}),
+    )
+    return {"ok": True, "case": case}
+
+@app.post("/api/agi/group-analyze")
+def analyze_group(data: dict):
+    """集团多企业协同分析"""
+    from engine.agi_enhanced import group_analyzer
+    companies = data.get("companies", [])
+    findings_by_company = {c["id"]: data.get("findings_by_company", {}).get(str(c["id"]), []) for c in companies}
+    result = group_analyzer.analyze_group(companies, findings_by_company)
+    return {"ok": True, "result": result}
+
 
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
