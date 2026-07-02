@@ -5423,7 +5423,7 @@ window._unifiedEditPopup = function(rowData) {
 
 
 
-    "<div style=\"padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;max-height:50vh;overflow-y:auto\">" +
+    "<div style=\"padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;max-height:33vh;overflow-y:auto\">" +
 
 
 
