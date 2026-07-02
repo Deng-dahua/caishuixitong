@@ -843,12 +843,21 @@ function renderTaxDocReport(r) {
         if (!smart.ok) return;
         var smartHtml = '';
         
-        // ① 风险叙事——纯段落
-        smartHtml += '<p class="i2"><strong>🧠 引擎智能分析总览：</strong>' + (smart.narrative||'') + '</p>';
+        // ① 风险叙事
+        if (smart.narrative) {
+          smartHtml += '<div class="edt-block" style="display:flex;align-items:flex-start;gap:0;margin:4px 0">';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🧠 引擎智能分析总览：</strong>' + (smart.narrative||'') + '</p></span>';
+          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-narrative\',title:\'引擎智能分析总览\',content:\'' + (smart.narrative||'').replace(/'/g,"\\'") + '\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '</div>';
+        }
         
-        // ② 税负模拟——表格（数值类内容表格化更清晰）
+        // ② 税负模拟
         if (smart.tax_burden && smart.tax_burden.length > 0) {
-          smartHtml += '<p class="i2" style="margin-bottom:8px"><strong>💰 税负模拟</strong></p>';
+          smartHtml += '<div class="edt-block" style="margin:12px 0">';
+          smartHtml += '<div style="display:flex;align-items:flex-start;gap:0;margin-bottom:8px">';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>💰 税负模拟</strong></p></span>';
+          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-tax\',title:\'税负模拟\',content:\'税负模拟表格及计算\\n涉税金额合计'+(smart.tax_total||0).toLocaleString('zh-CN')+'元，增值税合计'+(smart.vat_total||0).toLocaleString('zh-CN')+'元，企业所得税合计'+(smart.income_tax_total||0).toLocaleString('zh-CN')+'元\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '</div>';
           smartHtml += '<table class="tbl2" style="margin:8px 0"><thead><tr><th>风险类型</th><th>等级</th><th>发票数</th><th>涉税金额</th><th>增值税（实际税额）</th><th>企业所得税（最高' + (smart.tax_burden[0] ? smart.tax_burden[0].income_tax_rate : '25%') + '）</th></tr></thead><tbody>';
           smart.tax_burden.forEach(function(tb){
             var vatShow = tb.vat_actual > 0 ? '¥' + (tb.vat_actual||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) : '<span style="color:#94a3b8">0（普票）</span>';
@@ -857,24 +866,33 @@ function renderTaxDocReport(r) {
           smartHtml += '<tr style="font-weight:700;background:#f8fafc"><td colspan="3">合计</td><td class="r">¥' + (smart.tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.vat_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td><td class="r">¥' + (smart.income_tax_total||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td></tr>';
           smartHtml += '</tbody></table>';
           smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
+          smartHtml += '</div>';
         }
         
-        // ③ 资料缺口影响链——表格
+        // ③ 资料缺口影响链
         if (smart.gap_chain && smart.gap_chain.length > 0) {
-          smartHtml += '<p class="i2" style="margin-bottom:8px"><strong>🔗 资料缺口影响链</strong></p>';
+          smartHtml += '<div class="edt-block" style="margin:12px 0">';
+          smartHtml += '<div style="display:flex;align-items:flex-start;gap:0;margin-bottom:8px">';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔗 资料缺口影响链</strong></p></span>';
+          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-gap\',title:\'资料缺口影响链\',content:\'资料缺口影响链：' + smart.gap_chain.map(function(g){return g.material;}).join('、') + '等资料缺失\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '</div>';
           smartHtml += '<p class="i1" style="font-size:12px;color:#64748b;margin-bottom:6px">以下为缺失资料对稽查判断的影响链——缺少一份资料会影响多个分析域的判定：</p>';
           smartHtml += '<table class="tbl2" style="margin:8px 0"><thead><tr><th>缺失资料</th><th>风险</th><th>影响链</th></tr></thead><tbody>';
           smart.gap_chain.forEach(function(gap){
             smartHtml += '<tr><td><strong>' + (gap.material||'') + '</strong></td><td style="color:#dc2626">⚠ ' + (gap.risk||'') + '</td><td style="color:#475569">' + (gap.chain||'') + '</td></tr>';
           });
           smartHtml += '</tbody></table>';
+          smartHtml += '</div>';
         }
         
-        // ④ AGI自审评分——纯段落
+        // ④ AGI自审评分
         if (smart.agi_enhanced && smart.agi_enhanced.meta_audit) {
           var audit = smart.agi_enhanced.meta_audit;
-          var gradeColor = audit.grade === 'A' ? '#16a34a' : (audit.grade === 'B' ? '#d97706' : '#dc2626');
-          smartHtml += '<p class="i2"><strong>🔍 AGI自审报告：</strong>综合等级 ' + (audit.grade||'?') + '级，总分 ' + (audit.overall_score||0) + '，严重问题 ' + (audit.critical_count||0) + ' 个，警告 ' + (audit.warning_count||0) + ' 个。</p>';
+          var auditSummary = '综合等级' + (audit.grade||'?') + '级，总分' + (audit.overall_score||0) + '，严重问题' + (audit.critical_count||0) + '个，警告' + (audit.warning_count||0) + '个';
+          smartHtml += '<div class="edt-block" style="display:flex;align-items:flex-start;gap:0;margin:4px 0">';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI自审报告：</strong>' + auditSummary + '</p></span>';
+          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-audit\',title:\'AGI自审报告\',content:\'' + auditSummary.replace(/'/g,"\\'") + '\'};window._unifiedEditPopup();" title="编辑/审核/追问/重置" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '</div>';
           var dims = audit.dimensions || {};
           var dimLines = [];
           Object.keys(dims).forEach(function(d){ dimLines.push(d + ' ' + (dims[d].status||'') + '(' + (dims[d].score||0) + '%)'); });
@@ -1231,7 +1249,7 @@ window._initAllEditIcons = function() {
 
   // 3. 每段<p>加✏️
   area.querySelectorAll('p').forEach(function(p, pi) {
-    if (p.querySelector('.edt-icon') || p.querySelector('.edt-icon-inline') || p.closest('#tts-bar') || p.closest('#edt-popup')) return;
+    if (p.querySelector('.edt-icon') || p.querySelector('.edt-icon-inline') || p.closest('#tts-bar') || p.closest('#edt-popup') || p.closest('.edt-block')) return;
     if (p.style.display === 'flex' || p.style.display === 'inline-flex') return;  // 已是flex容器（如发现标题）
     var txt = p.textContent.trim();
     if (!txt) return;  // 空段跳过
@@ -1259,6 +1277,7 @@ window._initAllEditIcons = function() {
 
   // 4. 表格行加✏️
   area.querySelectorAll('table.tbl, table.tbl2').forEach(function(table, ti) {
+    if (table.closest('.edt-block')) return;  // 块级已有✏️
     if (table.querySelector('.edt-tbl-col')) return;
     var theadRow = table.querySelector('thead tr') || table.querySelector('tr');
     if (theadRow && !theadRow.querySelector('.edt-tbl-col')) {
