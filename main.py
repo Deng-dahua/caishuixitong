@@ -121,6 +121,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
 
+# ═══ 启动初始化：知识库 + 巡检API ═══
+try:
+    from engine.knowledge_base import init_knowledge_base
+    init_knowledge_base()
+except: pass
+try:
+    from engine.auto_patrol import register_patrol_api
+    register_patrol_api(app)
+except: pass
+
 # ═══════════════ 个人登录 ═══════════════
 _AUTH_SESSIONS_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
 _AUTH_SESSIONS = {}
@@ -6483,10 +6493,15 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
     _last_analysis_cache.pop(company_id, None)
     # ═══ 闭环：分析前先传播积累的纠正规则到五链 ═══
     try:
-        from engine.self_learning import _load_correction_rules
+        from engine.self_learning import _load_correction_rules, apply_cross_company_synthesis
         rules = _load_correction_rules()
         if rules:
             propagate_corrections_to_chains()
+        # 跨公司合成规则应用到本次分析
+        cross = apply_cross_company_synthesis()
+        if cross.get("cross_rules_count", 0) > 0:
+            _tb = __import__('traceback')
+            pass  # 跨公司规则已加载到apply_correction_rules中生效
     except: pass
     try:
         result = _run_analyze(company_id, db)
@@ -6569,6 +6584,7 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
             "investigation_plan": inv,
             "lifecycle": lifecycle,
             "meta_audit": meta_result.get("audit", {}),
+            "cross_industry_insight": _get_cross_industry_insight(all_findings),
             "planning_advice": {
                 f.get("type","")[:40]: director.get_planning_advice(f)
                 for f in all_findings[:5] if director.get_planning_advice(f)
@@ -8184,7 +8200,19 @@ def run_meta_audit(data: dict):
     return {"ok": True, "result": result}
 
 
-def _close_feedback_loop(feedback: dict):
+def _get_cross_industry_insight(all_findings):
+    """从自主学习库中提取跨行业洞察"""
+    try:
+        from engine.self_learning import get_cross_industry_insight
+        insights = {}
+        for f in all_findings[:5]:
+            ft = f.get("type", "")
+            if ft:
+                r = get_cross_industry_insight(ft)
+                if r.get("has_insight"):
+                    insights[ft[:40]] = r
+        return insights
+    except: return {}
     """将✏️编辑/审核反馈接入规则库闭环 → 纠正规则→更新五链"""
     try:
         chapter = feedback.get("chapter", "")

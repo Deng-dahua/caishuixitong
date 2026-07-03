@@ -3863,6 +3863,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                         pipeline_log.append(f"[自愈] 自动激活{activated}条draft规则(confidence>=0.5)")
             except Exception: pass
         result["self_healing"] = healing_result
+        # ═══ 自愈修复应用 ═══
+        if healing_result.get("issues"):
+            try:
+                from engine.self_healing import auto_apply_fixes
+                all_findings, fixed = auto_apply_fixes(all_findings, healing_result.get("issues", []))
+                if fixed > 0:
+                    pipeline_log.append(f"[自愈] auto_apply_fixes修复了{fixed}个问题")
+            except Exception: pass
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     

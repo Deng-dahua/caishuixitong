@@ -741,6 +741,21 @@ def record_correction(finding_type, industry, biz_model, original_risk, correcte
     try:
         if correction_count >= 1 and rules[fingerprint]["confidence"] >= 0.60:
             module_update_result = auto_update_module_content(min_confidence=0.60, min_corrections=1)
+        # ═══ 闭环：高置信度新规则注入到自愈规则库 ═══
+        if correction_count >= 3 and rules[fingerprint]["confidence"] >= 0.80:
+            try:
+                from engine.unknown_pattern_detector import inject_new_rule
+                from database import SessionLocal
+                _sidb = SessionLocal()
+                inject_new_rule(fingerprint, {
+                    "rule_name": f"[学习] {finding_type}",
+                    "rule_type": "learned_pattern",
+                    "trigger_conditions": {"dimension": industry, "biz_model": biz_model},
+                    "detection_logic": f"用户{correction_count}次纠正: {latest_reason}",
+                    "risk_level": corrected_risk,
+                }, _sidb)
+                _sidb.close()
+            except: pass
     except Exception as e:
         module_update_result = {"updated": False, "error": f"{type(e).__name__}: {e}"}
         # 记录到日志中，不静默丢弃
