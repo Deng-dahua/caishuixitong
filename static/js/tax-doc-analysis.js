@@ -5945,10 +5945,11 @@ window._edtSubmitReset = function() {
 
 
   if (!confirm("确定重置此内容？此操作不可撤销。")) return;
+  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[重置] 撤销之前的纠正"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); }
 
 
 
-  document.getElementById("edt-reset-result").textContent = "✅ 已重置";
+  document.getElementById("edt-reset-result").textContent = "✅ 已重置，已更新规则库";
 
 
 

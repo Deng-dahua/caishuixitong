@@ -4864,6 +4864,20 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         if ctx_parts:
             result["analysis"].append({"title": "🏢 企业概况", "content": "；".join(ctx_parts)})
         
+        # ═══ 闭环：追问也注入纠正规则库 ═══
+        try:
+            from engine.self_learning import record_correction
+            record_correction(
+                finding_type=finding.get("type", "资料完备度不足") if finding else "追问分析补充",
+                industry=target_entity.get("industry", "通用"),
+                biz_model=target_entity.get("biz_model", "通用"),
+                original_risk=finding.get("level", "中风险") if finding else "中风险",
+                corrected_risk=finding.get("level", "中风险") if finding else "中风险",
+                reason=f"追问: {question[:100]}\n回答: {str(result.get('analysis',[]))[:200]}",
+                finding_detail=str(finding.get('type','')) if finding else "段落追问",
+            )
+        except: pass
+        
         return result
     except Exception as e:
         import traceback
