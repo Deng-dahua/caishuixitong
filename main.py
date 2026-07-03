@@ -7362,6 +7362,9 @@ def get_engine_rules():
             cross_analysis = json.load(f)
         xa_rules = []
         for xa in cross_analysis:
+            # 跳过无触发信号的纯方法论条目（在稽查员手册中已有完整定义）
+            if not xa.get("trigger_signal") or not xa.get("trigger_signal", "").strip():
+                continue
             lv = "red" if xa.get("level","") == "极高风险" else ("yellow" if xa.get("level","") == "高风险" else "orange")
             xa_rules.append({
                 "id": f"XA_{xa['id']:02d}",
