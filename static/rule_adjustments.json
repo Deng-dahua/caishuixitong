@@ -51,7 +51,7 @@
     "target": "Causal: 虚开发票的资金闭环回路",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431965",
-    "applied_count": 5,
+    "applied_count": 7,
     "status": "active"
   },
   {
@@ -150,7 +150,7 @@
     "target": "资料缺失触发-记账凭证缺失→会计账簿视为不健全→核定征收",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432087",
-    "applied_count": 5,
+    "applied_count": 7,
     "status": "active"
   },
   {
@@ -161,7 +161,7 @@
     "target": "基础经营费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432099",
-    "applied_count": 4,
+    "applied_count": 6,
     "status": "active"
   },
   {
@@ -326,7 +326,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781653",
-    "applied_count": 0,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -359,6 +359,105 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:39:56.176992",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0034",
+    "rule_id": "d7b9b4cd",
+    "trigger": "高风险发现#43仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "办公费用缺失",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686762",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0035",
+    "rule_id": "a056b7f4",
+    "trigger": "高风险发现#45仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "资料不完备",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686776",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0036",
+    "rule_id": "28800c98",
+    "trigger": "高风险发现#46仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "股票期权行权未扣税",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686788",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0037",
+    "rule_id": "a3627710",
+    "trigger": "高风险发现#48仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "未认证发票超期",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686800",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0038",
+    "rule_id": "a8ca6e7d",
+    "trigger": "高风险发现#54仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "顶额分散开票",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686814",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0039",
+    "rule_id": "b5a3c319",
+    "trigger": "高风险发现#65仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "资料缺失触发-记账凭证缺失→会计账簿视为不健全→核定征收",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686827",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0040",
+    "rule_id": "61f44210",
+    "trigger": "高风险发现#67仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 隐匿收入的资金回流路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686840",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0041",
+    "rule_id": "53228de8",
+    "trigger": "高风险发现#68仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 虚开发票的资金闭环回路",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686852",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0042",
+    "rule_id": "6e677f08",
+    "trigger": "高风险发现#69仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-03T14:29:52.686868",
     "applied_count": 1,
     "status": "active"
   }

@@ -182,7 +182,7 @@ function renderReportStandards(container) {
 
   // ═══
   h += '<div id="rs-ironlaw" class="rs-sec"><div class="rs-sec-title"><span class="n">12</span>引擎铁律与报告质量映射</div>';
-  h += '<div class="rs-card"><div class="rs-detail">引擎记忆（engine/memory.py）中的11条引擎铁律每一条都直接保证报告的一个质量维度。以下为完整映射——铁律编号×报告质量关卡×保证方式：<br>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s13" style="color:#2563eb;text-decoration:underline">📋 引擎铁律完整定义 → 稽查员手册 第十三章</a><br>以下为铁律→报告质量的交叉映射——每条铁律保证报告的一个质量维度：<br>';
   h += '<b>铁律一（科目name）：</b>保证报告中科目名称的准确性→报告第三章证据材料中的科目名称与DB一致→如果此铁律违反，报告中显示的科目名称与实际账务不符。<br>';
   h += '<b>铁律二（三号合并）：</b>保证凭证编号的唯一性→报告附件中的凭证清单不重复不遗漏→如果此铁律违反，银行余额与实际不符，报告中的资金流分析全部失真。<br>';
   h += '<b>铁律三（审计铁律）：</b>保证报告生成前数据一致性验证→7项审计必须在报告交付前通过→如果此铁律违反，报告中的数据可能借贷不平衡，送到审理环节直接退回。<br>';
@@ -197,22 +197,13 @@ function renderReportStandards(container) {
 
   // ═══ 第13节：四触发机制与报告交付 ═══
   h += '<div id="rs-sync" class="rs-sec"><div class="rs-sec-title"><span class="n">13</span>四触发机制与报告交付</div>';
-  h += '<div class="rs-card"><div class="rs-detail">报告在交付给用户之前经过四道自动同步验证，确保报告中的每一项数据与系统权威源一致。四触发机制分布在报告生成的不同环节：<br>';
-  h += '<b>触发① start.bat启动时（最早）：</b>序列为--sync（全项目扫描+代码硬编码修正+引擎记忆文档层同步）→审计验证（确认全部通过）→启动服务器。如果--sync发现不一致并修复了，启动日志中可见具体修改项。如果审计不通过，服务器不会启动——报告根本不会生成。<br>';
-  h += '<b>触发② git commit时（代码变更后）：</b>.git/hooks/pre-commit自动执行--sync。每次提交代码前确保全项目数据一致。如果提交引入了硬编码不一致，pre-commit hook自动修正后再提交。确保合入Git的每一版代码都是数据一致的。<br>';
-  h += '<b>触发③ 一键分析启动时（分析前）：</b>pipeline.py在_run_analyze()启动时通过subprocess调用--sync。在读取任何数据文件之前，先确保所有数据文件中的数字与权威源一致。如果--sync修正了某个文件的数字，后续分析将从修正后的正确数字开始。<br>';
-  h += '<b>触发④ 手动命令（按需）：</b>python audit_consistency.py --sync。任何时候手动执行，适合在大量修改后做一次主动的全局一致性检查。<br>';
-  h += '<b>对报告质量的意义：</b>四触发机制确保无论通过哪个入口启动系统、无论代码和数据如何变化，报告生成前所有模块的数据状态是一致的——用户在任何位置看到的同一个信息永远是同一个值。报告中不会出现"这里说1266条方法链(legacy)，那里说32条"的矛盾。</div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s10" style="color:#2563eb;text-decoration:underline">📋 详见税务稽查员手册 → 第十章 数据一致性自检</a><br>系统数据的跨模块一致性由审计引擎自动保障，四触发机制（手动/启动/提交/分析）确保全模块数据统一。</div></div></div>';
 
-  // ═══ 第14节：审核反馈→报告迭代闭环 ═══
+  // ═══
   h += '<div id="rs-iterate" class="rs-sec"><div class="rs-sec-title"><span class="n">14</span>审核反馈→报告迭代闭环</div>';
-  h += '<div class="rs-card"><div class="rs-detail">审核反馈不仅影响当前报告的展示，更驱动下一次报告的优化。整个闭环包含四个阶段：<br>';
-  h += '<b>阶段一：本次报告（审核展示）：</b>用户在当前报告中点击审核按钮→按模板填写→立即清空前端+后端分析缓存→报告中的该条发现展示绿色审核横幅。审核不改变发现等级——保持报告的专业严肃性。<br>';
-  h += '<b>阶段二：规则存储（学习记录）：</b>POST /api/feedback→record_correction()→生成指纹→存入user_corrections.json→累加计数→累计1次即升级为自动规则（auto_apply=true）。不同发现类型/不同行业的审核生成独立指纹分别存储。<br>';
-  h += '<b>阶段三：规则应用（下次分析）：</b>用户再次点击一键分析→pipeline.py启动→apply_correction_rules()→对all_findings中的每条发现执行四级回退匹配→匹配成功→打_dismissed标签→进入报告渲染。已经审核过的发现类型在下一次报告中自动标记审核状态。<br>';
-  h += '<b>阶段四：持续进化（多轮迭代）：</b>每次分析→纠正规则积累→四级匹配精度的逐步提升（从"不匹配"到"名称匹配"到"通用匹配"到"行业匹配"最终到"精确匹配"）。审核累计次数越多，系统对同类问题的识别越精准。最终目标：用户需要手动审核的发现越来越少，系统自动识别的准确性越来越高。<br>';
-  h += '<b>对报告质量的意义：</b>审核闭环让报告质量随使用次数增长而提升——第一份报告可能有较多误判需要审核，第十份报告时系统已学会了前九份的纠正模式，误判大幅减少。这不是一次性报告工具——是越用越准的稽查助手。</div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务稽查员手册 → 第十一章 审核反馈闭环</a><br>审核反馈驱动报告持续进化——累计审核次数越多，系统对同类问题的识别越精准。</div></div></div>';
 
+  // ═══
   // ═══ 第15节：跨域协商详细工作流程 ═══
   h += '<div id="rs-negoflow" class="rs-sec"><div class="rs-sec-title"><span class="n">15</span>跨域协商详细工作流程</div>';
   h += '<div class="rs-card"><div class="rs-detail">跨域协商引擎在报告中不是简单地"加标签"——它有一整套检测→消解→增强的工作流程，确保最终进入报告的发现体系完整且不自相矛盾。以下为从发现生成到报告输出的完整协商流程：<br>';
