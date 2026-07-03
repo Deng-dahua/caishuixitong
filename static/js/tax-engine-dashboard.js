@@ -371,81 +371,9 @@ function renderRulesTab() {
   }
 
   // ═══ Phase 2：信号→域映射 ═══
-  var p2 = rules.phases['Phase2-信号→域映射'];
-  if (p2 && !p2.error) {
-    h += _renderSection('Phase2-信号→域映射', '8b5cf6', p2);
-    var mappings = p2.mappings || {};
-    Object.keys(mappings).forEach(function(signal) {
-      var m = mappings[signal];
-      var depthColor = m.depth === 'deep' ? '#dc2626' : m.depth === 'shallow' ? '#94a3b8' : '#f59e0b';
-      h += '<div style="padding:8px 12px;margin:4px 0;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
-      h += '<strong>' + esc(signal) + '</strong> <span style="color:' + depthColor + ';font-size:11px">' + esc(m.depth) + '</span>';
-      h += '<div style="color:#64748b">→ ' + esc((m.domains||[]).join(' / ')) + '</div>';
-      if (m.reason) h += '<div style="color:#94a3b8;font-size:11px">' + esc(m.reason) + '</div>';
-      h += '</div>';
-    });
-    h += '</div>';
-  }
+  var p2 = rules.phase  }
   
-  // ═══ Phase 3：信号叠加模式 ═══
-  var p3p = rules.phases['Phase3-信号叠加模式'];
-  if (p3p && !p3p.error) {
-    h += _renderSection('Phase3-信号叠加模式', '06b6d4', p3p);
-    (p3p.patterns||[]).forEach(function(p) {
-      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(p.id) + ' ' + esc(p.name) + '</div>';
-      h += '<div style="margin-top:4px;font-size:12px;color:#64748b">';
-      h += '必要条件: ' + esc((p.triggers.must_have||[]).join(', '));
-      if (p.triggers.any_of) h += ' | 任一满足: ' + esc(p.triggers.any_of.join(', '));
-      h += '</div>';
-      h += '<div style="margin-top:4px;font-size:12px;color:#1e293b">结论: ' + esc(p.conclusion||'') + '</div>';
-      h += '<div style="margin-top:4px;color:#ea580c;font-size:12px">风险: ' + esc(p.risk_override) + ' | 优先级: ' + esc(p.priority) + '</div>';
-      if (p.actions) {
-        h += '<div style="margin-top:4px;font-size:11px;color:#059669">';
-        p.actions.slice(0,3).forEach(function(a, i) { h += (i+1) + '. ' + esc(a) + '<br>'; });
-        h += '</div>';
-      }
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
-  // ═══ Phase 3：冲突消解规则 ═══
-  var p3c = rules.phases['Phase3-冲突消解规则'];
-  if (p3c && !p3c.error) {
-    h += _renderSection('Phase3-冲突消解规则', 'ec4899', p3c);
-    (p3c.rules||[]).forEach(function(r) {
-      h += '<div style="padding:8px 12px;margin:4px 0;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
-      h += '<strong>' + esc(r.id) + '</strong> ' + esc(r.name);
-      h += '<div style="color:#64748b;margin-top:2px">' + esc(r.signal_a) + ' + ' + esc(r.signal_b) + ' → ' + esc(r.resolution) + '</div>';
-      h += '<div style="color:#ea580c;font-size:11px">风险操作: ' + esc(r.risk_action) + '</div>';
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
-  // ═══ Phase 3：结论自洽性检测 ═══
-  var p3z = rules.phases['Phase3-结论自洽性检测'];
-  if (p3z) {
-    h += _renderSection('Phase3-结论自洽性检测', 'f43f5e', p3z);
-    (p3z.rules||[]).forEach(function(r) {
-      var lc = r.level === 'red' ? '#dc2626' : r.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      var bg = r.level === 'red' ? '#fef2f2' : r.level === 'yellow' ? '#fffbeb' : '#fff7ed';
-      h += '<div style="padding:10px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
-      h += '<div><strong>' + esc(r.id) + '</strong> <span style="color:' + lc + ';font-weight:600">' + esc(r.name) + '</span> ';
-      h += '<span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(r.priority) + '</span></div>';
-      h += '<div style="color:#475569;margin-top:4px;line-height:1.5">' + esc(r.explanation) + '</div>';
-      h += '<div style="color:#059669;margin-top:4px;font-size:11px">消解: ' + esc(r.resolution) + '</div>';
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
-  // ═══ Phase 3：跨域分析推理链（仅保留有触发信号的）═══
-  var p3xa = rules.phases['Phase3-跨域分析推理链'];
+  // ═══ Phase 3：跨域分析推理链（仅本次触发的）═══
   if (p3xa && !p3xa.error && p3xa.rules && p3xa.rules.length > 0) {
     h += _renderSection('Phase3-跨域分析推理链', '0ea5e9', p3xa);
     (p3xa.rules||[]).forEach(function(xa) {
