@@ -2,15 +2,15 @@
   "version": "2.0",
   "description": "跨模块共享内容映射——定义每个共享内容块的权威源和依赖模块。--sync时自动同步text_sync类，审计时验证concept_link类。",
   "text_sync_blocks": [
-    {"id":"report_cover","label":"封面","title":"编号格式+报告日期","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch1","label":"第一章","title":"案件来源及稽查对象基本情况","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch2","label":"第二章","title":"稽查实施情况","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch3","label":"第三章","title":"稽查发现问题及事实认定","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch4","label":"第四章","title":"稽查结论","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch5","label":"第五章","title":"处理处罚建议","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch6","label":"第六章","title":"告知权利义务","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_ch7","label":"第七章","title":"稽查人员签字","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0},
-    {"id":"report_appendix","label":"附件","title":"证据清单","source_file":"static/js/tax-report-standards.js","dependent_files":["static/js/tax-auditor-handbook.js"],"content_hash":"","content_length":0}
+    {"id":"report_cover","label":"封面","title":"编号格式+报告日期","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch1","label":"第一章","title":"案件来源及稽查对象基本情况","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch2","label":"第二章","title":"稽查实施情况","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch3","label":"第三章","title":"稽查发现问题及事实认定","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch4","label":"第四章","title":"稽查结论","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch5","label":"第五章","title":"处理处罚建议","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch6","label":"第六章","title":"告知权利义务","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_ch7","label":"第七章","title":"稽查人员签字","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
+    {"id":"report_appendix","label":"附件","title":"证据清单","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0}
   ],
   "concept_links": [
     {

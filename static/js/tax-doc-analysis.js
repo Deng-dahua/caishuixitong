@@ -5917,6 +5917,7 @@ window._edtSendAsk = function() {
 
 
 window._edtSubmitAskResult = function() {
+  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); }
 
 
 
@@ -5924,7 +5925,7 @@ window._edtSubmitAskResult = function() {
 
 
 
-  el.textContent = "✅ 对话已记录"; el.style.color = "#16a34a";
+  el.textContent = "✅ 对话已记录，已更新规则库"; el.style.color = "#16a34a";
 
 
 

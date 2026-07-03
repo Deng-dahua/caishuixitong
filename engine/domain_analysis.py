@@ -3737,7 +3737,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
             "level": "高风险", "score": 10,
             "detail": f"{len(cross_entities)}家企业同时出现在进项供应商和销项客户中：{'; '.join(cross_list)}。",
             "description": "同一企业既是供应商又是客户是税务总局明确的虚开特征：A给B开票→B给A开票→双方虚增收入成本，无真实货物交易。",
-            "how_found": "进项销方名单 ∩ 销项购方名单 = {len(cross_entities)}家。",
+            "how_found": f"进项销方名单 ∩ 销项购方名单 = {len(cross_entities)}家。",
             "suggestion": f"立即对{len(cross_entities)}家双向交易企业穿透稽查：核实每笔交易的合同/物流/资金流/入库单四流一致。",
             "category": "上下游穿透"
         })
