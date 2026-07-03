@@ -75,45 +75,27 @@ function renderAuditorHandbook(container) {
   });
   h += '</tbody></table></div>';
 
-  // ═══ 第三章（1266条方法链(legacy)保持原有详细内容） ═══
+  // ═══ 第三章 — 从 methodology_items.json 统一加载 ═══
   h += '<div id="hb-s3" class="hb-sec"><div class="hb-sec-title"><span class="num">3</span>稽查方法论33条</div>';
-  h += '<div class="hb-detail">每条方法论均来自审计准则和稽查实战。方法本身全行业适用——仅数据不同，逻辑通用。33条按处理阶段分为五层：<b>文件识别层</b>（①②）→<b>数据提取层</b>（③④⑤⑥）→<b>分析推理层</b>（⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔）→<b>结论输出层</b>（㉕㉖㉗㉘㉙）→<b>质量保障层</b>（㉚㉛㉜㉝）。</div>';
-  h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:25px">#</td><td class="lbl" style="width:100px">名称</td><td class="val">详解</td></tr></thead><tbody>';
-  [['①','多格式兼容','不预设文件格式/列名/表头位置。系统维护82+列名映射表，自适应匹配各种命名习惯。无论企业提供何种格式的Excel均能正确解析。应用于文件解析模块的列名归一化阶段。代码：main.py _extract_material_intel()。'],
-   ['②','汇总行过滤','自动识别并剔除小计/合计/总计/本页合计/本年累计/当月合计/累计/小记等汇总行。防止汇总数据污染分析——汇总行参与计算会导致金额翻倍，所有分析结论全部失真。代码：main.py 数据清洗阶段。'],
-   ['③','付款方身份核实','对银行流水中付款方名称与发票销方名称不匹配的交易，系统自动联网查询工商信息，确认是否为法定代表人/股东/关联方。个人打款必须调用联网核查确认身份，不得直接定性为隐匿收入。代码：external_verifier.py。'],
-   ['④','关键词≠事实','关键词只是线索起点，不是结论。命中关键词后必须进行交叉验证和证据收集才能形成结论。如银行流水中出现"工资"关键词→不代表工资真实——需要与工资表/社保/个税三方对比后才能确认。代码：pipeline.py Phase2 deep_dive。'],
-   ['⑤','行业认知补算法','系统内置66行业基准库（毛利率/净利率/税负率/进销比/人均营收五维指标）。当企业数据不完整时使用行业均值补齐对比基准，当企业数据完整时使用行业值作为参照系。代码：industry_data.json + pipeline.py 行业对标模块。'],
-   ['⑥','联网核查','搜索引擎知识图谱提取法——对法定代表人/股东/供应商执行联网工商信息查询，验证身份真实性和关联关系。搜索结果自动提取企业名称/注册资本/成立日期/经营范围/经营状态等结构化字段。代码：external_verifier.py。'],
-   ['⑦','明细即信服力','发票明细必须包含11列标准。明细不完整→结论可信度打折。系统自动检测缺失字段并在报告中标注。附件二分列列示进销项每张发票的11列完整信息。代码：pipeline.py 发票明细注入。'],
-   ['⑧','资料驱动','有资料就分析，不猜、不预设、不脑补。缺什么资料就标记什么缺口，列出缺失后果。系统不会因为缺资料而停止分析，也不会在没有数据的情况下编造结论。代码：pipeline.py _run_analyze() 启动逻辑。'],
-   ['⑨','合同分层判断','四层自动判断体系：日常消费（加油/餐饮/差旅/快递/办公→免合同）→主营业务（原材料/加工/半成品/配件→必合同）→重要费用（大额服务/设备/咨询→应合同）→小额杂项（可免）。按供应商金额+品名性质分层。代码：domain_analysis.py _domain_15。'],
-   ['⑩','完备度明细','14类稽查必查资料逐一检测提交状态。缺失→标记"未提交"+列出具体缺失后果。不完备度每升一级升一档风险。代码：domain_analysis.py _domain_14。'],
-   ['⑪','完备度升级','合同需求从发票数据自动分析——判断每个供应商是否需要合同→需要但缺合同→附加风险等级。同时计算缺合同的供应商合计金额和占比。代码：domain_analysis.py _domain_14。'],
-   ['⑫','凭证描述纠正','当企业凭证摘要≠发票品名时，系统从发票数据中提取实际品名自动修正凭证描述。确保账务记录反映真实交易内容。代码：main.py 凭证生成阶段的品名修正。'],
-   ['⑬','进销诊断升级','有进无销→判定为采购积压或未开票销售。有销无进→判定为供应商开票延迟或无票采购。制造业进销品名差异→诊断为加工业务→自动触发加工环节深度分析。代码：domain_analysis.py _domain_1。'],
-   ['⑭','行业基准库','66个行业×5个指标×3个基准值（P25/P50/P75）。企业值<下限→高风险。企业值<典型值×0.85→中风险。JSON可扩展。代码：industry_data.json + pipeline.py 行业对标模块。'],
-   ['⑮','结论分析法','每条结论含9个结构字段（类型/等级/分数/详情/描述/稽查属性/稽查事实/法律依据/建议）。全维度可追溯。代码：pipeline.py finding对象结构。'],
-   ['⑯','COND_BAN防误杀','每个风险触发条件必须经双重验证：条件A（数据异常）+条件B（行业/模式确认）同时满足才触发。仅条件A出现不触发。代码：pipeline.py COND_BAN规则。'],
-   ['⑰','稽查重点强制等级','12类稽查重点发现直接硬编码为高风险，不受过滤器降级或协商引擎调整。三层保护：后端强制修正→过滤器绕过→前端红色标记。代码：pipeline.py 稽查重点列表。'],
-   ['⑱','报告纯净度','自动删除模板句/空描述/重复句/空占位符。方法论内部标注全部从正式报告中移除。每句话必须有数据支撑。代码：pipeline.py 报告生成管道末端的纯净度检查。'],
-   ['⑲','发票≠收付款1:1','发票日期≠收款/付款日期。六种正常时间差模式：自然跨期/合并支付/分期支付/预付预收/应付应收/非对公代付。保留时间容差。代码：domain_analysis.py 票款时间匹配分析。'],
-   ['⑳','经营实质地理分析','从单一经营场所缺失→扫描供应商/客户/加工商地址→提取城市/省份/距离→点→面推理全链条经营实质。重物运输跨省→运输成本缺失→货物流真实性存疑。代码：domain_analysis.py _domain_30。'],
-   ['㉑','规则detail业务化','每条规则detail描述用自然语言解释异常含义，不能只是阈值罗列。代码：pipeline.py detail生成逻辑。'],
-   ['㉒','建议质量增强','处理建议含11条针对性的具体操作路径。每条建议含：查什么→怎么查→正常怎么办→异常怎么办。代码：pipeline.py suggestion生成逻辑。'],
-   ['㉓','四步稽查分析法','detect→verify→diagnose→report。系统自动为每条发现生成四步推导链并完整呈现在报告中。代码：pipeline.py Phase4 synthesis。'],
-   ['㉔','禁止数据截断','任何展示字段不设硬编码截断。完整数据显示，由用户自行判断。列表不设上限，证据明细逐笔列示。代码：tax-doc-analysis.js 渲染层。'],
-   ['㉕','三层行业穿透法','第一层：工商登记行业→第二层：发票数据推断行业（90+关键词加权投票）→第三层：加工信号（BOM品名差异+加工费）。不一致时以实质重于形式。代码：phase1_triage.py _infer_industry_from_goods()。'],
-   ['㉖','经营实质点面推理法','发现一个风险点→推理出相关风险面。点→数据扩展→关联维度→交叉验证→综合结论。代码：domain_analysis.py _domain_31。'],
-   ['㉗','稽查六员跨企业比对','法定代表人/股东/董事/监事/高管/财务负责人——同一人在多家企业任职→关联交易风险。代码：cross_enterprise_graph.py。'],
-   ['㉘','供应链联网核查','全链条人员交叉比对——供应商→加工商→客户的工商信息和关联关系联网核查。代码：cross_enterprise_graph.py。'],
-   ['㉙','主营业务聚焦法','将全部采购按品名与主营业务关联度排序。与主营业务无关的大额采购→虚增成本/转移利润嫌疑。代码：domain_analysis.py _domain_29。'],
-   ['㉚','资料缺失风险推理','缺失的资料不是空的——它意味着对应风险无法排除。根据缺失资料类型推理出潜在风险方向。代码：domain_analysis.py _domain_14 缺失推理逻辑。'],
-   ['㉛','存疑排除法','买卖方都不含本公司→非本账套数据→排除出所有计算。防止A公司数据污染B公司分析。代码：pipeline.py 数据清洗阶段的身份排除。'],
-   ['㉜','规则配置外部化','所有规则/阈值/关键词存JSON文件，可通过编辑JSON追加新规则。新增规则只改配置不改代码。代码：industry_data.json + tax_risk_rules_local_export.json。'],
-   ['㉝','资金回流检测法','银行流水中同一对方名称同时出现收款和付款→检测是否为同日或短期资金回流→虚开发票/对倒开票嫌疑。系统自动匹配同一对手方的收付款时间差和金额匹配度。代码：domain_analysis.py _domain_33。']].forEach(function(m){h+='<tr><td class="lbl">'+m[0]+'</td><td class="lbl" style="color:#0f172a;font-weight:600">'+m[1]+'</td><td class="val" style="font-size:12px">'+m[2]+'</td></tr>';});
+  h += '<div class="hb-detail">每条方法论均来自审计准则和稽查实战。方法本身全行业适用——仅数据不同，逻辑通用。33条按处理阶段分为五层：<b>文件识别层</b>（①②）→<b>数据提取层</b>（③④⑤⑥）→<b>分析推理层</b>（⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔）→<b>结论输出层</b>（㉕㉖㉗㉘㉙）→<b>质量保障层</b>（㉚㉛㉜㉝）。<a href="/static/methodology_items.json" target="_blank" style="color:#2563eb;font-size:12px;margin-left:8px">📋 查看JSON源文件</a></div>';
+  h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:25px">#</td><td class="lbl" style="width:100px">名称</td><td class="val">详解</td></tr></thead><tbody id="hb-methods-body">';
+  h += '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px"><span class="spinner"></span> 加载方法论数据...</td></tr>';
   h += '</tbody></table></div>';
-
+  
+  // 异步加载方法论数据
+  fetch('/static/methodology_items.json').then(function(r){return r.json()}).then(function(data){
+    var tbody = document.getElementById('hb-methods-body');
+    if (!tbody) return;
+    var rows = '';
+    data.forEach(function(m){
+      rows += "<tr><td class=\"lbl\">"+m.id+"</td><td class=\"lbl\" style=\"color:#0f172a;font-weight:600\">"+m.name+"</td><td class=\"val\" style=\"font-size:12px\">"+m.desc+" | 代码："+m.code+"</td></tr>";
+    });
+    tbody.innerHTML = rows;
+  }).catch(function(){
+    var tbody = document.getElementById('hb-methods-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" style="color:#dc2626;text-align:center;padding:20px">加载失败，请刷新页面</td></tr>';
+  });
+  
   // ═══ 第四章 ═══
   h += '<div id="hb-s4" class="hb-sec"><div class="hb-sec-title"><span class="num">4</span>稽查判定规则</div>';
   h += '<div class="hb-detail">以下8条判定规则是系统分析的基础——每一条都在分析启动前完成判定，判定结论贯穿后续所有分析域。判定规则的执行顺序不可颠倒：身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环。如果第一步的身份锚定出错，后续所有判定都建立在错误基础上。</div>';
