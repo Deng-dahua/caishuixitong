@@ -1123,111 +1123,15 @@ function renderBrainTab() {
       }
       h += '</div>';
       
-      // ── 3. 纠正规则库 ──
+      // ── 3. 纠正规则库 → 已迁移至规则中转站 ──
       h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
-      h += '<h3 style="color:#1e293b;border-bottom:2px solid #059669;padding-bottom:8px">纠正规则库（用户反馈）</h3>';
-      
-      var corr = d.corrections || {};
-      var correctionRules = corr.rules || [];
-      var negotiationRules = corr.negotiation_rules || [];
-      
-      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
-      h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + correctionRules.length + '</div><div style="font-size:12px;color:#64748b">纠正规则</div></div>';
-      h += '<div style="flex:1;min-width:100px;background:#f5f3ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed">' + negotiationRules.length + '</div><div style="font-size:12px;color:#64748b">协商规则</div></div>';
-      h += '<div style="flex:1;min-width:100px;background:#dcfce7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#166534">' + (corr.auto_rules || 0) + '</div><div style="font-size:12px;color:#64748b">已自动生效</div></div>';
-      h += '</div>';
-      // 同步按钮（对纠正规则和协商规则都适用）
-      h += '<div style="margin:8px 0"><button onclick="syncCorrectionsToModules()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">同步纠正到模块</button> ';
-      h += '<button onclick="loadSyncStatus()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer">查看同步状态</button>';
-      h += '<span id="sync-status" style="margin-left:10px;font-size:11px;color:#94a3b8"></span></div>';
-      
-      // 用户纠正规则（空时显示提示）
-      if (correctionRules.length > 0) {
-        h += '<div style="font-size:12px;color:#64748b;margin:8px 0 4px;font-weight:600">用户纠正规则（' + correctionRules.length + '条）</div>';
-        h += '<table class="tbl2"><tr><th>发现类型</th><th>行业</th><th>模式</th><th>纠正次数</th><th>置信度</th><th>状态</th><th style="width:80px">操作</th></tr>';
-        for (var k = 0; k < correctionRules.length; k++) {
-          var r = correctionRules[k];
-          var fp = r.fingerprint || r.id || '';
-          var autoLabel = r.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>';
-          h += '<tr id="cr-row-'+k+'">';
-          h += '<td style="font-weight:600;cursor:pointer;color:#2563eb" onclick="showCorrectionDetail(' + k + ')" title="点击查看纠正详情">' + esc(r.finding_type) + '</td>';
-          h += '<td>' + esc(r.industry || '-') + '</td>';
-          h += '<td>' + esc(r.biz_model || '-') + '</td>';
-          h += '<td style="text-align:center">' + r.correction_count + '</td>';
-          h += '<td style="text-align:center">' + (r.confidence*100).toFixed(0) + '%</td>';
-          h += '<td>' + autoLabel + '</td>';
-          h += '<td style="text-align:center"><button onclick="editCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ')" style="background:none;border:1px solid #93c5fd;color:#2563eb;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-right:4px" title="修改此纠正规则">编辑</button><button onclick="deleteCorrectionRule(\'' + encodeURIComponent(fp) + '\',' + k + ',' + r.correction_count + ',\'' + (r.industry||'') + '\')" style="background:none;border:1px solid #fca5a5;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer" title="归档（可恢复）">归档</button></td>';
-          h += '</tr>';
-        }
-        h += '</table>';
-      } else {
-        h += '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;background:#fafbfc;border-radius:6px;margin:8px 0">暂无用户纠正规则 — 在报告中点击审核按钮，按模板填写审核意见后生成</div>';
-      }
-      
-      // 协商规则（来自user_corrections.json）
-      if (negotiationRules.length > 0) {
-        h += '<div style="font-size:12px;color:#64748b;margin:12px 0 4px;font-weight:600">协商规则（' + negotiationRules.length + '条，来自系统内置规则库）</div>';
-        h += '<table class="tbl2"><tr><th>规则名称</th><th>类型</th><th>置信度</th><th>状态</th></tr>';
-        for (var n = 0; n < negotiationRules.length; n++) {
-          var nr = negotiationRules[n];
-          h += '<tr>';
-          h += '<td style="font-weight:600">' + esc(nr.finding_type) + '</td>';
-          h += '<td><span style="font-size:11px;padding:1px 6px;border-radius:3px;background:#f0fdf4;color:#059669">协商规则</span></td>';
-          h += '<td style="text-align:center">' + (nr.confidence*100).toFixed(0) + '%</td>';
-          h += '<td>' + (nr.auto_apply ? '<span style="color:#059669;font-weight:600">已生效</span>' : '<span style="color:#d97706">学习中</span>') + '</td>';
-          h += '</tr>';
-        }
-        h += '</table>';
-      }
-      
-      // 同步日志清理提示
-      h += '<div style="font-size:11px;color:#94a3b8;margin-top:8px">💡 "同步纠正到模块"将符合条件的规则（≥60%置信度+≥1次纠正）写入对应模块文件。已同步的规则带[引擎自学习]标签。</div>';
+      h += '<h3 style="color:#1e293b;border-bottom:2px solid #7c3aed;padding-bottom:8px">纠正规则库</h3>';
+      h += '<div style="padding:20px;text-align:center"><a href="#" onclick="navigateTo(\'correction-rules\');return false" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">🔄 前往规则中转站</a><br><span style="font-size:12px;color:#94a3b8;display:block;margin-top:8px">编辑/审核/追问/重置 四通道规则统一管理</span></div>';
       h += '</div>';
       
-      // ── 跨行业合成规则 ──
-      h += '<div id="cross-rules-section" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin-bottom:12px">';
-      h += '<div style="font-weight:700;color:#166534;font-size:13px;margin-bottom:8px">跨行业合成规则</div>';
-      h += '<div id="cross-rules-list" style="font-size:12px;color:#166534">Loading...</div>';
-      h += '</div>';
-      
-      // ── 已归档规则（可恢复）──
-      h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:#94a3b8">已归档规则（点击展开 · 可恢复）</summary>';
-      h += '<div id="archived-rules-list" style="margin-top:8px;font-size:12px;color:#94a3b8">Loading...</div>';
-      h += '</details>';
-      
-      // ── 4. 税收优惠政策核实 ──
-      var pv = d.policy_verification;
-      if (pv) {
-        h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
-        h += '<h3 style="color:#1e293b;border-bottom:2px solid #8b5cf6;padding-bottom:8px">税收优惠政策核实</h3>';
-        h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
-        h += '<div style="flex:1;min-width:100px;background:#f5f3ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed">' + pv.total_policies + '</div><div style="font-size:12px;color:#64748b">政策总数</div></div>';
-        h += '<div style="flex:1;min-width:100px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + pv.valid_count + '</div><div style="font-size:12px;color:#64748b">有效政策</div></div>';
-        if (pv.expired_count > 0) {
-          h += '<div style="flex:1;min-width:100px;background:#fef2f2;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">' + pv.expired_count + '</div><div style="font-size:12px;color:#64748b">已到期</div></div>';
-        }
-        h += '</div>';
-        var policies = pv.policies || [];
-        if (policies.length > 0) {
-          h += '<table class="tbl2"><tr><th>政策</th><th>文号</th><th>到期日</th><th>状态</th><th>系统核实</th></tr>';
-          for (var pi = 0; pi < policies.length; pi++) {
-            var pol = policies[pi];
-            var icon = pol.valid ? '<span style="color:#059669">✅ 有效</span>' : '<span style="color:#dc2626">⚠ 已到期</span>';
-            var verify = pol.auto_verify_source || pol.status || '';
-            h += '<tr>';
-            h += '<td style="font-weight:600">' + esc(pol.name) + '</td>';
-            h += '<td style="font-size:12px;color:#64748b">' + esc(pol.law) + '</td>';
-            h += '<td>' + esc(pol.expiry) + '</td>';
-            h += '<td>' + icon + '</td>';
-            h += '<td style="font-size:12px;max-width:200px">' + esc(verify) + '</td>';
-            h += '</tr>';
-          }
-          h += '</table>';
-        }
-        h += '</div>';
-      }
-      
-      // ── 5. 学习方法论 ──
+      // ── 4. 税收优惠核实 ──
+
+    // ── 5. 学习方法论 ──
       h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:13px;color:#475569;line-height:2">';
       h += '<strong style="font-size:14px;color:#0f172a">智能大脑工作原理</strong><br><br>';
       h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有42个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
