@@ -49,6 +49,15 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     # ── 1.4 初查信号检测 ──
     _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs, invoices)
     
+    # ── 1.4b 自适应权重：根据用户历史审核/编辑反馈调整信号 ──
+    try:
+        from engine.memory import get_adaptive_signal_weights
+        adaptive_weights = get_adaptive_signal_weights(ctx)
+        if adaptive_weights:
+            _apply_adaptive_weights(ctx, adaptive_weights, pipeline_log)
+    except Exception as _aw_e:
+        pipeline_log.append(f"[Phase1] 自适应权重加载失败: {_aw_e}")
+    
     # ── 1.5 资料质量评估 ──
     _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries)
     
@@ -631,6 +640,43 @@ def _assess_data_quality(ctx, docs, file_results, bank_txs, invoices, salaries):
         ctx.add_flag("yellow", "发票数据量少", f"仅{len(invoices)}张", "资料质量")
     
     ctx.data_quality_score = max(0, min(100, score))
+
+
+def _apply_adaptive_weights(ctx, adaptive_weights, pipeline_log):
+    """根据用户历史审核/编辑反馈调整Phase1信号的等级和置信度。
+    
+    adaptive_weights 格式: {"信号类型": weight}
+    - weight > 1.0: 用户多次确认 = 信号更可信，保持原等级
+    - weight < 0.7: 用户多次驳回 = 信号可信度降低，红灯→黄灯
+    - weight < 0.4: 用户大量驳回 = 信号几乎无效，移除信号
+    """
+    adjusted = 0
+    
+    for flag_list, label in [(ctx.red_flags, "红灯"), (ctx.yellow_flags, "黄灯")]:
+        downgraded = []
+        for flag in flag_list[:]:
+            signal_type = flag.get("type", "")
+            w = adaptive_weights.get(signal_type, 1.0)
+            
+            if w <= 0.4:
+                # 用户大量驳回此信号 → 移除
+                flag_list.remove(flag)
+                adjusted += 1
+                pipeline_log.append(f"[自适应] {signal_type}: 权重{w:.2f}(大量驳回) → 移除{label}")
+            elif w <= 0.7 and label == "红灯":
+                # 用户多次驳回 → 红灯降为黄灯
+                flag_list.remove(flag)
+                ctx.yellow_flags.append(flag)
+                adjusted += 1
+                pipeline_log.append(f"[自适应] {signal_type}: 权重{w:.2f}(多次驳回) → 红灯→黄灯")
+            else:
+                # 标记置信度
+                flag["_adaptive_confidence"] = min(w, 2.0)
+    
+    if adjusted > 0:
+        pipeline_log.append(f"[Phase1] 自适应权重调整了{adjusted}个信号 (共{len(adaptive_weights)}个反馈权重)")
+    else:
+        pipeline_log.append(f"[Phase1] 自适应权重已加载({len(adaptive_weights)}个)，无信号需调整")
 
 
 # ═══════════════════════════════════════════════════════════
