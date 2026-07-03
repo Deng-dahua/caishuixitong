@@ -1,12 +1,12 @@
 /**
- * 推理引擎仪表盘 — 独立展示推理引擎 v2.0 的全部内部状态
- * Phase 1-4 完整可视化
+ * 智能大脑·运行仪表盘 — 统一大脑全部内部状态
+ * Phase 1-4 完整可视化 + AGI合并大脑
  */
 
 function renderEngineDashboardPage(container) {
   container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
-    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">⚙️ 推理引擎仪表盘</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">推理引擎 v2.0 运行监控中心——6个标签页覆盖运行状态/规则库/质量保障/方法论对账/跨域协商/智能大脑。数据来源：系统实时API + 分析缓存。每项指标可追溯到具体的代码位置和数据文件。</p>'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🧠 智能大脑·运行仪表盘</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">统一大脑运行监控中心——5个标签页覆盖管道调度/推理引擎/学习反馈/质量保障/AGI核心。数据来源：系统实时API + 分析缓存。每项指标可追溯到具体的代码位置和数据文件。</p>'
     + '<div id="engine-dashboard-area"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在连接推理引擎数据接口...</div></div></div>';
   setTimeout(loadEngineDashboard, 200);
 }
@@ -24,12 +24,11 @@ function renderEngineDashboard(rpt) {
   window._hasEngineData = hasData;
 
   var tabs = [
-    {id:'status',icon:'📊',name:'运行状态',color:'#2563eb'},
-    {id:'rules',icon:'📋',name:'规则库',color:'#7c3aed'},
+    {id:'status',icon:'📊',name:'管道调度',color:'#2563eb'},
+    {id:'rules',icon:'📋',name:'学习反馈',color:'#7c3aed'},
+    {id:'brain',icon:'🧠',name:'AGI核心',color:'#dc2626'},
     {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},
-    {id:'methods',icon:'🔬',name:'方法论对账',color:'#f59e0b'},
-    {id:'negotiation',icon:'🤝',name:'跨域协商',color:'#0ea5e9'},
-    {id:'brain',icon:'🧠',name:'智能大脑',color:'#dc2626'}
+    {id:'methods',icon:'🔬',name:'推理引擎',color:'#f59e0b'}
   ];
 
   // TOC sidebar layout
@@ -73,7 +72,7 @@ function renderStatusTab() {
       '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
       '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
       '<div style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:2">运行状态需要先执行一键分析才能查看引擎内部数据。<br>一键分析会触发完整的Phase1-4推理管线，生成包含全部中间状态的分析报告。</div>' +
-      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>资料风险分析报告</b> 页面运行一键分析，或点击上方 <b>规则库</b> 标签查看1608条稽查指令的完整定义。<br>其他标签页（质量保障/方法论对账/跨域协商/智能大脑）也需要分析数据作为输入。</div>' +
+      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>风险分析</b> 页面运行一键分析，或点击上方 <b>学习反馈</b> 标签查看1608条稽查指令。<br>其他标签页（质量保障/AGI核心/推理引擎）也需要分析数据作为输入。</div>' +
       '</div>';
     return;
   }
@@ -82,7 +81,7 @@ function renderStatusTab() {
   
   // ═══ 顶部：引擎版本 + 风险总览 ═══
   h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
-  h += '<div style="font-size:20px;font-weight:700;color:#0f172a">推理引擎仪表盘 <span style="font-size:13px;color:#94a3b8;margin-left:12px">' + esc(es.version) + '</span></div>';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a">智能大脑·运行仪表盘</div>';
   h += '<div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap">';
   
   if (es.phase4_synthesis && es.phase4_synthesis.overall_risk) {
@@ -803,7 +802,7 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '</nav>';
 
   h += '<div class="dim-main">';
-  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">📐 引擎能力维度</h2>';
+  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🔬 引擎能力维度</h2>';
   h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">推理引擎'+totalDims+'维能力矩阵——从文件解析到报告输出，覆盖全部分析域和工具链。每个维度按实现完整度分为四星（已完全代码化并验证）和三星（已实现核心功能）。数据来源：capability_matrix.py 动态提取代码中的实际实现，非人工维护的数字。当前进度：四星'+stars4+'个、三星'+stars3+'个、总计代码'+codeTotal+'。</p>';
 
   // ═══ 说明 ═══
