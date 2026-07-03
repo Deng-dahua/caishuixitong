@@ -3343,6 +3343,7 @@ def _run_analyze(company_id, db, progress_callback=None):
 
         engine_status = {
             "version": "v2.0",
+            "analyzed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "phases": ["Phase1-初查", "Phase2-定向深挖", "Phase3-交叉验证", "Phase4-综合定性"],
             "company_profile": {
                 "industry": cp.get("industry", "未知"),

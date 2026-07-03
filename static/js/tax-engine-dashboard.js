@@ -82,6 +82,7 @@ function renderStatusTab() {
   // ═══ 顶部：引擎版本 + 风险总览 ═══
   h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
   h += '<div style="font-size:20px;font-weight:700;color:#0f172a">智能大脑·运行仪表盘</div>';
+  if (es.analyzed_at) h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">分析时间: ' + esc(es.analyzed_at) + '</div>';
   h += '<div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap">';
   
   if (es.phase4_synthesis && es.phase4_synthesis.overall_risk) {
@@ -978,70 +979,10 @@ function renderBrainTab() {
       h += '</div>';
       
       // ── 4. 税收优惠核实 ──
-
-    // ── 5. 学习方法论 ──
-      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;font-size:13px;color:#475569;line-height:2">';
-      h += '<strong style="font-size:14px;color:#0f172a">智能大脑工作原理</strong><br><br>';
-      h += '<b>调度中枢</b>：根据数据画像（行业/经营模式/资料种类/数据量级）自动决定激活哪些模块、跳过哪些模块。不是所有42个域分析都运行——服务行业自动跳过进销存等实物商品域，资料缺失时自动降级相关分析域。决策结果在管线日志中完整记录，可回溯。<br><br>';
-      h += '<b>渐进学习</b>：同类企业分析3次后建立信任模型——记录该行业的常见信号模式、合理阈值区间、典型异常特征。后续分析依次检索历史案例进行行业对标校准。长期零产出的模块自动降权（降低分析优先级但不关闭），信任模型支持12维度加权相似度检索。<br><br>';
-      h += '<b>纠正规则</b>：老邓在报告中点击审核→按模板填写审核意见→存入user_corrections.json→按"发现类型|行业|经营模式"生成指纹→累计1次纠正→升级为自动规则→四级回退匹配（精确→行业→通用→名称）→下次同类发现自动标注审核标记。审核不改变原始风险等级，仅在报告中展示绿色审核横幅。<br><br>';
-      h += '<b>合规门禁</b>：12条稽查铁律（虚开发票/骗取退税/隐匿收入等）作为事前检查引擎——任何一条铁律被触发的报告自动标记违规，在报告正式输出前拦截。门禁独立于方法论过滤器运行，不受HARD_BAN/COND_BAN影响。<br><br>';
-      h += '<b>政策核实</b>：9类税收优惠政策（高新技术15%、小微减免、研发加计扣除等）自动联网核实有效期——已到期政策自动搜索国家税务总局公告判断是否有延续，有延续则更新有效期，无延续则标记"已到期需补税"。<br><br>';
-      h += '<b>数据一致性</b>：audit_consistency.py --sync 双维度自检——数字维度（扫描所有JS/PY文件中的硬编码数字与system_config.json对比，不一致自动修复）+文本维度（29项跨模块共享内容双层验证：9个text_sync块逐字哈希对比权威源→不一致自动覆盖，20个concept_link概念关联存在性验证）。四触发全覆盖：start.bat启动时/git pre-commit/一键分析pipeline子进程/手动--sync。<br><br>';
-      h += '<b>内容同步</b>：shared_content_map.json v2.0 管理跨模块文本一致性——9个报告7章结构章节（封面+第一章~第七章+附件）在"报告编制要求"（权威源）与"税务稽查员手册"（依赖副本）之间自动同步。任一权威源变更→--sync自动覆盖依赖副本→确保两份文档永远一致。';
-      h += '</div>';
       
       h += '</div>';
       area.innerHTML = h;
-      // 加载跨行业合成规则
-      fetch('/api/tax-risk-docs/ask?company_id=' + (window.currentCompanyId||1), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({finding_index:0, question:'cross_rules', policy_doc:'', history:[]})
-      }).then(function(){ return fetch('/api/feedback'); }).catch(function(){
-        // Fallback: check user_corrections.json directly for __CROSS__ entries
-        return {json:function(){return Promise.resolve({ok:true,auto_rules:0,rules:[]});}};
-      });
-      // Use the existing correction rules data from the page
-      var crossList = document.getElementById('cross-rules-list');
-      if (crossList && window._brainData && window._brainData.correction_rules) {
-        var cr = window._brainData.correction_rules;
-        var crossRules = [];
-        for (var fp in cr.rules || cr) {
-          if (fp.indexOf('__CROSS__') === 0) {
-            var r = cr.rules ? cr.rules[fp] : cr[fp];
-            crossRules.push({fingerprint: fp, finding: r.finding_type, industries: r.industry_rules, summary: r.summary});
-          }
-        }
-        if (crossRules.length) {
-          var ch = '';
-          crossRules.forEach(function(cr){
-            ch += '<div style="padding:6px 0;border-bottom:1px solid #dcfce7">';
-            ch += '<div style="font-weight:600">' + (cr.finding||'?') + '</div>';
-            ch += '<div style="color:#64748b;font-size:11px">' + (cr.summary||'') + '</div>';
-            ch += '</div>';
-          });
-          crossList.innerHTML = ch;
-        } else {
-          crossList.innerHTML = '暂无跨行业规则 — 对同发现在2种以上不同行业编辑后将自动合成';
-        }
-      } else {
-        crossList.innerHTML = '暂未合成跨行业规则';
-      }
-      // 加载已归档规则
-      fetch('/api/feedback/archived').then(function(r){return r.json();}).then(function(d){
-        var list = document.getElementById('archived-rules-list');
-        if (!list || !d.rules || !d.rules.length) { if(list) list.innerHTML = '无已归档规则'; return; }
-        var ah = '';
-        d.rules.forEach(function(a){
-          ah += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f1f5f9">';
-          ah += '<span style="flex:1">' + (a.finding_type||'?').slice(0,40) + '（' + a.correction_count + '次纠正, ' + (a.industry||'?') + '）</span>';
-          ah += '<button onclick="window._restoreRule(\'' + encodeURIComponent(a.fingerprint) + '\')" style="background:#059669;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer">恢复</button>';
-          ah += '</div>';
-        });
-        list.innerHTML = ah;
-      });
-    });
+    }).catch(function() { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">大脑数据读取失败</div>'; });
 }
 
 function syncCorrectionsToModules() {
