@@ -10,7 +10,7 @@ function renderCorrectionRulesHub(container) {
     '.crh-layout{max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}' +
     '.crh-h2{font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px}' +
     '.crh-sub{font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2}' +
-    '.crh-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}' +
+    '.crh-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}' +
     '.crh-stat{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}' +
     '.crh-stat-num{font-size:28px;font-weight:800;color:#0f172a}' +
     '.crh-stat-label{font-size:12px;color:#94a3b8;margin-top:4px}' +
@@ -73,7 +73,8 @@ function renderCorrectionData(corrections, contents) {
     '<div class="crh-stat"><div class="crh-stat-num">' + rules.length + '</div><div class="crh-stat-label">总规则数</div></div>' +
     '<div class="crh-stat"><div class="crh-stat-num" style="color:#2563eb">' + editCount + '</div><div class="crh-stat-label">📝 编辑</div></div>' +
     '<div class="crh-stat"><div class="crh-stat-num" style="color:#059669">' + auditCount + '</div><div class="crh-stat-label">✅ 审核</div></div>' +
-    '<div class="crh-stat"><div class="crh-stat-num" style="color:#d97706">' + (askCount + logs.length - editCount - auditCount - resetCount) + '</div><div class="crh-stat-label">🔍 追问/重置</div></div>';
+    '<div class="crh-stat"><div class="crh-stat-num" style="color:#7c3aed">' + askCount + '</div><div class="crh-stat-label">🔍 追问</div></div>' +
+    '<div class="crh-stat"><div class="crh-stat-num" style="color:#dc2626">' + resetCount + '</div><div class="crh-stat-label">🔄 重置</div></div>';
 
   // 筛选器
   document.getElementById('crh-filter').innerHTML =
