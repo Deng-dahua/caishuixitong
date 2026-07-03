@@ -191,14 +191,21 @@ def _run_analyze(company_id, db, progress_callback=None):
     agent = None  # 保留兼容，由agi_pipeline内部管理
     agent_status = None
     agi_pipeline = None
+    agi_engine = None  # 统一大脑：合并agi_pipeline+agi_engine
     agi_init_ok = False
     try:
         from engine.agi_pipeline import create_pipeline
         agi_pipeline = create_pipeline()
         _agi_pipeline_instance = agi_pipeline
-        agent = agi_pipeline.init_agent(db)  # 统一入口：管道管理智能体
+        agent = agi_pipeline.init_agent(db)
         agi_init_ok = True
         pipeline_log.append("[AGI] 智能体+34模块管线已统一连接")
+        # ═══ 合并大脑：agi_engine接入管道 ═══
+        try:
+            from engine.agi_engine import agi as agi_engine_instance
+            agi_engine = agi_engine_instance
+            pipeline_log.append("[AGI] 合并大脑：agi_pipeline + agi_engine 已统一")
+        except Exception: pass
     except Exception as _pe:
         pipeline_log.append(f"[AGI] 初始化失败→跳过反思/洞见/知识注入: {_pe}")
         agi_pipeline = None
@@ -3538,6 +3545,45 @@ def _run_analyze(company_id, db, progress_callback=None):
         corr_n = apply_correction_rules(all_findings, ind, bm)
         if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用")
     except Exception: pass
+    
+    # ═══ 合并大脑：agi_engine注入推理增强 ═══
+    if agi_engine:
+        try:
+            # 元认知自审
+            from engine.agi_meta import meta_loop
+            meta_result = meta_loop.run(all_findings, target_entity, {"files": len(file_results)})
+            all_findings = meta_result.get("enhanced_findings", all_findings)
+            pipeline_log.append(f"[AGI] 元认知自审完成: {meta_result.get('grade','?')}级")
+        except Exception: pass
+        try:
+            # 处长不确定性量化
+            from engine.director import get_director
+            director = get_director()
+            for f in all_findings[:20]:
+                try:
+                    f["_agi_confidence"] = director.quantify_uncertainty(f, comprehensive.get("material_intel", {}))
+                except: pass
+            pipeline_log.append("[AGI] 处长不确定性量化完成")
+        except Exception: pass
+        try:
+            # 反事实推理
+            from engine.agi_core import counterfactual
+            counterfactual_results = []
+            for f in all_findings[:5]:
+                try:
+                    cf = counterfactual.imagine(f, target_entity)
+                    if cf: counterfactual_results.append(cf)
+                except: pass
+            if counterfactual_results:
+                comprehensive["counterfactual_analysis"] = counterfactual_results
+                pipeline_log.append(f"[AGI] 反事实推理完成: {len(counterfactual_results)}条")
+        except Exception: pass
+        try:
+            # 泛化学习
+            from engine.agi_core import generalizer
+            gen = generalizer.summarize(all_findings, target_entity.get("industry", ""))
+            if gen: comprehensive["agi_generalization"] = gen
+        except Exception: pass
     
     # ═══ 结论自洽性检查：CONTRADICTION_RULES 矛盾检测 ═══
     try:
