@@ -178,11 +178,9 @@ function renderReportStandards(container) {
   h += '<div class="rs-card"><div class="rs-detail">引擎在所有域分析完成后自动运行跨域协商（15条规则四类场景）。协商结果在报告中以彩色横幅展示在发现标题和六要素之间：<br><b>⛔ 协商消解（红色横幅）：</b>域A结论直接推翻域B结论。示例："服务行业→进销存风险不适用"。被发现保留在底稿中但六要素仅作参考。适用规则NEG-001~003/020。<br><b>🔄 协商调整（黄色横幅）：</b>域A结论削弱域B结论。展示原等级→新等级和调整原因。示例："高风险→提示（服务行业毛利率不可制造业对标）"。适用规则NEG-004~005/021。<br><b>ℹ️ 协商标记（蓝色横幅）：</b>域A结论给域B加标签，不改变等级。示例："资料受限结论""含非经营收款"。适用规则NEG-010~040。<br><b>🔴 联合增强（红框新发现）：</b>多域信号同时触发→协商引擎合成更高级别新发现（如空壳企业预警、隐匿收入预警、对倒开票预警）。以红框+新编号展示。适用规则NEG-AUG-001~003。<br>代码：engine/cross_domain_negotiation.py NEGOTIATION_RULES / tax-doc-analysis.js 协商徽章渲染段。</div></div></div>';
 
   h += '<div id="rs-review" class="rs-sec"><div class="rs-sec-title"><span class="n">11</span>审核反馈在报告中的呈现</div>';
-  h += '<div class="rs-card"><div class="rs-detail"><b>审核按钮：</b>每条发现右侧提供"🔍审核"按钮。弹窗中按审核内容模板（判断结论+具体问题+正确逻辑+需要证据+法律依据）填写意见。<br><b>审核后的展示规则：</b>①审核不改变发现的风险等级——审核是提升系统判断精度，不是消除发现；②已审核的发现展示绿色横幅"✅已审核：审核意见内容"；③审核数据存入user_corrections.json，下次分析时四级回退匹配自动应用；④审核记录不入正式报告正文——这是系统自学习数据；⑤审核机制本质：人工判断→系统学习→1次纠正→自动规则→累积进化。<br><b>纠正规则查看：</b>推理引擎仪表盘→智能大脑→纠正规则库。展示指纹/置信度/纠正次数/是否自动应用。</div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务稽查员手册 → 第十一章 审核反馈闭环</a></div></div></div>';
 
-  h += '<div style="padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534;line-height:2">⚖️ 与正式税务稽查报告对照：✅ 已符合 编号格式/7章结构/六要素/5项权利/签字栏位/证据清单 · ⚠️ 部分符合 基本情况缺少工商数据（需联网核查补全） · ❌ 待补充 送达回证/审理意见书/行政处罚告知书（需税务局内部流程）</div>';
-
-  // ═══ 第12节：引擎铁律与报告质量映射 ═══
+  // ═══
   h += '<div id="rs-ironlaw" class="rs-sec"><div class="rs-sec-title"><span class="n">12</span>引擎铁律与报告质量映射</div>';
   h += '<div class="rs-card"><div class="rs-detail">引擎记忆（engine/memory.py）中的11条引擎铁律每一条都直接保证报告的一个质量维度。以下为完整映射——铁律编号×报告质量关卡×保证方式：<br>';
   h += '<b>铁律一（科目name）：</b>保证报告中科目名称的准确性→报告第三章证据材料中的科目名称与DB一致→如果此铁律违反，报告中显示的科目名称与实际账务不符。<br>';
