@@ -666,6 +666,7 @@ function navigateTo(page) {
     case 'report-standards': renderReportStandards(container); break;
     case 'feedback-template': renderFeedbackTemplate(container); break;
     case 'engine-dashboard': renderEngineDashboardPage(container); break;
+    case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'tax-agi': renderAgiDashboard(container); break;
   }

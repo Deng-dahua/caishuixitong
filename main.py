@@ -8771,6 +8771,47 @@ def sync_corrections_to_modules():
     return {"ok": True, "sync_result": result, "status": status}
 
 
+@app.get("/api/feedback/corrections")
+def get_correction_rules():
+    """获取所有纠正规则（规则中转站数据源）"""
+    try:
+        from engine.self_learning import _load_correction_rules
+        rules = _load_correction_rules()
+        result = []
+        for fp, rule in rules.items():
+            c = rule.get("corrections", [])
+            result.append({
+                "fingerprint": fp,
+                "finding_type": rule.get("finding_type", ""),
+                "industry": rule.get("industry", ""),
+                "biz_model": rule.get("biz_model", ""),
+                "auto_apply": rule.get("auto_apply", False),
+                "confidence": rule.get("confidence", 0),
+                "correction_count": len(c),
+                "last_reason": c[-1].get("reason", "") if c else "",
+                "corrections": c[-5:],
+                "updated_at": c[-1].get("timestamp", "") if c else "",
+            })
+        result.sort(key=lambda x: -(x["confidence"] or 0))
+        return {"ok": True, "rules": result, "count": len(result)}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
+@app.get("/api/feedback/content-logs")
+def get_content_feedback_logs():
+    """获取内容反馈日志（编辑/审核/追问/重置记录）"""
+    try:
+        p = os.path.join(os.path.dirname(__file__), "static", "content_feedback.json")
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                import json
+                logs = json.load(f)
+            if isinstance(logs, list):
+                return {"ok": True, "logs": logs[-100:], "count": len(logs)}
+        return {"ok": True, "logs": [], "count": 0}
+    except:
+        return {"ok": True, "logs": [], "count": 0}
+
 @app.get("/api/feedback/sync-status")
 def get_sync_status():
     """查看当前纠正→模块同步状态和待同步规则"""
