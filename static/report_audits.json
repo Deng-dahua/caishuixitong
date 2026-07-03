@@ -2287,5 +2287,247 @@
     "critical_count": 13,
     "warning_count": 30,
     "grade": "C"
+  },
+  {
+    "timestamp": "2026-07-03T15:34:51.947252",
+    "company": "深圳海更数字传媒有限公司",
+    "finding_count": 75,
+    "overall_score": 0.6,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 1,
+            "finding_type": "同城供应商群集",
+            "issue": "发现#2缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 6,
+            "finding_type": "基础经营费用缺失",
+            "issue": "高风险发现#7仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 16,
+            "finding_type": "印花税 — 购销合同税负不足",
+            "issue": "发现#17缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 17,
+            "finding_type": "小规模纳税人资格(应享)",
+            "issue": "发现#18缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 18,
+            "finding_type": "高新技术企业资格(建议申请)",
+            "issue": "发现#19缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 19,
+            "finding_type": "研发费用加计扣除(建议享受)",
+            "issue": "发现#20缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 20,
+            "finding_type": "六税两费减半(应享)",
+            "issue": "发现#21缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 21,
+            "finding_type": "残保金免征(应享)",
+            "issue": "发现#22缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 29,
+            "finding_type": "新办企业短期内大量开票",
+            "issue": "高风险发现#30仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 30,
+            "finding_type": "注销前突击开票",
+            "issue": "高风险发现#31仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 38,
+            "finding_type": "互开发票风险",
+            "issue": "高风险发现#39仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 43,
+            "finding_type": "办公费用缺失",
+            "issue": "高风险发现#44仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 45,
+            "finding_type": "资料不完备",
+            "issue": "高风险发现#46仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 46,
+            "finding_type": "股票期权行权未扣税",
+            "issue": "高风险发现#47仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 48,
+            "finding_type": "未认证发票超期",
+            "issue": "高风险发现#49仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 54,
+            "finding_type": "顶额分散开票",
+            "issue": "高风险发现#55仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 65,
+            "finding_type": "资料缺失触发-记账凭证缺失→会计账簿视为不健全→核定征收",
+            "issue": "高风险发现#66仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 67,
+            "finding_type": "Causal: 隐匿收入的资金回流路径",
+            "issue": "高风险发现#68仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 68,
+            "finding_type": "Causal: 虚开发票的资金闭环回路",
+            "issue": "高风险发现#69仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 69,
+            "finding_type": "Causal: 关联交易的利润转移路径",
+            "issue": "高风险发现#70仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          }
+        ],
+        "status": "不合格"
+      },
+      "法条准确性": {
+        "score": 0.4,
+        "issues": [
+          {
+            "dimension": "法条准确性",
+            "finding_index": 4,
+            "finding_type": "疑似关联交易——供应商与客户重叠",
+            "issue": "高风险发现#5缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 13,
+            "finding_type": "付款流向与进项发票供应商严重不匹配",
+            "issue": "高风险发现#14缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 14,
+            "finding_type": "红冲/作废发票数量异常",
+            "issue": "高风险发现#15缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 23,
+            "finding_type": "进销双向交易——1家既是供应商又是客户（循环开票嫌疑）",
+            "issue": "高风险发现#24缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          }
+        ],
+        "status": "需改进"
+      },
+      "逻辑一致性": {
+        "score": 0.85,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 13,
+    "warning_count": 32,
+    "grade": "C"
   }
 ]

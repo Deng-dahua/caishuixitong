@@ -35,6 +35,9 @@ class LearningAgent(BaseAgent):
             # Handle empty list case
             if isinstance(data, list):
                 return {"rules": {}, "industries": {}, "patterns": []}
+            # Handle record_correction format (fingerprint dict without "rules" key)
+            if isinstance(data, dict) and "rules" not in data:
+                return {"rules": data, "industries": {}, "patterns": []}
             return data
         except:
             return {"rules": {}, "industries": {}, "patterns": []}
