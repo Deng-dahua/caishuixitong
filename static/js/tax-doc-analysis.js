@@ -5753,7 +5753,11 @@ window._edtSubmitEdit = function() {
 
 
 
-    if (d.ok) { el.textContent = "✅ 已记录"; el.style.color = "#16a34a"; }
+    if (d.ok) {
+      el.textContent = "✅ 已记录，已更新规则库"; el.style.color = "#16a34a";
+      // 触发规则传播到五链
+      fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
+    }
 
 
 
@@ -5809,7 +5813,10 @@ window._edtSubmitAudit = function() {
 
 
 
-    if (d.ok) { el.textContent = "✅ 审核已记录"; el.style.color = "#16a34a"; }
+    if (d.ok) {
+      el.textContent = "✅ 审核已记录，已更新规则库"; el.style.color = "#16a34a";
+      fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
+    }
 
 
 

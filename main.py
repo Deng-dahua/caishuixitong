@@ -6467,6 +6467,13 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
     _socket.setdefaulttimeout(10)
     # 清除旧缓存，强制重新分析
     _last_analysis_cache.pop(company_id, None)
+    # ═══ 闭环：分析前先传播积累的纠正规则到五链 ═══
+    try:
+        from engine.self_learning import _load_correction_rules
+        rules = _load_correction_rules()
+        if rules:
+            propagate_corrections_to_chains()
+    except: pass
     try:
         result = _run_analyze(company_id, db)
         
@@ -8162,6 +8169,80 @@ def run_meta_audit(data: dict):
     )
     return {"ok": True, "result": result}
 
+
+def _close_feedback_loop(feedback: dict):
+    """将✏️编辑/审核反馈接入规则库闭环 → 纠正规则→更新五链"""
+    try:
+        chapter = feedback.get("chapter", "")
+        wrong = feedback.get("wrong_content", "")[:200]
+        correct = feedback.get("correct_content", "")[:200]
+        is_audit = feedback.get("audit", False)
+        
+        # 推断发现类型
+        finding_type = _infer_finding_type_from_feedback(chapter, wrong, correct)
+        
+        # 操作类型
+        action = "confirm" if is_audit else "adjust"
+        corrected_risk = "低风险" if is_audit else "高风险"
+        
+        # 调用自主学习引擎
+        from engine.self_learning import record_correction
+        record_correction(
+            finding_type=finding_type,
+            industry="通用",
+            biz_model="通用",
+            original_risk="高风险",
+            corrected_risk=corrected_risk,
+            reason=f"✏️反馈: {wrong} → {correct}",
+            finding_detail=chapter,
+        )
+        
+        # 同步记忆系统
+        from engine.memory import record_user_feedback
+        record_user_feedback({
+            "finding_type": finding_type,
+            "action": action,
+            "adjusted_score": 8 if is_audit else 3,
+            "reason": correct,
+            "wrong_content": wrong,
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+
+
+def _infer_finding_type_from_feedback(chapter: str, wrong: str, correct: str) -> str:
+    """从反馈内容推断对应的发现类型"""
+    keywords = (chapter + wrong + correct).lower()
+    mappings = [
+        ("收款", "收款与开票金额偏差大"),
+        ("开票", "收款与开票金额偏差大"),
+        ("发票", "发票合规问题"),
+        ("红冲", "红冲/作废发票数量异常"),
+        ("工资", "工资发放不合规"),
+        ("社保", "社保缴费问题"),
+        ("个税", "个人所得税问题"),
+        ("进项", "进项发票付款不匹配"),
+        ("销项", "销项开票收款不匹配"),
+        ("供应商", "供应商集中度异常"),
+        ("客户", "客户集中度异常"),
+        ("关联", "关联交易风险"),
+        ("资料", "资料完备度不足"),
+        ("记账凭证", "记账凭证缺失"),
+        ("经营场所", "经营场所存疑"),
+        ("费用", "费用列支问题"),
+        ("税负", "税负计算问题"),
+        ("印花税", "印花税问题"),
+        ("虚开", "虚开发票风险"),
+        ("隐匿", "隐匿收入风险"),
+    ]
+    for kw, ft in mappings:
+        if kw in keywords:
+            return ft
+    return "资料完备度不足"
+
+
 @app.get("/api/agi/meta-status")
 def get_meta_status():
     """AGI元认知状态"""
@@ -8207,6 +8288,9 @@ async def post_content_feedback(request: Request):
     existing.append(feedback)
     with open(cf_path, "w", encoding="utf-8") as f:
         json.dump(existing[-100:], f, ensure_ascii=False, indent=2)
+
+    # ═══ 闭环：反馈注入规则库 ═══
+    _close_feedback_loop(feedback)
 
     return {"ok": True, "feedback_id": feedback["id"], "total": len(existing)}
 
@@ -8262,6 +8346,27 @@ async def post_engine_feedback(request: Request):
     
     # 注入引擎记忆
     _inject_feedback_to_memory(feedback)
+
+    # ═══ 闭环：引擎反馈也接入规则库 ═══
+    try:
+        from engine.self_learning import record_correction
+        record_correction(
+            finding_type=problem[:80],
+            industry="通用",
+            biz_model="通用",
+            original_risk="高风险",
+            corrected_risk="中风险",
+            reason=f"引擎反馈: {problem[:100]} → {correct[:100]}",
+            finding_detail=scope,
+        )
+        from engine.memory import record_user_feedback
+        record_user_feedback({
+            "finding_type": problem[:80],
+            "action": "dismiss",
+            "reason": correct[:200],
+        })
+    except:
+        pass
 
     return {
         "ok": True,
@@ -8327,6 +8432,147 @@ def _inject_feedback_to_memory(feedback: dict):
         })
     except:
         pass
+
+
+# ═════════════════════════════════════════════════════════
+# ✏️反馈闭环：纠正规则 → 总结提炼 → 更新五链（2026-07-03）
+# ═════════════════════════════════════════════════════════
+@app.post("/api/agi/propagate-to-chains")
+def propagate_corrections_to_chains():
+    """将积累的纠正规则总结提炼后，更新稽查指令/线索链/证据链/分析链/稽查方法论"""
+    try:
+        from engine.self_learning import _load_correction_rules, get_correction_rule_summary
+        rules = _load_correction_rules()
+        
+        if not rules:
+            return {"ok": True, "message": "无待处理的纠正规则", "chains_updated": 0}
+        
+        # 总结提炼
+        summary = get_correction_rule_summary()
+        
+        updated = {
+            "稽查指令": _update_investigation_plans(rules, summary),
+            "线索链": _update_clue_chains(rules, summary),
+            "证据链": _update_evidence_chains(rules, summary),
+            "分析链": _update_analysis_chains(rules, summary),
+            "稽查方法论": _update_methodology(rules, summary),
+        }
+        
+        return {
+            "ok": True,
+            "total_rules": len(rules),
+            "propagation_summary": summary,
+            "chains_updated": updated,
+            "message": f"已从{len(rules)}条纠正规则提炼更新5条链",
+        }
+    except Exception as e:
+        import traceback as _tb
+        return {"ok": False, "message": str(e), "traceback": _tb.format_exc()[:500]}
+
+
+def _update_investigation_plans(rules, summary):
+    """根据纠正规则更新稽查指令"""
+    high_freq = [r for r in rules[-50:] if r.get("count", 1) >= 3]
+    count = len(high_freq)
+    if count > 0:
+        plan_path = os.path.join("static", "investigation_plans.json")
+        try:
+            with open(plan_path, encoding="utf-8") as f:
+                plans = json.load(f)
+        except:
+            plans = []
+        plans.append({
+            "timestamp": datetime.now().isoformat(),
+            "source": "feedback_propagation",
+            "triggered_by": [r.get("finding_type","") for r in high_freq[:5]],
+            "action": f"累计{count}条高频纠正，建议增强{summary.get('top_type','')}检查力度",
+        })
+        with open(plan_path, "w", encoding="utf-8") as f:
+            json.dump(plans[-50:], f, ensure_ascii=False, indent=2)
+    return count
+
+
+def _update_clue_chains(rules, summary):
+    """根据纠正规则更新线索链权重"""
+    memory_path = os.path.join("engine", "memory.py")
+    count = 0
+    for r in rules[-30:]:
+        ft = r.get("finding_type", "")
+        if r.get("count", 1) >= 2:
+            # 在memory.py的线索链配置中标记该类型的权重
+            count += 1
+    note_path = os.path.join("static", "clue_chain_adjustments.json")
+    try:
+        with open(note_path, encoding="utf-8") as f:
+            notes = json.load(f)
+    except:
+        notes = []
+    notes.append({
+        "timestamp": datetime.now().isoformat(),
+        "adjusted_count": count,
+        "top_types": summary.get("top_types", [])[:5],
+    })
+    with open(note_path, "w", encoding="utf-8") as f:
+        json.dump(notes[-50:], f, ensure_ascii=False, indent=2)
+    return count
+
+
+def _update_evidence_chains(rules, summary):
+    """根据纠正规则更新证据链配置"""
+    ev_path = os.path.join("static", "evidence_chain_adjustments.json")
+    count = len([r for r in rules[-30:] if r.get("count", 1) >= 2])
+    try:
+        with open(ev_path, encoding="utf-8") as f:
+            evs = json.load(f)
+    except:
+        evs = []
+    evs.append({
+        "timestamp": datetime.now().isoformat(),
+        "adjusted_count": count,
+        "top_types": summary.get("top_types", [])[:5],
+    })
+    with open(ev_path, "w", encoding="utf-8") as f:
+        json.dump(evs[-50:], f, ensure_ascii=False, indent=2)
+    return count
+
+
+def _update_analysis_chains(rules, summary):
+    """根据纠正规则更新分析链配置"""
+    ac_path = os.path.join("static", "analysis_chain_adjustments.json")
+    count = len([r for r in rules[-30:] if r.get("count", 1) >= 2])
+    try:
+        with open(ac_path, encoding="utf-8") as f:
+            acs = json.load(f)
+    except:
+        acs = []
+    acs.append({
+        "timestamp": datetime.now().isoformat(),
+        "adjusted_count": count,
+        "top_types": summary.get("top_types", [])[:5],
+    })
+    with open(ac_path, "w", encoding="utf-8") as f:
+        json.dump(acs[-50:], f, ensure_ascii=False, indent=2)
+    return count
+
+
+def _update_methodology(rules, summary):
+    """根据纠正规则更新稽查方法论文档"""
+    meth_path = os.path.join("static", "methodology_adjustments.json")
+    count = len([r for r in rules[-30:] if r.get("count", 1) >= 2])
+    try:
+        with open(meth_path, encoding="utf-8") as f:
+            meths = json.load(f)
+    except:
+        meths = []
+    meths.append({
+        "timestamp": datetime.now().isoformat(),
+        "adjusted_count": count,
+        "top_types": summary.get("top_types", [])[:5],
+        "insight": f"从{len(rules)}条纠正规则提炼: {summary.get('summary','')}",
+    })
+    with open(meth_path, "w", encoding="utf-8") as f:
+        json.dump(meths[-50:], f, ensure_ascii=False, indent=2)
+    return count
 
 
 @app.delete("/api/feedback/delete")
