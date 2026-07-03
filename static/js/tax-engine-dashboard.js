@@ -370,10 +370,8 @@ function renderRulesTab() {
     h += '</div>';
   }
 
-  // ═══ Phase 2：信号→域映射 ═══
-  var p2 = rules.phase  }
-  
   // ═══ Phase 3：跨域分析推理链（仅本次触发的）═══
+  var p3xa = rules.phases['Phase3-跨域分析推理链'];
   if (p3xa && !p3xa.error && p3xa.rules && p3xa.rules.length > 0) {
     h += _renderSection('Phase3-跨域分析推理链', '0ea5e9', p3xa);
     (p3xa.rules||[]).forEach(function(xa) {
@@ -395,12 +393,7 @@ function renderRulesTab() {
     });
     h += '</div>';
   }
-
-  h += '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">共 ' + totalRules + ' 条规则（线索链/证据链详见稽��指令页面）</div>';
-  h += '</div>';
-  area.innerHTML = h;
-}
-
+  
   // ═══ Phase 4：因果叙事链 ═══
   var p4n = rules.phases['Phase4-因果叙事链'];
   if (p4n) {
