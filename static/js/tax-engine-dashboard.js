@@ -387,34 +387,6 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  // ═══ Phase 2：行业自适应知识库 ═══
-  var p2i = rules.phases['Phase2-行业自适应知识库'];
-  if (p2i && !p2i.error) {
-    h += _renderSection('Phase2-行业自适应知识库', '10b981', p2i);
-    (p2i.industries||[]).forEach(function(ind) {
-      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ind.name);
-      if (ind.subtypes && ind.subtypes.length) h += ' <span style="font-size:11px;color:#94a3b8">(' + esc(ind.subtypes.join('、')) + ')</span>';
-      h += '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">毛利率基准: ' + esc(ind.benchmarks['毛利率范围']) + ' | 购销比基准: ' + esc(ind.benchmarks['购销比范围']) + '</div>';
-      if (ind.focus_domains && ind.focus_domains.length) {
-        h += '<div style="margin-top:3px;font-size:11px;color:#8b5cf6">关注域: ' + esc(ind.focus_domains.join('、')) + '</div>';
-      }
-      if (ind.always_check && ind.always_check.length) {
-        h += '<div style="margin-top:3px;font-size:11px;color:#059669">必查: ' + esc(ind.always_check.join('、')) + '</div>';
-      }
-      if (ind.risk_patterns && ind.risk_patterns.length) {
-        h += '<div style="margin-top:4px">';
-        ind.risk_patterns.forEach(function(rp) {
-          h += '<div style="font-size:11px;color:#ea580c;margin:2px 0">⚠ ' + esc(rp.name) + ': ' + esc(rp.explanation).substring(0,80) + '</div>';
-        });
-        h += '</div>';
-      }
-      h += '</div>';
-    });
-    h += '</div>';
-  }
-  
   // ═══ Phase 3：信号叠加模式 ═══
   var p3p = rules.phases['Phase3-信号叠加模式'];
   if (p3p && !p3p.error) {
@@ -472,9 +444,9 @@ function renderRulesTab() {
     h += '</div>';
   }
   
-  // ═══ Phase 3：跨域分析推理链 ═══
+  // ═══ Phase 3：跨域分析推理链（仅保留有触发信号的）═══
   var p3xa = rules.phases['Phase3-跨域分析推理链'];
-  if (p3xa && !p3xa.error) {
+  if (p3xa && !p3xa.error && p3xa.rules && p3xa.rules.length > 0) {
     h += _renderSection('Phase3-跨域分析推理链', '0ea5e9', p3xa);
     (p3xa.rules||[]).forEach(function(xa) {
       var lc = xa.level === 'red' ? '#dc2626' : xa.level === 'yellow' ? '#f59e0b' : '#ea580c';
@@ -486,33 +458,7 @@ function renderRulesTab() {
         xa.reasoning_steps.forEach(function(step) {
           h += '<div style="display:flex;align-items:flex-start;margin:3px 0;font-size:11px">';
           h += '<span style="background:#0ea5e9;color:#fff;min-width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;margin-right:6px;font-weight:700">' + esc(step.order) + '</span>';
-          h += '<span><strong>' + esc(step.from) + '</strong> → ' + esc(step.finding) + ' <span style="color:#0ea5e9">→</span> <em>' + esc(step.to) + ': ' + esc(step.action) + '</em></span></div>';
-        });
-        h += '</div>';
-      }
-      if (xa.methodology) h += '<div style="color:#8b5cf6;font-size:11px;margin-top:4px">方法论: ' + esc(xa.methodology) + '</div>';
-      h += '<div style="color:#475569;font-size:11px;margin-top:3px">' + esc(xa.description||'') + '</div>';
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
-  // ═══ Phase 3：跨域线索链 ═══
-  var p3xc = rules.phases['Phase3-跨域线索链'];
-  if (p3xc && !p3xc.error) {
-    h += _renderSection('Phase3-跨域线索链', 'd946ef', p3xc);
-    (p3xc.rules||[]).forEach(function(xc) {
-      var lc = xc.level === 'red' ? '#dc2626' : xc.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xc.id) + ' ' + esc(xc.name);
-      h += ' <span style="font-size:11px;color:#94a3b8">[' + esc(xc.sub_topic||'') + ']</span></div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">关键词: ' + esc((xc.trigger_keywords||[]).join(' | ')) + '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#ea580c">最少证据维度: ' + esc(xc.min_evidence) + '</div>';
-      if (xc.investigation_path && xc.investigation_path.length) {
-        h += '<div style="margin-top:4px;font-size:11px;color:#475569">调查路径: ';
-        xc.investigation_path.forEach(function(s) {
-          h += '<span style="margin:0 4px;color:#8b5cf6">' + esc(s.step) + '.' + esc(s.domain) + '</span>→ ';
+          h += '<span style="color:#475569">' + esc(step.from) + ' → ' + esc(step.finding) + ' → ' + esc(step.to) + '</span></div>';
         });
         h += '</div>';
       }
@@ -522,29 +468,10 @@ function renderRulesTab() {
     h += '</div>';
   }
 
-  // ═══ Phase 3：跨域证据链 ═══
-  var p3xe = rules.phases['Phase3-跨域证据链'];
-  if (p3xe && !p3xe.error) {
-    h += _renderSection('Phase3-跨域证据链', '059669', p3xe);
-    (p3xe.rules||[]).forEach(function(xe) {
-      var lc = xe.level === 'red' ? '#dc2626' : xe.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      h += '<div style="padding:10px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:6px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xe.id) + ' ' + esc(xe.name);
-      h += ' <span style="font-size:11px;color:#94a3b8">[' + esc(xe.sub_topic||'') + ']</span></div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">关键词: ' + esc((xe.trigger_keywords||[]).join(' | ')) + '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#ea580c">最少证据维度: ' + esc(xe.min_evidence) + '</div>';
-      if (xe.dimensions && xe.dimensions.length) {
-        h += '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">';
-        xe.dimensions.forEach(function(d) {
-          h += '<div style="padding:4px 8px;background:#ecfdf5;border-radius:4px;font-size:11px"><strong>' + esc(d.code) + '</strong> ' + esc(d.source) + ': ' + esc(d.desc) + '</div>';
-        });
-        h += '</div>';
-      }
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
+  h += '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">共 ' + totalRules + ' 条规则（线索链/证据链详见稽��指令页面）</div>';
+  h += '</div>';
+  area.innerHTML = h;
+}
 
   // ═══ Phase 4：因果叙事链 ═══
   var p4n = rules.phases['Phase4-因果叙事链'];
