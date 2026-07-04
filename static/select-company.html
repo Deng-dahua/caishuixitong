@@ -34,7 +34,14 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 <div class="top-bar">
   <div class="user" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <span>👤 <span id="user-name">---</span></span>
-    <input id="apikey-input" type="password" autocomplete="off" placeholder="填入API Key（DeepSeek/智谱/豆包等）" style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
+    <input id="apikey-input" type="password" autocomplete="off" placeholder="填入API Key" style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
+    <select id="apikey-provider" style="padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none;cursor:pointer">
+      <option value="deepseek">DeepSeek</option>
+      <option value="zhipu">智谱GLM</option>
+      <option value="doubao">豆包</option>
+      <option value="qwen">通义千问</option>
+      <option value="openai">OpenAI</option>
+    </select>
     <button onclick="confirmApiKey()" style="padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">确定</button>
     <button onclick="deleteApiKey()" style="padding:6px 14px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;cursor:pointer">删除</button>
     <span id="apikey-status" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
@@ -66,7 +73,8 @@ async function loadApiKey() {
     var data = await resp.json();
     if (data.ok && data.key) {
       document.getElementById('apikey-input').value = data.key;
-      setApiStatus(data.status_text || '✅ 已配置', '#4ade80', false);
+      if (data.provider) document.getElementById('apikey-provider').value = data.provider;
+      setApiStatus(data.status_text || '已配置', '#4ade80', false);
     } else {
       document.getElementById('apikey-input').value = '';
       setApiStatus('未配置', '#94a3b8', false);
@@ -78,12 +86,13 @@ async function loadApiKey() {
 
 async function confirmApiKey() {
   var key = document.getElementById('apikey-input').value.trim();
+  var provider = document.getElementById('apikey-provider').value;
   if (!key) { setApiStatus('请先输入API Key', '#fbbf24', false); return; }
   setApiStatus('检测中...', '#94a3b8', true);
   try {
     var resp = await fetch('/api/apikey', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({api_key: key, probe: true})
+      body: JSON.stringify({api_key: key, provider: provider, probe: true})
     });
     var data = await resp.json();
     if (data.ok) {
