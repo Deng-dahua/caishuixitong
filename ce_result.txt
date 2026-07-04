@@ -1,0 +1,10 @@
+cross_enterprise type: dict
+Keys: ['total_companies', 'total_relationships', 'high_risk_relationships', 'medium_risk_relationships', 'relationships', 'companies', 'summary']
+total_companies: 2
+total_relationships: 0
+high_risk: 0
+medium_risk: 0
+summary: 系统内2家企业，未发现明显的跨企业关联关系。
+relationships: 0
+LOG: [AGI-跨企业] 系统内2家企业，未发现明显的跨企业关联关系。
+LOG: [CROSS-CHECK] 矛盾检测: 10条逻辑冲突发现

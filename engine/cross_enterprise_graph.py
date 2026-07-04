@@ -74,11 +74,6 @@ class CrossEnterpriseGraph:
     def _load_companies(self):
         """加载所有企业基本信息"""
         try:
-            companies = self.db.query(self.db.bind.execute(
-                "SELECT id, name, legal_representative FROM companies"
-            ).fetchall() if hasattr(self.db, 'bind') else [])
-            
-            # Try SQLAlchemy approach
             from database import Company
             companies = self.db.query(Company).all()
             for c in companies:

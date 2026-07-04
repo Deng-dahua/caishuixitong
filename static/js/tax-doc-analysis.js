@@ -1344,7 +1344,27 @@ function renderAnalyzeHeader(report) {
 
   h += '</div>';
 
-
+  // 跨企业信息比对
+  var ce = comp.cross_enterprise;
+  if (ce && ce.total_companies) {
+    h += '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2">';
+    h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">🔗 跨企业信息比对</div>';
+    h += '<div style="color:#431407;font-size:12px">' + esc(ce.summary || '') + '</div>';
+    var rels = ce.relationships || [];
+    if (rels.length > 0) {
+      h += '<table style="width:100%;margin-top:10px;font-size:12px;border-collapse:collapse">';
+      h += '<tr style="border-bottom:1px solid #fed7aa"><td style="padding:4px 8px;font-weight:600">公司A</td><td style="padding:4px 8px;font-weight:600">公司B</td><td style="padding:4px 8px;font-weight:600">关联类型</td><td style="padding:4px 8px;font-weight:600">风险</td></tr>';
+      for (var ri = 0; ri < rels.length; ri++) {
+        var r = rels[ri];
+        var rc = r.risk_level === 'high' ? '#dc2626' : r.risk_level === 'medium' ? '#f59e0b' : '#94a3b8';
+        h += '<tr><td style="padding:4px 8px">' + esc(r.company_a) + '</td><td style="padding:4px 8px">' + esc(r.company_b) + '</td>';
+        h += '<td style="padding:4px 8px">' + esc(r.type || '') + '</td>';
+        h += '<td style="padding:4px 8px;color:' + rc + '">' + (r.risk_level === 'high' ? '高风险' : r.risk_level === 'medium' ? '中风险' : '低风险') + '</td></tr>';
+      }
+      h += '</table>';
+    }
+    h += '</div>';
+  }
 
   area.innerHTML = h;
 
@@ -2289,6 +2309,34 @@ function renderRecommendedNext(cc) {
 // ── 9. 供应链风险（target_entity._supply_chain_risk）──
 
 
+
+
+// ── 9. 跨企业信息比对（comprehensive.cross_enterprise）──
+function renderCrossEnterprise(cc) {
+  var ce = cc && cc.cross_enterprise;
+  if (!ce || !ce.total_companies || ce.total_companies < 2) return '';
+
+  var h = '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2">';
+  h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">链接 跨企业信息比对</div>';
+  h += '<div style="color:#431407;font-size:12px">' + (ce.summary || '') + '</div>';
+
+  if (ce.total_relationships > 0) {
+    h += '<table style="width:100%;margin-top:10px;font-size:12px;border-collapse:collapse">';
+    h += '<tr style="border-bottom:1px solid #fed7aa"><td style="padding:4px 8px;font-weight:600">公司A</td><td style="padding:4px 8px;font-weight:600">公司B</td><td style="padding:4px 8px;font-weight:600">关联类型</td><td style="padding:4px 8px;font-weight:600">风险</td></tr>';
+    var rels = ce.relationships || [];
+    for (var i = 0; i < rels.length; i++) {
+      var r = rels[i];
+      var riskColor = r.risk_level == 'high' ? '#dc2626' : r.risk_level == 'medium' ? '#f59e0b' : '#94a3b8';
+      h += '<tr><td style="padding:4px 8px">' + esc(r.company_a) + '</td><td style="padding:4px 8px">' + esc(r.company_b) + '</td>';
+      h += '<td style="padding:4px 8px">' + esc(r.type || '') + '</td>';
+      h += '<td style="padding:4px 8px;color:' + riskColor + '">' + (r.risk_level == 'high' ? '高风险' : r.risk_level == 'medium' ? '中风险' : '低风险') + '</td></tr>';
+    }
+    h += '</table>';
+  }
+
+  h += '</div>';
+  return h;
+}
 
 function renderSupplyChainRisk(te) {
 
