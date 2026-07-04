@@ -508,12 +508,16 @@ def _check_small_taxpayer(revenue, findings, opportunities):
     """小规模纳税人：年销售额≤500万可享受1%或免税"""
     if not revenue: return
     
+    # 标注数据来源和期间范围（避免单月数据被当成全年）
+    how_found = f"销项发票合计{revenue:,.0f}元"
+    
     if revenue <= 5000000:
         opportunities.append({
             "type": "小规模纳税人资格(应享)",
             "level": "优惠机会",
             "priority": "高",
-            "detail": f"年销售额{revenue:,.0f}元≤500万，有条件申请小规模纳税人",
+            "detail": f"销项发票合计{revenue:,.0f}元（当前分析期间内），未超出500万小规模纳税人标准",
+            "how_found": how_found,
             "tax_benefit": "增值税税率从6%/13%降至1%或免税(月销售额≤10万)",
             "action": "如业务结构允许，可考虑转为小规模纳税人或分立业务主体",
             "law_ref": "财政部税务总局公告2023年第1号",
@@ -523,7 +527,8 @@ def _check_small_taxpayer(revenue, findings, opportunities):
             "type": "小规模纳税人(临界)",
             "level": "提醒",
             "priority": "中",
-            "detail": f"年销售额{revenue:,.0f}元接近500万小规模标准",
+            "detail": f"销项发票合计{revenue:,.0f}元，接近500万小规模标准",
+            "how_found": how_found,
             "action": "可考虑分立部分业务到新主体，使各主体年销售额≤500万",
         })
 
