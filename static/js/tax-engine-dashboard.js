@@ -910,10 +910,8 @@ function renderBrainTab() {
       // ── 3. 纠正规则库 → 已迁移至规则中转站 ──
       h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
       h += '<h3 style="color:#1e293b;border-bottom:2px solid #7c3aed;padding-bottom:8px">纠正规则库</h3>';
-      h += '<div style="padding:20px;text-align:center"><a href="#" onclick="navigateTo(\'correction-rules\');return false" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">🔄 前往规则中转站</a><br><span style="font-size:12px;color:#94a3b8;display:block;margin-top:8px">编辑/审核/追问/重置 四通道规则统一管理</span></div>';
+      h += '<div style="padding:20px;text-align:center"><a href="#" onclick="navigateTo(\'correction-rules\');return false" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">🔄 前往规则中转站</a></div>';
       h += '</div>';
-      
-      // ── 4. 税收优惠核实 ──
       
       h += '</div>';
       area.innerHTML = h;
