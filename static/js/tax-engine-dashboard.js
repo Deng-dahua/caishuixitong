@@ -82,6 +82,7 @@ function renderStatusTab() {
   // ═══ 顶部：引擎版本 + 风险总览 ═══
   h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
   h += '<div style="font-size:20px;font-weight:700;color:#0f172a">智能大脑·运行仪表盘</div>';
+  h += '<div style="font-size:12px;color:#94a3b8;margin-top:2px">📊 管道调度：查看本次分析引擎内部各阶段的运行结果（Phase1→2→4），不是看报告结论。</div>';
   if (es.analyzed_at) h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">分析时间: ' + esc(es.analyzed_at) + '</div>';
   h += '<div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap">';
   
@@ -295,6 +296,7 @@ function renderRulesTab() {
   
   var h = '';
   var totalRules = 0;
+  h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #7c3aed">📋 学习反馈：显示本次分析实际触发的信号检测规则和资料缺失风险，每次分析都不一样。</div>';
   
   // ═══ Phase 1：初查信号检测 ═══
   var p1 = rules.phases['Phase1-初查信号检测'];
@@ -622,6 +624,7 @@ function renderQualityTab() {
   }
   
   var h = '';
+  h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #059669">✅ 质量保障：元认知自审评级、合规门禁、证据闭环率——本次分析的质量有多可靠。</div>';
   
   // ── 综合质量评分 ──
   var grade = metaAudit.grade || '?';
@@ -707,6 +710,7 @@ function renderMethodsTab() {
       window._methodsData = d;
       
       var h = '';
+      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #f59e0b">🔬 推理引擎：逐条核对方法论在文档和代码中是否同时存在——\"代码即承诺\"验证。</div>';
       var covColor = d.coverage_pct === 100 ? '#059669' : d.coverage_pct >= 70 ? '#f59e0b' : '#dc2626';
       h += '<div style="background:#eff6ff;border:2px solid #3b82f6;padding:20px 24px;border-radius:12px;margin-bottom:20px">';
       h += '<div style="display:flex;justify-content:space-around;text-align:center">';
@@ -853,6 +857,7 @@ function renderBrainTab() {
       if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">读取失败: ' + esc(d.error || '') + '</div>'; return; }
       
       var h = '<div style="max-width:1100px;margin:0 auto">';
+      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #dc2626">🧠 AGI核心：调度中枢、成长曲线、税收优惠核实——大脑本身的学习状态和模块组成。</div>';
       
       // ── 1. 调度中枢 ──
       h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
