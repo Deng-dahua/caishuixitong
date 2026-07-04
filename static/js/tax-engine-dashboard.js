@@ -82,7 +82,7 @@ function renderStatusTab() {
   // ═══ 顶部：引擎版本 + 风险总览 ═══
   h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
   h += '<div style="font-size:20px;font-weight:700;color:#0f172a">智能大脑·运行仪表盘</div>';
-  h += '<div style="font-size:12px;color:#94a3b8;margin-top:2px">📊 管道调度：查看本次分析引擎内部各阶段的运行结果（Phase1→2→4），不是看报告结论。</div>';
+  h += '<div style="background:#eff6ff;padding:8px 12px;border-radius:4px;font-size:12px;color:#1e40af;margin-top:8px;border-left:3px solid #2563eb">📊 查看本次分析引擎内部各阶段的运行结果（Phase1→2→4），不是看报告结论。</div>';
   if (es.analyzed_at) h += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">分析时间: ' + esc(es.analyzed_at) + '</div>';
   h += '<div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap">';
   
