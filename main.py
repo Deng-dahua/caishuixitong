@@ -4921,6 +4921,24 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         llm_answer = _chat_tax_qa(question, company_id, llm_db)
         llm_db.close()
         if llm_answer and len(llm_answer) > 30:
+            # ═══ 闭环：追问结果注入纠正规则库，引擎学习 ═══
+            try:
+                from engine.self_learning import record_correction
+                ftype = all_findings[finding_index].get("type", "") if finding_index >= 0 and finding_index < len(all_findings) else "追问分析补充"
+                ind = target_entity.get("industry", "通用")
+                bm = target_entity.get("biz_model", "通用")
+                lv = all_findings[finding_index].get("level", "中风险") if finding_index >= 0 and finding_index < len(all_findings) else "中风险"
+                record_correction(
+                    finding_type=ftype,
+                    industry=ind,
+                    biz_model=bm,
+                    original_risk=lv,
+                    corrected_risk=lv,
+                    reason=f"追问: {question[:100]}\nLLM回答: {llm_answer[:200]}",
+                    finding_detail=str(all_findings[finding_index].get('type','')) if finding_index >= 0 else "段落追问",
+                )
+            except: pass
+            
             return {
                 "ok": True,
                 "intent": intent,
