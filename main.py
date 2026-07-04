@@ -277,11 +277,12 @@ async def get_api_key():
     key = cfg.get("key", "")
     mask = ("..." + key[-4:]) if key and len(key) >= 4 else ""
     provider = cfg.get("provider", "deepseek")
+    provider_name = {"deepseek":"DeepSeek","zhipu":"智谱GLM","doubao":"豆包","qwen":"通义千问","openai":"OpenAI"}.get(provider, provider)
     return {
         "ok": True, "key": key, "has_key": bool(key),
         "last4": key[-4:] if key and len(key) >= 4 else "",
         "provider": provider, "model": cfg.get("model", ""),
-        "status_text": f"已配置 ({provider}: ...{mask[-4:]})" if key else "未配置"
+        "status_text": f"已配置（{provider_name} ...{mask[-4:]}）" if key else "未配置"
     }
 
 @app.post("/api/apikey")
@@ -662,8 +663,8 @@ async def root():
     import html as _htmlescape
     if has_key:
         mask = "..." + key[-4:] if len(key) >= 4 else ""
-        provider = cfg.get("provider", "deepseek")
-        status = f"已接入API Key（{provider} {mask}）"
+        provider_name = {"deepseek":"DeepSeek","zhipu":"智谱GLM","doubao":"豆包","qwen":"通义千问","openai":"OpenAI"}.get(cfg.get("provider",""), cfg.get("provider",""))
+        status = f"已接入API Key（{provider_name} {mask}）"
         color = "#4ade80"
     elif has_ollama:
         status = "未接入API Key、但在用Ollama"
