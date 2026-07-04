@@ -664,7 +664,7 @@ async def root():
     if has_key:
         mask = "..." + key[-4:] if len(key) >= 4 else ""
         provider_name = {"deepseek":"DeepSeek","zhipu":"智谱GLM","doubao":"豆包","qwen":"通义千问","openai":"OpenAI"}.get(cfg.get("provider",""), cfg.get("provider",""))
-        status = f"已接入API Key（{provider_name} {mask}）"
+        status = f"已接入{provider_name}: {mask}"
         color = "#4ade80"
     elif has_ollama:
         status = "未接入API Key、但在用Ollama"
