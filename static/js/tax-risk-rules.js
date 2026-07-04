@@ -45,27 +45,21 @@ function renderTaxRiskRules(container) {
   window.currentModule = '稽查指令';
 
   container.innerHTML = '<style>'
-    + '.rr-layout{display:flex;gap:24px;max-width:1300px;margin:0 auto;padding:20px;background:#fff}'
-    + '.rr-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}'
-    + '.rr-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}'
-    + '.rr-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}'
-    + '.rr-toc a:hover,.rr-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}'
-    + '.rr-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}'
+    + '.rr-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}'
     + '.rr-main{flex:1;min-width:0;background:#fff}'
     + '.rr-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 12px!important}'
     + '.rr-main .rr-rule-card{transition:box-shadow 0.15s}'
     + '.rr-main .rr-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}'
     + '</style>'
     + '<div class="rr-layout">'
-    + '<nav class="rr-toc" id="rr-toc"><div class="toc-title">📖 分类</div></nav>'
     + '<div class="rr-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📋 稽查指令</h2>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px" id="risk-rules-count">加载中...</p>'
     // Hero
     + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:24px">'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0">'
-    + '稽查指令是系统的规则知识库——1608条结构化税务稽查规则，覆盖资金流、进销存、发票流、经营实质、'
-    + '税务合规、薪酬社保、关联交易等20个分类。每条指令包含稽查标准、风险等级、评分、详细检查方法、'
+    + '稽查指令是系统的规则知识库——1611条结构化税务稽查规则，覆盖资金流、进销存、发票流、经营实质、'
+    + '税务合规、薪酬社保、关联交易等多个领域。每条指令包含稽查标准、风险等级、评分、详细检查方法、'
     + '处理建议和法律依据。运行一键分析后，系统自动将域分析发现与规则库交叉匹配，触发对应指令——'
     + '被触发的规则高亮显示并展示触发溯源（是哪个域分析的哪项发现触发了该规则），形成"发现→规则→结论"的完整证据链。'
     + '此外，系统还会自动发现行业普遍信号（同行业≥3家&出现率>60%），生成蓝色🤖校准规则以降低误报。'
@@ -203,39 +197,20 @@ function renderTaxRiskRulesList() {
   var triggeredCount = Object.keys(_triggeredRuleFindings).length;
   var countEl = document.getElementById('risk-rules-count');
   var triggerText = triggeredCount > 0 ? '（本次触发 <span style="color:#dc2626;font-weight:600">' + triggeredCount + '</span> 条）' : '（暂无触发）';
-  if (countEl) countEl.innerHTML = data.length + ' 条稽查指令 ' + triggerText + ' · 按分类分组 · 支持搜索筛选';
+  if (countEl) countEl.innerHTML = data.length + ' 条稽查指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选';
 
   if (data.length === 0) {
     listEl.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无稽查指令，请加载数据</div>';
     return;
   }
 
-  // 按分类分组
-  var grouped = {};
-  data.forEach(function(r) {
-    var cat = r.category || r.rule_category || '其他';
-    if (!grouped[cat]) { grouped[cat] = { icon: r.categoryIcon || '', rules: [] }; }
-    grouped[cat].rules.push(r);
-  });
-
-  var sortedCats = Object.keys(grouped).sort(function(a, b) {
-    return grouped[b].rules.length - grouped[a].rules.length;
-  });
+  // 按生成时间排序（ID越大越新）
+  var sortedData = data.slice().sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
 
   // 统计
   var high = data.filter(function(r) { return (r.level === '极高风险' || r.level === '高风险'); }).length;
   var mid = data.filter(function(r) { return r.level === '中风险'; }).length;
   var low = data.filter(function(r) { return r.level === '低风险' || r.level === '良好'; }).length;
-
-  // 左侧目录
-  var tocEl = document.getElementById('rr-toc');
-  if (tocEl) {
-    tocEl.innerHTML = '<div class="toc-title">📖 ' + data.length + ' 条指令</div>'
-      + '<a href="#rr-stats">📊 统计总览</a>';
-    sortedCats.forEach(function(cat) {
-      tocEl.innerHTML += '<a href="#rr-cat-' + encodeURIComponent(cat) + '">' + (grouped[cat].icon||'📋') + ' ' + cat + ' <span class="cnt">' + grouped[cat].rules.length + '</span></a>';
-    });
-  }
 
   var html = '';
 
@@ -248,29 +223,8 @@ function renderTaxRiskRulesList() {
     + (triggeredCount > 0 ? '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:2px solid #dc2626;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>' : '')
     + '</div>';
 
-  // 按分类详情
-  sortedCats.forEach(function(cat) {
-    var group = grouped[cat];
-    var catDesc = CATEGORY_DESCRIPTIONS[cat] || '';
-    var catRules = group.rules;
-    var isAutoCat = cat === '自动发现';
-
-    html += '<div id="rr-cat-' + encodeURIComponent(cat) + '" style="margin-bottom:40px">'
-      + '<div style="margin-bottom:16px">'
-      + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px">'
-      + (isAutoCat ? '🤖 ' : (group.icon ? '<span style="font-size:18px">' + group.icon + '</span> ' : '')) + escHtml(cat)
-      + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + catRules.length + ' 条指令' + (catDesc ? ' · ' + catDesc : '') + '</span>'
-      + '</div>'
-      // 自动发现规则的特殊说明
-      + (isAutoCat ? '<div style="margin-bottom:12px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;color:#1e40af;line-height:2.0">'
-        + '<strong>📌 说明：</strong>这些是系统自动发现的行业校准规则。'
-        + '当同一个信号（如"毛利率为零"）在某个行业的<strong>≥3家</strong>企业中<strong>出现率超过60%</strong>时，'
-        + '系统判定该信号为该行业的普遍现象而非风险异常，自动生成规则以降低误报。'
-        + '<strong>不限特定行业</strong>——随着分析企业增多，任何行业都可能自动生成校准规则。'
-        + '</div>' : '')
-      + '</div>';
-
-    catRules.forEach(function(rule) {
+  // 按生成时间渲染所有指令
+  sortedData.forEach(function(rule) {
       // 自动发现规则的字段映射
       var isAutoRule = rule.type === 'auto_signal';
       var itemName = rule.item || rule.signal || '';
@@ -341,9 +295,6 @@ function renderTaxRiskRulesList() {
         + '</div>';
     });
 
-    html += '</div>';
-  });
-
   listEl.innerHTML = html;
 
   if (statsEl) {
@@ -351,7 +302,7 @@ function renderTaxRiskRulesList() {
       + '<span style="color:#dc2626">高 ' + high + '</span> · '
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '
-      + sortedCats.length + ' 个分类';
+      + '按ID排序';
   }
   
   // 初始化筛选计数
