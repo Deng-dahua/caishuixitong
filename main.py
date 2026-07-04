@@ -236,7 +236,8 @@ def get_global_api_key() -> str:
 @app.get("/api/apikey")
 async def get_api_key():
     key = _load_api_key()
-    return {"ok": True, "key": key, "has_key": bool(key), "status_text": "已配置" if key else "未配置"}
+    mask = ("..." + key[-4:]) if key and len(key) >= 4 else ""
+    return {"ok": True, "key": key, "has_key": bool(key), "last4": key[-4:] if key and len(key) >= 4 else "", "status_text": f"已配置 ({mask})" if key else "未配置"}
 
 @app.post("/api/apikey")
 async def save_api_key(request: Request):
@@ -611,7 +612,8 @@ async def root():
     
     import html as _htmlescape
     if has_key:
-        status = "已接入API Key"
+        mask = "..." + key[-4:] if len(key) >= 4 else ""
+        status = f"已接入API Key ({mask})"
         color = "#4ade80"
     elif has_ollama:
         status = "未接入API Key、但在用Ollama"
