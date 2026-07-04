@@ -68,7 +68,7 @@ function renderStatusTab() {
   var area = document.getElementById('eng-tab-content');
   
   if (!window._hasEngineData) {
-    area.innerHTML = '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">📊 管道调度 — 查看本次分析引擎内部各阶段的运行结果（Phase1→2→4），不是看报告结论。</div>' +
+    area.innerHTML = '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">📊 管道调度 — 查看本次分析引擎内部各阶段的运行结果，不是看报告结论。</div>' +
       '<div style="padding:60px 20px;text-align:center">' +
       '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
       '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
@@ -81,7 +81,7 @@ function renderStatusTab() {
   var h = '';
   
   // 作用说明横幅
-  h += '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">📊 管道调度 — 查看本次分析引擎内部各阶段的运行结果（Phase1→2→4），不是看报告结论。</div>';
+  h += '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">📊 管道调度 — 查看本次分析引擎内部各阶段的运行结果，不是看报告结论。</div>';
   
   // ═══ 顶部：引擎版本 + 风险总览 ═══
   h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px 28px;border-radius:12px;margin-bottom:20px">';
@@ -548,6 +548,7 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
 
   h += '<div class="dim-main">';
   h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🔬 引擎能力维度</h2>';
+  h += '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">🔬 能力维度：28维能力矩阵评分——四星(核心已完备)+三星(已实现核心)，一看就知道引擎强在哪、弱在哪。</div>';
   h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">推理引擎'+totalDims+'维能力矩阵——从文件解析到报告输出，覆盖全部分析域和工具链。每个维度按实现完整度分为四星（已完全代码化并验证）和三星（已实现核心功能）。数据来源：capability_matrix.py 动态提取代码中的实际实现，非人工维护的数字。当前进度：四星'+stars4+'个、三星'+stars3+'个、总计代码'+codeTotal+'。</p>';
 
   // ═══ 说明 ═══
