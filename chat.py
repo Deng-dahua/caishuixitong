@@ -28,27 +28,32 @@ router = APIRouter()
 
 # ==================== LLM 配置 ====================
 
-# 读取 api_key.json（优先级低于环境变量）
-def _load_api_key():
-    key = os.environ.get("TAX_LLM_KEY", "")
-    if key: return key
+# 从 api_key.json 读取提供商配置（支持 DeepSeek/智谱/豆包/通义千问/OpenAI）
+def _load_api_config():
     try:
         key_path = os.path.join(os.path.dirname(__file__), "static", "api_key.json")
         with open(key_path, encoding="utf-8") as f:
-            return json.load(f).get("key", "")
-    except: return ""
+            data = json.load(f)
+        key = data.get("key", "") or os.environ.get("TAX_LLM_KEY", "")
+        provider = data.get("provider", "deepseek")
+        provider_map = {
+            "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
+            "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
+            "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
+            "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
+            "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+        }
+        base_url, model = provider_map.get(provider, provider_map["deepseek"])
+        return {"key": key, "provider": provider, "base_url": data.get("base_url", base_url), "model": data.get("model", model)}
+    except:
+        return {"key": "", "provider": "deepseek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"}
 
-LLM_CONFIG = {
-    "api_base": os.environ.get("TAX_LLM_BASE", "https://api.deepseek.com/v1"),
-    "api_key": _load_api_key(),
-    "model": os.environ.get("TAX_LLM_MODEL", "deepseek-chat"),
-    "max_tokens": 2000,
-    "temperature": 0.3,
-    "timeout": 60,  # DeepSeek云端快，60秒够了
-    # Ollama 本地配置
-    "ollama_base": os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1"),
-    "ollama_model": os.environ.get("OLLAMA_MODEL", "qwen2.5:7b"),
-}
+LLM_CONFIG = _load_api_config()
+LLM_CONFIG["max_tokens"] = 2000
+LLM_CONFIG["temperature"] = 0.3
+LLM_CONFIG["timeout"] = 60
+LLM_CONFIG["ollama_base"] = os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1")
+LLM_CONFIG["ollama_model"] = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 TAX_SYSTEM_PROMPT = """你是「存勤法税智能体」，一家专注为全行业各类型企业提供财税与法律深度咨询的 AI 专家。
 
@@ -128,13 +133,13 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
     
     client = httpx.Client(timeout=LLM_CONFIG["timeout"])
     
-    # 1. 尝试 DeepSeek（有密钥才试，失败不阻塞）
-    if LLM_CONFIG["api_key"]:
+    # 1. 尝试云端 API（DeepSeek/智谱/豆包/通义/OpenAI）
+    if LLM_CONFIG.get("key"):
         try:
             resp = client.post(
-                f"{LLM_CONFIG['api_base'].rstrip('/')}/chat/completions",
+                f"{LLM_CONFIG['base_url'].rstrip('/')}/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
+                    "Authorization": f"Bearer {LLM_CONFIG['key']}",
                     "Content-Type": "application/json",
                 },
                 json=payload,
@@ -142,9 +147,8 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
             if resp.status_code == 200:
                 data = resp.json()
                 return data["choices"][0]["message"]["content"].strip()
-            # 402余额不足、401密钥无效等 → 不回退Ollama的信号，静默跳过
         except Exception:
-            pass  # DeepSeek 挂了，继续往下走
+            pass
     
     # 2. 尝试 Ollama 本地
     try:

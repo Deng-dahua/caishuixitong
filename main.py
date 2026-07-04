@@ -225,19 +225,64 @@ def _load_api_key():
     except:
         return ""
 
-def _save_api_key(key: str):
+def _load_api_config():
+    """返回完整配置: {key, provider, base_url, model}"""
+    try:
+        with open(_API_KEY_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        key = data.get("key", "")
+        provider = data.get("provider", "deepseek")
+        # 根据provider自动推断base_url和model
+        provider_map = {
+            "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
+            "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
+            "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
+            "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
+            "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+        }
+        base_url, model = provider_map.get(provider, provider_map["deepseek"])
+        return {"key": key, "provider": provider, "base_url": data.get("base_url", base_url), "model": data.get("model", model)}
+    except:
+        return {"key": "", "provider": "deepseek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"}
+
+def _save_api_config(key: str, provider: str = "deepseek", base_url: str = None, model: str = None):
     os.makedirs(os.path.dirname(_API_KEY_PATH), exist_ok=True)
+    provider_map = {
+        "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
+        "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
+        "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
+        "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
+        "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+    }
+    default_url, default_model = provider_map.get(provider, provider_map["deepseek"])
+    config = {
+        "key": key,
+        "provider": provider,
+        "base_url": base_url or default_url,
+        "model": model or default_model,
+        "updated_at": datetime.now().isoformat(),
+    }
     with open(_API_KEY_PATH, "w", encoding="utf-8") as f:
-        json.dump({"key": key, "updated_at": datetime.now().isoformat()}, f)
+        json.dump(config, f)
 
 def get_global_api_key() -> str:
     return _load_api_key()
 
+def get_api_config() -> dict:
+    return _load_api_config()
+
 @app.get("/api/apikey")
 async def get_api_key():
-    key = _load_api_key()
+    cfg = _load_api_config()
+    key = cfg.get("key", "")
     mask = ("..." + key[-4:]) if key and len(key) >= 4 else ""
-    return {"ok": True, "key": key, "has_key": bool(key), "last4": key[-4:] if key and len(key) >= 4 else "", "status_text": f"已配置 ({mask})" if key else "未配置"}
+    provider = cfg.get("provider", "deepseek")
+    return {
+        "ok": True, "key": key, "has_key": bool(key),
+        "last4": key[-4:] if key and len(key) >= 4 else "",
+        "provider": provider, "model": cfg.get("model", ""),
+        "status_text": f"已配置 ({provider}: ...{mask[-4:]})" if key else "未配置"
+    }
 
 @app.post("/api/apikey")
 async def save_api_key(request: Request):
@@ -246,8 +291,13 @@ async def save_api_key(request: Request):
     except:
         data = {}
     key = str(data.get("api_key", "")).strip()
+    provider = str(data.get("provider", "")).strip() or "deepseek"
+    base_url = str(data.get("base_url", "")).strip() or None
+    model = str(data.get("model", "")).strip() or None
     do_probe = data.get("probe", False)
-    _save_api_key(key)
+    
+    _save_api_config(key, provider, base_url, model)
+    
     # 触发LLM重载
     try:
         from engine.llm_client import reload_llm_client
@@ -255,34 +305,32 @@ async def save_api_key(request: Request):
     except:
         pass
     
-    result = {"ok": True, "has_key": bool(key)}
+    result = {"ok": True, "has_key": bool(key), "provider": provider}
     
-    # 如果请求检测，尝试连通性验证
+    # 连通性验证
     if do_probe and key:
         try:
+            cfg = _load_api_config()
             import httpx
             resp = httpx.post(
-                "https://api.deepseek.com/v1/chat/completions",
+                f"{cfg['base_url'].rstrip('/')}/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": "deepseek-chat", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
+                json={"model": cfg["model"], "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
                 timeout=8.0,
             )
             if resp.status_code == 200:
                 result["verified"] = True
-                result["provider"] = "API可连通"
-            elif resp.status_code == 401:
-                result["verified"] = False
-                result["message"] = "API Key无效(401)"
+                result["status_text"] = f"配置成功 - {provider}已连通"
             else:
                 result["verified"] = False
-                result["message"] = f"服务返回{resp.status_code}"
-            result["status_text"] = "配置成功 - 已连通" if result["verified"] else "已保存 - 连通失败"
+                result["message"] = f"{provider}返回{resp.status_code}"
+                result["status_text"] = "已保存 - 连通失败"
         except Exception as e:
             result["verified"] = False
             result["message"] = str(e)[:100]
             result["status_text"] = "已保存 - 无法连通"
     elif key:
-        result["status_text"] = "已配置"
+        result["status_text"] = f"{provider}已配置"
     else:
         result["status_text"] = "未配置"
     
@@ -290,7 +338,7 @@ async def save_api_key(request: Request):
 
 @app.delete("/api/apikey")
 async def delete_api_key():
-    _save_api_key("")
+    _save_api_config("", "deepseek")
     try:
         from engine.llm_client import reload_llm_client
         reload_llm_client("")
@@ -595,7 +643,8 @@ def _read_html(filename):
 async def root():
     """直接进入系统，注入API Key状态"""
     html = _read_html("static/index.html")
-    key = _load_api_key()
+    cfg = _load_api_config()
+    key = cfg.get("key", "")
     has_key = bool(key)
     
     # 检测Ollama是否在线（异步，不阻塞）
@@ -613,7 +662,8 @@ async def root():
     import html as _htmlescape
     if has_key:
         mask = "..." + key[-4:] if len(key) >= 4 else ""
-        status = f"已接入API Key ({mask})"
+        provider = cfg.get("provider", "deepseek")
+        status = f"已接入API Key（{provider} {mask}）"
         color = "#4ade80"
     elif has_ollama:
         status = "未接入API Key、但在用Ollama"
