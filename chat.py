@@ -110,41 +110,44 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
 
 
 def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -> Optional[str]:
-    """调用 LLM API 进行问答，优先 DeepSeek，无 API Key 时尝试 Ollama 本地"""
+    """调用 LLM API 进行问答，优先 DeepSeek，失败或未配置时回退 Ollama"""
     
-    try:
-        messages = []
-        full_system = (system_prompt or TAX_SYSTEM_PROMPT)
-        if context:
-            full_system += "\n\n" + context
-        messages.append({"role": "system", "content": full_system})
-        messages.append({"role": "user", "content": user_message})
-        
-        payload = {
-            "model": LLM_CONFIG["model"],
-            "messages": messages,
-            "max_tokens": LLM_CONFIG["max_tokens"],
-            "temperature": LLM_CONFIG["temperature"],
-        }
-        
-        client = httpx.Client(timeout=LLM_CONFIG["timeout"])
-        
-        # 1. 尝试 DeepSeek
-        if LLM_CONFIG["api_key"]:
-            headers = {
-                "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
-                "Content-Type": "application/json",
-            }
+    messages = []
+    full_system = (system_prompt or TAX_SYSTEM_PROMPT)
+    if context:
+        full_system += "\n\n" + context
+    messages.append({"role": "system", "content": full_system})
+    messages.append({"role": "user", "content": user_message})
+    
+    payload = {
+        "model": LLM_CONFIG["model"],
+        "messages": messages,
+        "max_tokens": LLM_CONFIG["max_tokens"],
+        "temperature": LLM_CONFIG["temperature"],
+    }
+    
+    client = httpx.Client(timeout=LLM_CONFIG["timeout"])
+    
+    # 1. 尝试 DeepSeek（有密钥才试，失败不阻塞）
+    if LLM_CONFIG["api_key"]:
+        try:
             resp = client.post(
                 f"{LLM_CONFIG['api_base'].rstrip('/')}/chat/completions",
-                headers=headers,
+                headers={
+                    "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
+                    "Content-Type": "application/json",
+                },
                 json=payload,
             )
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
-        
-        # 2. 无 API Key → 尝试本地 Ollama
+            if resp.status_code == 200:
+                data = resp.json()
+                return data["choices"][0]["message"]["content"].strip()
+            # 402余额不足、401密钥无效等 → 不回退Ollama的信号，静默跳过
+        except Exception:
+            pass  # DeepSeek 挂了，继续往下走
+    
+    # 2. 尝试 Ollama 本地
+    try:
         ollama_payload = dict(payload)
         ollama_payload["model"] = LLM_CONFIG["ollama_model"]
         resp = client.post(
@@ -152,12 +155,13 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
             headers={"Content-Type": "application/json"},
             json=ollama_payload,
         )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"].strip()
-        
-    except Exception as e:
-        return None
+        if resp.status_code == 200:
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
+    except Exception:
+        pass
+    
+    return None
 
 
 def _chat_tax_qa(user_message: str, company_id: int, db: Session) -> str:
