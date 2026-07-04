@@ -893,12 +893,6 @@ function renderBrainTab() {
       }
       h += '</div>';
       
-      // ── 3. 纠正规则库 → 已迁移至规则中转站 ──
-      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';
-      h += '<h3 style="color:#1e293b;border-bottom:2px solid #7c3aed;padding-bottom:8px">纠正规则库</h3>';
-      h += '<div style="padding:20px;text-align:center"><a href="#" onclick="navigateTo(\'correction-rules\');return false" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">🔄 前往规则中转站</a></div>';
-      h += '</div>';
-      
       h += '</div>';
       area.innerHTML = h;
     }).catch(function() { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">大脑数据读取失败</div>'; });

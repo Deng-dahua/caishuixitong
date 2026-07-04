@@ -9021,57 +9021,8 @@ def get_correction_rules():
         result["count"] = len(legacy)
     except: pass
     
-    # LLM自学习规则（corrected_rules.json）
-    try:
-        from engine.self_learning import get_all_corrected_rules
-        learned = get_all_corrected_rules()
-        result["learned_rules"] = learned
-    except Exception as e:
-        result["learned_rules_error"] = str(e)[:100]
-    
+
     return result
-
-@app.post("/api/feedback/rules/reset")
-async def reset_learned_rule(request: Request):
-    """重置自学习规则（移入重置列表）"""
-    try:
-        body = await request.json()
-    except:
-        return {"ok": False, "message": "无效请求"}
-    rule_id = body.get("rule_id", "")
-    if not rule_id:
-        return {"ok": False, "message": "请提供rule_id"}
-    from engine.self_learning import reset_rule
-    return reset_rule(rule_id)
-
-@app.post("/api/feedback/rules/restore")
-async def restore_learned_rule(request: Request):
-    """恢复已重置的自学习规则"""
-    try:
-        body = await request.json()
-    except:
-        return {"ok": False, "message": "无效请求"}
-    rule_id = body.get("rule_id", "")
-    if not rule_id:
-        return {"ok": False, "message": "请提供rule_id"}
-    from engine.self_learning import restore_rule
-    return restore_rule(rule_id)
-
-@app.post("/api/feedback/learn-rule")
-async def trigger_learn_rule(request: Request):
-    """触发LLM自学习：编辑/追问提交后，引擎自主学习生成规则"""
-    try:
-        body = await request.json()
-    except:
-        return {"ok": False, "message": "无效请求"}
-    content = body.get("content", "")
-    source = body.get("source", "编辑")
-    finding_type = body.get("finding_type", "")
-    industry = body.get("industry", "通用")
-    if not content:
-        return {"ok": False, "message": "请提供学习内容"}
-    from engine.self_learning import learn_and_create_rule
-    return learn_and_create_rule(content, source, finding_type, industry)
 
 @app.get("/api/feedback/content-logs")
 def get_content_feedback_logs():
