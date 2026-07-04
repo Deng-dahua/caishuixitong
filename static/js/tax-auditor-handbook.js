@@ -99,16 +99,20 @@ function renderAuditorHandbook(container) {
   // ═══ 第四章 ═══
   h += '<div id="hb-s4" class="hb-sec"><div class="hb-sec-title"><span class="num">4</span>稽查判定规则</div>';
   h += '<div class="hb-detail">以下8条判定规则是系统分析的基础——每一条都在分析启动前完成判定，判定结论贯穿后续所有分析域。判定规则的执行顺序不可颠倒：身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环。如果第一步的身份锚定出错，后续所有判定都建立在错误基础上。</div>';
-  h += '<table class="hb-tbl">';
-  [['1.发票方向判定','购买方名称/统一社会信用代码=本公司→进项 | 销售方名称/统一社会信用代码=本公司→销项 | 买卖方均不完全匹配→存疑排除。方向判定基于发票基本法律关系——销项发票的销售方永远是开票主体自身，进项发票的购买方永远是受票主体自身。每张发票逐行执行三重比对（名称/信用代码/纳税人识别号），三重均匹配→方向确定，仅一重匹配→标记"部分匹配，待确认"。代码：phase1_triage.py _determine_invoice_direction()。'],
-   ['2.进项再分类','含"有效抵扣税额"或"勾选状态"列→进项抵扣认证（用于增值税抵扣申报）。无上述列→普通进项发票（用于记账和成本核算）。进一步按品名与主营关联度分三层：主营业务成本（品名含主营关键词）/重大费用（单笔>1万且非主营品名）/日常报销（单笔<1万且非主营品名）。三层分类结果影响后续的科目映射和税额处理。代码：pipeline.py _classify_purchase_invoice()。'],
-   ['3.服务行业闸门','销项金税编码前缀∈25类服务→自动跳过进销存/BOM/进销比/毛利率对标四个域。闸门在管线聚合层（预处理阶段检查）、域分析层（执行时跳过）、引擎输出层（协商引擎二次验证）三个独立层面分别验证，杜绝误判。服务+货物混合企业按品名级区分处理——服务品名跳过，货物品名正常执行。代码：pipeline.py 服务闸门逻辑 + cross_domain_negotiation.py NEG-001~005。'],
-   ['4.品名级精准过滤','混合行业企业（销项同时含服务和货物品名）→服务品名跳过进销存分析，实物品名正常执行。品名级过滤确保每个品名只经过适用的分析域，避免混为一谈。例如：广告公司销项含"广告策划费"（服务）+ "宣传册印刷"（货物），前者跳过进销存，后者正常执行进销匹配。代码：pipeline.py 品名级过滤。'],
-   ['5.四方交叉验证','文件名暗示→列头推理→数据扫描→公司匹配。四个独立维度分别判定文件类型，交叉校验结果。四方结论有冲突时以数据扫描（第三方）结论为准——因为数据内容最客观，不受文件命名习惯或表头格式差异影响。四方全部一致→文件类型确认；三方一致→高置信度；两方一致→中置信度需人工确认；仅一方匹配→标记"待确认"并记录差异。代码：main.py _extract_material_intel() 文件识别阶段。'],
-   ['6.COND_BAN防误杀','条件A（数据异常）+条件B（行业/模式确认）同时满足→触发高风险。仅条件A出现不触发——例如人均产值>50万但行业为服务→不触发（因为服务行业高人均产值合理）。5类COND_BAN规则覆盖：无申报表/无合同/无工资/无台账/无凭证→删除依赖这些资料的发现。代码：pipeline.py COND_BAN规则集。'],
-   ['7.证据闭环阈值','≥60%触发率+≥3条规则触发+≥2个数据域交叉验证→形成有效证据闭环。单条规则触发+单域数据→不形成闭环，仅标记为"待补充验证"。低于阈值的不纳入正式报告结论。三重门禁确保：不依赖单一规则偶然触发（≥3条）、不依赖单一数据源（≥2域）、整体可信度达到可交付标准（≥60%触发率）。代码：pipeline.py 证据闭环检测函数。'],
-   ['8.前置判定链','所有分析域启动前必须确认：公司身份锚定+发票方向判定+行业分类+服务闸门状态。前置判定链确保后续分析的假设基础正确——如果锚定错了（把A公司的发票当作B公司的数据分析），后面全废。前置判定链的执行在所有域分析函数之前，判定结果通过AuditContext对象传递给后续每个分析域。代码：pipeline.py _run_analyze() 启动阶段。']].forEach(function(r){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a;white-space:normal;width:130px">'+r[0]+'</td><td class="val" style="font-size:12px">'+r[1]+'</td></tr>';});
-  h += '</table></div>';
+  h += '<table class="hb-tbl"><tbody id="hb-audit-rules-body"><tr><td colspan="2" style="text-align:center;color:#94a3b8;padding:20px"><span class="spinner"></span> 加载判定规则...</td></tr></tbody></table></div>';
+  
+  fetch('/static/audit_rules.json').then(function(r){return r.json()}).then(function(data){
+    var tbody = document.getElementById('hb-audit-rules-body');
+    if (!tbody) return;
+    var rows = '';
+    data.forEach(function(r){
+      rows += '<tr><td class="lbl" style="font-weight:600;color:#0f172a;white-space:normal;width:130px">'+r.id+'.'+r.name+'</td><td class="val" style="font-size:12px">'+r.desc+'</td></tr>';
+    });
+    tbody.innerHTML = rows;
+  }).catch(function(){
+    var tbody = document.getElementById('hb-audit-rules-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="2" style="color:#dc2626;text-align:center;padding:20px">加载失败，请刷新</td></tr>';
+  });
 
   // ═══ 第五章 ═══
   h += '<div id="hb-s5" class="hb-sec"><div class="hb-sec-title"><span class="num">5</span>报告编制规范</div>';
@@ -118,20 +122,20 @@ function renderAuditorHandbook(container) {
 // ═══ 第六章 ═══
   h += '<div id="hb-s6" class="hb-sec"><div class="hb-sec-title"><span class="num">6</span>关键法律条文</div>';
   h += '<div class="hb-detail">以下12条法律条文为税务稽查中最常引用的核心依据。稽查报告的每项发现必须引用具体法条——笼统引用"相关税收法规"的表述在审理环节会被退回重写。条文的适用场景和处罚标准直接写入报告的法律依据字段，由法律推理引擎（legal_reasoner.py）自动匹配。</div>';
-  h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:120px">法条</td><td class="val">核心内容</td><td class="val" style="width:200px">适用场景与处罚标准</td></tr></thead><tbody>';
-  [['征管法第32条','纳税人未按规定期限缴纳税款，从滞纳税款之日起按日加收万分之五滞纳金','逾期未缴税→加收每日万分之五→年化18.25%。报告处理建议中的滞纳金计算依据。'],
-   ['征管法第35条','账簿不健全、难以查账的税务机关有权核定应纳税额','资料严重缺失→税务机关核定征收→核定数通常高于实际。报告缺失资料后果说明。'],
-   ['征管法第54条','检查权：检查账簿/凭证/报表/资料、询问、责成提供资料','稽查取证的法定权力来源。报告第一章稽查范围及执行标准声明的引用依据。'],
-   ['征管法第60条','不提供资料→≤1万元罚款。不提供完整资料→≤5万元罚款','拒绝或拖延提供稽查资料的直接后果。报告第五章P0建议中的紧迫性说明。'],
-   ['征管法第63条','偷税：处不缴或少缴税款0.5倍-5倍罚款。构成犯罪的依法追究','发现故意少申报→补税+0.5-5倍罚款+每日万分之五滞纳金。极高风险发现的处罚建议。'],
-   ['征管法第64条','不进行纳税申报，追缴税款+滞纳金+罚款','未申报的处理标准。报告申报缺失发现的后果说明。'],
-   ['发票管理办法第22条','禁止虚开：任何单位和个人不得开具与实际经营不符的发票。没收违法所得→罚款→刑事责任','虚开发票的行政+刑事处罚标准。虚开嫌疑发现的证据引用。'],
-   ['增值税条例第19条','纳税义务发生时间：收讫款项或取得索取凭证当天。先开票的为开票当天','确定增值税纳税义务的起始时点。跨期收入时间判定+收款vs开票差异分析。'],
-   ['企业所得税法第41条','关联方交易须按独立企业间交易定价（独立交易原则）','转让定价调整的法律依据。关联交易风险分析的引用法条。'],
-   ['刑法第201条','逃税罪：数额较大+比例>应纳税额10%→3年以下。数额巨大+>30%→3-7年','逃税行为的刑事追诉标准。极高风险发现的刑事风险提示。'],
-   ['刑法第205条','虚开增值税专用发票罪：虚开→3年以下。数额较大→3-10年。数额巨大→10年+','虚开发票的刑事追诉标准。空壳企业/对倒开票等刑事风险提示。'],
-   ['规程第42条','稽查报告须含10项内容格式。审理部门逐项审核7项','稽查报告的法定格式要求。报告编制规范引用的规程依据。']].forEach(function(l){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+l[0]+'</td><td class="val" style="font-size:12px">'+l[1]+'</td><td class="val" style="font-size:12px;color:#64748b">'+l[2]+'</td></tr>';});
-  h += '</tbody></table></div>';
+  h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:120px">法条</td><td class="val">核心内容</td><td class="val" style="width:200px">适用场景与处罚标准</td></tr></thead><tbody id="hb-legal-body"><tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px"><span class="spinner"></span> 加载法律条文...</td></tr></tbody></table></div>';
+  
+  fetch('/static/legal_refs.json').then(function(r){return r.json()}).then(function(data){
+    var tbody = document.getElementById('hb-legal-body');
+    if (!tbody) return;
+    var rows = '';
+    data.forEach(function(l){
+      rows += '<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+l.law+'</td><td class="val" style="font-size:12px">'+l.content+'</td><td class="val" style="font-size:12px;color:#64748b">'+l.scenario+'</td></tr>';
+    });
+    tbody.innerHTML = rows;
+  }).catch(function(){
+    var tbody = document.getElementById('hb-legal-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" style="color:#dc2626;text-align:center;padding:20px">加载失败，请刷新</td></tr>';
+  });
 
   // ═══ 第七章 ═══
   h += '<div id="hb-s7" class="hb-sec"><div class="hb-sec-title"><span class="num">7</span>系统功能与稽查规程映射</div>';
