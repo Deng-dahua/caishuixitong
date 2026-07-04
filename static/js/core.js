@@ -677,6 +677,10 @@ function navigateTo(page) {
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => navigateTo(el.dataset.page));
 });
+// 子项点击导航到父页面
+document.querySelectorAll('.nav-sub-item').forEach(el => {
+  el.addEventListener('click', () => navigateTo(el.dataset.page));
+});
 
 // ==================== API 工具（多公司版本） ====================
 async function api(method, url, body) {
