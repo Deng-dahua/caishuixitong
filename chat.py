@@ -28,14 +28,23 @@ router = APIRouter()
 
 # ==================== LLM 配置 ====================
 
-# OpenAI 兼容 API 配置（支持 OpenAI / DeepSeek / Ollama / 本地模型等）
+# 读取 api_key.json（优先级低于环境变量）
+def _load_api_key():
+    key = os.environ.get("TAX_LLM_KEY", "")
+    if key: return key
+    try:
+        key_path = os.path.join(os.path.dirname(__file__), "static", "api_key.json")
+        with open(key_path, encoding="utf-8") as f:
+            return json.load(f).get("key", "")
+    except: return ""
+
 LLM_CONFIG = {
     "api_base": os.environ.get("TAX_LLM_BASE", "https://api.deepseek.com/v1"),
-    "api_key": os.environ.get("TAX_LLM_KEY", ""),
+    "api_key": _load_api_key(),
     "model": os.environ.get("TAX_LLM_MODEL", "deepseek-chat"),
     "max_tokens": 2000,
     "temperature": 0.3,
-    "timeout": 120,  # Ollama 7B模型回答较慢，需要更长超时
+    "timeout": 60,  # DeepSeek云端快，60秒够了
     # Ollama 本地配置
     "ollama_base": os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1"),
     "ollama_model": os.environ.get("OLLAMA_MODEL", "qwen2.5:7b"),
