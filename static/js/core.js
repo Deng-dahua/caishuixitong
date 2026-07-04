@@ -659,6 +659,7 @@ function navigateTo(page) {
     case 'tax-incentives-page': renderTaxIncentivesPage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
+    case 'chat': renderChat(container); break;
     case 'auditor-handbook': renderAuditorHandbook(container); break;
     case 'report-standards': renderReportStandards(container); break;
     case 'feedback-template': renderFeedbackTemplate(container); break;
