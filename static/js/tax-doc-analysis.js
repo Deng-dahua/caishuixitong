@@ -3923,31 +3923,10 @@ window._unifiedEditPopup = function(rowData) {
     "<button onclick=\"window._edtSubmitAskResult()\" style=\"background:#6366f1;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">提交</button>" +
 
 
-    "</div></div>" +
+    "</div>" +
 
 
-    "<div id=\"edt-panel-reset\" class=\"edt-panel\" style=\"display:none\">" +
-
-
-    "<div style=\"background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:12px;font-size:12px;color:#d97706;line-height:1.8\">" +
-
-
-    "重置提示：此操作将撤销对该内容的所有编辑和审核，恢复为引擎原始输出。此操作不可撤销，请确认后再提交。</div>" +
-
-
-    "<div style=\"margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:8px\">" +
-
-
-    "<span id=\"edt-reset-result\" style=\"font-size:11px;color:#94a3b8\"></span>" +
-
-
-    "<button onclick=\"window._edtSubmitReset()\" style=\"background:#d97706;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">提交</button>" +
-
-
-    "</div></div>" +
-
-
-    "</div></div>";
+    "</div></div></div>";
 
 
   document.body.appendChild(popup);
@@ -4159,10 +4138,7 @@ window._edtSubmitAskResult = function() {
 };
 
 
-// ═══ 重置提交 ═══
-
-
-// ═══════════ 语音输入 ═══════════// ═══════════ 语音输入 ═══════════
+// ═══════════ 语音输入 ═══════════
 
 
 window._voiceRecognition = null;

@@ -1,5 +1,5 @@
 /**
- * 纠正规则中转站 — 编辑/审核/追问/重置 四通道规则汇总
+ * 纠正规则中转站 — 编辑/审核/追问 四通道规则汇总
  * 数据源：user_corrections.json + content_feedback.json
  */
 function renderCorrectionRulesHub(container) {
@@ -36,7 +36,7 @@ function renderCorrectionRulesHub(container) {
     '</style>' +
     '<div class="crh-layout">' +
     '<h2 class="crh-h2">🔄 纠正规则中转站</h2>' +
-    '<p class="crh-sub">编辑/审核/追问/重置 — 四通道汇总。每条规则自动传播到五链（稽查指令/线索链/证据链/分析链/方法论），下次一键分析时自动应用。<br>自动化机制：纠正>=3次+置信度>=0.8→注入自愈规则库、跨公司合成（公司间相似规则自动提炼）。</p>' +
+    '<p class="crh-sub">编辑/审核/追问 — 四通道汇总。每条规则自动传播到五链（稽查指令/线索链/证据链/分析链/方法论），下次一键分析时自动应用。<br>自动化机制：纠正>=3次+置信度>=0.8→注入自愈规则库、跨公司合成（公司间相似规则自动提炼）。</p>' +
     '<div class="crh-stats" id="crh-stats"></div>' +
     '<div class="crh-filter" id="crh-filter"></div>' +
     '<div id="crh-body"><div style="text-align:center;padding:60px"><span class="spinner"></span> 加载纠正规则...</div></div>' +

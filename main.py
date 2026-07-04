@@ -9020,7 +9020,7 @@ def get_correction_rules():
 
 @app.get("/api/feedback/content-logs")
 def get_content_feedback_logs():
-    """获取内容反馈日志（编辑/审核/追问/重置记录）"""
+    """获取内容反馈日志（编辑/审核/追问记录）"""
     try:
         p = os.path.join(os.path.dirname(__file__), "static", "content_feedback.json")
         if os.path.exists(p):
