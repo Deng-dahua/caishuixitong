@@ -4914,7 +4914,27 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         except: pass
         findings = all_findings[:20]
     
-    # ═══ AGI引擎调用 ═══
+    # ═══ 优先 LLM 回答（连接智能问答引擎）═══
+    try:
+        from chat import _chat_tax_qa
+        llm_db = next(get_db())
+        llm_answer = _chat_tax_qa(question, company_id, llm_db)
+        llm_db.close()
+        if llm_answer and len(llm_answer) > 30:
+            return {
+                "ok": True,
+                "intent": intent,
+                "finding_index": finding_index,
+                "answer": llm_answer,
+                "source": "LLM智能问答引擎",
+                "analysis": [{"title": "LLM回答", "content": llm_answer}],
+                "chain_links": [],
+                "evidence_links": [],
+                "severity_implications": [],
+            }
+    except: pass
+    
+    # ═══ AGI引擎调用（LLM不可用时兜底）═══
     try:
         from engine.agi_engine import agi
         result = agi.ask(question, findings, context, intent, history)
