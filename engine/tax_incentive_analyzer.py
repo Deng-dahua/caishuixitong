@@ -419,7 +419,7 @@ def analyze_tax_incentives(ctx, sal_invs, pur_invs, bank_txs, salaries, income_s
     _check_small_micro(revenue, profit, total_assets, employee_count, findings, opportunities)
     
     # ═══ 2. 小规模纳税人增值税 ═══
-    _check_small_taxpayer(revenue, findings, opportunities)
+    _check_small_taxpayer(revenue, findings, opportunities, sal_invs)
     
     # ═══ 3. 高新技术企业 ═══
     _check_high_tech(industry, revenue, findings, opportunities)
@@ -504,19 +504,42 @@ def _check_small_micro(revenue, profit, total_assets, employee_count, findings, 
 
 # ═══════════════ 2. 小规模纳税人增值税 ═══════════════
 
-def _check_small_taxpayer(revenue, findings, opportunities):
-    """小规模纳税人：年销售额≤500万可享受1%或免税"""
+def _check_small_taxpayer(revenue, findings, opportunities, sal_invs=None):
+    """小规模纳税人：年销售额≤500万可享受1%或免税
+    
+    关键：必须有足够的时间跨度数据才能判定。
+    单月/单季度数据不足以推断年销售额，会降级为"数据不足"提示。
+    """
     if not revenue: return
     
-    # 标注数据来源和期间范围（避免单月数据被当成全年）
+    # 检查数据覆盖的时间跨度
+    months_covered = _count_months_covered(sal_invs)
     how_found = f"销项发票合计{revenue:,.0f}元"
+    if months_covered > 0:
+        how_found += f"（覆盖{months_covered}个月）"
     
+    # 数据不足：少于6个月的数据不能推断年销售额
+    if months_covered < 6:
+        if revenue <= 5000000:
+            opportunities.append({
+                "type": "小规模纳税人资格(应享)",
+                "level": "提示",
+                "priority": "低",
+                "detail": f"销项发票合计{revenue:,.0f}元，但仅覆盖{months_covered}个月（非全年数据），无法据此判定年销售额≤500万。如需确认资格，请提供完整年度销项发票或利润表。",
+                "how_found": how_found,
+                "tax_benefit": "增值税税率从6%/13%降至1%或免税(月销售额≤10万)",
+                "action": "补全至少6个月以上的销项数据后再评估；或直接查看增值税申报表全年累计销售额",
+                "law_ref": "财政部税务总局公告2023年第1号",
+            })
+        return
+    
+    # 数据充分（≥6个月）：可以合理推断
     if revenue <= 5000000:
         opportunities.append({
             "type": "小规模纳税人资格(应享)",
             "level": "优惠机会",
             "priority": "高",
-            "detail": f"销项发票合计{revenue:,.0f}元（当前分析期间内），未超出500万小规模纳税人标准",
+            "detail": f"销项发票{months_covered}个月合计{revenue:,.0f}元，全年推算≤500万，符合小规模纳税人标准",
             "how_found": how_found,
             "tax_benefit": "增值税税率从6%/13%降至1%或免税(月销售额≤10万)",
             "action": "如业务结构允许，可考虑转为小规模纳税人或分立业务主体",
@@ -527,7 +550,7 @@ def _check_small_taxpayer(revenue, findings, opportunities):
             "type": "小规模纳税人(临界)",
             "level": "提醒",
             "priority": "中",
-            "detail": f"销项发票合计{revenue:,.0f}元，接近500万小规模标准",
+            "detail": f"销项发票{months_covered}个月合计{revenue:,.0f}元，接近500万小规模标准",
             "how_found": how_found,
             "action": "可考虑分立部分业务到新主体，使各主体年销售额≤500万",
         })
@@ -723,6 +746,26 @@ def _extract_revenue(income_stmt, sal_invs, vouchers):
     if not revenue and vouchers:
         revenue = sum(float(v.get("credit", 0) or 0) for v in vouchers if "主营业务收入" in str(v.get("account_name", v.get("科目", ""))))
     return revenue
+
+
+def _count_months_covered(invoices):
+    """统计发票数据覆盖了多少个自然月"""
+    if not invoices: return 0
+    from datetime import datetime
+    months = set()
+    for inv in invoices:
+        date_str = str(inv.get("date", inv.get("invoice_date", inv.get("开票日期", ""))))
+        if not date_str: continue
+        try:
+            # 尝试多种日期格式
+            for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%Y%m%d", "%Y-%m-%d %H:%M:%S"]:
+                try:
+                    dt = datetime.strptime(date_str[:10], fmt)
+                    months.add((dt.year, dt.month))
+                    break
+                except: continue
+        except: pass
+    return len(months)
 
 
 def _extract_profit(income_stmt, vouchers):
