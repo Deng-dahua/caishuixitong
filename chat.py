@@ -85,7 +85,7 @@ TAX_SYSTEM_PROMPT = """你是「存勤法税智能体」，一家专注为全行
 
 
 def _build_context_prompt(company_id: int, db: Session) -> str:
-    """构建当前系统上下文信息，注入到 LLM prompt 中"""
+    """构建当前系统上下文信息，注入到 LLM prompt 中，让 LLM 能回答基于系统数据的问题"""
     ctx_parts = []
     try:
         company = db.query(Company).filter(Company.id == company_id).first()
@@ -93,19 +93,67 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
             name = company.name or "未设置"
             ctype = company.company_type or "未填写"
             scope = (company.business_scope or "")
-            ctx_parts.append(f"当前企业：{name}（类型：{ctype}）")
-            if scope.strip():
-                ctx_parts.append(f"经营范围：{scope}")
+            industry = getattr(company, 'industry', '') or ''
+            biz_model = getattr(company, 'biz_model', '') or ''
+            ctx_parts.append(f"当前企业：{name}")
+            if ctype: ctx_parts.append(f"企业类型：{ctype}")
+            if industry: ctx_parts.append(f"行业：{industry}")
+            if biz_model: ctx_parts.append(f"经营模式：{biz_model}")
+            if scope.strip(): ctx_parts.append(f"经营范围：{scope[:200]}")
         
         # 基本统计
-        voucher_count = db.query(JournalEntry).filter(
-            JournalEntry.company_id == company_id
-        ).count()
-        account_count = db.query(Account).filter(
-            Account.company_id == company_id
-        ).count()
-        if voucher_count > 0:
-            ctx_parts.append(f"系统已有 {voucher_count} 条凭证、{account_count} 个科目")
+        voucher_count = db.query(JournalEntry).filter(JournalEntry.company_id == company_id).count()
+        account_count = db.query(Account).filter(Account.company_id == company_id).count()
+        customer_count = db.query(Customer).filter(Customer.company_id == company_id).count()
+        employee_count = db.query(Employee).filter(Employee.company_id == company_id).count()
+        
+        stats = [f"凭证 {voucher_count} 条", f"科目 {account_count} 个"]
+        if customer_count: stats.append(f"客户 {customer_count} 个")
+        if employee_count: stats.append(f"员工 {employee_count} 人")
+        ctx_parts.append(f"系统数据：{'，'.join(stats)}")
+        
+        # 发票统计
+        try:
+            from database import SalesInvoice, PurchaseInvoice
+            si_count = db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).count()
+            pi_count = db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).count()
+            if si_count or pi_count:
+                ctx_parts.append(f"发票：销项 {si_count} 张，进项 {pi_count} 张")
+        except: pass
+        
+        # 最近分析结果（如果有缓存）
+        try:
+            import glob, json, os as _os
+            cache_dir = _os.path.join(_os.path.dirname(__file__), "static", "uploads", "tax-risk-docs", str(company_id))
+            cache_files = sorted(glob.glob(_os.path.join(cache_dir, "last_analysis_cache.json")))
+            if cache_files:
+                with open(cache_files[-1], "r", encoding="utf-8") as f:
+                    cache = json.load(f)
+                report = cache.get("report", {})
+                es = report.get("engine_status", {})
+                fs = es.get("financial_snapshot", {})
+                if fs:
+                    ctx_parts.append(f"=== 最近分析财务数据 ===")
+                    ctx_parts.append(f"销项合计：{fs.get('total_sales',0):,.0f}元（{fs.get('sale_count',0)}张）")
+                    ctx_parts.append(f"进项合计：{fs.get('total_purchases',0):,.0f}元（{fs.get('pur_count',0)}张）")
+                    ctx_parts.append(f"银行入账：{fs.get('total_bank_in',0):,.0f}元（{fs.get('bank_tx_count',0)}笔）")
+                    ctx_parts.append(f"毛利率：{fs.get('gross_margin_pct',0):.1f}%")
+                    ctx_parts.append(f"工资合计：{fs.get('total_salary',0):,.0f}元（{fs.get('salary_count',0)}人）")
+                risk = es.get("phase4_synthesis", {})
+                if risk:
+                    ctx_parts.append(f"风险等级：{risk.get('overall_risk','未知')}（评分 {risk.get('overall_score','?')}）")
+                findings = report.get("all_findings", [])
+                if findings:
+                    f_types = {}
+                    for fi in findings[:10]:
+                        t = fi.get("type", "")
+                        lv = fi.get("level", "")
+                        if t: f_types[t] = lv
+                    ctx_parts.append(f"最近发现（{len(findings)}条）：")
+                    for t, lv in list(f_types.items())[:5]:
+                        ctx_parts.append(f"  [{lv}] {t}")
+        except: pass
+        
     except Exception:
         pass
     
