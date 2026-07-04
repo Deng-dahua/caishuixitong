@@ -1,0 +1,107 @@
+============================================================
+全链路可达性审计 v1.0
+============================================================
+
+[概览] 1458个.py, 33个.js, 25,367,474字符
+
+========================================
+[1] API端点 → 前端调用
+  API总数: 134  被调用: 86  未被调用: 48
+
+  【未被前端调用的API】48个(可能是后端内部/AGI/管理类):
+    [KEY] /api/apikey
+    [OTHER] /api/audit-logs
+    [OTHER] /api/audit/calibration
+    [OTHER] /api/audit/generate-narrative
+    [OTHER] /api/audit/online-verify/{company_name}
+    [OTHER] /api/audit/task/{task_id}
+    [OTHER] /api/companies/{company_id}/auto-detect-industry
+    [OTHER] /api/companies/{company_id}/online-info
+    [OTHER] /api/companies/{company_id}/online-lookup
+    [OTHER] /api/feedback/archived
+    [OTHER] /api/industries/refresh-benchmarks
+    [OTHER] /api/remediation/batch-from-findings
+    [OTHER] /api/remediation/{record_id}
+    [OTHER] /api/risk/predict
+    [OTHER] /api/tax-risk-docs/analyze-result/{task_id}
+    [OTHER] /api/tax-risk-docs/analyze-status/{task_id}
+    [OTHER] /api/tax-risk-docs/edit-preview
+    [OTHER] /api/tax-risk-docs/evidence-chain
+    [OTHER] /api/tax-risk-docs/ocr
+    [OTHER] /api/tax-risk-docs/relation-graph
+    [OTHER] /api/tax-risk-docs/report-summary
+    [OTHER] /api/tax-risk-docs/trace/{analysis_id}
+    [OTHER] /api/tax-risk-docs/working-papers
+    [OTHER] /api/tax-risk-docs/{doc_id}
+    [OTHER] /api/tax-risk-rules/check-relevance
+    [OTHER] /api/tax-risk-rules/parse-report
+    [OTHER] /api/tax-risk-rules/upload-report
+    [OTHER] /items/{item_id}
+    [OTHER] /send-notification/{email}
+
+========================================
+[2] 页面路由 → 侧边栏入口
+  侧边栏项: 54  路由: 66
+  侧边栏无路由: 0  路由无侧边栏: 12
+
+  【多入口共用渲染函数】2处:
+    formHtml ← main, schedule1, schedule2, schedule3, schedule4, schedule5, reduction, deduction
+    renderTaxRiskRules ← tax-risk-rules, pipeline-rules
+
+========================================
+[3] 规则分类 → 代码引用
+  规则分类: 29  代码中引用: 28  死分类(无代码引用): 1
+    DEAD: 发票进销匹配 (184条规则)
+
+========================================
+[4] JSON数据文件 → 代码引用
+  [OK] tax_risk_rules_local_export.json (1609条) ← ['audit.py', 'audit_commit_check.py', 'audit_consistency.py']...
+  [OK] cross_domain_clues.json (437条) ← ['audit.py', 'audit_consistency.py', 'main.py']...
+  [OK] cross_domain_evidence.json (781条) ← ['audit.py', 'audit_commit_check.py', 'audit_consistency.py']...
+  [OK] cross_domain_analysis.json (48条) ← ['audit.py', 'audit_consistency.py', 'main.py']...
+  [OK] methodology_items.json (33条) ← ['main.py', 'tax-auditor-handbook.js', 'tax-pipeline-pages.js']
+  [OK] audit_rules.json (8条) ← ['tax-auditor-handbook.js']
+  [OK] legal_refs.json (12条) ← ['tax-auditor-handbook.js']
+  [OK] system_config.json (8键) ← ['audit.py', 'audit_consistency.py', 'memory.py']...
+  [OK] shared_content_map.json (5键) ← ['memory.py', 'shared_content_sync.py']
+
+========================================
+[5] CATEGORY_DESCRIPTIONS vs 实际规则分类
+  CATEGORY_DESCRIPTIONS: 33个
+  实际数据分类: 29个
+  交集: 22  仅在DESC: 11  仅在数据: 6
+  仅在CATEGORY_DESCRIPTIONS中存在(前端会显示但数据中没有):
+    中风险
+    低风险
+    发票匹配
+    发票合规
+    发票流
+    自动发现
+    良好
+    行业对标
+    跨域推理
+    进销存
+    高风险
+  仅在数据中存在(前端DESCRIPTION缺失):
+    企业所得税 (107条)
+    发票进销匹配 (184条)
+    增值税税负 (101条)
+    成本费用配比 (106条)
+    收入合规 (104条)
+    资产负债往来 (121条)
+
+========================================
+[6] 33条方法论文档 vs 代码
+  方法论总数: 33
+  代码中有对应实现: 32
+  代码中未找到: 1
+    规则配置外部化
+
+========================================
+[总结]
+  API死端点: 48个需要清理或确认
+  重复渲染函数: 2处
+  规则分类不一致: 17处
+  方法论未实现: 1条
+  侧边栏无路由: 0个
+  路由无侧边栏: 12个

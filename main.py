@@ -6291,7 +6291,7 @@ def methodology_audit():
     else:
         return {"ok": False, "error": "methodology_items.json 不存在"}
     
-    # ── 2. 扫描 engine/ + main.py 找代码引用 ──
+    # ── 2. 扫描 engine/ + main.py + static/js/ 找代码引用 ──
     all_code = ""
     engine_dir = os.path.join(base_dir, "engine")
     for root, dirs, files in os.walk(engine_dir):
@@ -6307,6 +6307,15 @@ def methodology_audit():
         with open(os.path.join(base_dir, "main.py"), "r", encoding="utf-8") as f:
             all_code += f.read()
     except: pass
+    # Also scan JS files
+    js_dir = os.path.join(base_dir, "static", "js")
+    if os.path.exists(js_dir):
+        for fn in os.listdir(js_dir):
+            if fn.endswith(".js"):
+                try:
+                    with open(os.path.join(js_dir, fn), "r", encoding="utf-8") as f:
+                        all_code += f.read()
+                except: pass
     
     # ── 3. 对账：每个方法论名称是否被代码引用 ──
     results = []

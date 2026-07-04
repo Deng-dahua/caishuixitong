@@ -1,4 +1,0 @@
-mi type: dict
-mi is None: False
-has comprehensive key: True
-comp has material_intel: True
