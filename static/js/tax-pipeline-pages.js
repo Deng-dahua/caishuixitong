@@ -1328,9 +1328,8 @@ function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
-  container.innerHTML = '<style>.ev-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.ev-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.ev-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.ev-toc a{display:flex;align-items:center;justify-content:space-between;color:#475569;text-decoration:none;padding:3px 8px;border-radius:4px;cursor:pointer}.ev-toc a:hover{background:#eff6ff;color:#2563eb;font-weight:600}.ev-toc a .cnt{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:1px 6px;border-radius:10px}.ev-main{flex:1;min-width:0}.ev-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.ev-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
-    + '<div class="ev-layout"><nav class="ev-toc" id="ev-toc"><div class="toc-title">📖 分类</div></nav>'
-    + '<div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
+  container.innerHTML = '<style>.ev-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.ev-main{flex:1;min-width:0}.ev-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.ev-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
+    + '<div class="ev-layout"><div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
     + '证据链是税务稽查的证据质量保障体系——<strong>781条证据链（全部可执行），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
     + '每条可执行证据链定义多个独立维度的数据源，当 ≥min_evidence 个维度同时触发时形成有效证据，闭环后自动输入分析链做综合推理判定。'
@@ -1379,17 +1378,10 @@ function renderEvidenceList(chains) {
     return exec && exec.closed;
   }).length;
 
-  // Populate TOC
-  var tocEl = document.getElementById('ev-toc');
-  if (tocEl) {
-    tocEl.innerHTML = '<div class="toc-title">📖 ' + chains.length + ' 条（全部可执行）</div><a href="#ev-stats">统计总览</a>';
-  }
-
   var html = '';
 
-  // ══════ 证据链概念说明 ══════
+  // 证据链概念说明
   html += '<div id="ev-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">';
-  if (tocEl) tocEl.innerHTML += '<a href="#ev-concept">概念说明</a>';
   html += ''
     + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">证据链是什么</h3>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
