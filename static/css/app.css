@@ -463,7 +463,8 @@
     /* 科目缩进：每级 10px，内联计算 */
 
     /* ====== AI 助手聊天 ====== */
-    .chat-wrapper { display: flex; flex-direction: column; height: calc(100vh - 120px); background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .chat-wrapper { display: flex; flex-direction: column; height: calc(100vh - 56px); background: #fff; border-radius: 0; overflow: hidden; margin: -20px; }
+    #page-chat { padding: 0 !important; max-width: none !important; }
     .chat-header { padding: 16px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
     .chat-header h3 { margin: 0 0 4px; font-size: 16px; }
     .chat-header p { margin: 0; font-size: 12px; opacity: 0.85; }
