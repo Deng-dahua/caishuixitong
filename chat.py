@@ -36,6 +36,9 @@ LLM_CONFIG = {
     "max_tokens": 2000,
     "temperature": 0.3,
     "timeout": 30,
+    # Ollama 本地配置
+    "ollama_base": os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1"),
+    "ollama_model": os.environ.get("OLLAMA_MODEL", "qwen2.5:7b"),
 }
 
 TAX_SYSTEM_PROMPT = """你是「存勤法税智能体」，一家专注为全行业各类型企业提供财税与法律深度咨询的 AI 专家。
@@ -98,9 +101,7 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
 
 
 def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -> Optional[str]:
-    """调用 LLM API 进行问答"""
-    if not LLM_CONFIG["api_key"]:
-        return None
+    """调用 LLM API 进行问答，优先 DeepSeek，无 API Key 时尝试 Ollama 本地"""
     
     try:
         messages = []
@@ -110,10 +111,6 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
         messages.append({"role": "system", "content": full_system})
         messages.append({"role": "user", "content": user_message})
         
-        headers = {
-            "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
-            "Content-Type": "application/json",
-        }
         payload = {
             "model": LLM_CONFIG["model"],
             "messages": messages,
@@ -122,14 +119,34 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
         }
         
         client = httpx.Client(timeout=LLM_CONFIG["timeout"])
+        
+        # 1. 尝试 DeepSeek
+        if LLM_CONFIG["api_key"]:
+            headers = {
+                "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
+                "Content-Type": "application/json",
+            }
+            resp = client.post(
+                f"{LLM_CONFIG['api_base'].rstrip('/')}/chat/completions",
+                headers=headers,
+                json=payload,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
+        
+        # 2. 无 API Key → 尝试本地 Ollama
+        ollama_payload = dict(payload)
+        ollama_payload["model"] = LLM_CONFIG["ollama_model"]
         resp = client.post(
-            f"{LLM_CONFIG['api_base'].rstrip('/')}/chat/completions",
-            headers=headers,
-            json=payload,
+            f"{LLM_CONFIG['ollama_base'].rstrip('/')}/chat/completions",
+            headers={"Content-Type": "application/json"},
+            json=ollama_payload,
         )
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
+        
     except Exception as e:
         return None
 
