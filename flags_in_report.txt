@@ -1,3 +1,0 @@
----
-rules_used: 1609
-total_risks: 36

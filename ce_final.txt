@@ -1,8 +1,0 @@
-companies: 2
-relationships: 0
-summary: 系统内2家企业，未发现明显的跨企业关联关系。
-
-Log entries about cross_enterprise:/n  [AGI-跨企业] 系统内2家企业，未发现明显的跨企业关联关系。
-
-All errors:/n  联网核查失败: name 'pipeline_log' is not defined（继续流程）
-  增强证伪: 2条, 2通过/0失败（30+规则覆盖）

@@ -6752,5 +6752,107 @@
     "action": "自动更新设计服务行业风险基准为60.8分",
     "discovered_at": "2026-07-04T22:09:13.370440",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-0",
+    "industry": "广告服务",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在8家广告服务企业中，8家(100%)出现此信号",
+    "action": "该信号在广告服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.479962",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-1",
+    "industry": "广告服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在8家广告服务企业中，8家(100%)出现此信号",
+    "action": "该信号在广告服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.479972",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告服务",
+    "avg_risk_score": 60.8,
+    "sample_size": 8,
+    "action": "自动更新广告服务行业风险基准为60.8分",
+    "discovered_at": "2026-07-04T22:16:35.479979",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-3",
+    "industry": "信息技术服务",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在6家信息技术服务企业中，6家(100%)出现此信号",
+    "action": "该信号在信息技术服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.479991",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-4",
+    "industry": "信息技术服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在6家信息技术服务企业中，6家(100%)出现此信号",
+    "action": "该信号在信息技术服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.479993",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 6,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-07-04T22:16:35.479996",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-6",
+    "industry": "设计服务",
+    "signal": "购销严重倒挂",
+    "prevalence": "100%",
+    "evidence": "在12家设计服务企业中，12家(100%)出现此信号",
+    "action": "该信号在设计服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.480007",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "auto_signal",
+    "rule_id": "AUTO-SIG-7",
+    "industry": "设计服务",
+    "signal": "毛利为负",
+    "prevalence": "100%",
+    "evidence": "在12家设计服务企业中，12家(100%)出现此信号",
+    "action": "该信号在设计服务行业中可能是行业普遍特征，建议降低风险权重",
+    "confidence": 0.9,
+    "discovered_at": "2026-07-04T22:16:35.480009",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-8",
+    "industry": "设计服务",
+    "avg_risk_score": 60.8,
+    "sample_size": 12,
+    "action": "自动更新设计服务行业风险基准为60.8分",
+    "discovered_at": "2026-07-04T22:16:35.480012",
+    "source": "audit_memory.json"
   }
 ]

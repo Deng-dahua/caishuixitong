@@ -1,7 +1,0 @@
-agi_pipeline type: dict
-  keys: ['error', 'modules_covered', 'events_collected']
-
-causal_network type: dict
-  keys: []
-
-chain_execution: list

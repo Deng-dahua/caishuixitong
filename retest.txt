@@ -1,7 +1,0 @@
-STILL FOUND: 小规模纳税人资格(应享)
-  detail: 销项发票合计245,827元（当前分析期间内），未超出500万小规模纳税人标准。稽查方法：销项发票合计245,827元。处理建议：请提供与「小规模纳税人资格(应享)」相关的合同、单据、凭证等业务佐证材
-  correctedBy: NONE
-  correctionReason: NONE
-
-Small taxpayer found: True
-Total findings: 36
