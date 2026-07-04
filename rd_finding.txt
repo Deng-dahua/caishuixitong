@@ -1,0 +1,10 @@
+Type: 研发费用加计扣除(建议享受)
+Level: 优惠机会
+how_found: "MISSING"
+source_chain: "MISSING"
+dataSource: "MISSING"
+evidence: ""
+detail: "企业存在研发活动迹象，可能符合加计扣除条件。处理建议：请提供与「研发费用加计扣除(建议享受)」相关的合同、单据、凭证等业务佐证材料。"
+---
+
+Total findings: 36

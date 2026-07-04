@@ -1,0 +1,27 @@
+=== FINDINGS count: 0 ===
+  NO FINDINGS
+
+=== COMPREHENSIVE keys: ['orchestration_plan', 'evidence_closures', 'closed_chain_count', 'chain_execution', 'chain_triggered_count', 'chain_total_count', 'cashflow', 'top_receivers', 'top_payers', 'actions'] ===
+  orchestration_plan: ['active_modules', 'skipped_modules', 'execution_order', 'total_active', 'total_skipped']
+  evidence_closures: []
+  closed_chain_count: 0
+  chain_execution: []
+  chain_triggered_count: 0
+
+=== ENGINE STATUS ===
+  version: v2.0
+  phases: ['Phase1-初查', 'Phase2-定向深挖', 'Phase3-交叉验证', 'Phase4-综合定性']
+  phase3_pattern_hits: 1
+  phase3_conflicts: 0
+
+=== DATA SOURCES ===
+  total_sales: 245827.02
+  total_purchases: 466564.46
+  gross_margin_pct: -89.8
+  total_bank_in: 395905.76
+  sales_invoice_count: MISSING
+  purchase_invoice_count: MISSING
+
+=== COMPANY ===
+  industry: 设计服务
+  biz_model: 未确定

@@ -1,0 +1,302 @@
+[
+  {
+    "timestamp": "2026-07-04T18:23:46.810765",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:26:19.259163",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:33:22.556568",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:37:12.245216",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:40:10.068724",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:40:27.797733",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:41:03.090646",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:41:23.002676",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:41:45.985198",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-04T18:54:14.612459",
+    "industry": "设计服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  }
+]

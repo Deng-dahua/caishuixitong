@@ -1,0 +1,2 @@
+Top keys: ['ok', 'report', 'compliance_gate', 'rule_discovery', 'agi_overrides', 'agi_pipeline', 'self_healing', 'blocks']
+Report keys: ['overall_level', 'total_risks', 'high_risk', 'mid_risk', 'low_risk', 'files_count', 'rules_used', 'pipeline_log', 'file_results', 'stats', 'domain_summary', 'comprehensive', 'target_entity', 'low_data_warning', 'quality_report']

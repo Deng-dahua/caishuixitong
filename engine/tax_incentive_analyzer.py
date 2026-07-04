@@ -578,11 +578,31 @@ def _check_rd_deduction(industry, biz_model, pur_invs, findings, opportunities):
                 break
     
     if is_tech or rd_signals:
+        # 构建具体的迹象描述
+        detail_parts = []
+        how_found_parts = []
+        if is_tech:
+            how_found_parts.append(f"行业分类含科技关键词(行业:{industry})")
+        if rd_signals and pur_invs:
+            # 收集具体的研发相关品名
+            rd_items = []
+            for inv in pur_invs:
+                goods = str(inv.get("goods", ""))
+                if any(k in goods for k in rd_kw):
+                    rd_items.append(goods[:30])
+            if rd_items:
+                detail_parts.append("进项发票中含有研发相关品名：" + "、".join(rd_items[:5]))
+                how_found_parts.append("进项发票品名匹配研发关键词")
+        
+        detail_text = (industry + "行业，" + "；".join(detail_parts)) if detail_parts else industry + "行业含科技关键词，具备研发活动条件"
+        how_found_text = "；".join(how_found_parts)
+        
         opportunities.append({
             "type": "研发费用加计扣除(建议享受)",
             "level": "优惠机会",
             "priority": "高",
-            "detail": "企业存在研发活动迹象，可能符合加计扣除条件",
+            "detail": detail_text,
+            "how_found": how_found_text,
             "tax_benefit": "研发费用可在税前加计100%扣除(制造业/科技型中小企业120%)→每100万研发费用多扣100万→节省25万企业所得税",
             "action": "①建立研发费用辅助账 ②归集研发人员工资/材料/折旧/设计费等 ③汇算清缴时填报A107012表",
             "law_ref": "财政部税务总局公告2023年第7号",

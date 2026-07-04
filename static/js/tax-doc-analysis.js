@@ -8181,7 +8181,7 @@ function _renderReportFallback(r, allF) {
 
 
 
-      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">' + (f.detail || '详见稽查事实部分') + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">参见稽查事实部分</p>';
 
 
 
