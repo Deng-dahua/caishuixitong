@@ -3544,8 +3544,14 @@ def _run_analyze(company_id, db, progress_callback=None):
         from engine.self_learning import apply_correction_rules
         ind = ctx.company_profile.get("industry",""); bm = ctx.company_profile.get("biz_model","")
         corr_n = apply_correction_rules(all_findings, ind, bm)
-        if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用")
-    except Exception: pass
+        if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用(行业={ind},模式={bm})")
+        # 将纠正标记写入发现字段，供前端展示
+        for fi in all_findings:
+            if fi.get("_auto_corrected"):
+                fi.setdefault("correctedBy", "系统自学习")
+                fi.setdefault("correctionReason", fi.get("_correction_reason", "")[:200])
+    except Exception as e:
+        pipeline_log.append(f"[CORRECTION] 纠正规则应用失败: {e}")
     
     # ═══ 合并大脑：agi_engine注入推理增强 ═══
     if agi_engine:

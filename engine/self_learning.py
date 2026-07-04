@@ -842,6 +842,18 @@ def apply_correction_rules(all_findings, industry, biz_model):
             finding["_correction_confidence"] = matched_rule["confidence"]
             # 不修改原始level，保留原风险等级+标记驳回状态，让报告能继续展示
             finding["_dismissed"] = True
+            # 写入前端可直接读取的字段
+            finding["correctedBy"] = "系统自学习"
+            finding["correctionReason"] = matched_rule["corrections"][-1]["reason"][:200]
+            # 追加到已有的 corrections 列表（如存在）
+            corr_list = finding.get("corrections", [])
+            if not isinstance(corr_list, list): corr_list = []
+            corr_list.append({
+                "reviewer": "系统自动",
+                "reason": matched_rule["corrections"][-1]["reason"],
+                "confidence": matched_rule["confidence"],
+            })
+            finding["corrections"] = corr_list
             applied_count += 1
     
     return applied_count

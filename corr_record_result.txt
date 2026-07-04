@@ -1,0 +1,17 @@
+{
+  "recorded": true,
+  "fingerprint": "小规模纳税人资格(应享)|广告服务|服务",
+  "correction_count": 1,
+  "auto_apply": true,
+  "confidence": 0.8,
+  "upgraded_to_rule": true,
+  "cross_synthesized": false,
+  "module_auto_updated": false,
+  "modules_updated": [],
+  "learning_metrics": {
+    "total_auto_rules": 1,
+    "total_corrections": 1,
+    "adaptive_confidence": 0.8,
+    "same_industry_count": 0
+  }
+}

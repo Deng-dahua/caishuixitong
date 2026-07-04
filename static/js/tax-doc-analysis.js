@@ -8081,6 +8081,15 @@ function _renderReportFallback(r, allF) {
 
 
 
+    // ── 纠正标记（自动应用/人工审核）──
+    if (f._dismissed || f._auto_corrected || f.correctedBy) {
+      h += '<div style="background:#f0fdf4;border:1px solid #22c55e;border-radius:6px;padding:8px 14px;margin:8px 0;font-size:13px">';
+      h += '<span style="color:#166534;font-weight:600">✅ 已纠正</span>';
+      h += '<span style="color:#64748b;margin-left:8px;font-size:12px">' + (f.correctedBy || '系统自学习') + '</span>';
+      if (f.correctionReason) h += '<div style="color:#475569;font-size:12px;margin-top:4px">理由：' + f.correctionReason + '</div>';
+      h += '</div>';
+    }
+
     // ── 六要素（无按钮，用内联样式保持缩进）──
 
 
