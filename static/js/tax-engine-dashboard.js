@@ -1104,7 +1104,37 @@ function renderDetailsTab() {
       h += '<div style="font-size:12px;margin-top:4px"><span style="color:#64748b">数据质量分：</span><span style="font-weight:600;color:' + ((th.data_quality_score||0) >= 70 ? '#059669' : '#f59e0b') + '">' + (th.data_quality_score||0) + '/100</span></div>';
       h += '</div>';
       
-      // ── 8. 证据闭环 ──
+      // ── 9. AGI最终裁决 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">⚖️ AGI最终裁决 — 终审对比</h3>';
+      var af = d.agi_final || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (af.description||'') + '</div>';
+      h += '<div style="display:flex;gap:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#2563eb">' + (af.corrections_proposed||0) + '</div><div style="font-size:11px;color:#64748b">终审判定修正</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (af.auto_activated||0) + '</div><div style="font-size:11px;color:#64748b">自动激活</div></div>';
+      h += '</div></div>';
+      
+      // ── 10. AGI管线 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔗 AGI管线 — 模块协调</h3>';
+      var ap = d.agi_pipeline || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (ap.description||'') + '</div>';
+      h += '<div style="display:flex;gap:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#7c3aed">' + (ap.modules_covered||0) + '</div><div style="font-size:11px;color:#64748b">覆盖模块</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#2563eb">' + (ap.events_collected||0) + '</div><div style="font-size:11px;color:#64748b">事件采集</div></div>';
+      h += '</div></div>';
+      
+      // ── 11. 因果网络 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🕸️ 因果网络 — 发现间因果关系</h3>';
+      var cn = d.causal_network || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (cn.description||'') + '</div>';
+      h += '<div style="display:flex;gap:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#8b5cf6">' + (cn.nodes||0) + '</div><div style="font-size:11px;color:#64748b">因果节点</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#06b6d4">' + (cn.chain_steps||0) + '</div><div style="font-size:11px;color:#64748b">因果链步骤</div></div>';
+      h += '</div></div>';
+      
+      // ── 12. 证据闭环 ──
       h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px">';
       h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔒 证据闭环统计</h3>';
       var ec = d.evidence_closure || {};

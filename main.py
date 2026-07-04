@@ -8871,6 +8871,34 @@ def get_engine_details(company_id: int = 1):
         "total_chains": comp.get("chain_total_count", 0),
     }
     
+    # AGI最终裁决
+    ov = data.get("agi_overrides", {})
+    result["agi_final"] = {
+        "corrections_proposed": ov.get("corrections_proposed", 0),
+        "auto_activated": ov.get("auto_activated", 0),
+        "needs_review": ov.get("needs_review", 0),
+        "description": "AGI引擎在所有分析完成后进行终审裁决，比较AGI推理结果与规则引擎输出，决定最终报告中的发现内容和风险等级"
+    }
+    
+    # AGI管线
+    ap = data.get("agi_pipeline", {}) if isinstance(data.get("agi_pipeline"), dict) else {}
+    result["agi_pipeline"] = {
+        "modules_covered": ap.get("modules_covered", 0),
+        "events_collected": ap.get("events_collected", 0),
+        "has_error": bool(ap.get("error")),
+        "error_msg": str(ap.get("error", ""))[:100] if ap.get("error") else "",
+        "description": "AGI管线协调所有智能模块的执行顺序、数据流转和模块间通信"
+    }
+    
+    # 因果网络
+    cn = comp.get("causal_network", {}) if isinstance(comp.get("causal_network"), dict) else {}
+    chain_exec = comp.get("chain_execution", [])
+    result["causal_network"] = {
+        "nodes": len(cn) if isinstance(cn, dict) else 0,
+        "chain_steps": len(chain_exec) if isinstance(chain_exec, list) else 0,
+        "description": "因果网络分析发现之间的因果关系（A发现→导致B发现），构建稽查证据的因果推理链"
+    }
+    
     return result
 
 @app.get("/api/feedback/corrections")

@@ -1,0 +1,30 @@
+Total: 54, Visible: 27, Hidden: 27
+Called by pipeline: 4
+
+  agent_core NOT called
+  agi_enhanced NOT called
+  agi_final called
+  agi_pipeline called
+  agi_reasoning NOT called
+  auto_patrol NOT called
+  capability_matrix called
+  causal_discovery NOT called
+  causal_network called
+  creative_hypothesis NOT called
+  event_bus NOT called
+  external_verifier NOT called
+  knowledge_base NOT called
+  knowledge_graph NOT called
+  legal_updater NOT called
+  llm_client NOT called
+  metacognition NOT called
+  parallel_runner NOT called
+  rectification NOT called
+  risk_predictor NOT called
+  scm_reasoner NOT called
+  semantic_reasoner NOT called
+  shared_content_sync NOT called
+  smart_sampler NOT called
+  system_config NOT called
+  trend_group NOT called
+  unknown_pattern_detector NOT called
