@@ -229,45 +229,6 @@ function renderStatusTab() {
   }
   h += '</div>';
   
-  // ═══ Phase 3：交叉验证 ═══
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
-  
-  // 信号叠加模式
-  h += '<div class="engine-card" style="border-top:3px solid #06b6d4">';
-  h += '<div class="engine-card-title"><span style="color:#06b6d4">■</span> Phase 3 — 信号叠加模式命中 (' + (es.phase3_pattern_hits || []).length + ')</div>';
-  if (es.phase3_pattern_hits && es.phase3_pattern_hits.length) {
-    es.phase3_pattern_hits.forEach(function(p) {
-      var lc = p.level === '极高风险' || p.level === '高风险' ? '#dc2626' : p.level === '中风险' ? '#f59e0b' : '#059669';
-      h += '<div style="padding:8px 12px;margin:4px 0;border-left:3px solid ' + lc + ';font-size:12px">';
-      h += '<strong>' + esc(p.name) + '</strong>';
-      h += '<span style="color:' + lc + ';margin-left:8px">' + esc(p.level) + '</span>';
-      if (p.score) h += '<span style="color:#64748b;margin-left:8px">评分:' + esc(p.score) + '</span>';
-      h += '</div>';
-    });
-  } else {
-    h += '<div style="color:#94a3b8;font-size:12px;padding:8px">无信号叠加模式命中</div>';
-  }
-  h += '</div>';
-  
-  // 冲突消解
-  h += '<div class="engine-card" style="border-top:3px solid #ec4899">';
-  h += '<div class="engine-card-title"><span style="color:#ec4899">■</span> Phase 3 — 冲突消解 (' + (es.phase3_conflicts || []).length + ')</div>';
-  if (es.phase3_conflicts && es.phase3_conflicts.length) {
-    es.phase3_conflicts.forEach(function(c) {
-      var lc = c.level === '极高风险' || c.level === '高风险' ? '#dc2626' : c.level === '中风险' ? '#f59e0b' : '#059669';
-      h += '<div style="padding:8px 12px;margin:4px 0;border-left:3px solid ' + lc + ';font-size:12px">';
-      h += '<span style="font-size:10px;color:#94a3b8">' + esc(c.rule_id) + '</span><br>';
-      h += '<strong>' + esc(c.type.replace('交叉验证-冲突消解：','')) + '</strong>';
-      h += '<span style="color:' + lc + ';margin-left:8px">' + esc(c.level) + '</span>';
-      h += '</div>';
-    });
-  } else {
-    h += '<div style="color:#94a3b8;font-size:12px;padding:8px">无冲突消解触发</div>';
-  }
-  h += '</div>';
-  
-  h += '</div>';
-  
   // ═══ Phase 4：综合定性 ═══
   var p4 = es.phase4_synthesis || {};
   h += '<div class="engine-card" style="margin-bottom:20px;border-top:3px solid #ef4444">';
@@ -371,76 +332,6 @@ function renderRulesTab() {
     h += '</div>';
   }
 
-  // ═══ Phase 3：跨域分析推理链（仅本次触发的）═══
-  var p3xa = rules.phases['Phase3-跨域分析推理链'];
-  if (p3xa && !p3xa.error && p3xa.rules && p3xa.rules.length > 0) {
-    h += _renderSection('Phase3-跨域分析推理链', '0ea5e9', p3xa);
-    (p3xa.rules||[]).forEach(function(xa) {
-      var lc = xa.level === 'red' ? '#dc2626' : xa.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';border-radius:4px;font-size:12px;background:#f8fafc">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(xa.id) + ' ' + esc(xa.name) + '</div>';
-      h += '<div style="color:#64748b;margin-top:4px;font-size:11px">触发: ' + esc(xa.trigger_signal||'') + '</div>';
-      if (xa.reasoning_steps && xa.reasoning_steps.length) {
-        h += '<div style="margin-top:6px">';
-        xa.reasoning_steps.forEach(function(step) {
-          h += '<div style="display:flex;align-items:flex-start;margin:3px 0;font-size:11px">';
-          h += '<span style="background:#0ea5e9;color:#fff;min-width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;margin-right:6px;font-weight:700">' + esc(step.order) + '</span>';
-          h += '<span style="color:#475569">' + esc(step.from) + ' → ' + esc(step.finding) + ' → ' + esc(step.to) + '</span></div>';
-        });
-        h += '</div>';
-      }
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
-  // ═══ Phase 4：因果叙事链 ═══
-  var p4n = rules.phases['Phase4-因果叙事链'];
-  if (p4n) {
-    h += _renderSection('Phase4-因果叙事链', 'ef4444', p4n);
-    (p4n.rules||[]).forEach(function(ch) {
-      var lc = ch.level === 'red' ? '#dc2626' : ch.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      var bg = ch.level === 'red' ? '#fef2f2' : ch.level === 'yellow' ? '#fffbeb' : '#fff7ed';
-      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ch.id) + ' ' + esc(ch.name) + '</div>';
-      h += '<div style="margin-top:4px;padding:6px 10px;background:#fff;border-radius:4px;font-size:12px;font-weight:600;color:#dc2626">' + esc(ch.narrative) + '</div>';
-      h += '<div style="color:#475569;margin-top:6px;line-height:1.5">' + esc(ch.explanation) + '</div>';
-      h += '<div style="margin-top:4px;font-size:11px">';
-      h += '<span style="color:#8b5cf6">必要信号: ' + esc((ch.required_signals||[]).join('、')) + '</span>';
-      if (ch.optional_signals && ch.optional_signals.length) h += ' | <span style="color:#94a3b8">辅助: ' + esc(ch.optional_signals.join('、')) + '</span>';
-      h += '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#64748b">' + esc(ch.confidence_rule) + '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#059669">证据链: ' + esc(ch.evidence_chain) + '</div>';
-      h += '<div style="margin-top:4px"><span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(ch.priority) + '</span> <span style="color:' + lc + ';font-weight:600;font-size:11px">' + esc(ch.level) + '</span></div>';
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-
-  // ═══ Phase 4：事前预警升级路径 ═══
-  var p4w = rules.phases['Phase4-事前预警升级路径'];
-  if (p4w) {
-    h += _renderSection('Phase4-事前预警升级路径', 'f97316', p4w);
-    (p4w.rules||[]).forEach(function(ew) {
-      var lc = ew.level === 'red' ? '#dc2626' : ew.level === 'yellow' ? '#f59e0b' : '#ea580c';
-      var bg = ew.level === 'red' ? '#fef2f2' : ew.level === 'yellow' ? '#fffbeb' : '#fff7ed';
-      h += '<div style="padding:12px 14px;margin:6px 0;border-left:3px solid ' + lc + ';background:' + bg + ';border-radius:4px;font-size:12px">';
-      h += '<div style="font-weight:700;font-size:13px;color:#1e293b">' + esc(ew.id) + ' ' + esc(ew.name) + '</div>';
-      h += '<div style="margin-top:6px;padding:8px 10px;background:#fff;border-radius:4px;font-size:12px;line-height:1.6;color:#475569"><strong style="color:#dc2626">演变推演：</strong>' + esc(ew.forward_projection) + '</div>';
-      h += '<div style="margin-top:4px;font-size:11px;color:#059669"><strong>建议：</strong><span style="color:#475569">' + esc(ew.checklist) + '</span></div>';
-      h += '<div style="margin-top:4px;display:flex;gap:8px;align-items:center">';
-      h += '<span style="background:' + lc + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">' + esc(ew.risk_level) + '</span>';
-      h += '<span style="font-size:11px;color:#64748b">触发时间窗: ' + esc(ew.timeframe) + '</span>';
-      h += '<span style="font-size:10px;color:#94a3b8">匹配模式: ' + esc((ew.patterns||[]).slice(0,3).join(' / ')) + '</span>';
-      h += '</div>';
-      h += '</div>';
-      totalRules++;
-    });
-    h += '</div>';
-  }
-  
   h += '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px">推理引擎规则库共 ' + totalRules + ' 条规则 | 全行业适用 | 可编辑JSON追加</div>';
   
   area.innerHTML = h;
