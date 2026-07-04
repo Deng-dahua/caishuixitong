@@ -543,7 +543,6 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   h += '<nav class="dim-toc"><div class="toc-title">📖 导航</div>';
   h += '<a href="#dim-overview">总览</a>';
   h += '<a href="#dim-table">维度明细</a>';
-  h += '<a href="#dim-pipeline">管道与数据流</a>';
   h += '</nav>';
 
   h += '<div class="dim-main">';
@@ -588,21 +587,6 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   });
 
   h += '</tbody></table></div>';
-
-  // Footer
-  h += '<div id="dim-pipeline" class="dim-info" style="margin-top:20px">';
-  h += '<strong style="color:#059669;font-size:14px">管道与数据流</strong><br><br>';
-  h += '<b>代码分布</b><br>';
-  h += '· main.py（约20,000+行）：18个核心函数+6个数据分析API+227个路由+文件解析引擎+域分析调度+规则引擎整合+方法论过滤器+稽查员推理引擎——系统的主体逻辑全部在此文件中<br>';
-  h += '· engine/（约7,500行）：pipeline.py（Phase1-4推理管线+跨域协商+审核反馈）、domain_analysis.py（42个域分析函数+收款分类+资料情报提取）、memory.py（引擎记忆+铁律+规则体系——26章docstring+Python函数）、cross_domain_negotiation.py（29条协商规则）、self_learning.py（审核闭环+EMA自学习+规则发现）、shared_content_sync.py（跨模块文本一致+29项共享内容映射）<br>';
-  h += '· static/js/（约6,000行）：tax-doc-analysis.js（报告渲染+六要素格式+跨域协商标记展示）、tax-pipeline-pages.js（11个独立页面——文件解析/域分析/方法论过滤器/分析链/线索链/证据链/跨域系列/质量保障/AI准则）、tax-auditor-handbook.js（14章稽查员手册）、tax-report-standards.js（15节编制要求）、tax-feedback-template.js（20场景审核模板）、tax-engine-dashboard.js（6标签页仪表盘+'+totalDims+'维能力矩阵）<br><br>';
-  h += '<b>管道流程（10步）</b><br>';
-  h += '①文件解析：34类文件指纹+三层递进识别+四方交叉验证 → ②实体识别：身份锚定+行业判定+联网核查 → ③情报提取：_extract_material_intel()+收款分类+进项三层分类 → ④规则引擎：1608规则+437线索+781证据全量激活 → ⑤Phase1-4推理：初查→深挖→交叉验证→综合定性 → ⑥跨域协商：29条规则消解域间矛盾 → ⑦方法论过滤：7类规则97%噪声去除 → ⑧12维增强：建议/法律/证据/图表/术语/金额等增强 → ⑨质量检查：12项标准+7项可靠性+报告纯净度 → ⑩HTML报告：7章正式报告+附件7份<br><br>';
-  h += '<b>数据流（10步）</b><br>';
-  h += 'Excel上传 → 34类文件指纹识别 → 数据归一化 → AuditContext贯穿 → 情报提取 → 42域并行分析 → all_findings聚集 → run_negotiation跨域协商 → _apply_methodology_filter过滤 → report JSON → 前端渲染<br><br>';
-  h += '<b>当前统计</b>：'+totalDims+'维能力 · '+stars4+'四星 + '+stars3+'三星 · 代码'+codeTotal+' · 227路由 · 审计全部通过<br><br>';
-  h += '<b>关联模块</b>：<code>engine/capability_matrix.py</code>（维度定义+星级评分）→ <code>static/system_config.json</code>（权威数据源）→ <code>audit_consistency.py --sync</code>（自动同步所有模块中的数字）→ <a href="#" onclick="navigateTo(\'quality-system\');return false" style="color:#2563eb">全链路质量保障体系</a>（25组件六大层次）→ <a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb">税务稽查员手册</a>（14章完整规范）</div>';
-
   h += '</div></div>';
   container.innerHTML = h;
 }
