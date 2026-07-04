@@ -657,10 +657,6 @@ function navigateTo(page) {
     case 'analyze-page': renderAnalyzePage(container); break;
     case 'quality-system': renderQualitySystem(container); break;
     case 'tax-incentives-page': renderTaxIncentivesPage(container); break;
-    // 已合并到线索/证据/分析链（sidebar已移除，保留兼容路由不执行任何操作）
-    case 'cross-domain-evidence': break;
-    case 'cross-domain-clues': break;
-    case 'cross-domain-analysis': break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
     case 'auditor-handbook': renderAuditorHandbook(container); break;

@@ -1,0 +1,12 @@
+Total render functions: 130
+Never called: 10
+  renderAgingAnalysis
+  renderChat
+  renderCrossDomainAnalysisPage
+  renderCrossDomainCluesPage
+  renderCrossDomainEvidencePage
+  renderCrossEnterprise
+  renderMatchResult
+  renderPagination
+  renderRiskStatusBadge
+  renderTrendChart
