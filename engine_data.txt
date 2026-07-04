@@ -1,0 +1,28 @@
+=== 2. 财务快照 ===
+  total_sales: 245827.02
+  total_purchases: 466564.46
+  total_bank_in: 395905.76
+  total_bank_out: 346722.77
+  total_salary: 0.0
+  gross_margin_pct: -89.8
+  sale_count: 5
+  pur_count: 119
+  bank_tx_count: 40
+  salary_count: 5
+
+=== 4. 主营成本分类 ===
+  core_cost_count: 28
+  core_cost_amount: 203146.07
+  major_expense_count: 29
+  minor_expense_count: 62
+  core_goods: ['*信息技术服务*信息服务费', '*旅游服务*综合服务费', '*预付卡销售*京东E卡', '*供电*电费', '*水冰雪*水费', '*照相器材*数码相机', '*纺织产品*被子', '*旅游服务*旅游服务费', '*设计服务*专业设计服务', '*照相器材*镜头', '*经纪代理服务*服务费', '*现代服务*信息服务费', '*设计服务*设计服务费', '*纺织产品*被套', '*农副产品*欢妙胎菊40g', '*软饮料*农夫山泉天然水380ml*12', '*焙烤食品*旺旺小小酥原味200g（含8袋）', '*软饮料*维果清HPP羽衣甘蓝复合果蔬汁250ml', '*软饮料*优赐小青柠汁饮料300ml*4', '*焙烤食品*泰国老板仔经典香脆紫菜27g']
+  expense_goods: ['*住宿服务*住宿费', '*果类加工品*洽洽小黄袋每日坚果150g（含6袋）', '*餐饮服务*餐饮服务', '*经营租赁*不动产租金', '*焙烤食品*优赐黄油华夫饼505g（含16枚）', '*软饮料*好望水望山楂山楂果汁气泡水300ml', '*软饮料*农夫山泉东方树叶桂花乌龙茶335ml*6', '*软饮料*杨协成马蹄爽300ml*2+仙草凉粉爽300ml*1', '*软饮料*信远斋桂花酸梅汤饮料300ml', '*软饮料*可口可乐4+雪碧1+芬达1混合装330ml*6（冰镇）', '*运输服务*客运服务费', '*软饮料*元气森林白桃味苏打气泡水汽水330ml*6', '*水产加工品*劲仔散装小鱼全家福400g（约含35包）', '*软饮料*统一奶茶麦香口味奶茶饮料250ml*6', '*广告服务*广告发布费', '*餐饮服务*餐饮费', '*生活服务*代订住宿费', '*经纪代理服务*代订机票款', '*经纪代理服务*机票款', '*软饮料*蔻泉100%NFC椰子水350ml*8瓶']
+
+=== 5. 假设生成 ===
+  count: 0
+
+=== 7. 规则覆盖 ===
+  keys: ['ok', 'corrections_proposed', 'corrections', 'auto_activated', 'needs_review']
+
+=== comp keys ===
+['orchestration_plan', 'evidence_closures', 'closed_chain_count', 'chain_execution', 'chain_triggered_count', 'chain_total_count', 'cashflow', 'top_receivers', 'top_payers', 'actions', 'data_overview', 'missing_consequence_triggers', 'rule_count', 'chain_count', 'evidence_count', 'material_intel', 'risk_profile', 'recommended_next', 'chain_usage', 'triggered_chains']

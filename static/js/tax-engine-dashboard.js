@@ -28,7 +28,8 @@ function renderEngineDashboard(rpt) {
     {id:'rules',icon:'📋',name:'学习反馈',color:'#7c3aed'},
     {id:'brain',icon:'🧠',name:'AGI核心',color:'#dc2626'},
     {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},
-    {id:'methods',icon:'🔬',name:'推理引擎',color:'#f59e0b'}
+    {id:'methods',icon:'🔬',name:'推理引擎',color:'#f59e0b'},
+    {id:'details',icon:'🔧',name:'引擎详情',color:'#8b5cf6'}
   ];
 
   // TOC sidebar layout
@@ -61,6 +62,7 @@ function switchEngineTab(tab) {
   else if (tab==='methods') renderMethodsTab();
   else if (tab==='negotiation') renderNegotiationTab();
   else if (tab==='brain') renderBrainTab();
+  else if (tab==='details') renderDetailsTab();
 }
 
 function renderStatusTab() {
@@ -987,5 +989,134 @@ function showCorrectionDetail(rowIndex) {
     '<button onclick="(function(){var p=document.getElementById(\'cr-detail-popup\');if(p)p.remove();})()" style="background:#fff;border:1px solid #cbd5e1;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer">关闭</button>' +
     '</div></div></div>';
   document.body.appendChild(popup);
+}
+
+// ═══ 引擎详情标签页 ═══
+function renderDetailsTab() {
+  var area = document.getElementById('eng-tab-content');
+  if (!area) return;
+  area.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8"><span class="spinner"></span> 正在加载引擎详情...</div>';
+  var cid = window.currentCompanyId || 1;
+  fetch('/api/audit/engine-details?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">' + (d.message||'') + '</div>'; return; }
+      
+      var h = '';
+      
+      // ── 1. 财务分析器 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">💰 财务分析器 — 数据快照与解读</h3>';
+      h += '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+      var fin = d.financial || {};
+      var rows = [
+        ['销项合计', '¥' + (fin.total_sales||0).toLocaleString(), '来源：销项发票汇总'],
+        ['进项合计', '¥' + (fin.total_purchases||0).toLocaleString(), '来源：进项发票汇总'],
+        ['毛利率', (fin.gross_margin_pct||0).toFixed(1) + '%', '（销项-进项)/销项，<0说明进大于销'],
+        ['银行入账', '¥' + (fin.total_bank_in||0).toLocaleString(), '来源：银行流水借方合计'],
+        ['银行出账', '¥' + (fin.total_bank_out||0).toLocaleString(), '来源：银行流水贷方合计'],
+        ['工资合计', '¥' + (fin.total_salary||0).toLocaleString(), '来源：工资表明细汇总'],
+        ['销项票数', (fin.sale_count||0) + ' 张', ''],
+        ['进项票数', (fin.pur_count||0) + ' 张', ''],
+        ['银行流水笔数', (fin.bank_tx_count||0) + ' 笔', ''],
+        ['工资金额', (fin.total_salary||0).toLocaleString() + '元', '人数：' + (fin.salary_count||0) + '人'],
+      ];
+      rows.forEach(function(r) {
+        h += '<tr><td style="padding:4px 8px;font-weight:600;color:#1e293b">' + r[0] + '</td><td style="padding:4px 8px;color:#2563eb;font-weight:600">' + r[1] + '</td><td style="padding:4px 8px;color:#94a3b8;font-size:11px">' + r[2] + '</td></tr>';
+      });
+      h += '</table></div>';
+      
+      // ── 2. 法律推理引擎 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">⚖️ 法律推理引擎 — 发现→法条引用统计</h3>';
+      var legals = d.legal || [];
+      if (legals.length > 0) {
+        legals.forEach(function(l) {
+          h += '<div style="padding:6px 10px;margin:4px 0;background:#fff;border-radius:4px;font-size:12px">';
+          h += '<span style="color:#dc2626;font-weight:600">' + l.count + '次</span> ';
+          h += '<span style="color:#1e293b">' + l.law + '</span></div>';
+        });
+      } else {
+        h += '<div style="color:#94a3b8;font-size:12px">本次分析未产生独立法条引用</div>';
+      }
+      h += '</div>';
+      
+      // ── 3. 主营业务成本识别 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">📦 主营业务成本识别 — 进项三层分类</h3>';
+      var cc = d.cost_class || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (cc.description||'') + '</div>';
+      h += '<div style="display:flex;gap:10px;margin-bottom:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#dc2626">' + (cc.core_cost_count||0) + '笔</div><div style="font-size:11px;color:#991b1b">主营成本</div><div style="font-size:11px">¥' + ((cc.core_cost_amount||0)/10000).toFixed(1) + '万</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fffbeb;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#f59e0b">' + (cc.major_expense_count||0) + '笔</div><div style="font-size:11px;color:#92400e">重大费用</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (cc.minor_expense_count||0) + '笔</div><div style="font-size:11px;color:#065f46">日常报销</div></div>';
+      h += '</div>';
+      if (cc.core_goods && cc.core_goods.length) {
+        h += '<div style="font-size:11px;color:#94a3b8">主营品名：' + cc.core_goods.slice(0,5).join('、') + '</div>';
+      }
+      h += '</div>';
+      
+      // ── 4. 假设生成引擎 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔍 假设生成引擎 — 稽查假设与验证</h3>';
+      var hypos = d.hypotheses || [];
+      if (hypos.length > 0) {
+        hypos.forEach(function(h) {
+          h += '<div style="padding:8px;margin:4px 0;background:#fff;border-left:3px solid #f59e0b;border-radius:4px;font-size:12px">';
+          h += '<div style="font-weight:600;color:#1e293b">' + (h.name||h.hypothesis||'') + '</div>';
+          if (h.evidence) h += '<div style="color:#64748b;font-size:11px">证据：' + h.evidence + '</div>';
+          h += '</div>';
+        });
+      } else {
+        h += '<div style="color:#94a3b8;font-size:12px">本次分析未产生独立假设（信号数量不足以生成假设结论）</div>';
+      }
+      h += '</div>';
+      
+      // ── 5. 规则覆盖引擎 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔄 规则覆盖引擎 — AGI vs 规则引擎冲突裁决</h3>';
+      var ov = d.overrides || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (ov.description||'') + '</div>';
+      h += '<div style="display:flex;gap:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px;border:1px solid #e2e8f0"><div style="font-size:18px;font-weight:700;color:#2563eb">' + (ov.corrections_proposed||0) + '</div><div style="font-size:11px;color:#64748b">提议修正</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px;border:1px solid #e2e8f0"><div style="font-size:18px;font-weight:700;color:#059669">' + (ov.auto_activated||0) + '</div><div style="font-size:11px;color:#64748b">自动激活</div></div>';
+      h += '</div></div>';
+      
+      // ── 6. 趋势分析 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">📈 趋势分析器 — 多期数据趋势</h3>';
+      var td = d.trend || {};
+      h += '<div style="font-size:12px;color:#475569;margin-bottom:6px">' + (td.description||'') + '</div>';
+      if (td.has_multi_period) {
+        h += '<div style="color:#059669;font-size:12px">✅ 已检测到多期数据，趋势对比有效</div>';
+      } else {
+        h += '<div style="color:#f59e0b;font-size:12px">⚠ 当前仅单期数据，趋势分析需至少2期数据对比</div>';
+      }
+      h += '</div>';
+      
+      // ── 7. 阈值计算 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">📐 阈值计算 — 行业基准与安全阈值</h3>';
+      var th = d.thresholds || {};
+      h += '<div style="font-size:12px"><span style="color:#64748b">行业：</span><span style="font-weight:600;color:#1e293b">' + (th.industry||'未知') + '</span></div>';
+      h += '<div style="font-size:12px;margin-top:4px"><span style="color:#64748b">行业毛利率基准：</span><span style="font-weight:600;color:#1e293b">' + (typeof th.margin_range === 'string' ? th.margin_range : JSON.stringify(th.margin_range||{}).slice(0,60)) + '</span></div>';
+      h += '<div style="font-size:12px;margin-top:4px"><span style="color:#64748b">服务闸门：</span><span style="font-weight:600;color:' + (th.service_gate ? '#dc2626' : '#059669') + '">' + (th.service_gate ? '已激活（跳过进销存域）' : '未激活') + '</span></div>';
+      h += '<div style="font-size:12px;margin-top:4px"><span style="color:#64748b">数据质量分：</span><span style="font-weight:600;color:' + ((th.data_quality_score||0) >= 70 ? '#059669' : '#f59e0b') + '">' + (th.data_quality_score||0) + '/100</span></div>';
+      h += '</div>';
+      
+      // ── 8. 证据闭环 ──
+      h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px">';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔒 证据闭环统计</h3>';
+      var ec = d.evidence_closure || {};
+      h += '<div style="display:flex;gap:10px">';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (ec.closed_chains||0) + '</div><div style="font-size:11px;color:#64748b">已闭合证据</div></div>';
+      h += '<div style="flex:1;text-align:center;padding:10px;background:#fff;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#7c3aed">' + (ec.triggered_chains||0) + '/' + (ec.total_chains||0) + '</div><div style="font-size:11px;color:#64748b">触发/总分析链</div></div>';
+      h += '</div></div>';
+      
+      area.innerHTML = h;
+    })
+    .catch(function() {
+      area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
+    });
 }
 

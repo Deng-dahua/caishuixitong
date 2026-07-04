@@ -8775,6 +8775,104 @@ def get_tax_incentive_status(company_id: int = 1):
             })
     return {"ok": True, "count": len(items), "items": items}
 
+@app.get("/api/audit/engine-details")
+def get_engine_details(company_id: int = 1):
+    """引擎详情——7大模块分析明细（财务分析/法律推理/成本分类/假设/规则覆盖/趋势/阈值）"""
+    import glob as _glob
+    cache_dir = os.path.join(os.path.dirname(__file__) or ".", "static", "uploads", "tax-risk-docs", str(company_id))
+    cache_files = sorted(_glob.glob(os.path.join(cache_dir, "last_analysis_cache.json")))
+    if not cache_files:
+        return {"ok": False, "message": "暂无分析数据，请先执行一键分析"}
+    try:
+        with open(cache_files[-1], "r", encoding="utf-8") as f:
+            data = json.load(f)
+        report = data.get("report", data)
+        es = report.get("engine_status", {})
+        comp = report.get("comprehensive", {})
+        all_f = report.get("all_findings", [])
+    except Exception as e:
+        return {"ok": False, "message": f"读取失败: {e}"}
+    
+    result = {"ok": True}
+    
+    # 1. 财务分析器快照
+    fs = es.get("financial_snapshot", {})
+    result["financial"] = {
+        "total_sales": fs.get("total_sales", 0),
+        "total_purchases": fs.get("total_purchases", 0),
+        "total_bank_in": fs.get("total_bank_in", 0),
+        "total_bank_out": fs.get("total_bank_out", 0),
+        "total_salary": fs.get("total_salary", 0),
+        "gross_margin_pct": fs.get("gross_margin_pct", 0),
+        "sale_count": fs.get("sale_count", 0),
+        "pur_count": fs.get("pur_count", 0),
+        "bank_tx_count": fs.get("bank_tx_count", 0),
+        "salary_count": fs.get("salary_count", 0),
+    }
+    
+    # 2. 法律引用统计（从发现中提取）
+    law_refs = {}
+    for fi in all_f:
+        lr = fi.get("law_ref", "")
+        if lr and lr != "《税收征收管理法》及《税务稽查工作规程》相关规定":
+            law_refs[lr] = law_refs.get(lr, 0) + 1
+    result["legal"] = [{"law": k, "count": v} for k, v in sorted(law_refs.items(), key=lambda x: -x[1])]
+    if not result["legal"]:
+        result["legal"] = [{"law": "征管法及稽查规程（通用引用）", "count": sum(1 for f in all_f if f.get("law_ref"))}]
+    
+    # 3. 主营成本三层分类
+    bcc = es.get("biz_cost_classification", {})
+    result["cost_class"] = {
+        "core_cost_count": bcc.get("core_cost_count", 0),
+        "core_cost_amount": bcc.get("core_cost_amount", 0),
+        "major_expense_count": bcc.get("major_expense_count", 0),
+        "minor_expense_count": bcc.get("minor_expense_count", 0),
+        "core_goods": bcc.get("core_goods", [])[:10],
+        "expense_goods": bcc.get("expense_goods", [])[:10],
+        "description": f"进项发票按品名与主营关联度分为三层：主营业务成本（品名含主营关键词）、重大费用（单笔>1万且非主营品名）、日常报销（单笔<1万且非主营品名）"
+    }
+    
+    # 4. 假设生成
+    hypo = comp.get("hypotheses", [])
+    result["hypotheses"] = hypo[:10] if hypo else []
+    
+    # 5. 规则覆盖裁决
+    overrides = data.get("agi_overrides", {})
+    result["overrides"] = {
+        "corrections_proposed": overrides.get("corrections_proposed", 0),
+        "auto_activated": overrides.get("auto_activated", 0),
+        "corrections": overrides.get("corrections", [])[:5],
+        "description": "AGI引擎与规则引擎冲突时，按优先级裁决：稽查铁律(P0) > 方法论过滤器(HARD_BAN) > AGI推理 > COND_BAN > 默认规则"
+    }
+    
+    # 6. 趋势分析
+    tl = es.get("trend_log", [])
+    result["trend"] = {
+        "has_multi_period": len(tl) > 1 if tl else False,
+        "log": tl[-5:] if tl else [],
+        "description": "多期数据趋势对比——检测各项指标的时间序列变化，发现异常的波动模式"
+    }
+    
+    # 7. 阈值计算
+    tp = es.get("threshold_profile", {})
+    im = es.get("industry_margin", {})
+    result["thresholds"] = {
+        "industry": es.get("company_profile", {}).get("industry", ""),
+        "margin_range": im if im else "未获取行业基准",
+        "service_gate": es.get("service_gate_active", False),
+        "data_quality_score": es.get("data_quality_score", 0),
+    }
+    
+    # 证据闭合
+    result["evidence_closure"] = {
+        "closed_chains": comp.get("closed_chain_count", 0),
+        "total_evidence": comp.get("evidence_count", 0),
+        "triggered_chains": comp.get("chain_triggered_count", 0),
+        "total_chains": comp.get("chain_total_count", 0),
+    }
+    
+    return result
+
 @app.get("/api/feedback/corrections")
 def get_correction_rules():
     """获取所有纠正规则（规则中转站数据源）"""
