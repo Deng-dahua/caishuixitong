@@ -2869,3 +2869,67 @@ async function loadAnalysisChains() {
     container.innerHTML = '<p style="font-size:13px;color:#dc2626">加载失败: ' + (e.message||'') + '</p>';
   }
 }
+
+// ═══════════════ 税收优惠分析页面 ═══════════════
+function renderTaxIncentivesPage(container) {
+  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在读取税收优惠分析...</div>';
+  
+  var cid = window.currentCompanyId || 1;
+  fetch('/api/tax-incentives/status?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { container.innerHTML = '<div style="padding:60px;text-align:center;color:#94a3b8">' + (d.message||'') + '</div>'; return; }
+      var items = d.items || [];
+      
+      var types = ['小微企业优惠','小规模纳税人','高新技术企业','研发费用加计扣除','六税两费减半','软件产品即征即退','残疾人就业','其他优惠','政策有效期'];
+      var icons = ['🏢','📊','🔬','⚗️','💰','💻','♿','🎁','📅'];
+      
+      var h = '<div style="max-width:1100px;margin:0 auto;padding:20px 0">';
+      h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🎁 税收优惠分析</h2>';
+      h += '<p style="font-size:13px;color:#64748b;margin:0 0 24px">自动检测企业是否符合各项税收优惠条件，共检查8类优惠项目。基于企业画像和发票数据判断，仅供参考，以税务机关认定为准。</p>';
+      
+      // 统计
+      var probCount = 0, oppCount = 0;
+      items.forEach(function(it) {
+        if (it.level === '优惠机会' || it.level === '提醒') oppCount++;
+        else probCount++;
+      });
+      h += '<div style="display:flex;gap:16px;margin-bottom:24px">';
+      h += '<div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#dc2626">' + probCount + '</div><div style="font-size:13px;color:#991b1b">应享未享/风险</div></div>';
+      h += '<div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#059669">' + oppCount + '</div><div style="font-size:13px;color:#065f46">优惠机会</div></div>';
+      h += '<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#64748b">' + items.length + '</div><div style="font-size:13px;color:#64748b">检测发现</div></div>';
+      h += '</div>';
+      
+      if (items.length === 0) {
+        h += '<div style="padding:60px;text-align:center;color:#94a3b8">本次分析未产生税收优惠相关发现。可能是企业不符合任何优惠条件，或数据不足以做出判断。</div>';
+      } else {
+        items.forEach(function(it) {
+          var isOpp = it.level === '优惠机会' || it.level === '提醒';
+          var bg = isOpp ? '#ecfdf5' : '#fef2f2';
+          var border = isOpp ? '#a7f3d0' : '#fecaca';
+          var badge = isOpp ? '#059669' : '#dc2626';
+          var badgeText = isOpp ? '💡 优惠机会' : '⚠ 应享未享';
+          
+          h += '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;padding:16px 20px;margin-bottom:12px">';
+          h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+          h += '<span style="font-weight:700;font-size:15px;color:#1e293b">' + it.type + '</span>';
+          h += '<span style="background:' + badge + ';color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600">' + badgeText + '</span>';
+          h += '</div>';
+          
+          if (it.detail) h += '<div style="font-size:13px;color:#475569;margin-bottom:6px;line-height:1.6"><strong>事实：</strong>' + it.detail + '</div>';
+          if (it.how_found) h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px"><strong>依据：</strong>' + it.how_found + '</div>';
+          if (it.tax_benefit) h += '<div style="font-size:12px;color:#059669;margin-bottom:6px"><strong>优惠：</strong>' + it.tax_benefit + '</div>';
+          if (it.action) h += '<div style="font-size:12px;color:#2563eb;margin-bottom:6px"><strong>建议：</strong>' + it.action + '</div>';
+          if (it.law_ref) h += '<div style="font-size:11px;color:#94a3b8"><strong>法条：</strong>' + it.law_ref + '</div>';
+          if (it.correctedBy) h += '<div style="margin-top:6px;padding:6px 10px;background:#f0fdf4;border-radius:4px;font-size:12px;color:#166534">✅ 已由' + it.correctedBy + '纠正：' + (it.correctionReason||'') + '</div>';
+          h += '</div>';
+        });
+      }
+      
+      h += '</div>';
+      container.innerHTML = h;
+    })
+    .catch(function() {
+      container.innerHTML = '<div style="padding:60px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
+    });
+}

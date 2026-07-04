@@ -8740,6 +8740,41 @@ def sync_corrections_to_modules():
     return {"ok": True, "sync_result": result, "status": status}
 
 
+@app.get("/api/tax-incentives/status")
+def get_tax_incentive_status(company_id: int = 1):
+    """税收优惠分析结果——从上次分析缓存中提取优惠相关发现"""
+    import glob as _glob
+    cache_dir = os.path.join(os.path.dirname(__file__) or ".", "static", "uploads", "tax-risk-docs", str(company_id))
+    cache_files = sorted(_glob.glob(os.path.join(cache_dir, "last_analysis_cache.json")))
+    if not cache_files:
+        return {"ok": False, "message": "暂无分析数据，请先执行一键分析"}
+    try:
+        with open(cache_files[-1], "r", encoding="utf-8") as f:
+            data = json.load(f)
+        report = data.get("report", data)
+        all_findings = report.get("all_findings", []) if isinstance(report, dict) else []
+    except Exception as e:
+        return {"ok": False, "message": f"读取缓存失败: {e}"}
+    
+    incentive_kw = ["小规模", "研发", "高新", "小微", "六税", "软件", "残疾人", "优惠", "残保", "即征", "加计"]
+    items = []
+    for fi in all_findings:
+        t = fi.get("type", "")
+        if any(k in t for k in incentive_kw):
+            items.append({
+                "type": t,
+                "level": fi.get("level", ""),
+                "priority": fi.get("priority", ""),
+                "detail": fi.get("detail", "")[:300],
+                "how_found": fi.get("how_found", ""),
+                "action": fi.get("action", ""),
+                "tax_benefit": fi.get("tax_benefit", ""),
+                "law_ref": fi.get("law_ref", ""),
+                "correctedBy": fi.get("correctedBy", ""),
+                "correctionReason": fi.get("correctionReason", ""),
+            })
+    return {"ok": True, "count": len(items), "items": items}
+
 @app.get("/api/feedback/corrections")
 def get_correction_rules():
     """获取所有纠正规则（规则中转站数据源）"""
