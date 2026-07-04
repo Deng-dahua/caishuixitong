@@ -35,7 +35,7 @@ LLM_CONFIG = {
     "model": os.environ.get("TAX_LLM_MODEL", "deepseek-chat"),
     "max_tokens": 2000,
     "temperature": 0.3,
-    "timeout": 30,
+    "timeout": 120,  # Ollama 7B模型回答较慢，需要更长超时
     # Ollama 本地配置
     "ollama_base": os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1"),
     "ollama_model": os.environ.get("OLLAMA_MODEL", "qwen2.5:7b"),
