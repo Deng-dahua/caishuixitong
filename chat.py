@@ -162,6 +162,92 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
     return ""
 
 
+def _load_report_data(company_id: int):
+    """加载上次分析报告的缓存数据"""
+    try:
+        import glob, json, os as _os
+        cache_dir = _os.path.join(_os.path.dirname(__file__), "static", "uploads", "tax-risk-docs", str(company_id))
+        cache_files = sorted(glob.glob(_os.path.join(cache_dir, "last_analysis_cache.json")))
+        if not cache_files: return None
+        with open(cache_files[-1], "r", encoding="utf-8") as f:
+            return json.load(f)
+    except: return None
+
+def _smart_context(question: str, company_id: int, db: Session) -> str:
+    """根据用户问题关键词，智能加载相关报告数据"""
+    base = _build_context_prompt(company_id, db)
+    report = _load_report_data(company_id)
+    if not report: return base
+    
+    r = report.get("report", {})
+    all_f = r.get("all_findings", [])
+    comp = r.get("comprehensive", {})
+    es = r.get("engine_status", {})
+    
+    extra = []
+    q = question.lower()
+    
+    # 关键词匹配 → 加载对应数据
+    if any(k in q for k in ['发现','风险','问题','异常','finding','risk','triage']):
+        extra.append(f"=== 全部发现（共{len(all_f)}条）===")
+        for i, fi in enumerate(all_f):
+            item = fi.get("type", "") or fi.get("item", "")
+            lv = fi.get("level", "?")
+            detail = (fi.get("detail", "") or fi.get("description", ""))[:120]
+            if item:
+                extra.append(f"[{i+1}] [{lv}] {item}")
+                if detail: extra.append(f"    详情：{detail}")
+    
+    if any(k in q for k in ['企业','公司','行业','画像','profile','经营']):
+        cp = es.get("company_profile", {})
+        if cp:
+            extra.append(f"=== 企业画像 ===")
+            extra.append(f"行业：{cp.get('industry','?')}，模式：{cp.get('biz_model','?')}，规模：{cp.get('scale','?')}")
+            extra.append(f"有制造：{cp.get('has_manufacturing','?')}，有贸易：{cp.get('has_trading','?')}")
+    
+    if any(k in q for k in ['财务','销售','进项','银行','工资','利润','毛利']):
+        fs = es.get("financial_snapshot", {})
+        if fs:
+            extra.append(f"=== 财务快照 ===")
+            extra.append(f"销项：{fs.get('total_sales',0):,.0f}元/{fs.get('sale_count',0)}张")
+            extra.append(f"进项：{fs.get('total_purchases',0):,.0f}元/{fs.get('pur_count',0)}张")
+            extra.append(f"银行入：{fs.get('total_bank_in',0):,.0f}元/{fs.get('bank_tx_count',0)}笔")
+            extra.append(f"毛利率：{fs.get('gross_margin_pct',0)}%")
+    
+    if any(k in q for k in ['建议','处理','整改','action','推荐']):
+        actions = comp.get("actions", {})
+        if actions:
+            extra.append(f"=== 处理建议 ===")
+            for k, v in actions.items():
+                extra.append(f"{k}: {str(v)[:200]}")
+    
+    if any(k in q for k in ['跨企业','关联','supplier','customer','供应商','客户']):
+        ce = comp.get("cross_enterprise", {})
+        if ce:
+            extra.append(f"=== 跨企业比对 ===")
+            extra.append(ce.get("summary", ""))
+    
+    if any(k in q for k in ['法条','法律','法规','law','依据']):
+        from collections import Counter
+        laws = Counter(f.get("law_ref", "") for f in all_f if f.get("law_ref"))
+        if laws:
+            extra.append(f"=== 引用法条 ===")
+            for law, cnt in laws.most_common(5):
+                if law: extra.append(f"{cnt}次：{law[:80]}")
+    
+    # 找不到特定关键词 → 加载摘要
+    if not extra:
+        extra.append(f"=== 报告摘要 ===")
+        extra.append(f"总发现：{len(all_f)}条（高风险{r.get('high_risk','?')}、中风险{r.get('mid_risk','?')}、低风险{r.get('low_risk','?')}）")
+        if all_f:
+            types = [f.get("type","")[:40] for f in all_f[:10] if f.get("type")]
+            extra.append(f"前10条：{' / '.join(types)}")
+    
+    if extra:
+        return base + "\n\n" + "\n".join(extra[:60])  # 限60行避免超上下文
+    return base
+
+
 def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -> Optional[str]:
     """调用 LLM API 进行问答，优先 DeepSeek，失败或未配置时回退 Ollama"""
     
@@ -218,7 +304,7 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
 
 def _chat_tax_qa(user_message: str, company_id: int, db: Session) -> str:
     """存勤法税智能体：先尝试 LLM，失败则回退到规则引擎"""
-    context = _build_context_prompt(company_id, db)
+    context = _smart_context(user_message, company_id, db)
     reply = _call_llm(user_message, TAX_SYSTEM_PROMPT, context)
     
     if reply:
