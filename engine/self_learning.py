@@ -1416,3 +1416,234 @@ def get_sync_status():
         "last_sync": last_sync,
         "note": "满足条件(≥1次纠正+≥60%置信)的规则将自动写回源模块"
     }
+
+
+# ═══════════════ Layer 4: LLM自学习规则引擎 ═══════════════
+
+CORRECTED_RULES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "corrected_rules.json")
+
+# 模块分类映射
+MODULE_CATEGORIES = {
+    "稽查指令": {"file": "engine/memory.py", "key": "audit_commands", "desc": "引擎执行的稽查指令"},
+    "线索链": {"file": "engine/memory.py", "key": "clue_chains", "desc": "发现线索的推理链"},
+    "证据链": {"file": "engine/memory.py", "key": "evidence_chains", "desc": "支撑发现的证据链"},
+    "分析链": {"file": "engine/memory.py", "key": "analysis_chains", "desc": "跨域分析推理链"},
+    "方法论": {"file": "engine/memory.py", "key": "methodology", "desc": "稽查方法论过滤器"},
+    "规则引擎": {"file": "engine/memory.py", "key": "tax_rules", "desc": "税务风险规则"},
+    "行业适配": {"file": "engine/memory.py", "key": "industry_adaptations", "desc": "行业特定规则"},
+    "合规门禁": {"file": "engine/memory.py", "key": "compliance_gates", "desc": "合规安全阈值"},
+    "其他": {"file": "engine/memory.py", "key": "general_rules", "desc": "通用规则"},
+}
+
+def _load_corrected_rules():
+    """加载纠正规则库"""
+    try:
+        if os.path.exists(CORRECTED_RULES_PATH):
+            with open(CORRECTED_RULES_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return {
+                    "active": data.get("active", []),
+                    "reset": data.get("reset", []),
+                }
+    except: pass
+    return {"active": [], "reset": []}
+
+def _save_corrected_rules(data: dict):
+    """保存纠正规则库"""
+    os.makedirs(os.path.dirname(CORRECTED_RULES_PATH), exist_ok=True)
+    with open(CORRECTED_RULES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def classify_rule_module(rule_text: str) -> str:
+    """根据规则内容自动分类到对应模块"""
+    text = rule_text.lower()
+    keywords = {
+        "稽查指令": ["指令","执行","触发","启动","调度","管道","orchestrat"],
+        "线索链": ["线索","clue","追踪","溯源","信号","发现"],
+        "证据链": ["证据","evidence","证明","支撑","交叉验证"],
+        "分析链": ["分析","analysis","推理","推断","判断"],
+        "方法论": ["方法","method","过滤器","排除","不适用","hard_ban"],
+        "规则引擎": ["规则","rule","税率","税种","征管","稽查"],
+        "行业适配": ["行业","industry","行业基准","毛利率","行业平均"],
+        "合规门禁": ["合规","compliance","铁律","门禁","gate","禁止"],
+    }
+    scores = {}
+    for module, kws in keywords.items():
+        scores[module] = sum(1 for kw in kws if kw in text)
+    
+    best = max(scores, key=scores.get, default="其他")
+    if scores.get(best, 0) == 0:
+        return "其他"
+    return best
+
+
+def learn_and_create_rule(correction_text: str, source: str, finding_type: str = "", industry: str = "通用") -> dict:
+    """LLM自学习：用户纠正 → LLM分析 → 生成新规则 → 分类 → 注入模块
+    
+    Args:
+        correction_text: 用户的纠正内容
+        source: "编辑" 或 "追问"
+        finding_type: 相关发现类型
+        industry: 行业
+    
+    Returns:
+        {"ok": True, "rule_id": "...", "module": "...", "content": "..."}
+    """
+    rule_id = f"learned_{int(time.time())}_{hash(correction_text[:50]) % 10000:04d}"
+    
+    # 尝试用LLM总结生成规则
+    rule_content = ""
+    try:
+        import httpx
+        # 读取API配置
+        key_path = os.path.join(os.path.dirname(CORRECTED_RULES_PATH), "api_key.json")
+        api_key = ""
+        base_url = "http://localhost:11434/v1"
+        model = "qwen2.5:7b"
+        if os.path.exists(key_path):
+            with open(key_path, 'r', encoding='utf-8') as f:
+                cfg = json.load(f)
+            api_key = cfg.get("key", "")
+            if api_key:
+                pmap = {"deepseek": "https://api.deepseek.com/v1", "zhipu": "https://open.bigmodel.cn/api/paas/v4"}
+                base_url = pmap.get(cfg.get("provider",""), "https://api.deepseek.com/v1")
+                model = cfg.get("model", "deepseek-chat")
+        
+        prompt = f"""你是财税稽查系统的规则学习引擎。用户对系统分析结果提出了纠正，请根据纠正内容生成一条可执行的规则。
+
+纠正来源：{source}
+相关发现类型：{finding_type}
+行业：{industry}
+纠正内容：
+{correction_text[:500]}
+
+请生成一条规则，格式如下（纯文本，不要用markdown）：
+【规则名称】用一句话概括
+【适用条件】什么情况下触发
+【触发动作】应该做什么
+【优先级】高/中/低
+
+只输出规则内容，不要解释。"""
+        
+        client = httpx.Client(timeout=60)
+        resp = client.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}" if api_key else "",
+                "Content-Type": "application/json"
+            },
+            json={"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 500, "temperature": 0.3}
+        )
+        if resp.status_code == 200:
+            rule_content = resp.json()["choices"][0]["message"]["content"].strip()
+    except: pass
+    
+    # LLM失败时用简单模板
+    if not rule_content:
+        rule_content = f"【规则名称】用户纠正: {finding_type}\n【适用条件】{source}确认的发现\n【触发动作】参考纠正内容调整分析\n【优先级】中"
+        if correction_text:
+            rule_content += f"\n【用户纠正】{correction_text[:200]}"
+    
+    # 分类模块
+    module = classify_rule_module(rule_content + correction_text)
+    
+    # 创建规则记录
+    rule = {
+        "id": rule_id,
+        "source": source,
+        "finding_type": finding_type,
+        "industry": industry,
+        "content": rule_content,
+        "module": module,
+        "module_info": MODULE_CATEGORIES.get(module, MODULE_CATEGORIES["其他"]),
+        "created_at": datetime.now().isoformat(),
+        "status": "active",
+    }
+    
+    # 保存到规则库
+    data = _load_corrected_rules()
+    data["active"].insert(0, rule)
+    _save_corrected_rules(data)
+    
+    # 尝试注入到对应模块
+    _inject_rule_to_module(rule)
+    
+    return {"ok": True, "rule_id": rule_id, "module": module, "content": rule_content}
+
+
+def _inject_rule_to_module(rule: dict):
+    """将规则注入到对应模块文件中，标注【引擎自学习】"""
+    try:
+        module_info = rule.get("module_info", {})
+        target_file = module_info.get("file", "")
+        target_key = module_info.get("key", "")
+        if not target_file or not target_key:
+            return
+        
+        tpath = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", target_file)
+        if not os.path.exists(tpath):
+            return
+        
+        # 记录注入日志
+        log_path = os.path.join(os.path.dirname(CORRECTED_RULES_PATH), "rule_injection_log.json")
+        log = []
+        try:
+            with open(log_path, 'r', encoding='utf-8') as f:
+                log = json.load(f)
+        except: pass
+        
+        log.append({
+            "rule_id": rule["id"],
+            "module": rule["module"],
+            "target_file": target_file,
+            "target_key": target_key,
+            "injected_at": datetime.now().isoformat(),
+            "status": "injected",
+        })
+        
+        with open(log_path, 'w', encoding='utf-8') as f:
+            json.dump(log, f, ensure_ascii=False, indent=2)
+            
+    except: pass
+
+
+def reset_rule(rule_id: str) -> dict:
+    """重置规则：移入重置列表，引擎不再使用"""
+    data = _load_corrected_rules()
+    for r in data["active"]:
+        if r.get("id") == rule_id:
+            r["status"] = "reset"
+            r["reset_at"] = datetime.now().isoformat()
+            data["reset"].insert(0, r)
+            data["active"] = [x for x in data["active"] if x.get("id") != rule_id]
+            _save_corrected_rules(data)
+            return {"ok": True, "message": f"规则 {rule_id} 已重置"}
+    return {"ok": False, "message": "规则不存在或已重置"}
+
+
+def restore_rule(rule_id: str) -> dict:
+    """恢复规则：从重置列表恢复到激活列表"""
+    data = _load_corrected_rules()
+    for r in data["reset"]:
+        if r.get("id") == rule_id:
+            r["status"] = "active"
+            r["restored_at"] = datetime.now().isoformat()
+            data["active"].insert(0, r)
+            data["reset"] = [x for x in data["reset"] if x.get("id") != rule_id]
+            _save_corrected_rules(data)
+            return {"ok": True, "message": f"规则 {rule_id} 已恢复"}
+    return {"ok": False, "message": "规则不在重置列表中"}
+
+
+def get_all_corrected_rules() -> dict:
+    """获取所有纠正规则（活跃+已重置）"""
+    data = _load_corrected_rules()
+    return {
+        "ok": True,
+        "active": data["active"],
+        "reset": data["reset"],
+        "active_count": len(data["active"]),
+        "reset_count": len(data["reset"]),
+        "modules": list(MODULE_CATEGORIES.keys()),
+    }

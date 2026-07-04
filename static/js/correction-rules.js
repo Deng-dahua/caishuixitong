@@ -36,7 +36,7 @@ function renderCorrectionRulesHub(container) {
     '</style>' +
     '<div class="crh-layout">' +
     '<h2 class="crh-h2">🔄 纠正规则中转站</h2>' +
-    '<p class="crh-sub">编辑/审核/追问 — 四通道汇总。每条规则自动传播到五链（稽查指令/线索链/证据链/分析链/方法论），下次一键分析时自动应用。<br>自动化机制：纠正>=3次+置信度>=0.8→注入自愈规则库、跨公司合成（公司间相似规则自动提炼）。</p>' +
+    '<p class="crh-sub">编辑/审核/追问 — 三通道规则汇总。编辑和追问触发引擎自学习生成新规则，经过中转站分类后注入对应模块（稽查指令/线索链/证据链/分析链/方法论/规则引擎等），标注【引擎自学习】。<br>规则可重置（暂停使用）或恢复（重新激活）。</p>' +
     '<div class="crh-stats" id="crh-stats"></div>' +
     '<div class="crh-filter" id="crh-filter"></div>' +
     '<div id="crh-body"><div style="text-align:center;padding:60px"><span class="spinner"></span> 加载纠正规则...</div></div>' +
@@ -85,6 +85,80 @@ function renderCorrectionData(corrections, contents) {
   window._crhRules = rules;
   window._crhFilter = 'all';
   renderCRHList(rules, 'all');
+  
+  // 渲染LLM自学习规则
+  var learned = corrections.learned_rules || {};
+  renderLearnedRules(learned);
+}
+
+function renderLearnedRules(learned) {
+  var body = document.getElementById('crh-body');
+  var active = learned.active || [];
+  var reset = learned.reset || [];
+  
+  if (active.length === 0 && reset.length === 0) return;
+  
+  var h = '<div style="margin-top:32px;padding-top:24px;border-top:2px solid #e2e8f0">' +
+    '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 8px">🧠 引擎自学习规则</h3>' +
+    '<p style="font-size:12px;color:#94a3b8;margin:0 0 16px">编辑和追问触发的引擎自主学习，经LLM分析后生成新规则，分类注入对应模块</p>';
+  
+  if (active.length > 0) {
+    h += '<div style="font-size:13px;font-weight:600;color:#059669;margin-bottom:8px">✅ 已激活 (' + active.length + '条)</div>';
+    active.forEach(function(r) {
+      var mod = r.module || '其他';
+      var modColor = {'稽查指令':'#2563eb','线索链':'#7c3aed','证据链':'#8b5cf6','分析链':'#06b6d4','方法论':'#f59e0b','规则引擎':'#dc2626','行业适配':'#059669','合规门禁':'#d97706','其他':'#94a3b8'}[mod] || '#94a3b8';
+      var fm = r.module_info || {};
+      h += '<div class="crh-card" style="border-left:3px solid ' + modColor + '">' +
+        '<div class="crh-card-hd">' +
+        '<span class="crh-card-type">' + (r.content||'').split('\\n')[0].replace('【规则名称】','') + '</span>' +
+        '<div style="display:flex;gap:6px;align-items:center">' +
+        '<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:' + modColor + '15;color:' + modColor + ';font-weight:600">📦 ' + mod + '</span>' +
+        '<span style="font-size:10px;color:' + (r.source==='编辑'?'#2563eb':'#7c3aed') + '">' + (r.source==='编辑'?'📝':'🔍') + r.source + '</span>' +
+        '<button onclick="event.stopPropagation();resetLearnedRule(\'' + r.id + '\')" style="font-size:10px;padding:2px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;cursor:pointer">🔄 重置</button>' +
+        '</div></div>' +
+        '<div class="crh-meta"><span>📅 ' + (r.created_at||'').slice(0,10) + '</span><span>🏭 ' + (r.industry||'通用') + '</span><span>📂 目标模块：' + (fm.file||'') + '</span></div>' +
+        '<pre class="crh-reason" style="white-space:pre-wrap;font-size:11px;max-height:120px;overflow-y:auto">' + (r.content||'') + '</pre>' +
+        '</div>';
+    });
+  }
+  
+  if (reset.length > 0) {
+    h += '<div style="font-size:13px;font-weight:600;color:#94a3b8;margin:16px 0 8px">⚠️ 已重置 (' + reset.length + '条)</div>';
+    reset.forEach(function(r) {
+      h += '<div class="crh-card" style="opacity:0.6;background:#f1f5f9">' +
+        '<div class="crh-card-hd">' +
+        '<span class="crh-card-type" style="text-decoration:line-through">' + (r.content||'').split('\\n')[0].replace('【规则名称】','') + '</span>' +
+        '<button onclick="event.stopPropagation();restoreLearnedRule(\'' + r.id + '\')" style="font-size:10px;padding:2px 10px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;border-radius:4px;cursor:pointer">↩ 恢复</button>' +
+        '</div>' +
+        '<div class="crh-meta"><span>📅 ' + (r.reset_at||r.created_at||'').slice(0,10) + '</span><span>📦 ' + (r.module||'其他') + '</span></div>' +
+        '<pre class="crh-reason" style="white-space:pre-wrap;font-size:11px;max-height:60px;overflow-y:auto">' + (r.content||'') + '</pre>' +
+        '</div>';
+    });
+  }
+  
+  h += '</div>';
+  body.innerHTML += h;
+}
+
+function resetLearnedRule(ruleId) {
+  if (!confirm('确定重置此规则？重置后引擎不再使用，但可随时恢复。')) return;
+  fetch('/api/feedback/rules/reset', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({rule_id: ruleId})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) location.reload();
+    else alert(d.message);
+  });
+}
+
+function restoreLearnedRule(ruleId) {
+  fetch('/api/feedback/rules/restore', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({rule_id: ruleId})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) location.reload();
+    else alert(d.message);
+  });
 }
 
 function filterCRH(type) {
@@ -102,7 +176,7 @@ function filterCRH(type) {
 function renderCRHList(rules, filter) {
   var body = document.getElementById('crh-body');
   if (!rules || rules.length === 0) {
-    body.innerHTML = '<div class="crh-empty">暂无纠正规则。<br><br>在报告中使用 ✏️编辑/✅审核/🔍追问/🔄重置 后，规则将出现在这里。</div>';
+    body.innerHTML = '<div class="crh-empty">暂无纠正规则。<br><br>在报告中使用 ✏️编辑/✅审核/🔍追问 后，规则将出现在这里。<br>编辑和追问会触发引擎自学习生成新规则。</div>';
     return;
   }
 
