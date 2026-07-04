@@ -6276,92 +6276,49 @@ def audit_status(company_id: int = Query(...)):
 
 @app.get("/api/methodology-audit")
 def methodology_audit():
-    """方法论文档↔执行代码对账——扫描AUDIT_METHODOLOGY.md中的方法论编号，检查main.py中是否有实际引用"""
-    import re as _re
+    """方法论文档↔执行代码对账——以 methodology_items.json 为权威文档源，扫描 engine/ + main.py 中的代码实现"""
+    import re, json
     base_dir = os.path.dirname(__file__) or "."
     
-    # 扫描方法论声明（从AUDIT_METHODOLOGY.md）
-    md_path = os.path.join(base_dir, "AUDIT_METHODOLOGY.md")
-    declared = []
-    if os.path.exists(md_path):
-        with open(md_path, "r", encoding="utf-8") as f:
-            md_text = f.read()
-        # 匹配稽查方法论+编号模式：①~㉗ 或 1~N编号
-        for m in _re.finditer(r'(?:稽查方法论|方法论)\s*([①-㉗\d]+(?:[-~]\d+)?)', md_text):
-            declared.append(m.group(1))
-        # 匹配编号方法论引用
-        for m in _re.finditer(r'[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗]', md_text):
-            n = m.group(0)
-            if n not in declared: declared.append(n)
+    # ── 1. 从 methodology_items.json 读取33条方法论文档声明 ──
+    json_path = os.path.join(base_dir, "static", "methodology_items.json")
+    declared = {}
+    if os.path.exists(json_path):
+        with open(json_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        for item in items:
+            declared[item["id"]] = item["name"]
+    else:
+        return {"ok": False, "error": "methodology_items.json 不存在"}
     
-    # 扫描main.py中的实际引用
-    py_path = os.path.join(base_dir, "main.py")
-    py_text = ""
-    if os.path.exists(py_path):
-        with open(py_path, "r", encoding="utf-8") as f:
-            py_text = f.read()
+    # ── 2. 扫描 engine/ + main.py 找代码引用 ──
+    all_code = ""
+    engine_dir = os.path.join(base_dir, "engine")
+    for root, dirs, files in os.walk(engine_dir):
+        dirs[:] = [d for d in dirs if d != '__pycache__']
+        for fn in files:
+            if fn.endswith(".py"):
+                try:
+                    with open(os.path.join(root, fn), "r", encoding="utf-8") as f:
+                        all_code += f.read()
+                except: pass
+    # 加 main.py
+    try:
+        with open(os.path.join(base_dir, "main.py"), "r", encoding="utf-8") as f:
+            all_code += f.read()
+    except: pass
     
-    # 查找代码中引用的方法论编号
-    code_refs = set()
-    for m in _re.finditer(r'[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗]', py_text):
-        code_refs.add(m.group(0))
-    
-    # 查找关键词引用（稽查方法论文字描述）
-    kw_map = {
-        "主营业务成本识别": "④",
-        "付款方身份核实": "③", 
-        "联网核查": "⑥",
-        "四步稽查分析法": "㉓",
-        "三层行业穿透法": "㉕",
-        "供应链联网核查": "㉗",
-        "经营实质地理分析": "geo",
-        "进销存分析": "④",
-        "全链路质量保障": "quality",
-        "跨域因果叙事": "causal",
-        "结论自洽性": "contradiction",
-        "缺失后果触发": "missing",
-        "事前预警": "early_warning",
-        "可信度评估": "confidence",
-        "记忆自学习": "memory",
-        "行业自适应": "industry",
-    }
-    kw_code_refs = set()
-    for kw, ref in kw_map.items():
-        if kw in py_text:
-            kw_code_refs.add(ref)
-    code_refs = code_refs | kw_code_refs
-    
-    # 方法论编号→名称映射（从文档中提取或硬编码）
-    method_names = {
-        "③": "付款方身份核实", "④": "主营业务成本识别驱动的进销存分析",
-        "⑥": "联网核查", "㉓": "四步稽查分析法",
-        "㉕": "三层行业穿透法", "㉗": "供应链联网核查",
-        "geo": "经营实质地理分析", "quality": "全链路质量保障体系",
-        "causal": "跨域因果叙事引擎", "contradiction": "结论自洽性检查引擎",
-        "missing": "缺失后果自动触发引擎", "early_warning": "事前预警升级引擎",
-        "confidence": "结论可信度评估引擎", "memory": "记忆自学习引擎",
-        "industry": "行业自适应知识库",
-    }
-    
-    # 构建对账结果
+    # ── 3. 对账：每个方法论名称是否被代码引用 ──
     results = []
-    for ref_id in sorted(set(list(declared) + list(code_refs))):
-        in_doc = ref_id in declared or ref_id in set(kw_map.values())
-        in_code = ref_id in code_refs
-        name = method_names.get(ref_id, f"方法论{ref_id}")
-        
-        if in_doc and in_code:
-            status = "aligned"
-        elif in_doc and not in_code:
-            status = "doc_only"
-        elif not in_doc and in_code:
-            status = "code_only"
-        else:
-            status = "missing"
-        
+    for mid, mname in declared.items():
+        in_doc = True  # methodology_items.json 本身就是文档
+        # 检查代码中是否出现方法论名称（取前4个字符模糊匹配）
+        short = mname[:4]
+        in_code = mname in all_code or short in all_code
+        status = "aligned" if in_doc and in_code else "code_only"
         results.append({
-            "id": ref_id,
-            "name": name,
+            "id": mid,
+            "name": mname,
             "status": status,
             "in_doc": in_doc,
             "in_code": in_code,
