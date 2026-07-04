@@ -4014,6 +4014,8 @@ window._edtSubmitEdit = function() {
       el.textContent = "✅ 已记录，已更新规则库"; el.style.color = "#16a34a";
       // 触发规则传播到五链
       fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
+      // 触发引擎自学习
+      fetch("/api/feedback/learn-rule", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content:content, source:"编辑", finding_type:scope.title||""})}).catch(function(){});
     }
 
 
@@ -4126,7 +4128,7 @@ window._edtSendAsk = function() {
 
 
 window._edtSubmitAskResult = function() {
-  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); }
+  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); fetch("/api/feedback/learn-rule", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content:JSON.stringify(window._askHistory||[]), source:"追问", finding_type:scope.title||""})}).catch(function(){}); }
 
 
   var el = document.getElementById("edt-ask-result");

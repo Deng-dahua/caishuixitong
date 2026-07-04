@@ -9026,7 +9026,8 @@ def get_correction_rules():
         from engine.self_learning import get_all_corrected_rules
         learned = get_all_corrected_rules()
         result["learned_rules"] = learned
-    except: pass
+    except Exception as e:
+        result["learned_rules_error"] = str(e)[:100]
     
     return result
 

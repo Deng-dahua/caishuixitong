@@ -1,0 +1,18 @@
+[
+  {
+    "rule_id": "learned_1783195495_5866",
+    "module": "规则引擎",
+    "target_file": "engine/memory.py",
+    "target_key": "tax_rules",
+    "injected_at": "2026-07-05T04:04:57.772010",
+    "status": "injected"
+  },
+  {
+    "rule_id": "learned_1783195497_7280",
+    "module": "行业适配",
+    "target_file": "engine/memory.py",
+    "target_key": "industry_adaptations",
+    "injected_at": "2026-07-05T04:04:59.075015",
+    "status": "injected"
+  }
+]
