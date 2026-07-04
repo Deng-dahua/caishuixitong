@@ -8,19 +8,18 @@ async function renderChat(container) {
     chatSessionId = 'sess_' + Date.now();
     chatMessages = [{
       role: 'ai',
-      text: '👋 你好！我是**存勤法税智能体**，专注中小企业财税与法律问答。\n\n'
-        + '我可以帮你解答：\n'
-        + '• 📋 **税务政策** — 增值税、企业所得税、个税、印花税等\n'
-        + '• 📝 **账务处理** — 会计分录、科目运用、凭证编制\n'
-        + '• ⚖️ **法律合规** — 税法依据、合规操作、争议应对\n'
-        + '• ⚠️ **风险提示** — 稽查风险、发票合规、经营实质\n'
-        + '• 💰 **财务管理** — 成本控制、费用管理、资金规划\n\n'
+      text: '👋 你好！我是**存勤法税智能体**，连接本系统的财税数据与知识库。\n\n'
+        + '我可以帮你处理：\n'
+        + '• 📋 **数据查询** — 当前账套的发票、银行流水、工资等数据统计\n'
+        + '• 📝 **系统操作** — 生成凭证、查看报表、一键分析等操作指引\n'
+        + '• ⚖️ **报告解读** — 解读一键分析产出的风险发现和稽查报告\n'
+        + '• ⚠️ **风险核实** — 针对某条风险发现提出质疑或补充资料\n\n'
         + '直接输入你的问题，例如：\n'
-        + '• 「农产品自产自销能否在注册地外种植？」\n'
-        + '• 「当地税务局不认可自产自销怎么办？」\n'
-        + '• 「采购原材料怎么记分录？」\n'
-        + '• 「固定资产折旧年限是多少？」\n\n'
-        + '也可以说「**帮助**」查看系统操作功能。'
+        + '• 「本月销项发票合计数是多少？」\n'
+        + '• 「帮我看一下利润表」\n'
+        + '• 「TRIAGE_001 购销倒挂这条发现为什么触发？」\n'
+        + '• 「怎么生成序时账？」\n\n'
+        + '也可以说「**帮助**」查看全部可用指令。'
     }];
   }
 
@@ -29,16 +28,16 @@ async function renderChat(container) {
     <div class="chat-wrapper">
       <div class="chat-header">
         <h3>🤖 存勤法税智能体</h3>
-        <p>解答财税政策、账务处理、法律合规、风险提示等问题</p>
+        <p>数据查询、报告解读、系统操作指引</p>
       </div>
       <div class="chat-quick-actions" id="quick-actions">
-        <span class="chat-chip" data-cmd="增值税税率是多少？">📊 增值税税率</span>
-        <span class="chat-chip" data-cmd="企业所得税怎么计算？">🏢 企业所得税</span>
-        <span class="chat-chip" data-cmd="工资个税怎么计算？">💳 个税计算</span>
-        <span class="chat-chip" data-cmd="小规模纳税人有什么优惠政策？">📉 小规模优惠</span>
-        <span class="chat-chip" data-cmd="印花税有哪些税目和税率？">📄 印花税</span>
-        <span class="chat-chip" data-cmd="进项发票怎么抵扣？">🧾 进项抵扣</span>
-        <span class="chat-chip" data-cmd="帮助">❓ 系统操作</span>
+        <span class="chat-chip" data-cmd="本月销项发票合计多少？">📊 销项统计</span>
+        <span class="chat-chip" data-cmd="本月银行入账多少？">🏧 银行流水</span>
+        <span class="chat-chip" data-cmd="帮我分析当前账套的风险">🔍 一键分析</span>
+        <span class="chat-chip" data-cmd="怎么查看利润表？">📉 操作指引</span>
+        <span class="chat-chip" data-cmd="我上传了一份文件，请帮我解析">📂 文件上传</span>
+        <span class="chat-chip" data-cmd="查看序时账">📝 序时账</span>
+        <span class="chat-chip" data-cmd="帮助">❓ 帮助</span>
       </div>
       <div class="chat-body" id="chat-body">
         ${renderMessages()}
@@ -46,7 +45,7 @@ async function renderChat(container) {
       <div class="chat-input-area">
         <input type="file" id="chat-file-input" accept=".xlsx,.xls,.csv,.pdf,.txt,.md,.log,.png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="handleFileUpload(this)">
         <button class="chat-upload-btn" id="chat-upload-btn" onclick="document.getElementById('chat-file-input').click()" title="上传文件">📎</button>
-        <input id="chat-input" type="text" placeholder="输入财税或法律问题，例如：农产品自产自销能否在注册地外种植？" 
+        <input id="chat-input" type="text" placeholder="输入问题，例如：本月销项发票合计多少？" 
                onkeypress="if(event.key==='Enter') sendChat()" autofocus>
         <button onclick="sendChat()" id="chat-send-btn">发送</button>
       </div>
@@ -117,7 +116,7 @@ async function handleFileUpload(input) {
       chatMessages[chatMessages.length - 1].text = `<span class="chat-file-badge">📎 ${data.file_name}</span><br><pre style="font-size:11px;max-height:200px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:6px;white-space:pre-wrap;word-break:break-all;margin:4px 0 0">${escapeHtml(contentPreview)}</pre>`;
 
       // 将文件内容送入对话处理
-      const chatRes = await api('/api/chat', {
+      const chatRes = await api('/api/agi/chat', {
         method: 'POST',
         body: JSON.stringify({
           message: `[上传文件] ${data.file_name}\n\n文件内容如下，请帮我处理：\n\n${data.content}`,
