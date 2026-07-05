@@ -1539,6 +1539,27 @@ async function renderOrchDashboard(container) {
   h += '<div class="od-card"><div class="v" style="color:#f59e0b">' + (orch.pipeline_depth||16) + '</div><div class="l">管线深度</div></div>';
   h += '</div>';
   
+  // ═══ 上下游依赖 ═══
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-core\')" style="color:#2563eb">核心智能引擎</a><br><span style="color:#94a3b8">6大引擎的能力定义和模块元数据</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">全部52个模块的实现状态和代码位置</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">28维能力矩阵定义模块可调度范围</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-connect\')" style="color:#2563eb">连接通信层</a><br><span style="color:#94a3b8">事件总线提供模块间通信基础</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">模块运行记录供调度优化分析</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">调度中枢决定执行顺序后传给管道</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">Phase1-4分步执行依赖调度指令</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">模块调度决定哪些数据资产被激活</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><br><span style="color:#94a3b8">调度记录充实成长指标统计</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><br><span style="color:#94a3b8">调度日志进入流水记录供回溯</span></div>';
+  h += '</div></div></div>';
+  
   h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
   h += '<p style="margin:0 0 16px">调度中枢是引擎的<strong>指挥中心</strong>，负责管理全部模块的分布、领域划分和管线深度。它不直接执行分析，而是决定哪些模块在什么时候、以什么顺序、用什么参数参与分析。每个领域内的模块按依赖关系排序，确保上游模块的输出在需要时已经准备好。</p>';
   h += '<p style="margin:0">管线深度指从原始资料到最终报告中间经过的处理层次数。当前系统管线深度覆盖从文件指纹识别、目标实体定位、资料情报提取、规则匹配、线索链触发、证据链闭环、分析链推理、协商引擎消解到报告输出的完整流程。</p>';
