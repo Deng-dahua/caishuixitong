@@ -111,8 +111,10 @@ function renderFileParsingPage(container) {
   else { loadFileParsingData(); }
   // 侧边栏子模块入口
   if (window._fpSection) {
-    fpSliceToSection(window._fpSection);
+    var sec = window._fpSection;
     window._fpSection = null;
+    if (sec === 'fp-result') { window._pendingFpSlice = 'fp-result'; }
+    else { setTimeout(function(){ fpSliceToSection(sec); }, 50); }
   }
 }
 
@@ -675,6 +677,7 @@ function renderFileParsingResult(report) {
 
   html += '</div>'; // fp-result
   target.innerHTML = html;
+  if (window._pendingFpSlice) { var s = window._pendingFpSlice; window._pendingFpSlice = null; fpSliceToSection(s); }
 }
 
 // ==================== 页面2：域分析（详尽版） ====================
@@ -700,8 +703,10 @@ function renderDomainAnalysisPage(container) {
   else { loadDomainAnalysisData(); }
   // 侧边栏子模块入口
   if (window._daSection) {
-    daSliceToSection(window._daSection);
+    var dsec = window._daSection;
     window._daSection = null;
+    if (dsec === 'da-result') { window._pendingDaSlice = 'da-result'; }
+    else { setTimeout(function(){ daSliceToSection(dsec); }, 50); }
   }
 }
 
