@@ -9024,6 +9024,46 @@ def get_correction_rules():
 
     return result
 
+@app.get("/api/human-learning/status")
+def get_human_learning_status():
+    """获取人类学习引擎状态（12项认知能力）"""
+    try:
+        from engine.human_learning import HumanLearner
+        learner = HumanLearner()
+        return {"ok": True, "status": learner.status()}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
+@app.post("/api/human-learning/learn")
+async def trigger_human_learning(request: Request):
+    """触发人类学习引擎"""
+    try:
+        body = await request.json()
+    except:
+        return {"ok": False, "message": "无效请求"}
+    correction = body.get("correction", "")
+    source = body.get("source", "编辑")
+    context = body.get("context", {})
+    if not correction:
+        return {"ok": False, "message": "请提供纠正内容"}
+    from engine.human_learning import HumanLearner
+    learner = HumanLearner()
+    return learner.learn(correction, source, context)
+
+@app.post("/api/human-learning/decay")
+def trigger_decay():
+    """触发规则衰减（遗忘机制）"""
+    from engine.human_learning import HumanLearner
+    learner = HumanLearner()
+    return learner.decay_rules()
+
+@app.post("/api/human-learning/relationships")
+def trigger_relationships():
+    """触发规则关系发现"""
+    from engine.human_learning import HumanLearner
+    learner = HumanLearner()
+    return learner.discover_relationships()
+
 @app.get("/api/feedback/content-logs")
 def get_content_feedback_logs():
     """获取内容反馈日志（编辑/审核/追问记录）"""
