@@ -9,20 +9,20 @@
 
 
 function renderEngineDashboardPage(container) {
-
+  var tt = window._engineTabTarget;
+  var h2, p;
+  if (tt && window.TAB_TITLES && window.TAB_TITLES[tt]) {
+    h2 = '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">' + window.TAB_TITLES[tt] + '</h2>';
+    p = '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">数据来源：系统实时API + 分析缓存</p>';
+  } else {
+    h2 = '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">引擎详情</h2>';
+    p = '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">引擎各模块详细配置与运行参数</p>';
+  }
   container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
-
-    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🧠 智能大脑·运行仪表盘</h2>'
-
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">统一大脑运行监控中心——5个标签页覆盖管道调度/推理引擎/学习反馈/质量保障/AGI核心。数据来源：系统实时API + 分析缓存。每项指标可追溯到具体的代码位置和数据文件。</p>'
-
+    + h2 + p
     + '<div id="engine-dashboard-area"><div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在连接推理引擎数据接口...</div></div></div>';
-
   setTimeout(loadEngineDashboard, 200);
-
 }
-
-
 
 function renderEngineDashboard(rpt) {
 
