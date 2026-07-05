@@ -1581,3 +1581,75 @@ async function renderOrchDashboard(container) {
   container.innerHTML = h;
 }
 
+// ═══ 成长曲线 — 专用清新布局 ═══
+async function renderGrowthDashboard(container) {
+  window._skipModuleHeader = true;
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
+  
+  var d = {};
+  try {
+    var r = await fetch('/api/audit/brain-status');
+    d = await r.json();
+  } catch(e) {}
+  var growth = d.learner || {};
+  var stageColors = {婴儿期:'#94a3b8',幼儿期:'#f59e0b',成长期:'#059669',成熟期:'#2563eb'};
+  var stageColor = stageColors[growth.stage] || '#64748b';
+  var topInd = growth.top_industries || [];
+  var trusted = growth.trusted_module_contexts || 0;
+  var runs = growth.total_runs || 0;
+  var learned = growth.industries_learned || 0;
+  
+  var h = '';
+  h += '<style>'
+    + '.gd{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.gd-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.gd-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.gd-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.gd-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.gd-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.gd-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.gd-sec{margin-bottom:32px}'
+    + '.gd-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.gd-bar-wrap{background:#f1f5f9;border-radius:6px;height:8px;margin:10px 0;overflow:hidden}'
+    + '.gd-bar{height:100%;border-radius:6px;transition:width 0.5s}'
+    + '.gd-tag{display:inline-block;padding:4px 10px;margin:4px 6px 4px 0;background:#f1f5f9;border-radius:12px;font-size:11px;color:#475569}'
+    + '.gd-tag b{color:#0f172a}'
+    + '</style>';
+  
+  h += '<div class="gd">';
+  h += '<div class="gd-title">成长曲线</div>';
+  h += '<div class="gd-sub">引擎自运行以来的成长轨迹 · 累计运行、信任模型积累、已学行业分布 · 所属：智能大脑</div>';
+  
+  h += '<div class="gd-hero">';
+  h += '<div class="gd-card"><div class="v" style="color:' + stageColor + '">' + (growth.stage||'婴儿期') + '</div><div class="l">成长阶段</div></div>';
+  h += '<div class="gd-card"><div class="v" style="color:#dc2626">' + runs + '</div><div class="l">累计运行</div></div>';
+  h += '<div class="gd-card"><div class="v" style="color:#059669">' + trusted + '</div><div class="l">信任模型</div></div>';
+  h += '<div class="gd-card"><div class="v" style="color:#d97706">' + learned + '</div><div class="l">已学行业</div></div>';
+  h += '</div>';
+  
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">成长曲线展示引擎从部署以来的<strong>自我进化轨迹</strong>。随着每次分析运行，引擎不断积累经验、扩充知识库、优化分析策略，这些变化通过成长曲线直观呈现。</p>';
+  h += '<p style="margin:0">四个核心指标：<strong>累计运行次数</strong>反映系统被使用和验证的广度；<strong>信任模型数量</strong>记录通过多次验证的高可靠度分析模式；<strong>已学习行业数</strong>记录引擎接触的行业种类；<strong>成长阶段</strong>从婴儿期→幼儿期→成长期→成熟期，反映引擎整体能力的演化水平。</p>';
+  h += '</div>';
+  
+  var stagePct = {婴儿期:20,幼儿期:40,成长期:70,成熟期:95};
+  h += '<div class="gd-sec"><h3>成长进度</h3>';
+  h += '<div style="font-size:12px;color:#64748b;margin-bottom:8px">婴儿期 → 幼儿期 → 成长期 → 成熟期</div>';
+  h += '<div class="gd-bar-wrap"><div class="gd-bar" style="width:' + (stagePct[growth.stage]||20) + '%;background:' + stageColor + '"></div></div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-top:8px">累计分析 <b style="color:#0f172a">' + runs + '</b> 次 · 可信模块 <b style="color:#0f172a">' + trusted + '</b> 个 · 行业覆盖 <b style="color:#0f172a">' + learned + '</b> 个</div>';
+  h += '</div>';
+  
+  if (topInd.length > 0) {
+    h += '<div class="gd-sec"><h3>已学行业 · ' + topInd.length + ' 个</h3>';
+    topInd.forEach(function(ti) {
+      if (ti && ti[1]) {
+        h += '<span class="gd-tag">' + ti[0].replace(/</g,'&lt;') + ' <b>' + (ti[1].runs||0) + '次</b></span>';
+      }
+    });
+    h += '</div>';
+  }
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+

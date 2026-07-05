@@ -715,7 +715,7 @@ function navigateTo(page) {
     case 'eng-pipe': renderPipeDashboard(container); break;
     case 'eng-learn': renderLearnFeedback(container); break;
     case 'eng-orch': renderOrchDashboard(container); break;
-    case 'eng-grow': renderBrainSubModule(container, 'growth'); break;
+    case 'eng-grow': renderGrowthDashboard(container); break;
     case 'eng-qual': renderEngineSubModule(container, 'quality'); break;
     case 'eng-think': renderEngineSubModule(container, 'methods'); break;
     case 'eng-info': renderEngineSubModule(container, 'details'); break;
