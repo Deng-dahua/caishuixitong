@@ -62,6 +62,7 @@ function renderEngineDashboard(rpt) {
 }
 
 function switchEngineTab(tab) {
+  window._lastSwitchedTab = tab;
   document.querySelectorAll('.ed-tab-link').forEach(function(el){el.classList.remove('active');});
   var links = document.querySelectorAll('.ed-tab-link');
   links.forEach(function(l){if(l.getAttribute('data-tab')===tab)l.classList.add('active');});
@@ -287,9 +288,11 @@ function fetchEngineRules() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
       window._engineRules = d.rules || {};
-      // 如果已经在规则标签页，刷新显示
-      if (document.getElementById('tab-rules') && document.getElementById('tab-rules').classList.contains('active')) {
-        renderRulesTab();
+      // 刷新当前可见的标签内容（不依赖TOC的active状态）
+      var area = document.getElementById('eng-tab-content');
+      if (area && area.textContent && area.textContent.indexOf('加载中') >= 0) {
+        // 检测到加载中状态，重新渲染当前标签
+        if (window._lastSwitchedTab) switchEngineTab(window._lastSwitchedTab);
       }
     })
     .catch(function() {
