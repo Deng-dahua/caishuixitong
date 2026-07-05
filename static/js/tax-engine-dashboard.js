@@ -1676,3 +1676,81 @@ async function renderGrowthDashboard(container) {
   container.innerHTML = h;
 }
 
+// ═══ 质量保障 — 专用清新布局 ═══
+async function renderQualityDashboard(container) {
+  window._skipModuleHeader = true;
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
+  
+  var cid = window._currentCompanyId || 1;
+  var d = {};
+  try {
+    var r = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
+    d = await r.json();
+  } catch(e) {}
+  var rpt = (d && d.report) ? d.report : {};
+  
+  var h = '';
+  h += '<style>'
+    + '.qa{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.qa-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.qa-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.qa-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.qa-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.qa-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.qa-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.qa-sec{margin-bottom:32px}'
+    + '.qa-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.qa-layer{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin-bottom:8px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;font-size:12px;line-height:1.8}'
+    + '.qa-layer .num{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}'
+    + '.qa-layer .body{flex:1;color:#475569}'
+    + '.qa-layer .body b{color:#0f172a;font-size:13px}'
+    + '</style>';
+  
+  h += '<div class="qa">';
+  h += '<div class="qa-title">质量保障</div>';
+  h += '<div class="qa-sub">5层22组件全覆盖 · 从规则触发到报告输出的全链路质量监控 · 所属：智能大脑</div>';
+  
+  h += '<div class="qa-hero">';
+  h += '<div class="qa-card"><div class="v" style="color:#2563eb">5</div><div class="l">保障层级</div></div>';
+  h += '<div class="qa-card"><div class="v" style="color:#059669">22</div><div class="l">组件总数</div></div>';
+  h += '<div class="qa-card"><div class="v" style="color:#f59e0b">12</div><div class="l">质量标准</div></div>';
+  h += '<div class="qa-card"><div class="v" style="color:#dc2626">7</div><div class="l">可靠性要求</div></div>';
+  h += '</div>';
+  
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">分析产出全部发现送质量检查</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">方法论规则驱动质量保障标准</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配结果需质量验证</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a> / <a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">链驱动发现进入质量审查</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">调度日志供质量异常检测</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><br><span style="color:#94a3b8">质量判定结果进入详细机制执行</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'rs-12std\')" style="color:#2563eb">12项质量标准</a> / <a href="javascript:navigateTo(\'rs-reliability\')" style="color:#2563eb">7项判定可靠性要求</a><br><span style="color:#94a3b8">具体质量指标的逐项检查</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'rs-pipeline\')" style="color:#2563eb">质量保障管线</a><br><span style="color:#94a3b8">报告生成前的质量保障流程</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">质量评分影响能力维度星级评定</span></div>';
+  h += '<div style="margin-top:6px"><a href="javascript:navigateTo(\'rs-ironlaw\')" style="color:#2563eb">引擎铁律与报告质量映射</a><br><span style="color:#94a3b8">质量发现映射到铁律条目</span></div>';
+  h += '</div></div></div>';
+  
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">质量保障是确保分析结果<strong>正确性和可靠性</strong>的最后关口。通过5层22个组件的层层把关，确保从规则触发到报告输出的全链路中，每一条发现都经得起追溯和复核。</p>';
+  h += '<p style="margin:0">五层架构是一个<strong>开放生态系统</strong>——随着新分析维度的加入，质量保障层会自动扩展新的保障维度，不固定为某个静态数字。</p>';
+  h += '</div>';
+  
+  h += '<div class="qa-sec"><h3>五层质量保障架构</h3>';
+  h += '<div class="qa-layer"><div class="num" style="background:#2563eb">1</div><div class="body"><b>核心数据资产</b><br>规则引擎+线索链+证据链+跨域分析链构成数据底座。每条发现可追溯至规则ID和证据来源。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#7c3aed">2</div><div class="body"><b>方法论体系</b><br>33条方法论约束分析逻辑边界，防止推断超出数据支撑范围。六大分析框架覆盖全流程。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#dc2626">3</div><div class="body"><b>质量保障机制</b><br>12项质量标准+7项判定可靠性要求。每条发现必须通过全部检查才能进入报告。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#f59e0b">4</div><div class="body"><b>行业认知体系</b><br>66行业基准库提供对标参照，防止跨行业的错误比较导致误判。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#059669">5</div><div class="body"><b>执行管线</b><br>Phase1-4分步执行确保分析过程规范性和可审计性，每一步输入输出可追溯。</div></div>';
+  h += '</div>';
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+
