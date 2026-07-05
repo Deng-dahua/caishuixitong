@@ -109,6 +109,33 @@ function renderFileParsingPage(container) {
   renderFileParsingStatic();
   if (_cachedFileParsingReport) { renderFileParsingResult(_cachedFileParsingReport); }
   else { loadFileParsingData(); }
+  // 侧边栏子模块入口
+  if (window._fpSection) {
+    fpSliceToSection(window._fpSection);
+    window._fpSection = null;
+  }
+}
+
+function fpSliceToSection(sectionId) {
+  var toc = document.querySelector('.fp-toc');
+  if (toc) toc.style.display = 'none';
+  var layout = document.querySelector('.fp-layout');
+  if (layout) layout.style.display = 'block';
+  var h2 = document.querySelector('.fp-main h2');
+  if (h2) h2.style.display = 'none';
+  var p = document.querySelector('.fp-main > p');
+  if (p) p.style.display = 'none';
+  var overview = document.querySelector('.fp-main > div');
+  if (overview && !overview.id) overview.style.display = 'none';
+  // Hide/Show target section
+  var allSecs = document.querySelectorAll('#fp-mechanism,#fp-compat,#fp-formats,#fp-fingerprint,#fp-flow,#fp-result');
+  for (var i = 0; i < allSecs.length; i++) {
+    allSecs[i].style.display = allSecs[i].id === sectionId ? 'block' : 'none';
+  }
+  setTimeout(function() {
+    var el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 200);
 }
 
 function renderFileParsingStatic() {

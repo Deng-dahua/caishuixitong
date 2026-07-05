@@ -143,7 +143,13 @@ const pages = {
   'qs-layer2': '方法论体系',
   'qs-layer3': '质量保障机制',
   'qs-layer4': '行业认知体系',
-  'qs-layer5': '执行管线'
+  'qs-layer5': '执行管线',
+  'fp-mechanism': '识别机制',
+  'fp-compat': '兼容策略',
+  'fp-formats': '格式扩展',
+  'fp-fingerprint': '文件指纹库',
+  'fp-flow': '解析流程',
+  'fp-result': '本次解析结果'
 };
 
 // ==================== 用户登录 ====================
@@ -755,6 +761,12 @@ function navigateTo(page) {
     case 'qs-layer3': window._qsLayer = 3; renderQualitySystem(container); break;
     case 'qs-layer4': window._qsLayer = 4; renderQualitySystem(container); break;
     case 'qs-layer5': window._qsLayer = 5; renderQualitySystem(container); break;
+    case 'fp-mechanism': window._fpSection = 'fp-mechanism'; renderFileParsingPage(container); break;
+    case 'fp-compat': window._fpSection = 'fp-compat'; renderFileParsingPage(container); break;
+    case 'fp-formats': window._fpSection = 'fp-formats'; renderFileParsingPage(container); break;
+    case 'fp-fingerprint': window._fpSection = 'fp-fingerprint'; renderFileParsingPage(container); break;
+    case 'fp-flow': window._fpSection = 'fp-flow'; renderFileParsingPage(container); break;
+    case 'fp-result': window._fpSection = 'fp-result'; renderFileParsingPage(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
