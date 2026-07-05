@@ -242,23 +242,15 @@ function renderAuditorHandbook(container) {
   if (window._hbChapter) {
     var chapter = window._hbChapter;
     window._hbChapter = null;
-    // 隐藏TOC和标题
-    var toc = document.querySelector('.hb-toc');
-    if (toc) toc.style.display = 'none';
-    // 改为单栏布局
-    var layout = document.querySelector('.hb-layout');
-    if (layout) layout.style.display = 'block';
-    // 隐藏页面标题
-    var h2 = document.querySelector('.hb-main h2');
-    if (h2 && h2.parentNode) h2.parentNode.removeChild(h2);
-    var p = document.querySelector('.hb-main p');
-    if (p) p.style.display = 'none';
-    // 只显示目标章节，隐藏其他
-    var allSecs = document.querySelectorAll('.hb-sec');
-    allSecs.forEach(function(s) {
-      if (s.id === chapter) s.style.display = 'block';
-      else s.style.display = 'none';
-    });
+    // 直接注入CSS隐藏TOC
+    var style = document.createElement('style');
+    style.textContent = '.hb-toc{display:none!important}.hb-layout{display:block!important}.hb-sec{display:none!important}#\\' + chapter + '{display:block!important}';
+    container.appendChild(style);
+    // 隐藏标题行
+    var h2 = container.querySelector('.hb-main h2');
+    if (h2) h2.style.display = 'none';
+    var subtitle = container.querySelector('.hb-main p');
+    if (subtitle) subtitle.style.display = 'none';
     setTimeout(function() {
       var el = document.getElementById(chapter);
       if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
