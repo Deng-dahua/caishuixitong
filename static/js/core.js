@@ -1268,18 +1268,25 @@ function _bindPickPageButtons() {
   // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
 }
 
-// ═══ 引擎仪表盘子模块路由 ═══
+// ═══ 引擎仪表盘子模块路由（带缓存加速） ═══
 var TAB_TITLES = {
   status: '管道调度', rules: '学习反馈', brain: 'AGI核心',
   quality: '质量保障', methods: '推理引擎', details: '引擎详情'
 };
-function loadEngineTab(tabId, container) {
-  if (typeof renderEngineDashboardPage !== 'function') {
+async function loadEngineTab(tabId, container) {
+  if (typeof renderEngineDashboardHTML !== 'function') {
     container.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">引擎仪表盘模块未加载</div>';
     return;
   }
   window._engineTabTarget = tabId;
-  renderEngineDashboardPage(container);
+  // 如果已有缓存数据，直接渲染，不重新请求
+  if (window._engineRpt && window._engineEs && window._engineRules) {
+    container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + (TAB_TITLES[tabId] || tabId) + '</h2><div id="engine-dashboard-area" style="margin-top:16px"></div></div>';
+    renderEngineDashboardHTML(window._engineEs, true, tabId, true);
+    return;
+  }
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + (TAB_TITLES[tabId] || tabId) + '</h2><div id="engine-dashboard-area" style="margin-top:16px"><div style="text-align:center;padding:40px;color:#94a3b8"><span class="spinner"></span> 加载中...</div></div></div>';
+  setTimeout(function(){ loadEngineDashboard(); }, 100);
 }
 
 
