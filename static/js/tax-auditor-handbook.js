@@ -238,21 +238,26 @@ function renderAuditorHandbook(container) {
 
   h += '</div></div>';
   container.innerHTML = h;
-  // 侧边栏子模块入口：隐藏TOC并滚动到目标章节
+  // 侧边栏子模块入口：隐藏TOC和无关章节
   if (window._hbChapter) {
     var chapter = window._hbChapter;
     window._hbChapter = null;
     // 直接注入CSS隐藏TOC
     var style = document.createElement('style');
-    style.textContent = '.hb-toc{display:none!important}.hb-layout{display:block!important}.hb-sec{display:none!important}#' + chapter + '{display:block!important}';
+    style.textContent = '.hb-toc{display:none!important}.hb-layout{display:block!important}';
     container.appendChild(style);
-    // 隐藏标题行
+    // 隐藏页面标题
     var h2 = container.querySelector('.hb-main h2');
     if (h2) h2.style.display = 'none';
-    var subtitle = container.querySelector('.hb-main p');
-    if (subtitle) subtitle.style.display = 'none';
+    var p = container.querySelector('.hb-main > p');
+    if (p) p.style.display = 'none';
+    // 只显示目标章节
+    var allSecs = container.querySelectorAll('.hb-sec');
+    for (var i = 0; i < allSecs.length; i++) {
+      allSecs[i].style.display = allSecs[i].id === chapter ? 'block' : 'none';
+    }
     setTimeout(function() {
-      var el = document.getElementById(chapter);
+      var el = container.querySelector('#' + chapter);
       if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
     }, 100);
   }
