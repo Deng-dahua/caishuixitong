@@ -27,20 +27,18 @@ function renderEngineDashboard(rpt) {
   if (window._engineTabTarget) {
     var targetTab = window._engineTabTarget;
     window._engineTabTarget = null;
-    // 先渲染整个仪表盘，再延迟切换到目标标签
-    renderEngineDashboardHTML(es, hasData, targetTab);
-    setTimeout(function() { switchEngineTab(targetTab); }, 100);
+    renderEngineDashboardHTML(es, hasData, targetTab, true);
     return;
   }
 
   renderEngineDashboardHTML(es, hasData, 'status');
 }
 
-function renderEngineDashboardHTML(es, hasData, activeTab) {
+function renderEngineDashboardHTML(es, hasData, activeTab, hideToc) {
   var area = document.getElementById('engine-dashboard-area');
   if (!area) return;
   var tabs = [
-    {id:'rules',icon:'📋',name:'学习反馈',color:'#7c3aed'},
+    {id:'status',icon:'📊',name:'管道调度',color:'#2563eb'},
     {id:'brain',icon:'🧠',name:'AGI核心',color:'#dc2626'},
     {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},
     {id:'methods',icon:'🔬',name:'推理引擎',color:'#f59e0b'},
@@ -63,7 +61,16 @@ function renderEngineDashboardHTML(es, hasData, activeTab) {
   html += '</div>';
   
   area.innerHTML = html;
-  renderStatusTab();
+  if (hideToc) {
+    // 隐藏内部TOC，只显示目标标签内容
+    var toc = document.querySelector('.ed-toc');
+    if (toc) toc.style.display = 'none';
+    var layout = document.querySelector('.ed-layout');
+    if (layout) { layout.style.display = 'block'; layout.style.maxWidth = '1100px'; layout.style.margin = '0 auto'; }
+    switchEngineTab(activeTab);
+  } else {
+    switchEngineTab(activeTab);
+  }
   fetchEngineRules();
 }
 
