@@ -1444,12 +1444,6 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-card"><div class="v" style="color:#f59e0b">' + (autoRules.length||0) + '</div><div class="l">自动规则</div></div>';
   h += '</div>';
   
-  // ═══ 模块说明 ═══
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
-  h += '<p style="margin:0 0 16px">学习反馈是引擎从<strong>用户行为中自动学习</strong>和改进的核心模块。系统不是一次性部署后停滞不前的静态工具，而是一个能从每次分析中吸取经验、不断进化的智能系统。每次用户对分析结果做出审核判断（采纳或驳回），系统都会记录并分析这些反馈，逐步优化分析策略。</p>';
-  h += '<p style="margin:0">学习反馈的数据流向形成一个<strong>完整闭环</strong>：用户审核→规则自动生成→下次分析自动应用→效果跟踪→持续改进。闭环中的每一环都有明确的触发条件和数据记录，确保引擎的进化是可追溯、可验证、可回滚的。</p>';
-  h += '</div>';
-  
   // ═══ 上下游依赖 ═══
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
   h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
@@ -1470,6 +1464,12 @@ async function renderLearnFeedback(container) {
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-ironlaw\')" style="color:#2563eb">引擎铁律与报告质量映射</a><br><span style="color:#94a3b8">新铁律对报告质量的映射关系更新</span></div>';
   h += '<div><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">学习产出的规则和知识库充实数据资产</span></div>';
   h += '</div></div></div>';
+  
+  // ═══ 模块说明 ═══
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">学习反馈是引擎从<strong>用户行为中自动学习</strong>和改进的核心模块。系统不是一次性部署后停滞不前的静态工具，而是一个能从每次分析中吸取经验、不断进化的智能系统。每次用户对分析结果做出审核判断（采纳或驳回），系统都会记录并分析这些反馈，逐步优化分析策略。</p>';
+  h += '<p style="margin:0">学习反馈的数据流向形成一个<strong>完整闭环</strong>：用户审核→规则自动生成→下次分析自动应用→效果跟踪→持续改进。闭环中的每一环都有明确的触发条件和数据记录，确保引擎的进化是可追溯、可验证、可回滚的。</p>';
+  h += '</div>';
   
   // 三层学习架构
   h += '<div class="lf-sec"><h3>三层渐进学习架构</h3>';
