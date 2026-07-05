@@ -84,22 +84,13 @@ const pages = {
   'housing-fund': '住房公积金',
   'bookkeeping-invoices': '记账发票',
   'tax-risk-report': '账务风险分析报告',
-  'tax-risk-rules': '涉税风险稽查指令',
   'tax-doc-analysis': '资料风险分析报告',
-  'file-parsing': '文件解析',
-  'domain-analysis': '域分析',
-  'methodology-filter': '方法论过滤器',
   'pipeline-rules': '稽查指令',
   'chains-page': '线索链',
   'evidence-page': '证据链',
-  'analyze-page': '分析链',
-  'quality-system': '全链路质量保障体系',
   'system-logs': '系统日志',
   'ai-rules': '智哥行为准则',
-  'auditor-handbook': '税务稽查员手册',
-  'report-standards': '报告编制要求',
   'feedback-template': '审核内容模板',
-  'tax-agi': '税务AGI',
   'human-learning': '人类学习引擎',
   'eng-pipe': '管道调度',
   'eng-learn': '学习反馈',
@@ -710,27 +701,17 @@ function navigateTo(page) {
     case 'housing-fund': renderHousingFund(container); break;
     case '文化事业建设费': renderCulturalConstructionFee(container); break;
     case 'tax-risk-report': renderTaxRiskReport(container); break;
-    case 'tax-risk-rules': renderTaxRiskRules(container); break;
     case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
-    case 'file-parsing': renderFileParsingPage(container); break;
-    case 'domain-analysis': renderDomainAnalysisPage(container); break;
-    case 'methodology-filter': renderMethodologyFilterPage(container); break;
     case 'pipeline-rules': renderTaxRiskRules(container); break;
     case 'chains-page': renderChainsPage(container); break;
     case 'evidence-page': renderEvidencePage(container); break;
-    case 'analyze-page': renderAnalyzePage(container); break;
-    case 'quality-system': renderQualitySystem(container); break;
     case 'tax-incentives-page': renderTaxIncentivesPage(container); break;
     case 'system-logs': renderSystemLogs(container); break;
     case 'ai-rules': renderAiRules(container); break;
     case 'chat': renderChat(container); break;
-    case 'auditor-handbook': renderAuditorHandbook(container); break;
-    case 'report-standards': renderReportStandards(container); break;
     case 'feedback-template': renderFeedbackTemplate(container); break;
-    case 'engine-dashboard': renderEngineDashboardPage(container); break;
     case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
-    case 'tax-agi': renderAgiDashboard(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
     case 'eng-pipe': renderEngineSubModule(container, 'status'); break;
     case 'eng-learn': renderEngineSubModule(container, 'rules'); break;
