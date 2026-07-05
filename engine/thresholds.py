@@ -1,5 +1,5 @@
 """税率阈值配置加载器
-所有稽查逻辑中的硬编码数值必须通过此模块获取，禁止在代码中直接写数字。
+所有税务合规逻辑中的硬编码数值必须通过此模块获取，禁止在代码中直接写数字。
 用法:
     from engine.thresholds import T
     if deviation > T.ratios.significant_deviation and amount > T.amounts.large_transaction:

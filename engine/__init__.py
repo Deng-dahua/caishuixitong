@@ -1,4 +1,4 @@
-# 稽查员推理引擎 (Audit Reasoning Engine)
+# 税务合规员推理引擎 (Audit Reasoning Engine)
 # 模块化架构: context → phase1 → phase2 → phase3 → phase4
 
 from .context import AuditContext, set_audit_ctx, get_audit_ctx

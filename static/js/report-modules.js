@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  稽查报告模块化引擎 — Report Modular Engine
+//  税务合规报告模块化引擎 — Report Modular Engine
 //  让报告从硬编码变成可自由装配的模块化系统
 // ═══════════════════════════════════════════════════════════════
 
@@ -303,13 +303,13 @@ var ReportEngine = (function() {
     var secOrder = ['cover', 'toc', 'sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6', 'sec7', 'header', 'appendix'];
     var secLabels = {
       'cover': '', 'toc': '',
-      'sec1': '一、案件来源及稽查对象基本情况',
-      'sec2': '二、稽查实施情况',
-      'sec3': '三、稽查结论',
-      'sec4': '四、稽查发现问题及事实认定',
+      'sec1': '一、案件来源及税务合规对象基本情况',
+      'sec2': '二、税务合规实施情况',
+      'sec3': '三、税务合规结论',
+      'sec4': '四、税务合规发现问题及事实认定',
       'sec5': '五、处理处罚建议',
       'sec6': '六、告知权利义务',
-      'sec7': '七、稽查人员签字',
+      'sec7': '七、税务合规人员签字',
       'header': '', 'appendix': '附件'
     };
 
@@ -521,7 +521,7 @@ var ReportEngine = (function() {
     render: function(data) {
       var now = new Date();
       var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-      return '<div class="cover"><h1>税务稽查报告</h1><div class="sub">'
+      return '<div class="cover"><h1>税务税务合规报告</h1><div class="sub">'
         + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
         + '报告日期：'+dateStr
         + '</div></div>';
@@ -539,23 +539,23 @@ var ReportEngine = (function() {
     enabled: function() { return true; },
     render: function(data) {
       var h = '<div class="toc">'
-        + '<div><a href="#sec1"><span class="num">一、</span>案件来源及稽查对象基本情况</a></div>'
-        + '<div><a href="#sec2"><span class="num">二、</span>稽查实施情况</a></div>'
-        + '<div><a href="#sec3"><span class="num">三、</span>稽查结论</a></div>'
-        + '<div><a href="#sec4"><span class="num">四、</span>稽查发现问题及事实认定</a></div>';
+        + '<div><a href="#sec1"><span class="num">一、</span>案件来源及税务合规对象基本情况</a></div>'
+        + '<div><a href="#sec2"><span class="num">二、</span>税务合规实施情况</a></div>'
+        + '<div><a href="#sec3"><span class="num">三、</span>税务合规结论</a></div>'
+        + '<div><a href="#sec4"><span class="num">四、</span>税务合规发现问题及事实认定</a></div>';
       if (data.entity_graph && data.entity_graph.total_entities > 0) {
         h += '<div><a href="#sec_graph"><span class="num"></span>附：知识图谱·实体关系</a></div>';
       }
       h += '<div><a href="#sec5"><span class="num">五、</span>处理处罚建议</a></div>'
         + '<div><a href="#sec6"><span class="num">六、</span>告知权利义务</a></div>'
-        + '<div><a href="#sec7"><span class="num">七、</span>稽查人员签字</a></div>'
+        + '<div><a href="#sec7"><span class="num">七、</span>税务合规人员签字</a></div>'
         + '</div>';
       return h;
     }
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  一、案件来源及稽查对象基本情况
+  //  一、案件来源及税务合规对象基本情况
   // ═══════════════════════════════════════════════════════════
 
   // 1.1 案件来源说明
@@ -566,7 +566,7 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function(data) {
-      return '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务稽查工作规程》组织实施稽查，以下为被查单位基本情况。</p>';
+      return '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务税务合规工作规程》组织实施税务合规，以下为被查单位基本情况。</p>';
     }
   });
 
@@ -659,16 +659,16 @@ var ReportEngine = (function() {
       });
 
       var scopeTaxes = _modulesDetectTaxScope(data);
-      h += '<tr><td class="lbl">稽查期间</td><td>' + esc(te.period || '') + '</td></tr>'
-        + '<tr><td class="lbl">稽查范围</td><td>涉税范围：' + scopeTaxes.join('、') + '（共' + data.files_count + '份经营资料）</td></tr>'
-        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条稽查指令及《税务稽查工作规程》</td></tr>'
+      h += '<tr><td class="lbl">税务合规期间</td><td>' + esc(te.period || '') + '</td></tr>'
+        + '<tr><td class="lbl">税务合规范围</td><td>涉税范围：' + scopeTaxes.join('、') + '（共' + data.files_count + '份经营资料）</td></tr>'
+        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条税务合规指令及《税务税务合规工作规程》</td></tr>'
         + '</table>';
 
       return h;
     }
   });
 
-  // 1.3 稽查六员清单
+  // 1.3 税务合规六员清单
   R.register({
     id: 'six_personnel',
     section: 'sec1',
@@ -688,7 +688,7 @@ var ReportEngine = (function() {
       var crossCo = spr.cross_company_overlap || [];
 
       var h = '<div style="margin:16px 0;padding:16px 20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;line-height:2.2">';
-      h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">ⓘ 稽查六员清单（联网核查获取）</div>';
+      h += '<div style="font-weight:700;color:#c2410c;margin-bottom:8px">ⓘ 税务合规六员清单（联网核查获取）</div>';
       h += '<div style="color:#374151">';
       myNames.forEach(function(name) {
         var roles = mp[name] || [];
@@ -753,7 +753,7 @@ var ReportEngine = (function() {
         p += '，所属行业为' + inferredBusiness;
       }
       if (showJudgment) {
-        p += '。经审核发现实质经营模式与工商登记存在差异（详见稽查实施情况-经营实质核查）';
+        p += '。经审核发现实质经营模式与工商登记存在差异（详见税务合规实施情况-经营实质核查）';
       }
       if (te.legal_person || te.legal_representative) {
         p += '，法定代表人' + (te.legal_person || te.legal_representative);
@@ -803,7 +803,7 @@ var ReportEngine = (function() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  二、稽查实施情况
+  //  二、税务合规实施情况
   // ═══════════════════════════════════════════════════════════
 
   // 2.0 实施导语
@@ -814,11 +814,11 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function() {
-      return '<p class="i2">按照稽查方案，依次开展了以下稽查工作。现将稽查实施过程、稽查方法、证据收集情况逐项汇报如下。</p>';
+      return '<p class="i2">按照税务合规方案，依次开展了以下税务合规工作。现将税务合规实施过程、税务合规方法、证据收集情况逐项汇报如下。</p>';
     }
   });
 
-  // 2.1 经营实质核查 - 稽查方法
+  // 2.1 经营实质核查 - 税务合规方法
   R.register({
     id: 'inspection_methods',
     section: 'sec2',
@@ -892,7 +892,7 @@ var ReportEngine = (function() {
       var empCount = te.employee_count || 0;
 
       var h = '<p class="i2">本次经营实质核查采用<b>"多源数据交叉验证"</b>策略：以工商登记信息为基点，以发票数据为经线（销项→收入端、进项→成本端），以银行资金流为纬线（收款→销项核验、付款→进项核验），构建证据网络，逐层穿透企业真实经营面貌。</p>';
-      h += '<p class="i2"><b>（一）稽查方法及核查发现</b></p>';
+      h += '<p class="i2"><b>（一）税务合规方法及核查发现</b></p>';
       
       // 方法一：工商登记核查
       h += '<p class="i2"><b>第一，工商登记核查法。</b>';
@@ -1072,7 +1072,7 @@ var ReportEngine = (function() {
         var totalDiff = purOnlyGoods.length + salOnlyGoods.length;
         h += '综合以上分析——工商登记为' + esc(registeredBusiness || inferredBusiness) + '、进项' + (hasProcFee ? '检出加工费信号' : '未检出加工费') + '、进销品名存在' + totalDiff + '类实质性差异——';
         h += '判断被查单位实质经营模式包含委托加工环节，与其工商登记行业可能不完全一致。';
-        h += '应在稽查中按实质经营模式进行税务处理。';
+        h += '应在税务合规中按实质经营模式进行税务处理。';
         h += '</p>';
       } else if (purOnlyGoods.length > 0 || salOnlyGoods.length > 0) {
         // ── 非制造业行业：进销品名差异是正常经营特征，非加工信号 ──
@@ -1311,7 +1311,7 @@ var ReportEngine = (function() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  三、稽查结论
+  //  三、税务合规结论
   // ═══════════════════════════════════════════════════════════
 
   // 3.1 风险画像
@@ -1357,9 +1357,9 @@ var ReportEngine = (function() {
       // 综合风险评级框
       h += '<div class="conclusion-box '+(highCount>0?'red':(midCount>0?'amber':'green'))+'">';
       h += '<div style="font-size:16px;font-weight:700;margin-bottom:10px">综合风险评级：<span style="color:'+riskC+'">'+riskText+'</span></div>';
-      h += '<p class="i2">本次稽查共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+highCount+'</strong> 项，中风险 <strong>'+midCount+'</strong> 项，低风险 <strong>'+lowCount+'</strong> 项。'+(fixedCount>0?' <span style="color:'+S.red+'">含稽查重点 '+fixedCount+' 项。</span>':'')+'</p>';
+      h += '<p class="i2">本次税务合规共发现 <strong>'+allF.length+'</strong> 项问题，其中高风险 <strong>'+highCount+'</strong> 项，中风险 <strong>'+midCount+'</strong> 项，低风险 <strong>'+lowCount+'</strong> 项。'+(fixedCount>0?' <span style="color:'+S.red+'">含税务合规重点 '+fixedCount+' 项。</span>':'')+'</p>';
       if (chainList.length > 0) {
-        h += '<p class="i2"><strong>稽查线索链覆盖：</strong>本次调查共激活' + chainList.length + '条稽查线索链：' + chainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (chainList.length>15?'等':'') + '。</p>';
+        h += '<p class="i2"><strong>税务合规线索链覆盖：</strong>本次调查共激活' + chainList.length + '条税务合规线索链：' + chainList.slice(0,15).map(function(c){return esc(c);}).join('、') + (chainList.length>15?'等':'') + '。</p>';
       }
       h += '</div>';
 
@@ -1373,14 +1373,14 @@ var ReportEngine = (function() {
       }
 
       // 证据链完整性
-      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及稽查重点事项的认定均有规则ID溯源和≥2域交叉验证。本次稽查共激活<strong>' + chainList.length + '条</strong>线索链，符合《税务稽查工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及税务合规重点事项的认定均有规则ID溯源和≥2域交叉验证。本次税务合规共激活<strong>' + chainList.length + '条</strong>线索链，符合《税务税务合规工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
 
       // 线索链使用
       if (typeof renderChainUsage === 'function') {
         h += renderChainUsage(data.comprehensive || {});
       }
 
-      // 稽查局限性声明——从实际缺失资料动态生成
+      // 税务合规局限性声明——从实际缺失资料动态生成
       var missingDocs = [];
       for (var fi = 0; fi < allF.length; fi++) {
         var f = allF[fi];
@@ -1393,7 +1393,7 @@ var ReportEngine = (function() {
         }
       }
       if (missingDocs.length > 0) {
-        h += '<h3>稽查局限性声明</h3><p class="i2">本次稽查缺少以下资料，相应领域的分析结论置信度受限，无法核实：';
+        h += '<h3>税务合规局限性声明</h3><p class="i2">本次税务合规缺少以下资料，相应领域的分析结论置信度受限，无法核实：';
         var limitItems = ['记账凭证→分录准确性','工资表→工资费用真实性','社保明细→参保合规性','进销存台账→存货账实相符','合同文件→交易真实性','科目余额表→账账一致性','资产负债表+利润表→财务匹配性','增值税申报表→销进项一致性','企业所得税申报表→所得税准确性','个人所得税申报表→代扣代缴','其他税种申报表→小税种合规'];
         missingDocs.forEach(function(doc, di){
           var desc = doc;
@@ -1402,7 +1402,7 @@ var ReportEngine = (function() {
           }
           h += '（'+(di+1)+'）' + esc(desc) + '；';
         });
-        h += '以上受限事项如后续补充资料，需另行补充稽查。</p>';
+        h += '以上受限事项如后续补充资料，需另行补充税务合规。</p>';
       }
 
       // 处理优先级建议
@@ -1420,7 +1420,7 @@ var ReportEngine = (function() {
       h += '</table>';
 
       // 总体结论
-      h += '<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'稽查期间')+'的经营活动中，';
+      h += '<h3>总体结论</h3><p class="i2">'+esc(te.name||'被查单位')+'在'+esc(te.period||'税务合规期间')+'的经营活动中，';
       if (highCount > 0) {
         h += '存在'+highCount+'项高风险问题，建议依法核查；'+midCount+'项中风险事项，建议自查整改。';
       } else if (midCount > 0) {
@@ -1435,7 +1435,7 @@ var ReportEngine = (function() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  四、稽查发现问题及事实认定
+  //  四、税务合规发现问题及事实认定
   // ═══════════════════════════════════════════════════════════
 
   R.register({
@@ -1445,7 +1445,7 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function() {
-      return '<p class="i2">以下逐项列示稽查中发现的全部风险疑点，标注了稽查过程、线索链来源、证据材料和法律依据，按风险等级从高到低排列。</p>';
+      return '<p class="i2">以下逐项列示税务合规中发现的全部风险疑点，标注了税务合规过程、线索链来源、证据材料和法律依据，按风险等级从高到低排列。</p>';
     }
   });
 
@@ -1469,7 +1469,7 @@ var ReportEngine = (function() {
       h += '<tr><td style="color:#2b8a3e">⚪ 低风险</td><td>' + lowF.length + '条</td><td>' + (allF.length>0?(lowF.length/allF.length*100).toFixed(0):0) + '%</td><td>日常费用/技术提醒</td><td>持续关注</td></tr>';
       h += '</table></div>';
 
-      h += '<p class="i2">本次稽查共启动<strong>' + (data.rules_used||'?') + '条</strong>稽查指令，覆盖<strong>' + (data.pipeline_log ? data.pipeline_log.filter(function(e){return e.indexOf('域')>-1;}).length : '?') + '个</strong>分析域。</p>';
+      h += '<p class="i2">本次税务合规共启动<strong>' + (data.rules_used||'?') + '条</strong>税务合规指令，覆盖<strong>' + (data.pipeline_log ? data.pipeline_log.filter(function(e){return e.indexOf('域')>-1;}).length : '?') + '个</strong>分析域。</p>';
       return h;
     }
   });
@@ -1493,7 +1493,7 @@ var ReportEngine = (function() {
         var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
         var bc = f.level_fixed ? S.red : (s>=8?S.red:(s>=6?S.amber:'#94a3b8'));
         var tc = f.level_fixed ? 'rtag' : (s>=8?'rtag':(s>=6?'atag':'gtag'));
-        var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">稽查重点</span>':'');
+        var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">税务合规重点</span>':'');
 
         h += '<div class="fact-sec" style="border-left:4px solid '+bc+'">';
         h += '<div class="ftitle">（'+(i+1)+'）'+esc(f.type||'')+' <span class="tag '+tc+'">['+tl+']</span>'+badge+'</div>';
@@ -1736,7 +1736,7 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function() {
-      return '<p class="i2">根据上述稽查发现和证据链，提出以下处理处罚建议。</p>';
+      return '<p class="i2">根据上述税务合规发现和证据链，提出以下处理处罚建议。</p>';
     }
   });
 
@@ -1786,7 +1786,7 @@ var ReportEngine = (function() {
       if (actions.length > 0) {
         actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
       }
-      h += '<p class="i2">根据相关税收法规规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复稽查部门。</p>';
+      h += '<p class="i2">根据相关税收法规规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复税务合规部门。</p>';
       return h;
     }
   });
@@ -1802,8 +1802,8 @@ var ReportEngine = (function() {
     enabled: function() { return true; },
     render: function() {
       return '<div class="rights-sec">'
-        + '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务稽查工作规程》，被查单位享有以下权利：</div>'
-        + '<div class="ritem">1. <b>申请回避权</b>：认为稽查人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>'
+        + '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务税务合规工作规程》，被查单位享有以下权利：</div>'
+        + '<div class="ritem">1. <b>申请回避权</b>：认为税务合规人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>'
         + '<div class="ritem">2. <b>陈述申辩权</b>：对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见。</div>'
         + '<div class="ritem">3. <b>听证权</b>：对拟作出的较大数额罚款有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</div>'
         + '<div class="ritem">4. <b>复议权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起60日内向上一级税务机关申请行政复议。</div>'
@@ -1813,7 +1813,7 @@ var ReportEngine = (function() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  七、稽查人员签字
+  //  七、税务合规人员签字
   // ═══════════════════════════════════════════════════════════
   R.register({
     id: 'signature_block',
@@ -1825,9 +1825,9 @@ var ReportEngine = (function() {
       var now = new Date();
       var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
       return '<div class="seal">'
-        + '<div>稽查执行人：___________ （签名）  ' + dateStr + '</div>'
+        + '<div>税务合规执行人：___________ （签名）  ' + dateStr + '</div>'
         + '<div style="margin-top:10px">审理人：___________ （签名）</div>'
-        + '<div style="margin-top:20px">稽查部门（盖章）：___________</div>'
+        + '<div style="margin-top:20px">税务合规部门（盖章）：___________</div>'
         + '<div style="margin-top:20px">报告日期：' + dateStr + '</div>'
         + '</div>';
     }
@@ -1908,19 +1908,19 @@ var ReportEngine = (function() {
   // 模块自己判断 enabled=true/false，系统不替模块做决定
   R.defineTemplate({
     id: 'freeform',
-    name: '自由编制稽查报告',
-    description: '系统根据稽查数据实际情况，自行决定渲染哪些模块、排列顺序，不受固定模板约束。',
+    name: '自由编制税务合规报告',
+    description: '系统根据税务合规数据实际情况，自行决定渲染哪些模块、排列顺序，不受固定模板约束。',
     condition: function() { return true; },
     sections: [
       { id: 'cover', label: '', modules: [] },
       { id: 'toc', label: '', modules: [] },
-      { id: 'sec1', label: '一、案件来源及稽查对象基本情况', modules: [] },
-      { id: 'sec2', label: '二、稽查实施情况', modules: [] },
-      { id: 'sec3', label: '三、稽查结论', modules: [] },
-      { id: 'sec4', label: '四、稽查发现问题及事实认定', modules: [] },
+      { id: 'sec1', label: '一、案件来源及税务合规对象基本情况', modules: [] },
+      { id: 'sec2', label: '二、税务合规实施情况', modules: [] },
+      { id: 'sec3', label: '三、税务合规结论', modules: [] },
+      { id: 'sec4', label: '四、税务合规发现问题及事实认定', modules: [] },
       { id: 'sec5', label: '五、处理处罚建议', modules: [] },
       { id: 'sec6', label: '六、告知权利义务', modules: [] },
-      { id: 'sec7', label: '七、稽查人员签字', modules: [] },
+      { id: 'sec7', label: '七、税务合规人员签字', modules: [] },
       { id: 'appendix', label: '附件', modules: [] }
     ]
   });

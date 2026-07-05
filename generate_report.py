@@ -1,5 +1,5 @@
 """
-生成稽查报告 HTML — 全面运用分析链㉔条标准
+生成税务合规报告 HTML — 全面运用分析链㉔条标准
 """
 import json, os
 from datetime import datetime
@@ -51,13 +51,13 @@ def render_finding(f, level, is_high=False):
     else:
         cls = 'green'; tag_cls = 'tag-g'; tag_text = '低风险'
     
-    # 稽查重点标记
+    # 税务合规重点标记
     audit_priority = f.get('level_fixed', False)
     
     h = f'<div class="finding {cls}"><div class="ft">'
     h += f'<span class="tag {tag_cls}">{tag_text}</span> '
     if audit_priority:
-        h += '<span class="tag tag-r" style="font-size:10px">稽查重点</span> '
+        h += '<span class="tag tag-r" style="font-size:10px">税务合规重点</span> '
     h += f'{esc(ftype)}'
     if rule_id:
         h += f' <span style="font-size:11px;color:#94a3b8">[规则ID:{rule_id}]</span>'
@@ -79,7 +79,7 @@ def render_finding(f, level, is_high=False):
         h += f'<div class="fs"><strong>法律依据：</strong>{esc(policy)}</div>'
     
     if suggestion:
-        h += f'<div class="fs"><strong>稽查建议：</strong>{esc(suggestion)}</div>'
+        h += f'<div class="fs"><strong>税务合规建议：</strong>{esc(suggestion)}</div>'
     
     # 明细表格——全部数据，不截断
     h += render_items(items)
@@ -94,7 +94,7 @@ html = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>税务稽查报告 — ''' + esc(entity.get('name', '企业')) + '''</title>
+<title>税务税务合规报告 — ''' + esc(entity.get('name', '企业')) + '''</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;background:#f8f9fa}
@@ -141,7 +141,7 @@ p.i2{text-indent:2em}
 <div class="sub">
 编号：税稽字[''' + str(datetime.now().year) + ''']第''' + str(data['total_risks']) + '''号<br>
 被查单位：''' + esc(entity.get('name', '未获取')) + '''<br>
-稽查期间：''' + esc(entity.get('period', data.get('period', '资料覆盖期间'))) + '''<br>
+税务合规期间：''' + esc(entity.get('period', data.get('period', '资料覆盖期间'))) + '''<br>
 报告日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''<br>
 资料数量：共''' + str(data['files_count']) + '''份
 '''
@@ -156,16 +156,16 @@ if files_by_type:
 html += '''</div>
 </div>
 
-<h2>稽查引擎执行标准</h2>
+<h2>税务合规引擎执行标准</h2>
 <p style="font-size:13px;color:#64748b;line-height:2">
-本报告依托分析链㉔条稽查方法论，全量规则引擎+线索链+证据链+跨域推理+方法论过滤+建议增强。
+本报告依托分析链㉔条税务合规方法论，全量规则引擎+线索链+证据链+跨域推理+方法论过滤+建议增强。
 </p>
 <div style="padding:12px 16px;background:#fafafa;border-radius:6px;font-size:12px;line-height:2">
 <div class="meth-item"><span class="mnum">①</span>多格式兼容 <span style="margin:0 8px">②</span>汇总行过滤 <span style="margin:0 8px">③</span>付款方身份核实 <span style="margin:0 8px">④</span>关键词≠事实 <span style="margin:0 8px">⑤</span>行业认知补算法</div>
 <div class="meth-item"><span class="mnum">⑥</span>联网核查 ✅ <span style="margin:0 8px">⑦</span>明细即信服力 <span style="margin:0 8px">⑧</span>不墨迹直接干 <span style="margin:0 8px">⑨</span>合同分层判断 <span style="margin:0 8px">⑩</span>完备度明细</div>
 <div class="meth-item"><span class="mnum">⑪</span>完备度升级 <span style="margin:0 8px">⑫</span>凭证描述纠正 <span style="margin:0 8px">⑬</span>进销诊断升级 <span style="margin:0 8px">⑭</span>行业基准库 <span style="margin:0 8px">⑮</span>结论分析法</div>
-<div class="meth-item"><span class="mnum">⑯</span>COND_BAN防误杀 <span style="margin:0 8px">⑰</span>稽查重点强制等级 <span style="margin:0 8px">⑱</span>报告纯净度 <span style="margin:0 8px">⑲</span>发票≠收付款1:1 <span style="margin:0 8px">⑳</span>经营实质地理分析</div>
-<div class="meth-item"><span class="mnum">㉑</span>规则detail业务化 <span style="margin:0 8px">㉒</span>建议质量增强 <span style="margin:0 8px">㉓</span>四步稽查分析法 <span style="margin:0 8px">㉔</span>禁止数据截断</div>
+<div class="meth-item"><span class="mnum">⑯</span>COND_BAN防误杀 <span style="margin:0 8px">⑰</span>税务合规重点强制等级 <span style="margin:0 8px">⑱</span>报告纯净度 <span style="margin:0 8px">⑲</span>发票≠收付款1:1 <span style="margin:0 8px">⑳</span>经营实质地理分析</div>
+<div class="meth-item"><span class="mnum">㉑</span>规则detail业务化 <span style="margin:0 8px">㉒</span>建议质量增强 <span style="margin:0 8px">㉓</span>四步税务合规分析法 <span style="margin:0 8px">㉔</span>禁止数据截断</div>
 <div class="meth-item"><span class="mnum">㉕</span>三层行业穿透法 <span style="margin:0 8px;color:#c92a2a">NEW</span></div>
 <div class="meth-item"><span class="mnum">㉖</span>经营实质点面推理法 <span style="margin:0 8px;color:#c92a2a">NEW</span></div>
 </div>
@@ -214,7 +214,7 @@ if legal_rep or reg_capital:
 '''
 
 html += '''
-<h2>一、稽查概况</h2>
+<h2>一、税务合规概况</h2>
 
 <div class="stat-grid">
 <div class="stat-card"><div class="num">''' + str(data['total_risks']) + '''</div><div class="lbl">风险发现总数</div></div>
@@ -224,7 +224,7 @@ html += '''
 </div>
 
 <div class="warn">
-<strong>⚠️ 资料完备度警告：</strong>本次稽查共收到''' + str(data['files_count']) + '''份资料。资料完备度直接影响分析结论的置信度——资料越完整，结论越可靠。
+<strong>⚠️ 资料完备度警告：</strong>本次税务合规共收到''' + str(data['files_count']) + '''份资料。资料完备度直接影响分析结论的置信度——资料越完整，结论越可靠。
 </div>
 
 <h2>二、高风险发现（''' + str(data['high_risk']) + '''项）</h2>
@@ -242,9 +242,9 @@ for f in low_list:
     html += render_finding(f, '低风险')
 
 html += '''
-<h2>五、综合结论与稽查建议</h2>
+<h2>五、综合结论与税务合规建议</h2>
 
-<p class="i2">经对被查单位「''' + esc(entity.get('name', '企业')) + '''」进行系统性稽查分析，共发现''' + str(data['total_risks']) + '''项风险（高风险''' + str(data['high_risk']) + '''项、中风险''' + str(data['mid_risk']) + '''项、低风险''' + str(data['low_risk']) + '''项），形成结论如下：</p>
+<p class="i2">经对被查单位「''' + esc(entity.get('name', '企业')) + '''」进行系统性税务合规分析，共发现''' + str(data['total_risks']) + '''项风险（高风险''' + str(data['high_risk']) + '''项、中风险''' + str(data['mid_risk']) + '''项、低风险''' + str(data['low_risk']) + '''项），形成结论如下：</p>
 
 <h3>（一）高风险问题摘要</h3>
 '''
@@ -262,7 +262,7 @@ else:
     html += '<p class="i2">本次分析未发现高风险问题。</p>\n'
 
 html += '''
-<h3>（二）稽查建议</h3>
+<h3>（二）税务合规建议</h3>
 
 <p class="i2">基于本次分析发现的''' + str(data['total_risks']) + '''项风险，建议按风险等级分步处理：</p>
 '''
@@ -285,7 +285,7 @@ if has_emp_issues:
 
 html += '''
 <div class="seal">
-<p>稽查员（签名）：_______________</p>
+<p>税务合规员（签名）：_______________</p>
 <p>日期：''' + datetime.now().strftime('%Y年%m月%d日') + '''</p>
 </div>
 '''
@@ -295,7 +295,7 @@ html += '''
 </html>
 '''
 
-output_path = os.path.join(os.path.dirname(__file__), '稽查报告_' + esc(entity.get('name', '企业')).replace('/', '_') + '_' + datetime.now().strftime('%Y%m%d') + '.html')
+output_path = os.path.join(os.path.dirname(__file__), '税务合规报告_' + esc(entity.get('name', '企业')).replace('/', '_') + '_' + datetime.now().strftime('%Y%m%d') + '.html')
 with open(output_path, 'w', encoding='utf-8') as f:
     f.write(html)
 

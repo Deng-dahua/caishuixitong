@@ -47,9 +47,9 @@ async function renderDashboard(container) {
         {page:'social-security', label:'🛡️ 社保', cls:'btn-outline'},
         {page:'housing-fund', label:'🏠 公积金', cls:'btn-outline'},
       ]},
-      {group:'稽查分析', items:[
+      {group:'税务合规分析', items:[
         {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
-        {page:'tax-risk-rules', label:'📋 稽查指令', cls:'btn-outline'},
+        {page:'tax-risk-rules', label:'📋 税务合规指令', cls:'btn-outline'},
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
         {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
         {page:'domain-analysis', label:'🔬 域分析', cls:'btn-outline'},
@@ -68,7 +68,7 @@ async function renderDashboard(container) {
         {page:'system-logs', label:'📜 系统日志', cls:'btn-outline'},
       ]},
       {group:'规范手册', items:[
-        {page:'auditor-handbook', label:'⚖️ 稽查员手册', cls:'btn-outline'},
+        {page:'auditor-handbook', label:'⚖️ 税务合规员手册', cls:'btn-outline'},
         {page:'report-standards', label:'📐 编制要求', cls:'btn-outline'},
         {page:'feedback-template', label:'📝 审核模板', cls:'btn-outline'},
       ]}

@@ -173,7 +173,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     risk_advice = _get_risk_advice(overall_risk)
     
     lines.append(
-        f"【综合稽查结论】\n\n"
+        f"【综合税务合规结论】\n\n"
         f"经对{scale_desc}{model}企业（{industry}行业）的多域全量分析——"
         f"涵盖{fs['bank_tx_count']}笔银行流水、{fs['sale_count']}张销项发票、{fs['pur_count']}张进项发票"
         f"{'、'+str(fs['salary_count'])+'条工资记录' if fs['salary_count'] > 0 else ''}——"
@@ -257,14 +257,14 @@ def _get_risk_advice(level):
     if level == "极高风险":
         return (
             "该企业的涉税风险已达到'极高'级别——多个独立证据源互相印证，"
-            "存在系统性、组织性的涉税违法嫌疑。建议立即启动稽查程序，"
+            "存在系统性、组织性的涉税违法嫌疑。建议立即启动税务合规程序，"
             "对企业的资金流、发票流、货物流做全方位穿透核查。"
         )
     elif level == "高风险":
         return (
             "该企业存在多项高风险涉税问题，虽未达到系统性的'极高风险'程度，"
             "但多项异常信号的叠加表明涉税违法的主观意图明显。"
-            "建议优先安排稽查力量，逐项核实重点问题。"
+            "建议优先安排税务合规力量，逐项核实重点问题。"
         )
     elif level == "中风险":
         return (
@@ -287,7 +287,7 @@ def _get_detailed_mode_analysis(model, industry, ctx):
     if model == "制造业":
         analysis = (
             f"  该企业被识别为{industry}制造业企业。"
-            f"制造业的稽查重点是加工链条真实性——"
+            f"制造业的税务合规重点是加工链条真实性——"
             f"原材料→加工→成品的投入产出逻辑是否成立。\n"
         )
         if ctx.has_processing_fee:
@@ -311,7 +311,7 @@ def _get_detailed_mode_analysis(model, industry, ctx):
     
     elif model == "贸易":
         return (
-            f"  该企业被识别为贸易企业。贸易模式的稽查重点是进销品名一致性——"
+            f"  该企业被识别为贸易企业。贸易模式的税务合规重点是进销品名一致性——"
             f"买什么就卖什么，品名应当高度匹配。"
             f"品名不匹配的差异需要逐一解释（是否为加工转换、是否为变名开票）。\n"
             f"  建议核查：进销品名重合度、供应商与客户的工商关联、物流单据真实性。"
@@ -319,7 +319,7 @@ def _get_detailed_mode_analysis(model, industry, ctx):
     
     elif model in ("服务/劳务",):
         return (
-            f"  该企业被识别为服务/劳务企业。服务业的稽查重点是收入完整性——"
+            f"  该企业被识别为服务/劳务企业。服务业的税务合规重点是收入完整性——"
             f"因为服务不像货物有实物形态，更容易出现账外收入。\n"
             f"  建议核查：银行收款与开票收入的全量比对、员工人数与业务量的匹配度、"
             f"主要客户合同的签约时间与金额分布。"
@@ -350,7 +350,7 @@ def _summarize_evidence(all_items):
     evidence_domains = set(f.get("domain", "") for f in high_findings)
     
     lines = []
-    lines.append(f"共{len(all_items)}项发现，其中高风险{len(high_findings)}项，涉及{len(evidence_domains)}个稽查域。")
+    lines.append(f"共{len(all_items)}项发现，其中高风险{len(high_findings)}项，涉及{len(evidence_domains)}个税务合规域。")
     
     if evidence_domains:
         lines.append(f"关键证据域：{' / '.join(sorted(evidence_domains))}")

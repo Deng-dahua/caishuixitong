@@ -35,7 +35,7 @@ class SCMReasoner:
         self._domain_knowledge = self._init_domain_knowledge()
     
     def _init_domain_knowledge(self) -> Dict[str, Dict]:
-        """税务稽查领域的因果先验知识"""
+        """税务税务合规领域的因果先验知识"""
         return {
             # 因果方向：时间序确定 —— 采购在前，进项发票在后
             "进项发票异常": {"causes": ["供应商集中度过高", "品名与经营范围不符", "银行付款方不匹配"], "effects": ["虚开发票风险"]},

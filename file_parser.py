@@ -1037,6 +1037,6 @@ def validate_id_card(card_no: str) -> tuple:
 
 
 # ==================== Chat AI 助手模块 ====================
-# chat_router 已移除（8888稽查版）
-# chat_router 已移除（8888稽查版）
+# chat_router 已移除（8888税务合规版）
+# chat_router 已移除（8888税务合规版）
 

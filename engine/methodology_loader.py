@@ -1,25 +1,25 @@
 """
-稽查方法论文本提取 + 结构化加载器
+税务合规方法论文本提取 + 结构化加载器
 将 tax-auditor-handbook.js 中的方法论转换为引擎可读的配置
 """
 
 METHODOLOGY_KNOWLEDGE = {
     "_meta": {
         "source": "tax-auditor-handbook.js",
-        "purpose": "将手册中的稽查方法论结构化，供引擎在分析时自动匹配应用",
+        "purpose": "将手册中的税务合规方法论结构化，供引擎在分析时自动匹配应用",
         "total_methods": 0,
         "total_laws": 0,
         "total_documents": 0,
     },
     
-    # ═══ 稽查工作流程 ═══
+    # ═══ 税务合规工作流程 ═══
     "workflow": {
         "stages": [
             {
                 "id": "W1",
                 "name": "选案",
                 "law_ref": "规程第14-20条",
-                "description": "稽查局通过多渠道获取案源信息，集体研究确定稽查对象",
+                "description": "税务合规局通过多渠道获取案源信息，集体研究确定税务合规对象",
                 "system_mapping": "本系统的一键分析对应选案阶段的计算机分析环节，预先扫描风险",
                 "key_rules": [
                     "8类案源信息（第16条）",
@@ -32,7 +32,7 @@ METHODOLOGY_KNOWLEDGE = {
                 "name": "检查",
                 "law_ref": "规程第21-45条",
                 "description": "调取账簿/实地检查/询问/取证/查询存款账户",
-                "system_mapping": "系统资料驱动稽查方法论对应检查阶段的取证要求",
+                "system_mapping": "系统资料驱动税务合规方法论对应检查阶段的取证要求",
                 "key_rules": [
                     "调取账簿：送达后30日内退还（第25条）",
                     "跨区协查机制（第29条）",
@@ -83,19 +83,19 @@ METHODOLOGY_KNOWLEDGE = {
         {"id": "D14", "name": "公积金缴存", "law": "公积金管理条例", "purpose": "缴存基数/比例合规、人员匹配", "missing_risk": "无法核查公积金合规性"},
     ],
     
-    # ═══ 稽查方法论 ═══
+    # ═══ 税务合规方法论 ═══
     "methodologies": [
         {
             "id": "M01",
-            "name": "资料驱动稽查法",
+            "name": "资料驱动税务合规法",
             "principle": "有什么资料审什么，不凭空臆测",
-            "steps": ["识别已有资料类型", "评估缺失资料风险", "根据现有资料确定稽查重点"],
+            "steps": ["识别已有资料类型", "评估缺失资料风险", "根据现有资料确定税务合规重点"],
             "code_ref": "_domain_document_completeness()",
             "applicable": "always"
         },
         {
             "id": "M02",
-            "name": "四步稽查分析法",
+            "name": "四步税务合规分析法",
             "principle": "detect→verify→diagnose→report 统一框架",
             "steps": [
                 "detect: 检测现象（进销品名不匹配/收款来源不匹配/付款不匹配）",
@@ -195,7 +195,7 @@ METHODOLOGY_KNOWLEDGE["_meta"]["total_documents"] = len(METHODOLOGY_KNOWLEDGE["r
 
 
 def match_methodology(domain_name):
-    """按稽查域名称匹配适用的方法论 — 通过方法名/原理关键词模糊匹配"""
+    """按税务合规域名称匹配适用的方法论 — 通过方法名/原理关键词模糊匹配"""
     methods = METHODOLOGY_KNOWLEDGE.get("methodologies", [])
     matched = []
     domain_lower = (domain_name or "").lower()
@@ -235,7 +235,7 @@ def match_methodology(domain_name):
 
 
 def get_relevant_laws(domain_name):
-    """按稽查域名称获取适用的法条 — 通过触发条件关键词模糊匹配"""
+    """按税务合规域名称获取适用的法条 — 通过触发条件关键词模糊匹配"""
     laws = METHODOLOGY_KNOWLEDGE.get("law_references", [])
     relevant = []
     domain_lower = (domain_name or "").lower()

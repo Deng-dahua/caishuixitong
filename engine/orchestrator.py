@@ -126,7 +126,7 @@ MODULE_REGISTRY = {
     },
     "M012_methodology_filter": {
         "name": "方法论噪声过滤器",
-        "description": "97%噪声过滤+同质发现去重+稽查重点强制等级",
+        "description": "97%噪声过滤+同质发现去重+税务合规重点强制等级",
         "requires": {"data": ["all_findings"], "condition": "len(all_findings) > 0"},
         "depends_on": ["M011_hypothesis_verification"],
         "priority": 12,
@@ -171,8 +171,8 @@ MODULE_REGISTRY = {
     },
     # ═══ 新增模块（2026-06-25）═══
     "M017_financial_analysis": {
-        "name": "财务报表税务稽查",
-        "description": "四层财税钩稽+往来款项(预收/预付/其他应收-个人/存货)深度稽查",
+        "name": "财务报表税务税务合规",
+        "description": "四层财税钩稽+往来款项(预收/预付/其他应收-个人/存货)深度税务合规",
         "requires": {"data": ["financial_statements", "vouchers"], "condition": "bs or income or vouchers"},
         "depends_on": ["M008_domain_analysis"],
         "priority": 9.5,
@@ -208,7 +208,7 @@ MODULE_REGISTRY = {
     },
     "M021_compliance_gate": {
         "name": "合规门禁与渐进学习",
-        "description": "12条稽查铁律+12条报告标准门禁检查+模块信任度自适应调度",
+        "description": "12条税务合规铁律+12条报告标准门禁检查+模块信任度自适应调度",
         "requires": {"data": [], "condition": "True"},
         "depends_on": ["M016_report_render"],
         "priority": 18,

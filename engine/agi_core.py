@@ -526,7 +526,7 @@ class BoundaryAwareness:
         
         # 资料完备度
         material_intel = analysis_context.get("material_intel", {})
-        total_materials = 9  # 稽查必查9类资料
+        total_materials = 9  # 税务合规必查9类资料
         available = sum(1 for v in material_intel.values() if isinstance(v, dict) and v.get("exists", False))
         completeness = available / max(total_materials, 1)
         

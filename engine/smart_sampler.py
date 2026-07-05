@@ -1,5 +1,5 @@
 """
-智能抽样引擎 — 基于统计的稽查抽样策略
+智能抽样引擎 — 基于统计的税务合规抽样策略
 
 不随机抽，而是：
 1. 分层抽样：按金额/风险/行业分层
@@ -13,7 +13,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict
 
 class SmartSampler:
-    """稽查智能抽样引擎"""
+    """税务合规智能抽样引擎"""
     
     def __init__(self):
         self._history: List[Dict] = []

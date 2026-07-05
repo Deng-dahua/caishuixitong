@@ -1,21 +1,21 @@
 """
 AGI增强能力 — LLM报告生成 + 天眼查API + 培训案例 + 集团协同
 
-不再只是"增强报告"，而是让LLM直接写一篇完整的5000字稽查报告，人只需审阅。
+不再只是"增强报告"，而是让LLM直接写一篇完整的5000字税务合规报告，人只需审阅。
 """
 import json, os, httpx
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 
-# ═══════════ 1. LLM 完整稽查报告生成 ═══════════
+# ═══════════ 1. LLM 完整税务合规报告生成 ═══════════
 
 class FullReportWriter:
-    """用LLM生成完整的5000字稽查报告"""
+    """用LLM生成完整的5000字税务合规报告"""
     
     def generate_report(self, findings: List[Dict], company: Dict, 
                         use_llm: bool = True) -> Dict:
-        """生成完整稽查报告"""
+        """生成完整税务合规报告"""
         
         # 统计数据
         high = [f for f in findings if f.get("level") in ("高风险", "极高风险")]
@@ -41,21 +41,21 @@ class FullReportWriter:
         mid = [f for f in findings if f.get("level") == "中风险"]
         
         return {
-            "title": f"关于{company.get('name','被查单位')}的税务稽查报告",
+            "title": f"关于{company.get('name','被查单位')}的税务税务合规报告",
             "sections": {
                 "第一章 基本情况": {
                     "content": [
                         f"被查单位: {company.get('name','')}",
                         f"信用代码: {company.get('uscc','')}",
                         f"所属行业: {company.get('industry','')}",
-                        f"稽查期间: {company.get('period','')}",
-                        f"稽查方法: 42域全量分析 + AGI多维度推理",
+                        f"税务合规期间: {company.get('period','')}",
+                        f"税务合规方法: 42域全量分析 + AGI多维度推理",
                     ],
                 },
                 "第二章 资料审查": {
                     "content": self._summarize_materials(company.get("materials", {})),
                 },
-                "第三章 稽查发现": {
+                "第三章 税务合规发现": {
                     "high_risk": [{"type": f.get("type",""), "detail": f.get("detail",""), 
                                   "evidence": f.get("how_found",""), "law": f.get("policy_ref","")} 
                                  for f in high[:15]],
@@ -78,7 +78,7 @@ class FullReportWriter:
                 "第八章 处理建议": {
                     "suggestions": list(set(f.get("suggestion","") for f in findings if f.get("suggestion","").strip()))[:5],
                 },
-                "第九章 稽查结论": {
+                "第九章 税务合规结论": {
                     "conclusion": self._write_conclusion(findings, company),
                 },
             },
@@ -95,7 +95,7 @@ class FullReportWriter:
         
         high = [f for f in findings if f.get("level") in ("高风险", "极高风险")]
         
-        prompt = f"""你是一位资深税务稽查专家，请用专业但易懂的语言撰写一份完整的稽查报告（5000字以上）。
+        prompt = f"""你是一位资深税务税务合规专家，请用专业但易懂的语言撰写一份完整的税务合规报告（5000字以上）。
         
 被查单位: {company.get('name','')}
 行业: {company.get('industry','')}
@@ -105,20 +105,20 @@ class FullReportWriter:
 {json.dumps([{'type':f.get('type',''),'level':f.get('level',''),'detail':f.get('detail',''),'how_found':f.get('how_found',''),'policy_ref':f.get('policy_ref','')[:100]} for f in findings[:15]], ensure_ascii=False, indent=2)}
 
 请按以下结构撰写（每章必须详细展开，不少于800字）：
-1. 稽查背景与总体评价
+1. 税务合规背景与总体评价
 2. 重大风险发现（逐条详细叙述）
 3. 证据分析（证据链的完整性和可靠性）
 4. 法律依据（逐条援引法条原文）
 5. 风险评级依据（为什么评定这个等级）
 6. 税款预估（分税种计算）
 7. 处理建议（分级建议，从紧急到常规）
-8. 稽查结论
+8. 税务合规结论
 
 要求：数据具体、法条准确、建议可操作。如不确定处，标注"建议进一步核实"。"""
 
         try:
             resp = llm.chat([{"role": "user", "content": prompt}], 
-                          system="你是资深税务稽查专家，撰写正式的稽查报告。用中文。",
+                          system="你是资深税务税务合规专家，撰写正式的税务合规报告。用中文。",
                           temperature=0.4, max_tokens=4000)
             return resp.content if resp.content else ""
         except:
@@ -154,8 +154,8 @@ class FullReportWriter:
     def _write_conclusion(self, findings: List[Dict], company: Dict) -> str:
         highs = [f for f in findings if f.get("level") in ("高风险", "极高风险")]
         if highs:
-            return f"经全面稽查，{company.get('name','被查单位')}存在{len(highs)}项高风险问题，涉及{', '.join(set(f.get('type','')[:20] for f in highs[:3]))}。建议对该企业进行重点监控并限期整改。"
-        return f"经稽查分析，{company.get('name','被查单位')}整体税务合规状况良好。"
+            return f"经全面税务合规，{company.get('name','被查单位')}存在{len(highs)}项高风险问题，涉及{', '.join(set(f.get('type','')[:20] for f in highs[:3]))}。建议对该企业进行重点监控并限期整改。"
+        return f"经税务合规分析，{company.get('name','被查单位')}整体税务合规状况良好。"
 
 
 # ═══════════ 2. 天眼查API对接 ═══════════
@@ -289,7 +289,7 @@ class TrainingCaseGenerator:
             "scenario": {
                 "company": company.get("name", "某企业"),
                 "industry": company.get("industry", "某行业"),
-                "situation": f"系统在稽查中发现: {finding.get('detail','')}",
+                "situation": f"系统在税务合规中发现: {finding.get('detail','')}",
             },
             "analysis": {
                 "what_happened": finding.get("detail", ""),
@@ -303,7 +303,7 @@ class TrainingCaseGenerator:
                 "key_takeaway": self._key_takeaway(finding),
             },
             "quiz": {
-                "question": f"如果你在稽查中发现{finding.get('type','')[:30]}，你会怎么做？",
+                "question": f"如果你在税务合规中发现{finding.get('type','')[:30]}，你会怎么做？",
                 "answer": self._build_answer(finding),
             },
         }
@@ -313,7 +313,7 @@ class TrainingCaseGenerator:
             try:
                 from engine.llm_client import llm, is_llm_available
                 if is_llm_available():
-                    prompt = f"""请用通俗易懂的语言，为一个税务稽查新人解释以下案例:
+                    prompt = f"""请用通俗易懂的语言，为一个税务税务合规新人解释以下案例:
 
 发现: {finding.get('type','')}
 详情: {finding.get('detail','')}
@@ -321,8 +321,8 @@ class TrainingCaseGenerator:
 法律依据: {finding.get('policy_ref','')}
 
 要求: 
-1. 解释这个案例的稽查要点（新人能听懂的语言）
-2. 说明稽查员应该怎么做
+1. 解释这个案例的税务合规要点（新人能听懂的语言）
+2. 说明税务合规员应该怎么做
 3. 给企业一个合规建议
 4. 用1-2句话总结关键教训
 用中文回答，不超过500字。"""
@@ -361,13 +361,13 @@ class TrainingCaseGenerator:
         return f"核心教训: {finding.get('how_found','系统自动分析')[80:]} 说明——{self._auditor_lesson(finding)[:60]}"
     
     def _build_answer(self, finding: Dict) -> str:
-        return f"第一步: 确认{finding.get('type','')[:20]}的具体数据来源。第二步: 对比多源证据。第三步: 查阅{finding.get('policy_ref','相关法规')[:50]}。第四步: 定量计算涉税金额。第五步: 形成正式稽查结论。"
+        return f"第一步: 确认{finding.get('type','')[:20]}的具体数据来源。第二步: 对比多源证据。第三步: 查阅{finding.get('policy_ref','相关法规')[:50]}。第四步: 定量计算涉税金额。第五步: 形成正式税务合规结论。"
 
 
 # ═══════════ 4. 集团多账套协同分析 ═══════════
 
 class GroupAnalyzer:
-    """集团多企业协同稽查"""
+    """集团多企业协同税务合规"""
     
     def analyze_group(self, companies: List[Dict], findings_by_company: Dict[int, List[Dict]]) -> Dict:
         """
@@ -435,7 +435,7 @@ class GroupAnalyzer:
                     "risk": "系统性风险" if count >= 3 else "需关注",
                 })
         
-        # 合并报表稽查要点
+        # 合并报表税务合规要点
         results["consolidated_risks"] = [
             "关联交易: 检查集团内交易的定价是否公允",
             "成本分摊: 集团内共同费用的分摊是否合理",

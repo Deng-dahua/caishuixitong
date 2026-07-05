@@ -36,7 +36,7 @@ function renderCorrectionRulesHub(container) {
     '</style>' +
     '<div class="crh-layout">' +
     '<h2 class="crh-h2">🔄 纠正规则中转站</h2>' +
-    '<p class="crh-sub">编辑/审核/追问 — 三通道规则汇总。编辑和追问触发引擎自学习生成新规则，经过中转站分类后注入对应模块（稽查指令/线索链/证据链/分析链/方法论/规则引擎等），标注【引擎自学习】。<br>规则可重置（暂停使用）或恢复（重新激活）。</p>' +
+    '<p class="crh-sub">编辑/审核/追问 — 三通道规则汇总。编辑和追问触发引擎自学习生成新规则，经过中转站分类后注入对应模块（税务合规指令/线索链/证据链/分析链/方法论/规则引擎等），标注【引擎自学习】。<br>规则可重置（暂停使用）或恢复（重新激活）。</p>' +
     '<div class="crh-stats" id="crh-stats"></div>' +
     '<div class="crh-filter" id="crh-filter"></div>' +
     '<div id="crh-body"><div style="text-align:center;padding:60px"><span class="spinner"></span> 加载纠正规则...</div></div>' +

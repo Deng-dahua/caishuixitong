@@ -75,12 +75,12 @@
     var d = b.data;
     var cats = d.categories || {};
     var missing = d.missing || [];
-    var h = '<p>本次稽查共收到' + (d.files_count || 0) + '份资料，覆盖';
+    var h = '<p>本次税务合规共收到' + (d.files_count || 0) + '份资料，覆盖';
     var catNames = Object.keys(cats);
     h += catNames.map(function(k) { return k + ' ' + cats[k] + '份'; }).join('、');
     h += '。';
     if (missing.length > 0) {
-      h += '<span style="color:#dc2626">缺失' + missing.length + '类稽查必查资料（'
+      h += '<span style="color:#dc2626">缺失' + missing.length + '类税务合规必查资料（'
         + missing.join('、') + '）。</span>';
     }
     h += '</p>';
@@ -99,13 +99,13 @@
       + '</div>';
   };
 
-  // 稽查方法
+  // 税务合规方法
   renderBlock['methods'] = function(b) {
     var d = b.data;
     var methods = d.methods || [];
     var ii = d.invoice_stats || {};
     var bi = d.bank_stats || {};
-    var h = '<p>根据资料驱动稽查方法论，本次核查采用以下方法：</p>';
+    var h = '<p>根据资料驱动税务合规方法论，本次核查采用以下方法：</p>';
     var labels = {
       '工商登记核查法': '工商登记核查法：联网核查被查单位工商登记信息，登记行业为' + esc(d.registered_business || '未获取'),
       '进销存数据比对法': '进销存数据比对法：进销比' + esc(ii['进销比'] || '') + '，销项发票' + esc(ii['销项发票'] || '') + '，进项发票' + esc(ii['进项发票'] || ''),
@@ -149,13 +149,13 @@
     if (d.missing_docs && d.missing_docs.length > 0) {
       h += '<p style="color:#dc2626">资料完备度不足：缺失' + d.missing_docs.length + '类必查资料。</p>';
     }
-    h += '<div class="block-seal"><p>稽查员（签名）：_______________</p><p>日期：' + new Date().toLocaleDateString('zh-CN') + '</p></div>';
+    h += '<div class="block-seal"><p>税务合规员（签名）：_______________</p><p>日期：' + new Date().toLocaleDateString('zh-CN') + '</p></div>';
     return h;
   };
 
   // 签字
   renderBlock['signature'] = function(b) {
-    return '<div class="block-seal"><p>稽查员（签名）：_______________</p><p>日期：' + new Date().toLocaleDateString('zh-CN') + '</p></div>';
+    return '<div class="block-seal"><p>税务合规员（签名）：_______________</p><p>日期：' + new Date().toLocaleDateString('zh-CN') + '</p></div>';
   };
 
 

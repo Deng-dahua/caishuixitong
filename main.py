@@ -28,7 +28,7 @@ import ssl
 import time as _time_module_inner
 from pypdf import PdfReader
 
-# ═══ 稽查员推理引擎（模块化架构）═══
+# ═══ 税务合规员推理引擎（模块化架构）═══
 from engine import (
     save_analysis_memory, query_similar_cases,
     get_audit_ctx,
@@ -119,7 +119,7 @@ async def lifespan(app: FastAPI):
     except: pass
     yield
 
-app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与稽查应对系统", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与税务合规应对系统", version="1.0.0", lifespan=lifespan)
 
 # ═══ 启动初始化：知识库 + 巡检API ═══
 try:
@@ -982,7 +982,7 @@ def _check_tax_relevance(text: str):
             "增值税", "企业所得税", "个人所得税", "消费税", "印花税",
             "房产税", "契税", "土地增值税", "城建税", "教育费附加",
             "进项税额", "销项税额", "进项税", "销项税", "留抵退税",
-            "纳税申报", "税务稽查", "税务风险", "税收优惠", "税前扣除",
+            "纳税申报", "税务税务合规", "税务风险", "税收优惠", "税前扣除",
             "发票管理", "增值税专用发票", "普通发票", "数电发票",
             "应交税费", "税金及附加", "递延所得税", "文化事业建设费",
             "代扣代缴", "源泉扣缴", "税务登记", "小规模纳税人", "一般纳税人",
@@ -1003,7 +1003,7 @@ def _check_tax_relevance(text: str):
             "主营业务收入", "营业收入", "营业成本", "利润总额",
             "社保", "公积金", "工资薪金", "劳务报酬", "稿酬",
             "财产租赁", "财产转让", "股息红利",
-            "稽查", "罚款", "滞纳金",
+            "税务合规", "罚款", "滞纳金",
             "转让定价", "关联交易", "同期资料",
             "毛利率", "成本结构", "费用率", "应收账款", "应付账款",
             "其他应收款", "存货", "固定资产", "无形资产",
@@ -1787,7 +1787,7 @@ def _classify_file_type(text, filename):
     if any(k in fn for k in ["公积金","住房公积金","住房"]): return ("housing_fund", 0.9)
     if any(k in fn for k in ["工资","薪酬","薪资","salary","payroll","个税"]): return ("salary", 0.9)
     if any(k in fn for k in ["合同","协议","contract"]): return ("contract", 0.8)
-    if any(k in fn for k in ["审计","稽查","检查报告","风险评估","涉税"]): return ("audit", 0.8)
+    if any(k in fn for k in ["审计","税务合规","检查报告","风险评估","涉税"]): return ("audit", 0.8)
 
     # 内容特征
     t = text[:500].lower()
@@ -1871,7 +1871,7 @@ def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
         return None
 
 # ── 资料类型特征库（列名关键词+得分）──
-# 覆盖税务稽查所需的所有资料类型，纯内容识别，不依赖Sheet名
+# 覆盖税务税务合规所需的所有资料类型，纯内容识别，不依赖Sheet名
 _FILE_FINGERPRINTS = {
     # ══════════ 第一梯队：高频核心类型（用户最常上传）══════════
     "bank_statement": {
@@ -4586,7 +4586,7 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
 
 
 # ═══════════════════════════════════════════════════════════
-# 对话式稽查报告交互引擎（发现审查的升级版）
+# 对话式税务合规报告交互引擎（发现审查的升级版）
 # ═══════════════════════════════════════════════════════════
 # 用户可以对报告中任何一条发现提问：
 #   "这个结论怎么来的？" → 引擎溯源完整推理链
@@ -4623,14 +4623,14 @@ async def get_report_intelligence(company_id: int = Query(...)):
     mid_types = [f.get("type","")[:40] for f in all_findings if f.get("level") == "中风险"][:3]
     
     if overall in ("高风险", "极高风险"):
-        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面稽查分析，发现该企业存在{level_stats['高风险']+level_stats['极高风险']}项高风险问题，主要集中在{', '.join(high_types[:3]) if high_types else '多个领域'}。"
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面税务合规分析，发现该企业存在{level_stats['高风险']+level_stats['极高风险']}项高风险问题，主要集中在{', '.join(high_types[:3]) if high_types else '多个领域'}。"
         if level_stats['中风险'] > 0:
             narrative += f"另有{level_stats['中风险']}项中风险事项涉及{', '.join(mid_types[:2]) if mid_types else '其他方面'}。"
         narrative += "综合证据链显示，该企业存在较为严重的税务合规问题，建议立即启动深度核查程序，重点核实资金往来真实性、经营实质和关联交易商业目的。"
     elif overall == "中风险":
-        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面稽查，发现{level_stats['高风险']+level_stats['极高风险']}项高风险问题和{level_stats['中风险']}项中风险事项。整体风险可控，但多项问题叠加可能影响纳税信用等级。建议限期完成自查整改。"
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行全面税务合规，发现{level_stats['高风险']+level_stats['极高风险']}项高风险问题和{level_stats['中风险']}项中风险事项。整体风险可控，但多项问题叠加可能影响纳税信用等级。建议限期完成自查整改。"
     else:
-        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行稽查分析，仅发现少量低风险事项。企业整体税务合规状况良好，建议继续保持规范的财税管理。"
+        narrative = f"经对{company_name}" + (f"（{industry}）" if industry else "") + f"进行税务合规分析，仅发现少量低风险事项。企业整体税务合规状况良好，建议继续保持规范的财税管理。"
     
     # 2. 税负模拟（精准版：发票去重+实际税额+企业所得税分级）
     # ── 2.1 收集所有evidence_rows中的发票，按(invoice_code,invoice_no)去重 ──
@@ -5050,7 +5050,7 @@ async def get_last_analysis(company_id: int = Query(...)):
 def get_evidence_chain(company_id: int = Query(...)):
     """获取上传资料证据链（SHA256哈希 + 上传时间戳）
     每条证据含: 文件名、SHA256、上传时间、文件大小、证据编号
-    用途: 稽查底稿附件、电子证据固化、可追溯审计链
+    用途: 税务合规底稿附件、电子证据固化、可追溯审计链
     """
     import hashlib as _hashlib
     evidence = []
@@ -5104,12 +5104,12 @@ def get_evidence_chain(company_id: int = Query(...)):
 
 
 # ═══════════════════════════════════════════════════════════
-# 稽查底稿自动生成 —— 结构化审计工作底稿
+# 税务合规底稿自动生成 —— 结构化审计工作底稿
 # ═══════════════════════════════════════════════════════════
 
 @app.get("/api/tax-risk-docs/working-papers")
 def generate_working_papers(company_id: int = Query(...)):
-    """基于最近一次分析结果自动生成稽查底稿
+    """基于最近一次分析结果自动生成税务合规底稿
     结构: 审计目标→审计程序→发现清单→证据索引→结论与建议
     """
     cached = _last_analysis_cache.get(company_id)
@@ -5181,7 +5181,7 @@ def generate_working_papers(company_id: int = Query(...)):
     }
     
     papers = {
-        "title": f"税务稽查工作底稿",
+        "title": f"税务税务合规工作底稿",
         "entity": te.get("name", ""),
         "period": te.get("period", ""),
         "generated_at": datetime.now().isoformat(),
@@ -5204,7 +5204,7 @@ def generate_working_papers(company_id: int = Query(...)):
             },
         },
         "chain_of_custody": {
-            "prepared_by": "财税稽查系统·AGI引擎",
+            "prepared_by": "财税税务合规系统·AGI引擎",
             "reviewed_by": "待人工复核",
             "hash_algorithm": "SHA256",
             "total_evidence_count": len(evidence),
@@ -5832,7 +5832,7 @@ def get_industry_benchmarks(industry: str = Query(""), metric: str = Query("")):
 
 
 # ═══════════════════════════════════════════════════════════
-# 对话式稽查 —— 自然语言查询分析结果
+# 对话式税务合规 —— 自然语言查询分析结果
 # ═══════════════════════════════════════════════════════════
 
 @app.post("/api/agi/query")
@@ -6033,7 +6033,7 @@ def get_latest_notification(company_id: int = Query(...)):
     te = report.get("target_entity", {})
     
     notification = {
-        "title": f"财税稽查报告 — {te.get('name', '')}",
+        "title": f"财税税务合规报告 — {te.get('name', '')}",
         "summary": f"{report.get('overall_level', '')}，{report.get('total_risks', 0)}项风险发现（高{report.get('high_risk', 0)}/中{report.get('mid_risk', 0)}）",
         "time": cached.get("timestamp", ""),
         "key_findings": [f.get("type") for f in (report.get("all_findings", []) or [])[:5] if f.get("level") == "高风险"],
@@ -6717,15 +6717,15 @@ async def rate_limit_middleware(request, call_next):
 
 
 # ═══════════════════════════════════════════════════════════
-# LLM 叙事生成 —— 调用DeepSeek生成专业稽查报告文本
+# LLM 叙事生成 —— 调用DeepSeek生成专业税务合规报告文本
 # ═══════════════════════════════════════════════════════════
 
 @app.post("/api/audit/generate-narrative")
 def generate_audit_narrative(data: dict):
-    """用LLM生成专业稽查叙事文本。
+    """用LLM生成专业税务合规叙事文本。
     
     请求: {"findings": [...], "industry": "制造业", "style": "professional" | "concise"}
-    返回: {"narrative": "生成的稽查报告文本"}
+    返回: {"narrative": "生成的税务合规报告文本"}
     """
     findings = data.get("findings", [])
     industry = data.get("industry", "综合")
@@ -6735,7 +6735,7 @@ def generate_audit_narrative(data: dict):
         return {"ok": False, "error": "没有发现项"}
     
     # 构建prompt
-    prompt = f"你是资深税务稽查专家。以下是对一家{industry}企业的稽查发现，请生成一段专业的稽查结论叙述（200字以内，{style}风格）：\n\n"
+    prompt = f"你是资深税务税务合规专家。以下是对一家{industry}企业的税务合规发现，请生成一段专业的税务合规结论叙述（200字以内，{style}风格）：\n\n"
     for i, f in enumerate(findings[:5]):
         prompt += f"{i+1}. {f.get('type','')}: {str(f.get('detail',''))[:100]}\n"
     
@@ -6756,7 +6756,7 @@ def generate_audit_narrative(data: dict):
     
     # 兜底：规则生成
     high_count = sum(1 for f in findings if f.get('level') in ('高风险','极高风险'))
-    narrative = f"经对{industry}企业进行全维度稽查分析，共发现{len(findings)}项涉税疑点，其中高风险事项{high_count}项。建议重点核查资金流向真实性、进销匹配度及经营实质，必要时启动延伸稽查程序。"
+    narrative = f"经对{industry}企业进行全维度税务合规分析，共发现{len(findings)}项涉税疑点，其中高风险事项{high_count}项。建议重点核查资金流向真实性、进销匹配度及经营实质，必要时启动延伸税务合规程序。"
     return {"ok": True, "narrative": narrative, "source": "rule_based"}
 
 
@@ -6918,7 +6918,7 @@ _ZH_EN_MAP = {
 
 @app.get("/api/audit/report-en/{company_id}")
 def get_english_report(company_id: int, db: Session = Depends(get_db)):
-    """获取英文版稽查报告 —— 自动翻译关键字段"""
+    """获取英文版税务合规报告 —— 自动翻译关键字段"""
     # 调用中文报告API
     result = analyze_tax_risk_docs(company_id=company_id, db=db)
     
@@ -7009,7 +7009,7 @@ from routers.agi import router as agi_router
 app.include_router(agi_router)
 
 # ═══════════════════════════════════════════════════════════
-# 对话式税务稽查 — AGI直接用中文回答税务问题
+# 对话式税务税务合规 — AGI直接用中文回答税务问题
 # ═══════════════════════════════════════════════════════════
 
 @app.post("/api/agi/chat")
@@ -7307,7 +7307,7 @@ def get_engine_rules():
     
     # Phase 1 信号检测规则（从引擎代码提取描述）
     rules["phases"]["Phase1-初查信号检测"] = {
-        "description": "16个信号检测器，像老稽查员翻一遍资料就能嗅出异常",
+        "description": "16个信号检测器，像老税务合规员翻一遍资料就能嗅出异常",
         "count": 16,
         "rules": [
             {"id": "TRIAGE_001", "name": "购销严重倒挂", "trigger": "进项 > 销项 × 1.5", "level": "red", "detail": "可能虚增进项或隐匿收入"},
@@ -7408,7 +7408,7 @@ def get_engine_rules():
             "condition_b": cr.get("condition_b", {}),
         })
     rules["phases"]["Phase3-结论自洽性检测"] = {
-        "description": "双向条件匹配引擎：扫描所有发现，检测预定义的矛盾模式。发现矛盾→优先展示到core_issues→提醒稽查员结论之间存在逻辑互斥需深入核实。",
+        "description": "双向条件匹配引擎：扫描所有发现，检测预定义的矛盾模式。发现矛盾→优先展示到core_issues→提醒税务合规员结论之间存在逻辑互斥需深入核实。",
         "count": len(contr_rules),
         "rules": contr_rules,
     }
@@ -7419,7 +7419,7 @@ def get_engine_rules():
             cross_analysis = json.load(f)
         xa_rules = []
         for xa in cross_analysis:
-            # 跳过无触发信号的纯方法论条目（在稽查员手册中已有完整定义）
+            # 跳过无触发信号的纯方法论条目（在税务合规员手册中已有完整定义）
             if not xa.get("trigger_signal") or not xa.get("trigger_signal", "").strip():
                 continue
             lv = "red" if xa.get("level","") == "极高风险" else ("yellow" if xa.get("level","") == "高风险" else "orange")
@@ -7812,7 +7812,7 @@ def list_industries():
 @app.post("/api/companies/{company_id}/online-lookup")
 def online_company_lookup_api(company_id: int, db: Session = Depends(get_db)):
     """
-    稽查方法论⑥ 联网核查 —— 手动触发企业信息联网查询
+    税务合规方法论⑥ 联网核查 —— 手动触发企业信息联网查询
     
     从公开数据源（天眼查/企查查/国家公示系统）拉取企业工商信息：
     - 法定代表人
@@ -8060,7 +8060,7 @@ def start_patrol(company_id: int = Query(...)):
 
 @app.get("/api/agi/report/export")
 def export_report(company_id: int = Query(...), format: str = "txt"):
-    """导出稽查报告（txt/json/html）"""
+    """导出税务合规报告（txt/json/html）"""
     cached = _last_analysis_cache.get(company_id)
     if not cached:
         return {"ok": False, "message": "暂无分析结果"}
@@ -8077,7 +8077,7 @@ def export_report(company_id: int = Query(...), format: str = "txt"):
     # 生成纯文本报告
     lines = [
         "══════════════════════════",
-        "    税务稽查分析报告",
+        "    税务税务合规分析报告",
         "══════════════════════════",
         "",
         f"被查单位: {target.get('name', '')}",
@@ -8116,7 +8116,7 @@ def export_report(company_id: int = Query(...), format: str = "txt"):
     ])
     
     if format == "html":
-        html = "<h1>税务稽查分析报告</h1>" + "<br>".join(lines).replace("\n", "<br>")
+        html = "<h1>税务税务合规分析报告</h1>" + "<br>".join(lines).replace("\n", "<br>")
         return HTMLResponse(content=html)
     
     return {"ok": True, "report": "\n".join(lines), "format": "txt"}
@@ -8127,7 +8127,7 @@ def list_report_versions():
     return {
         "ok": True,
         "versions": [
-            {"id": "standard", "name": "标准稽查报告", "desc": "7章完整格式"},
+            {"id": "standard", "name": "标准税务合规报告", "desc": "7章完整格式"},
             {"id": "executive", "name": "管理层简报", "desc": "1页摘要+TOP5风险"},
             {"id": "detail", "name": "详细底稿", "desc": "含全部证据行+原始数据表"},
             {"id": "compliance", "name": "合规检查报告", "desc": "逐条法条对照+合规评分"},
@@ -8210,7 +8210,7 @@ def deep_causal_why(topic: str = Query("")):
 
 @app.post("/api/agi/report/full")
 def generate_full_report(data: dict):
-    """LLM生成完整稽查报告(5000字)"""
+    """LLM生成完整税务合规报告(5000字)"""
     from engine.agi_enhanced import report_writer
     finding_list = data.get("findings", [])
     report = report_writer.generate_report(finding_list, data.get("company", {}))
@@ -8541,7 +8541,7 @@ def _inject_feedback_to_memory(feedback: dict):
 # ═════════════════════════════════════════════════════════
 @app.post("/api/agi/propagate-to-chains")
 def propagate_corrections_to_chains():
-    """将积累的纠正规则总结提炼后，更新稽查指令/线索链/证据链/分析链/稽查方法论"""
+    """将积累的纠正规则总结提炼后，更新税务合规指令/线索链/证据链/分析链/税务合规方法论"""
     try:
         from engine.self_learning import _load_correction_rules, get_correction_rule_summary
         rules = _load_correction_rules()
@@ -8553,11 +8553,11 @@ def propagate_corrections_to_chains():
         summary = get_correction_rule_summary()
         
         updated = {
-            "稽查指令": _update_investigation_plans(rules, summary),
+            "税务合规指令": _update_investigation_plans(rules, summary),
             "线索链": _update_clue_chains(rules, summary),
             "证据链": _update_evidence_chains(rules, summary),
             "分析链": _update_analysis_chains(rules, summary),
-            "稽查方法论": _update_methodology(rules, summary),
+            "税务合规方法论": _update_methodology(rules, summary),
         }
         
         return {
@@ -8573,7 +8573,7 @@ def propagate_corrections_to_chains():
 
 
 def _update_investigation_plans(rules, summary):
-    """根据纠正规则更新稽查指令"""
+    """根据纠正规则更新税务合规指令"""
     high_freq = [r for r in rules[-50:] if r.get("count", 1) >= 3]
     count = len(high_freq)
     if count > 0:
@@ -8658,7 +8658,7 @@ def _update_analysis_chains(rules, summary):
 
 
 def _update_methodology(rules, summary):
-    """根据纠正规则更新稽查方法论文档"""
+    """根据纠正规则更新税务合规方法论文档"""
     meth_path = os.path.join("static", "methodology_adjustments.json")
     count = len([r for r in rules[-30:] if r.get("count", 1) >= 2])
     try:
@@ -8905,11 +8905,11 @@ def get_engine_details(company_id: int = 1):
     law_refs = {}
     for fi in all_f:
         lr = fi.get("law_ref", "")
-        if lr and lr != "《税收征收管理法》及《税务稽查工作规程》相关规定":
+        if lr and lr != "《税收征收管理法》及《税务税务合规工作规程》相关规定":
             law_refs[lr] = law_refs.get(lr, 0) + 1
     result["legal"] = [{"law": k, "count": v} for k, v in sorted(law_refs.items(), key=lambda x: -x[1])]
     if not result["legal"]:
-        result["legal"] = [{"law": "征管法及稽查规程（通用引用）", "count": sum(1 for f in all_f if f.get("law_ref"))}]
+        result["legal"] = [{"law": "征管法及税务合规规程（通用引用）", "count": sum(1 for f in all_f if f.get("law_ref"))}]
     
     # 3. 主营成本三层分类
     bcc = es.get("biz_cost_classification", {})
@@ -8933,7 +8933,7 @@ def get_engine_details(company_id: int = 1):
         "corrections_proposed": overrides.get("corrections_proposed", 0),
         "auto_activated": overrides.get("auto_activated", 0),
         "corrections": overrides.get("corrections", [])[:5],
-        "description": "AGI引擎与规则引擎冲突时，按优先级裁决：稽查铁律(P0) > 方法论过滤器(HARD_BAN) > AGI推理 > COND_BAN > 默认规则"
+        "description": "AGI引擎与规则引擎冲突时，按优先级裁决：税务合规铁律(P0) > 方法论过滤器(HARD_BAN) > AGI推理 > COND_BAN > 默认规则"
     }
     
     # 6. 趋势分析
@@ -8987,7 +8987,7 @@ def get_engine_details(company_id: int = 1):
     result["causal_network"] = {
         "nodes": len(cn) if isinstance(cn, dict) else 0,
         "chain_steps": len(chain_exec) if isinstance(chain_exec, list) else 0,
-        "description": "因果网络分析发现之间的因果关系（A发现→导致B发现），构建稽查证据的因果推理链"
+        "description": "因果网络分析发现之间的因果关系（A发现→导致B发现），构建税务合规证据的因果推理链"
     }
     
     return result

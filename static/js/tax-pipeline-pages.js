@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-//  稽查管道独立页：文件解析 | 域分析 | 跨域证据链 | 方法论过滤器
+//  税务合规管道独立页：文件解析 | 域分析 | 跨域证据链 | 方法论过滤器
 // ══════════════════════════════════════════════════════════════
 
 // ═══════════ 模块数量自动加载（从JSON数据文件动态读取，杜绝硬编码过期数字） ═══════════
@@ -96,7 +96,7 @@ function renderFileParsingPage(container) {
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">34类文件指纹 · 三层递进识别 · 四方交叉验证 · 8种格式全兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
         + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:32px">'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0">'
-    + '文件解析引擎是稽查分析的第一步——将企业上传的各种格式的原始资料（Excel/PDF/CSV/Word/图片），'
+    + '文件解析引擎是税务合规分析的第一步——将企业上传的各种格式的原始资料（Excel/PDF/CSV/Word/图片），'
     + '通过34类文件指纹 + 四层递进识别 + 四方交叉验证，自动判定文件类型并提取为结构化数据。'
     + '支持8种文件格式（xls/xlsx/csv/pdf/docx/jpg/png/tiff），兼容82+列名变体，'
     + '采用自适应表头检测（不预设表头在第几行）和汇总行自动过滤，确保数据质量。'
@@ -423,12 +423,12 @@ function renderFileParsingStatic() {
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 20px">'
     + '每类指纹由 <strong>关键词集</strong> + <strong>得分阈值</strong> + <strong>专用解析器</strong> 三部分组成。'
     + '关键词决定了\u201c怎么看\u201d，阈值决定了\u201c多确定才能算\u201d，解析器决定了\u201c识别后怎么提取\u201d。'
-    + '按使用频率分六梯队排列，第一梯队是稽查中最常见的高频类型。'
+    + '按使用频率分六梯队排列，第一梯队是税务合规中最常见的高频类型。'
     + '</p>';
 
   var groups = [
     {title:'第一梯队 \u00b7 高频核心（用户最常上传）', items: fps.slice(0,12),
-     desc:'这12类文件是稽查中最常出现的材料——银行流水、发票、工资表、社保公积金等。拥有最完善的关键词库（20-60+个关键词）和最成熟的解析器。得分阈值2-4分，识别率>95%。'},
+     desc:'这12类文件是税务合规中最常出现的材料——银行流水、发票、工资表、社保公积金等。拥有最完善的关键词库（20-60+个关键词）和最成熟的解析器。得分阈值2-4分，识别率>95%。'},
     {title:'第二梯队 \u00b7 合同/权证/关联交易', items: fps.slice(12,17),
      desc:'合同和关联交易文件的识别依赖更细致的结构分析——关键词数量较少（9-12个），阈值通常为2分。这类文件的列结构比关键词更有特征性。'},
     {title:'第三梯队 \u00b7 申报表与财务报表', items: fps.slice(17,23),
@@ -744,10 +744,10 @@ function renderDomainAnalysisStatic() {
   // ══════ Hero摘要 ══════
   html += '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:32px">'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0">'
-    + '域分析是稽查分析的核心层——42个分析域从资金流、进销存、供应商、交叉验证、经营实质、'
+    + '域分析是税务合规分析的核心层——42个分析域从资金流、进销存、供应商、交叉验证、经营实质、'
     + '资料完备度、发票、合同凭证、税务社保、资产关联、行业对标、跨域推理、补充税种共13个维度，'
     + '对同一份企业数据进行全方位、多角度、交叉印证的分析。每个域由独立的域分析函数驱动，'
-    + '输出结构化的发现列表，域与域之间通过跨域关联推理形成多源证据链，最终汇集成完整的稽查报告。'
+    + '输出结构化的发现列表，域与域之间通过跨域关联推理形成多源证据链，最终汇集成完整的税务合规报告。'
     + '</p>'
     + '</div>'
 
@@ -755,7 +755,7 @@ function renderDomainAnalysisStatic() {
   html += '<div id="da-intro" style="margin-bottom:48px">'
     + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 6px">一、什么是域分析</h3>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'
-    + '域分析（Domain Analysis）是税务稽查系统的核心分析层——位于文件解析和报告生成之间。'
+    + '域分析（Domain Analysis）是税务税务合规系统的核心分析层——位于文件解析和报告生成之间。'
     + '系统将从资料中提取的全部原始数据（银行流水、发票、工资表、社保、凭证、库存、合同等）'
     + '导入多个独立的分析域，每个域由专门的域分析函数（<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_domain_*</code>）驱动，'
     + '从不同维度对同一份数据做独立又交叉的审视。'
@@ -763,7 +763,7 @@ function renderDomainAnalysisStatic() {
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'
     + '<strong>核心设计理念：单一数据源，多维度交叉。</strong>一份银行流水，在资金流分析域看收款来源，'
     + '在经营实质域看费用结构，在税务域看税费支出。同一个数据点在不同域中扮演不同角色，'
-    + '多个域的发现相互印证或矛盾——这正是稽查判断的实质。'
+    + '多个域的发现相互印证或矛盾——这正是税务合规判断的实质。'
     + '</p>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:16px">'
     
@@ -819,7 +819,7 @@ function renderDomainAnalysisStatic() {
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">level</code> 风险等级：高风险/中风险/低风险/注意/信息<br>'
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">score</code> 量化评分（0-10），≥8=极高，6-7=高，4-5=中，1-3=低<br>'
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">detail</code> 详细数据——含计算过程、对比数据、触发阈值<br>'
-    + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">description</code> 稽查解读——为什么这是风险，如何理解<br>'
+    + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">description</code> 税务合规解读——为什么这是风险，如何理解<br>'
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">suggestion</code> 处理建议——具体可执行的核查步骤<br>'
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">policy_ref</code> 法律依据——引用的法条和文件号<br>'
     + '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">category</code> 分类标签——用于报告中的风险归类和合并<br>'
@@ -844,7 +844,7 @@ function renderDomainAnalysisStatic() {
     + '<div style="font-size:12px;color:#64748b;line-height:2.0">'
     + '<strong>依赖上传资料进行判断。</strong>必须有对应的原始数据才能执行分析。'
     + '资料完备度越高，发现结论的置信度越高。缺资料时标注资料缺口，'
-    + '不做无依据结论——这是稽查工作的基本原则。'
+    + '不做无依据结论——这是税务合规工作的基本原则。'
     + '</div>'
     + '<div style="margin-top:12px;padding:10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#991b1b;line-height:2.0">'
     + '<strong>代表域：</strong>资金流向追踪（需银行流水）、'
@@ -905,7 +905,7 @@ function renderDomainAnalysisStatic() {
 
   var domainGroups = [
     // ══════ 一、资金流分析（4域） ══════
-    {cat:'一、资金流分析', color:'#dc2626', desc:'银行流水收款来源分类、付款方身份核实、大额转账追踪、个人交易检测。资金流是稽查的血液——每一笔资金流动都可能隐藏着未申报收入或虚开发票。', items:[
+    {cat:'一、资金流分析', color:'#dc2626', desc:'银行流水收款来源分类、付款方身份核实、大额转账追踪、个人交易检测。资金流是税务合规的血液——每一笔资金流动都可能隐藏着未申报收入或虚开发票。', items:[
       {name:'资金全链路追踪', fn:'_domain_bank_tracking', line:'12137', desc:'收款来源自适应分类 · 第三方平台收款占比 · 付款方身份（企业/个人/税务/银行）· 税费支付自动识别'},
       {name:'资金流向追踪', fn:'_domain_fund_flow_mapping', line:'13806', desc:'收款方与开票客户匹配 · 付款方与进项供应商匹配 · 法人/股东交叉引用 · 个人大额转账预警'},
       {name:'异常交易时间分析', fn:'_domain_temporal_anomaly', line:'14298', desc:'非工作时间交易（深夜/凌晨/周末）· 节假日突击交易 · 月末集中大额行为识别'},
@@ -940,12 +940,12 @@ function renderDomainAnalysisStatic() {
       {name:'人员与业务匹配', fn:'_domain_workforce_profiling', line:'13894', desc:'人均营收vs行业均值 · 人均薪资合理性 · 工资增长率vs收入增长率 · 社保人数vs工资人数一致性 · 员工规模vs业务量匹配'},
     ]},
     // ══════ 六、资料完备度 ══════
-    {cat:'六、资料完备度与情报', color:'#2563eb', desc:'14类稽查必查资料逐一检测，合同需求四层自动分层。资料情报自动分类并统计收款结构/付款方/发票模式。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
-      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'14类稽查必查资料逐项检测 · 合同需求四层分层（必签/应签/可免/小额）· 缺失资料后果列明 · 综合资料完备度评分'},
+    {cat:'六、资料完备度与情报', color:'#2563eb', desc:'14类税务合规必查资料逐一检测，合同需求四层自动分层。资料情报自动分类并统计收款结构/付款方/发票模式。缺失资料→风险标记→无法支撑结论时标注资料缺口。', items:[
+      {name:'资料完备度评估', fn:'_domain_document_completeness', line:'12798', desc:'14类税务合规必查资料逐项检测 · 合同需求四层分层（必签/应签/可免/小额）· 缺失资料后果列明 · 综合资料完备度评分'},
       {name:'资料情报摘要', fn:'_extract_material_intel', line:'16992', desc:'银行收款类型自适应分类 · 付款方企业/个人/税务/银行占比 · 进销发票结构 · 凭证收入成本费用汇总 · 大额交易(>50万)识别'},
     ]},
     // ══════ 七、发票分析（3域） ══════
-    {cat:'七、发票深度分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性/服务vs货物占比。每一张发票都是稽查线索，发票异常模式能暴露系统性风险。', items:[
+    {cat:'七、发票深度分析', color:'#0891b2', desc:'发票多维特征分析——时间/金额/税率/红冲/作废/连续性/服务vs货物占比。每一张发票都是税务合规线索，发票异常模式能暴露系统性风险。', items:[
       {name:'发票深度特征', fn:'_domain_invoice_deep', line:'12763', desc:'服务类发票占比（服务行业特征判断）· 普票vs专票占比 · 开具时间分布 · 价格区间集中度 · 金额尾数分析 · 顶额开票检测'},
       {name:'发票生命周期', fn:'_domain_invoice_lifecycle', line:'12576', desc:'未认证占比统计 · 超期未认证预警 · 税率异常检测（同一品名不同税率）· 发票类型分布 · 红冲/作废率趋势'},
       {name:'红冲作废发票追踪', fn:'_domain_red_void_invoice', line:'14244', desc:'红冲率+作废率+时间集中度模式+金额集中度 · 月末/季末突击红冲作废 · 同一对方频繁红冲→异常交易关系'},
@@ -974,7 +974,7 @@ function renderDomainAnalysisStatic() {
       {name:'跨域线索链', fn:'_domain_cross_domain_clues', line:'14000', desc:'从cross_domain_clues.json加载跨域线索定义 · 线索→发现→证据三级转换 · 叙事生成器集成 · 线索链可视化追溯'},
     ]},
     // ══════ 十二、跨域分析链 ══════
-    {cat:'十二、跨域分析链', color:'#8b5cf6', desc:'跨域分析链是最上层的推理引擎——它不直接分析数据，而是基于所有域的发现结果进行二阶推理，从交叉异常中推导出更深层的稽查结论。', items:[
+    {cat:'十二、跨域分析链', color:'#8b5cf6', desc:'跨域分析链是最上层的推理引擎——它不直接分析数据，而是基于所有域的发现结果进行二阶推理，从交叉异常中推导出更深层的税务合规结论。', items:[
       {name:'跨域分析链', fn:'_domain_cross_domain_analysis', line:'14080', desc:'从cross_domain_analysis.json加载分析路径 · 二阶推理引擎——基于域发现而非原始数据 · 多域异常→综合结论 · 因果链追溯'},
     ]},
     // ══════ 十三、补充税种检查（3域） ══════
@@ -1018,7 +1018,7 @@ function renderDomainAnalysisStatic() {
     + '<strong>发票+银行+凭证</strong>（数据层）→ 三大主数据源，支撑进销存、资金流、税务、薪酬、资产等15个分析域。<br>'
     + '<strong>多源交叉验证</strong>（交叉层）→ 将单个域的发现两两比对、三向检验，发现孤立点无法发现的隐藏关联。<br>'
     + '<strong>行业对标+规则引擎</strong>（校验层）→ 将企业数据与66行业基准对比，与' + pc('rules','1608') + '条规则逐一匹配。<br>'
-    + '<strong>跨域关联推理</strong>（顶层）→ 将以上所有发现串联为10条跨域证据链，形成最终稽查结论。'
+    + '<strong>跨域关联推理</strong>（顶层）→ 将以上所有发现串联为10条跨域证据链，形成最终税务合规结论。'
     + '</div>'
     + '</div>';
 
@@ -1276,7 +1276,7 @@ function renderChainsList(chains) {
     html += '<div id="ch-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
       + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">线索链是什么</h3>'
       + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
-      + '线索链是从<strong>稽查指令（点）到调查路径（线）的串行工作流引擎</strong>。每条线索链定义一条完整的调查路径（investigation_path[]），从触发关键词开始逐步执行各步骤。与证据链的并行多源验证不同，线索链是单路径顺序推进──\"从哪里查、查什么、查到了怎么办\"。'
+      + '线索链是从<strong>税务合规指令（点）到调查路径（线）的串行工作流引擎</strong>。每条线索链定义一条完整的调查路径（investigation_path[]），从触发关键词开始逐步执行各步骤。与证据链的并行多源验证不同，线索链是单路径顺序推进──\"从哪里查、查什么、查到了怎么办\"。'
       + '</p>'
       + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
       + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">串行调查路径</strong><br>一个规则触发→多条调查步骤<br>investigation_path[]顺序执行</div>'
@@ -1396,7 +1396,7 @@ function renderEvidencePage(container) {
   container.innerHTML = '<style>.ev-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.ev-main{flex:1;min-width:0}.ev-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.ev-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="ev-layout"><div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
-    + '证据链是税务稽查的证据质量保障体系——<strong>781条证据链（全部可执行），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
+    + '证据链是税务税务合规的证据质量保障体系——<strong>781条证据链（全部可执行），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
     + '每条可执行证据链定义多个独立维度的数据源，当 ≥min_evidence 个维度同时触发时形成有效证据，闭环后自动输入分析链做综合推理判定。'
     + '</p>'
     + '<div id="evidence-body"></div></div></div>';
@@ -1462,7 +1462,7 @@ function renderEvidenceList(chains) {
     + '</div>'
     + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11px;line-height:2.0">'
     + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#2563eb">全部可执行 (781条)</strong><br>dimensions[] 格式 — 引擎通过 keyword 自动匹配 findings。每条含触发关键词+多维度数据源+闭环阈值（min_evidence），≥2维同时触发形成证据闭环。</div>'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#7c3aed">investigation_path[] 格式</strong><br>原方法链已全部升级为可执行。步骤含 rule_id + level + detail + suggestion + policy_ref，按串联规则逐一调查，每个步骤连接一条稽查指令。</div>'
+    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#7c3aed">investigation_path[] 格式</strong><br>原方法链已全部升级为可执行。步骤含 rule_id + level + detail + suggestion + policy_ref，按串联规则逐一调查，每个步骤连接一条税务合规指令。</div>'
     + '</div>'
     + '</div>';
 
@@ -1654,7 +1654,7 @@ function renderAnalyzePage(container) {
     + '<div class="al-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
-    + '分析链是税务稽查系统的核心执行管线——从用户上传原始资料到输出结构化稽查报告的完整流水线。'
+    + '分析链是税务税务合规系统的核心执行管线——从用户上传原始资料到输出结构化税务合规报告的完整流水线。'
     + '七步串联处理 + 42域分析 + ' + pc('rules','1608') + '规则 + ' + pc('totalChains','1266') + '条链条 + 29条协商规则，97%噪声过滤率。'
     + '</p>'
     + '<div id="analyze-body"></div>'
@@ -1687,12 +1687,12 @@ async function loadAnalyzeOverview() {
   html += '<div id="al-overview" style="margin-bottom:48px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 12px">一、什么是分析链</h3>'
     + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
-    + '分析链是税务稽查系统的核心执行管线，负责将用户上传的原始资料转化为结构化稽查报告。'
+    + '分析链是税务税务合规系统的核心执行管线，负责将用户上传的原始资料转化为结构化税务合规报告。'
     + '这条管线不是简单的函数调用链，而是一个<strong>七步串联的数据处理流水线</strong>——每一步都有明确的输入、处理逻辑和输出，'
     + '数据在管线中单向流动，不丢失、不污染、不截断。'
     + '</p>'
     + '<p style="font-size:14px;color:#475569;line-height:2.0;margin:0 0 16px">'
-    + '管线的设计理念来自稽查实战：真实稽查不是看一个数字就下结论，而是<strong>从资料扫描开始，经过多轮交叉验证，最终形成证据闭环</strong>。'
+    + '管线的设计理念来自税务合规实战：真实税务合规不是看一个数字就下结论，而是<strong>从资料扫描开始，经过多轮交叉验证，最终形成证据闭环</strong>。'
     + '分析链模拟的就是这个完整过程，遵循以下四条核心原则：'
     + '</p>'
     + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'
@@ -1702,14 +1702,14 @@ async function loadAnalyzeOverview() {
     + '<div style="padding:12px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">④ 明细支撑</strong><br>每条发现必须有具体明细数据——不能写"供应商集中度高"，必须写具体占比、名称和金额。</div>'
     + '</div>'
     + '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 16px">'
-    + '分析链底层引擎工作顺序为：<strong>域分析→稽查指令匹配→线索链触发→证据链闭环→分析链推理→协商引擎消解→同类合并→报告输出</strong>。'
-    + '每个环节的输出都是下一个环节的输入：42个域分析函数产出发现→关键词+域分类自动匹配' + pc('rules','1608') + '条稽查指令获得rule_id→'
+    + '分析链底层引擎工作顺序为：<strong>域分析→税务合规指令匹配→线索链触发→证据链闭环→分析链推理→协商引擎消解→同类合并→报告输出</strong>。'
+    + '每个环节的输出都是下一个环节的输入：42个域分析函数产出发现→关键词+域分类自动匹配' + pc('rules','1608') + '条税务合规指令获得rule_id→'
     + '触发的规则通过rule_refs激活' + pc('trailChains','437') + '条线索链展开串行调查→线索链发现累积后送入' + pc('evidenceChains','781') + '条证据链做多源交叉验证→'
-    + '证据闭环后进入' + pc('analysisChains','48') + '条分析链做综合推理判定→最后经29条协商规则消解冲突、同类发现合并→输出最终稽查报告。'
+    + '证据闭环后进入' + pc('analysisChains','48') + '条分析链做综合推理判定→最后经29条协商规则消解冲突、同类发现合并→输出最终税务合规报告。'
     + '</p>'
     + '<div style="padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2.0;border-left:3px solid #2563eb">'
     + '<strong>代码位置：</strong>engine/pipeline.py → <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_run_analyze()</code> · engine/domain_analysis.py → 42个域分析函数<br>'
-    + '<strong>数据规模：</strong>' + pc('rules','1608') + ' 条稽查指令 · ' + pc('trailChains','437') + ' 条线索链 · ' + pc('evidenceChains','781') + ' 条证据链 · 48 条分析链<br>'
+    + '<strong>数据规模：</strong>' + pc('rules','1608') + ' 条税务合规指令 · ' + pc('trailChains','437') + ' 条线索链 · ' + pc('evidenceChains','781') + ' 条证据链 · 48 条分析链<br>'
     + '<strong>处理结果：</strong>97% 噪声过滤率 · 66 行业基准库 · 42 个域分析函数 · 7 步执行流程'
     + '</div>'
     + '</div>';
@@ -1737,22 +1737,22 @@ async function loadAnalyzeOverview() {
        + '进销存比对比——商品明细匹配 + 进销比 + 毛利率；五层发票审计——格式合规→同品名单价→加工费专项→金额合理性→BOM进销映射；'
        + '供应商穿透——集中度+群集+名称异常+双向交易检测；合同分层——四层自动分类（必签/应签/可免/小额）。'},
     {n:'④', title:'规则引擎与链驱动检查', icon:'⚙️',
-     desc:'' + pc('rules','1608') + '条稽查指令逐条与域分析发现做匹配。' + pc('trailChains','437') + '条线索链引擎（行业特化链自动过滤——非本行业链不执行，全行业通用链全部运行）：每链多个调查步骤，通过定量/定性/缺失三类数据验证后触发，'
+     desc:'' + pc('rules','1608') + '条税务合规指令逐条与域分析发现做匹配。' + pc('trailChains','437') + '条线索链引擎（行业特化链自动过滤——非本行业链不执行，全行业通用链全部运行）：每链多个调查步骤，通过定量/定性/缺失三类数据验证后触发，'
        + '产生链驱动发现。' + pc('evidenceChains','781') + '条证据链闭环检测：收集所有触发的规则ID，计算每链触发率——≥60%且≥3条规则+≥2数据域→形成证据闭环。'
        + '链驱动引擎产出线索发现和闭环发现两类新发现，补充到总发现池。'},
     {n:'⑤', title:'方法论噪声过滤器', icon:'🎯',
      desc:'方法论过滤器是确保报告质量的最后关口。HARD_BAN（硬删除）：23类禁止词绝对不允许出现在输出中——'
        + '涉刑侦术语（公安/经侦/刑事）、推测性结论（走逃/失联）、系统内部术语、跨域数据需求等。'
        + 'COND_BAN（条件过滤）：5类——无申报表则删除申报相关结论，无库存台账则删除库存相关结论（有则放过）。'
-       + '稽查重点发现（level_fixed=True）不参与任何过滤。行业不匹配的发现自动删除。去重+正常结论排除。'
+       + '税务合规重点发现（level_fixed=True）不参与任何过滤。行业不匹配的发现自动删除。去重+正常结论排除。'
        + '典型效果：1638条→过滤后36条。'},
     {n:'⑥', title:'行业对标与申报比对', icon:'📊',
      desc:'66行业基准值自动对标（每个行业含：毛利率下限/上限/典型值、净利率下限/上限/典型值、税负率下限/上限/典型值、'
        + '进销比下限/上限/典型值、人均营收下限/上限/典型值）。三级判断：低于下限→高风险、低于典型值85%→中风险、高于上限→中风险。'
        + '增值税申报表 vs 发票实际销项税额/进项税额比对，差异>1000元预警。'},
-    {n:'⑦', title:'正式稽查报告输出', icon:'📝',
-     desc:'综合所有域分析发现、链驱动发现、证据闭环发现，经过方法论过滤器和建议增强后，生成结构化稽查报告。'
-       + '报告含：稽查概况、企业工商信息（联网核查）、高风险/中风险/低风险发现（按优先级排序）、'
+    {n:'⑦', title:'正式税务合规报告输出', icon:'📝',
+     desc:'综合所有域分析发现、链驱动发现、证据闭环发现，经过方法论过滤器和建议增强后，生成结构化税务合规报告。'
+       + '报告含：税务合规概况、企业工商信息（联网核查）、高风险/中风险/低风险发现（按优先级排序）、'
        + '每条发现含四步分析框架（detect→verify→diagnose→report）、明细数据（供应商/金额/发票号）、'
        + '法律依据引用、具体消除路径建议。报告为独立HTML文件，可直接交付。'},
   ];
@@ -1772,25 +1772,25 @@ async function loadAnalyzeOverview() {
 
   html += '</div>';
 
-  // ══════ 三、全链路稽查质量保障体系 ══════
+  // ══════ 三、全链路税务合规质量保障体系 ══════
   html += '<div id="al-quality" style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、全链路稽查质量保障体系</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">三、全链路税务合规质量保障体系</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 16px">'
-    + '全链路稽查质量保障体系是一个开放的质量保障生态系统，从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。'
+    + '全链路税务合规质量保障体系是一个开放的质量保障生态系统，从规则触发到报告输出，每条发现必须可追溯、可验证、可复核。'
     + '体系持续扩展新的保障维度，随系统发展而演进，不固定为"X合一"。下面按五大层次展示当前体系内容。'
     + '</p>'
     + '<div style="font-size:13px;color:#475569;line-height:2.0">'
     // 第一层：核心数据资产
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">① 核心数据资产</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #2563eb"><strong>规则引擎</strong> → ' + pc('rules','1608') + '条稽查指令（tax_risk_rules_local_export.json），每条发现必须可追溯到具体规则ID。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #2563eb"><strong>规则引擎</strong> → ' + pc('rules','1608') + '条税务合规指令（tax_risk_rules_local_export.json），每条发现必须可追溯到具体规则ID。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #7c3aed"><strong>线索链系统</strong> → ' + pc('trailChains','437') + '条线索链（cross_domain_clues.json），每条发现必须可追溯到具体线索链，触发率=已触发步骤/总步骤。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #059669"><strong>证据链系统</strong> → ' + pc('evidenceChains','781') + '条证据链（cross_domain_evidence.json），≥2维交叉验证+≥min_evidence阈值→闭环发现→强制升级高风险。</div>'
     + '<div style="padding:10px 16px;background:#fff;border-radius:6px;border-left:3px solid #0891b2"><strong>跨域分析链</strong> → ' + pc('analysisChains','48') + '条分析链（cross_domain_analysis.json），多源数据综合推理，覆盖资金流+票据流+业务流三维验证。</div>'
     + '</div>'
     // 第二层：方法论体系
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">② 方法论体系</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查方法论33条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等1266条方法链。</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>四步稽查分析法</strong> → detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>税务合规方法论33条</strong> → 已全部代码化，涵盖多格式兼容、汇总行过滤、付款方身份核实等1266条方法链。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>四步税务合规分析法</strong> → detect→verify→diagnose→report四步分析框架，每条发现必须完整呈现推导链。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #7c3aed"><strong>三层行业穿透法</strong> → 工商登记+发票数据+加工信号，三者不一致时以实质重于形式为原则。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #059669"><strong>经营实质点面推理法</strong> → 单点发现→数据扩展→关联维度→交叉验证→综合结论。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #2563eb"><strong>合同分层判断法</strong> → 必签+应签+可免+小额四层自动分类，印花税预估=must_total×0.03%。</div>'
@@ -1798,7 +1798,7 @@ async function loadAnalyzeOverview() {
     + '</div>'
     // 第三层：质量保障机制
     + '<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px">③ 质量保障机制</div>'
-    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>稽查重点强制等级</strong> → 12类稽查重点直接硬编码为高风险，三层保护机制。</div>'
+    + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #dc2626"><strong>税务合规重点强制等级</strong> → 12类税务合规重点直接硬编码为高风险，三层保护机制。</div>'
     + '<div style="padding:10px 16px;margin-bottom:6px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><strong>报告纯净度规范</strong> → 移除所有系统内部标注，四步框架在报告中表现为自然段落衔接。</div>'
     + '<div style="padding:10px 16px;background:#fff;border-radius:6px;border-left:3px solid #7c3aed"><strong>方法论噪声过滤器</strong> → HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。</div>'
     + '</div>'
@@ -1816,15 +1816,15 @@ async function loadAnalyzeOverview() {
     + '</div>'
     + '</div>'
     + '</div>';
-  // ══════ 四、稽查方法论（㉛条详解）══════
+  // ══════ 四、税务合规方法论（㉛条详解）══════
   html += '<div id="al-methods" style="margin-bottom:48px;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
-    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、稽查方法论（33条已全部代码化）</h3>'
+    + '<h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 16px">四、税务合规方法论（33条已全部代码化）</h3>'
     + '<p style="font-size:14px;color:#64748b;line-height:2.0;margin:0 0 20px">'
-    + '稽查方法论是税务稽查系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
+    + '税务合规方法论是税务税务合规系统的灵魂。每一条方法论都来自实战中反复踩过的坑，是血泪教训的结晶。下面逐条详解。'
     + '</p>'
     + '<div style="font-size:13px;color:#475569;line-height:2.0">'
 
-  // 33条方法论从 methodology_items.json 统一加载（与稽查员手册同源）
+  // 33条方法论从 methodology_items.json 统一加载（与税务合规员手册同源）
   var methods = [];
   try {
     fetch('/static/methodology_items.json').then(function(r){return r.json()}).then(function(data){
@@ -1868,7 +1868,7 @@ function renderAnalyzeResult(report) {
   // ══════ 一、什么是分析链 ══════
   h += '<div style="margin-bottom:40px">'
     + '<div style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">'
-    + '分析链是税务稽查系统的核心执行管线——<strong>七步串联的数据处理流水线</strong>，数据在管线中单向流动，不丢失、不污染、不截断。'
+    + '分析链是税务税务合规系统的核心执行管线——<strong>七步串联的数据处理流水线</strong>，数据在管线中单向流动，不丢失、不污染、不截断。'
     + '从资料扫描开始，经过多轮交叉验证，最终形成证据闭环：资料驱动+诚实边界+交叉推断+明细支撑。'
     + '</div>'
     + '<div style="font-size:12px;color:#94a3b8;line-height:2.0;padding:12px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">'
@@ -1882,10 +1882,10 @@ function renderAnalyzeResult(report) {
     + '<div style="padding:14px 16px;background:#f0f9ff;border-radius:6px;border-left:3px solid #2563eb"><strong style="color:#0f172a;font-size:13px">① 资料扫描与类型识别</strong><br>34类文件指纹库+三层递进识别（关键词打分→结构分析→数据推断），自动判定发票方向。</div>'
     + '<div style="padding:14px 16px;background:#f5f3ff;border-radius:6px;border-left:3px solid #7c3aed"><strong style="color:#0f172a;font-size:13px">② 目标实体识别</strong><br>进项购买方∩销项销售方确定企业全称，90+关键词×66行业加权投票，联网工商比对。</div>'
     + '<div style="padding:14px 16px;background:#ecfdf5;border-radius:6px;border-left:3px solid #059669"><strong style="color:#0f172a;font-size:13px">③ 资料情报提取与分析</strong><br>42个域分析函数并行执行：银行流水收款构成+进销存比+五层发票审计+供应商穿透+合同分层。</div>'
-    + '<div style="padding:14px 16px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626"><strong style="color:#0f172a;font-size:13px">④ 规则引擎与链驱动检查</strong><br>' + pc('rules','1608') + '条稽查指令逐条匹配，' + pc('trailChains','437') + '条线索链触发（行业不匹配链自动跳过），' + pc('evidenceChains','781') + '条证据链闭环检测。</div>'
-    + '<div style="padding:14px 16px;background:#fffbeb;border-radius:6px;border-left:3px solid #f59e0b"><strong style="color:#0f172a;font-size:13px">⑤ 方法论噪声过滤器</strong><br>HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。稽查重点发现不受过滤影响。</div>'
+    + '<div style="padding:14px 16px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626"><strong style="color:#0f172a;font-size:13px">④ 规则引擎与链驱动检查</strong><br>' + pc('rules','1608') + '条税务合规指令逐条匹配，' + pc('trailChains','437') + '条线索链触发（行业不匹配链自动跳过），' + pc('evidenceChains','781') + '条证据链闭环检测。</div>'
+    + '<div style="padding:14px 16px;background:#fffbeb;border-radius:6px;border-left:3px solid #f59e0b"><strong style="color:#0f172a;font-size:13px">⑤ 方法论噪声过滤器</strong><br>HARD_BAN（23类禁止词）+ COND_BAN（5类条件过滤），97%噪声过滤率。税务合规重点发现不受过滤影响。</div>'
     + '<div style="padding:14px 16px;background:#fdf2f8;border-radius:6px;border-left:3px solid #ec4899"><strong style="color:#0f172a;font-size:13px">⑥ 行业对标与申报比对</strong><br>66行业基准值自动对标（毛利率/净利率/税负率/进销比/人均营收五维），申报表vs发票实际比对。</div>'
-    + '<div style="padding:14px 16px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a"><strong style="color:#0f172a;font-size:13px">⑦ 正式稽查报告输出</strong><br>按《税务稽查工作规程》标准格式生成7章节+附件的完整稽查报告（详见第七节「稽查报告标准格式」）。</div>'
+    + '<div style="padding:14px 16px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a"><strong style="color:#0f172a;font-size:13px">⑦ 正式税务合规报告输出</strong><br>按《税务税务合规工作规程》标准格式生成7章节+附件的完整税务合规报告（详见第七节「税务合规报告标准格式」）。</div>'
     + '</div>';
 
   // ══════ 三、本次分析结果 ══════
@@ -1918,8 +1918,8 @@ function renderAnalyzeResult(report) {
     h += '</div></div>';
   }
 
-  // ══════ 五、稽查方法论（㉛条详解）══════
-  // 方法论从 methodology_items.json 统一加载（与稽查员手册同源）
+  // ══════ 五、税务合规方法论（㉛条详解）══════
+  // 方法论从 methodology_items.json 统一加载（与税务合规员手册同源）
   var methods = [];
   try {
     fetch('/static/methodology_items.json').then(function(r){return r.json()}).then(function(data){
@@ -1927,7 +1927,7 @@ function renderAnalyzeResult(report) {
     }).catch(function(){});
   } catch(e){}
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fff;border-radius:8px">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">稽查方法论（㉛条已全部代码化）</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">税务合规方法论（㉛条已全部代码化）</h3>'
     + '<div id="methods-body" style="font-size:13px;color:#475569;line-height:2">加载中...</div>'
     + '</div>';
   // 延迟加载方法论（从 audit_chains.json 读取，支持多字段）
@@ -1968,25 +1968,25 @@ function renderAnalyzeResult(report) {
       .catch(function(e) { target.innerHTML = '加载失败：' + e.message; });
   }, 100);
 
-  // ══════ 六、全链路稽查质量保障体系 ══════
+  // ══════ 六、全链路税务合规质量保障体系 ══════
   h += '<div style="margin-bottom:32px;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #059669">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px">全链路稽查质量保障体系</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px">全链路税务合规质量保障体系</h3>'
     + '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">开放生态系统 · 五大层次 · 持续扩展</p>'
     + '<div style="font-size:12px;color:#475569;line-height:2">'
     + '<div>🗄️ <strong>核心数据资产</strong>：规则引擎(' + pc('rules','1608') + '条) + 线索链(' + pc('trailChains','437') + '条) + 证据链(' + pc('evidenceChains','781') + '条) + 跨域分析链</div>'
-    + '<div>📐 <strong>方法论体系</strong>：稽查方法论33条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
-    + '<div>🔒 <strong>质量保障机制</strong>：稽查重点强制等级 + 报告纯净度 + 噪声过滤器(97%)</div>'
+    + '<div>📐 <strong>方法论体系</strong>：税务合规方法论33条 + 四步法 + 三层穿透 + 点面推理 + 合同分层 + 发票≠收付款1:1</div>'
+    + '<div>🔒 <strong>质量保障机制</strong>：税务合规重点强制等级 + 报告纯净度 + 噪声过滤器(97%)</div>'
     + '<div>🏭 <strong>行业认知体系</strong>：25行业词典 + 外包轻加工认知 + 66行业基准值库</div>'
     + '<div>⚙️ <strong>执行管线</strong>：七步流程 + 35域函数 + 全链路溯源</div>'
     + '</div>'
     + '<a href="#" onclick="navigateTo(\'quality-system\');return false" style="display:inline-block;margin-top:8px;font-size:12px;color:#2563eb">查看完整18组件详情 →</a>'
     + '</div>';
 
-  // ══════ 七、稽查报告标准格式（详见 📐 报告编制要求 模块）══════
+  // ══════ 七、税务合规报告标准格式（详见 📐 报告编制要求 模块）══════
   h += '<div style="margin-bottom:32px;padding:20px 24px;background:#fafbfc;border-radius:8px;border-left:3px solid #7c3aed">'
-    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">📌 稽查报告标准格式</h3>'
+    + '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 12px">📌 税务合规报告标准格式</h3>'
     + '<p style="font-size:13px;color:#475569;line-height:2">'
-    + '报告遵循《税务稽查工作规程》标准格式，共7章节+附件。每条发现按六要素格式呈现。'
+    + '报告遵循《税务税务合规工作规程》标准格式，共7章节+附件。每条发现按六要素格式呈现。'
     + '完整的12项质量标准、判定可靠性要求（7条）、六要素详细说明和格式对照，'
     + '请参见：<strong><a href="#" onclick="navigateTo(\'report-standards\');return false" style="color:#2563eb">📐 报告编制要求</a></strong> 模块（系统唯一权威标准来源）。'
     + '</p>'
@@ -2036,7 +2036,7 @@ function loadCrossDomainClues() {
         + '与跨域证据链不同：线索链定义的是<strong>调查路径</strong>（怎么查），证据链定义的是<strong>验证标准</strong>（怎么判）。'
         + '</p>'
         + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
-        + '<strong>与跨域证据链的关系</strong>：线索链（调查路径）→ 证据链（验证标准）→ 结论。线索链告诉稽查人员"从哪里开始查，每一步查什么"，证据链告诉稽查人员"满足什么条件才算发现问题"。'
+        + '<strong>与跨域证据链的关系</strong>：线索链（调查路径）→ 证据链（验证标准）→ 结论。线索链告诉税务合规人员"从哪里开始查，每一步查什么"，证据链告诉税务合规人员"满足什么条件才算发现问题"。'
         + '</div>'
         + '</div>';
 
@@ -2127,9 +2127,9 @@ function loadCrossDomainAnalysis() {
         + '</p>'
         + '<div style="padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#475569;line-height:2">'
         + '<strong>三个跨域链的关系</strong><br>'
-        + '🔎 跨域线索链 → 告诉稽查人员「怎么查」（调查步骤）<br>'
-        + '🔗 跨域证据链 → 告诉稽查人员「怎么判」（验证标准）<br>'
-        + '🧠 跨域分析链 → 告诉稽查人员「怎么推理」（逻辑路径+回退条件）'
+        + '🔎 跨域线索链 → 告诉税务合规人员「怎么查」（调查步骤）<br>'
+        + '🔗 跨域证据链 → 告诉税务合规人员「怎么判」（验证标准）<br>'
+        + '🧠 跨域分析链 → 告诉税务合规人员「怎么推理」（逻辑路径+回退条件）'
         + '</div>'
         + '</div>';
 
@@ -2204,7 +2204,7 @@ function loadCrossDomainAnalysis() {
 
       html += '<div style="margin-top:20px;padding:16px 20px;background:#fff;border-radius:8px;font-size:13px;color:#64748b;line-height:2">'
         + '<strong>跨域分析链的核心价值</strong>：不是给出结论，而是展示推理过程。每一步从哪个域出发、在哪个域发现了什么、从而导向哪个域。'
-        + '更重要的是——每一步都有回退条件。最终结论取决于每个环节是否可以被合理解释——这正是税务稽查中「证据链」思维在AI系统中的完整实现。'
+        + '更重要的是——每一步都有回退条件。最终结论取决于每个环节是否可以被合理解释——这正是税务税务合规中「证据链」思维在AI系统中的完整实现。'
         + '</div>';
 
       target.innerHTML = html;
@@ -2239,7 +2239,7 @@ function renderMethodologyFilterPage(container) {
     + '</nav>'
     + '<div class="mf-main">'
     + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🎯 方法论过滤器</h2>'
-    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">七类过滤规则按序执行：稽查重点保护→HARD_BAN→COND_BAN→正常排除→行业不匹配→缺口限流→去重合并。上游跨域协商引擎先消解域间矛盾，再进入过滤器——确保过滤的是自洽的发现。噪声过滤率97%。</p>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">七类过滤规则按序执行：税务合规重点保护→HARD_BAN→COND_BAN→正常排除→行业不匹配→缺口限流→去重合并。上游跨域协商引擎先消解域间矛盾，再进入过滤器——确保过滤的是自洽的发现。噪声过滤率97%。</p>'
     + '<div id="mf-body"></div>'
     + '</div></div>';
 
@@ -2268,11 +2268,11 @@ function renderFilterResult(report) {
 
   // ═══ 一、过滤规则体系 ═══
   html += '<div id="mf-static" class="mf-sec"><div class="mf-sec-title"><span class="n">1</span>过滤规则体系</div>';
-  html += '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">方法论过滤器是稽查报告质量的最后防线——在跨域协商引擎消解域间矛盾之后、报告生成之前执行。七类过滤规则严格按序执行，任何一类规则的输出是下一类的输入。最终只保留可查证、可追溯、可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
+  html += '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 16px">方法论过滤器是税务合规报告质量的最后防线——在跨域协商引擎消解域间矛盾之后、报告生成之前执行。七类过滤规则严格按序执行，任何一类规则的输出是下一类的输入。最终只保留可查证、可追溯、可复核的核心发现进入正式报告。<strong>宁可漏报，不可误报。</strong></p>';
 
   var rules = [
-    {title:'① 稽查重点保护', icon:'🛡️', color:'#2563eb', badge:'12类', desc:'执行顺序：第一步（先于所有过滤规则）。12类稽查重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）在过滤器启动前即被标记为level_fixed=true，此后所有过滤操作都跳过这些发现。三层保护：后端修正→过滤器绕过→前端标记。设计哲学：宁可10条假阳性进入报告，也不能让1条真阳性被过滤掉。'},
-    {title:'② HARD_BAN 硬删除', icon:'🛑', color:'#dc2626', badge:'23类', desc:'执行顺序：第二步。23类绝对禁止词——type/detail/description三字段中包含任一关键词→物理删除，不可恢复：公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂。HARD_BAN的哲学：税务稽查报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害。代码：三字段正则匹配→splice删除→filter_log记录。'},
+    {title:'① 税务合规重点保护', icon:'🛡️', color:'#2563eb', badge:'12类', desc:'执行顺序：第一步（先于所有过滤规则）。12类税务合规重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）在过滤器启动前即被标记为level_fixed=true，此后所有过滤操作都跳过这些发现。三层保护：后端修正→过滤器绕过→前端标记。设计哲学：宁可10条假阳性进入报告，也不能让1条真阳性被过滤掉。'},
+    {title:'② HARD_BAN 硬删除', icon:'🛑', color:'#dc2626', badge:'23类', desc:'执行顺序：第二步。23类绝对禁止词——type/detail/description三字段中包含任一关键词→物理删除，不可恢复：公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂。HARD_BAN的哲学：税务税务合规报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害。代码：三字段正则匹配→splice删除→filter_log记录。'},
     {title:'③ COND_BAN 条件过滤', icon:'⚠️', color:'#f59e0b', badge:'5类', desc:'执行顺序：第三步。基于资料完备度的智能过滤——缺少某类资料→依赖该类资料的发现不成立。五条条件：无申报表→删申报差异类、无合同→删合同比对类、无工资表→删薪酬类、无台账→删库存类、无凭证→删凭证类。核心逻辑：\"没有数据源→就没有分析→就没有发现\"。代码：检测depends_on字段→标记待删除→批量删除。'},
     {title:'④ 正常结论排除', icon:'✅', color:'#059669', badge:'14词', desc:'执行顺序：第四步。detail中含\"一致/正常/无异常/OK/通过/合规/无差异/基本一致/相符/匹配/吻合/无明显/未发现/暂未\"→自动删除。重要例外保护：同时含转折词\"但/然而/不过/尽管如此/除外/需要注意\"→保留。防止\"看起来正常但有异常尾巴\"的发现被误杀。'},
     {title:'⑤ 行业不匹配过滤', icon:'🏭', color:'#0f172a', badge:'动态', desc:'执行顺序：第五步。发现的行业关键词与当前企业行业不匹配→删除。独占性词（纺织/棉纱→广告公司→删）、半独占词（原料/库存→结合行业判断→标记不删）、通用词（收入/成本→所有行业→不检查）。使用industry_data.json的25行业关键词库。'},
@@ -2471,7 +2471,7 @@ function renderAiRules(container) {
   html += '<b>引擎铁律11条</b>（已迁至 <code>engine/memory.py</code>）：定义引擎系统应该如何工作——科目name必须查DB、三号必须合并、ref_id必须精确匹配等。这些是"系统怎么做"的规范。<br><br>';
   html += '<b>为什么分开</b>：2026年6月30日老邓指出——\"AI行为准则的铁律，是引擎的铁律啊！\"。引擎的硬逻辑规范不应该出现在智哥的行为准则页面中。两者的受众和用途完全不同：行为准则用来约束智哥的编码行为，引擎铁律用来定义系统的运行规则。<br><br>';
   html += '引擎铁律编号（共11条）：铁律一~六（账务处理·engine/memory.py §06）+ 铁律七~十一（核心铁律·engine/memory.py §07）+ 铁律十二（跨模块内容一致性·engine/memory.py §08）。<br><br>';
-  html += '完整清单见：<a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb;font-weight:600">税务稽查员手册 §13 引擎铁律编号体系 →</a>';
+  html += '完整清单见：<a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb;font-weight:600">税务税务合规员手册 §13 引擎铁律编号体系 →</a>';
   html += '</div></div>';
 
   html += '</div>';
@@ -2480,7 +2480,7 @@ function renderAiRules(container) {
   container.innerHTML = html;
 }
 
-//  全链路稽查质量保障体系 —— 五大层次18组件全景页
+//  全链路税务合规质量保障体系 —— 五大层次18组件全景页
 // ══════════════════════════════════════════════════════════════
 function renderQualitySystem(container) {
   if (!container) return;
@@ -2490,32 +2490,32 @@ function renderQualitySystem(container) {
     { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
       desc:'规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
-        {name:'规则引擎',source:'static/tax_risk_rules_local_export.json → tax_risk.py',desc:'1608条稽查指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史稽查数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理引擎自动匹配。规则引擎在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
+        {name:'规则引擎',source:'static/tax_risk_rules_local_export.json → tax_risk.py',desc:'1608条税务合规指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史税务合规数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理引擎自动匹配。规则引擎在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
         {name:'线索链系统',source:'static/cross_domain_clues.json → engine/pipeline.py',desc:'437条线索链（全部可执行），每条含1-15个调查步骤。三类验证触发链驱动发现：①定量阈值触发——数值超过预设阈值自动启动链（如偏差率>20%）②定性模式触发——特定数据模式匹配（如公转私频繁）③缺失数据触发——关键资料缺失触发替代验证链。每步含domain/action/data_required三等字段，可追溯至调查来源。代码：pipeline.py调用_domain_cross_domain_clues，引擎通过trigger_keywords自动匹配findings触发。'},
         {name:'证据链系统',source:'static/cross_domain_evidence.json + engine/pipeline.py',desc:'781条证据链（全部可执行）。证据闭环机制——每个证据链定义dimensions[]数组，各维度kws匹配findings→达到min_evidence阈值→触发闭环。要求≥2个不同数据源的维度同时匹配，单域数据不构成闭环。全部达标→形成有效证据→输入分析链推理。每条证据链含rule_refs关联规则，证据收集全程可追溯。代码：_domain_cross_domain_reasoning在all_findings构建后运行。'},
         {name:'跨域分析链',source:'engine/domain_analysis.py + engine/pipeline.py',desc:'48条跨域分析链，多源数据综合推理引擎。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将多个证据链的结论进行综合推理判定：reasoning_path[]定义多步推理路径→从证据到结论的因果推断。典型分析链如\"七维系统性造假综合判定模型\"——经营实质×供应商×资金流×三流合一×跨税种×关联交易×综合，7维中0-2维低风险、3-4维中风险、5-6维高风险、7维全异常→系统性造假立案。跨域分析链在Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定发现。'},
       ]},
     { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
-      desc:'33条稽查方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是引擎的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
+      desc:'33条税务合规方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是引擎的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
       items:[
-        {name:'稽查方法论33条',source:'engine/memory.py §03 + main.py 方法论调用点',desc:'1266条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/稽查重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
-        {name:'四步稽查分析法',source:'engine/pipeline.py → Phase1-4',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则引擎全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
+        {name:'税务合规方法论33条',source:'engine/memory.py §03 + main.py 方法论调用点',desc:'1266条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/税务合规重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
+        {name:'四步税务合规分析法',source:'engine/pipeline.py → Phase1-4',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则引擎全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
         {name:'三层行业穿透法',source:'engine/domain_analysis.py → _domain_industry判定',desc:'工商登记→发票数据→加工信号三层穿透，不一致时以实质重于形式。第一层：读取工商登记的主营行业分类——这是形式上的行业标签，可能存在登记行业与实际经营不符的情况（如登记为\"批发业\"但实际做广告代理）。第二层：统计销项发票的金税编码分布——这是数据层面揭示的实际业务模式，如果90%的销项编码属于\"广告服务\"类，实际是广告公司。第三层：检测进销品名中是否存在加工信号（加工费/原料→成品等关键词）——如果存在外包加工，则实际是\"生产+服务\"混合模式。三层结论不一致时→报告第一章行业分类展示三层穿透结果→最终以第二层（发票数据）为主，第三层（加工信号）为修正→综合判断标注推理过程。代码实现：_detect_target_entity()函数的行业判定逻辑。'},
         {name:'经营实质点面推理法',source:'engine/domain_analysis.py + geo-business-premise-analysis skill',desc:'从单一风险点推理出面的风险——不是孤立地看一个地址异常，而是从地址推演出整个经营模式的合理性。五步推理：①单点异常——发现一个具体异常点（如企业注册地址在某写字楼但社保缴纳人数为零）②数据扩展——围绕这个异常点调取所有相关数据（银行流水中的付款方地址、发票中的服务地址、合同中的履约地点）③关联维度——将地址信息与物流/运输/仓储/人员四个维度进行交叉关联 ④交叉验证——检查多个维度是否一致地指向同一个结论（运输单据缺失+人员零参保+办公地址无水电费→空壳经营的可能性增大）⑤综合结论——从单点风险上升为面的判断（不是\"注册地址异常\"而是\"经营实质存疑——疑似无实际经营场所的空壳企业\"）。引擎实现：geo-business-premise-analysis skill + domain_analysis.py 经营实质域分析。'},
         {name:'合同分层判断法',source:'engine/pipeline.py → 合同分析逻辑',desc:'四层自动判断——根据品名+金额+交易类型将合同需求分为四个层级：①必签层——大宗商品/固定资产/长期服务合同（金额>10万或服务期>1年），无合同视同高风险交易 ②应签层——常规采购/标准服务合同（金额1-10万），无合同标记为需补充 ③可免层——日常消费/零星采购（金额<1万或单一品名），无合同属于正常商业惯例不标记 ④小额层——单笔金额小于行业基准值下限，无合同不构成风险。分层依据从66行业基准库动态获取每个行业的金额门槛。合同分层结果影响：第三章发现的事实认定（是否提及合同缺失）、附件六文件清单（是否标注\"缺少合同\"）、跨域协商标记（缺合同时相关发现降权）。'},
         {name:'发票与收付款时间差方法论',source:'main.py → 时间差检测函数',desc:'发票日期≠收款日期是正常商业现象——不能因为时间差就判定异常。六种真实收付款模式：①自然跨期——月末开发票、次月初收款（1-15天差正常）②合并支付——多张发票合并一笔付款（单笔付款对应多张发票）③分期支付——一张大额发票分多笔支付（预付款30%+验收60%+质保10%）④预付预收——先付款后开票/先开票后收款（预收账款模式）⑤应付应收——赊销赊购产生的应收账款/应付账款（账期30-90天正常）⑥非对公代付——第三方代付、法人垫付等非买卖双方直接结算。引擎的发票vs付款时间匹配算法采用\"按客户逐笔配对\"而非\"全量时间差排序\"——先按客户名称分组，组内按日期排序匹配，组间不交叉。报告第二章详细叙述发现的票款时间差类型及合理性判断。'},
       ]},
     { id:3, name:'质量保障机制', icon:'🔒', color:'#dc2626',
-      desc:'确保报告质量的最后关口。数字一致性+文本一致性双重保护，确保输出专业、准确、可交付。五项组件在分析管线中的位置不同——稽查重点保护在过滤器之前执行（确保不被误杀），噪声过滤器在中间，纯净度规范在报告生成阶段。',
+      desc:'确保报告质量的最后关口。数字一致性+文本一致性双重保护，确保输出专业、准确、可交付。五项组件在分析管线中的位置不同——税务合规重点保护在过滤器之前执行（确保不被误杀），噪声过滤器在中间，纯净度规范在报告生成阶段。',
       items:[
-        {name:'稽查重点强制等级',source:'engine/pipeline.py → 方法论过滤器(稽查重点保护)',desc:'12类稽查重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）强制标记为高风险且不参与任何过滤——即使COND_BAN规则试图过滤（如缺合同→过滤合同类发现），如果该发现属于12类稽查重点，过滤操作会被强制拦截。三层保护机制：①后端修正——在方法论过滤器中，检查每条发现的type是否为稽查重点，是则跳过过滤直接保留 ②过滤器绕过——噪声过滤器(HARD_BAN/COND_BAN)执行前先跑稽查重点检查 ③前端标记——报告渲染时稽查重点发现加红色边框+醒目标记，提示审理人员重点关注。三层保护确保：稽查重点发现不会因缺资料被意外过滤、不会因噪声规则被误删、在报告中物理醒目。'},
-        {name:'报告纯净度规范',source:'engine/pipeline.py → _generate_report() → 文本净化',desc:'系统内部标注（如_auto_corrected/_negotiated/_dismissed等以下划线开头的字段）必须在报告输出前从正文中移除。四步净化管道：①第一步文本净化——在12项质量标准检查前执行，清除模板句（如\"是税务稽查重点方向\"）、空描述（type或detail为空）、重复句（同一发现内连续出现相同内容）、空占位符（如\"()\"\"如：()\"等自动填充失效残留）。②质量检查标记——不通过的在发现底部附加⚠标记，不影响正文。③建议增强——对suggestion字段增强后可能产生新的模板句。④第二步文本净化——再次执行文本净化，确保最终交付前的纯净度。净化后报告的四步框架(detect→verify→diagnose→report)表现为自然段落衔接，用户看不到任何内部处理痕迹。净化规则对应到具体的正则模式和替换策略（见generate_report.py的净化函数注释）。'},
-        {name:'噪声过滤器',source:'engine/pipeline.py → _apply_methodology_filter()',desc:'双轨过滤体系，滤除率达97%。两条轨道：①HARD_BAN硬删除（23类禁止词）——type/detail/description中包含任一禁止词（公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂）→物理删除发现，不可恢复。HARD_BAN的哲学：报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害，宁可漏报也不能出现。②COND_BAN条件过滤（5类）——资料不存在→相关发现删除：无申报表→删除申报差异类、无合同→删除合同分层/比对类、无工资表→删除薪酬/个税类、无台账→库存/进销比类、无凭证→凭证匹配类。条件过滤的逻辑是\"不依赖缺失资料做判断\"。③正常结论排除——detail中含\"一致/正常/无异常/OK/通过/合规\"等词且不含\"但/然而/不过/尽管如此\"等转折词→自动删除（不构成风险发现）。④资料缺口限流——资料缺失类发现超过5条时，按score从低到高删除超出部分。⑤行业不匹配过滤——发现的行业关键词与当前企业行业不匹配→删除。⑥去重合并——同type前60字符相同→只保留score最高的一条。执行顺序：稽查重点保护(跳过)→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。'},
+        {name:'税务合规重点强制等级',source:'engine/pipeline.py → 方法论过滤器(税务合规重点保护)',desc:'12类税务合规重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）强制标记为高风险且不参与任何过滤——即使COND_BAN规则试图过滤（如缺合同→过滤合同类发现），如果该发现属于12类税务合规重点，过滤操作会被强制拦截。三层保护机制：①后端修正——在方法论过滤器中，检查每条发现的type是否为税务合规重点，是则跳过过滤直接保留 ②过滤器绕过——噪声过滤器(HARD_BAN/COND_BAN)执行前先跑税务合规重点检查 ③前端标记——报告渲染时税务合规重点发现加红色边框+醒目标记，提示审理人员重点关注。三层保护确保：税务合规重点发现不会因缺资料被意外过滤、不会因噪声规则被误删、在报告中物理醒目。'},
+        {name:'报告纯净度规范',source:'engine/pipeline.py → _generate_report() → 文本净化',desc:'系统内部标注（如_auto_corrected/_negotiated/_dismissed等以下划线开头的字段）必须在报告输出前从正文中移除。四步净化管道：①第一步文本净化——在12项质量标准检查前执行，清除模板句（如\"是税务税务合规重点方向\"）、空描述（type或detail为空）、重复句（同一发现内连续出现相同内容）、空占位符（如\"()\"\"如：()\"等自动填充失效残留）。②质量检查标记——不通过的在发现底部附加⚠标记，不影响正文。③建议增强——对suggestion字段增强后可能产生新的模板句。④第二步文本净化——再次执行文本净化，确保最终交付前的纯净度。净化后报告的四步框架(detect→verify→diagnose→report)表现为自然段落衔接，用户看不到任何内部处理痕迹。净化规则对应到具体的正则模式和替换策略（见generate_report.py的净化函数注释）。'},
+        {name:'噪声过滤器',source:'engine/pipeline.py → _apply_methodology_filter()',desc:'双轨过滤体系，滤除率达97%。两条轨道：①HARD_BAN硬删除（23类禁止词）——type/detail/description中包含任一禁止词（公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂）→物理删除发现，不可恢复。HARD_BAN的哲学：报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害，宁可漏报也不能出现。②COND_BAN条件过滤（5类）——资料不存在→相关发现删除：无申报表→删除申报差异类、无合同→删除合同分层/比对类、无工资表→删除薪酬/个税类、无台账→库存/进销比类、无凭证→凭证匹配类。条件过滤的逻辑是\"不依赖缺失资料做判断\"。③正常结论排除——detail中含\"一致/正常/无异常/OK/通过/合规\"等词且不含\"但/然而/不过/尽管如此\"等转折词→自动删除（不构成风险发现）。④资料缺口限流——资料缺失类发现超过5条时，按score从低到高删除超出部分。⑤行业不匹配过滤——发现的行业关键词与当前企业行业不匹配→删除。⑥去重合并——同type前60字符相同→只保留score最高的一条。执行顺序：税务合规重点保护(跳过)→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。'},
         {name:'数据一致性自检（数字+文本双维度）',source:'audit_consistency.py + shared_content_sync.py',desc:'双维度自检，防止数据漂移和内容不一致——引擎从\"功能正确\"到\"数据一致\"的跨越。①数字维度：扫描所有JS/PY文件中的硬编码数字（规则数/链数/方法论数等），与system_config.json权威数据对比。正则匹配+偏移扫描双策略覆盖，发现不一致→--sync自动替换。②文本维度：29项跨模块共享内容双层验证——9个text_sync块（逐字哈希对比权威源和依赖模块，如报告7章结构的封面到附件，不一致→自动从权威源覆盖依赖模块）+ 20个concept_link（概念关联存在性验证，确保方法论/规则/架构/数据/规范在所有引用模块中均可追溯）。四触发全覆盖：start.bat启动时、git pre-commit、一键分析pipeline.py子进程、手动python audit_consistency.py --sync。每次--sync还会自动更新engine/memory.py docstring中的权威数据区块。'},
         {name:'审核反馈闭环',source:'engine/self_learning.py → record_correction() + apply_correction_rules()',desc:'用户对报告的每一条审核都是系统的学习机会，驱动引擎从\"每次重新分析\"到\"越用越准\"。五步闭环流程：①审核——用户点击审核按钮，填写五段式审核意见（判断结论/具体问题/正确逻辑/需要证据/法律依据）②存储——POST /api/feedback → record_correction()将审核意见编码为结构化纠正规则，按\"发现类型|行业|经营模式\"三元组生成指纹，存入static/user_corrections.json ③匹配——下次一键分析时，apply_correction_rules()读取全部纠正规则，执行四级回退匹配：精确匹配(同类型+同行业+同模式)→行业匹配(同类型+同行业)→通用匹配(同类型+*+*)→名称匹配(模糊搜索) ④生效——匹配成功后不改变原始风险等级，而是给发现添加_dismissed/_negotiated等标记，前端报告展示绿色审核横幅 ⑤多轮——累计1次纠正→升级为自动规则→四级匹配优先级提升→下次同类发现自动标记。整个闭环在分析开始前+分析结束后两次介入——分析前加载纠正规则到内存，分析后存储新的审核记录。'},
       ]},
     { id:4, name:'行业认知体系', icon:'🏭', color:'#059669',
-      desc:'像经验丰富的稽查员一样理解不同行业的经营模式差异。行业认知不是一次性的\"读一行行业名字\"——而是从工商登记、发票数据、实质经营三个维度综合推断，并在全部分析域中贯彻行业判定结论。行业判定错误会导致后续所有的行业对标分析结果全部失真。',
+      desc:'像经验丰富的税务合规员一样理解不同行业的经营模式差异。行业认知不是一次性的\"读一行行业名字\"——而是从工商登记、发票数据、实质经营三个维度综合推断，并在全部分析域中贯彻行业判定结论。行业判定错误会导致后续所有的行业对标分析结果全部失真。',
       items:[
         {name:'25行业产品链词典',source:'static/industry_data.json → 25_industry_product_chains',desc:'25个行业×2组关键词对（原料/投入关键词 vs 产品/产出关键词），覆盖中国主要行业的典型产品链关系。三级匹配策略：①精确匹配——企业的进项品名和销项品名分别与词典中的原料关键词和产品关键词完全匹配→行业确认 ②模糊匹配——企业销项品名含服务类金税编码前缀（6/7/8开头）→不执行精确的产品链匹配，直接进入服务行业判定流程 ③通用兜底——销项品名不在任何行业的产品链词典中→通过金税编码反查行业分类→如果金税编码也无法判定→使用工商登记行业为默认值同时标记\"行业未确认\"。词典的作用不仅是\"判断行业\"，更是\"验证行业\"——当进销品名与词典的行业预期一致时，该行业的分析域置信度提升；不一致时，触发外包/轻加工模式检测。'},
         {name:'外包轻加工模式认知',source:'engine/pipeline.py → 加工费检测逻辑',desc:'批发业可能存在实质加工——不能仅凭工商登记的\"批发业\"判定没有进销存分析需求，也不能仅凭进销品名差异判定为\"进销不匹配\"。检测逻辑：①扫描银行流水的付款摘要中是否含\"加工费/代工/贴牌/OEM/委外\"等关键词 ②如果是→企业存在外包加工（将原材料发给加工商、加工后收回成品），实质是\"采购原材料+外包加工+销售成品\"的三段经营模式 ③此时进销品名差异是合理的——进的是原材料、销的是成品、中间存在加工环节 ④加工模式下→执行进销存分析但放宽匹配标准（进项品名与销项品名不要求一致，只要求同属一个产品链）⑤报告第一章行业分类中展示\"批发业（存在外包加工实质）\"，第二章详细解释加工模式对分析结果的影响。外包轻加工模式的识别结果会通过跨域协商引擎通知毛利率对标域（制造业对标改为批发+加工混合对标）。'},
@@ -2524,9 +2524,9 @@ function renderQualitySystem(container) {
     { id:5, name:'执行管线', icon:'⚙️', color:'#f59e0b',
       desc:'从原始资料到正式报告的七步处理流程，数据单向流动不丢失不污染不截断。管线的设计原则：上游步骤的输出是下游步骤的输入、下游步骤不能修改上游步骤的原始数据、每一步骤有独立的日志和中间数据、任何步骤出错只影响该步骤及后续步骤、不会回写污染上游。',
       items:[
-        {name:'七步执行流程',source:'engine/pipeline.py → _run_analyze()',desc:'系统化地处理从用户上传文件到最终报告生成的完整流程，每一步都有明确的输入/输出/日志：①资料扫描——文件解析引擎启动，34类文件指纹+三层递进识别（文件名→列头→数据内容→公司匹配），四方交叉验证确认每个文件的类型和归属账套。输入：用户上传的Excel文件数组。输出：分类后的文件对象数组（每个文件含：类型标签/有效记录数/解析状态/错误日志）。②实体识别——从已分类的文件中提取目标企业身份信息（公司全称/统一社会信用代码/法定代表人/行业/经营范围），通过联网核查（天眼查/企查查API）补充工商登记数据。输入：银行流水文件+销项发票文件+进项发票文件。输出：目标实体对象（含所有识别出的公司信息和置信度）。③情报提取——_extract_material_intel()函数对每个文件的每行数据执行深度提取：银行流水→收款来源分类（12条规则逐条匹配）、销项发票→销售额分布（按购买方+品名+月份三维汇总）、进项发票→成本结构（主营业务成本/重大费用/日常报销三层分类）、工资表→人员结构与薪酬分布、社保明细→缴费基数与工资比对。输入：所有已分类文件。输出：material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）。④规则引擎——1608条规则+437条线索链+781条证据链+48条分析链全量激活。Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性。输入：material_intel + 目标实体。输出：all_findings数组（每条含type/level/score/detail/items/matched_chain_details等字段）。⑤噪声过滤——七类过滤规则依次执行：稽查重点保护→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。输入：all_findings。输出：过滤后的all_findings（减少约97%噪声）。⑥跨域协商——run_negotiation()消解域间矛盾（服务行业vs进销存异常→消解）、降级不适用发现（制造业毛利率对标用于服务行业→降为提示）、标记资料受限结论（缺合同→合同相关发现标注\"待补充\"）。输入：过滤后的all_findings。输出：协商后的all_findings。⑦报告输出——_generate_final_report()生成7章正式报告：第一章案件来源及基本情况→第二章稽查实施情况→第三章发现问题及事实认定→第四章稽查结论→第五章处理处罚建议→第六章告知权利义务→第七章稽查人员签字+附件证据清单。同时执行报告纯净度净化（去内部标记）、建议增强（补齐可执行步骤）、12项质量标准检测、语音播报适配。输入：协商后的all_findings + material_intel + 目标实体。输出：完整报告HTML或结构化JSON。'},
-        {name:'42个域分析函数',source:'engine/domain_analysis.py → _domain_XX系列',desc:'42个域分析函数覆盖稽查全领域，按功能分为八大分类：①银行与资金流(3域)——收款来源分析（_domain_receipt_classification）、付款去向分析（_domain_payment_classification）、资金收支对比（_domain_cashflow_comparison）②发票与票据流(4域)——销项发票分析（_domain_sales_invoice）、进项发票分析（_domain_purchase_invoice）、发票合规检查（_domain_invoice_compliance）、红冲/作废分析（_domain_red_void）③进销存与存货(4域)——进销存匹配（_domain_inventory_match）、存货周转（_domain_inventory_turnover）、BOM分析（_domain_bom）、进销比对标（_domain_purchase_sales_ratio）④费用与成本(5域)——费用完整性（_domain_expense_completeness）、费用结构合理性（_domain_expense_structure）、大额费用分析（_domain_large_expenses）、主营业务成本分析（_domain_cogs）、研发费用分析（_domain_rd_expenses）⑤往来款(3域)——应收账款分析（_domain_ar）、应付账款分析（_domain_ap）、关联交易分析（_domain_related_party）⑥资产与负债(3域)——固定资产分析（_domain_fixed_assets）、无形资产分析（_domain_intangible）、长短期借款分析（_domain_loans）⑦工资与人力(3域)——工资发放分析（_domain_salary）、社保缴纳分析（_domain_social_security）、个税扣缴分析（_domain_personal_tax）⑧综合诊断(11域)——行业判定(_domain_industry)、资料完备度(_domain_completeness)、经营实质(_domain_business_substance)、行业对标(_domain_benchmarking)、申报比对(_domain_tax_declaration)、六员比对(_domain_six_personnel)、供应链核查(_domain_supply_chain)、经营风险预警(_domain_risk_alert)、税收优惠审核(_domain_tax_preference)、资金回流检测(_domain_money_laundering)、存疑排除(_domain_exclusion)。数量由system_config.json实时统计保证准确。'},
-        {name:'全链路溯源体系',source:'static/js/tax-doc-analysis.js → 报告渲染中的溯源逻辑',desc:'每条发现的结论都可以通过六步溯源路径反向验证——用户看到报告中任何一条发现，都可以追溯到它是从哪一行原始数据、通过哪条规则、经过哪些验证步骤得出的。六步溯源路径：①规则ID——发现的描述中标注触发的规则编号（如\"R-0321\"），点击可跳转到稽查指令页面查看该规则的完整定义 ②线索链ID——发现的调查路径中标注驱动的线索链编号（如\"CL-0187\"），点击可查看该链的全部调查步骤和触发条件 ③证据来源——发现的evidence_source字段列出所有参与验证的数据文件（如\"银行流水→收款分类→2025年3月\"）④一键分析结果——all_findings数组中该发现的完整JSON（含原始items明细表和matched_chain_details）⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率是多少）⑥原始数据行——通过rule_id反查主文件中的extract函数（_extract_material_intel），定位到原始Excel文件的对应行。每一步在报告中有对应的超链接或展开详情按钮。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需要沿着六步路径反向检查。'},
+        {name:'七步执行流程',source:'engine/pipeline.py → _run_analyze()',desc:'系统化地处理从用户上传文件到最终报告生成的完整流程，每一步都有明确的输入/输出/日志：①资料扫描——文件解析引擎启动，34类文件指纹+三层递进识别（文件名→列头→数据内容→公司匹配），四方交叉验证确认每个文件的类型和归属账套。输入：用户上传的Excel文件数组。输出：分类后的文件对象数组（每个文件含：类型标签/有效记录数/解析状态/错误日志）。②实体识别——从已分类的文件中提取目标企业身份信息（公司全称/统一社会信用代码/法定代表人/行业/经营范围），通过联网核查（天眼查/企查查API）补充工商登记数据。输入：银行流水文件+销项发票文件+进项发票文件。输出：目标实体对象（含所有识别出的公司信息和置信度）。③情报提取——_extract_material_intel()函数对每个文件的每行数据执行深度提取：银行流水→收款来源分类（12条规则逐条匹配）、销项发票→销售额分布（按购买方+品名+月份三维汇总）、进项发票→成本结构（主营业务成本/重大费用/日常报销三层分类）、工资表→人员结构与薪酬分布、社保明细→缴费基数与工资比对。输入：所有已分类文件。输出：material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）。④规则引擎——1608条规则+437条线索链+781条证据链+48条分析链全量激活。Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性。输入：material_intel + 目标实体。输出：all_findings数组（每条含type/level/score/detail/items/matched_chain_details等字段）。⑤噪声过滤——七类过滤规则依次执行：税务合规重点保护→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。输入：all_findings。输出：过滤后的all_findings（减少约97%噪声）。⑥跨域协商——run_negotiation()消解域间矛盾（服务行业vs进销存异常→消解）、降级不适用发现（制造业毛利率对标用于服务行业→降为提示）、标记资料受限结论（缺合同→合同相关发现标注\"待补充\"）。输入：过滤后的all_findings。输出：协商后的all_findings。⑦报告输出——_generate_final_report()生成7章正式报告：第一章案件来源及基本情况→第二章税务合规实施情况→第三章发现问题及事实认定→第四章税务合规结论→第五章处理处罚建议→第六章告知权利义务→第七章税务合规人员签字+附件证据清单。同时执行报告纯净度净化（去内部标记）、建议增强（补齐可执行步骤）、12项质量标准检测、语音播报适配。输入：协商后的all_findings + material_intel + 目标实体。输出：完整报告HTML或结构化JSON。'},
+        {name:'42个域分析函数',source:'engine/domain_analysis.py → _domain_XX系列',desc:'42个域分析函数覆盖税务合规全领域，按功能分为八大分类：①银行与资金流(3域)——收款来源分析（_domain_receipt_classification）、付款去向分析（_domain_payment_classification）、资金收支对比（_domain_cashflow_comparison）②发票与票据流(4域)——销项发票分析（_domain_sales_invoice）、进项发票分析（_domain_purchase_invoice）、发票合规检查（_domain_invoice_compliance）、红冲/作废分析（_domain_red_void）③进销存与存货(4域)——进销存匹配（_domain_inventory_match）、存货周转（_domain_inventory_turnover）、BOM分析（_domain_bom）、进销比对标（_domain_purchase_sales_ratio）④费用与成本(5域)——费用完整性（_domain_expense_completeness）、费用结构合理性（_domain_expense_structure）、大额费用分析（_domain_large_expenses）、主营业务成本分析（_domain_cogs）、研发费用分析（_domain_rd_expenses）⑤往来款(3域)——应收账款分析（_domain_ar）、应付账款分析（_domain_ap）、关联交易分析（_domain_related_party）⑥资产与负债(3域)——固定资产分析（_domain_fixed_assets）、无形资产分析（_domain_intangible）、长短期借款分析（_domain_loans）⑦工资与人力(3域)——工资发放分析（_domain_salary）、社保缴纳分析（_domain_social_security）、个税扣缴分析（_domain_personal_tax）⑧综合诊断(11域)——行业判定(_domain_industry)、资料完备度(_domain_completeness)、经营实质(_domain_business_substance)、行业对标(_domain_benchmarking)、申报比对(_domain_tax_declaration)、六员比对(_domain_six_personnel)、供应链核查(_domain_supply_chain)、经营风险预警(_domain_risk_alert)、税收优惠审核(_domain_tax_preference)、资金回流检测(_domain_money_laundering)、存疑排除(_domain_exclusion)。数量由system_config.json实时统计保证准确。'},
+        {name:'全链路溯源体系',source:'static/js/tax-doc-analysis.js → 报告渲染中的溯源逻辑',desc:'每条发现的结论都可以通过六步溯源路径反向验证——用户看到报告中任何一条发现，都可以追溯到它是从哪一行原始数据、通过哪条规则、经过哪些验证步骤得出的。六步溯源路径：①规则ID——发现的描述中标注触发的规则编号（如\"R-0321\"），点击可跳转到税务合规指令页面查看该规则的完整定义 ②线索链ID——发现的调查路径中标注驱动的线索链编号（如\"CL-0187\"），点击可查看该链的全部调查步骤和触发条件 ③证据来源——发现的evidence_source字段列出所有参与验证的数据文件（如\"银行流水→收款分类→2025年3月\"）④一键分析结果——all_findings数组中该发现的完整JSON（含原始items明细表和matched_chain_details）⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率是多少）⑥原始数据行——通过rule_id反查主文件中的extract函数（_extract_material_intel），定位到原始Excel文件的对应行。每一步在报告中有对应的超链接或展开详情按钮。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需要沿着六步路径反向检查。'},
       ]},
     { id:6, name:'跨域协商引擎', icon:'🤝', color:'#0ea5e9',
       desc:'域分析函数独立运行后，引擎自动执行跨域对话，消解/降级/增强发现的结论。29条协商规则覆盖四类场景——不依赖人工干预，引擎自我发现和修正分析矛盾。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行，确保进入过滤器的发现已经是自洽的。',
@@ -2545,11 +2545,11 @@ function renderQualitySystem(container) {
   h+='<nav class="qs-toc"><div class="toc-title">📖 目录</div>';
   layers.forEach(function(l){h+='<a href="#qs-layer'+l.id+'">'+l.icon+' '+l.name+'</a>';});
   h+='</nav><div class="qs-main">';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🛡️ 全链路稽查质量保障体系</h2>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🛡️ 全链路税务合规质量保障体系</h2>';
   h+='<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
 
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px">';
-  [{n:'1514',l:'稽查规则'},{n:'396',l:'线索链'},{n:'745',l:'证据链'},{n:'33',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}].forEach(function(s){
+  [{n:'1514',l:'税务合规规则'},{n:'396',l:'线索链'},{n:'745',l:'证据链'},{n:'33',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}].forEach(function(s){
     h+='<div class="qs-stat" style="flex:1;min-width:100px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div></div>';
   });
   h+='</div>';
@@ -2563,7 +2563,7 @@ function renderQualitySystem(container) {
     h+='</div>';
   });
 
-  h+='<div class="qs-info"><strong style="color:#059669;font-size:14px">🔓 开放生态系统</strong><br>当前'+totalItems+'个组件只是当前状态。新增稽查能力模块须同步更新此页面。体系随发展持续扩展。</div>';
+  h+='<div class="qs-info"><strong style="color:#059669;font-size:14px">🔓 开放生态系统</strong><br>当前'+totalItems+'个组件只是当前状态。新增税务合规能力模块须同步更新此页面。体系随发展持续扩展。</div>';
   h+='</div></div>';
   container.innerHTML = h;
   // 侧边栏子模块入口
@@ -2752,10 +2752,10 @@ function renderAnalyzeSteps(container) {
     {n:'①',title:'资料扫描与类型识别',icon:'📄',desc:'系统遍历上传目录读取全部Excel/CSV/PDF文件。使用34类文件指纹库执行三层递进识别：Step1关键词打分→Step2结构分析→Step3数据推断兜底。不因无法识别而丢弃数据。'},
     {n:'②',title:'目标实体识别',icon:'🎯',desc:'进项购买方∩销项销售方取交集确定企业全称。90+关键词×66行业加权投票制识别行业。联网查询工商登记信息双源比对。'},
     {n:'③',title:'资料情报提取与数据分析',icon:'🔍',desc:'42个域分析函数：银行收款构成+付款方身份核实+进销存比对+五层发票审计+供应商穿透+合同四层分类。'},
-    {n:'④',title:'规则引擎与链驱动检查',icon:'⚙️',desc:'1608条稽查指令与域分析发现逐条匹配。437条线索链(行业特化自动过滤)+781条证据链闭环检测(≥60%+≥3规则+≥2域→闭环)。'},
-    {n:'⑤',title:'方法论噪声过滤器',icon:'🎯',desc:'HARD_BAN(23类禁止词)+COND_BAN(5类条件过滤)。稽查重点发现不参与过滤。行业不匹配自动删除。去重+正常结论排除。'},
+    {n:'④',title:'规则引擎与链驱动检查',icon:'⚙️',desc:'1608条税务合规指令与域分析发现逐条匹配。437条线索链(行业特化自动过滤)+781条证据链闭环检测(≥60%+≥3规则+≥2域→闭环)。'},
+    {n:'⑤',title:'方法论噪声过滤器',icon:'🎯',desc:'HARD_BAN(23类禁止词)+COND_BAN(5类条件过滤)。税务合规重点发现不参与过滤。行业不匹配自动删除。去重+正常结论排除。'},
     {n:'⑥',title:'行业对标与申报比对',icon:'📊',desc:'66行业基准值自动对标(毛利率/净利率/税负率/进销比/人均营收)。三级判断：低于下限→高风险、低于典型值85%→中风险、高于上限→中风险。'},
-    {n:'⑦',title:'正式稽查报告输出',icon:'📝',desc:'综合所有发现生成结构化稽查报告：稽查概况+企业工商+高/中/低风险发现+四步分析框架+法律依据+消除路径。独立HTML可直接交付。'}
+    {n:'⑦',title:'正式税务合规报告输出',icon:'📝',desc:'综合所有发现生成结构化税务合规报告：税务合规概况+企业工商+高/中/低风险发现+四步分析框架+法律依据+消除路径。独立HTML可直接交付。'}
   ];
   steps.forEach(function(s) {
     h += '<div style="padding:16px 20px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:4px solid #2563eb">'

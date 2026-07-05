@@ -54,7 +54,7 @@ new_impl = '''
         
         for event in self.events:
             # 提取 finding_type
-            if event.module == "①稽查指令" and event.event_type == "rule_triggered":
+            if event.module == "①税务合规指令" and event.event_type == "rule_triggered":
                 ft = event.data.get("finding_type", "")
                 if ft and ft not in finding_types:
                     finding_types.append(ft)
@@ -177,14 +177,14 @@ new_impl = '''
             "modules_covered": len(module_coverage),
             "module_breakdown": dict(module_coverage.most_common()),
             "all_modules": [
-                "①稽查指令","②线索链","③证据链","④分析链","⑤稽查方法论",
+                "①税务合规指令","②线索链","③证据链","④分析链","⑤税务合规方法论",
                 "⑥代码","⑦文件解析","⑧域分析","⑨⑩⑪跨域","⑫方法论过滤",
                 "⑬全链路质量","⑭七步流程","⑮质量保障",
                 "推理引擎仪表盘","能力矩阵","智能大脑"
             ],
             "missing_modules": [
                 m for m in [
-                    "①稽查指令","②线索链","③证据链","④分析链","⑤稽查方法论",
+                    "①税务合规指令","②线索链","③证据链","④分析链","⑤税务合规方法论",
                     "⑥代码","⑦文件解析","⑧域分析","⑨⑩⑪跨域","⑫方法论过滤",
                     "⑬全链路质量","⑭七步流程","⑮质量保障",
                     "推理引擎仪表盘","能力矩阵","智能大脑"

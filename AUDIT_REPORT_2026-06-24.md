@@ -1,4 +1,4 @@
-# 财税稽查系统全面审计报告
+# 财税税务合规系统全面审计报告
 
 **审计日期:** 2026-06-24 00:00  
 **修复日期:** 2026-06-24 00:15 — commit b0fb963
@@ -97,7 +97,7 @@ tax-doc-analysis.js（9端点）、tax-engine-dashboard.js（4端点）、tax-pi
 | EARLY_WARNING_ESCALATION | 8 | 8 (EWARN_001~008) | ✅ |
 | _SIGNAL_DOMAIN_MAP | 18 | 18 (1个重复key) | ⚠️ |
 | _CATEGORY_NAME_TO_KEY | 14 | 14 | ✅ |
-| 稽查指令 | 1512 | 1512 | ✅ |
+| 税务合规指令 | 1512 | 1512 | ✅ |
 | 线索链（audit_chains） | 396 | 396 | ✅ |
 | 证据链（audit_chains） | 745 | 745 | ✅ |
 | 跨域线索链 | 11 | 11 | ✅ |
@@ -153,7 +153,7 @@ tax-doc-analysis.js（9端点）、tax-engine-dashboard.js（4端点）、tax-pi
 
 | 7 | `ALL_INDUSTRIES` | 25263-25273 | 9类 | 行业过滤覆盖不全 |
 | 8 | `model_to_key` | 18249-18253 | 3对 | 模式→profile映射硬编码 |
-| 9 | `_INDUSTRY_CHAIN_PREFIXES` | 22198-22211 | ~10个 | 稽查链匹配范围受限 |
+| 9 | `_INDUSTRY_CHAIN_PREFIXES` | 22198-22211 | ~10个 | 税务合规链匹配范围受限 |
 | 10 | `has_processing`关键词 | 9处引用 | - | "加工"判断过于简化 |
 
 ### 🟢 做得正确的

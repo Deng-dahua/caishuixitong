@@ -1,4 +1,4 @@
-// ==================== 稽查指令页面 ====================
+// ==================== 税务合规指令页面 ====================
 var taxRiskRulesData = [];
 var _triggeredRuleFindings = {};  // rule_id → [finding, ...] 触发溯源
 
@@ -11,16 +11,16 @@ var RISK_LEVEL_ICONS = {
 
 // 分类描述
 var CATEGORY_DESCRIPTIONS = {
-  '资金流': '资金流向追踪、收款来源分析、付款方身份核实、异常交易检测。银行流水是稽查的第一切入资料。',
+  '资金流': '资金流向追踪、收款来源分析、付款方身份核实、异常交易检测。银行流水是税务合规的第一切入资料。',
   '发票进销匹配': '进销品名交叉映射、进销比分析、有进无销/有销无进诊断、BOM加工链条验证、存货周转预警、发票合规检查、税率异常、红冲作废追踪。',
   '经营实质': '企业是否具备真实经营条件——经营费用/仓储/物流/人员/产能。全链条经营实质地理分析。',
-  '资料完备': '14类稽查必查资料逐项检测，合同需求四层自动分层，缺失资料标注风险等级。',
+  '资料完备': '14类税务合规必查资料逐项检测，合同需求四层自动分层，缺失资料标注风险等级。',
   '税务合规': '增值税/企业所得税/个税/印花税/城建税等各税种申报与实际数据比对验证。',
   '财务数据': '科目余额、凭证完整性、报表勾稽、利润质量、资产负债结构等基础财务质量评估。',
   '薪酬社保': '工资表vs社保明细vs公积金三方交叉验证——基数匹配、人数一致、比例合规。',
   '关联交易': '名称相似度检测、同法人/同注册地/同电话识别、客户供应商重叠对倒检测。',
   '申报合规': '各税种申报表的填写规范性和数据准确性检查，申报期限和报送要求验证。',
-  '行业专项': '针对特定行业的专属稽查规则——制造业/建筑业/服务业/贸易等行业的特殊检查标准。',
+  '行业专项': '针对特定行业的专属税务合规规则——制造业/建筑业/服务业/贸易等行业的特殊检查标准。',
   '个税': '个人所得税代扣代缴、专项附加扣除、工资薪金与劳务报酬的合规检查。',
   '资产负债': '资产和负债科目的真实性验证——存货/应收账款/固定资产/负债的计价和存在性。',
   '资产负债往来': '资产负债往来对应关系检查——借贷不平衡/应付账款占比/应收账款账龄/预收账款挂账等。',
@@ -42,7 +42,7 @@ var CATEGORY_DESCRIPTIONS = {
 
 function renderTaxRiskRules(container) {
   if (!container) return;
-  window.currentModule = '稽查指令';
+  window.currentModule = '税务合规指令';
 
   container.innerHTML = '<style>'
     + '.rr-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}'
@@ -53,13 +53,13 @@ function renderTaxRiskRules(container) {
     + '</style>'
     + '<div class="rr-layout">'
     + '<div class="rr-main">'
-    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📋 稽查指令</h2>'
+    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">📋 税务合规指令</h2>'
     + '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px" id="risk-rules-count">加载中...</p>'
     // Hero
     + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:24px">'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0">'
-    + '稽查指令是系统的规则知识库——1611条结构化税务稽查规则，覆盖资金流、进销存、发票流、经营实质、'
-    + '税务合规、薪酬社保、关联交易等多个领域。每条指令包含稽查标准、风险等级、评分、详细检查方法、'
+    + '税务合规指令是系统的规则知识库——1611条结构化税务税务合规规则，覆盖资金流、进销存、发票流、经营实质、'
+    + '税务合规、薪酬社保、关联交易等多个领域。每条指令包含税务合规标准、风险等级、评分、详细检查方法、'
     + '处理建议和法律依据。运行一键分析后，系统自动将域分析发现与规则库交叉匹配，触发对应指令——'
     + '被触发的规则高亮显示并展示触发溯源（是哪个域分析的哪项发现触发了该规则），形成"发现→规则→结论"的完整证据链。'
     + '此外，系统还会自动发现行业普遍信号（同行业≥3家&出现率>60%），生成蓝色🤖校准规则以降低误报。'
@@ -74,7 +74,7 @@ function renderTaxRiskRules(container) {
     + '<p style="margin:0 0 8px"><strong>3. 查看触发：</strong>运行一键分析后，被触发的规则会以红色左边线+红色徽章"✅ 本次触发(N)"高亮显示。'
     + '展开规则可见红色溯源卡片，列出每一项触发了该规则的域分析发现——包含发现类型、数据详情和风险等级，支持从规则反向追溯到原始发现。</p>'
     + '<p style="margin:0 0 8px"><strong>4. 规则结构：</strong>每条指令包含11个标准字段——指令名称(item)、风险等级(level)、评分(score)、详细标准(detail)、'
-    + '稽查建议(suggestion)、所需佐证(evidence)、税务影响(tax_impact)、法律依据(policy_ref)、数据来源(dataSource)、可检测性(detectable)、分类(category)。</p>'
+    + '税务合规建议(suggestion)、所需佐证(evidence)、税务影响(tax_impact)、法律依据(policy_ref)、数据来源(dataSource)、可检测性(detectable)、分类(category)。</p>'
     + '<p style="margin:0"><strong>5. 学习闭环：</strong>用户通过报告审核功能对发现的准确性进行反馈，纠正规则存入user_corrections.json。'
     + '同类纠正累计≥1次后自动升级为系统规则——下次一键分析自动应用四级回退匹配，无需人工干预。形成"分析→审核→纠正→自动应用"的完整学习闭环。</p>'
     + '</div>'
@@ -197,10 +197,10 @@ function renderTaxRiskRulesList() {
   var triggeredCount = Object.keys(_triggeredRuleFindings).length;
   var countEl = document.getElementById('risk-rules-count');
   var triggerText = triggeredCount > 0 ? '（本次触发 <span style="color:#dc2626;font-weight:600">' + triggeredCount + '</span> 条）' : '（暂无触发）';
-  if (countEl) countEl.innerHTML = data.length + ' 条稽查指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选';
+  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选';
 
   if (data.length === 0) {
-    listEl.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无稽查指令，请加载数据</div>';
+    listEl.innerHTML = '<div style="padding:40px 0;font-size:13px;color:#94a3b8">暂无税务合规指令，请加载数据</div>';
     return;
   }
 
@@ -278,7 +278,7 @@ function renderTaxRiskRulesList() {
         + (detailText ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:8px">' + escHtml(detailText) + '</div>' : '')
 
         // 建议 + 佐证
-        + (suggestText ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '稽查建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
+        + (suggestText ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
         + (evidenceText ? '<div style="font-size:13px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
         
         // 自动发现额外信息
@@ -298,7 +298,7 @@ function renderTaxRiskRulesList() {
   listEl.innerHTML = html;
 
   if (statsEl) {
-    statsEl.innerHTML = '共 ' + data.length + ' 条稽查指令 · '
+    statsEl.innerHTML = '共 ' + data.length + ' 条税务合规指令 · '
       + '<span style="color:#dc2626">高 ' + high + '</span> · '
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '

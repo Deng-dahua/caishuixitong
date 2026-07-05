@@ -421,11 +421,11 @@ class ComplianceGate:
     @staticmethod
     def _s07_check(f): return len(str(f.get("detail",""))) >= 80
     @staticmethod
-    def _s08_check(f): return not any(k in str(f.get("detail","")) for k in ["是税务稽查重点方向","需逐笔核实","申报不合规是税务行政处罚"])
+    def _s08_check(f): return not any(k in str(f.get("detail","")) for k in ["是税务税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"])
     @staticmethod
     def _s08_fix(f):
         d = str(f.get("detail",""))
-        for k in ["是税务稽查重点方向","需逐笔核实","申报不合规是税务行政处罚"]:
+        for k in ["是税务税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"]:
             d = d.replace(k,"")
         f["detail"] = d.strip()
     @staticmethod
@@ -553,7 +553,7 @@ class ComplianceGate:
                     else:
                         ftype = f.get("type", "发现")
                         summary = detail[:80].strip()
-                        f["tax_impact"] = f"{ftype}: {summary} -> 稽查标记 -> 存在补税/罚款/调整风险"
+                        f["tax_impact"] = f"{ftype}: {summary} -> 税务合规标记 -> 存在补税/罚款/调整风险"
                     fixed_any = True
             # 修复S09：补充数值（加单位以匹配正则 r'\d[\d,.]*[万元]'）
             import re

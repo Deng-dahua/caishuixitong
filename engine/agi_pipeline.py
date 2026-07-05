@@ -179,7 +179,7 @@ class AGIPipelineConnector:
     # ─── 智能大脑/行为准则(C) ───
     def ingest_ai_rules(self, rule_executions: List[Dict] = None, trace_id: str = ""):
         """智能大脑(行为准则)执行追踪"""
-        # 行为准则嵌在稽查方法论和自愈规则中，此处采集执行摘要
+        # 行为准则嵌在税务合规方法论和自愈规则中，此处采集执行摘要
         if rule_executions:
             for rex in rule_executions:
                 self.events.append(LearningEvent("智能大脑", "ai_rule_executed", {
@@ -191,10 +191,10 @@ class AGIPipelineConnector:
         
         return len(rule_executions or [])
     
-    # ─── ① 稽查指令规则学习 ───
+    # ─── ① 税务合规指令规则学习 ───
     def ingest_audit_rules(self, rules_used: int, rule_details: List[Dict], findings: List[Dict],
                            trace_id: str, company_id: int):
-        """从稽查指令执行中学习
+        """从税务合规指令执行中学习
         
         记录：每条规则触发后实际产生了什么结论，成功率如何。
         """
@@ -202,7 +202,7 @@ class AGIPipelineConnector:
         for f in findings:
             rule_id = f.get("rule_id", f.get("_rule_id", ""))
             if rule_id:
-                events.append(LearningEvent("①稽查指令", "rule_triggered", {
+                events.append(LearningEvent("①税务合规指令", "rule_triggered", {
                     "rule_id": rule_id,
                     "finding_type": f.get("type", ""),
                     "level": f.get("level", ""),
@@ -237,7 +237,7 @@ class AGIPipelineConnector:
             for rid, count in rule_hits.most_common(10):
                 for rd in rule_details:
                     if str(rd.get("id", "")) == rid:
-                        kb.add_lesson(f"规则{rid}({rd.get('name','')[:20]})触发{count}次", "稽查指令")
+                        kb.add_lesson(f"规则{rid}({rd.get('name','')[:20]})触发{count}次", "税务合规指令")
                         break
         except:
             pass
@@ -335,15 +335,15 @@ class AGIPipelineConnector:
         
         return len(analysis_chains or [])
     
-    # ─── ⑤ 稽查方法论 → 方法映射 ───
+    # ─── ⑤ 税务合规方法论 → 方法映射 ───
     def ingest_methodologies(self, methodologies_applied: List[Dict], domain_results: List[Dict],
                              trace_id: str):
-        """从稽查方法论应用中学习方法→域→结论的映射关系"""
+        """从税务合规方法论应用中学习方法→域→结论的映射关系"""
         for method in methodologies_applied or []:
             m_name = method.get("name", method.get("id", ""))
             domains = method.get("domains", method.get("applicable_domains", []))
             
-            self.events.append(LearningEvent("⑤稽查方法论", "method_applied", {
+            self.events.append(LearningEvent("⑤税务合规方法论", "method_applied", {
                 "method_name": m_name,
                 "domains_count": len(domains),
                 "trace_id": trace_id,
@@ -353,7 +353,7 @@ class AGIPipelineConnector:
             # 学习方法论的有效性：以后分析方法论命中域次数
             try:
                 kb = __import__('engine.knowledge_base', fromlist=['get_kb']).get_kb()
-                kb.add_lesson(f"方法论'{m_name[:30]}'在{len(domains)}个域中应用", "⑤稽查方法论")
+                kb.add_lesson(f"方法论'{m_name[:30]}'在{len(domains)}个域中应用", "⑤税务合规方法论")
             except: pass
         
         return len(methodologies_applied or [])
@@ -626,7 +626,7 @@ class AGIPipelineConnector:
         
         for event in self.events:
             # 提取 finding_type
-            if event.module == "①稽查指令" and event.event_type == "rule_triggered":
+            if event.module == "①税务合规指令" and event.event_type == "rule_triggered":
                 ft = event.data.get("finding_type", "")
                 if ft and ft not in finding_types:
                     finding_types.append(ft)
@@ -831,14 +831,14 @@ class AGIPipelineConnector:
             "knowledge_auto_extract": auto_extract,
             "cross_module_chains": len(bus.get_cross_module_chains()) if 'bus' in dir() else 0,
             "all_modules": [
-                "①稽查指令","②线索链","③证据链","④分析链","⑤稽查方法论",
+                "①税务合规指令","②线索链","③证据链","④分析链","⑤税务合规方法论",
                 "⑥代码","⑦文件解析","⑧域分析","⑨⑩⑪跨域","⑫方法论过滤",
                 "⑬全链路质量","⑭七步流程","⑮质量保障",
                 "推理引擎仪表盘","能力矩阵","智能大脑"
             ],
             "missing_modules": [
                 m for m in [
-                    "①稽查指令","②线索链","③证据链","④分析链","⑤稽查方法论",
+                    "①税务合规指令","②线索链","③证据链","④分析链","⑤税务合规方法论",
                     "⑥代码","⑦文件解析","⑧域分析","⑨⑩⑪跨域","⑫方法论过滤",
                     "⑬全链路质量","⑭七步流程","⑮质量保障",
                     "推理引擎仪表盘","能力矩阵","智能大脑"
@@ -863,7 +863,7 @@ def create_pipeline() -> AGIPipelineConnector:
 财税智能体核心引擎 —— AgentCore
 
 五层架构：感知→推理→学习→表达→记忆
-设计哲学：不只是规则引擎，而是像一个真正的税务稽查员一样思考。
+设计哲学：不只是规则引擎，而是像一个真正的税务税务合规员一样思考。
 
 能力边界：
   ✅ 假设驱动分析 — 基于数据模式主动生成调查假设
@@ -1430,9 +1430,9 @@ class InsightSynthesizer:
 # ==================== 5. 智能体核心 ====================
 
 class TaxAuditAgent:
-    """财税稽查智能体核心
+    """财税税务合规智能体核心
     
-    统一调度五层引擎，模拟一个真正的税务稽查员的思考过程。
+    统一调度五层引擎，模拟一个真正的税务税务合规员的思考过程。
     
     v1.1 进化：
     - 自主推理器(AutonomousReasoner)替代手工模板

@@ -1,5 +1,5 @@
 """
-稽查增强模块 - 补充材料缺口报告/数据质量评估/行业检测等功能
+税务合规增强模块 - 补充材料缺口报告/数据质量评估/行业检测等功能
 
 ═════ META-001 行业推断铁律 ═════
 行业推断唯一依据 = 销项发票品名，不参考进项发票品名。
@@ -132,8 +132,8 @@ def enhance_evidence_summary(evidence_summary, company_id):
 
 
 def generate_audit_working_paper(db, company_id, period_start, period_end, results, company_name):
-    """生成稽查工作底稿HTML"""
-    return f"<html><body><h1>{company_name} — 稽查工作底稿</h1><p>期间: {period_start}~{period_end}</p><p>分析项: {len(results)}项</p></body></html>"
+    """生成税务合规工作底稿HTML"""
+    return f"<html><body><h1>{company_name} — 税务合规工作底稿</h1><p>期间: {period_start}~{period_end}</p><p>分析项: {len(results)}项</p></body></html>"
 
 
 def detect_submitted_materials(db, company_id):

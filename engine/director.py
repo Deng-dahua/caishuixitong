@@ -16,7 +16,7 @@ from collections import defaultdict
 
 
 class DirectorEngine:
-    """稽查处长级推理引擎"""
+    """税务合规处长级推理引擎"""
     
     # ═══════ 不确定因素加权库 ═══════
     UNCERTAINTY_SOURCES = {

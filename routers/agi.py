@@ -194,11 +194,11 @@ def get_agi_status(db: Session = Depends(get_db)):
         result["external_verify"] = {"channels": get_external_verifier().get_available_channels()}
     except: pass
     
-    # 对话稽查状态
+    # 对话税务合规状态
     result["chat"] = {"available": True, "endpoint": "/api/agi/chat", "knowledge_count": result["knowledge_base"]["lessons_count"]}
     
     # ═══ 三大新增引擎 ═══
-    # ④ 稽查方法论
+    # ④ 税务合规方法论
     try:
         from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
         result["methodology"] = {

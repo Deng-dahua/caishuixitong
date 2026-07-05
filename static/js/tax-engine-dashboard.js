@@ -75,7 +75,7 @@ function renderStatusTab() {
       '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
       '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
       '<div style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:2">运行状态需要先执行一键分析才能查看引擎内部数据。<br>一键分析会触发完整的Phase1-4推理管线，生成包含全部中间状态的分析报告。</div>' +
-      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>风险分析</b> 页面运行一键分析，或点击上方 <b>学习反馈</b> 标签查看1608条稽查指令。<br>其他标签页（质量保障/AGI核心/推理引擎）也需要分析数据作为输入。</div>' +
+      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>风险分析</b> 页面运行一键分析，或点击上方 <b>学习反馈</b> 标签查看1608条税务合规指令。<br>其他标签页（质量保障/AGI核心/推理引擎）也需要分析数据作为输入。</div>' +
       '</div>';
     return;
   }
@@ -549,7 +549,7 @@ function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, c
   // ═══ 说明 ═══
   h += '<div class="dim-info" style="margin-bottom:24px">';
   h += '<strong style="color:#059669;font-size:14px">星级评定标准</strong><br><br>';
-  h += '<b>★★★★ 四星</b>：功能完整实现——有完整的代码实现+对应的API端点+前端渲染页面+报告中的输出呈现。四星维度是引擎的"完全体"能力，可直接用于正式稽查报告生成。<br><br>';
+  h += '<b>★★★★ 四星</b>：功能完整实现——有完整的代码实现+对应的API端点+前端渲染页面+报告中的输出呈现。四星维度是引擎的"完全体"能力，可直接用于正式税务合规报告生成。<br><br>';
   h += '<b>★★★ 三星</b>：核心功能实现——有主要的代码逻辑和API，但前端展示或报告集成仍需完善。三星维度在引擎内部正常运行（管线能调用、结果能产出），面向用户的产品化程度不如四星完整。<br><br>';
   h += '<b>评定方式</b>：capability_matrix.py 扫描各模块代码中的函数定义、API路由注册、前端渲染函数和报告注入逻辑，自动统计每个维度的实现状态。非主观评分——每一个星级对应代码中可验证的实现证据。</div>';
 
@@ -1046,7 +1046,7 @@ function renderDetailsTab() {
       
       // ── 4. 假设生成引擎 ──
       h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">';
-      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔍 假设生成引擎 — 稽查假设与验证</h3>';
+      h += '<h3 style="margin:0 0 10px;color:#0f172a;font-size:14px">🔍 假设生成引擎 — 税务合规假设与验证</h3>';
       var hypos = d.hypotheses || [];
       if (hypos.length > 0) {
         hypos.forEach(function(h) {
@@ -1205,7 +1205,7 @@ var MODULE_DEPS = {
     downstream: [{name:'管道.py',desc:'高级分析桥接AGI'},{name:'AGI引擎.py',desc:'嵌入方法知识增强'}]
   },
   details: {
-    upstream: [{name:'引擎/ 全部52个模块',desc:'所有引擎模块汇总'},{name:'税务风险规则导出.json',desc:'1611条稽查指令'},{name:'跨域线索+跨域证据.json',desc:'437+781条线索和证据链'}],
+    upstream: [{name:'引擎/ 全部52个模块',desc:'所有引擎模块汇总'},{name:'税务风险规则导出.json',desc:'1611条税务合规指令'},{name:'跨域线索+跨域证据.json',desc:'437+781条线索和证据链'}],
     downstream: [{name:'运行仪表盘',desc:'6个子模块共用'},{name:'系统日志',desc:'引擎运行记录'}]
   }
 };

@@ -1,21 +1,21 @@
 {
-  "_description": "稽查报告结构配置。编辑此文件即可自由调整报告的章节顺序和模块开关，无需改代码。",
+  "_description": "税务合规报告结构配置。编辑此文件即可自由调整报告的章节顺序和模块开关，无需改代码。",
   "_version": "2026-06-26",
   "_instructions": "sections = 报告章节列表。每章含 id/label/modules 三个字段。modules 为空数组 [] 表示该章自动加载所有匹配模块。设为具体模块ID列表则只渲染列出的模块。要删掉某章 → 直接删掉该条目。要调整顺序 → 调整 entries 顺序。",
   
   "templates": {
     "default": {
-      "name": "标准税务稽查报告",
+      "name": "标准税务税务合规报告",
       "sections": [
         { "id": "cover", "label": "", "modules": ["cover_page"] },
         { "id": "toc", "label": "", "modules": ["toc"] },
-        { "id": "sec1", "label": "一、案件来源及稽查对象基本情况", "modules": [] },
-        { "id": "sec2", "label": "二、稽查实施情况", "modules": [] },
-        { "id": "sec3", "label": "三、稽查结论", "modules": [] },
-        { "id": "sec4", "label": "四、稽查发现问题及事实认定", "modules": [] },
+        { "id": "sec1", "label": "一、案件来源及税务合规对象基本情况", "modules": [] },
+        { "id": "sec2", "label": "二、税务合规实施情况", "modules": [] },
+        { "id": "sec3", "label": "三、税务合规结论", "modules": [] },
+        { "id": "sec4", "label": "四、税务合规发现问题及事实认定", "modules": [] },
         { "id": "sec5", "label": "五、处理处罚建议", "modules": [] },
         { "id": "sec6", "label": "六、告知权利义务", "modules": [] },
-        { "id": "sec7", "label": "七、稽查人员签字", "modules": [] },
+        { "id": "sec7", "label": "七、税务合规人员签字", "modules": [] },
         { "id": "appendix", "label": "附件", "modules": [] }
       ]
     },
@@ -24,8 +24,8 @@
       "name": "精简报告（仅核心结论）",
       "sections": [
         { "id": "cover", "label": "", "modules": ["cover_page"] },
-        { "id": "sec1", "label": "一、稽查对象基本情况", "modules": ["case_source", "entity_basic_info"] },
-        { "id": "sec3", "label": "二、稽查结论", "modules": ["conclusion_risk_profile", "conclusion_synthesis"] },
+        { "id": "sec1", "label": "一、税务合规对象基本情况", "modules": ["case_source", "entity_basic_info"] },
+        { "id": "sec3", "label": "二、税务合规结论", "modules": ["conclusion_risk_profile", "conclusion_synthesis"] },
         { "id": "sec4", "label": "三、主要发现问题", "modules": ["findings_detail"] },
         { "id": "sec5", "label": "四、处理建议", "modules": ["actions_table"] },
         { "id": "sec7", "label": "", "modules": ["signature_block"] }
@@ -36,7 +36,7 @@
       "name": "高管摘要（一页纸）",
       "sections": [
         { "id": "cover", "label": "", "modules": ["cover_page"] },
-        { "id": "sec1", "label": "稽查摘要", "modules": ["entity_basic_info", "data_overview_sec1", "conclusion_risk_profile"] },
+        { "id": "sec1", "label": "税务合规摘要", "modules": ["entity_basic_info", "data_overview_sec1", "conclusion_risk_profile"] },
         { "id": "sec3", "label": "核心发现", "modules": ["findings_detail"] },
         { "id": "sec5", "label": "建议措施", "modules": ["actions_table", "recommended_next"] }
       ]
@@ -65,9 +65,9 @@
       { "id": "missing_consequences_sec1", "description": "资料缺失后果说明" }
     ],
     "sec2": [
-      { "id": "inspection_intro", "description": "稽查实施介绍" },
-      { "id": "inspection_methods", "description": "稽查方法清单" },
-      { "id": "inspection_process", "description": "稽查过程详述" },
+      { "id": "inspection_intro", "description": "税务合规实施介绍" },
+      { "id": "inspection_methods", "description": "税务合规方法清单" },
+      { "id": "inspection_process", "description": "税务合规过程详述" },
       { "id": "receipt_analysis", "description": "收款分析" },
       { "id": "cashflow_chart", "description": "资金流向图" },
       { "id": "top_counterparties", "description": "往来方TOP20" },

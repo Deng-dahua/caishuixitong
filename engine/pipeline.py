@@ -1,5 +1,5 @@
 """
-稽查分析管道 — _run_analyze 核心引擎 + 辅助函数
+税务合规分析管道 — _run_analyze 核心引擎 + 辅助函数
 从 main.py 提取，所有函数为纯分析逻辑
 """
 from collections import defaultdict, Counter
@@ -40,7 +40,7 @@ from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysi
 
 def _auto_assign_rule_ids(all_findings, pipeline_log=None):
     """自动为每条发现分配规则ID——没有匹配规则的发现也有兜底"""
-    """域→规则自动分配：为没有rule_id的发现自动匹配稽查指令
+    """域→规则自动分配：为没有rule_id的发现自动匹配税务合规指令
     
     策略：
     1. 加载 RULE_DOMAIN_MAP（域名称→规则分类映射）
@@ -879,7 +879,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         pur_invs = [i for i in invoices if i["direction"] == "进项"]
 
     # ═════════════════════════════════════════════════════════==
-    # 稽查方法论④：主营业务成本识别驱动的进销存分析
+    # 税务合规方法论④：主营业务成本识别驱动的进销存分析
     # 核心原则：先识别主营业务成本（三层分类），再逐层分析，
     # 而非一刀切地全量比对。费用类发票不参与进销匹配。
     # 分析链：主营业务成本识别 → 核心成本进销匹配 → 制造业加工链条检测 → BOM交叉验证
@@ -992,7 +992,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         # ═══════════════════════════════════════════════════
         # 检查1：有进无销（33）
-        # 稽查方法论④-A：只对主营业务成本的采购做有进无销判断
+        # 税务合规方法论④-A：只对主营业务成本的采购做有进无销判断
         # 费用类进项（餐饮住宿汽油等）天然不需要销售，不应标记为"有进无销"
         # 分析链：核心成本进项品名 → 销项品名交叉比对 → 制造业加工信号检测 → BOM验证
         # 证据链：核心成本进项清单 + 销项清单 + 加工费/BOM关联信号
@@ -1062,7 +1062,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "level": "高风险", "score": 8,
                     "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
                     "description": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_cost_invs)}张核心成本发票做进销比对。被查单位采购了{'、'.join(core_only_buy[:3])}等{len(core_only_buy)}种核心商品（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现对应产品的销售记录。\n\n"
-                        + f"【人类稽查员行为判断】{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                        + f"【人类税务合规员行为判断】{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
                     "how_found": f"对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除费用类后对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类核心进项的品名从未出现在销项中。",
                     "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。",
                     "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《中华人民共和国增值税法》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
@@ -1074,7 +1074,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         # ═══════════════════════════════════════════════════
         # 检查2：有销无进（34）
-        # 稽查方法论④-B：只对主营业务成本对应的销售做有销无进判断
+        # 税务合规方法论④-B：只对主营业务成本对应的销售做有销无进判断
         # 如果已经判断缺少BOM表（制造业加工链条），则主营业务成本外
         # 的销售由加工产出，属于正常现象，不应标记为"有销无进"
         # ═══════════════════════════════════════════════════
@@ -1167,7 +1167,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         # ═══════════════════════════════════════════════════
         # 检查3：进销数量严重偏差（32）
-        # 稽查方法论④-C：只对主营业务成本品名的进销数量做比对
+        # 税务合规方法论④-C：只对主营业务成本品名的进销数量做比对
         # 费用类品名（餐饮住宿汽油等）无数量概念参与无意义
         # ═══════════════════════════════════════════════════
         # 仅对核心成本品名（同时出现在进销中的）做数量比对
@@ -1464,7 +1464,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, vouchers=vouchers)})
     else: domain_results.append({"domain": "出口退税验证", "findings": []})
 
-    # ═══ 财务报表税务稽查分析（新增） ═══
+    # ═══ 财务报表税务税务合规分析（新增） ═══
     try:
         from engine.financial_analyzer import analyze_financial_statements
         tri_bal = next((d for d in (file_results or []) if d.get("type") == "trial_balance"), {})
@@ -1523,19 +1523,19 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _ie:
         pipeline_log.append(f"税收优惠分析异常: {_ie}")
 
-    # ═══ 新增稽查域：增值税申报比对 ═══
+    # ═══ 新增税务合规域：增值税申报比对 ═══
     if _has_inv_or_bank:
         domain_results.append({"domain": "增值税申报比对", "findings": _domain_vat_declaration_compare(clean_invs, bank_txs, db, company_id)})
     else:
         domain_results.append({"domain": "增值税申报比对", "findings": []})
     
-    # ═══ 新增稽查域：上下游穿透分析 ═══
+    # ═══ 新增税务合规域：上下游穿透分析 ═══
     if invoices:
         domain_results.append({"domain": "上下游穿透分析", "findings": _domain_supply_chain_deep(clean_invs, bank_txs)})
     else:
         domain_results.append({"domain": "上下游穿透分析", "findings": []})
     
-    # ═══ 新增稽查域：发票实质性审计（合规/单价/BOM）═══
+    # ═══ 新增税务合规域：发票实质性审计（合规/单价/BOM）═══
     if invoices:
         domain_results.append({"domain": "发票实质性审计", "findings": _domain_invoice_audit(clean_invs, _target_industry)})
     else:
@@ -1822,7 +1822,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if all_findings:
         domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
 
-    # ── 域→规则自动分配：为没有rule_id的发现自动匹配稽查指令 ──
+    # ── 域→规则自动分配：为没有rule_id的发现自动匹配税务合规指令 ──
     all_findings = _auto_assign_rule_ids(all_findings, pipeline_log)
 
     # ── 同类风险合并：将仅参数不同的同类发现合并为一条 ──
@@ -2261,11 +2261,11 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 "level": "高风险",
                                 "score": 9,
                                 "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，跨{len(source_domains)}域交叉验证，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
-                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务稽查工作规程》，多源交叉互证形成完整证据闭环，应启动正式稽查程序。",
+                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务税务合规工作规程》，多源交叉互证形成完整证据闭环，应启动正式税务合规程序。",
                                 "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中({len(source_domains)}域交叉) → 自动判定违法事实闭环",
                                 "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
-                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务稽查工作规程》",
-                                "suggestion": f"该证据链已闭环，建议：(1)启动正式稽查立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items)}进行重点核实",
+                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务税务合规工作规程》",
+                                "suggestion": f"该证据链已闭环，建议：(1)启动正式税务合规立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items)}进行重点核实",
                                 "category": chain.get("sub_topic", "综合"),
                                 "chain_closure": True,
                                 "source_chain": chain["name"],
@@ -2610,7 +2610,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
 
-    # ── 匹配稽查证据链（精确版：规则ID直连）──
+    # ── 匹配税务合规证据链（精确版：规则ID直连）──
     triggered_chains = []
     chains_data = {}
     rules_data = []
@@ -2884,7 +2884,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else:
         target_entity["_has_processing_signal"] = False
         target_entity["_goods_analysis"] = {}
-    # ═══ 稽查方法论⑥ 联网核查 ═══
+    # ═══ 税务合规方法论⑥ 联网核查 ═══
     if target_entity.get("name"):
         try:
             target_entity = _enrich_target_entity_from_online(target_entity, db, company_id)
@@ -2924,7 +2924,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _amle:
         pipeline_log.append(f"[分析记忆] 加载异常: {_amle}")
     
-    # ═══ 稽查方法论③ 付款方身份核实：联网获取法人/股东信息后，补充匹配 ═══
+    # ═══ 税务合规方法论③ 付款方身份核实：联网获取法人/股东信息后，补充匹配 ═══
     if target_entity.get("_online_lookup") and bank_txs:
         try:
             payer_id_check = _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity)
@@ -2935,7 +2935,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _pi_err:
             pipeline_log.append(f"付款方身份核实失败: {_pi_err}")
     
-    # ═══ 稽查方法论㉗ 供应链联网核查：供应商/客户联网查询 + 六员交叉比对 ═══
+    # ═══ 税务合规方法论㉗ 供应链联网核查：供应商/客户联网查询 + 六员交叉比对 ═══
     if target_entity.get("_online_lookup") and (sal_invs or pur_invs):
         try:
             from collections import defaultdict
@@ -2950,13 +2950,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _sc_err:
             pipeline_log.append(f"供应链联网核查失败: {_sc_err}")
     
-    # ═══ 稽查方法论㉕补充：经营实质核查发现（工商登记vs发票推断） ═══
+    # ═══ 税务合规方法论㉕补充：经营实质核查发现（工商登记vs发票推断） ═══
     biz_sub_findings = _generate_biz_substance_findings(target_entity, pur_invs, sal_invs)
     if biz_sub_findings:
         all_findings.extend(biz_sub_findings)
         pipeline_log.append(f"经营实质核查: {len(biz_sub_findings)}项发现（五步核查法：工商登记→进项审核→销项审核→交叉比对→综合判断）")
     
-    # ═══ 稽查重点等级修正（必须在过滤器之前）：level_fixed标记保护关键发现不被误杀 ═══
+    # ═══ 税务合规重点等级修正（必须在过滤器之前）：level_fixed标记保护关键发现不被误杀 ═══
     priority_fixed = 0
     for f in all_findings:
         ftype = f.get("type", "")
@@ -2968,7 +2968,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 f["level_fixed"] = True
                 break
     if priority_fixed:
-        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
+        pipeline_log.append(f"税务合规重点等级修正: {priority_fixed}条按审计实务优先级强制定级")
 
     # ═══ 服务行业后处理：剔除不适用服务行业的进销存/BOM/进销比发现 ═══
     # WHY: 服务行业(广告/IT/咨询等)天然无实物货物流转，进销存台账/BOM表/进销比等基于实物商品的指标不适用
@@ -3047,7 +3047,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         if imf.get("score", 0) >= 5:  # 放宽到5（制造业诊断后score可低至5）
             exists = any(f.get("type") == imf.get("type") for f in all_findings)
             if not exists:
-                # 稽查重点修正
+                # 税务合规重点修正
                 for key, level in AUDIT_PRIORITY_LEVELS.items():
                     if key in imf.get("type", ""):
                         imf["level"] = level
@@ -3154,12 +3154,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     multimodal_status = _multimodal_support_check(docs, file_results)
     ctx._multimodal = multimodal_status
     
-    # ═══ 稽查方法论㉓ 四步稽查分析法：detect→verify→diagnose→report 统一框架 ═══
+    # ═══ 税务合规方法论㉓ 四步税务合规分析法：detect→verify→diagnose→report 统一框架 ═══
     try:
         all_findings = _four_step_audit_framework(all_findings, bank_txs, invoices, target_entity)
-        pipeline_log.append(f"四步稽查分析法: detect→verify→diagnose→report 框架已应用于核心发现")
+        pipeline_log.append(f"四步税务合规分析法: detect→verify→diagnose→report 框架已应用于核心发现")
     except Exception as _fs_err:
-        pipeline_log.append(f"四步稽查分析法执行异常: {_fs_err}")
+        pipeline_log.append(f"四步税务合规分析法执行异常: {_fs_err}")
     
     # ═══ 建议质量增强：确保每个风险点/面都有具体可操作的消除路径 ═══
     # 铁律：建议必须基于已分析出的数据，不得推给审计师做本该系统完成的分析工作
@@ -3235,7 +3235,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if enhanced:
         pipeline_log.append(f"建议质量增强: {enhanced}条发现补充了具体可操作的消除路径")
     
-    # ═══ 稽查重点等级修正：现实中不根据score定级，根据审计实务优先级 ═══
+    # ═══ 税务合规重点等级修正：现实中不根据score定级，根据审计实务优先级 ═══
     priority_fixed = 0
     for f in all_findings:
         ftype = f.get("type", "")
@@ -3244,10 +3244,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 if f.get("level") != level:
                     f["level"] = level
                     priority_fixed += 1
-                f["level_fixed"] = True  # 稽查重点标记
+                f["level_fixed"] = True  # 税务合规重点标记
                 break
     if priority_fixed:
-        pipeline_log.append(f"稽查重点等级修正: {priority_fixed}条发现按审计实务优先级调整等级")
+        pipeline_log.append(f"税务合规重点等级修正: {priority_fixed}条发现按审计实务优先级调整等级")
     
     high = sum(1 for f in all_findings if f.get("level") in ("高风险",) or "高" in str(f.get("risk_level", "")))
     mid = sum(1 for f in all_findings if f.get("level") in ("中风险",) or "中" in str(f.get("risk_level", "")))
@@ -3257,7 +3257,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     all_findings, sanitize_log = _sanitize_finding_boilerplate(all_findings)
     pipeline_log.append(sanitize_log)
     
-    # ═══ 稽查报告质量标准执行（12项硬指标）═══
+    # ═══ 税务合规报告质量标准执行（12项硬指标）═══
     all_findings, quality_report = _enforce_report_quality_standards(all_findings, pipeline_log)
     
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
@@ -3508,7 +3508,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         "gate_rounds": 0,
         "summary_text": (
             f"数据不足警告：仅提取{total_parsed}条记录，分析结果仅供参考。" if low_data_warning
-            else f"29域+{_actual_rule_count}条稽查指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.2f}元（未开票{voucher_revenue['uninvoiced']:,.2f}元）。")
+            else f"29域+{_actual_rule_count}条税务合规指令分析完成：{overall}，{total}项发现（高{high}/中{mid}）。提取{len(bank_txs)}条流水、{len(invoices)}张发票、{len(salaries)}条工资。凭证主营收入{voucher_revenue['total']:,.2f}元（未开票{voucher_revenue['uninvoiced']:,.2f}元）。")
     }}
     # 缓存最近分析结果（LRU: 最多保留30条，超出删除最旧）
     _MAX_CACHE = 30
@@ -3798,7 +3798,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             # ⑧ 域分析学习
             agi_pipeline.ingest_domain_results(domain_results, analysis_trace_id, company_id)
             
-            # ①② 稽查指令+线索链学习
+            # ①② 税务合规指令+线索链学习
             rule_details_list = []
             try:
                 static_dir = os.path.join(_PROJECT_ROOT, "static")
@@ -3822,7 +3822,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 )
             except: pass
             
-            # ⑤ 稽查方法论学习
+            # ⑤ 税务合规方法论学习
             from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
             methodologies = METHODOLOGY_KNOWLEDGE.get("methodologies", [])
             agi_pipeline.ingest_methodologies(methodologies, domain_results, analysis_trace_id)
@@ -4046,7 +4046,7 @@ def _enrich_short_findings(all_findings, pipeline_log):
             parts.append(detail)
             how = str(f.get("how_found", "")).strip()
             if how and len(how) > 10:
-                parts.append("稽查方法：" + how)
+                parts.append("税务合规方法：" + how)
             tax_impact = str(f.get("tax_impact", "")).strip()
             if tax_impact and len(tax_impact) > 10:
                 parts.append("税务影响：" + tax_impact)
@@ -4063,9 +4063,9 @@ def _enrich_short_findings(all_findings, pipeline_log):
         pipeline_log.append(f"报告增强: {enriched}条简短发现已扩充为规范结构")
 
 _BOILERPLATE_PREFIXES = [
-    "是税务稽查重点方向。",
-    "是税务稽查重点方向",
-    "稽查重点方向。",
+    "是税务税务合规重点方向。",
+    "是税务税务合规重点方向",
+    "税务合规重点方向。",
     "需逐笔核实，",
     "请核实并提供相关佐证材料。",
 ]
@@ -4079,7 +4079,7 @@ def _sanitize_finding_boilerplate(all_findings):
     """剔除每条发现中的模板句、重复句、空描述，确保报告文本专业可读。
     
     处理内容：
-    1. 剔除"是税务稽查重点方向"等开篇模板
+    1. 剔除"是税务税务合规重点方向"等开篇模板
     2. 删除连续重复的句子
     3. 删除空描述（detail=title的复制品）
     4. 清除suggestion中的"请提供相关佐证材料"万能句
@@ -4101,7 +4101,7 @@ def _sanitize_finding_boilerplate(all_findings):
         if detail.startswith(ftype + "是"):
             idx = detail.find("。")
             if idx > 0:
-                # Skip the redundant first sentence if it's just "X是税务稽查重点方向"
+                # Skip the redundant first sentence if it's just "X是税务税务合规重点方向"
                 first_sent = detail[:idx+1]
                 if any(bp in first_sent for bp in _BOILERPLATE_PREFIXES[:3]):
                     detail = detail[idx+1:].strip()
@@ -4144,7 +4144,7 @@ def _sanitize_finding_boilerplate(all_findings):
     return sanitized, log_msg
 
 
-# ═══════════ 稽查报告质量标准执行（12项硬指标）══════════
+# ═══════════ 税务合规报告质量标准执行（12项硬指标）══════════
 # 提炼自Finding①"资料完备度综合评估"的标杆质量 + 实战缺陷反思，全行业适用
 # 标准1: 客观第三人称叙事 — 使用"经查""该企业""被查单位"等客观表述
 # 标准2: 事实-证据-后果三要素 — 缺一不可
@@ -4152,8 +4152,8 @@ def _sanitize_finding_boilerplate(all_findings):
 # 标准4: 可操作的紧迫感 — suggestion具体到步骤
 # 标准5: 特定法律条款引用 — 含具体条款号
 # 标准6: 证据明细表(items) — 多项明细必须附items数组
-# 标准7: 方法在前过程在后 — 先声明稽查方法再展示结果
-# 标准8: 反模板句 — 禁止"是税务稽查重点方向""需逐笔核实"等口水话
+# 标准7: 方法在前过程在后 — 先声明税务合规方法再展示结果
+# 标准8: 反模板句 — 禁止"是税务税务合规重点方向""需逐笔核实"等口水话
 # 标准9: 事实具体化 — 必须含具体数值（日期/金额/数量/百分比）
 # 标准10: 防跨发现复制 — tax_impact不能与同批其他发现完全相同
 # 标准11: 空占位符检测 — suggestion不能含"()""已识别N条关联记录（如：）"
@@ -4240,16 +4240,16 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
             quality_log["stats"]["标准6_items"] += 1
         
         # 标准7: 方法在前，过程在后
-        # detail/description 应先声明稽查方法再展示结果
-        has_method_keywords = any(k in detail + how_found for k in ["稽查方法", "核查法", "比对法", "穿透法", "核对法", "比对"])
+        # detail/description 应先声明税务合规方法再展示结果
+        has_method_keywords = any(k in detail + how_found for k in ["税务合规方法", "核查法", "比对法", "穿透法", "核对法", "比对"])
         has_process_detail = len(detail) > 80
         if has_process_detail and not has_method_keywords:
-            issues.append("标准7_方法声明: 缺少稽查方法声明——应先讲方法再秀过程")
+            issues.append("标准7_方法声明: 缺少税务合规方法声明——应先讲方法再秀过程")
             quality_log["stats"]["标准7_方法"] += 1
         
-        # 标准8: 反模板句 — 检测残留的"是税务稽查重点方向"等口水话
+        # 标准8: 反模板句 — 检测残留的"是税务税务合规重点方向"等口水话
         boilerplate_phrases = [
-            "是税务稽查重点方向", "需逐笔核实", "请核实并提供相关佐证材料",
+            "是税务税务合规重点方向", "需逐笔核实", "请核实并提供相关佐证材料",
             "通过调取企业各税种申报表及备案资料，核实企业是否按规定期限、规定内容完成各项税务申报和备案",
             "申报不合规是税务行政处罚的常见案由"
         ]
@@ -4302,7 +4302,7 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
     
     passed_pct = quality_log["passed"] / max(quality_log["total"], 1) * 100
     pipeline_log.append(
-        f"稽查报告质量标准检查: {quality_log['passed']}/{quality_log['total']}项通过（{passed_pct:.2f}%）——"
+        f"税务合规报告质量标准检查: {quality_log['passed']}/{quality_log['total']}项通过（{passed_pct:.2f}%）——"
         f"12项标准逐条检查完成"
     )
     
@@ -4932,7 +4932,7 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
     return entity
 
 
-# ═══════════ 稽查方法论⑥ 联网核查 —— 上线查企业工商信息 ═══════════
+# ═══════════ 税务合规方法论⑥ 联网核查 —— 上线查企业工商信息 ═══════════
 
 # 公开企业信息查询源
 _COMPANY_LOOKUP_SOURCES = [
@@ -5099,7 +5099,7 @@ def _extract_company_from_html(html_text, source_name):
         if t not in ('', ' ', '查看'):
             info["company_type"] = t
     
-    # —— 六员信息提取（稽查核心：法定代表人/董事/监事/财务负责人/股东/经理）
+    # —— 六员信息提取（税务合规核心：法定代表人/董事/监事/财务负责人/股东/经理）
     # 搜狗知识图谱格式: "X位相关人员 更多 张三 执行董事,经理,财务负责人 李四 监事"
     # 策略：①提取"姓名 角色列表"对 ②按角色分类 ③保存到对应字段
     directors_map = {}      # {name: [roles]}
@@ -5297,7 +5297,7 @@ def _try_qcc_api(company_name):
 
 def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
     """
-    联网查询企业工商信息 —— 稽查方法论⑥核心实现
+    联网查询企业工商信息 —— 税务合规方法论⑥核心实现
     
     策略：
     1. 如果数据库已有完整信息 → 直接返回（避免重复查询）
@@ -5485,7 +5485,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
                     db.commit()
                     result["_db_updated"] = True
                 
-                # 保存六员信息到子表（稽查六员风险数据基础）
+                # 保存六员信息到子表（税务合规六员风险数据基础）
                 # 董事
                 if result["directors"]:
                     existing_dirs = {d.name for d in (company.directors or [])}
@@ -5526,7 +5526,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
 
 def _check_six_personnel_risk(db, company_id):
     """
-    稽查六员风险检测 —— 跨企业人员交叉比对
+    税务合规六员风险检测 —— 跨企业人员交叉比对
     
     检测：
     1. 一人多角：同一人在本公司同时担任多个关键角色（内控缺陷）
@@ -5635,7 +5635,7 @@ def _check_six_personnel_risk(db, company_id):
 
 def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
     """
-    供应链联网核查 —— 稽查方法论核心扩展
+    供应链联网核查 —— 税务合规方法论核心扩展
     
     步骤：
     1. 提取进项TOP供应商（按金额排序）和销项TOP客户
@@ -6001,7 +6001,7 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     else:
         pipeline_log.append(f"联网核查未成功，六员信息从本地数据库获取")
     
-    # 稽查六员风险检测——不依赖联网核查结果，从本地DB读取
+    # 税务合规六员风险检测——不依赖联网核查结果，从本地DB读取
     try:
         six_risk = _check_six_personnel_risk(db, company_id)
         target_entity["_six_personnel_risk"] = six_risk
@@ -6043,7 +6043,7 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     return target_entity
 
 
-# ═══════════ 稽查方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
+# ═══════════ 税务合规方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
 
 def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry=""):
     """过滤铁律：每条结论必须有上传资料中的实际数据支撑。target_industry: 由_caller传入，复用_detect_target_entity()的检测结果，避免重复造轮子。"""
@@ -6064,12 +6064,12 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     HARD_BAN = [
         "涉税中介","代账公司","空壳公司","壳公司",  # 需工商穿透
         "公安","经侦","刑事","移送司法","移送公安","联合办案",
-        "走逃","失联","已被稽查","已被立案","已受查",
+        "走逃","失联","已被税务合规","已被立案","已受查",
         "第三方机构","金税四期交叉比对","多部门数据交换",
         "伪造","变造","套打","克隆","防伪","票面","二维码",
         "拒绝提供资料","提供虚假资料","阻挠检查","逾期提供",
         "资金链断裂","银行抽贷","逾期欠款","员工欠薪",
-        "税务稽查程序","稽查应对","合规度",
+        "税务税务合规程序","税务合规应对","合规度",
         # 证据链编号引用（非真实分析）
         "证据链[",
         "经营场所实质","开票经济","开票公司",
@@ -6090,7 +6090,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         # 需要完整损益表/成本核算（无凭证时不可判断）
         "毛利率/净利率为负","毛利率偏离","成本无合法凭证",
         "已发货未开票","契税延期缴纳",
-        # 方法论描述/信息摘要，非稽查发现
+        # 方法论描述/信息摘要，非税务合规发现
         "资金流水全量调取","资金流概览","进销概况",
         "进销存虚拟匹配概览","收入三源对比总览",
         # 需要凭证级明细的指标
@@ -6137,7 +6137,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         reason = ""
         
             
-        # 规则0：稽查重点发现（level_fixed=True）不参与任何过滤，强制保留
+        # 规则0：税务合规重点发现（level_fixed=True）不参与任何过滤，强制保留
         if f.get("level_fixed"):
             filtered.append(f)
             continue

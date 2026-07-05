@@ -1,12 +1,12 @@
 """
-财务报表税务稽查分析引擎
+财务报表税务税务合规分析引擎
 
 四层分析框架：
   Layer A: 表内勾稽 → 资产负债表自身平衡 + 利润表结构合理性
   Layer B: 跨表勾稽 → 资产负债表↔利润表↔现金流量表三表联动验证
   Layer C: 指标趋势 → 流动比/速动比/负债率/毛利率/净利率/周转率 时序异常检测
-  Layer D: 税务稽查 → 收入确认/成本结转/费用列支/资产处置/关联交易 税务视角专项分析
-  Layer E: 往来款项稽查 → 预收账款隐匿收入/预付账款套取资金/其他应收款股东占款/其他应付款异常
+  Layer D: 税务税务合规 → 收入确认/成本结转/费用列支/资产处置/关联交易 税务视角专项分析
+  Layer E: 往来款项税务合规 → 预收账款隐匿收入/预付账款套取资金/其他应收款股东占款/其他应付款异常
 """
 
 import json, os, re
@@ -14,9 +14,9 @@ from datetime import datetime
 from collections import defaultdict
 
 
-# ═══════════════ 税务稽查专项分析指标 ═══════════════
+# ═══════════════ 税务税务合规专项分析指标 ═══════════════
 TAX_AUDIT_INDICATORS = {
-    # ── 收入端稽查 ──
+    # ── 收入端税务合规 ──
     "revenue_declaration_ratio": {
         "name": "申报收入vs发票收入比",
         "formula": "申报收入 / 销项发票金额",
@@ -33,7 +33,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "未开票收入占比过高→需核实收入完整性/是否存在隐匿开票外收入",
     },
     
-    # ── 成本端稽查 ──
+    # ── 成本端税务合规 ──
     "cost_income_ratio": {
         "name": "成本收入比",
         "formula": "主营业务成本 / 主营业务收入",
@@ -49,7 +49,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "无票成本→不得税前扣除→补缴企业所得税+滞纳金",
     },
     
-    # ── 费用端稽查 ──
+    # ── 费用端税务合规 ──
     "expense_revenue_ratio": {
         "name": "期间费用率",
         "formula": "(销售费用+管理费用+财务费用) / 主营业务收入",
@@ -65,7 +65,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "超标部分不得税前扣除→纳税调增",
     },
     
-    # ── 资产负债稽查 ──
+    # ── 资产负债税务合规 ──
     "receivable_turnover": {
         "name": "应收账款周转率",
         "formula": "主营业务收入 / 平均应收账款",
@@ -91,7 +91,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "高负债→可能存在隐性负债/关联方借款利息扣除问题",
     },
     
-    # ── 现金流稽查 ──
+    # ── 现金流税务合规 ──
     "operating_cashflow_quality": {
         "name": "经营现金流质量",
         "formula": "经营活动现金净流量 / 净利润",
@@ -108,7 +108,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "收现率过低→应收账款质量存疑/可能虚开发票",
     },
     
-    # ── 所有者权益稽查 ──
+    # ── 所有者权益税务合规 ──
     "owner_equity_change": {
         "name": "所有者权益异常变动",
         "formula": "本期所有者权益变动 / 期初所有者权益",
@@ -118,7 +118,7 @@ TAX_AUDIT_INDICATORS = {
         "tax_impact": "权益异常变动→可能存在未入账的利润分配/资本公积转增未缴税",
     },
     
-    # ── 跨年趋势稽查 ──
+    # ── 跨年趋势税务合规 ──
     "revenue_growth_surge": {
         "name": "收入暴增检测",
         "formula": "本期收入 / 上期收入 - 1",
@@ -140,7 +140,7 @@ TAX_AUDIT_INDICATORS = {
 
 def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx):
     """
-    财务报表税务稽查分析主入口
+    财务报表税务税务合规分析主入口
     
     Args:
         balance_sheet: 资产负债表数据 (dict with 资产/负债/权益余额)
@@ -186,7 +186,7 @@ def _check_balance_sheet_balance(bs):
             "level": "高风险",
             "score": 9,
             "detail": f"资产{total_assets:,.0f} ≠ 负债{total_liabilities:,.0f} + 权益{total_equity:,.0f}，差额{gap:,.0f}元",
-            "tax_impact": "报表基础数据错误→所有财务指标分析不可信→无法作为稽查依据",
+            "tax_impact": "报表基础数据错误→所有财务指标分析不可信→无法作为税务合规依据",
             "law_ref": "征管法第25条",
         })
     
@@ -233,7 +233,7 @@ def _check_cross_statement(bs, income, cf):
 
 
 def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
-    """Layer C+D: 税务稽查指标分析"""
+    """Layer C+D: 税务税务合规指标分析"""
     findings = []
     
     if not income:
@@ -396,9 +396,9 @@ def _check_voucher_statement_gap(vouchers, income_stmt, sal_invs):
     return findings
 
 
-# ═══════════════ Layer E: 往来款项深度税务稽查 ═══════════════
+# ═══════════════ Layer E: 往来款项深度税务税务合规 ═══════════════
 def analyze_balance_sheet_items(bs, income, vouchers, ctx):
-    """资产负债表关键科目税务稽查：预收/预付/其他应收(个人)/存货/应收/长收长付"""
+    """资产负债表关键科目税务税务合规：预收/预付/其他应收(个人)/存货/应收/长收长付"""
     findings = []
     if not bs:
         return findings

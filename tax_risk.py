@@ -15,7 +15,7 @@ V8新增16项: 合同风险 — 三流合一/四流合一（收入无合同/成�
 V9新增2项: 逐票合同覆盖率 — 销项发票合同覆盖率(逐票名称+有效期双重匹配)、
 进项发票合同覆盖率(逐票名称+有效期双重匹配)
 V10新增27项: 合同内容涉税风险(涉税条款缺失/拆分合同/违约金/免租期/跨境代扣/
-合同变更/混合销售税率) + 稽查重点盲区(价外费用/非货币交换/债务重组/股权转让/
+合同变更/混合销售税率) + 税务合规重点盲区(价外费用/非货币交换/债务重组/股权转让/
 无偿借款/母子公司管理费/境外支付/混合销售/环保税/发票备注栏/佣金手续费/
 捐赠支出/存货盘点)
 V11新增2项: 普票浪费可抵扣进项税额（专业服务类供应商开普票未开专票→浪费进项）/
@@ -591,7 +591,7 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
             # 冲突场景：从规则透传到结果
             if "conflict_scenarios" in best_match and best_match["conflict_scenarios"]:
                 r["conflict_scenarios"] = best_match["conflict_scenarios"]
-            # 稽查要点（description）：规则中已有的description透传
+            # 税务合规要点（description）：规则中已有的description透传
             if "description" in best_match and best_match["description"]:
                 r["description"] = best_match["description"]
             # 重新计算颜色
@@ -634,7 +634,7 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
         raw_detail = rule.get("detail", "")
         raw_suggestion = rule.get("suggestion", "")
         
-        # ── 长文案提炼：超过120字时自动拆为"结论+稽查要点" ──
+        # ── 长文案提炼：超过120字时自动拆为"结论+税务合规要点" ──
         # 优先使用规则内已有的 description（如已被人工提炼过的规则）
         description_text = rule.get("description", "")
         detail_text = raw_detail
@@ -642,7 +642,7 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
             # 尝试按句号或换行拆第一句做结论
             first_sentence = raw_detail.split("。")[0].split("\n")[0].strip()
             if len(first_sentence) > 10:
-                detail_text = first_sentence + "（详见稽查要点）"
+                detail_text = first_sentence + "（详见税务合规要点）"
                 description_text = raw_detail
         
         # 合并 suggestion 到描述（如果有的话）
@@ -753,7 +753,7 @@ def get_tax_risk_report(
     _analyze_business_credit(db, company_id, period_start, period_end, results)
     _analyze_industry_specific(db, company_id, period_start, period_end, results)
     _analyze_good_practices(db, company_id, period_start, period_end, results)
-    # ── 经营实质深度分析（稽查级·10项）──
+    # ── 经营实质深度分析（税务合规级·10项）──
     _analyze_long_term_loss(db, company_id, period_start, period_end, results)
     _analyze_business_premise(db, company_id, period_start, period_end, results)
     _analyze_inventory_substance(db, company_id, period_start, period_end, results)
@@ -764,7 +764,7 @@ def get_tax_risk_report(
     _analyze_deemed_sales(db, company_id, period_start, period_end, results)
     _analyze_cash_overstock(db, company_id, period_start, period_end, results)
     _analyze_related_party_pricing(db, company_id, period_start, period_end, results)
-    # ── V5 新增 — 经营实质（8项·稽查必查）──
+    # ── V5 新增 — 经营实质（8项·税务合规必查）──
     _analyze_transport_missing(db, company_id, period_start, period_end, results)
     _analyze_agriculture_substance(db, company_id, period_start, period_end, results)
     _analyze_packaging_missing(db, company_id, period_start, period_end, results)
@@ -852,7 +852,7 @@ def get_tax_risk_report(
     _analyze_flexible_employment_tax(db, company_id, period_start, period_end, results)
     # ── V8 新增 — 合同风险（三流合一/四流合一，16项）──
     _analyze_contract_risks(db, company_id, period_start, period_end, results)
-    # ── V10 新增 — 稽查重点盲区补全（13项）──
+    # ── V10 新增 — 税务合规重点盲区补全（13项）──
     _analyze_price_surcharge(db, company_id, period_start, period_end, results)
     _analyze_non_monetary_exchange(db, company_id, period_start, period_end, results)
     _analyze_debt_restructuring(db, company_id, period_start, period_end, results)
@@ -1155,7 +1155,7 @@ def download_material_gap_report(
 
 
 # ═══════════════════════════════════════════════════════════════
-#  V15新增：稽查工作底稿导出
+#  V15新增：税务合规工作底稿导出
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/working-paper/download")
@@ -1165,7 +1165,7 @@ def download_working_paper(
     period_to: str = Query(None),
     db: Session = Depends(get_db)
 ):
-    """导出稽查工作底稿（HTML格式，可打印为PDF）"""
+    """导出税务合规工作底稿（HTML格式，可打印为PDF）"""
     data = get_tax_risk_report(company_id=company_id, period_from=period_from, period_to=period_to, db=db)
     ps = data.get("period_start", "")
     pe = data.get("period_end", "")
@@ -1537,7 +1537,7 @@ def _analyze_invoice_compliance(db, company_id, ps, pe, results):
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "存在风险进项发票",
             "detail": f"有 {risk_cnt} 张进项发票被标记为「疑点/异常/失控」，涉及金额 {_safe_float(risk_amt):,.2f} 元。异常发票进项税额不得抵扣，已抵扣需做进项税额转出。",
-            "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务稽查风险。"
+            "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务税务合规风险。"
         })
 
     total_sales = db.query(func.count(SalesInvoice.id)).filter(SalesInvoice.company_id == company_id).scalar() or 0
@@ -3090,11 +3090,11 @@ def _analyze_good_practices(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十四、经营实质深度分析——长期亏损风险（稽查级）
+#  二十四、经营实质深度分析——长期亏损风险（税务合规级）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_long_term_loss(db, company_id, ps, pe, results):
-    """连续多期亏损但持续经营——隐匿利润或虚增成本嫌疑（稽查重点）"""
+    """连续多期亏损但持续经营——隐匿利润或虚增成本嫌疑（税务合规重点）"""
     periods = _get_periods_between(ps, pe)
     if len(periods) < 6:
         return  # 至少需要6个月数据
@@ -3122,8 +3122,8 @@ def _analyze_long_term_loss(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期亏损风险",
-            "detail": f"企业在 {len(quarters)} 个季度中有 {len(loss_quarters)} 个季度亏损（亏损面{loss_ratio*100:.0f}%），但持续经营不注销。稽查视角：长期亏损但持续经营，存在隐匿利润、虚增成本或关联交易转移利润的重大嫌疑。\n亏损明细：{loss_detail}",
-            "suggestion": "（稽查应对）准备以下佐证材料：①各期成本费用明细及合法凭证；②关联交易定价政策及可比非受控价格；③库存盘点表及存货真实性说明；④银行流水与收入成本匹配说明；⑤持续经营的商业合理性说明（如市场开拓计划、研发投人等）。",
+            "detail": f"企业在 {len(quarters)} 个季度中有 {len(loss_quarters)} 个季度亏损（亏损面{loss_ratio*100:.0f}%），但持续经营不注销。税务合规视角：长期亏损但持续经营，存在隐匿利润、虚增成本或关联交易转移利润的重大嫌疑。\n亏损明细：{loss_detail}",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①各期成本费用明细及合法凭证；②关联交易定价政策及可比非受控价格；③库存盘点表及存货真实性说明；④银行流水与收入成本匹配说明；⑤持续经营的商业合理性说明（如市场开拓计划、研发投人等）。",
             "required_evidence": [
                 "各期成本费用明细表及合法原始凭证（发票、合同、付款凭证）",
                 "关联交易定价原则说明及可比非受控价格分析",
@@ -3149,7 +3149,7 @@ def _analyze_long_term_loss(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十五、经营场所实质风险（稽查级）
+#  二十五、经营场所实质风险（税务合规级）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_business_premise(db, company_id, ps, pe, results):
@@ -3188,8 +3188,8 @@ def _analyze_business_premise(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "经营场所实质风险",
-            "detail": "企业经营范围包含经营活动，四源交叉验证均未发现经营场所证据：序时账中无租赁费(660214)/水电费(660215)/物业费记录；银行流水中无相关支付；取得发票中无租赁/水电/物业发票；合同中无租赁/场地使用协议。多维度交叉验证均未发现经营场所证据。稽查视角：可能存在空壳公司、虚开发票或隐瞒实际经营场所的问题。",
-            "suggestion": "（稽查应对）立即准备以下佐证材料：①经营场所租赁合同及租金支付凭证；②水电费缴纳凭证及发票；③经营场所照片（含门牌、办公/生产区域）；④物业缴费通知及支付记录；⑤如为家庭经营，提供房屋产权证明或租赁协议。",
+            "detail": "企业经营范围包含经营活动，四源交叉验证均未发现经营场所证据：序时账中无租赁费(660214)/水电费(660215)/物业费记录；银行流水中无相关支付；取得发票中无租赁/水电/物业发票；合同中无租赁/场地使用协议。多维度交叉验证均未发现经营场所证据。税务合规视角：可能存在空壳公司、虚开发票或隐瞒实际经营场所的问题。",
+            "suggestion": "（税务合规应对）立即准备以下佐证材料：①经营场所租赁合同及租金支付凭证；②水电费缴纳凭证及发票；③经营场所照片（含门牌、办公/生产区域）；④物业缴费通知及支付记录；⑤如为家庭经营，提供房屋产权证明或租赁协议。",
             "required_evidence": [
                 "经营场所不动产权证书或租赁合同（原件备查）",
                 "租金支付凭证（银行回单+发票）",
@@ -3267,7 +3267,7 @@ def _analyze_business_premise(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十六、存货与经营规模匹配风险（稽查级）
+#  二十六、存货与经营规模匹配风险（税务合规级）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_inventory_substance(db, company_id, ps, pe, results):
@@ -3305,14 +3305,14 @@ def _analyze_inventory_substance(db, company_id, ps, pe, results):
         or_(Contract.name.contains("仓库"), Contract.name.contains("仓储"))
     ).scalar() or 0
 
-    # 稽查视角：进销比异常 + 无仓库 = 高风险
+    # 税务合规视角：进销比异常 + 无仓库 = 高风险
     if in_out_ratio > 3 and warehouse_contract == 0 and end_stock > 100:
         results.append({
             "category": "经营实质", "category_icon": "🔍", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "存货与经营规模匹配风险",
-            "detail": f"分析期内入库数量 {in_qty:,.0f}，出库数量 {out_qty:,.0f}，进销比 {in_out_ratio:.1f}:1（正常应接近1:1）。期末库存 {end_stock:,.0f}，但系统中无仓库租赁合同。稽查视角：大量原材料购入但销售数量极少，且无仓库存储，存在虚增库存（虚开发票 counterpart）或隐瞒销售收入（账外销售）的重大嫌疑。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①库存商品盘点表（含监盘记录、照片）；②原材料采购合同、发票、入库单、付款凭证（三单匹配）；③销售合同、发货单、销售发票、收款凭证（验证销售真实性）；④仓库租赁合同及仓储费支付凭证；⑤运输发票及物流单据；⑥生产成本计算单（BOM表）及投入产出比分析。",
+            "detail": f"分析期内入库数量 {in_qty:,.0f}，出库数量 {out_qty:,.0f}，进销比 {in_out_ratio:.1f}:1（正常应接近1:1）。期末库存 {end_stock:,.0f}，但系统中无仓库租赁合同。税务合规视角：大量原材料购入但销售数量极少，且无仓库存储，存在虚增库存（虚开发票 counterpart）或隐瞒销售收入（账外销售）的重大嫌疑。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①库存商品盘点表（含监盘记录、照片）；②原材料采购合同、发票、入库单、付款凭证（三单匹配）；③销售合同、发货单、销售发票、收款凭证（验证销售真实性）；④仓库租赁合同及仓储费支付凭证；⑤运输发票及物流单据；⑥生产成本计算单（BOM表）及投入产出比分析。",
             "required_evidence": [
                 "库存商品全面盘点表（含监盘人签字、盘点照片）",
                 "原材料采购三单匹配：采购合同+进项发票+入库单+付款凭证",
@@ -3339,7 +3339,7 @@ def _analyze_inventory_substance(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十七、水电费与产能匹配分析（稽查级·生产企业专用）
+#  二十七、水电费与产能匹配分析（税务合规级·生产企业专用）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_utility_expense(db, company_id, ps, pe, results):
@@ -3384,8 +3384,8 @@ def _analyze_utility_expense(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": f"电费占收入比异常偏低（{elec_to_revenue:.2f}%）",
-            "detail": f"生产企业电费 {elec_entries:,.0f} 元，营业收入 {revenue:,.0f} 元，电费占收入比仅 {elec_to_revenue:.2f}%（制造企业正常应 2%~8%）。稽查视角：电费与产量严重不匹配，存在隐瞒生产规模、账外销售或虚列成本的嫌疑。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①电力公司出具的全期电费缴纳清单及发票；②生产日报表/车间产量记录（每日记录）；③原材料投入产出比计算表（BOM）；④设备清单及设备功率清单；⑤如部分为外包生产，提供委托加工合同及加工费发票。",
+            "detail": f"生产企业电费 {elec_entries:,.0f} 元，营业收入 {revenue:,.0f} 元，电费占收入比仅 {elec_to_revenue:.2f}%（制造企业正常应 2%~8%）。税务合规视角：电费与产量严重不匹配，存在隐瞒生产规模、账外销售或虚列成本的嫌疑。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①电力公司出具的全期电费缴纳清单及发票；②生产日报表/车间产量记录（每日记录）；③原材料投入产出比计算表（BOM）；④设备清单及设备功率清单；⑤如部分为外包生产，提供委托加工合同及加工费发票。",
             "required_evidence": [
                 "电力公司出具的正式电费缴纳清单（覆盖分析期各月）",
                 "电费支付凭证（银行回单）及增值税专用发票",
@@ -3410,7 +3410,7 @@ def _analyze_utility_expense(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十八、人员与经营规模匹配（稽查级）
+#  二十八、人员与经营规模匹配（税务合规级）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_staffing_substance(db, company_id, ps, pe, results):
@@ -3433,14 +3433,14 @@ def _analyze_staffing_substance(db, company_id, ps, pe, results):
     company = db.query(Company).filter(Company.id == company_id).first()
     reg_capital = company.registered_capital or 0
 
-    # 稽查视角：有收入但无员工 = 空壳嫌疑
+    # 税务合规视角：有收入但无员工 = 空壳嫌疑
     if revenue > 100000 and emp_count == 0:
         results.append({
             "category": "经营实质", "category_icon": "🔍", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "人工成本与经营规模不匹配",
-            "detail": f"企业营业收入 {revenue:,.0f} 元（≥10万元），但系统中无员工档案记录。稽查视角：有经营收入但无从业人员，存在空壳公司、虚开发票或用工不申报（劳务外包/灵活用工未申报）的重大嫌疑。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①全体员工花名册（含入职时间、岗位、薪酬）；②工资支付凭证（银行代发工资回单）；③社保缴纳证明（证明用工真实性）；④如为劳务外包，提供外包合同及外包发票；⑤如为灵活用工，提供灵活用工平台协议及发票。",
+            "detail": f"企业营业收入 {revenue:,.0f} 元（≥10万元），但系统中无员工档案记录。税务合规视角：有经营收入但无从业人员，存在空壳公司、虚开发票或用工不申报（劳务外包/灵活用工未申报）的重大嫌疑。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①全体员工花名册（含入职时间、岗位、薪酬）；②工资支付凭证（银行代发工资回单）；③社保缴纳证明（证明用工真实性）；④如为劳务外包，提供外包合同及外包发票；⑤如为灵活用工，提供灵活用工平台协议及发票。",
             "required_evidence": [
                 "全体员工花名册（盖章）及员工劳动合同",
                 "工资表及银行代发工资回单（覆盖分析期）",
@@ -3455,7 +3455,7 @@ def _analyze_staffing_substance(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "有员工但未申报社保",
-            "detail": f"系统中有 {emp_count} 名员工，但未发现社保申报记录。存在被认定未用工申报、逃避社保义务的风险，也是稽查关注点。",
+            "detail": f"系统中有 {emp_count} 名员工，但未发现社保申报记录。存在被认定未用工申报、逃避社保义务的风险，也是税务合规关注点。",
             "suggestion": "补录社保申报记录，如确有部分人员不需缴纳社保（如退休返聘、实习生），准备相关说明材料。",
             "required_evidence": [
                 "社保申报表（覆盖分析期）",
@@ -3467,7 +3467,7 @@ def _analyze_staffing_substance(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 4, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "人工成本与经营规模不匹配",
-            "detail": f"企业仅有 {emp_count} 名员工，但营业收入达 {revenue:,.0f} 元（人均产值 {avg_revenue_per_emp:,.0f} 元/人）。如非贸易型/互联网型轻资产企业，人员规模与收入不匹配可能引起稽查关注。",
+            "detail": f"企业仅有 {emp_count} 名员工，但营业收入达 {revenue:,.0f} 元（人均产值 {avg_revenue_per_emp:,.0f} 元/人）。如非贸易型/互联网型轻资产企业，人员规模与收入不匹配可能引起税务合规关注。",
             "suggestion": "如为贸易企业或互联网企业，属合理情况。如为生产/服务型企业，准备人员组织架构图及岗位说明，解释人均产值合理性。",
             "required_evidence": [
                 "企业组织架构图及岗位职责说明",
@@ -3477,11 +3477,11 @@ def _analyze_staffing_substance(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  二十九、资金流与票据流匹配（稽查级·虚开发票嫌疑）
+#  二十九、资金流与票据流匹配（税务合规级·虚开发票嫌疑）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_fund_flow_invoice_match(db, company_id, ps, pe, results):
-    """有发票但无银行收款记录——虚开发票嫌疑（稽查头号风险）"""
+    """有发票但无银行收款记录——虚开发票嫌疑（税务合规头号风险）"""
     # 销项发票（开票方=本企业）
     sales = db.query(SalesInvoice).filter(
         SalesInvoice.company_id == company_id,
@@ -3527,8 +3527,8 @@ def _analyze_fund_flow_invoice_match(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": f"发票与银行收款匹配率偏低（{mismatch_rate:.0f}%）",
-            "detail": f"分析期内共有 {len(sales)} 张销项发票，其中 {mismatch_count} 张未在银行流水中找到对应收款记录（匹配率仅 {100-mismatch_rate:.0f}%）。稽查视角：开票但无资金回流，是虚开发票的最典型特征（特别是无真实交易背景下开票）。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①全部销项发票对应的销售合同；②发货单/运输单据（证明货物真实发出）；③银行收款回单（如为分期收款，提供收款计划及实际收款记录）；④如为抵债/易货交易，提供抵债协议或易货合同；⑤如为代销，提供代销合同及委托代销清单。",
+            "detail": f"分析期内共有 {len(sales)} 张销项发票，其中 {mismatch_count} 张未在银行流水中找到对应收款记录（匹配率仅 {100-mismatch_rate:.0f}%）。税务合规视角：开票但无资金回流，是虚开发票的最典型特征（特别是无真实交易背景下开票）。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①全部销项发票对应的销售合同；②发货单/运输单据（证明货物真实发出）；③银行收款回单（如为分期收款，提供收款计划及实际收款记录）；④如为抵债/易货交易，提供抵债协议或易货合同；⑤如为代销，提供代销合同及委托代销清单。",
             "required_evidence": [
                 "所有不匹配发票对应的销售合同（原件备查）",
                 "销售发票+发货单+运输单据（三流合一证据链）",
@@ -3553,7 +3553,7 @@ def _analyze_fund_flow_invoice_match(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  三十、边角料/报废收入未申报风险（稽查级·生产企业）
+#  三十、边角料/报废收入未申报风险（税务合规级·生产企业）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_scrap_revenue(db, company_id, ps, pe, results):
@@ -3618,8 +3618,8 @@ def _analyze_scrap_revenue(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "生产企业边角料/报废收入申报不全",
-            "detail": f"企业为生产企业，但序时账中未发现边角料/报废收入记录，且银行流水中有 {unidentified_credits} 笔对手方不明的收款。稽查视角：生产企业必然产生边角料/残次品，如未申报增值税销售额，属于隐瞒收入行为。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①边角料/报废品销售记录及发票；②如已入账未开票，提供未开票收入申报说明；③边角料/报废品出库单及收款凭证；④如边角料无偿赠送或自用，说明具体情况。",
+            "detail": f"企业为生产企业，但序时账中未发现边角料/报废收入记录，且银行流水中有 {unidentified_credits} 笔对手方不明的收款。税务合规视角：生产企业必然产生边角料/残次品，如未申报增值税销售额，属于隐瞒收入行为。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①边角料/报废品销售记录及发票；②如已入账未开票，提供未开票收入申报说明；③边角料/报废品出库单及收款凭证；④如边角料无偿赠送或自用，说明具体情况。",
             "required_evidence": [
                 "边角料/报废品销售合同及销售发票",
                 "边角料出库单及收款凭证",
@@ -3630,11 +3630,11 @@ def _analyze_scrap_revenue(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  三十一、视同销售未处理风险（稽查级）
+#  三十一、视同销售未处理风险（税务合规级）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_deemed_sales(db, company_id, ps, pe, results):
-    """视同销售未申报——无偿赠送/员工福利/对外投资未缴纳增值税（稽查重点）"""
+    """视同销售未申报——无偿赠送/员工福利/对外投资未缴纳增值税（税务合规重点）"""
     # 检查序时账中是否有视同销售业务处理
     from sqlalchemy import or_
     deemed_keywords = ["赠送", "福利", "员工福利", "招待", "视同销售", "对外投资", "非货币性资产"]
@@ -3681,7 +3681,7 @@ def _analyze_deemed_sales(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  三十二、库存现金过大风险（稽查级·坐支嫌疑）
+#  三十二、库存现金过大风险（税务合规级·坐支嫌疑）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_cash_overstock(db, company_id, ps, pe, results):
@@ -3701,8 +3701,8 @@ def _analyze_cash_overstock(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": f"库存现金余额过大（{cash_balance:,.0f}元）",
-            "detail": f"库存现金科目期末余额 {cash_balance:,.0f} 元（超过1万元）。稽查视角：库存现金过大，可能存在现金坐支（收入不入账直接支付支出）、账外资金循环或隐瞒现金销售收入的风险。根据现金管理暂行条例，企业应与银行核对现金账目，不允许坐支。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①库存现金盘点表（盘点日至报表日调节表）；②现金日记账（逐笔记录）；③大额现金收支的审批单及原始凭证；④如为零售企业现金收款，提供现金收款台账及银行存款缴款单（现金送存银行凭证）。",
+            "detail": f"库存现金科目期末余额 {cash_balance:,.0f} 元（超过1万元）。税务合规视角：库存现金过大，可能存在现金坐支（收入不入账直接支付支出）、账外资金循环或隐瞒现金销售收入的风险。根据现金管理暂行条例，企业应与银行核对现金账目，不允许坐支。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①库存现金盘点表（盘点日至报表日调节表）；②现金日记账（逐笔记录）；③大额现金收支的审批单及原始凭证；④如为零售企业现金收款，提供现金收款台账及银行存款缴款单（现金送存银行凭证）。",
             "required_evidence": [
                 "库存现金盘点表（含盘点日至报表日的现金调节表）",
                 "现金日记账（逐笔登记，与银行对账单核对）",
@@ -3726,11 +3726,11 @@ def _analyze_cash_overstock(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  三十三、关联交易定价公允性（稽查级·转移利润嫌疑）
+#  三十三、关联交易定价公允性（税务合规级·转移利润嫌疑）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_related_party_pricing(db, company_id, ps, pe, results):
-    """关联交易定价不公允——转移利润嫌疑（稽查重点·跨国/跨地区）"""
+    """关联交易定价不公允——转移利润嫌疑（税务合规重点·跨国/跨地区）"""
     # 查找股东、董事、监事关联的企业（同一法定代表人或控股股东）
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
@@ -3772,8 +3772,8 @@ def _analyze_related_party_pricing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "关联交易转移定价偏离市场价",
-            "detail": f"发现 {related_inv_count} 张进项发票的开票方名称包含本企业法定代表人/控股股东姓名，属于关联交易。稽查视角：关联交易定价如不公允（高价采购、低价销售），可能被认定为转移利润、逃避税收，需准备转让定价同期资料。",
-            "suggestion": "（稽查应对）准备以下佐证材料：①关联交易所涉完整合同及定价说明；②可比非受控价格（CUP）分析；③再销售价格法或成本加成法分析（证明定价公允性）；④如为跨国关联交易，准备同期资料（主体文档、本地文档）。",
+            "detail": f"发现 {related_inv_count} 张进项发票的开票方名称包含本企业法定代表人/控股股东姓名，属于关联交易。税务合规视角：关联交易定价如不公允（高价采购、低价销售），可能被认定为转移利润、逃避税收，需准备转让定价同期资料。",
+            "suggestion": "（税务合规应对）准备以下佐证材料：①关联交易所涉完整合同及定价说明；②可比非受控价格（CUP）分析；③再销售价格法或成本加成法分析（证明定价公允性）；④如为跨国关联交易，准备同期资料（主体文档、本地文档）。",
             "required_evidence": [
                 "关联交易清单（含交易类型、金额、定价方法）",
                 "关联交易定价政策说明及可比非受控价格分析",
@@ -3810,11 +3810,11 @@ def _analyze_related_party_pricing(db, company_id, ps, pe, results):
 
 
 # ═══════════════════════════════════════════════════════════
-#  V5 新增 — 经营实质深度分析（稽查级·第11-18项）
+#  V5 新增 — 经营实质深度分析（税务合规级·第11-18项）
 # ═══════════════════════════════════════════════════════════
 
 def _analyze_transport_missing(db, company_id, ps, pe, results):
-    """运输费缺失检测——有销售收入但零运输/物流费（稽查必查·货物交付实质）"""
+    """运输费缺失检测——有销售收入但零运输/物流费（税务合规必查·货物交付实质）"""
     revenue = _get_account_sum(db, company_id, "6001", ps, pe, "credit")
     if revenue < 100000:
         return  # 收入过低，不分析
@@ -3907,8 +3907,8 @@ def _analyze_transport_missing(db, company_id, ps, pe, results):
                 "category": "经营实质", "category_icon": "🔍", "risk_score": 8, "risk_level": "高风险",
                 "risk_color": "#dc2626", "urgency": "紧急",
                 "item": "有销售收入但零运输/物流费用（四源皆空）",
-                "detail": f"企业营业收入 {revenue:,.0f} 元（其中实物产品销售 {product_sales:,.0f} 元），但序时账、银行流水、发票、合同中均未发现运输/物流费用。稽查视角：有货物销售但无运输费，货物如何交付？存在以下嫌疑：①虚开发票（无真实货物交付）；②运输费用以现金支付未入账；③由客户自提但无自提记录。这是稽查机关重点核查的货物交付实质问题。",
-                "suggestion": "（稽查应对）准备以下佐证材料：①货运单/快递单/物流签收单（证明货物真实发出）；②如为客户自提，提供客户自提签收记录；③如含运费（由客户承担），提供销售合同相关条款；④承运方资质证明（道路运输许可证）；⑤主要客户的货物交付方式说明（含每种方式的占比）。",
+                "detail": f"企业营业收入 {revenue:,.0f} 元（其中实物产品销售 {product_sales:,.0f} 元），但序时账、银行流水、发票、合同中均未发现运输/物流费用。税务合规视角：有货物销售但无运输费，货物如何交付？存在以下嫌疑：①虚开发票（无真实货物交付）；②运输费用以现金支付未入账；③由客户自提但无自提记录。这是税务合规机关重点核查的货物交付实质问题。",
+                "suggestion": "（税务合规应对）准备以下佐证材料：①货运单/快递单/物流签收单（证明货物真实发出）；②如为客户自提，提供客户自提签收记录；③如含运费（由客户承担），提供销售合同相关条款；④承运方资质证明（道路运输许可证）；⑤主要客户的货物交付方式说明（含每种方式的占比）。",
                 "required_evidence": [
                     "货物运输单据（运单/快递单/物流签收记录）",
                     "承运合同及承运方资质证明",
@@ -3923,12 +3923,12 @@ def _analyze_transport_missing(db, company_id, ps, pe, results):
                 "risk_color": "#3b82f6", "urgency": "建议",
                 "item": "运输费用偏低或未单独记录",
                 "detail": f"实物产品销售 {product_sales:,.0f} 元，但运输费记录缺失。建议补录运输费用凭证或保留客户自提记录。",
-                "suggestion": "保留货物交付凭证（运单/签收单/自提记录），以便应对稽查。"
+                "suggestion": "保留货物交付凭证（运单/签收单/自提记录），以便应对税务合规。"
             })
 
 
 def _analyze_agriculture_substance(db, company_id, ps, pe, results):
-    """农产品自产自销实质检测——有农产品销售但无土地/种植必须成本（稽查必查）"""
+    """农产品自产自销实质检测——有农产品销售但无土地/种植必须成本（税务合规必查）"""
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         return
@@ -4047,8 +4047,8 @@ def _analyze_agriculture_substance(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "农产品销售无土地/种植成本支撑",
-            "detail": f"企业农产品/自产自销相关销售收入 {agri_sales_fmt} 元（含免税农产品），但序时账、银行流水、进项发票中均未发现土地租赁/承包费用和种植必须成本（化肥、农药、人工、灌溉等）。稽查视角：自产自销必须有土地证明+种植全过程成本支出。仅有苗木采购发票而无种植成本，系典型的虚开农产品收购发票/骗取自产免税优惠的标志。",
-            "suggestion": "（稽查应对）立即准备以下佐证材料：①土地证或土地租赁/承包合同（含支付凭证）；②种植生产记录（播种/施肥/打药/收割日期和用量）；③化肥/农药/种子/种苗的采购发票和入库单；④雇佣人工的劳务合同及工资支付凭证；⑤灌溉用水电费凭证；⑥农产品产量记录和销售台账；⑦如外包种植，提供外包种植合同及支付凭证。如为纯贸易（非自产），不得享受自产农产品免税优惠。",
+            "detail": f"企业农产品/自产自销相关销售收入 {agri_sales_fmt} 元（含免税农产品），但序时账、银行流水、进项发票中均未发现土地租赁/承包费用和种植必须成本（化肥、农药、人工、灌溉等）。税务合规视角：自产自销必须有土地证明+种植全过程成本支出。仅有苗木采购发票而无种植成本，系典型的虚开农产品收购发票/骗取自产免税优惠的标志。",
+            "suggestion": "（税务合规应对）立即准备以下佐证材料：①土地证或土地租赁/承包合同（含支付凭证）；②种植生产记录（播种/施肥/打药/收割日期和用量）；③化肥/农药/种子/种苗的采购发票和入库单；④雇佣人工的劳务合同及工资支付凭证；⑤灌溉用水电费凭证；⑥农产品产量记录和销售台账；⑦如外包种植，提供外包种植合同及支付凭证。如为纯贸易（非自产），不得享受自产农产品免税优惠。",
             "required_evidence": [
                 "土地证明：土地证/土地租赁合同/土地承包合同（含支付凭证）",
                 "种植全过程记录：播种/施肥/打药/收割日期和用量台账",
@@ -4076,7 +4076,7 @@ def _analyze_agriculture_substance(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "农产品销售无种植必须成本",
-            "detail": f"农产品销售收入 {agri_sales_fmt} 元，虽有土地相关费用但无种植必须成本（化肥/农药/人工/灌溉等）。仅有苗木采购成本而无种植全过程成本支出，不符合自产自销经营实质。稽查将认定：如不能证明自行种植，按贸易企业处理，不得享受自产免税优惠。",
+            "detail": f"农产品销售收入 {agri_sales_fmt} 元，虽有土地相关费用但无种植必须成本（化肥/农药/人工/灌溉等）。仅有苗木采购成本而无种植全过程成本支出，不符合自产自销经营实质。税务合规将认定：如不能证明自行种植，按贸易企业处理，不得享受自产免税优惠。",
             "suggestion": "补录化肥、农药、人工、灌溉等种植成本凭证，建立完整的种植成本台账。",
             "required_evidence": [
                 "种植成本明细台账（分类：种苗/化肥/农药/人工/灌溉/其他）",
@@ -4100,7 +4100,7 @@ def _analyze_agriculture_substance(db, company_id, ps, pe, results):
 
 
 def _analyze_packaging_missing(db, company_id, ps, pe, results):
-    """包装费缺失检测——有销售出货但零包装费（稽查关注·产品交付实质）"""
+    """包装费缺失检测——有销售出货但零包装费（税务合规关注·产品交付实质）"""
     revenue = _get_account_sum(db, company_id, "6001", ps, pe, "credit")
     if revenue < 100000:
         return
@@ -4169,7 +4169,7 @@ def _analyze_packaging_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "有销售收入但零包装费用（四源皆空）",
-            "detail": f"企业营业收入 {revenue:,.0f} 元，经营范围含产品生产/销售，但序时账、银行流水、进项发票、合同中均未发现包装费（包装材料/纸箱/打包等）。稽查视角：实物产品销售必然需要包装材料，零包装费不符合产品交付实质。可能：①包装费未单独核算（合并在原材料中）；②产品无实际包装（直发/散装需备说明）；③费用未取得发票。",
+            "detail": f"企业营业收入 {revenue:,.0f} 元，经营范围含产品生产/销售，但序时账、银行流水、进项发票、合同中均未发现包装费（包装材料/纸箱/打包等）。税务合规视角：实物产品销售必然需要包装材料，零包装费不符合产品交付实质。可能：①包装费未单独核算（合并在原材料中）；②产品无实际包装（直发/散装需备说明）；③费用未取得发票。",
             "suggestion": "①如包装费合并在原材料采购中，补充说明材料；②如为散装/直发产品，提供客户签收记录；③补录包装材料采购凭证。",
             "required_evidence": [
                 "包装材料采购发票及入库记录",
@@ -4188,7 +4188,7 @@ def _analyze_packaging_missing(db, company_id, ps, pe, results):
 
 
 def _analyze_warehouse_missing(db, company_id, ps, pe, results):
-    """仓储费缺失检测——有库存但无仓储/仓库租赁费（稽查关注·存货实质）"""
+    """仓储费缺失检测——有库存但无仓储/仓库租赁费（税务合规关注·存货实质）"""
     # 检查是否有库存
     end_stock = db.query(func.sum(InventoryBalance.end_quantity)).filter(
         InventoryBalance.company_id == company_id,
@@ -4252,7 +4252,7 @@ def _analyze_warehouse_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": f"有库存（{end_stock:,.0f}件）但无仓储/仓库费用（四源皆空）",
-            "detail": f"期末库存 {end_stock:,.0f} 件，入库 {stock_in:,.0f} 件，但序时账、银行流水、发票、合同中均无仓储/仓库费用。稽查视角：有货物就必须有存放场所。无仓储费→货物存放在哪里？→可能存在：①库存数据不实（虚列存货）；②仓库为自有但未入账；③存货已发出但未确认收入。",
+            "detail": f"期末库存 {end_stock:,.0f} 件，入库 {stock_in:,.0f} 件，但序时账、银行流水、发票、合同中均无仓储/仓库费用。税务合规视角：有货物就必须有存放场所。无仓储费→货物存放在哪里？→可能存在：①库存数据不实（虚列存货）；②仓库为自有但未入账；③存货已发出但未确认收入。",
             "suggestion": "①如为自有仓库，提供房产证/固定资产明细；②如为租赁仓库，补充仓库租赁合同及租金支付凭证；③核对库存实物与账面是否一致。",
             "required_evidence": [
                 "仓库证明：自有房产证/仓库租赁合同+租金支付凭证",
@@ -4264,7 +4264,7 @@ def _analyze_warehouse_missing(db, company_id, ps, pe, results):
 
 
 def _analyze_equipment_depreciation_missing(db, company_id, ps, pe, results):
-    """生产设备折旧缺失——制造业无设备折旧/租赁费（稽查必查·生产能力实质）"""
+    """生产设备折旧缺失——制造业无设备折旧/租赁费（税务合规必查·生产能力实质）"""
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         return
@@ -4337,8 +4337,8 @@ def _analyze_equipment_depreciation_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "制造业无生产设备（固定资产+租赁）",
-            "detail": f"企业经营范围含生产制造，营业收入 {revenue:,.0f} 元，但系统中既无固定资产（机器设备）记录，也无设备租赁费用。稽查视角：生产制造必须有生产设备。无设备→如何生产？→存在以下嫌疑：①虚开发票（无生产能力的空壳）；②委托加工但未签订加工合同；③设备全部租赁但未入账。",
-            "suggestion": "（稽查应对）①如为自有设备，补录固定资产卡片（含设备名称、型号、购置发票、折旧明细）；②如为委托加工，提供委托加工合同+加工费发票+发料/收货记录；③如为租赁设备，提供设备租赁合同+租金支付凭证。",
+            "detail": f"企业经营范围含生产制造，营业收入 {revenue:,.0f} 元，但系统中既无固定资产（机器设备）记录，也无设备租赁费用。税务合规视角：生产制造必须有生产设备。无设备→如何生产？→存在以下嫌疑：①虚开发票（无生产能力的空壳）；②委托加工但未签订加工合同；③设备全部租赁但未入账。",
+            "suggestion": "（税务合规应对）①如为自有设备，补录固定资产卡片（含设备名称、型号、购置发票、折旧明细）；②如为委托加工，提供委托加工合同+加工费发票+发料/收货记录；③如为租赁设备，提供设备租赁合同+租金支付凭证。",
             "required_evidence": [
                 "固定资产清单（含机器设备明细、购置发票、折旧计算表）",
                 "委托加工合同+加工费发票+发料收货记录（如为外包生产）",
@@ -4416,7 +4416,7 @@ def _analyze_advertising_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": f"营业收入 {revenue:,.0f} 元但零广告/营销费用（四源皆空）",
-            "detail": f"营业收入 {revenue:,.0f} 元（≥100万元），但序时账、银行流水、发票、合同中均未发现广告费/推广费/营销费等市场拓展相关支出。稽查视角：收入达到一定规模却无市场拓展费用，不符合商业逻辑。可能：①广告费未取得发票；②以其他费用名义入账；③确无广告需求（如为B2B大客户模式）。",
+            "detail": f"营业收入 {revenue:,.0f} 元（≥100万元），但序时账、银行流水、发票、合同中均未发现广告费/推广费/营销费等市场拓展相关支出。税务合规视角：收入达到一定规模却无市场拓展费用，不符合商业逻辑。可能：①广告费未取得发票；②以其他费用名义入账；③确无广告需求（如为B2B大客户模式）。",
             "suggestion": "①如确有广告/推广支出，补录相关凭证；②如为B2B大客户模式（无需广告），准备客户开发方式说明；③如通过电商平台销售，平台服务费即推广费，需明确标注。",
             "required_evidence": [
                 "市场推广/客户开发模式说明",
@@ -4494,7 +4494,7 @@ def _analyze_travel_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 4, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": f"有{len(customers)}家客户但零差旅费用（四源皆空）",
-            "detail": f"系统中有 {len(customers)} 家客户（含异地客户），营业收入 {revenue:,.0f} 元，但序时账、银行流水、发票、合同中均未发现差旅费/住宿费/交通费。稽查视角：有客户就有业务往来，有业务就有差旅需求。零差旅费不符合常规商业逻辑。可能：①差旅费未取得发票或以现金支付未入账；②确无差旅需要（本地客户为主/线上沟通）。",
+            "detail": f"系统中有 {len(customers)} 家客户（含异地客户），营业收入 {revenue:,.0f} 元，但序时账、银行流水、发票、合同中均未发现差旅费/住宿费/交通费。税务合规视角：有客户就有业务往来，有业务就有差旅需求。零差旅费不符合常规商业逻辑。可能：①差旅费未取得发票或以现金支付未入账；②确无差旅需要（本地客户为主/线上沟通）。",
             "suggestion": "①如确有差旅，补录差旅费报销凭证；②如以线上沟通为主，准备业务沟通记录（邮件/视频会议记录）；③如客户均为本地，提供客户地域分布说明。",
             "required_evidence": [
                 "客户地域分布说明",
@@ -4546,7 +4546,7 @@ def _analyze_office_expense_missing(db, company_id, ps, pe, results):
             "category": "经营实质", "category_icon": "🔍", "risk_score": 5, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": f"营业收入 {revenue:,.0f} 元但零办公/物业费用",
-            "detail": f"营业收入 {revenue:,.0f} 元（≥50万元），四源交叉验证均未发现办公费/物业费：序时账、银行流水、取得发票、合同。稽查视角：有经营就有办公场所，有办公场所就有办公费用（水电/物业/办公用品）。零办公费→经营场所是否存在？→可能：①经营场所费用由关联方承担未入账；②在家办公但无费用凭证；③确无独立办公场所。",
+            "detail": f"营业收入 {revenue:,.0f} 元（≥50万元），四源交叉验证均未发现办公费/物业费：序时账、银行流水、取得发票、合同。税务合规视角：有经营就有办公场所，有办公场所就有办公费用（水电/物业/办公用品）。零办公费→经营场所是否存在？→可能：①经营场所费用由关联方承担未入账；②在家办公但无费用凭证；③确无独立办公场所。",
             "suggestion": "①补录办公费、物业费等日常费用凭证；②如经营场所费用由他人承担，提供相关协议和说明；③如为家庭办公，说明情况并保留部分费用凭证。",
             "required_evidence": [
                 "经营场所使用证明（房产证/租赁合同）",
@@ -4612,7 +4612,7 @@ def _analyze_vat_zero_declaration(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "📋", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期零申报或小额申报",
-            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months)}。稽查视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务稽查入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
+            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months)}。税务合规视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务税务合规入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
             "suggestion": "①核查实际经营收入，补报漏报销售；②如确无经营应办理停业登记；③税务机关预警后可导致发票停供、纳税信用降级。",
             "required_evidence": ["经营场所租赁合同或产权证明", "银行账户流水（证明无经营收入）", "近12个月零申报情况说明", "如已停业，提供工商停业备案"]
         })
@@ -4622,7 +4622,7 @@ def _analyze_vat_zero_declaration(db, company_id, ps, pe, results):
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "长期零申报或小额申报",
             "detail": f"共有 {len(zero_months)} 个月零申报。连续零申报将被税务机关重点关注。",
-            "suggestion": "如实申报实际经营收入，避免长期零申报引致稽查风险。"
+            "suggestion": "如实申报实际经营收入，避免长期零申报引致税务合规风险。"
         })
 
 
@@ -4873,7 +4873,7 @@ def _analyze_vat_retention_refund(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "📋", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "留抵退税异常增长",
-            "detail": f"连续 {max_continuous} 个月存在增值税留抵税额。稽查视角：长期留抵但仍在大量采购→可能：①进项发票虚开；②未入账销售收入（私账收款）；③存货积压虚假。留抵退税申请后，税务机关将对进项发票进行专项核查。",
+            "detail": f"连续 {max_continuous} 个月存在增值税留抵税额。税务合规视角：长期留抵但仍在大量采购→可能：①进项发票虚开；②未入账销售收入（私账收款）；③存货积压虚假。留抵退税申请后，税务机关将对进项发票进行专项核查。",
             "suggestion": "①自查大额留抵原因（存货积压/采购集中/售价倒挂）；②申请留抵退税前确保进项发票真实合规；③如有私账收款立即补报。",
             "required_evidence": ["留抵原因说明（含存货/产能分析）", "大额留抵期间的主要进项发票清单", "存货盘点表（证明存货真实存在）"]
         })
@@ -4910,7 +4910,7 @@ def _analyze_vat_no_ticket_sales(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "📋", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "无票收入申报缺失",
-            "detail": f"主营业务收入（{revenue_credit:,.2f}元）大于销项发票金额（{_safe_float(invoice_sales):,.2f}元），差额 {gap:,.2f} 元可能为无票销售收入。稽查视角：无票收入如未如实申报增值税，将被认定为偷漏税。尤其餐饮/零售等面向个人消费者的行业，无票收入占比高是常见稽查重点。",
+            "detail": f"主营业务收入（{revenue_credit:,.2f}元）大于销项发票金额（{_safe_float(invoice_sales):,.2f}元），差额 {gap:,.2f} 元可能为无票销售收入。税务合规视角：无票收入如未如实申报增值税，将被认定为偷漏税。尤其餐饮/零售等面向个人消费者的行业，无票收入占比高是常见税务合规重点。",
             "suggestion": "①确认无票收入是否已在增值税申报中如实填报；②餐饮企业使用收银系统数据与申报数据比对；③建立健全无票收入台账（按日/按期）。",
             "required_evidence": ["无票销售收入明细台账", "收银系统/销售系统数据备份", "无票收入与申报数据比对表"]
         })
@@ -4942,7 +4942,7 @@ def _analyze_invoice_amount_anomaly(db, company_id, ps, pe, results):
             "category": "发票异常", "category_icon": "🧾", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "零税额发票异常",
-            "detail": f"销项发票中 {zero_cnt} 张为零税额发票，占比 {zero_cnt/total_sales*100:.1f}%，涉及金额 {_safe_float(zero_amt):,.2f} 元。稽查视角：大量开具零税率发票但无免税备案，可能被认定为虚开发票。",
+            "detail": f"销项发票中 {zero_cnt} 张为零税额发票，占比 {zero_cnt/total_sales*100:.1f}%，涉及金额 {_safe_float(zero_amt):,.2f} 元。税务合规视角：大量开具零税率发票但无免税备案，可能被认定为虚开发票。",
             "suggestion": "核查零税额发票对应的业务是否具备免税资格，如无则应补开正常税率发票。",
             "required_evidence": ["零税额发票对应的业务合同", "免税资格备案文件（如适用）", "零税额发票明细表"]
         })
@@ -5028,7 +5028,7 @@ def _analyze_buy_sell_mismatch(db, company_id, ps, pe, results):
             "category": "发票异常", "category_icon": "🧾", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "进销品名严重不匹配",
-            "detail": f"销项主要商品：{'/'.join(list(sales_items))}，进项主要商品：{'/'.join(list(purchase_items))}，进销商品品类无重合。稽查视角：制造业企业购买的原材料与生产销售的产品品类不匹配，暗示可能：①存在未入账的委托加工；②虚开进项发票冲抵成本；③隐瞒了部分生产环节。",
+            "detail": f"销项主要商品：{'/'.join(list(sales_items))}，进项主要商品：{'/'.join(list(purchase_items))}，进销商品品类无重合。税务合规视角：制造业企业购买的原材料与生产销售的产品品类不匹配，暗示可能：①存在未入账的委托加工；②虚开进项发票冲抵成本；③隐瞒了部分生产环节。",
             "suggestion": "①准备完整的生产工艺流程图和投入产出分析；②说明原材料与产成品之间的转换关系；③如存在外协加工，补充委托加工合同。",
             "required_evidence": ["生产工艺流程图", "投入产出分析表（原材料→产成品）", "委托加工合同（如适用）", "存货收发存明细账"]
         })
@@ -5068,7 +5068,7 @@ def _analyze_fuel_vs_vehicles(db, company_id, ps, pe, results):
             "category": "费用匹配", "category_icon": "💰", "risk_score": 9, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "油费进项与固定资产（车辆）不匹配",
-            "detail": f"取得油费进项发票 {_safe_float(fuel_invs):,.2f} 元，但公司名下无在用车辆。稽查视角：公司名下没有车辆却有大量加油发票报销，与实际经营逻辑严重不符，可能：①私人车辆费用混入公司账；②虚构费用冲抵利润；③私车公用的租赁协议缺失。",
+            "detail": f"取得油费进项发票 {_safe_float(fuel_invs):,.2f} 元，但公司名下无在用车辆。税务合规视角：公司名下没有车辆却有大量加油发票报销，与实际经营逻辑严重不符，可能：①私人车辆费用混入公司账；②虚构费用冲抵利润；③私车公用的租赁协议缺失。",
             "suggestion": "①如为私车公用，应签订车辆租赁协议并代开发票；②如车辆在老板个人名下，补充车辆无偿使用协议；③实际发生的业务用车费用需区分公私。",
             "required_evidence": ["车辆租赁协议（私车公用）", "加油记录与出差/外勤记录的对应关系", "法人/股东名下车辆清单", "车辆使用费分摊说明"]
         })
@@ -5110,7 +5110,7 @@ def _analyze_transport_ratio(db, company_id, ps, pe, results):
             "category": "费用匹配", "category_icon": "💰", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "运输费用与经营模式不匹配",
-            "detail": f"运输/物流费用占进项发票总额的 {ratio:.1f}%（明细{_safe_float(transport_invs):,.2f}元）。稽查视角：运输费用占比过高（>30%），可能：①虚开运输发票冲抵成本；②将非运输费用包装为运输费（如将餐饮/娱乐费用开成运输发票）；③运输服务定价不公允。",
+            "detail": f"运输/物流费用占进项发票总额的 {ratio:.1f}%（明细{_safe_float(transport_invs):,.2f}元）。税务合规视角：运输费用占比过高（>30%），可能：①虚开运输发票冲抵成本；②将非运输费用包装为运输费（如将餐饮/娱乐费用开成运输发票）；③运输服务定价不公允。",
             "suggestion": "①核查运输发票对应的实际物流单据（运单/签收单）；②运输费用应与货物采购量匹配（运输费÷采购量=单位运输成本，应与行业平均水平一致）；③大额运输费需有运输合同。",
             "required_evidence": ["运输合同及运单", "货物采购量与运输费匹配分析", "承运方资质证明（道路运输许可证）", "物流签收记录"]
         })
@@ -5160,7 +5160,7 @@ def _analyze_expense_reasonability(db, company_id, ps, pe, results):
             "category": "费用匹配", "category_icon": "💰", "risk_score": 7, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "咨询费支出异常",
-            "detail": f"咨询/顾问/服务费类进项发票金额 {_safe_float(consult_invs):,.2f} 元，占营业收入 {consult_ratio:.1f}%。稽查视角：咨询费是税务局重点核查科目，大额无实质性成果的咨询费可能被认定为虚开发票/商业贿赂/利润转移。",
+            "detail": f"咨询/顾问/服务费类进项发票金额 {_safe_float(consult_invs):,.2f} 元，占营业收入 {consult_ratio:.1f}%。税务合规视角：咨询费是税务局重点核查科目，大额无实质性成果的咨询费可能被认定为虚开发票/商业贿赂/利润转移。",
             "suggestion": "①确保每笔咨询费有对应服务合同和成果交付（咨询报告/验收单）；②大额咨询费需有招投标或比价记录；③关联方之间的咨询费需证明定价公允。",
             "required_evidence": ["咨询服务合同", "咨询成果交付文件（报告/方案/验收单）", "咨询服务费用比价或招投标记录", "咨询费付款凭证"]
         })
@@ -5233,7 +5233,7 @@ def _analyze_non_taxable_income(db, company_id, ps, pe, results):
             "category": "企业所得税", "category_icon": "📑", "risk_score": 4, "risk_level": "低风险",
             "risk_color": "#3b82f6", "urgency": "建议",
             "item": "不征税收入处理不合规",
-            "detail": f"发现 {_safe_float(subsidy_credits):,.2f} 元政府补助或财政补贴性质收入。稽查视角：不征税收入（符合财税[2011]70号三项条件的专项用途资金）对应的支出不得税前扣除。如不符合不征税条件但做了调减，或符合条件但对应的费用未作纳税调增，均有税务风险。",
+            "detail": f"发现 {_safe_float(subsidy_credits):,.2f} 元政府补助或财政补贴性质收入。税务合规视角：不征税收入（符合财税[2011]70号三项条件的专项用途资金）对应的支出不得税前扣除。如不符合不征税条件但做了调减，或符合条件但对应的费用未作纳税调增，均有税务风险。",
             "suggestion": "①确认是否符合不征税收入条件（专项资金拨付文件+专门管理办法+单独核算）；②不征税收入对应的支出不得税前扣除；③建立专项资金使用台账。",
             "required_evidence": ["政府补助批文/拨付文件", "专项资金管理办法", "专项资金使用明细台账", "如有不征税收入申报，提供申报资料"]
         })
@@ -5340,7 +5340,7 @@ def _analyze_social_security_match(db, company_id, ps, pe, results):
                 "category": "薪酬福利", "category_icon": "👥", "risk_score": 9, "risk_level": "高风险",
                 "risk_color": "#dc2626", "urgency": "紧急",
                 "item": "有工资发放但无社保缴纳记录",
-                "detail": f"期间发放工资总额 {total_salary:,.2f} 元，但未找到对应的社保申报/缴纳记录。根据《社会保险法》，用人单位必须为劳动者缴纳社会保险。稽查视角：无社保缴纳记录→可能全部为未签劳动合同的临时用工→工资支出真实性存疑→虚列人工成本嫌疑。",
+                "detail": f"期间发放工资总额 {total_salary:,.2f} 元，但未找到对应的社保申报/缴纳记录。根据《社会保险法》，用人单位必须为劳动者缴纳社会保险。税务合规视角：无社保缴纳记录→可能全部为未签劳动合同的临时用工→工资支出真实性存疑→虚列人工成本嫌疑。",
                 "suggestion": "①补缴社会保险（含滞纳金）；②核实是否存在未签订劳动合同的用工；③如为劳务外包，补充外包合同和发票。",
                 "required_evidence": ["劳动合同/劳务合同清单", "社保缴纳记录（或补缴计划）", "外包合同及发票（如适用）", "工资银行发放记录"]
             })
@@ -5360,8 +5360,8 @@ def _analyze_social_security_match(db, company_id, ps, pe, results):
                 "category": "薪酬福利", "category_icon": "👥", "risk_score": 6, "risk_level": "中风险",
                 "risk_color": "#f59e0b", "urgency": "提醒",
                 "item": "社保缴存基数偏低",
-                "detail": f"有 {low_base} 人社保缴纳基数显著低于实发工资水平。按最低基数缴纳虽较普遍，但严格来说不合规，差额较大时可能被社保稽查部门责令补缴。",
-                "suggestion": "按实际工资水平核定社保缴费基数，避免因基数偏低被社保稽查处罚。"
+                "detail": f"有 {low_base} 人社保缴纳基数显著低于实发工资水平。按最低基数缴纳虽较普遍，但严格来说不合规，差额较大时可能被社保税务合规部门责令补缴。",
+                "suggestion": "按实际工资水平核定社保缴费基数，避免因基数偏低被社保税务合规处罚。"
             })
 
 
@@ -5377,7 +5377,7 @@ def _analyze_undistributed_profit(db, company_id, ps, pe, results):
     if undivided > paid_capital * 2 and paid_capital > 0:
         risk_score = 6
         risk_level = "中风险"
-        detail = f"未分配利润余额 {undivided:,.2f} 元，是实收资本（{paid_capital:,.2f}元）的 {undivided/paid_capital:.1f} 倍，但无分红记录。稽查视角：①大额未分配利润长期不分配→可能已被股东以借款/报销等形式转移（实质视同分红）；②如「其他应收款-股东」余额较大，税务机关会直接认定为视同分红，补缴20%个人所得税。"
+        detail = f"未分配利润余额 {undivided:,.2f} 元，是实收资本（{paid_capital:,.2f}元）的 {undivided/paid_capital:.1f} 倍，但无分红记录。税务合规视角：①大额未分配利润长期不分配→可能已被股东以借款/报销等形式转移（实质视同分红）；②如「其他应收款-股东」余额较大，税务机关会直接认定为视同分红，补缴20%个人所得税。"
 
         if other_receivables > paid_capital * 0.5:
             risk_score = 9
@@ -5427,7 +5427,7 @@ def _analyze_cross_invoicing(db, company_id, ps, pe, results):
             "category": "其他风险", "category_icon": "⚠️", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "互开发票风险",
-            "detail": f"发现 {len(cross)} 家企业同时既对本公司开具发票又接受本公司开具的发票：{'/'.join(list(cross))}。稽查视角：互开发票（对开发票）是税务局认定虚开增值税专用发票的重要信号，可能导致：①双方同时虚增收入和成本（流水造假）；②涉嫌循环经济/环开发票犯罪。",
+            "detail": f"发现 {len(cross)} 家企业同时既对本公司开具发票又接受本公司开具的发票：{'/'.join(list(cross))}。税务合规视角：互开发票（对开发票）是税务局认定虚开增值税专用发票的重要信号，可能导致：①双方同时虚增收入和成本（流水造假）；②涉嫌循环经济/环开发票犯罪。",
             "suggestion": "①逐笔核查互开发票对应的业务真实性（合同/物流/资金流三流合一）；②如无真实业务，立即做进项税额转出或红冲；③建立客户供应商黑名单制度。",
             "required_evidence": ["互开发票清单及三流合一证明", "每笔互开发票对应的合同/物流/付款凭证", "不能提供真实交易证明的不得抵扣进项税额"]
         })
@@ -5452,7 +5452,7 @@ def _analyze_invest_property_tax(db, company_id, ps, pe, results):
             "category": "其他风险", "category_icon": "⚠️", "risk_score": 6, "risk_level": "中风险",
             "risk_color": "#f59e0b", "urgency": "提醒",
             "item": "持有投资性房地产需关注税费申报",
-            "detail": f"投资性房地产账面价值 {invest_prop:,.2f} 元。{ '有租金收入' + str(rent_income) + '元' if has_rent else '未发现租金收入记录' }。稽查要点：①持有投资性房地产需缴纳房产税（按余值1.2%或租金12%）；②租金收入需开具发票并申报增值税；③将来转让需缴纳土地增值税。",
+            "detail": f"投资性房地产账面价值 {invest_prop:,.2f} 元。{ '有租金收入' + str(rent_income) + '元' if has_rent else '未发现租金收入记录' }。税务合规要点：①持有投资性房地产需缴纳房产税（按余值1.2%或租金12%）；②租金收入需开具发票并申报增值税；③将来转让需缴纳土地增值税。",
             "suggestion": "①确认是否已缴纳房产税；②出租收入是否入账并申报；③检查从租计征房产税的适用税率。"
         })
 
@@ -7559,7 +7559,7 @@ def _analyze_address_mismatch(db, company_id, ps, pe, results):
                 "category": "经营实质", "category_icon": "🔍", "risk_score": 8, "risk_level": "高风险",
                 "risk_color": "#dc2626", "urgency": "紧急",
                 "item": "注册地址与经营地址不一致",
-                "detail": f"企业注册地址包含「虚拟/集群/挂靠/孵化器/托管」等字眼，且四源交叉验证（序时账+发票+合同）均无租赁费/水电费支出。集群注册企业是税务稽查重点：金税四期会检查注册地址是否有实际经营实体。",
+                "detail": f"企业注册地址包含「虚拟/集群/挂靠/孵化器/托管」等字眼，且四源交叉验证（序时账+发票+合同）均无租赁费/水电费支出。集群注册企业是税务税务合规重点：金税四期会检查注册地址是否有实际经营实体。",
                 "suggestion": "如为集群注册但确有实际经营场所，应提供实际经营地址的租赁合同和水电费凭证。如长期无实际经营场所，建议办理注销或变更注册地址。",
                 "required_evidence": ["实际经营地址租赁合同", "水电费缴纳记录", "经营场所照片"]
             })
@@ -8102,7 +8102,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期大额客户无正式合同",
             "detail": f"共 {len(long_no_ct_cust)} 家客户近12个月累计交易额超{LONG_TERM_THRESHOLD/10000:.0f}万元（合计 {total:,.2f} 元），"
-                       f"但系统中未发现任何销售合同或服务协议。长期大额无合同交易是税务稽查的重点关注事项。"
+                       f"但系统中未发现任何销售合同或服务协议。长期大额无合同交易是税务税务合规的重点关注事项。"
                        f"涉及：{'、'.join(detail_parts)}"
                        + (f"等{len(long_no_ct_cust)}家" if len(long_no_ct_cust) > 3 else ""),
             "suggestion": "立即与长期合作客户补充签署框架协议或年度采购合同：(1)签订年度框架合同明确基本条款；(2)单笔交易签署订单/补充协议；(3)合同应涵盖定价机制、交货方式、结算周期等核心要素。",
@@ -8319,7 +8319,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "item": "先票后签（发票日期早于合同签订日期）",
             "detail": f"共 {len(pre_sign_invoices)} 份合同存在交易发票日期早于合同签订日期的「先票后签」问题。"
                        f"先票后签说明业务发生在前、合同补签在后，属于倒签合同行为，"
-                       f"在税务稽查中会被重点审查，可能被认定为虚构交易或虚开发票。"
+                       f"在税务税务合规中会被重点审查，可能被认定为虚构交易或虚开发票。"
                        f"涉及：{'；'.join(detail_parts)}"
                        + (f"等{len(pre_sign_invoices)}份" if len(pre_sign_invoices) > 5 else ""),
             "suggestion": "规范合同签署流程：(1)严格执行「先签合同后开发票」的原则；(2)已发生的倒签情况逐份出具书面说明，记录真实业务背景；(3)建立合同签署→开票的流程管控，杜绝先票后签。",
@@ -9050,7 +9050,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "detail": f"发现 {len(potentially_mixed_cts)} 份合同可能涉及混合销售/兼营，"
                        f"其中 {len(no_split)} 份未分别约定税率。"
                        f"混合销售→从主业税率；兼营→分别核算分别适用税率。"
-                       f"未分别核算的兼营行为→从高适用税率，存在多缴或税务稽查调整风险。"
+                       f"未分别核算的兼营行为→从高适用税率，存在多缴或税务税务合规调整风险。"
                        f"涉及：{'；'.join(detail_parts)}"
                        + (f"等{len(potentially_mixed_cts)}份" if len(potentially_mixed_cts) > 5 else ""),
             "suggestion": "(1)区分混合销售（一项行为涉及货物+服务）和兼营（多项独立业务）；"
@@ -9085,7 +9085,7 @@ def _build_evidence_summary(results):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  V10 新增 — 稽查重点盲区补全（13项）
+#  V10 新增 — 税务合规重点盲区补全（13项）
 # ═══════════════════════════════════════════════════════════════
 
 def _analyze_price_surcharge(db, company_id, ps, pe, results):
@@ -9436,7 +9436,7 @@ def _analyze_mixed_sales_accounting(db, company_id, ps, pe, results):
                 "detail": f"分析期间存在 {invoices_13} 张13%税率发票和 {invoices_6} 张6%税率发票，"
                            f"但收入科目仅设 {rev_sub_accounts} 个明细科目。"
                            f"兼营不同税率业务应分别核算（分设明细科目），未分别核算的→从高适用税率（13%），"
-                           f"可能导致多缴税款或税务稽查时被认定核算不清而从严处理。",
+                           f"可能导致多缴税款或税务税务合规时被认定核算不清而从严处理。",
                 "suggestion": "(1)区分混合销售（一项行为涉及货物+服务，从主业税率）和兼营（多项独立业务）；"
                               "(2)兼营业务应在会计科目、发票、合同中分别核算/列示；"
                               "(3)设立独立的收入明细科目，分别归集不同税率业务的收入。",
@@ -10896,9 +10896,9 @@ def _analyze_document_completeness(db, company_id, ps, pe, results):
             "risk_color": "#dc2626" if len(all_missing) >= 3 else "#f59e0b",
             "urgency": "紧急" if len(all_missing) >= 3 else "重要",
             "item": "关键经营资料缺失",
-            "detail": f"系统中有{'、'.join(present)}等{len(present)}类资料，缺少{'、'.join(all_missing)}等{len(all_missing)}类。稽查时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
-            "suggestion": "、".join([f"补充{m}资料" for m in all_missing]) + "。按稽查必查清单提前归档全部经营资料。可通过「资料缺口报告」查看完整清单。",
-            "required_evidence": ["已提交资料清单", "缺失资料列表", "稽查必查资料对照表"],
+            "detail": f"系统中有{'、'.join(present)}等{len(present)}类资料，缺少{'、'.join(all_missing)}等{len(all_missing)}类。税务合规时无法提供完整资料，税务机关将按最不利方式核定应纳税额。",
+            "suggestion": "、".join([f"补充{m}资料" for m in all_missing]) + "。按税务合规必查清单提前归档全部经营资料。可通过「资料缺口报告」查看完整清单。",
+            "required_evidence": ["已提交资料清单", "缺失资料列表", "税务合规必查资料对照表"],
         })
 
     if insufficient:
@@ -10908,7 +10908,7 @@ def _analyze_document_completeness(db, company_id, ps, pe, results):
             "risk_color": "#f59e0b", "urgency": "重要",
             "item": "部分资料数据量不足",
             "detail": f"以下资料已提交但数据量偏少，可能不完整：{'；'.join(insufficient)}。数据量不足会影响分析准确性。",
-            "suggestion": "补充上述资料的完整期间数据，确保覆盖全部稽查期间。",
+            "suggestion": "补充上述资料的完整期间数据，确保覆盖全部税务合规期间。",
             "required_evidence": ["完整期间资料数据"],
         })
 

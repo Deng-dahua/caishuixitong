@@ -15,7 +15,7 @@ def get_audit_ctx():
 
 class AuditContext:
     """
-    稽查上下文——贯穿4阶段的状态容器
+    税务合规上下文——贯穿4阶段的状态容器
     
     这个对象是推理引擎的"工作记忆"。每个分析阶段：
     1. 读取context中已有的发现和信号
@@ -87,7 +87,7 @@ class AuditContext:
         self.phase_history = []   # 每阶段的执行摘要
     
     def add_flag(self, level, signal_type, detail, source_domain=""):
-        """添加稽查信号"""
+        """添加税务合规信号"""
         entry = {
             "type": signal_type,
             "detail": detail,

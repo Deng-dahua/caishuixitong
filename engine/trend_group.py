@@ -184,7 +184,7 @@ class GroupAnalyzer:
                 else "低风险传导"
             ),
             "recommendation": (
-                "建议对该企业集团进行关联稽查" if len(related) >= 5
+                "建议对该企业集团进行关联税务合规" if len(related) >= 5
                 else "建议关注关联企业的交叉风险" if len(related) >= 2
                 else "关联关系简单，风险传导概率较低"
             ),

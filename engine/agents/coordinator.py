@@ -126,12 +126,12 @@ from .base import BaseAgent
 from typing import Dict, List, Any, Optional
 
 class DialogAgent(BaseAgent):
-    """真正的税务稽查AGI——理解问题→知识检索→推理→自然语言输出"""
+    """真正的税务税务合规AGI——理解问题→知识检索→推理→自然语言输出"""
     
     def __init__(self):
         super().__init__(
-            name="稽查对话引擎",
-            role="资深税务稽查专家，精通中国税法体系，擅长因果推理和证据溯源",
+            name="税务合规对话引擎",
+            role="资深税务税务合规专家，精通中国税法体系，擅长因果推理和证据溯源",
             expertise=["税法解释","证据链推理","金额计算","行业对标","政策时效性判断","风险因果分析"]
         )
         
@@ -264,7 +264,7 @@ class DialogAgent(BaseAgent):
         
         if matched_rules:
             lines = [f"• [{lv}] {name}" for _, name, lv in matched_rules[:5]]
-            blocks.append({"title": f"⚙️ 匹配稽查指令（{len(matched_rules)}条）", "content": "\n".join(lines)})
+            blocks.append({"title": f"⚙️ 匹配税务合规指令（{len(matched_rules)}条）", "content": "\n".join(lines)})
         
         # 4. 从发现的how_found中溯源
         how_lines = []
@@ -278,7 +278,7 @@ class DialogAgent(BaseAgent):
             blocks.append({"title": "🔍 实际数据溯源", "content": "\n".join(how_lines)})
         
         if not blocks:
-            blocks.append({"title": "📝 说明", "content": f"关于该问题的判定逻辑：系统通过42个域分析函数逐域扫描资料数据，匹配1608条稽查指令自动判定。如需了解具体判定依据，请查看报告中的③证据材料和④证据来源。"})
+            blocks.append({"title": "📝 说明", "content": f"关于该问题的判定逻辑：系统通过42个域分析函数逐域扫描资料数据，匹配1608条税务合规指令自动判定。如需了解具体判定依据，请查看报告中的③证据材料和④证据来源。"})
         
         return blocks
     
@@ -523,7 +523,7 @@ class DialogAgent(BaseAgent):
                 blocks.append({"title": "📂 资料缺口影响链", "content": "\n".join(gap_lines)})
         
         if issues_count == 0 and not (isinstance(gaps, dict) and gaps):
-            blocks.append({"title": "✅ 总体评估", "content": "报告质量检查基本通过。建议：①高风险发现需多源证据闭环 ②每条发现标注法条依据 ③补充缺失的稽查必查资料。"})
+            blocks.append({"title": "✅ 总体评估", "content": "报告质量检查基本通过。建议：①高风险发现需多源证据闭环 ②每条发现标注法条依据 ③补充缺失的税务合规必查资料。"})
         
         return blocks
     
@@ -569,7 +569,7 @@ class DialogAgent(BaseAgent):
         if overall in ("高风险","极高风险"):
             lines.append("\n高风险判定依据：")
             lines.append("1. 多源数据交叉验证形成证据闭环（≥2个分析域）")
-            lines.append("2. 触发稽查重点强制等级（12类稽查重点之一）")
+            lines.append("2. 触发税务合规重点强制等级（12类税务合规重点之一）")
             lines.append("3. 行业对标偏离度超过阈值（<下限或>上限）")
             lines.append("\n每条高风险发现均可追溯至③证据材料和④证据来源。")
         
@@ -606,7 +606,7 @@ class DialogAgent(BaseAgent):
             # 给建议
             blocks.append({"title": "💡 建议", "content": "以上为系统自动匹配的关联发现。您可以使用更精确的问题获得更聚焦的回答：\n• \"怎么判定\"——了解推理依据\n• \"为什么是高风险\"——查看证据链\n• \"具体有哪些\"——查看明细数据\n• \"要补多少税\"——查看金额计算\n• \"依据哪条法律\"——查看法条引用"})
         else:
-            blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，系统未在全量1608条稽查指令、437条线索链、781条证据链中直接匹配到相关内容。\n\n建议：\n1. 使用更具体的术语追问（如\"增值税税负率\"而非\"税\"）\n2. 在报告中发现旁点击编辑按钮补充信息\n3. 对照③证据材料核实原始数据"})
+            blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，系统未在全量1608条税务合规指令、437条线索链、781条证据链中直接匹配到相关内容。\n\n建议：\n1. 使用更具体的术语追问（如\"增值税税负率\"而非\"税\"）\n2. 在报告中发现旁点击编辑按钮补充信息\n3. 对照③证据材料核实原始数据"})
         
         return blocks
 
@@ -772,7 +772,7 @@ class LearningAgent(BaseAgent):
 
 # ═══════ [合并自 engine/rule_reasoner.py] ═══════
 """
-规则推理Agent — 匹配1608稽查指令，串联线索→证据→分析链
+规则推理Agent — 匹配1608税务合规指令，串联线索→证据→分析链
 """
 import json, os
 from .base import BaseAgent
@@ -784,9 +784,9 @@ class RuleReasonerAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="规则推理引擎",
-            role="精通1608条稽查指令的规则匹配专家，负责将域分析发现与规则引擎对接",
+            role="精通1608条税务合规指令的规则匹配专家，负责将域分析发现与规则引擎对接",
             expertise=[
-                "规则匹配(1608条稽查指令)",
+                "规则匹配(1608条税务合规指令)",
                 "线索链驱动(437条)",
                 "证据链闭环(781条)",
                 "分析链推理(48条)",

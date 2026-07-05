@@ -38,7 +38,7 @@ DEFAULT_OVERRIDE = {
     },
     # 按模块组织的覆盖规则
     "overrides": {
-        "audit_rules": [],       # 稽查指令修正
+        "audit_rules": [],       # 税务合规指令修正
         "clue_chains": [],       # 线索链修正
         "evidence_chains": [],   # 证据链修正
         "methodologies": [],     # 方法论修正
@@ -145,7 +145,7 @@ class OverrideEngine:
     # ── 应用覆盖层 ──
     
     def apply_to_rules(self, original_rules: List[Dict]) -> List[Dict]:
-        """将覆盖层应用到稽查指令"""
+        """将覆盖层应用到税务合规指令"""
         overrides = self._data["overrides"]["audit_rules"]
         result = copy.deepcopy(original_rules)
         

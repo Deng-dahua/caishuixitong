@@ -1,5 +1,5 @@
 """
-从 _run_analyze 提取数据并生成稽查报告
+从 _run_analyze 提取数据并生成税务合规报告
 """
 import os, sys, json
 sys.path.insert(0, os.path.dirname(__file__))

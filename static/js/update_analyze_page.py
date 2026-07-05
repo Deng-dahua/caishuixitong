@@ -8,8 +8,8 @@ with open(f, 'r', encoding='utf-8') as fp:
 # 由于代码太长，我们分段替换关键部分
 
 # 1. 替换 renderAnalyzePage 函数中的标题描述
-old_title = '''+ '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '规则 + ' + pc('trailChains','391') + '线索链 + ' + pc('evidenceChains','740') + '证据链 → 方法论过滤器 → 正式稽查报告</p>''''
-new_title = '''+ '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '条稽查指令 · ' + pc('trailChains','391') + '条线索链 · ' + pc('evidenceChains','740') + '条证据链 · 8条跨域证据链 · 97%噪声过滤率 · 66行业基准库</p>' '''
+old_title = '''+ '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '规则 + ' + pc('trailChains','391') + '线索链 + ' + pc('evidenceChains','740') + '证据链 → 方法论过滤器 → 正式税务合规报告</p>''''
+new_title = '''+ '<p style="font-size:14px;color:#94a3b8;margin:0">' + pc('rules','1505') + '条税务合规指令 · ' + pc('trailChains','391') + '条线索链 · ' + pc('evidenceChains','740') + '条证据链 · 8条跨域证据链 · 97%噪声过滤率 · 66行业基准库</p>' '''
 
 if old_title in content:
     content = content.replace(old_title, new_title)

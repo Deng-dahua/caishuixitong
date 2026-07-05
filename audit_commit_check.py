@@ -159,7 +159,7 @@ def check_methodology_implementation():
         '_analyze_contract_tiers',    # 合同分层
         '_apply_methodology_filter',  # 方法论过滤器
         '_online_company_lookup',     # 联网核查
-        '_four_step_audit_framework', # 四步稽查法
+        '_four_step_audit_framework', # 四步税务合规法
         '_get_product_keywords',      # 行业自适应产品链
         '_enrich_target_entity_from_online',  # 联网结果注入
         '_get_root_causes',           # 根因诊断

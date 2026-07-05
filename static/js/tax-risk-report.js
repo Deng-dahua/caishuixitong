@@ -499,7 +499,7 @@ function renderDocsReport(rpt) {
     });
   }
 
-  // ── 综合稽查结论卡片（Phase 4 推理引擎产出）──
+  // ── 综合税务合规结论卡片（Phase 4 推理引擎产出）──
   if (rpt.all_findings && rpt.all_findings.length > 0) {
     var synthFinding = null;
     for (var si = 0; si < rpt.all_findings.length; si++) {
@@ -514,7 +514,7 @@ function renderDocsReport(rpt) {
       html += '<div style="margin:16px 0;padding:24px;background:' + riskBg + ';border:2px solid ' + riskColor + ';border-radius:12px">'
         + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
         + '<span style="font-size:28px">⚖️</span>'
-        + '<span style="font-size:20px;font-weight:700;color:#1e293b">推理引擎综合稽查结论</span>'
+        + '<span style="font-size:20px;font-weight:700;color:#1e293b">推理引擎综合税务合规结论</span>'
         + '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + escapeHtml(synthFinding.level || '?') + '</span>'
         + '<span style="font-size:13px;color:var(--gray-500)">评分 ' + (synthFinding.score || '?') + '/100</span>'
         + '</div>'

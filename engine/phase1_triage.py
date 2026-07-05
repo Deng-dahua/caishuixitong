@@ -683,7 +683,7 @@ def _apply_adaptive_weights(ctx, adaptive_weights, pipeline_log):
 # Phase 2 — 定向深挖（Signal-Driven Deep Dive）
 #
 # 设计理念：不是29域全量盲跑，而是基于 Phase 1 的信号，
-# 像人类稽查员一样定向选择深挖方向和深度。
+# 像人类税务合规员一样定向选择深挖方向和深度。
 #
 # 信号→域映射表驱动：
 #   看到"购销倒挂"→深挖毛利率+供应商+资金流向+经营实质
