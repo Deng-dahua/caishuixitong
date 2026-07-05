@@ -1627,6 +1627,26 @@ async function renderGrowthDashboard(container) {
   h += '<div class="gd-card"><div class="v" style="color:#d97706">' + learned + '</div><div class="l">已学行业</div></div>';
   h += '</div>';
   
+  // ═══ 上下游依赖 ═══
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">每次分析运行记录驱动累计次数增长</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-learn\')" style="color:#2563eb">学习反馈</a><br><span style="color:#94a3b8">学习成果更新推动成长阶段升级</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">记忆积累量反映信任模型增长</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">调度运行日志提供可信模块统计数据</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">能力评估结果影响成长阶段判定</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">成长阶段影响各维度星级评定</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer4\')" style="color:#2563eb">行业认知体系</a><br><span style="color:#94a3b8">已学行业数据用于校准行业基准值</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">成长数据反映模块成熟度</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">成长指标作为知识库元数据存储</span></div>';
+  h += '</div></div></div>';
+  
   h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
   h += '<p style="margin:0 0 16px">成长曲线展示引擎从部署以来的<strong>自我进化轨迹</strong>。随着每次分析运行，引擎不断积累经验、扩充知识库、优化分析策略，这些变化通过成长曲线直观呈现。</p>';
   h += '<p style="margin:0">四个核心指标：<strong>累计运行次数</strong>反映系统被使用和验证的广度；<strong>信任模型数量</strong>记录通过多次验证的高可靠度分析模式；<strong>已学习行业数</strong>记录引擎接触的行业种类；<strong>成长阶段</strong>从婴儿期→幼儿期→成长期→成熟期，反映引擎整体能力的演化水平。</p>';
