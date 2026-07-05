@@ -1284,6 +1284,7 @@ async function renderBrainSubModule(container, section) {
 
 // ═══ 管道调度 — 专用清新布局 ═══
 async function renderPipeDashboard(container) {
+  window._skipModuleHeader = true;
   var cid = window._currentCompanyId || 1;
   container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
   

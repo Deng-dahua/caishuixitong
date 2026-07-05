@@ -765,6 +765,7 @@ var MODULE_CONTENT = {
 function injectModuleHeader(pageId) {
   var meta = MODULE_CONTENT[pageId];
   if (!meta) return;
+  if (window._skipModuleHeader) { window._skipModuleHeader = false; return; }
   
   var container = document.getElementById('content-area');
   if (!container) return;
