@@ -1423,13 +1423,6 @@ function renderEvidenceList(chains) {
     });
     var sortedPrefixes = Object.keys(groups).sort(function(a,b) { return groups[b].length - groups[a].length; });
 
-    // 补充 TOC 导航项
-    if (tocEl) {
-      sortedPrefixes.forEach(function(p) {
-        tocEl.innerHTML += '<a href="#ev-grp-' + encodeURIComponent(p) + '">' + p + '<span class="cnt">' + groups[p].length + '</span></a>';
-      });
-    }
-
     sortedPrefixes.forEach(function(prefix) {
       var groupChains = groups[prefix];
       var groupExec = groupChains.filter(function(c) { return c.executable !== false && !c.legacy; });
