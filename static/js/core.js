@@ -99,7 +99,8 @@ const pages = {
   'auditor-handbook': '税务稽查员手册',
   'report-standards': '报告编制要求',
   'feedback-template': '审核内容模板',
-  'tax-agi': '税务AGI'
+  'tax-agi': '税务AGI',
+  'human-learning': '人类学习引擎'
 };
 
 // ==================== 用户登录 ====================
@@ -667,6 +668,7 @@ function navigateTo(page) {
     case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'tax-agi': renderAgiDashboard(container); break;
+    case 'human-learning': renderHumanLearningPage(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

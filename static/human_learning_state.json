@@ -1,0 +1,65 @@
+{
+  "decision_log": [
+    {
+      "action": "追问毛利率异常",
+      "reason": "毛利率为负是因为没区分主营收入和其他收入",
+      "result": {
+        "status": "已分析"
+      },
+      "context": {
+        "industry": "设计服务"
+      },
+      "timestamp": "2026-07-05T11:38:46.884042",
+      "id": "26f8fd40df69"
+    },
+    {
+      "action": "编辑纠正税率",
+      "reason": "税率从11%改为13%依据财税2018第32号",
+      "result": {
+        "status": "已采纳"
+      },
+      "context": {
+        "industry": "信息技术服务"
+      },
+      "timestamp": "2026-07-05T11:38:46.883379",
+      "id": "5376b0095e34"
+    }
+  ],
+  "active_rules": {},
+  "archived_rules": {},
+  "conflicts": [],
+  "correction_clusters": [],
+  "root_causes": [
+    {
+      "id": "bbbecb07e767",
+      "error": "引擎判定毛利率为0%",
+      "correct": "正确应该按主营收入计算毛利",
+      "timestamp": "2026-07-05T11:38:46.885357",
+      "analysis": "数据源解析或计算逻辑需人工复核"
+    }
+  ],
+  "pending_verification": [
+    {
+      "id": "f7bb04ec5e17",
+      "content": "重复的发票金额异常纠正",
+      "source": "编辑",
+      "submit_count": 1,
+      "first_seen": "2026-07-05T11:38:46.884447",
+      "last_seen": "2026-07-05T11:38:46.884450",
+      "status": "pending"
+    }
+  ],
+  "questions": [
+    {
+      "id": "8440c0b8937d",
+      "correction": "主营业务收入的判定标准不明确",
+      "questions": [
+        "'主营业务'的判断标准是什么？按品名分类、按金额占比、还是按发票备注？"
+      ],
+      "timestamp": "2026-07-05T11:38:46.884851",
+      "status": "awaiting_answer"
+    }
+  ],
+  "backtest_results": [],
+  "rule_relationships": []
+}
