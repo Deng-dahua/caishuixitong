@@ -712,11 +712,11 @@ function navigateTo(page) {
     case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
-    case 'eng-pipe': renderPipeDashboard(container); break;
-    case 'eng-learn': renderLearnFeedback(container); break;
-    case 'eng-orch': renderOrchDashboard(container); break;
-    case 'eng-grow': renderGrowthDashboard(container); break;
-    case 'eng-qual': renderQualityDashboard(container); break;
+    case 'eng-pipe': if(typeof renderPipeDashboard==='function')renderPipeDashboard(container);else renderEngineSubModule(container,'status'); break;
+    case 'eng-learn': if(typeof renderLearnFeedback==='function')renderLearnFeedback(container);else renderEngineSubModule(container,'rules'); break;
+    case 'eng-orch': if(typeof renderOrchDashboard==='function')renderOrchDashboard(container);else renderBrainSubModule(container,'orchestrator'); break;
+    case 'eng-grow': if(typeof renderGrowthDashboard==='function')renderGrowthDashboard(container);else renderBrainSubModule(container,'growth'); break;
+    case 'eng-qual': if(typeof renderQualityDashboard==='function')renderQualityDashboard(container);else renderEngineSubModule(container,'quality'); break;
     case 'eng-think': renderEngineSubModule(container, 'methods'); break;
     case 'eng-info': renderEngineSubModule(container, 'details'); break;
     case 'aly-result': renderAnalyzeResult(container); break;
