@@ -153,7 +153,17 @@ const pages = {
   'da-intro': '什么是域分析',
   'da-arch': '域分析架构',
   'da-domains': '42个分析域',
-  'da-result': '本次分析结果'
+  'da-result': '本次分析结果',
+  'agi-core': '核心智能引擎',
+  'agi-causal': '因果推理层',
+  'agi-connect': '连接通信层',
+  'agi-knowledge': '知识层',
+  'agi-special': '专项引擎层',
+  'agi-perf': '加速与保护层',
+  'agi-schedule': '调度中枢',
+  'agi-assets': '数据资产',
+  'agi-api': 'API端点',
+  'agi-knowledge-config': '知识库与配置'
 };
 
 // ==================== 用户登录 ====================
@@ -775,6 +785,16 @@ function navigateTo(page) {
     case 'da-arch': window._daSection = 'da-arch'; renderDomainAnalysisPage(container); break;
     case 'da-domains': window._daSection = 'da-domains'; renderDomainAnalysisPage(container); break;
     case 'da-result': window._daSection = 'da-result'; renderDomainAnalysisPage(container); break;
+    case 'agi-core': window._agiSection = 'agi-core'; renderAgiDashboard(container); break;
+    case 'agi-causal': window._agiSection = 'agi-causal'; renderAgiDashboard(container); break;
+    case 'agi-connect': window._agiSection = 'agi-connect'; renderAgiDashboard(container); break;
+    case 'agi-knowledge': window._agiSection = 'agi-knowledge'; renderAgiDashboard(container); break;
+    case 'agi-special': window._agiSection = 'agi-special'; renderAgiDashboard(container); break;
+    case 'agi-perf': window._agiSection = 'agi-perf'; renderAgiDashboard(container); break;
+    case 'agi-schedule': window._agiSection = 'agi-schedule'; renderAgiDashboard(container); break;
+    case 'agi-assets': window._agiSection = 'agi-assets'; renderAgiDashboard(container); break;
+    case 'agi-api': window._agiSection = 'agi-api'; renderAgiDashboard(container); break;
+    case 'agi-knowledge-config': window._agiSection = 'agi-knowledge-config'; renderAgiDashboard(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
@@ -1057,9 +1077,30 @@ async function renderAgiDashboard(container) {
 
     h += '</div></div>'; // agi-main + agi-layout
     container.innerHTML = h;
+    // 侧边栏子模块入口
+    if (window._agiSection) {
+      agiSliceToSection(window._agiSection);
+      window._agiSection = null;
+    }
   } catch(e) {
     _renderAgiFallback(container, e.message);
   }
+}
+function agiSliceToSection(sectionId) {
+  var toc = document.querySelector('.agi-toc');
+  if (toc) toc.style.display = 'none';
+  var layout = document.querySelector('.agi-layout');
+  if (layout) layout.style.display = 'block';
+  var hero = document.querySelector('.agi-main > .agi-hero');
+  if (hero) hero.style.display = 'none';
+  var allSecs = document.querySelectorAll('#agi-core,#agi-causal,#agi-connect,#agi-knowledge,#agi-special,#agi-perf,#agi-schedule,#agi-assets,#agi-api,#agi-knowledge-config');
+  for (var i = 0; i < allSecs.length; i++) {
+    allSecs[i].style.display = allSecs[i].id === sectionId ? 'block' : 'none';
+  }
+  setTimeout(function() {
+    var el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 200);
 }
 
 function _agiEngineCard(icon, name, engName, codeRef, desc, color) {
