@@ -103,7 +103,8 @@ const pages = {
   'human-learning': '人类学习引擎',
   'eng-pipe': '管道调度',
   'eng-learn': '学习反馈',
-  'eng-agi': 'AGI核心',
+  'eng-orch': '调度中枢',
+  'eng-grow': '成长曲线',
   'eng-qual': '质量保障',
   'eng-think': '推理引擎',
   'eng-info': '引擎详情'
@@ -677,7 +678,8 @@ function navigateTo(page) {
     case 'human-learning': renderHumanLearningPage(container); break;
     case 'eng-pipe': renderEngineSubModule(container, 'status'); break;
     case 'eng-learn': renderEngineSubModule(container, 'rules'); break;
-    case 'eng-agi': renderEngineSubModule(container, 'brain'); break;
+    case 'eng-orch': renderBrainSubModule(container, 'orchestrator'); break;
+    case 'eng-grow': renderBrainSubModule(container, 'growth'); break;
     case 'eng-qual': renderEngineSubModule(container, 'quality'); break;
     case 'eng-think': renderEngineSubModule(container, 'methods'); break;
     case 'eng-info': renderEngineSubModule(container, 'details'); break;

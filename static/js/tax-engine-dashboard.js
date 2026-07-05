@@ -1225,3 +1225,60 @@ function appendDependencyInfo(tabId) {
   area.innerHTML += h;
 }
 
+// ═══ 调度中枢/成长曲线 独立渲染 ═══
+async function renderBrainSubModule(container, section) {
+  var title = section === 'orchestrator' ? '调度中枢' : '成长曲线';
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + title + '</h2>'
+    + '<div id="brain-sub-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
+
+  try {
+    var resp = await fetch('/api/audit/brain-status');
+    var d = await resp.json();
+    var area = document.getElementById('brain-sub-content');
+    if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">读取失败: ' + esc(d.error || '') + '</div>'; return; }
+
+    var h = '<div style="max-width:1100px;margin:0 auto">';
+
+    if (section === 'orchestrator') {
+      var orch = d.orchestrator || {};
+      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #2563eb">调度中枢：管理模块分布、领域划分、管线深度——大脑的指挥调度中心。</div>';
+      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+      h += '<div style="flex:1;min-width:160px;background:#f0f9ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#0369a1">' + orch.total_modules + '</div><div style="font-size:12px;color:#64748b">总模块</div></div>';
+      h += '<div style="flex:1;min-width:160px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#059669">' + (orch.domain_count || 7) + '</div><div style="font-size:12px;color:#64748b">领域</div></div>';
+      h += '<div style="flex:1;min-width:160px;background:#fef3c7;padding:12px;border-radius:6px;text-align:center"><div style="font-size:28px;font-weight:700;color:#d97706">' + (orch.pipeline_depth || 16) + '</div><div style="font-size:12px;color:#64748b">管线深度</div></div>';
+      h += '</div>';
+      if (orch.domains && Object.keys(orch.domains).length > 0) {
+        h += '<table class="tbl2" style="margin-top:8px"><tr><th>领域</th><th>模块数</th><th>模块列表</th></tr>';
+        for (var domain in orch.domains) {
+          h += '<tr><td style="font-weight:600">' + esc(domain) + '</td><td>' + orch.domains[domain].length + '</td><td style="font-size:11px;color:#64748b">' + orch.domains[domain].join(', ') + '</td></tr>';
+        }
+        h += '</table>';
+      }
+    } else {
+      var growth = d.learner || {};
+      var stageColors = {婴儿期:'#94a3b8',幼儿期:'#f59e0b',成长期:'#059669',成熟期:'#2563eb'};
+      var stageColor = stageColors[growth.stage] || '#64748b';
+      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #8b5cf6">成长曲线：引擎自运行以来的成长轨迹——累计运行次数、信任模型积累、已学习的行业分布。</div>';
+      h += '<div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">';
+      h += '<div style="flex:1;min-width:120px;background:#faf5ff;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:' + stageColor + '">' + esc(growth.stage || '婴儿期') + '</div><div style="font-size:12px;color:#64748b">成长阶段</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fef2f2;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">' + (growth.total_runs || 0) + '</div><div style="font-size:12px;color:#64748b">累计运行</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669">' + (growth.trusted_module_contexts || 0) + '</div><div style="font-size:12px;color:#64748b">信任模型</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fffbeb;padding:12px;border-radius:6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#d97706">' + (growth.industries_learned || 0) + '</div><div style="font-size:12px;color:#64748b">已学行业</div></div>';
+      h += '</div>';
+      if (growth.top_industries && growth.top_industries.length > 0) {
+        h += '<div style="font-size:12px;color:#64748b;margin-top:8px">已学行业: ';
+        for (var j = 0; j < growth.top_industries.length; j++) {
+          var ti = growth.top_industries[j];
+          if (ti && ti[1]) h += '<span style="display:inline-block;margin:2px;padding:2px 8px;background:#f1f5f9;border-radius:10px">' + esc(ti[0]) + '(' + (ti[1].runs || 0) + '次)</span>';
+        }
+        h += '</div>';
+      }
+    }
+    h += '</div>';
+    area.innerHTML = h;
+  } catch(e) {
+    document.getElementById('brain-sub-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败: ' + e.message + '</div>';
+  }
+}
+
