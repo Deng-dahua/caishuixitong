@@ -1659,14 +1659,17 @@ async function renderGrowthDashboard(container) {
   h += '<div style="font-size:11px;color:#94a3b8;margin-top:8px">累计分析 <b style="color:#0f172a">' + runs + '</b> 次 · 可信模块 <b style="color:#0f172a">' + trusted + '</b> 个 · 行业覆盖 <b style="color:#0f172a">' + learned + '</b> 个</div>';
   h += '</div>';
   
+  h += '<div class="gd-sec"><h3>已学行业 · ' + (learned||topInd.length) + ' 个</h3>';
   if (topInd.length > 0) {
-    h += '<div class="gd-sec"><h3>已学行业 · ' + topInd.length + ' 个</h3>';
     topInd.forEach(function(ti) {
       if (ti && ti[1]) {
         h += '<span class="gd-tag">' + ti[0].replace(/</g,'&lt;') + ' <b>' + (ti[1].runs||0) + '次</b></span>';
       }
     });
-    h += '</div>';
+  } else {
+    h += '<div style="font-size:12px;color:#94a3b8;padding:12px 0">暂无已学行业数据，执行一键分析后自动积累</div>';
+  }
+  h += '</div>';
   }
   
   h += '</div>';
