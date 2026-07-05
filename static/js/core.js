@@ -100,13 +100,7 @@ const pages = {
   'report-standards': '报告编制要求',
   'feedback-template': '审核内容模板',
   'tax-agi': '税务AGI',
-  'human-learning': '人类学习引擎',
-  'engine-status': '管道调度',
-  'engine-rules': '学习反馈',
-  'engine-brain': 'AGI核心',
-  'engine-quality': '质量保障',
-  'engine-methods': '推理引擎',
-  'engine-details': '引擎详情'
+  'human-learning': '人类学习引擎'
 };
 
 // ==================== 用户登录 ====================
@@ -675,12 +669,6 @@ function navigateTo(page) {
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'tax-agi': renderAgiDashboard(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
-    case 'engine-status': loadEngineTab('status', container); break;
-    case 'engine-rules': loadEngineTab('rules', container); break;
-    case 'engine-brain': loadEngineTab('brain', container); break;
-    case 'engine-quality': loadEngineTab('quality', container); break;
-    case 'engine-methods': loadEngineTab('methods', container); break;
-    case 'engine-details': loadEngineTab('details', container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
@@ -1267,26 +1255,4 @@ function _bindPickPageButtons() {
   // 退出登录链接（兜底，HTML已有inline onclick，此处不重复绑定）
   // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
 }
-
-// ═══ 引擎仪表盘子模块路由（带缓存加速） ═══
-var TAB_TITLES = {
-  status: '管道调度', rules: '学习反馈', brain: 'AGI核心',
-  quality: '质量保障', methods: '推理引擎', details: '引擎详情'
-};
-async function loadEngineTab(tabId, container) {
-  if (typeof renderEngineDashboardHTML !== 'function') {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">引擎仪表盘模块未加载</div>';
-    return;
-  }
-  window._engineTabTarget = tabId;
-  // 如果已有缓存数据，直接渲染，不重新请求
-  if (window._engineRpt && window._engineEs && window._engineRules) {
-    container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + (TAB_TITLES[tabId] || tabId) + '</h2><div id="engine-dashboard-area" style="margin-top:16px"></div></div>';
-    renderEngineDashboardHTML(window._engineEs, true, tabId, true);
-    return;
-  }
-  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + (TAB_TITLES[tabId] || tabId) + '</h2><div id="engine-dashboard-area" style="margin-top:16px"><div style="text-align:center;padding:40px;color:#94a3b8"><span class="spinner"></span> 加载中...</div></div></div>';
-  setTimeout(function(){ loadEngineDashboard(); }, 100);
-}
-
 
