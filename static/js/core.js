@@ -777,8 +777,8 @@ function navigateTo(page) {
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
-  // 标准模块头部注入
-  if (typeof injectModuleHeader === 'function') {
+  // 标准模块头部注入（已设跳过标记则不注入）
+  if (typeof injectModuleHeader === 'function' && !window._skipModuleHeader) {
     injectModuleHeader(page);
     // 异步页面二次尝试
     setTimeout(function(){ injectModuleHeader(page); }, 500);
