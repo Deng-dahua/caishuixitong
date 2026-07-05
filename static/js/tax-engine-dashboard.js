@@ -1138,3 +1138,90 @@ function renderDetailsTab() {
     });
 }
 
+// ═══ 侧边栏子模块直连渲染（不经过仪表盘TOC） ═══
+var SUB_TITLES = {status:'管道调度',rules:'学习反馈',brain:'AGI核心',quality:'质量保障',methods:'推理引擎',details:'引擎详情'};
+async function renderEngineSubModule(container, tabId) {
+  var title = SUB_TITLES[tabId] || tabId;
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + title + '</h2>'
+    + '<div id="sub-tab-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
+  
+  var cid = window._currentCompanyId || 1;
+  try {
+    // 并行请求两个API
+    var [r1, r2] = await Promise.all([
+      fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid),
+      fetch('/api/tax-risk-docs/engine-rules')
+    ]);
+    var d1 = await r1.json();
+    var d2 = await r2.json();
+    var rpt = (d1 && d1.report) ? d1.report : null;
+    window._engineEs = (rpt && rpt.engine_status) || {};
+    window._engineRpt = rpt;
+    window._engineRules = d2.rules || {};
+    window._hasEngineData = !!(window._engineEs && window._engineEs.version);
+    
+    // 直接渲染目标标签内容（不走TOC）
+    renderSubTabContent(tabId);
+    appendDependencyInfo(tabId);
+  } catch(e) {
+    document.getElementById('sub-tab-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败: ' + e.message + '</div>';
+  }
+}
+
+function renderSubTabContent(tabId) {
+  var area = document.getElementById('sub-tab-content');
+  if (!area) return;
+  // 创建 eng-tab-content div 让现有 render 函数能工作
+  area.innerHTML = '<div id="eng-tab-content"></div>';
+  if (tabId === 'status') renderStatusTab();
+  else if (tabId === 'rules') renderRulesTab();
+  else if (tabId === 'brain') renderBrainTab();
+  else if (tabId === 'quality') renderQualityTab();
+  else if (tabId === 'methods') renderMethodsTab();
+  else if (tabId === 'details') renderDetailsTab();
+}
+
+// ═══ 模块上下游依赖 ═══
+var MODULE_DEPS = {
+  status: {
+    upstream: [{name:'管道.py',desc:'_run_analyze()七步执行状态'},{name:'编排器.py',desc:'build_data_profile()数据画像'},{name:'阶段1~4 分诊/深挖/交叉验证/综合.py',desc:'各阶段执行进度'}],
+    downstream: [{name:'阶段4综合.py',desc:'输出综合报告'},{name:'主程序.py',desc:'API返回引擎状态'},{name:'系统日志',desc:'展示执行记录'}]
+  },
+  rules: {
+    upstream: [{name:'自学习.py',desc:'record_correction()记录用户纠正'},{name:'人类学习.py',desc:'12项认知能力学习'},{name:'用户报告页',desc:'编辑/审核/追问三通道'}],
+    downstream: [{name:'管道.py',desc:'apply_correction_rules()下次自动应用'},{name:'记忆.py',desc:'规则写入引擎记忆'}]
+  },
+  brain: {
+    upstream: [{name:'AGI引擎.py',desc:'agi.answer()大模型推理'},{name:'AGI核心.py',desc:'反事实/边界/泛化/单样本'},{name:'AGI最终.py',desc:'工具/因果链/静默学习'},{name:'调度器.py',desc:'get_director()智能调度'},{name:'LLM客户端.py',desc:'大模型API'}],
+    downstream: [{name:'管道.py',desc:'AGI桥接分析'},{name:'主程序.py',desc:'智能问答API'}]
+  },
+  quality: {
+    upstream: [{name:'能力矩阵.py',desc:'check_quality_system()质量度量'},{name:'自愈.py',desc:'auto_detect_inconsistencies()自动修复'},{name:'自学习.py',desc:'合规门禁12条铁律'},{name:'审计一致性.py',desc:'pre-commit全量同步'}],
+    downstream: [{name:'管道.py',desc:'报告质量评估'},{name:'主程序.py',desc:'pre-commit触发全量检查'}]
+  },
+  methods: {
+    upstream: [{name:'AGI管道.py',desc:'create_pipeline()高级推理'},{name:'语义推理器.py',desc:'SemanticReasoner语义匹配'},{name:'因果网络.py',desc:'AutonomousReasoner因果推理'},{name:'SCM推理器.py',desc:'结构因果模型'},{name:'方法论加载器.py',desc:'方法库知识注入'}],
+    downstream: [{name:'管道.py',desc:'高级分析桥接AGI'},{name:'AGI引擎.py',desc:'嵌入方法知识增强'}]
+  },
+  details: {
+    upstream: [{name:'引擎/ 全部52个模块',desc:'所有引擎模块汇总'},{name:'税务风险规则导出.json',desc:'1611条稽查指令'},{name:'跨域线索+跨域证据.json',desc:'437+781条线索和证据链'}],
+    downstream: [{name:'运行仪表盘',desc:'6个子模块共用'},{name:'系统日志',desc:'引擎运行记录'}]
+  }
+};
+function appendDependencyInfo(tabId) {
+  var deps = MODULE_DEPS[tabId];
+  if (!deps) return;
+  var area = document.getElementById('eng-tab-content');
+  if (!area) return;
+  var h = '<div style="margin-top:24px;border-top:2px solid #e2e8f0;padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:12px 16px"><div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:8px">⬆ 上游（数据/功能的提供方）</div>';
+  deps.upstream.forEach(function(u){ h += '<div style="font-size:11px;color:#475569;line-height:1.8;margin-bottom:6px"><b style="color:#0f172a">'+u.name+'</b><br><span style="color:#94a3b8">'+u.desc+'</span></div>'; });
+  h += '</div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px"><div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">⬇ 下游（数据/功能的消费方）</div>';
+  deps.downstream.forEach(function(d){ h += '<div style="font-size:11px;color:#475569;line-height:1.8;margin-bottom:6px"><b style="color:#0f172a">'+d.name+'</b><br><span style="color:#94a3b8">'+d.desc+'</span></div>'; });
+  h += '</div>';
+  h += '</div>';
+  area.innerHTML += h;
+}
+
