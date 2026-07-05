@@ -244,7 +244,7 @@ function renderAuditorHandbook(container) {
     window._hbChapter = null;
     // 直接注入CSS隐藏TOC
     var style = document.createElement('style');
-    style.textContent = '.hb-toc{display:none!important}.hb-layout{display:block!important}.hb-sec{display:none!important}#\\' + chapter + '{display:block!important}';
+    style.textContent = '.hb-toc{display:none!important}.hb-layout{display:block!important}.hb-sec{display:none!important}#' + chapter + '{display:block!important}';
     container.appendChild(style);
     // 隐藏标题行
     var h2 = container.querySelector('.hb-main h2');
