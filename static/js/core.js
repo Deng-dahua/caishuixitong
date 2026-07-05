@@ -680,7 +680,7 @@ function navigateTo(page) {
     case 'engine-brain': loadEngineTab('brain', container); break;
     case 'engine-quality': loadEngineTab('quality', container); break;
     case 'engine-methods': loadEngineTab('methods', container); break;
-    case 'engine-details': renderEngineDashboardPage(container); break;  // 默认入口
+    case 'engine-details': loadEngineTab('details', container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
