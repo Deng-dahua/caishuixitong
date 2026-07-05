@@ -62,16 +62,13 @@ function renderEngineDashboardHTML(es, hasData, activeTab, hideToc) {
   
   area.innerHTML = html;
   if (hideToc) {
-    // 隐藏内部TOC，只显示目标标签内容
     var toc = document.querySelector('.ed-toc');
     if (toc) toc.style.display = 'none';
     var layout = document.querySelector('.ed-layout');
     if (layout) { layout.style.display = 'block'; layout.style.maxWidth = '1100px'; layout.style.margin = '0 auto'; }
-    switchEngineTab(activeTab);
-  } else {
-    switchEngineTab(activeTab);
   }
-  fetchEngineRules();
+  // 先加载规则数据，再切换标签
+  fetchEngineRules(function() { switchEngineTab(activeTab); });
 }
 
 function switchEngineTab(tab) {
@@ -295,7 +292,7 @@ function renderStatusTab() {
 
 // ── 规则库渲染 ──
 
-function fetchEngineRules() {
+function fetchEngineRules(callback) {
   fetch('/api/tax-risk-docs/engine-rules')
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -304,9 +301,11 @@ function fetchEngineRules() {
       if (document.getElementById('tab-rules') && document.getElementById('tab-rules').classList.contains('active')) {
         renderRulesTab();
       }
+      if (callback) callback();
     })
     .catch(function() {
       window._engineRules = { error: '加载失败' };
+      if (callback) callback();
     });
 }
 
