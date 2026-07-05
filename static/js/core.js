@@ -713,7 +713,7 @@ function navigateTo(page) {
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
     case 'eng-pipe': renderPipeDashboard(container); break;
-    case 'eng-learn': renderEngineSubModule(container, 'rules'); break;
+    case 'eng-learn': renderLearnFeedback(container); break;
     case 'eng-orch': renderBrainSubModule(container, 'orchestrator'); break;
     case 'eng-grow': renderBrainSubModule(container, 'growth'); break;
     case 'eng-qual': renderEngineSubModule(container, 'quality'); break;

@@ -1400,3 +1400,74 @@ async function renderPipeDashboard(container) {
   container.innerHTML = h;
 }
 
+// ═══ 学习反馈 — 专用清新布局 ═══
+async function renderLearnFeedback(container) {
+  window._skipModuleHeader = true;
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
+  
+  var d = {};
+  try {
+    var r = await fetch('/api/tax-risk-docs/engine-rules');
+    d = await r.json();
+  } catch(e) {}
+  var rules = d.rules || {};
+  var corrections = rules.corrections || {};
+  var learning = rules.learning || {};
+  var autoRules = rules.auto_rules || [];
+  
+  var h = '';
+  h += '<style>'
+    + '.lf{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.lf-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.lf-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.lf-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.lf-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.lf-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.lf-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.lf-sec{margin-bottom:32px}'
+    + '.lf-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.lf-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;margin-bottom:8px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;font-size:12px;line-height:1.8}'
+    + '.lf-item .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0}'
+    + '.lf-item .body{flex:1;color:#475569}'
+    + '.lf-item .body b{color:#0f172a}'
+    + '</style>';
+  
+  h += '<div class="lf">';
+  h += '<div class="lf-title">学习反馈</div>';
+  h += '<div class="lf-sub">用户纠正和审核意见驱动自学习引擎优化——三通道提交+四级回退匹配 · 所属：智能大脑</div>';
+  
+  // 统计卡片
+  h += '<div class="lf-hero">';
+  h += '<div class="lf-card"><div class="v" style="color:#2563eb">' + (corrections.total_rules||0) + '</div><div class="l">纠正规则</div></div>';
+  h += '<div class="lf-card"><div class="v">' + (corrections.total_corrections||0) + '</div><div class="l">累计纠正</div></div>';
+  h += '<div class="lf-card"><div class="v" style="color:#059669">' + (learning.ema_samples||0) + '</div><div class="l">EMA样本</div></div>';
+  h += '<div class="lf-card"><div class="v" style="color:#f59e0b">' + (autoRules.length||0) + '</div><div class="l">自动规则</div></div>';
+  h += '</div>';
+  
+  // 三层学习架构
+  h += '<div class="lf-sec"><h3>三层渐进学习架构</h3>';
+  h += '<div class="lf-item"><span class="dot" style="background:#2563eb"></span><div class="body"><b>第一层 · 审核反馈学习</b><br>用户每次审核发现（采纳/驳回）→ 系统记录发现类型+驳回原因 → 同类发现被驳回≥3次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用</div></div>';
+  h += '<div class="lf-item"><span class="dot" style="background:#059669"></span><div class="body"><b>第二层 · EMA自学习</b><br>指数移动平均算法校准行业阈值 → ' + (learning.ema_samples||0) + '个样本持续更新 → 毛利率/税负率/进销比等基准值随实际数据动态调整 → 行业基准库自动保持最新</div></div>';
+  h += '<div class="lf-item"><span class="dot" style="background:#f59e0b"></span><div class="body"><b>第三层 · 自动规则发现</b><br>重复出现的信号组合 → 跨企业模式检测 → 同行业出现率>60%的信号标记为行业特征 → 新风险模式自动生成候选规则 → 人工确认后写入规则库 → 不断扩充' + (1608 + (autoRules.length||0)) + '条规则体系</div></div>';
+  h += '</div>';
+  
+  // 自动规则列表
+  if (autoRules.length > 0) {
+    h += '<div class="lf-sec"><h3>已发现自动规则 · ' + autoRules.length + ' 条</h3>';
+    autoRules.forEach(function(ar) {
+      h += '<div class="lf-item"><span class="dot" style="background:#7c3aed"></span><div class="body"><b>' + (ar.name||ar.rule||'') + '</b><br>' + (ar.desc||ar.pattern||'') + '<br><span style="font-size:11px;color:#94a3b8">触发: ' + (ar.trigger_count||0) + '次 · 置信度: ' + (ar.confidence||'') + '</span></div></div>';
+    });
+    h += '</div>';
+  }
+  
+  // 学习数据存储
+  h += '<div class="lf-sec"><h3>学习数据存储</h3>';
+  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>user_corrections.json</b> — 用户纠正规则存储<br>四级回退匹配：行业匹配 → 经营模式匹配 → 信号类型匹配 → 通用匹配</div></div>';
+  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>audit_memory.json</b> — 分析记忆存储<br>12维度加权相似度检索：行业(×3) > 经营模式(×2) > 信号类型(×2) > 风险等级(×1.5)</div></div>';
+  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>ema_state.json</b> — EMA参数状态存储<br>' + (learning.ema_samples||0) + '个样本积累 · 动态校准行业基准值</div></div>';
+  h += '</div>';
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+
