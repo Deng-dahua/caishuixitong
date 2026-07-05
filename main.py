@@ -982,7 +982,7 @@ def _check_tax_relevance(text: str):
             "增值税", "企业所得税", "个人所得税", "消费税", "印花税",
             "房产税", "契税", "土地增值税", "城建税", "教育费附加",
             "进项税额", "销项税额", "进项税", "销项税", "留抵退税",
-            "纳税申报", "税务税务合规", "税务风险", "税收优惠", "税前扣除",
+            "纳税申报", "税务合规", "税务风险", "税收优惠", "税前扣除",
             "发票管理", "增值税专用发票", "普通发票", "数电发票",
             "应交税费", "税金及附加", "递延所得税", "文化事业建设费",
             "代扣代缴", "源泉扣缴", "税务登记", "小规模纳税人", "一般纳税人",
@@ -1871,7 +1871,7 @@ def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
         return None
 
 # ── 资料类型特征库（列名关键词+得分）──
-# 覆盖税务税务合规所需的所有资料类型，纯内容识别，不依赖Sheet名
+# 覆盖税务合规所需的所有资料类型，纯内容识别，不依赖Sheet名
 _FILE_FINGERPRINTS = {
     # ══════════ 第一梯队：高频核心类型（用户最常上传）══════════
     "bank_statement": {
@@ -5181,7 +5181,7 @@ def generate_working_papers(company_id: int = Query(...)):
     }
     
     papers = {
-        "title": f"税务税务合规工作底稿",
+        "title": f"税务合规工作底稿",
         "entity": te.get("name", ""),
         "period": te.get("period", ""),
         "generated_at": datetime.now().isoformat(),
@@ -6735,7 +6735,7 @@ def generate_audit_narrative(data: dict):
         return {"ok": False, "error": "没有发现项"}
     
     # 构建prompt
-    prompt = f"你是资深税务税务合规专家。以下是对一家{industry}企业的税务合规发现，请生成一段专业的税务合规结论叙述（200字以内，{style}风格）：\n\n"
+    prompt = f"你是资深税务合规专家。以下是对一家{industry}企业的税务合规发现，请生成一段专业的税务合规结论叙述（200字以内，{style}风格）：\n\n"
     for i, f in enumerate(findings[:5]):
         prompt += f"{i+1}. {f.get('type','')}: {str(f.get('detail',''))[:100]}\n"
     
@@ -7009,7 +7009,7 @@ from routers.agi import router as agi_router
 app.include_router(agi_router)
 
 # ═══════════════════════════════════════════════════════════
-# 对话式税务税务合规 — AGI直接用中文回答税务问题
+# 对话式税务合规 — AGI直接用中文回答税务问题
 # ═══════════════════════════════════════════════════════════
 
 @app.post("/api/agi/chat")
@@ -8077,7 +8077,7 @@ def export_report(company_id: int = Query(...), format: str = "txt"):
     # 生成纯文本报告
     lines = [
         "══════════════════════════",
-        "    税务税务合规分析报告",
+        "    税务合规分析报告",
         "══════════════════════════",
         "",
         f"被查单位: {target.get('name', '')}",
@@ -8116,7 +8116,7 @@ def export_report(company_id: int = Query(...), format: str = "txt"):
     ])
     
     if format == "html":
-        html = "<h1>税务税务合规分析报告</h1>" + "<br>".join(lines).replace("\n", "<br>")
+        html = "<h1>税务合规分析报告</h1>" + "<br>".join(lines).replace("\n", "<br>")
         return HTMLResponse(content=html)
     
     return {"ok": True, "report": "\n".join(lines), "format": "txt"}
@@ -8905,7 +8905,7 @@ def get_engine_details(company_id: int = 1):
     law_refs = {}
     for fi in all_f:
         lr = fi.get("law_ref", "")
-        if lr and lr != "《税收征收管理法》及《税务税务合规工作规程》相关规定":
+        if lr and lr != "《税收征收管理法》及《税务合规工作规程》相关规定":
             law_refs[lr] = law_refs.get(lr, 0) + 1
     result["legal"] = [{"law": k, "count": v} for k, v in sorted(law_refs.items(), key=lambda x: -x[1])]
     if not result["legal"]:

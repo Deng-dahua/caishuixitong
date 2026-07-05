@@ -126,12 +126,12 @@ from .base import BaseAgent
 from typing import Dict, List, Any, Optional
 
 class DialogAgent(BaseAgent):
-    """真正的税务税务合规AGI——理解问题→知识检索→推理→自然语言输出"""
+    """真正的税务合规AGI——理解问题→知识检索→推理→自然语言输出"""
     
     def __init__(self):
         super().__init__(
             name="税务合规对话引擎",
-            role="资深税务税务合规专家，精通中国税法体系，擅长因果推理和证据溯源",
+            role="资深税务合规专家，精通中国税法体系，擅长因果推理和证据溯源",
             expertise=["税法解释","证据链推理","金额计算","行业对标","政策时效性判断","风险因果分析"]
         )
         

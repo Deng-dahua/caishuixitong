@@ -58,7 +58,7 @@ function renderTaxRiskRules(container) {
     // Hero
     + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:24px">'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0">'
-    + '税务合规指令是系统的规则知识库——1611条结构化税务税务合规规则，覆盖资金流、进销存、发票流、经营实质、'
+    + '税务合规指令是系统的规则知识库——1611条结构化税务合规规则，覆盖资金流、进销存、发票流、经营实质、'
     + '税务合规、薪酬社保、关联交易等多个领域。每条指令包含税务合规标准、风险等级、评分、详细检查方法、'
     + '处理建议和法律依据。运行一键分析后，系统自动将域分析发现与规则库交叉匹配，触发对应指令——'
     + '被触发的规则高亮显示并展示触发溯源（是哪个域分析的哪项发现触发了该规则），形成"发现→规则→结论"的完整证据链。'

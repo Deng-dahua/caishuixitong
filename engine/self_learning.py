@@ -421,11 +421,11 @@ class ComplianceGate:
     @staticmethod
     def _s07_check(f): return len(str(f.get("detail",""))) >= 80
     @staticmethod
-    def _s08_check(f): return not any(k in str(f.get("detail","")) for k in ["是税务税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"])
+    def _s08_check(f): return not any(k in str(f.get("detail","")) for k in ["是税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"])
     @staticmethod
     def _s08_fix(f):
         d = str(f.get("detail",""))
-        for k in ["是税务税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"]:
+        for k in ["是税务合规重点方向","需逐笔核实","申报不合规是税务行政处罚"]:
             d = d.replace(k,"")
         f["detail"] = d.strip()
     @staticmethod

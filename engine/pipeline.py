@@ -1464,7 +1464,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, vouchers=vouchers)})
     else: domain_results.append({"domain": "出口退税验证", "findings": []})
 
-    # ═══ 财务报表税务税务合规分析（新增） ═══
+    # ═══ 财务报表税务合规分析（新增） ═══
     try:
         from engine.financial_analyzer import analyze_financial_statements
         tri_bal = next((d for d in (file_results or []) if d.get("type") == "trial_balance"), {})
@@ -2261,10 +2261,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 "level": "高风险",
                                 "score": 9,
                                 "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，跨{len(source_domains)}域交叉验证，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
-                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务税务合规工作规程》，多源交叉互证形成完整证据闭环，应启动正式税务合规程序。",
+                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务合规工作规程》，多源交叉互证形成完整证据闭环，应启动正式税务合规程序。",
                                 "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中({len(source_domains)}域交叉) → 自动判定违法事实闭环",
                                 "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
-                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务税务合规工作规程》",
+                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务合规工作规程》",
                                 "suggestion": f"该证据链已闭环，建议：(1)启动正式税务合规立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items)}进行重点核实",
                                 "category": chain.get("sub_topic", "综合"),
                                 "chain_closure": True,
@@ -4063,8 +4063,8 @@ def _enrich_short_findings(all_findings, pipeline_log):
         pipeline_log.append(f"报告增强: {enriched}条简短发现已扩充为规范结构")
 
 _BOILERPLATE_PREFIXES = [
-    "是税务税务合规重点方向。",
-    "是税务税务合规重点方向",
+    "是税务合规重点方向。",
+    "是税务合规重点方向",
     "税务合规重点方向。",
     "需逐笔核实，",
     "请核实并提供相关佐证材料。",
@@ -4079,7 +4079,7 @@ def _sanitize_finding_boilerplate(all_findings):
     """剔除每条发现中的模板句、重复句、空描述，确保报告文本专业可读。
     
     处理内容：
-    1. 剔除"是税务税务合规重点方向"等开篇模板
+    1. 剔除"是税务合规重点方向"等开篇模板
     2. 删除连续重复的句子
     3. 删除空描述（detail=title的复制品）
     4. 清除suggestion中的"请提供相关佐证材料"万能句
@@ -4101,7 +4101,7 @@ def _sanitize_finding_boilerplate(all_findings):
         if detail.startswith(ftype + "是"):
             idx = detail.find("。")
             if idx > 0:
-                # Skip the redundant first sentence if it's just "X是税务税务合规重点方向"
+                # Skip the redundant first sentence if it's just "X是税务合规重点方向"
                 first_sent = detail[:idx+1]
                 if any(bp in first_sent for bp in _BOILERPLATE_PREFIXES[:3]):
                     detail = detail[idx+1:].strip()
@@ -4153,7 +4153,7 @@ def _sanitize_finding_boilerplate(all_findings):
 # 标准5: 特定法律条款引用 — 含具体条款号
 # 标准6: 证据明细表(items) — 多项明细必须附items数组
 # 标准7: 方法在前过程在后 — 先声明税务合规方法再展示结果
-# 标准8: 反模板句 — 禁止"是税务税务合规重点方向""需逐笔核实"等口水话
+# 标准8: 反模板句 — 禁止"是税务合规重点方向""需逐笔核实"等口水话
 # 标准9: 事实具体化 — 必须含具体数值（日期/金额/数量/百分比）
 # 标准10: 防跨发现复制 — tax_impact不能与同批其他发现完全相同
 # 标准11: 空占位符检测 — suggestion不能含"()""已识别N条关联记录（如：）"
@@ -4247,9 +4247,9 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
             issues.append("标准7_方法声明: 缺少税务合规方法声明——应先讲方法再秀过程")
             quality_log["stats"]["标准7_方法"] += 1
         
-        # 标准8: 反模板句 — 检测残留的"是税务税务合规重点方向"等口水话
+        # 标准8: 反模板句 — 检测残留的"是税务合规重点方向"等口水话
         boilerplate_phrases = [
-            "是税务税务合规重点方向", "需逐笔核实", "请核实并提供相关佐证材料",
+            "是税务合规重点方向", "需逐笔核实", "请核实并提供相关佐证材料",
             "通过调取企业各税种申报表及备案资料，核实企业是否按规定期限、规定内容完成各项税务申报和备案",
             "申报不合规是税务行政处罚的常见案由"
         ]
@@ -6069,7 +6069,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         "伪造","变造","套打","克隆","防伪","票面","二维码",
         "拒绝提供资料","提供虚假资料","阻挠检查","逾期提供",
         "资金链断裂","银行抽贷","逾期欠款","员工欠薪",
-        "税务税务合规程序","税务合规应对","合规度",
+        "税务合规程序","税务合规应对","合规度",
         # 证据链编号引用（非真实分析）
         "证据链[",
         "经营场所实质","开票经济","开票公司",

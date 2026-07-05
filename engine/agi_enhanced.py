@@ -41,7 +41,7 @@ class FullReportWriter:
         mid = [f for f in findings if f.get("level") == "中风险"]
         
         return {
-            "title": f"关于{company.get('name','被查单位')}的税务税务合规报告",
+            "title": f"关于{company.get('name','被查单位')}的税务合规报告",
             "sections": {
                 "第一章 基本情况": {
                     "content": [
@@ -95,7 +95,7 @@ class FullReportWriter:
         
         high = [f for f in findings if f.get("level") in ("高风险", "极高风险")]
         
-        prompt = f"""你是一位资深税务税务合规专家，请用专业但易懂的语言撰写一份完整的税务合规报告（5000字以上）。
+        prompt = f"""你是一位资深税务合规专家，请用专业但易懂的语言撰写一份完整的税务合规报告（5000字以上）。
         
 被查单位: {company.get('name','')}
 行业: {company.get('industry','')}
@@ -118,7 +118,7 @@ class FullReportWriter:
 
         try:
             resp = llm.chat([{"role": "user", "content": prompt}], 
-                          system="你是资深税务税务合规专家，撰写正式的税务合规报告。用中文。",
+                          system="你是资深税务合规专家，撰写正式的税务合规报告。用中文。",
                           temperature=0.4, max_tokens=4000)
             return resp.content if resp.content else ""
         except:
@@ -313,7 +313,7 @@ class TrainingCaseGenerator:
             try:
                 from engine.llm_client import llm, is_llm_available
                 if is_llm_available():
-                    prompt = f"""请用通俗易懂的语言，为一个税务税务合规新人解释以下案例:
+                    prompt = f"""请用通俗易懂的语言，为一个税务合规新人解释以下案例:
 
 发现: {finding.get('type','')}
 详情: {finding.get('detail','')}

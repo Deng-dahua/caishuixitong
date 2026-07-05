@@ -5,7 +5,7 @@
   
   "templates": {
     "default": {
-      "name": "标准税务税务合规报告",
+      "name": "标准税务合规报告",
       "sections": [
         { "id": "cover", "label": "", "modules": ["cover_page"] },
         { "id": "toc", "label": "", "modules": ["toc"] },

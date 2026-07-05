@@ -34,7 +34,7 @@ function renderReportStandards(container) {
       check:'检测detail长度>80且是否含"税务合规方法""核查法""比对法""穿透法"等关键词。',
       example:'采用银行流水与销项发票逐户核对法。核对步骤：①提取全部收款对方名称→②与销项发票购买方名称交叉比对→③发现X个收款对方未出现在销项购买方中。' },
     { id:8, name:'反模板句', severity:'高',
-      requirement:'禁止出现："是税务税务合规重点方向""需逐笔核实""请核实并提供相关佐证材料""申报不合规是税务行政处罚的常见案由"等。',
+      requirement:'禁止出现："是税务合规重点方向""需逐笔核实""请核实并提供相关佐证材料""申报不合规是税务行政处罚的常见案由"等。',
       check:'_sanitize_finding_boilerplate自动清除：①模板开头detail ②连续重复句 ③空占位描述。',
       example:'（此项为自动清除规则，正确范例为不含模板句的正常税务合规表述）' },
     { id:9, name:'事实具体化', severity:'高',
@@ -80,7 +80,7 @@ function renderReportStandards(container) {
 
   h += '<div class="rs-main">';
   h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">📐 报告编制标准（详尽版）</h2>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px">根据《税务税务合规工作规程》及税务合规实务标准编制。系统内置12项硬性质量检查指标，质量保障管线自动执行，跨域协商和审核反馈的结果按规范展示。</p>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px">根据《税务合规工作规程》及税务合规实务标准编制。系统内置12项硬性质量检查指标，质量保障管线自动执行，跨域协商和审核反馈的结果按规范展示。</p>';
 
   // 统计卡片
   var hi=S12.filter(function(s){return s.severity==='高';}).length;
@@ -102,12 +102,12 @@ function renderReportStandards(container) {
   h += '<span style="display:inline-block;padding:4px 12px;background:#e0e7ff;border-radius:4px;font-weight:600;color:#3730a3;margin:2px 4px">③建议质量增强</span> → ';
   h += '<span style="display:inline-block;padding:4px 12px;background:#e0e7ff;border-radius:4px;font-weight:600;color:#3730a3;margin:2px 4px">④报告文本二次净化</span>';
   h += '</div>';
-  h += '<div class="rs-detail"><b>①文本净化（generate_report.py _sanitize_finding_boilerplate）：</b>自动清除四类内容：模板句——识别并移除"是税务税务合规重点方向""需逐笔核实"等8类预定义模板文本；空描述——type字段为空或detail<10字符的发现标记无效；重复句——同一finding内出现≥2次完全相同的句子（长度>30字符），只保留第一次出现；空占位符——清理自动填充失效残留如"如：()""()；()；()⑀"等模式。净化后约70%的格式问题会被自动修复。<br><b>②12项质量标准检查（generate_report.py _check_quality_standards）：</b>对每条发现的description/detail/tax_impact/suggestion/policy_ref五个字段逐条执行12项检测。每项标准含三个要素：检查方法（正则匹配+语义检测）、正确范例（标准格式示例）、错误范例（触发检测的典型错误）。不通过的在发现底部添加⚠标签，含标准编号和问题说明。标签格式如 &lt;span&gt;⚠ 标准N：问题摘要&lt;/span&gt; ——仅供审理环节参考，不影响报告主体内容。<br><b>③建议质量增强（generate_report.py _enhance_suggestions）：</b>对suggestion字段执行11条增强规则：补充具体查证路径（"在天眼查/企查查确认供应商工商状态"而非"请核实供应商"）、添加时间要求（"5个工作日内"）、添加金额参照（"涉及金额XX元"）、补充法律依据引用（如无法条→从policy_ref提取补充）、区分"正常/异常"两个分支的处理路径。增强后每条建议含完整的可执行操作链：查什么文件→怎么查→如果正常怎么办→如果异常怎么办→无法做到会有什么后果。<br><b>④文本二次净化（generate_report.py 最终净化）：</b>再次执行文本净化，清除建议增强过程中可能产生的新模板句或格式残留。二次净化侧重于：①增强过程中拼接产生的重复句 ②增强引用的政策文本中可能携带的格式标记 ③多建议拼接时产生的冗余连接词。经过四阶段管线后，报告中的文本纯净度>95%，12项标准通过率>90%。</div>';
+  h += '<div class="rs-detail"><b>①文本净化（generate_report.py _sanitize_finding_boilerplate）：</b>自动清除四类内容：模板句——识别并移除"是税务合规重点方向""需逐笔核实"等8类预定义模板文本；空描述——type字段为空或detail<10字符的发现标记无效；重复句——同一finding内出现≥2次完全相同的句子（长度>30字符），只保留第一次出现；空占位符——清理自动填充失效残留如"如：()""()；()；()⑀"等模式。净化后约70%的格式问题会被自动修复。<br><b>②12项质量标准检查（generate_report.py _check_quality_standards）：</b>对每条发现的description/detail/tax_impact/suggestion/policy_ref五个字段逐条执行12项检测。每项标准含三个要素：检查方法（正则匹配+语义检测）、正确范例（标准格式示例）、错误范例（触发检测的典型错误）。不通过的在发现底部添加⚠标签，含标准编号和问题说明。标签格式如 &lt;span&gt;⚠ 标准N：问题摘要&lt;/span&gt; ——仅供审理环节参考，不影响报告主体内容。<br><b>③建议质量增强（generate_report.py _enhance_suggestions）：</b>对suggestion字段执行11条增强规则：补充具体查证路径（"在天眼查/企查查确认供应商工商状态"而非"请核实供应商"）、添加时间要求（"5个工作日内"）、添加金额参照（"涉及金额XX元"）、补充法律依据引用（如无法条→从policy_ref提取补充）、区分"正常/异常"两个分支的处理路径。增强后每条建议含完整的可执行操作链：查什么文件→怎么查→如果正常怎么办→如果异常怎么办→无法做到会有什么后果。<br><b>④文本二次净化（generate_report.py 最终净化）：</b>再次执行文本净化，清除建议增强过程中可能产生的新模板句或格式残留。二次净化侧重于：①增强过程中拼接产生的重复句 ②增强引用的政策文本中可能携带的格式标记 ③多建议拼接时产生的冗余连接词。经过四阶段管线后，报告中的文本纯净度>95%，12项标准通过率>90%。</div>';
   h += '</div></div>';
 
   // ═══ 2. 报告7章结构 ═══
   h += '<div id="rs-structure" class="rs-sec"><div class="rs-sec-title"><span class="n">2</span>报告7章结构</div>';
-  h += '<div class="rs-detail">正式税务税务合规报告须含封面+7章正文+附件清单，严格遵循《税务税务合规工作规程》第42条规定的10项内容。封面的编号格式、日期精确到日；第一章至第七章按以下要求逐章编写；附件中发票明细表按11列标准全量展示。</div>';
+  h += '<div class="rs-detail">正式税务合规报告须含封面+7章正文+附件清单，严格遵循《税务合规工作规程》第42条规定的10项内容。封面的编号格式、日期精确到日；第一章至第七章按以下要求逐章编写；附件中发票明细表按11列标准全量展示。</div>';
   var chaps = [
     {label:'封面',title:'编号格式+报告日期',body:'标题居中"税 务 稽 查 报 告"，字体加粗加大。编号格式：税稽字[YYYY]第XXX号（年份4位+3位流水号），右上角。报告日期精确到日（如2026年6月29日），右下角。封面不编页码，正文从第一页起用阿拉伯数字连续编页码。'},
     {label:'第一章',title:'案件来源及税务合规对象基本情况',body:'必须包含8项基本信息，以表格形式呈现：①案件来源——交代税务合规启动原因（系统分析推送/举报/转办/协查）；②被查单位——企业全称须与工商登记完全一致；③统一社会信用代码——18位，精确到每一位；④法定代表人——姓名+必要信息；⑤企业类型——有限责任公司/股份有限公司/个体工商户等；⑥行业分类——须呈现三层穿透结论（工商登记X/发票推断Y/实质经营Z→综合判断）；⑦税务合规期间——起止年月精确到月份；⑧税务合规范围——本次检查的税种+资料范围+分析维度。行业分类须注明推断依据和联网核查数据来源。缺失的工商数据标注"待联网核查补充"而非"未获取"。'},
@@ -178,7 +178,7 @@ function renderReportStandards(container) {
   h += '<div class="rs-card"><div class="rs-detail">引擎在所有域分析完成后自动运行跨域协商（15条规则四类场景）。协商结果在报告中以彩色横幅展示在发现标题和六要素之间：<br><b>⛔ 协商消解（红色横幅）：</b>域A结论直接推翻域B结论。示例："服务行业→进销存风险不适用"。被发现保留在底稿中但六要素仅作参考。适用规则NEG-001~003/020。<br><b>🔄 协商调整（黄色横幅）：</b>域A结论削弱域B结论。展示原等级→新等级和调整原因。示例："高风险→提示（服务行业毛利率不可制造业对标）"。适用规则NEG-004~005/021。<br><b>ℹ️ 协商标记（蓝色横幅）：</b>域A结论给域B加标签，不改变等级。示例："资料受限结论""含非经营收款"。适用规则NEG-010~040。<br><b>🔴 联合增强（红框新发现）：</b>多域信号同时触发→协商引擎合成更高级别新发现（如空壳企业预警、隐匿收入预警、对倒开票预警）。以红框+新编号展示。适用规则NEG-AUG-001~003。<br>代码：engine/cross_domain_negotiation.py NEGOTIATION_RULES / tax-doc-analysis.js 协商徽章渲染段。</div></div></div>';
 
   h += '<div id="rs-review" class="rs-sec"><div class="rs-sec-title"><span class="n">11</span>审核反馈在报告中的呈现</div>';
-  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务税务合规员手册 → 第十一章 审核反馈闭环</a></div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务合规员手册 → 第十一章 审核反馈闭环</a></div></div></div>';
 
   // ═══
   h += '<div id="rs-ironlaw" class="rs-sec"><div class="rs-sec-title"><span class="n">12</span>引擎铁律与报告质量映射</div>';
@@ -197,11 +197,11 @@ function renderReportStandards(container) {
 
   // ═══ 第13节：四触发机制与报告交付 ═══
   h += '<div id="rs-sync" class="rs-sec"><div class="rs-sec-title"><span class="n">13</span>四触发机制与报告交付</div>';
-  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s10" style="color:#2563eb;text-decoration:underline">📋 详见税务税务合规员手册 → 第十章 数据一致性自检</a><br>系统数据的跨模块一致性由审计引擎自动保障，四触发机制（手动/启动/提交/分析）确保全模块数据统一。</div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s10" style="color:#2563eb;text-decoration:underline">📋 详见税务合规员手册 → 第十章 数据一致性自检</a><br>系统数据的跨模块一致性由审计引擎自动保障，四触发机制（手动/启动/提交/分析）确保全模块数据统一。</div></div></div>';
 
   // ═══
   h += '<div id="rs-iterate" class="rs-sec"><div class="rs-sec-title"><span class="n">14</span>审核反馈→报告迭代闭环</div>';
-  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务税务合规员手册 → 第十一章 审核反馈闭环</a><br>审核反馈驱动报告持续进化——累计审核次数越多，系统对同类问题的识别越精准。</div></div></div>';
+  h += '<div class="rs-card"><div class="rs-detail"><a href="?page=auditor-handbook#hb-s11" style="color:#2563eb;text-decoration:underline">📋 详见税务合规员手册 → 第十一章 审核反馈闭环</a><br>审核反馈驱动报告持续进化——累计审核次数越多，系统对同类问题的识别越精准。</div></div></div>';
 
   // ═══
   // ═══ 第15节：跨域协商详细工作流程 ═══

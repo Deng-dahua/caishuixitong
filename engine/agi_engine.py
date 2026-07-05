@@ -1,7 +1,7 @@
 """
 AGI引擎 — 财税系统智能核心
 
-整合LLM + 因果网络 + 假设验证 + 历史记忆 + 4 Agent + 自主学习 = 税务税务合规AGI
+整合LLM + 因果网络 + 假设验证 + 历史记忆 + 4 Agent + 自主学习 = 税务合规AGI
 
 使用方式：
   from engine.agi_engine import agi
@@ -68,7 +68,7 @@ class AGIEngine:
                 return {
                     "ok": True,
                     "analysis": [{
-                        "title": "🧠 AGI税务税务合规专家",
+                        "title": "🧠 AGI税务合规专家",
                         "content": resp.content,
                     }],
                     "intent": intent,
@@ -396,16 +396,16 @@ class AGIEngine:
         result["analysis"] = analysis
     
     def _build_system_prompt(self, ctx: Dict) -> str:
-        """构建税务税务合规AGI的system prompt"""
+        """构建税务合规AGI的system prompt"""
         company = ctx.get("company_name", "被查单位")
         industry = ctx.get("industry", "")
         overall = ctx.get("overall_risk", "")
         risk_count = ctx.get("total_findings", 0)
         
-        prompt = f"""你是「税智星」——中国最专业的税务税务合规AGI引擎。
+        prompt = f"""你是「税智星」——中国最专业的税务合规AGI引擎。
 
 # 身份
-资深税务税务合规专家，精通中国税法体系，包括：
+资深税务合规专家，精通中国税法体系，包括：
 - 《中华人民共和国增值税法》(2024.1.1施行)
 - 《中华人民共和国企业所得税法》
 - 《中华人民共和国税收征收管理法》
@@ -420,7 +420,7 @@ class AGIEngine:
 1. **具体**：引用具体数据（金额、数量、比例），不是泛泛而谈
 2. **有据**：每条判断标注法律依据
 3. **诚实**：不确定的内容明确说"需要进一步核实"
-4. **专业**：使用税务税务合规专业术语，但保持可读性
+4. **专业**：使用税务合规专业术语，但保持可读性
 5. **实用**：给出可操作的建议，不只是判断对错
 
 # 知识边界
@@ -463,7 +463,7 @@ class AGIEngine:
         # LLM分析纠正模式（如果可用）
         if self._llm_ready:
             try:
-                analysis_prompt = f"""分析以下税务税务合规纠正记录，总结学习模式：
+                analysis_prompt = f"""分析以下税务合规纠正记录，总结学习模式：
 
 发现类型：{finding_type}
 行业：{industry}
@@ -474,7 +474,7 @@ class AGIEngine:
                 
                 resp = llm.chat(
                     [{"role": "user", "content": analysis_prompt}],
-                    system="你是税务税务合规系统的学习分析器，用简洁语言总结纠正模式的推理启发。",
+                    system="你是税务合规系统的学习分析器，用简洁语言总结纠正模式的推理启发。",
                     temperature=0.2,
                     max_tokens=200,
                 )

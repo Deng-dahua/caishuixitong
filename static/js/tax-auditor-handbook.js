@@ -1,10 +1,10 @@
 /**
- * 税务税务合规员手册 - 14章详尽版
+ * 税务合规员手册 - 14章详尽版
  */
 
 function renderAuditorHandbook(container) {
   if (!container) return;
-  window.currentModule = '税务税务合规员手册';
+  window.currentModule = '税务合规员手册';
 
   var h = '';
   h += '<style>.hb-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.hb-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.hb-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.hb-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.hb-toc a:hover,.hb-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.hb-main{flex:1;min-width:0;background:#fff}.hb-sec{margin-bottom:44px}.hb-sec-title{font-size:16px;font-weight:700;color:#0f172a;padding-bottom:10px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}.hb-sec-title .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#1e293b;color:#fff;border-radius:4px;font-size:12px;flex-shrink:0}.hb-tbl{width:100%;border-collapse:collapse;font-size:13px;line-height:2}.hb-tbl td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top}.hb-tbl .lbl{width:110px;color:#94a3b8;font-size:12px;font-weight:600;white-space:nowrap}.hb-tbl .val{color:#334155}.hb-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.hb-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px;font-size:12px;line-height:1.8}.hb-card strong{display:block;font-size:13px;color:#0f172a;margin-bottom:8px}.hb-card p{margin:0;color:#475569}.hb-stat{text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.hb-detail{margin:8px 0 16px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13px;line-height:2.2;color:#475569}.hb-detail b{color:#0f172a}.hb-timeline{border-left:2px solid #e2e8f0;margin-left:8px;padding-left:20px}.hb-tl-dot{width:10px;height:10px;border-radius:50%;position:absolute;left:-26px;top:6px}.hb-law-tag{font-size:11px;color:#2563eb;background:#eff6ff;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:6px}.hb-note{color:#94a3b8;font-size:11px;display:block;margin-top:2px}</style>';
@@ -15,12 +15,12 @@ function renderAuditorHandbook(container) {
     h += '<a href="#hb-s'+i+'">'+lbl+t+'</a>';
   });
   h += '</nav><div class="hb-main">';
-  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">⚖️ 税务税务合规员手册</h2>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:2">14章完整税务合规知识体系。提炼自《税务税务合规工作规程》《税收征收管理法》及实战经验，全行业适用。每章含理论依据、操作方法和代码实现位置。</p>';
+  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">⚖️ 税务合规员手册</h2>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:2">14章完整税务合规知识体系。提炼自《税务合规工作规程》《税收征收管理法》及实战经验，全行业适用。每章含理论依据、操作方法和代码实现位置。</p>';
 
   // ═══ 第0章 ═══
   h += '<div id="hb-s0" class="hb-sec"><div class="hb-sec-title"><span class="num">0</span>系统数据概览</div>';
-  h += '<div class="hb-detail">税务税务合规系统是存勤法税的智能化税务合规推理引擎。基于<b>1608条税务合规规则+437条线索链+781条证据链+48条分析链+42个域分析函数</b>构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
+  h += '<div class="hb-detail">税务合规系统是存勤法税的智能化税务合规推理引擎。基于<b>1608条税务合规规则+437条线索链+781条证据链+48条分析链+42个域分析函数</b>构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
   [{n:'1608',l:'税务合规规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据'},{n:'437',l:'线索链',d:'全部可执行，含触发关键词+rule_id+风险等级+建议+法条'},{n:'781',l:'证据链',d:'investigation_path多源交叉验证，≥2维独立数据源形成证据闭环'},{n:'48',l:'分析链',d:'reasoning_path多步推理，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/经营实质等13大类'},{n:'41',l:'引擎模块',d:'engine/*.py共41个模块，各模块独立加载，协同工作'}].forEach(function(s){
     h += '<div class="hb-stat" style="flex:1;min-width:110px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:4px">'+s.d+'</div></div>';
@@ -37,11 +37,11 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第一章 ═══
   h += '<div id="hb-s1" class="hb-sec"><div class="hb-sec-title"><span class="num">1</span>税务合规工作流程</div>';
-  h += '<div class="hb-detail">税务税务合规分为选案→检查→审理→执行→案卷管理五个阶段，每个阶段有明确的法定时限、工作要求和法律依据。以下为《税务税务合规工作规程》（国税发[2009]157号）规定的标准化流程及本系统的对应实现方式。企业接到税务合规通知后通常只有<b>3-5天准备时间</b>，系统的价值在于把"被查前的手忙脚乱"变为"日常化的持续自检"。</div>';
+  h += '<div class="hb-detail">税务合规分为选案→检查→审理→执行→案卷管理五个阶段，每个阶段有明确的法定时限、工作要求和法律依据。以下为《税务合规工作规程》（国税发[2009]157号）规定的标准化流程及本系统的对应实现方式。企业接到税务合规通知后通常只有<b>3-5天准备时间</b>，系统的价值在于把"被查前的手忙脚乱"变为"日常化的持续自检"。</div>';
   h += '<div class="hb-timeline">';
-  [{title:'① 选案环节（第14-20条）',body:'税务合规局通过计算机分析、人工分析、人机结合分析等多种渠道获取案源信息，经集体研究后合理准确地选择和确定税务合规对象。年度终了前制定下一年度税务合规工作计划，严格控制检查次数。<b>8类案源</b>包括：财务指标异常/上级交办/专项检查/部门移交/检举信息/其他部门转来/社会公共信息/其他。其中<b>检举</b>是企业的最大不可控风险——任何人可实名或匿名检举，且检举信息不公开。本系统的自动化风险扫描+一键分析功能本质上就是"计算机分析"环节——在税务合规立案前模拟案源筛选逻辑，帮助企业提前发现并修复涉税风险，降低进入选案名单的概率。',rows:[['案源获取','多渠道获取案源信息，集体研究，合理准确选择确定税务合规对象'],['税务合规计划','年度终了前制定下一年度工作计划，严格控制检查次数'],['8类案源','财务指标/上级交办/专项/部门移交/检举/其他部门转来/社会公共信息/其他'],['筛选方法','计算机分析、人工分析、人机结合分析——有嫌疑的确定为待查对象'],['立案检查','批准立案后制作《税务税务合规任务通知书》，连同资料移交检查部门']]},
-  {title:'② 检查环节（第21-45条）',body:'检查环节是税务合规的核心阶段。检查前需查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法。检查时限为自实施之日起<strong>60日内</strong>完成，需<strong>两名以上</strong>检查人员共同实施。检查方法包括实地检查/调取账簿资料/询问/查询存款账户/异地协查。证据须真实、相关联，类型涵盖书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录。必须制作《税务税务合规工作底稿》，记录案件事实、归集证据材料——<b>没有底稿就没有税务合规报告</b>。税务合规报告须含10项内容。检查完毕5个工作日内移交审理部门。本系统的一键分析管线完全模拟此环节——文件上传→实体识别→情报提取→规则扫描→链驱动发现→证据收集→形成底稿→输出报告。',rows:[['检查前准备','查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法'],['检查时限','自实施之日起60日内完成，需两名以上检查人员共同实施'],['检查方法','实地检查/调取账簿资料/询问/查询存款账户/异地协查'],['证据类型','书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录'],['税务合规底稿','必须制作，记录案件事实，归集证据材料——无底稿则无报告'],['税务合规报告','须含10项：案件来源→基本情况→检查时间→方法措施→违法事实→拒绝阻挠→被查对象意见→处理建议→其他→签名日期'],['移交审理','检查完毕5个工作日内移交审理部门']]},
-  {title:'③ 审理环节（第46-60条）',body:'审理部门收到税务合规报告后，逐项审核7项内容：对象准确性/事实清楚证据充分/法律适用/程序合法/权限适当/处理建议/其他事项。事实不清、证据不足的退回检查部门补充调查。事实清楚但适用法律错误的，审理部门另行提出处理意见直接纠正不退回。审理时限为收到报告后<strong>15日内</strong>提出审理意见。拟处罚的需送达告知书，告知陈述权/申辩权/听证权。审理结论分四种：有违法行为→《税务处理决定书》/应处罚→《税务行政处罚决定书》/轻微→《不予处罚决定书》/无违法→《税务税务合规结论》。涉嫌犯罪的移送公安机关。本系统的质量保障体系完全对应审理环节——方法论过滤器+报告纯净度规范+合规门禁=自动审理。',rows:[['审核重点','逐项审核7项：对象准确性/事实证据/法律适用/程序合法/权限适当/处理建议/其他'],['退回补正','事实不清、证据不足→退回检查部门补充调查'],['纠正建议','事实清楚但适用法律错误→审理部门直接纠正，不退回'],['审理时限','收到税务合规报告后15日内提出审理意见'],['告知听证','拟处罚→送达告知书→告知陈述权/申辩权/听证权'],['四种决定','有违法→处理决定书/应处罚→处罚决定书/轻微→不予处罚/无违法→税务合规结论'],['涉罪移送','涉嫌犯罪→移送书→经局长批准→移送公安机关']]},
+  [{title:'① 选案环节（第14-20条）',body:'税务合规局通过计算机分析、人工分析、人机结合分析等多种渠道获取案源信息，经集体研究后合理准确地选择和确定税务合规对象。年度终了前制定下一年度税务合规工作计划，严格控制检查次数。<b>8类案源</b>包括：财务指标异常/上级交办/专项检查/部门移交/检举信息/其他部门转来/社会公共信息/其他。其中<b>检举</b>是企业的最大不可控风险——任何人可实名或匿名检举，且检举信息不公开。本系统的自动化风险扫描+一键分析功能本质上就是"计算机分析"环节——在税务合规立案前模拟案源筛选逻辑，帮助企业提前发现并修复涉税风险，降低进入选案名单的概率。',rows:[['案源获取','多渠道获取案源信息，集体研究，合理准确选择确定税务合规对象'],['税务合规计划','年度终了前制定下一年度工作计划，严格控制检查次数'],['8类案源','财务指标/上级交办/专项/部门移交/检举/其他部门转来/社会公共信息/其他'],['筛选方法','计算机分析、人工分析、人机结合分析——有嫌疑的确定为待查对象'],['立案检查','批准立案后制作《税务合规任务通知书》，连同资料移交检查部门']]},
+  {title:'② 检查环节（第21-45条）',body:'检查环节是税务合规的核心阶段。检查前需查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法。检查时限为自实施之日起<strong>60日内</strong>完成，需<strong>两名以上</strong>检查人员共同实施。检查方法包括实地检查/调取账簿资料/询问/查询存款账户/异地协查。证据须真实、相关联，类型涵盖书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录。必须制作《税务合规工作底稿》，记录案件事实、归集证据材料——<b>没有底稿就没有税务合规报告</b>。税务合规报告须含10项内容。检查完毕5个工作日内移交审理部门。本系统的一键分析管线完全模拟此环节——文件上传→实体识别→情报提取→规则扫描→链驱动发现→证据收集→形成底稿→输出报告。',rows:[['检查前准备','查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法'],['检查时限','自实施之日起60日内完成，需两名以上检查人员共同实施'],['检查方法','实地检查/调取账簿资料/询问/查询存款账户/异地协查'],['证据类型','书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录'],['税务合规底稿','必须制作，记录案件事实，归集证据材料——无底稿则无报告'],['税务合规报告','须含10项：案件来源→基本情况→检查时间→方法措施→违法事实→拒绝阻挠→被查对象意见→处理建议→其他→签名日期'],['移交审理','检查完毕5个工作日内移交审理部门']]},
+  {title:'③ 审理环节（第46-60条）',body:'审理部门收到税务合规报告后，逐项审核7项内容：对象准确性/事实清楚证据充分/法律适用/程序合法/权限适当/处理建议/其他事项。事实不清、证据不足的退回检查部门补充调查。事实清楚但适用法律错误的，审理部门另行提出处理意见直接纠正不退回。审理时限为收到报告后<strong>15日内</strong>提出审理意见。拟处罚的需送达告知书，告知陈述权/申辩权/听证权。审理结论分四种：有违法行为→《税务处理决定书》/应处罚→《税务行政处罚决定书》/轻微→《不予处罚决定书》/无违法→《税务合规结论》。涉嫌犯罪的移送公安机关。本系统的质量保障体系完全对应审理环节——方法论过滤器+报告纯净度规范+合规门禁=自动审理。',rows:[['审核重点','逐项审核7项：对象准确性/事实证据/法律适用/程序合法/权限适当/处理建议/其他'],['退回补正','事实不清、证据不足→退回检查部门补充调查'],['纠正建议','事实清楚但适用法律错误→审理部门直接纠正，不退回'],['审理时限','收到税务合规报告后15日内提出审理意见'],['告知听证','拟处罚→送达告知书→告知陈述权/申辩权/听证权'],['四种决定','有违法→处理决定书/应处罚→处罚决定书/轻微→不予处罚/无违法→税务合规结论'],['涉罪移送','涉嫌犯罪→移送书→经局长批准→移送公安机关']]},
   {title:'④ 执行环节',body:'下达《税务处理决定书》和《税务行政处罚决定书》，责令限期缴纳税款、滞纳金和罚款。企业权利：60日内申请行政复议/复议后15日内提起诉讼/缴纳税款或提供担保后可申请复议。逾期不履行的，加收每日万分之五滞纳金，实施税收保全措施（冻结存款/查封财产），并申请法院强制执行。本系统报告的第五章"处理处罚建议"直接对应执行环节——P0立即处理/P1限期整改/P2持续关注，三级策略让企业在税务合规正式下达前提前整改。',rows:[['执行文书','下达处理决定书+处罚决定书→责令限期缴纳'],['企业权利','60日内申请行政复议/复议后15日内提起诉讼'],['强制执行','逾期→每日万分之五滞纳金→税收保全→申请法院强制执行'],['法律依据','《征管法》第32条(滞纳金)/第40条(强制执行)/第88条(复议前置)']]},
   {title:'⑤ 案卷管理（第72-77条）',body:'一案一卷，按年度、按案卷分类立卷。过程资料全部纳入案卷，不得遗漏。正卷含税务合规报告/审理报告/处理决定/证据材料，可对外提供。副卷含内部请示/报告/研究记录，不得对外提供。保管期限随案卷定，直至最终审结。电子数据与纸质档案同步保管。本系统的全链路溯源体系对应案卷管理——每条发现的结论可追溯到规则ID→线索链ID→证据来源→原始数据行，形成完整的电子税务合规底稿。',rows:[['立卷标准','一案一卷，按年度、按案卷分类立卷，过程资料全部纳入'],['正卷副卷','正卷(可对外)含报告/决定/证据；副卷含内部请示/研究记录'],['保管期限','随案卷定，直至最终审结。电子数据与纸质档案同步保管']]}].forEach(function(s){
     h += '<div style="position:relative;margin-bottom:20px"><div class="hb-tl-dot"></div>';
@@ -121,7 +121,7 @@ function renderAuditorHandbook(container) {
   
 // ═══ 第六章 ═══
   h += '<div id="hb-s6" class="hb-sec"><div class="hb-sec-title"><span class="num">6</span>关键法律条文</div>';
-  h += '<div class="hb-detail">以下12条法律条文为税务税务合规中最常引用的核心依据。税务合规报告的每项发现必须引用具体法条——笼统引用"相关税收法规"的表述在审理环节会被退回重写。条文的适用场景和处罚标准直接写入报告的法律依据字段，由法律推理引擎（legal_reasoner.py）自动匹配。</div>';
+  h += '<div class="hb-detail">以下12条法律条文为税务合规中最常引用的核心依据。税务合规报告的每项发现必须引用具体法条——笼统引用"相关税收法规"的表述在审理环节会被退回重写。条文的适用场景和处罚标准直接写入报告的法律依据字段，由法律推理引擎（legal_reasoner.py）自动匹配。</div>';
   h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl" style="width:120px">法条</td><td class="val">核心内容</td><td class="val" style="width:200px">适用场景与处罚标准</td></tr></thead><tbody id="hb-legal-body"><tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px"><span class="spinner"></span> 加载法律条文...</td></tr></tbody></table></div>';
   
   fetch('/static/legal_refs.json').then(function(r){return r.json()}).then(function(data){
@@ -139,7 +139,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第七章 ═══
   h += '<div id="hb-s7" class="hb-sec"><div class="hb-sec-title"><span class="num">7</span>系统功能与税务合规规程映射</div>';
-  h += '<div class="hb-detail">系统每一个功能模块都对应《税务税务合规工作规程》的具体条款要求。这确保了系统产出不是凭空制造的——每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖了从案源筛选到报告输出的全税务合规流程。</div>';
+  h += '<div class="hb-detail">系统每一个功能模块都对应《税务合规工作规程》的具体条款要求。这确保了系统产出不是凭空制造的——每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖了从案源筛选到报告输出的全税务合规流程。</div>';
   h += '<table class="hb-tbl">';
   [['一键分析','第21-45条(检查)','_run_analyze自动执行全部分析域+四步核查法+链驱动引擎+协商引擎+方法论语料对账。一次点击=完整模拟税务合规检查环节——从文件上传到报告输出，全部自动化。'],
    ['文件解析','第22条(取证)','34类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。'],

@@ -94,7 +94,7 @@ html = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>税务税务合规报告 — ''' + esc(entity.get('name', '企业')) + '''</title>
+<title>税务合规报告 — ''' + esc(entity.get('name', '企业')) + '''</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"PingFang SC","Microsoft YaHei",serif;font-size:15px;line-height:2;color:#1a1a2e;background:#f8f9fa}

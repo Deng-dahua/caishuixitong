@@ -521,7 +521,7 @@ var ReportEngine = (function() {
     render: function(data) {
       var now = new Date();
       var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-      return '<div class="cover"><h1>税务税务合规报告</h1><div class="sub">'
+      return '<div class="cover"><h1>税务合规报告</h1><div class="sub">'
         + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
         + '报告日期：'+dateStr
         + '</div></div>';
@@ -566,7 +566,7 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function(data) {
-      return '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务税务合规工作规程》组织实施税务合规，以下为被查单位基本情况。</p>';
+      return '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务合规工作规程》组织实施税务合规，以下为被查单位基本情况。</p>';
     }
   });
 
@@ -661,7 +661,7 @@ var ReportEngine = (function() {
       var scopeTaxes = _modulesDetectTaxScope(data);
       h += '<tr><td class="lbl">税务合规期间</td><td>' + esc(te.period || '') + '</td></tr>'
         + '<tr><td class="lbl">税务合规范围</td><td>涉税范围：' + scopeTaxes.join('、') + '（共' + data.files_count + '份经营资料）</td></tr>'
-        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条税务合规指令及《税务税务合规工作规程》</td></tr>'
+        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条税务合规指令及《税务合规工作规程》</td></tr>'
         + '</table>';
 
       return h;
@@ -1373,7 +1373,7 @@ var ReportEngine = (function() {
       }
 
       // 证据链完整性
-      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及税务合规重点事项的认定均有规则ID溯源和≥2域交叉验证。本次税务合规共激活<strong>' + chainList.length + '条</strong>线索链，符合《税务税务合规工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及税务合规重点事项的认定均有规则ID溯源和≥2域交叉验证。本次税务合规共激活<strong>' + chainList.length + '条</strong>线索链，符合《税务合规工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
 
       // 线索链使用
       if (typeof renderChainUsage === 'function') {
@@ -1802,7 +1802,7 @@ var ReportEngine = (function() {
     enabled: function() { return true; },
     render: function() {
       return '<div class="rights-sec">'
-        + '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务税务合规工作规程》，被查单位享有以下权利：</div>'
+        + '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被查单位享有以下权利：</div>'
         + '<div class="ritem">1. <b>申请回避权</b>：认为税务合规人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>'
         + '<div class="ritem">2. <b>陈述申辩权</b>：对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见。</div>'
         + '<div class="ritem">3. <b>听证权</b>：对拟作出的较大数额罚款有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</div>'

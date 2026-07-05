@@ -171,7 +171,7 @@ MODULE_REGISTRY = {
     },
     # ═══ 新增模块（2026-06-25）═══
     "M017_financial_analysis": {
-        "name": "财务报表税务税务合规",
+        "name": "财务报表税务合规",
         "description": "四层财税钩稽+往来款项(预收/预付/其他应收-个人/存货)深度税务合规",
         "requires": {"data": ["financial_statements", "vouchers"], "condition": "bs or income or vouchers"},
         "depends_on": ["M008_domain_analysis"],

@@ -1537,7 +1537,7 @@ def _analyze_invoice_compliance(db, company_id, ps, pe, results):
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "存在风险进项发票",
             "detail": f"有 {risk_cnt} 张进项发票被标记为「疑点/异常/失控」，涉及金额 {_safe_float(risk_amt):,.2f} 元。异常发票进项税额不得抵扣，已抵扣需做进项税额转出。",
-            "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务税务合规风险。"
+            "suggestion": "立即核实风险发票来源，如确认异常应及时做进项税额转出处理，避免税务合规风险。"
         })
 
     total_sales = db.query(func.count(SalesInvoice.id)).filter(SalesInvoice.company_id == company_id).scalar() or 0
@@ -4612,7 +4612,7 @@ def _analyze_vat_zero_declaration(db, company_id, ps, pe, results):
             "category": "增值税专项", "category_icon": "📋", "risk_score": 8, "risk_level": "高风险",
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期零申报或小额申报",
-            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months)}。税务合规视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务税务合规入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
+            "detail": f"存在 {len(zero_months)} 个月增值税零申报：{', '.join(zero_months)}。税务合规视角：长期零申报但工商登记为「在营」，存在隐瞒收入或未按规定申报的重大嫌疑，可能触发税务合规入户调查。特别提示：小规模纳税人连续12个月零申报将被列入异常名录。",
             "suggestion": "①核查实际经营收入，补报漏报销售；②如确无经营应办理停业登记；③税务机关预警后可导致发票停供、纳税信用降级。",
             "required_evidence": ["经营场所租赁合同或产权证明", "银行账户流水（证明无经营收入）", "近12个月零申报情况说明", "如已停业，提供工商停业备案"]
         })
@@ -7559,7 +7559,7 @@ def _analyze_address_mismatch(db, company_id, ps, pe, results):
                 "category": "经营实质", "category_icon": "🔍", "risk_score": 8, "risk_level": "高风险",
                 "risk_color": "#dc2626", "urgency": "紧急",
                 "item": "注册地址与经营地址不一致",
-                "detail": f"企业注册地址包含「虚拟/集群/挂靠/孵化器/托管」等字眼，且四源交叉验证（序时账+发票+合同）均无租赁费/水电费支出。集群注册企业是税务税务合规重点：金税四期会检查注册地址是否有实际经营实体。",
+                "detail": f"企业注册地址包含「虚拟/集群/挂靠/孵化器/托管」等字眼，且四源交叉验证（序时账+发票+合同）均无租赁费/水电费支出。集群注册企业是税务合规重点：金税四期会检查注册地址是否有实际经营实体。",
                 "suggestion": "如为集群注册但确有实际经营场所，应提供实际经营地址的租赁合同和水电费凭证。如长期无实际经营场所，建议办理注销或变更注册地址。",
                 "required_evidence": ["实际经营地址租赁合同", "水电费缴纳记录", "经营场所照片"]
             })
@@ -8102,7 +8102,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "risk_color": "#dc2626", "urgency": "紧急",
             "item": "长期大额客户无正式合同",
             "detail": f"共 {len(long_no_ct_cust)} 家客户近12个月累计交易额超{LONG_TERM_THRESHOLD/10000:.0f}万元（合计 {total:,.2f} 元），"
-                       f"但系统中未发现任何销售合同或服务协议。长期大额无合同交易是税务税务合规的重点关注事项。"
+                       f"但系统中未发现任何销售合同或服务协议。长期大额无合同交易是税务合规的重点关注事项。"
                        f"涉及：{'、'.join(detail_parts)}"
                        + (f"等{len(long_no_ct_cust)}家" if len(long_no_ct_cust) > 3 else ""),
             "suggestion": "立即与长期合作客户补充签署框架协议或年度采购合同：(1)签订年度框架合同明确基本条款；(2)单笔交易签署订单/补充协议；(3)合同应涵盖定价机制、交货方式、结算周期等核心要素。",
@@ -8319,7 +8319,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "item": "先票后签（发票日期早于合同签订日期）",
             "detail": f"共 {len(pre_sign_invoices)} 份合同存在交易发票日期早于合同签订日期的「先票后签」问题。"
                        f"先票后签说明业务发生在前、合同补签在后，属于倒签合同行为，"
-                       f"在税务税务合规中会被重点审查，可能被认定为虚构交易或虚开发票。"
+                       f"在税务合规中会被重点审查，可能被认定为虚构交易或虚开发票。"
                        f"涉及：{'；'.join(detail_parts)}"
                        + (f"等{len(pre_sign_invoices)}份" if len(pre_sign_invoices) > 5 else ""),
             "suggestion": "规范合同签署流程：(1)严格执行「先签合同后开发票」的原则；(2)已发生的倒签情况逐份出具书面说明，记录真实业务背景；(3)建立合同签署→开票的流程管控，杜绝先票后签。",
@@ -9050,7 +9050,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
             "detail": f"发现 {len(potentially_mixed_cts)} 份合同可能涉及混合销售/兼营，"
                        f"其中 {len(no_split)} 份未分别约定税率。"
                        f"混合销售→从主业税率；兼营→分别核算分别适用税率。"
-                       f"未分别核算的兼营行为→从高适用税率，存在多缴或税务税务合规调整风险。"
+                       f"未分别核算的兼营行为→从高适用税率，存在多缴或税务合规调整风险。"
                        f"涉及：{'；'.join(detail_parts)}"
                        + (f"等{len(potentially_mixed_cts)}份" if len(potentially_mixed_cts) > 5 else ""),
             "suggestion": "(1)区分混合销售（一项行为涉及货物+服务）和兼营（多项独立业务）；"
@@ -9436,7 +9436,7 @@ def _analyze_mixed_sales_accounting(db, company_id, ps, pe, results):
                 "detail": f"分析期间存在 {invoices_13} 张13%税率发票和 {invoices_6} 张6%税率发票，"
                            f"但收入科目仅设 {rev_sub_accounts} 个明细科目。"
                            f"兼营不同税率业务应分别核算（分设明细科目），未分别核算的→从高适用税率（13%），"
-                           f"可能导致多缴税款或税务税务合规时被认定核算不清而从严处理。",
+                           f"可能导致多缴税款或税务合规时被认定核算不清而从严处理。",
                 "suggestion": "(1)区分混合销售（一项行为涉及货物+服务，从主业税率）和兼营（多项独立业务）；"
                               "(2)兼营业务应在会计科目、发票、合同中分别核算/列示；"
                               "(3)设立独立的收入明细科目，分别归集不同税率业务的收入。",

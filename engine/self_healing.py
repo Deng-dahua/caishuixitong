@@ -349,7 +349,7 @@ def auto_detect_inconsistencies(findings: list) -> list:
     
     # ── 模板句检测 ──
     _BOILERPLATE = [
-        "是税务税务合规重点方向", "需逐笔核实", "请提供相关佐证材料",
+        "是税务合规重点方向", "需逐笔核实", "请提供相关佐证材料",
         "申报不合规是税务行政处罚的常见案由", "通过调取企业各税种申报表",
     ]
     for f in findings:

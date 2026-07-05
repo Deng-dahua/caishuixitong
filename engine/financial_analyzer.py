@@ -1,11 +1,11 @@
 """
-财务报表税务税务合规分析引擎
+财务报表税务合规分析引擎
 
 四层分析框架：
   Layer A: 表内勾稽 → 资产负债表自身平衡 + 利润表结构合理性
   Layer B: 跨表勾稽 → 资产负债表↔利润表↔现金流量表三表联动验证
   Layer C: 指标趋势 → 流动比/速动比/负债率/毛利率/净利率/周转率 时序异常检测
-  Layer D: 税务税务合规 → 收入确认/成本结转/费用列支/资产处置/关联交易 税务视角专项分析
+  Layer D: 税务合规 → 收入确认/成本结转/费用列支/资产处置/关联交易 税务视角专项分析
   Layer E: 往来款项税务合规 → 预收账款隐匿收入/预付账款套取资金/其他应收款股东占款/其他应付款异常
 """
 
@@ -14,7 +14,7 @@ from datetime import datetime
 from collections import defaultdict
 
 
-# ═══════════════ 税务税务合规专项分析指标 ═══════════════
+# ═══════════════ 税务合规专项分析指标 ═══════════════
 TAX_AUDIT_INDICATORS = {
     # ── 收入端税务合规 ──
     "revenue_declaration_ratio": {
@@ -140,7 +140,7 @@ TAX_AUDIT_INDICATORS = {
 
 def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx):
     """
-    财务报表税务税务合规分析主入口
+    财务报表税务合规分析主入口
     
     Args:
         balance_sheet: 资产负债表数据 (dict with 资产/负债/权益余额)
@@ -233,7 +233,7 @@ def _check_cross_statement(bs, income, cf):
 
 
 def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
-    """Layer C+D: 税务税务合规指标分析"""
+    """Layer C+D: 税务合规指标分析"""
     findings = []
     
     if not income:
@@ -396,9 +396,9 @@ def _check_voucher_statement_gap(vouchers, income_stmt, sal_invs):
     return findings
 
 
-# ═══════════════ Layer E: 往来款项深度税务税务合规 ═══════════════
+# ═══════════════ Layer E: 往来款项深度税务合规 ═══════════════
 def analyze_balance_sheet_items(bs, income, vouchers, ctx):
-    """资产负债表关键科目税务税务合规：预收/预付/其他应收(个人)/存货/应收/长收长付"""
+    """资产负债表关键科目税务合规：预收/预付/其他应收(个人)/存货/应收/长收长付"""
     findings = []
     if not bs:
         return findings

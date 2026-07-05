@@ -1010,7 +1010,7 @@ async function renderAgiDashboard(container) {
       ['GET','/api/agi/status','AGI完整状态面板（28引擎+知识库+因果网络+SCM+元认知+知识图谱+自愈+巡逻）'],
       ['GET','/api/agi/pipeline/dashboard','Pipeline仪表盘数据'],
       ['POST','/api/agi/query','自然语言查询分析结果'],
-      ['POST','/api/agi/chat','对话式税务税务合规'],
+      ['POST','/api/agi/chat','对话式税务合规'],
       ['POST','/api/agi/self-check/{company_id}','闭环自检'],
       ['GET','/api/agi/overrides/summary','AGI覆盖层概况'],
       ['POST','/api/agi/overrides/{id}/activate','激活覆盖层'],
