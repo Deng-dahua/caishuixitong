@@ -1282,3 +1282,86 @@ async function renderBrainSubModule(container, section) {
   }
 }
 
+// ═══ 管道调度 — 专用清新布局 ═══
+async function renderPipeDashboard(container) {
+  var cid = window._currentCompanyId || 1;
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
+  
+  var d = {};
+  try {
+    var r = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
+    d = await r.json();
+  } catch(e) {}
+  var rpt = (d && d.report) ? d.report : {};
+  window._engineEs = (rpt && rpt.engine_status) || {};
+  var es = window._engineEs || {};
+  var comp = rpt.comprehensive || {};
+  var plogs = comp.pipeline_log || comp.execution_log || [];
+  
+  var h = '';
+  h += '<style>'
+    + '.pp{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.pp-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.pp-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.pp-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.pp-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.pp-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.pp-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.pp-sec{margin-bottom:32px}'
+    + '.pp-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.pp-timeline{border-left:2px solid #e2e8f0;padding-left:20px;margin-left:8px}'
+    + '.pp-step{margin-bottom:18px;position:relative}'
+    + '.pp-step:before{content:"";position:absolute;left:-26px;top:6px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 0 2px #3b82f6}'
+    + '.pp-step .sn{font-size:13px;font-weight:700;color:#2563eb;margin-bottom:4px}'
+    + '.pp-step .sd{font-size:12px;color:#475569;line-height:2.0}'
+    + '.pp-step.active:before{background:#16a34a;box-shadow:0 0 0 2px #16a34a}'
+    + '.pp-step .sd b{color:#0f172a}'
+    + '.pp-log{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:2.0}'
+    + '</style>';
+  
+  h += '<div class="pp">';
+  h += '<div class="pp-title">管道调度</div>';
+  h += '<div class="pp-sub">引擎七步执行的实时状态监控 · 展示各阶段进度、数据吞吐量和模块调用链 · 所属：智能大脑</div>';
+  
+  // 统计卡片
+  h += '<div class="pp-hero">';
+  h += '<div class="pp-card"><div class="v" style="color:#2563eb">' + (es.version||'v3.0') + '</div><div class="l">引擎版本</div></div>';
+  h += '<div class="pp-card"><div class="v">' + (plogs.length||0) + '</div><div class="l">执行日志</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#059669">' + (es.modules_loaded||0) + '</div><div class="l">加载模块</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#f59e0b">' + (es.phases_completed||0) + '</div><div class="l">完成阶段</div></div>';
+  h += '</div>';
+  
+  // 七步流程
+  h += '<div class="pp-sec"><h3>七步执行流程</h3><div class="pp-timeline">';
+  var steps = [
+    {n:'①',t:'资料扫描与类型识别',d:'34类文件指纹库 · 三层递进识别 · 四方交叉验证',a:true},
+    {n:'②',t:'目标实体识别',d:'进项购买方∩销项销售方取交集 · 90+关键词×66行业加权投票 · 联网双源比对',a:true},
+    {n:'③',t:'资料情报提取与分析',d:'42个域分析函数并行执行 · 银行收款+进销存比+五层发票审计+供应商穿透+合同四层分类',a:true},
+    {n:'④',t:'规则引擎与链驱动检查',d:'1608条指令逐条匹配 · 437条线索链触发 · 781条证据链闭环 · 行业特化链自动过滤',a:true},
+    {n:'⑤',t:'方法论噪声过滤',d:'HARD_BAN 23类禁词 · COND_BAN 5类条件过滤 · 行业不匹配自动删除 · 去重+正常结论排除',a:true},
+    {n:'⑥',t:'行业对标与申报比对',d:'66行业五维对标 · 三级判断(低于下限→高风险/低于典型值85%→中风险/高于上限→中风险)',a:true},
+    {n:'⑦',t:'正式报告输出',d:'综合所有发现 → 结构化报告 · 7章+附件 · 直接交付',a:(plogs.length > 0)}
+  ];
+  steps.forEach(function(s) {
+    h += '<div class="pp-step' + (s.a?' active':'') + '"><div class="sn">' + s.n + ' ' + s.t + '</div><div class="sd">' + s.d + '</div></div>';
+  });
+  h += '</div></div>';
+  
+  // 管线日志
+  if (plogs.length > 0) {
+    h += '<div class="pp-sec"><h3>管线执行日志 · ' + plogs.length + ' 条</h3><div class="pp-log">';
+    plogs.forEach(function(log, i) {
+      var color = '#94a3b8';
+      if (/异常|失败|错误/.test(log)) color = '#fca5a5';
+      else if (/完成|成功|通过/.test(log)) color = '#86efac';
+      else if (/发现|触发|命中/.test(log)) color = '#fde68a';
+      else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
+      h += '<div style="color:' + color + '">[' + String(i+1).padStart(3,'0') + '] ' + log.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    });
+    h += '</div></div>';
+  }
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+
