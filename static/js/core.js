@@ -1079,8 +1079,11 @@ async function renderAgiDashboard(container) {
     container.innerHTML = h;
     // 侧边栏子模块入口
     if (window._agiSection) {
-      agiSliceToSection(window._agiSection);
+      var asec = window._agiSection;
       window._agiSection = null;
+      var as = document.createElement('style');
+      as.textContent = '.agi-toc{display:none!important}.agi-layout{display:block!important}.agi-hero,.hb-footer{display:none!important}#agi-core,#agi-causal,#agi-connect,#agi-knowledge,#agi-special,#agi-perf,#agi-schedule,#agi-assets,#agi-api,#agi-knowledge-config{display:none!important}#'+asec+'{display:block!important}';
+      container.appendChild(as);
     }
   } catch(e) {
     _renderAgiFallback(container, e.message);
