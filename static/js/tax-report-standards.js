@@ -216,4 +216,22 @@ function renderReportStandards(container) {
 
   h += '</div></div>';
   container.innerHTML = h;
+  // 侧边栏子模块入口：隐藏TOC和无关章节
+  if (window._reportSection) {
+    var sec = window._reportSection;
+    window._reportSection = null;
+    var style = document.createElement('style');
+    style.textContent = '.rs-toc{display:none!important}.rs-layout{display:block!important}';
+    container.appendChild(style);
+    var h2 = container.querySelector('.rs-main h2');
+    if (h2) h2.style.display = 'none';
+    var allSecs = container.querySelectorAll('.rs-sec');
+    for (var i = 0; i < allSecs.length; i++) {
+      allSecs[i].style.display = allSecs[i].id === sec ? 'block' : 'none';
+    }
+    setTimeout(function() {
+      var el = container.querySelector('#' + sec);
+      if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 100);
+  }
 }

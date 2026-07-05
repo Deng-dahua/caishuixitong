@@ -123,7 +123,22 @@ const pages = {
   'hb-ch11': '审核反馈闭环',
   'hb-ch12': '引擎记忆体系',
   'hb-ch13': '引擎铁律编号',
-  'hb-ch14': '系统文件关联'
+  'hb-ch14': '系统文件关联',
+  'rs-pipeline': '质量保障管线',
+  'rs-structure': '报告7章结构',
+  'rs-terms': '术语与机密规范',
+  'rs-narrative': '稽查过程叙事规范',
+  'rs-merge': '同类风险合并规则',
+  'rs-12std': '12项质量标准',
+  'rs-reliability': '7项判定可靠性要求',
+  'rs-paragraph': '段落格式规范',
+  'rs-tts': '语音播报标准',
+  'rs-negotiation': '跨域协商标记展示规范',
+  'rs-review': '审核反馈在报告中的呈现',
+  'rs-ironlaw': '引擎铁律与报告质量映射',
+  'rs-sync': '四触发机制与报告交付',
+  'rs-iterate': '审核反馈→报告迭代闭环',
+  'rs-negoflow': '跨域协商详细工作流程' 
 };
 
 // ==================== 用户登录 ====================
@@ -715,6 +730,21 @@ function navigateTo(page) {
     case 'hb-ch12': window._hbChapter = 'hb-s12'; renderAuditorHandbook(container); break;
     case 'hb-ch13': window._hbChapter = 'hb-s13'; renderAuditorHandbook(container); break;
     case 'hb-ch14': window._hbChapter = 'hb-s14'; renderAuditorHandbook(container); break;
+    case 'rs-pipeline': window._reportSection = 'rs-pipeline'; renderReportStandards(container); break;
+    case 'rs-structure': window._reportSection = 'rs-structure'; renderReportStandards(container); break;
+    case 'rs-terms': window._reportSection = 'rs-terms'; renderReportStandards(container); break;
+    case 'rs-narrative': window._reportSection = 'rs-narrative'; renderReportStandards(container); break;
+    case 'rs-merge': window._reportSection = 'rs-merge'; renderReportStandards(container); break;
+    case 'rs-12std': window._reportSection = 'rs-12std'; renderReportStandards(container); break;
+    case 'rs-reliability': window._reportSection = 'rs-reliability'; renderReportStandards(container); break;
+    case 'rs-paragraph': window._reportSection = 'rs-paragraph'; renderReportStandards(container); break;
+    case 'rs-tts': window._reportSection = 'rs-tts'; renderReportStandards(container); break;
+    case 'rs-negotiation': window._reportSection = 'rs-negotiation'; renderReportStandards(container); break;
+    case 'rs-review': window._reportSection = 'rs-review'; renderReportStandards(container); break;
+    case 'rs-ironlaw': window._reportSection = 'rs-ironlaw'; renderReportStandards(container); break;
+    case 'rs-sync': window._reportSection = 'rs-sync'; renderReportStandards(container); break;
+    case 'rs-iterate': window._reportSection = 'rs-iterate'; renderReportStandards(container); break;
+    case 'rs-negoflow': window._reportSection = 'rs-negoflow'; renderReportStandards(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
