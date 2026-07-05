@@ -1456,7 +1456,7 @@ async function renderLearnFeedback(container) {
   h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
   h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><br><span style="color:#94a3b8">用户纠正和追问通过聊天界面提交</span></div>';
-  h += '<div style="margin-bottom:6px"><span style="color:#0f172a;font-weight:600">审核内容模板</span>（侧边栏有，独立页面）<br><span style="color:#94a3b8">审核反馈的结构化模板和规范</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'feedback-template\')" style="color:#2563eb">审核内容模板</a><br><span style="color:#94a3b8">审核反馈的结构化模板和规范</span></div>';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-review\')" style="color:#2563eb">审核反馈在报告中的呈现</a><br><span style="color:#94a3b8">报告中的用户审核操作（采纳/驳回）</span></div>';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配结果供学习引擎分析空跑率</span></div>';
   h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">分析日志中提取信号模式用于规则发现</span></div>';
