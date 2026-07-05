@@ -1444,6 +1444,33 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-card"><div class="v" style="color:#f59e0b">' + (autoRules.length||0) + '</div><div class="l">自动规则</div></div>';
   h += '</div>';
   
+  // ═══ 模块说明 ═══
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">学习反馈是引擎从<strong>用户行为中自动学习</strong>和改进的核心模块。系统不是一次性部署后停滞不前的静态工具，而是一个能从每次分析中吸取经验、不断进化的智能系统。每次用户对分析结果做出审核判断（采纳或驳回），系统都会记录并分析这些反馈，逐步优化分析策略。</p>';
+  h += '<p style="margin:0">学习反馈的数据流向形成一个<strong>完整闭环</strong>：用户审核→规则自动生成→下次分析自动应用→效果跟踪→持续改进。闭环中的每一环都有明确的触发条件和数据记录，确保引擎的进化是可追溯、可验证、可回滚的。</p>';
+  h += '</div>';
+  
+  // ═══ 上下游依赖 ═══
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><br><span style="color:#94a3b8">用户纠正和追问通过聊天界面提交</span></div>';
+  h += '<div style="margin-bottom:6px"><span style="color:#0f172a;font-weight:600">审核内容模板</span>（侧边栏有，独立页面）<br><span style="color:#94a3b8">审核反馈的结构化模板和规范</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-review\')" style="color:#2563eb">审核反馈在报告中的呈现</a><br><span style="color:#94a3b8">报告中的用户审核操作（采纳/驳回）</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配结果供学习引擎分析空跑率</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">分析日志中提取信号模式用于规则发现</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">纠正规则在下一次分析中自动应用</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">学习产出的规则写入引擎长期记忆</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch13\')" style="color:#2563eb">引擎铁律编号</a><br><span style="color:#94a3b8">从学习中沉淀为正式铁律加入编号体系</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-ironlaw\')" style="color:#2563eb">引擎铁律与报告质量映射</a><br><span style="color:#94a3b8">新铁律对报告质量的映射关系更新</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">学习产出的规则和知识库充实数据资产</span></div>';
+  h += '</div></div></div>';
+  
   // 三层学习架构
   h += '<div class="lf-sec"><h3>三层渐进学习架构</h3>';
   h += '<div class="lf-item"><span class="dot" style="background:#2563eb"></span><div class="body"><b>第一层 · 审核反馈学习</b><br>用户每次审核发现（采纳/驳回）→ 系统记录发现类型+驳回原因 → 同类发现被驳回≥3次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用</div></div>';
