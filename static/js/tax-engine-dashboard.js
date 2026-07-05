@@ -20,7 +20,6 @@ function renderEngineDashboard(rpt) {
 
   window._engineEs = es;
   window._engineRpt = rpt;
-  window._engineRules = null;
   window._hasEngineData = hasData;
 
   // 如果是从侧边栏子模块跳转过来的，直接切换到对应标签
