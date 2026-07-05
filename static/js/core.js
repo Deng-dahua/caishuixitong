@@ -114,9 +114,7 @@ const pages = {
   'hb-overview': '系统数据概览',
   'hb-ch1': '稽查工作流程',
   'hb-ch2': '14类必查资料',
-  'hb-ch3': '稽查方法论33条',
   'hb-ch4': '稽查判定规则',
-  'hb-ch5': '报告编制规范',
   'hb-ch6': '关键法律条文',
   'hb-ch7': '系统与规程映射',
   'hb-ch8': '全链路质量保障',
@@ -707,9 +705,7 @@ function navigateTo(page) {
     case 'hb-overview': window._hbChapter = 'hb-s0'; renderAuditorHandbook(container); break;
     case 'hb-ch1': window._hbChapter = 'hb-s1'; renderAuditorHandbook(container); break;
     case 'hb-ch2': window._hbChapter = 'hb-s2'; renderAuditorHandbook(container); break;
-    case 'hb-ch3': window._hbChapter = 'hb-s3'; renderAuditorHandbook(container); break;
     case 'hb-ch4': window._hbChapter = 'hb-s4'; renderAuditorHandbook(container); break;
-    case 'hb-ch5': window._hbChapter = 'hb-s5'; renderAuditorHandbook(container); break;
     case 'hb-ch6': window._hbChapter = 'hb-s6'; renderAuditorHandbook(container); break;
     case 'hb-ch7': window._hbChapter = 'hb-s7'; renderAuditorHandbook(container); break;
     case 'hb-ch8': window._hbChapter = 'hb-s8'; renderAuditorHandbook(container); break;
