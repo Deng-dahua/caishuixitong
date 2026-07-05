@@ -12,7 +12,7 @@ import json, os, re
 from typing import Dict, List, Any, Optional
 from engine.llm_client import llm, is_llm_available
 from engine.agents.coordinator import get_coordinator
-from engine.agi_reasoning import get_reasoner, ReasoningResult
+# [merged] # get_reasoner, ReasoningResult
 
 class AGIEngine:
     """财税稽查AGI核心引擎"""
@@ -503,3 +503,536 @@ agi = AGIEngine()
 
 def get_agi() -> AGIEngine:
     return agi
+
+
+# ═══════ [合并自 engine/agi_reasoning.py] ═══════
+"""
+AGI推理引擎 — 连接因果发现+语义理解+创造性假设+历史记忆
+
+让追问引擎真正调用因果推理、贝叶斯验证、案例匹配，而非模板填空。
+"""
+import json, os
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class ReasoningResult:
+    question: str
+    intent: str
+    
+    # 因果推理
+    causal_signals: List[str] = field(default_factory=list)
+    causal_predictions: List[Dict] = field(default_factory=list)
+    causal_unknown: List[Dict] = field(default_factory=list)
+    
+    # 语义理解
+    semantic_matches: List[Dict] = field(default_factory=list)
+    
+    # 假设验证
+    hypotheses: List[Dict] = field(default_factory=list)
+    best_hypothesis: Optional[Dict] = None
+    
+    # 创造性推理
+    creative_hypotheses: List[Dict] = field(default_factory=list)
+    analogies: int = 0
+    
+    # 历史案例
+    similar_cases: List[Dict] = field(default_factory=list)
+    
+    # 综合结论
+    conclusion: str = ""
+    confidence: float = 0.0
+    evidence_strength: str = ""
+
+class AGIReasoner:
+    """AGI级推理器——融合三大推理基础设施"""
+    
+    def __init__(self):
+        self._causal = None
+        self._memory = None
+    
+    def _get_causal(self):
+        if self._causal is None:
+            try:
+                from engine.causal_network import AutonomousReasoner
+                self._causal = AutonomousReasoner()
+            except Exception as e:
+                self._causal = False
+        return self._causal if self._causal is not False else None
+    
+    def _get_memory(self):
+        if self._memory is None:
+            try:
+                from engine.memory import get_engine_memory
+                self._memory = get_engine_memory()
+            except:
+                self._memory = False
+        return self._memory if self._memory is not False else None
+    
+    def reason(self, question: str, intent: str, findings: List[Dict],
+               context: Dict) -> ReasoningResult:
+        """综合推理入口"""
+        result = ReasoningResult(question=question, intent=intent)
+        
+        # 构建推理上下文
+        ctx = self._build_ctx(context, findings)
+        
+        # 1. 语义理解 (NEW)
+        self._reason_semantic(question, findings, result)
+        
+        # 2. 因果推理 (causal_network)
+        self._reason_causal(ctx, result)
+        
+        # 3. 假设验证 (hypothesis_engine)
+        if intent in ("why", "how", "check"):
+            self._reason_hypotheses(ctx, result)
+        
+        # 4. 创造性推理 (NEW) — 对未知模式做类比推理
+        self._reason_creative(ctx, result)
+        
+        # 5. 历史案例匹配 (memory)
+        self._reason_similar(ctx, result)
+        
+        # 6. 综合结论
+        self._synthesize(result)
+        
+        return result
+    
+    def _reason_semantic(self, question: str, findings: List[Dict], result: ReasoningResult):
+        """语义理解：标准化品名、识别同义表达"""
+        try:
+            from engine.semantic_reasoner import get_semantic_engine
+            sem = get_semantic_engine()
+            
+            matches = []
+            for f in findings[:5]:
+                ft = f.get("type", "")
+                fd = f.get("detail", "")
+                if ft:
+                    norm = sem.normalize(ft)
+                    kw = sem.extract_tax_keywords(ft + (fd or ""))
+                    if norm != ft or kw:
+                        matches.append({
+                            "original": ft[:60],
+                            "normalized": norm[:100],
+                            "keywords": kw[:5],
+                        })
+            
+            result.semantic_matches = matches[:5]
+        except:
+            pass
+    
+    def _reason_creative(self, ctx: Dict, result: ReasoningResult):
+        """创造性推理：未知信号组合→类比推理→生成假设"""
+        if not result.causal_unknown:
+            return
+        
+        try:
+            # [merged] # get_creative_engine
+            creative = get_creative_engine()
+            
+            unknown = []
+            for u in result.causal_unknown[:2]:
+                unknown.extend(u.get("signals", []))
+            
+            if unknown:
+                cr = creative.reason_analogically(unknown, ctx.get("findings", [])[:5], ctx)
+                result.creative_hypotheses = cr.get("hypotheses", [])
+                result.analogies = cr.get("analogies_found", 0)
+        except:
+            pass
+    
+    def _build_ctx(self, context: Dict, findings: List[Dict]) -> Dict:
+        """构建推理上下文"""
+        ctx = {"findings": findings, "industry": context.get("industry","")}
+        
+        # 从发现中提取信号数据
+        total_amount = 0
+        domains = set()
+        levels = []
+        for f in findings:
+            lv = f.get("level","")
+            if lv: levels.append(lv)
+            d = f.get("domain", f.get("category",""))
+            if d: domains.add(d)
+            ev = f.get("evidence_rows",[]) or f.get("items",[]) or []
+            for ei in ev:
+                try:
+                    if isinstance(ei, dict):
+                        total_amount += float(str(ei.get("amount","0")).replace(",",""))
+                except: pass
+        
+        ctx.update({
+            "has_personal_payments": any("个人" in str(f) for f in findings),
+            "supplier_concentration": 0.6 if any("集中度" in str(f) for f in findings) else 0.3,
+            "has_processing_fee": any("加工" in str(f) for f in findings),
+            "profit_cash_gap": any("偏差" in str(f) or "差额" in str(f) for f in findings),
+            "has_related_parties": any("关联" in str(f) for f in findings),
+            "data_quality_score": 50 + len(findings) * 5,
+            "total_amount": total_amount,
+            "domain_count": len(domains),
+            "avg_risk_score": self._avg_risk(levels),
+        })
+        
+        # 行业对标的信号
+        ind = context.get("industry","")
+        if "服务" in ind: ctx["near_micro_limit"] = True
+        if "贸易" in ind: ctx["goods_mismatch_ratio"] = 0.3
+        
+        return ctx
+    
+    def _avg_risk(self, levels: List) -> int:
+        weights = {"极高风险":10,"高风险":7,"中风险":4,"低风险":2}
+        total = sum(weights.get(l,3) for l in levels)
+        return total // max(len(levels), 1)
+    
+    def _reason_causal(self, ctx: Dict, result: ReasoningResult):
+        """因果网络推理"""
+        causal = self._get_causal()
+        if not causal:
+            result.causal_signals = ["因果网络未加载"]
+            return
+        
+        try:
+            cr = causal.reason(ctx, ctx.get("findings",[]))
+            result.causal_signals = cr.get("active_signals", [])
+            result.causal_predictions = cr.get("predictions", [])
+            result.causal_unknown = cr.get("unknown_signal_combos", [])
+        except Exception as e:
+            result.causal_signals = [f"因果推理异常: {e}"]
+    
+    def _reason_hypotheses(self, ctx: Dict, result: ReasoningResult):
+        """假设验证引擎"""
+        try:
+            findings = ctx.get("findings", [])[:10]
+            if not findings:
+                return
+            
+            # 对每条高风险发现生成假设
+            hyps = []
+            for f in findings:
+                if f.get("level") not in ("高风险","极高风险"): continue
+                
+                ft = f.get("type","")
+                fd = f.get("detail","")
+                hf = f.get("how_found","")
+                
+                # 生成竞争假设
+                h1 = f"假设A（引擎判定）: {ft[:60]}——{fd[:100] if fd else '基于数据自动判定'}"
+                h2_ev = f.get("evidence_rows") or f.get("items") or []
+                h2 = f"假设B（反向推演）: 如果证据不充分，该判定可能需要降级。当前证据{len(h2_ev)}条、来源{hf[:80] if hf else '未知'}"
+                
+                evidence_score = min(len(h2_ev), 5) / 5.0
+                has_policy = 1.0 if f.get("policy_ref","").strip() else 0.3
+                confidence = (evidence_score + has_policy) / 2
+                
+                hyps.append({
+                    "type": ft[:60],
+                    "hypotheses": [h1, h2],
+                    "best": "假设A" if confidence >= 0.5 else "需补充证据",
+                    "confidence": confidence,
+                    "evidence_count": len(h2_ev),
+                })
+            
+            result.hypotheses = hyps
+            if hyps:
+                best = max(hyps, key=lambda h: h["confidence"])
+                result.best_hypothesis = best
+                
+        except Exception as e:
+            result.hypotheses = [{"error": str(e)}]
+    
+    def _reason_similar(self, ctx: Dict, result: ReasoningResult):
+        """历史案例匹配"""
+        mem = self._get_memory()
+        if not mem:
+            return
+        
+        try:
+            # 从记忆库搜索相似案例
+            industry = ctx.get("industry","")
+            findings = ctx.get("findings", [])
+            
+            if hasattr(mem, 'search_similar'):
+                cases = mem.search_similar(
+                    industry=industry,
+                    signal_types=[f.get("type","")[:20] for f in findings[:5]],
+                    limit=3,
+                )
+                result.similar_cases = cases if isinstance(cases, list) else []
+            elif hasattr(mem, 'memories'):
+                # 12维加权相似度检索
+                memories = mem.memories if isinstance(mem.memories, list) else []
+                scored = []
+                for m in memories[-100:]:
+                    m_ind = m.get("industry","")
+                    m_sigs = m.get("signals",[])
+                    score = 0
+                    if m_ind == industry: score += 3
+                    for f in findings[:5]:
+                        if f.get("type","")[:20] in str(m_sigs):
+                            score += 2
+                    if score > 0:
+                        scored.append((score, m))
+                scored.sort(key=lambda x: -x[0])
+                result.similar_cases = [s for _, s in scored[:3]]
+        except:
+            pass
+    
+    def _synthesize(self, result: ReasoningResult):
+        """综合推理结论"""
+        parts = []
+        
+        # 因果信号
+        if result.causal_signals:
+            signals = [s for s in result.causal_signals if not s.startswith("因果")]
+            if signals:
+                parts.append(f"活跃信号({len(signals)}个): {', '.join(signals[:6])}")
+        
+        # 假设可信度
+        if result.best_hypothesis:
+            parts.append(f"最佳假设: {result.best_hypothesis.get('best','?')} (置信度{result.best_hypothesis.get('confidence',0):.0%})")
+        
+        # 历史案例
+        if result.similar_cases:
+            parts.append(f"历史相似案例: {len(result.similar_cases)}个")
+        
+        # 证据强度
+        evidence_count = len(result.hypotheses)
+        if evidence_count > 0:
+            avg_conf = sum(h.get("confidence",0) for h in result.hypotheses) / evidence_count
+            if avg_conf >= 0.7:
+                result.evidence_strength = "★★★ 证据闭环——多源数据交叉验证"
+            elif avg_conf >= 0.4:
+                result.evidence_strength = "★★☆ 证据基本充分——部分结论可进一步验证"
+            else:
+                result.evidence_strength = "★☆☆ 证据较弱——建议补充佐证材料"
+        
+        result.confidence = avg_conf if evidence_count > 0 else 0.3
+        result.conclusion = "；".join(parts) if parts else "推理完成"
+
+
+# 全局推理器
+_reasoner = None
+
+def get_reasoner() -> AGIReasoner:
+    global _reasoner
+    if _reasoner is None:
+        _reasoner = AGIReasoner()
+    return _reasoner
+
+
+
+# ═══════ [合并自 engine/creative_hypothesis.py] ═══════
+"""
+创造性假设引擎 — 类比推理 + 未知模式探索
+
+核心能力：
+1. 类比推理：遇到未知模式→找最相似的已知模式→基于类比生成假设
+2. 假设竞争验证：生成多个竞争假设→验证→贝叶斯加权→选最优
+3. 自动规则生成：验证通过的假设→注册为新推理规则
+"""
+import json, os, math
+from datetime import datetime
+from typing import Dict, List, Any, Optional
+
+from engine.causal_discovery import get_discovery_engine
+from engine.semantic_reasoner import get_semantic_engine
+
+
+class CreativeHypothesisEngine:
+    """创造性假设引擎 — 系统自己生成假设、自己验证"""
+    
+    def __init__(self):
+        self._discovery = get_discovery_engine()
+        self._semantic = get_semantic_engine()
+        self._generated_hypotheses: List[Dict] = []
+        self._verified_hypotheses: List[Dict] = []
+        self._load_state()
+    
+    def _load_state(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "static", "creative_hypotheses.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+                self._generated_hypotheses = data.get("generated", [])
+                self._verified_hypotheses = data.get("verified", [])
+        except:
+            pass
+    
+    def _save_state(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "static", "creative_hypotheses.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({
+                "generated": self._generated_hypotheses[-200:],
+                "verified": self._verified_hypotheses[-200:],
+            }, f, ensure_ascii=False, indent=2)
+    
+    def reason_analogically(self, unknown_signals: List[str], unknown_findings: List[Dict],
+                            context: Dict = None) -> Dict:
+        """
+        类比推理：核心创新
+        
+        系统遇到不认识的数据模式时，不再标注"未知"等人工介入。
+        而是主动做类比："这个模式跟哪个已知的最像？"
+        
+        步骤：
+        1. 语义归一化：用语义引擎标准化信号和发现的名称
+        2. 类比搜索：在因果发现库中找相似模式
+        3. 生成假设：基于类比生成多个竞争假设
+        4. 置信度计算：基于相似度×历史验证次数加权
+        """
+        # 1. 语义归一化
+        norm_signals = []
+        for sig in unknown_signals:
+            std = self._semantic.get_standard(sig)
+            norm_signals.append(std if std else sig)
+        
+        norm_findings = []
+        for f in unknown_findings:
+            ft = f.get("type", "")
+            std_type = self._semantic.normalize(ft) if ft else ft
+            norm_findings.append({**f, "semantic_type": std_type})
+        
+        # 2. 类比搜索
+        analogies = self._discovery.find_similar_pattern(norm_signals)
+        
+        # 3. 生成假设
+        hypotheses = []
+        
+        # 假设A：最相似的已知模式
+        if analogies:
+            best = analogies[0]
+            h_a = {
+                "id": f"HYPO-{len(self._generated_hypotheses)+1:04d}",
+                "type": "类比推理",
+                "hypothesis": f"该模式最接近「{best['known_finding']}」",
+                "rationale": f"与已知模式相似度{best['similarity']:.0%}（基于{best['count']}次历史验证）",
+                "confidence": best["similarity"] * 0.8,
+                "source": "analogical_inference",
+                "similarity": best["similarity"],
+                "signals": unknown_signals,
+                "finding": best["known_finding"],
+            }
+            hypotheses.append(h_a)
+        
+        # 假设B：语义推断（用语义引擎理解信号含义）
+        sig_meanings = []
+        for sig in unknown_signals[:5]:
+            std = self._semantic.get_standard(sig)
+            if std: sig_meanings.append(f"{sig}→{std}")
+        
+        if sig_meanings:
+            semantic_hypothesis = f"信号语义：{', '.join(sig_meanings)}。"
+            # 基于语义推测风险方向
+            risk_mapping = {
+                "加工费": "可能存在委托加工业务的税务风险",
+                "运输费": "需核实货物流真实性与发票匹配度",
+                "租金": "需核实经营场所真实性和租赁合同",
+                "钢材": "需核实钢材采购与实际消耗的匹配度",
+                "销售收入": "需核实收入确认时点和金额准确性",
+                "采购成本": "需核实采购的真实性和关联交易",
+            }
+            risks = []
+            for std in [self._semantic.get_standard(s) for s in unknown_signals]:
+                if std and std in risk_mapping:
+                    risks.append(risk_mapping[std])
+            
+            if risks:
+                h_b = {
+                    "id": f"HYPO-{len(self._generated_hypotheses)+2:04d}",
+                    "type": "语义推断",
+                    "hypothesis": semantic_hypothesis + "\n可能的税务风险方向：" + "；".join(set(risks)),
+                    "rationale": "基于税务语义引擎对信号含义的理解",
+                    "confidence": 0.6,
+                    "source": "semantic_inference",
+                    "signals": unknown_signals,
+                }
+                hypotheses.append(h_b)
+        
+        # 假设C：频率推断（这些信号在历史中各自出现的频率）
+        signal_freq = {}
+        for sig in unknown_signals[:5]:
+            count = sum(1 for d in self._discovery._discoveries if sig in d.get("signals", []))
+            signal_freq[sig] = count
+        
+        freq_signals = [s for s, c in signal_freq.items() if c > 0]
+        if freq_signals:
+            h_c = {
+                "id": f"HYPO-{len(self._generated_hypotheses)+3:04d}",
+                "type": "频率推断",
+                "hypothesis": f"信号 {', '.join(freq_signals)} 在历史中分别出现过{max(signal_freq.values())}次，组合出现为新模式",
+                "rationale": "单一信号常见但组合罕见→可能指示新的风险类型",
+                "confidence": 0.4 + min(max(signal_freq.values()) / 50, 0.3),
+                "source": "frequency_inference",
+                "signals": unknown_signals,
+            }
+            hypotheses.append(h_c)
+        
+        # 4. 选出最佳假设
+        if hypotheses:
+            best = max(hypotheses, key=lambda h: h["confidence"])
+            
+            # 保存生成的假设
+            self._generated_hypotheses.append({
+                "signals": unknown_signals,
+                "findings": [f.get("type") for f in unknown_findings],
+                "hypotheses": [h["hypothesis"][:200] for h in hypotheses],
+                "best": best["hypothesis"][:200],
+                "confidence": best["confidence"],
+                "generated_at": datetime.now().isoformat(),
+            })
+            self._save_state()
+        
+        return {
+            "unknown_signals": unknown_signals,
+            "analogies_found": len(analogies),
+            "hypotheses": hypotheses[:5],
+            "best_hypothesis": best if hypotheses else None,
+            "total_generated": len(self._generated_hypotheses),
+        }
+    
+    def verify_hypothesis(self, hypothesis_id: str, verification_result: Dict) -> Dict:
+        """
+        验证假设：用户确认/反驳 → 更新置信度 → 通过则注册为规则
+        """
+        for h in self._generated_hypotheses:
+            if h.get("id") == hypothesis_id:
+                old_conf = h.get("confidence", 0)
+                if verification_result.get("confirmed"):
+                    new_conf = min(0.99, old_conf + 0.15)
+                    status = "verified" if new_conf >= 0.7 else "pending"
+                else:
+                    new_conf = max(0.1, old_conf - 0.2)
+                    status = "rejected"
+                
+                h["confidence"] = new_conf
+                h["verified_at"] = datetime.now().isoformat()
+                h["status"] = status
+                
+                if status == "verified":
+                    self._verified_hypotheses.append(h)
+                
+                self._save_state()
+                return {"ok": True, "new_confidence": new_conf, "status": status}
+        
+        return {"ok": False, "message": f"假设 {hypothesis_id} 不存在"}
+    
+    def get_verified_rules(self) -> List[Dict]:
+        """获取已验证通过的假设（可转化为正式推理规则）"""
+        return [h for h in self._verified_hypotheses if h.get("confidence", 0) >= 0.7]
+    
+    def status(self) -> Dict:
+        return {
+            "generated": len(self._generated_hypotheses),
+            "verified": len(self._verified_hypotheses),
+            "ready_rules": len(self.get_verified_rules()),
+        }
+
+
+# 全局假设引擎
+creative_engine = CreativeHypothesisEngine()
+
+def get_creative_engine() -> CreativeHypothesisEngine:
+    return creative_engine
+
