@@ -107,7 +107,10 @@ const pages = {
   'eng-grow': '成长曲线',
   'eng-qual': '质量保障',
   'eng-think': '推理引擎',
-  'eng-info': '引擎详情'
+  'eng-info': '引擎详情',
+  'aly-steps': '七步执行流程',
+  'aly-result': '本次分析结果',
+  'aly-logs': '管线执行日志'
 };
 
 // ==================== 用户登录 ====================
@@ -683,6 +686,9 @@ function navigateTo(page) {
     case 'eng-qual': renderEngineSubModule(container, 'quality'); break;
     case 'eng-think': renderEngineSubModule(container, 'methods'); break;
     case 'eng-info': renderEngineSubModule(container, 'details'); break;
+    case 'aly-steps': renderAnalyzeSteps(container); break;
+    case 'aly-result': renderAnalyzeResult(container); break;
+    case 'aly-logs': renderAnalyzeLogs(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

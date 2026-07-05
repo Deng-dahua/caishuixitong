@@ -2653,3 +2653,86 @@ function renderTaxIncentivesPage(container) {
       container.innerHTML = '<div style="padding:60px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
     });
 }
+
+// ═══ 分析链拆分子模块 ═══
+
+// 七步执行流程（静态内容，不依赖分析数据）
+function renderAnalyzeSteps(container) {
+  var h = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
+    + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">七步执行流程</h2>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px">分析链从资料上传到报告输出的七个步骤详解</p>';
+  var steps = [
+    {n:'①',title:'资料扫描与类型识别',icon:'📄',desc:'系统遍历上传目录读取全部Excel/CSV/PDF文件。使用34类文件指纹库执行三层递进识别：Step1关键词打分→Step2结构分析→Step3数据推断兜底。不因无法识别而丢弃数据。'},
+    {n:'②',title:'目标实体识别',icon:'🎯',desc:'进项购买方∩销项销售方取交集确定企业全称。90+关键词×66行业加权投票制识别行业。联网查询工商登记信息双源比对。'},
+    {n:'③',title:'资料情报提取与数据分析',icon:'🔍',desc:'42个域分析函数：银行收款构成+付款方身份核实+进销存比对+五层发票审计+供应商穿透+合同四层分类。'},
+    {n:'④',title:'规则引擎与链驱动检查',icon:'⚙️',desc:'1608条稽查指令与域分析发现逐条匹配。437条线索链(行业特化自动过滤)+781条证据链闭环检测(≥60%+≥3规则+≥2域→闭环)。'},
+    {n:'⑤',title:'方法论噪声过滤器',icon:'🎯',desc:'HARD_BAN(23类禁止词)+COND_BAN(5类条件过滤)。稽查重点发现不参与过滤。行业不匹配自动删除。去重+正常结论排除。'},
+    {n:'⑥',title:'行业对标与申报比对',icon:'📊',desc:'66行业基准值自动对标(毛利率/净利率/税负率/进销比/人均营收)。三级判断：低于下限→高风险、低于典型值85%→中风险、高于上限→中风险。'},
+    {n:'⑦',title:'正式稽查报告输出',icon:'📝',desc:'综合所有发现生成结构化稽查报告：稽查概况+企业工商+高/中/低风险发现+四步分析框架+法律依据+消除路径。独立HTML可直接交付。'}
+  ];
+  steps.forEach(function(s) {
+    h += '<div style="padding:16px 20px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:4px solid #2563eb">'
+      + '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px"><span style="font-size:18px">'+s.icon+'</span> '+s.n+' '+s.title+'</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2.0">'+s.desc+'</div></div>';
+  });
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+// 本次分析结果（需加载分析数据）
+async function renderAnalyzeResult(container) {
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">本次分析结果</h2><div id="ar-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
+  try {
+    var data = await getSharedAnalysis();
+    if (!data.ok) throw new Error(data.message||'无分析数据');
+    var report = data.report || {};
+    var comp = report.comprehensive || {};
+    var allFindings = report.all_findings || [];
+    var high = allFindings.filter(function(f){return (f.risk||f.level)==='高风险'||(f.risk||f.level)==='极高风险';}).length;
+    var mid = allFindings.filter(function(f){return (f.risk||f.level)==='中风险';}).length;
+    var low = allFindings.filter(function(f){var r=f.risk||f.level||'';return r==='低风险'||r==='良好';}).length;
+    
+    var h = '<div style="display:flex;gap:12px;margin-bottom:24px">'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">'+(report.files_count||0)+'</div><div style="font-size:12px;color:#64748b">资料文件</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">'+(comp.rule_count||1608)+'</div><div style="font-size:12px;color:#64748b">匹配规则</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">'+high+'</div><div style="font-size:12px;color:#64748b">高风险</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">'+mid+'</div><div style="font-size:12px;color:#64748b">中风险</div></div>'
+      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">'+low+'</div><div style="font-size:12px;color:#64748b">低风险</div></div>'
+      + '</div>'
+      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:24px">规则<strong>'+(comp.rule_count||1608)+'</strong>则·线索链<strong>'+(comp.chain_count||437)+'</strong>条·证据链<strong>'+(comp.evidence_count||781)+'</strong>条·文件<strong>'+(report.files_count||0)+'</strong>个·全链路闭环✓</div>';
+    document.getElementById('ar-content').innerHTML = h;
+  } catch(e) {
+    document.getElementById('ar-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败：'+e.message+'<br>请先执行一键分析</div>';
+  }
+}
+
+// 管线执行日志（需加载分析数据）
+async function renderAnalyzeLogs(container) {
+  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">管线执行日志</h2><div id="al-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
+  try {
+    var data = await getSharedAnalysis();
+    if (!data.ok) throw new Error(data.message||'无分析数据');
+    var comp = (data.report||{}).comprehensive || {};
+    var plogs = comp.pipeline_log || comp.execution_log || [];
+    if (plogs.length === 0) plogs = (data.report||{}).pipeline_log || [];
+    
+    var h = '<div style="font-size:12px;color:#94a3b8;margin-bottom:12px">共 '+plogs.length+' 条日志</div>'
+      + '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:600px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:2.0">';
+    if (plogs.length === 0) {
+      h += '<div style="color:#64748b;text-align:center;padding:40px">暂无管线执行日志</div>';
+    } else {
+      plogs.forEach(function(log, i) {
+        var color = '#64748b';
+        if (/异常|失败|错误/.test(log)) color = '#fca5a5';
+        else if (/完成|成功|通过/.test(log)) color = '#86efac';
+        else if (/发现|触发|命中/.test(log)) color = '#fde68a';
+        else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
+        h += '<div style="color:'+color+'">['+String(i+1).padStart(3,'0')+'] '+escHtml(log)+'</div>';
+      });
+    }
+    h += '</div>';
+    document.getElementById('al-content').innerHTML = h;
+  } catch(e) {
+    document.getElementById('al-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败：'+e.message+'<br>请先执行一键分析</div>';
+  }
+}
