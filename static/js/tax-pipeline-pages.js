@@ -114,7 +114,12 @@ function renderFileParsingPage(container) {
     var sec = window._fpSection;
     window._fpSection = null;
     if (sec === 'fp-result') { window._pendingFpSlice = 'fp-result'; }
-    else { setTimeout(function(){ fpSliceToSection(sec); }, 50); }
+    else {
+      // CSS注入隐藏无关内容
+      var s = document.createElement('style');
+      s.textContent = '.fp-toc{display:none!important}.fp-layout{display:block!important}.fp-main h2,.fp-main>p,.fp-main>div:first-child{display:none!important}#fp-mechanism,#fp-compat,#fp-formats,#fp-fingerprint,#fp-flow,#fp-result{display:none!important}#'+sec+'{display:block!important}';
+      container.appendChild(s);
+    }
   }
 }
 
@@ -706,7 +711,11 @@ function renderDomainAnalysisPage(container) {
     var dsec = window._daSection;
     window._daSection = null;
     if (dsec === 'da-result') { window._pendingDaSlice = 'da-result'; }
-    else { setTimeout(function(){ daSliceToSection(dsec); }, 50); }
+    else {
+      var ds = document.createElement('style');
+      ds.textContent = '.da-toc{display:none!important}.da-layout{display:block!important}.da-main h2,.da-main>p{display:none!important}#da-intro,#da-arch,#da-domains,#da-result{display:none!important}#'+dsec+'{display:block!important}';
+      container.appendChild(ds);
+    }
   }
 }
 
