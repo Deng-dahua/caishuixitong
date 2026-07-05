@@ -4014,8 +4014,8 @@ window._edtSubmitEdit = function() {
       el.textContent = "✅ 已记录，已更新规则库"; el.style.color = "#16a34a";
       // 触发规则传播到五链
       fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
-      // 触发引擎自学习
-      fetch("/api/feedback/learn-rule", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content:content, source:"编辑", finding_type:scope.title||""})}).catch(function(){});
+      // 触发人类学习引擎
+      fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:content, source:"编辑", context:{error_detail:scope.title||""}})}).catch(function(){});
     }
 
 
@@ -4058,6 +4058,8 @@ window._edtSubmitAudit = function() {
     if (d.ok) {
       el.textContent = "✅ 审核已记录，已更新规则库"; el.style.color = "#16a34a";
       fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
+      // 审核确认=认可引擎判断，增强相关规则置信度
+      fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:note||"审核确认", source:"审核", context:{action:"confirm"}})}).catch(function(){});
     }
 
 
@@ -4128,7 +4130,7 @@ window._edtSendAsk = function() {
 
 
 window._edtSubmitAskResult = function() {
-  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); fetch("/api/feedback/learn-rule", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({content:JSON.stringify(window._askHistory||[]), source:"追问", finding_type:scope.title||""})}).catch(function(){}); }
+  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:JSON.stringify(window._askHistory||[]), source:"追问", context:{error_detail:scope.title||""}})}).catch(function(){}); }
 
 
   var el = document.getElementById("edt-ask-result");
