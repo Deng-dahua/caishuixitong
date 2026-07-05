@@ -779,6 +779,12 @@ function navigateTo(page) {
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
+  // 标准模块头部注入
+  if (typeof injectModuleHeader === 'function') {
+    injectModuleHeader(page);
+    // 异步页面二次尝试
+    setTimeout(function(){ injectModuleHeader(page); }, 500);
+  }
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {
