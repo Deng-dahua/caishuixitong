@@ -538,14 +538,8 @@ function renderEngineDimensions(container) {
 
 function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal) {
   var h = '';
-  h += '<style>.dim-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.dim-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.2;max-height:calc(100vh-40px);overflow-y:auto}.dim-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.dim-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.dim-toc a:hover,.dim-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.dim-main{flex:1;min-width:0;background:#fff}.dim-stat{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.dim-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2;color:#475569}</style>';
+  h += '<style>.dim-layout{max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.dim-main{min-width:0;background:#fff}.dim-stat{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.dim-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2;color:#475569}</style>';
   h += '<div class="dim-layout">';
-
-  // TOC
-  h += '<nav class="dim-toc"><div class="toc-title">📖 导航</div>';
-  h += '<a href="#dim-overview">总览</a>';
-  h += '<a href="#dim-table">维度明细</a>';
-  h += '</nav>';
 
   h += '<div class="dim-main">';
   h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🔬 引擎能力维度</h2>';
