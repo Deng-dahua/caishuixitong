@@ -48,7 +48,16 @@ function renderEngineDashboard(rpt) {
   html += '</div>';
   
   area.innerHTML = html;
-  renderStatusTab();
+  // 侧边栏子模块入口：直接切换到目标标签
+  if (window._engineTabTarget) {
+    var targetTab = window._engineTabTarget;
+    window._engineTabTarget = null;
+    var toc = document.querySelector('.ed-toc');
+    if (toc) toc.style.display = 'none';
+    switchEngineTab(targetTab);
+  } else {
+    renderStatusTab();
+  }
   fetchEngineRules();
 }
 
