@@ -1332,6 +1332,33 @@ async function renderPipeDashboard(container) {
   h += '<div class="pp-card"><div class="v" style="color:#f59e0b">' + (es.phases_completed||0) + '</div><div class="l">完成阶段</div></div>';
   h += '</div>';
   
+  // ═══ 上下游依赖 ═══
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  // 上游
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制 / 格式扩展 / 文件指纹库 / 解析流程 / 本次解析结果</a><br><span style="color:#94a3b8">文件解析引擎提供结构化数据</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'da-intro\')" style="color:#2563eb">什么是域分析 / 域分析架构 / 42个分析域</a><br><span style="color:#94a3b8">域分析引擎 — 42个域函数产出发现</span></div>';
+  h += '<div style="margin-bottom:6px"><span style="color:#0f172a;font-weight:600">账务风险分析报告 / 资料风险分析报告</span><br><span style="color:#94a3b8">原始数据和风险信号来源</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">决定模块执行顺序和参数</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">规则库/线索链库/证据链库等知识底座</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">历史分析经验注入先验知识</span></div>';
+  h += '</div></div>';
+  // 下游
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><br><span style="color:#94a3b8">记录每步执行时间、输入输出、异常</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">展示分析统计（文件数/规则/风险分布）</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">接收匹配后的发现做规则触发</span></div>';
+  h += '<div style="margin-bottom:6px"><span style="color:#0f172a;font-weight:600">线索链 / 证据链</span><br><span style="color:#94a3b8">接收链驱动发现做交叉验证</span></div>';
+  h += '<div style="margin-bottom:6px"><span style="color:#0f172a;font-weight:600">方法论体系 / 质量保障机制 / 12项质量标准</span><br><span style="color:#94a3b8">噪声过滤和质量检查</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer4\')" style="color:#2563eb">行业认知体系</a><br><span style="color:#94a3b8">行业对标数据输入</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-structure\')" style="color:#2563eb">报告7章结构</a><br><span style="color:#94a3b8">综合所有发现生成结构化报告</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">全量运行记录</span></div>';
+  h += '</div></div></div>';
+  
   // 模块说明段落
   h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:32px">';
   h += '<p style="margin:0 0 16px">管道调度是税务合规系统的<strong>执行中枢</strong>，负责协调七步分析流程的有序运行。每一步都有明确的输入来源、处理逻辑和输出目标，形成一个从原始资料到正式报告的单向流动的数据管道。</p>';
