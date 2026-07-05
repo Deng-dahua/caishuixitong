@@ -138,7 +138,12 @@ const pages = {
   'rs-ironlaw': '引擎铁律与报告质量映射',
   'rs-sync': '四触发机制与报告交付',
   'rs-iterate': '审核反馈→报告迭代闭环',
-  'rs-negoflow': '跨域协商详细工作流程' 
+  'rs-negoflow': '跨域协商详细工作流程',
+  'qs-layer1': '核心数据资产',
+  'qs-layer2': '方法论体系',
+  'qs-layer3': '质量保障机制',
+  'qs-layer4': '行业认知体系',
+  'qs-layer5': '执行管线'
 };
 
 // ==================== 用户登录 ====================
@@ -745,6 +750,11 @@ function navigateTo(page) {
     case 'rs-sync': window._reportSection = 'rs-sync'; renderReportStandards(container); break;
     case 'rs-iterate': window._reportSection = 'rs-iterate'; renderReportStandards(container); break;
     case 'rs-negoflow': window._reportSection = 'rs-negoflow'; renderReportStandards(container); break;
+    case 'qs-layer1': window._qsLayer = 1; renderQualitySystem(container); break;
+    case 'qs-layer2': window._qsLayer = 2; renderQualitySystem(container); break;
+    case 'qs-layer3': window._qsLayer = 3; renderQualitySystem(container); break;
+    case 'qs-layer4': window._qsLayer = 4; renderQualitySystem(container); break;
+    case 'qs-layer5': window._qsLayer = 5; renderQualitySystem(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

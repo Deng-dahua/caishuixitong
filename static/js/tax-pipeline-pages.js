@@ -2501,6 +2501,28 @@ function renderQualitySystem(container) {
   h+='<div class="qs-info"><strong style="color:#059669;font-size:14px">🔓 开放生态系统</strong><br>当前'+totalItems+'个组件只是当前状态。新增稽查能力模块须同步更新此页面。体系随发展持续扩展。</div>';
   h+='</div></div>';
   container.innerHTML = h;
+  // 侧边栏子模块入口
+  if (window._qsLayer) {
+    var lid = window._qsLayer;
+    window._qsLayer = null;
+    var style = document.createElement('style');
+    style.textContent = '.qs-toc{display:none!important}.qs-layout{display:block!important}';
+    container.appendChild(style);
+    var h2 = container.querySelector('.qs-main h2');
+    if (h2) h2.style.display = 'none';
+    var allLayers = container.querySelectorAll('.qs-layer');
+    for (var i = 0; i < allLayers.length; i++) {
+      allLayers[i].style.display = allLayers[i].id === 'qs-layer' + lid ? 'block' : 'none';
+    }
+    var info = container.querySelector('.qs-info');
+    if (info) info.style.display = 'none';
+    var stats = container.querySelector('.qs-main > div');
+    if (stats && stats.style && !stats.className) stats.style.display = 'none';
+    setTimeout(function() {
+      var el = container.querySelector('#qs-layer' + lid);
+      if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 100);
+  }
 }function loadMethodologies() {
   var target = document.getElementById('methods-body');
   if (!target) return;
