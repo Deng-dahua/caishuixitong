@@ -28031,47 +28031,5 @@
     "tax_impact": "骗取留抵退税→追缴退税款+1-5倍罚款+刑事责任",
     "detectable": true,
     "dataSource": "system"
-  },
-  {
-    "id": 999691,
-    "type": "auto_signal",
-    "rule_category": "自动发现",
-    "industry": "饲料",
-    "signal": "购销严重倒挂",
-    "prevalence": "100%",
-    "evidence": "在5家饲料企业中，5家(100%)出现此信号",
-    "action": "该信号在饲料行业中可能是行业普遍特征，建议降低风险权重",
-    "confidence": 0.9,
-    "auto_discovered_at": "2026-07-02T16:36:29.247660",
-    "severity": "中",
-    "enabled": true
-  },
-  {
-    "id": 999692,
-    "type": "auto_signal",
-    "rule_category": "自动发现",
-    "industry": "设计服务",
-    "signal": "购销严重倒挂",
-    "prevalence": "100%",
-    "evidence": "在5家设计服务企业中，5家(100%)出现此信号",
-    "action": "该信号在设计服务行业中可能是行业普遍特征，建议降低风险权重",
-    "confidence": 0.9,
-    "auto_discovered_at": "2026-07-04T18:54:14.663900",
-    "severity": "中",
-    "enabled": true
-  },
-  {
-    "id": 999693,
-    "type": "auto_signal",
-    "rule_category": "自动发现",
-    "industry": "信息技术服务",
-    "signal": "购销严重倒挂",
-    "prevalence": "100%",
-    "evidence": "在5家信息技术服务企业中，5家(100%)出现此信号",
-    "action": "该信号在信息技术服务行业中可能是行业普遍特征，建议降低风险权重",
-    "confidence": 0.9,
-    "auto_discovered_at": "2026-07-04T20:18:43.992099",
-    "severity": "中",
-    "enabled": true
   }
 ]
