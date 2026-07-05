@@ -1584,16 +1584,8 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<style>.al-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.al-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.al-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.al-toc a{display:block;color:#475569;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.al-toc a:hover,.al-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.al-main{flex:1;min-width:0}.al-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
+  container.innerHTML = '<style>.al-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.al-main{flex:1;min-width:0}.al-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="al-layout">'
-    + '<nav class="al-toc">'
-    + '<div class="toc-title">📖 导航</div>'
-    + '<a href="#al-overview">一 什么是分析链</a>'
-    + '<a href="#al-steps">二 七步执行流程</a>'
-    + '<a href="#al-quality">三 质量保障体系</a>'
-    + '<a href="#al-methods">四 稽查方法论</a>'
-    + '<a href="#al-chains">五 分析链定义</a>'
-    + '</nav>'
     + '<div class="al-main">'
     + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
