@@ -698,6 +698,30 @@ function renderDomainAnalysisPage(container) {
 
   if (_cachedDomainReport) { renderDomainAnalysisResult(_cachedDomainReport); }
   else { loadDomainAnalysisData(); }
+  // 侧边栏子模块入口
+  if (window._daSection) {
+    daSliceToSection(window._daSection);
+    window._daSection = null;
+  }
+}
+
+function daSliceToSection(sectionId) {
+  var toc = document.querySelector('.da-toc');
+  if (toc) toc.style.display = 'none';
+  var layout = document.querySelector('.da-layout');
+  if (layout) layout.style.display = 'block';
+  var h2 = document.querySelector('.da-main h2');
+  if (h2) h2.style.display = 'none';
+  var p = document.querySelector('.da-main > p');
+  if (p) p.style.display = 'none';
+  var allSecs = document.querySelectorAll('#da-intro,#da-arch,#da-domains,#da-result');
+  for (var i = 0; i < allSecs.length; i++) {
+    allSecs[i].style.display = allSecs[i].id === sectionId ? 'block' : 'none';
+  }
+  setTimeout(function() {
+    var el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 200);
 }
 
 function renderDomainAnalysisStatic() {

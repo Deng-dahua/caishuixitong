@@ -149,7 +149,11 @@ const pages = {
   'fp-formats': '格式扩展',
   'fp-fingerprint': '文件指纹库',
   'fp-flow': '解析流程',
-  'fp-result': '本次解析结果'
+  'fp-result': '本次解析结果',
+  'da-intro': '什么是域分析',
+  'da-arch': '域分析架构',
+  'da-domains': '42个分析域',
+  'da-result': '本次分析结果'
 };
 
 // ==================== 用户登录 ====================
@@ -767,6 +771,10 @@ function navigateTo(page) {
     case 'fp-fingerprint': window._fpSection = 'fp-fingerprint'; renderFileParsingPage(container); break;
     case 'fp-flow': window._fpSection = 'fp-flow'; renderFileParsingPage(container); break;
     case 'fp-result': window._fpSection = 'fp-result'; renderFileParsingPage(container); break;
+    case 'da-intro': window._daSection = 'da-intro'; renderDomainAnalysisPage(container); break;
+    case 'da-arch': window._daSection = 'da-arch'; renderDomainAnalysisPage(container); break;
+    case 'da-domains': window._daSection = 'da-domains'; renderDomainAnalysisPage(container); break;
+    case 'da-result': window._daSection = 'da-result'; renderDomainAnalysisPage(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
