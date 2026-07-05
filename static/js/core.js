@@ -100,13 +100,7 @@ const pages = {
   'report-standards': '报告编制要求',
   'feedback-template': '审核内容模板',
   'tax-agi': '税务AGI',
-  'human-learning': '人类学习引擎',
-  'eng-status': '管道调度',
-  'eng-rules': '学习反馈',
-  'eng-brain': 'AGI核心',
-  'eng-quality': '质量保障',
-  'eng-methods': '推理引擎',
-  'eng-details': '引擎详情'
+  'human-learning': '人类学习引擎'
 };
 
 // ==================== 用户登录 ====================
@@ -675,12 +669,6 @@ function navigateTo(page) {
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'tax-agi': renderAgiDashboard(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
-    case 'eng-status': window._engineTabTarget = 'status'; renderEngineDashboardPage(container); break;
-    case 'eng-rules': window._engineTabTarget = 'rules'; renderEngineDashboardPage(container); break;
-    case 'eng-brain': window._engineTabTarget = 'brain'; renderEngineDashboardPage(container); break;
-    case 'eng-quality': window._engineTabTarget = 'quality'; renderEngineDashboardPage(container); break;
-    case 'eng-methods': window._engineTabTarget = 'methods'; renderEngineDashboardPage(container); break;
-    case 'eng-details': window._engineTabTarget = 'details'; renderEngineDashboardPage(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
