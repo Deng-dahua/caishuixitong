@@ -110,7 +110,22 @@ const pages = {
   'eng-info': '引擎详情',
   'aly-steps': '七步执行流程',
   'aly-result': '本次分析结果',
-  'aly-logs': '管线执行日志'
+  'aly-logs': '管线执行日志',
+  'hb-overview': '系统数据概览',
+  'hb-ch1': '稽查工作流程',
+  'hb-ch2': '14类必查资料',
+  'hb-ch3': '稽查方法论33条',
+  'hb-ch4': '稽查判定规则',
+  'hb-ch5': '报告编制规范',
+  'hb-ch6': '关键法律条文',
+  'hb-ch7': '系统与规程映射',
+  'hb-ch8': '全链路质量保障',
+  'hb-ch9': '跨域协商引擎',
+  'hb-ch10': '数据一致性自检',
+  'hb-ch11': '审核反馈闭环',
+  'hb-ch12': '引擎记忆体系',
+  'hb-ch13': '引擎铁律编号',
+  'hb-ch14': '系统文件关联'
 };
 
 // ==================== 用户登录 ====================
@@ -689,6 +704,21 @@ function navigateTo(page) {
     case 'aly-steps': renderAnalyzeSteps(container); break;
     case 'aly-result': renderAnalyzeResult(container); break;
     case 'aly-logs': renderAnalyzeLogs(container); break;
+    case 'hb-overview': window._hbChapter = 'hb-s0'; renderAuditorHandbook(container); break;
+    case 'hb-ch1': window._hbChapter = 'hb-s1'; renderAuditorHandbook(container); break;
+    case 'hb-ch2': window._hbChapter = 'hb-s2'; renderAuditorHandbook(container); break;
+    case 'hb-ch3': window._hbChapter = 'hb-s3'; renderAuditorHandbook(container); break;
+    case 'hb-ch4': window._hbChapter = 'hb-s4'; renderAuditorHandbook(container); break;
+    case 'hb-ch5': window._hbChapter = 'hb-s5'; renderAuditorHandbook(container); break;
+    case 'hb-ch6': window._hbChapter = 'hb-s6'; renderAuditorHandbook(container); break;
+    case 'hb-ch7': window._hbChapter = 'hb-s7'; renderAuditorHandbook(container); break;
+    case 'hb-ch8': window._hbChapter = 'hb-s8'; renderAuditorHandbook(container); break;
+    case 'hb-ch9': window._hbChapter = 'hb-s9'; renderAuditorHandbook(container); break;
+    case 'hb-ch10': window._hbChapter = 'hb-s10'; renderAuditorHandbook(container); break;
+    case 'hb-ch11': window._hbChapter = 'hb-s11'; renderAuditorHandbook(container); break;
+    case 'hb-ch12': window._hbChapter = 'hb-s12'; renderAuditorHandbook(container); break;
+    case 'hb-ch13': window._hbChapter = 'hb-s13'; renderAuditorHandbook(container); break;
+    case 'hb-ch14': window._hbChapter = 'hb-s14'; renderAuditorHandbook(container); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
