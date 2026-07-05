@@ -1498,3 +1498,65 @@ async function renderLearnFeedback(container) {
   container.innerHTML = h;
 }
 
+// ═══ 调度中枢 — 专用清新布局 ═══
+async function renderOrchDashboard(container) {
+  window._skipModuleHeader = true;
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
+  
+  var d = {};
+  try {
+    var r = await fetch('/api/audit/brain-status');
+    d = await r.json();
+  } catch(e) {}
+  var orch = d.orchestrator || {};
+  var domains = orch.domains || {};
+  
+  var h = '';
+  h += '<style>'
+    + '.od{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.od-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.od-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.od-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.od-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.od-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.od-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.od-sec{margin-bottom:32px}'
+    + '.od-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.od-tbl{width:100%;border-collapse:collapse;font-size:12px}'
+    + '.od-tbl th{text-align:left;padding:8px 12px;background:#f8fafc;color:#64748b;font-weight:600;font-size:11px;border-bottom:2px solid #e2e8f0}'
+    + '.od-tbl td{padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569;line-height:1.8}'
+    + '.od-tbl td:first-child{font-weight:600;color:#0f172a;white-space:nowrap}'
+    + '.od-tag{display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#f1f5f9;border-radius:4px;font-size:11px;color:#475569}'
+    + '</style>';
+  
+  h += '<div class="od">';
+  h += '<div class="od-title">调度中枢</div>';
+  h += '<div class="od-sub">21模块调度中枢 · 管理模块分布、领域划分和管线深度 · 所属：智能大脑</div>';
+  
+  h += '<div class="od-hero">';
+  h += '<div class="od-card"><div class="v" style="color:#2563eb">' + (orch.total_modules||21) + '</div><div class="l">总模块</div></div>';
+  h += '<div class="od-card"><div class="v" style="color:#059669">' + (orch.domain_count || Object.keys(domains).length || 7) + '</div><div class="l">领域</div></div>';
+  h += '<div class="od-card"><div class="v" style="color:#f59e0b">' + (orch.pipeline_depth||16) + '</div><div class="l">管线深度</div></div>';
+  h += '</div>';
+  
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">调度中枢是引擎的<strong>指挥中心</strong>，负责管理全部模块的分布、领域划分和管线深度。它不直接执行分析，而是决定哪些模块在什么时候、以什么顺序、用什么参数参与分析。每个领域内的模块按依赖关系排序，确保上游模块的输出在需要时已经准备好。</p>';
+  h += '<p style="margin:0">管线深度指从原始资料到最终报告中间经过的处理层次数。当前系统管线深度覆盖从文件指纹识别、目标实体定位、资料情报提取、规则匹配、线索链触发、证据链闭环、分析链推理、协商引擎消解到报告输出的完整流程。</p>';
+  h += '</div>';
+  
+  if (Object.keys(domains).length > 0) {
+    h += '<div class="od-sec"><h3>领域分布 · ' + Object.keys(domains).length + ' 个领域</h3>';
+    h += '<table class="od-tbl"><tr><th>领域</th><th>模块数</th><th>模块列表</th></tr>';
+    for (var domain in domains) {
+      var mods = domains[domain] || [];
+      h += '<tr><td>' + domain.replace(/</g,'&lt;') + '</td><td>' + mods.length + '</td><td>';
+      mods.forEach(function(m){ h += '<span class="od-tag">' + m.replace(/</g,'&lt;') + '</span>'; });
+      h += '</td></tr>';
+    }
+    h += '</table></div>';
+  }
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+
