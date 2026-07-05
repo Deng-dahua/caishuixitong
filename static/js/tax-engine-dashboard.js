@@ -23,8 +23,23 @@ function renderEngineDashboard(rpt) {
   window._engineRules = null;
   window._hasEngineData = hasData;
 
+  // 如果是从侧边栏子模块跳转过来的，直接切换到对应标签
+  if (window._engineTabTarget) {
+    var targetTab = window._engineTabTarget;
+    window._engineTabTarget = null;
+    // 先渲染整个仪表盘，再延迟切换到目标标签
+    renderEngineDashboardHTML(es, hasData, targetTab);
+    setTimeout(function() { switchEngineTab(targetTab); }, 100);
+    return;
+  }
+
+  renderEngineDashboardHTML(es, hasData, 'status');
+}
+
+function renderEngineDashboardHTML(es, hasData, activeTab) {
+  var area = document.getElementById('engine-dashboard-area');
+  if (!area) return;
   var tabs = [
-    {id:'status',icon:'📊',name:'管道调度',color:'#2563eb'},
     {id:'rules',icon:'📋',name:'学习反馈',color:'#7c3aed'},
     {id:'brain',icon:'🧠',name:'AGI核心',color:'#dc2626'},
     {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},

@@ -100,7 +100,13 @@ const pages = {
   'report-standards': '报告编制要求',
   'feedback-template': '审核内容模板',
   'tax-agi': '税务AGI',
-  'human-learning': '人类学习引擎'
+  'human-learning': '人类学习引擎',
+  'engine-status': '管道调度',
+  'engine-rules': '学习反馈',
+  'engine-brain': 'AGI核心',
+  'engine-quality': '质量保障',
+  'engine-methods': '推理引擎',
+  'engine-details': '引擎详情'
 };
 
 // ==================== 用户登录 ====================
@@ -669,6 +675,12 @@ function navigateTo(page) {
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'tax-agi': renderAgiDashboard(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
+    case 'engine-status': loadEngineTab('status', container); break;
+    case 'engine-rules': loadEngineTab('rules', container); break;
+    case 'engine-brain': loadEngineTab('brain', container); break;
+    case 'engine-quality': loadEngineTab('quality', container); break;
+    case 'engine-methods': loadEngineTab('methods', container); break;
+    case 'engine-details': renderEngineDashboardPage(container); break;  // 默认入口
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
@@ -1255,4 +1267,16 @@ function _bindPickPageButtons() {
   // 退出登录链接（兜底，HTML已有inline onclick，此处不重复绑定）
   // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
 }
+
+// ═══ 引擎仪表盘子模块路由 ═══
+async function loadEngineTab(tabId, container) {
+  // 先加载仪表盘数据，再切换到对应标签
+  if (typeof renderEngineDashboardPage !== 'function') {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">引擎仪表盘模块未加载</div>';
+    return;
+  }
+  window._engineTabTarget = tabId;
+  renderEngineDashboardPage(container);
+}
+
 
