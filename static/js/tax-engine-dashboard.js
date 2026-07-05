@@ -1331,6 +1331,13 @@ async function renderPipeDashboard(container) {
   h += '<div class="pp-card"><div class="v" style="color:#f59e0b">' + (es.phases_completed||0) + '</div><div class="l">完成阶段</div></div>';
   h += '</div>';
   
+  // 模块说明段落
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:32px">';
+  h += '<p style="margin:0 0 16px">管道调度是税务合规系统的<strong>执行中枢</strong>，负责协调七步分析流程的有序运行。每一步都有明确的输入来源、处理逻辑和输出目标，形成一个从原始资料到正式报告的单向流动的数据管道。</p>';
+  h += '<p style="margin:0 0 16px">管道调度的核心价值在于<strong>自动化调度</strong>——不需要人工干预每一步的执行顺序和参数传递。当用户上传资料后，管道自动启动文件解析引擎识别文件类型和提取数据结构，然后将结果传递给域分析引擎做42个域的函数分析，域分析产出发现后再传给规则引擎做规则匹配，匹配结果触发线索链和证据链的交叉验证，最后经过方法论过滤器净化后生成正式报告。</p>';
+  h += '<p style="margin:0">管道调度引擎支持<strong>断点续传</strong>和<strong>增量分析</strong>。如果某一环节因为数据缺失而无法完成，管道不会中断，而是标记该环节为"跳过-数据缺失"并继续执行后续可用的环节。分析结果中会明确标注哪些环节因数据缺失而未执行，帮助用户判断资料的完备度。整个管道的执行日志会实时记录在管线执行日志模块中，用户可以逐条查看每一步的执行时间、输入数据量、输出结果量以及是否出现异常。</p>';
+  h += '</div>';
+  
   // 七步流程
   h += '<div class="pp-sec"><h3>七步执行流程</h3><div class="pp-timeline">';
   var steps = [
