@@ -134,9 +134,12 @@ function renderEngineDashboardHTML(es, hasData, activeTab, hideToc) {
 
   }
 
-  // 先加载规则数据，再切换标签
-
-  fetchEngineRules(function() { switchEngineTab(activeTab); });
+  // 有缓存则跳过请求
+  if (window._engineRules && window._engineRules.phases) {
+    switchEngineTab(activeTab);
+  } else {
+    fetchEngineRules(function() { switchEngineTab(activeTab); });
+  }
 
 }
 
