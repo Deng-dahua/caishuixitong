@@ -1283,21 +1283,9 @@ async function renderBrainSubModule(container, section) {
 }
 
 // ═══ 管道调度 — 专用清新布局 ═══
-async function renderPipeDashboard(container) {
+function renderPipeDashboard(container) {
   window._skipModuleHeader = true;
   var cid = window._currentCompanyId || 1;
-  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
-  
-  var d = {};
-  try {
-    var r = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
-    d = await r.json();
-  } catch(e) {}
-  var rpt = (d && d.report) ? d.report : {};
-  window._engineEs = (rpt && rpt.engine_status) || {};
-  var es = window._engineEs || {};
-  var comp = rpt.comprehensive || {};
-  var plogs = comp.pipeline_log || comp.execution_log || [];
   
   var h = '';
   h += '<style>'
@@ -1324,17 +1312,14 @@ async function renderPipeDashboard(container) {
   h += '<div class="pp-title">管道调度</div>';
   h += '<div class="pp-sub">引擎七步执行的实时状态监控 · 展示各阶段进度、数据吞吐量和模块调用链 · 所属：智能大脑</div>';
   
-  // 统计卡片
   h += '<div class="pp-hero">';
-  h += '<div class="pp-card"><div class="v" style="color:#2563eb">' + (es.version||'v3.0') + '</div><div class="l">引擎版本</div></div>';
-  h += '<div class="pp-card"><div class="v">' + (plogs.length||0) + '</div><div class="l">执行日志</div></div>';
-  h += '<div class="pp-card"><div class="v" style="color:#059669">' + (es.modules_loaded||0) + '</div><div class="l">加载模块</div></div>';
-  h += '<div class="pp-card"><div class="v" style="color:#f59e0b">' + (es.phases_completed||0) + '</div><div class="l">完成阶段</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#2563eb">v3.0</div><div class="l">引擎版本</div></div>';
+  h += '<div class="pp-card"><div class="v" id="pp-log-count">0</div><div class="l">执行日志</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#059669" id="pp-mod-count">--</div><div class="l">加载模块</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#f59e0b" id="pp-phase-count">--</div><div class="l">完成阶段</div></div>';
   h += '</div>';
   
-  // ═══ 上下游依赖 ═══
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  // 上游
   h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
   h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
   h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
@@ -1345,7 +1330,6 @@ async function renderPipeDashboard(container) {
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">规则库/线索链库/证据链库等知识底座</span></div>';
   h += '<div><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">历史分析经验注入先验知识</span></div>';
   h += '</div></div>';
-  // 下游
   h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
   h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
   h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
@@ -1359,45 +1343,61 @@ async function renderPipeDashboard(container) {
   h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">全量运行记录</span></div>';
   h += '</div></div></div>';
   
-  // 模块说明段落
   h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:32px">';
   h += '<p style="margin:0 0 16px">管道调度是税务合规系统的<strong>执行中枢</strong>，负责协调七步分析流程的有序运行。每一步都有明确的输入来源、处理逻辑和输出目标，形成一个从原始资料到正式报告的单向流动的数据管道。</p>';
   h += '<p style="margin:0 0 16px">管道调度的核心价值在于<strong>自动化调度</strong>——不需要人工干预每一步的执行顺序和参数传递。当用户上传资料后，管道自动启动文件解析引擎识别文件类型和提取数据结构，然后将结果传递给域分析引擎做42个域的函数分析，域分析产出发现后再传给规则引擎做规则匹配，匹配结果触发线索链和证据链的交叉验证，最后经过方法论过滤器净化后生成正式报告。</p>';
-  h += '<p style="margin:0">管道调度引擎支持<strong>断点续传</strong>和<strong>增量分析</strong>。如果某一环节因为数据缺失而无法完成，管道不会中断，而是标记该环节为"跳过-数据缺失"并继续执行后续可用的环节。分析结果中会明确标注哪些环节因数据缺失而未执行，帮助用户判断资料的完备度。整个管道的执行日志会实时记录在管线执行日志模块中，用户可以逐条查看每一步的执行时间、输入数据量、输出结果量以及是否出现异常。</p>';
+  h += '<p style="margin:0">管道调度引擎支持<strong>断点续传</strong>和<strong>增量分析</strong>。如果某一环节因为数据缺失而无法完成，管道不会中断，而是标记该环节为"跳过-数据缺失"并继续执行后续可用的环节。分析结果中会明确标注哪些环节因数据缺失而未执行，帮助用户判断资料的完备度。</p>';
   h += '</div>';
   
-  // 七步流程
   h += '<div class="pp-sec"><h3>七步执行流程</h3><div class="pp-timeline">';
-  var steps = [
-    {n:'①',t:'资料扫描与类型识别',d:'34类文件指纹库 · 三层递进识别 · 四方交叉验证',a:true},
-    {n:'②',t:'目标实体识别',d:'进项购买方∩销项销售方取交集 · 90+关键词×66行业加权投票 · 联网双源比对',a:true},
-    {n:'③',t:'资料情报提取与分析',d:'42个域分析函数并行执行 · 银行收款+进销存比+五层发票审计+供应商穿透+合同四层分类',a:true},
-    {n:'④',t:'规则引擎与链驱动检查',d:'1608条指令逐条匹配 · 437条线索链触发 · 781条证据链闭环 · 行业特化链自动过滤',a:true},
-    {n:'⑤',t:'方法论噪声过滤',d:'HARD_BAN 23类禁词 · COND_BAN 5类条件过滤 · 行业不匹配自动删除 · 去重+正常结论排除',a:true},
-    {n:'⑥',t:'行业对标与申报比对',d:'66行业五维对标 · 三级判断(低于下限→高风险/低于典型值85%→中风险/高于上限→中风险)',a:true},
-    {n:'⑦',t:'正式报告输出',d:'综合所有发现 → 结构化报告 · 7章+附件 · 直接交付',a:(plogs.length > 0)}
+  var steps=[
+    {n:'①',t:'资料扫描与类型识别',d:'34类文件指纹库 · 三层递进识别 · 四方交叉验证'},
+    {n:'②',t:'目标实体识别',d:'进项购买方∩销项销售方取交集 · 90+关键词×66行业加权投票 · 联网双源比对'},
+    {n:'③',t:'资料情报提取与分析',d:'42个域分析函数并行执行 · 银行收款+进销存比+五层发票审计+供应商穿透+合同四层分类'},
+    {n:'④',t:'规则引擎与链驱动检查',d:'1608条指令逐条匹配 · 437条线索链触发 · 781条证据链闭环'},
+    {n:'⑤',t:'方法论噪声过滤',d:'HARD_BAN 23类禁词 · COND_BAN 5类条件过滤 · 行业不匹配自动删除 · 去重'},
+    {n:'⑥',t:'行业对标与申报比对',d:'66行业五维对标 · 三级判断(低于下限→高风险/低于典型值85%→中风险)'},
+    {n:'⑦',t:'正式报告输出',d:'综合所有发现 → 结构化报告 · 7章+附件 · 直接交付'}
   ];
-  steps.forEach(function(s) {
-    h += '<div class="pp-step' + (s.a?' active':'') + '"><div class="sn">' + s.n + ' ' + s.t + '</div><div class="sd">' + s.d + '</div></div>';
+  steps.forEach(function(s){
+    h+='<div class="pp-step active"><div class="sn">'+s.n+' '+s.t+'</div><div class="sd">'+s.d+'</div></div>';
   });
-  h += '</div></div>';
+  h+='</div></div>';
   
-  // 管线日志
-  if (plogs.length > 0) {
-    h += '<div class="pp-sec"><h3>管线执行日志 · ' + plogs.length + ' 条</h3><div class="pp-log">';
-    plogs.forEach(function(log, i) {
-      var color = '#94a3b8';
-      if (/异常|失败|错误/.test(log)) color = '#fca5a5';
-      else if (/完成|成功|通过/.test(log)) color = '#86efac';
-      else if (/发现|触发|命中/.test(log)) color = '#fde68a';
-      else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
-      h += '<div style="color:' + color + '">[' + String(i+1).padStart(3,'0') + '] ' + log.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
-    });
-    h += '</div></div>';
-  }
+  // 管线日志占位 —— 异步加载
+  h+='<div class="pp-sec" id="pp-log-section" style="display:none"><h3>管线执行日志</h3><div class="pp-log" id="pp-log-content"></div></div>';
   
   h += '</div>';
   container.innerHTML = h;
+  
+  // 异步加载动态数据
+  (async function(){
+    try{
+      var r=await fetch('/api/tax-risk-docs/last-analysis?company_id='+cid);
+      var d=await r.json();
+      var rpt=(d&&d.report)?d.report:{};
+      var es=rpt.engine_status||{};
+      var plogs=(rpt.comprehensive||{}).pipeline_log||[];
+      var lc=document.getElementById('pp-log-count');
+      if(lc)lc.textContent=plogs.length||0;
+      var mc=document.getElementById('pp-mod-count');
+      if(mc)mc.textContent=es.modules_loaded||'--';
+      var pc=document.getElementById('pp-phase-count');
+      if(pc)pc.textContent=es.phases_completed||'--';
+      if(plogs.length>0){
+        var ls=document.getElementById('pp-log-section');
+        var lcc=document.getElementById('pp-log-content');
+        if(ls&&lcc){ls.style.display='';plogs.forEach(function(log,i){
+          var color='#94a3b8';
+          if(/异常|失败|错误/.test(log))color='#fca5a5';
+          else if(/完成|成功|通过/.test(log))color='#86efac';
+          else if(/发现|触发|命中/.test(log))color='#fde68a';
+          else if(/Phase|Step|阶段|过滤|闭环/.test(log))color='#93c5fd';
+          lcc.innerHTML+='<div style="color:'+color+'">['+String(i+1).padStart(3,'0')+'] '+log.replace(/</g,'&lt;')+'</div>';
+        });}
+      }
+    }catch(e){}
+  })();
 }
 
 // ═══ 学习反馈 — 专用清新布局 ═══
