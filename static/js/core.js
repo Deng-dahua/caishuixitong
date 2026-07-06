@@ -663,6 +663,20 @@ function navigateTo(page) {
   container.style.display = '';
 
   // 每次切换都自动刷新页面
+  // 跨文件函数安全调用：新函数未加载时延时重试，比直接fallback更可靠
+  function _safeCall(fName, container, fallbackTab, isBrain) {
+    var fn = window[fName];
+    if (typeof fn === 'function') { fn(container); return; }
+    if (isBrain) {
+      var bfn = window.renderBrainSubModule;
+      if (typeof bfn === 'function') { bfn(container, fallbackTab); return; }
+    } else {
+      var efn = window.renderEngineSubModule;
+      if (typeof efn === 'function') { efn(container, fallbackTab); return; }
+    }
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;font-size:13px">模块加载中...</div>';
+    setTimeout(function(){ _safeCall(fName, container, fallbackTab, isBrain); }, 200);
+  }
   switch (page) {
     case 'dashboard': renderDashboard(container); break;
     case 'journal': renderJournal(container); break;
@@ -712,11 +726,11 @@ function navigateTo(page) {
     case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
-    case 'eng-pipe': if(typeof renderPipeDashboard==='function')renderPipeDashboard(container);else renderEngineSubModule(container,'status'); break;
-    case 'eng-learn': if(typeof renderLearnFeedback==='function')renderLearnFeedback(container);else renderEngineSubModule(container,'rules'); break;
-    case 'eng-orch': if(typeof renderOrchDashboard==='function')renderOrchDashboard(container);else renderBrainSubModule(container,'orchestrator'); break;
-    case 'eng-grow': if(typeof renderGrowthDashboard==='function')renderGrowthDashboard(container);else renderBrainSubModule(container,'growth'); break;
-    case 'eng-qual': if(typeof renderQualityDashboard==='function')renderQualityDashboard(container);else renderEngineSubModule(container,'quality'); break;
+    case 'eng-pipe': _safeCall('renderPipeDashboard',container,'status'); break;
+    case 'eng-learn': _safeCall('renderLearnFeedback',container,'rules'); break;
+    case 'eng-orch': _safeCall('renderOrchDashboard',container,'orchestrator',true); break;
+    case 'eng-grow': _safeCall('renderGrowthDashboard',container,'growth',true); break;
+    case 'eng-qual': _safeCall('renderQualityDashboard',container,'quality'); break;
     case 'eng-think': renderEngineSubModule(container, 'methods'); break;
     case 'eng-info': renderEngineSubModule(container, 'details'); break;
     case 'aly-result': renderAnalyzeResult(container); break;
