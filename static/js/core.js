@@ -731,8 +731,8 @@ function navigateTo(page) {
     case 'eng-orch': _safeCall('renderOrchDashboard',container,'orchestrator',true); break;
     case 'eng-grow': _safeCall('renderGrowthDashboard',container,'growth',true); break;
     case 'eng-qual': _safeCall('renderQualityDashboard',container,'quality'); break;
-    case 'eng-think': renderEngineSubModule(container, 'methods'); break;
-    case 'eng-info': renderEngineSubModule(container, 'details'); break;
+    case 'eng-think': _safeCall('renderEngineSubModule',container,'methods'); break;
+    case 'eng-info': _safeCall('renderEngineSubModule',container,'details'); break;
     case 'aly-result': renderAnalyzeResult(container); break;
     case 'aly-logs': renderAnalyzeLogs(container); break;
     case 'hb-overview': window._hbChapter = 'hb-s0'; renderAuditorHandbook(container); break;
