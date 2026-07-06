@@ -808,5 +808,35 @@
       "salary": 0.0,
       "gross_margin_pct": -89.79380704366837
     }
+  },
+  {
+    "timestamp": "2026-07-06T11:16:36.418858",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
   }
 ]
