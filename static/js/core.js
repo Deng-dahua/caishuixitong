@@ -3,6 +3,15 @@ var currentPage = 'dashboard';
 var currentPeriod = '';
 var allAccounts = [];
 
+// ═══ 跨文件函数存根 — 确保 tax-engine-dashboard.js 未加载时也不会报 is not defined ═══
+if(typeof renderPipeDashboard==='undefined') window.renderPipeDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderLearnFeedback==='undefined') window.renderLearnFeedback=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderOrchDashboard==='undefined') window.renderOrchDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderGrowthDashboard==='undefined') window.renderGrowthDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderQualityDashboard==='undefined') window.renderQualityDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderEngineSubModule==='undefined') window.renderEngineSubModule=function(c,t){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+if(typeof renderBrainSubModule==='undefined') window.renderBrainSubModule=function(c,s){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+
 // 多公司全局状态（供所有模块访问）
 var currentCompanyId = 0;  // 0=未选择，必须显式选公司后才有效
 var currentCompanyName = '';
@@ -663,20 +672,6 @@ function navigateTo(page) {
   container.style.display = '';
 
   // 每次切换都自动刷新页面
-  // 跨文件函数安全调用：新函数未加载时延时重试，比直接fallback更可靠
-  function _safeCall(fName, container, fallbackTab, isBrain) {
-    var fn = window[fName];
-    if (typeof fn === 'function') { fn(container); return; }
-    if (isBrain) {
-      var bfn = window.renderBrainSubModule;
-      if (typeof bfn === 'function') { bfn(container, fallbackTab); return; }
-    } else {
-      var efn = window.renderEngineSubModule;
-      if (typeof efn === 'function') { efn(container, fallbackTab); return; }
-    }
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;font-size:13px">模块加载中...</div>';
-    setTimeout(function(){ _safeCall(fName, container, fallbackTab, isBrain); }, 200);
-  }
   switch (page) {
     case 'dashboard': renderDashboard(container); break;
     case 'journal': renderJournal(container); break;
@@ -726,13 +721,13 @@ function navigateTo(page) {
     case 'correction-rules': renderCorrectionRulesHub(container); break;
     case 'engine-dimensions': renderEngineDimensions(container); break;
     case 'human-learning': renderHumanLearningPage(container); break;
-    case 'eng-pipe': _safeCall('renderPipeDashboard',container,'status'); break;
-    case 'eng-learn': _safeCall('renderLearnFeedback',container,'rules'); break;
-    case 'eng-orch': _safeCall('renderOrchDashboard',container,'orchestrator',true); break;
-    case 'eng-grow': _safeCall('renderGrowthDashboard',container,'growth',true); break;
-    case 'eng-qual': _safeCall('renderQualityDashboard',container,'quality'); break;
-    case 'eng-think': _safeCall('renderEngineSubModule',container,'methods'); break;
-    case 'eng-info': _safeCall('renderEngineSubModule',container,'details'); break;
+    case 'eng-pipe': renderPipeDashboard(container); break;
+    case 'eng-learn': renderLearnFeedback(container); break;
+    case 'eng-orch': renderOrchDashboard(container); break;
+    case 'eng-grow': renderGrowthDashboard(container); break;
+    case 'eng-qual': renderQualityDashboard(container); break;
+    case 'eng-think': renderEngineSubModule(container, 'methods'); break;
+    case 'eng-info': renderEngineSubModule(container, 'details'); break;
     case 'aly-result': renderAnalyzeResult(container); break;
     case 'aly-logs': renderAnalyzeLogs(container); break;
     case 'hb-overview': window._hbChapter = 'hb-s0'; renderAuditorHandbook(container); break;
