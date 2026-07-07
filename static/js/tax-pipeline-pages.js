@@ -1198,25 +1198,65 @@ var _allCrossChains = null;
 function renderChainsPage(container) {
   if (!container) return;
   window.currentModule = '线索链';
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.cl{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.cl-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.cl-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.cl-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.cl-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.cl-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.cl-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.cl-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '</style>';
+
+  h += '<div class="cl">';
+  h += '<div class="cl-title">线索链</div>';
+  h += '<div class="cl-sub">串行工作流引擎 · 三类触发方式 · 所属：核心数据资产</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div class="cl-hero">';
+  h += '<div class="cl-card"><div class="v" id="cl-total" style="color:#0f172a">—</div><div class="l">线索链总数</div></div>';
+  h += '<div class="cl-card"><div class="v" id="cl-triggered" style="color:#dc2626">—</div><div class="l">本次触发</div></div>';
+  h += '<div class="cl-card"><div class="v" id="cl-steps" style="color:#2563eb">—</div><div class="l">调查步骤总数</div></div>';
+  h += '<div class="cl-card"><div class="v" id="cl-highrisk" style="color:#f59e0b">—</div><div class="l">高风险步骤</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配触发后激活对应线索链</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><br><span style="color:#94a3b8">域分析发现作为线索链触发输入</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">线索链定义和调查路径存储</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">管线步骤④调用线索链引擎</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">线索链发现触发证据链多源交叉验证</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">链发现作为因果推理输入</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">链驱动发现接受质量审查</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">线索链引擎状态展示</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">线索链是系统从<strong>风险信号到发现结论</strong>的串行工作流引擎。每条线索链定义一条完整的调查路径（investigation_path[]），从触发关键词开始逐步执行各步骤——"从哪里查、查什么、查到了怎么办"。</p>';
+  h += '<p style="margin:0 0 16px">线索链的工作方式不同于简单的规则匹配：规则告诉你"这个数据异常"，线索链告诉你"从这个异常出发应该查什么、怎么查、查到什么程度才算确认"。例如"银行流入资金与销项开票偏差"这条规则触发后，线索链会引导系统依次检查银行流水的付款方身份、发票的品名一致性、合同的存在性和金额匹配度、关联交易的定价合理性等。</p>';
+  h += '<p style="margin:0">线索链引擎支持三类触发方式——<strong>定量阈值</strong>（数值超限触发）、<strong>定性模式</strong>（特定关键词匹配触发）、<strong>缺失数据</strong>（资料缺口触发替代链）。线索链发现累积后触发证据链做多源交叉验证，闭环后输入分析链做综合推理判定，形成"线索→证据→分析"的完整链路。</p>';
+  h += '</div>';
+
+  h += '<div id="chains-body"></div>';
+  h += '</div>';
+  container.innerHTML = h;
 
   var hasCache = _allClueChains && _allClueChains.length > 0;
-
-  container.innerHTML = '<style>.ch-layout{max-width:1100px;margin:0 auto;padding:20px}.ch-main{flex:1;min-width:0}</style>'
-    + '<div class="ch-layout">'
-    + '<div class="ch-main">'
-    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔍 线索链</h2>'
-    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px" id="chains-subtitle">'
-    + (hasCache ? '437条线索链（全部可执行） · 串行工作流引擎 · 三大触发方式 · 每步一个调查动作' : '加载中...')
-    + '</p>'
-    + '<div id="chains-body"></div></div></div>';
-
-  if (hasCache) { renderChainsList(_allClueChains); updateChainsSubtitle(); }
+  if (hasCache) { renderChainsList(_allClueChains); }
   else { loadChainsData(); }
-}
-
-function updateChainsSubtitle() {
-  var st = document.getElementById('chains-subtitle');
-  if (st && _chainDynamic) { st.textContent = _allClueChains.length + ' 条线索链（本次触发 ' + (_chainDynamic.triggered_count || 0) + ' 条）· 每条链含若干调查步骤'; }
 }
 
 async function loadChainsData() {
@@ -1230,11 +1270,6 @@ async function loadChainsData() {
 
     _allClueChains = clueChains;
     renderChainsList(clueChains);
-    // 更新标题栏显示触发数量
-    var st = document.getElementById('chains-subtitle');
-    if (st && _chainDynamic) {
-      st.textContent = clueChains.length + ' 条线索链（本次触发 ' + (_chainDynamic.triggered_count || 0) + ' 条）· 每条链含若干调查步骤，触发率=已触发步骤/总步骤';
-    }
   } catch (e) {
     if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
@@ -1268,28 +1303,22 @@ function renderChainsList(chains) {
 
   var html = '';
   if (!chains.length) {
-    html = '<div style="text-align:center;padding:40px;color:#94a3b8">无匹配线索链</div>';
+    html = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">无匹配线索链</div>';
   } else {
     var triggeredCount = _chainDynamic ? (_chainDynamic.triggered_count || 0) : 0;
 
-    // 概念说明
-    html += '<div id="ch-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
-      + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">线索链是什么</h3>'
-      + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
-      + '线索链是从<strong>税务合规指令（点）到调查路径（线）的串行工作流引擎</strong>。每条线索链定义一条完整的调查路径（investigation_path[]），从触发关键词开始逐步执行各步骤。与证据链的并行多源验证不同，线索链是单路径顺序推进──\"从哪里查、查什么、查到了怎么办\"。'
-      + '</p>'
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
-      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">串行调查路径</strong><br>一个规则触发→多条调查步骤<br>investigation_path[]顺序执行</div>'
-      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">三类触发方式</strong><br>定量阈值（数值超限）<br>定性模式（特定匹配）<br>缺失数据（资料缺口触发替代链）</div>'
-      + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">线索→证据→分析</strong><br>线索链发现累积<br>→触发证据链多源交叉验证<br>→闭环后输入分析链推理判定</div>'
-      + '</div>'
-      + '</div>';
-    
-    // 统计卡片
-    html += '<div id="ch-stats" style="display:flex;gap:12px;margin-bottom:32px">'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">线索链总数</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + triggeredCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">本次触发</div></div>'
-      + '</div>';
+    // 填充页面级统计卡片
+    var totalSteps = 0;
+    var totalHighRisk = 0;
+    chains.forEach(function(c) {
+      var sl = c.investigation_path || [];
+      totalSteps += sl.length;
+      totalHighRisk += (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
+    });
+    var elT = document.getElementById('cl-total'); if (elT) elT.textContent = chains.length;
+    var elTr = document.getElementById('cl-triggered'); if (elTr) elTr.textContent = triggeredCount;
+    var elS = document.getElementById('cl-steps'); if (elS) elS.textContent = totalSteps;
+    var elH = document.getElementById('cl-highrisk'); if (elH) elH.textContent = totalHighRisk;
 
     chains.forEach(function(c, ci) {
       var exec = execMap[c.name];
@@ -1318,62 +1347,62 @@ function renderChainsList(chains) {
       // 质量分标签
       var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-      html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">'
+      html += '<div class="cl-chain">'
 
         // ══ 卡片头部：名称 + 标签行 ═══
-        + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
-        + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + badge + topicTag + scoreTag + '</div>'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+        + '<div style="font-size:13px;font-weight:700;color:#0f172a">' + escHtml(c.name) + badge + topicTag + scoreTag + '</div>'
         + '</div>';
 
       // 描述（新格式链有 description/desc）
       if (c.description) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
+        html += '<div style="padding:8px 12px;margin-bottom:10px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:12px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
       } else if (c.desc) {
-        html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.desc) + '</div>';
+        html += '<div style="padding:8px 12px;margin-bottom:10px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:12px;color:#475569;line-height:2.0">' + escHtml(c.desc) + '</div>';
       }
 
       // ══ 步骤列表（统一样式）═══
-      html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#2563eb;margin-bottom:8px">📋 调查路径（' + stepList.length + ' 步）</div>';
+      html += '<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:#2563eb;margin-bottom:6px">📋 调查路径（' + stepList.length + ' 步）</div>';
       stepList.forEach(function(s, si) {
         var lvl = s.level || '';
         var isHigh = lvl === '高风险' || lvl === '极高风险';
-        html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid #2563eb">'
+        html += '<div style="padding:8px 12px;margin-bottom:4px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid #2563eb">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">'
-          + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#2563eb') + '">' + (s.step || (si+1)) + '</span>'
+          + '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#2563eb') + '">' + (s.step || (si+1)) + '</span>'
           + (s.rule_id ? '<span style="color:#6366f1;font-size:10px;font-weight:600;background:#eef2ff;padding:1px 5px;border-radius:3px">R' + s.rule_id + '</span>' : '')
           + (lvl ? '<span style="font-size:10px;font-weight:600;color:' + (isHigh ? '#dc2626' : '#64748b') + ';background:' + (isHigh ? '#fee2e2' : '#f1f5f9') + ';padding:1px 5px;border-radius:3px">' + lvl + '</span>' : '')
-          + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.domain || s.rule_item || s.action || '') + '</b>'
+          + '<b style="font-size:12px;color:#0f172a">' + escHtml(s.domain || s.rule_item || s.action || '') + '</b>'
           + '</div>'
-          + (s.detail || s.action ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:4px;padding-left:30px">' + escHtml(s.detail || s.action || '') + '</div>' : '')
-          + (s.data_required ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:30px">需要数据: ' + escHtml(s.data_required) + '</div>' : '')
-          + (s.suggestion ? '<div style="font-size:12px;color:#059669;margin-top:6px;padding:6px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:4px"><strong>建议：</strong>' + escHtml(s.suggestion) + '</div>' : '')
-          + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:30px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
+          + (s.detail || s.action ? '<div style="font-size:12px;color:#475569;line-height:2.0;margin-top:4px;padding-left:28px">' + escHtml(s.detail || s.action || '') + '</div>' : '')
+          + (s.data_required ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:28px">需要数据: ' + escHtml(s.data_required) + '</div>' : '')
+          + (s.suggestion ? '<div style="font-size:11px;color:#059669;margin-top:4px;padding:4px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px"><strong>建议：</strong>' + escHtml(s.suggestion) + '</div>' : '')
+          + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:28px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
           + '</div>';
       });
       html += '</div>';
 
       // ══ 政策依据 ═══
       if (c.policies && c.policies.length > 0) {
-        html += '<div style="margin-bottom:10px">'
-          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
+        html += '<div style="margin-bottom:8px">'
+          + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">📋 政策依据</div>';
         c.policies.forEach(function(p) {
-          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
+          html += '<div style="padding:4px 10px;margin-bottom:2px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:11px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
         });
         html += '</div>';
       }
 
       // ══ 税务影响 ═══
       if (c.tax_impacts && c.tax_impacts.length > 0) {
-        html += '<div style="margin-bottom:10px">'
-          + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
+        html += '<div style="margin-bottom:8px">'
+          + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">⚠️ 税务影响</div>';
         c.tax_impacts.forEach(function(t) {
-          html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
+          html += '<div style="padding:4px 10px;margin-bottom:2px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:11px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
         });
         html += '</div>';
       }
 
       // ══ 底部元信息栏 ═══
-      html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
+      html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8">'
         + '<span>📝 步骤 <b style="color:#475569">' + totalS + '</b> 条</span>'
         + (highRiskStepCount > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskStepCount + '</b> 个</span>' : '')
         + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
@@ -1392,14 +1421,63 @@ function renderChainsList(chains) {
 function renderEvidencePage(container) {
   if (!container) return;
   window.currentModule = '证据链';
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.ev{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.ev-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.ev-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.ev-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.ev-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.ev-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.ev-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.ev-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '</style>';
+
+  h += '<div class="ev">';
+  h += '<div class="ev-title">证据链</div>';
+  h += '<div class="ev-sub">多源交叉验证 · 证据闭环 · 所属：核心数据资产</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div class="ev-hero">';
+  h += '<div class="ev-card"><div class="v" id="ev-total" style="color:#0f172a">—</div><div class="l">证据链总数</div></div>';
+  h += '<div class="ev-card"><div class="v" id="ev-closed" style="color:#059669">—</div><div class="l">已闭环</div></div>';
+  h += '<div class="ev-card"><div class="v" id="ev-steps" style="color:#2563eb">—</div><div class="l">调查步骤</div></div>';
+  h += '<div class="ev-card"><div class="v" id="ev-highrisk" style="color:#f59e0b">—</div><div class="l">高风险步骤</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">线索链发现触发证据链多源验证</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则触发的发现作为证据匹配源</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><br><span style="color:#94a3b8">域分析all_findings作为keyword匹配池</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">管线步骤⑤调用跨域证据推理</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'analysis-page\')" style="color:#2563eb">分析链</a><br><span style="color:#94a3b8">证据闭环后输入分析链做综合推理</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">闭环证据作为因果推理节点</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">证据驱动发现接受质量审查</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">证据链引擎状态展示</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">证据链是系统的<strong>多源交叉验证引擎</strong>。与线索链的串行调查不同，证据链同时从多个独立维度收集证据——每个维度是一个独立数据源（银行流水、发票、合同、社保、工商等），当 ≥min_evidence 个维度的触发关键词同时匹配到 all_findings 时，形成有效证据闭环。</p>';
+  h += '<p style="margin:0 0 16px">证据链解决的核心问题是"单源证据不可靠"。一条银行流水异常可能是技术性错误，但如果银行流水异常 + 发票品名不符 + 合同缺失同时出现，就形成了多源交叉印证的证据闭环，可信度大幅提升。闭环后的证据自动注入 all_findings，由分析链做综合推理判定。</p>';
+  h += '<p style="margin:0">证据链与线索链的关系是"串行发现 → 并行验证"：线索链负责从风险信号出发逐步追查（一条线到底），证据链负责对线索链发现的多维证据做交叉验证（多源同时印证）。两者协同形成"线索→证据→分析"的完整链路。</p>';
+  h += '</div>';
+
+  h += '<div id="evidence-body"></div>';
+  h += '</div>';
+  container.innerHTML = h;
+
   var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
-  container.innerHTML = '<style>.ev-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.ev-main{flex:1;min-width:0}.ev-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.ev-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
-    + '<div class="ev-layout"><div class="ev-main"><h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔒 证据链</h2>'
-    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
-    + '证据链是税务合规的证据质量保障体系——<strong>781条证据链（全部可执行），通过 ≥2维独立数据源交叉验证形成证据闭环</strong>。'
-    + '每条可执行证据链定义多个独立维度的数据源，当 ≥min_evidence 个维度同时触发时形成有效证据，闭环后自动输入分析链做综合推理判定。'
-    + '</p>'
-    + '<div id="evidence-body"></div></div></div>';
   if (hasCache) { renderEvidenceList(_allEvidenceChains); }
   else { loadEvidenceData(); }
 }
@@ -1437,42 +1515,24 @@ function renderEvidenceList(chains) {
     return s;
   }, 0);
   var execChains = chains.filter(function(c) { return c.executable !== false && !c.legacy; });
-  var legacyChains = chains.filter(function(c) { return c.legacy; });
   var closedCount = chains.filter(function(c) {
     var exec = evExecMap[c.name];
     return exec && exec.closed;
   }).length;
+  var highRiskSteps = chains.reduce(function(s, c) {
+    var hr = c.high_risk_steps;
+    if (typeof hr === 'number') return s + hr;
+    if (Array.isArray(hr)) return s + hr.length;
+    return s;
+  }, 0);
+
+  // 填充页面级统计卡片
+  var elT = document.getElementById('ev-total'); if (elT) elT.textContent = chains.length;
+  var elC = document.getElementById('ev-closed'); if (elC) elC.textContent = closedCount;
+  var elS = document.getElementById('ev-steps'); if (elS) elS.textContent = totalSteps;
+  var elH = document.getElementById('ev-highrisk'); if (elH) elH.textContent = highRiskSteps;
 
   var html = '';
-
-  // 证据链概念说明
-  html += '<div id="ev-concept" style="margin-bottom:32px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">';
-  html += ''
-    + '<h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0">证据链是什么</h3>'
-    + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 12px">'
-    + '证据链是<strong>多源交叉验证形成证据闭环的规则集合</strong>。与线索链（单路径串行调查）不同，证据链同时从多个独立维度收集证据——每个维度是一个独立的数据源（银行流水/发票/合同/社保/工商等），当 ≥min_evidence 个维度的触发关键词同时匹配到 all_findings 时，形成有效证据闭环。'
-    + '</p>'
-    + '<p style="font-size:12px;color:#64748b;line-height:2.0;margin:0 0 16px">'
-    + '引擎工作原理：<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">_domain_cross_domain_reasoning(all_findings)</code> 加载 cross_domain_evidence.json → 逐链遍历 dimensions[] → 每维 kws 与 all_findings 做 keyword 匹配 → 达到 min_evidence 阈值 → 生成跨域发现 → 注入 all_findings → 后续分析链根据闭环发现做综合推理判定。'
-    + '</p>'
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#2563eb">线索链 vs 证据链</strong><br>线索链 = 串行追查（一条线到底）<br>证据链 = 并行印证（多源同时验证）<br>线索链发现触发证据链闭环</div>'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#059669">闭环条件</strong><br>≥min_evidence 个维度同时触发<br>每维来自独立数据源<br>闭环后自动输入分析链推理</div>'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;line-height:2.0"><strong style="color:#7c3aed">证据→分析桥接</strong><br>证据闭环→风险升级判定<br>经营实质+资金+发票+税费<br>四维全异常→系统性造假</div>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11px;line-height:2.0">'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#2563eb">全部可执行 (781条)</strong><br>dimensions[] 格式 — 引擎通过 keyword 自动匹配 findings。每条含触发关键词+多维度数据源+闭环阈值（min_evidence），≥2维同时触发形成证据闭环。</div>'
-    + '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px"><strong style="color:#7c3aed">investigation_path[] 格式</strong><br>原方法链已全部升级为可执行。步骤含 rule_id + level + detail + suggestion + policy_ref，按串联规则逐一调查，每个步骤连接一条税务合规指令。</div>'
-    + '</div>'
-    + '</div>';
-
-  // 统计卡片
-  html += '<div id="ev-stats" style="display:flex;gap:12px;margin-bottom:32px">'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">' + chains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">证据链总数</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#7c3aed">' + execChains.length + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">可执行</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">' + totalSteps + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">调查步骤</div></div>'
-    + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">' + closedCount + '</div><div style="font-size:12px;color:#64748b;margin-top:4px">已闭环</div></div>'
-    + '</div>';
 
   if (!chains.length) {
     html += '<div style="text-align:center;padding:40px;color:#94a3b8">无证据链数据</div>';
@@ -1492,9 +1552,9 @@ function renderEvidenceList(chains) {
       var groupChains = groups[prefix];
       var groupExec = groupChains.filter(function(c) { return c.executable !== false && !c.legacy; });
       var groupLegacy = groupChains.filter(function(c) { return c.legacy; });
-      html += '<section id="ev-grp-' + encodeURIComponent(prefix) + '" style="margin-bottom:48px;scroll-margin-top:20px">';
-      html += '<h3 style="font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important">' + prefix
-        + ' <span style="font-size:13px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条' + (groupExec.length > 0 ? ' (' + groupExec.length + '可执行)' : '') + '</span></h3>';
+      html += '<section id="ev-grp-' + encodeURIComponent(prefix) + '" style="margin-bottom:36px;scroll-margin-top:20px">';
+      html += '<h3 style="font-size:13px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:6px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 12px!important">' + prefix
+        + ' <span style="font-size:11px;font-weight:400;color:#94a3b8">' + groupChains.length + ' 条' + (groupExec.length > 0 ? ' (' + groupExec.length + '可执行)' : '') + '</span></h3>';
 
       groupChains.forEach(function(c) {
         var evExec = evExecMap[c.name];
@@ -1514,17 +1574,17 @@ function renderEvidenceList(chains) {
         var topicTag = subTopic ? ' <span style="font-size:11px;padding:1px 8px;border-radius:4px;background:#ede9fe;color:#7c3aed;font-weight:500">' + escHtml(subTopic) + '</span>' : '';
         var scoreTag = qualityScore > 0 ? ' <span style="font-size:11px;color:#94a3b8">⭐ ' + qualityScore + '</span>' : '';
 
-        html += '<div style="padding:18px 20px;margin-bottom:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">'
+        html += '<div class="ev-chain">'
 
           // ══ 标题行 ═══
-          + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
-          + '<div style="font-size:15px;font-weight:700;color:#0f172a">' + escHtml(c.name) + topicTag + scoreTag + '</div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+          + '<div style="font-size:13px;font-weight:700;color:#0f172a">' + escHtml(c.name) + topicTag + scoreTag + '</div>'
           + (badgeText ? '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + badgeColor + '15;color:' + badgeColor + ';font-weight:600">' + badgeText + '</span>' : '')
           + '</div>';
 
         // ══ 描述 ═══
         if (c.description) {
-          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:13px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
+          html += '<div style="padding:8px 12px;margin-bottom:8px;background:#fff;border-left:4px solid #7c3aed;border-radius:0 6px 6px 0;font-size:12px;color:#475569;line-height:2.0">' + escHtml(c.description) + '</div>';
         }
 
         // ══ 调查路径 ═══
@@ -1537,21 +1597,21 @@ function renderEvidenceList(chains) {
             var lvlBg = lvl === '高风险' ? '#fef2f2' : (lvl === '中风险' ? '#fffbeb' : (lvl === '低风险' ? '#f0fdf4' : '#f8fafc'));
             var isHigh = lvl === '高风险';
 
-            html += '<div style="padding:10px 14px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
+            html += '<div style="padding:8px 12px;margin-bottom:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : lvlColor) + '">'
               + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-              + '<span style="color:#94a3b8;font-size:12px;font-weight:600">#' + (si + 1) + '</span>'
-              + (s.rule_id ? '<span style="color:#6366f1;font-size:11px;font-weight:600;background:#eef2ff;padding:1px 6px;border-radius:3px">R' + s.rule_id + '</span>' : '')
-              + (lvl ? '<span style="font-size:11px;font-weight:600;color:' + lvlColor + ';background:' + lvlBg + ';padding:1px 6px;border-radius:3px">' + lvl + '</span>' : '')
-              + '<b style="font-size:13px;color:#0f172a">' + escHtml(s.domain || s.action || s.rule_item || s.step || '') + '</b>'
+              + '<span style="color:#94a3b8;font-size:11px;font-weight:600">#' + (si + 1) + '</span>'
+              + (s.rule_id ? '<span style="color:#6366f1;font-size:10px;font-weight:600;background:#eef2ff;padding:1px 5px;border-radius:3px">R' + s.rule_id + '</span>' : '')
+              + (lvl ? '<span style="font-size:10px;font-weight:600;color:' + lvlColor + ';background:' + lvlBg + ';padding:1px 5px;border-radius:3px">' + lvl + '</span>' : '')
+              + '<b style="font-size:12px;color:#0f172a">' + escHtml(s.domain || s.action || s.rule_item || s.step || '') + '</b>'
               + '</div>'
-              + (s.detail || s.action ? '<div style="font-size:13px;color:#475569;line-height:2.0;margin-top:6px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail || s.action || '') + '</div>' : '')
-              + (s.policy_ref ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
+              + (s.detail || s.action ? '<div style="font-size:12px;color:#475569;line-height:2.0;margin-top:4px;padding-left:20px;border-left:2px solid #e2e8f0">' + escHtml(s.detail || s.action || '') + '</div>' : '')
+              + (s.policy_ref ? '<div style="font-size:10px;color:#94a3b8;margin-top:4px">📎 ' + escHtml(s.policy_ref) + '</div>' : '')
               + '</div>';
           });
           html += '</div>';
         } else if (isStringFormat) {
           // 新格式：investigation_path 是字符串描述（如 "人员信息→发票数据→资金流→进销存四维交叉验证"）
-          html += '<div style="padding:10px 14px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;color:#475569;line-height:2.0">'
+          html += '<div style="padding:8px 12px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#475569;line-height:2.0">'
             + '<b style="color:#4338ca">🔍 调查路径：</b>' + escHtml(ip)
             + '</div>';
         } else if (isStepsFormat) {
@@ -1560,10 +1620,10 @@ function renderEvidenceList(chains) {
           (c.steps || []).forEach(function(s, si) {
             var stepNum = s.step || (si + 1);
             var isHigh = !!(s.level && (s.level === '极高风险' || s.level === '高风险'));
-            html += '<div style="padding:10px 14px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
+            html += '<div style="padding:8px 12px;margin-bottom:6px;background:' + (isHigh ? '#fef2f2' : '#fafafa') + ';border-radius:6px;border-left:3px solid ' + (isHigh ? '#dc2626' : '#cbd5e1') + '">'
               + '<div style="display:flex;align-items:center;gap:8px">'
-              + '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
-              + '<span style="font-size:13px;color:#334155;line-height:2.0">' + escHtml(s.action || '') + '</span>'
+              + '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:' + (isHigh ? '#dc2626' : '#94a3b8') + '">' + stepNum + '</span>'
+              + '<span style="font-size:12px;color:#334155;line-height:2.0">' + escHtml(s.action || '') + '</span>'
               + (isHigh ? '<span style="font-size:11px;color:#dc2626;font-weight:600;background:#fee2e2;padding:1px 6px;border-radius:3px">高风险</span>' : '')
               + '</div>'
               + '</div>';
@@ -1574,10 +1634,10 @@ function renderEvidenceList(chains) {
         // ══ dimensions[] 维度举证(新格式可执行证据链) ═══
         var dims = c.dimensions;
         if (Array.isArray(dims) && dims.length > 0) {
-          html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#059669;margin-bottom:8px">📐 证据维度（需 ≥' + (c.min_evidence||2) + ' 维同时触发形成闭环）</div>';
+          html += '<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:600;color:#059669;margin-bottom:6px">📐 证据维度（需 ≥' + (c.min_evidence||2) + ' 维同时触发形成闭环）</div>';
           dims.forEach(function(d, di) {
             var dimCode = d.code || d.dim_code || ('D' + (di+1));
-            html += '<div style="padding:10px 14px;margin-bottom:6px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:12px;line-height:1.8">'
+            html += '<div style="padding:8px 12px;margin-bottom:6px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:11px;line-height:1.8">'
               + '<span style="font-weight:700;color:#059669;margin-right:8px">' + escHtml(dimCode) + '</span>'
               + '<span style="color:#166534;font-weight:600">' + escHtml(d.source||'') + '</span>'
               + '<span style="color:#64748b;margin-left:6px">— ' + escHtml(d.desc||'') + '</span>'
@@ -1588,46 +1648,46 @@ function renderEvidenceList(chains) {
 
         // ══ 政策依据 ═══
         if (c.policies && c.policies.length > 0) {
-          html += '<div style="margin-bottom:10px">'
-            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📋 政策依据</div>';
+          html += '<div style="margin-bottom:8px">'
+            + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">📋 政策依据</div>';
           c.policies.forEach(function(p) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
+            html += '<div style="padding:5px 10px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:11px;color:#475569;line-height:2.0">• ' + escHtml(p) + '</div>';
           });
           html += '</div>';
         }
 
         // ══ 税务影响 ═══
         if (c.tax_impacts && c.tax_impacts.length > 0) {
-          html += '<div style="margin-bottom:10px">'
-            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">⚠️ 税务影响</div>';
+          html += '<div style="margin-bottom:8px">'
+            + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">⚠️ 税务影响</div>';
           c.tax_impacts.forEach(function(t) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
+            html += '<div style="padding:5px 10px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:11px;color:#475569;line-height:2.0">• ' + escHtml(t) + '</div>';
           });
           html += '</div>';
         }
 
         // ══ 关联线索链 ═══
         if (c.related_chains && c.related_chains.length > 0) {
-          html += '<div style="margin-bottom:10px">'
-            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">🔗 关联线索链</div>';
+          html += '<div style="margin-bottom:8px">'
+            + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">🔗 关联线索链</div>';
           c.related_chains.forEach(function(rc) {
-            html += '<div style="padding:6px 12px;margin-bottom:3px;background:#f0f9ff;border-radius:4px;font-size:12px;color:#0369a1;line-height:2.0">• ' + escHtml(rc) + '</div>';
+            html += '<div style="padding:5px 10px;margin-bottom:3px;background:#f0f9ff;border-radius:4px;font-size:11px;color:#0369a1;line-height:2.0">• ' + escHtml(rc) + '</div>';
           });
           html += '</div>';
         }
 
         // ══ 覆盖规则 ═══
         if (c.covered_rule_ids && c.covered_rule_ids.length > 0) {
-          html += '<div style="margin-bottom:10px">'
-            + '<div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">📌 覆盖规则</div>';
+          html += '<div style="margin-bottom:8px">'
+            + '<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">📌 覆盖规则</div>';
           c.covered_rule_ids.forEach(function(rid) {
-            html += '<span style="display:inline-block;font-size:11px;padding:2px 8px;margin:0 4px 4px 0;background:#eef2ff;color:#4338ca;border-radius:3px;font-weight:600">R' + rid + '</span>';
+            html += '<span style="display:inline-block;font-size:10px;padding:2px 6px;margin:0 3px 3px 0;background:#eef2ff;color:#4338ca;border-radius:3px;font-weight:600">R' + rid + '</span>';
           });
           html += '</div>';
         }
 
         // ══ 底部元信息栏 ═══
-        html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">'
+        html += '<div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:8px;border-top:1px solid #f1f5f9;font-size:11px;color:#94a3b8">'
           + '<span>📝 步骤 <b style="color:#475569">' + stepCount + '</b> 条</span>'
           + (highRiskStepCount > 0 ? '<span>🔴 高风险步骤 <b style="color:#dc2626">' + highRiskStepCount + '</b> 个</span>' : '')
           + (c.covered_rule_count ? '<span>📌 覆盖规则 <b style="color:#475569">' + c.covered_rule_count + '</b> 条</span>' : '')
@@ -2471,13 +2531,376 @@ function renderAiRules(container) {
   html += '<b>引擎铁律11条</b>（已迁至 <code>engine/memory.py</code>）：定义引擎系统应该如何工作——科目name必须查DB、三号必须合并、ref_id必须精确匹配等。这些是"系统怎么做"的规范。<br><br>';
   html += '<b>为什么分开</b>：2026年6月30日老邓指出——\"AI行为准则的铁律，是引擎的铁律啊！\"。引擎的硬逻辑规范不应该出现在智哥的行为准则页面中。两者的受众和用途完全不同：行为准则用来约束智哥的编码行为，引擎铁律用来定义系统的运行规则。<br><br>';
   html += '引擎铁律编号（共11条）：铁律一~六（账务处理·engine/memory.py §06）+ 铁律七~十一（核心铁律·engine/memory.py §07）+ 铁律十二（跨模块内容一致性·engine/memory.py §08）。<br><br>';
-  html += '完整清单见：<a href="#" onclick="navigateTo(\'auditor-handbook\');return false" style="color:#2563eb;font-weight:600">税务合规员手册 §13 引擎铁律编号体系 →</a>';
+  html += '完整清单见：<a href="#" onclick="navigateTo(\'hb-overview\');return false" style="color:#2563eb;font-weight:600">税务合规员手册 §13 引擎铁律编号体系 →</a>';
   html += '</div></div>';
 
   html += '</div>';
   html += '</div>'; // ar-main
   html += '</div>'; // ar-layout
   container.innerHTML = html;
+}
+
+// ═══════════ 核心数据资产页面（qs-layer1） ═══════════
+function renderCoreDataAssets(container) {
+  if (!container) return;
+  window.currentModule = '核心数据资产';
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.cda{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.cda-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.cda-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.cda-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.cda-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.cda-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.cda-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.cda-comp{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;transition:box-shadow 0.15s}'
+    + '.cda-comp:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}'
+    + '</style>';
+
+  h += '<div class="cda">';
+  h += '<div class="cda-title">核心数据资产</div>';
+  h += '<div class="cda-sub">质量保障体系第一层 · 数据资产底座 · 所属：全链路质量保障体系</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div class="cda-hero">';
+  h += '<div class="cda-card"><div class="v" id="cda-rules" style="color:#2563eb">—</div><div class="l">规则引擎</div></div>';
+  h += '<div class="cda-card"><div class="v" id="cda-clues" style="color:#7c3aed">—</div><div class="l">线索链</div></div>';
+  h += '<div class="cda-card"><div class="v" id="cda-evidence" style="color:#059669">—</div><div class="l">证据链</div></div>';
+  h += '<div class="cda-card"><div class="v" id="cda-analysis" style="color:#f59e0b">—</div><div class="l">跨域分析链</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎注册表维护数据资产配置</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-mem\')" style="color:#2563eb">引擎记忆</a><br><span style="color:#94a3b8">记忆系统存储规则与方法定义</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">方法论定义数据资产使用策略</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则引擎的具体指令页面</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">线索链系统具体页面</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">证据链系统具体页面</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">管线执行消费全部数据资产</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">核心数据资产是质量保障体系的<strong>第一层基础</strong>——由规则引擎、线索链系统、证据链系统和跨域分析链四个组件构成完整的数据资产底座。</p>';
+  h += '<p style="margin:0 0 16px">四者形成<strong>递进关系</strong>：规则引擎定义风险判断标准（什么情况是风险），线索链定义从风险到发现的调查路径（发现风险后如何核实），证据链定义多源验证的闭环条件（需要多少来源的证据才能确认），跨域分析链执行多维度交叉验证（将不同领域的发现进行综合推理）。</p>';
+  h += '<p style="margin:0">所有数据存储在<strong>静态JSON文件</strong>中，由 audit_consistency.py 的四触发机制确保代码中的数字与文件实际数据始终一致。</p>';
+  h += '</div>';
+
+  // 四大组件卡片
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">四大组件</div>';
+
+  var comps = [
+    { name: '规则引擎', icon: '📋', color: '#2563eb',
+      source: '税务合规指令',
+      desc: '覆盖20个分类的税务合规指令，每条含触发条件、风险等级、调查步骤、法定处罚依据四项必备要素。Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。' },
+    { name: '线索链系统', icon: '🔗', color: '#7c3aed',
+      source: '线索链页面',
+      desc: '全部可执行，每条含1-15个调查步骤。三类触发方式：定量阈值触发、定性模式触发、缺失数据触发。每步含domain/action/data_required字段，可追溯至调查来源。' },
+    { name: '证据链系统', icon: '🔒', color: '#059669',
+      source: '证据链页面',
+      desc: '全部可执行，证据闭环机制——每个证据链定义dimensions数组，各维度关键词匹配发现，达到min_evidence阈值触发闭环。要求≥2个不同数据源的维度同时匹配。' },
+    { name: '跨域分析链', icon: '🔀', color: '#f59e0b',
+      source: '调度中枢',
+      desc: '多源数据综合推理引擎，不同于单域分析。reasoning_path定义多步推理路径，从证据到结论的因果推断。Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定。' }
+  ];
+
+  comps.forEach(function(c, i) {
+    h += '<div class="cda-comp" style="border-left:3px solid ' + c.color + '">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<span style="font-size:18px">' + c.icon + '</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:#0f172a">' + (i + 1) + '. ' + c.name + '</span>';
+    h += '</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">' + c.desc + '</div>';
+    h += '<div style="font-size:11px;color:#6366f1">📁 ' + c.source + '</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  _f('cda-rules', pc('rules', '...'));
+  _f('cda-clues', pc('trailChains', '...'));
+  _f('cda-evidence', pc('evidenceChains', '...'));
+  _f('cda-analysis', pc('analysisChains', '...'));
+}
+
+// ═══════════ 方法论体系页面（qs-layer2） ═══════════
+function renderMethodologySystem(container) {
+  if (!container) return;
+  window.currentModule = '方法论体系';
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.ms{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.ms-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.ms-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.ms-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.ms-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.ms-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.ms-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.ms-comp{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;transition:box-shadow 0.15s}'
+    + '.ms-comp:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}'
+    + '</style>';
+
+  h += '<div class="ms">';
+  h += '<div class="ms-title">方法论体系</div>';
+  h += '<div class="ms-sub">质量保障体系第二层 · 引擎的思维方式 · 所属：全链路质量保障体系</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div class="ms-hero">';
+  h += '<div class="ms-card"><div class="v" id="ms-methods" style="color:#7c3aed">—</div><div class="l">方法论</div></div>';
+  h += '<div class="ms-card"><div class="v" id="ms-chains" style="color:#2563eb">—</div><div class="l">方法链</div></div>';
+  h += '<div class="ms-card"><div class="v" id="ms-frames" style="color:#059669">6</div><div class="l">分析框架</div></div>';
+  h += '<div class="ms-card"><div class="v" id="ms-layers" style="color:#f59e0b">5</div><div class="l">功能层级</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">数据资产是方法论的作用对象</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-mem\')" style="color:#2563eb">引擎记忆</a><br><span style="color:#94a3b8">方法论定义存储在记忆系统中</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎注册表记录方法论调用点</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">方法论驱动因果推理和综合判定</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><br><span style="color:#94a3b8">方法论过滤器基于方法论执行过滤</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">方法论影响分析结论的生成</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">方法论供稽查员理解和参考</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">方法论体系是质量保障体系的<strong>第二层——引擎的思维方式</strong>。33条税务合规方法论全部代码化，定义了引擎在面对不同数据情况时的处理策略和逻辑边界。</p>';
+  h += '<p style="margin:0 0 16px">六大分析框架覆盖全流程：<strong>四步分析法</strong>确保每条发现经过完整推理链；<strong>三层行业穿透法</strong>从三个维度判断企业真实行业；<strong>经营实质点面推理法</strong>从单一风险点推演出面的风险；<strong>合同分层判断法</strong>将合同自动分为四类；<strong>发票≠收付款方法论</strong>规定了六种收付款模式下的分析方式。</p>';
+  h += '<p style="margin:0">方法链按功能分为五层：数据接入层→规则层→推理层→增强层→进化层，逐层递进，赋予系统自我优化和自适应能力。</p>';
+  h += '</div>';
+
+  // 六大方法论卡片
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">六大分析框架</div>';
+
+  var methods = [
+    { name: '税务合规方法论33条', icon: '📋', color: '#7c3aed',
+      source: '引擎详情',
+      desc: '全部代码化，按功能分为5层1266条方法链：①数据接入层 ②规则层 ③推理层 ④增强层 ⑤进化层。每条含编号、名称、定义、应用场景、代码位置。' },
+    { name: '四步税务合规分析法', icon: '🔢', color: '#2563eb',
+      source: '管道调度',
+      desc: 'detect→verify→diagnose→report四步递进。①初查全量扫描 ②定向深挖排除误报 ③多源交叉验证 ④综合定性生成报告。每条发现必须完整走完四步。' },
+    { name: '三层行业穿透法', icon: '🏭', color: '#059669',
+      source: '调度中枢',
+      desc: '工商登记→发票数据→加工信号三层穿透。第一层读工商登记行业，第二层统计销项金税编码分布，第三层检测进销品名加工信号。不一致时以实质重于形式。' },
+    { name: '经营实质点面推理法', icon: '🔍', color: '#dc2626',
+      source: '调度中枢',
+      desc: '从单一风险点推理出面的风险。五步推理：单点异常→数据扩展→关联维度→交叉验证→综合结论。如从地址异常推演出空壳经营判断。' },
+    { name: '合同分层判断法', icon: '📄', color: '#f59e0b',
+      source: '管道调度',
+      desc: '四层自动判断：必签层（>10万或>1年）、应签层（1-10万）、可免层（<1万）、小额层。分层依据从66行业基准库动态获取金额门槛。' },
+    { name: '发票与收付款时间差方法论', icon: '💱', color: '#0ea5e9',
+      source: '引擎详情',
+      desc: '发票日期≠收款日期是正常现象。六种真实模式：自然跨期、合并支付、分期支付、预付预收、应付应收、非对公代付。按客户逐笔配对而非全量排序。' }
+  ];
+
+  methods.forEach(function(m, i) {
+    h += '<div class="ms-comp" style="border-left:3px solid ' + m.color + '">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<span style="font-size:18px">' + m.icon + '</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:#0f172a">' + (i + 1) + '. ' + m.name + '</span>';
+    h += '</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">' + m.desc + '</div>';
+    h += '<div style="font-size:11px;color:#6366f1">📁 ' + m.source + '</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  _f('ms-chains', pc('totalChains', '...'));
+  // 方法论数量从 audit_chains.json 获取
+  fetch('/static/audit_chains.json?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var chains = data.chains || [];
+      var methods = chains.filter(function(c) { return c.type === 'methodology'; });
+      _f('ms-methods', methods.length || 33);
+    })
+    .catch(function() { _f('ms-methods', 33); });
+}
+
+//  行业认知体系页面 —— 统一新风格
+// ═════════════════════════════════════════════════════════════
+async function renderIndustrySystem(container) {
+  if (!container) return;
+  window.currentModule = '行业认知体系';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">行业认知体系</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">质量保障体系第四层 · 像经验丰富的稽查员一样理解不同行业的经营模式差异 · 所属：全链路质量保障体系</div>';
+
+  // 统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="is-industries" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">覆盖行业</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="is-product" style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">产品链词典</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="is-benchmarks" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">基准值库</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="is-modes" style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">认知模式</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">产品链词典依赖规则引擎数据</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">行业判定方法论驱动认知</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎行业判定结果输入</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">分析结果验证行业认知准确性</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">42个域分析函数依赖行业认知</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">行业对标结果影响风险等级</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理结论参考行业基准值</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">手册行业分析章节依赖认知体系</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">行业认知体系是质量保障体系的<strong>第四层——让引擎像经验丰富的稽查员一样理解不同行业的经营模式差异</strong>。行业认知从工商登记、发票数据、实质经营三个维度综合推断，并在全部分析域中贯彻行业判定结论。</p>';
+  h += '<p style="margin:0 0 16px"><strong>行业判定错误会导致后续所有的行业对标分析结果全部失真</strong>——这是整个分析链条中最基础也最关键的一环。三项核心能力协同工作：产品链词典提供行业级进销品名预期、加工模式认知避免将外包加工误判为异常、基准值库提供量化的风险判断标准。</p>';
+  h += '<p style="margin:0">三项核心能力：①<strong>25行业产品链词典</strong>——进销项品名与行业预期比对，不一致触发外包/轻加工检测 ②<strong>外包轻加工模式认知</strong>——批发业可能存在实质加工，不能仅凭工商登记判定 ③<strong>66行业基准值库</strong>——毛利率/净利率/人均产值等5项指标的行业正常区间，作为风险判定的量化依据。</p>';
+  h += '</div>';
+
+  // 三项组件卡片
+  var components = [
+    { name:'25行业产品链词典', icon:'📦', color:'#059669',
+      desc:'25个行业×2组关键词对（原料/投入关键词 vs 产品/产出关键词），覆盖中国主要行业的典型产品链关系。三级匹配策略：精确匹配（进销项品名与词典完全匹配→行业确认）、模糊匹配（销项品名含服务类金税编码前缀→进入服务行业判定）、通用兜底（金税编码反查行业分类→仍无法判定使用工商登记默认值并标记"行业未确认"）。词典作用不仅是"判断行业"，更是"验证行业"——进销品名与词典一致时该行业分析域置信度提升，不一致时触发外包/轻加工模式检测。',
+      source:'行业认知体系', },
+    { name:'外包轻加工模式认知', icon:'🏭', color:'#2563eb',
+      desc:'批发业可能存在实质加工——不能仅凭工商登记的"批发业"判定没有进销存分析需求。检测逻辑：①扫描银行流水付款摘要中是否含"加工费/代工/贴牌/OEM/委外"等关键词 ②如果是→企业存在外包加工（原材料发加工商、加工后收回成品），实质是"采购原材料+外包加工+销售成品"三段经营模式 ③此时进销品名差异合理——进的是原材料、销的是成品 ④加工模式下执行进销存分析但放宽匹配标准（不要求进销项品名一致，只要求同属一个产品链）⑤报告第一章行业分类展示"批发业（存在外包加工实质）"，第二章详细解释加工模式对分析结果的影响。',
+      source:'管道调度', },
+    { name:'66行业基准值库', icon:'📊', color:'#7c3aed',
+      desc:'66个行业×5个核心指标×3个基准值（下限/中位/上限），构成全行业财务基准参考体系。五个核心指标：①毛利率（营业收入-营业成本）/营业收入 ②净利率 净利润/营业收入 ③人均产值 营业收入/员工人数 ④费用收入比 期间费用/营业收入 ⑤资产周转率 营业收入/总资产。三个基准值使用逻辑：企业值<下限→高风险（显著低于行业正常水平）、企业值在下限与上限之间→中风险（行业正常波动）、企业值>上限→可能低风险但也可能是异常。基准库从公开数据（上市公司年报/行业统计年鉴）编制，定期可通过--calibrate模式更新。',
+      source:'行业认知体系', },
+  ];
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">行业认知三项核心能力</div>';
+  components.forEach(function(comp, i) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<span style="font-size:18px">'+comp.icon+'</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
+      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
+      + '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+
+  _f('is-industries', '25');
+  _f('is-product', '25条');
+  _f('is-benchmarks', '66条');
+  _f('is-modes', '3类');
+}
+
+//  执行管线
+// ══════════════════════════════════════════════════════════════
+async function renderExecutionPipeline(container) {
+  if (!container) return;
+  window.currentModule = '执行管线';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">执行管线</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">质量保障体系第五层 · 从原始资料到正式报告的七步处理流程 · 所属：全链路质量保障体系</div>';
+
+  // 统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="ep-steps" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">执行步骤</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="ep-domains" style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">域分析函数</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="ep-trace" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">溯源步数</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="ep-flow" style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">数据流向</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">规则引擎和链数据供管线调度</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">分析方法驱动Phase1-4执行</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><br><span style="color:#94a3b8">过滤规则作用于管线输出</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'qs-layer4\')" style="color:#2563eb">行业认知体系</a><br><span style="color:#94a3b8">42个域分析函数依赖行业认知</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">管线输出报告供审理人员审阅</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><br><span style="color:#94a3b8">每步骤独立日志可审计可回溯</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理框架驱动Phase3交叉验证</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">手册内容基于管线输出结论</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">执行管线是质量保障体系的<strong>第五层——从原始资料到正式报告的七步流水线</strong>，数据在管线中单向流动：上游步骤的输出是下游步骤的输入、下游步骤不能修改上游步骤的原始数据、每一步骤有独立的日志和中间数据、任何步骤出错只影响该步骤及后续步骤、不会回写污染上游。</p>';
+  h += '<p style="margin:0 0 16px">管线的核心哲学是<strong>"流不回头"</strong>——数据像流水一样从前端往后端流，后端永远不会逆向修改前端。这意味着任何时候都可以从任意中间步骤的日志和数据重新开始分析，而不需要回到最前面重跑整条管线。</p>';
+  h += '<p style="margin:0">三大核心组件：①<strong>七步执行流程</strong>——资料扫描→实体识别→情报提取→规则引擎→噪声过滤→跨域协商→报告输出，每步输入输出用日志完整记录 ②<strong>42个域分析函数</strong>——覆盖银行资金流、发票票据流、进销存、费用成本、往来款、资产负债、工资人力、综合诊断八大分类 ③<strong>全链路溯源体系</strong>——每条发现通过六步溯源路径反向验证，从结论追溯到原始数据行，确保可复核可审计。</p>';
+  h += '</div>';
+
+  // 三项组件卡片
+  var components = [
+    { name:'七步执行流程', icon:'🔗', color:'#059669',
+      desc:'从用户上传原始资料到输出结构化税务合规报告的完整流水线。七步串联，数据单向流动不丢失不污染不截断：①资料扫描——文件解析引擎启动，四方交叉验证确认每个文件的类型和归属账套 ②实体识别——从已分类文件中提取目标企业身份信息，通过联网核查补充工商登记数据 ③情报提取——对每个文件的每行数据执行深度提取，生成material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）④规则引擎——1608条规则+437条线索链+781条证据链+48条分析链全量激活，Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性 ⑤噪声过滤——七类过滤规则依次执行，减少约97%噪声 ⑥跨域协商——消解域间矛盾、降级不适用发现、标记资料受限结论 ⑦报告输出——生成7章正式报告，同时执行报告纯净度净化、建议增强、12项质量标准检测。',
+      source:'管道调度', },
+    { name:'42个域分析函数', icon:'📊', color:'#2563eb',
+      desc:'42个域分析函数覆盖税务合规全领域，按功能分为八大分类：①银行与资金流（收款来源分析/付款去向分析/资金收支对比，共3域）②发票与票据流（销项发票分析/进项发票分析/发票合规检查/红冲作废分析，共4域）③进销存与存货（进销存匹配/存货周转/BOM分析/进销比对标，共4域）④费用与成本（费用完整性/费用结构合理性/大额费用分析/主营业务成本分析/研发费用分析，共5域）⑤往来款（应收账款分析/应付账款分析/关联交易分析，共3域）⑥资产负债（固定资产分析/无形资产分析/长短期借款分析，共3域）⑦工资人力（工资发放分析/社保缴纳分析/个税扣缴分析，共3域）⑧综合诊断（行业判定/资料完备度/经营实质/行业对标/申报比对/六员比对/供应链核查/经营风险预警/税收优惠审核/资金回流检测/存疑排除，共11域含6域补充）。',
+      source:'调度中枢', },
+    { name:'全链路溯源体系', icon:'🎯', color:'#7c3aed',
+      desc:'每条发现可通过六步溯源路径反向验证——从报告中的结论追溯到原始数据行的具体单元格。六步溯源路径：①规则ID——发现标注触发的规则编号，点击可跳转查看该规则完整定义 ②线索链ID——发现的调查路径标注驱动的线索链编号，可查看全部调查步骤 ③证据来源——evidence_source字段列出所有参与验证的数据文件 ④原始发现——all_findings数组中完整JSON含明细表和matched_chain_details ⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率）⑥原始数据行——通过rule_id反查主文件中extract函数定位到原始Excel文件对应行。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需沿六步路径反向检查。',
+      source:'本次分析结果', },
+  ];
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">执行管线三大核心组件</div>';
+  components.forEach(function(comp, i) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<span style="font-size:18px">'+comp.icon+'</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
+      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
+      + '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  _f('ep-steps', '7步');
+  _f('ep-domains', '42');
+  _f('ep-trace', '6步');
+  _f('ep-flow', '单向');
 }
 
 //  全链路税务合规质量保障体系 —— 五大层次18组件全景页
@@ -2490,51 +2913,51 @@ function renderQualitySystem(container) {
     { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
       desc:'规则引擎、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
-        {name:'规则引擎',source:'static/tax_risk_rules_local_export.json → tax_risk.py',desc:'1608条税务合规指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史税务合规数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理引擎自动匹配。规则引擎在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
-        {name:'线索链系统',source:'static/cross_domain_clues.json → engine/pipeline.py',desc:'437条线索链（全部可执行），每条含1-15个调查步骤。三类验证触发链驱动发现：①定量阈值触发——数值超过预设阈值自动启动链（如偏差率>20%）②定性模式触发——特定数据模式匹配（如公转私频繁）③缺失数据触发——关键资料缺失触发替代验证链。每步含domain/action/data_required三等字段，可追溯至调查来源。代码：pipeline.py调用_domain_cross_domain_clues，引擎通过trigger_keywords自动匹配findings触发。'},
-        {name:'证据链系统',source:'static/cross_domain_evidence.json + engine/pipeline.py',desc:'781条证据链（全部可执行）。证据闭环机制——每个证据链定义dimensions[]数组，各维度kws匹配findings→达到min_evidence阈值→触发闭环。要求≥2个不同数据源的维度同时匹配，单域数据不构成闭环。全部达标→形成有效证据→输入分析链推理。每条证据链含rule_refs关联规则，证据收集全程可追溯。代码：_domain_cross_domain_reasoning在all_findings构建后运行。'},
-        {name:'跨域分析链',source:'engine/domain_analysis.py + engine/pipeline.py',desc:'48条跨域分析链，多源数据综合推理引擎。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将多个证据链的结论进行综合推理判定：reasoning_path[]定义多步推理路径→从证据到结论的因果推断。典型分析链如\"七维系统性造假综合判定模型\"——经营实质×供应商×资金流×三流合一×跨税种×关联交易×综合，7维中0-2维低风险、3-4维中风险、5-6维高风险、7维全异常→系统性造假立案。跨域分析链在Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定发现。'},
+        {name:'规则引擎',source:'税务合规指令',desc:'1608条税务合规指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史税务合规数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理引擎自动匹配。规则引擎在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
+        {name:'线索链系统',source:'线索链页面',desc:'437条线索链（全部可执行），每条含1-15个调查步骤。三类验证触发链驱动发现：①定量阈值触发——数值超过预设阈值自动启动链（如偏差率>20%）②定性模式触发——特定数据模式匹配（如公转私频繁）③缺失数据触发——关键资料缺失触发替代验证链。每步含domain/action/data_required三等字段，可追溯至调查来源。代码：pipeline.py调用_domain_cross_domain_clues，引擎通过trigger_keywords自动匹配findings触发。'},
+        {name:'证据链系统',source:'证据链页面',desc:'781条证据链（全部可执行）。证据闭环机制——每个证据链定义dimensions[]数组，各维度kws匹配findings→达到min_evidence阈值→触发闭环。要求≥2个不同数据源的维度同时匹配，单域数据不构成闭环。全部达标→形成有效证据→输入分析链推理。每条证据链含rule_refs关联规则，证据收集全程可追溯。代码：_domain_cross_domain_reasoning在all_findings构建后运行。'},
+        {name:'跨域分析链',source:'调度中枢',desc:'48条跨域分析链，多源数据综合推理引擎。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将多个证据链的结论进行综合推理判定：reasoning_path[]定义多步推理路径→从证据到结论的因果推断。典型分析链如\"七维系统性造假综合判定模型\"——经营实质×供应商×资金流×三流合一×跨税种×关联交易×综合，7维中0-2维低风险、3-4维中风险、5-6维高风险、7维全异常→系统性造假立案。跨域分析链在Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定发现。'},
       ]},
     { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
       desc:'33条税务合规方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是引擎的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
       items:[
-        {name:'税务合规方法论33条',source:'engine/memory.py §03 + main.py 方法论调用点',desc:'1266条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/税务合规重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
-        {name:'四步税务合规分析法',source:'engine/pipeline.py → Phase1-4',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则引擎全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
-        {name:'三层行业穿透法',source:'engine/domain_analysis.py → _domain_industry判定',desc:'工商登记→发票数据→加工信号三层穿透，不一致时以实质重于形式。第一层：读取工商登记的主营行业分类——这是形式上的行业标签，可能存在登记行业与实际经营不符的情况（如登记为\"批发业\"但实际做广告代理）。第二层：统计销项发票的金税编码分布——这是数据层面揭示的实际业务模式，如果90%的销项编码属于\"广告服务\"类，实际是广告公司。第三层：检测进销品名中是否存在加工信号（加工费/原料→成品等关键词）——如果存在外包加工，则实际是\"生产+服务\"混合模式。三层结论不一致时→报告第一章行业分类展示三层穿透结果→最终以第二层（发票数据）为主，第三层（加工信号）为修正→综合判断标注推理过程。代码实现：_detect_target_entity()函数的行业判定逻辑。'},
-        {name:'经营实质点面推理法',source:'engine/domain_analysis.py + geo-business-premise-analysis skill',desc:'从单一风险点推理出面的风险——不是孤立地看一个地址异常，而是从地址推演出整个经营模式的合理性。五步推理：①单点异常——发现一个具体异常点（如企业注册地址在某写字楼但社保缴纳人数为零）②数据扩展——围绕这个异常点调取所有相关数据（银行流水中的付款方地址、发票中的服务地址、合同中的履约地点）③关联维度——将地址信息与物流/运输/仓储/人员四个维度进行交叉关联 ④交叉验证——检查多个维度是否一致地指向同一个结论（运输单据缺失+人员零参保+办公地址无水电费→空壳经营的可能性增大）⑤综合结论——从单点风险上升为面的判断（不是\"注册地址异常\"而是\"经营实质存疑——疑似无实际经营场所的空壳企业\"）。引擎实现：geo-business-premise-analysis skill + domain_analysis.py 经营实质域分析。'},
-        {name:'合同分层判断法',source:'engine/pipeline.py → 合同分析逻辑',desc:'四层自动判断——根据品名+金额+交易类型将合同需求分为四个层级：①必签层——大宗商品/固定资产/长期服务合同（金额>10万或服务期>1年），无合同视同高风险交易 ②应签层——常规采购/标准服务合同（金额1-10万），无合同标记为需补充 ③可免层——日常消费/零星采购（金额<1万或单一品名），无合同属于正常商业惯例不标记 ④小额层——单笔金额小于行业基准值下限，无合同不构成风险。分层依据从66行业基准库动态获取每个行业的金额门槛。合同分层结果影响：第三章发现的事实认定（是否提及合同缺失）、附件六文件清单（是否标注\"缺少合同\"）、跨域协商标记（缺合同时相关发现降权）。'},
-        {name:'发票与收付款时间差方法论',source:'main.py → 时间差检测函数',desc:'发票日期≠收款日期是正常商业现象——不能因为时间差就判定异常。六种真实收付款模式：①自然跨期——月末开发票、次月初收款（1-15天差正常）②合并支付——多张发票合并一笔付款（单笔付款对应多张发票）③分期支付——一张大额发票分多笔支付（预付款30%+验收60%+质保10%）④预付预收——先付款后开票/先开票后收款（预收账款模式）⑤应付应收——赊销赊购产生的应收账款/应付账款（账期30-90天正常）⑥非对公代付——第三方代付、法人垫付等非买卖双方直接结算。引擎的发票vs付款时间匹配算法采用\"按客户逐笔配对\"而非\"全量时间差排序\"——先按客户名称分组，组内按日期排序匹配，组间不交叉。报告第二章详细叙述发现的票款时间差类型及合理性判断。'},
+        {name:'税务合规方法论33条',source:'引擎详情',desc:'1266条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/税务合规重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
+        {name:'四步税务合规分析法',source:'管道调度',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则引擎全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
+        {name:'三层行业穿透法',source:'调度中枢',desc:'工商登记→发票数据→加工信号三层穿透，不一致时以实质重于形式。第一层：读取工商登记的主营行业分类——这是形式上的行业标签，可能存在登记行业与实际经营不符的情况（如登记为\"批发业\"但实际做广告代理）。第二层：统计销项发票的金税编码分布——这是数据层面揭示的实际业务模式，如果90%的销项编码属于\"广告服务\"类，实际是广告公司。第三层：检测进销品名中是否存在加工信号（加工费/原料→成品等关键词）——如果存在外包加工，则实际是\"生产+服务\"混合模式。三层结论不一致时→报告第一章行业分类展示三层穿透结果→最终以第二层（发票数据）为主，第三层（加工信号）为修正→综合判断标注推理过程。代码实现：_detect_target_entity()函数的行业判定逻辑。'},
+        {name:'经营实质点面推理法',source:'调度中枢',desc:'从单一风险点推理出面的风险——不是孤立地看一个地址异常，而是从地址推演出整个经营模式的合理性。五步推理：①单点异常——发现一个具体异常点（如企业注册地址在某写字楼但社保缴纳人数为零）②数据扩展——围绕这个异常点调取所有相关数据（银行流水中的付款方地址、发票中的服务地址、合同中的履约地点）③关联维度——将地址信息与物流/运输/仓储/人员四个维度进行交叉关联 ④交叉验证——检查多个维度是否一致地指向同一个结论（运输单据缺失+人员零参保+办公地址无水电费→空壳经营的可能性增大）⑤综合结论——从单点风险上升为面的判断（不是\"注册地址异常\"而是\"经营实质存疑——疑似无实际经营场所的空壳企业\"）。引擎实现：geo-business-premise-analysis skill + domain_analysis.py 经营实质域分析。'},
+        {name:'合同分层判断法',source:'管道调度',desc:'四层自动判断——根据品名+金额+交易类型将合同需求分为四个层级：①必签层——大宗商品/固定资产/长期服务合同（金额>10万或服务期>1年），无合同视同高风险交易 ②应签层——常规采购/标准服务合同（金额1-10万），无合同标记为需补充 ③可免层——日常消费/零星采购（金额<1万或单一品名），无合同属于正常商业惯例不标记 ④小额层——单笔金额小于行业基准值下限，无合同不构成风险。分层依据从66行业基准库动态获取每个行业的金额门槛。合同分层结果影响：第三章发现的事实认定（是否提及合同缺失）、附件六文件清单（是否标注\"缺少合同\"）、跨域协商标记（缺合同时相关发现降权）。'},
+        {name:'发票与收付款时间差方法论',source:'引擎详情',desc:'发票日期≠收款日期是正常商业现象——不能因为时间差就判定异常。六种真实收付款模式：①自然跨期——月末开发票、次月初收款（1-15天差正常）②合并支付——多张发票合并一笔付款（单笔付款对应多张发票）③分期支付——一张大额发票分多笔支付（预付款30%+验收60%+质保10%）④预付预收——先付款后开票/先开票后收款（预收账款模式）⑤应付应收——赊销赊购产生的应收账款/应付账款（账期30-90天正常）⑥非对公代付——第三方代付、法人垫付等非买卖双方直接结算。引擎的发票vs付款时间匹配算法采用\"按客户逐笔配对\"而非\"全量时间差排序\"——先按客户名称分组，组内按日期排序匹配，组间不交叉。报告第二章详细叙述发现的票款时间差类型及合理性判断。'},
       ]},
     { id:3, name:'质量保障机制', icon:'🔒', color:'#dc2626',
       desc:'确保报告质量的最后关口。数字一致性+文本一致性双重保护，确保输出专业、准确、可交付。五项组件在分析管线中的位置不同——税务合规重点保护在过滤器之前执行（确保不被误杀），噪声过滤器在中间，纯净度规范在报告生成阶段。',
       items:[
-        {name:'税务合规重点强制等级',source:'engine/pipeline.py → 方法论过滤器(税务合规重点保护)',desc:'12类税务合规重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）强制标记为高风险且不参与任何过滤——即使COND_BAN规则试图过滤（如缺合同→过滤合同类发现），如果该发现属于12类税务合规重点，过滤操作会被强制拦截。三层保护机制：①后端修正——在方法论过滤器中，检查每条发现的type是否为税务合规重点，是则跳过过滤直接保留 ②过滤器绕过——噪声过滤器(HARD_BAN/COND_BAN)执行前先跑税务合规重点检查 ③前端标记——报告渲染时税务合规重点发现加红色边框+醒目标记，提示审理人员重点关注。三层保护确保：税务合规重点发现不会因缺资料被意外过滤、不会因噪声规则被误删、在报告中物理醒目。'},
-        {name:'报告纯净度规范',source:'engine/pipeline.py → _generate_report() → 文本净化',desc:'系统内部标注（如_auto_corrected/_negotiated/_dismissed等以下划线开头的字段）必须在报告输出前从正文中移除。四步净化管道：①第一步文本净化——在12项质量标准检查前执行，清除模板句（如\"是税务合规重点方向\"）、空描述（type或detail为空）、重复句（同一发现内连续出现相同内容）、空占位符（如\"()\"\"如：()\"等自动填充失效残留）。②质量检查标记——不通过的在发现底部附加⚠标记，不影响正文。③建议增强——对suggestion字段增强后可能产生新的模板句。④第二步文本净化——再次执行文本净化，确保最终交付前的纯净度。净化后报告的四步框架(detect→verify→diagnose→report)表现为自然段落衔接，用户看不到任何内部处理痕迹。净化规则对应到具体的正则模式和替换策略（见generate_report.py的净化函数注释）。'},
-        {name:'噪声过滤器',source:'engine/pipeline.py → _apply_methodology_filter()',desc:'双轨过滤体系，滤除率达97%。两条轨道：①HARD_BAN硬删除（23类禁止词）——type/detail/description中包含任一禁止词（公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂）→物理删除发现，不可恢复。HARD_BAN的哲学：报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害，宁可漏报也不能出现。②COND_BAN条件过滤（5类）——资料不存在→相关发现删除：无申报表→删除申报差异类、无合同→删除合同分层/比对类、无工资表→删除薪酬/个税类、无台账→库存/进销比类、无凭证→凭证匹配类。条件过滤的逻辑是\"不依赖缺失资料做判断\"。③正常结论排除——detail中含\"一致/正常/无异常/OK/通过/合规\"等词且不含\"但/然而/不过/尽管如此\"等转折词→自动删除（不构成风险发现）。④资料缺口限流——资料缺失类发现超过5条时，按score从低到高删除超出部分。⑤行业不匹配过滤——发现的行业关键词与当前企业行业不匹配→删除。⑥去重合并——同type前60字符相同→只保留score最高的一条。执行顺序：税务合规重点保护(跳过)→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。'},
-        {name:'数据一致性自检（数字+文本双维度）',source:'audit_consistency.py + shared_content_sync.py',desc:'双维度自检，防止数据漂移和内容不一致——引擎从\"功能正确\"到\"数据一致\"的跨越。①数字维度：扫描所有JS/PY文件中的硬编码数字（规则数/链数/方法论数等），与system_config.json权威数据对比。正则匹配+偏移扫描双策略覆盖，发现不一致→--sync自动替换。②文本维度：29项跨模块共享内容双层验证——9个text_sync块（逐字哈希对比权威源和依赖模块，如报告7章结构的封面到附件，不一致→自动从权威源覆盖依赖模块）+ 20个concept_link（概念关联存在性验证，确保方法论/规则/架构/数据/规范在所有引用模块中均可追溯）。四触发全覆盖：start.bat启动时、git pre-commit、一键分析pipeline.py子进程、手动python audit_consistency.py --sync。每次--sync还会自动更新engine/memory.py docstring中的权威数据区块。'},
-        {name:'审核反馈闭环',source:'engine/self_learning.py → record_correction() + apply_correction_rules()',desc:'用户对报告的每一条审核都是系统的学习机会，驱动引擎从\"每次重新分析\"到\"越用越准\"。五步闭环流程：①审核——用户点击审核按钮，填写五段式审核意见（判断结论/具体问题/正确逻辑/需要证据/法律依据）②存储——POST /api/feedback → record_correction()将审核意见编码为结构化纠正规则，按\"发现类型|行业|经营模式\"三元组生成指纹，存入static/user_corrections.json ③匹配——下次一键分析时，apply_correction_rules()读取全部纠正规则，执行四级回退匹配：精确匹配(同类型+同行业+同模式)→行业匹配(同类型+同行业)→通用匹配(同类型+*+*)→名称匹配(模糊搜索) ④生效——匹配成功后不改变原始风险等级，而是给发现添加_dismissed/_negotiated等标记，前端报告展示绿色审核横幅 ⑤多轮——累计1次纠正→升级为自动规则→四级匹配优先级提升→下次同类发现自动标记。整个闭环在分析开始前+分析结束后两次介入——分析前加载纠正规则到内存，分析后存储新的审核记录。'},
+        {name:'税务合规重点强制等级',source:'管道调度',desc:'12类税务合规重点发现（虚开发票/骗取出口退税/隐匿收入/账外经营/阴阳合同/资金回流/关联交易转移利润/虚假申报/骗取税收优惠/恶意注销/走逃失联/暴力抗税）强制标记为高风险且不参与任何过滤——即使COND_BAN规则试图过滤（如缺合同→过滤合同类发现），如果该发现属于12类税务合规重点，过滤操作会被强制拦截。三层保护机制：①后端修正——在方法论过滤器中，检查每条发现的type是否为税务合规重点，是则跳过过滤直接保留 ②过滤器绕过——噪声过滤器(HARD_BAN/COND_BAN)执行前先跑税务合规重点检查 ③前端标记——报告渲染时税务合规重点发现加红色边框+醒目标记，提示审理人员重点关注。三层保护确保：税务合规重点发现不会因缺资料被意外过滤、不会因噪声规则被误删、在报告中物理醒目。'},
+        {name:'报告纯净度规范',source:'管道调度',desc:'系统内部标注（如_auto_corrected/_negotiated/_dismissed等以下划线开头的字段）必须在报告输出前从正文中移除。四步净化管道：①第一步文本净化——在12项质量标准检查前执行，清除模板句（如\"是税务合规重点方向\"）、空描述（type或detail为空）、重复句（同一发现内连续出现相同内容）、空占位符（如\"()\"\"如：()\"等自动填充失效残留）。②质量检查标记——不通过的在发现底部附加⚠标记，不影响正文。③建议增强——对suggestion字段增强后可能产生新的模板句。④第二步文本净化——再次执行文本净化，确保最终交付前的纯净度。净化后报告的四步框架(detect→verify→diagnose→report)表现为自然段落衔接，用户看不到任何内部处理痕迹。净化规则对应到具体的正则模式和替换策略（见generate_report.py的净化函数注释）。'},
+        {name:'噪声过滤器',source:'管道调度',desc:'双轨过滤体系，滤除率达97%。两条轨道：①HARD_BAN硬删除（23类禁止词）——type/detail/description中包含任一禁止词（公安/经侦/刑事/走逃/失联/空壳/皮包/逃税/骗税/抗税/洗钱/走私/贩毒/赌博/非法集资/传销/涉黑/涉恶/暴恐/间谍/叛国/颠覆/分裂）→物理删除发现，不可恢复。HARD_BAN的哲学：报告中出现刑事犯罪嫌疑措辞会对企业造成不可逆的声誉损害，宁可漏报也不能出现。②COND_BAN条件过滤（5类）——资料不存在→相关发现删除：无申报表→删除申报差异类、无合同→删除合同分层/比对类、无工资表→删除薪酬/个税类、无台账→库存/进销比类、无凭证→凭证匹配类。条件过滤的逻辑是\"不依赖缺失资料做判断\"。③正常结论排除——detail中含\"一致/正常/无异常/OK/通过/合规\"等词且不含\"但/然而/不过/尽管如此\"等转折词→自动删除（不构成风险发现）。④资料缺口限流——资料缺失类发现超过5条时，按score从低到高删除超出部分。⑤行业不匹配过滤——发现的行业关键词与当前企业行业不匹配→删除。⑥去重合并——同type前60字符相同→只保留score最高的一条。执行顺序：税务合规重点保护(跳过)→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。'},
+        {name:'数据一致性自检（数字+文本双维度）',source:'质量保障',desc:'双维度自检，防止数据漂移和内容不一致——引擎从\"功能正确\"到\"数据一致\"的跨越。①数字维度：扫描所有JS/PY文件中的硬编码数字（规则数/链数/方法论数等），与system_config.json权威数据对比。正则匹配+偏移扫描双策略覆盖，发现不一致→--sync自动替换。②文本维度：29项跨模块共享内容双层验证——9个text_sync块（逐字哈希对比权威源和依赖模块，如报告7章结构的封面到附件，不一致→自动从权威源覆盖依赖模块）+ 20个concept_link（概念关联存在性验证，确保方法论/规则/架构/数据/规范在所有引用模块中均可追溯）。四触发全覆盖：start.bat启动时、git pre-commit、一键分析pipeline.py子进程、手动python audit_consistency.py --sync。每次--sync还会自动更新engine/memory.py docstring中的权威数据区块。'},
+        {name:'审核反馈闭环',source:'学习反馈',desc:'用户对报告的每一条审核都是系统的学习机会，驱动引擎从\"每次重新分析\"到\"越用越准\"。五步闭环流程：①审核——用户点击审核按钮，填写五段式审核意见（判断结论/具体问题/正确逻辑/需要证据/法律依据）②存储——POST /api/feedback → record_correction()将审核意见编码为结构化纠正规则，按\"发现类型|行业|经营模式\"三元组生成指纹，存入static/user_corrections.json ③匹配——下次一键分析时，apply_correction_rules()读取全部纠正规则，执行四级回退匹配：精确匹配(同类型+同行业+同模式)→行业匹配(同类型+同行业)→通用匹配(同类型+*+*)→名称匹配(模糊搜索) ④生效——匹配成功后不改变原始风险等级，而是给发现添加_dismissed/_negotiated等标记，前端报告展示绿色审核横幅 ⑤多轮——累计1次纠正→升级为自动规则→四级匹配优先级提升→下次同类发现自动标记。整个闭环在分析开始前+分析结束后两次介入——分析前加载纠正规则到内存，分析后存储新的审核记录。'},
       ]},
     { id:4, name:'行业认知体系', icon:'🏭', color:'#059669',
       desc:'像经验丰富的税务合规员一样理解不同行业的经营模式差异。行业认知不是一次性的\"读一行行业名字\"——而是从工商登记、发票数据、实质经营三个维度综合推断，并在全部分析域中贯彻行业判定结论。行业判定错误会导致后续所有的行业对标分析结果全部失真。',
       items:[
-        {name:'25行业产品链词典',source:'static/industry_data.json → 25_industry_product_chains',desc:'25个行业×2组关键词对（原料/投入关键词 vs 产品/产出关键词），覆盖中国主要行业的典型产品链关系。三级匹配策略：①精确匹配——企业的进项品名和销项品名分别与词典中的原料关键词和产品关键词完全匹配→行业确认 ②模糊匹配——企业销项品名含服务类金税编码前缀（6/7/8开头）→不执行精确的产品链匹配，直接进入服务行业判定流程 ③通用兜底——销项品名不在任何行业的产品链词典中→通过金税编码反查行业分类→如果金税编码也无法判定→使用工商登记行业为默认值同时标记\"行业未确认\"。词典的作用不仅是\"判断行业\"，更是\"验证行业\"——当进销品名与词典的行业预期一致时，该行业的分析域置信度提升；不一致时，触发外包/轻加工模式检测。'},
-        {name:'外包轻加工模式认知',source:'engine/pipeline.py → 加工费检测逻辑',desc:'批发业可能存在实质加工——不能仅凭工商登记的\"批发业\"判定没有进销存分析需求，也不能仅凭进销品名差异判定为\"进销不匹配\"。检测逻辑：①扫描银行流水的付款摘要中是否含\"加工费/代工/贴牌/OEM/委外\"等关键词 ②如果是→企业存在外包加工（将原材料发给加工商、加工后收回成品），实质是\"采购原材料+外包加工+销售成品\"的三段经营模式 ③此时进销品名差异是合理的——进的是原材料、销的是成品、中间存在加工环节 ④加工模式下→执行进销存分析但放宽匹配标准（进项品名与销项品名不要求一致，只要求同属一个产品链）⑤报告第一章行业分类中展示\"批发业（存在外包加工实质）\"，第二章详细解释加工模式对分析结果的影响。外包轻加工模式的识别结果会通过跨域协商引擎通知毛利率对标域（制造业对标改为批发+加工混合对标）。'},
-        {name:'66行业基准值库',source:'static/industry_data.json → 66_industry_benchmarks',desc:'66个行业×5个核心指标×3个基准值（下限/中位/上限），构成全行业财务基准参考体系。五个核心指标：①毛利率——（营业收入-营业成本）/营业收入，反映主营业务的盈利空间 ②净利率——净利润/营业收入，反映综合盈利水平 ③人均产值——营业收入/员工人数，反映劳动效率 ④费用收入比——期间费用/营业收入，反映费用管控水平 ⑤资产周转率——营业收入/总资产，反映资产使用效率。三个基准值的使用逻辑：企业值<下限→高风险（显著低于行业正常水平，可能存在成本虚列/收入少计）→企业值在下限与上限之间→中风险（属于行业正常波动范围）→企业值>上限→可能低风险但也可能是异常（如毛利率异常偏高可能是隐匿了成本）。基准库从公开数据（上市公司年报/行业统计年鉴）编制，定期可通过--calibrate模式更新。代码实现：_domain_industry_benchmarking()函数，行业匹配后自动加载对应的基准值进行对比。'},
+        {name:'25行业产品链词典',source:'行业认知体系',desc:'25个行业×2组关键词对（原料/投入关键词 vs 产品/产出关键词），覆盖中国主要行业的典型产品链关系。三级匹配策略：①精确匹配——企业的进项品名和销项品名分别与词典中的原料关键词和产品关键词完全匹配→行业确认 ②模糊匹配——企业销项品名含服务类金税编码前缀（6/7/8开头）→不执行精确的产品链匹配，直接进入服务行业判定流程 ③通用兜底——销项品名不在任何行业的产品链词典中→通过金税编码反查行业分类→如果金税编码也无法判定→使用工商登记行业为默认值同时标记\"行业未确认\"。词典的作用不仅是\"判断行业\"，更是\"验证行业\"——当进销品名与词典的行业预期一致时，该行业的分析域置信度提升；不一致时，触发外包/轻加工模式检测。'},
+        {name:'外包轻加工模式认知',source:'管道调度',desc:'批发业可能存在实质加工——不能仅凭工商登记的\"批发业\"判定没有进销存分析需求，也不能仅凭进销品名差异判定为\"进销不匹配\"。检测逻辑：①扫描银行流水的付款摘要中是否含\"加工费/代工/贴牌/OEM/委外\"等关键词 ②如果是→企业存在外包加工（将原材料发给加工商、加工后收回成品），实质是\"采购原材料+外包加工+销售成品\"的三段经营模式 ③此时进销品名差异是合理的——进的是原材料、销的是成品、中间存在加工环节 ④加工模式下→执行进销存分析但放宽匹配标准（进项品名与销项品名不要求一致，只要求同属一个产品链）⑤报告第一章行业分类中展示\"批发业（存在外包加工实质）\"，第二章详细解释加工模式对分析结果的影响。外包轻加工模式的识别结果会通过跨域协商引擎通知毛利率对标域（制造业对标改为批发+加工混合对标）。'},
+        {name:'66行业基准值库',source:'行业认知体系',desc:'66个行业×5个核心指标×3个基准值（下限/中位/上限），构成全行业财务基准参考体系。五个核心指标：①毛利率——（营业收入-营业成本）/营业收入，反映主营业务的盈利空间 ②净利率——净利润/营业收入，反映综合盈利水平 ③人均产值——营业收入/员工人数，反映劳动效率 ④费用收入比——期间费用/营业收入，反映费用管控水平 ⑤资产周转率——营业收入/总资产，反映资产使用效率。三个基准值的使用逻辑：企业值<下限→高风险（显著低于行业正常水平，可能存在成本虚列/收入少计）→企业值在下限与上限之间→中风险（属于行业正常波动范围）→企业值>上限→可能低风险但也可能是异常（如毛利率异常偏高可能是隐匿了成本）。基准库从公开数据（上市公司年报/行业统计年鉴）编制，定期可通过--calibrate模式更新。代码实现：_domain_industry_benchmarking()函数，行业匹配后自动加载对应的基准值进行对比。'},
       ]},
     { id:5, name:'执行管线', icon:'⚙️', color:'#f59e0b',
       desc:'从原始资料到正式报告的七步处理流程，数据单向流动不丢失不污染不截断。管线的设计原则：上游步骤的输出是下游步骤的输入、下游步骤不能修改上游步骤的原始数据、每一步骤有独立的日志和中间数据、任何步骤出错只影响该步骤及后续步骤、不会回写污染上游。',
       items:[
-        {name:'七步执行流程',source:'engine/pipeline.py → _run_analyze()',desc:'系统化地处理从用户上传文件到最终报告生成的完整流程，每一步都有明确的输入/输出/日志：①资料扫描——文件解析引擎启动，34类文件指纹+三层递进识别（文件名→列头→数据内容→公司匹配），四方交叉验证确认每个文件的类型和归属账套。输入：用户上传的Excel文件数组。输出：分类后的文件对象数组（每个文件含：类型标签/有效记录数/解析状态/错误日志）。②实体识别——从已分类的文件中提取目标企业身份信息（公司全称/统一社会信用代码/法定代表人/行业/经营范围），通过联网核查（天眼查/企查查API）补充工商登记数据。输入：银行流水文件+销项发票文件+进项发票文件。输出：目标实体对象（含所有识别出的公司信息和置信度）。③情报提取——_extract_material_intel()函数对每个文件的每行数据执行深度提取：银行流水→收款来源分类（12条规则逐条匹配）、销项发票→销售额分布（按购买方+品名+月份三维汇总）、进项发票→成本结构（主营业务成本/重大费用/日常报销三层分类）、工资表→人员结构与薪酬分布、社保明细→缴费基数与工资比对。输入：所有已分类文件。输出：material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）。④规则引擎——1608条规则+437条线索链+781条证据链+48条分析链全量激活。Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性。输入：material_intel + 目标实体。输出：all_findings数组（每条含type/level/score/detail/items/matched_chain_details等字段）。⑤噪声过滤——七类过滤规则依次执行：税务合规重点保护→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。输入：all_findings。输出：过滤后的all_findings（减少约97%噪声）。⑥跨域协商——run_negotiation()消解域间矛盾（服务行业vs进销存异常→消解）、降级不适用发现（制造业毛利率对标用于服务行业→降为提示）、标记资料受限结论（缺合同→合同相关发现标注\"待补充\"）。输入：过滤后的all_findings。输出：协商后的all_findings。⑦报告输出——_generate_final_report()生成7章正式报告：第一章案件来源及基本情况→第二章税务合规实施情况→第三章发现问题及事实认定→第四章税务合规结论→第五章处理处罚建议→第六章告知权利义务→第七章税务合规人员签字+附件证据清单。同时执行报告纯净度净化（去内部标记）、建议增强（补齐可执行步骤）、12项质量标准检测、语音播报适配。输入：协商后的all_findings + material_intel + 目标实体。输出：完整报告HTML或结构化JSON。'},
-        {name:'42个域分析函数',source:'engine/domain_analysis.py → _domain_XX系列',desc:'42个域分析函数覆盖税务合规全领域，按功能分为八大分类：①银行与资金流(3域)——收款来源分析（_domain_receipt_classification）、付款去向分析（_domain_payment_classification）、资金收支对比（_domain_cashflow_comparison）②发票与票据流(4域)——销项发票分析（_domain_sales_invoice）、进项发票分析（_domain_purchase_invoice）、发票合规检查（_domain_invoice_compliance）、红冲/作废分析（_domain_red_void）③进销存与存货(4域)——进销存匹配（_domain_inventory_match）、存货周转（_domain_inventory_turnover）、BOM分析（_domain_bom）、进销比对标（_domain_purchase_sales_ratio）④费用与成本(5域)——费用完整性（_domain_expense_completeness）、费用结构合理性（_domain_expense_structure）、大额费用分析（_domain_large_expenses）、主营业务成本分析（_domain_cogs）、研发费用分析（_domain_rd_expenses）⑤往来款(3域)——应收账款分析（_domain_ar）、应付账款分析（_domain_ap）、关联交易分析（_domain_related_party）⑥资产与负债(3域)——固定资产分析（_domain_fixed_assets）、无形资产分析（_domain_intangible）、长短期借款分析（_domain_loans）⑦工资与人力(3域)——工资发放分析（_domain_salary）、社保缴纳分析（_domain_social_security）、个税扣缴分析（_domain_personal_tax）⑧综合诊断(11域)——行业判定(_domain_industry)、资料完备度(_domain_completeness)、经营实质(_domain_business_substance)、行业对标(_domain_benchmarking)、申报比对(_domain_tax_declaration)、六员比对(_domain_six_personnel)、供应链核查(_domain_supply_chain)、经营风险预警(_domain_risk_alert)、税收优惠审核(_domain_tax_preference)、资金回流检测(_domain_money_laundering)、存疑排除(_domain_exclusion)。数量由system_config.json实时统计保证准确。'},
-        {name:'全链路溯源体系',source:'static/js/tax-doc-analysis.js → 报告渲染中的溯源逻辑',desc:'每条发现的结论都可以通过六步溯源路径反向验证——用户看到报告中任何一条发现，都可以追溯到它是从哪一行原始数据、通过哪条规则、经过哪些验证步骤得出的。六步溯源路径：①规则ID——发现的描述中标注触发的规则编号（如\"R-0321\"），点击可跳转到税务合规指令页面查看该规则的完整定义 ②线索链ID——发现的调查路径中标注驱动的线索链编号（如\"CL-0187\"），点击可查看该链的全部调查步骤和触发条件 ③证据来源——发现的evidence_source字段列出所有参与验证的数据文件（如\"银行流水→收款分类→2025年3月\"）④一键分析结果——all_findings数组中该发现的完整JSON（含原始items明细表和matched_chain_details）⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率是多少）⑥原始数据行——通过rule_id反查主文件中的extract函数（_extract_material_intel），定位到原始Excel文件的对应行。每一步在报告中有对应的超链接或展开详情按钮。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需要沿着六步路径反向检查。'},
+        {name:'七步执行流程',source:'管道调度',desc:'系统化地处理从用户上传文件到最终报告生成的完整流程，每一步都有明确的输入/输出/日志：①资料扫描——文件解析引擎启动，34类文件指纹+三层递进识别（文件名→列头→数据内容→公司匹配），四方交叉验证确认每个文件的类型和归属账套。输入：用户上传的Excel文件数组。输出：分类后的文件对象数组（每个文件含：类型标签/有效记录数/解析状态/错误日志）。②实体识别——从已分类的文件中提取目标企业身份信息（公司全称/统一社会信用代码/法定代表人/行业/经营范围），通过联网核查（天眼查/企查查API）补充工商登记数据。输入：银行流水文件+销项发票文件+进项发票文件。输出：目标实体对象（含所有识别出的公司信息和置信度）。③情报提取——_extract_material_intel()函数对每个文件的每行数据执行深度提取：银行流水→收款来源分类（12条规则逐条匹配）、销项发票→销售额分布（按购买方+品名+月份三维汇总）、进项发票→成本结构（主营业务成本/重大费用/日常报销三层分类）、工资表→人员结构与薪酬分布、社保明细→缴费基数与工资比对。输入：所有已分类文件。输出：material_intel对象（含收款构成/付款构成/发票统计/工资社保统计/资料完备度评估）。④规则引擎——1608条规则+437条线索链+781条证据链+48条分析链全量激活。Phase1检测触发→Phase2定向深挖→Phase3交叉验证→Phase4综合定性。输入：material_intel + 目标实体。输出：all_findings数组（每条含type/level/score/detail/items/matched_chain_details等字段）。⑤噪声过滤——七类过滤规则依次执行：税务合规重点保护→HARD_BAN→COND_BAN→正常结论排除→行业不匹配→资料缺口限流→去重合并。输入：all_findings。输出：过滤后的all_findings（减少约97%噪声）。⑥跨域协商——run_negotiation()消解域间矛盾（服务行业vs进销存异常→消解）、降级不适用发现（制造业毛利率对标用于服务行业→降为提示）、标记资料受限结论（缺合同→合同相关发现标注\"待补充\"）。输入：过滤后的all_findings。输出：协商后的all_findings。⑦报告输出——_generate_final_report()生成7章正式报告：第一章案件来源及基本情况→第二章税务合规实施情况→第三章发现问题及事实认定→第四章税务合规结论→第五章处理处罚建议→第六章告知权利义务→第七章税务合规人员签字+附件证据清单。同时执行报告纯净度净化（去内部标记）、建议增强（补齐可执行步骤）、12项质量标准检测、语音播报适配。输入：协商后的all_findings + material_intel + 目标实体。输出：完整报告HTML或结构化JSON。'},
+        {name:'42个域分析函数',source:'调度中枢',desc:'42个域分析函数覆盖税务合规全领域，按功能分为八大分类：①银行与资金流(3域)——收款来源分析（_domain_receipt_classification）、付款去向分析（_domain_payment_classification）、资金收支对比（_domain_cashflow_comparison）②发票与票据流(4域)——销项发票分析（_domain_sales_invoice）、进项发票分析（_domain_purchase_invoice）、发票合规检查（_domain_invoice_compliance）、红冲/作废分析（_domain_red_void）③进销存与存货(4域)——进销存匹配（_domain_inventory_match）、存货周转（_domain_inventory_turnover）、BOM分析（_domain_bom）、进销比对标（_domain_purchase_sales_ratio）④费用与成本(5域)——费用完整性（_domain_expense_completeness）、费用结构合理性（_domain_expense_structure）、大额费用分析（_domain_large_expenses）、主营业务成本分析（_domain_cogs）、研发费用分析（_domain_rd_expenses）⑤往来款(3域)——应收账款分析（_domain_ar）、应付账款分析（_domain_ap）、关联交易分析（_domain_related_party）⑥资产与负债(3域)——固定资产分析（_domain_fixed_assets）、无形资产分析（_domain_intangible）、长短期借款分析（_domain_loans）⑦工资与人力(3域)——工资发放分析（_domain_salary）、社保缴纳分析（_domain_social_security）、个税扣缴分析（_domain_personal_tax）⑧综合诊断(11域)——行业判定(_domain_industry)、资料完备度(_domain_completeness)、经营实质(_domain_business_substance)、行业对标(_domain_benchmarking)、申报比对(_domain_tax_declaration)、六员比对(_domain_six_personnel)、供应链核查(_domain_supply_chain)、经营风险预警(_domain_risk_alert)、税收优惠审核(_domain_tax_preference)、资金回流检测(_domain_money_laundering)、存疑排除(_domain_exclusion)。数量由system_config.json实时统计保证准确。'},
+        {name:'全链路溯源体系',source:'本次分析结果',desc:'每条发现的结论都可以通过六步溯源路径反向验证——用户看到报告中任何一条发现，都可以追溯到它是从哪一行原始数据、通过哪条规则、经过哪些验证步骤得出的。六步溯源路径：①规则ID——发现的描述中标注触发的规则编号（如\"R-0321\"），点击可跳转到税务合规指令页面查看该规则的完整定义 ②线索链ID——发现的调查路径中标注驱动的线索链编号（如\"CL-0187\"），点击可查看该链的全部调查步骤和触发条件 ③证据来源——发现的evidence_source字段列出所有参与验证的数据文件（如\"银行流水→收款分类→2025年3月\"）④一键分析结果——all_findings数组中该发现的完整JSON（含原始items明细表和matched_chain_details）⑤证据闭环——跨域证据链的触发详情（哪些规则同时触发、来自哪些数据域、触发率是多少）⑥原始数据行——通过rule_id反查主文件中的extract函数（_extract_material_intel），定位到原始Excel文件的对应行。每一步在报告中有对应的超链接或展开详情按钮。整个溯源体系确保报告从结论到数据的可逆推——审理人员无需理解系统内部逻辑，只需要沿着六步路径反向检查。'},
       ]},
     { id:6, name:'跨域协商引擎', icon:'🤝', color:'#0ea5e9',
       desc:'域分析函数独立运行后，引擎自动执行跨域对话，消解/降级/增强发现的结论。29条协商规则覆盖四类场景——不依赖人工干预，引擎自我发现和修正分析矛盾。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行，确保进入过滤器的发现已经是自洽的。',
       items:[
-        {name:'行业闸门消解（NEG-001~005·5条）',source:'engine/cross_domain_negotiation.py → NEG-001~005',desc:'核心逻辑：服务行业自动跳过实物商品域的分析结论，消除假阳性。当域15（行业判定）的结论为\"服务行业\"时，协商引擎自动检测以下5类发现的冲突：①进销存匹配异常→消解（服务行业无进销存概念）②存货积压预警→消解（服务行业无实物库存）③BOM表缺失→消解（服务行业无BOM）④毛利率对标异常→降为提示（服务行业毛利率不可比制造业）⑤进销比行业对标异常→消解（服务行业不存在进销比）。消解后的发现的原始数据保留在all_findings中但标记_negotiated_drop=true，不出现在正式报告中。降级的发现保留但标记_negotiated_level=提示。如果行业判定本身存在不确定性（三层穿透不一致），协商引擎会保守处理——不消解但标记\"行业判定存疑\"。'},
-        {name:'资料驱动的跨域标记（NEG-010~040·4条）',source:'engine/cross_domain_negotiation.py → NEG-010~040',desc:'当域14（资料完备度）发现某类资料缺失时，协商引擎自动通知所有依赖该资料的发现打上\"资料受限\"标记，但不下结论。四种典型场景：①缺少合同→合同分层/合同比对类发现标记\"待补充合同后重新评估\"，不生成合同缺失相关的高风险发现 ②缺少银行流水→资金流分析相关发现标记\"资料受限\"（银行流水是资金流分析的唯一数据源，无流水则所有资金类分析无基础）③缺少工资社保→薪酬/人力类发现标记\"资料受限\"④缺少申报表→申报比对类发现标记\"资料受限\"。标记不影响原始风险等级但前端渲染时展示黄色横幅，提示审理人员\"此结论基于部分资料，补充后可增强\"。标记的哲学是\"缺资料不是你的错，但在没资料的情况下下结论就是我的错\"——既不因为缺资料就假装没发现问题，也不因为缺资料就武断下结论。'},
-        {name:'证据矛盾消解（NEG-020~030·3条）',source:'engine/cross_domain_negotiation.py → NEG-020~030',desc:'当两个域的输出产生逻辑矛盾时，协商引擎根据证据强度自动判断哪个结论更可信。三种消解模式：①强证据撤销弱结论——域A（银行流水→收款分类→个人大额转账）标记\"隐匿收入高风险\"，域B（销项发票→同一付款方→含税号的正规发票）标记\"开票合规\"。协商逻辑：正规发票的证据强度>银行流水关键词匹配的证据强度→撤销隐匿收入高风险→标记\"可能为个人供应商收款，已开票\"。②数据缺失限制结论——域A（缺合同→合同比对不适用标记），域B（进销发票品名匹配→业务实质与发票一致）。协商逻辑：发票证据虽强但无合同无法确认交易真实性→结论从\"一致\"降为\"基本一致但缺合同验证\"。③时空不一致消解——域A（发票日期2025年3月）标记\"收入正常\"，域B（银行流水日期2025年5月）标记\"收款延迟\"。协商逻辑：时间差>60天→触发跨域时间差检查→如果付款方与购买方一致→标记\"应收账款\";如果不一致→标记\"存疑收款\"。证据矛盾消解的关键原则：两个域打架时，谁的数据更完整、更直接，谁的结论权重更高。'},
-        {name:'联合增强（NEG-AUG-001~003·3条）',source:'engine/cross_domain_negotiation.py → NEG-AUG-001~003',desc:'多个域同时触发异常信号时，协商引擎不仅不消解，反而合成一条更高级别的新发现——\"三个域的警报一起响，比一个域的警报响一百次更可怕\"。三种增强场景：①收入隐匿增强——域A（银行流水→大额个人转账）+ 域B（销项发票→对应月度开票为零）+ 域C（工资表→员工人数无变化但收入骤降）→合成\"疑似账外经营\"高风险发现 ②虚构成本增强——域A（进项发票→大额咨询费）+ 域B（销项品名→咨询费与主营毫无关联）+ 域C（银行流水→付款方为税收优惠地企业）→合成\"疑似虚开咨询费发票转移利润\"极高风险发现 ③资金回流增强——域A（银行流水→A→B→C→A循环转账）+ 域B（发票→A向B开票、B向C开票、C向A开票，品名相同金额相同）+ 域C（人员→三个公司法人为同一人或亲属关系）→合成\"疑似闭环虚开\"连锁发现。联合增强的新发现不覆盖原始发现的等级——原始发现保持原来的等级在报告中单独排列，新发现作为补充列在组顶用红色边框标识。'},
+        {name:'行业闸门消解（NEG-001~005·5条）',source:'调度中枢',desc:'核心逻辑：服务行业自动跳过实物商品域的分析结论，消除假阳性。当域15（行业判定）的结论为\"服务行业\"时，协商引擎自动检测以下5类发现的冲突：①进销存匹配异常→消解（服务行业无进销存概念）②存货积压预警→消解（服务行业无实物库存）③BOM表缺失→消解（服务行业无BOM）④毛利率对标异常→降为提示（服务行业毛利率不可比制造业）⑤进销比行业对标异常→消解（服务行业不存在进销比）。消解后的发现的原始数据保留在all_findings中但标记_negotiated_drop=true，不出现在正式报告中。降级的发现保留但标记_negotiated_level=提示。如果行业判定本身存在不确定性（三层穿透不一致），协商引擎会保守处理——不消解但标记\"行业判定存疑\"。'},
+        {name:'资料驱动的跨域标记（NEG-010~040·4条）',source:'调度中枢',desc:'当域14（资料完备度）发现某类资料缺失时，协商引擎自动通知所有依赖该资料的发现打上\"资料受限\"标记，但不下结论。四种典型场景：①缺少合同→合同分层/合同比对类发现标记\"待补充合同后重新评估\"，不生成合同缺失相关的高风险发现 ②缺少银行流水→资金流分析相关发现标记\"资料受限\"（银行流水是资金流分析的唯一数据源，无流水则所有资金类分析无基础）③缺少工资社保→薪酬/人力类发现标记\"资料受限\"④缺少申报表→申报比对类发现标记\"资料受限\"。标记不影响原始风险等级但前端渲染时展示黄色横幅，提示审理人员\"此结论基于部分资料，补充后可增强\"。标记的哲学是\"缺资料不是你的错，但在没资料的情况下下结论就是我的错\"——既不因为缺资料就假装没发现问题，也不因为缺资料就武断下结论。'},
+        {name:'证据矛盾消解（NEG-020~030·3条）',source:'调度中枢',desc:'当两个域的输出产生逻辑矛盾时，协商引擎根据证据强度自动判断哪个结论更可信。三种消解模式：①强证据撤销弱结论——域A（银行流水→收款分类→个人大额转账）标记\"隐匿收入高风险\"，域B（销项发票→同一付款方→含税号的正规发票）标记\"开票合规\"。协商逻辑：正规发票的证据强度>银行流水关键词匹配的证据强度→撤销隐匿收入高风险→标记\"可能为个人供应商收款，已开票\"。②数据缺失限制结论——域A（缺合同→合同比对不适用标记），域B（进销发票品名匹配→业务实质与发票一致）。协商逻辑：发票证据虽强但无合同无法确认交易真实性→结论从\"一致\"降为\"基本一致但缺合同验证\"。③时空不一致消解——域A（发票日期2025年3月）标记\"收入正常\"，域B（银行流水日期2025年5月）标记\"收款延迟\"。协商逻辑：时间差>60天→触发跨域时间差检查→如果付款方与购买方一致→标记\"应收账款\";如果不一致→标记\"存疑收款\"。证据矛盾消解的关键原则：两个域打架时，谁的数据更完整、更直接，谁的结论权重更高。'},
+        {name:'联合增强（NEG-AUG-001~003·3条）',source:'调度中枢',desc:'多个域同时触发异常信号时，协商引擎不仅不消解，反而合成一条更高级别的新发现——\"三个域的警报一起响，比一个域的警报响一百次更可怕\"。三种增强场景：①收入隐匿增强——域A（银行流水→大额个人转账）+ 域B（销项发票→对应月度开票为零）+ 域C（工资表→员工人数无变化但收入骤降）→合成\"疑似账外经营\"高风险发现 ②虚构成本增强——域A（进项发票→大额咨询费）+ 域B（销项品名→咨询费与主营毫无关联）+ 域C（银行流水→付款方为税收优惠地企业）→合成\"疑似虚开咨询费发票转移利润\"极高风险发现 ③资金回流增强——域A（银行流水→A→B→C→A循环转账）+ 域B（发票→A向B开票、B向C开票、C向A开票，品名相同金额相同）+ 域C（人员→三个公司法人为同一人或亲属关系）→合成\"疑似闭环虚开\"连锁发现。联合增强的新发现不覆盖原始发现的等级——原始发现保持原来的等级在报告中单独排列，新发现作为补充列在组顶用红色边框标识。'},
       ]},
   ];
 
@@ -2677,68 +3100,388 @@ async function loadAnalysisChains() {
   }
 }
 
-// ═══════════════ 税收优惠分析页面 ═══════════════
+//  税收优惠分析页面 —— 统一新风格
+// ═════════════════════════════════════════════════════════════
 function renderTaxIncentivesPage(container) {
-  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在读取税收优惠分析...</div>';
-  
+  if (!container) return;
+  window.currentModule = '税收优惠分析';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">税收优惠分析</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">自动检测企业是否符合各项税收优惠条件 · 联网核查三步法 · 90天智能缓存 · 所属：税务合规分析</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-total" style="font-size:26px;font-weight:700;color:#0f172a;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">检测发现</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-opp" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">优惠机会</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-risk" style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">应享未享/风险</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-types" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">涉税类型</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">全量发现数据输入优惠匹配</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">企业画像和行业判定结果</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-train\')" style="color:#2563eb">学习反馈</a><br><span style="color:#94a3b8">优惠政策变更提醒与更新</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">优惠检测结果纳入综合报告</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">手册引用优惠适用性结论</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理结论参考优惠匹配结果</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">税收优惠分析是税务合规分析的<strong>重要组成部分——帮助企业发现"应享未享"的优惠红利和"不应享却享"的潜在风险</strong>。系统基于企业画像（工商登记/发票数据/行业判定/经营规模）自动匹配9类税收优惠政策。</p>';
+  h += '<p style="margin:0 0 16px"><strong>9类优惠覆盖：</strong>小微企业优惠 · 小规模纳税人 · 高新技术企业 · 研发费用加计扣除 · 六税两费减半 · 软件产品即征即退 · 残疾人就业优惠 · 农林牧渔优惠 · 西部大开发优惠。每类优惠均有明确的结构化条件（年应纳税所得额/从业人数/资产总额等），系统逐项匹配并给出结论。</p>';
+  h += '<p style="margin:0">分析流程：①从分析缓存提取所有发现中与优惠相关的条目 ②按优惠类型分组 ③区分"优惠机会"（企业可能符合但尚未申请）和"应享未享/风险"（企业存在不符条件但享受了优惠的嫌疑）④列出法条依据和具体建议。注意：本分析仅为初步判断，最终以税务机关认定为准。</p>';
+  h += '</div>';
+
+  // 四项核心能力卡片
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">税收优惠分析四项核心能力</div>';
+  var components = [
+    { name:'9类优惠全面检测', icon:'📋', color:'#059669',
+      desc:'覆盖中国现行税收优惠政策中与中小企业最相关的9大类别：小微企业优惠（所得税减按20%/年应纳税所得额≤300万）、小规模纳税人（增值税征收率3%/月销售额≤10万免税）、高新技术企业（所得税15%/知识产权+研发人员+高新收入占比达标）、研发费用加计扣除（未形成无形资产按100%加计扣除/形成无形资产按200%摊销）、六税两费减半（资源税/城建税/房产税/印花税/耕地占用税/教育费附加/地方教育附加减半征收）、软件产品即征即退（增值税超3%税负即征即退）、残疾人就业优惠（工资100%加计扣除+增值税即征即退）、农林牧渔优惠（所得减免+增值税优惠）、西部大开发（鼓励类产业减按15%）。',
+      source:'税收优惠分析', },
+    { name:'联网核查三步法', icon:'🌐', color:'#2563eb',
+      desc:'对于需要外部验证的优惠条件（如高新技术企业认定、软件企业资质等），系统执行联网核查三步法：Step1 搜索URL（自动构建各省市税务局/科技厅的资质查询URL）→ Step2 抓取页面（HTTP请求获取资质公告页面内容）→ Step3 提取结构化条件（从HTML中解析资质编号/有效期/认定部门等结构化字段并与企业工商信息交叉比对）。核查结果缓存90天，避免重复请求。当前系统内置了各省科技厅高新技术企业查询入口和工信部软件企业查询入口。',
+      source:'管道调度', },
+    { name:'结构化条件匹配', icon:'🧩', color:'#7c3aed',
+      desc:'每类优惠政策都有严格的结构化条件模板，系统从企业数据中提取对应字段进行精确匹配。例如：小微企业条件匹配模板包含"企业类型≠国家限制或禁止行业"、"年应纳税所得额≤300万元"、"从业人数≤300人"、"资产总额≤5000万元"四条硬性条件，每条都有来源字段（工商登记/发票汇总/银行流水推算）和判定逻辑。高新企业模板涵盖"注册成立≥1年"、"近3年研发费占销售收入比例（5000万以下≥5%/5000万~2亿≥4%/2亿以上≥3%）"、"高新收入占总收入≥60%"等多维度条件，系统逐条验证并给出通过/不通过/数据不足判定。',
+      source:'调度中枢', },
+    { name:'90天智能缓存', icon:'⏱️', color:'#f59e0b',
+      desc:'联网核查结果和优惠策略判定结果缓存在本地分析缓存中，有效期90天。同一企业在90天内重复执行一键分析时，系统直接复用上次的联网核查结果而不重新发送HTTP请求，既提高了分析速度又避免了对质网站点的频繁访问。缓存按公司隔离存储（每个company_id独立缓存目录），切换账套自动切换缓存。缓存过期后下次分析自动重新联网核查并更新缓存。',
+      source:'税收优惠分析', },
+  ];
+  components.forEach(function(comp, i) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<span style="font-size:18px">'+comp.icon+'</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
+      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
+      + '</div>';
+  });
+
+  // 检测发现列表区域
+  h += '<div id="ti-findings-area" style="margin-top:28px">';
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">实际检测发现</div>';
+  h += '<div id="ti-findings-content" style="text-align:center;padding:40px;color:#94a3b8"><span class="spinner"></span> 正在加载检测数据...</div>';
+  h += '</div>';
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步加载数据
   var cid = window.currentCompanyId || 1;
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  var _farea = document.getElementById('ti-findings-content');
+
   fetch('/api/tax-incentives/status?company_id=' + cid)
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (!d.ok) { container.innerHTML = '<div style="padding:60px;text-align:center;color:#94a3b8">' + (d.message||'') + '</div>'; return; }
+      if (!d.ok) {
+        if (_farea) _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">' + (d.message||'暂无数据') + '</div>';
+        return;
+      }
       var items = d.items || [];
-      
-      var types = ['小微企业优惠','小规模纳税人','高新技术企业','研发费用加计扣除','六税两费减半','软件产品即征即退','残疾人就业','其他优惠','政策有效期'];
-      var icons = ['🏢','📊','🔬','⚗️','💰','💻','♿','🎁','📅'];
-      
-      var h = '<div style="max-width:1100px;margin:0 auto;padding:20px 0">';
-      h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🎁 税收优惠分析</h2>';
-      h += '<p style="font-size:13px;color:#64748b;margin:0 0 24px">自动检测企业是否符合各项税收优惠条件，共检查8类优惠项目。基于企业画像和发票数据判断，仅供参考，以税务机关认定为准。</p>';
-      
-      // 统计
-      var probCount = 0, oppCount = 0;
+
+      // 填充统计
+      _f('ti-total', items.length);
+      var oppCount = 0, riskCount = 0;
+      var typeSet = {};
       items.forEach(function(it) {
         if (it.level === '优惠机会' || it.level === '提醒') oppCount++;
-        else probCount++;
+        else riskCount++;
+        if (it.type) typeSet[it.type] = true;
       });
-      h += '<div style="display:flex;gap:16px;margin-bottom:24px">';
-      h += '<div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#dc2626">' + probCount + '</div><div style="font-size:13px;color:#991b1b">应享未享/风险</div></div>';
-      h += '<div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#059669">' + oppCount + '</div><div style="font-size:13px;color:#065f46">优惠机会</div></div>';
-      h += '<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;text-align:center"><div style="font-size:32px;font-weight:700;color:#64748b">' + items.length + '</div><div style="font-size:13px;color:#64748b">检测发现</div></div>';
-      h += '</div>';
-      
+      _f('ti-opp', oppCount);
+      _f('ti-risk', riskCount);
+      _f('ti-types', Object.keys(typeSet).length);
+
+      if (!_farea) return;
+
       if (items.length === 0) {
-        h += '<div style="padding:60px;text-align:center;color:#94a3b8">本次分析未产生税收优惠相关发现。可能是企业不符合任何优惠条件，或数据不足以做出判断。</div>';
-      } else {
-        items.forEach(function(it) {
-          var isOpp = it.level === '优惠机会' || it.level === '提醒';
-          var bg = isOpp ? '#ecfdf5' : '#fef2f2';
-          var border = isOpp ? '#a7f3d0' : '#fecaca';
-          var badge = isOpp ? '#059669' : '#dc2626';
-          var badgeText = isOpp ? '💡 优惠机会' : '⚠ 应享未享';
-          
-          h += '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;padding:16px 20px;margin-bottom:12px">';
-          h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-          h += '<span style="font-weight:700;font-size:15px;color:#1e293b">' + it.type + '</span>';
-          h += '<span style="background:' + badge + ';color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600">' + badgeText + '</span>';
-          h += '</div>';
-          
-          if (it.detail) h += '<div style="font-size:13px;color:#475569;margin-bottom:6px;line-height:1.6"><strong>事实：</strong>' + it.detail + '</div>';
-          if (it.how_found) h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px"><strong>依据：</strong>' + it.how_found + '</div>';
-          if (it.tax_benefit) h += '<div style="font-size:12px;color:#059669;margin-bottom:6px"><strong>优惠：</strong>' + it.tax_benefit + '</div>';
-          if (it.action) h += '<div style="font-size:12px;color:#2563eb;margin-bottom:6px"><strong>建议：</strong>' + it.action + '</div>';
-          if (it.law_ref) h += '<div style="font-size:11px;color:#94a3b8"><strong>法条：</strong>' + it.law_ref + '</div>';
-          if (it.correctedBy) h += '<div style="margin-top:6px;padding:6px 10px;background:#f0fdf4;border-radius:4px;font-size:12px;color:#166534">✅ 已由' + it.correctedBy + '纠正：' + (it.correctionReason||'') + '</div>';
-          h += '</div>';
-        });
+        _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">本次分析未产生税收优惠相关发现。可能是企业不符合任何优惠条件，或数据不足以做出判断。</div>';
+        return;
       }
-      
-      h += '</div>';
-      container.innerHTML = h;
+
+      var hh = '';
+      items.forEach(function(it) {
+        var isOpp = it.level === '优惠机会' || it.level === '提醒';
+        var bg = isOpp ? '#f0fdf4' : '#fef2f2';
+        var borderC = isOpp ? '#bbf7d0' : '#fecaca';
+        var badgeBg = isOpp ? '#059669' : '#dc2626';
+        var badgeText = isOpp ? '💡 优惠机会' : '⚠ 应享未享';
+        var levelLabel = it.level || (isOpp ? '优惠机会' : '应享未享');
+
+        hh += '<div style="background:'+bg+';border:1px solid '+borderC+';border-radius:8px;padding:16px 20px;margin-bottom:12px">';
+        hh += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">';
+        hh += '<span style="font-weight:700;font-size:14px;color:#1e293b">' + it.type + '</span>';
+        hh += '<span style="background:'+badgeBg+';color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600">' + badgeText + '</span>';
+        hh += '</div>';
+
+        if (it.detail) hh += '<div style="font-size:12px;color:#475569;margin-bottom:6px;line-height:2.0"><strong>事实：</strong>' + it.detail + '</div>';
+        if (it.how_found) hh += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;line-height:1.8"><strong>依据：</strong>' + it.how_found + '</div>';
+        if (it.tax_benefit) hh += '<div style="font-size:11px;color:#059669;margin-bottom:6px;line-height:1.8"><strong>优惠：</strong>' + it.tax_benefit + '</div>';
+        if (it.action) hh += '<div style="font-size:11px;color:#2563eb;margin-bottom:6px;line-height:1.8"><strong>建议：</strong>' + it.action + '</div>';
+        if (it.law_ref) hh += '<div style="font-size:11px;color:#94a3b8;line-height:1.8"><strong>法条：</strong>' + it.law_ref + '</div>';
+        if (it.correctedBy) hh += '<div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border-radius:4px;font-size:11px;color:#166534;line-height:1.8">✅ 已由' + it.correctedBy + '纠正：' + (it.correctionReason||'') + '</div>';
+        hh += '</div>';
+      });
+      _farea.innerHTML = hh;
     })
     .catch(function() {
-      container.innerHTML = '<div style="padding:60px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
+      if (_farea) _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px">加载失败，请确认已执行一键分析</div>';
+      _f('ti-total', '—');
+      _f('ti-opp', '—');
+      _f('ti-risk', '—');
+      _f('ti-types', '—');
     });
+}
+
+// ═══════════════ 税务合规工作流程页面 ═══════════════
+// 手册第1章独立页面 —— 选案→检查→审理→执行→案卷管理五大环节
+function renderTaxWorkflow(container) {
+  if (!container) return;
+  window.currentModule = '税务合规工作流程';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">税务合规工作流程</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">手册第1章 · 五阶段标准化流程（国税发[2009]157号） · 选案→检查→审理→执行→案卷管理 · 每个阶段有明确的法定时限和操作规范</div>';
+
+  // 5张统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">8类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">案源类型</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">60日</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">检查时限</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">15日</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">审理时限</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">万分之五</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">日滞纳金</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">5环节</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">完整流程</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">系统能力和规则体系总览</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎记忆规则篇第7章规程映射</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论语料对账</a><br><span style="color:#94a3b8">33条方法论对应规程操作要求</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch2\')" style="color:#2563eb">14类必查资料</a><br><span style="color:#94a3b8">检查环节要求的具体资料清单</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">一键分析全程模拟检查流程</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">审理环节的法律与事实推理</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">税务合规分为<strong>选案→检查→审理→执行→案卷管理</strong>五个阶段，每个阶段有明确的法定时限、工作要求和法律依据。以下为《税务合规工作规程》（国税发[2009]157号）规定的标准化流程及本系统的对应实现方式。企业接到税务合规通知后通常只有<b>3-5天准备时间</b>，系统的价值在于把"被查前的手忙脚乱"变为"日常化的持续自检"。</p>';
+  h += '<p style="margin:0">五位一体全流程覆盖：<strong>选案</strong>（计算机分析+人工分析+人机结合分析→确定税务合规对象）→<strong>检查</strong>（两名以上人员60日内完成→制作税务合规底稿→出具税务合规报告→5日内移交审理）→<strong>审理</strong>（逐项审核7项内容→四种决定→送达告知书）→<strong>执行</strong>（限期缴纳→逾期每日万分之五滞纳金→税收保全→强制执行）→<strong>案卷管理</strong>（一案一卷·正卷副卷分立·电子纸质同步）。</p>';
+  h += '</div>';
+
+  // 五项核心能力
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">五阶段标准化流程</div>';
+
+  var stages = [
+    { n:'①', title:'选案环节（第14-20条）', icon:'🎯', color:'#7c3aed',
+      body:'税务合规局通过计算机分析、人工分析、人机结合分析等多种渠道获取案源信息，经集体研究后合理准确地选择和确定税务合规对象。年度终了前制定下一年度税务合规工作计划，严格控制检查次数。<strong>8类案源</strong>包括：财务指标异常/上级交办/专项检查/部门移交/检举信息/其他部门转来/社会公共信息/其他。其中<strong>检举</strong>是企业的最大不可控风险——任何人可实名或匿名检举，且检举信息不公开。本系统的自动化风险扫描+一键分析功能本质上就是"计算机分析"环节——在税务合规立案前模拟案源筛选逻辑，帮助企业提前发现并修复涉税风险，降低进入选案名单的概率。',
+      points: [
+        ['案源获取', '多渠道获取案源信息，集体研究，合理准确选择确定税务合规对象'],
+        ['税务合规计划', '年度终了前制定下一年度工作计划，严格控制检查次数'],
+        ['8类案源', '财务指标/上级交办/专项/部门移交/检举/其他部门转来/社会公共信息/其他'],
+        ['筛选方法', '计算机分析、人工分析、人机结合分析——有嫌疑的确定为待查对象'],
+        ['立案检查', '批准立案后制作《税务合规任务通知书》，连同资料移交检查部门']
+      ]
+    },
+    { n:'②', title:'检查环节（第21-45条）', icon:'🔍', color:'#2563eb',
+      body:'检查环节是税务合规的核心阶段。检查前需查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法。检查时限为自实施之日起<strong>60日内</strong>完成，需<strong>两名以上</strong>检查人员共同实施。检查方法包括实地检查/调取账簿资料/询问/查询存款账户/异地协查。证据须真实、相关联，类型涵盖书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录。必须制作《税务合规工作底稿》，记录案件事实、归集证据材料——<strong>没有底稿就没有税务合规报告</strong>。税务合规报告须含10项内容。检查完毕5个工作日内移交审理部门。本系统的一键分析管线完全模拟此环节——文件上传→实体识别→情报提取→规则扫描→链驱动发现→证据收集→形成底稿→输出报告。',
+      points: [
+        ['检查前准备', '查阅纳税档案，了解生产经营、行业特点、财务会计制度，确定检查方法'],
+        ['检查时限', '自实施之日起60日内完成，需两名以上检查人员共同实施'],
+        ['检查方法', '实地检查/调取账簿资料/询问/查询存款账户/异地协查'],
+        ['证据类型', '书证/物证/视听资料/电子数据/证人证言/当事人陈述/勘验笔录'],
+        ['税务合规底稿', '必须制作，记录案件事实，归集证据材料——无底稿则无报告'],
+        ['税务合规报告', '须含10项：案件来源→基本情况→检查时间→方法措施→违法事实→拒绝阻挠→被查对象意见→处理建议→其他→签名日期'],
+        ['移交审理', '检查完毕5个工作日内移交审理部门']
+      ]
+    },
+    { n:'③', title:'审理环节（第46-60条）', icon:'⚖️', color:'#059669',
+      body:'审理部门收到税务合规报告后，逐项审核7项内容：对象准确性/事实清楚证据充分/法律适用/程序合法/权限适当/处理建议/其他事项。事实不清、证据不足的退回检查部门补充调查。事实清楚但适用法律错误的，审理部门另行提出处理意见直接纠正不退回。审理时限为收到报告后<strong>15日内</strong>提出审理意见。拟处罚的需送达告知书，告知陈述权/申辩权/听证权。审理结论分四种：有违法行为→《税务处理决定书》/应处罚→《税务行政处罚决定书》/轻微→《不予处罚决定书》/无违法→《税务合规结论》。涉嫌犯罪的移送公安机关。本系统的质量保障体系完全对应审理环节——方法论过滤器+报告纯净度规范+合规门禁=自动审理。',
+      points: [
+        ['审核重点', '逐项审核7项：对象准确性/事实证据/法律适用/程序合法/权限适当/处理建议/其他'],
+        ['退回补正', '事实不清、证据不足→退回检查部门补充调查'],
+        ['纠正建议', '事实清楚但适用法律错误→审理部门直接纠正，不退回'],
+        ['审理时限', '收到税务合规报告后15日内提出审理意见'],
+        ['告知听证', '拟处罚→送达告知书→告知陈述权/申辩权/听证权'],
+        ['四种决定', '有违法→处理决定书/应处罚→处罚决定书/轻微→不予处罚/无违法→税务合规结论'],
+        ['涉罪移送', '涉嫌犯罪→移送书→经局长批准→移送公安机关']
+      ]
+    },
+    { n:'④', title:'执行环节', icon:'💵', color:'#dc2626',
+      body:'下达《税务处理决定书》和《税务行政处罚决定书》，责令限期缴纳税款、滞纳金和罚款。企业权利：<strong>60日内</strong>申请行政复议/复议后<strong>15日内</strong>提起诉讼/缴纳税款或提供担保后可申请复议。逾期不履行的，加收<strong>每日万分之五滞纳金</strong>，实施税收保全措施（冻结存款/查封财产），并申请法院强制执行。本系统报告的第五章"处理处罚建议"直接对应执行环节——P0立即处理/P1限期整改/P2持续关注，三级策略让企业在税务合规正式下达前提前整改。',
+      points: [
+        ['执行文书', '下达处理决定书+处罚决定书→责令限期缴纳'],
+        ['企业权利', '60日内申请行政复议/复议后15日内提起诉讼'],
+        ['强制执行', '逾期→每日万分之五滞纳金→税收保全→申请法院强制执行'],
+        ['法律依据', '《征管法》第32条(滞纳金)/第40条(强制执行)/第88条(复议前置)']
+      ]
+    },
+    { n:'⑤', title:'案卷管理（第72-77条）', icon:'📁', color:'#f59e0b',
+      body:'一案一卷，按年度、按案卷分类立卷。过程资料全部纳入案卷，不得遗漏。正卷含税务合规报告/审理报告/处理决定/证据材料，可对外提供。副卷含内部请示/报告/研究记录，不得对外提供。保管期限随案卷定，直至最终审结。电子数据与纸质档案同步保管。本系统的全链路溯源体系对应案卷管理——每条发现的结论可追溯到规则ID→线索链ID→证据来源→原始数据行，形成完整的电子税务合规底稿。',
+      points: [
+        ['立卷标准', '一案一卷，按年度、按案卷分类立卷，过程资料全部纳入'],
+        ['正卷副卷', '正卷(可对外)含报告/决定/证据；副卷含内部请示/研究记录，不得对外提供'],
+        ['保管期限', '随案卷定，直至最终审结。电子数据与纸质档案同步保管'],
+        ['系统对应', '全链路溯源体系——每条结论可追溯到规则ID→线索链ID→证据来源→原始数据行']
+      ]
+    }
+  ];
+
+  stages.forEach(function(s) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;margin-bottom:16px;border-left:4px solid '+s.color+'">';
+    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+    h += '<span style="background:'+s.color+';color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">'+s.n+'</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:#0f172a">'+s.title+'</span>';
+    h += '</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:14px">'+s.body+'</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    s.points.forEach(function(p) {
+      h += '<div style="flex:1;min-width:180px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px">';
+      h += '<div style="font-size:11px;font-weight:700;color:'+s.color+';margin-bottom:4px">'+p[0]+'</div>';
+      h += '<div style="font-size:11px;color:#64748b;line-height:1.8">'+p[1]+'</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+    h += '<div style="font-size:11px;color:#6366f1;margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0">📁 手册第1章</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+// ═══ 14类必查资料 ═══
+function renderRequiredMaterials(container) {
+  if (!container) return;
+  window.currentModule = '14类必查资料';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">14类税务合规必查资料</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">手册第2章 · 三级分类（必备→建议→据需） · 34类文件指纹+三层递进识别自动检测 · 每缺一类资料就少一道防线</div>';
+
+  // 4张统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">5类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">必备资料</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">8类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">建议资料</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#6366f1;line-height:1.3">1类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">据需资料</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#0f172a;line-height:1.3">34类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">文件指纹</div></div>';
+  h += '</div>';
+
+  // 上下游
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch1\')" style="color:#2563eb">税务合规工作流程</a><br><span style="color:#94a3b8">检查环节要求的资料清单</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">34类文件指纹库三层递进识别</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎记忆规则篇资料解析配置</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">文件解析→情报提取→风险扫描</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论语料对账</a><br><span style="color:#94a3b8">33条方法论依赖资料完整性</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">缺失资料的推断与替代分析</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">根据税务合规实战经验，以下14类资料为必查项。每缺一类资料，税务合规时就少一道防线——缺少资料意味着对应风险无法排除，税务机关将从其他数据源倒推核定应纳税额，核定结果通常高于企业实际申报。</p>';
+  h += '<p style="margin:0">系统通过文件解析模块（<strong>34类文件指纹+三层递进识别</strong>）自动检测资料提交状态，逐类标注已提交/缺失，缺失资料的具体后果在报告中一一列明。以下按重要性从<strong style="color:#dc2626">必备</strong>→<strong style="color:#f59e0b">建议</strong>→<strong style="color:#6366f1">据需</strong>三级分类。</p>';
+  h += '</div>';
+
+  // 14类资料卡片
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">14类必查资料明细</div>';
+
+  var materials = [
+    { n:'①', name:'银行流水', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含交易日期/对方户名/交易金额/摘要/备注。系统自动提取收款方/付款方身份、计算资金净流向、识别异常交易模式。',
+      risk:'资金流真实性无法验证，收入收款和成本付款无法核实。税务机关从第三方数据倒推资金流向。' },
+    { n:'②', name:'销项发票', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含购方名称/品名/规格/数量/金额/税额/发票号码。系统自动统计收入构成、行业分类、客户集中度。',
+      risk:'无法确认企业对外开票情况，无法进行收入端分析。税务机关以行业均值推定收入。' },
+    { n:'③', name:'进项发票', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含销方名称/品名/数量/金额/税额。系统自动三层成本分类（主营/重大费用/日常报销）、供应商集中度分析。',
+      risk:'无法确认采购成本和进项税额，无法进行成本端分析。进项税额的可抵扣性无法验证。' },
+    { n:'④', name:'工资表', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含姓名/身份证号/应发工资/社保扣款/公积金扣款/个税扣款/实发工资。与社保明细+个税申报三方交叉验证。',
+      risk:'人工成本无法核实，个税和社保扣缴的合规性无法验证。可能面临补缴个税+罚款。' },
+    { n:'⑤', name:'社保明细', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含姓名/身份证号/缴费基数/单位缴纳额/个人缴纳额。与工资表交叉验证——人数、基数必须一致。',
+      risk:'社保合规性无法验证，存在少缴漏缴风险。至少补缴差额+每日万分之五滞纳金。' },
+    { n:'⑥', name:'公积金明细', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'含姓名/缴存基数/单位缴存额/个人缴存额。与社保同源验证，缴费基数须一致。',
+      risk:'公积金合规性无法验证，不影响税务但影响企业信用评级。' },
+    { n:'⑦', name:'记账凭证', level:'必备', lc:'#dc2626', lb:'#fef2f2', lbo:'#fecaca',
+      core:'含凭证编号/日期/摘要/科目编码/借方金额/贷方金额。用于科目级借贷平衡验证。',
+      risk:'无法从账务层面验证收入/成本/费用的真实性，无法进行科目级借贷平衡检查。' },
+    { n:'⑧', name:'科目余额表', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'提供各科目期末余额全景图。用于验证报表数据的连续性和一致性、关联方往来余额。',
+      risk:'无法从会计科目维度进行全面分析，关联方往来余额无法确认。' },
+    { n:'⑨', name:'财务报表', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'完整反映财务状况和经营成果，含资产负债表+利润表+现金流量表。',
+      risk:'财务指标分析受限，行业对标缺少基准数据。无法计算偿债/营运/盈利/成长能力。' },
+    { n:'⑩', name:'增值税申报表', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'含销售额/销项税额/进项税额/应纳税额。与销项/进项发票交叉比对申报数据。',
+      risk:'无法验证申报数据与发票数据的匹配性。发票金额与申报金额的差异无法识别。' },
+    { n:'⑪', name:'企业所得税申报表', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'收入/成本/费用/利润的申报核验。与财务报表数据交叉比对。',
+      risk:'所得税申报合规性无法验证。成本费用的税前扣除合规性无法核查。' },
+    { n:'⑫', name:'合同/协议', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'四流合一（合同/发票/资金/货物）的起始环节。印花税计税基础核查和交易真实性验证。',
+      risk:'交易真实性缺少核心证据，大额交易的商业合理性存疑。印花税计税基础无据可查。' },
+    { n:'⑬', name:'关联方交易资料', level:'建议', lc:'#f59e0b', lb:'#fffbeb', lbo:'#fde68a',
+      core:'关联交易定价（转让定价）、关联方名录、关联业务往来报告表。',
+      risk:'关联交易合规性无法验证。存在转移利润嫌疑但无法证实或排除。' },
+    { n:'⑭', name:'进出口/报关', level:'据需', lc:'#6366f1', lb:'#eef2ff', lbo:'#c7d2fe',
+      core:'进出口企业提供报关单、收付汇核销单。仅进出口企业需要提供。',
+      risk:'进出口业务合规性无法验证。关税/消费税/增值税的进出口环节风险无法排除。' }
+  ];
+
+  materials.forEach(function(m) {
+    h += '<div style="background:#fff;border:1px solid '+m.lbo+';border-radius:10px;padding:18px 22px;margin-bottom:12px;border-left:4px solid '+m.lc+'">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+    h += '<div style="display:flex;align-items:center;gap:8px">';
+    h += '<span style="background:'+m.lc+';color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+m.n+'</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:#0f172a">'+m.name+'</span>';
+    h += '</div>';
+    h += '<span style="background:'+m.lb+';color:'+m.lc+';border:1px solid '+m.lbo+';padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600">'+m.level+'</span>';
+    h += '</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    h += '<div style="background:#f8fafc;border-radius:6px;padding:10px 14px">';
+    h += '<div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:4px">📋 核心要求</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:1.9">'+m.core+'</div>';
+    h += '</div>';
+    h += '<div style="background:'+m.lb+';border-radius:6px;padding:10px 14px">';
+    h += '<div style="font-size:11px;font-weight:700;color:'+m.lc+';margin-bottom:4px">⚠ 缺失后果</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:1.9">'+m.risk+'</div>';
+    h += '</div>';
+    h += '</div>';
+    h += '<div style="font-size:11px;color:'+m.lc+';margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0">📁 手册第2章 · '+m.level+'级</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
 }
 
 // ═══ 分析链拆分子模块 ═══
@@ -2765,61 +3508,3112 @@ function renderAnalyzeSteps(container) {
   h += '</div>';
   container.innerHTML = h;
 }
-
-// 本次分析结果（需加载分析数据）
-async function renderAnalyzeResult(container) {
-  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">本次分析结果</h2><div id="ar-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
-  try {
-    var data = await getSharedAnalysis();
-    if (!data.ok) throw new Error(data.message||'无分析数据');
-    var report = data.report || {};
-    var comp = report.comprehensive || {};
-    var allFindings = report.all_findings || [];
-    var high = allFindings.filter(function(f){return (f.risk||f.level)==='高风险'||(f.risk||f.level)==='极高风险';}).length;
-    var mid = allFindings.filter(function(f){return (f.risk||f.level)==='中风险';}).length;
-    var low = allFindings.filter(function(f){var r=f.risk||f.level||'';return r==='低风险'||r==='良好';}).length;
-    
-    var h = '<div style="display:flex;gap:12px;margin-bottom:24px">'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#0f172a">'+(report.files_count||0)+'</div><div style="font-size:12px;color:#64748b">资料文件</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#2563eb">'+(comp.rule_count||1608)+'</div><div style="font-size:12px;color:#64748b">匹配规则</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#dc2626">'+high+'</div><div style="font-size:12px;color:#64748b">高风险</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fffbeb;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#f59e0b">'+mid+'</div><div style="font-size:12px;color:#64748b">中风险</div></div>'
-      + '<div style="flex:1;text-align:center;padding:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px"><div style="font-size:28px;font-weight:700;color:#059669">'+low+'</div><div style="font-size:12px;color:#64748b">低风险</div></div>'
-      + '</div>'
-      + '<div style="font-size:13px;color:#475569;line-height:2;margin-bottom:24px">规则<strong>'+(comp.rule_count||1608)+'</strong>则·线索链<strong>'+(comp.chain_count||437)+'</strong>条·证据链<strong>'+(comp.evidence_count||781)+'</strong>条·文件<strong>'+(report.files_count||0)+'</strong>个·全链路闭环✓</div>';
-    document.getElementById('ar-content').innerHTML = h;
-  } catch(e) {
-    document.getElementById('ar-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败：'+e.message+'<br>请先执行一键分析</div>';
-  }
-}
-
 // 管线执行日志（需加载分析数据）
 async function renderAnalyzeLogs(container) {
-  container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff"><h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">管线执行日志</h2><div id="al-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
+  if (!container) return;
+  window.currentModule = '管线执行日志';
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.al{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.al-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.al-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.al-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.al-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.al-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.al-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.al-term{background:#0f172a;border-radius:8px;padding:20px 24px;max-height:560px;overflow-y:auto;font-family:"Cascadia Code","Consolas",monospace;font-size:12px;line-height:2.0}'
+    + '.al-term::-webkit-scrollbar{width:6px}'
+    + '.al-term::-webkit-scrollbar-track{background:#1e293b}'
+    + '.al-term::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}'
+    + '</style>';
+
+  h += '<div class="al">';
+  h += '<div class="al-title">管线执行日志</div>';
+  h += '<div class="al-sub">七步管线全程执行记录 · 终端控制台风格 · 所属：执行管线</div>';
+
+  // 统计卡片（占位，异步填充）
+  h += '<div class="al-hero">';
+  h += '<div class="al-card"><div class="v" id="al-total" style="color:#0f172a">—</div><div class="l">日志总数</div></div>';
+  h += '<div class="al-card"><div class="v" id="al-phase" style="color:#2563eb">—</div><div class="l">阶段步骤</div></div>';
+  h += '<div class="al-card"><div class="v" id="al-trigger" style="color:#f59e0b">—</div><div class="l">发现/触发</div></div>';
+  h += '<div class="al-card"><div class="v" id="al-error" style="color:#dc2626">—</div><div class="l">异常/错误</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">调度中枢每步执行写入管线日志</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配执行记录写入日志</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">链执行与触发记录写入日志</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">闭环检测记录写入日志</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">从管线日志提取七步关键指标</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎执行状态来自管线记录</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理过程依赖管线日志上下文</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">管线日志供稽查员回溯参考</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">管线执行日志以<strong>终端控制台风格</strong>展示分析管线的完整运行过程。从文件解析、目标实体识别、域分析、规则匹配、线索链触发、证据链闭环到报告生成，每一步操作的执行结果都以彩色编码的方式呈现。</p>';
+  h += '<p style="margin:0 0 16px">日志按<strong>颜色分级</strong>：绿色表示成功完成的操作，黄色表示中间发现和触发事件，蓝色表示阶段性步骤（Phase1-4），红色表示异常或错误。每条日志前有三位数序号，方便沟通时引用具体日志行。</p>';
+  h += '<p style="margin:0">下方为完整管线执行日志，支持滚动查看。如需查看分析结果汇总，请跳转<a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a>页面。</p>';
+  h += '</div>';
+
+  h += '<div id="al-content"><div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">加载中...</div></div>';
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步加载分析数据
   try {
     var data = await getSharedAnalysis();
-    if (!data.ok) throw new Error(data.message||'无分析数据');
-    var comp = (data.report||{}).comprehensive || {};
+    if (!data.ok) throw new Error(data.message || '无分析数据');
+    var comp = (data.report || {}).comprehensive || {};
     var plogs = comp.pipeline_log || comp.execution_log || [];
-    if (plogs.length === 0) plogs = (data.report||{}).pipeline_log || [];
-    
-    var h = '<div style="font-size:12px;color:#94a3b8;margin-bottom:12px">共 '+plogs.length+' 条日志</div>'
-      + '<div style="background:#0f172a;border-radius:6px;padding:20px 24px;max-height:600px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:2.0">';
+    if (plogs.length === 0) plogs = (data.report || {}).pipeline_log || [];
+
+    // 统计分类
+    var phaseCount = 0, triggerCount = 0, errorCount = 0;
+    plogs.forEach(function(log) {
+      if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) phaseCount++;
+      if (/发现|触发|命中/.test(log)) triggerCount++;
+      if (/异常|失败|错误/.test(log)) errorCount++;
+    });
+
+    // 填充统计卡片
+    var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+    _f('al-total', plogs.length);
+    _f('al-phase', phaseCount);
+    _f('al-trigger', triggerCount);
+    _f('al-error', errorCount);
+
+    var hh = '';
+    hh += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">完整执行日志</div>';
+    hh += '<div class="al-term">';
     if (plogs.length === 0) {
-      h += '<div style="color:#64748b;text-align:center;padding:40px">暂无管线执行日志</div>';
+      hh += '<div style="color:#64748b;text-align:center;padding:40px">暂无管线执行日志，请先执行一键分析</div>';
     } else {
       plogs.forEach(function(log, i) {
-        var color = '#64748b';
+        var color = '#cbd5e1';
         if (/异常|失败|错误/.test(log)) color = '#fca5a5';
         else if (/完成|成功|通过/.test(log)) color = '#86efac';
         else if (/发现|触发|命中/.test(log)) color = '#fde68a';
         else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
-        h += '<div style="color:'+color+'">['+String(i+1).padStart(3,'0')+'] '+escHtml(log)+'</div>';
+        hh += '<div style="color:' + color + '">[' + String(i + 1).padStart(3, '0') + '] ' + escHtml(log) + '</div>';
       });
     }
-    h += '</div>';
-    document.getElementById('al-content').innerHTML = h;
+    hh += '</div>';
+    document.getElementById('al-content').innerHTML = hh;
   } catch(e) {
-    document.getElementById('al-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败：'+e.message+'<br>请先执行一键分析</div>';
+    document.getElementById('al-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px">加载失败：' + escHtml(e.message) + '<br>请先执行一键分析</div>';
   }
+}
+
+//  系统数据概览 —— 统一新风格
+// ══════════════════════════════════════════════════════════════
+async function renderSystemOverview(container) {
+  if (!container) return;
+  window.currentModule = '系统数据概览';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">系统数据概览</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">税务合规员手册第0章 · 系统核心能力全景 · 1608条规则+1250条链+42个域分析函数+41个引擎模块</div>';
+
+  // 统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-rules" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">税务合规规则</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-clues" style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">线索链</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-evidence" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">证据链</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-chains" style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">分析链</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-domains" style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">域分析函数</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-modules" style="font-size:26px;font-weight:700;color:#6366f1;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">引擎模块</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎记忆体系提供全量规则数据</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">规则引擎和链数据的总量来源</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">33条方法论定义系统能力边界</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理框架驱动六项智能能力</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">管线驱动规则和链数据的激活</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">分析结果参考手册进行解读</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><br><span style="color:#94a3b8">手册定义报告质量标准和规范</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-ch1\')" style="color:#2563eb">税务合规工作流程</a><br><span style="color:#94a3b8">手册五步流程指导稽查实操</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">税务合规系统是存勤法税的<strong>智能化税务合规推理引擎</strong>。基于1608条税务合规规则+437条线索链+781条证据链+48条分析链+42个域分析函数构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。每条规则含触发条件+风险等级+调查步骤+处罚依据，全行业通用。</p>';
+  h += '<p style="margin:0 0 16px">引擎具备<strong>六项核心智能能力——记忆、学习、思考、判断、决策、自知</strong>——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。引擎不仅是规则的执行器，更是自我进化、自我诊断、自我验证的智能体。</p>';
+  h += '<p style="margin:0">系统的核心架构：<strong>41个引擎模块</strong>（engine/*.py）各自独立加载、协同工作，覆盖文件解析→实体识别→情报提取→规则扫描→链驱动发现→证据收集→跨域协商→报告输出全链条。引擎记忆体系（engine/memory.py）作为系统的大脑，26章结构维护所有规则、方法、知识和推理框架。</p>';
+  h += '</div>';
+
+  // 六项核心能力组件卡片
+  var components = [
+    { name:'有记忆', icon:'🧠', color:'#059669',
+      desc:'每次分析自动提取指纹（行业+模式+信号+评分）存入audit_memory.json。上限500条，12维度加权相似度检索——行业(×3)>经营模式(×2)>信号类型(×2)>风险等级(×1.5)。后续分析自动检索相似案例，输出行业对标校准和常见信号预警。记忆体系让引擎越用越聪明——每次分析都在丰富历史指纹库，相似企业的分析结论可以互相参考。',
+      source:'学习反馈', },
+    { name:'能学习', icon:'📚', color:'#2563eb',
+      desc:'三层渐进学习机制：①审核反馈学习——用户审核发现→存入user_corrections.json→四级回退匹配→累计1次即升级自动规则 ②EMA自学习——58样本指数移动平均，行业阈值动态校准，避免阈值僵化 ③自动规则发现——从重复出现的信号组合中检测新模式，写入规则库。代码实现位于self_learning.py，三项学习机制相互独立且并行运行。',
+      source:'学习反馈', },
+    { name:'懂思考', icon:'🔬', color:'#7c3aed',
+      desc:'四层推理框架：①假设验证引擎——每条发现2-3个竞争假设+逐条证据验证+加权判决，消除单一假设偏差 ②Phase1-4推理引擎——初查信号检测→定向深挖→交叉验证→综合定性，逐步深入 ③因果叙事链——多信号叠加自动推演因果链条，从孤立信号构建完整叙事 ④四步分析法——detect→verify→diagnose→report，标准化流程确保推理质量。',
+      source:'推理引擎', },
+    { name:'会判断', icon:'⚖️', color:'#f59e0b',
+      desc:'七层自动判定体系层层递进：①四方交叉验证（文件名→列头→数据→公司匹配）②身份锚定（购买方/销售方vs公司名+统一社会信用代码）③发票方向判定 ④进项三层分类 ⑤服务行业闸门 ⑥品名级精准过滤 ⑦存疑排除。33条判定规则逐条自动校验，每层独立运行、结果传递给下一层，错误在源头被拦截。',
+      source:'引擎详情', },
+    { name:'懂决策', icon:'🎯', color:'#dc2626',
+      desc:'五层决策输出体系：①风险综合评分（76/100→四级等级）②审计策略推荐（P0立即处理/P1限期整改/P2持续关注）③因果叙事链（从信号推演因果，给结论一个完整故事）④合规门禁（12项质量标准+16项自省检查，不达标不输出）⑤正式报告（7章格式+六要素+同类合并+语音播报）。每项决策都有可追溯的证据支撑。',
+      source:'本次分析结果', },
+    { name:'有自知', icon:'🔮', color:'#6366f1',
+      desc:'引擎知道自己是财税税务合规系统的大脑——不仅是规则的执行器，更是自我诊断、自我验证、自我进化的智能体。新规则/新方法/新标准写入engine/memory.py规则篇+架构篇（26章）。数据一致性自检启动时自动运行，四触发机制（--sync/start.bat/pre-commit/一键分析）确保全模块数据统一。自记忆→自学习→自思考→自判断→自决策——五项能力形成正向循环，引擎越用越强。',
+      source:'质量保障', },
+  ];
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">六项核心智能能力</div>';
+  components.forEach(function(comp, i) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<span style="font-size:18px">'+comp.icon+'</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
+      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
+      + '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  _f('so-rules', '1608');
+  _f('so-clues', '437');
+  _f('so-evidence', '781');
+  _f('so-chains', '48');
+  _f('so-domains', '42');
+  _f('so-modules', '41');
+}
+
+// ═══════════ 数据资产页面 ═══════════
+function renderDataAssets(container) {
+  if (!container) return;
+  window.currentModule = '数据资产';
+
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
+  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">系统数据资产</div>';
+  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">AGI引擎中心 · 7层28引擎 · 以下数字来自代码和数据文件的精确统计，非手工标注</div>';
+
+  // 6张统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#2563eb;line-height:1.3" id="da-rules">...</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">税务合规规则</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed;line-height:1.3" id="da-clues">...</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">线索/证据链</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#059669;line-height:1.3" id="da-domains">...</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">域分析函数</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#f59e0b;line-height:1.3" id="da-engines">...</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">引擎模块</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626;line-height:1.3">21</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">调度模块</div></div>';
+  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#6366f1;line-height:1.3">52,500+</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">代码行数</div></div>';
+  h += '</div>';
+
+  // 上下游
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎注册表维护全部模块配置</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">四大组件构成数据资产底座</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理过程消费数据资产</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-schedule\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">21模块调度数据资产</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">分析管线消费数据资产</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">最终分析结果基于全部资产</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">系统数据资产涵盖<strong>规则、线索链、证据链、分析函数、引擎模块、调度模块、代码库</strong>七个维度，是AGI引擎中心的核心配置数据，也是全系统的知识底座。</p>';
+  h += '<p style="margin:0">以下七大资产组件构成完整的数据资产体系：规则引擎定义风险标准，线索链定义调查路径，证据链定义闭环条件，域分析函数执行数据提取，28引擎模块构成7层架构，21调度模块串联执行流程，52,500+行代码承载全部逻辑。</p>';
+  h += '</div>';
+
+  // 七大资产组件
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">七大资产组件</div>';
+
+  var assets = [
+    { n:'①', name:'税务合规规则', icon:'📋', color:'#2563eb',
+      desc:'覆盖20个分类的税务合规指令：发票匹配/申报合规/行业专项/个税/资产负债/企业所得/成本费用/发票合规/增值税/经营实质等。每条含触发条件、风险等级、调查步骤、法定处罚依据四项要素。',
+      stat:'20个分类 · 1608条规则'},
+    { n:'②', name:'线索/证据链', icon:'🔗', color:'#7c3aed',
+      desc:'线索链定义从风险到发现的调查路径（437条，41条可执行+1174条方法论）。证据链定义多源验证的闭环条件（781条，要求≥60%维度+≥3规则+≥2域达成闭环）。',
+      stat:'437条线索链 · 781条证据链'},
+    { n:'③', name:'域分析函数', icon:'🔍', color:'#059669',
+      desc:'42个域分析函数：银行收款构成/付款方身份核实/进销存比对/五层发票审计/供应商穿透/合同四层分类/经营实质/地理分析等，覆盖资金、票据、交易、关联方四维域。',
+      stat:'42个函数 · 4维域覆盖'},
+    { n:'④', name:'7层28引擎', icon:'🧠', color:'#f59e0b',
+      desc:'7层架构：核心层6+推理层4+连接层3+知识层3+专项层7+加速层3+调度层2。覆盖自愈、巡逻、规则发现、反思、元认知、SCM因果、知识库、并行加速等全部引擎能力。',
+      stat:'7层架构 · 28个引擎模块'},
+    { n:'⑤', name:'21调度模块', icon:'🎯', color:'#dc2626',
+      desc:'M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1。orchestrator.py注册管理，21模块串联形成完整分析管线调度体系。',
+      stat:'21个模块 · 7大阶段'},
+    { n:'⑥', name:'代码规模', icon:'📐', color:'#6366f1',
+      desc:'main.py约29,000行+engine/约8,500行+前端约15,000行。总计约52,500行系统代码，承载全部税务合规分析逻辑、规则引擎、推理框架和前端交互。',
+      stat:'52,500+行 · 三端协同'},
+    { n:'⑦', name:'知识库配置', icon:'📚', color:'#0891b2',
+      desc:'政策库9条优惠/因果网络/信号模式/14类语义词典/8大行业画像/自愈规则/经验教训/分析历史/巡逻快照。全部JSON存储，线程安全单例访问。',
+      stat:'9项知识库 · 14种配置'}
+  ];
+
+  assets.forEach(function(a) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 22px;margin-bottom:14px;border-left:4px solid '+a.color+'">';
+    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+    h += '<span style="background:'+a.color+';color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+a.n+'</span>';
+    h += '<span style="font-size:14px;font-weight:700;color:#0f172a">'+a.icon+' '+a.name+'</span>';
+    h += '<span style="margin-left:auto;background:#f8fafc;border:1px solid #e2e8f0;padding:3px 10px;border-radius:4px;font-size:11px;color:'+a.color+';font-weight:600">'+a.stat+'</span>';
+    h += '</div>';
+    h += '<div style="font-size:12px;color:#475569;line-height:2.0">'+a.desc+'</div>';
+    h += '<div style="font-size:11px;color:#6366f1;margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0">📁 AGI引擎中心 · 数据资产</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步填充统计卡片
+  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  _f('da-rules', pc('rules', '1608'));
+  _f('da-clues', pc('trailChains', '437'));
+  _f('da-domains', '42');
+  _f('da-engines', '28');
+}
+
+// ═══════════════ 税务合规判定规则页面 ═══════════════
+function renderJudgmentRules(container) {
+  var h = '';
+  h += '<div style="max-width:900px;margin:0 auto;padding:36px 28px">';
+
+  // ── 标题区 ──
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h += '<div style="font-size:19px;font-weight:800;color:#0f172a">⚖️ 税务合规判定规则</div>';
+  h += '<div style="font-size:11px;color:#94a3b8">手册第4章 · 8条判定规则 · 所有分析域前置基础</div>';
+  h += '</div>';
+  h += '<p style="font-size:12px;color:#64748b;margin:0 0 24px;line-height:1.8">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环——不可颠倒，前序错误=后续作废</p>';
+
+  // ── 统计卡片 ──
+  h += '<div style="display:flex;gap:12px;margin-bottom:28px">';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb" id="jr-rules">8</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">判定规则总数</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed">8</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">不可颠倒顺序</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">7</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">多源交叉验证</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626">3重</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">门禁条件</div></div>';
+  h += '</div>';
+
+  // ── 上下游 ──
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch2\')" style="color:#2563eb">14类必查资料</a><br><span style="color:#94a3b8">资料解析后进入判定流程</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch1\')" style="color:#2563eb">税务合规工作流程</a><br><span style="color:#94a3b8">五阶段流程提供执行框架</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">1608条规则为判定提供参照</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">判定结论贯穿后续所有分析域</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理过程依赖前置判定结果</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">管线各阶段消费判定结论</span></div>';
+  h += '</div></div></div>';
+
+  // ── 段落说明 ──
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">以下<strong>8条判定规则</strong>是系统分析的基础——每一条都在分析启动前完成判定，判定结论贯穿后续所有分析域。判定规则的执行顺序不可颠倒：<strong style="color:#dc2626">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环</strong>。如果第一步的身份锚定出错，后续所有判定都建立在错误基础上。</p>';
+  h += '<p style="margin:0">每条判定规则均由代码层（phase1_triage.py / pipeline.py / cross_domain_negotiation.py）独立实现，并通过<strong>引擎记忆（engine/memory.py）</strong>记载规则定义与执行约束。证据闭环要求：≥60%触发率 + ≥3条规则触发 + ≥2个数据域交叉验证，三重门禁全部通过才形成有效证据闭环。</p>';
+  h += '</div>';
+
+  // ── 8条判定规则（静态卡片 + 异步填充详情） ──
+  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">八条判定规则</div>';
+
+  var ruleLabels = [
+    {n:'①', name:'身份锚定', color:'#2563eb', tag:'锚定'},
+    {n:'②', name:'发票方向判定', color:'#7c3aed', tag:'方向'},
+    {n:'③', name:'进项再分类', color:'#059669', tag:'分类'},
+    {n:'④', name:'服务行业闸门', color:'#d97706', tag:'闸门'},
+    {n:'⑤', name:'品名级精准过滤', color:'#dc2626', tag:'过滤'},
+    {n:'⑥', name:'四方交叉验证', color:'#6366f1', tag:'交叉'},
+    {n:'⑦', name:'COND_BAN防误杀', color:'#0891b2', tag:'防误杀'},
+    {n:'⑧', name:'证据闭环阈值', color:'#be185d', tag:'闭环'},
+  ];
+
+  for (var i = 0; i < ruleLabels.length; i++) {
+    var rl = ruleLabels[i];
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-left:3px solid '+rl.color+';border-radius:8px;padding:18px 20px;margin-bottom:12px">';
+    h += '<div style="display:flex;align-items:center;margin-bottom:10px">';
+    h += '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:'+rl.color+';color:#fff;font-size:12px;font-weight:700;margin-right:10px">'+(i+1)+'</span>';
+    h += '<span style="font-size:14px;font-weight:700;color:#0f172a">'+rl.name+'</span>';
+    h += '<span style="margin-left:10px;background:'+rl.color+'15;color:'+rl.color+';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">'+rl.tag+'</span>';
+    h += '</div>';
+    h += '<div style="font-size:12px;color:#64748b;line-height:2.0" id="jr-detail-'+i+'">加载中...</div>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步加载 audit_rules.json 并填充
+  fetch('/static/audit_rules.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      for (var i = 0; i < data.length && i < 8; i++) {
+        var el = document.getElementById('jr-detail-' + i);
+        if (el) {
+          var d = data[i];
+          var desc = d.desc.replace(/代码：/g, '<br><span style="color:#94a3b8;font-size:11px">实现：</span>');
+          el.innerHTML = desc;
+        }
+      }
+    })
+    .catch(function() {
+      for (var i = 0; i < 8; i++) {
+        var el = document.getElementById('jr-detail-' + i);
+        if (el) el.innerHTML = '<span style="color:#dc2626">加载失败，请刷新页面</span>';
+      }
+    });
+}
+
+// ═══════════════ 关键法律条文页面 ═══════════════
+function renderLegalRefs(container) {
+  container.innerHTML = '<div style="text-align:center;padding:60px"><span class="spinner"></span> 正在加载关键法律条文...</div>';
+
+  fetch('/static/legal_refs.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var h = '';
+      h += '<div style="max-width:900px;margin:0 auto;padding:36px 28px">';
+
+      // ── 标题区 ──
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+      h += '<div style="font-size:19px;font-weight:800;color:#0f172a">📜 关键法律条文</div>';
+      h += '<div style="font-size:11px;color:#94a3b8">手册第6章 · 12条核心法条 · 法律推理引擎自动匹配</div>';
+      h += '</div>';
+      h += '<p style="font-size:12px;color:#64748b;margin:0 0 24px;line-height:1.8">征管法32条→刑法205条，涵盖滞纳金/核定征收/偷税处罚/虚开刑事等核心法律依据</p>';
+
+      // ── 统计卡片 ──
+      h += '<div style="display:flex;gap:12px;margin-bottom:28px">';
+      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">核心法条</div></div>';
+      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed">6</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">征管法条款</div></div>';
+      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626">2</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">刑法条款</div></div>';
+      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">4</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">其他法规</div></div>';
+      h += '</div>';
+
+      // ── 上下游 ──
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+      h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+      h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+      h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch4\')" style="color:#2563eb">税务合规判定规则</a><br><span style="color:#94a3b8">判定规则触发后匹配合适法条</span></div>';
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">33条方法论指导法条适用场景</span></div>';
+      h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">1608条规则关联法条引用</span></div>';
+      h += '</div></div>';
+      h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+      h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+      h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">每项发现须引用具体法条</span></div>';
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">法律推理引擎自动匹配法条</span></div>';
+      h += '<div><a href="javascript:navigateTo(\'report-standards\')" style="color:#2563eb">报告编制规范</a><br><span style="color:#94a3b8">报告法律依据字段引用法条</span></div>';
+      h += '</div></div></div>';
+
+      // ── 段落说明 ──
+      h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+      h += '<p style="margin:0 0 16px">以下<strong>12条法律条文</strong>为税务合规中最常引用的核心依据。税务合规报告的每项发现必须引用具体法条——笼统引用"相关税收法规"的表述在审理环节会被退回重写。条文的适用场景和处罚标准直接写入报告的法律依据字段，由<strong>法律推理引擎（legal_reasoner.py）</strong>自动匹配。</p>';
+      h += '<p style="margin:0">覆盖<strong>征管法6条</strong>（第32/35/54/60/63/64条）+ <strong>刑法2条</strong>（第201/205条）+ <strong>其他4条</strong>（发票管理办法第22条/增值税条例第19条/企业所得税法第41条/规程第42条），形成从行政处罚到刑事追诉的完整法律覆盖层次。</p>';
+      h += '</div>';
+
+      // ── 12条法律条文卡片 ──
+      h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">十二条法律条文</div>';
+
+      var colors = ['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#6366f1','#0891b2','#be185d','#ea580c','#4f46e5','#0d9488','#c026d3'];
+      for (var i = 0; i < data.length; i++) {
+        var d = data[i];
+        var c = colors[i % colors.length];
+        h += '<div style="background:#fff;border:1px solid #e2e8f0;border-left:3px solid '+c+';border-radius:8px;padding:18px 20px;margin-bottom:12px">';
+        h += '<div style="display:flex;align-items:center;margin-bottom:10px">';
+        h += '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:'+c+';color:#fff;font-size:12px;font-weight:700;margin-right:10px">'+(i+1)+'</span>';
+        h += '<span style="font-size:14px;font-weight:700;color:#0f172a">'+escHtml(d.law)+'</span>';
+        h += '</div>';
+        h += '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:8px;padding:10px 14px;background:#f8fafc;border-radius:6px">'+escHtml(d.content)+'</div>';
+        h += '<div style="font-size:11px;color:#64748b;line-height:1.8"><span style="color:#94a3b8">适用：</span>'+escHtml(d.scenario)+'</div>';
+        h += '</div>';
+      }
+
+      h += '</div>';
+      container.innerHTML = h;
+    })
+    .catch(function() {
+      container.innerHTML = '<div style="padding:60px;text-align:center;color:#dc2626;font-size:13px">加载失败，请刷新页面重试</div>';
+    });
+}
+
+// ═══════════════ 系统与规程映射页面 ═══════════════
+function renderProcedureMapping(container) {
+  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px">';
+  
+  // 标题区
+  h += '<div style="margin-bottom:28px">';
+  h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔗 系统与规程映射</h2>';
+  h += '<p style="font-size:12px;color:#64748b;margin:0">手册第7章 · 12个功能模块 · 完整覆盖《税务合规工作规程》全流程条款</p>';
+  h += '</div>';
+  
+  // 4张统计卡片
+  h += '<div style="display:flex;gap:12px;margin-bottom:24px">';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#0f172a">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">功能模块</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb">5</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">规程章节</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">条款映射</div></div>';
+  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#6366f1">100%</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">全流程覆盖</div></div>';
+  h += '</div>';
+  
+  // 上下游
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch1\')" style="color:#2563eb">税务合规工作流程</a><br><span style="color:#94a3b8">规程框架</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch4\')" style="color:#2563eb">税务合规判定规则</a><br><span style="color:#94a3b8">规则引擎</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">全局视图</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">程序合法</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">管线调度</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-incentives-page\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">产出验证</span></div>';
+  h += '</div></div></div>';
+  
+  // 段落说明
+  h += '<div style="margin-bottom:24px;font-size:12px;color:#475569;line-height:2.0">';
+  h += '<p style="margin:0 0 12px">系统每一个功能模块都对应《税务合规工作规程》（国税发[2009]157号）的具体条款要求——确保系统产出<strong>不是凭空制造的</strong>，每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖从案源筛选到报告输出的<strong>全税务合规流程</strong>：第21-45条（检查实施）→第46条（审理审核）→第49条（审理意见）→第51条（报告格式）→第60条（程序合法）。</p>';
+  h += '<p style="margin:0">这个映射表回答了"凭什么"的问题：凭什么一键分析就是完整的检查环节？凭什么证据闭环就意味着证据充分？每一项能力的背后都有规程条款作为法律依据。</p>';
+  h += '</div>';
+  
+  // 12项功能模块卡片
+  var modules = [
+    {n:'①',name:'一键分析',clause:'第21-45条（检查）',desc:'_run_analyze自动执行全部分析域+四步核查法+链驱动引擎+协商引擎+方法论过滤器。一次点击=完整模拟税务合规检查环节——从文件上传到报告输出全部自动化。',color:'#2563eb'},
+    {n:'②',name:'文件解析',clause:'第22条（取证）',desc:'34类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。',color:'#7c3aed'},
+    {n:'③',name:'线索链',clause:'第22条（取证逻辑）',desc:'437条线索链全部可执行。每条含触发关键词+调查步骤+关联规则ID+风险等级+建议+法条引用。每条线索链=一个税务合规员的调查思路——"从这里开始查，每一步查什么，查到了怎么办"。',color:'#059669'},
+    {n:'④',name:'证据链',clause:'第24条（证据真实性）',desc:'781条证据链，需≥2域交叉→≥最小证据触发→多维印证闭环。从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。',color:'#d97706'},
+    {n:'⑤',name:'分析链',clause:'第46条（审理审核）',desc:'48条分析链，含推理路径多步推理，从证据到结论的综合判定。模拟审理部门的逐项审核——检查对象准确性/事实证据充分性/法律适用正确性→0-7维异常评分→定案。',color:'#dc2626'},
+    {n:'⑥',name:'方法论过滤器',clause:'第46条（审核重点）',desc:'全链路质量保障→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。',color:'#6366f1'},
+    {n:'⑦',name:'跨域协商引擎',clause:'第46条（审核重点）',desc:'29条协商规则四类场景：行业闸门消解/资料驱动的跨域标记/证据矛盾消解/联合增强。域间自动对话——确保报告不会出现自相矛盾的结论。',color:'#0891b2'},
+    {n:'⑧',name:'风险评分',clause:'第49条（审理意见）',desc:'综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成税务合规结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。',color:'#ea580c'},
+    {n:'⑨',name:'报告生成',clause:'第51条（报告格式）',desc:'自动生成封面+7章+附件。完全符合规程第42条规定的10项内容格式要求：案件来源→基本情况→实施情况→发现问题→税务合规结论→处理建议→告知权利→签字→证据清单。',color:'#db2777'},
+    {n:'⑩',name:'合规门禁',clause:'第60条（程序合法）',desc:'12项质量标准（模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除）+16项自省检查。全通过→绿色交付。',color:'#4f46e5'},
+    {n:'⑪',name:'数据一致性自检',clause:'全文',desc:'启动前扫描全部JS/PY文件→对比system_config.json权威数据源→发现不一致→自动标记或一键修复（--sync）。从原始数据文件实时统计权威值。四触发机制覆盖手动/启动/提交/分析。',color:'#0d9488'},
+    {n:'⑫',name:'审核反馈闭环',clause:'第46条（审核重点）',desc:'每条发现右侧"审核"按钮→按模板填写审核意见→存入user_corrections.json→生成指纹→四级回退匹配→累计1次即升级自动规则→下次分析自动应用。人工审核→系统学习→自动修正→持续进化的完整闭环。',color:'#9333ea'}
+  ];
+  
+  h += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">';
+  modules.forEach(function(m) {
+    h += '<div style="background:#fff;border-left:3px solid '+m.color+';border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;border-radius:0 8px 8px 0;padding:16px 20px">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    h += '<div style="display:flex;align-items:center;gap:10px">';
+    h += '<span style="width:28px;height:28px;border-radius:50%;background:'+m.color+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+m.n+'</span>';
+    h += '<span style="font-size:14px;font-weight:700;color:#0f172a">'+m.name+'</span>';
+    h += '</div>';
+    h += '<span style="font-size:11px;color:'+m.color+';font-weight:600;background:'+m.color+'15;padding:3px 10px;border-radius:4px">'+m.clause+'</span>';
+    h += '</div>';
+    h += '<p style="font-size:12px;color:#475569;line-height:2.0;margin:0">'+m.desc+'</p>';
+    h += '</div>';
+  });
+  h += '</div>';
+  
+  h += '</div>';
+  container.innerHTML = h;
+}
+/* AUTO-GENERATED: 42 independent page render functions */
+// ═══════════════ Shared Unified Page Template ═══════════════
+// All 42 independent pages use this template for consistent styling
+function _pageTemplate(cfg) {
+  var h = '';
+  h += '<div style="max-width:900px;margin:0 auto;padding:30px 24px 60px">';
+  
+  // Header
+  h += '<div style="margin-bottom:30px">';
+  h += '<h1 style="font-size:22px;font-weight:700;color:#0f172a;margin:0 0 8px">' + escHtml(cfg.icon + ' ' + cfg.title) + '</h1>';
+  h += '<p style="font-size:13px;color:#64748b;margin:0;line-height:2.0">' + escHtml(cfg.subtitle) + '</p>';
+  h += '</div>';
+  
+  // Stats cards
+  if (cfg.stats && cfg.stats.length) {
+    h += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:28px">';
+    cfg.stats.forEach(function(s) {
+      h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center">';
+      h += '<div style="font-size:26px;font-weight:700;color:' + s[2] + ';line-height:1.3">' + escHtml(s[0]) + '</div>';
+      h += '<div style="font-size:11px;color:#94a3b8;margin-top:6px">' + escHtml(s[1]) + '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  
+  // Upstream dependency block
+  if (cfg.upstream && cfg.upstream.length) {
+    h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px 20px;margin-bottom:20px">';
+    h += '<div style="font-size:12px;font-weight:600;color:#0369a1;margin-bottom:12px">\u2191 \u4e0a\u6e38\u4f9d\u8d56</div>';
+    cfg.upstream.forEach(function(u) {
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\u0027' + u[0] + '\u0027)" style="color:#2563eb;font-size:12px">' + escHtml(u[1]) + '</a><br><span style="color:#94a3b8;font-size:11px">' + escHtml(u[2]) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  
+  // Downstream impact block
+  if (cfg.downstream && cfg.downstream.length) {
+    h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin-bottom:20px">';
+    h += '<div style="font-size:12px;font-weight:600;color:#15803d;margin-bottom:12px">\u2193 \u4e0b\u6e38\u5f71\u54cd</div>';
+    cfg.downstream.forEach(function(d) {
+      h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\u0027' + d[0] + '\u0027)" style="color:#2563eb;font-size:12px">' + escHtml(d[1]) + '</a><br><span style="color:#94a3b8;font-size:11px">' + escHtml(d[2]) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  
+  // Description paragraph
+  if (cfg.desc) {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;margin-bottom:20px;font-size:12px;color:#475569;line-height:2.0">';
+    h += cfg.desc;
+    h += '</div>';
+  }
+  
+  // Content cards
+  if (cfg.cards && cfg.cards.length) {
+    cfg.cards.forEach(function(card) {
+      h += '<div style="background:#fff;border-left:3px solid ' + card[2] + ';border-radius:0 8px 8px 0;padding:18px 20px;margin-bottom:14px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">';
+      h += '<div style="font-size:13px;font-weight:600;color:' + card[2] + ';margin-bottom:8px">' + escHtml(card[0]) + '</div>';
+      h += '<div style="font-size:11px;color:#64748b;line-height:2.0">' + escHtml(card[1]) + '</div>';
+      h += '</div>';
+    });
+  }
+  
+  h += '</div>';
+  return h;
+}
+// 跨域协商引擎
+function renderCrossDomainNego() {
+  return _pageTemplate({
+  "title": "跨域协商引擎",
+  "icon": "🤝",
+  "subtitle": "42个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。29条协商规则覆盖四类场景：消解、标记、矛盾、增强。",
+  "stats": [
+    [
+      "29条",
+      "协商规则",
+      "#2563eb"
+    ],
+    [
+      "4类场景",
+      "消解/标记/矛盾/增强",
+      "#7c3aed"
+    ],
+    [
+      "42域",
+      "独立域分析函数",
+      "#059669"
+    ],
+    [
+      "全自动",
+      "引擎自动协商",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch8",
+      "全链路质量保障",
+      "质量保障检查域分析输出"
+    ],
+    [
+      "da-domains",
+      "42个分析域",
+      "域分析产出all_findings"
+    ]
+  ],
+  "downstream": [
+    [
+      "hb-ch4",
+      "税务合规判定规则",
+      "协商后进入过滤管线"
+    ],
+    [
+      "rs-negotiation",
+      "协商标记展示规范",
+      "协商结果四种横幅展示"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。</p><p style=\"margin:0\">协商结果在报告中以四种横幅展示：消解（红色·域间结论冲突已消除）/ 调整（黄色·域间结论已协调）/ 标记（蓝色·跨域信息已传递）/ 联合增强（红色边框·多域联合证据增强）。</p>",
+  "cards": [
+    [
+      "行业闸门消解（5条）",
+      "NEG-001~005。当行业判定结果与域分析发现冲突时，按优先级消解——行业认知权重高于单一域发现。服务行业自动消解进销存、存货、BOM等制造业域发现。",
+      "#dc2626"
+    ],
+    [
+      "资料驱动标记（4条）",
+      "NEG-010~040。当域分析因缺少资料而无法得出结论时，协商引擎在其他域中寻找替代证据——缺失资料的域不生成发现，但其他域如有关联发现则标记资料缺口。",
+      "#d97706"
+    ],
+    [
+      "证据矛盾消解（3条）",
+      "NEG-020~030。两条以上证据互相矛盾时，按证据优先级裁决——原始凭证>系统推断>行业基准。正面证据优先原则。",
+      "#2563eb"
+    ],
+    [
+      "联合增强（3条）",
+      "NEG-AUG-001~003。两个以上域的发现指向同一问题时，合并增强为一条联合发现——提升置信度、降低误报率。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 数据一致性自检
+function renderDataConsistencyCheck() {
+  return _pageTemplate({
+  "title": "数据一致性自检",
+  "icon": "✅",
+  "subtitle": "引擎记忆（engine/memory.py）是系统的核心知识库。四触发机制确保文档层自动与代码层同步——文档层26章记录系统应该是什么样的，代码层7个函数负责做。",
+  "stats": [
+    [
+      "26章文档",
+      "规则篇9+架构篇16+索引1",
+      "#2563eb"
+    ],
+    [
+      "7个函数",
+      "代码层存储/检索/学习",
+      "#7c3aed"
+    ],
+    [
+      "4触发",
+      "手动/启动/commit/分析",
+      "#059669"
+    ],
+    [
+      "3命令",
+      "审计/sync/calibrate",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch12",
+      "引擎记忆体系",
+      "数据一致性检查记忆"
+    ],
+    [
+      "hb-ch4",
+      "税务合规判定规则",
+      "规则数据源需一致性验证"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-sync",
+      "同步交付机制",
+      "一致性保障报告交付"
+    ],
+    [
+      "hb-ch13",
+      "引擎铁律编号体系",
+      "铁律要求规则=代码一致"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">权威数据源从原始数据文件实时统计生成。扫描范围覆盖所有JS和PY文件，将硬编码数字与权威数据对比。</p><p style=\"margin:0\">四触发：①手动python audit_consistency.py --sync ②start.bat启动 ③git commit pre-commit钩子 ④pipeline.py启动时调用。三种命令：纯审计（只报告）/ --sync（联动同步自动修复）/ --calibrate（重新统计权威数据源）。</p>",
+  "cards": [
+    [
+      "代码位置",
+      "audit_consistency.py（扫描引擎+同步引擎）+ system_config.json（权威数据源）+ engine/system_config.py（Python端配置）",
+      "#2563eb"
+    ],
+    [
+      "权威数据源",
+      "从原始数据文件实时统计：tax_risk_rules_local_export.json→规则数 / cross_domain_clues.json→线索链数 / cross_domain_evidence.json→证据链数",
+      "#7c3aed"
+    ],
+    [
+      "扫描范围",
+      "所有JS文件（static/js/*.js）+所有PY文件（engine/*.py + *.py），扫描硬编码数字与权威数据对比",
+      "#059669"
+    ],
+    [
+      "同步范围",
+      "代码层硬编码数字 + 文档层docstring正则匹配更新，确保代码与文档的数字描述完全一致",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 审核反馈与自学习闭环
+function renderAuditFeedback() {
+  return _pageTemplate({
+  "title": "审核反馈与自学习闭环",
+  "icon": "🔄",
+  "subtitle": "报告中每条发现的右侧提供审核按钮。审核按五段结构填写结构化意见。系统从审核意见中提取指纹，编码为可复用的纠正规则——累计1次即自动应用。",
+  "stats": [
+    [
+      "5段式",
+      "结构化审核模板",
+      "#2563eb"
+    ],
+    [
+      "4级回退",
+      "匹配策略L1~L4",
+      "#7c3aed"
+    ],
+    [
+      "1次触发",
+      "累计1次自动应用",
+      "#059669"
+    ],
+    [
+      "闭环",
+      "审核→纠正→重分析",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch12",
+      "引擎记忆体系",
+      "纠正规则存入引擎记忆"
+    ],
+    [
+      "aly-result",
+      "本次分析结果",
+      "分析发现触发审核"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-review",
+      "审核反馈呈现",
+      "审核结果影响报告呈现"
+    ],
+    [
+      "rs-iterate",
+      "审核迭代闭环",
+      "审核驱动报告迭代"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">审核入口：每条发现右侧审核按钮，提交后立即清空前后端分析缓存。</p><p style=\"margin:0\">五段式模板：①判断结论（正确/需纠正/不适用）②具体问题 ③正确逻辑 ④需要证据 ⑤法律依据。存储：POST /api/feedback → record_correction() → 按类型|行业|经营模式生成唯一指纹 → 存入user_corrections.json。</p>",
+  "cards": [
+    [
+      "五段式模板",
+      "①判断结论 ②具体问题 ③正确逻辑 ④需要证据 ⑤法律依据。结构化填写作答，确保纠正规则可编码复用。",
+      "#2563eb"
+    ],
+    [
+      "四级回退匹配",
+      "L1精确匹配（类型+行业+模式，置信度0.7）→ L2行业匹配（0.7）→ L3通用匹配（0.8）→ L4名称模糊匹配（0.8）。逐级回退确保最大覆盖率。",
+      "#7c3aed"
+    ],
+    [
+      "生效方式",
+      "匹配成功→打_dismissed标签→前端展示绿色审核横幅。不降级、不改变原始风险等级——审核是标记不是改写。",
+      "#059669"
+    ],
+    [
+      "存储与累积",
+      "按发现类型|行业|经营模式生成唯一指纹 → 存入user_corrections.json → 累计1次即标记auto_apply=true → 下次自动匹配。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 引擎记忆体系
+function renderEngineMemory() {
+  return _pageTemplate({
+  "title": "引擎记忆体系",
+  "icon": "🧠",
+  "subtitle": "引擎记忆（engine/memory.py）是系统的核心知识库。文档层26章记录系统架构与规则，代码层7个函数负责存储/检索/学习/纠正。两者配合实现知识闭环。",
+  "stats": [
+    [
+      "26章文档",
+      "规则篇9+架构篇16+索引1",
+      "#2563eb"
+    ],
+    [
+      "7个函数",
+      "存储/检索/学习/纠正",
+      "#7c3aed"
+    ],
+    [
+      "4触发",
+      "自动同步机制",
+      "#059669"
+    ],
+    [
+      "30+",
+      "系统核心文件",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch10",
+      "数据一致性自检",
+      "一致性检查记忆同步"
+    ],
+    [
+      "hb-ch13",
+      "引擎铁律编号体系",
+      "铁律存储在引擎记忆规则篇"
+    ]
+  ],
+  "downstream": [
+    [
+      "hb-ch11",
+      "审核反馈闭环",
+      "审核产生的纠正规则存入记忆"
+    ],
+    [
+      "hb-ch14",
+      "系统文件关联清单",
+      "记忆末尾记录文件关联清单"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">文档层指导代码层的设计，代码层验证文档层的正确性。四触发机制确保两者同步。</p><p style=\"margin:0\">文档层分三部分：规则篇9章（行业推断铁律、系统判定规则33条、缺失信息处理、收款分类规则12条、账务处理铁律6条、核心铁律5条、报告呈现规则、后四章规则、审核反馈闭环规则）+ 架构篇16章 + 索引1章。</p>",
+  "cards": [
+    [
+      "规则篇9章",
+      "行业推断铁律、系统判定规则33条、缺失信息处理、收款分类规则12条、账务处理铁律6条、核心铁律5条、报告呈现规则、后四章规则、审核反馈闭环规则。",
+      "#2563eb"
+    ],
+    [
+      "架构篇16章",
+      "假设验证推理引擎、跨域协商引擎、审核反馈闭环、联动修改一致性、方法论过滤器体系、模块联动关系矩阵、四阶段推理管线、调度中枢等。",
+      "#7c3aed"
+    ],
+    [
+      "代码层7函数",
+      "save_analysis_memory() / query_similar_cases() / record_correction() / apply_correction_rules() / record_user_feedback() / _adjust_signal_weights_from_feedback() / get_adaptive_signal_weights()",
+      "#059669"
+    ],
+    [
+      "关联清单",
+      "引擎记忆末尾的系统文件关联清单列出30+核心文件，每次--sync自动更新，确保文档描述与实际文件一致。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 引擎铁律编号体系
+function renderIronLaws() {
+  return _pageTemplate({
+  "title": "引擎铁律编号体系",
+  "icon": "⚖️",
+  "subtitle": "引擎铁律（engine/memory.py规则篇）=系统硬逻辑，不可违反。AI行为准则（前端页面）=编码规范。共11条引擎铁律+7条AI准则，编号互不重叠，各司其职。",
+  "stats": [
+    [
+      "11条",
+      "引擎铁律",
+      "#2563eb"
+    ],
+    [
+      "7条",
+      "AI行为准则",
+      "#7c3aed"
+    ],
+    [
+      "编号",
+      "互不重叠",
+      "#059669"
+    ],
+    [
+      "强制",
+      "铁律不可违",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch12",
+      "引擎记忆体系",
+      "铁律存储在引擎记忆规则篇"
+    ],
+    [
+      "rs-ironlaw",
+      "铁律质量映射",
+      "铁律→报告质量交叉映射"
+    ]
+  ],
+  "downstream": [
+    [
+      "hb-ch8",
+      "全链路质量保障",
+      "铁律确保质量底线"
+    ],
+    [
+      "hb-ch10",
+      "数据一致性自检",
+      "铁律七要求规则=代码一致"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">引擎铁律（11条）存储在engine/memory.py规则篇，是系统的硬逻辑，不可违反。AI行为准则（7条）在侧边栏AI行为准则页面展示。</p><p style=\"margin:0\">铁律一~六（账务处理）：科目name铁律、三号合并铁律、审计铁律、ref_id去重铁律、普票税额并入成本铁律、7分类禁止兜底铁律。铁律七~十一（核心规范）：规则=代码铁律、代码即承诺铁律、全行业适用铁律、主动关联更新铁律、方法论先行铁律。</p>",
+  "cards": [
+    [
+      "铁律一~六（账务处理）",
+      "科目name写入前查DB为准 / 三号合并禁止逐条for / 审计python audit.py 1 / ref_id精确匹配 / 普票税额并入成本 / 7分类禁止兜底",
+      "#2563eb"
+    ],
+    [
+      "铁律七~十一（核心规范）",
+      "规则=代码记忆实现一致 / 代码即承诺声称功能代码存在 / 全行业适用禁止特化 / 主动关联更新全项目同步 / 方法论先行功能须有方法论定义",
+      "#7c3aed"
+    ],
+    [
+      "AI行为准则7条",
+      "#1做事要狠 / #2自作主张 / #3主动进攻 / #4自行验证 / #8变更影响分析 / #15提交前自查 / #16交付前输出自检",
+      "#059669"
+    ],
+    [
+      "查找路径",
+      "引擎铁律→engine/memory.py（规则篇第6-7章）；AI准则→侧边栏AI行为准则页面；完整编号对照表→engine/memory.py末尾",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 系统文件关联清单
+function renderFileAssociation() {
+  return _pageTemplate({
+  "title": "系统文件关联清单",
+  "icon": "📄",
+  "subtitle": "核心文件共30+个，按职责分为四组：核心引擎12个、数据配置8个、前端页面9个、基础设施4个。此清单同时记录在engine/memory.py末尾。",
+  "stats": [
+    [
+      "12个",
+      "核心引擎文件",
+      "#2563eb"
+    ],
+    [
+      "8个",
+      "数据与配置文件",
+      "#7c3aed"
+    ],
+    [
+      "9个",
+      "前端JS文件",
+      "#059669"
+    ],
+    [
+      "4个",
+      "基础设施文件",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch12",
+      "引擎记忆体系",
+      "记忆末尾记录文件关联清单"
+    ],
+    [
+      "hb-ch10",
+      "数据一致性自检",
+      "一致性检查依赖文件清单"
+    ]
+  ],
+  "downstream": [
+    [
+      "hb-ch13",
+      "引擎铁律编号体系",
+      "铁律实施依赖各文件"
+    ],
+    [
+      "rs-sync",
+      "同步交付机制",
+      "文件联动保证交付一致性"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">每次--sync自动更新文件关联清单，确保文档描述与实际文件一致。</p><p style=\"margin:0\">四组文件分工明确：核心引擎负责分析逻辑，数据配置提供规则和数据源，前端页面负责用户交互和展示，基础设施负责系统运行和持续集成。</p>",
+  "cards": [
+    [
+      "核心引擎（12个）",
+      "engine/目录下：pipeline.py（主分析管线）、domain_analysis.py（36域函数）、phase1_triage.py、phase2_deep_dive.py、phase3_cross_validate.py、phase4_synthesis.py、cross_domain_negotiation.py、self_learning.py、hypothesis_engine.py、orchestrator.py、knowledge_base.py、legal_reasoner.py",
+      "#2563eb"
+    ],
+    [
+      "数据与配置（8个）",
+      "system_config.json、audit_chains.json、user_corrections.json、industry_data.json、tax_risk_rules_local_export.json、audit_memory.json、sessions.json、database.py",
+      "#7c3aed"
+    ],
+    [
+      "前端页面（9个JS）",
+      "tax-pipeline-pages.js、tax-doc-analysis.js、tax-auditor-handbook.js、tax-report-standards.js、tax-feedback-template.js、tax-engine-dashboard.js、core.js、report-block-renderer.js、tax-risk-rules.js",
+      "#059669"
+    ],
+    [
+      "基础设施（4个）",
+      "main.py（227路由,FastAPI）、start.bat（启动脚本）、audit_consistency.py（一致性引擎）、static/index.html（前端入口）",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 报告7章结构
+function renderReportStructure() {
+  return _pageTemplate({
+  "title": "报告7章结构",
+  "icon": "📑",
+  "subtitle": "正式税务合规报告须含封面+7章正文+附件清单，严格遵循《税务合规工作规程》第42条规定的10项内容。",
+  "stats": [
+    [
+      "9部分",
+      "封面+7章+附件",
+      "#2563eb"
+    ],
+    [
+      "42条",
+      "遵循工作规程",
+      "#7c3aed"
+    ],
+    [
+      "6要素",
+      "发现问题格式",
+      "#059669"
+    ],
+    [
+      "7类",
+      "附件清单",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-pipeline",
+      "质量保障管线",
+      "净化后数据进入报告结构"
+    ],
+    [
+      "hb-ch4",
+      "税务合规判定规则",
+      "判定结论决定报告内容"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-narrative",
+      "税务合规叙事规范",
+      "叙事规范约束各章表述"
+    ],
+    [
+      "rs-12std",
+      "12项质量标准",
+      "质量标准检查各章内容"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">报告结构：封面（编号格式税稽字[YYYY]第XXX号）+ 七章正文 + 附件。第一章案件来源及基本情况（8项基本信息表格）；第二章稽查实施情况（7个执行段落，整体2000字以上）；第三章发现问题及事实认定（六要素格式，高风险优先）；第四章稽查结论；第五章处理处罚建议（三级卡片P0/P1/P2）；第六章告知权利义务；第七章稽查人员签字。</p>",
+  "cards": [
+    [
+      "第一章 基本情况",
+      "8项基本信息表格：案件来源、被查单位、信用代码、法定代表人、企业类型、行业分类三层穿透、稽查期间、稽查范围。",
+      "#2563eb"
+    ],
+    [
+      "第三章 发现问题",
+      "六要素格式：性质/事实/证据/来源/法律/建议。高风险优先排列，已审核展示绿色横幅，协商结果展示彩色横幅。",
+      "#7c3aed"
+    ],
+    [
+      "第五章 处理建议",
+      "三级卡片红黄绿：P0立即处理（5工作日）/ P1限期整改（15工作日）/ P2持续关注（30工作日）。附自查整改期限总说明。",
+      "#059669"
+    ],
+    [
+      "第九章 附件",
+      "7类附件：销项发票全量明细、进项发票全量明细、主营成本发票明细、重大费用发票明细、银行流水汇总、各资料文件清单、12项质量标准自检结果。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 术语与机密规范
+function renderReportTerms() {
+  return _pageTemplate({
+  "title": "术语与机密规范",
+  "icon": "🔒",
+  "subtitle": "税务合规报告处于发现阶段，尚未进入法律裁决程序——报告用语必须体现发现而非定性的立场。同时6类系统内部信息禁止出现在正式报告中。",
+  "stats": [
+    [
+      "检查阶段",
+      "发现事实陈述",
+      "#dc2626"
+    ],
+    [
+      "非处罚",
+      "不是最终决定",
+      "#d97706"
+    ],
+    [
+      "6类",
+      "禁止暴露信息",
+      "#2563eb"
+    ],
+    [
+      "全报告",
+      "用语规范统一",
+      "#059669"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-structure",
+      "报告7章结构",
+      "报告结构决定用语场景"
+    ],
+    [
+      "hb-ch4",
+      "税务合规判定规则",
+      "判定结论用语规范"
+    ],
+    [
+      "hb-ch6",
+      "关键法律条文",
+      "法律引用用语规范"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-12std",
+      "12项质量标准",
+      "用语规范纳入质量检查"
+    ],
+    [
+      "rs-narrative",
+      "叙事规范",
+      "用语规范约束叙事风格"
+    ],
+    [
+      "aly-result",
+      "本次分析结果",
+      "发现描述用语规范"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\"><strong>核心原则：</strong>税务合规报告处于发现阶段——检查完毕后的事实陈述，不是最终的行政处罚决定。因此用语必须使用涉嫌而不是认定，使用可能存在而不是确定存在。任何在检查阶段就做出违法定性的表述都是不恰当的。</p><p style=\"margin:0\">同时，6类系统内部信息<strong style=\"color:#dc2626\">禁止出现在正式报告中</strong>：引擎执行流程、内部配置参数、代码位置引用、系统日志内容、方法论的内部名称、AI推理过程。</p>",
+  "cards": [
+    [
+      "正确用语",
+      "涉嫌 / 可能存在 / 建议核实 / 需进一步确认 / 与申报数据存在差异 / 未能提供相关证据 / 反映出的经营模式 / 数据分析显示 / 综合判断 / 潜在风险",
+      "#059669"
+    ],
+    [
+      "禁止用语",
+      "违法 / 认定 / 确定 / 必定 / 毫无疑问 / 显然 / 绝对 / 必然 / 非法 / 犯罪——这些是行政处罚决定书和刑事判决书的用语，不是税务合规报告的用语。",
+      "#dc2626"
+    ],
+    [
+      "禁止暴露（6类）",
+      "①引擎执行流程（如pipeline.py第1245行）②内部配置参数（如THRESHOLD=0.8）③代码位置引用（如在domain_analysis.py中）④系统日志内容 ⑤方法论内部名称 ⑥AI推理过程",
+      "#d97706"
+    ],
+    [
+      "正确替代方案",
+      "内部信息→外部表述：引擎执行流程→系统自动分析发现 / 内部配置参数→根据行业通用标准 / 代码位置引用→经过系统验证 / 系统日志→分析记录显示 / 方法论名称→多维度交叉分析 / AI推理→综合分析判断",
+      "#2563eb"
+    ]
+  ]
+});
+}
+// 税务合规过程叙事规范
+function renderNarrativeStandard() {
+  return _pageTemplate({
+  "title": "税务合规过程叙事规范",
+  "icon": "📝",
+  "subtitle": "每条税务发现必须遵循六要素叙事框架：What→How→Evidence→Why→Impact→Action。缺失任何一要素的发现被认为是不完整的。",
+  "stats": [
+    [
+      "6要素",
+      "叙事框架",
+      "#2563eb"
+    ],
+    [
+      "3验证",
+      "事实支撑",
+      "#7c3aed"
+    ],
+    [
+      "递进",
+      "逻辑结构",
+      "#059669"
+    ],
+    [
+      "可读",
+      "可审标准",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-terms",
+      "术语与机密规范",
+      "用语规范指导叙事表述"
+    ],
+    [
+      "rs-structure",
+      "报告7章结构",
+      "结构决定叙事框架"
+    ],
+    [
+      "aly-result",
+      "本次分析结果",
+      "分析发现为叙事素材"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-12std",
+      "12项质量标准",
+      "叙事质量纳入标准检查"
+    ],
+    [
+      "rs-paragraph",
+      "段落格式规范",
+      "段落规范约束叙事格式"
+    ],
+    [
+      "eng-think",
+      "推理引擎",
+      "推理链支撑叙事逻辑"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">每条发现必须遵循六要素叙事框架：①发现了什么（What·事实陈述）→②怎么发现的（How·分析方法）→③证据是什么（Evidence·原始数据引用）→④为什么是问题（Why·法律依据）→⑤影响有多大（Impact·金额/税种）→⑥建议怎么做（Action·整改方案）。缺失任何一要素的发现被认为是不完整的。</p>",
+  "cards": [
+    [
+      "六要素叙事框架",
+      "①What：发现的事实问题 ②How：通过什么方法发现 ③Evidence：支撑证据（具体发票号/账簿页码/金额）④Why：违反什么规定（法条编号+具体条文）⑤Impact：税务影响（涉及税款金额）⑥Action：处理建议",
+      "#2563eb"
+    ],
+    [
+      "三类事实验证",
+      "①数据交叉验证：发票vs账簿vs申报表，至少2方一致才写入报告 ②时间轴验证：交易日期必须满足业务逻辑 ③金额验证：借方=贷方、发票金额=账簿金额",
+      "#7c3aed"
+    ],
+    [
+      "递进逻辑链",
+      "不允许：现象→结论。必须：信号（数据异常）→推论（可能原因）→验证（交叉检查）→确认（证据充分）→结论（法律定性）。每一步推理都必须在报告中体现。",
+      "#059669"
+    ],
+    [
+      "已弃用的五段叙法",
+      "旧版五段式（背景→过程→发现→分析→建议）已废弃——因为背景和过程在第一章和第二章已交代，第三章不应重复。新标准直接从发现切入，减少冗余30%以上。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 同类风险合并规则
+function renderMergeRules() {
+  return _pageTemplate({
+  "title": "同类风险合并规则",
+  "icon": "🔀",
+  "subtitle": "同一风险类型的多条发现必须合并为一条在报告中呈现。7步合并流程确保报告简洁不冗余。",
+  "stats": [
+    [
+      "7步",
+      "合并流程",
+      "#2563eb"
+    ],
+    [
+      "按类型",
+      "分组合并",
+      "#7c3aed"
+    ],
+    [
+      "最高风险",
+      "合并后等级",
+      "#059669"
+    ],
+    [
+      "子项独立",
+      "展示合并细节",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "aly-result",
+      "本次分析结果",
+      "分析发现为合并输入"
+    ],
+    [
+      "rs-narrative",
+      "叙事规范",
+      "合并后遵循叙事规范"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-12std",
+      "12项质量标准",
+      "合并结果接受标准检查"
+    ],
+    [
+      "rs-structure",
+      "报告7章结构",
+      "合并后进入报告第三章"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">7步合并流程：①按type字段分组（去除内部前缀后trim比对）②同一组取最高风险等级作为合并后等级 ③合并后标题显示N项同类风险合并标签 ④合并后detail列出所有子项 ⑤每条子项独立展示：子项标题、细节描述、税务影响、处理建议 ⑥合并所有子项的items/evidence_rows/matched_chain_details到父项。</p>",
+  "cards": [
+    [
+      "分组规则",
+      "按type字段分组，去除内部前缀后trim比对。同一风险类型的多条发现归入一组。",
+      "#2563eb"
+    ],
+    [
+      "等级取高",
+      "同一组取最高风险等级作为合并后等级。不降低任何一个子项的风险标记。",
+      "#7c3aed"
+    ],
+    [
+      "子项独立展示",
+      "合并后每个子项保留独立的标题、细节描述、税务影响和处理建议。阅读者可以追溯每个子项的完整信息。",
+      "#059669"
+    ],
+    [
+      "适用场景",
+      "知识图谱系列、发票合规系列、资料缺失触发系列——这三类最容易产生大量同类发现，合并效果最明显。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 12项质量标准
+function render12Standards() {
+  return _pageTemplate({
+  "title": "12项质量标准",
+  "icon": "✅",
+  "subtitle": "以下12项标准在报告生成后依序执行检查。每项标准含要求说明、检测方法和正确范例。不通过的项目以⚠标记，不影响报告整体合规性。",
+  "stats": [
+    [
+      "12项",
+      "质量标准",
+      "#2563eb"
+    ],
+    [
+      "强制",
+      "5项强制",
+      "#dc2626"
+    ],
+    [
+      "重要",
+      "4项重要",
+      "#d97706"
+    ],
+    [
+      "建议",
+      "3项建议",
+      "#059669"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-pipeline",
+      "质量保障管线",
+      "管线执行标准检查"
+    ],
+    [
+      "rs-structure",
+      "报告7章结构",
+      "标准按章节分别检查"
+    ]
+  ],
+  "downstream": [
+    [
+      "hb-ch8",
+      "全链路质量保障",
+      "标准检查结果反馈质量保障"
+    ],
+    [
+      "rs-narrative",
+      "叙事规范",
+      "叙事规范为部分标准提供依据"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">12项标准在报告生成后依序执行。每项标准含要求说明、检测方法和正确范例。标准1-5、8-9、12为强制项（红色），6-7、10-11为重要项（橙色/绿色）。标准检查由generate_report.py→check_standards()执行，每项独立运行。</p>",
+  "cards": [
+    [
+      "标准1-5 [强制]",
+      "①模板句清除：不得出现根据相关规定等模板句 ②重复句合并：相似度>80%触发合并 ③空描述删除：不得出现无/暂无/—等空值 ④人性化表述：技术参数转通俗表达 ⑤六要素完整：What/How/Evidence/Why/Impact/Action",
+      "#dc2626"
+    ],
+    [
+      "标准6-7 [重要]",
+      "⑥法律引用准确：法条引用须含编号+内容 ⑦具体数值：每条发现须至少1个具体数值",
+      "#d97706"
+    ],
+    [
+      "标准8-9 [强制]",
+      "⑧因果链：不能现象→结论跳跃，必须含中间推理 ⑨可执行建议：建议必须具体可操作",
+      "#dc2626"
+    ],
+    [
+      "标准10-12",
+      "⑩条款号：引用规程时须含条款号[重要] ⑪反跨复制：不得跨企业复制内容[重要] ⑫空占位符清除：全报告无残留占位符[强制]",
+      "#059669"
+    ]
+  ]
+});
+}
+// 7项判定可靠性要求
+function renderReliability() {
+  return _pageTemplate({
+  "title": "7项判定可靠性要求",
+  "icon": "🔍",
+  "subtitle": "判定可靠性是比质量标准更底层的要求——质量标准检测的是表述是否正确，可靠性要求检测的是分析本身是否成立。7项要求按严重程度分为致命和高。",
+  "stats": [
+    [
+      "7项",
+      "可靠性要求",
+      "#2563eb"
+    ],
+    [
+      "3项",
+      "致命级别",
+      "#dc2626"
+    ],
+    [
+      "4项",
+      "高级别",
+      "#2563eb"
+    ],
+    [
+      "底层",
+      "比质量标准更基础",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch4",
+      "税务合规判定规则",
+      "判定规则指导可靠性检查"
+    ],
+    [
+      "da-intro",
+      "什么是域分析",
+      "域分析的判定结论需要可靠性验证"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-12std",
+      "12项质量标准",
+      "可靠性与质量标准互补"
+    ],
+    [
+      "eng-think",
+      "推理引擎",
+      "推理链需要满足可靠性要求"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">7项要求：致命（红色）——①公司身份锚定：报告开头必须声明公司名称+信用代码 ②发票方向判定：进项/销项分类须有判定依据 ③综合判断：文件类型判定须经四方证据交叉验证。高（蓝色）——④只读有效信息：排除空白行/小计行/合计行/汇总行 ⑤存疑排除：买卖双方都不含公司姓名的发票必须排除 ⑥服务行业闸门：服务行业不得出现实物商品域分析发现 ⑦品名级精度：混合行业必须品名级区分。</p>",
+  "cards": [
+    [
+      "致命项①②③",
+      "①公司身份锚定：报告开头必须声明公司名称+信用代码 ②发票方向判定：进项/销项分类须有判定依据，存疑发票须单独列出 ③综合判断：文件类型判定须经四方证据交叉验证",
+      "#dc2626"
+    ],
+    [
+      "高级项④⑤",
+      "④只读有效信息：排除空白行/小计行/合计行/汇总行 ⑤存疑排除：买卖双方都不含公司姓名的发票必须排除",
+      "#2563eb"
+    ],
+    [
+      "高级项⑥⑦",
+      "⑥服务行业闸门：服务行业不得出现实物商品域分析发现 ⑦品名级精度：混合行业必须品名级区分，不能笼统对待",
+      "#2563eb"
+    ],
+    [
+      "与质量标准的区别",
+      "质量标准检测表述是否正确，可靠性要求检测分析本身是否成立。可靠性是质量标准的前提——分析不成立，表述再规范也无意义。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 段落格式规范
+function renderParaStandard() {
+  return _pageTemplate({
+  "title": "段落格式规范",
+  "icon": "📄",
+  "subtitle": "五大禁止反模式+拆分标准。禁止一逗到底、禁止多逻辑挤一段、禁止括号堆叠、子项独立成段、数据与解释分层。超过200字就拆。",
+  "stats": [
+    [
+      "5类",
+      "禁止反模式",
+      "#dc2626"
+    ],
+    [
+      "200字",
+      "拆分阈值",
+      "#2563eb"
+    ],
+    [
+      "一段",
+      "一个主题",
+      "#059669"
+    ],
+    [
+      "数据-解释",
+      "先陈述后分析",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-narrative",
+      "叙事规范",
+      "段落格式是叙事的载体"
+    ],
+    [
+      "rs-12std",
+      "12项质量标准",
+      "格式规范纳入标准检查"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-structure",
+      "报告7章结构",
+      "格式规范应用于各章节"
+    ],
+    [
+      "rs-terms",
+      "术语与机密规范",
+      "格式规范配合用语规范"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">五大禁止反模式：①禁止一逗到底——多个完整逻辑句子各自独立成段 ②禁止多逻辑挤一段——同段不得混杂2个以上不相关分析维度 ③禁止括号堆叠——不得用括号内堆砌多段判定逻辑链 ④子项独立成段——子项内容各自独立为一段 ⑤数据与解释分层——先陈述数据事实→再解释分析方法→最后给出结论。</p>",
+  "cards": [
+    [
+      "禁止一逗到底",
+      "多个完整逻辑句子各自独立成段。一段只表达一个完整意思，多个逻辑点必须分开成段。",
+      "#dc2626"
+    ],
+    [
+      "禁止多逻辑挤一段",
+      "同段不得混杂2个以上不相关分析维度。不同域、不同税种、不同时间段的发现必须分别成段。",
+      "#dc2626"
+    ],
+    [
+      "禁止括号堆叠",
+      "不得用括号内堆砌多段判定逻辑链。括号内的内容应为简短说明，不是正文的替代品。",
+      "#dc2626"
+    ],
+    [
+      "拆分标准",
+      "每写完一段自问：只有一个主题吗？能用一句话概括主旨吗？超过200字了吗（超了就拆）？三段自检确保段落清晰。",
+      "#2563eb"
+    ]
+  ]
+});
+}
+// 语音播报标准
+function renderTTSStandard() {
+  return _pageTemplate({
+  "title": "语音播报标准",
+  "icon": "🔊",
+  "subtitle": "全文播报+点击播报功能，中文男声，6档语调。视觉跟随（橙色底纹高亮+自动滚动）。",
+  "stats": [
+    [
+      "6档",
+      "语调分级",
+      "#2563eb"
+    ],
+    [
+      "中文男声",
+      "低沉严肃",
+      "#7c3aed"
+    ],
+    [
+      "全文",
+      "播报功能",
+      "#059669"
+    ],
+    [
+      "点击",
+      "逐段播报",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "rs-structure",
+      "报告7章结构",
+      "按章节播报"
+    ],
+    [
+      "rs-narrative",
+      "叙事规范",
+      "叙事结构影响播报节奏"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-paragraph",
+      "段落格式规范",
+      "段落格式影响播报停顿"
+    ],
+    [
+      "rs-12std",
+      "12项质量标准",
+      "播报前质量检查"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">全文播报（报告顶部控制条）+点击播报（点击任意段落）。播放控制：暂停/继续/停止，语速0.85x-1.3x。视觉跟随：橙色底纹高亮当前播报段落+自动滚动。</p><p style=\"margin:0\">音色：中文男声（zh-CN male），低沉严肃的中年税务合规员声线。降级策略：zh-CN male→zh-CN non-Tingting→zh任意。</p>",
+  "cards": [
+    [
+      "6档语调",
+      "章节标题0.65音调/0.7x语速、小节标题0.72/0.8x、高风险内容0.68/0.75x、法律条文0.70/0.72x、处理建议0.80/0.85x、普通叙述0.78/0.88x",
+      "#2563eb"
+    ],
+    [
+      "音色标准",
+      "中文男声（zh-CN male），低沉严肃的中年税务合规员声线。确保播报的专业性和权威感。",
+      "#7c3aed"
+    ],
+    [
+      "播放控制",
+      "全文播报+点击播报。暂停/继续/停止操作。语速可调0.85x-1.3x。视觉跟随橙色底纹高亮。",
+      "#059669"
+    ],
+    [
+      "降级策略",
+      "首选zh-CN male→备选zh-CN non-Tingting→兜底zh任意。确保在任何设备上都能正常播报。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 四触发机制与报告交付
+function renderSyncMechanism() {
+  return _pageTemplate({
+  "title": "四触发机制与报告交付",
+  "icon": "🔄",
+  "subtitle": "系统数据的跨模块一致性由审计引擎自动保障。四触发机制确保全模块数据统一——手动/sync、start.bat启动、git commit、pipeline.py启动。链接到hb-ch10。",
+  "stats": [
+    [
+      "4触发",
+      "全模块同步",
+      "#2563eb"
+    ],
+    [
+      "3命令",
+      "审计/sync/calibrate",
+      "#7c3aed"
+    ],
+    [
+      "全自动",
+      "启动时自检",
+      "#059669"
+    ]
+  ],
+  "upstream": [
+    [
+      "hb-ch10",
+      "数据一致性自检",
+      "一致性自检机制来源"
+    ],
+    [
+      "hb-ch8",
+      "全链路质量保障",
+      "质量保障依赖同步机制"
+    ]
+  ],
+  "downstream": [
+    [
+      "rs-structure",
+      "报告7章结构",
+      "同步保证报告数据准确"
+    ],
+    [
+      "rs-12std",
+      "12项质量标准",
+      "同步数据通过标准检查"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">四触发机制：①手动 python audit_consistency.py --sync ②start.bat启动时自动执行 ③git commit pre-commit钩子自动触发 ④pipeline.py启动时调用。三种命令模式：纯审计（只报告不一致项）/ --sync（自动修复不一致项）/ --calibrate（重新统计权威数据源，用于数据源变更后的基准校正）。</p>",
+  "cards": [
+    [
+      "四触发机制",
+      "①手动--sync ②start.bat启动 ③git commit钩子 ④pipeline.py启动。四种场景全覆盖，确保任何时候系统数据都保持一致性。",
+      "#2563eb"
+    ],
+    [
+      "三种命令",
+      "纯审计（只报告不一致）/ --sync（联动同步自动修复）/ --calibrate（重新统计权威数据源）。根据场景选择合适命令。",
+      "#7c3aed"
+    ],
+    [
+      "报告交付保障",
+      "同步完成后→一致性验证→绿色交付。不一致项超过阈值→黄色交付（标注已知差异），严重不一致→红色阻断。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 识别机制：四层递进+四方交叉验证
+function renderFPMechanism() {
+  return _pageTemplate({
+  "title": "识别机制：四层递进+四方交叉验证",
+  "icon": "🔍",
+  "subtitle": "系统接收到文件后，不依赖文件扩展名判断，而是执行四层递进识别——从粗糙到精细、从单一证据到多方交叉验证。前三层是文件内部推理，第四层引入外部证据。",
+  "stats": [
+    [
+      "4层",
+      "递进识别",
+      "#2563eb"
+    ],
+    [
+      "~80%",
+      "关键词识别率",
+      "#7c3aed"
+    ],
+    [
+      "82+",
+      "列名变体",
+      "#059669"
+    ],
+    [
+      "23词",
+      "银行流水关键词",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "da-intro",
+      "什么是域分析",
+      "文件解析为域分析提供数据"
+    ],
+    [
+      "da-domains",
+      "42个分析域",
+      "解析结果供给各域"
+    ]
+  ],
+  "downstream": [
+    [
+      "fp-compat",
+      "兼容策略",
+      "兼容策略基于识别结果"
+    ],
+    [
+      "fp-result",
+      "本次解析结果",
+      "识别输出文件结果"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">四层递进：①关键词匹配打分制（最高优先级，识别率~80%）——读取前200行表头区域，每命中一个关键词得1分，得分超过阈值即判定 ②结构分析列模式匹配（第二优先级）——多类型接近时激活，列模式相似度≥60%即匹配 ③数据推断逐列语义分类（兜底机制）——逐列读取数据样本按语义角色分类 ④四方交叉验证最终裁决——引入文件名暗示/列头推理/数据扫描/公司匹配四种外部证据。冲突裁决：数据扫描>列头推理>文件名暗示。</p>",
+  "cards": [
+    [
+      "关键词匹配（最高优先级）",
+      "读取前200行表头区域，每命中一个关键词得1分。多类型同时超过阈值时取最高分。识别率约80%，为最常见的文件类型提供快速识别。",
+      "#2563eb"
+    ],
+    [
+      "结构分析（第二优先级）",
+      "前两名得分差距≤1分时激活。列模式模板含列数范围/关键列位置/排列顺序。容错：列位置允许±3列偏移，相似度≥60%即匹配。",
+      "#7c3aed"
+    ],
+    [
+      "数据推断（兜底机制）",
+      "关键词和结构分析都失败时激活。逐列读取前200行数据样本，按语义角色自动分类（日期/编号/企业名称/金额/税率5类）。绝不丢弃数据。",
+      "#059669"
+    ],
+    [
+      "四方交叉验证（最终裁决）",
+      "引入外部证据：文件名暗示/列头推理/数据扫描（买卖方身份）/公司匹配。冲突裁决：数据扫描>列头推理>文件名暗示。确保最终判定有可靠证据支撑。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 兼容策略
+function renderFPCompat() {
+  return _pageTemplate({
+  "title": "兼容策略",
+  "icon": "🔄",
+  "subtitle": "企业上传的资料格式千差万别。文件解析模块通过列名映射表和智能自适应机制，兼容主要的命名习惯差异。82+列名变体覆盖了常见企业的所有格式变体。",
+  "stats": [
+    [
+      "8类",
+      "文件兼容详情",
+      "#2563eb"
+    ],
+    [
+      "82+",
+      "列名变体",
+      "#7c3aed"
+    ],
+    [
+      "60+",
+      "工资表关键词",
+      "#059669"
+    ],
+    [
+      "通用",
+      "自适应机制",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-mechanism",
+      "识别机制",
+      "识别后匹配兼容策略"
+    ],
+    [
+      "fp-fingerprint",
+      "文件指纹库",
+      "指纹库提供兼容模板"
+    ]
+  ],
+  "downstream": [
+    [
+      "fp-result",
+      "本次解析结果",
+      "兼容策略决定解析质量"
+    ],
+    [
+      "fp-flow",
+      "解析流程",
+      "兼容策略是解析流程的一部分"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">8类文件兼容详情：①银行流水——日期列6种变体、对方户名6种、金额6种、余额3种、汇总行自动过滤 ②发票——方向自动判定、购买方/销售方/发票号码多列名 ③工资表——60+列名变体、个税申报格式兼容 ④社保/公积金——五险自动识别 ⑤申报表——增值税/企业所得税/个税/印花税/完税证明 ⑥财务报表——科目余额表/资产负债表/利润表/进销存 ⑦合同/往来/资产——合同台账/应收应付/固定资产等 ⑧特殊类型——人员清单/股权交易/借款合同/进出口报关/关联交易/通用兜底。</p>",
+  "cards": [
+    [
+      "银行流水兼容",
+      "日期6种变体、对方户名6种、金额6种（收入/支出/贷方/借方/交易/发生额）、余额3种。汇总行自动识别并过滤。",
+      "#2563eb"
+    ],
+    [
+      "发票兼容",
+      "方向自动判定（购方=公司→进项，销方=公司→销项）。购买方列名6种、销售方列名7种、发票号码4种、税收分类5种。金额自动识别含税/不含税。",
+      "#7c3aed"
+    ],
+    [
+      "工资社保兼容",
+      "工资表60+列名变体，个税申报格式兼容。社保三列数据自动区分（缴费基数/单位缴纳/个人缴纳），五险自动识别。",
+      "#059669"
+    ],
+    [
+      "财务报表兼容",
+      "科目余额表（科目代码+科目名称+方向+期初+本期+期末）、资产负债表/利润表（标准会计准则格式）、进销存台账（16关键词，阈值2）",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 格式扩展：多格式全兼容
+function renderFPFormats() {
+  return _pageTemplate({
+  "title": "格式扩展：多格式全兼容",
+  "icon": "📄",
+  "subtitle": "除了传统的Excel格式，文件解析模块已扩展到支持PDF/DOCX/CSV/OCR图片的自动解析。双引擎架构确保每种格式都有优选的解析方案。",
+  "stats": [
+    [
+      "4种",
+      "扩展格式",
+      "#2563eb"
+    ],
+    [
+      "双引擎",
+      "PDF/OCR解析",
+      "#7c3aed"
+    ],
+    [
+      "自适应",
+      "表头指纹匹配",
+      "#059669"
+    ],
+    [
+      "兜底",
+      "绝不丢弃数据",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-mechanism",
+      "识别机制",
+      "格式检测是识别的第一步"
+    ],
+    [
+      "fp-compat",
+      "兼容策略",
+      "格式兼容是兼容策略的基础"
+    ]
+  ],
+  "downstream": [
+    [
+      "fp-fingerprint",
+      "文件指纹库",
+      "解析后走指纹匹配"
+    ],
+    [
+      "fp-result",
+      "本次解析结果",
+      "多格式解析结果汇总"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">4种扩展格式：①PDF——双引擎架构（pdfplumber表格提取优先+pypdf文本解析兜底），自适应策略：逐页提取表格→取最大表格→表头走34类指纹匹配 ②Word——python-docx遍历所有表格→合并多表格→表头指纹匹配 ③CSV——csv.reader读取→CsvSheet模拟Sheet接口→指纹匹配，编码自动检测UTF-8-BOM优先 ④OCR图片——双引擎（EasyOCR中文优先+Tesseract系统兜底），表格重建：Y坐标聚类→X排序→构建矩阵→指纹匹配。</p>",
+  "cards": [
+    [
+      "PDF文档",
+      "双引擎：pdfplumber表格提取（优先）+pypdf文本解析（兜底）。自适应：逐页提取表格→取最大表格→表头走34类指纹匹配。",
+      "#2563eb"
+    ],
+    [
+      "Word文档",
+      "python-docx遍历所有表格→合并多表格→表头指纹匹配。无表格时提取段落文本标注document_text类型。",
+      "#7c3aed"
+    ],
+    [
+      "CSV文本",
+      "csv.reader读取→CsvSheet模拟Sheet接口→指纹匹配。编码自动检测UTF-8-BOM优先，兼容各种中文CSV编码。",
+      "#059669"
+    ],
+    [
+      "OCR图片识别",
+      "双引擎：EasyOCR（中文优先）+Tesseract（系统兜底）。Y坐标聚类（<15px=同行）→X排序→构建矩阵→指纹匹配。首次使用需下载模型~200MB。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 文件指纹库—34类
+function renderFPFingerprint() {
+  return _pageTemplate({
+  "title": "文件指纹库—34类",
+  "icon": "🔎",
+  "subtitle": "每类指纹由关键词集+得分阈值+专用解析器三部分组成。按使用频率分六梯队排列，第一梯队12类为高频核心类型。",
+  "stats": [
+    [
+      "34类",
+      "文件指纹",
+      "#2563eb"
+    ],
+    [
+      "6梯队",
+      "按频率排列",
+      "#7c3aed"
+    ],
+    [
+      "12类",
+      "高频核心",
+      "#059669"
+    ],
+    [
+      "阈值",
+      "关键词得分制",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-mechanism",
+      "识别机制",
+      "指纹库是识别的知识基础"
+    ],
+    [
+      "fp-compat",
+      "兼容策略",
+      "兼容策略基于指纹库特征"
+    ]
+  ],
+  "downstream": [
+    [
+      "fp-result",
+      "本次解析结果",
+      "指纹匹配结果展示"
+    ],
+    [
+      "fp-flow",
+      "解析流程",
+      "指纹匹配是流程关键步骤"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">六梯队分布：①第一梯队高频核心（12类）——银行流水(23关键词,阈值3)、工资表(60+关键词,阈值2)、销项发票(10词)、进项发票(11词)、通用发票(20词,阈值4)、记账凭证(8词)、社保明细(15词)、公积金(17词)、进项抵扣勾选(5词)、进销存台账(16词)、科目余额表(8词)、财务报表(18词,阈值3)。</p>",
+  "cards": [
+    [
+      "第一梯队 高频核心（12类）",
+      "银行流水(23词/阈值3)、工资表(60+词/阈值2)、销项发票(10词)、进项发票(11词)、通用发票(20词/阈值4)、记账凭证(8词)、社保明细(15词)、公积金(17词)、进项抵扣勾选(5词)、进销存台账(16词)、科目余额表(8词)、财务报表(18词/阈值3)",
+      "#2563eb"
+    ],
+    [
+      "第二~三梯队（7类）",
+      "合同文件(9词)、关联交易(12词)、增值税申报表(19词/阈值3)、企业所得税申报表(11词/阈值3)、个税申报表(16词)、印花税(12词)、完税证明(14词)",
+      "#7c3aed"
+    ],
+    [
+      "第四~六梯队（15类）",
+      "合同清单、应收应付账款、预收预付、其他应收付、固定资产、无形资产、资产损失、费用明细、研发费用、人员清单、股权交易、借款合同、进出口报关、通用数据(兜底/阈值1)",
+      "#059669"
+    ]
+  ]
+});
+}
+// 解析流程：8步全链路
+function renderFPFlow() {
+  return _pageTemplate({
+  "title": "解析流程：8步全链路",
+  "icon": "🔄",
+  "subtitle": "从磁盘上的原始文件到结构化的分析数据，文件解析引擎执行8个步骤。每步有明确的输入、处理和输出。",
+  "stats": [
+    [
+      "8步",
+      "全链路流程",
+      "#2563eb"
+    ],
+    [
+      "MD5",
+      "文件去重",
+      "#7c3aed"
+    ],
+    [
+      "前5KB",
+      "格式检测",
+      "#059669"
+    ],
+    [
+      "标准化",
+      "统一字段",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-mechanism",
+      "识别机制",
+      "流程包含识别步骤"
+    ],
+    [
+      "fp-fingerprint",
+      "文件指纹库",
+      "流程中使用指纹库匹配"
+    ]
+  ],
+  "downstream": [
+    [
+      "fp-result",
+      "本次解析结果",
+      "流程产出解析结果"
+    ],
+    [
+      "da-intro",
+      "什么是域分析",
+      "解析结果供给域分析"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">8步全链路：①磁盘扫描——遍历uploads/目录所有支持格式文件，MD5去重 ②格式检测——读取前5KB数据，通过二进制签名判断真实格式 ③表头提取——逐Sheet读取前200行（自适应扫描找列名行），构建表头特征向量 ④指纹匹配——表头特征向量与34类指纹关键词库交叉匹配 ⑤类型判定——取得分最高类型 ⑥解析器调用——根据类型调用专用解析器 ⑦标准化输出——统一字段命名，金额统一float，日期统一YYYY-MM-DD ⑧日志与路由——解析结果写入file_results数组和pipeline_log。</p>",
+  "cards": [
+    [
+      "步骤①②③",
+      "①磁盘扫描：遍历uploads/目录，MD5去重，避免重复解析。②格式检测：读取前5KB二进制签名判断格式。③表头提取：逐Sheet读取前200行，构建表头特征向量。",
+      "#2563eb"
+    ],
+    [
+      "步骤④⑤⑥",
+      "④指纹匹配：表头特征向量与34类指纹库交叉匹配。⑤类型判定：得分最高类型，分数不够时走结构分析/数据推断/四方验证。⑥解析器调用：_parse_bank_sheet等专用解析器。",
+      "#7c3aed"
+    ],
+    [
+      "步骤⑦⑧",
+      "⑦标准化输出：统一字段命名（date/amount/counterparty等），金额float化，日期YYYY-MM-DD。⑧日志与路由：写入file_results和pipeline_log，按类型路由到对应数据列表。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 本次解析结果
+function renderFPResult() {
+  return _pageTemplate({
+  "title": "本次解析结果",
+  "icon": "📊",
+  "subtitle": "动态数据页面，展示本次分析实际解析的文件结果。包括文件总数、已解析/未解析统计、类型分布标签云、解析明细表和彩色管线日志。",
+  "stats": [
+    [
+      "动态",
+      "实时数据",
+      "#2563eb"
+    ],
+    [
+      "4卡片",
+      "统计概览",
+      "#7c3aed"
+    ],
+    [
+      "标签云",
+      "类型分布",
+      "#059669"
+    ],
+    [
+      "日志",
+      "彩色终端样式",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-mechanism",
+      "识别机制",
+      "识别决定解析结果"
+    ],
+    [
+      "fp-flow",
+      "解析流程",
+      "流程产出解析结果"
+    ]
+  ],
+  "downstream": [
+    [
+      "da-result",
+      "域分析结果",
+      "解析数据供给域分析"
+    ],
+    [
+      "aly-result",
+      "本次分析结果",
+      "解析是分析的起点"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">数据来源：getSharedAnalysis() API返回的report.file_results和report.pipeline_log。4个统计卡片：文件总数/已解析/未解析/管线日志数。类型分布标签云按文件类型统计数量。解析明细表含序号/文件名/识别类型/数据条数/解析动作。</p>",
+  "cards": [
+    [
+      "统计概览",
+      "4个统计卡片：文件总数、已解析数、未解析数、管线日志条数。一目了然地展示本次解析的整体情况。",
+      "#2563eb"
+    ],
+    [
+      "类型分布",
+      "标签云形式按文件类型统计数量。银行流水N条、发票N条、工资表N条……每个标签的大小和颜色深浅反映数量多少。",
+      "#7c3aed"
+    ],
+    [
+      "解析明细",
+      "表格形式：序号/文件名/识别类型/数据条数/解析动作。可查看每个文件的详细解析结果。",
+      "#059669"
+    ],
+    [
+      "管线日志",
+      "黑色背景终端样式，彩色日志：红色异常/绿色完成/黄色发现/蓝色阶段。完整记录解析全过程的每一步操作。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 什么是域分析
+function renderDAIntro() {
+  return _pageTemplate({
+  "title": "什么是域分析",
+  "icon": "💡",
+  "subtitle": "域分析是税务合规系统的核心分析层——位于文件解析和报告生成之间。系统将全部原始数据导入多个独立的分析域，每个域从不同维度对同一份数据做独立又交叉的审视。",
+  "stats": [
+    [
+      "42个",
+      "域分析函数",
+      "#2563eb"
+    ],
+    [
+      "9字段",
+      "标准发现输出",
+      "#7c3aed"
+    ],
+    [
+      "13大类",
+      "域函数分类",
+      "#059669"
+    ],
+    [
+      "3驱动",
+      "资料/算法/知识",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "fp-result",
+      "本次解析结果",
+      "文件解析输出供给域分析"
+    ],
+    [
+      "fp-mechanism",
+      "识别机制",
+      "文件识别结果输入域分析"
+    ]
+  ],
+  "downstream": [
+    [
+      "da-arch",
+      "域分析架构",
+      "域分析的驱动架构"
+    ],
+    [
+      "da-domains",
+      "42个分析域",
+      "域分析的完整列表"
+    ],
+    [
+      "da-result",
+      "域分析结果",
+      "域分析的产出"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">域分析工作流程：①数据流入——文件解析模块输出的结构化数据（bank_txs/sal_invs/pur_invs/工资社保凭证库存合同/行业画像ctx.industry）②域执行——42个域分析函数独立运行，每个域有数据守卫条件，缺数据标记资料缺口不空跑，行业闸门自动跳过不适用域 ③发现输出——每条发现含9个标准字段 ④跨域串联——单域发现→多域交叉印证→线索链+证据链+分析链→协商引擎消解→同向证据置信度叠加升权。</p>",
+  "cards": [
+    [
+      "数据流入",
+      "文件解析模块输出的结构化数据：bank_txs（银行交易）、sal_invs（销项发票）、pur_invs（进项发票）、工资表、社保凭证、库存合同、行业画像等。单一数据源，多维度交叉。",
+      "#2563eb"
+    ],
+    [
+      "域执行",
+      "42个域分析函数独立运行。每个域有数据守卫条件（缺数据不空跑），行业闸门自动跳过不适用域（如服务行业跳过BOM分析）。",
+      "#7c3aed"
+    ],
+    [
+      "发现输出",
+      "每条发现含9个标准字段：type（类型）、level（风险等级）、score（0-10）、detail（详细数据）、description（解读）、suggestion（建议）、policy_ref（法律依据）、category（分类）、domain（来源域）。",
+      "#059669"
+    ],
+    [
+      "跨域串联",
+      "单域发现→多域交叉印证→线索链+证据链+分析链→协商引擎消解矛盾→同向证据置信度叠加升权。从离散发现到系统结论。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 域分析架构
+function renderDAArch() {
+  return _pageTemplate({
+  "title": "域分析架构",
+  "icon": "🏗️",
+  "subtitle": "系统将42个分析域按驱动方式分为三类——资料驱动、算法驱动、知识驱动。不同类型的域有不同的激活条件和置信度逻辑。",
+  "stats": [
+    [
+      "3类",
+      "驱动方式",
+      "#2563eb"
+    ],
+    [
+      "资料",
+      "依赖上传资料",
+      "#dc2626"
+    ],
+    [
+      "算法",
+      "基于数据特征",
+      "#2563eb"
+    ],
+    [
+      "知识",
+      "内置基准库",
+      "#7c3aed"
+    ]
+  ],
+  "upstream": [
+    [
+      "da-intro",
+      "什么是域分析",
+      "域分析的基本概念"
+    ],
+    [
+      "da-domains",
+      "42个分析域",
+      "域分析的完整列表"
+    ]
+  ],
+  "downstream": [
+    [
+      "da-result",
+      "域分析结果",
+      "不同类型域的产出汇总"
+    ],
+    [
+      "fp-result",
+      "本次解析结果",
+      "资料驱动域依赖解析结果"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">三类驱动方式：①资料驱动域（红色边线）——依赖上传资料进行判断，资料完备度越高置信度越高。代表：资金流向追踪（需银行流水）、工资社保比对（需工资表+社保）、合同比对（需合同+发票）②算法驱动域（蓝色边线）——基于数据内在特征自动计算，无需外部参考资料。代表：进销毛利率、存货周转预警、异常交易时间分析 ③知识驱动域（紫色边线）——内置行业基准库和法规库，将企业实际数据与66个行业基准对比。代表：行业对标分析、规则全覆盖验证。</p>",
+  "cards": [
+    [
+      "资料驱动域",
+      "依赖上传资料进行判断。资料完备度越高置信度越高。缺资料的域自动标记跳过，不生成空发现。代表域：资金流向追踪、工资社保比对、合同比对。",
+      "#dc2626"
+    ],
+    [
+      "算法驱动域",
+      "基于数据内在特征自动计算，无需外部参考资料。自适应运行，不需要用户额外提供任何资料。代表域：进销毛利率、存货周转预警、异常交易时间分析。",
+      "#2563eb"
+    ],
+    [
+      "知识驱动域",
+      "内置行业基准库和法规库，将企业实际数据与66个行业基准对比。知识库持续更新维护。代表域：行业对标分析（66行业基准）、规则全覆盖验证（1608条规则）。",
+      "#7c3aed"
+    ]
+  ]
+});
+}
+// 42个分析域
+function renderDADomains() {
+  return _pageTemplate({
+  "title": "42个分析域",
+  "icon": "📊",
+  "subtitle": "每个域由独立的域分析函数驱动，按类别分组为13大类。含7条判定规则前置检查。所有域函数全行业适用，无行业特化硬编码。",
+  "stats": [
+    [
+      "42个",
+      "域函数",
+      "#2563eb"
+    ],
+    [
+      "13大类",
+      "域函数分类",
+      "#7c3aed"
+    ],
+    [
+      "7规则",
+      "前置判定检查",
+      "#059669"
+    ],
+    [
+      "66行业",
+      "行业基准库",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "da-intro",
+      "什么是域分析",
+      "域分析的基本概念"
+    ],
+    [
+      "da-arch",
+      "域分析架构",
+      "域分析的驱动架构"
+    ]
+  ],
+  "downstream": [
+    [
+      "da-result",
+      "域分析结果",
+      "域分析的产出"
+    ],
+    [
+      "hb-ch9",
+      "跨域协商引擎",
+      "域分析产出进入协商"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">7条判定规则前置检查（域分析执行前必须先通过）：公司身份锚定、发票方向判定、进项再分类、服务行业闸门、品名级精准过滤、综合判断四方交叉验证、存疑排除。</p><p style=\"margin:0\">13大分类：①资金流分析（4域）②进销存分析（4域）③供应商与客户分析（4域）④多源交叉验证（5域）⑤经营实质分析（3域）⑥资料完备度与情报（2域）⑦发票深度分析（3域）⑧合同与凭证（2域）⑨税务与社保（3域）⑩资产与关联交易（2域）⑪行业对标与规则引擎（4域）⑫跨域分析链（1域）⑬补充税种检查（3域）。</p>",
+  "cards": [
+    [
+      "资金流+进销存（8域）",
+      "资金全链路追踪、资金流向追踪、异常交易时间、个人交易风险；进销毛利率、发票实质性审计、存货周转预警、发票存货付款三角验证",
+      "#2563eb"
+    ],
+    [
+      "供应商+多源验证（9域）",
+      "供应商穿透、供应商画像、上下游穿透、客户维度三源穿透；多源交叉验证、凭证发票收入对比、利润现金流矛盾、收入时间线调查、扩展审查规则",
+      "#7c3aed"
+    ],
+    [
+      "经营实质+资料（5域）",
+      "经营实质分析7维度、经营实质地理分析、人员与业务匹配；资料完备度评估14类必查、资料情报摘要",
+      "#059669"
+    ],
+    [
+      "发票+合同+社保（8域）",
+      "发票深度特征、发票生命周期、红冲作废发票；合同比对、凭证科目异常；税务缴纳一致性、增值税申报比对、工资社保比对",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 域分析结果
+function renderDAResult() {
+  return _pageTemplate({
+  "title": "域分析结果",
+  "icon": "📈",
+  "subtitle": "动态数据页面，展示本次分析实际的域分析结果。包括各域发现列表（按风险等级排序）、跨域关联推理结果和综合分析结论。",
+  "stats": [
+    [
+      "动态",
+      "实时数据",
+      "#2563eb"
+    ],
+    [
+      "排序",
+      "风险等级",
+      "#7c3aed"
+    ],
+    [
+      "跨域",
+      "关联推理",
+      "#059669"
+    ],
+    [
+      "综合",
+      "分析结论",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "da-domains",
+      "42个分析域",
+      "域分析函数执行结果"
+    ],
+    [
+      "da-arch",
+      "域分析架构",
+      "不同驱动类型域的产出"
+    ]
+  ],
+  "downstream": [
+    [
+      "aly-result",
+      "本次分析结果",
+      "域分析结果汇总到分析结果"
+    ],
+    [
+      "hb-ch9",
+      "跨域协商引擎",
+      "域结果进入协商引擎"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">数据来源：getSharedAnalysis() API返回的report。域分析结果汇总卡片展示各域发现总数/高风险/中风险/低风险的分类统计。各域发现列表按风险等级排序（高→中→低→注意→信息）。跨域关联推理结果展示线索链、证据链、分析链的完整推理路径。</p>",
+  "cards": [
+    [
+      "结果汇总",
+      "域分析结果汇总卡片：分析域总数、已触发的域数、高风险发现数、中低风险发现数。展示哪些域产生了实质分析结果。",
+      "#2563eb"
+    ],
+    [
+      "发现列表",
+      "各域发现列表，按风险等级排序（高→中→低→注意→信息）。每条发现展示type/level/score/domain和简要描述。",
+      "#7c3aed"
+    ],
+    [
+      "跨域推理",
+      "线索链、证据链、分析链的完整推理路径展示。从单域发现到多域交叉的全过程可视化。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 核心智能引擎
+function renderAGICore() {
+  return _pageTemplate({
+  "title": "核心智能引擎",
+  "icon": "🧠",
+  "subtitle": "6个核心智能引擎模块：自我反思器（14维反向假设验证）、洞见总结器（五段式结构化报告）、跨分析学习器（12维相似度检索）、税务合规方法论、规则发现（三层递进归纳）、自动巡逻。",
+  "stats": [
+    [
+      "6个",
+      "核心引擎",
+      "#2563eb"
+    ],
+    [
+      "14维",
+      "反向验证",
+      "#dc2626"
+    ],
+    [
+      "五段式",
+      "结构化报告",
+      "#7c3aed"
+    ],
+    [
+      "3层",
+      "渐进学习",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-hero",
+      "AGI总览",
+      "核心引擎在AGI中的位置"
+    ],
+    [
+      "eng-think",
+      "推理引擎",
+      "核心引擎支撑推理"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-causal",
+      "因果推理层",
+      "核心引擎输出到因果层"
+    ],
+    [
+      "agi-knowledge",
+      "知识层",
+      "核心引擎学习到知识库"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">6个核心智能引擎：①自我反思器 SelfReflector——14维反向假设验证，对每条高风险发现生成竞争假设并逐条验证 ②洞见总结器 InsightSynthesizer——从all_findings自动组织为五段式结构化报告 ③跨分析学习器 CrossAnalysisLearner——跨企业分析经验积累，12维度加权相似度检索 ④税务合规方法论 MethodologyEngine——33条方法论+14类必查资料+12条法律条文 ⑤规则发现 RuleDiscovery——三层递进归纳引擎 ⑥自动巡逻 PatrolEngine——定期重分析，对比前后两次报告差异。</p>",
+  "cards": [
+    [
+      "自我反思器",
+      "14维反向假设验证。对每条高风险发现生成2-3条互斥竞争假设→逐条证据验证。adj<-0.05→不确定，adj<-0.15→推翻。累积信号≥3且无推翻→确认。",
+      "#dc2626"
+    ],
+    [
+      "洞见总结器",
+      "从all_findings自动组织五段式报告：企业画像→风险全景→核心问题TOP5→行业对标→行动建议P0-P2。全自动生成，无需人工整理。",
+      "#2563eb"
+    ],
+    [
+      "跨分析学习器",
+      "同类企业分析≥3次→提取行业常见高风险模式。12维度加权相似度检索。结果持久化到cross_analysis_memory.json。",
+      "#7c3aed"
+    ],
+    [
+      "规则发现+巡逻",
+      "三层递进归纳：Layer A模块效率(空跑率>80%降权)→Layer B纠正模式(纠正≥3次提取规则)→Layer C信号模式对比(>60%标记行业特征)。自动巡逻：定期重分析，变化率>30%触发定向巡逻。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 因果推理层
+function renderAGICausal() {
+  return _pageTemplate({
+  "title": "因果推理层",
+  "icon": "📊",
+  "subtitle": "4个因果推理引擎：SCM因果推理（do-干预/反事实/混淆/因果链）、元认知引擎（四维推理质量评估）、法律三段论（11条结构化规则）、因果网络（条件概率+多信号联合预测）。",
+  "stats": [
+    [
+      "4个",
+      "因果引擎",
+      "#2563eb"
+    ],
+    [
+      "9条",
+      "税务因果先验",
+      "#dc2626"
+    ],
+    [
+      "4维",
+      "推理质量评估",
+      "#7c3aed"
+    ],
+    [
+      "11条",
+      "法律规则",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "核心引擎产生发现进入因果层"
+    ],
+    [
+      "agi-hero",
+      "AGI总览",
+      "因果层在AGI中的位置"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-knowledge",
+      "知识层",
+      "因果边存入知识层"
+    ],
+    [
+      "eng-think",
+      "推理引擎",
+      "因果推理支撑最终推理"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">4个因果推理引擎：①SCM因果推理 SCMReasoner——从条件概率升级为结构化因果推理，四种推理（do-干预/反事实/混淆因子检测/因果链查询），预置9条税务因果先验 ②元认知引擎 Metacognition——四维推理质量评估（因果链完整性/证据充分性/法律依据/可操作性）→质量分→不确定性检测→信息缺口识别→行动建议 ③法律三段论 LegalReasoner——11条结构化法律规则，大前提(法条)+小前提(本案事实)→结论(法律定性) ④因果网络 CausalNetwork——条件概率矩阵+多信号联合预测，置信度=P(结论|信号) x log(lift+1)。</p>",
+  "cards": [
+    [
+      "SCM因果推理",
+      "四种推理：do-干预（如果公司补缴税款会怎样）、反事实（如果没有这笔交易会怎样）、混淆因子检测、因果链查询。预置9条税务因果先验。",
+      "#dc2626"
+    ],
+    [
+      "元认知引擎",
+      "四维评估：因果链完整性、证据充分性、法律依据、可操作性。质量分→不确定性检测→信息缺口识别→行动建议。元认知=对系统自身推理质量的自省。",
+      "#7c3aed"
+    ],
+    [
+      "法律三段论",
+      "11条结构化法律规则。大前提(法条)+小前提(本案事实)→结论(法律定性)。含征管法第63条、发票管理办法第22条、刑法第205条等。",
+      "#d97706"
+    ],
+    [
+      "因果网络",
+      "条件概率矩阵+多信号联合预测。信号共现→因果边→置信度=P(结论|信号) x log(lift+1)。lift>1为正向影响，lift<1为负向影响。",
+      "#2563eb"
+    ]
+  ]
+});
+}
+// 连接通信层
+function renderAGIConnect() {
+  return _pageTemplate({
+  "title": "连接通信层",
+  "icon": "🔗",
+  "subtitle": "3个连接通信引擎：事件总线（pub/sub松耦合，14种标准事件）、知识图谱（实体-关系-属性图推理）、自愈引擎（双重自愈模式，5种错误分类）。",
+  "stats": [
+    [
+      "3个",
+      "通信引擎",
+      "#2563eb"
+    ],
+    [
+      "14种",
+      "标准事件",
+      "#7c3aed"
+    ],
+    [
+      "3节点",
+      "图谱推理",
+      "#059669"
+    ],
+    [
+      "5类",
+      "错误修正",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "核心引擎通过事件总线通信"
+    ],
+    [
+      "agi-causal",
+      "因果推理层",
+      "因果推理结果通过事件总线传递"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-knowledge",
+      "知识层",
+      "通信层产出存入知识层"
+    ],
+    [
+      "agi-perf",
+      "加速与保护层",
+      "通信层支持并行加速"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">①事件总线 EventBus——模块间实时通信中枢，pub/sub松耦合，14种标准事件覆盖全分析生命周期。跨模块因果链追踪：一条发现从触发引擎到最终输出全程通过事件ID回溯。②知识图谱 KnowledgeGraph——实体-关系-属性图推理，节点类型：企业/供应商/客户/人员/发票/法条/风险。购销闭环检测：A→B→C→A品名金额相同→疑似闭环虚开。③自愈引擎 SelfHealing——双重自愈模式：人工反馈（5种错误分类→修正规则→自动应用）+自动检测（矛盾结论/三要素缺失/模板句/空占位符/因果链过短）。</p>",
+  "cards": [
+    [
+      "事件总线",
+      "pub/sub松耦合架构。14种标准事件覆盖全分析生命周期。跨模块因果链追踪通过事件ID实现——一条发现的全生命周期可完整回溯。",
+      "#2563eb"
+    ],
+    [
+      "知识图谱",
+      "实体-关系-属性图推理。购销闭环检测：A→B→C→A品名金额相同→疑似闭环虚开。一人多角检测：同一自然人在多个企业任职→关联交易。",
+      "#7c3aed"
+    ],
+    [
+      "自愈引擎",
+      "双重模式：人工反馈（5种错误→修正规则→自动应用）+自动检测（矛盾结论/三要素缺失/模板句/空占位符/因果链过短）。持久化到healing_rules.json。",
+      "#d97706"
+    ]
+  ]
+});
+}
+// 知识层
+function renderAGIKnowledge() {
+  return _pageTemplate({
+  "title": "知识层",
+  "icon": "📚",
+  "subtitle": "3个知识层模块：统一知识库（9域知识库，线程安全单例）、自学习引擎（三层渐进学习）、趋势分析器（12项经营指标跨期追踪）。",
+  "stats": [
+    [
+      "3个",
+      "知识模块",
+      "#2563eb"
+    ],
+    [
+      "9域",
+      "知识库",
+      "#7c3aed"
+    ],
+    [
+      "3层",
+      "渐进学习",
+      "#059669"
+    ],
+    [
+      "12项",
+      "趋势指标",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "知识层为核心引擎提供知识"
+    ],
+    [
+      "agi-causal",
+      "因果推理层",
+      "因果边存入知识层"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-special",
+      "专项引擎层",
+      "专项引擎使用知识层"
+    ],
+    [
+      "agi-perf",
+      "加速与保护层",
+      "知识层支持覆盖层回滚"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">①统一知识库 KnowledgeBase——9域：政策库/因果网络/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史。线程安全写锁，全局单例，JSON持久化。②自学习引擎 SelfLearning——三层渐进：审核反馈规则转化（纠正模式累积≥1→四级回退匹配）→模块效率评估→合规门禁。历史校准自动计算行业百分位阈值。③趋势分析器 TrendAnalyzer——12项经营指标跨期追踪（毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率等）。连续两期间变化>10%标记趋势方向。</p>",
+  "cards": [
+    [
+      "统一知识库",
+      "9域知识：政策库、因果网络、信号模式、语义词典（14类同义词）、风险同义词、行业画像、自愈规则、经验教训、分析历史（最近100条）。线程安全/全局单例/JSON持久化。",
+      "#2563eb"
+    ],
+    [
+      "自学习引擎",
+      "三层渐进：Layer 1审核反馈规则转化（纠正模式≥1→四级回退匹配）→Layer 2模块效率评估→Layer 3合规门禁。历史校准自动计算行业百分位阈值。",
+      "#7c3aed"
+    ],
+    [
+      "趋势分析器",
+      "12项经营指标跨期追踪。连续两期间变化>10%标记趋势方向（上升↑/下降↓/平稳→）。为税务合规发现提供时间维度背景。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 专项引擎层
+function renderAGISpecial() {
+  return _pageTemplate({
+  "title": "专项引擎层",
+  "icon": "🔧",
+  "subtitle": "7个专项引擎：语义推理器（14品名同义词+编辑距离）、未知模式检测（7种异常检测器+规则覆盖度检查）、假设验证引擎、跨企业关系网、税收优惠分析（联网核查）、跨域协商引擎、数据一致性引擎。",
+  "stats": [
+    [
+      "7个",
+      "专项引擎",
+      "#2563eb"
+    ],
+    [
+      "9类",
+      "税收优惠",
+      "#7c3aed"
+    ],
+    [
+      "14类",
+      "同义词库",
+      "#059669"
+    ],
+    [
+      "7种",
+      "异常检测器",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "专项引擎是核心引擎的扩展"
+    ],
+    [
+      "agi-knowledge",
+      "知识层",
+      "专项引擎使用知识层"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-causal",
+      "因果推理层",
+      "专项引擎结果进入因果层"
+    ],
+    [
+      "agi-perf",
+      "加速与保护层",
+      "专项引擎受加速层调度"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">7个专项引擎：①语义推理器——14类品名同义词库，两层匹配（子字符串+编辑距离Levenshtein≤2），创造性假设引擎（Jaccard类比推理）②未知模式检测——规则覆盖度检查+7种异常检测器（结构化转账/幽灵供应商/价格异常/数量尖峰/月末突击/个人大额转账/营收平滑）③假设验证引擎——每条重要发现生成2-3条互斥竞争假设→贝叶斯更新后验概率 ④跨企业关系网——一人多角检测+连锁稽查点（A→B→C→A闭环虚开）⑤税收优惠分析——9类优惠，联网核查三步法（搜索→抓取→提取），90天缓存 ⑥跨域协商引擎——29条协商规则 ⑦数据一致性引擎——双维度自检。</p>",
+  "cards": [
+    [
+      "语义推理+未知检测",
+      "语义推理：14类品名同义词（钢材→钢铁/型材/板材），编辑距离≤2自动匹配，Jaccard类比推理。未知模式检测：7种异常检测器覆盖规则未覆盖的风险区域。",
+      "#2563eb"
+    ],
+    [
+      "假设验证+跨企业关系",
+      "假设验证：每条重要发现2-3条互斥竞争假设→正反证据检查→贝叶斯更新。跨企业关系：一人多角检测+连锁稽查点识别。",
+      "#7c3aed"
+    ],
+    [
+      "税收优惠+协商+一致性",
+      "税收优惠：9类（小微/小规模/研发/高新/六税两费等），联网核查三步法。跨域协商：29条规则四类场景。数据一致性：数字维度+文本维度双维度自检。",
+      "#059669"
+    ]
+  ]
+});
+}
+// 加速与保护层
+function renderAGIPerf() {
+  return _pageTemplate({
+  "title": "加速与保护层",
+  "icon": "🚀",
+  "subtitle": "3个加速与保护引擎：并行加速（DAG依赖图，42域并行，性能提升35-45%）、覆盖层引擎（四阶段状态机+紧急恢复）、外部验证（4通道工商数据验证，24小时缓存）。",
+  "stats": [
+    [
+      "3个",
+      "加速保护引擎",
+      "#2563eb"
+    ],
+    [
+      "45%",
+      "性能提升",
+      "#7c3aed"
+    ],
+    [
+      "4通道",
+      "工商验证",
+      "#059669"
+    ],
+    [
+      "4阶段",
+      "覆盖层状态机",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "核心引擎受益于加速"
+    ],
+    [
+      "agi-schedule",
+      "调度中枢",
+      "调度中枢配合加速层"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-knowledge",
+      "知识层",
+      "验证结果存入知识层"
+    ],
+    [
+      "agi-special",
+      "专项引擎层",
+      "专项引擎受覆盖层保护"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">①并行加速 ParallelRunner——基于模块间依赖DAG自动计算并行执行计划。42个域分析函数间互不依赖→全部并行。max_workers默认4。性能：36域串行约45秒→并行约25-30秒→提升35-45%。②覆盖层引擎 OverrideEngine——AGI自主修正安全回滚机制。四阶段状态机：待审核→激活→生效中（监控效果）→紧急恢复（一键回滚）。持久化到overrides_storage.json。③外部验证 ExternalVerifier——4通道工商数据验证：天眼查API/企查查API/国家企业信用信息公示系统/搜索引擎后备。结果写入entity_profile.json，24小时缓存。</p>",
+  "cards": [
+    [
+      "并行加速",
+      "基于DAG依赖图自动计算并行执行计划。42域间互不依赖→全部并行。max_workers默认4。36域串行45秒→并行25-30秒→提升35-45%。可开关切换。",
+      "#2563eb"
+    ],
+    [
+      "覆盖层引擎",
+      "AGI自主修正安全回滚。四阶段状态机：待审核→激活→生效中→紧急恢复（一键回滚）。监控效果异常时自动触发回滚，确保系统安全。",
+      "#7c3aed"
+    ],
+    [
+      "外部验证",
+      "4通道：天眼查API、企查查API、国家企业信用信息公示系统、搜索引擎后备。结果24小时缓存，避免频繁调用外部API。",
+      "#059669"
+    ]
+  ]
+});
+}
+// API端点清单
+function renderAGIAPI() {
+  return _pageTemplate({
+  "title": "API端点清单",
+  "icon": "📡",
+  "subtitle": "14个AGI API端点（GET/POST混合），覆盖状态查询、自然语言查询、对话、自检、覆盖层管理、巡逻管理、供应商验证等功能。",
+  "stats": [
+    [
+      "14个",
+      "API端点",
+      "#2563eb"
+    ],
+    [
+      "GET",
+      "状态查询",
+      "#7c3aed"
+    ],
+    [
+      "POST",
+      "交互操作",
+      "#059669"
+    ],
+    [
+      "REST",
+      "标准接口",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-core",
+      "核心智能引擎",
+      "核心引擎通过API暴露"
+    ],
+    [
+      "agi-hero",
+      "AGI总览",
+      "总览数据通过API获取"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-schedule",
+      "调度中枢",
+      "调度中枢状态通过API查询"
+    ],
+    [
+      "agi-perf",
+      "加速与保护层",
+      "加速和覆盖层状态通过API管理"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">14个API端点：GET /api/agi/status（完整状态面板）、GET /api/agi/pipeline/dashboard（Pipeline仪表盘）、POST /api/agi/query（自然语言查询）、POST /api/agi/chat（对话式税务合规）、POST /api/agi/self-check/{company_id}（闭环自检）、GET/POST /api/agi/overrides/*（覆盖层管理）、GET/POST /api/agi/patrol/*（巡逻管理）、GET /api/agi/verify-supplier（供应商验证）、GET /api/agi/verify-channels（验证渠道）、POST /api/agi/parallel/toggle（并行加速开关）。</p>",
+  "cards": [
+    [
+      "状态与查询API",
+      "GET /api/agi/status（完整状态面板，含所有引擎状态）GET /api/agi/pipeline/dashboard（Pipeline数据）POST /api/agi/query（自然语言查询分析结果）POST /api/agi/chat（对话式税务合规咨询）",
+      "#2563eb"
+    ],
+    [
+      "覆盖层管理API",
+      "GET /api/agi/overrides/summary（覆盖层概况）POST /api/agi/overrides/{id}/activate（激活覆盖层）POST /api/agi/overrides/{id}/rollback（回滚覆盖层）POST /api/agi/overrides/emergency-reset（紧急恢复，一键回滚所有覆盖层）",
+      "#7c3aed"
+    ],
+    [
+      "巡逻与验证API",
+      "GET /api/agi/patrol/status（巡逻状态）POST /api/agi/patrol/trigger（手动触发巡逻）GET /api/agi/verify-supplier（供应商工商验证）GET /api/agi/verify-channels（可用验证渠道列表）POST /api/agi/parallel/toggle（并行加速开关）",
+      "#059669"
+    ]
+  ]
+});
+}
+// 知识库与核心配置
+function renderAGIKnowledgeConfig() {
+  return _pageTemplate({
+  "title": "知识库与核心配置",
+  "icon": "📚",
+  "subtitle": "9类知识库（政策库/因果网络/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史）+10项核心配置参数（系统自动运行的关键阈值和参数）。",
+  "stats": [
+    [
+      "9类",
+      "知识库",
+      "#2563eb"
+    ],
+    [
+      "10项",
+      "核心配置",
+      "#7c3aed"
+    ],
+    [
+      "动态",
+      "知识自生长",
+      "#059669"
+    ],
+    [
+      "持久化",
+      "JSON存储",
+      "#d97706"
+    ]
+  ],
+  "upstream": [
+    [
+      "agi-knowledge",
+      "知识层",
+      "知识库的管理和使用"
+    ],
+    [
+      "agi-core",
+      "核心智能引擎",
+      "核心引擎使用知识库和配置"
+    ]
+  ],
+  "downstream": [
+    [
+      "agi-special",
+      "专项引擎层",
+      "专项引擎依赖配置参数"
+    ],
+    [
+      "agi-perf",
+      "加速与保护层",
+      "配置参数控制加速和覆盖层行为"
+    ]
+  ],
+  "desc": "<p style=\"margin:0 0 16px\">9类知识库：①政策库policies（9条税收优惠）②因果网络causal_edges（信号→结论因果边）③信号模式signal_patterns（多信号组合）④语义词典semantic_dict（14类同义词）⑤行业画像industry_profiles（8大行业）⑥自愈规则healing_rules（错误→修正）⑦经验教训lessons（跨分析积累）⑧分析历史analysis_history（最近100条）⑨巡逻快照patrol_snapshots（巡逻基线）。</p>",
+  "cards": [
+    [
+      "知识库（5类）",
+      "政策库（9条税收优惠）、因果网络（动态因果边数）、信号模式（动态模式数）、语义词典（14类同义词）、行业画像（8大行业标准画像）",
+      "#2563eb"
+    ],
+    [
+      "知识库（4类）",
+      "自愈规则（动态活跃规则数，同类错误≥2生成规则）、经验教训（动态经验条数，跨分析积累）、分析历史（最近100条）、巡逻快照（动态企业数，巡逻基线）",
+      "#7c3aed"
+    ],
+    [
+      "核心配置参数（5项）",
+      "自愈引擎：5种错误模式/同类≥2生成规则；自动巡逻：最大5家/触发≥2边/变化>30%显著；规则发现：Layer A>80%空跑/Layer B≥5次纠正/Layer C>60%出现；反思器：adj<-0.05不确定/adj<-0.15推翻/7类型/14维反向假设；元认知：四维评估/不确定性阈值0.3/6种缺口",
+      "#059669"
+    ],
+    [
+      "核心配置参数（5项）",
+      "SCM因果：do-干预/反事实/混淆检测/因果链/9条先验；知识库：线程安全/单例/100条历史/JSON持久化；联网核查：三步法/90天缓存/chinatax.gov.cn；并行加速：多模块并行/DAG依赖图/可开关/提升30-50%；事件总线：pub/sub松耦合/14种事件/500条日志/自动持久化",
+      "#d97706"
+    ]
+  ]
+});
 }

@@ -3,14 +3,22 @@ var currentPage = 'dashboard';
 var currentPeriod = '';
 var allAccounts = [];
 
-// ═══ 跨文件函数存根 — 确保 tax-engine-dashboard.js 未加载时也不会报 is not defined ═══
-if(typeof renderPipeDashboard==='undefined') window.renderPipeDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderLearnFeedback==='undefined') window.renderLearnFeedback=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderOrchDashboard==='undefined') window.renderOrchDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderGrowthDashboard==='undefined') window.renderGrowthDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderQualityDashboard==='undefined') window.renderQualityDashboard=function(c){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderEngineSubModule==='undefined') window.renderEngineSubModule=function(c,t){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
-if(typeof renderBrainSubModule==='undefined') window.renderBrainSubModule=function(c,s){c.innerHTML='<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>'};
+// ═══ 安全派发：运行时动态取函数，不存在就降级 — 永无人为补存根 ═══
+var _LOADING_HTML = '<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>';
+function _sR(container, fnName) {
+  var fn = window[fnName];
+  if (typeof fn === 'function') { fn(container); return true; }
+  container.innerHTML = _LOADING_HTML;
+  console.warn('[安全派发] 函数 ' + fnName + ' 未就绪');
+  return false;
+}
+function _sRX(container, fnName, xarg) {
+  var fn = window[fnName];
+  if (typeof fn === 'function') { fn(container, xarg); return true; }
+  container.innerHTML = _LOADING_HTML;
+  console.warn('[安全派发] 函数 ' + fnName + ' 未就绪');
+  return false;
+}
 
 // 多公司全局状态（供所有模块访问）
 var currentCompanyId = 0;  // 0=未选择，必须显式选公司后才有效
@@ -671,118 +679,118 @@ function navigateTo(page) {
   const container = _ensureContainer(page);
   container.style.display = '';
 
-  // 每次切换都自动刷新页面
+  // ═══ 安全派发：所有页面渲染走 _sR/_sRX，函数未就绪时降级不抛异常 ═══
   switch (page) {
-    case 'dashboard': renderDashboard(container); break;
-    case 'journal': renderJournal(container); break;
-    case 'general-ledger': renderGeneralLedger(container); break;
-    case 'detail-ledger': renderDetailLedger(container); break;
-    case 'employee-ledger': renderEmployeeLedger(container); break;
-    case 'customer-ledger': renderCustomerLedger(container); break;
-    case 'supplier-ledger': renderSupplierLedger(container); break;
-    case 'profit-loss': renderProfitLoss(container); break;
-    case 'balance-sheet': renderBalanceSheet(container); break;
-    case 'cash-flow': renderCashFlow(container); break;
-    case 'equity-changes': renderEquityChanges(container); break;
-    case 'account-balance': renderAccountBalance(container); break;
-    case 'accounts': renderAccounts(container); break;
-    case 'periods': renderPeriods(container); break;
-    case 'company': window.location.href = '/select-company'; break;
-    case 'departments': renderDepartments(container); break;
-    case 'employees': renderEmployees(container); break;
-    case 'customers': renderCustomers(container); break;
-    case 'suppliers': renderSuppliers(container); break;
-    case 'fixed-assets': renderFixedAssets(container); break;
-    case 'intangible-assets': renderIntangibleAssets(container); break;
-    case 'inventory': renderInventory(container); break;
-    case 'contracts': renderContracts(container); break;
-    case 'payments': renderPayments(container); break;
-    case 'sales-invoices': renderSalesInvoices(container); break;
-    case 'purchase-invoices': renderPurchaseInvoices(container); break;
-    case 'bookkeeping-invoices': renderBookkeepingInvoices(container); break;
-    case '未记账发票': renderUnbookkeptInvoices(container); break;
-    case 'input-vat-deductions': renderInputVATDeductions(container); break;
-    case 'bank-transactions': renderBankTransactions(container); break;
-    case 'vat-declaration': renderVATDeclaration(container); break;
-    case 'salary': showSalaryPage(container); break;
-    case 'social-security': renderSocialSecurity(container); break;
-    case 'housing-fund': renderHousingFund(container); break;
-    case '文化事业建设费': renderCulturalConstructionFee(container); break;
-    case 'tax-risk-report': renderTaxRiskReport(container); break;
-    case 'tax-doc-analysis': renderTaxDocAnalysis(container); break;
-    case 'pipeline-rules': renderTaxRiskRules(container); break;
-    case 'chains-page': renderChainsPage(container); break;
-    case 'evidence-page': renderEvidencePage(container); break;
-    case 'tax-incentives-page': renderTaxIncentivesPage(container); break;
-    case 'system-logs': renderSystemLogs(container); break;
-    case 'ai-rules': renderAiRules(container); break;
-    case 'chat': renderChat(container); break;
-    case 'feedback-template': renderFeedbackTemplate(container); break;
-    case 'correction-rules': renderCorrectionRulesHub(container); break;
-    case 'engine-dimensions': renderEngineDimensions(container); break;
-    case 'human-learning': renderHumanLearningPage(container); break;
-    case 'eng-pipe': renderPipeDashboard(container); break;
-    case 'eng-learn': renderLearnFeedback(container); break;
-    case 'eng-orch': renderOrchDashboard(container); break;
-    case 'eng-grow': renderGrowthDashboard(container); break;
-    case 'eng-qual': renderQualityDashboard(container); break;
-    case 'eng-think': renderEngineSubModule(container, 'methods'); break;
-    case 'eng-info': renderEngineSubModule(container, 'details'); break;
-    case 'aly-result': renderAnalyzeResult(container); break;
-    case 'aly-logs': renderAnalyzeLogs(container); break;
-    case 'hb-overview': window._hbChapter = 'hb-s0'; renderAuditorHandbook(container); break;
-    case 'hb-ch1': window._hbChapter = 'hb-s1'; renderAuditorHandbook(container); break;
-    case 'hb-ch2': window._hbChapter = 'hb-s2'; renderAuditorHandbook(container); break;
-    case 'hb-ch4': window._hbChapter = 'hb-s4'; renderAuditorHandbook(container); break;
-    case 'hb-ch6': window._hbChapter = 'hb-s6'; renderAuditorHandbook(container); break;
-    case 'hb-ch7': window._hbChapter = 'hb-s7'; renderAuditorHandbook(container); break;
-    case 'hb-ch8': window._hbChapter = 'hb-s8'; renderAuditorHandbook(container); break;
-    case 'hb-ch9': window._hbChapter = 'hb-s9'; renderAuditorHandbook(container); break;
-    case 'hb-ch10': window._hbChapter = 'hb-s10'; renderAuditorHandbook(container); break;
-    case 'hb-ch11': window._hbChapter = 'hb-s11'; renderAuditorHandbook(container); break;
-    case 'hb-ch12': window._hbChapter = 'hb-s12'; renderAuditorHandbook(container); break;
-    case 'hb-ch13': window._hbChapter = 'hb-s13'; renderAuditorHandbook(container); break;
-    case 'hb-ch14': window._hbChapter = 'hb-s14'; renderAuditorHandbook(container); break;
-    case 'rs-pipeline': window._reportSection = 'rs-pipeline'; renderReportStandards(container); break;
-    case 'rs-structure': window._reportSection = 'rs-structure'; renderReportStandards(container); break;
-    case 'rs-terms': window._reportSection = 'rs-terms'; renderReportStandards(container); break;
-    case 'rs-narrative': window._reportSection = 'rs-narrative'; renderReportStandards(container); break;
-    case 'rs-merge': window._reportSection = 'rs-merge'; renderReportStandards(container); break;
-    case 'rs-12std': window._reportSection = 'rs-12std'; renderReportStandards(container); break;
-    case 'rs-reliability': window._reportSection = 'rs-reliability'; renderReportStandards(container); break;
-    case 'rs-paragraph': window._reportSection = 'rs-paragraph'; renderReportStandards(container); break;
-    case 'rs-tts': window._reportSection = 'rs-tts'; renderReportStandards(container); break;
-    case 'rs-negotiation': window._reportSection = 'rs-negotiation'; renderReportStandards(container); break;
-    case 'rs-review': window._reportSection = 'rs-review'; renderReportStandards(container); break;
-    case 'rs-ironlaw': window._reportSection = 'rs-ironlaw'; renderReportStandards(container); break;
-    case 'rs-sync': window._reportSection = 'rs-sync'; renderReportStandards(container); break;
-    case 'rs-iterate': window._reportSection = 'rs-iterate'; renderReportStandards(container); break;
-    case 'rs-negoflow': window._reportSection = 'rs-negoflow'; renderReportStandards(container); break;
-    case 'qs-layer1': window._qsLayer = 1; renderQualitySystem(container); break;
-    case 'qs-layer2': window._qsLayer = 2; renderQualitySystem(container); break;
-    case 'qs-layer3': window._qsLayer = 3; renderQualitySystem(container); break;
-    case 'qs-layer4': window._qsLayer = 4; renderQualitySystem(container); break;
-    case 'qs-layer5': window._qsLayer = 5; renderQualitySystem(container); break;
-    case 'fp-mechanism': window._fpSection = 'fp-mechanism'; renderFileParsingPage(container); break;
-    case 'fp-compat': window._fpSection = 'fp-compat'; renderFileParsingPage(container); break;
-    case 'fp-formats': window._fpSection = 'fp-formats'; renderFileParsingPage(container); break;
-    case 'fp-fingerprint': window._fpSection = 'fp-fingerprint'; renderFileParsingPage(container); break;
-    case 'fp-flow': window._fpSection = 'fp-flow'; renderFileParsingPage(container); break;
-    case 'fp-result': window._fpSection = 'fp-result'; renderFileParsingPage(container); break;
-    case 'da-intro': window._daSection = 'da-intro'; renderDomainAnalysisPage(container); break;
-    case 'da-arch': window._daSection = 'da-arch'; renderDomainAnalysisPage(container); break;
-    case 'da-domains': window._daSection = 'da-domains'; renderDomainAnalysisPage(container); break;
-    case 'da-result': window._daSection = 'da-result'; renderDomainAnalysisPage(container); break;
-    case 'agi-core': window._agiSection = 'agi-core'; renderAgiDashboard(container); break;
-    case 'agi-causal': window._agiSection = 'agi-causal'; renderAgiDashboard(container); break;
-    case 'agi-connect': window._agiSection = 'agi-connect'; renderAgiDashboard(container); break;
-    case 'agi-knowledge': window._agiSection = 'agi-knowledge'; renderAgiDashboard(container); break;
-    case 'agi-special': window._agiSection = 'agi-special'; renderAgiDashboard(container); break;
-    case 'agi-perf': window._agiSection = 'agi-perf'; renderAgiDashboard(container); break;
-    case 'agi-schedule': window._agiSection = 'agi-schedule'; renderAgiDashboard(container); break;
-    case 'agi-assets': window._agiSection = 'agi-assets'; renderAgiDashboard(container); break;
-    case 'agi-api': window._agiSection = 'agi-api'; renderAgiDashboard(container); break;
-    case 'agi-knowledge-config': window._agiSection = 'agi-knowledge-config'; renderAgiDashboard(container); break;
+    case 'dashboard':              _sR(container, 'renderDashboard'); break;
+    case 'journal':                _sR(container, 'renderJournal'); break;
+    case 'general-ledger':         _sR(container, 'renderGeneralLedger'); break;
+    case 'detail-ledger':          _sR(container, 'renderDetailLedger'); break;
+    case 'employee-ledger':        _sR(container, 'renderEmployeeLedger'); break;
+    case 'customer-ledger':        _sR(container, 'renderCustomerLedger'); break;
+    case 'supplier-ledger':        _sR(container, 'renderSupplierLedger'); break;
+    case 'profit-loss':            _sR(container, 'renderProfitLoss'); break;
+    case 'balance-sheet':          _sR(container, 'renderBalanceSheet'); break;
+    case 'cash-flow':              _sR(container, 'renderCashFlow'); break;
+    case 'equity-changes':         _sR(container, 'renderEquityChanges'); break;
+    case 'account-balance':        _sR(container, 'renderAccountBalance'); break;
+    case 'accounts':               _sR(container, 'renderAccounts'); break;
+    case 'periods':                _sR(container, 'renderPeriods'); break;
+    case 'company':                window.location.href = '/select-company'; break;
+    case 'departments':            _sR(container, 'renderDepartments'); break;
+    case 'employees':              _sR(container, 'renderEmployees'); break;
+    case 'customers':              _sR(container, 'renderCustomers'); break;
+    case 'suppliers':              _sR(container, 'renderSuppliers'); break;
+    case 'fixed-assets':           _sR(container, 'renderFixedAssets'); break;
+    case 'intangible-assets':      _sR(container, 'renderIntangibleAssets'); break;
+    case 'inventory':              _sR(container, 'renderInventory'); break;
+    case 'contracts':              _sR(container, 'renderContracts'); break;
+    case 'payments':               _sR(container, 'renderPayments'); break;
+    case 'sales-invoices':         _sR(container, 'renderSalesInvoices'); break;
+    case 'purchase-invoices':      _sR(container, 'renderPurchaseInvoices'); break;
+    case 'bookkeeping-invoices':   _sR(container, 'renderBookkeepingInvoices'); break;
+    case '未记账发票':              _sR(container, 'renderUnbookkeptInvoices'); break;
+    case 'input-vat-deductions':   _sR(container, 'renderInputVATDeductions'); break;
+    case 'bank-transactions':      _sR(container, 'renderBankTransactions'); break;
+    case 'vat-declaration':        _sR(container, 'renderVATDeclaration'); break;
+    case 'salary':                 _sR(container, 'showSalaryPage'); break;
+    case 'social-security':        _sR(container, 'renderSocialSecurity'); break;
+    case 'housing-fund':           _sR(container, 'renderHousingFund'); break;
+    case '文化事业建设费':          _sR(container, 'renderCulturalConstructionFee'); break;
+    case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
+    case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
+    case 'pipeline-rules':         _sR(container, 'renderTaxRiskRules'); break;
+    case 'chains-page':            _sR(container, 'renderChainsPage'); break;
+    case 'evidence-page':          _sR(container, 'renderEvidencePage'); break;
+    case 'tax-incentives-page':    _sR(container, 'renderTaxIncentivesPage'); break;
+    case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
+    case 'ai-rules':               _sR(container, 'renderAiRules'); break;
+    case 'chat':                   _sR(container, 'renderChat'); break;
+    case 'feedback-template':      _sR(container, 'renderFeedbackTemplate'); break;
+    case 'correction-rules':       _sR(container, 'renderCorrectionRulesHub'); break;
+    case 'engine-dimensions':      _sR(container, 'renderEngineDimensions'); break;
+    case 'human-learning':         _sR(container, 'renderHumanLearningPage'); break;
+    case 'eng-pipe':               _sR(container, 'renderPipeDashboard'); break;
+    case 'eng-learn':              _sR(container, 'renderLearnFeedback'); break;
+    case 'eng-orch':               _sR(container, 'renderOrchDashboard'); break;
+    case 'eng-grow':               _sR(container, 'renderGrowthDashboard'); break;
+    case 'eng-qual':               _sR(container, 'renderQualityDashboard'); break;
+    case 'eng-think':              _sR(container, 'renderEngineThink'); break;
+    case 'eng-info':               _sR(container, 'renderEngineDetails'); break;
+    case 'aly-result':             _sR(container, 'renderAnalyzePage'); break;
+    case 'aly-logs':               _sR(container, 'renderAnalyzeLogs'); break;
+    case 'hb-overview':  _sR(container, 'renderSystemOverview'); break;
+    case 'hb-ch1':       _sR(container, 'renderTaxWorkflow'); break;
+    case 'hb-ch2':       _sR(container, 'renderRequiredMaterials'); break;
+    case 'hb-ch4':       _sR(container, 'renderJudgmentRules'); break;
+    case 'hb-ch6':       _sR(container, 'renderLegalRefs'); break;
+    case 'hb-ch7':       _sR(container, 'renderProcedureMapping'); break;
+    case 'hb-ch8':       _sR(container, 'renderQualitySystem'); break;
+    case 'hb-ch9':       _sR(container, 'renderCrossDomainNego'); break;
+    case 'hb-ch10':      _sR(container, 'renderDataConsistencyCheck'); break;
+    case 'hb-ch11':      _sR(container, 'renderAuditFeedback'); break;
+    case 'hb-ch12':      _sR(container, 'renderEngineMemory'); break;
+    case 'hb-ch13':      _sR(container, 'renderIronLaws'); break;
+    case 'hb-ch14':      _sR(container, 'renderFileAssociation'); break;
+    case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
+    case 'rs-structure':   _sR(container, 'renderReportStructure'); break;
+    case 'rs-terms':       _sR(container, 'renderReportTerms'); break;
+    case 'rs-narrative':   _sR(container, 'renderNarrativeStandard'); break;
+    case 'rs-merge':       _sR(container, 'renderMergeRules'); break;
+    case 'rs-12std':       _sR(container, 'render12Standards'); break;
+    case 'rs-reliability': _sR(container, 'renderReliability'); break;
+    case 'rs-paragraph':   _sR(container, 'renderParaStandard'); break;
+    case 'rs-tts':         _sR(container, 'renderTTSStandard'); break;
+    case 'rs-negotiation': _sR(container, 'renderCrossDomainNego'); break;
+    case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
+    case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
+    case 'rs-sync':        _sR(container, 'renderSyncMechanism'); break;
+    case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
+    case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
+    case 'qs-layer1': _sR(container, 'renderCoreDataAssets'); break;
+    case 'qs-layer2': _sR(container, 'renderMethodologySystem'); break;
+    case 'qs-layer3':               window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
+    case 'qs-layer4':               _sR(container, 'renderIndustrySystem'); break;
+    case 'qs-layer5':               _sR(container, 'renderExecutionPipeline'); break;
+    case 'fp-mechanism':  _sR(container, 'renderFPMechanism'); break;
+    case 'fp-compat':     _sR(container, 'renderFPCompat'); break;
+    case 'fp-formats':    _sR(container, 'renderFPFormats'); break;
+    case 'fp-fingerprint':_sR(container, 'renderFPFingerprint'); break;
+    case 'fp-flow':       _sR(container, 'renderFPFlow'); break;
+    case 'fp-result':     _sR(container, 'renderFPResult'); break;
+    case 'da-intro':   _sR(container, 'renderDAIntro'); break;
+    case 'da-arch':    _sR(container, 'renderDAArch'); break;
+    case 'da-domains': _sR(container, 'renderDADomains'); break;
+    case 'da-result':  _sR(container, 'renderDAResult'); break;
+    case 'agi-core':            _sR(container, 'renderAGICore'); break;
+    case 'agi-causal':          _sR(container, 'renderAGICausal'); break;
+    case 'agi-connect':         _sR(container, 'renderAGIConnect'); break;
+    case 'agi-knowledge':       _sR(container, 'renderAGIKnowledge'); break;
+    case 'agi-special':         _sR(container, 'renderAGISpecial'); break;
+    case 'agi-perf':            _sR(container, 'renderAGIPerf'); break;
+    case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
+    case 'agi-assets':           _sR(container, 'renderDataAssets'); break;
+    case 'agi-api':              _sR(container, 'renderAGIAPI'); break;
+    case 'agi-knowledge-config': _sR(container, 'renderAGIKnowledgeConfig'); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
@@ -1384,9 +1392,10 @@ document.addEventListener('DOMContentLoaded', function () {
   _startApp();
 });
 
-// 兜底：如果脚本执行时 DOM 已载入，直接启动
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  _startApp();
+// 兜底：脚本加载时 DOM 已经完全载入（如 BFCache 恢复、动态注入），直接启动
+// 注意：不用 'interactive'——此时 defer 脚本未执行，会导致 _sR 降级
+if (document.readyState === 'complete') {
+  setTimeout(_startApp, 0);
 }
 
 function _startApp() {
