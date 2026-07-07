@@ -1,6 +1,7 @@
 """
 多Agent协调器 — 串联4个Agent的执行流程
 """
+from __future__ import annotations  # 延迟注解求值：允许在类型注解中引用后文定义的 DialogAgent/LearningAgent/RuleReasonerAgent
 import json
 from typing import Dict, List, Any, Optional
 from .base import BaseAgent
@@ -105,13 +106,6 @@ class AgentCoordinator:
         if len(self._pipeline_log) > 100:
             self._pipeline_log = self._pipeline_log[-100:]
         return self._pipeline_log[-20:]
-
-
-# 全局协调器
-coordinator = AgentCoordinator()
-
-def get_coordinator() -> AgentCoordinator:
-    return coordinator
 
 
 # ═══════ [合并自 engine/dialog.py] ═══════
@@ -883,4 +877,11 @@ class RuleReasonerAgent(BaseAgent):
             else:
                 return "中风险——单一规则触发，可能是偶然信号"
         return "低风险——建议保持关注"
+
+
+# ═══════ 全局协调器（必须在 DialogAgent/LearningAgent/RuleReasonerAgent 全部定义之后实例化）═══════
+coordinator = AgentCoordinator()
+
+def get_coordinator() -> AgentCoordinator:
+    return coordinator
 

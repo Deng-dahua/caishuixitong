@@ -838,5 +838,147 @@
       "salary": 0.0,
       "gross_margin_pct": -89.79380704366837
     }
+  },
+  {
+    "timestamp": "2026-07-07T11:36:33.835155",
+    "industry": "广告服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 60.8,
+    "risk_level": "高风险",
+    "red_flags": [
+      "购销严重倒挂",
+      "毛利为负"
+    ],
+    "yellow_flags": [
+      "个人交易占比过高"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "timestamp": "2026-07-07T11:53:21.963443",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-08T01:08:52.007168",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-08T01:15:13.181545",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
+  },
+  {
+    "timestamp": "2026-07-08T01:21:14.060320",
+    "industry": "现代服务",
+    "biz_model": "未确定",
+    "scale": "小",
+    "risk_score": 68.2,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [
+      "进项发票连号",
+      "存在异常大额交易日"
+    ],
+    "pattern_hits": 1,
+    "total_findings": 648,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 31.880140047146615,
+    "customer_concentration": 55.421615481275765,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 6636800.57,
+      "purchases": 5757171.49,
+      "bank_in": 8371659.92,
+      "bank_out": 7214019.55,
+      "salary": 0.0,
+      "gross_margin_pct": 13.2538121452096
+    }
   }
 ]

@@ -205,7 +205,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             from engine.agi_engine import agi as agi_engine_instance
             agi_engine = agi_engine_instance
             pipeline_log.append("[AGI] 合并大脑：agi_pipeline + agi_engine 已统一")
-        except Exception: pass
+        except Exception as _ae:
+            pipeline_log.append(f"[AGI] 合并大脑接入失败→跳过推理增强: {_ae}")
     except Exception as _pe:
         pipeline_log.append(f"[AGI] 初始化失败→跳过反思/洞见/知识注入: {_pe}")
         agi_pipeline = None

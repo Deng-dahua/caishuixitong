@@ -8,6 +8,7 @@ AGI引擎 — 财税系统智能核心
   answer = agi.ask(question, findings, context, intent)
   agi.learn(finding_type, industry, level, reason)
 """
+from __future__ import annotations  # 延迟注解求值：允许注解中引用后文定义的 ReasoningResult
 import json, os, re
 from typing import Dict, List, Any, Optional
 from engine.llm_client import llm, is_llm_available

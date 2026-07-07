@@ -18,7 +18,7 @@
     "target": "未开票收入",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T10:45:04.316306",
-    "applied_count": 27,
+    "applied_count": 28,
     "status": "active"
   },
   {
@@ -40,7 +40,7 @@
     "target": "Causal: 隐匿收入的资金回流路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431930",
-    "applied_count": 11,
+    "applied_count": 12,
     "status": "active"
   },
   {
@@ -62,7 +62,7 @@
     "target": "股票期权行权未扣税",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431985",
-    "applied_count": 6,
+    "applied_count": 7,
     "status": "active"
   },
   {
@@ -161,7 +161,7 @@
     "target": "基础经营费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432099",
-    "applied_count": 36,
+    "applied_count": 37,
     "status": "active"
   },
   {
@@ -216,7 +216,7 @@
     "target": "资料缺失触发-销项发票缺失→无法验证申报收入→隐匿收入推定风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:35:50.203608",
-    "applied_count": 6,
+    "applied_count": 7,
     "status": "active"
   },
   {
@@ -304,7 +304,7 @@
     "target": "未认证发票超期",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781635",
-    "applied_count": 0,
+    "applied_count": 1,
     "status": "active"
   },
   {
@@ -315,7 +315,7 @@
     "target": "顶额分散开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781644",
-    "applied_count": 0,
+    "applied_count": 1,
     "status": "active"
   },
   {
@@ -359,7 +359,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:39:56.176992",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
