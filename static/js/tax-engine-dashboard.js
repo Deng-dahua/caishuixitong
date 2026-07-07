@@ -516,75 +516,128 @@ function loadEngineDashboard() {
 // 引擎能力维度页面
 // ═══════════════════════════════════════════
 function renderEngineDimensions(container) {
-  container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在从引擎读取能力维度...</div>';
-  
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.cd{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.cd-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.cd-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.cd-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.cd-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.cd-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.cd-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.cd-sec{margin-bottom:32px}'
+    + '.cd-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.cd-table{width:100%;border-collapse:collapse;font-size:12px;line-height:2.0;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}'
+    + '.cd-table th{background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0;padding:10px 14px;text-align:left;font-weight:600;font-size:12px}'
+    + '.cd-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9}'
+    + '.cd-std{font-size:11px;color:#64748b;line-height:2.0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin-bottom:24px}'
+    + '.cd-std b{color:#0f172a}'
+    + '</style>';
+
+  h += '<div class="cd">';
+  h += '<div class="cd-title">\u80fd\u529b\u7ef4\u5ea6</div>';
+  h += '<div class="cd-sub">28\u7ef4\u80fd\u529b\u77e9\u9635 \u00b7 \u661f\u7ea7\u8bc4\u5b9a\u91cf\u5316\u5f15\u64ce\u6210\u719f\u5ea6 \u00b7 capability_matrix.py \u52a8\u6001\u626b\u63cf \u00b7 \u6240\u5c5e\uff1a\u667a\u80fd\u5927\u8111</div>';
+
+  // \u7edf\u8ba1\u5361\u7247\uff08\u5360\u4f4d\uff0c\u5f02\u6b65\u586b\u5145\uff09
+  h += '<div class="cd-hero">';
+  h += '<div class="cd-card"><div class="v" id="cd-total" style="color:#0f172a">\u2014</div><div class="l">\u603b\u7ef4\u5ea6</div></div>';
+  h += '<div class="cd-card"><div class="v" id="cd-4star" style="color:#f59e0b">\u2014</div><div class="l">\u2605\u2605\u2605\u2605 \u56db\u661f</div></div>';
+  h += '<div class="cd-card"><div class="v" id="cd-3star" style="color:#6366f1">\u2014</div><div class="l">\u2605\u2605\u2605 \u4e09\u661f</div></div>';
+  h += '<div class="cd-card"><div class="v" id="cd-code" style="color:#059669">\u2014</div><div class="l">\u4ee3\u7801\u603b\u91cf</div></div>';
+  h += '</div>';
+
+  // \u4e0a\u4e0b\u6e38\u4f9d\u8d56
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">\u2b06 \u4e0a\u6e38\uff08\u8f93\u5165\u65b9\uff09</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">\u5f15\u64ce\u8be6\u60c5</a><br><span style="color:#94a3b8">52\u4e2a\u5f15\u64ce\u6a21\u5757\u662f\u80fd\u529b\u8bc4\u4f30\u7684\u6e90\u5bf9\u8c61</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">\u7ba1\u9053\u8c03\u5ea6</a><br><span style="color:#94a3b8">\u7ba1\u7ebf\u6267\u884c\u4ea7\u51fa\u7684\u8fd0\u884c\u65f6\u6570\u636e\u7528\u4e8e\u8bc4\u5206</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">\u6210\u957f\u66f2\u7ebf</a><br><span style="color:#94a3b8">\u6210\u957f\u9636\u6bb5\u5f71\u54cd\u5404\u7ef4\u5ea6\u661f\u7ea7\u8bc4\u5b9a</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">\u8d28\u91cf\u4fdd\u969c</a><br><span style="color:#94a3b8">\u8d28\u91cf\u8bc4\u5206\u53cd\u9988\u5230\u80fd\u529b\u7ef4\u5ea6\u8bc4\u7ea7</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">\u63a8\u7406\u5f15\u64ce</a><br><span style="color:#94a3b8">\u63a8\u7406\u80fd\u529b\u8bc4\u4f30\u7ed3\u679c\u5f71\u54cd\u661f\u7ea7</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">\u2b07 \u4e0b\u6e38\uff08\u6d88\u8d39\u65b9\uff09</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">\u7ba1\u9053\u8c03\u5ea6</a><br><span style="color:#94a3b8">28\u7ef4\u80fd\u529b\u77e9\u9635\u5b9a\u4e49\u6a21\u5757\u53ef\u8c03\u5ea6\u8303\u56f4</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">\u6210\u957f\u66f2\u7ebf</a><br><span style="color:#94a3b8">\u80fd\u529b\u8bc4\u4f30\u7ed3\u679c\u5f71\u54cd\u6210\u957f\u9636\u6bb5\u5224\u5b9a</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">\u8c03\u5ea6\u4e2d\u67a2</a><br><span style="color:#94a3b8">\u80fd\u529b\u5206\u5e03\u51b3\u5b9a\u6a21\u5757\u8c03\u5ea6\u4f18\u5148\u7ea7</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">\u7cfb\u7edf\u65e5\u5fd7</a><br><span style="color:#94a3b8">\u7ef4\u5ea6\u53d8\u5316\u8bb0\u5f55\u5230\u8fd0\u884c\u65e5\u5fd7</span></div>';
+  h += '</div></div></div>';
+
+  // \u6bb5\u843d\u8bf4\u660e
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">\u80fd\u529b\u7ef4\u5ea6\u662f\u5f15\u64ce\u7efc\u5408\u80fd\u529b\u7684<strong>\u91cf\u5316\u8bc4\u5206\u7cfb\u7edf</strong>\u2014\u2014\u901a\u8fc728\u4e2a\u7ef4\u5ea6\u5bf9\u5f15\u64ce\u7684\u5404\u9879\u80fd\u529b\u8fdb\u884c\u661f\u7ea7\u8bc4\u5b9a\uff0c\u76f4\u89c2\u5c55\u793a\u5f15\u64ce\u5728\u54ea\u4e9b\u65b9\u9762\u5df2\u7ecf\u6210\u719f\u5b8c\u5907\u3001\u54ea\u4e9b\u65b9\u9762\u8fd8\u9700\u8981\u7ee7\u7eed\u5b8c\u5584\u300228\u4e2a\u7ef4\u5ea6\u8986\u76d6\u4e86\u4ece\u6587\u4ef6\u89e3\u6790\u3001\u57df\u5206\u6790\u3001\u89c4\u5219\u5339\u914d\u3001\u7ebf\u7d22\u94fe\u3001\u8bc1\u636e\u94fe\u3001\u65b9\u6cd5\u8bba\u8fc7\u6ee4\u5230\u62a5\u544a\u751f\u6210\u7684\u5b8c\u6574\u5206\u6790\u94fe\u8def\u3002</p>';
+  h += '<p style="margin:0 0 16px">\u8bc4\u5b9a\u91c7\u7528<strong>\u56db\u661f\u548c\u4e09\u661f\u4e24\u7ea7</strong>\uff1a\u56db\u661f\u8868\u793a\u8be5\u7ef4\u5ea6\u7684\u529f\u80fd\u5df2\u5b8c\u6574\u4ee3\u7801\u5316\u4e14\u6709\u5bf9\u5e94\u7684API\u7aef\u70b9\u3001\u524d\u7aef\u6e32\u67d3\u9875\u9762\u548c\u62a5\u544a\u8f93\u51fa\u5448\u73b0\uff0c\u662f\u53ef\u4ee5\u76f4\u63a5\u7528\u4e8e\u751f\u4ea7\u7684\u201c\u5b8c\u5168\u4f53\u201d\u80fd\u529b\uff1b\u4e09\u661f\u8868\u793a\u6838\u5fc3\u529f\u80fd\u5df2\u5b9e\u73b0\u4ee3\u7801\u903b\u8f91\uff0c\u4f46\u524d\u7aef\u5c55\u793a\u6216\u62a5\u544a\u96c6\u6210\u8fd8\u9700\u8981\u8fdb\u4e00\u6b65\u5b8c\u5584\uff0c\u5728\u5f15\u64ce\u5185\u90e8\u53ef\u4ee5\u6b63\u5e38\u8fd0\u884c\u4f46\u4ea7\u54c1\u5316\u7a0b\u5ea6\u4e0d\u5982\u56db\u661f\u5b8c\u6574\u3002</p>';
+  h += '<p style="margin:0">\u6bcf\u4e2a\u7ef4\u5ea6\u7684\u8bc4\u7ea7\u7531 <strong>capability_matrix.py</strong> \u81ea\u52a8\u626b\u63cf\u4ee3\u7801\u4e2d\u7684\u51fd\u6570\u5b9a\u4e49\u3001API\u8def\u7531\u6ce8\u518c\u3001\u524d\u7aef\u6e32\u67d3\u51fd\u6570\u548c\u62a5\u544a\u6ce8\u5165\u903b\u8f91\u540e\u7edf\u8ba1\u5f97\u51fa\uff0c\u4e0d\u662f\u4e3b\u89c2\u8bc4\u5206\u2014\u2014\u6bcf\u4e00\u4e2a\u661f\u7ea7\u5bf9\u5e94\u4ee3\u7801\u4e2d\u53ef\u9a8c\u8bc1\u7684\u5b9e\u73b0\u8bc1\u636e\u3002</p>';
+  h += '</div>';
+
+  // \u661f\u7ea7\u8bc4\u5b9a\u6807\u51c6
+  h += '<div class="cd-std">';
+  h += '<b>\u2605\u2605\u2605\u2605 \u56db\u661f</b>\uff1a\u529f\u80fd\u5b8c\u6574\u5b9e\u73b0\u2014\u2014\u6709\u5b8c\u6574\u7684\u4ee3\u7801\u5b9e\u73b0+\u5bf9\u5e94\u7684API\u7aef\u70b9+\u524d\u7aef\u6e32\u67d3\u9875\u9762+\u62a5\u544a\u4e2d\u7684\u8f93\u51fa\u5448\u73b0\u3002\u56db\u661f\u7ef4\u5ea6\u662f\u5f15\u64ce\u7684\u201c\u5b8c\u5168\u4f53\u201d\u80fd\u529b\uff0c\u53ef\u76f4\u63a5\u7528\u4e8e\u6b63\u5f0f\u7a0e\u52a1\u5408\u89c4\u62a5\u544a\u751f\u6210\u3002<br><br>';
+  h += '<b>\u2605\u2605\u2605 \u4e09\u661f</b>\uff1a\u6838\u5fc3\u529f\u80fd\u5b9e\u73b0\u2014\u2014\u6709\u4e3b\u8981\u7684\u4ee3\u7801\u903b\u8f91\u548cAPI\uff0c\u4f46\u524d\u7aef\u5c55\u793a\u6216\u62a5\u544a\u96c6\u6210\u4ecd\u9700\u5b8c\u5584\u3002\u4e09\u661f\u7ef4\u5ea6\u5728\u5f15\u64ce\u5185\u90e8\u6b63\u5e38\u8fd0\u884c\uff08\u7ba1\u7ebf\u80fd\u8c03\u7528\u3001\u7ed3\u679c\u80fd\u4ea7\u51fa\uff09\uff0c\u9762\u5411\u7528\u6237\u7684\u4ea7\u54c1\u5316\u7a0b\u5ea6\u4e0d\u5982\u56db\u661f\u5b8c\u6574\u3002<br><br>';
+  h += '<b>\u8bc4\u5b9a\u65b9\u5f0f</b>\uff1acapability_matrix.py \u626b\u63cf\u5404\u6a21\u5757\u4ee3\u7801\u4e2d\u7684\u51fd\u6570\u5b9a\u4e49\u3001API\u8def\u7531\u6ce8\u518c\u3001\u524d\u7aef\u6e32\u67d3\u51fd\u6570\u548c\u62a5\u544a\u6ce8\u5165\u903b\u8f91\uff0c\u81ea\u52a8\u7edf\u8ba1\u6bcf\u4e2a\u7ef4\u5ea6\u7684\u5b9e\u73b0\u72b6\u6001\u3002\u975e\u4e3b\u89c2\u8bc4\u5206\u2014\u2014\u6bcf\u4e00\u4e2a\u661f\u7ea7\u5bf9\u5e94\u4ee3\u7801\u4e2d\u53ef\u9a8c\u8bc1\u7684\u5b9e\u73b0\u8bc1\u636e\u3002';
+  h += '</div>';
+
+  // \u7ef4\u5ea6\u8868\u683c\uff08\u5360\u4f4d\uff0c\u5f02\u6b65\u586b\u5145\uff09
+  h += '<div class="cd-sec"><h3>28\u7ef4\u80fd\u529b\u77e9\u9635\u660e\u7ec6</h3>';
+  h += '<div id="cd-table" style="font-size:12px;color:#94a3b8;padding:20px 0;text-align:center">\u6b63\u5728\u4ece\u5f15\u64ce\u8bfb\u53d6\u80fd\u529b\u7ef4\u5ea6...</div>';
+  h += '</div>';
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // \u5f02\u6b65\u52a0\u8f7d\u7ef4\u5ea6\u6570\u636e
   fetch('/api/audit/capabilities')
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (!d.ok || !d.dimensions) { container.innerHTML = '<div style="padding:40px;color:#dc2626">引擎能力维度读取失败</div>'; return; }
-      
-      var dims = d.dimensions.map(function(c) {
-        return {n: c.name, s: c.stars, t: c.core, f: c.code};
+      if (!d.ok || !d.dimensions) {
+        var el = document.getElementById('cd-table');
+        if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626">\u5f15\u64ce\u80fd\u529b\u7ef4\u5ea6\u8bfb\u53d6\u5931\u8d25</div>';
+        return;
+      }
+
+      var total = d.summary.total_dimensions;
+      var s4 = d.summary.four_star_count;
+      var s3 = d.summary.three_star_count;
+      var codeTotal = '27,616\u884c';
+
+      var tEl = document.getElementById('cd-total');
+      if (tEl) tEl.textContent = total;
+      var s4El = document.getElementById('cd-4star');
+      if (s4El) s4El.textContent = s4;
+      var s3El = document.getElementById('cd-3star');
+      if (s3El) s3El.textContent = s3;
+      var cEl = document.getElementById('cd-code');
+      if (cEl) cEl.textContent = codeTotal;
+
+      var th = '';
+      th += '<table class="cd-table"><thead><tr>';
+      th += '<th style="width:36px">#</th><th>\u7ef4\u5ea6</th><th style="width:70px;text-align:center">\u7b49\u7ea7</th><th>\u6838\u5fc3\u80fd\u529b</th><th style="width:240px">\u4ee3\u7801\u4f4d\u7f6e</th>';
+      th += '</tr></thead><tbody>';
+      d.dimensions.forEach(function(dim, i) {
+        var stars = dim.stars === 4 ? '\u2605\u2605\u2605\u2605' : '\u2605\u2605\u2605';
+        var sColor = dim.stars === 4 ? '#f59e0b' : '#6366f1';
+        var bg = i % 2 === 0 ? '#fafbfc' : '#fff';
+        th += '<tr style="background:' + bg + '">';
+        th += '<td style="color:#94a3b8">' + (i+1) + '</td>';
+        th += '<td style="font-weight:700;color:#0f172a">' + esc(dim.name) + '</td>';
+        th += '<td style="text-align:center;color:' + sColor + ';font-weight:700">' + stars + '</td>';
+        th += '<td style="color:#475569;font-size:11px">' + esc(dim.core || '') + '</td>';
+        th += '<td style="font-family:monospace;font-size:10px;color:#64748b;word-break:break-all">' + esc(dim.code || '') + '</td>';
+        th += '</tr>';
       });
-      var stars4 = d.summary.four_star_count;
-      var stars3 = d.summary.three_star_count;
-      var totalDims = d.summary.total_dimensions;
-      var qs = d.quality_system || {};
-      var codeTotal = '27,616行';
-      
-      renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal);
+      th += '</tbody></table>';
+      var tblEl = document.getElementById('cd-table');
+      if (tblEl) tblEl.innerHTML = th;
+    })
+    .catch(function() {
+      var el = document.getElementById('cd-table');
+      if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626">\u80fd\u529b\u7ef4\u5ea6\u670d\u52a1\u4e0d\u53ef\u7528</div>';
     });
-}
-
-function renderDimensionsTable(container, dims, stars4, stars3, totalDims, qs, codeTotal) {
-  var h = '';
-  h += '<style>.dim-layout{max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.dim-main{min-width:0;background:#fff}.dim-stat{text-align:center;padding:16px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}.dim-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;font-size:13px;line-height:2;color:#475569}</style>';
-  h += '<div class="dim-layout">';
-
-  h += '<div class="dim-main">';
-  h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🔬 引擎能力维度</h2>';
-  h += '<div style="background:#eff6ff;padding:10px 16px;border-radius:6px;font-size:13px;color:#1e40af;margin-bottom:16px;border:1px solid #bfdbfe;font-weight:600">🔬 能力维度：28维能力矩阵评分——四星(核心已完备)+三星(已实现核心)，一看就知道引擎强在哪、弱在哪。</div>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 24px;line-height:2">推理引擎'+totalDims+'维能力矩阵——从文件解析到报告输出，覆盖全部分析域和工具链。每个维度按实现完整度分为四星（已完全代码化并验证）和三星（已实现核心功能）。数据来源：capability_matrix.py 动态提取代码中的实际实现，非人工维护的数字。当前进度：四星'+stars4+'个、三星'+stars3+'个、总计代码'+codeTotal+'。</p>';
-
-  // ═══ 说明 ═══
-  h += '<div class="dim-info" style="margin-bottom:24px">';
-  h += '<strong style="color:#059669;font-size:14px">星级评定标准</strong><br><br>';
-  h += '<b>★★★★ 四星</b>：功能完整实现——有完整的代码实现+对应的API端点+前端渲染页面+报告中的输出呈现。四星维度是引擎的"完全体"能力，可直接用于正式税务合规报告生成。<br><br>';
-  h += '<b>★★★ 三星</b>：核心功能实现——有主要的代码逻辑和API，但前端展示或报告集成仍需完善。三星维度在引擎内部正常运行（管线能调用、结果能产出），面向用户的产品化程度不如四星完整。<br><br>';
-  h += '<b>评定方式</b>：capability_matrix.py 扫描各模块代码中的函数定义、API路由注册、前端渲染函数和报告注入逻辑，自动统计每个维度的实现状态。非主观评分——每一个星级对应代码中可验证的实现证据。</div>';
-
-  // Stats
-  h += '<div id="dim-overview" style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">';
-  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#0f172a">'+totalDims+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">总维度</div></div>';
-  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#f59e0b">'+stars4+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">★★★★ 四星</div></div>';
-  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#6366f1">'+stars3+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">★★★ 三星</div></div>';
-  h += '<div class="dim-stat" style="flex:1;min-width:90px"><div style="font-size:24px;font-weight:700;color:#059669">'+codeTotal+'</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">代码总量</div></div>';
-  h += '</div>';
-
-  // Table
-  h += '<div id="dim-table">';
-  h += '<div style="margin-bottom:12px;font-size:12px;color:#94a3b8;line-height:2">表格列说明：<b>#</b>序号 | <b>维度</b>能力模块名称 | <b>等级</b>四星/三星 | <b>核心能力</b>该维度实现的关键功能描述 | <b>代码位置</b>对应的源文件和函数名，可跳转查看实现细节</div>';
-  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;line-height:2;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">';
-  h += '<thead><tr style="background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0">';
-  h += '<th style="padding:10px 14px;text-align:left;font-weight:600">#</th><th style="padding:10px 14px;text-align:left;font-weight:600">维度</th><th style="padding:10px 14px;text-align:center;font-weight:600">等级</th><th style="padding:10px 14px;text-align:left;font-weight:600">核心能力</th><th style="padding:10px 14px;text-align:left;font-weight:600">代码位置</th>';
-  h += '</tr></thead><tbody>';
-
-  dims.forEach(function(d,i){
-    var stars = d.s===4 ? '★★★★' : '★★★';
-    var color = d.s===4 ? '#f59e0b' : '#6366f1';
-    var bg = i%2===0 ? '#fafbfc' : '#fff';
-    h += '<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9">';
-    h += '<td style="padding:10px 14px;color:#94a3b8">'+(i+1)+'</td>';
-    h += '<td style="padding:10px 14px;font-weight:700;color:#0f172a">'+d.n+'</td>';
-    h += '<td style="padding:10px 14px;text-align:center;color:'+color+';font-weight:700;font-size:14px">'+stars+'</td>';
-    h += '<td style="padding:10px 14px;color:#475569;font-size:12px">'+d.t+'</td>';
-    h += '<td style="padding:10px 14px;font-family:monospace;font-size:11px;color:#64748b;max-width:260px;word-break:break-all">'+d.f+'</td>';
-    h += '</tr>';
-  });
-
-  h += '</tbody></table></div>';
-  h += '</div></div>';
-  container.innerHTML = h;
 }
 
 // ═══════════════════════════════════════════════════
@@ -1670,7 +1723,6 @@ async function renderGrowthDashboard(container) {
     h += '<div style="font-size:12px;color:#94a3b8;padding:12px 0">暂无已学行业数据，执行一键分析后自动积累</div>';
   }
   h += '</div>';
-  }
   
   h += '</div>';
   container.innerHTML = h;
@@ -1754,3 +1806,332 @@ async function renderQualityDashboard(container) {
   container.innerHTML = h;
 }
 
+// ═══ 推理引擎 — 专用清新布局 ═══
+function renderEngineThink(container) {
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.et{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.et-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.et-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.et-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.et-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.et-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.et-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.et-sec{margin-bottom:32px}'
+    + '.et-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.et-badge{padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;color:#fff}'
+    + '</style>';
+
+  h += '<div class="et">';
+  h += '<div class="et-title">推理引擎</div>';
+  h += '<div class="et-sub">语义推理器 · 因果网络 · SCM推理器 · 方法论增强器 · 所属：智能大脑</div>';
+
+  // 统计卡片 — 推理引擎实际产出指标（异步填充）
+  h += '<div class="et-hero">';
+  h += '<div class="et-card"><div class="v" id="et-nodes" style="color:#8b5cf6">—</div><div class="l">因果节点</div></div>';
+  h += '<div class="et-card"><div class="v" id="et-chains" style="color:#06b6d4">—</div><div class="l">因果链步骤</div></div>';
+  h += '<div class="et-card"><div class="v" id="et-hypos" style="color:#f59e0b">—</div><div class="l">假设生成数</div></div>';
+  h += '<div class="et-card"><div class="v" id="et-legals" style="color:#dc2626">—</div><div class="l">法条引用数</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">域分析发现和规则匹配结果作为推理输入</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">方法论知识和因果规则存储</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-causal\')" style="color:#2563eb">AGI因果推理</a><br><span style="color:#94a3b8">结构因果模型和反事实推理支撑</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">智能调度推理引擎执行时机</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">33条方法论约束推理逻辑边界</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">因果叙事链进入综合报告</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">推理能力评估影响星级评定</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">推理引擎模块状态展示</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><br><span style="color:#94a3b8">推理经验积累推动成长阶段升级</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">推理引擎是系统的<strong>高级智能层</strong>，在基础规则匹配之上进行更深层次的逻辑推理和因果分析。它不满足于"数据异常"的简单判断，而是追问"为什么异常"和"异常意味着什么"。</p>';
+  h += '<p style="margin:0 0 16px">推理引擎由四个子引擎组成：<strong>语义推理器</strong>负责将自然语言描述的发现与规则库中的标准表述进行语义匹配；<strong>因果网络</strong>构建信号之间的条件概率关系，当多个异常信号同时出现时自动计算因果关联强度；<strong>SCM推理器</strong>使用结构因果模型进行do-干预和反事实推理；<strong>方法论增强器</strong>在推理过程中注入33条方法论知识，使推理遵循税务合规最佳实践。</p>';
+  h += '<p style="margin:0">推理引擎的输入是所有域分析发现和规则匹配结果，输出是经过逻辑推演的<strong>因果叙事链</strong>——不是孤立的"A异常、B异常"列表，而是"因为A、B、C同时出现且具有因果关联，所以判定为D风险"的完整推理。</p>';
+  h += '</div>';
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 异步加载推理引擎实际产出指标
+  var cid = window.currentCompanyId || 1;
+  fetch('/api/audit/engine-details?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) return;
+      var cn = d.causal_network || {};
+      var nEl = document.getElementById('et-nodes');
+      if (nEl) nEl.textContent = cn.nodes || 0;
+      var cEl = document.getElementById('et-chains');
+      if (cEl) cEl.textContent = cn.chain_steps || 0;
+      var hEl = document.getElementById('et-hypos');
+      if (hEl) hEl.textContent = (d.hypotheses || []).length;
+      var lEl = document.getElementById('et-legals');
+      if (lEl) lEl.textContent = (d.legal || []).length;
+    })
+    .catch(function() {});
+}
+
+// ═══ 引擎详情 — 专用清新布局 ═══
+function renderEngineDetails(container) {
+  window._skipModuleHeader = true;
+
+  var h = '';
+  h += '<style>'
+    + '.ed{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.ed-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.ed-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.ed-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.ed-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.ed-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.ed-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.ed-sec{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:14px}'
+    + '.ed-sec h3{font-size:13px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
+    + '.ed-row{display:flex;gap:10px;flex-wrap:wrap}'
+    + '.ed-mini{flex:1;min-width:120px;text-align:center;padding:12px 8px;border-radius:8px}'
+    + '.ed-mini .n{font-size:20px;font-weight:700}'
+    + '.ed-mini .t{font-size:11px;color:#64748b;margin-top:4px}'
+    + '.ed-tbl{width:100%;font-size:12px;border-collapse:collapse}'
+    + '.ed-tbl td{padding:5px 8px;line-height:1.8}'
+    + '.ed-tbl .k{font-weight:600;color:#1e293b;white-space:nowrap}'
+    + '.ed-tbl .v{color:#2563eb;font-weight:600}'
+    + '.ed-tbl .d{color:#94a3b8;font-size:11px}'
+    + '</style>';
+
+  h += '<div class="ed">';
+  h += '<div class="ed-title">引擎详情</div>';
+  h += '<div class="ed-sub">财务分析器 · 法律推理 · 成本识别 · 假设生成 · 规则覆盖 · AGI裁决 · 因果网络 · 证据闭环 · 所属：智能大脑</div>';
+
+  // 统计卡片（占位，异步从brain-status填充——不依赖分析缓存）
+  h += '<div class="ed-hero">';
+  h += '<div class="ed-card"><div class="v" id="ed-modules" style="color:#7c3aed">—</div><div class="l">引擎模块数</div></div>';
+  h += '<div class="ed-card"><div class="v" id="ed-domains" style="color:#2563eb">—</div><div class="l">分析领域</div></div>';
+  h += '<div class="ed-card"><div class="v" id="ed-depth" style="color:#059669">—</div><div class="l">管道深度</div></div>';
+  h += '<div class="ed-card"><div class="v" id="ed-caps" style="color:#f59e0b">—</div><div class="l">能力维度</div></div>';
+  h += '</div>';
+
+  // 上下游依赖
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">52个引擎模块的代码位置和函数清单</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">管道规则</a><br><span style="color:#94a3b8">1611条税务合规规则指令</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">437条跨域线索和信号链</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">781条证据闭环数据</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">七步执行流程产出全部分析数据</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">引擎详情数据在仪表盘汇总展示</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">引擎运行记录写入日志</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理结果引用引擎详情中的模块状态</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><br><span style="color:#94a3b8">引擎模块覆盖度影响成长阶段评估</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">质量体系检查引用引擎模块状态</span></div>';
+  h += '</div></div></div>';
+
+  // 段落说明
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">引擎详情展示了系统全部引擎模块的<strong>实现状态、代码位置和运行参数</strong>。它不是系统功能的用户文档，而是给开发者和管理员看的引擎"白皮书"——告诉你每个功能对应哪段代码、哪个文件。</p>';
+  h += '<p style="margin:0 0 16px">当前系统包含<strong>52个引擎模块</strong>，按职责分为四组：核心引擎组（文件解析、域分析、规则引擎、推理引擎等）、质量保障组（自愈、自学习、审计一致性等）、辅助工具组（方法链加载、信号模式、知识图谱等）、基础设施组（数据库、缓存、会话管理等）。每个模块在引擎详情中都有明确的代码文件路径和关键函数名。</p>';
+  h += '<p style="margin:0">引擎详情的数据来源于<strong>capability_matrix.py</strong>的自动扫描——不是人工维护的数字，而是代码中实际存在的函数、API路由、前端渲染函数的统计结果。这保证了引擎详情的准确性始终与代码实际情况保持一致。</p>';
+  h += '</div>';
+
+  // 引擎详情数据（占位，异步填充）
+  h += '<div id="ed-data" style="font-size:12px;color:#94a3b8;padding:20px 0;text-align:center">正在加载引擎详情数据...</div>';
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // 统计卡片：从brain-status获取（不依赖分析缓存，直接从代码注册表统计）
+  fetch('/api/audit/brain-status')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) return;
+      var orch = d.orchestrator || {};
+      var elMod = document.getElementById('ed-modules');
+      if (elMod) elMod.textContent = orch.total_modules || 0;
+      var elDom = document.getElementById('ed-domains');
+      if (elDom) elDom.textContent = orch.domain_count || 0;
+      var elDep = document.getElementById('ed-depth');
+      if (elDep) elDep.textContent = orch.pipeline_depth || 0;
+      return fetch('/api/audit/capabilities');
+    })
+    .then(function(r) { return r ? r.json() : null; })
+    .then(function(d) {
+      if (!d || !d.ok) return;
+      var s = d.summary || {};
+      var elCap = document.getElementById('ed-caps');
+      if (elCap) elCap.textContent = s.total_dimensions || 0;
+    })
+    .catch(function() {});
+
+  // 异步加载引擎详情
+  var cid = window.currentCompanyId || 1;
+  fetch('/api/audit/engine-details?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) {
+        var el = document.getElementById('ed-data');
+        if (el) el.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">' + (d.message || '请先执行一键分析') + '</div>';
+        return;
+      }
+
+      var hh = '';
+
+      // 1. 财务分析器
+      var fin = d.financial || {};
+      hh += '<div class="ed-sec"><h3>财务分析器 — 数据快照与解读</h3>';
+      hh += '<table class="ed-tbl">';
+      var rows = [
+        ['销项合计', '\u00a5' + (fin.total_sales || 0).toLocaleString(), '来源：销项发票汇总'],
+        ['进项合计', '\u00a5' + (fin.total_purchases || 0).toLocaleString(), '来源：进项发票汇总'],
+        ['毛利率', (fin.gross_margin_pct || 0).toFixed(1) + '%', '（销项-进项)/销项'],
+        ['银行入账', '\u00a5' + (fin.total_bank_in || 0).toLocaleString(), '来源：银行流水借方合计'],
+        ['银行出账', '\u00a5' + (fin.total_bank_out || 0).toLocaleString(), '来源：银行流水贷方合计'],
+        ['工资合计', '\u00a5' + (fin.total_salary || 0).toLocaleString(), '人数：' + (fin.salary_count || 0) + '人'],
+        ['销项票数', (fin.sale_count || 0) + ' 张', ''],
+        ['进项票数', (fin.pur_count || 0) + ' 张', ''],
+        ['银行流水', (fin.bank_tx_count || 0) + ' 笔', '']
+      ];
+      rows.forEach(function(r) {
+        hh += '<tr><td class="k">' + r[0] + '</td><td class="v">' + r[1] + '</td><td class="d">' + r[2] + '</td></tr>';
+      });
+      hh += '</table></div>';
+
+      // 2. 法律推理引擎
+      hh += '<div class="ed-sec"><h3>法律推理引擎 — 法条引用统计</h3>';
+      var legals = d.legal || [];
+      if (legals.length > 0) {
+        hh += '<div style="display:grid;gap:6px">';
+        legals.forEach(function(l) {
+          hh += '<div style="padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:10px">';
+          hh += '<span style="color:#dc2626;font-weight:700;min-width:40px">' + l.count + '\u6b21</span>';
+          hh += '<span style="color:#1e293b">' + l.law + '</span></div>';
+        });
+        hh += '</div>';
+      } else {
+        hh += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">本次分析未产生独立法条引用</div>';
+      }
+      hh += '</div>';
+
+      // 3. 主营业务成本识别
+      var cc = d.cost_class || {};
+      hh += '<div class="ed-sec"><h3>主营业务成本识别 — 进项三层分类</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:10px">' + (cc.description || '') + '</div>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#fef2f2"><div class="n" style="color:#dc2626">' + (cc.core_cost_count || 0) + '笔</div><div class="t">主营成本</div><div style="font-size:11px;color:#991b1b;margin-top:2px">\u00a5' + ((cc.core_cost_amount || 0) / 10000).toFixed(1) + '万</div></div>';
+      hh += '<div class="ed-mini" style="background:#fffbeb"><div class="n" style="color:#f59e0b">' + (cc.major_expense_count || 0) + '笔</div><div class="t">重大费用</div></div>';
+      hh += '<div class="ed-mini" style="background:#f0fdf4"><div class="n" style="color:#059669">' + (cc.minor_expense_count || 0) + '笔</div><div class="t">日常报销</div></div>';
+      hh += '</div>';
+      if (cc.core_goods && cc.core_goods.length) {
+        hh += '<div style="font-size:11px;color:#94a3b8;margin-top:8px">主营品名：' + cc.core_goods.slice(0, 5).join('\u3001') + '</div>';
+      }
+      hh += '</div>';
+
+      // 4. 假设生成引擎
+      hh += '<div class="ed-sec"><h3>假设生成引擎 — 税务合规假设与验证</h3>';
+      var hypos = d.hypotheses || [];
+      if (hypos.length > 0) {
+        hh += '<div style="display:grid;gap:6px">';
+        hypos.forEach(function(hy) {
+          hh += '<div style="padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px;font-size:12px">';
+          hh += '<div style="font-weight:600;color:#1e293b">' + (hy.name || hy.hypothesis || '') + '</div>';
+          if (hy.evidence) hh += '<div style="color:#64748b;font-size:11px;margin-top:4px">\u8bc1\u636e\uff1a' + hy.evidence + '</div>';
+          hh += '</div>';
+        });
+        hh += '</div>';
+      } else {
+        hh += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">本次分析未产生独立假设（信号数量不足以生成假设结论）</div>';
+      }
+      hh += '</div>';
+
+      // 5. 规则覆盖引擎
+      var ov = d.overrides || {};
+      hh += '<div class="ed-sec"><h3>规则覆盖引擎 — AGI vs 规则引擎冲突裁决</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:10px">' + (ov.description || '') + '</div>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#eff6ff;border:1px solid #dbeafe"><div class="n" style="color:#2563eb">' + (ov.corrections_proposed || 0) + '</div><div class="t">提议修正</div></div>';
+      hh += '<div class="ed-mini" style="background:#f0fdf4;border:1px solid #bbf7d0"><div class="n" style="color:#059669">' + (ov.auto_activated || 0) + '</div><div class="t">自动激活</div></div>';
+      hh += '</div></div>';
+
+      // 6. 趋势分析
+      var td = d.trend || {};
+      hh += '<div class="ed-sec"><h3>趋势分析器 — 多期数据趋势</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:8px">' + (td.description || '') + '</div>';
+      if (td.has_multi_period) {
+        hh += '<div style="color:#059669;font-size:12px">\u2705 已检测到多期数据，趋势对比有效</div>';
+      } else {
+        hh += '<div style="color:#f59e0b;font-size:12px">\u26a0 当前仅单期数据，趋势分析需至少2期数据对比</div>';
+      }
+      hh += '</div>';
+
+      // 7. 阈值计算
+      var th = d.thresholds || {};
+      hh += '<div class="ed-sec"><h3>阈值计算 — 行业基准与安全阈值</h3>';
+      hh += '<table class="ed-tbl">';
+      hh += '<tr><td class="k">行业</td><td class="v" style="color:#1e293b">' + (th.industry || '未知') + '</td><td class="d"></td></tr>';
+      var mr = th.margin_range;
+      if (typeof mr !== 'string') mr = JSON.stringify(mr || {}).slice(0, 60);
+      hh += '<tr><td class="k">行业毛利率基准</td><td class="v" style="color:#1e293b">' + mr + '</td><td class="d"></td></tr>';
+      hh += '<tr><td class="k">服务闸门</td><td class="v" style="color:' + (th.service_gate ? '#dc2626' : '#059669') + '">' + (th.service_gate ? '已激活（跳过进销存域）' : '未激活') + '</td><td class="d"></td></tr>';
+      hh += '<tr><td class="k">数据质量分</td><td class="v" style="color:' + ((th.data_quality_score || 0) >= 70 ? '#059669' : '#f59e0b') + '">' + (th.data_quality_score || 0) + '/100</td><td class="d"></td></tr>';
+      hh += '</table></div>';
+
+      // 8. AGI最终裁决
+      var af = d.agi_final || {};
+      hh += '<div class="ed-sec"><h3>AGI最终裁决 — 终审对比</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:10px">' + (af.description || '') + '</div>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#eff6ff;border:1px solid #dbeafe"><div class="n" style="color:#2563eb">' + (af.corrections_proposed || 0) + '</div><div class="t">终审判定修正</div></div>';
+      hh += '<div class="ed-mini" style="background:#f0fdf4;border:1px solid #bbf7d0"><div class="n" style="color:#059669">' + (af.auto_activated || 0) + '</div><div class="t">自动激活</div></div>';
+      hh += '</div></div>';
+
+      // 9. AGI管线
+      var ap = d.agi_pipeline || {};
+      hh += '<div class="ed-sec"><h3>AGI管线 — 模块协调</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:10px">' + (ap.description || '') + '</div>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#faf5ff;border:1px solid #e9d5ff"><div class="n" style="color:#7c3aed">' + (ap.modules_covered || 0) + '</div><div class="t">覆盖模块</div></div>';
+      hh += '<div class="ed-mini" style="background:#eff6ff;border:1px solid #dbeafe"><div class="n" style="color:#2563eb">' + (ap.events_collected || 0) + '</div><div class="t">事件采集</div></div>';
+      hh += '</div></div>';
+
+      // 10. 因果网络
+      var cn = d.causal_network || {};
+      hh += '<div class="ed-sec"><h3>因果网络 — 发现间因果关系</h3>';
+      hh += '<div style="font-size:12px;color:#475569;margin-bottom:10px">' + (cn.description || '') + '</div>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#faf5ff;border:1px solid #e9d5ff"><div class="n" style="color:#8b5cf6">' + (cn.nodes || 0) + '</div><div class="t">因果节点</div></div>';
+      hh += '<div class="ed-mini" style="background:#ecfeff;border:1px solid #a5f3fc"><div class="n" style="color:#06b6d4">' + (cn.chain_steps || 0) + '</div><div class="t">因果链步骤</div></div>';
+      hh += '</div></div>';
+
+      // 11. 证据闭环
+      var ec = d.evidence_closure || {};
+      hh += '<div class="ed-sec"><h3>证据闭环统计</h3>';
+      hh += '<div class="ed-row">';
+      hh += '<div class="ed-mini" style="background:#f0fdf4;border:1px solid #bbf7d0"><div class="n" style="color:#059669">' + (ec.closed_chains || 0) + '</div><div class="t">已闭合证据</div></div>';
+      hh += '<div class="ed-mini" style="background:#faf5ff;border:1px solid #e9d5ff"><div class="n" style="color:#7c3aed">' + (ec.triggered_chains || 0) + '/' + (ec.total_chains || 0) + '</div><div class="t">触发/总分析链</div></div>';
+      hh += '</div></div>';
+
+      var dataEl = document.getElementById('ed-data');
+      if (dataEl) dataEl.innerHTML = hh;
+    })
+    .catch(function() {
+      var el = document.getElementById('ed-data');
+      if (el) el.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
+    });
+}
