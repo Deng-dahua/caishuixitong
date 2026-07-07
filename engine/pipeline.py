@@ -3562,36 +3562,53 @@ def _run_analyze(company_id, db, progress_callback=None):
             meta_result = meta_loop.run(all_findings, target_entity, {"files": len(file_results)})
             all_findings = meta_result.get("enhanced_findings", all_findings)
             pipeline_log.append(f"[AGI] 元认知自审完成: {meta_result.get('grade','?')}级")
-        except Exception: pass
+        except Exception as _e:
+            pipeline_log.append(f"[AGI] 元认知自审失败→跳过: {_e}")
         try:
-            # 处长不确定性量化
+            # 处长不确定性量化（全量，不设条数上限）
             from engine.director import get_director
             director = get_director()
-            for f in all_findings[:20]:
+            _mi = comprehensive.get("material_intel", {})
+            _ok = _fail = 0
+            for f in all_findings:
                 try:
-                    f["_agi_confidence"] = director.quantify_uncertainty(f, comprehensive.get("material_intel", {}))
-                except: pass
-            pipeline_log.append("[AGI] 处长不确定性量化完成")
-        except Exception: pass
+                    f["_agi_confidence"] = director.quantify_uncertainty(f, _mi)
+                    _ok += 1
+                except Exception:
+                    _fail += 1
+            pipeline_log.append(f"[AGI] 处长不确定性量化完成: {_ok}条" + (f"，{_fail}条失败" if _fail else ""))
+        except Exception as _e:
+            pipeline_log.append(f"[AGI] 处长不确定性量化失败→跳过: {_e}")
         try:
-            # 反事实推理
+            # 反事实推理（全量，不设条数上限）
             from engine.agi_core import counterfactual
             counterfactual_results = []
-            for f in all_findings[:5]:
+            _cf_mi = comprehensive.get("material_intel", {})
+            _fail = _skip = 0
+            for f in all_findings:
                 try:
-                    cf = counterfactual.imagine(f, target_entity)
-                    if cf: counterfactual_results.append(cf)
-                except: pass
+                    cf = counterfactual.reason(f, _cf_mi)
+                    if cf and cf.get("status") != "no_template":
+                        counterfactual_results.append(cf)
+                    else:
+                        _skip += 1
+                except Exception:
+                    _fail += 1
             if counterfactual_results:
                 comprehensive["counterfactual_analysis"] = counterfactual_results
-                pipeline_log.append(f"[AGI] 反事实推理完成: {len(counterfactual_results)}条")
-        except Exception: pass
+            pipeline_log.append(f"[AGI] 反事实推理完成: {len(counterfactual_results)}条"
+                                + (f"，{_skip}条无模板" if _skip else "")
+                                + (f"，{_fail}条失败" if _fail else ""))
+        except Exception as _e:
+            pipeline_log.append(f"[AGI] 反事实推理失败→跳过: {_e}")
         try:
             # 泛化学习
             from engine.agi_core import generalizer
-            gen = generalizer.summarize(all_findings, target_entity.get("industry", ""))
+            gen = generalizer.generalize(all_findings, target_entity.get("name", ""), target_entity.get("industry", ""))
             if gen: comprehensive["agi_generalization"] = gen
-        except Exception: pass
+            pipeline_log.append("[AGI] 泛化学习完成")
+        except Exception as _e:
+            pipeline_log.append(f"[AGI] 泛化学习失败→跳过: {_e}")
     
     # ═══ 结论自洽性检查：CONTRADICTION_RULES 矛盾检测 ═══
     try:

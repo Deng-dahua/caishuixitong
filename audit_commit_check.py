@@ -136,7 +136,6 @@ def extract_referenced_functions(path):
 
 def check_methodology_implementation():
     """检查报告中声称的方法论是否都有代码实现"""
-    report_path = os.path.join(BASE, 'generate_report.py')
     main_path = os.path.join(BASE, 'main.py')
     
     if not os.path.exists(main_path):
@@ -173,17 +172,6 @@ def check_methodology_implementation():
             # 进一步检查函数体是否非空
             # (简单检查：函数体不能少于3行)
             pass
-    
-    # 检查报告面板中引用的函数
-    panel_funcs = set()
-    for fname in ['generate_report.py']:
-        fp = os.path.join(BASE, fname)
-        if os.path.exists(fp):
-            panel_funcs.update(extract_referenced_functions(fp))
-    
-    for pf in panel_funcs:
-        if pf not in main_funcs:
-            warnings.append(f"[口号检查] 面板引用 {pf}() 但 main.py 中未定义")
 
 # ═══════ ③ 变量定义前引用（AST 分析） ═══════
 def check_variable_before_assign(path):

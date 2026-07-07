@@ -15,8 +15,11 @@
 |------|------|------|------|
 | P0 致命 | 2 | AGI 引擎导入炸弹（coordinator / agi_engine 合并遗留注解） | ✅ 已修复并验证 |
 | P1 严重 | 1 | pipeline 静默吞掉 AGI 导入失败（掩盖 P0） | ✅ 已修复 |
+| P1 隐藏 | 2 | 「合并大脑」反事实/泛化两大增强调用了不存在的方法名（被 except:pass 掩盖，功能一直产出为空） | ✅ 已修复 |
 | P1 合规 | 1 | knowledge_base 行业画像仅硬编码「纺织业」单一行业 | ⚠️ 待老邓决策 |
-| P2 观察 | 4 | 孤立脚本语法错误 / 72 处 except:pass / AGI 增强覆盖上限 / 语义词典偏纺织 | 📋 已记录 |
+| P2 观察 | 6 | 孤立脚本(已删) / except:pass(关键路径已修) / 增强上限(已放开) / 语义词典偏纺织 / 规则计数漂移 / agi_pipeline 两处异常 | 📋 见下 |
+
+> **本轮追加修复（第二批，应老邓「①②③一起干」而来）**：在给 AGI 增强块加日志（③）后，静默吞错被撕开，当场暴露并修复了两个隐藏的真 Bug——见「P1-3 / P1-4」。这正是「except:pass 是定时炸弹」的活教材。
 
 ---
 
@@ -81,23 +84,39 @@ except Exception: pass   # ← 把 P0 的导入失败彻底吞掉，管线永远
 
 **建议**：此项涉及产品数据设计，未擅自改动。建议二选一——① 由 human_learning/self_learning 引擎数据驱动动态生成行业画像；② 补齐多行业默认画像。请老邓定夺方向后再落地。
 
+### P1-3　`engine/pipeline.py` 反事实推理调用了不存在的方法（✅ 已修复）
+
+「合并大脑」调用 `counterfactual.imagine(f, target_entity)`，但 `CounterfactualReasoner` 根本没有 `imagine` 方法（真实方法为 `reason(finding, available_data)`）。→ 每条发现都抛 AttributeError，被 `except: pass` 吞掉，**反事实推理对 46/46 条发现全部失败、产出恒为空**。
+
+**修复**：改为 `counterfactual.reason(f, material_intel)`，并对无模板结果正常跳过。全链路实测：46 条中 3 条产出真反事实、43 条无模板（合理），0 失败。
+
+### P1-4　`engine/pipeline.py` 泛化学习调用了不存在的方法（✅ 已修复）
+
+调用 `generalizer.summarize(all_findings, industry)`，但 `IndustryGeneralizer` 没有 `summarize`（真实方法为 `generalize(findings, company_name, industry)`）。→ 抛 AttributeError 被吞，**泛化学习从未产出**。
+
+**修复**：改为 `generalizer.generalize(all_findings, 企业名, 行业)`。全链路实测：泛化学习完成，产出含 classification / risk_focus / universal_principles 等 8 段。
+
+> 说明：P1-3/P1-4 两个 Bug 的严重性在于——它们是「合并大脑」的核心增强能力，却因方法名错误 + `except:pass` 静默，**长期空转且无人知晓**。加日志（③）当场把它们照出来，顺手修到根。
+
 ---
 
 ## 四、P2 观察项
 
-- **P2-1　`generate_report.py` 语法错误**：第 296 行未闭合三引号，`py_compile` 失败。但该文件**未被任何模块 import**（仅 `audit_commit_check.py` 作为文件路径引用、及一处 JS 说明字符串提及），属孤立/损坏脚本，不影响引擎运行。建议删除或修复归档。
-- **P2-2　引擎内 72 处 `except:pass`**：多数为金额解析等良性兜底，但数据生成/AGI 增强路径（pipeline.py:3565/3573/3575/3584/3588 等）静默吞错，一旦出错无线索。建议关键数据生成处至少记 `pipeline_log`。
-- **P2-3　AGI 增强覆盖上限**：pipeline.py 中 `all_findings[:20]`（不确定性量化）、`[:5]`（反事实推理）——第 21 条及以后的发现不获得 AGI 增强字段。若追求全量增强需评估性能后放开。
-- **P2-4　`semantic_reasoner.py` 语义词典偏纺织**：`染色加工/棉纱/布料` 等纺织词较全，但同时含钢材/租金/水电等通用类目，整体多行业；建议后续补齐其他行业专属品名词条。
-- **P2-5　`system_config` 规则数漂移（既存，非本次引擎改动引入）**：`audit.py 2` 第 8 项报 `system_config.rules_count=1608 ≠ tax_risk_rules_local_export.json 实际 1610`。系新增 2 条规则后未同步计数常量。属数据层配置漂移，低风险；因涉及规则数据（老邓归口），未擅自改动，建议同步计数或改为运行时动态读取。
+- **P2-1　`generate_report.py` 语法错误**（✅ 已删除）：第 296 行未闭合三引号且属孤立坏死脚本（无任何模块 import；`_sanitize_finding_boilerplate` 真实定义在 `engine/pipeline.py:4079`，前端文档声称的 `check_standards()`/`_check_quality_standards()` 全仓根本不存在）。已删除该文件，并清理 `audit_commit_check.py` 中指向它的死引用（`report_path` 死变量 + 面板函数扫描块）。
+  > ⚠️ 遗留待决策：`static/js/tax-report-standards.js`、`tax-pipeline-pages.js`、`_gen_pages_v3.py` 中仍有大段文字声称"12 项质量标准由 generate_report.py→check_standards() 执行"，而这些函数全仓不存在——属**既存的「代码即承诺」失实描述**（与本次删除无关），涉及你撰写的说明文案，建议单独定夺后修订。
+- **P2-2　引擎内 72 处 `except:pass`**（✅ 关键路径已修复）：AGI 增强路径（pipeline.py 元认知/不确定性量化/反事实/泛化）5 处外层 + 2 处内层静默吞错，已全部改为记录 `pipeline_log`（内层改为失败计数汇总，避免刷屏）。其余多为金额解析等良性兜底，保留。
+- **P2-3　AGI 增强覆盖上限**（✅ 已修复）：已去除 `all_findings[:20]`/`[:5]` 硬编码上限，改为**全量遍历**（符合"不设硬编码上限"铁律），全部发现均获得 `_agi_confidence` 与反事实增强。
+- **P2-4　`semantic_reasoner.py` 语义词典偏纺织**（⏳ 待决策）：`染色加工/棉纱/布料` 等纺织词较全，但同时含钢材/租金/水电等通用类目，整体多行业；建议后续补齐其他行业专属品名词条。
+- **P2-5　`system_config` 规则数漂移（既存，非本次引擎改动引入）**（⏳ 待决策）：`audit.py 2` 第 8 项报 `system_config.rules_count=1608 ≠ tax_risk_rules_local_export.json 实际 1610`。系新增 2 条规则后未同步计数常量。属数据层配置漂移，低风险；因涉及规则数据（老邓归口），未擅自改动，建议同步计数或改为运行时动态读取。
+- **P2-6　`engine/agi_pipeline.py` 两处运行时异常（新暴露，待排查）**（⏳ 待决策）：全链路日志现出现 `[AGI] 智能体异常: list indices must be integers or slices, not str` 与 `[AGI] 汇总持久化异常: 同`。系 agi_pipeline「智能体/汇总持久化」环节把 dict 当 list 或反之索引所致，不影响主报告产出（已被其自身 try 兜底并记日志）。与本次 ①②③ 无关，属独立 Bug；因排查需深入 agi_pipeline 智能体链，未在本轮扩展，建议单独立项。
 
 ---
 
 ## 五、正常项（通过）
 
-- ✅ 47 个引擎模块 + 4 个 agents 模块 + main/tax_risk/database/file_parser 等根级核心文件全部 `py_compile` 通过（generate_report.py 除外，见 P2-1）。
+- ✅ 47 个引擎模块 + 4 个 agents 模块 + main/tax_risk/database/file_parser 等根级核心文件全部 `py_compile` 通过（坏死脚本 generate_report.py 已删除）。
 - ✅ 修复后全部引擎模块 100% 导入成功（0 失败）。
-- ✅ 全链路 `analyze_tax_risk_docs(2, db)` 返回 `ok=True`，报告含 35 个数据键，`invoice_counts` 键存在（历史 P0 未回归）。
+- ✅ 全链路 `analyze_tax_risk_docs(2, db)` 返回 `ok=True`（耗时约 208s），报告含 36 个数据键，`invoice_counts` 键存在（历史 P0 未回归）；AGI 增强全部实产（量化 46 条 / 反事实 3 条 / 泛化完成）。
 - ✅ 无其他导入级合并遗留炸弹（9 处 `# [merged]` 标记中，其余均为运行时同模块引用，已加 try 或后方定义可解析）。
 - ✅ DB 级 `audit.py 2` 会计七项全通过（重复记账/借贷不平/三号拆分/BK 凭证号/科目名称/档案锁定/来源一致），仅第 8 项系统一致性报 1 处**既存**规则计数漂移（见 P2-5）。
 
@@ -107,11 +126,13 @@ except Exception: pass   # ← 把 P0 的导入失败彻底吞掉，管线永远
 
 | 文件 | 修改 |
 |------|------|
-| `engine/agents/coordinator.py` | 加 `from __future__ import annotations`；全局实例化移至文件末尾 |
-| `engine/agi_engine.py` | 加 `from __future__ import annotations` |
-| `engine/pipeline.py` | `except Exception: pass` → 记录失败日志到 pipeline_log |
+| `engine/agents/coordinator.py` | 加 `from __future__ import annotations`；全局实例化移至文件末尾（P0-1） |
+| `engine/agi_engine.py` | 加 `from __future__ import annotations`（P0-2） |
+| `engine/pipeline.py` | ①agi_engine 导入 `except:pass`→记日志（P1-1）；②AGI 增强去 `[:20]/[:5]` 上限改全量（P2-3）；③AGI 增强 5+2 处 `except:pass`→记日志（P2-2）；④反事实 `imagine`→`reason`（P1-3）；⑤泛化 `summarize`→`generalize` 并补参（P1-4） |
+| `generate_report.py` | 删除（坏死孤立脚本，P2-1） |
+| `audit_commit_check.py` | 清理指向 generate_report.py 的 `report_path` 死变量与面板扫描块（P2-1 连带） |
 
-验证方式：全模块 import + `agi.ask()` 冒烟 + 全链路 `analyze_tax_risk_docs(2)` 复跑。
+验证方式：全模块 import + `agi.ask()`/`counterfactual.reason`/`generalizer.generalize` 冒烟 + 全链路 `analyze_tax_risk_docs(2)` 两轮复跑 + `audit.py 2`。
 
 **修复前后全链路对比（账套 2，88 份资料）**：
 
