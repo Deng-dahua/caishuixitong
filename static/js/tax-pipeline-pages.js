@@ -3256,15 +3256,6 @@ function renderTaxWorkflow(container) {
   h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">税务合规工作流程</div>';
   h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">手册第1章 · 五阶段标准化流程（国税发[2009]157号） · 选案→检查→审理→执行→案卷管理 · 每个阶段有明确的法定时限和操作规范</div>';
 
-  // 5张统计卡片
-  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">8类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">案源类型</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">60日</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">检查时限</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">15日</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">审理时限</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">万分之五</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">日滞纳金</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">5环节</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">完整流程</div></div>';
-  h += '</div>';
-
   // 上下游依赖
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
   h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
@@ -3377,14 +3368,6 @@ function renderRequiredMaterials(container) {
   var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
   h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">14类税务合规必查资料</div>';
   h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">手册第2章 · 三级分类（必备→建议→据需） · 34类文件指纹+三层递进识别自动检测 · 每缺一类资料就少一道防线</div>';
-
-  // 4张统计卡片
-  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">5类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">必备资料</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">8类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">建议资料</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#6366f1;line-height:1.3">1类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">据需资料</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#0f172a;line-height:1.3">34类</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">文件指纹</div></div>';
-  h += '</div>';
 
   // 上下游
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
@@ -3812,14 +3795,6 @@ function renderJudgmentRules(container) {
   h += '</div>';
   h += '<p style="font-size:12px;color:#64748b;margin:0 0 24px;line-height:1.8">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环——不可颠倒，前序错误=后续作废</p>';
 
-  // ── 统计卡片 ──
-  h += '<div style="display:flex;gap:12px;margin-bottom:28px">';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb" id="jr-rules">8</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">判定规则总数</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed">8</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">不可颠倒顺序</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">7</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">多源交叉验证</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626">3重</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">门禁条件</div></div>';
-  h += '</div>';
-
   // ── 上下游 ──
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
   h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
@@ -3910,14 +3885,6 @@ function renderLegalRefs(container) {
       h += '</div>';
       h += '<p style="font-size:12px;color:#64748b;margin:0 0 24px;line-height:1.8">征管法32条→刑法205条，涵盖滞纳金/核定征收/偷税处罚/虚开刑事等核心法律依据</p>';
 
-      // ── 统计卡片 ──
-      h += '<div style="display:flex;gap:12px;margin-bottom:28px">';
-      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">核心法条</div></div>';
-      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#7c3aed">6</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">征管法条款</div></div>';
-      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#dc2626">2</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">刑法条款</div></div>';
-      h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">4</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">其他法规</div></div>';
-      h += '</div>';
-
       // ── 上下游 ──
       h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
       h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
@@ -3974,14 +3941,6 @@ function renderProcedureMapping(container) {
   h += '<div style="margin-bottom:28px">';
   h += '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">🔗 系统与规程映射</h2>';
   h += '<p style="font-size:12px;color:#64748b;margin:0">手册第7章 · 12个功能模块 · 完整覆盖《税务合规工作规程》全流程条款</p>';
-  h += '</div>';
-  
-  // 4张统计卡片
-  h += '<div style="display:flex;gap:12px;margin-bottom:24px">';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#0f172a">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">功能模块</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#2563eb">5</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">规程章节</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#059669">12</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">条款映射</div></div>';
-  h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div style="font-size:26px;font-weight:700;color:#6366f1">100%</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">全流程覆盖</div></div>';
   h += '</div>';
   
   // 上下游
