@@ -235,7 +235,7 @@ var MODULE_CONTENT = {
   },
 
   "hb-ch2": {
-    n: "14类必查资料",
+    n: "必查资料",
     g: "税务合规员手册",
     c: '<div class="mod-para">'
       + '<p>14类必查资料是税务合规中<strong>必须检查的核心资料清单</strong>——缺任何一类都可能导致分析结论不完整或置信度不足。</p>'
@@ -357,7 +357,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-structure": {
-    n: "报告7章结构",
+    n: "报告结构",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>报告7章结构定义了标准税务合规报告的<strong>内容框架</strong>——封面+7章正文+附件清单，完全符合《税务合规工作规程》第42条规定的格式要求。</p>'
@@ -376,7 +376,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-narrative": {
-    n: "税务合规过程叙事规范",
+    n: "叙事规范",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>税务合规过程叙事规范规定了发现从<strong>检测到定性的完整叙事方式</strong>——每条发现都必须呈现客观、完整、可追溯的分析过程。</p>'
@@ -386,7 +386,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-merge": {
-    n: "同类风险合并规则",
+    n: "风险合并规则",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>同类风险合并规则定义了如何将<strong>多个相似发现合并为一个综合性发现</strong>——避免报告中出现大量碎片化的重复信息影响阅读体验和判断。</p>'
@@ -396,7 +396,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-12std": {
-    n: "12项质量标准",
+    n: "质量标准",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>12项质量标准是<strong>每条发现必须满足的硬性质量指标</strong>——未通过任何一项的发现都会被标记为不合格并退回处理。</p>'
@@ -405,7 +405,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-reliability": {
-    n: "7项判定可靠性要求",
+    n: "判定可靠性要求",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>7项判定可靠性要求确保报告的<strong>结论经得起质疑和复核</strong>——不是换一个人来审就会得出不同结论。</p>'
@@ -464,7 +464,7 @@ var MODULE_CONTENT = {
   },
 
   "rs-sync": {
-    n: "四触发机制与报告交付",
+    n: "触发与交付",
     g: "报告编制标准",
     c: '<div class="mod-para">'
       + '<p>四触发机制定义了系统在<strong>四种时机</strong>自动执行数据同步和报告交付的完整流程。</p>'
@@ -580,7 +580,7 @@ var MODULE_CONTENT = {
   },
 
   "da-domains": {
-    n: "42个分析域",
+    n: "分析域",
     g: "域分析",
     c: '<div class="mod-para">'
       + '<p>42个分析域覆盖了企业税务合规涉及的<strong>全部关键维度</strong>——按12大类分组，每个域由独立的域分析函数驱动。</p>'
