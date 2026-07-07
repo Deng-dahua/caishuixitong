@@ -3902,7 +3902,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                     for err in agi_pipeline.errors:
                         pipeline_log.append(f"[AGI] {err}")
             except Exception as _agi_finalize_err:
-                pipeline_log.append(f"[AGI] 汇总持久化异常: {_agi_finalize_err}")
+                import traceback as _tb_fl
+                _fl_loc = _tb_fl.format_exc().strip().splitlines()[-3:]
+                pipeline_log.append(f"[AGI] 汇总持久化异常: {_agi_finalize_err} @ {' | '.join(_fl_loc)}")
                 result["agi_pipeline"] = {"error": str(_agi_finalize_err), "modules_covered": 0, "events_collected": 0}
         except Exception as _agi_err:
             pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")

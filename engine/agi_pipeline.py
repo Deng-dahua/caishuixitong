@@ -622,6 +622,7 @@ class AGIPipelineConnector:
         
         # ─── 提取 finding_types 和 data_profile ───
         finding_types = []
+        ft_level = {}   # finding_type → 风险等级（供数据驱动行业画像沉淀高风险）
         data_profile = {}
         
         for event in self.events:
@@ -630,6 +631,11 @@ class AGIPipelineConnector:
                 ft = event.data.get("finding_type", "")
                 if ft and ft not in finding_types:
                     finding_types.append(ft)
+                if ft:
+                    lv = event.data.get("level", "")
+                    # 保留更高等级（"高"优先于空/低）
+                    if lv and ("高" in str(lv) or not ft_level.get(ft)):
+                        ft_level[ft] = lv
             # 从域分析结果提取信号值
             if event.module == "⑧域分析" and event.event_type == "domain_result":
                 dd = event.data.get("domain_data", {})
@@ -669,8 +675,14 @@ class AGIPipelineConnector:
             memory_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "cross_analysis_memory.json")
             with open(memory_path, "r", encoding="utf-8") as f:
                 memory = json.load(f)
+            if not isinstance(memory, dict):
+                memory = {"analyses": [], "industry_patterns": {}, "lesson_learned": []}
         except:
             memory = {"analyses": [], "industry_patterns": {}, "lesson_learned": []}
+        # 骨架兜底：防止旧文件/空文件结构缺失导致 KeyError/TypeError
+        memory.setdefault("analyses", [])
+        memory.setdefault("industry_patterns", {})
+        memory.setdefault("lesson_learned", [])
         
         # 避免重复
         if not any(a.get("trace_id") == analysis_trace_id for a in memory["analyses"]):
@@ -770,8 +782,9 @@ class AGIPipelineConnector:
         try:
             from engine.scm_reasoner import scm
             all_findings_dicts = [
-                {"type": ft, "signals": [e.data.get("signal","") for e in self.events if e.event_type == "rule_triggered" and e.data.get("finding_type") == ft]}
-                for ft in finding_types[:15]
+                {"type": ft, "level": ft_level.get(ft, ""),
+                 "signals": [e.data.get("signal","") for e in self.events if e.event_type == "rule_triggered" and e.data.get("finding_type") == ft]}
+                for ft in finding_types
             ]
             scm_report = scm.reasoning_report(all_findings_dicts)
         except Exception as e:
@@ -1222,9 +1235,15 @@ class CrossAnalysisLearner:
     def load_memory(cls) -> Dict:
         try:
             with open(cls._get_memory_path(), "r", encoding="utf-8") as f:
-                return json.load(f)
+                mem = json.load(f)
+            if not isinstance(mem, dict):
+                mem = {"analyses": [], "industry_patterns": {}, "lesson_learned": []}
         except:
-            return {"analyses": [], "industry_patterns": {}, "lesson_learned": []}
+            mem = {"analyses": [], "industry_patterns": {}, "lesson_learned": []}
+        mem.setdefault("analyses", [])
+        mem.setdefault("industry_patterns", {})
+        mem.setdefault("lesson_learned", [])
+        return mem
     
     @classmethod
     def save_memory(cls, memory: Dict):

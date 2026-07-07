@@ -16,8 +16,8 @@
 | P0 致命 | 2 | AGI 引擎导入炸弹（coordinator / agi_engine 合并遗留注解） | ✅ 已修复并验证 |
 | P1 严重 | 1 | pipeline 静默吞掉 AGI 导入失败（掩盖 P0） | ✅ 已修复 |
 | P1 隐藏 | 2 | 「合并大脑」反事实/泛化两大增强调用了不存在的方法名（被 except:pass 掩盖，功能一直产出为空） | ✅ 已修复 |
-| P1 合规 | 1 | knowledge_base 行业画像仅硬编码「纺织业」单一行业 | ⚠️ 待老邓决策 |
-| P2 观察 | 6 | 孤立脚本(已删) / except:pass(关键路径已修) / 增强上限(已放开) / 语义词典偏纺织 / 规则计数漂移 / agi_pipeline 两处异常 | 📋 见下 |
+| P1 合规 | 1 | knowledge_base 行业画像仅硬编码「纺织业」 | ✅ 已按方案A改为数据驱动 |
+| P2 观察 | 6 | 孤立脚本(已删) / except:pass(关键路径已修) / 增强上限(已放开) / 语义词典偏纺织 / 规则计数漂移 / agi_pipeline 崩溃(已修) | 📋 见下 |
 
 > **本轮追加修复（第二批，应老邓「①②③一起干」而来）**：在给 AGI 增强块加日志（③）后，静默吞错被撕开，当场暴露并修复了两个隐藏的真 Bug——见「P1-3 / P1-4」。这正是「except:pass 是定时炸弹」的活教材。
 
@@ -72,17 +72,17 @@ except Exception: pass   # ← 把 P0 的导入失败彻底吞掉，管线永远
 
 **修复**：改为 `except Exception as _ae: pipeline_log.append(f"[AGI] 合并大脑接入失败→跳过推理增强: {_ae}")`。
 
-### P1-2　`engine/knowledge_base.py` — 行业画像仅硬编码「纺织业」（待决策）
+### P1-2　`engine/knowledge_base.py` — 行业画像仅硬编码「纺织业」（✅ 已按方案A修复：改为数据驱动）
 
-`DEFAULT_KNOWLEDGE["industry_profiles"]` 只有 `"纺织业"` 一个行业：
-```python
-"industry_profiles": {
-    "纺织业": {"typical_risks": [...], "common_goods": ["坯布","棉纱","面料","染整加工费"], ...},
-},
-```
-违反「全行业适用」铁律：当知识库 JSON 不存在（走默认）时，系统内置行业认知只覆盖纺织业，对制造/贸易/建筑/服务/软件等行业无默认画像，存在纺织行业偏向。
+**原问题**：`DEFAULT_KNOWLEDGE["industry_profiles"]` 只有 `"纺织业"` 一个行业，违反「全行业适用」铁律。
 
-**建议**：此项涉及产品数据设计，未擅自改动。建议二选一——① 由 human_learning/self_learning 引擎数据驱动动态生成行业画像；② 补齐多行业默认画像。请老邓定夺方向后再落地。
+**修复（方案A：由 human_learning/self_learning 引擎数据驱动动态生成，不预置任何行业）**——修通了一条此前完全断裂的学习链路：
+1. **去种子**：`DEFAULT_KNOWLEDGE["industry_profiles"]` 改为 `{}`，严禁硬编码单一行业。
+2. **KB 加载/保存加固**：`_load` 补全骨架 + `_meta`（兼容空文件/旧文件/错误结构）；`_save` 用 `setdefault("_meta")` 兜底——修掉了空库 `{}` 存盘直接 `KeyError` 的隐患。
+3. **学习钩子持久化**：`auto_extract_knowledge()` 此前**只在内存累积、从不存盘** → 加 `kb._save()`，并丰富提取（由累积数据导出 `typical_risks`、从发现/证据行提取 `common_goods`、记 `last_analyzed`）。
+4. **打通数据源**（关键连带，见 P2-6）：修复 `finalize_learning` 崩溃后，行业维度才真正跑到；并给 `all_findings_dicts` 补上 `level` 字段、去掉 `[:15]` 截断，让高风险类型能被沉淀。
+
+**全链路实测**（账套2「广告传媒」）：知识库从空库出发，分析后自动落库 `industry_profiles: {'广告传媒': {analysis_count:1, typical_risks:['客户维度开票收款偏差（逐户穿透）'], ...}}` 并持久化。**从"硬编码单一纺织业"变为"任意行业按真实数据自动沉淀画像"，全行业适用。**
 
 ### P1-3　`engine/pipeline.py` 反事实推理调用了不存在的方法（✅ 已修复）
 
@@ -108,7 +108,7 @@ except Exception: pass   # ← 把 P0 的导入失败彻底吞掉，管线永远
 - **P2-3　AGI 增强覆盖上限**（✅ 已修复）：已去除 `all_findings[:20]`/`[:5]` 硬编码上限，改为**全量遍历**（符合"不设硬编码上限"铁律），全部发现均获得 `_agi_confidence` 与反事实增强。
 - **P2-4　`semantic_reasoner.py` 语义词典偏纺织**（⏳ 待决策）：`染色加工/棉纱/布料` 等纺织词较全，但同时含钢材/租金/水电等通用类目，整体多行业；建议后续补齐其他行业专属品名词条。
 - **P2-5　`system_config` 规则数漂移（既存，非本次引擎改动引入）**（⏳ 待决策）：`audit.py 2` 第 8 项报 `system_config.rules_count=1608 ≠ tax_risk_rules_local_export.json 实际 1610`。系新增 2 条规则后未同步计数常量。属数据层配置漂移，低风险；因涉及规则数据（老邓归口），未擅自改动，建议同步计数或改为运行时动态读取。
-- **P2-6　`engine/agi_pipeline.py` 两处运行时异常（新暴露，待排查）**（⏳ 待决策）：全链路日志现出现 `[AGI] 智能体异常: list indices must be integers or slices, not str` 与 `[AGI] 汇总持久化异常: 同`。系 agi_pipeline「智能体/汇总持久化」环节把 dict 当 list 或反之索引所致，不影响主报告产出（已被其自身 try 兜底并记日志）。与本次 ①②③ 无关，属独立 Bug；因排查需深入 agi_pipeline 智能体链，未在本轮扩展，建议单独立项。
+- **P2-6　`engine/agi_pipeline.py` 两处运行时异常（✅ 已修复，为方案A连带打通）**：全链路日志曾报 `[AGI] 智能体异常` 与 `[AGI] 汇总持久化异常`，同为 `list indices must be integers or slices, not str`。**根因**：`static/cross_analysis_memory.json` 内容被写成了空 `list []`，而 `finalize_learning`/`CrossAnalysisLearner.load_memory` 读取后直接 `memory["analyses"]`（当 dict 用）→ TypeError，导致**整条 AGI 学习管线崩在第 0 模块**（`modules_covered=0 / events=0`），行业画像/因果学习全部无法沉淀。**修复**：①两个加载器加结构校验+骨架兜底；②修正文件本身为正确 dict 结构；③`finalize_learning` 异常捕获补堆栈定位日志。**实测**：`modules_covered 0→8`、`events 0→665`、`error=None`，两条异常消失。
 
 ---
 

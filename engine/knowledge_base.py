@@ -141,13 +141,10 @@ DEFAULT_KNOWLEDGE = {
     },
     
     # ─── 5. 行业知识 ───
-    "industry_profiles": {
-        "纺织业": {
-            "typical_risks": ["委托加工真实性", "进销品名差异", "虚开进项"],
-            "common_goods": ["坯布", "棉纱", "面料", "染整加工费"],
-            "risk_profiles": {},
-        },
-    },
+    # 数据驱动：不预置任何行业画像。由 auto_extract_knowledge() 在每次分析后
+    # 从发现(findings)中自动积累各行业的高频风险/常见品名/分析次数，跨企业沉淀。
+    # 严禁在此硬编码单一行业（违反"全行业适用"铁律）。
+    "industry_profiles": {},
     
     # ─── 6. 自愈规则 ───
     "healing_rules": [],
@@ -189,14 +186,25 @@ class KnowledgeBase:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 self._data = json.load(f)
+            if not isinstance(self._data, dict):
+                self._data = {}
         except:
             self._data = dict(DEFAULT_KNOWLEDGE)
-            self._data["_meta"]["created_at"] = datetime.now().isoformat()
-    
+        # 补全骨架：无论来自空文件/旧文件/DEFAULT，都保证结构完整，避免后续 KeyError
+        self._data.setdefault("_meta", {})
+        self._data["_meta"].setdefault("created_at", datetime.now().isoformat())
+        for _k, _default in (
+            ("policies", {}), ("causal_edges", []), ("signal_patterns", []),
+            ("semantic_dict", {}), ("risk_synonyms", {}), ("industry_profiles", {}),
+            ("healing_rules", []), ("lessons", []), ("analysis_history", []),
+            ("signal_definitions", []),
+        ):
+            self._data.setdefault(_k, _default)
+
     def _save(self):
         """保存知识库"""
         with _kb_lock:
-            self._data["_meta"]["updated_at"] = datetime.now().isoformat()
+            self._data.setdefault("_meta", {})["updated_at"] = datetime.now().isoformat()
             os.makedirs(os.path.dirname(_get_kb_path()), exist_ok=True)
             with open(_get_kb_path(), "w", encoding="utf-8") as f:
                 json.dump(self._data, f, ensure_ascii=False, indent=2)
@@ -408,15 +416,48 @@ def auto_extract_knowledge(findings: list, company_name: str = "", industry: str
                 })
                 extracted["new_edges"] += 1
     
-    # ── 3. 行业特征 ──
+    # ── 3. 行业特征（数据驱动：从发现中自动沉淀行业画像，全行业适用）──
     if industry and industry != "未知":
         ip = kb._data.setdefault("industry_profiles", {}).setdefault(industry, {})
         ip["analysis_count"] = ip.get("analysis_count", 0) + 1
-        risk_types = Counter(f.get("type", "") for f in findings if f.get("level") and "高" in str(f.get("level")))
-        for rt, ct in risk_types.most_common(3):
-            ip.setdefault("common_high_risks", {})[rt] = ip.get("common_high_risks", {}).get(rt, 0) + ct
+        ip["last_analyzed"] = datetime.now().isoformat()
+
+        # 3a. 累积高频风险
+        chr_map = ip.setdefault("common_high_risks", {})
+        risk_types = Counter(
+            f.get("type", "") for f in findings
+            if f.get("type") and f.get("level") and "高" in str(f.get("level"))
+        )
+        for rt, ct in risk_types.most_common(5):
+            chr_map[rt] = chr_map.get(rt, 0) + ct
             extracted["industry_updates"] += 1
-    
+        # 3b. 由累积数据导出 typical_risks（Top5，不硬编码）
+        ip["typical_risks"] = [r for r, _ in Counter(chr_map).most_common(5)]
+
+        # 3c. 累积常见品名（从发现及其证据行中提取 goods/品名 字段，全行业通用）
+        goods_map = ip.setdefault("_goods_freq", {})
+        for f in findings:
+            cands = []
+            for key in ("goods", "product", "品名", "goods_name"):
+                v = f.get(key)
+                if v:
+                    cands.append(str(v))
+            for ev in (f.get("evidence_rows") or f.get("items") or []):
+                if isinstance(ev, dict):
+                    for key in ("goods", "品名", "goods_name", "product", "货物名称"):
+                        v = ev.get(key)
+                        if v:
+                            cands.append(str(v))
+            for g in cands:
+                g = g.strip()[:30]
+                if g:
+                    goods_map[g] = goods_map.get(g, 0) + 1
+        if goods_map:
+            ip["common_goods"] = [g for g, _ in Counter(goods_map).most_common(8)]
+
+    # ── 持久化：数据驱动的知识必须存盘，否则跨会话丢失 ──
+    kb._save()
+
     return extracted
 
 
