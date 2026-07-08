@@ -101,18 +101,26 @@ function renderTaxRiskRules(container) {
   // 上下游依赖
   h += '<div class="tr-flow"><h3>上下游依赖</h3><div class="tr-flow-grid">';
   h += '<div class="tr-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
-  h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方</h4>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><div class="desc">域分析发现作为规则匹配的输入</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><div class="desc">规则知识存储与管理</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch4\')" style="color:#2563eb">税务合规判定规则</a><div class="desc">规则制定的方法论依据</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><div class="desc">调度规则匹配的执行时机</div></div>';
+  h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方 · 出度0</h4>';
+  h += '<div class="tr-flow-item" style="font-size:11px;color:#64748b;line-height:1.8">规则数据来自静态文件 <code>tax_risk_rules_local_export.json</code>，触发溯源数据来自分析缓存 <code>getSharedAnalysis()</code>。不主动消费其他模块。</div>';
   h += '</div>';
   h += '<div class="tr-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
-  h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方</h4>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><div class="desc">规则匹配结果进入综合报告</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><div class="desc">规则匹配结果作为推理输入</div></div>';
+  h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度15</h4>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><div class="desc">规则匹配发现作为分析输入</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-learn\')" style="color:#2563eb">学习反馈</a><div class="desc">规则空跑率供学习引擎分析</div></div>';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><div class="desc">规则匹配结果质量验证</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch11\')" style="color:#2563eb">审核反馈闭环</a><div class="desc">用户纠正反馈形成学习闭环</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><div class="desc">规则引擎状态展示</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch4\')" style="color:#2563eb">税务合规判定规则</a><div class="desc">规则方法论参考</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch8\')" style="color:#2563eb">全链路质量保障</a><div class="desc">规则质量纳入全链路保障</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch10\')" style="color:#2563eb">数据一致性自检</a><div class="desc">规则结论一致性检查</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch13\')" style="color:#2563eb">引擎铁律编号</a><div class="desc">规则升级为铁律</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-terms\')" style="color:#2563eb">术语与机密规范</a><div class="desc">规则术语标准化</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-12std\')" style="color:#2563eb">质量标准</a><div class="desc">规则结论质量标准</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-sync\')" style="color:#2563eb">触发与交付</a><div class="desc">规则触发后报告交付</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><div class="desc">规则触发激活线索链</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><div class="desc">规则发现作为证据匹配源</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><div class="desc">规则纳入质量保障框架</div></div>';
+  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'ai-rules\')" style="color:#2563eb">行为准则</a><div class="desc">规则遵循行为规范</div></div>';
   h += '</div></div></div>';
 
   // 使用说明（折叠）
