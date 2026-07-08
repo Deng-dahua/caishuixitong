@@ -1,7 +1,7 @@
 {
   "_meta": {
     "created_at": "2026-07-08T11:58:07.400620",
-    "updated_at": "2026-07-08T13:21:13.623983"
+    "updated_at": "2026-07-08T13:28:21.899637"
   },
   "policies": {},
   "causal_edges": [],
@@ -105,6 +105,56 @@
       "lesson": "文件变更: tax-pipeline-pages.js",
       "category": "⑥代码变更",
       "timestamp": "2026-07-08T13:21:13.623980"
+    },
+    {
+      "lesson": "文件变更: agi_engine.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.891155"
+    },
+    {
+      "lesson": "文件变更: capability_matrix.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.892905"
+    },
+    {
+      "lesson": "文件变更: memory.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.893707"
+    },
+    {
+      "lesson": "文件变更: orchestrator.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.894620"
+    },
+    {
+      "lesson": "文件变更: core.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.895335"
+    },
+    {
+      "lesson": "文件变更: module-headers.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.896092"
+    },
+    {
+      "lesson": "文件变更: tax-doc-analysis.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.896657"
+    },
+    {
+      "lesson": "文件变更: tax-engine-dashboard.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.897153"
+    },
+    {
+      "lesson": "文件变更: tax-feedback-template.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.898777"
+    },
+    {
+      "lesson": "文件变更: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-08T13:28:21.899629"
     }
   ],
   "analysis_history": [],

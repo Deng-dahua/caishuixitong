@@ -750,7 +750,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   代码: static/js/tax-engine-dashboard.js
 
   【#1 运行状态】引擎实时状态/内存使用/缓存命中率/最近分析记录
-  【#2 规则库】1608条税务合规指令按分类浏览/搜索/详情查看
+  【#2 规则库】1610条税务合规指令按分类浏览/搜索/详情查看
   【#3 质量保障】4条质量标准逐条检查/合规报告生成
   【#4 方法论对账】1266条方法论与audit_chains.json的实时核对
   【#5 跨域协商】29条协商规则四层场景的可视化矩阵
@@ -843,7 +843,7 @@ domain_functions = _CFG.get("domain_functions", 39)
 
   【核心引擎】
   engine/pipeline.py（主分析管线，本文档主要引用对象）
-  engine/domain_analysis.py（42个域分析函数）
+  engine/domain_analysis.py（39个域分析函数）
   engine/phase1_triage.py / phase2_deep_dive.py / phase3_cross_validate.py / phase4_synthesis.py
   engine/cross_domain_negotiation.py（跨域协商）
   engine/self_learning.py（审核反馈闭环）
@@ -860,7 +860,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/audit_chains.json（线索链/证据链/方法论）
   static/user_corrections.json（纠正规则存储）
   static/industry_data.json（25行业产品链词典+12条收款分类规则）
-  static/tax_risk_rules_local_export.json（1608条税务合规指令）
+  static/tax_risk_rules_local_export.json（1610条税务合规指令）
   static/audit_memory.json（500条分析记忆）
   audit_consistency.py（数据一致性自检+联动修改）
 
