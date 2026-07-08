@@ -529,7 +529,7 @@ function esc(s) {
 
 function loadEngineDashboard() {
   // ── 检查是否有新分析推送（#1：一键分析→仪表盘）──
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   try {
     var flag = localStorage.getItem('_tax_engine_new_analysis');
     if (flag) {
@@ -1255,7 +1255,7 @@ async function renderEngineSubModule(container, tabId) {
     + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0">' + title + '</h2>'
     + '<div id="sub-tab-content" style="text-align:center;padding:60px;color:#94a3b8">加载中...</div></div>';
   
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   try {
     // 并行请求两个API
     var [r1, r2] = await Promise.all([
@@ -1394,7 +1394,7 @@ async function renderBrainSubModule(container, section) {
 // ═══ 管道调度 — 专用清新布局 ═══
 function renderPipeDashboard(container) {
   window._skipModuleHeader = true;
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   window._pipelineLogsData = [];  // 存储原始日志供过滤搜索
   window._currentLogPhase = 'all';  // 当前Phase过滤标签
   window._currentLogSearch = '';    // 当前搜索关键词
@@ -2113,14 +2113,14 @@ async function loadHistoryAnalysis(selValue) {
       var el = document.getElementById('step'+i);
       if (el) el.className = 'pp-step';
     }
-    var cid = window._currentCompanyId || 1;
+    var cid = window.currentCompanyId || window._currentCompanyId || 1;
     _loadFinalPipeData(cid);
     return;
   }
   var idx = parseInt(selValue);
   window._selectedHistoryIdx = idx;  // 记录当前选中索引供删除用
   if (delBtn) delBtn.style.display = '';  // 选中历史条目→显示删除按钮
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   try {
     var hr = await fetch('/api/pipeline/history?company_id=' + cid);
     var hd = await hr.json();
@@ -2160,7 +2160,7 @@ async function deleteHistoryEntry() {
   var idx = window._selectedHistoryIdx;
   if (idx === null || idx === undefined) return;
   if (!confirm('确定删除这条历史运行记录？删除后不可恢复。')) return;
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   try {
     var r = await fetch('/api/pipeline/history?company_id=' + cid + '&index=' + idx, { method: 'DELETE' });
     var d = await r.json();
@@ -2188,7 +2188,7 @@ async function deleteHistoryEntry() {
 
 // ═══ 导出历史（json/csv）— 触发浏览器下载 ═══
 function exportHistory(fmt) {
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   var url = '/api/pipeline/history/export?company_id=' + cid + '&format=' + (fmt || 'json');
   var a = document.createElement('a');
   a.href = url;
@@ -2572,7 +2572,7 @@ async function renderQualityDashboard(container) {
   window._skipModuleHeader = true;
   container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
   
-  var cid = window._currentCompanyId || 1;
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
   var d = {};
   try {
     var r = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid);
