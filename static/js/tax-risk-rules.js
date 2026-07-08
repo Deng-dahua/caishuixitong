@@ -108,7 +108,7 @@ function renderTaxRiskRules(container) {
   h += '<div class="tr-flow"><h3>上下游依赖</h3><div class="tr-flow-grid">';
   h += '<div class="tr-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
   h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方 · 出度0</h4>';
-  h += '<div class="tr-flow-item" style="font-size:11px;color:#64748b;line-height:1.8">规则数据来自静态文件 <code>tax_risk_rules_local_export.json</code>，触发溯源数据来自分析缓存 <code>getSharedAnalysis()</code>。不主动消费其他模块。</div>';
+  h += '<div class="tr-flow-item" style="font-size:11px;color:#64748b;line-height:1.8">规则数据来自静态文件 <code>tax_risk_rules_local_export.json</code>，触发溯源数据来自分析缓存 <code>getSharedAnalysis()</code>。自动规则确认通过 <code>promote-auto-rule</code> API 写回规则文件。不消费其他后端模块。</div>';
   h += '</div>';
   h += '<div class="tr-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
   h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度15</h4>';
