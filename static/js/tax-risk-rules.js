@@ -163,6 +163,9 @@ function renderTaxRiskRules(container) {
   h += '<select id="rr-sort-filter" onchange="sortAndRenderRules()" style="max-width:110px">';
   h += '<option value="time">⏱ 按时间</option><option value="high">🔴 高风险优先</option><option value="low">🟢 低风险优先</option><option value="trigger">✅ 触发优先</option>';
   h += '</select>';
+  h += '<select id="rr-type-filter" onchange="filterRules()" style="max-width:100px">';
+  h += '<option value="">全部类型</option><option value="manual">📋 人工规则</option><option value="auto">🤖 自动发现</option>';
+  h += '</select>';
   h += '<button onclick="toggleTriggeredOnly()" id="rr-trigger-btn">🔗 仅看触发</button>';
   h += '<span id="rr-filter-count" style="font-size:10px;color:#94a3b8;padding:6px 0"></span>';
   h += '</div>';
@@ -203,6 +206,7 @@ function filterRules() {
   var search = (document.getElementById('rr-search')?.value || '').toLowerCase();
   var level = document.getElementById('rr-level-filter')?.value || '';
   var cat = document.getElementById('rr-cat-filter')?.value || '';
+  var rtype = document.getElementById('rr-type-filter')?.value || '';
   
   var listEl = document.getElementById('risk-rules-list');
   if (!listEl) return;
@@ -214,12 +218,14 @@ function filterRules() {
     var text = (card.textContent || '').toLowerCase();
     var ruleLevel = card.getAttribute('data-level') || '';
     var ruleCat = card.getAttribute('data-category') || '';
+    var ruleType = card.getAttribute('data-type') || '';
     var triggered = card.getAttribute('data-triggered') === '1';
     
     var matches = true;
     if (search && text.indexOf(search) < 0) matches = false;
     if (level && ruleLevel !== level) matches = false;
     if (cat && ruleCat !== cat) matches = false;
+    if (rtype && ruleType !== rtype) matches = false;
     if (_showTriggeredOnly && !triggered) matches = false;
     
     card.style.display = matches ? '' : 'none';
@@ -359,7 +365,7 @@ function renderTaxRiskRulesList() {
       var borderColor = isTriggered ? '#dc2626' : color;
       var borderWidth = isTriggered ? '4px' : '3px';
 
-      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '" data-category="' + (rule.category || '') + '"'
+      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '" data-category="' + (rule.category || '') + '" data-type="' + (isAutoRule ? 'auto' : 'manual') + '"'
         + ' style="padding:14px 18px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px" class="tr-rule-card">'
         
         // 标题行
