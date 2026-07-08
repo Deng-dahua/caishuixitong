@@ -2,7 +2,7 @@
 全行业财税风险防控系统 - 后端 API
 """
 import hashlib, secrets, json as _json, time
-from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -5058,6 +5058,50 @@ def get_pipeline_history(company_id: int = Query(...)):
     hist = _analysis_history.get(company_id, [])
     return {"ok": True, "history": hist, "count": len(hist)}
 
+def _save_analysis_history_disk():
+    """历史落盘（删除/变更后统一调用）"""
+    try:
+        import json as _json2
+        _hdisk = {str(k): v for k, v in _analysis_history.items()}
+        with open("static/analysis_history.json", "w", encoding="utf-8") as _hf:
+            _json2.dump(_hdisk, _hf, ensure_ascii=False, default=str)
+    except: pass
+
+@app.delete("/api/pipeline/history")
+def delete_pipeline_history(company_id: int = Query(...), index: int = Query(...)):
+    """删除指定索引的历史条目（index从0开始，0=最新）"""
+    hist = _analysis_history.get(company_id, [])
+    if index < 0 or index >= len(hist):
+        return {"ok": False, "message": f"索引{index}越界（当前{len(hist)}条）"}
+    removed = hist.pop(index)
+    _analysis_history[company_id] = hist
+    _save_analysis_history_disk()
+    return {"ok": True, "message": f"已删除 {removed.get('timestamp','')[:19]}", "count": len(hist)}
+
+@app.get("/api/pipeline/history/export")
+def export_pipeline_history(company_id: int = Query(...), format: str = Query("json")):
+    """导出分析历史为 json 或 csv（不含快照大字段，只导摘要）"""
+    from fastapi.responses import Response as _Resp
+    hist = _analysis_history.get(company_id, [])
+    # 只导摘要字段，剔除snapshot大字段
+    rows = [{k: v for k, v in h.items() if k != "snapshot"} for h in hist]
+    if format == "csv":
+        import csv as _csv, io as _io
+        buf = _io.StringIO()
+        cols = ["timestamp", "risk_level", "risk_score", "total_findings", "step_timing_total", "log_count", "error_count"]
+        w = _csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+        csv_bytes = ("\ufeff" + buf.getvalue()).encode("utf-8")  # BOM确保Excel中文不乱码
+        return _Resp(content=csv_bytes, media_type="text/csv",
+                     headers={"Content-Disposition": f'attachment; filename="pipeline_history_{company_id}.csv"'})
+    else:
+        import json as _json3
+        js = _json3.dumps({"company_id": company_id, "count": len(rows), "history": rows}, ensure_ascii=False, indent=2, default=str)
+        return _Resp(content=js.encode("utf-8"), media_type="application/json",
+                     headers={"Content-Disposition": f'attachment; filename="pipeline_history_{company_id}.json"'})
+
 # ═══════════════════════════════════════════════════════════
 # 电子证据固化 —— SHA256哈希链 + 时间戳存证
 # ═══════════════════════════════════════════════════════════
@@ -6700,6 +6744,48 @@ def analyze_tax_risk_docs_status(task_id: str):
         if task["status"] == "error":
             result["error"] = task.get("error", task["message"])
         return result
+
+@app.websocket("/ws/pipeline/{task_id}")
+async def ws_pipeline_progress(websocket: WebSocket, task_id: str):
+    """WebSocket实时推送分析进度 — 替代2秒HTTP轮询，进度到毫秒级
+    服务端每0.4秒检查内存状态，变化时推送；status为done/error后推最后一帧并关闭。
+    """
+    import asyncio as _asyncio
+    await websocket.accept()
+    _last_sig = None
+    try:
+        while True:
+            with _analysis_lock:
+                task = _analysis_tasks.get(task_id)
+                if task:
+                    frame = {
+                        "ok": True,
+                        "status": task["status"],
+                        "progress": task["progress"],
+                        "message": task["message"],
+                        "current_step": task.get("current_step", 0),
+                    }
+                    if task["status"] == "error":
+                        frame["error"] = task.get("error", task["message"])
+                else:
+                    frame = {"ok": False, "message": "任务不存在或已过期", "status": "error"}
+            # 仅在状态变化时推送，减少无效帧
+            _sig = (frame.get("status"), frame.get("current_step"), frame.get("progress"), frame.get("message"))
+            if _sig != _last_sig:
+                await websocket.send_json(frame)
+                _last_sig = _sig
+            # 终态：推完最后一帧后关闭
+            if frame.get("status") in ("done", "error"):
+                break
+            await _asyncio.sleep(0.4)
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except: pass
 
 @app.get("/api/tax-risk-docs/analyze-result/{task_id}")
 def analyze_tax_risk_docs_result(task_id: str):

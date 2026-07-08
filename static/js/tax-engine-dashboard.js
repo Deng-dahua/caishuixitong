@@ -1455,9 +1455,12 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-sub">引擎七步执行的实时状态监控 · 出度25 · 入度24 · 双向16 · 所属：智能大脑</div>';
 
   // ═══ 历史运行选择器 ═══
-  h += '<div id="pp-history-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:20px">';
+  h += '<div id="pp-history-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap">';
   h += '<span style="font-size:11px;color:#64748b;font-weight:600">历史运行：</span>';
   h += '<select id="pp-history-select" onchange="loadHistoryAnalysis(this.value)" style="font-size:11px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#475569;max-width:300px"><option value="">当前最新</option></select>';
+  h += '<button id="pp-history-del" onclick="deleteHistoryEntry()" style="font-size:11px;padding:4px 10px;border:1px solid #fecaca;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer;display:none">删除此条</button>';
+  h += '<button onclick="exportHistory(\'json\')" style="font-size:11px;padding:4px 10px;border:1px solid #bfdbfe;border-radius:6px;background:#fff;color:#2563eb;cursor:pointer">导出JSON</button>';
+  h += '<button onclick="exportHistory(\'csv\')" style="font-size:11px;padding:4px 10px;border:1px solid #bbf7d0;border-radius:6px;background:#fff;color:#15803d;cursor:pointer">导出CSV</button>';
   h += '<span id="pp-history-info" style="font-size:10px;color:#94a3b8"></span>';
   h += '</div>';
   
@@ -1790,22 +1793,76 @@ function updateStep(stepId, status, extra, elapsed, outputFlow) {
 
 // ═══ 实时进度追踪：轮询分析任务，逐步更新七步状态 ═══
 var _pipePollTimer = null;
+var _pipeWs = null;
 var _pipeLastStep = 0; // 记录上次到达的步骤，用于标记done
 
+// 统一入口：优先WebSocket实时推送，失败自动降级为HTTP轮询
 function _startPipelineProgressPoll(taskId, companyId) {
-  if (_pipePollTimer) clearInterval(_pipePollTimer);
+  // 清理可能残留的连接
+  if (_pipePollTimer) { clearInterval(_pipePollTimer); _pipePollTimer = null; }
+  if (_pipeWs) { try { _pipeWs.close(); } catch(e){} _pipeWs = null; }
   _pipeLastStep = 0;
-  // 7步名称映射
   var stepNames = ['资料扫描','目标实体识别','域分析','规则引擎+链驱动','方法论过滤','行业对标','报告输出'];
-  // Hero卡片显示"运行中"
   var pc = document.getElementById('pp-phase-count');
   if (pc) pc.textContent = '运行中';
   var lc = document.getElementById('pp-log-count');
   if (lc) lc.textContent = '⏳';
-
-  // 先把当前步骤标记为run，之前的标记为done
   _applyStepStates(0);
 
+  // ═══ 尝试WebSocket ═══
+  if (typeof WebSocket !== 'undefined') {
+    try {
+      var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      var ws = new WebSocket(proto + '//' + location.host + '/ws/pipeline/' + taskId);
+      _pipeWs = ws;
+      var wsAlive = false;
+      // 连接超时兜底：1.5秒内没连上就降级轮询
+      var connectTimer = setTimeout(function(){
+        if (!wsAlive) { try { ws.close(); } catch(e){} _startPipelineProgressPollHTTP(taskId, companyId, stepNames); }
+      }, 1500);
+
+      ws.onopen = function(){ wsAlive = true; clearTimeout(connectTimer); };
+      ws.onmessage = function(ev){
+        // 离页清理
+        if (!document.getElementById('step1')) { try { ws.close(); } catch(e){} _pipeWs = null; return; }
+        var d;
+        try { d = JSON.parse(ev.data); } catch(e){ return; }
+        if (!d.ok) { return; }
+        var cs = d.current_step || 0;
+        _applyStepStates(cs, d.message);
+        var pc2 = document.getElementById('pp-phase-count');
+        if (pc2) pc2.textContent = d.progress + '% · ' + stepNames[Math.max(0, cs-1)];
+        if (d.status === 'done') {
+          try { ws.close(); } catch(e){} _pipeWs = null;
+          window._currentAnalysisTaskId = null;
+          _loadFinalPipeData(companyId);
+        } else if (d.status === 'error') {
+          try { ws.close(); } catch(e){} _pipeWs = null;
+          var pc3 = document.getElementById('pp-phase-count');
+          if (pc3) pc3.textContent = '失败';
+          if (cs > 0) { var el = document.getElementById('step'+cs); if (el) el.className = 'pp-step skip'; }
+        }
+      };
+      ws.onerror = function(){
+        clearTimeout(connectTimer);
+        if (!wsAlive) { _pipeWs = null; _startPipelineProgressPollHTTP(taskId, companyId, stepNames); }
+      };
+      ws.onclose = function(){
+        // 若从未成功连接，降级轮询（onerror可能已触发，用wsAlive去重）
+        if (!wsAlive) { _pipeWs = null; }
+      };
+      return;
+    } catch(e) {
+      // WebSocket构造失败→降级
+    }
+  }
+  _startPipelineProgressPollHTTP(taskId, companyId, stepNames);
+}
+
+// HTTP轮询兜底（WebSocket不可用时）
+function _startPipelineProgressPollHTTP(taskId, companyId, stepNames) {
+  stepNames = stepNames || ['资料扫描','目标实体识别','域分析','规则引擎+链驱动','方法论过滤','行业对标','报告输出'];
+  if (_pipePollTimer) clearInterval(_pipePollTimer);
   _pipePollTimer = setInterval(async function() {
     // ═══ 离页清理：DOM不存在说明用户已离开管道调度页，停止轮询 ═══
     if (!document.getElementById('step1')) {
@@ -2044,10 +2101,13 @@ function updateLogFilterInfo(showCount, totalCount) {
 }
 
 async function loadHistoryAnalysis(selValue) {
+  var delBtn = document.getElementById('pp-history-del');
   if (!selValue || selValue === '') {
     // 选择"当前最新" → 重新加载当前数据
     var info = document.getElementById('pp-history-info');
     if (info) info.textContent = '';
+    if (delBtn) delBtn.style.display = 'none';  // 当前最新不可删
+    window._selectedHistoryIdx = null;
     // 重置七步为初始状态并重新加载
     for (var i = 1; i <= 7; i++) {
       var el = document.getElementById('step'+i);
@@ -2058,6 +2118,8 @@ async function loadHistoryAnalysis(selValue) {
     return;
   }
   var idx = parseInt(selValue);
+  window._selectedHistoryIdx = idx;  // 记录当前选中索引供删除用
+  if (delBtn) delBtn.style.display = '';  // 选中历史条目→显示删除按钮
   var cid = window._currentCompanyId || 1;
   try {
     var hr = await fetch('/api/pipeline/history?company_id=' + cid);
@@ -2091,6 +2153,49 @@ async function loadHistoryAnalysis(selValue) {
       _renderPipeFromSnapshot(item.snapshot);
     }
   } catch(e) {}
+}
+
+// ═══ 删除当前选中的历史条目 ═══
+async function deleteHistoryEntry() {
+  var idx = window._selectedHistoryIdx;
+  if (idx === null || idx === undefined) return;
+  if (!confirm('确定删除这条历史运行记录？删除后不可恢复。')) return;
+  var cid = window._currentCompanyId || 1;
+  try {
+    var r = await fetch('/api/pipeline/history?company_id=' + cid + '&index=' + idx, { method: 'DELETE' });
+    var d = await r.json();
+    if (!d.ok) { alert(d.message || '删除失败'); return; }
+    // 删除成功→重建下拉列表 + 回到"当前最新"
+    var sel = document.getElementById('pp-history-select');
+    if (sel) {
+      // 清空重建
+      sel.innerHTML = '<option value="">当前最新</option>';
+      var hr = await fetch('/api/pipeline/history?company_id=' + cid);
+      var hd = await hr.json();
+      if (hd.ok && hd.history) {
+        hd.history.forEach(function(item, i) {
+          var opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = item.timestamp.substring(0,19) + ' · ' + (item.risk_level||'--') + ' · ' + (item.total_findings||0) + '条发现 · ' + (item.step_timing_total||0) + '秒';
+          sel.appendChild(opt);
+        });
+      }
+      sel.value = '';
+    }
+    loadHistoryAnalysis('');  // 回到当前最新
+  } catch(e) { alert('删除请求失败'); }
+}
+
+// ═══ 导出历史（json/csv）— 触发浏览器下载 ═══
+function exportHistory(fmt) {
+  var cid = window._currentCompanyId || 1;
+  var url = '/api/pipeline/history/export?company_id=' + cid + '&format=' + (fmt || 'json');
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'pipeline_history_' + cid + '.' + (fmt || 'json');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ═══ 从历史快照回放七步状态+日志 ═══
