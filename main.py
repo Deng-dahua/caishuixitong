@@ -1145,7 +1145,7 @@ async def tax_risk_rules_upload_report(request: Request):
 
 @app.post("/api/tax-risk-rules/promote-auto-rule")
 def promote_auto_rule(rule_id: str = Query(...)):
-    """将自动发现规则升级为正式规则：引擎自动推理填充全部11个标准字段"""
+    """将自动发现规则升级为正式规则：LLM(API Key→Ollama)推理填充11字段→模板兜底"""
     import json as _json, os as _os, shutil as _sh
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
@@ -1164,35 +1164,58 @@ def promote_auto_rule(rule_id: str = Query(...)):
         return {"ok": False, "message": f"未找到规则 {rule_id}"}
     if found.get("type") != "auto_signal":
         return {"ok": False, "message": "该规则不是自动发现规则，无需升级"}
-    # ═══ 引擎自动推理填充11个标准字段 ═══
     industry = found.get("industry", "") or "通用"
     confidence = found.get("confidence", 0.9)
     now_str = str(__import__("datetime").datetime.now().isoformat())
-    # 风险等级：基于置信度
+    fill_source = "template"  # 记录填充来源
+
+    # ═══ 第1层：LLM 推理填充 ═══
+    try:
+        from engine.llm_client import get_llm
+        llm = get_llm()
+        if llm.available():
+            prompt = f"""你是一位资深中国税务合规专家。系统自动发现了一条行业特征信号，请将其转化为一条完整、专业的税务合规规则。
+            信号信息：行业={industry}，置信度={confidence}。
+            请以 JSON 格式返回，包含以下全部字段（不要省略任何字段），字段值为中文：
+            {{"item":"规则名称（简洁专业）","level":"风险等级（高风险/中风险/低风险 之一）","score":整数1-10评分,"detail":"详细检查标准（2-3句话，说明触发条件和分析逻辑）","suggestion":"税务合规建议（2-3句话，给出具体处理建议）","evidence":"所需佐证材料（列出需要哪些数据或文件来验证）","tax_impact":"税务影响说明（该风险对企业的税务后果）","policy_ref":"法律依据（如知悉相关税法条文请引用，否则写'待补充法律依据'）","category":"规则分类（如增值税、企业所得税、收入合规等）","dataSource":"数据来源","detectable":"可检测性说明"}}
+            只返回 JSON，不要其他文字。"""
+            resp = llm.chat([{"role":"user","content":prompt}], system="你是中国税务稽查专家，请生成专业的税务合规规则。", temperature=0.3, max_tokens=1200)
+            if resp and resp.content:
+                # 从LLM响应中提取JSON
+                cnt = resp.content.strip()
+                if cnt.startswith("```"): cnt = cnt.split("\n",1)[-1].rsplit("```",1)[0]
+                data = _json.loads(cnt) if cnt.startswith("{") else _json.loads("{" + cnt)
+                for k in ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","dataSource","detectable"]:
+                    if k in data and data[k] is not None:
+                        found[k] = data[k]
+                fill_source = "llm (" + llm.active_backend() + ")"
+    except Exception as _le:
+        pass  # LLM失败→降级到模板
+
+    # ═══ 第2层：模板兜底（LLM未填充的字段用模板补） ═══
     if confidence >= 0.95: _lv = "高风险"
     elif confidence >= 0.85: _lv = "中风险"
     else: _lv = "低风险"
-    # 评分：confidence * 10
     _sc = max(1, min(10, round(confidence * 10)))
-    # 自动生成完整规则内容
     found["type"] = "manual"
-    found["item"] = found.get("item") or ("[" + industry + "] 行业特征异常信号")
-    found["level"] = found.get("level") or _lv
-    found["score"] = found.get("score") or _sc
-    found["detail"] = found.get("detail") or ("基于跨企业模式检测，在" + industry + "行业内发现重复出现的数据信号特征，置信度" + str(round(confidence*100)) + "%。该信号在同行业多企业中呈现一致性，可能指示行业性合规风险模式。")
-    found["suggestion"] = found.get("suggestion") or ("建议结合具体企业数据验证该信号是否构成实质性风险，排除行业共性后确认是否纳入正式规则库。")
-    found["evidence"] = found.get("evidence") or ("跨企业模式检测引擎输出 + " + industry + "行业数据对比")
-    found["tax_impact"] = found.get("tax_impact") or ("如被确认为实质性风险，可能影响" + industry + "行业企业的税务合规评估结果。")
-    found["policy_ref"] = found.get("policy_ref") or ("自动发现，待补充具体法律依据")
-    found["category"] = found.get("category") or "行业专项"
-    found["dataSource"] = found.get("dataSource") or ("自动发现引擎 - " + industry + "行业信号挖掘")
-    found["detectable"] = found.get("detectable") or ("需在同行业≥3家企业中验证后提升为正式规则")
+    if not found.get("item"): found["item"] = "[" + industry + "] 行业特征异常信号"
+    if not found.get("level"): found["level"] = _lv
+    if not found.get("score"): found["score"] = _sc
+    if not found.get("detail"): found["detail"] = "基于跨企业模式检测，在" + industry + "行业内发现重复出现的数据信号特征，置信度" + str(round(confidence*100)) + "%。该信号在同行业多企业中呈现一致性，可能指示行业性合规风险模式。"
+    if not found.get("suggestion"): found["suggestion"] = "建议结合具体企业数据验证该信号是否构成实质性风险，排除行业共性后确认是否纳入正式规则库。"
+    if not found.get("evidence"): found["evidence"] = "跨企业模式检测引擎输出 + " + industry + "行业数据对比"
+    if not found.get("tax_impact"): found["tax_impact"] = "如被确认为实质性风险，可能影响" + industry + "行业企业的税务合规评估结果。"
+    if not found.get("policy_ref"): found["policy_ref"] = "自动发现，待补充具体法律依据"
+    if not found.get("category"): found["category"] = "行业专项"
+    if not found.get("dataSource"): found["dataSource"] = "自动发现引擎 - " + industry + "行业信号挖掘"
+    if not found.get("detectable"): found["detectable"] = "需在同行业≥3家企业中验证后提升为正式规则"
     found["promoted_at"] = now_str
-    found["auto_filled"] = True  # 标记为引擎自动填充，后续可人工编辑
+    found["auto_filled"] = True
+    found["fill_source"] = fill_source
     try:
         with open(rp, "w", encoding="utf-8") as _f:
             _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        return {"ok": True, "message": f"规则 {rule_id}（{industry}）已升级为正式规则，引擎自动填充11个标准字段"}
+        return {"ok": True, "message": f"规则 {rule_id}（{industry}）已升级为正式规则（填充来源: {fill_source}）"}
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
