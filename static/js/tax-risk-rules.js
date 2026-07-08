@@ -151,6 +151,15 @@ function renderTaxRiskRules(container) {
   h += '<select id="rr-level-filter" onchange="filterRules()">';
   h += '<option value="">全部等级</option><option value="高风险">🔴 高风险</option><option value="中风险">🟡 中风险</option><option value="低风险">🔵 低风险</option><option value="良好">🟢 良好</option>';
   h += '</select>';
+  h += '<select id="rr-cat-filter" onchange="filterRules()" style="max-width:120px">';
+  h += '<option value="">全部分类</option>';
+  h += '<option value="增值税">增值税</option><option value="企业所得税">企业所得税</option><option value="收入合规">收入合规</option>';
+  h += '<option value="成本费用">成本费用</option><option value="资金流">资金流</option><option value="发票进销匹配">发票进销匹配</option>';
+  h += '<option value="经营实质">经营实质</option><option value="薪酬社保">薪酬社保</option><option value="关联交易">关联交易</option>';
+  h += '<option value="申报合规">申报合规</option><option value="税务合规">税务合规</option><option value="财务数据">财务数据</option>';
+  h += '<option value="资产负债">资产负债</option><option value="虚开风险">虚开风险</option><option value="出口退税">出口退税</option>';
+  h += '<option value="个税">个税</option><option value="合同风险">合同风险</option><option value="行业专项">行业专项</option>';
+  h += '</select>';
   h += '<button onclick="toggleTriggeredOnly()" id="rr-trigger-btn">🔗 仅看触发</button>';
   h += '<span id="rr-filter-count" style="font-size:10px;color:#94a3b8;padding:6px 0"></span>';
   h += '</div>';
@@ -181,6 +190,7 @@ function toggleTriggeredOnly() {
 function filterRules() {
   var search = (document.getElementById('rr-search')?.value || '').toLowerCase();
   var level = document.getElementById('rr-level-filter')?.value || '';
+  var cat = document.getElementById('rr-cat-filter')?.value || '';
   
   var listEl = document.getElementById('risk-rules-list');
   if (!listEl) return;
@@ -191,11 +201,13 @@ function filterRules() {
   allCards.forEach(function(card) {
     var text = (card.textContent || '').toLowerCase();
     var ruleLevel = card.getAttribute('data-level') || '';
+    var ruleCat = card.getAttribute('data-category') || '';
     var triggered = card.getAttribute('data-triggered') === '1';
     
     var matches = true;
     if (search && text.indexOf(search) < 0) matches = false;
     if (level && ruleLevel !== level) matches = false;
+    if (cat && ruleCat !== cat) matches = false;
     if (_showTriggeredOnly && !triggered) matches = false;
     
     card.style.display = matches ? '' : 'none';
@@ -225,6 +237,11 @@ async function loadDefaultTaxRiskRules() {
     if (!Array.isArray(rules) || rules.length === 0) throw new Error('数据为空');
     taxRiskRulesData = rules;
     try { localStorage.setItem('taxRiskRulesData', JSON.stringify(rules)); } catch(e) {}
+    // 记录数据更新时间（从HTTP响应头取Last-Modified）
+    try {
+      var lm = resp.headers.get('Last-Modified');
+      if (lm) { window._rulesUpdateTime = lm; }
+    } catch(e) {}
     
     // 先加载触发溯源数据，再渲染
     await loadTriggeredRules();
@@ -267,7 +284,8 @@ function renderTaxRiskRulesList() {
   var triggeredCount = Object.keys(_triggeredRuleFindings).length;
   var countEl = document.getElementById('risk-rules-count');
   var triggerText = triggeredCount > 0 ? '（本次触发 <span style="color:#dc2626;font-weight:600">' + triggeredCount + '</span> 条）' : '（暂无触发）';
-  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选';
+  var timeStr = window._rulesUpdateTime ? ' · 数据更新于 ' + window._rulesUpdateTime : '';
+  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
     listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务合规指令，请加载数据</div>';
@@ -311,7 +329,7 @@ function renderTaxRiskRulesList() {
       var borderColor = isTriggered ? '#dc2626' : color;
       var borderWidth = isTriggered ? '4px' : '3px';
 
-      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '"'
+      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '" data-category="' + (rule.category || '') + '"'
         + ' style="padding:14px 18px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px" class="tr-rule-card">'
         
         // 标题行
