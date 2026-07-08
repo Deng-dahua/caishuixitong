@@ -107,6 +107,17 @@ async def lifespan(app: FastAPI):
                 _last_analysis_cache[int(_cid)] = _v
             print(f"[STARTUP] 恢复缓存: {len(_disk)}条分析记录")
     except: pass
+    # 从磁盘恢复分析历史（重启不丢）
+    try:
+        import json as _j
+        _hpath = os.path.join(os.path.dirname(__file__), "static", "analysis_history.json")
+        if os.path.exists(_hpath):
+            with open(_hpath, "r", encoding="utf-8") as _f:
+                _hdisk = _j.load(_f)
+            for _cid, _v in _hdisk.items():
+                _analysis_history[int(_cid)] = _v
+            print(f"[STARTUP] 恢复分析历史: {sum(len(v) for v in _hdisk.values())}条")
+    except: pass
     try:
         caps = get_capability_summary()
         orch = get_module_registry_summary()
@@ -6559,6 +6570,57 @@ import threading
 _analysis_tasks = {}
 _analysis_lock = threading.Lock()
 
+def _append_analysis_history(company_id, result):
+    """追加分析历史摘要 + 完整回放快照，并落盘（同步/异步路径统一调用）
+    字段路径已按真实report结构校准：
+      pipeline_log/files_count/target_entity 在 report 层
+      overall_risk/risk_score 在 engine_status.phase4_synthesis
+      chain计数 在 comprehensive 层
+    """
+    try:
+        rpt = result.get("report", result)
+        comp = rpt.get("comprehensive", {})
+        es = rpt.get("engine_status", {})
+        st = es.get("step_timing", {})
+        p4 = es.get("phase4_synthesis", {})
+        plog = rpt.get("pipeline_log", []) or comp.get("pipeline_log", [])
+        _overall_risk = p4.get("overall_risk", "") or rpt.get("overall_level", "")
+        _risk_score = p4.get("risk_score", 0)
+        _company_name = (rpt.get("target_entity") or {}).get("name", "")
+        summary = {
+            "timestamp": datetime.now().isoformat(),
+            "risk_level": _overall_risk,
+            "risk_score": _risk_score,
+            "total_findings": len(rpt.get("all_findings", [])),
+            "step_timing_total": st.get("total", 0),
+            "log_count": len(plog),
+            "error_count": len([l for l in plog if "异常" in l or "失败" in l or "错误" in l]),
+            # ═══ 回放快照：前端可用这些字段完整重现七步状态+日志 ═══
+            "snapshot": {
+                "step_timing": st,
+                "files_count": rpt.get("files_count", 0),
+                "company_name": _company_name,
+                "modules_loaded": rpt.get("rules_used", 0),
+                "pipeline_log": plog,
+                "chain_triggered_count": comp.get("chain_triggered_count", 0),
+                "closed_chain_count": comp.get("closed_chain_count", 0),
+                "overall_risk": _overall_risk,
+                "risk_score": _risk_score,
+                "total_findings": len(rpt.get("all_findings", [])),
+            },
+        }
+        hist = _analysis_history.setdefault(company_id, [])
+        hist.insert(0, summary)
+        _analysis_history[company_id] = hist[:20]  # 最多保留20条
+        # 落盘（重启不丢）
+        try:
+            import json as _json2
+            _hdisk = {str(k): v for k, v in _analysis_history.items()}
+            with open("static/analysis_history.json", "w", encoding="utf-8") as _hf:
+                _json2.dump(_hdisk, _hf, ensure_ascii=False, default=str)
+        except: pass
+    except: pass
+
 def _analysis_progress(task_id, progress, msg, step=None):
     """进度回调（在线程中被调用）— step参数用于前端七步实时追踪"""
     with _analysis_lock:
@@ -6578,6 +6640,9 @@ def _run_analysis_thread(task_id, company_id):
         db = SessionLocal()
         try:
             result = _run_analyze(company_id, db, progress_callback=lambda p, m, s=None: _analysis_progress(task_id, p, m, s))
+            # ═══ 异步路径也追加分析历史（前端主流程走异步，否则history永远为空）═══
+            if result and result.get("ok"):
+                _append_analysis_history(company_id, result)
             with _analysis_lock:
                 if task_id in _analysis_tasks:
                     _analysis_tasks[task_id]["status"] = "done"
@@ -6690,25 +6755,8 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
                 with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
                     _json.dump(_disk, _f, ensure_ascii=False, default=str)
             except: pass
-            # ═══ 追加分析历史摘要 ═══
-            try:
-                rpt = result.get("report", result)
-                comp = rpt.get("comprehensive", {})
-                es = rpt.get("engine_status", {})
-                st = es.get("step_timing", {})
-                summary = {
-                    "timestamp": datetime.now().isoformat(),
-                    "risk_level": comp.get("overall_risk", ""),
-                    "risk_score": comp.get("risk_score", 0),
-                    "total_findings": len(rpt.get("all_findings", [])),
-                    "step_timing_total": st.get("total", 0),
-                    "log_count": len(comp.get("pipeline_log", [])),
-                    "error_count": len([l for l in comp.get("pipeline_log",[]) if "异常" in l or "失败" in l or "错误" in l]),
-                }
-                hist = _analysis_history.setdefault(company_id, [])
-                hist.insert(0, summary)
-                _analysis_history[company_id] = hist[:20]  # 最多保留20条
-            except: pass
+            # ═══ 追加分析历史（统一公共函数，含回放快照+落盘）═══
+            _append_analysis_history(company_id, result)
         
         return result
     except Exception as _e:

@@ -1646,14 +1646,16 @@ function renderPipeDashboard(container) {
       var rpt=(d&&d.report)?d.report:{};
       var es=rpt.engine_status||{};
       var comp=rpt.comprehensive||{};
-      var plogs=comp.pipeline_log||[];
+      var p4=es.phase4_synthesis||{};
+      // 字段路径校准：pipeline_log/files_count/target_entity在report层, 风险在phase4_synthesis
+      var plogs=rpt.pipeline_log||comp.pipeline_log||[];
       var all_f=rpt.all_findings||[];
       var lc=document.getElementById('pp-log-count');
       if(lc)lc.textContent=plogs.length||0;
       var mc=document.getElementById('pp-mod-count');
-      if(mc)mc.textContent=es.modules_loaded||'--';
+      if(mc)mc.textContent=rpt.rules_used||es.modules_loaded||'--';
       var pc=document.getElementById('pp-phase-count');
-      if(pc)pc.textContent=(comp.phases||[]).length||'--';
+      if(pc)pc.textContent=(es.phases||comp.phases||[]).length||'--';
 
       // ═══ 从pipeline_log解析七步执行状态 ═══
       if(plogs.length>0){
@@ -1670,14 +1672,14 @@ function renderPipeDashboard(container) {
 
         // ① 资料扫描
         var step1Log = plogs.filter(function(l){return /文件解析|指纹|识别|ftype|fname|Phase1-识别|Phase1-初查|\[ENGINE\]/.test(l)});
-        var fileCount = (es.files_count||rpt.files_count||0);
+        var fileCount = (rpt.files_count||es.files_count||0);
         updateStep('step1', step1Log.length>0 ? 'done' : 'skip',
           fileCount>0 ? '识别<b>'+fileCount+'</b>类文件' : '', st1,
           '文件数据→实体识别');
 
         // ② 目标实体识别
         var step2Log = plogs.filter(function(l){return /Phase1-识别对象|频次|交叉|方向校正|目标实体|联网核查|经营实质/.test(l)});
-        var targetName = es.company_profile?.name || '';
+        var targetName = (rpt.target_entity&&rpt.target_entity.name) || es.company_profile?.name || '';
         updateStep('step2', step2Log.length>0 ? 'done' : 'skip',
           targetName ? '识别目标实体<b>'+targetName+'</b>' : '', st2,
           '企业画像+财务快照→域分析');
@@ -1712,8 +1714,8 @@ function renderPipeDashboard(container) {
 
         // ⑥ 行业对标与申报比对
         var step6Log = plogs.filter(function(l){return /行业基准|EMA|阈值|风险评分|Phase4|综合定性|风险升级/.test(l)});
-        var riskLevel = comp.overall_risk||'';
-        var riskScore = comp.risk_score||0;
+        var riskLevel = p4.overall_risk||comp.overall_risk||rpt.overall_level||'';
+        var riskScore = p4.risk_score||comp.risk_score||0;
         updateStep('step6', step6Log.length>0 ? 'done' : 'skip',
           riskLevel ? '综合定性<b>'+riskLevel+'</b>(评分<b>'+riskScore+'</b>)' : '', st6,
           '风险评级→报告生成');
@@ -1805,13 +1807,19 @@ function _startPipelineProgressPoll(taskId, companyId) {
   _applyStepStates(0);
 
   _pipePollTimer = setInterval(async function() {
+    // ═══ 离页清理：DOM不存在说明用户已离开管道调度页，停止轮询 ═══
+    if (!document.getElementById('step1')) {
+      clearInterval(_pipePollTimer);
+      _pipePollTimer = null;
+      return;
+    }
     try {
       var r = await fetch('/api/tax-risk-docs/analyze-status/' + taskId);
       var d = await r.json();
-      if (!d.ok) { clearInterval(_pipePollTimer); return; }
+      if (!d.ok) { clearInterval(_pipePollTimer); _pipePollTimer = null; return; }
       var cs = d.current_step || 0;
-      // 更新七步状态
-      _applyStepStates(cs);
+      // 更新七步状态（传入message用于step3域分析细粒度进度）
+      _applyStepStates(cs, d.message);
       // Hero卡片更新进度
       var pc = document.getElementById('pp-phase-count');
       if (pc) pc.textContent = d.progress + '% · ' + stepNames[Math.max(0, cs-1)];
@@ -1838,7 +1846,7 @@ function _startPipelineProgressPoll(taskId, companyId) {
   }, 2000);
 }
 
-function _applyStepStates(currentStep) {
+function _applyStepStates(currentStep, message) {
   // currentStep=0: 全部灰色; 1-7: 当前步骤蓝色脉冲，之前的done
   for (var i = 1; i <= 7; i++) {
     var el = document.getElementById('step'+i);
@@ -1856,8 +1864,22 @@ function _applyStepStates(currentStep) {
       // 当前正在运行 → 蓝色脉冲
       el.className = 'pp-step run';
       var sd = el.querySelector('.sd');
-      if (sd && !sd.querySelector('.pp-run-tag')) {
-        sd.innerHTML += '<div class="pp-run-tag" style="margin-top:4px;color:#3b82f6;font-weight:500;font-size:11px">⏳ 正在执行...</div>';
+      // ═══ 细粒度进度：从message提取"已完成N个域"等实时信息 ═══
+      var runText = '⏳ 正在执行...';
+      if (message) {
+        // 提取域分析进度 "已完成N个域" 或 "全部N个域分析完成"
+        var mDomain = message.match(/(已完成\d+个域[^,，·]*|全部\d+个域分析完成)/);
+        if (mDomain) runText = '⏳ ' + mDomain[1];
+        else {
+          // 其他步骤：截取message中"—"后的描述
+          var mDesc = message.match(/—\s*(.+)/);
+          if (mDesc) runText = '⏳ ' + mDesc[1].substring(0, 30);
+        }
+      }
+      var rt = sd ? sd.querySelector('.pp-run-tag') : null;
+      if (sd) {
+        if (rt) rt.innerHTML = runText;  // 更新已有标签（域进度实时刷新）
+        else sd.innerHTML += '<div class="pp-run-tag" style="margin-top:4px;color:#3b82f6;font-weight:500;font-size:11px">'+runText+'</div>';
       }
     } else {
       // 未运行 → 灰色
@@ -1878,12 +1900,14 @@ function _loadFinalPipeData(companyId) {
       var rpt = (d && d.report) ? d.report : {};
       var es = rpt.engine_status || {};
       var comp = rpt.comprehensive || {};
-      var plogs = comp.pipeline_log || [];
+      var p4 = es.phase4_synthesis || {};
+      // 字段路径校准：pipeline_log/files_count/target_entity在report层, 风险在phase4_synthesis
+      var plogs = rpt.pipeline_log || comp.pipeline_log || [];
       var all_f = rpt.all_findings || [];
       var lc = document.getElementById('pp-log-count');
       if (lc) lc.textContent = plogs.length || 0;
       var mc = document.getElementById('pp-mod-count');
-      if (mc) mc.textContent = es.modules_loaded || '--';
+      if (mc) mc.textContent = rpt.rules_used || es.modules_loaded || '--';
 
       // 清除所有"正在执行"标签
       for (var i = 1; i <= 7; i++) {
@@ -1904,11 +1928,11 @@ function _loadFinalPipeData(companyId) {
         var stTotal = st.total || 0;
 
         var step1Log = plogs.filter(function(l){return /文件解析|指纹|识别|ftype|fname|Phase1-识别|Phase1-初查|\[ENGINE\]/.test(l)});
-        var fileCount = (es.files_count||rpt.files_count||0);
+        var fileCount = (rpt.files_count||es.files_count||0);
         updateStep('step1', step1Log.length>0?'done':'skip', fileCount>0?'识别<b>'+fileCount+'</b>类文件':'', st1, '文件数据→实体识别');
 
         var step2Log = plogs.filter(function(l){return /Phase1-识别对象|频次|交叉|方向校正|目标实体|联网核查|经营实质/.test(l)});
-        var targetName = es.company_profile?.name||'';
+        var targetName = (rpt.target_entity&&rpt.target_entity.name) || es.company_profile?.name||'';
         updateStep('step2', step2Log.length>0?'done':'skip', targetName?'识别目标实体<b>'+targetName+'</b>':'', st2, '企业画像+财务快照→域分析');
 
         var step3Log = plogs.filter(function(l){return /资料情报提取|域分析|域→|财务报表分析|进销存|银行收款|Phase2|深挖/.test(l)});
@@ -1927,8 +1951,8 @@ function _loadFinalPipeData(companyId) {
         updateStep('step5', step5Log.length>0?'done':'skip', removedCount>0?'剔除<b>'+removedCount+'</b>条噪声':'', st5, '净化发现→行业对标');
 
         var step6Log = plogs.filter(function(l){return /行业基准|EMA|阈值|风险评分|Phase4|综合定性|风险升级/.test(l)});
-        var riskLevel = comp.overall_risk||'';
-        var riskScore = comp.risk_score||0;
+        var riskLevel = p4.overall_risk||comp.overall_risk||rpt.overall_level||'';
+        var riskScore = p4.risk_score||comp.risk_score||0;
         updateStep('step6', step6Log.length>0?'done':'skip', riskLevel?'综合定性<b>'+riskLevel+'</b>(评分<b>'+riskScore+'</b>)':'', st6, '风险评级→报告生成');
 
         var step7Log = plogs.filter(function(l){return /报告|叙事|交付|合规门禁|GATE/.test(l)});
@@ -2061,7 +2085,64 @@ async function loadHistoryAnalysis(selValue) {
     if (lc) lc.textContent = (item.log_count||0);
     var ec = document.getElementById('pp-error-count');
     if (ec) { ec.textContent = (item.error_count||0); ec.style.color = (item.error_count||0) > 0 ? '#dc2626' : '#94a3b8'; }
+
+    // ═══ 完整回放：用snapshot重现那次的七步状态+日志 ═══
+    if (item.snapshot) {
+      _renderPipeFromSnapshot(item.snapshot);
+    }
   } catch(e) {}
+}
+
+// ═══ 从历史快照回放七步状态+日志 ═══
+function _renderPipeFromSnapshot(snap) {
+  // 清除所有运行标签，重置七步
+  for (var i = 1; i <= 7; i++) {
+    var el = document.getElementById('step'+i);
+    if (el) { el.className = 'pp-step'; var rt = el.querySelector('.pp-run-tag'); if (rt) rt.remove(); }
+  }
+  var plogs = snap.pipeline_log || [];
+  var st = snap.step_timing || {};
+  var st1 = st.step1_资料扫描 || 0, st2 = st.step2_目标实体识别 || 0, st3 = st.step3_域分析 || 0;
+  var st4 = st.step4_规则引擎 || 0, st5 = st.step5_方法论过滤 || 0, st6 = st.step6_行业对标 || 0, st7 = st.step7_报告输出 || 0;
+
+  var step1Log = plogs.filter(function(l){return /文件解析|指纹|识别|ftype|fname|Phase1-识别|Phase1-初查|\[ENGINE\]/.test(l)});
+  updateStep('step1', step1Log.length>0?'done':'skip', (snap.files_count>0)?'识别<b>'+snap.files_count+'</b>类文件':'', st1, '文件数据→实体识别');
+  var step2Log = plogs.filter(function(l){return /Phase1-识别对象|频次|交叉|方向校正|目标实体|联网核查|经营实质/.test(l)});
+  updateStep('step2', step2Log.length>0?'done':'skip', snap.company_name?'识别目标实体<b>'+snap.company_name+'</b>':'', st2, '企业画像+财务快照→域分析');
+  var step3Log = plogs.filter(function(l){return /资料情报提取|域分析|域→|财务报表分析|进销存|银行收款|Phase2|深挖/.test(l)});
+  var intelCount = plogs.filter(function(l){return /资料情报提取:/.test(l)}).map(function(l){var m=l.match(/已完成(\d+)个/);return m?parseInt(m[1]):0;}).reduce(function(a,b){return a+b;},0);
+  updateStep('step3', step3Log.length>0?'done':'skip', intelCount>0?'提取<b>'+intelCount+'</b>个情报模块':'', st3, '域发现→规则引擎');
+  var step4Log = plogs.filter(function(l){return /规则引擎|链驱动|线索链|证据链|Phase3|交叉验证|闭环/.test(l)});
+  updateStep('step4', step4Log.length>0?'done':'skip', (snap.total_findings>0)?'触发<b>'+(snap.chain_triggered_count||0)+'</b>条线索链 · <b>'+(snap.closed_chain_count||0)+'</b>条证据链闭环 · <b>'+(snap.total_findings||0)+'</b>条发现':'', st4, '发现+线索+证据→方法论过滤');
+  var step5Log = plogs.filter(function(l){return /方法论过滤|HARD_BAN|COND_BAN|去重|剔除|噪声/.test(l)});
+  var filterBefore = plogs.filter(function(l){return /方法论过滤:/.test(l)}).map(function(l){var m=l.match(/(\d+)→(\d+)条/);return m?(+m[1]-+m[2]):0;});
+  var removedCount = filterBefore.length>0?filterBefore[0]:0;
+  updateStep('step5', step5Log.length>0?'done':'skip', removedCount>0?'剔除<b>'+removedCount+'</b>条噪声':'', st5, '净化发现→行业对标');
+  var step6Log = plogs.filter(function(l){return /行业基准|EMA|阈值|风险评分|Phase4|综合定性|风险升级/.test(l)});
+  updateStep('step6', step6Log.length>0?'done':'skip', snap.overall_risk?'综合定性<b>'+snap.overall_risk+'</b>(评分<b>'+(snap.risk_score||0)+'</b>)':'', st6, '风险评级→报告生成');
+  var step7Log = plogs.filter(function(l){return /报告|叙事|交付|合规门禁|GATE/.test(l)});
+  updateStep('step7', step7Log.length>0?'done':(plogs.length>0?'skip':''), step7Log.length>0?'报告已生成':'', st7, '结构化报告·7章+附件·直接交付');
+
+  // 回放模块数
+  var mc = document.getElementById('pp-mod-count');
+  if (mc) mc.textContent = snap.modules_loaded || '--';
+
+  // 回放日志（含过滤搜索）
+  if (plogs.length > 0) {
+    var ls = document.getElementById('pp-log-section');
+    var lcc = document.getElementById('pp-log-content');
+    if (ls && lcc) { ls.style.display=''; window._pipelineLogsData=plogs; window._currentLogPhase='all'; window._currentLogSearch=''; renderPipelineLogs(lcc, plogs); updateLogFilterInfo(); }
+  }
+  // 回放异常摘要
+  var errorLogs = plogs.filter(function(l){return /异常|失败|错误/.test(l)});
+  if (errorLogs.length > 0) {
+    var es2 = document.getElementById('pp-error-section');
+    var esm = document.getElementById('pp-error-summary');
+    if (es2 && esm) { es2.style.display=''; esm.innerHTML = errorLogs.map(function(l){return '<div style="margin-bottom:4px">'+l.replace(/</g,'&lt;')+'</div>';}).join(''); }
+  } else {
+    var es2 = document.getElementById('pp-error-section');
+    if (es2) es2.style.display='none';
+  }
 }
 
 // 全局：上下游明细展开/折叠

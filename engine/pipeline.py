@@ -1406,6 +1406,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
     if clean_invs: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(clean_invs)})
     if inv_match_findings: domain_results.append({"domain": "进销存匹配分析", "findings": inv_match_findings})
+    _report(97, f"步骤③域分析 — 已完成{len(domain_results)}个域(基础域)", step=3)
     # 无条件域加数据守卫：关键数据全空的域跳过，避免空数据触发误报
     _has_any_data = total_parsed > 0
     _has_inv_or_bank = len(invoices) > 0 or len(bank_txs) > 0
@@ -1441,6 +1442,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 域16: 扩展规则
     if _has_any_data: domain_results.append({"domain": "扩展审查规则", "findings": _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory)})
     else: domain_results.append({"domain": "扩展审查规则", "findings": []})
+    _report(97, f"步骤③域分析 — 已完成{len(domain_results)}个域(交叉验证域)", step=3)
     # 域17: 凭证收入 vs 发票收入对比
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
     # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论 (需要在all_findings之后)
@@ -1471,6 +1473,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "资产折旧费用匹配", "findings": []})
     if _has_any_data: domain_results.append({"domain": "行业对标分析", "findings": _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, _target_industry)})
     else: domain_results.append({"domain": "行业对标分析", "findings": []})
+    _report(98, f"步骤③域分析 — 已完成{len(domain_results)}个域(深度特征域)", step=3)
     
     # ═══ 补充域：印花税/CIT汇算/出口退税 ═══
     if _has_any_data: domain_results.append({"domain": "印花税检查", "findings": _domain_stamp_duty_check(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
@@ -1556,6 +1559,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         domain_results.append({"domain": "发票实质性审计", "findings": _domain_invoice_audit(clean_invs, _target_industry)})
     else:
         domain_results.append({"domain": "发票实质性审计", "findings": []})
+    _report(98, f"步骤③域分析 — 全部{len(domain_results)}个域分析完成，开始信号叠加", step=3)
 
     # ═══════════════════════════════════════════════════════════
     # Phase 2 结果注入 + 去重
