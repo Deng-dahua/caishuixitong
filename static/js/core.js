@@ -8,8 +8,23 @@ var _LOADING_HTML = '<div style="padding:60px;text-align:center;color:#94a3b8">�
 function _sR(container, fnName) {
   var fn = window[fnName];
   if (typeof fn === 'function') { fn(container); return true; }
+  // 可能来自 defer 脚本尚未加载 → 显示加载提示 + 轮询等待（最多 5 秒）
   container.innerHTML = _LOADING_HTML;
-  console.warn('[安全派发] 函数 ' + fnName + ' 未就绪');
+  var retried = 0, maxRetry = 25;
+  var timer = setInterval(function() {
+    fn = window[fnName];
+    if (typeof fn === 'function') {
+      clearInterval(timer);
+      fn(container);
+      return;
+    }
+    retried++;
+    if (retried >= maxRetry) {
+      clearInterval(timer);
+      container.innerHTML = '<div style="padding:60px;text-align:center;color:#dc2626">模块 ' + fnName + ' 加载超时，请刷新页面重试</div>';
+      console.error('[安全派发] 函数 ' + fnName + ' 5秒内未就绪');
+    }
+  }, 200);
   return false;
 }
 function _sRX(container, fnName, xarg) {
