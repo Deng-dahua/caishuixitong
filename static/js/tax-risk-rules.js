@@ -202,6 +202,30 @@ function sortAndRenderRules() {
   filterRules();
 }
 
+async function promoteAutoRule(ruleId, btn) {
+  if (!confirm('确定将这条自动发现规则升级为正式规则？')) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    var r = await fetch('/api/tax-risk-rules/promote-auto-rule?rule_id=' + ruleId, { method: 'POST' });
+    var d = await r.json();
+    if (d.ok) {
+      btn.textContent = '✓ 已确认';
+      btn.style.background = '#059669';
+      btn.style.color = '#fff';
+      // 2秒后刷新规则列表
+      setTimeout(function(){ loadTaxRiskRules(); }, 1500);
+    } else {
+      alert(d.message || '操作失败');
+      btn.disabled = false;
+      btn.textContent = '✗ 重试';
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✗ 重试';
+  }
+}
+
 function filterRules() {
   var search = (document.getElementById('rr-search')?.value || '').toLowerCase();
   var level = document.getElementById('rr-level-filter')?.value || '';
@@ -381,6 +405,7 @@ function renderTaxRiskRulesList() {
             : '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
         + (isAutoRule 
             ? '<span style="font-size:11px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
+            + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'
             : '<span style="font-size:11px;color:#94a3b8">评分 ' + scoreVal + '</span>')
         + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
         + '</div>'

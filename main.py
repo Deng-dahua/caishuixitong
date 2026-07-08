@@ -167,7 +167,7 @@ _AUTH_SESSIONS = _load_sessions()
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/api/pipeline/history", "/static/", "/favicon.ico"]
+    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/api/pipeline/history", "/api/tax-risk-rules/", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
         return await call_next(request)
     is_api = path.startswith("/api/")
@@ -1142,6 +1142,42 @@ async def tax_risk_rules_upload_report(request: Request):
     relevance = _check_tax_relevance(extracted_text.strip())
     result["relevance"] = relevance
     return result
+
+@app.post("/api/tax-risk-rules/promote-auto-rule")
+def promote_auto_rule(rule_id: str = Query(...)):
+    """将自动发现规则(type=auto_signal)升级为正式人工规则"""
+    import json as _json, os as _os, shutil as _sh
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+    # 备份
+    _sh.copy2(rp, rp + ".bak")
+    try:
+        with open(rp, "r", encoding="utf-8") as _f:
+            rules = _json.load(_f)
+    except Exception as _e:
+        return {"ok": False, "message": f"读取规则文件失败: {_e}"}
+    found = None
+    for _r in rules:
+        if str(_r.get("id", "")) == rule_id:
+            found = _r
+            break
+    if not found:
+        return {"ok": False, "message": f"未找到规则 {rule_id}"}
+    if found.get("type") != "auto_signal":
+        return {"ok": False, "message": "该规则不是自动发现规则，无需升级"}
+    # 升级：去掉auto_signal标记，补上默认字段
+    found["type"] = "manual"
+    if not found.get("level"): found["level"] = "中风险"
+    if not found.get("score"): found["score"] = 5
+    if not found.get("suggestion"): found["suggestion"] = "人工确认后升级为正式规则"
+    found["promoted_at"] = str(__import__("datetime").datetime.now().isoformat())
+    try:
+        with open(rp, "w", encoding="utf-8") as _f:
+            _json.dump(rules, _f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": f"规则 {rule_id}（{found.get('item','') or found.get('industry','')}）已升级为正式规则"}
+    except Exception as _e:
+        return {"ok": False, "message": f"保存失败: {_e}"}
 
 # ── 涉税风险分析资料库 ──
 
