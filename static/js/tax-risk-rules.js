@@ -96,6 +96,7 @@ function renderTaxRiskRules(container) {
   h += '<div class="tr-card"><div class="v" id="tr-low" style="color:#10b981">—</div><div class="l">低/良好</div></div>';
   h += '<div class="tr-card"><div class="v" id="tr-trigger" style="color:#2563eb">—</div><div class="l">本次触发</div></div>';
   h += '</div>';
+  h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button onclick="batchRefreshRules(this)" style="font-size:11px;padding:5px 14px;border:1px solid #f59e0b;border-radius:6px;background:#fffbeb;color:#d97706;cursor:pointer;font-weight:600">🔄 统一刷新政策法律</button></div>';
 
   // 段落说明
   h += '<div class="tr-para">';
@@ -224,6 +225,82 @@ async function promoteAutoRule(ruleId, btn) {
     btn.disabled = false;
     btn.textContent = '✗ 重试';
   }
+}
+
+// ═══ 规则编辑面板 ═══
+function toggleRuleEdit(ruleId, btn) {
+  var card = btn.closest('[data-rule-id]');
+  if (!card) return;
+  var existing = card.querySelector('.rr-edit-panel');
+  if (existing) { existing.remove(); return; }  // 关闭
+  // 读取当前值
+  var rule = (taxRiskRulesData || []).find(function(r){ return String(r.id||'') === ruleId; });
+  if (!rule) return;
+  var fields = [
+    {k:'item',label:'指令名称',v:rule.item||''},
+    {k:'level',label:'风险等级',v:rule.level||'',type:'select',opts:['高风险','中风险','低风险','良好']},
+    {k:'score',label:'评分',v:rule.score||''},
+    {k:'detail',label:'详细标准',v:rule.detail||'',ta:true},
+    {k:'suggestion',label:'税务合规建议',v:rule.suggestion||'',ta:true},
+    {k:'evidence',label:'所需佐证',v:rule.evidence||'',ta:true},
+    {k:'tax_impact',label:'税务影响',v:rule.tax_impact||'',ta:true},
+    {k:'policy_ref',label:'法律依据',v:rule.policy_ref||'',ta:true},
+    {k:'category',label:'分类',v:rule.category||''},
+  ];
+  var h = '<div class="rr-edit-panel" style="margin:12px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
+  h += '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:12px">✏️ 编辑规则 ' + ruleId + '</div>';
+  fields.forEach(function(f){
+    h += '<div style="margin-bottom:8px"><span style="font-size:10px;color:#94a3b8">' + f.label + '</span>';
+    if (f.type === 'select') {
+      h += '<select id="rr-edit-' + f.k + '" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
+      (f.opts||[]).forEach(function(o){ h += '<option ' + (o===f.v?'selected':'') + '>' + o + '</option>'; });
+      h += '</select>';
+    } else if (f.ta) {
+      h += '<textarea id="rr-edit-' + f.k + '" rows="2" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px;resize:vertical">' + escHtml(String(f.v)) + '</textarea>';
+    } else {
+      h += '<input id="rr-edit-' + f.k + '" value="' + escHtml(String(f.v)) + '" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
+    }
+    h += '</div>';
+  });
+  h += '<div style="display:flex;gap:8px;margin-top:12px">';
+  h += '<button onclick="saveRuleEdit(\'' + ruleId + '\',this)" style="font-size:11px;padding:5px 16px;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">保存</button>';
+  h += '<button onclick="toggleRuleEdit(\'' + ruleId + '\',this)" style="font-size:11px;padding:5px 16px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">取消</button>';
+  h += '</div></div>';
+  card.insertAdjacentHTML('beforeend', h);
+}
+
+async function saveRuleEdit(ruleId, btn) {
+  var card = btn.closest('[data-rule-id]');
+  if (!card) return;
+  var fields = ['item','level','score','detail','suggestion','evidence','tax_impact','policy_ref','category'];
+  var body = {rule_id: ruleId};
+  fields.forEach(function(k){
+    var el = card.querySelector('#rr-edit-'+k);
+    if (el) body[k] = el.value || '';
+  });
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+  try {
+    var r = await fetch('/api/tax-risk-rules/update-rule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d = await r.json();
+    if (d.ok) {
+      var panel = card.querySelector('.rr-edit-panel');
+      if (panel) panel.innerHTML = '<div style="color:#059669;font-weight:600;font-size:12px;padding:8px">✓ 已保存（' + d.changed.length + '字段）· 1.5秒后刷新</div>';
+      setTimeout(function(){ loadTaxRiskRules(); }, 1500);
+    } else { alert(d.message); btn.disabled = false; btn.textContent = '保存'; }
+  } catch(e) { btn.disabled = false; btn.textContent = '重试'; }
+}
+
+async function batchRefreshRules(btn) {
+  if (!confirm('统一刷新全部人工规则的时效标记？此操作会备份原文件。')) return;
+  btn.disabled = true;
+  btn.textContent = '刷新中...';
+  try {
+    var r = await fetch('/api/tax-risk-rules/batch-refresh', {method:'POST'});
+    var d = await r.json();
+    if (d.ok) { alert(d.message); loadTaxRiskRules(); }
+    else { alert(d.message); btn.disabled = false; btn.textContent = '🔄 统一刷新政策法律'; }
+  } catch(e) { btn.disabled = false; btn.textContent = '重试'; }
 }
 
 function filterRules() {
@@ -403,6 +480,7 @@ function renderTaxRiskRulesList() {
         + (isAutoRule 
             ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#2563eb;font-weight:600">🤖 自动发现</span>'
             : '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
+        + (!isAutoRule ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">✏️</button>' : '')
         + (isAutoRule 
             ? '<span style="font-size:11px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
             + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'

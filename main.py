@@ -1179,6 +1179,74 @@ def promote_auto_rule(rule_id: str = Query(...)):
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+@app.post("/api/tax-risk-rules/update-rule")
+async def update_rule(request: Request):
+    """编辑人工规则：接收 JSON body，写回规则文件"""
+    import json as _json, os as _os, shutil as _sh
+    body = {}
+    try:
+        body = await request.json()
+    except: pass
+    rule_id = body.get("rule_id") or ""
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+    _sh.copy2(rp, rp + ".bak")
+    try:
+        with open(rp, "r", encoding="utf-8") as _f:
+            rules = _json.load(_f)
+    except Exception as _e:
+        return {"ok": False, "message": f"读取失败: {_e}"}
+    found = None
+    for _r in rules:
+        if str(_r.get("id", "")) == rule_id:
+            found = _r; break
+    if not found:
+        return {"ok": False, "message": f"未找到规则 {rule_id}"}
+    # 允许编辑的字段
+    editable = ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","detectable"]
+    changed = []
+    for k in editable:
+        if k in body and body[k] is not None and body[k] != found.get(k):
+            found[k] = body[k]
+            changed.append(k)
+    if not changed:
+        return {"ok": False, "message": "没有字段变更"}
+    found["updated_at"] = str(__import__("datetime").datetime.now().isoformat())
+    try:
+        with open(rp, "w", encoding="utf-8") as _f:
+            _json.dump(rules, _f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": f"已更新 {len(changed)} 个字段: {', '.join(changed)}", "changed": changed}
+    except Exception as _e:
+        return {"ok": False, "message": f"保存失败: {_e}"}
+
+@app.post("/api/tax-risk-rules/batch-refresh")
+def batch_refresh_rules():
+    """统一刷新全部人工规则：更新政策/法律依据时效标记（如有外部源则填充，否则仅刷新时间戳）"""
+    import json as _json, os as _os, shutil as _sh
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+    _sh.copy2(rp, rp + ".bak")
+    try:
+        with open(rp, "r", encoding="utf-8") as _f:
+            rules = _json.load(_f)
+    except Exception as _e:
+        return {"ok": False, "message": f"读取失败: {_e}"}
+    refreshed = 0
+    now_str = str(__import__("datetime").datetime.now().isoformat())
+    for _r in rules:
+        if _r.get("type") == "auto_signal":
+            continue
+        _r["refreshed_at"] = now_str
+        refreshed += 1
+    try:
+        with open(rp, "w", encoding="utf-8") as _f:
+            _json.dump(rules, _f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": f"已刷新 {refreshed} 条人工规则，标记时间戳 {now_str[:19]}"}
+    except Exception as _e:
+        return {"ok": False, "message": f"保存失败: {_e}"}
+
 # ── 涉税风险分析资料库 ──
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
