@@ -160,6 +160,9 @@ function renderTaxRiskRules(container) {
   h += '<option value="资产负债">资产负债</option><option value="虚开风险">虚开风险</option><option value="出口退税">出口退税</option>';
   h += '<option value="个税">个税</option><option value="合同风险">合同风险</option><option value="行业专项">行业专项</option>';
   h += '</select>';
+  h += '<select id="rr-sort-filter" onchange="sortAndRenderRules()" style="max-width:110px">';
+  h += '<option value="time">⏱ 按时间</option><option value="high">🔴 高风险优先</option><option value="low">🟢 低风险优先</option><option value="trigger">✅ 触发优先</option>';
+  h += '</select>';
   h += '<button onclick="toggleTriggeredOnly()" id="rr-trigger-btn">🔗 仅看触发</button>';
   h += '<span id="rr-filter-count" style="font-size:10px;color:#94a3b8;padding:6px 0"></span>';
   h += '</div>';
@@ -184,6 +187,15 @@ function toggleTriggeredOnly() {
     btn.style.borderColor = _showTriggeredOnly ? '#2563eb' : '#e2e8f0';
     btn.style.color = _showTriggeredOnly ? '#2563eb' : '#0f172a';
   }
+  filterRules();
+}
+
+var _currentSort = 'time';  // 当前排序模式
+
+function sortAndRenderRules() {
+  var sel = document.getElementById('rr-sort-filter');
+  _currentSort = sel?.value || 'time';
+  renderTaxRiskRulesList();
   filterRules();
 }
 
@@ -284,16 +296,34 @@ function renderTaxRiskRulesList() {
   var triggeredCount = Object.keys(_triggeredRuleFindings).length;
   var countEl = document.getElementById('risk-rules-count');
   var triggerText = triggeredCount > 0 ? '（本次触发 <span style="color:#dc2626;font-weight:600">' + triggeredCount + '</span> 条）' : '（暂无触发）';
+  var sortNames = {time:'按时间排序', high:'高风险优先', low:'低风险优先', trigger:'触发优先'};
+  var sortName = sortNames[_currentSort] || '按时间排序';
   var timeStr = window._rulesUpdateTime ? ' · 数据更新于 ' + window._rulesUpdateTime : '';
-  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · 按生成时间排序 · 支持搜索筛选' + timeStr;
+  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
     listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务合规指令，请加载数据</div>';
     return;
   }
 
-  // 按生成时间排序（ID越大越新）
-  var sortedData = data.slice().sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
+  // 排序
+  var sortedData = data.slice();
+  if (_currentSort === 'high') {
+    var lv={'极高风险':0,'高风险':1,'中风险':2,'低风险':3,'良好':4};
+    sortedData.sort(function(a,b){return (lv[a.level||'']||9)-(lv[b.level||'']||9);});
+  } else if (_currentSort === 'low') {
+    var lv2={'极高风险':4,'高风险':3,'中风险':2,'低风险':1,'良好':0};
+    sortedData.sort(function(a,b){return (lv2[a.level||'']||9)-(lv2[b.level||'']||9);});
+  } else if (_currentSort === 'trigger') {
+    sortedData.sort(function(a,b){
+      var ta=(_triggeredRuleFindings[String(a.id||'').trim()]||[]).length;
+      var tb=(_triggeredRuleFindings[String(b.id||'').trim()]||[]).length;
+      return tb-ta || ((b.id||0)-(a.id||0));
+    });
+  } else {
+    // 按生成时间（ID越大越新）
+    sortedData.sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
+  }
 
   // 统计 — 填充顶部卡片
   var high = data.filter(function(r) { return (r.level === '极高风险' || r.level === '高风险'); }).length;
