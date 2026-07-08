@@ -1145,12 +1145,11 @@ async def tax_risk_rules_upload_report(request: Request):
 
 @app.post("/api/tax-risk-rules/promote-auto-rule")
 def promote_auto_rule(rule_id: str = Query(...)):
-    """将自动发现规则(type=auto_signal)升级为正式人工规则"""
+    """将自动发现规则升级为正式规则：引擎自动推理填充全部11个标准字段"""
     import json as _json, os as _os, shutil as _sh
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
         return {"ok": False, "message": "规则文件不存在"}
-    # 备份
     _sh.copy2(rp, rp + ".bak")
     try:
         with open(rp, "r", encoding="utf-8") as _f:
@@ -1160,22 +1159,40 @@ def promote_auto_rule(rule_id: str = Query(...)):
     found = None
     for _r in rules:
         if str(_r.get("id", "")) == rule_id:
-            found = _r
-            break
+            found = _r; break
     if not found:
         return {"ok": False, "message": f"未找到规则 {rule_id}"}
     if found.get("type") != "auto_signal":
         return {"ok": False, "message": "该规则不是自动发现规则，无需升级"}
-    # 升级：去掉auto_signal标记，补上默认字段
+    # ═══ 引擎自动推理填充11个标准字段 ═══
+    industry = found.get("industry", "") or "通用"
+    confidence = found.get("confidence", 0.9)
+    now_str = str(__import__("datetime").datetime.now().isoformat())
+    # 风险等级：基于置信度
+    if confidence >= 0.95: _lv = "高风险"
+    elif confidence >= 0.85: _lv = "中风险"
+    else: _lv = "低风险"
+    # 评分：confidence * 10
+    _sc = max(1, min(10, round(confidence * 10)))
+    # 自动生成完整规则内容
     found["type"] = "manual"
-    if not found.get("level"): found["level"] = "中风险"
-    if not found.get("score"): found["score"] = 5
-    if not found.get("suggestion"): found["suggestion"] = "人工确认后升级为正式规则"
-    found["promoted_at"] = str(__import__("datetime").datetime.now().isoformat())
+    found["item"] = found.get("item") or ("[" + industry + "] 行业特征异常信号")
+    found["level"] = found.get("level") or _lv
+    found["score"] = found.get("score") or _sc
+    found["detail"] = found.get("detail") or ("基于跨企业模式检测，在" + industry + "行业内发现重复出现的数据信号特征，置信度" + str(round(confidence*100)) + "%。该信号在同行业多企业中呈现一致性，可能指示行业性合规风险模式。")
+    found["suggestion"] = found.get("suggestion") or ("建议结合具体企业数据验证该信号是否构成实质性风险，排除行业共性后确认是否纳入正式规则库。")
+    found["evidence"] = found.get("evidence") or ("跨企业模式检测引擎输出 + " + industry + "行业数据对比")
+    found["tax_impact"] = found.get("tax_impact") or ("如被确认为实质性风险，可能影响" + industry + "行业企业的税务合规评估结果。")
+    found["policy_ref"] = found.get("policy_ref") or ("自动发现，待补充具体法律依据")
+    found["category"] = found.get("category") or "行业专项"
+    found["dataSource"] = found.get("dataSource") or ("自动发现引擎 - " + industry + "行业信号挖掘")
+    found["detectable"] = found.get("detectable") or ("需在同行业≥3家企业中验证后提升为正式规则")
+    found["promoted_at"] = now_str
+    found["auto_filled"] = True  # 标记为引擎自动填充，后续可人工编辑
     try:
         with open(rp, "w", encoding="utf-8") as _f:
             _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        return {"ok": True, "message": f"规则 {rule_id}（{found.get('item','') or found.get('industry','')}）已升级为正式规则"}
+        return {"ok": True, "message": f"规则 {rule_id}（{industry}）已升级为正式规则，引擎自动填充11个标准字段"}
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
