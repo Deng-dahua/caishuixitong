@@ -1829,6 +1829,8 @@ async function analyzeTaxDocs() {
 
     var taskId = startData.task_id;
 
+    // ═══ 设置全局task_id，管道调度页面可检测到正在运行的分析 ═══
+    window._currentAnalysisTaskId = taskId;
 
     
 
@@ -1879,11 +1881,8 @@ async function analyzeTaxDocs() {
 
 
       if (statusData.status === 'done') {
-
-
+        window._currentAnalysisTaskId = null; // 清除全局task_id
         btn.textContent = '✅ 分析完成，正在加载报告...';
-
-
         break;
 
 
@@ -1893,6 +1892,7 @@ async function analyzeTaxDocs() {
       if (statusData.status === 'error') {
 
 
+        window._currentAnalysisTaskId = null; // 清除全局task_id
         throw new Error(statusData.error || statusData.message || '分析服务异常');
 
 

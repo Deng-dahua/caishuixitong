@@ -89,7 +89,7 @@ from fixed_assets import router as fixed_assets_router
 from dashboard import router as dashboard_router
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
-from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs
+from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
 
 
 @asynccontextmanager
@@ -156,7 +156,7 @@ _AUTH_SESSIONS = _load_sessions()
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/static/", "/favicon.ico"]
+    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/api/pipeline/history", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
         return await call_next(request)
     is_api = path.startswith("/api/")
@@ -5041,6 +5041,11 @@ async def get_last_analysis(company_id: int = Query(...)):
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
     return cached["report"]
 
+@app.get("/api/pipeline/history")
+def get_pipeline_history(company_id: int = Query(...)):
+    """获取分析历史列表（最多20条）"""
+    hist = _analysis_history.get(company_id, [])
+    return {"ok": True, "history": hist, "count": len(hist)}
 
 # ═══════════════════════════════════════════════════════════
 # 电子证据固化 —— SHA256哈希链 + 时间戳存证
@@ -6554,12 +6559,14 @@ import threading
 _analysis_tasks = {}
 _analysis_lock = threading.Lock()
 
-def _analysis_progress(task_id, progress, msg):
-    """进度回调（在线程中被调用）"""
+def _analysis_progress(task_id, progress, msg, step=None):
+    """进度回调（在线程中被调用）— step参数用于前端七步实时追踪"""
     with _analysis_lock:
         if task_id in _analysis_tasks:
             _analysis_tasks[task_id]["progress"] = progress
             _analysis_tasks[task_id]["message"] = msg
+            if step is not None:
+                _analysis_tasks[task_id]["current_step"] = step
 
 def _run_analysis_thread(task_id, company_id):
     """在后台线程中运行分析"""
@@ -6570,7 +6577,7 @@ def _run_analysis_thread(task_id, company_id):
         from database import SessionLocal
         db = SessionLocal()
         try:
-            result = _run_analyze(company_id, db, progress_callback=lambda p, m: _analysis_progress(task_id, p, m))
+            result = _run_analyze(company_id, db, progress_callback=lambda p, m, s=None: _analysis_progress(task_id, p, m, s))
             with _analysis_lock:
                 if task_id in _analysis_tasks:
                     _analysis_tasks[task_id]["status"] = "done"
@@ -6603,6 +6610,7 @@ def analyze_tax_risk_docs_start(company_id: int = Query(...)):
             "error": None,
             "company_id": company_id,
             "started_at": _time_.time(),
+            "current_step": 0,
         }
     t = threading.Thread(target=_run_analysis_thread, args=(task_id, company_id), daemon=True)
     t.start()
@@ -6621,6 +6629,7 @@ def analyze_tax_risk_docs_status(task_id: str):
             "status": task["status"],
             "progress": task["progress"],
             "message": task["message"],
+            "current_step": task.get("current_step", 0),
         }
         # 2026-06-26 修复：error状态下同时返回真正的错误信息，避免前端展示进度消息当错误
         if task["status"] == "error":
@@ -6680,6 +6689,25 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
                 _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
                 with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
                     _json.dump(_disk, _f, ensure_ascii=False, default=str)
+            except: pass
+            # ═══ 追加分析历史摘要 ═══
+            try:
+                rpt = result.get("report", result)
+                comp = rpt.get("comprehensive", {})
+                es = rpt.get("engine_status", {})
+                st = es.get("step_timing", {})
+                summary = {
+                    "timestamp": datetime.now().isoformat(),
+                    "risk_level": comp.get("overall_risk", ""),
+                    "risk_score": comp.get("risk_score", 0),
+                    "total_findings": len(rpt.get("all_findings", [])),
+                    "step_timing_total": st.get("total", 0),
+                    "log_count": len(comp.get("pipeline_log", [])),
+                    "error_count": len([l for l in comp.get("pipeline_log",[]) if "异常" in l or "失败" in l or "错误" in l]),
+                }
+                hist = _analysis_history.setdefault(company_id, [])
+                hist.insert(0, summary)
+                _analysis_history[company_id] = hist[:20]  # 最多保留20条
             except: pass
         
         return result

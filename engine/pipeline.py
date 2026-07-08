@@ -145,10 +145,15 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.memory import save_analysis_memory, query_similar_cases
     from engine.context import AuditContext
     
-    def _report(progress, msg):
-        """报告进度"""
+    # ═══ 实时进度：current_step 字段用于前端七步状态追踪 ═══
+    _pipeline_current_step = 0  # 0=未开始, 1-7=对应七步
+
+    def _report(progress, msg, step=None):
+        """报告进度 — step参数用于前端七步timeline实时追踪"""
+        if step is not None:
+            _pipeline_current_step = step
         if progress_callback:
-            try: progress_callback(progress, msg)
+            try: progress_callback(progress, msg, step)
             except: pass
 
     # ── NEW ENGINE MARKER: 2026-06-23 Phase 1-4 Reasoning Engine ──
@@ -219,7 +224,7 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     _total_docs = len(docs)
     _step_timing["step1_start"] = time.time()
-    _report(0, f"开始解析 {_total_docs} 个文件...")
+    _report(0, f"步骤①资料扫描 — 开始解析 {_total_docs} 个文件...", step=1)
     _doc_idx = 0
     for doc in docs:
         _doc_idx += 1
@@ -813,7 +818,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     suspect_invs = [i for i in invoices if i["direction"] == "存疑"]
     clean_invs = sal_invs + pur_invs  # 只含已确认公司身份的发票，存疑发票绝对排除
-    _report(95, f"文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张" + (f" 存疑{len(suspect_invs)}张" if suspect_invs else ""))
+    _report(95, f"步骤①完成 — 文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张", step=1)
     
     # 存疑发票不参与分析，但记录在案
     if suspect_invs:
@@ -822,6 +827,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _step_timing["step1"] = round(time.time() - _step_timing.get("step1_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤①文件解析: {_step_timing['step1']}秒")
     _step_timing["step2_start"] = time.time()
+    _report(96, "步骤②目标实体识别 — 开始...", step=2)
     # ═══════════════════════════════════════
     from collections import Counter as _Counter
     
@@ -1295,6 +1301,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 后续所有分析域都基于此context展开
     # ═══════════════════════════════════════════════════════════
     _step_timing["step3_start"] = time.time()
+    _report(97, "步骤③域分析 — Phase1初查+Phase2深挖开始...", step=3)
     ctx = AuditContext()
     try:
         ctx = _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
@@ -1613,6 +1620,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _step_timing["step3"] = round(time.time() - _step_timing.get("step3_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤③域分析(Phase1+2): {_step_timing['step3']}秒")
     _step_timing["step4_start"] = time.time()
+    _report(98, "步骤④规则引擎+链驱动 — Phase3交叉验证开始...", step=4)
     # Phase 3 — 交叉验证：信号叠加检测 + 冲突消解 + 结论互证
     # Phase 4 — 综合定性：风险评级 + 核心问题 + 优先级排序 + 综合结论
     # ═══════════════════════════════════════════════════════════
@@ -1654,6 +1662,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _step_timing["step4"] = round(time.time() - _step_timing.get("step4_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤④规则引擎+链驱动(Phase3+290规则): {_step_timing['step4']}秒")
     _step_timing["step6_start"] = time.time()
+    _report(99, "步骤⑥行业对标与申报比对 — Phase4综合定性开始...", step=6)
     # ── Phase 4：综合定性 ──
     synthesis = _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log)
     
@@ -3039,6 +3048,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[服务行业过滤] 剔除{_filtered_out}条不适用服务行业的进销存/BOM相关发现（销项服务类占比{_svc_sal/_total_sal*100:.0f}%）")
     
     _step_timing["step5_start"] = time.time()
+    _report(98, "步骤⑤方法论噪声过滤 — 开始...", step=5)
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
@@ -3515,6 +3525,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"[AGI-趋势] 执行异常: {e}")
     
     _step_timing["step7_start"] = time.time()
+    _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
