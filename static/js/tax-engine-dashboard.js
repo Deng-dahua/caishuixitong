@@ -1455,7 +1455,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-card"><div class="v" style="color:#2563eb">v3.0</div><div class="l">引擎版本</div></div>';
   h += '<div class="pp-card"><div class="v" id="pp-log-count">0</div><div class="l">执行日志</div></div>';
   h += '<div class="pp-card"><div class="v" style="color:#059669" id="pp-mod-count">--</div><div class="l">加载模块</div></div>';
-  h += '<div class="pp-card"><div class="v" style="color:#f59e0b" id="pp-phase-count">--</div><div class="l">完成阶段</div></div>';
+  h += '<div class="pp-card"><div class="v" style="color:#f59e0b" id="pp-phase-count">--</div><div class="l">总耗时</div></div>';
   h += '</div>';
   
   // 模块说明 — 段落式
@@ -1605,55 +1605,71 @@ function renderPipeDashboard(container) {
 
       // ═══ 从pipeline_log解析七步执行状态 ═══
       if(plogs.length>0){
-        // ① 资料扫描 — 关键词: 文件解析/指纹/识别/fname->ftype
+        // 从 engine_status.step_timing 提取耗时
+        var st = es.step_timing || {};
+        var st1 = st.step1_资料扫描 || 0;
+        var st2 = st.step2_目标实体识别 || 0;
+        var st3 = st.step3_域分析 || 0;
+        var st4 = st.step4_规则引擎 || 0;
+        var st5 = st.step5_方法论过滤 || 0;
+        var st6 = st.step6_行业对标 || 0;
+        var st7 = st.step7_报告输出 || 0;
+        var stTotal = st.total || 0;
+
+        // ① 资料扫描
         var step1Log = plogs.filter(function(l){return /文件解析|指纹|识别|ftype|fname|Phase1-识别|Phase1-初查|\[ENGINE\]/.test(l)});
-        var step1Files = plogs.filter(function(l){return /->/.test(l)&&!/\[/.test(l)});  // "xxx -> yyy: N条" 格式
         var fileCount = (es.files_count||rpt.files_count||0);
         updateStep('step1', step1Log.length>0 ? 'done' : 'skip',
-          fileCount>0 ? '识别<b>'+fileCount+'</b>类文件' : '');
+          fileCount>0 ? '识别<b>'+fileCount+'</b>类文件' : '', st1);
 
-        // ② 目标实体识别 — 关键词: Phase1-识别对象/频次/交叉/方向校正/联网核查
+        // ② 目标实体识别
         var step2Log = plogs.filter(function(l){return /Phase1-识别对象|频次|交叉|方向校正|目标实体|联网核查|经营实质/.test(l)});
         var targetName = es.company_profile?.name || '';
         updateStep('step2', step2Log.length>0 ? 'done' : 'skip',
-          targetName ? '识别目标实体<b>'+targetName+'</b>' : '');
+          targetName ? '识别目标实体<b>'+targetName+'</b>' : '', st2);
 
-        // ③ 资料情报提取 — 关键词: 资料情报提取/域分析/域→/财务报表/进销存/银行
+        // ③ 资料情报提取
         var step3Log = plogs.filter(function(l){return /资料情报提取|域分析|域→|财务报表分析|进销存|银行收款|Phase2|深挖/.test(l)});
         var intelCount = plogs.filter(function(l){return /资料情报提取:/.test(l)}).map(function(l){
           var m=l.match(/已完成(\d+)个/); return m?parseInt(m[1]):0;
         }).reduce(function(a,b){return a+b;},0);
         updateStep('step3', step3Log.length>0 ? 'done' : 'skip',
-          intelCount>0 ? '提取<b>'+intelCount+'</b>个情报模块' : '');
+          intelCount>0 ? '提取<b>'+intelCount+'</b>个情报模块' : '', st3);
 
-        // ④ 规则引擎与链驱动 — 关键词: 规则引擎/链驱动/线索链/证据链/Phase3/交叉验证
+        // ④ 规则引擎与链驱动
         var step4Log = plogs.filter(function(l){return /规则引擎|链驱动|线索链|证据链|Phase3|交叉验证|闭环/.test(l)});
         var findingsCount = all_f.length||0;
         var chainCount = comp.chain_triggered_count||0;
         var evidenceCount = comp.closed_chain_count||0;
         updateStep('step4', step4Log.length>0 ? 'done' : 'skip',
-          findingsCount>0 ? '触发<b>'+chainCount+'</b>条线索链 · <b>'+evidenceCount+'</b>条证据链闭环 · <b>'+findingsCount+'</b>条发现' : '');
+          findingsCount>0 ? '触发<b>'+chainCount+'</b>条线索链 · <b>'+evidenceCount+'</b>条证据链闭环 · <b>'+findingsCount+'</b>条发现' : '', st4);
 
-        // ⑤ 方法论噪声过滤 — 关键词: 方法论过滤/HARD_BAN/COND_BAN/去重/剔除
+        // ⑤ 方法论噪声过滤
         var step5Log = plogs.filter(function(l){return /方法论过滤|HARD_BAN|COND_BAN|去重|剔除|噪声/.test(l)});
         var filterBefore = plogs.filter(function(l){return /方法论过滤:/.test(l)}).map(function(l){
           var m=l.match(/(\d+)→(\d+)条/); return m?{before:+m[1],after:+m[2],removed:+m[1]-+m[2]}:null;
         }).filter(function(x){return x});
         var removedCount = filterBefore.length>0 ? filterBefore[0].removed : 0;
         updateStep('step5', step5Log.length>0 ? 'done' : 'skip',
-          removedCount>0 ? '剔除<b>'+removedCount+'</b>条噪声' : '');
+          removedCount>0 ? '剔除<b>'+removedCount+'</b>条噪声' : '', st5);
 
-        // ⑥ 行业对标与申报比对 — 关键词: 行业基准/EMA/阈值/风险评分/Phase4
+        // ⑥ 行业对标与申报比对
         var step6Log = plogs.filter(function(l){return /行业基准|EMA|阈值|风险评分|Phase4|综合定性|风险升级/.test(l)});
         var riskLevel = comp.overall_risk||'';
         var riskScore = comp.risk_score||0;
         updateStep('step6', step6Log.length>0 ? 'done' : 'skip',
-          riskLevel ? '综合定性<b>'+riskLevel+'</b>(评分<b>'+riskScore+'</b>)' : '');
+          riskLevel ? '综合定性<b>'+riskLevel+'</b>(评分<b>'+riskScore+'</b>)' : '', st6);
 
-        // ⑦ 正式报告输出 — 关键词: 报告/叙事/交付/合规门禁
+        // ⑦ 正式报告输出
         var step7Log = plogs.filter(function(l){return /报告|叙事|交付|合规门禁|GATE/.test(l)});
         updateStep('step7', step7Log.length>0 ? 'done' : (plogs.length>0?'skip':''),
-          step7Log.length>0 ? '报告已生成' : '');
+          step7Log.length>0 ? '报告已生成' : '', st7);
+
+        // 总耗时更新Hero卡片
+        if (stTotal > 0) {
+          var tc = document.getElementById('pp-phase-count');
+          if (tc) tc.textContent = stTotal + '秒';
+        }
       }
 
       // 管线日志
@@ -1674,7 +1690,7 @@ function renderPipeDashboard(container) {
 }
 
 // 全局：更新七步timeline步骤状态
-function updateStep(stepId, status, extra) {
+function updateStep(stepId, status, extra, elapsed) {
   var el = document.getElementById(stepId);
   if (!el) return;
   el.className = 'pp-step';
@@ -1684,7 +1700,15 @@ function updateStep(stepId, status, extra) {
   // 追加实际数据量到描述
   if (extra) {
     var sd = el.querySelector('.sd');
-    if (sd) sd.innerHTML += '<div style="margin-top:4px;color:'+((status==='done')?'#16a34a':'#f59e0b')+';font-weight:500;font-size:11px">'+extra+'</div>';
+    if (sd) {
+      var timeTag = elapsed ? '<span style="float:right;color:#94a3b8;font-size:10px;font-weight:400">耗时'+elapsed+'秒</span>' : '';
+      sd.innerHTML += '<div style="margin-top:4px;color:'+((status==='done')?'#16a34a':'#f59e0b')+';font-weight:500;font-size:11px">'+extra+timeTag+'</div>';
+    }
+  }
+  // 如果没有extra但有elapsed，单独显示耗时
+  if (!extra && elapsed && status === 'done') {
+    var sd = el.querySelector('.sd');
+    if (sd) sd.innerHTML += '<div style="margin-top:4px;color:#94a3b8;font-size:10px">耗时'+elapsed+'秒</div>';
   }
 }
 
