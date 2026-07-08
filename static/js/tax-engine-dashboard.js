@@ -2283,25 +2283,46 @@ async function renderLearnFeedback(container) {
   
   var h = '';
   h += '<style>'
-    + '.lf{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.lf-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
-    + '.lf-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
-    + '.lf-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
-    + '.lf-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.lf-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
-    + '.lf-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
-    + '.lf-sec{margin-bottom:32px}'
-    + '.lf-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
-    + '.lf-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;margin-bottom:8px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;font-size:12px;line-height:1.8}'
-    + '.lf-item .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0}'
-    + '.lf-item .body{flex:1;color:#475569}'
-    + '.lf-item .body b{color:#0f172a}'
+    + '.lf{max-width:960px;margin:0 auto;padding:48px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.lf-title{font-size:17px;font-weight:600;color:#1e293b;margin:0 0 6px}'
+    + '.lf-sub{font-size:11px;color:#94a3b8;margin:0 0 40px;line-height:1.6}'
+    + '.lf-hero{display:flex;gap:16px;margin-bottom:40px;flex-wrap:wrap}'
+    + '.lf-card{flex:1;min-width:140px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px 18px;text-align:center}'
+    + '.lf-card .v{font-size:22px;font-weight:600;color:#1e293b;line-height:1.4}'
+    + '.lf-card .l{font-size:10px;color:#94a3b8;margin-top:6px;letter-spacing:0.5px}'
+    + '.lf-para{margin-bottom:40px}'
+    + '.lf-para p{font-size:11px;color:#475569;line-height:1.8;margin:0 0 14px}'
+    + '.lf-para p:last-child{margin-bottom:0}'
+    + '.lf-para b{color:#1e293b;font-weight:600}'
+    + '.lf-flow{margin-bottom:36px}'
+    + '.lf-flow h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
+    + '.lf-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}'
+    + '.lf-flow-box{border-radius:10px;padding:20px 24px}'
+    + '.lf-flow-box h4{font-size:11px;font-weight:600;margin:0 0 14px;padding-bottom:8px}'
+    + '.lf-flow-item{margin-bottom:12px}'
+    + '.lf-flow-item:last-child{margin-bottom:0}'
+    + '.lf-flow-item a{font-size:11px;line-height:1.6}'
+    + '.lf-flow-item .desc{font-size:10px;color:#94a3b8;line-height:1.5;margin-top:2px}'
+    + '.lf-sec{margin-bottom:36px}'
+    + '.lf-sec h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
+    + '.lf-timeline{border-left:2px solid #e2e8f0;padding-left:24px;margin-left:8px}'
+    + '.lf-step{margin-bottom:24px;position:relative}'
+    + '.lf-step:last-child{margin-bottom:0}'
+    + '.lf-step:before{content:"";position:absolute;left:-30px;top:5px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #cbd5e1;box-shadow:0 0 0 2px #fff}'
+    + '.lf-step.c-blue:before{border-color:#2563eb}'
+    + '.lf-step.c-green:before{border-color:#059669}'
+    + '.lf-step.c-amber:before{border-color:#f59e0b}'
+    + '.lf-step.c-purple:before{border-color:#7c3aed}'
+    + '.lf-step.c-gray:before{border-color:#64748b}'
+    + '.lf-step .sn{font-size:12px;font-weight:600;color:#1e293b;margin-bottom:6px}'
+    + '.lf-step .sd{font-size:11px;color:#475569;line-height:1.8}'
+    + '.lf-step .sd code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:10px;color:#475569}'
     + '</style>';
-  
+
   h += '<div class="lf">';
   h += '<div class="lf-title">学习反馈</div>';
-  h += '<div class="lf-sub">用户纠正和审核意见驱动自学习引擎优化——三通道提交+四级回退匹配 · 所属：智能大脑</div>';
-  
+  h += '<div class="lf-sub">用户纠正和审核意见驱动自学习引擎优化 · 三通道提交 + 四级回退匹配 · 所属：智能大脑</div>';
+
   // 统计卡片
   h += '<div class="lf-hero">';
   h += '<div class="lf-card"><div class="v" style="color:#2563eb">' + (corrections.total_rules||0) + '</div><div class="l">纠正规则</div></div>';
@@ -2309,57 +2330,55 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-card"><div class="v" style="color:#059669">' + (learning.ema_samples||0) + '</div><div class="l">EMA样本</div></div>';
   h += '<div class="lf-card"><div class="v" style="color:#f59e0b">' + (autoRules.length||0) + '</div><div class="l">自动规则</div></div>';
   h += '</div>';
-  
+
+  // 模块说明 — 段落式
+  h += '<div class="lf-para">';
+  h += '<p>学习反馈是引擎从<b>用户行为中自动学习</b>和改进的核心模块。系统不是一次性部署后停滞不前的静态工具，而是一个能从每次分析中吸取经验、不断进化的智能系统。每次用户对分析结果做出审核判断（采纳或驳回），系统都会记录并分析这些反馈，逐步优化分析策略。</p>';
+  h += '<p>学习反馈的数据流向形成一个<b>完整闭环</b>：用户审核 → 规则自动生成 → 下次分析自动应用 → 效果跟踪 → 持续改进。闭环中的每一环都有明确的触发条件和数据记录，确保引擎的进化是可追溯、可验证、可回滚的。</p>';
+  h += '</div>';
+
   // ═══ 上下游依赖 ═══
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><br><span style="color:#94a3b8">用户纠正和追问通过聊天界面提交</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'feedback-template\')" style="color:#2563eb">审核内容模板</a><br><span style="color:#94a3b8">审核反馈的结构化模板和规范</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-review\')" style="color:#2563eb">审核反馈在报告中的呈现</a><br><span style="color:#94a3b8">报告中的用户审核操作（采纳/驳回）</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配结果供学习引擎分析空跑率</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">分析日志中提取信号模式用于规则发现</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">纠正规则在下一次分析中自动应用</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">学习产出的规则写入引擎长期记忆</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch13\')" style="color:#2563eb">引擎铁律编号</a><br><span style="color:#94a3b8">从学习中沉淀为正式铁律加入编号体系</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-ironlaw\')" style="color:#2563eb">引擎铁律与报告质量映射</a><br><span style="color:#94a3b8">新铁律对报告质量的映射关系更新</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">学习产出的规则和知识库充实数据资产</span></div>';
+  h += '<div class="lf-flow"><h3>上下游依赖</h3><div class="lf-flow-grid">';
+  h += '<div class="lf-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
+  h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方</h4>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><div class="desc">用户纠正和追问通过聊天界面提交</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'feedback-template\')" style="color:#2563eb">审核内容模板</a><div class="desc">审核反馈的结构化模板和规范</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'rs-review\')" style="color:#2563eb">审核反馈在报告中的呈现</a><div class="desc">报告中的用户审核操作（采纳/驳回）</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><div class="desc">规则匹配结果供学习引擎分析空跑率</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><div class="desc">分析日志中提取信号模式用于规则发现</div></div>';
+  h += '</div>';
+  h += '<div class="lf-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
+  h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方</h4>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><div class="desc">纠正规则在下一次分析中自动应用</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><div class="desc">学习产出的规则写入引擎长期记忆</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'hb-ch13\')" style="color:#2563eb">引擎铁律编号</a><div class="desc">从学习中沉淀为正式铁律加入编号体系</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'rs-ironlaw\')" style="color:#2563eb">引擎铁律与报告质量映射</a><div class="desc">新铁律对报告质量的映射关系更新</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><div class="desc">学习产出的规则和知识库充实数据资产</div></div>';
   h += '</div></div></div>';
-  
-  // ═══ 模块说明 ═══
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
-  h += '<p style="margin:0 0 16px">学习反馈是引擎从<strong>用户行为中自动学习</strong>和改进的核心模块。系统不是一次性部署后停滞不前的静态工具，而是一个能从每次分析中吸取经验、不断进化的智能系统。每次用户对分析结果做出审核判断（采纳或驳回），系统都会记录并分析这些反馈，逐步优化分析策略。</p>';
-  h += '<p style="margin:0">学习反馈的数据流向形成一个<strong>完整闭环</strong>：用户审核→规则自动生成→下次分析自动应用→效果跟踪→持续改进。闭环中的每一环都有明确的触发条件和数据记录，确保引擎的进化是可追溯、可验证、可回滚的。</p>';
-  h += '</div>';
-  
-  // 三层学习架构
-  h += '<div class="lf-sec"><h3>三层渐进学习架构</h3>';
-  h += '<div class="lf-item"><span class="dot" style="background:#2563eb"></span><div class="body"><b>第一层 · 审核反馈学习</b><br>用户每次审核发现（采纳/驳回）→ 系统记录发现类型+驳回原因 → 同类发现被驳回≥3次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用</div></div>';
-  h += '<div class="lf-item"><span class="dot" style="background:#059669"></span><div class="body"><b>第二层 · EMA自学习</b><br>指数移动平均算法校准行业阈值 → ' + (learning.ema_samples||0) + '个样本持续更新 → 毛利率/税负率/进销比等基准值随实际数据动态调整 → 行业基准库自动保持最新</div></div>';
-  h += '<div class="lf-item"><span class="dot" style="background:#f59e0b"></span><div class="body"><b>第三层 · 自动规则发现</b><br>重复出现的信号组合 → 跨企业模式检测 → 同行业出现率>60%的信号标记为行业特征 → 新风险模式自动生成候选规则 → 人工确认后写入规则库 → 不断扩充{{rules_count_autorules}}条规则体系</div></div>';
-  h += '</div>';
-  
+
+  // 三层渐进学习架构 — 段落式timeline
+  h += '<div class="lf-sec"><h3>三层渐进学习架构</h3><div class="lf-timeline">';
+  h += '<div class="lf-step c-blue"><div class="sn">第一层 · 审核反馈学习</div><div class="sd">用户每次审核发现（采纳/驳回）→ 系统记录发现类型与驳回原因 → 同类发现被驳回 ≥3 次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用。</div></div>';
+  h += '<div class="lf-step c-green"><div class="sn">第二层 · EMA 自学习</div><div class="sd">指数移动平均算法校准行业阈值，' + (learning.ema_samples||0) + ' 个样本持续更新，毛利率、税负率、进销比等基准值随实际数据动态调整，行业基准库自动保持最新。</div></div>';
+  h += '<div class="lf-step c-amber"><div class="sn">第三层 · 自动规则发现</div><div class="sd">重复出现的信号组合经跨企业模式检测，同行业出现率超过 60% 的信号被标记为行业特征，新风险模式自动生成候选规则，人工确认后写入规则库，不断扩充 {{rules_count_autorules}} 条规则体系。</div></div>';
+  h += '</div></div>';
+
   // 自动规则列表
   if (autoRules.length > 0) {
-    h += '<div class="lf-sec"><h3>已发现自动规则 · ' + autoRules.length + ' 条</h3>';
+    h += '<div class="lf-sec"><h3>已发现自动规则 · ' + autoRules.length + ' 条</h3><div class="lf-timeline">';
     autoRules.forEach(function(ar) {
-      h += '<div class="lf-item"><span class="dot" style="background:#7c3aed"></span><div class="body"><b>' + (ar.name||ar.rule||'') + '</b><br>' + (ar.desc||ar.pattern||'') + '<br><span style="font-size:11px;color:#94a3b8">触发: ' + (ar.trigger_count||0) + '次 · 置信度: ' + (ar.confidence||'') + '</span></div></div>';
+      h += '<div class="lf-step c-purple"><div class="sn">' + (ar.name||ar.rule||'') + '</div><div class="sd">' + (ar.desc||ar.pattern||'') + '<br><span style="color:#94a3b8">触发 ' + (ar.trigger_count||0) + ' 次 · 置信度 ' + (ar.confidence||'') + '</span></div></div>';
     });
-    h += '</div>';
+    h += '</div></div>';
   }
-  
+
   // 学习数据存储
-  h += '<div class="lf-sec"><h3>学习数据存储</h3>';
-  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>user_corrections.json</b> — 用户纠正规则存储<br>四级回退匹配：行业匹配 → 经营模式匹配 → 信号类型匹配 → 通用匹配</div></div>';
-  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>audit_memory.json</b> — 分析记忆存储<br>12维度加权相似度检索：行业(×3) > 经营模式(×2) > 信号类型(×2) > 风险等级(×1.5)</div></div>';
-  h += '<div class="lf-item"><span class="dot" style="background:#64748b"></span><div class="body"><b>ema_state.json</b> — EMA参数状态存储<br>' + (learning.ema_samples||0) + '个样本积累 · 动态校准行业基准值</div></div>';
-  h += '</div>';
-  
+  h += '<div class="lf-sec"><h3>学习数据存储</h3><div class="lf-timeline">';
+  h += '<div class="lf-step c-gray"><div class="sn">user_corrections.json — 用户纠正规则存储</div><div class="sd">四级回退匹配：行业匹配 → 经营模式匹配 → 信号类型匹配 → 通用匹配。</div></div>';
+  h += '<div class="lf-step c-gray"><div class="sn">audit_memory.json — 分析记忆存储</div><div class="sd">12 维度加权相似度检索：行业（×3） &gt; 经营模式（×2） &gt; 信号类型（×2） &gt; 风险等级（×1.5）。</div></div>';
+  h += '<div class="lf-step c-gray"><div class="sn">ema_state.json — EMA 参数状态存储</div><div class="sd">' + (learning.ema_samples||0) + ' 个样本积累，动态校准行业基准值。</div></div>';
+  h += '</div></div>';
+
   h += '</div>';
   container.innerHTML = h;
   // 动态替换模板标记 {{key}} → 实际系统统计数字
