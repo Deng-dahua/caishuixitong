@@ -1204,7 +1204,7 @@ async def update_rule(request: Request):
     if not found:
         return {"ok": False, "message": f"未找到规则 {rule_id}"}
     # 允许编辑的字段
-    editable = ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","detectable"]
+    editable = ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","dataSource","detectable"]
     changed = []
     for k in editable:
         if k in body and body[k] is not None and body[k] != found.get(k):

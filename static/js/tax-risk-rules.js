@@ -246,6 +246,8 @@ function toggleRuleEdit(ruleId, btn) {
     {k:'tax_impact',label:'税务影响',v:rule.tax_impact||'',ta:true},
     {k:'policy_ref',label:'法律依据',v:rule.policy_ref||'',ta:true},
     {k:'category',label:'分类',v:rule.category||''},
+    {k:'dataSource',label:'数据来源',v:rule.dataSource||''},
+    {k:'detectable',label:'可检测性',v:rule.detectable||''},
   ];
   var h = '<div class="rr-edit-panel" style="margin:12px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
   h += '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:12px">✏️ 编辑规则 ' + ruleId + '</div>';
@@ -272,7 +274,7 @@ function toggleRuleEdit(ruleId, btn) {
 async function saveRuleEdit(ruleId, btn) {
   var card = btn.closest('[data-rule-id]');
   if (!card) return;
-  var fields = ['item','level','score','detail','suggestion','evidence','tax_impact','policy_ref','category'];
+  var fields = ['item','level','score','detail','suggestion','evidence','tax_impact','policy_ref','category','dataSource','detectable'];
   var body = {rule_id: ruleId};
   fields.forEach(function(k){
     var el = card.querySelector('#rr-edit-'+k);
