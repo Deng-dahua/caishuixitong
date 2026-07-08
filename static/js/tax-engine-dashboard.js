@@ -3,6 +3,54 @@
  * Phase 1-4 完整可视化 + AGI合并大脑
  */
 
+// ═══ 系统统计数据全局缓存 — 数字动态从API获取，不再硬编码 ═══
+var _SYS_STATS = null;
+async function loadSysStats() {
+  if (_SYS_STATS) return _SYS_STATS;
+  try {
+    var r = await fetch('/api/system/stats');
+    _SYS_STATS = await r.json();
+    // 同步写入 window._systemConfig 供所有JS文件的 pc() 函数使用
+    window._systemConfig = {
+      rules_count: _SYS_STATS.rules_count,
+      clue_chains: _SYS_STATS.clue_chains,
+      evidence_chains: _SYS_STATS.evidence_chains,
+      analysis_chains: _SYS_STATS.analysis_chains,
+      domain_functions: _SYS_STATS.domain_functions,
+      industries: _SYS_STATS.industries,
+      keywords: _SYS_STATS.keywords,
+      file_fingerprints: _SYS_STATS.file_fingerprints,
+      hard_ban_categories: _SYS_STATS.hard_ban_categories,
+      cond_ban_categories: _SYS_STATS.cond_ban_categories,
+      total_chains: (_SYS_STATS.clue_chains||0) + (_SYS_STATS.evidence_chains||0) + (_SYS_STATS.analysis_chains||0)
+    };
+  } catch(e) {
+    // 回退：使用保守默认值
+    _SYS_STATS = {
+      rules_count: 1608, clue_chains: 437, evidence_chains: 781,
+      industries: 66, keywords: 90, domain_functions: 42,
+      file_fingerprints: 34, hard_ban_categories: 23, hard_ban_keywords: 79,
+      cond_ban_categories: 5, ok: false
+    };
+    window._systemConfig = {
+      rules_count: 1608, clue_chains: 437, evidence_chains: 781,
+      analysis_chains: 48, domain_functions: 42,
+      industries: 66, keywords: 90, file_fingerprints: 34,
+      hard_ban_categories: 23, cond_ban_categories: 5, total_chains: 1266
+    };
+  }
+  return _SYS_STATS;
+}
+// 替换HTML中的模板标记 {{key}} → 实际数字
+function applySysStats(html, stats) {
+  if (!stats) return html;
+  return html.replace(/\{\{(\w+)\}\}/g, function(m, key) {
+    var v = stats[key];
+    if (v === undefined) return m;
+    return v;
+  });
+}
+
 function renderEngineDashboardPage(container) {
   container.innerHTML = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
     + '<h2 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px">🧠 智能大脑·运行仪表盘</h2>'
@@ -63,6 +111,14 @@ function switchEngineTab(tab) {
   else if (tab==='negotiation') renderNegotiationTab();
   else if (tab==='brain') renderBrainTab();
   else if (tab==='details') renderDetailsTab();
+  // 动态替换所有 {{key}} 模板标记为实际系统统计数字
+  (async function(){
+    var stats = await loadSysStats();
+    if (stats) {
+      var area = document.getElementById('eng-tab-content');
+      if (area) area.innerHTML = applySysStats(area.innerHTML, stats);
+    }
+  })();
 }
 
 function renderStatusTab() {
@@ -75,7 +131,7 @@ function renderStatusTab() {
       '<div style="font-size:36px;margin-bottom:16px">🧠</div>' +
       '<div style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">暂无分析数据</div>' +
       '<div style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:2">运行状态需要先执行一键分析才能查看引擎内部数据。<br>一键分析会触发完整的Phase1-4推理管线，生成包含全部中间状态的分析报告。</div>' +
-      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>风险分析</b> 页面运行一键分析，或点击上方 <b>学习反馈</b> 标签查看1608条税务合规指令。<br>其他标签页（质量保障/AGI核心/推理引擎）也需要分析数据作为输入。</div>' +
+      '<div style="font-size:13px;color:#64748b;line-height:2">请前往 <b>风险分析</b> 页面运行一键分析，或点击上方 <b>学习反馈</b> 标签查看{{rules_count}}条税务合规指令。<br>其他标签页（质量保障/AGI核心/推理引擎）也需要分析数据作为输入。</div>' +
       '</div>';
     return;
   }
@@ -871,7 +927,7 @@ function renderNegotiationTab() {
 
   h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">';
   h += '<strong style="font-size:14px;color:#0f172a">技术说明</strong><br><br>';
-  h += '<b>执行时序</b>：所有42个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配29条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
+  h += '<b>执行时序</b>：所有{{domain_functions}}个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配29条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
   h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——29条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
   h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br><br>';
   h += '<b>与过滤器的关系</b>：协商引擎消解的是域之间的矛盾（两个域各说各的），过滤器剔除的是不具备数据支撑的噪声（缺资料还瞎下结论）。协商在过滤之前运行——先让发现自洽，再删不具备证据的。如果顺序颠倒（先过滤再协商），可能过滤掉驱动协商的关键发现。<br><br>';
@@ -1258,7 +1314,7 @@ var MODULE_DEPS = {
     downstream: [{name:'管道.py',desc:'高级分析桥接AGI'},{name:'AGI引擎.py',desc:'嵌入方法知识增强'}]
   },
   details: {
-    upstream: [{name:'引擎/ 全部52个模块',desc:'所有引擎模块汇总'},{name:'税务风险规则导出.json',desc:'1611条税务合规指令'},{name:'跨域线索+跨域证据.json',desc:'437+781条线索和证据链'}],
+    upstream: [{name:'引擎/ 全部52个模块',desc:'所有引擎模块汇总'},{name:'税务风险规则导出.json',desc:'{{rules_count}}条税务合规指令'},{name:'跨域线索+跨域证据.json',desc:'{{clue_chains}}+{{evidence_chains}}条线索和证据链'}],
     downstream: [{name:'运行仪表盘',desc:'6个子模块共用'},{name:'系统日志',desc:'引擎运行记录'}]
   }
 };
@@ -1342,28 +1398,50 @@ function renderPipeDashboard(container) {
   
   var h = '';
   h += '<style>'
-    + '.pp{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.pp-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
-    + '.pp-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
-    + '.pp-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
-    + '.pp-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.pp-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
-    + '.pp-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
-    + '.pp-sec{margin-bottom:32px}'
-    + '.pp-sec h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}'
-    + '.pp-timeline{border-left:2px solid #e2e8f0;padding-left:20px;margin-left:8px}'
-    + '.pp-step{margin-bottom:18px;position:relative}'
-    + '.pp-step:before{content:"";position:absolute;left:-26px;top:6px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 0 2px #3b82f6}'
-    + '.pp-step .sn{font-size:13px;font-weight:700;color:#2563eb;margin-bottom:4px}'
-    + '.pp-step .sd{font-size:12px;color:#475569;line-height:2.0}'
+    + '.pp{max-width:960px;margin:0 auto;padding:48px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.pp-title{font-size:17px;font-weight:600;color:#1e293b;margin:0 0 6px}'
+    + '.pp-sub{font-size:11px;color:#94a3b8;margin:0 0 40px;line-height:1.6}'
+    + '.pp-hero{display:flex;gap:16px;margin-bottom:40px;flex-wrap:wrap}'
+    + '.pp-card{flex:1;min-width:140px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px 18px;text-align:center}'
+    + '.pp-card .v{font-size:22px;font-weight:600;color:#1e293b;line-height:1.4}'
+    + '.pp-card .l{font-size:10px;color:#94a3b8;margin-top:6px;letter-spacing:0.5px}'
+    + '.pp-sec{margin-bottom:36px}'
+    + '.pp-sec h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
+    + '.pp-timeline{border-left:2px solid #e2e8f0;padding-left:24px;margin-left:8px}'
+    + '.pp-step{margin-bottom:24px;position:relative}'
+    + '.pp-step:before{content:"";position:absolute;left:-30px;top:8px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 0 2px #3b82f6}'
+    + '.pp-step .sn{font-size:12px;font-weight:600;color:#2563eb;margin-bottom:6px}'
+    + '.pp-step .sd{font-size:11px;color:#475569;line-height:1.8}'
     + '.pp-step.active:before{background:#16a34a;box-shadow:0 0 0 2px #16a34a}'
-    + '.pp-step .sd b{color:#0f172a}'
-    + '.pp-log{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:2.0}'
+    + '.pp-step .sd b{color:#1e293b}'
+    + '.pp-log{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.8}'
+    + '.pp-flow{margin-bottom:36px}'
+    + '.pp-flow h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
+    + '.pp-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}'
+    + '.pp-flow-box{border-radius:10px;padding:20px 24px}'
+    + '.pp-flow-box h4{font-size:11px;font-weight:600;margin:0 0 14px;padding-bottom:8px}'
+    + '.pp-flow-item{margin-bottom:12px}'
+    + '.pp-flow-item:last-child{margin-bottom:0}'
+    + '.pp-flow-item a{font-size:11px;line-height:1.6}'
+    + '.pp-flow-item .desc{font-size:10px;color:#94a3b8;line-height:1.5;margin-top:2px}'
+    + '.pp-flow-item .bi{font-size:10px;color:#7B1FA2;margin-left:4px;font-weight:600}'
+    + '.pp-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:#2563eb;cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #bae6fd;background:#f0f9ff;transition:all .15s ease;margin-top:4px}'
+    + '.pp-toggle:hover{background:#e0f2fe;border-color:#93c5fd}'
+    + '.pp-toggle .arrow{font-size:10px;transition:transform .15s ease}'
+    + '.pp-toggle.open .arrow{transform:rotate(90deg)}'
+    + '.pp-detail{overflow:hidden;transition:max-height .3s ease,opacity .2s ease;max-height:0;opacity:0}'
+    + '.pp-detail.show{max-height:2000px;opacity:1}'
+    + '.pp-summary{font-size:11px;color:#64748b;line-height:1.6;margin-bottom:0}'
+    + '.pp-summary b{color:#1e293b}'
+    + '.pp-para{margin-bottom:40px}'
+    + '.pp-para p{font-size:11px;color:#475569;line-height:1.8;margin:0 0 14px}'
+    + '.pp-para p:last-child{margin-bottom:0}'
+    + '.pp-para b{color:#1e293b;font-weight:600}'
     + '</style>';
   
   h += '<div class="pp">';
   h += '<div class="pp-title">管道调度</div>';
-  h += '<div class="pp-sub">引擎七步执行的实时状态监控 · 展示各阶段进度、数据吞吐量和模块调用链 · 所属：智能大脑</div>';
+  h += '<div class="pp-sub">引擎七步执行的实时状态监控 · 出度25 · 入度24 · 双向16 · 所属：智能大脑</div>';
   
   h += '<div class="pp-hero">';
   h += '<div class="pp-card"><div class="v" style="color:#2563eb">v3.0</div><div class="l">引擎版本</div></div>';
@@ -1372,44 +1450,110 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-card"><div class="v" style="color:#f59e0b" id="pp-phase-count">--</div><div class="l">完成阶段</div></div>';
   h += '</div>';
   
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制 / 格式扩展 / 文件指纹库 / 解析流程 / 本次解析结果</a><br><span style="color:#94a3b8">文件解析引擎提供结构化数据</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'da-intro\')" style="color:#2563eb">什么是域分析 / 域分析架构 / 42个分析域</a><br><span style="color:#94a3b8">域分析引擎 — 42个域函数产出发现</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-risk-report\')" style="color:#2563eb">账务风险分析报告</a> / <a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><br><span style="color:#94a3b8">原始数据和风险信号来源</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">决定模块执行顺序和参数</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-assets\')" style="color:#2563eb">数据资产</a><br><span style="color:#94a3b8">规则库/线索链库/证据链库等知识底座</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">历史分析经验注入先验知识</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><br><span style="color:#94a3b8">记录每步执行时间、输入输出、异常</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">展示分析统计（文件数/规则/风险分布）</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">接收匹配后的发现做规则触发</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a> / <a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">接收链驱动发现做交叉验证</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a> / <a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a> / <a href="javascript:navigateTo(\'rs-12std\')" style="color:#2563eb">12项质量标准</a><br><span style="color:#94a3b8">噪声过滤和质量检查</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer4\')" style="color:#2563eb">行业认知体系</a><br><span style="color:#94a3b8">行业对标数据输入</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'rs-structure\')" style="color:#2563eb">报告7章结构</a><br><span style="color:#94a3b8">综合所有发现生成结构化报告</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><br><span style="color:#94a3b8">全量运行记录</span></div>';
-  h += '</div></div></div>';
-  
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:32px">';
-  h += '<p style="margin:0 0 16px">管道调度是税务合规系统的<strong>执行中枢</strong>，负责协调七步分析流程的有序运行。每一步都有明确的输入来源、处理逻辑和输出目标，形成一个从原始资料到正式报告的单向流动的数据管道。</p>';
-  h += '<p style="margin:0 0 16px">管道调度的核心价值在于<strong>自动化调度</strong>——不需要人工干预每一步的执行顺序和参数传递。当用户上传资料后，管道自动启动文件解析引擎识别文件类型和提取数据结构，然后将结果传递给域分析引擎做42个域的函数分析，域分析产出发现后再传给规则引擎做规则匹配，匹配结果触发线索链和证据链的交叉验证，最后经过方法论过滤器净化后生成正式报告。</p>';
-  h += '<p style="margin:0">管道调度引擎支持<strong>断点续传</strong>和<strong>增量分析</strong>。如果某一环节因为数据缺失而无法完成，管道不会中断，而是标记该环节为"跳过-数据缺失"并继续执行后续可用的环节。分析结果中会明确标注哪些环节因数据缺失而未执行，帮助用户判断资料的完备度。</p>';
+  // 模块说明 — 段落式
+  h += '<div class="pp-para">';
+  h += '<p>管道调度是税务合规系统的<b>执行中枢</b>，负责协调七步分析流程的有序运行。每一步都有明确的输入来源、处理逻辑和输出目标，形成一个从原始资料到正式报告的单向流动的数据管道。</p>';
+  h += '<p>管道调度的核心价值在于<b>自动化调度</b>——不需要人工干预每一步的执行顺序和参数传递。当用户上传资料后，管道自动启动文件解析引擎识别文件类型和提取数据结构，然后将结果传递给域分析引擎做{{domain_functions}}个域的函数分析，域分析产出发现后再传给规则引擎做{{rules_count}}条规则匹配，匹配结果触发{{clue_chains}}条线索链和{{evidence_chains}}条证据链的交叉验证，最后经过方法论过滤器净化后生成正式报告。</p>';
+  h += '<p>管道调度引擎支持<b>断点续传</b>和<b>增量分析</b>。如果某一环节因为数据缺失而无法完成，管道不会中断，而是标记该环节为"跳过-数据缺失"并继续执行后续可用的环节。分析结果中会明确标注哪些环节因数据缺失而未执行，帮助用户判断资料的完备度。</p>';
   h += '</div>';
+  
+  // ═══ 上游（输入方）— 管道调度消费的25个模块 ═══
+  h += '<div class="pp-flow">';
+  h += '<h3>上下游依赖</h3>';
+  h += '<div class="pp-flow-grid">';
+  h += '<div class="pp-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
+  h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方 · 出度25</h4>';
+  // 摘要（默认可见）
+  h += '<div class="pp-summary">管道调度消费<b>25</b>个模块：智能大脑5个（4双向）、稽查方法论3个（2双向）、报告规范6个（0双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
+  h += '<div class="pp-toggle" onclick="toggleDetail(\'up-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
+  // 详情（默认隐藏）
+  h += '<div class="pp-detail" id="up-detail">';
+  // 智能大脑组（5个，其中4个双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><span class="bi">双向</span><div class="desc">引擎运行状态、模块清单、七步进度</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><span class="bi">双向</span><div class="desc">引擎8维能力指标（识别/分析/规则/报告/学习/推理/域/记忆）</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><span class="bi">双向</span><div class="desc">引擎成长轨迹和学习效果追踪</div></div>';
+  // 稽查方法论组（3个，其中2个双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch9\')" style="color:#2563eb">跨域协商引擎</a><span class="bi">双向</span><div class="desc">跨域线索/证据/分析三链协商与冲突消解</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch10\')" style="color:#2563eb">数据一致性自检</a><div class="desc">5维自检矩阵确保分析逻辑不矛盾</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch11\')" style="color:#2563eb">审核反馈闭环</a><span class="bi">双向</span><div class="desc">用户审核→学习→下次自动应用的闭环</div></div>';
+  // 报告规范组（6个，全部单向出度）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-structure\')" style="color:#2563eb">报告结构</a><div class="desc">7章+附件结构模板，风险→发现→建议→结论</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-narrative\')" style="color:#2563eb">叙事规范</a><div class="desc">风险叙事引擎，从数据到叙事的5层转化</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-merge\')" style="color:#2563eb">风险合并规则</a><div class="desc">同源风险合并、冲突消解、优先级排序</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-paragraph\')" style="color:#2563eb">段落格式规范</a><div class="desc">每段必须包含的要素和格式约束</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-terms\')" style="color:#2563eb">术语与机密规范</a><div class="desc">术语统一和机密信息过滤</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-sync\')" style="color:#2563eb">触发与交付</a><div class="desc">报告触发条件和交付时机</div></div>';
+  // 数据与分析组（3个，其中1个双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><span class="bi">双向</span><div class="desc">记录每步执行时间、输入输出、异常</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">全链路稽查质量保障体系</a><div class="desc">全链路5层质量保障：规则→线索→证据→分析→报告</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><div class="desc">七步执行流程详解和核心数据资产清单</div></div>';
+  // 文件解析组（5个，其中4个双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制</a><span class="bi">双向</span><div class="desc">三层递进识别+四方交叉验证+{{file_fingerprints}}类指纹库</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-fingerprint\')" style="color:#2563eb">文件指纹库</a><span class="bi">双向</span><div class="desc">{{file_fingerprints}}类文件指纹特征库</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-flow\')" style="color:#2563eb">解析流程</a><span class="bi">双向</span><div class="desc">文件解析引擎完整执行流程</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-formats\')" style="color:#2563eb">格式扩展</a><span class="bi">双向</span><div class="desc">PDF/Excel/图片/OFD等格式适配</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'da-domains\')" style="color:#2563eb">分析域</a><span class="bi">双向</span><div class="desc">{{domain_functions}}个域分析函数并行产出发现</div></div>';
+  // AI交互组（4个，全部双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-core\')" style="color:#2563eb">核心智能引擎</a><span class="bi">双向</span><div class="desc">AGI核心推理和决策引擎</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-connect\')" style="color:#2563eb">连接通信层</a><span class="bi">双向</span><div class="desc">模块间通信和协调接口层</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-knowledge\')" style="color:#2563eb">知识层</a><span class="bi">双向</span><div class="desc">知识库和语义理解层</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-knowledge-config\')" style="color:#2563eb">知识库与配置</a><span class="bi">双向</span><div class="desc">知识库配置管理和铁律体系</div></div>';
+  // 系统组（1个，双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><span class="bi">双向</span><div class="desc">全量运行记录和异常追踪</div></div>';
+  h += '</div>';
+  h += '</div>';
+  
+  // ═══ 下游（消费方）— 消费管道调度的24个模块 ═══
+  h += '<div class="pp-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
+  h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度24</h4>';
+  // 摘要（默认可见）
+  h += '<div class="pp-summary">被<b>24</b>个模块消费：风险分析1个、智能大脑6个（3双向）、稽查方法论3个（2双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
+  h += '<div class="pp-toggle" onclick="toggleDetail(\'down-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
+  // 详情（默认隐藏）
+  h += '<div class="pp-detail" id="down-detail">';
+  // 风险分析组（1个，单向入度）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><div class="desc">原始资料和风险信号来源，触发管道分析</div></div>';
+  // 智能大脑组（6个，其中3个双向+3个单向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-learn\')" style="color:#2563eb">学习反馈</a><div class="desc">纠正规则在下一次分析中自动应用</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><div class="desc">决定模块执行顺序和参数，协调引擎运行</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><span class="bi">双向</span><div class="desc">追踪引擎成长轨迹，管道输出供成长分析</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><div class="desc">质量检查机制，消费管道结果做质量验证</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><div class="desc">因果推理和逻辑验证，消费管道产出</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><span class="bi">双向</span><div class="desc">引擎全景状态，消费管道调度信息</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><span class="bi">双向</span><div class="desc">引擎8维能力评分，消费管道运行数据</div></div>';
+  // 稽查方法论组（3个，其中2个双向+1个单向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch9\')" style="color:#2563eb">跨域协商引擎</a><span class="bi">双向</span><div class="desc">消费管道调度的跨域线索进行协商</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch11\')" style="color:#2563eb">审核反馈闭环</a><span class="bi">双向</span><div class="desc">反馈闭环消费管道产出做审核验证</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><div class="desc">历史分析经验注入先验知识，消费管道记忆数据</div></div>';
+  // 数据与分析组（3个，其中1个双向+2个单向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><div class="desc">接收管道调度的发现做线索触发和交叉验证</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><div class="desc">接收管道调度的发现做证据闭环验证</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><span class="bi">双向</span><div class="desc">记录管道每步执行时间、输入输出、异常</div></div>';
+  // 文件解析组（4个，全部双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制</a><span class="bi">双向</span><div class="desc">消费管道调度指令做文件识别</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-formats\')" style="color:#2563eb">格式扩展</a><span class="bi">双向</span><div class="desc">消费管道调度指令做格式适配</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-fingerprint\')" style="color:#2563eb">文件指纹库</a><span class="bi">双向</span><div class="desc">消费管道调度指令做指纹匹配</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-flow\')" style="color:#2563eb">解析流程</a><span class="bi">双向</span><div class="desc">消费管道调度指令做文件解析</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'da-domains\')" style="color:#2563eb">分析域</a><span class="bi">双向</span><div class="desc">消费管道调度指令做域分析</div></div>';
+  // AI交互组（4个，全部双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-core\')" style="color:#2563eb">核心智能引擎</a><span class="bi">双向</span><div class="desc">消费管道调度做推理决策</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-connect\')" style="color:#2563eb">连接通信层</a><span class="bi">双向</span><div class="desc">消费管道调度做模块通信</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-knowledge\')" style="color:#2563eb">知识层</a><span class="bi">双向</span><div class="desc">消费管道调度做知识检索</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'agi-knowledge-config\')" style="color:#2563eb">知识库与配置</a><span class="bi">双向</span><div class="desc">消费管道调度做配置管理</div></div>';
+  // 系统组（1个，双向）
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><span class="bi">双向</span><div class="desc">消费管道调度做全量运行记录</div></div>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div></div>';
   
   h += '<div class="pp-sec"><h3>七步执行流程</h3><div class="pp-timeline">';
   var steps=[
-    {n:'①',t:'资料扫描与类型识别',d:'34类文件指纹库 · 三层递进识别 · 四方交叉验证'},
-    {n:'②',t:'目标实体识别',d:'进项购买方∩销项销售方取交集 · 90+关键词×66行业加权投票 · 联网双源比对'},
-    {n:'③',t:'资料情报提取与分析',d:'42个域分析函数并行执行 · 银行收款+进销存比+五层发票审计+供应商穿透+合同四层分类'},
-    {n:'④',t:'规则引擎与链驱动检查',d:'1608条指令逐条匹配 · 437条线索链触发 · 781条证据链闭环'},
-    {n:'⑤',t:'方法论噪声过滤',d:'HARD_BAN 23类禁词 · COND_BAN 5类条件过滤 · 行业不匹配自动删除 · 去重'},
-    {n:'⑥',t:'行业对标与申报比对',d:'66行业五维对标 · 三级判断(低于下限→高风险/低于典型值85%→中风险)'},
+    {n:'①',t:'资料扫描与类型识别',d:'{{file_fingerprints}}类文件指纹库 · 三层递进识别 · 四方交叉验证'},
+    {n:'②',t:'目标实体识别',d:'进项购买方∩销项销售方取交集 · {{keywords}}+关键词×{{industries}}行业加权投票 · 联网双源比对'},
+    {n:'③',t:'资料情报提取与分析',d:'{{domain_functions}}个域分析函数并行执行 · 银行收款+进销存比+五层发票审计+供应商穿透+合同四层分类'},
+    {n:'④',t:'规则引擎与链驱动检查',d:'{{rules_count}}条指令逐条匹配 · {{clue_chains}}条线索链触发 · {{evidence_chains}}条证据链闭环'},
+    {n:'⑤',t:'方法论噪声过滤',d:'HARD_BAN {{hard_ban_categories}}类禁词 · COND_BAN {{cond_ban_categories}}类条件过滤 · 行业不匹配自动删除 · 去重'},
+    {n:'⑥',t:'行业对标与申报比对',d:'{{industries}}行业五维对标 · 三级判断(低于下限→高风险/低于典型值85%→中风险)'},
     {n:'⑦',t:'正式报告输出',d:'综合所有发现 → 结构化报告 · 7章+附件 · 直接交付'}
   ];
   steps.forEach(function(s){
@@ -1425,6 +1569,17 @@ function renderPipeDashboard(container) {
   
   // 异步加载动态数据
   (async function(){
+    // ① 加载系统统计 → 替换所有 {{key}} 模板标记
+    var stats = await loadSysStats();
+    // 处理特殊计算：rules_count + autoRules
+    if (stats && stats.rules_count) {
+      stats.rules_count_autorules = stats.rules_count + (window._autoRulesCount || 0);
+    }
+    // 替换整个页面中的模板标记
+    var ppEl = container.querySelector('.pp');
+    if (ppEl) ppEl.innerHTML = applySysStats(ppEl.innerHTML, stats);
+
+    // ② 加载分析数据
     try{
       var r=await fetch('/api/tax-risk-docs/last-analysis?company_id='+cid);
       var d=await r.json();
@@ -1451,6 +1606,22 @@ function renderPipeDashboard(container) {
       }
     }catch(e){}
   })();
+}
+
+// 全局：上下游明细展开/折叠
+function toggleDetail(id, btn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var isOpen = el.classList.contains('show');
+  if (isOpen) {
+    el.classList.remove('show');
+    btn.classList.remove('open');
+    btn.innerHTML = '<span class="arrow">▶</span>展开明细';
+  } else {
+    el.classList.add('show');
+    btn.classList.add('open');
+    btn.innerHTML = '<span class="arrow">▶</span>收起明细';
+  }
 }
 
 // ═══ 学习反馈 — 专用清新布局 ═══
@@ -1528,7 +1699,7 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-sec"><h3>三层渐进学习架构</h3>';
   h += '<div class="lf-item"><span class="dot" style="background:#2563eb"></span><div class="body"><b>第一层 · 审核反馈学习</b><br>用户每次审核发现（采纳/驳回）→ 系统记录发现类型+驳回原因 → 同类发现被驳回≥3次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用</div></div>';
   h += '<div class="lf-item"><span class="dot" style="background:#059669"></span><div class="body"><b>第二层 · EMA自学习</b><br>指数移动平均算法校准行业阈值 → ' + (learning.ema_samples||0) + '个样本持续更新 → 毛利率/税负率/进销比等基准值随实际数据动态调整 → 行业基准库自动保持最新</div></div>';
-  h += '<div class="lf-item"><span class="dot" style="background:#f59e0b"></span><div class="body"><b>第三层 · 自动规则发现</b><br>重复出现的信号组合 → 跨企业模式检测 → 同行业出现率>60%的信号标记为行业特征 → 新风险模式自动生成候选规则 → 人工确认后写入规则库 → 不断扩充' + (1608 + (autoRules.length||0)) + '条规则体系</div></div>';
+  h += '<div class="lf-item"><span class="dot" style="background:#f59e0b"></span><div class="body"><b>第三层 · 自动规则发现</b><br>重复出现的信号组合 → 跨企业模式检测 → 同行业出现率>60%的信号标记为行业特征 → 新风险模式自动生成候选规则 → 人工确认后写入规则库 → 不断扩充{{rules_count_autorules}}条规则体系</div></div>';
   h += '</div>';
   
   // 自动规则列表
@@ -1549,9 +1720,16 @@ async function renderLearnFeedback(container) {
   
   h += '</div>';
   container.innerHTML = h;
+  // 动态替换模板标记 {{key}} → 实际系统统计数字
+  (async function(){
+    var stats = await loadSysStats();
+    if (stats) {
+      stats.rules_count_autorules = (stats.rules_count||0) + (autoRules.length||0);
+      var lfEl = container.querySelector('.lf');
+      if (lfEl) lfEl.innerHTML = applySysStats(lfEl.innerHTML, stats);
+    }
+  })();
 }
-
-// ═══ 调度中枢 — 专用清新布局 ═══
 async function renderOrchDashboard(container) {
   window._skipModuleHeader = true;
   container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:32px 24px;color:#64748b;text-align:center;font-size:13px">加载中...</div>';
@@ -1798,7 +1976,7 @@ async function renderQualityDashboard(container) {
   h += '<div class="qa-layer"><div class="num" style="background:#2563eb">1</div><div class="body"><b>核心数据资产</b><br>规则引擎+线索链+证据链+跨域分析链构成数据底座。每条发现可追溯至规则ID和证据来源。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#7c3aed">2</div><div class="body"><b>方法论体系</b><br>33条方法论约束分析逻辑边界，防止推断超出数据支撑范围。六大分析框架覆盖全流程。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#dc2626">3</div><div class="body"><b>质量保障机制</b><br>12项质量标准+7项判定可靠性要求。每条发现必须通过全部检查才能进入报告。</div></div>';
-  h += '<div class="qa-layer"><div class="num" style="background:#f59e0b">4</div><div class="body"><b>行业认知体系</b><br>66行业基准库提供对标参照，防止跨行业的错误比较导致误判。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#f59e0b">4</div><div class="body"><b>行业认知体系</b><br>{{industries}}行业基准库提供对标参照，防止跨行业的错误比较导致误判。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#059669">5</div><div class="body"><b>执行管线</b><br>Phase1-4分步执行确保分析过程规范性和可审计性，每一步输入输出可追溯。</div></div>';
   h += '</div>';
   
@@ -1929,9 +2107,9 @@ function renderEngineDetails(container) {
   h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
   h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><br><span style="color:#94a3b8">52个引擎模块的代码位置和函数清单</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">管道规则</a><br><span style="color:#94a3b8">1611条税务合规规则指令</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">437条跨域线索和信号链</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">781条证据闭环数据</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">管道规则</a><br><span style="color:#94a3b8">{{rules_count}}条税务合规规则指令</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">{{clue_chains}}条跨域线索和信号链</span></div>';
+  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">{{evidence_chains}}条证据闭环数据</span></div>';
   h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">七步执行流程产出全部分析数据</span></div>';
   h += '</div></div>';
   h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';

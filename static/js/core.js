@@ -800,6 +800,11 @@ function navigateTo(page) {
     // 异步页面二次尝试
     setTimeout(function(){ injectModuleHeader(page); }, 500);
   }
+  // 全局模板替换：{{key}} → window._systemConfig 中的实际数字
+  if (typeof applySysStats === 'function' && window._systemConfig) {
+    var pageDiv = document.getElementById('page-' + page);
+    if (pageDiv) pageDiv.innerHTML = applySysStats(pageDiv.innerHTML, window._systemConfig);
+  }
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -1385,6 +1390,26 @@ async function init() {
   if (!getCurrentUser()) {
     localStorage.setItem('taxUser', JSON.stringify({name:'用户', phone:'13800000000', pinyin:'auto', loginAt: new Date().toISOString()}));
   }
+  // 预加载系统统计 → 设置 window._systemConfig 供所有页面的 pc() 函数动态引用
+  try {
+    var r = await fetch('/api/system/stats');
+    var stats = await r.json();
+    if (stats && stats.ok) {
+      window._systemConfig = {
+        rules_count: stats.rules_count,
+        clue_chains: stats.clue_chains,
+        evidence_chains: stats.evidence_chains,
+        analysis_chains: stats.analysis_chains || 48,
+        domain_functions: stats.domain_functions,
+        industries: stats.industries,
+        keywords: stats.keywords,
+        file_fingerprints: stats.file_fingerprints,
+        hard_ban_categories: stats.hard_ban_categories,
+        cond_ban_categories: stats.cond_ban_categories,
+        total_chains: (stats.clue_chains||0) + (stats.evidence_chains||0) + (stats.analysis_chains||48)
+      };
+    }
+  } catch(e) {}
   return initAppFlow();
 }
 

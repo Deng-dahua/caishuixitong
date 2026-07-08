@@ -1,11 +1,26 @@
-# 数据驱动——所有数量从配置中心动态读取
-# [合并自system_config.py]
-rules_count = 1608
-clue_chains = 437
-evidence_chains = 781
-methodology_count = 1266
-total_chains = 1703
-domain_functions = 42
+# 数据驱动——所有数量从 system_config.json 动态读取
+# [合并自system_config.py] · 2026-07-08: 改为从 system_config.json 动态加载
+import json, os
+
+def _load_config():
+    """从 system_config.json 加载权威数据——不再硬编码"""
+    cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'system_config.json')
+    try:
+        with open(cfg_path, 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+        return cfg
+    except Exception:
+        # 回退：保守默认值
+        return {"rules_count": 1608, "clue_chains": 437, "evidence_chains": 781,
+                "analysis_chains": 48, "total_chains": 1266, "domain_functions": 39}
+
+_CFG = _load_config()
+rules_count = _CFG.get("rules_count", 1608)
+clue_chains = _CFG.get("executable_clues", _CFG.get("clue_chains", 437))
+evidence_chains = _CFG.get("evidence_chains", 781)
+methodology_count = _CFG.get("methodology_count", 0)
+total_chains = _CFG.get("total_chains", 1266)
+domain_functions = _CFG.get("domain_functions", 39)
 
 """
 税务合规引擎记忆系统 — 历史分析经验积累与检索

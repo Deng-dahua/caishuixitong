@@ -20,7 +20,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第0章 ═══
   h += '<div id="hb-s0" class="hb-sec"><div class="hb-sec-title"><span class="num">0</span>系统数据概览</div>';
-  h += '<div class="hb-detail">税务合规系统是存勤法税的智能化税务合规推理引擎。基于<b>1608条税务合规规则+437条线索链+781条证据链+48条分析链+42个域分析函数</b>构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
+  h += '<div class="hb-detail">税务合规系统是存勤法税的智能化税务合规推理引擎。基于<b>{{rules_count}}条税务合规规则+{{clue_chains}}条线索链+{{evidence_chains}}条证据链+48条分析链+{{domain_functions}}个域分析函数</b>构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。引擎具备六项核心智能能力——记忆、学习、思考、判断、决策、自知——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
   [{n:'1608',l:'税务合规规则',d:'29个分类，每条含触发条件+风险等级+调查步骤+处罚依据'},{n:'437',l:'线索链',d:'全部可执行，含触发关键词+rule_id+风险等级+建议+法条'},{n:'781',l:'证据链',d:'investigation_path多源交叉验证，≥2维独立数据源形成证据闭环'},{n:'48',l:'分析链',d:'reasoning_path多步推理，综合判定定案'},{n:'42',l:'域分析',d:'覆盖银行流水/进销存/费用/往来款/资产/税务/经营实质等13大类'},{n:'41',l:'引擎模块',d:'engine/*.py共41个模块，各模块独立加载，协同工作'}].forEach(function(s){
     h += '<div class="hb-stat" style="flex:1;min-width:110px"><div style="font-size:22px;font-weight:700;color:#0f172a">'+s.n+'</div><div style="font-size:11px;color:#94a3b8">'+s.l+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:4px">'+s.d+'</div></div>';
@@ -55,7 +55,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第二章 ═══
   h += '<div id="hb-s2" class="hb-sec"><div class="hb-sec-title"><span class="num">2</span>14类税务合规必查资料</div>';
-  h += '<div class="hb-detail">根据税务合规经验，以下14类资料为必查项。每缺一类资料，税务合规时就少一道防线——缺少资料意味着对应风险无法排除，税务机关将从其他数据源倒推核定应纳税额，核定结果通常高于企业实际申报。系统通过文件解析模块（34类文件指纹+三层递进识别）自动检测资料提交状态，逐类标注已提交/缺失，缺失资料的具体后果在报告中一一列明。以下按重要性从必备→建议→据需三级分类。</div>';
+  h += '<div class="hb-detail">根据税务合规经验，以下14类资料为必查项。每缺一类资料，税务合规时就少一道防线——缺少资料意味着对应风险无法排除，税务机关将从其他数据源倒推核定应纳税额，核定结果通常高于企业实际申报。系统通过文件解析模块（{{file_fingerprints}}类文件指纹+三层递进识别）自动检测资料提交状态，逐类标注已提交/缺失，缺失资料的具体后果在报告中一一列明。以下按重要性从必备→建议→据需三级分类。</div>';
   h += '<table class="hb-tbl"><thead><tr style="border-bottom:2px solid #e2e8f0"><td class="lbl">资料</td><td class="lbl" style="width:50px">等级</td><td class="val">核心要求</td><td class="val" style="font-size:12px;color:#dc2626">缺失后果</td></tr></thead><tbody>';
   [['银行流水','必备','含交易日期/对方户名/交易金额/摘要/备注。系统自动提取收款方/付款方身份、计算资金净流向、识别异常交易模式。','资金流真实性无法验证，收入收款和成本付款无法核实。税务机关从第三方数据倒推资金流向。'],
    ['销项发票','必备','含购方名称/品名/规格/数量/金额/税额/发票号码。系统自动统计收入构成、行业分类、客户集中度。','无法确认企业对外开票情况，无法进行收入端分析。税务机关以行业均值推定收入。'],
@@ -142,9 +142,9 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">系统每一个功能模块都对应《税务合规工作规程》的具体条款要求。这确保了系统产出不是凭空制造的——每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖了从案源筛选到报告输出的全税务合规流程。</div>';
   h += '<table class="hb-tbl">';
   [['一键分析','第21-45条(检查)','_run_analyze自动执行全部分析域+四步核查法+链驱动引擎+协商引擎+方法论语料对账。一次点击=完整模拟税务合规检查环节——从文件上传到报告输出，全部自动化。'],
-   ['文件解析','第22条(取证)','34类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。'],
-   ['线索链','第22条(取证逻辑)','437条线索链(全部可执行),管理于cross_domain_clues.json。每条含触发关键词+investigation_path调查步骤+rule_refs关联规则ID+风险等级+建议+法条引用。每条线索链=一个税务合规员的调查思路——\"从这里开始查，每一步查什么，查到了怎么办\"。'],
-   ['证据链','第24条(证据真实性)','781条证据链≥2域交叉→≥min_evidence触发→多维印证闭环。investigation_path数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
+   ['文件解析','第22条(取证)','{{file_fingerprints}}类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。'],
+   ['线索链','第22条(取证逻辑)','{{clue_chains}}条线索链(全部可执行),管理于cross_domain_clues.json。每条含触发关键词+investigation_path调查步骤+rule_refs关联规则ID+风险等级+建议+法条引用。每条线索链=一个税务合规员的调查思路——\"从这里开始查，每一步查什么，查到了怎么办\"。'],
+   ['证据链','第24条(证据真实性)','{{evidence_chains}}条证据链≥2域交叉→≥min_evidence触发→多维印证闭环。investigation_path数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
    ['分析链','第46条(审理审核)','48条分析链→reasoning_path[]多步推理→从证据→结论的综合判定。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性→0-7维异常评分→定案。'],
    ['方法论过滤器','第46条(审核重点)','全链路质量保障体系→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→税务合规重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
    ['跨域协商引擎','第46条(审核重点)','29条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
@@ -160,7 +160,7 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">6大维度25个组件覆盖从数据输入到报告输出的完整质量链。每个维度有明确的检查项、检查方法和代码位置。质量保障是递进式而非一次性——数据质量→规则质量→发现质量→证据质量→报告质量→合规性保障，前一层不合格直接影响后一层。代码位置：static/js/tax-pipeline-pages.js renderQualitySystem()。</div>';
   h += '<div class="hb-card-grid">';
   [['数据质量保障','文件解析前验证数据有效性/结构完整性/字段合法性。自动过滤空白行/汇总行/无效行。含82+列名映射和四方交叉验证，确保解析正确。文件格式识别失败→降级到数据推断兜底模式。'],
-   ['规则质量保障','1608条规则全部经格式校验+触发条件校对+法律依据核实。规则ID可全程回溯至原始数据行。每条规则含9个结构化字段（触发条件/风险等级/调查步骤/处罚依据等）。规则变更时运行audit_consistency.py确保全局一致。'],
+   ['规则质量保障','{{rules_count}}条规则全部经格式校验+触发条件校对+法律依据核实。规则ID可全程回溯至原始数据行。每条规则含9个结构化字段（触发条件/风险等级/调查步骤/处罚依据等）。规则变更时运行audit_consistency.py确保全局一致。'],
    ['发现质量保障','双重验证(COND_BAN防误杀：条件A+条件B同时满足才触发)+自洽检查(7项逻辑矛盾检测)+证据闭环验证(≥60%触发率+≥3规则+≥2域)。跨域协商引擎在发现之间执行对话消解——确保不同域的发现不矛盾。'],
    ['证据质量保障','≥2数据域交叉触发+≥3条规则支持+≥60%触发率→有效证据链。11条跨域证据链从不同数据源独立收集证据。SHA256哈希存证保证证据不可篡改。证据链完整度在报告中量化展示（X/Y条链形成闭环）。'],
    ['报告质量保障','12项质量标准：模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除。报告纯净度规范在生成管线末端执行——系统内部标注全部移除，四步框架表现为自然段落衔接。'],
@@ -169,7 +169,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第九章 ═══
   h += '<div id="hb-s9" class="hb-sec"><div class="hb-sec-title"><span class="num">9</span>跨域协商引擎</div>';
-  h += '<div class="hb-detail">42个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。29条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
+  h += '<div class="hb-detail">{{domain_functions}}个域分析函数各自独立产出发现后，协商引擎自动执行跨域对话——一个域的结论影响其他域的判定。29条协商规则覆盖四类场景，确保报告中的结论不自相矛盾。协商在all_findings生成后、进入过滤管线前执行。代码：engine/cross_domain_negotiation.py → run_negotiation()。协商结果在报告中以⛔消解/🔄调整/ℹ️标记/🔴增强四种横幅展示。</div>';
   h += '<table class="hb-tbl">';
   [['行业闸门消解（5条）','NEG-001~005。服务行业判定成立→自动消解进销存/存货/BOM/进销比/毛利率五个制造业域的发现。例如：行业判定="服务行业"→域1的"进销存匹配异常"发现被自动标记为"不适用"，从高风险降为弱提示。','消除假阳性——服务行业不存在实物商品的进销存，这些域的发现没有分析意义。'],
    ['资料驱动标记（4条）','NEG-010~040。资料完备度域检测到某类文件缺失→通知所有依赖该文件的域标注"资料受限"。例如：缺合同→合同分层判断法的"无正式合同"发现从高风险降为提示级并标注蓝色横幅"此结论基于不完整资料"。','防止因缺数据而产生的伪发现——没有合同≠交易不真实。'],
@@ -229,15 +229,15 @@ function renderAuditorHandbook(container) {
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">核心引擎（12个文件）</td></tr>';
   h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（29条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
-  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ user_corrections.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（1608条税务合规指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
+  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ user_corrections.json（纠正规则）/ industry_data.json（25行业词典+12条收款分类）/ tax_risk_rules_local_export.json（{{rules_count}}条税务合规指令·2MB）/ audit_memory.json（500条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
-  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（报告编制要求·11节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（1608条税务合规指令浏览）</td></tr>';
+  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（报告编制要求·11节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（{{rules_count}}条税务合规指令浏览）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">基础设施（4个文件）</td></tr>';
   h += '<tr><td class="lbl">根目录</td><td class="val" style="font-size:12px">main.py（主入口·25000行·227路由·FastAPI服务器）/ start.bat（启动脚本·杀僵尸+清缓存+--sync+审计+启动）/ audit_consistency.py（数据一致性自检+联动修改+引擎记忆文档同步）/ static/index.html（侧边栏导航+全部JS加载）</td></tr>';
   h += '</table></div>';
 
   h += '</div></div>';
-  container.innerHTML = h;
+  container.innerHTML = (typeof applySysStats === 'function' && window._systemConfig) ? applySysStats(h, window._systemConfig) : h;
   // 侧边栏子模块入口：隐藏TOC和无关章节
   if (window._hbChapter) {
     var chapter = window._hbChapter;
