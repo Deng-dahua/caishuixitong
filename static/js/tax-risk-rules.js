@@ -274,6 +274,7 @@ function toggleRuleEdit(ruleId, btn) {
 async function saveRuleEdit(ruleId, btn) {
   var card = btn.closest('[data-rule-id]');
   if (!card) return;
+  var isAuto = card.getAttribute('data-type') === 'auto';
   var fields = ['item','level','score','detail','suggestion','evidence','tax_impact','policy_ref','category','dataSource','detectable'];
   var body = {rule_id: ruleId};
   fields.forEach(function(k){
@@ -283,11 +284,19 @@ async function saveRuleEdit(ruleId, btn) {
   btn.disabled = true;
   btn.textContent = '保存中...';
   try {
+    // 自动规则：先升级为人工规则
+    if (isAuto) {
+      var pr = await fetch('/api/tax-risk-rules/promote-auto-rule?rule_id=' + ruleId, {method:'POST'});
+      var pd = await pr.json();
+      if (!pd.ok) { alert('升级失败: ' + pd.message); btn.disabled = false; btn.textContent = '保存'; return; }
+    }
+    // 保存编辑字段
     var r = await fetch('/api/tax-risk-rules/update-rule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var d = await r.json();
     if (d.ok) {
       var panel = card.querySelector('.rr-edit-panel');
-      if (panel) panel.innerHTML = '<div style="color:#059669;font-weight:600;font-size:12px;padding:8px">✓ 已保存（' + d.changed.length + '字段）· 1.5秒后刷新</div>';
+      var msg = isAuto ? '✓ 已升级为正式规则并保存 ' + (d.changed ? d.changed.length : '') + ' 个字段' : '✓ 已保存（' + d.changed.length + '字段）';
+      if (panel) panel.innerHTML = '<div style="color:#059669;font-weight:600;font-size:12px;padding:8px">' + msg + ' · 1.5秒后刷新</div>';
       setTimeout(function(){ loadTaxRiskRules(); }, 1500);
     } else { alert(d.message); btn.disabled = false; btn.textContent = '保存'; }
   } catch(e) { btn.disabled = false; btn.textContent = '重试'; }
@@ -485,7 +494,7 @@ function renderTaxRiskRulesList() {
         + (!isAutoRule ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">✏️</button>' : '')
         + (isAutoRule 
             ? '<span style="font-size:11px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
-            + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'
+            + '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 编辑并确认为正式规则</button>'
             : '<span style="font-size:11px;color:#94a3b8">评分 ' + scoreVal + '</span>')
         + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
         + '</div>'
