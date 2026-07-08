@@ -69,6 +69,12 @@ function renderTaxRiskRules(container) {
     + '.tr-flow-item .desc{font-size:10px;color:#94a3b8;line-height:1.5;margin-top:2px}'
     + '.tr-sec{margin-bottom:36px}'
     + '.tr-sec h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
+    + '.tr-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:#2563eb;cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #bae6fd;background:#f0f9ff;transition:all .15s ease;margin-top:4px}'
+    + '.tr-toggle:hover{background:#e0f2fe;border-color:#93c5fd}'
+    + '.tr-toggle .arrow{font-size:10px;transition:transform .15s ease}'
+    + '.tr-toggle.open .arrow{transform:rotate(90deg)}'
+    + '.tr-detail{overflow:hidden;transition:max-height .3s ease,opacity .2s ease;max-height:0;opacity:0}'
+    + '.tr-detail.show{max-height:2000px;opacity:1}'
     + '.tr-search{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}'
     + '.tr-search input{flex:1;min-width:200px;padding:6px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff;outline:none}'
     + '.tr-search input:focus{border-color:#2563eb}'
@@ -106,6 +112,11 @@ function renderTaxRiskRules(container) {
   h += '</div>';
   h += '<div class="tr-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
   h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度15</h4>';
+  // 摘要（默认可见）
+  h += '<div style="font-size:11px;color:#64748b;line-height:1.6;margin-bottom:8px">被<b>15</b>个模块消费：资料风险分析报告、学习反馈、质量保障、引擎详情、税务合规判定规则、全链路质量保障、数据一致性自检、引擎铁律编号、术语与机密规范、质量标准、触发与交付、线索链、证据链、质量保障机制、行为准则。点击下方按钮查看明细。</div>';
+  h += '<div class="tr-toggle" onclick="toggleDetail(\'rr-down-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
+  // 详情（默认隐藏）
+  h += '<div class="tr-detail" id="rr-down-detail">';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><div class="desc">规则匹配发现作为分析输入</div></div>';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-learn\')" style="color:#2563eb">学习反馈</a><div class="desc">规则空跑率供学习引擎分析</div></div>';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><div class="desc">规则匹配结果质量验证</div></div>';
@@ -121,7 +132,7 @@ function renderTaxRiskRules(container) {
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><div class="desc">规则发现作为证据匹配源</div></div>';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><div class="desc">规则纳入质量保障框架</div></div>';
   h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'ai-rules\')" style="color:#2563eb">行为准则</a><div class="desc">规则遵循行为规范</div></div>';
-  h += '</div></div></div>';
+  h += '</div></div></div></div>';
 
   // 使用说明（折叠）
   h += '<details style="margin-bottom:36px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
