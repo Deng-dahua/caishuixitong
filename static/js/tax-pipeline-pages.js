@@ -6565,3 +6565,153 @@ function renderAIInteractionPage(container) {
     }
   }
 }
+
+// 分析链页面（与线索链/证据链并列）
+function renderAnalysisChainsPage(container) {
+  if (!container) return;
+  window.currentModule = '分析链';
+  window._skipModuleHeader = true;
+  var h = '';
+  h += '<style>'
+    + '.alc{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.alc-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
+    + '.alc-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
+    + '.alc-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
+    + '.alc-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
+    + '.alc-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
+    + '.alc-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
+    + '.alc-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '.alc-step{padding:8px 12px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:12px;line-height:1.9}'
+    + '.alc-step .sn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:11px;font-weight:700;margin-right:8px;flex-shrink:0}'
+    + '.alc-flow{display:flex;align-items:center;gap:4px;font-size:11px;color:#94a3b8;margin:6px 0}'
+    + '.alc-flow b{color:#334155}'
+    + '</style>';
+  h += '<div class="alc">';
+  h += '<div class="alc-title">分析链</div>';
+  h += '<div class="alc-sub">跨域综合推理引擎 · 推理路径可视化 · 所属：数据与分析</div>';
+  h += '<div class="alc-hero">';
+  h += '<div class="alc-card"><div class="v" id="alc-total">—</div><div class="l">分析链总数</div></div>';
+  h += '<div class="alc-card"><div class="v" id="alc-high" style="color:#dc2626">—</div><div class="l">高风险链</div></div>';
+  h += '<div class="alc-card"><div class="v" id="alc-mid" style="color:#f59e0b">—</div><div class="l">中风险链</div></div>';
+  h += '<div class="alc-card"><div class="v" id="alc-steps" style="color:#2563eb">—</div><div class="l">推理步骤总数</div></div>';
+  h += '</div>';
+
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px">⬆ 上游（输入方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div>线索链<br><span style="color:#94a3b8">线索发现后触发分析链综合推理</span></div>';
+  h += '<div>证据链<br><span style="color:#94a3b8">多源证据闭合后输入分析链</span></div>';
+  h += '</div></div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px">⬇ 下游（消费方）</div>';
+  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
+  h += '<div>推理引擎<br><span style="color:#94a3b8">分析链驱动因果推理引擎</span></div>';
+  h += '<div>报告生成<br><span style="color:#94a3b8">推理结论反馈至报告发现</span></div>';
+  h += '</div></div></div>';
+
+  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
+  h += '<p style="margin:0 0 16px">分析链是线索链→证据链之后的<strong>综合推理引擎</strong>——线索链触发"从哪里查"，证据链回答"查到了什么"，分析链做最终的综合推理判定。每条分析链从上一环节的发现出发，跨多个域逐层扩展分析范围，每一步都有回退路径，形成"从信号到结论"的完整推理链条。</p>';
+  h += '<p style="margin:0">分析链的推理路径可视化展示：从哪个域发现 → 去哪个域验证 → 验证遇到什么情况如何分支 → 最终得出结论。这模拟了资深稽查员"顺藤摸瓜、层层深入、能进能退"的思维过程。</p>';
+  h += '</div>';
+  h += '<div id="alc-body"></div>';
+  h += '</div>';
+  container.innerHTML = h;
+  loadAnalysisChainsData();
+}
+
+async function loadAnalysisChainsData() {
+  var target = document.getElementById('alc-body');
+  try {
+    var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
+    var chains = await resp.json();
+    var high = chains.filter(function(c){return c.level==='高风险'}).length;
+    var mid = chains.filter(function(c){return c.level==='中风险'}).length;
+    var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
+    document.getElementById('alc-total').textContent = chains.length;
+    document.getElementById('alc-high').textContent = high;
+    document.getElementById('alc-mid').textContent = mid;
+    document.getElementById('alc-steps').textContent = steps;
+    var html = '';
+    chains.forEach(function(chain){
+      var lvlColor = chain.level==='高风险' ? '#dc2626' : (chain.level==='中风险' ? '#f59e0b' : '#0e7490');
+      html += '<div class="alc-chain">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+      html += '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+escHtml(chain.level)+'</span>';
+      html += '<span style="font-size:13px;font-weight:700;color:#0f172a">'+escHtml(chain.name)+'</span>';
+      html += '</div>';
+      html += '<div style="font-size:12px;color:#64748b;line-height:1.9;margin-bottom:10px">'+escHtml(chain.description)+'</div>';
+      if (chain.reasoning_path && chain.reasoning_path.length > 0) {
+        html += '<div style="font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:8px">推理路径（共 '+chain.reasoning_path.length+' 步）</div>';
+        chain.reasoning_path.forEach(function(s,si){
+          html += '<div class="alc-step">';
+          html += '<div style="display:flex;align-items:flex-start">';
+          html += '<span class="sn">'+(si+1)+'</span>';
+          html += '<div style="flex:1">';
+          html += '<div class="alc-flow">从 <b>'+escHtml((s.action||{}).from||'—')+'</b> → 发现 <b>'+escHtml((s.action||{}).finding||'—')+'</b></div>';
+          html += '<div style="font-size:11px;color:#64748b">→ 去 <b style="color:#0e7490">'+escHtml((s.action||{}).to||'—')+'</b>：'+escHtml((s.action||{}).action||'—')+'</div>';
+          html += '</div></div></div>';
+        });
+      }
+      html += '</div>';
+    });
+    if (target) target.innerHTML = html;
+  } catch(e) {
+    if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: '+e.message+'</div>';
+  }
+}
+
+// 税务合规分析（16模块融合整合页）
+function renderTaxAnalysisPage(container) {
+  if (!container) return;
+  window.currentModule = '税务合规分析';
+  var chapters = [
+    ['一','税务合规指令','renderTaxRiskRules'],
+    ['二','线索链','renderChainsPage'],
+    ['三','证据链','renderEvidencePage'],
+    ['四','分析链','renderAnalysisChainsPage'],
+    ['五','核心数据资产','renderCoreDataAssets'],
+    ['六','方法论体系','renderMethodologySystem'],
+    ['七','质量保障机制','renderQualitySystem'],
+    ['八','行业认知体系','renderIndustrySystem'],
+    ['九','执行管线','renderExecutionPipeline'],
+    ['十','本次分析结果','renderAnalyzePage'],
+    ['十一','管线执行日志','renderAnalyzeLogs'],
+    ['十二','税收优惠分析','renderTaxIncentivesPage'],
+    ['十三','什么是域分析','renderDAIntro'],
+    ['十四','域分析架构','renderDAArch'],
+    ['十五','分析域','renderDADomains'],
+    ['十六','域分析结果','renderDAResult']
+  ];
+  var css='<style>'
+    +'.tax-ana{max-width:1180px;margin:0 auto;padding:34px 40px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    +'.tax-ana-wrap{display:flex;gap:44px;align-items:flex-start}'
+    +'.tax-ana-toc{width:150px;flex-shrink:0;position:sticky;top:20px;font-size:11.5px;max-height:calc(100vh-40px);overflow-y:auto}'
+    +'.tax-ana-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
+    +'.tax-ana-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    +'.tax-ana-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    +'.tax-ana-body{flex:1;min-width:0}'
+    +'.tax-ana h1{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px}'
+    +'.tax-ana .lead{font-size:12px;color:#94a3b8;margin:0 0 22px;line-height:1.9}'
+    +'.tax-ana section{margin:0 0 38px;scroll-margin-top:20px}'
+    +'.tax-ana .ch-h{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #eef2f6;display:flex;align-items:baseline;gap:9px}'
+    +'.tax-ana .ch-h .idx{color:#0e7490;font-size:12px;font-weight:700}'
+    +'</style>';
+  var toc='<nav class="tax-ana-toc"><div class="tt">目录</div>';
+  var body='<div class="tax-ana-body"><h1>税务合规分析</h1>'
+    +'<p class="lead">指令 · 线索 · 证据 · 分析四层引擎 + 方法论质量行业管线五基石 + 域分析三要素 + 分析结果与日志 —— 从规则匹配到综合判定的完整分析闭环。</p>';
+  for(var i=0;i<chapters.length;i++){
+    toc+='<a href="#ta-'+i+'">'+chapters[i][1]+'</a>';
+    body+='<section id="ta-'+i+'"><div class="ch-h"><span class="idx">'+chapters[i][0]+'</span> '+chapters[i][1]+'</div><div id="ta-body-'+i+'"></div></section>';
+  }
+  toc+='</nav>'; body+='</div>';
+  container.innerHTML=css+'<div class="tax-ana"><div class="tax-ana-wrap">'+toc+body+'</div></div>';
+  for(var j=0;j<chapters.length;j++){
+    var fn=window[chapters[j][2]];
+    var sub=document.getElementById('ta-body-'+j);
+    if(sub&&typeof fn==='function'){
+      try{if(fn.length===0)sub.innerHTML=fn();else fn(sub);}
+      catch(e){sub.innerHTML='<div style="color:#dc2626;padding:10px">加载失败: '+(e&&e.message)+'</div>';}
+    }
+  }
+}

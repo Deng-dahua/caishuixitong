@@ -117,15 +117,11 @@ const pages = {
   'bookkeeping-invoices': '记账发票',
   'tax-risk-report': '账务风险分析报告',
   'tax-doc-analysis': '资料风险分析报告',
-  'pipeline-rules': '税务合规指令',
-  'chains-page': '线索链',
-  'evidence-page': '证据链',
+  'tax-analysis': '税务合规分析',
   'system-logs': '系统日志',
   'ai-interaction': 'AI交互',
   'feedback-template': '审核内容模板',
   'brain': '智能大脑',
-  'aly-result': '本次分析结果',
-  'aly-logs': '管线执行日志',
   'methodology': '稽查方法论',
   'rs-pipeline': '质量保障管线',
   'report-spec': '报告规范',
@@ -134,16 +130,7 @@ const pages = {
   'rs-ironlaw': '引擎铁律与报告质量映射',
   'rs-iterate': '审核反馈→报告迭代闭环',
   'rs-negoflow': '跨域协商详细工作流程',
-  'qs-layer1': '核心数据资产',
-  'qs-layer2': '方法论体系',
-  'qs-layer3': '质量保障机制',
-  'qs-layer4': '行业认知体系',
-  'qs-layer5': '执行管线',
   'file-parsing': '文件解析',
-  'da-intro': '什么是域分析',
-  'da-arch': '域分析架构',
-  'da-domains': '分析域',
-  'da-result': '本次分析结果',
   'agi-schedule': '调度中枢',
 };
 
@@ -692,18 +679,13 @@ function navigateTo(page) {
     case '文化事业建设费':          _sR(container, 'renderCulturalConstructionFee'); break;
     case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
-    case 'pipeline-rules':         _sR(container, 'renderTaxRiskRules'); break;
-    case 'chains-page':            _sR(container, 'renderChainsPage'); break;
-    case 'evidence-page':          _sR(container, 'renderEvidencePage'); break;
-    case 'tax-incentives-page':    _sR(container, 'renderTaxIncentivesPage'); break;
+    case 'tax-analysis':    _sR(container, 'renderTaxAnalysisPage'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
     case 'ai-interaction':        _sR(container, 'renderAIInteractionPage'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
     case 'feedback-template':      _sR(container, 'renderFeedbackTemplate'); break;
     case 'correction-rules':       _sR(container, 'renderCorrectionRulesHub'); break;
     case 'brain':                 _sR(container, 'renderBrainPage'); break;
-    case 'aly-result':             _sR(container, 'renderAnalyzePage'); break;
-    case 'aly-logs':               _sR(container, 'renderAnalyzeLogs'); break;
     case 'methodology':
       if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
       else { container.innerHTML = _LOADING_HTML; }
@@ -715,19 +697,10 @@ function navigateTo(page) {
     case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
     case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
     case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
-    case 'qs-layer1': _sR(container, 'renderCoreDataAssets'); break;
-    case 'qs-layer2': _sR(container, 'renderMethodologySystem'); break;
-    case 'qs-layer3':               window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
-    case 'qs-layer4':               _sR(container, 'renderIndustrySystem'); break;
-    case 'qs-layer5':               _sR(container, 'renderExecutionPipeline'); break;
     case 'file-parsing':
       if (typeof renderFileParsingPage === 'function') { renderFileParsingPage(container); }
       else { container.innerHTML = _LOADING_HTML; }
       break;
-    case 'da-intro':   _sR(container, 'renderDAIntro'); break;
-    case 'da-arch':    _sR(container, 'renderDAArch'); break;
-    case 'da-domains': _sR(container, 'renderDADomains'); break;
-    case 'da-result':  _sR(container, 'renderDAResult'); break;
     case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
   }
   var ca = document.getElementById('content-area');
