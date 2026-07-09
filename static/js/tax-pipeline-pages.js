@@ -6374,3 +6374,194 @@ function renderMethodologyStatic() {
     + '<div class="rel"><b>协作链路：</b>用户上传资料 → <b>main.py</b> 解析 → <b>pipeline.py</b> 调度 → <b>domain_analysis.py</b> 分析 → <b>memory.py</b> 提供知识 → <b>main.py</b> 生成报告。各文件职责清晰、协作有序，遵循模块化、单一职责、松耦合、高内聚的架构原则，确保系统易维护、易扩展、易测试。</div></section>';
   t.innerHTML = h;
 }
+
+// 报告规范（9模块融合·概述版）
+function renderReportSpecPage(container) {
+  if (!container) return;
+  window.currentModule = '报告规范';
+  var css = '<style>'
+    + '.rs2{max-width:1080px;margin:0 auto;padding:38px 46px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.rs2-wrap{display:flex;gap:50px;align-items:flex-start}'
+    + '.rs2-toc{width:150px;flex-shrink:0;position:sticky;top:22px;font-size:11.5px;max-height:calc(100vh - 44px);overflow-y:auto}'
+    + '.rs2-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
+    + '.rs2-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    + '.rs2-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    + '.rs2-body{flex:1;min-width:0;max-width:800px}'
+    + '.rs2 h1{font-size:21px;font-weight:700;color:#0f172a;margin:0 0 8px}'
+    + '.rs2 .lead{font-size:12.5px;color:#64748b;margin:0 0 26px;line-height:2.05}'
+    + '.rs2 section{margin:0 0 44px;scroll-margin-top:22px}'
+    + '.rs2 h2{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 4px;display:flex;align-items:baseline;gap:9px}'
+    + '.rs2 h2 .idx{color:#0e7490;font-size:12px;font-weight:700}'
+    + '.rs2 .sub{font-size:12px;color:#94a3b8;margin:0 0 16px;padding-bottom:13px;border-bottom:1px solid #eef2f6;line-height:2.0}'
+    + '.rs2 p{margin:0 0 12px}'
+    + '.rs2 strong{color:#334155;font-weight:600}'
+    + '.rs2 .num{margin:4px 0 14px}'
+    + '.rs2 .num .ni{position:relative;padding:0 0 0 16px;margin:0 0 9px;line-height:1.9}'
+    + '.rs2 .num .ni::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#0e7490}'
+    + '.rs2 .num .ni b{color:#334155;font-weight:600}'
+    + '.rs2 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px 18px;margin:4px 0 14px}'
+    + '.rs2 .gi{font-size:11.5px;color:#64748b;padding-left:14px;position:relative;line-height:1.85}'
+    + '.rs2 .gi::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#7dd3e0}'
+    + '.rs2 .gi b{color:#334155;font-weight:600}'
+    + '.rs2 .duo{display:flex;gap:12px;margin:6px 0 14px}'
+    + '.rs2 .duo .dc{flex:1;padding:12px 14px;border-radius:8px;border:1px solid #eef2f6}'
+    + '.rs2 .duo .dc .dt{font-size:12px;font-weight:700;margin:0 0 5px}'
+    + '.rs2 .duo .dc .dx{font-size:11px;color:#64748b;line-height:1.85}'
+    + '.rs2 .flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:4px 0 14px;font-size:11px}'
+    + '.rs2 .flow span{padding:5px 10px;background:#f0f9fb;color:#0e7490;border-radius:13px;font-weight:600}'
+    + '.rs2 .flow i{color:#cbd5e1;font-style:normal}'
+    + '.rs2 .rel{background:#f8fafc;border:1px solid #eef2f6;border-radius:8px;padding:13px 15px;margin-top:8px;font-size:11.5px;color:#64748b;line-height:2.0}'
+    + '.rs2 .rel b{color:#334155}'
+    + '</style>';
+  var toc = '<nav class="rs2-toc"><div class="tt">目录</div>'
+    + '<a href="#rs-1">报告结构</a><a href="#rs-2">术语与机密规范</a><a href="#rs-3">叙事规范</a>'
+    + '<a href="#rs-4">风险合并规则</a><a href="#rs-5">质量标准</a><a href="#rs-6">判定可靠性要求</a>'
+    + '<a href="#rs-7">段落格式规范</a><a href="#rs-8">语音播报标准</a><a href="#rs-9">触发与交付</a></nav>';
+  container.innerHTML = css + '<div class="rs2"><div class="rs2-wrap">' + toc
+    + '<div class="rs2-body"><h1>报告规范</h1>'
+    + '<p class="lead">从报告结构、用语立场到叙事框架、段落格式、语音播报的完整出具规范。它确保每一份税务合规报告都结构规范、用语审慎、叙事严谨、格式清晰、数据一致——既符合《税务稽查工作规程》的法定要求，又体现"发现而非定性"的专业立场。</p>'
+    + '<div id="rs2-static"></div></div></div></div>';
+  renderReportSpecStatic();
+}
+
+function renderReportSpecStatic() {
+  var t = document.getElementById('rs2-static');
+  if (!t) return;
+  var h = '';
+  h += '<section id="rs-1"><h2><span class="idx">一</span> 报告结构</h2>'
+    + '<p class="sub">封面 + 七章正文 + 附件清单 —— 严格遵循《税务稽查工作规程》第 42 条的 10 项内容</p>'
+    + '<p>正式税务合规报告由<strong>封面</strong>（编号格式 税稽字[YYYY]第XXX号）、<strong>七章正文</strong>与<strong>附件</strong>三部分构成：</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>第一章 案件来源及基本情况</b>——8 项基本信息表格：案件来源、被查单位、信用代码、法定代表人、企业类型、行业分类（三层穿透）、稽查期间、稽查范围。</div>'
+    + '<div class="ni"><b>第二章 稽查实施情况</b>——7 个执行段落，整体 2000 字以上。</div>'
+    + '<div class="ni"><b>第三章 发现问题及事实认定</b>——六要素格式，高风险优先排列；已审核展示绿色横幅，协商结果展示彩色横幅。</div>'
+    + '<div class="ni"><b>第四章 稽查结论</b>。<b>第五章 处理处罚建议</b>——三级卡片 P0 立即处理（5 工作日）/ P1 限期整改（15 工作日）/ P2 持续关注（30 工作日）。</div>'
+    + '<div class="ni"><b>第六章 告知权利义务</b>。<b>第七章 稽查人员签字</b>。</div>'
+    + '<div class="ni"><b>附件（7 类）</b>——销项/进项发票全量明细、主营成本发票、重大费用发票、银行流水汇总、资料文件清单、质量标准自检结果。</div>'
+    + '</div></section>';
+  h += '<section id="rs-2"><h2><span class="idx">二</span> 术语与机密规范</h2>'
+    + '<p class="sub">报告处于"发现阶段"而非法律裁决 —— 用语须体现发现而非定性，6 类内部信息严禁出现</p>'
+    + '<p><strong>核心立场：</strong>报告是检查完毕后的事实陈述，不是最终的行政处罚决定。用语必须使用"涉嫌"而非"认定"、"可能存在"而非"确定存在"——任何在检查阶段就做违法定性的表述都不恰当。</p>'
+    + '<div class="duo">'
+    + '<div class="dc" style="border-color:#bbf7d0"><div class="dt" style="color:#0e9f6e">正确用语</div><div class="dx">涉嫌 / 可能存在 / 建议核实 / 需进一步确认 / 与申报数据存在差异 / 未能提供相关证据 / 数据分析显示 / 综合判断 / 潜在风险</div></div>'
+    + '<div class="dc" style="border-color:#fecaca"><div class="dt" style="color:#e02424">禁止用语</div><div class="dx">违法 / 认定 / 确定 / 必定 / 毫无疑问 / 显然 / 绝对 / 非法 / 犯罪 —— 这些是处罚决定书和刑事判决书的用语，不属于合规报告</div></div>'
+    + '</div>'
+    + '<p><strong>6 类禁止暴露的内部信息</strong>（须转为外部表述）：① 引擎执行流程 → 系统自动分析发现；② 内部配置参数 → 行业通用标准；③ 代码位置引用 → 经系统验证；④ 系统日志 → 分析记录显示；⑤ 方法论内部名称 → 多维度交叉分析；⑥ AI 推理过程 → 综合分析判断。</p></section>';
+  h += '<section id="rs-3"><h2><span class="idx">三</span> 叙事规范</h2>'
+    + '<p class="sub">每条发现遵循六要素叙事框架 —— 缺失任一要素即为不完整</p>'
+    + '<div class="flow"><span>What 事实</span><i>→</i><span>How 方法</span><i>→</i><span>Evidence 证据</span><i>→</i><span>Why 法律</span><i>→</i><span>Impact 影响</span><i>→</i><span>Action 建议</span></div>'
+    + '<p>①<strong>What</strong>发现的事实问题 ②<strong>How</strong>通过什么方法发现 ③<strong>Evidence</strong>支撑证据（具体发票号/账簿页码/金额）④<strong>Why</strong>违反什么规定（法条编号+条文）⑤<strong>Impact</strong>税务影响（涉及税款金额）⑥<strong>Action</strong>处理建议。</p>'
+    + '<p><strong>三类事实验证：</strong>数据交叉验证（发票 vs 账簿 vs 申报表，至少 2 方一致才写入）、时间轴验证（交易日期满足业务逻辑）、金额验证（借方=贷方、发票金额=账簿金额）。</p>'
+    + '<p><strong>递进逻辑链：</strong>不允许"现象→结论"跳跃，必须"信号→推论→验证→确认→结论"，每步推理都在报告中体现。旧版五段式（背景→过程→发现→分析→建议）已废弃——背景与过程在第一、二章已交代，第三章直接从发现切入，减少冗余 30%+。</p></section>';
+  h += '<section id="rs-4"><h2><span class="idx">四</span> 风险合并规则</h2>'
+    + '<p class="sub">同一风险类型的多条发现合并为一条呈现 —— 7 步合并流程确保报告简洁不冗余</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>分组</b>——按 type 字段分组（去除内部前缀后 trim 比对），同类发现归入一组。</div>'
+    + '<div class="ni"><b>等级取高</b>——同组取最高风险等级作为合并后等级，不降低任何子项的风险标记。</div>'
+    + '<div class="ni"><b>合并标签</b>——标题显示"N 项同类风险合并"标签。</div>'
+    + '<div class="ni"><b>子项独立展示</b>——每个子项保留独立的标题、细节、税务影响与处理建议，可追溯完整信息。</div>'
+    + '<div class="ni"><b>证据合并</b>——所有子项的 items/evidence_rows/matched_chain_details 合并到父项。</div>'
+    + '</div>'
+    + '<p><strong>适用场景：</strong>知识图谱系列、发票合规系列、资料缺失触发系列——这三类最易产生大量同类发现，合并效果最明显。</p></section>';
+  h += '<section id="rs-5"><h2><span class="idx">五</span> 质量标准</h2>'
+    + '<p class="sub">报告生成后依序执行的 12 项检查 —— 强制 5 项 / 重要 4 项 / 建议 3 项</p>'
+    + '<div class="grid">'
+    + '<div class="gi"><b>1 模板句清除</b>：不得出现"根据相关规定"等模板句 [强制]</div>'
+    + '<div class="gi"><b>2 重复句合并</b>：相似度 >80% 触发合并 [强制]</div>'
+    + '<div class="gi"><b>3 空描述删除</b>：不得出现"无/暂无/—"空值 [强制]</div>'
+    + '<div class="gi"><b>4 人性化表述</b>：技术参数转通俗表达 [强制]</div>'
+    + '<div class="gi"><b>5 六要素完整</b>：What/How/Evidence/Why/Impact/Action [强制]</div>'
+    + '<div class="gi"><b>6 法律引用准确</b>：法条须含编号+内容 [重要]</div>'
+    + '<div class="gi"><b>7 具体数值</b>：每条发现至少 1 个具体数值 [重要]</div>'
+    + '<div class="gi"><b>8 因果链</b>：不能"现象→结论"跳跃，须含中间推理 [强制]</div>'
+    + '<div class="gi"><b>9 可执行建议</b>：建议须具体可操作 [强制]</div>'
+    + '<div class="gi"><b>10 条款号</b>：引用规程须含条款号 [重要]</div>'
+    + '<div class="gi"><b>11 反跨复制</b>：不得跨企业复制内容 [重要]</div>'
+    + '<div class="gi"><b>12 空占位符清除</b>：全报告无残留占位符 [强制]</div>'
+    + '</div>'
+    + '<p>每项标准含要求说明、检测方法与正确范例，独立运行。不通过项以 ⚠ 标记，不影响报告整体合规性。</p></section>';
+  h += '<section id="rs-6"><h2><span class="idx">六</span> 判定可靠性要求</h2>'
+    + '<p class="sub">比质量标准更底层 —— 质量标准检测"表述是否正确"，可靠性检测"分析本身是否成立"</p>'
+    + '<p><strong>致命级（3 项）：</strong></p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>公司身份锚定</b>——报告开头必须声明公司名称 + 信用代码。</div>'
+    + '<div class="ni"><b>发票方向判定</b>——进项/销项分类须有判定依据，存疑发票单独列出。</div>'
+    + '<div class="ni"><b>综合判断</b>——文件类型判定须经四方证据交叉验证。</div>'
+    + '</div>'
+    + '<p><strong>高级（4 项）：</strong>④ 只读有效信息（排除空白行/小计/合计/汇总行）；⑤ 存疑排除（买卖双方都不含公司名称的发票必须排除）；⑥ 服务行业闸门（服务业不得出现实物商品域发现）；⑦ 品名级精度（混合行业必须品名级区分）。</p>'
+    + '<div class="rel"><b>与质量标准的关系：</b>可靠性是质量标准的<strong>前提</strong>——分析不成立，表述再规范也无意义。二者互补：先保证分析成立（本章），再保证表述规范（第五章）。</div></section>';
+  h += '<section id="rs-7"><h2><span class="idx">七</span> 段落格式规范</h2>'
+    + '<p class="sub">五大禁止反模式 + 拆分标准 —— 一段一个主题，超过 200 字就拆</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>禁止一逗到底</b>——多个完整逻辑句各自独立成段，一段只表达一个完整意思。</div>'
+    + '<div class="ni"><b>禁止多逻辑挤一段</b>——同段不得混杂 2 个以上不相关分析维度；不同域、税种、时间段的发现必须分段。</div>'
+    + '<div class="ni"><b>禁止括号堆叠</b>——不得用括号堆砌多段判定逻辑链，括号内应为简短说明。</div>'
+    + '<div class="ni"><b>子项独立成段</b>——子项内容各自独立为一段。</div>'
+    + '<div class="ni"><b>数据与解释分层</b>——先陈述数据事实 → 再解释分析方法 → 最后给出结论。</div>'
+    + '</div>'
+    + '<p><strong>拆分自检：</strong>每写完一段自问——只有一个主题吗？能用一句话概括主旨吗？超过 200 字了吗（超了就拆）？</p></section>';
+  h += '<section id="rs-8"><h2><span class="idx">八</span> 语音播报标准</h2>'
+    + '<p class="sub">全文播报 + 点击播报 —— 中文男声、6 档语调、视觉跟随高亮</p>'
+    + '<p><strong>功能：</strong>全文播报（报告顶部控制条）+ 点击任意段落播报；暂停/继续/停止，语速 0.85x–1.3x；视觉跟随——橙色底纹高亮当前段落并自动滚动。</p>'
+    + '<p><strong>音色：</strong>中文男声（zh-CN male），低沉严肃的中年税务合规员声线，体现专业与权威感。降级策略：zh-CN male → zh-CN non-Tingting → zh 任意，确保任何设备都能播报。</p>'
+    + '<p><strong>6 档语调分级：</strong>章节标题 0.65 音调/0.7x 语速、小节标题 0.72/0.8x、高风险内容 0.68/0.75x、法律条文 0.70/0.72x、处理建议 0.80/0.85x、普通叙述 0.78/0.88x。</p></section>';
+  h += '<section id="rs-9"><h2><span class="idx">九</span> 触发与交付</h2>'
+    + '<p class="sub">跨模块数据一致性由审计引擎自动保障 —— 四触发机制 + 三命令模式 + 三色交付</p>'
+    + '<div class="flow"><span>手动 --sync</span><i>·</i><span>start.bat 启动</span><i>·</i><span>git commit 钩子</span><i>·</i><span>pipeline.py 启动</span></div>'
+    + '<p><strong>三种命令模式：</strong>纯审计（只报告不一致项）/ <code>--sync</code>（联动同步自动修复）/ <code>--calibrate</code>（重新统计权威数据源，用于数据源变更后的基准校正）。</p>'
+    + '<div class="rel"><b>报告交付保障：</b>同步完成 → 一致性验证 → <span style="color:#0e9f6e;font-weight:600">绿色交付</span>；不一致项超阈值 → <span style="color:#c27803;font-weight:600">黄色交付</span>（标注已知差异）；严重不一致 → <span style="color:#e02424;font-weight:600">红色阻断</span>。（一致性自检机制详见「稽查方法论 · 数据一致性自检」章节）</div></section>';
+  t.innerHTML = h;
+}
+
+// AI交互（11模块融合整合页，智能问答独立保留）
+function renderAIInteractionPage(container) {
+  if (!container) return;
+  window.currentModule = 'AI交互';
+  var chapters = [
+    ['一', '核心智能引擎', 'renderAGICore'],
+    ['二', '因果推理层', 'renderAGICausal'],
+    ['三', '连接通信层', 'renderAGIConnect'],
+    ['四', '知识层', 'renderAGIKnowledge'],
+    ['五', '专项引擎层', 'renderAGISpecial'],
+    ['六', '加速与保护层', 'renderAGIPerf'],
+    ['七', '数据资产', 'renderDataAssets'],
+    ['八', 'API端点', 'renderAGIAPI'],
+    ['九', '知识库与配置', 'renderAGIKnowledgeConfig'],
+    ['十', '行为准则', 'renderAiRules'],
+    ['十一', '人类学习引擎', 'renderHumanLearningPage']
+  ];
+  var css = '<style>'
+    + '.aix{max-width:1180px;margin:0 auto;padding:34px 40px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.aix-wrap{display:flex;gap:44px;align-items:flex-start}'
+    + '.aix-toc{width:146px;flex-shrink:0;position:sticky;top:20px;font-size:11.5px;max-height:calc(100vh - 40px);overflow-y:auto}'
+    + '.aix-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
+    + '.aix-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    + '.aix-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    + '.aix-body{flex:1;min-width:0}'
+    + '.aix h1{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px}'
+    + '.aix .lead{font-size:12px;color:#94a3b8;margin:0 0 26px;line-height:1.9}'
+    + '.aix section{margin:0 0 42px;scroll-margin-top:20px}'
+    + '.aix .ch-h{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 14px;padding-bottom:11px;border-bottom:1px solid #eef2f6;display:flex;align-items:baseline;gap:9px}'
+    + '.aix .ch-h .idx{color:#0e7490;font-size:12px;font-weight:700}'
+    + '</style>';
+  var toc = '<nav class="aix-toc"><div class="tt">目录</div>';
+  var body = '<div class="aix-body"><h1>🤖 AI交互</h1>'
+    + '<p class="lead">核心智能引擎 · 因果推理层 · 连接通信层 · 知识层 · 专项引擎层 · 加速与保护层 · 数据资产 · API端点 · 知识库与配置 · 行为准则 · 人类学习引擎 —— AGI 大脑的完整能力图谱与运作机制。（智能问答为独立交互入口）</p>';
+  for (var i = 0; i < chapters.length; i++) {
+    toc += '<a href="#aix-' + i + '">' + chapters[i][1] + '</a>';
+    body += '<section id="aix-' + i + '"><div class="ch-h"><span class="idx">' + chapters[i][0] + '</span> ' + chapters[i][1] + '</div><div id="aix-body-' + i + '"></div></section>';
+  }
+  toc += '</nav>';
+  body += '</div>';
+  container.innerHTML = css + '<div class="aix"><div class="aix-wrap">' + toc + body + '</div></div>';
+  for (var j = 0; j < chapters.length; j++) {
+    var fn = window[chapters[j][2]];
+    var sub = document.getElementById('aix-body-' + j);
+    if (sub && typeof fn === 'function') {
+      try {
+        if (fn.length === 0) { sub.innerHTML = fn(); }
+        else { fn(sub); }
+      } catch (e) { sub.innerHTML = '<div style="color:#dc2626;padding:10px">加载失败: ' + (e && e.message) + '</div>'; }
+    }
+  }
+}

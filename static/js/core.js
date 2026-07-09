@@ -121,32 +121,17 @@ const pages = {
   'chains-page': '线索链',
   'evidence-page': '证据链',
   'system-logs': '系统日志',
-  'ai-rules': '行为准则',
+  'ai-interaction': 'AI交互',
   'feedback-template': '审核内容模板',
-  'human-learning': '人类学习引擎',
-  'eng-pipe': '管道调度',
-  'eng-learn': '学习反馈',
-  'eng-orch': '调度中枢',
-  'eng-grow': '成长曲线',
-  'eng-qual': '质量保障',
-  'eng-think': '推理引擎',
-  'eng-info': '引擎详情',
+  'brain': '智能大脑',
   'aly-result': '本次分析结果',
   'aly-logs': '管线执行日志',
   'methodology': '稽查方法论',
   'rs-pipeline': '质量保障管线',
-  'rs-structure': '报告结构',
-  'rs-terms': '术语与机密规范',
-  'rs-narrative': '叙事规范',
-  'rs-merge': '风险合并规则',
-  'rs-12std': '质量标准',
-  'rs-reliability': '判定可靠性要求',
-  'rs-paragraph': '段落格式规范',
-  'rs-tts': '语音播报标准',
+  'report-spec': '报告规范',
   'rs-negotiation': '跨域协商标记展示规范',
   'rs-review': '审核反馈在报告中的呈现',
   'rs-ironlaw': '引擎铁律与报告质量映射',
-  'rs-sync': '触发与交付',
   'rs-iterate': '审核反馈→报告迭代闭环',
   'rs-negoflow': '跨域协商详细工作流程',
   'qs-layer1': '核心数据资产',
@@ -159,16 +144,7 @@ const pages = {
   'da-arch': '域分析架构',
   'da-domains': '分析域',
   'da-result': '本次分析结果',
-  'agi-core': '核心智能引擎',
-  'agi-causal': '因果推理层',
-  'agi-connect': '连接通信层',
-  'agi-knowledge': '知识层',
-  'agi-special': '专项引擎层',
-  'agi-perf': '加速与保护层',
   'agi-schedule': '调度中枢',
-  'agi-assets': '数据资产',
-  'agi-api': 'API端点',
-  'agi-knowledge-config': '知识库与配置'
 };
 
 // ==================== 用户登录 ====================
@@ -721,19 +697,11 @@ function navigateTo(page) {
     case 'evidence-page':          _sR(container, 'renderEvidencePage'); break;
     case 'tax-incentives-page':    _sR(container, 'renderTaxIncentivesPage'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
-    case 'ai-rules':               _sR(container, 'renderAiRules'); break;
+    case 'ai-interaction':        _sR(container, 'renderAIInteractionPage'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
     case 'feedback-template':      _sR(container, 'renderFeedbackTemplate'); break;
     case 'correction-rules':       _sR(container, 'renderCorrectionRulesHub'); break;
-    case 'engine-dimensions':      _sR(container, 'renderEngineDimensions'); break;
-    case 'human-learning':         _sR(container, 'renderHumanLearningPage'); break;
-    case 'eng-pipe':               _sR(container, 'renderPipeDashboard'); break;
-    case 'eng-learn':              _sR(container, 'renderLearnFeedback'); break;
-    case 'eng-orch':               _sR(container, 'renderOrchDashboard'); break;
-    case 'eng-grow':               _sR(container, 'renderGrowthDashboard'); break;
-    case 'eng-qual':               _sR(container, 'renderQualityDashboard'); break;
-    case 'eng-think':              _sR(container, 'renderEngineThink'); break;
-    case 'eng-info':               _sR(container, 'renderEngineDetails'); break;
+    case 'brain':                 _sR(container, 'renderBrainPage'); break;
     case 'aly-result':             _sR(container, 'renderAnalyzePage'); break;
     case 'aly-logs':               _sR(container, 'renderAnalyzeLogs'); break;
     case 'methodology':
@@ -741,18 +709,10 @@ function navigateTo(page) {
       else { container.innerHTML = _LOADING_HTML; }
       break;
     case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
-    case 'rs-structure':   _sR(container, 'renderReportStructure'); break;
-    case 'rs-terms':       _sR(container, 'renderReportTerms'); break;
-    case 'rs-narrative':   _sR(container, 'renderNarrativeStandard'); break;
-    case 'rs-merge':       _sR(container, 'renderMergeRules'); break;
-    case 'rs-12std':       _sR(container, 'render12Standards'); break;
-    case 'rs-reliability': _sR(container, 'renderReliability'); break;
-    case 'rs-paragraph':   _sR(container, 'renderParaStandard'); break;
-    case 'rs-tts':         _sR(container, 'renderTTSStandard'); break;
+    case 'report-spec':    _sR(container, 'renderReportSpecPage'); break;
     case 'rs-negotiation': _sR(container, 'renderCrossDomainNego'); break;
     case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
     case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
-    case 'rs-sync':        _sR(container, 'renderSyncMechanism'); break;
     case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
     case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
     case 'qs-layer1': _sR(container, 'renderCoreDataAssets'); break;
@@ -768,16 +728,7 @@ function navigateTo(page) {
     case 'da-arch':    _sR(container, 'renderDAArch'); break;
     case 'da-domains': _sR(container, 'renderDADomains'); break;
     case 'da-result':  _sR(container, 'renderDAResult'); break;
-    case 'agi-core':            _sR(container, 'renderAGICore'); break;
-    case 'agi-causal':          _sR(container, 'renderAGICausal'); break;
-    case 'agi-connect':         _sR(container, 'renderAGIConnect'); break;
-    case 'agi-knowledge':       _sR(container, 'renderAGIKnowledge'); break;
-    case 'agi-special':         _sR(container, 'renderAGISpecial'); break;
-    case 'agi-perf':            _sR(container, 'renderAGIPerf'); break;
     case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
-    case 'agi-assets':           _sR(container, 'renderDataAssets'); break;
-    case 'agi-api':              _sR(container, 'renderAGIAPI'); break;
-    case 'agi-knowledge-config': _sR(container, 'renderAGIKnowledgeConfig'); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

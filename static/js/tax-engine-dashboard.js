@@ -2974,3 +2974,50 @@ function renderEngineDetails(container) {
       if (el) el.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">加载失败，请确认已执行一键分析</div>';
     });
 }
+
+// 智能大脑（8模块融合整合页）
+function renderBrainPage(container) {
+  if (!container) return;
+  window.currentModule = '智能大脑';
+  var chapters = [
+    ['一', '管道调度', 'renderPipeDashboard'],
+    ['二', '学习反馈', 'renderLearnFeedback'],
+    ['三', '调度中枢', 'renderOrchDashboard'],
+    ['四', '成长曲线', 'renderGrowthDashboard'],
+    ['五', '质量保障', 'renderQualityDashboard'],
+    ['六', '推理引擎', 'renderEngineThink'],
+    ['七', '引擎详情', 'renderEngineDetails'],
+    ['八', '能力维度', 'renderEngineDimensions']
+  ];
+  var css = '<style>'
+    + '.brn{max-width:1180px;margin:0 auto;padding:34px 40px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.brn-wrap{display:flex;gap:44px;align-items:flex-start}'
+    + '.brn-toc{width:140px;flex-shrink:0;position:sticky;top:20px;font-size:11.5px;max-height:calc(100vh - 40px);overflow-y:auto}'
+    + '.brn-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
+    + '.brn-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    + '.brn-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    + '.brn-body{flex:1;min-width:0}'
+    + '.brn h1{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px}'
+    + '.brn .lead{font-size:12px;color:#94a3b8;margin:0 0 26px;line-height:1.9}'
+    + '.brn section{margin:0 0 42px;scroll-margin-top:20px}'
+    + '.brn .ch-h{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 14px;padding-bottom:11px;border-bottom:1px solid #eef2f6;display:flex;align-items:baseline;gap:9px}'
+    + '.brn .ch-h .idx{color:#0e7490;font-size:12px;font-weight:700}'
+    + '</style>';
+  var toc = '<nav class="brn-toc"><div class="tt">目录</div>';
+  var body = '<div class="brn-body"><h1>🧠 智能大脑</h1>'
+    + '<p class="lead">管道调度 · 学习反馈 · 调度中枢 · 成长曲线 · 质量保障 · 推理引擎 · 引擎详情 · 能力维度 —— 稽查系统的智能中枢，统一编排各引擎的协同、学习、推理与质量把关。</p>';
+  for (var i = 0; i < chapters.length; i++) {
+    toc += '<a href="#brn-' + i + '">' + chapters[i][1] + '</a>';
+    body += '<section id="brn-' + i + '"><div class="ch-h"><span class="idx">' + chapters[i][0] + '</span> ' + chapters[i][1] + '</div><div id="brn-body-' + i + '"></div></section>';
+  }
+  toc += '</nav>';
+  body += '</div>';
+  container.innerHTML = css + '<div class="brn"><div class="brn-wrap">' + toc + body + '</div></div>';
+  for (var j = 0; j < chapters.length; j++) {
+    var fn = window[chapters[j][2]];
+    var sub = document.getElementById('brn-body-' + j);
+    if (sub && typeof fn === 'function') {
+      try { fn(sub); } catch (e) { sub.innerHTML = '<div style="color:#dc2626;padding:10px">加载失败: ' + (e && e.message) + '</div>'; }
+    }
+  }
+}
