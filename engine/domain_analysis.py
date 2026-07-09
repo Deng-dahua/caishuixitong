@@ -11881,7 +11881,7 @@ def _auto_verify_file_types(file_results, pipeline_log):
         rows = fr.get("_rows", [])
         if fr.get("_from_filename"):
             continue  # 文件名直接分类的文件不参与验证
-            file_fingerprints[fname] = _extract_structural_fingerprint(rows)
+        file_fingerprints[fname] = _extract_structural_fingerprint(rows)
     
     if len(file_fingerprints) < 5:
         return []  # 文件太少，无法学习

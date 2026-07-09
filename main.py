@@ -1168,12 +1168,14 @@ def promote_auto_rule(rule_id: str = Query(...)):
     confidence = found.get("confidence", 0.9)
     now_str = str(__import__("datetime").datetime.now().isoformat())
     fill_source = "template"  # 记录填充来源
+    llm_error = ""            # 记录LLM失败原因（不静默吞）
 
-    # ═══ 第1层：LLM 推理填充 ═══
+    # ═══ 第1层：LLM 推理填充（API Key优先 → Ollama → 失败则降级模板）═══
     try:
         from engine.llm_client import get_llm
         llm = get_llm()
-        if llm.available():
+        # available / active_backend 是 property（非方法），不能加括号调用
+        if llm.available:
             prompt = f"""你是一位资深中国税务合规专家。系统自动发现了一条行业特征信号，请将其转化为一条完整、专业的税务合规规则。
             信号信息：行业={industry}，置信度={confidence}。
             请以 JSON 格式返回，包含以下全部字段（不要省略任何字段），字段值为中文：
@@ -1183,14 +1185,21 @@ def promote_auto_rule(rule_id: str = Query(...)):
             if resp and resp.content:
                 # 从LLM响应中提取JSON
                 cnt = resp.content.strip()
-                if cnt.startswith("```"): cnt = cnt.split("\n",1)[-1].rsplit("```",1)[0]
-                data = _json.loads(cnt) if cnt.startswith("{") else _json.loads("{" + cnt)
+                if cnt.startswith("```"): cnt = cnt.split("\n",1)[-1].rsplit("```",1)[0].strip()
+                # 容错：截取第一个 { 到最后一个 } 之间的内容
+                if not cnt.startswith("{") and "{" in cnt:
+                    cnt = cnt[cnt.find("{"):cnt.rfind("}")+1]
+                data = _json.loads(cnt)
                 for k in ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","dataSource","detectable"]:
-                    if k in data and data[k] is not None:
+                    if k in data and data[k] is not None and str(data[k]).strip():
                         found[k] = data[k]
-                fill_source = "llm (" + llm.active_backend() + ")"
+                fill_source = "llm:" + llm.active_backend
+            else:
+                llm_error = "LLM返回空内容"
+        else:
+            llm_error = "无可用LLM后端(未配置API Key且Ollama未运行)"
     except Exception as _le:
-        pass  # LLM失败→降级到模板
+        llm_error = f"{type(_le).__name__}: {_le}"  # 不静默吞，记录原因供诊断
 
     # ═══ 第2层：模板兜底（LLM未填充的字段用模板补） ═══
     if confidence >= 0.95: _lv = "高风险"
@@ -1215,7 +1224,10 @@ def promote_auto_rule(rule_id: str = Query(...)):
     try:
         with open(rp, "w", encoding="utf-8") as _f:
             _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        return {"ok": True, "message": f"规则 {rule_id}（{industry}）已升级为正式规则（填充来源: {fill_source}）"}
+        _msg = f"规则 {rule_id}（{industry}）已升级为正式规则（填充来源: {fill_source}）"
+        if fill_source == "template" and llm_error:
+            _msg += f"｜LLM未启用: {llm_error}"
+        return {"ok": True, "message": _msg, "fill_source": fill_source, "llm_error": llm_error}
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
@@ -2723,6 +2735,24 @@ def _parse_by_content(names, get_sheet, original_name=""):
         s = get_sheet(best_sheet_idx)
         header = _get_row_values(s, 0)
         result = _FILE_FINGERPRINTS[best_type]["parser"](s, header)
+        
+        # P1: 同类型多Sheet合并 —— 扫描其他Sheet，若也匹配同类型且得分≥阈值，合并解析
+        try:
+            threshold = _FILE_FINGERPRINTS[best_type]["score_threshold"]
+            parser_fn = _FILE_FINGERPRINTS[best_type]["parser"]
+            for m in kw_trace_matches:
+                if m["sheet"] != best_sheet_idx and m["type"] == best_type and m["score"] >= threshold:
+                    try:
+                        s2 = get_sheet(m["sheet"])
+                        h2 = _get_row_values(s2, 0)
+                        r2 = parser_fn(s2, h2)
+                        if r2 and r2.get("rows"):
+                            result["rows"].extend(r2["rows"])
+                            _trace_diag(f"同类型合并: Sheet[{m['sheet']}]={best_type}(得分{m['score']})→合并{r2['rows'].__len__() if isinstance(r2['rows'], list) else '?'}行")
+                    except Exception:
+                        pass
+        except Exception:
+            pass
         
         # parser 可能因表头位置不匹配等原因返回 None
         if result is None:

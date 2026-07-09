@@ -555,6 +555,28 @@ def _run_analyze(company_id, db, progress_callback=None):
                 else:
                     fr["actions"].append("OCR无有效文字")
         except Exception as e: fr["actions"].append(f"失败: {e}")
+        
+        # P0: 将解析诊断信息挂到 file_results（供前端"识别依据"展示）
+        try:
+            if parsed and parsed.get("_trace"):
+                tr = parsed["_trace"]
+                fr["_trace"] = {
+                    "kw_phase": tr.get("keyword_phase", {}),
+                    "st_phase": tr.get("structure_phase", {}),
+                    "cv": tr.get("cross_validation", {}),
+                    "suggestions": tr.get("suggestions", []),
+                    "diagnostics": tr.get("diagnostics", [])
+                }
+                # 提取关键摘要字段，方便前端直接展示
+                kw_best = tr.get("keyword_phase", {}).get("best", {})
+                if kw_best:
+                    fr["match_score"] = kw_best.get("score")
+                    fr["match_threshold"] = kw_best.get("threshold")
+                st_best = tr.get("structure_phase", {}).get("best", {})
+                if st_best:
+                    fr["st_confidence"] = st_best.get("confidence")
+        except Exception: pass
+        
         file_results.append(fr)
 
     # ═══════════════════════════════════════════════════════

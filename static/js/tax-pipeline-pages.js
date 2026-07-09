@@ -637,6 +637,7 @@ function renderFileParsingResult(report) {
       + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">识别类型</th>'
       + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">数据条数</th>'
       + '<th style="padding:8px 12px;font-weight:600;color:#0f172a">解析动作</th>'
+      + '<th style="padding:8px 12px;font-weight:600;color:#0f172a;min-width:100px">识别依据</th>'
       + '</tr></thead><tbody>';
 
     frs.forEach(function(fr, i) {
@@ -659,10 +660,49 @@ function renderFileParsingResult(report) {
         + '<td style="padding:10px 12px;color:#64748b">' + escHtml(typeLabel) + '</td>'
         + '<td style="padding:10px 12px;color:#475569;font-weight:600">' + rowCount + '</td>'
         + '<td style="padding:10px 12px;color:#94a3b8;font-size:12px;max-width:280px">' + escHtml(actions) + '</td>'
+        + '<td style="padding:10px 12px;color:#64748b;font-size:11px">' + (function(){
+          var diag = [];
+          var tr = fr._trace || {};
+          var kw = tr.kw_phase || {};
+          var st = tr.st_phase || {};
+          if (kw.best) diag.push('得分' + kw.best.score + '/' + (kw.best.threshold || '?'));
+          if (st.best && st.best.confidence != null) diag.push('置信度' + Math.round(st.best.confidence*100) + '%');
+          if (fr.match_score != null) diag.push('匹配' + fr.match_score + '/' + (fr.match_threshold || '?'));
+          if (fr.st_confidence != null) diag.push('结构' + Math.round(fr.st_confidence*100) + '%');
+          if (status === 'fail' || status === 'warn') diag.push('<span style=\'color:#e02424;font-weight:600\'>需复核</span>');
+          return diag.join(' · ') || '—';
+        })() + '</td>'
         + '</tr>';
     });
 
     html += '</tbody></table>';
+  }
+
+  // 诊断建议（失败/未识别文件的修复建议）
+  var diagFiles = frs.filter(function(fr){
+    return fr.error || fr.type === 'unknown' || (fr._trace && fr._trace.suggestions && fr._trace.suggestions.length > 0);
+  });
+  if (diagFiles.length > 0) {
+    html += '<h4 style="font-size:13px;font-weight:600;color:#94a3b8;margin:28px 0 12px">诊断与修复建议 — 共 ' + diagFiles.length + ' 个文件</h4>';
+    diagFiles.forEach(function(df){
+      var sug = (df._trace && df._trace.suggestions) || [];
+      html += '<div style="margin-bottom:14px;border:1px solid #fecaca;border-radius:6px;overflow:hidden">'
+        + '<div style="padding:10px 14px;background:#fef2f2;font-size:13px;font-weight:600;color:#dc2626">' + escHtml(df.file) + '（' + escHtml(df.type || '未知') + '）</div>';
+      if (sug.length > 0) {
+        html += '<div style="padding:12px 14px;background:#fff">';
+        sug.forEach(function(s){
+          html += '<div style="margin-bottom:10px;padding-left:12px;border-left:3px solid #f59e0b">'
+            + '<div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:3px">问题：' + escHtml(s.issue) + '</div>'
+            + (s.detail ? '<div style="font-size:11px;color:#64748b;margin-bottom:3px;line-height:1.8">' + escHtml(s.detail) + '</div>' : '')
+            + (s.fix ? '<div style="font-size:11px;color:#0e7490;line-height:1.8">修复建议：' + escHtml(s.fix) + '</div>' : '')
+            + '</div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div style="padding:12px 14px;font-size:12px;color:#64748b">暂无详细诊断信息，建议检查文件格式与内容是否完整。</div>';
+      }
+      html += '</div>';
+    });
   }
 
   // 管线日志（详尽版）
