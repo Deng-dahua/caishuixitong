@@ -6634,56 +6634,154 @@ async function loadAnalysisChainsData() {
 }
 
 // 税务合规分析（16模块融合整合页）
+
+// ═══════════ 税务合规分析（系统分析中枢·实体+运行+产出） ═══════════
+function TAX_ANALYSIS_CSS() {
+  return '<style>'
+    + '.tsa{max-width:1080px;margin:0 auto;padding:38px 46px;background:#fff;color:#3f4b5b;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.tsa-wrap{display:flex;gap:52px;align-items:flex-start}'
+    + '.tsa-toc{width:172px;flex-shrink:0;position:sticky;top:24px;font-size:11.5px;max-height:calc(100vh - 48px);overflow-y:auto}'
+    + '.tsa-toc .tt{font-size:10px;font-weight:700;color:#b0b8c4;letter-spacing:.14em;margin:0 0 14px 14px}'
+    + '.tsa-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 14px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.55}'
+    + '.tsa-toc a:hover{color:#0d9488;border-left-color:#0d9488}'
+    + '.tsa-toc a.part{margin-top:12px;font-weight:700;color:#334155;font-size:11px}'
+    + '.tsa-toc a.part:first-child{margin-top:0}'
+    + '.tsa-body{flex:1;min-width:0;max-width:820px}'
+    + '.tsa h1{font-size:23px;font-weight:800;color:#1a2332;margin:0 0 10px}'
+    + '.tsa .preface{font-size:13px;color:#5b6675;line-height:2.15;margin:0 0 14px}'
+    + '.tsa .seal{display:inline-block;font-size:11px;color:#0d9488;border:1px solid #99f6e4;background:#f0fdfa;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
+    + '.tsa .part{margin:44px 0 24px;padding:0 0 10px;border-bottom:2px solid #1a2332}'
+    + '.tsa .part .pn{font-size:11px;font-weight:700;color:#0d9488;letter-spacing:.12em;margin-bottom:5px}'
+    + '.tsa .part .pt{font-size:18px;font-weight:800;color:#1a2332}'
+    + '.tsa .part .pd{font-size:12px;color:#94a3b8;margin-top:6px;font-weight:400;line-height:1.9}'
+    + '.tsa section{margin:0 0 34px;scroll-margin-top:24px}'
+    + '.tsa h2{font-size:15px;font-weight:700;color:#1a2332;margin:0 0 12px;display:flex;align-items:baseline;gap:8px}'
+    + '.tsa h2 .no{color:#0d9488;font-size:12.5px;font-weight:700}'
+    + '.tsa p{margin:0 0 13px}'
+    + '.tsa strong{color:#1e2a3a;font-weight:600}'
+    + '.tsa em{font-style:normal;color:#0d9488;font-weight:600}'
+    + '.tsa .lead-in{font-size:12.5px;color:#5b6675;line-height:2.1;margin:0 0 16px;padding-left:14px;border-left:3px solid #99f6e4}'
+    + '.tsa .card{margin:0 0 14px;padding:14px 16px;background:#fafbfc;border:1px solid #eff2f6;border-radius:8px}'
+    + '.tsa .card .ct{font-size:13px;font-weight:700;color:#1a2332;margin:0 0 6px}'
+    + '.tsa .card .cx{font-size:11.5px;color:#64748b;line-height:1.95}'
+    + '.tsa .ref{color:#0d9488;font-size:11px;font-weight:600}'
+    + '.tsa .num{margin:6px 0 16px}'
+    + '.tsa .num .ni{position:relative;padding:0 0 0 30px;margin:0 0 11px;line-height:1.95}'
+    + '.tsa .num .ni .k{position:absolute;left:0;top:1px;width:21px;height:21px;border-radius:50%;background:#f0fdfa;border:1px solid #99f6e4;color:#0d9488;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}'
+    + '.tsa .num .ni b{color:#334155;font-weight:600}'
+    + '.tsa .arrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 18px;font-size:11.5px}'
+    + '.tsa .arrow span{padding:6px 12px;background:#f0fdfa;color:#0d9488;border:1px solid #99f6e4;border-radius:6px;font-weight:600}'
+    + '.tsa .arrow i{color:#a7f3d0;font-style:normal;font-weight:700}'
+    + '.tsa .maxim{margin:18px 0 8px;padding:14px 18px;background:#1a2332;border-radius:8px;color:#e8edf3;font-size:12.5px;line-height:2.0}'
+    + '.tsa .maxim b{color:#99f6e4}'
+    + '.tsa .datbar{display:flex;flex-wrap:wrap;gap:1px;background:#eff2f6;border:1px solid #eff2f6;border-radius:10px;overflow:hidden;margin:6px 0 4px}'
+    + '.tsa .datbar .d{flex:1;min-width:104px;background:#fcfdfe;padding:13px 8px;text-align:center}'
+    + '.tsa .datbar .d .n{font-size:18px;font-weight:700;color:#0d9488;line-height:1.1}'
+    + '.tsa .datbar .d .l{font-size:10px;color:#94a3b8;margin-top:4px}'
+    + '.tsa .live{border:1px solid #eef2f6;border-radius:10px;padding:6px;margin:8px 0 4px;background:#fcfdfe}'
+    + '</style>';
+}
+function TAX_ANALYSIS_TOC() {
+  var items = [
+    ['#tsa-preface','开宗 · 系统分析中枢','part'],
+    ['#tsa-p1','第一部 · 系统家底','part'],
+    ['#tsa-1-1','一、规则库与三链',''],['#tsa-1-2','二、指纹库·域函数·行业库',''],
+    ['#tsa-p2','第二部 · 运行架构','part'],
+    ['#tsa-2-1','三、七步流水线',''],['#tsa-2-2','四、四阶段递进·域分析',''],
+    ['#tsa-p3','第三部 · 质量机制','part'],
+    ['#tsa-3-1','五、噪声过滤与协商',''],['#tsa-3-2','六、全链路溯源',''],
+    ['#tsa-p4','第四部 · 本次实战产出','part'],
+    ['#tsa-4-1','七、本次分析结果',''],['#tsa-4-2','八、管线执行日志',''],['#tsa-4-3','九、税收优惠扫描','']
+  ];
+  var h = '<nav class="tsa-toc"><div class="tt">引擎目录</div>';
+  for (var i=0;i<items.length;i++){h+='<a href="'+items[i][0]+'"'+(items[i][2]?' class="part"':'')+'>'+items[i][1]+'</a>';}
+  return h+'</nav>';
+}
 function renderTaxAnalysisPage(container) {
   if (!container) return;
   window.currentModule = '税务合规分析';
-  var chapters = [
-    ['一','税务合规指令','renderTaxRiskRules'],
-    ['二','线索链','renderChainsPage'],
-    ['三','证据链','renderEvidencePage'],
-    ['四','分析链','renderAnalysisChainsPage'],
-    ['五','核心数据资产','renderCoreDataAssets'],
-    ['六','方法论体系','renderMethodologySystem'],
-    ['七','质量保障机制','renderQualitySystem'],
-    ['八','行业认知体系','renderIndustrySystem'],
-    ['九','执行管线','renderExecutionPipeline'],
-    ['十','本次分析结果','renderAnalyzePage'],
-    ['十一','管线执行日志','renderAnalyzeLogs'],
-    ['十二','税收优惠分析','renderTaxIncentivesPage'],
-    ['十三','什么是域分析','renderDAIntro'],
-    ['十四','域分析架构','renderDAArch'],
-    ['十五','分析域','renderDADomains'],
-    ['十六','域分析结果','renderDAResult']
-  ];
-  var css='<style>'
-    +'.tax-ana{max-width:1180px;margin:0 auto;padding:34px 40px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
-    +'.tax-ana-wrap{display:flex;gap:44px;align-items:flex-start}'
-    +'.tax-ana-toc{width:150px;flex-shrink:0;position:sticky;top:20px;font-size:11.5px;max-height:calc(100vh-40px);overflow-y:auto}'
-    +'.tax-ana-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
-    +'.tax-ana-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
-    +'.tax-ana-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
-    +'.tax-ana-body{flex:1;min-width:0}'
-    +'.tax-ana h1{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px}'
-    +'.tax-ana .lead{font-size:12px;color:#94a3b8;margin:0 0 22px;line-height:1.9}'
-    +'.tax-ana section{margin:0 0 38px;scroll-margin-top:20px}'
-    +'.tax-ana .ch-h{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #eef2f6;display:flex;align-items:baseline;gap:9px}'
-    +'.tax-ana .ch-h .idx{color:#0e7490;font-size:12px;font-weight:700}'
-    +'</style>';
-  var toc='<nav class="tax-ana-toc"><div class="tt">目录</div>';
-  var body='<div class="tax-ana-body"><h1>税务合规分析</h1>'
-    +'<p class="lead">指令 · 线索 · 证据 · 分析四层引擎 + 方法论质量行业管线五基石 + 域分析三要素 + 分析结果与日志 —— 从规则匹配到综合判定的完整分析闭环。</p>';
-  for(var i=0;i<chapters.length;i++){
-    toc+='<a href="#ta-'+i+'">'+chapters[i][1]+'</a>';
-    body+='<section id="ta-'+i+'"><div class="ch-h"><span class="idx">'+chapters[i][0]+'</span> '+chapters[i][1]+'</div><div id="ta-body-'+i+'"></div></section>';
+  container.innerHTML = TAX_ANALYSIS_CSS() + '<div class="tsa"><div class="tsa-wrap">' + TAX_ANALYSIS_TOC() + '<div class="tsa-body" id="tsa-body"></div></div></div>';
+  renderTaxAnalysisContent();
+}
+
+function renderTaxAnalysisContent() {
+  var t = document.getElementById('tsa-body');
+  if (!t) return;
+  var h = '';
+  h += '<section id="tsa-preface"><h1>税务合规分析</h1><div class="seal">系统分析中枢 · 方法论的机器化身</div>';
+  h += '<p class="preface">「稽查方法论」讲的是一位老稽查员<em>怎么想、怎么查</em>——那是人的功夫。这一篇不重复那些心法，只讲一件事：<em>这套系统本身是什么、怎么运转、这一次替你查出了什么</em>。换句话说，方法论是"纲"，这里是把纲变成一台能上料、能运转、能出活的机器。</p>';
+  h += '<p class="preface">凡是涉及"办案思想"的地方——三层行业穿透、四步分析法、资金流突破、三流合一查虚开等——本篇不再赘述，只标注 <span class="ref">详见稽查方法论</span>。这里聚焦系统<strong>独有</strong>的四样东西：<em>家底</em>（有什么资产）、<em>运行</em>（怎么跑）、<em>质控</em>（怎么保真）、<em>产出</em>（这次查出了什么）。</p>';
+  h += '<div class="datbar"><div class="d"><div class="n">{{rules_count}}</div><div class="l">规则指令</div></div><div class="d"><div class="n">{{clue_chains}}</div><div class="l">线索链</div></div><div class="d"><div class="n">{{evidence_chains}}</div><div class="l">证据链</div></div><div class="d"><div class="n">48</div><div class="l">分析链</div></div><div class="d"><div class="n">{{domain_functions}}</div><div class="l">域分析函数</div></div><div class="d"><div class="n">{{industries}}</div><div class="l">行业基准</div></div></div>';
+  h += '<div class="maxim">一句话定位两个模块的分工：<b>稽查方法论</b>回答"一个老稽查员该怎么查"；<b>税务合规分析</b>回答"这台系统凭什么能查、这次查了什么"。前者是脑，后者是手——本篇只谈手上的家伙什和它干出的活。</div></section>';
+
+  // 第一部 系统家底
+  h += '<div class="part"><div class="pn">第一部</div><div class="pt">系统家底 —— 这台机器装了什么</div><div class="pd">方法论是无形的经验，系统必须把它固化成有形的、可清点、可维护的资产。这一部清点系统的全部"存货"。</div></div>';
+  h += '<section id="tsa-1-1"><h2><span class="no">一</span> 规则库与三链：判断资产的四件套</h2><p class="lead-in">稽查员的判断藏在脑子里，系统的判断必须落成可清点的结构化资产。规则库 + 线索链 + 证据链 + 分析链，是系统把"经验"变成"实体"的四件套。</p>';
+  h += '<div class="card"><div class="ct">📋 规则库 · {{rules_count}} 条</div><div class="cx">覆盖 20 个分类（收入/成本/存货/资金流/发票/申报/关联交易/个税/社保/印花税…）。每条含四要素：<b>触发条件</b>（什么数据模式算疑点）、<b>风险等级</b>、<b>调查步骤</b>、<b>法定依据</b>（自动匹配法条）。它是把"什么算异常"从经验量化成阈值的载体。</div></div>';
+  h += '<div class="card"><div class="ct">🔗 线索链 · {{clue_chains}} 条</div><div class="cx">每条是一条可执行的调查路径（1–15 步），把规则的"这里异常"落成"该查什么、怎么查"。三类触发：定量阈值、定性模式、缺失数据。<span class="ref">调查打法详见稽查方法论·六大战法</span></div></div>';
+  h += '<div class="card"><div class="ct">🔒 证据链 · {{evidence_chains}} 条</div><div class="cx">多源交叉验证的结构化定义。每条设若干独立维度，≥2 个不同数据源命中、达 min_evidence 阈值才闭环——这是把"孤证不立"这句心法，翻译成机器可执行的闭环条件。</div></div>';
+  h += '<div class="card"><div class="ct">🔀 跨域分析链 · 48 条</div><div class="cx">综合推理的结构化路径（reasoning_path，每步带回退分支）。如"七维系统性造假判定模型"——命中维度越多风险越高。它把稽查员"综合研判"的直觉，固化成可复算的推理图。</div></div>';
+  h += '<p>四者由 <code>audit_consistency.py</code> 四触发机制（手动/启动/提交钩子/分析时）保证代码数字与文件数据<em>始终一致</em>——这是方法论做不到、只有系统才有的"自审计"能力。</p></section>';
+  h += '<section id="tsa-1-2"><h2><span class="no">二</span> 指纹库 · 域函数 · 行业库：三大知识底座</h2><p class="lead-in">除了判断资产，系统还内置三套"知识底座"，让它不依赖人的记忆就能识别资料、多维分析、行业对标。</p>';
+  h += '<div class="card"><div class="ct">🗂️ 34 类文件指纹</div><div class="cx">不靠扩展名、靠特征识别资料类型（银行流水/发票/工资表/社保/凭证/报表/合同…）。四层递进识别 + 四方交叉验证，兼容 82+ 列名变体、8 种文件格式，OCR 扫描件也能解析。这是系统的"进料口"。</div></div>';
+  h += '<div class="card"><div class="ct">📊 {{domain_functions}} 个域分析函数</div><div class="cx">按稽查领域分八大工种（资金流/票据流/进销存/费用成本/往来款/资产负债/工资人力/综合诊断）。同一份数据被多个域从不同角度反复审视——<em>单一数据源、多维度交叉</em>。这是系统对"望闻问切"的并行化实现。</div></div>';
+  h += '<div class="card"><div class="ct">🌍 {{industries}} 行业基准值库</div><div class="cx">{{industries}} 个行业 × 5 指标（毛利率/净利率/人均产值/费用收入比/资产周转率）× 3 档基准。外加 25 行业产品链词典、外包轻加工模式认知。它把老稽查员"这行大概什么水平"的手感，变成可量化对标的数据库。<span class="ref">行业判定方法详见稽查方法论</span></div></div></section>';
+
+  window.__tsa1 = h;
+  renderTaxAnalysisPart2();
+}
+
+function renderTaxAnalysisPart2() {
+  var h = '';
+  // 第二部 运行架构
+  h += '<div class="part"><div class="pn">第二部</div><div class="pt">运行架构 —— 家底怎么转起来</div><div class="pd">有了资产还不够，系统得有一条可靠的传送带把它们串起来跑。这一部讲系统的运行骨架——它保证每次分析都走同样的路、留同样的痕。</div></div>';
+  h += '<section id="tsa-2-1"><h2><span class="no">三</span> 七步流水线：流不回头</h2><p class="lead-in">从用户上传资料到输出报告，系统固定走七步。核心工程哲学四个字——<em>流不回头</em>：数据单向流动，下游绝不回写上游，每步独立留痕，可从任意中间步骤重启。这是人工办案做不到、只有系统才有的"可复现性"。</p>';
+  h += '<div class="arrow"><span>①资料扫描</span><i>→</i><span>②实体识别</span><i>→</i><span>③情报提取</span><i>→</i><span>④规则引擎</span><i>→</i><span>⑤噪声过滤</span><i>→</i><span>⑥跨域协商</span><i>→</i><span>⑦报告输出</span></div>';
+  h += '<div class="num"><div class="ni"><span class="k">1</span><b>资料扫描</b>——34 类指纹识别文件类型与归属账套。</div><div class="ni"><span class="k">2</span><b>实体识别</b>——锁定目标企业身份，联网补工商登记。</div><div class="ni"><span class="k">3</span><b>情报提取</b>——逐行提取，生成收付款构成、发票统计、资料完备度画像。</div><div class="ni"><span class="k">4</span><b>规则引擎</b>——四件套全量激活，四阶段递进分析（见第四章）。</div><div class="ni"><span class="k">5</span><b>噪声过滤</b>——七类过滤规则减约 97% 噪声（见第五章）。</div><div class="ni"><span class="k">6</span><b>跨域协商</b>——消解域间矛盾、降级不适用发现、标记资料受限。</div><div class="ni"><span class="k">7</span><b>报告输出</b>——生成 7 章报告，同步纯净度净化与质量检测。</div></div>';
+  h += '<p>这条流水线是系统的"生产线"，方法论里的一切打法，最终都在第 4 步这台机床上被执行。</p></section>';
+  h += '<section id="tsa-2-2"><h2><span class="no">四</span> 四阶段递进 · 域分析并行</h2><p class="lead-in">流水线第 4 步内部，是系统的火力核心：四阶段递进（Phase1→4）× 域函数并行。它把稽查员串行的"查一项、想一项"，变成机器可以并行推进、逐阶收敛的流程。</p>';
+  h += '<div class="arrow"><span>Phase1 初查</span><i>→</i><span>Phase2 深挖</span><i>→</i><span>Phase3 交叉验证</span><i>→</i><span>Phase4 综合定性</span></div>';
+  h += '<p>Phase1 全量扫描出信号，Phase2 定向深挖排除误报，Phase3 多源交叉验证判可信度，Phase4 综合定性生成因果叙事链。每条发现都留下四阶段推导痕迹，用户可逐阶追溯——<em>过程透明，是系统对"黑箱打分"的根本否定</em>。<span class="ref">四步分析法的思想详见稽查方法论</span></p>';
+  h += '<p><strong>域分析的三类驱动</strong>，决定了每个域的"脾气"：<em>资料驱动域</em>（依赖上传资料，缺则标资料缺口、绝不空跑）、<em>算法驱动域</em>（基于数据特征计算，如毛利率/周转率）、<em>知识驱动域</em>（内置行业基准法规库）。每个域都有数据守卫条件——宁可标缺口，绝不编结论。这是系统把"不臆断"这条铁律，写进了每个域的准入逻辑。</p></section>';
+
+  // 第三部 质量机制
+  h += '<div class="part"><div class="pn">第三部</div><div class="pt">质量机制 —— 凭什么信它的结论</div><div class="pd">机器跑得快，但跑得快不等于跑得准。这一部讲系统独有的三道质量闸门——它们是报告可信度的工程保障，也是方法论无法单靠人力实现的部分。</div></div>';
+  h += '<section id="tsa-3-1"><h2><span class="no">五</span> 噪声过滤与跨域协商</h2><p class="lead-in">系统初筛会冒出大量信号，绝大多数经不起推敲。把 100 条粗糙发现淬成 3 条铁证，靠的是两道机制。</p>';
+  h += '<p><strong>七类噪声过滤器</strong>依次执行，滤掉约 97% 噪声：①行业豁免（服务业无进销存不预警）②数据缺失豁免 ③重复发现合并（同问题多域触发只留最高分）④低置信度过滤 ⑤金额阈值过滤 ⑥矛盾发现消解 ⑦白名单豁免（合理商业解释排除）。这是把老稽查员"哪些不用管"的经验，做成了自动化的减噪规则。</p>';
+  h += '<p><strong>跨域协商引擎</strong>——当多个域给出矛盾结论（一个域判高风险、另一个判正常），协商引擎按"数据证据 &gt; 推理证据 &gt; 经验证据"的权重裁决，同向证据叠加升权、反向证据消解、无法消解则标存疑提交人工。这是系统对"多个域各说各话"的仲裁机制。</p></section>';
+  h += '<section id="tsa-3-2"><h2><span class="no">六</span> 全链路溯源：每条结论都查得到根</h2><p class="lead-in">这是系统最硬的一项能力，也是它区别于任何"经验判断"的地方——<em>每一条发现，都能反向追到原始数据行</em>。</p>';
+  h += '<div class="arrow"><span>发现结论</span><i>→</i><span>触发规则</span><i>→</i><span>匹配字段</span><i>→</i><span>来源文件</span><i>→</i><span>原始行号</span><i>→</i><span>原始凭证</span></div>';
+  h += '<p>六步溯源，让稽查人员从"隐匿收入 XX 万"的结论一直追到某笔流水的具体行号。加上<strong>报告纯净度净化</strong>（移除内部术语、代码引用、AI 口吻，统一为专业用语），系统产出的报告既<em>可复核、可审计、可对质</em>，又读起来像资深稽查员亲手所写。<span class="ref">证据三性与定性分寸详见稽查方法论·定谳</span></p>';
+  h += '<div class="maxim">这三道闸门，是系统对方法论的"工程兑现"：稽查员心里的"这条不靠谱、那条要复核、这条能定案"，被系统做成了<b>过滤、协商、溯源</b>三套可运行、可审计的机制——人的判断会累会漏，机器的闸门不会。</div></section>';
+
+  window.__tsa2 = h;
+  renderTaxAnalysisPart4();
+}
+
+function renderTaxAnalysisPart4() {
+  var h = '';
+  // 第四部 本次实战产出（消费一键分析）
+  h += '<div class="part"><div class="pn">第四部</div><div class="pt">本次实战产出 —— 一键分析真刀真枪的战果</div><div class="pd">前三部讲的是这台机器"是什么、怎么跑、凭什么信"。这一部呈现它<em>这一次</em>干出的活——消费的正是本账套上传资料后跑完整条流水线得到的实时结果。</div></div>';
+  h += '<section id="tsa-4-1"><h2><span class="no">七</span> 本次分析结果</h2><p class="lead-in">这不再是能力说明，而是本次「一键分析」的真实战果——每条风险发现都带着第六章所讲的六步溯源路径，点得进、查得到根。</p><div class="live"><div id="tsa-analyze-result"></div></div></section>';
+  h += '<section id="tsa-4-2"><h2><span class="no">八</span> 管线执行日志</h2><p class="lead-in">七步流水线每一步的耗时、状态、输入输出与中间快照——"流不回头"的哲学，在这里化作一行行可审计的记录。哪一步慢了、哪一步跳过了、哪一步报了警，一目了然。</p><div class="live"><div id="tsa-analyze-logs"></div></div></section>';
+  h += '<section id="tsa-4-3"><h2><span class="no">九</span> 税收优惠扫描</h2><p class="lead-in">系统唯一的<em>正向分析</em>——不找问题，找红利。从企业行业、规模、研发投入等维度，扫描本账套<strong>应享未享</strong>的优惠政策：小微普惠、研发费用加计扣除、高新技术企业、重点群体就业等。</p><p>查风险时提示补税，发现红利时提示应享——一台真正周全的稽查系统，两头都替企业看到。<div class="live"><div id="tsa-incentive"></div></div></p></section>';
+  h += '<div class="maxim">这一部回答了那个最实在的问题——<b>「一键分析」的成果，最终落在这里被消费</b>：上传资料 → 七步流水线跑一遍 → 生成 report → 本页读取 report，把每条发现连同溯源路径、把管线每一步的执行日志、把应享未享的优惠，如实摆到你面前。<b>家底是本钱，运行是功夫，质控是底线，产出才是交代。</b></div>';
+
+  window.__tsa3 = h;
+  renderTaxAnalysisAssemble();
+}
+function renderTaxAnalysisAssemble() {
+  var t = document.getElementById('tsa-body');
+  if (!t) return;
+  var full = (window.__tsa1||'') + (window.__tsa2||'') + (window.__tsa3||'');
+  if (typeof applySysStats === 'function' && window._systemConfig) {
+    full = applySysStats(full, window._systemConfig);
   }
-  toc+='</nav>'; body+='</div>';
-  container.innerHTML=css+'<div class="tax-ana"><div class="tax-ana-wrap">'+toc+body+'</div></div>';
-  for(var j=0;j<chapters.length;j++){
-    var fn=window[chapters[j][2]];
-    var sub=document.getElementById('ta-body-'+j);
-    if(sub&&typeof fn==='function'){
-      try{if(fn.length===0)sub.innerHTML=fn();else fn(sub);}
-      catch(e){sub.innerHTML='<div style="color:#dc2626;padding:10px">加载失败: '+(e&&e.message)+'</div>';}
-    }
-  }
+  t.innerHTML = full;
+  var rBox = document.getElementById('tsa-analyze-result');
+  if (rBox && typeof renderAnalyzePage === 'function') { try { renderAnalyzePage(rBox); } catch(e){ rBox.innerHTML='<div style="color:#94a3b8;padding:14px">暂无分析结果，请先运行一键分析。</div>'; } }
+  var lBox = document.getElementById('tsa-analyze-logs');
+  if (lBox && typeof renderAnalyzeLogs === 'function') { try { renderAnalyzeLogs(lBox); } catch(e){ lBox.innerHTML='<div style="color:#94a3b8;padding:14px">暂无管线日志。</div>'; } }
+  var iBox = document.getElementById('tsa-incentive');
+  if (iBox && typeof renderTaxIncentivesPage === 'function') { try { renderTaxIncentivesPage(iBox); } catch(e){ iBox.innerHTML='<div style="color:#94a3b8;padding:14px">暂无税收优惠扫描结果。</div>'; } }
 }
