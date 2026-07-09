@@ -5230,458 +5230,6 @@ function renderSyncMechanism() {
   ]
 });
 }
-// 识别机制：四层递进+四方交叉验证
-function renderFPMechanism() {
-  return _pageTemplate({
-  "title": "识别机制：四层递进+四方交叉验证",
-  "icon": "🔍",
-  "subtitle": "系统接收到文件后，不依赖文件扩展名判断，而是执行四层递进识别——从粗糙到精细、从单一证据到多方交叉验证。前三层是文件内部推理，第四层引入外部证据。",
-  "stats": [
-    [
-      "4层",
-      "递进识别",
-      "#2563eb"
-    ],
-    [
-      "~80%",
-      "关键词识别率",
-      "#7c3aed"
-    ],
-    [
-      "82+",
-      "列名变体",
-      "#059669"
-    ],
-    [
-      "23词",
-      "银行流水关键词",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "da-intro",
-      "什么是域分析",
-      "文件解析为域分析提供数据"
-    ],
-    [
-      "da-domains",
-      "分析域",
-      "解析结果供给各域"
-    ]
-  ],
-  "downstream": [
-    [
-      "fp-compat",
-      "兼容策略",
-      "兼容策略基于识别结果"
-    ],
-    [
-      "fp-result",
-      "本次解析结果",
-      "识别输出文件结果"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">四层递进：①关键词匹配打分制（最高优先级，识别率~80%）——读取前200行表头区域，每命中一个关键词得1分，得分超过阈值即判定 ②结构分析列模式匹配（第二优先级）——多类型接近时激活，列模式相似度≥60%即匹配 ③数据推断逐列语义分类（兜底机制）——逐列读取数据样本按语义角色分类 ④四方交叉验证最终裁决——引入文件名暗示/列头推理/数据扫描/公司匹配四种外部证据。冲突裁决：数据扫描>列头推理>文件名暗示。</p>",
-  "cards": [
-    [
-      "关键词匹配（最高优先级）",
-      "读取前200行表头区域，每命中一个关键词得1分。多类型同时超过阈值时取最高分。识别率约80%，为最常见的文件类型提供快速识别。",
-      "#2563eb"
-    ],
-    [
-      "结构分析（第二优先级）",
-      "前两名得分差距≤1分时激活。列模式模板含列数范围/关键列位置/排列顺序。容错：列位置允许±3列偏移，相似度≥60%即匹配。",
-      "#7c3aed"
-    ],
-    [
-      "数据推断（兜底机制）",
-      "关键词和结构分析都失败时激活。逐列读取前200行数据样本，按语义角色自动分类（日期/编号/企业名称/金额/税率5类）。绝不丢弃数据。",
-      "#059669"
-    ],
-    [
-      "四方交叉验证（最终裁决）",
-      "引入外部证据：文件名暗示/列头推理/数据扫描（买卖方身份）/公司匹配。冲突裁决：数据扫描>列头推理>文件名暗示。确保最终判定有可靠证据支撑。",
-      "#d97706"
-    ]
-  ]
-});
-}
-// 兼容策略
-function renderFPCompat() {
-  return _pageTemplate({
-  "title": "兼容策略",
-  "icon": "🔄",
-  "subtitle": "企业上传的资料格式千差万别。文件解析模块通过列名映射表和智能自适应机制，兼容主要的命名习惯差异。82+列名变体覆盖了常见企业的所有格式变体。",
-  "stats": [
-    [
-      "8类",
-      "文件兼容详情",
-      "#2563eb"
-    ],
-    [
-      "82+",
-      "列名变体",
-      "#7c3aed"
-    ],
-    [
-      "60+",
-      "工资表关键词",
-      "#059669"
-    ],
-    [
-      "通用",
-      "自适应机制",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "fp-mechanism",
-      "识别机制",
-      "识别后匹配兼容策略"
-    ],
-    [
-      "fp-fingerprint",
-      "文件指纹库",
-      "指纹库提供兼容模板"
-    ]
-  ],
-  "downstream": [
-    [
-      "fp-result",
-      "本次解析结果",
-      "兼容策略决定解析质量"
-    ],
-    [
-      "fp-flow",
-      "解析流程",
-      "兼容策略是解析流程的一部分"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">8类文件兼容详情：①银行流水——日期列6种变体、对方户名6种、金额6种、余额3种、汇总行自动过滤 ②发票——方向自动判定、购买方/销售方/发票号码多列名 ③工资表——60+列名变体、个税申报格式兼容 ④社保/公积金——五险自动识别 ⑤申报表——增值税/企业所得税/个税/印花税/完税证明 ⑥财务报表——科目余额表/资产负债表/利润表/进销存 ⑦合同/往来/资产——合同台账/应收应付/固定资产等 ⑧特殊类型——人员清单/股权交易/借款合同/进出口报关/关联交易/通用兜底。</p>",
-  "cards": [
-    [
-      "银行流水兼容",
-      "日期6种变体、对方户名6种、金额6种（收入/支出/贷方/借方/交易/发生额）、余额3种。汇总行自动识别并过滤。",
-      "#2563eb"
-    ],
-    [
-      "发票兼容",
-      "方向自动判定（购方=公司→进项，销方=公司→销项）。购买方列名6种、销售方列名7种、发票号码4种、税收分类5种。金额自动识别含税/不含税。",
-      "#7c3aed"
-    ],
-    [
-      "工资社保兼容",
-      "工资表60+列名变体，个税申报格式兼容。社保三列数据自动区分（缴费基数/单位缴纳/个人缴纳），五险自动识别。",
-      "#059669"
-    ],
-    [
-      "财务报表兼容",
-      "科目余额表（科目代码+科目名称+方向+期初+本期+期末）、资产负债表/利润表（标准会计准则格式）、进销存台账（16关键词，阈值2）",
-      "#d97706"
-    ]
-  ]
-});
-}
-// 格式扩展：多格式全兼容
-function renderFPFormats() {
-  return _pageTemplate({
-  "title": "格式扩展：多格式全兼容",
-  "icon": "📄",
-  "subtitle": "除了传统的Excel格式，文件解析模块已扩展到支持PDF/DOCX/CSV/OCR图片的自动解析。双引擎架构确保每种格式都有优选的解析方案。",
-  "stats": [
-    [
-      "4种",
-      "扩展格式",
-      "#2563eb"
-    ],
-    [
-      "双引擎",
-      "PDF/OCR解析",
-      "#7c3aed"
-    ],
-    [
-      "自适应",
-      "表头指纹匹配",
-      "#059669"
-    ],
-    [
-      "兜底",
-      "绝不丢弃数据",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "fp-mechanism",
-      "识别机制",
-      "格式检测是识别的第一步"
-    ],
-    [
-      "fp-compat",
-      "兼容策略",
-      "格式兼容是兼容策略的基础"
-    ]
-  ],
-  "downstream": [
-    [
-      "fp-fingerprint",
-      "文件指纹库",
-      "解析后走指纹匹配"
-    ],
-    [
-      "fp-result",
-      "本次解析结果",
-      "多格式解析结果汇总"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">4种扩展格式：①PDF——双引擎架构（pdfplumber表格提取优先+pypdf文本解析兜底），自适应策略：逐页提取表格→取最大表格→表头走34类指纹匹配 ②Word——python-docx遍历所有表格→合并多表格→表头指纹匹配 ③CSV——csv.reader读取→CsvSheet模拟Sheet接口→指纹匹配，编码自动检测UTF-8-BOM优先 ④OCR图片——双引擎（EasyOCR中文优先+Tesseract系统兜底），表格重建：Y坐标聚类→X排序→构建矩阵→指纹匹配。</p>",
-  "cards": [
-    [
-      "PDF文档",
-      "双引擎：pdfplumber表格提取（优先）+pypdf文本解析（兜底）。自适应：逐页提取表格→取最大表格→表头走34类指纹匹配。",
-      "#2563eb"
-    ],
-    [
-      "Word文档",
-      "python-docx遍历所有表格→合并多表格→表头指纹匹配。无表格时提取段落文本标注document_text类型。",
-      "#7c3aed"
-    ],
-    [
-      "CSV文本",
-      "csv.reader读取→CsvSheet模拟Sheet接口→指纹匹配。编码自动检测UTF-8-BOM优先，兼容各种中文CSV编码。",
-      "#059669"
-    ],
-    [
-      "OCR图片识别",
-      "双引擎：EasyOCR（中文优先）+Tesseract（系统兜底）。Y坐标聚类（<15px=同行）→X排序→构建矩阵→指纹匹配。首次使用需下载模型~200MB。",
-      "#d97706"
-    ]
-  ]
-});
-}
-// 文件指纹库—34类
-function renderFPFingerprint() {
-  return _pageTemplate({
-  "title": "文件指纹库—34类",
-  "icon": "🔎",
-  "subtitle": "每类指纹由关键词集+得分阈值+专用解析器三部分组成。按使用频率分六梯队排列，第一梯队12类为高频核心类型。",
-  "stats": [
-    [
-      "34类",
-      "文件指纹",
-      "#2563eb"
-    ],
-    [
-      "6梯队",
-      "按频率排列",
-      "#7c3aed"
-    ],
-    [
-      "12类",
-      "高频核心",
-      "#059669"
-    ],
-    [
-      "阈值",
-      "关键词得分制",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "fp-mechanism",
-      "识别机制",
-      "指纹库是识别的知识基础"
-    ],
-    [
-      "fp-compat",
-      "兼容策略",
-      "兼容策略基于指纹库特征"
-    ]
-  ],
-  "downstream": [
-    [
-      "fp-result",
-      "本次解析结果",
-      "指纹匹配结果展示"
-    ],
-    [
-      "fp-flow",
-      "解析流程",
-      "指纹匹配是流程关键步骤"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">六梯队分布：①第一梯队高频核心（12类）——银行流水(23关键词,阈值3)、工资表(60+关键词,阈值2)、销项发票(10词)、进项发票(11词)、通用发票(20词,阈值4)、记账凭证(8词)、社保明细(15词)、公积金(17词)、进项抵扣勾选(5词)、进销存台账(16词)、科目余额表(8词)、财务报表(18词,阈值3)。</p>",
-  "cards": [
-    [
-      "第一梯队 高频核心（12类）",
-      "银行流水(23词/阈值3)、工资表(60+词/阈值2)、销项发票(10词)、进项发票(11词)、通用发票(20词/阈值4)、记账凭证(8词)、社保明细(15词)、公积金(17词)、进项抵扣勾选(5词)、进销存台账(16词)、科目余额表(8词)、财务报表(18词/阈值3)",
-      "#2563eb"
-    ],
-    [
-      "第二~三梯队（7类）",
-      "合同文件(9词)、关联交易(12词)、增值税申报表(19词/阈值3)、企业所得税申报表(11词/阈值3)、个税申报表(16词)、印花税(12词)、完税证明(14词)",
-      "#7c3aed"
-    ],
-    [
-      "第四~六梯队（15类）",
-      "合同清单、应收应付账款、预收预付、其他应收付、固定资产、无形资产、资产损失、费用明细、研发费用、人员清单、股权交易、借款合同、进出口报关、通用数据(兜底/阈值1)",
-      "#059669"
-    ]
-  ]
-});
-}
-// 解析流程：8步全链路
-function renderFPFlow() {
-  return _pageTemplate({
-  "title": "解析流程：8步全链路",
-  "icon": "🔄",
-  "subtitle": "从磁盘上的原始文件到结构化的分析数据，文件解析引擎执行8个步骤。每步有明确的输入、处理和输出。",
-  "stats": [
-    [
-      "8步",
-      "全链路流程",
-      "#2563eb"
-    ],
-    [
-      "MD5",
-      "文件去重",
-      "#7c3aed"
-    ],
-    [
-      "前5KB",
-      "格式检测",
-      "#059669"
-    ],
-    [
-      "标准化",
-      "统一字段",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "fp-mechanism",
-      "识别机制",
-      "流程包含识别步骤"
-    ],
-    [
-      "fp-fingerprint",
-      "文件指纹库",
-      "流程中使用指纹库匹配"
-    ]
-  ],
-  "downstream": [
-    [
-      "fp-result",
-      "本次解析结果",
-      "流程产出解析结果"
-    ],
-    [
-      "da-intro",
-      "什么是域分析",
-      "解析结果供给域分析"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">8步全链路：①磁盘扫描——遍历uploads/目录所有支持格式文件，MD5去重 ②格式检测——读取前5KB数据，通过二进制签名判断真实格式 ③表头提取——逐Sheet读取前200行（自适应扫描找列名行），构建表头特征向量 ④指纹匹配——表头特征向量与34类指纹关键词库交叉匹配 ⑤类型判定——取得分最高类型 ⑥解析器调用——根据类型调用专用解析器 ⑦标准化输出——统一字段命名，金额统一float，日期统一YYYY-MM-DD ⑧日志与路由——解析结果写入file_results数组和pipeline_log。</p>",
-  "cards": [
-    [
-      "步骤①②③",
-      "①磁盘扫描：遍历uploads/目录，MD5去重，避免重复解析。②格式检测：读取前5KB二进制签名判断格式。③表头提取：逐Sheet读取前200行，构建表头特征向量。",
-      "#2563eb"
-    ],
-    [
-      "步骤④⑤⑥",
-      "④指纹匹配：表头特征向量与34类指纹库交叉匹配。⑤类型判定：得分最高类型，分数不够时走结构分析/数据推断/四方验证。⑥解析器调用：_parse_bank_sheet等专用解析器。",
-      "#7c3aed"
-    ],
-    [
-      "步骤⑦⑧",
-      "⑦标准化输出：统一字段命名（date/amount/counterparty等），金额float化，日期YYYY-MM-DD。⑧日志与路由：写入file_results和pipeline_log，按类型路由到对应数据列表。",
-      "#059669"
-    ]
-  ]
-});
-}
-// 本次解析结果
-function renderFPResult() {
-  return _pageTemplate({
-  "title": "本次解析结果",
-  "icon": "📊",
-  "subtitle": "动态数据页面，展示本次分析实际解析的文件结果。包括文件总数、已解析/未解析统计、类型分布标签云、解析明细表和彩色管线日志。",
-  "stats": [
-    [
-      "动态",
-      "实时数据",
-      "#2563eb"
-    ],
-    [
-      "4卡片",
-      "统计概览",
-      "#7c3aed"
-    ],
-    [
-      "标签云",
-      "类型分布",
-      "#059669"
-    ],
-    [
-      "日志",
-      "彩色终端样式",
-      "#d97706"
-    ]
-  ],
-  "upstream": [
-    [
-      "fp-mechanism",
-      "识别机制",
-      "识别决定解析结果"
-    ],
-    [
-      "fp-flow",
-      "解析流程",
-      "流程产出解析结果"
-    ]
-  ],
-  "downstream": [
-    [
-      "da-result",
-      "域分析结果",
-      "解析数据供给域分析"
-    ],
-    [
-      "aly-result",
-      "本次分析结果",
-      "解析是分析的起点"
-    ]
-  ],
-  "desc": "<p style=\"margin:0 0 16px\">数据来源：getSharedAnalysis() API返回的report.file_results和report.pipeline_log。4个统计卡片：文件总数/已解析/未解析/管线日志数。类型分布标签云按文件类型统计数量。解析明细表含序号/文件名/识别类型/数据条数/解析动作。</p>",
-  "cards": [
-    [
-      "统计概览",
-      "4个统计卡片：文件总数、已解析数、未解析数、管线日志条数。一目了然地展示本次解析的整体情况。",
-      "#2563eb"
-    ],
-    [
-      "类型分布",
-      "标签云形式按文件类型统计数量。银行流水N条、发票N条、工资表N条……每个标签的大小和颜色深浅反映数量多少。",
-      "#7c3aed"
-    ],
-    [
-      "解析明细",
-      "表格形式：序号/文件名/识别类型/数据条数/解析动作。可查看每个文件的详细解析结果。",
-      "#059669"
-    ],
-    [
-      "管线日志",
-      "黑色背景终端样式，彩色日志：红色异常/绿色完成/黄色发现/蓝色阶段。完整记录解析全过程的每一步操作。",
-      "#d97706"
-    ]
-  ]
-});
-}
 // 什么是域分析
 function renderDAIntro() {
   return _pageTemplate({
@@ -6575,4 +6123,214 @@ function renderAGIKnowledgeConfig() {
     ]
   ]
 });
+}
+
+// 稽查方法论（13模块融合·概述版·清新段落式）
+function renderMethodologyPage(container) {
+  if (!container) return;
+  window.currentModule = '稽查方法论';
+  var css = '<style>'
+    + '.m2{max-width:1080px;margin:0 auto;padding:38px 46px;background:#fff;color:#4b5563;font-size:12px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.m2-wrap{display:flex;gap:50px;align-items:flex-start}'
+    + '.m2-toc{width:150px;flex-shrink:0;position:sticky;top:22px;font-size:11.5px;max-height:calc(100vh - 44px);overflow-y:auto}'
+    + '.m2-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 12px 12px}'
+    + '.m2-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    + '.m2-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    + '.m2-body{flex:1;min-width:0;max-width:800px}'
+    + '.m2 h1{font-size:21px;font-weight:700;color:#0f172a;margin:0 0 8px}'
+    + '.m2 .lead{font-size:12.5px;color:#64748b;margin:0 0 22px;line-height:2.05}'
+    + '.m2 .databar{display:flex;flex-wrap:wrap;gap:1px;background:#eef2f6;border:1px solid #eef2f6;border-radius:10px;overflow:hidden;margin:0 0 30px}'
+    + '.m2 .databar .d{flex:1;min-width:118px;background:#fcfdfe;padding:14px 10px;text-align:center}'
+    + '.m2 .databar .d .n{font-size:20px;font-weight:700;color:#0e7490;line-height:1.1}'
+    + '.m2 .databar .d .l{font-size:10.5px;color:#94a3b8;margin-top:4px}'
+    + '.m2 section{margin:0 0 46px;scroll-margin-top:22px}'
+    + '.m2 h2{font-size:15.5px;font-weight:700;color:#0f172a;margin:0 0 4px;display:flex;align-items:baseline;gap:9px}'
+    + '.m2 h2 .idx{color:#0e7490;font-size:12px;font-weight:700}'
+    + '.m2 .sub{font-size:12px;color:#94a3b8;margin:0 0 16px;padding-bottom:13px;border-bottom:1px solid #eef2f6;line-height:2.0}'
+    + '.m2 p{margin:0 0 12px}'
+    + '.m2 strong{color:#334155;font-weight:600}'
+    + '.m2 .flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:4px 0 14px;font-size:11px}'
+    + '.m2 .flow span{padding:5px 10px;background:#f0f9fb;color:#0e7490;border-radius:13px;font-weight:600}'
+    + '.m2 .flow i{color:#cbd5e1;font-style:normal}'
+    + '.m2 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px 18px;margin:4px 0 14px}'
+    + '.m2 .gi{font-size:11.5px;color:#64748b;padding-left:14px;position:relative;line-height:1.85}'
+    + '.m2 .gi::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#7dd3e0}'
+    + '.m2 .gi b{color:#334155;font-weight:600}'
+    + '.m2 .mech{padding:2px 0 2px 18px;border-left:2px solid #e0f2f7;margin:0 0 16px}'
+    + '.m2 .mech .mh{font-size:12.5px;font-weight:700;color:#0f172a;margin:0 0 5px}'
+    + '.m2 .mech .mh .n{color:#0e7490;margin-right:8px}'
+    + '.m2 .mech p{margin:0;line-height:1.95;color:#64748b}'
+    + '.m2 .num{margin:4px 0 14px}'
+    + '.m2 .num .ni{position:relative;padding:0 0 0 16px;margin:0 0 9px;line-height:1.9}'
+    + '.m2 .num .ni::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#0e7490}'
+    + '.m2 .num .ni b{color:#334155;font-weight:600}'
+    + '.m2 .tri{display:flex;gap:10px;margin:6px 0 14px}'
+    + '.m2 .tri .tc{flex:1;padding:11px 13px;border-radius:8px;border:1px solid #eef2f6}'
+    + '.m2 .tri .tc .tn{font-size:12px;font-weight:700;margin:0 0 3px}'
+    + '.m2 .tri .tc .tx{font-size:11px;color:#64748b;line-height:1.75}'
+    + '.m2 .map{margin:4px 0 14px}'
+    + '.m2 .map .mp{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid #f4f7fa;font-size:11.5px}'
+    + '.m2 .map .mp .a{flex-shrink:0;width:150px;font-weight:600;color:#334155}'
+    + '.m2 .map .mp .b{color:#94a3b8}'
+    + '.m2 .map .mp .b em{font-style:normal;color:#0e7490}'
+    + '.m2 .rel{background:#f8fafc;border:1px solid #eef2f6;border-radius:8px;padding:13px 15px;margin-top:8px;font-size:11.5px;color:#64748b;line-height:2.0}'
+    + '.m2 .rel b{color:#334155}'
+    + '</style>';
+  var toc = '<nav class="m2-toc"><div class="tt">目录</div>'
+    + '<a href="#m2-1">系统数据概览</a><a href="#m2-2">税务合规工作流程</a><a href="#m2-3">必查资料</a>'
+    + '<a href="#m2-4">税务合规判定规则</a><a href="#m2-5">关键法律条文</a><a href="#m2-6">系统与规程映射</a>'
+    + '<a href="#m2-7">全链路质量保障</a><a href="#m2-8">跨域协商引擎</a><a href="#m2-9">数据一致性自检</a>'
+    + '<a href="#m2-10">审核反馈闭环</a><a href="#m2-11">引擎记忆体系</a><a href="#m2-12">引擎铁律编号</a>'
+    + '<a href="#m2-13">系统文件关联</a></nav>';
+  var databar = '<div class="databar">'
+    + '<div class="d"><div class="n">1610</div><div class="l">稽查规则 / 18 税种</div></div>'
+    + '<div class="d"><div class="n">437</div><div class="l">风险线索链</div></div>'
+    + '<div class="d"><div class="n">35</div><div class="l">分析域</div></div>'
+    + '<div class="d"><div class="n">66</div><div class="l">行业基准</div></div>'
+    + '<div class="d"><div class="n">34</div><div class="l">文件指纹</div></div>'
+    + '<div class="d"><div class="n">200+</div><div class="l">法律条文</div></div>'
+    + '</div>';
+  container.innerHTML = css + '<div class="m2"><div class="m2-wrap">' + toc
+    + '<div class="m2-body"><h1>稽查方法论</h1>'
+    + '<p class="lead">一套从数据采集、智能识别、多维分析、逻辑推理到风险研判的完整闭环方法论。它以引擎记忆为知识权威源，以八条铁律为行为底线，用数据说话、以证据定论、凭法条支撑——把资深稽查员的专业判断沉淀为科学、严谨、可追溯的系统能力。</p>'
+    + databar + '<div id="m2-static"></div></div></div></div>';
+  renderMethodologyStatic();
+}
+
+function renderMethodologyStatic() {
+  var t = document.getElementById('m2-static');
+  if (!t) return;
+  var h = '';
+  h += '<section id="m2-1"><h2><span class="idx">一</span> 系统数据概览</h2>'
+    + '<p class="sub">稽查方法论的数据基石 —— 一切判定的量化底座</p>'
+    + '<p>方法论的科学性建立在坚实的数据基石之上：<strong>1610 条</strong>稽查规则覆盖 18 个税种，<strong>437 条</strong>风险线索链承载逻辑推理，<strong>35 个</strong>分析域构成多维独立分析单元，<strong>66 个</strong>行业财务基准支撑跨行业对标，<strong>34 类</strong>文件指纹实现智能识别，<strong>200+ 条</strong>法律条文提供判定依据（上方数据栏为全系统权威口径，各章不再重复罗列）。</p>'
+    + '<p>三大立身之本贯穿始终：<strong>数据驱动</strong>——所有判定基于真实数据与明确规则，杜绝主观臆断；<strong>逻辑严密</strong>——从线索到证据到结论，每一步推理都有据可循；<strong>全面覆盖</strong>——18 税种、35 域、66 行业基准，无死角覆盖。</p></section>';
+  h += '<section id="m2-2"><h2><span class="idx">二</span> 税务合规工作流程</h2>'
+    + '<p class="sub">从资料上传到风险报告的七步递进式稽查链路 —— 全自动、可追溯、标准化</p>'
+    + '<div class="flow"><span>① 资料上传解析</span><i>→</i><span>② 域分析</span><i>→</i><span>③ 线索链构建</span><i>→</i><span>④ 证据链关联</span><i>→</i><span>⑤ 推理研判</span><i>→</i><span>⑥ 报告生成</span><i>→</i><span>⑦ 质量校验</span></div>'
+    + '<p>用户上传企业财税资料后，系统以文件指纹 + 四层递进识别解析为结构化数据；35 个分析域从资金流、进销存、供应商、成本、发票等多维度独立产出风险发现；线索链把离散信号按逻辑串联，证据链跨域多源印证；推理引擎以六阶段框架从线索到结论模拟资深稽查员思维；最终按七章结构生成专业报告，并由全链路质量体系多层校验。全程无需人工干预，每一步都有日志留痕。</p></section>';
+  h += '<section id="m2-3"><h2><span class="idx">三</span> 必查资料</h2>'
+    + '<p class="sub">稽查必须核查的 14 类资料 —— 资料完备度决定分析深度</p>'
+    + '<p>系统按稽查规程界定了 14 类必查资料，覆盖企业财税全貌：</p>'
+    + '<div class="grid">'
+    + '<div class="gi"><b>银行流水</b>：对公对私账户，核查资金往来真实性</div>'
+    + '<div class="gi"><b>发票数据</b>：进项销项全票面，核查发票合规性</div>'
+    + '<div class="gi"><b>工资表</b>：全员明细，核查个税代扣代缴</div>'
+    + '<div class="gi"><b>社保公积金</b>：缴纳明细，核查基数合规性</div>'
+    + '<div class="gi"><b>财务报表</b>：资产负债表、利润表，核查勾稽关系</div>'
+    + '<div class="gi"><b>纳税申报表</b>：各税种申报，核查申报真实性</div>'
+    + '<div class="gi"><b>记账凭证</b>：全部会计凭证，核查账务处理</div>'
+    + '<div class="gi"><b>合同台账</b>：购销合同，核查业务真实性</div>'
+    + '<div class="gi"><b>存货台账</b>：进销存记录，核查存货真实性</div>'
+    + '<div class="gi"><b>固定资产</b>：资产明细，核查折旧计提</div>'
+    + '<div class="gi"><b>往来款项</b>：应收应付预收预付，核查往来真实性</div>'
+    + '<div class="gi"><b>成本核算</b>：成本构成，核查成本真实性</div>'
+    + '<div class="gi"><b>费用明细</b>：各项费用，核查费用合规性</div>'
+    + '<div class="gi"><b>关联交易</b>：关联方往来，核查定价公允性</div>'
+    + '</div>'
+    + '<p>系统自动评估资料完备度并标注缺失项——缺失资料对应的分析域标注"资料缺口"，坚持<strong>不空跑、不臆断</strong>。</p></section>';
+  h += '<section id="m2-4"><h2><span class="idx">四</span> 税务合规判定规则</h2>'
+    + '<p class="sub">风险判定的核心规则体系 —— 七项前置判定规则 + 1610 条分税种规则</p>'
+    + '<p>在正式分析前，系统先以<strong>七项前置判定规则</strong>校准数据语义，确保判定不跑偏：</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>公司身份锚定</b>——以企业名称 + 统一社会信用代码双向锚定当前账套身份，确保发票方向与往来对象判定正确。</div>'
+    + '<div class="ni"><b>发票方向判定</b>——购方=当前公司→进项，销方=当前公司→销项，双方都不匹配→存疑排除。</div>'
+    + '<div class="ni"><b>进项再分类</b>——按品名与用途细分为原材料、固定资产、费用等，匹配对应税务处理规则。</div>'
+    + '<div class="ni"><b>服务行业闸门</b>——服务业自动跳过存货、进销存等制造业专属域，避免误报。</div>'
+    + '<div class="ni"><b>品名级精准过滤</b>——按品名精准匹配税收分类编码，识别品名与经营范围不符的异常。</div>'
+    + '<div class="ni"><b>四方交叉验证</b>——综合文件名、列头、数据、公司身份四方证据做最终判定，数据优先于文件名。</div>'
+    + '<div class="ni"><b>存疑排除</b>——证据不足或矛盾无法消解的，标注存疑，不强行下结论。</div>'
+    + '</div>'
+    + '<p>通过前置校准后，再由 <strong>1610 条</strong>稽查规则按增值税、企业所得税、个税、社保等 18 大类逐条匹配，每条规则含触发条件、风险等级、法律依据与处理建议。</p></section>';
+  h += '<section id="m2-5"><h2><span class="idx">五</span> 关键法律条文</h2>'
+    + '<p class="sub">稽查判定的法律依据 —— 200+ 条法规库，每条发现皆有法可依</p>'
+    + '<p>系统内置 200+ 条税收法律法规条文，覆盖核心税种与征管领域，分为四类：</p>'
+    + '<div class="grid">'
+    + '<div class="gi"><b>增值税类</b>：暂行条例及实施细则、发票管理办法等</div>'
+    + '<div class="gi"><b>企业所得税类</b>：所得税法及实施条例、税前扣除办法等</div>'
+    + '<div class="gi"><b>个人所得税类</b>：个税法及实施条例、专项附加扣除等</div>'
+    + '<div class="gi"><b>征管类</b>：税收征收管理法、发票管理办法、稽查工作规程等</div>'
+    + '</div>'
+    + '<p>每条风险发现都标注对应的法律条文编号与内容，稽查结论引用具体法条，形成<strong>有法可依</strong>的专业报告；法规库随税收法规修订持续动态更新，确保引用始终有效。</p></section>';
+  h += '<section id="m2-6"><h2><span class="idx">六</span> 系统与规程映射</h2>'
+    + '<p class="sub">系统功能与《税务稽查工作规程》的一一对应 —— 稽查规程数字化</p>'
+    + '<p>系统将传统税务稽查工作规程数字化，每个功能模块都对应规程中的具体要求，确保操作符合规范流程：</p>'
+    + '<div class="map">'
+    + '<div class="mp"><span class="a">资料采集规程</span><span class="b">对应 <em>文件解析模块</em> —— 按规程采集企业财税资料</span></div>'
+    + '<div class="mp"><span class="a">分析检查规程</span><span class="b">对应 <em>域分析模块</em> —— 按规程对各税种检查</span></div>'
+    + '<div class="mp"><span class="a">证据收集规程</span><span class="b">对应 <em>证据链模块</em> —— 按规程收集固定证据</span></div>'
+    + '<div class="mp"><span class="a">结论审核规程</span><span class="b">对应 <em>审核反馈模块</em> —— 按规程审核稽查结论</span></div>'
+    + '<div class="mp"><span class="a">报告出具规程</span><span class="b">对应 <em>报告生成模块</em> —— 按规程出具稽查报告</span></div>'
+    + '</div>'
+    + '<p>系统全流程遵循《税务稽查工作规程》，从立案、检查、审理到执行，每一步都符合法定程序。</p></section>';
+  h += '<section id="m2-7"><h2><span class="idx">七</span> 全链路质量保障</h2>'
+    + '<p class="sub">从数据输入到报告输出的多层质量管控 —— 五层质检 + 三色交付</p>'
+    + '<p>质量保障贯穿全链路，设五层质检防线：</p>'
+    + '<div class="mech"><div class="mh"><span class="n">1</span>数据层质检</div><p>校验上传数据的完整性、格式合法性、字段有效性，不合格数据标注隔离。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">2</span>解析层质检</div><p>校验文件识别准确性、字段映射正确性，低置信度标注人工复核。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">3</span>分析层质检</div><p>每个分析域执行前检查数据前提，缺数据标注资料缺口，不空跑。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">4</span>推理层质检</div><p>每条线索必须有数据支撑，每个结论必须有证据链，无证据不下结论。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">5</span>报告层质检</div><p>报告生成前校验数据引用准确性、法律依据正确性、金额勾稽平衡。</p></div>'
+    + '<div class="tri">'
+    + '<div class="tc" style="border-color:#bbf7d0"><div class="tn" style="color:#0e9f6e">绿色交付</div><div class="tx">全部质检通过，结果完整可靠。</div></div>'
+    + '<div class="tc" style="border-color:#fde68a"><div class="tn" style="color:#c27803">黄色交付</div><div class="tx">存在资料缺口或低置信度项，标注说明后交付。</div></div>'
+    + '<div class="tc" style="border-color:#fecaca"><div class="tn" style="color:#e02424">红色阻断</div><div class="tx">发现严重错误或矛盾，阻断交付返回修正。</div></div>'
+    + '</div>'
+    + '<p>四条质量原则贯穿始终：<strong>宁缺毋滥、全程留痕、分级交付、持续改进</strong>。</p></section>';
+  h += '<section id="m2-8"><h2><span class="idx">八</span> 跨域协商引擎</h2>'
+    + '<p class="sub">消解多域分析结论矛盾的仲裁机制 —— 让 35 个独立分析域形成统一自洽的结论</p>'
+    + '<p>35 个分析域独立分析同一份数据，难免产生矛盾结论——一个域判为高风险，另一个域判为正常。协商引擎通过四大机制消解矛盾：</p>'
+    + '<div class="mech"><div class="mh"><span class="n">1</span>证据权重比较</div><p>比较矛盾双方的证据强度，<strong>数据证据 &gt; 推理证据 &gt; 经验证据</strong>，采信证据更强的结论。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">2</span>同向证据叠加</div><p>多个域指向同一风险时，置信度叠加升权，风险等级上调。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">3</span>反向证据消解</div><p>存在有力反证时，下调风险等级或排除风险。</p></div>'
+    + '<div class="mech"><div class="mh"><span class="n">4</span>存疑保留</div><p>矛盾无法消解且双方都有一定证据时，标注存疑，提交人工研判。</p></div>'
+    + '<p>协商流程：收集各域结论 → 识别矛盾点 → 比较证据权重 → 叠加或消解 → 形成统一结论 → 记录协商过程。每一次协商的矛盾点、证据比较、裁决理由都<strong>记录在案</strong>，确保结论可追溯、可解释。</p></section>';
+  h += '<section id="m2-9"><h2><span class="idx">九</span> 数据一致性自检</h2>'
+    + '<p class="sub">确保全系统数据指标跨模块一致 —— 一处更新、处处同步</p>'
+    + '<p>系统内置一致性审计机制，定期核查规则数、线索链数、分析域数、行业基准数、法条数等关键指标在各模块间的一致性（以第一章数据基石为权威口径）。当权威数据源更新时，通过审计脚本<strong>自动同步</strong>所有模块的引用数据，杜绝数据碎片化与自相矛盾。</p>'
+    + '<div class="flow"><span>手动触发</span><i>·</i><span>启动时自动</span><i>·</i><span>提交钩子触发</span><i>·</i><span>分析时触发</span></div>'
+    + '<p>四种触发方式确保数据始终一致，这也是"数据一致"铁律的技术落地。</p></section>';
+  h += '<section id="m2-10"><h2><span class="idx">十</span> 审核反馈闭环</h2>'
+    + '<p class="sub">稽查结论的复核与持续改进机制 —— 三级审核 + 反馈学习</p>'
+    + '<p>稽查结论经过三级审核层层把关：</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>初审 · 系统自动审核</b>——校验数据完整性、逻辑一致性、证据充分性。</div>'
+    + '<div class="ni"><b>复审 · 交叉验证审核</b>——多个分析域的结论相互印证，消解矛盾。</div>'
+    + '<div class="ni"><b>终审 · 综合研判审核</b>——综合所有证据形成最终结论，标注风险等级。</div>'
+    + '</div>'
+    + '<p>审核之外更有<strong>反馈闭环</strong>：稽查员对系统发现复核后标注正确、误报、漏报，反馈给学习引擎；系统据此调整规则与阈值——误报分析优化规则条件、漏报补充完善规则库、每次反馈都成为学习样本，让判定<strong>越用越准</strong>。</p></section>';
+  h += '<section id="m2-11"><h2><span class="idx">十一</span> 引擎记忆体系</h2>'
+    + '<p class="sub">系统的知识大脑（engine/memory.py）—— 全系统唯一的知识权威源</p>'
+    + '<p>引擎记忆体系是整个稽查系统的知识权威源：所有稽查规则、分析方法、判定逻辑、推理框架都以结构化知识形式存储其中，系统运行时从记忆读取知识来驱动分析。它承载四大知识库：</p>'
+    + '<div class="grid">'
+    + '<div class="gi"><b>稽查规则库</b>：1610 条规则的完整定义（触发条件 / 风险等级 / 法律依据）</div>'
+    + '<div class="gi"><b>分析方法库</b>：35 个分析域的分析逻辑与算法</div>'
+    + '<div class="gi"><b>判定逻辑库</b>：七项前置判定规则与各税种判定标准</div>'
+    + '<div class="gi"><b>推理框架库</b>：六阶段推理框架与线索链、证据链构建逻辑</div>'
+    + '</div>'
+    + '<p>记忆是系统<strong>唯一的知识来源</strong>，所有模块从记忆读取知识，确保全系统知识一致；任何规则、方法的变更都在记忆中统一维护。系统行为完全由知识驱动——<strong>修改知识即可改变系统行为，无需修改代码逻辑</strong>。</p></section>';
+  h += '<section id="m2-12"><h2><span class="idx">十二</span> 引擎铁律编号</h2>'
+    + '<p class="sub">系统必须遵守的核心铁律 —— 任何分析、任何判定都不得违反的行为底线</p>'
+    + '<div class="num">'
+    + '<div class="ni"><b>铁律一 · 数据真实</b>——所有判定基于真实上传数据，杜绝虚构和臆断。</div>'
+    + '<div class="ni"><b>铁律二 · 证据充分</b>——无证据不下结论，弱证据标注存疑。</div>'
+    + '<div class="ni"><b>铁律三 · 全行业适用</b>——所有规则和逻辑适用全行业，禁止单一行业硬编码。</div>'
+    + '<div class="ni"><b>铁律四 · 法律依据</b>——每条风险发现必须关联对应法律条文。</div>'
+    + '<div class="ni"><b>铁律五 · 数据一致</b>——关键数据指标全系统一致，定期审计。</div>'
+    + '<div class="ni"><b>铁律六 · 资料守卫</b>——缺数据的分析域标注资料缺口，不空跑不臆断。</div>'
+    + '<div class="ni"><b>铁律七 · 可追溯性</b>——从原始数据到最终结论全程留痕，可回溯。</div>'
+    + '<div class="ni"><b>铁律八 · 三号合并</b>——同一发票的发票代码、发票号码、数电号码三号合并为一张凭证。</div>'
+    + '</div>'
+    + '<p>铁律是系统的行为底线，确保稽查工作的严谨性、合规性与专业性。</p></section>';
+  h += '<section id="m2-13"><h2><span class="idx">十三</span> 系统文件关联</h2>'
+    + '<p class="sub">系统核心文件的职责与协作关系 —— 模块化、单一职责、松耦合、高内聚</p>'
+    + '<div class="map">'
+    + '<div class="mp"><span class="a">main.py</span><span class="b">主程序 —— 文件解析、规则引擎、报告生成的核心逻辑</span></div>'
+    + '<div class="mp"><span class="a">engine/memory.py</span><span class="b">引擎记忆 —— 稽查规则、方法、知识的权威源</span></div>'
+    + '<div class="mp"><span class="a">engine/pipeline.py</span><span class="b">分析管道 —— 七步分析流程的调度执行</span></div>'
+    + '<div class="mp"><span class="a">engine/domain_analysis.py</span><span class="b">域分析引擎 —— 35 个分析域的分析逻辑</span></div>'
+    + '<div class="mp"><span class="a">database.py</span><span class="b">数据模型 —— 账套、凭证、发票等数据结构</span></div>'
+    + '</div>'
+    + '<div class="rel"><b>协作链路：</b>用户上传资料 → <b>main.py</b> 解析 → <b>pipeline.py</b> 调度 → <b>domain_analysis.py</b> 分析 → <b>memory.py</b> 提供知识 → <b>main.py</b> 生成报告。各文件职责清晰、协作有序，遵循模块化、单一职责、松耦合、高内聚的架构原则，确保系统易维护、易扩展、易测试。</div></section>';
+  t.innerHTML = h;
 }

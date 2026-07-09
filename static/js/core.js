@@ -133,19 +133,7 @@ const pages = {
   'eng-info': '引擎详情',
   'aly-result': '本次分析结果',
   'aly-logs': '管线执行日志',
-  'hb-overview': '系统数据概览',
-  'hb-ch1': '税务合规工作流程',
-  'hb-ch2': '必查资料',
-  'hb-ch4': '税务合规判定规则',
-  'hb-ch6': '关键法律条文',
-  'hb-ch7': '系统与规程映射',
-  'hb-ch8': '全链路质量保障',
-  'hb-ch9': '跨域协商引擎',
-  'hb-ch10': '数据一致性自检',
-  'hb-ch11': '审核反馈闭环',
-  'hb-ch12': '引擎记忆体系',
-  'hb-ch13': '引擎铁律编号',
-  'hb-ch14': '系统文件关联',
+  'methodology': '稽查方法论',
   'rs-pipeline': '质量保障管线',
   'rs-structure': '报告结构',
   'rs-terms': '术语与机密规范',
@@ -166,12 +154,7 @@ const pages = {
   'qs-layer3': '质量保障机制',
   'qs-layer4': '行业认知体系',
   'qs-layer5': '执行管线',
-  'fp-mechanism': '识别机制',
-  'fp-compat': '兼容策略',
-  'fp-formats': '格式扩展',
-  'fp-fingerprint': '文件指纹库',
-  'fp-flow': '解析流程',
-  'fp-result': '本次解析结果',
+  'file-parsing': '文件解析',
   'da-intro': '什么是域分析',
   'da-arch': '域分析架构',
   'da-domains': '分析域',
@@ -753,19 +736,10 @@ function navigateTo(page) {
     case 'eng-info':               _sR(container, 'renderEngineDetails'); break;
     case 'aly-result':             _sR(container, 'renderAnalyzePage'); break;
     case 'aly-logs':               _sR(container, 'renderAnalyzeLogs'); break;
-    case 'hb-overview':  _sR(container, 'renderSystemOverview'); break;
-    case 'hb-ch1':       _sR(container, 'renderTaxWorkflow'); break;
-    case 'hb-ch2':       _sR(container, 'renderRequiredMaterials'); break;
-    case 'hb-ch4':       _sR(container, 'renderJudgmentRules'); break;
-    case 'hb-ch6':       _sR(container, 'renderLegalRefs'); break;
-    case 'hb-ch7':       _sR(container, 'renderProcedureMapping'); break;
-    case 'hb-ch8':       _sR(container, 'renderQualitySystem'); break;
-    case 'hb-ch9':       _sR(container, 'renderCrossDomainNego'); break;
-    case 'hb-ch10':      _sR(container, 'renderDataConsistencyCheck'); break;
-    case 'hb-ch11':      _sR(container, 'renderAuditFeedback'); break;
-    case 'hb-ch12':      _sR(container, 'renderEngineMemory'); break;
-    case 'hb-ch13':      _sR(container, 'renderIronLaws'); break;
-    case 'hb-ch14':      _sR(container, 'renderFileAssociation'); break;
+    case 'methodology':
+      if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
+      else { container.innerHTML = _LOADING_HTML; }
+      break;
     case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
     case 'rs-structure':   _sR(container, 'renderReportStructure'); break;
     case 'rs-terms':       _sR(container, 'renderReportTerms'); break;
@@ -786,12 +760,10 @@ function navigateTo(page) {
     case 'qs-layer3':               window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
     case 'qs-layer4':               _sR(container, 'renderIndustrySystem'); break;
     case 'qs-layer5':               _sR(container, 'renderExecutionPipeline'); break;
-    case 'fp-mechanism':  _sR(container, 'renderFPMechanism'); break;
-    case 'fp-compat':     _sR(container, 'renderFPCompat'); break;
-    case 'fp-formats':    _sR(container, 'renderFPFormats'); break;
-    case 'fp-fingerprint':_sR(container, 'renderFPFingerprint'); break;
-    case 'fp-flow':       _sR(container, 'renderFPFlow'); break;
-    case 'fp-result':     _sR(container, 'renderFPResult'); break;
+    case 'file-parsing':
+      if (typeof renderFileParsingPage === 'function') { renderFileParsingPage(container); }
+      else { container.innerHTML = _LOADING_HTML; }
+      break;
     case 'da-intro':   _sR(container, 'renderDAIntro'); break;
     case 'da-arch':    _sR(container, 'renderDAArch'); break;
     case 'da-domains': _sR(container, 'renderDADomains'); break;
