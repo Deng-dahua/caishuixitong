@@ -42,6 +42,7 @@ var CATEGORY_DESCRIPTIONS = {
 
 function renderTaxRiskRules(container) {
   if (!container) return;
+  var autoOnly = container.id === 'au-auto-rules';  // 自动发现规则面板只显示自动发现的
   var h = '';
   h += '<style>'
     + '.rr{max-width:960px;margin:0 auto;padding:32px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:12px;line-height:1.95}'
@@ -124,6 +125,8 @@ function renderTaxRiskRules(container) {
     .then(function(r) { return r.json(); })
     .then(function(rules) {
       window._rrData = rules;
+      // 自动发现规则面板：只显示自动发现的规则
+      if (autoOnly) { rules = rules.filter(function(rl){ return rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type; }); }
       var cats = {};
       var total = 0, high = 0, mid = 0, low = 0, good = 0;
       rules.forEach(function(rl) {
