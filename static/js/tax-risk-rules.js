@@ -86,6 +86,19 @@ function renderTaxRiskRules(container) {
     + '</div>';
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
+  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:11px;line-height:2;color:#5b6675"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:12px">📐 精写编制标准（参照#1824）</summary>'
+    + '<b>一、推理链：</b>direction字段必须展示从现象到定性的递进推理。格式为【推理第一层：XX法则】→【推理第二层：XX】→...每层50-80字，至少4层，最后一层必须落地到定性。<br>'
+    + '<b>二、穿透追问：</b>drill_questions字段至少8条分3组，每组标注组名。每条格式为"Q{N}:{问题}→潜台词:{稽查真实意图}。A:{应对话术}"<br>'
+    + '<b>三、正常业务解释：</b>normal_reason字段至少6种情形。每种格式为"{情形}——需提供{具体证据}"。证据必须可核验。<br>'
+    + '<b>四、证据清单：</b>evidence字段按四层框架组织：货物流+合同资金流+业务合理性+排雷。大额业务区分AB场景（自提vs直运）。<br>'
+    + '<b>五、整改建议：</b>remedy字段按三阶段组织：自查(稽查前)→应对(稽查中)→制度(长期)。应对部分含话术策略。<br>'
+    + '<b>六、定性路径：</b>determination字段分三条推理路径：无法证明→定性+后果；部分证明→分类处理；完整证明→排除风险。结尾附应对总原则。<br>'
+    + '<b>七、风险表格：</b>risk_table字段至少覆盖5个税种/维度，每行格式为"税种:具体风险描述"。<br>'
+    + '<b>八、现象描述：</b>phenomena字段包含异常定义+5种常见表现形式（用①②③④⑤列举），加适用范围的兜底条款。<br>'
+    + '<b>九、触发指标：</b>threshold字段必须有量化阈值 + 前置条件（如销售额门槛）。<br>'
+    + '<b>十、实地可查：</b>稽查动作中必须包含现场核查手段（实地查看/调取记录/外调走访），不能全是纸面比对。<br>'
+    + '<em>以上标准以#1824（销售大型器械无运输费）为参照范例。</em>'
+    + '</details>';
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
