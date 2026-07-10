@@ -80,16 +80,13 @@ function renderTaxRiskRules(container) {
     + '<option value="良好">良好/正常</option>'
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
+    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
+    + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
     + '</div>';
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
   h += '<div id="rr-list"></div>';
-  h += '<div style="margin:0 0 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-    + ''
-    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
-    + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
-    + '</div>'
-    + '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
+  h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
 
