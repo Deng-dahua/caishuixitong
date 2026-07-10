@@ -319,7 +319,7 @@ async def save_api_key(request: Request):
     
     result = {"ok": True, "has_key": bool(key), "provider": provider}
     
-    # 连通性验证
+    # 连通性验证 + provider-Key 一致性校验
     if do_probe and key:
         try:
             cfg = _load_api_config()
@@ -331,8 +331,25 @@ async def save_api_key(request: Request):
                 timeout=8.0,
             )
             if resp.status_code == 200:
-                result["verified"] = True
-                result["status_text"] = f"配置成功 - {provider}已连通"
+                resp_json = resp.json()
+                resp_model = resp_json.get("model", "")
+                # —— provider-Key 一致性校验 ——
+                provider_signatures = {
+                    "deepseek": ["deepseek"],
+                    "zhipu": ["glm", "chatglm", "智谱"],
+                    "qwen": ["qwen", "通义"],
+                    "doubao": ["doubao", "豆包"],
+                    "openai": ["gpt", "o1", "o3", "o4"],
+                }
+                expected = provider_signatures.get(provider, [provider.lower()])
+                match = any(sig.lower() in resp_model.lower() for sig in expected)
+                if match:
+                    result["verified"] = True
+                    result["status_text"] = f"配置成功 - {provider}已连通"
+                else:
+                    result["verified"] = False
+                    result["message"] = f"Key不匹配：当前选择{provider}，但API返回模型为{resp_model}——请确认Key是否属于{provider}"
+                    result["status_text"] = "Key与Provider不匹配"
             else:
                 result["verified"] = False
                 result["message"] = f"{provider}返回{resp.status_code}"
