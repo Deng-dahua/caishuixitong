@@ -577,8 +577,14 @@ function renderTaxRiskRulesList() {
           }).join('')
         + '</div>' : '')
 
-        // 详细内容
+        // 详细内容 —— 自动发现规则也展示7段式字段
+        + (rule.phenomena ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
+        + (rule.direction ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
+        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:11px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
+        + (rule.drill_questions ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
         + (detailText ? '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
+        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:11px;color:#059669;line-height:2.0;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
+        + (rule.risk_table ? '<div style="font-size:11px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
 
         // 建议 + 佐证
         + (suggestText ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
