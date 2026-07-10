@@ -1302,13 +1302,9 @@ def batch_refresh_rules():
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
     """智能更新规则库——调用LLM分析盲区，返回新增/修改/删除建议及新旧对比表"""
-    try:
-        body = await request.json()
-        api_key = (body or {}).get("api_key", "").strip()
-    except Exception:
-        return {"ok": False, "message": "请提供有效的API Key"}
+    api_key = get_global_api_key()
     if not api_key:
-        return {"ok": False, "message": "请配置LLM API Key"}
+        return {"ok": False, "message": "请先在系统主页左上角配置API Key（设置→API密钥）"}
 
     import json as _json, os as _os
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
@@ -1327,11 +1323,15 @@ async def smart_update_rules(request: Request):
         f"规则库概况：共{len(rules)}条（人工{len(manual_rules)}条、自动发现{len(auto_rules)}条），{len(cat_count)}个分类",
         f"分类分布：{', '.join(f'{k}({v})' for k,v in cat_count.most_common(10))}",
         "请基于以下维度分析规则库盲区：",
-        "1. 近年来废止或新颁的税收政策对应的规则是否已覆盖",
-        "2. 新型业态（直播带货、跨境电商、灵活用工、SaaS/共享经济等）的专项规则是否充足",
-        "3. 新增舞弊手法是否已有对应规则",
-        "4. 跨税种联动规则是否完备（增值税×所得税、个税×社保、发票×资金流等）",
-        "5. 当前规则等级分布：",
+        "1. 政策废止与新颁（近年来废止或新颁布的税收法律、行政法规、部门规章，规则是否已同步更新）",
+        "2. 新型业态演变（直播带货、跨境电商、灵活用工、SaaS/共享经济等新业态的专项规则是否充足）",
+        "3. 舞弊手法演进（新增的偷逃税手法是否已有对应检测规则）",
+        "4. 跨税种联动（增值税×所得税、个税×社保、发票×资金流等跨税种勾稽规则是否完备）",
+        "5. 征管手段升级（金税四期/数电发票全面推行后，新增了哪些数据比对能力、应补充哪些规则利用新数据源）",
+        "6. 会计准则变更（收入确认、租赁、金融工具等准则变更的税务影响是否已有对应规则）",
+        "7. 司法解释与典型案例（最高人民法院税务判例、税务总局反避税案例对规则理解和适用标准的影响）",
+        "8. 国际经济税收规则（BEPS、支柱二全球最低税、跨境数据交换对涉外企业的影响）",
+        "9. 行业周期性风险（当前经济形势下特定行业的高发风险，如房地产下行、外贸波动）",
     ]
     lvls = Counter(r.get("level","") for r in manual_rules)
     for lv, cnt in lvls.most_common():
