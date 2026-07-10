@@ -103,7 +103,6 @@ function renderTaxRiskRules(container) {
     + '<b>十、稽查动作：</b>action字段含具体的核查步骤（至少5步），其中必须包含现场核查手段（实地查看/调取记录/外调走访），不能全是纸面比对。<br>'
     + '<b>十一、稽查重点：</b>focus字段列明该异常最常见的舞弊手法，用①②③④逐条标注。<br>'
     + '<b>十二、稽查处理：</b>suggestion字段明确查实后的处置方式（补税/罚款/移送）。<br>'
-    + '<em>以上标准以#1824（销售大型器械无运输费）为参照范例。编制时按上述顺序组织23个字段。</em>'
     + '</details>';
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
