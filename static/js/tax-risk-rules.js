@@ -152,12 +152,15 @@ function renderTaxRiskRules(container) {
           else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
           else if (lv.indexOf('低') >= 0) lc = '#059669';
           html += '<div class="rr-rule">'
-            + '<div class="rh">' + (rl.id || '') + ' ' + escHtml(rl.title || rl.name || rl.rule_name || '未命名') + '</div>'
+            + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
-            + (rl.category || rl.分类 ? '<span style="font-size:10px;color:#94a3b8">' + (rl.category || rl.分类) + '</span>' : '')
-            + '<div class="rb">' + escHtml(rl.description || rl.desc || rl.触发条件 || rl.trigger || '') + '</div>'
-            + (rl.policy_ref ? '<div class="ra">依据：' + escHtml(rl.policy_ref || rl.policy_ref || rl.policy_ref) + '</div>' : '')
-            + (rl.suggestion ? '<div class="ra">处理：' + escHtml(rl.suggestion) + '</div>' : '')
+            + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
+            + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
+            + '<div class="rb">' + escHtml(rl.detail || '') + '</div>'
+            + (rl.policy_ref ? '<div class="ra">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
+            + (rl.suggestion ? '<div class="ra">💡 处理建议：' + escHtml(rl.suggestion) + '</div>' : '')
+            + (rl.dataSource ? '<div class="ra">📊 数据来源：' + escHtml(rl.dataSource) + '</div>' : '')
+            + (rl.tax_impact ? '<div class="ra">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
             + '</div>';
         });
         list.innerHTML = html;
