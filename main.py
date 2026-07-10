@@ -5226,6 +5226,131 @@ async def get_last_analysis(company_id: int = Query(...)):
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
     return cached["report"]
 
+@app.get("/api/company-overview")
+async def api_company_overview(request: Request, company_id: int = Query(...)):
+    """企业总览：从分析缓存中提取8板块数据"""
+    cached = _last_analysis_cache.get(company_id)
+    if not cached:
+        return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
+    report = cached["report"]
+    
+    def _sum_tb(keywords):
+        """从科目余额表汇总匹配关键字的科目金额"""
+        total = 0.0
+        for row in report.get("trial_balance_data", []) or []:
+            name = row.get("account_name", "") or row.get("name", "") or ""
+            if any(k in name for k in keywords):
+                total += float(row.get("ending_debit", 0) or 0)
+                total += float(row.get("debit", 0) or 0)
+        return round(total, 2)
+    
+    def _co_money(v):
+        if v is None: return "—"
+        try: return f"{float(v)/10000:.0f}万元"
+        except: return "—"
+    
+    # ① 企业名片
+    comp = cached.get("company") or {}
+    company_info = {
+        "name": comp.get("name", "") or report.get("company", {}).get("name", "未设置"),
+        "credit_code": comp.get("credit_code", ""),
+        "industry": comp.get("industry", "") or report.get("comprehensive", {}).get("industry", "—"),
+        "taxpayer_type": comp.get("taxpayer_type", ""),
+        "region": comp.get("region", "—"),
+        "capital": comp.get("capital", ""),
+        "established": comp.get("established", "")
+    }
+    
+    # ② 经营概况
+    biz = {}
+    tb_data = report.get("trial_balance_data", []) or []
+    if tb_data:
+        biz["revenue"] = _sum_tb(["主营业务收入","营业收入","销售收入"])
+        biz["cost"] = _sum_tb(["主营业务成本","营业成本","销售成本"])
+        biz["profit"] = round(biz.get("revenue",0) - biz.get("cost",0), 2)
+        biz["total_assets"] = _sum_tb(["资产总计","总资产"])
+        biz["total_liabilities"] = _sum_tb(["负债合计","总负债"])
+        biz["receivables"] = _sum_tb(["应收账款","应收票据","其他应收款"])
+        biz["payables"] = _sum_tb(["应付账款","应付票据","其他应付款"])
+    else:
+        biz["note"] = "未上传科目余额表，无法计算经营指标"
+    
+    # ③ 资金流水
+    cashflow = report.get("comprehensive", {}).get("cashflow", {})
+    cash = {
+        "total_in": round(cashflow.get("total_inflow", 0) or 0, 2),
+        "total_out": round(cashflow.get("total_outflow", 0) or 0, 2),
+        "net": round((cashflow.get("total_inflow", 0) or 0) - (cashflow.get("total_outflow", 0) or 0), 2)
+    }
+    
+    # ④ 发票概况
+    ic = report.get("invoice_counts", {}) or {}
+    inv = {
+        "sales_count": ic.get("sales", {}).get("count", 0) or 0,
+        "sales_tax": round(ic.get("sales", {}).get("tax", 0) or 0, 2),
+        "purchase_count": ic.get("purchase", {}).get("count", 0) or 0,
+        "purchase_tax": round(ic.get("purchase", {}).get("tax", 0) or 0, 2)
+    }
+    
+    # ⑤ 税负与纳税 — 无申报表数据源，诚实标注
+    tax_burden = {"available": False, "note": "需上传纳税申报表才能计算各税种应纳税额和税负率"}
+    
+    # ⑥ 税务风险 — 从 all_findings 提取
+    findings = report.get("all_findings", []) or []
+    risks = {"total": len(findings), "by_level": {}, "by_tax_type": {}, "top_domains": []}
+    for f in findings:
+        lv = f.get("level", "信息")
+        risks["by_level"][lv] = risks["by_level"].get(lv, 0) + 1
+        tt = f.get("tax_type", "其他")
+        risks["by_tax_type"][tt] = risks["by_tax_type"].get(tt, 0) + 1
+    # top domains
+    from collections import Counter
+    dc = Counter(f.get("domain", "—") for f in findings)
+    risks["top_domains"] = [{"domain": d, "count": c} for d, c in dc.most_common(5)]
+    
+    # ⑦ 税收优惠
+    incentives = {"available": False, "items": [], "note": ""}
+    if tb_data:
+        rev = biz.get("revenue", 0)
+        emp_count = comp.get("employee_count", 0) or report.get("comprehensive", {}).get("employee_count", 0) or 0
+        assets = biz.get("total_assets", 0)
+        taxable_income = biz.get("profit", 0)
+        if taxable_income > 0 and taxable_income <= 3000000 and (not emp_count or emp_count <= 300) and (not assets or assets <= 50000000):
+            estimated_tax = round(taxable_income * 0.25, 2)
+            micro_tax = round(taxable_income * 0.05, 2)
+            incentives["available"] = True
+            incentives["items"].append({
+                "name": "小型微利企业所得税优惠",
+                "desc": f"应纳税所得额{_co_money(taxable_income)}, 符合小型微利条件(≤300万/≤300人/≤5000万资产)",
+                "benefit": f"按25%计应纳税{_co_money(estimated_tax)}, 优惠后仅需{_co_money(micro_tax)}, 预估节省{_co_money(estimated_tax-micro_tax)}",
+                "status": "符合条件(以上判断基于科目余额表数据,实际以汇算清缴为准)"
+            })
+        else:
+            incentives["note"] = "基于科目余额表数据,未触发已知优惠条件"
+    else:
+        incentives["note"] = "需上传科目余额表才能扫描税收优惠"
+    
+    # ⑧ 资料完备度
+    do = report.get("comprehensive", {}).get("data_overview", {}) or {}
+    material = {
+        "present": do.get("present", []) or [],
+        "missing": do.get("missing", []) or [],
+        "missing_count": len(do.get("missing", []) or []),
+        "present_count": len(do.get("present", []) or [])
+    }
+    
+    return {
+        "ok": True,
+        "company_id": company_id,
+        "company": company_info,
+        "business": biz,
+        "cashflow": cash,
+        "invoices": inv,
+        "tax_burden": tax_burden,
+        "risks": risks,
+        "incentives": incentives,
+        "material": material
+    }
 @app.get("/api/pipeline/history")
 def get_pipeline_history(company_id: int = Query(...)):
     """获取分析历史列表（最多20条）"""
