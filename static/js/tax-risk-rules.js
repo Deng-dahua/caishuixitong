@@ -40,9 +40,9 @@ var CATEGORY_DESCRIPTIONS = {
   '出口退税': '出口退税合规检查——出口收入真实性/退税率/收汇/产能/货源穿透等出口退税全链条核查。',
 };
 
-function renderTaxRiskRules(container) {
+function renderTaxRiskRules(container, isAuto) {
   if (!container) return;
-  var autoOnly = container.id === 'au-auto-rules';  // 自动发现规则面板只显示自动发现的
+  var autoOnly = isAuto === true || container.id === 'au-auto-rules';  // 自动发现规则面板
   var h = '';
   h += '<style>'
     + '.rr{max-width:960px;margin:0 auto;padding:32px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:12px;line-height:1.95}'
