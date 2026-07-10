@@ -677,3 +677,26 @@ window._smartUpdate = function() {
       alert('请求异常: ' + e.message);
     });
 };
+
+// —— 自动发现规则面板（独立渲染，不与主面板共享任何逻辑）——
+function renderAutoRules(container) {
+  if (!container) return;
+  container.innerHTML = '<div style=\"text-align:center;padding:24px;color:#94a3b8\">加载中...</div>';
+  fetch('/static/auto_discovered_rules.json?' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(rules){
+      var h = '<div style=\"font-size:11px;color:#64748b;margin-bottom:8px\">共 ' + rules.length + ' 条自动发现规则</div>';
+      for (var i = 0; i < rules.length; i++) {
+        var r = rules[i];
+        h += '<div style=\"padding:10px 14px;margin:4px 0;background:#fff;border:1px solid #e2e8f0;border-left:3px solid #2563eb;border-radius:4px;font-size:12px\">';
+        h += '<b>#' + r.id + '</b> 🤖 ' + escapeHtml(r.item || '') + ' <span style=\"color:#94a3b8;font-size:10px\">' + (r.category || '') + '</span>';
+        if (r.phenomena) h += '<div style=\"margin:4px 0;color:#475569;font-size:11px\">' + escapeHtml(r.phenomena).substring(0,200) + '</div>';
+        if (r.direction) h += '<div style=\"margin:2px 0;color:#64748b;font-size:11px\">' + escapeHtml(r.direction).substring(0,150) + '</div>';
+        h += '</div>';
+      }
+      container.innerHTML = h;
+    })
+    .catch(function(e){
+      container.innerHTML = '<div style=\"color:#dc2626;padding:14px\">加载失败: ' + e.message + '</div>';
+    });
+}
