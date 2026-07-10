@@ -42,146 +42,130 @@ var CATEGORY_DESCRIPTIONS = {
 
 function renderTaxRiskRules(container) {
   if (!container) return;
-  window.currentModule = '税务合规指令';
-  window._skipModuleHeader = true;
-
   var h = '';
   h += '<style>'
-    + '.tr{max-width:960px;margin:0 auto;padding:48px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.tr-title{font-size:17px;font-weight:600;color:#1e293b;margin:0 0 6px}'
-    + '.tr-sub{font-size:11px;color:#94a3b8;margin:0 0 40px;line-height:1.6}'
-    + '.tr-hero{display:flex;gap:16px;margin-bottom:40px;flex-wrap:wrap}'
-    + '.tr-card{flex:1;min-width:140px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px 18px;text-align:center}'
-    + '.tr-card .v{font-size:22px;font-weight:600;color:#1e293b;line-height:1.4}'
-    + '.tr-card .l{font-size:10px;color:#94a3b8;margin-top:6px;letter-spacing:0.5px}'
-    + '.tr-para{margin-bottom:40px}'
-    + '.tr-para p{font-size:11px;color:#475569;line-height:1.8;margin:0 0 14px}'
-    + '.tr-para p:last-child{margin-bottom:0}'
-    + '.tr-para b{color:#1e293b;font-weight:600}'
-    + '.tr-flow{margin-bottom:36px}'
-    + '.tr-flow h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
-    + '.tr-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}'
-    + '.tr-flow-box{border-radius:10px;padding:20px 24px}'
-    + '.tr-flow-box h4{font-size:11px;font-weight:600;margin:0 0 14px;padding-bottom:8px}'
-    + '.tr-flow-item{margin-bottom:12px}'
-    + '.tr-flow-item:last-child{margin-bottom:0}'
-    + '.tr-flow-item a{font-size:11px;line-height:1.6}'
-    + '.tr-flow-item .desc{font-size:10px;color:#94a3b8;line-height:1.5;margin-top:2px}'
-    + '.tr-sec{margin-bottom:36px}'
-    + '.tr-sec h3{font-size:13px;font-weight:600;color:#1e293b;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}'
-    + '.tr-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:#2563eb;cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #bae6fd;background:#f0f9ff;transition:all .15s ease;margin-top:4px}'
-    + '.tr-toggle:hover{background:#e0f2fe;border-color:#93c5fd}'
-    + '.tr-toggle .arrow{font-size:10px;transition:transform .15s ease}'
-    + '.tr-toggle.open .arrow{transform:rotate(90deg)}'
-    + '.tr-detail{overflow:hidden;transition:max-height .3s ease,opacity .2s ease;max-height:0;opacity:0}'
-    + '.tr-detail.show{max-height:2000px;opacity:1}'
-    + '.tr-search{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}'
-    + '.tr-search input{flex:1;min-width:200px;padding:6px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff;outline:none}'
-    + '.tr-search input:focus{border-color:#2563eb}'
-    + '.tr-search select{padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff;cursor:pointer}'
-    + '.tr-search button{padding:6px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff;cursor:pointer;white-space:nowrap}'
-    + '.tr-rule-card{transition:box-shadow 0.15s}'
-    + '.tr-rule-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}'
+    + '.rr{max-width:960px;margin:0 auto;padding:32px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:12px;line-height:1.95}'
+    + '.rr-pre{font-size:12.5px;color:#5b6675;line-height:2.1;margin:0 0 20px;padding:12px 16px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0}'
+    + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
+    + '.rr-hero{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}'
+    + '.rr-stat{flex:1;min-width:120px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 14px;text-align:center}'
+    + '.rr-stat .v{font-size:20px;font-weight:700;color:#16233a;line-height:1.3}'
+    + '.rr-stat .l{font-size:10px;color:#94a3b8;margin-top:4px}'
+    + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:0 0 20px}'
+    + '.rr-tax .rt{padding:8px 10px;background:#fafbfc;border:1px solid #eff2f6;border-radius:6px;font-size:11px}'
+    + '.rr-tax .rt b{color:#16233a}'
+    + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
+    + '.rr-search{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}'
+    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;outline:none}'
+    + '.rr-search input:focus{border-color:#9a1f2b}'
+    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff}'
+    + '.rr-rule{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:8px;transition:box-shadow .12s}'
+    + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
+    + '.rr-rule .rh{font-size:13px;font-weight:600;color:#16233a;margin:0 0 4px}'
+    + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:6px}'
+    + '.rr-rule .rb{font-size:11px;color:#64748b;line-height:1.8;margin:4px 0}'
+    + '.rr-rule .ra{font-size:10.5px;color:#94a3b8}'
     + '</style>';
 
-  h += '<div class="tr">';
-  h += '<div class="tr-title">📋 税务合规指令</div>';
-  h += '<div class="tr-sub">规则知识库 · 域分析发现匹配 · 触发溯源 · 学习闭环 · 所属：分析管道</div>';
+  h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
-  // 统计卡片
-  h += '<div class="tr-hero">';
-  h += '<div class="tr-card"><div class="v" id="tr-total" style="color:#0f172a">—</div><div class="l">指令总数</div></div>';
-  h += '<div class="tr-card"><div class="v" id="tr-high" style="color:#dc2626">—</div><div class="l">高风险</div></div>';
-  h += '<div class="tr-card"><div class="v" id="tr-mid" style="color:#f59e0b">—</div><div class="l">中风险</div></div>';
-  h += '<div class="tr-card"><div class="v" id="tr-low" style="color:#10b981">—</div><div class="l">低/良好</div></div>';
-  h += '<div class="tr-card"><div class="v" id="tr-trigger" style="color:#2563eb">—</div><div class="l">本次触发</div></div>';
-  h += '</div>';
-  h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button onclick="batchRefreshRules(this)" style="font-size:11px;padding:5px 14px;border:1px solid #f59e0b;border-radius:6px;background:#fffbeb;color:#d97706;cursor:pointer;font-weight:600">🔄 统一刷新政策法律</button></div>';
+  h += '<div class="rr-search">'
+    + '<input id="rr-search-input" type="text" placeholder="搜索规则（关键词/法条/编号）..." oninput="window._rrFilter()">'
+    + '<select id="rr-level-filter" onchange="window._rrFilter()">'
+    + '<option value="">全部等级</option>'
+    + '<option value="极高风险">极高风险</option>'
+    + '<option value="高风险">高风险</option>'
+    + '<option value="中风险">中风险</option>'
+    + '<option value="低风险">低风险</option>'
+    + '<option value="良好">良好/正常</option>'
+    + '</select>'
+    + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
+    + '</div>';
 
-  // 段落说明
-  h += '<div class="tr-para">';
-  h += '<p>税务合规指令是系统的<b>规则知识库</b>——{{rules_count}}条结构化税务合规规则，覆盖资金流、进销存、发票流、经营实质、税务合规、薪酬社保、关联交易等多个领域。每条指令包含税务合规标准、风险等级、评分、详细检查方法、处理建议和法律依据。</p>';
-  h += '<p>运行一键分析后，系统自动将域分析发现与规则库交叉匹配，触发对应指令——被触发的规则高亮显示并展示<b>触发溯源</b>（是哪个域分析的哪项发现触发了该规则），形成"发现→规则→结论"的完整证据链。此外，系统还会自动发现行业普遍信号，生成蓝色校准规则以降低误报。</p>';
-  h += '<p>用户通过报告审核功能对发现的准确性进行反馈，纠正规则存入 user_corrections.json。同类纠正累计后自动升级为系统规则——下次一键分析自动应用四级回退匹配，无需人工干预。形成"分析→审核→纠正→自动应用"的<b>完整学习闭环</b>。</p>';
-  h += '</div>';
+  h += '<div class="rr-hero" id="rr-hero"></div>';
+  h += '<div id="rr-list"></div>';
 
-  // 上下游依赖
-  h += '<div class="tr-flow"><h3>上下游依赖</h3><div class="tr-flow-grid">';
-  h += '<div class="tr-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
-  h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方 · 出度0</h4>';
-  h += '<div class="tr-flow-item" style="font-size:11px;color:#64748b;line-height:1.8">规则数据来自静态文件 <code>tax_risk_rules_local_export.json</code>，触发溯源数据来自分析缓存 <code>getSharedAnalysis()</code>。自动规则确认通过 <code>promote-auto-rule</code> API 写回规则文件。不消费其他后端模块。</div>';
-  h += '</div>';
-  h += '<div class="tr-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
-  h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度15</h4>';
-  // 摘要（默认可见）
-  h += '<div style="font-size:11px;color:#64748b;line-height:1.6;margin-bottom:8px">被<b>15</b>个模块消费：资料风险分析报告、学习反馈、质量保障、引擎详情、税务合规判定规则、全链路质量保障、数据一致性自检、引擎铁律编号、术语与机密规范、质量标准、触发与交付、线索链、证据链、质量保障机制、行为准则。点击下方按钮查看明细。</div>';
-  h += '<div class="tr-toggle" onclick="toggleDetail(\'rr-down-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
-  // 详情（默认隐藏）
-  h += '<div class="tr-detail" id="rr-down-detail">';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><div class="desc">规则匹配发现作为分析输入</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-learn\')" style="color:#2563eb">学习反馈</a><div class="desc">规则空跑率供学习引擎分析</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><div class="desc">规则匹配结果质量验证</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><div class="desc">规则引擎状态展示</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch4\')" style="color:#2563eb">税务合规判定规则</a><div class="desc">规则方法论参考</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch8\')" style="color:#2563eb">全链路质量保障</a><div class="desc">规则质量纳入全链路保障</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch10\')" style="color:#2563eb">数据一致性自检</a><div class="desc">规则结论一致性检查</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'hb-ch13\')" style="color:#2563eb">引擎铁律编号</a><div class="desc">规则升级为铁律</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-terms\')" style="color:#2563eb">术语与机密规范</a><div class="desc">规则术语标准化</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-12std\')" style="color:#2563eb">质量标准</a><div class="desc">规则结论质量标准</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'rs-sync\')" style="color:#2563eb">触发与交付</a><div class="desc">规则触发后报告交付</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><div class="desc">规则触发激活线索链</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><div class="desc">规则发现作为证据匹配源</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><div class="desc">规则纳入质量保障框架</div></div>';
-  h += '<div class="tr-flow-item"><a href="javascript:navigateTo(\'ai-rules\')" style="color:#2563eb">行为准则</a><div class="desc">规则遵循行为规范</div></div>';
-  h += '</div></div></div></div>';
-
-  // 使用说明（折叠）
-  h += '<details style="margin-bottom:36px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
-  h += '<summary style="padding:10px 14px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:#64748b;user-select:none;border-bottom:1px solid #f1f5f9">📖 使用说明</summary>';
-  h += '<div style="padding:12px 14px;font-size:11px;color:#475569;line-height:1.8;background:#fff">';
-  h += '<p style="margin:0 0 8px"><strong>1. 浏览规则：</strong>下方列表按生成时间排序，支持搜索和风险等级筛选。点击"仅看触发"过滤只显示本次分析匹配到的规则。</p>';
-  h += '<p style="margin:0 0 8px"><strong>2. 搜索筛选：</strong>输入关键词搜索指令名称、规则ID、分类名称、法律条文或详细内容。下拉框按风险等级筛选。</p>';
-  h += '<p style="margin:0 0 8px"><strong>3. 查看触发：</strong>运行一键分析后，被触发的规则以红色左边线+红色徽章高亮显示。展开规则可见红色溯源卡片，列出每一项触发了该规则的域分析发现。</p>';
-  h += '<p style="margin:0"><strong>4. 规则结构：</strong>每条指令包含11个标准字段——指令名称、风险等级、评分、详细标准、税务合规建议、所需佐证、税务影响、法律依据、数据来源、可检测性、分类。</p>';
-  h += '</div></details>';
-
-  // 搜索筛选栏
-  h += '<div class="tr-sec"><h3>规则列表</h3>';
-  h += '<div class="tr-search">';
-  h += '<input id="rr-search" type="text" placeholder="🔍 搜索指令（关键词/规则ID/分类/法条）..." oninput="filterRules()">';
-  h += '<select id="rr-level-filter" onchange="filterRules()">';
-  h += '<option value="">全部等级</option><option value="高风险">🔴 高风险</option><option value="中风险">🟡 中风险</option><option value="低风险">🔵 低风险</option><option value="良好">🟢 良好</option>';
-  h += '</select>';
-  h += '<select id="rr-cat-filter" onchange="filterRules()" style="max-width:120px">';
-  h += '<option value="">全部分类</option>';
-  h += '<option value="增值税">增值税</option><option value="企业所得税">企业所得税</option><option value="收入合规">收入合规</option>';
-  h += '<option value="成本费用">成本费用</option><option value="资金流">资金流</option><option value="发票进销匹配">发票进销匹配</option>';
-  h += '<option value="经营实质">经营实质</option><option value="薪酬社保">薪酬社保</option><option value="关联交易">关联交易</option>';
-  h += '<option value="申报合规">申报合规</option><option value="税务合规">税务合规</option><option value="财务数据">财务数据</option>';
-  h += '<option value="资产负债">资产负债</option><option value="虚开风险">虚开风险</option><option value="出口退税">出口退税</option>';
-  h += '<option value="个税">个税</option><option value="合同风险">合同风险</option><option value="行业专项">行业专项</option>';
-  h += '</select>';
-  h += '<select id="rr-sort-filter" onchange="sortAndRenderRules()" style="max-width:110px">';
-  h += '<option value="time">⏱ 按时间</option><option value="high">🔴 高风险优先</option><option value="low">🟢 低风险优先</option><option value="trigger">✅ 触发优先</option>';
-  h += '</select>';
-  h += '<select id="rr-type-filter" onchange="filterRules()" style="max-width:100px">';
-  h += '<option value="">全部类型</option><option value="manual">📋 人工规则</option><option value="auto">🤖 自动发现</option>';
-  h += '</select>';
-  h += '<button onclick="toggleTriggeredOnly()" id="rr-trigger-btn">🔗 仅看触发</button>';
-  h += '<span id="rr-filter-count" style="font-size:10px;color:#94a3b8;padding:6px 0"></span>';
-  h += '</div>';
-  h += '<div id="risk-rules-count" style="font-size:11px;color:#94a3b8;margin-bottom:16px">加载中...</div>';
-  h += '<div id="risk-rules-list"></div>';
-  h += '<div id="risk-rules-stats" style="text-align:center;padding:24px;font-size:11px;color:#94a3b8"></div>';
-  h += '</div>';
-
-  h += '</div>';
   container.innerHTML = h;
 
-  loadTaxRiskRules();
-}
+  // 加载数据
+  fetch('/static/discovered_rules.json?' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(rules) {
+      window._rrData = rules;
+      var cats = {};
+      var total = 0, high = 0, mid = 0, low = 0, good = 0;
+      rules.forEach(function(rl) {
+        total++; 
+        var lv = rl.level || rl.风险等级 || '';
+        if (lv.indexOf('极高') >= 0 || lv.indexOf('高') >= 0) high++;
+        else if (lv.indexOf('中') >= 0) mid++;
+        else if (lv.indexOf('低') >= 0) low++;
+        else good++;
+        var cat = rl.category || rl.分类 || '其他';
+        cats[cat] = (cats[cat] || 0) + 1;
+      });
 
-var _showTriggeredOnly = false;
+      // 统计面板
+      var hero = document.getElementById('rr-hero');
+      if (hero) hero.innerHTML = 
+        '<div class="rr-stat"><div class="v" style="color:#16233a">' + total + '</div><div class="l">指令总数</div></div>'
+        + '<div class="rr-stat"><div class="v" style="color:#dc2626">' + high + '</div><div class="l">极高/高风险</div></div>'
+        + '<div class="rr-stat"><div class="v" style="color:#f59e0b">' + mid + '</div><div class="l">中风险</div></div>'
+        + '<div class="rr-stat"><div class="v" style="color:#059669">' + (low + good) + '</div><div class="l">低风险/良好</div></div>';
+
+      // 分类标签
+      var catFilter = document.getElementById('rr-cat-filter');
+      if (catFilter) {
+        Object.keys(cats).sort(function(a, b) { return cats[b] - cats[a]; }).forEach(function(c) {
+          var o = document.createElement('option');
+          o.value = c; o.textContent = c + ' (' + cats[c] + ')';
+          catFilter.appendChild(o);
+        });
+      }
+
+      window._rrFilter = function() {
+        var kw = (document.getElementById('rr-search-input') && document.getElementById('rr-search-input').value || '').toLowerCase();
+        var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
+        var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
+        var list = document.getElementById('rr-list');
+        if (!list) return;
+        var filtered = rules.filter(function(rl) {
+          var txt = (rl.title || rl.name || rl.rule_name || '') + ' ' + (rl.description || rl.desc || '') + ' ' + (rl.law_ref || rl.legal_basis || '') + ' ' + (rl.id || '');
+          if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
+          if (lv && (rl.level || rl.风险等级 || '').indexOf(lv) < 0) return false;
+          if (ct && (rl.category || rl.分类 || '') !== ct) return false;
+          return true;
+        });
+        if (filtered.length === 0) {
+          list.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8">未找到匹配的规则</div>';
+          return;
+        }
+        var html = '';
+        filtered.forEach(function(rl) {
+          var lv = rl.level || rl.风险等级 || '信息';
+          var lc = '#64748b';
+          if (lv.indexOf('极高') >= 0) lc = '#991b1b';
+          else if (lv.indexOf('高') >= 0) lc = '#dc2626';
+          else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
+          else if (lv.indexOf('低') >= 0) lc = '#059669';
+          html += '<div class="rr-rule">'
+            + '<div class="rh">' + (rl.id || '') + ' ' + escHtml(rl.title || rl.name || rl.rule_name || '未命名') + '</div>'
+            + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
+            + (rl.category || rl.分类 ? '<span style="font-size:10px;color:#94a3b8">' + (rl.category || rl.分类) + '</span>' : '')
+            + '<div class="rb">' + escHtml(rl.description || rl.desc || rl.触发条件 || rl.trigger || '') + '</div>'
+            + (rl.law_ref || rl.legal_basis || rl.法律依据 ? '<div class="ra">依据：' + escHtml(rl.law_ref || rl.legal_basis || rl.法律依据) + '</div>' : '')
+            + (rl.suggestion || rl.建议 || rl.handling ? '<div class="ra">处理：' + escHtml(rl.suggestion || rl.建议 || rl.handling) + '</div>' : '')
+            + '</div>';
+        });
+        list.innerHTML = html;
+      };
+      window._rrFilter();
+    })
+    .catch(function(e) {
+      var list = document.getElementById('rr-list');
+      if (list) list.innerHTML = '<div style="text-align:center;padding:24px;color:#dc2626">规则库加载失败：' + escHtml(e.message) + '</div>';
+    });
+}
 
 function toggleTriggeredOnly() {
   _showTriggeredOnly = !_showTriggeredOnly;
