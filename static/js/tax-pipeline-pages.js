@@ -5751,6 +5751,13 @@ function renderMethodologyPart2(){
   h+='</div></section>';
   h+='<section id="au-s10"><h2>关联交易穿透：每笔交易背后的一张网</h2><p>关联交易本身不违法，但它是利润转移的温床。引擎在这一层自动识别全部关联方（含隐性），测试交易定价与独立交易价格的偏离度，追踪判定利润是否从高税负向低税负主体腾挪——这些发现作为Phase3交叉验证的重磅输入。</p></section>';
 
+  // 数据面板：规则库/线索链/证据链（可折叠查阅）
+  h+='<div style="margin:16px 0"><details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">📋 税务合规指令库（可直接查阅全部规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
+  h+='<details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">🔗 线索链数据（可直接查阅全部调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
+  h+='<details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">🔒 证据链数据（可直接查阅全部验证维度）</summary><div class="live"><div id="au-evidence-data"></div></div></details></div>';
+
+  // ═══ 第四层·过滤 ═══
+
   // ═══ 第四层·过滤 ═══
   h+='<div class="layer"><div class="ln">第四层</div><div class="lt">过滤 —— 把100条信号淬成3条铁证</div><div class="ld">布网阶段{{domain_functions}}个域同时发动，会产生大量粗糙信号。把粗糙信号淬成铁证，靠的是三道过滤器。</div></div>';
   h+='<section id="au-s11"><h2>七类噪声过滤器：97%的噪音在这里被拦截</h2><p>过滤器依次执行，逐条筛除不可靠信号：</p>';
@@ -5795,6 +5802,12 @@ function renderMethodologyAssemble(){
   if(r&&typeof renderAnalyzePage==='function'){try{renderAnalyzePage(r)}catch(e){r.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无分析结果，请先运行一键分析。</div>'}}
   var l=document.getElementById('au-analyze-logs');
   if(l&&typeof renderAnalyzeLogs==='function'){try{renderAnalyzeLogs(l)}catch(e){l.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无管线日志。</div>'}}
+  var rd=document.getElementById('au-rules-data');
+  if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#94a3b8">规则数据加载中...</span>'}}
+  var cd=document.getElementById('au-chains-data');
+  if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#94a3b8">线索链数据加载中...</span>'}}
+  var ed=document.getElementById('au-evidence-data');
+  if(ed&&typeof renderEvidencePage==='function'){try{renderEvidencePage(ed)}catch(e){ed.innerHTML='<span style="color:#94a3b8">证据链数据加载中...</span>'}}
   var i=document.getElementById('au-incentive');
   if(i&&typeof renderTaxIncentivesPage==='function'){try{renderTaxIncentivesPage(i)}catch(e){i.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无税收优惠扫描结果。</div>'}}
 }
