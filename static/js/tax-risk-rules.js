@@ -680,10 +680,10 @@ window._smartUpdate = function() {
 
 // —— 自动发现规则面板（独立渲染，不与主面板共享任何逻辑）——
 function renderAutoRules(container) {
-  if (!container) return;
+  if (!container) { console.error('renderAutoRules: no container'); return; }
   container.innerHTML = '<div style=\"text-align:center;padding:24px;color:#94a3b8\">加载中...</div>';
   fetch('/static/auto_discovered_rules.json?' + Date.now())
-    .then(function(r){ return r.json(); })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rules){
       var h = '<div style=\"font-size:11px;color:#64748b;margin-bottom:8px\">共 ' + rules.length + ' 条自动发现规则</div>';
       for (var i = 0; i < rules.length; i++) {
