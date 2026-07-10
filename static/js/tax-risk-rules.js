@@ -1,4 +1,4 @@
-// ==================== 税务合规指令页面 ====================
+// ==================== 税务异常库页面 ====================
 var taxRiskRulesData = [];
 var _triggeredRuleFindings = {};  // rule_id → [finding, ...] 触发溯源
 
@@ -414,10 +414,10 @@ function renderTaxRiskRulesList() {
   var sortNames = {time:'按时间排序', high:'高风险优先', low:'低风险优先', trigger:'触发优先'};
   var sortName = sortNames[_currentSort] || '按时间排序';
   var timeStr = window._rulesUpdateTime ? ' · 数据更新于 ' + window._rulesUpdateTime : '';
-  if (countEl) countEl.innerHTML = data.length + ' 条税务合规指令 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
+  if (countEl) countEl.innerHTML = data.length + ' 条税务异常 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
-    listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务合规指令，请加载数据</div>';
+    listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务异常，请加载数据</div>';
     return;
   }
 
@@ -529,7 +529,7 @@ function renderTaxRiskRulesList() {
   listEl.innerHTML = html;
 
   if (statsEl) {
-    statsEl.innerHTML = '共 ' + data.length + ' 条税务合规指令 · '
+    statsEl.innerHTML = '共 ' + data.length + ' 条税务异常 · '
       + '<span style="color:#dc2626">高 ' + high + '</span> · '
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '

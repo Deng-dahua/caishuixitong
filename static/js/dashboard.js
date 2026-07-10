@@ -49,7 +49,7 @@ async function renderDashboard(container) {
       ]},
       {group:'税务合规分析', items:[
         {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
-        {page:'tax-risk-rules', label:'📋 税务合规指令', cls:'btn-outline'},
+        {page:'tax-risk-rules', label:'📋 税务异常库', cls:'btn-outline'},
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
         {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
         {page:'domain-analysis', label:'🔬 域分析', cls:'btn-outline'},
