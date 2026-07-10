@@ -1752,7 +1752,7 @@ function renderAnalyzePage(container) {
   container.innerHTML = '<style>.al-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.al-main{flex:1;min-width:0}.al-main h3{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="al-layout">'
     + '<div class="al-main">'
-    + '<h2 style="font-size:22px;font-weight:800;color:#0f172a;margin:0 0 4px">⚡ 分析链</h2>'
+
     + '<p style="font-size:13px;color:#475569;line-height:2.0;margin:0 0 24px">'
     + '引擎执行的完整流水线数据。'
     + '七步串联处理 + 42域分析 + ' + pc('rules','1608') + '规则 + ' + pc('totalChains','1266') + '条链条 + 29条协商规则，97%噪声过滤率。'
