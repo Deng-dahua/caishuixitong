@@ -211,7 +211,12 @@ function renderTaxRiskRules(container, isAuto) {
           if (rl.risk_table) {
             card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
             card += '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0 10px"><tr style="background:#fef2f2"><td style="padding:3px 6px;border:1px solid #fcc;font-weight:600;width:80px">风险维度</td><td style="padding:3px 6px;border:1px solid #fcc">风险点描述</td></tr>';
-            var rows = rl.risk_table.split('\n');
+            var rows = typeof rl.risk_table === 'string' ? rl.risk_table.split('\n') :
+  (Array.isArray(rl.risk_table) ? rl.risk_table.map(function(rr){
+    var tax = rr.税种 || rr.tax || rr.name || '';
+    var desc = rr.具体风险描述 || rr.风险描述 || rr.desc || rr.描述 || '';
+    return tax + ':' + desc;
+  }) : []);
             for (var ri = 0; ri < rows.length; ri++) {
               var parts = rows[ri].split(':');
               if (parts.length >= 2) {
