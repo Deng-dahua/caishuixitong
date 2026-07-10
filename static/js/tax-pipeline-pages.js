@@ -6321,7 +6321,7 @@ function METHODOLOGY_TOC() {
     ['#au-s17','报告生成与净化',''],['#au-s18','全链路溯源',''],['#au-s19','本次实战产出'],
   ];
   var h='<nav class="au-toc"><div class="tt">引擎流水线</div>';
-  for(var i=0;i<items.length;i++){h+='<a href="'+items[i][0]+'"'+(items[i][2].indexOf('lv')>=0?' class="lv"':'')+'>'+items[i][1]+'</a>';}
+  for(var i=0;i<items.length;i++){var lv=items[i][2];h+='<a href="'+items[i][0]+'"'+(lv&&lv.indexOf('lv')>=0?' class="lv"':'')+'>'+items[i][1]+'</a>';}
   return h+'</nav>';
 }
 function renderMethodologyPage(container) {
