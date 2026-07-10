@@ -2500,150 +2500,30 @@ async function loadAnalysisChains() {
 // ═════════════════════════════════════════════════════════════
 function renderTaxIncentivesPage(container) {
   if (!container) return;
-  window.currentModule = '税收优惠分析';
-
-  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
-  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">税收优惠分析</div>';
-  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">自动检测企业是否符合各项税收优惠条件 · 联网核查三步法 · 90天智能缓存 · 所属：税务合规分析</div>';
-
-  // 统计卡片（占位，异步填充）
-  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-total" style="font-size:26px;font-weight:700;color:#0f172a;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">检测发现</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-opp" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">优惠机会</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-risk" style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">应享未享/风险</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div id="ti-types" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">涉税类型</div></div>';
-  h += '</div>';
-
-  // 上下游依赖
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">全量发现数据输入优惠匹配</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">企业画像和行业判定结果</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-train\')" style="color:#2563eb">学习反馈</a><br><span style="color:#94a3b8">优惠政策变更提醒与更新</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">优惠检测结果纳入综合报告</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">手册引用优惠适用性结论</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理结论参考优惠匹配结果</span></div>';
-  h += '</div></div></div>';
-
-  // 段落说明
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
-  h += '<p style="margin:0 0 16px">税收优惠分析是税务合规分析的<strong>重要组成部分——帮助企业发现"应享未享"的优惠红利和"不应享却享"的潜在风险</strong>。系统基于企业画像（工商登记/发票数据/行业判定/经营规模）自动匹配9类税收优惠政策。</p>';
-  h += '<p style="margin:0 0 16px"><strong>9类优惠覆盖：</strong>小微企业优惠 · 小规模纳税人 · 高新技术企业 · 研发费用加计扣除 · 六税两费减半 · 软件产品即征即退 · 残疾人就业优惠 · 农林牧渔优惠 · 西部大开发优惠。每类优惠均有明确的结构化条件（年应纳税所得额/从业人数/资产总额等），系统逐项匹配并给出结论。</p>';
-  h += '<p style="margin:0">分析流程：①从分析缓存提取所有发现中与优惠相关的条目 ②按优惠类型分组 ③区分"优惠机会"（企业可能符合但尚未申请）和"应享未享/风险"（企业存在不符条件但享受了优惠的嫌疑）④列出法条依据和具体建议。注意：本分析仅为初步判断，最终以税务机关认定为准。</p>';
-  h += '</div>';
-
-  // 四项核心能力卡片
-  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">税收优惠分析四项核心能力</div>';
-  var components = [
-    { name:'9类优惠全面检测', icon:'📋', color:'#059669',
-      desc:'覆盖中国现行税收优惠政策中与中小企业最相关的9大类别：小微企业优惠（所得税减按20%/年应纳税所得额≤300万）、小规模纳税人（增值税征收率3%/月销售额≤10万免税）、高新技术企业（所得税15%/知识产权+研发人员+高新收入占比达标）、研发费用加计扣除（未形成无形资产按100%加计扣除/形成无形资产按200%摊销）、六税两费减半（资源税/城建税/房产税/印花税/耕地占用税/教育费附加/地方教育附加减半征收）、软件产品即征即退（增值税超3%税负即征即退）、残疾人就业优惠（工资100%加计扣除+增值税即征即退）、农林牧渔优惠（所得减免+增值税优惠）、西部大开发（鼓励类产业减按15%）。',
-      source:'税收优惠分析', },
-    { name:'联网核查三步法', icon:'🌐', color:'#2563eb',
-      desc:'对于需要外部验证的优惠条件（如高新技术企业认定、软件企业资质等），系统执行联网核查三步法：Step1 搜索URL（自动构建各省市税务局/科技厅的资质查询URL）→ Step2 抓取页面（HTTP请求获取资质公告页面内容）→ Step3 提取结构化条件（从HTML中解析资质编号/有效期/认定部门等结构化字段并与企业工商信息交叉比对）。核查结果缓存90天，避免重复请求。当前系统内置了各省科技厅高新技术企业查询入口和工信部软件企业查询入口。',
-      source:'管道调度', },
-    { name:'结构化条件匹配', icon:'🧩', color:'#7c3aed',
-      desc:'每类优惠政策都有严格的结构化条件模板，系统从企业数据中提取对应字段进行精确匹配。例如：小微企业条件匹配模板包含"企业类型≠国家限制或禁止行业"、"年应纳税所得额≤300万元"、"从业人数≤300人"、"资产总额≤5000万元"四条硬性条件，每条都有来源字段（工商登记/发票汇总/银行流水推算）和判定逻辑。高新企业模板涵盖"注册成立≥1年"、"近3年研发费占销售收入比例（5000万以下≥5%/5000万~2亿≥4%/2亿以上≥3%）"、"高新收入占总收入≥60%"等多维度条件，系统逐条验证并给出通过/不通过/数据不足判定。',
-      source:'调度中枢', },
-    { name:'90天智能缓存', icon:'⏱️', color:'#f59e0b',
-      desc:'联网核查结果和优惠策略判定结果缓存在本地分析缓存中，有效期90天。同一企业在90天内重复执行一键分析时，系统直接复用上次的联网核查结果而不重新发送HTTP请求，既提高了分析速度又避免了对质网站点的频繁访问。缓存按公司隔离存储（每个company_id独立缓存目录），切换账套自动切换缓存。缓存过期后下次分析自动重新联网核查并更新缓存。',
-      source:'税收优惠分析', },
-  ];
-  components.forEach(function(comp, i) {
-    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      + '<span style="font-size:18px">'+comp.icon+'</span>'
-      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
-      + '</div>'
-      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
-      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
-      + '</div>';
-  });
-
-  // 检测发现列表区域
-  h += '<div id="ti-findings-area" style="margin-top:28px">';
-  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">实际检测发现</div>';
-  h += '<div id="ti-findings-content" style="text-align:center;padding:40px;color:#94a3b8"><span class="spinner"></span> 正在加载检测数据...</div>';
-  h += '</div>';
-
-  h += '</div>';
-  container.innerHTML = h;
-
-  // 异步加载数据
-  var cid = window.currentCompanyId || 1;
-  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-  var _farea = document.getElementById('ti-findings-content');
-
-  fetch('/api/tax-incentives/status?company_id=' + cid)
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (!d.ok) {
-        if (_farea) _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">' + (d.message||'暂无数据') + '</div>';
-        return;
-      }
-      var items = d.items || [];
-
-      // 填充统计
-      _f('ti-total', items.length);
-      var oppCount = 0, riskCount = 0;
-      var typeSet = {};
-      items.forEach(function(it) {
-        if (it.level === '优惠机会' || it.level === '提醒') oppCount++;
-        else riskCount++;
-        if (it.type) typeSet[it.type] = true;
-      });
-      _f('ti-opp', oppCount);
-      _f('ti-risk', riskCount);
-      _f('ti-types', Object.keys(typeSet).length);
-
-      if (!_farea) return;
-
-      if (items.length === 0) {
-        _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">本次分析未产生税收优惠相关发现。可能是企业不符合任何优惠条件，或数据不足以做出判断。</div>';
-        return;
-      }
-
-      var hh = '';
-      items.forEach(function(it) {
-        var isOpp = it.level === '优惠机会' || it.level === '提醒';
-        var bg = isOpp ? '#f0fdf4' : '#fef2f2';
-        var borderC = isOpp ? '#bbf7d0' : '#fecaca';
-        var badgeBg = isOpp ? '#059669' : '#dc2626';
-        var badgeText = isOpp ? '💡 优惠机会' : '⚠ 应享未享';
-        var levelLabel = it.level || (isOpp ? '优惠机会' : '应享未享');
-
-        hh += '<div style="background:'+bg+';border:1px solid '+borderC+';border-radius:8px;padding:16px 20px;margin-bottom:12px">';
-        hh += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">';
-        hh += '<span style="font-weight:700;font-size:14px;color:#1e293b">' + it.type + '</span>';
-        hh += '<span style="background:'+badgeBg+';color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600">' + badgeText + '</span>';
-        hh += '</div>';
-
-        if (it.detail) hh += '<div style="font-size:12px;color:#475569;margin-bottom:6px;line-height:2.0"><strong>事实：</strong>' + it.detail + '</div>';
-        if (it.how_found) hh += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;line-height:1.8"><strong>依据：</strong>' + it.how_found + '</div>';
-        if (it.tax_benefit) hh += '<div style="font-size:11px;color:#059669;margin-bottom:6px;line-height:1.8"><strong>优惠：</strong>' + it.tax_benefit + '</div>';
-        if (it.action) hh += '<div style="font-size:11px;color:#2563eb;margin-bottom:6px;line-height:1.8"><strong>建议：</strong>' + it.action + '</div>';
-        if (it.law_ref) hh += '<div style="font-size:11px;color:#94a3b8;line-height:1.8"><strong>法条：</strong>' + it.law_ref + '</div>';
-        if (it.correctedBy) hh += '<div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border-radius:4px;font-size:11px;color:#166534;line-height:1.8">✅ 已由' + it.correctedBy + '纠正：' + (it.correctionReason||'') + '</div>';
-        hh += '</div>';
-      });
-      _farea.innerHTML = hh;
-    })
-    .catch(function() {
-      if (_farea) _farea.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px">加载失败，请确认已执行一键分析</div>';
-      _f('ti-total', '—');
-      _f('ti-opp', '—');
-      _f('ti-risk', '—');
-      _f('ti-types', '—');
-    });
+  container.innerHTML = '<div style="max-width:900px;margin:0 auto;padding:24px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif">'
+    + '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">税收优惠扫描</div>'
+    + '<div style="font-size:13px;color:#94a3b8;margin:0 0 24px">自动匹配9类优惠政策 · 联网核查 · 90天智能缓存</div>'
+    + '<div id="tax-incentive-list" style="color:#94a3b8;padding:14px">加载中...</div>'
+    + '</div>';
+  loadTaxIncentiveData();
 }
-
-// ═══════════════ 税务合规工作流程页面 ═══════════════
-// 手册第1章独立页面 —— 选案→检查→审理→执行→案卷管理五大环节
+async function loadTaxIncentiveData() {
+  var t = document.getElementById('tax-incentive-list'); if (!t) return;
+  try {
+    var r = await getSharedAnalysis();
+    var items = (r && r.ok && r.report && r.report.comprehensive && r.report.comprehensive.incentive_items) || [];
+    if (!items.length) { t.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">本次分析未触发税收优惠检测</div>'; return; }
+    var h = '';
+    items.forEach(function(it) {
+      h += '<div style="margin:10px 0;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">'
+        + '<div style="font-size:13px;font-weight:600;color:#059669">' + escHtml(it.name || '优惠项目') + '</div>'
+        + '<div style="font-size:11px;color:#64748b;line-height:1.8;margin:4px 0">' + escHtml(it.desc || '') + '</div>'
+        + '<div style="font-size:12px;font-weight:600;color:#0e7490">' + escHtml(it.benefit || '') + '</div>'
+        + '</div>';
+    });
+    t.innerHTML = h;
+  } catch(e) { t.innerHTML = '<div style="color:#dc2626;padding:14px">扫描失败</div>'; }
+}
 function renderTaxWorkflow(container) {
   if (!container) return;
   window.currentModule = '税务合规工作流程';
@@ -2890,204 +2770,24 @@ function renderAnalyzeSteps(container) {
 // 管线执行日志（需加载分析数据）
 async function renderAnalyzeLogs(container) {
   if (!container) return;
-  window.currentModule = '管线执行日志';
-  window._skipModuleHeader = true;
-
-  var h = '';
-  h += '<style>'
-    + '.al{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.al-title{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}'
-    + '.al-sub{font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8}'
-    + '.al-hero{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}'
-    + '.al-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.al-card .v{font-size:26px;font-weight:700;color:#0f172a;line-height:1.3}'
-    + '.al-card .l{font-size:11px;color:#94a3b8;margin-top:6px}'
-    + '.al-term{background:#0f172a;border-radius:8px;padding:20px 24px;max-height:560px;overflow-y:auto;font-family:"Cascadia Code","Consolas",monospace;font-size:12px;line-height:2.0}'
-    + '.al-term::-webkit-scrollbar{width:6px}'
-    + '.al-term::-webkit-scrollbar-track{background:#1e293b}'
-    + '.al-term::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}'
-    + '</style>';
-
-  h += '<div class="al">';
-  h += '<div class="al-title">管线执行日志</div>';
-  h += '<div class="al-sub">七步管线全程执行记录 · 终端控制台风格 · 所属：执行管线</div>';
-
-  // 统计卡片（占位，异步填充）
-  h += '<div class="al-hero">';
-  h += '<div class="al-card"><div class="v" id="al-total" style="color:#0f172a">—</div><div class="l">日志总数</div></div>';
-  h += '<div class="al-card"><div class="v" id="al-phase" style="color:#2563eb">—</div><div class="l">阶段步骤</div></div>';
-  h += '<div class="al-card"><div class="v" id="al-trigger" style="color:#f59e0b">—</div><div class="l">发现/触发</div></div>';
-  h += '<div class="al-card"><div class="v" id="al-error" style="color:#dc2626">—</div><div class="l">异常/错误</div></div>';
-  h += '</div>';
-
-  // 上下游依赖
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#94a3b8">调度中枢每步执行写入管线日志</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#94a3b8">规则匹配执行记录写入日志</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#94a3b8">链执行与触发记录写入日志</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链</a><br><span style="color:#94a3b8">闭环检测记录写入日志</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">从管线日志提取七步关键指标</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎执行状态来自管线记录</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理过程依赖管线日志上下文</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'hb-overview\')" style="color:#2563eb">系统数据概览</a><br><span style="color:#94a3b8">管线日志供稽查员回溯参考</span></div>';
-  h += '</div></div></div>';
-
-  // 段落说明
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
-  h += '<p style="margin:0 0 16px">管线执行日志以<strong>终端控制台风格</strong>展示分析管线的完整运行过程。从文件解析、目标实体识别、域分析、规则匹配、线索链触发、证据链闭环到报告生成，每一步操作的执行结果都以彩色编码的方式呈现。</p>';
-  h += '<p style="margin:0 0 16px">日志按<strong>颜色分级</strong>：绿色表示成功完成的操作，黄色表示中间发现和触发事件，蓝色表示阶段性步骤（Phase1-4），红色表示异常或错误。每条日志前有三位数序号，方便沟通时引用具体日志行。</p>';
-  h += '<p style="margin:0">下方为完整管线执行日志，支持滚动查看。如需查看分析结果汇总，请跳转<a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a>页面。</p>';
-  h += '</div>';
-
-  h += '<div id="al-content"><div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">加载中...</div></div>';
-  h += '</div>';
-  container.innerHTML = h;
-
-  // 异步加载分析数据
   try {
-    var data = await getSharedAnalysis();
-    if (!data.ok) throw new Error(data.message || '无分析数据');
-    var comp = (data.report || {}).comprehensive || {};
-    var plogs = comp.pipeline_log || comp.execution_log || [];
-    if (plogs.length === 0) plogs = (data.report || {}).pipeline_log || [];
-
-    // 统计分类
-    var phaseCount = 0, triggerCount = 0, errorCount = 0;
-    plogs.forEach(function(log) {
-      if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) phaseCount++;
-      if (/发现|触发|命中/.test(log)) triggerCount++;
-      if (/异常|失败|错误/.test(log)) errorCount++;
-    });
-
-    // 填充统计卡片
-    var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-    _f('al-total', plogs.length);
-    _f('al-phase', phaseCount);
-    _f('al-trigger', triggerCount);
-    _f('al-error', errorCount);
-
-    var hh = '';
-    hh += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">完整执行日志</div>';
-    hh += '<div class="al-term">';
-    if (plogs.length === 0) {
-      hh += '<div style="color:#64748b;text-align:center;padding:40px">暂无管线执行日志，请先执行一键分析</div>';
-    } else {
-      plogs.forEach(function(log, i) {
-        var color = '#cbd5e1';
-        if (/异常|失败|错误/.test(log)) color = '#fca5a5';
-        else if (/完成|成功|通过/.test(log)) color = '#86efac';
-        else if (/发现|触发|命中/.test(log)) color = '#fde68a';
-        else if (/Phase|Step|阶段|过滤|剔除|闭环/.test(log)) color = '#93c5fd';
-        hh += '<div style="color:' + color + '">[' + String(i + 1).padStart(3, '0') + '] ' + escHtml(log) + '</div>';
-      });
+    var resp = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + (typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1));
+    var data = await resp.json();
+    var logs = (data && data.ok && data.report && data.report.pipeline_log) || [];
+    if (!logs.length) { container.innerHTML = '<div style="color:#94a3b8;padding:14px">暂无管线日志</div>'; return; }
+    var h = '';
+    for (var i = 0; i < logs.length; i++) {
+      var lv = 'info', lvc = '#64748b';
+      if (logs[i].indexOf('[ERROR]') >= 0 || logs[i].indexOf('[TIMING]') < 0 && (logs[i].indexOf('异常') >= 0 || logs[i].indexOf('失败') >= 0)) { lv = 'error'; lvc = '#dc2626'; }
+      else if (logs[i].indexOf('[Phase') >= 0) { lv = 'phase'; lvc = '#2563eb'; }
+      else if (logs[i].indexOf('->') >= 0 || logs[i].indexOf('触发') >= 0) { lv = 'found'; lvc = '#f59e0b'; }
+      else { lvc = '#059669'; }
+      var num = String(i + 1).padStart(3, '0');
+      h += '<div style="font-size:11px;line-height:1.8;padding:2px 0;color:' + lvc + '"><span style="color:#94a3b8">[' + num + ']</span> ' + escHtml(logs[i]) + '</div>';
     }
-    hh += '</div>';
-    document.getElementById('al-content').innerHTML = hh;
-  } catch(e) {
-    document.getElementById('al-content').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px">加载失败：' + escHtml(e.message) + '<br>请先执行一键分析</div>';
-  }
+    container.innerHTML = '<div style="font-family:Consolas,monospace;font-size:11px;max-height:600px;overflow-y:auto;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px">' + h + '</div>';
+  } catch(e) { container.innerHTML = '<div style="color:#dc2626;padding:14px">日志加载失败</div>'; }
 }
-
-//  系统数据概览 —— 统一新风格
-// ══════════════════════════════════════════════════════════════
-async function renderSystemOverview(container) {
-  if (!container) return;
-  window.currentModule = '系统数据概览';
-
-  var h = '<div style="max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,\"Microsoft YaHei\",sans-serif">';
-  h += '<div style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px">系统数据概览</div>';
-  h += '<div style="font-size:13px;color:#94a3b8;margin:0 0 28px;line-height:1.8">税务合规员手册第0章 · 系统核心能力全景 · {{rules_count}}条规则+1250条链+{{domain_functions}}个域分析函数+41个引擎模块</div>';
-
-  // 统计卡片
-  h += '<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-rules" style="font-size:26px;font-weight:700;color:#059669;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">税务合规规则</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-clues" style="font-size:26px;font-weight:700;color:#2563eb;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">线索链</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-evidence" style="font-size:26px;font-weight:700;color:#7c3aed;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">证据链</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-chains" style="font-size:26px;font-weight:700;color:#f59e0b;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">分析链</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-domains" style="font-size:26px;font-weight:700;color:#dc2626;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">域分析函数</div></div>';
-  h += '<div style="flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center"><div class="v" id="so-modules" style="font-size:26px;font-weight:700;color:#6366f1;line-height:1.3">—</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">引擎模块</div></div>';
-  h += '</div>';
-
-  // 上下游依赖
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><br><span style="color:#94a3b8">引擎记忆体系提供全量规则数据</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><br><span style="color:#94a3b8">规则引擎和链数据的总量来源</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer2\')" style="color:#2563eb">方法论体系</a><br><span style="color:#94a3b8">33条方法论定义系统能力边界</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><br><span style="color:#94a3b8">推理框架驱动六项智能能力</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:11px;color:#475569;line-height:2.0">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">执行管线</a><br><span style="color:#94a3b8">管线驱动规则和链数据的激活</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#94a3b8">分析结果参考手册进行解读</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'qs-layer3\')" style="color:#2563eb">质量保障机制</a><br><span style="color:#94a3b8">手册定义报告质量标准和规范</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'hb-ch1\')" style="color:#2563eb">税务合规工作流程</a><br><span style="color:#94a3b8">手册五步流程指导稽查实操</span></div>';
-  h += '</div></div></div>';
-
-  // 段落说明
-  h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
-  h += '<p style="margin:0 0 16px">税务合规系统是存勤法税的<strong>智能化税务合规推理引擎</strong>。基于{{rules_count}}条税务合规规则+{{clue_chains}}条线索链+{{evidence_chains}}条证据链+48条分析链+{{domain_functions}}个域分析函数构建，实现从原始资料上传到正式税务合规报告输出的全自动化处理。每条规则含触发条件+风险等级+调查步骤+处罚依据，全行业通用。</p>';
-  h += '<p style="margin:0 0 16px">引擎具备<strong>六项核心智能能力——记忆、学习、思考、判断、决策、自知</strong>——每项能力均有可运行的代码实现，代码位置可追溯至具体文件和行号。引擎不仅是规则的执行器，更是自我进化、自我诊断、自我验证的智能体。</p>';
-  h += '<p style="margin:0">系统的核心架构：<strong>41个引擎模块</strong>（engine/*.py）各自独立加载、协同工作，覆盖文件解析→实体识别→情报提取→规则扫描→链驱动发现→证据收集→跨域协商→报告输出全链条。引擎记忆体系（engine/memory.py）作为系统的大脑，26章结构维护所有规则、方法、知识和推理框架。</p>';
-  h += '</div>';
-
-  // 六项核心能力组件卡片
-  var components = [
-    { name:'有记忆', icon:'🧠', color:'#059669',
-      desc:'每次分析自动提取指纹（行业+模式+信号+评分）存入audit_memory.json。上限500条，12维度加权相似度检索——行业(×3)>经营模式(×2)>信号类型(×2)>风险等级(×1.5)。后续分析自动检索相似案例，输出行业对标校准和常见信号预警。记忆体系让引擎越用越聪明——每次分析都在丰富历史指纹库，相似企业的分析结论可以互相参考。',
-      source:'学习反馈', },
-    { name:'能学习', icon:'📚', color:'#2563eb',
-      desc:'三层渐进学习机制：①审核反馈学习——用户审核发现→存入user_corrections.json→四级回退匹配→累计1次即升级自动规则 ②EMA自学习——58样本指数移动平均，行业阈值动态校准，避免阈值僵化 ③自动规则发现——从重复出现的信号组合中检测新模式，写入规则库。代码实现位于self_learning.py，三项学习机制相互独立且并行运行。',
-      source:'学习反馈', },
-    { name:'懂思考', icon:'🔬', color:'#7c3aed',
-      desc:'四层推理框架：①假设验证引擎——每条发现2-3个竞争假设+逐条证据验证+加权判决，消除单一假设偏差 ②Phase1-4推理引擎——初查信号检测→定向深挖→交叉验证→综合定性，逐步深入 ③因果叙事链——多信号叠加自动推演因果链条，从孤立信号构建完整叙事 ④四步分析法——detect→verify→diagnose→report，标准化流程确保推理质量。',
-      source:'推理引擎', },
-    { name:'会判断', icon:'⚖️', color:'#f59e0b',
-      desc:'七层自动判定体系层层递进：①四方交叉验证（文件名→列头→数据→公司匹配）②身份锚定（购买方/销售方vs公司名+统一社会信用代码）③发票方向判定 ④进项三层分类 ⑤服务行业闸门 ⑥品名级精准过滤 ⑦存疑排除。33条判定规则逐条自动校验，每层独立运行、结果传递给下一层，错误在源头被拦截。',
-      source:'引擎详情', },
-    { name:'懂决策', icon:'🎯', color:'#dc2626',
-      desc:'五层决策输出体系：①风险综合评分（76/100→四级等级）②审计策略推荐（P0立即处理/P1限期整改/P2持续关注）③因果叙事链（从信号推演因果，给结论一个完整故事）④合规门禁（质量标准+16项自省检查，不达标不输出）⑤正式报告（7章格式+六要素+同类合并+语音播报）。每项决策都有可追溯的证据支撑。',
-      source:'本次分析结果', },
-    { name:'有自知', icon:'🔮', color:'#6366f1',
-      desc:'引擎知道自己是财税税务合规系统的大脑——不仅是规则的执行器，更是自我诊断、自我验证、自我进化的智能体。新规则/新方法/新标准写入engine/memory.py规则篇+架构篇（26章）。数据一致性自检启动时自动运行，四触发机制（--sync/start.bat/pre-commit/一键分析）确保全模块数据统一。自记忆→自学习→自思考→自判断→自决策——五项能力形成正向循环，引擎越用越强。',
-      source:'质量保障', },
-  ];
-  h += '<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">六项核心智能能力</div>';
-  components.forEach(function(comp, i) {
-    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;margin-bottom:12px;border-left:3px solid '+comp.color+'">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      + '<span style="font-size:18px">'+comp.icon+'</span>'
-      + '<span style="font-size:13px;font-weight:700;color:#0f172a">'+(i+1)+'. '+comp.name+'</span>'
-      + '</div>'
-      + '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">'+comp.desc+'</div>'
-      + '<div style="font-size:11px;color:#6366f1">📁 '+comp.source+'</div>'
-      + '</div>';
-  });
-
-  h += '</div>';
-  container.innerHTML = h;
-
-  // 异步填充统计卡片
-  var _f = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-  _f('so-rules', '1608');
-  _f('so-clues', '437');
-  _f('so-evidence', '781');
-  _f('so-chains', '48');
-  _f('so-domains', '42');
-  _f('so-modules', '41');
-}
-
-// ═══════════ 数据资产页面 ═══════════
 function renderDataAssets(container) {
   if (!container) return;
   window.currentModule = '数据资产';
