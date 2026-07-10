@@ -159,7 +159,6 @@ function renderTaxRiskRules(container) {
             + '<div class="rb">' + escHtml(rl.detail || '') + '</div>'
             + (rl.policy_ref ? '<div class="ra">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
             + (rl.suggestion ? '<div class="ra">💡 处理建议：' + escHtml(rl.suggestion) + '</div>' : '')
-            + (rl.dataSource ? '<div class="ra">📊 数据来源：' + escHtml(rl.dataSource) + '</div>' : '')
             + (rl.tax_impact ? '<div class="ra">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
             + '</div>';
         });
@@ -537,7 +536,7 @@ window._smartUpdate = function() {
   var btn = document.getElementById('rr-update-btn');
   if (st) st.textContent = '分析中...';
   if (btn) { btn.disabled = true; btn.textContent = '分析中...'; }
-  fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key})})
+  fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
     .then(function(r){return r.json();})
     .then(function(d){
       if (st) st.textContent = d.ok ? '完成' : '失败';
