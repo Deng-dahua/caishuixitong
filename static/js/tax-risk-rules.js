@@ -86,7 +86,11 @@ function renderTaxRiskRules(container) {
     + '</div>';
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
-  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:11px;line-height:2;color:#5b6675"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:12px">📐 精写编制标准（参照#1824）</summary>'
+  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:11px;line-height:2;color:#5b6675"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:12px">📐 精写编制标准（参照#1824 · 共23字段）</summary>'
+    + '<b>基础字段（9项·每条必填）:</b><br>'
+    + '① id — 异常编号 ② item — 异常名称 ③ category — 所属类别 ④ level — 风险等级（极高/高/中/低/良好） ⑤ score — 风险评分（1-10）<br>'
+    + '⑥ check_frequency — 稽查频率（高频/中频/低频） ⑦ policy_ref — 法律依据（具体法条编号和条文） ⑧ tax_impact — 税务影响（涉及税种+补税区间） ⑨ applicable_condition — 适用条件（什么类型/规模/行业触发）<br>'
+    + '<b>来源标记（2项）:</b>⑩ source — 来源（空=人工精写/系统发现） ⑪ auto_type — 自动发现类型<br>'
     + '<b>一、推理链：</b>direction字段必须展示从现象到定性的递进推理。格式为【推理第一层：XX法则】→【推理第二层：XX】→...每层50-80字，至少4层，最后一层必须落地到定性。<br>'
     + '<b>二、穿透追问：</b>drill_questions字段至少8条分3组，每组标注组名。每条格式为"Q{N}:{问题}→潜台词:{稽查真实意图}。A:{应对话术}"<br>'
     + '<b>三、正常业务解释：</b>normal_reason字段至少6种情形。每种格式为"{情形}——需提供{具体证据}"。证据必须可核验。<br>'
@@ -96,8 +100,10 @@ function renderTaxRiskRules(container) {
     + '<b>七、风险表格：</b>risk_table字段至少覆盖5个税种/维度，每行格式为"税种:具体风险描述"。<br>'
     + '<b>八、现象描述：</b>phenomena字段包含异常定义+5种常见表现形式（用①②③④⑤列举），加适用范围的兜底条款。<br>'
     + '<b>九、触发指标：</b>threshold字段必须有量化阈值 + 前置条件（如销售额门槛）。<br>'
-    + '<b>十、实地可查：</b>稽查动作中必须包含现场核查手段（实地查看/调取记录/外调走访），不能全是纸面比对。<br>'
-    + '<em>以上标准以#1824（销售大型器械无运输费）为参照范例。</em>'
+    + '<b>十、稽查动作：</b>action字段含具体的核查步骤（至少5步），其中必须包含现场核查手段（实地查看/调取记录/外调走访），不能全是纸面比对。<br>'
+    + '<b>十一、稽查重点：</b>focus字段列明该异常最常见的舞弊手法，用①②③④逐条标注。<br>'
+    + '<b>十二、稽查处理：</b>suggestion字段明确查实后的处置方式（补税/罚款/移送）。<br>'
+    + '<em>以上标准以#1824（销售大型器械无运输费）为参照范例。编制时按上述顺序组织23个字段。</em>'
     + '</details>';
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
