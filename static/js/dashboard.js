@@ -51,13 +51,13 @@ async function renderDashboard(container) {
         {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
         {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
-        {page:'domain-analysis', label:'🔬 域分析', cls:'btn-outline'},
-        {page:'methodology-filter', label:'🎯 方法论过滤', cls:'btn-outline'},
+        
+        
       ]},
       {group:'线索证据链', items:[
-        {page:'chains-page', label:'🔍 线索链', cls:'btn-outline'},
-        {page:'evidence-page', label:'🔒 证据链', cls:'btn-outline'},
-        {page:'analyze-page', label:'⚡ 分析链', cls:'btn-outline'},
+        
+        
+        
       ]},
       {group:'系统引擎', items:[
         {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
@@ -88,7 +88,6 @@ async function renderDashboard(container) {
     showError(el, e, '加载看板数据');
   }
 }
-
 
 // ── 简易趋势图（Canvas柱状图）──
 function renderTrendChart(data, containerId) {
