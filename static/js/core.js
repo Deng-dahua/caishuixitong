@@ -117,7 +117,6 @@ const pages = {
   'bookkeeping-invoices': '记账发票',
   'tax-risk-report': '账务风险分析报告',
   'tax-doc-analysis': '资料风险分析报告',
-  'tax-analysis': '税务合规分析',
   'system-logs': '系统日志',
   'ai-interaction': 'AI交互',
   'feedback-template': '审核内容模板',
@@ -679,7 +678,6 @@ function navigateTo(page) {
     case '文化事业建设费':          _sR(container, 'renderCulturalConstructionFee'); break;
     case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
-    case 'tax-analysis':    _sR(container, 'renderTaxAnalysisPage'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
     case 'ai-interaction':        _sR(container, 'renderAIInteractionPage'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
