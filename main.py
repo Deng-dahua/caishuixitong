@@ -1479,6 +1479,43 @@ async def smart_update_rules(request: Request):
         "after_total": len(rules) + len(ai_result.get("new_rules", [])) - len(ai_result.get("delete", []))
     }
 
+    # —— 自动写入规则库 ——
+    total_change = compare["new_count"] + compare["modify_count"] + compare["delete_count"]
+    if total_change > 0:
+        max_id = max((r.get("id", 0) for r in rules), default=0)
+        applied = 0
+        # 新增：追加到末尾
+        for nr in ai_result.get("new_rules", []):
+            max_id += 1
+            nr["id"] = max_id
+            if "category" not in nr: nr["category"] = nr.get("item","")[:20]
+            if "level" not in nr: nr["level"] = "中风险"
+            if "source" not in nr: nr["source"] = "LLM智能更新"
+            rules.append(nr)
+            applied += 1
+        # 修改：按id匹配更新
+        for mod in ai_result.get("modify", []):
+            mid = mod.get("id")
+            for r in rules:
+                if str(r.get("id","")) == str(mid):
+                    if "新item" in mod: r["item"] = mod["新item"]
+                    if "detail" in mod: r["detail"] = mod.get("detail","")
+                    if "suggestion" in mod: r["suggestion"] = mod.get("suggestion","")
+                    applied += 1
+                    break
+        # 删除：按id移除
+        for d in ai_result.get("delete", []):
+            did = d.get("id")
+            rules = [r for r in rules if str(r.get("id","")) != str(did)]
+            applied += 1
+        # 写回
+        with open(rp, "w", encoding="utf-8") as wf:
+            _json.dump(rules, wf, ensure_ascii=False, indent=2)
+        compare["applied"] = applied
+        compare["after_total"] = len(rules)
+    else:
+        compare["applied"] = 0
+
     return {"ok": True, "compare": compare}
 
 
