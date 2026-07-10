@@ -84,6 +84,13 @@ function renderTaxRiskRules(container) {
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
   h += '<div id="rr-list"></div>';
+  h += '<div style="margin:0 0 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    + '<input id="rr-apikey" type="password" placeholder="OpenAI API Key（智能更新需要）" style="flex:1;min-width:200px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;outline:none">'
+    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
+    + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
+    + '</div>'
+    + '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
+
 
   container.innerHTML = h;
 
@@ -523,3 +530,43 @@ function _fillEl(id, val) {
   var el = document.getElementById(id);
   if (el) el.textContent = val;
 }
+
+window._smartUpdate = function() {
+  var key = (document.getElementById('rr-apikey') || {}).value || '';
+  if (!key) { alert('请先输入LLM API Key'); return; }
+  var st = document.getElementById('rr-update-status');
+  var btn = document.getElementById('rr-update-btn');
+  if (st) st.textContent = '分析中...';
+  if (btn) { btn.disabled = true; btn.textContent = '分析中...'; }
+  fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (st) st.textContent = d.ok ? '完成' : '失败';
+      if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
+      if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
+      var cp = document.getElementById('rr-compare');
+      if (!cp) return;
+      var c = d.compare || {};
+      var h = '<div style="font-size:14px;font-weight:700;color:#9a1f2b;margin:0 0 12px">📊 智能更新对比报告</div>';
+      h += '<div style="font-size:12px;color:#5b6675;margin:0 0 12px">' + escHtml(c.summary||'') + '</div>';
+      h += '<div style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap"><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">建议新增</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">建议修改</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">建议删除</div></div></div>';
+      h += '<div style="font-size:11px;color:#64748b">更新前: ' + (c.before_total||0) + '条 → 更新后: ' + (c.after_total||0) + '条</div>';
+      if (c.new_rules && c.new_rules.length) {
+        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#059669;margin:8px 0">新增规则</div>' + c.new_rules.map(function(r){return '<div style="margin:6px 0;padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:11px"><b>'+escHtml(r.item||'')+'</b> ['+escHtml(r.category||'')+'/'+escHtml(r.level||'')+']<div style="color:#64748b;margin:2px 0">'+escHtml((r.detail||'').substring(0,120))+'</div></div>';}).join('') + '</div>';
+      }
+      if (c.modify && c.modify.length) {
+        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#f59e0b;margin:8px 0">修改建议</div><table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#fff7ed"><td>ID</td><td>原名称</td><td>建议改为</td><td>原因</td></tr>' + c.modify.map(function(r){return '<tr><td style="padding:4px 8px;border:1px solid #e2e8f0">'+(r.id||'')+'</td><td style="padding:4px 8px;border:1px solid #e2e8f0">'+escHtml(r.old_item||'')+'</td><td style="padding:4px 8px;border:1px solid #e2e8f0;color:#059669">'+escHtml(r.new_item||'')+'</td><td style="padding:4px 8px;border:1px solid #e2e8f0">'+escHtml(r.reason||'')+'</td></tr>';}).join('') + '</table></div>';
+      }
+      if (c.delete && c.delete.length) {
+        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#dc2626;margin:8px 0">删除建议</div>' + c.delete.map(function(r){return '<div style="margin:4px 0;font-size:11px;color:#dc2626">ID['+escHtml(r.id||'')+'] '+escHtml(r.item||'')+' — '+escHtml(r.reason||'')+'</div>';}).join('') + '</div>';
+      }
+      h += '<div style="margin:12px 0 0;font-size:10px;color:#94a3b8">以上为LLM建议，请人工审核确认后再执行更新操作。</div>';
+      cp.innerHTML = h;
+      cp.style.display = 'block';
+    })
+    .catch(function(e){
+      if (st) st.textContent = '异常';
+      if (btn) { btn.disabled = false; btn.textContent = '🤖 重试'; }
+      alert('请求异常: ' + e.message);
+    });
+};

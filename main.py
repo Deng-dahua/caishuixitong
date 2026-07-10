@@ -1299,6 +1299,89 @@ def batch_refresh_rules():
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+@app.post("/api/tax-risk-rules/smart-update")
+async def smart_update_rules(request: Request):
+    """智能更新规则库——调用LLM分析盲区，返回新增/修改/删除建议及新旧对比表"""
+    try:
+        body = await request.json()
+        api_key = (body or {}).get("api_key", "").strip()
+    except Exception:
+        return {"ok": False, "message": "请提供有效的API Key"}
+    if not api_key:
+        return {"ok": False, "message": "请配置LLM API Key"}
+
+    import json as _json, os as _os
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+
+    with open(rp, "r", encoding="utf-8") as _f:
+        rules = _json.load(_f)
+
+    # 构建规则摘要（分类+数量+关键条目，不发送全部1753条以节省token）
+    from collections import Counter
+    cat_count = Counter(r.get("category","") for r in rules)
+    manual_rules = [r for r in rules if not r.get("source")]
+    auto_rules = [r for r in rules if r.get("source")]
+    summary_lines = [
+        f"规则库概况：共{len(rules)}条（人工{len(manual_rules)}条、自动发现{len(auto_rules)}条），{len(cat_count)}个分类",
+        f"分类分布：{', '.join(f'{k}({v})' for k,v in cat_count.most_common(10))}",
+        "请基于以下维度分析规则库盲区：",
+        "1. 近年来废止或新颁的税收政策对应的规则是否已覆盖",
+        "2. 新型业态（直播带货、跨境电商、灵活用工、SaaS/共享经济等）的专项规则是否充足",
+        "3. 新增舞弊手法是否已有对应规则",
+        "4. 跨税种联动规则是否完备（增值税×所得税、个税×社保、发票×资金流等）",
+        "5. 当前规则等级分布：",
+    ]
+    lvls = Counter(r.get("level","") for r in manual_rules)
+    for lv, cnt in lvls.most_common():
+        summary_lines.append(f"  {lv}: {cnt}条")
+    summary_lines.append("请返回JSON格式：{\"new_rules\":[{新增的规则,含item/category/level/detail/suggestion/policy_ref}],\"modify\":[{修改建议,含id/原item/新item/原因}],\"delete\":[{删除建议,含id/item/原因}],\"summary\":\"一句话概述本次更新要点\"}")
+
+    prompt = "\n".join(summary_lines)
+
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 8000}
+            )
+            if resp.status_code != 200:
+                return {"ok": False, "message": f"LLM调用失败: HTTP {resp.status_code} - {resp.text[:200]}"}
+            ai_text = resp.json()["choices"][0]["message"]["content"]
+    except ImportError:
+        return {"ok": False, "message": "服务器未安装httpx库，无法调用LLM"}
+    except Exception as e:
+        return {"ok": False, "message": f"LLM调用异常: {str(e)}"}
+
+    # 解析AI返回的JSON
+    import re
+    json_match = re.search(r'\{[\s\S]*\}', ai_text)
+    if not json_match:
+        return {"ok": False, "message": "AI返回格式异常，未找到有效JSON", "raw": ai_text[:500]}
+    try:
+        ai_result = _json.loads(json_match.group())
+    except Exception:
+        return {"ok": False, "message": "AI返回的JSON解析失败", "raw": ai_text[:500]}
+
+    # 构建新旧对比表
+    compare = {
+        "new_count": len(ai_result.get("new_rules", [])),
+        "modify_count": len(ai_result.get("modify", [])),
+        "delete_count": len(ai_result.get("delete", [])),
+        "summary": ai_result.get("summary", "规则库智能更新分析完成"),
+        "new_rules": ai_result.get("new_rules", []),
+        "modify": ai_result.get("modify", []),
+        "delete": ai_result.get("delete", []),
+        "before_total": len(rules),
+        "after_total": len(rules) + len(ai_result.get("new_rules", [])) - len(ai_result.get("delete", []))
+    }
+
+    return {"ok": True, "compare": compare}
+
+
 # ── 涉税风险分析资料库 ──
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
