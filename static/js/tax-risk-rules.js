@@ -79,7 +79,7 @@ function renderTaxRiskRules(container) {
     + '<option value="低风险">低风险</option>'
     + '<option value="良好">良好/正常</option>'
     + '</select>'
-    + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select><select id="rr-src-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="人工">人工规则</option><option value="系统发现">自动发现</option></select>'
+    + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
     + '</div>';
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
