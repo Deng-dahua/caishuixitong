@@ -241,7 +241,7 @@ function renderTaxRiskRules(container, isAuto) {
           // 穿透式追问
           if (rl.drill_questions) {
             card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
-            var qas = rl.drill_questions.split('\n');
+            var qas = typeof rl.drill_questions === 'string' ? rl.drill_questions.split('\n') : (Array.isArray(rl.drill_questions) ? rl.drill_questions : []);
             for (var qi = 0; qi < qas.length; qi++) {
               var qm = qas[qi].match(/^(Q\d+):(.+?)→A:(.+)$/);
               if (qm) {
