@@ -1260,6 +1260,63 @@ def promote_auto_rule(rule_id: str = Query(...)):
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+# —— 自动发现规则精写：用LLM按23字段标准填充内容 ——
+def enrich_auto_rules_with_llm():
+    """后台任务：读取自动发现规则，对缺少精写内容的用LLM补全23字段"""
+    import json as _json, os as _os, shutil as _sh, threading
+    def _do_enrich():
+        try:
+            rp = _os.path.join(_os.path.dirname(__file__), "static", "auto_discovered_rules.json")
+            if not _os.path.exists(rp): return
+            _sh.copy2(rp, rp + ".bak")
+            with open(rp, "r", encoding="utf-8") as _f:
+                rules = _json.load(_f)
+            # 找缺少精写内容的规则
+            need = [r for r in rules if len(r.get("direction",""))<50 or not r.get("phenomena") or len(r.get("drill_questions",""))<30]
+            if not need: return
+            cfg = _load_api_config()
+            api_key = cfg.get("key","")
+            if not api_key: return
+            for r in need[:5]:  # 每次最多5条
+                item = r.get("item","")
+                prompt = f"""按23字段精写标准，将以下自动发现规则补全为完整稽查指令：
+规则标题:{item}  分类:{r.get('category','')}  行业:{r.get('industry','')}
+请生成以下字段(JSON格式):
+- phenomena:异常现象描述+常见表现(①②③④⑤),200-300字
+- direction:推理链4层(【推理第一层】→【推理第四层】),每层60-100字
+- focus:稽查重点指向(①②③④),100-150字
+- risk_table:风险表格(增值税/企业所得税/个人所得税/发票管理/印花税),每行\"税种:描述\"
+- normal_reason:6种正常情形,每种带\"——需提供XX证据\"
+- determination:三条推理路径+应对总原则
+- drill_questions:8条分3组,每条带\"→潜台词:\"和\"A:\"
+- action:稽查动作5步
+- threshold:量化触发条件
+- evidence:证据清单
+- remedy:三阶段整改(自查→应对→制度)
+只返回JSON:{{\"id\":{r['id']},\"phenomena\":\"...\",\"direction\":\"...\",...}}"""
+                try:
+                    import httpx
+                    resp = httpx.post(
+                        f"{cfg['base_url'].rstrip('/')}/chat/completions",
+                        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                        json={"model": cfg["model"], "messages":[{"role":"user","content":prompt}], "temperature":0.3, "max_tokens":4000},
+                        timeout=120.0
+                    )
+                    if resp.status_code==200:
+                        import re
+                        txt = resp.json()["choices"][0]["message"]["content"]
+                        m = re.search(r'\{[\s\S]*\}', txt)
+                        if m:
+                            filled = _json.loads(m.group())
+                            for k in ["phenomena","direction","focus","risk_table","normal_reason","determination","drill_questions","action","threshold","evidence","remedy"]:
+                                if k in filled and filled[k]:
+                                    r[k] = filled[k]
+                except: pass
+            with open(rp, "w", encoding="utf-8") as wf:
+                _json.dump(rules, wf, ensure_ascii=False, indent=2)
+        except: pass
+    threading.Thread(target=_do_enrich, daemon=True).start()
+
 @app.post("/api/tax-risk-rules/update-rule")
 async def update_rule(request: Request):
     """编辑人工规则：接收 JSON body，写回规则文件"""

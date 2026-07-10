@@ -3806,6 +3806,11 @@ def _run_analyze(company_id, db, progress_callback=None):
                     with open(rules_path, "w", encoding="utf-8") as wf:
                         json.dump(existing_rules, wf, ensure_ascii=False, indent=2)
                     pipeline_log.append(f"[DISCOVERY] {new_rules_added}条自动发现的信号已写入规则库 (总数{len(existing_rules)})")
+                    # 引擎自学：触发LLM精写自动发现规则
+                    try:
+                        from main import enrich_auto_rules_with_llm
+                        enrich_auto_rules_with_llm()
+                    except: pass
             except Exception: pass
     except Exception:
         pass
