@@ -5754,7 +5754,7 @@ function renderMethodologyPart2(){
   // 数据面板：规则库/线索链/证据链（可折叠查阅）
   h+='<div style="margin:16px 0"><details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">📋 税务合规指令库（可直接查阅全部规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
   h+='<details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">🔗 线索链数据（可直接查阅全部调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
-  h+='<details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">🔒 证据链数据（可直接查阅全部验证维度）</summary><div class="live"><div id="au-evidence-data"></div></div></details></div>';
+  h+='<details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">🔒 证据链数据（可直接查阅全部验证维度）</summary><div class="live"><div id="au-evidence-data"></div></div></details><details style="margin-bottom:8px"><summary style="font-size:13px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0">📊 域分析发现（各域实际检出结果）</summary><div class="live"><div id="au-domain-result"></div></div></details></div>';
 
   // ═══ 第四层·过滤 ═══
 
@@ -5806,6 +5806,8 @@ function renderMethodologyAssemble(){
   if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#94a3b8">规则数据加载中...</span>'}}
   var cd=document.getElementById('au-chains-data');
   if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#94a3b8">线索链数据加载中...</span>'}}
+  var dd=document.getElementById('au-domain-result');
+  if(dd&&typeof renderDAResult==='function'){try{renderDAResult(dd)}catch(e){dd.innerHTML='<span style="color:#94a3b8">域分析数据加载中...</span>'}}
   var ed=document.getElementById('au-evidence-data');
   if(ed&&typeof renderEvidencePage==='function'){try{renderEvidencePage(ed)}catch(e){ed.innerHTML='<span style="color:#94a3b8">证据链数据加载中...</span>'}}
   var i=document.getElementById('au-incentive');
