@@ -614,6 +614,18 @@ async def _cache_control_middleware(request, call_next):
         response.headers['Expires'] = '0'
     return response
 
+# —— 强制禁止浏览器缓存JS/CSS，确保每次加载最新代码 ——
+from starlette.middleware.base import BaseHTTPMiddleware
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static/") and request.url.path.endswith((".js", ".css", ".html")):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+app.add_middleware(NoCacheMiddleware)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==================== 文件上传安全常数 (P2-4/5) ====================
