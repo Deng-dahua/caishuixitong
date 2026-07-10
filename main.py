@@ -1302,9 +1302,13 @@ def batch_refresh_rules():
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
     """智能更新规则库——调用LLM分析盲区，返回新增/修改/删除建议及新旧对比表"""
-    api_key = get_global_api_key()
+    api_cfg = get_api_config()
+    api_key = api_cfg.get("key", "")
     if not api_key:
         return {"ok": False, "message": "请先在系统主页左上角配置API Key（设置→API密钥）"}
+    base_url = api_cfg.get("base_url", "https://api.deepseek.com/v1")
+    model = api_cfg.get("model", "deepseek-chat")
+    provider = api_cfg.get("provider", "deepseek")
 
     import json as _json, os as _os
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
@@ -1342,19 +1346,20 @@ async def smart_update_rules(request: Request):
 
     try:
         import httpx
+        api_url = base_url.rstrip("/") + "/chat/completions"
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
-                "https://api.openai.com/v1/chat/completions",
+                api_url,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 8000}
+                json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 8000}
             )
             if resp.status_code != 200:
                 return {"ok": False, "message": f"LLM调用失败: HTTP {resp.status_code} - {resp.text[:200]}"}
             ai_text = resp.json()["choices"][0]["message"]["content"]
     except ImportError:
-        return {"ok": False, "message": "服务器未安装httpx库，无法调用LLM"}
+        return {"ok": False, "message": "服务器未安装httpx库"}
     except Exception as e:
-        return {"ok": False, "message": f"LLM调用异常: {str(e)}"}
+        return {"ok": False, "message": f"调用{provider}({model})异常: {str(e)}"}
 
     # 解析AI返回的JSON
     import re
