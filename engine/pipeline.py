@@ -3769,44 +3769,66 @@ def _run_analyze(company_id, db, progress_callback=None):
         discoveries = discovery_result.get("discoveries", [])
         auto_signals = [d for d in discoveries if d.get("type") == "auto_signal"]
         if auto_signals:
-            rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
+            auto_path = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
+            main_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
             try:
-                if os.path.exists(rules_path):
-                    with open(rules_path, "r", encoding="utf-8") as rf:
-                        existing_rules = json.load(rf)
+                if os.path.exists(auto_path):
+                    with open(auto_path, "r", encoding="utf-8") as rf:
+                        existing_auto = json.load(rf)
                 else:
-                    existing_rules = []
-                max_id = max((r.get("id", 0) for r in existing_rules), default=1600)
+                    existing_auto = []
+                # 取全局最大ID（主规则库+自动发现规则库）
+                all_ids = [r.get("id", 0) for r in existing_auto]
+                if os.path.exists(main_path):
+                    with open(main_path, "r", encoding="utf-8") as rf:
+                        all_ids += [r.get("id", 0) for r in json.load(rf)]
+                max_id = max(all_ids, default=1600)
                 new_rules_added = 0
                 for sig in auto_signals:
-                    # 去重：已存在同类型signal才跳过
+                    # 去重：自动发现规则库中已存在同行业+同信号
                     already_exists = any(
-                        r.get("type") == "auto_signal" and r.get("industry") == sig.get("industry")
-                        for r in existing_rules
+                        r.get("type") == "auto_signal"
+                        and r.get("industry") == sig.get("industry")
+                        and r.get("item","").find(sig.get("signal","")[:10]) >= 0
+                        for r in existing_auto
                     )
                     if already_exists:
                         continue
                     max_id += 1
-                    existing_rules.append({
+                    industry = sig.get("industry", "")
+                    signal = sig.get("signal", "")
+                    item = f"[{industry}] {signal}" if industry else signal
+                    existing_auto.append({
                         "id": max_id,
                         "type": "auto_signal",
-                        "rule_category": "自动发现",
-                        "industry": sig.get("industry", ""),
-                        "signal": sig.get("signal", ""),
+                        "item": item,
+                        "category": "自动发现",
+                        "industry": industry,
+                        "signal": signal,
                         "prevalence": sig.get("prevalence", ""),
-                        "evidence": sig.get("evidence", ""),
-                        "action": sig.get("action", ""),
                         "confidence": sig.get("confidence", 0),
                         "auto_discovered_at": datetime.now().isoformat(),
                         "severity": "中",
                         "enabled": True,
+                        # 精写标准字段（占位，等待LLM补全）
+                        "direction": "",
+                        "phenomena": "",
+                        "focus": "",
+                        "drill_questions": "",
+                        "normal_reason": "",
+                        "determination": "",
+                        "risk_table": "",
+                        "action": sig.get("action", ""),
+                        "evidence": sig.get("evidence", ""),
+                        "threshold": "",
+                        "remedy": "",
                     })
                     new_rules_added += 1
                 if new_rules_added > 0:
-                    with open(rules_path, "w", encoding="utf-8") as wf:
-                        json.dump(existing_rules, wf, ensure_ascii=False, indent=2)
-                    pipeline_log.append(f"[DISCOVERY] {new_rules_added}条自动发现的信号已写入规则库 (总数{len(existing_rules)})")
-                    # 引擎自学：触发LLM精写自动发现规则
+                    with open(auto_path, "w", encoding="utf-8") as wf:
+                        json.dump(existing_auto, wf, ensure_ascii=False, indent=2)
+                    pipeline_log.append(f"[DISCOVERY] {new_rules_added}条自动发现的信号已写入自动发现规则库 (总数{len(existing_auto)})")
+                    # 引擎自学：触发LLM按精写标准补全
                     try:
                         from main import enrich_auto_rules_with_llm
                         enrich_auto_rules_with_llm()
