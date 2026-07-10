@@ -129,7 +129,9 @@ function renderTaxRiskRules(container) {
       var autoCount = rules.filter(function(rl){ return rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type; }).length;
       var acEl = document.getElementById('au-auto-count'); if (acEl) acEl.textContent = autoCount;
       // 自动发现规则面板：只显示自动发现的规则
+      // 自动发现规则面板：只显示自动发现的规则；主面板：排除自动发现规则
       if (autoOnly) { rules = rules.filter(function(rl){ return rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type; }); }
+      else { rules = rules.filter(function(rl){ return !(rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type); }); }
       var cats = {};
       var total = 0, high = 0, mid = 0, low = 0, good = 0;
       rules.forEach(function(rl) {
