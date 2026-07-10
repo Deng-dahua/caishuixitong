@@ -6785,3 +6785,110 @@ function renderTaxAnalysisAssemble() {
   var iBox = document.getElementById('tsa-incentive');
   if (iBox && typeof renderTaxIncentivesPage === 'function') { try { renderTaxIncentivesPage(iBox); } catch(e){ iBox.innerHTML='<div style="color:#94a3b8;padding:14px">暂无税收优惠扫描结果。</div>'; } }
 }
+
+function _co_money(v) { if(v==null) return "—"; try{var n=parseFloat(v); return n>=10000?(n/10000).toFixed(0)+"万元":n.toFixed(2)+"元";}catch(e){return "—";} }
+function _renderCompanyOverview(container) {
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div>';
+  var cid = typeof currentCompanyId !== 'undefined' ? currentCompanyId : 1;
+  fetch('/api/company-overview?company_id=' + cid)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { container.innerHTML = '<div style="text-align:center;padding:60px 20px"><div style="font-size:64px;margin-bottom:16px">📊</div><div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px">暂无分析数据</div><div style="font-size:13px;color:#94a3b8">请先上传资料并运行"一键分析"</div></div>'; return; }
+      var h = '';
+      var co = d.company || {};
+      var biz = d.business || {};
+      var cash = d.cashflow || {};
+      var inv = d.invoices || {};
+      var tb = d.tax_burden || {};
+      var risks = d.risks || {};
+      var inc = d.incentives || {};
+      var mat = d.material || {};
+      // ① 企业名片
+      h += '<div class="co-head"><div class="co-h1">' + escHtml(co.name || '未设置') + '</div>';
+      h += '<div class="co-h2">';
+      if(co.credit_code) h += '信用代码：' + escHtml(co.credit_code) + ' · ';
+      h += (co.industry||'—') + ' · ' + (co.taxpayer_type||'—');
+      h += '</div></div>';
+      // ② 经营概况
+      var cardBiz = '';
+      if(biz.note){
+        cardBiz = '<div class="co-card"><div class="co-ct">📈 经营概况</div><div style="color:#94a3b8;font-size:12px;padding:8px 0">' + escHtml(biz.note) + '</div></div>';
+      } else {
+        cardBiz = '<div class="co-card"><div class="co-ct">📈 经营概况</div><div class="co-metric"><div class="co-mv">' + _co_money(biz.revenue) + '</div><div class="co-ml">营业收入</div></div><div class="co-metric"><div class="co-mv">' + _co_money(biz.cost) + '</div><div class="co-ml">营业成本</div></div><div class="co-metric"><div class="co-mv" style="color:' + (biz.profit>0?'#059669':'#dc2626') + '">' + _co_money(biz.profit) + '</div><div class="co-ml">利润</div></div></div>';
+      }
+      h += cardBiz;
+      // ③ 资金流水
+      var cardCash = '<div class="co-card"><div class="co-ct">💰 资金流水</div>';
+      if(cash.total_in||cash.total_out){
+        cardCash += '<div class="co-metric"><div class="co-mv" style="color:#059669">' + _co_money(cash.total_in) + '</div><div class="co-ml">流入</div></div><div class="co-metric"><div class="co-mv" style="color:#dc2626">' + _co_money(cash.total_out) + '</div><div class="co-ml">流出</div></div><div class="co-metric"><div class="co-mv" style="color:' + (cash.net>0?'#059669':'#dc2626') + '">' + _co_money(cash.net) + '</div><div class="co-ml">净额</div></div>';
+      }else{cardCash += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">暂无银行流水数据</div>';}
+      cardCash += '</div>';
+      h += cardCash;
+      // ④ 发票概况
+      var cardInv = '<div class="co-card"><div class="co-ct">🧾 发票概况</div>';
+      if(inv.sales_count||inv.purchase_count){
+        cardInv += '<div class="co-metric"><div class="co-mv">' + (inv.sales_count||'—') + '张</div><div class="co-ml">销项发票</div></div><div class="co-metric"><div class="co-mv">' + _co_money(inv.sales_tax) + '</div><div class="co-ml">销项税额</div></div><div class="co-metric"><div class="co-mv">' + (inv.purchase_count||'—') + '张</div><div class="co-ml">进项发票</div></div><div class="co-metric"><div class="co-mv">' + _co_money(inv.purchase_tax) + '</div><div class="co-ml">进项税额</div></div>';
+      }else{cardInv += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">暂无发票数据</div>';}
+      cardInv += '</div>';
+      h += cardInv;
+      // ⑤ 税负与纳税
+      var cardBurden = '<div class="co-card"><div class="co-ct">📋 税负与纳税</div>';
+      if(tb.available){
+        cardBurden += '<div style="font-size:12px;color:#64748b">各税种应纳税额将在此展示</div>';
+      }else{
+        cardBurden += '<div style="padding:12px 0"><span style="display:inline-block;padding:4px 10px;background:#fff7ed;color:#c27803;border:1px solid #fed7aa;border-radius:6px;font-size:11px">⚠ ' + escHtml(tb.note||'需上传纳税申报表') + '</span></div>';
+      }
+      cardBurden += '</div>';
+      h += cardBurden;
+      // ⑥ 税务风险
+      var cardRisk = '<div class="co-card"><div class="co-ct">🔍 税务风险</div>';
+      if(risks.total > 0){
+        cardRisk += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0">';
+        var levels = {'极高风险':'#991b1b','高风险':'#dc2626','中风险':'#f59e0b','低风险':'#059669','信息':'#64748b'};
+        for(var lv in risks.by_level){
+          cardRisk += '<div style="min-width:64px;text-align:center"><div style="font-size:20px;font-weight:700;color:' + (levels[lv]||'#64748b') + '">' + risks.by_level[lv] + '</div><div style="font-size:10px;color:#94a3b8">' + (lv||'其他') + '</div></div>';
+        }
+        cardRisk += '</div>';
+        cardRisk += '<div style="font-size:11px;color:#64748b;margin-top:4px">共 ' + risks.total + ' 条风险发现</div>';
+      }else{
+        cardRisk += '<div style="color:#059669;font-size:13px;font-weight:600;padding:8px 0">✓ 未发现显著风险</div>';
+      }
+      cardRisk += '</div>';
+      h += cardRisk;
+      // ⑦ 税收优惠
+      var cardInc = '<div class="co-card"><div class="co-ct">🎁 税收优惠</div>';
+      if(inc.available && inc.items && inc.items.length > 0){
+        for(var j=0;j<inc.items.length;j++){
+          var it = inc.items[j];
+          cardInc += '<div style="margin:8px 0;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px"><div style="font-size:13px;font-weight:600;color:#059669">' + escHtml(it.name) + '</div><div style="font-size:11px;color:#64748b;line-height:1.8">' + escHtml(it.desc) + '</div><div style="font-size:12px;font-weight:600;color:#0e7490;margin-top:4px">' + escHtml(it.benefit) + '</div><div style="font-size:10px;color:#94a3b8;margin-top:2px">' + escHtml(it.status) + '</div></div>';
+        }
+      }else{
+        cardInc += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">' + escHtml(inc.note||'未触发已知优惠条件') + '</div>';
+      }
+      cardInc += '</div>';
+      h += cardInc;
+      // ⑧ 资料完备度
+      var cardMat = '<div class="co-card"><div class="co-ct">📁 资料完备度</div>';
+      if(mat.present_count + mat.missing_count > 0){
+        cardMat += '<div style="display:flex;gap:8px;margin:4px 0"><div style="background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:4px;font-size:11px">已上传 ' + mat.present_count + ' 类</div>';
+        if(mat.missing_count>0) cardMat += '<div style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px">缺失 ' + mat.missing_count + ' 类</div>';
+        cardMat += '</div>';
+        if(mat.missing && mat.missing.length>0) cardMat += '<div style="font-size:11px;color:#dc2626;margin-top:4px">缺失：' + escHtml(mat.missing.join('、')) + '</div>';
+      }else{
+        cardMat += '<div style="color:#94a3b8;font-size:12px;padding:8px 0">暂无资料清单</div>';
+      }
+      cardMat += '</div>';
+      h += cardMat;
+      container.innerHTML = '<div class="co-dash">' + h + '</div>';
+    })
+    .catch(function(e) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败：' + escHtml(e.message) + '</div>';
+    });
+}
+function renderCompanyOverview(container) {
+  if (!container) return;
+  window.currentModule = '企业总览';
+  var css = '<style>.co-dash{max-width:960px;margin:0 auto;padding:32px 24px;font-family:-apple-system,"Microsoft YaHei",sans-serif}.co-head{padding:20px 0 16px;border-bottom:1px solid #e2e8f0;margin-bottom:20px}.co-h1{font-size:22px;font-weight:700;color:#0f172a}.co-h2{font-size:13px;color:#64748b;margin-top:6px}.co-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin-bottom:14px}.co-ct{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}.co-metric{display:inline-block;min-width:100px;margin:4px 16px 8px 0;vertical-align:top}.co-mv{font-size:18px;font-weight:700;color:#0f172a;line-height:1.3}.co-ml{font-size:11px;color:#94a3b8;margin-top:2px}</style>';
+  container.innerHTML = css + '<div id="co-main"></div>';
+  _renderCompanyOverview(document.getElementById('co-main'));
+}
