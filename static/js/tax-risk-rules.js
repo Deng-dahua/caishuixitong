@@ -144,7 +144,7 @@ function renderTaxRiskRules(container) {
         var list = document.getElementById('rr-list');
         if (!list) return;
         var filtered = rules.filter(function(rl) {
-          var txt = (rl.item || '') + ' ' + (rl.detail || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
+          var txt = (rl.item || '') + ' ' + (rl.direction || '') + ' ' + (rl.focus || '') + ' ' + (rl.action || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
           if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
           if (ct && (rl.category || '') !== ct) return false;
@@ -167,10 +167,16 @@ function renderTaxRiskRules(container) {
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
             + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
             + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
-            + '<div class="rb">' + escHtml(rl.detail || '') + '</div>'
+            + (rl.check_frequency ? '<span style="font-size:9px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '')
+            + (rl.direction ? '<div style="font-size:11px;color:#64748b;margin:4px 0;padding-left:10px;border-left:2px solid #9a1f2b">🎯 ' + escHtml(rl.direction) + '</div>' : '')
+            + (rl.focus && rl.focus !== '待明确重点' ? '<div style="font-size:11px;color:#dc2626;margin:2px 0 4px;padding-left:10px;border-left:2px solid #dc2626">⚠ ' + escHtml(rl.focus) + '</div>' : '')
+            + (rl.action ? '<div style="font-size:11px;color:#3a4048;margin:2px 0 4px">🔍 ' + escHtml(rl.action) + '</div>' : '')
+            + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0">📏 ' + escHtml(rl.threshold) + '</div>' : '')
             + (rl.policy_ref ? '<div class="ra">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
-            + (rl.suggestion ? '<div class="ra">💡 处理建议：' + escHtml(rl.suggestion) + '</div>' : '')
+            + (rl.suggestion ? '<div class="ra">⚖ 稽查处理：' + escHtml(rl.suggestion) + '</div>' : '')
             + (rl.tax_impact ? '<div class="ra">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
+            + (rl.remedy && rl.remedy !== rl.suggestion ? '<div class="ra">🔧 整改建议：' + escHtml(rl.remedy) + '</div>' : '')
+            + (rl.applicable_condition ? '<div class="ra">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '')
             + '</div>';
         });
         list.innerHTML = html;
