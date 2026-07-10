@@ -1759,7 +1759,6 @@ function renderAnalyzePage(container) {
     + '</p>'
     + '<div id="analyze-body"></div>'
     + '</div></div>';
-  loadAnalyzeOverview();
 }
 
 async function toggleDomainDetail(idx) {
