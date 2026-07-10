@@ -86,7 +86,7 @@ function renderTaxRiskRules(container) {
     + '</div>';
 
   h += '<div class="rr-hero" id="rr-hero"></div>';
-  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:11px;line-height:2;color:#5b6675"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:12px">📐 精写编制标准（参照#1824 · 共23字段）</summary>'
+  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:11px;line-height:2;color:#5b6675"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:12px">📐 精写编制标准（共23字段）</summary>'
     + '<b>基础字段（9项·每条必填）:</b><br>'
     + '① id — 异常编号 ② item — 异常名称 ③ category — 所属类别 ④ level — 风险等级（极高/高/中/低/良好） ⑤ score — 风险评分（1-10）<br>'
     + '⑥ check_frequency — 稽查频率（高频/中频/低频） ⑦ policy_ref — 法律依据（具体法条编号和条文） ⑧ tax_impact — 税务影响（涉及税种+补税区间） ⑨ applicable_condition — 适用条件（什么类型/规模/行业触发）<br>'
