@@ -182,6 +182,7 @@ function renderTaxRiskRules(container) {
           else if (lv.indexOf('低') >= 0) lc = '#059669';
           var card = '<div class="rr-rule">'
             + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
+            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:9px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '')
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
             + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
             + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
