@@ -88,7 +88,7 @@ function renderTaxRiskRules(container) {
   container.innerHTML = h;
 
   // 加载数据
-  fetch('/static/discovered_rules.json?' + Date.now())
+  fetch('/static/tax_risk_rules_local_export.json?' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(rules) {
       window._rrData = rules;
@@ -96,7 +96,7 @@ function renderTaxRiskRules(container) {
       var total = 0, high = 0, mid = 0, low = 0, good = 0;
       rules.forEach(function(rl) {
         total++; 
-        var lv = rl.level || rl.风险等级 || '';
+        var lv = rl.level || rl.level || '';
         if (lv.indexOf('极高') >= 0 || lv.indexOf('高') >= 0) high++;
         else if (lv.indexOf('中') >= 0) mid++;
         else if (lv.indexOf('低') >= 0) low++;
@@ -130,10 +130,10 @@ function renderTaxRiskRules(container) {
         var list = document.getElementById('rr-list');
         if (!list) return;
         var filtered = rules.filter(function(rl) {
-          var txt = (rl.title || rl.name || rl.rule_name || '') + ' ' + (rl.description || rl.desc || '') + ' ' + (rl.law_ref || rl.legal_basis || '') + ' ' + (rl.id || '');
+          var txt = (rl.item || '') + ' ' + (rl.detail || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
-          if (lv && (rl.level || rl.风险等级 || '').indexOf(lv) < 0) return false;
-          if (ct && (rl.category || rl.分类 || '') !== ct) return false;
+          if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
+          if (ct && (rl.category || '') !== ct) return false;
           return true;
         });
         if (filtered.length === 0) {
@@ -142,7 +142,7 @@ function renderTaxRiskRules(container) {
         }
         var html = '';
         filtered.forEach(function(rl) {
-          var lv = rl.level || rl.风险等级 || '信息';
+          var lv = rl.level || rl.level || '信息';
           var lc = '#64748b';
           if (lv.indexOf('极高') >= 0) lc = '#991b1b';
           else if (lv.indexOf('高') >= 0) lc = '#dc2626';
@@ -153,8 +153,8 @@ function renderTaxRiskRules(container) {
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
             + (rl.category || rl.分类 ? '<span style="font-size:10px;color:#94a3b8">' + (rl.category || rl.分类) + '</span>' : '')
             + '<div class="rb">' + escHtml(rl.description || rl.desc || rl.触发条件 || rl.trigger || '') + '</div>'
-            + (rl.law_ref || rl.legal_basis || rl.法律依据 ? '<div class="ra">依据：' + escHtml(rl.law_ref || rl.legal_basis || rl.法律依据) + '</div>' : '')
-            + (rl.suggestion || rl.建议 || rl.handling ? '<div class="ra">处理：' + escHtml(rl.suggestion || rl.建议 || rl.handling) + '</div>' : '')
+            + (rl.policy_ref ? '<div class="ra">依据：' + escHtml(rl.policy_ref || rl.policy_ref || rl.policy_ref) + '</div>' : '')
+            + (rl.suggestion ? '<div class="ra">处理：' + escHtml(rl.suggestion) + '</div>' : '')
             + '</div>';
         });
         list.innerHTML = html;
