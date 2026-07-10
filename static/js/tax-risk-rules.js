@@ -110,8 +110,9 @@ function renderTaxRiskRules(container) {
 
   container.innerHTML = h;
 
+  var dataUrl = autoOnly ? '/static/auto_discovered_rules.json' : '/static/tax_risk_rules_local_export.json';
   // 显示规则文件最后修改时间
-  fetch('/static/tax_risk_rules_local_export.json', {method:'HEAD'}).then(function(r){
+  fetch(dataUrl, {method:'HEAD'}).then(function(r){
     var lm = r.headers.get('Last-Modified');
     if (lm) {
       var d = new Date(lm);
@@ -121,14 +122,13 @@ function renderTaxRiskRules(container) {
   }).catch(function(){});
 
   // 加载数据
-  fetch('/static/tax_risk_rules_local_export.json?' + Date.now())
+  fetch(dataUrl + '?' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(rules) {
       window._rrData = rules;
-      // 更新自动发现规则计数
+      // 更新自动发现规则计数（自动面板数据已分离到独立文件，计数始终准确）
       var autoCount = rules.filter(function(rl){ return rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type; }).length;
       var acEl = document.getElementById('au-auto-count'); if (acEl) acEl.textContent = autoCount;
-      if (autoOnly) { rules = rules.filter(function(rl){ return rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type; }); }
       var cats = {};
       var total = 0, high = 0, mid = 0, low = 0, good = 0;
       rules.forEach(function(rl) {
