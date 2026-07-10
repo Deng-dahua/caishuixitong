@@ -527,7 +527,7 @@ function renderTaxRiskRulesList() {
   // 按生成时间渲染所有指令
   sortedData.forEach(function(rule) {
       // 自动发现规则的字段映射
-      var isAutoRule = rule.type === 'auto_signal';
+      var isAutoRule = rule.type === 'auto_signal' || rule.source === '系统发现' || !!rule.auto_type;
       var itemName = rule.item || rule.signal || '';
       var levelName = rule.level || rule.severity || '';
       var scoreVal = rule.score !== undefined ? rule.score : (rule.confidence !== undefined ? Math.round(rule.confidence * 10) : '-');

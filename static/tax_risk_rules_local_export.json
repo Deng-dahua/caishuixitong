@@ -39972,7 +39972,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1600,
@@ -39997,7 +39998,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1601,
@@ -40022,7 +40024,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1602,
@@ -40047,7 +40050,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1603,
@@ -40072,7 +40076,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "所有企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1604,
@@ -40097,7 +40102,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1605,
@@ -40122,7 +40128,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1606,
@@ -40147,7 +40154,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1607,
@@ -40172,7 +40180,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
-    "auto_type": "industry_benchmark_auto"
+    "auto_type": "industry_benchmark_auto",
+    "type": "auto_signal"
   },
   {
     "id": 1608,
@@ -40197,7 +40206,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1609,
@@ -40222,7 +40232,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1610,
@@ -40247,7 +40258,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1611,
@@ -40272,7 +40284,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1612,
@@ -40297,7 +40310,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1613,
@@ -40322,7 +40336,8 @@
     "remedy": "系统自动发现，建议人工审核确认后升级为正式规则。",
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
-    "auto_type": "auto_signal"
+    "auto_type": "auto_signal",
+    "type": "auto_signal"
   },
   {
     "id": 1614,
