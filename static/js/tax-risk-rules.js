@@ -70,7 +70,7 @@ function renderTaxRiskRules(container) {
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
   h += '<div class="rr-search">'
-    + '<input id="rr-search-input" type="text" placeholder="搜索规则（关键词/法条/编号）..." oninput="window._rrFilter()">'
+    + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
     + '<select id="rr-level-filter" onchange="window._rrFilter()">'
     + '<option value="">全部等级</option>'
     + '<option value="极高风险">极高风险</option>'
@@ -81,6 +81,7 @@ function renderTaxRiskRules(container) {
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
     + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
+    + '<span id="rr-update-time" style="font-size:10px;color:#94a3b8;white-space:nowrap"></span>'
     + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
     + '</div>';
 
@@ -89,6 +90,16 @@ function renderTaxRiskRules(container) {
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
+
+  // 显示规则文件最后修改时间
+  fetch('/static/tax_risk_rules_local_export.json', {method:'HEAD'}).then(function(r){
+    var lm = r.headers.get('Last-Modified');
+    if (lm) {
+      var d = new Date(lm);
+      var ds = (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + ds;
+    }
+  }).catch(function(){});
 
   // 加载数据
   fetch('/static/tax_risk_rules_local_export.json?' + Date.now())
@@ -539,12 +550,20 @@ window._smartUpdate = function() {
   fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
     .then(function(r){return r.json();})
     .then(function(d){
+      var now = new Date().toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + now;
       if (st) st.textContent = d.ok ? '完成' : '失败';
       if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
       if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
+      var c = d.compare || {};
+      var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
       var cp = document.getElementById('rr-compare');
       if (!cp) return;
-      var c = d.compare || {};
+      if (total === 0) {
+        cp.innerHTML = '<div style="font-size:14px;font-weight:700;color:#059669;margin:0 0 8px">✅ 本次分析无更新建议</div><div style="font-size:12px;color:#5b6675">依据9个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。规则库状态：' + (c.before_total||0) + '条。</div>';
+        cp.style.display = 'block';
+        return;
+      }
       var h = '<div style="font-size:14px;font-weight:700;color:#9a1f2b;margin:0 0 12px">📊 智能更新对比报告</div>';
       h += '<div style="font-size:12px;color:#5b6675;margin:0 0 12px">' + escHtml(c.summary||'') + '</div>';
       h += '<div style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap"><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">建议新增</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">建议修改</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">建议删除</div></div></div>';
