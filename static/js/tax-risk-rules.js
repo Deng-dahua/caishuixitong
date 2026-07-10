@@ -162,22 +162,76 @@ function renderTaxRiskRules(container) {
           else if (lv.indexOf('高') >= 0) lc = '#dc2626';
           else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
           else if (lv.indexOf('低') >= 0) lc = '#059669';
-          html += '<div class="rr-rule">'
+          var card = '<div class="rr-rule">'
             + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
             + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
             + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
-            + (rl.check_frequency ? '<span style="font-size:9px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '')
-            + (rl.direction ? '<div style="font-size:11px;color:#64748b;margin:4px 0;padding-left:10px;border-left:2px solid #9a1f2b">🎯 ' + escHtml(rl.direction) + '</div>' : '')
-            + (rl.focus && rl.focus !== '待明确重点' ? '<div style="font-size:11px;color:#dc2626;margin:2px 0 4px;padding-left:10px;border-left:2px solid #dc2626">⚠ ' + escHtml(rl.focus) + '</div>' : '')
-            + (rl.action ? '<div style="font-size:11px;color:#3a4048;margin:2px 0 4px">🔍 ' + escHtml(rl.action) + '</div>' : '')
-            + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0">📏 ' + escHtml(rl.threshold) + '</div>' : '')
+            + (rl.check_frequency ? '<span style="font-size:9px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
+
+          // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
+          if (rl.phenomena) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
+            card += '<div style="font-size:11px;color:#3a4048;line-height:2;margin:4px 0 10px">' + escHtml(rl.phenomena).replace(/①/g,'<br>①').replace(/②/g,'<br>②').replace(/③/g,'<br>③').replace(/④/g,'<br>④').replace(/⑤/g,'<br>⑤') + '</div>';
+          }
+          if (rl.direction) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
+            card += '<div style="font-size:11px;color:#64748b;line-height:2;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px">' + escHtml(rl.direction) + '</div>';
+          }
+          if (rl.focus && rl.focus !== '待明确重点') {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
+            card += '<div style="font-size:11px;color:#dc2626;line-height:2;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px">' + escHtml(rl.focus) + '</div>';
+          }
+          
+          // 风险表格
+          if (rl.risk_table) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
+            card += '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0 10px"><tr style="background:#fef2f2"><td style="padding:3px 6px;border:1px solid #fcc;font-weight:600;width:80px">风险维度</td><td style="padding:3px 6px;border:1px solid #fcc">风险点描述</td></tr>';
+            var rows = rl.risk_table.split('\n');
+            for (var ri = 0; ri < rows.length; ri++) {
+              var parts = rows[ri].split(':');
+              if (parts.length >= 2) {
+                card += '<tr><td style="padding:3px 6px;border:1px solid #e2e8f0;font-weight:600">' + escHtml(parts[0]) + '</td><td style="padding:3px 6px;border:1px solid #e2e8f0">' + escHtml(parts.slice(1).join(':')) + '</td></tr>';
+              }
+            }
+            card += '</table>';
+          }
+          
+          // 正常业务解释
+          if (rl.normal_reason) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
+            card += '<div style="font-size:11px;color:#059669;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px">' + escHtml(rl.normal_reason).replace(/①/g,'<br>①').replace(/②/g,'<br>②').replace(/③/g,'<br>③').replace(/④/g,'<br>④') + '</div>';
+          }
+          
+          // 定性路径
+          if (rl.determination) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
+            card += '<div style="font-size:11px;color:#3a4048;line-height:2;margin:4px 0 10px">' + escHtml(rl.determination).replace(/核查方向/g,'<br><b>核查方向</b>').replace(/定性结论/g,'<br><b>定性结论</b>').replace(/法律后果/g,'<br><b>法律后果</b>') + '</div>';
+          }
+          
+          // 穿透式追问
+          if (rl.drill_questions) {
+            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
+            var qas = rl.drill_questions.split('\n');
+            for (var qi = 0; qi < qas.length; qi++) {
+              var qm = qas[qi].match(/^(Q\d+):(.+?)→A:(.+)$/);
+              if (qm) {
+                card += '<div style="margin:4px 0;padding:6px 10px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 4px 4px 0;font-size:10px"><b style="color:#9a1f2b">' + escHtml(qm[1]) + '</b> ' + escHtml(qm[2]) + '<br><span style="color:#059669">▶ ' + escHtml(qm[3]) + '</span></div>';
+              }
+            }
+          }
+          
+          // 传统字段（兼容未升级的规则）
+          card += (rl.action ? '<div style="font-size:11px;color:#3a4048;margin:2px 0 4px">🔍 核查动作：' + escHtml(rl.action) + '</div>' : '')
+            + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0">📏 触发指标：' + escHtml(rl.threshold) + '</div>' : '')
+            + (rl.evidence ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0">📎 证据清单：' + escHtml(rl.evidence) + '</div>' : '')
             + (rl.policy_ref ? '<div class="ra">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
             + (rl.suggestion ? '<div class="ra">⚖ 稽查处理：' + escHtml(rl.suggestion) + '</div>' : '')
             + (rl.tax_impact ? '<div class="ra">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
             + (rl.remedy && rl.remedy !== rl.suggestion ? '<div class="ra">🔧 整改建议：' + escHtml(rl.remedy) + '</div>' : '')
-            + (rl.applicable_condition ? '<div class="ra">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '')
-            + '</div>';
+            + (rl.applicable_condition ? '<div class="ra">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '');
+          card += '</div>';
+          html += card;
         });
         list.innerHTML = html;
       };
