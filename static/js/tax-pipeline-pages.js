@@ -5809,6 +5809,7 @@ function renderMethodologyAssemble(){
   var ac=document.getElementById('au-analysis-chains');
   if(ac&&typeof renderAnalysisChainsPage==='function'){try{renderAnalysisChainsPage(ac)}catch(e){ac.innerHTML='<span style="color:#94a3b8">分析链数据加载中...</span>'}}
   var ar=document.getElementById('au-auto-rules');
+  var dm=document.getElementById('au-da-domains');
   if(dm&&typeof renderDADomains==='function'){try{renderDADomains(dm)}catch(e){dm.innerHTML='<span style="color:#94a3b8">域详情加载中...</span>'}}
   var dd=document.getElementById('au-domain-result');
   if(dd&&typeof renderDAResult==='function'){try{renderDAResult(dd)}catch(e){dd.innerHTML='<span style="color:#94a3b8">域分析数据加载中...</span>'}}
