@@ -61,6 +61,15 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
             rules = _json.load(_f)
     except Exception:
         return all_findings
+    # 合并自动发现规则
+    auto_path = os.path.join(_PROJECT_ROOT, 'static', 'auto_discovered_rules.json')
+    if os.path.exists(auto_path):
+        try:
+            with open(auto_path, 'r', encoding='utf-8') as _f:
+                auto_rules = _json.load(_f)
+            rules = rules + auto_rules
+        except Exception:
+            pass
     
     # 构建规则关键词索引
     rule_kw_index = {}
@@ -1796,6 +1805,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 if os.path.exists(_rp):
                     with open(_rp, "r", encoding="utf-8") as _rf:
                         _real_rule_count = len(json.load(_rf))
+                _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
+                if os.path.exists(_ap):
+                    with open(_ap, "r", encoding="utf-8") as _af:
+                        _real_rule_count += len(json.load(_af))
             except: pass
 
             # 运行规则引擎
@@ -1941,6 +1954,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 chains_data = json.load(cf)
             with open(rules_path, "r", encoding="utf-8") as rf:
                 rules_data = json.load(rf)
+            _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
+            if os.path.exists(_ap):
+                with open(_ap, "r", encoding="utf-8") as _af:
+                    rules_data = rules_data + json.load(_af)
             
             # 构建规则查找
             rule_map = {r["id"]: r for r in rules_data}
@@ -2679,6 +2696,10 @@ def _run_analyze(company_id, db, progress_callback=None):
             with open(rules_path, "r", encoding="utf-8") as rf:
                 raw_r = json.load(rf)
                 rules_data = raw_r if isinstance(raw_r, list) else []
+        _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
+        if os.path.exists(_ap):
+            with open(_ap, "r", encoding="utf-8") as _af:
+                rules_data = rules_data + json.load(_af)
         
         rule_map = {r["id"]: r for r in rules_data}
         
@@ -3930,6 +3951,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 static_dir = os.path.join(_PROJECT_ROOT, "static")
                 with open(os.path.join(static_dir, "tax_risk_rules_local_export.json"), "r", encoding="utf-8") as _rf:
                     rule_details_list = json.load(_rf)
+                _ap2 = os.path.join(static_dir, "auto_discovered_rules.json")
+                if os.path.exists(_ap2):
+                    with open(_ap2, "r", encoding="utf-8") as _af2:
+                        rule_details_list = rule_details_list + json.load(_af2)
             except: pass
             agi_pipeline.ingest_audit_rules(_actual_rule_count, rule_details_list, all_findings, analysis_trace_id, company_id)
             
