@@ -655,6 +655,12 @@ window._smartUpdate = function() {
       if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
       var c = d.compare || {};
       var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
+      // 弹窗提示结果
+      if (total === 0) {
+        alert('✅ 智能更新完成：当前规则库已覆盖完善，无更新建议。');
+      } else {
+        alert('✅ 智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条\n详情见下方对比报告 →');
+      }
       var cp = document.getElementById('rr-compare');
       if (!cp) return;
       if (total === 0) {
@@ -678,6 +684,7 @@ window._smartUpdate = function() {
       h += '<div style="margin:12px 0 0;font-size:10px;color:#94a3b8">以上为LLM建议，请人工审核确认后再执行更新操作。</div>';
       cp.innerHTML = h;
       cp.style.display = 'block';
+      cp.scrollIntoView({behavior:'smooth',block:'center'});
     })
     .catch(function(e){
       if (st) st.textContent = '异常';
