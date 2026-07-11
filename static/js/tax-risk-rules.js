@@ -1,4 +1,4 @@
-// ==================== 税务异常库页面 ====================
+// ==================== 税务疑点库页面 ====================
 var taxRiskRulesData = [];
 var _triggeredRuleFindings = {};  // rule_id → [finding, ...] 触发溯源
 
@@ -81,6 +81,7 @@ function renderTaxRiskRules(container, isAuto) {
     + '<option value="良好">良好/正常</option>'
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
+    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
     + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
     + '<span id="rr-update-time" style="font-size:10px;color:#94a3b8;white-space:nowrap"></span>'
     + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
@@ -163,13 +164,26 @@ function renderTaxRiskRules(container, isAuto) {
         });
       }
 
-      window._rrFilter = function() {
+      var rrSortBy = 'id';
+window._rrSort = function(rules, sortBy) {
+  if (sortBy === 'level') {
+    var order = {'极高':0,'高':1,'中':2,'低':3,'良好':4};
+    return rules.slice().sort(function(a,b){return (order[a.level]||5)-(order[b.level]||5);});
+  } else if (sortBy === 'category') {
+    return rules.slice().sort(function(a,b){return (a.category||'').localeCompare(b.category||'');});
+  } else if (sortBy === 'updated') {
+    return rules.slice().sort(function(a,b){return (b.updated_at||'').localeCompare(a.updated_at||'');});
+  }
+  return rules.slice().sort(function(a,b){return (a.id||0)-(b.id||0);});
+};
+window._rrFilter = function() {
         var kw = (document.getElementById('rr-search-input') && document.getElementById('rr-search-input').value || '').toLowerCase();
         var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
         var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
         var list = document.getElementById('rr-list');
         if (!list) return;
-        var filtered = rules.filter(function(rl) {
+        var sb = document.getElementById('rr-sort-by'); var sortBy = sb ? sb.value : 'id';
+        var filtered = window._rrSort(rules, sortBy).filter(function(rl) {
           var txt = (rl.item || '') + ' ' + (rl.direction || '') + ' ' + (rl.focus || '') + ' ' + (rl.action || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
           if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
@@ -500,10 +514,10 @@ function renderTaxRiskRulesList() {
   var sortNames = {time:'按时间排序', high:'高风险优先', low:'低风险优先', trigger:'触发优先'};
   var sortName = sortNames[_currentSort] || '按时间排序';
   var timeStr = window._rulesUpdateTime ? ' · 数据更新于 ' + window._rulesUpdateTime : '';
-  if (countEl) countEl.innerHTML = data.length + ' 条税务异常 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
+  if (countEl) countEl.innerHTML = data.length + ' 条税务疑点 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
-    listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务异常，请加载数据</div>';
+    listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务疑点，请加载数据</div>';
     return;
   }
 
@@ -621,7 +635,7 @@ function renderTaxRiskRulesList() {
   listEl.innerHTML = html;
 
   if (statsEl) {
-    statsEl.innerHTML = '共 ' + data.length + ' 条税务异常 · '
+    statsEl.innerHTML = '共 ' + data.length + ' 条税务疑点 · '
       + '<span style="color:#dc2626">高 ' + high + '</span> · '
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '

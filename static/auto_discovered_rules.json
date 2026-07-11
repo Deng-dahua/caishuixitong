@@ -23,7 +23,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1600,
@@ -49,7 +51,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1601,
@@ -75,7 +79,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1602,
@@ -101,7 +107,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1603,
@@ -127,7 +135,9 @@
     "applicable_condition": "所有企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1604,
@@ -153,7 +163,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1605,
@@ -179,7 +191,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1606,
@@ -205,7 +219,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1607,
@@ -231,7 +247,9 @@
     "applicable_condition": "特定行业企业",
     "source": "系统发现",
     "auto_type": "industry_benchmark_auto",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1608,
@@ -257,7 +275,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1609,
@@ -283,7 +303,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1610,
@@ -309,7 +331,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1611,
@@ -335,7 +359,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1612,
@@ -361,7 +387,9 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   },
   {
     "id": 1613,
@@ -387,6 +415,8 @@
     "applicable_condition": "开具或取得发票的企业",
     "source": "系统发现",
     "auto_type": "auto_signal",
-    "type": "auto_signal"
+    "type": "auto_signal",
+    "created_at": "2026-07-11T10:48:42.992974",
+    "updated_at": "2026-07-11T10:48:42.992974"
   }
 ]
