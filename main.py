@@ -1452,7 +1452,12 @@ async def smart_update_rules(request: Request):
         "17.【征管手段升级】金税四期/数电发票全面推行后新增的数据比对能力（银行流水自动比对、社保基数与工资比对、不动产登记与房产税比对等）——规则库是否已利用新数据源",
         "18.【国际经济税收规则】BEPS2.0双支柱、全球最低税（支柱二）、跨境数据交换（CRS/国别报告）对涉外企业的影响——规则库是否有跨境规则",
         "19.【行业周期性风险】当前经济形势下特定行业高发风险（房地产下行/外贸波动/教培转型/医疗反腐/平台经济反垄断）——规则库的行业专项规则是否覆盖当前风险热点",
-        "请返回JSON：{\"new_rules\":[{新增规则,含item/category/level/detail/suggestion/policy_ref}],\"modify\":[{修改建议,含id/原item/新item/原因}],\"delete\":[{删除建议,含id/item/原因}],\"summary\":\"一句话概述，必须突出政策合规问题\"}",
+        "请返回JSON，字段名必须严格如下（只能用英文key，不要用中文key）：",
+        '{"new_rules":[{新增规则,含"item":"异常名称","category":"所属类别","level":"风险等级","detail":"具体描述(100-200字)","direction":"推理链","drill_questions":"8条追问分3组","normal_reason":"至少3种合法解释","policy_ref":"法律依据(含条款号)","tax_impact":"税务影响"}],',
+        '"modify":[{修改建议,含"id":编号,"old_item":"原名称","new_item":"建议改为","reason":"修改原因"}],',
+        '"delete":[{删除建议,含"id":编号,"item":"名称","reason":"删除原因"}],',
+        '"summary":"一句话概述，必须突出政策合规问题"}',
+        "【铁律】①禁止推荐行业特化规则(.item/.category不得含特定行业名称如直播带货/饲料/房地产等)——必须全行业适用 ②新增规则必须按精写编制标准(23字段)深度编写，不止是简单描述 ③必须给出具体的法律条款号 ④必须说明税务影响(涉及税种+补税区间)",
     ]
 
     prompt = "\n".join(summary_lines)
@@ -1484,17 +1489,46 @@ async def smart_update_rules(request: Request):
     except Exception:
         return {"ok": False, "message": "AI返回的JSON解析失败", "raw": ai_text[:500]}
 
-    # 构建新旧对比表
+    # 构建新旧对比表——字段名标准化（LLM可能返回中文或英文字段名）
+    modify_items_raw = ai_result.get("modify", [])
+    modify_items = []
+    for m in modify_items_raw:
+        modify_items.append({
+            "id": m.get("id", m.get("ID", "")),
+            "old_item": m.get("old_item", m.get("原item", m.get("原名称", ""))),
+            "new_item": m.get("new_item", m.get("新item", m.get("新名称", m.get("建议改为", "")))),
+            "reason": m.get("reason", m.get("原因", m.get("修改原因", "")))
+        })
+    delete_items_raw = ai_result.get("delete", [])
+    delete_items = []
+    for d in delete_items_raw:
+        delete_items.append({
+            "id": d.get("id", d.get("ID", "")),
+            "item": d.get("item", d.get("名称", d.get("name", ""))),
+            "reason": d.get("reason", d.get("原因", d.get("删除原因", "")))
+        })
+    new_rules_raw = ai_result.get("new_rules", [])
+    new_rules_items = []
+    for nr in new_rules_raw:
+        new_rules_items.append({
+            "item": nr.get("item", nr.get("名称", nr.get("name", ""))),
+            "category": nr.get("category", nr.get("分类", "")),
+            "level": nr.get("level", nr.get("等级", "中风险")),
+            "detail": nr.get("detail", nr.get("detail", nr.get("描述", nr.get("suggestion", "")))),
+            "direction": nr.get("direction", nr.get("推理链", "")),
+            "policy_ref": nr.get("policy_ref", nr.get("法律依据", "")),
+            "raw": nr  # 保留原始数据用于写入
+        })
     compare = {
-        "new_count": len(ai_result.get("new_rules", [])),
-        "modify_count": len(ai_result.get("modify", [])),
-        "delete_count": len(ai_result.get("delete", [])),
+        "new_count": len(new_rules_items),
+        "modify_count": len(modify_items),
+        "delete_count": len(delete_items),
         "summary": ai_result.get("summary", "规则库智能更新分析完成"),
-        "new_rules": ai_result.get("new_rules", []),
-        "modify": ai_result.get("modify", []),
-        "delete": ai_result.get("delete", []),
+        "new_rules": new_rules_items,
+        "modify": modify_items,
+        "delete": delete_items,
         "before_total": len(rules),
-        "after_total": len(rules) + len(ai_result.get("new_rules", [])) - len(ai_result.get("delete", []))
+        "after_total": len(rules) + len(new_rules_items) - len(delete_items)
     }
 
     # —— 自动写入规则库 ——
@@ -1503,26 +1537,28 @@ async def smart_update_rules(request: Request):
         max_id = max((r.get("id", 0) for r in rules), default=0)
         applied = 0
         # 新增：追加到末尾
-        for nr in ai_result.get("new_rules", []):
+        for nr in new_rules_items:
+            raw = nr.get("raw", nr)
             max_id += 1
-            nr["id"] = max_id
-            if "category" not in nr: nr["category"] = nr.get("item","")[:20]
-            if "level" not in nr: nr["level"] = "中风险"
-            if "source" not in nr: nr["source"] = "LLM智能更新"
+            raw["id"] = max_id
+            if "category" not in raw: raw["category"] = nr.get("category","")[:20]
+            if "level" not in raw: raw["level"] = nr.get("level","中风险")
+            if "source" not in raw: raw["source"] = "LLM智能更新"
+            rules.append(raw)
+            applied += 1
             rules.append(nr)
             applied += 1
         # 修改：按id匹配更新
-        for mod in ai_result.get("modify", []):
+        for mod in modify_items:
             mid = mod.get("id")
             for r in rules:
                 if str(r.get("id","")) == str(mid):
-                    if "新item" in mod: r["item"] = mod["新item"]
-                    if "detail" in mod: r["detail"] = mod.get("detail","")
-                    if "suggestion" in mod: r["suggestion"] = mod.get("suggestion","")
+                    if mod.get("new_item"): r["item"] = mod["new_item"]
+                    if mod.get("reason"): r["detail"] = r.get("detail","") + " [修改原因:" + mod["reason"] + "]"
                     applied += 1
                     break
         # 删除：按id移除
-        for d in ai_result.get("delete", []):
+        for d in delete_items:
             did = d.get("id")
             rules = [r for r in rules if str(r.get("id","")) != str(did)]
             applied += 1
