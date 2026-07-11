@@ -67,7 +67,7 @@ function renderTaxRiskRules(container, isAuto) {
     + '.rr-rule .rb{font-size:11px;color:#64748b;line-height:1.8;margin:4px 0}'
     + '.rr-rule .ra{font-size:10.5px;color:#94a3b8}'
     + '</style>';
-
+  if (!autoOnly) {
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
   h += '<div class="rr-search">'
@@ -107,6 +107,7 @@ function renderTaxRiskRules(container, isAuto) {
     + '<b>十二、整改建议：</b>remedy字段三阶段——自查(稽查前)→应对(稽查中·含话术策略)→制度(长期)。<br>'
     + '<em style="color:#64748b">* 各字段下限为最低要求——异常点确实需要更多就写更多，确实达不到下限就如实注明原因。不凑数、不强编、一病一方。</em>'
     + '</details>';
+  }
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
