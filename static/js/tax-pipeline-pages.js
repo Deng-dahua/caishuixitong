@@ -5920,23 +5920,6 @@ function renderMethodologyPart3(){
   window.__au3=h;
   renderMethodologyAssemble();
 }
-function renderMethodologyAssemble(){
-  var t=document.getElementById('au-body');if(!t)return;
-  var full=(window.__au1||'')+(window.__au2||'')+(window.__au3||'');
-  if(typeof applySysStats==='function'&&window._systemConfig)full=applySysStats(full,window._systemConfig);
-  t.innerHTML=full;
-  var r=document.getElementById('au-analyze-result');
-  if(r&&typeof renderAnalyzePage==='function'){try{renderAnalyzePage(r)}catch(e){r.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无分析结果，请先运行一键分析。</div>'}}
-  var l=document.getElementById('au-analyze-logs');
-  if(l&&typeof renderAnalyzeLogs==='function'){try{renderAnalyzeLogs(l)}catch(e){l.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无管线日志。</div>'}}
-  var rd=document.getElementById('au-rules-data');
-  if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#94a3b8">规则数据加载中...</span>'}}
-  var cd=document.getElementById('au-chains-data');
-  if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#94a3b8">线索链数据加载中...</span>'}}
-  var ud=document.getElementById('au-domain-unified');
-  if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#94a3b8">域分析引擎加载中...</span>'}}
-  var ar=document.getElementById('au-auto-rules');
-  if(ar){loadAutoRules(ar)}
 function loadAutoRules(target) {
   try {
     fetch('/static/auto_discovered_rules.json?_t=' + Date.now()).then(function(resp) {
@@ -5969,6 +5952,23 @@ function loadAutoRules(target) {
   }
 }
 
+function renderMethodologyAssemble(){
+  var t=document.getElementById('au-body');if(!t)return;
+  var full=(window.__au1||'')+(window.__au2||'')+(window.__au3||'');
+  if(typeof applySysStats==='function'&&window._systemConfig)full=applySysStats(full,window._systemConfig);
+  t.innerHTML=full;
+  var r=document.getElementById('au-analyze-result');
+  if(r&&typeof renderAnalyzePage==='function'){try{renderAnalyzePage(r)}catch(e){r.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无分析结果，请先运行一键分析。</div>'}}
+  var l=document.getElementById('au-analyze-logs');
+  if(l&&typeof renderAnalyzeLogs==='function'){try{renderAnalyzeLogs(l)}catch(e){l.innerHTML='<div style=\"color:#94a3b8;padding:14px\">暂无管线日志。</div>'}}
+  var rd=document.getElementById('au-rules-data');
+  if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#94a3b8">规则数据加载中...</span>'}}
+  var cd=document.getElementById('au-chains-data');
+  if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#94a3b8">线索链数据加载中...</span>'}}
+  var ud=document.getElementById('au-domain-unified');
+  if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#94a3b8">域分析引擎加载中...</span>'}}
+  var ar=document.getElementById('au-auto-rules');
+  if(ar){loadAutoRules(ar)}
   var ed=document.getElementById('au-evidence-data');
   if(ed&&typeof renderEvidencePage==='function'){try{renderEvidencePage(ed)}catch(e){ed.innerHTML='<span style="color:#94a3b8">证据链数据加载中...</span>'}}
   var i=document.getElementById('au-incentive');
