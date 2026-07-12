@@ -4563,18 +4563,21 @@ function renderUnifiedDomainPanel(container) {
   var h = '';
   h += '<style>'
     + '.udp{font-size:12px;line-height:1.8;color:#334155}'
-    + '.udp-stats{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}'
-    + '.udp-stat{flex:1;min-width:90px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}'
-    + '.udp-stat .v{font-size:20px;font-weight:800;line-height:1.2}'
-    + '.udp-stat .l{font-size:10px;color:#94a3b8;margin-top:4px}'
+    + '.udp-stats{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}'
+    + '.udp-stat{flex:1;min-width:80px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 8px;text-align:center}'
+    + '.udp-stat .v{font-size:18px;font-weight:800;line-height:1.2}'
+    + '.udp-stat .l{font-size:9.5px;color:#94a3b8;margin-top:3px}'
     + '.udp-main{display:grid;grid-template-columns:1fr 1fr;gap:16px}'
     + '.udp-col{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}'
     + '.udp-col-h{padding:12px 16px;font-size:13px;font-weight:700;color:#fff}'
-    + '.udp-col-b{padding:14px 16px;max-height:420px;overflow-y:auto}'
-    + '.udp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}'
+    + '.udp-col-b{padding:14px 16px;max-height:480px;overflow-y:auto}'
+    + '.udp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}'
     + '.udp-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;font-size:11px;line-height:1.6}'
     + '.udp-item .it{font-weight:700;color:#1e293b;font-size:11px;margin-bottom:3px}'
     + '.udp-item .id{color:#64748b;font-size:10.5px}'
+    + '.udp-list{margin:0;padding:0;list-style:none}'
+    + '.udp-list li{font-size:10.5px;color:#64748b;padding:3px 0 3px 14px;position:relative;line-height:1.7}'
+    + '.udp-list li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:#94a3b8}'
     + '.udp-chain{padding:10px 12px;margin-bottom:8px;border:1px solid #e2e8f0;border-radius:6px;background:#fafbfc}'
     + '.udp-step{padding:6px 10px;margin:3px 0;background:#f1f5f9;border-radius:4px;font-size:10.5px;line-height:1.7}'
     + '.udp-step .sn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0}'
@@ -4583,36 +4586,62 @@ function renderUnifiedDomainPanel(container) {
     + '.udp-bottom-b{padding:14px 16px}'
     + '</style>';
   h += '<div class="udp">';
+  // 7个统计卡片：静态 + 动态混合
   h += '<div class="udp-stats">';
   h += '<div class="udp-stat"><div class="v" style="color:#2563eb">42</div><div class="l">域分析函数</div></div>';
   h += '<div class="udp-stat"><div class="v" style="color:#7c3aed">13</div><div class="l">大类分组</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-chain-count" style="color:#dc2626">—</div><div class="l">分析链总数</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-high-count" style="color:#f59e0b">—</div><div class="l">高风险链</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-step-count" style="color:#059669">—</div><div class="l">推理步骤</div></div>';
+  h += '<div class="udp-stat"><div class="v" style="color:#059669">7</div><div class="l">前置判定规则</div></div>';
+  h += '<div class="udp-stat"><div class="v" style="color:#d97706">66</div><div class="l">行业基准库</div></div>';
+  h += '<div class="udp-stat"><div class="v" id="udp-chain-count" style="color:#dc2626">\u2014</div><div class="l">分析链总数</div></div>';
+  h += '<div class="udp-stat"><div class="v" id="udp-high-count" style="color:#f59e0b">\u2014</div><div class="l">高风险链</div></div>';
+  h += '<div class="udp-stat"><div class="v" id="udp-step-count" style="color:#0e7490">\u2014</div><div class="l">推理步骤总数</div></div>';
   h += '</div>';
+  // 两栏主体
   h += '<div class="udp-main">';
+  // 左栏：域分析能力清单
   h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#2563eb,#3b82f6)">📋 域分析能力清单</div>';
+  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#2563eb,#3b82f6)">\U0001f4cb 域分析能力清单</div>';
   h += '<div class="udp-col-b">';
-  h += '<p style="margin:0 0 10px;font-size:11px;color:#64748b">7条前置判定规则：公司身份锚定、发票方向判定、进项再分类、服务行业闸门、品名级精准过滤、综合判断四方交叉验证、存疑排除。</p>';
-  h += '<p style="margin:0 0 12px;font-size:10.5px;color:#94a3b8">13大类：①资金流(4域)②进销存(4域)③供应商客户(4域)④多源交叉验证(5域)⑤经营实质(3域)⑥资料完备度(2域)⑦发票深度(3域)⑧合同凭证(2域)⑨税务社保(3域)⑩资产关联交易(2域)⑪行业对标(4域)⑫跨域分析链(1域)⑬补充税种(3域)</p>';
+  h += '<p style="margin:0 0 10px;font-size:11px;color:#64748b"><b>7条前置判定规则</b>（域分析执行前必须先通过）：公司身份锚定、发票方向判定、进项再分类、服务行业闸门、品名级精准过滤、综合判断四方交叉验证、存疑排除。</p>';
+  h += '<p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#1e293b">13大分类 \u00b7 42个域函数</p>';
+  h += '<ul class="udp-list">';
+  h += '<li>\u2460 <b>资金流分析（4域）</b> \u2014 资金全链路追踪、资金流向追踪、异常交易时间、个人交易风险</li>';
+  h += '<li>\u2461 <b>进销存分析（4域）</b> \u2014 进销毛利率、发票实质性审计、存货周转预警、发票存货付款三角验证</li>';
+  h += '<li>\u2462 <b>供应商与客户分析（4域）</b> \u2014 供应商穿透、供应商画像、上下游穿透、客户维度三源穿透</li>';
+  h += '<li>\u2463 <b>多源交叉验证（5域）</b> \u2014 多源交叉验证、凭证发票收入对比、利润现金流矛盾、收入时间线调查、扩展审查规则</li>';
+  h += '<li>\u2464 <b>经营实质分析（3域）</b> \u2014 经营实质分析7维度、经营实质地理分析、人员与业务匹配</li>';
+  h += '<li>\u2465 <b>资料完备度与情报（2域）</b> \u2014 资料完备度评估14类必查、资料情报摘要</li>';
+  h += '<li>\u2466 <b>发票深度分析（3域）</b> \u2014 发票深度特征、发票生命周期、红冲作废发票</li>';
+  h += '<li>\u2467 <b>合同与凭证（2域）</b> \u2014 合同比对、凭证科目异常</li>';
+  h += '<li>\u2468 <b>税务与社保（3域）</b> \u2014 税务缴纳一致性、增值税申报比对、工资社保比对</li>';
+  h += '<li>\u2469 <b>资产与关联交易（2域）</b> \u2014 资产折旧摊销、关联交易穿透</li>';
+  h += '<li>\u246a <b>行业对标与规则引擎（4域）</b> \u2014 行业基准对标、规则引擎匹配、税负率分析、趋势分析</li>';
+  h += '<li>\u246b <b>跨域分析链（1域）</b> \u2014 48条综合推理路径，跨域线索证据分析四链贯通</li>';
+  h += '<li>\u246c <b>补充税种检查（3域）</b> \u2014 印花税、房产税、土地使用税专项检查</li>';
+  h += '</ul>';
+  h += '<p style="margin:16px 0 12px;font-size:11px;font-weight:700;color:#1e293b">四大域组概要</p>';
   h += '<div class="udp-grid">';
   h += '<div class="udp-item"><div class="it" style="color:#2563eb">资金流+进销存（8域）</div><div class="id">资金全链路追踪、资金流向追踪、异常交易时间、个人交易风险；进销毛利率、发票实质性审计、存货周转预警、发票存货付款三角验证</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#7c3aed">供应商+多源验证（9域）</div><div class="id">供应商穿透、供应商画像、上下游穿透、客户维度三源穿透；多源交叉验证、凭证发票收入对比、利润现金流矛盾、收入时间线调查、扩展审查规则</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#059669">经营实质+资料（5域）</div><div class="id">经营实质分析7维度、经营实质地理分析、人员与业务匹配；资料完备度评估14类必查、资料情报摘要</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#d97706">发票+合同+社保（8域）</div><div class="id">发票深度特征、发票生命周期、红冲作废发票；合同比对、凭证科目异常；税务缴纳一致性、增值税申报比对、工资社保比对</div></div>';
-  h += '</div></div></div>';
+  h += '</div>';
+  h += '<p style="margin:0;font-size:10px;color:#94a3b8">以上42个域均由独立域分析函数驱动，全行业适用，无行业特化硬编码。66个行业基准库为各行业提供对比标尺。</p>';
+  h += '</div></div>';
+  // 右栏：跨域分析链
   h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#dc2626,#ef4444)">🔀 跨域分析链</div>';
+  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#dc2626,#ef4444)">\U0001f500 跨域分析链 \u00b7 48条综合推理路径</div>';
   h += '<div class="udp-col-b" id="udp-chains-body"><div style="color:#94a3b8;padding:20px;text-align:center">加载分析链数据...</div></div>';
   h += '</div></div>';
+  // 底部：检出结果
   h += '<div class="udp-bottom">';
-  h += '<div class="udp-bottom-h">📈 本次检出结果</div>';
-  h += '<div class="udp-bottom-b" id="udp-result-body"><div style="color:#94a3b8;padding:10px">分析完成后展示各域实际检出发现，按风险等级排序。数据来源：getSharedAnalysis() API。</div></div>';
+  h += '<div class="udp-bottom-h">\U0001f4c8 本次检出结果 \u00b7 各域实际发现 \u00b7 按风险等级排序</div>';
+  h += '<div class="udp-bottom-b" id="udp-result-body"><div style="color:#94a3b8;padding:10px">分析完成后展示各域实际检出发现。数据来源：getSharedAnalysis() API。含域发现总数、高风险/中风险/低风险分类统计、各域发现列表（按风险等级排序）、跨域关联推理结果。</div></div>';
   h += '</div></div>';
   container.innerHTML = h;
   udpLoadChains();
 }
+
 
 function udpLoadChains() {
   var target = document.getElementById('udp-chains-body');
