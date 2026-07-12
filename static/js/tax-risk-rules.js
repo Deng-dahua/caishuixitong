@@ -40,9 +40,8 @@ var CATEGORY_DESCRIPTIONS = {
   '出口退税': '出口退税合规检查——出口收入真实性/退税率/收汇/产能/货源穿透等出口退税全链条核查。',
 };
 
-function renderTaxRiskRules(container, isAuto) {
+function renderTaxRiskRules(container) {
   if (!container) return;
-  var autoOnly = isAuto === true || container.id === 'au-auto-rules';  // 自动发现规则面板
   var h = '';
   h += '<style>'
     + '.rr{max-width:960px;margin:0 auto;padding:32px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:12px;line-height:1.95}'
@@ -67,7 +66,6 @@ function renderTaxRiskRules(container, isAuto) {
     + '.rr-rule .rb{font-size:11px;color:#64748b;line-height:1.8;margin:4px 0}'
     + '.rr-rule .ra{font-size:10.5px;color:#94a3b8}'
     + '</style>';
-  if (!autoOnly) {
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
   h += '<div class="rr-search">'
@@ -131,13 +129,12 @@ function renderTaxRiskRules(container, isAuto) {
     + '<em style="color:#64748b;display:block;margin-top:10px">* 追问穷举至稽查终点（证实违法或排除违法），问题间环环相扣、因果递进。数量是因果链条的自然长度，不是硬性指标。不凑数、不强编、一病一方。</em>'
     + '</div>'
     + '</details>';
-  }
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
 
-  var dataUrl = autoOnly ? '/static/auto_discovered_rules.json' : '/static/tax_risk_rules_local_export.json';
+  var dataUrl = '/static/tax_risk_rules_local_export.json';
   // 显示规则文件最后修改时间
   fetch(dataUrl, {method:'HEAD'}).then(function(r){
     var lm = r.headers.get('Last-Modified');
@@ -756,62 +753,3 @@ window._smartUpdate = function() {
     });
 };
 
-// —— 自动发现规则面板（独立渲染，零共享代码，永不会出现精写标准/搜索栏）——
-function renderAutoRules(container) {
-  if (!container) { console.error('renderAutoRules: no container'); return; }
-  container.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8">加载中...</div>';
-  fetch('/static/auto_discovered_rules.json?' + Date.now())
-    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(rules){
-      var h = '<div style="font-size:11px;color:#64748b;margin-bottom:8px">共 ' + rules.length + ' 条自动发现规则</div>';
-      for (var i = 0; i < rules.length; i++) {
-        var rl = rules[i];
-        var lv = rl.level || '';
-        var lb = lv.indexOf('极高')>=0||lv.indexOf('高')>=0 ? '#9a1f2b' : lv.indexOf('中')>=0 ? '#b35a00' : lv.indexOf('低')>=0 ? '#0a7a3d' : '#0ea371';
-        var lbg = lv.indexOf('极高')>=0||lv.indexOf('高')>=0 ? '#fef2f2' : lv.indexOf('中')>=0 ? '#fff8f0' : lv.indexOf('低')>=0 ? '#eefdf5' : '#eefdf5';
-        var isAutoRule = rl.type === 'auto_signal' || rl.source === '系统发现';
-        h += '<details style="margin-bottom:4px"><summary style="padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#16233a">#' + rl.id + ' 🤖 ' + escapeHtml(rl.item||'') + ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;color:'+lb+';background:'+lbg+'">'+(lv||'中')+'</span> <span style="color:#94a3b8;font-size:10px;float:right">'+(rl.category||'')+'</span></summary>';
-        h += '<div style="padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 6px 6px;font-size:11px;line-height:1.8">';
-        // direction
-        if (rl.direction) h += '<div style="margin:4px 0"><b>推理链：</b>' + escapeHtml(rl.direction) + '</div>';
-        // drill_questions
-        if (rl.drill_questions) {
-          h += '<div style="margin:6px 0 4px;font-weight:600;color:#16233a">稽查穿透式追问：</div>';
-          var qas = typeof rl.drill_questions === 'string' ? rl.drill_questions.split('\n') : (Array.isArray(rl.drill_questions) ? rl.drill_questions : []);
-          for (var qi = 0; qi < qas.length; qi++) {
-            var qm = qas[qi].match(/^(Q\d+):(.+?)→A:(.+)$/);
-            if (qm) {
-              h += '<div style="margin:3px 0;padding:5px 8px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 4px 4px 0;font-size:10px"><b style="color:#9a1f2b">'+escapeHtml(qm[1])+'</b> '+escapeHtml(qm[2])+'<br><span style="color:#059669">▶ '+escapeHtml(qm[3])+'</span></div>';
-            }
-          }
-        }
-        // phenomena
-        if (rl.phenomena) h += '<div style="margin:4px 0"><b>现象描述：</b>' + escapeHtml(rl.phenomena) + '</div>';
-        // normal_reason
-        if (rl.normal_reason) h += '<div style="margin:4px 0"><b>正常业务解释：</b><br>' + escapeHtml(rl.normal_reason).replace(/\n/g,'<br>') + '</div>';
-        // determination
-        if (rl.determination) h += '<div style="margin:4px 0"><b>定性路径：</b>' + escapeHtml(rl.determination) + '</div>';
-        // risk_table
-        if (rl.risk_table) {
-          h += '<div style="margin:6px 0;font-weight:600;color:#16233a">风险表格：</div>';
-          var rows = typeof rl.risk_table === 'string' ? rl.risk_table.split('\n') : (Array.isArray(rl.risk_table) ? rl.risk_table.map(function(rr){ return (rr.税种||rr.tax||'')+':'+(rr.具体风险描述||rr.风险描述||''); }) : []);
-          for (var ri = 0; ri < rows.length; ri++) {
-            var parts = rows[ri].split(':');
-            if (parts.length >= 2) h += '<div style="font-size:10px"><b>'+escapeHtml(parts[0])+'：</b>'+escapeHtml(parts.slice(1).join(':'))+'</div>';
-          }
-        }
-        // focus/evidence/action/threshold/remedy
-        if (rl.focus) h += '<div style="margin:4px 0"><b>稽查重点：</b>'+escapeHtml(rl.focus)+'</div>';
-        if (rl.evidence) h += '<div style="margin:4px 0;font-size:10px;color:#94a3b8">📎 证据清单：'+escapeHtml(rl.evidence)+'</div>';
-        if (rl.action) h += '<div style="margin:4px 0;font-size:10px;color:#94a3b8">🔍 核查动作：'+escapeHtml(rl.action)+'</div>';
-        if (rl.threshold) h += '<div style="margin:4px 0;font-size:10px;color:#94a3b8">📏 触发指标：'+escapeHtml(rl.threshold)+'</div>';
-        if (rl.remedy) h += '<div style="margin:4px 0;font-size:10px;color:#94a3b8">🔧 整改建议：'+escapeHtml(rl.remedy)+'</div>';
-        if (rl.policy_ref) h += '<div style="font-size:10px;color:#94a3b8">📜 法律依据：'+escapeHtml(rl.policy_ref)+'</div>';
-        h += '</div></details>';
-      }
-      container.innerHTML = h;
-    })
-    .catch(function(e){
-      container.innerHTML = '<div style="color:#dc2626;padding:14px">加载失败: ' + e.message + '</div>';
-    });
-}
