@@ -120,10 +120,11 @@ const pages = {
   'system-logs': '系统日志',
   'ai-interaction': 'AI交互',
   'feedback-template': '审核内容模板',
-  'brain': '智能大脑',
+  'brain': '智能大脑（已迁移至智能引擎中枢）',
+  'engine-hub': '智能引擎中枢',
   'methodology': '稽查方法论',
   'rs-pipeline': '质量保障管线',
-  'report-spec': '报告规范',
+  'report-standards': '报告编制总纲',
   'rs-negotiation': '跨域协商标记展示规范',
   'rs-review': '审核反馈在报告中的呈现',
   'rs-ironlaw': '引擎铁律与报告质量映射',
@@ -679,17 +680,22 @@ function navigateTo(page) {
     case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
-    case 'ai-interaction':        _sR(container, 'renderAIInteractionPage'); break;
+    case 'ai-interaction':
+    case 'brain':
+      // 旧模块已融合至智能引擎中枢，自动重定向
+      navigateTo('engine-hub');
+      return;
+    case 'engine-hub':            _sR(container, 'renderEngineHub'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
     case 'feedback-template':      _sR(container, 'renderFeedbackTemplate'); break;
     case 'correction-rules':       _sR(container, 'renderCorrectionRulesHub'); break;
-    case 'brain':                 _sR(container, 'renderBrainPage'); break;
     case 'methodology':
       if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
       else { container.innerHTML = _LOADING_HTML; }
       break;
     case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
     case 'report-spec':    _sR(container, 'renderReportSpecPage'); break;
+    case 'report-standards': _sR(container, 'renderReportStandards'); break;
     case 'rs-negotiation': _sR(container, 'renderCrossDomainNego'); break;
     case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
     case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;

@@ -171,6 +171,7 @@ function renderReportStandards(container) {
   h += '<div class="rpt-flow">'
     + '<span class="act">闸门一</span><span class="arr">→</span>'
     + '<span>文本净化</span><span class="arr">→</span>'
+    + '<span class="act" style="background:#fef2f2;color:#dc2626">底层防线</span><span class="arr">→</span>'
     + '<span class="act">闸门二</span><span class="arr">→</span>'
     + '<span>质量标准检查</span><span class="arr">→</span>'
     + '<span class="act">闸门三</span><span class="arr">→</span>'
@@ -178,7 +179,7 @@ function renderReportStandards(container) {
     + '<span class="act">闸门四</span><span class="arr">→</span>'
     + '<span>二次净化</span>'
     + '</div>';
-  h += '</div>';
+  h += '<span class="rpt-em">执行顺序不可逆：</span>底层防线是闸门二的前置条件——先过底层防线（分析不成立的发现直接打回重新分析），再过闸门二（表述检查）。如果底层防线未通过却进入闸门二，会出现"表述合格但分析不成立"的发现流入后续环节。</div>';
 
   h += '<div class="rpt-block">';
   h += '<h4>闸门一：文本净化</h4>';
@@ -191,6 +192,24 @@ function renderReportStandards(container) {
   h += '</div>';
 
   h += '<div class="rpt-block">';
+  h += '<h4>底层防线：分析可靠性要求（闸门二前置条件，不可跳过）</h4>';
+  h += '质量标准检测的是"表述是否正确"，可靠性要求检测的是"<span class="rpt-em">分析本身是否成立</span>"。底层防线是闸门二的前置条件——分析不成立的发现直接打回重新分析，不得流入闸门二。顺序不可逆。';
+  h += '<h4>证据三性校验（报告生成时落地执行）</h4>';
+  h += '每条发现入报告前须通过三性校验：<br>';
+  h += '<b>真实性</b> — 数据来源是否可追溯至原始上传文件的具体行号？不可追溯的证据标记为"待核实"，不入正式结论。<br>';
+  h += '<b>关联性</b> — 每一项证据是否直接服务于当前发现的认定？旁证、间接证据、可作多种解释的证据，需标注关联强度（直接/间接/参考）。<br>';
+  h += '<b>合法性</b> — 取证路径是否合规？数据是否仅为用户授权上传、未跨企业比对？违规取证路径的数据不得作为证据使用。<br>';
+  h += '三性校验不通过的证据，在发现底部标注"⚠ 三性未通过：原因"，该发现降级至"线索"等级。';
+  h += '<h4>致命级和高风险级可靠性要求</h4>';
+  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>公司身份锚定</b>——报告开头必须声明公司名称+信用代码。锚定错误→全部分析作废。</span></div>';
+  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>发票方向判定</b>——进项/销项分类须有判定依据。方向错→收入成本颠倒。</span></div>';
+  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>综合判断</b>——文件类型须经四方交叉验证，不得仅凭文件名判定。</span></div>';
+  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>只读有效信息</b>——所有统计基于有效行，排除空白行/小计行/合计行。Excel行数≠有效数据量。</span></div>';
+  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>存疑排除</b>——买卖双方都不含公司的发票必须排除出所有计算。A公司数据污染B公司=跨账套污染。</span></div>';
+  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>服务行业闸门</b>——服务行业不得出现制造业域的分析。混合行业须品名级区分。</span></div>';
+  h += '</div>';
+
+  h += '<div class="rpt-block">';
   h += '<h4>闸门二：质量标准检查</h4>';
   h += '12项硬性标准逐条执行。每项含：检查方法（正则匹配+语义检测）+正确范例+错误范例。不通过的在发现底部标注<span class="rpt-em">⚠ 标准N：问题摘要</span>——标记模式（不影响报告主体，仅供审理参考）。';
 
@@ -200,12 +219,12 @@ function renderReportStandards(container) {
   h += '<tr><td>2</td><td>事实-证据-后果三要素</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>每条发现须含①具体事实（含数值）②证据来源③后果推导（→导致XX）</td></tr>';
   h += '<tr><td>3</td><td>完整因果链A→B→C</td><td><span class="rpt-bad rpt-bad-y">重要</span></td><td>tax_impact中至少含一个"→"，完整呈现从异常到后果的推导</td></tr>';
   h += '<tr><td>4</td><td>可操作的紧迫感</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>suggestion必须具体到可执行步骤，禁止笼统表述</td></tr>';
-  h += '<tr><td>5</td><td>特定法律条款引用</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>policy_ref必须含具体条款号，禁止兜底模板</td></tr>';
+  h += '<tr><td>5</td><td>智能法律诊断</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>policy_ref含具体条款号，同时自动检索并提示相同违法事实下的从轻/减轻/免于处罚情节（如主动补缴税款和滞纳金的，引用征管法相应条款建议从轻）。禁止兜底模板。</td></tr>';
   h += '<tr><td>6</td><td>证据明细表</td><td><span class="rpt-bad rpt-bad-y">重要</span></td><td>涉及多实体的发现须附items数组</td></tr>';
   h += '<tr><td>7</td><td>方法在前→过程在后</td><td><span class="rpt-bad rpt-bad-g">建议</span></td><td>先声明分析方法，再展示具体发现</td></tr>';
   h += '<tr><td>8</td><td>反模板句</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>禁止8类预定义模板文本</td></tr>';
   h += '<tr><td>9</td><td>事实具体化</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>含具体数值：日期/金额/数量/百分比</td></tr>';
-  h += '<tr><td>10</td><td>防跨发现复制</td><td><span class="rpt-bad rpt-bad-y">重要</span></td><td>同批分析中不同发现的tax_impact不得完全相同</td></tr>';
+  h += '<tr><td>10</td><td>防跨发现复制</td><td><span class="rpt-bad rpt-bad-y">重要</span></td><td>同类风险合并之后执行。不同发现的tax_impact不得完全相同。</td></tr>';
   h += '<tr><td>11</td><td>空占位符检测</td><td><span class="rpt-bad rpt-bad-y">重要</span></td><td>suggestion不得含"( )""如：( )"等空占位残留</td></tr>';
   h += '<tr><td>12</td><td>法律条款号</td><td><span class="rpt-bad rpt-bad-r">强制</span></td><td>必须含"第X条"或"第X款"，不能笼统引用</td></tr>';
   h += '</table>';
@@ -221,15 +240,6 @@ function renderReportStandards(container) {
   h += '再次执行文本净化，清除建议增强过程中可能产生的新模板句或格式残留。经过四道闸门后——文本纯净度>95%，标准通过率>90%。';
   h += '</div>';
 
-  h += '<div class="rpt-block">';
-  h += '<h4>底层防线：分析可靠性要求</h4>';
-  h += '质量标准检测的是"表述是否正确"，可靠性要求检测的是"分析本身是否成立"。以下为致命级和高风险级要求：';
-  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>公司身份锚定</b>——报告开头必须声明公司名称+信用代码。锚定错误→全部分析作废。</span></div>';
-  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>发票方向判定</b>——进项/销项分类须有判定依据。方向错→收入成本颠倒。</span></div>';
-  h += '<div class="rpt-rule fatal"><span class="rn">致命</span><span class="rc"><b>综合判断</b>——文件类型须经四方交叉验证，不得仅凭文件名判定。</span></div>';
-  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>只读有效信息</b>——所有统计基于有效行，排除空白行/小计行/合计行。Excel行数≠有效数据量。</span></div>';
-  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>存疑排除</b>——买卖双方都不含公司的发票必须排除出所有计算。A公司数据污染B公司=跨账套污染。</span></div>';
-  h += '<div class="rpt-rule high"><span class="rn">高风险</span><span class="rc"><b>服务行业闸门</b>——服务行业不得出现制造业域的分析。混合行业须品名级区分。</span></div>';
   h += '</div>';
   h += '</div>';
 
@@ -251,10 +261,14 @@ function renderReportStandards(container) {
 
   h += '<h4>第三章 · 发现问题及事实认定</h4>';
   h += '每条发现按六要素格式独立呈现，高风险优先排列。已审核的发现展示绿色审核横幅。跨域协商结果以彩色横幅（⛔消解/🔄调整/ℹ️标记）展示在发现标题下方。<br>';
-  h += '<span class="rpt-em">同类风险合并规则：</span>同一风险类型（type字段相同）的多条发现必须合并为一条——不得逐条罗列导致报告冗长。合并步骤：按type分组→取最高等级→展示"N项同类风险合并"标签→列出所有子项→合并证据明细。';
+  h += '<span class="rpt-em">同类风险合并规则：</span>同一风险类型（type字段相同）的多条发现必须合并为一条——不得逐条罗列导致报告冗长。合并步骤：按type分组→取最高等级→展示"N项同类风险合并"标签→列出所有子项→合并证据明细。<br>';
+  h += '<span class="rpt-em">执行顺序（不可逆）：</span>先在第三章执行同类风险合并，再在闸门二执行标准#10防跨发现复制检查。如果合并逻辑完美，标准#10应极少触发；反之，频繁触发则说明合并逻辑有漏。';
 
   h += '<h4>第四章 · 税务合规结论</h4>';
-  h += '5个结论段落：综合评分+风险等级+结论叙述→风险分布表（四级等级/数量/占比/代表性事项举例）→证据链完整性声明（跨域覆盖范围+核心证据闭环+追溯能力）→局限性声明（缺什么资料报什么局限）→定调性总体结论（高风险→"建议启动立案程序"；中→"建议限期自查整改"；低→"建议持续规范完善"）。结论须定调性而非定论性。';
+  h += '5个结论段落：综合评分+风险等级+结论叙述→风险分布表（四级等级/数量/占比/代表性事项举例）→证据链完整性声明（跨域覆盖范围+核心证据闭环+追溯能力）→局限性声明（缺什么资料报什么局限）→定调性总体结论（高风险→"建议启动立案程序"；中→"建议限期自查整改"；低→"建议持续规范完善"）。结论须定调性而非定论性。<br>';
+  h += '<span class="rpt-em">反证排除声明（强制附加）</span> — 在总体结论后，必须附加一段反证排除声明：<br>';
+  h += '"本结论排除了以下合理可能：①企业能提供合理解释证明交易真实性；②第三方证据（如运输单据、对方确认函）可证实货物/服务已交付；③金额差异由计算口径或时间性差异导致且企业已提供说明。"<br>';
+  h += '这个声明不是在示弱——是在主动告诉审理部门和法院：<em>结案前，我们已经把所有能推翻结论的理由都想过并排除了</em>。这是铁案的最后一道自我安检。';
 
   h += '<h4>第五章 · 处理处罚建议</h4>';
   h += '按紧急程度分三级，红黄绿三色区分：<span class="rpt-bad rpt-bad-r">P0立即处理</span>极高/高风险发现，标注"5个工作日内书面回复"——<span class="rpt-bad rpt-bad-y">P1限期整改</span>中风险发现，标注"15个工作日内完成整改"——<span class="rpt-bad rpt-bad-g">P2持续关注</span>低风险/优惠机会，标注"30个工作日内完善"。最后附《自查整改期限总说明》含时限/逾期后果/异议处理。';
@@ -266,7 +280,8 @@ function renderReportStandards(container) {
   h += '执行人亲笔签名+执法证件号 / 审理人亲笔签名+执法证件号 / 税务机关公章 / 报告日期（系统自动获取）。存档说明："本报告一式三份：税务合规部门留存一份，被查单位一份，报送上一级税务机关备案一份"。系统预留签名栏位，正式文书人工手签盖章。';
 
   h += '<h4>附件 · 证据清单</h4>';
-  h += '附件一：销项发票全量明细（11列） / 附件二：进项发票全量明细（11列） / 附件三：主营业务成本发票明细 / 附件四：重大费用发票明细 / 附件五：银行流水汇总 / 附件六：各资料文件清单 / 附件七：质量标准自检结果。发票明细上限200条，超出部分以电子附件形式另行提供，不截断。';
+  h += '附件一：销项发票全量明细（11列） / 附件二：进项发票全量明细（11列） / 附件三：主营业务成本发票明细 / 附件四：重大费用发票明细 / 附件五：银行流水汇总 / 附件六：各资料文件清单 / 附件七：质量标准自检结果。发票明细上限200条，超出部分以电子附件形式另行提供，不截断。<br>';
+  h += '<span class="rpt-em">附件八：证据关联图（强制要求）</span> — 每条P0级发现必须在附件中附带一张证据关联图。该图以时间为横轴，将合同、资金流水、发票、货物流凭证、账载记录等证据节点串联——直观展示证据如何形成闭环。图中标注每项证据的来源文件、具体行号、金额、日期。文字论证配以可视化证据链，这是报告呈堂时最有说服力的部分。';
   h += '</div>';
   h += '</div>';
 
@@ -336,7 +351,9 @@ function renderReportStandards(container) {
 
   h += '<div class="rpt-block">';
   h += '<h4>审核→反馈→迭代闭环</h4>';
-  h += '审核反馈驱动报告持续进化：审理部门提出修改意见→系统记录本次审核经验→注入AGI知识库→下次同类问题识别更精准。累计审核次数越多，系统对同类问题的判断越准确。四触发机制（手动/启动/提交/分析）确保全模块数据统一——任何一个触发点启动的数据同步都会传导到其他模块。';  
+  h += '审核反馈驱动报告持续进化：审理部门提出修改意见→系统记录本次审核经验→注入AGI知识库→下次同类问题识别更精准。累计审核次数越多，系统对同类问题的判断越准确。<br>';
+  h += '<span class="rpt-em">退修记录入案例库（学习引擎输入）</span> — 每一份被退回修改的报告，其完整修改记录（原结论、退回原因、修改后结论、采用的新证据）必须自动存入案例库。引擎不仅要从新案子学，更要从自己被退回来的"败笔"中学——原结论为什么被退？缺了什么证据？法律引用哪里有问题？每一条退回原因都转化为学习层的一条纠错训练样本。这比正确案例的学习价值更大。<br>';  
+  h += '四触发机制（手动/启动/提交/分析）确保全模块数据统一——任何一个触发点启动的数据同步都会传导到其他模块。';  
   h += '</div>';
 
   h += '<div class="rpt-block">';

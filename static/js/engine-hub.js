@@ -1,0 +1,199 @@
+// ================================================================
+// 智能引擎中枢
+// 核心-环路并行认知架构
+// 50年稽查经验 × 金税5期
+//
+// 2026-07-12 彻底重构：
+//   删除：所有动态子节调用、卡片网格、彩色背景、导航条、统计条、
+//         配置表、架构图可视化、API表格正文
+//   保留：五环路核心逻辑，段落式叙事
+//   布局：全白、窄栏、长文、极简
+// ================================================================
+
+function renderEngineHub(container) {
+  if (!container) return;
+  window.currentModule = '智能引擎中枢';
+
+  // ──── 极简 CSS ────
+  var css = '<style>'
+    + '.eh{color:#1a1a2e;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#fff;min-height:100vh}'
+    + '.eh-wrap{max-width:680px;margin:0 auto;padding:80px 24px 120px}'
+    + '.eh h1{font-size:36px;font-weight:900;letter-spacing:-.02em;margin:0 0 8px;color:#0f172a;line-height:1.2}'
+    + '.eh .sub{font-size:16px;color:#94a3b8;margin:0 0 48px;font-weight:400}'
+    + '.eh .lead{font-size:16px;line-height:2;color:#475569;margin:0 0 72px}'
+    + '.eh .lead b{color:#0f172a}'
+    + '.eh .ch{margin-bottom:80px}'
+    + '.eh .ch-num{font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:.1em;margin:0 0 4px;text-transform:uppercase}'
+    + '.eh .ch-title{font-size:24px;font-weight:900;color:#0f172a;margin:0 0 6px;line-height:1.3}'
+    + '.eh .ch-hr{width:40px;height:3px;background:#0f172a;margin:0 0 28px}'
+    + '.eh .ch p{font-size:16px;line-height:2.1;color:#334155;margin:0 0 20px}'
+    + '.eh .ch p strong{color:#0f172a;font-weight:700}'
+    + '.eh .ch p em{font-style:normal;color:#0e7490;font-weight:600}'
+    + '.eh .ch .block{background:#f8fafc;border-left:3px solid #0f172a;padding:18px 22px;margin:24px 0;font-size:15px;line-height:2;color:#475569}'
+    + '.eh .ch .block .bt{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:6px;letter-spacing:.03em}'
+    + '.eh .ch .block .bd{font-size:14.5px;color:#475569;line-height:2}'
+    + '.eh .ch ul{margin:16px 0;padding:0;list-style:none}'
+    + '.eh .ch ul li{font-size:15px;line-height:2;color:#475569;padding:4px 0 4px 20px;position:relative}'
+    + '.eh .ch ul li::before{content:"";position:absolute;left:0;top:14px;width:6px;height:6px;background:#0f172a;border-radius:50%}'
+    + '.eh .ch ul li strong{color:#0f172a}'
+    + '.eh .footnote{margin-top:80px;padding-top:32px;border-top:1px solid #e2e8f0}'
+    + '.eh .footnote summary{font-size:13px;color:#94a3b8;cursor:pointer;font-weight:600;margin-bottom:12px}'
+    + '.eh .footnote p{font-size:13px;color:#94a3b8;line-height:1.8}'
+    + '</style>';
+
+  // ──── Hero ────
+  var h = '';
+  h += '<div class="eh"><div class="eh-wrap">';
+  h += '<h1>智能引擎中枢</h1>';
+  h += '<p class="sub">核心-环路并行认知架构</p>';
+  h += '<p class="lead">'
+    + '这不是一个串行流水线。<b>真正的老稽查员一边翻账本，经验就在脑子里激活；看到熟悉的资金流向，警铃立刻拉响；定案之前，会扮演辩方律师把所有能推翻结论的理由想一遍。'
+    + '</b>所以这个引擎是五个并行运转的认知环路——感知广播信号、记忆推送经验、思考并行验证、学习提取骨架、自省持续心跳。'
+    + '它们不是先后顺序的工序，是通过事件总线松耦合通信的并行进程。'
+    + '</p>';
+
+  h += '<div class="block"><div class="bt">五环路心跳同步</div>';
+  h += '<div class="bd">五个环路的运行频率不同，必须在设计上避免资源抢占：<br>'
+    + '<strong>感知层</strong> — 事件驱动（企业上传资料时触发），单次分析约30-120秒。七步管道每步完成时广播。<br>'
+    + '<strong>记忆层</strong> — 持续监听（毫秒级响应），收到广播后即时匹配推送。不主动轮询，不占用计算资源。<br>'
+    + '<strong>思考层</strong> — 随感知启动（并行运行），信号汇聚+证据闭环在感知层运行期间同步完成。红队证伪在Phase4触发，约5-15秒。<br>'
+    + '<strong>学习层</strong> — 报告出具后触发（事件驱动），模式提取+拓扑计算约10-30秒。不参与实时分析链路。<br>'
+    + '<strong>自省层</strong> — 定时任务（默认4小时间隔），随机抽样+破坏性测试约60秒。独立进程，不受其他环路阻塞。<br>'
+    + '事件总线为五环路提供统一的消息通道，所有广播和推送通过事件总线异步传递，发送方不等待接收方响应。<br>'
+    + '<strong>异常处理与降级策略：</strong>当记忆层P0推送与思考层当前假设方向相反时，事件总线强制触发一次<em>中间评审</em>——在红队启动前，将两方证据并列，由思考层的元认知模块做快速裁决（约1-3秒）：决定是继续当前推理路径还是切换方向。这对应的是老稽查员在查案中途突然想起一个关键疑点，立刻停下手里的活，重新审视整条思路。</div></div>';
+
+  // ═══════════════════════════════════════════
+  // 一、核心感知环路
+  // ═══════════════════════════════════════════
+  h += '<div class="ch">';
+  h += '<div class="ch-num">第一章</div>';
+  h += '<div class="ch-title">核心感知环路</div>';
+  h += '<div class="ch-hr"></div>';
+
+  h += '<p>感知层的定位不是"看完再想"，而是<strong>持续向外广播信号</strong>。七步执行管道不是七个等全部跑完才交卷的步骤——每一步的输出都实时推送到事件总线。记忆层听到"文件识别完成"就开始匹配行业画像；思考层听到"疑点发现"就启动后台竞争假设。不等七步跑完，引擎在第三步就已经开始在脑子里推演了。</p>';
+
+  h += '<p><strong>四个关键广播事件：</strong></p>';
+  h += '<ul>'
+    + '<li><strong>资料识别完成</strong> — 广播文件清单、识别置信度、缺失资料列表。记忆层匹配行业画像，思考层评估可执行分析链范围。</li>'
+    + '<li><strong>情报提取完成</strong> — 广播收款构成画像、发票统计、三大突破口疑点。记忆层比对历史同行业画像，思考层对疑点生成竞争性假设。</li>'
+    + '<li><strong>域分析并行发动</strong> — 42个域分析函数同时启动，每域完成时广播发现摘要。记忆层实时比对历史模式库，思考层多域信号汇聚触发跨域分析链。</li>'
+    + '<li><strong>分析阶段切换</strong> — Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性，每次切换广播。Phase4触发红队证伪机制启动。</li>'
+    + '</ul>';
+
+  h += '<div class="block"><div class="bt">感知层不做闭环判定</div>';
+  h += '<div class="bd">感知层只产出"多源数据一致性校验报告"和"证据素材包"。它报告三单一致，不判断是不是真实业务。闭环判定唯一归属思考层。</div></div>';
+  h += '</div>';
+
+  // ═══════════════════════════════════════════
+  // 二、主动记忆层
+  // ═══════════════════════════════════════════
+  h += '<div class="ch">';
+  h += '<div class="ch-num">第二章</div>';
+  h += '<div class="ch-title">主动记忆层</div>';
+  h += '<div class="ch-hr"></div>';
+
+  h += '<p>记忆层的定位不是被动仓库，而是<strong>持续监听感知广播的警报推送引擎</strong>。它维护着九域知识库——政策、因果网络、信号模式、语义词典、行业画像、自愈规则、经验教训、分析历史、巡逻快照——每一域都随引擎运行自动生长。但它的核心能力不是存储，是<em>在听到广播的瞬间把匹配到的经验推出去</em>。</p>';
+
+  h += '<p><strong>三级推送优先级：</strong></p>';
+  h += '<ul>'
+    + '<li><strong>P0 · 模式骨架匹配</strong> — 当前企业的资金流向拓扑与历史违法模式骨架相似度≥80%，立即推送最高级别警报，附带历史案例编号和完整调查路径。这就是老稽查员的直觉——看到熟悉的走账方式，警铃立刻拉响。</li>'
+    + '<li><strong>P1 · 行业经验匹配</strong> — 行业标签匹配历史同行业案件。推送该行业TOP5高风险科目、常见违规手法、基准偏离度预警阈值，告诉感知层哪些域该重点查。</li>'
+    + '<li><strong>P2 · 通用规则匹配</strong> — 指标偏离行业基准但未命中具体模式。推送异常指标列表和风险方向建议，作为Phase1初查的补充输入。</li>'
+    + '</ul>';
+
+  h += '<p>引擎追踪每次推送的后续验证结果。验证通过则推送置信度上升；连续10次误报则自动降级或暂停。精准率和召回率是经验质量的核心指标。</p>';
+  h += '</div>';
+
+  // ═══════════════════════════════════════════
+  // 三、动态思考层
+  // ═══════════════════════════════════════════
+  h += '<div class="ch">';
+  h += '<div class="ch-num">第三章</div>';
+  h += '<div class="ch-title">动态思考层</div>';
+  h += '<div class="ch-hr"></div>';
+
+  h += '<p>思考层的定位不是"感知结束后的推理阶段"，而是<strong>从感知第一步就开始的后台并行验证引擎</strong>。六层推理架构——核心层（反思器/总结器/学习器/方法论引擎）→因果推理层（SCM因果/元认知/法律三段论）→连接通信层（事件总线/知识图谱/自愈引擎）→知识层（统一知识库/自学习引擎）→专项引擎层（语义推理/未知模式检测/假设验证/跨企业关系网）→加速保护·红队层（并行加速/覆盖层/外部验证/红队证伪）——六层之间的数据流通过事件总线松耦合，每一步的输出都同时广播给记忆层，形成感知-记忆-思考的并行微循环。</p>';
+
+  // 证据闭环
+  h += '<div class="block"><div class="bt">证据闭环——唯一判定点</div>';
+  h += '<div class="bd">这是引擎中最关键的判定逻辑，<strong>唯一在此完成</strong>。三步流程：<br>'
+    + '<strong>Step1 三性校验</strong> — 真实性（来源可核实）、关联性（直接相关）、合法性（程序合法）。三性不齐的证据直接退回。<br>'
+    + '<strong>Step2 独立来源验证</strong> — ≥2个独立数据源的证据指向同一事实。四环全闭（银行+开票+入账+申报）=铁证。单源数据永远不能形成闭环。<br>'
+    + '<strong>Step3 反向证据排除</strong> — 是否存在无法解释的反向证据？能排除→正常；无法排除→退回红队证伪。<br>'
+    + '铁证三个硬条件：≥3独立来源 + 无反向证据 + 三性全通过。任一条件不满足，降格为存疑。</div></div>';
+
+  // 红队证伪
+  h += '<div class="block"><div class="bt">红队证伪——强制关卡</div>';
+  h += '<div class="bd"><strong>这是思考层的最后一道安检。证伪不通过，不下结论。没有例外。</strong><br>'
+    + '<strong>攻击一：生成无罪假设</strong> — 每个要定案的疑点，强制生成2-3个合法商业解释（季节性旺季、一次性投入、战略合作折扣）。<br>'
+    + '<strong>攻击二：证据逐一攻击</strong> — 用现有证据逐个击破无罪假设。季节性旺季？同期行业没有相同模式→击破。一次性投入？没有对应固定资产记录→击破。<em>只有当所有无罪假设都被证据击破时，该发现才允许升级为认定。</em><br>'
+    + '<strong>攻击三：程序合规审查</strong> — 引用法规是否现行有效？证据采集程序是否合法？<br>'
+    + '<strong>攻击三的知识源已扩展为双通道：</strong><br>'
+    + '\u2460 <strong>静态法规库</strong> — 现行税法、征管法及实施细则。检查引用条款是否已修订或废止。<br>'
+    + '\u2461 <strong>动态判例库</strong> — 最高法指导性案例、各地税务行政复议典型撤销案例、近年稽查案件司法判决。红队从判例库中检索与本案性质相近的撤销/改判案例，提取法院的撤销理由（证据不足、程序违法、定性错误、法律适用不当），逐一比对本案是否存在同类瑕疵。<em>一个被法院撤销过的同类案件，就是红队最强有力的攻击素材。</em><br>'
+    + '<strong>判例库更新机制：</strong>每月从最高法裁判文书网、国家税务总局官网、各省税务局行政复议决定书公开专栏自动抓取更新。对于涉及证据不足、程序违法、定性错误、法律适用不当四类撤销理由的案例，做结构化标注后入库——标注内容包括：撤销理由类型、案件行业、涉及税种、争议金额区间。武器钝了红队就没战斗力，判例库必须保持每月更新。<br>'
+    + '引擎追踪每条发现的证伪结果。如果在后续被推翻，回溯证伪过程——是哪个无罪假设没被生成？哪个攻击路径有漏洞？自动强化红队模块。</div></div>';
+  h += '</div>';
+
+  // ═══════════════════════════════════════════
+  // 四、事后学习层
+  // ═══════════════════════════════════════════
+  h += '<div class="ch">';
+  h += '<div class="ch-num">第四章</div>';
+  h += '<div class="ch-title">事后学习层</div>';
+  h += '<div class="ch-hr"></div>';
+
+  h += '<p>学习层在报告出具后才启动——它不是推理过程的附属品，而是<strong>引擎自我进化的独立环路</strong>。它的核心能力不是记忆案例，是<em>把违法手法抽象成模式骨架，跨行业识别相同的骨骼结构</em>。</p>';
+
+  h += '<p><strong>三步模式迁移：</strong></p>';
+  h += '<ul>'
+    + '<li><strong>结构化模式提取</strong> — 每个定案案件的核心违法手法被抽象为三维模式图谱：资金流向拓扑（节点+边+金额比例）、关联关系拓扑（股东/董监高/共同地址结构）、发票流向拓扑（进销品名不匹配模式）。三个维度封存为标准化JSON模式图，存入模式库。</li>'
+    + '<li><strong>拓扑相似度计算</strong> — 新企业数据不仅和规则比对，也和模式库中所有历史违法模式图计算图编辑距离。相似度≥80%则触发最高级别警报。跨行业匹配是核心价值——建材行业和互联网行业的关联转移，在拓扑层面可能完全相同。</li>'
+    + '<li><strong>模式更新与置信度进化</strong> — 匹配验证确认则置信度上升；误报则微调阈值。</li>'
+    + '<li><strong>对抗验证（升级前强制关卡）</strong> — 同一模式在≥3企业+≥2行业获验证后，不是直接升级。必须经过<em>红队专门针对该模式设计的攻击策略</em>——红队模拟辩护方，从资金流向的合法商业解释、关联关系的合理组织结构、发票流向的行业惯例三个角度，对该模式骨架进行破坏性攻击。只有扛住红队攻击的模式骨架，才升级为"已验证通用模式"，P0级推送。<strong>模式骨架和证据结论一样，不扛住攻击，不算真本事。</strong></li>'
+    + '</ul>';
+
+  h += '<p>三通道学习反馈——编辑纠正、审核反馈、追问探索——为模式迁移提供训练数据。每一次人工纠偏都是模式库的一次标注，每一次追问都是对骨架遗漏节点的补全。引擎的直觉不是靠规则堆出来的，是靠违法模式骨架的结构化识别和跨行业迁移。</p>';
+  h += '</div>';
+
+  // ═══════════════════════════════════════════
+  // 五、恒常自省层
+  // ═══════════════════════════════════════════
+  h += '<div class="ch">';
+  h += '<div class="ch-num">第五章</div>';
+  h += '<div class="ch-title">恒常自省层</div>';
+  h += '<div class="ch-hr"></div>';
+
+  h += '<p>自省不是流水线的最后一步——它是<strong>引擎的独立心跳，持续运行，不依附于任何分析流程</strong>。夜深人静时老稽查员会反复掂量自己办的案子：这个结论真推得翻吗？引擎也一样——定期随机抽样已完成案件做破坏性测试。</p>';
+
+  h += '<p><strong>三个核心动作：</strong></p>';
+  h += '<ul>'
+    + '<li><strong>随机抽样证据盲测</strong> — 按预设频率随机移除或翻转一个证据（假设银行流水伪造、假设发票对不上），看结论是否仍然成立。结论成立→证据链鲁棒性强；结论崩塌→存在单点依赖，触发回顾。<br><strong>自我修复闭环：</strong>发现崩塌点后，自动将该证据节点标记为"不可靠证据节点"写入自愈规则库。下次分析时，引擎自动为同类证据节点增加交叉验证要求——原来需要2个独立来源的，提升到3个；原来需要3个的，提升到4个。盲测不仅是发现问题，更是自动加固系统。</li>'
+    + '<li><strong>结论一致性复查</strong> — 同一企业用不同参数组合重新跑一遍。两次结论差异≥15%→标不稳定；差异<5%→标稳定，质量评分上升。</li>'
+    + '<li><strong>幻觉检测自愈闭环</strong> — 检查已生成报告中数据自相矛盾、法条引用错误、结论与证据脱节。发现问题→生成自愈建议→写入错误模式库→下次自动拦截。</li>'
+    + '</ul>';
+
+  h += '<div class="block"><div class="bt">各层成熟度 —— 引擎的体检报告</div>';
+  h += '<div class="bd">自省层的能力矩阵不拥有其他层的核心功能，只评估运行质量：<br>'
+    + '感知层 → 文件识别率、数据提取准确率、处理速度<br>'
+    + '记忆层 → 经验推送精准率与召回率、知识库覆盖度<br>'
+    + '思考层 → 因果推理准确率、证据闭环稳固率、证伪通过率<br>'
+    + '学习层 → 模式迁移成功率、误报率下降曲线<br>'
+    + '自省层 → 破坏性测试发现缺陷的密度与严重程度</div></div>';
+  h += '</div>';
+
+  // ──── 附录 ────
+  h += '<div class="footnote">';
+  h += '<details><summary>14个API端点（状态查询 / 覆盖层管理 / 巡逻验证）</summary>';
+  h += '<p>'
+    + '状态查询: /api/agi/status · /api/agi/pipeline/dashboard · /api/agi/query · /api/agi/chat · /api/agi/self-check/{company_id}<br>'
+    + '覆盖层管理: /api/agi/overrides/summary · /api/agi/overrides/{id}/activate · /api/agi/overrides/{id}/rollback · /api/agi/overrides/emergency-reset<br>'
+    + '巡逻验证: /api/agi/patrol/status · /api/agi/patrol/trigger · /api/agi/verify-supplier · /api/agi/verify-channels · /api/agi/parallel/toggle'
+    + '</p>';
+  h += '</details>';
+  h += '</div>';
+
+  h += '</div></div>'; // close eh-wrap / eh
+
+  container.innerHTML = css + h;
+}
