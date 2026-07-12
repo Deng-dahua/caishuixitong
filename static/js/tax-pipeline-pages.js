@@ -4562,166 +4562,163 @@ function renderUnifiedDomainPanel(container) {
   if (!container) return;
   var h = '';
   h += '<style>'
-    + '.udp{font-size:12px;line-height:1.8;color:#334155}'
-    + '.udp-stats{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}'
-    + '.udp-stat{flex:1;min-width:80px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 8px;text-align:center}'
-    + '.udp-stat .v{font-size:18px;font-weight:800;line-height:1.2}'
-    + '.udp-stat .l{font-size:9.5px;color:#94a3b8;margin-top:3px}'
-    + '.udp-main{display:grid;grid-template-columns:1fr 1fr;gap:16px}'
-    + '.udp-col{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}'
-    + '.udp-col-h{padding:12px 16px;font-size:13px;font-weight:700;color:#fff}'
-    + '.udp-col-b{padding:14px 16px;max-height:480px;overflow-y:auto}'
-    + '.udp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}'
-    + '.udp-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;font-size:11px;line-height:1.6}'
-    + '.udp-item .it{font-weight:700;color:#1e293b;font-size:11px;margin-bottom:3px}'
-    + '.udp-item .id{color:#64748b;font-size:10.5px}'
-    + '.udp-list{margin:0;padding:0;list-style:none}'
-    + '.udp-list li{font-size:10.5px;color:#64748b;padding:3px 0 3px 14px;position:relative;line-height:1.7}'
-    + '.udp-list li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:#94a3b8}'
-    + '.udp-chain{padding:10px 12px;margin-bottom:8px;border:1px solid #e2e8f0;border-radius:6px;background:#fafbfc}'
-    + '.udp-step{padding:6px 10px;margin:3px 0;background:#f1f5f9;border-radius:4px;font-size:10.5px;line-height:1.7}'
-    + '.udp-step .sn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0}'
-    + '.udp-bottom{margin-top:16px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden}'
-    + '.udp-bottom-h{padding:12px 16px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#d97706,#f59e0b)}'
-    + '.udp-bottom-b{padding:14px 16px}'
+    + '.udp{max-width:720px;margin:0 auto;padding:0;font-size:14px;line-height:2;color:#334155;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.udp h3{font-size:16px;font-weight:800;color:#0f172a;margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0}'
+    + '.udp h3:first-child{margin-top:0}'
+    + '.udp p{margin:0 0 14px}'
+    + '.udp p b{color:#0f172a}'
+    + '.udp .udp-step{padding:8px 14px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:13px;line-height:1.9;border-left:3px solid #e2e8f0}'
+    + '.udp .udp-step .sn{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:11px;font-weight:700;margin-right:8px;flex-shrink:0}'
+    + '.udp .udp-chain{padding:14px 18px;margin-bottom:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}'
+    + '.udp .udp-block{background:#f8fafc;border-left:4px solid #0f172a;padding:16px 20px;margin:16px 0;font-size:13px;line-height:2;color:#475569}'
+    + '.udp .udp-block .bt{font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;letter-spacing:.03em}'
+    + '.udp .udp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}'
+    + '.udp .udp-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 13px;font-size:12px;line-height:1.7}'
+    + '.udp .udp-item .it{font-weight:700;color:#1e293b;font-size:12px;margin-bottom:3px}'
+    + '.udp .udp-item .id{color:#64748b;font-size:11px}'
     + '</style>';
   h += '<div class="udp">';
-  // 7个统计卡片：静态 + 动态混合
-  h += '<div class="udp-stats">';
-  h += '<div class="udp-stat"><div class="v" style="color:#2563eb">42</div><div class="l">域分析函数</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#7c3aed">13</div><div class="l">大类分组</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#059669">7</div><div class="l">前置判定规则</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#d97706">66</div><div class="l">行业基准库</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-chain-count" style="color:#dc2626">\u2014</div><div class="l">分析链总数</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-high-count" style="color:#f59e0b">\u2014</div><div class="l">高风险链</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-mid-count" style="color:#0e7490">\u2014</div><div class="l">中风险链</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-step-count" style="color:#0e7490">\u2014</div><div class="l">推理步骤总数</div></div>';
-  h += '</div>';
-  // 两栏主体
-  h += '<div class="udp-main">';
-  // 左栏：域分析能力清单
-  h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#2563eb,#3b82f6)">\U0001f4cb 域分析能力清单</div>';
-  h += '<div class="udp-col-b">';
-  h += '<p style="margin:0 0 10px;font-size:11px;color:#64748b"><b>7条前置判定规则</b>（域分析执行前必须先通过）：公司身份锚定、发票方向判定、进项再分类、服务行业闸门、品名级精准过滤、综合判断四方交叉验证、存疑排除。</p>';
-  h += '<p style=\"margin:0 0 12px;font-size:11px;font-weight:700;color:#1e293b\">13大分类 \u00b7 42个域函数 \u00b7 功能与数据要求</p>';
-  h += '<ul class=\"udp-list\">';
-  h += '<li>\u2460 <b>资金流分析（4域）</b> \u2014 _domain_cash_flow_tracking(资金全链路) / _domain_fund_flow(资金流向) / _domain_abnormal_transaction_time(异常交易时间) / _domain_personal_txn_risk(个人交易风险)</li>';
-  h += '<li>\u2461 <b>进销存分析（4域）</b> \u2014 _domain_purchase_sales_gross_margin(进销毛利率) / _domain_invoice_substantive_audit(发票实质性审计) / _domain_inventory_turnover(存货周转预警) / _domain_invoice_inventory_payment_triangle(发票存货付款三角验证)</li>';
-  h += '<li>\u2462 <b>供应商与客户分析（4域）</b> \u2014 _domain_supplier_penetration(供应商穿透) / _domain_supplier_profile(供应商画像) / _domain_upstream_downstream(上下游穿透) / _domain_customer_three_source(客户维度三源穿透)</li>';
-  h += '<li>\u2463 <b>多源交叉验证（5域）</b> \u2014 _domain_multi_source_cross_validation(多源交叉验证) / _domain_voucher_invoice_revenue_compare(凭证发票收入对比) / _domain_profit_cashflow_contradiction(利润现金流矛盾) / _domain_revenue_time_investigation(收入时间线调查) / _domain_extended_audit_rules(扩展审查规则)</li>';
-  h += '<li>\u2464 <b>经营实质分析（3域）</b> \u2014 _domain_business_substance(经营实质分析7维度) / _domain_business_geography(经营实质地理分析) / _domain_personnel_business_matching(人员与业务匹配)</li>';
-  h += '<li>\u2465 <b>资料完备度与情报（2域）</b> \u2014 _domain_material_completeness(资料完备度评估14类必查) / _domain_material_intel(资料情报摘要)</li>';
-  h += '<li>\u2466 <b>发票深度分析（3域）</b> \u2014 _domain_invoice_deep_features(发票深度特征) / _domain_invoice_lifecycle(发票生命周期) / _domain_red_rush_invoice(红冲作废发票)</li>';
-  h += '<li>\u2467 <b>合同与凭证（2域）</b> \u2014 _domain_contract_comparison(合同比对) / _domain_voucher_account_anomaly(凭证科目异常)</li>';
-  h += '<li>\u2468 <b>税务与社保（3域）</b> \u2014 _domain_tax_payment_consistency(税务缴纳一致性) / _domain_vat_declaration_comparison(增值税申报比对) / _domain_salary_social_security(工资社保比对)</li>';
-  h += '<li>\u2469 <b>资产与关联交易（2域）</b> \u2014 _domain_asset_depreciation_amortization(资产折旧摊销) / _domain_related_party_transaction(关联交易穿透)</li>';
-  h += '<li>\u246a <b>行业对标与规则引擎（4域）</b> \u2014 _domain_industry_benchmark(行业基准对标/66行业\u00d75指标) / _domain_rule_engine_match(规则引擎匹配/{{rules_count}}条) / _domain_tax_burden_analysis(税负率分析) / _domain_trend_analysis(趋势分析)</li>';
-  h += '<li>\u246b <b>跨域分析链（1域）</b> \u2014 _domain_cross_analysis_chains(48条综合推理路径，跨域线索证据分析四链贯通)</li>';
-  h += '<li>\u246c <b>补充税种检查（3域）</b> \u2014 _domain_stamp_tax(印花税) / _domain_property_tax(房产税) / _domain_land_use_tax(土地使用税)</li>';
-  h += '</ul>';
-  h += '<p style="margin:16px 0 12px;font-size:11px;font-weight:700;color:#1e293b">四大域组概要</p>';
+
+  // 标题
+  h += '<h3>\ud83d\udcca 域分析引擎全景</h3>';
+  h += '<p>42个域分析函数 · 13大类分组 · 7条前置判定规则 · 66行业基准库 · 48条综合推理链 · 66推理步骤 · 全行业适用</p>';
+
+  // ═══ 7条前置判定规则 ═══
+  h += '<h3>一、7条前置判定规则（域分析执行前必须先通过）</h3>';
+  h += '<p><b>\u2460 公司身份锚定</b> — 报告开头必须声明公司名称+信用代码。锚定错误→全部分析作废。<br>';
+  h += '<b>\u2461 发票方向判定</b> — 进项/销项分类须有判定依据。方向错→收入成本颠倒。<br>';
+  h += '<b>\u2462 进项再分类</b> — 普票税额并入成本，专票税额入进项税额。<br>';
+  h += '<b>\u2463 服务行业闸门</b> — 服务行业（金税编码25类）不得出现进销存/制造业毛利率对标等实物域分析。<br>';
+  h += '<b>\u2464 品名级精准过滤</b> — 混合行业（服务+货物）必须品名级区分，混为一谈视为误判。<br>';
+  h += '<b>\u2465 综合判断四方交叉验证</b> — 文件类型须经文件名+表头+内容+身份匹配四方验证，不得仅凭文件名判定。<br>';
+  h += '<b>\u2466 存疑排除</b> — 买卖双方都不含公司的发票必须排除出所有计算。跨账套污染=致命事故。</p>';
+
+  // ═══ 13大类 · 42域函数 ═══
+  h += '<h3>二、13大分类 · 42个域函数 · 功能与数据要求</h3>';
+  
+  h += '<p><b>\u2460 资金流分析（4域）</b><br>';
+  h += '_domain_cash_flow_tracking — 资金全链路追踪：从银行流水逐笔追踪资金从何来到何去<br>';
+  h += '_domain_fund_flow — 资金流向追踪：识别大额/频繁/异常方向的资金流动<br>';
+  h += '_domain_abnormal_transaction_time — 异常交易时间：节假日/非营业时间的大额交易<br>';
+  h += '_domain_personal_txn_risk — 个人交易风险：对私转账/个人账户收款识别</p>';
+
+  h += '<p><b>\u2461 进销存分析（4域）</b><br>';
+  h += '_domain_purchase_sales_gross_margin — 进销毛利率：进价与售价对比，偏离行业基准→异常预警<br>';
+  h += '_domain_invoice_substantive_audit — 发票实质性审计：发票代码/号码/金额/税率/品名全面核查<br>';
+  h += '_domain_inventory_turnover — 存货周转预警：周转率异常偏离行业均值→虚增库存或隐匿收入信号<br>';
+  h += '_domain_invoice_inventory_payment_triangle — 发票存货付款三角验证：三单匹配（发票/入库单/付款单）闭环验证</p>';
+
+  h += '<p><b>\u2462 供应商与客户分析（4域）</b><br>';
+  h += '_domain_supplier_penetration — 供应商穿透：多层穿透追溯最终供应商<br>';
+  h += '_domain_supplier_profile — 供应商画像：供应商工商状态/经营异常/关联关系<br>';
+  h += '_domain_upstream_downstream — 上下游穿透：客户vs供应商关联关系穿透<br>';
+  h += '_domain_customer_three_source — 客户维度三源穿透：客户名称/地址/电话三维度交叉验证</p>';
+
+  h += '<p><b>\u2463 多源交叉验证（5域）</b><br>';
+  h += '_domain_multi_source_cross_validation — 多源交叉验证：银行流水×发票×账载×申报四源比对<br>';
+  h += '_domain_voucher_invoice_revenue_compare — 凭证发票收入对比：凭证记录与发票开具的一致性验证<br>';
+  h += '_domain_profit_cashflow_contradiction — 利润现金流矛盾：账面利润高但现金流枯竭→虚增收入信号<br>';
+  h += '_domain_revenue_time_investigation — 收入时间线调查：收入在各期间的分布合理性<br>';
+  h += '_domain_extended_audit_rules — 扩展审查规则：自定义审计规则扩展</p>';
+
+  h += '<p><b>\u2464 经营实质分析（3域）</b><br>';
+  h += '_domain_business_substance — 经营实质分析7维度：人员/场地/设备/物流/资金/客户/供应商<br>';
+  h += '_domain_business_geography — 经营实质地理分析：注册地与经营地的地理位置一致性<br>';
+  h += '_domain_personnel_business_matching — 人员与业务匹配：社保人数/个税申报与业务规模匹配度</p>';
+
+  h += '<p><b>\u2465 资料完备度与情报（2域）</b><br>';
+  h += '_domain_material_completeness — 资料完备度评估：14类必查资料的齐全度评分<br>';
+  h += '_domain_material_intel — 资料情报摘要：从上传资料中提取关键情报</p>';
+
+  h += '<p><b>\u2466 发票深度分析（3域）</b><br>';
+  h += '_domain_invoice_deep_features — 发票深度特征：连号/顶格/整数金额/夜间开具等异常特征<br>';
+  h += '_domain_invoice_lifecycle — 发票生命周期：领用/开具/作废/红冲全程追踪<br>';
+  h += '_domain_red_rush_invoice — 红冲作废发票：红冲频率/作废率异常分析</p>';
+
+  h += '<p><b>\u2467 合同与凭证（2域）</b><br>';
+  h += '_domain_contract_comparison — 合同比对：合同条款与实际交易的匹配验证<br>';
+  h += '_domain_voucher_account_anomaly — 凭证科目异常：会计分录科目使用的合理性检查</p>';
+
+  h += '<p><b>\u2468 税务与社保（3域）</b><br>';
+  h += '_domain_tax_payment_consistency — 税务缴纳一致性：各税种申报与实际缴纳的一致性<br>';
+  h += '_domain_vat_declaration_comparison — 增值税申报比对：销项/进项税额与发票系统的交叉比对<br>';
+  h += '_domain_salary_social_security — 工资社保比对：工资发放人数=社保参保人数=个税申报人数</p>';
+
+  h += '<p><b>\u2469 资产与关联交易（2域）</b><br>';
+  h += '_domain_asset_depreciation_amortization — 资产折旧摊销：固定资产折旧/无形资产摊销的合规性<br>';
+  h += '_domain_related_party_transaction — 关联交易穿透：关联方识别+交易价格公允性+债资比</p>';
+
+  h += '<p><b>\u246a 行业对标与规则引擎（4域）</b><br>';
+  h += '_domain_industry_benchmark — 行业基准对标：66行业×5指标×3基准值(P25/P50/P75)<br>';
+  h += '_domain_rule_engine_match — 规则引擎匹配：{rules_count}条税务合规规则全覆盖验证<br>';
+  h += '_domain_tax_burden_analysis — 税负率分析：增值税/企业所得税/综合税负率行业对标<br>';
+  h += '_domain_trend_analysis — 趋势分析：12项经营指标跨期追踪</p>';
+
+  h += '<p><b>\u246b 跨域分析链（1域）</b><br>';
+  h += '_domain_cross_analysis_chains — 48条综合推理路径，跨域线索证据分析四链贯通</p>';
+
+  h += '<p><b>\u246c 补充税种检查（3域）</b><br>';
+  h += '_domain_stamp_tax — 印花税：合同台账逐笔对税目<br>';
+  h += '_domain_property_tax — 房产税：自用从价/出租从租<br>';
+  h += '_domain_land_use_tax — 土地使用税：面积/等级/税率</p>';
+
+  // ═══ 四大域组概要 ═══
+  h += '<h3>三、四大域组概要</h3>';
   h += '<div class="udp-grid">';
   h += '<div class="udp-item"><div class="it" style="color:#2563eb">资金流+进销存（8域）</div><div class="id">资金全链路追踪、资金流向追踪、异常交易时间、个人交易风险；进销毛利率、发票实质性审计、存货周转预警、发票存货付款三角验证</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#7c3aed">供应商+多源验证（9域）</div><div class="id">供应商穿透、供应商画像、上下游穿透、客户维度三源穿透；多源交叉验证、凭证发票收入对比、利润现金流矛盾、收入时间线调查、扩展审查规则</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#059669">经营实质+资料（5域）</div><div class="id">经营实质分析7维度、经营实质地理分析、人员与业务匹配；资料完备度评估14类必查、资料情报摘要</div></div>';
   h += '<div class="udp-item"><div class="it" style="color:#d97706">发票+合同+社保（8域）</div><div class="id">发票深度特征、发票生命周期、红冲作废发票；合同比对、凭证科目异常；税务缴纳一致性、增值税申报比对、工资社保比对</div></div>';
   h += '</div>';
-  h += '<p style="margin:0;font-size:10px;color:#94a3b8">以上42个域均由独立域分析函数驱动，全行业适用，无行业特化硬编码。</p>';
-  h += '<div style="margin-top:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:10.5px;line-height:1.8;color:#92400e">';
-  h += '<b style="font-size:11px;color:#d97706">\U0001f3ed 66行业基准库详解</b><br>';
-  h += '<b>5个对标指标 × 3个基准值（P25/P50/P75）：</b><br>';
-  h += '毛利率 — 企业值<行业下限(P25)→高风险；<典型值(P50)×0.85→中风险<br>';
-  h += '净利率 — 企业值<行业下限(P25)→高风险；<典型值(P50)×0.85→中风险<br>';
+
+  // ═══ 66行业基准库 ═══
+  h += '<h3>四、66行业基准库</h3>';
+  h += '<p><b>5个对标指标 × 3个基准值（P25/P50/P75）</b></p>';
+  h += '<p>毛利率 — 企业值<行业下限(P25)→高风险；企业值<典型值(P50)×0.85→中风险<br>';
+  h += '净利率 — 企业值<行业下限(P25)→高风险；企业值<典型值(P50)×0.85→中风险<br>';
   h += '税负率 — 企业值<行业下限(P25)→高风险<br>';
   h += '进销比 — 偏离行业典型值±30%→异常预警<br>';
-  h += '人均营收 — 高知识密集型服务业50-100万为正常<br>';
-  h += '<b>覆盖行业：</b>农林牧渔/采矿/制造/建筑/批发零售/交通运输/住宿餐饮/信息技术/金融/房地产/租赁商务/科研服务/水利环境/居民服务/教育/卫生/文体娱乐/公共管理等66个细分行业。数据源：industry_benchmarks表，支持EMA自学习动态校准和自定义JSON扩展。';
+  h += '人均营收 — 高知识密集型服务业50-100万为正常水平</p>';
+  h += '<p><b>覆盖66个细分行业：</b><br>';
+  h += '农林牧渔（农业/林业/畜牧业/渔业/农林牧渔服务业）· 采矿（煤炭/石油天然气/黑色金属/有色金属/非金属矿/开采辅助）<br>';
+  h += '制造（食品/纺织/木材/造纸/化工/医药/橡胶塑料/非金属矿物/黑色金属/有色金属/金属制品/通用设备/专用设备/汽车/电气机械/电子设备）<br>';
+  h += '建筑（房屋建筑/土木工程/建筑安装/建筑装饰）· 批发零售（批发/零售/进出口贸易）<br>';
+  h += '交通运输（铁路/公路/水上/航空/管道/装卸搬运/仓储/邮政）· 住宿餐饮（住宿/餐饮）<br>';
+  h += '信息技术（软件/互联网/电信/信息服务）· 金融（银行/证券/保险/其他金融）<br>';
+  h += '房地产（房地产开发/物业管理/中介服务）· 租赁商务（租赁/商务服务/企业管理）<br>';
+  h += '科研服务（研究开发/专业技术/科技推广）· 水利环境（水利/生态环保/公共设施）<br>';
+  h += '居民服务（家政/洗浴/美容/殡葬等）· 教育（学前/初等/中等/高等/培训）<br>';
+  h += '卫生（医院/基层医疗/公共卫生）· 文体娱乐（新闻出版/广播电视/文化艺术/体育/娱乐）<br>';
+  h += '公共管理（党政机关/社会组织/基层自治）</p>';
+  h += '<p style="font-size:12px;color:#94a3b8">数据源：industry_benchmarks表，支持EMA自学习动态校准。以上为行业大类划分，细分行业共覆盖66个子类。全行业适用，无特化硬编码。</p>';
+
+  // ═══ 48条分析链 ═══
+  h += '<h3>五、48条跨域综合推理链（48条，66推理步骤）</h3>';
+  h += '<p>分析链是线索链→证据链之后的综合推理引擎。以下为全部48条分析链的名称、风险等级、描述和推理路径。</p>';
+
+  // 嵌入所有分析链
+    h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">1. 收款来源不匹配→隐匿收入推理链</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">从单一的收款来源不匹配信号出发，逐层扩展分析范围。第一步确认不匹配的规模，第二步核实付款方身份（排除法人/股东的打款），第三步判断资金性质（经营收入还是非经营资金），第四步对无法解释的收款做出隐匿收入的判断。每一步都有回退路径——只要企业能提供合理解释，风险就会降级或消除。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>资金流分析</b> → 到 <b style="color:#0e7490">发票比对</b>：逐名交叉比对全部收款方与销项发票购方名称</div><div class="udp-step"><span class="sn">2</span>从 <b>发票比对</b> → 到 <b style="color:#0e7490">付款方身份核实</b>：联网查询法定代表人/股东名单，比对未匹配的付款方</div><div class="udp-step"><span class="sn">3</span>从 <b>付款方身份核实</b> → 到 <b style="color:#0e7490">资金性质判断</b>：区分注资/借款/往来款/未开票收入四种可能</div><div class="udp-step"><span class="sn">4</span>从 <b>资金性质判断</b> → 到 <b style="color:#0e7490">综合结论</b>：无法说明来源的收款推定为未开票经营收入→隐匿收入风险</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">2. 加工费来自外地→全链条经营异常推理链（点→面推理核心）</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">从加工费这一个单点异常出发，扩展到面的推理。第一步发现加工费在外地，第二步判断商业合理性（本地是否有集群），第三步扩展到三组地址对比，第四步检测运输成本缺失，第五步得出物理不可能的结论。这是点→面推理的标准案例——单点异常可解释，但四点叠加无法解释——换一个税务合规员拿同样资料，同样会得出这个结论。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（5步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>发票分析</b> → 到 <b style="color:#0e7490">产业集群判断</b>：分析企业所在地是否有同类加工产业集群</div><div class="udp-step"><span class="sn">2</span>从 <b>产业集群判断</b> → 到 <b style="color:#0e7490">商业合理性判断</b>：外地加工增加了运输成本和周期，舍近求远→商业逻辑存疑</div><div class="udp-step"><span class="sn">3</span>从 <b>商业合理性判断</b> → 到 <b style="color:#0e7490">全链条地理分析</b>：提取三组地址做城市交叉比对</div><div class="udp-step"><span class="sn">4</span>从 <b>全链条地理分析</b> → 到 <b style="color:#0e7490">物理合理性判断</b>：货物在N个城市间反复运输但无运输费→物理上不可能</div><div class="udp-step"><span class="sn">5</span>从 <b>物理合理性判断</b> → 到 <b style="color:#0e7490">综合结论</b>：全链条经营实质存疑→所有跨省交易的真实性需要逐笔验证</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">3. 进销品名不匹配→企业类型重判推理链（三层穿透）</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">不从单一来源判定企业类型，而是通过三层递进穿透：工商登记看法律形式、发票数据看经营实质、加工信号看业务模式。三者不一致时以实质重于形式为原则。风险不是消除了，而是从品名问题转移到了加工真实性问题——这是风险转移而非风险消除。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>工商查询</b> → 到 <b style="color:#0e7490">发票推断</b>：从全部发票品名关键词做66行业加权投票，得出发票推断行业</div><div class="udp-step"><span class="sn">2</span>从 <b>发票推断</b> → 到 <b style="color:#0e7490">加工信号检测</b>：筛查进项发票中是否含加工费+是否存在原材料采购</div><div class="udp-step"><span class="sn">3</span>从 <b>加工信号检测</b> → 到 <b style="color:#0e7490">三层综合判断</b>：工商登记=批发业(形式) + 发票推断=纺织制造(实质) + 加工信号=制造业(模式)</div><div class="udp-step"><span class="sn">4</span>从 <b>三层综合判断</b> → 到 <b style="color:#0e7490">风险重定向</b>：风险从「有进无销=隐匿收入」转移至「加工链条是否真实」</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">4. 有进无销→隐匿收入vs制造业加工推理链</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">有进无销是税务合规中最常见的信号，但一刀切「高 风险」是错误的。系统先判断企业类型——纯贸易企业有进无销确实是隐匿收入信号，但制造业企业采购原料加工成成品后品名不同，进销品名不匹配是正常的。诊断后风险焦点从「隐匿收入」转移至「加工链条是否真实」。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>进销存比对</b> → 到 <b style="color:#0e7490">行业模式判断</b>：检查企业是纯贸易还是制造业——加工费+原材料信号</div><div class="udp-step"><span class="sn">2</span>从 <b>行业模式判断</b> → 到 <b style="color:#0e7490">制造业诊断(如有加工信号)</b>：有加工费+有原材料→制造业加工链条→风险焦点转移</div><div class="udp-step"><span class="sn">3</span>从 <b>制造业诊断</b> → 到 <b style="color:#0e7490">BOM验证</b>：要求企业提供BOM表验证原材料投入→加工→成品产出的逻辑</div><div class="udp-step"><span class="sn">4</span>从 <b>BOM验证</b> → 到 <b style="color:#0e7490">综合结论</b>：无法提供BOM→加工链条无法验证→有进无销仍可能是隐匿收入→回到高风险</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">5. 合同缺失→交易真实性存疑推理链（四层分层）</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">合同缺失不是一刀切的问题——不是所有交易都需要合同。系统通过四层自动分层，将缺失的影响精准定位到必签和应签两类，避免把所有供应商都视为「需要合同」（那会要求连加油站、酒店都签合同——不切实际）。分层判断使风险结论更精准、更可操作。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>资料完备度检测</b> → 到 <b style="color:#0e7490">合同需求分层</b>：对每个供应商按品名/金额/类型四层自动分类：必签/应签/可免/小额</div><div class="udp-step"><span class="sn">2</span>从 <b>合同需求分层</b> → 到 <b style="color:#0e7490">交易真实性验证</b>：四流合一缺了合同流→这些交易的商业实质无法通过书面证据验证</div><div class="udp-step"><span class="sn">3</span>从 <b>交易真实性验证</b> → 到 <b style="color:#0e7490">分层风险判断</b>：必签类缺合同=高风险；应签类缺合同=中风险；可免类无合同=正常</div><div class="udp-step"><span class="sn">4</span>从 <b>分层风险判断</b> → 到 <b style="color:#0e7490">综合结论</b>：缺失合同→四流不合一→税务合规可逐笔质疑交易真实性→虚开发票嫌疑→印花税漏缴</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">6. 重物跨省缺运输→货物流断裂推理链</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">从地址分布出发，结合行业重物属性和运输成本缺失，形成货物流物证链断裂的推理。关键在于行业的重物判断——不是所有行业都需要运输成本（如软件/咨询/设计等服务业），但纺织/建材/机械/食品等重物产业必须有。系统根据行业自适应地判断重物属性，不搞一刀切。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>地址分析</b> → 到 <b style="color:#0e7490">行业重物判断</b>：根据行业分类判断产品是否为需运输的重物</div><div class="udp-step"><span class="sn">2</span>从 <b>行业重物判断</b> → 到 <b style="color:#0e7490">运输成本检测</b>：检索全部发票和银行流水中的运输/物流/快递/货运关键词</div><div class="udp-step"><span class="sn">3</span>从 <b>运输成本检测</b> → 到 <b style="color:#0e7490">货物流判断</b>：重物跨省运输必有运费（通常占货值3%-8%），零运费=货物流物证链断裂</div><div class="udp-step"><span class="sn">4</span>从 <b>货物流判断</b> → 到 <b style="color:#0e7490">综合结论</b>：货物流无法验证→三流合一缺了货物流→交易真实性存疑→进项税额+成本均面临否定风险</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">7. 费用发票占比异常→虚增成本推理链</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">从费用结构异常出发，逐层深挖费用的真实性和关联性。关键判断在于费用与经营是否相关——招待费/差旅费可能有经营关联，但旅游/购物/生活用品等明显与经营无关。系统通过联网查询股东身份，将个人消费入账的风险精准定位。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>费用结构分析</b> → 到 <b style="color:#0e7490">费用明细核查</b>：逐类筛查费用发票的品名/金额/时间/对方</div><div class="udp-step"><span class="sn">2</span>从 <b>费用明细核查</b> → 到 <b style="color:#0e7490">股东关联判断</b>：联网查询股东和法定代表人，判断费用是否与股东个人消费相关</div><div class="udp-step"><span class="sn">3</span>从 <b>股东关联判断</b> → 到 <b style="color:#0e7490">税前扣除判断</b>：与生产经营无关的支出不得税前扣除→需调增应纳税所得额</div><div class="udp-step"><span class="sn">4</span>从 <b>税前扣除判断</b> → 到 <b style="color:#0e7490">综合结论</b>：虚增成本费用→利润虚减→企业所得税少缴+个人所得税漏缴</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">8. 进销比异常+零申报→账外经营推理链</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">进销比异常是最强的税务合规信号之一——采购量远超销售量的本质是「买了货但没有开发票卖出去」。但不是一看到进销比异常就定「账外经营」——需要先排除存货积压的可能。如果存货没有增加、采购款已付、但销项极少——那就是典型的账外经营信号。结合收入端（收款远超开票），形成进销两端闭合的证据链。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>从 <b>进销比分析</b> → 到 <b style="color:#0e7490">存货分析</b>：检查存货周转率——如果存货也没有对应增加则货物去向成谜</div><div class="udp-step"><span class="sn">2</span>从 <b>存货分析</b> → 到 <b style="color:#0e7490">资金流追踪</b>：追踪银行付款去向——采购款付了但货去哪了？</div><div class="udp-step"><span class="sn">3</span>从 <b>资金流追踪</b> → 到 <b style="color:#0e7490">收入端对比</b>：付款正常+进货正常+销项极少→货物已售出但未开票→账外经营</div><div class="udp-step"><span class="sn">4</span>从 <b>收入端对比</b> → 到 <b style="color:#0e7490">综合结论</b>：进销比异常+零申报+收款开票偏差→完整的账外经营链条→严重隐匿收入</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">9. 供应链六员交叉→关联交易推断链（人员→发票→资金三段式跨域）</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">通过人员信息→发票数据→资金流的三段式跨域推理：从发票中定位供应商/客户→联网核查其六员→与本企业六员交叉比对→发现重叠后核查资金流→确认关联交易并评估转移定价风险。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>联网核查被查单位+供应商/客户六员</div><div class="udp-step"><span class="sn">2</span>提取进销发票中的供应商/客户名称+金额</div><div class="udp-step"><span class="sn">3</span>逐名交叉比对→发现重叠</div><div class="udp-step"><span class="sn">4</span>核查重叠企业间资金往来</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">10. 购销闭环→虚开发票推理链（发票→进销存→资金三段式跨域）</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">从发票数据发现供应商=客户→形成购销闭环→核查进销商品流转逻辑是否合理→核查资金流是否形成回流→判定虚开发票风险等级。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>提取进项销售方+销项购买方</div><div class="udp-step"><span class="sn">2</span>交叉比对：供应商∩客户</div><div class="udp-step"><span class="sn">3</span>核查闭环企业间的商品流转逻辑</div><div class="udp-step"><span class="sn">4</span>核查闭环企业间资金流向</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">11. 仓库→产能→能耗→物流全链条经营实质分析</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">单一矛盾可能是偶然→两个矛盾高度可疑→三个以上矛盾几乎可以定案。仓库装不下+设备产不出+电量不够用+物流费对不上=企业的账面经营纯粹是虚构的。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（5步）：</div><div class="udp-step"><span class="sn">1</span>从租金发票推算仓储面积→对比库存体积→仓容矛盾？</div><div class="udp-step"><span class="sn">2</span>从设备参数推算理论产能→对比账面产量→产能矛盾？</div><div class="udp-step"><span class="sn">3</span>从电费/水费推算能耗→对比行业单耗标准→能耗矛盾？</div><div class="udp-step"><span class="sn">4</span>从运输距离推算运费→对比账面运费→物流矛盾？</div><div class="udp-step"><span class="sn">5</span>四个维度交叉验证→几个维度出现矛盾？→矛盾越多置信度越高→从单点怀疑升级为系统性造假判定</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">12. 系统性造假综合判定模型(七维交叉)</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">七维交叉验证模型——从经营实质、供应商穿透、资金流、三流合一、跨税种、关联交易七个维度综合评估企业造假可能性。单维异常是线索，多维异常是定案。七维全异常=企业账务大概率全面造假。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（7步）：</div><div class="udp-step"><span class="sn">1</span>库存体积vs仓容/设备产能vs产量/用电量vs生产规模/人员vs产出→几维矛盾？</div><div class="udp-step"><span class="sn">2</span>供应商五维评分(资质/时间/规模/价格/资金)→几个维度不通过？</div><div class="udp-step"><span class="sn">3</span>收付款匹配度/个人收款占比/资金回流迹象/过桥账户→资金流异常度</div><div class="udp-step"><span class="sn">4</span>发票/资金/物流/合同四流一致性→几流断裂？</div><div class="udp-step"><span class="sn">5</span>增值税vs所得税/个税vs社保/印花税vs购销→几税申报不一致？</div><div class="udp-step"><span class="sn">6</span>关联方交易占比/转移定价/资本弱化/费用分摊→关联交易风险度</div><div class="udp-step"><span class="sn">7</span>七维综合评分→0-2维异常=低风险→3-4维=中风险→5-6维=高风险→7维=系统性造假→触发全面税务合规立案</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">13. 隐匿收入综合判定模型</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">三线归一法：资金偏差线(收款-开票)=来源分类线(未开票收入)=消费验证线(超申报消费)。三条线独立推算的隐匿收入金额应当大致相等。金额越接近→证据越强→结论越不可辩驳。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>计算收款-开票偏差的绝对金额和相对比例→分月度/季度看趋势</div><div class="udp-step"><span class="sn">2</span>对未匹配收款逐笔分类→借款/注资/代收/未开票/其他→计算各类占比</div><div class="udp-step"><span class="sn">3</span>追踪个人账户收款和异常消费→推算最低隐匿收入规模</div><div class="udp-step"><span class="sn">4</span>三指标交叉验证→偏差金额≈未开票收入≈隐匿消费→一致即定案</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">14. 多格式兼容</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">15. 汇总行过滤</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">16. 付款方身份核实</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">17. 关键词≠事实</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">18. 行业认知补算法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">19. 联网核查（搜索引擎知识图谱提取法）</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">20. 明细即信服力</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">21. 不墨迹直接干</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">22. 合同分层判断</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">23. 完备度明细</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">24. 完备度升级</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">25. 凭证描述纠正</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">26. 进销诊断升级</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">27. 行业基准库</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">28. 结论分析法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">29. COND_BAN防误杀</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">30. 税务合规重点强制等级</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">31. 报告纯净度</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">32. 发票≠收付款1:1</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">33. 经营实质地理分析</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">34. 规则detail业务化</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">35. 建议质量增强</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">36. 四步税务合规分析法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">37. 禁止数据截断</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">38. 三层行业穿透法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">39. 经营实质点面推理法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">40. 税务合规六员跨企业比对</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">41. 供应链联网核查（全链条人员交叉比对）</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">42. 主营业务聚焦法</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">判断企业所属行业时，必须以主营业务发票为依据，排除住宿费、餐饮费、加油费、租赁费、旅游费、差旅费等经营费用。经营费用是所有企业共同的日常支出，不反映行业特征。全行业适用：任何行业的经营费用种类相似（房租、水电、差旅、办公），但生产物资品类各行业不同（纺织业的棉纱、电子业的芯片、食品业的原料）。</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">43. 资料缺失风险推理</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">44. 存疑排除法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">45. 规则配置外部化</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f59e0b15;color:#f59e0b">&#8203;中风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">46. 资金回流检测法</span></div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">47. 全税种综合判定模型</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">多税种交叉验证。单一税种异常可能是疏忽，3+税种同时异常=系统性偷逃税。综合判定降低误报。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（4步）：</div><div class="udp-step"><span class="sn">1</span>收集各税种触发发现</div><div class="udp-step"><span class="sn">2</span>逐税种比对申报vs实际</div><div class="udp-step"><span class="sn">3</span>≥3税种异常→系统性偷逃税</div><div class="udp-step"><span class="sn">4</span>多税种累计偷税额→处罚档次</div></div>';  h += '<div class="udp-chain"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#dc262615;color:#dc2626">&#8203;高风险</span><span style="font-size:13px;font-weight:700;color:#0f172a">48. 物耗能耗产能三线归一分析</span></div><div style="font-size:12px;color:#64748b;margin-bottom:6px;line-height:1.8">产量可以从产能、电耗、物耗三个独立维度推算。三维交叉印证→单一维偏差可能是统计误差，三维全偏=造假。</div><div style="font-size:11px;font-weight:600;color:#94a3b8;margin:6px 0 4px">推理路径（5步）：</div><div class="udp-step"><span class="sn">1</span>设备铭牌×工时→理论最大产量</div><div class="udp-step"><span class="sn">2</span>电费÷行业单位电耗→推算产量</div><div class="udp-step"><span class="sn">3</span>原材料投入÷行业投入产出比→推算产量</div><div class="udp-step"><span class="sn">4</span>三维推算→中位数 vs 账面产量</div><div class="udp-step"><span class="sn">5</span>三维全偏低且偏差>30%→系统性造假</div></div>';
+
+  // ═══ 检出结果说明 ═══
+  h += '<h3>六、本次检出结果</h3>';
+  h += '<p>分析完成后展示各域实际检出发现，按风险等级排序。包含：<br>';
+  h += '<b>结果汇总</b> — 域分析结果汇总卡片：分析域总数、已触发域数、高中低风险发现数<br>';
+  h += '<b>发现列表</b> — 各域发现列表，按风险等级排序（高→中→低→注意→信息），每条含type/level/score/domain<br>';
+  h += '<b>跨域推理</b> — 线索链、证据链、分析链的完整推理路径展示<br>';
+  h += '数据来源：getSharedAnalysis() API。运行一键分析后自动填充实际数据。</p>';
+
+  // 各层成熟度
+  h += '<h3>七、各层成熟度评估</h3>';
+  h += '<p>感知层 → 文件识别率、数据提取准确率、处理速度<br>';
+  h += '记忆层 → 经验推送精准率与召回率、知识库覆盖度<br>';
+  h += '思考层 → 因果推理准确率、证据闭环稳固率、证伪通过率<br>';
+  h += '学习层 → 模式迁移成功率、误报率下降曲线<br>';
+  h += '自省层 → 破坏性测试发现缺陷的密度与严重程度</p>';
+
   h += '</div>';
-  h += '</div></div>';
-  // 右栏：跨域分析链
-  h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#dc2626,#ef4444)">\U0001f500 跨域分析链 \u00b7 48条综合推理路径</div>';
-  h += '<div class="udp-col-b" id="udp-chains-body">';
-  h += '<p style="margin:0 0 12px;font-size:11px;color:#64748b;line-height:1.8">分析链是线索链→证据链之后的综合推理引擎——线索链触发"从哪里查"，证据链回答"查到了什么"，分析链做最终的综合推理判定。每条分析链从上一环节的发现出发，跨多个域逐层扩展，每步有回退路径。</p>';
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 12px;font-size:10.5px;line-height:1.7"><div style="font-weight:700;color:#0369a1;margin-bottom:4px">⬆ 上游（输入方）</div>线索链 · 线索发现后触发分析链综合推理<br>证据链 · 多源证据闭合后输入分析链</div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;font-size:10.5px;line-height:1.7"><div style="font-weight:700;color:#15803d;margin-bottom:4px">⬇ 下游（消费方）</div>推理引擎 · 分析链驱动因果推理引擎<br>报告生成 · 推理结论反馈至报告发现</div>';
-  h += '</div>';
-  h += '<div style="color:#94a3b8;padding:10px;text-align:center;font-size:11px">加载分析链数据...</div>';
-  h += '</div>';
-  h += '</div></div>';
-  // 底部：检出结果
-  h += '<div class="udp-bottom">';
-  h += '<div class="udp-bottom-h">\U0001f4c8 本次检出结果 \u00b7 各域实际发现 \u00b7 按风险等级排序</div>';
-  h += '<div class="udp-bottom-b" id="udp-result-body">';
-  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
-  h += '<div class="udp-stat"><div class="v" style="color:#2563eb;font-size:16px">动态</div><div class="l">实时数据</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#7c3aed;font-size:16px">排序</div><div class="l">风险等级</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#059669;font-size:16px">跨域</div><div class="l">关联推理</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#d97706;font-size:16px">综合</div><div class="l">分析结论</div></div>';
-  h += '</div>';
-  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
-  h += '<div class="udp-item"><div class="it" style="color:#2563eb">结果汇总</div><div class="id">域分析结果汇总卡片：分析域总数、已触发域数、高中低风险发现数</div></div>';
-  h += '<div class="udp-item"><div class="it" style="color:#7c3aed">发现列表</div><div class="id">各域发现列表，按风险等级排序，每条含type/level/score/domain</div></div>';
-  h += '<div class="udp-item"><div class="it" style="color:#059669">跨域推理</div><div class="id">线索链、证据链、分析链的完整推理路径展示</div></div>';
-  h += '</div>';
-  h += '<div style="color:#94a3b8;padding:10px;font-size:11px">分析完成后展示各域实际检出发现。数据来源：getSharedAnalysis() API。</div>';
-  h += '</div>';
-  h += '</div></div>';
   container.innerHTML = h;
-  udpLoadChains();
 }
 
-
-function udpLoadChains() {
-  var target = document.getElementById('udp-chains-body');
-  if (!target) return;
-  try {
-    fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(resp) {
-      return resp.json();
-    }).then(function(chains) {
-      var high = chains.filter(function(c){return c.level==='高风险'}).length;
-      var mid = chains.filter(function(c){return c.level==='中风险'}).length;
-      var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
-      var cn = document.getElementById('udp-chain-count');
-      var hn = document.getElementById('udp-high-count');
-      var mn = document.getElementById('udp-mid-count');
-      var sn = document.getElementById('udp-step-count');
-      if (cn) cn.textContent = chains.length;
-      if (hn) hn.textContent = high;
-      if (mn) mn.textContent = mid;
-      if (sn) sn.textContent = steps;
-      var html = '';
-      chains.forEach(function(chain) {
-        var lvlColor = chain.level==='高风险' ? '#dc2626' : (chain.level==='中风险' ? '#f59e0b' : '#0e7490');
-        html += '<div class="udp-chain">';
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
-        html += '<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+(typeof escHtml==='function'?escHtml(chain.level):chain.level)+'</span>';
-        html += '<span style="font-size:11px;font-weight:700;color:#0f172a">'+(typeof escHtml==='function'?escHtml(chain.name):chain.name)+'</span>';
-        html += '</div>';
-        if (chain.reasoning_path && chain.reasoning_path.length > 0) {
-          chain.reasoning_path.forEach(function(s,si) {
-            html += '<div class="udp-step">';
-            html += '<span class="sn">'+(si+1)+'</span>';
-            var from = (s.action||{}).from||'—';
-            var to = (s.action||{}).to||'—';
-            var action = (s.action||{}).action||'—';
-            html += '从 <b>'+(typeof escHtml==='function'?escHtml(from):from)+'</b> → 到 <b style="color:#0e7490">'+(typeof escHtml==='function'?escHtml(to):to)+'</b>：'+(typeof escHtml==='function'?escHtml(action):action);
-            html += '</div>';
-          });
-        }
-        html += '</div>';
-      });
-      target.innerHTML = html;
-    }).catch(function() {
-      target.innerHTML = '<div style="color:#94a3b8;padding:10px">分析链数据暂不可用，请运行一键分析后查看</div>';
-    });
-  } catch(e) {
-    if (target) target.innerHTML = '<div style="color:#94a3b8;padding:10px">数据加载失败</div>';
-  }
-}
-// 域分析结果
 function renderDAResult() {
   return _pageTemplate({
   "title": "域分析结果",
