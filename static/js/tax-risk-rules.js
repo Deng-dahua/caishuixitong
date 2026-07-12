@@ -143,7 +143,7 @@ function renderTaxRiskRules(container) {
     + '<tr><td style="padding:4px 8px;border:1px solid #e2e8f0">㉑稽查动作</td><td style="padding:4px 8px;border:1px solid #e2e8f0">从纸面比对到现场核查的步骤</td><td style="padding:4px 8px;border:1px solid #e2e8f0">至少3步含1项现场核查</td><td style="padding:4px 8px;border:1px solid #e2e8f0">穷举完毕为止</td></tr>'
     + '</table></div>'
     + '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:11px;color:#92400e">'
-    + '<div style="font-weight:700;margin-bottom:4px">📌 品质标杆（canonical_example: AN-001 预收账款长期挂账）</div>'
+    + '<div style="font-weight:700;margin-bottom:4px">📌 品质标杆（canonical_example: #1813 预收账款长期挂账）</div>'
     + '穿透追问: 13条，三组递进（事实Q1-Q5/证据Q6-Q9/逻辑Q10-Q13），每组穷举至无新有效追问。<br>推理链: 4层，自然结果非硬性目标（账龄异常→纳税义务→未申报固定→隐匿定性）。<br>正常解释: 4种已穷举，注明穷举原因。风险表格: 5税种含核心/次要/间接标注。<br>证据清单: 四层框架完整，AB场景+金额分级+优先级，排雷与⑯联动。阈值: 四行业差异调整。'
     + '</div>'
     + '<em style="color:#64748b;display:block;margin-top:10px">* 追问穷举至稽查终点（证实违法或排除违法），问题间环环相扣、因果递进。数量是因果链条的自然长度，不是硬性指标。不凑数、不强编、一病一方。</em>'
