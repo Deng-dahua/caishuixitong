@@ -4594,6 +4594,7 @@ function renderUnifiedDomainPanel(container) {
   h += '<div class="udp-stat"><div class="v" style="color:#d97706">66</div><div class="l">行业基准库</div></div>';
   h += '<div class="udp-stat"><div class="v" id="udp-chain-count" style="color:#dc2626">\u2014</div><div class="l">分析链总数</div></div>';
   h += '<div class="udp-stat"><div class="v" id="udp-high-count" style="color:#f59e0b">\u2014</div><div class="l">高风险链</div></div>';
+  h += '<div class="udp-stat"><div class="v" id="udp-mid-count" style="color:#0e7490">\u2014</div><div class="l">中风险链</div></div>';
   h += '<div class="udp-stat"><div class="v" id="udp-step-count" style="color:#0e7490">\u2014</div><div class="l">推理步骤总数</div></div>';
   h += '</div>';
   // 两栏主体
@@ -4631,118 +4632,37 @@ function renderUnifiedDomainPanel(container) {
   // 右栏：跨域分析链
   h += '<div class="udp-col">';
   h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#dc2626,#ef4444)">\U0001f500 跨域分析链 \u00b7 48条综合推理路径</div>';
-  h += '<div class="udp-col-b" id="udp-chains-body"><div style="color:#94a3b8;padding:20px;text-align:center">加载分析链数据...</div></div>';
+  h += '<div class="udp-col-b" id="udp-chains-body">';
+  h += '<p style="margin:0 0 12px;font-size:11px;color:#64748b;line-height:1.8">分析链是线索链→证据链之后的综合推理引擎——线索链触发"从哪里查"，证据链回答"查到了什么"，分析链做最终的综合推理判定。每条分析链从上一环节的发现出发，跨多个域逐层扩展，每步有回退路径。</p>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 12px;font-size:10.5px;line-height:1.7"><div style="font-weight:700;color:#0369a1;margin-bottom:4px">⬆ 上游（输入方）</div>线索链 · 线索发现后触发分析链综合推理<br>证据链 · 多源证据闭合后输入分析链</div>';
+  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;font-size:10.5px;line-height:1.7"><div style="font-weight:700;color:#15803d;margin-bottom:4px">⬇ 下游（消费方）</div>推理引擎 · 分析链驱动因果推理引擎<br>报告生成 · 推理结论反馈至报告发现</div>';
+  h += '</div>';
+  h += '<div style="color:#94a3b8;padding:10px;text-align:center;font-size:11px">加载分析链数据...</div>';
+  h += '</div>';
   h += '</div></div>';
   // 底部：检出结果
   h += '<div class="udp-bottom">';
   h += '<div class="udp-bottom-h">\U0001f4c8 本次检出结果 \u00b7 各域实际发现 \u00b7 按风险等级排序</div>';
-  h += '<div class="udp-bottom-b" id="udp-result-body"><div style="color:#94a3b8;padding:10px">分析完成后展示各域实际检出发现。数据来源：getSharedAnalysis() API。含域发现总数、高风险/中风险/低风险分类统计、各域发现列表（按风险等级排序）、跨域关联推理结果。</div></div>';
-  h += '</div></div>';
-  container.innerHTML = h;
-  udpLoadChains();
-}
-
-
-function udpLoadChains() {
-  var target = document.getElementById('udp-chains-body');
-  if (!target) return;
-  try {
-    fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(resp) {
-      return resp.json();
-    }).then(function(chains) {
-      var high = chains.filter(function(c){return c.level==='高风险'}).length;
-      var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
-      var cn = document.getElementById('udp-chain-count');
-      var hn = document.getElementById('udp-high-count');
-      var sn = document.getElementById('udp-step-count');
-      if (cn) cn.textContent = chains.length;
-      if (hn) hn.textContent = high;
-      if (sn) sn.textContent = steps;
-      var html = '';
-      chains.forEach(function(chain) {
-        var lvlColor = chain.level==='高风险' ? '#dc2626' : (chain.level==='中风险' ? '#f59e0b' : '#0e7490');
-        html += '<div class="udp-chain">';
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
-        html += '<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+(typeof escHtml==='function'?escHtml(chain.level):chain.level)+'</span>';
-        html += '<span style="font-size:11px;font-weight:700;color:#0f172a">'+(typeof escHtml==='function'?escHtml(chain.name):chain.name)+'</span>';
-        html += '</div>';
-        if (chain.reasoning_path && chain.reasoning_path.length > 0) {
-          chain.reasoning_path.forEach(function(s,si) {
-            html += '<div class="udp-step">';
-            html += '<span class="sn">'+(si+1)+'</span>';
-            var from = (s.action||{}).from||'—';
-            var to = (s.action||{}).to||'—';
-            var action = (s.action||{}).action||'—';
-            html += '从 <b>'+(typeof escHtml==='function'?escHtml(from):from)+'</b> → 到 <b style="color:#0e7490">'+(typeof escHtml==='function'?escHtml(to):to)+'</b>：'+(typeof escHtml==='function'?escHtml(action):action);
-            html += '</div>';
-          });
-        }
-        html += '</div>';
-      });
-      target.innerHTML = html;
-    }).catch(function() {
-      target.innerHTML = '<div style="color:#94a3b8;padding:10px">分析链数据暂不可用，请运行一键分析后查看</div>';
-    });
-  } catch(e) {
-    if (target) target.innerHTML = '<div style="color:#94a3b8;padding:10px">数据加载失败</div>';
-  }
-}
-
-function renderUnifiedDomainPanel(container) {
-  if (!container) return;
-  var h = '';
-  h += '<style>'
-    + '.udp{font-size:12px;line-height:1.8;color:#334155}'
-    + '.udp-stats{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}'
-    + '.udp-stat{flex:1;min-width:90px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}'
-    + '.udp-stat .v{font-size:20px;font-weight:800;line-height:1.2}'
-    + '.udp-stat .l{font-size:10px;color:#94a3b8;margin-top:4px}'
-    + '.udp-main{display:grid;grid-template-columns:1fr 1fr;gap:16px}'
-    + '.udp-col{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}'
-    + '.udp-col-h{padding:12px 16px;font-size:13px;font-weight:700;color:#fff}'
-    + '.udp-col-b{padding:14px 16px;max-height:420px;overflow-y:auto}'
-    + '.udp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}'
-    + '.udp-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;font-size:11px;line-height:1.6}'
-    + '.udp-item .it{font-weight:700;color:#1e293b;font-size:11px;margin-bottom:3px}'
-    + '.udp-item .id{color:#64748b;font-size:10.5px}'
-    + '.udp-chain{padding:10px 12px;margin-bottom:8px;border:1px solid #e2e8f0;border-radius:6px;background:#fafbfc}'
-    + '.udp-step{padding:6px 10px;margin:3px 0;background:#f1f5f9;border-radius:4px;font-size:10.5px;line-height:1.7}'
-    + '.udp-step .sn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0}'
-    + '.udp-bottom{margin-top:16px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden}'
-    + '.udp-bottom-h{padding:12px 16px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#d97706,#f59e0b)}'
-    + '.udp-bottom-b{padding:14px 16px}'
-    + '</style>';
-  h += '<div class="udp">';
-  h += '<div class="udp-stats">';
-  h += '<div class="udp-stat"><div class="v" style="color:#2563eb">42</div><div class="l">域分析函数</div></div>';
-  h += '<div class="udp-stat"><div class="v" style="color:#7c3aed">13</div><div class="l">大类分组</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-chain-count" style="color:#dc2626">—</div><div class="l">分析链总数</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-high-count" style="color:#f59e0b">—</div><div class="l">高风险链</div></div>';
-  h += '<div class="udp-stat"><div class="v" id="udp-step-count" style="color:#059669">—</div><div class="l">推理步骤</div></div>';
+  h += '<div class="udp-bottom-b" id="udp-result-body">';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
+  h += '<div class="udp-stat"><div class="v" style="color:#2563eb;font-size:16px">动态</div><div class="l">实时数据</div></div>';
+  h += '<div class="udp-stat"><div class="v" style="color:#7c3aed;font-size:16px">排序</div><div class="l">风险等级</div></div>';
+  h += '<div class="udp-stat"><div class="v" style="color:#059669;font-size:16px">跨域</div><div class="l">关联推理</div></div>';
+  h += '<div class="udp-stat"><div class="v" style="color:#d97706;font-size:16px">综合</div><div class="l">分析结论</div></div>';
   h += '</div>';
-  h += '<div class="udp-main">';
-  h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#2563eb,#3b82f6)">📋 域分析能力清单</div>';
-  h += '<div class="udp-col-b">';
-  h += '<p style="margin:0 0 10px;font-size:11px;color:#64748b">7条前置判定规则：公司身份锚定、发票方向判定、进项再分类、服务行业闸门、品名级精准过滤、综合判断四方交叉验证、存疑排除。</p>';
-  h += '<p style="margin:0 0 12px;font-size:10.5px;color:#94a3b8">13大类：①资金流(4域)②进销存(4域)③供应商客户(4域)④多源交叉验证(5域)⑤经营实质(3域)⑥资料完备度(2域)⑦发票深度(3域)⑧合同凭证(2域)⑨税务社保(3域)⑩资产关联交易(2域)⑪行业对标(4域)⑫跨域分析链(1域)⑬补充税种(3域)</p>';
-  h += '<div class="udp-grid">';
-  h += '<div class="udp-item"><div class="it" style="color:#2563eb">资金流+进销存（8域）</div><div class="id">资金全链路追踪、资金流向追踪、异常交易时间、个人交易风险；进销毛利率、发票实质性审计、存货周转预警、发票存货付款三角验证</div></div>';
-  h += '<div class="udp-item"><div class="it" style="color:#7c3aed">供应商+多源验证（9域）</div><div class="id">供应商穿透、供应商画像、上下游穿透、客户维度三源穿透；多源交叉验证、凭证发票收入对比、利润现金流矛盾、收入时间线调查、扩展审查规则</div></div>';
-  h += '<div class="udp-item"><div class="it" style="color:#059669">经营实质+资料（5域）</div><div class="id">经营实质分析7维度、经营实质地理分析、人员与业务匹配；资料完备度评估14类必查、资料情报摘要</div></div>';
-  h += '<div class="udp-item"><div class="it" style="color:#d97706">发票+合同+社保（8域）</div><div class="id">发票深度特征、发票生命周期、红冲作废发票；合同比对、凭证科目异常；税务缴纳一致性、增值税申报比对、工资社保比对</div></div>';
-  h += '</div></div></div>';
-  h += '<div class="udp-col">';
-  h += '<div class="udp-col-h" style="background:linear-gradient(135deg,#dc2626,#ef4444)">🔀 跨域分析链</div>';
-  h += '<div class="udp-col-b" id="udp-chains-body"><div style="color:#94a3b8;padding:20px;text-align:center">加载分析链数据...</div></div>';
-  h += '</div></div>';
-  h += '<div class="udp-bottom">';
-  h += '<div class="udp-bottom-h">📈 本次检出结果</div>';
-  h += '<div class="udp-bottom-b" id="udp-result-body"><div style="color:#94a3b8;padding:10px">分析完成后展示各域实际检出发现，按风险等级排序。数据来源：getSharedAnalysis() API。</div></div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
+  h += '<div class="udp-item"><div class="it" style="color:#2563eb">结果汇总</div><div class="id">域分析结果汇总卡片：分析域总数、已触发域数、高中低风险发现数</div></div>';
+  h += '<div class="udp-item"><div class="it" style="color:#7c3aed">发现列表</div><div class="id">各域发现列表，按风险等级排序，每条含type/level/score/domain</div></div>';
+  h += '<div class="udp-item"><div class="it" style="color:#059669">跨域推理</div><div class="id">线索链、证据链、分析链的完整推理路径展示</div></div>';
+  h += '</div>';
+  h += '<div style="color:#94a3b8;padding:10px;font-size:11px">分析完成后展示各域实际检出发现。数据来源：getSharedAnalysis() API。</div>';
+  h += '</div>';
   h += '</div></div>';
   container.innerHTML = h;
   udpLoadChains();
 }
+
 
 function udpLoadChains() {
   var target = document.getElementById('udp-chains-body');
@@ -4752,12 +4672,15 @@ function udpLoadChains() {
       return resp.json();
     }).then(function(chains) {
       var high = chains.filter(function(c){return c.level==='高风险'}).length;
+      var mid = chains.filter(function(c){return c.level==='中风险'}).length;
       var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
       var cn = document.getElementById('udp-chain-count');
       var hn = document.getElementById('udp-high-count');
+      var mn = document.getElementById('udp-mid-count');
       var sn = document.getElementById('udp-step-count');
       if (cn) cn.textContent = chains.length;
       if (hn) hn.textContent = high;
+      if (mn) mn.textContent = mid;
       if (sn) sn.textContent = steps;
       var html = '';
       chains.forEach(function(chain) {
@@ -4788,7 +4711,6 @@ function udpLoadChains() {
     if (target) target.innerHTML = '<div style="color:#94a3b8;padding:10px">数据加载失败</div>';
   }
 }
-
 // 域分析结果
 function renderDAResult() {
   return _pageTemplate({
