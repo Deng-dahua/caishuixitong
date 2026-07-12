@@ -79,6 +79,7 @@ function renderTaxRiskRules(container) {
     + '<option value="良好">良好/正常</option>'
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
+    + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
     + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
     + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
     + '<span id="rr-update-time" style="font-size:10px;color:#94a3b8;white-space:nowrap"></span>'
@@ -200,6 +201,7 @@ window._rrFilter = function() {
         var kw = (document.getElementById('rr-search-input') && document.getElementById('rr-search-input').value || '').toLowerCase();
         var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
         var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
+        var sc = document.getElementById('rr-source-filter') && document.getElementById('rr-source-filter').value || '';
         var list = document.getElementById('rr-list');
         if (!list) return;
         var sb = document.getElementById('rr-sort-by'); var sortBy = sb ? sb.value : 'id';
@@ -208,6 +210,11 @@ window._rrFilter = function() {
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
           if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
           if (ct && (rl.category || '') !== ct) return false;
+          if (sc) {
+            var isAuto = rl.source === '系统发现' || rl.type === 'auto_signal';
+            if (sc === 'auto' && !isAuto) return false;
+            if (sc === 'manual' && isAuto) return false;
+          }
           return true;
         });
         if (filtered.length === 0) {
@@ -224,7 +231,7 @@ window._rrFilter = function() {
           else if (lv.indexOf('低') >= 0) lc = '#059669';
           var card = '<div class="rr-rule">'
             + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
-            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:9px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '')
+            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:9px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:9px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
             + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
             + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
