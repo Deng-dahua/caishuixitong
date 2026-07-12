@@ -1271,8 +1271,13 @@ def enrich_auto_rules_with_llm():
             _sh.copy2(rp, rp + ".bak")
             with open(rp, "r", encoding="utf-8") as _f:
                 rules = _json.load(_f)
-            # 找缺少精写内容的规则
-            need = [r for r in rules if len(r.get("direction",""))<50 or not r.get("phenomena") or len(r.get("drill_questions",""))<30]
+            # 找缺少精写内容或基于旧标准的规则（v3=穷举至稽查终点标准）
+            need = [r for r in rules if (
+                len(r.get("direction",""))<50 or 
+                not r.get("phenomena") or 
+                len(r.get("drill_questions",""))<30 or
+                r.get("standard_version","") != "2026-07-12-v3"  # v3:穷举至稽查终点·环环相扣
+            )]
             if not need: return
             cfg = _load_api_config()
             api_key = cfg.get("key","")
