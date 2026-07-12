@@ -4628,8 +4628,8 @@ function renderUnifiedDomainPanel(container) {
   h += '<div class="udp-item"><div class="it" style="color:#d97706">发票+合同+社保（8域）</div><div class="id">发票深度特征、发票生命周期、红冲作废发票；合同比对、凭证科目异常；税务缴纳一致性、增值税申报比对、工资社保比对</div></div>';
   h += '</div>';
   h += '<p style="margin:0;font-size:10px;color:#94a3b8">以上42个域均由独立域分析函数驱动，全行业适用，无行业特化硬编码。</p>';
-  h += '<details style="margin-top:14px"><summary style="font-size:11px;font-weight:700;color:#d97706;cursor:pointer">\U0001f3ed 66行业基准库详解</summary>';
-  h += '<div style="margin-top:10px;padding:12px;background:#fffbeb;border-radius:6px;font-size:10.5px;line-height:1.8;color:#92400e">';
+  h += '<div style="margin-top:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:10.5px;line-height:1.8;color:#92400e">';
+  h += '<b style="font-size:11px;color:#d97706">\U0001f3ed 66行业基准库详解</b><br>';
   h += '<b>5个对标指标 × 3个基准值（P25/P50/P75）：</b><br>';
   h += '毛利率 — 企业值<行业下限(P25)→高风险；<典型值(P50)×0.85→中风险<br>';
   h += '净利率 — 企业值<行业下限(P25)→高风险；<典型值(P50)×0.85→中风险<br>';
@@ -4637,7 +4637,7 @@ function renderUnifiedDomainPanel(container) {
   h += '进销比 — 偏离行业典型值±30%→异常预警<br>';
   h += '人均营收 — 高知识密集型服务业50-100万为正常<br>';
   h += '<b>覆盖行业：</b>农林牧渔/采矿/制造/建筑/批发零售/交通运输/住宿餐饮/信息技术/金融/房地产/租赁商务/科研服务/水利环境/居民服务/教育/卫生/文体娱乐/公共管理等66个细分行业。数据源：industry_benchmarks表，支持EMA自学习动态校准和自定义JSON扩展。';
-  h += '</div></details>';
+  h += '</div>';
   h += '</div></div>';
   // 右栏：跨域分析链
   h += '<div class="udp-col">';
