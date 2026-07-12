@@ -34,6 +34,8 @@ from database import (
 
 from engine.domain_analysis import *  # 35域分析函数
 from engine.domain_analysis import _classify_purchase_voucher_distribution, _classify_voucher_deductibility  # 扣税凭证引擎
+from engine.enterprise_profile import _profile_enterprise  # 案情画像与策略 (P0)
+from engine.associate_findings import _associate_findings  # 多疑点关联推理 (P1)
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
@@ -1326,6 +1328,29 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══════════════════════════════════════════════════════════
     _step_timing["step2"] = round(time.time() - _step_timing.get("step2_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤②目标实体识别: {_step_timing['step2']}秒")
+    
+    # ═══════════════════════════════════════════════════════════
+    # P0 案情画像与策略 —— 聚合现有散落逻辑，输出统一入口
+    # ═══════════════════════════════════════════════════════════
+    _step_timing["profile_start"] = time.time()
+    try:
+        enterprise_profile = _profile_enterprise(
+            company_id=company_id, db=db, bank_txs=bank_txs, invoices=invoices,
+            docs=docs, company_profile=ctx.company_profile if ctx else None,
+            pipeline_log=pipeline_log
+        )
+        if ctx:
+            ctx.enterprise_profile = enterprise_profile
+        # 行业阈值调整写入 ctx
+        if ctx and enterprise_profile.strategy.threshold_adjustments:
+            ctx.threshold_adjustments = enterprise_profile.strategy.threshold_adjustments
+    except Exception as _profe:
+        pipeline_log.append(f"[PROFILE] 案情画像失败: {_profe}，使用降级策略继续")
+        enterprise_profile = None
+    _step_timing["profile"] = round(time.time() - _step_timing["profile_start"], 2)
+    pipeline_log.append(f"[TIMING] 案情画像: {_step_timing['profile']}秒")
+    # ═══════════════════════════════════════════════════════════
+    
     # Phase 1 — 初查：建立企业画像和全局快照
     # 推理引擎入口：创建AuditContext，跑初查阶段，
     # 产出企业画像+财务全景+主营业务成本识别+初查信号
@@ -1938,11 +1963,41 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _ne:
         pipeline_log.append(f"[协商引擎] 异常: {_ne}")
 
+    # ── 防御：过滤 all_findings 中非 dict 元素 ──
+    all_findings = [f for f in all_findings if isinstance(f, dict)]
+
+    # ═══════════════════════════════════════════════════
+    # P1 多疑点关联推理 —— 消费跨域协商结果，做疑点间的横向关联
+    # ═══════════════════════════════════════════════════
+    _step_timing["assoc_start"] = time.time()
+    try:
+        assoc_result = _associate_findings(all_findings, pipeline_log)
+        comprehensive["finding_associations"] = {
+            "clusters": assoc_result.clusters,
+            "isolated": assoc_result.isolated,
+            "systemic_score": assoc_result.systemic_score,
+            "systemic_factors": assoc_result.systemic_factors,
+            "upgrades": assoc_result.upgrades,
+        }
+        # 应用联合增强升级
+        if assoc_result.upgrades:
+            id_to_finding = {str(f.get("id","")): f for f in all_findings if isinstance(f, dict)}
+            for upgrade in assoc_result.upgrades:
+                fid = upgrade["finding_id"]
+                if fid in id_to_finding:
+                    old_level = id_to_finding[fid].get("level", "")
+                    id_to_finding[fid]["level"] = upgrade["to_level"]
+                    id_to_finding[fid]["level_upgrade_reason"] = upgrade["reason"]
+                    pipeline_log.append(f"[ASSOC] {fid}: {old_level}→{upgrade['to_level']} ({upgrade['reason']})")
+    except Exception as _ae:
+        pipeline_log.append(f"[ASSOC] 疑点关联推理异常: {_ae}")
+    _step_timing["assoc"] = round(time.time() - _step_timing["assoc_start"], 2)
+    pipeline_log.append(f"[TIMING] 疑点关联推理: {_step_timing['assoc']}秒")
+    # ═══════════════════════════════════════════════════
+
     # ═══════════════════════════════════════════════════
     # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
     # ═══════════════════════════════════════════════════
-    # ── 防御：过滤 all_findings 中非 dict 元素（避免 str 无 .get 崩溃）──
-    all_findings = [f for f in all_findings if isinstance(f, dict)]
     
     chain_execution = []  # 每条链的执行结果
     chain_findings = []   # 链驱动生成的新发现
