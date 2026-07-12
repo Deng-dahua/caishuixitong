@@ -5921,35 +5921,32 @@ function renderMethodologyPart3(){
   renderMethodologyAssemble();
 }
 function loadAutoRules(target) {
-  try {
-    fetch('/static/auto_discovered_rules.json?_t=' + Date.now()).then(function(resp) {
-      return resp.json();
-    }).then(function(rules) {
-      var h = '<div style="font-size:11px;color:#64748b;margin-bottom:10px">共 ' + rules.length + ' 条自动发现规则（v3精写标准·穷举至稽查终点）</div>';
-      rules.forEach(function(r) {
-        var lvlColor = r.level==='高风险' ? '#dc2626' : (r.level==='中风险' ? '#f59e0b' : '#0e7490');
-        h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:8px;font-size:12px;line-height:1.9;color:#334155">';
-        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-        h += '<span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:#0f172a">#' + r.id + '</span>';
-        h += '<span style="background:'+lvlColor+'15;color:'+lvlColor+';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">' + (r.level||'信息') + '</span>';
-        h += '<span style="font-size:13px;font-weight:700;color:#0f172a">' + (r.item||'') + '</span>';
-        h += '<span style="font-size:10px;color:#94a3b8">' + (r.category||'') + '</span>';
-        h += '</div>';
-        if (r.direction) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#0e7490">推理链（' + (r.direction.split('推理第').length-1) + '层）</summary><div style="padding:8px 12px;background:#f0f9ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.direction||'') + '</div></details>';
-        if (r.drill_questions) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#059669">穿透追问</summary><div style="padding:8px 12px;background:#f0fdf4;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.drill_questions||'') + '</div></details>';
-        if (r.normal_reason) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#d97706">正常业务解释</summary><div style="padding:8px 12px;background:#fffbeb;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.normal_reason||'') + '</div></details>';
-        if (r.determination) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#7c3aed">定性路径</summary><div style="padding:8px 12px;background:#f5f3ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.determination||'') + '</div></details>';
-        if (r.risk_table) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#dc2626">风险表格</summary><div style="padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.risk_table||'') + '</div></details>';
-        if (r.evidence) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#2563eb">证据清单</summary><div style="padding:8px 12px;background:#eff6ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.evidence||'') + '</div></details>';
-        h += '</div>';
-      });
-      target.innerHTML = h;
-    }).catch(function() {
-      target.innerHTML = '<div style="color:#94a3b8;padding:10px">自动发现规则加载失败</div>';
-    });
-  } catch(e) {
-    if (target) target.innerHTML = '<div style="color:#94a3b8;padding:10px">数据加载失败</div>';
+  if (!target) return;
+  var rules = window._autoDiscoveredRules;
+  if (!rules || !rules.length) {
+    target.innerHTML = '<div style="color:#94a3b8;padding:10px">自动发现规则数据未加载</div>';
+    return;
   }
+  var h = '<div style="font-size:11px;color:#64748b;margin-bottom:10px">共 ' + rules.length + ' 条自动发现规则（v3精写标准·穷举至稽查终点）</div>';
+  rules.forEach(function(r) {
+    if (!r) return;
+    var lvlColor = r.level==='高风险' ? '#dc2626' : (r.level==='中风险' ? '#f59e0b' : '#0e7490');
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:8px;font-size:12px;line-height:1.9;color:#334155">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:#0f172a">#' + r.id + '</span>';
+    h += '<span style="background:'+lvlColor+'15;color:'+lvlColor+';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600">' + (r.level||'信息') + '</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:#0f172a">' + (r.item||'') + '</span>';
+    h += '<span style="font-size:10px;color:#94a3b8">' + (r.category||'') + '</span>';
+    h += '</div>';
+    if (r.direction) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#0e7490">推理链（' + (r.direction.split('推理第').length-1) + '层）</summary><div style="padding:8px 12px;background:#f0f9ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.direction||'') + '</div></details>';
+    if (r.drill_questions) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#059669">穿透追问</summary><div style="padding:8px 12px;background:#f0fdf4;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.drill_questions||'') + '</div></details>';
+    if (r.normal_reason) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#d97706">正常业务解释</summary><div style="padding:8px 12px;background:#fffbeb;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.normal_reason||'') + '</div></details>';
+    if (r.determination) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#7c3aed">定性路径</summary><div style="padding:8px 12px;background:#f5f3ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.determination||'') + '</div></details>';
+    if (r.risk_table) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#dc2626">风险表格</summary><div style="padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.risk_table||'') + '</div></details>';
+    if (r.evidence) h += '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:#2563eb">证据清单</summary><div style="padding:8px 12px;background:#eff6ff;border-radius:4px;font-size:11px;margin-top:4px;white-space:pre-wrap">' + (r.evidence||'') + '</div></details>';
+    h += '</div>';
+  });
+  target.innerHTML = h;
 }
 
 function renderMethodologyAssemble(){
