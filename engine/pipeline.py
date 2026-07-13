@@ -2280,6 +2280,18 @@ def _run_analyze(company_id, db, progress_callback=None):
                                     "category": rule.get("category", ""),
                                     "chain_driven": True,
                                     "source_chain": clean_chain_name,
+                                    # 注入引擎可消费的深度字段（老邓·精写标准消费）
+                                    "_rule_id": rule.get("id"),
+                                    "_rule_direction": rule.get("direction", ""),
+                                    "_rule_drill_questions": rule.get("drill_questions", ""),
+                                    "_rule_determination": rule.get("determination", ""),
+                                    "_rule_focus": rule.get("focus", ""),
+                                    "_rule_normal_reason": rule.get("normal_reason", ""),
+                                    "_rule_evidence": rule.get("evidence", ""),
+                                    "_rule_risk_table": rule.get("risk_table", ""),
+                                    "_rule_action": rule.get("action", ""),
+                                    "_rule_remedy": rule.get("remedy", ""),
+                                    "_rule_threshold": rule.get("threshold", ""),
                                 })
             
             # 合并链驱动发现到总发现列表
@@ -3190,6 +3202,41 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
+    
+    # ═══ 规则深度字段消费：把税务疑点库的 direction/drill_questions/determination 等注入每条发现 ═══
+    try:
+        from engine.rule_consumer import build_rule_context_for_llm, build_report_context_from_rule
+        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
+        with open(rules_path, "r", encoding="utf-8") as _rf:
+            _all_rules = json.load(_rf)
+        _rule_by_item = {}
+        for _r in _all_rules:
+            _it = str(_r.get("item", "")).strip()
+            _rule_by_item[_it] = _r
+        for f in all_findings:
+            if f.get("_rule_id"):
+                # 链驱动发现已注入，直接消费
+                llm_ctx, _ = build_rule_context_for_llm(f, f)
+                if llm_ctx:
+                    f["_llm_context"] = llm_ctx[:8000]
+                    f["_report_ctx"] = build_report_context_from_rule(f, f)
+            else:
+                # 按 item 反查规则，注入深度字段
+                ftype = f.get("type", "")
+                matched = _rule_by_item.get(ftype) or _rule_by_item.get(ftype.split("[")[0].strip())
+                if matched:
+                    f["_rule_id"] = matched.get("id")
+                    f["_rule_direction"] = matched.get("direction", "")
+                    f["_rule_determination"] = matched.get("determination", "")
+                    llm_ctx, _ = build_rule_context_for_llm(matched, f)
+                    if llm_ctx:
+                        f["_llm_context"] = llm_ctx[:8000]
+                    rep_ctx = build_report_context_from_rule(matched, f)
+                    if rep_ctx:
+                        f["_report_ctx"] = rep_ctx
+        pipeline_log.append(f"规则深度字段消费: 为{len(all_findings)}条发现注入推理上下文")
+    except Exception as _rc_err:
+        pipeline_log.append(f"规则深度字段消费异常(降级继续): {_rc_err}")
     
     # ═══ 证据溯源：为每条发现附加原始数据行级引用（可点击溯源） ═══
     all_findings = _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers)

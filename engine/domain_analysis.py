@@ -4559,7 +4559,21 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
     level = str(rule.get("level", "中风险"))
     category = str(rule.get("category", ""))
     
-    # ── 类型1：定量规则 → 提取数字阈值并验证 ──
+    # ━━━ 结构化 threshold 优先——引擎真正消费精写后的 threshold 字段 ━━━
+    try:
+        from engine.rule_consumer import verify_with_threshold
+        structured_result = verify_with_threshold(rule, bank_txs, invoices, salaries, social_security, vouchers)
+        if structured_result is not None:
+            # 结构化验证返回了结果——消费成功
+            triggered, reason, conf, evid = structured_result
+            if conf >= 0.8:
+                return (triggered, f"精写消费: {reason}", conf, evid)
+            elif conf >= 0.5:
+                return (triggered, reason, conf, evid)
+    except Exception:
+        pass  # rule_consumer 不可用时降级到旧验证引擎
+    
+    # ━━━ 旧引擎兜底 —— 正则从 item+detail 抠数字 ━━━
     import re as _re_q
     numbers = _re_q.findall(r'(\d+(?:\.\d+)?)\s*(万|万元|亿|元|%)?', rule_text)
     thresholds = []  # 提取到的阈值列表
