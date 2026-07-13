@@ -1415,10 +1415,20 @@ async def smart_update_rules(request: Request):
     api_cfg = get_api_config()
     api_key = api_cfg.get("key", "")
     if not api_key:
-        return {"ok": False, "message": "请先在系统主页左上角配置API Key（设置→API密钥）"}
+        return {"ok": False, "message": "⛔ 智能更新已禁用：未接入LLM（未配置API Key）。智能更新必须接入LLM才能使用，请先在系统主页左上角配置API密钥后重试。"}
     base_url = api_cfg.get("base_url", "https://api.deepseek.com/v1")
     model = api_cfg.get("model", "deepseek-chat")
     provider = api_cfg.get("provider", "deepseek")
+    # 前置检查：智能更新必须联网 + 接入LLM，缺任一禁止使用
+    try:
+        import socket as _sock
+        from urllib.parse import urlparse as _urlparse
+        _pu = _urlparse(base_url)
+        _host = _pu.hostname
+        _port = _pu.port or (443 if _pu.scheme == "https" else 80)
+        _sock.create_connection((_host, _port), timeout=5).close()
+    except Exception:
+        return {"ok": False, "message": "⛔ 智能更新已禁用：无法连接网络或LLM服务。智能更新必须联网并接入LLM才能使用——请检查网络连接与API配置后重试。"}
 
     import json as _json, os as _os
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
@@ -1436,9 +1446,11 @@ async def smart_update_rules(request: Request):
     # 动态读取引擎权威精写标准（避免在此处再维护一份、与权威源脱节）
     _repealed_txt = ""
     _exhaust_txt = ""
+    _iron_txt = ""
     try:
         from engine.memory import TAX_BURDEN_RULES
         _rpw = TAX_BURDEN_RULES.get("rule_precise_writing", {})
+        _iron_txt = "精写编制标准·五条铁律（动态同步自引擎权威源engine/memory.py）：" + " ".join(_rpw.get("iron_rules", []))
         _rlw = _rpw.get("repealed_law_watch", {})
         _rep_items = []
         for _r in _rlw.get("repealed", []):
@@ -1456,6 +1468,7 @@ async def smart_update_rules(request: Request):
     summary_lines = [
         f"规则库概况：共{len(rules)}条（人工{len(manual_rules)}条、自动发现{len(auto_rules)}条），{len(cat_count)}个分类",
         f"分类分布：{', '.join(f'{k}({v})' for k,v in cat_count.most_common(10))}",
+        _iron_txt,
         "—— 政策合规审查（最高优先级·每一处错误都可能引发法律风险）——",
         "1.【法规名称准确性】引用法条名称是否与现行法律完全一致——严禁编造或使用AI生成的不存在法条；《个人所得税法》已施行但引用时应确认条款号与现行版本一致",
         "2.【法规时效性·强制核查】引用的每一部法规必须现行有效，policy_ref统一冠'现行有效的《XX法》'并在末尾附'法规现行性核验：YYYY-MM-DD'。" + _repealed_txt + " 增值税相关一律引用《增值税法》(2026-01-01施行)，严禁再用《增值税暂行条例》；营业税已营改增废止。已接入 engine/law_validity_checker 法律时效性核查程序自动校验。",
@@ -1560,19 +1573,25 @@ async def smart_update_rules(request: Request):
     # —— 自动写入规则库 ——
     total_change = compare["new_count"] + compare["modify_count"] + compare["delete_count"]
     if total_change > 0:
-        max_id = max((r.get("id", 0) for r in rules), default=0)
+        # 法律时效性核查程序——对LLM生成/修改的规则强制校验+自动处理
+        try:
+            from engine.law_validity_checker import auto_process as _law_auto
+        except Exception:
+            _law_auto = None
+        max_id = max((r.get("id", 0) for r in rules if isinstance(r.get("id"), int)), default=0)
         applied = 0
-        # 新增：追加到末尾
+        # 新增：追加到末尾（每条只追加一次；写入前过法律时效性核查程序）
         for nr in new_rules_items:
             raw = nr.get("raw", nr)
+            raw.pop("raw", None)  # 去掉可能的自嵌套字段
             max_id += 1
             raw["id"] = max_id
-            if "category" not in raw: raw["category"] = nr.get("category","")[:20]
-            if "level" not in raw: raw["level"] = nr.get("level","中风险")
+            if "category" not in raw: raw["category"] = nr.get("category", "")[:20]
+            if "level" not in raw: raw["level"] = nr.get("level", "中风险")
             if "source" not in raw: raw["source"] = "LLM智能更新"
+            if _law_auto:
+                _law_auto([raw])  # 引擎自动校验:废止法条自动替换+自动核验补标注
             rules.append(raw)
-            applied += 1
-            rules.append(nr)
             applied += 1
         # 修改：按id匹配更新
         for mod in modify_items:
@@ -1588,6 +1607,9 @@ async def smart_update_rules(request: Request):
             did = d.get("id")
             rules = [r for r in rules if str(r.get("id","")) != str(did)]
             applied += 1
+        # 全库法律时效性复核（确保写入后无引用废止法律）
+        if _law_auto:
+            _law_auto(rules)
         # 写回
         with open(rp, "w", encoding="utf-8") as wf:
             _json.dump(rules, wf, ensure_ascii=False, indent=2)
