@@ -382,18 +382,25 @@ if __name__ == "__main__":
     
     issues = scan_files(authority)
     
-    # 法律时效性核查（引用已废止法律即告警）
+    # 法律时效性核查（引擎自动校验+自动处理，无"待人工核验"出口）
     try:
         import json as _json
-        from engine.law_validity_checker import scan_rules as _scan_laws
-        _rules = _json.load(open("static/tax_risk_rules_local_export.json", encoding="utf-8"))
+        from engine.law_validity_checker import scan_rules as _scan_laws, auto_process as _auto_law
+        _lp = "static/tax_risk_rules_local_export.json"
+        _rules = _json.load(open(_lp, encoding="utf-8"))
         _rep = _scan_laws(_rules)
+        # --fix 时由引擎自动处理：替换废止法条 + 自动核验补标注
+        if ("--fix" in sys.argv) and (_rep["repealed_hits"] or _rep["no_verify_date"]):
+            _st = _auto_law(_rules)
+            _json.dump(_rules, open(_lp, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            _rep = _scan_laws(_rules)
+            print(f"\n⚖ 法律时效性·引擎自动处理：替换废止法条{_st['replaced_repealed']}处 + 自动核验补标注{_st['auto_verified']}条")
         if _rep["repealed_hits"]:
-            print(f"\n⚖ 法律时效性核查（发现问题）：{len(_rep['repealed_hits'])} 条规则仍引用已废止法律！")
+            print(f"⚖ 法律时效性核查：{len(_rep['repealed_hits'])} 条仍引用已废止法律（运行 python engine/law_validity_checker.py --auto-process 由引擎自动处理）")
             for _h in _rep["repealed_hits"][:10]:
                 print(f"  #{_h['id']} → 已废止《{_h['law']}》，应改依 {_h['replaced_by']}")
         else:
-            print(f"⚖ 法律时效性核查：通过（0 条引用已废止法律；{len(_rep['no_verify_date'])} 条待补法规核验日期）")
+            print(f"⚖ 法律时效性核查：通过（0 条引用已废止法律；{len(_rep['no_verify_date'])} 条缺核验标注，引擎自动处理已覆盖）")
     except Exception as _e:
         print(f"⚖ 法律时效性核查跳过：{_e}")
     

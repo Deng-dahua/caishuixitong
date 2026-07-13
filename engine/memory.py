@@ -1806,7 +1806,7 @@ TAX_BURDEN_RULES = {
                 ],
                 "current_valid_baseline": "《税收征收管理法》(2015修正)、《企业所得税法》(2018修正)、《个人所得税法》(2018修正)、《发票管理办法》(2023修订)、《会计法》(2024修正)、《增值税法》(2026-01-01施行)、财税〔2003〕158号(现行有效)。引用时仍须在核验日期当日复核。",
                 "check_procedure": "①提取policy_ref中每一部法规名称+条号；②对照repealed列表，命中则按条文映射替换为现行法；③对照current_valid_baseline确认版本年份；④policy_ref末尾追加'法规现行性核验：YYYY-MM-DD'；⑤存量规则批量核查时，按法规名称全库检索命中，统一替换。",
-                "checker_program": "engine/law_validity_checker.py —— 可运行的法律时效性核查程序（老邓2026-07-13确立的机制）。理念：不把法条写死当永久真理，引用现行有效法律并由程序动态核查时效。维护CURRENT_VALID_LAWS(现行有效清单)+REPEALED_LAWS(已废止清单)；提供 check_policy_ref(text)逐条核查、scan_rules(rules)全库扫描。已接入 audit_consistency.py：每次审计自动核查，引用已废止法律即告警。法律变动时只更新两张清单+重跑，无需逐条改死代码。"
+                "checker_program": "engine/law_validity_checker.py —— 可运行的法律时效性核查程序（老邓2026-07-13确立）。理念：不把法条写死当永久真理，引用现行有效法律并由程序动态核查+自动处理，无'待人工核验'出口。维护CURRENT_VALID_LAWS(现行有效清单)+REPEALED_LAWS(已废止清单)；提供 check_policy_ref(text)逐条核查、scan_rules(rules)全库扫描、auto_process(rules)引擎自动校验+自动处理(替换废止法条+自动核验补标注)。已接入 audit_consistency.py：--fix 时引擎自动处理，引用废止法自动替换、缺核验的自动核验补标注。法律变动时只更新两张清单+重跑，无需逐条改死代码。"
             },
             "23_fields": {
                 "basic": {
