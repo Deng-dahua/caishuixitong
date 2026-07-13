@@ -1621,6 +1621,171 @@ async def smart_update_rules(request: Request):
     return {"ok": True, "compare": compare}
 
 
+@app.post("/api/tax-risk-rules/batch-rewrite")
+async def batch_rewrite_rules(request: Request):
+    """批量精写——按23字段精写标准，用LLM逐条重写指定规则。
+    驱动智能更新按钮，让引擎按精写编制标准生成深度内容。
+    
+    Body: {"rule_ids": [1,2,3], "max_per_call": 5}
+    每次调用精写 max_per_call 条，返回精写后的完整23字段规则列表 + 统计。
+    """
+    api_cfg = get_api_config()
+    api_key = api_cfg.get("key", "")
+    if not api_key:
+        return {"ok": False, "message": "⛔ 批量精写已禁用：未接入LLM。请先配置API Key。"}
+    base_url = api_cfg.get("base_url", "https://api.deepseek.com/v1")
+    model = api_cfg.get("model", "deepseek-chat")
+    try:
+        import socket, httpx
+        from urllib.parse import urlparse
+        pu = urlparse(base_url)
+        socket.create_connection((pu.hostname, pu.port or (443 if pu.scheme=="https" else 80)), timeout=5).close()
+    except Exception:
+        return {"ok": False, "message": "⛔ 批量精写已禁用：无法连接LLM服务。请检查网络。"}
+    
+    import json as _json, os as _os
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    with open(rp, "r", encoding="utf-8") as _f:
+        rules = _json.load(_f)
+    
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    rule_ids = body.get("rule_ids", [])
+    max_per = min(body.get("max_per_call", 3), 5)  # 每次最多5条
+    
+    if not rule_ids:
+        return {"ok": False, "message": "请指定要精写的规则ID列表"}
+    
+    # 读精写标准（动态注入，标准改动自动同步）
+    _iron = ""; _exhaust = ""; _repealed = ""
+    try:
+        from engine.memory import TAX_BURDEN_RULES
+        _rpw = TAX_BURDEN_RULES.get("rule_precise_writing", {})
+        _iron = " ".join(_rpw.get("iron_rules", []))
+        _ec = _rpw.get("exhaustion_criteria", {})
+        _exhaust = _ec.get("principle", "") + " 追问穷举判断：" + \
+            _ec.get("drill_questions_done", {}).get("最终判定", "")
+        _rlw = _rpw.get("repealed_law_watch", {})
+        _rep_txt = []
+        for _r in _rlw.get("repealed", []):
+            _rep_txt.append(_r.get("废止法规","")+"→"+_r.get("替代法规",""))
+        _repealed = "；".join(_rep_txt)
+        _baseline = _rlw.get("current_valid_baseline", "")
+    except Exception:
+        pass
+    
+    # 筛选目标规则
+    target_rules = []
+    for rid in rule_ids[:max_per]:
+        for r in rules:
+            if str(r.get("id")) == str(rid):
+                target_rules.append(r)
+                break
+    
+    if not target_rules:
+        return {"ok": False, "message": "未找到指定规则"}
+    
+    # 构建精写Prompt（取标杆范例兜底）
+    prompt_parts = [
+        "你是50年税务稽查局长。逐条把以下税务疑点规则，按23字段精写标准做深度精写。",
+        "【铁律】" + _iron,
+        "【穷举判定标准】" + _exhaust if _exhaust else "",
+        "【法规时效红线】严禁引用已废止法规！" + _repealed + "。现行有效基线：" + _baseline + \
+            "。每条 policy_ref 必须用'现行有效的《XX法》(版本)第X条'格式，末尾附'法规现行性核验：2026-07-13'。",
+        "【精写要求】每条规则输出完整JSON，必须包含以下23字段且逐一精深编写（不设字数上限，应写尽写）：",
+        "- direction：推理链，层与层因果递进，每层标注依赖证据类型。结束条件：定性落地/证据尽头/逻辑闭环。复杂异常4-5层、中等3-4层、简单2-3层——层数是写完的自然结果。",
+        "- drill_questions：穿透追问，三组递进（事实→证据→逻辑），每条追问格式 Q{N}:{问题}→潜台词:{稽查意图}。A:{应对话术}。追问数量由三维覆盖度决定：事实层六要素全覆盖+证据层四流全追问+逻辑层合理解释全排除。最终三问全答'否'即穷举完成。",
+        "- phenomena：异常定义+典型表现(至少5种)+兜底条款+排除条件。",
+        "- focus：稽查重点——舞弊手法预判，①②③④⑤逐条标注，每条=具体操作方式→识别要点。",
+        "- normal_reason：穷举全部真实合法情形，格式{情形}——需提供{具体证据}。5个自问全答'否'即穷举完成。仅0-3种时注明'已穷举全部合法情形'。",
+        "- determination：三路径(无法证明→线索/部分证明→强证据/完整证明→铁证)，每路径定义进入条件+定性+后果。",
+        "- risk_table：影响几个税种写几个，跨税种≥2逐税种列明并区分核心/次要/间接影响。",
+        "- evidence：四层框架(货物流+合同资金流+业务合理性+排雷)+金额分级+优先级标注(必须/应当/可以)。",
+        "- threshold：量化阈值+行业差异调整+前置条件四维度+触发方式。",
+        "- action：至少3步含1项现场核查，每步=动作类型+具体操作+预期产出。",
+        "- suggestion：稽查局视角，定性→补税→滞纳金→罚款→移送标准。",
+        "- remedy：企业视角，三阶段(自查→应对→制度)，含时间维度+话术策略。",
+        "另外必须填写 item/category/level/score/check_frequency/policy_ref/tax_impact/applicable_condition 等基础字段。",
+        "【品质标杆参考（engine/memory.py canon名例 #1813 预收账款长期挂账）】",
+        "追问13条三组穷举至稽查终点、推理链4层自然因果递进、正常解释4种已穷举、证据四层框架含AB场景+优先级。",
+        "【禁止】禁止凑数凑字、禁止硬编固定数量、禁止引用已废止法规、禁止推荐行业特化规则。数量是业务复杂度的自然结果。",
+        "【输出格式】严格返回JSON数组（不做任何额外解释），每个元素是一条精写后的完整规则对象：",
+        '[{"id":原id,"item":"...","category":"...","level":"...","score":N, ...全部23字段...}]'
+    ]
+    prompt = "\n".join(p for p in prompt_parts if p)
+    
+    # 精简输入：只传规则的 item/category/level/现有detail
+    input_rules = []
+    for r in target_rules:
+        input_rules.append({"id": r["id"], "item": r.get("item", ""),
+                           "category": r.get("category", ""), "level": r.get("level", ""),
+                           "existing_detail": str(r.get("detail", r.get("direction", "")))[:300]})
+    prompt += "\n\n【待精写规则】\n" + _json.dumps(input_rules, ensure_ascii=False)
+    
+    try:
+        api_url = base_url.rstrip("/") + "/chat/completions"
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.post(
+                api_url,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model, "messages": [{"role": "user", "content": prompt}],
+                      "temperature": 0.3, "max_tokens": 12000}
+            )
+            if resp.status_code != 200:
+                return {"ok": False, "message": f"LLM调用失败: HTTP {resp.status_code} - {resp.text[:200]}"}
+            ai_text = resp.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        return {"ok": False, "message": f"LLM调用异常: {str(e)}"}
+    
+    # 解析结果
+    import re
+    json_match = re.search(r'\[[\s\S]*\]', ai_text)
+    if not json_match:
+        return {"ok": False, "message": "AI返回格式异常", "raw": ai_text[:500]}
+    try:
+        rewritten = _json.loads(json_match.group())
+    except Exception:
+        return {"ok": False, "message": "AI返回JSON解析失败", "raw": ai_text[:500]}
+    
+    # 引擎自动校验：替换废止法条 + 补核验标注
+    try:
+        from engine.law_validity_checker import auto_process
+        auto_process(rewritten)
+    except Exception:
+        pass
+    
+    # 写回规则库
+    for rw in rewritten:
+        rid = str(rw.get("id"))
+        for i, r in enumerate(rules):
+            if str(r.get("id")) == rid:
+                rules[i] = rw
+                break
+    
+    with open(rp, "w", encoding="utf-8") as _f:
+        _json.dump(rules, _f, ensure_ascii=False, indent=2)
+    
+    # 质量统计
+    stats = {
+        "total": len(rewritten), "direction_layers": [],
+        "drill_count": [], "normal_reason_count": []
+    }
+    for rw in rewritten:
+        dr = str(rw.get("direction", ""))
+        dq = str(rw.get("drill_questions", ""))
+        nr = str(rw.get("normal_reason", ""))
+        stats["direction_layers"].append(dr.count("推理第") if dr.count("推理第") else dr.count("【推理"))
+        stats["drill_count"].append(dq.count("→潜台词"))
+        stats["normal_reason_count"].append(nr.count("需提供证据") or nr.count("需提供"))
+    
+    return {"ok": True, "rewritten_ids": [rw.get("id") for rw in rewritten],
+            "stats": stats,
+            "sample_item": rewritten[0].get("item", "") if rewritten else "",
+            "message": f"已精写{len(rewritten)}条规则，引擎自动校验完成"}
+
+
 # ── 涉税风险分析资料库 ──
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
