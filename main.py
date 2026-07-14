@@ -1382,6 +1382,16 @@ async def update_rule(request: Request):
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+@app.get("/api/tax-risk-rules/execution-guide")
+def get_execution_guide():
+    """返回精写编制说明（v3配套执行指引）——前端展示+智能更新按钮读取"""
+    try:
+        from engine.memory import TAX_BURDEN_RULES
+        eg = TAX_BURDEN_RULES["rule_precise_writing"].get("execution_guide", {})
+        return {"ok": True, "data": eg}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
 @app.post("/api/tax-risk-rules/batch-refresh")
 def batch_refresh_rules():
     """统一刷新全部人工规则：更新政策/法律依据时效标记（如有外部源则填充，否则仅刷新时间戳）"""

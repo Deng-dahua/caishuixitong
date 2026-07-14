@@ -149,10 +149,49 @@ function renderTaxRiskRules(container) {
     + '<em style="color:#64748b;display:block;margin-top:10px">* 追问穷举至稽查终点（证实违法或排除违法），问题间环环相扣、因果递进。数量是因果链条的自然长度，不是硬性指标。不凑数、不强编、一病一方。</em>'
     + '</div>'
     + '</details>';
+  h += '<details id="rr-exec-guide" style="margin-bottom:16px;background:#f8faf9;border:1px solid #d4ede3;border-radius:8px;padding:12px 16px;font-size:12px;line-height:1.9;color:#334155"><summary style="font-weight:700;color:#0f766e;cursor:pointer;font-size:13px">📋 精写编制说明（v3配套执行指引 · 怎么写才不会写错）</summary>'
+    + '<div id="rr-exec-guide-content" style="margin-top:12px;color:#64748b">加载中...</div>'
+    + '</details>';
   h += '<div id="rr-list"></div>';
   h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
+
+  // 加载编制说明
+  fetch('/api/tax-risk-rules/execution-guide').then(function(r){return r.json()}).then(function(d){
+    if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
+    var eg = d.data, html = '';
+    // 定位
+    html += '<div style=background:#f0faf6;border:1px solid #bae6d3;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#0f766e>' + eg.purpose + '</div>';
+    // 常犯错误
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>二、常犯错误防错清单</div>';
+    var errs = eg.common_errors || [];
+    errs.forEach(function(e){ html += '<div style=margin:3px 0><b style=color:#dc2626>❌ </b>' + e.error + ' → <b style=color:#166534>✓</b> ' + e.correct + '</div>'; });
+    // 评分锚点
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>三、风险评分锚点</div>';
+    var sa = eg.scoring_anchors, lvs = sa.levels || [];
+    lvs.forEach(function(l){ html += '<div style=margin:3px 0><b>'+l.score+'分</b>: '+l.criterion+' ('+l.typical+')</div>'; });
+    // 影响程度
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>四、影响程度 & 证据优先级</div>';
+    var il = eg.impact_levels || {};
+    for (var k in il) { if (k=='description') continue; html += '<b>'+k+'</b>: '+il[k]+'<br>'; }
+    var ep = eg.evidence_priority || {};
+    html += '<b>证据优先级——必须获取</b>: '+ep['必须获取']+'<br><b>应当获取</b>: '+ep['应当获取']+'<br><b>可以获取</b>: '+ep['可以获取']+'<br>';
+    // 证据命名
+    var en = eg.evidence_layer_naming, emap = en.映射 || {};
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>五、证据第一层命名指引</div>';
+    for (var k in emap) { html += '<b>'+k+'</b> → '+emap[k]+'<br>'; }
+    // 品质标杆
+    var qb = eg.quality_benchmarks || {};
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>六、品质标杆</div>';
+    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'<br>'; }
+    // 自检清单
+    var sc = eg.submission_checklist || {};
+    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>七、提交前自检（6组17项）</div>';
+    var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽'];
+    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10.5px>'+it+'</span>'; }); html += '<br>'; } }
+    document.getElementById('rr-exec-guide-content').innerHTML = html;
+  }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+e+'</span>'; });
 
   var dataUrl = '/static/tax_risk_rules_local_export.json';
   // 显示规则文件最后修改时间
