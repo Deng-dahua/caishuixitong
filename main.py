@@ -7617,6 +7617,49 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
         if result.get("ok") and result.get("report"):
             result["report"] = _inject_agi_into_report(result["report"], company_id)
         
+        # ═══ 三模块调用：智能引擎中枢 + 稽查方法论 + 报告编制总纲 ═══
+        if result.get("ok") and result.get("report"):
+            report_data = result.get("report", {})
+            # 1. 智能引擎中枢：获取企业生命周期上下文
+            try:
+                from engine.orchestrator import build_orchestration_plan
+                # 构建简易数据画像用于调度
+                findings = report_data.get("all_findings", [])
+                simple_profile = {
+                    "total_records": sum(1 for f in findings),
+                    "risk_levels": {lv: sum(1 for f in findings if f.get("level")==lv) for lv in set(f.get("level","") for f in findings)},
+                    "industry": report_data.get("target_entity", {}).get("industry", ""),
+                }
+                orch_plan = build_orchestration_plan(simple_profile)
+                if orch_plan:
+                    report_data["_engine_hub"] = {
+                        "plan": orch_plan.get("plan", []),
+                        "modules_count": len(str(orch_plan)),
+                    }
+            except Exception: pass
+            # 2. 稽查方法论：为每条发现匹配稽查方法和法规依据
+            try:
+                from engine.methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
+                findings = report_data.get("all_findings", [])
+                if findings and METHODOLOGY_KNOWLEDGE:
+                    for f in findings[:10]:
+                        if f.get("level") in ("高风险", "极高风险", "极高"):
+                            matched = match_methodology(f.get("type", ""))
+                            if matched: f["_methodology"] = matched[:3]
+                            laws = get_relevant_laws(f.get("type", ""))
+                            if laws: f["_methodology_laws"] = laws[:5]
+                    report_data["_methodology_applied"] = {
+                        "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
+                        "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
+                        "findings_enriched": sum(1 for f in findings if f.get("_methodology")),
+                    }
+            except Exception: pass
+            # 3. 报告编制总纲：应用12条质量标准 + 七章结构
+            try:
+                from engine.report_standards import apply_report_standards
+                result["report"] = apply_report_standards(result["report"])
+            except Exception: pass
+        
         # ═══ 缓存回写 ═══
         # pipeline.py 在_inject_agi_into_report之前写缓存，需要再次回写
         if result.get("ok"):
