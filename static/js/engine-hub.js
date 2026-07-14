@@ -14,31 +14,37 @@ function renderEngineHub(container) {
   if (!container) return;
   window.currentModule = '智能引擎中枢';
 
-  // ──── 极简 CSS ────
+  // ──── CSS ────
   var css = '<style>'
-    + '.eh{color:#1a1a2e;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#fff;min-height:100vh}'
-    + '.eh-wrap{max-width:680px;margin:0 auto;padding:64px 32px 120px}'
-    + '.eh h1{font-size:26px;font-weight:800;letter-spacing:-.01em;margin:0 0 6px;color:#0f172a;line-height:1.35}'
-    + '.eh .sub{font-size:14px;color:#94a3b8;margin:0 0 40px;font-weight:400;letter-spacing:.02em}'
-    + '.eh .lead{font-size:14.5px;line-height:1.9;color:#475569;margin:0 0 64px}'
-    + '.eh .lead b{color:#0f172a}'
-    + '.eh .ch{margin-bottom:64px}'
-    + '.eh .ch-num{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.12em;margin:0 0 4px;text-transform:uppercase}'
-    + '.eh .ch-title{font-size:20px;font-weight:800;color:#0f172a;margin:0 0 4px;line-height:1.35}'
-    + '.eh .ch-hr{width:32px;height:3px;background:#0f172a;margin:0 0 24px}'
-    + '.eh .ch p{font-size:14.5px;line-height:1.9;color:#334155;margin:0 0 18px}'
-    + '.eh .ch p strong{color:#0f172a;font-weight:700}'
-    + '.eh .ch p em{font-style:normal;color:#0e7490;font-weight:600}'
-    + '.eh .ch .block{background:#f8fafc;border-left:3px solid #0f172a;padding:16px 20px;margin:20px 0;font-size:13.5px;line-height:1.85;color:#475569}'
-    + '.eh .ch .block .bt{font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;letter-spacing:.03em}'
-    + '.eh .ch .block .bd{font-size:13.5px;color:#475569;line-height:1.85}'
-    + '.eh .ch ul{margin:14px 0;padding:0;list-style:none}'
-    + '.eh .ch ul li{font-size:14px;line-height:1.85;color:#475569;padding:3px 0 3px 18px;position:relative;margin-bottom:2px}'
-    + '.eh .ch ul li::before{content:"";position:absolute;left:0;top:11px;width:5px;height:5px;background:#0f172a;border-radius:50%}'
-    + '.eh .ch ul li strong{color:#0f172a}'
-    + '.eh .footnote{margin-top:64px;padding-top:28px;border-top:1px solid #e2e8f0}'
-    + '.eh .footnote summary{font-size:12px;color:#94a3b8;cursor:pointer;font-weight:600;margin-bottom:10px}'
-    + '.eh .footnote p{font-size:12px;color:#94a3b8;line-height:1.75}'
+    + '.eh{color:#1e293b;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#faf9f6;min-height:100vh;-webkit-font-smoothing:antialiased}'
+    + '.eh-wrap{max-width:720px;margin:0 auto;padding:80px 40px 120px}'
+    // ═══ Hero ═══
+    + '.eh h1{font-size:22px;font-weight:700;letter-spacing:0;margin:0 0 10px;color:#0f1115;line-height:1.4}'
+    + '.eh .sub{font-size:13px;color:#78716c;margin:0 0 56px;font-weight:400;letter-spacing:.04em}'
+    + '.eh .lead{font-size:14px;line-height:1.85;color:#57534e;margin:0 0 72px;padding:0 0 0 0}'
+    + '.eh .lead b{color:#292524;font-weight:600}'
+    // ═══ 章 ═══
+    + '.eh .ch{margin-bottom:72px;background:#fff;border-radius:12px;padding:40px 40px 44px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03)}'
+    + '.eh .ch-num{font-size:10px;font-weight:600;color:#a8a29e;letter-spacing:.16em;margin:0 0 6px;text-transform:uppercase}'
+    + '.eh .ch-title{font-size:18px;font-weight:700;color:#0f1115;margin:0 0 8px;line-height:1.4}'
+    + '.eh .ch-hr{width:28px;height:2px;background:#d6d3d1;margin:0 0 28px;border-radius:1px}'
+    + '.eh .ch p{font-size:14px;line-height:1.85;color:#44403c;margin:0 0 16px}'
+    + '.eh .ch p strong{color:#292524;font-weight:600}'
+    + '.eh .ch p em{font-style:normal;color:#166534;font-weight:500;background:linear-gradient(180deg,transparent 60%,#dcfce7 60%)}'
+    // ═══ 引用块 ═══
+    + '.eh .ch .block{background:#f5f5f4;border-left:3px solid #d6d3d1;border-radius:0 8px 8px 0;padding:18px 22px;margin:20px 0;font-size:13px;line-height:1.8;color:#57534e}'
+    + '.eh .ch .block .bt{font-size:11.5px;font-weight:700;color:#292524;margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}'
+    + '.eh .ch .block .bd{font-size:13px;color:#57534e;line-height:1.8}'
+    + '.eh .ch .block .bd strong{color:#292524;font-weight:600}'
+    // ═══ 列表 ═══
+    + '.eh .ch ul{margin:14px 0 20px;padding:0;list-style:none}'
+    + '.eh .ch ul li{font-size:13.5px;line-height:1.8;color:#57534e;padding:5px 0 5px 20px;position:relative;margin-bottom:4px}'
+    + '.eh .ch ul li::before{content:"";position:absolute;left:1px;top:13px;width:4px;height:4px;background:#a8a29e;border-radius:50%}'
+    + '.eh .ch ul li strong{color:#292524;font-weight:600}'
+    // ═══ 附录 ═══
+    + '.eh .footnote{margin-top:56px;padding:28px 36px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}'
+    + '.eh .footnote summary{font-size:12px;color:#78716c;cursor:pointer;font-weight:600;margin-bottom:10px;letter-spacing:.02em}'
+    + '.eh .footnote p{font-size:11.5px;color:#a8a29e;line-height:1.75}'
     + '</style>';
 
   // ──── Hero ────
