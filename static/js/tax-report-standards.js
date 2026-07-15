@@ -5,7 +5,7 @@ function renderReportStandards(container) {
   window.currentModule = '报告编制总纲';
 
   var h = '<style>'
-    + '.rpt-layout{max-width:1080px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.rpt-layout{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.rpt-h1{font-size:24px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
     + '.rpt-sub{display:inline-block;font-size:10.5px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
     + '.rpt-chapter{margin:38px 0 22px;padding:0 0 10px;border-bottom:2px solid #16233a}'

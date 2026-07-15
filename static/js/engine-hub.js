@@ -16,7 +16,7 @@ function renderEngineHub(container) {
 
   // ──── CSS · 与稽查方法论统一设计系统 ────
   var css = '<style>'
-    + '.eh{max-width:1080px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.eh-wrap{display:block}'
     // ═══ Hero ═══
     + '.eh h1{font-size:24px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
