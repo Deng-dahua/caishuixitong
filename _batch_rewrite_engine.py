@@ -160,11 +160,10 @@ def main():
     with open(RULES_PATH, encoding="utf-8") as f:
         rules = json.load(f)
     
-    # 确定优先级：极高 > 高 > 中 > 低
-    level_order = {"极高风险": 0, "极高": 0, "高风险": 1, "高": 1, "中风险": 2, "低风险": 3, "信息": 4}
+    # 全部规则从 #1 顺序全量重写（老邓要求——包括已精写过的也重写）
     pending = sorted(
-        [r for r in rules if (len(str(r.get("direction",""))) < 300 or "→潜台词" not in str(r.get("drill_questions","")))],
-        key=lambda r: (level_order.get(r.get("level",""), 9), r.get("id", 9999))
+        [r for r in rules],
+        key=lambda r: int(r.get("id", 9999))
     )
     
     print(f"===== 批量精写引擎 =====")

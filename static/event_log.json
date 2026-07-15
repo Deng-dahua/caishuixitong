@@ -1,1 +1,18 @@
-[]
+{
+  "updated_at": "2026-07-15T19:23:18.579197",
+  "total_events": 1,
+  "events": [
+    {
+      "type": "analysis_completed",
+      "data": {
+        "company": "深圳海更数字传媒有限公司",
+        "findings_count": 6,
+        "causal_edges": 0,
+        "patterns": 0
+      },
+      "source": "agi_pipeline",
+      "timestamp": "2026-07-15T19:23:18.578728",
+      "id": "evt_000000"
+    }
+  ]
+}

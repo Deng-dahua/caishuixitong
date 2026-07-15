@@ -1,1 +1,109 @@
-[]
+{
+  "entities": {
+    "深圳海更数字传媒有限公司": {
+      "type": "enterprise",
+      "props": {
+        "source": "analysis"
+      }
+    },
+    "risk:客户维度开票收款偏差（逐户穿透）": {
+      "type": "risk",
+      "props": {
+        "level": "高风险",
+        "count": 1
+      }
+    },
+    "risk:大额整数收款特征（客户维度）": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:大额整数交易频繁": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:印花税 — 购销合同税负不足": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:个人付款方身份核实": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:经营实质-工商登记与发票推断不一致": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    }
+  },
+  "relations": [
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:客户维度开票收款偏差（逐户穿透）",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581225"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:大额整数收款特征（客户维度）",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581232"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:大额整数交易频繁",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581237"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:印花税 — 购销合同税负不足",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581241"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:个人付款方身份核实",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581245"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:经营实质-工商登记与发票推断不一致",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-15T19:23:18.581249"
+    }
+  ],
+  "updated_at": "2026-07-15T19:23:18.581662"
+}
