@@ -1,7 +1,7 @@
 {
   "_meta": {
     "created_at": "2026-07-08T11:58:07.400620",
-    "updated_at": "2026-07-15T19:23:18.581969"
+    "updated_at": "2026-07-15T23:50:37.275397"
   },
   "policies": {},
   "causal_edges": [
@@ -8835,6 +8835,21 @@
       "lesson": "完成一次全模块分析，采集667个学习事件",
       "category": "综合",
       "timestamp": "2026-07-15T19:23:18.544879"
+    },
+    {
+      "lesson": "文件变更: engine-hub.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-15T23:50:37.250228"
+    },
+    {
+      "lesson": "文件变更: tax-pipeline-pages.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-15T23:50:37.262501"
+    },
+    {
+      "lesson": "文件变更: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-15T23:50:37.275387"
     }
   ],
   "analysis_history": [

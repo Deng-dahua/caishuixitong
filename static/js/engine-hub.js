@@ -16,34 +16,34 @@ function renderEngineHub(container) {
 
   // ──── CSS · 与稽查方法论统一设计系统 ────
   var css = '<style>'
-    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:12.5px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.eh-wrap{display:block}'
     // ═══ Hero ═══
-    + '.eh h1{font-size:24px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
-    + '.eh .sub{display:inline-block;font-size:10.5px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
-    + '.eh .lead{font-size:12.5px;line-height:2.0;color:#3a4048;margin:0 0 38px}'
+    + '.eh h1{font-size:10px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
+    + '.eh .sub{display:inline-block;font-size:10px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
+    + '.eh .lead{font-size:10px;line-height:2.0;color:#3a4048;margin:0 0 38px}'
     + '.eh .lead b{color:#1f2d3d;font-weight:600}'
     // ═══ 章·层 ═══
     + '.eh .ch{margin:38px 0 22px;padding:0 0 10px;border-bottom:2px solid #16233a}'
     + '.eh .ch-num{font-size:10px;font-weight:700;color:#9a1f2b;letter-spacing:.16em;margin:0 0 4px;text-transform:uppercase}'
-    + '.eh .ch-title{font-size:17px;font-weight:800;color:#16233a;margin:0;line-height:1.35}'
+    + '.eh .ch-title{font-size:10px;font-weight:800;color:#16233a;margin:0;line-height:1.35}'
     + '.eh .ch-hr{display:none}'
-    + '.eh .ch p{font-size:12.5px;line-height:2.0;color:#3a4048;margin:0 0 11px}'
+    + '.eh .ch p{font-size:10px;line-height:2.0;color:#3a4048;margin:0 0 11px}'
     + '.eh .ch p strong{color:#1f2d3d;font-weight:600}'
     + '.eh .ch p em{font-style:normal;color:#9a1f2b;font-weight:600}'
     // ═══ 引用块 ═══
-    + '.eh .block{background:#fafbfc;border:1px solid #eff2f6;border-radius:8px;padding:13px 15px;margin:4px 0 14px;font-size:11.5px;line-height:1.95;color:#64748b}'
-    + '.eh .block .bt{font-size:12.5px;font-weight:700;color:#16233a;margin:0 0 4px}'
-    + '.eh .block .bd{font-size:11.5px;color:#64748b;line-height:1.95}'
+    + '.eh .block{background:#fafbfc;border:1px solid #eff2f6;border-radius:8px;padding:13px 15px;margin:4px 0 14px;font-size:10px;line-height:1.95;color:#64748b}'
+    + '.eh .block .bt{font-size:10px;font-weight:700;color:#16233a;margin:0 0 4px}'
+    + '.eh .block .bd{font-size:10px;color:#64748b;line-height:1.95}'
     + '.eh .block .bd strong{color:#1f2d3d;font-weight:600}'
     // ═══ 列表 ═══
     + '.eh ul{margin:4px 0 12px;padding:0;list-style:none}'
-    + '.eh ul li{font-size:12.5px;line-height:2.0;color:#3a4048;padding:0 0 2px 18px;position:relative;border-left:2px solid #e2e8f0;margin:0 0 6px}'
+    + '.eh ul li{font-size:10px;line-height:2.0;color:#3a4048;padding:0 0 2px 18px;position:relative;border-left:2px solid #e2e8f0;margin:0 0 6px}'
     + '.eh ul li strong{color:#1f2d3d;font-weight:600}'
     // ═══ 附录 ═══
-    + '.eh .footnote{margin-top:28px;padding:13px 16px;background:#16233a;border-radius:8px;color:#d0d7e0;font-size:12px;line-height:1.95}'
-    + '.eh .footnote summary{font-size:12px;color:#f4c2c7;cursor:pointer;font-weight:600;margin-bottom:6px}'
-    + '.eh .footnote p{font-size:12px;color:#d0d7e0;line-height:1.95}'
+    + '.eh .footnote{margin-top:28px;padding:13px 16px;background:#16233a;border-radius:8px;color:#d0d7e0;font-size:10px;line-height:1.95}'
+    + '.eh .footnote summary{font-size:10px;color:#f4c2c7;cursor:pointer;font-weight:600;margin-bottom:6px}'
+    + '.eh .footnote p{font-size:10px;color:#d0d7e0;line-height:1.95}'
     + '</style>';
 
   // ──── Hero ────
