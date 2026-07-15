@@ -1,7 +1,7 @@
 {
   "_meta": {
     "created_at": "2026-07-08T11:58:07.400620",
-    "updated_at": "2026-07-15T23:50:37.275397"
+    "updated_at": "2026-07-16T07:53:32.517732"
   },
   "policies": {},
   "causal_edges": [
@@ -8850,6 +8850,31 @@
       "lesson": "文件变更: tax-report-standards.js",
       "category": "⑥代码变更",
       "timestamp": "2026-07-15T23:50:37.275387"
+    },
+    {
+      "lesson": "文件变更: engine-hub.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-16T07:53:32.491115"
+    },
+    {
+      "lesson": "文件变更: tax-pipeline-pages.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-16T07:53:32.497784"
+    },
+    {
+      "lesson": "文件变更: tax-report-standards.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-16T07:53:32.504734"
+    },
+    {
+      "lesson": "文件变更: tax-risk-rules.js",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-16T07:53:32.511213"
+    },
+    {
+      "lesson": "文件变更: main.py",
+      "category": "⑥代码变更",
+      "timestamp": "2026-07-16T07:53:32.517723"
     }
   ],
   "analysis_history": [

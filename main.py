@@ -1419,6 +1419,20 @@ def batch_refresh_rules():
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+@app.get("/api/tax-risk-rules/data")
+def get_tax_risk_rules_data():
+    """直接读取并返回规则JSON数据（绕过StaticFiles的大文件限制）"""
+    import os as _os
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+    try:
+        with open(rp, "r", encoding="utf-8") as _f:
+            data = _json.load(_f)
+        return data
+    except Exception as _e:
+        return {"ok": False, "message": f"读取失败: {_e}"}
+
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
     """智能更新规则库——调用LLM分析盲区，返回新增/修改/删除建议及新旧对比表"""

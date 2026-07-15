@@ -157,7 +157,8 @@ function renderTaxRiskRules(container) {
 
   container.innerHTML = h;
 
-  // 加载编制说明
+  // 加载编制说明和数据
+  loadTaxRiskRules();
   fetch('/api/tax-risk-rules/execution-guide').then(function(r){return r.json()}).then(function(d){
     if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
@@ -497,7 +498,7 @@ function filterRules() {
   var cat = document.getElementById('rr-cat-filter')?.value || '';
   var rtype = document.getElementById('rr-type-filter')?.value || '';
   
-  var listEl = document.getElementById('risk-rules-list');
+  var listEl = document.getElementById('rr-list');
   if (!listEl) return;
   
   var allCards = listEl.querySelectorAll('[data-rule-id]');
@@ -538,7 +539,7 @@ async function loadTaxRiskRules() {
 
 async function loadDefaultTaxRiskRules() {
   try {
-    var resp = await fetch('/static/tax_risk_rules_local_export.json?_t=' + Date.now());
+    var resp = await fetch('/api/tax-risk-rules/data');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     var rules = await resp.json();
     if (!Array.isArray(rules) || rules.length === 0) throw new Error('数据为空');
@@ -554,7 +555,7 @@ async function loadDefaultTaxRiskRules() {
     await loadTriggeredRules();
     renderTaxRiskRulesList();
   } catch (e) {
-    var el = document.getElementById('risk-rules-list');
+    var el = document.getElementById('rr-list');
     if (el) el.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
 }
@@ -584,7 +585,7 @@ async function loadTriggeredRules() {
 
 function renderTaxRiskRulesList() {
   var data = taxRiskRulesData;
-  var listEl = document.getElementById('risk-rules-list');
+  var listEl = document.getElementById('rr-list');
   var statsEl = document.getElementById('risk-rules-stats');
   if (!listEl) return;
 
