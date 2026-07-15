@@ -5706,7 +5706,7 @@ function METHODOLOGY_CSS() {
     + '.au-toc a:hover{color:#9a1f2b;border-left-color:#9a1f2b}'
     + '.au-toc a.lv{margin-top:14px;font-weight:700;color:#2a3540;font-size:10.5px;border-left-color:#9a1f2b}'
     + '.au-toc a.lv:first-child{margin-top:0}'
-    + '.au-body{flex:1;min-width:0;max-width:820px}'
+    + '.au-body{flex:1;min-width:0}'
     + '.au h1{font-size:24px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em}'
     + '.au .seal{display:inline-block;font-size:10.5px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
     + '.au .layer{margin:38px 0 22px;padding:0 0 10px;border-bottom:2px solid #16233a}'
