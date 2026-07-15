@@ -17,14 +17,14 @@ function renderEngineHub(container) {
   // ──── CSS ────
   var css = '<style>'
     + '.eh{color:#1e293b;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#faf9f6;min-height:100vh;-webkit-font-smoothing:antialiased}'
-    + '.eh-wrap{max-width:720px;margin:0 auto;padding:80px 40px 120px}'
+    + '.eh-wrap{max-width:720px;margin:0 auto;padding:56px 28px 100px}'
     // ═══ Hero ═══
     + '.eh h1{font-size:22px;font-weight:700;letter-spacing:0;margin:0 0 10px;color:#0f1115;line-height:1.4}'
-    + '.eh .sub{font-size:13px;color:#78716c;margin:0 0 56px;font-weight:400;letter-spacing:.04em}'
-    + '.eh .lead{font-size:14px;line-height:1.85;color:#57534e;margin:0 0 72px;padding:0 0 0 0}'
+    + '.eh .sub{font-size:13px;color:#78716c;margin:0 0 40px;font-weight:400;letter-spacing:.04em}'
+    + '.eh .lead{font-size:14px;line-height:1.85;color:#57534e;margin:0 0 56px;padding:0 0 0 0}'
     + '.eh .lead b{color:#292524;font-weight:600}'
     // ═══ 章 ═══
-    + '.eh .ch{margin-bottom:72px;background:#fff;border-radius:12px;padding:40px 40px 44px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03)}'
+    + '.eh .ch{margin-bottom:56px;background:#fff;border-radius:12px;padding:32px 28px 36px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03)}'
     + '.eh .ch-num{font-size:10px;font-weight:600;color:#a8a29e;letter-spacing:.16em;margin:0 0 6px;text-transform:uppercase}'
     + '.eh .ch-title{font-size:18px;font-weight:700;color:#0f1115;margin:0 0 8px;line-height:1.4}'
     + '.eh .ch-hr{width:28px;height:2px;background:#d6d3d1;margin:0 0 28px;border-radius:1px}'
@@ -42,7 +42,7 @@ function renderEngineHub(container) {
     + '.eh .ch ul li::before{content:"";position:absolute;left:1px;top:13px;width:4px;height:4px;background:#a8a29e;border-radius:50%}'
     + '.eh .ch ul li strong{color:#292524;font-weight:600}'
     // ═══ 附录 ═══
-    + '.eh .footnote{margin-top:56px;padding:28px 36px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}'
+    + '.eh .footnote{margin-top:40px;padding:24px 28px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}'
     + '.eh .footnote summary{font-size:12px;color:#78716c;cursor:pointer;font-weight:600;margin-bottom:10px;letter-spacing:.02em}'
     + '.eh .footnote p{font-size:11.5px;color:#a8a29e;line-height:1.75}'
     + '</style>';
