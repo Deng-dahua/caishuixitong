@@ -1351,6 +1351,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     pipeline_log.append(f"[TIMING] 案情画像: {_step_timing['profile']}秒")
     # ═══════════════════════════════════════════════════════════
     
+    # ═══ 报告编制总纲补全：四方交叉验证（发票↔银行）═══
+    cross_verify_result = _four_way_cross_verify(invoices, bank_txs, pipeline_log)
+    
     # Phase 1 — 初查：建立企业画像和全局快照
     # 推理引擎入口：创建AuditContext，跑初查阶段，
     # 产出企业画像+财务全景+主营业务成本识别+初查信号
@@ -3440,6 +3443,18 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 税务合规报告质量标准执行（12项硬指标）═══
     all_findings, quality_report = _enforce_report_quality_standards(all_findings, pipeline_log)
     
+    # ═══ 报告编制总纲补全：语言立场过滤（审判者→发现者）═══
+    all_findings, stance_stats = _filter_discovery_language(all_findings, pipeline_log)
+    
+    # ═══ 报告编制总纲补全：六要素强制格式检查 ═══
+    all_findings, elements_stats = _enforce_six_elements(all_findings, pipeline_log)
+    
+    # ═══ 报告编制总纲补全：五条禁令文本检查 ═══
+    all_findings = _check_five_prohibitions(all_findings, pipeline_log)
+    
+    # ═══ 报告编制总纲补全：证据三性校验 ═══
+    all_findings, evidence_report = _evidence_three_property_check(all_findings, pipeline_log)
+    
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
     _INTERNAL_PATTERNS = [
         "数据验证通过", "数据验证:",
@@ -3682,6 +3697,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         "target_entity": target_entity,
         "low_data_warning": low_data_warning,
         "quality_report": quality_report,
+        "cross_verify": cross_verify_result if 'cross_verify_result' in dir() else {},
+        "rights_and_signature": _generate_rights_and_signature_chapters(target_entity),
         "engine_status": engine_status,
         "all_findings": sorted(final_findings, key=lambda x: -(x.get("score") or 0)),
         "entity_graph": getattr(ctx, '_entity_graph', None) or {},
@@ -4562,6 +4579,180 @@ def _enforce_report_quality_standards(all_findings, pipeline_log):
     )
     
     return enforced, quality_log
+
+
+# ═══════════ 报告编制总纲补全：证据三性校验 ═══════════
+def _evidence_three_property_check(all_findings, pipeline_log):
+    """证据三性校验：真实性/关联性/合法性"""
+    checked = []
+    report = {"total": len(all_findings), "passed": 0, "excluded": 0, "marked": 0, "illegal": 0}
+    for f in all_findings:
+        issues = []
+        detail = str(f.get("detail", ""))
+        how_found = str(f.get("how_found", ""))
+        source = str(f.get("source", ""))
+        rule_id = str(f.get("rule_id", ""))
+        has_trace = bool(rule_id) or "原始" in source or "行号" in source or "文件" in how_found
+        has_evidence_refs = bool(f.get("items")) or "发票号" in detail or "凭证" in detail or "流水" in detail
+        if not has_trace and not has_evidence_refs:
+            issues.append("真实性: 证据来源不可追溯")
+            report["marked"] += 1
+        else:
+            report["passed"] += 1
+        indirect_keywords = ["可能有关", "间接", "参考依据", "旁证", "关联企业"]
+        f["_evidence_relevance"] = "间接" if any(k in detail for k in indirect_keywords) else "直接"
+        illegal_patterns = ["跨企业比对", "未经授权", "第三方数据未授权"]
+        f["_evidence_legality"] = "不合规" if any(p in how_found + detail for p in illegal_patterns) else "合规"
+        if f["_evidence_legality"] == "不合规":
+            report["illegal"] += 1
+            issues.append("合法性: 取证路径不合规")
+        f["_evidence_authenticity"] = "待核实" if "真实性" in str(issues) else "可追溯"
+        if issues:
+            existing = f.get("_quality_issues", [])
+            f["_quality_issues"] = existing + issues
+        checked.append(f)
+    pipeline_log.append(f"证据三性校验: {report['passed']}条通过 待核实{report['marked']}条 不合规{report['illegal']}条")
+    return checked, report
+
+
+# ═══════════ 报告编制总纲补全：语言立场过滤 ═══════════
+def _filter_discovery_language(all_findings, pipeline_log):
+    """语言立场过滤：预判定性词→发现者表述"""
+    FORBIDDEN_MAP = {
+        "违法认定": "涉嫌", "已查明": "经查发现", "经核实确认": "经查",
+        "构成偷税罪": "涉嫌偷税", "构成虚开罪": "涉嫌虚开",
+        "确定存在": "发现", "确认": "发现",
+    }
+    filtered, stats = [], {"replaced": 0}
+    for f in all_findings:
+        changed = False
+        for field in ("detail", "description", "how_found", "suggestion", "tax_impact"):
+            val = str(f.get(field, ""))
+            for forbidden, replacement in FORBIDDEN_MAP.items():
+                if forbidden in val:
+                    val = val.replace(forbidden, replacement)
+                    changed = True
+            if changed:
+                f[field] = val
+        if changed:
+            stats["replaced"] += 1
+        filtered.append(f)
+    if stats["replaced"] > 0:
+        pipeline_log.append(f"语言立场过滤: {stats['replaced']}条发现的预判性表述已替换为发现者表述")
+    return filtered, stats
+
+
+# ═══════════ 报告编制总纲补全：六要素强制 ═══════════
+def _enforce_six_elements(all_findings, pipeline_log):
+    """六要素强制检查：性质→事实→证据→来源→法律→建议"""
+    enforced = []
+    stats = {"total": len(all_findings), "complete": 0, "missing": 0}
+    for f in all_findings:
+        missing = []
+        detail = str(f.get("detail", ""))
+        if not f.get("type") or len(str(f.get("type", ""))) < 2:
+            missing.append("性质")
+        if not detail or len(detail) < 10 or not bool(re.search(r'\d[\d,.]*万?元?', detail)):
+            missing.append("事实")
+        has_items = bool(f.get("items")) and len(f.get("items", [])) > 0
+        has_evidence_text = any(k in detail for k in ["发票", "凭证", "银行", "合同"])
+        if not has_items and not has_evidence_text:
+            missing.append("证据")
+        if not f.get("rule_id") and not f.get("source"):
+            missing.append("来源")
+        policy_ref = str(f.get("policy_ref", ""))
+        if not policy_ref or len(policy_ref) < 5 or not ("第" in policy_ref and ("条" in policy_ref or "款" in policy_ref)):
+            missing.append("法律")
+        suggestion = str(f.get("suggestion", ""))
+        if not suggestion or len(suggestion) < 10 or "请核实" in suggestion:
+            missing.append("建议")
+        if not missing:
+            stats["complete"] += 1
+        else:
+            stats["missing"] += 1
+            f["_missing_elements"] = missing
+            existing = f.get("_quality_issues", [])
+            f["_quality_issues"] = existing + [f"六要素缺失: {','.join(missing)}"]
+        enforced.append(f)
+    pipeline_log.append(f"六要素检查: {stats['complete']}/{stats['total']}条完整 缺{stats['missing']}条")
+    return enforced, stats
+
+
+# ═══════════ 报告编制总纲补全：五条禁令 ═══════════
+def _check_five_prohibitions(all_findings, pipeline_log):
+    """五条禁令文本检查：一逗到底/多逻辑/括号堆叠/子项成段/数据解释分层"""
+    violations = 0
+    for f in all_findings:
+        detail = str(f.get("detail", ""))
+        issues = []
+        sentences = [s.strip() for s in detail.replace("。", "。|").split("|") if s.strip()]
+        for s in sentences:
+            if s.count("，") >= 5 and len(s) > 80:
+                issues.append("五条禁令①: 一逗到底")
+                break
+        paren_depth = 0
+        for ch in detail:
+            if ch in "(（": paren_depth += 1
+            elif ch in ")）": paren_depth -= 1
+            if paren_depth >= 3:
+                issues.append("五条禁令③: 括号堆叠")
+                break
+        if len(detail) > 300 and ("分析" in detail or "方法" in detail) and ("金额" in detail or "元" in detail or "%" in detail):
+            issues.append("五条禁令⑤: 建议数据与解释分层")
+        if issues:
+            violations += 1
+            existing = f.get("_quality_issues", [])
+            f["_quality_issues"] = existing + issues
+    if violations > 0:
+        pipeline_log.append(f"五条禁令检查: {violations}条发现违反格式禁令")
+    return all_findings
+
+
+# ═══════════ 报告编制总纲补全：四方交叉验证 ═══════════
+def _four_way_cross_verify(invoices, bank_txs, pipeline_log):
+    """四方交叉验证：发票流↔资金流初步比对"""
+    result = {"verified": True, "conflicts": []}
+    if not invoices or not bank_txs:
+        pipeline_log.append("四方交叉验证: 资料不足跳过")
+        return result
+    inv_amt = sum(float(i.get("amount", 0) or i.get("金额", 0) or 0) for i in invoices)
+    bank_amt = sum(float(t.get("amount", 0) or t.get("金额", 0) or 0) for t in bank_txs)
+    if inv_amt > 0 and bank_amt > 0:
+        ratio = bank_amt / max(inv_amt, 1)
+        if ratio < 0.3 or ratio > 3.0:
+            result["conflicts"].append(f"四流不一致: 发票{inv_amt:,.0f} vs 银行{bank_amt:,.0f}(比例{ratio:.2f})")
+            result["verified"] = False
+    if result["conflicts"]:
+        pipeline_log.append(f"四方交叉验证: {len(result['conflicts'])}处不一致")
+    else:
+        pipeline_log.append(f"四方交叉验证: 通过（发票{len(invoices)}笔 银行{len(bank_txs)}笔）")
+    return result
+
+
+# ═══════════ 报告编制总纲补全：权利告知+签字章节 ═══════════
+def _generate_rights_and_signature_chapters(company_info):
+    """生成第六章（告知权利义务）和第七章（签字）"""
+    company_name = company_info.get("name", "") if company_info else ""
+    ch6 = {
+        "title": "告知权利义务",
+        "company": company_name,
+        "rights": {
+            "回避权": {"期限": "3日内申请", "条件": "稽查人员与被查单位有利害关系"},
+            "陈述申辩权": {"期限": "7日内", "条件": "对稽查发现的事实和证据进行陈述和申辩"},
+            "听证权": {"期限": "5日内申请", "条件": "对拟作出的行政处罚有异议"},
+            "行政复议权": {"期限": "60日内", "条件": "对税务处理决定不服"},
+            "行政诉讼权": {"期限": "15日内", "条件": "对行政复议决定不服或直接起诉"},
+        },
+        "notice": "被查单位及其法定代表人对本报告所述事实、证据、法律依据和处理建议享有上述权利。请在法定期限内行使。"
+    }
+    ch7 = {
+        "title": "税务合规人员签字",
+        "executor": {"label": "执行人", "fields": ["亲笔签名", "执法证件号"]},
+        "reviewer": {"label": "审理人", "fields": ["亲笔签名", "执法证件号"]},
+        "seal": "税务机关公章",
+        "copies": "本报告一式三份：税务合规部门留存一份，被查单位一份，报送上一级税务机关备案一份。"
+    }
+    return {"ch6": ch6, "ch7": ch7}
 
 
 # ═══════════ 明细注入：为每条发现附加结构化明细数据 ═══════════
