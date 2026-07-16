@@ -5,7 +5,7 @@ function renderReportStandards(container) {
   window.currentModule = '报告编制总纲';
 
   var h = '<style>'
-    + '.rpt{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.rpt{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.rpt h2{font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px;line-height:1.35}'
     + '.rpt>h2:first-child{font-size:10px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
     + '.rpt .tag{display:inline-block;font-size:10px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
@@ -14,7 +14,7 @@ function renderReportStandards(container) {
     + '.rpt p em,.rpt em{font-style:normal;color:#9a1f2b;font-weight:600}'
     + '.rpt-chapter{margin:22px 0 22px;padding:0}'
     + '.rpt-chapter h2{font-size:10px;font-weight:800;color:#16233a;margin:0 0 10px;line-height:1.35;border:none;padding:0}'
-    + '.rpt-rule{margin:4px 0;padding:0;font-size:10px;line-height:2.0;color:#3a4048}'
+    + '.rpt-rule{margin:4px 0;padding:0;font-size:10px;line-height:11px;color:#3a4048}'
     + '.rpt-rule .rn{color:#9a1f2b;font-weight:700;margin-right:6px}'
     + '.rpt-rule .rc{color:#3a4048}'
     + '.rpt-rule.fatal{margin:6px 0}'

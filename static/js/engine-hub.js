@@ -9,17 +9,17 @@ function renderEngineHub(container) {
   window.currentModule = '智能引擎中枢';
 
   var css = '<style>'
-    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.eh h1{font-size:10px;font-weight:800;color:#16233a;margin:0 0 12px;letter-spacing:-.02em;line-height:1.3}'
     + '.eh .sub{display:inline-block;font-size:10px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 30px}'
-    + '.eh .lead{font-size:10px;line-height:2.0;color:#3a4048;margin:0 0 38px}'
+    + '.eh .lead{font-size:10px;line-height:11px;color:#3a4048;margin:0 0 38px}'
     + '.eh .lead b,.eh .lead strong{color:#1f2d3d;font-weight:600}'
     + '.eh p{margin:0 0 11px;text-align:justify}'
     + '.eh p b,.eh p strong{color:#1f2d3d;font-weight:600}'
     + '.eh p em{font-style:normal;color:#9a1f2b;font-weight:600}'
-    + '.eh .footnote{margin-top:28px;padding:13px 16px;background:#16233a;border-radius:8px;color:#d0d7e0;font-size:10px;line-height:1.95}'
+    + '.eh .footnote{margin-top:28px;padding:13px 16px;background:#16233a;border-radius:8px;color:#d0d7e0;font-size:10px;line-height:11px}'
     + '.eh .footnote summary{font-size:10px;color:#f4c2c7;cursor:pointer;font-weight:600;margin-bottom:6px}'
-    + '.eh .footnote p{font-size:10px;color:#d0d7e0;line-height:1.95}'
+    + '.eh .footnote p{font-size:10px;color:#d0d7e0;line-height:11px}'
     + '</style>';
 
   var h = '';
