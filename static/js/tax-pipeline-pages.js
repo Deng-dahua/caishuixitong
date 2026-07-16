@@ -5778,7 +5778,7 @@ function renderMethodologyContent(){
   var t=document.getElementById('au-body');if(!t)return;
   var h='';
   // ═══ 开篇 ═══
-  h+='<section id="au-preface"><h1>稽查方法论</h1><div class="seal">五十年稽查局长交棒 · 引擎执行总纲</div>';
+  h+='<section id="au-preface"><h1>稽查方法论</h1>';
   h+='<p>这不是一本教科书，是一位带了半世纪稽查队的老人，把从进门查账到定案出报告的每一步，写成引擎能<em>照做、能量化、能溯源</em>的指令。每一条指令背后，都有某年某案的真金白银在撑着。</p>';
   h+='<p>引擎执行七层：<em>启动→扫描→布网→过滤→定案→出鞘→进化</em>。不到这一层，不碰下一层的武器。每一层把"稽查员会怎么想"和"系统凭什么这么判"熔在一起——看完这七层，你就知道一键分析按钮按下去之后，引擎到底做了什么、凭什么敢下结论。</p>';
   h+='<div class="l">稽查指令</div></div><div class="d"><div class="n">{{clue_chains}}</div><div class="l">线索链</div></div><div class="d"><div class="n">{{evidence_chains}}</div><div class="l">证据链</div></div><div class="d"><div class="n">48</div><div class="l">分析链</div></div><div class="d"><div class="n">{{domain_functions}}</div><div class="l">域分析</div></div><div class="d"><div class="n">{{industries}}</div><div class="l">行业基准</div></div></div>';
