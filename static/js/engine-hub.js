@@ -25,7 +25,6 @@ function renderEngineHub(container) {
   var h = '';
   h += '<div class="eh">';
   h += '<h1>智能引擎中枢</h1>';
-  h += '<p class="sub">核心-环路并行认知架构</p>';
 
   h += '<p class="lead">'
     + '这不是一个串行流水线。<b>真正的老稽查员一边翻账本，经验就在脑子里激活；看到熟悉的资金流向，警铃立刻拉响；定案之前，会扮演辩方律师把所有能推翻结论的理由想一遍。</b>'
