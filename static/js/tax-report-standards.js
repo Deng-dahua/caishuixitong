@@ -27,7 +27,6 @@ function renderReportStandards(container) {
     + '</style>'
     + '<div class="rpt">';
   h += '<h2>报告编制总纲</h2>';
-  h += '<p class="tag">五十载稽查生涯所悟——报告不是产品，是证据</p>';
 
   h += '<div class="rpt-chapter"><h2>一、报告本质</h2>';
   h += '<p>报告终极目的：让一个没看过原始数据的人，读完报告后能独立判断案子要不要立、税要不要补、人要不要移送。</p>';
