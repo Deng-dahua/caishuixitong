@@ -152,6 +152,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.phase2_deep_dive import _phase2_deep_dive
     from engine.phase3_cross_validate import _phase3_cross_validate
     from engine.phase4_synthesis import _phase4_synthesis
+    from engine.cognitive_bridge import broadcast, extract_topology_pattern
+    from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check
     from engine.orchestrator import build_data_profile, build_orchestration_plan
     from engine.memory import save_analysis_memory, query_similar_cases
     from engine.context import AuditContext
@@ -1368,8 +1370,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _p1e:
         pipeline_log.append(f"[Phase1] 初查异常: {_p1e}，使用默认企业画像继续")
         ctx.industry_profile = {"industry": "通用", "benchmarks": {}}
-        ctx.red_flags = []
-        ctx.yellow_flags = []
+    
+    # ═══ 认知桥接：Phase1 完成广播 ═══
+    broadcast("phase1_triage", {"industry": ctx.industry_profile.get("industry", "") if ctx.industry_profile else ""}, pipeline_log)
+    ctx.red_flags = []
+    ctx.yellow_flags = []
     
     # ═══ 调度中枢 ───
     comprehensive = {}
@@ -1417,6 +1422,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                                         salaries, social_security, vouchers, inventory, docs, file_results,
                                         contract_data, voucher_revenue, total_parsed, pipeline_log)
     # 记录 Phase 2 已覆盖的域名，避免后续 domain_results 重复
+    broadcast("phase2_deep_dive", {"findings": len(all_findings) if 'all_findings' in dir() else 0}, pipeline_log)
     phase2_domains_covered = set(dr["domain"] for dr in phase2_results)
     # 收集深度信息
     depth_levels = {}
@@ -1689,6 +1695,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══════════════════════════════════════════════════════════
     cross_findings, risk_adjustments = _phase3_cross_validate(ctx, all_findings, pipeline_log)
     
+    # ═══ 认知桥接：Phase3 完成广播 ═══
+    conflicts = sum(1 for f in cross_findings if f.get("_negotiated")) if cross_findings else 0
+    broadcast("phase3_cross_validate", {"conflicts": conflicts, "total_cross": len(cross_findings) if cross_findings else 0}, pipeline_log)
+    
     # ── 保留原跨结论串联验证的轻量逻辑（Phase 3 的补充）──
     _bom_missing = any("缺少BOM" in f.get("type","") or "BOM" in f.get("type","") for f in all_findings)
     _has_expense_excluded = any("三层分类" in f.get("detail","") or "主营业务成本识别" in f.get("detail","") for f in all_findings)
@@ -1728,6 +1738,13 @@ def _run_analyze(company_id, db, progress_callback=None):
     _report(99, "步骤⑥行业对标与申报比对 — Phase4综合定性开始...", step=6)
     # ── Phase 4：综合定性 ──
     synthesis = _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log)
+    
+    # ═══ 认知桥接：Phase4 完成广播 + 红队证伪 + 盲测 + 模式提取 ═══
+    broadcast("phase4_synthesis", {"total_findings": len(all_findings), "high_risk": high}, pipeline_log)
+    red_team_results = red_team_falsification(all_findings, pipeline_log)
+    blind_results = blind_destruction_test(all_findings, pipeline_log)
+    hallucination_count = hallucination_check(all_findings, pipeline_log)
+    topology_pattern = extract_topology_pattern(all_findings, target_entity, pipeline_log)
     
     _step_timing["step6"] = round(time.time() - _step_timing.get("step6_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤⑥行业对标与申报比对(Phase4综合定性): {_step_timing['step6']}秒")
@@ -3710,6 +3727,10 @@ def _run_analyze(company_id, db, progress_callback=None):
         "low_data_warning": low_data_warning,
         "quality_report": quality_report,
         "cross_verify": cross_verify_result if 'cross_verify_result' in dir() else {},
+        "red_team": red_team_results if 'red_team_results' in dir() else {},
+        "blind_test": blind_results if 'blind_results' in dir() else {},
+        "hallucination_count": hallucination_count if 'hallucination_count' in dir() else 0,
+        "topology_pattern": topology_pattern if 'topology_pattern' in dir() else {},
         "rights_and_signature": _generate_rights_and_signature_chapters(target_entity),
         "case_source": case_source if 'case_source' in dir() else {},
         "implementation": implementation if 'implementation' in dir() else {},
