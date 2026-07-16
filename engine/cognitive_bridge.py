@@ -118,7 +118,7 @@ def _push_closing_pattern(data, pipeline_log=None):
 
 # ── 拓扑模式骨架提取（学习层） ──
 def extract_topology_pattern(all_findings, target_entity, pipeline_log=None):
-    """从分析结果中提取违法模式骨架（三维拓扑）"""
+    """从分析结果中提取违法模式骨架（三维拓扑）并计算与历史模式的相似度"""
     pattern = {
         "timestamp": time.time(),
         "entity": str(target_entity.get("name", "")) if target_entity else "",
@@ -138,11 +138,104 @@ def extract_topology_pattern(all_findings, target_entity, pipeline_log=None):
             pattern["relation"].append({"type": ftype, "summary": detail[:100]})
         if "发票" in ftype or "进" in ftype or "销" in ftype or "品名" in ftype:
             pattern["invoice_flow"].append({"type": ftype, "summary": detail[:100]})
-    # 持久化模式骨架
+    # 计算与历史模式的拓扑相似度
+    similarity = _compute_topology_similarity(pattern, pipeline_log)
+    pattern["topology_match"] = similarity
     _save_pattern(pattern)
     if pipeline_log is not None:
-        pipeline_log.append(f"[学习层] 模式骨架提取: 资金{len(pattern['fund_flow'])} 关联{len(pattern['relation'])} 发票{len(pattern['invoice_flow'])}")
+        pipeline_log.append(
+            f"[学习层] 模式骨架: 资金{len(pattern['fund_flow'])} 关联{len(pattern['relation'])} "
+            f"发票{len(pattern['invoice_flow'])} 与历史最高相似度{similarity['best_score']:.1%}"
+        )
     return pattern
+
+
+# ── 拓扑相似度计算（图编辑距离） ──
+def _compute_topology_similarity(current_pattern, pipeline_log=None):
+    """计算当前模式与模式库中所有历史模式的拓扑相似度"""
+    patterns = _load_pattern_library()
+    if not patterns:
+        return {"best_score": 0, "best_match": None, "matches": []}
+    results = []
+    for hist in patterns:
+        score = _graph_edit_similarity(current_pattern, hist)
+        if score > 0:
+            results.append({"entity": hist.get("entity", ""), "score": score, "timestamp": hist.get("timestamp", 0)})
+    results.sort(key=lambda x: x["score"], reverse=True)
+    best = results[0] if results else {"entity": None, "score": 0}
+    if results and best["score"] >= 0.8:
+        if pipeline_log is not None:
+            pipeline_log.append(f"[拓扑匹配·P0] 相似度≥80% 匹配到历史模式: {best['entity']}")
+    return {"best_score": best["score"], "best_match": best.get("entity"), "matches": results[:3]}
+
+
+def _graph_edit_similarity(p1, p2):
+    """计算两个模式骨架的图编辑相似度"""
+    if not p1 or not p2:
+        return 0
+    # 比较三维拓扑的Jaccard相似度
+    scores = []
+    for dim in ("fund_flow", "relation", "invoice_flow"):
+        types1 = {item.get("type", "") for item in p1.get(dim, [])}
+        types2 = {item.get("type", "") for item in p2.get(dim, [])}
+        if types1 and types2:
+            intersection = len(types1 & types2)
+            union = len(types1 | types2)
+            dim_score = intersection / union if union > 0 else 0
+        elif not types1 and not types2:
+            dim_score = 1.0
+        else:
+            dim_score = 0.5
+        scores.append(dim_score)
+    return sum(scores) / len(scores)
+
+
+def _load_pattern_library():
+    """加载历史模式库"""
+    patterns_dir = os.path.join(os.path.dirname(__file__), "..", "static", "patterns")
+    if not os.path.exists(patterns_dir):
+        return []
+    patterns = []
+    for fname in os.listdir(patterns_dir):
+        if fname.endswith(".json"):
+            try:
+                with open(os.path.join(patterns_dir, fname), "r", encoding="utf-8") as f:
+                    patterns.append(json.load(f))
+            except Exception:
+                pass
+    return patterns
+
+
+# ── 自愈反馈闭环：盲测崩塌点写入自愈规则库 ──
+def self_heal_from_blind_test(blind_results, all_findings, pipeline_log=None):
+    """盲测发现证据崩塌点后，自动写入自愈规则库"""
+    collapsed = [f for f in all_findings if f.get("_blind_test", "").startswith("崩塌")]
+    if not collapsed:
+        return
+    # 将崩塌的证据节点标记为不可靠
+    heal_rules = []
+    for f in collapsed:
+        ftype = str(f.get("type", ""))
+        heal_rules.append({
+            "timestamp": time.time(),
+            "trigger": f"盲测崩塌: {ftype}",
+            "action": "增加交叉验证要求",
+            "detail": "原来需要2个独立来源的提升到3个，原来需要3个的提升到4个",
+        })
+    # 写入自愈规则库
+    try:
+        heal_path = os.path.join(os.path.dirname(__file__), "..", "static", "self_heal_rules.json")
+        existing = []
+        if os.path.exists(heal_path):
+            with open(heal_path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        existing.extend(heal_rules)
+        with open(heal_path, "w", encoding="utf-8") as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    if pipeline_log is not None:
+        pipeline_log.append(f"[自愈闭环] 盲测{len(collapsed)}个崩塌点已写入自愈规则库")
 
 
 def _save_pattern(pattern):

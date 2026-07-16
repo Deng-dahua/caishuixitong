@@ -152,7 +152,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.phase2_deep_dive import _phase2_deep_dive
     from engine.phase3_cross_validate import _phase3_cross_validate
     from engine.phase4_synthesis import _phase4_synthesis
-    from engine.cognitive_bridge import broadcast, extract_topology_pattern
+    from engine.cognitive_bridge import broadcast, extract_topology_pattern, self_heal_from_blind_test
     from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check, consistency_rerun_check
     from engine.orchestrator import build_data_profile, build_orchestration_plan
     from engine.memory import save_analysis_memory, query_similar_cases
@@ -1743,6 +1743,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     broadcast("phase4_synthesis", {"total_findings": len(all_findings), "high_risk": high}, pipeline_log)
     red_team_results = red_team_falsification(all_findings, pipeline_log)
     blind_results = blind_destruction_test(all_findings, pipeline_log)
+    self_heal_from_blind_test(blind_results, all_findings, pipeline_log)
     hallucination_count = hallucination_check(all_findings, pipeline_log)
     topology_pattern = extract_topology_pattern(all_findings, target_entity, pipeline_log)
     consistency_result = consistency_rerun_check(all_findings, pipeline_log)
