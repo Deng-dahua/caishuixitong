@@ -81,7 +81,7 @@ function getSharedAnalysis() {
 function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
-  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.fp-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.fp-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-toc a:hover,.fp-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.fp-main{flex:1;min-width:0;background:#fff}.fp-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.fp-main .fp-step{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main details summary:hover{background:#f8fafc}.fp-main .fp-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main .fp-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;padding:16px}.fp-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
+  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:40px 46px;background:#fff}.fp-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.fp-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-toc a:hover,.fp-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.fp-main{flex:1;min-width:0;background:#fff}.fp-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 11px!important}.fp-main .fp-step{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main details summary:hover{background:#f8fafc}.fp-main .fp-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main .fp-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;padding:16px}.fp-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="fp-layout">'
     + '<nav class="fp-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#fp-mechanism">一 识别机制</a>'
@@ -93,7 +93,7 @@ function renderFileParsingPage(container) {
     + '</nav>'
     + '<div class="fp-main">'
     + '<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 4px">📁 文件解析</h2>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">{{file_fingerprints}}类文件指纹 · 三层递进识别 · 四方交叉验证 · 8种格式全兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">{{file_fingerprints}}类文件指纹 · 三层递进识别 · 四方交叉验证 · 8种格式全兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
         + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:32px">'
     + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0">'
     + '文件解析引擎是税务合规分析的第一步——将企业上传的各种格式的原始资料（Excel/PDF/CSV/Word/图片），'
@@ -157,7 +157,7 @@ function renderFileParsingStatic() {
   // ═══════════════════════════════════════════════
   html += '<div id="fp-mechanism" style="margin-bottom:48px">'
     + '<h3>一、识别机制：四层递进 + 四方交叉验证</h3>'
-    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 20px">'
+    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 11px">'
     + '系统接收到文件后，不依赖文件扩展名判断（用户上传的 .xls 可能是任何内容），'
     + '而是执行四层递进识别——从粗糙到精细、从单一证据到多方交叉验证，逐步锁定文件真实类型。'
     + '整个过程模拟人类专家的判断逻辑：先看表头关键词 → 再看列结构 → '
@@ -173,12 +173,12 @@ function renderFileParsingStatic() {
     + '<span style="font-size:10px;color:#64748b">最高优先级 \u00b7 识别率 ~80%</span>'
     + '</div>'
     + '<div style="font-size:10px;color:#3a4048;line-height:2.0">'
-    + '<p style="margin:0 0 8px"><strong>执行逻辑：</strong>'
+    + '<p style="margin:0 0 11px"><strong>执行逻辑：</strong>'
     + '读取 Excel 文件的前200行表头区域（不只是第1行），将表头中的每一个词与{{file_fingerprints}}类文件指纹的关键词库做交叉匹配。'
     + '每命中一个关键词得1分，得分超过该类型指纹的评分阈值（通常2-4分）即判定为该类型。'
     + '多类型同时超过阈值时，取得分最高的类型作为主判定。'
     + '</p>'
-    + '<p style="margin:0 0 8px"><strong>实际例子：</strong>'
+    + '<p style="margin:0 0 11px"><strong>实际例子：</strong>'
     + '表头出现 \u201c对方户名\u201d\u201c交易日期\u201d\u201c收入金额\u201d三个词'
     + '\u2192 银行流水指纹得3分 \u2192 \u2265阈值3 \u2192 判定为银行流水。'
     + '表头出现 \u201c发票号码\u201d\u201c开票日期\u201d\u201c金额\u201d\u201c税额\u201d四个词'
@@ -201,11 +201,11 @@ function renderFileParsingStatic() {
     + '<span style="font-size:10px;color:#64748b">第二优先级 \u00b7 多类型接近时激活</span>'
     + '</div>'
     + '<div style="font-size:10px;color:#3a4048;line-height:2.0">'
-    + '<p style="margin:0 0 8px"><strong>激活条件：</strong>'
+    + '<p style="margin:0 0 11px"><strong>激活条件：</strong>'
     + '关键词匹配阶段，前两名得分差距\u22641分，或最高分类型得分恰好等于阈值（临界状态）。'
     + '此时不是简单地\u201c取最高分\u201d，而是进入更深层次的结构分析。'
     + '</p>'
-    + '<p style="margin:0 0 8px"><strong>分析方法：</strong>'
+    + '<p style="margin:0 0 11px"><strong>分析方法：</strong>'
     + '系统为每种文件类型维护了一套列模式模板——包括列数范围、关键列的位置、列的排列顺序。'
     + '例如银行流水的列模式模板：日期列(前3列) + 对方户名列(前3-5列) + 金额列(第4-8列) + 余额列(最后1-2列)。'
     + '工资表的列模式模板：姓名列(第1列) + 收入列(第2-5列) + 扣除列(第6-8列) + 实发列(倒数1-2列)。'
@@ -227,12 +227,12 @@ function renderFileParsingStatic() {
     + '<span style="font-size:10px;color:#64748b">兜底机制 \u00b7 绝不丢弃数据</span>'
     + '</div>'
     + '<div style="font-size:10px;color:#3a4048;line-height:2.0">'
-    + '<p style="margin:0 0 8px"><strong>触发场景：</strong>'
+    + '<p style="margin:0 0 11px"><strong>触发场景：</strong>'
     + '关键词匹配和结构分析都无法确定文件类型时（例如企业自制的非标准表格、极少见的资料类型），'
     + '系统不会拒绝解析或丢弃数据，而是进入数据推断阶段——逐列读取前200行数据样本，'
     + '按每一个单元格的语义角色自动分类。'
     + '</p>'
-    + '<p style="margin:0 0 8px"><strong>语义分类规则（5类）：</strong><br>'
+    + '<p style="margin:0 0 11px"><strong>语义分类规则（5类）：</strong><br>'
     + '\u2192 日期格式（2023-01-01、2023/1/1、2023年1月1日、20230101等）\u2192 日期列<br>'
     + '\u2192 纯数字无明显小数位（整数、序号）\u2192 数量/编号列<br>'
     + '\u2192 含\u201c公司\u201d\u201c有限\u201d\u201c厂\u201d\u201c店\u201d\u201c集团\u201d等企业标识词 \u2192 企业名称列<br>'
@@ -256,12 +256,12 @@ function renderFileParsingStatic() {
     + '<span style="font-size:10px;color:#64748b">2026-06-28新增 \u00b7 证据冲突时数据优先</span>'
     + '</div>'
     + '<div style="font-size:10px;color:#3a4048;line-height:2.0">'
-    + '<p style="margin:0 0 8px"><strong>设计目的：</strong>'
+    + '<p style="margin:0 0 11px"><strong>设计目的：</strong>'
     + '前三层都是\u201c文件内部\u201d的推理——仅依据表头和数据本身判断。但有时文件内部的线索可能产生歧义'
     + '（例如一份银行流水表头被改了列名，看起来像费用明细）。四方交叉验证引入\u201c外部证据\u201d——'
     + '包括文件名暗示、公司身份锚定、买卖方关系匹配——从多角度验证前三层的结论。'
     + '</p>'
-    + '<p style="margin:0 0 8px"><strong>四方证据：</strong><br>'
+    + '<p style="margin:0 0 11px"><strong>四方证据：</strong><br>'
     + '\u2460 <strong>文件名暗示</strong>：文件名含\u201c开票\u201d\u201c销项\u201d\u2192倾向销项发票；含\u201c取票\u201d\u201c进项\u201d\u201c抵扣\u201d\u2192倾向进项发票。'
     + '但仅作为参考权重，不直接决定类型——因为文件名可能错误标注。<br>'
     + '\u2461 <strong>列头推理</strong>：前三层的结果，带置信度。不同类型的关键词得分和列模式相似度作为主证据。<br>'
@@ -360,7 +360,7 @@ function renderFileParsingStatic() {
   // ═══════════════════════════════════════════════
   html += '<div id="fp-formats" style="margin-bottom:48px">'
     + '<h3>三、格式扩展：多格式全兼容</h3>'
-    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 20px">'
+    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 11px">'
     + '除了传统的 Excel 格式（.xls/.xlsx），文件解析模块已扩展到支持以下格式的自动解析：'
     + '</p>'
 
@@ -420,7 +420,7 @@ function renderFileParsingStatic() {
   // ═══════════════════════════════════════════════
   html += '<div id="fp-fingerprint" style="margin-bottom:48px">'
     + '<h3>四、文件指纹库 \u00b7 ' + fps.length + ' 类</h3>'
-    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 20px">'
+    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 11px">'
     + '每类指纹由 <strong>关键词集</strong> + <strong>得分阈值</strong> + <strong>专用解析器</strong> 三部分组成。'
     + '关键词决定了\u201c怎么看\u201d，阈值决定了\u201c多确定才能算\u201d，解析器决定了\u201c识别后怎么提取\u201d。'
     + '按使用频率分六梯队排列，第一梯队是税务合规中最常见的高频类型。'
@@ -465,7 +465,7 @@ function renderFileParsingStatic() {
   // ═══════════════════════════════════════════════
   html += '<div id="fp-flow" style="margin-bottom:48px">'
     + '<h3>五、解析流程：8步全链路</h3>'
-    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 20px">'
+    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 11px">'
     + '从磁盘上的原始文件到结构化的分析数据，文件解析引擎执行8个步骤：'
     + '</p>';
 
@@ -600,7 +600,7 @@ function renderFileParsingResult(report) {
 
   var html = '<div id="fp-result">'
     + '<h3 style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 6px">六、本次解析结果</h3>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">本次分析共解析 ' + frs.length + ' 个文件，成功识别 ' + parsed + ' 个，未识别 ' + failed + ' 个</p>'
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">本次分析共解析 ' + frs.length + ' 个文件，成功识别 ' + parsed + ' 个，未识别 ' + failed + ' 个</p>'
 
     // 统计卡片
     + '<div style="display:flex;gap:12px;margin-bottom:40px">'
@@ -729,7 +729,7 @@ function renderFileParsingResult(report) {
 function renderDomainAnalysisPage(container) {
   if (!container) return;
   window.currentModule = '域分析';
-  container.innerHTML = '<style>.da-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.da-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.da-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.da-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.da-toc a:hover,.da-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.da-main{flex:1;min-width:0;background:#fff}.da-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.da-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
+  container.innerHTML = '<style>.da-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:20px;background:#fff}.da-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.da-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.da-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.da-toc a:hover,.da-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.da-main{flex:1;min-width:0;background:#fff}.da-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 11px!important}.da-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="da-layout">'
     + '<nav class="da-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#da-intro">一 什么是域分析</a>'
@@ -739,7 +739,7 @@ function renderDomainAnalysisPage(container) {
     + '</nav>'
     + '<div class="da-main">'
     + '<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 4px">🔬 域分析</h2>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">{{domain_functions}}个域分析函数 · 12大分类 · 跨域关联推理 · 多源证据链串联 · 资料情报自适应分类</p>'
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">{{domain_functions}}个域分析函数 · 12大分类 · 跨域关联推理 · 多源证据链串联 · 资料情报自适应分类</p>'
     + renderDomainAnalysisStatic()
     + '<div id="da-analysis-result"></div>'
     + '</div></div>';
@@ -931,7 +931,7 @@ function renderDomainAnalysisStatic() {
   // ══════ 三、分析域 ══════
   html += '<div id="da-domains" style="margin-bottom:48px">'
     + '<h3 style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 6px">三、分析域</h3>'
-    + '<div style="margin:0 0 24px;padding:14px 18px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border-radius:8px;border-left:3px solid #2563eb;font-size:10px;color:#3a4048;line-height:2">'
+    + '<div style="margin:0 0 11px;padding:14px 18px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border-radius:8px;border-left:3px solid #2563eb;font-size:10px;color:#3a4048;line-height:2">'
     + '<strong>🔍 判定规则（2026-06-28新增）</strong>——域分析执行前必须先通过以下判定：<br>'
     + '① <strong>公司身份锚定</strong>：以账套公司名+信用代码为锚点，发票买卖方与公司比对→方向判定<br>'
     + '② <strong>发票方向判定</strong>：购买方=公司→进项 | 销售方=公司→销项 | 双方不含→存疑排除<br>'
@@ -941,7 +941,7 @@ function renderDomainAnalysisStatic() {
     + '⑥ <strong>综合判断·四方交叉验证</strong>：文件名暗示→列头推理→数据扫描→公司匹配，冲突时以数据为准<br>'
     + '⑦ <strong>存疑排除</strong>：买卖双方都不含公司的发票=非本账套数据=排除出所有计算<br>'
     + '</div>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">每个域由独立的域分析函数驱动，按类别分组。右侧数字为该域的分析函数在 main.py 中的行号。</p>';
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">每个域由独立的域分析函数驱动，按类别分组。右侧数字为该域的分析函数在 main.py 中的行号。</p>';
 
   var domainGroups = [
     // ══════ 一、资金流分析（4域） ══════
@@ -1108,7 +1108,7 @@ function renderDomainAnalysisResult(report) {
     + '<a href="#" onclick="expandAllDomains();return false" style="color:#2563eb;margin-right:8px">展开全部</a>'
     + '<a href="#" onclick="collapseAllDomains();return false" style="color:#64748b">收起全部</a>'
     + '</span></h3>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">共 ' + totalDomains + ' 个分析域执行完毕，' + triggeredDomains + ' 个域产生发现，合计 ' + allF.length + ' 条发现（高风险 ' + highTotal + ' · 中风险 ' + midTotal + '）</p>'
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">共 ' + totalDomains + ' 个分析域执行完毕，' + triggeredDomains + ' 个域产生发现，合计 ' + allF.length + ' 条发现（高风险 ' + highTotal + ' · 中风险 ' + midTotal + '）</p>'
 
     // 统计卡片
     + '<div style="display:flex;gap:12px;margin-bottom:40px">'
@@ -1749,11 +1749,11 @@ function renderEvidenceList(chains) {
 function renderAnalyzePage(container) {
   if (!container) return;
   window.currentModule = '分析链';
-  container.innerHTML = '<style>.al-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.al-main{flex:1;min-width:0}.al-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 16px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
+  container.innerHTML = '<style>.al-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.al-main{flex:1;min-width:0}.al-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 11px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
     + '<div class="al-layout">'
     + '<div class="al-main">'
 
-    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 24px">'
+    + '<p style="font-size:10px;color:#3a4048;line-height:2.0;margin:0 0 11px">'
     + '</p>'
     + '<div id="analyze-body"></div>'
     + '</div></div>';
@@ -2148,7 +2148,7 @@ function renderAiRules(container) {
 
   html += '<div class="ar-main">';
   html += '<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 4px">🧠 智哥行为准则</h2>';
-  html += '<p style="font-size:10px;color:#64748b;margin:0 0 24px;line-height:2">共'+totalRules+'条（'+tieLvCount+'铁律+'+zhunZeCount+'准则）· 2大分类 · 仅约束智哥写代码的行为规范。引擎自身的11条铁律已迁至 engine/memory.py。</p>';
+  html += '<p style="font-size:10px;color:#64748b;margin:0 0 11px;line-height:2">共'+totalRules+'条（'+tieLvCount+'铁律+'+zhunZeCount+'准则）· 2大分类 · 仅约束智哥写代码的行为规范。引擎自身的11条铁律已迁至 engine/memory.py。</p>';
 
   // Stats
   html += '<div id="ar-stats" style="display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap">'
@@ -2363,7 +2363,7 @@ function renderQualitySystem(container) {
   layers.forEach(function(l){h+='<a href="#qs-layer'+l.id+'">'+l.icon+' '+l.name+'</a>';});
   h+='</nav><div class="qs-main">';
   h+='<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 4px">🛡️ 质量保障体系</h2>';
-  h+='<p style="font-size:10px;color:#64748b;margin:0 0 24px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
+  h+='<p style="font-size:10px;color:#64748b;margin:0 0 11px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
 
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px">';
   [{n:'1514',l:'税务合规规则'},{n:'396',l:'线索链'},{n:'745',l:'证据链'},{n:'33',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}].forEach(function(s){
@@ -2740,7 +2740,7 @@ function renderRequiredMaterials(container) {
 function renderAnalyzeSteps(container) {
   var h = '<div style="max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff">'
     + '<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 4px">七步执行流程</h2>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 24px">分析链从资料上传到报告输出的七个步骤详解</p>';
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 11px">分析链从资料上传到报告输出的七个步骤详解</p>';
   var steps = [
     {n:'①',title:'资料扫描与类型识别',icon:'📄',desc:'系统遍历上传目录读取全部Excel/CSV/PDF文件。使用{{file_fingerprints}}类文件指纹库执行三层递进识别：Step1关键词打分→Step2结构分析→Step3数据推断兜底。不因无法识别而丢弃数据。'},
     {n:'②',title:'目标实体识别',icon:'🎯',desc:'进项购买方∩销项销售方取交集确定企业全称。{{keywords}}+关键词×{{industries}}行业加权投票制识别行业。联网查询工商登记信息双源比对。'},
@@ -2880,7 +2880,7 @@ function renderJudgmentRules(container) {
   h += '<div style="font-size:10px;font-weight:800;color:#16233a">⚖️ 税务合规判定规则</div>';
   h += '<div style="font-size:10px;color:#64748b">手册第4章 · 8条判定规则 · 所有分析域前置基础</div>';
   h += '</div>';
-  h += '<p style="font-size:10px;color:#64748b;margin:0 0 24px;line-height:1.8">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环——不可颠倒，前序错误=后续作废</p>';
+  h += '<p style="font-size:10px;color:#64748b;margin:0 0 11px;line-height:1.8">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环——不可颠倒，前序错误=后续作废</p>';
 
   // ── 上下游 ──
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
@@ -2970,7 +2970,7 @@ function renderLegalRefs(container) {
       h += '<div style="font-size:10px;font-weight:800;color:#16233a">📜 关键法律条文</div>';
       h += '<div style="font-size:10px;color:#64748b">手册第6章 · 12条核心法条 · 法律推理引擎自动匹配</div>';
       h += '</div>';
-      h += '<p style="font-size:10px;color:#64748b;margin:0 0 24px;line-height:1.8">征管法32条→刑法205条，涵盖滞纳金/核定征收/偷税处罚/虚开刑事等核心法律依据</p>';
+      h += '<p style="font-size:10px;color:#64748b;margin:0 0 11px;line-height:1.8">征管法32条→刑法205条，涵盖滞纳金/核定征收/偷税处罚/虚开刑事等核心法律依据</p>';
 
       // ── 上下游 ──
       h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">';
@@ -3096,7 +3096,7 @@ function _pageTemplate(cfg) {
   
   // Header
   h += '<div style="margin-bottom:30px">';
-  h += '<h1 style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 8px">' + escHtml(cfg.icon + ' ' + cfg.title) + '</h1>';
+  h += '<h1 style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 11px">' + escHtml(cfg.icon + ' ' + cfg.title) + '</h1>';
   h += '<p style="font-size:10px;color:#64748b;margin:0;line-height:2.0">' + escHtml(cfg.subtitle) + '</p>';
   h += '</div>';
   
@@ -5312,7 +5312,7 @@ function renderReportSpecPage(container) {
     + '.rs2-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
     + '.rs2-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
     + '.rs2-body{flex:1;min-width:0;max-width:800px}'
-    + '.rs2 h1{font-size:10px;font-weight:700;color:#16233a;margin:0 0 8px}'
+    + '.rs2 h1{font-size:10px;font-weight:700;color:#16233a;margin:0 0 11px}'
     + '.rs2 .lead{font-size:12.5px;color:#64748b;margin:0 0 26px;line-height:2.05}'
     + '.rs2 section{margin:0 0 44px;scroll-margin-top:22px}'
     + '.rs2 h2{font-size:15.5px;font-weight:700;color:#16233a;margin:0 0 4px;display:flex;align-items:baseline;gap:9px}'
