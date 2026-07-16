@@ -128,9 +128,36 @@ def validate_execution(pipeline_log, layer_names=None):
 
 
 def get_filter_rules():
-    """动态加载过滤规则（替代硬编码 HARD_BAN/COND_BAN）"""
+    """动态加载过滤规则（替代硬编码 HARD_BAN/COND_BAN/模板句/标准分级）
+
+    返回节点：
+      hard_ban              — 硬删除关键词列表
+      cond_ban              — 有条件过滤字典 {资料类别: [关键词...]}
+      boilerplate_prefixes  — 模板句前缀
+      boilerplate_suffixes  — 模板句后缀
+      standard_overrides    — 12项质量标准分级覆盖 {S01: {score_min, enabled}}
+    """
     config = load_methodology_config()
     return config.get("filter_rules", {})
+
+
+def seed_filter_rules(defaults):
+    """首次运行时把代码内置默认规则写入配置文件（幂等：已有节点不覆盖）。
+
+    引擎不再"背"规则而是"读"规则——写入后稽查员可直接编辑
+    static/methodology_config.json 的 filter_rules 节点，修改即生效。
+    """
+    config = load_methodology_config()
+    fr = config.get("filter_rules") or {}
+    changed = False
+    for key, val in (defaults or {}).items():
+        if key not in fr or not fr.get(key):
+            fr[key] = val
+            changed = True
+    if changed:
+        config["filter_rules"] = fr
+        save_methodology_config(config)
+    return fr
 
 
 def set_filter_rule(rule_type, rule_value, enabled=True):

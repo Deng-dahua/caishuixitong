@@ -69,10 +69,18 @@ def _push_industry_pattern(data, pipeline_log=None):
 
 
 def _push_signal_pattern(data, pipeline_log=None):
-    """P0/P2 推送 — 信号模式匹配"""
+    """P0/P2 推送 — 信号模式匹配
+
+    兼容两种广播格式：findings 可以是发现列表，也可以是数量(int)。
+    """
     matches = []
     findings = data.get("findings", [])
-    high_count = sum(1 for f in findings if str(f.get("level", "")) in ("高风险", "极高风险"))
+    if isinstance(findings, (int, float)):
+        total_count = int(findings)
+        high_count = int(data.get("high_findings", 0) or 0)
+    else:
+        total_count = len(findings)
+        high_count = sum(1 for f in findings if str(f.get("level", "")) in ("高风险", "极高风险"))
     if high_count >= 3:
         matches.append({
             "priority": "P0",
@@ -86,7 +94,7 @@ def _push_signal_pattern(data, pipeline_log=None):
             "suggestion": "指标偏离行业基准，作为补充输入",
         })
     if pipeline_log is not None:
-        pipeline_log.append(f"[记忆层] 信号推送: {len(findings)}条发现 P0={high_count>=3}")
+        pipeline_log.append(f"[记忆层] 信号推送: {total_count}条发现 P0={high_count>=3}")
     return matches
 
 

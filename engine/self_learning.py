@@ -463,10 +463,22 @@ class ComplianceGate:
     ]
     
     def _check_report_standards(self):
-        """12项报告质量标准检测+自动修复（含score_min分级）"""
+        """12项报告质量标准检测+自动修复（含score_min分级）
+
+        P1进化(2026-07-17)：标准分级支持配置覆盖——
+        static/methodology_config.json 的 filter_rules.standard_overrides
+        节点可对每项标准调整 score_min 或整体停用（enabled: false），修改即生效。
+        """
         issues = []
         fixed = []
-        
+
+        # 动态加载标准覆盖配置（配置文件优先，内置默认兜底）
+        try:
+            from engine.methodology_loader import get_filter_rules
+            _overrides = get_filter_rules().get("standard_overrides") or {}
+        except Exception:
+            _overrides = {}
+
         # S10: 跨发现复制检测（静默去重，不报违规）
         impacts = [str(f.get("tax_impact","")) for f in self.all_findings if len(str(f.get("tax_impact",""))) > 20]
         dupes = [i for i in set(impacts) if impacts.count(i) > 1]
@@ -478,8 +490,11 @@ class ComplianceGate:
             for std in self.REPORT_STANDARDS:
                 if std["id"] == "S10":
                     continue
-                # 分级检查：低风险发现跳过严格标准
-                score_min = std.get("score_min", 0)
+                ov = _overrides.get(std["id"]) or {}
+                if ov.get("enabled") is False:
+                    continue  # 配置停用该标准
+                # 分级检查：低风险发现跳过严格标准（配置可覆盖分级线）
+                score_min = ov.get("score_min", std.get("score_min", 0))
                 if score < score_min:
                     continue  # 低风险发现不检查该项
                 

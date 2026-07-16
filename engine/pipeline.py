@@ -1740,12 +1740,17 @@ def _run_analyze(company_id, db, progress_callback=None):
     synthesis = _phase4_synthesis(ctx, all_findings, cross_findings, pipeline_log)
     
     # ═══ 认知桥接：Phase4 完成广播 + 红队证伪 + 盲测 + 模式提取 ═══
-    broadcast("phase4_synthesis", {"total_findings": len(all_findings), "high_risk": high}, pipeline_log)
+    _high_risk_count = sum(1 for _f in all_findings if str(_f.get("level", "")) in ("高风险", "极高风险"))
+    broadcast("phase4_synthesis", {"total_findings": len(all_findings), "high_risk": _high_risk_count}, pipeline_log)
     red_team_results = red_team_falsification(all_findings, pipeline_log)
     blind_results = blind_destruction_test(all_findings, pipeline_log)
     self_heal_from_blind_test(blind_results, all_findings, pipeline_log)
     hallucination_count = hallucination_check(all_findings, pipeline_log)
-    topology_pattern = extract_topology_pattern(all_findings, target_entity, pipeline_log)
+    topology_pattern = extract_topology_pattern(
+        all_findings,
+        {"name": (ctx.company_profile or {}).get("name", "") if ctx else ""},
+        pipeline_log,
+    )
     consistency_result = consistency_rerun_check(all_findings, pipeline_log)
     
     _step_timing["step6"] = round(time.time() - _step_timing.get("step6_start", time.time()), 2)
@@ -3062,7 +3067,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     anchoring = _enforce_data_anchoring(target_entity, docs, pipeline_log)
     
     # ═══ 报告编制总纲补全：案件来源章节 ═══
-    case_source = _generate_case_source_chapter(target_entity, docs, ctx.target_industry if ctx else {}, pipeline_log)
+    case_source = _generate_case_source_chapter(target_entity, docs, (ctx.company_profile or {}) if ctx else {}, pipeline_log)
     
     # ═══ 报告编制总纲补全：实施情况章节 ═══
     implementation = _generate_implementation_chapter(target_entity, docs, file_results, pipeline_log)
@@ -4394,6 +4399,22 @@ _BOILERPLATE_SUFFIXES = [
     "。——请核实并提供相关佐证材料。",
 ]
 
+
+def _load_boilerplate_rules():
+    """P1进化(2026-07-17)：模板句规则动态加载，配置文件优先，内置默认兜底"""
+    try:
+        from engine.methodology_loader import get_filter_rules, seed_filter_rules
+        seed_filter_rules({
+            "boilerplate_prefixes": list(_BOILERPLATE_PREFIXES),
+            "boilerplate_suffixes": list(_BOILERPLATE_SUFFIXES),
+        })
+        fr = get_filter_rules()
+        prefixes = list(fr.get("boilerplate_prefixes") or _BOILERPLATE_PREFIXES)
+        suffixes = list(fr.get("boilerplate_suffixes") or _BOILERPLATE_SUFFIXES)
+        return prefixes, suffixes
+    except Exception:
+        return list(_BOILERPLATE_PREFIXES), list(_BOILERPLATE_SUFFIXES)
+
 def _sanitize_finding_boilerplate(all_findings):
     """剔除每条发现中的模板句、重复句、空描述，确保报告文本专业可读。
     
@@ -4405,13 +4426,14 @@ def _sanitize_finding_boilerplate(all_findings):
     """
     sanitized = []
     stats = {"cleaned_prefix": 0, "dedup": 0, "empty_desc": 0, "empty_suggestion": 0}
-    
+    _prefixes, _suffixes = _load_boilerplate_rules()
+
     for f in all_findings:
         ftype = str(f.get("type", ""))
         
         # ── 1. 清理detail中的模板前缀 ──
         detail = str(f.get("detail", ""))
-        for prefix in _BOILERPLATE_PREFIXES:
+        for prefix in _prefixes:
             if detail.startswith(prefix):
                 detail = detail[len(prefix):].strip()
                 stats["cleaned_prefix"] += 1
@@ -4422,7 +4444,7 @@ def _sanitize_finding_boilerplate(all_findings):
             if idx > 0:
                 # Skip the redundant first sentence if it's just "X是税务合规重点方向"
                 first_sent = detail[:idx+1]
-                if any(bp in first_sent for bp in _BOILERPLATE_PREFIXES[:3]):
+                if any(bp in first_sent for bp in _prefixes[:3]):
                     detail = detail[idx+1:].strip()
                     stats["cleaned_prefix"] += 1
         
@@ -4448,7 +4470,7 @@ def _sanitize_finding_boilerplate(all_findings):
         
         # ── 4. 清理suggestion中的万能套话 ──
         suggestion = str(f.get("suggestion", ""))
-        for suffix in _BOILERPLATE_SUFFIXES:
+        for suffix in _suffixes:
             suggestion = suggestion.replace(suffix, "")
         # 清除空占位符
         suggestion = suggestion.replace("（如：()；()；()）", "").replace("如：()；()；()", "")
@@ -6739,7 +6761,9 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     # target_industry 由调用方传入（来自_detect_target_entity()的加权投票结果），全行业适用
     
     # ═══ 硬删除：绝对不可能基于当前资料的结论 ═══
-    HARD_BAN = [
+    # P1进化(2026-07-17)：规则不再硬编码——内置默认仅作种子和兜底，
+    # 实际规则从 static/methodology_config.json 的 filter_rules 动态加载，修改即生效
+    _DEFAULT_HARD_BAN = [
         "涉税中介","代账公司","空壳公司","壳公司",  # 需工商穿透
         "公安","经侦","刑事","移送司法","移送公安","联合办案",
         "走逃","失联","已被税务合规","已被立案","已受查",
@@ -6778,10 +6802,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         # Python模板变量未替换的僵尸发现
         "{bank_income", "{inv_income", "{gap_pct",
     ]
-    if target_industry != "医药":
-        HARD_BAN.extend(["医药"])
-    
-    COND_BAN = {
+    _DEFAULT_COND_BAN = {
         "申报表": ("申报收入","申报表","未申报","少申报","漏申报","纳税申报"),
         "合同": ("四流不一","合同缺失","合同覆盖","合同流","三流不一"),
         "工资表": ("工资","薪酬","个税","个人所得税","人力成本","薪资"),
@@ -6798,6 +6819,21 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
             "管理费用占收入比例","销售费用占","主营业务成本率",
             "原材料耗用占","业务招待费","办公用品采购与员工人数"),
     }
+
+    # ── 动态加载：配置文件优先，内置默认兜底（首次运行自动播种到配置文件）──
+    try:
+        from engine.methodology_loader import get_filter_rules, seed_filter_rules
+        seed_filter_rules({
+            "hard_ban": list(_DEFAULT_HARD_BAN),
+            "cond_ban": {k: list(v) for k, v in _DEFAULT_COND_BAN.items()},
+        })
+        _fr = get_filter_rules()
+    except Exception:
+        _fr = {}
+    HARD_BAN = list(_fr.get("hard_ban") or _DEFAULT_HARD_BAN)
+    COND_BAN = {k: tuple(v) for k, v in (_fr.get("cond_ban") or _DEFAULT_COND_BAN).items()}
+    if target_industry != "医药" and "医药" not in HARD_BAN:
+        HARD_BAN.append("医药")
     
     filtered = []
     removed_count = 0
@@ -6847,7 +6883,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
             ]
             for name, has_it in checks:
                 if has_it: continue
-                for kw in COND_BAN[name]:
+                for kw in COND_BAN.get(name, ()):
                     if kw in full_text:
                         skip = True; reason = f"无{name}"; break
                 if skip: break
