@@ -13,7 +13,7 @@ function renderReportStandards(container) {
     + '.rpt p b,.rpt p strong,.rpt strong{color:#1f2d3d;font-weight:600}'
     + '.rpt p em,.rpt em{font-style:normal;color:#9a1f2b;font-weight:600}'
     + '.rpt-chapter{margin:38px 0 22px;padding:0}'
-    + '.rpt-chapter h2{font-size:10px;font-weight:800;color:#16233a;margin:0;line-height:1.35;border:none;padding:0}'
+    + '.rpt-chapter h2{font-size:10px;font-weight:800;color:#16233a;margin:0 0 10px;line-height:1.35;border:none;padding:0}'
     + '.rpt-rule{margin:4px 0;padding:0;font-size:10px;line-height:2.0;color:#3a4048}'
     + '.rpt-rule .rn{color:#9a1f2b;font-weight:700;margin-right:6px}'
     + '.rpt-rule .rc{color:#3a4048}'
