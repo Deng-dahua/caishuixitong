@@ -5,27 +5,38 @@ function renderReportStandards(container) {
   window.currentModule = '报告编制总纲';
 
   var h = '<style>'
-    + '.rpt{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:2.0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
-    + '.rpt h2{font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px}'
-    + '.rpt h2:first-child{margin-top:0;font-size:10px;font-weight:800;letter-spacing:-.02em;line-height:1.3;border-bottom:none;padding-bottom:0;margin:0 0 12px;color:#16233a}'
-    + '.rpt p{margin:0 0 11px;text-align:justify}'
-    + '.rpt p b,.rpt p strong,.rpt strong{color:#1f2d3d;font-weight:600}'
-    + '.rpt p em,.rpt em{font-style:normal;color:#9a1f2b;font-weight:600}'
-    + '.rpt .tag{font-size:10px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;display:inline-block;margin:0 0 30px}'
-    + '.rpt-chapter{margin:38px 0 22px;padding:0 0 10px;border-bottom:2px solid #16233a}'
-    + '.rpt-chapter h2{font-size:10px;font-weight:800;color:#16233a;margin:0;line-height:1.35;border:none;padding:0}'
-    + '.rpt-flow{background:#fafbfc;border:1px solid #eff2f6;border-radius:8px;padding:10px 14px;margin:8px 0 14px;font-size:10px;line-height:2.0;color:#3a4048}'
-    + '.rpt-flow b{color:#16233a;font-weight:700}'
-    + '.rpt-flow span{color:#64748b;margin:0 4px}'
-    + '.rpt-flow .act{color:#dc2626;font-weight:700}'
-    + '.rpt-rule{margin:3px 0;padding:4px 0;font-size:10px;line-height:2.0;color:#3a4048}'
-    + '.rpt-rule .rn{color:#9a1f2b;font-weight:700;margin-right:6px}'
-    + '.rpt-rule .rc{color:#3a4048}'
-    + '.rpt-rule.fatal{border-left:3px solid #dc2626;padding-left:10px;margin:6px 0}'
-    + '.rpt-rule.high{border-left:3px solid #f59e0b;padding-left:10px;margin:6px 0}'
-    + '.rpt-table{font-size:10px;border-collapse:collapse;width:100%;margin:0 0 11px}'
-    + '.rpt-table th,.rpt-table td{font-size:10px;text-align:left;padding:4px 8px;border:1px solid #e2e8f0;line-height:1.8}'
-    + '.rpt-table th{font-weight:700;color:#16233a;background:#f8fafc}'
+    // 容器 — 宽敞留白
+    + '.rpt{max-width:960px;margin:0 auto;padding:48px 56px;background:#fff;color:#2d3748;font-size:10px;line-height:2.2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
+    // 页面大标题
+    + '.rpt>h2:first-child{font-size:12px;font-weight:600;color:#2c5282;margin:0 0 6px;letter-spacing:.04em;line-height:1.5}'
+    // 副标题标签
+    + '.rpt .tag{font-size:10px;color:#3182ce;border:1px solid #bee3f8;background:#ebf8ff;border-radius:14px;padding:3px 12px;display:inline-block;margin:0 0 40px;letter-spacing:.02em}'
+    // 段落
+    + '.rpt p{margin:0 0 14px;text-align:justify;line-height:2.2}'
+    // 加粗
+    + '.rpt p b,.rpt p strong,.rpt strong{color:#1a202c;font-weight:600}'
+    // 强调 — 蓝色调
+    + '.rpt p em,.rpt em{font-style:normal;color:#2b6cb0;font-weight:600}'
+    // 章节容器 — 轻分隔线
+    + '.rpt-chapter{margin:44px 0 20px;padding:0 0 12px;border-bottom:1px solid #e2e8f0}'
+    + '.rpt-chapter h2{font-size:10px;font-weight:700;color:#2c5282;margin:0 0 4px;line-height:1.5;border:none;padding:0}'
+    // 流程条 — 淡蓝引用块，左侧蓝色条
+    + '.rpt-flow{background:#f7fafc;border:1px solid #e2e8f0;border-left:3px solid #3182ce;border-radius:0 6px 6px 0;padding:12px 16px;margin:10px 0 18px;font-size:10px;line-height:2.2;color:#2d3748}'
+    + '.rpt-flow b{color:#2c5282;font-weight:700}'
+    + '.rpt-flow span{color:#4a5568;margin:0 6px}'
+    + '.rpt-flow .act{color:#e53e3e;font-weight:700}'
+    // 规则条目
+    + '.rpt-rule{margin:4px 0;padding:4px 0 4px 14px;border-left:2px solid #e2e8f0;font-size:10px;line-height:2.2;color:#2d3748}'
+    + '.rpt-rule .rn{color:#2b6cb0;font-weight:700;margin-right:6px}'
+    + '.rpt-rule .rc{color:#2d3748}'
+    + '.rpt-rule.fatal{border-left:3px solid #e53e3e;padding-left:16px;margin:8px 0;background:#fff5f5;border-radius:0 4px 4px 0}'
+    + '.rpt-rule.high{border-left:3px solid #dd6b20;padding-left:16px;margin:8px 0;background:#fffaf0;border-radius:0 4px 4px 0}'
+    // 表格 — 简洁线条
+    + '.rpt-table{font-size:10px;border-collapse:separate;border-spacing:0;width:100%;margin:0 0 18px}'
+    + '.rpt-table th,.rpt-table td{font-size:10px;text-align:left;padding:6px 10px;border-bottom:1px solid #edf2f7;line-height:1.9}'
+    + '.rpt-table th{font-weight:600;color:#2c5282;background:#f7fafc;border-bottom:2px solid #cbd5e0}'
+    + '.rpt-table th:first-child{border-radius:6px 0 0 0}'
+    + '.rpt-table th:last-child{border-radius:0 6px 0 0}'
     + '.rpt-table th:nth-child(3){min-width:96px;white-space:nowrap}'
     + '.rpt-table td:nth-child(3){white-space:nowrap}'
     + '</style>'
