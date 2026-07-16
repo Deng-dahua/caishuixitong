@@ -153,7 +153,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.phase3_cross_validate import _phase3_cross_validate
     from engine.phase4_synthesis import _phase4_synthesis
     from engine.cognitive_bridge import broadcast, extract_topology_pattern
-    from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check
+    from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check, consistency_rerun_check
     from engine.orchestrator import build_data_profile, build_orchestration_plan
     from engine.memory import save_analysis_memory, query_similar_cases
     from engine.context import AuditContext
@@ -1745,6 +1745,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     blind_results = blind_destruction_test(all_findings, pipeline_log)
     hallucination_count = hallucination_check(all_findings, pipeline_log)
     topology_pattern = extract_topology_pattern(all_findings, target_entity, pipeline_log)
+    consistency_result = consistency_rerun_check(all_findings, pipeline_log)
     
     _step_timing["step6"] = round(time.time() - _step_timing.get("step6_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤⑥行业对标与申报比对(Phase4综合定性): {_step_timing['step6']}秒")
@@ -3729,6 +3730,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         "cross_verify": cross_verify_result if 'cross_verify_result' in dir() else {},
         "red_team": red_team_results if 'red_team_results' in dir() else {},
         "blind_test": blind_results if 'blind_results' in dir() else {},
+        "consistency": consistency_result if 'consistency_result' in dir() else {},
         "hallucination_count": hallucination_count if 'hallucination_count' in dir() else 0,
         "topology_pattern": topology_pattern if 'topology_pattern' in dir() else {},
         "engine_hub_summary": _build_engine_hub_summary(
