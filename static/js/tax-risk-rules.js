@@ -634,7 +634,7 @@ function renderTaxRiskRulesList() {
   var html = '';
 
   // 按生成时间渲染所有指令
-  sortedData.forEach(function(rule) {
+  sortedData.forEach(function(rule, _ri) {
       // 自动发现规则的字段映射
       var isAutoRule = rule.type === 'auto_signal' || rule.source === '系统发现' || !!rule.auto_type;
       var itemName = rule.item || rule.signal || '';
@@ -675,8 +675,12 @@ function renderTaxRiskRulesList() {
             + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'
             : '<span style="font-size:11px;color:#94a3b8">评分 ' + scoreVal + '</span>')
         + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
+        + '<button onclick="toggleRuleBody(' + _ri + ',this)" style="font-size:10px;padding:2px 10px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#334155;cursor:pointer;font-weight:600">' + (isTriggered ? '▾ 收起' : '▸ 展开') + '</button>'
         + '</div>'
         + '</div>'
+
+        // ═══ 可折叠明细区（2026-07-17：触发的默认展开，其余默认折叠）═══
+        + '<div id="trb-' + _ri + '" style="display:' + (isTriggered ? 'block' : 'none') + '">'
 
         // 触发溯源
         + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:11px;line-height:2.0">'
@@ -710,6 +714,7 @@ function renderTaxRiskRulesList() {
         + (rule.dataSource ? '<span><span style="color:#64748b">数据源：</span>' + escHtml(rule.dataSource) + '</span>' : '')
         + (rule.detectable !== undefined ? '<span>' + (rule.detectable ? '✅ 可自动检测' : '⚠️ 需人工') + '</span>' : '')
         + '</div>'
+        + '</div>'  // ═══ 可折叠明细区结束 ═══
         + '</div>';
     });
 
@@ -726,6 +731,14 @@ function renderTaxRiskRulesList() {
   // 初始化筛选计数
   var cntEl = document.getElementById('rr-filter-count');
   if (cntEl) cntEl.textContent = '显示 ' + data.length + ' 条';
+}
+
+function toggleRuleBody(idx, btn) {
+  var el = document.getElementById('trb-' + idx);
+  if (!el) return;
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? '▸ 展开' : '▾ 收起';
 }
 
 function _fillEl(id, val) {
