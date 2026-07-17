@@ -4648,15 +4648,7 @@ function renderUnifiedDomainPanel(container) {
 
   h += '<h2>三、五大域组概要（运行视角）</h2>';
   h += '<p>本章按功能聚合将40域分为五大域组：资金流与进销存（算账）、供应商与多源验证（查人）、经营实质与资料（验真）、发票/合同/社保（对票）、税务/资产/行业/跨域/补充（定性）。与第二章按业务领域的13大分类互为补充。五大组合计：8+9+5+8+10=40域。</p>';
-  h += '<div class="udp-stats">';
-  h += '<div class="udp-stat"><span class="val" style="color:#2563eb">8域</span><span class="lbl">资金流+进销存</span></div>';
-  h += '<div class="udp-stat"><span class="val" style="color:#7c3aed">9域</span><span class="lbl">供应商+多源验证</span></div>';
-  h += '<div class="udp-stat"><span class="val" style="color:#059669">5域</span><span class="lbl">经营实质+资料</span></div>';
-  h += '<div class="udp-stat"><span class="val" style="color:#d97706">8域</span><span class="lbl">发票+合同+社保</span></div>';
-  h += '<div class="udp-stat"><span class="val" style="color:#0ea5e9">10域</span><span class="lbl">税务+资产+行业+跨域+补充</span></div>';
-  h += '</div>';
-
-  h += '<h2>四、66行业基准库（5指标×3基准值×66行业）</h2>';
+  h += '<p>五大域组分布：8域（资金流+进销存） / 9域（供应商+多源验证） / 5域（经营实质+资料） / 8域（发票+合同+社保） / 10域（税务+资产+行业+跨域+补充）。</p>';
   h += '<p>行业基准库为以下域函数提供行业阈值：毛利率→_domain_purchase_sales_gross_margin、_domain_industry_benchmark；净利率→_domain_profit_cashflow_contradiction；税负率→_domain_tax_burden_analysis；进销比→_domain_purchase_sales_gross_margin；人均营收→_domain_personnel_business_matching。</p>';
   h += '<p>毛利率：企业值低于行业P25→高风险；低于P50×0.85→中风险。净利率：低于P25→高风险；低于P50×0.85→中风险。税负率：低于P25→高风险。进销比：偏离典型值±30%→异常预警。人均营收：偏离均值±50%→高风险（知识密集型服务业50-100万为正常）。覆盖66个细分行业：农林牧渔、采矿、制造、建筑、批发零售、交通运输、住宿餐饮、信息技术、金融、房地产、租赁商务、科研服务、水利环境、居民服务、教育、卫生、文体娱乐、公共管理共18个大类。</p>';
   h += '<p><b>EMA动态校准参数：</b>校准频率——按季度批量校准，每次使用最近12个月的全量历史分析数据。初始值来源——取最近三年国家统计局及行业协会公开发布的行业统计数据，过渡期内每次校准结果须经人工审核确认。单次校准样本量下限——单个行业有效分析样本量低于10户时，本次不校准，沿用上期基准值；样本量10-30户时校准结果标记为低置信度，需人工复核。数据源：industry_benchmarks表。</p>';
