@@ -282,15 +282,15 @@ window._rrFilter = function() {
           // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
           if (rl.phenomena) {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
-            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:10px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
           }
           if (rl.direction) {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
-            card += '<div style="font-size:10px;color:#64748b;line-height:2;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
+            card += '<div style="font-size:10px;color:#64748b;line-height:10px;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
           }
           if (rl.focus && rl.focus !== '待明确重点') {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
-            card += '<div style="font-size:10px;color:#dc2626;line-height:2;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
+            card += '<div style="font-size:10px;color:#dc2626;line-height:10px;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
           }
           
           // 风险表格
@@ -315,20 +315,20 @@ window._rrFilter = function() {
           // 正常业务解释
           if (rl.normal_reason) {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
-            card += '<div style="font-size:10px;color:#059669;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
+            card += '<div style="font-size:10px;color:#059669;line-height:10px;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
           }
           
           // 定性路径
           if (rl.determination) {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
-            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:10px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
           }
           
           // 穿透式追问（整段完整展示，忠实原文换行，不做正则截取）
           if (rl.drill_questions) {
             card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
             var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
-            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:10px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
           }
           
           // 传统字段（兼容未升级的规则）
@@ -666,7 +666,7 @@ function renderTaxRiskRulesList() {
         + '<div id="trb-' + _ri + '" style="display:' + (isTriggered ? 'block' : 'none') + '">'
 
         // 触发溯源
-        + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:10px;line-height:2.0">'
+        + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:10px;line-height:10px">'
         + '<div style="font-weight:600;color:#991b1b;margin-bottom:4px">🔗 触发溯源：</div>'
         + triggered.map(function(t) {
             return '<div style="color:#7f1d1d">→ <strong>' + escHtml(t.domain || t.type || '') + '</strong>' + (t.detail ? ': ' + escHtml(t.detail.substring(0, 150)) : '') + (t.level ? ' [' + t.level + ']' : '') + '</div>';
@@ -674,21 +674,21 @@ function renderTaxRiskRulesList() {
         + '</div>' : '')
 
         // 详细内容 —— 自动发现规则也展示7段式字段
-        + (rule.phenomena ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
-        + (rule.direction ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
-        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:10px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
-        + (rule.drill_questions ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
-        + (detailText ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
-        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:10px;color:#059669;line-height:2.0;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
-        + (rule.risk_table ? '<div style="font-size:10px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
+        + (rule.phenomena ? '<div style="font-size:10px;color:#475569;line-height:10px;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
+        + (rule.direction ? '<div style="font-size:10px;color:#475569;line-height:10px;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
+        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:10px;color:#dc2626;line-height:10px;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
+        + (rule.drill_questions ? '<div style="font-size:10px;color:#475569;line-height:10px;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
+        + (detailText ? '<div style="font-size:10px;color:#475569;line-height:10px;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
+        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:10px;color:#059669;line-height:10px;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
+        + (rule.risk_table ? '<div style="font-size:10px;color:#dc2626;line-height:10px;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
 
         // 建议 + 佐证
-        + (suggestText ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
-        + (evidenceText ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
+        + (suggestText ? '<div style="font-size:10px;color:#334155;line-height:10px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
+        + (evidenceText ? '<div style="font-size:10px;color:#334155;line-height:10px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
 
         // 自动发现额外信息
-        + (isAutoRule ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
-        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
+        + (isAutoRule ? '<div style="font-size:10px;color:#334155;line-height:10px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
+        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:10px;color:#334155;line-height:10px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
 
         // 底栏
         + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8">'
@@ -766,7 +766,7 @@ window._smartUpdate = function() {
       if (c.new_rules && c.new_rules.length) {
         h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#059669;margin:8px 0">新增规则</div>';
         c.new_rules.forEach(function(r,i){
-          h += '<div style="margin:6px 0;padding:10px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:10px;line-height:1.8">';
+          h += '<div style="margin:6px 0;padding:10px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:10px;line-height:10px">';
           h += '<b style="color:#0f172a">#'+(i+1)+' '+escHtml(r.item||'无名称')+'</b>';
           h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#e0f2fe;color:#0369a1">'+escHtml(r.category||'')+'</span>';
           h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#fef3c7;color:#92400e">'+escHtml(r.level||'')+'</span>';
