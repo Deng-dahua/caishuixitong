@@ -48,7 +48,7 @@ def parse_threshold(threshold_text):
     if text.startswith("=是") or "即触发" in text[:10]:
         return [{"target": "any", "op": "exists", "value": 1}]
     # 2) 按逻辑连接词拆分子条件
-    sub_texts = re.split(r'[且&&+＋&]', text)
+    sub_texts = re.split(r'[且＋+&]+', text)
     units_map = {"万": 10000, "万元": 10000, "亿": 100000000, "元": 1,
                  "%": None, "天": 1, "个月": 1, "月": 1, "年": 365, "倍": 1}
     conditions = []
@@ -125,11 +125,20 @@ def verify_with_threshold(rule, bank_txs, invoices, salaries, social_security, v
     evidence = {}
     triggered = False
     reasons = []
+    # 维度守卫（2026-07-17 修复）：发票/流水金额比较只对"金额单位"的条件有效。
+    # 百分比/天数/倍数/月/年等维度当前无对应计算基准，做金额比较会产生
+    # "占比>8% 被当成 >0.08元 → 1762张全中"的灾难性误报——直接跳过不触发。
+    _MONEY_UNITS = ("元", "万", "万元", "亿")
     for c in conditions:
         t = c.get("target", "general")
         op = c.get("op", ">")
         val = c.get("value", 0)
+        unit = c.get("unit", "元")
         kw = c.get("keyword", "")
+        if unit not in _MONEY_UNITS:
+            continue  # 非金额维度：宁缺勿滥，降级不触发
+        if val < 1000:
+            continue  # 金额阈值<1000元的多为占比/系数误写为元，同样跳过
         # ── 发票类 ──
         if t == "invoices" and invoices:
             hits = []

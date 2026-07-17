@@ -3219,6 +3219,65 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     _step_timing["step5_start"] = time.time()
     _report(98, "步骤⑤方法论噪声过滤 — 开始...", step=5)
+
+    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1825条规则真正被引擎执行 ═══
+    # 此前疑点库只用于给已有发现贴标签（被动消费）；现在引擎主动拿每条规则的
+    # threshold结构化条件去查数据，触发即生成发现。放在方法论过滤器之前，
+    # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
+    try:
+        from engine.rule_consumer import verify_with_threshold
+        _rules_path2 = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
+        with open(_rules_path2, "r", encoding="utf-8") as _rf2:
+            _doubt_rules = json.load(_rf2)
+        _existing_types = {str(f.get("type", "")).strip() for f in all_findings}
+        _scan_hits = []
+        _scanned = 0
+        for _dr in _doubt_rules:
+            _item = str(_dr.get("item", "")).strip()
+            if not _item or _item in _existing_types:
+                continue  # 已有同名发现，不重复生成
+            _v = verify_with_threshold(_dr, bank_txs, invoices, salaries, social_security, vouchers)
+            if _v is None:
+                continue  # threshold无法结构化解析，降级跳过
+            _scanned += 1
+            _trig, _reason, _conf, _evd = _v
+            # 只保留定量条件触发（置信度≥0.85）；"=是即触发"类太宽泛，全库扫描会误报爆炸
+            if not _trig or _conf < 0.85:
+                continue
+            _scan_hits.append({
+                "type": _item,
+                # 疑点非结论（铁律）：threshold只验证了金额维度，规则的业务限定属性
+                # （如红冲/微信收款/账外）未经数据核实，不得继承规则原定性等级。
+                # 统一降为中风险疑点提示，score上限5，留待稽查员核实后升级。
+                "level": "中风险",
+                "score": min(int(_dr.get("score", 5) or 5), 5),
+                "detail": (
+                    f"疑点库规则金额条件已触发：{_reason}。"
+                    f"证据：{json.dumps(_evd, ensure_ascii=False)[:200]}。"
+                    f"注：本条属疑点提示——金额维度已验证，规则完整判定所需的业务属性"
+                    f"（交易性质/票种属性等）需结合原始凭证人工核实，核实前不作风险定性。"
+                ),
+                "suggestion": str(_dr.get("suggestion", ""))[:500],
+                "policy_ref": str(_dr.get("policy_ref", ""))[:500],
+                "tax_impact": str(_dr.get("tax_impact", ""))[:500],
+                "domain": "疑点库threshold扫描",
+                "_rule_id": _dr.get("id"),
+                "_rule_match_mode": "threshold_scan",
+                "_rule_match_score": _conf,
+                "_rule_direction": str(_dr.get("direction", "")),
+                "_rule_determination": str(_dr.get("determination", "")),
+            })
+        # 上限保护：按score降序最多注入30条，防止发现列表被扫描结果淹没
+        _scan_hits.sort(key=lambda x: x.get("score", 0), reverse=True)
+        _scan_hits = _scan_hits[:30]
+        all_findings.extend(_scan_hits)
+        pipeline_log.append(
+            f"[疑点库扫描] {len(_doubt_rules)}条规则中{_scanned}条threshold可结构化执行，"
+            f"触发{len(_scan_hits)}条新发现（已限量，随后进入方法论过滤防线）"
+        )
+    except Exception as _ts_err:
+        pipeline_log.append(f"[疑点库扫描] ERROR(降级继续): {_ts_err}")
+
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
@@ -4912,6 +4971,7 @@ def _build_doubt_library_summary(all_findings):
     hit = [f for f in all_findings if f.get("_rule_id")]
     exact_n = sum(1 for f in hit if f.get("_rule_match_mode") == "exact")
     sem_n = sum(1 for f in hit if f.get("_rule_match_mode") == "semantic")
+    scan_n = sum(1 for f in hit if f.get("_rule_match_mode") == "threshold_scan")
     llm_injected = sum(1 for f in all_findings if f.get("_llm_context"))
     det_injected = sum(1 for f in all_findings if str(f.get("_rule_determination", "")).strip())
     rep_injected = sum(1 for f in all_findings if f.get("_report_ctx"))
@@ -4919,7 +4979,10 @@ def _build_doubt_library_summary(all_findings):
     if total_rules:
         pct = deep_written / total_rules * 100
         lines.append(f"疑点库规模: {total_rules}条规则 · 23字段 · 精写{deep_written}条({pct:.1f}%)")
-    lines.append(f"规则命中: {len(hit)}/{len(all_findings)}条发现匹配到疑点库规则（精确{exact_n}条 语义{sem_n}条）")
+    lines.append(
+        f"规则命中: {len(hit)}/{len(all_findings)}条发现关联疑点库规则"
+        f"（精确{exact_n} 语义{sem_n} threshold主动扫描{scan_n}）"
+    )
     lines.append(f"推理注入: {llm_injected}条注入direction推理链+drill_questions穿透追问")
     lines.append(f"定性注入: {det_injected}条注入determination定性路径")
     lines.append(f"报告驱动: {rep_injected}条注入suggestion稽查处理+remedy整改建议")
