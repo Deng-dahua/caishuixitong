@@ -56,9 +56,9 @@ function renderTaxRiskRules(container) {
     + '.rr-tax .rt b{color:#16233a}'
     + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
     + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;outline:none}'
+    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;outline:none}'
     + '.rr-search input:focus{border-color:#9a1f2b}'
-    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff}'
+    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff}'
     + '.rr-rule{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
     + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
     + '.rr-rule .rh{font-size:10px;font-weight:600;color:#16233a;margin:0 0 10px}'
@@ -80,8 +80,8 @@ function renderTaxRiskRules(container) {
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
-    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
-    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
+    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
+    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
     + '<span id="rr-update-time" style="font-size:10px;color:#94a3b8;white-space:nowrap"></span>'
     + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
     + '</div>';
@@ -146,7 +146,7 @@ function renderTaxRiskRules(container) {
     if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
     // 定位
-    html += '<div style=background:#f0faf6;border:1px solid #bae6d3;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#0f766e>' + eg.purpose + '</div>';
+    html += '<div style=background:#f0faf6;border:1px solid #bae6d3;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10px;color:#0f766e>' + eg.purpose + '</div>';
     // 常犯错误
     html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>二、常犯错误防错清单</div>';
     var errs = eg.common_errors || [];
@@ -173,7 +173,7 @@ function renderTaxRiskRules(container) {
     var sc = eg.submission_checklist || {};
     html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>七、提交前自检（6组17项）</div>';
     var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽'];
-    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10.5px>'+it+'</span>'; }); html += '<br>'; } }
+    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px>'+it+'</span>'; }); html += '<br>'; } }
     document.getElementById('rr-exec-guide-content').innerHTML = html;
   }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+e+'</span>'; });
 
@@ -273,29 +273,29 @@ window._rrFilter = function() {
           else if (lv.indexOf('低') >= 0) lc = '#059669';
           var card = '<div class="rr-rule">'
             + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
-            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:9px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:9px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
+            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
             + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
-            + (rl.score ? '<span style="font-size:9px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
+            + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
             + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
-            + (rl.check_frequency ? '<span style="font-size:9px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
+            + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
 
           // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
           if (rl.phenomena) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
-            card += '<div style="font-size:11px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
           }
           if (rl.direction) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
-            card += '<div style="font-size:11px;color:#64748b;line-height:2;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
+            card += '<div style="font-size:10px;color:#64748b;line-height:2;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
           }
           if (rl.focus && rl.focus !== '待明确重点') {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
-            card += '<div style="font-size:11px;color:#dc2626;line-height:2;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
+            card += '<div style="font-size:10px;color:#dc2626;line-height:2;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
           }
           
           // 风险表格
           if (rl.risk_table) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
             card += '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0 10px"><tr style="background:#fef2f2"><td style="padding:3px 6px;border:1px solid #fcc;font-weight:600;width:80px">风险维度</td><td style="padding:3px 6px;border:1px solid #fcc">风险点描述</td></tr>';
             var rows = typeof rl.risk_table === 'string' ? rl.risk_table.split('\n') :
   (Array.isArray(rl.risk_table) ? rl.risk_table.map(function(rr){
@@ -314,25 +314,25 @@ window._rrFilter = function() {
           
           // 正常业务解释
           if (rl.normal_reason) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
-            card += '<div style="font-size:11px;color:#059669;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
+            card += '<div style="font-size:10px;color:#059669;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
           }
           
           // 定性路径
           if (rl.determination) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
-            card += '<div style="font-size:11px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
           }
           
           // 穿透式追问（整段完整展示，忠实原文换行，不做正则截取）
           if (rl.drill_questions) {
-            card += '<div style="font-size:12px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
+            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
             var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
-            card += '<div style="font-size:11px;color:#3a4048;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
+            card += '<div style="font-size:10px;color:#3a4048;line-height:2;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
           }
           
           // 传统字段（兼容未升级的规则）
-          card += (rl.action ? '<div style="font-size:11px;color:#3a4048;margin:2px 0 4px;white-space:pre-wrap">🔍 核查动作：' + escHtml(rl.action) + '</div>' : '')
+          card += (rl.action ? '<div style="font-size:10px;color:#3a4048;margin:2px 0 4px;white-space:pre-wrap">🔍 核查动作：' + escHtml(rl.action) + '</div>' : '')
             + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📏 触发指标：' + escHtml(rl.threshold) + '</div>' : '')
             + (rl.evidence ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📎 证据清单：' + escHtml(rl.evidence) + '</div>' : '')
             + (rl.policy_ref ? '<div class="ra" style="white-space:pre-wrap">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
@@ -420,23 +420,23 @@ function toggleRuleEdit(ruleId, btn) {
     {k:'detectable',label:'可检测性',v:rule.detectable||''},
   ];
   var h = '<div class="rr-edit-panel" style="margin:12px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
-  h += '<div style="font-size:12px;font-weight:600;color:#1e293b;margin-bottom:12px">✏️ 编辑规则 ' + ruleId + '</div>';
+  h += '<div style="font-size:10px;font-weight:600;color:#1e293b;margin-bottom:12px">✏️ 编辑规则 ' + ruleId + '</div>';
   fields.forEach(function(f){
     h += '<div style="margin-bottom:8px"><span style="font-size:10px;color:#94a3b8">' + f.label + '</span>';
     if (f.type === 'select') {
-      h += '<select id="rr-edit-' + f.k + '" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
+      h += '<select id="rr-edit-' + f.k + '" style="width:100%;font-size:10px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
       (f.opts||[]).forEach(function(o){ h += '<option ' + (o===f.v?'selected':'') + '>' + o + '</option>'; });
       h += '</select>';
     } else if (f.ta) {
-      h += '<textarea id="rr-edit-' + f.k + '" rows="2" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px;resize:vertical">' + escHtml(String(f.v)) + '</textarea>';
+      h += '<textarea id="rr-edit-' + f.k + '" rows="2" style="width:100%;font-size:10px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px;resize:vertical">' + escHtml(String(f.v)) + '</textarea>';
     } else {
-      h += '<input id="rr-edit-' + f.k + '" value="' + escHtml(String(f.v)) + '" style="width:100%;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
+      h += '<input id="rr-edit-' + f.k + '" value="' + escHtml(String(f.v)) + '" style="width:100%;font-size:10px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;margin-top:2px">';
     }
     h += '</div>';
   });
   h += '<div style="display:flex;gap:8px;margin-top:12px">';
-  h += '<button onclick="saveRuleEdit(\'' + ruleId + '\',this)" style="font-size:11px;padding:5px 16px;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">保存</button>';
-  h += '<button onclick="toggleRuleEdit(\'' + ruleId + '\',this)" style="font-size:11px;padding:5px 16px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">取消</button>';
+  h += '<button onclick="saveRuleEdit(\'' + ruleId + '\',this)" style="font-size:10px;padding:5px 16px;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">保存</button>';
+  h += '<button onclick="toggleRuleEdit(\'' + ruleId + '\',this)" style="font-size:10px;padding:5px 16px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">取消</button>';
   h += '</div></div>';
   card.insertAdjacentHTML('beforeend', h);
 }
@@ -457,7 +457,7 @@ async function saveRuleEdit(ruleId, btn) {
     var d = await r.json();
     if (d.ok) {
       var panel = card.querySelector('.rr-edit-panel');
-      if (panel) panel.innerHTML = '<div style="color:#059669;font-weight:600;font-size:12px;padding:8px">✓ 已保存（' + d.changed.length + '字段）· 1.5秒后刷新</div>';
+      if (panel) panel.innerHTML = '<div style="color:#059669;font-weight:600;font-size:10px;padding:8px">✓ 已保存（' + d.changed.length + '字段）· 1.5秒后刷新</div>';
       setTimeout(function(){ loadTaxRiskRules(); }, 1500);
     } else { alert(d.message); btn.disabled = false; btn.textContent = '保存'; }
   } catch(e) { btn.disabled = false; btn.textContent = '重试'; }
@@ -581,7 +581,7 @@ function renderTaxRiskRulesList() {
   if (countEl) countEl.innerHTML = data.length + ' 条税务疑点 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
-    listEl.innerHTML = '<div style="padding:40px 0;font-size:12px;color:#94a3b8">暂无税务疑点，请加载数据</div>';
+    listEl.innerHTML = '<div style="padding:40px 0;font-size:10px;color:#94a3b8">暂无税务疑点，请加载数据</div>';
     return;
   }
 
@@ -645,18 +645,18 @@ function renderTaxRiskRulesList() {
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'
         + '<div style="font-size:10px;font-weight:600;color:#0f172a">'
         + (isAutoRule ? '🤖 ' : '') + escHtml(itemName)
-        + (isAutoRule ? '<span style="margin-left:6px;font-size:11px;font-weight:400;color:#64748b">[' + escHtml(rule.industry || '') + ']</span>' : '')
-        + (isTriggered ? '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:600">✅ 本次触发(' + triggered.length + ')</span>' : '')
+        + (isAutoRule ? '<span style="margin-left:6px;font-size:10px;font-weight:400;color:#64748b">[' + escHtml(rule.industry || '') + ']</span>' : '')
+        + (isTriggered ? '<span style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:600">✅ 本次触发(' + triggered.length + ')</span>' : '')
         + '</div>'
         + '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px">'
         + (isAutoRule 
-            ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#2563eb;font-weight:600">🤖 自动发现</span>'
-            : '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
+            ? '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#2563eb;font-weight:600">🤖 自动发现</span>'
+            : '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
         + (!isAutoRule ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">✏️</button>' : '')
         + (isAutoRule 
-            ? '<span style="font-size:11px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
+            ? '<span style="font-size:10px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
             + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'
-            : '<span style="font-size:11px;color:#94a3b8">评分 ' + scoreVal + '</span>')
+            : '<span style="font-size:10px;color:#94a3b8">评分 ' + scoreVal + '</span>')
         + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
         + '<button onclick="toggleRuleBody(' + _ri + ',this)" style="font-size:10px;padding:2px 10px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#334155;cursor:pointer;font-weight:600">' + (isTriggered ? '▾ 收起' : '▸ 展开') + '</button>'
         + '</div>'
@@ -666,7 +666,7 @@ function renderTaxRiskRulesList() {
         + '<div id="trb-' + _ri + '" style="display:' + (isTriggered ? 'block' : 'none') + '">'
 
         // 触发溯源
-        + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:11px;line-height:2.0">'
+        + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:10px;line-height:2.0">'
         + '<div style="font-weight:600;color:#991b1b;margin-bottom:4px">🔗 触发溯源：</div>'
         + triggered.map(function(t) {
             return '<div style="color:#7f1d1d">→ <strong>' + escHtml(t.domain || t.type || '') + '</strong>' + (t.detail ? ': ' + escHtml(t.detail.substring(0, 150)) : '') + (t.level ? ' [' + t.level + ']' : '') + '</div>';
@@ -674,24 +674,24 @@ function renderTaxRiskRulesList() {
         + '</div>' : '')
 
         // 详细内容 —— 自动发现规则也展示7段式字段
-        + (rule.phenomena ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
-        + (rule.direction ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
-        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:11px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
-        + (rule.drill_questions ? '<div style="font-size:11px;color:#475569;line-height:2.0;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
-        + (detailText ? '<div style="font-size:12px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
-        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:11px;color:#059669;line-height:2.0;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
-        + (rule.risk_table ? '<div style="font-size:11px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
+        + (rule.phenomena ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
+        + (rule.direction ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
+        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:10px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
+        + (rule.drill_questions ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
+        + (detailText ? '<div style="font-size:10px;color:#475569;line-height:2.0;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
+        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:10px;color:#059669;line-height:2.0;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
+        + (rule.risk_table ? '<div style="font-size:10px;color:#dc2626;line-height:2.0;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
 
         // 建议 + 佐证
-        + (suggestText ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
-        + (evidenceText ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
+        + (suggestText ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
+        + (evidenceText ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
 
         // 自动发现额外信息
-        + (isAutoRule ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
-        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:12px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
+        + (isAutoRule ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
+        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:10px;color:#334155;line-height:2.0;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
 
         // 底栏
-        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8">'
+        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8">'
         + (impactText ? '<span><span style="color:#64748b">税务影响：</span>' + escHtml(impactText.substring(0, 120)) + (impactText.length > 120 ? '...' : '') + '</span>' : '')
         + (policyText ? '<span><span style="color:#64748b">法条：</span>' + escHtml(policyText.substring(0, 100)) + (policyText.length > 100 ? '...' : '') + '</span>' : '')
         + (rule.dataSource ? '<span><span style="color:#64748b">数据源：</span>' + escHtml(rule.dataSource) + '</span>' : '')
@@ -755,21 +755,21 @@ window._smartUpdate = function() {
       var cp = document.getElementById('rr-compare');
       if (!cp) return;
       if (total === 0) {
-        cp.innerHTML = '<div style="font-size:14px;font-weight:700;color:#059669;margin:0 0 8px">✅ 本次分析无更新建议</div><div style="font-size:12px;color:#5b6675">依据9个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。规则库状态：' + (c.before_total||0) + '条。</div>';
+        cp.innerHTML = '<div style="font-size:10px;font-weight:700;color:#059669;margin:0 0 8px">✅ 本次分析无更新建议</div><div style="font-size:10px;color:#5b6675">依据9个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。规则库状态：' + (c.before_total||0) + '条。</div>';
         cp.style.display = 'block';
         return;
       }
-      var h = '<div style="font-size:14px;font-weight:700;color:#9a1f2b;margin:0 0 12px">📊 智能更新对比报告</div>';
-      h += '<div style="font-size:12px;color:#5b6675;margin:0 0 12px">' + escHtml(c.summary||'') + '</div>';
-      h += '<div style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap"><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">建议新增</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">建议修改</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:18px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">建议删除</div></div></div>';
-      h += '<div style="font-size:11px;color:#64748b">更新前: ' + (c.before_total||0) + '条 → 更新后: ' + (c.after_total||0) + '条</div>';
+      var h = '<div style="font-size:10px;font-weight:700;color:#9a1f2b;margin:0 0 12px">📊 智能更新对比报告</div>';
+      h += '<div style="font-size:10px;color:#5b6675;margin:0 0 12px">' + escHtml(c.summary||'') + '</div>';
+      h += '<div style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap"><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">建议新增</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">建议修改</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">建议删除</div></div></div>';
+      h += '<div style="font-size:10px;color:#64748b">更新前: ' + (c.before_total||0) + '条 → 更新后: ' + (c.after_total||0) + '条</div>';
       if (c.new_rules && c.new_rules.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#059669;margin:8px 0">新增规则</div>';
+        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#059669;margin:8px 0">新增规则</div>';
         c.new_rules.forEach(function(r,i){
-          h += '<div style="margin:6px 0;padding:10px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:11px;line-height:1.8">';
+          h += '<div style="margin:6px 0;padding:10px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:10px;line-height:1.8">';
           h += '<b style="color:#0f172a">#'+(i+1)+' '+escHtml(r.item||'无名称')+'</b>';
-          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#e0f2fe;color:#0369a1">'+escHtml(r.category||'')+'</span>';
-          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#fef3c7;color:#92400e">'+escHtml(r.level||'')+'</span>';
+          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#e0f2fe;color:#0369a1">'+escHtml(r.category||'')+'</span>';
+          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#fef3c7;color:#92400e">'+escHtml(r.level||'')+'</span>';
           if (r.detail) h += '<div style="color:#475569;margin:4px 0">'+escHtml(r.detail).substring(0,200)+'</div>';
           if (r.direction) h += '<div style="color:#64748b;font-size:10px;margin:2px 0">推理链：'+escHtml(r.direction).substring(0,150)+'</div>';
           if (r.policy_ref) h += '<div style="color:#94a3b8;font-size:10px">📜 '+escHtml(r.policy_ref)+'</div>';
@@ -778,8 +778,8 @@ window._smartUpdate = function() {
         h += '</div>';
       }
       if (c.modify && c.modify.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#f59e0b;margin:8px 0">修改建议</div>';
-        h += '<table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#fff7ed"><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">ID</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原名称</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600;color:#059669">建议改为</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原因</td></tr>';
+        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#f59e0b;margin:8px 0">修改建议</div>';
+        h += '<table style="width:100%;border-collapse:collapse;font-size:10px"><tr style="background:#fff7ed"><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">ID</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原名称</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600;color:#059669">建议改为</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原因</td></tr>';
         c.modify.forEach(function(r){
           h += '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">'+(r.id||'?')+'</td>';
           h += '<td style="padding:6px 8px;border:1px solid #e2e8f0;color:#dc2626">'+escHtml(r.old_item||'')+'</td>';
@@ -789,9 +789,9 @@ window._smartUpdate = function() {
         h += '</table></div>';
       }
       if (c.delete && c.delete.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:12px;font-weight:600;color:#dc2626;margin:8px 0">删除建议</div>';
+        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#dc2626;margin:8px 0">删除建议</div>';
         c.delete.forEach(function(r){
-          h += '<div style="margin:4px 0;padding:8px 12px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626;font-size:11px">';
+          h += '<div style="margin:4px 0;padding:8px 12px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626;font-size:10px">';
           h += '<b>ID['+escHtml(r.id||'')+']</b> '+escHtml(r.item||'')+'';
           if (r.reason) h += ' <span style="color:#9ca3af;font-size:10px">— '+escHtml(r.reason).substring(0,100)+'</span>';
           h += '</div>';
