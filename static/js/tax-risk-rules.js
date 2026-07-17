@@ -44,27 +44,27 @@ function renderTaxRiskRules(container) {
   if (!container) return;
   var h = '';
   h += '<style>'
-    + '.rr{max-width:960px;margin:0 auto;padding:32px 20px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:12px;line-height:1.95}'
-    + '.rr-pre{font-size:12.5px;color:#5b6675;line-height:2.1;margin:0 0 20px;padding:12px 16px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0}'
+    + '.rr{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:10px;line-height:10px}'
+    + '.rr-pre{font-size:10px;color:#5b6675;line-height:10px;margin:0 0 10px;padding:10px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0}'
     + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
-    + '.rr-hero{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}'
-    + '.rr-stat{flex:1;min-width:120px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 14px;text-align:center}'
-    + '.rr-stat .v{font-size:20px;font-weight:700;color:#16233a;line-height:1.3}'
-    + '.rr-stat .l{font-size:10px;color:#94a3b8;margin-top:4px}'
-    + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:0 0 20px}'
-    + '.rr-tax .rt{padding:8px 10px;background:#fafbfc;border:1px solid #eff2f6;border-radius:6px;font-size:11px}'
+    + '.rr-hero{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
+    + '.rr-stat{flex:1;min-width:120px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}'
+    + '.rr-stat .v{font-size:10px;font-weight:700;color:#16233a;line-height:10px}'
+    + '.rr-stat .l{font-size:10px;color:#94a3b8;margin-top:10px}'
+    + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:0 0 10px}'
+    + '.rr-tax .rt{padding:10px;background:#fafbfc;border:1px solid #eff2f6;border-radius:6px;font-size:10px}'
     + '.rr-tax .rt b{color:#16233a}'
     + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
-    + '.rr-search{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}'
+    + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
     + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;outline:none}'
     + '.rr-search input:focus{border-color:#9a1f2b}'
     + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569;background:#fff}'
-    + '.rr-rule{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:8px;transition:box-shadow .12s}'
+    + '.rr-rule{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
     + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
-    + '.rr-rule .rh{font-size:13px;font-weight:600;color:#16233a;margin:0 0 4px}'
-    + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:6px}'
-    + '.rr-rule .rb{font-size:11px;color:#64748b;line-height:1.8;margin:4px 0}'
-    + '.rr-rule .ra{font-size:10.5px;color:#94a3b8}'
+    + '.rr-rule .rh{font-size:10px;font-weight:600;color:#16233a;margin:0 0 10px}'
+    + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:10px}'
+    + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:10px;margin:10px 0}'
+    + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '</style>';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
@@ -87,8 +87,8 @@ function renderTaxRiskRules(container) {
     + '</div>';
 
     h += '<div class="rr-hero" id="rr-hero"></div>';
-  h += '<details id="rr-standard" style="margin-bottom:16px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:12px 16px;font-size:12px;line-height:1.9;color:#334155" open><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:13px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
-    + '<div style="margin-top:14px">'
+  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:10px;color:#334155" open><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
+    + '<div style="margin-top:10px">'
     + '<p><b>铁律1·字段齐全</b>——23字段一个不能缺。基础字段9项自动填充，深度字段12项须精写。</p>'
     + '<p><b>铁律2·穷举至稽查终点</b>——穿透追问穷举至稽查终点：问题间环环相扣、因果递进，直到证实违法行为存在或排除违法行为存在为止。推理链推到定性落地或排除风险为止。追问数量和推理层数是因果链条的自然长度。</p>'
     + '<p><b>铁律3·定级映射</b>——定性路径三路径必须对应证据链三档定级：无法证明→线索 / 部分证明→强证据 / 完整证明→铁证。</p>'
@@ -132,11 +132,11 @@ function renderTaxRiskRules(container) {
     + '</div>'
     + '</details>';
 
-  h += '<details id="rr-exec-guide" style="margin-bottom:16px;background:#f8faf9;border:1px solid #d4ede3;border-radius:8px;padding:12px 16px;font-size:12px;line-height:1.9;color:#334155"><summary style="font-weight:700;color:#0f766e;cursor:pointer;font-size:13px">📋 精写编制说明（v3配套执行指引 · 怎么写才不会写错）</summary>'
-    + '<div id="rr-exec-guide-content" style="margin-top:12px;color:#64748b">加载中...</div>'
+  h += '<details id="rr-exec-guide" style="margin-bottom:10px;background:#f8faf9;border:1px solid #d4ede3;border-radius:8px;padding:10px;font-size:10px;line-height:10px;color:#334155"><summary style="font-weight:700;color:#0f766e;cursor:pointer;font-size:10px">📋 精写编制说明（v3配套执行指引 · 怎么写才不会写错）</summary>'
+    + '<div id="rr-exec-guide-content" style="margin-top:10px;color:#64748b">加载中...</div>'
     + '</details>';
   h += '<div id="rr-list"></div>';
-  h += '<div id="rr-compare" style="display:none;margin:0 0 20px;padding:16px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
+  h += '<div id="rr-compare" style="display:none;margin:0 0 10px;padding:10px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
 
@@ -643,7 +643,7 @@ function renderTaxRiskRulesList() {
         
         // 标题行
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'
-        + '<div style="font-size:13px;font-weight:600;color:#0f172a">'
+        + '<div style="font-size:10px;font-weight:600;color:#0f172a">'
         + (isAutoRule ? '🤖 ' : '') + escHtml(itemName)
         + (isAutoRule ? '<span style="margin-left:6px;font-size:11px;font-weight:400;color:#64748b">[' + escHtml(rule.industry || '') + ']</span>' : '')
         + (isTriggered ? '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:600">✅ 本次触发(' + triggered.length + ')</span>' : '')
