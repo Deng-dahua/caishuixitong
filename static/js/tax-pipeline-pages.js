@@ -4571,11 +4571,6 @@ function renderUnifiedDomainPanel(container) {
     + '.udp .udp-stat .val{font-size:10px;font-weight:800;color:#16233a;display:block;line-height:1.2}'
     + '.udp .udp-stat .lbl{font-size:10px;color:#64748b;display:block;margin-top:4px}'
     + '.udp .udp-rule{display:flex;gap:10px;align-items:flex-start;margin:6px 0;padding:10px 14px;background:#fafbfc;border-radius:6px;border-left:3px solid #e2e8f0;font-size:10px;line-height:20px}'
-    + '.udp .udp-rule .rn{font-size:10px;font-weight:800;color:#16233a;min-width:22px;text-align:center;flex-shrink:0}'
-    + '.udp .udp-rule .rc{font-size:10px;line-height:20px}'
-    + '.udp .udp-rule.fatal{border-left-color:#9a1f2b;background:#fef8f8}'
-    + '.udp .udp-rule.high{border-left-color:#d97706;background:#fffbeb}'
-    + '.udp .udp-rule.info{border-left-color:#2563eb;background:#eff6ff}'
     + '.udp .udp-chain{padding:14px 18px;margin-bottom:10px;background:#fff;border:1px solid #eff2f6;border-radius:8px;font-size:10px;line-height:1.9}'
     + '.udp .udp-step{padding:8px 14px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:10px;line-height:1.9;border-left:3px solid #e2e8f0}'
     + '.udp .udp-step .sn{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#16233a;color:#fff;font-size:10px;font-weight:700;margin-right:10px;flex-shrink:0}'
@@ -4586,13 +4581,13 @@ function renderUnifiedDomainPanel(container) {
 
   h += '<h2>一、7条前置判定规则（域分析执行前必须先通过，顺序不可调）</h2>';
   h += '<p>7条规则分两级执行：<b>全局级（①-③）</b>——域分析开始前一次性执行，不通过则全分析终止；<b>域级（④-⑦）</b>——随域分析逐域执行，不通过则跳过对应域，其他域继续。</p>';
-  h += '<div class="udp-rule fatal"><span class="rn">①</span><span class="rc"><b>公司身份锚定</b>（全局级）——报告开头必须声明公司名称+信用代码。锚定错误→全部分析作废。</span></div>';
-  h += '<div class="udp-rule fatal"><span class="rn">②</span><span class="rc"><b>发票方向判定</b>（全局级）——进项/销项分类须有判定依据。方向错→收入成本颠倒。</span></div>';
-  h += '<div class="udp-rule high"><span class="rn">③</span><span class="rc"><b>进项再分类</b>（全局级）——普票税额并入成本，专票税额入进项税额。分类错→threshold阈值基准错误。</span></div>';
-  h += '<div class="udp-rule fatal"><span class="rn">④</span><span class="rc"><b>服务行业闸门</b>（域级）——服务行业不得出现进销存/制造业毛利率对标等实物域分析。扩展：COND_BAN防误杀规则同步执行。</span></div>';
-  h += '<div class="udp-rule high"><span class="rn">⑤</span><span class="rc"><b>品名级精准过滤</b>（域级）——混合行业必须品名级区分。补充：文件多格式兼容、汇总行自动过滤，两规则在域分析前执行。</span></div>';
-  h += '<div class="udp-rule fatal"><span class="rn">⑥</span><span class="rc"><b>综合判断四方交叉验证</b>（域级）——文件类型须经文件名+表头+内容+身份匹配四方验证。</span></div>';
-  h += '<div class="udp-rule high"><span class="rn">⑦</span><span class="rc"><b>存疑排除</b>（域级）——买卖双方都不含公司的发票必须排除出所有计算。跨账套污染=致命事故。</span></div>';
+  h += '<p><b>① 公司身份锚定（全局级）</b>——报告开头必须声明公司名称+信用代码。锚定错误→全部分析作废。</p>';
+  h += '<p><b>② 发票方向判定（全局级）</b>——进项/销项分类须有判定依据。方向错→收入成本颠倒。</p>';
+  h += '<p><b>③ 进项再分类（全局级）</b>——普票税额并入成本，专票税额入进项税额。分类错→threshold阈值基准错误。</p>';
+  h += '<p><b>④ 服务行业闸门（域级）</b>——服务行业不得出现进销存/制造业毛利率对标等实物域分析。扩展：COND_BAN防误杀规则同步执行。</p>';
+  h += '<p><b>⑤ 品名级精准过滤（域级）</b>——混合行业必须品名级区分。补充：文件多格式兼容、汇总行自动过滤，两规则在域分析前执行。</p>';
+  h += '<p><b>⑥ 综合判断四方交叉验证（域级）</b>——文件类型须经文件名+表头+内容+身份匹配四方验证。</p>';
+  h += '<p><b>⑦ 存疑排除（域级）</b>——买卖双方都不含公司的发票必须排除出所有计算。跨账套污染=致命事故。</p>';
 
   h += '<h2>二、13大分类 · 40个域函数 · 数据依赖与输出类型</h2>';
   h += '<p>本章按业务领域分为13大类（设计视角），与第三章按功能聚合的五大域组（运行视角）互为补充。本章管每个域"做什么"，第三章管域与域之间"怎么配合"。13大分类合计：4+4+4+5+3+2+3+2+3+2+4+1+3=40域。</p>';
