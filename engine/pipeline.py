@@ -1746,12 +1746,32 @@ def _run_analyze(company_id, db, progress_callback=None):
     blind_results = blind_destruction_test(all_findings, pipeline_log)
     self_heal_from_blind_test(blind_results, all_findings, pipeline_log)
     hallucination_count = hallucination_check(all_findings, pipeline_log)
+    try:
+        from database import Company as _CoM
+        _co_row = db.query(_CoM).filter(_CoM.id == company_id).first()
+        _co_name_for_pattern = (_co_row.name or "") if _co_row else ""
+    except Exception:
+        _co_name_for_pattern = ""
     topology_pattern = extract_topology_pattern(
         all_findings,
-        {"name": (ctx.company_profile or {}).get("name", "") if ctx else ""},
+        {"name": _co_name_for_pattern or ((ctx.company_profile or {}).get("name", "") if ctx else "")},
         pipeline_log,
     )
     consistency_result = consistency_rerun_check(all_findings, pipeline_log)
+
+    # ═══ P2进化引擎：经验直觉置信度进化 + 秘笈自更新（2026-07-17）═══
+    try:
+        from engine.evolution import evolve_pattern_confidence, update_methodology_suggestions
+        evolution_result = evolve_pattern_confidence(
+            topology_pattern,
+            (ctx.company_profile or {}).get("industry", "") if ctx else "",
+            pipeline_log,
+        )
+        methodology_update = update_methodology_suggestions(pipeline_log, all_findings)
+    except Exception as _evo_err:
+        evolution_result = {}
+        methodology_update = {}
+        pipeline_log.append(f"[进化引擎] ERROR: {_evo_err}")
     
     _step_timing["step6"] = round(time.time() - _step_timing.get("step6_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤⑥行业对标与申报比对(Phase4综合定性): {_step_timing['step6']}秒")
@@ -3739,6 +3759,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         "consistency": consistency_result if 'consistency_result' in dir() else {},
         "hallucination_count": hallucination_count if 'hallucination_count' in dir() else 0,
         "topology_pattern": topology_pattern if 'topology_pattern' in dir() else {},
+        "evolution": evolution_result if 'evolution_result' in dir() else {},
+        "methodology_update": methodology_update if 'methodology_update' in dir() else {},
         "engine_hub_summary": _build_engine_hub_summary(
             red_team_results if 'red_team_results' in dir() else {},
             blind_results if 'blind_results' in dir() else {},

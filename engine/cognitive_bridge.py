@@ -56,6 +56,20 @@ def _push_industry_pattern(data, pipeline_log=None):
     """P0 推送 — 行业模式匹配"""
     industry = str(data.get("industry", ""))
     matches = []
+    # P0：已验证通用模式库（经验直觉——扛住红队攻击的模式骨架优先推送）
+    try:
+        from engine.evolution import get_verified_patterns
+        verified = get_verified_patterns()
+        if verified:
+            matches.append({
+                "priority": "P0",
+                "action": f"已验证通用模式库: {len(verified)}个模式在库",
+                "suggestion": "本次分析将与已验证模式骨架优先比对，命中即最高级别警报",
+            })
+            if pipeline_log is not None:
+                pipeline_log.append(f"[记忆层] P0 直觉推送: {len(verified)}个已验证通用模式加载")
+    except Exception:
+        pass
     if industry:
         # 基于行业的 P1 推送
         matches.append({
