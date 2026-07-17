@@ -147,34 +147,36 @@ function renderTaxRiskRules(container) {
     if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
     // 定位
-    html += '<div style=background:#f0faf6;border:1px solid #bae6d3;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10px;color:#0f766e>' + eg.purpose + '</div>';
+    html += '<div style=background:#f0faf6;border-radius:6px;padding:10px;margin-bottom:10px;font-size:10px;color:#0f766e>' + eg.purpose + '</div>';
     // 常犯错误
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>二、常犯错误防错清单</div>';
+    html += '<p><b>二、常犯错误防错清单</b></p>';
     var errs = eg.common_errors || [];
-    errs.forEach(function(e){ html += '<div style=margin:3px 0><b style=color:#dc2626>❌ </b>' + e.error + ' → <b style=color:#166534>✓</b> ' + e.correct + '</div>'; });
+    errs.forEach(function(e){ html += '<p style=margin:0 0 10px><b style=color:#dc2626>❌ </b>' + e.error + ' → <b style=color:#166534>✓</b> ' + e.correct + '</p>'; });
     // 评分锚点
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>三、风险评分锚点</div>';
+    html += '<p><b>三、风险评分锚点</b></p>';
     var sa = eg.scoring_anchors, lvs = sa.levels || [];
-    lvs.forEach(function(l){ html += '<div style=margin:3px 0><b>'+l.score+'分</b>: '+l.criterion+' ('+l.typical+')</div>'; });
+    lvs.forEach(function(l){ html += '<p style=margin:0 0 10px><b>'+l.score+'分</b>: '+l.criterion+' ('+l.typical+')</p>'; });
     // 影响程度
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>四、影响程度 & 证据优先级</div>';
+    html += '<p><b>四、影响程度 & 证据优先级</b></p>';
     var il = eg.impact_levels || {};
-    for (var k in il) { if (k=='description') continue; html += '<b>'+k+'</b>: '+il[k]+'<br>'; }
+    for (var k in il) { if (k=='description') continue; html += '<p style=margin:0 0 10px><b>'+k+'</b>: '+il[k]+'</p>'; }
     var ep = eg.evidence_priority || {};
-    html += '<b>证据优先级——必须获取</b>: '+ep['必须获取']+'<br><b>应当获取</b>: '+ep['应当获取']+'<br><b>可以获取</b>: '+ep['可以获取']+'<br>';
+    html += '<p style=margin:0 0 10px><b>证据优先级——必须获取</b>: '+ep['必须获取']+'</p>';
+    html += '<p style=margin:0 0 10px><b>应当获取</b>: '+ep['应当获取']+'</p>';
+    html += '<p style=margin:0 0 10px><b>可以获取</b>: '+ep['可以获取']+'</p>';
     // 证据命名
     var en = eg.evidence_layer_naming, emap = en.映射 || {};
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>五、证据第一层命名指引</div>';
-    for (var k in emap) { html += '<b>'+k+'</b> → '+emap[k]+'<br>'; }
+    html += '<p><b>五、证据第一层命名指引</b></p>';
+    for (var k in emap) { html += '<p style=margin:0 0 10px><b>'+k+'</b> → '+emap[k]+'</p>'; }
     // 品质标杆
     var qb = eg.quality_benchmarks || {};
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>六、品质标杆</div>';
-    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'<br>'; }
+    html += '<p><b>六、品质标杆</b></p>';
+    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<p style=margin:0 0 10px><b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'</p>'; }
     // 自检清单
     var sc = eg.submission_checklist || {};
-    html += '<div style=font-weight:700;color:#0f172a;margin:12px 0 6px;border-bottom:1px solid #e2e8f0>七、提交前自检（6组17项）</div>';
+    html += '<p><b>七、提交前自检（6组17项）</b></p>';
     var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽'];
-    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px>'+it+'</span>'; }); html += '<br>'; } }
+    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<p style=margin:0 0 10px><b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px>'+it+'</span>'; }); html += '</p>'; } }
     document.getElementById('rr-exec-guide-content').innerHTML = html;
   }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+e+'</span>'; });
 
