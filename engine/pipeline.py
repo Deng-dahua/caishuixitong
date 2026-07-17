@@ -3768,6 +3768,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             topology_pattern if 'topology_pattern' in dir() else {},
         ),
         "methodology_summary": _build_methodology_summary(all_findings, quality_report, cross_verify_result if 'cross_verify_result' in dir() else {}, pipeline_log),
+        "doubt_library_summary": _build_doubt_library_summary(all_findings),
         "rights_and_signature": _generate_rights_and_signature_chapters(target_entity),
         "case_source": case_source if 'case_source' in dir() else {},
         "implementation": implementation if 'implementation' in dir() else {},
@@ -4864,6 +4865,53 @@ def _build_methodology_summary(all_findings, quality_report, cross_verify, pipel
     lines.append(f"四方交叉验证: {cross_status}")
     
     return {"status": "七层执行完成", "details": lines}
+
+
+def _build_doubt_library_summary(all_findings):
+    """构建税务疑点库消费执行摘要（一键分析可见语言）
+
+    2026-07-17 新增：把疑点库的规模、精写覆盖、本次命中、
+    深度字段消费（direction推理链/determination定性/报告驱动）
+    编制成一键分析按钮看得懂的执行报告。
+    """
+    lines = []
+    try:
+        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
+        with open(rules_path, "r", encoding="utf-8") as _rf:
+            _rules = json.load(_rf)
+        total_rules = len(_rules)
+        deep_written = sum(
+            1 for x in _rules
+            if all(str(x.get(k, "")).strip() for k in ("direction", "determination", "threshold"))
+        )
+        rule_cat = {str(x.get("id", "")): str(x.get("category", "")) for x in _rules}
+    except Exception:
+        total_rules, deep_written, rule_cat = 0, 0, {}
+
+    # 本次消费统计（来自规则深度字段消费环节注入的标记）
+    hit = [f for f in all_findings if f.get("_rule_id")]
+    llm_injected = sum(1 for f in all_findings if f.get("_llm_context"))
+    det_injected = sum(1 for f in all_findings if str(f.get("_rule_determination", "")).strip())
+    rep_injected = sum(1 for f in all_findings if f.get("_report_ctx"))
+
+    if total_rules:
+        pct = deep_written / total_rules * 100
+        lines.append(f"疑点库规模: {total_rules}条规则 · 23字段 · 精写{deep_written}条({pct:.1f}%)")
+    lines.append(f"规则命中: {len(hit)}/{len(all_findings)}条发现匹配到疑点库规则")
+    lines.append(f"推理注入: {llm_injected}条注入direction推理链+drill_questions穿透追问")
+    lines.append(f"定性注入: {det_injected}条注入determination定性路径")
+    lines.append(f"报告驱动: {rep_injected}条注入suggestion稽查处理+remedy整改建议")
+
+    # 命中规则的分类分布 TOP5
+    if hit and rule_cat:
+        from collections import Counter
+        cats = Counter(rule_cat.get(str(f.get("_rule_id", "")), "") for f in hit)
+        cats.pop("", None)
+        top = " ".join(f"{c}{n}条" for c, n in cats.most_common(5))
+        if top:
+            lines.append(f"命中分类TOP: {top}")
+
+    return {"status": "疑点库消费完成", "details": lines}
 
 
 def _generate_rights_and_signature_chapters(company_info):
