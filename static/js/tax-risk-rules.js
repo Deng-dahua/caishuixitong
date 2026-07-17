@@ -65,6 +65,7 @@ function renderTaxRiskRules(container) {
     + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:10px}'
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
+    + '.rr p{margin:0 0 10px;line-height:20px}'
     + '</style>';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
