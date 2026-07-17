@@ -3261,7 +3261,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 规则深度字段消费：把税务疑点库的 direction/drill_questions/determination 等注入每条发现 ═══
     try:
-        from engine.rule_consumer import build_rule_context_for_llm, build_report_context_from_rule
+        from engine.rule_consumer import (
+            build_rule_context_for_llm, build_report_context_from_rule,
+            build_rule_match_index, match_rule_semantic,
+        )
         rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         with open(rules_path, "r", encoding="utf-8") as _rf:
             _all_rules = json.load(_rf)
@@ -3269,6 +3272,9 @@ def _run_analyze(company_id, db, progress_callback=None):
         for _r in _all_rules:
             _it = str(_r.get("item", "")).strip()
             _rule_by_item[_it] = _r
+        # 语义匹配索引（2026-07-17：精确匹配失败后走 bigram 语义匹配提升命中率）
+        _match_index = build_rule_match_index(_all_rules)
+        _exact_hits, _semantic_hits = 0, 0
         for f in all_findings:
             if f.get("_rule_id"):
                 # 链驱动发现已注入，直接消费
@@ -3277,11 +3283,22 @@ def _run_analyze(company_id, db, progress_callback=None):
                     f["_llm_context"] = llm_ctx[:8000]
                     f["_report_ctx"] = build_report_context_from_rule(f, f)
             else:
-                # 按 item 反查规则，注入深度字段
+                # 第一级：按 item 精确反查
                 ftype = f.get("type", "")
                 matched = _rule_by_item.get(ftype) or _rule_by_item.get(ftype.split("[")[0].strip())
+                match_mode, match_score = "exact", 1.0
+                # 第二级：语义匹配兜底（bigram 重叠系数，阈值0.55宁缺勿滥）
+                if not matched:
+                    matched, match_score = match_rule_semantic(f, _match_index)
+                    match_mode = "semantic"
                 if matched:
+                    if match_mode == "exact":
+                        _exact_hits += 1
+                    else:
+                        _semantic_hits += 1
                     f["_rule_id"] = matched.get("id")
+                    f["_rule_match_mode"] = match_mode
+                    f["_rule_match_score"] = match_score
                     f["_rule_direction"] = matched.get("direction", "")
                     f["_rule_determination"] = matched.get("determination", "")
                     llm_ctx, _ = build_rule_context_for_llm(matched, f)
@@ -3290,7 +3307,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                     rep_ctx = build_report_context_from_rule(matched, f)
                     if rep_ctx:
                         f["_report_ctx"] = rep_ctx
-        pipeline_log.append(f"规则深度字段消费: 为{len(all_findings)}条发现注入推理上下文")
+        pipeline_log.append(
+            f"规则深度字段消费: 为{len(all_findings)}条发现注入推理上下文"
+            f"（精确命中{_exact_hits}条 语义命中{_semantic_hits}条）"
+        )
     except Exception as _rc_err:
         pipeline_log.append(f"规则深度字段消费异常(降级继续): {_rc_err}")
     
@@ -4890,6 +4910,8 @@ def _build_doubt_library_summary(all_findings):
 
     # 本次消费统计（来自规则深度字段消费环节注入的标记）
     hit = [f for f in all_findings if f.get("_rule_id")]
+    exact_n = sum(1 for f in hit if f.get("_rule_match_mode") == "exact")
+    sem_n = sum(1 for f in hit if f.get("_rule_match_mode") == "semantic")
     llm_injected = sum(1 for f in all_findings if f.get("_llm_context"))
     det_injected = sum(1 for f in all_findings if str(f.get("_rule_determination", "")).strip())
     rep_injected = sum(1 for f in all_findings if f.get("_report_ctx"))
@@ -4897,7 +4919,7 @@ def _build_doubt_library_summary(all_findings):
     if total_rules:
         pct = deep_written / total_rules * 100
         lines.append(f"疑点库规模: {total_rules}条规则 · 23字段 · 精写{deep_written}条({pct:.1f}%)")
-    lines.append(f"规则命中: {len(hit)}/{len(all_findings)}条发现匹配到疑点库规则")
+    lines.append(f"规则命中: {len(hit)}/{len(all_findings)}条发现匹配到疑点库规则（精确{exact_n}条 语义{sem_n}条）")
     lines.append(f"推理注入: {llm_injected}条注入direction推理链+drill_questions穿透追问")
     lines.append(f"定性注入: {det_injected}条注入determination定性路径")
     lines.append(f"报告驱动: {rep_injected}条注入suggestion稽查处理+remedy整改建议")

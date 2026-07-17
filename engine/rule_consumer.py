@@ -280,3 +280,65 @@ def build_report_context_from_rule(rule, finding_data=None):
     if finding_data:
         ctx["finding"] = finding_data
     return ctx
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 第四步：关键词/语义级规则匹配（2026-07-17 新增）
+# 精确 item 匹配命中率低（域分析发现的 type 与规则条目名对不上），
+# 用中文 bigram 重叠系数做语义级匹配，把命中率提上来。
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+def _cn_bigrams(text):
+    """提取中文/字母数字的字符 bigram 集合（轻量分词替代，全行业适用）"""
+    t = re.sub(r'[^\u4e00-\u9fa5A-Za-z0-9]', '', str(text or ""))
+    if len(t) < 2:
+        return {t} if t else set()
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def _overlap_coef(a, b):
+    """重叠系数 = 交集 / 较短集合大小。比 Jaccard 更容忍短标题 vs 长描述的长度差。"""
+    if not a or not b:
+        return 0.0
+    return len(a & b) / min(len(a), len(b))
+
+
+def build_rule_match_index(rules):
+    """预计算每条规则的匹配索引（bigram 集合），一次分析建一次。"""
+    index = []
+    for r in rules:
+        item = str(r.get("item", "")).strip()
+        if not item:
+            continue
+        index.append({
+            "rule": r,
+            "item_bi": _cn_bigrams(item),
+            # phenomena 前80字作为辅助语料（规则描述的典型表现）
+            "ext_bi": _cn_bigrams(item + str(r.get("phenomena", ""))[:80]),
+        })
+    return index
+
+
+def match_rule_semantic(finding, index, threshold=0.55):
+    """语义级匹配：为一条发现找最相似的疑点库规则。
+
+    评分 = max(type↔item 重叠, 0.8×(type+detail ↔ item+phenomena) 重叠)
+    只取 top1 且分数 ≥ threshold，宁缺勿滥——错配比不配危害更大。
+    返回 (rule, score) 或 (None, 0)。
+    """
+    ftype = str(finding.get("type", "")).strip()
+    if not ftype or not index:
+        return None, 0.0
+    f_type_bi = _cn_bigrams(ftype)
+    f_full_bi = _cn_bigrams(ftype + str(finding.get("detail", ""))[:150])
+    best, best_score = None, 0.0
+    for entry in index:
+        s1 = _overlap_coef(f_type_bi, entry["item_bi"])
+        s2 = _overlap_coef(f_full_bi, entry["ext_bi"]) * 0.8
+        score = max(s1, s2)
+        if score > best_score:
+            best, best_score = entry["rule"], score
+    if best is not None and best_score >= threshold:
+        return best, round(best_score, 3)
+    return None, 0.0
+
