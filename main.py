@@ -10259,6 +10259,82 @@ def get_brain_status():
     return result
 
 
+@app.get("/api/tax-risk-rules/validate-v3")
+def validate_rules_v3(rule_id: str = None):
+    """v3精写标准自检——按规则ID逐条检查23字段是否达标。
+    智能更新按钮可调用此API，每条规则精写完后自动验证、不达标不提交。
+    前端用法：GET /api/tax-risk-rules/validate-v3?rule_id=1（验证单条）
+             GET /api/tax-risk-rules/validate-v3（验证全部，返回概览）"""
+    import json as _json, os as _os, re as _re
+    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
+    if not _os.path.exists(rp):
+        return {"ok": False, "message": "规则文件不存在"}
+    with open(rp, "r", encoding="utf-8") as _f:
+        rules = _json.load(_f)
+
+    def _check(field, condition, message):
+        if not condition:
+            errors.append(f"{field}: {message}")
+
+    def _validate(rule):
+        nonlocal errors
+        errors = []
+        for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
+            _check(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
+        d = str(rule.get('direction',''))
+        _check('direction', _re.search(r'推理第', d), '缺少推理层标注')
+        _check('direction', '依赖证据' in d, '每层缺少依赖证据标注')
+        _check('direction', '复杂度' in d, '缺少复杂度标记')
+        dq = str(rule.get('drill_questions',''))
+        fp = dq.find('事实层'); ep = dq.find('证据层'); lp = dq.find('逻辑层')
+        if fp>=0 and ep>=0 and lp>=0:
+            _check('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
+        _check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足3条')
+        _check('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少潜台词格式')
+        _check('drill_questions', 'A：' in dq or 'A:' in dq, '缺少应对话术格式')
+        focus = str(rule.get('focus',''))
+        _check('focus', '①' in focus, '稽查重点须用①②③④逐条标注')
+        nr = str(rule.get('normal_reason',''))
+        _check('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
+        _check('normal_reason', '最常见' in nr or '穷举' in nr, '缺少最常见标注或穷举说明')
+        det = str(rule.get('determination',''))
+        _check('determination', '线索' in det, '缺路径一')
+        _check('determination', '强证据' in det, '缺路径二')
+        _check('determination', '铁证' in det, '缺路径三')
+        _check('determination', '应对总原则' in det, '缺应对总原则')
+        rt = str(rule.get('risk_table',''))
+        _check('risk_table', '核心' in rt, '缺核心影响标注')
+        ev = str(rule.get('evidence',''))
+        _check('evidence', '必须' in ev, '缺必须获取优先级')
+        _check('evidence', '应当' in ev, '缺应当获取优先级')
+        _check('evidence', '可以' in ev, '缺可以获取优先级')
+        _check('evidence', '金额分级' in ev or '大额' in ev or '>10万' in ev, '缺金额分级')
+        th = str(rule.get('threshold',''))
+        _check('threshold', '行业' in th, '缺行业差异阈值')
+        _check('threshold', '前置条件' in th, '缺前置条件四维度')
+        sg = str(rule.get('suggestion',''))
+        _check('suggestion', '定性' in sg, '缺定性')
+        _check('suggestion', '补税' in sg, '缺补税')
+        rm = str(rule.get('remedy',''))
+        _check('remedy', '自查' in rm or '应对' in rm or '制度' in rm, '缺三阶段')
+        return errors
+
+    if rule_id:
+        rule = next((r for r in rules if str(r.get('id')) == rule_id), None)
+        if not rule:
+            return {"ok": False, "message": f"规则 #{rule_id} 不存在"}
+        errors = _validate(rule)
+        return {"ok": True, "rule_id": rule_id, "item": rule.get("item",""), "errors": errors, "passed": len(errors) == 0}
+
+    # 全量扫描
+    results = []
+    for r in rules:
+        errs = _validate(r)
+        if errs:
+            results.append({"id": r.get("id"), "item": r.get("item","")[:40], "errors": errs})
+    return {"ok": True, "total": len(rules), "failing": len(results), "details": results[:50]}
+
+
 @app.get("/api/audit/calibration")
 def get_calibration_status(db: Session = Depends(get_db)):
     """获取自学习校准状态 — 查看历史数据积累和阈值校准情况"""
