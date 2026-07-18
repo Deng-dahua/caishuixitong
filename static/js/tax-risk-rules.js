@@ -45,7 +45,7 @@ function renderTaxRiskRules(container) {
   var h = '';
   h += '<style>'
     + '.rr{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:10px;line-height:20px}'
-    + '.rr-pre{font-size:10px;color:#5b6675;line-height:20px;margin:0 0 10px;padding:10px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0}'
+    + '.rr-pre{font-size:10px;color:#5b6675;line-height:20px;margin:0 0 10px;padding:0}'
     + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
     + '.rr-hero{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
     + '.rr-stat{flex:1;min-width:120px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}'
