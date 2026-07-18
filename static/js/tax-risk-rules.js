@@ -223,14 +223,6 @@ function renderTaxRiskRules(container) {
 
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
-    + '<select id="rr-level-filter" onchange="window._rrFilter()">'
-    + '<option value="">全部等级</option>'
-    + '<option value="极高风险">极高风险</option>'
-    + '<option value="高风险">高风险</option>'
-    + '<option value="中风险">中风险</option>'
-    + '<option value="低风险">低风险</option>'
-    + '<option value="良好">良好/正常</option>'
-    + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()">'
     + '<option value="">全部分类</option>'
     + '<option>资金流监控</option><option>发票流监控</option><option>申报流监控</option>'
@@ -240,7 +232,7 @@ function renderTaxRiskRules(container) {
     + '<option>税务合规与程序</option>'
     + '</select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
-    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
+    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
     + '</div>';
 
   h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
@@ -373,19 +365,13 @@ function renderTaxRiskRules(container) {
 
       var rrSortBy = 'id';
 window._rrSort = function(rules, sortBy) {
-  if (sortBy === 'level') {
-    var order = {'极高':0,'高':1,'中':2,'低':3,'良好':4};
-    return rules.slice().sort(function(a,b){return (order[a.level]||5)-(order[b.level]||5);});
-  } else if (sortBy === 'category') {
-    return rules.slice().sort(function(a,b){return (a.monitor_category||'').localeCompare(b.monitor_category||'');});
-  } else if (sortBy === 'updated') {
+  if (sortBy === 'updated') {
     return rules.slice().sort(function(a,b){return (b.updated_at||'').localeCompare(a.updated_at||'');});
   }
   return rules.slice().sort(function(a,b){return (a.id||0)-(b.id||0);});
 };
 window._rrFilter = function() {
         var kw = (document.getElementById('rr-search-input') && document.getElementById('rr-search-input').value || '').toLowerCase();
-        var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
         var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
         var sc = document.getElementById('rr-source-filter') && document.getElementById('rr-source-filter').value || '';
         var list = document.getElementById('rr-list');
@@ -394,7 +380,6 @@ window._rrFilter = function() {
         var filtered = window._rrSort(rules, sortBy).filter(function(rl) {
           var txt = (rl.item || '') + ' ' + (rl.direction || '') + ' ' + (rl.focus || '') + ' ' + (rl.action || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
-          if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
           if (ct && (rl.monitor_category || '') !== ct) return false;
           if (sc) {
             var isAuto = rl.source === '系统发现' || rl.type === 'auto_signal';
@@ -541,7 +526,6 @@ async function batchRefreshRules(btn) {
 
 function filterRules() {
   var search = (document.getElementById('rr-search')?.value || '').toLowerCase();
-  var level = document.getElementById('rr-level-filter')?.value || '';
   var cat = document.getElementById('rr-cat-filter')?.value || '';
   var rtype = document.getElementById('rr-type-filter')?.value || '';
   
@@ -553,14 +537,12 @@ function filterRules() {
   
   allCards.forEach(function(card) {
     var text = (card.textContent || '').toLowerCase();
-    var ruleLevel = card.getAttribute('data-level') || '';
     var ruleCat = card.getAttribute('data-monitor') || '';
     var ruleType = card.getAttribute('data-type') || '';
     var triggered = card.getAttribute('data-triggered') === '1';
     
     var matches = true;
     if (search && text.indexOf(search) < 0) matches = false;
-    if (level && ruleLevel !== level) matches = false;
     if (cat && ruleCat !== cat) matches = false;
     if (rtype && ruleType !== rtype) matches = false;
     if (_showTriggeredOnly && !triggered) matches = false;
