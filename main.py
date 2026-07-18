@@ -1509,11 +1509,11 @@ async def smart_update_rules(request: Request):
         "- suggestion: 稽查局视角，格式:定性→补税→滞纳金→罚款→移送\n"
         "- remedy: 企业视角，三阶段(自查/应对/制度)\n"
         "【硬性要求-不满足则自检不通过】：\n"
-        "1. direction第一行必须写"复杂度：复杂"(或中等/简单)\n"
-        "2. determination最后必须写"应对总原则：能完整证明走铁证路径；能部分证明走强证据路径补证据后重判；无法证明入线索池不入正式结论"\n"
+        "1. direction第一行必须写'复杂度：复杂'(或中等/简单)\n"
+        "2. determination最后必须写'应对总原则：能完整证明走铁证路径；能部分证明走强证据路径补证据后重判；无法证明入线索池不入正式结论'\n"
         "3. evidence必须包含必须/应当/可以优先级+末尾大额(>10万)/中额(1-10万)/小额(<1万)金额分级\n"
-        "4. normal_reason必须标注"穷举说明：已穷举全部合法情形"\n"
-        "5. 有量化阈值的规则determination必须包含"阈值以下处理"分支\n"
+        "4. normal_reason必须标注'穷举说明：已穷举全部合法情形'\n"
+        "5. 有量化阈值的规则determination必须包含'阈值以下处理'分支\n"
         "只输出JSON，不要任何解释文字。JSON第一行是{{，最后一行是}}。注意：字段名必须用中文原名（如direction/evidence/threshold等），不要翻译。"
     )
 
@@ -1600,11 +1600,12 @@ async def smart_update_rules(request: Request):
                 results["failed"] += 1
                 continue
 
-            # 保留原 ID + 基本信息
+            # 身份锁：id/item/category 是规则身份，LLM 只精写内容，禁止改名/改类
+            # （否则 LLM 会自由发挥把"借贷不平衡"改名成别的规则，全库引用失联）
             new_rule["id"] = rule_id
             new_rule["source"] = "LLM智能更新"
-            if "item" not in new_rule or not new_rule["item"]:
-                new_rule["item"] = rule.get("item", "")
+            new_rule["item"] = rule.get("item", "")
+            new_rule["category"] = rule.get("category", "")
 
             # v3 自检
             errs = v3_validate(new_rule)
@@ -1619,12 +1620,14 @@ async def smart_update_rules(request: Request):
             rules[i] = new_rule
             results["rewritten"] += 1
 
-            # 每 10 条写一次盘，防止中途崩溃丢失进度
-            if results["rewritten"] % 10 == 0:
+            # 每 10 条写一次盘，防止中途崩溃丢失进度（条数守卫：结构被污染则拒绝写盘）
+            if results["rewritten"] % 10 == 0 and len(rules) == results["total"]:
                 with open(rp, "w", encoding="utf-8") as wf:
                     _json.dump(rules, wf, ensure_ascii=False, indent=2)
 
-        # 最终写盘
+        # 最终写盘（条数守卫）
+        if len(rules) != results["total"]:
+            return {"ok": False, "message": f"精写中止：规则条数异常（{results['total']}→{len(rules)}），已拒绝写盘防止库结构污染"}
         with open(rp, "w", encoding="utf-8") as wf:
             _json.dump(rules, wf, ensure_ascii=False, indent=2)
 
@@ -1634,264 +1637,6 @@ async def smart_update_rules(request: Request):
         return {"ok": False, "message": "服务器未安装httpx库，无法调用LLM"}
     except Exception as e:
         return {"ok": False, "message": f"精写异常: {str(e)}"}
-        _rpw = TAX_BURDEN_RULES.get("rule_precise_writing", {})
-        _iron_txt = "精写编制标准·五条铁律（动态同步自引擎权威源engine/memory.py）：" + " ".join(_rpw.get("iron_rules", []))
-        _rlw = _rpw.get("repealed_law_watch", {})
-        _rep_items = []
-        for _r in _rlw.get("repealed", []):
-            _name = _r.get("废止法规") or _r.get("更新法规", "")
-            _repl = _r.get("替代法规") or _r.get("现行版本", "")
-            _amap = _r.get("条文映射", _r.get("注意", ""))
-            _rep_items.append(f"{_name}→{_repl}（{_amap}）")
-        _baseline = _rlw.get("current_valid_baseline", "")
-        _repealed_txt = "已废止法规对照（严禁引用，须替换为现行法）：" + "；".join(_rep_items) + f"。现行有效基线：{_baseline}"
-        _ec = _rpw.get("exhaustion_criteria", {})
-        _exhaust_txt = "穷举完成判定标准（数量由业务复杂度决定，不设固定数）：" + _ec.get("principle", "") + \
-            " 追问穷举=事实层六要素+证据层四流+逻辑层合理解释三维覆盖度；推理链层数=因果链自然长度(复杂4-5层/中等3-4层/简单2-3层);正常解释=穷举全部真实合法情形(下限0);风险表格=覆盖实际涉及税种(不设下限)。"
-    except Exception:
-        pass
-    summary_lines = [
-        f"规则库概况：共{len(rules)}条（人工{len(manual_rules)}条、自动发现{len(auto_rules)}条），{len(cat_count)}个分类",
-        f"分类分布：{', '.join(f'{k}({v})' for k,v in cat_count.most_common(10))}",
-        _iron_txt,
-        "—— 政策合规审查（最高优先级·每一处错误都可能引发法律风险）——",
-        "1.【法规名称准确性】引用法条名称是否与现行法律完全一致——严禁编造或使用AI生成的不存在法条；《个人所得税法》已施行但引用时应确认条款号与现行版本一致",
-        "2.【法规时效性·强制核查】引用的每一部法规必须现行有效，policy_ref统一冠'现行有效的《XX法》'并在末尾附'法规现行性核验：YYYY-MM-DD'。" + _repealed_txt + " 增值税相关一律引用《增值税法》(2026-01-01施行)，严禁再用《增值税暂行条例》；营业税已营改增废止。已接入 engine/law_validity_checker 法律时效性核查程序自动校验。",
-        "3.【刑事标准准确性】移送门槛的量化标准——虚开专票看「税款数额」非「发票金额」，以法释〔2024〕4号为准：税款>=10万或损失>=5万移送；偷税：逃税>=10万且占应纳税额10%以上移送",
-        "4.【税法例外条款】是否遗漏法定例外——代垫运费非价外费用、买方自提无运费义务、善意取得虚开发票例外处理等，不能把「一般规则」当成「唯一规则」",
-        "5.【定性逻辑严谨性】疑点≠结论——必须区分「高疑点信号→核查取证→综合判断定性」的递进逻辑，严禁一步跳到「定性为XX虚开」",
-        "6.【关联法规完整性】同一涉税事项涉及的多部法规是否都有引用——虚开需同时引用《发票管理办法》（行政处罚）和《刑法》第205条（刑事责任）",
-        "—— 内容质量要求（精写=框架指导，非硬编码模板。" + _exhaust_txt + "）——",
-        "7.【业务场景完整性】normal_reason穷举全部真实存在的合法合规情形（下限0）——如果该异常点几乎没有正常情形（如虚开发票），写0-1种即可并注明'已穷举全部合法情形'。不强编不存在的正常情形。",
-        "8.【证据链可操作性】evidence具体到文件名层级（如「购销合同的价格条款」「买方盖章的自提证明」）——不同异常点需要不同证据组合。",
-        "9.【追问的攻击性】drill_questions穷举至稽查终点（证实或排除违法），每条带「→潜台词:」标注稽查真实意图——追问数量由三维覆盖度决定不设固定数(事实六要素/证据四流/逻辑合理解释全覆盖即停)。宁可一条精准追问，不要三条废话追问。",
-        "10.【量化阈值】threshold基于税法或行业数据的触发条件。二元异常写「=是即触发」，连续异常给具体门槛和预警等级。",
-        "—— 盲区发现（覆盖规则库内容缺口）——",
-        "11.【政策废止与新颁】近年来废止或新颁布的税收法律、行政法规、部门规章——规则库的policy_ref是否已同步更新、有无引用已废止政策",
-        "12.【会计准则变更】收入确认、租赁、金融工具、资产减值等准则变更的税务影响——规则库是否已有对应检测规则",
-        "13.【司法解释与典型案例】最高法税务判例、最高检指导案例、税务总局反避税案例——对规则理解和适用标准的影响，规则是否已吸收最新判例精神",
-        "14.【新型业态演变】直播带货、跨境电商、灵活用工、SaaS/共享经济、AI生成内容交易等新业态——现有规则是否覆盖这些业态特有的风险点",
-        "15.【舞弊手法演进】新增偷逃税手法（数电发票跨省虚开、AI生成虚假合同、虚拟货币交易隐匿收入等）是否已有对应检测规则",
-        "16.【跨税种联动】增值税×所得税、个税×社保、发票×资金流、印花税×合同等跨税种勾稽规则——是否每个税种的异常都会联动审查其他关联税种",
-        "17.【征管手段升级】金税四期/数电发票全面推行后新增的数据比对能力（银行流水自动比对、社保基数与工资比对、不动产登记与房产税比对等）——规则库是否已利用新数据源",
-        "18.【国际经济税收规则】BEPS2.0双支柱、全球最低税（支柱二）、跨境数据交换（CRS/国别报告）对涉外企业的影响——规则库是否有跨境规则",
-        "19.【行业周期性风险】当前经济形势下特定行业高发风险（房地产下行/外贸波动/教培转型/医疗反腐/平台经济反垄断）——规则库的行业专项规则是否覆盖当前风险热点",
-        "请返回JSON，字段名必须严格如下（只能用英文key，不要用中文key）：",
-        '{"new_rules":[{新增规则,含"item":"异常名称","category":"所属类别","level":"风险等级","detail":"具体描述(应写尽写不限字数)","direction":"推理链(层数=因果链自然长度)","drill_questions":"穿透追问(穷举至稽查终点,不设固定条数,分事实/证据/逻辑三组)","normal_reason":"穷举全部合法解释(下限0,无则注明已穷举)","policy_ref":"现行有效的《XX法》(版本)第X条,末尾附法规现行性核验:YYYY-MM-DD","tax_impact":"税务影响"}],',
-        '"modify":[{修改建议,含"id":编号,"old_item":"原名称","new_item":"建议改为","reason":"修改原因"}],',
-        '"delete":[{删除建议,含"id":编号,"item":"名称","reason":"删除原因"}],',
-        '"summary":"一句话概述，必须突出政策合规问题"}',
-        "【铁律】①禁止推荐行业特化规则(.item/.category不得含特定行业名称如直播带货/饲料/房地产等)——必须全行业适用 ②新增规则必须按精写编制标准(23字段)深度编写，不止是简单描述 ③必须给出具体的法律条款号 ④必须说明税务影响(涉及税种+补税区间)",
-    ]
-
-    prompt = "\n".join(summary_lines)
-
-    try:
-        import httpx
-        api_url = base_url.rstrip("/") + "/chat/completions"
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                api_url,
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 8000}
-            )
-            if resp.status_code != 200:
-                return {"ok": False, "message": f"LLM调用失败: HTTP {resp.status_code} - {resp.text[:200]}"}
-            ai_text = resp.json()["choices"][0]["message"]["content"]
-    except ImportError:
-        return {"ok": False, "message": "服务器未安装httpx库"}
-    except Exception as e:
-        return {"ok": False, "message": f"调用{provider}({model})异常: {str(e)}"}
-
-    # 解析AI返回的JSON
-    import re
-    json_match = re.search(r'\{[\s\S]*\}', ai_text)
-    if not json_match:
-        return {"ok": False, "message": "AI返回格式异常，未找到有效JSON", "raw": ai_text[:500]}
-    try:
-        ai_result = _json.loads(json_match.group())
-    except Exception:
-        return {"ok": False, "message": "AI返回的JSON解析失败", "raw": ai_text[:500]}
-
-    # 构建新旧对比表——字段名标准化（LLM可能返回中文或英文字段名）
-    modify_items_raw = ai_result.get("modify", [])
-    modify_items = []
-    for m in modify_items_raw:
-        modify_items.append({
-            "id": m.get("id", m.get("ID", "")),
-            "old_item": m.get("old_item", m.get("原item", m.get("原名称", ""))),
-            "new_item": m.get("new_item", m.get("新item", m.get("新名称", m.get("建议改为", "")))),
-            "reason": m.get("reason", m.get("原因", m.get("修改原因", "")))
-        })
-    delete_items_raw = ai_result.get("delete", [])
-    delete_items = []
-    for d in delete_items_raw:
-        delete_items.append({
-            "id": d.get("id", d.get("ID", "")),
-            "item": d.get("item", d.get("名称", d.get("name", ""))),
-            "reason": d.get("reason", d.get("原因", d.get("删除原因", "")))
-        })
-    new_rules_raw = ai_result.get("new_rules", [])
-    new_rules_items = []
-    for nr in new_rules_raw:
-        new_rules_items.append({
-            "item": nr.get("item", nr.get("名称", nr.get("name", ""))),
-            "category": nr.get("category", nr.get("分类", "")),
-            "level": nr.get("level", nr.get("等级", "中风险")),
-            "detail": nr.get("detail", nr.get("detail", nr.get("描述", nr.get("suggestion", "")))),
-            "direction": nr.get("direction", nr.get("推理链", "")),
-            "policy_ref": nr.get("policy_ref", nr.get("法律依据", "")),
-            "raw": nr  # 保留原始数据用于写入
-        })
-    compare = {
-        "new_count": len(new_rules_items),
-        "modify_count": len(modify_items),
-        "delete_count": len(delete_items),
-        "summary": ai_result.get("summary", "规则库智能更新分析完成"),
-        "new_rules": new_rules_items,
-        "modify": modify_items,
-        "delete": delete_items,
-        "before_total": len(rules),
-        "after_total": len(rules) + len(new_rules_items) - len(delete_items)
-    }
-
-    # —— 自动写入规则库 ——
-    total_change = compare["new_count"] + compare["modify_count"] + compare["delete_count"]
-    
-    # ═══ v3 精写标准自检：新增和修改的规则在写入前过 36 项质检 ═══
-    from engine.memory import TAX_BURDEN_RULES as _v3_std
-    import re as _re
-    v3_errors_new = {}   # {rule_key: [error strings]}
-    v3_errors_mod = {}
-    v3_passed_new, v3_failed_new = 0, 0
-    v3_passed_mod, v3_failed_mod = 0, 0
-    
-    def _v3_check(field, condition, message):
-        if not condition:
-            _v3_errs.append(f"{field}: {message}")
-    
-    def _v3_validate(rule):
-        global _v3_errs
-        _v3_errs = []
-        for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
-            _v3_check(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
-        d = str(rule.get('direction',''))
-        _v3_check('direction', _re.search(r'推理第', d), '缺少推理层标注')
-        _v3_check('direction', '依赖证据' in d, '每层缺少依赖证据标注')
-        _v3_check('direction', '复杂度' in d, '缺少复杂度标记')
-        dq = str(rule.get('drill_questions',''))
-        fp, ep, lp = dq.find('事实层'), dq.find('证据层'), dq.find('逻辑层')
-        if fp>=0 and ep>=0 and lp>=0:
-            _v3_check('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
-        _v3_check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足3条')
-        _v3_check('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少潜台词格式')
-        _v3_check('drill_questions', 'A：' in dq or 'A:' in dq, '缺少应对话术格式')
-        nr = str(rule.get('normal_reason',''))
-        _v3_check('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
-        _v3_check('normal_reason', '最常见' in nr or '穷举' in nr, '缺少最常见标注或穷举说明')
-        det = str(rule.get('determination',''))
-        _v3_check('determination', '线索' in det, '缺路径一')
-        _v3_check('determination', '强证据' in det, '缺路径二')
-        _v3_check('determination', '铁证' in det, '缺路径三')
-        _v3_check('determination', '应对总原则' in det or '结尾附' in det, '缺应对总原则')
-        th = str(rule.get('threshold',''))
-        if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', th):
-            _v3_check('determination', '阈值以下' in det, '有量化阈值但缺阈值以下处理分支')
-        rt = str(rule.get('risk_table',''))
-        _v3_check('risk_table', '核心' in rt, '缺核心影响标注')
-        ev = str(rule.get('evidence',''))
-        _v3_check('evidence', '必须' in ev, '缺必须获取优先级')
-        _v3_check('evidence', '应当' in ev, '缺应当获取优先级')
-        _v3_check('evidence', '可以' in ev, '缺可以获取优先级')
-        _v3_check('evidence', '金额分级' in ev or '大额' in ev or '>10万' in ev, '缺金额分级')
-        th2 = str(rule.get('threshold',''))
-        _v3_check('threshold', '行业' in th2, '缺行业差异阈值')
-        _v3_check('threshold', '前置条件' in th2, '缺前置条件四维度')
-        _v3_check('suggestion', '定性' in str(rule.get('suggestion','')), '缺定性')
-        _v3_check('suggestion', '补税' in str(rule.get('suggestion','')), '缺补税')
-        _v3_check('remedy', '自查' in str(rule.get('remedy','')) or '应对' in str(rule.get('remedy','')) or '制度' in str(rule.get('remedy','')), '缺三阶段')
-        return _v3_errs
-
-    if total_change > 0:
-        # 验证新增规则
-        for nr in new_rules_items:
-            raw = nr.get("raw", nr)
-            raw.pop("raw", None)
-            errs = _v3_validate(raw)
-            key = raw.get("item", "新规则")[:30]
-            if errs:
-                v3_failed_new += 1
-                v3_errors_new[key] = errs
-            else:
-                v3_passed_new += 1
-        
-        # 验证修改涉及的规则
-        for mod in modify_items:
-            mid = mod.get("id")
-            target = next((r for r in rules if str(r.get("id","")) == str(mid)), None)
-            if target:
-                import copy; test_rule = copy.deepcopy(target)
-                if mod.get("new_item"): test_rule["item"] = mod["new_item"]
-                errs = _v3_validate(test_rule)
-                key = f"#{mid} {test_rule.get('item','')[:20]}"
-                if errs:
-                    v3_failed_mod += 1
-                    v3_errors_mod[key] = errs
-                else:
-                    v3_passed_mod += 1
-
-        # 法律时效性核查程序——对LLM生成/修改的规则强制校验+自动处理
-        try:
-            from engine.law_validity_checker import auto_process as _law_auto
-        except Exception:
-            _law_auto = None
-        max_id = max((r.get("id", 0) for r in rules if isinstance(r.get("id"), int)), default=0)
-        applied = 0
-        # 新增：追加到末尾（每条只追加一次；写入前过法律时效性核查程序）
-        for nr in new_rules_items:
-            raw = nr.get("raw", nr)
-            raw.pop("raw", None)  # 去掉可能的自嵌套字段
-            max_id += 1
-            raw["id"] = max_id
-            if "category" not in raw: raw["category"] = nr.get("category", "")[:20]
-            if "level" not in raw: raw["level"] = nr.get("level", "中风险")
-            if "source" not in raw: raw["source"] = "LLM智能更新"
-            if _law_auto:
-                _law_auto([raw])  # 引擎自动校验:废止法条自动替换+自动核验补标注
-            rules.append(raw)
-            applied += 1
-        # 修改：按id匹配更新
-        for mod in modify_items:
-            mid = mod.get("id")
-            for r in rules:
-                if str(r.get("id","")) == str(mid):
-                    if mod.get("new_item"): r["item"] = mod["new_item"]
-                    if mod.get("reason"): r["detail"] = r.get("detail","") + " [修改原因:" + mod["reason"] + "]"
-                    applied += 1
-                    break
-        # 删除：按id移除
-        for d in delete_items:
-            did = d.get("id")
-            rules = [r for r in rules if str(r.get("id","")) != str(did)]
-            applied += 1
-        # 全库法律时效性复核（确保写入后无引用废止法律）
-        if _law_auto:
-            _law_auto(rules)
-        # 写回
-        with open(rp, "w", encoding="utf-8") as wf:
-            _json.dump(rules, wf, ensure_ascii=False, indent=2)
-        compare["applied"] = applied
-        compare["after_total"] = len(rules)
-        # v3 精写标准自检结果
-        compare["v3_check"] = {
-            "new_passed": v3_passed_new, "new_failed": v3_failed_new,
-            "mod_passed": v3_passed_mod, "mod_failed": v3_failed_mod,
-            "new_errors": v3_errors_new, "mod_errors": v3_errors_mod,
-        }
-    else:
-        compare["applied"] = 0
-
-    return {"ok": True, "compare": compare}
 
 
 @app.post("/api/tax-risk-rules/batch-rewrite")
@@ -2029,11 +1774,14 @@ async def batch_rewrite_rules(request: Request):
     except Exception:
         pass
     
-    # 写回规则库
+    # 写回规则库（身份锁：id/item/category 保留原值，LLM 不得改名/改类）
     for rw in rewritten:
         rid = str(rw.get("id"))
         for i, r in enumerate(rules):
             if str(r.get("id")) == rid:
+                rw["id"] = r.get("id")
+                rw["item"] = r.get("item", "")
+                rw["category"] = r.get("category", "")
                 rules[i] = rw
                 break
     
