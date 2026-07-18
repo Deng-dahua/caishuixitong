@@ -125,11 +125,11 @@ window._rrTitleRow = function(rl) {
   else if (lv.indexOf('低') >= 0) lc = '#059669';
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + lv + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
-    + '<td class="rr-name">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
+    + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:' + lc + ';font-weight:600">' + escHtml(lv) + '</span></td>'
     + '<td style="white-space:nowrap;text-align:center">' + (rl.score !== undefined && rl.score !== '' ? rl.score + '/10' : '-') + '</td>'
-    + '<td style="white-space:nowrap">' + escHtml(rl.category || '-') + '</td>'
+    + '<td>' + escHtml(rl.category || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + escHtml(rl.check_frequency || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:600">✅ ' + trigN + '次</span>' : '') + '</td>'
     + '</tr>';
@@ -137,7 +137,9 @@ window._rrTitleRow = function(rl) {
 
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
-  var h = '<table class="rr-table"><thead><tr>'
+  var h = '<table class="rr-table">'
+    + '<colgroup><col style="width:52px"><col><col style="width:86px"><col style="width:66px"><col style="width:48px"><col style="width:104px"><col style="width:46px"><col style="width:74px"></colgroup>'
+    + '<thead><tr>'
     + '<th>编号</th><th>疑点名称</th><th>来源</th><th>风险等级</th><th style="text-align:center">评分</th><th>分类</th><th style="text-align:center">频率</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
@@ -221,9 +223,9 @@ function renderTaxRiskRules(container) {
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '.rr p{margin:0 0 10px;line-height:20px}'
-    + '.rr-table{width:100%;border-collapse:collapse;font-size:10px;margin:0 0 10px}'
-    + '.rr-table th{padding:6px 8px;border:1px solid #e2e8f0;background:#f8fafc;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap}'
-    + '.rr-table td{padding:4px 8px;border:1px solid #eef2f6;line-height:20px;color:#3a4048}'
+    + '.rr-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;margin:0 0 10px}'
+    + '.rr-table th{padding:6px 8px;border:1px solid #e2e8f0;background:#f8fafc;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap;overflow:hidden}'
+    + '.rr-table td{padding:4px 8px;border:1px solid #eef2f6;line-height:20px;color:#3a4048;overflow:hidden;text-overflow:ellipsis}'
     + '.rr-row{cursor:pointer}'
     + '.rr-row:hover{background:#fafbfc}'
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
