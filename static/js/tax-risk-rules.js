@@ -144,7 +144,7 @@ function renderTaxRiskRules(container) {
   // 加载编制说明和数据
   loadTaxRiskRules();
   fetch('/api/tax-risk-rules/execution-guide').then(function(r){return r.json()}).then(function(d){
-    if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
+    if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style="color:#dc2626">加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
     // 定位
     html += '<p>' + eg.purpose + '</p>';
@@ -176,9 +176,9 @@ function renderTaxRiskRules(container) {
     var sc = eg.submission_checklist || {};
     html += '<p><b>七、提交前自检（6组17项）</b></p>';
     var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽'];
-    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<p style=margin:0 0 10px><b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style=background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px>'+it+'</span>'; }); html += '</p>'; } }
+    for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<p style="margin:0 0 10px"><b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style="background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px">'+it+'</span>'; }); html += '</p>'; } }
     document.getElementById('rr-exec-guide-content').innerHTML = html;
-  }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+e+'</span>'; });
+  }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style="color:#dc2626">加载失败:'+e+'</span>'; });
 
   var dataUrl = '/static/tax_risk_rules_local_export.json';
   // 显示规则文件最后修改时间
