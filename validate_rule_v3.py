@@ -61,6 +61,9 @@ check('determination', '线索' in det, '缺少路径一（线索等级）')
 check('determination', '强证据' in det, '缺少路径二（强证据）')
 check('determination', '铁证' in det, '缺少路径三（铁证）')
 check('determination', '应对总原则' in det, '缺少"应对总原则"')
+# 有量化阈值的规则必须写"阈值以下处理"
+if re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', str(rule.get('threshold',''))):
+    check('determination', '阈值以下' in det, '有量化阈值但缺少"阈值以下处理"分支')
 
 # ═══ ⑱ risk_table 风险表格 ═══
 rt = str(rule.get('risk_table',''))

@@ -10302,6 +10302,10 @@ def validate_rules_v3(rule_id: str = None):
         _check('determination', '强证据' in det, '缺路径二')
         _check('determination', '铁证' in det, '缺路径三')
         _check('determination', '应对总原则' in det, '缺应对总原则')
+        # 有量化阈值的规则必须写"阈值以下处理"
+        th = str(rule.get('threshold',''))
+        if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', th):
+            _check('determination', '阈值以下' in det, '有量化阈值但缺少阈值以下处理分支')
         rt = str(rule.get('risk_table',''))
         _check('risk_table', '核心' in rt, '缺核心影响标注')
         ev = str(rule.get('evidence',''))
