@@ -122,7 +122,6 @@ window._rrTitleRow = function(rl) {
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
-    + '<td>' + escHtml(rl.category || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:600">✅ ' + trigN + '次</span>' : '') + '</td>'
     + '</tr>';
 };
@@ -130,9 +129,9 @@ window._rrTitleRow = function(rl) {
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
   var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:118px"><col style="width:82px"></colgroup>'
+    + '<colgroup><col style="width:56px"><col><col style="width:126px"><col style="width:96px"><col style="width:86px"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th>分类</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table>';
@@ -235,15 +234,14 @@ function renderTaxRiskRules(container) {
     + '<option value="低风险">低风险</option>'
     + '<option value="良好">良好/正常</option>'
     + '</select>'
-    + '<select id="rr-monitor-filter" onchange="window._rrFilter()">'
-    + '<option value="">全部监控维度</option>'
+    + '<select id="rr-cat-filter" onchange="window._rrFilter()">'
+    + '<option value="">全部分类</option>'
     + '<option>资金流监控</option><option>发票流监控</option><option>申报流监控</option>'
     + '<option>社保与个税交叉</option><option>经营实质穿透</option><option>关联交易与利益输送</option>'
     + '<option>虚开发票专项</option><option>财产行为税监控</option><option>出口退税监控</option>'
     + '<option>行业专项监控</option><option>外部数据比对</option><option>账表质量与勾稽</option>'
     + '<option>税务合规与程序</option>'
     + '</select>'
-    + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
     + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
     + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
@@ -385,15 +383,7 @@ function renderTaxRiskRules(container) {
         + '<div class="rr-stat"><div class="v" style="color:#f59e0b">' + mid + '</div><div class="l">中风险</div></div>'
         + '<div class="rr-stat"><div class="v" style="color:#059669">' + (low + good) + '</div><div class="l">低风险/良好</div></div>';
 
-      // 分类标签
-      var catFilter = document.getElementById('rr-cat-filter');
-      if (catFilter) {
-        Object.keys(cats).sort(function(a, b) { return cats[b] - cats[a]; }).forEach(function(c) {
-          var o = document.createElement('option');
-          o.value = c; o.textContent = c + ' (' + cats[c] + ')';
-          catFilter.appendChild(o);
-        });
-      }
+      // 分类筛选下拉已改为固定13监控维度选项（不再从旧category动态填充）
 
       var rrSortBy = 'id';
 window._rrSort = function(rules, sortBy) {
@@ -401,7 +391,7 @@ window._rrSort = function(rules, sortBy) {
     var order = {'极高':0,'高':1,'中':2,'低':3,'良好':4};
     return rules.slice().sort(function(a,b){return (order[a.level]||5)-(order[b.level]||5);});
   } else if (sortBy === 'category') {
-    return rules.slice().sort(function(a,b){return (a.category||'').localeCompare(b.category||'');});
+    return rules.slice().sort(function(a,b){return (a.monitor_category||'').localeCompare(b.monitor_category||'');});
   } else if (sortBy === 'updated') {
     return rules.slice().sort(function(a,b){return (b.updated_at||'').localeCompare(a.updated_at||'');});
   }
@@ -412,7 +402,6 @@ window._rrFilter = function() {
         var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
         var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
         var sc = document.getElementById('rr-source-filter') && document.getElementById('rr-source-filter').value || '';
-        var mo = document.getElementById('rr-monitor-filter') && document.getElementById('rr-monitor-filter').value || '';
         var list = document.getElementById('rr-list');
         if (!list) return;
         var sb = document.getElementById('rr-sort-by'); var sortBy = sb ? sb.value : 'id';
@@ -420,8 +409,7 @@ window._rrFilter = function() {
           var txt = (rl.item || '') + ' ' + (rl.direction || '') + ' ' + (rl.focus || '') + ' ' + (rl.action || '') + ' ' + (rl.policy_ref || '') + ' ' + (rl.id || '');
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
           if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
-          if (ct && (rl.category || '') !== ct) return false;
-          if (mo && (rl.monitor_category || '') !== mo) return false;
+          if (ct && (rl.monitor_category || '') !== ct) return false;
           if (sc) {
             var isAuto = rl.source === '系统发现' || rl.type === 'auto_signal';
             if (sc === 'auto' && !isAuto) return false;
@@ -580,7 +568,7 @@ function filterRules() {
   allCards.forEach(function(card) {
     var text = (card.textContent || '').toLowerCase();
     var ruleLevel = card.getAttribute('data-level') || '';
-    var ruleCat = card.getAttribute('data-category') || '';
+    var ruleCat = card.getAttribute('data-monitor') || '';
     var ruleType = card.getAttribute('data-type') || '';
     var triggered = card.getAttribute('data-triggered') === '1';
     
