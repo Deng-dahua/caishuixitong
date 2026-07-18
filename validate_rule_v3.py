@@ -27,6 +27,12 @@ FELONY_KW = ['骗税', '骗取出口退税', '假报出口', '伪造发票', '�
              '暴力虚开', '两套账', '账外经营', '隐匿销毁账簿', '销毁账簿', '阴阳合同', '骗取退税',
              '骗取留抵', '骗取即征即退', '过票', '变名开票', '洗钱']
 _item_txt = str(rule.get('item',''))
+# ═══ 全行业适用铁律：通病疑点禁止行业限定 ═══
+_disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
+_ind_kw = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+if any(d in _item_txt for d in _disease_kw) and any(i in _item_txt for i in _ind_kw):
+    check('item', False, '通病疑点禁止行业限定——全行业通病由通用条目覆盖，行业差异写入threshold行业调整')
+
 _hit_felony = [kw for kw in FELONY_KW if kw in _item_txt]
 if _hit_felony:
     _lv = str(rule.get('level',''))

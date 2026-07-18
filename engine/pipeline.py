@@ -3220,7 +3220,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _step_timing["step5_start"] = time.time()
     _report(98, "步骤⑤方法论噪声过滤 — 开始...", step=5)
 
-    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1824条规则真正被引擎执行 ═══
+    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1794条规则真正被引擎执行 ═══
     # 此前疑点库只用于给已有发现贴标签（被动消费）；现在引擎主动拿每条规则的
     # threshold结构化条件去查数据，触发即生成发现。放在方法论过滤器之前，
     # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
@@ -4078,20 +4078,30 @@ def _run_analyze(company_id, db, progress_callback=None):
                         all_ids += [r.get("id", 0) for r in json.load(rf)]
                 max_id = max(all_ids, default=1600)
                 new_rules_added = 0
+                # 全行业通病黑名单：通用疑点已覆盖的信号禁止按行业生成变体
+                # （2026-07-18 老邓铁律：通病不套行业——毛利为负/购销倒挂/缺少流水等
+                #   是全行业通病，通用条目#13/#308/#335/#211/#1630已覆盖，行业差异走threshold行业调整）
+                _COMMON_DISEASE = ("毛利为负", "毛利率异常", "购销严重倒挂", "购销倒挂", "进销倒挂",
+                                   "缺少银行流水", "银行流水数据量少", "有进无销", "有销无进",
+                                   "零申报", "税负偏低", "税负率偏低", "隐匿收入", "收入未申报",
+                                   "两套账", "内外账", "资料不完备", "资料缺失", "行业基准校准")
                 for sig in auto_signals:
-                    # 去重：自动发现规则库中已存在同行业+同信号
+                    signal = sig.get("signal", "")
+                    # 通病信号跳过——通用疑点已覆盖，不生成行业变体
+                    if any(kw in signal for kw in _COMMON_DISEASE):
+                        continue
+                    # 去重：同一信号只入库一条（跨行业不重复建条，行业只是发现场景）
                     already_exists = any(
                         r.get("type") == "auto_signal"
-                        and r.get("industry") == sig.get("industry")
-                        and r.get("item","").find(sig.get("signal","")[:10]) >= 0
+                        and r.get("item","").find(signal[:10]) >= 0
                         for r in existing_auto
                     )
                     if already_exists:
                         continue
                     max_id += 1
                     industry = sig.get("industry", "")
-                    signal = sig.get("signal", "")
-                    item = f"[{industry}] {signal}" if industry else signal
+                    # 全行业适用铁律：item不带行业前缀，行业只作为发现场景存industry字段
+                    item = signal
                     existing_auto.append({
                         "id": max_id,
                         "type": "auto_signal",

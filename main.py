@@ -1453,7 +1453,7 @@ def get_tax_risk_rules_data():
 
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
-    """智能更新规则库——连接LLM，按v3精写标准逐条重写1824条规则的23字段。
+    """智能更新规则库——连接LLM，按v3精写标准逐条重写1794条规则的23字段。
 
     流程：
     1. 读规则库 + v3精写编制标准 + 精写编制说明
@@ -1531,6 +1531,11 @@ async def smart_update_rules(request: Request):
         _itxt = str(rule.get('item',''))
         _hits = [kw for kw in _felony_kw if kw in _itxt]
         _lvtxt = str(rule.get('level',''))
+        # 全行业适用铁律：通病疑点禁止行业限定（2026-07-18 老邓大改后加锁）
+        _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
+        _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+        if any(d in _itxt for d in _disease_kw) and any(i in _itxt for i in _ind_kw2):
+            ck('item', False, '通病疑点禁止行业限定——全行业通病由通用条目覆盖，行业差异写入threshold行业调整')
         if _hits:
             ck('level', '极高' in _lvtxt or '高' in _lvtxt, f'重罪级疑点({"/".join(_hits)})禁止标为{_lvtxt or "空"}，最低高风险')
             try:
@@ -10313,6 +10318,11 @@ def validate_rules_v3(rule_id: str = None):
         _itxt = str(rule.get('item',''))
         _hits = [kw for kw in _felony_kw if kw in _itxt]
         _lvtxt = str(rule.get('level',''))
+        # 全行业适用铁律：通病疑点禁止行业限定（与smart-update的v3_validate同步）
+        _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
+        _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+        if any(d in _itxt for d in _disease_kw) and any(i in _itxt for i in _ind_kw2):
+            _check('item', False, '通病疑点禁止行业限定——全行业通病由通用条目覆盖，行业差异写入threshold行业调整')
         if _hits:
             _check('level', '极高' in _lvtxt or '高' in _lvtxt, f'重罪级疑点({"/".join(_hits)})禁止标为{_lvtxt or "空"}，最低高风险')
             try:
