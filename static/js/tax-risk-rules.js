@@ -59,7 +59,7 @@ function renderTaxRiskRules(container) {
     + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;outline:none}'
     + '.rr-search input:focus{border-color:#9a1f2b}'
     + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff}'
-    + '.rr-rule{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
+    + '.rr-rule{padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
     + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
     + '.rr-rule .rh{font-size:10px;font-weight:600;color:#16233a;margin:0 0 10px}'
     + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:10px}'
@@ -642,7 +642,7 @@ function renderTaxRiskRulesList() {
       var borderWidth = isTriggered ? '4px' : '3px';
 
       html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '" data-category="' + (rule.category || '') + '" data-type="' + (isAutoRule ? 'auto' : 'manual') + '"'
-        + ' style="padding:14px 18px;margin-bottom:8px;background:#fff;border:1px solid #e2e8f0;border-left:' + borderWidth + ' solid ' + borderColor + ';border-radius:6px" class="tr-rule-card">'
+        + ' style="padding:14px 18px;margin-bottom:10px;border-radius:6px" class="tr-rule-card">'
         
         // 标题行
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'
