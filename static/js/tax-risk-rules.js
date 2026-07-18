@@ -40,6 +40,146 @@ var CATEGORY_DESCRIPTIONS = {
   '出口退税': '出口退税合规检查——出口收入真实性/退税率/收汇/产能/货源穿透等出口退税全链条核查。',
 };
 
+// ═══ 详情内容生成（23字段完整展示，列表页与详情页共用数据源）═══
+window._rrDetailHtml = function(rl) {
+  var lv = rl.level || rl.level || '信息';
+  var lc = '#64748b';
+  if (lv.indexOf('极高') >= 0) lc = '#991b1b';
+  else if (lv.indexOf('高') >= 0) lc = '#dc2626';
+  else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
+  else if (lv.indexOf('低') >= 0) lc = '#059669';
+  var card = '<div class="rr-rule">'
+    + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
+    + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
+    + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
+    + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
+    + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
+    + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
+
+  // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
+  if (rl.phenomena) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
+    card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
+  }
+  if (rl.direction) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
+    card += '<div style="font-size:10px;color:#64748b;line-height:20px;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
+  }
+  if (rl.focus && rl.focus !== '待明确重点') {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
+    card += '<div style="font-size:10px;color:#dc2626;line-height:20px;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
+  }
+  
+  // 风险表格
+  if (rl.risk_table) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
+    card += '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0 10px"><tr style="background:#fef2f2"><td style="padding:3px 6px;border:1px solid #fcc;font-weight:600;width:80px">风险维度</td><td style="padding:3px 6px;border:1px solid #fcc">风险点描述</td></tr>';
+    var rows = typeof rl.risk_table === 'string' ? rl.risk_table.split('\n') :
+  (Array.isArray(rl.risk_table) ? rl.risk_table.map(function(rr){
+    var tax = rr.税种 || rr.tax || rr.name || '';
+    var desc = rr.具体风险描述 || rr.风险描述 || rr.desc || rr.描述 || '';
+    return tax + ':' + desc;
+  }) : []);
+    for (var ri = 0; ri < rows.length; ri++) {
+      var parts = rows[ri].split(':');
+      if (parts.length >= 2) {
+        card += '<tr><td style="padding:3px 6px;border:1px solid #e2e8f0;font-weight:600">' + escHtml(parts[0]) + '</td><td style="padding:3px 6px;border:1px solid #e2e8f0">' + escHtml(parts.slice(1).join(':')) + '</td></tr>';
+      }
+    }
+    card += '</table>';
+  }
+  
+  // 正常业务解释
+  if (rl.normal_reason) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
+    card += '<div style="font-size:10px;color:#059669;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
+  }
+  
+  // 定性路径
+  if (rl.determination) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
+    card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
+  }
+  
+  // 穿透式追问（整段完整展示，忠实原文换行，不做正则截取）
+  if (rl.drill_questions) {
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
+    var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
+    card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
+  }
+  
+  // 传统字段（兼容未升级的规则）
+  card += (rl.detail ? '<div style="font-size:10px;color:#3a4048;margin:2px 0 4px;white-space:pre-wrap">📄 详细标准：' + escHtml(rl.detail) + '</div>' : '')
+    + (rl.action ? '<div style="font-size:10px;color:#3a4048;margin:2px 0 4px;white-space:pre-wrap">🔍 核查动作：' + escHtml(rl.action) + '</div>' : '')
+    + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📏 触发指标：' + escHtml(rl.threshold) + '</div>' : '')
+    + (rl.evidence ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📎 证据清单：' + escHtml(rl.evidence) + '</div>' : '')
+    + (rl.policy_ref ? '<div class="ra" style="white-space:pre-wrap">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
+    + (rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">⚖ 稽查处理：' + escHtml(rl.suggestion) + '</div>' : '')
+    + (rl.tax_impact ? '<div class="ra" style="white-space:pre-wrap">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
+    + (rl.remedy && rl.remedy !== rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">🔧 整改建议：' + escHtml(rl.remedy) + '</div>' : '')
+    + (rl.applicable_condition ? '<div class="ra" style="white-space:pre-wrap">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '');
+  card += '</div>';
+  return card;
+};
+
+// ═══ 标题行生成（列表只显示标题，点击进详情）═══
+window._rrTitleRow = function(rl) {
+  var rid = String(rl.id || '').trim();
+  var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
+  var trig = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length > 0;
+  return '<div class="rr-title-item" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trig ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">#' + rid + ' ' + escHtml(rl.item || rl.signal || '未命名') + '</div>';
+};
+
+// ═══ 详情视图：点击标题进入，返回按钮回列表 ═══
+window._rrShowDetail = function(rid) {
+  rid = String(rid || '').trim();
+  var all = (window._rrData && window._rrData.length ? window._rrData : (typeof taxRiskRulesData !== 'undefined' ? taxRiskRulesData : [])) || [];
+  var rl = all.find(function(r) { return String(r.id || '').trim() === rid; });
+  if (!rl) return;
+  var lv = document.getElementById('rr-list-view');
+  var dv = document.getElementById('rr-detail-view');
+  if (!lv || !dv) return;
+
+  var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
+  var triggered = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid]) || [];
+
+  var h = '<div data-rule-id="' + rid + '">';
+  // 顶栏：返回 + 操作
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
+    + '<button onclick="_rrBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
+    + (!isAuto ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:5px 14px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer">✏️ 编辑</button>' : '')
+    + (isAuto ? '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:5px 14px;border:1px solid #059669;border-radius:6px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>' : '')
+    + '</div>';
+
+  // 触发溯源
+  if (triggered.length > 0) {
+    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;border-radius:6px;font-size:10px;line-height:20px">'
+      + '<div style="font-weight:600;color:#991b1b;margin-bottom:4px">✅ 本次分析触发 ' + triggered.length + ' 次 · 触发溯源：</div>'
+      + triggered.map(function(t) {
+          return '<div style="color:#7f1d1d">→ <strong>' + escHtml(t.domain || t.type || '') + '</strong>' + (t.detail ? ': ' + escHtml(String(t.detail).substring(0, 200)) : '') + (t.level ? ' [' + t.level + ']' : '') + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  // 23字段完整内容
+  h += window._rrDetailHtml(rl);
+  h += '</div>';
+
+  dv.innerHTML = h;
+  lv.style.display = 'none';
+  dv.style.display = 'block';
+  window.scrollTo(0, 0);
+  var panel = document.querySelector('.rr');
+  if (panel) panel.scrollTop = 0;
+};
+
+window._rrBackToList = function() {
+  var lv = document.getElementById('rr-list-view');
+  var dv = document.getElementById('rr-detail-view');
+  if (dv) { dv.style.display = 'none'; dv.innerHTML = ''; }
+  if (lv) lv.style.display = 'block';
+};
+
 function renderTaxRiskRules(container) {
   if (!container) return;
   var h = '';
@@ -66,7 +206,10 @@ function renderTaxRiskRules(container) {
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '.rr p{margin:0 0 10px;line-height:20px}'
+    + '.rr-title-item{font-size:10px;line-height:20px;margin:0 0 10px;color:#0f172a;cursor:pointer}'
+    + '.rr-title-item:hover{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
+  h += '<div id="rr-list-view">';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
   h += '<div class="rr-search">'
@@ -137,6 +280,8 @@ function renderTaxRiskRules(container) {
     + '<div id="rr-exec-guide-content" style="margin-top:10px;color:#64748b">加载中...</div>'
     + '</details>';
   h += '<div id="rr-list"></div>';
+  h += '</div>';  // rr-list-view 结束
+  h += '<div id="rr-detail-view" style="display:none"></div>';
 
   container.innerHTML = h;
 
@@ -266,85 +411,7 @@ window._rrFilter = function() {
           return;
         }
         var html = '';
-        filtered.forEach(function(rl) {
-          var lv = rl.level || rl.level || '信息';
-          var lc = '#64748b';
-          if (lv.indexOf('极高') >= 0) lc = '#991b1b';
-          else if (lv.indexOf('高') >= 0) lc = '#dc2626';
-          else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
-          else if (lv.indexOf('低') >= 0) lc = '#059669';
-          var card = '<div class="rr-rule">'
-            + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
-            + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
-            + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
-            + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
-            + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
-            + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
-
-          // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
-          if (rl.phenomena) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">一、异常现象描述</div>';
-            card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.phenomena) + '</div>';
-          }
-          if (rl.direction) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">' + (rl.phenomena ? '二' : '一') + '、异常逻辑分析（为何成为疑点）</div>';
-            card += '<div style="font-size:10px;color:#64748b;line-height:20px;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
-          }
-          if (rl.focus && rl.focus !== '待明确重点') {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
-            card += '<div style="font-size:10px;color:#dc2626;line-height:20px;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
-          }
-          
-          // 风险表格
-          if (rl.risk_table) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">触发的稽查风险点</div>';
-            card += '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0 10px"><tr style="background:#fef2f2"><td style="padding:3px 6px;border:1px solid #fcc;font-weight:600;width:80px">风险维度</td><td style="padding:3px 6px;border:1px solid #fcc">风险点描述</td></tr>';
-            var rows = typeof rl.risk_table === 'string' ? rl.risk_table.split('\n') :
-  (Array.isArray(rl.risk_table) ? rl.risk_table.map(function(rr){
-    var tax = rr.税种 || rr.tax || rr.name || '';
-    var desc = rr.具体风险描述 || rr.风险描述 || rr.desc || rr.描述 || '';
-    return tax + ':' + desc;
-  }) : []);
-            for (var ri = 0; ri < rows.length; ri++) {
-              var parts = rows[ri].split(':');
-              if (parts.length >= 2) {
-                card += '<tr><td style="padding:3px 6px;border:1px solid #e2e8f0;font-weight:600">' + escHtml(parts[0]) + '</td><td style="padding:3px 6px;border:1px solid #e2e8f0">' + escHtml(parts.slice(1).join(':')) + '</td></tr>';
-              }
-            }
-            card += '</table>';
-          }
-          
-          // 正常业务解释
-          if (rl.normal_reason) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
-            card += '<div style="font-size:10px;color:#059669;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
-          }
-          
-          // 定性路径
-          if (rl.determination) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
-            card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
-          }
-          
-          // 穿透式追问（整段完整展示，忠实原文换行，不做正则截取）
-          if (rl.drill_questions) {
-            card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
-            var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
-            card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
-          }
-          
-          // 传统字段（兼容未升级的规则）
-          card += (rl.action ? '<div style="font-size:10px;color:#3a4048;margin:2px 0 4px;white-space:pre-wrap">🔍 核查动作：' + escHtml(rl.action) + '</div>' : '')
-            + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📏 触发指标：' + escHtml(rl.threshold) + '</div>' : '')
-            + (rl.evidence ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📎 证据清单：' + escHtml(rl.evidence) + '</div>' : '')
-            + (rl.policy_ref ? '<div class="ra" style="white-space:pre-wrap">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
-            + (rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">⚖ 稽查处理：' + escHtml(rl.suggestion) + '</div>' : '')
-            + (rl.tax_impact ? '<div class="ra" style="white-space:pre-wrap">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
-            + (rl.remedy && rl.remedy !== rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">🔧 整改建议：' + escHtml(rl.remedy) + '</div>' : '')
-            + (rl.applicable_condition ? '<div class="ra" style="white-space:pre-wrap">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '');
-          card += '</div>';
-          html += card;
-        });
+        filtered.forEach(function(rl) { html += window._rrTitleRow(rl); });
         list.innerHTML = html;
       };
       window._rrFilter();
@@ -619,89 +686,7 @@ function renderTaxRiskRulesList() {
   var html = '';
 
   // 按生成时间渲染所有指令
-  sortedData.forEach(function(rule, _ri) {
-      // 自动发现规则的字段映射
-      var isAutoRule = rule.type === 'auto_signal' || rule.source === '系统发现' || !!rule.auto_type;
-      var itemName = rule.item || rule.signal || '';
-      var levelName = rule.level || rule.severity || '';
-      var scoreVal = rule.score !== undefined ? rule.score : (rule.confidence !== undefined ? Math.round(rule.confidence * 10) : '-');
-      var detailText = rule.detail || '';
-      var suggestText = rule.suggestion || rule.action || '';
-      var evidenceText = rule.evidence || '';
-      var impactText = rule.tax_impact || '';
-      var policyText = rule.policy_ref || '';
-      
-      // 自动发现规则用蓝色标识
-      var color = isAutoRule ? '#2563eb' : (RISK_LEVEL_COLORS[levelName] || '#64748b');
-      var icon = isAutoRule ? '🤖' : (RISK_LEVEL_ICONS[levelName] || '⚪');
-      var rid = String(rule.id || '').trim();
-      var triggered = _triggeredRuleFindings[rid] || [];
-      var isTriggered = triggered.length > 0;
-      var borderColor = isTriggered ? '#dc2626' : color;
-      var borderWidth = isTriggered ? '4px' : '3px';
-
-      html += '<div data-rule-id="' + rid + '" data-level="' + (levelName || '') + '" data-triggered="' + (isTriggered ? '1' : '0') + '" data-category="' + (rule.category || '') + '" data-type="' + (isAutoRule ? 'auto' : 'manual') + '"'
-        + ' style="padding:14px 18px;margin-bottom:10px;border-radius:6px" class="tr-rule-card">'
-        
-        // 标题行
-        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'
-        + '<div style="font-size:10px;font-weight:600;color:#0f172a">'
-        + (isAutoRule ? '🤖 ' : '') + escHtml(itemName)
-        + (isAutoRule ? '<span style="margin-left:6px;font-size:10px;font-weight:400;color:#64748b">[' + escHtml(rule.industry || '') + ']</span>' : '')
-        + (isTriggered ? '<span style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:600">✅ 本次触发(' + triggered.length + ')</span>' : '')
-        + '</div>'
-        + '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px">'
-        + (isAutoRule 
-            ? '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#2563eb;font-weight:600">🤖 自动发现</span>'
-            : '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:' + color + '15;color:' + color + ';font-weight:600">' + icon + ' ' + (levelName || '') + '</span>')
-        + (!isAutoRule ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#64748b;cursor:pointer">✏️</button>' : '')
-        + (isAutoRule 
-            ? '<span style="font-size:10px;color:#94a3b8">置信度 ' + (rule.confidence !== undefined ? Math.round(rule.confidence * 100) + '%' : '-') + '</span>'
-            + '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:3px 10px;border:1px solid #059669;border-radius:4px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>'
-            : '<span style="font-size:10px;color:#94a3b8">评分 ' + scoreVal + '</span>')
-        + (rid ? '<span style="font-size:10px;color:#94a3b8">ID:' + rid + '</span>' : '')
-        + '<button onclick="toggleRuleBody(' + _ri + ',this)" style="font-size:10px;padding:2px 10px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#334155;cursor:pointer;font-weight:600">' + (isTriggered ? '▾ 收起' : '▸ 展开') + '</button>'
-        + '</div>'
-        + '</div>'
-
-        // ═══ 可折叠明细区（2026-07-17：触发的默认展开，其余默认折叠）═══
-        + '<div id="trb-' + _ri + '" style="display:' + (isTriggered ? 'block' : 'none') + '">'
-
-        // 触发溯源
-        + (isTriggered ? '<div style="margin-bottom:6px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:10px;line-height:20px">'
-        + '<div style="font-weight:600;color:#991b1b;margin-bottom:4px">🔗 触发溯源：</div>'
-        + triggered.map(function(t) {
-            return '<div style="color:#7f1d1d">→ <strong>' + escHtml(t.domain || t.type || '') + '</strong>' + (t.detail ? ': ' + escHtml(t.detail.substring(0, 150)) : '') + (t.level ? ' [' + t.level + ']' : '') + '</div>';
-          }).join('')
-        + '</div>' : '')
-
-        // 详细内容 —— 自动发现规则也展示7段式字段
-        + (rule.phenomena ? '<div style="font-size:10px;color:#475569;line-height:20px;margin-bottom:4px"><b>现象：</b>' + escHtml(rule.phenomena) + '</div>' : '')
-        + (rule.direction ? '<div style="font-size:10px;color:#475569;line-height:20px;margin-bottom:4px"><b>逻辑：</b>' + escHtml(rule.direction) + '</div>' : '')
-        + (rule.focus && rule.focus !== '待明确重点' ? '<div style="font-size:10px;color:#dc2626;line-height:20px;margin-bottom:4px"><b>重点：</b>' + escHtml(rule.focus) + '</div>' : '')
-        + (rule.drill_questions ? '<div style="font-size:10px;color:#475569;line-height:20px;margin-bottom:4px"><b>追问：</b>' + escHtml(rule.drill_questions.replace(/\n/g,'<br>')) + '</div>' : '')
-        + (detailText ? '<div style="font-size:10px;color:#475569;line-height:20px;margin-bottom:6px">' + escHtml(detailText) + '</div>' : '')
-        + (rule.normal_reason && rule.normal_reason.length > 20 ? '<div style="font-size:10px;color:#059669;line-height:20px;margin-bottom:4px"><b>正常解释：</b>' + escHtml(rule.normal_reason) + '</div>' : '')
-        + (rule.risk_table ? '<div style="font-size:10px;color:#dc2626;line-height:20px;margin-bottom:4px"><b>风险：</b>' + escHtml(rule.risk_table).replace(/\n/g,'<br>') + '</div>' : '')
-
-        // 建议 + 佐证
-        + (suggestText ? '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '系统建议：' : '税务合规建议：') + '</span>' + escHtml(suggestText) + '</div>' : '')
-        + (evidenceText ? '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">' + (isAutoRule ? '发现依据：' : '所需佐证：') + '</span>' + escHtml(evidenceText) + '</div>' : '')
-
-        // 自动发现额外信息
-        + (isAutoRule ? '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">信号出现率：</span>' + escHtml(rule.prevalence || '') + '</div>' : '')
-        + (isAutoRule && rule.auto_discovered_at ? '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:4px"><span style="font-weight:600;color:#0f172a">自动发现时间：</span>' + escHtml(rule.auto_discovered_at.substring(0, 19)) + '</div>' : '')
-
-        // 底栏
-        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8">'
-        + (impactText ? '<span><span style="color:#64748b">税务影响：</span>' + escHtml(impactText.substring(0, 120)) + (impactText.length > 120 ? '...' : '') + '</span>' : '')
-        + (policyText ? '<span><span style="color:#64748b">法条：</span>' + escHtml(policyText.substring(0, 100)) + (policyText.length > 100 ? '...' : '') + '</span>' : '')
-        + (rule.dataSource ? '<span><span style="color:#64748b">数据源：</span>' + escHtml(rule.dataSource) + '</span>' : '')
-        + (rule.detectable !== undefined ? '<span>' + (rule.detectable ? '✅ 可自动检测' : '⚠️ 需人工') + '</span>' : '')
-        + '</div>'
-        + '</div>'  // ═══ 可折叠明细区结束 ═══
-        + '</div>';
-    });
+  sortedData.forEach(function(rule) { html += window._rrTitleRow(rule); });
 
   listEl.innerHTML = html;
 
@@ -716,14 +701,6 @@ function renderTaxRiskRulesList() {
   // 初始化筛选计数
   var cntEl = document.getElementById('rr-filter-count');
   if (cntEl) cntEl.textContent = '显示 ' + data.length + ' 条';
-}
-
-function toggleRuleBody(idx, btn) {
-  var el = document.getElementById('trb-' + idx);
-  if (!el) return;
-  var open = el.style.display !== 'none';
-  el.style.display = open ? 'none' : 'block';
-  if (btn) btn.textContent = open ? '▸ 展开' : '▾ 收起';
 }
 
 function _fillEl(id, val) {
