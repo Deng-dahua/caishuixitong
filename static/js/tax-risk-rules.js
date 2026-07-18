@@ -123,9 +123,10 @@ window._rrTitleRow = function(rl) {
   else if (lv.indexOf('高') >= 0) lc = '#dc2626';
   else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
   else if (lv.indexOf('低') >= 0) lc = '#059669';
-  return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + lv + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
+  return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + lv + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
+    + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:' + lc + ';font-weight:600">' + escHtml(lv) + '</span></td>'
     + '<td style="white-space:nowrap;text-align:center">' + (rl.score !== undefined && rl.score !== '' ? rl.score + '/10' : '-') + '</td>'
@@ -138,9 +139,9 @@ window._rrTitleRow = function(rl) {
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
   var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:52px"><col><col style="width:86px"><col style="width:66px"><col style="width:48px"><col style="width:104px"><col style="width:46px"><col style="width:74px"></colgroup>'
+    + '<colgroup><col style="width:52px"><col><col style="width:96px"><col style="width:86px"><col style="width:66px"><col style="width:48px"><col style="width:96px"><col style="width:46px"><col style="width:74px"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>来源</th><th>风险等级</th><th style="text-align:center">评分</th><th>分类</th><th style="text-align:center">频率</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th>风险等级</th><th style="text-align:center">评分</th><th>分类</th><th style="text-align:center">频率</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table>';
@@ -242,6 +243,14 @@ function renderTaxRiskRules(container) {
     + '<option value="中风险">中风险</option>'
     + '<option value="低风险">低风险</option>'
     + '<option value="良好">良好/正常</option>'
+    + '</select>'
+    + '<select id="rr-monitor-filter" onchange="window._rrFilter()">'
+    + '<option value="">全部监控维度</option>'
+    + '<option>资金流监控</option><option>发票流监控</option><option>申报流监控</option>'
+    + '<option>社保与个税交叉</option><option>经营实质穿透</option><option>关联交易与利益输送</option>'
+    + '<option>虚开发票专项</option><option>财产行为税监控</option><option>出口退税监控</option>'
+    + '<option>行业专项监控</option><option>外部数据比对</option><option>账表质量与勾稽</option>'
+    + '<option>税务合规与程序</option>'
     + '</select>'
     + '<select id="rr-cat-filter" onchange="window._rrFilter()"><option value="">全部分类</option></select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
@@ -412,6 +421,7 @@ window._rrFilter = function() {
         var lv = document.getElementById('rr-level-filter') && document.getElementById('rr-level-filter').value || '';
         var ct = document.getElementById('rr-cat-filter') && document.getElementById('rr-cat-filter').value || '';
         var sc = document.getElementById('rr-source-filter') && document.getElementById('rr-source-filter').value || '';
+        var mo = document.getElementById('rr-monitor-filter') && document.getElementById('rr-monitor-filter').value || '';
         var list = document.getElementById('rr-list');
         if (!list) return;
         var sb = document.getElementById('rr-sort-by'); var sortBy = sb ? sb.value : 'id';
@@ -420,6 +430,7 @@ window._rrFilter = function() {
           if (kw && txt.toLowerCase().indexOf(kw) < 0) return false;
           if (lv && (rl.level || rl.level || '').indexOf(lv) < 0) return false;
           if (ct && (rl.category || '') !== ct) return false;
+          if (mo && (rl.monitor_category || '') !== mo) return false;
           if (sc) {
             var isAuto = rl.source === '系统发现' || rl.type === 'auto_signal';
             if (sc === 'auto' && !isAuto) return false;

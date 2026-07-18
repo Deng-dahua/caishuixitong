@@ -1632,6 +1632,7 @@ async def smart_update_rules(request: Request):
             new_rule["source"] = "LLM智能更新"
             new_rule["item"] = rule.get("item", "")
             new_rule["category"] = rule.get("category", "")
+            new_rule["monitor_category"] = rule.get("monitor_category", "")
 
             # v3 自检
             errs = v3_validate(new_rule)
@@ -1808,6 +1809,7 @@ async def batch_rewrite_rules(request: Request):
                 rw["id"] = r.get("id")
                 rw["item"] = r.get("item", "")
                 rw["category"] = r.get("category", "")
+                rw["monitor_category"] = r.get("monitor_category", "")
                 rules[i] = rw
                 break
     
