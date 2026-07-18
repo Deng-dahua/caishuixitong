@@ -195,10 +195,6 @@ function renderTaxRiskRules(container) {
     + '.rr{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif;color:#3a4048;font-size:10px;line-height:20px}'
     + '.rr-pre{font-size:10px;color:#5b6675;line-height:20px;margin:0 0 10px;padding:0}'
     + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
-    + '.rr-hero{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.rr-stat{flex:1;min-width:120px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}'
-    + '.rr-stat .v{font-size:10px;font-weight:700;color:#16233a;line-height:20px}'
-    + '.rr-stat .l{font-size:10px;color:#94a3b8;margin-top:10px}'
     + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:0 0 10px}'
     + '.rr-tax .rt{padding:10px;background:#fafbfc;border:1px solid #eff2f6;border-radius:6px;font-size:10px}'
     + '.rr-tax .rt b{color:#16233a}'
@@ -246,7 +242,6 @@ function renderTaxRiskRules(container) {
     + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
     + '</div>';
 
-    h += '<div class="rr-hero" id="rr-hero"></div>';
   h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
     + '<div style="margin-top:10px">'
     + '<p><b>疑点本体论·税务疑点只有一个来源——数据矛盾</b>——不是法律条文，不是会计知识，不是处理标准。就是数据矛盾。"该企业可能存在偷税风险"不可查；"银行账户全年收款5000万但申报收入只有3000万"立刻可查——后者才是疑点。写疑点第一步：你手里有哪些数据？这些数据之间应该是什么关系？关系不对，就是疑点。</p>'
@@ -368,14 +363,6 @@ function renderTaxRiskRules(container) {
         var cat = rl.category || rl.分类 || '其他';
         cats[cat] = (cats[cat] || 0) + 1;
       });
-
-      // 统计面板
-      var hero = document.getElementById('rr-hero');
-      if (hero) hero.innerHTML = 
-        '<div class="rr-stat"><div class="v" style="color:#16233a">' + total + '</div><div class="l">指令总数</div></div>'
-        + '<div class="rr-stat"><div class="v" style="color:#dc2626">' + high + '</div><div class="l">极高/高风险</div></div>'
-        + '<div class="rr-stat"><div class="v" style="color:#f59e0b">' + mid + '</div><div class="l">中风险</div></div>'
-        + '<div class="rr-stat"><div class="v" style="color:#059669">' + (low + good) + '</div><div class="l">低风险/良好</div></div>';
 
       // 分类筛选下拉已改为固定13监控维度选项（不再从旧category动态填充）
 
