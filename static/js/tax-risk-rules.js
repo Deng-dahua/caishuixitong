@@ -231,7 +231,7 @@ function renderTaxRiskRules(container) {
     + '</div>';
 
     h += '<div class="rr-hero" id="rr-hero"></div>';
-  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:20px;color:#334155" open><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
+  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v3穷举至稽查终点）</summary>'
     + '<div style="margin-top:10px">'
     + '<p><b>铁律1·字段齐全</b>——23字段一个不能缺。基础字段9项自动填充，深度字段12项须精写。</p>'
     + '<p><b>铁律2·穷举至稽查终点</b>——穿透追问穷举至稽查终点：问题间环环相扣、因果递进，直到证实违法行为存在或排除违法行为存在为止。推理链推到定性落地或排除风险为止。追问数量和推理层数是因果链条的自然长度。</p>'
