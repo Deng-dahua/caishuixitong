@@ -70,9 +70,9 @@ function renderTaxRiskRules(container) {
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
   // ═══ 智能更新面板 ═══
-  h += '<div id="rr-smart-panel" style="margin:0 0 10px;padding:0;display:none">';
+  h += '<div id="rr-smart-panel" style="margin:0 0 10px;padding:0">';
   h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px">🤖 智能更新面板</div>';
-  h += '<div id="rr-smart-summary" style="font-size:10px;color:#5b6675;margin:0 0 10px"></div>';
+  h += '<div id="rr-smart-summary" style="font-size:10px;color:#5b6675;margin:0 0 10px">点击搜索栏右侧「🤖 智能更新」按钮，LLM 将分析规则库盲区并给出更新建议。</div>';
   h += '<div id="rr-smart-stats" style="display:flex;gap:10px;margin:0 0 10px;flex-wrap:wrap"></div>';
   h += '<div id="rr-smart-detail" style="font-size:10px;color:#3a4048"></div>';
   h += '<div id="rr-smart-footer" style="margin:4px 0 0;font-size:10px;color:#94a3b8"></div>';
