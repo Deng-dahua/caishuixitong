@@ -98,7 +98,7 @@ MODULE_REGISTRY = {
         }
     },
     "M009_rule_engine": {
-        "name": "规则引擎(1740条)",
+        "name": "规则引擎(1717条)",
         "description": "涉税风险规则匹配，全量规则扫描",
         "requires": {"data": ["invoices"], "condition": "len(invoices) > 0"},
         "depends_on": ["M003_entity_recognition"],
