@@ -22,6 +22,36 @@ def check(field, condition, message):
 for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
     check(f, bool(str(rule.get(f,'')).strip()), f'字段不能为空')
 
+# ═══ ④⑤ 重罪等级下限（刑事犯罪级行为禁止标低于高风险）═══
+FELONY_KW = ['骗税', '骗取出口退税', '假报出口', '伪造发票', '伪造增值税', '虚开发票', '虚开增值税',
+             '暴力虚开', '两套账', '账外经营', '隐匿销毁账簿', '销毁账簿', '阴阳合同', '骗取退税',
+             '骗取留抵', '骗取即征即退', '过票', '变名开票', '洗钱']
+_item_txt = str(rule.get('item',''))
+_hit_felony = [kw for kw in FELONY_KW if kw in _item_txt]
+if _hit_felony:
+    _lv = str(rule.get('level',''))
+    check('level', '极高' in _lv or '高' in _lv,
+          f'重罪级疑点({"/".join(_hit_felony)})禁止标为{_lv or "空"}——刑事犯罪级行为最低为高风险(评分锚点8-10分档)')
+    try:
+        _sc = float(rule.get('score', 0))
+    except Exception:
+        _sc = 0
+    check('score', _sc >= 8, f'重罪级疑点评分{_sc}过低——按锚点主观故意/可移送公安=8-10分')
+
+# ═══ ④⑤ level与score锚点一致性（自动发现规则豁免：level=信息 为待确认状态）═══
+_is_auto = rule.get('type') == 'auto_signal' or rule.get('source') == '系统发现' or bool(rule.get('auto_type'))
+try:
+    _sc2 = float(rule.get('score', 0))
+    _lv2 = str(rule.get('level',''))
+    if _is_auto:
+        pass
+    elif _sc2 >= 8:
+        check('level', '极高' in _lv2 or '高' in _lv2, f'score={_sc2}属8-10分档(高度疑似/系统性造假)，level不得为{_lv2}')
+    elif _sc2 >= 6:
+        check('level', '中' in _lv2 or '高' in _lv2, f'score={_sc2}属6-7分档(中等风险)，level不得为{_lv2}')
+except Exception:
+    pass
+
 # ═══ ⑫ direction 推理链 ═══
 d = str(rule.get('direction',''))
 check('direction', '推理第' in d or '推理第一层' in d, '缺少推理层标注格式')

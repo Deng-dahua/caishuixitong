@@ -1524,6 +1524,32 @@ async def smart_update_rules(request: Request):
             if not cond: errs.append(f"{f}: {msg}")
         for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
             ck(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
+        # 重罪等级下限：刑事犯罪级行为禁止标低于高风险（2026-07-18 假报出口骗税被标低风险事故后新增）
+        _felony_kw = ['骗税','骗取出口退税','假报出口','伪造发票','伪造增值税','虚开发票','虚开增值税',
+                      '暴力虚开','两套账','账外经营','隐匿销毁账簿','销毁账簿','阴阳合同','骗取退税',
+                      '骗取留抵','骗取即征即退','过票','变名开票','洗钱']
+        _itxt = str(rule.get('item',''))
+        _hits = [kw for kw in _felony_kw if kw in _itxt]
+        _lvtxt = str(rule.get('level',''))
+        if _hits:
+            ck('level', '极高' in _lvtxt or '高' in _lvtxt, f'重罪级疑点({"/".join(_hits)})禁止标为{_lvtxt or "空"}，最低高风险')
+            try:
+                _scv = float(rule.get('score', 0))
+            except Exception:
+                _scv = 0
+            ck('score', _scv >= 8, f'重罪级疑点评分{_scv}过低，按锚点须8-10分')
+        # level与score锚点一致性（自动发现规则豁免）
+        _is_auto = rule.get('type') == 'auto_signal' or rule.get('source') == '系统发现' or bool(rule.get('auto_type'))
+        try:
+            _scv2 = float(rule.get('score', 0))
+            if _is_auto:
+                pass
+            elif _scv2 >= 8:
+                ck('level', '极高' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属8-10分档，level不得为{_lvtxt}')
+            elif _scv2 >= 6:
+                ck('level', '中' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属6-7分档，level不得为{_lvtxt}')
+        except Exception:
+            pass
         d = str(rule.get('direction',''))
         ck('direction', _re.search(r'推理第', d), '缺少推理层标注')
         ck('direction', '依赖证据' in d, '每层缺少依赖证据标注')
@@ -10278,6 +10304,31 @@ def validate_rules_v3(rule_id: str = None):
         errors = []
         for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
             _check(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
+        # 重罪等级下限 + level/score锚点一致性（与smart-update的v3_validate同步）
+        _felony_kw = ['骗税','骗取出口退税','假报出口','伪造发票','伪造增值税','虚开发票','虚开增值税',
+                      '暴力虚开','两套账','账外经营','隐匿销毁账簿','销毁账簿','阴阳合同','骗取退税',
+                      '骗取留抵','骗取即征即退','过票','变名开票','洗钱']
+        _itxt = str(rule.get('item',''))
+        _hits = [kw for kw in _felony_kw if kw in _itxt]
+        _lvtxt = str(rule.get('level',''))
+        if _hits:
+            _check('level', '极高' in _lvtxt or '高' in _lvtxt, f'重罪级疑点({"/".join(_hits)})禁止标为{_lvtxt or "空"}，最低高风险')
+            try:
+                _scv = float(rule.get('score', 0))
+            except Exception:
+                _scv = 0
+            _check('score', _scv >= 8, f'重罪级疑点评分{_scv}过低，按锚点须8-10分')
+        _is_auto = rule.get('type') == 'auto_signal' or rule.get('source') == '系统发现' or bool(rule.get('auto_type'))
+        try:
+            _scv2 = float(rule.get('score', 0))
+            if _is_auto:
+                pass
+            elif _scv2 >= 8:
+                _check('level', '极高' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属8-10分档，level不得为{_lvtxt}')
+            elif _scv2 >= 6:
+                _check('level', '中' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属6-7分档，level不得为{_lvtxt}')
+        except Exception:
+            pass
         d = str(rule.get('direction',''))
         _check('direction', _re.search(r'推理第', d), '缺少推理层标注')
         _check('direction', '依赖证据' in d, '每层缺少依赖证据标注')
