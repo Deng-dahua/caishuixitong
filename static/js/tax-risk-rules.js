@@ -744,22 +744,24 @@ window._smartUpdate = function() {
       if (st) st.textContent = d.ok ? '完成' : '失败';
       if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
       if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
-      var c = d.compare || {};
-      var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
-      var v3 = c.v3_check || {};
-      var msg = '';
-      if (total === 0) {
-        msg = '智能更新完成：当前规则库已覆盖完善，无更新建议。';
-      } else {
-        msg = '智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条';
-        if (v3.new_passed !== undefined) {
-          msg += '\n\nv3精写标准自检：\n新增: '+(v3.new_passed||0)+'条达标 / '+(v3.new_failed||0)+'条需人工精写\n修改: '+(v3.mod_passed||0)+'条达标 / '+(v3.mod_failed||0)+'条需复核';
-          if (v3.new_failed > 0 || v3.mod_failed > 0) {
-            msg += '\n\n不达标的规则已写入但标记了来源，请到疑点库搜索"需人工精写"查看。';
+      var r = d.results || {};
+      var msg = '智能更新报告\n\n';
+      msg += '精写总数: ' + (r.rewritten||0) + '/' + (r.total||0) + ' 条\n';
+      msg += '自检通过: ' + (r.passed||0) + ' 条\n';
+      msg += '需人工复核: ' + (r.failed||0) + ' 条\n';
+      if (r.failed > 0) {
+        msg += '\n不达标规则详情:\n';
+        (r.details||[]).forEach(function(x){
+          if (x.status !== '自检通过') {
+            msg += '  #'+x.id+' '+x.item+' - '+x.status;
+            if (x.errors) msg += ' ('+x.errors.join('; ')+')';
+            msg += '\n';
           }
-        }
+        });
       }
+      if (d.message) msg += '\n' + d.message;
       alert(msg);
+      if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
       // 刷新规则列表
       if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
     })

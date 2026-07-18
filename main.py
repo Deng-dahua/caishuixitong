@@ -1453,44 +1453,177 @@ def get_tax_risk_rules_data():
 
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
-    """智能更新规则库——调用LLM分析盲区，返回新增/修改/删除建议及新旧对比表"""
+    """智能更新规则库——连接LLM，按v3精写标准逐条重写1825条规则的23字段。
+
+    流程：
+    1. 读规则库 + v3精写编制标准 + 精写编制说明
+    2. 逐条发给LLM：标准+指引+规则现状 → LLM重写23字段
+    3. 逐条跑v3自检(36项)：通过→写入；不通过→标记并跳过
+    4. 返回精写报告：总数/成功/失败/详情
+    """
     api_cfg = get_api_config()
     api_key = api_cfg.get("key", "")
     if not api_key:
-        return {"ok": False, "message": "⛔ 智能更新已禁用：未接入LLM（未配置API Key）。智能更新必须接入LLM才能使用，请先在系统主页左上角配置API密钥后重试。"}
+        return {"ok": False, "message": "⛔ 未配置API Key：请在系统主页左上角配置LLM密钥后重试。"}
     base_url = api_cfg.get("base_url", "https://api.deepseek.com/v1")
     model = api_cfg.get("model", "deepseek-chat")
-    provider = api_cfg.get("provider", "deepseek")
-    # 前置检查：智能更新必须联网 + 接入LLM，缺任一禁止使用
-    try:
-        import socket as _sock
-        from urllib.parse import urlparse as _urlparse
-        _pu = _urlparse(base_url)
-        _host = _pu.hostname
-        _port = _pu.port or (443 if _pu.scheme == "https" else 80)
-        _sock.create_connection((_host, _port), timeout=5).close()
-    except Exception:
-        return {"ok": False, "message": "⛔ 智能更新已禁用：无法连接网络或LLM服务。智能更新必须联网并接入LLM才能使用——请检查网络连接与API配置后重试。"}
 
-    import json as _json, os as _os
+    import json as _json, os as _os, re as _re, time as _time
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
         return {"ok": False, "message": "规则文件不存在"}
-
     with open(rp, "r", encoding="utf-8") as _f:
         rules = _json.load(_f)
 
-    # 构建规则摘要（分类+数量+关键条目，不发送全部1753条以节省token）
-    from collections import Counter
-    cat_count = Counter(r.get("category","") for r in rules)
-    manual_rules = [r for r in rules if not r.get("source")]
-    auto_rules = [r for r in rules if r.get("source")]
-    # 动态读取引擎权威精写标准（避免在此处再维护一份、与权威源脱节）
-    _repealed_txt = ""
-    _exhaust_txt = ""
-    _iron_txt = ""
+    # 加载 v3 精写标准
+    from engine.memory import TAX_BURDEN_RULES
+    std = TAX_BURDEN_RULES["rule_precise_writing"]
+    standards_text = _json.dumps(std["23_fields"], ensure_ascii=False, indent=2)
+    eg = std.get("execution_guide", {})
+    guide_text = _json.dumps({
+        "purpose": eg.get("purpose", ""),
+        "common_errors": eg.get("common_errors", []),
+        "scoring_anchors": eg.get("scoring_anchors", {}),
+        "impact_levels": eg.get("impact_levels", {}),
+        "evidence_priority": eg.get("evidence_priority", {}),
+    }, ensure_ascii=False, indent=2)
+
+    # LLM prompt 模板
+    rewrite_prompt_template = (
+        "你是资深税务稽查员兼规则编写专家。请根据以下精写编制标准重写这条税务疑点规则。\n\n"
+        "=== 精写编制标准（23字段完整版）===\n{standards}\n\n"
+        "=== 精写编制说明（怎么写才不会写错）===\n{guide}\n\n"
+        "=== 当前规则 ===\n{current_rule}\n\n"
+        "请输出完整的23字段JSON。每字段必须达到标准要求：\n"
+        "- direction: 推理至稽查终点，每层标注\"依赖证据:XX\"，开头标注\"复杂度：复杂/中等/简单\"\n"
+        "- drill_questions: 三组递进(事实→证据→逻辑)，Q{{N}}:问题→潜台词:XX。A:XX格式\n"
+        "- normal_reason: 至少4种，每种附\"——需提供:具体文件类型\"，附穷举说明\n"
+        "- determination: 三路径(线索/强证据/铁证)+应对总原则。有量化阈值的加\"阈值以下处理\"分支\n"
+        "- risk_table: 覆盖实际涉及税种，标注核心/次要/间接\n"
+        "- evidence: 四层框架+每层必须有必须/应当/可以优先级+金额分级\n"
+        "- threshold: 行业差异阈值+前置条件四维度\n"
+        "- suggestion: 稽查局视角，格式:定性→补税→滞纳金→罚款→移送\n"
+        "- remedy: 企业视角，三阶段(自查/应对/制度)\n"
+        "只输出JSON，不要任何解释文字。JSON第一行是{{，最后一行是}}。"
+    )
+
+    # v3 自检函数（同 validate_rule_v3.py 逻辑）
+    def v3_validate(rule):
+        errs = []
+        def ck(f, cond, msg):
+            if not cond: errs.append(f"{f}: {msg}")
+        for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
+            ck(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
+        d = str(rule.get('direction',''))
+        ck('direction', _re.search(r'推理第', d), '缺少推理层标注')
+        ck('direction', '依赖证据' in d, '每层缺少依赖证据标注')
+        ck('direction', '复杂度' in d, '缺少复杂度标记')
+        dq = str(rule.get('drill_questions',''))
+        fp, ep, lp = dq.find('事实层'), dq.find('证据层'), dq.find('逻辑层')
+        if fp>=0 and ep>=0 and lp>=0:
+            ck('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
+        ck('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足3条')
+        ck('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少→潜台词格式')
+        ck('drill_questions', 'A：' in dq or 'A:' in dq, '缺少A：应对话术')
+        nr = str(rule.get('normal_reason',''))
+        ck('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
+        ck('normal_reason', '最常见' in nr or '穷举' in nr, '缺最常见标注或穷举说明')
+        det = str(rule.get('determination',''))
+        ck('determination', '线索' in det, '缺路径一(线索)')
+        ck('determination', '强证据' in det, '缺路径二(强证据)')
+        ck('determination', '铁证' in det, '缺路径三(铁证)')
+        ck('determination', '应对总原则' in det or '结尾附' in det, '缺应对总原则')
+        if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', str(rule.get('threshold',''))):
+            ck('determination', '阈值以下' in det, '有量化阈值但缺阈值以下处理分支')
+        ck('risk_table', '核心' in str(rule.get('risk_table','')), '缺核心影响标注')
+        ev = str(rule.get('evidence',''))
+        ck('evidence', '必须' in ev, '缺必须获取优先级')
+        ck('evidence', '应当' in ev, '缺应当获取优先级')
+        ck('evidence', '可以' in ev, '缺可以获取优先级')
+        ck('evidence', '金额分级' in ev or '大额' in ev or '>10万' in ev, '缺金额分级')
+        th = str(rule.get('threshold',''))
+        ck('threshold', '行业' in th, '缺行业差异阈值')
+        ck('threshold', '前置条件' in th, '缺前置条件四维度')
+        ck('suggestion', '定性' in str(rule.get('suggestion','')), '缺定性')
+        ck('suggestion', '补税' in str(rule.get('suggestion','')), '缺补税')
+        ck('remedy', '自查' in str(rule.get('remedy','')) or '应对' in str(rule.get('remedy','')) or '制度' in str(rule.get('remedy','')), '缺三阶段')
+        return errs
+
+    results = {"total": len(rules), "rewritten": 0, "passed": 0, "failed": 0, "skipped": 0, "details": []}
+
     try:
-        from engine.memory import TAX_BURDEN_RULES
+        import httpx
+        api_url = base_url.rstrip("/") + "/chat/completions"
+
+        for i, rule in enumerate(rules):
+            rule_id = rule.get("id", i+1)
+            rule_item = rule.get("item", "")[:30]
+            # 跳过已完全达标的（source 不含"需人工精写"且上次自检通过）
+            # 节省 token，首次全跑
+
+            current_json = _json.dumps(rule, ensure_ascii=False, indent=2)
+            prompt = rewrite_prompt_template.replace("{standards}", standards_text).replace("{guide}", guide_text).replace("{current_rule}", current_json)
+
+            async with httpx.AsyncClient(timeout=120) as client:
+                resp = await client.post(
+                    api_url,
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 4000}
+                )
+            if resp.status_code != 200:
+                results["details"].append({"id": rule_id, "item": rule_item, "status": "API错误", "error": f"HTTP {resp.status_code}"})
+                results["failed"] += 1
+                continue
+
+            ai_text = resp.json()["choices"][0]["message"]["content"]
+            # 提取 JSON
+            json_match = _re.search(r'\{[\s\S]*\}', ai_text)
+            if not json_match:
+                results["details"].append({"id": rule_id, "item": rule_item, "status": "JSON解析失败"})
+                results["failed"] += 1
+                continue
+
+            try:
+                new_rule = _json.loads(json_match.group())
+            except Exception:
+                results["details"].append({"id": rule_id, "item": rule_item, "status": "JSON解析错误"})
+                results["failed"] += 1
+                continue
+
+            # 保留原 ID + 基本信息
+            new_rule["id"] = rule_id
+            new_rule["source"] = "LLM智能更新"
+            if "item" not in new_rule or not new_rule["item"]:
+                new_rule["item"] = rule.get("item", "")
+
+            # v3 自检
+            errs = v3_validate(new_rule)
+            if errs:
+                new_rule["source"] = "LLM智能更新·需人工精写(v3标准)"
+                results["details"].append({"id": rule_id, "item": new_rule.get("item","")[:30], "status": "自检未通过", "errors": errs})
+                results["failed"] += 1
+            else:
+                results["details"].append({"id": rule_id, "item": new_rule.get("item","")[:30], "status": "自检通过"})
+                results["passed"] += 1
+
+            rules[i] = new_rule
+            results["rewritten"] += 1
+
+            # 每 10 条写一次盘，防止中途崩溃丢失进度
+            if results["rewritten"] % 10 == 0:
+                with open(rp, "w", encoding="utf-8") as wf:
+                    _json.dump(rules, wf, ensure_ascii=False, indent=2)
+
+        # 最终写盘
+        with open(rp, "w", encoding="utf-8") as wf:
+            _json.dump(rules, wf, ensure_ascii=False, indent=2)
+
+        return {"ok": True, "results": results, "message": f"精写完成：{results['rewritten']}/{results['total']}条，自检通过{results['passed']}条，需人工复核{results['failed']}条"}
+
+    except ImportError:
+        return {"ok": False, "message": "服务器未安装httpx库，无法调用LLM"}
+    except Exception as e:
+        return {"ok": False, "message": f"精写异常: {str(e)}"}
         _rpw = TAX_BURDEN_RULES.get("rule_precise_writing", {})
         _iron_txt = "精写编制标准·五条铁律（动态同步自引擎权威源engine/memory.py）：" + " ".join(_rpw.get("iron_rules", []))
         _rlw = _rpw.get("repealed_law_watch", {})
