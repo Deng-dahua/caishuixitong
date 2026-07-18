@@ -112,26 +112,37 @@ window._rrDetailHtml = function(rl) {
   return card;
 };
 
-// ═══ 标题行生成（列表显示标题+元信息标识，点击进详情）═══
+// ═══ 表格行生成（列表=表格，每字段一列，点击行进详情）═══
 window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
-  var trig = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length > 0;
-  var lv = rl.level || '信息';
+  var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
+  var lv = rl.level || '';
   var lc = '#64748b';
   if (lv.indexOf('极高') >= 0) lc = '#991b1b';
   else if (lv.indexOf('高') >= 0) lc = '#dc2626';
   else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
   else if (lv.indexOf('低') >= 0) lc = '#059669';
-  var meta = (isAuto
-      ? ' <span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">🤖 自动发现</span>'
-      : ' <span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">✍ 人工规则</span>')
-    + '<span style="font-size:10px;background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px">' + lv + '</span>'
-    + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
-    + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + escHtml(rl.category) + '</span>' : '')
-    + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + escHtml(rl.check_frequency) + '</span>' : '')
-    + (trig ? '<span style="font-size:10px;background:#fef2f2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">✅ 本次触发</span>' : '');
-  return '<div class="rr-title-item" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trig ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">#' + rid + ' ' + escHtml(rl.item || rl.signal || '未命名') + meta + '</div>';
+  return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + lv + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
+    + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
+    + '<td class="rr-name">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
+    + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
+    + '<td style="white-space:nowrap"><span style="color:' + lc + ';font-weight:600">' + escHtml(lv) + '</span></td>'
+    + '<td style="white-space:nowrap;text-align:center">' + (rl.score !== undefined && rl.score !== '' ? rl.score + '/10' : '-') + '</td>'
+    + '<td style="white-space:nowrap">' + escHtml(rl.category || '-') + '</td>'
+    + '<td style="white-space:nowrap;text-align:center">' + escHtml(rl.check_frequency || '-') + '</td>'
+    + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:600">✅ ' + trigN + '次</span>' : '') + '</td>'
+    + '</tr>';
+};
+
+// ═══ 表格骨架（表头+行，两条渲染路径共用）═══
+window._rrTable = function(rules) {
+  var h = '<table class="rr-table"><thead><tr>'
+    + '<th>编号</th><th>疑点名称</th><th>来源</th><th>风险等级</th><th style="text-align:center">评分</th><th>分类</th><th style="text-align:center">频率</th><th style="text-align:center">本次触发</th>'
+    + '</tr></thead><tbody>';
+  rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
+  h += '</tbody></table>';
+  return h;
 };
 
 // ═══ 详情视图：点击标题进入，返回按钮回列表 ═══
@@ -210,8 +221,12 @@ function renderTaxRiskRules(container) {
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '.rr p{margin:0 0 10px;line-height:20px}'
-    + '.rr-title-item{font-size:10px;line-height:20px;margin:0 0 10px;color:#0f172a;cursor:pointer}'
-    + '.rr-title-item:hover{color:#9a1f2b;text-decoration:underline}'
+    + '.rr-table{width:100%;border-collapse:collapse;font-size:10px;margin:0 0 10px}'
+    + '.rr-table th{padding:6px 8px;border:1px solid #e2e8f0;background:#f8fafc;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap}'
+    + '.rr-table td{padding:4px 8px;border:1px solid #eef2f6;line-height:20px;color:#3a4048}'
+    + '.rr-row{cursor:pointer}'
+    + '.rr-row:hover{background:#fafbfc}'
+    + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
@@ -414,9 +429,7 @@ window._rrFilter = function() {
           list.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8">未找到匹配的规则</div>';
           return;
         }
-        var html = '';
-        filtered.forEach(function(rl) { html += window._rrTitleRow(rl); });
-        list.innerHTML = html;
+        list.innerHTML = window._rrTable(filtered);
       };
       window._rrFilter();
     })
@@ -687,12 +700,8 @@ function renderTaxRiskRulesList() {
   _fillEl('tr-low', low);
   _fillEl('tr-trigger', triggeredCount);
 
-  var html = '';
-
-  // 按生成时间渲染所有指令
-  sortedData.forEach(function(rule) { html += window._rrTitleRow(rule); });
-
-  listEl.innerHTML = html;
+  // 表格形式渲染所有指令
+  listEl.innerHTML = window._rrTable(sortedData);
 
   if (statsEl) {
     statsEl.innerHTML = '共 ' + data.length + ' 条税务疑点 · '
