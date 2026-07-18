@@ -142,7 +142,7 @@ function renderTaxRiskRules(container) {
 
   // 加载编制说明和数据
   loadTaxRiskRules();
-  fetch('/api/tax-risk-rules/execution-guide').then(function(r){return r.json()}).then(function(d){
+  fetch('/api/tax-risk-rules/execution-guide?t=' + Date.now(), {cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style="color:#dc2626">加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
     // 定位

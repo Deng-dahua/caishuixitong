@@ -1388,7 +1388,12 @@ def get_execution_guide():
     try:
         from engine.memory import TAX_BURDEN_RULES
         eg = TAX_BURDEN_RULES["rule_precise_writing"].get("execution_guide", {})
-        return {"ok": True, "data": eg}
+        from fastapi.responses import JSONResponse
+        resp = JSONResponse(content={"ok": True, "data": eg})
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     except Exception as e:
         return {"ok": False, "message": str(e)}
 
