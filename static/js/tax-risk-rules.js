@@ -41,20 +41,10 @@ var CATEGORY_DESCRIPTIONS = {
 };
 
 // ═══ 详情内容生成（23字段完整展示，列表页与详情页共用数据源）═══
+// 元信息标识（人工/自动、等级、评分、分类、频率）已移至列表标题行显示，详情页不再重复
 window._rrDetailHtml = function(rl) {
-  var lv = rl.level || rl.level || '信息';
-  var lc = '#64748b';
-  if (lv.indexOf('极高') >= 0) lc = '#991b1b';
-  else if (lv.indexOf('高') >= 0) lc = '#dc2626';
-  else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
-  else if (lv.indexOf('低') >= 0) lc = '#059669';
   var card = '<div class="rr-rule">'
-    + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>'
-    + (rl.type === 'auto_signal' || rl.source === '系统发现' || rl.auto_type ? '<span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">🤖 自动发现</span>' : '<span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;margin-right:4px">✍ 人工规则</span>')
-    + '<span class="rl" style="background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30">' + lv + '</span>'
-    + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
-    + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + rl.category + '</span>' : '')
-    + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + rl.check_frequency + '</span>' : '');
+    + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>';
 
   // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
   if (rl.phenomena) {
@@ -122,12 +112,26 @@ window._rrDetailHtml = function(rl) {
   return card;
 };
 
-// ═══ 标题行生成（列表只显示标题，点击进详情）═══
+// ═══ 标题行生成（列表显示标题+元信息标识，点击进详情）═══
 window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trig = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length > 0;
-  return '<div class="rr-title-item" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trig ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">#' + rid + ' ' + escHtml(rl.item || rl.signal || '未命名') + '</div>';
+  var lv = rl.level || '信息';
+  var lc = '#64748b';
+  if (lv.indexOf('极高') >= 0) lc = '#991b1b';
+  else if (lv.indexOf('高') >= 0) lc = '#dc2626';
+  else if (lv.indexOf('中') >= 0) lc = '#f59e0b';
+  else if (lv.indexOf('低') >= 0) lc = '#059669';
+  var meta = (isAuto
+      ? ' <span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">🤖 自动发现</span>'
+      : ' <span style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">✍ 人工规则</span>')
+    + '<span style="font-size:10px;background:' + lc + '15;color:' + lc + ';border:1px solid ' + lc + '30;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px">' + lv + '</span>'
+    + (rl.score ? '<span style="font-size:10px;color:#94a3b8;margin-left:4px">评分' + rl.score + '/10</span>' : '')
+    + (rl.category ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">' + escHtml(rl.category) + '</span>' : '')
+    + (rl.check_frequency ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px;border:1px solid #e2e8f0;border-radius:4px;padding:0 4px">' + escHtml(rl.check_frequency) + '</span>' : '')
+    + (trig ? '<span style="font-size:10px;background:#fef2f2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px">✅ 本次触发</span>' : '');
+  return '<div class="rr-title-item" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trig ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">#' + rid + ' ' + escHtml(rl.item || rl.signal || '未命名') + meta + '</div>';
 };
 
 // ═══ 详情视图：点击标题进入，返回按钮回列表 ═══
