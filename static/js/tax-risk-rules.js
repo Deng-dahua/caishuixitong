@@ -147,7 +147,7 @@ function renderTaxRiskRules(container) {
     if (!d.ok) { document.getElementById('rr-exec-guide-content').innerHTML = '<span style=color:#dc2626>加载失败:'+d.message+'</span>'; return; }
     var eg = d.data, html = '';
     // 定位
-    html += '<div style=background:#f0faf6;border-radius:6px;padding:10px;margin-bottom:10px;font-size:10px;color:#0f766e>' + eg.purpose + '</div>';
+    html += '<p>' + eg.purpose + '</p>';
     // 常犯错误
     html += '<p><b>二、常犯错误防错清单</b></p>';
     var errs = eg.common_errors || [];
