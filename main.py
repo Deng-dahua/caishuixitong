@@ -643,7 +643,20 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
         return response
 app.add_middleware(NoCacheMiddleware)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# 自建 StaticFiles 子类 — 强制所有静态文件带 ?v= 时间戳头，浏览器绝不缓存
+class NoCacheStaticFiles(StaticFiles):
+    async def __call__(self, scope, receive, send):
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = dict(message.get("headers", []))
+                headers[b"cache-control"] = b"no-store, no-cache, must-revalidate, max-age=0"
+                headers[b"pragma"] = b"no-cache"
+                headers[b"expires"] = b"0"
+                message["headers"] = list(headers.items())
+            await send(message)
+        await super().__call__(scope, receive, send_wrapper)
+
+app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 
 # ==================== 文件上传安全常数 (P2-4/5) ====================
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
