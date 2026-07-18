@@ -20,47 +20,47 @@ def _load_saved_rules():
         return None
 
 
-# ── 规则校验标准（启动时自动审计）──
-VALID_LEVELS = {'高风险', '中风险', '低风险', '良好'}
-VALID_URGENCIES = {'紧急', '高', '中', '低', '提醒', '建议'}
-RULE_REQUIRED_FIELDS = ['id', 'item', 'category', 'score', 'level', 'suggestion', 'urgency', 'evidence', 'remark', 'dataSource']
+# ── 规则校验标准（启动时自动审计·2026-07-18 对齐23字段现行体系）──
+# 旧schema(urgency/remark/dataSource必填、score0-100、无极高风险)已废——那是23字段体系之前的老格式，
+# 曾对1717条规则误报7710个"问题"。现行必填=基础字段核心；level含极高风险与auto规则的"信息"档。
+VALID_LEVELS = {'极高风险', '高风险', '中风险', '低风险', '良好', '信息'}
+RULE_REQUIRED_FIELDS = ['id', 'item', 'category', 'score', 'level', 'suggestion']
 
 def _validate_rules_on_load(rules: list):
     """启动时校验规则文件完整性，不合格打印警告到stdout"""
     issues = []
     seen_items = {}
     for r in rules:
+        if not isinstance(r, dict):
+            issues.append(f"[规则] 非法条目类型: {type(r).__name__} -> {str(r)[:50]}")
+            continue
         rid = r.get('id', '?')
-        ritem = r.get('item', '').strip()
-        
+        ritem = str(r.get('item', '') or '').strip()
+
         # 必填字段
         for f in RULE_REQUIRED_FIELDS:
             val = r.get(f)
             if val is None or (isinstance(val, str) and val.strip() == ''):
                 issues.append(f"[规则] ID={rid} 缺失字段: {f}")
-        
-        # score范围
+
+        # score范围（现行1-10分制，auto规则允许0）
         score = r.get('score', -1)
-        if not isinstance(score, (int, float)) or score < 0 or score > 100:
-            issues.append(f"[规则] ID={rid} score={score} 无效(0-100)")
-        
+        if not isinstance(score, (int, float)) or score < 0 or score > 10:
+            issues.append(f"[规则] ID={rid} score={score} 无效(0-10)")
+
         # level
         if r.get('level', '') not in VALID_LEVELS:
             issues.append(f"[规则] ID={rid} level='{r.get('level','')}' 无效")
-        
-        # urgency
-        if r.get('urgency', '') not in VALID_URGENCIES:
-            issues.append(f"[规则] ID={rid} urgency='{r.get('urgency','')}' 无效")
-        
+
         # item唯一性
         if ritem:
             if ritem in seen_items:
                 issues.append(f"[规则] ID={rid} item='{ritem}' 与 ID={seen_items[ritem]} 重复!")
             else:
                 seen_items[ritem] = rid
-        
+
         # suggestion长度
-        if len(r.get('suggestion', '')) < 5:
+        if len(str(r.get('suggestion', '') or '')) < 5:
             issues.append(f"[规则] ID={rid} suggestion过短")
     
     if issues:

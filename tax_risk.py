@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case, extract, and_, or_
 from datetime import date, timedelta, datetime
 from typing import Optional, List, Tuple, Dict, Any
+from tax_risk_utils import _get_account_balance, _get_account_sum, _get_periods_between, _monthly_account_balance, _normalize_period, _period_to_date_range, _risk_color, _safe_float, _vat_payable_sum  # 2026-07-18: import * 不导入下划线名——显式补全，修复规则引擎静默NameError
 from collections import defaultdict
 import json
 import os
@@ -502,7 +503,7 @@ def _check_expense_evidence(db: Session, company_id: int, ps: str, pe: str,
 
 
 # 规则加载与校验函数已提取至 tax_risk_rules.py (含 RULES_FILE / CONFLICT_ANSWERS_FILE / VALID_* / RULE_REQUIRED_FIELDS)
-from tax_risk_rules import _load_saved_rules, _validate_rules_on_load, _load_conflict_answers, _save_conflict_answers, _apply_conflict_answers, VALID_LEVELS, VALID_URGENCIES, RULE_REQUIRED_FIELDS
+from tax_risk_rules import _load_saved_rules, _validate_rules_on_load, _load_conflict_answers, _save_conflict_answers, _apply_conflict_answers, VALID_LEVELS, RULE_REQUIRED_FIELDS
 import os
 
 def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=None):

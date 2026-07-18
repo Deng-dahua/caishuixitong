@@ -1892,6 +1892,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 period_end = f"{_now.year}-12-31"
                 engine_results = get_tax_risk_report(db=db, company_id=company_id,
                     period_from=period_start, period_to=period_end)
+                # 2026-07-18: get_tax_risk_report返回dict——发现列表在results键；
+                # 此前把dict当list迭代→str.get崩溃，规则引擎结果从未进过报告
+                if isinstance(engine_results, dict):
+                    engine_results = engine_results.get("results", []) or []
                 # ═══ 行业过滤：排除不适用行业的制造专有规则 ═══
                 _manu_only_rules = {"考勤记录与计件工资的产量反推", "计件工资"}
                 ind = (ctx.company_profile or {}).get("industry", "")
@@ -3225,7 +3229,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # threshold结构化条件去查数据，触发即生成发现。放在方法论过滤器之前，
     # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
     try:
-        from engine.rule_consumer import verify_with_threshold
+        from engine.rule_consumer import verify_with_threshold, check_applicable
         _rules_path2 = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         with open(_rules_path2, "r", encoding="utf-8") as _rf2:
             _doubt_rules = json.load(_rf2)
@@ -3236,13 +3240,20 @@ def _run_analyze(company_id, db, progress_callback=None):
             _item = str(_dr.get("item", "")).strip()
             if not _item or _item in _existing_types:
                 continue  # 已有同名发现，不重复生成
+            # ── 执行覆盖·⑨applicable_condition前置闸门：行业限定不符直接拦截（防误报）──
+            _ok_ac, _ac_reason = check_applicable(_dr, target_entity.get("industry", ""))
+            if not _ok_ac:
+                continue
+            # ── 执行覆盖·⑥check_frequency调度：低频=特定条件触发时查→要求强触发(0.95)；高频/中频常规门槛(0.85) ──
+            _freq = str(_dr.get("check_frequency", "") or "")
+            _conf_floor = 0.95 if "低频" in _freq else 0.85
             _v = verify_with_threshold(_dr, bank_txs, invoices, salaries, social_security, vouchers)
             if _v is None:
                 continue  # threshold无法结构化解析，降级跳过
             _scanned += 1
             _trig, _reason, _conf, _evd = _v
-            # 只保留定量条件触发（置信度≥0.85）；"=是即触发"类太宽泛，全库扫描会误报爆炸
-            if not _trig or _conf < 0.85:
+            # 定量条件触发按频率档位取门槛；"=是即触发"类太宽泛，全库扫描会误报爆炸
+            if not _trig or _conf < _conf_floor:
                 continue
             _scan_hits.append({
                 "type": _item,
@@ -3328,15 +3339,32 @@ def _run_analyze(company_id, db, progress_callback=None):
         with open(rules_path, "r", encoding="utf-8") as _rf:
             _all_rules = json.load(_rf)
         _rule_by_item = {}
+        _rule_by_id = {}
         for _r in _all_rules:
             _it = str(_r.get("item", "")).strip()
             _rule_by_item[_it] = _r
+            _rule_by_id[str(_r.get("id", ""))] = _r
+
+        def _inject_ontology_fields(_f, _rule):
+            """执行覆盖：铁律0矛盾点 + ⑯逃生舱 + monitor_category 注入发现"""
+            _f["_monitor_category"] = _rule.get("monitor_category", "")
+            _ph = str(_rule.get("phenomena", "") or "")
+            if _ph.startswith("数据矛盾点"):
+                _f["_contradiction"] = _ph.split("。")[0][:150]
+            elif _ph:
+                _f["_contradiction"] = _ph[:80]
+            _nr = str(_rule.get("normal_reason", "") or "")
+            if _nr:
+                _f["_escape_hatch"] = _nr[:220]
         # 语义匹配索引（2026-07-17：精确匹配失败后走 bigram 语义匹配提升命中率）
         _match_index = build_rule_match_index(_all_rules)
         _exact_hits, _semantic_hits = 0, 0
         for f in all_findings:
             if f.get("_rule_id"):
                 # 链驱动发现已注入，直接消费
+                _src_rule = _rule_by_id.get(str(f.get("_rule_id", "")))
+                if _src_rule:
+                    _inject_ontology_fields(f, _src_rule)
                 llm_ctx, _ = build_rule_context_for_llm(f, f)
                 if llm_ctx:
                     f["_llm_context"] = llm_ctx[:8000]
@@ -3360,6 +3388,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     f["_rule_match_score"] = match_score
                     f["_rule_direction"] = matched.get("direction", "")
                     f["_rule_determination"] = matched.get("determination", "")
+                    _inject_ontology_fields(f, matched)
                     llm_ctx, _ = build_rule_context_for_llm(matched, f)
                     if llm_ctx:
                         f["_llm_context"] = llm_ctx[:8000]
@@ -3908,6 +3937,17 @@ def _run_analyze(company_id, db, progress_callback=None):
         )
         comprehensive["hypothesis_verification"] = hypothesis_summary
         # ── 同步result中的all_findings（因为假设验证修改了all_findings）──
+        # ── 执行覆盖·⑰determination定性分级：按独立来源域数量映射三档（1域=线索/2域=强证据/≥3域=铁证）──
+        _type_domains = {}
+        for _f in all_findings:
+            _type_domains.setdefault(str(_f.get("type", "")), set()).add(str(_f.get("domain", "")))
+        for _f in all_findings:
+            _nsrc = len(_type_domains.get(str(_f.get("type", "")), set()) - {""})
+            _f["_evidence_grade"] = "铁证" if _nsrc >= 3 else ("强证据" if _nsrc == 2 else "线索")
+        # ── 执行覆盖·monitor_category维度汇总：13大监控维度触发分布 ──
+        from collections import Counter as _MonCtr
+        _mon_dist = _MonCtr((_f.get("_monitor_category") or "未映射") for _f in all_findings)
+        result["report"]["monitor_dimension_summary"] = dict(_mon_dist.most_common())
         result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
         result["report"]["total_risks"] = len(all_findings)
         result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")

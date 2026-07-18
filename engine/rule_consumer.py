@@ -272,11 +272,21 @@ def build_report_context_from_rule(rule, finding_data=None):
     rm = rule.get("remedy", "")
     if rm:
         ctx["remedy_guide"] = rm[:2000] if rm != sg else sg[:2000]
-    # 风险表格
+    # 风险表格（类型兼容：部分规则risk_table为list——dict项或字符串项归一为"税种:描述"行）
     rt = rule.get("risk_table", "")
+    if isinstance(rt, list):
+        _lines = []
+        for _x in rt:
+            if isinstance(_x, dict):
+                _tax = _x.get("税种") or _x.get("tax") or _x.get("name") or ""
+                _desc = _x.get("具体风险描述") or _x.get("风险描述") or _x.get("desc") or _x.get("描述") or ""
+                _lines.append(f"{_tax}:{_desc}")
+            else:
+                _lines.append(str(_x))
+        rt = "\n".join(_lines)
     if rt:
         # 解析税种:描述行
-        ctx["risk_breakdown"] = [l.strip() for l in rt.split("\n") if ":" in l]
+        ctx["risk_breakdown"] = [l.strip() for l in str(rt).split("\n") if ":" in l]
     # 触发阈值（用于报告说明"为何触发"）
     th = rule.get("threshold", "")
     if th:
@@ -351,3 +361,24 @@ def match_rule_semantic(finding, index, threshold=0.55):
         return best, round(best_score, 3)
     return None, 0.0
 
+
+
+def check_applicable(rule, target_industry):
+    """⑨applicable_condition 前置闸门（2026-07-18 执行覆盖工程）
+    适用条件五维度中，当前数据可判定的维度执行硬校验；缺数据的维度放行（保守不误杀）。
+    - 行业限制：规则限定了行业且企业行业已识别 → 不匹配则拦截
+    - 资质/规模/时间/金额维度：待对应数据源接入后逐步启用
+    返回 (是否放行, 拦截原因)"""
+    cond = str(rule.get("applicable_condition", "") or "")
+    if not cond.strip():
+        return True, ""
+    import re as _re
+    m = _re.search(r'行业[=＝:：]\s*([^;；,，。|]+)', cond)
+    if m:
+        ind_req = m.group(1).strip()
+        _unlimited = ('不限', '无', '无限制', '全行业', '所有行业', '各行业', '通用')
+        if ind_req and ind_req not in _unlimited and not any(u in ind_req for u in _unlimited):
+            ti = str(target_industry or "").strip()
+            if ti and (ti not in ind_req) and (ind_req not in ti):
+                return False, f"行业限定[{ind_req}]与企业行业[{ti}]不符"
+    return True, ""
