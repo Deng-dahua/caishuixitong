@@ -1479,6 +1479,7 @@ async def smart_update_rules(request: Request):
     from engine.memory import TAX_BURDEN_RULES
     std = TAX_BURDEN_RULES["rule_precise_writing"]
     standards_text = _json.dumps(std["23_fields"], ensure_ascii=False, indent=2)
+    ontology_text = _json.dumps(std.get("doubt_ontology", {}), ensure_ascii=False, indent=2)
     eg = std.get("execution_guide", {})
     guide_text = _json.dumps({
         "purpose": eg.get("purpose", ""),
@@ -1490,30 +1491,36 @@ async def smart_update_rules(request: Request):
 
     # LLM prompt 模板
     rewrite_prompt_template = (
-        "你是资深税务稽查员兼规则编写专家。请根据以下精写编制标准重写这条税务疑点规则。\n\n"
+        "你是资深税务稽查员兼规则编写专家。请根据疑点本体论和精写编制标准重写这条税务疑点规则。\n\n"
+        "=== 疑点本体论（位阶最高·税务疑点只有一个来源——数据矛盾）===\n{ontology}\n\n"
         "=== 精写编制标准（23字段完整版）===\n{standards}\n\n"
         "=== 精写编制说明（怎么写才不会写错）===\n{guide}\n\n"
         "=== 当前规则 ===\n{current_rule}\n\n"
+        "重写第一步：想清楚这条疑点的数据矛盾点——哪两套数据对不上（应该相等的不等了/应该有的没有/不应该这样的却这样了）。"
+        "一句话说不清矛盾点的，在保持规则主题不变的前提下把矛盾点提炼出来。\n\n"
         "请输出完整的平铺JSON（不要用basic/deep嵌套结构）。JSON必须包含以下23个字段名（与当前规则的字段名完全一致，不要翻译成英文）：\n"
         "id, item, category, level, score, check_frequency, policy_ref, tax_impact, applicable_condition,\n"
         "source, auto_type, direction, drill_questions, phenomena, focus, normal_reason,\n"
         "determination, risk_table, evidence, threshold, action, suggestion, remedy\n\n"
         "每字段必须达到标准要求：\n"
-        "- direction: 第一行必须写\"复杂度：复杂\"（或中等/简单），然后按层推理，每层标注\"依赖证据:XX\"\n"
+        "- phenomena: 必须以\"数据矛盾点：X vs Y——一句话说清哪里对不上\"开头，然后列典型表现（至少5种，含数据特征），最后写排除条件（什么情况不适用本规则）\n"
+        "- direction: 第一行必须写\"复杂度：复杂\"（或中等/简单），推理层递进——第1层矛盾识别（哪两套数据对不上）→第2层解释排除（穷举并排除合理商业解释）→第3层起违规定性（矛盾唯一指向的违规行为），复杂疑点自然延伸4-5层，每层标注\"依赖证据:XX\"\n"
         "- drill_questions: 三组递进(事实→证据→逻辑)，Q{{N}}:问题→潜台词:XX。A:XX格式\n"
         "- normal_reason: 至少4种，每种附\"——需提供:具体文件类型\"，附穷举说明\n"
         "- determination: 三路径(线索/强证据/铁证)，末尾必须写\"应对总原则：能完整证明走铁证路径；能部分证明走强证据路径补证据后重判；无法证明入线索池不入正式结论\"\n"
         "- risk_table: 覆盖实际涉及税种，标注核心/次要/间接\n"
         "- evidence: 四层框架+每层必须有必须/应当/可以优先级+金额分级\n"
-        "- threshold: 行业差异阈值+前置条件四维度\n"
+        "- threshold: 量化阈值（触发指标必须是引擎能从数据里扫出来的条件）+行业差异阈值+前置条件四维度\n"
         "- suggestion: 稽查局视角，格式:定性→补税→滞纳金→罚款→移送\n"
         "- remedy: 企业视角，三阶段(自查/应对/制度)\n"
         "【硬性要求-不满足则自检不通过】：\n"
-        "1. direction第一行必须写'复杂度：复杂'(或中等/简单)\n"
-        "2. determination最后必须写'应对总原则：能完整证明走铁证路径；能部分证明走强证据路径补证据后重判；无法证明入线索池不入正式结论'\n"
-        "3. evidence必须包含必须/应当/可以优先级+末尾大额(>10万)/中额(1-10万)/小额(<1万)金额分级\n"
-        "4. normal_reason必须标注'穷举说明：已穷举全部合法情形'\n"
-        "5. 有量化阈值的规则determination必须包含'阈值以下处理'分支\n"
+        "1. phenomena必须以'数据矛盾点：'开头\n"
+        "2. direction第一行必须写'复杂度：复杂'(或中等/简单)\n"
+        "3. determination最后必须写'应对总原则：能完整证明走铁证路径；能部分证明走强证据路径补证据后重判；无法证明入线索池不入正式结论'\n"
+        "4. evidence必须包含必须/应当/可以优先级+末尾大额(>10万)/中额(1-10万)/小额(<1万)金额分级\n"
+        "5. normal_reason必须标注'穷举说明：已穷举全部合法情形'\n"
+        "6. 有量化阈值的规则determination必须包含'阈值以下处理'分支\n"
+        "写完后用三问自检：①它能被系统自动发现吗？②它有明确的证据路径吗？③它有合法的逃生舱吗？\n"
         "只输出JSON，不要任何解释文字。JSON第一行是{{，最后一行是}}。注意：字段名必须用中文原名（如direction/evidence/threshold等），不要翻译。"
     )
 
@@ -1534,6 +1541,7 @@ async def smart_update_rules(request: Request):
         # 全行业适用铁律：通病疑点禁止行业限定（2026-07-18 老邓大改后加锁）
         _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
         _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+        ck('phenomena', str(rule.get('phenomena','') or '').strip().startswith('数据矛盾点'), 'phenomena必须以"数据矛盾点：X vs Y"开头(本体论编写三步第一步)')
         _contra_txt = _itxt + str(rule.get('phenomena','') or '') + str(rule.get('threshold','') or '') + str(rule.get('detail','') or '')
         ck('item', bool(_re.search(r"不一致|不匹配|不相符|不符|不等|偏差|偏离|差额|差异|背离|倒挂|矛盾|无|未|缺|没有|不足|超过|超出|高于|低于|大于|小于|异常|突然|激增|骤|回流|闭环|连号|顶额|对比|比对|勾稽|印证|>|<|≥|≤|≠|vs", _contra_txt)), '疑点必须是数据矛盾——名称与内容均无矛盾特征(铁律0)')
         if _re.search(r"(立案标准|的认定|认定与处理|的区分|实质区分|的边界|的界定|规则适用|政策衔接|政策延续|准则下|税务处理$|税收处理$)", _itxt):
@@ -1607,7 +1615,7 @@ async def smart_update_rules(request: Request):
             # 节省 token，首次全跑
 
             current_json = _json.dumps(rule, ensure_ascii=False, indent=2)
-            prompt = rewrite_prompt_template.replace("{standards}", standards_text).replace("{guide}", guide_text).replace("{current_rule}", current_json)
+            prompt = rewrite_prompt_template.replace("{ontology}", ontology_text).replace("{standards}", standards_text).replace("{guide}", guide_text).replace("{current_rule}", current_json)
 
             async with httpx.AsyncClient(timeout=120) as client:
                 resp = await client.post(
