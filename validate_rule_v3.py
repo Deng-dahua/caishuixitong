@@ -113,6 +113,15 @@ if re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', str(rule.get('threshold',''))):
 # ═══ ⑱ risk_table 风险表格 ═══
 rt = str(rule.get('risk_table',''))
 check('risk_table', '核心' in rt, '缺少"核心"影响标注')
+# 附加税费影响程度：必然联动=次要，禁止标间接（执行指引防错#8）
+if '附加税' in rt:
+    _m_fj = re.search(r'附加税[费]?.{0,40}间接', rt)
+    check('risk_table', not _m_fj, '附加税费标注为间接——附加税费随增值税必然联动，必须标次要')
+# 证据首层命名贴合（执行指引防错#7）：无实物流转维度的疑点禁套货物流
+_no_goods_mon = ('申报流监控', '账表质量与勾稽', '社保与个税交叉', '税务合规与程序')
+_ev_head = str(rule.get('evidence',''))[:40]
+if str(rule.get('monitor_category','')) in _no_goods_mon and '货物流' in _ev_head:
+    check('evidence', False, '证据首层套用货物流——本疑点无实物流转，应按第一层命名指引取贴合名称')
 check('risk_table', '次要' in rt or '核心' in rt, '缺少影响程度标注')
 
 # ═══ ⑲ evidence 证据清单 ═══

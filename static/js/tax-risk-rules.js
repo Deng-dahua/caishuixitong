@@ -312,7 +312,11 @@ function renderTaxRiskRules(container) {
     // 常犯错误
     html += '<p><b>二、常犯错误防错清单</b></p>';
     var errs = eg.common_errors || [];
-    errs.forEach(function(e){ html += '<p style="margin:0 0 10px"><b style="color:#dc2626">❌ </b>' + e.error + ' → <b style="color:#166534">✓</b> ' + e.correct + '</p>'; });
+    errs.forEach(function(e){
+      html += '<p style="margin:0 0 10px"><b style="color:#dc2626">❌ </b>' + e.error + ' → <b style="color:#166534">✓</b> ' + e.correct
+        + (e.engine_check ? '<br>引擎校验：' + e.engine_check : '')
+        + '</p>';
+    });
     // 评分锚点
     html += '<p><b>三、风险评分锚点</b></p>';
     var sa = eg.scoring_anchors, lvs = sa.levels || [];
@@ -332,11 +336,11 @@ function renderTaxRiskRules(container) {
     // 品质标杆
     var qb = eg.quality_benchmarks || {};
     html += '<p><b>六、品质标杆</b></p>';
-    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<p style="margin:0 0 10px"><b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'</p>'; }
+    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<p style="margin:0 0 10px"><b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+(b.normal_reasons||'')+(b.note ? '——'+b.note : '')+'</p>'; }
     // 自检清单
     var sc = eg.submission_checklist || {};
-    html += '<p><b>七、提交前自检（6组17项）</b></p>';
-    var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽'];
+    html += '<p><b>七、提交前自检（6组23项·每项均有引擎校验点）</b></p>';
+    var groups = ['格式合规','穷举完成','角色分明','证据可校验','整体自洽','本体论与库权'];
     for (var gi=0;gi<groups.length;gi++) { var gn=groups[gi], items=sc[gn]; if (items) { html += '<p style="margin:0 0 10px"><b>'+gn+'</b>: '; items.forEach(function(it){ html += '<span style="background:#f1f5f9;padding:1px 6px;border-radius:3px;margin:2px;font-size:10px">'+it+'</span>'; }); html += '</p>'; } }
     document.getElementById('rr-exec-guide-content').innerHTML = html;
   }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style="color:#dc2626">加载失败:'+e+'</span>'; });

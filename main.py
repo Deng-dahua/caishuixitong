@@ -10152,6 +10152,14 @@ def validate_rules_v3(rule_id: str = None):
             _check('determination', '阈值以下' in det, '有量化阈值但缺少阈值以下处理分支')
         rt = str(rule.get('risk_table',''))
         _check('risk_table', '核心' in rt, '缺核心影响标注')
+        # 附加税费影响程度+证据首层命名贴合（与validate_rule_v3.py同步）
+        if '附加税' in rt:
+            _m_fj = _re.search(r'附加税[费]?.{0,40}间接', rt)
+            _check('risk_table', not _m_fj, '附加税费标注为间接——必然联动应标次要')
+        _no_goods_mon = ('申报流监控', '账表质量与勾稽', '社保与个税交叉', '税务合规与程序')
+        _ev_head = str(rule.get('evidence',''))[:40]
+        if str(rule.get('monitor_category','')) in _no_goods_mon and '货物流' in _ev_head:
+            _check('evidence', False, '证据首层套用货物流——无实物流转疑点应取贴合命名')
         ev = str(rule.get('evidence',''))
         _check('evidence', '必须' in ev, '缺必须获取优先级')
         _check('evidence', '应当' in ev, '缺应当获取优先级')
