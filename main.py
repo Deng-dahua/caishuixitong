@@ -1614,7 +1614,89 @@ async def smart_update_rules(request: Request):
 
     # —— 自动写入规则库 ——
     total_change = compare["new_count"] + compare["modify_count"] + compare["delete_count"]
+    
+    # ═══ v3 精写标准自检：新增和修改的规则在写入前过 36 项质检 ═══
+    from engine.memory import TAX_BURDEN_RULES as _v3_std
+    import re as _re
+    v3_errors_new = {}   # {rule_key: [error strings]}
+    v3_errors_mod = {}
+    v3_passed_new, v3_failed_new = 0, 0
+    v3_passed_mod, v3_failed_mod = 0, 0
+    
+    def _v3_check(field, condition, message):
+        if not condition:
+            _v3_errs.append(f"{field}: {message}")
+    
+    def _v3_validate(rule):
+        global _v3_errs
+        _v3_errs = []
+        for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
+            _v3_check(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
+        d = str(rule.get('direction',''))
+        _v3_check('direction', _re.search(r'推理第', d), '缺少推理层标注')
+        _v3_check('direction', '依赖证据' in d, '每层缺少依赖证据标注')
+        _v3_check('direction', '复杂度' in d, '缺少复杂度标记')
+        dq = str(rule.get('drill_questions',''))
+        fp, ep, lp = dq.find('事实层'), dq.find('证据层'), dq.find('逻辑层')
+        if fp>=0 and ep>=0 and lp>=0:
+            _v3_check('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
+        _v3_check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足3条')
+        _v3_check('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少潜台词格式')
+        _v3_check('drill_questions', 'A：' in dq or 'A:' in dq, '缺少应对话术格式')
+        nr = str(rule.get('normal_reason',''))
+        _v3_check('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
+        _v3_check('normal_reason', '最常见' in nr or '穷举' in nr, '缺少最常见标注或穷举说明')
+        det = str(rule.get('determination',''))
+        _v3_check('determination', '线索' in det, '缺路径一')
+        _v3_check('determination', '强证据' in det, '缺路径二')
+        _v3_check('determination', '铁证' in det, '缺路径三')
+        _v3_check('determination', '应对总原则' in det or '结尾附' in det, '缺应对总原则')
+        th = str(rule.get('threshold',''))
+        if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', th):
+            _v3_check('determination', '阈值以下' in det, '有量化阈值但缺阈值以下处理分支')
+        rt = str(rule.get('risk_table',''))
+        _v3_check('risk_table', '核心' in rt, '缺核心影响标注')
+        ev = str(rule.get('evidence',''))
+        _v3_check('evidence', '必须' in ev, '缺必须获取优先级')
+        _v3_check('evidence', '应当' in ev, '缺应当获取优先级')
+        _v3_check('evidence', '可以' in ev, '缺可以获取优先级')
+        _v3_check('evidence', '金额分级' in ev or '大额' in ev or '>10万' in ev, '缺金额分级')
+        th2 = str(rule.get('threshold',''))
+        _v3_check('threshold', '行业' in th2, '缺行业差异阈值')
+        _v3_check('threshold', '前置条件' in th2, '缺前置条件四维度')
+        _v3_check('suggestion', '定性' in str(rule.get('suggestion','')), '缺定性')
+        _v3_check('suggestion', '补税' in str(rule.get('suggestion','')), '缺补税')
+        _v3_check('remedy', '自查' in str(rule.get('remedy','')) or '应对' in str(rule.get('remedy','')) or '制度' in str(rule.get('remedy','')), '缺三阶段')
+        return _v3_errs
+
     if total_change > 0:
+        # 验证新增规则
+        for nr in new_rules_items:
+            raw = nr.get("raw", nr)
+            raw.pop("raw", None)
+            errs = _v3_validate(raw)
+            key = raw.get("item", "新规则")[:30]
+            if errs:
+                v3_failed_new += 1
+                v3_errors_new[key] = errs
+            else:
+                v3_passed_new += 1
+        
+        # 验证修改涉及的规则
+        for mod in modify_items:
+            mid = mod.get("id")
+            target = next((r for r in rules if str(r.get("id","")) == str(mid)), None)
+            if target:
+                import copy; test_rule = copy.deepcopy(target)
+                if mod.get("new_item"): test_rule["item"] = mod["new_item"]
+                errs = _v3_validate(test_rule)
+                key = f"#{mid} {test_rule.get('item','')[:20]}"
+                if errs:
+                    v3_failed_mod += 1
+                    v3_errors_mod[key] = errs
+                else:
+                    v3_passed_mod += 1
+
         # 法律时效性核查程序——对LLM生成/修改的规则强制校验+自动处理
         try:
             from engine.law_validity_checker import auto_process as _law_auto
@@ -1657,6 +1739,12 @@ async def smart_update_rules(request: Request):
             _json.dump(rules, wf, ensure_ascii=False, indent=2)
         compare["applied"] = applied
         compare["after_total"] = len(rules)
+        # v3 精写标准自检结果
+        compare["v3_check"] = {
+            "new_passed": v3_passed_new, "new_failed": v3_failed_new,
+            "mod_passed": v3_passed_mod, "mod_failed": v3_failed_mod,
+            "new_errors": v3_errors_new, "mod_errors": v3_errors_mod,
+        }
     else:
         compare["applied"] = 0
 

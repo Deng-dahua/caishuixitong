@@ -746,11 +746,20 @@ window._smartUpdate = function() {
       if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
       var c = d.compare || {};
       var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
+      var v3 = c.v3_check || {};
+      var msg = '';
       if (total === 0) {
-        alert('✅ 智能更新完成：当前规则库已覆盖完善，无更新建议。');
+        msg = '智能更新完成：当前规则库已覆盖完善，无更新建议。';
       } else {
-        alert('✅ 智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条\n规则库已自动更新。');
+        msg = '智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条';
+        if (v3.new_passed !== undefined) {
+          msg += '\n\nv3精写标准自检：\n新增: '+(v3.new_passed||0)+'条达标 / '+(v3.new_failed||0)+'条需人工精写\n修改: '+(v3.mod_passed||0)+'条达标 / '+(v3.mod_failed||0)+'条需复核';
+          if (v3.new_failed > 0 || v3.mod_failed > 0) {
+            msg += '\n\n不达标的规则已写入但标记了来源，请到疑点库搜索"需人工精写"查看。';
+          }
+        }
       }
+      alert(msg);
       // 刷新规则列表
       if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
     })
