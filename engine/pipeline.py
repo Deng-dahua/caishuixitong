@@ -3220,7 +3220,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _step_timing["step5_start"] = time.time()
     _report(98, "步骤⑤方法论噪声过滤 — 开始...", step=5)
 
-    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1794条规则真正被引擎执行 ═══
+    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1756条规则真正被引擎执行 ═══
     # 此前疑点库只用于给已有发现贴标签（被动消费）；现在引擎主动拿每条规则的
     # threshold结构化条件去查数据，触发即生成发现。放在方法论过滤器之前，
     # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
