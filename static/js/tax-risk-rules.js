@@ -69,16 +69,6 @@ function renderTaxRiskRules(container) {
     + '</style>';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
-  // ═══ 智能更新面板 ═══
-  h += '<div id="rr-smart-panel" style="margin:0 0 10px;padding:0">';
-  h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px">🤖 智能更新面板</div>';
-  h += '<div id="rr-smart-summary" style="font-size:10px;color:#5b6675;margin:0 0 10px">点击搜索栏右侧「🤖 智能更新」按钮，LLM 将分析规则库盲区并给出更新建议。</div>';
-  h += '<div id="rr-smart-stats" style="display:flex;gap:10px;margin:0 0 10px;flex-wrap:wrap"></div>';
-  h += '<div id="rr-smart-detail" style="font-size:10px;color:#3a4048"></div>';
-  h += '<div id="rr-smart-footer" style="margin:4px 0 0;font-size:10px;color:#94a3b8"></div>';
-  h += '</div>';
-
-  // 搜索栏 + 智能更新按钮
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
     + '<select id="rr-level-filter" onchange="window._rrFilter()">'
@@ -744,16 +734,8 @@ function _fillEl(id, val) {
 window._smartUpdate = function() {
   var st = document.getElementById('rr-update-status');
   var btn = document.getElementById('rr-update-btn');
-  var panel = document.getElementById('rr-smart-panel');
-  var sm = document.getElementById('rr-smart-summary');
-  var ss = document.getElementById('rr-smart-stats');
-  var sd = document.getElementById('rr-smart-detail');
-  var sf = document.getElementById('rr-smart-footer');
   if (st) st.textContent = '分析中...';
   if (btn) { btn.disabled = true; btn.textContent = '分析中...'; }
-  if (sm) sm.textContent = 'LLM 正在分析规则库...';
-  if (panel) panel.style.display = 'block';
-
   fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
     .then(function(r){return r.json();})
     .then(function(d){
@@ -761,77 +743,21 @@ window._smartUpdate = function() {
       var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + now;
       if (st) st.textContent = d.ok ? '完成' : '失败';
       if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
-
-      if (!d.ok) {
-        if (sm) sm.innerHTML = '<span style="color:#dc2626">更新失败: ' + escHtml(d.message||'') + '</span>';
-        if (ss) ss.innerHTML = '';
-        if (sd) sd.innerHTML = '';
-        if (sf) sf.textContent = '';
-        return;
-      }
-
+      if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
       var c = d.compare || {};
       var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
-
-      // 摘要
-      if (sm) sm.innerHTML = '<span style="color:#059669;font-weight:600">✅</span> ' + escHtml(c.summary||'分析完成') + ' · 更新前 ' + (c.before_total||0) + '条 → 更新后 ' + (c.after_total||0) + '条';
-
-      // 统计卡片
-      if (ss) {
-        var sr = '';
-        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">新增规则</div></div>';
-        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">修改建议</div></div>';
-        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">删除建议</div></div>';
-        ss.innerHTML = sr;
-      }
-
-      // 详细内容
-      var h = '';
       if (total === 0) {
-        h += '<p>依据 19 个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。</p>';
+        alert('✅ 智能更新完成：当前规则库已覆盖完善，无更新建议。');
+      } else {
+        alert('✅ 智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条\n规则库已自动更新。');
       }
-      if (c.new_rules && c.new_rules.length) {
-        h += '<p><b>▼ 新增规则（' + c.new_rules.length + '条）</b></p>';
-        c.new_rules.forEach(function(r,i){
-          h += '<p style="margin:0 0 10px">';
-          h += '<b>'+(i+1)+'. '+escHtml(r.item||'无名称')+'</b>';
-          h += ' <span style="color:#059669">['+escHtml(r.category||'')+']</span>';
-          h += ' <span style="color:#d97706">'+escHtml(r.level||'')+'</span>';
-          if (r.detail) h += ' ' + escHtml(r.detail).substring(0,300);
-          if (r.direction) h += ' — ' + escHtml(r.direction).substring(0,200);
-          h += '</p>';
-        });
-      }
-      if (c.modify && c.modify.length) {
-        h += '<p><b>▼ 修改建议（' + c.modify.length + '条）</b></p>';
-        c.modify.forEach(function(r){
-          h += '<p style="margin:0 0 10px">';
-          h += '<b>#'+escHtml(r.id||'?')+'</b> ';
-          h += '<span style="color:#dc2626">'+escHtml(r.old_item||'')+'</span> → ';
-          h += '<span style="color:#059669">'+escHtml(r.new_item||'')+'</span>';
-          if (r.reason) h += ' — '+escHtml(r.reason);
-          h += '</p>';
-        });
-      }
-      if (c.delete && c.delete.length) {
-        h += '<p><b>▼ 删除建议（' + c.delete.length + '条）</b></p>';
-        c.delete.forEach(function(r){
-          h += '<p style="margin:0 0 10px">';
-          h += '<b>#'+escHtml(r.id||'')+'</b> '+escHtml(r.item||'');
-          if (r.reason) h += ' — '+escHtml(r.reason).substring(0,100);
-          h += '</p>';
-        });
-      }
-      if (sd) sd.innerHTML = h;
-
-      // 底部
-      if (sf) sf.textContent = '以上建议已自动写入规则库，如需撤销请备份后手动恢复。点击' + (btn ? '「智能更新」' : '按钮') + '可重新分析。';
-      if (panel) { panel.style.display = 'block'; panel.scrollIntoView({behavior:'smooth',block:'center'}); }
+      // 刷新规则列表
+      if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
     })
     .catch(function(e){
       if (st) st.textContent = '异常';
       if (btn) { btn.disabled = false; btn.textContent = '🤖 重试'; }
-      if (sm) sm.innerHTML = '<span style="color:#dc2626">请求异常: '+e.message+'</span>';
+      alert('请求异常: ' + e.message);
     });
 };
 
