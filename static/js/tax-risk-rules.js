@@ -69,6 +69,16 @@ function renderTaxRiskRules(container) {
     + '</style>';
   h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
 
+  // ═══ 智能更新面板 ═══
+  h += '<div id="rr-smart-panel" style="margin:0 0 10px;padding:0;display:none">';
+  h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px">🤖 智能更新面板</div>';
+  h += '<div id="rr-smart-summary" style="font-size:10px;color:#5b6675;margin:0 0 10px"></div>';
+  h += '<div id="rr-smart-stats" style="display:flex;gap:10px;margin:0 0 10px;flex-wrap:wrap"></div>';
+  h += '<div id="rr-smart-detail" style="font-size:10px;color:#3a4048"></div>';
+  h += '<div id="rr-smart-footer" style="margin:4px 0 0;font-size:10px;color:#94a3b8"></div>';
+  h += '</div>';
+
+  // 搜索栏 + 智能更新按钮
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
     + '<select id="rr-level-filter" onchange="window._rrFilter()">'
@@ -137,7 +147,6 @@ function renderTaxRiskRules(container) {
     + '<div id="rr-exec-guide-content" style="margin-top:10px;color:#64748b">加载中...</div>'
     + '</details>';
   h += '<div id="rr-list"></div>';
-  h += '<div id="rr-compare" style="display:none;margin:0 0 10px;padding:10px;background:#fef8f8;border:1px solid #f4c2c7;border-radius:8px"></div>';
 
   container.innerHTML = h;
 
@@ -733,12 +742,18 @@ function _fillEl(id, val) {
 }
 
 window._smartUpdate = function() {
-  
-  
   var st = document.getElementById('rr-update-status');
   var btn = document.getElementById('rr-update-btn');
+  var panel = document.getElementById('rr-smart-panel');
+  var sm = document.getElementById('rr-smart-summary');
+  var ss = document.getElementById('rr-smart-stats');
+  var sd = document.getElementById('rr-smart-detail');
+  var sf = document.getElementById('rr-smart-footer');
   if (st) st.textContent = '分析中...';
   if (btn) { btn.disabled = true; btn.textContent = '分析中...'; }
+  if (sm) sm.textContent = 'LLM 正在分析规则库...';
+  if (panel) panel.style.display = 'block';
+
   fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
     .then(function(r){return r.json();})
     .then(function(d){
@@ -746,70 +761,77 @@ window._smartUpdate = function() {
       var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + now;
       if (st) st.textContent = d.ok ? '完成' : '失败';
       if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
-      if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
-      var c = d.compare || {};
-      var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
-      // 弹窗提示结果
-      if (total === 0) {
-        alert('✅ 智能更新完成：当前规则库已覆盖完善，无更新建议。');
-      } else {
-        alert('✅ 智能更新完成：新增 '+(c.new_count||0)+' 条 / 修改 '+(c.modify_count||0)+' 条 / 删除 '+(c.delete_count||0)+' 条\n详情见下方对比报告 →');
-      }
-      var cp = document.getElementById('rr-compare');
-      if (!cp) return;
-      if (total === 0) {
-        cp.innerHTML = '<div style="font-size:10px;font-weight:700;color:#059669;margin:0 0 8px">✅ 本次分析无更新建议</div><div style="font-size:10px;color:#5b6675">依据9个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。规则库状态：' + (c.before_total||0) + '条。</div>';
-        cp.style.display = 'block';
+
+      if (!d.ok) {
+        if (sm) sm.innerHTML = '<span style="color:#dc2626">更新失败: ' + escHtml(d.message||'') + '</span>';
+        if (ss) ss.innerHTML = '';
+        if (sd) sd.innerHTML = '';
+        if (sf) sf.textContent = '';
         return;
       }
-      var h = '<div style="font-size:10px;font-weight:700;color:#9a1f2b;margin:0 0 12px">📊 智能更新对比报告</div>';
-      h += '<div style="font-size:10px;color:#5b6675;margin:0 0 12px">' + escHtml(c.summary||'') + '</div>';
-      h += '<div style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap"><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">建议新增</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">建议修改</div></div><div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">建议删除</div></div></div>';
-      h += '<div style="font-size:10px;color:#64748b">更新前: ' + (c.before_total||0) + '条 → 更新后: ' + (c.after_total||0) + '条</div>';
+
+      var c = d.compare || {};
+      var total = (c.new_count||0) + (c.modify_count||0) + (c.delete_count||0);
+
+      // 摘要
+      if (sm) sm.innerHTML = '<span style="color:#059669;font-weight:600">✅</span> ' + escHtml(c.summary||'分析完成') + ' · 更新前 ' + (c.before_total||0) + '条 → 更新后 ' + (c.after_total||0) + '条';
+
+      // 统计卡片
+      if (ss) {
+        var sr = '';
+        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#f0fdf4;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#059669">' + (c.new_count||0) + '</div><div style="font-size:10px;color:#64748b">新增规则</div></div>';
+        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fff7ed;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#f59e0b">' + (c.modify_count||0) + '</div><div style="font-size:10px;color:#64748b">修改建议</div></div>';
+        sr += '<div style="flex:1;min-width:80px;text-align:center;padding:10px;background:#fef2f2;border-radius:6px"><div style="font-size:10px;font-weight:700;color:#dc2626">' + (c.delete_count||0) + '</div><div style="font-size:10px;color:#64748b">删除建议</div></div>';
+        ss.innerHTML = sr;
+      }
+
+      // 详细内容
+      var h = '';
+      if (total === 0) {
+        h += '<p>依据 19 个维度全面扫描，当前规则库已覆盖完善，无需新增、修改或删除。</p>';
+      }
       if (c.new_rules && c.new_rules.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#059669;margin:8px 0">新增规则</div>';
+        h += '<p><b>▼ 新增规则（' + c.new_rules.length + '条）</b></p>';
         c.new_rules.forEach(function(r,i){
-          h += '<div style="margin:6px 0;padding:10px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #059669;font-size:10px;line-height:20px">';
-          h += '<b style="color:#0f172a">#'+(i+1)+' '+escHtml(r.item||'无名称')+'</b>';
-          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#e0f2fe;color:#0369a1">'+escHtml(r.category||'')+'</span>';
-          h += ' <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:#fef3c7;color:#92400e">'+escHtml(r.level||'')+'</span>';
-          if (r.detail) h += '<div style="color:#475569;margin:4px 0">'+escHtml(r.detail).substring(0,200)+'</div>';
-          if (r.direction) h += '<div style="color:#64748b;font-size:10px;margin:2px 0">推理链：'+escHtml(r.direction).substring(0,150)+'</div>';
-          if (r.policy_ref) h += '<div style="color:#94a3b8;font-size:10px">📜 '+escHtml(r.policy_ref)+'</div>';
-          h += '</div>';
+          h += '<p style="margin:0 0 10px">';
+          h += '<b>'+(i+1)+'. '+escHtml(r.item||'无名称')+'</b>';
+          h += ' <span style="color:#059669">['+escHtml(r.category||'')+']</span>';
+          h += ' <span style="color:#d97706">'+escHtml(r.level||'')+'</span>';
+          if (r.detail) h += ' ' + escHtml(r.detail).substring(0,300);
+          if (r.direction) h += ' — ' + escHtml(r.direction).substring(0,200);
+          h += '</p>';
         });
-        h += '</div>';
       }
       if (c.modify && c.modify.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#f59e0b;margin:8px 0">修改建议</div>';
-        h += '<table style="width:100%;border-collapse:collapse;font-size:10px"><tr style="background:#fff7ed"><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">ID</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原名称</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600;color:#059669">建议改为</td><td style="padding:6px 8px;border:1px solid #fed7aa;font-weight:600">原因</td></tr>';
+        h += '<p><b>▼ 修改建议（' + c.modify.length + '条）</b></p>';
         c.modify.forEach(function(r){
-          h += '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">'+(r.id||'?')+'</td>';
-          h += '<td style="padding:6px 8px;border:1px solid #e2e8f0;color:#dc2626">'+escHtml(r.old_item||'')+'</td>';
-          h += '<td style="padding:6px 8px;border:1px solid #e2e8f0;color:#059669;font-weight:600">'+escHtml(r.new_item||r.reason||'')+'</td>';
-          h += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10px">'+(r.reason !== r.new_item ? escHtml(r.reason||'') : '')+'</td></tr>';
+          h += '<p style="margin:0 0 10px">';
+          h += '<b>#'+escHtml(r.id||'?')+'</b> ';
+          h += '<span style="color:#dc2626">'+escHtml(r.old_item||'')+'</span> → ';
+          h += '<span style="color:#059669">'+escHtml(r.new_item||'')+'</span>';
+          if (r.reason) h += ' — '+escHtml(r.reason);
+          h += '</p>';
         });
-        h += '</table></div>';
       }
       if (c.delete && c.delete.length) {
-        h += '<div style="margin:12px 0"><div style="font-size:10px;font-weight:600;color:#dc2626;margin:8px 0">删除建议</div>';
+        h += '<p><b>▼ 删除建议（' + c.delete.length + '条）</b></p>';
         c.delete.forEach(function(r){
-          h += '<div style="margin:4px 0;padding:8px 12px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626;font-size:10px">';
-          h += '<b>ID['+escHtml(r.id||'')+']</b> '+escHtml(r.item||'')+'';
-          if (r.reason) h += ' <span style="color:#9ca3af;font-size:10px">— '+escHtml(r.reason).substring(0,100)+'</span>';
-          h += '</div>';
+          h += '<p style="margin:0 0 10px">';
+          h += '<b>#'+escHtml(r.id||'')+'</b> '+escHtml(r.item||'');
+          if (r.reason) h += ' — '+escHtml(r.reason).substring(0,100);
+          h += '</p>';
         });
-        h += '</div>';
       }
-      h += '<div style="margin:12px 0 0;font-size:10px;color:#94a3b8">以上为LLM建议，请人工审核确认后再执行更新操作。</div>';
-      cp.innerHTML = h;
-      cp.style.display = 'block';
-      cp.scrollIntoView({behavior:'smooth',block:'center'});
+      if (sd) sd.innerHTML = h;
+
+      // 底部
+      if (sf) sf.textContent = '以上建议已自动写入规则库，如需撤销请备份后手动恢复。点击' + (btn ? '「智能更新」' : '按钮') + '可重新分析。';
+      if (panel) { panel.style.display = 'block'; panel.scrollIntoView({behavior:'smooth',block:'center'}); }
     })
     .catch(function(e){
       if (st) st.textContent = '异常';
       if (btn) { btn.disabled = false; btn.textContent = '🤖 重试'; }
-      alert('请求异常: ' + e.message);
+      if (sm) sm.innerHTML = '<span style="color:#dc2626">请求异常: '+e.message+'</span>';
     });
 };
 
