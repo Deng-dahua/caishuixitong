@@ -1534,6 +1534,8 @@ async def smart_update_rules(request: Request):
         # 全行业适用铁律：通病疑点禁止行业限定（2026-07-18 老邓大改后加锁）
         _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
         _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+        _contra_txt = _itxt + str(rule.get('phenomena','') or '') + str(rule.get('threshold','') or '') + str(rule.get('detail','') or '')
+        ck('item', bool(_re.search(r"不一致|不匹配|不相符|不符|不等|偏差|偏离|差额|差异|背离|倒挂|矛盾|无|未|缺|没有|不足|超过|超出|高于|低于|大于|小于|异常|突然|激增|骤|回流|闭环|连号|顶额|对比|比对|勾稽|印证|>|<|≥|≤|≠|vs", _contra_txt)), '疑点必须是数据矛盾——名称与内容均无矛盾特征(铁律0)')
         if _re.search(r"(立案标准|的认定|认定与处理|的区分|实质区分|的边界|的界定|规则适用|政策衔接|政策延续|准则下|税务处理$|税收处理$)", _itxt):
             ck('item', False, '知识型条目禁止入疑点库，应存稽查知识库audit_knowledge.json')
         if any(d in _itxt for d in _disease_kw) and any(i in _itxt for i in _ind_kw2):
@@ -10323,6 +10325,8 @@ def validate_rules_v3(rule_id: str = None):
         # 全行业适用铁律：通病疑点禁止行业限定（与smart-update的v3_validate同步）
         _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
         _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
+        _contra_txt = _itxt + str(rule.get('phenomena','') or '') + str(rule.get('threshold','') or '') + str(rule.get('detail','') or '')
+        _check('item', bool(_re.search(r"不一致|不匹配|不相符|不符|不等|偏差|偏离|差额|差异|背离|倒挂|矛盾|无|未|缺|没有|不足|超过|超出|高于|低于|大于|小于|异常|突然|激增|骤|回流|闭环|连号|顶额|对比|比对|勾稽|印证|>|<|≥|≤|≠|vs", _contra_txt)), '疑点必须是数据矛盾——名称与内容均无矛盾特征(铁律0)')
         if _re.search(r"(立案标准|的认定|认定与处理|的区分|实质区分|的边界|的界定|规则适用|政策衔接|政策延续|准则下|税务处理$|税收处理$)", _itxt):
             _check('item', False, '知识型条目禁止入疑点库，应存稽查知识库audit_knowledge.json')
         if any(d in _itxt for d in _disease_kw) and any(i in _itxt for i in _ind_kw2):
