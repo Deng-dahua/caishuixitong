@@ -151,27 +151,27 @@ function renderTaxRiskRules(container) {
     // 常犯错误
     html += '<p><b>二、常犯错误防错清单</b></p>';
     var errs = eg.common_errors || [];
-    errs.forEach(function(e){ html += '<p style=margin:0 0 10px><b style=color:#dc2626>❌ </b>' + e.error + ' → <b style=color:#166534>✓</b> ' + e.correct + '</p>'; });
+    errs.forEach(function(e){ html += '<p style="margin:0 0 10px"><b style="color:#dc2626">❌ </b>' + e.error + ' → <b style="color:#166534">✓</b> ' + e.correct + '</p>'; });
     // 评分锚点
     html += '<p><b>三、风险评分锚点</b></p>';
     var sa = eg.scoring_anchors, lvs = sa.levels || [];
-    lvs.forEach(function(l){ html += '<p style=margin:0 0 10px><b>'+l.score+'分</b>: '+l.criterion+' ('+l.typical+')</p>'; });
+    lvs.forEach(function(l){ html += '<p style="margin:0 0 10px"><b>'+l.score+'分</b>: '+l.criterion+' ('+l.typical+')</p>'; });
     // 影响程度
     html += '<p><b>四、影响程度 & 证据优先级</b></p>';
     var il = eg.impact_levels || {};
-    for (var k in il) { if (k=='description') continue; html += '<p style=margin:0 0 10px><b>'+k+'</b>: '+il[k]+'</p>'; }
+    for (var k in il) { if (k=='description') continue; html += '<p style="margin:0 0 10px"><b>'+k+'</b>: '+il[k]+'</p>'; }
     var ep = eg.evidence_priority || {};
-    html += '<p style=margin:0 0 10px><b>证据优先级——必须获取</b>: '+ep['必须获取']+'</p>';
-    html += '<p style=margin:0 0 10px><b>应当获取</b>: '+ep['应当获取']+'</p>';
-    html += '<p style=margin:0 0 10px><b>可以获取</b>: '+ep['可以获取']+'</p>';
+    html += '<p style="margin:0 0 10px"><b>证据优先级——必须获取</b>: '+ep['必须获取']+'</p>';
+    html += '<p style="margin:0 0 10px"><b>应当获取</b>: '+ep['应当获取']+'</p>';
+    html += '<p style="margin:0 0 10px"><b>可以获取</b>: '+ep['可以获取']+'</p>';
     // 证据命名
     var en = eg.evidence_layer_naming, emap = en.映射 || {};
     html += '<p><b>五、证据第一层命名指引</b></p>';
-    for (var k in emap) { html += '<p style=margin:0 0 10px><b>'+k+'</b> → '+emap[k]+'</p>'; }
+    for (var k in emap) { html += '<p style="margin:0 0 10px"><b>'+k+'</b> → '+emap[k]+'</p>'; }
     // 品质标杆
     var qb = eg.quality_benchmarks || {};
     html += '<p><b>六、品质标杆</b></p>';
-    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<p style=margin:0 0 10px><b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'</p>'; }
+    for (var k in qb) { if (k=='description') continue; var b=qb[k]; html += '<p style="margin:0 0 10px"><b>'+b.id+' '+b.item+'</b>: '+b.layers+'层 '+b.questions+'条追问 '+b.normal_reasons+'</p>'; }
     // 自检清单
     var sc = eg.submission_checklist || {};
     html += '<p><b>七、提交前自检（6组17项）</b></p>';
