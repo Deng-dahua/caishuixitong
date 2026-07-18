@@ -1453,7 +1453,7 @@ def get_tax_risk_rules_data():
 
 @app.post("/api/tax-risk-rules/smart-update")
 async def smart_update_rules(request: Request):
-    """智能更新规则库——连接LLM，按v3精写标准逐条重写1825条规则的23字段。
+    """智能更新规则库——连接LLM，按v3精写标准逐条重写1824条规则的23字段。
 
     流程：
     1. 读规则库 + v3精写编制标准 + 精写编制说明

@@ -750,7 +750,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   代码: static/js/tax-engine-dashboard.js
 
   【#1 运行状态】引擎实时状态/内存使用/缓存命中率/最近分析记录
-  【#2 规则库】1825条税务合规指令按分类浏览/搜索/详情查看
+  【#2 规则库】1824条税务合规指令按分类浏览/搜索/详情查看
   【#3 质量保障】4条质量标准逐条检查/合规报告生成
   【#4 方法论对账】1266条方法论与audit_chains.json的实时核对
   【#5 跨域协商】29条协商规则四层场景的可视化矩阵
@@ -860,7 +860,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/audit_chains.json（线索链/证据链/方法论）
   static/user_corrections.json（纠正规则存储）
   static/industry_data.json（25行业产品链词典+12条收款分类规则）
-  static/tax_risk_rules_local_export.json（1825条税务合规指令）
+  static/tax_risk_rules_local_export.json（1824条税务合规指令）
   static/audit_memory.json（500条分析记忆）
   audit_consistency.py（数据一致性自检+联动修改）
 
@@ -1756,7 +1756,7 @@ TAX_BURDEN_RULES = {
 
     # ═══════════════════════════════════════════════════════
     # 监控点分类体系（13大类·老邓 2026-07-18 确立·金税四期"以数治税"监控逻辑）
-    # 权威源：1825条规则全部带 monitor_category 字段，取值必须来自以下13类。
+    # 权威源：1824条规则全部带 monitor_category 字段，取值必须来自以下13类。
     # 内在逻辑：企业全量经营数据（票/账/钱/税/产/物/人）解构为数据点→两两比对、
     # 三源交叉、四流合一，任一数据点与其他维度矛盾即触发疑点规则。
     "monitor_point_taxonomy": {
