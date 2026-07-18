@@ -244,9 +244,6 @@ function renderTaxRiskRules(container) {
     + '</select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
     + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="level">风险等级排序</option><option value="category">分类排序</option><option value="updated">更新时间排序</option></select>'
-    + '<button id="rr-update-btn" onclick="window._smartUpdate()" style="padding:6px 14px;background:#9a1f2b;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap">🤖 智能更新</button>'
-    + '<span id="rr-update-time" style="font-size:10px;color:#94a3b8;white-space:nowrap"></span>'
-    + '<span id="rr-update-status" style="font-size:10px;color:#94a3b8"></span>'
     + '</div>';
 
     h += '<div class="rr-hero" id="rr-hero"></div>';
@@ -350,15 +347,6 @@ function renderTaxRiskRules(container) {
   }).catch(function(e){ document.getElementById('rr-exec-guide-content').innerHTML = '<span style="color:#dc2626">加载失败:'+e+'</span>'; });
 
   var dataUrl = '/static/tax_risk_rules_local_export.json';
-  // 显示规则文件最后修改时间
-  fetch(dataUrl, {method:'HEAD'}).then(function(r){
-    var lm = r.headers.get('Last-Modified');
-    if (lm) {
-      var d = new Date(lm);
-      var ds = (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-      var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + ds;
-    }
-  }).catch(function(){});
 
   // 加载数据
   fetch(dataUrl + '?' + Date.now())
@@ -719,44 +707,4 @@ function _fillEl(id, val) {
   if (el) el.textContent = val;
 }
 
-window._smartUpdate = function() {
-  var st = document.getElementById('rr-update-status');
-  var btn = document.getElementById('rr-update-btn');
-  if (st) st.textContent = '分析中...';
-  if (btn) { btn.disabled = true; btn.textContent = '分析中...'; }
-  fetch('/api/tax-risk-rules/smart-update', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      var now = new Date().toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-      var tu = document.getElementById('rr-update-time'); if (tu) tu.textContent = '最后更新 ' + now;
-      if (st) st.textContent = d.ok ? '完成' : '失败';
-      if (btn) { btn.disabled = false; btn.textContent = d.ok ? '🤖 再次更新' : '🤖 重试'; }
-      if (!d.ok) { alert('更新失败: ' + (d.message||'')); return; }
-      var r = d.results || {};
-      var msg = '智能更新报告\n\n';
-      msg += '精写总数: ' + (r.rewritten||0) + '/' + (r.total||0) + ' 条\n';
-      msg += '自检通过: ' + (r.passed||0) + ' 条\n';
-      msg += '需人工复核: ' + (r.failed||0) + ' 条\n';
-      if (r.failed > 0) {
-        msg += '\n不达标规则详情:\n';
-        (r.details||[]).forEach(function(x){
-          if (x.status !== '自检通过') {
-            msg += '  #'+x.id+' '+x.item+' - '+x.status;
-            if (x.errors) msg += ' ('+x.errors.join('; ')+')';
-            msg += '\n';
-          }
-        });
-      }
-      if (d.message) msg += '\n' + d.message;
-      alert(msg);
-      if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
-      // 刷新规则列表
-      if (typeof loadTaxRiskRules === 'function') loadTaxRiskRules();
-    })
-    .catch(function(e){
-      if (st) st.textContent = '异常';
-      if (btn) { btn.disabled = false; btn.textContent = '🤖 重试'; }
-      alert('请求异常: ' + e.message);
-    });
-};
 
