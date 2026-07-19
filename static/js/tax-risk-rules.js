@@ -217,7 +217,7 @@ function renderTaxRiskRules(container) {
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
-  h += '<div class="rr-pre">此库非凭空而来——每一条指令，都是<em>五十年稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>把经验变成可复核的判定条件</em>——什么数据特征构成疑点、这个疑点有多严重、接下来该查什么、法律依据在哪。引擎对照这些指令扫数据、出信号、给溯源。以下为引擎已加载的全部指令。</div>';
+  h += '<div class="rr-pre">本规则库来源于多年稽查实务经验——每一条指令，均为<em>稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>将稽查经验转化为可复核的判定条件</em>——什么数据特征构成疑点、该疑点严重程度如何、下一步应查什么、法律依据在哪。系统依据这些规则对数据进行扫描、生成信号、提供溯源。以下为当前已加载的全部规则指令。</div>';
 
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
