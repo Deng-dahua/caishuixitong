@@ -347,12 +347,14 @@ class ReportAuditor:
         adjustments = []
         
         for issue in critical:
+            if not isinstance(issue, dict) or not issue.get("issue"):
+                continue
             adj = {
-                "trigger": issue["issue"],
-                "dimension": issue["dimension"],
+                "trigger": issue.get("issue", ""),
+                "dimension": issue.get("dimension", ""),
                 "action": self._map_issue_to_action(issue),
                 "target": issue.get("finding_type", ""),
-                "auto_apply": issue["severity"] == "严重",
+                "auto_apply": issue.get("severity") == "严重",
             }
             adjustments.append(adj)
         
