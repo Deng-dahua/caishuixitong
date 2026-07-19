@@ -5834,7 +5834,6 @@ function renderMethodologyContent(){
   h+='<section id="au-preface"><h1>税务稽查方法论</h1>';
   h+='<p>本手册依据《税收征收管理法》及现行税收法规编制，系统梳理稽查实务中从查前准备到定案出报告的标准化流程，转化为<em>可操作、可量化、可回溯</em>的标准化规程。每一条规程背后，均有真实案例和稽查实战经验支撑。</p>';
   h+='<p>稽查执行七层：<em>查前准备→数据采集→分析布网→疑点过滤→定性定案→报告出鞘→经验进化</em>。层序不可跳跃——前一层未完成，不启动下一层。每一层将"稽查人员怎么查"与"分析系统凭什么判"融为一体——通读七层规程，即可全面了解稽查分析启动后，系统如何完成全流程风险识别与稽查判定。</p>';
-  h+='<div class="l">稽查指令</div></div><div class="d"><div class="n">{{clue_chains}}</div><div class="l">线索链</div></div><div class="d"><div class="n">{{evidence_chains}}</div><div class="l">证据链</div></div><div class="d"><div class="n">48</div><div class="l">分析链</div></div><div class="d"><div class="n">{{domain_functions}}</div><div class="l">域分析</div></div><div class="d"><div class="n">{{industries}}</div><div class="l">行业基准</div></div></div>';
   h+='<p><b>四句铁律贯穿全部七层（后文不再重述）：</b>实质重于形式（登记不算、干的才算）；孤证不立（单源数据不定案）；疑点非结论（起点是疑点、落点是铁证）；宁存疑不错杀（说不清的标存疑、有铁证的才下定论）。</p></section>';
 
   // ═══ 第一层·启动 ═══
