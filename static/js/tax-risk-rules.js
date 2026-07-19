@@ -121,7 +121,7 @@ window._rrTitleRow = function(rl) {
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
-    + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
+    + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
     + '<td style="white-space:nowrap;text-align:center;color:#64748b">' + escHtml(String(rl.updated_at || rl.created_at || '').substring(0, 10) || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>'
     + '</tr>';
@@ -156,8 +156,6 @@ window._rrShowDetail = function(rid) {
   // 顶栏：返回 + 操作
   h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
     + '<button onclick="_rrBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
-    + (!isAuto ? '<button onclick="toggleRuleEdit(\'' + rid + '\',this)" style="font-size:10px;padding:5px 14px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer">✏️ 编辑</button>' : '')
-    + (isAuto ? '<button onclick="promoteAutoRule(\'' + rid + '\',this)" style="font-size:10px;padding:5px 14px;border:1px solid #059669;border-radius:6px;background:#ecfdf5;color:#059669;cursor:pointer;font-weight:600">✓ 确认为正式规则</button>' : '')
     + '</div>';
 
   // 触发溯源
