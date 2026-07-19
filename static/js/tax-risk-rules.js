@@ -123,7 +123,7 @@ window._rrTitleRow = function(rl) {
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap">' + (isAuto ? '<span style="color:#2563eb">🤖 自动发现</span>' : '<span style="color:#7c3aed">✍ 人工规则</span>') + '</td>'
     + '<td style="white-space:nowrap;text-align:center;color:#64748b">' + escHtml(String(rl.updated_at || rl.created_at || '').substring(0, 10) || '-') + '</td>'
-    + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:600">✅ ' + trigN + '次</span>' : '') + '</td>'
+    + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>'
     + '</tr>';
 };
 
