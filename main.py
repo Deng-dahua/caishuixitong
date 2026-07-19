@@ -10140,12 +10140,14 @@ def validate_rules_v3(rule_id: str = None):
         _check('focus', '①' in focus, '稽查重点须用①②③④逐条标注')
         nr = str(rule.get('normal_reason',''))
         _check('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
-        _check('normal_reason', '最常见' in nr or '穷举' in nr, '缺少最常见标注或穷举说明')
+        _check('normal_reason', '最常见' in nr, '缺最常见解释标注')
+        _check('normal_reason', '穷举' in nr, '缺穷举说明')
         det = str(rule.get('determination',''))
         _check('determination', '线索' in det, '缺路径一')
         _check('determination', '强证据' in det, '缺路径二')
         _check('determination', '铁证' in det, '缺路径三')
         _check('determination', '应对总原则' in det, '缺应对总原则')
+        _check('determination', not det.strip().startswith('{') and not det.strip().startswith('['), 'determination禁止JSON格式')
         # 有量化阈值的规则必须写"阈值以下处理"
         th = str(rule.get('threshold',''))
         if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', th):

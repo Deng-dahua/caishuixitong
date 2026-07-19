@@ -98,7 +98,8 @@ check('focus', '①' in focus, '稽查重点须用①②③④逐条标注')
 nr = str(rule.get('normal_reason',''))
 reason_count = len(re.findall(r'——需提供', nr))
 check('normal_reason', reason_count >= 4, f'至少4种正常解释（当前{reason_count}种）')
-check('normal_reason', '最常见解释' in nr or '穷举' in nr, '缺少"最常见解释"标注或"穷举说明"')
+check('normal_reason', '最常见解释' in nr, '缺少"最常见解释"标注——4种合法解释中必须有一项标注为最常见')
+check('normal_reason', '穷举' in nr, '缺少"穷举说明"')
 
 # ═══ ⑰ determination 定性路径 ═══
 det = str(rule.get('determination',''))
@@ -106,6 +107,8 @@ check('determination', '线索' in det, '缺少路径一（线索等级）')
 check('determination', '强证据' in det, '缺少路径二（强证据）')
 check('determination', '铁证' in det, '缺少路径三（铁证）')
 check('determination', '应对总原则' in det, '缺少"应对总原则"')
+# 禁止JSON dict格式（精写标准2026-07-19修订）
+check('determination', not det.strip().startswith('{') and not det.strip().startswith('['), 'determination禁止JSON dict/键值对格式，必须为平铺文本段落')
 # 有量化阈值的规则必须写"阈值以下处理"
 if re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', str(rule.get('threshold',''))):
     check('determination', '阈值以下' in det, '有量化阈值但缺少"阈值以下处理"分支')
