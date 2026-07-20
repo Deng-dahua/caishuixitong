@@ -1293,10 +1293,8 @@ function renderChainsPage(container) {
   h += '<div id="chains-body"></div>';
   h += '</div>';
   container.innerHTML = h;
-
-  var hasCache = _allClueChains && _allClueChains.length > 0;
-  if (hasCache) { renderChainsList(_allClueChains); }
-  else { loadChainsData(); }
+  _allClueChains = null;  // 清除缓存，强制重新加载
+  loadChainsData();
 }
 
 async function loadChainsData() {
