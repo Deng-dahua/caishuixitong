@@ -1254,7 +1254,7 @@ function renderChainsPage(container) {
 
   h += '<div class="cl">';
   h += '<div class="cl-title">线索链调查规程</div>';
-  h += '<div class="cl-sub">标准化调查路径体系 · 三类触发机制 · 累计437条已加载</div>';
+  h += '<div class="cl-sub">标准化调查路径体系 · 三类触发机制 · 共40条精写链已加载</div>';
 
   // 统计卡片（占位，异步填充）
   h += '<div class="cl-hero">';
