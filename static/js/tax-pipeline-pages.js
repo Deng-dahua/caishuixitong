@@ -1254,41 +1254,7 @@ function renderChainsPage(container) {
 
   h += '<div class="cl">';
   h += '<div class="cl-title">线索链调查规程</div>';
-  h += '<div class="cl-sub">标准化调查路径体系 · 三类触发机制 · 共40条精写链已加载</div>';
-
-  // 统计卡片（占位，异步填充）
-  h += '<div class="cl-hero">';
-  h += '<div class="cl-card"><div class="v" id="cl-total" style="color:#16233a">—</div><div class="l">调查链总数</div></div>';
-  h += '<div class="cl-card"><div class="v" id="cl-triggered" style="color:#dc2626">—</div><div class="l">本次触发</div></div>';
-  h += '<div class="cl-card"><div class="v" id="cl-steps" style="color:#2563eb">—</div><div class="l">调查步骤总数</div></div>';
-  h += '<div class="cl-card"><div class="v" id="cl-highrisk" style="color:#f59e0b">—</div><div class="l">高风险调查步骤</div></div>';
-  h += '</div>';
-
-  // 上下游依赖
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（触发来源）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">稽查规则系统</a><br><span style="color:#64748b">风险规则触发后激活对应调查链条</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">稽查分析报告</a><br><span style="color:#64748b">域分析发现作为调查链接触输入</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">稽查知识库</a><br><span style="color:#64748b">调查链定义和调查路径持久化存储</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">分析管道</a><br><span style="color:#64748b">管道步骤④调用调查链系统</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（后续处理）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb">证据链验证</a><br><span style="color:#64748b">调查发现触发证据链多源交叉验证</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理系统</a><br><span style="color:#64748b">调查结果作为因果推理输入</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量审核</a><br><span style="color:#64748b">调查发现接受质量审查复核</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">系统详情</a><br><span style="color:#64748b">调查链系统运行状态展示</span></div>';
-  h += '</div></div></div>';
-
-  // 段落说明
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin-bottom:10px">';
-  h += '<p style="margin:0 0 10px">线索调查链是从<strong>风险识别信号到稽查发现结论</strong>的标准化调查工作流程。每条调查链定义一条完整的调查路径（调查步骤序列），从触发风险信号开始、逐步执行各调查步骤——"从哪个数据域切入、核查什么内容、查实后如何处置"。</p>';
-  h += '<p style="margin:0 0 10px">调查链的工作机制不同于简单的规则匹配：规则指示"这项数据存在异常"，调查链指示"针对此项异常应执行哪些调查步骤、每步核查什么、达到何种证据程度方可确认"。例如"银行收款总额与增值税申报收入不匹配"这条规则触发后，调查链将引导核查人员依次核实银行流水的付款方身份、发票品名一致性、合同存在性与金额匹配度、关联交易的定价合理性等。</p>';
-  h += '<p style="margin:0">调查链系统支持三类触发机制——<strong>定量阈值触发</strong>（数值偏离超过预设阈值自动启动）、<strong>定性模式触发</strong>（特定数据特征匹配启动）、<strong>缺失数据触发</strong>（关键资料缺失启动替代验证调查程序）。调查发现累积达到一定数量后，触发证据链程序进行多源交叉验证，闭环后输入分析链执行综合推理判定，形成完整的"线索识别→调查取证→证据闭环→分析定性"稽查工作链路。</p>';
-  h += '</div>';
+  h += '<div class="cl-sub">共 <b style="color:#16233a">40</b> 条标准化调查链 · 159 个调查步骤 · 覆盖隐匿收入、虚开发票、虚列成本、关联交易、少缴税款、社保个税六大类</div>';
 
   h += '<div id="chains-body"></div>';
   h += '</div>';
@@ -1344,19 +1310,6 @@ function renderChainsList(chains) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
     var triggeredCount = _chainDynamic ? (_chainDynamic.triggered_count || 0) : 0;
-
-    // 填充页面级统计卡片
-    var totalSteps = 0;
-    var totalHighRisk = 0;
-    chains.forEach(function(c) {
-      var sl = c.investigation_path || [];
-      totalSteps += sl.length;
-      totalHighRisk += (typeof c.high_risk_steps === 'number') ? c.high_risk_steps : (Array.isArray(c.high_risk_steps) ? c.high_risk_steps.length : 0);
-    });
-    var elT = document.getElementById('cl-total'); if (elT) elT.textContent = chains.length;
-    var elTr = document.getElementById('cl-triggered'); if (elTr) elTr.textContent = triggeredCount;
-    var elS = document.getElementById('cl-steps'); if (elS) elS.textContent = totalSteps;
-    var elH = document.getElementById('cl-highrisk'); if (elH) elH.textContent = totalHighRisk;
 
     chains.forEach(function(c, ci) {
       var exec = execMap[c.name];
