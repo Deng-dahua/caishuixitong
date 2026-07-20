@@ -231,7 +231,7 @@ class DialogAgent(BaseAgent):
                 lines.append(f"▎{tax}\n{desc}")
             blocks.append({"title": "📊 税种判定依据", "content": "\n\n".join(lines)})
         
-        # 2. 匹配分析链——从48条分析链中找推理路径
+        # 2. 匹配分析链——从19条分析链中找推理路径
         qwords = [w for w in q.replace('？','').replace('?','').split() if len(w) >= 2]
         matched_chains = []
         for chain in self._analysis_chains:
@@ -600,7 +600,7 @@ class DialogAgent(BaseAgent):
             # 给建议
             blocks.append({"title": "💡 建议", "content": "以上为系统自动匹配的关联发现。您可以使用更精确的问题获得更聚焦的回答：\n• \"怎么判定\"——了解推理依据\n• \"为什么是高风险\"——查看证据链\n• \"具体有哪些\"——查看明细数据\n• \"要补多少税\"——查看金额计算\n• \"依据哪条法律\"——查看法条引用"})
         else:
-            blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，系统未在全量1608条税务合规指令、437条线索链、781条证据链中直接匹配到相关内容。\n\n建议：\n1. 使用更具体的术语追问（如\"增值税税负率\"而非\"税\"）\n2. 在报告中发现旁点击编辑按钮补充信息\n3. 对照③证据材料核实原始数据"})
+            blocks.append({"title": "📝 说明", "content": f"关于「{q[:60]}」，系统未在全量1608条税务合规指令、40条线索链、20条证据链中直接匹配到相关内容。\n\n建议：\n1. 使用更具体的术语追问（如\"增值税税负率\"而非\"税\"）\n2. 在报告中发现旁点击编辑按钮补充信息\n3. 对照③证据材料核实原始数据"})
         
         return blocks
 
@@ -766,7 +766,7 @@ class LearningAgent(BaseAgent):
 
 # ═══════ [合并自 engine/rule_reasoner.py] ═══════
 """
-规则推理Agent — 匹配1608税务合规指令，串联线索→证据→分析链
+规则推理Agent — 匹配1608税务合规指令，联动线索+证据并行→分析链串联
 """
 import json, os
 from .base import BaseAgent

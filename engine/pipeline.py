@@ -2047,7 +2047,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══════════════════════════════════════════════════
 
     # ═══════════════════════════════════════════════════
-    # 链驱动分析引擎：线索链→逐步检查数据→触发规则→生成证据
+    # 链驱动分析引擎：线索链（调查路径）与证据链（并行验证）协作——逐步检查数据→触发规则→多源闭环
     # ═══════════════════════════════════════════════════
     
     chain_execution = []  # 每条链的执行结果
@@ -2482,7 +2482,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 pipeline_log.append(f"链驱动引擎: {len(chain_execution)}条线索链执行({skipped_chains}条行业不匹配跳过), {triggered_count}条触发, {len(chain_findings)}条新发现")
             if evidence_closures:
                 pipeline_log.append(f"证据链闭环: {sum(1 for e in evidence_closures if e['closed'])}条闭环({len(triggered_rule_ids_for_evidence)}条规则参与判定)")
-            pipeline_log.append(f"全链路执行: 线索链{len(chain_execution)}条 → 证据链{len(evidence_closures)}条 → 规则{len(triggered_rule_ids_for_evidence)}条触发")
+            pipeline_log.append(f"全链路执行: 线索链{len(chain_execution)}条+证据链{len(evidence_closures)}条并行配合 → 规则{len(triggered_rule_ids_for_evidence)}条触发")
             comprehensive["chain_execution"] = chain_stats
             comprehensive["chain_triggered_count"] = triggered_count
             comprehensive["chain_total_count"] = len(chain_execution)

@@ -1507,7 +1507,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-sync\')" style="color:#2563eb">触发与交付</a><div class="desc">报告触发条件和交付时机</div></div>';
   // 数据与分析组（3个，其中1个双向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><span class="bi">双向</span><div class="desc">记录每步执行时间、输入输出、异常</div></div>';
-  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">全链路稽查质量保障体系</a><div class="desc">全链路5层质量保障：规则→线索→证据→分析→报告</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">全链路稽查质量保障体系</a><div class="desc">全链路质量保障：规则驱动+线索⇄证据并行→分析串联→报告平权汇入</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><div class="desc">七步执行流程详解和核心数据资产清单</div></div>';
   // 文件解析组（5个，其中4个双向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制</a><span class="bi">双向</span><div class="desc">三层递进识别+四方交叉验证+{{file_fingerprints}}类指纹库</div></div>';
