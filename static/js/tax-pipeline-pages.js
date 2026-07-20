@@ -81,7 +81,7 @@ function getSharedAnalysis() {
 function renderFileParsingPage(container) {
   if (!container) return;
   window.currentModule = '文件解析';
-  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:40px 46px;background:#fff}.fp-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:20px;max-height:calc(100vh-40px);overflow-y:auto}.fp-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-toc a:hover,.fp-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.fp-main{flex:1;min-width:0;background:#fff;line-height:1.6}.fp-main p,.fp-main div,.fp-main li{margin-bottom:10px}.fp-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 10px!important}.fp-main .fp-step{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main details summary:hover{background:#f8fafc}.fp-main .fp-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main .fp-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;padding:16px}.fp-main section{margin-bottom:10px!important;scroll-margin-top:20px}</style>'
+  container.innerHTML = '<style>.fp-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:40px 46px;background:#fff}.fp-toc{width:190px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:10px;line-height:20px;max-height:calc(100vh-40px);overflow-y:auto}.fp-toc .toc-title{font-weight:700;color:#16233a;font-size:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.fp-toc a{display:block;color:#3a4048;text-decoration:none;padding:2px 8px;border-radius:4px;cursor:pointer}.fp-toc a:hover,.fp-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.fp-main{flex:1;min-width:0;background:#fff;line-height:1.6}.fp-main p,.fp-main div,.fp-main li{margin-bottom:10px}.fp-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 10px!important}.fp-main .fp-step{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main details summary:hover{background:#f8fafc}.fp-main .fp-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px 22px;transition:box-shadow 0.15s}.fp-main .fp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}.fp-main .fp-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;padding:16px}.fp-main section{margin-bottom:10px!important;scroll-margin-top:20px}.udp-subsection{font-size:11px!important;font-weight:700!important;color:#16233a!important;padding-bottom:6px!important;border-bottom:2px solid #e2e8f0!important;margin:20px 0 10px!important}.udp-cat{font-size:10px!important;font-weight:700!important;color:#475569!important;margin:14px 0 6px!important;padding:5px 8px!important;background:#f1f5f9!important;border-radius:4px!important;border-left:3px solid #3b82f6!important}</style>'
     + '<div class="fp-layout">'
     + '<nav class="fp-toc"><div class="toc-title">📖 导航</div>'
     + '<a href="#fp-mechanism">一 识别机制</a>'
@@ -4589,59 +4589,59 @@ function renderUnifiedDomainPanel(container) {
   h += '<p><b>⑥ 综合判断四方交叉验证（域级）</b>——文件类型须经文件名、表头、内容、身份匹配四个维度的综合交叉验证。</p>';
   h += '<p><b>⑦ 存疑排除（域级）</b>——买卖双方均未标注企业名称的发票须从全部计算中排除。跨账套数据污染属严重分析偏差，须严格防范。</p>';
 
-  h += '<h2>二、13大分类 · 40个域函数 · 数据依赖与输出类型</h2>';
+  h += '<h2>二、域分析函数分类（13大类，共39个域分析函数） · 数据依赖与输出类型</h2>';
   h += '<p>本章按业务领域分为13大类（设计视角），与第三章按功能聚合的五大域组（运行视角）互为补充。本章管每个域"做什么"，第三章管域与域之间"怎么配合"。13大分类合计：39域。</p>';
-  h += '<div class="udp-block"><h4>域函数清单（含输入数据要求、最低条数、缺失行为和finding.type枚举值）</h4>';
-  h += '<p><b>资金流分析</b></p>';
+  h += '<div class="udp-block"><h3 class="udp-subsection">域函数清单（含输入数据要求、最低条数、缺失行为和finding.type枚举值）</h3>';
+  h += '<h4 class="udp-cat">资金流分析</h4>';
   h += '<p><b>_domain_cash_flow_tracking</b>（资金全链路追踪）——输入：银行流水（必须）；最低：≥10条；输出finding.type：收款方异常、大额支付、频繁支付。</p>';
   h += '<p><b>_domain_fund_flow</b>（资金流向追踪）——输入：银行流水（必须）；最低：≥10条；输出finding.type：资金流向异常、单边大额资金。</p>';
   h += '<p><b>_domain_abnormal_transaction_time</b>（异常交易时间）——输入：银行流水（必须）；最低：≥10条；输出finding.type：非营业时间交易、节假日大额交易。</p>';
   h += '<p><b>_domain_personal_txn_risk</b>（个人交易风险）——输入：银行流水（必须）；最低：≥10条；输出finding.type：个人账户收款、对私转账高频。</p>';
-  h += '<p><b>进销存分析</b></p>';
+  h += '<h4 class="udp-cat">进销存分析</h4>';
   h += '<p><b>_domain_purchase_sales_gross_margin</b>（进销毛利率）——输入：销项发票+进项发票（必须）；科目余额表（应当）；最低：发票≥10张；输出finding.type：毛利率偏离行业基准、进销倒挂。</p>';
   h += '<p><b>_domain_invoice_substantive_audit</b>（发票实质性审计）——输入：发票数据（必须）；最低：≥10张；输出finding.type：发票号码异常、税率异常、品名异常。</p>';
   h += '<p><b>_domain_inventory_turnover</b>（存货周转预警）——输入：库存明细（必须）；发票数据（应当）；最低：库存记录≥5条；输出finding.type：周转率异常、库存积压、快进快出。</p>';
   h += '<p><b>_domain_invoice_inventory_payment_triangle</b>（三角验证）——输入：发票+入库单+付款单（必须）；最低：三单各≥3条；输出finding.type：三单不一致、付款与入库不匹配。</p>';
-  h += '<p><b>供应商与客户</b></p>';
+  h += '<h4 class="udp-cat">供应商与客户</h4>';
   h += '<p><b>_domain_supplier_penetration</b>（供应商穿透）——输入：进项发票（必须）；最低：≥5条；输出finding.type：对私供应商、小规模供应商、新设公司。</p>';
   h += '<p><b>_domain_supplier_profile</b>（供应商画像）——输入：进项发票+工商信息（必须）；最低：≥5条；输出finding.type：供应商经营异常、失联供应商、风险供应商。</p>';
   h += '<p><b>_domain_upstream_downstream</b>（上下游穿透）——输入：进项发票+销项发票（必须）；最低：各≥5条；输出finding.type：供应商即客户、关联方重合。</p>';
   h += '<p><b>_domain_customer_three_source</b>（客户三源穿透）——输入：销项发票（必须）；最低：≥5条；输出finding.type：客户信息不一致、虚假客户。</p>';
-  h += '<p><b>多源交叉验证</b></p>';
+  h += '<h4 class="udp-cat">多源交叉验证</h4>';
   h += '<p><b>_domain_multi_source_cross_validation</b>（多源交叉验证）——输入：银行流水+发票+账载凭证+申报表（应当）；至少2源（必须）；最低：各源≥5条；输出finding.type：四源偏差、单源异常。</p>';
   h += '<p><b>_domain_voucher_invoice_revenue_compare</b>（凭证发票收入对比）——输入：会计凭证+销项发票（必须）；最低：各≥5条；输出finding.type：凭证收入与发票不一致。</p>';
   h += '<p><b>_domain_profit_cashflow_contradiction</b>（利润现金流矛盾）——输入：科目余额表+银行流水（必须）；最低：各≥10条；输出finding.type：账面盈利现金枯竭、应收异常膨胀。</p>';
   h += '<p><b>_domain_revenue_time_investigation</b>（收入时间线调查）——输入：销项发票+银行流水（必须）；最低：各≥10条；输出finding.type：季末突击开票、收入集中化。</p>';
   h += '<p><b>_domain_extended_audit_rules</b>（扩展审查规则）——输入：原始数据（可选）；最低：无最低要求；输出finding.type：自定义信号。</p>';
-  h += '<p><b>经营实质分析</b></p>';
+  h += '<h4 class="udp-cat">经营实质分析</h4>';
   h += '<p><b>_domain_business_substance</b>（经营实质分析）——输入：银行流水+发票+工资+社保（应当）；至少3源（必须）；最低：各源≥10条；输出finding.type：人员不匹配、场地缺失、设备与产能不符。</p>';
   h += '<p><b>_domain_business_geography</b>（经营地理分析）——输入：发票+银行流水（必须）；工商登记地址（应当）；最低：≥10条；输出finding.type：注册地与经营地不一致、地址分散。</p>';
   h += '<p><b>_domain_personnel_business_matching</b>（人员业务匹配）——输入：工资表+社保数据（必须）；个税申报（应当）；最低：≥5条；输出finding.type：社保人数与业务规模不匹配、零参保。</p>';
-  h += '<p><b>资料完备度</b></p>';
+  h += '<h4 class="udp-cat">资料完备度</h4>';
   h += '<p><b>_domain_material_completeness</b>（资料完备度评估）——输入：所有上传文件（必须）；最低：无最低要求；输出finding.type：资料缺失、资料不完备。</p>';
   h += '<p><b>_domain_material_intel</b>（资料情报摘要）——输入：所有上传文件（必须）；最低：无最低要求；输出finding.type：收购/重组/诉讼等关键情报。</p>';
-  h += '<p><b>发票深度分析</b></p>';
+  h += '<h4 class="udp-cat">发票深度分析</h4>';
   h += '<p><b>_domain_invoice_deep_features</b>（发票深度特征）——输入：发票数据（必须）；最低：≥20张；输出finding.type：连号开票、顶格开票、整数金额、夜间开票。</p>';
   h += '<p><b>_domain_invoice_lifecycle</b>（发票生命周期）——输入：发票数据（必须）；最低：≥20张；输出finding.type：领用与开具不符、异常作废。</p>';
   h += '<p><b>_domain_red_rush_invoice</b>（红冲作废发票）——输入：发票数据（必须）；最低：≥20张；输出finding.type：红冲频率过高、作废率大于15%。</p>';
-  h += '<p><b>合同与凭证</b></p>';
+  h += '<h4 class="udp-cat">合同与凭证</h4>';
   h += '<p><b>_domain_contract_comparison</b>（合同比对）——输入：合同文件+发票（必须）；最低：合同≥1份，发票≥5张；输出finding.type：合同金额与发票不符、合同缺失。</p>';
   h += '<p><b>_domain_voucher_account_anomaly</b>（凭证科目异常）——输入：会计凭证（必须）；最低：≥10条；输出finding.type：科目使用错误、摘要与科目不匹配。</p>';
-  h += '<p><b>税务与社保</b></p>';
+  h += '<h4 class="udp-cat">税务与社保</h4>';
   h += '<p><b>_domain_tax_payment_consistency</b>（税务缴纳一致性）——输入：纳税申报表（必须）；发票+银行流水（应当）；最低：申报表≥1份，其他≥5条；输出finding.type：申报与缴纳不一致。</p>';
   h += '<p><b>_domain_vat_declaration_comparison</b>（增值税申报比对）——输入：增值税申报表+发票（必须）；最低：≥5条；输出finding.type：销项申报与发票不一致、进项申报异常。</p>';
   h += '<p><b>_domain_salary_social_security</b>（工资社保比对）——输入：工资表+社保数据+个税申报（应当）；至少2源（必须）；最低：各≥5条；输出finding.type：三数不一致。</p>';
-  h += '<p><b>资产与关联交易</b></p>';
+  h += '<h4 class="udp-cat">资产与关联交易</h4>';
   h += '<p><b>_domain_asset_depreciation_amortization</b>（资产折旧摊销）——输入：科目余额表（必须）；固定资产明细（应当）；最低：≥5条；输出finding.type：折旧年限异常、摊销方法不合规。</p>';
   h += '<p><b>_domain_related_party_transaction</b>（关联交易穿透）——输入：进项发票+销项发票+工商信息（必须）；最低：各≥5条；输出finding.type：关联交易、转移定价、债资比超标。</p>';
-  h += '<p><b>行业对标与规则</b></p>';
+  h += '<h4 class="udp-cat">行业对标与规则</h4>';
   h += '<p><b>_domain_industry_benchmark</b>（行业基准对标）——输入：发票+科目余额表（必须）；最低：≥10条；输出finding.type：偏离行业基准。</p>';
   h += '<p><b>_domain_rule_engine_match</b>（规则系统匹配）——输入：所有数据（必须）；最低：无最低要求；输出finding.type：规则触发信号。</p>';
   h += '<p><b>_domain_tax_burden_analysis</b>（税负率分析）——输入：纳税申报表+发票（应当）；最低：≥10条；输出finding.type：税负率低于行业P25。</p>';
   h += '<p><b>_domain_trend_analysis</b>（趋势分析）——输入：科目余额表+发票（必须）；最低：≥10条；输出finding.type：指标异常波动。</p>';
-  h += '<p><b>跨域分析链</b></p>';
+  h += '<h4 class="udp-cat">跨域分析链</h4>';
   h += '<p><b>_domain_cross_analysis_chains</b>（跨域分析链）——输入：所有域发现（必须）；最低：域发现≥1条；输出finding.type：跨域线索→证据→分析三链贯通。</p>';
-  h += '<p><b>补充税种</b></p>';
+  h += '<h4 class="udp-cat">补充税种</h4>';
   h += '<p><b>_domain_stamp_duty_check</b>（印花税）——输入：合同+发票+银行流水（应当）；至少1源满足最低条数（必须）；最低：≥5条；输出finding.type：印花税漏缴。</p>';
   h += '<p><b>_domain_cit_reconciliation</b>（企业所得税汇算）——输入：科目余额表（必须）；凭证（应当）；最低：≥10条；输出finding.type：应纳税所得额调整。</p>';
   h += '<p><b>_domain_export_vat_verification</b>（出口退税核验）——输入：出口报关单+发票+收汇记录（必须）；最低：各≥3条；输出finding.type：三单不匹配。</p>';
