@@ -4578,7 +4578,7 @@ function renderUnifiedDomainPanel(container) {
     + '.udp details{margin-bottom:10px}'
     + '.udp summary{font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0}'
     + '</style>';
-  h += '<div class="udp"><details><summary></summary>';
+  h += '<div class="udp">';
 
   h += '<h2>一、前置判定规则</h2>';
   h += '<p>7条规则分两级执行：<b>全局级（①-③）</b>——域分析开始前一次性执行，不通过则全分析终止；<b>域级（④-⑦）</b>——随域分析逐域执行，不通过则跳过对应域，其他域继续。</p>';
@@ -4686,7 +4686,7 @@ function renderUnifiedDomainPanel(container) {
   h += '<div class="udp-block"><p style="font-size:10px;color:#64748b">域分析函数输出的finding.type取值须严格限定于下表所列范围。各finding.type的匹配关键词为独立集合，不同finding.type之间不可共用关键词——系统采用精确匹配机制，匹配失败将导致漏触发。完整词表及唯一性约束详见系统引擎记忆配置。</p>';
   h += '<p>收款方异常→收款与开票、收款方异常。进销倒挂→进销、进销比、进销严重倒挂。毛利率偏离→毛利率、毛利率偏离、行业基准。社保人数不匹配→社保、参保人数、三数勾稽。三单不一致→入库单、三单匹配。供应商异常→供应商、对私、小规模、新设。客户即供应商→供应商=客户、上下游、供销同一。四源偏差→四源、多源、银行收入vs开票、账载vs申报。利润现金背离→有利润无现金、现金流枯竭、应收账款异常。人员不匹配→人员、零参保。地址异常→注册地、经营地、地址不一致。连号开票→连号、顶格、整数金额、夜间开具。高作废率→作废、红冲、作废率。合同不符→合同缺失、合同金额。税负率偏低→税负率、行业下限。关联交易→关联、转移定价、债资比。资金回流→资金回流、资金闭环、回款。资金流向异常→资金流向、单边大额。注意：收款方异常与资金流向异常为独立集合，不共享匹配关键词。</p></div></details>';
 
-  h += '</details></div>';
+  h += '</div>';
   container.innerHTML = h;
 }
 
