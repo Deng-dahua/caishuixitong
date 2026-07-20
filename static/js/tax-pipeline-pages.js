@@ -2308,7 +2308,7 @@ function renderQualitySystem(container) {
       desc:'规则系统、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
         {name:'规则系统',source:'税务合规指令',desc:'{{rules_count}}条税务合规指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史税务合规数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理系统自动匹配。规则系统在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
-        {name:'线索链系统',source:'线索链页面',desc:'{{clue_chains}}条线索链（全部可执行），每条含1-15个调查步骤。三类验证触发链驱动发现：①定量阈值触发——数值超过预设阈值自动启动链（如偏差率>20%）②定性模式触发——特定数据模式匹配（如公转私频繁）③缺失数据触发——关键资料缺失触发替代验证链。每步含domain/action/data_required三等字段，可追溯至调查来源。代码：pipeline.py调用_domain_cross_domain_clues，系统通过trigger_keywords自动匹配findings触发。'},
+        {name:'线索链系统',source:'线索链调查数据',desc:'{{clue_chains}}条线索链（全部可执行），每条为一条完整的标准化调查路径，包含1-15个递进调查步骤。三类触发机制驱动调查启动：①定量阈值触发——数值超过预设阈值自动启动调查程序（如偏差率>20%）②定性模式触发——特定数据特征匹配（如公转私频繁交易）③缺失数据触发——关键资料缺失触发替代验证调查程序。每步含调查领域、调查动作、所需数据三个字段，全程可追溯至调查发起来源。代码实现：pipeline.py调用_domain_cross_domain_clues，系统通过触发关键词自动匹配风险发现并启动调查链。'},
         {name:'证据链系统',source:'证据链页面',desc:'{{evidence_chains}}条证据链（全部可执行）。证据闭环机制——每个证据链定义dimensions[]数组，各维度kws匹配findings→达到min_evidence阈值→触发闭环。要求≥2个不同数据源的维度同时匹配，单域数据不构成闭环。全部达标→形成有效证据→输入分析链推理。每条证据链含rule_refs关联规则，证据收集全程可追溯。代码：_domain_cross_domain_reasoning在all_findings构建后运行。'},
         {name:'跨域分析链',source:'调度中枢',desc:'48条跨域分析链，多源数据综合推理系统。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将多个证据链的结论进行综合推理判定：reasoning_path[]定义多步推理路径→从证据到结论的因果推断。典型分析链如\"七维系统性造假综合判定模型\"——经营实质×供应商×资金流×三流合一×跨税种×关联交易×综合，7维中0-2维低风险、3-4维中风险、5-6维高风险、7维全异常→系统性造假立案。跨域分析链在Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定发现。'},
       ]},
@@ -5913,7 +5913,7 @@ function renderMethodologyPart2(){
 
   // 数据面板
   h+='<div style="margin:10px 0"><details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📋 税务疑点库（全量规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链数据（可直接查阅全部调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链调查数据（437条标准化调查路径，可直接查阅全部调查步骤）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
   h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链数据（可直接查阅全部验证维度）</summary><div class="live"><div id="au-evidence-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
 
   // ═══ 第四层·过滤 ═══
