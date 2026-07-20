@@ -4688,6 +4688,7 @@ function renderUnifiedDomainPanel(container) {
 
   h += '</div>';
   container.innerHTML = h;
+  var d = container.closest('details'); if (d) { d.open = false; }
 }
 
 function renderDAResult() {
