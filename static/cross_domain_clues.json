@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v2.0-gold-standard",
-    "updated_at": "2026-07-20T21:39:13.083420",
+    "updated_at": "2026-07-20T21:39:23.440612",
     "total_chains": 20,
     "notes": "基于27条gold-standard规则的精准线索链体系。每条链对应1-2条核心规则，调查步骤具体不重复。覆盖A类商业逻辑/B类物理事实/C类数据穿透三类攻击角度。"
   },
