@@ -4578,8 +4578,7 @@ function renderUnifiedDomainPanel(container) {
     + '.udp details{margin-bottom:10px}'
     + '.udp summary{font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0}'
     + '</style>';
-  h += '<div class="udp">';
-  h += '<details><summary style="font-size:10px;color:#94a3b8;cursor:pointer;padding:2px 0;user-select:none">▼ 展开完整内容</summary>';
+  h += '<div class="udp"><details><summary></summary>';
 
   h += '<h2>一、前置判定规则</h2>';
   h += '<p>7条规则分两级执行：<b>全局级（①-③）</b>——域分析开始前一次性执行，不通过则全分析终止；<b>域级（④-⑦）</b>——随域分析逐域执行，不通过则跳过对应域，其他域继续。</p>';
