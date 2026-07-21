@@ -1486,7 +1486,8 @@ async function loadEvidenceData() {
   var target = document.getElementById('evidence-body');
   try {
     var resp = await fetch('/static/cross_domain_evidence.json?_t=' + Date.now());
-    var evChains = await resp.json();
+    var data = await resp.json();
+    var evChains = data.evidence_chains || data.chains || data;
 
     if (!_chainDynamic) await loadChainDynamicStatus();
 
@@ -5564,7 +5565,8 @@ async function loadAnalysisChainsData() {
   var target = document.getElementById('alc-body');
   try {
     var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
-    var chains = await resp.json();
+    var data = await resp.json();
+    var chains = data.analysis_chains || data.chains || data;
     var high = chains.filter(function(c){return c.level==='高风险'}).length;
     var mid = chains.filter(function(c){return c.level==='中风险'}).length;
     var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
