@@ -5454,15 +5454,17 @@ async function loadAnalysisChainsData() {
     var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
+    var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
     var html = '';
     chains.forEach(function(chain){
-      var lvlColor = chain.level==='高风险' ? '#dc2626' : (chain.level==='中风险' ? '#f59e0b' : '#0e7490');
+      var cat = chain.category||'';
+      var lvlColor = cat.indexOf('隐匿')>=0 ? '#dc2626' : (cat.indexOf('虚开')>=0 ? '#dc2626' : '#0e7490');
       html += '<div class="alc-chain">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
-      html += '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+escHtml(chain.level)+'</span>';
-      html += '<span style="font-size:10px;font-weight:700;color:#16233a">'+escHtml(chain.name)+'</span>';
+      html += '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+(chain.category||chain.level||'')+'</span>';
+      html += '<span style="font-size:10px;font-weight:700;color:#16233a">'+esc(chain.name)+'</span>';
       html += '</div>';
-      html += '<div style="font-size:10px;color:#64748b;line-height:1.9;margin-bottom:10px">'+escHtml(chain.description)+'</div>';
+      html += '<div style="font-size:10px;color:#64748b;line-height:1.9;margin-bottom:10px">'+esc(chain.description)+'</div>';
       if (chain.reasoning_path && chain.reasoning_path.length > 0) {
         html += '<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:10px">推理路径（共 '+chain.reasoning_path.length+' 步）</div>';
         chain.reasoning_path.forEach(function(s,si){
@@ -5470,8 +5472,8 @@ async function loadAnalysisChainsData() {
           html += '<div style="display:flex;align-items:flex-start">';
           html += '<span class="sn">'+(si+1)+'</span>';
           html += '<div style="flex:1">';
-          html += '<div class="alc-flow">从 <b>'+escHtml((s.action||{}).from||'—')+'</b> → 发现 <b>'+escHtml((s.action||{}).finding||'—')+'</b></div>';
-          html += '<div style="font-size:10px;color:#64748b">→ 去 <b style="color:#0e7490">'+escHtml((s.action||{}).to||'—')+'</b>：'+escHtml((s.action||{}).action||'—')+'</div>';
+          html += '<div class="alc-flow">跨域: <b>'+esc(s.cross||'')+'</b> → '+esc(s.action||'')+'</div>';
+          html += '<div style="font-size:10px;color:#94a3b8">证据: '+esc(s.evidence_required||'')+'</div>';
           html += '</div></div></div>';
         });
       }
