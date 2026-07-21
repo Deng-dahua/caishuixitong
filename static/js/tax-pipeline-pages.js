@@ -1244,7 +1244,7 @@ function renderChainsPage(container) {
   h += '<style>'
     + '.cl{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '.cl-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.cl-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '.cl-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
     + '</style>';
 
   h += '<div class="cl">';
@@ -1331,19 +1331,19 @@ function renderChainsList(chains) {
       var scoreTag = qualityScore > 0 ? ' <span style="font-size:10px;color:#64748b">⭐ ' + qualityScore + '</span>' : '';
 
       // ══ 卡片容器 — 每链一个独立卡片 ═══
-      html += '<div style="background:#fff;border:1px solid #e8ecf1;border-radius:12px;padding:24px 28px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)">'
+      html += '<div style="padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6">'
 
       // ══ 标题行 ═══
-      + '<div style="font-size:11px;font-weight:700;color:#16233a;margin-bottom:12px;line-height:1.6">'
+      + '<div style="font-size:13px;font-weight:500;color:#0f172a;margin-bottom:10px;line-height:1.6">'
       + escHtml(c.name) + badge + topicTag
       + '</div>';
 
       // ══ 描述段落 ═══
       if (c.description) {
-        html += '<div style="margin-bottom:16px;padding:12px 16px;background:#f8fafc;border-left:4px solid #7c3aed;border-radius:0 8px 8px 0;font-size:10px;color:#475569;line-height:1.8">'
+        html += '<div style="margin-bottom:10px;padding:10px 0;font-size:12px;color:#475569;line-height:1.8">'
           + escHtml(c.description) + '</div>';
       } else if (c.desc) {
-        html += '<div style="margin-bottom:16px;padding:12px 16px;background:#f8fafc;border-left:4px solid #7c3aed;border-radius:0 8px 8px 0;font-size:10px;color:#475569;line-height:1.8">'
+        html += '<div style="margin-bottom:10px;padding:10px 0;font-size:12px;color:#475569;line-height:1.8">'
           + escHtml(c.desc) + '</div>';
       }
 
@@ -1419,7 +1419,7 @@ function renderEvidencePage(container) {
   h += '<style>'
     + '.ev{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '.ev-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.ev-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
+    + '.ev-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
     + '</style>';
 
   h += '<div class="ev">';
@@ -2598,7 +2598,7 @@ function renderRequiredMaterials(container) {
     h += '<span style="background:'+m.lb+';color:'+m.lc+';border:1px solid '+m.lbo+';padding:2px 10px;border-radius:4px;font-size:10px;font-weight:600">'+m.level+'</span>';
     h += '</div>';
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-    h += '<div style="background:#f8fafc;border-radius:6px;padding:10px 14px">';
+    h += '<div style="background:transparent;border-radius:0;padding:10px 14px">';
     h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">📋 核心要求</div>';
     h += '<div style="font-size:10px;color:#3a4048;line-height:1.9">'+m.core+'</div>';
     h += '</div>';
@@ -2888,7 +2888,7 @@ function renderLegalRefs(container) {
         h += '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:'+c+';color:#fff;font-size:10px;font-weight:700;margin-right:10px">'+(i+1)+'</span>';
         h += '<span style="font-size:10px;font-weight:700;color:#16233a">'+escHtml(d.law)+'</span>';
         h += '</div>';
-        h += '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:10px;padding:10px 14px;background:#f8fafc;border-radius:6px">'+escHtml(d.content)+'</div>';
+        h += '<div style="font-size:10px;color:#334155;line-height:20px;margin-bottom:10px;padding:10px 14px;background:transparent;border-radius:0">'+escHtml(d.content)+'</div>';
         h += '<div style="font-size:10px;color:#64748b;line-height:1.8"><span style="color:#64748b">适用：</span>'+escHtml(d.scenario)+'</div>';
         h += '</div>';
       }
@@ -4454,7 +4454,7 @@ function renderUnifiedDomainPanel(container) {
     + '.udp .udp-stat .lbl{font-size:10px;color:#64748b;display:block;margin-top:4px}'
     + '.udp .udp-rule{display:flex;gap:10px;align-items:flex-start;margin:6px 0;padding:10px 14px;background:#fafbfc;border-radius:6px;font-size:10px;line-height:1.6}'
     + '.udp .udp-chain{padding:14px 18px;margin-bottom:10px;background:#fff;border-radius:8px;font-size:10px;line-height:1.9}'
-    + '.udp .udp-step{padding:8px 14px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:10px;line-height:1.9}'
+    + '.udp .udp-step{padding:8px 14px;margin:4px 0;background:transparent;border-radius:0;font-size:10px;line-height:1.9}'
     + '.udp .udp-step .sn{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#16233a;color:#fff;font-size:10px;font-weight:700;margin-right:10px;flex-shrink:0}'
     + '.udp details{margin-bottom:10px}'
     + '.udp summary{font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:6px 0}'
@@ -5436,8 +5436,8 @@ function renderAnalysisChainsPage(container) {
   h += '<style>'
     + '.alc{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '.alc-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.alc-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
-    + '.alc-step{padding:8px 12px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:10px;line-height:1.9}'
+    + '.alc-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
+    + '.alc-step{padding:8px 12px;margin:4px 0;background:transparent;border-radius:0;font-size:10px;line-height:1.9}'
     + '.alc-step .sn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:8px;flex-shrink:0}'
     + '.alc-flow{display:flex;align-items:center;gap:4px;font-size:10px;color:#64748b;margin:6px 0}'
     + '.alc-flow b{color:#334155}'
@@ -5461,14 +5461,14 @@ async function loadAnalysisChainsData() {
     chains.forEach(function(chain){
       var cat = chain.category||'';
       var lvlColor = cat.indexOf('隐匿')>=0 ? '#dc2626' : (cat.indexOf('虚开')>=0 ? '#dc2626' : '#0e7490');
-      html += '<div class="alc-chain">';
+      html += '<div style="padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
       html += '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+(chain.category||chain.level||'')+'</span>';
-      html += '<span style="font-size:10px;font-weight:700;color:#16233a">'+esc(chain.name)+'</span>';
+      html += '<span style="font-size:13px;font-weight:500;color:#0f172a">'+esc(chain.name)+'</span>';
       html += '</div>';
-      html += '<div style="font-size:10px;color:#64748b;line-height:1.9;margin-bottom:10px">'+esc(chain.description)+'</div>';
+      html += '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:10px">'+esc(chain.description)+'</div>';
       if (chain.reasoning_path && chain.reasoning_path.length > 0) {
-        html += '<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:10px">推理路径（共 '+chain.reasoning_path.length+' 步）</div>';
+        html += '<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:10px;margin-top:10px">推理路径（共 '+chain.reasoning_path.length+' 步）</div>';
         chain.reasoning_path.forEach(function(s,si){
           html += '<div class="alc-step">';
           html += '<div style="display:flex;align-items:flex-start">';
