@@ -132,6 +132,9 @@ const pages = {
   'rs-negoflow': '跨域协商详细工作流程',
   'file-parsing': '文件解析',
   'agi-schedule': '调度中枢',
+  'analysis-page': '分析链',
+  'chains-page': '线索链',
+  'evidence-page': '证据链',
 };
 
 // ==================== 用户登录 ====================
@@ -700,6 +703,9 @@ function navigateTo(page) {
     case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
     case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
     case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
+    case 'chains-page':    _sR(container, 'renderChainsPage'); break;
+    case 'evidence-page':  _sR(container, 'renderEvidencePage'); break;
+    case 'analysis-page':  _sR(container, 'renderAnalysisChainsPage'); break;
     case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
     case 'file-parsing':
       if (typeof renderFileParsingPage === 'function') { renderFileParsingPage(container); }
