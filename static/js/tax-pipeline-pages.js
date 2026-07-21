@@ -1302,19 +1302,20 @@ function renderChainsList(chains) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
     var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-    html += '<div style="font-size:10px;line-height:2.2">';
+    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:28px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>分类</th><th>步数</th><th></th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var steps = (c.investigation_path||[]).length;
       var cat = c.category||'';
       var cid = 'clue-' + ci;
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\'">';
-      html += '<span style="color:#94a3b8;min-width:24px">#' + (ci+1) + '</span>';
-      html += '<span style="flex:1;color:#0f172a">' + esc(c.name||'') + '</span>';
-      html += '<span style="color:#64748b;font-size:9px">' + esc(cat) + '</span>';
-      html += '<span style="color:#94a3b8;font-size:9px">' + steps + '步</span>';
-      html += '<span style="color:#94a3b8">\u25b8</span>';
-      html += '</div>';
-      html += '<div id="' + cid + '" style="display:none;padding:10px 0 10px 24px;font-size:10px;line-height:1.8;color:#475569">';
+      html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
+      html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
+      html += '<td>' + esc(c.name||'') + '</td>';
+      html += '<td>' + esc(cat) + '</td>';
+      html += '<td>' + steps + '</td>';
+      html += '<td style="color:#94a3b8">\u25b8</td>';
+      html += '</tr>';
+      html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
       if(c.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(c.description) + '</div>';
       if(c.investigation_path&&c.investigation_path.length){
         html += '<div style="margin-bottom:6px"><b>调查路径 (' + c.investigation_path.length + '步):</b></div>';
@@ -1323,9 +1324,9 @@ function renderChainsList(chains) {
         });
       }
       if(c.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(c.suggestion) + '</div>';
-      html += '</div>';
+      html += '</td></tr>';
     });
-    html += '</div>';
+    html += '</tbody></table>';
   }
 
   target.innerHTML = html;
@@ -1370,30 +1371,31 @@ function renderEvidenceList(chains) {
   var target = document.getElementById('evidence-body');
   if (!target) return;
   var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-  var html = '<div style="font-size:10px;line-height:2.2">';
+  var html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:80px"><col style="width:28px"></colgroup>';
+  html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>分类</th><th>验证要求</th><th></th></tr></thead><tbody>';
   chains.forEach(function(c,ci){
     var dims = (c.dimensions||[]).length;
     var cat = c.category||'';
     var cid = 'evid-' + ci;
-    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\'">';
-    html += '<span style="color:#94a3b8;min-width:24px">#' + (ci+1) + '</span>';
-    html += '<span style="flex:1;color:#0f172a">' + esc(c.name||'') + '</span>';
-    html += '<span style="color:#64748b;font-size:9px">' + esc(cat) + '</span>';
-    html += '<span style="color:#94a3b8;font-size:9px">' + (c.min_evidence||'?') + '\u00d7' + dims + '维</span>';
-    html += '<span style="color:#94a3b8">\u25b8</span>';
-    html += '</div>';
-    html += '<div id="' + cid + '" style="display:none;padding:10px 0 10px 24px;font-size:10px;line-height:1.8;color:#475569">';
+    html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
+    html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
+    html += '<td>' + esc(c.name||'') + '</td>';
+    html += '<td>' + esc(cat) + '</td>';
+    html += '<td>' + (c.min_evidence||'?') + '\u00d7' + dims + '维</td>';
+    html += '<td style="color:#94a3b8">\u25b8</td>';
+    html += '</tr>';
+    html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
     if(c.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(c.description) + '</div>';
     html += '<div style="margin-bottom:6px"><b>要求\u2265</b> ' + c.min_evidence + ' <b>个独立数据源同时匹配</b> | ' + (c.dimensions||[]).length + ' <b>个验证维度</b></div>';
     if(c.dimensions&&c.dimensions.length){
       html += '<div style="margin-bottom:6px"><b>验证维度:</b></div>';
-      c.dimensions.forEach(function(d){ html += '<div style="padding:2px 0">\u00b7 ' + esc(d.dimension||d.source||d.name||'' ) + '</div>'; });
+      c.dimensions.forEach(function(d){ html += '<div style="padding:2px 0">\u00b7 ' + esc(d.dimension||d.source||d.name||'') + '</div>'; });
     }
     if(c.trigger_keywords) html += '<div style="margin-top:6px"><b>触发关键词:</b> ' + (c.trigger_keywords||[]).join('、') + '</div>';
     if(c.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(c.suggestion) + '</div>';
-    html += '</div>';
+    html += '</td></tr>';
   });
-  html += '</div>';
+  html += '</tbody></table>';
   target.innerHTML = html;
 }
 
@@ -5229,31 +5231,32 @@ async function loadAnalysisChainsData() {
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
     var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-    var html = '<div style="font-size:10px;line-height:2.2">';
+    var html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:28px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>推理链名称</th><th>分类</th><th>步数</th><th></th></tr></thead><tbody>';
     chains.forEach(function(chain,ci){
       var steps = (chain.reasoning_path||[]).length;
       var cat = chain.category||'';
       var cid = 'alc-' + ci;
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;cursor:pointer" data-cid="' + cid + '" onclick="var d=document.getElementById(this.getAttribute(\'data-cid\'));d.style.display=d.style.display===\'none\'?\'\':\'none\'">';
-      html += '<span style="color:#94a3b8;min-width:24px">#'+(ci+1)+'</span>';
-      html += '<span style="flex:1;color:#0f172a">'+esc(chain.name||'')+'</span>';
-      html += '<span style="color:#64748b;font-size:9px">'+esc(cat)+'</span>';
-      html += '<span style="color:#94a3b8;font-size:9px">'+steps+'步</span>';
-      html += '<span style="color:#94a3b8">▸</span>';
-      html += '</div>';
-      html += '<div id="'+cid+'" style="display:none;padding:10px 0 10px 24px;font-size:10px;line-height:1.8;color:#475569">';
-      if(chain.description) html += '<div style="margin-bottom:10px;color:#64748b">'+esc(chain.description)+'</div>';
+      html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
+      html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
+      html += '<td>' + esc(chain.name||'') + '</td>';
+      html += '<td>' + esc(cat) + '</td>';
+      html += '<td>' + steps + '</td>';
+      html += '<td style="color:#94a3b8">\u25b8</td>';
+      html += '</tr>';
+      html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
+      if(chain.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(chain.description) + '</div>';
       if(chain.reasoning_path&&chain.reasoning_path.length){
-        html += '<div style="margin-bottom:6px"><b>推理路径 ('+chain.reasoning_path.length+'步):</b></div>';
+        html += '<div style="margin-bottom:6px"><b>推理路径 (' + chain.reasoning_path.length + '步):</b></div>';
         chain.reasoning_path.forEach(function(s,si){
-          html += '<div style="padding:4px 0">'+(si+1)+'. <b>'+esc(s.cross||'')+'</b> → '+esc(s.action||'')+'</div>';
-          if(s.evidence_required) html += '<div style="padding-left:16px;color:#94a3b8;font-size:9px">证据: '+esc(s.evidence_required)+'</div>';
+          html += '<div style="padding:4px 0">' + (si+1) + '. <b>' + esc(s.cross||'') + '</b> \u2192 ' + esc(s.action||'') + '</div>';
+          if(s.evidence_required) html += '<div style="padding-left:16px;color:#94a3b8;font-size:9px">证据: ' + esc(s.evidence_required) + '</div>';
         });
       }
-      if(chain.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">'+esc(chain.suggestion)+'</div>';
-      html += '</div>';
+      if(chain.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(chain.suggestion) + '</div>';
+      html += '</td></tr>';
     });
-    html += '</div>';
+    html += '</tbody></table>';
     if(target) target.innerHTML = html;
   } catch(e) {
     if(target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: '+e.message+'</div>';
