@@ -1248,7 +1248,6 @@ function renderChainsPage(container) {
     + '</style>';
 
   h += '<div class="cl">';
-  h += '<div class="cl-sub">共 <b style="color:#16233a">40</b> 条精写线索链</div>';
   h += '<div id="chains-body"></div>';
   h += '</div>';
   container.innerHTML = h;
@@ -1424,7 +1423,6 @@ function renderEvidencePage(container) {
     + '</style>';
 
   h += '<div class="ev">';
-  h += '<div class="ev-sub">共 <b style="color:#16233a">20</b> 条精写证据链</div>';
   h += '<div id="evidence-body"></div>';
   h += '</div>';
   container.innerHTML = h;
@@ -5444,7 +5442,6 @@ function renderAnalysisChainsPage(container) {
     + '.alc-flow b{color:#334155}'
     + '</style>';
   h += '<div class="alc">';
-  h += '<div class="alc-sub">共 <b style="color:#16233a">19</b> 条精写分析链</div>';
   h += '<div id="alc-body"></div>';
   h += '</div>';
   container.innerHTML = h;
