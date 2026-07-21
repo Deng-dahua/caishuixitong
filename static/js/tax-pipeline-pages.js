@@ -1252,7 +1252,7 @@ function renderChainsPage(container) {
   h += '</div>';
   container.innerHTML = h;
   _allClueChains = null;
-  loadChainsData();
+  setTimeout(function(){ loadChainsData(); }, 50);
 }
 
 async function loadChainsData() {
@@ -1427,7 +1427,8 @@ function renderEvidencePage(container) {
   h += '</div>';
   container.innerHTML = h;
 
-  loadEvidenceData();
+  _allEvidenceChains = null;
+  setTimeout(function(){ loadEvidenceData(); }, 50);
 }
 
 async function loadEvidenceData() {
@@ -5445,7 +5446,8 @@ function renderAnalysisChainsPage(container) {
   h += '<div id="alc-body"></div>';
   h += '</div>';
   container.innerHTML = h;
-  loadAnalysisChainsData();
+  _allAnalysisChains = null;
+  setTimeout(function(){ loadAnalysisChainsData(); }, 50);
 }
 
 async function loadAnalysisChainsData() {
@@ -5825,6 +5827,8 @@ function renderMethodologyAssemble(){
   var full=(window.__au1||'')+(window.__au2||'')+(window.__au3||'');
   if(typeof applySysStats==='function'&&window._systemConfig)full=applySysStats(full,window._systemConfig);
   t.innerHTML=full;
+  // 确保DOM就绪后再渲染子面板（避免innerHTML未完全同步）
+  setTimeout(function(){
   var r=document.getElementById('au-analyze-result');
   if(r&&typeof renderAnalyzePage==='function'){try{renderAnalyzePage(r)}catch(e){r.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无分析结果，请先运行一键稽查。</div>'}}
   var l=document.getElementById('au-analyze-logs');
@@ -5840,7 +5844,8 @@ function renderMethodologyAssemble(){
   var ud=document.getElementById('au-domain-unified');
   if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#64748b">域分析系统加载中...</span>'}}
   var i=document.getElementById('au-incentive');
-  if(i&&typeof renderTaxIncentivesPage==='function'){try{renderTaxIncentivesPage(i)}catch(e){i.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无税收优惠扫描结果。</div>'}}
+  if(i&&typeof renderTaxIncentivesPage==='function'){try{renderTaxIncentivesPage(i)}catch(e){i.innerHTML='<div style="color:#64748b;padding:14px">暂无税收优惠扫描结果。</div>'}}
+  }, 0);
 }
 
 // 方法论面板内的紧凑线索链渲染
