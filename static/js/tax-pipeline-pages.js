@@ -1387,7 +1387,7 @@ function renderEvidenceList(chains) {
     html += '<div style="margin-bottom:6px"><b>要求\u2265</b> ' + c.min_evidence + ' <b>个独立数据源同时匹配</b> | ' + (c.dimensions||[]).length + ' <b>个验证维度</b></div>';
     if(c.dimensions&&c.dimensions.length){
       html += '<div style="margin-bottom:6px"><b>验证维度:</b></div>';
-      c.dimensions.forEach(function(d){ html += '<div style="padding:2px 0">\u00b7 ' + esc(d) + '</div>'; });
+      c.dimensions.forEach(function(d){ html += '<div style="padding:2px 0">\u00b7 ' + esc(d.dimension||d.source||d.name||'' ) + '</div>'; });
     }
     if(c.trigger_keywords) html += '<div style="margin-top:6px"><b>触发关键词:</b> ' + (c.trigger_keywords||[]).join('、') + '</div>';
     if(c.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(c.suggestion) + '</div>';
