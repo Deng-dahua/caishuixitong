@@ -5948,11 +5948,11 @@ function renderMethodologyAssemble(){
   var rd=document.getElementById('au-rules-data');
   if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#64748b">规则数据加载中...</span>'}}
   var cd=document.getElementById('au-chains-data');
-  if(cd) renderCompactClueChains(cd);
+  if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#64748b">线索链加载失败</span>';}}
   var ed=document.getElementById('au-evidence-data');
-  if(ed) renderCompactEvidenceChains(ed);
+  if(ed&&typeof renderEvidencePage==='function'){try{renderEvidencePage(ed)}catch(e){ed.innerHTML='<span style="color:#64748b">证据链加载失败</span>';}}
   var ad=document.getElementById('au-analysis-data');
-  if(ad) renderCompactAnalysisChains(ad);
+  if(ad&&typeof renderAnalysisChainsPage==='function'){try{renderAnalysisChainsPage(ad)}catch(e){ad.innerHTML='<span style="color:#64748b">分析链加载失败</span>';}}
   var ud=document.getElementById('au-domain-unified');
   if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#64748b">域分析系统加载中...</span>'}}
   var i=document.getElementById('au-incentive');
