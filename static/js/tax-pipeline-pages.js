@@ -1242,24 +1242,17 @@ function renderChainsPage(container) {
 
   var h = '';
   h += '<style>'
-    + '.cl{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.cl-title{font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px}'
-    + '.cl-sub{font-size:10px;color:#64748b;margin:0 0 28px;line-height:1.8}'
-    + '.cl-hero{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.cl-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.cl-card .v{font-size:10px;font-weight:700;color:#16233a;line-height:1.3}'
-    + '.cl-card .l{font-size:10px;color:#64748b;margin-top:6px}'
+    + '.cl{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.cl-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
     + '.cl-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
     + '</style>';
 
   h += '<div class="cl">';
-  h += '<div class="cl-title">线索链调查规程</div>';
-  h += '<div class="cl-sub">共 <b style="color:#16233a">40</b> 条标准化调查链 · 159 个调查步骤 · 覆盖隐匿收入、虚开发票、虚列成本、关联交易、少缴税款、社保个税六大类</div>';
-
+  h += '<div class="cl-sub">共 <b style="color:#16233a">40</b> 条精写线索链</div>';
   h += '<div id="chains-body"></div>';
   h += '</div>';
   container.innerHTML = h;
-  _allClueChains = null;  // 清除缓存，强制重新加载
+  _allClueChains = null;
   loadChainsData();
 }
 
@@ -1425,61 +1418,18 @@ function renderEvidencePage(container) {
 
   var h = '';
   h += '<style>'
-    + '.ev{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.ev-title{font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px}'
-    + '.ev-sub{font-size:10px;color:#64748b;margin:0 0 28px;line-height:1.8}'
-    + '.ev-hero{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.ev-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.ev-card .v{font-size:10px;font-weight:700;color:#16233a;line-height:1.3}'
-    + '.ev-card .l{font-size:10px;color:#64748b;margin-top:6px}'
+    + '.ev{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.ev-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
     + '.ev-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
     + '</style>';
 
   h += '<div class="ev">';
-  h += '<div class="ev-title">证据链</div>';
-  h += '<div class="ev-sub">多源交叉验证 · 证据闭环 · 所属：核心数据资产</div>';
-
-  // 统计卡片（占位，异步填充）
-  h += '<div class="ev-hero">';
-  h += '<div class="ev-card"><div class="v" id="ev-total" style="color:#16233a">—</div><div class="l">证据链总数</div></div>';
-  h += '<div class="ev-card"><div class="v" id="ev-closed" style="color:#059669">—</div><div class="l">已闭环</div></div>';
-  h += '<div class="ev-card"><div class="v" id="ev-steps" style="color:#2563eb">—</div><div class="l">调查步骤</div></div>';
-  h += '<div class="ev-card"><div class="v" id="ev-highrisk" style="color:#f59e0b">—</div><div class="l">高风险步骤</div></div>';
-  h += '</div>';
-
-  // 上下游依赖
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #bae6fd">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb">线索链</a><br><span style="color:#64748b">线索链发现触发证据链多源验证</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><br><span style="color:#64748b">规则触发的发现作为证据匹配源</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'tax-doc-analysis\')" style="color:#2563eb">资料风险分析报告</a><br><span style="color:#64748b">域分析all_findings作为keyword匹配池</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-pipe\')" style="color:#2563eb">管道调度</a><br><span style="color:#64748b">管线步骤⑤调用跨域证据推理</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'analysis-page\')" style="color:#2563eb">分析链</a><br><span style="color:#64748b">证据闭环后输入分析链做综合推理</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理系统</a><br><span style="color:#64748b">闭环证据作为因果推理节点</span></div>';
-  h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#64748b">证据驱动发现接受质量审查</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">系统详情</a><br><span style="color:#64748b">证据链系统状态展示</span></div>';
-  h += '</div></div></div>';
-
-  // 段落说明
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin-bottom:10px">';
-  h += '<p style="margin:0 0 10px">证据链是系统的<strong>多源交叉验证系统</strong>。与线索链的串行调查不同，证据链同时从多个独立维度收集证据——每个维度是一个独立数据源（银行流水、发票、合同、社保、工商等），当 ≥min_evidence 个维度的触发关键词同时匹配到 all_findings 时，形成有效证据闭环。</p>';
-  h += '<p style="margin:0 0 10px">证据链解决的核心问题是"单源证据不可靠"。一条银行流水异常可能是技术性错误，但如果银行流水异常 + 发票品名不符 + 合同缺失同时出现，就形成了多源交叉印证的证据闭环，可信度大幅提升。闭环后的证据自动注入 all_findings，由分析链做综合推理判定。</p>';
-  h += '<p style="margin:0">证据链与线索链的关系是"串行发现 → 并行验证"：线索链负责从风险信号出发逐步追查（一条线到底），证据链负责对线索链发现的多维证据做交叉验证（多源同时印证）。两者并行配合（线索链定义调查路径，证据链定义验证标准），而非先后顺序。协同结果汇入分析链做跨域串联推理。</p>';
-  h += '</div>';
-
+  h += '<div class="ev-sub">共 <b style="color:#16233a">20</b> 条精写证据链</div>';
   h += '<div id="evidence-body"></div>';
   h += '</div>';
   container.innerHTML = h;
 
-  var hasCache = _allEvidenceChains && _allEvidenceChains.length > 0;
-  if (hasCache) { renderEvidenceList(_allEvidenceChains); }
-  else { loadEvidenceData(); }
+  loadEvidenceData();
 }
 
 async function loadEvidenceData() {
@@ -1488,9 +1438,6 @@ async function loadEvidenceData() {
     var resp = await fetch('/static/cross_domain_evidence.json?_t=' + Date.now());
     var data = await resp.json();
     var evChains = data.evidence_chains || data.chains || data;
-
-    if (!_chainDynamic) await loadChainDynamicStatus();
-
     _allEvidenceChains = evChains;
     renderEvidenceList(evChains);
   } catch (e) {
@@ -1506,32 +1453,6 @@ function renderEvidenceList(chains) {
   if (_chainDynamic && _chainDynamic.evidence_closures) {
     _chainDynamic.evidence_closures.forEach(function(ec) { evExecMap[ec.chain_name] = ec; });
   }
-
-  // 统计步骤数：旧格式 investigation_path 是数组，新格式 steps 是数字
-  var totalSteps = chains.reduce(function(s, c) {
-    var ip = c.investigation_path;
-    if (Array.isArray(ip)) return s + ip.length;
-    if (typeof c.steps === 'number') return s + c.steps;
-    if (typeof c.total_steps === 'number') return s + c.total_steps;
-    return s;
-  }, 0);
-  var execChains = chains.filter(function(c) { return c.executable !== false && !c.legacy; });
-  var closedCount = chains.filter(function(c) {
-    var exec = evExecMap[c.name];
-    return exec && exec.closed;
-  }).length;
-  var highRiskSteps = chains.reduce(function(s, c) {
-    var hr = c.high_risk_steps;
-    if (typeof hr === 'number') return s + hr;
-    if (Array.isArray(hr)) return s + hr.length;
-    return s;
-  }, 0);
-
-  // 填充页面级统计卡片
-  var elT = document.getElementById('ev-total'); if (elT) elT.textContent = chains.length;
-  var elC = document.getElementById('ev-closed'); if (elC) elC.textContent = closedCount;
-  var elS = document.getElementById('ev-steps'); if (elS) elS.textContent = totalSteps;
-  var elH = document.getElementById('ev-highrisk'); if (elH) elH.textContent = highRiskSteps;
 
   var html = '';
 
@@ -5514,13 +5435,8 @@ function renderAnalysisChainsPage(container) {
   window._skipModuleHeader = true;
   var h = '';
   h += '<style>'
-    + '.alc{max-width:900px;margin:0 auto;padding:36px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.alc-title{font-size:10px;font-weight:700;color:#16233a;margin:0 0 10px}'
-    + '.alc-sub{font-size:10px;color:#64748b;margin:0 0 28px;line-height:1.8}'
-    + '.alc-hero{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.alc-card{flex:1;min-width:130px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 16px;text-align:center}'
-    + '.alc-card .v{font-size:10px;font-weight:700;color:#16233a;line-height:1.3}'
-    + '.alc-card .l{font-size:10px;color:#64748b;margin-top:6px}'
+    + '.alc{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
+    + '.alc-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
     + '.alc-chain{padding:14px 18px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff}'
     + '.alc-step{padding:8px 12px;margin:4px 0;background:#f8fafc;border-radius:6px;font-size:10px;line-height:1.9}'
     + '.alc-step .sn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:8px;flex-shrink:0}'
@@ -5528,33 +5444,7 @@ function renderAnalysisChainsPage(container) {
     + '.alc-flow b{color:#334155}'
     + '</style>';
   h += '<div class="alc">';
-  h += '<div class="alc-title">分析链</div>';
-  h += '<div class="alc-sub">跨域综合推理系统 · 推理路径可视化 · 所属：数据与分析</div>';
-  h += '<div class="alc-hero">';
-  h += '<div class="alc-card"><div class="v" id="alc-total">—</div><div class="l">分析链总数</div></div>';
-  h += '<div class="alc-card"><div class="v" id="alc-high" style="color:#dc2626">—</div><div class="l">高风险链</div></div>';
-  h += '<div class="alc-card"><div class="v" id="alc-mid" style="color:#f59e0b">—</div><div class="l">中风险链</div></div>';
-  h += '<div class="alc-card"><div class="v" id="alc-steps" style="color:#2563eb">—</div><div class="l">推理步骤总数</div></div>';
-  h += '</div>';
-
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">';
-  h += '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:10px">⬆ 上游（输入方）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div>线索链<br><span style="color:#64748b">线索发现后触发分析链综合推理</span></div>';
-  h += '<div>证据链<br><span style="color:#64748b">多源证据闭合后输入分析链</span></div>';
-  h += '</div></div>';
-  h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
-  h += '<div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:10px">⬇ 下游（消费方）</div>';
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<div>推理系统<br><span style="color:#64748b">分析链驱动因果推理系统</span></div>';
-  h += '<div>报告生成<br><span style="color:#64748b">推理结论反馈至报告发现</span></div>';
-  h += '</div></div></div>';
-
-  h += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin-bottom:10px">';
-  h += '<p style="margin:0 0 10px">分析链与线索链、证据链<strong>并行协作</strong>——线索链定义调查路径（怎么查），证据链并行交叉验证（怎么判），分析链将分散的发现串联为跨域因果叙事（怎么连）。三者不是"→"的串行顺序，而是同时启动、各自负责不同维度，最终在报告层面四层平权汇入。</p>';
-  h += '<p style="margin:0">分析链的推理路径可视化展示：从哪个域发现 → 去哪个域验证 → 验证遇到什么情况如何分支 → 最终得出结论。这模拟了资深稽查员"顺藤摸瓜、层层深入、能进能退"的思维过程。</p>';
-  h += '</div>';
+  h += '<div class="alc-sub">共 <b style="color:#16233a">19</b> 条精写分析链</div>';
   h += '<div id="alc-body"></div>';
   h += '</div>';
   container.innerHTML = h;
@@ -5567,13 +5457,6 @@ async function loadAnalysisChainsData() {
     var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
-    var high = chains.filter(function(c){return c.level==='高风险'}).length;
-    var mid = chains.filter(function(c){return c.level==='中风险'}).length;
-    var steps = 0; chains.forEach(function(c){steps += (c.reasoning_path||[]).length;});
-    document.getElementById('alc-total').textContent = chains.length;
-    document.getElementById('alc-high').textContent = high;
-    document.getElementById('alc-mid').textContent = mid;
-    document.getElementById('alc-steps').textContent = steps;
     var html = '';
     chains.forEach(function(chain){
       var lvlColor = chain.level==='高风险' ? '#dc2626' : (chain.level==='中风险' ? '#f59e0b' : '#0e7490');
