@@ -1334,7 +1334,7 @@ function renderChainsList(chains) {
       html += '<div style="padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6">'
 
       // ══ 标题行 ═══
-      + '<div style="font-size:13px;font-weight:500;color:#0f172a;margin-bottom:10px;line-height:1.6">'
+      + '<div style="font-size:10px;font-weight:500;color:#0f172a;margin-bottom:10px;line-height:1.6">'
       + escHtml(c.name) + badge + topicTag
       + '</div>';
 
@@ -5464,9 +5464,9 @@ async function loadAnalysisChainsData() {
       html += '<div style="padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
       html += '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:'+lvlColor+'15;color:'+lvlColor+'">'+(chain.category||chain.level||'')+'</span>';
-      html += '<span style="font-size:13px;font-weight:500;color:#0f172a">'+esc(chain.name)+'</span>';
+      html += '<span style="font-size:10px;font-weight:500;color:#0f172a">'+esc(chain.name)+'</span>';
       html += '</div>';
-      html += '<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:10px">'+esc(chain.description)+'</div>';
+      html += '<div style="font-size:10px;color:#475569;line-height:1.8;margin-bottom:10px">'+esc(chain.description)+'</div>';
       if (chain.reasoning_path && chain.reasoning_path.length > 0) {
         html += '<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:10px;margin-top:10px">推理路径（共 '+chain.reasoning_path.length+' 步）</div>';
         chain.reasoning_path.forEach(function(s,si){
