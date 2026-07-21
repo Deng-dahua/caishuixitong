@@ -2788,7 +2788,7 @@ function renderDataAssets(container) {
       desc:'覆盖20个分类的税务合规指令：发票匹配/申报合规/行业专项/个税/资产负债/企业所得/成本费用/发票合规/增值税/经营实质等。每条含触发条件、风险等级、调查步骤、法定处罚依据四项要素。',
       stat:'20个分类 · {{rules_count}}条规则'},
     { n:'②', name:'线索/证据链', icon:'🔗', color:'#7c3aed',
-      desc:'线索链定义从风险到发现的调查路径（437条，41条可执行+1174条方法论）。证据链定义多源验证的闭环条件（781条，要求≥60%维度+≥3规则+≥2域达成闭环）。',
+      desc:'线索链定义从风险到发现的调查路径（40条精写线索链）。证据链定义多源验证的闭环条件（20条精写证据链，≥2个独立数据源交叉印证）。',
       stat:'{{clue_chains}}条线索链 · {{evidence_chains}}条证据链'},
     { n:'③', name:'域分析函数', icon:'🔍', color:'#059669',
       desc:'{{domain_functions}}个域分析函数：银行收款构成/付款方身份核实/进销存比对/五层发票审计/供应商穿透/合同四层分类/经营实质/地理分析等，覆盖资金、票据、交易、关联方四维域。',
@@ -5873,7 +5873,7 @@ function renderMethodologyPart2(){
 
   // 数据面板
   h+='<div style="margin:10px 0"><details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📋 税务疑点库（全量规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链调查数据（437条标准化调查路径，可直接查阅全部调查步骤）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（40条精写线索链，可直接查阅全部调查步骤）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
   h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链数据（可直接查阅全部验证维度）</summary><div class="live"><div id="au-evidence-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
 
   // ═══ 第四层·过滤 ═══
