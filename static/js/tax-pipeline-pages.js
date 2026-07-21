@@ -5873,8 +5873,9 @@ function renderMethodologyPart2(){
 
   // 数据面板
   h+='<div style="margin:10px 0"><details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📋 税务疑点库（全量规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（40条精写）</summary><div style="padding:10px 16px;background:#f8fafc;border-radius:8px"><a href="javascript:navigateTo(\'chains-page\')" style="color:#2563eb;font-size:10px">→ 点击打开线索链页面查看全部40条调查路径</a></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链（20条精写）</summary><div style="padding:10px 16px;background:#f8fafc;border-radius:8px"><a href="javascript:navigateTo(\'evidence-page\')" style="color:#2563eb;font-size:10px">→ 点击打开证据链页面查看全部20条验证维度</a></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
+  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（40条精写·调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链（20条精写·验证标准）</summary><div class="live"><div id="au-evidence-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔀 分析链（19条精写·跨域推理）</summary><div class="live"><div id="au-analysis-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
 
   // ═══ 第四层·过滤 ═══
   h+='<h2>第四层 · 疑点过滤 —— 把100条信号淬成3条铁证</h2><p>布网阶段{{domain_functions}}个域同时发动，会产生大量粗糙信号。把粗糙信号淬成铁证，靠的是三道过滤器。</p>';
@@ -5946,8 +5947,78 @@ function renderMethodologyAssemble(){
   if(l&&typeof renderAnalyzeLogs==='function'){try{renderAnalyzeLogs(l)}catch(e){l.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无管线日志。</div>'}}
   var rd=document.getElementById('au-rules-data');
   if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#64748b">规则数据加载中...</span>'}}
+  var cd=document.getElementById('au-chains-data');
+  if(cd) renderCompactClueChains(cd);
+  var ed=document.getElementById('au-evidence-data');
+  if(ed) renderCompactEvidenceChains(ed);
+  var ad=document.getElementById('au-analysis-data');
+  if(ad) renderCompactAnalysisChains(ad);
   var ud=document.getElementById('au-domain-unified');
   if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#64748b">域分析系统加载中...</span>'}}
   var i=document.getElementById('au-incentive');
   if(i&&typeof renderTaxIncentivesPage==='function'){try{renderTaxIncentivesPage(i)}catch(e){i.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无税收优惠扫描结果。</div>'}}
+}
+
+// 方法论面板内的紧凑线索链渲染
+function renderCompactClueChains(el) {
+  el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
+  fetch('/static/cross_domain_clues.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(clues){
+    var cats = {};
+    clues.forEach(function(c){ var k = c.category||'其他'; if(!cats[k]) cats[k]=[]; cats[k].push(c); });
+    var h = '<div style="font-size:10px;line-height:20px">';
+    Object.keys(cats).forEach(function(cat){
+      h += '<div style="font-weight:700;color:#16233a;margin:8px 0 4px">' + escHtml(cat) + ' (' + cats[cat].length + '条)</div>';
+      cats[cat].slice(0,5).forEach(function(c){
+        var sc = (c.level==='极高风险'||c.level==='高风险') ? '#dc2626' : '#64748b';
+        h += '<div style="padding:2px 0;display:flex;gap:8px"><span style="color:'+sc+';white-space:nowrap">['+(c.level||'')+']</span><span style="color:#3a4048">'+escHtml(c.name||'')+'</span><span style="color:#94a3b8">'+(c.investigation_path||[]).length+'步</span></div>';
+      });
+      if(cats[cat].length>5) h += '<div style="color:#94a3b8;padding-left:16px">... 共'+cats[cat].length+'条，<a href="javascript:navigateTo("chains-page")" style="color:#2563eb">查看全部</a></div>';
+    });
+    h += '</div>';
+    el.innerHTML = h;
+  }).catch(function(e){ el.innerHTML = '<div style="color:#dc2626;padding:10px;font-size:10px">加载失败: '+e.message+'</div>'; });
+}
+
+// 方法论面板内的紧凑证据链渲染
+function renderCompactEvidenceChains(el) {
+  el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
+  fetch('/static/cross_domain_evidence.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
+    var chains = data.evidence_chains || data.chains || data;
+    if(!Array.isArray(chains)) chains=[];
+    var cats = {};
+    chains.forEach(function(c){ var k = c.category||'其他'; if(!cats[k]) cats[k]=[]; cats[k].push(c); });
+    var h = '<div style="font-size:10px;line-height:20px">';
+    Object.keys(cats).forEach(function(cat){
+      h += '<div style="font-weight:700;color:#16233a;margin:8px 0 4px">' + escHtml(cat) + ' (' + cats[cat].length + '条)</div>';
+      cats[cat].slice(0,5).forEach(function(c){
+        h += '<div style="padding:2px 0"><span style="color:#3a4048">'+escHtml(c.name||'')+'</span><span style="color:#94a3b8"> | min:'+(c.min_evidence||'?')+' | '+(c.dimensions||[]).length+'维</span></div>';
+      });
+      if(cats[cat].length>5) h += '<div style="color:#94a3b8;padding-left:16px">... 共'+cats[cat].length+'条，<a href="javascript:navigateTo("evidence-page")" style="color:#2563eb">查看全部</a></div>';
+    });
+    h += '</div>';
+    el.innerHTML = h;
+  }).catch(function(e){ el.innerHTML = '<div style="color:#dc2626;padding:10px;font-size:10px">加载失败: '+e.message+'</div>'; });
+}
+
+// 方法论面板内的紧凑分析链渲染
+function renderCompactAnalysisChains(el) {
+  el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
+  fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
+    var chains = data.analysis_chains || data.chains || data;
+    if(!Array.isArray(chains)) chains=[];
+    var cats = {};
+    chains.forEach(function(c){ var k = c.category||'其他'; if(!cats[k]) cats[k]=[]; cats[k].push(c); });
+    var h = '<div style="font-size:10px;line-height:20px">';
+    Object.keys(cats).forEach(function(cat){
+      h += '<div style="font-weight:700;color:#16233a;margin:8px 0 4px">' + escHtml(cat) + ' (' + cats[cat].length + '条)</div>';
+      cats[cat].slice(0,5).forEach(function(c){
+        var steps = (c.reasoning_path||[]).length;
+        var desc = (c.description||'').substring(0,50);
+        h += '<div style="padding:2px 0"><span style="color:#3a4048">'+escHtml(c.name||'')+'</span><span style="color:#94a3b8"> | '+desc+' | '+steps+'步</span></div>';
+      });
+      if(cats[cat].length>5) h += '<div style="color:#94a3b8;padding-left:16px">... 共'+cats[cat].length+'条，<a href="javascript:navigateTo("analysis-page")" style="color:#2563eb">查看全部</a></div>';
+    });
+    h += '</div>';
+    el.innerHTML = h;
+  }).catch(function(e){ el.innerHTML = '<div style="color:#dc2626;padding:10px;font-size:10px">加载失败: '+e.message+'</div>'; });
 }
