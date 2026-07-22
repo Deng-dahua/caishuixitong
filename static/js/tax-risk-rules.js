@@ -195,7 +195,7 @@ function renderTaxRiskRules(container) {
     + '.rr-pre{font-size:10px;color:#5b6675;line-height:20px;margin:0 0 10px;padding:0}'
     + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
     + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:0 0 10px}'
-    + '.rr-tax .rt{padding:10px;background:#fafbfc;border:1px solid #eff2f6;font-size:10px}'
+    + '.rr-tax .rt{padding:10px;font-size:10px}'
     + '.rr-tax .rt b{color:#16233a}'
     + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
     + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
