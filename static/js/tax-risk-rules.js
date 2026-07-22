@@ -82,7 +82,7 @@ window._rrDetailHtml = function(rl) {
   // 正常业务解释
   if (rl.normal_reason) {
     card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">可能的业务解释（正常情形）</div>';
-    card += '<div style="font-size:10px;color:#059669;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
+    card += '<div style="font-size:10px;color:#059669;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#f0fdf4;white-space:pre-wrap">' + escHtml(rl.normal_reason) + '</div>';
   }
   
   // 定性路径
@@ -95,7 +95,7 @@ window._rrDetailHtml = function(rl) {
   if (rl.drill_questions) {
     card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
     var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
-    card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;border-radius:0 6px 6px 0;white-space:pre-wrap">' + escHtml(dq) + '</div>';
+    card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;white-space:pre-wrap">' + escHtml(dq) + '</div>';
   }
   
   // 传统字段（兼容未升级的规则）
@@ -155,12 +155,12 @@ window._rrShowDetail = function(rid) {
   var h = '<div data-rule-id="' + rid + '">';
   // 顶栏：返回 + 操作
   h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
-    + '<button onclick="_rrBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
+    + '<button onclick="_rrBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
     + '</div>';
 
   // 触发溯源
   if (triggered.length > 0) {
-    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;border-radius:6px;font-size:10px;line-height:20px">'
+    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
       + '<div style="font-weight:600;color:#991b1b;margin-bottom:4px">✅ 本次分析触发 ' + triggered.length + ' 次 · 触发溯源：</div>'
       + triggered.map(function(t) {
           return '<div style="color:#7f1d1d">→ <strong>' + escHtml(t.domain || t.type || '') + '</strong>' + (t.detail ? ': ' + escHtml(String(t.detail).substring(0, 200)) : '') + (t.level ? ' [' + t.level + ']' : '') + '</div>';
@@ -195,13 +195,13 @@ function renderTaxRiskRules(container) {
     + '.rr-pre{font-size:10px;color:#5b6675;line-height:20px;margin:0 0 10px;padding:0}'
     + '.rr-pre em{font-style:normal;color:#9a1f2b;font-weight:600}'
     + '.rr-tax{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:0 0 10px}'
-    + '.rr-tax .rt{padding:10px;background:#fafbfc;border:1px solid #eff2f6;border-radius:6px;font-size:10px}'
+    + '.rr-tax .rt{padding:10px;background:#fafbfc;border:1px solid #eff2f6;font-size:10px}'
     + '.rr-tax .rt b{color:#16233a}'
     + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
     + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;outline:none}'
+    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;font-size:10px;color:#475569;outline:none}'
     + '.rr-search input:focus{border-color:#9a1f2b}'
-    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff}'
+    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;font-size:10px;color:#475569;background:#fff}'
     + '.rr-rule{padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
     + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
     + '.rr-rule .rh{font-size:10px;font-weight:600;color:#16233a;margin:0 0 10px}'
@@ -230,10 +230,10 @@ function renderTaxRiskRules(container) {
     + '<option>税务合规与程序</option>'
     + '</select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
-    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
+    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
     + '</div>';
 
-  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;border-radius:8px;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v6六类攻击角度）</summary>'
+  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v6六类攻击角度）</summary>'
     + '<div style="margin-top:10px">'
     + '<p><b>疑点编制规则·税务疑点仅来源于数据矛盾</b>——疑点不是法律条文，不是会计知识，不是处理标准，而是数据之间的结构性矛盾。"该企业可能存在偷税风险"属于主观推测，无法直接核查；"银行账户全年收款5000万元但申报收入仅3000万元"属于客观数据矛盾，可立即启动核查——后者方为有效疑点。编制疑点的首要步骤：明确掌握哪些数据、这些数据之间应呈何种关系，关系不成立即构成疑点。</p>'
     + '<p><b>三种基本矛盾类型</b>——①应当相等但不等：资产负债表左右不平、增值税与所得税申报收入不一致、工资薪金与社保个税三源数据不一致（勾稽断裂类）。②应当存在但缺失：有销售收入无运输费用记录、持有房产无房产税申报记录、有在职员工无社保参保记录（数据缺失类）。③不应出现但出现：购进钢材却开具咨询服务发票、新设企业三个月内开票5000万元、凌晨时段集中开票（模式异常类——"应当"的基准来源于行业统计与行为规律分析，基准本身亦为数据，故本质上仍属数据矛盾）。所有疑点均为上述三种矛盾的组合表现。</p>'
@@ -461,7 +461,7 @@ function toggleRuleEdit(ruleId, btn) {
     {k:'dataSource',label:'数据来源',v:rule.dataSource||''},
     {k:'detectable',label:'可检测性',v:rule.detectable||''},
   ];
-  var h = '<div class="rr-edit-panel" style="margin:12px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
+  var h = '<div class="rr-edit-panel" style="margin:12px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;">';
   h += '<div style="font-size:10px;font-weight:600;color:#1e293b;margin-bottom:12px">✏️ 编辑规则 ' + ruleId + '</div>';
   fields.forEach(function(f){
     h += '<div style="margin-bottom:8px"><span style="font-size:10px;color:#94a3b8">' + f.label + '</span>';
