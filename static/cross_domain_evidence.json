@@ -1,8 +1,72 @@
 {
-  "metadata": {
-    "version": "v3.0",
-    "total_chains": 0,
-    "updated_at": "2026-07-23"
-  },
-  "evidence_chains": []
+  "metadata": {"version": "v3.0-executable", "total_chains": 1, "updated_at": "2026-07-23"},
+  "evidence_chains": [
+    {
+      "id": "evid-021",
+      "rule_id": 21,
+      "name": "银行收款与申报收入断裂→多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "desc": "必备维度：收款vs申报差额",
+          "source": "bank_txs",
+          "filters": {"credit": {">": 0}},
+          "group_by": "month",
+          "fields": ["sum(credit) as total_bank"],
+          "output": "evid_total_bank"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "desc": "必备维度：申报收入总额",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": ["sum(total) as total_sales"],
+          "output": "evid_total_sales"
+        },
+        {
+          "step": 3,
+          "op": "compare",
+          "desc": "比对差额",
+          "left": "evid_total_bank",
+          "right": "evid_total_sales",
+          "threshold": {"gt": "total_sales * 0.1"},
+          "output": "evid_gap"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "desc": "核心维度：无票收款对手方",
+          "source": "bank_txs",
+          "filters": {"credit": {">": 0}},
+          "group_by": "counterparty",
+          "fields": ["sum(credit) as unreported"],
+          "output": "evid_unreported"
+        },
+        {
+          "step": 5,
+          "op": "query",
+          "desc": "辅助维度：收款持续性（按月份统计）",
+          "source": "bank_txs",
+          "filters": {"credit": {">": 0}},
+          "group_by": "month",
+          "fields": ["count(*) as month_count"],
+          "output": "evid_persistence"
+        },
+        {
+          "step": 6,
+          "op": "conclude",
+          "desc": "证据闭环判定",
+          "conditions": [
+            {"if": "evid_gap.is_anomaly", "conclusion": "收款vs申报差异验证", "severity": "必备维度确认", "detail": "银行收款总额与申报销售额存在显著差异"},
+            {"if": "evid_unreported exists", "conclusion": "无票收款验证", "severity": "核心维度确认", "detail": "存在无对应销项发票的收款对手方"},
+            {"if": "evid_persistence month_count > 6", "conclusion": "持续性验证", "severity": "辅助维度确认", "detail": "收款差异持续超过6个月，非偶然现象"}
+          ],
+          "output": "findings"
+        }
+      ]
+    }
+  ]
 }

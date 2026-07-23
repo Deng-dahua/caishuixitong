@@ -1,1 +1,69 @@
-[]
+[
+  {
+    "id": "clue-021",
+    "rule_id": 21,
+    "rule_refs": ["21"],
+    "name": "银行收款与申报收入断裂→隐匿收入调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "desc": "汇总每月银行收款总额",
+        "source": "bank_txs",
+        "filters": {"credit": {">": 0}},
+        "group_by": "month",
+        "fields": ["sum(credit) as total_receipts"],
+        "output": "monthly_bank_receipts"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "desc": "汇总每月销项发票申报销售额",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": ["sum(total) as reported_sales"],
+        "output": "monthly_reported_sales"
+      },
+      {
+        "step": 3,
+        "op": "compare",
+        "desc": "比对银行收款与申报收入，标记差异>10%的月份",
+        "left": "monthly_bank_receipts",
+        "right": "monthly_reported_sales",
+        "threshold": {"gt": "reported_sales * 0.1"},
+        "output": "receipt_report_gap"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "desc": "按对手方汇总收款金额，排除已有销项发票对应客户",
+        "source": "bank_txs",
+        "filters": {"credit": {">": 0}},
+        "group_by": "counterparty",
+        "fields": ["sum(credit) as unreported_receipts"],
+        "output": "unreported_customer_receipts"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "desc": "排查个人账户收款",
+        "source": "bank_txs",
+        "filters": {"credit": {">": 0}},
+        "group_by": "counterparty",
+        "fields": ["sum(credit) as personal_receipts"],
+        "output": "personal_account_receipts"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定",
+        "conditions": [
+          {"if": "receipt_report_gap.is_anomaly", "conclusion": "银行收款与申报收入存在>10%差异", "severity": "高风险", "detail": "银行账户收款总额显著高于增值税申报销售额，差异率>10%，涉嫌隐匿销售收入"},
+          {"if": "personal_account_receipts exists", "conclusion": "存在个人账户收款", "severity": "极高风险", "detail": "对公账户收款对手方存在可疑个人账户收款，需进一步追查是否属于经营收款"}
+        ],
+        "law_refs": ["征管法§63偷税", "征管法§64编造虚假计税依据"],
+        "output": "findings"
+      }
+    ]
+  }
+]

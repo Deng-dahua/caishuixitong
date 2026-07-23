@@ -117,18 +117,11 @@ window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
-  var rn = parseInt(rid) || 0;
-  var padId = function(n) { return n < 10 ? '00' + n : n < 100 ? '0' + n : '' + n; };
-  var hasChains = rn >= 1 && rn <= 30;
-  var clink = function(id) { return hasChains ? '<a href="javascript:void(0)" style="color:#2563eb;font-size:9px" onclick="event.stopPropagation();_rrShowChainDetail(\'' + id + '\')">' + id + '</a>' : '-'; };
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
-    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('clue-' + padId(rn)) + '</td>'
-    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('evid-' + padId(rn)) + '</td>'
-    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('alc-' + padId(rn)) + '</td>'
     + '<td style="white-space:nowrap;text-align:center;color:#64748b">' + escHtml(String(rl.updated_at || rl.created_at || '').substring(0, 10) || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>'
     + '</tr>';
@@ -137,9 +130,9 @@ window._rrTitleRow = function(rl) {
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
   var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:68px"><col style="width:68px"><col style="width:68px"><col style="width:92px"><col style="width:82px"></colgroup>'
+    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:92px"><col style="width:82px"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table>';

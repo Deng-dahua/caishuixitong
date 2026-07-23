@@ -1964,6 +1964,70 @@ def _run_analyze(company_id, db, progress_callback=None):
     if all_findings:
         domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
 
+    # ── 可执行三链引擎 (v3.0): 基于JSON链定义执行真实的聚合/比对/查询/判定操作 ──
+    try:
+        from engine.chain_executor import run_chains_for_rule
+        import json as _json, os as _os
+        
+        _clue_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_clues.json")
+        _evid_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_evidence.json")
+        _anal_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_analysis.json")
+        
+        _clue_data = _json.load(open(_clue_path, 'r', encoding='utf-8')) if _os.path.exists(_clue_path) else []
+        _evid_data_raw = _json.load(open(_evid_path, 'r', encoding='utf-8')) if _os.path.exists(_evid_path) else {}
+        _anal_data_raw = _json.load(open(_anal_path, 'r', encoding='utf-8')) if _os.path.exists(_anal_path) else {}
+        _evid_data = _evid_data_raw if isinstance(_evid_data_raw, list) else _evid_data_raw.get("evidence_chains", [])
+        _anal_data = _anal_data_raw if isinstance(_anal_data_raw, list) else _anal_data_raw.get("analysis_chains", [])
+        
+        if _clue_data or _evid_data or _anal_data:
+            # 打包引擎数据
+            _eng_data = {
+                "bank_txs": bank_txs,
+                "sal_invs": sal_invs,
+                "pur_invs": pur_invs,
+                "vouchers": vouchers,
+                "salaries": salaries,
+                "social_security": social_security,
+                "inventory": inventory,
+            }
+            # 构建销项发票客户名集合（供线索链 not_in 过滤）
+            _sal_buyers = set()
+            for _inv in sal_invs:
+                _b = str(_inv.get("buyer", "")).strip()
+                if _b:
+                    _sal_buyers.add(_b)
+            _eng_data["sales_invoice_buyers"] = _sal_buyers
+            
+            # 获取已触发的规则ID列表
+            _triggered_rule_ids = set()
+            for _f in all_findings:
+                _rid = _f.get("rule_id") or _f.get("id")
+                if _rid:
+                    try:
+                        _triggered_rule_ids.add(int(_rid))
+                    except:
+                        pass
+            
+            # 对每个已触发且有链的规则，执行三链
+            _exec_findings = []
+            for _rid in _triggered_rule_ids:
+                _results = run_chains_for_rule(_rid, _clue_data, _evid_data, _anal_data, _eng_data)
+                for _key in ("clue", "evidence", "analysis"):
+                    _r = _results.get(_key)
+                    if _r and isinstance(_r, dict) and _r.get("findings"):
+                        for _f in _r["findings"]:
+                            _f["source_chain"] = _key
+                            _f["rule_id"] = _rid
+                        _exec_findings.extend(_r["findings"])
+                        pipeline_log.append(f"[可执行链] 规则#{_rid} {_key}链: {len(_r['findings'])}个发现")
+            
+            if _exec_findings:
+                domain_results.append({"domain": "可执行三链引擎", "findings": _exec_findings})
+                all_findings.extend(_exec_findings)
+                pipeline_log.append(f"[可执行链] 共执行 {len(_exec_findings)} 个发现")
+    except Exception as _e:
+        pipeline_log.append(f"[可执行链] 执行异常: {_e}")
+
     # ── 域→规则自动分配：为没有rule_id的发现自动匹配税务合规指令 ──
     all_findings = _auto_assign_rule_ids(all_findings, pipeline_log)
 

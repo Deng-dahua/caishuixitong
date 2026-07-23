@@ -1,8 +1,50 @@
 {
-  "metadata": {
-    "version": "v3.0",
-    "total_chains": 0,
-    "updated_at": "2026-07-23"
-  },
-  "analysis_chains": []
+  "metadata": {"version": "v3.0-executable", "total_chains": 1, "updated_at": "2026-07-23"},
+  "analysis_chains": [
+    {
+      "id": "alc-021",
+      "rule_id": 21,
+      "name": "银行收款与申报收入断裂→跨域推理:隐匿收入定性",
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "desc": "步骤1: 资金域汇总收款",
+          "source": "bank_txs",
+          "filters": {"credit": {">": 0}},
+          "group_by": "month",
+          "fields": ["sum(credit) as total_receipts"],
+          "output": "alc_total_receipts"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "desc": "步骤2: 申报域汇总销项",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": ["sum(total) as reported_sales"],
+          "output": "alc_reported_sales"
+        },
+        {
+          "step": 3,
+          "op": "compare",
+          "desc": "步骤3: 跨域比对，确认差异方向和幅度",
+          "left": "alc_total_receipts",
+          "right": "alc_reported_sales",
+          "threshold": {"gt": "reported_sales * 0.1"},
+          "output": "alc_gap"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "步骤4: 综合结论定性",
+          "conditions": [
+            {"if": "alc_gap.is_anomaly", "conclusion": "隐匿收入定性成立", "severity": "极高风险", "detail": "银行收款与申报收入差异超过10%，排除时间性差异后认定为隐匿销售收入。依据征管法§63，构成偷税。"}
+          ],
+          "law_refs": ["征管法§63偷税"],
+          "output": "findings"
+        }
+      ]
+    }
+  ]
 }
