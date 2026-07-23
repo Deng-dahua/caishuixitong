@@ -2227,7 +2227,7 @@ function renderQualitySystem(container) {
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
           + '<div style="font-size:10px;font-weight:700;color:#16233a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
           + '</div>'
-          + '<div style="font-size:10px;color:#3a4048;line-height:20px">' + escHtml(desc) + '</div>'
+          + '<div style="font-size:10px;color:#059669;line-height:20px">' + escHtml(desc) + '</div>'
           + (codePos ? '<div style="margin-top:8px;font-size:10px;color:#64748b">代码位置: <code style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
           + '</div>';
       });
