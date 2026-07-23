@@ -683,11 +683,1919 @@
         "经营实质-工商登记与发票推断不一致"
       ],
       "timestamp": "2026-07-15T19:23:18.563307"
+    },
+    {
+      "trace_id": "2332fc1f",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T07:39:14.293336",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "534ef2ba",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T07:39:15.123258"
+    },
+    {
+      "trace_id": "889c4f09",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:00:03.274644",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "8af66876",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T08:00:04.210600"
+    },
+    {
+      "trace_id": "e764ffc5",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:04:52.154038",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "639febc7",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T08:04:53.127766"
+    },
+    {
+      "trace_id": "d65f57dd",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:22:06.182750",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "fb232ba9",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T08:22:07.182897"
+    },
+    {
+      "trace_id": "cb813c98",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:40:03.601995",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "66d38ae4",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T08:40:04.700486"
+    },
+    {
+      "trace_id": "330db8f8",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:54:56.288977",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "d9cfb902",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "存在风险进项发票",
+        "红字发票占比异常",
+        "两头在外的购销模式",
+        "免税项目进项未按规定转出",
+        "发票品名模糊或过于宽泛",
+        "发票备注栏未按规定填写",
+        "发票开具金额与合同金额矛盾",
+        "代开发票次数金额品名异常",
+        "取得小规模纳税人低税率发票比例异常",
+        "进项发票来源集中高风险开票地监控",
+        "银行流水中现金存入/取出频繁且与经营规模不匹配→现金交易不入账嫌疑",
+        "向个人支付劳务报酬/设计费/咨询费/居间费→未代扣代缴个人所得税",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资",
+        "广宣费超限额",
+        "红冲发票未附红冲证明",
+        "发票备注栏填写不规范"
+      ],
+      "timestamp": "2026-07-17T08:54:57.415521"
+    },
+    {
+      "trace_id": "3a99444c",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T08:59:42.610805",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c9dcff07",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资",
+        "红冲发票未附红冲证明"
+      ],
+      "timestamp": "2026-07-17T08:59:43.775088"
+    },
+    {
+      "trace_id": "15a0f57e",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T09:03:08.896232",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "bb1095e0",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-17T09:03:10.113260"
+    },
+    {
+      "trace_id": "2d80432a",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T09:20:55.631341",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "611a1032",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T09:20:56.834117"
+    },
+    {
+      "trace_id": "5dc69e0d",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T09:22:49.449800",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "9abe94b9",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致"
+      ],
+      "timestamp": "2026-07-17T09:22:50.407097"
+    },
+    {
+      "trace_id": "f6b8e521",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T09:24:28.185667",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "8179c222",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-17T09:24:29.155693"
+    },
+    {
+      "trace_id": "d932cefe",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-17T21:33:00.948415",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "dec2b482",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-17T21:33:02.014191"
+    },
+    {
+      "trace_id": "494bfcfe",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T09:30:56.202298",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c2cc08ac",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T09:30:57.306428"
+    },
+    {
+      "trace_id": "16ba8df8",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T14:09:59.489751",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "439ea720",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T14:10:00.586125"
+    },
+    {
+      "trace_id": "4ef601d3",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T16:01:39.527435",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "5d318463",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T16:01:40.686135"
+    },
+    {
+      "trace_id": "dc261719",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T16:30:23.463610",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "7fb39cd7",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T16:30:24.691643"
+    },
+    {
+      "trace_id": "085b9dfa",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T18:55:54.975990",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "bf877f36",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T18:55:56.273828"
+    },
+    {
+      "trace_id": "010d060b",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T19:59:08.327308",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "89c9d39c",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T19:59:09.610092"
+    },
+    {
+      "trace_id": "d421e8d6",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T20:28:46.795725",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "a1886a32",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T20:28:48.185325"
+    },
+    {
+      "trace_id": "ca74d9ee",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T21:10:30.554929",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "e4bd0551",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T21:10:32.025030"
+    },
+    {
+      "trace_id": "eb6704a7",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T21:20:49.805373",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "83c06d62",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T21:20:51.281497"
+    },
+    {
+      "trace_id": "88814354",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T21:31:55.211726",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "1b34d941",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T21:31:56.745183"
+    },
+    {
+      "trace_id": "60f0dcc2",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T21:49:30.544129",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "38dd5913",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T21:49:32.086928"
+    },
+    {
+      "trace_id": "f9628b41",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T23:19:24.537227",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "51a3b288",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "印花税 — 购销合同税负不足",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T23:19:28.528224"
+    },
+    {
+      "trace_id": "194e3a7f",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T23:27:03.615434",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c630c98f",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T23:27:07.616119"
+    },
+    {
+      "trace_id": "162e07be",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T23:32:43.996642",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "6e8300d9",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T23:32:48.331211"
+    },
+    {
+      "trace_id": "498fdf78",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T23:36:53.426182",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "dbad2bc7",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T23:36:57.827341"
+    },
+    {
+      "trace_id": "99e88135",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-18T23:47:33.969960",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "721189db",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-18T23:47:38.445376"
+    },
+    {
+      "trace_id": "5b0a0a0b",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T00:35:34.871787",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "18666f38",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-19T00:35:36.878317"
+    },
+    {
+      "trace_id": "3724709f",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T00:38:22.918199",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "4bac41ed",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-19T00:38:24.930960"
+    },
+    {
+      "trace_id": "74ad8ee6",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T00:40:44.676794",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "da156c48",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资"
+      ],
+      "timestamp": "2026-07-19T00:40:46.777827"
+    },
+    {
+      "trace_id": "bbb20c57",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T08:27:46.763703",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "7a1db0af",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资",
+        "制造企业预付款长期未核销"
+      ],
+      "timestamp": "2026-07-19T08:27:51.792181"
+    },
+    {
+      "trace_id": "1b941228",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T10:53:12.743863",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "6494b153",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资",
+        "制造企业预付款长期未核销",
+        "电子发票区块链存证的完整性和可核验性",
+        "算法推荐/大数据杀熟的反垄断及税务影响"
+      ],
+      "timestamp": "2026-07-19T10:53:14.838756"
+    },
+    {
+      "trace_id": "c708bccc",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T12:40:46.740355",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "7de8c942",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "软件产品即征即退(建议申请)",
+        "发票金额为整数——缺少零头",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "会展会务费大额列支无参会明细专项",
+        "工业用地建商业设施",
+        "众筹融资税务",
+        "数字货币交易",
+        "以货易货未确认收入",
+        "发票金额与付款金额不匹配",
+        "企业所得税预缴不足",
+        "内外勾结偷逃税",
+        "供应商开票时间集中在成立后前3个月(突击开票)",
+        "银行采购类付款远超进项发票总额→大额无票采购",
+        "12月收入/费用异常集中→跨期调节利润嫌疑",
+        "收到政府补助款项→未按规定确认应税收入",
+        "与资产相关的政府补助→一次性确认收入而未分期确认→调节利润",
+        "微信/支付宝商户收款未入账",
+        "账外资金用于发放工资",
+        "制造企业预付款长期未核销"
+      ],
+      "timestamp": "2026-07-19T12:40:48.973786"
+    },
+    {
+      "trace_id": "77374f40",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T13:11:04.726866",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "d31f12a3",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "会展会务费总额与实际参会人员、场地、物料等业务证据不匹配",
+        "不动产登记/规划用途（工业用地）与实际经营用途（商业设施）不匹配",
+        "应纳税所得额与按税法规定应计算的应纳税所得额不匹配",
+        "发票系统开票金额与银行账户实际付款金额不匹配",
+        "季度预缴申报的应纳税所得额与不匹配",
+        "供应商成立时间与开票时间分布不匹配",
+        "个税系统申报工资总额与银行代发工资总额不匹配",
+        "银行付款摘要含采购关键词的总额与不匹配",
+        "12月收入/费用月度占比与全年其他月份均值不匹配",
+        "收到政府补助款项——未按规定确认应税收入",
+        "与资产相关的政府补助——一次性确认收入而未分期确认——调节利润",
+        "微信/支付宝商户收款未入账",
+        "银行对公账户付款记录与采购入库单+进项发票不匹配",
+        "对公账户工资发放总额与企业实际用工总成本不匹配"
+      ],
+      "timestamp": "2026-07-19T13:11:09.916857"
+    },
+    {
+      "trace_id": "1ef48497",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T14:19:14.823122",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "72c526a9",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "固定资产出租租金未计入其他业务收入",
+        "无营业收入持续大额列支费用长期亏损",
+        "建筑机械租赁大额进项无设备登记专项",
+        "会展会务费总额与实际参会人员、场地、物料等业务证据不匹配",
+        "不动产登记/规划用途（工业用地）与实际经营用途（商业设施）不匹配",
+        "应纳税所得额与按税法规定应计算的应纳税所得额不匹配",
+        "发票系统开票金额与银行账户实际付款金额不匹配",
+        "季度预缴申报的应纳税所得额与不匹配",
+        "供应商成立时间与开票时间分布不匹配",
+        "个税系统申报工资总额与银行代发工资总额不匹配",
+        "银行付款摘要含采购关键词的总额与不匹配",
+        "12月收入/费用月度占比与全年其他月份均值不匹配",
+        "收到政府补助款项——未按规定确认应税收入",
+        "与资产相关的政府补助——一次性确认收入而未分期确认——调节利润",
+        "微信/支付宝商户收款未入账",
+        "银行对公账户付款记录与采购入库单+进项发票不匹配"
+      ],
+      "timestamp": "2026-07-19T14:19:20.033677"
+    },
+    {
+      "trace_id": "c2a40710",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T16:38:45.002683",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "f93a8b65",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "办公用品一批无明细清单发票风险",
+        "运费发票抵扣金额与货物周转量不匹配",
+        "连续三期收入小幅零申报风险",
+        "其他应付款长期大额贷方余额未转收入",
+        "无票销售收入占全部收入比例过低",
+        "免税项目与应税项目收入划分不清",
+        "农资经销收入与门店经营规模偏离",
+        "服装制造销售收入与面料采购量差额",
+        "账面现金巨大但长期拖欠税费",
+        "其他货币资金大额挂账长期未结清",
+        "向自然人股东大额借款无利息申报",
+        "法人个人账户大额资金与企业往来无经营佐证",
+        "营业收入增长所得税税额反向下滑倒挂",
+        "附表二通行费抵扣栏填报数据无电子发票佐证",
+        "固定资产出租租金未计入其他业务收入",
+        "无营业收入持续大额列支费用长期亏损",
+        "建筑机械租赁大额进项无设备登记专项"
+      ],
+      "timestamp": "2026-07-19T16:38:47.406665"
+    },
+    {
+      "trace_id": "e593bc62",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T16:40:48.844834",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "6218033f",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "经营实质-工商登记与发票推断不一致",
+        "红冲发票未附红冲证明",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "办公用品一批无明细清单发票风险",
+        "运费发票抵扣金额与货物周转量不匹配",
+        "连续三期收入小幅零申报风险",
+        "其他应付款长期大额贷方余额未转收入",
+        "无票销售收入占全部收入比例过低",
+        "免税项目与应税项目收入划分不清",
+        "农资经销收入与门店经营规模偏离",
+        "服装制造销售收入与面料采购量差额",
+        "账面现金巨大但长期拖欠税费",
+        "其他货币资金大额挂账长期未结清",
+        "向自然人股东大额借款无利息申报",
+        "法人个人账户大额资金与企业往来无经营佐证",
+        "营业收入增长所得税税额反向下滑倒挂",
+        "附表二通行费抵扣栏填报数据无电子发票佐证",
+        "固定资产出租租金未计入其他业务收入",
+        "无营业收入持续大额列支费用长期亏损",
+        "建筑机械租赁大额进项无设备登记专项"
+      ],
+      "timestamp": "2026-07-19T16:40:51.325856"
+    },
+    {
+      "trace_id": "91988518",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T19:25:21.761307",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "d736f502",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "进项抵扣存在风险记录",
+        "存在代开发票",
+        "其他应收款占比过高",
+        "红冲发票未附红冲证明",
+        "三流合一缺失（合同——发票——资金不完整）",
+        "关联方资金往来无独立合同",
+        "合同要素不完整",
+        "咨询费支出异常",
+        "预付卡采购销售使用环节多税种违规",
+        "电子账簿调取与ERP数据恢复",
+        "开票收入与入账收入月度严重错配",
+        "交易时间与金额模式异常——周末/整数交易",
+        "免税项目进项未按规定转出",
+        "注销清算期间仍有发票使用",
+        "第三方涉税信息比对不符",
+        "一般纳税人无票收入占比过低税负",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "办公用品一批无明细清单发票风险",
+        "运费发票抵扣金额与货物周转量不匹配"
+      ],
+      "timestamp": "2026-07-19T19:25:28.310334"
+    },
+    {
+      "trace_id": "0ab19e2c",
+      "company_id": 2,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-07-19T19:55:13.358185",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "03419c6c",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "同城供应商群集",
+        "有工资无社保",
+        "客户维度开票收款偏差（逐户穿透）",
+        "大额整数收款特征（客户维度）",
+        "大额整数交易频繁",
+        "周末交易频繁",
+        "发票备注栏信息缺失",
+        "高频低额供应商——刷票嫌疑",
+        "供应商交易集中在单月——突击开票嫌疑",
+        "红冲/作废发票数量异常",
+        "交易时间与金额模式异常",
+        "疑似关联交易——供应商与客户重叠",
+        "印花税 — 购销合同税负不足",
+        "研发费用加计扣除(建议享受)",
+        "个人付款方身份核实",
+        "经营实质-工商登记与发票推断不一致",
+        "进项抵扣存在风险记录",
+        "存在代开发票",
+        "其他应收款占比过高",
+        "红冲发票未附红冲证明",
+        "三流合一缺失（合同——发票——资金不完整）",
+        "关联方资金往来无独立合同",
+        "合同要素不完整",
+        "咨询费支出异常",
+        "预付卡采购销售使用环节多税种违规",
+        "电子账簿调取与ERP数据恢复",
+        "开票收入与入账收入月度严重错配",
+        "交易时间与金额模式异常——周末/整数交易",
+        "免税项目进项未按规定转出",
+        "注销清算期间仍有发票使用",
+        "第三方涉税信息比对不符",
+        "一般纳税人无票收入占比过低税负",
+        "当月开票次月全额红冲异常",
+        "长期进项发票滞留未勾选认证",
+        "办公用品一批无明细清单发票风险",
+        "运费发票抵扣金额与货物周转量不匹配"
+      ],
+      "timestamp": "2026-07-19T19:55:19.143295"
     }
   ],
   "industry_patterns": {
     "现代服务": {
-      "analyses_count": 20,
+      "analyses_count": 60,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

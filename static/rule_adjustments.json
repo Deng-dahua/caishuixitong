@@ -18,7 +18,7 @@
     "target": "未开票收入",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T10:45:04.316306",
-    "applied_count": 35,
+    "applied_count": 72,
     "status": "active"
   },
   {
@@ -40,7 +40,7 @@
     "target": "Causal: 隐匿收入的资金回流路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431930",
-    "applied_count": 19,
+    "applied_count": 56,
     "status": "active"
   },
   {
@@ -51,7 +51,7 @@
     "target": "Causal: 虚开发票的资金闭环回路",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431965",
-    "applied_count": 12,
+    "applied_count": 27,
     "status": "active"
   },
   {
@@ -62,7 +62,7 @@
     "target": "股票期权行权未扣税",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431985",
-    "applied_count": 12,
+    "applied_count": 34,
     "status": "active"
   },
   {
@@ -73,7 +73,7 @@
     "target": "Causal: 关联交易的利润转移路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.431999",
-    "applied_count": 6,
+    "applied_count": 22,
     "status": "active"
   },
   {
@@ -84,7 +84,7 @@
     "target": "新办企业短期内大量开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432013",
-    "applied_count": 7,
+    "applied_count": 8,
     "status": "active"
   },
   {
@@ -95,7 +95,7 @@
     "target": "注销前突击开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432026",
-    "applied_count": 5,
+    "applied_count": 6,
     "status": "active"
   },
   {
@@ -161,7 +161,7 @@
     "target": "基础经营费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432099",
-    "applied_count": 56,
+    "applied_count": 83,
     "status": "active"
   },
   {
@@ -172,7 +172,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T11:45:58.432112",
-    "applied_count": 13,
+    "applied_count": 20,
     "status": "active"
   },
   {
@@ -205,7 +205,7 @@
     "target": "资料缺失触发-银行流水缺失→资金链路断裂→核定征收风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:35:50.203603",
-    "applied_count": 2,
+    "applied_count": 17,
     "status": "active"
   },
   {
@@ -216,7 +216,7 @@
     "target": "资料缺失触发-销项发票缺失→无法验证申报收入→隐匿收入推定风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:35:50.203608",
-    "applied_count": 12,
+    "applied_count": 34,
     "status": "active"
   },
   {
@@ -249,7 +249,7 @@
     "target": "废品率、边角料、废料的产出与处置链条缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781557",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -260,7 +260,7 @@
     "target": "个人交易占比过高",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781575",
-    "applied_count": 0,
+    "applied_count": 1,
     "status": "active"
   },
   {
@@ -293,7 +293,7 @@
     "target": "资料不完备",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781625",
-    "applied_count": 8,
+    "applied_count": 20,
     "status": "active"
   },
   {
@@ -304,7 +304,7 @@
     "target": "未认证发票超期",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781635",
-    "applied_count": 11,
+    "applied_count": 16,
     "status": "active"
   },
   {
@@ -315,7 +315,7 @@
     "target": "顶额分散开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781644",
-    "applied_count": 20,
+    "applied_count": 28,
     "status": "active"
   },
   {
@@ -326,7 +326,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:36:29.781653",
-    "applied_count": 3,
+    "applied_count": 22,
     "status": "active"
   },
   {
@@ -359,7 +359,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-02T16:39:56.176992",
-    "applied_count": 21,
+    "applied_count": 29,
     "status": "active"
   },
   {
@@ -370,7 +370,7 @@
     "target": "办公费用缺失",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T14:29:52.686762",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -403,7 +403,7 @@
     "target": "未认证发票超期",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T14:29:52.686800",
-    "applied_count": 2,
+    "applied_count": 3,
     "status": "active"
   },
   {
@@ -414,7 +414,7 @@
     "target": "顶额分散开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T14:29:52.686814",
-    "applied_count": 2,
+    "applied_count": 8,
     "status": "active"
   },
   {
@@ -469,7 +469,7 @@
     "target": "互开发票风险",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T15:34:51.953348",
-    "applied_count": 1,
+    "applied_count": 21,
     "status": "active"
   },
   {
@@ -491,7 +491,7 @@
     "target": "股票期权行权未扣税",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T15:34:51.953376",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -502,7 +502,7 @@
     "target": "未认证发票超期",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T15:34:51.953386",
-    "applied_count": 1,
+    "applied_count": 2,
     "status": "active"
   },
   {
@@ -513,7 +513,7 @@
     "target": "顶额分散开票",
     "dimension": "证据充分性",
     "applied_at": "2026-07-03T15:34:51.953394",
-    "applied_count": 1,
+    "applied_count": 6,
     "status": "active"
   },
   {
@@ -546,7 +546,381 @@
     "target": "Causal: 关联交易的利润转移路径",
     "dimension": "证据充分性",
     "applied_at": "2026-07-08T14:27:52.251615",
+    "applied_count": 20,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0051",
+    "rule_id": "b9c65666",
+    "trigger": "高风险发现#37仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "发票备注栏未按规定填写",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:55.572373",
+    "applied_count": 17,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0052",
+    "rule_id": "038164f9",
+    "trigger": "高风险发现#40仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "取得小规模纳税人低税率发票比例异常",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:55.572386",
     "applied_count": 8,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0053",
+    "rule_id": "e4a76a05",
+    "trigger": "高风险发现#50仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 虚开发票的资金闭环回路",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:55.572401",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0054",
+    "rule_id": "74b8b439",
+    "trigger": "高风险发现#51仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:55.572406",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0055",
+    "rule_id": "07c68559",
+    "trigger": "高风险发现#12仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "红字发票占比异常",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:57.459151",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0056",
+    "rule_id": "6d5b9512",
+    "trigger": "高风险发现#19仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "取得小规模纳税人低税率发票比例异常",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:57.459171",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0057",
+    "rule_id": "c18e4d71",
+    "trigger": "高风险发现#53仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "红冲发票未附红冲证明",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-17T08:54:57.459175",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0058",
+    "rule_id": "67ab0681",
+    "trigger": "高风险发现#41仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-18T18:55:54.202111",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0059",
+    "rule_id": "91af00a5",
+    "trigger": "高风险发现#42仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-19T00:40:43.935069",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0060",
+    "rule_id": "45a1bd1e",
+    "trigger": "高风险发现#52仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 隐匿收入的资金回流路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-19T12:40:45.887021",
+    "applied_count": 2,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0061",
+    "rule_id": "8a748855",
+    "trigger": "发现#38引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "众筹融资税务",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:45.887037",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0062",
+    "rule_id": "5b0f685e",
+    "trigger": "发现#39引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "数字货币交易",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:45.887041",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0063",
+    "rule_id": "ac19236e",
+    "trigger": "发现#40引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "以货易货未确认收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:45.887046",
+    "applied_count": 2,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0064",
+    "rule_id": "6d4a3945",
+    "trigger": "发现#43引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "众筹融资税务",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:49.055643",
+    "applied_count": 5,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0065",
+    "rule_id": "ef15934c",
+    "trigger": "发现#44引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "数字货币交易",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:49.055647",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0066",
+    "rule_id": "172203c2",
+    "trigger": "发现#45引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "以货易货未确认收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T12:40:49.055652",
+    "applied_count": 2,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0067",
+    "rule_id": "d8912d17",
+    "trigger": "发现#36引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "固定资产出租租金未计入其他业务收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T14:19:13.240232",
+    "applied_count": 2,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0068",
+    "rule_id": "dfafc011",
+    "trigger": "发现#41引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "固定资产出租租金未计入其他业务收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T14:19:20.159786",
+    "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0069",
+    "rule_id": "765cdbac",
+    "trigger": "高风险发现#56仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-19T16:38:44.170894",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0070",
+    "rule_id": "b802b82d",
+    "trigger": "发现#37引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "运费发票抵扣金额与货物周转量不匹配",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:44.170903",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0071",
+    "rule_id": "49b8630c",
+    "trigger": "发现#49引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "附表二通行费抵扣栏填报数据无电子发票佐证",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:44.170908",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0072",
+    "rule_id": "37a79cfc",
+    "trigger": "发现#50引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "固定资产出租租金未计入其他业务收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:44.170913",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0073",
+    "rule_id": "de91d5d6",
+    "trigger": "发现#52引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "建筑机械租赁大额进项无设备登记专项",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:44.170917",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0074",
+    "rule_id": "b32d69ae",
+    "trigger": "发现#42引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "办公用品一批无明细清单发票风险",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:47.486437",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0075",
+    "rule_id": "3c64032c",
+    "trigger": "发现#55引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "附表二通行费抵扣栏填报数据无电子发票佐证",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:47.486447",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0076",
+    "rule_id": "8d03d2a7",
+    "trigger": "发现#56引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "固定资产出租租金未计入其他业务收入",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:47.486452",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0077",
+    "rule_id": "7ebdb775",
+    "trigger": "发现#58引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "建筑机械租赁大额进项无设备登记专项",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T16:38:47.486457",
+    "applied_count": 3,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0078",
+    "rule_id": "51a84fa9",
+    "trigger": "高风险发现#57仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 关联交易的利润转移路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-07-19T19:25:19.874290",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0079",
+    "rule_id": "30b7fad3",
+    "trigger": "发现#48引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "第三方涉税信息比对不符",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:19.874411",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0080",
+    "rule_id": "540ef5ba",
+    "trigger": "发现#53引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "运费发票抵扣金额与货物周转量不匹配",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:19.874451",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0081",
+    "rule_id": "fe444322",
+    "trigger": "发现#46引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "合同要素不完整",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:28.449536",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0082",
+    "rule_id": "a65059a3",
+    "trigger": "发现#51引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "交易时间与金额模式异常——周末/整数交易",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:28.449580",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0083",
+    "rule_id": "e16d127e",
+    "trigger": "发现#54引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "第三方涉税信息比对不符",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:28.449594",
+    "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0084",
+    "rule_id": "9021bdfc",
+    "trigger": "发现#59引用了已废止的《增值税暂行条例》",
+    "action": "自动替换已废止的法条引用为现行有效版本",
+    "target": "运费发票抵扣金额与货物周转量不匹配",
+    "dimension": "法条准确性",
+    "applied_at": "2026-07-19T19:25:28.449623",
+    "applied_count": 1,
     "status": "active"
   }
 ]

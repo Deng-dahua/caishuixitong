@@ -6,6 +6,20 @@
         "source": "analysis"
       }
     },
+    "risk:同城供应商群集": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:有工资无社保": {
+      "type": "risk",
+      "props": {
+        "level": "高风险",
+        "count": 1
+      }
+    },
     "risk:客户维度开票收款偏差（逐户穿透）": {
       "type": "risk",
       "props": {
@@ -27,10 +41,66 @@
         "count": 1
       }
     },
+    "risk:周末交易频繁": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:发票备注栏信息缺失": {
+      "type": "risk",
+      "props": {
+        "level": "低风险",
+        "count": 1
+      }
+    },
+    "risk:高频低额供应商——刷票嫌疑": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:供应商交易集中在单月——突击开票嫌疑": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:红冲/作废发票数量异常": {
+      "type": "risk",
+      "props": {
+        "level": "高风险",
+        "count": 1
+      }
+    },
+    "risk:交易时间与金额模式异常": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:疑似关联交易——供应商与客户重叠": {
+      "type": "risk",
+      "props": {
+        "level": "高风险",
+        "count": 1
+      }
+    },
     "risk:印花税 — 购销合同税负不足": {
       "type": "risk",
       "props": {
         "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:研发费用加计扣除(建议享受)": {
+      "type": "risk",
+      "props": {
+        "level": "优惠机会",
         "count": 1
       }
     },
@@ -47,9 +117,167 @@
         "level": "中风险",
         "count": 1
       }
+    },
+    "risk:进项抵扣存在风险记录": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:存在代开发票": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:其他应收款占比过高": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:红冲发票未附红冲证明": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:三流合一缺失（合同——发票——资金不完整）": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:关联方资金往来无独立合同": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:合同要素不完整": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:咨询费支出异常": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:预付卡采购销售使用环节多税种违规": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:电子账簿调取与ERP数据恢复": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:开票收入与入账收入月度严重错配": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:交易时间与金额模式异常——周末/整数交易": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:免税项目进项未按规定转出": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:注销清算期间仍有发票使用": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:第三方涉税信息比对不符": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:一般纳税人无票收入占比过低税负": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:当月开票次月全额红冲异常": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:长期进项发票滞留未勾选认证": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:办公用品一批无明细清单发票风险": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
+    },
+    "risk:运费发票抵扣金额与货物周转量不匹配": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
     }
   },
   "relations": [
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:同城供应商群集",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167649"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:有工资无社保",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167664"
+    },
     {
       "from": "深圳海更数字传媒有限公司",
       "to": "risk:客户维度开票收款偏差（逐户穿透）",
@@ -57,7 +285,7 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581225"
+      "timestamp": "2026-07-19T19:55:19.167675"
     },
     {
       "from": "深圳海更数字传媒有限公司",
@@ -66,7 +294,7 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581232"
+      "timestamp": "2026-07-19T19:55:19.167684"
     },
     {
       "from": "深圳海更数字传媒有限公司",
@@ -75,7 +303,70 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581237"
+      "timestamp": "2026-07-19T19:55:19.167692"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:周末交易频繁",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167700"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:发票备注栏信息缺失",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167708"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:高频低额供应商——刷票嫌疑",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167715"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:供应商交易集中在单月——突击开票嫌疑",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167723"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:红冲/作废发票数量异常",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167730"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:交易时间与金额模式异常",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167737"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:疑似关联交易——供应商与客户重叠",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167744"
     },
     {
       "from": "深圳海更数字传媒有限公司",
@@ -84,7 +375,16 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581241"
+      "timestamp": "2026-07-19T19:55:19.167751"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:研发费用加计扣除(建议享受)",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167759"
     },
     {
       "from": "深圳海更数字传媒有限公司",
@@ -93,7 +393,7 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581245"
+      "timestamp": "2026-07-19T19:55:19.167769"
     },
     {
       "from": "深圳海更数字传媒有限公司",
@@ -102,8 +402,188 @@
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-07-15T19:23:18.581249"
+      "timestamp": "2026-07-19T19:55:19.167776"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:进项抵扣存在风险记录",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167783"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:存在代开发票",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167792"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:其他应收款占比过高",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167799"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:红冲发票未附红冲证明",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167806"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:三流合一缺失（合同——发票——资金不完整）",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167815"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:关联方资金往来无独立合同",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167823"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:合同要素不完整",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167831"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:咨询费支出异常",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167837"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:预付卡采购销售使用环节多税种违规",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167846"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:电子账簿调取与ERP数据恢复",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167854"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:开票收入与入账收入月度严重错配",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167861"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:交易时间与金额模式异常——周末/整数交易",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167869"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:免税项目进项未按规定转出",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.167875"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:注销清算期间仍有发票使用",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168183"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:第三方涉税信息比对不符",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168193"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:一般纳税人无票收入占比过低税负",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168200"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:当月开票次月全额红冲异常",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168207"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:长期进项发票滞留未勾选认证",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168218"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:办公用品一批无明细清单发票风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168228"
+    },
+    {
+      "from": "深圳海更数字传媒有限公司",
+      "to": "risk:运费发票抵扣金额与货物周转量不匹配",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-07-19T19:55:19.168237"
     }
   ],
-  "updated_at": "2026-07-15T19:23:18.581662"
+  "updated_at": "2026-07-19T19:55:19.169122"
 }

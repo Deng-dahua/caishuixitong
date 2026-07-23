@@ -98,7 +98,7 @@ MODULE_REGISTRY = {
         }
     },
     "M009_rule_engine": {
-        "name": "规则引擎(1717条)",
+        "name": "规则引擎(1720条)",
         "description": "涉税风险规则匹配，全量规则扫描",
         "requires": {"data": ["invoices"], "condition": "len(invoices) > 0"},
         "depends_on": ["M003_entity_recognition"],
@@ -356,7 +356,7 @@ def _match_laws(data_profile, knowledge):
     if not has_vouchers:
         laws.append("L01-征管法35条(核定征收)")
     if not has_bank:
-        laws.append("L07-征管法60条(账簿不健全)")
+        laws.append("L07-征管法0条(账簿不健全)")
     
     return laws
 

@@ -1242,21 +1242,21 @@ function renderChainsPage(container) {
 
   var h = '';
   h += '<style>'
-    + '.cl{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.cl-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.cl-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
+    + '.cl{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '</style>';
 
   h += '<div class="cl">';
-  h += '<div id="chains-body"></div>';
+  h += '<div id="chains-list-view"></div>';
+  h += '<div id="chains-detail-view" style="display:none"></div>';
   h += '</div>';
   container.innerHTML = h;
   _allClueChains = null;
+  _clueMeta = null;
   setTimeout(function(){ loadChainsData(); }, 50);
 }
 
 async function loadChainsData() {
-  var target = document.getElementById('chains-body');
+  var target = document.getElementById('chains-list-view');
   try {
     var resp = await fetch('/static/cross_domain_clues.json?_t=' + Date.now());
     var clueChains = await resp.json();
@@ -1264,8 +1264,15 @@ async function loadChainsData() {
     // 加载动态触发状态
     await loadChainDynamicStatus();
 
-    _allClueChains = clueChains;
-    renderChainsList(clueChains);
+    // 分离 metadata 与 chains 数组
+    _clueMeta = null;
+    if (clueChains && !Array.isArray(clueChains) && clueChains.metadata) {
+      _clueMeta = clueChains.metadata;
+      _allClueChains = clueChains.chains || clueChains.clue_chains || [];
+    } else {
+      _allClueChains = Array.isArray(clueChains) ? clueChains : [];
+    }
+    renderChainsList(_allClueChains);
   } catch (e) {
     if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
   }
@@ -1289,7 +1296,7 @@ async function loadChainDynamicStatus() {
 }
 
 function renderChainsList(chains) {
-  var target = document.getElementById('chains-body');
+  var target = document.getElementById('chains-list-view');
   if (!target) return;
 
   var execMap = {};
@@ -1297,40 +1304,95 @@ function renderChainsList(chains) {
     _chainDynamic.chain_execution.forEach(function(ce) { execMap[ce.chain_name] = ce; });
   }
 
+  var updatedAt = (_clueMeta && _clueMeta.updated_at) ? String(_clueMeta.updated_at).substring(0, 10) : '-';
+
+  var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
   var html = '';
   if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
-    var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:28px"></colgroup>';
-    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>分类</th><th>步数</th><th></th></tr></thead><tbody>';
+    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>分类</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var steps = (c.investigation_path||[]).length;
       var cat = c.category||'';
-      var cid = 'clue-' + ci;
-      html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
+      var trigN = execMap[c.name] ? 1 : 0;
+      html += '<tr class="rr-row" onclick="_showChainDetail(' + ci + ')">';
       html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
-      html += '<td>' + esc(c.name||'') + '</td>';
+      html += '<td class="rr-name">' + esc(c.name||'') + '</td>';
       html += '<td>' + esc(cat) + '</td>';
       html += '<td>' + steps + '</td>';
-      html += '<td style="color:#94a3b8">\u25b8</td>';
+      html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
+      html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
       html += '</tr>';
-      html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
-      if(c.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(c.description) + '</div>';
-      if(c.investigation_path&&c.investigation_path.length){
-        html += '<div style="margin-bottom:6px"><b>调查路径 (' + c.investigation_path.length + '步):</b></div>';
-        c.investigation_path.forEach(function(s,si){
-          html += '<div style="padding:4px 0">' + (si+1) + '. ' + esc(s.action||s.detail||'') + '</div>';
-        });
-      }
-      if(c.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(c.suggestion) + '</div>';
-      html += '</td></tr>';
     });
     html += '</tbody></table>';
   }
-
   target.innerHTML = html;
 }
+
+window._showChainDetail = function(idx) {
+  if (!_allClueChains) return;
+  var c = _allClueChains[idx];
+  if (!c) return;
+  var lv = document.getElementById('chains-list-view');
+  var dv = document.getElementById('chains-detail-view');
+  if (!lv || !dv) return;
+  var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+  var execMap = {};
+  if (_chainDynamic && _chainDynamic.chain_execution) {
+    _chainDynamic.chain_execution.forEach(function(ce) { execMap[ce.chain_name] = ce; });
+  }
+  var trigN = execMap[c.name] ? 1 : 0;
+
+  var h = '<div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
+    + '<button onclick="_chainBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
+    + '</div>';
+
+  if (trigN > 0) {
+    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
+      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已触发此线索链</div>'
+      + '</div>';
+  }
+
+  h += '<div style="margin:0 0 10px">';
+  h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + ' | 域: ' + esc(c.domain||'-') + '</div>';
+  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  h += '</div>';
+
+  if(c.description) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查描述</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
+  }
+
+  if(c.investigation_path&&c.investigation_path.length){
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查路径 (' + c.investigation_path.length + '步)</div>';
+    c.investigation_path.forEach(function(s,si){
+      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(s.action||s.detail||'') + '</b>';
+      if(s.data_required) h += '<div style="padding-left:16px;color:#94a3b8">所需数据: ' + esc(String(s.data_required).substring(0,250)) + '</div>';
+      h += '</div>';
+    });
+  }
+
+  if(c.suggestion) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查建议</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.suggestion) + '</div>';
+  }
+  h += '</div>';
+
+  dv.innerHTML = h;
+  lv.style.display = 'none';
+  dv.style.display = 'block';
+};
+
+window._chainBackToList = function() {
+  var lv = document.getElementById('chains-list-view');
+  var dv = document.getElementById('chains-detail-view');
+  if (dv) { dv.style.display = 'none'; dv.innerHTML = ''; }
+  if (lv) lv.style.display = 'block';
+};
 
 // ==================== 页面：证据链 ====================
 function renderEvidencePage(container) {
@@ -1340,27 +1402,28 @@ function renderEvidencePage(container) {
 
   var h = '';
   h += '<style>'
-    + '.ev{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.ev-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.ev-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
+    + '.ev{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '</style>';
 
   h += '<div class="ev">';
-  h += '<div id="evidence-body"></div>';
+  h += '<div id="evidence-list-view"></div>';
+  h += '<div id="evidence-detail-view" style="display:none"></div>';
   h += '</div>';
   container.innerHTML = h;
 
   _allEvidenceChains = null;
+  _evMeta = null;
   setTimeout(function(){ loadEvidenceData(); }, 50);
 }
 
 async function loadEvidenceData() {
-  var target = document.getElementById('evidence-body');
+  var target = document.getElementById('evidence-list-view');
   try {
     var resp = await fetch('/static/cross_domain_evidence.json?_t=' + Date.now());
     var data = await resp.json();
     var evChains = data.evidence_chains || data.chains || data;
     _allEvidenceChains = evChains;
+    _evMeta = data.metadata || null;
     renderEvidenceList(evChains);
   } catch (e) {
     if (target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: ' + e.message + '</div>';
@@ -1368,36 +1431,112 @@ async function loadEvidenceData() {
 }
 
 function renderEvidenceList(chains) {
-  var target = document.getElementById('evidence-body');
+  var target = document.getElementById('evidence-list-view');
   if (!target) return;
+
   var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-  var html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:80px"><col style="width:28px"></colgroup>';
-  html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>分类</th><th>验证要求</th><th></th></tr></thead><tbody>';
-  chains.forEach(function(c,ci){
-    var dims = (c.dimensions||[]).length;
-    var cat = c.category||'';
-    var cid = 'evid-' + ci;
-    html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
-    html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
-    html += '<td>' + esc(c.name||'') + '</td>';
-    html += '<td>' + esc(cat) + '</td>';
-    html += '<td>' + (c.min_evidence||'?') + '\u00d7' + dims + '维</td>';
-    html += '<td style="color:#94a3b8">\u25b8</td>';
-    html += '</tr>';
-    html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
-    if(c.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(c.description) + '</div>';
-    html += '<div style="margin-bottom:6px"><b>要求\u2265</b> ' + c.min_evidence + ' <b>个独立数据源同时匹配</b> | ' + (c.dimensions||[]).length + ' <b>个验证维度</b></div>';
-    if(c.dimensions&&c.dimensions.length){
-      html += '<div style="margin-bottom:6px"><b>验证维度:</b></div>';
-      c.dimensions.forEach(function(d){ html += '<div style="padding:2px 0">\u00b7 ' + esc(d.dimension||d.source||d.name||'') + '</div>'; });
-    }
-    if(c.trigger_keywords) html += '<div style="margin-top:6px"><b>触发关键词:</b> ' + (c.trigger_keywords||[]).join('、') + '</div>';
-    if(c.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(c.suggestion) + '</div>';
-    html += '</td></tr>';
-  });
-  html += '</tbody></table>';
+  var updatedAt = (_evMeta && _evMeta.updated_at) ? String(_evMeta.updated_at).substring(0, 10) : '-';
+
+  // 触发状态：从 _chainDynamic.evidence_closures 匹配名称
+  var evMap = {};
+  if (_chainDynamic && _chainDynamic.evidence_closures) {
+    _chainDynamic.evidence_closures.forEach(function(e) { evMap[e.chain_name||e.name||''] = e; });
+  }
+
+  var html = '';
+  if (!chains.length) {
+    html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配证据链</div>';
+  } else {
+    html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:80px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>分类</th><th>验证要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+    chains.forEach(function(c, ci) {
+      var dims = (c.dimensions||[]).length;
+      var cat = c.category||'';
+      var trigN = evMap[c.name] ? 1 : 0;
+      html += '<tr class="rr-row" onclick="_showEvDetail(' + ci + ')">';
+      html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
+      html += '<td class="rr-name">' + esc(c.name||'') + '</td>';
+      html += '<td>' + esc(cat) + '</td>';
+      html += '<td>' + (c.min_evidence||'?') + '\u00d7' + dims + '维</td>';
+      html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
+      html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  }
   target.innerHTML = html;
 }
+
+window._showEvDetail = function(idx) {
+  if (!_allEvidenceChains) return;
+  var c = _allEvidenceChains[idx];
+  if (!c) return;
+  var lv = document.getElementById('evidence-list-view');
+  var dv = document.getElementById('evidence-detail-view');
+  if (!lv || !dv) return;
+  var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+  var evMap = {};
+  if (_chainDynamic && _chainDynamic.evidence_closures) {
+    _chainDynamic.evidence_closures.forEach(function(e) { evMap[e.chain_name||e.name||''] = e; });
+  }
+  var trigN = evMap[c.name] ? 1 : 0;
+
+  var h = '<div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
+    + '<button onclick="_evBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
+    + '</div>';
+
+  if (trigN > 0) {
+    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
+      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已触发此证据闭环</div>'
+      + '</div>';
+  }
+
+  h += '<div style="margin:0 0 10px">';
+  h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + ' | 域: ' + esc(c.domain||'-') + '</div>';
+  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  h += '</div>';
+
+  if(c.description) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">证据描述</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
+  }
+
+  h += '<div style="margin-bottom:10px;font-size:10px;line-height:20px">';
+  h += '<div style="font-weight:600;color:#16233a;margin-bottom:4px">验证要求</div>';
+  h += '<div style="color:#475569">要求<b>≥ ' + c.min_evidence + '</b>个独立数据源同时匹配 | <b>' + (c.dimensions||[]).length + '</b>个验证维度</div>';
+  h += '</div>';
+
+  if(c.dimensions&&c.dimensions.length){
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">验证维度</div>';
+    c.dimensions.forEach(function(d){ h += '<div style="padding:2px 0;font-size:10px;color:#475569">· ' + esc(d.dimension||d.source||d.name||'') + '</div>'; });
+  }
+
+  if(c.trigger_keywords) {
+    h += '<div style="margin-top:10px;font-size:10px;line-height:20px">';
+    h += '<div style="font-weight:600;color:#16233a;margin-bottom:4px">触发关键词</div>';
+    h += '<div style="color:#475569">' + (c.trigger_keywords||[]).join('、') + '</div>';
+    h += '</div>';
+  }
+
+  if(c.suggestion) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查建议</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.suggestion) + '</div>';
+  }
+  h += '</div>';
+
+  dv.innerHTML = h;
+  lv.style.display = 'none';
+  dv.style.display = 'block';
+};
+
+window._evBackToList = function() {
+  var lv = document.getElementById('evidence-list-view');
+  var dv = document.getElementById('evidence-detail-view');
+  if (dv) { dv.style.display = 'none'; dv.innerHTML = ''; }
+  if (lv) lv.style.display = 'block';
+};
 
 // ==================== 页面：分析链 ====================
 
@@ -2227,7 +2366,7 @@ function renderTaxWorkflow(container) {
         ['移交审理', '检查完毕5个工作日内移交审理部门']
       ]
     },
-    { n:'③', title:'审理环节（第46-60条）', icon:'⚖️', color:'#059669',
+    { n:'③', title:'审理环节（第46-0条）', icon:'⚖️', color:'#059669',
       body:'审理部门收到税务合规报告后，逐项审核7项内容：对象准确性/事实清楚证据充分/法律适用/程序合法/权限适当/处理建议/其他事项。事实不清、证据不足的退回检查部门补充调查。事实清楚但适用法律错误的，审理部门另行提出处理意见直接纠正不退回。审理时限为收到报告后<strong>15日内</strong>提出审理意见。拟处罚的需送达告知书，告知陈述权/申辩权/听证权。审理结论分四种：有违法行为→《税务处理决定书》/应处罚→《税务行政处罚决定书》/轻微→《不予处罚决定书》/无违法→《税务合规结论》。涉嫌犯罪的移送公安机关。本系统的质量保障体系完全对应审理环节——方法论过滤器+报告纯净度规范+合规门禁=自动审理。',
       points: [
         ['审核重点', '逐项审核7项：对象准确性/事实证据/法律适用/程序合法/权限适当/处理建议/其他'],
@@ -2704,7 +2843,7 @@ function renderProcedureMapping(container) {
   
   // 段落说明
   h += '<div style="margin-bottom:10px;font-size:10px;color:#3a4048;line-height:20px">';
-  h += '<p style="margin:0 0 10px">系统每一个功能模块都对应《税务合规工作规程》（国税发[2009]157号）的具体条款要求——确保系统产出<strong>不是凭空制造的</strong>，每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖从案源筛选到报告输出的<strong>全税务合规流程</strong>：第21-45条（检查实施）→第46条（审理审核）→第49条（审理意见）→第51条（报告格式）→第60条（程序合法）。</p>';
+  h += '<p style="margin:0 0 10px">系统每一个功能模块都对应《税务合规工作规程》（国税发[2009]157号）的具体条款要求——确保系统产出<strong>不是凭空制造的</strong>，每一项分析、每一条结论都有法定的规程依据。12个功能模块完整覆盖从案源筛选到报告输出的<strong>全税务合规流程</strong>：第21-45条（检查实施）→第46条（审理审核）→第49条（审理意见）→第51条（报告格式）→第0条（程序合法）。</p>';
   h += '<p style="margin:0">这个映射表回答了"凭什么"的问题：凭什么一键稽查就是完整的检查环节？凭什么证据闭环就意味着证据充分？每一项能力的背后都有规程条款作为法律依据。</p>';
   h += '</div>';
   
@@ -2719,7 +2858,7 @@ function renderProcedureMapping(container) {
     {n:'⑦',name:'跨域协商系统',clause:'第46条（审核重点）',desc:'29条协商规则四类场景：行业闸门消解/资料驱动的跨域标记/证据矛盾消解/联合增强。域间自动对话——确保报告不会出现自相矛盾的结论。',color:'#0891b2'},
     {n:'⑧',name:'风险评分',clause:'第49条（审理意见）',desc:'综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成税务合规结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。',color:'#ea580c'},
     {n:'⑨',name:'报告生成',clause:'第51条（报告格式）',desc:'自动生成封面+7章+附件。完全符合规程第42条规定的10项内容格式要求：案件来源→基本情况→实施情况→发现问题→税务合规结论→处理建议→告知权利→签字→证据清单。',color:'#db2777'},
-    {n:'⑩',name:'合规门禁',clause:'第60条（程序合法）',desc:'质量标准（模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除）+16项自省检查。全通过→绿色交付。',color:'#4f46e5'},
+    {n:'⑩',name:'合规门禁',clause:'第0条（程序合法）',desc:'质量标准（模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除）+16项自省检查。全通过→绿色交付。',color:'#4f46e5'},
     {n:'⑪',name:'数据一致性自检',clause:'全文',desc:'启动前扫描全部JS/PY文件→对比system_config.json权威数据源→发现不一致→自动标记或一键修复（--sync）。从原始数据文件实时统计权威值。四触发机制覆盖手动/启动/提交/分析。',color:'#0d9488'},
     {n:'⑫',name:'审核反馈闭环',clause:'第46条（审核重点）',desc:'每条发现右侧"审核"按钮→按模板填写审核意见→存入user_corrections.json→生成指纹→四级回退匹配→累计1次即升级自动规则→下次分析自动应用。人工审核→系统学习→自动修正→持续进化的完整闭环。',color:'#9333ea'}
   ];
@@ -5208,60 +5347,124 @@ function renderAnalysisChainsPage(container) {
   window._skipModuleHeader = true;
   var h = '';
   h += '<style>'
-    + '.alc{max-width:900px;margin:0 auto;padding:20px 28px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
-    + '.alc-sub{font-size:10px;color:#64748b;margin:0 0 16px;line-height:1.8}'
-    + '.alc-chain{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #eef2f6}'
-    + '.alc-step{padding:8px 12px;margin:4px 0;background:transparent;border-radius:0;font-size:10px;line-height:1.9}'
-    + '.alc-step .sn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#e0f2f7;color:#0e7490;font-size:10px;font-weight:700;margin-right:8px;flex-shrink:0}'
-    + '.alc-flow{display:flex;align-items:center;gap:4px;font-size:10px;color:#64748b;margin:6px 0}'
-    + '.alc-flow b{color:#334155}'
+    + '.alc{max-width:960px;margin:0 auto;padding:10px;font-family:-apple-system,"Microsoft YaHei",sans-serif}'
     + '</style>';
   h += '<div class="alc">';
-  h += '<div id="alc-body"></div>';
+  h += '<div id="alc-list-view"></div>';
+  h += '<div id="alc-detail-view" style="display:none"></div>';
   h += '</div>';
   container.innerHTML = h;
   _allAnalysisChains = null;
+  _alcMeta = null;
   setTimeout(function(){ loadAnalysisChainsData(); }, 50);
 }
 
 async function loadAnalysisChainsData() {
-  var target = document.getElementById('alc-body');
+  var target = document.getElementById('alc-list-view');
   try {
     var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
+    _allAnalysisChains = chains;
+    _alcMeta = data.metadata || null;
     var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
-    var html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:28px"></colgroup>';
-    html += '<thead><tr><th>#</th><th>推理链名称</th><th>分类</th><th>步数</th><th></th></tr></thead><tbody>';
-    chains.forEach(function(chain,ci){
-      var steps = (chain.reasoning_path||[]).length;
-      var cat = chain.category||'';
-      var cid = 'alc-' + ci;
-      html += '<tr class="rr-row" onclick="var d=document.getElementById(\'' + cid + '\');d.style.display=d.style.display===\'none\'?\'\':\'none\';this.classList.toggle(\'rr-row-open\')">';
-      html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
-      html += '<td>' + esc(chain.name||'') + '</td>';
-      html += '<td>' + esc(cat) + '</td>';
-      html += '<td>' + steps + '</td>';
-      html += '<td style="color:#94a3b8">\u25b8</td>';
-      html += '</tr>';
-      html += '<tr id="' + cid + '" style="display:none"><td colspan="5" style="padding:10px 10px 10px 24px;font-size:10px;line-height:1.8;color:#475569;background:#fafbfc">';
-      if(chain.description) html += '<div style="margin-bottom:10px;color:#64748b">' + esc(chain.description) + '</div>';
-      if(chain.reasoning_path&&chain.reasoning_path.length){
-        html += '<div style="margin-bottom:6px"><b>推理路径 (' + chain.reasoning_path.length + '步):</b></div>';
-        chain.reasoning_path.forEach(function(s,si){
-          html += '<div style="padding:4px 0">' + (si+1) + '. <b>' + esc(s.cross||'') + '</b> \u2192 ' + esc(s.action||'') + '</div>';
-          if(s.evidence_required) html += '<div style="padding-left:16px;color:#94a3b8;font-size:9px">证据: ' + esc(s.evidence_required) + '</div>';
-        });
-      }
-      if(chain.suggestion) html += '<div style="margin-top:8px;color:#94a3b8">' + esc(chain.suggestion) + '</div>';
-      html += '</td></tr>';
-    });
-    html += '</tbody></table>';
+    var updatedAt = (_alcMeta && _alcMeta.updated_at) ? String(_alcMeta.updated_at).substring(0, 10) : '-';
+
+    // 触发状态：分析链暂用 _chainDynamic 中匹配名称
+    var acMap = {};
+    if (_chainDynamic && _chainDynamic.chain_execution) {
+      _chainDynamic.chain_execution.forEach(function(ce) { acMap[ce.chain_name] = ce; });
+    }
+
+    var html = '';
+    if (!chains.length) {
+      html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配分析链</div>';
+    } else {
+      html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+      html += '<thead><tr><th>#</th><th>推理链名称</th><th>分类</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+      chains.forEach(function(chain, ci) {
+        var steps = (chain.reasoning_path||[]).length;
+        var cat = chain.category||'';
+        var trigN = acMap[chain.name] ? 1 : 0;
+        html += '<tr class="rr-row" onclick="_showAlcDetail(' + ci + ')">';
+        html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
+        html += '<td class="rr-name">' + esc(chain.name||'') + '</td>';
+        html += '<td>' + esc(cat) + '</td>';
+        html += '<td>' + steps + '</td>';
+        html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
+        html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+    }
     if(target) target.innerHTML = html;
   } catch(e) {
     if(target) target.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626">加载失败: '+e.message+'</div>';
   }
 }
+
+window._showAlcDetail = function(idx) {
+  if (!_allAnalysisChains) return;
+  var c = _allAnalysisChains[idx];
+  if (!c) return;
+  var lv = document.getElementById('alc-list-view');
+  var dv = document.getElementById('alc-detail-view');
+  if (!lv || !dv) return;
+  var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+  var acMap = {};
+  if (_chainDynamic && _chainDynamic.chain_execution) {
+    _chainDynamic.chain_execution.forEach(function(ce) { acMap[ce.chain_name] = ce; });
+  }
+  var trigN = acMap[c.name] ? 1 : 0;
+
+  var h = '<div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:0 0 10px">'
+    + '<button onclick="_alcBackToList()" style="font-size:10px;padding:5px 14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer;font-weight:600">← 返回列表</button>'
+    + '</div>';
+
+  if (trigN > 0) {
+    h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
+      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已触发此分析链</div>'
+      + '</div>';
+  }
+
+  h += '<div style="margin:0 0 10px">';
+  h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + '</div>';
+  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  h += '</div>';
+
+  if(c.description) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">推理描述</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
+  }
+
+  if(c.reasoning_path&&c.reasoning_path.length){
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">推理路径 (' + c.reasoning_path.length + '步)</div>';
+    c.reasoning_path.forEach(function(s,si){
+      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(s.cross||'') + '</b> → ' + esc(s.action||'');
+      if(s.evidence_required) h += '<div style="padding-left:16px;color:#94a3b8">证据: ' + esc(s.evidence_required) + '</div>';
+      h += '</div>';
+    });
+  }
+
+  if(c.suggestion) {
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查建议</div>';
+    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.suggestion) + '</div>';
+  }
+  h += '</div>';
+
+  dv.innerHTML = h;
+  lv.style.display = 'none';
+  dv.style.display = 'block';
+};
+
+window._alcBackToList = function() {
+  var lv = document.getElementById('alc-list-view');
+  var dv = document.getElementById('alc-detail-view');
+  if (dv) { dv.style.display = 'none'; dv.innerHTML = ''; }
+  if (lv) lv.style.display = 'block';
+};
 
 
 function _co_money(v) { if(v==null) return "—"; try{var n=parseFloat(v); return n>=10000?(n/10000).toFixed(0)+"万元":n.toFixed(2)+"元";}catch(e){return "—";} }
@@ -5411,7 +5614,7 @@ function METHODOLOGY_CSS() {
     + '.au .datbar .d{flex:1;min-width:90px;background:#fcfdfe;padding:10px;text-align:center}'
     + '.au .datbar .d .n{font-size:10px;font-weight:700;color:#9a1f2b;line-height:1.1}'
     + '.au .datbar .d .l{font-size:10px;color:#64748b;margin-top:10px}'
-    + '.au .live{border:1px solid #eff2f6;border-radius:10px;padding:10px;margin:10px 0 10px;background:#fcfdfe}'
+    + '.au .live{border:none;border-radius:0;padding:0;margin:10px 0 10px;background:transparent}'
     + '.au .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0 10px}'
     + '.au .gi{font-size:10px;color:#64748b;padding-left:14px;position:relative;line-height:20px}'
     + '.au .gi::before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#e0b4b9}'
@@ -5533,9 +5736,9 @@ function renderMethodologyPart2(){
 
   // 数据面板
   h+='<div style="margin:10px 0"><details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📋 税务疑点库（全量规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（40条精写·调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链（20条精写·验证标准）</summary><div class="live"><div id="au-evidence-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔀 分析链（19条精写·跨域推理）</summary><div class="live"><div id="au-analysis-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
+  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（40条精写·调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链（20条精写·验证标准）</summary><div class="live"><div id="au-evidence-data"></div></div></details>';
+  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔀 分析链（19条精写·跨域推理）</summary><div class="live"><div id="au-analysis-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
 
   // ═══ 第四层·过滤 ═══
   h+='<h2>第四层 · 疑点过滤 —— 把100条信号淬成3条铁证</h2><p>布网阶段{{domain_functions}}个域同时发动，会产生大量粗糙信号。把粗糙信号淬成铁证，靠的是三道过滤器。</p>';
