@@ -1311,16 +1311,16 @@ function renderChainsList(chains) {
   if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
-    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
-    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>分类</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
-      var steps = (c.investigation_path||[]).length;
-      var cat = c.category||'';
+      var steps = (c.steps||c.investigation_path||[]).length;
+      var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
       var trigN = execMap[c.name] ? 1 : 0;
       html += '<tr class="rr-row" onclick="_showChainDetail(' + ci + ')">';
       html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
       html += '<td class="rr-name">' + esc(c.name||'') + '</td>';
-      html += '<td>' + esc(cat) + '</td>';
+      html += '<td style="font-weight:600;color:#16233a">' + ruleId + '</td>';
       html += '<td>' + steps + '</td>';
       html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
       html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
@@ -1447,16 +1447,16 @@ function renderEvidenceList(chains) {
   if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配证据链</div>';
   } else {
-    html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:80px"><col style="width:90px"><col style="width:70px"></colgroup>';
-    html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>分类</th><th>验证要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+    html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:80px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>疑点</th><th>验证要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
-      var dims = (c.dimensions||[]).length;
-      var cat = c.category||'';
+      var dims = (c.steps||c.dimensions||[]).length;
+      var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
       var trigN = evMap[c.name] ? 1 : 0;
       html += '<tr class="rr-row" onclick="_showEvDetail(' + ci + ')">';
       html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
       html += '<td class="rr-name">' + esc(c.name||'') + '</td>';
-      html += '<td>' + esc(cat) + '</td>';
+      html += '<td style="font-weight:600;color:#16233a">' + ruleId + '</td>';
       html += '<td>' + (c.min_evidence||'?') + '\u00d7' + dims + '维</td>';
       html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
       html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
