@@ -3702,6 +3702,37 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"[规则增强] 已为{len(all_findings)}条发现注入23字段规则数据")
     except Exception as _re:
         pipeline_log.append(f"[规则增强] 注入异常: {_re}")
+
+    # ═══ 四大门控机制: 闸门/调度/阈值扩展/自动定级 ═══
+    try:
+        from engine.rule_gate import apply_all_gates, scan_extended_thresholds
+        import json as _json2, os as _os2
+        # 加载规则数据
+        _rules_path = _os2.path.join(_os2.path.dirname(__file__), "..", "static", "tax_risk_rules_local_export.json")
+        _rules_data = _json2.load(open(_rules_path, 'r', encoding='utf-8')) if _os2.path.exists(_rules_path) else []
+        # 构建企业数据
+        _co_data = {}
+        try:
+            if 'company_id' in dir() or True:
+                from database import Company
+                _co = db.query(Company).filter(Company.id == company_id).first()
+                if _co:
+                    _co_data = {'name': _co.name or '', 'industry_code': _co.industry_code or '',
+                                'business_scope': _co.business_scope or ''}
+        except: pass
+        # 引擎数据
+        _eng_data = {"bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+                     "vouchers": vouchers, "trial_balance": trial_balance_data}
+        # 扩展阈值扫描
+        _ext_thr = scan_extended_thresholds(_eng_data, _rules_data, _co_data)
+        if _ext_thr:
+            all_findings.extend(_ext_thr)
+            pipeline_log.append(f"[扩展阈值] {len(_ext_thr)}条量化阈值触发")
+        # 应用四大门控
+        all_findings = apply_all_gates(all_findings, _rules_data, _co_data, _eng_data)
+        pipeline_log.append(f"[门控] 四大机制应用完成")
+    except Exception as _g:
+        pipeline_log.append(f"[门控] 异常: {_g}")
     
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
     _INTERNAL_PATTERNS = [
