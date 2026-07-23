@@ -10,7 +10,7 @@
         {
           "step": 1,
           "op": "aggregate",
-          "desc": "必备维度：收款vs申报差额",
+          "desc": "必备维度·收款总额验证：统计全量银行贷方收款总额（排除内部转账/理财申赎），按月份汇总各月实际资金流入。此维度为证据闭环的必备入口——无银行流水则本证据链不可用。",
           "source": "bank_txs",
           "filters": {"credit": {">": 0}},
           "group_by": "month",
@@ -20,7 +20,7 @@
         {
           "step": 2,
           "op": "aggregate",
-          "desc": "必备维度：申报收入总额",
+          "desc": "必备维度·申报收入验证：统计全量销项发票价税合计销售额，按月份汇总各月已申报销售规模。与收款总额形成一对一的月份比对基础。",
           "source": "sal_invs",
           "group_by": "month",
           "fields": ["sum(total) as total_sales"],
@@ -29,7 +29,7 @@
         {
           "step": 3,
           "op": "compare",
-          "desc": "比对差额",
+          "desc": "核心维度·差额比对：逐月比对收款总额与申报销售额，计算差额和差异率。差异>申报销售额10%的月份→标记为异常。此比对是隐匿收入证据的第一来源——收款远多于申报，且超出正常商业信用账期所能解释的范围（一般信用账期不超过90天），则隐匿收入的推断成立。",
           "left": "evid_total_bank",
           "right": "evid_total_sales",
           "threshold": {"gt": "total_sales * 0.1"},
@@ -38,7 +38,7 @@
         {
           "step": 4,
           "op": "query",
-          "desc": "核心维度：无票收款对手方",
+          "desc": "核心维度·无票收款对手方验证：按收款对手方分组汇总，筛选出未能匹配到销项发票购买方的收款记录。无票收款对手方越多、金额越大→隐匿收入证据越强。此维度与线索链步骤4联动——线索链锁定对手方，证据链量化规模和持续性。",
           "source": "bank_txs",
           "filters": {"credit": {">": 0}},
           "group_by": "counterparty",
@@ -48,7 +48,7 @@
         {
           "step": 5,
           "op": "query",
-          "desc": "辅助维度：收款持续性（按月份统计）",
+          "desc": "辅助维度·持续性验证：统计存在收款记录的月份数量。收款差异持续超过6个月→排除偶发的跨期开票/客户延迟付款等正常商业解释→隐匿收入为系统性行为而非偶然疏忽，证据强度升级。",
           "source": "bank_txs",
           "filters": {"credit": {">": 0}},
           "group_by": "month",
@@ -58,11 +58,11 @@
         {
           "step": 6,
           "op": "conclude",
-          "desc": "证据闭环判定",
+          "desc": "证据闭环判定：必备维度（收款vs申报差异）+核心维度（无票收款对手方）+辅助维度（持续性≥6个月）→三维同时命中=证据闭环成立。min_evidence=3，达到3维命中即可作为稽查证据提交。单维或双维命中→标记为部分闭环，需补充证据后升级。",
           "conditions": [
             {"if": "evid_gap.is_anomaly", "conclusion": "收款vs申报差异验证", "severity": "必备维度确认", "detail": "银行收款总额与申报销售额存在显著差异"},
             {"if": "evid_unreported exists", "conclusion": "无票收款验证", "severity": "核心维度确认", "detail": "存在无对应销项发票的收款对手方"},
-            {"if": "evid_persistence month_count > 6", "conclusion": "持续性验证", "severity": "辅助维度确认", "detail": "收款差异持续超过6个月，非偶然现象"}
+            {"if": "evid_persistence month_count > 6", "conclusion": "持续性验证", "severity": "辅助维度确认", "detail": "收款差异持续超过6个月，排除偶发跨期等正常商业解释"}
           ],
           "output": "findings"
         }
