@@ -117,12 +117,10 @@ window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
-  var rn = parseInt(rid) || 0;
-  var padId = function(n) { return n < 10 ? '00' + n : n < 100 ? '0' + n : '' + n; };
   var chainInfo = (typeof _rrChainInfo !== 'undefined' && _rrChainInfo[rid]) || null;
-  var cue = chainInfo && chainInfo.c_steps ? 'clue-' + padId(rn) : '-';
-  var evd = chainInfo && chainInfo.e_dims ? 'evid-' + padId(rn) : '-';
-  var alc = chainInfo && chainInfo.a_steps ? 'alc-' + padId(rn) : '-';
+  var cue = chainInfo && chainInfo.c_id ? chainInfo.c_id : '-';
+  var evd = chainInfo && chainInfo.e_id ? chainInfo.e_id : '-';
+  var alc = chainInfo && chainInfo.a_id ? chainInfo.a_id : '-';
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
@@ -477,15 +475,15 @@ function renderTaxRiskRules(container) {
         window._rrChainInfo = {};
         clueData.forEach(function(c){
           var rid = String(c.rule_id || '');
-          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].c_steps = (c.steps || []).length; }
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].c_id = c.id || ''; window._rrChainInfo[rid].c_steps = (c.steps || []).length; }
         });
         evidData.forEach(function(e){
           var rid = String(e.rule_id || '');
-          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].e_dims = (e.steps || []).length; }
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].e_id = e.id || ''; window._rrChainInfo[rid].e_dims = (e.steps || []).length; }
         });
         analData.forEach(function(a){
           var rid = String(a.rule_id || '');
-          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].a_steps = (a.steps || []).length; }
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].a_id = a.id || ''; window._rrChainInfo[rid].a_steps = (a.steps || []).length; }
         });
         window._rrFilter();
       });

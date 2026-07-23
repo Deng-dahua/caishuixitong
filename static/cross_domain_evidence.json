@@ -2,7 +2,7 @@
   "metadata": {"version": "v3.0-executable", "total_chains": 1, "updated_at": "2026-07-23"},
   "evidence_chains": [
     {
-      "id": "evid-021",
+      "id": "evid-001",
       "rule_id": 21,
       "name": "银行收款与申报收入断裂→多源验证闭环",
       "min_evidence": 3,

@@ -2,7 +2,7 @@
   "metadata": {"version": "v3.0-executable", "total_chains": 1, "updated_at": "2026-07-23"},
   "analysis_chains": [
     {
-      "id": "alc-021",
+      "id": "alc-001",
       "rule_id": 21,
       "name": "银行收款与申报收入断裂→跨域推理:隐匿收入定性",
       "steps": [
