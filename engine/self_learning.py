@@ -72,7 +72,7 @@ def record_module_run(module_id, module_name, status, metrics, company_id, indus
     
     log.append(entry)
     
-    # 保留最近2000条
+    # 保留最近2001条
     if len(log) > 2000:
         log = log[-2000:]
     

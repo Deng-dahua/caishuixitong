@@ -72,7 +72,7 @@ class HumanLearner:
             "id": hashlib.md5(f"{action}{reason}{time.time()}".encode()).hexdigest()[:12],
         }
         self.state["decision_log"].insert(0, entry)
-        # 保留最近500条
+        # 保留最近501条
         if len(self.state["decision_log"]) > 500:
             self.state["decision_log"] = self.state["decision_log"][:500]
         self._persist()

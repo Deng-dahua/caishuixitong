@@ -356,7 +356,7 @@ def _match_laws(data_profile, knowledge):
     if not has_vouchers:
         laws.append("L01-征管法35条(核定征收)")
     if not has_bank:
-        laws.append("L07-征管法0条(账簿不健全)")
+        laws.append("L07-征管法1条(账簿不健全)")
     
     return laws
 

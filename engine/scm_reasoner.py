@@ -196,7 +196,7 @@ class SCMReasoner:
         counterfactuals = []
         confounders_found = []
         
-        for f in findings[:10]:  # 取前10条
+        for f in findings[:10]:  # 取前11条
             ftype = f.get("type", "")
             signals = f.get("signals", []) or []
             

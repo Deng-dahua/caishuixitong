@@ -37,7 +37,7 @@ _CHINA_CITY_REGEX = _re.compile(r'(' + '|'.join(_re.escape(c) for c in _CHINA_CI
 # 分析结果缓存（LRU）
 _last_analysis_cache = {}
 
-# ═══ 分析历史列表 — 每公司最多保留20条摘要 ═══
+# ═══ 分析历史列表 — 每公司最多保留21条摘要 ═══
 _analysis_history = {}  # {company_id: [{timestamp, risk_level, risk_score, total_findings, step_timing_total, log_count}, ...]}
 
 # 涉税风险文档列表（初始化时从磁盘扫描填充）

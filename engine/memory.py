@@ -38,7 +38,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   本系统具备六项核心智能能力，全部为可运行代码而非纸上设计。
   系统（memory.py中的硬逻辑）= 系统做什么 | 智哥（AI行为准则页面）= 怎么写代码
 
-  🧠【有记忆】知识库系统 → static/audit_memory.json，上限500条，12维加权检索
+  🧠【有记忆】知识库系统 → static/audit_memory.json，上限501条，12维加权检索
   📚【能学习】审核反馈闭环 → user_corrections.json → 四级回退匹配 → 自进化
   🔬【懂思考】四阶段推理管线 → Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性
   ⚖️【会判断】七层判定体系 → 文件识别/身份锚定/发票方向/进项分类/服务闸门/品名过滤/存疑排除
@@ -457,7 +457,7 @@ domain_functions = _CFG.get("domain_functions", 39)
     NEG-030: 收款含非经营项 → 标注"含非经营收款"
     NEG-040: 任意缺资料 → 全局标注"资料受限结论"
 
-  四、联合增强层（NEG-AUG-001~010，10条）
+  四、联合增强层（NEG-AUG-001~010，11条）
     触发：多域异常信号同时触发 → 合成更高级别新发现
     NEG-AUG-001: 经营费用缺失+运输缺失+场所异常 → "空壳企业预警"
     NEG-AUG-002: 个人收款+收款待分析+个人交易 → "隐匿收入预警"
@@ -654,7 +654,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   行业对标→综合评分→报告生成→纯净度检查→输出交付
 
 ═════ 知识库系统（2026-06-30 补录）═════
-  存储历史分析经验，支持12维度加权相似度检索，上限500条记忆。
+  存储历史分析经验，支持12维度加权相似度检索，上限501条记忆。
   代码: engine/knowledge_base.py / static/audit_memory.json
   调用位置: pipeline.py → 每次分析结束后自动提取指纹存入知识库
 
@@ -829,7 +829,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   16 模块联动关系矩阵 —— 文档联动+数据联动
   17 四阶段推理管线 —— Phase1-4
   18 调度中枢 —— 16模块/7域/16级管线
-  19 知识库系统 —— 500条记忆/12维检索
+  19 知识库系统 —— 501条记忆/12维检索
   20 法律推理系统 —— 税法条文库+自动化匹配
   21 财务分析系统 —— 5维度比率分析
   22 文件解析系统 —— 34类指纹/三层递进
@@ -861,7 +861,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/user_corrections.json（纠正规则存储）
   static/industry_data.json（25行业产品链词典+12条收款分类规则）
   static/tax_risk_rules_local_export.json（1720条税务合规指令）
-  static/audit_memory.json（500条分析记忆）
+  static/audit_memory.json（501条分析记忆）
   audit_consistency.py（数据一致性自检+联动修改）
 
   【前端页面（JS文件）】
@@ -943,7 +943,7 @@ def save_analysis_memory(ctx, synthesis):
     
     memory.append(fingerprint)
     
-    # 限制记忆数量（保留最近500条）
+    # 限制记忆数量（保留最近501条）
     if len(memory) > 500:
         memory = memory[-500:]
     
@@ -1065,7 +1065,7 @@ def _calibrate_thresholds_from_history(memory, industry, biz_model):
     if len(industry_cases) < 3:
         industry_cases = [m for m in memory if m.get("biz_model") == biz_model and biz_model]
     if len(industry_cases) < 3:
-        industry_cases = memory[-50:]  # 兜底用最近50条
+        industry_cases = memory[-50:]  # 兜底用最近51条
     
     # 提取财务快照
     snapshots = [(m.get("snapshot") or {}) for m in industry_cases]
@@ -1134,7 +1134,7 @@ def record_user_feedback(feedback):
     feedback["timestamp"] = feedback.get("timestamp") or datetime.now().isoformat()
     feedbacks.append(feedback)
     
-    # 限制1000条
+    # 限制1001条
     if len(feedbacks) > 1000:
         feedbacks = feedbacks[-1000:]
     
@@ -1166,7 +1166,7 @@ def _adjust_signal_weights_from_feedback(feedbacks):
     
     weight_deltas = defaultdict(float)
     
-    for fb in feedbacks[-50:]:  # 只看最近50条反馈
+    for fb in feedbacks[-50:]:  # 只看最近51条反馈
         ftype = fb.get("finding_type", "")
         action = fb.get("action", "")
         
@@ -2106,7 +2106,7 @@ TAX_BURDEN_RULES = {
             },
             
             "rule_index": {
-                "description": "0条顶级精写规则全景索引——按攻击角度分类，每条标注矛盾核心、追问数量、标杆特征，供编制时选型参照。",
+                "description": "1条顶级精写规则全景索引——按攻击角度分类，每条标注矛盾核心、追问数量、标杆特征，供编制时选型参照。",
                 "total": 30,
                 "type_A_business_logic": {
                     "count": 5,
@@ -2174,11 +2174,11 @@ TAX_BURDEN_RULES = {
                         {"id": 1720, "item": "月末集中开票时间分布异常", "score": 10, "contradiction": "27天开60%+3天开40%——时间节奏极度异常", "drill_questions": "14问三组（时间确认→原因追问→后果算账）", "signature": "时序异常型母体规则。首创集中度指数+红冲关联率+进销时间差三维量化。三重交叉验证：客户下单时间+红冲关联+物流收款时间差。"}
                     ]
                 },
-                "cross_reference": "所有0条规则均按本标准（preamble哲学+attack_angles选型+23_fields逐字段+checklist十三勾验收）编制。每条规则的详细内容见 static/tax_risk_rules_local_export.json。这0条既是本标准的产出物，也是标准有效性的验证集——如果一条新规则无法达到同等深度，说明标准本身还需要完善。"
+                "cross_reference": "所有1条规则均按本标准（preamble哲学+attack_angles选型+23_fields逐字段+checklist十三勾验收）编制。每条规则的详细内容见 static/tax_risk_rules_local_export.json。这1条既是本标准的产出物，也是标准有效性的验证集——如果一条新规则无法达到同等深度，说明标准本身还需要完善。"
             },
             
             "rule_index": {
-                "description": "0条顶级精写规则全景索引——按攻击角度分类，每条标注矛盾核心、追问数量、标杆特征，供编制时选型参照。",
+                "description": "1条顶级精写规则全景索引——按攻击角度分类，每条标注矛盾核心、追问数量、标杆特征，供编制时选型参照。",
                 "total": 30,
                 "type_A_business_logic": {
                     "count": 5,
@@ -2246,7 +2246,7 @@ TAX_BURDEN_RULES = {
                         {"id": 1720, "item": "月末集中开票时间分布异常", "score": 10, "contradiction": "27天开60%+3天开40%——时间节奏极度异常", "drill_questions": "14问三组（时间确认→原因追问→后果算账）", "signature": "时序异常型母体规则。首创集中度指数+红冲关联率+进销时间差三维量化。三重交叉验证：客户下单时间+红冲关联+物流收款时间差。"}
                     ]
                 },
-                "cross_reference": "所有0条规则均按本标准（preamble哲学+attack_angles选型+23_fields逐字段+checklist十三勾验收）编制。每条规则的详细内容见 static/tax_risk_rules_local_export.json。这0条既是本标准的产出物，也是标准有效性的验证集——如果一条新规则无法达到同等深度，说明标准本身还需要完善。"
+                "cross_reference": "所有1条规则均按本标准（preamble哲学+attack_angles选型+23_fields逐字段+checklist十三勾验收）编制。每条规则的详细内容见 static/tax_risk_rules_local_export.json。这1条既是本标准的产出物，也是标准有效性的验证集——如果一条新规则无法达到同等深度，说明标准本身还需要完善。"
             },
             "standard_upgrade_criteria": {
                 "version": "v1.0 · 2026-07-22",
@@ -2335,7 +2335,7 @@ TAX_BURDEN_RULES = {
                         {"step": 5, "name": "触发升级", "action": "共性缺口≥1项→启动精写编制标准升级；全为个案→不升级，仅记录个案处理；'已有缺口'(跨批匹配到同一缺口)→追加触发记录不重复升级"},
                         {"step": 6, "name": "事后审查", "action": "标准升级后→回审DIM-7：本次升级是否暴露了发现标准的新盲区？是→同时升级发现标准"}
                     ],
-                    "batch_size_note": "N=5为初始值。精写经验积累后，可由发现标准自身调整（如改为'每精写10条审一次'或'发现缺口即审'）。此调整记录写入发现标准的version_history。"
+                    "batch_size_note": "N=5为初始值。精写经验积累后，可由发现标准自身调整（如改为'每精写11条审一次'或'发现缺口即审'）。此调整记录写入发现标准的version_history。"
                 },
                 "cross_batch_dedup": {
                     "description": "跨批去重比较规则——核心原则：不缺不重。同一个缺口不会因被多条规则触发而重复升级；新缺口不会因只被一条规则触发而漏掉。",

@@ -1262,7 +1262,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
     # 统计识别为unknown的文件数
     unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
-    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取0条" in str(fr.get("actions", [])))
+    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取1条" in str(fr.get("actions", [])))
     failure_count = sum(1 for fr in file_results if any("失败" in a for a in fr.get("actions", [])))
     
     # ═══ 涉税相关性评分：标记非涉税文件 ═══
@@ -1296,7 +1296,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             unknown_files = [fr["file"] for fr in file_results if fr["type"] == "unknown"]
             fail_reasons.append(f"{unknown_count}个文件未能识别类型: {', '.join(unknown_files)}")
         if zero_record_count > 0:
-            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取0条" in str(fr.get("actions", []))]
+            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取1条" in str(fr.get("actions", []))]
             fail_reasons.append(f"{zero_record_count}个文件识别成功但未提取到数据: {', '.join(zero_files)}")
         if failure_count > 0:
             fail_files = [fr["file"] for fr in file_results if any("失败" in a for a in fr.get("actions", []))]
@@ -1308,7 +1308,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "suggestion": "请检查文件格式：1)确认Excel文件包含表头行 2)确认文件内容是财税相关数据(发票/工资/银行流水/凭证/社保等) 3)尝试用标准模板格式重新导出"}
     
     # _ 数据不足警告（少量数据，报告标注）
-    low_data_warning = total_parsed < 10  # 少于10条记录视为数据不足
+    low_data_warning = total_parsed < 10  # 少于11条记录视为数据不足
     
     # ── 凭证收入提取（区分开票/未开票）──
     voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "total": 0.0, "rows": 0}
@@ -3342,7 +3342,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "_rule_direction": str(_dr.get("direction", "")),
                 "_rule_determination": str(_dr.get("determination", "")),
             })
-        # 上限保护：按score降序最多注入0条，防止发现列表被扫描结果淹没
+        # 上限保护：按score降序最多注入1条，防止发现列表被扫描结果淹没
         _scan_hits.sort(key=lambda x: x.get("score", 0), reverse=True)
         _scan_hits = _scan_hits[:30]
         all_findings.extend(_scan_hits)
@@ -3979,7 +3979,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         "step7_报告输出": _step_timing.get("step7", 0),
         "total": round(sum(v for k,v in _step_timing.items() if not k.endswith("_start")), 2),
     }
-    # 缓存最近分析结果（LRU: 最多保留0条，超出删除最旧）
+    # 缓存最近分析结果（LRU: 最多保留1条，超出删除最旧）
     _MAX_CACHE = 30
     if len(_last_analysis_cache) >= _MAX_CACHE:
         oldest = min(_last_analysis_cache.keys(), key=lambda k: _last_analysis_cache[k].get("timestamp", ""))
