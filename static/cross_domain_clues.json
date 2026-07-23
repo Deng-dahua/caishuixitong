@@ -101,7 +101,8 @@
         ],
         "output": "findings"
       }
-    ]
+    ],
+    "sub_topic": "跨域调查"
   },
   {
     "id": "clue-002",
@@ -114,12 +115,12 @@
       {
         "step": 1,
         "op": "aggregate",
-        "desc": "会计恒等式验证·资产负债表核验：从科目余额表中分别汇总资产类科目余额、负债类科目余额、所有者权益类科目余额。计算差额=资产总额-(负债总额+所有者权益总额)。差额>资产总额0.5%且绝对额>5万元→会计恒等式断裂，触发稽查。此步骤是整个调查的起点——全世界所有会计系统都建立在资产=负债+所有者权益这个基石上，等式一旦断裂只有三种可能：分录未完整记入、数字被篡改、账外资金循环。百万级以上差额绝不可能是会计差错。",
-        "source": "vouchers",
+        "desc": "会计恒等式验证·从科目余额表校验：逐科目汇总各科目期末余额——资产类科目(编码1开头)期末余额在借方、负债类(编码2开头)和权益类(编码4开头)期末余额在贷方。计算差额=资产借方余额合计-(负债贷方+权益贷方余额合计)。差额>资产总额0.5%且绝对额>5万元→会计恒等式断裂触发稽查。注意：序时账(凭证)的借贷方总额永远相等，不能用于验证恒等式——必须用科目余额表的期末净额。",
+        "source": "trial_balance",
         "group_by": "period",
         "fields": [
-          "sum(debit) as total_assets",
-          "sum(credit) as total_liabilities_equity"
+          "sum(close_debit) as asset_balance",
+          "sum(close_credit) as liability_equity_balance"
         ],
         "output": "monthly_balance_check"
       },
@@ -153,16 +154,13 @@
         "step": 4,
         "op": "query",
         "desc": "逐笔穿透·大额交易实质核查：对异常科目中金额>10万元的发生额逐笔追溯，调取对应的原始凭证：采购/销售合同、发票、入库单/出库单、银行回单、审批记录。标记四类无真实业务支撑的挂账：①无合同+无发票+无入库→纯虚构交易 ②有合同+无银行回单→未实际付款的虚构应付 ③银行回单对手方与发票/合同不一致→三流断裂 ④挂账对象为关联方/股东/员工→资金占用或体外循环。",
-        "source": "bank_txs",
-        "filters": {
-          "credit": {
-            ">": 0
-          }
-        },
-        "group_by": "counterparty",
+        "source": "vouchers",
+        "filters": {},
+        "group_by": "account_code",
         "fields": [
-          "sum(credit) as total_inflow",
-          "sum(debit) as total_outflow"
+          "sum(debit) as total_debit",
+          "sum(credit) as total_credit",
+          "count(*) as entry_count"
         ],
         "output": "suspicious_transactions"
       },
@@ -214,6 +212,7 @@
         ],
         "output": "findings"
       }
-    ]
+    ],
+    "sub_topic": "跨域调查"
   }
 ]

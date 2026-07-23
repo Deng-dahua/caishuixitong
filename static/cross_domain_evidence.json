@@ -107,7 +107,8 @@
           ],
           "output": "findings"
         }
-      ]
+      ],
+      "sub_topic": "跨域证据"
     },
     {
       "id": "evid-002",
@@ -118,12 +119,12 @@
         {
           "step": 1,
           "op": "aggregate",
-          "desc": "必备维度·会计恒等式验证：从序时账汇总各期借方(资产)和贷方(负债+权益)总额，逐期计算资产-(负债+权益)的差额。差额>资产总额0.5%且>5万元→恒等式断裂成立。此维度为整个证据体系的基石——如果恒等式不成立，后续所有会计数据均不可信，报告中的所有分析结论需标注数据基础存疑。注意：服务行业(资产轻)阈值收紧至0.3%/3万元，制造业(存货重)放宽至1%/10万元。",
-          "source": "vouchers",
+          "desc": "必备维度·会计恒等式验证：从科目余额表逐科目汇总期末余额，资产类(1开头编码)借方余额vs负债权益类(2/4开头编码)贷方余额的差额。差额>资产总额0.5%且>5万元→恒等式断裂成立。注意：此维度必须用科目余额表(trial_balance)而非序时账(vouchers)——序时账借贷永远相等无法检测恒等式断裂。服务行业(资产轻)阈值收紧至0.3%/3万元，制造业(存货重)放宽至1%/10万元。",
+          "source": "trial_balance",
           "group_by": "period",
           "fields": [
-            "sum(debit) as evid_assets",
-            "sum(credit) as evid_liab_equity"
+            "sum(close_debit) as evid_assets",
+            "sum(close_credit) as evid_liab_equity"
           ],
           "output": "evid_balance_equation"
         },
@@ -210,7 +211,8 @@
           ],
           "output": "findings"
         }
-      ]
+      ],
+      "sub_topic": "跨域证据"
     }
   ]
 }

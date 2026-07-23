@@ -2032,6 +2032,26 @@ TAX_BURDEN_RULES = {
                         "golden_example": "自#2'费用真实性层'（凭证量异常）和#1716'货物流与财务流核对层'（运输费缺失）。命名对照: 实物交易→货物流、账务断裂→账实核对层、纯申报→申报数据层、成本费用→费用真实性层、关联交易→关联关系与定价层。",
                         "anti_pattern": "禁止: 所有疑点首层都用'货物流'。禁止: 没有优先级标注。"
                     },
+                    "executable_chain_standard": {
+                        "version": "2026-07-23",
+                        "principle": "线索链/证据链/分析链是引擎直接执行的JSON指令。desc告诉人'为什么这样做'，op/source/filters/fields告诉引擎'怎么做'——两者必须一致。",
+                        "three_chains": {
+                            "clue": "线索链(调查路径)——引擎跑数据: 聚合→比对→查询→穿透→闭环。每步产出中间变量。",
+                            "evidence": "证据链(多源验证)——不同维度并行验证。min_evidence=3时各维必须来自不同数据源(同源=伪闭环)。",
+                            "analysis": "分析链(跨域推理)——站在线索链+证据链产出上推理。严禁重查原始数据！所有condition必须引用clue/evidence链output变量(name.exists或name.is_anomaly)。设置source/aggregate重查=平行重复=重写。"
+                        },
+                        "data_sources": {
+                            "trial_balance": "科目余额表——用于验证恒等式(资产借方vs负债权益贷方)。字段: code/name/close_debit/close_credit。",
+                            "vouchers": "序时账——每笔借贷相等。用于科目穿透/交易追溯。不可验证恒等式(借贷永远相等)。",
+                            "all": ["bank_txs","sal_invs","pur_invs","vouchers","salaries","social_security","inventory","trial_balance"]
+                        },
+                        "iron_rules": [
+                            "【链铁律1·desc=op】desc描述的操作必须对应op/source/filters/fields。desc说追踪资金但source=bank_txs+op=aggregate=对不上，必改。",
+                            "【链铁律2·source正确】vouchers≠验证恒等式(借贷永等)。trial_balance≠交易穿透(只有汇总)。",
+                            "【链铁律3·分析链不重查】分析链conditions必须引用clue/evidence链output。违者=平行重复。",
+                            "【链铁律4·三步自检】①desc×op是否一致? ②source选对? ③分析链有无重查数据?"
+                        ]
+                    },
                     "threshold": {
                         "principle": "量化阈值 + 行业差异调整 + 四维前置条件（行业+资质+数据+时间）+ 三色预警等级（黄/橙/红）。",
                         "golden_example": "#1717'账龄≥365天+单笔≥5万+总额≥10万。行业调整: 建筑730天/商贸90天/服务180天/制造540天。预警: 黄(365-540天)/橙(540-730天)/红(>730天)'。",

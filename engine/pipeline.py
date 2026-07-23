@@ -1989,6 +1989,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "salaries": salaries,
                 "social_security": social_security,
                 "inventory": inventory,
+                "trial_balance": trial_balance_data,
             }
             # 构建销项发票客户名集合（供线索链 not_in 过滤）
             _sal_buyers = set()
