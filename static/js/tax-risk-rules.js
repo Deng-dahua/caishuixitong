@@ -117,11 +117,18 @@ window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
+  var rn = parseInt(rid) || 0;
+  var padId = function(n) { return n < 10 ? '00' + n : n < 100 ? '0' + n : '' + n; };
+  var hasChains = rn >= 1 && rn <= 30;
+  var clink = function(id) { return hasChains ? '<a href="javascript:void(0)" style="color:#2563eb;font-size:9px" onclick="event.stopPropagation();_rrShowChainDetail(\'' + id + '\')">' + id + '</a>' : '-'; };
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('clue-' + padId(rn)) + '</td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('evid-' + padId(rn)) + '</td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap">' + clink('alc-' + padId(rn)) + '</td>'
     + '<td style="white-space:nowrap;text-align:center;color:#64748b">' + escHtml(String(rl.updated_at || rl.created_at || '').substring(0, 10) || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>'
     + '</tr>';
@@ -130,9 +137,9 @@ window._rrTitleRow = function(rl) {
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
   var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:92px"><col style="width:82px"></colgroup>'
+    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:68px"><col style="width:68px"><col style="width:68px"><col style="width:92px"><col style="width:82px"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table>';
@@ -187,6 +194,89 @@ window._rrBackToList = function() {
   if (lv) lv.style.display = 'block';
 };
 
+// ═══ 点击线索/证据/分析链编号 → 弹窗查看链内容 ═══
+window._rrShowChainDetail = function(chainId) {
+  var prefix = chainId.substring(0, 4); // clue / evid / alc
+  var fileMap = { 'clue': 'cross_domain_clues.json', 'evid': 'cross_domain_evidence.json', 'alc': 'cross_domain_analysis.json' };
+  var fname = fileMap[prefix];
+  if (!fname) return;
+
+  // 显示加载状态
+  var overlay = document.createElement('div');
+  overlay.id = 'rr-chain-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = '<div id="rr-chain-popup" style="background:#fff;width:720px;max-height:85vh;overflow-y:auto;border-radius:8px;padding:20px;font-family:-apple-system,Microsoft YaHei,sans-serif;font-size:10px;line-height:20px;color:#3a4048;box-shadow:0 8px 32px rgba(0,0,0,0.15)"><div style="text-align:center;padding:40px;color:#94a3b8">加载中...</div></div>';
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); } };
+
+  fetch('/static/' + fname + '?_t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var items = Array.isArray(data) ? data : (data[prefix + '_chains'] || data.evidence_chains || data.analysis_chains || []);
+      var item = items.find(function(it) { return it && it.id === chainId; });
+      var popup = document.getElementById('rr-chain-popup');
+      if (!item) {
+        popup.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">未找到: ' + chainId + '</div>';
+        return;
+      }
+      var h = '<div style="font-weight:700;font-size:12px;color:#16233a;margin-bottom:12px">🔗 ' + escHtml(item.id || '') + ' ' + escHtml(item.name || '') + '</div>';
+      h += '<div style="color:#64748b;margin-bottom:12px">' + escHtml(item.description || '') + '</div>';
+
+      // 线索链：调查步骤
+      if (item.investigation_path) {
+        h += '<div style="font-weight:600;color:#16233a;margin:8px 0 6px">调查路径 (' + item.investigation_path.length + '步)</div>';
+        item.investigation_path.forEach(function(s) {
+          h += '<div style="margin:4px 0;padding:6px 10px;background:#f8fafc;border-left:2px solid #2563eb">'
+            + '<span style="font-weight:600;color:#2563eb">步骤' + (s.step || '?') + '</span> '
+            + '<span style="color:#3a4048">' + escHtml(s.action || '') + '</span>'
+            + (s.evidence ? '<div style="color:#94a3b8;margin-top:2px">📄 ' + escHtml(s.evidence) + '</div>' : '')
+            + '</div>';
+        });
+      }
+
+      // 证据链：验证维度
+      if (item.dimensions) {
+        h += '<div style="font-weight:600;color:#16233a;margin:8px 0 6px">验证维度 (' + item.dimensions.length + '维) ｜ 最少满足: ' + (item.min_evidence || '?') + '</div>';
+        item.dimensions.forEach(function(d) {
+          var wc = d.weight === '必备维度' ? '#dc2626' : d.weight === '核心维度' ? '#f59e0b' : '#64748b';
+          h += '<div style="margin:4px 0;padding:6px 10px;background:#f8fafc;border-left:2px solid #f59e0b">'
+            + '<span style="font-weight:600;color:#16233a">' + escHtml(d.dimension || '') + '</span>'
+            + (d.weight ? ' <span style="font-size:9px;color:' + wc + '">[' + d.weight + ']</span>' : '')
+            + '<div style="color:#3a4048;margin-top:2px">检验: ' + escHtml(d.check || '') + '</div>'
+            + '<div style="color:#94a3b8;font-size:9px">条件: ' + escHtml(d.pass_condition || '') + '</div>'
+            + '</div>';
+        });
+      }
+
+      // 分析链：推理路径
+      if (item.reasoning_path) {
+        h += '<div style="font-weight:600;color:#16233a;margin:8px 0 6px">推理路径 (' + item.reasoning_path.length + '步)</div>';
+        item.reasoning_path.forEach(function(s) {
+          h += '<div style="margin:4px 0;padding:6px 10px;background:#f8fafc;border-left:2px solid #7c3aed">'
+            + '<span style="font-weight:600;color:#7c3aed">步骤' + (s.step || '?') + '</span>'
+            + (s.cross ? ' <span style="color:#94a3b8">[' + escHtml(s.cross) + ']</span>' : '')
+            + '<div style="color:#3a4048;margin-top:2px">' + escHtml(s.action || '') + '</div>'
+            + (s.conclusion ? '<div style="color:#059669;margin-top:2px">→ ' + escHtml(s.conclusion) + '</div>' : '')
+            + (s.evidence_required ? '<div style="color:#94a3b8;font-size:9px;margin-top:2px">📄 ' + escHtml(s.evidence_required) + '</div>' : '')
+            + '</div>';
+        });
+      }
+
+      // suggestion
+      if (item.suggestion) {
+        h += '<div style="margin:12px 0 0;padding:8px 12px;background:#fef2f2;border-left:2px solid #dc2626;color:#991b1b">'
+          + '<span style="font-weight:600">💡 判定建议: </span>' + escHtml(item.suggestion) + '</div>';
+      }
+
+      h += '<div style="text-align:center;margin-top:16px"><button onclick="document.getElementById(\'rr-chain-overlay\').remove()" style="font-size:10px;padding:5px 20px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer">关闭</button></div>';
+      popup.innerHTML = h;
+    })
+    .catch(function(e) {
+      var popup = document.getElementById('rr-chain-popup');
+      if (popup) popup.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626">加载失败: ' + escHtml(e.message) + '</div>';
+    });
+};
+
 function renderTaxRiskRules(container) {
   if (!container) return;
   var h = '';
@@ -198,22 +288,22 @@ function renderTaxRiskRules(container) {
     + '.rr-tax .rt{padding:10px;font-size:10px}'
     + '.rr-tax .rt b{color:#16233a}'
     + '.rr-tax .rt span{font-size:10px;color:#94a3b8;float:right}'
-    + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}'
-    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:1px solid #e2e8f0;font-size:10px;color:#475569;outline:none}'
-    + '.rr-search input:focus{border-color:#9a1f2b}'
-    + '.rr-search select{padding:6px 8px;border:1px solid #e2e8f0;font-size:10px;color:#475569;background:#fff}'
-    + '.rr-rule{padding:10px;margin-bottom:10px;transition:box-shadow .12s}'
-    + '.rr-rule:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}'
+    + '.rr-search{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;align-items:center}'
+    + '.rr-search input{flex:1;min-width:180px;padding:6px 10px;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;color:#475569;outline:none;background:transparent}'
+    + '.rr-search input:focus{border-bottom-color:#9a1f2b}'
+    + '.rr-search select{padding:6px 8px;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;color:#475569;background:transparent;outline:none;cursor:pointer}'
+    + '.rr-rule{padding:0 0 10px;margin-bottom:10px}'
+    + '.rr-rule:hover{box-shadow:none}'
     + '.rr-rule .rh{font-size:10px;font-weight:600;color:#16233a;margin:0 0 10px}'
     + '.rr-rule .rl{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:10px}'
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '.rr p{margin:0 0 10px;line-height:20px}'
     + '.rr-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;margin:0 0 10px}'
-    + '.rr-table th{padding:6px 8px;border:1px solid #e2e8f0;background:#f8fafc;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap;overflow:hidden}'
-    + '.rr-table td{padding:4px 8px;border:1px solid #eef2f6;line-height:20px;color:#3a4048;overflow:hidden;text-overflow:ellipsis}'
+    + '.rr-table th{padding:8px 8px;border:none;border-bottom:2px solid #16233a;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap;overflow:hidden;background:transparent}'
+    + '.rr-table td{padding:6px 8px;border:none;border-bottom:1px solid #eef2f6;line-height:20px;color:#3a4048;overflow:hidden;text-overflow:ellipsis}'
     + '.rr-row{cursor:pointer}'
-    + '.rr-row:hover{background:#fafbfc}'
+    + '.rr-row:hover{background:transparent}'
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
@@ -230,10 +320,10 @@ function renderTaxRiskRules(container) {
     + '<option>税务合规与程序</option>'
     + '</select>'
     + '<select id="rr-source-filter" onchange="window._rrFilter()"><option value="">全部来源</option><option value="manual">人工规则</option><option value="auto">自动发现规则</option></select>'
-    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10px;color:#475569;background:#fff"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
+    + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;color:#475569;background:transparent;cursor:pointer"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
     + '</div>';
 
-  h += '<details id="rr-standard" style="margin-bottom:10px;background:#fafbfc;border:1px solid #eef2f6;padding:10px;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v6六类攻击角度）</summary>'
+  h += '<details id="rr-standard" style="margin-bottom:10px;background:transparent;border:none;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:10px 0;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v6六类攻击角度）</summary>'
     + '<div style="margin-top:10px">'
     + '<p><b>疑点编制规则·税务疑点仅来源于数据矛盾</b>——疑点不是法律条文，不是会计知识，不是处理标准，而是数据之间的结构性矛盾。"该企业可能存在偷税风险"属于主观推测，无法直接核查；"银行账户全年收款5000万元但申报收入仅3000万元"属于客观数据矛盾，可立即启动核查——后者方为有效疑点。编制疑点的首要步骤：明确掌握哪些数据、这些数据之间应呈何种关系，关系不成立即构成疑点。</p>'
     + '<p><b>三种基本矛盾类型</b>——①应当相等但不等：资产负债表左右不平、增值税与所得税申报收入不一致、工资薪金与社保个税三源数据不一致（勾稽断裂类）。②应当存在但缺失：有销售收入无运输费用记录、持有房产无房产税申报记录、有在职员工无社保参保记录（数据缺失类）。③不应出现但出现：购进钢材却开具咨询服务发票、新设企业三个月内开票5000万元、凌晨时段集中开票（模式异常类——"应当"的基准来源于行业统计与行为规律分析，基准本身亦为数据，故本质上仍属数据矛盾）。所有疑点均为上述三种矛盾的组合表现。</p>'
@@ -317,7 +407,24 @@ function renderTaxRiskRules(container) {
     + '<p>D类(1条)：#1718资金闭环回流(14问三组：关系穿透→资金追踪→交易实质)</p>'
     + '<p>E类(1条)：#1719社保人数缺口(14问三组：基数确认→缺口归因→后果算账)</p>'
     + '<p>F类(1条)：#1720月末集中开票(14问三组：时间确认→原因追问→后果算账)</p>'
-    + '<p style="margin-top:20px;padding-top:10px;border-top:2px solid #e2e8f0"><b>🔧 标准升级判定规则</b></p><p><b>何时必须升级标准：</b>新规则的核心矛盾无法归入现有六类攻击角度的marker时，才需要新增攻击角度或自查项。</p><p><b>何时不需要升级：</b>新规则的核心矛盾能归入现有marker→仅丰富角度内部细节，不增加标准本身的维度。</p><p><b>判定流程：</b>①新规则完成精写→②检查其核心矛盾是否匹配A/B/C/D/E/F任一marker→③匹配=不升级/不匹配=升级。</p><p><b>预估新增：</b>1717条规则全量精写预计触发2-3次标准升级，上限不超过4次。大部分规则属于Type C(数据异常需穿透)的丰富和细化。</p><p style="color:#64748b;font-size:10px">当前标准为v6（六类攻击角度+十三项自查），由30条gold规则验证生效。</p>'
+    + '<p style="margin-top:20px;padding-top:10px;border-top:2px solid #e2e8f0"><b>🔧 标准升级判定规则（发现标准 v1.0 · 双层自举系统）</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;margin:4px 0 10px">发现标准=元标准。精写编制标准告诉你怎么写疑点；发现标准告诉你在写疑点时怎么判断精写编制标准是否需要升级。发现标准自身也随精写编制标准一起升级，升级后能识别更多缺口类型。</p>'
+    + '<p style="font-weight:700;color:#8B0000"><b>核心原理 · 双层自举：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000">第1层（标准升级层）：精写每条疑点→逐维判定缺口→触发精写编制标准升级</p>'
+    + '<p style="font-weight:700;color:#8B0000">第2层（自举层）：精写编制标准升级后→审查发现标准是否有新盲区→发现标准自身升级</p>'
+    + '<p style="font-weight:700;color:#8B0000;margin-top:10px"><b>七维判定（DIM-1~7）：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9">①攻击角度覆盖(能否归入A-F marker) ②GS自查项覆盖(每项是否有效检查) ③字段格式指导(是否足以指导编制) ④特殊类型编制技术(新技术是否已收录) ⑤跨类型适配(混合类型有无衔接指导) ⑥边界定义(判定模糊处) ⑦发现标准自身盲区(是否需新增维度)</p>'
+    + '<p style="font-weight:700;color:#8B0000;margin-top:10px"><b>六步判定流程：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9">①规则精写完成→②逐维过审(每条独立逐DIM-1~7判定)→③捕捉缺口(记录规则ID+字段+缺口描述)→④聚合归类(两层聚合：层1批内交叉比较+层2跨批去重比较)→⑤触发升级(共性缺口≥1则升级；已有缺口不重复升级)→⑥事后审查(DIM-7自检)</p>'
+    + '<p style="font-weight:700;color:#8B0000;margin-top:10px"><b>跨批去重规则（核心原则：不缺不重）：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9"><b>层1·批内交叉比较</b>——同一DIM下多条规则触发同一类缺口→合并为一个；不同类缺口→各自独立；不同DIM→永不合并</p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9"><b>层2·跨批去重比较</b>——当前批次缺口vs历史批次已检出缺口：①同一缺口跨批匹配→已有缺口，不重复升级，追加触发记录 ②首次出现的新缺口→计入升级计数 ③只被一条规则触发且所有批次仅此一次→个案·待观察</p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9"><b>举例</b>——#1~#5已检出DIM-1法律事实缺口（#4触发）。#6~#10中#8又触发同一DIM-1法律事实→已有缺口不重复升级。但#7触发DIM-2的GS-5新问题（#1~#5中DIM-2只捕获GS-3）→新缺口。若批内仅#7一条触发→计为个案·待观察，后续批次再次出现→自动升级为共性缺口</p>'
+    + '<p style="font-weight:700;color:#8B0000;margin-top:10px"><b>四条自举规则（SU-1~4）：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9">SU-1新维度追加(缺口无法归入DIM-1~7→新增DIM-N) | SU-2现有维度细化(不够精确→修订) | SU-3流程参数调整(效率不理想→调N值) | SU-4版本跟踪(任何修改→更新版本号和历史)</p>'
+    + '<p style="font-weight:700;color:#8B0000;margin-top:10px"><b>实战验证 · 精写#1~#5后的缺口检出：</b></p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;line-height:1.9">DIM-1触发(B类marker需扩展法律事实子类型·#4) | DIM-2触发(GS-3需增加非物理类例外条款·#1#4#5) | DIM-3触发(threshold维度替换指导+追溯时点层无GS检查·#2#3#4#5) | DIM-4触发(人力产能验证技术未分类·#2) | DIM-5触发(C含B类的编制优先级·#3) | DIM-6未触发(0种正常解释边界暂未暴露) | DIM-7未触发(DIM-1~6已全覆盖)→5项缺口全部捕获，发现标准v1.0暂不升级</p>'
+    + '<p style="font-weight:700;color:#8B0000;font-size:10px;margin-top:10px">当前精写编制标准为v6（六类攻击角度+十三项自查），发现标准为v1.0。完整内容见 engine/memory.py → standard_upgrade_criteria。</p>'
     + '<p style="color:#64748b;font-size:10px">完整详细内容见 engine/memory.py → gold_standard_decoded → rule_index。每条规则的完整精写见 static/tax_risk_rules_local_export.json。</p>'
     + '</div>'
     + '</details>';
