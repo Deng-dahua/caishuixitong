@@ -2029,6 +2029,20 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _e:
         pipeline_log.append(f"[可执行链] 执行异常: {_e}")
 
+    # ── 阈值扫描器: 解析规则的threshold字段，对数据执行硬性量化检查 ──
+    try:
+        from engine.threshold_scanner import scan_all as threshold_scan
+        _thr_findings = threshold_scan(_eng_data if '_eng_data' in dir() else {
+            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+            "vouchers": vouchers, "trial_balance": trial_balance_data
+        })
+        if _thr_findings:
+            domain_results.append({"domain": "阈值量化扫描", "findings": _thr_findings})
+            all_findings.extend(_thr_findings)
+            pipeline_log.append(f"[阈值扫描] {len(_thr_findings)}条量化阈值触发")
+    except Exception as _ts:
+        pipeline_log.append(f"[阈值扫描] 异常: {_ts}")
+
     # ── 域→规则自动分配：为没有rule_id的发现自动匹配税务合规指令 ──
     all_findings = _auto_assign_rule_ids(all_findings, pipeline_log)
 
@@ -3680,6 +3694,14 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 报告编制总纲补全：证据三性校验 ═══
     all_findings, evidence_report = _evidence_three_property_check(all_findings, pipeline_log)
+    
+    # ═══ 精写编制标准23字段全量注入：为每条发现注入对应的规则完整知识 ═══
+    try:
+        from engine.rule_enricher import enrich_findings
+        all_findings = enrich_findings(all_findings)
+        pipeline_log.append(f"[规则增强] 已为{len(all_findings)}条发现注入23字段规则数据")
+    except Exception as _re:
+        pipeline_log.append(f"[规则增强] 注入异常: {_re}")
     
     # ═══ 报告净化：剔除内部技术描述和敷衍文本，只保留审计师可读的专业发现 ═══
     _INTERNAL_PATTERNS = [

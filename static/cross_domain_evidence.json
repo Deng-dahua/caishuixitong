@@ -108,7 +108,8 @@
           "output": "findings"
         }
       ],
-      "sub_topic": "跨域证据"
+      "sub_topic": "跨域证据",
+      "level": "高风险"
     },
     {
       "id": "evid-002",
@@ -212,7 +213,8 @@
           "output": "findings"
         }
       ],
-      "sub_topic": "跨域证据"
+      "sub_topic": "跨域证据",
+      "level": "高风险"
     }
   ]
 }
