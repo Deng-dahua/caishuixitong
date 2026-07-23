@@ -5380,16 +5380,16 @@ async function loadAnalysisChainsData() {
     if (!chains.length) {
       html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配分析链</div>';
     } else {
-      html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:100px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
-      html += '<thead><tr><th>#</th><th>推理链名称</th><th>分类</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+      html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+      html += '<thead><tr><th>#</th><th>推理链名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
       chains.forEach(function(chain, ci) {
-        var steps = (chain.reasoning_path||[]).length;
-        var cat = chain.category||'';
+        var steps = (chain.steps||chain.reasoning_path||[]).length;
+        var ruleId = chain.rule_id ? '#' + chain.rule_id : (chain.rule_refs && chain.rule_refs.length ? '#' + chain.rule_refs[0] : '-');
         var trigN = acMap[chain.name] ? 1 : 0;
         html += '<tr class="rr-row" onclick="_showAlcDetail(' + ci + ')">';
         html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
         html += '<td class="rr-name">' + esc(chain.name||'') + '</td>';
-        html += '<td>' + esc(cat) + '</td>';
+        html += '<td style="font-weight:600;color:#16233a">' + ruleId + '</td>';
         html += '<td>' + steps + '</td>';
         html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
         html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
