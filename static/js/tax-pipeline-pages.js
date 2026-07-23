@@ -5798,6 +5798,8 @@ function renderMethodologyAssemble(){
   var full=(window.__au1||'')+(window.__au2||'')+(window.__au3||'');
   if(typeof applySysStats==='function'&&window._systemConfig)full=applySysStats(full,window._systemConfig);
   t.innerHTML=full;
+  // 异步加载33条方法论详细列表
+  setTimeout(function(){ loadMethodologies(); }, 100);
   // 确保DOM就绪后再渲染子面板（避免innerHTML未完全同步）
   setTimeout(function(){
   var r=document.getElementById('au-analyze-result');

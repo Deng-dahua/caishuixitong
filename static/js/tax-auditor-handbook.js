@@ -88,7 +88,7 @@ function renderAuditorHandbook(container) {
     if (!tbody) return;
     var rows = '';
     data.forEach(function(m){
-      rows += "<tr><td class=\"lbl\">"+m.id+"</td><td class=\"lbl\" style=\"color:#0f172a;font-weight:600\">"+m.name+"</td><td class=\"val\" style=\"font-size:12px\">"+m.desc+" | 代码："+m.code+"</td></tr>";
+      rows += "<tr><td class=\"lbl\">"+m.id+"</td><td class=\"lbl\" style=\"color:#0f172a;font-weight:600\">"+m.name+"</td><td class=\"val\" style=\"font-size:12px;color:#059669\">"+m.desc+" | 代码："+m.code+"</td></tr>";
     });
     tbody.innerHTML = rows;
   }).catch(function(){
