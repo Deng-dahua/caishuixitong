@@ -296,7 +296,13 @@ def _check_system_consistency() -> list:
             path = os.path.join(base, "static", filename)
             if os.path.exists(path):
                 with open(path, "r", encoding="utf-8") as f:
-                    actual = len(json.load(f))
+                    raw = json.load(f)
+                if isinstance(raw, list):
+                    actual = len(raw)
+                elif isinstance(raw, dict):
+                    actual = len(raw.get("evidence_chains") or raw.get("analysis_chains") or raw.get("clues") or [])
+                else:
+                    actual = 0
                 config_val = sc.get(key)
                 if config_val != actual:
                     errors.append(
@@ -314,11 +320,25 @@ def _check_system_consistency() -> list:
         try:
             path = os.path.join(base, "static", filename)
             with open(path, "r", encoding="utf-8") as f:
-                items = json.load(f)
+                raw = json.load(f)
+            # 线索链是list，证据链/分析链是dict含chains数组
+            if isinstance(raw, list):
+                items = raw
+            elif isinstance(raw, dict):
+                # 尝试常见的chains键名
+                items = raw.get("evidence_chains") or raw.get("analysis_chains") or raw.get("clues") or []
+            else:
+                items = []
             for item in items:
+                if not isinstance(item, dict):
+                    continue
                 for field in required:
                     if field not in item:  # 字段不存在才算缺失，空值不算
-                        item_name = item.get("name", item.get("id", "?"))[:30]
+                        item_name = item.get("name", item.get("id", "?"))
+                        if isinstance(item_name, str):
+                            item_name = item_name[:30]
+                        else:
+                            item_name = str(item_name)[:30]
                         errors.append(
                             f"[系统一致性] {name} \"{item_name}\" 缺少字段 {field}"
                         )
