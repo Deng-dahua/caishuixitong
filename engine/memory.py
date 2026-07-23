@@ -511,9 +511,9 @@ domain_functions = _CFG.get("domain_functions", 39)
   python audit_consistency.py --sync   → 同步模式：自动修正所有不一致
   python audit_consistency.py --calibrate → 校准模式：重新统计权威数据源
 
-  【当前权威数据（2026-06-29）】
-  rules_count=1608 | clue_chains=396 | evidence_chains=745
-  methodology_count=1250 | total_chains=1250 | domain_functions=39
+  【当前权威数据（2026-07-23）】
+  rules_count=1720 | clue_chains=2 | evidence_chains=2 | analysis_chains=2
+  methodology_count=33 | total_chains=6 | domain_functions=39
   cross_domain_clues=1215 (41 executable + 1250 legacy) | cross_domain_evidence=22 | engine_modules=28
   file_fingerprints=34 | quality_standards=12 | noise_filter_rate=97
 

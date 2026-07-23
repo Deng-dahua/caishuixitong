@@ -936,7 +936,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="hb-card-grid">';
     h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
     h += '<div class="hb-info-card hb-info-red"><strong>📋 税务合规规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1720条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
-    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>2条</strong>(41可执行+1174方法论)</p><p>可执行链含触发关键词/调查步骤/关联规则ID；方法链含完整税务合规步骤和法规引用</p></div>';
+    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>2条可执行链</strong></p><p>线索链/证据链/分析链各2条，方法论33条见 methodology_items.json</p></div>';
     h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p>7层架构 <strong>28个引擎</strong></p><p>核心6+推理4+连接3+知识3+专项7+加速3+调度2</p></div>';
     h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
     h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 代码规模</strong><p>main.py <strong>~29,000行</strong> + engine/ <strong>~8,500行</strong> + 前端 <strong>~15,000行</strong></p><p>总计约 <strong>52,500行</strong> 系统代码</p></div>';

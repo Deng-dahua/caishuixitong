@@ -166,7 +166,7 @@ def calibrate(authority):
     authority["total_chains"] = authority.get("clue_chains", 0) + \
                                  authority.get("evidence_chains", 0) + \
                                  authority.get("analysis_chains", 0)
-    authority["methodology_count"] = authority.get("legacy_clues", 0)  # 旧方法链=legacy数
+    authority["methodology_count"] = len(json.load(open(os.path.join(static_dir, "methodology_items.json")))) if os.path.exists(os.path.join(static_dir, "methodology_items.json")) else 33  # 旧方法链=legacy数
     
     da_file = ROOT / "engine" / "domain_analysis.py"
     if da_file.exists():

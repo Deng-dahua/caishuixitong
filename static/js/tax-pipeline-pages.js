@@ -2114,7 +2114,7 @@ function renderQualitySystem(container) {
     { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
       desc:'33条税务合规方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是系统的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
       items:[
-        {name:'税务合规方法论33条',source:'系统详情',desc:'1266条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/税务合规重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
+        {name:'税务合规方法论33条',source:'系统详情',desc:'33条方法链(legacy)按功能分为5层，逐层递进：①数据接入层(①-④)——多格式兼容/汇总行过滤/付款方身份核实/关键词≠事实，确保进入分析的数据干净可靠 ②规则层(⑤-⑨)——行业基准库/联网核查/明细即信服力/合同分层/完备度，定义分析的标准和边界 ③推理层(⑩-⑯)——凭证纠正/进销诊断/结论分析法/COND_BAN/税务合规重点/报告纯净度/发票≠收付款，将原始信号转化为有逻辑链条的结论 ④增强层(⑰-㉒)——经营实质地理/规则detail/建议增强/四步分析/禁止截断/三层穿透，在已有结论基础上补充深度和广度 ⑤进化层(㉓-㉝)——点面推理/六员比对/供应链核查/缺失推理/存疑排除/配置外部化/资金回流等，赋予系统自我优化和自适应能力。每条方法论含：编号(①-㉝)、名称、定义/原理、应用场景、代码位置。数量由audit_chains.json实时统计保证准确。'},
         {name:'四步税务合规分析法',source:'管道调度',desc:'detect→verify→diagnose→report四步递进，每条发现必须完整走完四步才形成最终结论。①detect(初查)——1514规则系统全量扫描，Phase1识别所有潜在风险信号，不做深度判断，只做\"有没有可能存在问题\"的初筛。②verify(深挖)——针对初步信号，Phase2定向深挖，调取更多相关数据进行验证，排除误报——如初步信号为\"毛利率异常\"，深挖阶段检查是否属于服务行业（服务行业毛利率不可比制造业），如果是则排除。③diagnose(诊断)——Phase3多源交叉验证，将经过深挖确认的信号与来自其他数据域的证据进行交叉比对，形成\"这个发现可信度多高\"的综合判断。④report(报告)——Phase4综合定性，生成因果叙事链，输出最终的风险等级、法律依据、处理建议。每条发现在报告中呈现完整的detect→verify→diagnose→report推导过程，用户可以追溯每一步的判断依据。'},
         {name:'三层行业穿透法',source:'调度中枢',desc:'工商登记→发票数据→加工信号三层穿透，不一致时以实质重于形式。第一层：读取工商登记的主营行业分类——这是形式上的行业标签，可能存在登记行业与实际经营不符的情况（如登记为\"批发业\"但实际做广告代理）。第二层：统计销项发票的金税编码分布——这是数据层面揭示的实际业务模式，如果90%的销项编码属于\"广告服务\"类，实际是广告公司。第三层：检测进销品名中是否存在加工信号（加工费/原料→成品等关键词）——如果存在外包加工，则实际是\"生产+服务\"混合模式。三层结论不一致时→报告第一章行业分类展示三层穿透结果→最终以第二层（发票数据）为主，第三层（加工信号）为修正→综合判断标注推理过程。代码实现：_detect_target_entity()函数的行业判定逻辑。'},
         {name:'经营实质点面推理法',source:'调度中枢',desc:'从单一风险点推理出面的风险——不是孤立地看一个地址异常，而是从地址推演出整个经营模式的合理性。五步推理：①单点异常——发现一个具体异常点（如企业注册地址在某写字楼但社保缴纳人数为零）②数据扩展——围绕这个异常点调取所有相关数据（银行流水中的付款方地址、发票中的服务地址、合同中的履约地点）③关联维度——将地址信息与物流/运输/仓储/人员四个维度进行交叉关联 ④交叉验证——检查多个维度是否一致地指向同一个结论（运输单据缺失+人员零参保+办公地址无水电费→空壳经营的可能性增大）⑤综合结论——从单点风险上升为面的判断（不是\"注册地址异常\"而是\"经营实质存疑——疑似无实际经营场所的空壳企业\"）。系统实现：geo-business-premise-analysis skill + domain_analysis.py 经营实质域分析。'},
@@ -2165,7 +2165,7 @@ function renderQualitySystem(container) {
   h+='<p style="font-size:10px;color:#64748b;margin:0 0 10px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
 
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">';
-  [{n:'1514',l:'税务合规规则'},{n:'437',l:'线索链'},{n:'745',l:'证据链'},{n:'33',l:'方法论'},{n:'1174',l:'总链数'},{n:'36',l:'域分析'}].forEach(function(s){
+  [{n:'1720',l:'税务合规规则'},{n:'2',l:'线索链'},{n:'2',l:'证据链'},{n:'33',l:'方法论'},{n:'6',l:'总链数'},{n:'39',l:'域分析'}].forEach(function(s){
     h+='<div class="qs-stat" style="flex:1;min-width:100px"><div style="font-size:10px;font-weight:700;color:#16233a">'+s.n+'</div><div style="font-size:10px;color:#64748b">'+s.l+'</div></div>';
   });
   h+='</div>';
@@ -2208,45 +2208,32 @@ function renderQualitySystem(container) {
   var target = document.getElementById('methods-body');
   if (!target) return;
   
-  // 从 audit_chains.json 读取方法论
-  fetch('/static/audit_chains.json?_t=' + Date.now())
+  fetch('/static/methodology_items.json?_t=' + Date.now())
     .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var chains = data.chains || [];
-      var methods = chains.filter(function(c) { return c.type === 'methodology'; });
-      
-      if (methods.length === 0) {
-        target.innerHTML = '<div style="color:#64748b;padding:20px">未找到方法论数据，请检查 audit_chains.json</div>';
+    .then(function(methods) {
+      if (!methods.length) {
+        target.innerHTML = '<div style="color:#64748b;padding:20px">方法论数据为空</div>';
         return;
       }
       
       var html = '';
       methods.forEach(function(m, i) {
-        var id = m.id || (i+1);
+        var id = m.id || ('#' + (i+1));
         var name = m.name || '未命名';
-        var desc = m.desc || '';
-        var requirement = m.requirement || '';
-        var purpose = m.purpose || '';
-        var codePos = m.code_position || '';
-        var callLocs = m.call_locations || [];
+        var desc = m.desc || m.short || '';
+        var codePos = m.code || '';
         
         html += '<div style="margin-bottom:10px;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #2563eb">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
           + '<div style="font-size:10px;font-weight:700;color:#16233a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
-          + '<span style="font-size:10px;color:#64748b;cursor:pointer" onclick="var d=this.parentNode.parentNode.nextElementSibling;d.style.display=d.style.display==\'none\'?\'\':\'none\'">展开/折叠</span>'
           + '</div>'
           + '<div style="font-size:10px;color:#3a4048;line-height:20px">' + escHtml(desc) + '</div>'
-          + '<div style="display:none;margin-top:12px;padding:12px 16px;background:#fff;border-radius:6px;font-size:10px;color:#3a4048;line-height:2">'
-          + (requirement ? '<div style="margin-bottom:10px"><span style="font-weight:600;color:#16233a">要求：</span>' + escHtml(requirement) + '</div>' : '')
-          + (purpose ? '<div style="margin-bottom:10px"><span style="font-weight:600;color:#16233a">用途：</span>' + escHtml(purpose) + '</div>' : '')
-          + (codePos ? '<div style="margin-bottom:10px"><span style="font-weight:600;color:#16233a">代码位置：</span><code style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
-          + (callLocs.length > 0 ? '<div><span style="font-weight:600;color:#16233a">调用位置：</span>' + callLocs.map(function(loc) { return '<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;background:#e0f2fe;color:#0369a1;font-size:10px;border-radius:4px">' + escHtml(loc) + '</span>'; }).join('') + '</div>' : '')
-          + '</div>'
+          + (codePos ? '<div style="margin-top:8px;font-size:10px;color:#64748b">代码位置: <code style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
           + '</div>';
       });
       
       target.innerHTML = html;
-  loadAnalysisChains();
+      loadAnalysisChains();
     })
     .catch(function(e) {
       target.innerHTML = '<div style="color:#dc2626;padding:20px">加载方法论失败：' + e.message + '</div>';
