@@ -117,11 +117,18 @@ window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
+  var chainInfo = (typeof _rrChainInfo !== 'undefined' && _rrChainInfo[rid]) || null;
+  var cue = chainInfo ? (chainInfo.c_steps + '步') : '-';
+  var evd = chainInfo ? (chainInfo.e_dims + '维') : '-';
+  var alc = chainInfo ? (chainInfo.a_steps + '步') : '-';
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + cue + '</td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + evd + '</td>'
+    + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + alc + '</td>'
     + '<td style="white-space:nowrap;text-align:center;color:#64748b">' + escHtml(String(rl.updated_at || rl.created_at || '').substring(0, 10) || '-') + '</td>'
     + '<td style="white-space:nowrap;text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>'
     + '</tr>';
@@ -130,9 +137,9 @@ window._rrTitleRow = function(rl) {
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
   var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:92px"><col style="width:82px"></colgroup>'
+    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:68px"><col style="width:68px"><col style="width:68px"><col style="width:92px"><col style="width:82px"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table>';
@@ -393,7 +400,7 @@ function renderTaxRiskRules(container) {
     + '<p><b>从 #1718 借：</b>网络图谱构建技术、六员交叉比对、资金闭环路径追踪、隐性关联分层穿透、交易实质验证方法论。</p>'
     + '<p><b>从 #1719 借：</b>缺失因果链表述、合法免履行义务穷举、双线并查技术（人数+基数）、逐人归因证据清单、违法后果定量算账。</p>'
     + '<p><b>从 #1720 借：</b>时间分布统计技术、集中度指数量化、红冲关联检测、三重交叉验证（下单+红冲+物流）、进销时间差分析。</p>'
-    + '<p style="margin-top:20px;padding-top:10px;border-top:2px solid #e2e8f0"><b>📊 0条深度精写规则全景索引</b></p>'
+    + '<p style="margin-top:20px;padding-top:10px;border-top:2px solid #e2e8f0"><b>📊 1条深度精写规则全景索引</b></p>'
     + '<p>A类(5条)：#1717预收挂账(15问)、#9银行收款vs申报(8问)、#10关联版(6问)、#1711银行vs应税(7问)、#1715平台收款(8问)</p>'
     + '<p>B类(4条)：#1716运输费缺失(14问)、#20存货周转率(9问)、#4无形资产摊销(8问)、#19其他应收款(9问)</p>'
     + '<p>C类(18条)：#1资产负债表(15问)、#2凭证量异常(10问)、#3固定资产折旧(8问)、#5四流不匹配(15问)、#6红冲退款(8问)、#7票面规范(8问)、#8税号缺失(9问)、#11品名背离(13问)、#12三流不一致(9问)、#13毛利率偏离(9问)、#14申报毛利率(8问)、#15费用增速(10问)、#16招待费限额(8问)、#17三表不一致(8问)、#18收入成本增速(8问)、#1712外币汇率(8问)、#1713银行偏差10万(6问)、#1714平台保证金(7问)</p>'
@@ -456,6 +463,31 @@ function renderTaxRiskRules(container) {
 
       // 分类筛选下拉已改为固定13监控维度选项（不再从旧category动态填充）
 
+      // 加载三链信息（可执行链的步数/维度）
+      Promise.all([
+        fetch('/static/cross_domain_clues.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return[];}),
+        fetch('/static/cross_domain_evidence.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};}),
+        fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};})
+      ]).then(function(datas){
+        var clueData = datas[0];
+        var evidRaw = datas[1]; var evidData = Array.isArray(evidRaw) ? evidRaw : (evidRaw.evidence_chains || []);
+        var analRaw = datas[2]; var analData = Array.isArray(analRaw) ? analRaw : (analRaw.analysis_chains || []);
+        window._rrChainInfo = {};
+        clueData.forEach(function(c){
+          var rid = String(c.rule_id || '');
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].c_steps = (c.steps || []).length; }
+        });
+        evidData.forEach(function(e){
+          var rid = String(e.rule_id || '');
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].e_dims = (e.steps || []).length; }
+        });
+        analData.forEach(function(a){
+          var rid = String(a.rule_id || '');
+          if (rid) { window._rrChainInfo[rid] = window._rrChainInfo[rid] || {}; window._rrChainInfo[rid].a_steps = (a.steps || []).length; }
+        });
+        window._rrFilter();
+      });
+
       var rrSortBy = 'id';
 window._rrSort = function(rules, sortBy) {
   if (sortBy === 'updated') {
@@ -487,7 +519,6 @@ window._rrFilter = function() {
         }
         list.innerHTML = window._rrTable(filtered);
       };
-      window._rrFilter();
     })
     .catch(function(e) {
       var list = document.getElementById('rr-list');
