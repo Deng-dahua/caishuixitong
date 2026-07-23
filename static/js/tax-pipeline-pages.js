@@ -1358,20 +1358,22 @@ window._showChainDetail = function(idx) {
 
   h += '<div style="margin:0 0 10px">';
   h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
-  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + ' | 域: ' + esc(c.domain||'-') + '</div>';
-  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">疑点: ' + ruleId + '</div>';
+  if(c.description) {
+    h += '<div style="font-size:10px;color:#64748b;margin-top:4px">' + esc(c.description) + '</div>';
+  }
   h += '</div>';
 
-  if(c.description) {
-    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查描述</div>';
-    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
-  }
-
-  if(c.investigation_path&&c.investigation_path.length){
-    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查路径 (' + c.investigation_path.length + '步)</div>';
-    c.investigation_path.forEach(function(s,si){
-      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(s.action||s.detail||'') + '</b>';
-      if(s.data_required) h += '<div style="padding-left:16px;color:#94a3b8">所需数据: ' + esc(String(s.data_required).substring(0,250)) + '</div>';
+  // 新格式: steps数组 (可执行链)
+  var chainSteps = c.steps || c.investigation_path || [];
+  if(chainSteps.length){
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查路径 (' + chainSteps.length + '步)</div>';
+    chainSteps.forEach(function(s,si){
+      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(s.desc||s.action||s.detail||'') + '</b>';
+      if(s.op) h += ' <span style="color:#2563eb;font-size:9px">[' + esc(s.op) + ']</span>';
+      if(s.output) h += ' <span style="color:#94a3b8;font-size:9px"> → ' + esc(s.output) + '</span>';
+      if(s.evidence||s.data_required) h += '<div style="padding-left:16px;color:#94a3b8">📄 ' + esc(String(s.evidence||s.data_required||'').substring(0,250)) + '</div>';
       h += '</div>';
     });
   }
@@ -1494,23 +1496,26 @@ window._showEvDetail = function(idx) {
 
   h += '<div style="margin:0 0 10px">';
   h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
-  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + ' | 域: ' + esc(c.domain||'-') + '</div>';
-  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">疑点: ' + ruleId + '</div>';
+  if(c.description) {
+    h += '<div style="font-size:10px;color:#64748b;margin-top:4px">' + esc(c.description) + '</div>';
+  }
   h += '</div>';
 
-  if(c.description) {
-    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">证据描述</div>';
-    h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
-  }
-
+  var evSteps = c.steps || c.dimensions || [];
   h += '<div style="margin-bottom:10px;font-size:10px;line-height:20px">';
   h += '<div style="font-weight:600;color:#16233a;margin-bottom:4px">验证要求</div>';
-  h += '<div style="color:#475569">要求<b>≥ ' + c.min_evidence + '</b>个独立数据源同时匹配 | <b>' + (c.dimensions||[]).length + '</b>个验证维度</div>';
+  h += '<div style="color:#475569">要求<b>≥ ' + (c.min_evidence||'?') + '</b>个独立数据源同时匹配 | <b>' + evSteps.length + '</b>个验证维度</div>';
   h += '</div>';
 
-  if(c.dimensions&&c.dimensions.length){
+  if(evSteps.length){
     h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">验证维度</div>';
-    c.dimensions.forEach(function(d){ h += '<div style="padding:2px 0;font-size:10px;color:#475569">· ' + esc(d.dimension||d.source||d.name||'') + '</div>'; });
+    evSteps.forEach(function(d){
+      var label = d.desc || d.dimension || d.source || d.name || '';
+      if(d.op) label += ' [' + esc(d.op) + ']';
+      h += '<div style="padding:2px 0;font-size:10px;color:#475569">· ' + esc(label) + '</div>';
+    });
   }
 
   if(c.trigger_keywords) {
@@ -5430,19 +5435,21 @@ window._showAlcDetail = function(idx) {
 
   h += '<div style="margin:0 0 10px">';
   h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:4px">' + esc(c.name||'') + '</div>';
-  h += '<div style="font-size:10px;color:#64748b;line-height:20px">分类: ' + esc(c.category||'-') + '</div>';
-  if(c.rule_refs && c.rule_refs.length) h += '<div style="font-size:10px;color:#64748b">关联规则: ' + c.rule_refs.map(function(r){ return '#'+r; }).join(', ') + '</div>';
+  var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
+  h += '<div style="font-size:10px;color:#64748b;line-height:20px">疑点: ' + ruleId + '</div>';
   h += '</div>';
 
   if(c.description) {
-    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">推理描述</div>';
     h += '<div style="font-size:10px;color:#475569;line-height:1.8;margin:4px 0 10px">' + esc(c.description) + '</div>';
   }
 
-  if(c.reasoning_path&&c.reasoning_path.length){
-    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">推理路径 (' + c.reasoning_path.length + '步)</div>';
-    c.reasoning_path.forEach(function(s,si){
-      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(s.cross||'') + '</b> → ' + esc(s.action||'');
+  var alcSteps = c.steps || c.reasoning_path || [];
+  if(alcSteps.length){
+    h += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">推理路径 (' + alcSteps.length + '步)</div>';
+    alcSteps.forEach(function(s,si){
+      var label = s.desc || s.cross || '';
+      if(s.op) label += ' [' + esc(s.op) + ']';
+      h += '<div style="padding:4px 0;font-size:10px;color:#475569;line-height:1.7">' + (si+1) + '. <b>' + esc(label) + '</b> → ' + esc(s.action||'');
       if(s.evidence_required) h += '<div style="padding-left:16px;color:#94a3b8">证据: ' + esc(s.evidence_required) + '</div>';
       h += '</div>';
     });
