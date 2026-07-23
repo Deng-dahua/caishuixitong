@@ -712,6 +712,10 @@ function navigateTo(page) {
       else { container.innerHTML = _LOADING_HTML; }
       break;
     case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
+    case 'auditor-handbook':
+      if (typeof renderAuditorHandbook === 'function') { renderAuditorHandbook(container); }
+      else { container.innerHTML = _LOADING_HTML; }
+      break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
