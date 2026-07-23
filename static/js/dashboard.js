@@ -51,25 +51,31 @@ async function renderDashboard(container) {
         {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
         {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
-        
-        
+        {page:'pipeline-analyze', label:'📋 分析结果', cls:'btn-outline'},
+        {page:'tax-risk-rules-list', label:'📑 疑点库', cls:'btn-outline'},
+        {page:'domain-panel', label:'🌐 域分析', cls:'btn-outline'},
+        {page:'tax-incentives', label:'🎁 税收优惠', cls:'btn-outline'},
       ]},
       {group:'线索证据链', items:[
-        
-        
-        
+        {page:'chains-page', label:'🔗 线索链', cls:'btn-outline'},
+        {page:'evidence-page', label:'📎 证据链', cls:'btn-outline'},
+        {page:'analysis-page', label:'🧩 分析链', cls:'btn-outline'},
+        {page:'compact-clues', label:'📌 紧凑视图', cls:'btn-outline'},
       ]},
       {group:'系统引擎', items:[
         {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
         {page:'quality-system', label:'🛡️ 质量保障', cls:'btn-outline'},
         {page:'ai-rules', label:'🧠 行为准则', cls:'btn-outline'},
         {page:'tax-agi', label:'🧬 税务AGI', cls:'btn-outline'},
+        {page:'analyze-logs', label:'📜 执行日志', cls:'btn-outline'},
         {page:'system-logs', label:'📜 系统日志', cls:'btn-outline'},
       ]},
       {group:'规范手册', items:[
-        {page:'auditor-handbook', label:'⚖️ 税务合规员手册', cls:'btn-outline'},
+        {page:'auditor-handbook', label:'⚖️ 稽查员手册', cls:'btn-outline'},
         {page:'report-standards', label:'📐 编制要求', cls:'btn-outline'},
+        {page:'report-spec', label:'📏 报告规范', cls:'btn-outline'},
         {page:'feedback-template', label:'📝 审核模板', cls:'btn-outline'},
+        {page:'correction-rules', label:'🔧 纠正规则', cls:'btn-outline'},
       ]}
     ];
     

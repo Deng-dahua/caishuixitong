@@ -135,6 +135,24 @@ const pages = {
   'analysis-page': '分析链',
   'chains-page': '线索链',
   'evidence-page': '证据链',
+  // 以下6个缺标题的页面（2026-07-23 补齐）
+  'company-overview': '企业概览',
+  '未记账发票': '未记账发票',
+  '文化事业建设费': '文化事业建设费',
+  'correction-rules': '纠正规则中心',
+  'report-spec': '报告编制规范',
+  'auditor-handbook': '稽查员手册',
+  // 以下6个新独立路由（2026-07-23 补齐）
+  'engine-dashboard': '引擎仪表盘',
+  'quality-system': '质量保障体系',
+  'ai-rules': 'AI行为准则',
+  'tax-agi': '税务AGI仪表盘',
+  'tax-risk-rules-list': '税务疑点库',
+  'pipeline-analyze': '一键分析结果',
+  'analyze-logs': '管线执行日志',
+  'domain-panel': '域分析面板',
+  'tax-incentives': '税收优惠扫描',
+  'compact-clues': '线索链紧凑视图',
 };
 
 // ==================== 用户登录 ====================
@@ -716,6 +734,18 @@ function navigateTo(page) {
       if (typeof renderAuditorHandbook === 'function') { renderAuditorHandbook(container); }
       else { container.innerHTML = _LOADING_HTML; }
       break;
+    // ═══ 4个dashboard死链补路由（2026-07-23） ═══
+    case 'engine-dashboard':    _sR(container, 'renderEngineDashboardPage'); break;
+    case 'quality-system':      _sR(container, 'renderQualitySystem'); break;
+    case 'ai-rules':            _sR(container, 'renderAiRules'); break;
+    case 'tax-agi':             _sR(container, 'renderAgiDashboard'); break;
+    // ═══ 6个无独立路由的函数补路由（2026-07-23） ═══
+    case 'tax-risk-rules-list': _sR(container, 'renderTaxRiskRules'); break;
+    case 'pipeline-analyze':    _sR(container, 'renderAnalyzePage'); break;
+    case 'analyze-logs':        _sR(container, 'renderAnalyzeLogs'); break;
+    case 'domain-panel':        _sR(container, 'renderUnifiedDomainPanel'); break;
+    case 'tax-incentives':      _sR(container, 'renderTaxIncentivesPage'); break;
+    case 'compact-clues':       _sR(container, 'renderCompactClueChains'); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;
