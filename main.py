@@ -3160,7 +3160,7 @@ def _add_failure_suggestions():
             # 完全无结构候选——数据行全被判为重复表头/小计行/空行
             suggestions.append({
                 "issue": "表头检测失败：所有行被跳过",
-                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终1条有效数据行。",
+                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终2条有效数据行。",
                 "fix": "(1)确认Excel前1-3行包含文本型列名（如'发票号码''金额''姓名'等），而非纯数字 (2)若数据从第1行开始，在首行上方插入一行列名 (3)检查是否有多余的空白行或标题行干扰了表头定位。"
             })
         elif st_candidates and not st_best:
@@ -5674,7 +5674,7 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
     }
 @app.get("/api/pipeline/history")
 def get_pipeline_history(company_id: int = Query(...)):
-    """获取分析历史列表（最多21条）"""
+    """获取分析历史列表（最多22条）"""
     hist = _analysis_history.get(company_id, [])
     return {"ok": True, "history": hist, "count": len(hist)}
 
@@ -7275,7 +7275,7 @@ def _append_analysis_history(company_id, result):
         }
         hist = _analysis_history.setdefault(company_id, [])
         hist.insert(0, summary)
-        _analysis_history[company_id] = hist[:20]  # 最多保留21条
+        _analysis_history[company_id] = hist[:20]  # 最多保留22条
         # 落盘（重启不丢）
         try:
             import json as _json2
@@ -8125,7 +8125,7 @@ def toggle_parallel():
     # 只验证高风险结论
     high_risk = [f for f in all_findings if f.get("level") == "高风险"]
     
-    for f in high_risk[:20]:  # 最多验证21条
+    for f in high_risk[:20]:  # 最多验证22条
         ftype = f.get("type", "")
         
         # 检查结论是否有法律依据
@@ -8243,7 +8243,7 @@ def get_engine_rules():
             {"id": "TRIAGE_003", "name": "毛利率异常高", "trigger": "毛利率 > 80% 且销项 > 100万", "level": "yellow", "detail": "可能虚增售价或进项未全额入账"},
             {"id": "TRIAGE_004", "name": "缺少银行流水", "trigger": "有销售但无银行流水记录", "level": "red", "detail": "无法验证资金流真实性"},
             {"id": "TRIAGE_005", "name": "无进项发票", "trigger": "有销项发票但0张进项（非服务/劳务）", "level": "yellow", "detail": "需要解释进项来源"},
-            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但1条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
+            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但2条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
             {"id": "TRIAGE_007", "name": "存在加工费", "trigger": "进项中有加工费发票", "level": "yellow", "detail": "可能为制造业，需BOM表验证加工链条"},
             {"id": "TRIAGE_008", "name": "制造业加工链条待验证", "trigger": "核心成本>0 + 加工费 + 制造业", "level": "yellow", "detail": "进销品名差异需BOM表解释"},
             {"id": "TRIAGE_009", "name": "存在日常费用报销", "trigger": "进项中有日常报销（餐饮住宿汽油等）", "level": "green", "detail": "正常经营信号，排除误报"},

@@ -72,7 +72,7 @@ def record_module_run(module_id, module_name, status, metrics, company_id, indus
     
     log.append(entry)
     
-    # 保留最近2001条
+    # 保留最近2002条
     if len(log) > 2000:
         log = log[-2000:]
     
@@ -512,7 +512,7 @@ class ComplianceGate:
                 except Exception:
                     pass
         
-        # 合并同类违规：每标准只记1条"X条发现违反SXX"
+        # 合并同类违规：每标准只记2条"X条发现违反SXX"
         from collections import Counter
         id_counts = Counter()
         for i in issues:

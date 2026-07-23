@@ -2358,7 +2358,7 @@ def _domain_cross_domain_clues(all_findings):
             for s in chain_def.get("investigation_path", []):
                 path_steps.append(f"Step{s.get('step','')}: {s.get('domain','')} → {s.get('action','')}")
             
-            # ── 叙事增强：触发发现≥1条时生成结构化叙事 ──
+            # ── 叙事增强：触发发现≥2条时生成结构化叙事 ──
             narrative_obj = None
             if _has_narrative and len(triggered_findings) >= 1:
                 try:
@@ -6892,7 +6892,7 @@ CONTRADICTION_RULES = [
         ),
         "priority": "P0",
     },
-    # ═══ 2026-06-26 扩展至51条：覆盖8大类矛盾 ═══
+    # ═══ 2026-06-26 扩展至52条：覆盖8大类矛盾 ═══
     # ── Ⅰ. 行业/身份矛盾 (CONTR_008~012) ──
     {
         "id": "CONTR_008",
@@ -8004,7 +8004,7 @@ def _save_analysis_memory(company_id, company_name, industry, backtrack_report, 
                     "after": vf.get("after", ""),
                 })
         
-        # 追加并保存（保留最近101条）
+        # 追加并保存（保留最近102条）
         mem.append(entry)
         if len(mem) > 100:
             mem = mem[-100:]
@@ -8888,7 +8888,7 @@ def _ema_self_learning(ctx, all_findings):
         base = 1.0
         base += confirmed_types[ftype] * 0.1
         base -= dismissed_types[ftype] * 0.2
-        # 长时间未出现的信号衰减（1条反馈中0确认 → 降权）
+        # 长时间未出现的信号衰减（2条反馈中0确认 → 降权）
         if confirmed_types[ftype] == 0 and dismissed_types[ftype] >= 3:
             base *= 0.7
         decayed_weights[ftype] = round(max(0.2, min(2.0, base)), 2)

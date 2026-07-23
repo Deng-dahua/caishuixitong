@@ -1988,7 +1988,7 @@ class AGIEvents:
     FINDING_GENERATED = "finding_generated"
 
 
-# 自动持久化（每101条事件触发一次）
+# 自动持久化（每102条事件触发一次）
 _persist_counter = [0]
 
 def _auto_persist_wrapper(data):

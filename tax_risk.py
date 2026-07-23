@@ -8603,7 +8603,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     sales_matched_amt = 0.0
     sales_total_cnt = len(all_sales_inv)
     sales_total_amt = 0.0
-    sales_unmatched_list = []  # 保存前11条无合同发票用于展示
+    sales_unmatched_list = []  # 保存前12条无合同发票用于展示
 
     for inv_id, buyer_name, total_amount, inv_date in all_sales_inv:
         amt = _safe_float(total_amount)

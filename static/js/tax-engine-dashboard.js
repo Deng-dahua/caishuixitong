@@ -895,7 +895,7 @@ function renderNegotiationTab() {
 
   var h = '';
   h += '<h3 style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 4px">🤝 跨域协商规则</h3>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。29条协商规则：消解层8条 / 降级层6条 / 标记层5条 / 联合增强层11条。</p>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。29条协商规则：消解层8条 / 降级层6条 / 标记层5条 / 联合增强层12条。</p>';
 
   var scenes = {
     '行业闸门消解': {desc:'企业类型判定后自动跳过不适用的分析域。服务行业跳过进销存/存货/BOM/毛利率；个体工商户跳过企业所得税；小规模纳税人跳过进项税额——消除假阳性',color:'#059669',bg:'#ecfdf5'},

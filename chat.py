@@ -241,7 +241,7 @@ def _smart_context(question: str, company_id: int, db: Session) -> str:
         extra.append(f"总发现：{len(all_f)}条（高风险{r.get('high_risk','?')}、中风险{r.get('mid_risk','?')}、低风险{r.get('low_risk','?')}）")
         if all_f:
             types = [f.get("type","")[:40] for f in all_f[:10] if f.get("type")]
-            extra.append(f"前11条：{' / '.join(types)}")
+            extra.append(f"前12条：{' / '.join(types)}")
     
     if extra:
         return base + "\n\n" + "\n".join(extra[:60])  # 限60行避免超上下文

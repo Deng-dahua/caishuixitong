@@ -424,8 +424,8 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
 QUALITY_SYSTEM_LAYERS = {
     "核心数据资产": {
         "规则引擎": "tax_risk.py + risk_rules → 1720条税务合规指令",
-        "线索链系统": "main.py → 391条线索链 + 三级触发",
-        "证据链系统": "main.py → 741条证据链 + 闭环检测",
+        "线索链系统": "main.py → 392条线索链 + 三级触发",
+        "证据链系统": "main.py → 742条证据链 + 闭环检测",
         "跨域分析链": "main.py → 资金流/票据流/业务流三维验证",
     },
     "方法论体系": {

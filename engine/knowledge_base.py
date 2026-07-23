@@ -293,7 +293,7 @@ class KnowledgeBase:
             "high_risk_count": analysis.get("high_risk_count", 0),
             "timestamp": datetime.now().isoformat(),
         })
-        # 只保留最近101条
+        # 只保留最近102条
         if len(history) > 100:
             self._data["analysis_history"] = history[-100:]
         self._save()

@@ -79,7 +79,7 @@ def _associate_findings(triggered_findings: List[Dict[str, Any]],
     findings = [_to_finding_ref(f) for f in triggered_findings]
     
     if len(findings) <= 1:
-        pipeline_log.append("[ASSOC] 仅触发1条疑点，无关联分析需求")
+        pipeline_log.append("[ASSOC] 仅触发2条疑点，无关联分析需求")
         return AssociationResult()
     
     # Step 1-4: 构建四个关联矩阵

@@ -239,9 +239,9 @@ class EnforcementProcedure:
             EnforcementState.STATEMENT_RECEIVED not in state_set):
             violations.append(ComplianceViolation(
                 severity="fatal",
-                description="处罚决定前未接收陈述申辩材料，违反《税务稽查案件办理程序规定》第41条",
+                description="处罚决定前未接收陈述申辩材料，违反《税务稽查案件办理程序规定》第42条",
                 remedy="撤销处罚决定，退回STATEMENT_RECEIVED状态，待陈述申辩期届满后重新作出决定",
-                violated_rule="《税务稽查案件办理程序规定》第41条"
+                violated_rule="《税务稽查案件办理程序规定》第42条"
             ))
         
         # 检查2: 进入PENALTY_DECIDED但跳过听证
