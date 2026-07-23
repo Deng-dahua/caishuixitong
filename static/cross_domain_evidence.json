@@ -2017,52 +2017,63 @@
     },
     {
       "id": "evid-011",
-      "name": "进项品名不匹配→虚开多源验证闭环",
+      "name": "进项品名不匹配→虚开发票多源验证闭环",
       "category": "发票进销匹配",
       "domain": "发票域x经营域x资金域",
+      "sub_topic": "发票进销匹配",
       "trigger_keywords": [],
-      "description": "从品名物理转化、实物存在、资金回流、合同一致四维验证虚开。",
       "rule_refs": [
         "11"
       ],
+      "level": "极高风险",
+      "description": "从品名转化、实物存在、供应商能力、资金回流、合同一致五个独立维度并行验证虚开。",
       "suggestion": "min_evidence=3组合:品名不可转化+无实物=虚开铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "品名转化",
-          "check": "购进品名能否物理转化为销售品名",
+          "dimension": "品名转化链路",
+          "check": "购进品名经加工后能否物理转化为销售品名",
           "evidence_items": [
-            "进项明细",
-            "销项明细",
-            "工艺说明"
+            "进项品名汇总",
+            "销项品名汇总",
+            "加工工艺说明"
           ],
           "pass_condition": "无法物理转化",
           "weight": "必备维度"
         },
         {
-          "dimension": "实物存在",
-          "check": "有无仓库/入库单/实物盘点",
+          "dimension": "实物存在性",
+          "check": "异常品名有无仓库/入库单/盘点记录",
           "evidence_items": [
-            "仓库合同",
+            "仓库照片",
             "入库单",
             "盘点表"
           ],
-          "pass_condition": "无实物或无入库",
+          "pass_condition": "账有实无",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "供应商经营能力",
+          "check": "供应商注册资本vs年开票额/成立时间/社保人数",
+          "evidence_items": [
+            "工商信息",
+            "社保记录"
+          ],
+          "pass_condition": "开票额/注册资本>10或空壳",
           "weight": "核心维度"
         },
         {
           "dimension": "资金回流",
-          "check": "付款是否经供应商回流关联方",
+          "check": "付款后30日内资金是否回流至关联方",
           "evidence_items": [
             "银行流水",
-            "供应商账户",
             "关联方账户"
           ],
           "pass_condition": "存在回流",
           "weight": "核心维度"
         },
         {
-          "dimension": "合同一致",
+          "dimension": "合同一致性",
           "check": "合同标的/金额/时间是否与发票一致",
           "evidence_items": [
             "购销合同",
@@ -2072,32 +2083,31 @@
           "pass_condition": "不一致或无合同",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "发票进销匹配",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-012",
       "name": "销售方与付款方不匹配→三流断裂多源验证闭环",
       "category": "发票进销匹配",
       "domain": "发票域x资金域x合同域",
+      "sub_topic": "发票进销匹配",
       "trigger_keywords": [],
-      "description": "从三流一致性、委托协议、个人账户、交易实质四维验证。",
       "rule_refs": [
         "12"
       ],
+      "level": "极高风险",
+      "description": "从三流一致性、委托协议、个人账户、交易实质、供应商状态五个维度并行验证。",
       "suggestion": "min_evidence=3组合:三流断裂+无委托协议=虚构交易铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "三流一致",
-          "check": "发票方/付款方/合同方是否一致",
+          "dimension": "三流一致性",
+          "check": "发票销售方vs银行付款对手方是否一致",
           "evidence_items": [
             "发票",
-            "银行记录",
-            "合同"
+            "银行记录"
           ],
-          "pass_condition": "任一不一致",
+          "pass_condition": "不一致",
           "weight": "必备维度"
         },
         {
@@ -2112,7 +2122,7 @@
         },
         {
           "dimension": "个人账户",
-          "check": "付款到个人的金额/频次/用途",
+          "check": "付款到个人的金额/频次/资金去向",
           "evidence_items": [
             "银行流水",
             "个人账户"
@@ -2122,34 +2132,45 @@
         },
         {
           "dimension": "交易实质",
-          "check": "供应商是否实际供货/有入库",
+          "check": "有无合同/入库单/物流四流合一",
           "evidence_items": [
+            "合同",
             "入库单",
-            "物流凭证"
+            "物流单"
           ],
-          "pass_condition": "无实质供货",
+          "pass_condition": "缺一流",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "供应商状态",
+          "check": "发票方是否存续/有经营场所/与收款方关系",
+          "evidence_items": [
+            "工商信息",
+            "经营场所"
+          ],
+          "pass_condition": "已注销或与收款方无关联",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "发票进销匹配",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-013",
       "name": "毛利率偏离→隐匿收入或虚列成本多源验证闭环",
       "category": "成本费用配比",
       "domain": "财务域x资金域x申报域",
+      "sub_topic": "成本费用配比",
       "trigger_keywords": [],
-      "description": "从偏离幅度、收入端、成本端、关联交易四维验证毛利率异常原因。",
       "rule_refs": [
         "13"
       ],
+      "level": "高风险",
+      "description": "从偏离幅度、收入端、成本端、关联交易、持续性五个维度并行验证。",
       "suggestion": "min_evidence=3组合:偏离>10%+收入端或成本端任一定性=违规定论。",
       "min_evidence": 3,
       "dimensions": [
         {
           "dimension": "偏离幅度",
-          "check": "实际毛利率vs行业基准偏离度",
+          "check": "实际毛利率vs行业P25/P75偏离度",
           "evidence_items": [
             "利润表",
             "行业基准"
@@ -2158,8 +2179,8 @@
           "weight": "必备维度"
         },
         {
-          "dimension": "收入端",
-          "check": "银行收款vs申报收入差值",
+          "dimension": "收入端差额",
+          "check": "银行收款总额vs申报收入差值",
           "evidence_items": [
             "银行流水",
             "申报表"
@@ -2168,40 +2189,48 @@
           "weight": "核心维度"
         },
         {
-          "dimension": "成本端",
-          "check": "存货盘点vs账面存货",
+          "dimension": "成本端盘点",
+          "check": "存货实地盘点vs账面存货",
           "evidence_items": [
             "盘点表",
-            "科目余额表"
+            "存货明细账"
           ],
-          "pass_condition": "盘点<账面",
+          "pass_condition": "盘亏>5%",
           "weight": "核心维度"
         },
         {
-          "dimension": "关联交易",
-          "check": "前十大客户是否关联方且定价不公允",
+          "dimension": "关联定价",
+          "check": "关联方交易价格vs独立第三方可比价",
           "evidence_items": [
-            "客户清单",
-            "关联关系",
-            "价格对比"
+            "价格对比表",
+            "同期资料"
           ],
-          "pass_condition": "关联方+偏离>20%",
+          "pass_condition": "偏离>20%且无同期资料",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "毛利率偏离持续多少期",
+          "evidence_items": [
+            "24个月利润表"
+          ],
+          "pass_condition": "持续>12个月",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "成本费用配比",
-      "level": "高风险"
+      ]
     },
     {
       "id": "evid-014",
       "name": "申报毛利率偏离→低报收入或虚列成本多源验证闭环",
       "category": "成本费用配比",
       "domain": "申报域x资金域x财务域",
+      "sub_topic": "成本费用配比",
       "trigger_keywords": [],
-      "description": "从偏离方向、收入端、成本端、定价公允性四维验证。",
       "rule_refs": [
         "14"
       ],
+      "level": "高风险",
+      "description": "从偏离方向、收入端差额、成本端物理匹配、定价公允、持续性五个维度并行验证。",
       "suggestion": "min_evidence=3组合:偏离>10%+收入端或成本端任一定性=违规定论。",
       "min_evidence": 3,
       "dimensions": [
@@ -2216,7 +2245,7 @@
           "weight": "必备维度"
         },
         {
-          "dimension": "收入端",
+          "dimension": "收入端差额",
           "check": "银行收款vs申报销售额差值",
           "evidence_items": [
             "银行流水",
@@ -2226,7 +2255,7 @@
           "weight": "核心维度"
         },
         {
-          "dimension": "成本端",
+          "dimension": "成本端物理匹配",
           "check": "采购量vs销售量物理匹配度",
           "evidence_items": [
             "进项发票",
@@ -2245,22 +2274,31 @@
             "关联关系"
           ],
           "pass_condition": "亏本销售或关联低价",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "偏离持续多少期",
+          "evidence_items": [
+            "36个月申报表"
+          ],
+          "pass_condition": "持续>12个月",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "成本费用配比",
-      "level": "高风险"
+      ]
     },
     {
       "id": "evid-015",
       "name": "费用收入背离→虚列费用多源验证闭环",
       "category": "成本费用配比",
       "domain": "财务域x发票域x资金域",
+      "sub_topic": "成本费用配比",
       "trigger_keywords": [],
-      "description": "从背离幅度、软科目成果、供应商真实性、资金回流四维验证。",
       "rule_refs": [
         "15"
       ],
+      "level": "极高风险",
+      "description": "从背离幅度、成果凭证、供应商真实性、资金回流、科目集中度五个维度并行验证。",
       "suggestion": "min_evidence=3组合:背离>1.5倍+无成果凭证=虚列铁证。",
       "min_evidence": 3,
       "dimensions": [
@@ -2275,19 +2313,19 @@
           "weight": "必备维度"
         },
         {
-          "dimension": "软科目成果",
-          "check": "咨询费/会议费有无服务成果凭证",
+          "dimension": "成果凭证",
+          "check": "咨询费/会议费有无服务报告/会议纪要",
           "evidence_items": [
-            "发票",
-            "合同",
-            "服务报告"
+            "服务报告",
+            "会议纪要",
+            "签到表"
           ],
           "pass_condition": "无成果凭证",
           "weight": "核心维度"
         },
         {
-          "dimension": "供应商真实",
-          "check": "费用供应商成立时间/关联关系",
+          "dimension": "供应商真实性",
+          "check": "费用供应商成立时间/关联关系/经营场所",
           "evidence_items": [
             "工商信息",
             "关联方清单"
@@ -2297,471 +2335,132 @@
         },
         {
           "dimension": "资金回流",
-          "check": "付款是否回流到关联方/员工",
+          "check": "付款后资金是否回流到关联方/员工",
           "evidence_items": [
             "银行流水",
             "关联方账户"
           ],
           "pass_condition": "存在回流",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "科目集中度",
+          "check": "软科目(咨询/会议/差旅)占费用总额比",
+          "evidence_items": [
+            "费用明细账"
+          ],
+          "pass_condition": "占比>30%",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "成本费用配比",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-016",
-      "name": "招待费超标→虚列费用多源验证闭环",
+      "name": "业务招待费超标→虚列费用多源验证闭环",
       "category": "成本费用配比",
-      "domain": "财务域x发票域x申报域",
+      "domain": "财务域x税法域x发票域",
+      "sub_topic": "成本费用配比",
       "trigger_keywords": [],
-      "description": "从限额超标、发票混入、付款真实、调增缺失四维验证。",
       "rule_refs": [
         "16"
       ],
-      "suggestion": "min_evidence=3组合:超标+未调增=少缴所得税铁证。",
+      "level": "极高风险",
+      "description": "从扣除限额、凭证完整性、业务真实性、供应商状态、纳税调整五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:超标+无票/无业务=虚列铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "限额超标",
-          "check": "实际扣除vs法定上限(60%与5‰孰低)",
+          "dimension": "扣除限额",
+          "check": "实际扣除额vs税法限额(60%与5‰取小)",
           "evidence_items": [
-            "利润表",
-            "招待费明细",
-            "申报表"
+            "明细账",
+            "限额计算表"
           ],
-          "pass_condition": "实际>上限",
+          "pass_condition": "超标未调增",
           "weight": "必备维度"
         },
         {
-          "dimension": "发票混入",
-          "check": "招待费中是否混入其他品名发票",
+          "dimension": "凭证完整性",
+          "check": "招待费有无发票/审批单/事由说明",
           "evidence_items": [
-            "费用发票",
-            "品名分类"
+            "凭证",
+            "发票",
+            "审批单"
           ],
-          "pass_condition": "存在混入",
+          "pass_condition": "无票或票不符",
           "weight": "核心维度"
         },
         {
-          "dimension": "付款真实",
-          "check": "付款对手方是商户还是个人",
+          "dimension": "业务真实性",
+          "check": "招待对象是否真实客户/有无后续业务",
           "evidence_items": [
-            "银行流水",
-            "付款明细"
+            "客户清单",
+            "业务记录"
           ],
-          "pass_condition": "付个人且无真实招待",
+          "pass_condition": "无对应客户或无后续业务",
           "weight": "核心维度"
         },
         {
-          "dimension": "调增缺失",
-          "check": "超标部分是否在申报时调增",
+          "dimension": "供应商状态",
+          "check": "开票方是否存续/经营场所真实/关联关系",
           "evidence_items": [
-            "年度申报表",
-            "纳税调整表"
+            "工商信息",
+            "经营场所"
           ],
-          "pass_condition": "未调增",
-          "weight": "必备维度"
+          "pass_condition": "注销或空壳或关联方",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "纳税调整",
+          "check": "汇算清缴是否做纳税调增",
+          "evidence_items": [
+            "汇算清缴表",
+            "纳税调整明细"
+          ],
+          "pass_condition": "未调增或调增不足",
+          "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "成本费用配比",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-017",
-      "name": "三表不一致→隐匿或虚开多源验证闭环",
+      "name": "三表数据不一致→隐匿收入或虚开多源验证闭环",
       "category": "申报合规",
-      "domain": "财务域x发票域x申报域",
+      "domain": "申报域x发票域x财务域",
+      "sub_topic": "申报合规",
       "trigger_keywords": [],
-      "description": "从差异方向、隐匿路径、虚开路径、两套账四维验证。",
       "rule_refs": [
         "17"
       ],
-      "suggestion": "min_evidence=3组合:差异方向+对应交易锁定=定性铁证。",
+      "level": "高风险",
+      "description": "从三表一致性、进销项匹配、收入完整性、成本真实性、差异持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:三表差异>5%+收入端或成本端任一定性=违规定论。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "差异方向",
-          "check": "会计vs申报vs开票差异方向",
+          "dimension": "三表一致性",
+          "check": "利润表vs增值税申报vs所得税申报收入/成本是否一致",
           "evidence_items": [
             "利润表",
-            "申报表",
-            "发票汇总"
+            "增值税申报表",
+            "所得税申报表"
           ],
-          "pass_condition": "存在差异>5%",
+          "pass_condition": "差异>5%",
           "weight": "必备维度"
         },
         {
-          "dimension": "隐匿路径",
-          "check": "会计>申报部分有无验收/收款",
+          "dimension": "进销项匹配",
+          "check": "进项发票采购额vs利润表成本/销项发票销售额vs利润表收入",
           "evidence_items": [
-            "客户合同",
-            "验收单",
-            "银行收款"
+            "发票汇总",
+            "利润表"
           ],
-          "pass_condition": "有验收不报",
+          "pass_condition": "差异>5%",
           "weight": "核心维度"
         },
         {
-          "dimension": "虚开路径",
-          "check": "申报>会计部分有无实质交易",
-          "evidence_items": [
-            "申报明细",
-            "合同",
-            "发货单"
-          ],
-          "pass_condition": "无实质交易",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "两套账",
-          "check": "差异方向是否随期间变化",
-          "evidence_items": [
-            "12个月三表",
-            "科目余额表"
-          ],
-          "pass_condition": "走势各异",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "申报合规",
-      "level": "高风险"
-    },
-    {
-      "id": "evid-018",
-      "name": "收入成本弹性异常→虚增或虚列多源验证闭环",
-      "category": "经营实质",
-      "domain": "财务域x合同域x发票域",
-      "trigger_keywords": [],
-      "description": "从弹性系数、涨价书面、供应商跟涨、关联方四维验证。",
-      "rule_refs": [
-        "18"
-      ],
-      "suggestion": "min_evidence=3组合:弹性异常+无书面涨价或供应商异常=定性铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "弹性系数",
-          "check": "收入增速/成本费用增速",
-          "evidence_items": [
-            "利润表",
-            "收入成本明细"
-          ],
-          "pass_condition": "<0.2或>5",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "涨价书面",
-          "check": "有无书面调价协议/客户确认",
-          "evidence_items": [
-            "调价协议",
-            "客户确认",
-            "合同"
-          ],
-          "pass_condition": "无书面记录",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "供应商跟涨",
-          "check": "原材料市场公开价格vs采购价",
-          "evidence_items": [
-            "采购合同",
-            "市场报价"
-          ],
-          "pass_condition": "不跟涨且无理由",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "关联方",
-          "check": "前十客户/供应商是否关联方",
-          "evidence_items": [
-            "客户清单",
-            "工商信息",
-            "关联方清单"
-          ],
-          "pass_condition": "关联方或成立<1年",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "经营实质",
-      "level": "中风险"
-    },
-    {
-      "id": "evid-019",
-      "name": "其他应收款异常→资金体外循环多源验证闭环",
-      "category": "收入合规",
-      "domain": "财务域x资金域x关联域",
-      "trigger_keywords": [],
-      "description": "从比率、股东借款、资金去向、客户货款四维验证。",
-      "rule_refs": [
-        "19"
-      ],
-      "suggestion": "min_evidence=3组合:比率>20%+股东借款跨年无协议=视同分红铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "比率分析",
-          "check": "其他应收款/营业收入比率",
-          "evidence_items": [
-            "资产负债表",
-            "利润表",
-            "明细账"
-          ],
-          "pass_condition": ">20%",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "股东借款",
-          "check": "有无协议/利息/是否跨年",
-          "evidence_items": [
-            "借款明细",
-            "协议",
-            "银行转账"
-          ],
-          "pass_condition": "无协议无利息跨年",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "资金去向",
-          "check": "钱打到哪个账户/有无回流",
-          "evidence_items": [
-            "银行流水",
-            "个人账户"
-          ],
-          "pass_condition": "打个人账户无回流",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "客户货款",
-          "check": "有无客户保证金/货款挂账",
-          "evidence_items": [
-            "明细账",
-            "客户合同",
-            "收款记录"
-          ],
-          "pass_condition": "经营收入伪装",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "收入合规",
-      "level": "高风险"
-    },
-    {
-      "id": "evid-020",
-      "name": "存货周转异常→虚列或隐匿多源验证闭环",
-      "category": "收入合规",
-      "domain": "财务域x实物域x发票域",
-      "trigger_keywords": [],
-      "description": "从周转率、物理容量、盘点差异、发出货物四维验证。",
-      "rule_refs": [
-        "20"
-      ],
-      "suggestion": "min_evidence=3组合:周转异常+仓库装不下或盘点盘亏=定性铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "周转率",
-          "check": "存货周转率极值",
-          "evidence_items": [
-            "资产负债表",
-            "利润表",
-            "进销存台账"
-          ],
-          "pass_condition": "<0.5或>20",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "物理容量",
-          "check": "仓库容积能否装下账面存货",
-          "evidence_items": [
-            "仓库合同",
-            "实地测量",
-            "存货明细"
-          ],
-          "pass_condition": "装不下",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "盘点差异",
-          "check": "实存vs账面差异",
-          "evidence_items": [
-            "盘点报告",
-            "进销存台账"
-          ],
-          "pass_condition": "盘亏>5%",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "发出货物",
-          "check": "盘亏货物是否已销售未开票",
-          "evidence_items": [
-            "发货单",
-            "客户清单",
-            "发票"
-          ],
-          "pass_condition": "已销售未开票",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "收入合规",
-      "level": "高风险"
-    },
-    {
-      "id": "evid-021",
-      "name": "银行收款与申报断裂→隐匿收入多源验证闭环",
-      "category": "收入合规",
-      "domain": "资金域x申报域x合同域",
-      "trigger_keywords": [],
-      "description": "从差额幅度、预收款挂账、交付证据、客户真实四维验证。",
-      "rule_refs": [
-        "21"
-      ],
-      "suggestion": "min_evidence=3组合:差额>10%+无交付验收单=隐匿收入铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "差额幅度",
-          "check": "银行收款vs申报收入差值",
-          "evidence_items": [
-            "银行流水",
-            "申报表"
-          ],
-          "pass_condition": "差额>10%",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "预收挂账",
-          "check": "预收款挂账时长",
-          "evidence_items": [
-            "预收账款明细",
-            "账龄分析"
-          ],
-          "pass_condition": ">1年未交付",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "交付证据",
-          "check": "有无交付验收单/物流签收单",
-          "evidence_items": [
-            "验收单",
-            "物流单",
-            "合同"
-          ],
-          "pass_condition": "无交付证据",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "客户真实",
-          "check": "客户是否真实存在/仍在合作",
-          "evidence_items": [
-            "客户联系方式",
-            "交易记录",
-            "对账函"
-          ],
-          "pass_condition": "客户取消无退款",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "收入合规",
-      "level": "高风险"
-    },
-    {
-      "id": "evid-022",
-      "name": "应付账款长期挂账→虚增进项或隐匿付款多源验证闭环",
-      "category": "收入合规",
-      "domain": "财务域x发票域x资金域",
-      "trigger_keywords": [],
-      "description": "从账龄、采购实质、供应商真实、资金去向四维验证。",
-      "rule_refs": [
-        "22"
-      ],
-      "suggestion": "min_evidence=3组合:账龄>1年+供应商已注销或无入库=定性铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "账龄分析",
-          "check": "应付账款>1年占比",
-          "evidence_items": [
-            "应付账款明细",
-            "账龄分析"
-          ],
-          "pass_condition": ">30%",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "采购实质",
-          "check": "有无入库单/验收单/运输单据",
-          "evidence_items": [
-            "入库单",
-            "验收单",
-            "运输单"
-          ],
-          "pass_condition": "无采购实质",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "供应商真实",
-          "check": "供应商是否存续/有经营场所/有社保",
-          "evidence_items": [
-            "工商信息",
-            "社保记录",
-            "经营场所"
-          ],
-          "pass_condition": "已注销或空壳",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "资金去向",
-          "check": "资金实际付给谁",
-          "evidence_items": [
-            "银行流水",
-            "个人账户"
-          ],
-          "pass_condition": "付个人账户",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "收入合规",
-      "level": "极高风险"
-    },
-    {
-      "id": "evid-023",
-      "name": "增值税税负率偏低→虚增或隐匿多源验证闭环",
-      "category": "增值税",
-      "domain": "申报域x发票域x资金域",
-      "trigger_keywords": [],
-      "description": "从税负偏离、四流合一、收入差额、供应商四维验证。",
-      "rule_refs": [
-        "23"
-      ],
-      "suggestion": "min_evidence=3组合:偏离>30%+四流缺一或收款>申报=定性铁证。",
-      "min_evidence": 3,
-      "dimensions": [
-        {
-          "dimension": "税负偏离",
-          "check": "企业税负率vs行业基准偏离度",
-          "evidence_items": [
-            "申报表",
-            "行业基准"
-          ],
-          "pass_condition": "偏离>30%",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "四流合一",
-          "check": "大额进项是否四流合一",
-          "evidence_items": [
-            "发票",
-            "银行流水",
-            "物流",
-            "入库单"
-          ],
-          "pass_condition": "缺一流",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "收入差额",
-          "check": "银行收款vs申报收入",
+          "dimension": "收入完整性",
+          "check": "银行收款总额vs申报收入差值",
           "evidence_items": [
             "银行流水",
             "申报表"
@@ -2770,425 +2469,891 @@
           "weight": "核心维度"
         },
         {
-          "dimension": "供应商",
-          "check": "前五大供应商是否空壳/关联方",
+          "dimension": "成本真实性",
+          "check": "入库单/领用单vs进项发票vs账面成本",
           "evidence_items": [
-            "工商信息",
-            "关联方清单"
+            "入库单",
+            "发票",
+            "明细账"
           ],
-          "pass_condition": "空壳或关联方",
+          "pass_condition": "无入库或账实不符",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "差异持续性",
+          "check": "三表差异持续多少期",
+          "evidence_items": [
+            "36个月三表数据"
+          ],
+          "pass_condition": "持续>12个月",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "增值税",
-      "level": "高风险"
+      ]
     },
     {
-      "id": "evid-024",
-      "name": "文化事业建设费异常→征收范围与优惠验证闭环",
-      "category": "增值税",
-      "domain": "申报域x经营域",
+      "id": "evid-018",
+      "name": "收入成本弹性异常→虚增收入或虚列成本多源验证闭环",
+      "category": "经营实质",
+      "domain": "财务域x经营域x资金域",
+      "sub_topic": "经营实质",
       "trigger_keywords": [],
-      "description": "从征收范围、企业规模、优惠适用、差异处理四维验证。",
       "rule_refs": [
-        "24"
+        "18"
       ],
-      "suggestion": "min_evidence=2组合:征收范围判定+规模判定=处理方向定论。",
-      "min_evidence": 2,
+      "level": "中风险",
+      "description": "从弹性系数、收入端、成本端、关联交易、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:弹性异常+物理不匹配=人为调节铁证。",
+      "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "征收范围",
-          "check": "主营业务是否包含广告/娱乐服务",
+          "dimension": "弹性系数",
+          "check": "成本费用增速/收入增速比值",
           "evidence_items": [
-            "营业执照",
-            "经营范围",
-            "申报表"
+            "利润表",
+            "费用明细"
           ],
-          "pass_condition": "在征收范围",
+          "pass_condition": "比值>1.2或<0.8",
           "weight": "必备维度"
         },
         {
-          "dimension": "企业规模",
-          "check": "从业人数/资产/应纳税所得额是否符合小微",
+          "dimension": "收入端",
+          "check": "银行收款vs申报收入/销量vs产能",
           "evidence_items": [
-            "规模证明",
-            "财务报表",
-            "个税申报"
+            "银行流水",
+            "销量数据",
+            "产能数据"
           ],
-          "pass_condition": "符合小微条件",
+          "pass_condition": "收款<申报或产能不支撑",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "成本端",
+          "check": "采购量vs产能/入库单vs发票",
+          "evidence_items": [
+            "采购汇总",
+            "入库单",
+            "发票"
+          ],
+          "pass_condition": "采购不匹配或无入库",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "关联交易",
+          "check": "前十大客户/供应商是否关联方/定价是否公允",
+          "evidence_items": [
+            "关联方清单",
+            "价格对比表"
+          ],
+          "pass_condition": "关联方且定价偏离>20%",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "弹性异常持续多少期",
+          "evidence_items": [
+            "36个月利润表"
+          ],
+          "pass_condition": "持续>12个月",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-019",
+      "name": "其他应收款异常→资金体外循环多源验证闭环",
+      "category": "收入合规",
+      "domain": "财务域x资金域x关联域",
+      "sub_topic": "收入合规",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "19"
+      ],
+      "level": "高风险",
+      "description": "从余额异常、账龄、资金去向、关联方、业务实质五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:占比>10%+长期不还+流向关联方=资金占用铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "余额异常",
+          "check": "其他应收款占资产比/同比增幅",
+          "evidence_items": [
+            "资产负债表",
+            "明细账"
+          ],
+          "pass_condition": "占比>10%或增长>50%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "账龄",
+          "check": "1年以上其他应收款占比",
+          "evidence_items": [
+            "账龄分析表"
+          ],
+          "pass_condition": "1年以上占比>30%",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "资金去向",
+          "check": "付款资金流向/是否回流/用途",
+          "evidence_items": [
+            "银行流水",
+            "资金流向表"
+          ],
+          "pass_condition": "流向关联方或个人且未回流",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "关联方",
+          "check": "借款对象是否关联方/是否按独立交易计息",
+          "evidence_items": [
+            "关联方清单",
+            "利率对比表"
+          ],
+          "pass_condition": "关联方且无息或低息",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "业务实质",
+          "check": "有无借款协议/审批记录/合理用途",
+          "evidence_items": [
+            "借款协议",
+            "审批记录"
+          ],
+          "pass_condition": "无协议或用途不合理",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-020",
+      "name": "存货周转异常→虚列成本或隐匿收入多源验证闭环",
+      "category": "收入合规",
+      "domain": "财务域x实物域x申报域",
+      "sub_topic": "收入合规",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "20"
+      ],
+      "level": "高风险",
+      "description": "从周转率、盘点、采购销售匹配、存货跌价、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:周转率偏离>30%+盘点差异=违规定论。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "周转率",
+          "check": "存货周转率vs行业基准偏离度",
+          "evidence_items": [
+            "资产负债表",
+            "利润表",
+            "行业基准"
+          ],
+          "pass_condition": "偏离>30%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "盘点",
+          "check": "存货实地盘点vs账面存货",
+          "evidence_items": [
+            "盘点表",
+            "存货明细账"
+          ],
+          "pass_condition": "盘亏>5%或盘盈",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "采购销售匹配",
+          "check": "进项采购量vs销项销售量vs存货增减",
+          "evidence_items": [
+            "进项发票",
+            "销项发票",
+            "存货明细"
+          ],
+          "pass_condition": "物理不匹配",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "存货跌价",
+          "check": "存货跌价准备计提是否充分/有无调节利润",
+          "evidence_items": [
+            "跌价准备明细",
+            "可变现净值"
+          ],
+          "pass_condition": "未计提或计提异常",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "周转率异常持续多少期",
+          "evidence_items": [
+            "36个月数据"
+          ],
+          "pass_condition": "持续>12个月",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-021",
+      "name": "银行收款与申报收入断裂→隐匿收入多源验证闭环",
+      "category": "收入合规",
+      "domain": "资金域x申报域x经营域",
+      "sub_topic": "收入合规",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "21"
+      ],
+      "level": "高风险",
+      "description": "从收款vs申报差额、客户匹配、个人账户、收入完整性、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:收款>申报>10%+个人账户收款=隐匿收入铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "收款vs申报",
+          "check": "银行收款总额vs申报收入差值",
+          "evidence_items": [
+            "银行流水",
+            "申报表"
+          ],
+          "pass_condition": "收款>申报>10%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "客户匹配",
+          "check": "收款对手方是否与销项发票客户一致",
+          "evidence_items": [
+            "银行流水",
+            "销项发票",
+            "客户清单"
+          ],
+          "pass_condition": "不一致>10%",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "个人账户",
+          "check": "法人/股东个人账户有无经营性收款",
+          "evidence_items": [
+            "个人账户流水"
+          ],
+          "pass_condition": "存在大额经营性收款",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "收入完整性",
+          "check": "有无无票收入/未开票收入申报",
+          "evidence_items": [
+            "申报表",
+            "发票汇总"
+          ],
+          "pass_condition": "无票收入未申报",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "收款vs申报差异持续多少期",
+          "evidence_items": [
+            "36个月数据"
+          ],
+          "pass_condition": "持续>12个月",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-022",
+      "name": "应付账款长期挂账→虚增进项或隐匿付款多源验证闭环",
+      "category": "收入合规",
+      "domain": "财务域x资金域x工商域",
+      "sub_topic": "收入合规",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "22"
+      ],
+      "level": "极高风险",
+      "description": "从账龄异常、供应商状态、付款真实性、关联方、业务实质五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:长期挂账+供应商注销=虚增进项铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "账龄异常",
+          "check": "1年以上应付账款占比",
+          "evidence_items": [
+            "账龄分析表",
+            "应付账款明细"
+          ],
+          "pass_condition": "1年以上占比>30%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "供应商状态",
+          "check": "长期挂账供应商是否存续/注销/吊销",
+          "evidence_items": [
+            "工商信息"
+          ],
+          "pass_condition": "已注销或吊销",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "付款真实性",
+          "check": "应付账款是否实际付款/付款与账面是否一致",
+          "evidence_items": [
+            "银行流水",
+            "付款记录"
+          ],
+          "pass_condition": "已付仍挂或未付虚挂",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "关联方",
+          "check": "长期挂账供应商是否关联方",
+          "evidence_items": [
+            "关联方清单",
+            "股权结构"
+          ],
+          "pass_condition": "关联方且无合理理由",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "业务实质",
+          "check": "有无采购合同/入库单/发票对应",
+          "evidence_items": [
+            "采购合同",
+            "入库单",
+            "发票"
+          ],
+          "pass_condition": "无合同或无入库",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-023",
+      "name": "增值税税负率偏低→虚增进项或隐匿收入多源验证闭环",
+      "category": "增值税",
+      "domain": "申报域x发票域x资金域",
+      "sub_topic": "增值税",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "23"
+      ],
+      "level": "高风险",
+      "description": "从税负率偏离、进项异常、销项完整性、抵扣合规、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:税负率偏低>30%+进项或销项任一定性=偷税铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "税负率偏离",
+          "check": "增值税税负率vs行业基准偏离度",
+          "evidence_items": [
+            "申报表",
+            "行业基准"
+          ],
+          "pass_condition": "偏低>30%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "进项异常",
+          "check": "前十大进项供应商发票真实性/入库单/状态",
+          "evidence_items": [
+            "进项发票",
+            "入库单",
+            "工商信息"
+          ],
+          "pass_condition": "无入库或空壳",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "销项完整性",
+          "check": "银行收款vs销项发票差额",
+          "evidence_items": [
+            "银行流水",
+            "销项发票"
+          ],
+          "pass_condition": "收款>销项>10%",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "抵扣合规",
+          "check": "有无不得抵扣进项税额抵扣/抵扣凭证不合规",
+          "evidence_items": [
+            "进项发票",
+            "抵扣明细"
+          ],
+          "pass_condition": "存在不得抵扣已抵扣",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "税负率偏低持续多少期",
+          "evidence_items": [
+            "36个月申报表"
+          ],
+          "pass_condition": "持续>12个月",
+          "weight": "辅助维度"
+        }
+      ]
+    },
+    {
+      "id": "evid-024",
+      "name": "文化事业建设费申报异常→征收范围与优惠适用多源验证闭环",
+      "category": "增值税",
+      "domain": "申报域x发票域x经营域",
+      "sub_topic": "增值税",
+      "trigger_keywords": [],
+      "rule_refs": [
+        "24"
+      ],
+      "level": "极高风险",
+      "description": "从计费销售额匹配、征收范围、优惠适用、申报一致性、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:计费差异+有应税服务未申报=漏报铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "计费销售额匹配",
+          "check": "文化事业建设费计费销售额vs增值税广告/娱乐服务销售额",
+          "evidence_items": [
+            "申报表",
+            "发票汇总"
+          ],
+          "pass_condition": "差异>5%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "征收范围",
+          "check": "企业是否提供广告/娱乐服务/销项发票品名",
+          "evidence_items": [
+            "营业执照",
+            "销项发票"
+          ],
+          "pass_condition": "有应税服务但未申报",
           "weight": "核心维度"
         },
         {
           "dimension": "优惠适用",
-          "check": "符合小微是否享受减半",
+          "check": "是否适用小微企业免征/月销售额是否超标",
           "evidence_items": [
-            "申报表",
-            "系统截图"
+            "销售额数据",
+            "优惠备案"
           ],
-          "pass_condition": "未享受减半",
+          "pass_condition": "超标享免征",
           "weight": "核心维度"
         },
         {
-          "dimension": "差异处理",
-          "check": "多缴/少缴/误申报分类处理",
+          "dimension": "申报一致性",
+          "check": "文化事业建设费申报vs增值税申报数据一致性",
           "evidence_items": [
-            "缴费凭证",
-            "更正记录"
+            "两份申报表"
           ],
-          "pass_condition": "需处理",
+          "pass_condition": "不一致",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "计费差异持续多少期",
+          "evidence_items": [
+            "36个月申报表"
+          ],
+          "pass_condition": "持续>6个月",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "增值税",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-025",
-      "name": "税负率异常平稳→人为调节与虚开多源验证闭环",
+      "name": "税负率异常平稳→人为调节多源验证闭环",
       "category": "增值税",
       "domain": "申报域x发票域x资金域",
+      "sub_topic": "增值税",
       "trigger_keywords": [],
-      "description": "从标准差异常、供应商注销、资金回流、成本逻辑四维验证。",
       "rule_refs": [
         "25"
       ],
-      "suggestion": "min_evidence=3组合:标准差<0.3%+供应商快速注销或资金回流=定性铁证。",
+      "level": "极高风险",
+      "description": "从平稳度、进销项匹配、发票异常、调节痕迹、持续性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:异常平稳+月底集中抵扣+进销项不匹配=人为控税铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "标准差异常",
-          "check": "12个月税负率标准差",
+          "dimension": "平稳度",
+          "check": "税负率变异系数/标准差vs行业",
           "evidence_items": [
-            "12个月申报表",
-            "行业数据"
+            "申报表",
+            "行业基准"
           ],
-          "pass_condition": "<0.3%",
+          "pass_condition": "变异系数<0.1或标准差<行业1/3",
           "weight": "必备维度"
         },
         {
-          "dimension": "供应商注销",
-          "check": "供应商开票后多久注销",
+          "dimension": "进销项匹配",
+          "check": "各期进项采购量vs销项销售量物理匹配",
           "evidence_items": [
-            "工商信息",
-            "开票时间",
-            "注销时间"
+            "进项发票",
+            "销项发票"
           ],
-          "pass_condition": "3个月内注销",
+          "pass_condition": "物理不匹配",
           "weight": "核心维度"
         },
         {
-          "dimension": "资金回流",
-          "check": "资金是否经个人账户回流到老板",
+          "dimension": "发票异常",
+          "check": "月底/季末集中开票/抵扣的发票真实性",
           "evidence_items": [
-            "银行流水",
-            "个人账户"
+            "发票明细",
+            "工商信息"
           ],
-          "pass_condition": "存在回流",
+          "pass_condition": "关联方或空壳",
           "weight": "核心维度"
         },
         {
-          "dimension": "成本逻辑",
-          "check": "单位生产成本vs同行业",
+          "dimension": "调节痕迹",
+          "check": "进项抵扣时间分布/销项开票时间分布",
           "evidence_items": [
-            "成本计算表",
-            "行业数据"
+            "发票时间分布"
           ],
-          "pass_condition": "偏离>20%",
+          "pass_condition": "月底集中度>30%",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "持续性",
+          "check": "异常平稳持续多少期",
+          "evidence_items": [
+            "36个月申报表"
+          ],
+          "pass_condition": "持续>12个月",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "增值税",
-      "level": "极高风险"
+      ]
     },
     {
       "id": "evid-026",
-      "name": "城建税申报异常→税率适用验证闭环",
+      "name": "城建税与增值税基数不匹配→税率适用与跨区域多源验证闭环",
       "category": "申报合规",
-      "domain": "申报域x经营域",
+      "domain": "申报域x增值税域x经营域",
+      "sub_topic": "申报合规",
       "trigger_keywords": [],
-      "description": "从基数匹配、税率适用、跨区域经营、差异处理四维验证。",
       "rule_refs": [
         "26"
       ],
-      "suggestion": "min_evidence=2组合:基数不匹配+税率适用错误=少缴铁证。",
-      "min_evidence": 2,
+      "level": "极高风险",
+      "description": "从基数匹配、税率适用、跨区域、免抵扣、申报一致性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:基数差异+税率适用错误=少缴城建税铁证。",
+      "min_evidence": 3,
       "dimensions": [
         {
           "dimension": "基数匹配",
-          "check": "城建税申报额vs增值税基数x法定税率",
-          "evidence_items": [
-            "城建税申报表",
-            "增值税申报表",
-            "完税凭证"
-          ],
-          "pass_condition": "不匹配",
-          "weight": "必备维度"
-        },
-        {
-          "dimension": "税率适用",
-          "check": "注册地税率vs项目地税率",
-          "evidence_items": [
-            "注册地址",
-            "项目地预缴记录"
-          ],
-          "pass_condition": "跨区域未按项目地适用",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "跨区域",
-          "check": "跨区域经营是否分别申报",
-          "evidence_items": [
-            "跨区域申报表",
-            "预缴凭证"
-          ],
-          "pass_condition": "未分别申报",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "差异处理",
-          "check": "少缴金额及补缴情况",
-          "evidence_items": [
-            "补缴计算表",
-            "完税凭证"
-          ],
-          "pass_condition": "需追缴",
-          "weight": "辅助维度"
-        }
-      ],
-      "sub_topic": "申报合规",
-      "level": "极高风险"
-    },
-    {
-      "id": "evid-027",
-      "name": "随征关系断裂→系统性漏报多源验证闭环",
-      "category": "申报合规",
-      "domain": "申报域x财务域",
-      "trigger_keywords": [],
-      "description": "从随征断裂、持续性、账务处理、全面漏报四维验证。",
-      "rule_refs": [
-        "27"
-      ],
-      "suggestion": "min_evidence=2组合:随征断裂+持续多期或账务未计提=系统性偷税。",
-      "min_evidence": 2,
-      "dimensions": [
-        {
-          "dimension": "随征断裂",
-          "check": "增值税有应纳但城建税为零",
+          "check": "城建税申报额÷增值税应纳税额vs适用税率",
           "evidence_items": [
             "增值税申报表",
             "城建税申报表"
           ],
-          "pass_condition": "城建税为零",
+          "pass_condition": "差异>1%",
           "weight": "必备维度"
         },
         {
-          "dimension": "持续性",
-          "check": "漏报持续多少期",
+          "dimension": "税率适用",
+          "check": "注册地/经营场所vs适用税率(7%/5%/1%)",
           "evidence_items": [
-            "12个月申报表",
-            "银行扣款记录"
+            "营业执照",
+            "注册地址"
           ],
-          "pass_condition": "持续>3期",
+          "pass_condition": "适用错误",
           "weight": "核心维度"
         },
         {
-          "dimension": "账务处理",
-          "check": "会计凭证是否计提城建税",
+          "dimension": "跨区域",
+          "check": "有无跨区域经营/分支机构/是否分别申报",
           "evidence_items": [
-            "会计凭证",
-            "明细账"
+            "分支机构清单",
+            "跨区域证明"
           ],
-          "pass_condition": "未计提",
+          "pass_condition": "跨区域未分别申报",
           "weight": "核心维度"
         },
         {
-          "dimension": "全面漏报",
-          "check": "教育费附加/地方教育附加是否也漏",
+          "dimension": "免抵扣",
+          "check": "增值税免抵退/减免额是否正确计入城建税基数",
           "evidence_items": [
-            "附加税费申报表"
+            "免抵退申报",
+            "减免明细"
           ],
-          "pass_condition": "全面漏报",
+          "pass_condition": "免抵额未计入基数",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "申报一致性",
+          "check": "城建税申报vs增值税申报数据一致性",
+          "evidence_items": [
+            "两份申报表"
+          ],
+          "pass_condition": "不一致",
           "weight": "辅助维度"
         }
-      ],
+      ]
+    },
+    {
+      "id": "evid-027",
+      "name": "增值税与城建税随征断裂→系统性漏报多源验证闭环",
+      "category": "申报合规",
+      "domain": "申报域x增值税域x减免域",
       "sub_topic": "申报合规",
-      "level": "高风险"
+      "trigger_keywords": [],
+      "rule_refs": [
+        "27"
+      ],
+      "level": "高风险",
+      "description": "从随征匹配、征收范围、减免合规、欠税、申报一致性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:随征断裂+减免不同步=系统性漏报铁证。",
+      "min_evidence": 3,
+      "dimensions": [
+        {
+          "dimension": "随征匹配",
+          "check": "增值税应纳税额×税率vs城建税申报额",
+          "evidence_items": [
+            "增值税申报表",
+            "城建税申报表"
+          ],
+          "pass_condition": "差异>5%",
+          "weight": "必备维度"
+        },
+        {
+          "dimension": "征收范围",
+          "check": "增值税缴纳期vs城建税申报期是否对应",
+          "evidence_items": [
+            "两份申报表"
+          ],
+          "pass_condition": "有增值税无城建税",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "减免合规",
+          "check": "增值税减免是否同步减免城建税",
+          "evidence_items": [
+            "减免明细",
+            "政策依据"
+          ],
+          "pass_condition": "减免不同步",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "欠税",
+          "check": "增值税欠税是否同步欠城建税/有缴纳无申报",
+          "evidence_items": [
+            "欠税明细",
+            "缴纳记录"
+          ],
+          "pass_condition": "欠税不同步或有缴纳无申报",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "申报一致性",
+          "check": "城建税申报vs增值税申报数据一致性",
+          "evidence_items": [
+            "两份申报表"
+          ],
+          "pass_condition": "不一致",
+          "weight": "辅助维度"
+        }
+      ]
     },
     {
       "id": "evid-028",
-      "name": "房产税漏报→多源验证闭环",
+      "name": "房产原值与房产税不匹配→漏报房产税多源验证闭环",
       "category": "申报合规",
-      "domain": "财务域x申报域x实物域",
+      "domain": "申报域x资产域x实物域",
+      "sub_topic": "申报合规",
       "trigger_keywords": [],
-      "description": "从台账vs申报、租入验证、地址验证、处置验证四维验证。",
       "rule_refs": [
         "28"
       ],
-      "suggestion": "min_evidence=2组合:台账有房产+申报无记录=漏报铁证。",
-      "min_evidence": 2,
+      "level": "高风险",
+      "description": "从原值匹配、实物存在、计征方式、减免合规、申报一致性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:原值差异+有房未申报=漏报房产税铁证。",
+      "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "台账vs申报",
-          "check": "固定资产台账房产vs房产税申报",
+          "dimension": "原值匹配",
+          "check": "固定资产台账房产原值vs房产税申报原值",
           "evidence_items": [
-            "固定资产台账",
+            "固定资产明细",
             "房产税申报表"
           ],
-          "pass_condition": "有房产无申报",
+          "pass_condition": "差异>5%",
           "weight": "必备维度"
         },
         {
-          "dimension": "租入验证",
-          "check": "租入房产有无出租方完税证明",
+          "dimension": "实物存在",
+          "check": "差异房产有无实际房产/产权证明",
           "evidence_items": [
+            "实地核查",
+            "产权证明"
+          ],
+          "pass_condition": "有房未申报",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "计征方式",
+          "check": "从价/从租计征是否正确/混合用途是否分别计征",
+          "evidence_items": [
+            "房产用途",
             "租赁合同",
-            "完税证明"
+            "计征表"
           ],
-          "pass_condition": "无法提供",
+          "pass_condition": "计征错误",
           "weight": "核心维度"
         },
         {
-          "dimension": "地址验证",
-          "check": "房产是否在行政村范围",
+          "dimension": "减免合规",
+          "check": "有无违规享受房产税减免/减免备案是否合规",
           "evidence_items": [
-            "房产证",
-            "土地使用权证"
+            "减免备案",
+            "政策依据"
           ],
-          "pass_condition": "不在行政村=不免税",
+          "pass_condition": "违规减免",
           "weight": "核心维度"
         },
         {
-          "dimension": "处置验证",
-          "check": "房产是否已出售未清理",
+          "dimension": "申报一致性",
+          "check": "房产税申报vs固定资产台账数据一致性",
           "evidence_items": [
-            "销售合同",
-            "过户登记",
-            "账务凭证"
+            "两份资料"
           ],
-          "pass_condition": "已出售未清理",
+          "pass_condition": "不一致",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "申报合规",
-      "level": "高风险"
+      ]
     },
     {
       "id": "evid-029",
-      "name": "租金与房产税断裂→漏报多源验证闭环",
+      "name": "租金收入与房产税从租计征断裂→漏报房产税多源验证闭环",
       "category": "申报合规",
-      "domain": "资金域x申报域x实物域",
+      "domain": "资金域x申报域x资产域",
+      "sub_topic": "申报合规",
       "trigger_keywords": [],
-      "description": "从租金vs申报、纳税主体、合同对应、随征关系四维验证。",
       "rule_refs": [
         "29"
       ],
-      "suggestion": "min_evidence=3组合:有租金无申报+增值税已报=主观故意漏报铁证。",
+      "level": "高风险",
+      "description": "从租金匹配、合同真实性、免租期合规、计税依据、申报一致性五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:租金差异+合同租金<银行收款=漏报房产税铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "租金vs申报",
-          "check": "银行租金收入vs房产税从租计征",
+          "dimension": "租金匹配",
+          "check": "银行租金收入×12%vs房产税从租计征申报额",
           "evidence_items": [
             "银行流水",
             "房产税申报表"
           ],
-          "pass_condition": "有租金无申报",
+          "pass_condition": "差异>5%",
           "weight": "必备维度"
         },
         {
-          "dimension": "纳税主体",
-          "check": "房产证登记的产权人",
+          "dimension": "合同真实性",
+          "check": "合同租金vs银行收款/有无合同",
           "evidence_items": [
-            "房产证",
-            "原租赁合同"
-          ],
-          "pass_condition": "非公司名字(转租)",
-          "weight": "核心维度"
-        },
-        {
-          "dimension": "合同对应",
-          "check": "租金能否逐笔对应合同",
-          "evidence_items": [
-            "银行流水",
             "租赁合同",
-            "收款明细"
+            "银行流水"
           ],
-          "pass_condition": "不能完全对应",
+          "pass_condition": "合同租金<银行收款或无合同",
           "weight": "核心维度"
         },
         {
-          "dimension": "随征关系",
-          "check": "增值税是否已申报租金",
+          "dimension": "免租期合规",
+          "check": "免租期/装修期是否按原值计征房产税",
           "evidence_items": [
-            "增值税申报表",
-            "房产税申报表"
+            "租赁合同",
+            "原值计征表"
           ],
-          "pass_condition": "增值税报了房产税没报",
+          "pass_condition": "免租期未计征",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "计税依据",
+          "check": "从租计征计税依据是否包含全部租金收入",
+          "evidence_items": [
+            "租金明细",
+            "申报表"
+          ],
+          "pass_condition": "计税依据不全",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "申报一致性",
+          "check": "房产税申报vs银行租金收入一致性",
+          "evidence_items": [
+            "两份资料"
+          ],
+          "pass_condition": "不一致",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "申报合规",
-      "level": "高风险"
+      ]
     },
     {
       "id": "evid-030",
-      "name": "社保工资与个税断裂→虚列工资多源验证闭环",
+      "name": "社保人数与个税人数不匹配→虚列工资或隐匿收入多源验证闭环",
       "category": "个人所得税",
-      "domain": "资金域x申报域x人事域",
+      "domain": "社保域x个税域x资金域",
+      "sub_topic": "个人所得税",
       "trigger_keywords": [],
-      "description": "从人数差异、员工真实性、资金回流、差异处理四维验证。",
       "rule_refs": [
         "30"
       ],
-      "suggestion": "min_evidence=3组合:人数差异+无劳动合同或资金回流=虚列工资铁证。",
+      "level": "高风险",
+      "description": "从人数匹配、工资发放、用工形式、个税扣缴、社保合规五个维度并行验证。",
+      "suggestion": "min_evidence=3组合:人数差异>10%+有发放无申报=隐匿工资铁证。",
       "min_evidence": 3,
       "dimensions": [
         {
-          "dimension": "人数差异",
-          "check": "社保/银行代发人数vs个税申报人数",
+          "dimension": "人数匹配",
+          "check": "社保参保人数vs个税申报人数vs银行代发人数",
           "evidence_items": [
             "社保名单",
-            "银行流水",
-            "个税申报表"
+            "个税名单",
+            "银行代发名单"
           ],
           "pass_condition": "差异>10%",
           "weight": "必备维度"
         },
         {
-          "dimension": "员工真实",
-          "check": "有无劳动合同/考勤/工作成果",
+          "dimension": "工资发放",
+          "check": "银行代发金额vs个税申报工资/有无现金发放",
+          "evidence_items": [
+            "银行代发记录",
+            "个税申报明细"
+          ],
+          "pass_condition": "有发放无申报或现金发放",
+          "weight": "核心维度"
+        },
+        {
+          "dimension": "用工形式",
+          "check": "差异人员用工形式/社保个税处理是否正确",
           "evidence_items": [
             "劳动合同",
-            "考勤记录",
-            "工作成果"
+            "劳务协议",
+            "社保政策"
           ],
-          "pass_condition": "无合同或无考勤",
+          "pass_condition": "错误处理",
           "weight": "核心维度"
         },
         {
-          "dimension": "资金回流",
-          "check": "工资发放后资金是否回流企业/股东",
+          "dimension": "个税扣缴",
+          "check": "个税扣缴是否足额/有无遗漏人员",
           "evidence_items": [
-            "银行流水",
-            "员工账户",
-            "企业/股东账户"
+            "个税申报表",
+            "工资表"
           ],
-          "pass_condition": "存在回流",
+          "pass_condition": "扣缴不足或遗漏",
           "weight": "核心维度"
         },
         {
-          "dimension": "差异处理",
-          "check": "少缴个税金额及补缴",
+          "dimension": "社保合规",
+          "check": "社保参保是否合规/有无虚列参保",
           "evidence_items": [
-            "个税补缴表",
-            "处罚决定"
+            "社保参保记录",
+            "员工花名册"
           ],
-          "pass_condition": "需追缴",
+          "pass_condition": "虚列参保或应保未保",
           "weight": "辅助维度"
         }
-      ],
-      "sub_topic": "个人所得税",
-      "level": "高风险"
+      ]
     }
   ]
 }
