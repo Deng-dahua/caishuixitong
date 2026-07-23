@@ -117,10 +117,12 @@ window._rrTitleRow = function(rl) {
   var rid = String(rl.id || '').trim();
   var isAuto = rl.type === 'auto_signal' || rl.source === '系统发现' || !!rl.auto_type;
   var trigN = (typeof _triggeredRuleFindings !== 'undefined' && _triggeredRuleFindings[rid] || []).length;
+  var rn = parseInt(rid) || 0;
+  var padId = function(n) { return n < 10 ? '00' + n : n < 100 ? '0' + n : '' + n; };
   var chainInfo = (typeof _rrChainInfo !== 'undefined' && _rrChainInfo[rid]) || null;
-  var cue = chainInfo ? (chainInfo.c_steps + '步') : '-';
-  var evd = chainInfo ? (chainInfo.e_dims + '维') : '-';
-  var alc = chainInfo ? (chainInfo.a_steps + '步') : '-';
+  var cue = chainInfo && chainInfo.c_steps ? 'clue-' + padId(rn) : '-';
+  var evd = chainInfo && chainInfo.e_dims ? 'evid-' + padId(rn) : '-';
+  var alc = chainInfo && chainInfo.a_steps ? 'alc-' + padId(rn) : '-';
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
