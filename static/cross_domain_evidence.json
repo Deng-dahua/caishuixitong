@@ -1650,15 +1650,6 @@
           "weight": "核心维度"
         },
         {
-          "dimension": "申报一致性",
-          "check": "文化事业建设费申报vs增值税申报数据一致性",
-          "evidence_items": [
-            "两份申报表"
-          ],
-          "pass_condition": "不一致",
-          "weight": "核心维度"
-        },
-        {
           "dimension": "持续性",
           "check": "计费差异持续多少期",
           "evidence_items": [
@@ -1788,15 +1779,6 @@
           ],
           "pass_condition": "免抵额未计入基数",
           "weight": "核心维度"
-        },
-        {
-          "dimension": "申报一致性",
-          "check": "城建税申报vs增值税申报数据一致性",
-          "evidence_items": [
-            "两份申报表"
-          ],
-          "pass_condition": "不一致",
-          "weight": "辅助维度"
         }
       ]
     },
@@ -1853,15 +1835,6 @@
           ],
           "pass_condition": "欠税不同步或有缴纳无申报",
           "weight": "核心维度"
-        },
-        {
-          "dimension": "申报一致性",
-          "check": "城建税申报vs增值税申报数据一致性",
-          "evidence_items": [
-            "两份申报表"
-          ],
-          "pass_condition": "不一致",
-          "weight": "辅助维度"
         }
       ]
     },
@@ -1920,15 +1893,6 @@
           ],
           "pass_condition": "违规减免",
           "weight": "核心维度"
-        },
-        {
-          "dimension": "申报一致性",
-          "check": "房产税申报vs固定资产台账数据一致性",
-          "evidence_items": [
-            "两份资料"
-          ],
-          "pass_condition": "不一致",
-          "weight": "辅助维度"
         }
       ]
     },
@@ -1986,15 +1950,6 @@
           ],
           "pass_condition": "计税依据不全",
           "weight": "核心维度"
-        },
-        {
-          "dimension": "申报一致性",
-          "check": "房产税申报vs银行租金收入一致性",
-          "evidence_items": [
-            "两份资料"
-          ],
-          "pass_condition": "不一致",
-          "weight": "辅助维度"
         }
       ]
     },
