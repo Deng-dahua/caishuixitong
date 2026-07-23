@@ -2,7 +2,9 @@
   {
     "id": "clue-001",
     "rule_id": 21,
-    "rule_refs": ["21"],
+    "rule_refs": [
+      "21"
+    ],
     "name": "银行收款与申报收入断裂→隐匿收入调查",
     "steps": [
       {
@@ -10,9 +12,15 @@
         "op": "aggregate",
         "desc": "数据提取·银行收款全景：调取全部银行流水贷方记录（排除银行内部转账/理财申购赎回等非经营性流入），按月份汇总各月收款总额。此数据为企业实际收到的资金总规模，是验证申报收入真实性的第一锚点。",
         "source": "bank_txs",
-        "filters": {"credit": {">": 0}},
+        "filters": {
+          "credit": {
+            ">": 0
+          }
+        },
         "group_by": "month",
-        "fields": ["sum(credit) as total_receipts"],
+        "fields": [
+          "sum(credit) as total_receipts"
+        ],
         "output": "monthly_bank_receipts"
       },
       {
@@ -21,7 +29,9 @@
         "desc": "数据提取·申报收入全景：从销项发票中按月份汇总已向税务机关申报的销售总额（价税合计）。此数据代表企业已开票、已申报的销售规模，与银行收款形成比对基础。",
         "source": "sal_invs",
         "group_by": "month",
-        "fields": ["sum(total) as reported_sales"],
+        "fields": [
+          "sum(total) as reported_sales"
+        ],
         "output": "monthly_reported_sales"
       },
       {
@@ -30,7 +40,9 @@
         "desc": "差异检测·收款vs申报逐月比对：逐月比对步骤1的银行收款总额与步骤2的申报销售额。银行收款>申报销售额且差额>申报销售额10%的月份→标记为异常月。差额方向判断：收款>申报=隐匿收入嫌疑（钱收到了但没开票没申报）；申报>收款=虚增收入或应收账款挂账嫌疑。锁定首次异常月用于后续溯源。",
         "left": "monthly_bank_receipts",
         "right": "monthly_reported_sales",
-        "threshold": {"gt": "reported_sales * 0.1"},
+        "threshold": {
+          "gt": "reported_sales * 0.1"
+        },
         "output": "receipt_report_gap"
       },
       {
@@ -38,9 +50,15 @@
         "op": "query",
         "desc": "客户穿透·无票收款溯源：对所有贷方收款按对手方名称分组汇总收款金额。将对手方与销项发票购买方名称逐户交叉比对——排除已在销项发票中有开票记录的客户后，剩余收款对手方即为无票收入的潜在来源。锁定前十大无票收款对手方和金额，逐户追查交易实质：有无销售合同？有无发货记录？收款用途是否为货款/服务费？",
         "source": "bank_txs",
-        "filters": {"credit": {">": 0}},
+        "filters": {
+          "credit": {
+            ">": 0
+          }
+        },
         "group_by": "counterparty",
-        "fields": ["sum(credit) as unreported_receipts"],
+        "fields": [
+          "sum(credit) as unreported_receipts"
+        ],
         "output": "unreported_customer_receipts"
       },
       {
@@ -48,9 +66,15 @@
         "op": "query",
         "desc": "个人账户排查·经营性收款外流：筛选对手方名称为个人姓名（非企业全称）的贷方收款记录，按对手方汇总收款金额。个人大额收款≥5万元且无对应合同或发票→重点排查是否企业经营收入通过个人账户收取。交叉比对法人/股东/财务负责人名单，标记关联人员收款为极高风险。",
         "source": "bank_txs",
-        "filters": {"credit": {">": 0}},
+        "filters": {
+          "credit": {
+            ">": 0
+          }
+        },
         "group_by": "counterparty",
-        "fields": ["sum(credit) as personal_receipts"],
+        "fields": [
+          "sum(credit) as personal_receipts"
+        ],
         "output": "personal_account_receipts"
       },
       {
@@ -58,10 +82,136 @@
         "op": "conclude",
         "desc": "闭环判定·隐匿收入定性：汇总差异检测+无票客户+个人账户三维结果。收款>申报超10%→隐匿收入嫌疑成立；存在无票收款对手方→锁定具体隐匿路径；个人账户存在大额经营性收款→升级为极高风险。依据征管法§63认定偷税——在账簿上不列、少列收入。",
         "conditions": [
-          {"if": "receipt_report_gap.is_anomaly", "conclusion": "银行收款与申报收入存在>10%差异", "severity": "高风险", "detail": "银行账户收款总额显著高于增值税申报销售额，差异率>10%，涉嫌隐匿销售收入"},
-          {"if": "personal_account_receipts exists", "conclusion": "存在个人账户收款", "severity": "极高风险", "detail": "对公账户收款对手方存在可疑个人账户收款，需进一步追查是否属于经营收款"}
+          {
+            "if": "receipt_report_gap.is_anomaly",
+            "conclusion": "银行收款与申报收入存在>10%差异",
+            "severity": "高风险",
+            "detail": "银行账户收款总额显著高于增值税申报销售额，差异率>10%，涉嫌隐匿销售收入"
+          },
+          {
+            "if": "personal_account_receipts exists",
+            "conclusion": "存在个人账户收款",
+            "severity": "极高风险",
+            "detail": "对公账户收款对手方存在可疑个人账户收款，需进一步追查是否属于经营收款"
+          }
         ],
-        "law_refs": ["征管法§63偷税", "征管法§64编造虚假计税依据"],
+        "law_refs": [
+          "征管法§63偷税",
+          "征管法§64编造虚假计税依据"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-002",
+    "rule_id": 1,
+    "rule_refs": [
+      "1"
+    ],
+    "name": "资产负债表不平→账外资金循环调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "desc": "会计恒等式验证·资产负债表核验：从科目余额表中分别汇总资产类科目余额、负债类科目余额、所有者权益类科目余额。计算差额=资产总额-(负债总额+所有者权益总额)。差额>资产总额0.5%且绝对额>5万元→会计恒等式断裂，触发稽查。此步骤是整个调查的起点——全世界所有会计系统都建立在资产=负债+所有者权益这个基石上，等式一旦断裂只有三种可能：分录未完整记入、数字被篡改、账外资金循环。百万级以上差额绝不可能是会计差错。",
+        "source": "vouchers",
+        "group_by": "period",
+        "fields": [
+          "sum(debit) as total_assets",
+          "sum(credit) as total_liabilities_equity"
+        ],
+        "output": "monthly_balance_check"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "desc": "异常溯源·锁定首次不平等月份和持续趋势：在步骤1逐月差额序列中，标记首个差额>5万元且持续存在的月份为异常起算点。调取该月完整结账记录(试算平衡表+结账凭证+系统日志)，交叉验证是否与以下事件重合：财务系统切换/升级、财务人员变更、大额单笔交易(>100万元)、合并报表范围变更。若与系统切换时间重合→可能是数据迁移错误(可更正)；若无任何可解释事件→涉嫌人为调节或账外经营。",
+        "source": "vouchers",
+        "filters": {},
+        "group_by": "period",
+        "fields": [
+          "sum(debit) as monthly_debit",
+          "sum(credit) as monthly_credit"
+        ],
+        "output": "first_anomaly_month"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "desc": "科目穿透·锁定差额归属科目：逐科目计算各科目理论值与账面值的偏离度(资产类偏大vs负债/权益类偏小)。标记偏离最大的前5个科目——通常为往来科目(其他应收款/其他应付款/预收账款/应付账款)。调取异常科目的全年明细账，观察余额波动规律：是否在月末集中挂账→次月初冲销？是否存在同一对手方的大额进出？余额是否单向递增无回落？",
+        "source": "vouchers",
+        "filters": {},
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as total_debit",
+          "sum(credit) as total_credit"
+        ],
+        "output": "deviated_accounts"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "desc": "逐笔穿透·大额交易实质核查：对异常科目中金额>10万元的发生额逐笔追溯，调取对应的原始凭证：采购/销售合同、发票、入库单/出库单、银行回单、审批记录。标记四类无真实业务支撑的挂账：①无合同+无发票+无入库→纯虚构交易 ②有合同+无银行回单→未实际付款的虚构应付 ③银行回单对手方与发票/合同不一致→三流断裂 ④挂账对象为关联方/股东/员工→资金占用或体外循环。",
+        "source": "bank_txs",
+        "filters": {
+          "credit": {
+            ">": 0
+          }
+        },
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as total_inflow",
+          "sum(debit) as total_outflow"
+        ],
+        "output": "suspicious_transactions"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "desc": "资金追踪·公转私与体外循环检测：调取企业全部对公账户+法定代表人+股东+财务负责人个人账户银行流水。逐笔比对挂账资金的来源和去向——完整追踪一笔资金从进入企业账户→挂往来科目→转出至个人账户的全路径。标记三类特征：①公转私单笔>5万元且摘要不规范(非工资/报销/分红等正常名目) ②同一对手方频繁大额进出(月均>3笔) ③资金流向与关联企业/税收优惠地形成闭环。三类特征同时具备→资金体外循环闭环成立。",
+        "source": "bank_txs",
+        "filters": {
+          "credit": {
+            ">": 0
+          }
+        },
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as total_receipts",
+          "count(*) as tx_count"
+        ],
+        "output": "fund_flow_traces"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定·三条路径定性：路径一(无法证明)——仅资产负债表不平，差额<5万元或单期偶发→存疑，不入正式结论，建议连续跟踪3个申报期。路径二(部分证明)——资产负债表不平+往来科目异常集中(2个独立数据源)→强证据，涉嫌账务不实或账外经营，标注证据部分闭环，限期30日内补证。路径三(完整证明)——资产负债表不平+往来科目异常+银行流水锁定资金进出路径+个人账户确认体外资金流转(≥3个独立来源闭环)→铁证，认定偷税(征管法§63)或编造虚假计税依据(§64)，可作为处罚依据。",
+        "conditions": [
+          {
+            "if": "monthly_balance_check exists",
+            "conclusion": "资产负债表不平→会计恒等式断裂",
+            "severity": "高风险",
+            "detail": "资产总额与负债加所有者权益总额存在>0.5%且>5万元的差额，排除正常会计差错后涉嫌账务不实或账外经营"
+          },
+          {
+            "if": "deviated_accounts exists",
+            "conclusion": "往来科目异常集中→锁定差额归属",
+            "severity": "高风险",
+            "detail": "差额集中归属于往来科目(其他应收款/其他应付款等)，存在无真实交易背景的大额挂账"
+          },
+          {
+            "if": "fund_flow_traces tx_count > 3",
+            "conclusion": "资金体外循环→公转私路径锁定",
+            "severity": "极高风险",
+            "detail": "银行流水锁定资金从企业账户→往来挂账→个人账户的完整路径，确认账外资金循环"
+          }
+        ],
+        "law_refs": [
+          "征管法§63偷税",
+          "征管法§64编造虚假计税依据",
+          "征管法§35核定应纳税额"
+        ],
         "output": "findings"
       }
     ]
