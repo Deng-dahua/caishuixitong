@@ -1,8 +1,8 @@
 {
   "rules_count": 1720,
-  "clue_chains": 17,
-  "evidence_chains": 17,
-  "analysis_chains": 17,
+  "clue_chains": 22,
+  "evidence_chains": 22,
+  "analysis_chains": 22,
   "total_chains": 1266,
   "domain_functions": 39,
   "_calibrated": "2026-06-30-merged",

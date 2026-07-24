@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 17,
+    "total_chains": 22,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -1092,6 +1092,217 @@
           ],
           "law_refs": [
             "企业所得税法实施条例S43"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-022",
+      "rule_id": 17,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "财报申报vs进销发票不一致->申报不实调查",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "财报申报数据与进销发票不一致",
+              "severity": "高风险",
+              "detail": "发票数据与申报数据存在显著偏差"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "财报申报数据与进销发票不一致",
+              "severity": "高风险",
+              "detail": "发票数据与申报数据存在显著偏差"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-023",
+      "rule_id": 18,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "收入成本增长率不匹配->人为调节利润调查",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "收入成本增长率偏离",
+              "severity": "中风险",
+              "detail": "成本增长远超收入增长"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "收入成本增长率偏离",
+              "severity": "中风险",
+              "detail": "成本增长远超收入增长"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-024",
+      "rule_id": 19,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "其他应收款与收入不匹配->往来科目异常调查",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "其他应收款异常",
+              "severity": "高风险",
+              "detail": "其他应收款与收入比例严重偏离"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "其他应收款异常",
+              "severity": "高风险",
+              "detail": "其他应收款与收入比例严重偏离"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S41"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-025",
+      "rule_id": 20,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "存货周转率与收入不匹配->存货异常调查",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "存货周转异常",
+              "severity": "高风险",
+              "detail": "存货周转率远低于行业且与收入不匹配"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "存货周转异常",
+              "severity": "高风险",
+              "detail": "存货周转率远低于行业且与收入不匹配"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-027",
+      "rule_id": 22,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "应付账款长期挂账->虚增负债调查",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "应付账款长期挂账异常",
+              "severity": "极高风险",
+              "detail": "超过正常账期长期未付无商业理由"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "应付账款长期挂账异常",
+              "severity": "极高风险",
+              "detail": "超过正常账期长期未付无商业理由"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S64",
+            "S41"
           ],
           "output": "findings"
         }
