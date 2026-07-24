@@ -690,5 +690,97 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-008",
+    "rule_id": 7,
+    "rule_refs": [
+      "7"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "进项发票票面不合规->无效抵扣调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "count(*) as inv_count",
+          "sum(total_amount) as total"
+        ],
+        "output": "noncompliant_summary",
+        "desc": "票面合规扫描:逐张检查进项发票必填字段-销售方税号位数是否正确？品名是否笼统(货物一批/办公用品)且无税控清单？金额/税额/税率是否可辨识？票面有涂改/打印错位/污损？任一问题+单张>=1万->标记为票面不合规。累计>=5万->触发稽查。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as tax_loss"
+        ],
+        "output": "deduction_impact",
+        "desc": "抵扣影响评估:对不合规发票核算已抵扣进项税额。按税法规定票面不合规=不得抵扣进项税-需做进项税额转出。同时检查企业所得税影响-不合规发票对应成本是否已税前扣除？票面不合规=成本凭证不合法=纳税调增。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "count(*) as cnt"
+        ],
+        "output": "supplier_pattern",
+        "desc": "供应商模式:不合规发票集中在哪些供应商？是否全部来自同一供应商？供应商是否为非正常户/走逃企业？若是-票面不合规只是表象实质是虚开发票。同一供应商持续多年不合规且企业未纠正-明知有问题仍接受-主观故意。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "goods",
+        "fields": [
+          "count(*) as cnt"
+        ],
+        "output": "goods_pattern",
+        "desc": "品名模式:笼统品名(货物一批/办公用品/耗材/配件)占比？笼统品名往往用于掩盖真实交易内容-真正的货物名称不愿意写说明背后有不可告人的问题。建筑服务未标注发生地-可能异地项目未预缴税款。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "payment_verify",
+        "desc": "资金验证:对不合规发票对应付款进行验证-付款对象是否为开票方？金额是否与发票一致？票面不合规+付款不一致=彻底无效-不仅是抵扣问题还是虚开问题。票面不合规但付款真实一致-可能是供应商不规范需限期补开。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-个别发票(<=3张)不规范且<5万能联系供应商补开->管理疏漏不入结论。路径二-大量发票(>10张)或>50万供应商能配合补开(2源)->强证据税额转出+补开发票。路径三-大量发票+供应商非正常+付款不一致(>=3源)->铁证虚开发票(S37)或偷税(S63)。",
+        "conditions": [
+          {
+            "if": "noncompliant_summary exists",
+            "conclusion": "进项发票票面不合规->抵扣资格存疑",
+            "severity": "高风险",
+            "detail": "存在票面不规范进项发票涉及单张>=1万或累计>=5万"
+          },
+          {
+            "if": "deduction_impact exists",
+            "conclusion": "已抵扣税额需转出->税务损失确认",
+            "severity": "高风险",
+            "detail": "不合规发票已抵扣税额合计需做进项税额转出并补缴"
+          }
+        ],
+        "law_refs": [
+          "增值税暂行条例S9",
+          "发票管理办法S37",
+          "征管法S63"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]

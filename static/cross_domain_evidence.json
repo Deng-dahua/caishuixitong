@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 7,
+    "total_chains": 8,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -640,6 +640,86 @@
               "conclusion": "退款匹配验证",
               "severity": "核心维度确认",
               "detail": "红冲金额与退款金额不一致"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-008",
+      "rule_id": 7,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "进项发票票面不合规->无效抵扣多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_noncompliant_count",
+          "desc": "必备维度:逐张检查进项发票必填字段是否完整准确。任一缺失或错误且金额>=1万->票面不合规。累计>=5万触发。此维度是证据体系基石。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "sum(tax_amount) as tax_loss"
+          ],
+          "output": "evid_tax_impact",
+          "desc": "核心维度:计算不合规发票已抵扣税额合计。票面不合规=不得抵扣=已抵扣部分需做进项税额转出并补缴。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_supplier_status",
+          "desc": "核心维度:不合规发票对应供应商是否为非正常户/走逃企业？若是-票面不合规乃虚开发票表象。正常供应商不会持续开具不合规发票。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_payment",
+          "desc": "核心维度:付款对象与开票方是否一致？不一致->彻底无效。一致但金额不符->疑似虚开。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。四维全中->铁证。三维->强证据。双维->线索。",
+          "conditions": [
+            {
+              "if": "evid_noncompliant_count exists",
+              "conclusion": "票面不合规统计",
+              "severity": "必备维度确认",
+              "detail": "进项发票存在必填字段缺失/错误"
+            },
+            {
+              "if": "evid_supplier_status exists",
+              "conclusion": "供应商状态验证",
+              "severity": "核心维度确认",
+              "detail": "供应商为非正常户/走逃/注销"
+            },
+            {
+              "if": "evid_payment exists",
+              "conclusion": "付款验证",
+              "severity": "核心维度确认",
+              "detail": "付款与开票方不一致"
             }
           ],
           "output": "findings"

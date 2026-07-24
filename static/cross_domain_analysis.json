@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 7,
+    "total_chains": 8,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -492,6 +492,77 @@
           "law_refs": [
             "征管法S63偷税",
             "征管法S64编造虚假计税依据"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-008",
+      "rule_id": 7,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "进项发票票面不合规->跨域推理:无效抵扣定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链和证据链-确认存在票面不合规发票->进入判定。仅个别(<=3张)且<5万->管理疏漏，不入结论限期补开。大量发票或金额>50万->继续。防小额技术误差被过度定性。",
+          "conditions": [
+            {
+              "if": "noncompliant_summary exists",
+              "conclusion": "票面不合规确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "存在票面不合规进项发票涉及税额需评估"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "合规程度归因:管理疏漏还是故意接受违规发票？少量+供应商正常+付款一致->供应商开票不规范，限期补开即可。大量+供应商异常+品名笼统->企业明知不合规仍接受-主观故意。品名笼统(货物一批)往往用于掩盖真实交易-串通虚开。",
+          "conditions": [
+            {
+              "if": "deduction_impact exists",
+              "conclusion": "归因完成->故意接受违规发票定性",
+              "severity": "分析链推理第一步",
+              "detail": "大量发票+供应商异常+品名笼统=明知不合规仍接受-主观故意"
+            }
+          ],
+          "output": "intent_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "抵扣资格判定:票面不合规=增值税条例S9明确的不得抵扣情形。已抵扣税额需转出补缴+滞纳金。企业所得税税前扣除同时受影响-不合规发票=成本凭证不合法=纳税调增。双税种双重损失。",
+          "conditions": [
+            {
+              "if": "evid_tax_impact exists",
+              "conclusion": "抵扣资格判定->双税种损失确认",
+              "severity": "分析链推理第二步",
+              "detail": "增值税进项税额转出+企业所得税纳税调增=双重税务损失"
+            }
+          ],
+          "output": "tax_impact_analysis"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:票面不合规+供应商异常+付款不一致-全链路闭环。完整证明->虚开发票(S37)或偷税(S63)铁证。供应商正常仅票面问题->补开+转出。部分证明->强证据限期补证。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->无效抵扣定性成立",
+              "severity": "极高风险",
+              "detail": "票面不合规+供应商异常+付款不一致->铁证。完整=S37/S63；部分=强证据；仅疏漏=不入结论。"
+            }
+          ],
+          "law_refs": [
+            "增值税暂行条例S9",
+            "发票管理办法S37",
+            "征管法S63"
           ],
           "output": "findings"
         }
