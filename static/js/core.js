@@ -664,6 +664,7 @@ function navigateTo(page) {
 
   // ═══ 安全派发：所有页面渲染走 _sR/_sRX，函数未就绪时降级不抛异常 ═══
   switch (page) {
+    case 'dashboard':            _sR(container, 'renderDashboard'); break;
     case 'company-overview':    _sR(container, 'renderCompanyOverview'); break;
     case 'journal':                _sR(container, 'renderJournal'); break;
     case 'general-ledger':         _sR(container, 'renderGeneralLedger'); break;
