@@ -471,8 +471,33 @@ def run_chains_for_rule(rule_id, clues_data, evidence_data, analysis_data, engin
     return results
 
 
+# ═══ 全局链索引缓存 (rule_id→chain) — 避免每次分析O(n)扫描1720条链 ═══
+_chain_index = {}  # key: (clue|evid|alc), value: {rule_id: chain}
+
+def _build_chain_index(clues_data, evidence_data, analysis_data):
+    """一次性将所有链数据按 rule_id 建立索引"""
+    global _chain_index
+    for key, data in [("clue", clues_data), ("evid", evidence_data), ("alc", analysis_data)]:
+        idx = {}
+        if isinstance(data, list):
+            for item in data:
+                rid = item.get("rule_id")
+                if rid is not None: idx[rid] = item
+        elif isinstance(data, dict):
+            items = data.get("evidence_chains", data.get("analysis_chains", []))
+            for item in items:
+                rid = item.get("rule_id")
+                if rid is not None: idx[rid] = item
+        _chain_index[key] = idx
+
 def _find_chain(chains_data, rule_id):
-    """在链数据中查找匹配 rule_id 的链"""
+    """在链数据中查找匹配 rule_id 的链（优先使用全局索引 O(1)）"""
+    # 优先从全局索引查找
+    for key in ("clue", "evid", "alc"):
+        idx = _chain_index.get(key, {})
+        if rule_id in idx:
+            return idx[rule_id]
+    # 降级: 线性扫描
     items = chains_data if isinstance(chains_data, list) else chains_data.get("evidence_chains", chains_data.get("analysis_chains", []))
     for item in items:
         if isinstance(item, dict) and item.get("rule_id") == rule_id:

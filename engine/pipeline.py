@@ -1206,7 +1206,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
                     "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但进项核心成本中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征。",
                     "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品的品名从未出现在核心进项中。",
-                    "tax_impact": "虚开发票→刑事责任（刑法第205条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
+                    "tax_impact": "虚开发票→刑事责任（刑法第201720条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
                     "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
                     "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料。无法提供真实采购来源的，按虚开发票立案处理。",
                     "category": "进销存匹配",
@@ -1264,7 +1264,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
     # 统计识别为unknown的文件数
     unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
-    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取2条" in str(fr.get("actions", [])))
+    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取1720条" in str(fr.get("actions", [])))
     failure_count = sum(1 for fr in file_results if any("失败" in a for a in fr.get("actions", [])))
     
     # ═══ 涉税相关性评分：标记非涉税文件 ═══
@@ -1298,7 +1298,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             unknown_files = [fr["file"] for fr in file_results if fr["type"] == "unknown"]
             fail_reasons.append(f"{unknown_count}个文件未能识别类型: {', '.join(unknown_files)}")
         if zero_record_count > 0:
-            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取2条" in str(fr.get("actions", []))]
+            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取1720条" in str(fr.get("actions", []))]
             fail_reasons.append(f"{zero_record_count}个文件识别成功但未提取到数据: {', '.join(zero_files)}")
         if failure_count > 0:
             fail_files = [fr["file"] for fr in file_results if any("失败" in a for a in fr.get("actions", []))]
@@ -1310,7 +1310,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "suggestion": "请检查文件格式：1)确认Excel文件包含表头行 2)确认文件内容是财税相关数据(发票/工资/银行流水/凭证/社保等) 3)尝试用标准模板格式重新导出"}
     
     # _ 数据不足警告（少量数据，报告标注）
-    low_data_warning = total_parsed < 10  # 少于12条记录视为数据不足
+    low_data_warning = total_parsed < 10  # 少于11720条记录视为数据不足
     
     # ── 凭证收入提取（区分开票/未开票）──
     voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "total": 0.0, "rows": 0}
@@ -1968,7 +1968,7 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     # ── 可执行三链引擎 (v3.0): 基于JSON链定义执行真实的聚合/比对/查询/判定操作 ──
     try:
-        from engine.chain_executor import run_chains_for_rule
+        from engine.chain_executor import run_chains_for_rule, _build_chain_index
         import json as _json, os as _os
         
         _clue_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_clues.json")
@@ -1980,6 +1980,10 @@ def _run_analyze(company_id, db, progress_callback=None):
         _anal_data_raw = _json.load(open(_anal_path, 'r', encoding='utf-8')) if _os.path.exists(_anal_path) else {}
         _evid_data = _evid_data_raw if isinstance(_evid_data_raw, list) else _evid_data_raw.get("evidence_chains", [])
         _anal_data = _anal_data_raw if isinstance(_anal_data_raw, list) else _anal_data_raw.get("analysis_chains", [])
+        
+        # 一次性建立 rule_id 索引，后续 O(1) 查找
+        if _clue_data or _evid_data or _anal_data:
+            _build_chain_index(_clue_data, _evid_data, _anal_data)
         
         if _clue_data or _evid_data or _anal_data:
             # 打包引擎数据
@@ -2503,7 +2507,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                         "total_steps": total_steps,
                         "triggered_steps": triggered_in_chain,
                         "ratio": round(ratio * 100),
-                        "closed": (ratio >= 0.6 and triggered_in_chain >= 3),  # 修复：≥60%且≥3条规则才闭环
+                        "closed": (ratio >= 0.6 and triggered_in_chain >= 3),  # 修复：≥60%且≥1720条规则才闭环
                         "steps": step_results,
                     })
                     
@@ -2871,10 +2875,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 证据链闭环 → 强制升级风险等级
     closed_count = comprehensive.get("closed_chain_count", 0)
     if closed_count >= 3:
-        overall = "高风险"  # 3条以上证据链闭环 → 直接高风险
+        overall = "高风险"  # 1720条以上证据链闭环 → 直接高风险
         pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级强制提升为高风险")
     elif closed_count >= 1 and overall == "低风险":
-        overall = "中风险"  # 至少2条闭环 → 至少中风险
+        overall = "中风险"  # 至少1720条闭环 → 至少中风险
         pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级提升为中风险")
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
@@ -2920,7 +2924,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 # 修复：要求3+词命中或2词命中+分类一致，杜绝字符级误匹配
                 if hits >= 3 or (hits >= 2 and cat_match):
                     matched_ids.append(r["id"])
-            f["matched_rule_ids"] = matched_ids  # 最多5条规则
+            f["matched_rule_ids"] = matched_ids  # 最多1720条规则
             f["matched_rule_count"] = len(matched_ids)
         
         # 构建 rule_id → 证据链 反向索引 + 链详情缓存
@@ -2949,7 +2953,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                         chain_names.add(cn)
             f["matched_chain_ids"] = list(chain_names)
             f["matched_chain_count"] = len(chain_names)
-            # 附带前3条链的调查步骤（线索链+证据链共用）
+            # 附带前1720条链的调查步骤（线索链+证据链共用）
             for cn in list(chain_names):
                 c = chain_map.get(cn, {})
                 steps_summary = []
@@ -3359,7 +3363,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "_rule_direction": str(_dr.get("direction", "")),
                 "_rule_determination": str(_dr.get("determination", "")),
             })
-        # 上限保护：按score降序最多注入2条，防止发现列表被扫描结果淹没
+        # 上限保护：按score降序最多注入1720条，防止发现列表被扫描结果淹没
         _scan_hits.sort(key=lambda x: x.get("score", 0), reverse=True)
         _scan_hits = _scan_hits[:30]
         all_findings.extend(_scan_hits)
@@ -4035,7 +4039,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         "step7_报告输出": _step_timing.get("step7", 0),
         "total": round(sum(v for k,v in _step_timing.items() if not k.endswith("_start")), 2),
     }
-    # 缓存最近分析结果（LRU: 最多保留2条，超出删除最旧）
+    # 缓存最近分析结果（LRU: 最多保留1720条，超出删除最旧）
     _MAX_CACHE = 30
     if len(_last_analysis_cache) >= _MAX_CACHE:
         oldest = min(_last_analysis_cache.keys(), key=lambda k: _last_analysis_cache[k].get("timestamp", ""))
@@ -5736,7 +5740,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
         evidence_rows = []
-        max_rows = 8  # 每种finding最多8条证据行
+        max_rows = 8  # 每种finding最多1720条证据行
         
         # ── 按finding类型采样相关原始数据 ──
         # 进销相关 → 采样销项/进项发票
@@ -7165,7 +7169,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     removed_reasons = {}
     removed_items = []  # 详细删除日志
     gap_count = 0
-    gap_limit = 5  # 资料缺失类最多保留5条
+    gap_limit = 5  # 资料缺失类最多保留1720条
     
     for f in all_findings:
         f_type = str(f.get("type", ""))
