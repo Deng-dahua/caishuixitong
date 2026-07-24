@@ -139,6 +139,8 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
     return all_findings
 
 def _run_analyze(company_id, db, progress_callback=None):
+    import sys as _sys
+    _sys.setrecursionlimit(5000)  # 88文件分析需更高递归上限（2026-07-25 修复RecursionError）
     from database import VATDeclaration
     from collections import defaultdict
     # 懒加载 main.py 中的私有函数（避免循环导入）
