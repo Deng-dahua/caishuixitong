@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 3,
+    "total_chains": 4,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -206,6 +206,76 @@
           "law_refs": [
             "征管法§63偷税",
             "发票管理办法§37虚开发票"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-004",
+      "rule_id": 3,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "固定资产折旧缺失->跨域推理:虚增资产定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链(asset_depreciation_status)和证据链(evid_depreciation_gap)-均确认存在折旧缺失->进入判定。个别资产<3项且<10万->存疑不入结论。多项或>50万->继续。闸门防小金额差错被过度放大。",
+          "conditions": [
+            {
+              "if": "asset_depreciation_status exists",
+              "conclusion": "折旧缺失确认-进入定性路径",
+              "severity": "分析链起点",
+              "detail": "线索链和证据链均确认存在入账超6月且未提折旧的固定资产"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "资产归因:读取线索链步骤4和证据链步骤4-折旧为零资产是否存在实物？有实物未提折旧->会计差错需追溯调整。无实物->虚增资产属S64或S63。资产是否真实存在决定定性方向。",
+          "conditions": [
+            {
+              "if": "suspicious_assets exists",
+              "conclusion": "资产归因完成-虚增资产定性",
+              "severity": "分析链推理第一步",
+              "detail": "线索链锁定折旧为零资产清单结合实物证据判断虚增还是漏提"
+            }
+          ],
+          "output": "asset_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "资金+实物双验证:合并付款验证与实物验证。无实物+无付款->虚增资产双验证闭环->铁证级。有实物+有付款未提折旧->会计差错需更正。",
+          "conditions": [
+            {
+              "if": "asset_payment_verify exists",
+              "conclusion": "资金+实物双验合成->虚增资产铁证",
+              "severity": "分析链推理第二步",
+              "detail": "双源确认:资产无实物+无付款记录->虚增资产闭环"
+            }
+          ],
+          "output": "double_verify"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:前三步-折旧缺失>6月+无实物+无付款->全链路闭环。完整证明->虚增资产偷税S63铁证。部分证明->强证据限期补证。仅折旧缺失->存疑不入结论。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环-虚增资产定性成立",
+              "severity": "极高风险",
+              "detail": "折旧缺失+无实物+无付款->三维闭环。完整证明->S63铁证，部分->强证据，仅缺失->存疑"
+            }
+          ],
+          "law_refs": [
+            "征管法S63偷税",
+            "征管法S64编造虚假计税依据"
           ],
           "output": "findings"
         }

@@ -313,5 +313,97 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-004",
+    "rule_id": 3,
+    "rule_refs": [
+      "3"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "固定资产折旧缺失->虚增资产或漏提折旧调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "fixed_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as total_original",
+          "sum(monthly_depreciation) as total_depreciation"
+        ],
+        "output": "asset_depreciation_status",
+        "desc": "折旧完整性统计:从固定资产明细表汇总各资产入账日期/原值/月折旧额。标记入账超6月但月折旧额连续为0的资产-要么资产是假的(虚增)，要么故意不提折旧(虚增利润)。入账超6月且未提折旧金额超10万元/年即触发稽查。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "vouchers",
+        "group_by": "month",
+        "fields": [
+          "sum(credit) as depreciation_expense"
+        ],
+        "output": "monthly_depreciation_expense",
+        "desc": "折旧费用总量验证:从序时账提取折旧类分录按月汇总，与理论折旧额比对(理论额=各资产原值/使用年限/12)。差额超理论额30%且超5万元->折旧严重偏低，存在隐瞒资产或故意少提折旧虚增利润。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "fixed_assets",
+        "group_by": "asset_category",
+        "fields": [
+          "count(*) as asset_count",
+          "sum(original_value) as cat_original"
+        ],
+        "output": "depreciation_policy_check",
+        "desc": "折旧政策一致性检查:按资产类别分组比对-同类别资产是否采用相同折旧方法？若部分同类资产提折旧/部分不提->选择性适用折旧政策->必然存在人为操纵利润。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "fixed_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as value"
+        ],
+        "output": "suspicious_assets",
+        "desc": "逐项穿透:对折旧为0且原值超20万资产要求提供实物照片/购置合同/发票/付款凭证/验收记录。五证不全->资产极可能不存在。有实物未提折旧->会计差错需追溯调整。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as total_paid"
+        ],
+        "output": "asset_payment_verify",
+        "desc": "资金反向追踪:对异常资产从银行流水查找购置付款-付款时间是否在入账前后3月内？金额是否与资产原值一致？对手方是否为供应商？三问全否->无对应资金流出->虚构资产证据链闭合。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-折旧缺失<6月或差额<5万且五证齐全->会计差错不入结论。路径二-折旧缺失>6月+利润表折旧偏离>30%(2源)->强证据限期补证。路径三-折旧缺失+实物缺失+付款缺失(>=3源)->铁证认定为虚增资产偷税(S63)。",
+        "conditions": [
+          {
+            "if": "asset_depreciation_status exists",
+            "conclusion": "固定资产入账超6月未提折旧",
+            "severity": "高风险",
+            "detail": "存在入账超6月但月折旧额为零的资产"
+          },
+          {
+            "if": "asset_payment_verify exists",
+            "conclusion": "资产购置款验证失败->虚增资产确认",
+            "severity": "极高风险",
+            "detail": "银行流水无对应资产购置付款五证全缺"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "征管法S64编造虚假计税依据"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]
