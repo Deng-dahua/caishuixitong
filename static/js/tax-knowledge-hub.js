@@ -22,7 +22,7 @@ function renderKnowledgeHub(container) {
     {id:'report-audits', icon:'📊', name:'报告审计历史', file:'report_audits.json'},
     {id:'chain-adjust', icon:'🔧', name:'链修正记录', files:['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json']},
     {id:'signals-maps', icon:'🗺️', name:'信号与映射', files:['signal_domain_map.json','type_anchors.json','filename_type_map.json']},
-    {id:'other-logs', icon:'📜', name:'综合日志', files:['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json']},
+    {id:'other-logs', icon:'📜', name:'综合日志', files:['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json','analysis_history.json','audit_rules.json','auto_runs.json','module_auto_update_log.json','signal_patterns.json','user_corrections.json']},
   ];
 
   var h = '';
@@ -702,6 +702,64 @@ function _khLoadOtherLogs(body) {
     if (mc && Object.keys(mc).length > 0) {
       h += '<div class="kh-card"><h4>元认知日志</h4>';
       h += '<div class="kh-meta">'+_khEsc(JSON.stringify(mc).substring(0,500))+'</div></div>';
+    }
+
+    // 分析历史
+    var ah = results['analysis_history.json'];
+    if (ah && Object.keys(ah).length > 0) {
+      var aitems = ah.analyses || ah.history || ah.items || [];
+      if (!Array.isArray(aitems)) aitems = Object.values(ah);
+      h += '<div class="kh-card"><h4>分析历史日志 · '+aitems.length+'条</h4>';
+      if (Array.isArray(aitems) && aitems.length > 0) {
+        aitems.slice(0,20).forEach(function(a) {
+          h += '<div class="kh-detail">· '+_khEsc(JSON.stringify(a).substring(0,250))+'</div>';
+        });
+      }
+      h += '</div>';
+    }
+
+    // 审计规则
+    var ar = results['audit_rules.json'];
+    if (Array.isArray(ar) && ar.length > 0) {
+      h += '<div class="kh-card"><h4>审计业务规则 · '+ar.length+'条</h4>';
+      ar.forEach(function(r) {
+        h += '<div class="kh-detail">· <b>'+_khEsc(r.name||r.id||'')+'</b>: '+_khEsc(String(r.description||r.detail||'').substring(0,200))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    // 自动调度
+    var au = results['auto_runs.json'];
+    if (au && Object.keys(au).length > 0) {
+      h += '<div class="kh-card"><h4>自动运行调度配置</h4>';
+      h += '<div class="kh-meta">'+_khEsc(JSON.stringify(au).substring(0,500))+'</div></div>';
+    }
+
+    // 模块自动更新日志
+    var mu = results['module_auto_update_log.json'];
+    if (Array.isArray(mu) && mu.length > 0) {
+      h += '<div class="kh-card"><h4>模块自动更新日志 · '+mu.length+'条</h4>';
+      mu.forEach(function(m) {
+        h += '<div class="kh-detail">· '+_khEsc(JSON.stringify(m).substring(0,250))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    // 信号模式
+    var sp = results['signal_patterns.json'];
+    if (sp && Object.keys(sp).length > 0) {
+      h += '<div class="kh-card"><h4>信号模式模板</h4>';
+      h += '<div class="kh-meta">'+_khEsc(JSON.stringify(sp).substring(0,500))+'</div></div>';
+    }
+
+    // 用户纠正记录
+    var uc = results['user_corrections.json'];
+    if (Array.isArray(uc) && uc.length > 0) {
+      h += '<div class="kh-card"><h4>用户纠正记录 · '+uc.length+'条</h4>';
+      uc.forEach(function(u) {
+        h += '<div class="kh-detail">· '+_khEsc(JSON.stringify(u).substring(0,250))+'</div>';
+      });
+      h += '</div>';
     }
 
     body.innerHTML = h || '<div class="kh-placeholder">暂无综合日志数据</div>';
