@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 8,
+    "total_chains": 9,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -720,6 +720,86 @@
               "conclusion": "付款验证",
               "severity": "核心维度确认",
               "detail": "付款与开票方不一致"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-009",
+      "rule_id": 8,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "进项发票税号缺失->无效抵扣多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_taxid_count",
+          "desc": "必备维度:统计无税号发票数量与金额。单月占比>30%或累计>100万(小微50万)->税号缺失严重。此维度是证据体系基石。"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "source": "pur_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_duration",
+          "desc": "核心维度:无税号发票持续月份数。>=3月->系统性违规而非偶发操作失误。金额递增说明行为在扩大而非收敛。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_supplier_pattern",
+          "desc": "核心维度:无税号供应商模式。全部来自个人供应商->可能有合理原因。同供应商既有有税号又有无税号->选择性违规=主观故意。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_payment",
+          "desc": "核心维度:付款验证。付款对象是否清晰可查？到个人账户且无税号->交易真实性存疑。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。四维->铁证。三维->强证据。双维->线索。",
+          "conditions": [
+            {
+              "if": "evid_taxid_count exists",
+              "conclusion": "税号缺失统计",
+              "severity": "必备维度确认",
+              "detail": "大量进项发票无有效税号"
+            },
+            {
+              "if": "evid_duration exists",
+              "conclusion": "持续性验证",
+              "severity": "核心维度确认",
+              "detail": "持续>=3月且金额递增"
+            },
+            {
+              "if": "evid_payment exists",
+              "conclusion": "付款验证",
+              "severity": "核心维度确认",
+              "detail": "付款到个人账户且无可追溯性"
             }
           ],
           "output": "findings"

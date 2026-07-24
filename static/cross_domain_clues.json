@@ -782,5 +782,98 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-009",
+    "rule_id": 8,
+    "rule_refs": [
+      "8"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "进项发票税号缺失->虚假或无效抵扣调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "count(*) as inv_count",
+          "sum(total_amount) as total"
+        ],
+        "output": "taxid_missing_summary",
+        "desc": "税号合规扫描:逐张检查进项发票-购买方税号是否为空/全0/全1/位数不符？销售方税号在国家企业信用信息系统中是否可查？无税号或税号无效的发票无法通过税务系统交叉比对-意味着抵扣在监管盲区中发生。单月无税号发票占比>30%(零售50%/批发20%)或累计>100万(小微50万)->触发稽查。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "pur_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as invalid_amt"
+        ],
+        "output": "monthly_invalid_total",
+        "desc": "时间趋势分析:无税号发票是否持续出现>3个月？单月偶发可能是操作失误-连续3月以上->系统性违规。无税号发票金额是否呈增长趋势->企业在扩大违规范围。持续3月以上且金额递增->企业有意为之而非管理疏忽。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as sup_amt",
+          "count(*) as cnt"
+        ],
+        "output": "supplier_taxid_analysis",
+        "desc": "供应商模式:无税号发票集中在哪些供应商？供应商是否全部无税号->可能是个人供应商/小规模纳税人-税号本身不存在的？还是企业供应商但故意不填税号->掩盖交易真实性。同时期同供应商既有有税号发票又有无税号发票->选择性填报-人为操纵痕迹明显。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "payment_verify",
+        "desc": "资金验证:无税号发票对应的付款对象是谁？付款是否到个人账户？若付款到个人账户且无发票税号->典型账外采购。付款金额与发票是否一致？付款时间与发票日期是否匹配？税号缺失+付款不一致=虚开发票嫌疑极大。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as sales"
+        ],
+        "output": "sales_taxid_check",
+        "desc": "销售端交叉比对:本企业开具的销项发票是否也存在税号缺失问题？若进项+销项均有税号缺失->企业整体发票管理混乱需全面整改。若仅进项有税号缺失->可能是故意接受无税号发票以逃避监管-选择性违规说明主观故意。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-个别发票(<=5张)税号缺失且<10万可能有合理原因(个人供应商)->管理疏漏限期补正。路径二-单月占比>30%或累计>100万持续>3月(2源)->强证据疑似故意接受不合规发票。路径三-无税号+供应商不明+付款到个人+持续递增(>=3源)->铁证虚开发票(S37)或偷税(S63)。",
+        "conditions": [
+          {
+            "if": "taxid_missing_summary exists",
+            "conclusion": "进项发票税号缺失->无法交叉比对抵扣异常",
+            "severity": "高风险",
+            "detail": "存在大量无有效税号的进项发票已用于抵扣"
+          },
+          {
+            "if": "payment_verify exists",
+            "conclusion": "付款验证异常->无税号发票对应资金流向不明",
+            "severity": "极高风险",
+            "detail": "无税号发票付款到个人账户-账外采购+虚开发票嫌疑"
+          }
+        ],
+        "law_refs": [
+          "发票管理办法S37虚开发票",
+          "征管法S63偷税",
+          "增值税暂行条例S9"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]

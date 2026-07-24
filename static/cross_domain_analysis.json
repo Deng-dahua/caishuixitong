@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 8,
+    "total_chains": 9,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -563,6 +563,77 @@
             "增值税暂行条例S9",
             "发票管理办法S37",
             "征管法S63"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-009",
+      "rule_id": 8,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "进项发票税号缺失->跨域推理:无效抵扣定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链和证据链-确认存在大量无税号发票->进入判定。个别(<=5张)且<10万->管理疏漏不入结论。占比>30%或>100万->继续。",
+          "conditions": [
+            {
+              "if": "taxid_missing_summary exists",
+              "conclusion": "税号缺失确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "存在大量无有效税号进项发票已用于抵扣"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "意图归因:管理疏忽还是故意逃避监管？少数发票+有合理原因(个人供应商)->不规范但可补正。大量发票+持续3月+选择性地填/不填税号->故意利用无税号发票在监管盲区中抵扣。无税号=无法交叉比对=逃过系统自动筛查=企业明知故犯。",
+          "conditions": [
+            {
+              "if": "monthly_invalid_total exists",
+              "conclusion": "归因完成->故意逃避监管定性",
+              "severity": "分析链推理第一步",
+              "detail": "无税号发票持续>=3月且选择性填报-故意规避税务交叉比对"
+            }
+          ],
+          "output": "intent_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "抵扣效力判定:无有效税号的发票能否作为合法抵扣凭证？增值税条例S9明确:不符合规定的发票不得抵扣。无税号=不符合规定-已抵扣税额需全部转出。同时该发票对应的成本费用因凭证不合法不得企业所得税税前扣除-纳税调增。",
+          "conditions": [
+            {
+              "if": "evid_taxid_count exists",
+              "conclusion": "抵扣效力判定->全部无效不得抵扣",
+              "severity": "分析链推理第二步",
+              "detail": "无税号发票=不符合规定的发票-已抵扣税额全部转出不得税前扣除"
+            }
+          ],
+          "output": "deduction_invalid"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:无税号+持续3月+选择性填报+付款到个人-全链路闭环。完整证明->虚开发票(S37)或偷税(S63)铁证。仅管理疏忽->补正+转出。部分证明->强证据限期补证。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->无效抵扣定性成立",
+              "severity": "极高风险",
+              "detail": "税号缺失+持续性+选择性+付款异常->铁证=S37/S63"
+            }
+          ],
+          "law_refs": [
+            "发票管理办法S37",
+            "征管法S63",
+            "增值税暂行条例S9"
           ],
           "output": "findings"
         }
