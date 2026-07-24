@@ -12,12 +12,17 @@ function renderKnowledgeHub(container) {
   var TABS = [
     {id:'audit-knowledge', icon:'📚', name:'稽查知识库', file:'audit_knowledge.json'},
     {id:'industry-data', icon:'🏭', name:'行业基准数据', files:['industry_data.json','industry_profiles.json']},
+    {id:'agi-memory', icon:'🧠', name:'AGI记忆', file:'agi_memory.json'},
     {id:'self-heal', icon:'🩹', name:'自愈规则库', file:'self_heal_rules.json'},
     {id:'discovered', icon:'🔍', name:'发现规则库', files:['discovered_rules.json','auto_discovered_rules.json']},
     {id:'cross-memory', icon:'🔗', name:'跨企业关联记忆', file:'cross_analysis_memory.json'},
     {id:'hypotheses', icon:'💡', name:'创造性假说', file:'creative_hypotheses.json'},
+    {id:'rule-adjust', icon:'📋', name:'规则修正记录', files:['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json']},
     {id:'rectifications', icon:'📝', name:'整改记录', file:'rectifications.json'},
     {id:'report-audits', icon:'📊', name:'报告审计历史', file:'report_audits.json'},
+    {id:'chain-adjust', icon:'🔧', name:'链修正记录', files:['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json']},
+    {id:'signals-maps', icon:'🗺️', name:'信号与映射', files:['signal_domain_map.json','type_anchors.json','filename_type_map.json']},
+    {id:'other-logs', icon:'📜', name:'综合日志', files:['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json']},
   ];
 
   var h = '';
@@ -91,6 +96,11 @@ window._khSwitch = function(tabId) {
     case 'hypotheses':      _khLoadHypotheses(body); break;
     case 'rectifications':  _khLoadRectifications(body); break;
     case 'report-audits':   _khLoadReportAudits(body); break;
+    case 'agi-memory':      _khLoadAgiMemory(body); break;
+    case 'rule-adjust':     _khLoadRuleAdjustments(body); break;
+    case 'chain-adjust':    _khLoadChainAdjustments(body); break;
+    case 'signals-maps':    _khLoadSignalsMaps(body); break;
+    case 'other-logs':      _khLoadOtherLogs(body); break;
   }
 };
 
@@ -452,6 +462,249 @@ function _khLoadReportAudits(body) {
     h += '</table>';
 
     body.innerHTML = h;
+  });
+}
+
+// ======== AGI记忆 ========
+function _khLoadAgiMemory(body) {
+  _khFetch('agi_memory.json', function(d) {
+    if (!d) { body.innerHTML = '<div class="kh-placeholder">⚠ AGI记忆数据加载失败</div>'; return; }
+    var h = '';
+    var analyses = d.analyses || [];
+    var corrections = d.corrections || [];
+    var fps = d.fingerprints || {};
+
+    h += '<div class="kh-card"><h4>AGI持久化记忆</h4>';
+    h += '<div class="kh-meta">分析记录: '+analyses.length+'条 · 纠正记录: '+corrections.length+'条 · 指纹: '+Object.keys(fps).length+'个</div></div>';
+
+    if (Array.isArray(analyses) && analyses.length > 0) {
+      h += '<div class="kh-card"><h4>分析记忆（最近20条）</h4>';
+      h += '<table class="kh-table"><tr><th>时间</th><th>企业</th><th>发现数</th><th>关键发现</th></tr>';
+      analyses.slice(0,20).forEach(function(a) {
+        h += '<tr>';
+        h += '<td>'+_khEsc(String(a.timestamp||a.date||'').substring(0,10))+'</td>';
+        h += '<td>'+_khEsc(a.company||a.company_name||'')+'</td>';
+        h += '<td>'+_khEsc(String(a.finding_count||a.findings||''))+'</td>';
+        h += '<td>'+_khEsc(String(a.key_finding||a.summary||'').substring(0,150))+'</td>';
+        h += '</tr>';
+      });
+      h += '</table></div>';
+    }
+
+    if (Array.isArray(corrections) && corrections.length > 0) {
+      h += '<div class="kh-card"><h4>纠正记录</h4>';
+      corrections.slice(0,20).forEach(function(c) {
+        h += '<div class="kh-detail">· <b>'+_khEsc(String(c.date||c.timestamp||'').substring(0,10))+'</b>: '+_khEsc(String(c.detail||c.reason||'').substring(0,200))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    body.innerHTML = h;
+  });
+}
+
+// ======== 规则修正记录 ========
+function _khLoadRuleAdjustments(body) {
+  _khFetchAll(['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json'], function(results) {
+    var radj = results['rule_adjustments.json'] || [];
+    var madj = results['methodology_adjustments.json'] || [];
+    var confl = results['conflict_rules.json'] || {};
+
+    var h = '';
+
+    // 规则修正
+    if (Array.isArray(radj) && radj.length > 0) {
+      h += '<div class="kh-card"><h4>规则修正历史 · '+radj.length+'条</h4>';
+      h += '<div class="kh-meta">每条规则被触发修正的记录，含规则ID、触发条件、修正动作、目标维度和应用次数。</div></div>';
+      h += '<table class="kh-table"><tr><th>规则ID</th><th>触发</th><th>动作</th><th>目标</th><th>维度</th><th>应用次数</th></tr>';
+      radj.slice(0,50).forEach(function(r) {
+        h += '<tr>';
+        h += '<td>'+_khEsc(r.id||r.rule_id||'')+'</td>';
+        h += '<td>'+_khEsc(String(r.trigger||'').substring(0,80))+'</td>';
+        h += '<td>'+_khEsc(String(r.action||'').substring(0,60))+'</td>';
+        h += '<td>'+_khEsc(String(r.target||'').substring(0,60))+'</td>';
+        h += '<td><span class="kh-badge">'+_khEsc(r.dimension||'')+'</span></td>';
+        h += '<td>'+_khEsc(String(r.applied_count||''))+'</td>';
+        h += '</tr>';
+      });
+      h += '</table>';
+      if (radj.length > 50) h += '<div style="padding:10px;color:#2563eb">...共'+radj.length+'条，仅显示前50条</div>';
+    }
+
+    // 方法论修正
+    if (Array.isArray(madj) && madj.length > 0) {
+      h += '<div class="kh-card"><h4>方法论修正记录 · '+madj.length+'条</h4>';
+      madj.slice(0,20).forEach(function(m) {
+        h += '<div class="kh-detail"><b>'+_khEsc(String(m.timestamp||'').substring(0,10))+'</b>: 调整'+_khEsc(String(m.adjusted_count||''))+'项';
+        if (m.top_types) h += ' · 主要类型: '+_khEsc(String(m.top_types).substring(0,150));
+        if (m.insight) h += ' · 洞察: '+_khEsc(String(m.insight).substring(0,200));
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    // 规则冲突
+    if (confl && confl.rules && confl.rules.length > 0) {
+      h += '<div class="kh-card"><h4>规则冲突定义 · '+confl.rules.length+'条</h4>';
+      confl.rules.slice(0,20).forEach(function(r) {
+        h += '<div class="kh-detail">· <b>'+_khEsc(r.name||r.id||'')+'</b>: '+_khEsc(String(r.description||r.condition||'').substring(0,200))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    body.innerHTML = h || '<div class="kh-placeholder">暂无规则修正数据</div>';
+  });
+}
+
+// ======== 链修正记录 ========
+function _khLoadChainAdjustments(body) {
+  _khFetchAll(['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json'], function(results) {
+    var aa = results['analysis_chain_adjustments.json'] || [];
+    var ca = results['clue_chain_adjustments.json'] || [];
+    var ea = results['evidence_chain_adjustments.json'] || [];
+
+    var h = '';
+    var sections = [
+      {label:'分析链修正记录', data: aa},
+      {label:'线索链修正记录', data: ca},
+      {label:'证据链修正记录', data: ea}
+    ];
+
+    sections.forEach(function(sec) {
+      if (Array.isArray(sec.data) && sec.data.length > 0) {
+        h += '<div class="kh-card"><h4>'+sec.label+' · '+sec.data.length+'条</h4>';
+        sec.data.slice(0,15).forEach(function(r) {
+          h += '<div class="kh-detail"><b>'+_khEsc(String(r.timestamp||'').substring(0,10))+'</b>: 调整'+_khEsc(String(r.adjusted_count||''))+'项';
+          if (r.top_types) h += ' · 主要类型: '+_khEsc(String(r.top_types).substring(0,120));
+          h += '</div>';
+        });
+        h += '</div>';
+      }
+    });
+
+    body.innerHTML = h || '<div class="kh-placeholder">暂无链修正数据</div>';
+  });
+}
+
+// ======== 信号与映射 ========
+function _khLoadSignalsMaps(body) {
+  _khFetchAll(['signal_domain_map.json','type_anchors.json','filename_type_map.json'], function(results) {
+    var sdm = results['signal_domain_map.json'] || {};
+    var ta = results['type_anchors.json'] || {};
+    var ftm = results['filename_type_map.json'] || {};
+
+    var h = '';
+
+    // 信号领域映射
+    if (sdm.mappings) {
+      h += '<div class="kh-card"><h4>信号→领域映射</h4>';
+      h += '<table class="kh-table"><tr><th>信号</th><th>领域</th></tr>';
+      var mappings = sdm.mappings;
+      if (Array.isArray(mappings)) {
+        mappings.slice(0,30).forEach(function(m) {
+          h += '<tr><td>'+_khEsc(m.signal||m.key||'')+'</td><td>'+_khEsc(m.domain||m.value||'')+'</td></tr>';
+        });
+      } else {
+        Object.keys(mappings).slice(0,30).forEach(function(k) {
+          h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(mappings[k]).substring(0,100))+'</td></tr>';
+        });
+      }
+      h += '</table></div>';
+    }
+
+    // 类型锚点
+    if (ta.anchors) {
+      var anchors = ta.anchors;
+      h += '<div class="kh-card"><h4>类型锚点映射</h4>';
+      h += '<table class="kh-table"><tr><th>锚点类型</th><th>映射值</th></tr>';
+      Object.keys(anchors).slice(0,30).forEach(function(k) {
+        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(anchors[k]).substring(0,150))+'</td></tr>';
+      });
+      h += '</table></div>';
+    }
+
+    // 文件名映射
+    if (ftm.mappings) {
+      var fmappings = ftm.mappings;
+      h += '<div class="kh-card"><h4>文件名→数据类型映射</h4>';
+      h += '<table class="kh-table"><tr><th>文件名模式</th><th>数据类型</th></tr>';
+      Object.keys(fmappings).slice(0,30).forEach(function(k) {
+        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(fmappings[k]).substring(0,100))+'</td></tr>';
+      });
+      h += '</table></div>';
+    }
+
+    body.innerHTML = h || '<div class="kh-placeholder">暂无信号与映射数据</div>';
+  });
+}
+
+// ======== 综合日志 ========
+function _khLoadOtherLogs(body) {
+  _khFetchAll(['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json'], function(results) {
+    var h = '';
+
+    // 系统配置
+    var cfg = results['system_config.json'];
+    if (cfg && Object.keys(cfg).length > 0) {
+      h += '<div class="kh-card"><h4>系统配置</h4>';
+      h += '<table class="kh-table"><tr><th>配置项</th><th>值</th></tr>';
+      Object.keys(cfg).slice(0,30).forEach(function(k) {
+        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(cfg[k]))+'</td></tr>';
+      });
+      h += '</table></div>';
+    }
+
+    // 静默学习
+    var sl = results['silent_learnings.json'];
+    if (Array.isArray(sl) && sl.length > 0) {
+      h += '<div class="kh-card"><h4>静默学习记录 · '+sl.length+'条</h4>';
+      sl.forEach(function(s) {
+        h += '<div class="kh-detail"><b>'+_khEsc(s.type||'')+'</b> ['+_khEsc(String(s.learned_at||'').substring(0,10))+']: '+_khEsc(String(s.correction_content||s.trigger||'').substring(0,200));
+        h += ' <span class="kh-badge">应用'+_khEsc(String(s.applied_count||'0'))+'次</span></div>';
+      });
+      h += '</div>';
+    }
+
+    // 事件日志
+    var el = results['event_log.json'];
+    if (el && el.events && Array.isArray(el.events) && el.events.length > 0) {
+      h += '<div class="kh-card"><h4>事件日志 · '+el.events.length+'条</h4>';
+      h += '<div class="kh-meta">更新于: '+_khEsc(el.updated_at||'')+' · 总计: '+_khEsc(String(el.total_events||''))+'事件</div>';
+      el.events.slice(0,30).forEach(function(e) {
+        h += '<div class="kh-detail">· <b>'+_khEsc(String(e.time||e.timestamp||'').substring(0,10))+'</b>: '+_khEsc(String(e.event||e.description||e.name||'').substring(0,200))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    // 一次性规则
+    var os = results['one_shot_rules.json'];
+    if (Array.isArray(os) && os.length > 0) {
+      h += '<div class="kh-card"><h4>一次性规则 · '+os.length+'条</h4>';
+      os.forEach(function(o) {
+        h += '<div class="kh-detail">· '+_khEsc(typeof o === 'string' ? o.substring(0,200) : JSON.stringify(o).substring(0,200))+'</div>';
+      });
+      h += '</div>';
+    }
+
+    // 模式置信度
+    var pc = results['pattern_confidence.json'];
+    if (pc && Object.keys(pc).length > 0) {
+      h += '<div class="kh-card"><h4>模式置信度</h4>';
+      h += '<table class="kh-table"><tr><th>模式</th><th>置信度</th></tr>';
+      Object.keys(pc).slice(0,30).forEach(function(k) {
+        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(pc[k]))+'</td></tr>';
+      });
+      h += '</table></div>';
+    }
+
+    // 元认知日志
+    var mc = results['metacognition_log.json'];
+    if (mc && Object.keys(mc).length > 0) {
+      h += '<div class="kh-card"><h4>元认知日志</h4>';
+      h += '<div class="kh-meta">'+_khEsc(JSON.stringify(mc).substring(0,500))+'</div></div>';
+    }
+
+    body.innerHTML = h || '<div class="kh-placeholder">暂无综合日志数据</div>';
   });
 }
 
