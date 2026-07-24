@@ -497,5 +497,104 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-006",
+    "rule_id": 5,
+    "rule_refs": [
+      "5"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "四流不匹配->虚开发票或虚构交易调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as total_purchase",
+          "count(*) as inv_count"
+        ],
+        "output": "supplier_purchase_summary",
+        "desc": "四流交叉比对-供应商采购全景:从进项发票按供应商汇总采购金额和发票数量。筛选单张>=10万或累计>=50万的交易。正常交易四流(发票流/合同流/资金流/货物流)应完全一致-任何一流断裂都说明交易有问题。两流以上断裂-交易极可能为虚构。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as inv_amount"
+        ],
+        "output": "invoice_contract_gap",
+        "desc": "发票-合同流比对:对步骤1标记的大额采购，逐笔核查是否有对应的采购合同。合同关键字段(供应商名/品名/数量/金额/交付日期)是否与发票一致？无合同-无交易基础-该发票为虚构。合同与发票金额差>10%-不是同一笔交易。合同签订日期晚于发票日期-先开票后补签合同-倒签嫌疑。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid_amount",
+          "count(*) as pay_count"
+        ],
+        "output": "invoice_fund_gap",
+        "desc": "发票-资金流比对:从银行流水查找对应付款-收款方是否与开票方一致？付款金额是否与发票金额匹配？若收款方为个人或第三方公司且无委托付款协议-资金回流嫌疑。付款后短期内(<=3天)资金又从收款方转回-典型的资金回流闭环。开票方与收款方不一致且无合理解释-虚开发票铁证。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "inventory",
+        "group_by": "goods_name",
+        "fields": [
+          "sum(quantity) as total_qty"
+        ],
+        "output": "invoice_logistics_gap",
+        "desc": "发票-货物流比对:对进项发票所列货物，核查仓库入库记录-入库日期/数量/品名是否与发票一致？入库日期远晚于发票日期(>30天商贸/>180天建筑)-先开票后入库-虚开发票套取进项抵扣。有发票无入库记录-货物根本没有进来-发票是买的。入库数量远小于发票数量-部分货物不存在-差额部分为虚开。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as sup_amount"
+        ],
+        "output": "supplier_background",
+        "desc": "供应商穿透-异常供应商背景调查:对四流断裂的供应商进行背景核查-成立时间是否<1年？注册地址是否为集群注册/虚拟地址？法人/股东是否与买方企业六员重叠？是否在税务系统中有走逃/失联记录？同一供应商连续3月开票金额占买方进项>30%-过度集中-极可能为关联企业虚假交易。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-仅单流断裂(如仅缺合同但资金+物流+发票正常)->可能是管理不规范，存疑不入结论。路径二-双流断裂(如无合同+无物流)->强证据虚开发票，限期补证。路径三-三流断裂(无合同+收款方异常+无物流)或四流全断->铁证，认定为接受虚开发票(发票管理办法S37)或虚列成本偷税(S63)。",
+        "conditions": [
+          {
+            "if": "invoice_contract_gap exists",
+            "conclusion": "发票-合同流断裂->无交易合同支撑",
+            "severity": "高风险",
+            "detail": "大额进项发票无对应采购合同或合同关键字段与发票不一致"
+          },
+          {
+            "if": "invoice_fund_gap exists",
+            "conclusion": "发票-资金流断裂->付款与开票方不一致",
+            "severity": "极高风险",
+            "detail": "银行付款收款方与发票开票方不一致且无委托付款协议-资金回流嫌疑"
+          },
+          {
+            "if": "invoice_logistics_gap exists",
+            "conclusion": "发票-货物流断裂->有票无货",
+            "severity": "极高风险",
+            "detail": "进项发票无对应入库记录-货物未入库-发票系虚开"
+          }
+        ],
+        "law_refs": [
+          "发票管理办法S37虚开发票",
+          "征管法S63偷税",
+          "刑法S205虚开增值税专用发票罪"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]

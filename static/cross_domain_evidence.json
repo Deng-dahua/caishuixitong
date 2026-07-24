@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 5,
+    "total_chains": 6,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -480,6 +480,86 @@
               "conclusion": "资金支付验证",
               "severity": "核心维度确认",
               "detail": "银行流水无对应外购无形资产付款"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-006",
+      "rule_id": 5,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "四流不匹配->虚开发票多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "sum(total_amount) as inv_amt"
+          ],
+          "output": "evid_invoice_stream",
+          "desc": "必备维度-发票流验证:从进项发票按供应商汇总，筛选大额(单张>=10万或累计>=50万)交易。发票流是四流的起点-发票存在是触发本条疑点的前提。税务机关系统中发票信息高度可信-但发票对应的交易是否真实需要通过其他三流交叉验证。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_contract_gap",
+          "desc": "核心维度-合同流验证:大额采购是否有对应合同？合同关键字段(供应商/品名/数量/金额/日期)是否与发票一致？无合同或合同不一致-交易缺乏法律基础。合同是最基础的交易证据-连合同都没有的百万级采购在商业逻辑上不成立。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_fund_gap",
+          "desc": "核心维度-资金流验证:银行付款收款方与开票方是否一致？付款金额是否与发票金额匹配？是否存在资金回流路径？资金流是交易真实性的最强证据-资金真实流动说明双方之间存在真实经济往来。但资金流向异常(收付不一致/个人账户/回流)反而证实了交易的虚假性。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "inventory",
+          "group_by": "goods_name",
+          "fields": [
+            "sum(quantity) as qty"
+          ],
+          "output": "evid_logistics_gap",
+          "desc": "核心维度-货物流验证:发票所列货物是否有对应的入库记录？入库日期/数量/品名是否与发票一致？有票无货是虚开发票的最直接证据-货物根本没进来发票怎么可能是真的。入库与发票时间差过大说明先开票后补入库-虚开特征。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备(发票流)+核心(合同+资金+物流)-min_evidence=3闭环。四维全中-铁证虚开发票。三维(缺合同+资金异常+无入库)-强证据。双维-线索。",
+          "conditions": [
+            {
+              "if": "evid_contract_gap exists",
+              "conclusion": "合同流验证",
+              "severity": "核心维度确认",
+              "detail": "大额进项发票无对应采购合同"
+            },
+            {
+              "if": "evid_fund_gap exists",
+              "conclusion": "资金流验证",
+              "severity": "核心维度确认",
+              "detail": "付款收款方与开票方不一致，存在资金回流"
+            },
+            {
+              "if": "evid_logistics_gap exists",
+              "conclusion": "货物流验证",
+              "severity": "核心维度确认",
+              "detail": "发票无对应入库记录，有票无货"
             }
           ],
           "output": "findings"
