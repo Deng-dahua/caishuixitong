@@ -7418,7 +7418,12 @@ def analyze_tax_risk_docs_result(task_id: str):
             return {"ok": False, "message": "分析还在进行中", "progress": task["progress"]}
         if task["status"] == "error":
             return {"ok": False, "message": f"分析失败: {task['error']}", "traceback": task.get("traceback", "")}
-        return task["result"]
+        # 安全序列化：防止分析结果中的循环引用导致jsonable_encoder递归爆栈
+        import json as _json
+        try:
+            return _json.loads(_json.dumps(task["result"], default=str, ensure_ascii=False))
+        except Exception as _jse:
+            return {"ok": False, "message": f"结果序列化失败: {_jse}", "result_keys": list(task["result"].keys()) if isinstance(task["result"], dict) else []}
 
 # 旧同步端点保留（兼容性），但建议前端改用异步
 @app.post("/api/tax-risk-docs/analyze")
