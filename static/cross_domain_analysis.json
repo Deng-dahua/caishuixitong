@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 22,
+    "total_chains": 27,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -1303,6 +1303,213 @@
             "S63",
             "S64",
             "S41"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-028",
+      "rule_id": 23,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "增值税税负率偏离行业基准->隐匿销项或虚增进项调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "增值税税负率异常",
+              "severity": "高风险",
+              "detail": "税负率低于行业基准50%以上"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "增值税税负率异常",
+              "severity": "高风险",
+              "detail": "税负率低于行业基准50%以上"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-029",
+      "rule_id": 24,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "文化事业建设费申报与增值税申报不一致->少缴文化事业建设费调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "两申报表不一致",
+              "severity": "极高风险",
+              "detail": "文化事业建设费申报与增值税申报差异显著"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "两申报表不一致",
+              "severity": "极高风险",
+              "detail": "文化事业建设费申报与增值税申报差异显著"
+            }
+          ],
+          "law_refs": [
+            "文化事业建设费征收管理暂行办法"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-030",
+      "rule_id": 25,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "连续12月增值税税负率异常偏低->长期隐匿收入调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "长期税负异常",
+              "severity": "极高风险",
+              "detail": "连续12月税负低于行业基准"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "长期税负异常",
+              "severity": "极高风险",
+              "detail": "连续12月税负低于行业基准"
+            }
+          ],
+          "law_refs": [
+            "S63",
+            "S37"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-031",
+      "rule_id": 26,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "城建税申报与增值税实缴不匹配->少缴附加税调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "城建税与增值税不匹配",
+              "severity": "极高风险",
+              "detail": "城建税申报基数与增值税实缴税额不一致"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "城建税与增值税不匹配",
+              "severity": "极高风险",
+              "detail": "城建税申报基数与增值税实缴税额不一致"
+            }
+          ],
+          "law_refs": [
+            "城建税暂行条例"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-032",
+      "rule_id": 27,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "增值税与城建税申报额不匹配->附加税申报不实",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "增值税与城建税申报不一致",
+              "severity": "高风险",
+              "detail": "两税申报数据存在矛盾"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "增值税与城建税申报不一致",
+              "severity": "高风险",
+              "detail": "两税申报数据存在矛盾"
+            }
+          ],
+          "law_refs": [
+            "S64"
           ],
           "output": "findings"
         }

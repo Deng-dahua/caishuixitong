@@ -1890,5 +1890,322 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-028",
+    "rule_id": 23,
+    "rule_refs": [
+      "23"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "增值税税负率偏离行业基准->隐匿销项或虚增进项调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as sales",
+          "sum(tax_amount) as vat"
+        ],
+        "output": "s1",
+        "desc": "增值税税负率计算:应纳增值税/计税收入。税负率明显低于同行业同规模企业均值50%以上->存在隐匿销项税额或虚增进项税额的可能。税负率是税务机关评估企业的主要指标-税负率异常=稽查选案的首要信号。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "s2",
+        "desc": "银行收款vs申报收入比对:银行收款远大于申报收入=存在未申报的隐匿收入-隐匿收入必然伴随隐匿销项税。收款差额对应的应补增值税=差额x适用税率/(1+税率)。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "s3",
+        "desc": "闭环:税负率低于行业50%+银行收款大于申报收入->隐匿销项或虚增进项。税负率低=销项少(隐匿)或进项多(虚增)。两种方向分别适用不同法规。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:税负率低于行业50%+银行收款大于申报收入->隐匿销项或虚增进项。税负率低=销项少(隐匿)或进项多(虚增)。两种方向分别适用不同法规。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "增值税税负率异常",
+            "severity": "高风险",
+            "detail": "税负率低于行业基准50%以上"
+          }
+        ],
+        "law_refs": [
+          "S63",
+          "S64"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-029",
+    "rule_id": 24,
+    "rule_refs": [
+      "24"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "文化事业建设费申报与增值税申报不一致->少缴文化事业建设费调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as sales",
+          "sum(tax_amount) as vat"
+        ],
+        "output": "s1",
+        "desc": "文化事业建设费计费收入vs增值税申报销售额比对。文化事业建设费=广告收入x3%。若增值税申报的广告收入远大于文化事业建设费申报的计费收入->少缴文化事业建设费。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "s2",
+        "desc": "银行流水验证广告收入:从银行流水中提取广告类收款金额。如果银行收到大量广告费但两个申报表都未体现->完全隐匿广告收入。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "s3",
+        "desc": "闭环:两表不一致+银行流水印证->少缴文化事业建设费。补缴+滞纳金+罚款。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:两表不一致+银行流水印证->少缴文化事业建设费。补缴+滞纳金+罚款。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "两申报表不一致",
+            "severity": "极高风险",
+            "detail": "文化事业建设费申报与增值税申报差异显著"
+          }
+        ],
+        "law_refs": [
+          "文化事业建设费征收管理暂行办法"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-030",
+    "rule_id": 25,
+    "rule_refs": [
+      "25"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "连续12月增值税税负率异常偏低->长期隐匿收入调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as sales",
+          "sum(tax_amount) as vat"
+        ],
+        "output": "s1",
+        "desc": "连续12个月税负率趋势分析:计算每月增值税税负率并绘制趋势线。税负率持续低于行业均值且无季节性合理解释(如建筑工期/农业收获期)->长期系统性的隐匿收入或虚增进项。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "s2",
+        "desc": "进项税额异常增长:进项税额/总成本比率异常高->大量采购但未产生对等销项=进项虚增或销售未开票。采购的货物去了哪里？没有对应销项说明货物未用于销售=账外销售。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "s3",
+        "desc": "闭环:12月低税负+进项税额异常->长期系统性违规。隐匿收入=偷税S63。虚增进项=虚开发票S37。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:12月低税负+进项税额异常->长期系统性违规。隐匿收入=偷税S63。虚增进项=虚开发票S37。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "长期税负异常",
+            "severity": "极高风险",
+            "detail": "连续12月税负低于行业基准"
+          }
+        ],
+        "law_refs": [
+          "S63",
+          "S37"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-031",
+    "rule_id": 26,
+    "rule_refs": [
+      "26"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "城建税申报与增值税实缴不匹配->少缴附加税调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as sales",
+          "sum(tax_amount) as vat"
+        ],
+        "output": "s1",
+        "desc": "城建税申报基数vs增值税实缴税额比对。城建税=增值税x税率(7%/5%/1%)。两税之间的比例应完全固定-任何差异都意味着城建税少报。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "s2",
+        "desc": "教育费附加+地方教育附加同时比对:这三项附加税全部基于同一基数(增值税+消费税)-三税基数必须一致。不一致->少报附加税。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "s3",
+        "desc": "闭环:城建税基数与增值税实缴不一致+规模>1000元->少缴附加税。补缴+滞纳金+罚款。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:城建税基数与增值税实缴不一致+规模>1000元->少缴附加税。补缴+滞纳金+罚款。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "城建税与增值税不匹配",
+            "severity": "极高风险",
+            "detail": "城建税申报基数与增值税实缴税额不一致"
+          }
+        ],
+        "law_refs": [
+          "城建税暂行条例"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-032",
+    "rule_id": 27,
+    "rule_refs": [
+      "27"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "增值税与城建税申报额不匹配->附加税申报不实",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as sales",
+          "sum(tax_amount) as vat"
+        ],
+        "output": "s1",
+        "desc": "增值税申报表应纳增值税vs城建税申报表城建税计税基数比对。城建税=应纳增值税x适用税率-两者成固定比例关系。差异>1000元->申报数据矛盾-要么增值税报错了要么城建税报错了。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "s2",
+        "desc": "教育费附加/地方教育附加同步比对:三项附加税全部基于同一基数-三税基数应完全一致。不一致->申报表本身数据错误=编造虚假计税依据S64。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "s3",
+        "desc": "闭环:两税申报不一致+附加税基数不一致->申报不实S64。补缴差额+滞纳金。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:两税申报不一致+附加税基数不一致->申报不实S64。补缴差额+滞纳金。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "增值税与城建税申报不一致",
+            "severity": "高风险",
+            "detail": "两税申报数据存在矛盾"
+          }
+        ],
+        "law_refs": [
+          "S64"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
   }
 ]
