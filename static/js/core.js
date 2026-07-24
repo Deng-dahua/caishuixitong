@@ -153,6 +153,7 @@ const pages = {
   'domain-panel': '域分析面板',
   'tax-incentives': '税收优惠扫描',
   'compact-clues': '线索链紧凑视图',
+  'knowledge-hub': '引擎知识中枢',
 };
 
 // ==================== 用户登录 ====================
@@ -746,6 +747,7 @@ function navigateTo(page) {
     case 'domain-panel':        _sR(container, 'renderUnifiedDomainPanel'); break;
     case 'tax-incentives':      _sR(container, 'renderTaxIncentivesPage'); break;
     case 'compact-clues':       _sR(container, 'renderCompactClueChains'); break;
+    case 'knowledge-hub':       _sR(container, 'renderKnowledgeHub'); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

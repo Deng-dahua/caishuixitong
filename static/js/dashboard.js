@@ -63,6 +63,7 @@ async function renderDashboard(container) {
         {page:'compact-clues', label:'📌 紧凑视图', cls:'btn-outline'},
       ]},
       {group:'系统引擎', items:[
+        {page:'knowledge-hub', label:'🧠 知识中枢', cls:'btn-primary'},
         {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
         {page:'quality-system', label:'🛡️ 质量保障', cls:'btn-outline'},
         {page:'ai-rules', label:'🧠 行为准则', cls:'btn-outline'},
