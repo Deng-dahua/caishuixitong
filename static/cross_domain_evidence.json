@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 12,
+    "total_chains": 17,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -1046,6 +1046,275 @@
           "output": "findings"
         }
       ]
+    },
+    {
+      "id": "evid-015",
+      "rule_id": 12,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "销售方vs付款方不一致->资金回流多源验证",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_taxid_match",
+          "desc": "必备维度:逐供应商比对开票方税号vs付款对手方。不一致且无委托协议->开票付款脱节。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_payee_diff",
+          "desc": "核心维度:付款对手方与开票方差异率。差异率=不一致金额/总采购金额。>30%->系统性资金偏离。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as back"
+          ],
+          "output": "evid_fund_return",
+          "desc": "核心维度:资金回流。付款后7天内等额资金从对手方流回->资金过桥。"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。三维->铁证。",
+          "conditions": [
+            {
+              "if": "evid_taxid_match exists",
+              "conclusion": "开票付款不一致",
+              "severity": "必备维度确认",
+              "detail": "开票方税号与付款对手方不一致"
+            },
+            {
+              "if": "evid_fund_return exists",
+              "conclusion": "资金回流验证",
+              "severity": "核心维度确认",
+              "detail": "付款后短期内等额资金流回"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-016",
+      "rule_id": 13,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "毛利率异常->人为调节利润多源验证",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(total_amount) as rev"
+          ],
+          "output": "evid_revenue",
+          "desc": "必备维度:收入确认完整性。收入是否含未开票收入？银行流水是否印证收入规模？"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "source": "pur_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(total_amount) as cost"
+          ],
+          "output": "evid_cost",
+          "desc": "必备维度:成本核算准确性。成本是否含未取得发票的采购？"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "sal_invs",
+          "group_by": "buyer",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_pricing",
+          "desc": "核心维度:关联方交易定价是否偏离独立交易价格？"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。三维->铁证。",
+          "conditions": [
+            {
+              "if": "evid_revenue exists",
+              "conclusion": "收入验证",
+              "severity": "必备维度",
+              "detail": "收入数据完整准确"
+            },
+            {
+              "if": "evid_pricing exists",
+              "conclusion": "定价验证",
+              "severity": "核心维度",
+              "detail": "关联交易定价异常"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-017",
+      "rule_id": 14,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "申报毛利率偏离->申报不实验证",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(total_amount) as rev"
+          ],
+          "output": "evid_decl_rev",
+          "desc": "必备:申报收入确认。"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "source": "vouchers",
+          "group_by": "month",
+          "fields": [
+            "sum(debit) as cost"
+          ],
+          "output": "evid_decl_cost",
+          "desc": "必备:申报成本确认。"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "闭环:收入+成本vs行业基准->偏离即申报不实。",
+          "conditions": [
+            {
+              "if": "evid_decl_rev exists",
+              "conclusion": "申报毛利率验证",
+              "severity": "必备",
+              "detail": "申报毛利率计算完成"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-018",
+      "rule_id": 15,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "vouchers",
+          "group_by": "month",
+          "fields": [
+            "sum(debit) as exp"
+          ],
+          "output": "evid_expense",
+          "desc": "必备:费用发生确认。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "vouchers",
+          "group_by": "account_code",
+          "fields": [
+            "sum(debit) as amt"
+          ],
+          "output": "evid_exp_detail",
+          "desc": "核心:费用科目明细。敏感科目异常=虚增。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_exp_pay",
+          "desc": "核心:付款验证。付至个人=虚假。"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "闭环:三维->铁证。",
+          "conditions": [
+            {
+              "if": "evid_exp_detail exists",
+              "conclusion": "费用异常验证",
+              "severity": "核心",
+              "detail": "敏感科目集中增长"
+            },
+            {
+              "if": "evid_exp_pay exists",
+              "conclusion": "付款异常验证",
+              "severity": "核心",
+              "detail": "付至个人无真实服务"
+            }
+          ],
+          "output": "findings"
+        }
+      ],
+      "name": "evid-018验证"
+    },
+    {
+      "id": "evid-019",
+      "rule_id": 16,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "min_evidence": 2,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "vouchers",
+          "group_by": "account_code",
+          "fields": [
+            "sum(debit) as amt"
+          ],
+          "output": "evid_ent",
+          "desc": "必备:招待费总额vs收入x0.5%限额。"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "超限额=纳税调增。",
+          "conditions": [
+            {
+              "if": "evid_ent exists",
+              "conclusion": "超标确认",
+              "severity": "必备"
+            }
+          ],
+          "output": "findings"
+        }
+      ],
+      "name": "evid-019验证"
     }
   ]
 }

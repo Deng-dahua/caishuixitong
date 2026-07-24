@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 12,
+    "total_chains": 17,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -835,6 +835,263 @@
           "law_refs": [
             "发票管理办法S37虚开发票",
             "征管法S63偷税"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-015",
+      "rule_id": 12,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "开票付款不一致->资金回流定性链",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:确认开票方vs付款方不一致->进入判定。个别且<5万有委托协议->正常不入。多供应商或>50万->继续。",
+          "conditions": [
+            {
+              "if": "mismatch_suppliers exists",
+              "conclusion": "开票付款不一致确认",
+              "severity": "分析链起点",
+              "detail": "供应商开票方与付款对手方不一致"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "动机归因:为什么不一致？有委托付款协议->正常。无协议+付款到个人->资金体外循环。无协议+资金回流->纯资金过桥虚开。",
+          "conditions": [
+            {
+              "if": "fund_return_check exists",
+              "conclusion": "资金回流模式确认",
+              "severity": "分析链推理第一步",
+              "detail": "无协议+资金回流=纯资金过桥虚开发票"
+            }
+          ],
+          "output": "motive"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "抵扣效力:开票方与收款方不一致=三流断裂=发票不可抵扣。已抵扣税额需转出。",
+          "conditions": [
+            {
+              "if": "evid_payee_diff exists",
+              "conclusion": "三流断裂不可抵扣",
+              "severity": "分析链推理第二步",
+              "detail": "发票流与资金流不一致-三流断裂不得抵扣"
+            }
+          ],
+          "output": "deduction_loss"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:不一致+资金回流+无委托协议->铁证虚开发票S37或偷税S63。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路->虚开发票铁证",
+              "severity": "极高风险",
+              "detail": "开票付款不一致+资金回流+无协议=S37/S63"
+            }
+          ],
+          "law_refs": [
+            "发票管理办法S37",
+            "征管法S63"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-016",
+      "rule_id": 13,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "毛利率异常->人为调节利润定性链",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置:确认毛利率异常偏离->进入。",
+          "conditions": [
+            {
+              "if": "gross_margin_trend exists",
+              "conclusion": "毛利率异常确认",
+              "severity": "分析链起点",
+              "detail": "毛利率偏离行业超10个百分点"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "偏离归因:毛利率偏低=可能隐匿收入或虚增成本。毛利率偏高=可能隐匿成本或虚增收入。结合采购定价和销售定价确定方向。",
+          "conditions": [
+            {
+              "if": "cost_inflation_check exists",
+              "conclusion": "虚增成本方向确认",
+              "severity": "推理第一步",
+              "detail": "关联高价采购=虚增成本压低毛利率"
+            }
+          ],
+          "output": "direction"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "行业基准校准:不同行业毛利率特征不同-需结合行业画像调整判断。服务业毛利率高(60-80%)属正常-制造业(15-30%)属正常。行业基准错误=误判。"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:毛利率异常+定价异常+关联交易->铁证S63/S41。",
+          "conditions": [
+            {
+              "if": "gate exists",
+              "conclusion": "全链路->调节利润铁证",
+              "severity": "极高风险",
+              "detail": "毛利率异常+关联定价异常=S63/S41"
+            }
+          ],
+          "law_refs": [
+            "征管法S63",
+            "企业所得税法S41"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-017",
+      "rule_id": 14,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "申报毛利率偏离->申报不实定性",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "确认偏离->进入。",
+          "conditions": [
+            {
+              "if": "reported_revenue exists",
+              "conclusion": "偏离确认",
+              "severity": "起点"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合:偏离>20%=申报不实S64。",
+          "conditions": [
+            {
+              "if": "gate exists",
+              "conclusion": "申报不实S64"
+            }
+          ],
+          "law_refs": [
+            "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-018",
+      "rule_id": 15,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "费增不匹配->虚增费用定性",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "确认费增不匹配收入增->进入。",
+          "conditions": [
+            {
+              "if": "monthly_expense exists",
+              "conclusion": "确认",
+              "severity": "起点"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "归因:虚增费用(发票报销/咨询费/服务费)。",
+          "conditions": [
+            {
+              "if": "expense_detail exists",
+              "conclusion": "虚增费用归因"
+            }
+          ],
+          "output": "attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "综合:费用虚增+付款异常=偷税S63。",
+          "conditions": [
+            {
+              "if": "gate exists",
+              "conclusion": "铁证S63"
+            }
+          ],
+          "law_refs": [
+            "S63"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-019",
+      "rule_id": 16,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "招待费超标->纳税调增定性",
+      "suggestion": "详见分析链步骤",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "确认超标->进入。",
+          "conditions": [
+            {
+              "if": "entertainment_total exists",
+              "conclusion": "超标确认",
+              "severity": "起点"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合:超出部分纳税调增+补税。",
+          "conditions": [
+            {
+              "if": "gate exists",
+              "conclusion": "纳税调增S43"
+            }
+          ],
+          "law_refs": [
+            "企业所得税法实施条例S43"
           ],
           "output": "findings"
         }

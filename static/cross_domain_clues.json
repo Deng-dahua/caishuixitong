@@ -1148,5 +1148,381 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-015",
+    "rule_id": 12,
+    "rule_refs": [
+      "12"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "销售方vs付款对手方不一致->资金回流调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as invoiced",
+          "count(*) as cnt"
+        ],
+        "output": "supplier_invoice_total",
+        "desc": "供应商发票总量:按供应商汇总进项发票金额和数量。筛选单张>=10万或累计>=50万的供应商。正常交易中开票方=收款方-两者不一致说明资金流向异常。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "actual_payee",
+        "desc": "实际收款方统计:从银行流水统计对各供应商的实际付款情况。比对开票方vs付款方-不一致的供应商=资金回流嫌疑。付款至个人或第三方=典型的体外循环。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "count(*) as cnt"
+        ],
+        "output": "mismatch_suppliers",
+        "desc": "开票方-付款方交叉比对:逐供应商比对-发票上的销售方名称/税号vs银行付款的对手方名称。不一致且无委托付款协议的->资金没有流向发票所列销售方->交易真实性存疑。差异持续>=3月->系统性违规。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid",
+          "sum(credit) as recv"
+        ],
+        "output": "fund_return_check",
+        "desc": "资金回流检测:付款后短期内(<=7天)是否有等额或近似金额从同一对手方流回？付款出去马上又转回来=典型的资金回流闭环-表面上是采购付款实际上是资金过桥。回流金额与付款金额高度吻合=资金回流铁证。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as amt"
+        ],
+        "output": "contract_check",
+        "desc": "委托付款协议排查:销售方与收款方不一致时是否存在合法的委托付款协议/债权转让协议？若有-属正常商业安排。若无-企业无法合理解释为何付款给一个与发票无关的第三方=虚开发票的重大嫌疑。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环:路径一-个别不一致且<5万有委托付款协议->正常不入结论。路径二-多供应商不一致累计>50万无委托协议(2源)->强证据。路径三-不一致+资金回流+无委托协议(>=3源)->铁证虚开发票(S37)或资金回流偷税(S63)。",
+        "conditions": [
+          {
+            "if": "mismatch_suppliers exists",
+            "conclusion": "开票方vs付款方不一致",
+            "severity": "高风险",
+            "detail": "供应商开票方与实际收款方不一致且无委托付款协议"
+          },
+          {
+            "if": "fund_return_check exists",
+            "conclusion": "资金回流确认",
+            "severity": "极高风险",
+            "detail": "付款后短期内等额资金从对手方流回-资金回流闭环"
+          }
+        ],
+        "law_refs": [
+          "发票管理办法S37",
+          "征管法S63"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-016",
+    "rule_id": 13,
+    "rule_refs": [
+      "13"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "毛利率异常偏差->人为调节利润调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as revenue"
+        ],
+        "output": "monthly_revenue",
+        "desc": "营业收入统计:从销项发票按月汇总收入。若企业有未开票收入-还需结合银行流水和凭证收入补全。收入是计算毛利率的分母。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "pur_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as cost"
+        ],
+        "output": "monthly_cost",
+        "desc": "营业成本统计:从进项发票按月汇总采购成本。毛利率=(收入-成本)/收入x100%。与行业基准和历史同期双维度比对。"
+      },
+      {
+        "step": 3,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "gross_margin_trend",
+        "desc": "毛利率趋势分析:计算每月毛利率并绘制12月趋势线。毛利率是否剧烈波动(月与月间波动>10个百分点)->人为操纵痕迹。毛利率是否持续下降->可能通过低价销售向关联方转移利润。毛利率是否异常高于行业->可能隐匿成本或少计收入。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as cost"
+        ],
+        "output": "cost_inflation_check",
+        "desc": "采购成本虚增排查:进项采购单价是否异常高于市场价？与同行业同品类采购价比对。高价采购+供应商为关联企业->虚增成本转移利润。高价采购+供应商为个人->通过高价采购向个人(实控人)转移资金。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "revenue_suppression_check",
+        "desc": "收入压低收入排查:销项销售单价是否异常低于市场价？低价销售+购买方为关联企业->转移利润。低价销售+购买方为个人->通过低价向关联人转移利益。有发出商品但未确认收入->推迟确认收入。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环:路径一-毛利率在行业波动范围内(<5个百分点)->正常不入。路径二-毛利率偏离>10个百分点且持续>3月(2源)->强证据。路径三-毛利率异常+采购高价关联+销售低价关联(>=3源)->铁证人为调节利润偷税(S63)。",
+        "conditions": [
+          {
+            "if": "gross_margin_trend exists",
+            "conclusion": "毛利率异常偏离行业基准",
+            "severity": "高风险",
+            "detail": "毛利率偏离行业均值超10个百分点且持续超3月"
+          },
+          {
+            "if": "cost_inflation_check exists",
+            "conclusion": "采购成本虚增确认->人为调节利润",
+            "severity": "极高风险",
+            "detail": "关联方高价采购+低价销售=系统性人为调节利润"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "企业所得税法S41关联交易"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-017",
+    "rule_id": 14,
+    "rule_refs": [
+      "14"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "申报毛利率偏离行业基准->申报不实调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "reported_revenue",
+        "desc": "申报收入汇总:从销项发票+未开票收入合计数=企业所得税申报收入。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "vouchers",
+        "group_by": "month",
+        "fields": [
+          "sum(debit) as cost"
+        ],
+        "output": "reported_cost",
+        "desc": "申报成本汇总:从序时账提取主营业务成本科目发生额。申报毛利率=(收入-成本)/收入与行业基准比对-偏离>行业均值正负20%->申报不实。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "unreported_sales",
+        "desc": "未申报收入排查:银行流水中有收款但销项发票中无对应记录=未开票未申报收入。这部分收入被隐匿后-申报毛利率被扭曲。"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:偏离20%+未申报收入->申报不实S64。",
+        "conditions": [
+          {
+            "if": "reported_revenue exists",
+            "conclusion": "申报毛利率偏离行业基准",
+            "severity": "高风险",
+            "detail": "偏离>20%且持续>2季"
+          }
+        ],
+        "law_refs": [
+          "征管法S64"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-018",
+    "rule_id": 15,
+    "rule_refs": [
+      "15"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "费增不匹配收入增->虚增费用调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "vouchers",
+        "group_by": "month",
+        "fields": [
+          "sum(debit) as expense"
+        ],
+        "output": "monthly_expense",
+        "desc": "费用汇总:从序时账提取期间费用(销售/管理/财务费用)。计算费用增长率与收入增长率-费用增幅远超收入增幅->虚增费用嫌疑。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "revenue_growth",
+        "desc": "收入增长率:计算各月收入同比增长率。正常经营费用与收入同比增减。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "expense_detail",
+        "desc": "费用明细:逐科目分析-费用增长集中在哪些科目？业务招待费/差旅费/咨询费异常增长->可能存在虚假发票报销。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "expense_payment",
+        "desc": "费用付款验证:费用对应的付款是否真实发生？付款对手方是否为真实服务提供商？咨询费/服务费付至个人->可能虚假。"
+      },
+      {
+        "step": 5,
+        "op": "conclude",
+        "desc": "闭环:费用增幅>收入增幅+集中敏感科目+付款异常->虚增费用偷税S63。",
+        "conditions": [
+          {
+            "if": "monthly_expense exists",
+            "conclusion": "费用增幅异常",
+            "severity": "极高风险",
+            "detail": "费用增长率远超收入增长率"
+          }
+        ],
+        "law_refs": [
+          "S63"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-019",
+    "rule_id": 16,
+    "rule_refs": [
+      "16"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "业务招待费超标->纳税调整调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "vouchers",
+        "group_by": "month",
+        "fields": [
+          "sum(debit) as entertainment_exp"
+        ],
+        "output": "entertainment_total",
+        "desc": "业务招待费汇总:从序时账提取科目含招待/宴请/礼品/餐饮的费用合计。按税法-招待费扣除限额=MIN(发生额x60%,收入x5%)-超额部分需纳税调增。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as rev"
+        ],
+        "output": "revenue_for_limit",
+        "desc": "收入基数计算:招待费扣除限额的分母=当年营业收入(含未开票收入)。限额=收入x0.5%。超限额部分=不得税前扣除。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "vouchers",
+        "group_by": "account_code",
+        "fields": [
+          "sum(debit) as amt"
+        ],
+        "output": "ent_detail",
+        "desc": "招待费明细:是否存在将其他费用(会议费/差旅费/办公费)混入招待费以扩大基数？是否存在将个人消费作为公司招待费报销？"
+      },
+      {
+        "step": 4,
+        "op": "conclude",
+        "desc": "闭环:超过扣除限额+混淆科目->纳税调增+补税+滞纳金。",
+        "conditions": [
+          {
+            "if": "entertainment_total exists",
+            "conclusion": "招待费超标需纳税调增",
+            "severity": "高风险",
+            "detail": "招待费超过收入x0.5%的扣除限额"
+          }
+        ],
+        "law_refs": [
+          "企业所得税法实施条例S43"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]
