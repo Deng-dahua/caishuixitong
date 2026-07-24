@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 2,
+    "total_chains": 3,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -140,6 +140,76 @@
       "sub_topic": "跨域分析",
       "level": "高风险",
       "suggestion": "详见分析链步骤中的综合定性结论"
+    },
+    {
+      "id": "alc-003",
+      "rule_id": 2,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "凭证量异常→跨域推理:虚构交易定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定·凭证量异常程度分级：读取线索链产出(monthly_voucher_count)和证据链产出(evid_voucher_count)——两者均确认凭证量>行业2倍且收入/人员/资产未同步增长→进入路径判定。凭证量<1.5倍或仅单月偶发→路径一(存疑)，不继续推理。凭证量>2倍且持续>3个月→路径二或三，继续下步。量不大不追，避免误伤正常波动。",
+          "conditions": [
+            {
+              "if": "monthly_voucher_count exists",
+              "conclusion": "凭证量异常确认→进入定性路径",
+              "severity": "分析链起点",
+              "detail": "线索链和证据链均确认月凭证量超过行业均值2倍且持续3个月以上"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "凭证类型归因·从线索链的凭证结构分析推断造假手法：读取线索链步骤3产出(voucher_structure)——采购报销类占比是否>80%？若是→虚构采购或虚假报销套现。采购类集中→虚开发票套取进项抵扣+虚增成本。报销类集中→虚假费用报销套取现金（小额高频模式）。两者混合→系统性造假——既虚构采购又虚假报销，说明财务人员深度参与且造假行为有组织。",
+          "conditions": [
+            {
+              "if": "voucher_structure exists",
+              "conclusion": "凭证结构归因完成→锁定造假手法",
+              "severity": "分析链推理第一步",
+              "detail": "线索链已锁定凭证类型分布异常（采购报销占比>80%），据此推断造假动机和具体手段"
+            }
+          ],
+          "output": "type_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "资金验证合成·将线索链的付款验证与证据链的资金验证合并判断：读取线索链步骤5产出(payment_verification)和证据链步骤4产出(evid_payment_match)——两者是否一致地指向资金与凭证不匹配？双源一致+凭证结构归因+凭证量异常≥3个月→达到铁证级(≥3独立来源)。",
+          "conditions": [
+            {
+              "if": "payment_verification exists",
+              "conclusion": "资金验证多源互证→证据强度判定",
+              "severity": "分析链推理第二步",
+              "detail": "线索链付款追踪与证据链资金验证一致→虚假交易多源互证闭环"
+            }
+          ],
+          "output": "payment_synthesis"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性·法律归责(二元判定)：综合前三步——①凭证量异常>行业2倍(前置闸门) ②凭证结构归因指向采购报销造假(造假手法) ③资金验证多源互证成立(付款与凭证不一致)→全链路闭环。依法定性：三维全闭环→铁证级，认定为虚列成本偷税(征管法§63)或虚开发票(发票管理办法§37)。双维闭环→强证据级限期补证。仅凭证量异常→存疑不入结论仅跟踪3个月。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环→二元判定成立",
+              "severity": "极高风险",
+              "detail": "凭证量异常+凭证结构归因+资金验证多源互证→三维闭环成立。完整证明→虚列成本偷税§63/虚开发票发票管理办法§37铁证级；部分证明→强证据级限期补证；仅凭证量异常→存疑不入结论。"
+            }
+          ],
+          "law_refs": [
+            "征管法§63偷税",
+            "发票管理办法§37虚开发票"
+          ],
+          "output": "findings"
+        }
+      ]
     }
   ]
 }

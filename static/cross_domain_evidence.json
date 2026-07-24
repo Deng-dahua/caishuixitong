@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 2,
+    "total_chains": 3,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -215,6 +215,94 @@
       ],
       "sub_topic": "跨域证据",
       "level": "高风险"
+    },
+    {
+      "id": "evid-003",
+      "rule_id": 2,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "月凭证量异常→虚构交易多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "vouchers",
+          "group_by": "month",
+          "fields": [
+            "count(*) as evid_monthly_count"
+          ],
+          "output": "evid_voucher_count",
+          "desc": "必备维度·凭证量基准验证：从序时账按月统计凭证总量，与同行业同规模企业均值比对。凭证量>行业均值2倍（制造业2.5倍/服务业1.5倍）→虚构交易证据体系的第一道闸门——凭证量不高则根本不存在虚构交易嫌疑。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "vouchers",
+          "group_by": "account_code",
+          "fields": [
+            "count(*) as acc_entry_count"
+          ],
+          "output": "evid_structure",
+          "desc": "核心维度·凭证结构检测：按科目分类统计采购报销类凭证占比。采购+报销>80%→虚构交易高危信号。正常企业采购报销类占比40-60%，超过80%只有两种解释：①业务全部是采购报销（无销售收入凭证？）→逻辑不自洽 ②采购报销是伪造的→后者概率远大于前者。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "vouchers",
+          "group_by": "account_code",
+          "fields": [
+            "sum(debit) as total_amount",
+            "count(*) as big_count"
+          ],
+          "output": "evid_four_certs",
+          "desc": "核心维度·交易实质四证验证：对大额（>10万）凭证逐笔核查四证齐全性（合同+发票+入库单/业务记录+付款回单）。四证全缺→纯虚构交易。四证不全（缺2证以上）→疑似虚构。仅有发票但缺其他三证→可能是虚开发票套现。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid",
+            "count(*) as pay_count"
+          ],
+          "output": "evid_payment_match",
+          "desc": "核心维度·资金支付验证：从银行流水追踪异常凭证对应的付款记录。付款与凭证金额差>10%→不是同一笔交易。付款对手方与凭证供应商不一致→三流断裂。付款时间早于凭证日期>30天→先付后补票掩盖虚构交易。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环判定：必备维度（凭证量超2倍）+核心维度（结构异常+四证缺失+付款不一致）→达到min_evidence=3即可闭环。四维全命中→铁证级可作处罚依据。三维命中→强证据级限期补证。双维→线索级不入结论。单维→存疑不入结论。",
+          "conditions": [
+            {
+              "if": "evid_voucher_count exists",
+              "conclusion": "凭证量基准验证",
+              "severity": "必备维度确认",
+              "detail": "月凭证量超过行业均值2倍"
+            },
+            {
+              "if": "evid_structure exists",
+              "conclusion": "凭证结构验证",
+              "severity": "核心维度确认",
+              "detail": "采购报销类凭证占比超过80%"
+            },
+            {
+              "if": "evid_four_certs exists",
+              "conclusion": "交易实质验证",
+              "severity": "核心维度确认",
+              "detail": "大额凭证四证不全（缺合同/入库/付款回单）"
+            },
+            {
+              "if": "evid_payment_match exists",
+              "conclusion": "资金支付验证",
+              "severity": "核心维度确认",
+              "detail": "银行付款与凭证金额/对手方/时间不一致"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
     }
   ]
 }
