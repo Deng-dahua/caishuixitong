@@ -2207,5 +2207,159 @@
       }
     ],
     "total_sections": 2
+  },
+  {
+    "id": "clue-033",
+    "rule_id": 28,
+    "rule_refs": [
+      "28"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "房产原值与房产税申报不匹配->少缴房产税调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "fixed_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as value"
+        ],
+        "output": "s1",
+        "desc": "固定资产-房产原值vs房产税申报(从价计征)比对。房产税=房产原值x(1-扣除比例)x1.2%。如果固定资产台账中的房产原值远大于房产税申报的房产原值->少缴房产税。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as income"
+        ],
+        "output": "s2",
+        "desc": "新增房产入账时间vs房产税纳税义务发生时间比对。房产入账的次月起即产生房产税纳税义务-如果入账时间与首次申报时间有明显间隔->延迟申报少缴房产税。"
+      },
+      {
+        "step": 3,
+        "op": "conclude",
+        "desc": "闭环:房产原值不一致+入账与申报时间间隔->少缴房产税。补缴+滞纳金+罚款。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "房产原值与申报不一致",
+            "severity": "高风险",
+            "detail": "固定资产台账房产原值与房产税申报基础不一致"
+          }
+        ],
+        "law_refs": [
+          "房产税暂行条例"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-034",
+    "rule_id": 29,
+    "rule_refs": [
+      "29"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "租金收入与银行流水不匹配->少缴从租房产税调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "fixed_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as value"
+        ],
+        "output": "s1",
+        "desc": "从租计征房产税申报vs银行租金收入比对。从租房产税=租金收入x12%。银行流水中收到的租金金额-如果远大于从租计征申报的租金->隐匿租金收入少缴房产税。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as income"
+        ],
+        "output": "s2",
+        "desc": "租金合同vs开票记录双重比对:有租赁合同但未开发票+银行有租金收款->明确的隐匿租金收入。有合同+有开票+银行有收款->三流合一申报正常。"
+      },
+      {
+        "step": 3,
+        "op": "conclude",
+        "desc": "闭环:银行租金>申报租金+无发票->隐匿租金收入少缴房产税。补税+滞纳金+罚款。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "租金收入不一致",
+            "severity": "高风险",
+            "detail": "银行租金收入与从租计征申报的租金不一致"
+          }
+        ],
+        "law_refs": [
+          "房产税暂行条例"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
+  },
+  {
+    "id": "clue-035",
+    "rule_id": 30,
+    "rule_refs": [
+      "30"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "社保/个税/工资三方人数不一致->少缴社保或少扣个税调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "fixed_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as value"
+        ],
+        "output": "s1",
+        "desc": "社保参保人数vs个税扣缴人数vs银行代发工资金人数三方比对。正常企业应为全部员工缴纳社保+扣缴个税+通过银行代发工资。三人数应完全一致-任何不一致都意味着存在违法行为。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as income"
+        ],
+        "output": "s2",
+        "desc": "个税扣缴人数<银行代发人数->有员工发工资但未扣缴个税=未履行代扣代缴义务。社保参保人数<银行代发人数->有员工未参保=少缴社保。社保参保人数<个税人数->部分参保=偷逃社保费。"
+      },
+      {
+        "step": 3,
+        "op": "conclude",
+        "desc": "闭环:三方人数不一致->少缴社保或未扣缴个税。差额人数对应的应补社保+未扣个税+滞纳金+罚款。",
+        "conditions": [
+          {
+            "if": "s1 exists",
+            "conclusion": "三方人数不一致",
+            "severity": "高风险",
+            "detail": "社保+个税+银行代发工资人数存在显著差异"
+          }
+        ],
+        "law_refs": [
+          "社会保险法",
+          "个税法S9代扣代缴"
+        ],
+        "output": "findings"
+      }
+    ],
+    "total_sections": 2
   }
 ]

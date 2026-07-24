@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 27,
+    "total_chains": 30,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -1510,6 +1510,130 @@
           ],
           "law_refs": [
             "S64"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-033",
+      "rule_id": 28,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "房产原值与房产税申报不匹配->少缴房产税调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "房产原值与申报不一致",
+              "severity": "高风险",
+              "detail": "固定资产台账房产原值与房产税申报基础不一致"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "房产原值与申报不一致",
+              "severity": "高风险",
+              "detail": "固定资产台账房产原值与房产税申报基础不一致"
+            }
+          ],
+          "law_refs": [
+            "房产税暂行条例"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-034",
+      "rule_id": 29,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "租金收入与银行流水不匹配->少缴从租房产税调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "租金收入不一致",
+              "severity": "高风险",
+              "detail": "银行租金收入与从租计征申报的租金不一致"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "租金收入不一致",
+              "severity": "高风险",
+              "detail": "银行租金收入与从租计征申报的租金不一致"
+            }
+          ],
+          "law_refs": [
+            "房产税暂行条例"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-035",
+      "rule_id": 30,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "社保/个税/工资三方人数不一致->少缴社保或少扣个税调查",
+      "suggestion": "详见",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "三方人数不一致",
+              "severity": "高风险",
+              "detail": "社保+个税+银行代发工资人数存在显著差异"
+            }
+          ],
+          "output": "gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "综合定性",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "三方人数不一致",
+              "severity": "高风险",
+              "detail": "社保+个税+银行代发工资人数存在显著差异"
+            }
+          ],
+          "law_refs": [
+            "社会保险法",
+            "个税法S9代扣代缴"
           ],
           "output": "findings"
         }

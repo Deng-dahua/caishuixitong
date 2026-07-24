@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 27,
+    "total_chains": 30,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -1770,6 +1770,144 @@
               "conclusion": "增值税与城建税申报不一致",
               "severity": "高风险",
               "detail": "两税申报数据存在矛盾"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-033",
+      "rule_id": 28,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "房产原值与房产税申报不匹配->少缴房产税调查",
+      "min_evidence": 2,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "fixed_assets",
+          "group_by": "asset_id",
+          "fields": [
+            "sum(original_value) as value"
+          ],
+          "output": "ev1",
+          "desc": "必备维度"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as income"
+          ],
+          "output": "ev2",
+          "desc": "核心维度"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "闭环",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "房产原值与申报不一致",
+              "severity": "高风险",
+              "detail": "固定资产台账房产原值与房产税申报基础不一致"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-034",
+      "rule_id": 29,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "租金收入与银行流水不匹配->少缴从租房产税调查",
+      "min_evidence": 2,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "fixed_assets",
+          "group_by": "asset_id",
+          "fields": [
+            "sum(original_value) as value"
+          ],
+          "output": "ev1",
+          "desc": "必备维度"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as income"
+          ],
+          "output": "ev2",
+          "desc": "核心维度"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "闭环",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "租金收入不一致",
+              "severity": "高风险",
+              "detail": "银行租金收入与从租计征申报的租金不一致"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-035",
+      "rule_id": 30,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "社保/个税/工资三方人数不一致->少缴社保或少扣个税调查",
+      "min_evidence": 2,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "fixed_assets",
+          "group_by": "asset_id",
+          "fields": [
+            "sum(original_value) as value"
+          ],
+          "output": "ev1",
+          "desc": "必备维度"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as income"
+          ],
+          "output": "ev2",
+          "desc": "核心维度"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "闭环",
+          "conditions": [
+            {
+              "if": "s1 exists",
+              "conclusion": "三方人数不一致",
+              "severity": "高风险",
+              "detail": "社保+个税+银行代发工资人数存在显著差异"
             }
           ],
           "output": "findings"
