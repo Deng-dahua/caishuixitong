@@ -1,286 +1,324 @@
-// ==================== 存勤法税智能体 ====================
+// ==================== 存勤法税智能体 v2.0 ====================
+// 三栏专业布局: 左侧快捷导航 | 中间主聊区 | 右侧知识参考
 let chatSessionId = null;
 let chatMessages = [];
 let chatLoading = false;
+let _chatUnread = 0;
 
-async function renderChat(container) {
+function _chatInit() {
   if (!chatSessionId) {
     chatSessionId = 'sess_' + Date.now();
     chatMessages = [{
       role: 'ai',
-      text: '👋 你好！我是**存勤法税智能体**，专注中小企业财税与法律问答（由 AI 大模型驱动）。\n\n'
-        + '我可以帮你解答：\n'
-        + '• 📋 **税务政策** — 增值税、企业所得税、个税、印花税等\n'
-        + '• 📝 **账务处理** — 会计分录、科目运用、凭证编制\n'
-        + '• ⚖️ **法律合规** — 税法依据、合规操作、争议应对\n'
-        + '• ⚠️ **风险提示** — 税务合规风险、发票合规、经营实质\n'
-        + '• 💰 **财务管理** — 成本控制、费用管理、资金规划\n\n'
-        + '直接输入你的问题，例如：\n'
-        + '• 「农产品自产自销能否在注册地外种植？」\n'
-        + '• 「当地税务局不认可自产自销怎么办？」\n'
-        + '• 「采购原材料怎么记分录？」\n'
-        + '• 「固定资产折旧年限是多少？」\n\n'
-        + '也可以说「**帮助**」查看系统操作功能。'
+      text: '👋 你好！我是**存勤法税智能体**，专注中小企业财税与法律问答。\n\n直接输入问题开始咨询，或点击右侧推荐话题。'
     }];
   }
+}
 
+const CHAT_CATEGORIES = [
+  {icon:'📋',name:'税务政策',topics:['增值税税率','企业所得税计算','小规模纳税人优惠','印花税税目','个税专项附加扣除']},
+  {icon:'📝',name:'账务处理',topics:['采购材料分录','固定资产折旧','收入确认时点','成本费用归集']},
+  {icon:'⚖️',name:'法律合规',topics:['虚开发票认定','偷税与漏税区别','税务稽查程序','滞纳金计算']},
+  {icon:'⚠️',name:'风险提示',topics:['进项发票合规','四流一致要求','关联交易风险','发票作废红冲规范']},
+  {icon:'💰',name:'财务管理',topics:['毛利率分析','费用率控制','存货管理','现金流规划']},
+];
+
+async function renderChat(container) {
+  _chatInit();
   const el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
-  el.innerHTML = `
-    <div class="chat-wrapper">
-      <div class="chat-header">
-        <h3>🤖 存勤法税智能体</h3>
-        <p>由 AI 大模型驱动，解答财税政策、账务处理、法律合规、风险提示等问题</p>
+
+  const css = `
+    <style>
+      .cq-wrap{display:flex;height:calc(100vh - 56px);background:#f4f6f9;overflow:hidden;margin:-20px}
+      .cq-left{width:220px;background:#fff;border-right:1px solid #e8ecf1;display:flex;flex-direction:column;flex-shrink:0}
+      .cq-left-header{padding:20px 16px 12px;border-bottom:1px solid #f0f2f5;text-align:center}
+      .cq-left-header h3{font-size:13px;font-weight:700;color:#1e293b;margin:0}
+      .cq-left-header .cq-sub{font-size:10px;color:#94a3b8;margin-top:4px}
+      .cq-cat-list{flex:1;overflow-y:auto;padding:8px}
+      .cq-cat-group{margin-bottom:4px}
+      .cq-cat-title{padding:10px 14px 6px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.05em;text-transform:uppercase}
+      .cq-cat-item{padding:7px 14px;font-size:11px;color:#475569;cursor:pointer;border-radius:6px;transition:.12s;margin-bottom:1px;line-height:1.5}
+      .cq-cat-item:hover,.cq-cat-item.active{background:#eff6ff;color:#2563eb;font-weight:600}
+      .cq-cat-item .cq-ci{font-size:10px;color:#2563eb;font-weight:700;margin-right:6px}
+
+      .cq-main{flex:1;display:flex;flex-direction:column;min-width:0;background:#f8fafc}
+      .cq-main-header{padding:14px 20px;background:#fff;border-bottom:2px solid #e8ecf1;display:flex;align-items:center;gap:12px}
+      .cq-main-header .cq-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0}
+      .cq-main-header .cq-title{font-size:14px;font-weight:700;color:#1e293b}
+      .cq-main-header .cq-status{font-size:10px;color:#16a34a;display:flex;align-items:center;gap:4px}
+      .cq-main-header .cq-status-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;animation:cqPulse 2s infinite}
+      @keyframes cqPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+      .cq-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+      .cq-msg{max-width:72%;padding:10px 15px;border-radius:12px;font-size:12px;line-height:1.75;animation:cqFade .25s ease;word-break:break-word}
+      .cq-msg.user{align-self:flex-end;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;border-bottom-right-radius:3px;box-shadow:0 1px 4px rgba(37,99,235,.15)}
+      .cq-msg.ai{align-self:flex-start;background:#fff;border:1px solid #e8ecf1;border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+      .cq-msg.ai strong{color:#2563eb;font-weight:600}
+      .cq-msg.ai em{color:#64748b}
+      .cq-msg.ai p{margin:0 0 6px}
+      .cq-msg.ai p:last-child{margin-bottom:0}
+      .cq-msg.ai ul,.cq-msg.ai ol{margin:6px 0;padding-left:20px}
+      .cq-msg.ai li{margin-bottom:3px}
+      .cq-msg.ai code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:11px;color:#334155}
+      .cq-msg.ai pre{background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:8px;overflow-x:auto;font-size:11px;line-height:1.6;margin:8px 0}
+      @keyframes cqFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+      .cq-msg-typing{align-self:flex-start;padding:8px 16px;font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+      .cq-msg-typing .cq-dot{width:5px;height:5px;border-radius:50%;background:#94a3b8;animation:cqBounce .6s infinite alternate}
+      .cq-msg-typing .cq-dot:nth-child(2){animation-delay:.2s}
+      .cq-msg-typing .cq-dot:nth-child(3){animation-delay:.4s}
+      @keyframes cqBounce{to{transform:translateY(-6px);opacity:.4}}
+
+      .cq-input-wrap{display:flex;gap:8px;padding:12px 20px;background:#fff;border-top:1px solid #e8ecf1}
+      .cq-input-wrap input{flex:1;padding:10px 16px;border:1px solid #e2e8f0;border-radius:20px;font-size:12px;outline:none;transition:border .15s;background:#f8fafc}
+      .cq-input-wrap input:focus{border-color:#2563eb;background:#fff}
+      .cq-input-wrap .cq-btn{padding:10px 18px;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px}
+      .cq-input-wrap .cq-btn-send{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff}
+      .cq-input-wrap .cq-btn-send:hover{opacity:.9;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+      .cq-input-wrap .cq-btn-send:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+      .cq-input-wrap .cq-btn-upload{background:#fff;color:#64748b;border:1px solid #e2e8f0}
+      .cq-input-wrap .cq-btn-upload:hover{background:#f8fafc;border-color:#2563eb;color:#2563eb}
+
+      .cq-right{width:260px;background:#fff;border-left:1px solid #e8ecf1;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+      .cq-right-section{padding:16px;border-bottom:1px solid #f0f2f5}
+      .cq-right-section h4{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.05em;margin:0 0 8px}
+      .cq-right-topic{padding:7px 10px;font-size:11px;color:#475569;cursor:pointer;border-radius:6px;margin-bottom:3px;transition:.12s;line-height:1.5}
+      .cq-right-topic:hover{background:#eff6ff;color:#2563eb;font-weight:500}
+      .cq-right-topic .cq-hot{font-size:9px;background:#fef2f2;color:#dc2626;padding:1px 5px;border-radius:8px;margin-left:6px}
+      .cq-right-stat{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:11px;color:#64748b}
+      .cq-right-stat .cq-stv{font-weight:700;color:#1e293b}
+      .cq-kb-link{padding:6px 10px;font-size:10px;color:#2563eb;cursor:pointer;border-radius:4px;display:block;transition:.12s;text-decoration:none}
+      .cq-kb-link:hover{background:#eff6ff;font-weight:600}
+    </style>
+  `;
+
+  const leftPanel = `
+    <div class="cq-left">
+      <div class="cq-left-header">
+        <h3>📚 知识导航</h3>
+        <div class="cq-sub">点击分类展开话题</div>
       </div>
-      <div class="chat-quick-actions" id="quick-actions">
-        <span class="chat-chip" data-cmd="增值税税率是多少？">📊 增值税税率</span>
-        <span class="chat-chip" data-cmd="企业所得税怎么计算？">🏢 企业所得税</span>
-        <span class="chat-chip" data-cmd="工资个税怎么计算？">💳 个税计算</span>
-        <span class="chat-chip" data-cmd="小规模纳税人有什么优惠政策？">📉 小规模优惠</span>
-        <span class="chat-chip" data-cmd="印花税有哪些税目和税率？">📄 印花税</span>
-        <span class="chat-chip" data-cmd="进项发票怎么抵扣？">🧾 进项抵扣</span>
-        <span class="chat-chip" data-cmd="帮助">❓ 帮助</span>
-      </div>
-      <div class="chat-body" id="chat-body">
-        ${renderMessages()}
-      </div>
-      <div class="chat-input-area">
-        <input type="file" id="chat-file-input" accept=".xlsx,.xls,.csv,.pdf,.txt,.md,.log,.png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="handleFileUpload(this)">
-        <button class="chat-upload-btn" id="chat-upload-btn" onclick="document.getElementById('chat-file-input').click()" title="上传文件">📎</button>
-        <input id="chat-input" type="text" placeholder="输入财税或法律问题，例如：农产品自产自销能否在注册地外种植？" 
-               onkeypress="if(event.key==='Enter') sendChat()" autofocus>
-        <button onclick="sendChat()" id="chat-send-btn">发送</button>
+      <div class="cq-cat-list">
+        ${CHAT_CATEGORIES.map((c,i) => `
+          <div class="cq-cat-group">
+            <div class="cq-cat-group-header" onclick="var items=this.nextElementSibling;items.style.display=items.style.display==='none'?'block':'none'" style="cursor:pointer;padding:8px 14px 4px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1e293b">
+              <span>${c.icon}</span> ${c.name}
+              <span style="margin-left:auto;font-size:9px;color:#94a3b8">▼</span>
+            </div>
+            <div class="cq-cat-items" style="display:${i===0?'block':'none'}">
+              ${c.topics.map(t => `<div class="cq-cat-item" onclick="_cqSendTopic('${t}')">${t}</div>`).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
   `;
 
-  // 绑定快捷操作
-  document.querySelectorAll('.chat-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.getElementById('chat-input').value = chip.dataset.cmd;
-      sendChat();
-    });
+  const mainPanel = `
+    <div class="cq-main">
+      <div class="cq-main-header">
+        <div class="cq-avatar">🤖</div>
+        <div style="flex:1">
+          <div class="cq-title">存勤法税智能体</div>
+          <div class="cq-status"><span class="cq-status-dot"></span>在线 · AI大模型驱动</div>
+        </div>
+      </div>
+      <div class="cq-body" id="chat-body">
+        ${_renderCqMessages()}
+      </div>
+      <div class="cq-input-wrap">
+        <button class="cq-btn cq-btn-upload" onclick="document.getElementById('chat-file-input').click()" title="上传文件分析">📎</button>
+        <input type="file" id="chat-file-input" accept=".xlsx,.xls,.csv,.pdf,.txt,.md,.log" style="display:none" onchange="handleFileUpload(this)">
+        <input id="chat-input" type="text" placeholder="输入财税问题..." 
+               onkeypress="if(event.key==='Enter') sendChat()" autofocus>
+        <button class="cq-btn cq-btn-send" onclick="sendChat()" id="chat-send-btn">
+          <span>➤</span> 发送
+        </button>
+      </div>
+    </div>
+  `;
+
+  const rightPanel = `
+    <div class="cq-right" id="cq-right-panel">
+      <div class="cq-right-section">
+        <h4>🔥 热门话题</h4>
+        <div class="cq-right-topic" onclick="_cqSendTopic('增值税税率是多少')">增值税税率 <span class="cq-hot">HOT</span></div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('企业所得税怎么计算')">企业所得税计算</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('小规模纳税人优惠政策')">小规模纳税人优惠</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('进项发票抵扣规范')">进项发票抵扣规范</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('税务稽查常见风险点')">税务稽查常见风险点</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('固定资产折旧年限表')">固定资产折旧年限</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('印花税最新税目税率')">印花税最新税目</div>
+      </div>
+      <div class="cq-right-section">
+        <h4>🔗 知识库快捷入口</h4>
+        <a class="cq-kb-link" href="javascript:navigateTo('knowledge-hub')">🧠 引擎知识中枢</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('methodology')">📖 稽查方法论</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('auditor-handbook')">⚖️ 稽查员手册</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('tax-risk-rules-list')">📋 疑点库（1720条）</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('report-standards')">📐 报告编制总纲</a>
+      </div>
+      <div class="cq-right-section" style="font-size:10px;color:#94a3b8;text-align:center;padding:12px">
+        存勤法税 v2.0 · AI智能体<br>
+        <span style="font-size:9px">${new Date().getFullYear()} 广东存勤法税</span>
+      </div>
+    </div>
+  `;
+
+  el.innerHTML = css + `<div class="cq-wrap">${leftPanel}${mainPanel}${rightPanel}</div>`;
+}
+
+window._cqSendTopic = function(topic) {
+  const input = document.getElementById('chat-input');
+  if (!input) return;
+  input.value = topic;
+  sendChat();
+};
+
+function _renderCqMessages() {
+  let h = '';
+  chatMessages.slice(-50).forEach(m => {
+    const cls = 'cq-msg ' + m.role;
+    const content = m.role === 'ai' ? _formatCqMarkdown(m.text) : '<span>' + _cqEsc(m.text) + '</span>';
+    h += '<div class="' + cls + '">' + content + '</div>';
   });
-
-  // 滚动到底部
-  scrollChatBottom();
+  if (chatLoading) h += '<div class="cq-msg-typing"><span class="cq-dot"></span><span class="cq-dot"></span><span class="cq-dot"></span> 思考中...</div>';
+  return h || '<div style="text-align:center;color:#94a3b8;padding:40px;font-size:12px">输入问题开始咨询</div>';
 }
 
-function renderMessages() {
-  return chatMessages.map((m, i) => {
-    const cls = m.role === 'user' ? 'user' : 'ai';
-    // 简单 markdown 渲染：**粗体** 和换行
-    let text = m.text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
-    return `<div class="chat-bubble ${cls}">${text}</div>`;
-  }).join('') + (chatLoading ? '<div class="chat-bubble ai"><div class="typing-indicator"><span></span><span></span><span></span></div></div>' : '');
+function _formatCqMarkdown(text) {
+  let t = _cqEsc(text);
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+  t = t.replace(/^### (.+)$/gm, '<p style="font-weight:700;color:#1e293b;font-size:13px;margin-top:10px">$1</p>');
+  t = t.replace(/^## (.+)$/gm, '<p style="font-weight:700;color:#2563eb;font-size:14px;margin-top:12px">$1</p>');
+  t = t.replace(/^# (.+)$/gm, '<p style="font-weight:800;color:#2563eb;font-size:15px;margin-top:14px">$1</p>');
+  // Lists
+  t = t.replace(/^- (.+)$/gm, '<li>$1</li>');
+  t = t.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  // Numbered
+  t = t.replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>');
+  // Line breaks
+  t = t.replace(/\n\n/g, '</p><p>');
+  t = t.replace(/\n/g, '<br>');
+  if (!t.startsWith('<p>')) t = '<p>' + t;
+  if (!t.endsWith('</p>') && !t.endsWith('</ul>') && !t.endsWith('</ol>')) t += '</p>';
+  return t;
 }
 
-function scrollChatBottom() {
-  setTimeout(() => {
-    const body = document.getElementById('chat-body');
-    if (body) body.scrollTop = body.scrollHeight;
-  }, 100);
+function _cqEsc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-async function handleFileUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const uploadBtn = document.getElementById('chat-upload-btn');
-  const sendBtn = document.getElementById('chat-send-btn');
-
-  // 显示上传中
-  uploadBtn.classList.add('uploading');
-  uploadBtn.textContent = '⏳';
-  sendBtn.disabled = true;
-
-  chatMessages.push({ role: 'user', text: `<span class="chat-file-badge">📎 ${file.name} (${formatFileSize(file.size)})</span><br>正在识别文件内容...` });
-  chatLoading = true;
-  document.getElementById('chat-body').innerHTML = renderMessages();
-  scrollChatBottom();
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('session_id', chatSessionId);
-
-    const res = await fetch('/api/chat/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-
-    if (data.error) {
-      // 更新最后一条消息为错误
-      chatMessages[chatMessages.length - 1].text = `📎 ${file.name}<br>❌ ${data.error}`;
-    } else {
-      // 更新最后一条消息为文件内容摘要
-      const contentPreview = data.content.length > 300 ? data.content.substring(0, 300) + '...' : data.content;
-      chatMessages[chatMessages.length - 1].text = `<span class="chat-file-badge">📎 ${data.file_name}</span><br><pre style="font-size:11px;max-height:200px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:6px;white-space:pre-wrap;word-break:break-all;margin:4px 0 0">${escapeHtml(contentPreview)}</pre>`;
-
-      // 将文件内容送入对话处理
-      const chatRes = await api('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: `[上传文件] ${data.file_name}\n\n文件内容如下，请帮我处理：\n\n${data.content}`,
-          session_id: chatSessionId
-        })
-      });
-      chatMessages.push({ role: 'ai', text: chatRes.reply });
-
-      if (chatRes.action) {
-        if (chatRes.action.type === 'navigate') {
-          setTimeout(() => navigateTo(chatRes.action.page), 500);
-        } else if (chatRes.action.type === 'reload') {
-        }
-      }
-    }
-  } catch (e) {
-    chatMessages[chatMessages.length - 1].text = `📎 ${file.name}<br>❌ 上传失败：${e.message}`;
-  }
-
-  chatLoading = false;
-  sendBtn.disabled = false;
-  uploadBtn.classList.remove('uploading');
-  uploadBtn.textContent = '📎';
-  document.getElementById('chat-body').innerHTML = renderMessages();
-  scrollChatBottom();
-  document.getElementById('chat-input').focus();
-
-  // 清空文件选择
-  input.value = '';
+function appendMessage(role, text) {
+  const body = document.getElementById('chat-body');
+  if (!body) return;
+  chatMessages.push({role, text});
+  // Remove old typing indicator and old messages if too many
+  const typing = body.querySelector('.cq-msg-typing');
+  if (typing) typing.remove();
+  
+  const cls = 'cq-msg ' + role;
+  const content = role === 'ai' ? _formatCqMarkdown(text) : '<span>' + _cqEsc(text) + '</span>';
+  const div = document.createElement('div');
+  div.className = cls;
+  div.innerHTML = content;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  return div;
 }
 
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1048576).toFixed(1) + ' MB';
+function showTyping() {
+  const body = document.getElementById('chat-body');
+  if (!body) return;
+  const div = document.createElement('div');
+  div.className = 'cq-msg-typing';
+  div.innerHTML = '<span class="cq-dot"></span><span class="cq-dot"></span><span class="cq-dot"></span> 思考中...';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function hideTyping() {
+  const body = document.getElementById('chat-body');
+  if (!body) return;
+  const t = body.querySelector('.cq-msg-typing');
+  if (t) t.remove();
 }
 
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const btn = document.getElementById('chat-send-btn');
-  const uploadBtn = document.getElementById('chat-upload-btn');
-  const msg = input.value.trim();
-  if (!msg || chatLoading) return;
-
+  if (!input || chatLoading) return;
+  const q = input.value.trim();
+  if (!q) return;
   input.value = '';
-  chatMessages.push({ role: 'user', text: msg });
+  input.disabled = true;
+  if (btn) btn.disabled = true;
   chatLoading = true;
-  btn.disabled = true;
-  uploadBtn.disabled = true;
-  uploadBtn.style.opacity = '0.5';
-  uploadBtn.style.cursor = 'not-allowed';
-  document.getElementById('chat-body').innerHTML = renderMessages();
-  scrollChatBottom();
+
+  appendMessage('user', q);
+  showTyping();
 
   try {
-    const res = await api('/api/chat', {
+    const resp = await fetch('/api/tax-risk-docs/ask', {
       method: 'POST',
-      body: JSON.stringify({ message: msg, session_id: chatSessionId })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        question: q,
+        company_id: window.currentCompanyId || 1,
+        session_id: chatSessionId
+      })
     });
-    chatMessages.push({ role: 'ai', text: res.reply });
+    const data = await resp.json();
+    hideTyping();
     
-    // 处理 action
-    if (res.action) {
-      if (res.action.type === 'navigate') {
-        setTimeout(() => navigateTo(res.action.page), 500);
-      } else if (res.action.type === 'reload') {
-        // 提示用户刷新页面
-      }
+    if (data.ok && data.answer) {
+      appendMessage('ai', data.answer);
+    } else if (data.ok && data.reply) {
+      appendMessage('ai', data.reply);
+    } else {
+      appendMessage('ai', '⚠️ ' + (data.message || '服务暂不可用，请稍后重试'));
     }
-  } catch (e) {
-    chatMessages.push({ role: 'ai', text: '❌ 出错了：' + e.message + '\n\n请刷新页面重试。' });
+  } catch(e) {
+    hideTyping();
+    appendMessage('ai', '⚠️ 网络异常，请检查服务是否正常运行');
   }
-
+  
   chatLoading = false;
-  btn.disabled = false;
-  uploadBtn.disabled = false;
-  uploadBtn.style.opacity = '';
-  uploadBtn.style.cursor = '';
-  document.getElementById('chat-body').innerHTML = renderMessages();
-  scrollChatBottom();
-  document.getElementById('chat-input').focus();
+  input.disabled = false;
+  if (btn) btn.disabled = false;
+  input.focus();
 }
 
-// esc() 已统一迁移到 core.js 作为 escapeHtml() 别名，此处不再重复定义
-function showModal(html) {
-  closeModal(); // P1-17: 先关闭已有弹窗，防止堆叠
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal modal-lg"><button class="modal-close" onclick="closeModal()">×</button>${html}</div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-  document.body.appendChild(overlay);
-}
-function createModal(title, body, extraClass) {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal modal-lg ${extraClass || ''}" style="padding:0;">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--gray-200);">
-      <h3 style="margin:0;font-size:16px;">${title}</h3>
-      <button onclick="closeModal()" style="position:static;background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-500);">&times;</button>
-    </div>
-    <div style="padding:16px 20px;">${body}</div>
-  </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-  return overlay;
-}
-
-async function showVoucherDetail(voucherStr) {
-  // 解析"记-5" → voucher_word="记", voucher_no=5
-  const parts = voucherStr.split('-');
-  if (parts.length < 2) { toast('凭证号格式无效', 'error'); return; }
-  const voucherWord = parts[0];
-  const voucherNo = parseInt(parts.slice(1).join('-'));
-
+async function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('company_id', window.currentCompanyId || 1);
+  formData.append('session_id', chatSessionId);
+  
+  appendMessage('user', '📎 上传文件：' + file.name);
+  chatLoading = true;
+  showTyping();
+  
   try {
-    const data = await api('/api/journal-entries/by-voucher?voucher_word=' + encodeURIComponent(voucherWord) + '&voucher_no=' + voucherNo);
-    const balColor = data.is_balanced ? '#059669' : '#dc2626';
-    const balIcon = data.is_balanced ? '✓' : '✗';
-    let html = '';
-    // 凭证头部信息
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
-    html += '<div><span style="font-size:18px;font-weight:700;color:#1d4ed8">' + data.voucher_full + '</span>';
-    html += '<span style="margin-left:8px;font-size:13px;color:var(--gray-500)">' + data.period + ' | ' + data.entry_date + '</span></div>';
-    html += '<div style="display:flex;gap:12px;font-size:13px">';
-    html += '<span style="color:var(--gray-500)">来源：<b>' + data.source + '</b></span>';
-    html += '<span style="color:' + balColor + ';font-weight:600">' + balIcon + ' 借贷' + (data.is_balanced ? '平衡' : '不平衡') + '</span>';
-    html += '</div></div>';
-    // 分录表格
-    html += '<table class="data-table" style="width:100%"><thead><tr>';
-    html += '<th style="width:60px">#</th><th>摘要</th><th>科目编码</th><th>科目名称</th><th style="text-align:right">借方金额</th><th style="text-align:right">贷方金额</th>';
-    html += '</tr></thead><tbody>';
-    data.entries.forEach((e, idx) => {
-      html += '<tr>';
-      html += '<td style="color:var(--gray-400)">' + (idx + 1) + '</td>';
-      html += '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(e.summary || '') + '">' + escapeHtml(e.summary || '-') + '</td>';
-      html += '<td>' + e.account_code + '</td>';
-      var afn = (e.account_full_name || e.account_name || '-');
-      var afd = afn.split(' / ').map(function(s) { var m = s.match(/^\d+\s+(.*)/); return m ? m[1] : s; }).join(' / ');
-      html += '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="' + escapeHtml(afn) + '">' + escapeHtml(afd) + '</td>';
-      var deb = e.debit_amount || 0;
-      var cred = e.credit_amount || 0;
-      html += '<td style="text-align:right;color:#e02424;font-weight:600">' + (deb !== 0 ? '¥' + deb.toLocaleString() : '') + '</td>';
-      html += '<td style="text-align:right;color:#0e9f6e;font-weight:600">' + (cred !== 0 ? '¥' + cred.toLocaleString() : '') + '</td>';
-      html += '</tr>';
+    const resp = await fetch('/api/tax-risk-docs/ask', {
+      method: 'POST',
+      body: formData
     });
-    // 合计行
-    html += '<tr style="border-top:2px solid var(--gray-300);font-weight:700;background:#f9fafb">';
-    html += '<td colspan="4" style="text-align:right">合计（' + data.entry_count + '条分录）</td>';
-    html += '<td style="text-align:right;color:#e02424">¥' + data.total_debit.toLocaleString() + '</td>';
-    html += '<td style="text-align:right;color:#0e9f6e">¥' + data.total_credit.toLocaleString() + '</td>';
-    html += '</tr>';
-    html += '</tbody></table>';
-    html += '<div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeModal()">关闭</button></div>';
-
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.id = 'modal-overlay';
-    overlay.innerHTML = '<div class="modal modal-lg" style="max-width:900px;padding:20px"><button class="modal-close" onclick="closeModal()">&times;</button>' + html + '</div>';
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-    document.body.appendChild(overlay);
-  } catch (e) {
-    toast(e.message || '获取凭证详情失败', 'error');
+    const data = await resp.json();
+    hideTyping();
+    if (data.ok && (data.answer || data.reply)) {
+      appendMessage('ai', data.answer || data.reply);
+    } else {
+      appendMessage('ai', '⚠️ 文件分析失败：' + (data.message || '未知错误'));
+    }
+  } catch(e) {
+    hideTyping();
+    appendMessage('ai', '⚠️ 网络异常，请检查服务是否正常运行');
   }
+  chatLoading = false;
+  input.value = '';
 }
-
