@@ -1659,6 +1659,19 @@ def _run_analyze(company_id, db, progress_callback=None):
         detail = str(f.get("detail", ""))
         how = str(f.get("how_found", ""))
         policy = str(f.get("policy_ref", ""))
+        # ═══ 法规时效校验（2026-07-25 老邓要求） ═══
+        if policy:
+            try:
+                from engine.law_validity_checker import _law_cache
+                if _law_cache and _law_cache.is_deprecated(policy):
+                    fixes = _law_cache.scan_text(policy)
+                    if fixes:
+                        new_policy = policy
+                        for fx in fixes:
+                            new_policy = new_policy.replace(fx["found"], fx["suggested"])
+                        f["policy_ref"] = new_policy
+                        pipeline_log.append(f"[法规校验] 发现 {len(fixes)} 处过期引用，已自动替换")
+            except Exception: pass
         level = str(f.get("level", ""))
         
         violations = []
