@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 6,
+    "total_chains": 7,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -422,6 +422,76 @@
             "发票管理办法S37虚开发票",
             "征管法S63偷税",
             "刑法S205虚开增值税专用发票罪"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-007",
+      "rule_id": 6,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "红冲退款不匹配->跨域推理:虚假红冲定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链红冲率和证据链红冲率-均确认红冲率超预警值->进入判定。仅略超(<1.5倍)且退款对应->可能退货率高，存疑不入结论。超预警值2倍或退款不对应->继续。防正常高退货率行业被误判。",
+          "conditions": [
+            {
+              "if": "monthly_red_amount exists",
+              "conclusion": "红冲异常确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "线索链和证据链均确认红冲率超过行业预警值"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "模式归因:读取线索链步骤2和3-红冲集中在月末？存在红冲-重开循环？月末集中+下月重开->典型的跨期收入调节-企业通过红冲把当期收入转到下期。红冲理由是退货但下月等额重开->借口退货实则调节。无重开但红冲量大->可能是真实的退货处理。",
+          "conditions": [
+            {
+              "if": "red_timing_pattern exists",
+              "conclusion": "时间模式确认->跨期调节定性",
+              "severity": "分析链推理第一步",
+              "detail": "红冲集中在月末且下月等额重开->典型的跨期收入调节行为"
+            }
+          ],
+          "output": "pattern_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "退款验证合成:读取线索链步骤5和证据链步骤4-红冲金额vs退款金额不一致->红冲虚假。退款是交易取消的必然结果-没有退款的红冲=企业只是开了红字发票但没有取消交易-红冲的唯一目的是降低当期申报收入。退款不一致+时间集中=系统性的虚假红冲而非个别差错。",
+          "conditions": [
+            {
+              "if": "refund_verification exists",
+              "conclusion": "退款验证合成->虚假红冲铁证",
+              "severity": "分析链推理第二步",
+              "detail": "红冲金额与退款金额不一致-红冲未伴随真实退款-企业只是为了调节收入"
+            }
+          ],
+          "output": "refund_synthesis"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:前三步-红冲异常+时间集中+重开循环+退款不对应->全链路闭环。完整证明->认定为编造虚假计税依据(S64)或偷税(S63)。跨月调节->虚假申报。仅退货率偏高->不入结论。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->虚假红冲定性成立",
+              "severity": "极高风险",
+              "detail": "红冲异常+时间集中+退款不一致->铁证虚假红冲=S64/S63"
+            }
+          ],
+          "law_refs": [
+            "征管法S63偷税",
+            "征管法S64编造虚假计税依据"
           ],
           "output": "findings"
         }

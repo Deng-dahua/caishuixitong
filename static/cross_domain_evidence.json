@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 6,
+    "total_chains": 7,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -560,6 +560,86 @@
               "conclusion": "货物流验证",
               "severity": "核心维度确认",
               "detail": "发票无对应入库记录，有票无货"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-007",
+      "rule_id": 6,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "红冲退款不匹配->虚假红冲多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(red_amount) as red"
+          ],
+          "output": "evid_red_rate",
+          "desc": "必备维度-红冲率验证:计算月红冲率=红冲金额/开票总额。超过行业预警值(零售5%/批发3%/建筑10%/电商15%)->红冲异常。此维度是证据体系基石-红冲率正常则不存在虚假红冲嫌疑。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "sal_invs",
+          "group_by": "date",
+          "fields": [
+            "sum(red_amount) as day_red"
+          ],
+          "output": "evid_timing",
+          "desc": "核心维度-时间集中度:月末最后3工作日红冲/全月红冲>50%->人为操纵。正常退货应随机分布在各时间段-集中在月末说明非正常退货而是突击调节收入。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "sal_invs",
+          "group_by": "buyer",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_reissue_cycle",
+          "desc": "核心维度-红冲重开循环:对同一购买方红冲后30天内等额重开->交易未取消只是发票被重新开具-红冲理由虚假。跨月红冲+下月重开=典型跨期调节。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as refund"
+          ],
+          "output": "evid_refund_match",
+          "desc": "核心维度-退款验证:红冲金额vs银行退款金额-差异>20%或>5万->红冲未伴随真实退款。红冲发生但退款未发生=红冲是为了调节收入而非交易取消。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备(红冲率)+核心(时间集中+重开循环+退款不匹配)-min_evidence=3闭环。四维全中-铁证虚假红冲。三维-强证据。双维-线索。",
+          "conditions": [
+            {
+              "if": "evid_red_rate exists",
+              "conclusion": "红冲率验证",
+              "severity": "必备维度确认",
+              "detail": "红冲率超行业预警值"
+            },
+            {
+              "if": "evid_timing exists",
+              "conclusion": "时间集中验证",
+              "severity": "核心维度确认",
+              "detail": "月末集中度>50%"
+            },
+            {
+              "if": "evid_refund_match exists",
+              "conclusion": "退款匹配验证",
+              "severity": "核心维度确认",
+              "detail": "红冲金额与退款金额不一致"
             }
           ],
           "output": "findings"

@@ -596,5 +596,99 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-007",
+    "rule_id": 6,
+    "rule_refs": [
+      "6"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "发票作废红冲与银行退款不匹配->虚假红冲调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(red_amount) as total_red",
+          "count(*) as red_count"
+        ],
+        "output": "monthly_red_amount",
+        "desc": "红冲-退款总量比对:从销项发票汇总每月红冲金额和红冲次数。红冲率=红冲金额/开票总额。红冲率超过行业预警值(商业零售5%/批发3%/建筑10%/电商15%)->红冲异常频繁。单月红冲>50万->大额红冲触发稽查。红冲是交易取消-每一笔红冲必然对应资金退回-红冲金额与退款金额差异>20%或>5万元->虚假红冲信号。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "date",
+        "fields": [
+          "sum(red_amount) as day_red"
+        ],
+        "output": "red_timing_pattern",
+        "desc": "时间模式检测-月末季末年末集中红冲:统计红冲发票的开具时间分布。集中度=月末最后3个工作日红冲量/全月红冲量x100%。集中度>50%->人为操纵痕迹明显-企业在最后几天突击红冲以压低当期申报收入。次月等额蓝字重开->典型的跨期收入调节-把本期收入推迟到下期确认，本质是虚假申报。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(red_amount) as buyer_red",
+          "count(*) as red_times"
+        ],
+        "output": "red_reissue_cycle",
+        "desc": "红冲-重开循环检测:对同一购买方，比对红冲发票和后续蓝字发票-红冲后是否在<=30天内等额重开？品名是否一致？金额是否相同(差异<5%)？红冲+等额重开=交易没有取消只是发票被重新开具-红冲的理由(退货/折让)是假的。同月内红冲+重开->可能是发票信息错误-属正常修改。跨月红冲+下月重开->典型的跨期收入调节。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as buyer_total",
+          "count(*) as inv_count"
+        ],
+        "output": "buyer_concentration",
+        "desc": "购买方集中度分析:统计同一购买方的红冲频率。同一购买方累计红冲>3次->购销关系不正常-正常交易中频繁红冲说明双方在配合做假。红冲发票对应的蓝票开票时间>180天->超期红冲不合商业常理-180天前的交易现在才红冲说明退货是假的。购买方为关联企业->极可能为关联交易虚假红冲。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as inflow",
+          "sum(debit) as outflow"
+        ],
+        "output": "refund_verification",
+        "desc": "资金反向追踪-退款验证:对红冲发票对应的购买方，从银行流水查找退款记录-是否存在对应金额的退款？退款金额是否与红冲金额一致？退款时间是否在红冲前后30天内？若红冲金额>退款金额且差异>5万->红冲退款不对应-红冲是假的，企业只是开了张红字发票冲收入，钱根本没退。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-仅红冲率略高(<预警值1.5倍)且退款基本对应->可能退货率偏高，存疑不入结论但需跟踪。路径二-红冲率超预警值2倍+月末集中>50%但退款基本对应(2源)->可能存在跨期调节，强证据限期补证。路径三-红冲金额>退款金额+月末集中+同一客户重复红冲+超期红冲(>=3源)->铁证虚假红冲调节收入，认定为偷税(S63)或编造虚假计税依据(S64)。",
+        "conditions": [
+          {
+            "if": "monthly_red_amount exists",
+            "conclusion": "红冲率异常偏高->超出行业预警值",
+            "severity": "高风险",
+            "detail": "红冲金额/开票总额超过行业预警值"
+          },
+          {
+            "if": "refund_verification exists",
+            "conclusion": "红冲-退款不匹配->虚假红冲确认",
+            "severity": "极高风险",
+            "detail": "红冲金额与银行退款金额不一致-红冲未伴随真实退款-红冲系虚构"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "征管法S64编造虚假计税依据"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]
