@@ -261,12 +261,11 @@ async function sendChat() {
   showTyping();
 
   try {
-    const resp = await fetch('/api/tax-risk-docs/ask', {
+    const resp = await fetch('/api/tax-risk-docs/ask?company_id=' + (window.currentCompanyId || 1), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         question: q,
-        company_id: window.currentCompanyId || 1,
         session_id: chatSessionId
       })
     });
@@ -296,7 +295,6 @@ async function handleFileUpload(input) {
   if (!file) return;
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('company_id', window.currentCompanyId || 1);
   formData.append('session_id', chatSessionId);
   
   appendMessage('user', '📎 上传文件：' + file.name);
@@ -304,7 +302,7 @@ async function handleFileUpload(input) {
   showTyping();
   
   try {
-    const resp = await fetch('/api/tax-risk-docs/ask', {
+    const resp = await fetch('/api/tax-risk-docs/ask?company_id=' + (window.currentCompanyId || 1), {
       method: 'POST',
       body: formData
     });
