@@ -3425,7 +3425,7 @@ window._clearAskChat = function() {
 window._editScope = {};
 
 
-window._initAllEditIcons = function() {
+window._initAllEditIcons = function() { return; /* 2026-07-25 老邓要求删除全部✏️ */
 
 
   var area = document.getElementById('tda-report-area');
