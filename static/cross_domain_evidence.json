@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 9,
+    "total_chains": 12,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -800,6 +800,247 @@
               "conclusion": "付款验证",
               "severity": "核心维度确认",
               "detail": "付款到个人账户且无可追溯性"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-010",
+      "rule_id": 9,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "银行收款vs申报收入不匹配->隐匿收入多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "bank_txs",
+          "group_by": "month",
+          "fields": [
+            "sum(credit) as recv"
+          ],
+          "output": "evid_bank_total",
+          "desc": "必备维度-银行收款总量:按月汇总全部收入性收款。剔除已知非经营性收入(借款/投资/内部转账)后得出经营性收款总量。银行不会说谎-银行收款是最硬的收入证据。"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "source": "sal_invs",
+          "group_by": "month",
+          "fields": [
+            "sum(total_amount) as decl"
+          ],
+          "output": "evid_vat_decl",
+          "desc": "核心维度-申报收入:从销项发票汇总已申报销售额。差额=银行收款-申报收入。差额持续>3月且>10万(服务5万)->隐匿收入成立。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as amt"
+          ],
+          "output": "evid_counterparty_match",
+          "desc": "核心维度-客户交叉比对:银行收款方vs销项发票购买方-不重合客户=隐匿收入来源。重合度越低说明隐匿收入问题越严重。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as amt"
+          ],
+          "output": "evid_personal",
+          "desc": "核心维度-个人账户收款:法人/股东/员工个人账户的经营性收款。对公账户零收入但个人账户巨额流入=最典型的隐匿收入模式。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。四维->铁证。三维->强证据。",
+          "conditions": [
+            {
+              "if": "evid_bank_total exists",
+              "conclusion": "银行收款总量验证",
+              "severity": "必备维度确认",
+              "detail": "银行经营性收款总额确认"
+            },
+            {
+              "if": "evid_counterparty_match exists",
+              "conclusion": "客户交叉比对",
+              "severity": "核心维度确认",
+              "detail": "银行收款方与发票购买方不重合"
+            },
+            {
+              "if": "evid_personal exists",
+              "conclusion": "个人账户验证",
+              "severity": "核心维度确认",
+              "detail": "法人/股东个人账户收取经营款"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-011",
+      "rule_id": 10,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "银行收款异常+关联交易->利益输送多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "aggregate",
+          "source": "bank_txs",
+          "group_by": "month",
+          "fields": [
+            "sum(credit) as recv"
+          ],
+          "output": "evid_bank_total",
+          "desc": "必备维度:银行收款总量vs申报收入差额>10万(大型100万/小微5万)。银行流水是资金流的最客观证据。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as amt"
+          ],
+          "output": "evid_related_party",
+          "desc": "核心维度:关联方资金流动是否存在？法人/股东/同一控制人的关联企业间资金流动=利益输送的主要通道。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "sal_invs",
+          "group_by": "buyer",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_pricing",
+          "desc": "核心维度:关联交易定价是否异常？价格偏离市场价的幅度=利润转移的程度。进销倒挂是转移利润的典型手法。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(credit) as in_f",
+            "sum(debit) as out_f"
+          ],
+          "output": "evid_circulation",
+          "desc": "核心维度:资金闭环检测。关联方间短期等额资金往返=走账行为=利益输送的铁证。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。四维->铁证。",
+          "conditions": [
+            {
+              "if": "evid_related_party exists",
+              "conclusion": "关联方资金验证",
+              "severity": "核心维度确认",
+              "detail": "关联方大额资金流动"
+            },
+            {
+              "if": "evid_pricing exists",
+              "conclusion": "定价异常验证",
+              "severity": "核心维度确认",
+              "detail": "关联交易价格偏离市场价"
+            },
+            {
+              "if": "evid_circulation exists",
+              "conclusion": "资金闭环验证",
+              "severity": "核心维度确认",
+              "detail": "关联方间等额资金往返"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-012",
+      "rule_id": 11,
+      "sub_topic": "跨域证据",
+      "level": "极高风险",
+      "name": "进项品名不符->虚增进项多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "goods",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_goods_scope",
+          "desc": "必备维度:进项品名与主营业务比对。单张>10万或累计>50万的异常品名=采购与经营无关。此维度是证据体系基石。"
+        },
+        {
+          "step": 2,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "goods",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_sensitive",
+          "desc": "核心维度:废旧物资/农产品/成品油/矿产品等敏感品类占比>30%->高风险。敏感品类容易成为虚开发票的工具。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "pur_invs",
+          "group_by": "supplier",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_supplier_chaos",
+          "desc": "核心维度:同一供应商品名是否混乱？跨行业供货的供应商=票贩子/开票公司。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "sal_invs",
+          "group_by": "goods",
+          "fields": [
+            "sum(total_amount) as amt"
+          ],
+          "output": "evid_inout_match",
+          "desc": "核心维度:进销品名是否匹配？完全无关->企业不是用这些货物生产经营=虚开或购票。"
+        },
+        {
+          "step": 5,
+          "op": "conclude",
+          "desc": "证据闭环:必备+核心->min_evidence=3。四维->铁证。",
+          "conditions": [
+            {
+              "if": "evid_goods_scope exists",
+              "conclusion": "品名偏离验证",
+              "severity": "必备维度确认",
+              "detail": "进项品名与主营业务不符"
+            },
+            {
+              "if": "evid_supplier_chaos exists",
+              "conclusion": "供应商混乱验证",
+              "severity": "核心维度确认",
+              "detail": "同一供应商跨行业供货物-票贩子嫌疑"
+            },
+            {
+              "if": "evid_inout_match exists",
+              "conclusion": "进销匹配验证",
+              "severity": "核心维度确认",
+              "detail": "进销品名完全无关"
             }
           ],
           "output": "findings"

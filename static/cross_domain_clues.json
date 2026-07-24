@@ -875,5 +875,278 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-010",
+    "rule_id": 9,
+    "rule_refs": [
+      "9"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "银行收款vs申报收入不匹配->隐匿收入调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "bank_txs",
+        "group_by": "month",
+        "fields": [
+          "sum(credit) as total_receipts"
+        ],
+        "output": "monthly_bank_receipts",
+        "desc": "银行收款总量汇总:按月汇总全部银行收款金额（剔除内部转账/借款/投资款等非经营性收入）。银行流水是资金流的最强证据-银行收到的每一分钱都有来源和去向。银行收款超过申报收入的部分=企业收到了钱但没有报税=隐匿收入的核心信号。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "sal_invs",
+        "group_by": "month",
+        "fields": [
+          "sum(total_amount) as declared_sales"
+        ],
+        "output": "monthly_declared_sales",
+        "desc": "申报收入统计:从销项发票汇总每月申报的销售额（=增值税申报表的计税基础）。与银行收款做月度比对-差额=银行收款-申报收入。差额>10万元(贸易20万/制造15万/服务5万)且持续3月以上->隐匿收入触发稽查。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as inflow"
+        ],
+        "output": "counterparty_receipts",
+        "desc": "收款对手方分析:按对手方汇总银行收款金额，与销项发票的客户名称进行交叉比对。哪些对手方的收款没有对应销项发票？无发票的收款来源-即为未申报的隐匿收入。对手方集中在个人账户->个人账户收款未开票未申报。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as amt",
+          "count(*) as cnt"
+        ],
+        "output": "personal_acct_receipts",
+        "desc": "个人账户收款排查:筛选收款账户类型为个人的银行流水。企业通过法人/股东/员工个人账户收取经营款项-资金不进对公账户-不开票-不申报-典型的隐匿收入模式。个人账户收款金额巨大但企业零申报-隐匿收入铁证。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as invoiced"
+        ],
+        "output": "invoiced_vs_receipts",
+        "desc": "开票客户vs收款客户双重比对:将销项发票的购买方清单与银行流水的收款方清单做全量交叉比对。两个清单应高度重合-不重合的收款方=收到钱但没开发票的客户=隐匿收入的直接证据。两个清单的重合度越低-隐匿收入问题越严重。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-差额<10万或仅单月差异->可能为预收/保证金等非收入性质收款，不入结论但需跟踪。路径二-差额>10万且持续>3月(2源)->强证据隐匿收入，限期补申报补税。路径三-差额>50万+个人账户收款+客户清单交叉验证不一致(>=3源)->铁证隐匿收入，认定为偷税(S63)。",
+        "conditions": [
+          {
+            "if": "monthly_bank_receipts exists",
+            "conclusion": "银行收款与申报收入存在显著差额",
+            "severity": "极高风险",
+            "detail": "银行收款超过申报收入的差额>10万元且持续>3月"
+          },
+          {
+            "if": "personal_acct_receipts exists",
+            "conclusion": "个人账户收款确认->隐匿收入模式",
+            "severity": "极高风险",
+            "detail": "通过法人/股东个人账户收取经营款，金额巨大且未申报"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "增值税暂行条例S1/S19"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-011",
+    "rule_id": 10,
+    "rule_refs": [
+      "10"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "银行收款异常+关联交易->隐匿收入关联企业转移调查",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "bank_txs",
+        "group_by": "month",
+        "fields": [
+          "sum(credit) as total_receipts"
+        ],
+        "output": "monthly_bank_receipts",
+        "desc": "银行收款总量汇总:按月汇总全部收款金额(剔除借款/投资/内部转账)。关联企业交易往往通过银行走账但不开发票/不开票但收款-银行流水暴露了真实交易规模。收款与申报差额>10万->隐匿收入触发。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as inflow"
+        ],
+        "output": "related_party_flows",
+        "desc": "关联方资金流动排查:按收款方/付款方与企业的关联关系(共同法人/股东/同一控制人/六员重叠)筛选资金流动。关联方之间的资金往来往往伴随利润转移/费用分摊/收入分流等税收筹划行为。没有商业实质的关联资金流动=利益输送。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as sales"
+        ],
+        "output": "related_party_sales",
+        "desc": "关联交易定价异常检测:关联方之间的销售价格是否与独立第三方交易价格一致？进销价格倒挂(卖给关联方比卖给第三方便宜太多)->利润转移到低税率关联企业。高价采购关联方商品(比市场价高)->成本虚增/利润转移。关联交易的定价异常是转移定价问题。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(credit) as inflow",
+          "sum(debit) as outflow"
+        ],
+        "output": "fund_circulation",
+        "desc": "资金闭环检测:关联方之间是否存在短期内等额资金往返->借款名义掩盖资金拆借或利润转移。资金先转到关联方->几天/几周后等额转回->典型的走账行为而非真实交易。资金在关联企业间循环流转不产生商业价值->利益输送的明确证据。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "buyer",
+        "fields": [
+          "sum(total_amount) as amt"
+        ],
+        "output": "uninvoiced_related",
+        "desc": "关联方收款未开票排查:银行收款来自关联方但无对应销项发票-关联方之间大额资金往来无发票=隐匿收入的最明显信号。关联方交易可能通过资金拆借/预付/往来款名义掩盖真实交易。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-关联方资金流动属正常经营往来有合理商业目的->不入结论。路径二-关联交易价格异常+关联方收款未开票(2源)->强证据关联交易避税。路径三-关联交易价格异常+资金闭环+未开票(>=3源)->铁证利益输送/转移利润偷税(S63)。",
+        "conditions": [
+          {
+            "if": "related_party_flows exists",
+            "conclusion": "关联方资金流动异常->利益输送嫌疑",
+            "severity": "极高风险",
+            "detail": "关联方之间大额资金流动无商业实质"
+          },
+          {
+            "if": "fund_circulation exists",
+            "conclusion": "资金闭环确认->走账行为而非真实交易",
+            "severity": "极高风险",
+            "detail": "关联方之间等额资金往返形成闭环-典型的走账利益输送"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "企业所得税法S41关联交易"
+        ],
+        "output": "findings"
+      }
+    ]
+  },
+  {
+    "id": "clue-012",
+    "rule_id": 11,
+    "rule_refs": [
+      "11"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "进项品名与主营业务不符->虚增进项或账外经营调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "goods",
+        "fields": [
+          "sum(total_amount) as total",
+          "count(*) as cnt"
+        ],
+        "output": "goods_vs_biz_scope",
+        "desc": "品名-主营业务比对:逐项比对进项发票品名与企业营业执照经营范围/实际主营业务。正常企业采购的货物/服务应当与其主营业务高度相关-餐饮企业大量采购钢材/建筑企业大量购买化妆品/贸易企业采购与其经营范围完全无关的商品->进项品名异常。单张>10万或累计>50万->触发稽查。"
+      },
+      {
+        "step": 2,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "goods",
+        "fields": [
+          "sum(total_amount) as amt"
+        ],
+        "output": "sensitive_goods",
+        "desc": "敏感品类占比分析:废旧物资/农产品/成品油/矿产品等特殊品类占全部进项的比例是否>30%？敏感品类因行业特殊性-税务系统有专门的监管要求(废旧物资需过磅单/农产品需收购发票/成品油需出库单)。敏感品类进项占比异常高说明企业可能在利用特殊品类发票做假。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "pur_invs",
+        "group_by": "supplier",
+        "fields": [
+          "sum(total_amount) as sup_amt"
+        ],
+        "output": "supplier_goods_consistency",
+        "desc": "供应商-品名一致性:同一供应商提供的货物品名是否稳定？若同一供应商今天卖钢材明天卖化妆品后天卖农产品-供应商的经营范围混乱-说明该供应商为开票公司/票贩子。正常企业的供应商应该在其经营范围内提供稳定的产品品类。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "sal_invs",
+        "group_by": "goods",
+        "fields": [
+          "sum(total_amount) as sales"
+        ],
+        "output": "in_out_goods_match",
+        "desc": "进销品名比对:企业进项采购的品名与销项销售的品名是否匹配？进销品名完全不同(采购钢材/卖出服装)->企业购进的货物根本没有用于自身生产经营->可能是为他人代开发票或购买进项票抵扣。进销品名高度一致->正常的贸易企业-品名匹配属于正常。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as paid"
+        ],
+        "output": "payment_for_abnormal_goods",
+        "desc": "资金验证:品名异常的进项发票是否真的有对应付款？付款到供应商账户的金额/时间是否与发票一致？有发票+有付款但品名异常->可能为真实的非主营业务采购。有发票+无付款->购买的进项发票用于虚抵。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-个别采购偏离主营但金额<10万可能为偶发需求->管理异常不入结论。路径二-品名异常+进销品名偏离+敏感品类>30%(2源)->强证据虚增进项或为他人代开。路径三-品名异常+供货商品类混乱+进销完全不匹配(>=3源)->铁证虚开发票(S37)或偷税(S63)。",
+        "conditions": [
+          {
+            "if": "goods_vs_biz_scope exists",
+            "conclusion": "进项品名与主营业务显著偏离",
+            "severity": "高风险",
+            "detail": "存在与经营范围无关的大额进项采购"
+          },
+          {
+            "if": "in_out_goods_match exists",
+            "conclusion": "进销品名不匹配->代开发票或购票嫌疑",
+            "severity": "极高风险",
+            "detail": "进项采购品名与销项销售品名完全无关"
+          }
+        ],
+        "law_refs": [
+          "发票管理办法S37虚开发票",
+          "征管法S63偷税"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]

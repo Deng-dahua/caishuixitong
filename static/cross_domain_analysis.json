@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 9,
+    "total_chains": 12,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -634,6 +634,207 @@
             "发票管理办法S37",
             "征管法S63",
             "增值税暂行条例S9"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-010",
+      "rule_id": 9,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "银行收款vs申报收入不匹配->跨域推理:隐匿收入定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链和证据链-确认银行收款与申报收入存在差额->进入判定。差额<10万或仅单月->可能预收/保证金不入结论。差额>10万且持续>3月->继续。",
+          "conditions": [
+            {
+              "if": "monthly_bank_receipts exists",
+              "conclusion": "收入差额确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "银行收款超过申报收入差额>10万持续>3月"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "差额来源归因:差额来自哪些客户/账户？个人账户收款->典型的体外循环隐匿收入。企业账户收款但无对应发票->可能为未开票收入未申报。差额集中在某几个大客户->针对性隐匿而非全面漏报。差额分散在众多小额客户->可能是零售/服务行业根本不开发票。",
+          "conditions": [
+            {
+              "if": "counterparty_receipts exists",
+              "conclusion": "差额来源归因完成->隐匿收入手法确认",
+              "severity": "分析链推理第一步",
+              "detail": "个人账户收款+客户不重合->典型的体外循环隐匿收入模式"
+            }
+          ],
+          "output": "source_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "行业适配判定:不同行业隐匿收入手法不同-零售/餐饮->现金收款不开票；服务业->个人账户收款不开票；制造业->扣除材料款后余额不入账；建筑业->进度款不确认收入。读取行业画像结合差额模式-给出行业特化的隐匿收入手法判断。",
+          "conditions": [
+            {
+              "if": "evid_personal exists",
+              "conclusion": "行业适配判定->隐匿收入模式确认",
+              "severity": "分析链推理第二步",
+              "detail": "结合行业画像和差额模式，确认具体的隐匿收入手法"
+            }
+          ],
+          "output": "industry_analysis"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:差额>10万+持续>3月+个人账户收款+客户交叉验证不一致->全链路闭环。完整证明->隐匿收入偷税(S63)铁证。部分证明->强证据限期补申报。仅小额差异->不入结论跟踪。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->隐匿收入偷税成立",
+              "severity": "极高风险",
+              "detail": "差额>10万+持续+个人账户+客户不一致->铁证=S63"
+            }
+          ],
+          "law_refs": [
+            "征管法S63偷税",
+            "增值税暂行条例S1/S19"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-011",
+      "rule_id": 10,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "银行收款异常+关联交易->跨域推理:利益输送定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链和证据链-确认银行收款异常+关联资金流动->进入判定。仅银行差额无关联交易->可能为#9一般隐匿收入不入此条。有银行差额+关联交易->继续。",
+          "conditions": [
+            {
+              "if": "related_party_flows exists",
+              "conclusion": "关联交易异常确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "银行收款异常+关联方大额资金流动共存"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "转移定价分析:关联交易价格是否显著偏离独立交易价格？价格差异的利益转移额=关联交易量x(市场价-关联价)。若关联价明显偏低(销项)或偏高(进项)->通过关联交易将利润从高税负企业转移到低税负企业->典型的转移定价避税。",
+          "conditions": [
+            {
+              "if": "related_party_sales exists",
+              "conclusion": "转移定价异常确认->利润转移定性",
+              "severity": "分析链推理第一步",
+              "detail": "关联交易价格显著偏离市场价-通过关联交易转移利润"
+            }
+          ],
+          "output": "transfer_pricing"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "资金闭环vs商业实质:关联方资金流动是否有真实商业实质？有合同+有交货+有对价->正常关联交易。无合同或仅有形式合同+等额资金往返->走账行为无商业实质。资金闭环=利益输送的最直接证据。",
+          "conditions": [
+            {
+              "if": "fund_circulation exists",
+              "conclusion": "资金闭环确认->无商业实质",
+              "severity": "分析链推理第二步",
+              "detail": "关联方等额资金往返形成闭环-走账行为无真实商业实质"
+            }
+          ],
+          "output": "no_business_purpose"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:银行收款差额+关联交易+定价异常+资金闭环-全链路。完整证明->利益输送/转移利润偷税(S63)铁证级。部分证明->强证据限期调整。仅关联交易无定价异常->正常关联交易不入结论。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->利益输送偷税定性成立",
+              "severity": "极高风险",
+              "detail": "收款差额+关联交易+定价异常+资金闭环->铁证=S63"
+            }
+          ],
+          "law_refs": [
+            "征管法S63偷税",
+            "企业所得税法S41关联交易"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-012",
+      "rule_id": 11,
+      "sub_topic": "跨域分析",
+      "level": "极高风险",
+      "name": "进项品名不符->跨域推理:虚增进项/代开发票定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链和证据链-确认进项品名与主营业务不符->进入判定。个别采购且<10万->偶发不入结论。大额(>50万)或多品类偏离->继续。",
+          "conditions": [
+            {
+              "if": "goods_vs_biz_scope exists",
+              "conclusion": "品名异常确认->进入定性路径",
+              "severity": "分析链起点",
+              "detail": "进项品名与主营业务存在显著偏离"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "行为归因:为什么采购与经营无关的商品？为他人代开发票(进项给自己/销项给别人)->进销品名必然不匹配。购买进项发票虚抵->只关心发票税额不关心品名->品名混乱。账外经营(采购原料做账外销售)->进项有发票但销项不开发票->进销不匹配。三种可能分别对应不同的违法性质。",
+          "conditions": [
+            {
+              "if": "in_out_goods_match exists",
+              "conclusion": "行为归因完成->虚开或购票定性",
+              "severity": "分析链推理第一步",
+              "detail": "进销品名不匹配+供应商混乱->虚开发票或购买进项票虚抵"
+            }
+          ],
+          "output": "behavior_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "品类特化判定:不同品类对应不同的违法模式。废旧物资/农产品->利用自开收购发票虚增进项。成品油->利用变名销售逃避消费税。矿产品->利用虚假过磅单虚增采购量。品名异常+品类特征=锁定具体的违法手法和适用法规。"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:品名异常+供应商混乱+进销不匹配-全链路。完整证明->虚开发票(S37)或偷税(S63)铁证。部分证明->强证据限期补证。仅偶发偏离->不入结论。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环->虚开发票定性成立",
+              "severity": "极高风险",
+              "detail": "品名异常+供应商混乱+进销不匹配->铁证=S37/S63"
+            }
+          ],
+          "law_refs": [
+            "发票管理办法S37虚开发票",
+            "征管法S63偷税"
           ],
           "output": "findings"
         }
