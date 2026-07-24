@@ -1791,6 +1791,22 @@ function renderQualityReport(qr, allF) {
 // ==================== 一键分析（异步任务机制） ====================
 
 
+
+// 安全JSON解析：处理服务器返回HTML错误页的情况
+async function _safeJson(response, context) {
+  var text = await response.text();
+  try {
+    var data = JSON.parse(text);
+    if (data._raw) data._raw = text.substring(0, 500);
+    return data;
+  } catch (e) {
+    // 非JSON响应 → 提取有用信息
+    var preview = text.substring(0, 200).replace(/<[^>]+>/g, '').trim();
+    return { ok: false, message: (context || '服务器') + '返回异常: ' + (preview || text.substring(0, 100)), _raw: text.substring(0, 500) };
+  }
+}
+
+
 async function analyzeTaxDocs() {
 
 
@@ -1821,7 +1837,7 @@ async function analyzeTaxDocs() {
     var startResp = await fetch('/api/tax-risk-docs/analyze-start?company_id=' + cid, { method: 'POST' });
 
 
-    var startData = await startResp.json();
+    var startData = await _safeJson(startResp, "启动分析");
 
 
     if (!startData.ok) { throw new Error(startData.message); }
@@ -1859,7 +1875,7 @@ async function analyzeTaxDocs() {
       var statusResp = await fetch('/api/tax-risk-docs/analyze-status/' + taskId);
 
 
-      var statusData = await statusResp.json();
+      var statusData = await _safeJson(statusResp, "分析状态");
 
 
       if (!statusData.ok) { throw new Error(statusData.message); }
@@ -1923,7 +1939,7 @@ async function analyzeTaxDocs() {
     var resultResp = await fetch('/api/tax-risk-docs/analyze-result/' + taskId);
 
 
-    var resultData = await resultResp.json();
+    var resultData = await _safeJson(resultResp, "分析结果");
 
 
     if (!resultData.ok) { throw new Error(resultData.message); }
