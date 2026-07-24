@@ -405,5 +405,97 @@
         "output": "findings"
       }
     ]
+  },
+  {
+    "id": "clue-005",
+    "rule_id": 4,
+    "rule_refs": [
+      "4"
+    ],
+    "sub_topic": "跨域调查",
+    "name": "无形资产摊销缺失->虚增无形资产或漏提摊销调查路径",
+    "steps": [
+      {
+        "step": 1,
+        "op": "aggregate",
+        "source": "intangible_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as total_original",
+          "sum(monthly_amortization) as total_amortization"
+        ],
+        "output": "asset_amortization_status",
+        "desc": "摊销完整性统计:从无形资产明细表汇总各项资产入账日期/原值/月摊销额。标记入账超12月但月摊销额连续为0的无形资产-入账超一年没提过一分钱摊销，要么无形资产是假的(虚增)，要么故意不提摊销虚增利润。科技/软件/医药行业无形资产占比高-阈值收紧至5万元，其他行业10万元。"
+      },
+      {
+        "step": 2,
+        "op": "aggregate",
+        "source": "vouchers",
+        "group_by": "month",
+        "fields": [
+          "sum(credit) as amortization_expense"
+        ],
+        "output": "monthly_amortization_expense",
+        "desc": "摊销费用总量验证:从序时账提取所有摊销类分录(科目含摊销)，按月汇总。与理论摊销额比对-理论额=各无形资产原值/法定使用年限/12。差额超理论额30%且超5万-摊销严重偏低，存在隐瞒或故意少摊虚增利润。"
+      },
+      {
+        "step": 3,
+        "op": "query",
+        "source": "intangible_assets",
+        "group_by": "asset_type",
+        "fields": [
+          "count(*) as cnt",
+          "sum(original_value) as type_original"
+        ],
+        "output": "amortization_policy_check",
+        "desc": "摊销政策一致性:按资产类型(专利/商标/软件著作权/土地使用权/专有技术)分组比对-同类型资产是否采用相同摊销方法？部分摊/部分不摊-选择性适用摊销政策-必然人为操纵利润。注意:土地使用权50-70年摊销/软件2-10年/专利按保护期-不同类型年限不同属正常。"
+      },
+      {
+        "step": 4,
+        "op": "query",
+        "source": "intangible_assets",
+        "group_by": "asset_id",
+        "fields": [
+          "sum(original_value) as value"
+        ],
+        "output": "suspicious_intangible",
+        "desc": "逐项穿透-异常无形资产权属验证:对摊销为0且原值超20万资产，要求提供:专利证书/商标注册证/软件著作权证/土地使用权证/评估报告/购置合同/付款凭证。七证不全-该无形资产极可能不存在为虚增资产。与固定资产不同-无形资产无法实物盘点，只能通过权属证书和登记记录验证存在性。"
+      },
+      {
+        "step": 5,
+        "op": "query",
+        "source": "bank_txs",
+        "group_by": "counterparty",
+        "fields": [
+          "sum(debit) as total_paid"
+        ],
+        "output": "intangible_payment_verify",
+        "desc": "资金反向追踪-无形资产购置款验证:对异常无形资产从银行流水查找对应购置付款-付款时间是否在入账前后3月内？金额是否与资产原值一致？对手方是否为专利权人/商标转让人/软件开发商？三问全否-无对应资金流出+无权属证书-虚构无形资产证据链闭合。注意:自行研发无形资产(如自研软件)无对外付款属正常-需查看研发费用归集记录。"
+      },
+      {
+        "step": 6,
+        "op": "conclude",
+        "desc": "闭环判定:路径一-摊销缺失<12月或差额<5万且七证齐全-会计差错不入结论。路径二-摊销缺失>12月+利润表摊销偏离>30%(2源)-强证据限期补证。路径三-摊销缺失+权属证书缺失+付款缺失(>=3源)-铁证认定为虚增无形资产偷税(S63)。",
+        "conditions": [
+          {
+            "if": "asset_amortization_status exists",
+            "conclusion": "无形资产入账超12月未摊销",
+            "severity": "高风险",
+            "detail": "存在入账超12月但月摊销额持续为零的无形资产"
+          },
+          {
+            "if": "intangible_payment_verify exists",
+            "conclusion": "无形资产购置款验证失败-虚增资产确认",
+            "severity": "极高风险",
+            "detail": "银行流水无对应购置付款+无权属证书=七证全缺"
+          }
+        ],
+        "law_refs": [
+          "征管法S63偷税",
+          "征管法S64编造虚假计税依据"
+        ],
+        "output": "findings"
+      }
+    ]
   }
 ]

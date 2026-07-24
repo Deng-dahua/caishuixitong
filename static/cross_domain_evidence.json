@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 4,
+    "total_chains": 5,
     "updated_at": "2026-07-23"
   },
   "evidence_chains": [
@@ -389,6 +389,97 @@
               "conclusion": "资金支付验证",
               "severity": "核心维度确认",
               "detail": "银行流水无对应资产购置付款"
+            }
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "evid-005",
+      "rule_id": 4,
+      "sub_topic": "跨域证据",
+      "level": "高风险",
+      "name": "无形资产摊销缺失->虚增无形资产多源验证闭环",
+      "min_evidence": 3,
+      "steps": [
+        {
+          "step": 1,
+          "op": "query",
+          "source": "intangible_assets",
+          "group_by": "asset_id",
+          "fields": [
+            "sum(original_value) as value"
+          ],
+          "output": "evid_amort_gap",
+          "desc": "必备维度-摊销缺失验证:筛选入账超12月且月摊销额=0的资产。科技/软件/医药超5万触发。此维度是整个证据体系的基石-如所有无形资产按期摊销则不存在本条疑点。"
+        },
+        {
+          "step": 2,
+          "op": "aggregate",
+          "source": "vouchers",
+          "group_by": "month",
+          "fields": [
+            "sum(credit) as monthly_amort"
+          ],
+          "output": "evid_profit_loss_amort",
+          "desc": "核心维度-利润表摊销费用验证:汇总摊销类分录每月总额。利润表摊销<理论摊销x70%-摊销严重偏低利润被虚增。"
+        },
+        {
+          "step": 3,
+          "op": "query",
+          "source": "intangible_assets",
+          "group_by": "asset_type",
+          "fields": [
+            "count(*) as cnt"
+          ],
+          "output": "evid_policy_consistency",
+          "desc": "核心维度-摊销政策一致性:同类型无形资产是否采用一致摊销方法？混合不一致-选择性适用-人为调节利润而非系统故障。"
+        },
+        {
+          "step": 4,
+          "op": "query",
+          "source": "intangible_assets",
+          "group_by": "asset_id",
+          "fields": [
+            "sum(original_value) as val"
+          ],
+          "output": "evid_ownership",
+          "desc": "核心维度-无形资产权属验证:摊销为0大额资产能否提供专利证书/商标注册证/软件著作权证/土地使用权证/评估报告？七证缺三以上-资产极可能不存在。此维度与#3的实物验证对称-无形资产无法实物盘点只能通过权属证书验证存在。"
+        },
+        {
+          "step": 5,
+          "op": "query",
+          "source": "bank_txs",
+          "group_by": "counterparty",
+          "fields": [
+            "sum(debit) as paid"
+          ],
+          "output": "evid_payment_verify",
+          "desc": "核心维度-购置资金验证:异常无形资产是否有银行付款记录？自行研发无形资产无对外付款属正常-需区分外购vs自研。外购无形资产无付款-无真实交易-虚构资产。"
+        },
+        {
+          "step": 6,
+          "op": "conclude",
+          "desc": "证据闭环:必备(摊销缺失)+核心(利润表+政策+权属+付款)-min_evidence=3闭环。五维全中-铁证。四维-强证据。三维-线索。",
+          "conditions": [
+            {
+              "if": "evid_amort_gap exists",
+              "conclusion": "摊销缺失验证",
+              "severity": "必备维度确认",
+              "detail": "入账超12月且摊销=0金额超10万/年"
+            },
+            {
+              "if": "evid_ownership exists",
+              "conclusion": "无形资产权属验证",
+              "severity": "核心维度确认",
+              "detail": "摊销为零资产无法提供权属证书"
+            },
+            {
+              "if": "evid_payment_verify exists",
+              "conclusion": "资金支付验证",
+              "severity": "核心维度确认",
+              "detail": "银行流水无对应外购无形资产付款"
             }
           ],
           "output": "findings"

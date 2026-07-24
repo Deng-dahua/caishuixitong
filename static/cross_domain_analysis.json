@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v3.0-executable",
-    "total_chains": 4,
+    "total_chains": 5,
     "updated_at": "2026-07-23"
   },
   "analysis_chains": [
@@ -271,6 +271,76 @@
               "conclusion": "全链路闭环-虚增资产定性成立",
               "severity": "极高风险",
               "detail": "折旧缺失+无实物+无付款->三维闭环。完整证明->S63铁证，部分->强证据，仅缺失->存疑"
+            }
+          ],
+          "law_refs": [
+            "征管法S63偷税",
+            "征管法S64编造虚假计税依据"
+          ],
+          "output": "findings"
+        }
+      ]
+    },
+    {
+      "id": "alc-005",
+      "rule_id": 4,
+      "sub_topic": "跨域分析",
+      "level": "高风险",
+      "name": "无形资产摊销缺失->跨域推理:虚增无形资产定性链",
+      "suggestion": "详见分析链步骤中的综合定性结论",
+      "steps": [
+        {
+          "step": 1,
+          "op": "conclude",
+          "desc": "前置判定:读取线索链(asset_amortization_status)和证据链(evid_amort_gap)-均确认存在摊销缺失-进入判定。个别资产<2项且<10万-存疑不入结论。多项或>30万-继续。闸门防小金额差错被过度放大。",
+          "conditions": [
+            {
+              "if": "asset_amortization_status exists",
+              "conclusion": "摊销缺失确认-进入定性路径",
+              "severity": "分析链起点",
+              "detail": "线索链和证据链均确认存在入账超12月且未摊销的无形资产"
+            }
+          ],
+          "output": "analysis_gate"
+        },
+        {
+          "step": 2,
+          "op": "conclude",
+          "desc": "资产归因:读取线索链步骤4和证据链步骤4-摊销为零资产是否有权属证书？有权属但未摊销-会计差错需追溯调整。无权属证书-虚增无形资产属S64或S63。注意区分:自行研发无形资产按研发支出资本化入账属正常-需检查研发费用归集记录而非权属证书。",
+          "conditions": [
+            {
+              "if": "suspicious_intangible exists",
+              "conclusion": "资产归因完成-虚增无形资产定性",
+              "severity": "分析链推理第一步",
+              "detail": "线索链锁定摊销为零资产清单结合权属证书判断虚增还是漏摊"
+            }
+          ],
+          "output": "asset_attribution"
+        },
+        {
+          "step": 3,
+          "op": "conclude",
+          "desc": "资金+权属双验证:合并付款验证与权属验证。无付款(外购)+无权属证书-虚增无形资产双验证闭环-铁证级。有付款有权属但未摊销-会计差错需更正。自研无形资产有研发记录但未摊销-资本化时间点错误需调整。",
+          "conditions": [
+            {
+              "if": "intangible_payment_verify exists",
+              "conclusion": "资金+权属双验合成-虚增无形资产铁证",
+              "severity": "分析链推理第二步",
+              "detail": "双源确认:外购无形资产无付款记录+无权属证书-虚增资产闭环"
+            }
+          ],
+          "output": "double_verify"
+        },
+        {
+          "step": 4,
+          "op": "conclude",
+          "desc": "综合定性:前三步-摊销缺失>12月+无权属证书+无付款(外购)-全链路闭环。完整证明-虚增无形资产偷税S63铁证。部分证明-强证据限期补证。仅摊销缺失-存疑不入结论。",
+          "conditions": [
+            {
+              "if": "analysis_gate exists",
+              "conclusion": "全链路闭环-虚增无形资产定性成立",
+              "severity": "极高风险",
+              "detail": "摊销缺失+无权属+无付款-三维闭环。完整证明-S63铁证，部分-强证据，仅缺失-存疑"
             }
           ],
           "law_refs": [
