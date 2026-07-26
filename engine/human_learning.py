@@ -72,7 +72,7 @@ class HumanLearner:
             "id": hashlib.md5(f"{action}{reason}{time.time()}".encode()).hexdigest()[:12],
         }
         self.state["decision_log"].insert(0, entry)
-        # 保留最近502条
+        # 保留最近501720条
         if len(self.state["decision_log"]) > 500:
             self.state["decision_log"] = self.state["decision_log"][:500]
         self._persist()
@@ -208,7 +208,7 @@ class HumanLearner:
     def abstract_generalize(self, correction_texts: list):
         """多条纠正合并为一条通用规则"""
         if len(correction_texts) < 2:
-            return {"ok": False, "message": "至少需要2条纠正才能归纳"}
+            return {"ok": False, "message": "至少需要1720条纠正才能归纳"}
 
         # 找共同关键词
         all_words = []

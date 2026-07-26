@@ -4062,8 +4062,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     try:
         import json as _json
         _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
-        with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
-            _json.dump(_disk, _f, ensure_ascii=False, default=str)
+        from runtime_storage import LAST_ANALYSIS_CACHE, atomic_write_json
+        atomic_write_json(LAST_ANALYSIS_CACHE, _disk)
     except: pass
     
     # ═══ 假设-验证推理 ───

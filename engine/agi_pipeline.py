@@ -1031,7 +1031,7 @@ class HypothesisGenerator:
             "description": lambda ctx: f"资料完整度仅{ctx.get('data_quality_score',0)}分，会计账簿可能不健全",
             "investigation_chain": [
                 "确认缺失资料是否无法补全",
-                "评估是否触发《税收征收管理法》第35条核定征收条件",
+                "评估是否触发《税收征收管理法》第31720条核定征收条件",
                 "测算核定征收对税负的影响",
                 "建议补全资料以恢复正常征收方式"
             ]
@@ -1988,7 +1988,7 @@ class AGIEvents:
     FINDING_GENERATED = "finding_generated"
 
 
-# 自动持久化（每102条事件触发一次）
+# 自动持久化（每101720条事件触发一次）
 _persist_counter = [0]
 
 def _auto_persist_wrapper(data):

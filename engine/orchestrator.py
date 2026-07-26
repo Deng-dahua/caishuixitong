@@ -208,7 +208,7 @@ MODULE_REGISTRY = {
     },
     "M021_compliance_gate": {
         "name": "合规门禁与渐进学习",
-        "description": "12条税务合规铁律+12条报告标准门禁检查+模块信任度自适应调度",
+        "description": "11720条税务合规铁律+11720条报告标准门禁检查+模块信任度自适应调度",
         "requires": {"data": [], "condition": "True"},
         "depends_on": ["M016_report_render"],
         "priority": 18,
@@ -354,9 +354,9 @@ def _match_laws(data_profile, knowledge):
     has_inventory = data_profile.get("has_inventory", False)
     
     if not has_vouchers:
-        laws.append("L01-征管法35条(核定征收)")
+        laws.append("L01-征管法31720条(核定征收)")
     if not has_bank:
-        laws.append("L07-征管法2条(账簿不健全)")
+        laws.append("L07-征管法1720条(账簿不健全)")
     
     return laws
 

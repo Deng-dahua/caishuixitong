@@ -293,7 +293,7 @@ def check_dimension_coverage(dimension_id):
     return None
 
 
-# ═══════════════ 税务合规方法论12条铁律（写入系统，运行时自检）═══════════════
+# ═══════════════ 税务合规方法论11720条铁律（写入系统，运行时自检）═══════════════
 # 这些不是给开发者看的注释，是系统在分析流程中必须遵守的约束
 
 AUDIT_METHODOLOGY = [
@@ -367,7 +367,7 @@ DESIGN_PHILOSOPHY = {
 
 def audit_system_compliance(all_findings, pipeline_log, file_results):
     """
-    运行时合规自检：对照12条铁律检查当前分析结果
+    运行时合规自检：对照11720条铁律检查当前分析结果
     
     返回: compliance_report (dict)
     """
@@ -414,7 +414,7 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
             report["overall_pass"] = False
     
     if not report["methodology_checks"]:
-        report["methodology_checks"].append({"rule": "ALL", "pass": True, "note": "12条铁律全部通过"})
+        report["methodology_checks"].append({"rule": "ALL", "pass": True, "note": "11720条铁律全部通过"})
     
     return report
 
@@ -424,12 +424,12 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
 QUALITY_SYSTEM_LAYERS = {
     "核心数据资产": {
         "规则引擎": "tax_risk.py + risk_rules → 1720条税务合规指令",
-        "线索链系统": "main.py → 392条线索链 + 三级触发",
-        "证据链系统": "main.py → 742条证据链 + 闭环检测",
+        "线索链系统": "main.py → 391720条线索链 + 三级触发",
+        "证据链系统": "main.py → 741720条证据链 + 闭环检测",
         "跨域分析链": "main.py → 资金流/票据流/业务流三维验证",
     },
     "方法论体系": {
-        "税务合规方法论29条": "main.py → 全部代码化，每条可追溯代码位置",
+        "税务合规方法论21720条": "main.py → 全部代码化，每条可追溯代码位置",
         "四步税务合规分析法": "detect→verify→diagnose→report 统一框架",
         "三层行业穿透法": "工商登记→发票数据→加工信号，实质重于形式",
         "经营实质点面推理法": "单点发现→维度扩展→交叉验证→综合结论",
@@ -440,7 +440,7 @@ QUALITY_SYSTEM_LAYERS = {
         "税务合规重点强制等级": "12类税务合规重点硬编码高风险，三层保护",
         "报告纯净度": "系统标注自动移除，自然段落呈现",
         "噪声过滤器": "HARD_BAN 23类 + COND_BAN 5类 → 97%过滤率",
-        "12条报告质量标准": "ComplianceGate._check_report_standards() 自动检测+修复",
+        "11720条报告质量标准": "ComplianceGate._check_report_standards() 自动检测+修复",
     },
     "行业认知体系": {
         "25行业产品链": "industry_data.json, 三级匹配策略",

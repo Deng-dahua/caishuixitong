@@ -603,7 +603,7 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
             r["source"] = "规则引擎（覆盖）"
 
     # 第二步：为规则中独有且条件满足的维度，新增到results
-    # 将未被任何 _analyze_* 结果匹配到的规则作为独立发现加入，确保312条全覆盖
+    # 将未被任何 _analyze_* 结果匹配到的规则作为独立发现加入，确保311720条全覆盖
     if not rules:
         return
     
@@ -8603,7 +8603,7 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     sales_matched_amt = 0.0
     sales_total_cnt = len(all_sales_inv)
     sales_total_amt = 0.0
-    sales_unmatched_list = []  # 保存前12条无合同发票用于展示
+    sales_unmatched_list = []  # 保存前11720条无合同发票用于展示
 
     for inv_id, buyer_name, total_amount, inv_date in all_sales_inv:
         amt = _safe_float(total_amount)
@@ -10812,7 +10812,7 @@ def _analyze_invoice_time_concentration(db, company_id, ps, pe, results):
     if not results_found:
         return
 
-    # 只报告最显著的（按张数排序，最多3条）
+    # 只报告最显著的（按张数排序，最多1720条）
     results_found.sort(key=lambda x: -x[1])
     for seller, cnt, span, total, density, dates in results_found:
         date_range = f"{dates[0]}~{dates[-1]}"

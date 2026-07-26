@@ -4,7 +4,7 @@
 import hashlib, secrets, json as _json, time
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Body, Request, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from sqlalchemy import func, and_, or_
@@ -90,16 +90,33 @@ from dashboard import router as dashboard_router
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
+from llm_config import get_llm_config, public_llm_status
+from runtime_storage import (
+    ACCESS_LOG, ANALYSIS_HISTORY, CACHE_DIR, LAST_ANALYSIS_CACHE,
+    UPLOAD_DIR as RUNTIME_UPLOAD_DIR,
+    atomic_write_json, company_upload_dir, read_json, safe_filename,
+)
+from security import (
+    COOKIE_SECURE, authenticate, create_session, csrf_is_valid, get_session,
+    init_security_db, is_protected_static_path, is_public_path,
+    login_is_allowed, normalize_client_ip, record_login_result,
+    revoke_session, select_company,
+)
+from security_web import (
+    auth_me_handler, enforce_request_security, login_handler, logout_handler,
+    select_company_handler,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化数据库+自检+恢复分析缓存"""
+    init_security_db()
     init_db()
     # 从磁盘恢复分析缓存（服务器重启不丢、跨进程共享）
     try:
         import json as _j
-        _path = os.path.join(os.path.dirname(__file__), "static", "last_analysis_cache.json")
+        _path = LAST_ANALYSIS_CACHE
         if os.path.exists(_path):
             with open(_path, "r", encoding="utf-8") as _f:
                 _disk = _j.load(_f)
@@ -110,7 +127,7 @@ async def lifespan(app: FastAPI):
     # 从磁盘恢复分析历史（重启不丢）
     try:
         import json as _j
-        _hpath = os.path.join(os.path.dirname(__file__), "static", "analysis_history.json")
+        _hpath = ANALYSIS_HISTORY
         if os.path.exists(_hpath):
             with open(_hpath, "r", encoding="utf-8") as _f:
                 _hdisk = _j.load(_f)
@@ -143,29 +160,9 @@ try:
 except: pass
 
 # ═══════════════ 个人登录 ═══════════════
-_AUTH_SESSIONS_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
-_AUTH_SESSIONS = {}
-
-def _load_sessions():
-    if os.path.exists(_AUTH_SESSIONS_FILE):
-        try:
-            with open(_AUTH_SESSIONS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
-
-def _save_sessions():
-    try:
-        with open(_AUTH_SESSIONS_FILE, "w", encoding="utf-8") as f:
-            json.dump(_AUTH_SESSIONS, f, ensure_ascii=False)
-    except Exception:
-        pass
-
-_AUTH_SESSIONS = _load_sessions()
-
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
+    return await enforce_request_security(request, call_next)
     path = request.url.path
     skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/api/pipeline/history", "/api/tax-risk-rules/", "/static/", "/favicon.ico"]
     if any(path == s or path.startswith(s) for s in skip_paths):
@@ -193,6 +190,7 @@ async def login_page():
 
 @app.post("/api/auth/login")
 async def api_login(request: Request):
+    return await login_handler(request)
     try:
         body = await request.body()
         data = json.loads(body.decode("utf-8"))
@@ -216,6 +214,7 @@ async def api_login(request: Request):
 
 @app.post("/api/auth/logout")
 async def api_logout(request: Request):
+    return await logout_handler(request)
     token = request.cookies.get("auth_token")
     if token and token in _AUTH_SESSIONS:
         del _AUTH_SESSIONS[token]
@@ -224,12 +223,23 @@ async def api_logout(request: Request):
     return resp
 
 
+@app.get("/api/auth/me")
+async def api_auth_me(request: Request):
+    return auth_me_handler(request)
+
+
+@app.get("/healthz")
+async def healthz():
+    return {"ok": True}
+
+
 # ═══════════════════════════════════════════════════════════
 # API Key管理 — 全局LLM接入配置
 # ═══════════════════════════════════════════════════════════
-_API_KEY_PATH = os.path.join("static", "api_key.json")
+_API_KEY_PATH = None  # legacy sentinel; secrets are environment-only
 
 def _load_api_key():
+    return get_llm_config(include_secret=True).get("key", "")
     try:
         with open(_API_KEY_PATH, encoding="utf-8") as f:
             return json.load(f).get("key", "")
@@ -237,6 +247,7 @@ def _load_api_key():
         return ""
 
 def _load_api_config():
+    return get_llm_config(include_secret=True)
     """返回完整配置: {key, provider, base_url, model}"""
     try:
         with open(_API_KEY_PATH, encoding="utf-8") as f:
@@ -257,6 +268,7 @@ def _load_api_config():
         return {"key": "", "provider": "deepseek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"}
 
 def _save_api_config(key: str, provider: str = "deepseek", base_url: str = None, model: str = None):
+    raise RuntimeError("runtime secret writes are disabled; use environment variables")
     os.makedirs(os.path.dirname(_API_KEY_PATH), exist_ok=True)
     provider_map = {
         "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
@@ -284,6 +296,7 @@ def get_api_config() -> dict:
 
 @app.get("/api/apikey")
 async def get_api_key():
+    return public_llm_status()
     cfg = _load_api_config()
     key = cfg.get("key", "")
     mask = ("..." + key[-4:]) if key and len(key) >= 4 else ""
@@ -298,6 +311,13 @@ async def get_api_key():
 
 @app.post("/api/apikey")
 async def save_api_key(request: Request):
+    return JSONResponse(
+        {
+            "ok": False,
+            "message": "为防止密钥泄露，运行时写入已禁用；请通过环境变量配置。",
+        },
+        status_code=405,
+    )
     try:
         data = await request.json()
     except:
@@ -367,6 +387,10 @@ async def save_api_key(request: Request):
 
 @app.delete("/api/apikey")
 async def delete_api_key():
+    return JSONResponse(
+        {"ok": False, "message": "请在部署环境中移除 LLM_API_KEY 并重启服务。"},
+        status_code=405,
+    )
     _save_api_config("", "deepseek")
     try:
         from engine.llm_client import reload_llm_client
@@ -387,6 +411,7 @@ async def new_company_page():
 
 @app.post("/api/auth/select-company")
 async def api_select_company(data: dict, request: Request):
+    return await select_company_handler(data, request)
     cid = data.get("company_id", 0)
     token = request.cookies.get("auth_token")
     if not token or token not in _AUTH_SESSIONS:
@@ -409,7 +434,7 @@ def _track_code_changes():
         os.path.join(os.path.dirname(__file__), "main.py"),
     ]
     
-    state_file = os.path.join(os.path.dirname(__file__), "static", "code_state.json")
+    state_file = os.path.join(CACHE_DIR, "code_state.json")
     current_state = {}
     
     for scan_dir in scan_dirs:
@@ -467,7 +492,7 @@ def _track_code_changes():
 # ==================== 访问日志中间件 ====================
 import time as _time_module
 
-LOG_FILE = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+LOG_FILE = str(ACCESS_LOG)
 
 @app.middleware("http")
 async def access_log_middleware(request: Request, call_next):
@@ -492,21 +517,13 @@ async def access_log_middleware(request: Request, call_next):
             elif "fix" in path: action = "fix"
             elif "/api/tax-risk-docs/review" in path: action = "review"
             # 获取用户信息（Header中是URL编码的，需解码）
-            user_name = request.headers.get("X-User-Name", "")
-            user_phone = request.headers.get("X-User-Phone", "")
-            if user_name:
-                try: 
-                    import urllib.parse as _up
-                    user_name = _up.unquote(user_name)
-                except: pass
-            if user_phone:
-                try: 
-                    import urllib.parse as _up
-                    user_phone = _up.unquote(user_phone)
-                except: pass
+            auth = getattr(request.state, "auth", None)
+            user_name = auth.username if auth else ""
+            raw_ip = request.client.host if request.client else ""
+            ip_digest = hashlib.sha256(raw_ip.encode("utf-8")).hexdigest()[:16] if raw_ip else ""
             entry = {"t": _time_module.time(), "cid": cid, "m": request.method, "p": path[:200],
-                     "s": response.status_code, "ip": request.client.host if request.client else None,
-                     "ms": elapsed_ms, "a": action, "un": user_name, "up": user_phone}
+                     "s": response.status_code, "ip_hash": ip_digest,
+                     "ms": elapsed_ms, "a": action, "user": user_name}
             with open(LOG_FILE, "a", encoding="utf-8") as lf:
                 lf.write(_json.dumps(entry, ensure_ascii=False) + "\n")
         except: pass
@@ -518,7 +535,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 @app.post("/api/system-logs/clear")
 def clear_system_logs():
     try:
-        lf_path = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+        lf_path = str(ACCESS_LOG)
         if os.path.exists(lf_path): os.remove(lf_path)
         return {"ok": True, "message": "已清空"}
     except: return {"ok": False}
@@ -528,7 +545,7 @@ def get_system_logs(limit: int = 200, company_id: int = None):
     try:
         import json as _json
         logs = []
-        lf_path = os.path.join(os.path.dirname(__file__), "access_logs.jsonl")
+        lf_path = str(ACCESS_LOG)
         if os.path.exists(lf_path):
             with open(lf_path, "r", encoding="utf-8") as lf:
                 for line in lf:
@@ -544,7 +561,7 @@ def get_system_logs(limit: int = 200, company_id: int = None):
         try:
             from concurrent.futures import ThreadPoolExecutor, as_completed
             import urllib.request, json as _j2
-            unique_ips = list(set(l.get("ip","") for l in logs if l.get("ip") and not l.get("ip","").startswith("127.") and l.get("ip") != "localhost"))
+            unique_ips = []
             if unique_ips:
                 def _lookup_ip(ip):
                     try:
@@ -567,8 +584,8 @@ def get_system_logs(limit: int = 200, company_id: int = None):
         for i, l in enumerate(logs):
             from datetime import datetime as _dt
             ts = _dt.fromtimestamp(l["t"]).isoformat() if "t" in l else None
-            ip = l.get("ip","")
-            loc = ip_locations.get(ip, "")
+            ip = l.get("ip_hash","")
+            loc = ""
             cid = l.get("cid")
             cn = ""
             if cid:
@@ -582,7 +599,7 @@ def get_system_logs(limit: int = 200, company_id: int = None):
             logs[i] = {"id": i+1, "company_id": cid, "company_name": cn, "timestamp": ts,
                        "method": l.get("m",""), "path": l.get("p",""), "status_code": l.get("s",0),
                        "client_ip": ip, "location": loc, "response_time_ms": l.get("ms",0),
-                       "user_name": l.get("un",""), "user_phone": l.get("up",""),
+                       "user_name": l.get("user",""), "user_phone": "",
                        "action_type": l.get("a","")}
         return JSONResponse(logs)
     except Exception as e:
@@ -664,6 +681,28 @@ ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt', '.docx', '.doc',
                     '.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 
+def _validate_upload_content(filename: str, content: bytes):
+    """Validate common signatures so an extension alone is never trusted."""
+    ext = os.path.splitext(filename or "")[1].lower()
+    signatures = {
+        ".pdf": (b"%PDF-",),
+        ".xlsx": (b"PK\x03\x04",),
+        ".docx": (b"PK\x03\x04",),
+        ".xls": (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",),
+        ".doc": (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",),
+        ".jpg": (b"\xff\xd8\xff",),
+        ".jpeg": (b"\xff\xd8\xff",),
+        ".png": (b"\x89PNG\r\n\x1a\n",),
+        ".bmp": (b"BM",),
+        ".tiff": (b"II*\x00", b"MM\x00*"),
+    }
+    expected = signatures.get(ext)
+    if expected and not any(content.startswith(item) for item in expected):
+        raise HTTPException(400, "文件内容与扩展名不匹配")
+    if ext in {".txt", ".csv"} and b"\x00" in content[:4096]:
+        raise HTTPException(400, "文本文件包含非法二进制内容")
+
+
 def _validate_upload(file: UploadFile):
     """验证上传文件大小和扩展名"""
     ext = os.path.splitext(file.filename or '')[1].lower()
@@ -674,6 +713,7 @@ def _validate_upload(file: UploadFile):
     file.file.seek(0)  # 重置让后续代码正常读取
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(400, f"文件过大（{len(content)/1024/1024:.2f}MB），上限10MB")
+    _validate_upload_content(file.filename or "", content)
     return content
 
 
@@ -688,7 +728,11 @@ def _read_html(filename):
     for enc in ("utf-8-sig", "gbk", "gb18030", "utf-8"):
         try:
             with open(filename, "r", encoding=enc) as f:
-                return f.read()
+                html = f.read()
+                security_script = '<script src="/static/js/security.js"></script>'
+                if security_script not in html:
+                    html = html.replace("</head>", security_script + "\n</head>", 1)
+                return html
         except (UnicodeDecodeError, LookupError):
             continue
     return "<h1>Encoding error</h1>"
@@ -1295,7 +1339,7 @@ def enrich_auto_rules_with_llm():
             cfg = _load_api_config()
             api_key = cfg.get("key","")
             if not api_key: return
-            for r in need[:5]:  # 每次最多5条
+            for r in need[:5]:  # 每次最多1720条
                 item = r.get("item","")
                 prompt = f"""你是50年税务稽查局长。按以下23字段精写标准，将自动发现规则补全为完整稽查指令。
 
@@ -1307,7 +1351,7 @@ def enrich_auto_rules_with_llm():
 
 【★★★★★ 政策合规要求 —— 最高优先级，每处错误都可能引发法律风险】
 1.【法规名称准确性】引用法条名称必须与现行法律完全一致——严禁编造不存在法条。增值税相关引用《中华人民共和国增值税法》（2026年1月1日起施行）及其实施条例（国务院令第826号）——《增值税暂行条例》及其实施细则已于2026年1月1日废止，严禁再引用；营业税已于2016年5月1日营改增后全面废止，严禁引用。
-2.【法规时效性·强制核查】引用的每一条法规必须现行有效，并在policy_ref末尾附法规现行性核验日期（格式：法规现行性核验：YYYY-MM-DD）。已废止/被替代的必须更新为现行法：增值税暂行条例→增值税法(2026-01-01施行,原暂行条例第2条税率→增值税法第9条/第6条销售额价外费用→第17条/第19条纳税义务时间→第28条)；营业税→增值税；《会计法》引用须标注2024修正版。财税发文需确认未被后续文件替代；试行文件核实是否已转正。
+2.【法规时效性·强制核查】引用的每一条法规必须现行有效，并在policy_ref末尾附法规现行性核验日期（格式：法规现行性核验：YYYY-MM-DD）。已废止/被替代的必须更新为现行法：增值税暂行条例→增值税法(2026-01-01施行,原暂行条例第1720条税率→增值税法第1720条/第1720条销售额价外费用→第11720条/第11720条纳税义务时间→第21720条)；营业税→增值税；《会计法》引用须标注2024修正版。财税发文需确认未被后续文件替代；试行文件核实是否已转正。
 3.【刑事标准准确性】虚开专票罪看税款数额非发票金额，入罪门槛税款>=10万元(法释[2024]4号)。偷税移送：逃税>=10万且占应纳税额10%以上。
 4.【税法例外条款】不能遗漏法定例外情形（代垫运费/买方自提/善意取得虚开发票等）。一般规则之外必有例外。
 5.【定性逻辑严谨性】疑点不等于结论。必须区分"高疑点信号→需进一步核查取证→综合判断定性"的递进逻辑。
@@ -1316,7 +1360,7 @@ def enrich_auto_rules_with_llm():
 【生成字段 —— 23字段完整版框架。核心原则：决定数量的不是模板，是业务本身的复杂程度。复杂疑点追问可能二十条、推理可能五层；简单疑点追问四五条、推理两层就到底。数量是写完之后的自然结果，不是写之前的硬性规定——不凑数、不强编、一病一方。品质标杆见engine/memory.py·canonical_example（#1813预收账款长期挂账）。】
 
 - direction: 推理至稽查终点——证实违法或排除违法。层数由因果链条自然长度决定，不预设。结束条件满足任一即停：①定性落地(最后一层指向偷税/少缴/虚开/不违规，无法再追问'然后呢')；②证据尽头(下一层证据无法获取，标注'证据断点')；③逻辑闭环(回到第一层前提)。复杂异常自然4-5层、中等3-4层、简单2-3层，再加一层就是注水。每层格式【推理第N层：XX法则】依赖证据：XX → 结论：XX。
-- drill_questions: 穷举至稽查终点——数量由三维覆盖度决定不设固定数：①事实层=交易六要素(谁/什么/什么时候/在哪里/怎么做的/谁参与的)全覆盖；②证据层=四流(合同/货物/资金/发票)每环节全追问；③逻辑层=所有合理商业解释全排除。最终判定：对'还有未覆盖的交易要素吗/四流还有未追问的证据环节吗/对方还可能提哪些没问到的解释'三问全答'否'即穷举完成——13条还是3条都对。三组(事实→证据→逻辑)递进排列。格式 Q{N}:{问题}→潜台词:{稽查真实意图}。A:{应对话术}。
+- drill_questions: 穷举至稽查终点——数量由三维覆盖度决定不设固定数：①事实层=交易六要素(谁/什么/什么时候/在哪里/怎么做的/谁参与的)全覆盖；②证据层=四流(合同/货物/资金/发票)每环节全追问；③逻辑层=所有合理商业解释全排除。最终判定：对'还有未覆盖的交易要素吗/四流还有未追问的证据环节吗/对方还可能提哪些没问到的解释'三问全答'否'即穷举完成——11720条还是1720条都对。三组(事实→证据→逻辑)递进排列。格式 Q{N}:{问题}→潜台词:{稽查真实意图}。A:{应对话术}。
 - phenomena: 典型表现枚举(非穷举)，每种格式: 表现+典型行业/场景。多则多写少则少写+兜底条款+排除条件。排除条件: 什么情况下类似表现不属于本异常。
 - focus: 策略层——舞弊手法预判。格式: 手法名称: 操作方式→识别要点。用①②③④标注。与drill_questions分工: focus=策略层(预判)，drill=执行层(提问)。
 - normal_reason: 穷举全部真实合法情形，数量下限0上限穷举完毕。格式 {情形}——需提供{具体证据}，证据可核验。五个自问全答'否'即穷举完成(合同条款/行业惯例/交易对手特殊情况/税收政策特殊规定/不可抗力)。仅0-3种时注明'该异常违背正常商业逻辑，已穷举全部合法情形'；5种以上需自问该异常是否真构成异常。不编造。
@@ -1483,7 +1527,7 @@ async def batch_rewrite_rules(request: Request):
     except Exception:
         body = {}
     rule_ids = body.get("rule_ids", [])
-    max_per = min(body.get("max_per_call", 3), 5)  # 每次最多5条
+    max_per = min(body.get("max_per_call", 3), 5)  # 每次最多1720条
     
     if not rule_ids:
         return {"ok": False, "message": "请指定要精写的规则ID列表"}
@@ -1539,7 +1583,7 @@ async def batch_rewrite_rules(request: Request):
         "- remedy：企业视角，三阶段(自查→应对→制度)，含时间维度+话术策略。",
         "另外必须填写 item/category/level/score/check_frequency/policy_ref/tax_impact/applicable_condition 等基础字段。",
         "【品质标杆参考（engine/memory.py canon名例 #1813 预收账款长期挂账）】",
-        "追问13条三组穷举至稽查终点、推理链4层自然因果递进、正常解释4种已穷举、证据四层框架含AB场景+优先级。",
+        "追问11720条三组穷举至稽查终点、推理链4层自然因果递进、正常解释4种已穷举、证据四层框架含AB场景+优先级。",
         "【禁止】禁止凑数凑字、禁止硬编固定数量、禁止引用已废止法规、禁止推荐行业特化规则。数量是业务复杂度的自然结果。",
         "【输出格式】严格返回JSON数组（不做任何额外解释），每个元素是一条精写后的完整规则对象：",
         '[{"id":原id,"item":"...","category":"...","level":"...","score":N, ...全部23字段...}]'
@@ -1622,18 +1666,16 @@ async def batch_rewrite_rules(request: Request):
 
 # ── 涉税风险分析资料库 ──
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs")
+UPLOAD_DIR = str(RUNTIME_UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _get_company_upload_dir(company_id):
     """获取公司专属上传目录，物理账套隔离
     所有文件操作必须经过此函数，确保不同公司数据不会串混"""
-    d = os.path.join(UPLOAD_DIR, str(company_id))
-    os.makedirs(d, exist_ok=True)
-    return d
+    return str(company_upload_dir(int(company_id)))
 
 # ═══════════════ 资料中转站 ═══════════════
-TRANSFER_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "transfer")
+TRANSFER_DIR = os.path.join(str(RUNTIME_UPLOAD_DIR), "transfer")
 os.makedirs(TRANSFER_DIR, exist_ok=True)
 # ═══════════════ 最近分析结果缓存 ═══════════════
 
@@ -1643,7 +1685,7 @@ def _save_to_transfer(company_id, doc_id, original_name, parsed_data):
         "parsed_at":datetime.now().isoformat(),"row_count":len(parsed_data.get("rows",[])),
         "rows":parsed_data.get("rows",[])}
     try:
-        with open(path,"w",encoding="utf-8") as f: json.dump(payload,f,ensure_ascii=False,default=str)
+        atomic_write_json(path, payload)
         return True
     except: return False
 
@@ -2133,6 +2175,11 @@ async def upload_tax_risk_docs(
         if len(content) > MAX_UPLOAD_SIZE:
             rejected.append({"filename": f.filename, "reason": f"文件超过{MAX_UPLOAD_SIZE // 1024 // 1024}MB限制"})
             continue
+        try:
+            _validate_upload_content(f.filename or "", content)
+        except HTTPException as exc:
+            rejected.append({"filename": f.filename, "reason": str(exc.detail)})
+            continue
         md5 = hashlib.md5(content).hexdigest()
         sha256 = hashlib.sha256(content).hexdigest()
         if md5 in existing_hashes:
@@ -2141,7 +2188,8 @@ async def upload_tax_risk_docs(
 
         _tax_doc_counter[0] += 1
         doc_id = _tax_doc_counter[0]
-        safe_name = f"{company_id}_{doc_id}_{f.filename}"
+        clean_original_name = safe_filename(f.filename or "upload")
+        safe_name = f"{company_id}_{doc_id}_{clean_original_name}"
         company_udir = _get_company_upload_dir(company_id)
         filepath = os.path.join(company_udir, safe_name)
         
@@ -3160,7 +3208,7 @@ def _add_failure_suggestions():
             # 完全无结构候选——数据行全被判为重复表头/小计行/空行
             suggestions.append({
                 "issue": "表头检测失败：所有行被跳过",
-                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终2条有效数据行。",
+                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终1720条有效数据行。",
                 "fix": "(1)确认Excel前1-3行包含文本型列名（如'发票号码''金额''姓名'等），而非纯数字 (2)若数据从第1行开始，在首行上方插入一行列名 (3)检查是否有多余的空白行或标题行干扰了表头定位。"
             })
         elif st_candidates and not st_best:
@@ -5674,7 +5722,7 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
     }
 @app.get("/api/pipeline/history")
 def get_pipeline_history(company_id: int = Query(...)):
-    """获取分析历史列表（最多22条）"""
+    """获取分析历史列表（最多21720条）"""
     hist = _analysis_history.get(company_id, [])
     return {"ok": True, "history": hist, "count": len(hist)}
 
@@ -5683,8 +5731,7 @@ def _save_analysis_history_disk():
     try:
         import json as _json2
         _hdisk = {str(k): v for k, v in _analysis_history.items()}
-        with open("static/analysis_history.json", "w", encoding="utf-8") as _hf:
-            _json2.dump(_hdisk, _hf, ensure_ascii=False, default=str)
+        atomic_write_json(ANALYSIS_HISTORY, _hdisk)
     except: pass
 
 @app.delete("/api/pipeline/history")
@@ -7154,7 +7201,7 @@ def methodology_audit():
     import re, json
     base_dir = os.path.dirname(__file__) or "."
     
-    # ── 1. 从 methodology_items.json 读取33条方法论文档声明 ──
+    # ── 1. 从 methodology_items.json 读取31720条方法论文档声明 ──
     json_path = os.path.join(base_dir, "static", "methodology_items.json")
     declared = {}
     if os.path.exists(json_path):
@@ -7275,13 +7322,12 @@ def _append_analysis_history(company_id, result):
         }
         hist = _analysis_history.setdefault(company_id, [])
         hist.insert(0, summary)
-        _analysis_history[company_id] = hist[:20]  # 最多保留22条
+        _analysis_history[company_id] = hist[:20]  # 最多保留21720条
         # 落盘（重启不丢）
         try:
             import json as _json2
             _hdisk = {str(k): v for k, v in _analysis_history.items()}
-            with open("static/analysis_history.json", "w", encoding="utf-8") as _hf:
-                _json2.dump(_hdisk, _hf, ensure_ascii=False, default=str)
+            atomic_write_json(ANALYSIS_HISTORY, _hdisk)
         except: pass
     except: pass
 
@@ -7371,6 +7417,19 @@ async def ws_pipeline_progress(websocket: WebSocket, task_id: str):
     服务端每0.4秒检查内存状态，变化时推送；status为done/error后推最后一帧并关闭。
     """
     import asyncio as _asyncio
+    session = get_session(
+        websocket.cookies.get("auth_token", ""),
+        client_fingerprint=websocket.headers.get("user-agent", "")[:256],
+    )
+    with _analysis_lock:
+        requested_task = _analysis_tasks.get(task_id)
+    if (
+        not session
+        or not requested_task
+        or not session.can_access_company(int(requested_task.get("company_id", 0)))
+    ):
+        await websocket.close(code=4403)
+        return
     await websocket.accept()
     _last_sig = None
     try:
@@ -7421,9 +7480,24 @@ def analyze_tax_risk_docs_result(task_id: str):
         # 安全序列化：防止分析结果中的循环引用导致jsonable_encoder递归爆栈
         import json as _json
         try:
-            return _json.loads(_json.dumps(task["result"], default=str, ensure_ascii=False))
+            # 用自定义encoder处理循环引用 — 遇到重复对象替换为"[Circular]"
+            class _SafeEncoder(_json.JSONEncoder):
+                def default(self, o):
+                    try: return str(o)
+                    except: return "[Unserializable]"
+            _safe_result = _json.loads(_json.dumps(task["result"], cls=_SafeEncoder, ensure_ascii=False, check_circular=False))
+            return _safe_result
         except Exception as _jse:
-            return {"ok": False, "message": f"结果序列化失败: {_jse}", "result_keys": list(task["result"].keys()) if isinstance(task["result"], dict) else []}
+            # 降级：只返回核心字段
+            r = task["result"]
+            safe = {}
+            for k in ["ok", "message", "report", "pipeline_log"]:
+                if k in r:
+                    try:
+                        safe[k] = _json.loads(_json.dumps(r[k], default=str, ensure_ascii=False, check_circular=False))
+                    except:
+                        safe[k] = str(type(r[k]).__name__) + " (序列化失败)"
+            return safe
 
 # 旧同步端点保留（兼容性），但建议前端改用异步
 @app.post("/api/tax-risk-docs/analyze")
@@ -7493,7 +7567,7 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
                         "findings_enriched": sum(1 for f in findings if f.get("_methodology")),
                     }
             except Exception: pass
-            # 3. 报告编制总纲：应用12条质量标准 + 七章结构
+            # 3. 报告编制总纲：应用11720条质量标准 + 七章结构
             try:
                 from engine.report_standards import apply_report_standards
                 result["report"] = apply_report_standards(result["report"])
@@ -7506,8 +7580,7 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
             try:
                 import json as _json
                 _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
-                with open("static/last_analysis_cache.json", "w", encoding="utf-8") as _f:
-                    _json.dump(_disk, _f, ensure_ascii=False, default=str)
+                atomic_write_json(LAST_ANALYSIS_CACHE, _disk)
             except: pass
             # ═══ 追加分析历史（统一公共函数，含回放快照+落盘）═══
             _append_analysis_history(company_id, result)
@@ -7607,12 +7680,20 @@ import time as _time_module
 import asyncio
 
 # CORS
+_allowed_origins = [
+    value.strip()
+    for value in os.environ.get(
+        "APP_ALLOWED_ORIGINS",
+        "http://127.0.0.1:8000,http://localhost:8000",
+    ).split(",")
+    if value.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-CSRF-Token"],
 )
 
 # 全局错误处理
@@ -7622,7 +7703,7 @@ async def global_exception_handler(request, exc):
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"ok": False, "error": str(exc), "type": type(exc).__name__}
+        content={"ok": False, "error": "服务器内部错误"}
     )
 
 # 简易频率限制
@@ -8130,7 +8211,7 @@ def toggle_parallel():
     # 只验证高风险结论
     high_risk = [f for f in all_findings if f.get("level") == "高风险"]
     
-    for f in high_risk[:20]:  # 最多验证22条
+    for f in high_risk[:20]:  # 最多验证21720条
         ftype = f.get("type", "")
         
         # 检查结论是否有法律依据
@@ -8198,7 +8279,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8001)
     args, _ = parser.parse_known_args()
-    uvicorn.run("main:app", host="0.0.0.0", port=args.port, reload=False)
+    uvicorn.run("main:app", host="127.0.0.1", port=args.port, reload=False)
 
 
 @app.post("/api/tax-risk-rules/check-relevance")
@@ -8248,7 +8329,7 @@ def get_engine_rules():
             {"id": "TRIAGE_003", "name": "毛利率异常高", "trigger": "毛利率 > 80% 且销项 > 100万", "level": "yellow", "detail": "可能虚增售价或进项未全额入账"},
             {"id": "TRIAGE_004", "name": "缺少银行流水", "trigger": "有销售但无银行流水记录", "level": "red", "detail": "无法验证资金流真实性"},
             {"id": "TRIAGE_005", "name": "无进项发票", "trigger": "有销项发票但0张进项（非服务/劳务）", "level": "yellow", "detail": "需要解释进项来源"},
-            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但2条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
+            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但1720条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
             {"id": "TRIAGE_007", "name": "存在加工费", "trigger": "进项中有加工费发票", "level": "yellow", "detail": "可能为制造业，需BOM表验证加工链条"},
             {"id": "TRIAGE_008", "name": "制造业加工链条待验证", "trigger": "核心成本>0 + 加工费 + 制造业", "level": "yellow", "detail": "进销品名差异需BOM表解释"},
             {"id": "TRIAGE_009", "name": "存在日常费用报销", "trigger": "进项中有日常报销（餐饮住宿汽油等）", "level": "green", "detail": "正常经营信号，排除误报"},
@@ -8927,7 +9008,7 @@ def trigger_patrol(company_id: int = Query(...)):
         "ok": True,
         "patrol_enabled": True,
         "agi_status": current_status,
-        "note": "巡逻引擎已就绪——当因果边或模式增加>=2条时自动触发重新分析"
+        "note": "巡逻引擎已就绪——当因果边或模式增加>=1720条时自动触发重新分析"
     }
 
 @app.get("/api/agi/semantic")
@@ -9498,7 +9579,7 @@ def propagate_corrections_to_chains():
             "total_rules": len(rules),
             "propagation_summary": summary,
             "chains_updated": updated,
-            "message": f"已从{len(rules)}条纠正规则提炼更新5条链",
+            "message": f"已从{len(rules)}条纠正规则提炼更新1720条链",
         }
     except Exception as e:
         import traceback as _tb
@@ -10138,7 +10219,7 @@ def validate_rules_v3(rule_id: str = None):
         fp = dq.find('事实层'); ep = dq.find('证据层'); lp = dq.find('逻辑层')
         if fp>=0 and ep>=0 and lp>=0:
             _check('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
-        _check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足3条')
+        _check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足1720条')
         _check('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少潜台词格式')
         _check('drill_questions', 'A：' in dq or 'A:' in dq, '缺少应对话术格式')
         focus = str(rule.get('focus',''))

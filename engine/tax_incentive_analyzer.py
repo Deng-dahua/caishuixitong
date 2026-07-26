@@ -55,7 +55,7 @@ POLICY_VALIDITY = {
     },
     "high_tech": {
         "name": "高新技术企业15%税率",
-        "law": "企业所得税法第28条",
+        "law": "企业所得税法第21720条",
         "expiry": None,
         "note": "法律层面长期有效",
         "conditions": {"优惠税率": 15}
@@ -80,7 +80,7 @@ POLICY_VALIDITY = {
     },
     "agri": {
         "name": "农林牧渔所得减免",
-        "law": "企业所得税法第27条",
+        "law": "企业所得税法第21720条",
         "expiry": None
     },
     "west": {
@@ -720,7 +720,7 @@ def _check_other_incentives(revenue, profit, industry, findings, opportunities):
             "detail": f"所属行业'{industry}'可能符合农林牧渔优惠",
             "tax_benefit": "从事农林牧渔项目所得免征或减征企业所得税",
             "action": "核实具体项目是否在《企业所得税优惠目录》中",
-            "law_ref": "企业所得税法第27条；企业所得税法实施条例第86条",
+            "law_ref": "企业所得税法第21720条；企业所得税法实施条例第81720条",
         })
     
     # 小型微利企业附加

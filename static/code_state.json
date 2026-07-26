@@ -1,422 +1,426 @@
 {
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\__init__.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\__init__.py": {
     "mtime": 1783249440.4676967,
     "size": 2696
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_core.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_core.py": {
     "mtime": 1783249440.406346,
     "size": 32678
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_engine.py": {
-    "mtime": 1784807883.056486,
-    "size": 44369
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_engine.py": {
+    "mtime": 1784922539.5935073,
+    "size": 44375
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_enhanced.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_enhanced.py": {
     "mtime": 1783259895.904144,
     "size": 22105
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_final.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_final.py": {
     "mtime": 1783259895.904144,
     "size": 21113
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_meta.py": {
-    "mtime": 1784429606.4834034,
-    "size": 23980
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_meta.py": {
+    "mtime": 1784922539.5935073,
+    "size": 24522
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
-    "mtime": 1784807883.0614953,
-    "size": 113525
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agi_pipeline.py": {
+    "mtime": 1784922539.5935073,
+    "size": 113531
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\associate_findings.py": {
-    "mtime": 1784807883.0614953,
-    "size": 19860
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\associate_findings.py": {
+    "mtime": 1784922539.5935073,
+    "size": 19866
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\auto_patrol.py": {
-    "mtime": 1782371890.9964323,
-    "size": 15820
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\auto_patrol.py": {
+    "mtime": 1784922539.5935073,
+    "size": 16248
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\capability_matrix.py": {
-    "mtime": 1784807883.0614953,
-    "size": 19746
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\capability_matrix.py": {
+    "mtime": 1784922539.5935073,
+    "size": 19767
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\case_library.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\case_library.py": {
     "mtime": 1784215756.2715673,
     "size": 5066
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\causal_discovery.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\causal_discovery.py": {
     "mtime": 1782931220.2541318,
     "size": 10169
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\causal_network.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\causal_network.py": {
     "mtime": 1782328642.6977358,
     "size": 24117
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\chain_executor.py": {
-    "mtime": 1784811004.200501,
-    "size": 17960
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\chain_executor.py": {
+    "mtime": 1784925920.9458182,
+    "size": 19066
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\cognitive_bridge.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\cognitive_bridge.py": {
     "mtime": 1784246196.1851122,
     "size": 12245
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\context.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\context.py": {
     "mtime": 1783249440.416346,
     "size": 6980
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_domain_negotiation.py": {
-    "mtime": 1783249440.4213462,
-    "size": 30199
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_domain_negotiation.py": {
+    "mtime": 1784922539.610058,
+    "size": 30220
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_enterprise_graph.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\cross_enterprise_graph.py": {
     "mtime": 1783169281.5932128,
     "size": 12066
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\director.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\director.py": {
     "mtime": 1783249440.4213462,
     "size": 23443
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\domain_analysis.py": {
-    "mtime": 1784807883.0665123,
-    "size": 729988
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\domain_analysis.py": {
+    "mtime": 1784922539.6111982,
+    "size": 730036
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\enforcement_procedure.py": {
-    "mtime": 1784807883.0715523,
-    "size": 15346
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\enforcement_procedure.py": {
+    "mtime": 1784922539.6111982,
+    "size": 15358
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\enterprise_profile.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\enterprise_profile.py": {
     "mtime": 1783857818.404819,
     "size": 22996
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\evolution.py": {
-    "mtime": 1784807883.0715523,
-    "size": 10759
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\evolution.py": {
+    "mtime": 1784922539.6111982,
+    "size": 10762
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\external_verifier.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\external_verifier.py": {
     "mtime": 1782331403.268934,
     "size": 9787
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\financial_analyzer.py": {
-    "mtime": 1783259895.9150617,
-    "size": 23267
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\financial_analyzer.py": {
+    "mtime": 1784922539.6111982,
+    "size": 23309
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\human_learning.py": {
-    "mtime": 1784807883.0741067,
-    "size": 30444
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\human_learning.py": {
+    "mtime": 1784922539.6111982,
+    "size": 30450
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\hypothesis_engine.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\hypothesis_engine.py": {
     "mtime": 1783249440.4366503,
     "size": 23433
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\knowledge_base.py": {
-    "mtime": 1784807883.0741067,
-    "size": 21083
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\knowledge_base.py": {
+    "mtime": 1784922539.6267164,
+    "size": 21092
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\law_validity_checker.py": {
-    "mtime": 1784807883.0741067,
-    "size": 13596
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\law_validity_checker.py": {
+    "mtime": 1784929592.1296775,
+    "size": 9068
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\legal_reasoner.py": {
-    "mtime": 1783249440.4416575,
-    "size": 25596
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\legal_reasoner.py": {
+    "mtime": 1784922539.6267164,
+    "size": 25602
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\legal_updater.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\legal_updater.py": {
     "mtime": 1782954375.4187953,
     "size": 8974
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\llm_client.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\llm_client.py": {
     "mtime": 1782926084.9661887,
     "size": 6955
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\main_biz_cost.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\main_biz_cost.py": {
     "mtime": 1783249440.4423397,
     "size": 12223
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\memory.py": {
-    "mtime": 1784813201.7788146,
-    "size": 224082
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\memory.py": {
+    "mtime": 1784924331.3618193,
+    "size": 224271
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\methodology_loader.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\methodology_loader.py": {
     "mtime": 1784243430.6370761,
     "size": 10030
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\orchestrator.py": {
-    "mtime": 1784807883.076614,
-    "size": 19336
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\orchestrator.py": {
+    "mtime": 1784922539.6267164,
+    "size": 19348
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\override_engine.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\override_engine.py": {
     "mtime": 1783249440.4470305,
     "size": 14363
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\parallel_runner.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\parallel_runner.py": {
     "mtime": 1782954594.8274395,
     "size": 3713
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase1_triage.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase1_triage.py": {
     "mtime": 1783249440.4470305,
     "size": 32072
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase2_deep_dive.py": {
-    "mtime": 1783249440.4470305,
-    "size": 29420
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase2_deep_dive.py": {
+    "mtime": 1784922539.6267164,
+    "size": 29423
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase3_cross_validate.py": {
-    "mtime": 1783249440.452044,
-    "size": 38650
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase3_cross_validate.py": {
+    "mtime": 1784922539.6267164,
+    "size": 38653
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase4_synthesis.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\phase4_synthesis.py": {
     "mtime": 1783249440.452044,
     "size": 17144
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\pipeline.py": {
-    "mtime": 1784812013.4291928,
-    "size": 436128
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\pipeline.py": {
+    "mtime": 1784928766.1073663,
+    "size": 437243
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\rectification.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\rectification.py": {
     "mtime": 1783249440.4572816,
     "size": 7407
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\red_team.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\red_team.py": {
     "mtime": 1784216086.1879106,
     "size": 7573
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\report_standards.py": {
-    "mtime": 1784040025.3791473,
-    "size": 7590
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\report_standards.py": {
+    "mtime": 1784922539.6267164,
+    "size": 7730
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\risk_predictor.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\risk_predictor.py": {
     "mtime": 1782954044.5435686,
     "size": 6564
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_consumer.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_consumer.py": {
     "mtime": 1784388046.404104,
     "size": 17482
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_discovery.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_discovery.py": {
     "mtime": 1782913546.6769464,
     "size": 11047
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_enricher.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_enricher.py": {
     "mtime": 1784810604.738696,
     "size": 4955
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_gate.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\rule_gate.py": {
     "mtime": 1784811771.401039,
     "size": 13404
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\scm_reasoner.py": {
-    "mtime": 1784807883.0884168,
-    "size": 10900
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\scm_reasoner.py": {
+    "mtime": 1784922539.6442633,
+    "size": 10903
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_healing.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_healing.py": {
     "mtime": 1783259895.9337454,
     "size": 17455
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_learning.py": {
-    "mtime": 1784807883.089419,
-    "size": 36554
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\self_learning.py": {
+    "mtime": 1784922539.6442633,
+    "size": 36566
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\semantic_reasoner.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\semantic_reasoner.py": {
     "mtime": 1782931855.3437178,
     "size": 8742
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\shared_content_sync.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\shared_content_sync.py": {
     "mtime": 1782752835.2977319,
     "size": 11966
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\smart_sampler.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\smart_sampler.py": {
     "mtime": 1783249440.4624531,
     "size": 5434
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\tax_incentive_analyzer.py": {
-    "mtime": 1783165212.660239,
-    "size": 37954
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\tax_incentive_analyzer.py": {
+    "mtime": 1784922539.658774,
+    "size": 37966
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\threshold_scanner.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\threshold_scanner.py": {
     "mtime": 1784811089.2707994,
     "size": 5596
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\thresholds.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\thresholds.py": {
     "mtime": 1783249440.4676967,
     "size": 1151
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\trend_analyzer.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\trend_analyzer.py": {
     "mtime": 1782355275.862123,
     "size": 15053
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\trend_group.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\trend_group.py": {
     "mtime": 1783249440.4676967,
     "size": 8840
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\unknown_pattern_detector.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\unknown_pattern_detector.py": {
     "mtime": 1782328189.6026542,
     "size": 21502
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\__init__.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\__init__.py": {
     "mtime": 1782921782.9490838,
     "size": 0
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\base.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\base.py": {
     "mtime": 1782921792.7021248,
     "size": 3100
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\coordinator.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\engine\\agents\\coordinator.py": {
     "mtime": 1784561902.5718758,
     "size": 42653
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\archives.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\archives.js": {
     "mtime": 1782106088.3402183,
     "size": 49042
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\assets.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\assets.js": {
     "mtime": 1782260202.664956,
     "size": 43105
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\bank-vat.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\bank-vat.js": {
     "mtime": 1782368177.622905,
     "size": 59735
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\bookkeeping-invoices.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\bookkeeping-invoices.js": {
     "mtime": 1782368056.3412218,
     "size": 27028
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\chat.js": {
-    "mtime": 1783249429.1312737,
-    "size": 13903
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\chat.js": {
+    "mtime": 1784927417.4682899,
+    "size": 16578
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\company.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\company.js": {
     "mtime": 1782617588.2493963,
     "size": 19793
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\constants.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\constants.js": {
     "mtime": 1781752536.0322437,
     "size": 882
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\contracts-payments.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\contracts-payments.js": {
     "mtime": 1782368110.8703263,
     "size": 42574
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\core.js": {
-    "mtime": 1784816487.630083,
-    "size": 84694
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\core.js": {
+    "mtime": 1784924331.2784543,
+    "size": 84962
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\correction-rules.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\correction-rules.js": {
     "mtime": 1783249429.135538,
     "size": 5685
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\dashboard.js": {
-    "mtime": 1784816992.4229112,
-    "size": 8174
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\dashboard.js": {
+    "mtime": 1784903420.35517,
+    "size": 8253
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\engine-hub.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\engine-hub.js": {
     "mtime": 1784477883.8381085,
     "size": 15666
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\file-import.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\file-import.js": {
     "mtime": 1782758976.9539962,
     "size": 28306
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\housing-fund.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\housing-fund.js": {
     "mtime": 1782368104.664946,
     "size": 33499
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\human-learning-page.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\human-learning-page.js": {
     "mtime": 1783439907.0861466,
     "size": 16610
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\invoices.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\invoices.js": {
     "mtime": 1782367559.3142169,
     "size": 67698
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\journal.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\journal.js": {
     "mtime": 1782367528.7922697,
     "size": 38204
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\ledgers-reports.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\ledgers-reports.js": {
     "mtime": 1782368031.8540008,
     "size": 51343
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\module-headers.js": {
-    "mtime": 1784807883.0357816,
-    "size": 78929
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\module-headers.js": {
+    "mtime": 1784924331.2955015,
+    "size": 79007
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\report-block-renderer.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\report-block-renderer.js": {
     "mtime": 1783249429.1405427,
     "size": 13924
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\report-modules.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\report-modules.js": {
     "mtime": 1783259895.9593759,
     "size": 97921
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\rewrite_methodology.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\rewrite_methodology.py": {
     "mtime": 1781923332.303847,
     "size": 7763
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\rewrite_steps.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\rewrite_steps.py": {
     "mtime": 1781923177.1964726,
     "size": 5691
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\salary.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\salary.js": {
     "mtime": 1782091529.8238046,
     "size": 41356
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\social-security.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\social-security.js": {
     "mtime": 1782368098.9335766,
     "size": 38692
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\system-logs.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\system-logs.js": {
     "mtime": 1782623779.893636,
     "size": 6045
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-auditor-handbook.js": {
-    "mtime": 1784813897.2936938,
-    "size": 50424
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-auditor-handbook.js": {
+    "mtime": 1784922539.5775454,
+    "size": 50568
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1784807883.0411017,
-    "size": 205276
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
+    "mtime": 1784924698.7885711,
+    "size": 206045
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
-    "mtime": 1784807883.0463285,
-    "size": 225126
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
+    "mtime": 1784922539.5775454,
+    "size": 225174
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-feedback-template.js": {
-    "mtime": 1783488138.5307221,
-    "size": 32087
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-feedback-template.js": {
+    "mtime": 1784922539.5775454,
+    "size": 32090
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
-    "mtime": 1784813970.5349324,
-    "size": 461579
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-knowledge-hub.js": {
+    "mtime": 1784907521.370669,
+    "size": 35489
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-report-standards.js": {
-    "mtime": 1784807883.0513453,
-    "size": 8435
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
+    "mtime": 1784922539.5775454,
+    "size": 462140
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-risk-report.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-report-standards.js": {
+    "mtime": 1784922539.5920508,
+    "size": 8438
+  },
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-risk-report.js": {
     "mtime": 1783249429.1708188,
     "size": 34467
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-risk-rules.js": {
-    "mtime": 1784807883.0513453,
-    "size": 75093
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\tax-risk-rules.js": {
+    "mtime": 1784922539.5935073,
+    "size": 75126
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\unbookkept-invoices.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\unbookkept-invoices.js": {
     "mtime": 1782368061.154471,
     "size": 29905
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\update_analyze_page.py": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\update_analyze_page.py": {
     "mtime": 1783249476.594589,
     "size": 1541
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\vat-declaration.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\vat-declaration.js": {
     "mtime": 1782368073.9150143,
     "size": 169221
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\\u6587\u5316\u4e8b\u4e1a\u5efa\u8bbe\u8d39.js": {
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\static\\js\\\u6587\u5316\u4e8b\u4e1a\u5efa\u8bbe\u8d39.js": {
     "mtime": 1781331904.2514758,
     "size": 41313
   },
-  "C:\\Users\\26726\\WorkBuddy\\2026-06-22-10-40-26\\caishuixitong\\main.py": {
-    "mtime": 1784807883.1075475,
-    "size": 495745
+  "D:\\\u8f6f\u4ef6\u5b89\u88c5\\2026-06-22-10-40-26\\caishuixitong\\main.py": {
+    "mtime": 1784922539.6951485,
+    "size": 496881
   }
 }

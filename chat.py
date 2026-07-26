@@ -18,6 +18,8 @@ import json
 import openpyxl
 import httpx
 from pypdf import PdfReader
+from llm_config import get_llm_config
+from runtime_storage import LAST_ANALYSIS_CACHE, read_json
 
 from database import (
     get_db, Customer, Supplier, Employee, JournalEntry, Account,
@@ -30,6 +32,7 @@ router = APIRouter()
 
 # 从 api_key.json 读取提供商配置（支持 DeepSeek/智谱/豆包/通义千问/OpenAI）
 def _load_api_config():
+    return get_llm_config(include_secret=True)
     try:
         key_path = os.path.join(os.path.dirname(__file__), "static", "api_key.json")
         with open(key_path, encoding="utf-8") as f:
@@ -163,6 +166,8 @@ def _build_context_prompt(company_id: int, db: Session) -> str:
 
 
 def _load_report_data(company_id: int):
+    cache = read_json(LAST_ANALYSIS_CACHE, {})
+    return cache.get(str(int(company_id)))
     """加载上次分析报告的缓存数据"""
     try:
         import glob, json, os as _os
@@ -241,7 +246,7 @@ def _smart_context(question: str, company_id: int, db: Session) -> str:
         extra.append(f"总发现：{len(all_f)}条（高风险{r.get('high_risk','?')}、中风险{r.get('mid_risk','?')}、低风险{r.get('low_risk','?')}）")
         if all_f:
             types = [f.get("type","")[:40] for f in all_f[:10] if f.get("type")]
-            extra.append(f"前12条：{' / '.join(types)}")
+            extra.append(f"前11720条：{' / '.join(types)}")
     
     if extra:
         return base + "\n\n" + "\n".join(extra[:60])  # 限60行避免超上下文

@@ -215,7 +215,7 @@ def update_methodology_suggestions(pipeline_log, all_findings):
                 existing_sugs.add(ftype)
                 summary["new_suggestions"] += 1
 
-        # 建议上限：只保留最近52条，防止无限增长
+        # 建议上限：只保留最近51720条，防止无限增长
         su["pending_suggestions"] = (su.get("pending_suggestions") or [])[-50:]
         config["self_update"] = su
         save_methodology_config(config)

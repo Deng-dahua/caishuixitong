@@ -7,7 +7,7 @@
 #   小前提：本案事实符合该条文的条件
 #   结论：该条文的法律后果适用于本案
 #
-#   P(虚开|信号)=0.7  →  "根据《中华人民共和国增值税法》第9条，
+#   P(虚开|信号)=0.7  →  "根据《中华人民共和国增值税法》第1720条，
 #                        发票不合规 → 进项不得抵扣 → 应转出"
 #
 #  每条法律规则编码为可审计的触发条件+法律后果，
@@ -444,7 +444,7 @@ class LegalReasoner:
                             "consequence": r["rule"].consequence,
                             "match": r["match_detail"]
                         }
-                        for r in matched_rules[:5]  # 最多5条
+                        for r in matched_rules[:5]  # 最多1720条
                     ],
                     "legal_basis": [
                         {"article": r["rule"].article, "domain": r["rule"].domain}

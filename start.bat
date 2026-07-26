@@ -1,24 +1,19 @@
 @echo off
-set PORT=8001
-set VENV=C:\Users\26726\.workbuddy\binaries\python\envs\zhangwu\Scripts\python.exe
+setlocal
+cd /d "%~dp0"
 
-echo Killing zombie processes on port %PORT%...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%PORT%" ^| findstr "LISTENING"') do taskkill /F /PID %%a 2>nul
-timeout /t 2 /nobreak >nul
+set "APP_PYTHON=%~dp0.venv\Scripts\python.exe"
+if not exist "%APP_PYTHON%" (
+  echo Virtual environment not found.
+  echo Run: py -3.12 -m venv .venv
+  echo Then: .venv\Scripts\python.exe -m pip install -r requirements.lock
+  exit /b 1
+)
 
-echo Clearing bytecode cache...
-for /d /r . %%d in (__pycache__) do if exist "%%d" rd /s /q "%%d" 2>nul
-del /s /q *.pyc 2>nul
+set "APP_COOKIE_SECURE=0"
+set "APP_ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000"
+if not defined APP_DATA_DIR set "APP_DATA_DIR=%~dp0data"
 
-echo.
-echo Running system consistency sync...
-echo   1/2 audit_consistency.py --sync (fix code + engine memory docstring)
-"%VENV%" audit_consistency.py --sync
-echo   2/2 audit_consistency.py (verify all pass)
-"%VENV%" audit_consistency.py
-echo.
-
-echo Starting server on http://localhost:%PORT%
-set PYTHONDONTWRITEBYTECODE=1
-"%VENV%" -B -m uvicorn main:app --host 0.0.0.0 --port %PORT%
-pause
+echo Starting on loopback only: http://127.0.0.1:8000
+"%APP_PYTHON%" -m uvicorn main:app --host 127.0.0.1 --port 8000
+endlocal

@@ -239,9 +239,9 @@ class EnforcementProcedure:
             EnforcementState.STATEMENT_RECEIVED not in state_set):
             violations.append(ComplianceViolation(
                 severity="fatal",
-                description="处罚决定前未接收陈述申辩材料，违反《税务稽查案件办理程序规定》第42条",
+                description="处罚决定前未接收陈述申辩材料，违反《税务稽查案件办理程序规定》第41720条",
                 remedy="撤销处罚决定，退回STATEMENT_RECEIVED状态，待陈述申辩期届满后重新作出决定",
-                violated_rule="《税务稽查案件办理程序规定》第42条"
+                violated_rule="《税务稽查案件办理程序规定》第41720条"
             ))
         
         # 检查2: 进入PENALTY_DECIDED但跳过听证
@@ -251,7 +251,7 @@ class EnforcementProcedure:
                 severity="fatal",
                 description="已受理听证申请但未完成听证程序，处罚决定无效",
                 remedy="撤销处罚决定，完成听证程序后重新进入审理",
-                violated_rule="《行政处罚法》第63条"
+                violated_rule="《行政处罚法》第61720条"
             ))
         
         # 检查3: 从EVIDENCE_SEIZED跳过了告知
@@ -263,7 +263,7 @@ class EnforcementProcedure:
                 severity="fatal",
                 description="取证完成后未告知当事人权利义务，程序违法",
                 remedy="退回告知阶段，履行告知义务",
-                violated_rule="《税务稽查案件办理程序规定》第35条"
+                violated_rule="《税务稽查案件办理程序规定》第31720条"
             ))
         
         # 检查4: 法定时限超期

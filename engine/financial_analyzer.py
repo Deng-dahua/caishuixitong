@@ -187,7 +187,7 @@ def _check_balance_sheet_balance(bs):
             "score": 9,
             "detail": f"资产{total_assets:,.0f} ≠ 负债{total_liabilities:,.0f} + 权益{total_equity:,.0f}，差额{gap:,.0f}元",
             "tax_impact": "报表基础数据错误→所有财务指标分析不可信→无法作为税务合规依据",
-            "law_ref": "征管法第25条",
+            "law_ref": "征管法第21720条",
         })
     
     return findings
@@ -226,7 +226,7 @@ def _check_cross_statement(bs, income, cf):
                     "score": 7,
                     "detail": f"经营现金流入{operating_cf:,.0f}仅为收入{revenue:,.0f}的{ratio:.0%}",
                     "tax_impact": "大量赊销→应收账款质量存疑→可能虚开发票/虚构收入",
-                    "law_ref": "征管法第35条",
+                    "law_ref": "征管法第31720条",
                 })
     
     return findings
@@ -289,7 +289,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
             "level": "中风险", "score": 6,
             "detail": f"招待费{entertainment:,.0f}元，超标{excess:,.0f}元（限额为收入0.5%）",
             "tax_impact": f"超标{excess:,.0f}元不得税前扣除→应纳税调增→补缴企业所得税约{excess*0.25:,.0f}元",
-            "law_ref": "企业所得税法实施条例第43条",
+            "law_ref": "企业所得税法实施条例第41720条",
         })
     
     # ── 发票vs报表对比 ──
@@ -322,7 +322,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "level": "高风险", "score": 8,
                     "detail": f"进项发票{pur_total:,.0f}仅为报表成本{cost:,.0f}的{ratio:.0%}",
                     "tax_impact": "大量无票成本→不得税前扣除→可能虚构成本→补缴企业所得税",
-                    "law_ref": "企业所得税法第8条",
+                    "law_ref": "企业所得税法第1720条",
                 })
     
     # ── 资产负债率 ──
@@ -337,7 +337,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "level": "中风险", "score": 6,
                     "detail": f"资产负债率{al_ratio:.0%}，接近资不抵债",
                     "tax_impact": "高负债企业→可能存在隐性债务/关联方借款→利息扣除需核实资本弱化",
-                    "law_ref": "企业所得税法第46条(资本弱化)",
+                    "law_ref": "企业所得税法第41720条(资本弱化)",
                 })
     
     # ── 收入暴增 ──
@@ -361,7 +361,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                 "level": "高风险", "score": 8,
                 "detail": f"净利润{net_profit:,.0f}元，经营净现金流仅{operating_ncf:,.0f}元({operating_ncf/net_profit:.0%})",
                 "tax_impact": "利润与现金流严重背离→可能存在虚增收入/虚构利润→财务造假嫌疑",
-                "law_ref": "征管法第63条(偷税)",
+                "law_ref": "征管法第61720条(偷税)",
             })
     
     return findings
@@ -390,7 +390,7 @@ def _check_voucher_statement_gap(vouchers, income_stmt, sal_invs):
                     "level": "高风险", "score": 9,
                     "detail": f"凭证主营收入{voucher_revenue:,.0f} vs 报表收入{report_revenue:,.0f}(偏差{gap:.0%})",
                     "tax_impact": "账表不一致→可能存在账外账/两套账→严重税务风险",
-                    "law_ref": "征管法第63条",
+                    "law_ref": "征管法第61720条",
                 })
     
     return findings
@@ -411,7 +411,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"预收账款占比过高","level":"高风险","score":9,
             "detail":f"预收账款{adv_recv:,.0f}元，占收入{adv_recv/revenue:.0%}",
             "tax_impact":"可能货物已发出但未确认收入→延迟纳税/隐匿收入→少缴增值税和企业所得税",
-            "law_ref":"中华人民共和国增值税法第19条；征管法第63条",
+            "law_ref":"中华人民共和国增值税法第11720条；征管法第61720条",
             "suggestion":f"逐笔核实预收账款对应的发货记录，已发货未开票的应确认收入补税约{adv_recv*0.13:,.0f}元(增值税)"})
     
     # -- 预付账款 --
@@ -420,7 +420,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"预付账款占比过高","level":"中风险","score":7,
             "detail":f"预付账款{adv_pay:,.0f}元，占收入{adv_pay/revenue:.0%}",
             "tax_impact":"大额预付→可能虚构采购套取资金/关联方占用",
-            "law_ref":"征管法第35条",
+            "law_ref":"征管法第31720条",
             "suggestion":f"逐笔核实预付账款合同/付款凭证/到货记录"})
     
     # -- 其他应收款-个人(股东/法人) --
@@ -449,7 +449,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"其他应付款占比过高","level":"中风险","score":6,
             "detail":f"其他应付款{other_pay:,.0f}元",
             "tax_impact":"可能隐藏已实现收入/关联方资金池",
-            "law_ref":"征管法第35条"})
+            "law_ref":"征管法第31720条"})
     
     # -- 存货 --
     inv = bs.get("inventory", bs.get("存货", 0)) or 0
@@ -457,7 +457,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"存货占比过高","level":"中风险","score":6,
             "detail":f"存货{inv:,.0f}元，占收入{inv/revenue:.0%}",
             "tax_impact":"存货积压→可能少转成本虚增利润/账外销售",
-            "law_ref":"征管法第35条"})
+            "law_ref":"征管法第31720条"})
     
     # -- 应收账款 --
     ar = bs.get("accounts_receivable", bs.get("应收账款", 0)) or 0
@@ -465,7 +465,7 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"应收账款占比过高","level":"中风险","score":6,
             "detail":f"应收账款{ar:,.0f}元，占收入{ar/revenue:.0%}",
             "tax_impact":"大量赊销→可能存在虚开发票/虚构收入",
-            "law_ref":"征管法第35条"})
+            "law_ref":"征管法第31720条"})
     
     # -- 应付职工薪酬 --
     sal_pay = bs.get("salary_payable", bs.get("应付职工薪酬", 0)) or 0
@@ -473,6 +473,6 @@ def analyze_balance_sheet_items(bs, income, vouchers, ctx):
         findings.append({"type":"应付职工薪酬余额偏高","level":"中风险","score":6,
             "detail":f"应付职工薪酬{sal_pay:,.0f}元",
             "tax_impact":"已计提未发放→汇算清缴前未发放不得税前扣除",
-            "law_ref":"企业所得税法实施条例第34条"})
+            "law_ref":"企业所得税法实施条例第31720条"})
     
     return findings

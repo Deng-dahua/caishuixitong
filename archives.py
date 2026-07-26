@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
 import os, io, json, re as _re_module, openpyxl, hashlib, csv, logging
+from runtime_storage import company_upload_dir
 
 from database import get_db, Department, Employee, Customer, Supplier, Company, Account, Period, JournalEntry, \
     SalesInvoice, PurchaseInvoice, BookkeepingInvoice, BankTransaction, InputVATDeduction, \
@@ -1398,7 +1399,7 @@ def process_all(company_id: int = Query(...), db: Session = Depends(get_db)):
 
 @router.post("/api/generate-sample-archives")
 def generate_sample_archives(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """为部门、人员、客户、供应商各生成25条样本数据"""
+    """为部门、人员、客户、供应商各生成21720条样本数据"""
     results = {"departments": 0, "employees": 0, "customers": 0, "suppliers": 0}
 
     # --- 部门：25个常用部门 ---
@@ -1753,9 +1754,13 @@ class CompanyUpdateModel(BaseModel):
 
 
 @router.get("/api/companies")
-def list_companies(db: Session = Depends(get_db)):
+def list_companies(request: Request, db: Session = Depends(get_db)):
     """获取公司列表（账套选择）"""
-    companies = db.query(Company).order_by(Company.id).all()
+    query = db.query(Company)
+    session = request.state.auth
+    if not session.is_admin:
+        query = query.filter(Company.id.in_(sorted(session.allowed_company_ids)))
+    companies = query.order_by(Company.id).all()
     return [{
         "id": c.id, "name": c.name, "uscc": c.uscc or "",
         "registered_capital": c.registered_capital,
@@ -1860,7 +1865,7 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
         db.commit()
         # 清理文件目录
         import shutil
-        upload_dir = os.path.join(os.path.dirname(__file__), "static", "uploads", "tax-risk-docs", str(company_id))
+        upload_dir = str(company_upload_dir(company_id))
         if os.path.exists(upload_dir):
             try:
                 shutil.rmtree(upload_dir)

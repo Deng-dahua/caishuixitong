@@ -6,6 +6,7 @@
 import json, os, httpx, asyncio
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
+from llm_config import get_llm_config
 
 @dataclass
 class LLMResponse:
@@ -57,6 +58,7 @@ class LLMClient:
         self._set_active()
     
     def _load_global_key(self) -> str:
+        return get_llm_config(include_secret=True).get("key", "")
         """从全局配置文件加载API Key"""
         try:
             path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "api_key.json")
@@ -69,7 +71,7 @@ class LLMClient:
         """根据API Key前缀自动检测服务商，返回对应的base_url"""
         # sk-xxx格式 → OpenAI兼容，可以使用DeepSeek作为默认端点
         # DeepSeek的API兼容OpenAI格式，智谱/豆包也兼容
-        return "https://api.deepseek.com/v1/chat/completions"
+        return get_llm_config(include_secret=False)["base_url"].rstrip("/") + "/chat/completions"
     def _probe_http(self, base_url: str) -> bool:
         """探测HTTP服务是否可连通"""
         try:

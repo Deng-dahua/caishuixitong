@@ -1,83 +1,58 @@
-# 全行业财税风险防控税务合规系统
+# 财税风险防控系统（安全加固版）
 
-全行业通用的智能税务税务合规引擎，支持1608条税务合规指令、40条线索链、20条证据链、19条分析链全量自动执行。覆盖全行业各企业类型，从文件解析到税务合规报告全链路自动化。
+本副本在保留原业务代码和 1720 条规则库的基础上，完成了认证、租户隔离、
+密钥、静态数据、上传、缓存、日志、数据库和启动方式的安全整改。发布包不含
+原数据库、会话、密钥、上传件、缓存和访问日志。
 
-## 功能模块
+## 首次启动（Windows）
 
-| 模块 | 功能说明 |
-|------|----------|
-| 📊 数据看板 | 本期凭证统计、金额汇总、最近凭证列表 |
-| ✏️ 填制凭证 | 借贷平衡校验、科目选择、多行明细 |
-| 📋 凭证管理 | 查询、审核、删除凭证 |
-| 📒 总账 | 按期间查看各科目发生额及余额 |
-| 📄 明细账 | 指定科目的逐笔流水查询 |
-| 📈 利润表 | 按期间自动生成利润表 |
-| ⚖️ 资产负债表 | 截止期间的资产负债表 |
-| 🗂️ 会计科目 | 内置制造业科目，支持新增/停用 |
-| 📅 期间管理 | 月末结账，自动开启下期 |
-
-## 技术栈
-
-- **后端**：Python 3.x + FastAPI + SQLAlchemy
-- **数据库**：SQLite（无需安装，开箱即用）
-- **前端**：原生 HTML/CSS/JavaScript（无需 Node.js/构建工具）
-
-## 快速启动
-
-### 1. 安装依赖
-
-```bash
-pip install -r requirements.txt
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock
+.\.venv\Scripts\python.exe manage_users.py create admin --role admin
+.\start.bat
 ```
 
-### 2. 启动服务
+浏览器访问 `http://127.0.0.1:8000`。本地 HTTP 启动脚本只监听回环地址，并将
+安全 Cookie 的 HTTPS 要求仅在本机开发会话中关闭。
 
-```bash
-python main.py
+Linux/macOS 使用 `.venv/bin/python manage_users.py ...` 和 `./start.sh`。
+
+## 生产部署
+
+1. 使用 HTTPS 反向代理，不要把 Uvicorn 直接暴露到公网。
+2. 保持 `APP_COOKIE_SECURE=1`，把 `APP_ALLOWED_ORIGINS` 设为实际 HTTPS 域名。
+3. 用进程管理器注入 `LLM_API_KEY`，不得写入项目文件或 Web 页面。
+4. 将 `APP_DATA_DIR` 指向受限目录，只授予服务账号读写权限并纳入加密备份。
+5. 通过 `python manage_users.py create USER --companies 1,2` 创建普通用户。
+6. 定期执行 `python tools/verify_release.py`，升级依赖前先在测试环境验证。
+
+## 数据与密钥迁移
+
+- 旧会话全部作废，不迁移 `sessions.json`。
+- 旧 LLM 密钥已经暴露过，必须在供应商控制台撤销并新建；只把新密钥写入环境。
+- 使用 `python tools/migrate_legacy_data.py --source-root <旧项目目录>` 迁移数据库和
+  上传文件。工具默认拒绝覆盖现有数据，并自动建立迁移前备份。
+- Git 历史中的旧密钥不能靠删除工作区文件消失，参见 `docs/GIT_HISTORY_CLEANUP.md`。
+
+## 关键安全行为
+
+- 密码使用 scrypt 哈希；会话令牌仅以 SHA-256 摘要落库，8 小时过期且可撤销。
+- 所有状态变更请求校验 CSRF；登录失败会渐进式锁定。
+- 普通用户只可访问分配的 `company_id`；账套创建/删除仅管理员可用。
+- `/api/apikey` 只返回“是否配置”和末四位，禁止网页写入、探测任意 URL。
+- `data/` 保存数据库、上传、缓存和日志，`static/` 只保存公开前端资源。
+- 缓存通过临时文件、同步落盘和原子替换写入；SQLite 启用外键、WAL 和账套索引。
+
+## 管理命令
+
+```text
+python manage_users.py list
+python manage_users.py create USER --role user --companies 1,2
+python manage_users.py reset-password USER
+python manage_users.py revoke-sessions USER
+python tools/audit_rules.py
+python tools/verify_release.py
 ```
 
-或使用 uvicorn 开发模式：
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8001
-```
-
-### 3. 访问系统
-
-打开浏览器访问：**http://localhost:8001**
-
-## 内置会计科目
-
-系统初始化时自动创建适合制造业的会计科目体系，包括：
-
-- **资产类**：库存现金、银行存款、应收账款、原材料、库存商品、固定资产等
-- **负债类**：短期借款、应付账款、应交税费、应付职工薪酬等
-- **权益类**：实收资本、资本公积、盈余公积、本年利润
-- **成本类**：生产成本（直接材料/直接人工/制造费用）、制造费用
-- **损益类**：主营业务收入/成本、销售费用、管理费用、财务费用等
-
-## 凭证号规则
-
-系统自动生成凭证号，格式为：`记-YYYYMM-XXXX`
-
-例如：`记-202601-0001`
-
-## API 文档
-
-启动后访问：**http://localhost:8001/docs**（Swagger UI）
-
-## 数据存储
-
-数据库文件为 `zhangwu.db`，位于项目根目录，SQLite 格式，可用 DB Browser for SQLite 等工具直接查看。
-
-## 目录结构
-
-```
-caishuixitong/
-├── main.py           # FastAPI 主应用 & API 路由
-├── database.py       # 数据库模型 & 初始化
-├── requirements.txt  # Python 依赖
-├── static/
-│   └── index.html    # 前端单页应用
-└── zhangwu.db        # SQLite 数据库（运行后生成）
-```
+OCR 功能还要求操作系统安装 Tesseract；没有安装时，其余功能仍可运行。

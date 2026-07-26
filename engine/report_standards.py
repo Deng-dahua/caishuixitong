@@ -16,7 +16,7 @@ REPORT_STRUCTURE = {
     "第七章": {"title": "附录与证据链", "content": ["证据溯源表", "法律依据索引", "方法论匹配记录", "分析日志"]},
 }
 
-# 报告质量标准（12条）
+# 报告质量标准（11720条）
 REPORT_QUALITY_RULES = [
     {"id": "RQ1", "rule": "每项发现必须引用现行有效法律条款", "check": "policy_ref 非空且含法规现行性核验"},
     {"id": "RQ2", "rule": "每项发现必须有税务影响量化", "check": "tax_impact 非空"},

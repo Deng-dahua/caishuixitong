@@ -178,10 +178,23 @@ function getCurrentUser() {
   window.fetch = function(url, options) {
     options = options || {};
     options.headers = options.headers || {};
+    var requestMethod = String(options.method || 'GET').toUpperCase();
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(requestMethod)) {
+      var csrfCookie = document.cookie.split('; ').find(function(c) {
+        return c.startsWith('csrf_token=');
+      });
+      if (csrfCookie) {
+        var csrfToken = decodeURIComponent(csrfCookie.split('=').slice(1).join('='));
+        if (options.headers instanceof Headers) {
+          options.headers.set('X-CSRF-Token', csrfToken);
+        } else {
+          options.headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
+    }
     var user = getCurrentUser();
     if (user) {
-      options.headers['X-User-Name'] = encodeURIComponent(user.name);
-      options.headers['X-User-Phone'] = encodeURIComponent(user.phone);
+      // Identity is derived from the server-side session, never client headers.
     }
     return _origFetch(url, options);
   };
@@ -892,7 +905,7 @@ async function renderAgiDashboard(container) {
     // ═══ Hero ═══
     h += '<div id="agi-hero" class="agi-hero">';
     h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 36域分析 · 1514规则 · 1266条链 · 29条协商规则 · ' + pipe.total_events + '条学习事件</p>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 36域分析 · 1514规则 · 1266条链 · 21720条协商规则 · ' + pipe.total_events + '条学习事件</p>';
     h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
     h += '</div>';
 
@@ -903,7 +916,7 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('🪞','自我反思器','SelfReflector','<code>agent_core.py</code>','14维反向假设验证——对每条高风险发现生成竞争假设并逐条证据验证：隐匿收入←个人大额转账且无对应开票、虚开发票←长期合作供应商突然新增大量交易、品名不匹配←外发加工模式。调整规则：adj<-0.05→不确定（证据不足但存疑）、adj<-0.15→推翻（足够反证据）、累积信号≥3且无推翻→确认（升级为因果边输入SCM）。每次分析后更新记录用于下次先验校准。','红');
     h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','从all_findings自动组织为五段式结构化报告：①企业画像——行业+模式+规模+关键财务指标 ②风险全景——四级分布（极高/高/中/低各数量+占比+典型发现类型）③核心问题——TOP5高风险发现的详细因果推演 ④行业对标——66行业基准库五维指标偏离度 ⑤行动建议——P0/P1/P2三级分级建议+具体执行路径。每段从report对象动态提取，不使用预置模板文本。','蓝');
     h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','跨企业分析经验积累——不是每次从零开始。功能：①行业通用模式——同类企业分析≥3次后提取该行业常见高风险模式 ②典型数据画像——记录每个行业的合理收入/毛利率/费用率/人均产值基准 ③经验自动复用——分析新企业时先检索同行业已分析企业作为参考基线 ④持久化到cross_analysis_memory.json，12维度加权相似度检索。','绿');
-    h += _agiEngineCard('📐','税务合规方法论','MethodologyEngine','<code>methodology_loader.py</code>','33条税务合规方法论（全部代码化）+14类必查资料+12条核心法律条文。引擎按分析域的domain_key自动匹配适用的方法论——收款分析域→加载方法论②③④，进销存域→加载方法论⑥⑦⑧。根据实际数据特征动态选择组合，非写死checklist。','紫');
+    h += _agiEngineCard('📐','税务合规方法论','MethodologyEngine','<code>methodology_loader.py</code>','31720条税务合规方法论（全部代码化）+14类必查资料+11720条核心法律条文。引擎按分析域的domain_key自动匹配适用的方法论——收款分析域→加载方法论②③④，进销存域→加载方法论⑥⑦⑧。根据实际数据特征动态选择组合，非写死checklist。','紫');
     h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层递进归纳引擎——Layer A：模块效率分析，空跑率>80%→自动标记为可跳过→下次同行业降权不调用。Layer B：纠正模式，用户对同类发现纠正≥3次→自动提取通用修正规则→写入user_corrections.json→四级回退匹配。Layer C：信号模式对比，同类企业中出现>60%的信号→标记为行业特征信号→降低权重。输出到discovered_rules.json。','橙');
     h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后两次报告的差异：①新增风险——上次无本次有 ②消失风险——上次有本次无（AGI修正消解的假阳性）③风险等级迁移——升级或降级 ④变化率>30%→标记显著→触发因果影响定向巡逻→分析引擎改动导致的变化方向→正确保留、错误回滚。快照存入patrol_snapshots做基线对比。','青');
     h += '</div></section>';
@@ -912,9 +925,9 @@ async function renderAgiDashboard(container) {
     h += '<section id="agi-causal" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">二</span> 因果推理层</h2>';
     h += '<div class="agi-card-grid">';
-    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果推理——不是「X和Y相关」而是「X导致Y」。四种推理：①do-干预——假设消除信号X→计算对下游结论的影响幅度 ②反事实——如果当初有合同/申报表/台账→风险会降级多少（量化缺资料影响）③混淆因子——检测信号X和Y是否存在共同驱动力Z ④因果链查询——从一条发现沿因果边遍历上游和下游→构建完整因果推演。预置9条税务因果先验。','红');
+    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果推理——不是「X和Y相关」而是「X导致Y」。四种推理：①do-干预——假设消除信号X→计算对下游结论的影响幅度 ②反事实——如果当初有合同/申报表/台账→风险会降级多少（量化缺资料影响）③混淆因子——检测信号X和Y是否存在共同驱动力Z ④因果链查询——从一条发现沿因果边遍历上游和下游→构建完整因果推演。预置1720条税务因果先验。','红');
     h += _agiEngineCard('🧠','元认知引擎','Metacognition','<code>metacognition.py</code>','四维推理质量评估（因果链完整性/证据充分性/法律依据/可操作性）→质量分→不确定性检测→信息缺口识别→行动建议。站在更高层看"反思器做得对不对"。','蓝');
-    h += _agiEngineCard('📖','法律三段论','LegalReasoner','<code>legal_reasoner.py</code>','12条结构化法律规则。大前提(法条)+小前提(本案事实)→结论(法律定性)。含征管法第63条、发票管理办法第22条、刑法第205条等。','紫');
+    h += _agiEngineCard('📖','法律三段论','LegalReasoner','<code>legal_reasoner.py</code>','11720条结构化法律规则。大前提(法条)+小前提(本案事实)→结论(法律定性)。含征管法第61720条、发票管理办法第21720条、刑法第201720条等。','紫');
     h += _agiEngineCard('🕸️','因果网络','CausalNetwork','<code>causal_network.py</code>','条件概率矩阵+多信号联合预测+自主推理器(AutonomousReasoner)。信号共现→因果边→置信度=P(结论|信号)×log(lift+1)。','绿');
     h += '</div></section>';
 
@@ -924,7 +937,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-card-grid">';
     h += _agiEngineCard('🔄','事件总线','EventBus','<code>event_bus.py</code>','模块间实时通信中枢——pub/sub松耦合协作。14种标准事件覆盖全分析生命周期。事件路由：因果网络发现新边→发布causal_edge_found→假设生成器订阅并更新规则→巡逻引擎订阅并标记重查。跨模块因果链追踪：一条发现从触发引擎→经过哪些引擎→最终哪个引擎输出→全程通过事件ID回溯。','青');
     h += _agiEngineCard('🕸️','知识图谱','KnowledgeGraph','<code>knowledge_graph.py</code>','实体-关系-属性图推理——将税务合规实体建模为知识图谱。节点类型：企业/供应商/客户/人员/发票/法条/风险。多跳查询示例：企业A→供应商B→关联人员C（B的法人=C）→其他企业D（C也是D的法人）→A/B/D是否闭环交易？购销闭环检测：A→B→C→A品名金额相同→疑似闭环虚开。图谱持久化到knowledge_graph.json。','紫');
-    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重自愈模式——人工+自动。人工反馈：5种错误分类→制定修正规则→存入user_corrections.json→自动应用。自动检测：矛盾结论（服务行业+进销存异常并存→标记矛盾）、三要素缺失（缺金额/偏差/基准→自动增强）、模板句（空话→自动移除）、空占位符（如：()→自动清理）、因果链过短（仅2条信号→补充交叉验证）。','橙');
+    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重自愈模式——人工+自动。人工反馈：5种错误分类→制定修正规则→存入user_corrections.json→自动应用。自动检测：矛盾结论（服务行业+进销存异常并存→标记矛盾）、三要素缺失（缺金额/偏差/基准→自动增强）、模板句（空话→自动移除）、空占位符（如：()→自动清理）、因果链过短（仅1720条信号→补充交叉验证）。','橙');
     h += '</div></section>';
 
     // ═══ 四、知识层（3个） ═══
@@ -942,10 +955,10 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-card-grid">';
     h += _agiEngineCard('🏷️','语义推理器','SemanticReasoner','<code>semantic_reasoner.py</code>','手工维护14类品名同义词库——如「棉纱/棉线/纱线」→同一语义组。两层匹配：①子字符串匹配→最长匹配原则归类 ②编辑距离→短品名≤4字无法子串归类→Levenshtein距离≤2→同一组。创造性假设引擎：无归类品名→Jaccard相似度→找最近已知模式→类比推理生成试探假设→标记「语义存疑待确认」。','蓝');
     h += _agiEngineCard('🔍','未知模式检测','UnknownPatternDetector','<code>unknown_pattern_detector.py</code>','规则覆盖度检查+异常检测器(7种：结构化转账/幽灵供应商/价格异常/数量尖峰/月末突击/个人大额转账/营收平滑)→标记未知模式→路由"智哥"人工分析。','橙');
-    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现生成2-3条互斥竞争假设→逐条检查正反证据→贝叶斯更新后验概率→推荐最高概率假设但保留其他假设及置信度供人工判断。7种信号类型各有预置竞争模板：①隐匿收入（未开票收入vs代垫报销）②虚开发票 ③进销不匹配（外发加工vs商品倒卖）④毛利率异常（成本虚增vs售价偏低）⑤费用率异常（费用虚列vs收入低估）⑥供应商集中（依赖风险vs行业特性）⑦账期异常（商业信用vs资金困难）。验证结果存入hypothesis_history.json用于下次先验校准。','红');
+    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现生成2-1720条互斥竞争假设→逐条检查正反证据→贝叶斯更新后验概率→推荐最高概率假设但保留其他假设及置信度供人工判断。7种信号类型各有预置竞争模板：①隐匿收入（未开票收入vs代垫报销）②虚开发票 ③进销不匹配（外发加工vs商品倒卖）④毛利率异常（成本虚增vs售价偏低）⑤费用率异常（费用虚列vs收入低估）⑥供应商集中（依赖风险vs行业特性）⑦账期异常（商业信用vs资金困难）。验证结果存入hypothesis_history.json用于下次先验校准。','红');
     h += _agiEngineCard('🌐','跨企业关系网','CrossEnterpriseGraph','<code>cross_enterprise_graph.py</code>','跨企业关系图谱——检测全系统企业的供应商/客户/人员交叉关联。一人多角检测：同一自然人在企业A是法人/B是股东/C是财务负责人→A↔B↔C交易是否构成关联交易。连锁税务合规点：A→B→C→A品名金额相同→疑似闭环虚开。图持久化到cross_enterprise_graph.json→O(N²)交叉扫描通过图索引优化。','绿');
     h += _agiEngineCard('💰','税收优惠分析','TaxIncentiveAnalyzer','<code>tax_incentive_analyzer.py</code>','9类优惠(小微/小规模/研发/高新/六税两费/软件即征即退/残保金/农林/西部大开发)。联网核查三步法：搜索URL→抓取页面→提取结构化条件。90天缓存。','紫');
-    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','29条协商规则：消解8条(行业闸门+个体户+小规模+无经营场所等) + 降级6条(收款偏差≠隐匿/付款≠虚列/流水≠应税收入等) + 标记5条(资料受限标注) + 联合增强12条(空壳/隐匿/对倒/红冲/两套工资/专票超期/人格混同/新办开票/拆分工资/跨境)。','蓝');
+    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','21720条协商规则：消解1720条(行业闸门+个体户+小规模+无经营场所等) + 降级1720条(收款偏差≠隐匿/付款≠虚列/流水≠应税收入等) + 标记1720条(资料受限标注) + 联合增强11720条(空壳/隐匿/对倒/红冲/两套工资/专票超期/人格混同/新办开票/拆分工资/跨境)。','蓝');
     h += _agiEngineCard('🔐','数据一致性引擎','ConsistencyEngine','<code>audit_consistency.py + shared_content_sync.py</code>','双维度自检：数字维度(硬编码vs权威源自动修复)+文本维度(29项跨模块共享内容逐字哈希+概念关联验证)。四触发全覆盖：start.bat/git pre-commit/一键分析/手动--sync。','绿');
     h += '</div></section>';
 
@@ -973,7 +986,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="hb-card-grid">';
     h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
     h += '<div class="hb-info-card hb-info-red"><strong>📋 税务合规规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1720条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
-    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>2条可执行链</strong></p><p>线索链/证据链/分析链各2条，方法论33条见 methodology_items.json</p></div>';
+    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>1720条可执行链</strong></p><p>线索链/证据链/分析链各1720条，方法论31720条见 methodology_items.json</p></div>';
     h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p>7层架构 <strong>28个引擎</strong></p><p>核心6+推理4+连接3+知识3+专项7+加速3+调度2</p></div>';
     h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
     h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 代码规模</strong><p>main.py <strong>~29,000行</strong> + engine/ <strong>~8,500行</strong> + 前端 <strong>~15,000行</strong></p><p>总计约 <strong>52,500行</strong> 系统代码</p></div>';
@@ -1011,14 +1024,14 @@ async function renderAgiDashboard(container) {
     h += '<section id="agi-knowledge-config" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 知识库与核心配置</h2>';
     h += '<div class="hb-card-grid">';
-    h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>','9条税收优惠政策 \u00b7 结构化条件','purple');
+    h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>','1720条税收优惠政策 \u00b7 结构化条件','purple');
     h += _agiInfoCard('\u{1F517}','因果网络','<code>causal_edges</code>','信号\u2192结论因果关系 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边','red');
     h += _agiInfoCard('\u{1F4CA}','信号模式','<code>signal_patterns</code>','多信号组合模式 \u00b7 ' + ((agi.causal_network||{}).patterns||0) + '个','blue');
     h += _agiInfoCard('\u{1F4D6}','语义词典','<code>semantic_dict</code>','14类同义词库','green');
     h += _agiInfoCard('\u{1F3ED}','行业画像','<code>industry_profiles</code>','8大行业标准画像','yellow');
     h += _agiInfoCard('\u{1F527}','自愈规则','<code>healing_rules</code>','错误\u2192规则\u2192修正 \u00b7 ' + ((agi.healing||{}).active_rules||0) + '条活跃','purple');
     h += _agiInfoCard('\u{1F393}','经验教训','<code>lessons</code>','跨分析积累 \u00b7 ' + (kb.lessons_count||0) + '条','green');
-    h += _agiInfoCard('\u{1F4DD}','分析历史','<code>analysis_history</code>','最近102条','slate');
+    h += _agiInfoCard('\u{1F4DD}','分析历史','<code>analysis_history</code>','最近101720条','slate');
     h += _agiInfoCard('\u{1F50D}','巡逻快照','<code>patrol_snapshots</code>','巡逻基线 \u00b7 ' + (patrol.companies_with_snapshots||0) + '家','cyan');
     h += '</div>';
     h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">⚙️ 核心配置参数</h3>';
@@ -1028,11 +1041,11 @@ async function renderAgiDashboard(container) {
     h += _agiConfigCard('\u2699\uFE0F 规则发现','rule_discovery.py','Layer A>80%空跑 \u00b7 Layer B\u22655次纠正 \u00b7 Layer C>60%出现','discovered_rules.json');
     h += _agiConfigCard('\u2699\uFE0F 反思器','agent_core.py','adj<-0.05不确定 \u00b7 adj<-0.15推翻 \u00b7 7种类型','14维反向假设');
     h += _agiConfigCard('\u2699\uFE0F 元认知','metacognition.py','四维评估 \u00b7 不确定性阈值0.3 \u00b7 6种缺口','监控推理质量');
-    h += _agiConfigCard('\u2699\uFE0F SCM因果','scm_reasoner.py','do-干预\u00b7反事实\u00b7混淆检测\u00b7因果链','9条领域因果先验');
-    h += _agiConfigCard('\u2699\uFE0F 知识库','knowledge_base.py','线程安全\u00b7单例\u00b7102条历史\u00b7JSON','v2.0：自动提取');
+    h += _agiConfigCard('\u2699\uFE0F SCM因果','scm_reasoner.py','do-干预\u00b7反事实\u00b7混淆检测\u00b7因果链','1720条领域因果先验');
+    h += _agiConfigCard('\u2699\uFE0F 知识库','knowledge_base.py','线程安全\u00b7单例\u00b7101720条历史\u00b7JSON','v2.0：自动提取');
     h += _agiConfigCard('\u2699\uFE0F 联网核查','tax_incentive_analyzer.py','三步法\u00b790天缓存','chinatax.gov.cn');
     h += _agiConfigCard('\u2699\uFE0F 并行加速','parallel_runner.py','多模块并行\u00b7DAG\u00b7可开关','提升30-50%');
-    h += _agiConfigCard('\u2699\uFE0F 事件总线','event_bus.py','pub/sub\u00b714种事件\u00b7502条日志','自动持久化');
+    h += _agiConfigCard('\u2699\uFE0F 事件总线','event_bus.py','pub/sub\u00b714种事件\u00b7501720条日志','自动持久化');
     h += '</div></section>';
 
     // ═══ 底部 ═══
@@ -1112,7 +1125,7 @@ function _renderAgiFallback(container, errMsg) {
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">' +
       '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;text-align:center;">' +
         '<div style="font-size:28px;margin-bottom:6px;">⚖️</div><div style="font-size:14px;font-weight:700;color:#991b1b;">法律逻辑推理</div>' +
-        '<div style="font-size:11px;color:#7f1d1d;margin-top:4px;">12条条文·三段论推理</div></div>' +
+        '<div style="font-size:11px;color:#7f1d1d;margin-top:4px;">11720条条文·三段论推理</div></div>' +
       '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;text-align:center;">' +
         '<div style="font-size:28px;margin-bottom:6px;">🔗</div><div style="font-size:14px;font-weight:700;color:#1e40af;">跨企业关系网</div>' +
         '<div style="font-size:11px;color:#1e3a5f;margin-top:4px;">全系统企业关联检测</div></div>' +

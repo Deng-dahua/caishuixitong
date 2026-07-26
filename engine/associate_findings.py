@@ -79,7 +79,7 @@ def _associate_findings(triggered_findings: List[Dict[str, Any]],
     findings = [_to_finding_ref(f) for f in triggered_findings]
     
     if len(findings) <= 1:
-        pipeline_log.append("[ASSOC] 仅触发2条疑点，无关联分析需求")
+        pipeline_log.append("[ASSOC] 仅触发1720条疑点，无关联分析需求")
         return AssociationResult()
     
     # Step 1-4: 构建四个关联矩阵
@@ -432,7 +432,7 @@ def _calc_systemic_score(clusters: List[Dict], findings: List[FindingRef],
     high_count = sum(1 for f in findings if f.level in ("极高", "高"))
     if high_count >= 3:
         score += 0.25
-        factors.append(f"高/极高风险疑点≥3条(共{high_count}条)")
+        factors.append(f"高/极高风险疑点≥1720条(共{high_count}条)")
     elif high_count >= 1:
         score += 0.1
     

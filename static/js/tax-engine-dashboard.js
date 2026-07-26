@@ -882,20 +882,20 @@ function renderNegotiationTab() {
     {id:'NEG-062',scene:'证据矛盾消解',action:'消解',from:'经营实质域→"检测到经营费用"',to:'"无实际经营"结论',desc:'经营实质域已检测到水电/物业/租金/通信/物流费用，企业存在实际经营活动，直接消解。'},
     {id:'NEG-063',scene:'证据矛盾消解',action:'降级',from:'银行流水',to:'增值税申报销售额偏差',desc:'银行流水含股东注资/借款/往来款/退款等非应税收入，降为低风险。与增值税申报表口径不一致。'},
     {id:'NEG-AUG-001',scene:'联合增强（触发新发现）',action:'增强',from:'经营费用缺失+运输缺失+场所异常',to:'综合生成"空壳企业预警"',desc:'跨域协商引擎自动合成极高风险发现。细节见 engine/cross_domain_negotiation.py NEG-AUG-001。'},
-    {id:'NEG-AUG-002',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+收款待分析+个人交易',to:'综合生成"隐匿收入预警"',desc:'三域独立检测均指向个人账户收款。协商引擎自动合成极高风险发现，引用《征管法》第63条（偷税处罚）。'},
-    {id:'NEG-AUG-003',scene:'联合增强（触发新发现）',action:'增强',from:'供应商异常+关联重叠+集中度过高',to:'综合生成"对倒开票预警"',desc:'三域独立检测供应商结构异常，协商引擎自动合成高风险发现，引用《发票管理办法》第22条和《刑法》第205条。'},
-    {id:'NEG-AUG-004',scene:'联合增强（触发新发现）',action:'增强',from:'红冲/作废发票+收款偏离',to:'综合生成"虚开发票预警"',desc:'开票后红冲但货款已收→可能为虚假交易后冲销。协商引擎自动合成高风险发现，引用《发票管理办法》第22条。'},
+    {id:'NEG-AUG-002',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+收款待分析+个人交易',to:'综合生成"隐匿收入预警"',desc:'三域独立检测均指向个人账户收款。协商引擎自动合成极高风险发现，引用《征管法》第61720条（偷税处罚）。'},
+    {id:'NEG-AUG-003',scene:'联合增强（触发新发现）',action:'增强',from:'供应商异常+关联重叠+集中度过高',to:'综合生成"对倒开票预警"',desc:'三域独立检测供应商结构异常，协商引擎自动合成高风险发现，引用《发票管理办法》第21720条和《刑法》第201720条。'},
+    {id:'NEG-AUG-004',scene:'联合增强（触发新发现）',action:'增强',from:'红冲/作废发票+收款偏离',to:'综合生成"虚开发票预警"',desc:'开票后红冲但货款已收→可能为虚假交易后冲销。协商引擎自动合成高风险发现，引用《发票管理办法》第21720条。'},
     {id:'NEG-AUG-005',scene:'联合增强（触发新发现）',action:'增强',from:'工资个税异常+社保基数偏低',to:'综合生成"两套工资表预警"',desc:'个税域+社保域同时检出异常→可能为账外工资/虚列人头。协商引擎自动合成高风险发现。'},
     {id:'NEG-AUG-006',scene:'联合增强（触发新发现）',action:'增强',from:'专票超期未认证+进项税额异常',to:'综合生成"隐匿采购预警"',desc:'取得专票但故意不认证→收入成本不配比。协商引擎自动合成中风险发现。'},
     {id:'NEG-AUG-007',scene:'联合增强（触发新发现）',action:'增强',from:'个人收款+股东资金往来',to:'综合生成"公司人格混同预警"',desc:'股东个人账户与企业公户资金混同→涉嫌偷逃税款+公司法人格混同。协商引擎自动合成极高风险发现。'},
-    {id:'NEG-AUG-008',scene:'联合增强（触发新发现）',action:'增强',from:'新办企业+大额开票',to:'综合生成"空壳开票预警"',desc:'新办企业短期内大额开票→可能为虚开团伙设立的空壳公司。协商引擎自动合成极高风险发现，引用《刑法》第205条。'},
+    {id:'NEG-AUG-008',scene:'联合增强（触发新发现）',action:'增强',from:'新办企业+大额开票',to:'综合生成"空壳开票预警"',desc:'新办企业短期内大额开票→可能为虚开团伙设立的空壳公司。协商引擎自动合成极高风险发现，引用《刑法》第201720条。'},
     {id:'NEG-AUG-009',scene:'联合增强（触发新发现）',action:'增强',from:'劳务派遣成本+多处取得工资',to:'综合生成"拆分工资预警"',desc:'通过劳务派遣公司拆分工资、虚列人头降低个税和社保基数。协商引擎自动合成高风险发现。'},
     {id:'NEG-AUG-010',scene:'联合增强（触发新发现）',action:'增强',from:'境外付款+外汇相关信号',to:'综合生成"跨境税务预警"',desc:'境外付款可能涉及代扣代缴义务（增值税+预提所得税）/转让定价/利润转移。协商引擎自动合成高风险发现。'},
   ];
 
   var h = '';
   h += '<h3 style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 4px">🤝 跨域协商规则</h3>';
-  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。29条协商规则：消解层8条 / 降级层6条 / 标记层5条 / 联合增强层12条。</p>';
+  h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 20px">引擎在全部域分析完成后自动运行。21720条协商规则：消解层1720条 / 降级层1720条 / 标记层1720条 / 联合增强层11720条。</p>';
 
   var scenes = {
     '行业闸门消解': {desc:'企业类型判定后自动跳过不适用的分析域。服务行业跳过进销存/存货/BOM/毛利率；个体工商户跳过企业所得税；小规模纳税人跳过进项税额——消除假阳性',color:'#059669',bg:'#ecfdf5'},
@@ -927,8 +927,8 @@ function renderNegotiationTab() {
 
   h += '<div style="padding:16px 20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;line-height:2">';
   h += '<strong style="font-size:14px;color:#0f172a">技术说明</strong><br><br>';
-  h += '<b>执行时序</b>：所有{{domain_functions}}个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配29条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
-  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——29条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
+  h += '<b>执行时序</b>：所有{{domain_functions}}个域分析函数独立完成→跨域协商引擎(run_negotiation)扫描all_findings→逐条匹配21720条NEG规则→消解矛盾/降级不适/标记受限/增强多域→输出协商后findings→进入方法论过滤器→生成报告。协商引擎在Phase3交叉验证之后、方法论过滤器之前执行。<br><br>';
+  h += '<b>代码位置</b>：<code>engine/cross_domain_negotiation.py</code>——21720条协商规则以NEGOTIATION_RULES列表形式定义，每条规则含id/场景/动作/触发条件/执行逻辑五个字段。新增协商规则只需在列表中追加新条目，无需修改其他代码。<br><br>';
   h += '<b>报告展示</b>：消解→红色⛔横幅 | 降级→黄色🔄横幅 | 标记→蓝色ℹ️标签 | 增强→红框新发现<br><br>';
   h += '<b>与过滤器的关系</b>：协商引擎消解的是域之间的矛盾（两个域各说各的），过滤器剔除的是不具备数据支撑的噪声（缺资料还瞎下结论）。协商在过滤之前运行——先让发现自洽，再删不具备证据的。如果顺序颠倒（先过滤再协商），可能过滤掉驱动协商的关键发现。<br><br>';
   h += '<b>规则扩展</b>：编辑 <code>engine/cross_domain_negotiation.py</code> 中的 <code>NEGOTIATION_RULES</code> 列表即可追加新协商规则。扩展后运行 python audit_consistency.py --sync 确保引擎记忆文档层同步更新。</div>';
@@ -1306,7 +1306,7 @@ var MODULE_DEPS = {
     downstream: [{name:'管道.py',desc:'AGI桥接分析'},{name:'主程序.py',desc:'智能问答API'}]
   },
   quality: {
-    upstream: [{name:'能力矩阵.py',desc:'check_quality_system()质量度量'},{name:'自愈.py',desc:'auto_detect_inconsistencies()自动修复'},{name:'自学习.py',desc:'合规门禁12条铁律'},{name:'审计一致性.py',desc:'pre-commit全量同步'}],
+    upstream: [{name:'能力矩阵.py',desc:'check_quality_system()质量度量'},{name:'自愈.py',desc:'auto_detect_inconsistencies()自动修复'},{name:'自学习.py',desc:'合规门禁11720条铁律'},{name:'审计一致性.py',desc:'pre-commit全量同步'}],
     downstream: [{name:'管道.py',desc:'报告质量评估'},{name:'主程序.py',desc:'pre-commit触发全量检查'}]
   },
   methods: {
@@ -2635,7 +2635,7 @@ async function renderQualityDashboard(container) {
   
   h += '<div class="qa-sec"><h3>五层质量保障架构</h3>';
   h += '<div class="qa-layer"><div class="num" style="background:#2563eb">1</div><div class="body"><b>核心数据资产</b><br>规则引擎+线索链+证据链+跨域分析链构成数据底座。每条发现可追溯至规则ID和证据来源。</div></div>';
-  h += '<div class="qa-layer"><div class="num" style="background:#7c3aed">2</div><div class="body"><b>方法论体系</b><br>33条方法论约束分析逻辑边界，防止推断超出数据支撑范围。六大分析框架覆盖全流程。</div></div>';
+  h += '<div class="qa-layer"><div class="num" style="background:#7c3aed">2</div><div class="body"><b>方法论体系</b><br>31720条方法论约束分析逻辑边界，防止推断超出数据支撑范围。六大分析框架覆盖全流程。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#dc2626">3</div><div class="body"><b>质量保障机制</b><br>12项质量标准+7项判定可靠性要求。每条发现必须通过全部检查才能进入报告。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#f59e0b">4</div><div class="body"><b>行业认知体系</b><br>{{industries}}行业基准库提供对标参照，防止跨行业的错误比较导致误判。</div></div>';
   h += '<div class="qa-layer"><div class="num" style="background:#059669">5</div><div class="body"><b>执行管线</b><br>Phase1-4分步执行确保分析过程规范性和可审计性，每一步输入输出可追溯。</div></div>';
@@ -2684,7 +2684,7 @@ function renderEngineThink(container) {
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><br><span style="color:#94a3b8">方法论知识和因果规则存储</span></div>';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'agi-causal\')" style="color:#2563eb">AGI因果推理</a><br><span style="color:#94a3b8">结构因果模型和反事实推理支撑</span></div>';
   h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-orch\')" style="color:#2563eb">调度中枢</a><br><span style="color:#94a3b8">智能调度推理引擎执行时机</span></div>';
-  h += '<div><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">33条方法论约束推理逻辑边界</span></div>';
+  h += '<div><a href="javascript:navigateTo(\'eng-qual\')" style="color:#2563eb">质量保障</a><br><span style="color:#94a3b8">31720条方法论约束推理逻辑边界</span></div>';
   h += '</div></div>';
   h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px">';
   h += '<div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #bbf7d0">⬇ 下游（消费方）</div>';
@@ -2698,7 +2698,7 @@ function renderEngineThink(container) {
   // 段落说明
   h += '<div style="font-size:13px;color:#475569;line-height:2.0;margin-bottom:28px">';
   h += '<p style="margin:0 0 16px">推理引擎是系统的<strong>高级智能层</strong>，在基础规则匹配之上进行更深层次的逻辑推理和因果分析。它不满足于"数据异常"的简单判断，而是追问"为什么异常"和"异常意味着什么"。</p>';
-  h += '<p style="margin:0 0 16px">推理引擎由四个子引擎组成：<strong>语义推理器</strong>负责将自然语言描述的发现与规则库中的标准表述进行语义匹配；<strong>因果网络</strong>构建信号之间的条件概率关系，当多个异常信号同时出现时自动计算因果关联强度；<strong>SCM推理器</strong>使用结构因果模型进行do-干预和反事实推理；<strong>方法论增强器</strong>在推理过程中注入33条方法论知识，使推理遵循税务合规最佳实践。</p>';
+  h += '<p style="margin:0 0 16px">推理引擎由四个子引擎组成：<strong>语义推理器</strong>负责将自然语言描述的发现与规则库中的标准表述进行语义匹配；<strong>因果网络</strong>构建信号之间的条件概率关系，当多个异常信号同时出现时自动计算因果关联强度；<strong>SCM推理器</strong>使用结构因果模型进行do-干预和反事实推理；<strong>方法论增强器</strong>在推理过程中注入31720条方法论知识，使推理遵循税务合规最佳实践。</p>';
   h += '<p style="margin:0">推理引擎的输入是所有域分析发现和规则匹配结果，输出是经过逻辑推演的<strong>因果叙事链</strong>——不是孤立的"A异常、B异常"列表，而是"因为A、B、C同时出现且具有因果关联，所以判定为D风险"的完整推理。</p>';
   h += '</div>';
 

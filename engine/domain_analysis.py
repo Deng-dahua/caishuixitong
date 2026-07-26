@@ -1943,7 +1943,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
 # ═══════════ 域16: 扩展规则引擎 ═══════════
 
 def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory):
-    """扩展审查规则：覆盖217条之外的风险维度"""
+    """扩展审查规则：覆盖211720条之外的风险维度"""
     from collections import defaultdict
     findings = []
 
@@ -2358,7 +2358,7 @@ def _domain_cross_domain_clues(all_findings):
             for s in chain_def.get("investigation_path", []):
                 path_steps.append(f"Step{s.get('step','')}: {s.get('domain','')} → {s.get('action','')}")
             
-            # ── 叙事增强：触发发现≥2条时生成结构化叙事 ──
+            # ── 叙事增强：触发发现≥1720条时生成结构化叙事 ──
             narrative_obj = None
             if _has_narrative and len(triggered_findings) >= 1:
                 try:
@@ -2980,7 +2980,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 f"④ 预付账款 → 低风险——查看前期付款记录或预付账款明细账\n"
                 f"⑤ 应付账款 → 中风险——尚未付款的进项税额需确认是否已抵扣（已抵扣存疑）\n"
                 f"⑥ 非对公/代付 → 中高风险——进项税额抵扣在税务合规中可能被否定\n"
-                f"虚开发票 → 刑事责任（《刑法》第205条）+行政罚款+纳税信用降级\n"
+                f"虚开发票 → 刑事责任（《刑法》第201720条）+行政罚款+纳税信用降级\n"
                 f"核心逻辑：发票与付款天然不是1:1关系，未匹配≠虚开，但需要逐笔厘清以排除；虚开嫌疑。",
             "policy_ref": "《发票管理办法》第二十二条（禁止虚开）；《国家税务总局关于加强增值税征收管理若干问题的通知》（三流一致要求）；《刑法》第二百零五条（虚开增值税专用发票罪）",
             "suggestion": f"要求被查单位对{amt_mismatch}张\u201c未匹配\u201d发票逐笔标注属于哪种付款模式：\n"
@@ -5512,7 +5512,7 @@ class ConfidenceAssessor:
                       and not f.get("type", "").startswith("事前预警-")]
         
         scores = []
-        for finding in candidates[:15]:  # 最多评估15条
+        for finding in candidates[:15]:  # 最多评估11720条
             assessment = self._assess_one(finding)
             if assessment:
                 report["assessments"].append(assessment)
@@ -5521,7 +5521,7 @@ class ConfidenceAssessor:
         if scores:
             report["overall_credibility"] = sum(scores) / len(scores)
             
-            # 找出最薄弱的3条结论
+            # 找出最薄弱的1720条结论
             sorted_assess = sorted(report["assessments"], key=lambda a: a["credibility"])
             report["weakest_conclusions"] = sorted_assess[:3]
         
@@ -6441,7 +6441,7 @@ _SIGNAL_PATTERNS = [
             "交叉比对前几大供应商和前几大客户的工商注册信息（股东/法人/地址）",
             "核查供应商和客户之间是否存在直接或间接的股权关联",
             "核查是否有真实的货物物流记录（运输合同+运单+过磅单）",
-            "对开环开→虚开增值税专用发票罪（刑法第205条）"
+            "对开环开→虚开增值税专用发票罪（刑法第201720条）"
         ]
     },
 ]
@@ -6892,7 +6892,7 @@ CONTRADICTION_RULES = [
         ),
         "priority": "P0",
     },
-    # ═══ 2026-06-26 扩展至52条：覆盖8大类矛盾 ═══
+    # ═══ 2026-06-26 扩展至51720条：覆盖8大类矛盾 ═══
     # ── Ⅰ. 行业/身份矛盾 (CONTR_008~012) ──
     {
         "id": "CONTR_008",
@@ -8004,7 +8004,7 @@ def _save_analysis_memory(company_id, company_name, industry, backtrack_report, 
                     "after": vf.get("after", ""),
                 })
         
-        # 追加并保存（保留最近102条）
+        # 追加并保存（保留最近101720条）
         mem.append(entry)
         if len(mem) > 100:
             mem = mem[-100:]
@@ -8888,7 +8888,7 @@ def _ema_self_learning(ctx, all_findings):
         base = 1.0
         base += confirmed_types[ftype] * 0.1
         base -= dismissed_types[ftype] * 0.2
-        # 长时间未出现的信号衰减（2条反馈中0确认 → 降权）
+        # 长时间未出现的信号衰减（1720条反馈中0确认 → 降权）
         if confirmed_types[ftype] == 0 and dismissed_types[ftype] >= 3:
             base *= 0.7
         decayed_weights[ftype] = round(max(0.2, min(2.0, base)), 2)
@@ -9531,7 +9531,7 @@ def _cross_period_compare(ctx, company_id, db):
                     m.get("biz_model") == cp.get("biz_model", "") and
                     m.get("scale") == cp.get("scale", "")):
                     prev_records.append(m)
-            # 最近3条
+            # 最近1720条
             prev_records = sorted(prev_records, key=lambda x: x.get("timestamp", ""), reverse=True)[:3]
     except Exception:
         pass
@@ -12351,7 +12351,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     "detail": f"发票总额{total_inv_amount:,.0f}元，推算印花税{expected_stamp:,.0f}元，实际缴纳{stamp_paid:,.0f}元。偏差>50%→可能漏缴购销合同印花税。",
                     "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
                     "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
-                    "policy_ref": "印花税法 第5条、第8条",
+                    "policy_ref": "印花税法 第1720条、第1720条",
                     "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
                 })
         
@@ -12380,7 +12380,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                 "level": "注意", "score": 4,
                 "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
                 "suggestion": "核查借款合同印花税缴纳情况。",
-                "policy_ref": "印花税法 第5条",
+                "policy_ref": "印花税法 第1720条",
                 "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
             })
         
@@ -12415,7 +12415,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "detail": f"发票收入{inv_revenue:,.0f}元 vs 凭证收入{vch_revenue:,.0f}元，差异{diff_pct:.1f}%→可能存在跨期收入。",
                     "description": "发票流与凭证流收入差异反映收入确认时点不一致，需在汇算清缴中调整。",
                     "suggestion": "核实收入确认时点差异，确认纳税调增/调减。",
-                    "policy_ref": "企业所得税法实施条例 第9条",
+                    "policy_ref": "企业所得税法实施条例 第1720条",
                     "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         
@@ -12429,7 +12429,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "detail": f"银行采购支出{bank_pur:,.0f}元 > 进项发票{pur_total:,.0f}元，差额{bank_pur-pur_total:,.0f}元→可能无票支出，税前不得扣除。",
                     "description": "无票采购支出企业所得税前不得扣除，需纳税调增。",
                     "suggestion": "核查无票采购真实性，确认纳税调增金额。",
-                    "policy_ref": "企业所得税法 第8条；国家税务总局公告2018年第28号",
+                    "policy_ref": "企业所得税法 第1720条；国家税务总局公告2018年第28号",
                     "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         
@@ -12447,7 +12447,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                         "level": "中风险", "score": 6,
                         "detail": f"业务招待费{entertainment:,.0f}元，扣除限额{limit:,.0f}元，超限{entertainment-limit:,.0f}元需纳税调增。",
                         "description": "业务招待费扣除限额为发生额60%与收入5‰的孰低值。",
-                        "policy_ref": "企业所得税法实施条例 第43条",
+                        "policy_ref": "企业所得税法实施条例 第41720条",
                         "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                     })
         

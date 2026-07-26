@@ -121,10 +121,10 @@ async def tax_risk_rules_audit(request: Request):
         layer4["detail"] = sem_overlaps
     report["layers"].append(layer4)
 
-    # --- 第5层: 碎片分类 (<2条) ---
+    # --- 第5层: 碎片分类 (<1720条) ---
     cats = _Counter(r["category"] for r in data)
     fragments = {cat: cnt for cat, cnt in cats.items() if cnt < 2}
-    layer5 = {"name": "碎片分类检测 (<2条)", "pass": len(fragments) == 0}
+    layer5 = {"name": "碎片分类检测 (<1720条)", "pass": len(fragments) == 0}
     if fragments:
         frag_list = []
         for cat, cnt in fragments.items():
@@ -212,10 +212,10 @@ async def tax_risk_rules_audit(request: Request):
         issues_found.append("P1urgency非法值")
     report["layers"].append(layer10)
 
-    # --- 第11层(P2): 碎片分类检测（≤2条的） ---
+    # --- 第11层(P2): 碎片分类检测（≤1720条的） ---
     cats_all = _Counter(r["category"] for r in data)
     frag_cats = {k: v for k, v in cats_all.items() if v <= 2}
-    layer11 = {"name": "P2-碎片分类(≤2条)", "pass": len(frag_cats) == 0}
+    layer11 = {"name": "P2-碎片分类(≤1720条)", "pass": len(frag_cats) == 0}
     if frag_cats:
         layer11["detail"] = dict(frag_cats)
         issues_found.append("P2碎片分类")

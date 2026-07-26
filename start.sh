@@ -1,20 +1,17 @@
-#!/bin/bash
-# 财税系统启动脚本（Git Bash/Linux）
-PORT=8001
-VENV="C:/Users/26726/.workbuddy/binaries/python/envs/zhangwu/Scripts/python.exe"
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")"
 
-echo "[1/4] 清除端口 $PORT..."
-PID=$(netstat -ano 2>/dev/null | grep ":$PORT" | grep LISTENING | awk '{print $5}' | head -1)
-if [ -n "$PID" ]; then
-    echo "  杀掉 PID $PID"
-    taskkill //F //PID $PID 2>/dev/null
+if [ ! -x ".venv/bin/python" ]; then
+  echo "Virtual environment not found."
+  echo "Run: python3.12 -m venv .venv"
+  echo "Then: .venv/bin/python -m pip install -r requirements.lock"
+  exit 1
 fi
-sleep 2
 
-echo "[2/4] 清除字节码缓存..."
-find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
-find . -name "*.pyc" -delete 2>/dev/null
+export APP_COOKIE_SECURE="${APP_COOKIE_SECURE:-0}"
+export APP_ALLOWED_ORIGINS="${APP_ALLOWED_ORIGINS:-http://127.0.0.1:8000,http://localhost:8000}"
+export APP_DATA_DIR="${APP_DATA_DIR:-$(pwd)/data}"
 
-echo "[3/4] 启动服务器... 访问地址：http://localhost:$PORT"
-echo "[4/4] 登录页：打开浏览器访问 http://localhost:$PORT/"
-PYTHONDONTWRITEBYTECODE=1 $VENV -B -m uvicorn main:app --host 0.0.0.0 --port $PORT --reload
+echo "Starting on loopback only: http://127.0.0.1:8000"
+exec .venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000

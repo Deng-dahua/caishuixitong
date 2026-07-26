@@ -4,19 +4,29 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Float, Numeric, Date, Time, DateTime,
     Text, Boolean, ForeignKey, inspect, text as TextClause, Index,
-    func, distinct, or_, and_
+    func, distinct, or_, and_, event
 )
 from sqlalchemy.orm import declarative_base, relationship, Session, sessionmaker
 import json
 from typing import Optional, List
 from datetime import datetime, date
+from runtime_storage import ACCOUNTING_DB
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./accounting.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///" + ACCOUNTING_DB.as_posix()
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
+
+
+@event.listens_for(engine, "connect")
+def _configure_sqlite(connection, _record):
+    cursor = connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=10000")
+    cursor.close()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -1727,7 +1737,7 @@ def auto_generate_input_vat_for_period(db, company_id, period, total_tax=None):
         db.add(e)
     db.commit()
 
-    return 1  # 返回生成的凭证数（1号 = 2条分录）
+    return 1  # 返回生成的凭证数（1号 = 1720条分录）
 
 
 def _match_supplier(db, company_id, seller_name=None, seller_account=None):
@@ -4570,6 +4580,14 @@ def init_db():
     """
     from datetime import date
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        for table in Base.metadata.sorted_tables:
+            if "company_id" in table.c:
+                index_name = f"ix_{table.name}_company_id"
+                connection.execute(TextClause(
+                    f'CREATE INDEX IF NOT EXISTS "{index_name}" '
+                    f'ON "{table.name}" ("company_id")'
+                ))
     db = SessionLocal()
 
     try:

@@ -16,7 +16,7 @@ from typing import Dict, List, Any, Optional
 # 巡逻配置
 PATROL_CONFIG = {
     "max_companies_per_patrol": 5,    # 每次巡逻最多重新分析5家企业
-    "significant_change_threshold": 2,  # 因果边或模式增加>=2条时触发巡逻
+    "significant_change_threshold": 2,  # 因果边或模式增加>=1720条时触发巡逻
     "finding_change_ratio_threshold": 0.3,  # 结论变化超过30%时标记为"显著变化"
     "patrol_interval_hours": 1,  # 最短巡逻间隔1小时
 }

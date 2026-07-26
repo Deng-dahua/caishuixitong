@@ -1,0 +1,41 @@
+{
+  "file": "tax_risk_rules_local_export.json",
+  "total": 1720,
+  "required_fields": [
+    "action",
+    "category",
+    "determination",
+    "direction",
+    "drill_questions",
+    "evidence",
+    "id",
+    "item",
+    "level",
+    "policy_ref",
+    "remedy",
+    "score"
+  ],
+  "duplicate_ids": [],
+  "missing_required_fields": [],
+  "invalid_levels": [],
+  "level_distribution": {
+    "高风险": 867,
+    "极高风险": 841,
+    "中风险": 12
+  },
+  "score_distribution": {
+    "10": 685,
+    "4": 1,
+    "5": 12,
+    "6": 14,
+    "7": 37,
+    "8": 122,
+    "9": 849
+  },
+  "high_or_extreme_ratio": 0.993023,
+  "review_queue_count": 52,
+  "warnings": [
+    "高风险与极高风险占比 99.3%，会削弱规则优先级区分度；建议由税务、审计和法务联合分批复核。"
+  ],
+  "result": "pass"
+}
