@@ -22,15 +22,21 @@ Linux/macOS 使用 `.venv/bin/python manage_users.py ...` 和 `./start.sh`。
 
 1. 使用 HTTPS 反向代理，不要把 Uvicorn 直接暴露到公网。
 2. 保持 `APP_COOKIE_SECURE=1`，把 `APP_ALLOWED_ORIGINS` 设为实际 HTTPS 域名。
-3. 用进程管理器注入 `LLM_API_KEY`，不得写入项目文件或 Web 页面。
+3. 每位用户登录后在“选择账套 → 管理我的模型”中保存自己的模型密钥；不得把
+   业务密钥写入项目文件或静态页面。
 4. 将 `APP_DATA_DIR` 指向受限目录，只授予服务账号读写权限并纳入加密备份。
 5. 通过 `python manage_users.py create USER --companies 1,2` 创建普通用户。
 6. 定期执行 `python tools/verify_release.py`，升级依赖前先在测试环境验证。
 
+Windows 安全启动器使用当前 Windows 账户的 DPAPI 保护
+`APP_LLM_MASTER_KEY`；应用再用 AES-GCM 和用户/凭据关联数据分别加密每一条
+模型密钥。非 Windows 部署必须由进程管理器提供独立的 32 字节主密钥。
+
 ## 数据与密钥迁移
 
 - 旧会话全部作废，不迁移 `sessions.json`。
-- 旧 LLM 密钥已经暴露过，必须在供应商控制台撤销并新建；只把新密钥写入环境。
+- 旧 LLM 密钥已经暴露过时，必须先在供应商控制台撤销并新建；一次性迁移工具
+  只用于把替代密钥导入指定应用用户，完成后立即清除迁移环境变量。
 - 使用 `python tools/migrate_legacy_data.py --source-root <旧项目目录>` 迁移数据库和
   上传文件。工具默认拒绝覆盖现有数据，并自动建立迁移前备份。
 - Git 历史中的旧密钥不能靠删除工作区文件消失，参见 `docs/GIT_HISTORY_CLEANUP.md`。
@@ -40,7 +46,9 @@ Linux/macOS 使用 `.venv/bin/python manage_users.py ...` 和 `./start.sh`。
 - 密码使用 scrypt 哈希；会话令牌仅以 SHA-256 摘要落库，8 小时过期且可撤销。
 - 所有状态变更请求校验 CSRF；登录失败会渐进式锁定。
 - 普通用户只可访问分配的 `company_id`；账套创建/删除仅管理员可用。
-- `/api/apikey` 只返回“是否配置”和末四位，禁止网页写入、探测任意 URL。
+- 每个应用用户独立保存多个厂商的密钥并选择默认模型；接口只返回末四位。
+- 厂商地址由服务端白名单固定，网页不能指定任意 URL；连接测试只在用户确认后
+  发起并写入审计记录。
 - `data/` 保存数据库、上传、缓存和日志，`static/` 只保存公开前端资源。
 - 缓存通过临时文件、同步落盘和原子替换写入；SQLite 启用外键、WAL 和账套索引。
 

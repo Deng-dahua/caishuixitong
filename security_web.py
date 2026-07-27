@@ -8,6 +8,7 @@ import re
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.routing import Match
+from request_context import reset_current_user_id, set_current_user_id
 
 from security import (
     COOKIE_SECURE,
@@ -27,7 +28,7 @@ from security import (
 
 
 _COMPANY_PATH = re.compile(r"^/api/companies/(\d+)(?:/|$)")
-_ADMIN_PATHS = ("/api/apikey", "/api/system-logs")
+_ADMIN_PATHS = ("/api/system-logs",)
 
 
 def _with_security_headers(response, request):
@@ -136,7 +137,11 @@ async def enforce_request_security(request, call_next):
 
     if not selected_cookie and not is_api and path not in {"/select-company", "/new-company"}:
         return _with_security_headers(RedirectResponse("/select-company", status_code=302), request)
-    return _with_security_headers(await call_next(request), request)
+    user_context_token = set_current_user_id(session.user_id)
+    try:
+        return _with_security_headers(await call_next(request), request)
+    finally:
+        reset_current_user_id(user_context_token)
 
 
 async def login_handler(request):

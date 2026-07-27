@@ -44,7 +44,7 @@ from engine.pipeline import *  # _run_analyze 核心管道
 from engine.pipeline import _run_analyze  # 显式导入（下划线前缀不被 wildcard 导出）
 
 from database import (
-    get_db, init_db, init_company_data,
+    get_db, init_db, init_company_data, SessionLocal,
     Company, Department, Employee, Customer, Supplier,
     Account, Period,
     FixedAsset, FixedAssetDepreciation,
@@ -90,7 +90,17 @@ from dashboard import router as dashboard_router
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
-from llm_config import get_llm_config, public_llm_status
+from llm_config import get_llm_config, public_llm_providers, public_llm_status
+from llm_credentials import (
+    create_or_replace_credential,
+    delete_credential,
+    get_credential_secret,
+    get_credential_status,
+    init_llm_credentials_db,
+    list_credentials,
+    record_test_result,
+    set_default_credential,
+)
 from runtime_storage import (
     ACCESS_LOG, ANALYSIS_HISTORY, CACHE_DIR, LAST_ANALYSIS_CACHE,
     UPLOAD_DIR as RUNTIME_UPLOAD_DIR,
@@ -106,12 +116,14 @@ from security_web import (
     auth_me_handler, enforce_request_security, login_handler, logout_handler,
     select_company_handler,
 )
+from request_context import reset_current_user_id, set_current_user_id
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化数据库+自检+恢复分析缓存"""
     init_security_db()
+    init_llm_credentials_db()
     init_db()
     # 从磁盘恢复分析缓存（服务器重启不丢、跨进程共享）
     try:
@@ -233,171 +245,207 @@ async def healthz():
     return {"ok": True}
 
 
-# ═══════════════════════════════════════════════════════════
-# API Key管理 — 全局LLM接入配置
-# ═══════════════════════════════════════════════════════════
-_API_KEY_PATH = None  # legacy sentinel; secrets are environment-only
-
-def _load_api_key():
-    return get_llm_config(include_secret=True).get("key", "")
-    try:
-        with open(_API_KEY_PATH, encoding="utf-8") as f:
-            return json.load(f).get("key", "")
-    except:
-        return ""
-
 def _load_api_config():
     return get_llm_config(include_secret=True)
-    """返回完整配置: {key, provider, base_url, model}"""
-    try:
-        with open(_API_KEY_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-        key = data.get("key", "")
-        provider = data.get("provider", "deepseek")
-        # 根据provider自动推断base_url和model
-        provider_map = {
-            "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
-            "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
-            "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
-            "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
-            "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
-        }
-        base_url, model = provider_map.get(provider, provider_map["deepseek"])
-        return {"key": key, "provider": provider, "base_url": data.get("base_url", base_url), "model": data.get("model", model)}
-    except:
-        return {"key": "", "provider": "deepseek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"}
-
-def _save_api_config(key: str, provider: str = "deepseek", base_url: str = None, model: str = None):
-    raise RuntimeError("runtime secret writes are disabled; use environment variables")
-    os.makedirs(os.path.dirname(_API_KEY_PATH), exist_ok=True)
-    provider_map = {
-        "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
-        "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
-        "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
-        "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
-        "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
-    }
-    default_url, default_model = provider_map.get(provider, provider_map["deepseek"])
-    config = {
-        "key": key,
-        "provider": provider,
-        "base_url": base_url or default_url,
-        "model": model or default_model,
-        "updated_at": datetime.now().isoformat(),
-    }
-    with open(_API_KEY_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f)
 
 def get_global_api_key() -> str:
-    return _load_api_key()
+    return get_llm_config(include_secret=True).get("key", "")
 
 def get_api_config() -> dict:
     return _load_api_config()
 
-@app.get("/api/apikey")
-async def get_api_key():
-    return public_llm_status()
-    cfg = _load_api_config()
-    key = cfg.get("key", "")
-    mask = ("..." + key[-4:]) if key and len(key) >= 4 else ""
-    provider = cfg.get("provider", "deepseek")
-    provider_name = {"deepseek":"DeepSeek","zhipu":"智谱GLM","doubao":"豆包","qwen":"通义千问","openai":"OpenAI"}.get(provider, provider)
+
+class LLMCredentialCreate(BaseModel):
+    provider: str
+    api_key: str
+    model: Optional[str] = None
+    set_default: bool = False
+
+
+class LLMCredentialRotate(BaseModel):
+    api_key: str
+    model: Optional[str] = None
+    set_default: bool = False
+
+
+def _credential_http_error(error: Exception) -> HTTPException:
+    if isinstance(error, ValueError):
+        return HTTPException(status_code=400, detail=str(error))
+    logging.exception("LLM credential operation failed")
+    return HTTPException(status_code=500, detail="模型凭据操作失败")
+
+
+@app.get("/api/llm/providers")
+async def get_llm_providers():
+    return {"ok": True, "providers": public_llm_providers()}
+
+
+@app.get("/api/me/llm-credentials")
+async def get_my_llm_credentials(request: Request):
     return {
-        "ok": True, "key": key, "has_key": bool(key),
-        "last4": key[-4:] if key and len(key) >= 4 else "",
-        "provider": provider, "model": cfg.get("model", ""),
-        "status_text": f"已配置（{provider_name} ...{mask[-4:]}）" if key else "未配置"
+        "ok": True,
+        "credentials": list_credentials(request.state.auth.user_id),
     }
+
+
+@app.post("/api/me/llm-credentials")
+async def save_my_llm_credential(data: LLMCredentialCreate, request: Request):
+    try:
+        credential = create_or_replace_credential(
+            request.state.auth.user_id,
+            provider=data.provider,
+            model=data.model,
+            api_key=data.api_key,
+            set_default=data.set_default,
+        )
+    except Exception as error:
+        raise _credential_http_error(error)
+    return {
+        "ok": True,
+        "credential": credential,
+        "credentials": list_credentials(request.state.auth.user_id),
+    }
+
+
+@app.put("/api/me/llm-credentials/{credential_id}")
+async def rotate_my_llm_credential(
+    credential_id: int,
+    data: LLMCredentialRotate,
+    request: Request,
+):
+    user_id = request.state.auth.user_id
+    try:
+        existing = get_credential_status(user_id, credential_id)
+        credential = create_or_replace_credential(
+            user_id,
+            provider=existing["provider"],
+            model=data.model or existing["model"],
+            api_key=data.api_key,
+            set_default=data.set_default or existing["is_default"],
+        )
+    except Exception as error:
+        raise _credential_http_error(error)
+    return {
+        "ok": True,
+        "credential": credential,
+        "credentials": list_credentials(user_id),
+    }
+
+
+@app.post("/api/me/llm-credentials/{credential_id}/default")
+async def make_my_llm_credential_default(credential_id: int, request: Request):
+    try:
+        credential = set_default_credential(
+            request.state.auth.user_id,
+            credential_id,
+        )
+    except Exception as error:
+        raise _credential_http_error(error)
+    return {
+        "ok": True,
+        "credential": credential,
+        "credentials": list_credentials(request.state.auth.user_id),
+    }
+
+
+@app.post("/api/me/llm-credentials/{credential_id}/test")
+async def test_my_llm_credential(credential_id: int, request: Request):
+    user_id = request.state.auth.user_id
+    try:
+        credential = get_credential_secret(user_id, credential_id)
+    except Exception as error:
+        raise _credential_http_error(error)
+
+    import httpx
+
+    success = False
+    status_code = None
+    message = "无法连接模型服务"
+    try:
+        response = httpx.post(
+            f"{credential['base_url'].rstrip('/')}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {credential['key']}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": credential["model"],
+                "messages": [{"role": "user", "content": "请只回复：连接成功"}],
+                "max_tokens": 8,
+            },
+            timeout=20.0,
+        )
+        status_code = response.status_code
+        success = response.status_code == 200
+        if success:
+            message = "连接成功"
+        elif response.status_code in {401, 403}:
+            message = "密钥无效或无权调用该模型"
+        elif response.status_code == 404:
+            message = "模型名称不可用，请检查模型设置"
+        elif response.status_code == 429:
+            message = "服务商限流或账户额度不足"
+        else:
+            message = f"模型服务返回错误（{response.status_code}）"
+    except httpx.TimeoutException:
+        message = "连接超时，请稍后重试"
+    except httpx.HTTPError:
+        message = "无法连接模型服务"
+    finally:
+        try:
+            record_test_result(
+                user_id,
+                credential_id,
+                provider=credential["provider"],
+                success=success,
+                status_code=status_code,
+            )
+        except Exception:
+            logging.exception("Could not record LLM credential test")
+        credential["key"] = ""
+
+    return JSONResponse(
+        {
+            "ok": success,
+            "message": message,
+            "status_code": status_code,
+        },
+        status_code=200 if success else 400,
+    )
+
+
+@app.delete("/api/me/llm-credentials/{credential_id}")
+async def delete_my_llm_credential(credential_id: int, request: Request):
+    try:
+        delete_credential(request.state.auth.user_id, credential_id)
+    except Exception as error:
+        raise _credential_http_error(error)
+    return {
+        "ok": True,
+        "credentials": list_credentials(request.state.auth.user_id),
+    }
+
+
+@app.get("/api/apikey")
+async def get_api_key(request: Request):
+    return public_llm_status(user_id=request.state.auth.user_id)
 
 @app.post("/api/apikey")
 async def save_api_key(request: Request):
     return JSONResponse(
         {
             "ok": False,
-            "message": "为防止密钥泄露，运行时写入已禁用；请通过环境变量配置。",
+            "message": "请使用“管理我的模型”保存当前用户的模型密钥。",
         },
         status_code=405,
     )
-    try:
-        data = await request.json()
-    except:
-        data = {}
-    key = str(data.get("api_key", "")).strip()
-    provider = str(data.get("provider", "")).strip() or "deepseek"
-    base_url = str(data.get("base_url", "")).strip() or None
-    model = str(data.get("model", "")).strip() or None
-    do_probe = data.get("probe", False)
-    
-    _save_api_config(key, provider, base_url, model)
-    
-    # 触发LLM重载
-    try:
-        from engine.llm_client import reload_llm_client
-        reload_llm_client(key)
-    except:
-        pass
-    
-    result = {"ok": True, "has_key": bool(key), "provider": provider}
-    
-    # 连通性验证 + provider-Key 一致性校验
-    if do_probe and key:
-        try:
-            cfg = _load_api_config()
-            import httpx
-            resp = httpx.post(
-                f"{cfg['base_url'].rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": cfg["model"], "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
-                timeout=8.0,
-            )
-            if resp.status_code == 200:
-                resp_json = resp.json()
-                resp_model = resp_json.get("model", "")
-                # —— provider-Key 一致性校验 ——
-                provider_signatures = {
-                    "deepseek": ["deepseek"],
-                    "zhipu": ["glm", "chatglm", "智谱"],
-                    "qwen": ["qwen", "通义"],
-                    "doubao": ["doubao", "豆包"],
-                    "openai": ["gpt", "o1", "o3", "o4"],
-                }
-                expected = provider_signatures.get(provider, [provider.lower()])
-                match = any(sig.lower() in resp_model.lower() for sig in expected)
-                if match:
-                    result["verified"] = True
-                    result["status_text"] = f"配置成功 - {provider}已连通"
-                else:
-                    result["verified"] = False
-                    result["message"] = f"Key不匹配：当前选择{provider}，但API返回模型为{resp_model}——请确认Key是否属于{provider}"
-                    result["status_text"] = "Key与Provider不匹配"
-            else:
-                result["verified"] = False
-                result["message"] = f"{provider}返回{resp.status_code}"
-                result["status_text"] = "已保存 - 连通失败"
-        except Exception as e:
-            result["verified"] = False
-            result["message"] = str(e)[:100]
-            result["status_text"] = "已保存 - 无法连通"
-    elif key:
-        result["status_text"] = f"{provider}已配置"
-    else:
-        result["status_text"] = "未配置"
-    
-    return result
 
 @app.delete("/api/apikey")
 async def delete_api_key():
     return JSONResponse(
-        {"ok": False, "message": "请在部署环境中移除 LLM_API_KEY 并重启服务。"},
+        {"ok": False, "message": "请使用“管理我的模型”删除当前用户的模型密钥。"},
         status_code=405,
     )
-    _save_api_config("", "deepseek")
-    try:
-        from engine.llm_client import reload_llm_client
-        reload_llm_client("")
-    except:
-        pass
-    return {"ok": True, "has_key": False}
 
 @app.get("/select-company", response_class=HTMLResponse)
 async def select_company_page():
@@ -760,7 +808,14 @@ async def root():
     import html as _htmlescape
     if has_key:
         mask = "..." + key[-4:] if len(key) >= 4 else ""
-        provider_name = {"deepseek":"DeepSeek","zhipu":"智谱GLM","doubao":"豆包","qwen":"通义千问","openai":"OpenAI"}.get(cfg.get("provider",""), cfg.get("provider",""))
+        provider_name = {
+            "deepseek": "DeepSeek",
+            "zhipu": "智谱 GLM",
+            "doubao": "豆包",
+            "qwen": "通义千问",
+            "kimi": "Kimi",
+            "openai": "OpenAI",
+        }.get(cfg.get("provider", ""), cfg.get("provider", ""))
         status = f"已接入{provider_name}: {mask}"
         color = "#4ade80"
     elif has_ollama:
@@ -7961,25 +8016,41 @@ def get_english_report(company_id: int, db: Session = Depends(get_db)):
 _async_tasks = {}
 
 @app.post("/api/audit/analyze-async/{company_id}")
-def start_async_analysis(company_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def start_async_analysis(
+    company_id: int,
+    background_tasks: BackgroundTasks,
+    request: Request,
+):
     """启动异步分析任务 —— 适用于大数据量企业。
     
     返回 task_id，通过 GET /api/audit/task/{task_id} 查询进度。
     """
     import uuid
     task_id = str(uuid.uuid4())[:8]
-    _async_tasks[task_id] = {"status": "processing", "progress": 0, "result": None}
+    request_user_id = request.state.auth.user_id
+    _async_tasks[task_id] = {
+        "status": "processing",
+        "progress": 0,
+        "result": None,
+        "user_id": request_user_id,
+        "company_id": company_id,
+    }
     
     def run_analysis():
+        user_context_token = set_current_user_id(request_user_id)
+        analysis_db = SessionLocal()
         try:
             _async_tasks[task_id]["progress"] = 30
-            result = analyze_tax_risk_docs(company_id=company_id, db=db)
+            result = analyze_tax_risk_docs(company_id=company_id, db=analysis_db)
             _async_tasks[task_id]["progress"] = 100
             _async_tasks[task_id]["status"] = "completed"
             _async_tasks[task_id]["result"] = result
         except Exception as e:
             _async_tasks[task_id]["status"] = "failed"
             _async_tasks[task_id]["error"] = str(e)
+        finally:
+            analysis_db.close()
+            reset_current_user_id(user_context_token)
     
     background_tasks.add_task(run_analysis)
     
@@ -7987,12 +8058,17 @@ def start_async_analysis(company_id: int, background_tasks: BackgroundTasks, db:
 
 
 @app.get("/api/audit/task/{task_id}")
-def get_analysis_task_status(task_id: str):
+def get_analysis_task_status(task_id: str, request: Request):
     """查询异步分析任务状态"""
     task = _async_tasks.get(task_id)
-    if not task:
+    if not task or task.get("user_id") != request.state.auth.user_id:
         return {"ok": False, "error": "任务不存在"}
-    return {"ok": True, "task": task}
+    public_task = {
+        key: value
+        for key, value in task.items()
+        if key not in {"user_id"}
+    }
+    return {"ok": True, "task": public_task}
 
 
 # ═══════════════════════════════════════════════════════════

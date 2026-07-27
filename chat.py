@@ -30,33 +30,8 @@ router = APIRouter()
 
 # ==================== LLM 配置 ====================
 
-# 从 api_key.json 读取提供商配置（支持 DeepSeek/智谱/豆包/通义千问/OpenAI）
 def _load_api_config():
     return get_llm_config(include_secret=True)
-    try:
-        key_path = os.path.join(os.path.dirname(__file__), "static", "api_key.json")
-        with open(key_path, encoding="utf-8") as f:
-            data = json.load(f)
-        key = data.get("key", "") or os.environ.get("TAX_LLM_KEY", "")
-        provider = data.get("provider", "deepseek")
-        provider_map = {
-            "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
-            "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
-            "doubao": ("https://ark.cn-beijing.volces.com/api/v3", "doubao-lite-32k"),
-            "qwen": ("https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-turbo"),
-            "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
-        }
-        base_url, model = provider_map.get(provider, provider_map["deepseek"])
-        return {"key": key, "provider": provider, "base_url": data.get("base_url", base_url), "model": data.get("model", model)}
-    except:
-        return {"key": "", "provider": "deepseek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"}
-
-LLM_CONFIG = _load_api_config()
-LLM_CONFIG["max_tokens"] = 2000
-LLM_CONFIG["temperature"] = 0.3
-LLM_CONFIG["timeout"] = 60
-LLM_CONFIG["ollama_base"] = os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1")
-LLM_CONFIG["ollama_model"] = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 TAX_SYSTEM_PROMPT = """你是「存勤法税智能体」，一家专注为全行业各类型企业提供财税与法律深度咨询的 AI 专家。
 
@@ -263,22 +238,28 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
     messages.append({"role": "system", "content": full_system})
     messages.append({"role": "user", "content": user_message})
     
+    llm_config = _load_api_config()
+    max_tokens = 2000
+    temperature = 0.3
+    timeout = 60
+    ollama_base = os.environ.get("OLLAMA_BASE", "http://localhost:11434/v1")
+    ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
     payload = {
-        "model": LLM_CONFIG["model"],
+        "model": llm_config.get("model") or ollama_model,
         "messages": messages,
-        "max_tokens": LLM_CONFIG["max_tokens"],
-        "temperature": LLM_CONFIG["temperature"],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
     }
     
-    client = httpx.Client(timeout=LLM_CONFIG["timeout"])
+    client = httpx.Client(timeout=timeout)
     
     # 1. 尝试云端 API（DeepSeek/智谱/豆包/通义/OpenAI）
-    if LLM_CONFIG.get("key"):
+    if llm_config.get("key"):
         try:
             resp = client.post(
-                f"{LLM_CONFIG['base_url'].rstrip('/')}/chat/completions",
+                f"{llm_config['base_url'].rstrip('/')}/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {LLM_CONFIG['key']}",
+                    "Authorization": f"Bearer {llm_config['key']}",
                     "Content-Type": "application/json",
                 },
                 json=payload,
@@ -292,9 +273,9 @@ def _call_llm(user_message: str, system_prompt: str = None, context: str = "") -
     # 2. 尝试 Ollama 本地
     try:
         ollama_payload = dict(payload)
-        ollama_payload["model"] = LLM_CONFIG["ollama_model"]
+        ollama_payload["model"] = ollama_model
         resp = client.post(
-            f"{LLM_CONFIG['ollama_base'].rstrip('/')}/chat/completions",
+            f"{ollama_base.rstrip('/')}/chat/completions",
             headers={"Content-Type": "application/json"},
             json=ollama_payload,
         )

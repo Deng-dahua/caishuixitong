@@ -15,8 +15,10 @@ SENSITIVE_NAMES = {
 }
 PRODUCTION_PYTHON = [
     "security.py", "security_web.py", "runtime_storage.py", "llm_config.py",
+    "llm_credentials.py", "llm_providers.py", "request_context.py",
     "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
     "engine/llm_client.py", "engine/pipeline.py",
+    "tools/migrate_llm_credentials.py",
 ]
 
 
@@ -60,7 +62,12 @@ def main() -> int:
     security_source = (ROOT / "security.py").read_text(encoding="utf-8")
     web_source = (ROOT / "security_web.py").read_text(encoding="utf-8")
     llm_source = (ROOT / "llm_config.py").read_text(encoding="utf-8")
+    credential_source = (ROOT / "llm_credentials.py").read_text(encoding="utf-8")
+    provider_source = (ROOT / "llm_providers.py").read_text(encoding="utf-8")
+    request_context_source = (ROOT / "request_context.py").read_text(encoding="utf-8")
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+    chat_source = (ROOT / "chat.py").read_text(encoding="utf-8")
+    llm_client_source = (ROOT / "engine" / "llm_client.py").read_text(encoding="utf-8")
     core_source = (ROOT / "static" / "js" / "core.js").read_text(encoding="utf-8")
     index_source = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     company_picker_source = (ROOT / "static" / "select-company.html").read_text(encoding="utf-8")
@@ -69,7 +76,51 @@ def main() -> int:
     check("hashlib.scrypt" in security_source, "passwords use scrypt", failures)
     check("csrf_is_valid" in web_source, "unsafe requests enforce CSRF", failures)
     check("can_access_company" in web_source, "tenant authorization is centralized", failures)
-    check("LLM_API_KEY" in llm_source and "api_key.json" not in llm_source, "LLM secret is environment-only", failures)
+    check(
+        "get_current_user_id" in llm_source
+        and "get_default_credential" in llm_source
+        and "LLM_API_KEY" not in llm_source
+        and "api_key.json" not in llm_source,
+        "LLM configuration is resolved from the authenticated user only",
+        failures,
+    )
+    check(
+        "AESGCM" in credential_source
+        and "APP_LLM_MASTER_KEY" in credential_source
+        and "_associated_data" in credential_source,
+        "per-user LLM credentials use authenticated encryption",
+        failures,
+    )
+    check(
+        "UNIQUE(user_id, provider)" in credential_source
+        and "llm_credential_audit" in credential_source
+        and "secret_last4" in credential_source,
+        "credential ownership, masking and audit records are persisted",
+        failures,
+    )
+    check(
+        "base_url" not in main_source[
+            main_source.find("class LLMCredentialCreate"):
+            main_source.find("class LLMCredentialRotate")
+        ]
+        and "https://" in provider_source,
+        "LLM provider endpoints are fixed by an allowlist",
+        failures,
+    )
+    check(
+        "set_current_user_id" in web_source
+        and "reset_current_user_id" in web_source
+        and "ContextVar" in request_context_source,
+        "request identity is propagated and reset for model calls",
+        failures,
+    )
+    check(
+        "LLM_CONFIG =" not in chat_source
+        and "llm = LLMClient()" not in llm_client_source
+        and "return LLMClient()" in llm_client_source,
+        "model clients do not retain another user's credential",
+        failures,
+    )
     check('allow_origins=["*"]' not in main_source, "wildcard CORS is absent", failures)
     check('host="0.0.0.0"' not in main_source, "default server is loopback-only", failures)
     check("X-Content-Type-Options" in web_source, "security headers are enabled", failures)
@@ -101,8 +152,16 @@ def main() -> int:
         failures,
     )
     check(
-        "data.has_key" in company_picker_source and "data.key" not in company_picker_source,
+        "status.has_key" in company_picker_source and "data.key" not in company_picker_source,
         "LLM status UI never requests or renders the secret",
+        failures,
+    )
+    check(
+        "/api/me/llm-credentials" in company_picker_source
+        and "/api/llm/providers" in company_picker_source
+        and "管理我的模型" in company_picker_source
+        and "X-CSRF-Token" in company_picker_source,
+        "tenant picker provides CSRF-protected per-user model management",
         failures,
     )
     check(

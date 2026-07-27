@@ -5,226 +5,522 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选择账套 — 财税税务合规系统</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);min-height:100vh}
-.top-bar{background:rgba(255,255,255,0.05);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1)}
-.top-bar .user{color:#e2e8f0;font-size:14px}
-.top-bar .logout{color:#94a3b8;font-size:13px;cursor:pointer;background:none;border:1px solid rgba(255,255,255,0.2);padding:6px 16px;border-radius:6px;color:#e2e8f0}
-.top-bar .logout:hover{background:rgba(255,255,255,0.1)}
-.container{max-width:960px;margin:0 auto;padding:40px 24px}
-.header{text-align:center;margin-bottom:24px}
-.header h1{font-size:24px;font-weight:700;color:#f1f5f9;margin-bottom:8px}
-.header p{font-size:14px;color:#94a3b8;margin-bottom:20px}
-.btn-new{display:inline-block;padding:10px 28px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:background 0.2s}
-.btn-new:hover{background:#1d4ed8}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;position:relative;cursor:pointer;transition:all 0.2s}
-.card:hover{background:rgba(255,255,255,0.12);border-color:rgba(37,99,235,0.5);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
-.card .name{font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:8px;padding-right:32px}
-.card .meta{font-size:13px;color:#94a3b8;line-height:1.8}
-.card .status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-top:8px}
-.card .status.active{background:rgba(22,163,74,0.2);color:#4ade80}
-.card .status.inactive{background:rgba(239,68,68,0.2);color:#f87171}
-.card .btn-del{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#f87171;font-size:14px;line-height:28px;text-align:center;cursor:pointer;transition:all 0.2s}
-.card .btn-del:hover{background:rgba(239,68,68,0.3);color:#fca5a5}
-.loading{text-align:center;color:#94a3b8;padding:60px}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+body{background:radial-gradient(circle at 20% 10%,#1e3a5f 0,#111c2f 42%,#0b1220 100%);color:#e8eef7}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.top-bar{min-height:68px;padding:13px 28px;display:flex;justify-content:space-between;align-items:center;gap:18px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(9,18,32,.72);backdrop-filter:blur(10px)}
+.identity{display:flex;align-items:center;gap:12px;min-width:0}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#38bdf8);font-weight:700;box-shadow:0 5px 16px rgba(37,99,235,.32)}
+.identity-copy{min-width:0}
+.identity-label{font-size:11px;color:#91a3bb}
+#user-name{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;font-size:15px;font-weight:700;color:#f8fbff}
+.top-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.model-state{max-width:360px;padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);font-size:12px;color:#aebed2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model-state.ready{color:#86efac;border-color:rgba(34,197,94,.32);background:rgba(22,163,74,.1)}
+.btn{border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 14px;color:#e8eef7;background:rgba(255,255,255,.06)}
+.btn:hover{background:rgba(255,255,255,.11)}
+.btn.primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+.btn.primary:hover{background:#1d4ed8}
+.btn.danger{color:#fca5a5;border-color:rgba(248,113,113,.28)}
+.btn.small{padding:6px 10px;font-size:12px}
+.container{max-width:1000px;margin:0 auto;padding:48px 24px 70px}
+.header{text-align:center;margin-bottom:30px}
+.header h1{margin:0 0 9px;font-size:28px;letter-spacing:.03em}
+.header p{margin:0 0 20px;color:#95a6bc;font-size:14px}
+.btn-new{display:inline-block;padding:10px 24px;border-radius:9px;background:#2563eb;color:#fff;text-decoration:none;font-size:14px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:18px}
+.card{position:relative;min-height:150px;padding:23px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.045));box-shadow:0 10px 28px rgba(0,0,0,.18);transition:.2s}
+.card:hover{transform:translateY(-3px);border-color:rgba(96,165,250,.55);background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.065))}
+.card-main{cursor:pointer}
+.card-name{margin:0 38px 12px 0;font-size:17px;font-weight:700;color:#f8fbff}
+.card-meta{display:grid;gap:6px;font-size:12px;color:#99abc1}
+.card-meta-line{overflow-wrap:anywhere}
+.btn-del-company{position:absolute;right:14px;top:14px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(239,68,68,.12);color:#fca5a5;font-size:18px;line-height:30px}
+.btn-del-company:hover{background:rgba(239,68,68,.28)}
+.loading,.empty{text-align:center;color:#98a9bd;padding:60px 20px}
+.modal-backdrop{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,8,18,.76)}
+.modal-backdrop.open{display:flex}
+.modal{width:min(860px,100%);max-height:90vh;overflow:auto;border:1px solid rgba(255,255,255,.13);border-radius:17px;background:#111c2e;box-shadow:0 26px 80px rgba(0,0,0,.55)}
+.modal-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:21px 24px;border-bottom:1px solid rgba(255,255,255,.09);background:#111c2e}
+.modal-head h2{margin:0 0 5px;font-size:20px}
+.modal-head p{margin:0;color:#91a3ba;font-size:12px;line-height:1.6}
+.modal-close{width:34px;height:34px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cbd5e1;font-size:22px}
+.modal-body{padding:22px 24px 26px}
+.section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}
+.section-title h3{margin:0;font-size:15px}
+.muted{color:#91a3ba;font-size:12px}
+.credentials{display:grid;gap:10px;margin-bottom:22px}
+.credential-row{display:grid;grid-template-columns:minmax(190px,1.1fr) minmax(170px,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:rgba(255,255,255,.035)}
+.credential-name{font-size:14px;font-weight:700;color:#f1f5f9}
+.badge{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,.2);color:#93c5fd;font-size:10px;vertical-align:2px}
+.credential-sub{margin-top:5px;color:#8fa2ba;font-size:11px;overflow-wrap:anywhere}
+.credential-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.form-card{padding:17px;border:1px solid rgba(96,165,250,.22);border-radius:12px;background:rgba(37,99,235,.07)}
+.form-card h3{margin:0 0 14px;font-size:15px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field.full{grid-column:1/-1}
+.field label{display:block;margin:0 0 6px;color:#b9c6d7;font-size:12px}
+.field input,.field select{width:100%;height:40px;padding:8px 11px;border:1px solid rgba(255,255,255,.15);border-radius:8px;outline:none;background:#17243a;color:#f1f5f9}
+.field input:focus,.field select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.14)}
+.form-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:15px;flex-wrap:wrap}
+.check{display:flex;align-items:center;gap:7px;color:#b9c6d7;font-size:12px}
+.check input{accent-color:#2563eb}
+.form-buttons{display:flex;gap:8px}
+.message{min-height:20px;margin-top:11px;font-size:12px;color:#93c5fd}
+.message.error{color:#fca5a5}
+.message.success{color:#86efac}
+.security-note{margin-top:17px;padding:11px 13px;border-radius:9px;background:rgba(15,23,42,.7);color:#8fa2ba;font-size:11px;line-height:1.65}
+@media(max-width:720px){
+  .top-bar{align-items:flex-start;padding:13px 16px}.top-actions{gap:7px}.model-state{width:100%;max-width:100%}
+  .container{padding:34px 16px 55px}.credential-row{grid-template-columns:1fr}.credential-actions{justify-content:flex-start}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
+}
 </style>
 </head>
 <body>
-<div class="top-bar">
-  <div class="user" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span>👤 <span id="user-name">---</span></span>
-    <input id="apikey-input" type="password" autocomplete="off" placeholder="密钥由安全环境管理" disabled style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
-    <select id="apikey-provider" disabled style="padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none;cursor:pointer">
-      <option value="deepseek">DeepSeek</option>
-      <option value="zhipu">智谱GLM</option>
-      <option value="doubao">豆包</option>
-      <option value="qwen">通义千问</option>
-      <option value="openai">OpenAI</option>
-    </select>
-    <button onclick="confirmApiKey()" hidden>确定</button>
-    <button onclick="deleteApiKey()" hidden>删除</button>
-    <span id="apikey-status" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
+<header class="top-bar">
+  <div class="identity">
+    <div class="avatar" aria-hidden="true">人</div>
+    <div class="identity-copy">
+      <span class="identity-label">当前用户</span>
+      <span id="user-name">正在读取…</span>
+    </div>
   </div>
-  <button class="logout" onclick="doLogout()">退出登录</button>
-</div>
-<div class="container">
+  <div class="top-actions">
+    <span id="model-state" class="model-state">模型服务：正在读取…</span>
+    <button id="manage-models" class="btn primary" type="button">管理我的模型</button>
+    <button class="btn" type="button" onclick="doLogout()">退出登录</button>
+  </div>
+</header>
+
+<main class="container">
   <div class="header">
     <h1>选择账套</h1>
-    <p>选择一个公司开始税务合规工作</p>
-    <a href="/new-company" class="btn-new">+ 新建账套</a>
+    <p>选择一个公司，进入财税合规工作台</p>
+    <a id="new-company-link" href="/new-company" class="btn-new">+ 新建账套</a>
   </div>
-  <div class="loading" id="loading">加载中...</div>
-  <div class="grid" id="company-grid" style="display:none"></div>
+  <div class="loading" id="loading">正在加载账套…</div>
+  <div class="grid" id="company-grid" hidden></div>
+</main>
+
+<div id="model-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="model-modal-title">
+  <section class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="model-modal-title">我的大模型</h2>
+        <p>每位用户独立保存自己的密钥。密钥保存后不再显示明文。</p>
+      </div>
+      <button id="close-model-modal" class="modal-close" type="button" aria-label="关闭">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-title">
+        <h3>已保存的模型服务</h3>
+        <span id="credential-count" class="muted">0 个</span>
+      </div>
+      <div id="credentials" class="credentials">
+        <div class="muted">正在读取…</div>
+      </div>
+
+      <form id="credential-form" class="form-card">
+        <h3 id="form-title">添加模型服务</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label for="provider">服务商</label>
+            <select id="provider" required></select>
+          </div>
+          <div class="field">
+            <label for="model">模型名称</label>
+            <input id="model" list="model-options" maxlength="128" required>
+            <datalist id="model-options"></datalist>
+          </div>
+          <div class="field full">
+            <label for="api-key">API Key（仅本次输入可见）</label>
+            <input id="api-key" type="password" autocomplete="new-password" maxlength="4096" placeholder="粘贴该服务商提供的 API Key" required>
+          </div>
+        </div>
+        <div class="form-foot">
+          <label class="check"><input id="set-default" type="checkbox"> 保存后设为默认模型</label>
+          <div class="form-buttons">
+            <button id="cancel-edit" class="btn" type="button" hidden>取消修改</button>
+            <button id="save-credential" class="btn primary" type="submit">安全保存</button>
+          </div>
+        </div>
+        <div id="credential-message" class="message" aria-live="polite"></div>
+      </form>
+
+      <div class="security-note">
+        安全说明：密钥使用当前 Windows 账户的加密保护写入私有数据库；网页和接口只显示末四位。连接测试会向所选服务商发送一条极短测试消息，可能产生极少量费用，系统不会自动测试。
+      </div>
+    </div>
+  </section>
 </div>
 
 <script>
-// ═══ API Key管理 ═══
-function setApiStatus(text, color, loading) {
-  var el = document.getElementById('apikey-status');
-  if (!el) return;
-  el.textContent = loading ? '⏳ ' + text : text;
-  el.style.color = color;
+'use strict';
+var csrfToken = '';
+var currentRole = '';
+var providerCatalog = [];
+var credentialList = [];
+var editingCredentialId = null;
+
+function readCsrfToken() {
+  var item = document.cookie.split('; ').find(function(part){ return part.indexOf('csrf_token=') === 0; });
+  return item ? decodeURIComponent(item.split('=').slice(1).join('=')) : '';
 }
 
-function getCsrfToken() {
-  var cookie = document.cookie.split('; ').find(function(c){ return c.startsWith('csrf_token='); });
-  return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+async function requestJson(url, options) {
+  var settings = options || {};
+  settings.headers = settings.headers || {};
+  if (settings.method && !['GET','HEAD'].includes(settings.method.toUpperCase())) {
+    settings.headers['X-CSRF-Token'] = csrfToken || readCsrfToken();
+  }
+  if (settings.body && !settings.headers['Content-Type']) settings.headers['Content-Type'] = 'application/json';
+  var response = await fetch(url, settings);
+  var payload = {};
+  try { payload = await response.json(); } catch (ignore) {}
+  if (response.status === 401) {
+    window.location.href = '/login';
+    throw new Error('登录已过期');
+  }
+  if (!response.ok) throw new Error(payload.detail || payload.message || '操作失败');
+  return payload;
 }
 
-async function loadApiKey() {
-  try {
-    var resp = await fetch('/api/apikey');
-    var data = await resp.json();
-    if (data.ok && data.has_key) {
-      document.getElementById('apikey-input').value = '';
-      if (data.provider) document.getElementById('apikey-provider').value = data.provider;
-      var providerName = data.provider === 'deepseek' ? 'DeepSeek' : (data.provider || '模型服务');
-      var mask = data.last4 ? ': ...' + data.last4 : '';
-      setApiStatus(data.status_text || ('已接入' + providerName + mask), '#4ade80', false);
-    } else {
-      document.getElementById('apikey-input').value = '';
-      setApiStatus('未配置', '#94a3b8', false);
-    }
-  } catch(e) {
-    setApiStatus('加载失败', '#f87171', false);
+function setModelState(status) {
+  var el = document.getElementById('model-state');
+  if (status && status.has_key) {
+    el.classList.add('ready');
+    el.textContent = '默认模型：' + (status.provider_name || status.provider) + ' / ' + status.model + ' / …' + status.last4;
+  } else {
+    el.classList.remove('ready');
+    el.textContent = '模型服务：尚未配置';
   }
 }
 
-async function confirmApiKey() {
-  var key = document.getElementById('apikey-input').value.trim();
-  var provider = document.getElementById('apikey-provider').value;
-  if (!key) { setApiStatus('请先输入API Key', '#fbbf24', false); return; }
-  setApiStatus('检测中...', '#94a3b8', true);
+async function loadModelState() {
   try {
-    var resp = await fetch('/api/apikey', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({api_key: key, provider: provider, probe: true})
-    });
-    var data = await resp.json();
-    if (data.ok) {
-      if (data.verified) {
-        setApiStatus('✅ 配置成功 - ' + (data.provider || '已接入'), '#4ade80', false);
-      } else {
-        setApiStatus('⚠️ 已保存 - 无法验证连通性', '#fbbf24', false);
-      }
-    } else {
-      setApiStatus('保存失败: ' + (data.message||''), '#f87171', false);
-    }
-  } catch(e) {
-    setApiStatus('网络错误', '#f87171', false);
+    setModelState(await requestJson('/api/apikey', {cache:'no-store'}));
+  } catch (error) {
+    document.getElementById('model-state').textContent = '模型服务：读取失败';
   }
 }
 
-async function deleteApiKey() {
-  if (!confirm('确定删除API Key？删除后追问将使用本地引擎。')) return;
-  setApiStatus('删除中...', '#94a3b8', true);
-  try {
-    await fetch('/api/apikey', {method:'DELETE'});
-    document.getElementById('apikey-input').value = '';
-    setApiStatus('已删除 - 未配置', '#94a3b8', false);
-  } catch(e) {
-    setApiStatus('删除失败', '#f87171', false);
-  }
+function textElement(tag, className, text) {
+  var el = document.createElement(tag);
+  if (className) el.className = className;
+  el.textContent = text || '';
+  return el;
 }
 
-async function init() {
-  loadApiKey();
+async function loadCompanies() {
+  var grid = document.getElementById('company-grid');
+  var loading = document.getElementById('loading');
   try {
-    var meResp = await fetch('/api/auth/me', {cache: 'no-store'});
-    var me = await meResp.json();
-    if (me.ok && me.username) document.getElementById('user-name').textContent = me.username;
-  } catch(e) {}
-  
-  try {
-    var resp = await fetch('/api/companies');
-    var data = await resp.json();
-    if (!data.ok && data.code === 401) {
-      window.location.href = '/login';
+    var data = await requestJson('/api/companies', {cache:'no-store'});
+    var companies = Array.isArray(data) ? data : (data.companies || data.data || []);
+    grid.textContent = '';
+    if (!companies.length) {
+      loading.className = 'empty';
+      loading.textContent = currentRole === 'admin' ? '还没有账套，请先新建。' : '当前用户尚未被授权访问账套。';
       return;
     }
-    var companies = Array.isArray(data) ? data : (data.companies || data.data || []);
-    document.getElementById('loading').style.display = 'none';
-    
-    var grid = document.getElementById('company-grid');
-    grid.style.display = 'grid';
-    
-    companies.forEach(function(c) {
-      var card = document.createElement('div');
+    loading.hidden = true;
+    grid.hidden = false;
+    companies.sort(function(a,b){ return Number(b.id || 0) - Number(a.id || 0); });
+    companies.forEach(function(company){
+      var card = document.createElement('article');
       card.className = 'card';
-      card.onclick = function(e) {
-        if (e.target.classList.contains('btn-del')) return;
-        selectCompany(c.id);
-      };
-      
-      card.innerHTML = 
-        '<button class="btn-del" title="删除此账套">&times;</button>' +
-        '<div class="name">' + (c.name || c.company_name || '未命名') + '</div>' +
-        '<div class="meta">' +
-        (c.uscc ? c.uscc + '<br>' : '') +
-        (c.industry ? '行业：' + c.industry + '<br>' : '') +
-        (c.company_type ? '类型：' + c.company_type + '<br>' : '') +
-        (c.established_date ? '成立日期：' + c.established_date + '<br>' : '') +
-        '</div>';
-      
-      // 删除按钮事件
-      var delBtn = card.querySelector('.btn-del');
-      delBtn.onclick = function(e) {
-        e.stopPropagation();
-        deleteCompany(c.id, c.name);
-      };
-      
+      var main = document.createElement('div');
+      main.className = 'card-main';
+      main.tabIndex = 0;
+      main.appendChild(textElement('h2','card-name',company.name || company.company_name || '未命名账套'));
+      var meta = document.createElement('div');
+      meta.className = 'card-meta';
+      [
+        company.uscc ? company.uscc : '',
+        company.industry ? '行业：' + company.industry : '',
+        company.company_type ? '类型：' + company.company_type : '',
+        company.established_date ? '成立日期：' + company.established_date : ''
+      ].filter(Boolean).forEach(function(line){ meta.appendChild(textElement('div','card-meta-line',line)); });
+      main.appendChild(meta);
+      function enter(){ selectCompany(company.id); }
+      main.addEventListener('click', enter);
+      main.addEventListener('keydown', function(event){ if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); enter(); } });
+      card.appendChild(main);
+      if (currentRole === 'admin') {
+        var remove = textElement('button','btn-del-company','×');
+        remove.type = 'button';
+        remove.title = '删除此账套';
+        remove.addEventListener('click', function(){ deleteCompany(company.id, company.name || company.company_name); });
+        card.appendChild(remove);
+      }
       grid.appendChild(card);
-      card.style.order = -(c.id || 0);
     });
-    
-  } catch(e) {
-    document.getElementById('loading').innerHTML = '加载失败，请刷新重试';
+  } catch (error) {
+    loading.className = 'empty';
+    loading.textContent = '账套加载失败，请刷新页面重试。';
   }
 }
 
-async function selectCompany(cid) {
+async function selectCompany(companyId) {
   try {
-    var resp = await fetch('/api/auth/select-company', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
-      body: JSON.stringify({company_id: cid})
+    await requestJson('/api/auth/select-company', {
+      method:'POST',
+      body:JSON.stringify({company_id:companyId})
     });
-    var data = await resp.json();
-    if (data.ok) {
-      window.location.href = '/';
-    }
-  } catch(e) {
-    alert('选择失败，请重试');
+    window.location.href = '/';
+  } catch (error) {
+    alert(error.message);
   }
 }
 
-async function deleteCompany(cid, cname) {
-  if (!confirm('确定删除账套「' + (cname || '') + '」吗？此操作不可恢复。')) return;
+async function deleteCompany(companyId, companyName) {
+  if (!confirm('确定删除账套“' + (companyName || '') + '”吗？此操作不可恢复。')) return;
   try {
-    var resp = await fetch('/api/companies/' + cid, {
-      method: 'DELETE',
-      headers: {'X-CSRF-Token': getCsrfToken()}
-    });
-    var data = await resp.json();
-    if (data.ok) {
-      window.location.reload();
-    } else {
-      alert(data.detail || data.message || '删除失败');
+    await requestJson('/api/companies/' + companyId, {method:'DELETE'});
+    await loadCompanies();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function getProvider(providerId) {
+  return providerCatalog.find(function(item){ return item.id === providerId; });
+}
+
+function updateModelOptions() {
+  var provider = getProvider(document.getElementById('provider').value);
+  var datalist = document.getElementById('model-options');
+  datalist.textContent = '';
+  if (!provider) return;
+  provider.models.forEach(function(modelName){
+    var option = document.createElement('option');
+    option.value = modelName;
+    datalist.appendChild(option);
+  });
+  if (!editingCredentialId) document.getElementById('model').value = provider.default_model;
+}
+
+function setCredentialMessage(text, kind) {
+  var el = document.getElementById('credential-message');
+  el.textContent = text || '';
+  el.className = 'message' + (kind ? ' ' + kind : '');
+}
+
+function resetCredentialForm() {
+  editingCredentialId = null;
+  document.getElementById('form-title').textContent = '添加模型服务';
+  document.getElementById('save-credential').textContent = '安全保存';
+  document.getElementById('cancel-edit').hidden = true;
+  document.getElementById('provider').disabled = false;
+  document.getElementById('api-key').value = '';
+  document.getElementById('set-default').checked = credentialList.length === 0;
+  if (providerCatalog.length) {
+    document.getElementById('provider').value = providerCatalog[0].id;
+    updateModelOptions();
+  }
+  setCredentialMessage('');
+}
+
+function startCredentialEdit(credential) {
+  editingCredentialId = credential.id;
+  document.getElementById('form-title').textContent = '更换 ' + credential.provider_name + ' 密钥';
+  document.getElementById('save-credential').textContent = '保存新密钥';
+  document.getElementById('cancel-edit').hidden = false;
+  document.getElementById('provider').value = credential.provider;
+  document.getElementById('provider').disabled = true;
+  updateModelOptions();
+  document.getElementById('model').value = credential.model;
+  document.getElementById('api-key').value = '';
+  document.getElementById('set-default').checked = credential.is_default;
+  document.getElementById('api-key').focus();
+  setCredentialMessage('请输入新密钥；旧密钥不会显示。');
+}
+
+function renderCredentials() {
+  var host = document.getElementById('credentials');
+  host.textContent = '';
+  document.getElementById('credential-count').textContent = credentialList.length + ' 个';
+  if (!credentialList.length) {
+    host.appendChild(textElement('div','muted','尚未保存模型服务。请在下方添加。'));
+    return;
+  }
+  credentialList.forEach(function(credential){
+    var row = document.createElement('div');
+    row.className = 'credential-row';
+    var identity = document.createElement('div');
+    var name = textElement('div','credential-name',credential.provider_name);
+    if (credential.is_default) name.appendChild(textElement('span','badge','默认'));
+    identity.appendChild(name);
+    identity.appendChild(textElement('div','credential-sub','密钥末四位：…' + credential.last4));
+    row.appendChild(identity);
+    var model = document.createElement('div');
+    model.appendChild(textElement('div','credential-name',credential.model));
+    model.appendChild(textElement('div','credential-sub','模型名称'));
+    row.appendChild(model);
+    var actions = document.createElement('div');
+    actions.className = 'credential-actions';
+    if (!credential.is_default) {
+      var makeDefault = textElement('button','btn small','设为默认');
+      makeDefault.type = 'button';
+      makeDefault.addEventListener('click', function(){ setDefaultCredential(credential.id); });
+      actions.appendChild(makeDefault);
     }
-  } catch(e) {
-    alert('删除失败，请重试');
+    var test = textElement('button','btn small','测试连接');
+    test.type = 'button';
+    test.title = '可能产生极少量模型费用';
+    test.addEventListener('click', function(){ testCredential(credential.id, test); });
+    actions.appendChild(test);
+    var rotate = textElement('button','btn small','更换密钥');
+    rotate.type = 'button';
+    rotate.addEventListener('click', function(){ startCredentialEdit(credential); });
+    actions.appendChild(rotate);
+    var remove = textElement('button','btn small danger','删除');
+    remove.type = 'button';
+    remove.addEventListener('click', function(){ removeCredential(credential); });
+    actions.appendChild(remove);
+    row.appendChild(actions);
+    host.appendChild(row);
+  });
+}
+
+async function loadCredentials() {
+  var data = await requestJson('/api/me/llm-credentials', {cache:'no-store'});
+  credentialList = data.credentials || [];
+  renderCredentials();
+}
+
+async function openModelModal() {
+  document.getElementById('model-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setCredentialMessage('');
+  try {
+    var results = await Promise.all([
+      requestJson('/api/llm/providers', {cache:'no-store'}),
+      requestJson('/api/me/llm-credentials', {cache:'no-store'})
+    ]);
+    providerCatalog = results[0].providers || [];
+    credentialList = results[1].credentials || [];
+    var select = document.getElementById('provider');
+    select.textContent = '';
+    providerCatalog.forEach(function(provider){
+      var option = document.createElement('option');
+      option.value = provider.id;
+      option.textContent = provider.name;
+      select.appendChild(option);
+    });
+    renderCredentials();
+    resetCredentialForm();
+  } catch (error) {
+    document.getElementById('credentials').textContent = '读取失败：' + error.message;
+  }
+}
+
+function closeModelModal() {
+  document.getElementById('model-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  resetCredentialForm();
+}
+
+async function saveCredential(event) {
+  event.preventDefault();
+  var provider = document.getElementById('provider').value;
+  var model = document.getElementById('model').value.trim();
+  var secret = document.getElementById('api-key').value.trim();
+  var setDefault = document.getElementById('set-default').checked;
+  if (!secret) { setCredentialMessage('请输入 API Key。','error'); return; }
+  var saveButton = document.getElementById('save-credential');
+  saveButton.disabled = true;
+  setCredentialMessage('正在加密保存…');
+  try {
+    var url = editingCredentialId ? '/api/me/llm-credentials/' + editingCredentialId : '/api/me/llm-credentials';
+    var body = editingCredentialId
+      ? {api_key:secret,model:model,set_default:setDefault}
+      : {provider:provider,api_key:secret,model:model,set_default:setDefault};
+    var result = await requestJson(url, {
+      method:editingCredentialId ? 'PUT' : 'POST',
+      body:JSON.stringify(body)
+    });
+    credentialList = result.credentials || [];
+    renderCredentials();
+    resetCredentialForm();
+    setCredentialMessage('已加密保存。连接测试需手动点击。','success');
+    await loadModelState();
+  } catch (error) {
+    setCredentialMessage(error.message,'error');
+  } finally {
+    saveButton.disabled = false;
+  }
+}
+
+async function setDefaultCredential(credentialId) {
+  try {
+    var result = await requestJson('/api/me/llm-credentials/' + credentialId + '/default', {method:'POST'});
+    credentialList = result.credentials || [];
+    renderCredentials();
+    resetCredentialForm();
+    await loadModelState();
+  } catch (error) {
+    setCredentialMessage(error.message,'error');
+  }
+}
+
+async function testCredential(credentialId, button) {
+  if (!confirm('连接测试会调用一次模型服务，可能产生极少量费用。继续吗？')) return;
+  var original = button.textContent;
+  button.disabled = true;
+  button.textContent = '测试中…';
+  try {
+    var result = await requestJson('/api/me/llm-credentials/' + credentialId + '/test', {method:'POST'});
+    setCredentialMessage(result.message || '连接成功','success');
+  } catch (error) {
+    setCredentialMessage(error.message,'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function removeCredential(credential) {
+  if (!confirm('确定删除 ' + credential.provider_name + ' 的密钥吗？删除后无法恢复。')) return;
+  try {
+    var result = await requestJson('/api/me/llm-credentials/' + credential.id, {method:'DELETE'});
+    credentialList = result.credentials || [];
+    renderCredentials();
+    resetCredentialForm();
+    setCredentialMessage('已删除。','success');
+    await loadModelState();
+  } catch (error) {
+    setCredentialMessage(error.message,'error');
   }
 }
 
 async function doLogout() {
-  await fetch('/api/auth/logout', {
-    method: 'POST',
-    headers: {'X-CSRF-Token': getCsrfToken()}
-  });
+  try { await requestJson('/api/auth/logout', {method:'POST'}); } catch (ignore) {}
   window.location.href = '/login';
 }
 
+async function init() {
+  csrfToken = readCsrfToken();
+  try {
+    var me = await requestJson('/api/auth/me', {cache:'no-store'});
+    document.getElementById('user-name').textContent = me.username || '未知用户';
+    currentRole = me.role || '';
+    if (currentRole !== 'admin') document.getElementById('new-company-link').hidden = true;
+  } catch (error) {
+    return;
+  }
+  await Promise.all([loadCompanies(), loadModelState()]);
+}
+
+document.getElementById('manage-models').addEventListener('click', openModelModal);
+document.getElementById('close-model-modal').addEventListener('click', closeModelModal);
+document.getElementById('model-modal').addEventListener('click', function(event){ if (event.target === this) closeModelModal(); });
+document.getElementById('provider').addEventListener('change', updateModelOptions);
+document.getElementById('credential-form').addEventListener('submit', saveCredential);
+document.getElementById('cancel-edit').addEventListener('click', resetCredentialForm);
+document.addEventListener('keydown', function(event){ if (event.key === 'Escape') closeModelModal(); });
 init();
 </script>
 </body>
