@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -26,13 +27,26 @@ def check(condition: bool, message: str, failures: list[str]) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--runtime",
+        action="store_true",
+        help="allow mutable runtime files only inside the private data directory",
+    )
+    args = parser.parse_args()
     failures: list[str] = []
     present_sensitive = [
         str(path.relative_to(ROOT))
         for path in ROOT.rglob("*")
         if path.is_file() and path.name.lower() in SENSITIVE_NAMES
+        and not (args.runtime and path.is_relative_to(ROOT / "data"))
     ]
-    check(not present_sensitive, "release contains no runtime secrets/data", failures)
+    sensitive_message = (
+        "runtime contains no secrets/data outside the private data directory"
+        if args.runtime
+        else "release contains no runtime secrets/data"
+    )
+    check(not present_sensitive, sensitive_message, failures)
 
     for relative in PRODUCTION_PYTHON:
         path = ROOT / relative
