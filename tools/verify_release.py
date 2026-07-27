@@ -84,6 +84,13 @@ def main() -> int:
         failures,
     )
     check(
+        "if (registrationView)" in core_source
+        and "if (companyPickView)" in core_source
+        and "if (appView)" in core_source,
+        "application startup tolerates removed legacy view containers",
+        failures,
+    )
+    check(
         "/api/auth/me" in index_source and "getCookie('company_id')" not in index_source,
         "sidebar does not depend on readable identity cookies",
         failures,

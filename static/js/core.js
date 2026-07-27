@@ -371,9 +371,12 @@ window.enterApp = enterApp;  // 确保全局可访问
   currentCompanyName = companyName;
   localStorage.setItem('lastCompanyId', companyId);
   localStorage.setItem('lastCompanyName', companyName);
-  document.getElementById('registration-view').classList.add('hidden');
-  document.getElementById('company-pick-view').classList.add('hidden');
-  document.getElementById('app-view').classList.remove('hidden');
+  var registrationView = document.getElementById('registration-view');
+  var companyPickView = document.getElementById('company-pick-view');
+  var appView = document.getElementById('app-view');
+  if (registrationView) registrationView.classList.add('hidden');
+  if (companyPickView) companyPickView.classList.add('hidden');
+  if (appView) appView.classList.remove('hidden');
   // 显示当前用户
   var user = getCurrentUser();
   var userEl = document.getElementById('sidebar-user-name');
