@@ -34,16 +34,16 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
 <div class="top-bar">
   <div class="user" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <span>👤 <span id="user-name">---</span></span>
-    <input id="apikey-input" type="password" autocomplete="off" placeholder="填入API Key" style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
-    <select id="apikey-provider" style="padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none;cursor:pointer">
+    <input id="apikey-input" type="password" autocomplete="off" placeholder="密钥由安全环境管理" disabled style="width:260px;padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
+    <select id="apikey-provider" disabled style="padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:12px;outline:none;cursor:pointer">
       <option value="deepseek">DeepSeek</option>
       <option value="zhipu">智谱GLM</option>
       <option value="doubao">豆包</option>
       <option value="qwen">通义千问</option>
       <option value="openai">OpenAI</option>
     </select>
-    <button onclick="confirmApiKey()" style="padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">确定</button>
-    <button onclick="deleteApiKey()" style="padding:6px 14px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;cursor:pointer">删除</button>
+    <button onclick="confirmApiKey()" hidden>确定</button>
+    <button onclick="deleteApiKey()" hidden>删除</button>
     <span id="apikey-status" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
   </div>
   <button class="logout" onclick="doLogout()">退出登录</button>
@@ -67,14 +67,21 @@ function setApiStatus(text, color, loading) {
   el.style.color = color;
 }
 
+function getCsrfToken() {
+  var cookie = document.cookie.split('; ').find(function(c){ return c.startsWith('csrf_token='); });
+  return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+}
+
 async function loadApiKey() {
   try {
     var resp = await fetch('/api/apikey');
     var data = await resp.json();
-    if (data.ok && data.key) {
-      document.getElementById('apikey-input').value = data.key;
+    if (data.ok && data.has_key) {
+      document.getElementById('apikey-input').value = '';
       if (data.provider) document.getElementById('apikey-provider').value = data.provider;
-      setApiStatus(data.status_text || '已配置', '#4ade80', false);
+      var providerName = data.provider === 'deepseek' ? 'DeepSeek' : (data.provider || '模型服务');
+      var mask = data.last4 ? ': ...' + data.last4 : '';
+      setApiStatus(data.status_text || ('已接入' + providerName + mask), '#4ade80', false);
     } else {
       document.getElementById('apikey-input').value = '';
       setApiStatus('未配置', '#94a3b8', false);
@@ -123,8 +130,11 @@ async function deleteApiKey() {
 
 async function init() {
   loadApiKey();
-  var name = document.cookie.split('; ').find(function(c){ return c.startsWith('user_name='); });
-  if (name) document.getElementById('user-name').textContent = decodeURIComponent(name.split('=')[1]);
+  try {
+    var meResp = await fetch('/api/auth/me', {cache: 'no-store'});
+    var me = await meResp.json();
+    if (me.ok && me.username) document.getElementById('user-name').textContent = me.username;
+  } catch(e) {}
   
   try {
     var resp = await fetch('/api/companies');
@@ -177,7 +187,7 @@ async function selectCompany(cid) {
   try {
     var resp = await fetch('/api/auth/select-company', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
       body: JSON.stringify({company_id: cid})
     });
     var data = await resp.json();
@@ -192,7 +202,10 @@ async function selectCompany(cid) {
 async function deleteCompany(cid, cname) {
   if (!confirm('确定删除账套「' + (cname || '') + '」吗？此操作不可恢复。')) return;
   try {
-    var resp = await fetch('/api/companies/' + cid, { method: 'DELETE' });
+    var resp = await fetch('/api/companies/' + cid, {
+      method: 'DELETE',
+      headers: {'X-CSRF-Token': getCsrfToken()}
+    });
     var data = await resp.json();
     if (data.ok) {
       window.location.reload();
@@ -205,7 +218,10 @@ async function deleteCompany(cid, cname) {
 }
 
 async function doLogout() {
-  await fetch('/api/auth/logout', {method: 'POST'});
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    headers: {'X-CSRF-Token': getCsrfToken()}
+  });
   window.location.href = '/login';
 }
 

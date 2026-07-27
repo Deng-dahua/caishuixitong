@@ -15,17 +15,19 @@
 """
 import json, os, time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 from threading import Lock
+from runtime_storage import DATA_DIR, atomic_write_json
 
 # 知识库路径
 _KB_PATH = None
+_LEGACY_KB_PATH = Path(__file__).resolve().parents[1] / "static" / "tax_agi_knowledge.json"
 
 def _get_kb_path():
     global _KB_PATH
     if _KB_PATH is None:
-        base = os.path.dirname(os.path.dirname(__file__))
-        _KB_PATH = os.path.join(base, "static", "tax_agi_knowledge.json")
+        _KB_PATH = str(DATA_DIR / "tax_agi_knowledge.json")
     return _KB_PATH
 
 # 线程安全写锁
@@ -182,9 +184,11 @@ class KnowledgeBase:
     
     def _load(self):
         """加载知识库"""
-        path = _get_kb_path()
+        path = Path(_get_kb_path())
+        source_path = path if path.is_file() else _LEGACY_KB_PATH
+        loaded_from_legacy = source_path == _LEGACY_KB_PATH and source_path.is_file()
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with source_path.open("r", encoding="utf-8") as f:
                 self._data = json.load(f)
             if not isinstance(self._data, dict):
                 self._data = {}
@@ -200,14 +204,14 @@ class KnowledgeBase:
             ("signal_definitions", []),
         ):
             self._data.setdefault(_k, _default)
+        if loaded_from_legacy:
+            self._save()
 
     def _save(self):
         """保存知识库"""
         with _kb_lock:
             self._data.setdefault("_meta", {})["updated_at"] = datetime.now().isoformat()
-            os.makedirs(os.path.dirname(_get_kb_path()), exist_ok=True)
-            with open(_get_kb_path(), "w", encoding="utf-8") as f:
-                json.dump(self._data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(_get_kb_path(), self._data)
     
     # ── 查询接口 ──
     

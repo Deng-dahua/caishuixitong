@@ -39,6 +39,7 @@ function _sRX(container, fnName, xarg) {
 var currentCompanyId = 0;  // 0=未选择，必须显式选公司后才有效
 var currentCompanyName = '';
 var allCompanies = [];
+var currentAuthContext = null;
 
 // ══════ 系统配置中心（数据驱动——消除硬编码） ══════
 var _systemConfig = null;
@@ -159,6 +160,9 @@ const pages = {
 // ==================== 用户登录 ====================
 function getCurrentUser() {
   try {
+    if (currentAuthContext && currentAuthContext.username) {
+      return {name: currentAuthContext.username, phone: ''};
+    }
     // 优先从 localStorage 读取
     var data = JSON.parse(localStorage.getItem('taxUser') || 'null');
     if (data) return data;
@@ -170,6 +174,21 @@ function getCurrentUser() {
     }
     return null;
   } catch(e) { return null; }
+}
+
+async function loadAuthContext(force) {
+  if (!force && currentAuthContext) return currentAuthContext;
+  try {
+    var response = await fetch('/api/auth/me', {cache: 'no-store'});
+    if (!response.ok) return null;
+    var data = await response.json();
+    if (!data || !data.ok || !data.username) return null;
+    currentAuthContext = data;
+    localStorage.removeItem('taxUser');
+    return data;
+  } catch (e) {
+    return null;
+  }
 }
 
 // 全局 fetch 拦截：所有请求自动附加用户信息
@@ -208,6 +227,7 @@ function handleUserLogin(e) {
 
 // 分离出应用入口，登录后再调用
 async function initAppFlow() {
+  const auth = await loadAuthContext();
   const companies = await loadCompaniesRaw();
   window._companiesForPick = companies || [];
 
@@ -217,20 +237,19 @@ async function initAppFlow() {
     return;
   }
 
-  // 自动选择：优先cookie中的company_id，其次上次使用的，最后第一个
-  var cookieCid = document.cookie.split('; ').find(function(c){ return c.startsWith('company_id='); });
-  if (cookieCid) cookieCid = cookieCid.split('=')[1];
+  // HttpOnly 账套 Cookie 不暴露给脚本；以服务端会话为准。
+  var selectedCompanyId = auth && auth.selected_company_id;
   var lastId = localStorage.getItem('lastCompanyId');
   var target = null;
-  if (cookieCid) {
-    target = companies.find(function(c) { return String(c.id) === String(cookieCid); });
+  if (selectedCompanyId) {
+    target = companies.find(function(c) { return String(c.id) === String(selectedCompanyId); });
   }
   if (!target && lastId) {
     target = companies.find(function(c) { return String(c.id) === String(lastId); });
   }
   if (!target) target = companies[0];
 
-  enterApp(target.id, target.name);
+  await enterApp(target.id, target.name);
 }
 
 async function loadCompaniesRaw() {
@@ -367,8 +386,8 @@ window.enterApp = enterApp;  // 确保全局可访问
   if (coNameEl) coNameEl.textContent = companyName || '';
   // 从公司列表中获取USCC
   var coList = window._companiesForPick || [];
-  var co = coList.find(function(c){ return (c.id === companyId); });
-  if (coUscc && co) coUsccEl.textContent = co.uscc || '';
+  var co = coList.find(function(c){ return String(c.id) === String(companyId); });
+  if (coUsccEl && co) coUsccEl.textContent = co.uscc || '';
   await loadCompanies();
   await loadCurrentPeriod();
   await loadAllAccounts();
@@ -1357,10 +1376,8 @@ function getModulePeriod(prefix) {
 
 // ==================== 启动 ====================
 async function init() {
-  // 免登录模式：直接进入系统
-  if (!getCurrentUser()) {
-    localStorage.setItem('taxUser', JSON.stringify({name:'用户', phone:'13800000000', pinyin:'auto', loginAt: new Date().toISOString()}));
-  }
+  // 身份只从服务端会话读取，避免使用本地伪造的用户信息。
+  await loadAuthContext(true);
   // 预加载系统统计 → 设置 window._systemConfig 供所有页面的 pc() 函数动态引用
   try {
     var r = await fetch('/api/system/stats');

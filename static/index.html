@@ -289,31 +289,24 @@ window._dismissTaxFinding = function(btn) {
 // ═══ 驳回按钮注入 — 仅在发现审查面板中运行，不影响报告正文 ═══
 // 实际按钮通过 renderTaxDocReport 内部的审查面板渲染，不全局扫描DOM
 
-// ═══ 侧边栏个人信息：从 cookie 直接读取 ═══
+// ═══ 侧边栏个人信息：从服务端会话读取 ═══
 (function(){
-  function getCookie(name) {
-    var c = document.cookie.split('; ').find(function(x){ return x.startsWith(name + '='); });
-    return c ? decodeURIComponent(c.split('=')[1]) : '';
-  }
-  var uname = getCookie('user_name');
-  var cid = getCookie('company_id');
-  if (uname) {
+  Promise.all([
+    fetch('/api/auth/me', {cache:'no-store'}).then(function(r){ return r.json(); }),
+    fetch('/api/companies', {cache:'no-store'}).then(function(r){ return r.json(); })
+  ]).then(function(values){
+    var me = values[0] || {};
+    var list = values[1];
     var uEl = document.getElementById('sidebar-user-name');
-    if (uEl) uEl.textContent = uname;
-  }
-  if (cid) {
-    // 从API获取公司信息
-    fetch('/api/companies').then(function(r){ return r.json(); }).then(function(list){
-      if (!Array.isArray(list)) return;
-      var co = list.find(function(c){ return String(c.id) === String(cid); });
-      if (co) {
-        var cnEl = document.getElementById('sidebar-company-name');
-        var cuEl = document.getElementById('sidebar-company-uscc');
-        if (cnEl) cnEl.textContent = co.name || '';
-        if (cuEl) cuEl.textContent = co.uscc || '';
-      }
-    }).catch(function(){});
-  }
+    if (uEl && me.username) uEl.textContent = me.username;
+    if (!Array.isArray(list) || !me.selected_company_id) return;
+    var co = list.find(function(c){ return String(c.id) === String(me.selected_company_id); });
+    if (!co) return;
+    var cnEl = document.getElementById('sidebar-company-name');
+    var cuEl = document.getElementById('sidebar-company-uscc');
+    if (cnEl) cnEl.textContent = co.name || '';
+    if (cuEl) cuEl.textContent = co.uscc || '';
+  }).catch(function(){});
 })();
 
 // ═══ 退出本账套 ═══

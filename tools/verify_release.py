@@ -47,6 +47,11 @@ def main() -> int:
     web_source = (ROOT / "security_web.py").read_text(encoding="utf-8")
     llm_source = (ROOT / "llm_config.py").read_text(encoding="utf-8")
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+    core_source = (ROOT / "static" / "js" / "core.js").read_text(encoding="utf-8")
+    index_source = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    company_picker_source = (ROOT / "static" / "select-company.html").read_text(encoding="utf-8")
+    new_company_source = (ROOT / "static" / "new-company.html").read_text(encoding="utf-8")
+    knowledge_source = (ROOT / "engine" / "knowledge_base.py").read_text(encoding="utf-8")
     check("hashlib.scrypt" in security_source, "passwords use scrypt", failures)
     check("csrf_is_valid" in web_source, "unsafe requests enforce CSRF", failures)
     check("can_access_company" in web_source, "tenant authorization is centralized", failures)
@@ -54,6 +59,37 @@ def main() -> int:
     check('allow_origins=["*"]' not in main_source, "wildcard CORS is absent", failures)
     check('host="0.0.0.0"' not in main_source, "default server is loopback-only", failures)
     check("X-Content-Type-Options" in web_source, "security headers are enabled", failures)
+    check(
+        "/api/auth/me" in core_source and "selected_company_id" in core_source,
+        "frontend identity and tenant selection use the server session",
+        failures,
+    )
+    check(
+        "coUsccEl && co" in core_source and "coUscc && co" not in core_source,
+        "application startup tenant rendering is valid",
+        failures,
+    )
+    check(
+        "/api/auth/me" in index_source and "getCookie('company_id')" not in index_source,
+        "sidebar does not depend on readable identity cookies",
+        failures,
+    )
+    check(
+        "X-CSRF-Token" in company_picker_source and "X-CSRF-Token" in new_company_source,
+        "standalone tenant pages attach CSRF tokens",
+        failures,
+    )
+    check(
+        "data.has_key" in company_picker_source and "data.key" not in company_picker_source,
+        "LLM status UI never requests or renders the secret",
+        failures,
+    )
+    check(
+        "DATA_DIR" in knowledge_source
+        and not (ROOT / "static" / "tax_agi_knowledge.json").exists(),
+        "mutable AGI knowledge is stored outside the static web root",
+        failures,
+    )
 
     rule_report = ROOT / "reports" / "rule_quality_report.json"
     if rule_report.exists():
