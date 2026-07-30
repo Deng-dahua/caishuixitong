@@ -1,176 +1,283 @@
 // ================================================================
-// 智能分析系统中枢
-// 核心-并行认知架构
+// 智能引擎中枢 · 单页融合版
+// 知识 → 约束 → 推理 → 运行 → 质控 → 追踪 → 学习
 // ================================================================
 
-function _renderEngineHubOverview(container) {
-  if (!container) return;
-  window.currentModule = '智能分析系统中枢';
+var ENGINE_HUB_SECTIONS = [
+  {
+    id:'overview',
+    label:'🧭 闭环总览',
+    title:'闭环总览',
+    desc:'统一定义引擎的职责边界、五个并行认知环路和七段治理闭环。'
+  },
+  {
+    id:'knowledge',
+    label:'🧠 知识与记忆',
+    title:'知识与记忆',
+    desc:'把稽查知识、行业基准、经验记忆、发现规则、映射和历史反馈统一为可检索的知识底座。'
+  },
+  {
+    id:'rules',
+    label:'🛡️ 决策边界',
+    title:'决策边界与行为准则',
+    desc:'规定引擎能判断什么、必须保留什么不确定性、何时必须降级或交由人工复核。'
+  },
+  {
+    id:'agi',
+    label:'🧬 推理核心',
+    title:'税务 AGI 推理核心',
+    desc:'集中呈现因果推理、反事实检验、红队证伪、调度协同和自我进化架构。'
+  },
+  {
+    id:'dashboard',
+    label:'🖥️ 运行全景',
+    title:'运行全景与诊断',
+    desc:'一次展开管道调度、学习反馈、AGI运行态、实时质量、方法对账和引擎详情。'
+  },
+  {
+    id:'quality',
+    label:'✅ 质量门禁',
+    title:'质量门禁与交付治理',
+    desc:'只承担输入、规则、证据、推理、报告和运行一致性检查，不再重复方法论与知识资产。'
+  },
+  {
+    id:'logs',
+    label:'📜 全程追踪',
+    title:'执行日志与全程追踪',
+    desc:'按发生顺序保留每次分析的阶段切换、规则触发、异常、耗时和输出结果。'
+  },
+  {
+    id:'corrections',
+    label:'🔧 学习纠正',
+    title:'学习、纠正与进化',
+    desc:'把编辑、审核和追问反馈转化为可核验、可暂停、可恢复、可追溯的学习规则。'
+  }
+];
 
-  var css = '<style>'
-    + '.eh{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
-    + '.eh h1{font-size:10px;font-weight:800;color:#16233a;margin:0 0 10px;letter-spacing:-.02em;line-height:1.3}'
-    + '.eh .sub{display:inline-block;font-size:10px;color:#9a1f2b;border:1px solid #f4c2c7;background:#fef8f8;border-radius:20px;padding:4px 14px;margin:0 0 10px}'
-    + '.eh .lead{font-size:10px;line-height:20px;color:#3a4048;margin:0 0 10px}'
-    + '.eh .lead b,.eh .lead strong{color:#1f2d3d;font-weight:600}'
-    + '.eh p{margin:0 0 10px;text-align:justify}'
-    + '.eh p b,.eh p strong{color:#1f2d3d;font-weight:600}'
-    + '.eh p em{font-style:normal;color:#9a1f2b;font-weight:600}'
-    + '.eh .footnote{margin-top:10px;padding:13px 16px;background:#16233a;border-radius:8px;color:#d0d7e0;font-size:10px;line-height:20px}'
-    + '.eh .footnote summary{font-size:10px;color:#f4c2c7;cursor:pointer;font-weight:600;margin-bottom:10px}'
-    + '.eh .footnote p{font-size:10px;color:#d0d7e0;line-height:20px}'
-    + '</style>';
+var ENGINE_HUB_BRIDGES = {
+  knowledge: [
+    '本区是全部推理活动的共同输入层。知识不再按“一个页签一个仓库”分散展示，而是按知识、基准、记忆、规则、映射、审计六类用途统一组织。',
+    '记忆推送采用三级优先级：P0 为已验证模式骨架，P1 为同行业经验，P2 为通用指标偏离。每次推送都必须记录后续验证结果，连续误报的模式自动降权。',
+    '所有知识分类均在本页加载；折叠只改变阅读密度，不改变内容是否存在。'
+  ],
+  rules: [
+    '本区约束的是税务分析引擎，不再展示与业务判断无关的代码维护口号。所有规则围绕证据、法律、不确定性、数据安全、人工复核和可追溯性展开。',
+    '硬边界优先于模型意见：单一来源不得定案，证据不足不得补造事实，法条状态不明不得给出确定性结论，跨账套数据不得混用。',
+    '规则冲突时按“法律与安全边界 → 证据强度 → 行业适用性 → 模型置信度”的顺序裁决。'
+  ],
+  agi: [
+    '本区说明“引擎为什么这样判断”。感知层持续广播，记忆层主动推送，推理层同步验证；三者不是先后排队，而是通过事件总线并行协同。',
+    '证据闭环是唯一正式判定点：先做真实性、关联性、合法性三性校验，再要求至少两个独立来源，最后排除反向证据。不能闭环的发现必须降格为存疑。',
+    '红队证伪是强制关卡：生成合法商业解释、逐条攻击现有证据、复核程序与现行法依据。无法击破反向解释时，不得升级结论。'
+  ],
+  dashboard: [
+    '本区说明“引擎现在运行得怎样”。它只展示实时状态和诊断结果，不再重复介绍静态架构。',
+    '六类运行信息一次展开：管道调度看阶段进度，学习反馈看本次规则触发，AGI运行态看调度与成长，实时质量看本次分析可靠性，方法对账看文档与代码一致性，引擎详情看实际数据和推理组件输出。',
+    '没有一键分析数据时，对应区域明确显示“暂无数据”，不会用演示数字伪装成实时结果。'
+  ],
+  quality: [
+    '本区回答“什么结果可以放行”。质量保障不再重复讲知识库数量、方法论章节或AGI架构，只保留六道可执行门禁。',
+    '任何一道硬门禁失败，正式结论必须暂停放行；可降级项则标明限制条件、缺失材料和复核建议。',
+    '自省环路独立运行：随机证据盲测、不同参数复跑、法条与数据一致性检查的结果会回写自愈与纠正规则。'
+  ],
+  logs: [
+    '日志是审计轨迹，不是报告正文。它保留引擎实际做过什么、何时做、是否成功以及耗时多少，供故障定位和复核使用。',
+    '日志不直接改变风险结论；任何由日志暴露的问题，必须经过纠正规则或质量门禁后才能影响下一次分析。'
+  ],
+  corrections: [
+    '本区完成闭环的最后一步：人工反馈先结构化，再匹配同类场景，经过置信度和适用范围核验后进入下一次分析。',
+    '学习规则必须保留来源、适用行业、经营模式、证据条件、置信度、应用次数和启停状态；禁止把一次个案意见直接扩散为全行业规则。',
+    '验证成功的模式逐步升级，误报模式自动降权；任何自动应用规则都可以暂停、恢复和回溯。'
+  ]
+};
 
-  var h = '';
-  h += '<div class="eh">';
-  h += '<h1>智能分析系统中枢</h1>';
-
-  h += '<p class="lead">'
-    + '本系统并非传统的串行流水线架构。<b>资深的稽查人员在翻阅账册时，经验判断同时被激活；识别到熟悉的资金流向模式时，风险预警即时触发；在定案之前，会主动模拟辩方视角，逐一检验所有可能推翻结论的论点。</b>'
-    + '因此，本系统设计为五个并行运转的认知处理环路——感知广播信号、记忆推送经验、思考并行验证、学习提取骨架、自省持续心跳。'
-    + '五个环路并非串行工序，而是通过统一事件总线进行松耦合通信的并行处理进程。'
-    + '</p>';
-
-  h += '<p><b>五环路心跳同步</b></p>';
-  h += '<p>五个环路的运行频率不同，必须在设计上避免资源抢占：</p>';
-  h += '<p><b>感知层</b> — 事件驱动（企业上传资料时触发），单次分析约30-120秒。七步管道每步完成时广播。</p>';
-  h += '<p><b>记忆层</b> — 持续监听（毫秒级响应），收到广播后即时匹配推送。不主动轮询，不占用计算资源。</p>';
-  h += '<p><b>思考层</b> — 随感知启动（并行运行），信号汇聚+证据闭环在感知层运行期间同步完成。红队证伪在Phase4触发，约5-15秒。</p>';
-  h += '<p><b>学习层</b> — 报告出具后触发（事件驱动），模式提取+拓扑计算约10-30秒。不参与实时分析链路。</p>';
-  h += '<p><b>自省层</b> — 定时任务（默认4小时间隔），随机抽样+破坏性测试约60秒。独立进程，不受其他环路阻塞。</p>';
-  h += '<p>事件总线为五环路提供统一的消息通道，所有广播和推送通过事件总线异步传递，发送方不等待接收方响应。</p>';
-  h += '<p><b>异常处理与降级策略：</b>当记忆层P0推送与思考层当前假设方向相反时，事件总线强制触发一次<em>中间评审</em>——在红队启动前，将两方证据并列，由思考层的元认知模块做快速裁决（约1-3秒）：决定是继续当前推理路径还是切换方向。此即稽查实务中经验判断的典型体现——稽查人员在查案过程中突然联想到关键疑点时，会立即暂停当前工作，重新审视整体分析思路。</p>';
-
-  h += '<p><b>第一章 · 核心感知与数据处理层</b></p>';
-  h += '<p>感知层的功能定位并非"采集完毕后再行分析"，而是<strong>在数据采集过程中持续向其他处理层广播处理信号</strong>。七步执行管道中的每一步输出均实时推送至事件总线。记忆层监听到"文件识别完成"信号即开始匹配行业画像；思考层监听到"疑点发现"信号即启动竞争性假设分析。不等七步跑完，系统在数据采集阶段即已启动后台推演分析。</p>';
-  h += '<p><b>四个关键广播事件：</b></p>';
-  h += '<p><b>资料识别完成</b> — 广播文件清单、识别置信度、缺失资料列表。记忆层匹配行业画像，思考层评估可执行分析链范围。</p>';
-  h += '<p><b>情报提取完成</b> — 广播收款构成画像、发票统计、三大突破口疑点。记忆层比对历史同行业画像，思考层对疑点生成竞争性假设。</p>';
-  h += '<p><b>域分析并行发动</b> — 全部域分析函数同时启动，每域完成时广播发现摘要。记忆层实时比对历史模式库，思考层多域信号汇聚触发跨域分析链。</p>';
-  h += '<p><b>分析阶段切换</b> — Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性，每次切换广播。Phase4触发红队证伪机制启动。</p>';
-  h += '<p><b>感知层不做闭环判定：</b>感知层只产出"多源数据一致性校验报告"和"证据素材包"。它报告三单一致，不判断是不是真实业务。闭环判定唯一归属思考层。</p>';
-
-  h += '<p><b>第二章 · 经验记忆与智能推送层</b></p>';
-  h += '<p>记忆层的功能定位并非被动存储仓库，而是<strong>持续监听感知层广播信号的主动推送机制</strong>。它维护着九域知识库——政策、因果网络、信号模式、语义词典、行业画像、自愈规则、经验教训、分析历史、巡逻快照——每一域都随引擎运行自动生长。其核心能力不在于数据存储，而在于<em>接收到广播信号的瞬间完成经验匹配并主动推送</em>。</p>';
-  h += '<p><b>三级推送优先级：</b></p>';
-  h += '<p><b>P0 · 模式骨架匹配</b> — 当前企业的资金流向拓扑与历史违法模式骨架相似度≥80%，立即推送最高级别警报，附带历史案例编号和完整调查路径。此即稽查实务中经验判断的典型体现——识别到熟悉的资金流转模式时，风险预警即时触发。</p>';
-  h += '<p><b>P1 · 行业经验匹配</b> — 行业标签匹配历史同行业案件。推送该行业TOP5高风险科目、常见违规手法、基准偏离度预警阈值，告诉感知层哪些域该重点查。</p>';
-  h += '<p><b>P2 · 通用规则匹配</b> — 指标偏离行业基准但未命中具体模式。推送异常指标列表和风险方向建议，作为Phase1初查的补充输入。</p>';
-  h += '<p>系统追踪每次推送的后续验证结果。验证通过则推送置信度上升；连续10次误报则自动降级或暂停。精准率和召回率是经验质量的核心指标。</p>';
-
-  h += '<p><b>第三章 · 并行推理与验证层</b></p>';
-  h += '<p>思考层的功能定位并非"感知结束后再行推理"，而是<strong>从感知层启动时即同步运行的后台并行验证机制</strong>。六层推理架构——核心层（反思器/总结器/学习器/方法论引擎）→因果推理层（SCM因果/元认知/法律三段论）→连接通信层（事件总线/知识图谱/自愈引擎）→知识层（统一知识库/自学习引擎）→专项引擎层（语义推理/未知模式检测/假设验证/跨企业关系网）→加速保护·红队层（并行加速/覆盖层/外部验证/红队证伪）——六层之间的数据流通过事件总线松耦合，每一步的输出都同时广播给记忆层，形成感知-记忆-思考的并行微循环。</p>';
-  h += '<p><b>证据闭环——唯一判定点：</b>此为系统中最关键的判定逻辑环节，唯一在此处完成。三步流程：<b>Step1 三性校验</b> — 真实性（来源可核实）、关联性（直接相关）、合法性（程序合法）。三性不齐的证据直接退回。<b>Step2 独立来源验证</b> — ≥2个独立数据源的证据指向同一事实。四环全闭（银行+开票+入账+申报）=铁证。单源数据永远不能形成闭环。<b>Step3 反向证据排除</b> — 是否存在无法解释的反向证据？能排除→正常；无法排除→退回红队证伪。铁证三个硬条件：≥3独立来源 + 无反向证据 + 三性全通过。任一条件不满足，降格为存疑。</p>';
-  h += '<p><b>红队证伪——强制关卡：</b>此为本层最后一道质量关卡。反向验证未通过，不得形成正式结论。该规则无例外情形。</p>';
-  h += '<p><b>攻击一：生成无罪假设</b> — 每个要定案的疑点，强制生成2-3个合法商业解释（季节性旺季、一次性投入、战略合作折扣）。</p>';
-  h += '<p><b>攻击二：证据逐一攻击</b> — 用现有证据逐个击破无罪假设。季节性旺季？同期行业没有相同模式→击破。一次性投入？没有对应固定资产记录→击破。<em>只有当所有无罪假设都被证据击破时，该发现才允许升级为认定。</em></p>';
-  h += '<p><b>攻击三：程序合规审查</b> — 引用法规是否现行有效？证据采集程序是否合法？攻击三的知识源已扩展为双通道：\u2460 <b>静态法规库</b> — 现行税法、征管法及实施细则。检查引用条款是否已修订或废止。\u2461 <b>动态判例库</b> — 最高法指导性案例、各地税务行政复议典型撤销案例、近年稽查案件司法判决。红队从判例库中检索与本案性质相近的撤销/改判案例，提取法院的撤销理由（证据不足、程序违法、定性错误、法律适用不当），逐一比对本案是否存在同类瑕疵。<em>一个被法院撤销过的同类案件，就是红队最强有力的攻击素材。</em>判例库更新机制：每月从最高法裁判文书网、国家税务总局官网、各省税务局行政复议决定书公开专栏自动抓取更新。对于涉及证据不足、程序违法、定性错误、法律适用不当四类撤销理由的案例，做结构化标注后入库——标注内容包括：撤销理由类型、案件行业、涉及税种、争议金额区间。判例库是反向验证的核心知识来源，须保持每月更新频次。</p>';
-  h += '<p>系统追踪每条发现的反向验证结果。若结论在后续被推翻，系统将回溯证伪全过程——排查遗漏的无罪假设及攻击路径漏洞，自动强化反向验证模块。</p>';
-
-  h += '<p><b>第四章 · 模式学习与进化层</b></p>';
-  h += '<p>学习层在报告出具后才启动——它不是推理过程的附属品，而是<strong>引擎自我进化的独立环路</strong>。它的核心能力不是记忆案例，是<em>把违法手法抽象成模式骨架，跨行业识别相同的骨骼结构</em>。</p>';
-  h += '<p><b>三步模式迁移：</b></p>';
-  h += '<p><b>结构化模式提取</b> — 每个定案案件的核心违法手法被抽象为三维模式图谱：资金流向拓扑（节点+边+金额比例）、关联关系拓扑（股东/董监高/共同地址结构）、发票流向拓扑（进销品名不匹配模式）。三个维度封存为标准化JSON模式图，存入模式库。</p>';
-  h += '<p><b>拓扑相似度计算</b> — 新企业数据不仅和规则比对，也和模式库中所有历史违法模式图计算图编辑距离。相似度≥80%则触发最高级别警报。跨行业匹配是核心价值——建材行业和互联网行业的关联转移，在拓扑层面可能完全相同。</p>';
-  h += '<p><b>模式更新与置信度进化</b> — 匹配验证确认则置信度上升；误报则微调阈值。</p>';
-  h += '<p><b>对抗验证（升级前强制关卡）</b> — 同一模式在≥3企业+≥2行业获验证后，不是直接升级。必须经过<em>红队专门针对该模式设计的攻击策略</em>——红队模拟辩护方，从资金流向的合法商业解释、关联关系的合理组织结构、发票流向的行业惯例三个角度，对该模式骨架进行破坏性攻击。只有扛住红队攻击的模式骨架，才升级为"已验证通用模式"，P0级推送。<b>模式骨架和证据结论一样，无法经受反向验证的结论，不构成有效判定依据。</b></p>';
-  h += '<p>三通道学习反馈——编辑纠正、审核反馈、追问探索——为模式迁移提供训练数据。每一次人工纠偏都是模式库的一次标注，每一次追问都是对骨架遗漏节点的补全。系统的识别能力并非依赖规则数量的简单堆砌，而是建立在违法模式骨架的结构化识别与跨行业迁移机制之上。</p>';
-
-  h += '<p><b>第五章 · 持续自省与质量保障层</b></p>';
-  h += '<p>自省不是流水线的最后一步——它是<strong>系统的独立运行机制，持续运行，不依附于任何分析流程</strong>。资深稽查人员在案件办理过程中会反复推敲已作出的判断结论：该结论能否经得起检验？系统同样——定期随机抽样已完成案件做破坏性测试。</p>';
-  h += '<p><b>三个核心动作：</b></p>';
-  h += '<p><b>随机抽样证据盲测</b> — 按预设频率随机移除或翻转一个证据（假设银行流水伪造、假设发票对不上），看结论是否仍然成立。结论成立→证据链鲁棒性强；结论崩塌→存在单点依赖，触发回顾。<b>自我修复闭环：</b>发现崩塌点后，自动将该证据节点标记为"不可靠证据节点"写入自愈规则库。下次分析时，系统自动为同类证据节点增加交叉验证要求——原来需要2个独立来源的，提升到3个；原来需要3个的，提升到4个。盲测不仅是发现问题，更是自动加固系统。</p>';
-  h += '<p><b>结论一致性复查</b> — 同一企业用不同参数组合重新跑一遍。两次结论差异≥15%→标不稳定；差异<5%→标稳定，质量评分上升。</p>';
-  h += '<p><b>幻觉检测自愈闭环</b> — 检查已生成报告中数据自相矛盾、法条引用错误、结论与证据脱节。发现问题→生成自愈建议→写入错误模式库→下次自动拦截。</p>';
-  h += '<p><b>各层成熟度 —— 系统的运行质量评估：</b>自省层的能力矩阵不拥有其他层的核心功能，只评估运行质量：感知层 → 文件识别率、数据提取准确率、处理速度。记忆层 → 经验推送精准率与召回率、知识库覆盖度。思考层 → 因果推理准确率、证据闭环稳固率、证伪通过率。学习层 → 模式迁移成功率、误报率下降曲线。自省层 → 破坏性测试发现缺陷的密度与严重程度。</p>';
-
-  h += '<div class="footnote">';
-  h += '<details><summary>系统管理接口（状态查询 / 配置管理 / 巡逻验证）</summary>';
-  h += '<p>状态查询: /api/agi/status · /api/agi/pipeline/dashboard · /api/agi/query · /api/agi/chat · /api/agi/self-check/{company_id}</p>';
-  h += '<p>覆盖层管理: /api/agi/overrides/summary · /api/agi/overrides/{id}/activate · /api/agi/overrides/{id}/rollback · /api/agi/overrides/emergency-reset</p>';
-  h += '<p>巡逻验证: /api/agi/patrol/status · /api/agi/patrol/trigger · /api/agi/verify-supplier · /api/agi/verify-channels · /api/agi/parallel/toggle</p>';
-  h += '</details>';
+function _engineHubOverviewHtml() {
+  var loops = [
+    ['感知', '资料进入即触发', '识别文件、提取情报、广播阶段事件；只提供信号和证据素材，不独立定案。', '#2563eb'],
+    ['记忆', '持续监听并推送', '匹配政策、行业画像、历史模式和纠正经验；跟踪每次推送是否被后续证据验证。', '#7c3aed'],
+    ['推理', '随感知并行启动', '汇聚多域信号、构建竞争性假设、完成证据闭环并执行红队证伪。', '#dc2626'],
+    ['学习', '报告与反馈后触发', '抽取可迁移的资金、关系和发票拓扑骨架；验证后才提升规则置信度。', '#059669'],
+    ['自省', '独立定时运行', '做证据盲测、参数复跑、幻觉检测和一致性检查，把缺陷转化为自愈要求。', '#d97706']
+  ];
+  var h = '<div class="engine-overview">';
+  h += '<div class="engine-loop-grid">';
+  loops.forEach(function(loop, index) {
+    h += '<article class="engine-loop-card" style="border-top-color:' + loop[3] + '">';
+    h += '<div class="engine-loop-index">0' + (index + 1) + '</div>';
+    h += '<h3>' + loop[0] + '环路</h3><strong>' + loop[1] + '</strong><p>' + loop[2] + '</p></article>';
+  });
   h += '</div>';
-
-  h += '</div>'; // close eh
-  container.innerHTML = css + h;
+  h += '<div class="engine-flow-line">';
+  [
+    ['知识', '提供可验证背景'],
+    ['约束', '划定判断边界'],
+    ['推理', '形成竞争性假设'],
+    ['运行', '执行并记录状态'],
+    ['质控', '决定是否放行'],
+    ['追踪', '保留完整轨迹'],
+    ['学习', '验证后更新能力']
+  ].forEach(function(item, index, all) {
+    h += '<div class="engine-flow-node"><b>' + item[0] + '</b><span>' + item[1] + '</span></div>';
+    if (index < all.length - 1) h += '<div class="engine-flow-arrow">→</div>';
+  });
+  h += '</div>';
+  h += '<div class="engine-principles">';
+  h += '<h3>统一判定原则</h3><div class="engine-principle-grid">';
+  [
+    ['证据先于结论', '至少两个独立来源且通过真实性、关联性、合法性校验，才能进入正式判断。'],
+    ['反证先于升级', '每个高风险发现必须生成合法解释并逐条证伪；无法排除时降格为存疑。'],
+    ['实质先于标签', '工商登记、发票、资金和人员结论不一致时，展示穿透过程，不以单一标签覆盖事实。'],
+    ['限制必须可见', '缺资料、低置信度、法条待核验和行业不适用必须直接显示，禁止静默补全。'],
+    ['人工保留终审权', '模型负责发现、组织和建议；行政认定、处罚及司法判断必须由有权人员完成。'],
+    ['全程可追溯', '结论能够回到规则、链路、证据来源、原始数据和人工纠正记录。']
+  ].forEach(function(item) {
+    h += '<div><b>' + item[0] + '</b><p>' + item[1] + '</p></div>';
+  });
+  h += '</div></div></div>';
+  return h;
 }
 
-var ENGINE_HUB_SECTIONS = [
-  {id:'overview', label:'🧭 架构总览', render:'_renderEngineHubOverview', desc:'统一说明感知、记忆、推理、学习与自省五个并行认知环路。'},
-  {id:'knowledge', label:'🧠 知识与记忆', render:'renderKnowledgeHub', desc:'融合原“知识中枢”，集中查看政策、案例、模式和经验记忆。'},
-  {id:'dashboard', label:'🖥️ 运行仪表盘', render:'renderEngineDashboardPage', desc:'融合原“引擎仪表盘”，查看引擎能力、调度、运行状态和质量指标。'},
-  {id:'quality', label:'🛡️ 质量保障', render:'renderQualitySystem', desc:'融合原“质量保障”，统一呈现数据、规则、发现、证据和报告质量门禁。'},
-  {id:'rules', label:'🧠 行为准则', render:'renderAiRules', desc:'融合原“行为准则”，集中维护引擎必须遵循的判断边界和硬性约束。'},
-  {id:'agi', label:'🧬 税务AGI', render:'renderAgiDashboard', desc:'融合原“税务AGI”，展示高级推理、协同判断、自检和进化能力。'},
-  {id:'logs', label:'📜 执行日志', render:'renderAnalyzeLogs', desc:'融合原“执行日志”，用于追踪引擎每次分析的实际执行过程。'},
-  {id:'corrections', label:'🔧 学习纠正', render:'renderCorrectionRulesHub', desc:'融合原“纠正规则”，把审核反馈转化为可追溯的引擎学习闭环。'}
-];
+function _renderEngineHubOverview(container) {
+  if (container) container.innerHTML = _engineHubOverviewHtml();
+}
+
+function _engineHubBridgeHtml(sectionId) {
+  var items = ENGINE_HUB_BRIDGES[sectionId] || [];
+  if (!items.length) return '';
+  var h = '<div class="engine-section-bridge">';
+  items.forEach(function(item) { h += '<p>' + item + '</p>'; });
+  return h + '</div>';
+}
+
+function _engineHubMount(sectionId, rendererName) {
+  var mount = document.getElementById('engine-mount-' + sectionId);
+  if (!mount) return;
+  var renderer = window[rendererName];
+  if (typeof renderer !== 'function') {
+    mount.innerHTML = '<div class="engine-load-error">该能力尚未载入，请刷新页面后重试。</div>';
+    return;
+  }
+  try {
+    var result = renderer(mount);
+    if (result && typeof result.catch === 'function') {
+      result.catch(function(error) {
+        mount.innerHTML = '<div class="engine-load-error">载入失败：'
+          + ((error && error.message) || '未知错误') + '</div>';
+      });
+    }
+  } catch (error) {
+    mount.innerHTML = '<div class="engine-load-error">载入失败：'
+      + ((error && error.message) || '未知错误') + '</div>';
+  }
+}
 
 function renderEngineHub(container) {
   if (!container) return;
   window.currentModule = '智能引擎中枢';
   var selected = window._engineHubSection || 'overview';
   window._engineHubSection = null;
-  var nav = ENGINE_HUB_SECTIONS.map(function(section) {
-    return '<button type="button" class="eh-tab" data-engine-section="' + section.id
-      + '" onclick="selectEngineHubSection(\'' + section.id + '\')">' + section.label + '</button>';
+
+  var toc = ENGINE_HUB_SECTIONS.map(function(section) {
+    return '<a href="#engine-section-' + section.id + '" data-engine-section="' + section.id
+      + '" onclick="selectEngineHubSection(\'' + section.id + '\');return false;">'
+      + section.label + '</a>';
   }).join('');
+
+  var sections = ENGINE_HUB_SECTIONS.map(function(section, index) {
+    var body = section.id === 'overview'
+      ? _engineHubOverviewHtml()
+      : _engineHubBridgeHtml(section.id)
+        + '<div id="engine-mount-' + section.id + '" class="engine-section-body">'
+        + '<div class="engine-loading"><span class="spinner"></span> 正在载入完整内容...</div></div>';
+    return '<section id="engine-section-' + section.id + '" class="engine-unified-section">'
+      + '<header class="engine-section-head"><span class="engine-section-no">'
+      + String(index + 1).padStart(2, '0') + '</span><div><h2>' + section.title
+      + '</h2><p>' + section.desc + '</p></div></header>' + body + '</section>';
+  }).join('');
+
   container.innerHTML = `
     <style>
-      .eh-shell{max-width:1240px;margin:0 auto;padding:24px}
-      .eh-shell-head{margin:0 0 18px;padding:22px 24px;border:1px solid #dfe8f1;border-radius:14px;background:linear-gradient(135deg,#f8fbff,#f7fafc)}
-      .eh-shell-head h1{margin:0 0 8px;color:#16233a;font-size:24px}
-      .eh-shell-head p{margin:0;color:#64748b;line-height:1.75}
-      .eh-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-      .eh-tab{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600}
-      .eh-tab:hover{border-color:#7c3aed;color:#6d28d9}
-      .eh-tab.active{border-color:#6d28d9;background:#6d28d9;color:#fff}
-      .eh-section-note{margin:0 0 14px;padding:10px 13px;border-left:3px solid #7c3aed;background:#faf7ff;color:#5b6573;font-size:12px;line-height:1.7}
-      .eh-workspace{min-height:220px;border:1px solid #e5ebf1;border-radius:12px;background:#fff;overflow:hidden}
-      .eh-workspace>.eh{max-width:none}
-      @media(max-width:760px){.eh-shell{padding:14px}.eh-shell-head{padding:18px}.eh-tab{font-size:11px;padding:7px 10px}}
+      .engine-unified{max-width:1380px;margin:0 auto;padding:24px;color:#334155}
+      .engine-unified-hero{padding:28px 30px;border:1px solid #dce5ef;border-radius:16px;background:linear-gradient(135deg,#f8fbff 0%,#faf7ff 55%,#f8fafc 100%)}
+      .engine-unified-hero h1{margin:0 0 10px;color:#0f172a;font-size:27px}
+      .engine-unified-hero p{margin:0;max-width:1060px;color:#526174;font-size:14px;line-height:1.9}
+      .engine-unified-badge{display:inline-flex;margin-bottom:12px;padding:5px 12px;border-radius:999px;background:#ede9fe;color:#6d28d9;font-size:12px;font-weight:700}
+      .engine-unified-toc{position:sticky;top:0;z-index:20;display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 20px;padding:11px;border:1px solid #e2e8f0;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 4px 18px rgba(15,23,42,.05)}
+      .engine-unified-toc a{padding:7px 11px;border-radius:999px;color:#475569;text-decoration:none;font-size:12px;font-weight:650}
+      .engine-unified-toc a:hover,.engine-unified-toc a.active{background:#6d28d9;color:#fff}
+      .engine-unified-section{scroll-margin-top:72px;margin:0 0 22px;padding:24px;border:1px solid #e2e8f0;border-radius:15px;background:#fff;box-shadow:0 5px 18px rgba(15,23,42,.035)}
+      .engine-section-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e8edf3}
+      .engine-section-no{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex:0 0 36px;border-radius:10px;background:#0f172a;color:#fff;font-size:12px;font-weight:800}
+      .engine-section-head h2{margin:0 0 5px;color:#0f172a;font-size:21px}
+      .engine-section-head p{margin:0;color:#64748b;font-size:13px;line-height:1.75}
+      .engine-section-bridge{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 18px}
+      .engine-section-bridge p{margin:0;padding:12px 14px;border-left:3px solid #7c3aed;border-radius:7px;background:#faf7ff;color:#536173;font-size:12px;line-height:1.75}
+      .engine-section-body{min-height:100px}
+      .engine-section-body>.kh-wrap,.engine-section-body>.crh-layout,.engine-section-body>.qs-layout{max-width:none;margin:0;padding:0}
+      .engine-section-body .qs-layout{max-width:none}
+      .engine-section-body .agi-layout{max-width:none}
+      .engine-loading,.engine-load-error{padding:34px;text-align:center;color:#64748b;background:#f8fafc;border-radius:9px}
+      .engine-load-error{color:#b91c1c;background:#fef2f2}
+      .engine-loop-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+      .engine-loop-card{position:relative;padding:16px 14px;border:1px solid #e2e8f0;border-top:4px solid;border-radius:10px;background:#fff}
+      .engine-loop-card h3{margin:0 0 5px;color:#0f172a;font-size:14px}
+      .engine-loop-card strong{display:block;margin-bottom:7px;color:#475569;font-size:11px}
+      .engine-loop-card p{margin:0;color:#64748b;font-size:11px;line-height:1.75}
+      .engine-loop-index{position:absolute;right:10px;top:8px;color:#cbd5e1;font-size:18px;font-weight:800}
+      .engine-flow-line{display:flex;align-items:stretch;gap:7px;margin:16px 0;padding:14px;border-radius:11px;background:#f8fafc}
+      .engine-flow-node{flex:1;min-width:0;padding:10px;text-align:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff}
+      .engine-flow-node b{display:block;color:#0f172a;font-size:12px}
+      .engine-flow-node span{display:block;margin-top:3px;color:#64748b;font-size:10px;line-height:1.45}
+      .engine-flow-arrow{display:flex;align-items:center;color:#94a3b8;font-weight:800}
+      .engine-principles{padding:17px;border:1px solid #dbe4ee;border-radius:11px;background:linear-gradient(135deg,#f8fafc,#fff)}
+      .engine-principles>h3{margin:0 0 12px;color:#0f172a;font-size:15px}
+      .engine-principle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+      .engine-principle-grid>div{padding:12px;border-radius:8px;background:#fff;border:1px solid #e2e8f0}
+      .engine-principle-grid b{color:#1e293b;font-size:12px}
+      .engine-principle-grid p{margin:5px 0 0;color:#64748b;font-size:11px;line-height:1.7}
+      @media(max-width:1000px){.engine-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.engine-section-bridge,.engine-principle-grid{grid-template-columns:1fr 1fr}.engine-flow-line{flex-wrap:wrap}.engine-flow-node{min-width:120px}.engine-flow-arrow{display:none}}
+      @media(max-width:680px){.engine-unified{padding:12px}.engine-unified-hero,.engine-unified-section{padding:18px}.engine-section-bridge,.engine-principle-grid,.engine-loop-grid{grid-template-columns:1fr}.engine-unified-toc{position:static}.engine-section-head h2{font-size:18px}}
     </style>
-    <div class="eh-shell">
-      <header class="eh-shell-head">
+    <div class="engine-unified">
+      <header class="engine-unified-hero">
+        <span class="engine-unified-badge">单页融合 · 全量能力 · 闭环治理</span>
         <h1>🧠 智能引擎中枢</h1>
-        <p>原知识中枢、引擎仪表盘、质量保障、行为准则、税务AGI、执行日志和纠正规则，已按“知识—运行—质量—约束—推理—追踪—学习”闭环融入本模块，不再作为数据看板中的散列入口。</p>
+        <p>本页不再保留“知识中枢、运行仪表盘、质量保障、行为准则、税务AGI、执行日志、纠正规则”等相互割裂的子页面。全部内容按照“知识提供依据—约束划定边界—推理形成假设—运行执行分析—质量决定放行—日志保留轨迹—反馈驱动进化”的闭环重新组织；重复的架构说明只保留一次，实时状态与静态规范明确分工。</p>
       </header>
-      <nav class="eh-tabs" aria-label="智能引擎中枢能力分区">${nav}</nav>
-      <div id="engine-hub-section-note" class="eh-section-note"></div>
-      <div id="engine-hub-workspace" class="eh-workspace"></div>
+      <nav class="engine-unified-toc" aria-label="智能引擎中枢单页目录">${toc}</nav>
+      ${sections}
     </div>`;
-  selectEngineHubSection(selected);
+
+  _engineHubMount('knowledge', 'renderKnowledgeHubIntegrated');
+  _engineHubMount('rules', 'renderAiRules');
+  window._agiSection = null;
+  _engineHubMount('agi', 'renderAgiDashboard');
+  _engineHubMount('dashboard', 'renderEngineDashboardIntegrated');
+  window._qsLayer = null;
+  _engineHubMount('quality', 'renderQualitySystem');
+  _engineHubMount('logs', 'renderAnalyzeLogs');
+  _engineHubMount('corrections', 'renderCorrectionRulesHub');
+
+  setTimeout(function() { selectEngineHubSection(selected, true); }, 80);
 }
 
-function selectEngineHubSection(sectionId) {
-  var section = ENGINE_HUB_SECTIONS.filter(function(item){ return item.id === sectionId; })[0]
-    || ENGINE_HUB_SECTIONS[0];
-  var workspace = document.getElementById('engine-hub-workspace');
-  var note = document.getElementById('engine-hub-section-note');
-  if (!workspace) return;
-  var tabs = document.querySelectorAll('[data-engine-section]');
-  for (var i = 0; i < tabs.length; i++) {
-    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-engine-section') === section.id);
+function selectEngineHubSection(sectionId, skipSmooth) {
+  var section = ENGINE_HUB_SECTIONS.filter(function(item) {
+    return item.id === sectionId;
+  })[0] || ENGINE_HUB_SECTIONS[0];
+  var links = document.querySelectorAll('[data-engine-section]');
+  for (var i = 0; i < links.length; i++) {
+    links[i].classList.toggle(
+      'active',
+      links[i].getAttribute('data-engine-section') === section.id
+    );
   }
-  if (note) note.textContent = section.desc;
-  workspace.innerHTML = '<div style="padding:24px;color:#64748b">正在载入“' + section.label.replace(/^[^ ]+ /, '') + '”...</div>';
-  var renderer = window[section.render];
-  if (typeof renderer !== 'function') {
-    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">该能力暂未完成载入，请刷新页面后重试。</div>';
-    return;
-  }
-  try {
-    var result = renderer(workspace);
-    if (result && typeof result.catch === 'function') {
-      result.catch(function(error) {
-        workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">能力载入失败：'
-          + (error && error.message ? error.message : '未知错误') + '</div>';
-      });
-    }
-  } catch (error) {
-    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">能力载入失败：'
-      + (error && error.message ? error.message : '未知错误') + '</div>';
+  var target = document.getElementById('engine-section-' + section.id);
+  if (target) {
+    target.scrollIntoView({
+      behavior: skipSmooth ? 'auto' : 'smooth',
+      block: 'start'
+    });
   }
   window.currentModule = '智能引擎中枢';
 }

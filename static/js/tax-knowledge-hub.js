@@ -4,26 +4,27 @@
 
 var _khLoaded = {};
 var _khTab = 'audit-knowledge';
+var KNOWLEDGE_HUB_GROUPS = [
+  {id:'audit-knowledge', icon:'📚', name:'稽查知识库', purpose:'事实识别、调查步骤与实务经验', file:'audit_knowledge.json'},
+  {id:'industry-data', icon:'🏭', name:'行业基准数据', purpose:'行业画像、指标区间与经营模式参照', files:['industry_data.json','industry_profiles.json']},
+  {id:'agi-memory', icon:'🧠', name:'AGI记忆', purpose:'历史分析、纠正记录与企业指纹', file:'agi_memory.json'},
+  {id:'self-heal', icon:'🩹', name:'自愈规则库', purpose:'异常模式、自动修复动作与验证记录', file:'self_heal_rules.json'},
+  {id:'discovered', icon:'🔍', name:'发现规则库', purpose:'自动发现与人工确认后的新规则', files:['discovered_rules.json','auto_discovered_rules.json']},
+  {id:'cross-memory', icon:'🔗', name:'跨企业关联记忆', purpose:'跨企业模式、行业共性与经验迁移', file:'cross_analysis_memory.json'},
+  {id:'hypotheses', icon:'💡', name:'创造性假说', purpose:'竞争性解释、验证结果与反事实线索', file:'creative_hypotheses.json'},
+  {id:'rule-adjust', icon:'📋', name:'规则修正记录', purpose:'规则、方法论与冲突裁决的调整历史', files:['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json']},
+  {id:'rectifications', icon:'📝', name:'整改记录', purpose:'整改任务、责任状态与期限跟踪', file:'rectifications.json'},
+  {id:'report-audits', icon:'📊', name:'报告审计历史', purpose:'历次报告评分、问题数量与质量维度', file:'report_audits.json'},
+  {id:'chain-adjust', icon:'🔧', name:'链修正记录', purpose:'线索链、证据链和分析链的调整历史', files:['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json']},
+  {id:'signals-maps', icon:'🗺️', name:'信号与映射', purpose:'信号、领域、类型锚点和文件类型映射', files:['signal_domain_map.json','type_anchors.json','filename_type_map.json']},
+  {id:'other-logs', icon:'📜', name:'综合学习记录', purpose:'静默学习、事件、一次性规则、置信度与元认知记录', files:['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json']}
+];
 
 function renderKnowledgeHub(container) {
   if (!container) return;
   window.currentModule = '知识中枢';
 
-  var TABS = [
-    {id:'audit-knowledge', icon:'📚', name:'稽查知识库', file:'audit_knowledge.json'},
-    {id:'industry-data', icon:'🏭', name:'行业基准数据', files:['industry_data.json','industry_profiles.json']},
-    {id:'agi-memory', icon:'🧠', name:'AGI记忆', file:'agi_memory.json'},
-    {id:'self-heal', icon:'🩹', name:'自愈规则库', file:'self_heal_rules.json'},
-    {id:'discovered', icon:'🔍', name:'发现规则库', files:['discovered_rules.json','auto_discovered_rules.json']},
-    {id:'cross-memory', icon:'🔗', name:'跨企业关联记忆', file:'cross_analysis_memory.json'},
-    {id:'hypotheses', icon:'💡', name:'创造性假说', file:'creative_hypotheses.json'},
-    {id:'rule-adjust', icon:'📋', name:'规则修正记录', files:['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json']},
-    {id:'rectifications', icon:'📝', name:'整改记录', file:'rectifications.json'},
-    {id:'report-audits', icon:'📊', name:'报告审计历史', file:'report_audits.json'},
-    {id:'chain-adjust', icon:'🔧', name:'链修正记录', files:['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json']},
-    {id:'signals-maps', icon:'🗺️', name:'信号与映射', files:['signal_domain_map.json','type_anchors.json','filename_type_map.json']},
-    {id:'other-logs', icon:'📜', name:'综合日志', files:['silent_learnings.json','event_log.json','one_shot_rules.json','pattern_confidence.json','system_config.json','metacognition_log.json','analysis_history.json','audit_rules.json','auto_runs.json','module_auto_update_log.json','signal_patterns.json','user_corrections.json']},
-  ];
+  var TABS = KNOWLEDGE_HUB_GROUPS;
 
   var h = '';
   h += '<style>'
@@ -87,6 +88,11 @@ window._khSwitch = function(tabId) {
 
   body.innerHTML = '<div class="kh-placeholder"><span class="kh-spin"></span> 加载 '+tabId+' 数据...</div>';
 
+  _khLoadGroup(tabId, body);
+};
+
+function _khLoadGroup(tabId, body) {
+  if (!body) return;
   switch(tabId) {
     case 'audit-knowledge': _khLoadAuditKnowledge(body); break;
     case 'industry-data':   _khLoadIndustryData(body); break;
@@ -101,8 +107,79 @@ window._khSwitch = function(tabId) {
     case 'chain-adjust':    _khLoadChainAdjustments(body); break;
     case 'signals-maps':    _khLoadSignalsMaps(body); break;
     case 'other-logs':      _khLoadOtherLogs(body); break;
+    default:
+      body.innerHTML = '<div class="kh-placeholder">未知知识分类</div>';
   }
-};
+}
+
+function renderKnowledgeHubIntegrated(container) {
+  if (!container) return;
+  window.currentModule = '智能引擎中枢';
+  var groups = KNOWLEDGE_HUB_GROUPS.map(function(group, index) {
+    return '<details class="kh-integrated-group" data-knowledge-group="' + group.id + '"'
+      + (index < 2 ? ' open' : '') + '>'
+      + '<summary><span class="kh-summary-icon">' + group.icon + '</span><span><b>'
+      + group.name + '</b><small>' + group.purpose + '</small></span>'
+      + '<span class="kh-summary-state">展开/收起</span></summary>'
+      + '<div id="kh-integrated-' + group.id + '" class="kh-integrated-body kh-body">'
+      + '<div class="kh-placeholder"><span class="kh-spin"></span> 正在载入...</div></div></details>';
+  }).join('');
+
+  container.innerHTML = '<style>'
+    + '.kh-integrated-wrap{font-size:11px;line-height:1.75;color:#334155}'
+    + '.kh-integrated-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px;border:1px solid #dbeafe;border-radius:9px;background:#f8fbff}'
+    + '.kh-integrated-search{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:7px;padding:8px 11px;font-size:12px}'
+    + '.kh-integrated-btn{border:1px solid #bfdbfe;border-radius:7px;background:#fff;color:#2563eb;padding:7px 11px;font-size:11px;cursor:pointer}'
+    + '.kh-integrated-group{margin-bottom:9px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;overflow:hidden}'
+    + '.kh-integrated-group[open]{box-shadow:0 3px 12px rgba(37,99,235,.06)}'
+    + '.kh-integrated-group>summary{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;background:#f8fafc;list-style:none}'
+    + '.kh-integrated-group>summary::-webkit-details-marker{display:none}'
+    + '.kh-summary-icon{font-size:20px}'
+    + '.kh-integrated-group summary b{display:block;color:#1e3a8a;font-size:13px}'
+    + '.kh-integrated-group summary small{display:block;margin-top:2px;color:#64748b;font-size:10px}'
+    + '.kh-summary-state{margin-left:auto;color:#94a3b8;font-size:10px}'
+    + '.kh-integrated-body{padding:13px;background:#fff;min-height:70px;color:#2563eb}'
+    + '.kh-placeholder{text-align:center;padding:30px 20px;color:#64748b}'
+    + '.kh-spin{display:inline-block;width:18px;height:18px;border:2px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;animation:khSpin .8s linear infinite;vertical-align:middle;margin-right:8px}'
+    + '@keyframes khSpin{to{transform:rotate(360deg)}}'
+    + '.kh-card{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 15px;margin-bottom:8px;color:#2563eb}'
+    + '.kh-card h4{font-size:11px;font-weight:700;color:#1d4ed8;margin:0 0 6px}'
+    + '.kh-meta{font-size:10px;color:#475569;line-height:1.7}'
+    + '.kh-detail{font-size:10px;color:#334155;line-height:1.75;margin-top:6px;padding-top:6px;border-top:1px solid #bfdbfe}'
+    + '.kh-table{width:100%;border-collapse:collapse;font-size:10px;color:#334155;margin-top:8px}'
+    + '.kh-table th{background:#dbeafe;padding:7px 9px;text-align:left;color:#1e3a8a;border-bottom:2px solid #bfdbfe}'
+    + '.kh-table td{padding:6px 9px;border-bottom:1px solid #dbeafe;vertical-align:top}'
+    + '.kh-badge{display:inline-block;padding:2px 7px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:9px;font-weight:600}'
+    + '.kh-badge.warn{background:#fef3c7;color:#92400e}.kh-badge.ok{background:#d1fae5;color:#065f46}'
+    + '.kh-stat{display:inline-flex;gap:4px;padding:4px 8px;margin:2px;background:#dbeafe;border-radius:6px;font-size:9px}'
+    + '@media(max-width:680px){.kh-summary-state{display:none}.kh-integrated-body{overflow-x:auto}}'
+    + '</style>'
+    + '<div class="kh-integrated-wrap">'
+    + '<div class="kh-integrated-tools">'
+    + '<input class="kh-integrated-search" type="search" placeholder="在全部知识分类中查找..." oninput="filterKnowledgeHubIntegrated(this.value)">'
+    + '<button type="button" class="kh-integrated-btn" onclick="toggleKnowledgeHubIntegrated(true)">全部展开</button>'
+    + '<button type="button" class="kh-integrated-btn" onclick="toggleKnowledgeHubIntegrated(false)">全部折叠</button>'
+    + '</div>' + groups + '</div>';
+
+  KNOWLEDGE_HUB_GROUPS.forEach(function(group) {
+    _khLoadGroup(group.id, document.getElementById('kh-integrated-' + group.id));
+  });
+}
+
+function toggleKnowledgeHubIntegrated(expand) {
+  var groups = document.querySelectorAll('#engine-mount-knowledge .kh-integrated-group');
+  for (var i = 0; i < groups.length; i++) groups[i].open = !!expand;
+}
+
+function filterKnowledgeHubIntegrated(query) {
+  var keyword = String(query || '').trim().toLowerCase();
+  var groups = document.querySelectorAll('#engine-mount-knowledge .kh-integrated-group');
+  for (var i = 0; i < groups.length; i++) {
+    var matched = !keyword || String(groups[i].textContent || '').toLowerCase().indexOf(keyword) >= 0;
+    groups[i].style.display = matched ? '' : 'none';
+    if (keyword && matched) groups[i].open = true;
+  }
+}
 
 function _khFetch(file, cb) {
   if (_khLoaded[file]) { cb(_khLoaded[file]); return; }

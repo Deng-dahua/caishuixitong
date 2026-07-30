@@ -1892,7 +1892,7 @@ function renderFilterResult(report) {
 //  系统铁律(11720条)已迁至 engine/memory.py，本页面仅保留约束智哥写代码的行为规范
 // ══════════════════════════════════════════════════════════════
 
-function renderAiRules(container) {
+function _renderLegacyAiRules(container) {
   var html = '';
 
   var categories = [
@@ -2001,6 +2001,122 @@ function renderAiRules(container) {
   container.innerHTML = html;
 }
 
+function renderAiRules(container) {
+  if (!container) return;
+  window.currentModule = '智能引擎中枢';
+  var categories = [
+    {
+      id:'evidence',
+      icon:'📎',
+      name:'事实与证据边界',
+      color:'#2563eb',
+      purpose:'确保每个结论都来自可定位、可核验、可复核的数据，不允许模型补造事实。',
+      rules:[
+        ['原始事实不改写','金额、日期、主体、票号、凭证号和原始行号必须保留来源值；格式化展示不得改变原意。','字段无法定位到来源时标记“来源待核”，不得进入正式事实段。'],
+        ['单一来源不定案','单个文件、单条流水、单张发票或单次模型判断只能形成线索。','正式判断至少需要两个相互独立的数据来源，重大结论优先要求三个来源。'],
+        ['证据三性先行','证据必须逐项核验真实性、关联性、合法性，并记录核验结果。','任一项不满足时，结论降级为存疑并列出补证清单。'],
+        ['反向证据不得隐藏','与当前假设冲突的证据必须同屏展示，不能因降低模型置信度而删除。','反向证据无法解释时，停止结论升级并进入红队复核。']
+      ]
+    },
+    {
+      id:'law',
+      icon:'⚖️',
+      name:'法律与程序边界',
+      color:'#9a1f2b',
+      purpose:'区分专业风险发现、行政认定和司法判断，保证引用依据现行有效且程序可复核。',
+      rules:[
+        ['专业判断不替代行政认定','引擎只能输出涉嫌、存疑、建议核实和测算结果，不得代替有权机关作出处罚或犯罪认定。','出现确定性定罪、处罚或违法认定措辞时阻断报告放行。'],
+        ['法条状态必须核验','法条名称、条款号、适用期间、效力状态和地域范围必须与业务期间匹配。','无法确认现行有效时标记“法律依据待复核”，不得伪造条款。'],
+        ['程序合法性独立检查','证据取得方式、调查权限、告知与申辩程序必须与实体判断分开审核。','实体风险成立但程序存在缺口时，报告必须同时披露程序风险。'],
+        ['从旧兼从轻单独提示','跨政策期间、处罚尺度变化或新旧规定衔接时，必须提示适用日期和有利原则。','存在时点争议时不得只引用最新条文覆盖历史期间。']
+      ]
+    },
+    {
+      id:'uncertainty',
+      icon:'🔬',
+      name:'不确定性与适用性',
+      color:'#d97706',
+      purpose:'让资料缺口、行业差异和模型置信度公开可见，避免把未知包装成确定。',
+      rules:[
+        ['缺资料不推定违法','缺合同、缺流水、缺申报表只能说明核验受限，不能直接证明交易虚假或申报错误。','输出缺失材料、受影响判断和重新分析条件。'],
+        ['行业实质优先','工商登记、发票结构、资金用途和人员配置共同决定实际经营模式。','三层结论不一致时展示穿透过程，不强行套用单一行业阈值。'],
+        ['阈值只是筛查工具','行业基准和比例阈值用于发现异常，不是违法认定标准。','触发阈值后必须进入业务解释、同业参照和证据核验。'],
+        ['置信度与结论强度联动','低置信度只能生成线索，中等置信度生成待核事项，高置信度仍须满足证据闭环。','任何情况下不得以模型分数替代证据。']
+      ]
+    },
+    {
+      id:'security',
+      icon:'🔐',
+      name:'数据安全与租户隔离',
+      color:'#7c3aed',
+      purpose:'保证不同用户、账套和模型服务之间的数据、密钥与会话严格隔离。',
+      rules:[
+        ['账套数据严格隔离','每次查询、分析、缓存和导出都必须绑定当前授权账套。','缺少账套上下文或越权时直接拒绝，不使用默认账套兜底。'],
+        ['密钥不进入页面与日志','模型密钥只在受控存储和服务端解密使用，前端只显示配置状态。','任何响应、日志、错误和导出中发现明文密钥时立即阻断。'],
+        ['最小数据发送','调用外部模型只发送完成任务所需的最小内容，优先去标识化和结构化摘要。','未经明确授权不得发送完整账册、身份证号、银行账号或无关附件。'],
+        ['会话与权限实时生效','用户、角色、账套授权和会话状态以服务端为准。','退出、撤权或切换账套后旧上下文立即失效。']
+      ]
+    },
+    {
+      id:'human',
+      icon:'👤',
+      name:'人工复核与输出规范',
+      color:'#059669',
+      purpose:'把模型能力放在辅助调查和组织证据的位置，保留专业人员的复核、纠正和终审权。',
+      rules:[
+        ['高影响结论必须复核','涉及大额税款、移送建议、重大违法方向或核心证据冲突的发现必须人工确认。','未确认前只能进入草稿或疑点库，不进入正式交付结论。'],
+        ['结论同时给出理由和限制','每条发现必须包含事实、证据、推理、依据、金额口径、限制条件和建议动作。','缺任一关键要素时质量门禁标记并阻止高风险升级。'],
+        ['建议必须可执行','补证建议需明确材料名称、期间、主体和用途；处理建议需说明下一步由谁完成。','禁止输出“加强管理、注意风险”等无法执行的空泛表述。'],
+        ['用户纠正优先记录而非覆盖','人工修改不得删除原始结果；原结论、纠正内容、理由和时间必须并存。','所有纠正可回溯、可撤销并接受下一次验证。']
+      ]
+    },
+    {
+      id:'learning',
+      icon:'🧩',
+      name:'学习与变更治理',
+      color:'#0f766e',
+      purpose:'确保引擎只从经过验证的反馈中学习，个案经验不会未经检验扩散为通用规则。',
+      rules:[
+        ['个案反馈先限定范围','学习规则必须记录发现类型、行业、经营模式、证据条件和来源用户。','缺少适用范围时只能保存为候选规则。'],
+        ['升级必须跨样本验证','同一模式在不同企业和行业中重复验证后，才可提高为通用模式。','单一企业的重复出现不等于跨企业有效。'],
+        ['规则变更保留版本','新增、修改、暂停、恢复和删除都必须留下版本、理由和影响范围。','无法说明变更来源的规则不得自动应用。'],
+        ['效果持续回测','记录每条规则的命中、确认、误报、漏报和人工推翻情况。','连续误报自动降权，影响扩大前必须重新审核。']
+      ]
+    }
+  ];
+
+  var toc = categories.map(function(category) {
+    return '<a href="#engine-rule-' + category.id + '">' + category.icon + ' ' + category.name + '</a>';
+  }).join('');
+  var sections = categories.map(function(category) {
+    var rules = category.rules.map(function(rule, index) {
+      return '<article class="engine-rule-card" style="border-left-color:' + category.color + '">'
+        + '<div class="engine-rule-name"><span>' + String(index + 1).padStart(2, '0') + '</span>' + rule[0] + '</div>'
+        + '<p><b>必须做到：</b>' + rule[1] + '</p>'
+        + '<p class="engine-rule-fail"><b>不满足时：</b>' + rule[2] + '</p></article>';
+    }).join('');
+    return '<section id="engine-rule-' + category.id + '" class="engine-rule-section">'
+      + '<header style="border-bottom-color:' + category.color + '"><span>' + category.icon + '</span><div><h3>'
+      + category.name + '</h3><p>' + category.purpose + '</p></div></header>'
+      + '<div class="engine-rule-grid">' + rules + '</div></section>';
+  }).join('');
+
+  container.innerHTML = '<style>'
+    + '.engine-rules{color:#334155}.engine-rules-toc{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}'
+    + '.engine-rules-toc a{padding:6px 10px;border:1px solid #dbe4ee;border-radius:999px;color:#475569;text-decoration:none;font-size:10px}'
+    + '.engine-rule-section{scroll-margin-top:78px;margin-bottom:14px;padding:15px;border:1px solid #e2e8f0;border-radius:10px}'
+    + '.engine-rule-section>header{display:flex;align-items:flex-start;gap:9px;margin-bottom:11px;padding-bottom:10px;border-bottom:2px solid}'
+    + '.engine-rule-section>header>span{font-size:21px}.engine-rule-section h3{margin:0 0 3px;color:#0f172a;font-size:14px}'
+    + '.engine-rule-section header p{margin:0;color:#64748b;font-size:10px;line-height:1.65}'
+    + '.engine-rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}'
+    + '.engine-rule-card{padding:11px 12px;border:1px solid #e2e8f0;border-left:4px solid;border-radius:7px;background:#fff}'
+    + '.engine-rule-name{color:#0f172a;font-size:12px;font-weight:750}.engine-rule-name span{margin-right:7px;color:#94a3b8;font-size:10px}'
+    + '.engine-rule-card p{margin:6px 0 0;color:#475569;font-size:10px;line-height:1.7}'
+    + '.engine-rule-card p b{color:#1e293b}.engine-rule-fail{padding-top:6px;border-top:1px dashed #e2e8f0;color:#7c2d12!important}'
+    + '@media(max-width:760px){.engine-rule-grid{grid-template-columns:1fr}}'
+    + '</style><div class="engine-rules"><nav class="engine-rules-toc">' + toc + '</nav>' + sections + '</div>';
+}
+
 // ═══════════ 核心数据资产页面（qs-layer1） ═══════════
 function renderCoreDataAssets(container) {
   if (!container) return;
@@ -2098,7 +2214,7 @@ function renderCoreDataAssets(container) {
 }
 
 // ═══════════ 方法论体系页面（qs-layer2） ═══════════
-function renderQualitySystem(container) {
+function _renderLegacyQualitySystem(container) {
   if (!container) return;
   window.currentModule = '全链路质量保障体系';
 
@@ -2204,7 +2320,151 @@ function renderQualitySystem(container) {
       if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
     }, 100);
   }
-}function loadMethodologies() {
+}
+
+function renderQualitySystem(container) {
+  if (!container) return;
+  window.currentModule = '智能引擎中枢';
+  var gates = [
+    {
+      id:1,
+      icon:'📥',
+      name:'输入与资料门禁',
+      color:'#2563eb',
+      goal:'保证进入引擎的数据可识别、可定位、期间一致，并公开所有资料限制。',
+      checks:[
+        ['文件与期间识别','记录文件类型、数据期间、主体、解析置信度和失败行，不静默丢弃。'],
+        ['关键资料清单','按本次分析目的检查账簿、发票、流水、合同、申报和人员资料的存在性。'],
+        ['数据口径一致','统一金额单位、借贷方向、含税口径、日期时区和主体名称映射。'],
+        ['原始行可回溯','每个参与判断的字段能够返回文件、工作表、行号或数据库记录。']
+      ],
+      pass:'资料范围、解析结果和限制条件均已记录，可进入规则匹配。',
+      fail:'解析失败或主体/期间无法确认时硬停止；一般资料缺失时降级并生成补充材料清单。'
+    },
+    {
+      id:2,
+      icon:'📐',
+      name:'规则与适用性门禁',
+      color:'#7c3aed',
+      goal:'确保触发规则与企业行业、经营模式、税种、地区和业务期间相匹配。',
+      checks:[
+        ['规则版本有效','记录规则ID、版本、启停状态、适用期间和变更来源。'],
+        ['行业实质匹配','工商、发票、资金和人员画像共同决定适用行业，不以登记标签直接套阈值。'],
+        ['阈值只作筛查','阈值触发后必须进入业务解释和证据核验，不能直接生成违法结论。'],
+        ['冲突规则裁决','优先执行法律与安全边界，其次比较证据强度，再处理行业和模型置信度。']
+      ],
+      pass:'适用范围清晰、规则无冲突或冲突已记录裁决理由，可进入证据核验。',
+      fail:'规则过期、行业不适用或冲突未解决时暂停该发现，不影响其他独立发现继续分析。'
+    },
+    {
+      id:3,
+      icon:'📎',
+      name:'证据闭环门禁',
+      color:'#dc2626',
+      goal:'把线索、事实和正式判断分开，只有通过三性和独立来源验证的证据才能支撑结论。',
+      checks:[
+        ['证据三性','逐项核验真实性、关联性和合法性，任何一项缺失都必须说明。'],
+        ['独立来源','正式判断至少由两个独立来源相互印证；重大结论优先要求三个来源。'],
+        ['反向证据','主动查找与当前假设相反的数据和合法商业解释，不允许只收集支持性材料。'],
+        ['链路完整','保留规则ID、线索链、证据链、分析链、原始来源和人工复核记录。']
+      ],
+      pass:'证据三性通过、来源独立、无未解释的重大反向证据，可进入推理与定性。',
+      fail:'单一来源、证据冲突或来源不可定位时硬停止结论升级，只保留线索和补证建议。'
+    },
+    {
+      id:4,
+      icon:'🧠',
+      name:'推理与红队门禁',
+      color:'#d97706',
+      goal:'验证推理过程是否完整、可解释、能经受反事实和辩方视角的攻击。',
+      checks:[
+        ['竞争性假设','每个重大疑点至少形成一个风险解释和两个合理商业解释。'],
+        ['因果链完整','说明异常信号如何经验证形成税务后果，不用相关性替代因果关系。'],
+        ['红队证伪','逐条攻击支持证据，检查季节性、一次性投入、账期、代付和行业惯例。'],
+        ['稳定性复跑','关键参数变化后复跑；结论差异显著时标记不稳定并转人工复核。']
+      ],
+      pass:'主要合法解释均被证据检验，推理可复述、可重跑且结论稳定。',
+      fail:'反事实无法排除或复跑差异过大时降格为存疑，禁止使用确定性措辞。'
+    },
+    {
+      id:5,
+      icon:'⚖️',
+      name:'法律、金额与报告门禁',
+      color:'#9a1f2b',
+      goal:'保证法律依据、测算口径和报告表达准确、审慎，并与报告编制要求保持一致。',
+      checks:[
+        ['法条现行有效','核对名称、条款号、效力、期间、地区和新旧政策衔接。'],
+        ['金额可复算','列明税种、计税依据、税率、期间、公式、舍入规则和数据来源。'],
+        ['事实证据同段对应','报告中的每个事实、数字和判断都能定位到证据或测算表。'],
+        ['用语保持边界','使用涉嫌、存疑、建议核实等专业措辞，不替代行政认定或司法判断。']
+      ],
+      pass:'法条、金额、证据和措辞四项一致，报告可进入人工复核与交付。',
+      fail:'法条不可核验、金额不可复算或出现越权认定措辞时硬停止报告放行。'
+    },
+    {
+      id:6,
+      icon:'🔐',
+      name:'运行、安全与审计门禁',
+      color:'#059669',
+      goal:'确保服务运行、租户隔离、密钥保护、日志追踪和学习变更均处于受控状态。',
+      checks:[
+        ['账套与权限','所有请求绑定当前用户和授权账套；越权、缺上下文或旧会话立即拒绝。'],
+        ['密钥与隐私','模型密钥不进入页面、响应、日志和导出；外发数据执行最小化和去标识化。'],
+        ['运行可观测','记录阶段、耗时、异常、降级、规则触发和输出状态，健康检查必须通过。'],
+        ['学习可回退','纠正规则保留来源、范围、版本、效果和启停状态，可暂停、恢复和回溯。']
+      ],
+      pass:'权限、安全、运行和变更记录完整，具备持续运营与审计条件。',
+      fail:'越权、密钥泄露、服务异常或无法追溯的自动规则属于硬停止项。'
+    }
+  ];
+
+  var toc = gates.map(function(gate) {
+    return '<a href="#quality-gate-' + gate.id + '">' + gate.icon + ' ' + gate.name + '</a>';
+  }).join('');
+  var sections = gates.map(function(gate) {
+    var checks = gate.checks.map(function(check, index) {
+      return '<div class="quality-check"><span>' + String(index + 1).padStart(2, '0') + '</span><div><b>'
+        + check[0] + '</b><p>' + check[1] + '</p></div></div>';
+    }).join('');
+    return '<section id="quality-gate-' + gate.id + '" class="quality-gate">'
+      + '<header style="border-left-color:' + gate.color + '"><span>' + gate.icon + '</span><div><h3>'
+      + gate.id + '. ' + gate.name + '</h3><p>' + gate.goal + '</p></div></header>'
+      + '<div class="quality-check-grid">' + checks + '</div>'
+      + '<div class="quality-disposition"><div class="quality-pass"><b>放行条件</b><p>' + gate.pass
+      + '</p></div><div class="quality-fail"><b>未通过处理</b><p>' + gate.fail + '</p></div></div></section>';
+  }).join('');
+
+  container.innerHTML = '<style>'
+    + '.quality-governance{color:#334155}.quality-decision{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}'
+    + '.quality-decision>div{padding:11px 12px;border-radius:8px;border:1px solid;font-size:10px;line-height:1.7}'
+    + '.quality-decision b{display:block;margin-bottom:3px;font-size:11px}.quality-stop{background:#fef2f2;border-color:#fecaca!important;color:#991b1b}'
+    + '.quality-degrade{background:#fffbeb;border-color:#fde68a!important;color:#92400e}.quality-note{background:#eff6ff;border-color:#bfdbfe!important;color:#1e40af}'
+    + '.quality-toc{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}.quality-toc a{padding:6px 10px;border:1px solid #dbe4ee;border-radius:999px;color:#475569;text-decoration:none;font-size:10px}'
+    + '.quality-gate{scroll-margin-top:78px;margin-bottom:12px;padding:14px;border:1px solid #e2e8f0;border-radius:10px}'
+    + '.quality-gate>header{display:flex;gap:9px;align-items:flex-start;margin-bottom:10px;padding:10px 12px;border-left:4px solid;border-radius:7px;background:#f8fafc}'
+    + '.quality-gate>header>span{font-size:21px}.quality-gate h3{margin:0 0 3px;color:#0f172a;font-size:14px}.quality-gate header p{margin:0;color:#64748b;font-size:10px;line-height:1.65}'
+    + '.quality-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.quality-check{display:flex;gap:8px;padding:10px;border:1px solid #e2e8f0;border-radius:7px}'
+    + '.quality-check>span{color:#94a3b8;font-size:10px;font-weight:700}.quality-check b{color:#1e293b;font-size:11px}.quality-check p{margin:3px 0 0;color:#64748b;font-size:10px;line-height:1.7}'
+    + '.quality-disposition{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.quality-disposition>div{padding:9px 11px;border-radius:7px;font-size:10px}'
+    + '.quality-disposition b{font-size:11px}.quality-disposition p{margin:3px 0 0;line-height:1.7}.quality-pass{background:#ecfdf5;color:#065f46}.quality-fail{background:#fff7ed;color:#9a3412}'
+    + '@media(max-width:760px){.quality-decision,.quality-check-grid,.quality-disposition{grid-template-columns:1fr}}'
+    + '</style><div class="quality-governance">'
+    + '<div class="quality-decision"><div class="quality-stop"><b>硬停止</b>越权、密钥暴露、事实补造、证据来源不可定位、法条不可核验、金额不可复算。</div>'
+    + '<div class="quality-degrade"><b>降级放行</b>一般资料缺失、行业待确认、低置信度、反证尚待排除；必须显示限制并转人工复核。</div>'
+    + '<div class="quality-note"><b>带说明放行</b>不影响结论的格式、展示或非关键资料问题，可放行但必须记录整改项。</div></div>'
+    + '<nav class="quality-toc">' + toc + '</nav>' + sections + '</div>';
+
+  if (window._qsLayer) {
+    var requestedGate = window._qsLayer;
+    window._qsLayer = null;
+    setTimeout(function() {
+      var gate = document.getElementById('quality-gate-' + requestedGate);
+      if (gate) gate.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 80);
+  }
+}
+
+function loadMethodologies() {
   var target = document.getElementById('methods-body');
   if (!target) return;
   

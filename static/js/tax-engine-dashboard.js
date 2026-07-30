@@ -59,6 +59,85 @@ function renderEngineDashboardPage(container) {
   setTimeout(loadEngineDashboard, 200);
 }
 
+async function renderEngineDashboardIntegrated(container) {
+  if (!container) return;
+  var panels = [
+    {id:'status', icon:'📊', title:'管道调度与阶段状态', desc:'查看本次分析四阶段、资料质量、风险汇聚和结论索引的实际运行状态。', render:'renderStatusTab'},
+    {id:'rules', icon:'📋', title:'规则触发与学习反馈', desc:'查看本次分析真正触发的信号规则、资料缺失规则及其调查建议。', render:'renderRulesTab'},
+    {id:'brain', icon:'🧠', title:'AGI 运行态', desc:'查看调度中枢、成长阶段、累计运行、信任模型和已学习行业。', render:'renderBrainTab'},
+    {id:'quality', icon:'✅', title:'本次分析质量', desc:'查看资料完整度、合规门禁、自愈修复、证据闭环和元认知审核。', render:'renderQualityTab'},
+    {id:'methods', icon:'🔬', title:'方法—实现对账', desc:'逐项检查方法论是否同时存在于文档和代码，识别有文档无实现或有实现无说明。', render:'renderMethodsTab'},
+    {id:'details', icon:'🔧', title:'引擎组件详情', desc:'查看财务、法律、成本、假设、覆盖、趋势、阈值、因果和证据闭环等组件的实际输出。', render:'renderDetailsTab'}
+  ];
+  var toc = panels.map(function(panel) {
+    return '<a href="#engine-live-' + panel.id + '">' + panel.icon + ' ' + panel.title + '</a>';
+  }).join('');
+  var bodies = panels.map(function(panel, index) {
+    return '<section id="engine-live-' + panel.id + '" class="engine-live-panel">'
+      + '<header><span>' + panel.icon + '</span><div><h3>' + (index + 1) + '. ' + panel.title
+      + '</h3><p>' + panel.desc + '</p></div></header>'
+      + '<div id="engine-live-body-' + panel.id + '" class="engine-live-body">'
+      + '<div class="engine-live-loading"><span class="spinner"></span> 正在读取运行数据...</div>'
+      + '</div></section>';
+  }).join('');
+
+  container.innerHTML = '<style>'
+    + '.engine-live{color:#334155}.engine-live-toc{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}'
+    + '.engine-live-toc a{padding:6px 10px;border:1px solid #dbe4ee;border-radius:999px;background:#fff;color:#475569;text-decoration:none;font-size:10px}'
+    + '.engine-live-panel{scroll-margin-top:78px;margin-bottom:13px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}'
+    + '.engine-live-panel>header{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;background:#f8fafc;border-bottom:1px solid #e2e8f0}'
+    + '.engine-live-panel>header>span{font-size:21px}.engine-live-panel h3{margin:0 0 3px;color:#0f172a;font-size:14px}'
+    + '.engine-live-panel header p{margin:0;color:#64748b;font-size:10px;line-height:1.65}'
+    + '.engine-live-body{padding:15px;min-height:90px}.engine-live-loading{text-align:center;padding:28px;color:#64748b}'
+    + '@media(max-width:680px){.engine-live-body{padding:10px;overflow-x:auto}}'
+    + '</style><div class="engine-live"><nav class="engine-live-toc">' + toc + '</nav>' + bodies + '</div>';
+
+  var cid = window.currentCompanyId || window._currentCompanyId || 1;
+  try {
+    var responses = await Promise.all([
+      fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid),
+      fetch('/api/tax-risk-docs/engine-rules'),
+      loadSysStats()
+    ]);
+    var analysisData = await responses[0].json();
+    var rulesData = await responses[1].json();
+    var report = analysisData && analysisData.report ? analysisData.report : null;
+    window._engineEs = (report && report.engine_status) || {};
+    window._engineRpt = report;
+    window._engineRules = (rulesData && rulesData.rules) || {};
+    window._hasEngineData = !!(window._engineEs && window._engineEs.version);
+
+    panels.forEach(function(panel) {
+      var body = document.getElementById('engine-live-body-' + panel.id);
+      if (!body) return;
+      body.innerHTML = '<div id="eng-tab-content"></div>';
+      var mount = body.querySelector('#eng-tab-content');
+      var renderer = window[panel.render];
+      try {
+        if (typeof renderer !== 'function') throw new Error('渲染器未载入');
+        renderer();
+      } catch (error) {
+        mount.innerHTML = '<div style="padding:24px;text-align:center;color:#b91c1c">加载失败：'
+          + esc((error && error.message) || '未知错误') + '</div>';
+      }
+      mount.removeAttribute('id');
+    });
+
+    if (typeof _applySystemStatsWithoutRebuilding === 'function') {
+      _applySystemStatsWithoutRebuilding(container);
+      setTimeout(function() { _applySystemStatsWithoutRebuilding(container); }, 900);
+    }
+  } catch (error) {
+    panels.forEach(function(panel) {
+      var body = document.getElementById('engine-live-body-' + panel.id);
+      if (body) {
+        body.innerHTML = '<div style="padding:28px;text-align:center;color:#b91c1c">运行数据加载失败：'
+          + esc((error && error.message) || '未知错误') + '</div>';
+      }
+    });
+  }
+}
+
 function renderEngineDashboard(rpt) {
   var area = document.getElementById('engine-dashboard-area');
   if (!area) return;
@@ -746,11 +825,11 @@ function renderQualityTab() {
   var healCount = healing.fixed_count || 0;
   h += qualityCard('自愈修复', healCount + '条', healCount > 0 ? '#2563eb' : '#94a3b8', healCount > 0 ? '已自动修复' + healCount + '条结论' : '无需要修复的结论');
   
-  // 发现质量（高风险占比）
+  // 风险结构（高风险发现占比，不把风险等级误作“质量”）
   var findings = cachedData.all_findings || [];
   var highRisk = findings.filter(function(f){ return f.level === '高风险' || f.level === '极高风险'; }).length;
-  var qualityPct = findings.length > 0 ? Math.round((1 - highRisk/findings.length) * 100) : 100;
-  h += qualityCard('发现质量', qualityPct + '%', qualityPct >= 70 ? '#059669' : '#f59e0b', '中低风险占比越高说明系统越精准');
+  var highRiskPct = findings.length > 0 ? Math.round(highRisk/findings.length * 100) : 0;
+  h += qualityCard('高风险发现占比', highRiskPct + '%', highRiskPct > 0 ? '#dc2626' : '#059669', findings.length + '条发现中' + highRisk + '条为高风险或极高风险');
   
   // 噪声过滤率
   var filterLog = comp.filter_log || [];
@@ -950,7 +1029,7 @@ function renderBrainTab() {
       if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">读取失败: ' + esc(d.error || '') + '</div>'; return; }
       
       var h = '<div style="max-width:1100px;margin:0 auto">';
-      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #dc2626">🧠 AGI核心：调度中枢、成长曲线、税收优惠核实——大脑本身的学习状态和模块组成。</div>';
+      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #dc2626">🧠 AGI运行态：调度中枢与成长曲线——展示大脑当前的学习状态和模块组成；税收优惠已由“税收权益保障”独立负责。</div>';
       
       // ── 1. 调度中枢 ──
       h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:16px">';

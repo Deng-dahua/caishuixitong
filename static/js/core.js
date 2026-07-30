@@ -763,7 +763,8 @@ function navigateTo(page) {
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
     case 'ai-interaction':
     case 'brain':
-      // 旧模块已融合至智能引擎中枢，自动重定向
+      // 旧入口已融合至智能引擎中枢单页
+      window._engineHubSection = 'agi';
       navigateTo('engine-hub');
       return;
     case 'engine-hub':            _sR(container, 'renderEngineHub'); break;
@@ -780,7 +781,10 @@ function navigateTo(page) {
       if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
       else { container.innerHTML = _LOADING_HTML; }
       break;
-    case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
+    case 'rs-pipeline':
+      window._engineHubSection = 'quality';
+      navigateTo('engine-hub');
+      return;
     case 'report-spec':
       navigateTo('report-standards');
       return;
@@ -809,7 +813,10 @@ function navigateTo(page) {
       window._methodologySection = 'files';
       navigateTo('methodology');
       return;
-    case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
+    case 'agi-schedule':
+      window._engineHubSection = 'agi';
+      navigateTo('engine-hub');
+      return;
     case 'auditor-handbook':
       window._methodologySection = 'handbook';
       navigateTo('methodology');

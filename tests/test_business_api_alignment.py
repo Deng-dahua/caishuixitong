@@ -280,6 +280,12 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         engine_hub = (root / "static" / "js" / "engine-hub.js").read_text(
             encoding="utf-8"
         )
+        engine_dashboard = (
+            root / "static" / "js" / "tax-engine-dashboard.js"
+        ).read_text(encoding="utf-8")
+        knowledge_hub = (
+            root / "static" / "js" / "tax-knowledge-hub.js"
+        ).read_text(encoding="utf-8")
         methodology = (
             root / "static" / "js" / "tax-pipeline-pages.js"
         ).read_text(encoding="utf-8")
@@ -331,6 +337,25 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "corrections",
         ):
             self.assertIn(f"id:'{section_id}'", engine_hub)
+        self.assertIn("单页融合 · 全量能力 · 闭环治理", engine_hub)
+        self.assertIn("renderKnowledgeHubIntegrated", engine_hub)
+        self.assertIn("renderEngineDashboardIntegrated", engine_hub)
+        self.assertNotIn('class="eh-tabs"', engine_hub)
+        self.assertNotIn('id="engine-hub-workspace"', engine_hub)
+        self.assertIn(
+            "function renderKnowledgeHubIntegrated(container)",
+            knowledge_hub,
+        )
+        self.assertIn(
+            "KNOWLEDGE_HUB_GROUPS.forEach(function(group)",
+            knowledge_hub,
+        )
+        self.assertIn(
+            "function renderEngineDashboardIntegrated(container)",
+            engine_dashboard,
+        )
+        for panel_id in ("status", "rules", "brain", "quality", "methods", "details"):
+            self.assertIn(f"id:'{panel_id}'", engine_dashboard)
         for section_id in (
             "guide",
             "files",
@@ -345,6 +370,18 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             self.assertIn(f"{view_id}:", methodology)
 
         self.assertIn("window._engineHubSection = 'knowledge';", core)
+        self.assertIn(
+            "case 'rs-pipeline':\n"
+            "      window._engineHubSection = 'quality';\n"
+            "      navigateTo('engine-hub');",
+            core,
+        )
+        self.assertIn(
+            "case 'agi-schedule':\n"
+            "      window._engineHubSection = 'agi';\n"
+            "      navigateTo('engine-hub');",
+            core,
+        )
         self.assertIn("window._methodologySection = 'files';", core)
         self.assertIn("window._reportStandardsSection = 'review';", core)
         self.assertIn("case 'taxpayer-rights':", core)
@@ -353,6 +390,14 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073017", index)
+        for script in (
+            "tax-engine-dashboard.js",
+            "engine-hub.js",
+            "core.js",
+            "tax-pipeline-pages.js",
+            "tax-knowledge-hub.js",
+        ):
+            self.assertIn(f"{script}?v=2026073018", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
         self.assertIn(
@@ -368,6 +413,36 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             self.assertIn(f"id: 'rpt-{section_id}'", standards)
         for legacy_id in range(1, 10):
             self.assertIn(f"'rs-{legacy_id}':", standards)
+
+        rules_start = methodology.index("function renderAiRules(container)")
+        rules_end = methodology.index(
+            "// ═══════════ 核心数据资产页面",
+            rules_start,
+        )
+        active_rules = methodology[rules_start:rules_end]
+        self.assertIn("事实与证据边界", active_rules)
+        self.assertIn("数据安全与租户隔离", active_rules)
+        self.assertIn("人工复核与输出规范", active_rules)
+        self.assertNotIn("做事要狠", active_rules)
+        self.assertNotIn("自作主张", active_rules)
+
+        quality_start = methodology.index(
+            "function renderQualitySystem(container)"
+        )
+        quality_end = methodology.index(
+            "function loadMethodologies()",
+            quality_start,
+        )
+        active_quality = methodology[quality_start:quality_end]
+        for gate in (
+            "输入与资料门禁",
+            "规则与适用性门禁",
+            "证据闭环门禁",
+            "推理与红队门禁",
+            "法律、金额与报告门禁",
+            "运行、安全与审计门禁",
+        ):
+            self.assertIn(gate, active_quality)
 
 
 if __name__ == "__main__":
