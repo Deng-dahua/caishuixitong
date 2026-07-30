@@ -525,7 +525,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073032", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073033", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)
         self.assertNotIn("tax-feedback-template.js", index)
@@ -734,6 +734,22 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             source = (root / relative_path).read_text(encoding="utf-8")
             self.assertIn("max-width:1680px;", source, msg=relative_path)
             self.assertIn(expected_desktop, source, msg=relative_path)
+
+        methodology = (
+            root / "static" / "js" / "tax-pipeline-pages.js"
+        ).read_text(encoding="utf-8")
+        chain_selector = (
+            ".method-mount .cl,.method-mount .ev,.method-mount .alc{"
+        )
+        self.assertIn(chain_selector, methodology)
+        chain_override = methodology.split(chain_selector, 1)[1].split("}", 1)[0]
+        for declaration in (
+            "width:100%!important;",
+            "max-width:none!important;",
+            "margin:0!important;",
+            "padding:0!important",
+        ):
+            self.assertIn(declaration, chain_override)
 
         chat = (root / "static" / "js" / "chat.js").read_text(
             encoding="utf-8"

@@ -6469,6 +6469,12 @@ function renderMethodologyPage(container) {
       .method-mount .rr-rule{margin-bottom:15px!important;padding-bottom:15px!important}
       .method-mount .rr-rule .rh{font-size:14px!important}
       .method-mount .rr-table{font-size:13px!important}
+      .method-mount .cl,.method-mount .ev,.method-mount .alc{
+        width:100%!important;
+        max-width:none!important;
+        margin:0!important;
+        padding:0!important
+      }
       .method-mount .mr-wrap{max-width:none!important;padding:0!important}
       .method-mount .mr-lead{margin-bottom:19px!important;padding:20px 21px!important}
       .method-mount .mr-lead h3{font-size:16px!important}
