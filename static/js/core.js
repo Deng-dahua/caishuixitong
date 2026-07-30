@@ -505,22 +505,23 @@ async function handleCompanyRegister(e) {
 
 
 async function loadCurrentPeriod() {
+  let now = new Date();
+  let curY = now.getFullYear();
+  const fallback = curY + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const saved = localStorage.getItem('currentPeriod');
+  currentPeriod = (saved && /^\d{4}-\d{2}$/.test(saved)) ? saved : fallback;
+  if (currentPeriod !== saved) localStorage.setItem('currentPeriod', currentPeriod);
+
   const yearSel = document.getElementById('period-year');
   if (!yearSel) return;
   let ops = '<option value="">年</option>';
-  let now = new Date();
-  let curY = now.getFullYear();
   for (let y = curY - 5; y <= curY + 5; y++) ops += `<option value="${y}">${y}年</option>`;
   yearSel.innerHTML = ops;
 
-  const saved = localStorage.getItem('currentPeriod');
-  if (saved && /^\d{4}-\d{2}$/.test(saved)) {
-    const [y, m] = saved.split('-');
-    yearSel.value = y;
-    const monthSel = document.getElementById('period-month');
-    if (monthSel) monthSel.value = m;
-    currentPeriod = saved;
-  }
+  const [y, m] = currentPeriod.split('-');
+  yearSel.value = y;
+  const monthSel = document.getElementById('period-month');
+  if (monthSel) monthSel.value = m;
 }
 
 function periodToDateRange(period) {

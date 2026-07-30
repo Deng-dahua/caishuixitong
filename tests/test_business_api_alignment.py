@@ -149,6 +149,15 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 )
                 assert accounts.status_code == 200, accounts.text
 
+                profit_loss = client.get(
+                    f"/api/reports/profit-loss?company_id={company_id}"
+                    "&period_from=2026-07&period_to=2026-07"
+                )
+                assert profit_loss.status_code == 200, profit_loss.text
+                assert profit_loss.json()["period_from"] == "2026-07"
+                assert profit_loss.json()["period_to"] == "2026-07"
+                assert profit_loss.json()["items"]
+
                 deleted_entries = client.post(
                     f"/api/journal-entries/batch-delete"
                     f"?company_id={company_id}",
@@ -226,6 +235,24 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         first_closure_end = source.index("})();")
         self.assertLess(loader_call, first_closure_end)
         self.assertEqual(source.count("_loadServerConfig();"), 1)
+
+    def test_period_defaults_before_optional_toolbar_lookup(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "static" / "js" / "core.js").read_text(
+            encoding="utf-8"
+        )
+        function_start = source.index("async function loadCurrentPeriod()")
+        function_end = source.index("\n}\n\nfunction periodToDateRange", function_start)
+        function_body = source[function_start:function_end]
+        default_assignment = function_body.index(
+            "currentPeriod = (saved && /^\\d{4}-\\d{2}$/.test(saved))"
+        )
+        optional_toolbar_exit = function_body.index("if (!yearSel) return;")
+        self.assertLess(default_assignment, optional_toolbar_exit)
+        self.assertIn(
+            "String(now.getMonth() + 1).padStart(2, '0')",
+            function_body,
+        )
 
 
 if __name__ == "__main__":
