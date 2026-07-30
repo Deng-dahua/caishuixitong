@@ -341,7 +341,10 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "corrections",
         ):
             self.assertIn(f"id:'{section_id}'", engine_hub)
-        self.assertIn("单页融合 · 全量能力 · 闭环治理", engine_hub)
+        self.assertIn("知识驱动 · 受控推理 · 持续进化", engine_hub)
+        self.assertIn("智能引擎中枢汇聚税务知识", engine_hub)
+        self.assertNotIn("本页不再保留", engine_hub)
+        self.assertNotIn("本区说明", engine_hub)
         self.assertIn('data-engine-layout="executive"', engine_hub)
         self.assertIn('class="engine-unified-shell"', engine_hub)
         self.assertIn('class="engine-toc-title">页面目录</div>', engine_hub)
@@ -509,7 +512,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073017", index)
-        self.assertIn("engine-hub.js?v=2026073031", index)
+        self.assertIn("engine-hub.js?v=2026073032", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
