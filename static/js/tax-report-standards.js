@@ -238,9 +238,9 @@ function renderReportStandards(container) {
         --rpt-line:#dce5eb;
         --rpt-soft:#f4f7f9;
         --rpt-accent:#176d7c;
-        max-width:1500px;
+        max-width:1680px;
         margin:0 auto;
-        padding:36px clamp(24px,3.2vw,52px) 56px;
+        padding:36px clamp(8px,1.1vw,18px) 56px;
         box-sizing:border-box;
         color:var(--rpt-text);
         background:var(--rpt-soft);
@@ -474,7 +474,7 @@ function renderReportStandards(container) {
       .rpt-checks span{position:relative;padding:11px 13px 11px 35px;border:1px solid #e0e7ec;border-radius:8px;background:#fbfcfd;color:#596b7a;line-height:1.65}
       .rpt-checks span:before{content:"✓";position:absolute;left:12px;color:var(--rpt-accent);font-weight:900}
       @media(max-width:1180px){
-        .rpt-unified{padding:28px 24px 46px}
+        .rpt-unified{padding:28px 8px 46px}
         .rpt-stages{margin-bottom:20px}
         .rpt-layout{display:block}
         .rpt-section{scroll-margin-top:82px}
@@ -492,7 +492,7 @@ function renderReportStandards(container) {
         .rpt-section{padding:28px 25px 31px}
       }
       @media(max-width:680px){
-        .rpt-unified{padding:14px 12px 34px;font-size:14px}
+        .rpt-unified{padding:14px 4px 34px;font-size:14px}
         .rpt-hero{margin-bottom:18px;padding:28px 22px;border-radius:13px}
         .rpt-title{font-size:25px}
         .rpt-lead{font-size:14px;line-height:1.85;text-align:left}

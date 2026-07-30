@@ -517,13 +517,14 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073017", index)
-        self.assertIn("engine-hub.js?v=2026073032", index)
+        self.assertIn("app.css?v=2026073033", index)
+        self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073031", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073032", index)
         self.assertIn("core.js?v=2026073021", index)
-        self.assertIn("tax-report-standards.js?v=2026073031", index)
+        self.assertIn("tax-report-standards.js?v=2026073032", index)
         self.assertNotIn("tax-feedback-template.js", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
@@ -701,6 +702,26 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             0,
             msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
         )
+
+    def test_module_pages_use_compact_outer_gutters(self):
+        root = Path(__file__).resolve().parents[1]
+        app_css = (root / "static" / "css" / "app.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            '#content-area > [id^="page-"] { padding: 8px; max-width: 1680px;',
+            app_css,
+        )
+
+        expected_desktop = "padding:36px clamp(8px,1.1vw,18px) 56px;"
+        for relative_path in (
+            "static/js/engine-hub.js",
+            "static/js/tax-pipeline-pages.js",
+            "static/js/tax-report-standards.js",
+        ):
+            source = (root / relative_path).read_text(encoding="utf-8")
+            self.assertIn("max-width:1680px;", source, msg=relative_path)
+            self.assertIn(expected_desktop, source, msg=relative_path)
 
 
 if __name__ == "__main__":

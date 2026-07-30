@@ -6217,9 +6217,9 @@ function renderMethodologyPage(container) {
         --method-line:#dce4ed;
         --method-soft:#f5f7fa;
         --method-accent:#8f2632;
-        max-width:1500px;
+        max-width:1680px;
         margin:0 auto;
-        padding:36px clamp(24px,3.2vw,52px) 56px;
+        padding:36px clamp(8px,1.1vw,18px) 56px;
         box-sizing:border-box;
         color:var(--method-text);
         background:var(--method-soft);
@@ -6486,7 +6486,7 @@ function renderMethodologyPage(container) {
       .method-mount .md-domain-card h4{font-size:15px!important}
       .method-mount .md-domain-card p{font-size:13px!important;line-height:1.82!important}
       @media(max-width:1180px){
-        .method-shell{padding:28px 24px 46px}
+        .method-shell{padding:28px 8px 46px}
         .method-layout{display:block}
         .method-section{scroll-margin-top:82px}
         .method-page-nav{position:sticky;top:0;display:flex;gap:7px;margin-bottom:20px;padding:11px;overflow-x:auto;border-radius:10px}
@@ -6501,7 +6501,7 @@ function renderMethodologyPage(container) {
         .method-mount{padding:24px 25px 30px}
       }
       @media(max-width:680px){
-        .method-shell{padding:14px 12px 34px;font-size:14px}
+        .method-shell{padding:14px 4px 34px;font-size:14px}
         .method-shell-head{margin-bottom:18px;padding:28px 22px;border-radius:13px}
         .method-shell-head h1{font-size:25px}
         .method-shell-head p{font-size:14px;line-height:1.85;text-align:left}

@@ -210,9 +210,9 @@ function renderEngineHub(container) {
         --engine-soft:#f4f7fb;
         --engine-blue:#1f5f99;
         --engine-blue-dark:#123454;
-        max-width:1500px;
+        max-width:1680px;
         margin:0 auto;
-        padding:36px clamp(24px,3.2vw,52px) 56px;
+        padding:36px clamp(8px,1.1vw,18px) 56px;
         box-sizing:border-box;
         color:var(--engine-text);
         background:var(--engine-soft);
@@ -633,7 +633,7 @@ function renderEngineHub(container) {
       #engine-mount-logs>div{font-size:12.5px!important;line-height:1.85!important;padding:17px 19px!important}
       #engine-mount-logs [style*="font-size:10px"]{font-size:12.5px!important;line-height:1.85!important}
       @media(max-width:1180px){
-        .engine-unified{padding:28px 24px 46px}
+        .engine-unified{padding:28px 8px 46px}
         .engine-unified-shell{display:block}
         .engine-unified-section{scroll-margin-top:82px}
         .engine-unified-toc{
@@ -658,7 +658,7 @@ function renderEngineHub(container) {
         .engine-rule-grid{grid-template-columns:1fr!important}
       }
       @media(max-width:680px){
-        .engine-unified{padding:14px 12px 34px;font-size:14px}
+        .engine-unified{padding:14px 4px 34px;font-size:14px}
         .engine-unified-hero{margin-bottom:18px;padding:28px 22px;border-radius:13px}
         .engine-unified-hero h1{font-size:25px}
         .engine-unified-hero p{font-size:14px;line-height:1.85;text-align:left}

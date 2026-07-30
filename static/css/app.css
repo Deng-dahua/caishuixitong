@@ -60,8 +60,8 @@
       padding: 4px 12px; font-size: 13px; font-weight: 500; cursor: pointer;
     }
     .content-area { flex: 1; min-height: 0; padding: 0; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; background: #fff; }
-    /* 统一页面容器 — 全系统所有功能页面共用此 padding/max-width，与 .card 20px padding 对齐 */
-    #content-area > [id^="page-"] { padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+    /* 统一页面容器：扩大可用版心，并将全系统页面的外侧留白缩减约三分之二。 */
+    #content-area > [id^="page-"] { padding: 8px; max-width: 1680px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
     /* 卡片 */
     .card { background: #fff; border-radius: 10px; border: 1px solid var(--gray-200); padding: 20px; margin-bottom: 16px; width: 100%; }
