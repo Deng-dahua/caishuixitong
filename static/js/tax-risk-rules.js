@@ -307,7 +307,7 @@ function renderTaxRiskRules(container) {
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
-  h += '<div class="rr-pre">本规则库来源于多年稽查实务经验——每一条指令，均为<em>稽查判例、被查企业真实手法、行政复议和法院判决</em>提炼出的量化标尺。规则库不是"猜疑清单"，而是<em>将稽查经验转化为可复核的判定条件</em>——什么数据特征构成疑点、该疑点严重程度如何、下一步应查什么、法律依据在哪。系统依据这些规则对数据进行扫描、生成信号、提供溯源。以下为当前已加载的全部规则指令。</div>';
+  h += '<div class="rr-pre">规则库用于把数据差异转换为<em>可追溯的核验任务</em>。每条规则必须公开适用条件、触发字段、排除情形、所需资料和后续责任；规则命中、风险评分和阈值只负责排序，不代表事实已经查实或法律性质已经认定。以下展示当前已加载规则，使用时仍须核验数据、证据和适用期间。</div>';
 
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
@@ -323,6 +323,7 @@ function renderTaxRiskRules(container) {
     + '<select id="rr-sort-by" onchange="window._rrFilter()" style="padding:6px 8px;border:none;border-bottom:1px solid #e2e8f0;font-size:10px;color:#475569;background:transparent;cursor:pointer"><option value="id">编号排序</option><option value="updated">更新时间排序</option></select>'
     + '</div>';
 
+  if (false) {
   h += '<details id="rr-standard" style="margin-bottom:10px;background:transparent;border:none;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:10px 0;font-size:10px;line-height:20px;color:#334155"><summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 精写编制标准（23字段完整版 · v6六类攻击角度）</summary>'
     + '<div style="margin-top:10px">'
     + '<p><b>疑点编制规则·税务疑点仅来源于数据矛盾</b>——疑点不是法律条文，不是会计知识，不是处理标准，而是数据之间的结构性矛盾。"该企业可能存在偷税风险"属于主观推测，无法直接核查；"银行账户全年收款5000万元但申报收入仅3000万元"属于客观数据矛盾，可立即启动核查——后者方为有效疑点。编制疑点的首要步骤：明确掌握哪些数据、这些数据之间应呈何种关系，关系不成立即构成疑点。</p>'
@@ -428,6 +429,17 @@ function renderTaxRiskRules(container) {
     + '<p style="color:#64748b;font-size:10px">完整详细内容见 engine/memory.py → gold_standard_decoded → rule_index。每条规则的完整精写见 static/tax_risk_rules_local_export.json。</p>'
     + '</div>'
     + '</details>';
+  }
+  h += '<details id="rr-standard" style="margin-bottom:10px;background:transparent;border:none;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:10px 0;font-size:10px;line-height:20px;color:#334155">'
+    + '<summary style="font-weight:700;color:#16233a;cursor:pointer;font-size:10px">📐 规则编制与复核标准</summary>'
+    + '<div style="margin-top:10px">'
+    + '<p><b>1. 规则定位</b>：规则只生成核验任务。命中后状态默认为“待核”，不得自动生成违法认定、处理处罚或确定税额。</p>'
+    + '<p><b>2. 必要字段</b>：名称、适用主体与期间、输入字段、触发条件、排除条件、资料要求、核验步骤、来源定位、版本和责任人必须齐全。</p>'
+    + '<p><b>3. 数据条件</b>：先统一主体、期间、币种和含税口径；缺失资料单独标注，不得把缺失等同异常或正常。</p>'
+    + '<p><b>4. 反向验证</b>：每条规则至少列出一个合理替代解释及其验证资料。行业、业务模式或阈值来源无法确认时，规则退出或降级。</p>'
+    + '<p><b>5. 证据与法律</b>：规则、模型和行业基准不是证据。法律依据必须核验名称、条款、效力、期间、地域和程序，未核验时不得进入正式结论。</p>'
+    + '<p><b>6. 变更治理</b>：人工规则和候选规则分开管理；任何增删改均保留版本、测试结果、影响范围、审批记录和可执行回退方案。</p>'
+    + '</div></details>';
 
   h += '<div id="rr-list"></div>';
   h += '</div>';  // rr-list-view 结束
@@ -435,10 +447,7 @@ function renderTaxRiskRules(container) {
 
   container.innerHTML = h;
 
-  // 加载数据
-  loadTaxRiskRules();
-
-  var dataUrl = '/static/tax_risk_rules_local_export.json';
+  var dataUrl = '/api/methodology/assets/rules';
 
   // 加载数据
   fetch(dataUrl + '?' + Date.now())
@@ -465,9 +474,9 @@ function renderTaxRiskRules(container) {
 
       // 加载三链信息（可执行链的步数/维度）
       Promise.all([
-        fetch('/static/cross_domain_clues.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return[];}),
-        fetch('/static/cross_domain_evidence.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};}),
-        fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};})
+        fetch('/api/methodology/assets/clues?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return[];}),
+        fetch('/api/methodology/assets/evidence?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};}),
+        fetch('/api/methodology/assets/analysis?_t=' + Date.now()).then(function(r){return r.json();}).catch(function(){return{};})
       ]).then(function(datas){
         var clueData = datas[0];
         var evidRaw = datas[1]; var evidData = Array.isArray(evidRaw) ? evidRaw : (evidRaw.evidence_chains || []);

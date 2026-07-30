@@ -6743,12 +6743,22 @@ def get_system_stats():
     import re, os
     base = os.path.dirname(os.path.abspath(__file__))
     stats = {"ok": True}
+    def _asset_items(value, *keys):
+        if isinstance(value, list):
+            return value
+        if isinstance(value, dict):
+            for key in keys:
+                items = value.get(key)
+                if isinstance(items, list):
+                    return items
+        return []
     try:
         # 规则数：从实际规则JSON文件统计
         rp = os.path.join(base, "static", "tax_risk_rules_local_export.json")
         if os.path.exists(rp):
             with open(rp, "r", encoding="utf-8") as f:
-                stats["rules_count"] = len(_json.load(f))
+                rules = _asset_items(_json.load(f), "rules", "items")
+            stats["rules_count"] = len(rules)
         else:
             stats["rules_count"] = 0
     except Exception as e:
@@ -6758,7 +6768,7 @@ def get_system_stats():
         cp = os.path.join(base, "static", "cross_domain_clues.json")
         if os.path.exists(cp):
             with open(cp, "r", encoding="utf-8") as f:
-                clues = _json.load(f)
+                clues = _asset_items(_json.load(f), "clue_chains", "chains", "items")
             stats["clue_chains"] = len([c for c in clues if c.get("chain_type") == "线索链"])
             stats["clue_chains_total"] = len(clues)
         else:
@@ -6770,12 +6780,28 @@ def get_system_stats():
         ep = os.path.join(base, "static", "cross_domain_evidence.json")
         if os.path.exists(ep):
             with open(ep, "r", encoding="utf-8") as f:
-                ev = _json.load(f)
+                ev = _asset_items(_json.load(f), "evidence_chains", "chains", "items")
             stats["evidence_chains"] = len(ev)
         else:
             stats["evidence_chains"] = 0
     except Exception as e:
         stats["evidence_chains"] = 0
+    try:
+        # 分析链数
+        ap = os.path.join(base, "static", "cross_domain_analysis.json")
+        if os.path.exists(ap):
+            with open(ap, "r", encoding="utf-8") as f:
+                analysis = _asset_items(
+                    _json.load(f),
+                    "analysis_chains",
+                    "chains",
+                    "items",
+                )
+            stats["analysis_chains"] = len(analysis)
+        else:
+            stats["analysis_chains"] = 0
+    except Exception:
+        stats["analysis_chains"] = 0
     try:
         # 行业数和关键词数：从industry_data.json统计
         ip = os.path.join(base, "static", "industry_data.json")
@@ -6834,12 +6860,37 @@ def get_system_stats():
             with open(sp, "r", encoding="utf-8") as f:
                 sc = _json.load(f)
             stats["file_fingerprints"] = sc.get("file_fingerprints", 34)
-            stats["analysis_chains"] = sc.get("analysis_chains", 48)
         else:
             stats["file_fingerprints"] = 34
     except Exception as e:
         stats["file_fingerprints"] = 34
     return stats
+
+
+@app.get("/api/methodology/assets/{asset_name}")
+def get_methodology_asset(asset_name: str):
+    """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
+    import os as _os
+
+    filenames = {
+        "rules": "tax_risk_rules_local_export.json",
+        "clues": "cross_domain_clues.json",
+        "evidence": "cross_domain_evidence.json",
+        "analysis": "cross_domain_analysis.json",
+    }
+    filename = filenames.get(str(asset_name or "").strip().lower())
+    if not filename:
+        raise HTTPException(status_code=404, detail="未知的方法论数据类型")
+    asset_path = _os.path.join(_os.path.dirname(__file__), "static", filename)
+    if not _os.path.isfile(asset_path):
+        raise HTTPException(status_code=404, detail="方法论数据不存在")
+    try:
+        with open(asset_path, "r", encoding="utf-8") as asset_file:
+            return _json.load(asset_file)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail="方法论数据读取失败") from exc
+
+
 def patrol_status_v2():
     return {"ok": True, "config": _patrol_config, "runs_count": len(_patrol_config.get("runs", []))}
 

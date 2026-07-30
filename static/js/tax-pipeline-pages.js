@@ -2,33 +2,27 @@
 //  税务合规管道独立页：文件解析 | 域分析 | 跨域证据链 | 方法论过滤器
 // ══════════════════════════════════════════════════════════════
 
-// ═══════════ 模块数量自动加载（从JSON数据文件动态读取，杜绝硬编码过期数字） ═══════════
+// ═══════════ 模块数量自动加载（由后端从实际数据文件统计） ═══════════
 var _pipelineCounts = null;
 
 async function loadPipelineCounts() {
   if (_pipelineCounts) return _pipelineCounts;
   try {
-    var t0 = Date.now();
-    var [rulesResp, cdcResp, cdeResp, cdaResp] = await Promise.all([
-      fetch('/static/tax_risk_rules_local_export.json?_t=' + t0),
-      fetch('/static/cross_domain_clues.json?_t=' + t0),
-      fetch('/static/cross_domain_evidence.json?_t=' + t0),
-      fetch('/static/cross_domain_analysis.json?_t=' + t0)
-    ]);
-    var rules = await rulesResp.json();
-    var cdc = await cdcResp.json();
-    var cde = await cdeResp.json();
-    var cda = await cdaResp.json();
+    var response = await fetch('/api/system/stats?_t=' + Date.now());
+    if (!response.ok) throw new Error('统计接口返回 ' + response.status);
+    var stats = await response.json();
     _pipelineCounts = {
-      rules: rules.length,
-      trailChains: cdc.length,
-      evidenceChains: cde.length,
-      analysisChains: cda.length,
-      totalChains: cdc.length + cde.length + cda.length,
-      crossEvidence: cde.length,
-      crossClues: cdc.length,
-      crossAnalysis: cda.length
+      rules: Number(stats.rules_count || 0),
+      trailChains: Number(stats.clue_chains_total || stats.clue_chains || 0),
+      evidenceChains: Number(stats.evidence_chains || 0),
+      analysisChains: Number(stats.analysis_chains || 0)
     };
+    _pipelineCounts.totalChains = _pipelineCounts.trailChains
+      + _pipelineCounts.evidenceChains
+      + _pipelineCounts.analysisChains;
+    _pipelineCounts.crossEvidence = _pipelineCounts.evidenceChains;
+    _pipelineCounts.crossClues = _pipelineCounts.trailChains;
+    _pipelineCounts.crossAnalysis = _pipelineCounts.analysisChains;
     console.log('[pipeline counts] loaded:', _pipelineCounts);
   } catch(e) {
     console.error('[pipeline counts] failed:', e);
@@ -1179,7 +1173,7 @@ function renderDomainAnalysisResult(report) {
 
 function loadCrossDomainStatic() {
   var target = document.getElementById('cde-static');
-  fetch('/static/cross_domain_evidence.json?_t=' + Date.now())
+  fetch('/api/methodology/assets/evidence?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(chains) {
       window._allCrossChains = chains;
@@ -1246,7 +1240,7 @@ function renderChainsPage(container) {
 async function loadChainsData() {
   var target = document.getElementById('chains-list-view');
   try {
-    var resp = await fetch('/static/cross_domain_clues.json?_t=' + Date.now());
+    var resp = await fetch('/api/methodology/assets/clues?_t=' + Date.now());
     var clueChains = await resp.json();
 
     // 加载动态触发状态
@@ -1409,7 +1403,7 @@ function renderEvidencePage(container) {
 async function loadEvidenceData() {
   var target = document.getElementById('evidence-list-view');
   try {
-    var resp = await fetch('/static/cross_domain_evidence.json?_t=' + Date.now());
+    var resp = await fetch('/api/methodology/assets/evidence?_t=' + Date.now());
     var data = await resp.json();
     var evChains = data.evidence_chains || data.chains || data;
     _allEvidenceChains = evChains;
@@ -1568,7 +1562,7 @@ function collapseAllDomains() {
 
 function loadCrossDomainClues() {
   var target = document.getElementById('cdc-body');
-  fetch('/static/cross_domain_clues.json?_t=' + Date.now())
+  fetch('/api/methodology/assets/clues?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(clues) {
       var html = '';
@@ -1656,7 +1650,7 @@ function loadCrossDomainClues() {
 
 function loadCrossDomainAnalysis() {
   var target = document.getElementById('cda-body');
-  fetch('/static/cross_domain_analysis.json?_t=' + Date.now())
+  fetch('/api/methodology/assets/analysis?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(chains) {
       var html = '';
@@ -2494,7 +2488,7 @@ async function loadAnalysisChains() {
   var container = document.getElementById('al-chains-list');
   if (!container) return;
   try {
-    var resp = await fetch('/static/cross_domain_analysis.json');
+    var resp = await fetch('/api/methodology/assets/analysis');
     var chains = await resp.json();
     var execChains = chains.filter(function(c) { return c.executable && !c.legacy; });
     var html = '';
@@ -5738,7 +5732,7 @@ function renderAnalysisChainsPage(container) {
 async function loadAnalysisChainsData() {
   var target = document.getElementById('alc-list-view');
   try {
-    var resp = await fetch('/static/cross_domain_analysis.json?_t=' + Date.now());
+    var resp = await fetch('/api/methodology/assets/analysis?_t=' + Date.now());
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
     _allAnalysisChains = chains;
@@ -6352,7 +6346,7 @@ function renderCompactClueChains(el) {
   var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
   try {
-  fetch('/static/cross_domain_clues.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(clues){
+  fetch('/api/methodology/assets/clues?_t=' + Date.now()).then(function(r){return r.json();}).then(function(clues){
     var cats = {};
     clues.forEach(function(c){ var k = c.category||'其他'; if(!cats[k]) cats[k]=[]; cats[k].push(c); });
     var h = '<div style="font-size:10px;line-height:20px">';
@@ -6375,7 +6369,7 @@ function renderCompactEvidenceChains(el) {
   var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
   try {
-  fetch('/static/cross_domain_evidence.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
+  fetch('/api/methodology/assets/evidence?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
     var chains = data.evidence_chains || data.chains || data;
     if(!Array.isArray(chains)) chains=[];
     var cats = {};
@@ -6399,7 +6393,7 @@ function renderCompactAnalysisChains(el) {
   var esc = typeof escHtml === 'function' ? escHtml : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   el.innerHTML = '<div style="text-align:center;padding:10px;color:#64748b;font-size:10px">加载中...</div>';
   try {
-  fetch('/static/cross_domain_analysis.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
+  fetch('/api/methodology/assets/analysis?_t=' + Date.now()).then(function(r){return r.json();}).then(function(data){
     var chains = data.analysis_chains || data.chains || data;
     if(!Array.isArray(chains)) chains=[];
     var cats = {};

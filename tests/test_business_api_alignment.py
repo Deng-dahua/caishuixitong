@@ -276,6 +276,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         core = (root / "static" / "js" / "core.js").read_text(
             encoding="utf-8"
         )
+        main = (root / "main.py").read_text(encoding="utf-8")
         index = (root / "static" / "index.html").read_text(encoding="utf-8")
         engine_hub = (root / "static" / "js" / "engine-hub.js").read_text(
             encoding="utf-8"
@@ -288,6 +289,9 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         methodology = (
             root / "static" / "js" / "tax-pipeline-pages.js"
+        ).read_text(encoding="utf-8")
+        risk_rules = (
+            root / "static" / "js" / "tax-risk-rules.js"
         ).read_text(encoding="utf-8")
         standards = (
             root / "static" / "js" / "tax-report-standards.js"
@@ -407,6 +411,33 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("域分析的标准输出合同", active_domains)
         self.assertNotIn("1720条", active_domains)
         self.assertNotIn("系统性造假", active_domains)
+        self.assertIn(
+            '@app.get("/api/methodology/assets/{asset_name}")',
+            main,
+        )
+        for asset_name in ("rules", "clues", "evidence", "analysis"):
+            self.assertIn(
+                f"'/api/methodology/assets/{asset_name}",
+                methodology + risk_rules,
+            )
+        for protected_asset in (
+            "tax_risk_rules_local_export",
+            "cross_domain_clues",
+            "cross_domain_evidence",
+            "cross_domain_analysis",
+        ):
+            self.assertNotIn(
+                f"fetch('/static/{protected_asset}.json",
+                methodology + risk_rules,
+            )
+        self.assertIn(
+            '_asset_items(_json.load(f), "evidence_chains"',
+            main,
+        )
+        self.assertIn(
+            '"analysis_chains",\n                    "chains",',
+            main,
+        )
 
         guide_start = methodology.index("function _renderMethodologyGuide")
         guide_end = methodology.index(
@@ -457,7 +488,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "tax-knowledge-hub.js",
         ):
             self.assertIn(f"{script}?v=2026073018", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073021", index)
+        self.assertIn("tax-risk-rules.js?v=2026073022", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073022", index)
         self.assertIn("core.js?v=2026073020", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
