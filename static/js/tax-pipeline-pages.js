@@ -1529,15 +1529,185 @@ window._evBackToList = function() {
 
 function renderAnalyzePage(container) {
   if (!container) return;
-  window.currentModule = '分析链';
-  container.innerHTML = '<style>.al-layout{max-width:1100px;margin:0 auto;padding:20px;background:#fff}.al-main{flex:1;min-width:0}.al-main h3{font-size:10px!important;font-weight:700!important;color:#16233a!important;padding-bottom:8px!important;border-bottom:2px solid #e2e8f0!important;margin:0 0 10px!important}.al-main section{margin-bottom:48px!important;scroll-margin-top:20px}</style>'
-    + '<div class="al-layout">'
-    + '<div class="al-main">'
+  window.currentModule = '稽查方法论';
+  container.innerHTML = `
+    <style>
+      .mr-wrap{max-width:1180px;margin:0 auto;padding:18px}
+      .mr-lead{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;padding:18px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}
+      .mr-lead h3{margin:0 0 6px;color:#16233a;font-size:15px}
+      .mr-lead p{margin:0;color:#64748b;font-size:12px;line-height:1.8}
+      .mr-tag{flex:none;padding:5px 9px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#475569;font-size:11px;font-weight:700}
+      .mr-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 14px}
+      .mr-stat{padding:14px 10px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;text-align:center}
+      .mr-stat b{display:block;margin-bottom:4px;color:#16233a;font-size:20px}
+      .mr-stat span{color:#64748b;font-size:11px}
+      .mr-gates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}
+      .mr-gate{padding:13px 14px;border-left:3px solid #64748b;border-radius:7px;background:#f8fafc}
+      .mr-gate b{display:block;margin-bottom:5px;color:#16233a;font-size:12px}
+      .mr-gate span{color:#64748b;font-size:11px;line-height:1.7}
+      .mr-table-wrap{overflow-x:auto;border:1px solid #e2e8f0;border-radius:9px}
+      .mr-table{width:100%;min-width:780px;border-collapse:collapse;background:#fff;font-size:11px}
+      .mr-table th{padding:10px 12px;border-bottom:1px solid #dbe3ec;background:#f8fafc;color:#475569;text-align:left;white-space:nowrap}
+      .mr-table td{padding:11px 12px;border-bottom:1px solid #edf2f7;color:#475569;vertical-align:top;line-height:1.7}
+      .mr-table tr:last-child td{border-bottom:0}
+      .mr-level{display:inline-block;padding:2px 7px;border-radius:999px;font-weight:700;white-space:nowrap}
+      .mr-level-high{background:#fef2f2;color:#b91c1c}
+      .mr-level-mid{background:#fffbeb;color:#b45309}
+      .mr-level-low{background:#f0fdf4;color:#047857}
+      .mr-empty{padding:30px 22px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff;text-align:center}
+      .mr-empty b{display:block;margin-bottom:8px;color:#16233a;font-size:14px}
+      .mr-empty p{max-width:720px;margin:0 auto;color:#64748b;font-size:12px;line-height:1.9}
+      .mr-note{margin-top:12px;padding:12px 14px;border-left:4px solid #9a1f2b;background:#fef8f8;color:#5b6573;font-size:11px;line-height:1.8}
+      @media(max-width:760px){.mr-wrap{padding:10px}.mr-lead{display:block}.mr-tag{display:inline-block;margin-top:10px}.mr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.mr-gates{grid-template-columns:1fr}}
+    </style>
+    <div class="mr-wrap">
+      <div class="mr-lead">
+        <div>
+          <h3>最近一次执行快照与复核队列</h3>
+          <p>把当前账套最近一次一键稽查的发现放回“资料—规则—业务域—调查链—证据链—专业判断”中复核。数量表示待审对象，不等于违法事实或行政认定。</p>
+        </div>
+        <span class="mr-tag">当前账套 · 动态读取</span>
+      </div>
+      <div id="methodology-results-body"><div style="padding:26px;color:#64748b;text-align:center">正在读取最近一次执行结果...</div></div>
+    </div>`;
 
-    + '<p style="font-size:10px;color:#3a4048;line-height:20px;margin:0 0 10px">'
-    + '</p>'
-    + '<div id="analyze-body"></div>'
-    + '</div></div>';
+  getSharedAnalysis()
+    .then(function(data) {
+      var target = document.getElementById('methodology-results-body');
+      if (!target || !container.contains(target)) return;
+      if (!data || data.ok === false) {
+        _renderMethodologyResultEmpty(target, data && data.message);
+        return;
+      }
+      var report = data.report && typeof data.report === 'object' ? data.report : data;
+      _renderMethodologyResultSnapshot(target, report, data);
+    })
+    .catch(function(error) {
+      var target = document.getElementById('methodology-results-body');
+      if (!target || !container.contains(target)) return;
+      _renderMethodologyResultEmpty(target, '最近一次执行结果读取失败，请刷新后重试。');
+    });
+}
+
+function _renderMethodologyResultEmpty(target, message) {
+  var reason = message || '当前账套暂无最近一次一键稽查结果。';
+  target.innerHTML = ''
+    + '<div class="mr-empty"><b>尚无可复核的执行快照</b>'
+    + '<p>' + escHtml(reason) + ' 请先在资料管理中核对资料归属、所属期间和完整性，再执行一次一键稽查。执行完成后，本区将自动形成风险分层、业务域分布和人工复核队列。</p></div>'
+    + _methodologyResultGatesHtml()
+    + '<div class="mr-note"><b>空结果不是“无风险”：</b>没有执行记录、资料不足、规则未激活与执行后未发现异常是四种不同状态，必须结合资料清单和执行日志分别判断。</div>';
+}
+
+function _methodologyResultGatesHtml() {
+  var gates = [
+    ['① 事实定位','能够回到原始文件、原始行、主体与期间。'],
+    ['② 规则适用','触发条件、排除条件和行业门槛均已核对。'],
+    ['③ 证据闭环','支持证据与反向证据同屏，来源相互独立。'],
+    ['④ 人工放行','金额、法律依据和程序要求经有权限人员复核。']
+  ];
+  return '<div class="mr-gates" style="margin-top:14px">' + gates.map(function(gate) {
+    return '<div class="mr-gate"><b>' + gate[0] + '</b><span>' + gate[1] + '</span></div>';
+  }).join('') + '</div>';
+}
+
+function _methodologyResultDetail(finding) {
+  var detail = finding && finding.detail;
+  if (detail && typeof detail === 'object') {
+    detail = detail.summary || detail.description || detail.detail || '';
+  }
+  detail = detail || (finding && (finding.description || finding.summary || finding.reason)) || '';
+  return String(detail || '');
+}
+
+function _methodologyResultLevelClass(level) {
+  if (level === '极高风险' || level === '高风险') return 'mr-level-high';
+  if (level === '中风险') return 'mr-level-mid';
+  return 'mr-level-low';
+}
+
+function _methodologyResultReviewState(finding) {
+  var state = finding && (
+    finding.review_status || finding.evidence_status ||
+    finding.conclusion_status || finding.status
+  );
+  return state ? String(state) : '待人工复核';
+}
+
+function _renderMethodologyResultSnapshot(target, report, envelope) {
+  report = report && typeof report === 'object' ? report : {};
+  var findings = Array.isArray(report.all_findings) ? report.all_findings : [];
+  var domains = Array.isArray(report.domain_summary) ? report.domain_summary : [];
+  var logs = Array.isArray(report.pipeline_log) ? report.pipeline_log : [];
+  var high = findings.filter(function(f) {
+    return f && (f.level === '极高风险' || f.level === '高风险');
+  }).length;
+  var medium = findings.filter(function(f) {
+    return f && f.level === '中风险';
+  }).length;
+  var triggeredDomains = domains.filter(function(d) {
+    return Number(d && (d.count || (d.findings && d.findings.length)) || 0) > 0;
+  }).length;
+  var explicitReviewed = findings.filter(function(f) {
+    return /已复核|已确认|已放行|通过/.test(_methodologyResultReviewState(f));
+  }).length;
+  var timestamp = report.generated_at || report.analysis_time || report.timestamp
+    || (envelope && envelope.timestamp) || '';
+  var ranked = findings.slice().sort(function(a, b) {
+    var rank = {'极高风险':4,'高风险':3,'中风险':2,'低风险':1,'提示':0};
+    var levelDiff = (rank[(b && b.level) || ''] || 0) - (rank[(a && a.level) || ''] || 0);
+    if (levelDiff) return levelDiff;
+    return Number((b && b.score) || 0) - Number((a && a.score) || 0);
+  });
+  var shown = ranked.slice(0, 50);
+  var stats = [
+    [findings.length, '待审发现'],
+    [high, '高风险层'],
+    [medium, '中风险层'],
+    [triggeredDomains, '触发业务域'],
+    [explicitReviewed, '显式已复核']
+  ];
+  var html = '<div class="mr-stats">' + stats.map(function(stat) {
+    return '<div class="mr-stat"><b>' + stat[0] + '</b><span>' + stat[1] + '</span></div>';
+  }).join('') + '</div>'
+    + _methodologyResultGatesHtml();
+
+  if (timestamp) {
+    html += '<div style="margin:0 0 10px;color:#64748b;font-size:11px">执行时间：'
+      + escHtml(timestamp) + '　·　执行日志：' + logs.length + ' 条</div>';
+  }
+
+  if (!findings.length) {
+    html += '<div class="mr-empty"><b>本次执行未形成待复核发现</b>'
+      + '<p>请同时核对资料覆盖范围、业务域激活状态、规则执行记录与过滤日志；只有这些前提均完整，才能把“未发现异常”作为本次范围内的审阅结果。</p></div>';
+  } else {
+    html += '<div class="mr-table-wrap"><table class="mr-table"><thead><tr>'
+      + '<th style="width:48px">序号</th><th style="width:110px">风险层级</th>'
+      + '<th style="width:180px">发现类型</th><th>事实摘要</th>'
+      + '<th style="width:130px">规则/来源</th><th style="width:120px">复核状态</th>'
+      + '</tr></thead><tbody>';
+    shown.forEach(function(finding, index) {
+      finding = finding || {};
+      var ruleOrSource = finding.rule_id || finding.source
+        || (finding._trace && (finding._trace.rule_id || finding._trace.phase_origin)) || '待定位';
+      var detail = _methodologyResultDetail(finding);
+      if (detail.length > 260) detail = detail.slice(0, 260) + '…';
+      html += '<tr><td>' + (index + 1) + '</td>'
+        + '<td><span class="mr-level ' + _methodologyResultLevelClass(finding.level) + '">'
+        + escHtml(finding.level || '未分级') + '</span></td>'
+        + '<td><b style="color:#16233a">' + escHtml(finding.type || finding.name || '未命名发现') + '</b></td>'
+        + '<td>' + escHtml(detail || '待补充事实摘要') + '</td>'
+        + '<td>' + escHtml(ruleOrSource) + '</td>'
+        + '<td>' + escHtml(_methodologyResultReviewState(finding)) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    if (findings.length > shown.length) {
+      html += '<div style="margin-top:9px;color:#64748b;font-size:11px">当前按风险等级与评分展示前 '
+        + shown.length + ' 条，完整记录共 ' + findings.length + ' 条；正式处置前不得只审阅本页摘要。</div>';
+    }
+  }
+
+  html += '<div class="mr-note"><b>复核边界：</b>模型评分、规则命中和链路匹配只负责排序与提示；事实认定、税额测算、法律适用、程序履行和最终结论必须分别复核，任何一项不满足时均保持“待核事项”。</div>';
+  target.innerHTML = html;
 }
 
 async function toggleDomainDetail(idx) {

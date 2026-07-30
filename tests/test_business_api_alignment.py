@@ -399,6 +399,29 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertNotIn('class="method-tabs"', active_methodology)
         self.assertNotIn('id="methodology-workspace"', active_methodology)
         self.assertNotIn("data-method-section", active_methodology)
+        self.assertIn(
+            "_renderMethodologyResultSnapshot",
+            methodology,
+        )
+        self.assertIn(
+            "最近一次执行快照与复核队列",
+            methodology,
+        )
+        self.assertIn(
+            "模型评分、规则命中和链路匹配只负责排序与提示",
+            methodology,
+        )
+        analyze_start = methodology.index("function renderAnalyzePage")
+        analyze_end = methodology.index(
+            "async function toggleDomainDetail",
+            analyze_start,
+        )
+        active_results = methodology[analyze_start:analyze_end]
+        self.assertNotIn('id="analyze-body"', active_results)
+        self.assertIn(
+            "当前账套暂无最近一次一键稽查结果",
+            active_results,
+        )
 
         domain_start = methodology.index(
             "// 稽查方法论单页使用的业务域协同视图。"
@@ -489,7 +512,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         ):
             self.assertIn(f"{script}?v=2026073018", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073022", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073023", index)
         self.assertIn("core.js?v=2026073020", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
