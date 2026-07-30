@@ -4710,7 +4710,7 @@ function _renderReportFallback(r, allF) {
   h += '<div class="cover"><h1>税 务 稽 查 报 告</h1><div class="sub">'
 
 
-    + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
+    + '报告编号：未配置（交付前由有权人员按适用制度填写）<br>'
 
 
     + '被查单位：' + (te.name || te.company_name || '未指定') + '<br>'
@@ -6603,7 +6603,7 @@ window._submitParaEdit = function(i) {
     if (data.ok) {
 
 
-      toast(data.auto_rule ? '已自动应用到' + (data.count||0) + '条发现' : '已保存到纠正规则库', 'success');
+      toast(data.auto_rule ? '已记录；该规则已通过受控同步' : '已保存为候选规则，待重复验证和人工批准', 'success');
 
 
     } else {

@@ -4096,7 +4096,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     try:
         from engine.self_learning import apply_correction_rules
         ind = ctx.company_profile.get("industry",""); bm = ctx.company_profile.get("biz_model","")
-        corr_n = apply_correction_rules(all_findings, ind, bm)
+        corr_n = apply_correction_rules(
+            all_findings, ind, bm, company_id=company_id
+        )
         if corr_n > 0: pipeline_log.append(f"[CORRECTION] {corr_n}条纠正规则已应用(行业={ind},模式={bm})")
         # 将纠正标记写入发现字段，供前端展示
         for fi in all_findings:

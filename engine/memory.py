@@ -39,7 +39,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   系统（memory.py中的硬逻辑）= 系统做什么 | 智哥（AI行为准则页面）= 怎么写代码
 
   🧠【有记忆】知识库系统 → static/audit_memory.json，上限501720条，12维加权检索
-  📚【能学习】审核反馈闭环 → user_corrections.json → 四级回退匹配 → 自进化
+  📚【能学习】审核反馈闭环 → 私有候选池 → 复核批准 → 限定场景应用
   🔬【懂思考】四阶段推理管线 → Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性
   ⚖️【会判断】七层判定体系 → 文件识别/身份锚定/发票方向/进项分类/服务闸门/品名过滤/存疑排除
   🎯【懂决策】五层决策输出 → 风险评分/P0-P2策略/因果叙事/合规门禁/自省检查 → 正式报告
@@ -475,21 +475,18 @@ domain_functions = _CFG.get("domain_functions", 39)
 ═════ 审核反馈闭环（2026-06-29 新增）═════
   用户对报告发现的每一条审核都是系统的学习机会。
   代码: engine/self_learning.py → record_correction() + apply_correction_rules()
-  存储: static/user_corrections.json → 按"发现类型|行业|经营模式"生成唯一指纹
+  存储: data/user_corrections.json → 按"账套|发现类型|行业|经营模式"生成稳定指纹
 
   【五步闭环流程】
   第一步：用户点击审核 → 按审核内容模板填写 → 前端 postFeedback()
   第二步：POST /api/feedback → record_correction() → 生成指纹 → 存入JSON → 累加计数
-  第三步：累计 ≥1次纠正 → auto_apply=true → 升级为自动规则
-  第四步：下次一键分析 → apply_correction_rules() → 四级回退匹配 → 打_dismissed/negotiated标签
-  第五步：报告渲染展示绿色审核横幅 → 不影响原始风险等级
+  第三步：同范围重复验证且置信度达标 → 人工执行同步批准
+  第四步：下次一键分析 → apply_correction_rules() → 精确范围匹配 → 增加审核标记
+  第五步：报告展示审核意见和建议 → 保留原始事实与风险等级
 
-  【四级回退匹配策略】
-  L1 精确匹配：类型+行业+模式三者完全一致 → 置信度 0.7 生效
-  L2 行业匹配：类型+行业一致，模式通配 → 置信度 0.7
-  L3 通用匹配：仅类型一致，行业和模式通配 → 置信度 0.8
-  L4 名称匹配：类型名称模糊匹配 → 置信度 0.8
-  L1-L4 均未匹配 → 按原始逻辑输出
+  【受控匹配策略】
+  仅已批准规则可以参与匹配；账套范围必须一致，发现类型必须精确一致；
+  行业和经营模式仅允许相同值或经批准的通用范围，禁止名称模糊扩张。
 
   【关键设计原则】
   - 审核不改变发现的风险等级（仅打标签，不降级）
@@ -522,13 +519,12 @@ domain_functions = _CFG.get("domain_functions", 39)
   每个共享内容块有且仅有一个权威源，其他模块为依赖副本。
 
   【标准定义】
-  今天手册第5章（报告编制规范）与编制要求第2节（报告7章结构）
-  封面+7章+附件共9块内容出现了3处不一致——日期示例不同、
-  第一章正文长度不同、附件编号格式不同。这不是偶然错误——
-  两份文档各自维护必然产生漂移。因此建立以下机制：
+  报告编制、审核、法律核验、金额复算和交付标准曾在多个页面重复维护，
+  导致结构、措辞和放行门槛发生漂移。因此将 tax-report-standards.js
+  作为编审一体的唯一权威页面，其他模块只保留入口和职责边界。
 
   【权威源规则】
-  - 报告7章结构 → 权威源：tax-report-standards.js
+  - 报告编审交付标准 → 权威源：tax-report-standards.js
   - 系统数据数字 → 权威源：system_config.json
   - 方法论定义 → 权威源：audit_chains.json
   - 系统规则 → 权威源：engine/memory.py
@@ -823,7 +819,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   ═══ 架构篇 ═══
   11 假设-验证推理系统 —— 竞争假设+证据验证+加权判决
   12 跨域协商系统 —— 21720条协商规则四层场景
-  13 审核反馈闭环 —— 五步闭环+四级回退匹配
+  13 审核反馈闭环 —— 候选记录+重复验证+显式批准+可回退标记
   14 联动修改与数据一致性 —— 三种运行模式
   15 方法论过滤器体系 —— 七类过滤规则
   16 模块联动关系矩阵 —— 文档联动+数据联动
@@ -858,7 +854,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   【数据与配置】
   static/system_config.json（权威数据源）
   static/audit_chains.json（线索链/证据链/方法论）
-  static/user_corrections.json（纠正规则存储）
+  data/user_corrections.json（私有纠正规则存储）
   static/industry_data.json（25行业产品链词典+11720条收款分类规则）
   static/tax_risk_rules_local_export.json（1720条税务合规指令）
   static/audit_memory.json（501720条分析记忆）
@@ -868,8 +864,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/js/tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/方法论过滤器/AI行为准则/质量保障）
   static/js/tax-doc-analysis.js（资料风险分析报告）
   static/js/tax-auditor-handbook.js（税务合规员手册·12章）
-  static/js/tax-report-standards.js（报告编制要求·11节）
-  static/js/tax-feedback-template.js（审核内容模板·20场景）
+  static/js/tax-report-standards.js（编制、审核、误判复核与交付融合单页·10节）
   static/js/tax-engine-dashboard.js（推理系统仪表盘·6标签页）
   static/js/core.js（全局路由+税务AGI页面）
   static/js/report-block-renderer.js（报告六要素渲染+审核按钮）

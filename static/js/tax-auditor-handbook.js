@@ -28,7 +28,7 @@ function renderAuditorHandbook(container) {
   h += '</div>';
   h += '<div class="hb-card-grid">';
   h += '<div class="hb-card"><strong>🧠 有记忆</strong><p>每次分析自动提取指纹（行业+模式+信号+评分）存入audit_memory.json。上限501720条，12维度加权相似度检索——行业(×3)>经营模式(×2)>信号类型(×2)>风险等级(×1.5)。后续分析自动检索相似案例，输出行业对标校准和常见信号预警。</p></div>';
-  h += '<div class="hb-card"><strong>📚 能学习</strong><p>三层渐进学习：①审核反馈学习——用户审核发现→存入user_corrections.json→四级回退匹配→累计1次即升级自动规则 ②EMA自学习——58样本指数移动平均，行业阈值动态校准 ③自动规则发现——从重复出现的信号组合中检测新模式→写入规则库。代码：self_learning.py。</p></div>';
+  h += '<div class="hb-card"><strong>📚 能学习</strong><p>三层渐进学习：①审核反馈先进入私有候选池，限定账套和场景，重复验证并经显式同步批准后才可增加审核标记；②历史样本只用于校准和提出建议，不替代当前证据；③新模式先进入观察与复核流程，保留版本、冲突记录和回退能力。代码：self_learning.py。</p></div>';
   h += '<div class="hb-card"><strong>🔬 懂思考</strong><p>四层推理：假设验证引擎（每条发现2-3个竞争假设+逐条证据验证+加权判决）→Phase1-4推理引擎（初查信号检测→定向深挖→交叉验证→综合定性）→因果叙事链（多信号叠加自动推演因果链条）→四步税务合规分析法（detect→verify→diagnose→report）。</p></div>';
   h += '<div class="hb-card"><strong>⚖️ 会判断</strong><p>七层自动判定体系：四方交叉验证（文件名→列头→数据→公司匹配）→身份锚定（购买方/销售方vs公司名+统一社会信用代码）→发票方向判定→进项三层分类→服务行业闸门→品名级精准过滤→存疑排除。31720条判定规则逐条自动校验，每层独立运行。</p></div>';
   h += '<div class="hb-card"><strong>🎯 懂决策</strong><p>五层决策输出：风险综合评分（76/100→四级等级）→审计策略推荐（P0立即处理/P1限期整改/P2持续关注）→因果叙事链（从信号推演因果）→合规门禁（12项质量标准+16项自省检查）→正式报告（7章格式+六要素+同类合并+语音播报）。</p></div>';
@@ -116,7 +116,7 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第五章 ═══
   h += '<div id="hb-s5" class="hb-sec"><div class="hb-sec-title"><span class="num">5</span>报告编制规范</div>';
-  h += '<div class="hb-detail">正式税务合规报告须含封面+7章正文+附件清单。报告的每一条结论都可以通过规则ID→线索链ID→证据来源→原始数据行的六步溯源路径反向验证。<br><br><a href="?page=report-standards" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">📋 查看 报告编制要求 → 第二节 报告完整结构</a></div>';
+  h += '<div class="hb-detail">报告结构应由文种、权限和使用目的决定，不采用对所有场景一刀切的固定章数、字数、文号或处理时限。每条发现按统一编号连接事实、支持与反向证据、分析路径、法律核验、金额底稿和行动建议，并可反向定位到原始资料。<br><br><a href="javascript:window._reportSection=\'rpt-7\';navigateTo(\'report-standards\')" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">📋 查看 报告编制要求 → 成稿结构、叙事与呈现</a></div>';
   h += '</div>';
   
 // ═══ 第六章 ═══
@@ -149,10 +149,10 @@ function renderAuditorHandbook(container) {
    ['方法论过滤器','第41720条(审核重点)','全链路质量保障体系→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→税务合规重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
    ['跨域协商引擎','第41720条(审核重点)','21720条协商规则四类场景：行业闸门消解(NEG-001~005)/资料驱动的跨域标记(NEG-010~040)/证据矛盾消解(NEG-020~030)/联合增强(NEG-AUG-001~003)。域间自动对话——确保报告不会出现自相矛盾的结论。'],
    ['风险评分','第41720条(审理意见)','综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成税务合规结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。'],
-   ['报告生成','第51720条(报告格式)','自动生成封面+7章+附件：案件来源→基本情况→实施情况→发现问题→税务合规结论→处理建议→告知权利→签字→证据清单。完全符合规程第41720条规定的10项内容格式要求。'],
+   ['报告生成','文种与制度要求','按风险分析、检查底稿、检查报告或法定执法文书的实际用途配置结构；统一保留范围、方法、发现、依据、金额、限制、复核、签批和附件索引，不把固定模板冒充普遍法定格式。'],
    ['合规门禁','第1720条(程序合法)','12项质量标准(模板句清除/重复句合并/空描述删除/人性化表述/六要素完整/法律引用准确/具体数值/因果链/可执行建议/条款号/反跨复制/空占位符清除)+16项自省检查。全通过→绿色交付。'],
    ['数据一致性自检','全文','audit_consistency.py启动前扫描全部JS/PY文件→对比system_config.json权威数据源→发现不一致→自动标记或一键修复(--sync)。从tax_risk_rules/audit_chains/domain_analysis实时统计权威值。四触发机制覆盖手动/启动/提交/分析。'],
-   ['审核反馈闭环','第41720条(审核重点)','每条发现右侧"审核"按钮→按模板填写审核意见→存入user_corrections.json→生成指纹→四级回退匹配→累计1次即升级自动规则→下次分析自动应用。人工审核→系统学习→自动修正→持续进化的完整闭环。']].forEach(function(m){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+m[0]+'</td><td class="lbl" style="color:#2563eb;font-size:11px">'+m[1]+'</td><td class="val" style="font-size:12px">'+m[2]+'</td></tr>';});
+   ['审核反馈闭环','受控学习要求','审核意见先形成限定账套和场景的候选规则，保留原始结论和修改记录；只有通过重复验证、冲突检查和人工批准后才可激活，且自动应用只增加审核标记，不覆盖原风险等级。']].forEach(function(m){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+m[0]+'</td><td class="lbl" style="color:#2563eb;font-size:11px">'+m[1]+'</td><td class="val" style="font-size:12px">'+m[2]+'</td></tr>';});
   h += '</table></div>';
 
   // ═══ 第八章 ═══
@@ -191,14 +191,14 @@ function renderAuditorHandbook(container) {
 
   // ═══ 第十一章 ═══
   h += '<div id="hb-s11" class="hb-sec"><div class="hb-sec-title"><span class="num">11</span>审核反馈与自学习闭环</div>';
-  h += '<div class="hb-detail">报告中每条发现的右侧提供"🔍审核"按钮。审核不是简单的同意/驳回——而是按照审核内容模板的五段结构（判断结论→具体问题→正确逻辑→需要证据→法律依据）填写结构化的审核意见。系统从审核意见中提取指纹并编码为可复用的纠正规则，实现"这次你帮我纠正了，下次遇到同样的情况我知道该怎么判断了"。</div>';
+  h += '<div class="hb-detail">报告中每条发现均可提交结构化审核意见。审核须记录处置状态、具体缺陷、正确逻辑、待补证据、依据或金额口径以及修改责任链。反馈先作为候选规则保存，限定适用账套和场景；未经验证和批准，不得直接跨企业或跨期间套用。</div>';
   h += '<table class="hb-tbl">';
-  [['审核入口','报告中每条发现右侧的"🔍审核"按钮。点击弹窗→按模板填写→提交。每次审核后立即清空前后端分析缓存，确保重新分析时使用最新纠正规则。'],
-   ['模板结构','五段式：①判断结论（正确/需纠正/不适用）②具体问题（指出系统哪里判断错了）③正确逻辑（说明正确的判断方法）④需要证据（列出做正确判断所需资料）⑤法律依据（可选，引用法条增强可信度）。详细范文参见审核内容模板页面（20个场景）。'],
-   ['存储机制','POST /api/feedback → record_correction() → 按"发现类型|行业|经营模式"生成唯一指纹 → 存入static/user_corrections.json → 累加纠正计数 → 累计1次即标记auto_apply=true（升级为自动规则）。同指纹多次审核累积计数，不同行业/模式的审核生成不同指纹独立存储。'],
-   ['匹配策略','每次一键分析→apply_correction_rules()在all_findings生成后执行四级回退匹配：L1精确匹配（类型+行业+模式三者一致）→置信度0.7 / L2行业匹配（类型+行业一致）→0.7 / L3通用匹配（仅类型一致）→0.8 / L4名称匹配（类型名称模糊匹配）→0.8。L1-L4均未匹配→无纠正规则，按原始逻辑输出。'],
-   ['生效方式','匹配成功→给发现打_dismissed标签（不影响原始风险等级，不改变六要素中的法律依据和处理建议）→前端渲染时展示绿色审核横幅，内容为审核意见摘要。纠正不降级、不改变——保持税务合规逻辑的严肃性，审核只是标记。'],
-   ['查看入口','推理引擎仪表盘→#6智能大脑标签页→"纠正规则库"区域。展示每条规则：指纹/纠正次数/最近审核原因/置信度/是否已升级为自动规则。审核记录全程可追溯。']].forEach(function(r){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+r[0]+'</td><td class="val" style="font-size:12px">'+r[1]+'</td></tr>';});
+  [['审核入口','报告中每条发现右侧的"🔍审核"按钮。提交内容应定位到发现编号和具体字段，并说明正确逻辑、待补证据、依据或测算口径。'],
+   ['记录结构','处置状态（通过/修改后通过/退回/待补证/不适用）+具体缺陷+正确逻辑+待补证据+依据与口径+修改责任链。完整要求已经融入报告编制要求单页。'],
+   ['存储与隔离','反馈写入私有纠正规则库，按账套、发现类型、行业和经营模式限定范围；原始结论、反馈文本、修改人、时间和版本并存。'],
+   ['激活门槛','单次反馈只形成候选。至少经过重复验证、冲突检查和人工同步批准后才可激活；不同主体、期间或业务模式不得仅凭名称相似自动扩张。'],
+   ['生效方式','已批准规则只给匹配发现增加审核标记和建议，不删除原始事实，不覆盖风险等级，也不替代法律、金额和终审人员的判断。'],
+   ['查看入口','智能引擎中枢→纠正规则中转站。可查看适用范围、累计验证、置信度、激活状态和最近理由，并按权限停用或回退。']].forEach(function(r){h+='<tr><td class="lbl" style="font-weight:600;color:#0f172a">'+r[0]+'</td><td class="val" style="font-size:12px">'+r[1]+'</td></tr>';});
   h += '</table></div>';
 
   // ═══ 第12-14章 ═══
@@ -207,7 +207,7 @@ function renderAuditorHandbook(container) {
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl">规则篇9章</td><td class="val" style="font-size:12px">行业推断铁律/系统税务合规判定规则31720条/缺失的关键信息处理/收款分类规则11720条/账务处理引擎铁律1720条/引擎核心铁律1720条/报告呈现规则/报告后四章规则/审核反馈闭环规则</td></tr>';
   h += '<tr><td class="lbl">架构篇16章</td><td class="val" style="font-size:12px">假设验证推理引擎/跨域协商引擎/审核反馈闭环/联动修改与数据一致性/方法论过滤器体系/模块联动关系矩阵/四阶段推理管线/调度中枢/知识库系统/法律推理引擎/财务分析引擎/文件解析引擎/账套隔离机制/登录与会话管理/推理引擎仪表盘/前端页面体系</td></tr>';
-  h += '<tr><td class="lbl">代码层7函数</td><td class="val" style="font-size:12px">save_analysis_memory()保存分析指纹→audit_memory.json(501720条)/ query_similar_cases()12维加权检索/ record_correction()审核→指纹→user_corrections.json/ apply_correction_rules()四级回退匹配/ record_user_feedback()用户反馈记录/ _adjust_signal_weights_from_feedback()信号权重调整/ get_adaptive_signal_weights()自适应权重获取</td></tr>';
+  h += '<tr><td class="lbl">代码层7函数</td><td class="val" style="font-size:12px">save_analysis_memory()保存分析指纹 / query_similar_cases()检索历史参考 / record_correction()记录账套与场景候选反馈 / apply_correction_rules()应用已批准的精确范围标记 / record_user_feedback()记录用户意见 / _adjust_signal_weights_from_feedback()提出权重调整 / get_adaptive_signal_weights()读取受控权重</td></tr>';
   h += '<tr><td class="lbl">关联清单</td><td class="val" style="font-size:12px">引擎记忆末尾的系统文件关联清单列出30+核心文件的路径、用途和关系。每次--sync自动更新清单中的数字和文件引用。</td></tr>';
   h += '</table></div>';
 
@@ -231,7 +231,7 @@ function renderAuditorHandbook(container) {
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
   h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ user_corrections.json（纠正规则）/ industry_data.json（25行业词典+11720条收款分类）/ tax_risk_rules_local_export.json（{{rules_count}}条税务合规指令·2MB）/ audit_memory.json（501720条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
-  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（管线页面：域分析/线索链/证据链/分析链/过滤器/AI行为准则/质量保障）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（本手册·14章）/ tax-report-standards.js（统一报告编制要求·10节）/ tax-feedback-template.js（审核内容模板·20场景）/ tax-engine-dashboard.js（推理引擎仪表盘·6标签页）/ core.js（全局路由+税务AGI）/ report-block-renderer.js（报告六要素+审核按钮）/ tax-risk-rules.js（{{rules_count}}条税务合规指令浏览）</td></tr>';
+  h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（方法论与管线页面）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（岗位手册）/ tax-report-standards.js（编制、审核、误判复核与交付融合单页）/ tax-engine-dashboard.js（推理引擎仪表盘）/ core.js（全局路由）/ report-block-renderer.js（报告发现与审核入口）/ tax-risk-rules.js（税务合规指令浏览）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">基础设施（4个文件）</td></tr>';
   h += '<tr><td class="lbl">根目录</td><td class="val" style="font-size:12px">main.py（主入口·25000行·227路由·FastAPI服务器）/ start.bat（启动脚本·杀僵尸+清缓存+--sync+审计+启动）/ audit_consistency.py（数据一致性自检+联动修改+引擎记忆文档同步）/ static/index.html（侧边栏导航+全部JS加载）</td></tr>';
   h += '</table></div>';

@@ -9044,19 +9044,26 @@ def submit_audit_feedback(data: dict, db: Session = Depends(get_db)):
 
 @app.post("/api/feedback")
 def submit_feedback(data: dict):
-    """老邓纠正反馈API — 报告发现上的驳回按钮调用"""
+    """记录报告审核反馈；反馈先进入候选池，不直接覆盖结论。"""
     from engine.self_learning import record_correction
     from shared_state import _last_analysis_cache
-    company_id = data.get("company_id", 1)
+    company_id = int(data.get("company_id", 0) or 0)
     industry = data.get("industry", "综合")
     biz_model = data.get("biz_model", "未确定")
     finding_type = data.get("finding_type") or data.get("finding_title") or ""
     original_level = data.get("original_level") or data.get("level") or "中风险"
     reason = data.get("reason") or ""
     detail = data.get("detail") or ""
+    if company_id <= 0:
+        raise HTTPException(status_code=400, detail="请先选择账套")
+    if not finding_type.strip():
+        raise HTTPException(status_code=400, detail="发现类型不能为空")
+    if not reason.strip():
+        raise HTTPException(status_code=400, detail="审核意见不能为空")
     
     result = record_correction(
         finding_type=finding_type,
+        company_id=company_id,
         industry=industry,
         biz_model=biz_model,
         original_risk=original_level,

@@ -135,7 +135,7 @@
     if (f.law_ref) h += '<div class="finding-law">法规依据：' + esc(f.law_ref) + '</div>';
     if (f.action) h += '<div class="finding-action">建议：' + esc(f.action) + '</div>';
     h += '<div class="finding-actions" style="margin-top:8px;text-align:right">';
-    h += '<button class="btn-dismiss" onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type: f.type||'', title: f.title||'', level: f.level||'', category: f.category||'', detail: (f.detail||'').substring(0,200), fingerprint: findingId}).replace(/'/g, "&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer" title="审核此发现（反馈将用于自学习）">🔍 审核</button>';
+    h += '<button class="btn-dismiss" onclick="window._dismissTaxFinding(this)" data-finding=\'' + JSON.stringify({type: f.type||'', title: f.title||'', level: f.level||'', category: f.category||'', detail: (f.detail||'').substring(0,200), fingerprint: findingId}).replace(/'/g, "&#39;") + '\' style="background:none;border:1px solid #dc2626;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer" title="审核此发现（反馈先进入候选规则池）">🔍 审核</button>';
     h += '</div>';
     h += '</div>';
     return h;
@@ -225,15 +225,20 @@
   window.renderReportBlocks = renderReportBlocks;
   window.renderBlock = renderBlock;
 
-  // ── 审核处理：老邓点击报告中发现上的审核按钮 ──
+  // ── 审核处理：反馈先进入候选规则池，不直接覆盖原始结论 ──
   window._dismissTaxFinding = function(btn) {
     try {
       var f = JSON.parse(btn.getAttribute('data-finding'));
-      var reason = prompt('请说明审核意见（此反馈将记录并用于自学习）：', f.title || '');
+      var reason = prompt(
+        '请按“具体缺陷→正确逻辑→待补证据→依据或金额口径”说明审核意见。'
+        + '\n本次反馈只形成候选规则，不会直接覆盖原始结论：',
+        ''
+      );
       if (!reason) return;
       
       var payload = {
         action: 'dismiss',
+        company_id: Number(window.currentCompanyId || 0),
         finding_type: f.type || '',
         finding_title: f.title || '',
         original_level: f.level || '',
@@ -257,7 +262,12 @@
           if (typeof _analysisCacheData !== 'undefined') _analysisCacheData = null;
           if (typeof _analysisCachePromise !== 'undefined') _analysisCachePromise = null;
           if (typeof _cachedFilterReport !== 'undefined') _cachedFilterReport = null;
-          toast('已记录审核反馈，请重新运行一键分析以应用更新', 'success');
+          toast(
+            data.auto_rule
+              ? '审核反馈已记录；该规则已通过受控同步，可在下次分析中显示审核标记'
+              : '审核反馈已进入候选规则池，待重复验证和人工批准',
+            'success'
+          );
         } else {
           toast('审核失败: ' + (data.error || '未知错误'), 'error');
         }

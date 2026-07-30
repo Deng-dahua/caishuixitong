@@ -2400,7 +2400,7 @@ async function renderLearnFeedback(container) {
 
   h += '<div class="lf">';
   h += '<div class="lf-title">学习反馈</div>';
-  h += '<div class="lf-sub">用户纠正和审核意见驱动自学习引擎优化 · 三通道提交 + 四级回退匹配 · 所属：智能大脑</div>';
+  h += '<div class="lf-sub">用户纠正和审核意见进入受控候选池 · 重复验证 + 显式批准 + 精确范围匹配 · 所属：智能大脑</div>';
 
   // 统计卡片
   h += '<div class="lf-hero">';
@@ -2421,8 +2421,8 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
   h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方</h4>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><div class="desc">用户纠正和追问通过聊天界面提交</div></div>';
-  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'feedback-template\')" style="color:#2563eb">审核内容模板</a><div class="desc">审核反馈的结构化模板和规范</div></div>';
-  h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'rs-review\')" style="color:#2563eb">审核反馈在报告中的呈现</a><div class="desc">报告中的用户审核操作（采纳/驳回）</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:window._reportSection=\'rpt-8\';navigateTo(\'report-standards\')" style="color:#2563eb">报告编制与复核闭环</a><div class="desc">审核字段、复核层级和修改责任链已嵌入统一编制页面</div></div>';
+  h += '<div class="lf-flow-item"><a href="javascript:window._reportSection=\'rpt-9\';navigateTo(\'report-standards\')" style="color:#2563eb">常见误判复核矩阵</a><div class="desc">按误判根因组织反向核验，不固化个案结论</div></div>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><div class="desc">规则匹配结果供学习引擎分析空跑率</div></div>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><div class="desc">分析日志中提取信号模式用于规则发现</div></div>';
   h += '</div>';
@@ -2437,7 +2437,7 @@ async function renderLearnFeedback(container) {
 
   // 三层渐进学习架构 — 段落式timeline
   h += '<div class="lf-sec"><h3>三层渐进学习架构</h3><div class="lf-timeline">';
-  h += '<div class="lf-step c-blue"><div class="sn">第一层 · 审核反馈学习</div><div class="sd">用户每次审核发现（采纳/驳回）→ 系统记录发现类型与驳回原因 → 同类发现被驳回 ≥3 次 → 自动提取通用修正规则 → 写入 <code>user_corrections.json</code> → 下次分析通过四级回退匹配自动应用。</div></div>';
+  h += '<div class="lf-step c-blue"><div class="sn">第一层 · 审核反馈学习</div><div class="sd">用户审核发现→按账套、发现类型、行业和经营模式形成稳定指纹→进入私有候选池→同范围重复验证达到门槛→人工执行同步批准→下次分析仅按精确范围增加审核标记。</div></div>';
   h += '<div class="lf-step c-green"><div class="sn">第二层 · EMA 自学习</div><div class="sd">指数移动平均算法校准行业阈值，' + (learning.ema_samples||0) + ' 个样本持续更新，毛利率、税负率、进销比等基准值随实际数据动态调整，行业基准库自动保持最新。</div></div>';
   h += '<div class="lf-step c-amber"><div class="sn">第三层 · 自动规则发现</div><div class="sd">重复出现的信号组合经跨企业模式检测，同行业出现率超过 60% 的信号被标记为行业特征，新风险模式自动生成候选规则，人工确认后写入规则库，不断扩充 {{rules_count_autorules}} 条规则体系。</div></div>';
   h += '</div></div>';
@@ -2453,7 +2453,7 @@ async function renderLearnFeedback(container) {
 
   // 学习数据存储
   h += '<div class="lf-sec"><h3>学习数据存储</h3><div class="lf-timeline">';
-  h += '<div class="lf-step c-gray"><div class="sn">user_corrections.json — 用户纠正规则存储</div><div class="sd">四级回退匹配：行业匹配 → 经营模式匹配 → 信号类型匹配 → 通用匹配。</div></div>';
+  h += '<div class="lf-step c-gray"><div class="sn">user_corrections.json — 私有纠正规则存储</div><div class="sd">记录账套范围、稳定指纹、重复次数、置信度、批准状态、审核理由和历史版本；禁止名称模糊匹配跨场景扩张。</div></div>';
   h += '<div class="lf-step c-gray"><div class="sn">audit_memory.json — 分析记忆存储</div><div class="sd">12 维度加权相似度检索：行业（×3） &gt; 经营模式（×2） &gt; 信号类型（×2） &gt; 风险等级（×1.5）。</div></div>';
   h += '<div class="lf-step c-gray"><div class="sn">ema_state.json — EMA 参数状态存储</div><div class="sd">' + (learning.ema_samples||0) + ' 个样本积累，动态校准行业基准值。</div></div>';
   h += '</div></div>';

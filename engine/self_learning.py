@@ -20,6 +20,7 @@
 """
 
 import json
+import hashlib
 import os
 import time
 from datetime import datetime
@@ -706,48 +707,209 @@ def _load_correction_rules():
             latest = corrections[-1] if corrections else {}
             converted.append({
                 "rule_id": rule.get("finding_type", fingerprint),
+                "finding_type": rule.get("finding_type", fingerprint),
+                "company_id": int(rule.get("company_id", 0) or 0),
                 "original": latest.get("original", ""),
                 "corrected": latest.get("corrected", latest.get("corrected_risk", "")),
                 "reason": latest.get("reason", ""),
+                "last_reason": latest.get("reason", ""),
                 "source": latest.get("source", "legacy"),
                 "industry": rule.get("industry", ""),
                 "biz_model": rule.get("biz_model", ""),
                 "timestamp": latest.get("timestamp", ""),
                 "fingerprint": fingerprint,
                 "count": max(1, len(corrections)),
+                "correction_count": max(1, len(corrections)),
+                "confidence": float(rule.get("confidence", 0) or 0),
+                "status": rule.get("status", "candidate"),
+                "auto_apply": bool(rule.get("auto_apply", False)),
                 "history": corrections[-20:],
             })
         return converted
     return []
 
 
-def record_correction(rule_id, original, corrected, reason="", source="user", industry=""):
-    """记录用户纠正反馈 — 生成指纹 — 存入JSON"""
+def _correction_context_matches(rule, industry="", biz_model="", company_id=None):
+    """候选规则只能在明确相同或显式通用的上下文中匹配。"""
+    rule_company = int(rule.get("company_id", 0) or 0)
+    if rule_company:
+        if company_id is None or int(company_id or 0) != rule_company:
+            return False
+    rule_industry = str(rule.get("industry", "") or "").strip()
+    if rule_industry not in ("", "通用", "综合") and rule_industry != str(industry or "").strip():
+        return False
+    rule_model = str(rule.get("biz_model", "") or "").strip()
+    if rule_model not in ("", "通用", "未确定") and rule_model != str(biz_model or "").strip():
+        return False
+    return True
+
+
+def record_correction(
+    rule_id=None,
+    original="",
+    corrected="",
+    reason="",
+    source="user",
+    industry="",
+    **kwargs,
+):
+    """记录受控候选反馈，同时兼容旧位置参数和当前结构化调用。"""
+    finding_type = str(kwargs.get("finding_type") or rule_id or "").strip()
+    if not finding_type:
+        raise ValueError("finding_type is required")
+    biz_model = str(kwargs.get("biz_model") or "通用").strip()
+    company_id = int(kwargs.get("company_id", 0) or 0)
+    original_risk = str(kwargs.get("original_risk") or original or "").strip()
+    corrected_risk = str(kwargs.get("corrected_risk") or corrected or "").strip()
+    finding_detail = str(kwargs.get("finding_detail") or "")[:500]
+    reason = str(reason or "").strip()
+    now = _datetime.now().isoformat()
+    fingerprint_source = "|".join(
+        [
+            str(company_id),
+            finding_type.casefold(),
+            str(industry or "").strip().casefold(),
+            biz_model.casefold(),
+        ]
+    )
+    fingerprint = hashlib.sha256(
+        fingerprint_source.encode("utf-8")
+    ).hexdigest()
     rules = _load_correction_rules()
-    entry = {
-        "rule_id": str(rule_id),
-        "original": str(original)[:200],
-        "corrected": str(corrected)[:200],
-        "reason": str(reason)[:100],
-        "source": source,
-        "industry": industry,
-        "timestamp": _datetime.now().isoformat(),
-        "fingerprint": f"{rule_id}_{hash(original)}_{hash(corrected)}",
-        "count": 1,
+    rule = next(
+        (
+            item
+            for item in rules
+            if isinstance(item, dict)
+            and str(item.get("fingerprint", "")) == fingerprint
+        ),
+        None,
+    )
+    history_item = {
+        "timestamp": now,
+        "original_risk": original_risk[:100],
+        "corrected_risk": corrected_risk[:100],
+        "reason": reason[:500],
+        "finding_detail": finding_detail,
+        "source": str(source or "user")[:40],
     }
-    # 去重合并
-    for r in rules:
-        if r.get("fingerprint") == entry["fingerprint"]:
-            r["count"] = r.get("count", 1) + 1
-            r["timestamp"] = entry["timestamp"]
-            break
-    else:
-        rules.append(entry)
-    try:
-        atomic_write_json(_CORRECTIONS_PATH, rules)
-    except Exception:
-        pass
-    return {"ok": True, "count": len(rules)}
+    if rule is None:
+        rule = {
+            "rule_id": finding_type,
+            "finding_type": finding_type,
+            "company_id": company_id,
+            "industry": str(industry or "").strip(),
+            "biz_model": biz_model,
+            "fingerprint": fingerprint,
+            "original": original_risk[:200],
+            "corrected": corrected_risk[:200],
+            "reason": reason[:500],
+            "last_reason": reason[:500],
+            "source": str(source or "user")[:40],
+            "timestamp": now,
+            "updated_at": now,
+            "count": 0,
+            "correction_count": 0,
+            "confidence": 0.0,
+            "status": "candidate",
+            "auto_apply": False,
+            "history": [],
+        }
+        rules.append(rule)
+    history = rule.get("history", [])
+    if not isinstance(history, list):
+        history = []
+    history.append(history_item)
+    count = max(
+        int(rule.get("count", 0) or 0) + 1,
+        int(rule.get("correction_count", 0) or 0) + 1,
+        len(history),
+    )
+    rule.update(
+        {
+            "finding_type": finding_type,
+            "company_id": company_id,
+            "industry": str(industry or "").strip(),
+            "biz_model": biz_model,
+            "original": original_risk[:200],
+            "corrected": corrected_risk[:200],
+            "reason": reason[:500],
+            "last_reason": reason[:500],
+            "timestamp": now,
+            "updated_at": now,
+            "count": count,
+            "correction_count": count,
+            "confidence": round(
+                min(0.95, 0.35 + 0.15 * min(count, 4)), 2
+            ),
+            "history": history[-20:],
+        }
+    )
+    # 单次或重复反馈仍是候选；只有显式同步批准才能开启自动标记。
+    rule.setdefault("status", "candidate")
+    rule.setdefault("auto_apply", False)
+    atomic_write_json(_CORRECTIONS_PATH, rules)
+    return {
+        "ok": True,
+        "recorded": True,
+        "fingerprint": fingerprint,
+        "correction_count": count,
+        "auto_apply": bool(rule.get("auto_apply")),
+        "status": rule.get("status", "candidate"),
+    }
+
+
+def apply_correction_rules(
+    findings, industry="", biz_model="", company_id=None
+):
+    """仅应用已批准规则，并保留原始等级和原始事实。"""
+    if not isinstance(findings, list):
+        return 0
+    rules = [
+        rule
+        for rule in _load_correction_rules()
+        if isinstance(rule, dict)
+        and rule.get("auto_apply") is True
+        and rule.get("status") == "approved"
+        and _correction_context_matches(
+            rule, industry, biz_model, company_id
+        )
+    ]
+    applied = 0
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        finding_type = str(
+            finding.get("type") or finding.get("title") or ""
+        ).strip()
+        if not finding_type:
+            continue
+        rule = next(
+            (
+                candidate
+                for candidate in rules
+                if str(
+                    candidate.get("finding_type")
+                    or candidate.get("rule_id")
+                    or ""
+                ).strip()
+                == finding_type
+            ),
+            None,
+        )
+        if rule is None:
+            continue
+        finding.setdefault("_original_level", finding.get("level", ""))
+        finding["_auto_corrected"] = True
+        finding["_correction_reason"] = str(
+            rule.get("last_reason") or rule.get("reason") or ""
+        )[:500]
+        finding["_correction_fingerprint"] = rule.get("fingerprint", "")
+        finding["_suggested_level"] = str(
+            rule.get("corrected") or ""
+        )[:100]
+        applied += 1
+    return applied
 
 
 def get_correction_rule_summary():
@@ -774,19 +936,35 @@ def apply_cross_company_synthesis(company_id, db=None):
 
 
 def manual_sync_corrections_to_modules():
-    """手动同步纠正规则到运行模块"""
+    """显式同步即人工批准：仅激活重复验证且置信度达标的规则。"""
     rules = _load_correction_rules()
-    synced = 0
+    activated = 0
     for r in rules:
-        if r.get("count", 1) >= 3:
-            synced += 1
-    return {"synced": synced, "total": len(rules), "status": "completed"}
+        count = int(r.get("correction_count", r.get("count", 0)) or 0)
+        confidence = float(r.get("confidence", 0) or 0)
+        if count >= 3 and confidence >= 0.8:
+            if not r.get("auto_apply") or r.get("status") != "approved":
+                activated += 1
+            r["auto_apply"] = True
+            r["status"] = "approved"
+            r["approved_at"] = _datetime.now().isoformat()
+    atomic_write_json(_CORRECTIONS_PATH, rules)
+    return {
+        "synced": sum(1 for r in rules if r.get("auto_apply") is True),
+        "activated": activated,
+        "total": len(rules),
+        "status": "completed",
+    }
 
 
 def get_sync_status():
     """获取纠正规则同步状态"""
     rules = _load_correction_rules()
-    synced = sum(1 for r in rules if r.get("count", 1) >= 3)
+    synced = sum(
+        1
+        for r in rules
+        if r.get("auto_apply") is True and r.get("status") == "approved"
+    )
     return {"synced": synced, "pending": len(rules) - synced, "total": len(rules)}
 
 

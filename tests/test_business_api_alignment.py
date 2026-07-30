@@ -498,7 +498,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             core,
         )
         self.assertIn("window._methodologySection = 'files';", core)
-        self.assertIn("window._reportStandardsSection = 'review';", core)
+        self.assertIn("window._reportSection = 'rpt-8';", core)
         self.assertIn("case 'taxpayer-rights':", core)
         self.assertIn("navigateTo('taxpayer-rights');", core)
 
@@ -506,25 +506,35 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073017", index)
         for script in (
-            "tax-engine-dashboard.js",
             "engine-hub.js",
             "tax-knowledge-hub.js",
         ):
             self.assertIn(f"{script}?v=2026073018", index)
+        self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073023", index)
-        self.assertIn("core.js?v=2026073020", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073030", index)
+        self.assertIn("core.js?v=2026073021", index)
+        self.assertIn("tax-report-standards.js?v=2026073030", index)
+        self.assertNotIn("tax-feedback-template.js", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
         self.assertIn(
-            "case 'report-spec':\n      navigateTo('report-standards');",
+            "case 'report-spec':\n"
+            "      window._reportSection = 'rpt-7';\n"
+            "      navigateTo('report-standards');",
             core,
         )
-        self.assertNotIn("九、详细出具规范", standards)
-        self.assertNotIn('id="rs2-static"', standards)
-        self.assertNotIn("renderReportSpecStatic();", standards)
-        self.assertIn("不再保留两套章节或拼接式结构", standards)
-        self.assertIn("render: 'renderFeedbackTemplate'", standards)
+        self.assertIn("单页融合 · 编审一体 · 证据驱动", standards)
+        self.assertIn('data-report-single-page="true"', standards)
+        self.assertIn("审核嵌入编制，而不是另设模板页", standards)
+        self.assertIn("常见误判的归因与复核矩阵", standards)
+        self.assertIn("受控反馈", standards)
+        self.assertNotIn("REPORT_COMPILATION_SECTIONS", standards)
+        self.assertNotIn("report-tabs", standards)
+        self.assertNotIn("renderFeedbackTemplate", standards)
+        self.assertNotIn("整体不少于2000字", standards)
+        self.assertNotIn("税稽字〔YYYY〕第XXX号", standards)
+        self.assertNotIn("累计1次即", standards)
         for section_id in range(1, 11):
             self.assertIn(f"id: 'rpt-{section_id}'", standards)
         for legacy_id in range(1, 10):
@@ -612,6 +622,73 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertNotIn(
             'os.path.join("static", "user_corrections.json")',
             main,
+        )
+
+    def test_report_feedback_is_scoped_and_requires_explicit_activation(self):
+        root = Path(__file__).resolve().parents[1]
+        script = textwrap.dedent(
+            """
+            import json
+
+            from engine import self_learning
+            from runtime_storage import CORRECTION_RULES
+
+            for _ in range(3):
+                result = self_learning.record_correction(
+                    finding_type="银行收款与申报差异",
+                    company_id=7,
+                    industry="广告服务",
+                    biz_model="项目制",
+                    original_risk="高风险",
+                    corrected_risk="待补证",
+                    reason="需先区分借款、注资、退款和经营收款",
+                )
+                assert result["recorded"] is True
+                assert result["auto_apply"] is False
+
+            rules = json.loads(CORRECTION_RULES.read_text(encoding="utf-8"))
+            assert len(rules) == 1
+            assert rules[0]["company_id"] == 7
+            assert rules[0]["correction_count"] == 3
+            assert rules[0]["status"] == "candidate"
+
+            finding = {
+                "type": "银行收款与申报差异",
+                "level": "高风险",
+            }
+            assert self_learning.apply_correction_rules(
+                [finding], "广告服务", "项目制", company_id=7
+            ) == 0
+
+            sync = self_learning.manual_sync_corrections_to_modules()
+            assert sync["activated"] == 1
+            assert self_learning.apply_correction_rules(
+                [finding], "广告服务", "项目制", company_id=8
+            ) == 0
+            assert self_learning.apply_correction_rules(
+                [finding], "广告服务", "项目制", company_id=7
+            ) == 1
+            assert finding["level"] == "高风险"
+            assert finding["_original_level"] == "高风险"
+            assert finding["_auto_corrected"] is True
+            assert finding["_suggested_level"] == "待补证"
+            """
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            environment = os.environ.copy()
+            environment["APP_DATA_DIR"] = directory
+            result = subprocess.run(
+                [sys.executable, "-c", script],
+                cwd=root,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
         )
 
 

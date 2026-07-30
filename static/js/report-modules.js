@@ -526,7 +526,7 @@ var ReportEngine = (function() {
       var now = new Date();
       var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
       return '<div class="cover"><h1>税务合规报告</h1><div class="sub">'
-        + '编号：税稽字['+now.getFullYear()+']第'+Math.floor(Math.random()*900+100)+'号<br>'
+        + '报告编号：未配置（交付前由有权人员按适用制度填写）<br>'
         + '报告日期：'+dateStr
         + '</div></div>';
     }

@@ -770,7 +770,7 @@ function navigateTo(page) {
     case 'engine-hub':            _sR(container, 'renderEngineHub'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
     case 'feedback-template':
-      window._reportStandardsSection = 'review';
+      window._reportSection = 'rpt-8';
       navigateTo('report-standards');
       return;
     case 'correction-rules':
@@ -786,13 +786,26 @@ function navigateTo(page) {
       navigateTo('engine-hub');
       return;
     case 'report-spec':
+      window._reportSection = 'rpt-7';
       navigateTo('report-standards');
       return;
     case 'report-standards': _sR(container, 'renderReportStandards'); break;
-    case 'rs-negotiation': _sR(container, 'renderCrossDomainNego'); break;
-    case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
-    case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
-    case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
+    case 'rs-negotiation':
+      window._reportSection = 'rpt-4';
+      navigateTo('report-standards');
+      return;
+    case 'rs-review':
+      window._reportSection = 'rpt-8';
+      navigateTo('report-standards');
+      return;
+    case 'rs-ironlaw':
+      window._reportSection = 'rpt-10';
+      navigateTo('report-standards');
+      return;
+    case 'rs-iterate':
+      window._reportSection = 'rpt-10';
+      navigateTo('report-standards');
+      return;
     case 'chains-page':
       window._methodologySection = 'chains';
       window._methodologyChainView = 'clues';
@@ -1024,7 +1037,7 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','从all_findings自动组织为五段式结构化报告：①企业画像——行业+模式+规模+关键财务指标 ②风险全景——四级分布（极高/高/中/低各数量+占比+典型发现类型）③核心问题——TOP5高风险发现的详细因果推演 ④行业对标——66行业基准库五维指标偏离度 ⑤行动建议——P0/P1/P2三级分级建议+具体执行路径。每段从report对象动态提取，不使用预置模板文本。','蓝');
     h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','跨企业分析经验积累——不是每次从零开始。功能：①行业通用模式——同类企业分析≥3次后提取该行业常见高风险模式 ②典型数据画像——记录每个行业的合理收入/毛利率/费用率/人均产值基准 ③经验自动复用——分析新企业时先检索同行业已分析企业作为参考基线 ④持久化到cross_analysis_memory.json，12维度加权相似度检索。','绿');
     h += _agiEngineCard('📐','税务合规方法论','MethodologyEngine','<code>methodology_loader.py</code>','把检查方法、必查资料和法律依据结构化加载。引擎按分析域的domain_key匹配适用方法——收款分析域加载资金与收入核验方法，进销存域加载购销、库存和成本核验方法；根据实际数据特征动态组合，不使用写死的检查清单。','紫');
-    h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层递进归纳引擎——Layer A：模块效率分析，空跑率>80%→自动标记为可跳过→下次同行业降权不调用。Layer B：纠正模式，用户对同类发现纠正≥3次→自动提取通用修正规则→写入user_corrections.json→四级回退匹配。Layer C：信号模式对比，同类企业中出现>60%的信号→标记为行业特征信号→降低权重。输出到discovered_rules.json。','橙');
+    h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层递进归纳引擎——Layer A：模块效率分析只提出调度建议；Layer B：同账套同场景的纠正达到重复验证门槛后进入人工批准，批准规则按精确范围增加审核标记；Layer C：信号模式只形成待验证行业假设，不直接改变当前结论。全部变更保留版本和回退记录。','橙');
     h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后两次报告的差异：①新增风险——上次无本次有 ②消失风险——上次有本次无（AGI修正消解的假阳性）③风险等级迁移——升级或降级 ④变化率>30%→标记显著→触发因果影响定向巡逻→分析引擎改动导致的变化方向→正确保留、错误回滚。快照存入patrol_snapshots做基线对比。','青');
     h += '</div></section>';
 
@@ -1052,7 +1065,7 @@ async function renderAgiDashboard(container) {
     h += '<h2 class="hb-section-title"><span class="hb-section-num">四</span> 知识层</h2>';
     h += '<div class="hb-card-grid">';
     h += _agiInfoCard('📚','统一知识库','<code>knowledge_base.py</code> · 9域','政策/因果边/信号模式/语义词典/风险同义词/行业画像/自愈规则/经验教训/分析历史。线程安全写锁，全局单例，JSON持久化。','purple');
-    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：审核反馈规则转化(纠正模式累积≥1→四级回退匹配自动规则)→模块效率评估(历史运行日志)→合规门禁(修正后必须过门禁)。历史校准自动计算行业百分位阈值。','blue');
+    h += _agiInfoCard('🎓','自学习引擎','<code>self_learning.py</code>','三层渐进学习：审核反馈先形成限定账套和场景的候选规则→重复验证与人工同步批准→已批准规则按精确范围增加审核标记。历史数据只用于提出校准建议，不能替代当前证据和合规门禁。','blue');
     h += _agiInfoCard('📈','趋势分析器','<code>trend_analyzer.py</code>','12项经营指标跨期追踪——对比本次vs上次或本次vs行业平均。追踪：毛利率/销售收入/采购金额/供应商数量/客户数量/发票数量/银行流入流出/工资/员工/税负率/净利率。连续两期间变化>10%→标记趋势方向。毛利率下降→成本上升或售价下降，收入增长→市场份额扩大，采购金额与收入对比→购销比合理性。','green');
     h += '</div></section>';
 
