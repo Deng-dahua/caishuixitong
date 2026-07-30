@@ -5636,13 +5636,143 @@ function METHODOLOGY_TOC() {
     ['#au-s18','报告生成与净化',''],['#au-s19','全链路溯源',''],['#au-s20','合规度评估',''],
     ['#au-L7','第七层·经验进化','lv'],
     ['#au-s21','规则置信度自校准',''],['#au-s22','新模式发现',''],['#au-s23','政策同步',''],
-    ['#au-s24','独立支线·税收优惠','lv'],
   ];
   var h='<nav class="au-toc"><div class="tt">系统流水线</div>';
   for(var i=0;i<items.length;i++){var lv=items[i][2];h+='<a href="'+items[i][0]+'"'+(lv&&lv.indexOf('lv')>=0?' class="lv"':'')+'>'+items[i][1]+'</a>';}
   return h+'</nav>';
 }
+var METHODOLOGY_SECTIONS = [
+  {id:'guide', label:'📖 方法论总纲', render:'_renderMethodologyGuide', desc:'七层稽查规程：查前准备、数据采集、分析布网、疑点过滤、定性定案、报告衔接和经验进化。'},
+  {id:'files', label:'📁 资料解析', render:'renderFileParsingPage', desc:'融合原“文件解析”，把资料识别、结构提取、置信度和修复建议放回数据采集方法。'},
+  {id:'results', label:'📋 分析结果', render:'renderAnalyzePage', desc:'融合原“分析结果”，在方法论中直接审阅最近一次稽查执行产出的风险发现。'},
+  {id:'rules', label:'📑 疑点规则', render:'renderTaxRiskRules', desc:'融合原“疑点库”，作为分析布网阶段的规则底座和疑点触发标准。'},
+  {id:'domains', label:'🌐 域分析', render:'renderUnifiedDomainPanel', desc:'融合原“域分析”，按业务域查看并行检测范围、数据基础和实际检出结果。'},
+  {id:'chains', label:'🔗 证据推理链', render:'_renderMethodologyChainsHub', desc:'统一融合线索链、证据链、分析链和紧凑视图，形成“调查—验证—推理—总览”闭环。'},
+  {id:'handbook', label:'⚖️ 稽查员手册', render:'renderAuditorHandbook', desc:'融合原“稽查员手册”，作为七层方法论的岗位操作说明、资料清单和复核依据。'}
+];
+
 function renderMethodologyPage(container) {
+  if (!container) return;
+  window.currentModule = '稽查方法论';
+  var selected = window._methodologySection || 'guide';
+  window._methodologySection = null;
+  var nav = METHODOLOGY_SECTIONS.map(function(section) {
+    return '<button type="button" class="method-tab" data-method-section="' + section.id
+      + '" onclick="selectMethodologySection(\'' + section.id + '\')">' + section.label + '</button>';
+  }).join('');
+  container.innerHTML = `
+    <style>
+      .method-shell{max-width:1320px;margin:0 auto;padding:24px}
+      .method-shell-head{margin:0 0 18px;padding:22px 24px;border:1px solid #e3e8ef;border-radius:14px;background:linear-gradient(135deg,#fbfcfe,#f8fafc)}
+      .method-shell-head h1{margin:0 0 8px;color:#16233a;font-size:24px}
+      .method-shell-head p{margin:0;color:#64748b;line-height:1.75}
+      .method-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+      .method-tab{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600}
+      .method-tab:hover{border-color:#9a1f2b;color:#9a1f2b}
+      .method-tab.active{border-color:#9a1f2b;background:#9a1f2b;color:#fff}
+      .method-section-note{margin:0 0 14px;padding:10px 13px;border-left:3px solid #9a1f2b;background:#fef8f8;color:#5b6573;font-size:12px;line-height:1.7}
+      .method-workspace{min-height:220px;border:1px solid #e5ebf1;border-radius:12px;background:#fff;overflow:hidden}
+      .method-workspace>.au{max-width:none}
+      .method-chain-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px;border-bottom:1px solid #e5ebf1;background:#f8fafc}
+      .method-chain-tab{border:1px solid #d6dee8;background:#fff;color:#475569;border-radius:7px;padding:7px 11px;cursor:pointer;font-size:12px}
+      .method-chain-tab.active{border-color:#9a1f2b;background:#9a1f2b;color:#fff}
+      .method-chain-view{padding:12px}
+      @media(max-width:760px){.method-shell{padding:14px}.method-shell-head{padding:18px}.method-tab{font-size:11px;padding:7px 10px}}
+    </style>
+    <div class="method-shell">
+      <header class="method-shell-head">
+        <h1>📖 稽查方法论</h1>
+        <p>原文件解析、分析结果、疑点库、域分析、线索链、证据链、分析链、紧凑视图和稽查员手册，已按实际稽查流程融入本模块，形成从资料接收到定性复核的完整工作体系。</p>
+      </header>
+      <nav class="method-tabs" aria-label="稽查方法论分区">${nav}</nav>
+      <div id="methodology-section-note" class="method-section-note"></div>
+      <div id="methodology-workspace" class="method-workspace"></div>
+    </div>`;
+  selectMethodologySection(selected);
+}
+
+function selectMethodologySection(sectionId) {
+  var section = METHODOLOGY_SECTIONS.filter(function(item){ return item.id === sectionId; })[0]
+    || METHODOLOGY_SECTIONS[0];
+  var workspace = document.getElementById('methodology-workspace');
+  var note = document.getElementById('methodology-section-note');
+  if (!workspace) return;
+  var tabs = document.querySelectorAll('[data-method-section]');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-method-section') === section.id);
+  }
+  if (note) note.textContent = section.desc;
+  workspace.innerHTML = '<div style="padding:24px;color:#64748b">正在载入“' + section.label.replace(/^[^ ]+ /, '') + '”...</div>';
+  var renderer = window[section.render];
+  if (typeof renderer !== 'function') {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">该方法分区暂未完成载入，请刷新页面后重试。</div>';
+    return;
+  }
+  try {
+    var result = renderer(workspace);
+    if (result && typeof result.catch === 'function') {
+      result.catch(function(error) {
+        workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">方法分区载入失败：'
+          + (error && error.message ? error.message : '未知错误') + '</div>';
+      });
+    }
+  } catch (error) {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">方法分区载入失败：'
+      + (error && error.message ? error.message : '未知错误') + '</div>';
+  }
+  window.currentModule = '稽查方法论';
+}
+
+function _renderMethodologyChainsHub(container) {
+  if (!container) return;
+  var selected = window._methodologyChainView || 'clues';
+  window._methodologyChainView = null;
+  container.innerHTML = `
+    <div class="method-chain-tabs">
+      <button type="button" class="method-chain-tab" data-chain-view="clues" onclick="selectMethodologyChainView('clues')">🔗 线索链</button>
+      <button type="button" class="method-chain-tab" data-chain-view="evidence" onclick="selectMethodologyChainView('evidence')">📎 证据链</button>
+      <button type="button" class="method-chain-tab" data-chain-view="analysis" onclick="selectMethodologyChainView('analysis')">🧩 分析链</button>
+      <button type="button" class="method-chain-tab" data-chain-view="compact" onclick="selectMethodologyChainView('compact')">📌 紧凑视图</button>
+    </div>
+    <div id="methodology-chain-view" class="method-chain-view"></div>`;
+  selectMethodologyChainView(selected);
+}
+
+function selectMethodologyChainView(viewId) {
+  var renderers = {
+    clues: 'renderChainsPage',
+    evidence: 'renderEvidencePage',
+    analysis: 'renderAnalysisChainsPage',
+    compact: 'renderCompactClueChains'
+  };
+  var selected = renderers[viewId] ? viewId : 'clues';
+  var target = document.getElementById('methodology-chain-view');
+  if (!target) return;
+  var tabs = document.querySelectorAll('[data-chain-view]');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-chain-view') === selected);
+  }
+  target.innerHTML = '<div style="padding:18px;color:#64748b">正在载入...</div>';
+  var renderer = window[renderers[selected]];
+  if (typeof renderer !== 'function') {
+    target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败，请刷新页面后重试。</div>';
+    return;
+  }
+  try {
+    var result = renderer(target);
+    if (result && typeof result.catch === 'function') {
+      result.catch(function(error){
+        target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败：'
+          + (error && error.message ? error.message : '未知错误') + '</div>';
+      });
+    }
+  } catch (error) {
+    target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败：'
+      + (error && error.message ? error.message : '未知错误') + '</div>';
+  }
+}
+
+function _renderMethodologyGuide(container) {
   if(!container)return;
   window.currentModule='稽查方法论';
   container.innerHTML=METHODOLOGY_CSS()+'<div class="au"><div class="au-wrap"><div id="au-toc-div"></div><div class="au-body" id="au-body"></div></div></div>';
@@ -5732,11 +5862,7 @@ function renderMethodologyPart2(){
   h+='<p><b>教育培训</b>·预收款确认、课时消耗、教材收入、线上/线下差异、民办非企业税收</p>';
   h+='<p><em>行业包为增量检测规则——不替代通用规则，在通用规则基础上叠加行业特化维度。未匹配行业的，仅执行通用规则。</em></p></section>';
 
-  // 数据面板
-  h+='<div style="margin:10px 0"><details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📋 税务疑点库（全量规则数据）</summary><div class="live"><div id="au-rules-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔗 线索链（41720条精写·调查路径）</summary><div class="live"><div id="au-chains-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔒 证据链（21720条精写·验证标准）</summary><div class="live"><div id="au-evidence-data"></div></div></details>';
-  h+='<details style="margin-bottom:10px"><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">🔀 分析链（11720条精写·跨域推理）</summary><div class="live"><div id="au-analysis-data"></div></div></details><details style="margin-bottom:10px" open><summary style="font-size:10px;font-weight:700;color:#16233a;cursor:pointer;padding:10px 0">📊 域分析系统全景 · 检出结果</summary><div class="live"><div id="au-domain-unified"></div></div></details></div>';
+  h+='<div class="card"><div class="ct">方法与数据一体化</div><div class="cx">疑点规则、域分析和三类证据推理链不再作为独立散列页面堆叠在总纲正文中。请使用本模块上方的“疑点规则”“域分析”“证据推理链”分区，在阅读相应方法后直接查看全量数据和实际检出结果。</div></div>';
 
   // ═══ 第四层·过滤 ═══
   h+='<h2>第四层 · 疑点过滤 —— 把101720条信号淬成1720条铁证</h2><p>布网阶段{{domain_functions}}个域同时发动，会产生大量粗糙信号。把粗糙信号淬成铁证，靠的是三道过滤器。</p>';
@@ -5785,12 +5911,7 @@ function renderMethodologyPart3(){
   h+='<section id="au-s22"><h2>新模式发现：从未见过的风险模式自动提炼</h2><p>系统在分析过程中检测到<strong>未匹配任何现有规则</strong>的异常信号时，自动记录为"待确认模式"。当同一模式在≥3户企业中出现时，系统自动生成候选规则（含触发条件/阈值建议/置信度初值0.3），提交人工审核。审核通过后，候选规则升级为正式规则——系统具备了自动发现新疑点模式的能力。</p></section>';
   h+='<section id="au-s23"><h2>政策同步：法规变更自动注入规则库</h2><p>系统内置<strong>政策变更监测模块</strong>——当税法/征管规定发生修订时（如扣除比例调整/新增减免政策/处罚标准变更），系统自动定位受影响的规则，生成变更建议（原规则→新规则→影响范围），提交人工确认后更新。<em>政策同步确保系统永远紧跟最新法规，不因法规滞后而误判。</em></p></section>';
 
-  // 独立支线·税收优惠
-  h+='<h2>独立支线 · 税收优惠扫描 —— 正向权益保障</h2><p>以上七层为疑点排查，本条支线为<strong>权益保障</strong>——扫描企业应享未享的税收优惠政策，确保纳税人合法权益不受损失。</p>';
-  h+='<section id="au-s24"><h2>税收优惠扫描：应享未享，一项都不能少</h2><p>系统扫描<strong>9类优惠政策</strong>：小微企业普惠性减免、高新企业15%税率、研发费用加计扣除、六税两费减半（小规模纳税人）、残疾人就业增值税即征即退、退役士兵创业定额扣除、重点群体创业税收扣减、集成电路/软件企业优惠、海南自贸港15%封顶。</p>';
-  h+='<p><strong>联网核查三步法</strong>：第一步匹配结构化条件（所得额/从业数/资产额等）→第二步联网核查资质证明（高新证书有效期/研发立项文件）→第三步计算可省金额。核查结果缓存90天，避免重复查询。</p>';
-  h+='<p><strong>每项优惠输出</strong>：是否符合（是/否/需补充材料）+ 可省金额 + 政策依据 + 操作建议。</p>';
-  h+='<div class="live"><div id="au-incentive"></div></div></section>';
+  h+='<div class="card"><div class="ct">职责边界 · 税收优惠归入权益保障</div><div class="cx">税收优惠属于纳税人正向权益保障，不属于风险疑点、稽查定性或报告编制。为避免把“查风险”与“保权益”混为一谈，优惠扫描已完整迁入“税收权益保障”模块；本方法论仅保留职责边界说明。</div></div>';
 
   h+='<p><b>七层毕、一卷成、系统持续进化。</b>查前准备定身份、数据采集集情报、分析布网铺火力、疑点过滤淬铁证、定性定案下结论、报告出鞘交铁卷、经验进化学新招。系统就是这样建立起来的——不是靠散装规则堆砌，而是掌握了从查前准备到报告出鞘再到持续进化的完整稽查规程。按下一键稽查，背后是这七层递进的稽查系统；审阅这份报告，背后是多年的稽查实战经验；而系统的持续进化，来自每一次稽查判定后的总结与反思。</p>';
 
@@ -5804,25 +5925,6 @@ function renderMethodologyAssemble(){
   t.innerHTML=full;
   // 异步加载31720条方法论详细列表
   setTimeout(function(){ loadMethodologies(); }, 100);
-  // 确保DOM就绪后再渲染子面板（避免innerHTML未完全同步）
-  setTimeout(function(){
-  var r=document.getElementById('au-analyze-result');
-  if(r&&typeof renderAnalyzePage==='function'){try{renderAnalyzePage(r)}catch(e){r.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无分析结果，请先运行一键稽查。</div>'}}
-  var l=document.getElementById('au-analyze-logs');
-  if(l&&typeof renderAnalyzeLogs==='function'){try{renderAnalyzeLogs(l)}catch(e){l.innerHTML='<div style=\"color:#64748b;padding:14px\">暂无管线日志。</div>'}}
-  var rd=document.getElementById('au-rules-data');
-  if(rd&&typeof renderTaxRiskRules==='function'){try{renderTaxRiskRules(rd)}catch(e){rd.innerHTML='<span style="color:#64748b">规则数据加载中...</span>'}}
-  var cd=document.getElementById('au-chains-data');
-  if(cd&&typeof renderChainsPage==='function'){try{renderChainsPage(cd)}catch(e){cd.innerHTML='<span style="color:#64748b">线索链加载失败</span>';}}
-  var ed=document.getElementById('au-evidence-data');
-  if(ed&&typeof renderEvidencePage==='function'){try{renderEvidencePage(ed)}catch(e){ed.innerHTML='<span style="color:#64748b">证据链加载失败</span>';}}
-  var ad=document.getElementById('au-analysis-data');
-  if(ad&&typeof renderAnalysisChainsPage==='function'){try{renderAnalysisChainsPage(ad)}catch(e){ad.innerHTML='<span style="color:#64748b">分析链加载失败</span>';}}
-  var ud=document.getElementById('au-domain-unified');
-  if(ud&&typeof renderUnifiedDomainPanel==='function'){try{renderUnifiedDomainPanel(ud)}catch(e){ud.innerHTML='<span style="color:#64748b">域分析系统加载中...</span>'}}
-  var i=document.getElementById('au-incentive');
-  if(i&&typeof renderTaxIncentivesPage==='function'){try{renderTaxIncentivesPage(i)}catch(e){i.innerHTML='<div style="color:#64748b;padding:14px">暂无税收优惠扫描结果。</div>'}}
-  }, 0);
 }
 
 // 方法论面板内的紧凑线索链渲染

@@ -1,6 +1,6 @@
 // ==================== 报告编制要求（统一融合版） ====================
 
-function renderReportStandards(container) {
+function _renderReportCompilationGuide(container) {
   if (!container) return;
   window.currentModule = '报告编制要求';
 
@@ -235,4 +235,86 @@ function renderReportStandards(container) {
     var target = document.getElementById(targetId);
     if (target) target.scrollIntoView({block: 'start'});
   }
+}
+
+var REPORT_COMPILATION_SECTIONS = [
+  {
+    id: 'requirements',
+    label: '📖 编制要求',
+    render: '_renderReportCompilationGuide',
+    desc: '统一的报告定位、结构、证据表达、法条引用、金额测算、质量门禁和交付规范。'
+  },
+  {
+    id: 'review',
+    label: '📝 审核模板',
+    render: 'renderFeedbackTemplate',
+    desc: '融合原“审核模板”，用于逐项复核事实、证据、逻辑、法律、金额和整改建议，并形成审核反馈闭环。'
+  }
+];
+
+function renderReportStandards(container) {
+  if (!container) return;
+  window.currentModule = '报告编制要求';
+  var selected = window._reportStandardsSection || 'requirements';
+  window._reportStandardsSection = null;
+  var nav = REPORT_COMPILATION_SECTIONS.map(function(section) {
+    return '<button type="button" class="report-tab" data-report-section="' + section.id
+      + '" onclick="selectReportCompilationSection(\'' + section.id + '\')">' + section.label + '</button>';
+  }).join('');
+  container.innerHTML = `
+    <style>
+      .report-shell{max-width:1280px;margin:0 auto;padding:24px}
+      .report-shell-head{margin:0 0 18px;padding:22px 24px;border:1px solid #dce8ec;border-radius:14px;background:linear-gradient(135deg,#f7fcfd,#f8fafc)}
+      .report-shell-head h1{margin:0 0 8px;color:#16233a;font-size:24px}
+      .report-shell-head p{margin:0;color:#64748b;line-height:1.75}
+      .report-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+      .report-tab{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600}
+      .report-tab:hover{border-color:#0e7490;color:#0e7490}
+      .report-tab.active{border-color:#0e7490;background:#0e7490;color:#fff}
+      .report-section-note{margin:0 0 14px;padding:10px 13px;border-left:3px solid #0e7490;background:#f3fbfc;color:#5b6573;font-size:12px;line-height:1.7}
+      .report-workspace{min-height:220px;border:1px solid #e5ebf1;border-radius:12px;background:#fff;overflow:hidden}
+      @media(max-width:760px){.report-shell{padding:14px}.report-shell-head{padding:18px}.report-tab{font-size:11px;padding:7px 10px}}
+    </style>
+    <div class="report-shell">
+      <header class="report-shell-head">
+        <h1>📖 报告编制要求</h1>
+        <p>编制规范与审核模板已归并为同一份报告治理体系：前者规定“怎样写才成立”，后者负责“怎样审才放行”，共同形成编制—复核—反馈闭环。</p>
+      </header>
+      <nav class="report-tabs" aria-label="报告编制分区">${nav}</nav>
+      <div id="report-section-note" class="report-section-note"></div>
+      <div id="report-compilation-workspace" class="report-workspace"></div>
+    </div>`;
+  selectReportCompilationSection(selected);
+}
+
+function selectReportCompilationSection(sectionId) {
+  var section = REPORT_COMPILATION_SECTIONS.filter(function(item){ return item.id === sectionId; })[0]
+    || REPORT_COMPILATION_SECTIONS[0];
+  var workspace = document.getElementById('report-compilation-workspace');
+  var note = document.getElementById('report-section-note');
+  if (!workspace) return;
+  var tabs = document.querySelectorAll('[data-report-section]');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-report-section') === section.id);
+  }
+  if (note) note.textContent = section.desc;
+  workspace.innerHTML = '<div style="padding:24px;color:#64748b">正在载入“' + section.label.replace(/^[^ ]+ /, '') + '”...</div>';
+  var renderer = window[section.render];
+  if (typeof renderer !== 'function') {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">报告分区暂未完成载入，请刷新页面后重试。</div>';
+    return;
+  }
+  try {
+    var result = renderer(workspace);
+    if (result && typeof result.catch === 'function') {
+      result.catch(function(error){
+        workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">报告分区载入失败：'
+          + (error && error.message ? error.message : '未知错误') + '</div>';
+      });
+    }
+  } catch (error) {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">报告分区载入失败：'
+      + (error && error.message ? error.message : '未知错误') + '</div>';
+  }
+  window.currentModule = '报告编制要求';
 }

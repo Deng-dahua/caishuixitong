@@ -768,8 +768,14 @@ function navigateTo(page) {
       return;
     case 'engine-hub':            _sR(container, 'renderEngineHub'); break;
     case 'chat':                   _sR(container, 'renderChat'); break;
-    case 'feedback-template':      _sR(container, 'renderFeedbackTemplate'); break;
-    case 'correction-rules':       _sR(container, 'renderCorrectionRulesHub'); break;
+    case 'feedback-template':
+      window._reportStandardsSection = 'review';
+      navigateTo('report-standards');
+      return;
+    case 'correction-rules':
+      window._engineHubSection = 'corrections';
+      navigateTo('engine-hub');
+      return;
     case 'methodology':
       if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
       else { container.innerHTML = _LOADING_HTML; }
@@ -783,32 +789,76 @@ function navigateTo(page) {
     case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;
     case 'rs-ironlaw':     _sR(container, 'renderIronLaws'); break;
     case 'rs-iterate':     _sR(container, 'renderAuditFeedback'); break;
-    case 'chains-page':    _sR(container, 'renderChainsPage'); break;
-    case 'evidence-page':  _sR(container, 'renderEvidencePage'); break;
-    case 'analysis-page':  _sR(container, 'renderAnalysisChainsPage'); break;
+    case 'chains-page':
+      window._methodologySection = 'chains';
+      window._methodologyChainView = 'clues';
+      navigateTo('methodology');
+      return;
+    case 'evidence-page':
+      window._methodologySection = 'chains';
+      window._methodologyChainView = 'evidence';
+      navigateTo('methodology');
+      return;
+    case 'analysis-page':
+      window._methodologySection = 'chains';
+      window._methodologyChainView = 'analysis';
+      navigateTo('methodology');
+      return;
     case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
     case 'file-parsing':
-      if (typeof renderFileParsingPage === 'function') { renderFileParsingPage(container); }
-      else { container.innerHTML = _LOADING_HTML; }
-      break;
+      window._methodologySection = 'files';
+      navigateTo('methodology');
+      return;
     case 'agi-schedule':        _sR(container, 'renderOrchDashboard'); break;
     case 'auditor-handbook':
-      if (typeof renderAuditorHandbook === 'function') { renderAuditorHandbook(container); }
-      else { container.innerHTML = _LOADING_HTML; }
-      break;
-    // ═══ 4个dashboard死链补路由（2026-07-23） ═══
-    case 'engine-dashboard':    _sR(container, 'renderEngineDashboardPage'); break;
-    case 'quality-system':      _sR(container, 'renderQualitySystem'); break;
-    case 'ai-rules':            _sR(container, 'renderAiRules'); break;
-    case 'tax-agi':             _sR(container, 'renderAgiDashboard'); break;
-    // ═══ 6个无独立路由的函数补路由（2026-07-23） ═══
-    case 'tax-risk-rules-list': _sR(container, 'renderTaxRiskRules'); break;
-    case 'pipeline-analyze':    _sR(container, 'renderAnalyzePage'); break;
-    case 'analyze-logs':        _sR(container, 'renderAnalyzeLogs'); break;
-    case 'domain-panel':        _sR(container, 'renderUnifiedDomainPanel'); break;
-    case 'tax-incentives':      _sR(container, 'renderTaxIncentivesPage'); break;
-    case 'compact-clues':       _sR(container, 'renderCompactClueChains'); break;
-    case 'knowledge-hub':       _sR(container, 'renderKnowledgeHub'); break;
+      window._methodologySection = 'handbook';
+      navigateTo('methodology');
+      return;
+    case 'engine-dashboard':
+      window._engineHubSection = 'dashboard';
+      navigateTo('engine-hub');
+      return;
+    case 'quality-system':
+      window._engineHubSection = 'quality';
+      navigateTo('engine-hub');
+      return;
+    case 'ai-rules':
+      window._engineHubSection = 'rules';
+      navigateTo('engine-hub');
+      return;
+    case 'tax-agi':
+      window._engineHubSection = 'agi';
+      navigateTo('engine-hub');
+      return;
+    case 'analyze-logs':
+      window._engineHubSection = 'logs';
+      navigateTo('engine-hub');
+      return;
+    case 'knowledge-hub':
+      window._engineHubSection = 'knowledge';
+      navigateTo('engine-hub');
+      return;
+    case 'tax-risk-rules-list':
+      window._methodologySection = 'rules';
+      navigateTo('methodology');
+      return;
+    case 'pipeline-analyze':
+      window._methodologySection = 'results';
+      navigateTo('methodology');
+      return;
+    case 'domain-panel':
+      window._methodologySection = 'domains';
+      navigateTo('methodology');
+      return;
+    case 'compact-clues':
+      window._methodologySection = 'chains';
+      window._methodologyChainView = 'compact';
+      navigateTo('methodology');
+      return;
+    case 'tax-incentives':
+      navigateTo('taxpayer-rights');
+      return;
+    case 'taxpayer-rights':     _sR(container, 'renderTaxpayerRightsHub'); break;
   }
   var ca = document.getElementById('content-area');
   if (ca) ca.scrollTop = 0;

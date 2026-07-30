@@ -3,7 +3,7 @@
 // 核心-并行认知架构
 // ================================================================
 
-function renderEngineHub(container) {
+function _renderEngineHubOverview(container) {
   if (!container) return;
   window.currentModule = '智能分析系统中枢';
 
@@ -94,4 +94,83 @@ function renderEngineHub(container) {
 
   h += '</div>'; // close eh
   container.innerHTML = css + h;
+}
+
+var ENGINE_HUB_SECTIONS = [
+  {id:'overview', label:'🧭 架构总览', render:'_renderEngineHubOverview', desc:'统一说明感知、记忆、推理、学习与自省五个并行认知环路。'},
+  {id:'knowledge', label:'🧠 知识与记忆', render:'renderKnowledgeHub', desc:'融合原“知识中枢”，集中查看政策、案例、模式和经验记忆。'},
+  {id:'dashboard', label:'🖥️ 运行仪表盘', render:'renderEngineDashboardPage', desc:'融合原“引擎仪表盘”，查看引擎能力、调度、运行状态和质量指标。'},
+  {id:'quality', label:'🛡️ 质量保障', render:'renderQualitySystem', desc:'融合原“质量保障”，统一呈现数据、规则、发现、证据和报告质量门禁。'},
+  {id:'rules', label:'🧠 行为准则', render:'renderAiRules', desc:'融合原“行为准则”，集中维护引擎必须遵循的判断边界和硬性约束。'},
+  {id:'agi', label:'🧬 税务AGI', render:'renderAgiDashboard', desc:'融合原“税务AGI”，展示高级推理、协同判断、自检和进化能力。'},
+  {id:'logs', label:'📜 执行日志', render:'renderAnalyzeLogs', desc:'融合原“执行日志”，用于追踪引擎每次分析的实际执行过程。'},
+  {id:'corrections', label:'🔧 学习纠正', render:'renderCorrectionRulesHub', desc:'融合原“纠正规则”，把审核反馈转化为可追溯的引擎学习闭环。'}
+];
+
+function renderEngineHub(container) {
+  if (!container) return;
+  window.currentModule = '智能引擎中枢';
+  var selected = window._engineHubSection || 'overview';
+  window._engineHubSection = null;
+  var nav = ENGINE_HUB_SECTIONS.map(function(section) {
+    return '<button type="button" class="eh-tab" data-engine-section="' + section.id
+      + '" onclick="selectEngineHubSection(\'' + section.id + '\')">' + section.label + '</button>';
+  }).join('');
+  container.innerHTML = `
+    <style>
+      .eh-shell{max-width:1240px;margin:0 auto;padding:24px}
+      .eh-shell-head{margin:0 0 18px;padding:22px 24px;border:1px solid #dfe8f1;border-radius:14px;background:linear-gradient(135deg,#f8fbff,#f7fafc)}
+      .eh-shell-head h1{margin:0 0 8px;color:#16233a;font-size:24px}
+      .eh-shell-head p{margin:0;color:#64748b;line-height:1.75}
+      .eh-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+      .eh-tab{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600}
+      .eh-tab:hover{border-color:#7c3aed;color:#6d28d9}
+      .eh-tab.active{border-color:#6d28d9;background:#6d28d9;color:#fff}
+      .eh-section-note{margin:0 0 14px;padding:10px 13px;border-left:3px solid #7c3aed;background:#faf7ff;color:#5b6573;font-size:12px;line-height:1.7}
+      .eh-workspace{min-height:220px;border:1px solid #e5ebf1;border-radius:12px;background:#fff;overflow:hidden}
+      .eh-workspace>.eh{max-width:none}
+      @media(max-width:760px){.eh-shell{padding:14px}.eh-shell-head{padding:18px}.eh-tab{font-size:11px;padding:7px 10px}}
+    </style>
+    <div class="eh-shell">
+      <header class="eh-shell-head">
+        <h1>🧠 智能引擎中枢</h1>
+        <p>原知识中枢、引擎仪表盘、质量保障、行为准则、税务AGI、执行日志和纠正规则，已按“知识—运行—质量—约束—推理—追踪—学习”闭环融入本模块，不再作为数据看板中的散列入口。</p>
+      </header>
+      <nav class="eh-tabs" aria-label="智能引擎中枢能力分区">${nav}</nav>
+      <div id="engine-hub-section-note" class="eh-section-note"></div>
+      <div id="engine-hub-workspace" class="eh-workspace"></div>
+    </div>`;
+  selectEngineHubSection(selected);
+}
+
+function selectEngineHubSection(sectionId) {
+  var section = ENGINE_HUB_SECTIONS.filter(function(item){ return item.id === sectionId; })[0]
+    || ENGINE_HUB_SECTIONS[0];
+  var workspace = document.getElementById('engine-hub-workspace');
+  var note = document.getElementById('engine-hub-section-note');
+  if (!workspace) return;
+  var tabs = document.querySelectorAll('[data-engine-section]');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-engine-section') === section.id);
+  }
+  if (note) note.textContent = section.desc;
+  workspace.innerHTML = '<div style="padding:24px;color:#64748b">正在载入“' + section.label.replace(/^[^ ]+ /, '') + '”...</div>';
+  var renderer = window[section.render];
+  if (typeof renderer !== 'function') {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">该能力暂未完成载入，请刷新页面后重试。</div>';
+    return;
+  }
+  try {
+    var result = renderer(workspace);
+    if (result && typeof result.catch === 'function') {
+      result.catch(function(error) {
+        workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">能力载入失败：'
+          + (error && error.message ? error.message : '未知错误') + '</div>';
+      });
+    }
+  } catch (error) {
+    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">能力载入失败：'
+      + (error && error.message ? error.message : '未知错误') + '</div>';
+  }
+  window.currentModule = '智能引擎中枢';
 }

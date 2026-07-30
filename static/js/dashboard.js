@@ -47,35 +47,15 @@ async function renderDashboard(container) {
         {page:'social-security', label:'🛡️ 社保', cls:'btn-outline'},
         {page:'housing-fund', label:'🏠 公积金', cls:'btn-outline'},
       ]},
-      {group:'税务合规分析', items:[
+      {group:'风险分析', items:[
         {page:'tax-doc-analysis', label:'🔬 一键分析', cls:'btn-primary'},
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
-        {page:'file-parsing', label:'📁 文件解析', cls:'btn-outline'},
-        {page:'pipeline-analyze', label:'📋 分析结果', cls:'btn-outline'},
-        {page:'tax-risk-rules-list', label:'📑 疑点库', cls:'btn-outline'},
-        {page:'domain-panel', label:'🌐 域分析', cls:'btn-outline'},
-        {page:'tax-incentives', label:'🎁 税收优惠', cls:'btn-outline'},
       ]},
-      {group:'线索证据链', items:[
-        {page:'chains-page', label:'🔗 线索链', cls:'btn-outline'},
-        {page:'evidence-page', label:'📎 证据链', cls:'btn-outline'},
-        {page:'analysis-page', label:'🧩 分析链', cls:'btn-outline'},
-        {page:'compact-clues', label:'📌 紧凑视图', cls:'btn-outline'},
-      ]},
-      {group:'系统引擎', items:[
-        {page:'knowledge-hub', label:'🧠 知识中枢', cls:'btn-primary'},
-        {page:'engine-dashboard', label:'🖥️ 引擎仪表盘', cls:'btn-outline'},
-        {page:'quality-system', label:'🛡️ 质量保障', cls:'btn-outline'},
-        {page:'ai-rules', label:'🧠 行为准则', cls:'btn-outline'},
-        {page:'tax-agi', label:'🧬 税务AGI', cls:'btn-outline'},
-        {page:'analyze-logs', label:'📜 执行日志', cls:'btn-outline'},
-        {page:'system-logs', label:'📜 系统日志', cls:'btn-outline'},
-      ]},
-      {group:'规范手册', items:[
-        {page:'auditor-handbook', label:'⚖️ 稽查员手册', cls:'btn-outline'},
-        {page:'report-standards', label:'📐 编制要求', cls:'btn-outline'},
-        {page:'feedback-template', label:'📝 审核模板', cls:'btn-outline'},
-        {page:'correction-rules', label:'🔧 纠正规则', cls:'btn-outline'},
+      {group:'核心能力', items:[
+        {page:'engine-hub', label:'🧠 智能引擎中枢', cls:'btn-primary'},
+        {page:'methodology', label:'📖 稽查方法论', cls:'btn-outline'},
+        {page:'report-standards', label:'📖 报告编制要求', cls:'btn-outline'},
+        {page:'taxpayer-rights', label:'🎁 税收权益保障', cls:'btn-outline'},
       ]}
     ];
     

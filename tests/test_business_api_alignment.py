@@ -268,7 +268,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             source,
         )
 
-    def test_report_spec_is_merged_into_compilation_requirements(self):
+    def test_dashboard_capabilities_are_fused_into_responsible_modules(self):
         root = Path(__file__).resolve().parents[1]
         dashboard = (root / "static" / "js" / "dashboard.js").read_text(
             encoding="utf-8"
@@ -276,17 +276,84 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         core = (root / "static" / "js" / "core.js").read_text(
             encoding="utf-8"
         )
+        index = (root / "static" / "index.html").read_text(encoding="utf-8")
+        engine_hub = (root / "static" / "js" / "engine-hub.js").read_text(
+            encoding="utf-8"
+        )
+        methodology = (
+            root / "static" / "js" / "tax-pipeline-pages.js"
+        ).read_text(encoding="utf-8")
         standards = (
             root / "static" / "js" / "tax-report-standards.js"
         ).read_text(encoding="utf-8")
-        report_spec = (
-            root / "static" / "js" / "tax-pipeline-pages.js"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn(
-            "{page:'report-standards', label:'📐 编制要求'",
-            dashboard,
+        rights = (root / "static" / "js" / "tax-rights-hub.js").read_text(
+            encoding="utf-8"
         )
+
+        for page, label in (
+            ("engine-hub", "🧠 智能引擎中枢"),
+            ("methodology", "📖 稽查方法论"),
+            ("report-standards", "📖 报告编制要求"),
+            ("taxpayer-rights", "🎁 税收权益保障"),
+        ):
+            self.assertIn(f"{{page:'{page}', label:'{label}'", dashboard)
+
+        for legacy_page in (
+            "file-parsing",
+            "pipeline-analyze",
+            "tax-risk-rules-list",
+            "domain-panel",
+            "tax-incentives",
+            "chains-page",
+            "evidence-page",
+            "analysis-page",
+            "compact-clues",
+            "knowledge-hub",
+            "engine-dashboard",
+            "quality-system",
+            "ai-rules",
+            "tax-agi",
+            "analyze-logs",
+            "auditor-handbook",
+            "feedback-template",
+            "correction-rules",
+        ):
+            self.assertNotIn(f"page:'{legacy_page}'", dashboard)
+
+        for section_id in (
+            "overview",
+            "knowledge",
+            "dashboard",
+            "quality",
+            "rules",
+            "agi",
+            "logs",
+            "corrections",
+        ):
+            self.assertIn(f"id:'{section_id}'", engine_hub)
+        for section_id in (
+            "guide",
+            "files",
+            "results",
+            "rules",
+            "domains",
+            "chains",
+            "handbook",
+        ):
+            self.assertIn(f"id:'{section_id}'", methodology)
+        for view_id in ("clues", "evidence", "analysis", "compact"):
+            self.assertIn(f"{view_id}:", methodology)
+
+        self.assertIn("window._engineHubSection = 'knowledge';", core)
+        self.assertIn("window._methodologySection = 'files';", core)
+        self.assertIn("window._reportStandardsSection = 'review';", core)
+        self.assertIn("case 'taxpayer-rights':", core)
+        self.assertIn("navigateTo('taxpayer-rights');", core)
+
+        self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
+        self.assertIn("税收优惠与权益保障", index)
+        self.assertIn("tax-rights-hub.js?v=2026073017", index)
+
         self.assertNotIn("page:'report-spec'", dashboard)
         self.assertIn(
             "case 'report-spec':\n      navigateTo('report-standards');",
@@ -296,6 +363,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertNotIn('id="rs2-static"', standards)
         self.assertNotIn("renderReportSpecStatic();", standards)
         self.assertIn("不再保留两套章节或拼接式结构", standards)
+        self.assertIn("render: 'renderFeedbackTemplate'", standards)
         for section_id in range(1, 11):
             self.assertIn(f"id: 'rpt-{section_id}'", standards)
         for legacy_id in range(1, 10):
