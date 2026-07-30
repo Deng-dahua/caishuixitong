@@ -4985,7 +4985,7 @@ function renderUnifiedDomainPanel(container) {
       @media(max-width:760px){.md-domain{padding:8px}.md-domain-table{display:block;overflow-x:auto}.md-domain-grid{grid-template-columns:1fr}}
     </style>
     <div class="md-domain">
-      <div class="md-domain-intro"><b>业务域不是结论目录，而是分工协同的核验框架。</b>每个域必须同时公开适用前提、数据基础、核验动作、反向解释和输出限制。调查线索、证据链和分析链已在下方“调查—证据—分析链”集中呈现，本区不再复制链条正文。</div>
+      <div class="md-domain-intro"><b>业务域不是结论目录，而是分工协同的核验框架。</b>每个域必须同时公开适用前提、数据基础、核验动作、反向解释和输出限制；调查线索、证据要求和分析路径通过统一编号与对应业务域相互关联。</div>
       <h3>一、八类业务域及其职责边界</h3>
       <div class="md-domain-grid">
         ${domains.map(function(domain){
@@ -6116,9 +6116,7 @@ function renderCompanyOverview(container) {
   _renderCompanyOverview(document.getElementById('co-main'));
 }
 
-// ═══════════ 稽查方法论（融合版·8部35章·藏青+朱红） ═══════════
-
-// ═══════ 稽查方法论（六层递进·C融合版） ═══════
+// ═══════════ 稽查方法论（闭环作业版·藏青+朱红） ═══════════
 function METHODOLOGY_CSS() {
   return '<style>'
     + '.au{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
@@ -6192,8 +6190,8 @@ var METHODOLOGY_PAGE_SECTIONS = [
   {id:'rules', label:'📑 疑点规则底座', desc:'展示疑点从什么条件触发、适用于什么范围以及需要什么后续核验。'},
   {id:'domains', label:'🌐 业务域协同', desc:'按业务域说明检测范围、数据基础、行业闸门和本次执行状态。'},
   {id:'results', label:'📋 执行成果与复核', desc:'把最近一次执行结果放回方法链路中审阅，不把模型输出直接当成定案。'},
-  {id:'chains', label:'🔗 调查—证据—分析链', desc:'紧凑总览、调查路径、证据闭环和分析推理在一个区域同时呈现。'},
-  {id:'handbook', label:'⚖️ 岗位手册与程序保障', desc:'把旧手册中的岗位要求、底稿、程序和复核要点融入统一作业清单。'}
+  {id:'chains', label:'🔗 调查—证据—分析链', desc:'贯通调查起点、取证要求、证据闭环与推理路径，确保每项专业判断能够逐级回溯。'},
+  {id:'handbook', label:'⚖️ 岗位手册与程序保障', desc:'明确岗位职责、底稿要素、程序权利和交付复核要求，保证作业过程可追踪、可问责、可复核。'}
 ];
 
 function renderMethodologyPage(container) {
@@ -6203,58 +6201,344 @@ function renderMethodologyPage(container) {
   var requestedChain = window._methodologyChainView || '';
   window._methodologySection = null;
   window._methodologyChainView = null;
-  var nav = METHODOLOGY_PAGE_SECTIONS.map(function(section) {
-    return '<a href="#methodology-section-' + section.id + '">' + section.label + '</a>';
+  var activeMethodSection = requestedSection || 'overview';
+  var nav = METHODOLOGY_PAGE_SECTIONS.map(function(section, index) {
+    return '<a href="#methodology-section-' + section.id + '"'
+      + (section.id === activeMethodSection ? ' class="active"' : '') + '>'
+      + '<span class="method-nav-index">' + String(index + 1).padStart(2, '0') + '</span>'
+      + '<span class="method-nav-label">' + section.label + '</span></a>';
   }).join('');
   container.innerHTML = `
     <style>
-      .method-shell{max-width:1380px;margin:0 auto;padding:24px;color:#334155}
-      .method-shell-head{margin:0 0 14px;padding:26px 28px;border:1px solid #e3e8ef;border-radius:16px;background:linear-gradient(135deg,#fbfcfe,#f8fafc)}
-      .method-kicker{font-size:12px;font-weight:700;letter-spacing:.12em;color:#9a1f2b;margin-bottom:8px}
-      .method-shell-head h1{margin:0 0 10px;color:#16233a;font-size:28px}
-      .method-shell-head p{margin:0;color:#64748b;line-height:1.85;font-size:14px}
-      .method-page-nav{position:sticky;top:0;z-index:8;display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;padding:10px;border:1px solid #e5ebf1;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(15,23,42,.05)}
-      .method-page-nav a{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:7px 11px;text-decoration:none;font-size:12px;font-weight:600}
-      .method-page-nav a:hover{border-color:#9a1f2b;color:#9a1f2b}
-      .method-section{scroll-margin-top:72px;margin:0 0 22px;border:1px solid #e5ebf1;border-radius:14px;background:#fff;overflow:hidden}
-      .method-section-head{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;padding:18px 20px;border-bottom:1px solid #edf1f5;background:#fbfcfe}
-      .method-section-num{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#16233a;color:#fff;font-weight:800}
-      .method-section-head h2{margin:0 0 4px;color:#16233a;font-size:18px}
-      .method-section-head p{margin:0;color:#64748b;font-size:12px;line-height:1.7}
-      .method-mount{min-height:90px;padding:10px;background:#fff}
-      .method-mount>.au,.method-mount>.fp-layout{max-width:none}
-      .method-mount .au{padding:24px 26px;font-size:13px;line-height:1.9}
-      .method-mount .au h1{font-size:24px}
-      .method-mount .au h2{font-size:16px}
-      .method-mount [style*="font-size:10px"]{font-size:12px!important}
-      .method-mount [style*="line-height:20px"]{line-height:1.8!important}
-      .method-chain-block{margin:10px 0 18px;border:1px solid #e6ebf1;border-radius:10px;overflow:hidden}
-      .method-chain-block>h3{margin:0;padding:13px 16px;background:#f8fafc;border-bottom:1px solid #e6ebf1;color:#16233a;font-size:14px}
-      .method-chain-block>p{margin:0;padding:10px 16px 0;color:#64748b;font-size:12px;line-height:1.7}
-      .method-chain-target{padding:8px}
-      .method-overview-grid,.method-manual-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;padding:18px}
-      .method-overview-card,.method-manual-card{padding:16px;border:1px solid #e3e8ef;border-radius:10px;background:#fff}
-      .method-overview-card b,.method-manual-card b{display:block;color:#16233a;margin-bottom:7px}
-      .method-overview-card p,.method-manual-card p{margin:0;color:#64748b;font-size:12px;line-height:1.8}
-      .method-stop{margin:0 18px 18px;padding:14px 16px;border-left:4px solid #9a1f2b;background:#fef8f8;color:#5b6573;font-size:13px;line-height:1.8}
-      .method-checklist{margin:12px 18px 20px;padding:0;list-style:none;columns:2;column-gap:28px}
-      .method-checklist li{break-inside:avoid;margin:0 0 8px;padding-left:20px;position:relative;color:#475569;font-size:13px;line-height:1.7}
-      .method-checklist li:before{content:"✓";position:absolute;left:0;color:#0e9f6e;font-weight:800}
-      @media(max-width:760px){.method-shell{padding:12px}.method-shell-head{padding:20px}.method-shell-head h1{font-size:23px}.method-page-nav{position:static}.method-section-head{grid-template-columns:40px minmax(0,1fr);padding:15px}.method-mount{padding:4px}.method-mount .au{padding:16px 12px}.method-checklist{columns:1}}
+      .method-shell{
+        --method-ink:#17273c;
+        --method-text:#405166;
+        --method-muted:#69798c;
+        --method-line:#dce4ed;
+        --method-soft:#f5f7fa;
+        --method-accent:#8f2632;
+        max-width:1500px;
+        margin:0 auto;
+        padding:36px clamp(24px,3.2vw,52px) 56px;
+        box-sizing:border-box;
+        color:var(--method-text);
+        background:var(--method-soft);
+        font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        font-size:15px;
+        line-height:1.78;
+        letter-spacing:.01em;
+        text-rendering:optimizeLegibility
+      }
+      .method-shell *{box-sizing:border-box}
+      .method-shell-head{
+        position:relative;
+        overflow:hidden;
+        margin:0 0 30px;
+        padding:46px 52px 42px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:18px;
+        color:#fff;
+        background:linear-gradient(135deg,#17273c 0%,#273e57 68%,#3b4658 100%);
+        box-shadow:0 16px 36px rgba(20,34,52,.16)
+      }
+      .method-shell-head:after{
+        content:"";
+        position:absolute;
+        right:-70px;
+        bottom:-110px;
+        width:330px;
+        height:330px;
+        border:1px solid rgba(255,255,255,.09);
+        border-radius:50%;
+        box-shadow:0 0 0 52px rgba(143,38,50,.1),0 0 0 104px rgba(255,255,255,.025)
+      }
+      .method-kicker{
+        position:relative;
+        z-index:1;
+        display:inline-flex;
+        margin:0 0 16px;
+        padding:6px 12px;
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:5px;
+        color:#f6dadd;
+        background:rgba(143,38,50,.28);
+        font-size:12px;
+        font-weight:750;
+        letter-spacing:.08em
+      }
+      .method-shell-head h1{
+        position:relative;
+        z-index:1;
+        margin:0 0 14px;
+        color:#fff;
+        font-size:34px;
+        line-height:1.3;
+        font-weight:750
+      }
+      .method-shell-head p{
+        position:relative;
+        z-index:1;
+        max-width:1040px;
+        margin:0;
+        color:#dce5ee;
+        font-size:15px;
+        line-height:2;
+        text-align:justify
+      }
+      .method-layout{
+        display:grid;
+        grid-template-columns:224px minmax(0,1fr);
+        gap:30px;
+        align-items:start
+      }
+      .method-page-nav{
+        position:sticky;
+        top:18px;
+        z-index:8;
+        display:block;
+        padding:18px 14px 16px;
+        border:1px solid var(--method-line);
+        border-radius:13px;
+        background:rgba(255,255,255,.97);
+        box-shadow:0 8px 24px rgba(20,34,52,.06)
+      }
+      .method-nav-title{
+        display:block;
+        margin:0 8px 12px;
+        padding-bottom:11px;
+        border-bottom:1px solid #e8edf3;
+        color:var(--method-ink);
+        font-size:13px;
+        font-weight:750;
+        letter-spacing:.08em
+      }
+      .method-nav-note{
+        display:block;
+        margin:10px 8px 2px;
+        color:#93a0b1;
+        font-size:11px;
+        line-height:1.65
+      }
+      .method-page-nav a{
+        display:grid;
+        grid-template-columns:28px minmax(0,1fr);
+        gap:9px;
+        align-items:center;
+        margin:3px 0;
+        padding:9px;
+        border:1px solid transparent;
+        border-radius:7px;
+        color:#56667a;
+        text-decoration:none;
+        font-size:13px;
+        font-weight:600;
+        line-height:1.45;
+        transition:background .16s ease,border-color .16s ease,color .16s ease
+      }
+      .method-page-nav a:hover{
+        border-color:#ead9dc;
+        color:var(--method-accent);
+        background:#fdf8f8
+      }
+      .method-page-nav a.active{
+        border-color:#e6cfd3;
+        color:#76202a;
+        background:#fbf0f1;
+        box-shadow:inset 3px 0 0 var(--method-accent)
+      }
+      .method-nav-index{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:26px;
+        height:26px;
+        border-radius:6px;
+        color:#718197;
+        background:#edf2f7;
+        font-size:10px;
+        font-weight:800
+      }
+      .method-page-nav a.active .method-nav-index{color:#fff;background:var(--method-accent)}
+      .method-content{min-width:0}
+      .method-section{
+        scroll-margin-top:24px;
+        margin:0 0 28px;
+        border:1px solid var(--method-line);
+        border-radius:15px;
+        background:#fff;
+        overflow:hidden;
+        box-shadow:0 8px 24px rgba(20,34,52,.045)
+      }
+      .method-section-head{
+        display:grid;
+        grid-template-columns:42px minmax(0,1fr);
+        gap:17px;
+        align-items:start;
+        padding:32px clamp(28px,3vw,40px) 22px;
+        border-bottom:1px solid #e5ebf2;
+        background:#fff
+      }
+      .method-section-num{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        width:42px;
+        height:42px;
+        margin-top:2px;
+        border-radius:8px;
+        color:#fff;
+        background:var(--method-ink);
+        font-size:12px;
+        font-weight:800;
+        box-shadow:0 5px 12px rgba(23,39,60,.16)
+      }
+      .method-section-kicker{
+        display:block;
+        margin-bottom:4px;
+        color:#8a97a7;
+        font-size:10px;
+        font-weight:750;
+        letter-spacing:.12em
+      }
+      .method-section-head h2{
+        margin:0 0 7px;
+        color:var(--method-ink);
+        font-size:23px;
+        line-height:1.4;
+        font-weight:750
+      }
+      .method-section-head p{
+        max-width:900px;
+        margin:0;
+        color:var(--method-muted);
+        font-size:14px;
+        line-height:1.85
+      }
+      .method-mount{
+        min-height:90px;
+        padding:28px clamp(28px,3vw,40px) 36px;
+        color:var(--method-text);
+        background:#fff;
+        font-size:14px;
+        line-height:1.85
+      }
+      .method-mount>.au,.method-mount>.fp-layout{max-width:none!important;margin:0!important}
+      .method-mount .au{padding:0!important;font-size:14px!important;line-height:1.88!important}
+      .method-mount .au-wrap,.method-mount .fp-layout{display:block!important}
+      .method-mount .au-toc,.method-mount .fp-toc{display:none!important}
+      .method-mount .fp-layout{padding:0!important;background:#fff!important}
+      .method-mount .fp-main{font-size:14px!important;line-height:1.85!important}
+      .method-mount .au h1{font-size:25px!important;line-height:1.45!important}
+      .method-mount .au h2{font-size:18px!important;line-height:1.5!important}
+      .method-mount .au p{margin-bottom:15px!important;line-height:1.9!important;text-align:justify}
+      .method-mount .au .layer{margin:30px 0 24px!important;padding-bottom:17px!important}
+      .method-mount .au .layer .ln{font-size:11px!important}
+      .method-mount .au .layer .lt{font-size:20px!important}
+      .method-mount .au .layer .ld{font-size:14px!important;line-height:1.85!important}
+      .method-mount .au .card{margin-bottom:14px!important;padding:17px 19px!important}
+      .method-mount .au .card .ct{font-size:15px!important}
+      .method-mount .au .card .cx{font-size:13px!important;line-height:1.85!important}
+      .method-mount .au .step{margin-bottom:18px!important;padding-left:21px!important}
+      .method-mount .au .step .sh{font-size:14px!important}
+      .method-mount .au .maxim{margin:18px 0!important;padding:16px 18px!important;font-size:13px!important;line-height:1.85!important}
+      .method-mount [style*="font-size:10px"]{font-size:13px!important}
+      .method-mount [style*="font-size:11px"]{font-size:13px!important}
+      .method-mount [style*="font-size:12px"]{font-size:13px!important}
+      .method-mount [style*="line-height:20px"]{line-height:1.82!important}
+      .method-mount table{font-size:13px!important;line-height:1.7!important}
+      .method-mount table th{padding:11px 13px!important;line-height:1.55!important}
+      .method-mount table td{padding:10px 13px!important;line-height:1.7!important;vertical-align:top}
+      .method-mount input,.method-mount select,.method-mount textarea{min-height:38px;font-family:inherit;font-size:14px!important}
+      .method-chain-block{margin:0 0 20px;border:1px solid #dce4ed;border-radius:10px;overflow:hidden}
+      .method-chain-block>h3{margin:0;padding:17px 19px;background:#f7f9fc;border-bottom:1px solid #e3e9f0;color:var(--method-ink);font-size:16px}
+      .method-chain-block>p{margin:0;padding:14px 19px 0;color:var(--method-muted);font-size:13px;line-height:1.82}
+      .method-chain-target{padding:13px}
+      .method-overview-grid,.method-manual-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:15px;padding:0 0 22px}
+      .method-overview-card,.method-manual-card{padding:20px 19px;border:1px solid #dfe6ee;border-radius:9px;background:#fff;box-shadow:0 3px 10px rgba(20,34,52,.025)}
+      .method-overview-card b,.method-manual-card b{display:block;margin-bottom:9px;color:var(--method-ink);font-size:14px}
+      .method-overview-card p,.method-manual-card p{margin:0;color:#657589;font-size:13px;line-height:1.85;text-align:justify}
+      .method-stop{margin:0 0 5px;padding:18px 20px;border-left:4px solid var(--method-accent);border-radius:7px;background:#fdf6f7;color:#55667a;font-size:14px;line-height:1.9}
+      .method-checklist{margin:17px 0 2px;padding:0;list-style:none;columns:2;column-gap:32px}
+      .method-checklist li{break-inside:avoid;position:relative;margin:0 0 11px;padding-left:22px;color:#4e6075;font-size:14px;line-height:1.8}
+      .method-checklist li:before{content:"✓";position:absolute;left:0;color:#0e8b63;font-weight:800}
+      .method-mount .rr-pre,.method-mount .rr-rule .rb{font-size:13px!important;line-height:1.82!important}
+      .method-mount .rr-tax{gap:13px!important;margin-bottom:18px!important}
+      .method-mount .rr-tax .rt{padding:14px!important;font-size:13px!important}
+      .method-mount .rr-search{gap:13px!important;margin-bottom:18px!important}
+      .method-mount .rr-search input,.method-mount .rr-search select{padding:9px 10px!important;font-size:14px!important}
+      .method-mount .rr-rule{margin-bottom:15px!important;padding-bottom:15px!important}
+      .method-mount .rr-rule .rh{font-size:14px!important}
+      .method-mount .rr-table{font-size:13px!important}
+      .method-mount .mr-wrap{max-width:none!important;padding:0!important}
+      .method-mount .mr-lead{margin-bottom:19px!important;padding:20px 21px!important}
+      .method-mount .mr-lead h3{font-size:16px!important}
+      .method-mount .mr-lead p{font-size:13px!important;line-height:1.85!important}
+      .method-mount .mr-stats,.method-mount .mr-gates{gap:13px!important}
+      .method-mount .mr-stat,.method-mount .mr-gate{padding:16px!important}
+      .method-mount .mr-gate b{font-size:13px!important}
+      .method-mount .mr-gate span,.method-mount .mr-note{font-size:13px!important;line-height:1.82!important}
+      .method-mount .mr-table{font-size:13px!important}
+      .method-mount .md-domain{padding:0!important;font-size:14px!important;line-height:1.85!important}
+      .method-mount .md-domain-intro,.method-mount .md-domain-output{padding:18px 20px!important;line-height:1.9!important}
+      .method-mount .md-domain h3{margin:26px 0 13px!important;font-size:18px!important}
+      .method-mount .md-domain-grid{gap:15px!important}
+      .method-mount .md-domain-card{padding:19px!important}
+      .method-mount .md-domain-card h4{font-size:15px!important}
+      .method-mount .md-domain-card p{font-size:13px!important;line-height:1.82!important}
+      @media(max-width:1180px){
+        .method-shell{padding:28px 24px 46px}
+        .method-layout{display:block}
+        .method-section{scroll-margin-top:82px}
+        .method-page-nav{position:sticky;top:0;display:flex;gap:7px;margin-bottom:20px;padding:11px;overflow-x:auto;border-radius:10px}
+        .method-nav-title,.method-nav-note{display:none}
+        .method-page-nav a{flex:0 0 auto;margin:0;padding:8px 10px}
+        .method-page-nav a.active{box-shadow:inset 0 -3px 0 var(--method-accent)}
+      }
+      @media(max-width:820px){
+        .method-shell-head{padding:36px 34px}
+        .method-shell-head h1{font-size:29px}
+        .method-section-head{padding:28px 25px 20px}
+        .method-mount{padding:24px 25px 30px}
+      }
+      @media(max-width:680px){
+        .method-shell{padding:14px 12px 34px;font-size:14px}
+        .method-shell-head{margin-bottom:18px;padding:28px 22px;border-radius:13px}
+        .method-shell-head h1{font-size:25px}
+        .method-shell-head p{font-size:14px;line-height:1.85;text-align:left}
+        .method-section{margin-bottom:18px;border-radius:11px}
+        .method-section-head{grid-template-columns:36px minmax(0,1fr);gap:12px;padding:23px 18px 18px}
+        .method-section-num{width:36px;height:36px}
+        .method-section-head h2{font-size:20px}
+        .method-section-head p{font-size:13px}
+        .method-mount{padding:20px 18px 25px;overflow-x:auto}
+        .method-overview-grid,.method-manual-grid{grid-template-columns:1fr}
+        .method-checklist{columns:1}
+        .method-mount .au p,.method-overview-card p,.method-manual-card p{text-align:left}
+      }
     </style>
-    <div class="method-shell">
+    <div class="method-shell" data-method-layout="executive">
       <header class="method-shell-head">
-        <div class="method-kicker">单页融合 · 方法驱动 · 证据闭环</div>
+        <div class="method-kicker">程序规范 · 证据闭环 · 审慎判断</div>
         <h1>📖 稽查方法论</h1>
-        <p>本页把原“文件解析、分析结果、疑点库、域分析、线索链、证据链、分析链、紧凑视图、稽查员手册”按真实作业顺序融为一个体系。方法规定怎么查，数据说明查到了什么，证据决定能否升级，程序和人工复核决定能否交付。</p>
+        <p>稽查方法论以主体与期间确认、资料可追溯、规则适用、跨域核验和证据闭环为主线，指导从查前准备到专业判断的完整作业。每项疑点都必须回到原始资料，经过适用性筛选、合理解释检验和人工复核；证据不足或程序条件未满足时，仅形成待核事项，不进入正式结论。</p>
       </header>
-      <nav class="method-page-nav" aria-label="稽查方法论单页目录">${nav}</nav>
-      ${METHODOLOGY_PAGE_SECTIONS.map(function(section,index){
-        return '<section id="methodology-section-' + section.id + '" class="method-section">'
-          + '<div class="method-section-head"><span class="method-section-num">' + String(index + 1).padStart(2,'0') + '</span>'
-          + '<div><h2>' + section.label + '</h2><p>' + section.desc + '</p></div></div>'
-          + '<div id="methodology-mount-' + section.id + '" class="method-mount"></div></section>';
-      }).join('')}
+      <div class="method-layout">
+        <nav class="method-page-nav" aria-label="稽查方法论作业目录">
+          <b class="method-nav-title">作业目录</b>
+          ${nav}
+          <small class="method-nav-note">各环节按证据成熟度连续推进，前置条件未满足时必须停在当前环节。</small>
+        </nav>
+        <main class="method-content">
+          ${METHODOLOGY_PAGE_SECTIONS.map(function(section,index){
+            return '<section id="methodology-section-' + section.id + '" class="method-section">'
+              + '<div class="method-section-head"><span class="method-section-num">' + String(index + 1).padStart(2,'0') + '</span>'
+              + '<div><span class="method-section-kicker">作业环节 · ' + String(index + 1).padStart(2,'0')
+              + ' / ' + String(METHODOLOGY_PAGE_SECTIONS.length).padStart(2,'0') + '</span><h2>' + section.label
+              + '</h2><p>' + section.desc + '</p></div></div>'
+              + '<div id="methodology-mount-' + section.id + '" class="method-mount"></div></section>';
+          }).join('')}
+        </main>
+      </div>
     </div>`;
   _renderMethodologyOverview(document.getElementById('methodology-mount-overview'));
   _renderMethodologyMount('guide', _renderMethodologyGuide);
@@ -6278,19 +6562,19 @@ function _renderMethodologyMount(sectionId, renderer) {
   if (!target) return;
   target.innerHTML = '<div style="padding:22px;color:#64748b">正在载入...</div>';
   if (typeof renderer !== 'function') {
-    target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入函数不可用，请刷新后重试。</div>';
+    target.innerHTML = '<div style="padding:22px;color:#b91c1c">该作业内容暂时不可用，请刷新后重试。</div>';
     return;
   }
   try {
     var result = renderer(target);
     if (result && typeof result.catch === 'function') {
       result.catch(function(error){
-        target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入失败：'
+        target.innerHTML = '<div style="padding:22px;color:#b91c1c">作业内容载入失败：'
           + escHtml(error && error.message ? error.message : '未知错误') + '</div>';
       });
     }
   } catch (error) {
-    target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入失败：'
+    target.innerHTML = '<div style="padding:22px;color:#b91c1c">作业内容载入失败：'
       + escHtml(error && error.message ? error.message : '未知错误') + '</div>';
   }
 }
@@ -6459,7 +6743,7 @@ function renderMethodologyPart2(){
   h+='<p><b>教育培训</b>·预收款确认、课时消耗、教材收入、线上/线下差异、民办非企业税收</p>';
   h+='<p><em>行业包为增量检测规则——不替代通用规则，在通用规则基础上叠加行业特化维度。未匹配行业的，仅执行通用规则。</em></p></section>';
 
-  h+='<div class="card"><div class="ct">方法与数据一体化</div><div class="cx">疑点规则、业务域、执行结果和三类链路已融入本页对应分区。总纲只定义作业逻辑，不再重复粘贴规则或链条正文。</div></div>';
+  h+='<div class="card"><div class="ct">方法与数据协同</div><div class="cx">疑点规则定义筛查条件，业务域组织核验任务，执行结果呈现当前状态，调查链、证据链和分析链共同保证专业判断能够逐级回溯。</div></div>';
 
   // ═══ 第四层·过滤 ═══
   h+='<h2 id="au-L4">第四层 · 疑点过滤 —— 从粗筛信号到可核验事项</h2><p>布网阶段可能产生大量粗筛信号。过滤的目标不是追求更高风险数量，而是剔除不适用、重复、低质量和存在合理解释的项目，把剩余事项送入证据核验。</p>';

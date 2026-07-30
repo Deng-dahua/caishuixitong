@@ -1,4 +1,4 @@
-// ==================== 报告编制要求（编审一体单页版） ====================
+// ==================== 报告编制要求（编审闭环版） ====================
 
 var REPORT_SECTION_ALIASES = {
   requirements: 'rpt-1',
@@ -40,7 +40,7 @@ function renderReportStandards(container) {
           <div class="rpt-card"><b>检查工作底稿或检查报告</b><span>按实际授权、程序和单位制度编制，区分已查明事实、专业判断、当事人意见和未解决事项。</span></div>
           <div class="rpt-card"><b>法定执法文书</b><span>只能由有权主体依现行程序制作。文号、章节、告知、签章和送达要求以适用的法定文书规范为准。</span></div>
         </div>
-        <p><strong>四项开篇声明：</strong>报告目的与使用人、对象与期间、资料和方法范围、限制事项与责任边界。文种不明、授权不明或读者范围不明时，页面只能形成内部草稿。</p>
+        <p><strong>四项开篇声明：</strong>报告目的与使用人、对象与期间、资料和方法范围、限制事项与责任边界。文种不明、授权不明或读者范围不明时，系统只能形成内部草稿。</p>
         <p><strong>用语分层：</strong>客观事实使用“资料显示、经核对”；分析判断使用“存在差异、与正常逻辑不一致、尚需核实”；建议使用“建议补充、建议复核”。只有在适用文种、权限、程序和证据均允许时，才使用具有法定含义的定性词。模型推理过程、密钥、内部参数、代码位置和系统日志不得进入对外交付文本。</p>
       `
     },
@@ -151,8 +151,8 @@ function renderReportStandards(container) {
     {
       id: 'rpt-8',
       kicker: '08',
-      title: '审核嵌入编制，而不是另设模板页',
-      summary: '原“审核模板”的有效要求已经分布到每条发现和每个放行门；本节只定义统一复核记录。',
+      title: '编制全过程审核',
+      summary: '审核与编制同步推进，每条发现、每项测算和每次修改都使用统一字段记录复核结论、缺陷、依据和责任链。',
       body: `
         <div class="rpt-flow"><span>编制自检</span><i>→</i><span>事实证据复核</span><i>→</i><span>法律与金额复核</span><i>→</i><span>对抗性复核</span><i>→</i><span>批准放行</span></div>
         <div class="rpt-table-wrap"><table class="rpt-table">
@@ -173,7 +173,7 @@ function renderReportStandards(container) {
       id: 'rpt-9',
       kicker: '09',
       title: '常见误判的归因与复核矩阵',
-      summary: '原20个场景按误判根因归并，不把个案答案、行业经验或静态法条固化成通用结论。',
+      summary: '将典型误判按根因归类，统一识别对象错配、数据范围错误、时间差异、正常商业解释和税务例外。',
       body: `
         <div class="rpt-table-wrap"><table class="rpt-table">
           <thead><tr><th>误判根因</th><th>覆盖的典型现象</th><th>进入报告前必须复核</th></tr></thead>
@@ -192,7 +192,7 @@ function renderReportStandards(container) {
       id: 'rpt-10',
       kicker: '10',
       title: '质量放行、版本交付与受控反馈',
-      summary: '把内容质量、程序权利、版本责任和系统学习统一收口，形成可回退的交付闭环。',
+      summary: '以内容质量、程序权利、版本责任和受控反馈作为最终放行条件，保证交付结果完整、可追溯、可回退。',
       body: `
         <div class="rpt-checks">
           <span>主体、期间、文种与授权一致</span><span>事实、意见与法定认定已分层</span>
@@ -213,83 +213,308 @@ function renderReportStandards(container) {
     }
   ];
 
-  var toc = sections.map(function(section) {
-    return '<a href="#' + section.id + '"><span>' + section.kicker + '</span>' + section.title + '</a>';
+  var toc = sections.map(function(section, index) {
+    return '<a href="#' + section.id + '"' + (index === 0 ? ' class="active"' : '') + '>'
+      + '<span>' + section.kicker + '</span><b>' + section.title + '</b></a>';
   }).join('');
 
   var content = sections.map(function(section) {
     return '<section id="' + section.id + '" class="rpt-section">'
-      + '<div class="rpt-section-kicker">' + section.kicker + '</div>'
+      + '<header class="rpt-section-head"><span class="rpt-section-number">' + section.kicker + '</span>'
+      + '<div><span class="rpt-section-label">编制作业 · ' + section.kicker + ' / '
+      + String(sections.length).padStart(2, '0') + '</span>'
       + '<h2>' + section.title + '</h2>'
-      + '<p class="rpt-summary">' + section.summary + '</p>'
-      + section.body
+      + '<p class="rpt-summary">' + section.summary + '</p></div></header>'
+      + '<div class="rpt-section-body">' + section.body + '</div>'
       + '</section>';
   }).join('');
 
   container.innerHTML = `
     <style>
-      .rpt-unified{max-width:1380px;margin:0 auto;padding:24px;color:#344256;font:14px/1.88 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+      .rpt-unified{
+        --rpt-ink:#152b3a;
+        --rpt-text:#405466;
+        --rpt-muted:#6a7b8c;
+        --rpt-line:#dce5eb;
+        --rpt-soft:#f4f7f9;
+        --rpt-accent:#176d7c;
+        max-width:1500px;
+        margin:0 auto;
+        padding:36px clamp(24px,3.2vw,52px) 56px;
+        box-sizing:border-box;
+        color:var(--rpt-text);
+        background:var(--rpt-soft);
+        font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        font-size:15px;
+        line-height:1.78;
+        letter-spacing:.01em;
+        text-rendering:optimizeLegibility
+      }
       .rpt-unified *{box-sizing:border-box}
-      .rpt-hero{position:relative;overflow:hidden;margin:0 0 14px;padding:30px 34px;border:1px solid #d8e7ea;border-radius:16px;background:linear-gradient(135deg,#f3fbfc 0%,#f8fafc 58%,#f3f7ff 100%)}
-      .rpt-hero:after{content:"";position:absolute;right:-65px;top:-80px;width:240px;height:240px;border-radius:50%;background:rgba(14,116,144,.07)}
-      .rpt-eyebrow{margin:0 0 8px;color:#0e7490;font-size:12px;font-weight:800;letter-spacing:.12em}
-      .rpt-title{position:relative;z-index:1;margin:0 0 9px;color:#12213a;font-size:28px;line-height:1.35;font-weight:850}
-      .rpt-lead{position:relative;z-index:1;max-width:980px;margin:0;color:#5d6b7c;font-size:14px;line-height:1.85}
-      .rpt-stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 18px}
-      .rpt-stage{padding:10px 12px;border:1px solid #e2eaf0;border-radius:10px;background:#fff;color:#526174;font-size:12px;text-align:center}
-      .rpt-stage b{display:block;color:#0e7490;font-size:13px}
-      .rpt-layout{display:grid;grid-template-columns:228px minmax(0,1fr);gap:34px;align-items:start}
-      .rpt-toc{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto;padding:12px 0;border:1px solid #e3eaf0;border-radius:12px;background:#fff}
-      .rpt-toc-title{display:block;margin:0 14px 7px;padding:0 0 9px;border-bottom:1px solid #edf1f5;color:#94a3b8;font-size:11px;font-weight:800;letter-spacing:.14em}
-      .rpt-toc a{display:flex;gap:8px;align-items:flex-start;padding:7px 14px;color:#5f6d7d;text-decoration:none;line-height:1.45;border-left:3px solid transparent}
-      .rpt-toc a span{min-width:20px;color:#9aabba;font-size:10px;font-weight:800}
-      .rpt-toc a:hover{color:#0e7490;border-left-color:#0e7490;background:#f4fafb}
-      .rpt-content{min-width:0;padding:2px 0}
-      .rpt-section{position:relative;margin:0 0 18px;padding:26px 30px;border:1px solid #e3e9ef;border-radius:14px;background:#fff;scroll-margin-top:18px}
-      .rpt-section-kicker{position:absolute;right:24px;top:20px;color:#e2eaef;font-size:34px;font-weight:900;line-height:1}
-      .rpt-section h2{position:relative;margin:0 0 7px;padding-right:45px;color:#17253b;font-size:20px;line-height:1.45}
-      .rpt-summary{margin:0 0 18px;padding:0 48px 13px 0;color:#667588;border-bottom:1px solid #edf1f5}
-      .rpt-section p{margin:0 0 13px;text-align:justify}
-      .rpt-section strong,.rpt-section b{color:#263a50}
-      .rpt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:13px 0 18px}
+      .rpt-hero{
+        position:relative;
+        overflow:hidden;
+        margin:0 0 26px;
+        padding:46px 52px 42px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:18px;
+        color:#fff;
+        background:linear-gradient(135deg,#153541 0%,#1d5360 62%,#267383 100%);
+        box-shadow:0 16px 36px rgba(17,49,60,.16)
+      }
+      .rpt-hero:after{
+        content:"";
+        position:absolute;
+        right:-70px;
+        bottom:-110px;
+        width:330px;
+        height:330px;
+        border:1px solid rgba(255,255,255,.1);
+        border-radius:50%;
+        box-shadow:0 0 0 52px rgba(255,255,255,.035),0 0 0 104px rgba(255,255,255,.025)
+      }
+      .rpt-eyebrow{
+        position:relative;
+        z-index:1;
+        display:inline-flex;
+        margin:0 0 16px;
+        padding:6px 12px;
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:5px;
+        color:#d7f1f3;
+        background:rgba(255,255,255,.08);
+        font-size:12px;
+        font-weight:750;
+        letter-spacing:.08em
+      }
+      .rpt-title{
+        position:relative;
+        z-index:1;
+        margin:0 0 14px;
+        color:#fff;
+        font-size:34px;
+        line-height:1.3;
+        font-weight:750
+      }
+      .rpt-lead{
+        position:relative;
+        z-index:1;
+        max-width:1040px;
+        margin:0;
+        color:#d9eaed;
+        font-size:15px;
+        line-height:2;
+        text-align:justify
+      }
+      .rpt-stages{
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:12px;
+        margin:0 0 30px
+      }
+      .rpt-stage{
+        padding:15px 14px;
+        border:1px solid var(--rpt-line);
+        border-radius:9px;
+        color:#5d6f80;
+        background:#fff;
+        box-shadow:0 4px 12px rgba(21,43,58,.035);
+        font-size:12px;
+        line-height:1.6;
+        text-align:center
+      }
+      .rpt-stage b{display:block;margin-bottom:3px;color:var(--rpt-accent);font-size:14px}
+      .rpt-layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:30px;align-items:start}
+      .rpt-toc{
+        position:sticky;
+        top:18px;
+        max-height:calc(100vh - 36px);
+        overflow:auto;
+        padding:18px 14px 16px;
+        border:1px solid var(--rpt-line);
+        border-radius:13px;
+        background:rgba(255,255,255,.97);
+        box-shadow:0 8px 24px rgba(21,43,58,.06)
+      }
+      .rpt-toc-title{
+        display:block;
+        margin:0 8px 12px;
+        padding-bottom:11px;
+        border-bottom:1px solid #e8edf1;
+        color:var(--rpt-ink);
+        font-size:13px;
+        font-weight:750;
+        letter-spacing:.08em
+      }
+      .rpt-toc-note{
+        display:block;
+        margin:10px 8px 2px;
+        color:#93a0ad;
+        font-size:11px;
+        line-height:1.65
+      }
+      .rpt-toc a{
+        display:grid;
+        grid-template-columns:28px minmax(0,1fr);
+        gap:9px;
+        align-items:center;
+        margin:3px 0;
+        padding:9px;
+        border:1px solid transparent;
+        border-radius:7px;
+        color:#56697a;
+        text-decoration:none;
+        font-size:13px;
+        line-height:1.45;
+        transition:background .16s ease,border-color .16s ease,color .16s ease
+      }
+      .rpt-toc a span{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:26px;
+        height:26px;
+        border-radius:6px;
+        color:#718392;
+        background:#edf2f5;
+        font-size:10px;
+        font-weight:800
+      }
+      .rpt-toc a b{color:inherit;font-weight:600}
+      .rpt-toc a:hover{border-color:#d4e5e8;color:var(--rpt-accent);background:#f3f9fa}
+      .rpt-toc a.active{border-color:#cce0e4;color:#145d69;background:#eaf5f6;box-shadow:inset 3px 0 0 var(--rpt-accent)}
+      .rpt-toc a.active span{color:#fff;background:var(--rpt-accent)}
+      .rpt-content{min-width:0}
+      .rpt-section{
+        scroll-margin-top:24px;
+        margin:0 0 28px;
+        padding:34px clamp(28px,3vw,40px) 38px;
+        border:1px solid var(--rpt-line);
+        border-radius:15px;
+        background:#fff;
+        box-shadow:0 8px 24px rgba(21,43,58,.045)
+      }
+      .rpt-section-head{
+        display:grid;
+        grid-template-columns:42px minmax(0,1fr);
+        gap:17px;
+        align-items:start;
+        margin-bottom:26px;
+        padding-bottom:21px;
+        border-bottom:1px solid #e5ebef
+      }
+      .rpt-section-number{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:42px;
+        height:42px;
+        margin-top:2px;
+        border-radius:8px;
+        color:#fff;
+        background:var(--rpt-ink);
+        font-size:12px;
+        font-weight:800;
+        box-shadow:0 5px 12px rgba(21,43,58,.16)
+      }
+      .rpt-section-label{
+        display:block;
+        margin-bottom:4px;
+        color:#8696a4;
+        font-size:10px;
+        font-weight:750;
+        letter-spacing:.12em
+      }
+      .rpt-section h2{
+        margin:0 0 7px;
+        color:var(--rpt-ink);
+        font-size:23px;
+        line-height:1.4;
+        font-weight:750
+      }
+      .rpt-summary{
+        max-width:900px;
+        margin:0;
+        color:var(--rpt-muted);
+        font-size:14px;
+        line-height:1.85
+      }
+      .rpt-section-body{font-size:14px;line-height:1.88}
+      .rpt-section-body p{margin:0 0 16px;line-height:1.92;text-align:justify}
+      .rpt-section strong,.rpt-section b{color:#263d4d}
+      .rpt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:17px 0 22px}
       .rpt-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .rpt-card{padding:14px 16px;border:1px solid #dfe7ee;border-radius:10px;background:#fafcfd}
-      .rpt-card b{display:block;margin-bottom:5px;color:#21445a}
-      .rpt-card span{display:block;color:#627183}
+      .rpt-card{padding:18px 19px;border:1px solid #dfe7ec;border-radius:9px;background:#fafcfd}
+      .rpt-card b{display:block;margin-bottom:7px;color:#214959;font-size:14px}
+      .rpt-card span{display:block;color:#627485;font-size:13px;line-height:1.82}
       .rpt-card.ok{border-color:#bbebd4;background:#f4fcf7}.rpt-card.ok b{color:#087f5b}
       .rpt-card.warn{border-color:#f5df99;background:#fffaf0}.rpt-card.warn b{color:#a16207}
       .rpt-card.bad{border-color:#f1c7c7;background:#fff7f7}.rpt-card.bad b{color:#b42318}
-      .rpt-callout{display:flex;gap:12px;margin:13px 0 18px;padding:13px 16px;border-left:4px solid #0e7490;border-radius:7px;background:#f1fafb}
-      .rpt-callout b{flex:0 0 106px;color:#0e7490}
-      .rpt-callout span{color:#546577}
+      .rpt-callout{display:flex;gap:15px;margin:17px 0 22px;padding:17px 20px;border-left:4px solid var(--rpt-accent);border-radius:7px;background:#f1f8f9;line-height:1.88}
+      .rpt-callout b{flex:0 0 112px;color:var(--rpt-accent)}
+      .rpt-callout span{color:#536779}
       .rpt-callout.critical{border-left-color:#b42318;background:#fff7f7}.rpt-callout.critical b{color:#b42318}
       .rpt-callout.stop{border-left-color:#a16207;background:#fffaf0}.rpt-callout.stop b{color:#a16207}
-      .rpt-steps{margin:10px 0 18px;padding:0;list-style:none;counter-reset:rpt-step}
-      .rpt-steps li{position:relative;margin:0 0 10px;padding:3px 0 3px 36px;counter-increment:rpt-step}
-      .rpt-steps li:before{content:counter(rpt-step);position:absolute;left:0;top:3px;width:24px;height:24px;border-radius:50%;background:#e8f5f7;color:#0e7490;font-size:12px;font-weight:800;text-align:center;line-height:24px}
-      .rpt-flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0 19px}
-      .rpt-flow span{padding:6px 11px;border-radius:16px;background:#eaf6f8;color:#0e7490;font-weight:750}
+      .rpt-steps{margin:14px 0 22px;padding:0;list-style:none;counter-reset:rpt-step}
+      .rpt-steps li{position:relative;margin:0 0 13px;padding:4px 0 4px 40px;line-height:1.85;counter-increment:rpt-step}
+      .rpt-steps li:before{content:counter(rpt-step);position:absolute;left:0;top:3px;width:27px;height:27px;border-radius:50%;background:#e5f3f5;color:var(--rpt-accent);font-size:12px;font-weight:800;text-align:center;line-height:27px}
+      .rpt-flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 23px}
+      .rpt-flow span{padding:8px 13px;border-radius:18px;background:#e9f5f6;color:var(--rpt-accent);font-size:13px;font-weight:750}
       .rpt-flow i{color:#afbdc9;font-style:normal}
-      .rpt-list{margin:10px 0 18px}
-      .rpt-list>div{display:grid;grid-template-columns:188px 1fr;gap:13px;padding:9px 0;border-bottom:1px dashed #e1e8ee}
-      .rpt-list.compact>div{grid-template-columns:150px 1fr}
-      .rpt-list span{color:#5b6a7b}
-      .rpt-table-wrap{margin:13px 0 18px;overflow:auto;border:1px solid #e1e8ee;border-radius:10px}
-      .rpt-table{width:100%;min-width:680px;border-collapse:collapse;background:#fff;font-size:13px}
-      .rpt-table th{padding:10px 12px;background:#f2f7f9;color:#28465a;text-align:left;font-weight:750}
-      .rpt-table td{padding:10px 12px;border-top:1px solid #e8edf2;vertical-align:top;color:#5a6878}
+      .rpt-list{margin:14px 0 22px}
+      .rpt-list>div{display:grid;grid-template-columns:195px 1fr;gap:16px;padding:13px 0;border-bottom:1px dashed #dde6eb;line-height:1.82}
+      .rpt-list.compact>div{grid-template-columns:158px 1fr}
+      .rpt-list span{color:#5b6e7e}
+      .rpt-table-wrap{margin:17px 0 22px;overflow:auto;border:1px solid #dee7ec;border-radius:10px}
+      .rpt-table{width:100%;min-width:680px;border-collapse:collapse;background:#fff;font-size:13px;line-height:1.7}
+      .rpt-table th{padding:12px 14px;background:#f1f7f8;color:#284b58;text-align:left;font-weight:750;line-height:1.55}
+      .rpt-table td{padding:12px 14px;border-top:1px solid #e6edf1;vertical-align:top;color:#596b79;line-height:1.72}
       .rpt-table td:first-child{color:#2b3d51;font-weight:650}
-      .rpt-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:13px 0 18px}
-      .rpt-checks span{position:relative;padding:8px 12px 8px 32px;border:1px solid #e3e9ef;border-radius:8px;background:#fbfcfd;color:#59697a}
-      .rpt-checks span:before{content:"✓";position:absolute;left:11px;color:#0e7490;font-weight:900}
-      @media(max-width:1000px){.rpt-stages{grid-template-columns:repeat(2,minmax(0,1fr))}.rpt-layout{grid-template-columns:1fr}.rpt-toc{position:static;max-height:none;display:flex;flex-wrap:wrap;gap:3px;padding:10px}.rpt-toc-title{width:100%}.rpt-toc a{width:calc(50% - 2px);border-left:0}.rpt-grid.three{grid-template-columns:1fr}.rpt-grid.three.release{grid-template-columns:repeat(3,minmax(0,1fr))}}
-      @media(max-width:720px){.rpt-unified{padding:14px}.rpt-hero{padding:23px 20px}.rpt-title{font-size:24px}.rpt-stages{grid-template-columns:1fr 1fr}.rpt-section{padding:22px 18px}.rpt-toc a{width:100%}.rpt-grid,.rpt-grid.three,.rpt-grid.three.release,.rpt-checks{grid-template-columns:1fr}.rpt-list>div,.rpt-list.compact>div{grid-template-columns:1fr;gap:2px}.rpt-callout{display:block}.rpt-callout b{display:block;margin-bottom:5px}.rpt-summary{padding-right:32px}}
+      .rpt-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:17px 0 22px}
+      .rpt-checks span{position:relative;padding:11px 13px 11px 35px;border:1px solid #e0e7ec;border-radius:8px;background:#fbfcfd;color:#596b7a;line-height:1.65}
+      .rpt-checks span:before{content:"✓";position:absolute;left:12px;color:var(--rpt-accent);font-weight:900}
+      @media(max-width:1180px){
+        .rpt-unified{padding:28px 24px 46px}
+        .rpt-stages{margin-bottom:20px}
+        .rpt-layout{display:block}
+        .rpt-section{scroll-margin-top:82px}
+        .rpt-toc{position:sticky;top:0;display:flex;gap:7px;max-height:none;margin-bottom:20px;padding:11px;overflow-x:auto;border-radius:10px}
+        .rpt-toc-title,.rpt-toc-note{display:none}
+        .rpt-toc a{flex:0 0 auto;margin:0;padding:8px 10px}
+        .rpt-toc a.active{box-shadow:inset 0 -3px 0 var(--rpt-accent)}
+        .rpt-grid.three{grid-template-columns:1fr}
+        .rpt-grid.three.release{grid-template-columns:repeat(3,minmax(0,1fr))}
+      }
+      @media(max-width:820px){
+        .rpt-hero{padding:36px 34px}
+        .rpt-title{font-size:29px}
+        .rpt-stages{grid-template-columns:repeat(3,minmax(0,1fr))}
+        .rpt-section{padding:28px 25px 31px}
+      }
+      @media(max-width:680px){
+        .rpt-unified{padding:14px 12px 34px;font-size:14px}
+        .rpt-hero{margin-bottom:18px;padding:28px 22px;border-radius:13px}
+        .rpt-title{font-size:25px}
+        .rpt-lead{font-size:14px;line-height:1.85;text-align:left}
+        .rpt-stages{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+        .rpt-stage{padding:11px 10px}
+        .rpt-section{margin-bottom:18px;padding:23px 18px 26px;border-radius:11px}
+        .rpt-section-head{grid-template-columns:36px minmax(0,1fr);gap:12px;margin-bottom:20px;padding-bottom:17px}
+        .rpt-section-number{width:36px;height:36px}
+        .rpt-section h2{font-size:20px}
+        .rpt-summary{font-size:13px}
+        .rpt-section-body p{text-align:left}
+        .rpt-grid,.rpt-grid.three,.rpt-grid.three.release,.rpt-checks{grid-template-columns:1fr}
+        .rpt-list>div,.rpt-list.compact>div{grid-template-columns:1fr;gap:3px}
+        .rpt-callout{display:block}
+        .rpt-callout b{display:block;margin-bottom:6px}
+      }
     </style>
     <div class="rpt-unified" data-report-single-page="true">
       <header class="rpt-hero">
-        <p class="rpt-eyebrow">单页融合 · 编审一体 · 证据驱动</p>
+        <p class="rpt-eyebrow">事实清晰 · 证据可溯 · 编审一致</p>
         <h1 class="rpt-title">📖 报告编制要求</h1>
-        <p class="rpt-lead">本页把原“编制要求、报告规范、审核模板和典型误判场景”按报告生命周期真正融合为一套连续标准。审核不是末端挑错，而是嵌入事实、证据、法律、金额、成稿和交付的每一道门。</p>
+        <p class="rpt-lead">报告编制要求以文种和授权为起点，以事实、证据、法律与金额的逐项对应为核心，规范从任务启动、单项发现编写、复核到批准交付的全过程。报告必须区分客观事实、专业判断和有权认定，完整披露反向证据、资料限制与不确定性，并保证每项结论可定位、每个金额可复算、每次修改可追溯。</p>
       </header>
       <div class="rpt-stages" aria-label="报告编制闭环">
         <div class="rpt-stage"><b>1 启动</b>边界与输入</div>
@@ -300,7 +525,9 @@ function renderReportStandards(container) {
       </div>
       <div class="rpt-layout">
         <nav class="rpt-toc" aria-label="报告编制要求单页目录">
-          <b class="rpt-toc-title">编制—审核—交付目录</b>${toc}
+          <b class="rpt-toc-title">编制作业目录</b>
+          ${toc}
+          <small class="rpt-toc-note">按任务启动、事实证据、法律金额、编审交付的顺序使用，各环节均须完成责任留痕。</small>
         </nav>
         <main class="rpt-content">${content}</main>
       </div>

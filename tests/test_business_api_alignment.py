@@ -402,7 +402,12 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "_renderMethodologyPracticeManual",
         ):
             self.assertIn(renderer, active_methodology)
-        self.assertIn("单页融合 · 方法驱动 · 证据闭环", active_methodology)
+        self.assertIn("程序规范 · 证据闭环 · 审慎判断", active_methodology)
+        self.assertIn("稽查方法论以主体与期间确认", active_methodology)
+        self.assertIn('data-method-layout="executive"', active_methodology)
+        self.assertIn('class="method-layout"', active_methodology)
+        self.assertIn(".method-mount .au-toc,.method-mount .fp-toc{display:none!important}", active_methodology)
+        self.assertNotIn("本页把原", active_methodology)
         self.assertNotIn('class="method-tabs"', active_methodology)
         self.assertNotIn('id="methodology-workspace"', active_methodology)
         self.assertNotIn("data-method-section", active_methodology)
@@ -516,9 +521,9 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073030", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073031", index)
         self.assertIn("core.js?v=2026073021", index)
-        self.assertIn("tax-report-standards.js?v=2026073030", index)
+        self.assertIn("tax-report-standards.js?v=2026073031", index)
         self.assertNotIn("tax-feedback-template.js", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
@@ -528,11 +533,13 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "      navigateTo('report-standards');",
             core,
         )
-        self.assertIn("单页融合 · 编审一体 · 证据驱动", standards)
+        self.assertIn("事实清晰 · 证据可溯 · 编审一致", standards)
+        self.assertIn("报告编制要求以文种和授权为起点", standards)
         self.assertIn('data-report-single-page="true"', standards)
-        self.assertIn("审核嵌入编制，而不是另设模板页", standards)
+        self.assertIn("编制全过程审核", standards)
         self.assertIn("常见误判的归因与复核矩阵", standards)
         self.assertIn("受控反馈", standards)
+        self.assertNotIn("本页把原", standards)
         self.assertNotIn("REPORT_COMPILATION_SECTIONS", standards)
         self.assertNotIn("report-tabs", standards)
         self.assertNotIn("renderFeedbackTemplate", standards)
