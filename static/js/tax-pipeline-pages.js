@@ -1293,7 +1293,7 @@ function renderChainsList(chains) {
   if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
-    html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html += '<div class="rr-table-scroll"><table class="rr-table method-chain-table"><colgroup><col style="width:6%"><col style="width:40%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>';
     html += '<thead><tr><th>#</th><th>调查路径名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var steps = (c.steps||c.investigation_path||[]).length;
@@ -1308,7 +1308,7 @@ function renderChainsList(chains) {
       html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
       html += '</tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   target.innerHTML = html;
 }
@@ -1431,7 +1431,7 @@ function renderEvidenceList(chains) {
   if (!chains.length) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配证据链</div>';
   } else {
-    html = '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:80px"><col style="width:90px"><col style="width:70px"></colgroup>';
+    html = '<div class="rr-table-scroll"><table class="rr-table method-chain-table"><colgroup><col style="width:6%"><col style="width:40%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>';
     html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>疑点</th><th>验证要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var dims = (c.steps||c.dimensions||[]).length;
@@ -1446,7 +1446,7 @@ function renderEvidenceList(chains) {
       html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
       html += '</tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   target.innerHTML = html;
 }
@@ -2696,8 +2696,8 @@ async function loadAnalysisChains() {
 // ═════════════════════════════════════════════════════════════
 function renderTaxIncentivesPage(container) {
   if (!container) return;
-  container.innerHTML = '<p style="max-width:1140px;margin:0 auto;padding:12px 0"><b>税收优惠扫描</b>：自动匹配9类优惠政策 · 联网核查 · 90天智能缓存</p>'
-    + '<div id="tax-incentive-list" style="color:#64748b;padding:6px 0">加载中...</div>';
+  container.innerHTML = '<div class="rights-incentive-intro"><b>政策智能匹配</b>　覆盖9类常见税收优惠，结合当前账套画像进行条件筛选；结果仍须核验政策有效期、地区口径与申报资料。</div>'
+    + '<div id="tax-incentive-list"><div class="rights-empty">正在读取当前账套的税收优惠分析结果…</div></div>';
   loadTaxIncentiveData();
 }
 async function loadTaxIncentiveData() {
@@ -2705,13 +2705,17 @@ async function loadTaxIncentiveData() {
   try {
     var r = await getSharedAnalysis();
     var items = (r && r.ok && r.report && r.report.comprehensive && r.report.comprehensive.incentive_items) || [];
-    if (!items.length) { t.innerHTML = '<p style="color:#64748b">本次分析未触发税收优惠检测</p>'; return; }
-    var h = '';
+    if (!items.length) { t.innerHTML = '<div class="rights-empty">本次分析尚未识别出可直接匹配的优惠事项。可补充企业资质、人员结构、研发活动和项目资料后重新分析。</div>'; return; }
+    var h = '<div class="rights-incentive-list">';
     items.forEach(function(it) {
-      h += '<p><b>' + escHtml(it.name || '优惠项目') + '</b>：' + escHtml(it.desc || '') + ' <em>' + escHtml(it.benefit || '') + '</em></p>';
+      h += '<article class="rights-incentive-item"><b>' + escHtml(it.name || '优惠项目') + '</b>'
+        + '<p>' + escHtml(it.desc || '需进一步核验适用条件和资料要求。') + '</p>'
+        + (it.benefit ? '<span class="rights-incentive-benefit">' + escHtml(it.benefit) + '</span>' : '')
+        + '</article>';
     });
+    h += '</div>';
     t.innerHTML = h;
-  } catch(e) { t.innerHTML = '<p style="color:#dc2626">扫描失败</p>'; }
+  } catch(e) { t.innerHTML = '<div class="rights-empty" style="color:#b91c1c">优惠数据读取失败，请稍后刷新重试。</div>'; }
 }
 function renderTaxWorkflow(container) {
   if (!container) return;
@@ -5920,7 +5924,7 @@ async function loadAnalysisChainsData() {
     if (!chains.length) {
       html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配分析链</div>';
     } else {
-      html += '<table class="rr-table"><colgroup><col style="width:40px"><col><col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:70px"></colgroup>';
+      html += '<div class="rr-table-scroll"><table class="rr-table method-chain-table"><colgroup><col style="width:6%"><col style="width:40%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>';
       html += '<thead><tr><th>#</th><th>推理链名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
       chains.forEach(function(chain, ci) {
         var steps = (chain.steps||chain.reasoning_path||[]).length;
@@ -5935,7 +5939,7 @@ async function loadAnalysisChainsData() {
         html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
         html += '</tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     }
     if(target) target.innerHTML = html;
   } catch(e) {
@@ -6469,7 +6473,11 @@ function renderMethodologyPage(container) {
       .method-mount .rr-rule{margin-bottom:15px!important;padding-bottom:15px!important}
       .method-mount .rr-rule .rh{font-size:14px!important}
       .method-mount .rr-table{font-size:13px!important}
-      .method-mount .cl,.method-mount .ev,.method-mount .alc{
+      .method-mount .rr-table-scroll{width:100%;overflow-x:auto;border-radius:10px}
+      .method-mount .method-chain-table{min-width:840px!important;margin:0!important}
+      .method-mount .method-chain-table td:nth-child(2){white-space:normal;word-break:break-word}
+      .method-mount .method-chain-table td:not(:nth-child(2)){white-space:nowrap}
+      .method-mount .rr,.method-mount .cl,.method-mount .ev,.method-mount .alc{
         width:100%!important;
         max-width:none!important;
         margin:0!important;

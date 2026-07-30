@@ -516,16 +516,17 @@ class BusinessApiAlignmentTests(unittest.TestCase):
 
         self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
         self.assertIn("税收优惠与权益保障", index)
-        self.assertIn("tax-rights-hub.js?v=2026073017", index)
+        self.assertIn("tax-rights-hub.js?v=2026073101", index)
         self.assertIn("app.css?v=2026073034", index)
-        self.assertIn("chat.js?v=2026073034", index)
+        self.assertIn("chat.js?v=2026073101", index)
         self.assertIn("#main{margin-left:0;padding:3px}", index)
         self.assertIn(".content-area{padding:4px}", index)
         self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
-        self.assertIn("tax-risk-rules.js?v=2026073022", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073033", index)
+        self.assertIn("tax-risk-rules.js?v=2026073101", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073101", index)
+        self.assertIn("system-logs.js?v=2026073101", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)
         self.assertNotIn("tax-feedback-template.js", index)
@@ -739,7 +740,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             root / "static" / "js" / "tax-pipeline-pages.js"
         ).read_text(encoding="utf-8")
         chain_selector = (
-            ".method-mount .cl,.method-mount .ev,.method-mount .alc{"
+            ".method-mount .rr,.method-mount .cl,.method-mount .ev,"
+            ".method-mount .alc{"
         )
         self.assertIn(chain_selector, methodology)
         chain_override = methodology.split(chain_selector, 1)[1].split("}", 1)[0]
@@ -754,11 +756,71 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         chat = (root / "static" / "js" / "chat.js").read_text(
             encoding="utf-8"
         )
-        self.assertIn(
-            ".cq-wrap{display:flex;height:calc(100vh - 72px)",
-            chat,
-        )
+        self.assertIn("grid-template-columns:240px minmax(0,1fr) 280px;", chat)
+        self.assertIn("height:calc(100vh - 72px);", chat)
         self.assertNotIn("margin:-20px", chat)
+
+    def test_tables_and_support_pages_use_executive_layouts(self):
+        root = Path(__file__).resolve().parents[1]
+        rules = (root / "static" / "js" / "tax-risk-rules.js").read_text(
+            encoding="utf-8"
+        )
+        methodology = (
+            root / "static" / "js" / "tax-pipeline-pages.js"
+        ).read_text(encoding="utf-8")
+        chat = (root / "static" / "js" / "chat.js").read_text(
+            encoding="utf-8"
+        )
+        rights = (
+            root / "static" / "js" / "tax-rights-hub.js"
+        ).read_text(encoding="utf-8")
+        logs = (root / "static" / "js" / "system-logs.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('class="rr-table rr-rule-table"', rules)
+        self.assertIn(".rr-rule-table{min-width:1160px", rules)
+        self.assertIn(
+            '<colgroup><col style="width:6%"><col style="width:28%">'
+            '<col style="width:14%"><col style="width:10%">'
+            '<col style="width:7%"><col style="width:7%">'
+            '<col style="width:7%"><col style="width:12%">'
+            '<col style="width:9%"></colgroup>',
+            rules,
+        )
+        self.assertEqual(
+            methodology.count(
+                'class="rr-table method-chain-table"><colgroup>'
+            ),
+            3,
+        )
+        self.assertIn(".method-chain-table{min-width:840px", methodology)
+        self.assertIn(
+            '<colgroup><col style="width:6%"><col style="width:40%">'
+            '<col style="width:12%"><col style="width:10%">'
+            '<col style="width:18%"><col style="width:14%"></colgroup>',
+            methodology,
+        )
+
+        self.assertIn(".cq-main-header{", chat)
+        self.assertIn("font-size:14px;line-height:1.85", chat)
+        self.assertIn("@media(max-width:820px)", chat)
+
+        self.assertIn("class=\"rights-kicker\"", rights)
+        self.assertIn(".rights-incentive-list{", rights)
+        self.assertIn("max-width:1680px;", rights)
+
+        self.assertIn("class=\"log-shell\"", logs)
+        self.assertIn(".log-table{width:100%;min-width:1200px", logs)
+        self.assertIn(
+            '<colgroup><col style="width:15%"><col style="width:10%">'
+            '<col style="width:19%"><col style="width:14%">'
+            '<col style="width:7%"><col style="width:8%">'
+            '<col style="width:12%"><col style="width:9%">'
+            '<col style="width:6%"></colgroup>',
+            logs,
+        )
+        self.assertIn("操作留痕 · 责任追踪 · 异常定位", logs)
 
 
 if __name__ == "__main__":

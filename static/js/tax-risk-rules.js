@@ -123,8 +123,8 @@ window._rrTitleRow = function(rl) {
   var alc = chainInfo && chainInfo.a_id ? chainInfo.a_id : '-';
   return '<tr class="rr-row" data-rule-id="' + rid + '" data-level="' + (rl.level || '') + '" data-category="' + (rl.category || '') + '" data-monitor="' + (rl.monitor_category || '') + '" data-type="' + (isAuto ? 'auto' : 'manual') + '" data-triggered="' + (trigN > 0 ? '1' : '0') + '" onclick="_rrShowDetail(\'' + rid + '\')">'
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
-    + '<td class="rr-name" style="word-break:break-all">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
-    + '<td>' + escHtml(rl.monitor_category || '-') + '</td>'
+    + '<td class="rr-name">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
+    + '<td class="rr-dimension">' + escHtml(rl.monitor_category || '-') + '</td>'
     + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
     + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + cue + '</td>'
     + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + evd + '</td>'
@@ -136,13 +136,13 @@ window._rrTitleRow = function(rl) {
 
 // ═══ 表格骨架（表头+行，两条渲染路径共用）═══
 window._rrTable = function(rules) {
-  var h = '<table class="rr-table">'
-    + '<colgroup><col style="width:56px"><col><col style="width:118px"><col style="width:92px"><col style="width:68px"><col style="width:68px"><col style="width:68px"><col style="width:92px"><col style="width:82px"></colgroup>'
+  var h = '<div class="rr-table-scroll"><table class="rr-table rr-rule-table">'
+    + '<colgroup><col style="width:6%"><col style="width:28%"><col style="width:14%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:12%"><col style="width:9%"></colgroup>'
     + '<thead><tr>'
     + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
-  h += '</tbody></table>';
+  h += '</tbody></table></div>';
   return h;
 };
 
@@ -299,11 +299,15 @@ function renderTaxRiskRules(container) {
     + '.rr-rule .rb{font-size:10px;color:#64748b;line-height:20px;margin:10px 0}'
     + '.rr-rule .ra{font-size:10px;color:#94a3b8}'
     + '.rr p{margin:0 0 10px;line-height:20px}'
+    + '.rr-table-scroll{width:100%;overflow-x:auto;border:1px solid #dfe6ee;border-radius:10px;background:#fff}'
     + '.rr-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;margin:0 0 10px}'
-    + '.rr-table th{padding:8px 8px;border:none;border-bottom:2px solid #16233a;color:#16233a;font-weight:700;text-align:left;line-height:20px;white-space:nowrap;overflow:hidden;background:transparent}'
-    + '.rr-table td{padding:6px 8px;border:none;border-bottom:1px solid #eef2f6;line-height:20px;color:#3a4048;overflow:hidden;text-overflow:ellipsis}'
+    + '.rr-rule-table{min-width:1160px;margin:0}'
+    + '.rr-table th{padding:11px 10px;border:none;border-bottom:1px solid #cfd9e5;color:#24364c;font-weight:700;text-align:left;line-height:1.5;white-space:nowrap;overflow:hidden;background:#f5f7fa}'
+    + '.rr-table td{padding:10px;border:none;border-bottom:1px solid #edf1f5;line-height:1.65;color:#405166;overflow:hidden;text-overflow:ellipsis;vertical-align:top}'
+    + '.rr-rule-table .rr-name,.rr-rule-table .rr-dimension{white-space:normal;word-break:break-word}'
+    + '.rr-rule-table td:not(.rr-name):not(.rr-dimension){white-space:nowrap}'
     + '.rr-row{cursor:pointer}'
-    + '.rr-row:hover{background:transparent}'
+    + '.rr-row:hover{background:#f8fafc}'
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
