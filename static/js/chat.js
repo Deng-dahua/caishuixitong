@@ -155,7 +155,7 @@ async function renderChat(container) {
         <a class="cq-kb-link" href="javascript:navigateTo('methodology')">📖 稽查方法论</a>
         <a class="cq-kb-link" href="javascript:navigateTo('auditor-handbook')">⚖️ 稽查员手册</a>
         <a class="cq-kb-link" href="javascript:navigateTo('tax-risk-rules-list')">📋 疑点库（1720条）</a>
-        <a class="cq-kb-link" href="javascript:navigateTo('report-standards')">📐 报告编制总纲</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('report-standards')">📐 报告编制要求</a>
       </div>
       <div class="cq-right-section" style="font-size:10px;color:#94a3b8;text-align:center;padding:12px">
         存勤法税 v2.0 · AI智能体<br>

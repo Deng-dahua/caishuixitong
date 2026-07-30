@@ -125,7 +125,7 @@ const pages = {
   'engine-hub': '智能分析系统中枢',
   'methodology': '稽查方法论',
   'rs-pipeline': '质量保障管线',
-  'report-standards': '报告编制总纲',
+  'report-standards': '报告编制要求',
   'rs-negotiation': '跨域协商标记展示规范',
   'rs-review': '审核反馈在报告中的呈现',
   'rs-ironlaw': '系统铁律与报告质量映射',
@@ -141,7 +141,7 @@ const pages = {
   '未记账发票': '未记账发票',
   '文化事业建设费': '文化事业建设费',
   'correction-rules': '纠正规则中心',
-  'report-spec': '报告编制规范',
+  'report-spec': '报告编制要求',
   'auditor-handbook': '稽查员手册',
   // 以下6个新独立路由（2026-07-23 补齐）
   'engine-dashboard': '引擎仪表盘',
@@ -775,7 +775,9 @@ function navigateTo(page) {
       else { container.innerHTML = _LOADING_HTML; }
       break;
     case 'rs-pipeline':    window._qsLayer=3; _sR(container, 'renderQualitySystem'); break;
-    case 'report-spec':    _sR(container, 'renderReportSpecPage'); break;
+    case 'report-spec':
+      navigateTo('report-standards');
+      return;
     case 'report-standards': _sR(container, 'renderReportStandards'); break;
     case 'rs-negotiation': _sR(container, 'renderCrossDomainNego'); break;
     case 'rs-review':      _sR(container, 'renderAuditFeedback'); break;

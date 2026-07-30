@@ -2772,7 +2772,7 @@ function renderLegalRefs(container) {
       h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
       h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#64748b">每项发现须引用具体法条</span></div>';
       h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理系统</a><br><span style="color:#64748b">法律推理系统自动匹配法条</span></div>';
-      h += '<div><a href="javascript:navigateTo(\'report-standards\')" style="color:#2563eb">报告编制规范</a><br><span style="color:#64748b">报告法律依据字段引用法条</span></div>';
+      h += '<div><a href="javascript:navigateTo(\'report-standards\')" style="color:#2563eb">报告编制要求</a><br><span style="color:#64748b">报告法律依据字段引用法条</span></div>';
       h += '</div></div></div>';
 
       // ── 段落说明 ──
@@ -5144,6 +5144,10 @@ function renderAGIKnowledgeConfig() {
 // 稽查方法论（老稽查员办案心法·6部16章·靛蓝配色）
 function renderReportSpecPage(container) {
   if (!container) return;
+  if (typeof renderReportStandards === 'function') {
+    renderReportStandards(container);
+    return;
+  }
   window.currentModule = '报告规范';
   var css = '<style>'
     + '.rs2{max-width:1080px;margin:0 auto;padding:38px 46px;background:#fff;color:#4b5563;font-size:10px;line-height:1.9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'

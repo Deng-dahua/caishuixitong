@@ -1,8 +1,8 @@
-// ==================== 报告编制总纲 ====================
+// ==================== 报告编制要求（含原报告规范） ====================
 
 function renderReportStandards(container) {
   if (!container) return;
-  window.currentModule = '报告编制总纲';
+  window.currentModule = '报告编制要求';
 
   var h = '<style>'
     + '.rpt{max-width:1140px;margin:0 auto;padding:40px 46px;background:#fff;color:#3a4048;font-size:10px;line-height:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}'
@@ -24,9 +24,39 @@ function renderReportStandards(container) {
     + '.rpt-table th{font-weight:700;color:#16233a;background:#f8fafc}'
     + '.rpt-table th:nth-child(3){min-width:96px;white-space:nowrap}'
     + '.rpt-table td:nth-child(3){white-space:nowrap}'
+    + '.rpt .rs2{max-width:none;margin:0;padding:12px 0 0;background:#fff;color:#4b5563;font-size:10px;line-height:1.9}'
+    + '.rpt .rs2-wrap{display:flex;gap:30px;align-items:flex-start}'
+    + '.rpt .rs2-toc{width:150px;flex-shrink:0;position:sticky;top:22px;font-size:11.5px;max-height:calc(100vh - 44px);overflow-y:auto}'
+    + '.rpt .rs2-toc .tt{font-size:10.5px;font-weight:700;color:#b0b8c4;letter-spacing:.12em;margin:0 0 10px 12px}'
+    + '.rpt .rs2-toc a{display:block;color:#64748b;text-decoration:none;padding:5px 0 5px 12px;border-left:2px solid #eef2f6;transition:.15s;line-height:1.5}'
+    + '.rpt .rs2-toc a:hover{color:#0e7490;border-left-color:#0e7490}'
+    + '.rpt .rs2-body{flex:1;min-width:0;max-width:800px}'
+    + '.rpt .rs2 section{margin:0 0 30px;scroll-margin-top:22px}'
+    + '.rpt .rs2 h2{font-size:15.5px;font-weight:700;color:#16233a;margin:0 0 10px;display:flex;align-items:baseline;gap:9px}'
+    + '.rpt .rs2 h2 .idx{color:#0e7490;font-size:10px;font-weight:700}'
+    + '.rpt .rs2 .sub{font-size:10px;color:#64748b;margin:0 0 10px;padding-bottom:13px;border-bottom:1px solid #eef2f6;line-height:20px}'
+    + '.rpt .rs2 strong{color:#334155;font-weight:600}'
+    + '.rpt .rs2 .num{margin:4px 0 14px}'
+    + '.rpt .rs2 .num .ni{position:relative;padding:0 0 0 16px;margin:0 0 9px;line-height:1.9}'
+    + '.rpt .rs2 .num .ni::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#0e7490}'
+    + '.rpt .rs2 .num .ni b{color:#334155;font-weight:600}'
+    + '.rpt .rs2 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px 18px;margin:4px 0 14px}'
+    + '.rpt .rs2 .gi{font-size:11.5px;color:#64748b;padding-left:14px;position:relative;line-height:1.85}'
+    + '.rpt .rs2 .gi::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#7dd3e0}'
+    + '.rpt .rs2 .gi b{color:#334155;font-weight:600}'
+    + '.rpt .rs2 .duo{display:flex;gap:12px;margin:6px 0 14px}'
+    + '.rpt .rs2 .duo .dc{flex:1;padding:12px 14px;border-radius:8px;border:1px solid #eef2f6}'
+    + '.rpt .rs2 .duo .dc .dt{font-size:10px;font-weight:700;margin:0 0 5px}'
+    + '.rpt .rs2 .duo .dc .dx{font-size:10px;color:#64748b;line-height:1.85}'
+    + '.rpt .rs2 .flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:4px 0 14px;font-size:10px}'
+    + '.rpt .rs2 .flow span{padding:5px 10px;background:#f0f9fb;color:#0e7490;border-radius:13px;font-weight:600}'
+    + '.rpt .rs2 .flow i{color:#cbd5e1;font-style:normal}'
+    + '.rpt .rs2 .rel{background:#f8fafc;border:1px solid #eef2f6;border-radius:8px;padding:13px 15px;margin-top:8px;font-size:11.5px;color:#64748b;line-height:20px}'
+    + '.rpt .rs2 .rel b{color:#334155}'
+    + '@media(max-width:760px){.rpt .rs2-wrap{display:block}.rpt .rs2-toc{position:static;width:auto;max-height:none;margin-bottom:24px}.rpt .rs2 .duo{display:block}.rpt .rs2 .duo .dc{margin-bottom:8px}}'
     + '</style>'
     + '<div class="rpt">';
-  h += '<h2>报告编制总纲</h2>';
+  h += '<h2>报告编制要求</h2>';
 
   h += '<div class="rpt-chapter"><h2>一、报告本质</h2>';
   h += '<p>报告的终极目的在于：使任何未接触原始数据的审核人员，在完整阅读报告后，能够独立判断案件是否符合立案标准、是否需要追缴税款、是否应当移送司法机关。</p>';
@@ -77,8 +107,23 @@ function renderReportStandards(container) {
   h += '<p><b>审核→反馈→迭代：</b>退修记录自动纳入案例库。退修类型标注：证据不足、程序违法、定性错误、法律适用不当、表述不合规、计算错误。系统按退修类型进行聚类分析，驱动定向改进。</p>';
   h += '</div>';
 
+  var specToc = '<nav class="rs2-toc"><div class="tt">出具细则</div>'
+    + '<a href="#rs-1">报告结构</a><a href="#rs-2">术语与机密规范</a><a href="#rs-3">叙事规范</a>'
+    + '<a href="#rs-4">风险合并规则</a><a href="#rs-5">质量标准</a><a href="#rs-6">判定可靠性要求</a>'
+    + '<a href="#rs-7">段落格式规范</a><a href="#rs-8">语音播报标准</a><a href="#rs-9">触发与交付</a></nav>';
+  h += '<div class="rpt-chapter rpt-spec-merged" id="rpt-spec-merged"><h2>九、详细出具规范</h2>';
+  h += '<p>本节已完整吸收原“报告规范”内容，将总纲要求进一步落实到报告结构、术语、叙事、风险合并、质量校验、可靠性、段落格式、语音播报和交付控制等具体环节。</p>';
+  h += '<div class="rs2"><div class="rs2-wrap">' + specToc
+    + '<div class="rs2-body"><div id="rs2-static"></div></div></div></div></div>';
+
   h += '</div>'; // end rpt
   container.innerHTML = h;
+  if (typeof renderReportSpecStatic === 'function') {
+    renderReportSpecStatic();
+  } else {
+    var specRoot = document.getElementById('rs2-static');
+    if (specRoot) specRoot.innerHTML = '<p>详细出具规范加载失败，请刷新页面重试。</p>';
+  }
 
   // 侧边栏子模块入口
   if (window._reportSection) {

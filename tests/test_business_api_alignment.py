@@ -268,6 +268,36 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             source,
         )
 
+    def test_report_spec_is_merged_into_compilation_requirements(self):
+        root = Path(__file__).resolve().parents[1]
+        dashboard = (root / "static" / "js" / "dashboard.js").read_text(
+            encoding="utf-8"
+        )
+        core = (root / "static" / "js" / "core.js").read_text(
+            encoding="utf-8"
+        )
+        standards = (
+            root / "static" / "js" / "tax-report-standards.js"
+        ).read_text(encoding="utf-8")
+        report_spec = (
+            root / "static" / "js" / "tax-pipeline-pages.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "{page:'report-standards', label:'📐 编制要求'",
+            dashboard,
+        )
+        self.assertNotIn("page:'report-spec'", dashboard)
+        self.assertIn(
+            "case 'report-spec':\n      navigateTo('report-standards');",
+            core,
+        )
+        self.assertIn("九、详细出具规范", standards)
+        self.assertIn('<div id="rs2-static"></div>', standards)
+        self.assertIn("renderReportSpecStatic();", standards)
+        for section_id in range(1, 10):
+            self.assertIn(f'id="rs-{section_id}"', report_spec)
+
 
 if __name__ == "__main__":
     unittest.main()
