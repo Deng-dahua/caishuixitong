@@ -292,11 +292,14 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "case 'report-spec':\n      navigateTo('report-standards');",
             core,
         )
-        self.assertIn("九、详细出具规范", standards)
-        self.assertIn('<div id="rs2-static"></div>', standards)
-        self.assertIn("renderReportSpecStatic();", standards)
-        for section_id in range(1, 10):
-            self.assertIn(f'id="rs-{section_id}"', report_spec)
+        self.assertNotIn("九、详细出具规范", standards)
+        self.assertNotIn('id="rs2-static"', standards)
+        self.assertNotIn("renderReportSpecStatic();", standards)
+        self.assertIn("不再保留两套章节或拼接式结构", standards)
+        for section_id in range(1, 11):
+            self.assertIn(f"id: 'rpt-{section_id}'", standards)
+        for legacy_id in range(1, 10):
+            self.assertIn(f"'rs-{legacy_id}':", standards)
 
 
 if __name__ == "__main__":

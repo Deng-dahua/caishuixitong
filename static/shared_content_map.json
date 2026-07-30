@@ -58,9 +58,9 @@
     {
       "id": "concept_reliability",
       "name": "7项判定可靠性要求",
-      "source_module": "static/js/tax-report-standards.js §7",
+      "source_module": "static/js/tax-report-standards.js §2",
       "linked_modules": [
-        "编制要求§7",
+        "编制要求§2",
         "引擎记忆§06 账务处理引擎铁律",
         "全链路质量保障§3"
       ],
@@ -69,9 +69,9 @@
     {
       "id": "concept_12_standards",
       "name": "12项报告质量标准",
-      "source_module": "static/js/tax-report-standards.js §6",
+      "source_module": "static/js/tax-report-standards.js §7",
       "linked_modules": [
-        "编制要求§6",
+        "编制要求§7",
         "全链路质量保障§3",
         "手册§5 报告编制规范(附件七引用)"
       ]
@@ -104,7 +104,7 @@
       "linked_modules": [
         "全链路质量保障§6 跨域协商引擎",
         "手册§9 跨域协商引擎",
-        "编制要求§15 协商工作流程",
+        "编制要求§8 跨域协同与一致性约束",
         "引擎记忆§11 跨域协商引擎",
         "引擎仪表盘#5 跨域协商"
       ]
@@ -125,7 +125,7 @@
       "source_module": "engine/self_learning.py",
       "linked_modules": [
         "手册§11 审核反馈闭环",
-        "编制要求§14 审核迭代闭环",
+        "编制要求§9 交付、一致性与持续改进",
         "引擎记忆§12 审核反馈闭环",
         "全链路质量保障§3(审核反馈闭环组件)"
       ]
@@ -137,7 +137,7 @@
       "linked_modules": [
         "引擎记忆§13 联动修改与数据一致性",
         "手册§10 数据一致性自检",
-        "编制要求§13 同步交付机制"
+        "编制要求§9 交付、一致性与持续改进"
       ]
     },
     {
@@ -207,7 +207,7 @@
       "linked_modules": [
         "引擎记忆§13 引擎铁律编号",
         "手册§13 引擎铁律编号体系",
-        "编制要求§12 铁律质量映射"
+        "编制要求§8 跨域协同与一致性约束"
       ]
     },
     {
