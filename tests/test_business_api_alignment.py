@@ -517,7 +517,10 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠是对纳税人合法权益的主动保护", rights)
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073017", index)
-        self.assertIn("app.css?v=2026073033", index)
+        self.assertIn("app.css?v=2026073034", index)
+        self.assertIn("chat.js?v=2026073034", index)
+        self.assertIn("#main{margin-left:0;padding:3px}", index)
+        self.assertIn(".content-area{padding:4px}", index)
         self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
@@ -712,6 +715,15 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             '#content-area > [id^="page-"] { padding: 8px; max-width: 1680px;',
             app_css,
         )
+        self.assertIn(".rights-shell, .kh-wrap,", app_css)
+        self.assertIn(
+            '#content-area > [id^="page-"] > [style*="margin:0 auto"]',
+            app_css,
+        )
+        self.assertIn(
+            "#page-chat { padding: 8px !important; max-width: 1680px !important; }",
+            app_css,
+        )
 
         expected_desktop = "padding:36px clamp(8px,1.1vw,18px) 56px;"
         for relative_path in (
@@ -722,6 +734,15 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             source = (root / relative_path).read_text(encoding="utf-8")
             self.assertIn("max-width:1680px;", source, msg=relative_path)
             self.assertIn(expected_desktop, source, msg=relative_path)
+
+        chat = (root / "static" / "js" / "chat.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            ".cq-wrap{display:flex;height:calc(100vh - 72px)",
+            chat,
+        )
+        self.assertNotIn("margin:-20px", chat)
 
 
 if __name__ == "__main__":

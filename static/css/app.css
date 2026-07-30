@@ -62,6 +62,27 @@
     .content-area { flex: 1; min-height: 0; padding: 0; width: 100%; max-width: none; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; background: #fff; }
     /* 统一页面容器：扩大可用版心，并将全系统页面的外侧留白缩减约三分之二。 */
     #content-area > [id^="page-"] { padding: 8px; max-width: 1680px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+    /*
+     * 独立模块仍可能带有旧版 900–1240px 内层版心。仅覆盖页面最外层，
+     * 不影响报告正文、弹窗、表单控件及卡片内部的阅读宽度。
+     */
+    #content-area > [id^="page-"] > :is(
+      .pipeline-page, .agi-layout, .crh-layout, .rights-shell, .kh-wrap,
+      .hl-wrap, .rr, .hb-layout, .fp-layout, .da-layout, .cl, .ev,
+      .mr-wrap, .ar-layout, .cda, .qs-layout, .udp, .rs2, .aix,
+      .alc, .co-dash, .au, .cd, .pp, .lf, .od, .gd, .qa, .et,
+      .ed, .brn, .engine-unified, .method-shell, .rpt-unified
+    ),
+    #content-area > [id^="page-"] > [style*="margin:0 auto"],
+    #content-area > [id^="page-"] > .card > [style*="margin:0 auto"] {
+      width: 100% !important;
+      max-width: 1680px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+      box-sizing: border-box;
+    }
 
     /* 卡片 */
     .card { background: #fff; border-radius: 10px; border: 1px solid var(--gray-200); padding: 20px; margin-bottom: 16px; width: 100%; }
@@ -451,6 +472,18 @@
     @media (max-width: 768px) {
       .stat-grid { grid-template-columns: repeat(2, 1fr); }
       .form-grid { grid-template-columns: 1fr; }
+      #content-area > [id^="page-"] > :is(
+        .pipeline-page, .agi-layout, .crh-layout, .rights-shell, .kh-wrap,
+        .hl-wrap, .rr, .hb-layout, .fp-layout, .da-layout, .cl, .ev,
+        .mr-wrap, .ar-layout, .cda, .qs-layout, .udp, .rs2, .aix,
+        .alc, .co-dash, .au, .cd, .pp, .lf, .od, .gd, .qa, .et,
+        .ed, .brn, .engine-unified, .method-shell, .rpt-unified
+      ),
+      #content-area > [id^="page-"] > [style*="margin:0 auto"],
+      #content-area > [id^="page-"] > .card > [style*="margin:0 auto"] {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+      }
     }
 
     /* 隐藏 */
@@ -463,8 +496,8 @@
     /* 科目缩进：每级 10px，内联计算 */
 
     /* ====== AI 助手聊天 ====== */
-    .chat-wrapper { display: flex; flex-direction: column; height: calc(100vh - 56px); background: #fff; border-radius: 0; overflow: hidden; margin: -20px; }
-    #page-chat { padding: 0 !important; max-width: none !important; }
+    .chat-wrapper { display: flex; flex-direction: column; height: calc(100vh - 72px); background: #fff; border-radius: 0; overflow: hidden; margin: 0; }
+    #page-chat { padding: 8px !important; max-width: 1680px !important; }
     .chat-header { padding: 16px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
     .chat-header h3 { margin: 0 0 4px; font-size: 16px; }
     .chat-header p { margin: 0; font-size: 12px; opacity: 0.85; }

@@ -29,7 +29,7 @@ async function renderChat(container) {
 
   const css = `
     <style>
-      .cq-wrap{display:flex;height:calc(100vh - 56px);background:#f4f6f9;overflow:hidden;margin:-20px}
+      .cq-wrap{display:flex;height:calc(100vh - 72px);background:#f4f6f9;overflow:hidden;margin:0}
       .cq-left{width:220px;background:#fff;border-right:1px solid #e8ecf1;display:flex;flex-direction:column;flex-shrink:0}
       .cq-left-header{padding:20px 16px 12px;border-bottom:1px solid #f0f2f5;text-align:center}
       .cq-left-header h3{font-size:13px;font-weight:700;color:#1e293b;margin:0}
