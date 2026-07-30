@@ -76,6 +76,21 @@ def get_agi_status(db: Session = Depends(get_db)):
     result = {"ok": True, "timestamp": datetime.now().isoformat()}
     
     # 知识库概况
+    try:
+        from engine.knowledge_base import get_kb
+        result["knowledge_base"] = get_kb().get_full_knowledge()
+    except Exception:
+        result["knowledge_base"] = {
+            "policies_count": 0,
+            "causal_edges_count": 0,
+            "patterns_count": 0,
+            "semantic_categories": 0,
+            "industries_tracked": 0,
+            "healing_rules_count": 0,
+            "lessons_count": 0,
+            "analyses_tracked": 0,
+        }
+
     # 自愈规则
     try:
         from database import SelfHealingRule, ErrorFeedback
@@ -193,6 +208,13 @@ def get_agi_status(db: Session = Depends(get_db)):
         from engine.external_verifier import get_external_verifier
         result["external_verify"] = {"channels": get_external_verifier().get_available_channels()}
     except: pass
+
+    # 人工纠正与学习闭环
+    try:
+        from engine.self_learning import get_correction_rule_summary
+        result["corrections"] = get_correction_rule_summary()
+    except Exception:
+        result["corrections"] = {"total": 0, "by_source": {}, "recent": []}
     
     # 对话税务合规状态
     result["chat"] = {"available": True, "endpoint": "/api/agi/chat", "knowledge_count": result["knowledge_base"]["lessons_count"]}

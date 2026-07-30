@@ -393,11 +393,11 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         for script in (
             "tax-engine-dashboard.js",
             "engine-hub.js",
-            "core.js",
             "tax-pipeline-pages.js",
             "tax-knowledge-hub.js",
         ):
             self.assertIn(f"{script}?v=2026073018", index)
+        self.assertIn("core.js?v=2026073020", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
         self.assertIn(
@@ -458,6 +458,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         coordinator = (
             root / "engine" / "agents" / "coordinator.py"
         ).read_text(encoding="utf-8")
+        agi_router = (root / "routers" / "agi.py").read_text(encoding="utf-8")
+        core = (root / "static" / "js" / "core.js").read_text(encoding="utf-8")
 
         self.assertIn("function renderCRHList(rules, filter)", correction_ui)
         self.assertIn("function filterCRH(filter)", correction_ui)
@@ -474,6 +476,23 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("_find_correction_rule(rules, fingerprint)", main)
         self.assertIn("_CORRECTIONS_PATH = CORRECTION_RULES", learning)
         self.assertIn("self._corrections_path = LEARNING_AGENT_WEIGHTS", coordinator)
+        self.assertIn(
+            'result["knowledge_base"] = get_kb().get_full_knowledge()',
+            agi_router,
+        )
+        self.assertIn(
+            'result["corrections"] = get_correction_rule_summary()',
+            agi_router,
+        )
+        self.assertIn("var agiVersion =", core)
+        self.assertIn("var correctionTotal =", core)
+        for broken_metric in (
+            "vundefined",
+            "1514规则",
+            "21720条协商规则",
+            "最近101720条",
+        ):
+            self.assertNotIn(broken_metric, core)
         self.assertNotIn(
             'os.path.join("static", "user_corrections.json")',
             main,

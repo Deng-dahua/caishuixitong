@@ -978,13 +978,15 @@ async function renderAgiDashboard(container) {
     var d2 = await fetch('/api/agi/status').then(function(r){return r.json();}).catch(function(){return {};});
 
     var pipe = d1.ok ? d1 : {stats:{modules_connected:0,events_collected:0},total_events:0,modules_active:0,health:'idle',module_breakdown:[],knowledge_base:{},cross_memory:{analyses:0}};
-    var agi = d2.ok ? d2 : {knowledge_base:{},healing:{},causal_network:{},cross_analysis:{},version:{features:[]},methodology:{},rule_discovery:{},patrol:{},legal_reasoning:{},trend_analysis:{},overrides:{},external_verify:{}};
+    var agi = d2.ok ? d2 : {knowledge_base:{},healing:{},causal_network:{},cross_analysis:{},version:{agent:'3.0',features:[]},methodology:{},rule_discovery:{},patrol:{},legal_reasoning:{},trend_analysis:{},overrides:{},external_verify:{},corrections:{}};
     var kb = agi.knowledge_base || {};
     var cm = pipe.cross_memory || {};
     var stats = pipe.stats || {};
     var meth = agi.methodology || {};
     var rules = agi.rule_discovery || {};
     var patrol = agi.patrol || {};
+    var agiVersion = (agi.version && agi.version.agent) || '3.0';
+    var correctionTotal = Number((agi.corrections || {}).total || (agi.corrections || {}).total_rules || 0);
 
     var h = '';
     h += '<style>.agi-layout{display:flex;gap:28px;max-width:1100px;margin:0 auto;padding:24px 16px;background:#fff}.agi-toc{width:180px;flex-shrink:0;position:sticky;top:20px;align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:12px;line-height:2.0;max-height:calc(100vh-40px);overflow-y:auto}.agi-toc .toc-title{font-weight:700;color:#0f172a;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}.agi-toc a{display:block;color:#475569;text-decoration:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}.agi-toc a:hover,.agi-toc a.active{background:#eff6ff;color:#2563eb;font-weight:600}.agi-main{flex:1;min-width:0;background:#fff}.agi-main h2.hb-section-title{font-size:16px!important;font-weight:700!important;color:#0f172a!important;padding-bottom:10px!important;border-bottom:2px solid #e2e8f0!important;margin-bottom:16px!important;background:none!important}.agi-main .hb-section-num{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:24px!important;height:24px!important;background:#1e293b!important;color:#fff!important;border-radius:4px!important;font-size:12px!important;font-weight:700!important;margin-right:8px!important}.agi-main section{margin-bottom:36px!important}.agi-hero{background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:28px}.agi-hero h2{font-size:20px!important;margin:0 0 4px!important}.agi-hero p{font-size:13px;color:#475569;line-height:2.0;margin:0 0 8px}.agi-hero .hb-status-bar{font-size:12px;color:#64748b;line-height:2.0}.agi-main .hb-section-lead{font-size:13px;color:#64748b;line-height:2.0;margin:0 0 12px}.agi-main .hb-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}.agi-main .agi-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}.agi-main .hb-table{width:100%;border-collapse:collapse;font-size:13px;line-height:2.0}.agi-main .hb-table th{padding:10px 14px;text-align:left;font-weight:600;background:#f8fafc;color:#0f172a;border-bottom:2px solid #e2e8f0}.agi-main .hb-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9}.agi-main .hb-table-striped tr:nth-child(even){background:#fafbfc}.agi-main .hb-status-connected{color:#059669;font-weight:600}</style>';
@@ -1009,9 +1011,9 @@ async function renderAgiDashboard(container) {
     
     // ═══ Hero ═══
     h += '<div id="agi-hero" class="agi-hero">';
-    h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + (agi.version ? agi.version.agent : '3.0') + '</h2>';
-    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 36域分析 · 1514规则 · 1266条链 · 21720条协商规则 · ' + pipe.total_events + '条学习事件</p>';
-    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识库 ' + (kb.lessons_count||0) + ' 条经验 · 纠正规则 ' + (agi.corrections?agi.corrections.total_rules||0:0) + ' 条</div>';
+    h += '<h2 style="font-size:20px;font-weight:800;color:#0f172a">🧬 税务AGI v' + agiVersion + '</h2>';
+    h += '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px">存勤法税·智能大脑 — 多域协同分析 · 方法论驱动 · 证据链闭环 · 红队证伪 · ' + pipe.total_events + ' 条学习事件</p>';
+    h += '<div class="hb-status-bar hb-status-connected" style="margin-top:8px">🔗 已连接 · 活跃 ' + pipe.modules_active + ' 个模块 · 因果边 ' + ((agi.causal_network||{}).edges||0) + ' 条 · 知识经验 ' + (kb.lessons_count||0) + ' 条 · 纠正规则 ' + correctionTotal + ' 条</div>';
     h += '</div>';
 
     // ═══ 一、核心分析引擎 ═══
@@ -1021,7 +1023,7 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('🪞','自我反思器','SelfReflector','<code>agent_core.py</code>','14维反向假设验证——对每条高风险发现生成竞争假设并逐条证据验证：隐匿收入←个人大额转账且无对应开票、虚开发票←长期合作供应商突然新增大量交易、品名不匹配←外发加工模式。调整规则：adj<-0.05→不确定（证据不足但存疑）、adj<-0.15→推翻（足够反证据）、累积信号≥3且无推翻→确认（升级为因果边输入SCM）。每次分析后更新记录用于下次先验校准。','红');
     h += _agiEngineCard('💡','洞见总结器','InsightSynthesizer','<code>agent_core.py</code>','从all_findings自动组织为五段式结构化报告：①企业画像——行业+模式+规模+关键财务指标 ②风险全景——四级分布（极高/高/中/低各数量+占比+典型发现类型）③核心问题——TOP5高风险发现的详细因果推演 ④行业对标——66行业基准库五维指标偏离度 ⑤行动建议——P0/P1/P2三级分级建议+具体执行路径。每段从report对象动态提取，不使用预置模板文本。','蓝');
     h += _agiEngineCard('🧠','跨分析学习器','CrossAnalysisLearner','<code>agent_core.py</code>','跨企业分析经验积累——不是每次从零开始。功能：①行业通用模式——同类企业分析≥3次后提取该行业常见高风险模式 ②典型数据画像——记录每个行业的合理收入/毛利率/费用率/人均产值基准 ③经验自动复用——分析新企业时先检索同行业已分析企业作为参考基线 ④持久化到cross_analysis_memory.json，12维度加权相似度检索。','绿');
-    h += _agiEngineCard('📐','税务合规方法论','MethodologyEngine','<code>methodology_loader.py</code>','31720条税务合规方法论（全部代码化）+14类必查资料+11720条核心法律条文。引擎按分析域的domain_key自动匹配适用的方法论——收款分析域→加载方法论②③④，进销存域→加载方法论⑥⑦⑧。根据实际数据特征动态选择组合，非写死checklist。','紫');
+    h += _agiEngineCard('📐','税务合规方法论','MethodologyEngine','<code>methodology_loader.py</code>','把检查方法、必查资料和法律依据结构化加载。引擎按分析域的domain_key匹配适用方法——收款分析域加载资金与收入核验方法，进销存域加载购销、库存和成本核验方法；根据实际数据特征动态组合，不使用写死的检查清单。','紫');
     h += _agiEngineCard('🔍','规则发现','RuleDiscovery','<code>rule_discovery.py</code>','三层递进归纳引擎——Layer A：模块效率分析，空跑率>80%→自动标记为可跳过→下次同行业降权不调用。Layer B：纠正模式，用户对同类发现纠正≥3次→自动提取通用修正规则→写入user_corrections.json→四级回退匹配。Layer C：信号模式对比，同类企业中出现>60%的信号→标记为行业特征信号→降低权重。输出到discovered_rules.json。','橙');
     h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后两次报告的差异：①新增风险——上次无本次有 ②消失风险——上次有本次无（AGI修正消解的假阳性）③风险等级迁移——升级或降级 ④变化率>30%→标记显著→触发因果影响定向巡逻→分析引擎改动导致的变化方向→正确保留、错误回滚。快照存入patrol_snapshots做基线对比。','青');
     h += '</div></section>';
@@ -1030,9 +1032,9 @@ async function renderAgiDashboard(container) {
     h += '<section id="agi-causal" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">二</span> 因果推理层</h2>';
     h += '<div class="agi-card-grid">';
-    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果推理——不是「X和Y相关」而是「X导致Y」。四种推理：①do-干预——假设消除信号X→计算对下游结论的影响幅度 ②反事实——如果当初有合同/申报表/台账→风险会降级多少（量化缺资料影响）③混淆因子——检测信号X和Y是否存在共同驱动力Z ④因果链查询——从一条发现沿因果边遍历上游和下游→构建完整因果推演。预置1720条税务因果先验。','红');
+    h += _agiEngineCard('🎯','SCM因果推理','SCMReasoner','<code>scm_reasoner.py</code>','从条件概率升级为结构化因果推理——不是「X和Y相关」而是检验「X是否导致Y」。四种推理：①do-干预——假设消除信号X，计算对下游结论的影响 ②反事实——补齐合同、申报表或台账后，风险是否降级 ③混淆因子——检测信号X和Y是否由共同因素Z驱动 ④因果链查询——沿上下游因果边构建完整推演。','红');
     h += _agiEngineCard('🧠','元认知引擎','Metacognition','<code>metacognition.py</code>','四维推理质量评估（因果链完整性/证据充分性/法律依据/可操作性）→质量分→不确定性检测→信息缺口识别→行动建议。站在更高层看"反思器做得对不对"。','蓝');
-    h += _agiEngineCard('📖','法律三段论','LegalReasoner','<code>legal_reasoner.py</code>','11720条结构化法律规则。大前提(法条)+小前提(本案事实)→结论(法律定性)。含征管法第61720条、发票管理办法第21720条、刑法第201720条等。','紫');
+    h += _agiEngineCard('📖','法律三段论','LegalReasoner','<code>legal_reasoner.py</code>','以现行有效的法律依据作为大前提，以本案已核实事实作为小前提，再形成专业判断。条款名称、条号、适用期间和效力状态必须核验；无法确认时标记“法律依据待复核”，不得生成确定性定性。','紫');
     h += _agiEngineCard('🕸️','因果网络','CausalNetwork','<code>causal_network.py</code>','条件概率矩阵+多信号联合预测+自主推理器(AutonomousReasoner)。信号共现→因果边→置信度=P(结论|信号)×log(lift+1)。','绿');
     h += '</div></section>';
 
@@ -1042,7 +1044,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-card-grid">';
     h += _agiEngineCard('🔄','事件总线','EventBus','<code>event_bus.py</code>','模块间实时通信中枢——pub/sub松耦合协作。14种标准事件覆盖全分析生命周期。事件路由：因果网络发现新边→发布causal_edge_found→假设生成器订阅并更新规则→巡逻引擎订阅并标记重查。跨模块因果链追踪：一条发现从触发引擎→经过哪些引擎→最终哪个引擎输出→全程通过事件ID回溯。','青');
     h += _agiEngineCard('🕸️','知识图谱','KnowledgeGraph','<code>knowledge_graph.py</code>','实体-关系-属性图推理——将税务合规实体建模为知识图谱。节点类型：企业/供应商/客户/人员/发票/法条/风险。多跳查询示例：企业A→供应商B→关联人员C（B的法人=C）→其他企业D（C也是D的法人）→A/B/D是否闭环交易？购销闭环检测：A→B→C→A品名金额相同→疑似闭环虚开。图谱持久化到knowledge_graph.json。','紫');
-    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重自愈模式——人工+自动。人工反馈：5种错误分类→制定修正规则→存入user_corrections.json→自动应用。自动检测：矛盾结论（服务行业+进销存异常并存→标记矛盾）、三要素缺失（缺金额/偏差/基准→自动增强）、模板句（空话→自动移除）、空占位符（如：()→自动清理）、因果链过短（仅1720条信号→补充交叉验证）。','橙');
+    h += _agiEngineCard('🔧','自愈引擎','SelfHealing','<code>self_healing.py</code>','双重自愈模式——人工反馈形成候选修正规则；自动检测识别矛盾结论、金额/偏差/基准缺失、模板空话、空占位符以及信号来源单一或因果链过短。修正结果必须重新经过证据和质量门禁，验证后才能应用。','橙');
     h += '</div></section>';
 
     // ═══ 四、知识层（3个） ═══
@@ -1060,10 +1062,10 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-card-grid">';
     h += _agiEngineCard('🏷️','语义推理器','SemanticReasoner','<code>semantic_reasoner.py</code>','手工维护14类品名同义词库——如「棉纱/棉线/纱线」→同一语义组。两层匹配：①子字符串匹配→最长匹配原则归类 ②编辑距离→短品名≤4字无法子串归类→Levenshtein距离≤2→同一组。创造性假设引擎：无归类品名→Jaccard相似度→找最近已知模式→类比推理生成试探假设→标记「语义存疑待确认」。','蓝');
     h += _agiEngineCard('🔍','未知模式检测','UnknownPatternDetector','<code>unknown_pattern_detector.py</code>','规则覆盖度检查+异常检测器(7种：结构化转账/幽灵供应商/价格异常/数量尖峰/月末突击/个人大额转账/营收平滑)→标记未知模式→路由"智哥"人工分析。','橙');
-    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现生成2-1720条互斥竞争假设→逐条检查正反证据→贝叶斯更新后验概率→推荐最高概率假设但保留其他假设及置信度供人工判断。7种信号类型各有预置竞争模板：①隐匿收入（未开票收入vs代垫报销）②虚开发票 ③进销不匹配（外发加工vs商品倒卖）④毛利率异常（成本虚增vs售价偏低）⑤费用率异常（费用虚列vs收入低估）⑥供应商集中（依赖风险vs行业特性）⑦账期异常（商业信用vs资金困难）。验证结果存入hypothesis_history.json用于下次先验校准。','红');
+    h += _agiEngineCard('⚡','假设验证引擎','HypothesisEngine','<code>hypothesis_engine.py</code>','每条重要发现至少生成两个互斥的竞争性假设，逐条检查支持证据和反向证据，再更新置信度。系统可推荐证据更强的解释，但必须保留其他假设、限制条件和人工判断入口；验证结果进入历史记录，用于后续先验校准。','红');
     h += _agiEngineCard('🌐','跨企业关系网','CrossEnterpriseGraph','<code>cross_enterprise_graph.py</code>','跨企业关系图谱——检测全系统企业的供应商/客户/人员交叉关联。一人多角检测：同一自然人在企业A是法人/B是股东/C是财务负责人→A↔B↔C交易是否构成关联交易。连锁税务合规点：A→B→C→A品名金额相同→疑似闭环虚开。图持久化到cross_enterprise_graph.json→O(N²)交叉扫描通过图索引优化。','绿');
     h += _agiEngineCard('💰','税收优惠分析','TaxIncentiveAnalyzer','<code>tax_incentive_analyzer.py</code>','9类优惠(小微/小规模/研发/高新/六税两费/软件即征即退/残保金/农林/西部大开发)。联网核查三步法：搜索URL→抓取页面→提取结构化条件。90天缓存。','紫');
-    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','21720条协商规则：消解1720条(行业闸门+个体户+小规模+无经营场所等) + 降级1720条(收款偏差≠隐匿/付款≠虚列/流水≠应税收入等) + 标记1720条(资料受限标注) + 联合增强11720条(空壳/隐匿/对倒/红冲/两套工资/专票超期/人格混同/新办开票/拆分工资/跨境)。','蓝');
+    h += _agiEngineCard('🤝','跨域协商引擎','CrossDomainNegotiation','<code>cross_domain_negotiation.py</code>','把不同分析域的结论统一送入协商层，按四类动作处理：消解不适用发现、降低证据不足的风险等级、标记资料限制、联合增强相互印证的跨域信号。所有调整都保留原结论、触发条件和协商理由。','蓝');
     h += _agiEngineCard('🔐','数据一致性引擎','ConsistencyEngine','<code>audit_consistency.py + shared_content_sync.py</code>','双维度自检：数字维度(硬编码vs权威源自动修复)+文本维度(29项跨模块共享内容逐字哈希+概念关联验证)。四触发全覆盖：start.bat/git pre-commit/一键分析/手动--sync。','绿');
     h += '</div></section>';
 
@@ -1084,17 +1086,17 @@ async function renderAgiDashboard(container) {
     h += _agiEngineCard('🔗','AGI管线','AGIPipeline','<code>agi_pipeline.py</code>','21模块事件采集+6步进化流程：①事件总线汇总 ②SCM因果推理提取新因果 ③元认知自检评估推理质量 ④知识图谱导入新节点 ⑤知识库自生长写入新经验 ⑥自愈自动检测生成覆盖建议。全部在分析后自动执行，无需人工触发。','紫');
     h += '</div></section>';
 
-    // ═══ 八、系统数据资产（精确计数） ═══
+    // ═══ 八、系统能力资产 ═══
     h += '<section id="agi-assets" class="hb-section">';
-    h += '<h2 class="hb-section-title"><span class="hb-section-num">八</span> 系统数据资产</h2>';
-    h += '<p class="hb-section-lead">以下数字来自代码和数据文件的精确统计（2026-06-25验证），非手工标注。</p>';
+    h += '<h2 class="hb-section-title"><span class="hb-section-num">八</span> 系统能力资产</h2>';
+    h += '<p class="hb-section-lead">按运行职责展示分析域、规则、链路、引擎和调度资产。实时数量以本页状态接口为准，不再使用容易失真的手工统计。</p>';
     h += '<div class="hb-card-grid">';
-    h += '<div class="hb-info-card hb-info-blue"><strong>📁 域分析函数</strong><p><code>grep "^def _domain_" main.py | wc -l</code> → <strong>36个</strong></p><p>覆盖资金追踪/利润分析/供应商深挖/发票审计/经营实质/地理分析等</p></div>';
-    h += '<div class="hb-info-card hb-info-red"><strong>📋 税务合规规则</strong><p><code>len(tax_risk_rules_local_export.json)</code> → <strong>1720条</strong></p><p>20个分类：发票匹配184+申报合规142+行业专项133+个税125+资产负债121+企业所得107+成本费用106+发票合规104+增值税101+经营实质98等</p></div>';
-    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 线索/证据链</strong><p><code>cross_domain_clues.json</code> → <strong>1720条可执行链</strong></p><p>线索链/证据链/分析链各1720条，方法论31720条见 methodology_items.json</p></div>';
-    h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎模块</strong><p>7层架构 <strong>28个引擎</strong></p><p>核心6+推理4+连接3+知识3+专项7+加速3+调度2</p></div>';
-    h += '<div class="hb-info-card hb-info-yellow"><strong>📊 21模块调度</strong><p><code>orchestrator.py</code> 注册 <strong>21个模块</strong></p><p>M001-M021：数据准备3+核查3+分析8+推理1+质量控制4+综合2+输出1</p></div>';
-    h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 代码规模</strong><p>main.py <strong>~29,000行</strong> + engine/ <strong>~8,500行</strong> + 前端 <strong>~15,000行</strong></p><p>总计约 <strong>52,500行</strong> 系统代码</p></div>';
+    h += '<div class="hb-info-card hb-info-blue"><strong>📁 分析域</strong><p><strong>多域并行、按资料自适应激活</strong></p><p>覆盖资金、利润、供应商、发票、经营实质、人员、地域和跨域关系等调查方向。</p></div>';
+    h += '<div class="hb-info-card hb-info-red"><strong>📋 税务合规规则</strong><p><strong>运行时按分类加载</strong></p><p>覆盖发票、申报、行业专项、个人所得税、资产负债、企业所得税、成本费用、增值税和经营实质等。</p></div>';
+    h += '<div class="hb-info-card hb-info-purple"><strong>🔗 调查链路</strong><p><strong>线索链 → 证据链 → 分析链</strong></p><p>每条正式发现必须能够回到触发信号、原始证据、推理步骤、反证检查和适用方法。</p></div>';
+    h += '<div class="hb-info-card hb-info-green"><strong>🧠 引擎层</strong><p><strong>核心、推理、通信、知识、专项、保护、调度</strong></p><p>各层通过事件和状态接口协同，避免重复判断和相互覆盖。</p></div>';
+    h += '<div class="hb-info-card hb-info-yellow"><strong>📊 调度资产</strong><p><code>orchestrator.py</code> 统一管理模块</p><p>依据资料类型、行业特征、前置依赖和质量状态决定激活、跳过、重试或降级。</p></div>';
+    h += '<div class="hb-info-card hb-info-cyan" style="background:#ecfeff;border-color:#a5f3fc;"><strong>📐 可追溯资产</strong><p><strong>规则、方法、接口和日志相互映射</strong></p><p>版本、来源、运行状态和人工纠正共同形成可复核的系统资产。</p></div>';
     h += '</div></section>';
 
     // ═══ 九、API端点清单 ═══
@@ -1129,28 +1131,28 @@ async function renderAgiDashboard(container) {
     h += '<section id="agi-knowledge-config" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">十</span> 知识库与核心配置</h2>';
     h += '<div class="hb-card-grid">';
-    h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>','1720条税收优惠政策 \u00b7 结构化条件','purple');
+    h += _agiInfoCard('\u{1F4DC}','政策库','<code>policies</code>',(kb.policies_count||0) + '项结构化政策知识','purple');
     h += _agiInfoCard('\u{1F517}','因果网络','<code>causal_edges</code>','信号\u2192结论因果关系 \u00b7 ' + ((agi.causal_network||{}).edges||0) + '条因果边','red');
     h += _agiInfoCard('\u{1F4CA}','信号模式','<code>signal_patterns</code>','多信号组合模式 \u00b7 ' + ((agi.causal_network||{}).patterns||0) + '个','blue');
-    h += _agiInfoCard('\u{1F4D6}','语义词典','<code>semantic_dict</code>','14类同义词库','green');
-    h += _agiInfoCard('\u{1F3ED}','行业画像','<code>industry_profiles</code>','8大行业标准画像','yellow');
+    h += _agiInfoCard('\u{1F4D6}','语义词典','<code>semantic_dict</code>',(kb.semantic_categories||0) + '类语义映射','green');
+    h += _agiInfoCard('\u{1F3ED}','行业画像','<code>industry_profiles</code>',(kb.industries_tracked||0) + '个已学习行业画像','yellow');
     h += _agiInfoCard('\u{1F527}','自愈规则','<code>healing_rules</code>','错误\u2192规则\u2192修正 \u00b7 ' + ((agi.healing||{}).active_rules||0) + '条活跃','purple');
     h += _agiInfoCard('\u{1F393}','经验教训','<code>lessons</code>','跨分析积累 \u00b7 ' + (kb.lessons_count||0) + '条','green');
-    h += _agiInfoCard('\u{1F4DD}','分析历史','<code>analysis_history</code>','最近101720条','slate');
+    h += _agiInfoCard('\u{1F4DD}','分析历史','<code>analysis_history</code>',(kb.analyses_tracked||0) + '次已记录分析','slate');
     h += _agiInfoCard('\u{1F50D}','巡逻快照','<code>patrol_snapshots</code>','巡逻基线 \u00b7 ' + (patrol.companies_with_snapshots||0) + '家','cyan');
     h += '</div>';
     h += '<h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">⚙️ 核心配置参数</h3>';
     h += '<div class="hb-card-grid">';
     h += _agiConfigCard('\u2699\uFE0F 自愈引擎','self_healing.py','5种错误模式 \u00b7 同类\u22652\u2192生成规则 \u00b7 auto_apply','自动检测+人工反馈双模式');
     h += _agiConfigCard('\u2699\uFE0F 自动巡逻','auto_patrol.py','最大5家 \u00b7 触发\u22652边 \u00b7 变化>30%显著','v2.0：因果影响定向巡逻');
-    h += _agiConfigCard('\u2699\uFE0F 规则发现','rule_discovery.py','Layer A>80%空跑 \u00b7 Layer B\u22655次纠正 \u00b7 Layer C>60%出现','discovered_rules.json');
+    h += _agiConfigCard('\u2699\uFE0F 规则发现','rule_discovery.py','模块效率 \u00b7 纠正模式 \u00b7 跨样本信号','验证后进入规则库');
     h += _agiConfigCard('\u2699\uFE0F 反思器','agent_core.py','adj<-0.05不确定 \u00b7 adj<-0.15推翻 \u00b7 7种类型','14维反向假设');
     h += _agiConfigCard('\u2699\uFE0F 元认知','metacognition.py','四维评估 \u00b7 不确定性阈值0.3 \u00b7 6种缺口','监控推理质量');
-    h += _agiConfigCard('\u2699\uFE0F SCM因果','scm_reasoner.py','do-干预\u00b7反事实\u00b7混淆检测\u00b7因果链','1720条领域因果先验');
-    h += _agiConfigCard('\u2699\uFE0F 知识库','knowledge_base.py','线程安全\u00b7单例\u00b7101720条历史\u00b7JSON','v2.0：自动提取');
+    h += _agiConfigCard('\u2699\uFE0F SCM因果','scm_reasoner.py','do-干预\u00b7反事实\u00b7混淆检测\u00b7因果链','领域先验+运行验证');
+    h += _agiConfigCard('\u2699\uFE0F 知识库','knowledge_base.py','线程安全\u00b7单例\u00b7受控历史\u00b7私有存储','自动提取并持续校验');
     h += _agiConfigCard('\u2699\uFE0F 联网核查','tax_incentive_analyzer.py','三步法\u00b790天缓存','chinatax.gov.cn');
     h += _agiConfigCard('\u2699\uFE0F 并行加速','parallel_runner.py','多模块并行\u00b7DAG\u00b7可开关','提升30-50%');
-    h += _agiConfigCard('\u2699\uFE0F 事件总线','event_bus.py','pub/sub\u00b714种事件\u00b7501720条日志','自动持久化');
+    h += _agiConfigCard('\u2699\uFE0F 事件总线','event_bus.py','pub/sub\u00b7标准事件\u00b7受控日志','自动持久化');
     h += '</div></section>';
 
     // ═══ 底部 ═══
