@@ -32,27 +32,15 @@ async function loadPipelineCounts() {
     console.log('[pipeline counts] loaded:', _pipelineCounts);
   } catch(e) {
     console.error('[pipeline counts] failed:', e);
-    // 从 system_config.json 读取权威值
-  }
-  // 如果 system_config 已加载，用它覆盖（权威数据源）
-  if (window._systemConfig) {
-    _pipelineCounts.rules = window._systemConfig.rules_count || _pipelineCounts.rules;
-    _pipelineCounts.trailChains = window._systemConfig.clue_chains || _pipelineCounts.trailChains;
-    _pipelineCounts.evidenceChains = window._systemConfig.evidence_chains || _pipelineCounts.evidenceChains;
-    _pipelineCounts.analysisChains = window._systemConfig.analysis_chains || _pipelineCounts.analysisChains;
-    _pipelineCounts.totalChains = window._systemConfig.total_chains || _pipelineCounts.totalChains;
+    _pipelineCounts = {};
   }
   return _pipelineCounts;
 }
 
-// 快捷取值：优先从 _pipelineCounts，回退到 system_config
+// 快捷取值只采用实际加载的数据文件，避免过期配置覆盖真实数量。
 function pc(key, fallback) {
   if (_pipelineCounts && _pipelineCounts[key] != null) return _pipelineCounts[key];
-  if (window._systemConfig) {
-    var m = {rules:'rules_count',trailChains:'clue_chains',evidenceChains:'evidence_chains',analysisChains:'analysis_chains',totalChains:'total_chains'};
-    if (m[key] && window._systemConfig[m[key]]) return window._systemConfig[m[key]];
-  }
-  return fallback || '...';
+  return fallback != null ? fallback : '—';
 }
 
 // ═══════════ API共享缓存（消除6模块重复请求同一API） ═══════════
@@ -93,11 +81,11 @@ function renderFileParsingPage(container) {
     + '</nav>'
     + '<div class="fp-main">'
     + '<h2 style="font-size:10px;font-weight:800;color:#16233a;margin:0 0 10px">📁 文件解析</h2>'
-    + '<p style="font-size:10px;color:#64748b;margin:0 0 10px">{{file_fingerprints}}类文件指纹 · 三层递进识别 · 四方交叉验证 · 8种格式全兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
+    + '<p style="font-size:10px;color:#64748b;margin:0 0 10px">结构化文件指纹库 · 四层递进识别 · 四方交叉验证 · 多格式兼容 · OCR扫描件解析 · 关键词打分 · 结构分析 · 数据推断兜底</p>'
         + '<div style="background:#fff;border:1px solid #e2e8f0;padding:20px 24px;border-radius:8px;margin-bottom:10px">'
     + '<p style="font-size:10px;color:#3a4048;line-height:20px;margin:0">'
     + '文件解析系统是税务合规分析的第一步——将企业上传的各种格式的原始资料（Excel/PDF/CSV/Word/图片），'
-    + '通过{{file_fingerprints}}类文件指纹 + 四层递进识别 + 四方交叉验证，自动判定文件类型并提取为结构化数据。'
+    + '通过文件指纹库 + 四层递进识别 + 四方交叉验证，自动判定文件类型并提取为结构化数据。'
     + '支持多种文件格式（xls/xlsx/csv/pdf/docx/jpg/png/tiff），兼容各类列名变体，'
     + '采用自适应表头检测（不预设表头在第几行）和汇总行自动过滤，确保数据质量。'
     + '</p>'
@@ -174,7 +162,7 @@ function renderFileParsingStatic() {
     + '</div>'
     + '<div style="font-size:10px;color:#3a4048;line-height:20px">'
     + '<p style="margin:0 0 10px"><strong>执行逻辑：</strong>'
-    + '读取 Excel 文件的前200行表头区域（不只是第1行），将表头中的每一个词与{{file_fingerprints}}类文件指纹的关键词库做交叉匹配。'
+    + '读取 Excel 文件的前200行表头区域（不只是第1行），将表头中的词项与已配置的文件指纹关键词库做交叉匹配。'
     + '每命中一个关键词得1分，得分超过该类型指纹的评分阈值（通常2-4分）即判定为该类型。'
     + '多类型同时超过阈值时，取得分最高的类型作为主判定。'
     + '</p>'
@@ -4597,7 +4585,7 @@ function renderDADomains() {
 // ================================================================
 // 域分析系统全景面板
 // ================================================================
-function renderUnifiedDomainPanel(container) {
+function _renderLegacyUnifiedDomainPanel(container) {
   if (!container) return;
   var h = '';
   h += '<style>'
@@ -4735,6 +4723,138 @@ function renderUnifiedDomainPanel(container) {
   h += '</div>';
   container.innerHTML = h;
   var d = container.closest('details'); if (d) { d.open = false; }
+}
+
+// 稽查方法论单页使用的业务域协同视图。
+// 旧版域分析正文保留为迁移参考，但不再进入用户界面，避免失真统计和重复定性。
+function renderUnifiedDomainPanel(container) {
+  if (!container) return;
+  var domains = [
+    {
+      name:'主体、期间与行业实质',
+      purpose:'先回答“查谁、查哪一期、实际做什么业务”，为规则适用、行业基准和资料范围建立共同前提。',
+      inputs:'营业执照、工商信息、账套期间、销项品类、合同、人员、场地及加工信号。',
+      checks:'核对名称和信用代码；比较登记行业与持续经营事实；记录不一致原因及置信度。',
+      output:'主体锚点、检查期间、实质行业标签、适用范围和待补资料。'
+    },
+    {
+      name:'收入、收款与申报',
+      purpose:'核验收入是否完整、及时并按同一口径进入账载、票载、资金和申报数据。',
+      inputs:'银行流水、销项发票、总账明细、纳税申报表、平台或现金收款记录。',
+      checks:'逐笔匹配主体、金额、日期和性质；区分经营收入与借款、注资、代收等非收入款项。',
+      output:'已解释差异、待核收款、跨期事项、资料限制及可复算的差异表。'
+    },
+    {
+      name:'采购、成本与存货',
+      purpose:'核验采购、入库、生产或加工、领用、销售与结转之间是否形成可解释的数量和金额链。',
+      inputs:'进项发票、采购与入库单、存货台账、BOM或加工资料、物流资料、成本明细。',
+      checks:'先区分贸易、制造和服务模式；再检查品名映射、投入产出、周转、计价和截止性。',
+      output:'进销匹配结果、加工链验证、库存差异、成本口径及不能分析的原因。'
+    },
+    {
+      name:'发票、合同与交易履行',
+      purpose:'围绕同一交易核验合同、货物或服务、资金、发票与会计记录之间的对应关系。',
+      inputs:'购销发票、合同订单、验收或交付、物流、收付款、记账凭证及红冲作废记录。',
+      checks:'按交易重要性和业务习惯分层判断合同需求；核验主体、内容、金额、期间和履行痕迹。',
+      output:'四流对应表、异常开具模式、缺失环节、反向证据和逐笔核验建议。'
+    },
+    {
+      name:'人员、薪酬与社保个税',
+      purpose:'核验人员规模、劳动关系、工资发放、个税扣缴和社保缴纳是否相互支持。',
+      inputs:'人员名册、劳动合同、工资表、银行代发、个税申报、社保明细和考勤资料。',
+      checks:'统一人员和期间口径；解释外包、派遣、兼职、离职入职等合理差异。',
+      output:'三数勾稽表、身份差异、基数差异、资料限制和待访谈事项。'
+    },
+    {
+      name:'账簿、凭证与全税种勾稽',
+      purpose:'从账簿记录出发核对凭证、报表、申报及税种之间的勾稽关系，定位口径或期间差异。',
+      inputs:'科目余额表、明细账、记账凭证、财务报表、各税种申报表及完税资料。',
+      checks:'检查科目归类、截止性、计税基础、税率或征收率来源及跨税种逻辑。',
+      output:'账票表税差异、调整项目、计算底稿、适用依据待核项和影响范围。'
+    },
+    {
+      name:'资产、关联关系与优惠资格',
+      purpose:'核验资产使用、关联交易定价、资金占用以及税收优惠条件是否有事实和资料支持。',
+      inputs:'资产卡片、权属与租赁、股权人员关系、关联往来、定价资料、优惠备案和研发资料。',
+      checks:'先确认关系和资格，再比较交易条件、使用状态、受益期间和持续满足情况。',
+      output:'关系网络、交易样本、价格或资金差异、资格缺口及需人工核验事项。'
+    },
+    {
+      name:'跨域协商与经营实质',
+      purpose:'把各域对同一事实的支持、冲突和限制放在一起，防止单域结论机械放大。',
+      inputs:'各域发现、来源定位、证据强度、反向证据、行业闸门和资料完备度。',
+      checks:'强证据优先；缺资料限制结论；行业不适用则退出；冲突未消解不得升级。',
+      output:'保留、降级、撤回或联合增强的处理记录，以及可审计的理由。'
+    }
+  ];
+  var patterns = [
+    ['收款与开票不一致','先匹配全部付款方，再区分借款、注资、代收、退款和经营收入。','款项性质无法确认或缺少账簿、合同、申报任一关键来源时，只列待核事项。'],
+    ['进销品名或数量不匹配','先判断贸易、制造、委外加工或服务模式，再用BOM、入库、领用和物流验证。','业务模式尚未确认，或合理的加工转换能够解释差异时，不升级。'],
+    ['合同或履约资料缺失','按金额、交易复杂度、持续性和行业习惯划分必需、应有及可由其他资料替代。','不能仅因“无合同”判断交易不真实；替代证据充分时记录为已解释。'],
+    ['跨地区交易缺少物流痕迹','确认标的是否属于实物、交付方式、运费承担方和第三方物流结算。','数字化服务、客户自提、包价运输等已被可靠资料证实时退出。'],
+    ['费用结构或经营关联异常','核对服务成果、受益对象、合同发票、付款和会计处理，区分企业支出与个人支出。','只有比例异常而没有逐笔事实时，不形成定性结论。'],
+    ['采购、销售与库存关系异常','联查存货变动、在途、退货、委托加工、盘点和截止性，按期间复算。','库存或生产资料不完整时披露测算假设，不推定货物去向。'],
+    ['供应商、客户与人员重叠','核验股权、任职、联系方式、地址、交易定价和资金流，区分显性与隐性关系。','人员同名或单一联系方式重合未经身份确认，不作为关联关系事实。'],
+    ['购销闭环或资金回流信号','按时间轴复原发票、货物、资金和商业目的，检查金额、路径、间隔及正常商业解释。','闭环图形本身只触发核验；货物和交易目的未核实前不作违法判断。'],
+    ['产能、物耗、能耗与物流矛盾','统一产量、单位耗用、开工时间和委外生产口径，采用区间而非单点基准。','行业基准来源不明、样本不足或外协因素未排除时，不输出确定性结论。'],
+    ['多税种或多期间不一致','逐税种确认计税口径、申报期间、优惠条件和会计税法差异，再汇总影响。','合法税会差异、申报时点差异或政策过渡能够解释时，转为说明事项。'],
+    ['时间序列突变','比较同比、环比和业务季节性，回到具体交易核验突变月份。','统计异常没有交易事实支持，或一次性事项已解释时，不升级。'],
+    ['多域共同指向同一事项','合并同一事实，保留各自来源；至少两个独立来源相互印证，并检查反向证据。','来源不独立、结论冲突或反向证据未处理时，不得形成证据闭环。']
+  ];
+  var html = `
+    <style>
+      .md-domain{padding:12px 14px 22px;color:#475569;font-size:13px;line-height:1.8}
+      .md-domain h3{margin:18px 0 9px;color:#16233a;font-size:16px}
+      .md-domain-intro{padding:15px 17px;border-left:4px solid #0f766e;background:#f3faf8;border-radius:8px}
+      .md-domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin-top:12px}
+      .md-domain-card{border:1px solid #e3e8ef;border-radius:10px;padding:16px;background:#fff}
+      .md-domain-card h4{margin:0 0 9px;color:#16233a;font-size:14px}
+      .md-domain-card p{margin:5px 0;font-size:12px;line-height:1.75}
+      .md-domain-card b{color:#334155}
+      .md-domain-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+      .md-domain-table th,.md-domain-table td{padding:10px;border:1px solid #e5eaf0;text-align:left;vertical-align:top;line-height:1.7}
+      .md-domain-table th{background:#f8fafc;color:#334155}
+      .md-domain-gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+      .md-domain-gate{padding:14px;border:1px solid #e3e8ef;border-radius:9px;background:#fbfcfe}
+      .md-domain-gate b{display:block;color:#16233a;margin-bottom:5px}
+      .md-domain-output{padding:15px 17px;border:1px solid #dbe5ee;border-radius:9px;background:#f8fafc}
+      @media(max-width:760px){.md-domain{padding:8px}.md-domain-table{display:block;overflow-x:auto}.md-domain-grid{grid-template-columns:1fr}}
+    </style>
+    <div class="md-domain">
+      <div class="md-domain-intro"><b>业务域不是结论目录，而是分工协同的核验框架。</b>每个域必须同时公开适用前提、数据基础、核验动作、反向解释和输出限制。调查线索、证据链和分析链已在下方“调查—证据—分析链”集中呈现，本区不再复制链条正文。</div>
+      <h3>一、八类业务域及其职责边界</h3>
+      <div class="md-domain-grid">
+        ${domains.map(function(domain){
+          return '<article class="md-domain-card"><h4>' + domain.name + '</h4>'
+            + '<p><b>目标：</b>' + domain.purpose + '</p>'
+            + '<p><b>资料：</b>' + domain.inputs + '</p>'
+            + '<p><b>方法：</b>' + domain.checks + '</p>'
+            + '<p><b>产出：</b>' + domain.output + '</p></article>';
+        }).join('')}
+      </div>
+      <h3>二、统一激活与放行规则</h3>
+      <div class="md-domain-gates">
+        <div class="md-domain-gate"><b>适用性闸门</b>主体、期间、行业和业务模式未确认，相关域可以收集线索，但不得下确定性判断。</div>
+        <div class="md-domain-gate"><b>资料闸门</b>每个结论须列明已用资料、缺失资料及其影响；缺资料不等于存在问题。</div>
+        <div class="md-domain-gate"><b>独立性闸门</b>同一原始数据的多种计算仍是单一来源，不能冒充多源证据。</div>
+        <div class="md-domain-gate"><b>反向验证闸门</b>每个高影响疑点至少提出一个合理替代解释，并记录验证结果。</div>
+        <div class="md-domain-gate"><b>冲突闸门</b>域间结论冲突时按原始凭证、直接事实、可靠外证、系统推断、行业基准的顺序复核。</div>
+        <div class="md-domain-gate"><b>人工复核闸门</b>涉及税额、违法性质、处罚或重大权益影响的事项，必须由具备职责的人员复核。</div>
+      </div>
+      <h3>三、常用跨域调查模式</h3>
+      <table class="md-domain-table">
+        <thead><tr><th style="width:18%">触发场景</th><th style="width:45%">核验路径</th><th>退出或降级条件</th></tr></thead>
+        <tbody>${patterns.map(function(row){
+          return '<tr><td><b>' + row[0] + '</b></td><td>' + row[1] + '</td><td>' + row[2] + '</td></tr>';
+        }).join('')}</tbody>
+      </table>
+      <h3>四、域分析的标准输出合同</h3>
+      <div class="md-domain-output">
+        <b>每项输出固定包含：</b>①事实及原始来源定位；②触发的疑点和适用前提；③支持证据与反向证据；④已执行的核验动作；⑤当前状态（待核、已解释、证据不足、形成专业判断）；⑥资料和方法限制；⑦下一步责任人及所需材料。<br>
+        <b>禁止事项：</b>不得用规则命中数代替事实，不得用模型评分代替证据，不得把“异常”“疑似”自动改写成违法认定，不得在法条效力和适用期间未核验时写入正式结论。
+      </div>
+    </div>`;
+  container.innerHTML = html;
 }
 
 function renderDAResult() {
@@ -5890,146 +6010,205 @@ function METHODOLOGY_TOC() {
     ['#au-s8','规则系统全面激活',''],['#au-s9','六大战法',''],['#au-s10','分税种杀手锏',''],['#au-s11','行业专属检测包',''],
     ['#au-L4','第四层·疑点过滤','lv'],
     ['#au-s12','七类噪声过滤',''],['#au-s13','跨域协商',''],
-    ['#au-L5','第五层·定性定案','lv'],
-    ['#au-s14','证据三性与闭环',''],['#au-s15','税款测算',''],['#au-s16','定性分寸',''],['#au-s17','对抗性自检',''],
-    ['#au-L6','第六层·报告出鞘','lv'],
-    ['#au-s18','报告生成与净化',''],['#au-s19','全链路溯源',''],['#au-s20','合规度评估',''],
-    ['#au-L7','第七层·经验进化','lv'],
-    ['#au-s21','规则置信度自校准',''],['#au-s22','新模式发现',''],['#au-s23','政策同步',''],
+    ['#au-L5','第五层·专业判断','lv'],
+    ['#au-s14','证据三性与闭环',''],['#au-s15','金额测算',''],['#au-s16','法律适用',''],['#au-s17','对抗性自检',''],
+    ['#au-L6','第六层·报告衔接','lv'],
+    ['#au-s18','移交包',''],['#au-s19','叙事边界',''],['#au-s20','风险排序',''],
+    ['#au-L7','第七层·受控进化','lv'],
+    ['#au-s21','规则效果评估',''],['#au-s22','新模式发现',''],['#au-s23','政策维护',''],
   ];
   var h='<nav class="au-toc"><div class="tt">系统流水线</div>';
   for(var i=0;i<items.length;i++){var lv=items[i][2];h+='<a href="'+items[i][0]+'"'+(lv&&lv.indexOf('lv')>=0?' class="lv"':'')+'>'+items[i][1]+'</a>';}
   return h+'</nav>';
 }
-var METHODOLOGY_SECTIONS = [
-  {id:'guide', label:'📖 方法论总纲', render:'_renderMethodologyGuide', desc:'七层稽查规程：查前准备、数据采集、分析布网、疑点过滤、定性定案、报告衔接和经验进化。'},
-  {id:'files', label:'📁 资料解析', render:'renderFileParsingPage', desc:'融合原“文件解析”，把资料识别、结构提取、置信度和修复建议放回数据采集方法。'},
-  {id:'results', label:'📋 分析结果', render:'renderAnalyzePage', desc:'融合原“分析结果”，在方法论中直接审阅最近一次稽查执行产出的风险发现。'},
-  {id:'rules', label:'📑 疑点规则', render:'renderTaxRiskRules', desc:'融合原“疑点库”，作为分析布网阶段的规则底座和疑点触发标准。'},
-  {id:'domains', label:'🌐 域分析', render:'renderUnifiedDomainPanel', desc:'融合原“域分析”，按业务域查看并行检测范围、数据基础和实际检出结果。'},
-  {id:'chains', label:'🔗 证据推理链', render:'_renderMethodologyChainsHub', desc:'统一融合线索链、证据链、分析链和紧凑视图，形成“调查—验证—推理—总览”闭环。'},
-  {id:'handbook', label:'⚖️ 稽查员手册', render:'renderAuditorHandbook', desc:'融合原“稽查员手册”，作为七层方法论的岗位操作说明、资料清单和复核依据。'}
+var METHODOLOGY_PAGE_SECTIONS = [
+  {id:'overview', label:'🧭 作业闭环总览', desc:'先明确职责、层序和放行条件，再进入具体方法、数据与证据。'},
+  {id:'guide', label:'📖 七层作业规程', desc:'查前准备、数据采集、分析布网、疑点过滤、定性复核、报告衔接和经验进化。'},
+  {id:'files', label:'📁 资料接收与解析', desc:'识别资料、提取结构、保留来源并公开解析限制。'},
+  {id:'rules', label:'📑 疑点规则底座', desc:'展示疑点从什么条件触发、适用于什么范围以及需要什么后续核验。'},
+  {id:'domains', label:'🌐 业务域协同', desc:'按业务域说明检测范围、数据基础、行业闸门和本次执行状态。'},
+  {id:'results', label:'📋 执行成果与复核', desc:'把最近一次执行结果放回方法链路中审阅，不把模型输出直接当成定案。'},
+  {id:'chains', label:'🔗 调查—证据—分析链', desc:'紧凑总览、调查路径、证据闭环和分析推理在一个区域同时呈现。'},
+  {id:'handbook', label:'⚖️ 岗位手册与程序保障', desc:'把旧手册中的岗位要求、底稿、程序和复核要点融入统一作业清单。'}
 ];
 
 function renderMethodologyPage(container) {
   if (!container) return;
   window.currentModule = '稽查方法论';
-  var selected = window._methodologySection || 'guide';
+  var requestedSection = window._methodologySection || '';
+  var requestedChain = window._methodologyChainView || '';
   window._methodologySection = null;
-  var nav = METHODOLOGY_SECTIONS.map(function(section) {
-    return '<button type="button" class="method-tab" data-method-section="' + section.id
-      + '" onclick="selectMethodologySection(\'' + section.id + '\')">' + section.label + '</button>';
+  window._methodologyChainView = null;
+  var nav = METHODOLOGY_PAGE_SECTIONS.map(function(section) {
+    return '<a href="#methodology-section-' + section.id + '">' + section.label + '</a>';
   }).join('');
   container.innerHTML = `
     <style>
-      .method-shell{max-width:1320px;margin:0 auto;padding:24px}
-      .method-shell-head{margin:0 0 18px;padding:22px 24px;border:1px solid #e3e8ef;border-radius:14px;background:linear-gradient(135deg,#fbfcfe,#f8fafc)}
-      .method-shell-head h1{margin:0 0 8px;color:#16233a;font-size:24px}
-      .method-shell-head p{margin:0;color:#64748b;line-height:1.75}
-      .method-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-      .method-tab{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:8px 13px;cursor:pointer;font-size:12px;font-weight:600}
-      .method-tab:hover{border-color:#9a1f2b;color:#9a1f2b}
-      .method-tab.active{border-color:#9a1f2b;background:#9a1f2b;color:#fff}
-      .method-section-note{margin:0 0 14px;padding:10px 13px;border-left:3px solid #9a1f2b;background:#fef8f8;color:#5b6573;font-size:12px;line-height:1.7}
-      .method-workspace{min-height:220px;border:1px solid #e5ebf1;border-radius:12px;background:#fff;overflow:hidden}
-      .method-workspace>.au{max-width:none}
-      .method-chain-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px;border-bottom:1px solid #e5ebf1;background:#f8fafc}
-      .method-chain-tab{border:1px solid #d6dee8;background:#fff;color:#475569;border-radius:7px;padding:7px 11px;cursor:pointer;font-size:12px}
-      .method-chain-tab.active{border-color:#9a1f2b;background:#9a1f2b;color:#fff}
-      .method-chain-view{padding:12px}
-      @media(max-width:760px){.method-shell{padding:14px}.method-shell-head{padding:18px}.method-tab{font-size:11px;padding:7px 10px}}
+      .method-shell{max-width:1380px;margin:0 auto;padding:24px;color:#334155}
+      .method-shell-head{margin:0 0 14px;padding:26px 28px;border:1px solid #e3e8ef;border-radius:16px;background:linear-gradient(135deg,#fbfcfe,#f8fafc)}
+      .method-kicker{font-size:12px;font-weight:700;letter-spacing:.12em;color:#9a1f2b;margin-bottom:8px}
+      .method-shell-head h1{margin:0 0 10px;color:#16233a;font-size:28px}
+      .method-shell-head p{margin:0;color:#64748b;line-height:1.85;font-size:14px}
+      .method-page-nav{position:sticky;top:0;z-index:8;display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;padding:10px;border:1px solid #e5ebf1;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(15,23,42,.05)}
+      .method-page-nav a{border:1px solid #d7e1eb;border-radius:999px;background:#fff;color:#475569;padding:7px 11px;text-decoration:none;font-size:12px;font-weight:600}
+      .method-page-nav a:hover{border-color:#9a1f2b;color:#9a1f2b}
+      .method-section{scroll-margin-top:72px;margin:0 0 22px;border:1px solid #e5ebf1;border-radius:14px;background:#fff;overflow:hidden}
+      .method-section-head{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;padding:18px 20px;border-bottom:1px solid #edf1f5;background:#fbfcfe}
+      .method-section-num{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#16233a;color:#fff;font-weight:800}
+      .method-section-head h2{margin:0 0 4px;color:#16233a;font-size:18px}
+      .method-section-head p{margin:0;color:#64748b;font-size:12px;line-height:1.7}
+      .method-mount{min-height:90px;padding:10px;background:#fff}
+      .method-mount>.au,.method-mount>.fp-layout{max-width:none}
+      .method-mount .au{padding:24px 26px;font-size:13px;line-height:1.9}
+      .method-mount .au h1{font-size:24px}
+      .method-mount .au h2{font-size:16px}
+      .method-mount [style*="font-size:10px"]{font-size:12px!important}
+      .method-mount [style*="line-height:20px"]{line-height:1.8!important}
+      .method-chain-block{margin:10px 0 18px;border:1px solid #e6ebf1;border-radius:10px;overflow:hidden}
+      .method-chain-block>h3{margin:0;padding:13px 16px;background:#f8fafc;border-bottom:1px solid #e6ebf1;color:#16233a;font-size:14px}
+      .method-chain-block>p{margin:0;padding:10px 16px 0;color:#64748b;font-size:12px;line-height:1.7}
+      .method-chain-target{padding:8px}
+      .method-overview-grid,.method-manual-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;padding:18px}
+      .method-overview-card,.method-manual-card{padding:16px;border:1px solid #e3e8ef;border-radius:10px;background:#fff}
+      .method-overview-card b,.method-manual-card b{display:block;color:#16233a;margin-bottom:7px}
+      .method-overview-card p,.method-manual-card p{margin:0;color:#64748b;font-size:12px;line-height:1.8}
+      .method-stop{margin:0 18px 18px;padding:14px 16px;border-left:4px solid #9a1f2b;background:#fef8f8;color:#5b6573;font-size:13px;line-height:1.8}
+      .method-checklist{margin:12px 18px 20px;padding:0;list-style:none;columns:2;column-gap:28px}
+      .method-checklist li{break-inside:avoid;margin:0 0 8px;padding-left:20px;position:relative;color:#475569;font-size:13px;line-height:1.7}
+      .method-checklist li:before{content:"✓";position:absolute;left:0;color:#0e9f6e;font-weight:800}
+      @media(max-width:760px){.method-shell{padding:12px}.method-shell-head{padding:20px}.method-shell-head h1{font-size:23px}.method-page-nav{position:static}.method-section-head{grid-template-columns:40px minmax(0,1fr);padding:15px}.method-mount{padding:4px}.method-mount .au{padding:16px 12px}.method-checklist{columns:1}}
     </style>
     <div class="method-shell">
       <header class="method-shell-head">
+        <div class="method-kicker">单页融合 · 方法驱动 · 证据闭环</div>
         <h1>📖 稽查方法论</h1>
-        <p>原文件解析、分析结果、疑点库、域分析、线索链、证据链、分析链、紧凑视图和稽查员手册，已按实际稽查流程融入本模块，形成从资料接收到定性复核的完整工作体系。</p>
+        <p>本页把原“文件解析、分析结果、疑点库、域分析、线索链、证据链、分析链、紧凑视图、稽查员手册”按真实作业顺序融为一个体系。方法规定怎么查，数据说明查到了什么，证据决定能否升级，程序和人工复核决定能否交付。</p>
       </header>
-      <nav class="method-tabs" aria-label="稽查方法论分区">${nav}</nav>
-      <div id="methodology-section-note" class="method-section-note"></div>
-      <div id="methodology-workspace" class="method-workspace"></div>
+      <nav class="method-page-nav" aria-label="稽查方法论单页目录">${nav}</nav>
+      ${METHODOLOGY_PAGE_SECTIONS.map(function(section,index){
+        return '<section id="methodology-section-' + section.id + '" class="method-section">'
+          + '<div class="method-section-head"><span class="method-section-num">' + String(index + 1).padStart(2,'0') + '</span>'
+          + '<div><h2>' + section.label + '</h2><p>' + section.desc + '</p></div></div>'
+          + '<div id="methodology-mount-' + section.id + '" class="method-mount"></div></section>';
+      }).join('')}
     </div>`;
-  selectMethodologySection(selected);
-}
-
-function selectMethodologySection(sectionId) {
-  var section = METHODOLOGY_SECTIONS.filter(function(item){ return item.id === sectionId; })[0]
-    || METHODOLOGY_SECTIONS[0];
-  var workspace = document.getElementById('methodology-workspace');
-  var note = document.getElementById('methodology-section-note');
-  if (!workspace) return;
-  var tabs = document.querySelectorAll('[data-method-section]');
-  for (var i = 0; i < tabs.length; i++) {
-    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-method-section') === section.id);
-  }
-  if (note) note.textContent = section.desc;
-  workspace.innerHTML = '<div style="padding:24px;color:#64748b">正在载入“' + section.label.replace(/^[^ ]+ /, '') + '”...</div>';
-  var renderer = window[section.render];
-  if (typeof renderer !== 'function') {
-    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">该方法分区暂未完成载入，请刷新页面后重试。</div>';
-    return;
-  }
-  try {
-    var result = renderer(workspace);
-    if (result && typeof result.catch === 'function') {
-      result.catch(function(error) {
-        workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">方法分区载入失败：'
-          + (error && error.message ? error.message : '未知错误') + '</div>';
-      });
-    }
-  } catch (error) {
-    workspace.innerHTML = '<div style="padding:24px;color:#b91c1c">方法分区载入失败：'
-      + (error && error.message ? error.message : '未知错误') + '</div>';
-  }
+  _renderMethodologyOverview(document.getElementById('methodology-mount-overview'));
+  _renderMethodologyMount('guide', _renderMethodologyGuide);
+  _renderMethodologyMount('files', renderFileParsingPage);
+  _renderMethodologyMount('rules', renderTaxRiskRules);
+  _renderMethodologyMount('domains', renderUnifiedDomainPanel);
+  _renderMethodologyMount('results', renderAnalyzePage);
+  _renderMethodologyMount('chains', renderMethodologyChainsIntegrated);
+  _renderMethodologyPracticeManual(document.getElementById('methodology-mount-handbook'));
   window.currentModule = '稽查方法论';
+  setTimeout(function(){
+    var targetId = requestedSection ? 'methodology-section-' + requestedSection : '';
+    if (requestedSection === 'chains' && requestedChain) targetId = 'methodology-chain-' + requestedChain;
+    var target = targetId ? document.getElementById(targetId) : null;
+    if (target) target.scrollIntoView({behavior:'smooth',block:'start'});
+  }, 350);
 }
 
-function _renderMethodologyChainsHub(container) {
-  if (!container) return;
-  var selected = window._methodologyChainView || 'clues';
-  window._methodologyChainView = null;
-  container.innerHTML = `
-    <div class="method-chain-tabs">
-      <button type="button" class="method-chain-tab" data-chain-view="clues" onclick="selectMethodologyChainView('clues')">🔗 线索链</button>
-      <button type="button" class="method-chain-tab" data-chain-view="evidence" onclick="selectMethodologyChainView('evidence')">📎 证据链</button>
-      <button type="button" class="method-chain-tab" data-chain-view="analysis" onclick="selectMethodologyChainView('analysis')">🧩 分析链</button>
-      <button type="button" class="method-chain-tab" data-chain-view="compact" onclick="selectMethodologyChainView('compact')">📌 紧凑视图</button>
-    </div>
-    <div id="methodology-chain-view" class="method-chain-view"></div>`;
-  selectMethodologyChainView(selected);
-}
-
-function selectMethodologyChainView(viewId) {
-  var renderers = {
-    clues: 'renderChainsPage',
-    evidence: 'renderEvidencePage',
-    analysis: 'renderAnalysisChainsPage',
-    compact: 'renderCompactClueChains'
-  };
-  var selected = renderers[viewId] ? viewId : 'clues';
-  var target = document.getElementById('methodology-chain-view');
+function _renderMethodologyMount(sectionId, renderer) {
+  var target = document.getElementById('methodology-mount-' + sectionId);
   if (!target) return;
-  var tabs = document.querySelectorAll('[data-chain-view]');
-  for (var i = 0; i < tabs.length; i++) {
-    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-chain-view') === selected);
-  }
-  target.innerHTML = '<div style="padding:18px;color:#64748b">正在载入...</div>';
-  var renderer = window[renderers[selected]];
+  target.innerHTML = '<div style="padding:22px;color:#64748b">正在载入...</div>';
   if (typeof renderer !== 'function') {
-    target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败，请刷新页面后重试。</div>';
+    target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入函数不可用，请刷新后重试。</div>';
     return;
   }
   try {
     var result = renderer(target);
     if (result && typeof result.catch === 'function') {
       result.catch(function(error){
-        target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败：'
-          + (error && error.message ? error.message : '未知错误') + '</div>';
+        target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入失败：'
+          + escHtml(error && error.message ? error.message : '未知错误') + '</div>';
       });
     }
   } catch (error) {
-    target.innerHTML = '<div style="padding:18px;color:#b91c1c">证据推理链载入失败：'
-      + (error && error.message ? error.message : '未知错误') + '</div>';
+    target.innerHTML = '<div style="padding:22px;color:#b91c1c">本区载入失败：'
+      + escHtml(error && error.message ? error.message : '未知错误') + '</div>';
   }
+}
+
+function _renderMethodologyOverview(container) {
+  if (!container) return;
+  var stages = [
+    ['1. 查前准备','锁定主体、期间、行业实质、纳税人资格和授权范围；未确认对象与边界，不启动风险判断。'],
+    ['2. 数据采集','识别文件、保留原始值、记录来源与解析置信度；资料缺失只形成核验限制，不推定违法。'],
+    ['3. 分析布网','按资料和行业激活规则与业务域，生成线索和竞争性假设；阈值只负责筛查。'],
+    ['4. 疑点过滤','执行行业闸门、重复合并、适用性、金额重要性、反向解释和跨域冲突消解。'],
+    ['5. 证据复核','核验真实性、关联性、合法性，形成至少两个独立来源的闭环，并保留反向证据。'],
+    ['6. 专业判断','区分事实、疑点、专业判断和有权机关认定；税额、期间、依据和限制条件分别复核。'],
+    ['7. 报告衔接','把通过门禁的内容交给报告编制模块，方法论只规定输入要求，不在这里重复报告格式。'],
+    ['8. 反馈进化','人工纠正先限定场景并保留版本，跨样本验证后才能提升置信度或扩大适用范围。']
+  ];
+  container.innerHTML = '<div class="method-overview-grid">' + stages.map(function(stage){
+    return '<div class="method-overview-card"><b>' + stage[0] + '</b><p>' + stage[1] + '</p></div>';
+  }).join('') + '</div>'
+    + '<div class="method-stop"><b>统一停点：</b>主体或期间不明、资料来源不可定位、法条状态未核验、证据不足、跨域结论冲突、高影响事项未完成人工复核时，系统只能输出“待核事项”，不得升级为正式结论。</div>';
+}
+
+function renderMethodologyChainsIntegrated(container) {
+  if (!container) return;
+  container.innerHTML = `
+    <div id="methodology-chain-compact" class="method-chain-block">
+      <h3>📌 链路紧凑总览</h3>
+      <p>先按类别快速定位，再进入完整调查、证据和推理明细。</p>
+      <div id="methodology-chain-compact-target" class="method-chain-target"></div>
+    </div>
+    <div id="methodology-chain-clues" class="method-chain-block">
+      <h3>🔗 调查线索链</h3>
+      <p>回答“从哪个信号出发、下一步查什么、需要哪些资料”。</p>
+      <div id="methodology-chain-clues-target" class="method-chain-target"></div>
+    </div>
+    <div id="methodology-chain-evidence" class="method-chain-block">
+      <h3>📎 证据闭环链</h3>
+      <p>回答“哪些独立来源能够相互印证，反向证据是否已经排除”。</p>
+      <div id="methodology-chain-evidence-target" class="method-chain-target"></div>
+    </div>
+    <div id="methodology-chain-analysis" class="method-chain-block">
+      <h3>🧩 分析推理链</h3>
+      <p>回答“事实如何经过适用性、因果、法律和反事实检验形成专业判断”。</p>
+      <div id="methodology-chain-analysis-target" class="method-chain-target"></div>
+    </div>`;
+  renderCompactClueChains(document.getElementById('methodology-chain-compact-target'));
+  renderChainsPage(document.getElementById('methodology-chain-clues-target'));
+  renderEvidencePage(document.getElementById('methodology-chain-evidence-target'));
+  renderAnalysisChainsPage(document.getElementById('methodology-chain-analysis-target'));
+  window.currentModule = '稽查方法论';
+}
+
+function _renderMethodologyPracticeManual(container) {
+  if (!container) return;
+  var cards = [
+    ['资料接收岗','建立资料目录，记录文件名、来源主体、所属期间、接收时间、原始哈希和解析状态；任何转换不得覆盖原件。'],
+    ['分析主办岗','确认分析对象与范围，选择适用业务域，登记每条疑点的触发条件、排除条件、重要性和待补资料。'],
+    ['证据复核岗','分别核验真实性、关联性、合法性；标注支持证据、反向证据、证据缺口和闭环状态。'],
+    ['法律复核岗','核对规范名称、条款号、效力状态、适用期间、地域和程序要求；不确定时明确标注待复核。'],
+    ['金额复核岗','保存计算公式、计税依据、期间、税率来源、舍入方式和调整项；估算值与正式测算分开。'],
+    ['审理与终审岗','复核事实是否清楚、证据是否充分、程序是否适当、用语是否越界以及高影响事项是否人工确认。']
+  ];
+  var checks = [
+    '主体、账套、检查期间和权限范围已经确认',
+    '原始资料与结构化数据可以双向定位',
+    '资料缺口及其影响已经公开展示',
+    '疑点触发条件与排除条件均有记录',
+    '行业闸门和业务实质已经核验',
+    '支持证据与反向证据同屏保留',
+    '至少两个独立来源形成证据闭环',
+    '法律依据的名称、条号、期间和效力已核验',
+    '金额口径、公式和参数可以复算',
+    '高影响事项已经完成人工复核',
+    '原始结论与人工纠正记录并存且可撤销',
+    '交付内容已通过质量门禁并转交报告编制模块'
+  ];
+  container.innerHTML = '<div class="method-manual-grid">' + cards.map(function(card){
+    return '<div class="method-manual-card"><b>' + card[0] + '</b><p>' + card[1] + '</p></div>';
+  }).join('') + '</div>'
+    + '<div class="method-stop"><b>程序保障原则：</b>方法论提供的是调查、验证和专业判断框架，不替代有权机关的行政认定、处罚决定或司法判断。涉及检查权限、取证程序、陈述申辩、听证、复议诉讼等事项，必须由具备相应权限和职责的人员依据现行规定办理。</div>'
+    + '<h3 style="margin:18px;color:#16233a">交付前十二项复核清单</h3>'
+    + '<ul class="method-checklist">' + checks.map(function(check){return '<li>' + check + '</li>';}).join('') + '</ul>';
 }
 
 function _renderMethodologyGuide(container) {
@@ -6045,30 +6224,30 @@ function renderMethodologyContent(){
   var h='';
   // ═══ 开篇 ═══
   h+='<section id="au-preface"><h1>税务稽查方法论</h1>';
-  h+='<p>本手册依据《税收征收管理法》及现行税收法规编制，系统梳理稽查实务中从查前准备到定案出报告的标准化流程，转化为<em>可操作、可量化、可回溯</em>的标准化规程。每一条规程背后，均有真实案例和稽查实战经验支撑。</p>';
-  h+='<p>稽查执行七层：<em>查前准备→数据采集→分析布网→疑点过滤→定性定案→报告出鞘→经验进化</em>。层序不可跳跃——前一层未完成，不启动下一层。每一层将"稽查人员怎么查"与"分析系统凭什么判"融为一体——通读七层规程，即可全面了解稽查分析启动后，系统如何完成全流程风险识别与稽查判定。</p>';
-  h+='<p><b>四句铁律贯穿全部七层（后文不再重述）：</b>实质重于形式（登记不算、干的才算）；孤证不立（单源数据不定案）；疑点非结论（起点是疑点、落点是铁证）；宁存疑不错杀（说不清的标存疑、有铁证的才下定论）。</p></section>';
+  h+='<p>本手册把查前准备、数据处理、疑点调查、证据复核、专业判断和报告衔接整理为<em>可操作、可追踪、可复核</em>的作业规程。具体事项仍须以适用期间内有效的法律法规、法定程序和人工复核为准。</p>';
+  h+='<p>稽查作业分为七层：<em>查前准备→数据采集→分析布网→疑点过滤→专业判断→报告衔接→经验进化</em>。层序体现证据成熟过程；前提未满足时应停在当前层并说明限制，不得用后续模型输出倒推事实。</p>';
+  h+='<p><b>四项原则贯穿全部七层：</b>经营实质必须由多源事实支持；单一来源不形成结论；疑点只负责启动核验；合理解释和反向证据必须同等记录。</p></section>';
 
   // ═══ 第一层·启动 ═══
-  h+='<h2>第一层 · 查前准备 —— 资料包一打开，先认人再认门</h2><p>系统拿到企业上传的全部资料。此时不急着翻任何一份文件——先做三件事：锁定身份、穿透行业、立起标尺。</p>';
+  h+='<h2 id="au-L1">第一层 · 查前准备 —— 资料包一打开，先认人再认门</h2><p>系统拿到企业上传的全部资料。此时不急着翻任何一份文件——先做三件事：锁定身份、穿透行业、立起标尺。</p>';
   h+='<section id="au-s1"><h2>锁定身份：在查谁、什么资质、有没有前科</h2><p>从营业执照、工商登记信息提取：<strong>企业名称+信用代码+法定代表人+注册资本+注册地址</strong>。同时调取系统记录的纳税人资质——一般纳税人还是小规模——这决定了增值税是按销项减进项还是按征收率。系统在这一步同步加载本账套的历史分析记录，做过哪些分析、上次结论如何——<em>全面了解企业历史涉税情况是稽查工作的基本要求</em>。</p></section>';
   h+='<section id="au-s2"><h2>三层穿透定行业：发动机的缸径决定了所有标尺</h2><p>行业定错，后面全部对标准则都是废的——毛利率、税负率、费用比的基准值全看行业。系统不仅依据营业执照登记信息上的字，而用<strong>三层穿透</strong>逼近实质。</p>';
   h+='<p><b>1 工商登记层</b>：读取营业执照主营行业——但这是形式，登记"批发"实际做广告代理的比比皆是。此层仅作参考。</p>';
-  h+='<p><b>2 发票数据层</b>：统计销项发票的金税分类编码分布。90%编码属"广告服务"？它实质就是广告公司。数据不会说谎。系统据此对企业打上<strong>实质行业标签</strong>，此标签将被 {{domain_functions}} 个域分析函数和 {{industries}} 行业基准库全线消费。</p>';
+  h+='<p><b>2 发票数据层</b>：统计销项发票的商品和服务分类分布，用持续、占主导的业务内容辅助判断经营实质。发票信息必须与合同、资金、人员和场所等资料交叉验证，不能仅凭单一编码直接确定行业。验证后的<strong>实质行业标签</strong>供后续适用性判断和行业基准选择共同使用。</p>';
   h+='<p><b>3 加工信号层</b>：扫描进销品名和银行摘要中的"加工费/代工/委外/OEM"关键词——如果批发企业有外包加工信号，实质是"采购原材料+发包加工+回收成品"三段经营。此时系统<em>放宽进销存匹配标准</em>（进的是原料、销的是成品，不应要求品名精确匹配），同时激活制造业分析域。</p>';
-  h+='<p>三层结果不一致时，以<strong>发票数据层为主、加工信号层为修正</strong>，在报告第一章完整披露穿透过程。</p></section>';
-  h+='<section id="au-s3"><h2>三相符·四流合一：立起一切判断的标尺（术语唯一权威定义处）</h2><p>身份和行业定了，接下来系统在确立两项核心判断标准。</p><p><b>三相符 —— 防的是"申报数据是否准确"</b>：账载、票载、申报三套数据<strong>同口径一致</strong>。银行流水是外部基准——收入端对四方（账载、银行、开票、申报），一处不符即为疑点。这条线贯穿后面五层中每一次比对。</p><p><b>四流合一（术语唯一权威定义处） —— 防的是"交易是否真实发生"</b>：<em>本节为"四流合一"的唯一权威定义处，后文战法④及跨域协商皆引用此定义，不再重述。</em>合同流、货物流、资金流、发票流指向同一主体、同一金额、同一时点。四流齐全为真实交易；一流游离即藏异常线索；两流以上对不上——警报拉满。系统把这四个维度设为每条证据链的必查项。</p><p>两项标准结合运用，系统面对任何一笔交易、任何一个数字，都可以问出那两句："该报的报了吗？"和"该有的事情真有吗？"</p></section>';
+  h+='<p>三层结果不一致时，不机械指定某一来源胜出；应比较数据覆盖期间、业务占比、合同履行、资金、人员与场地等证据，形成实质行业判断，并披露冲突和限制。</p></section>';
+  h+='<section id="au-s3"><h2>账票表税勾稽与交易履行核验：建立共同标尺</h2><p><b>账票表税勾稽</b>用于检查账簿、发票、财务报表和纳税申报在统一主体、期间和口径下能否相互解释。银行流水可作为重要外部来源，但不能在未区分借款、注资、代收、退款等性质前直接等同收入。</p><p><b>交易履行核验</b>围绕合同或订单、货物或服务、资金、发票及会计记录进行逐笔对应。各环节完全一致可增强真实性判断；存在差异只形成核验任务，须继续检查业务习惯、结算安排、第三方付款和其他替代证据。</p><p>两项标准分别回答“申报口径能否相互解释”和“交易是否有可靠履行事实支持”，共同构成后续调查的基础。</p></section>';
 
   // ═══ 第二层·扫描 ═══
-  h+='<h2>第二层 · 数据采集 —— 把散落文件变成结构化情报</h2><p>身份已定、标尺已立。系统现在翻开全部上传文件，逐份识别类型、逐行提取情报、锁定第一批疑点。</p>';
+  h+='<h2 id="au-L2">第二层 · 数据采集 —— 把散落文件变成结构化情报</h2><p>身份已定、标尺已立。系统现在翻开全部上传文件，逐份识别类型、逐行提取情报、锁定第一批疑点。</p>';
   h+='<section id="au-s4"><h2>文件指纹识别：多维指纹，把每份资料对号入座</h2><p>不靠扩展名（PDF可能是扫描发票）、不预设表头位置——系统用<strong>四层递进识别</strong>：关键词打分找最匹配指纹类型→结构分析交叉验证→数据推断兜底→四方交叉验证终裁。支持多种文件格式、OCR扫描件。每份文件的识别结果带<strong>匹配得分、置信度、命中关键词</strong>，不靠猜、不服软。失败文件在页面显示<strong>诊断与修复建议</strong>（建议在文件名加什么关键词、或者检查什么格式）。</p></section>';
   h+='<section id="au-s5"><h2>情报逐行提取：每行数据打上"元标签"</h2><p>文件身份确认后，系统进入<strong>实体识别+情报提取</strong>：每一行银行流水被标记为哪家公司哪个账户的收支、金额、对方户名、摘要；每张发票被标记为销项还是进项、品名、金额、税额、购方/销方名称；每份科目余额表的每个科目被归入资产/负债/权益/收入/成本/费用的末级分类——逐行打上<strong>域标签</strong>（这笔交易该进哪个分析域）。</p><p>系统在这一步同步生成<strong>收款构成画像</strong>（谁是最大的付款方、付款性质是什么）、<strong>付款构成画像</strong>、<strong>发票统计</strong>、<strong>工资社保统计</strong>、<strong>资料完备度评估</strong>（哪些资料有、哪些缺失会影响哪些域的置信度）。</p></section>';
-  h+='<section id="au-s6"><h2>三大突破口：情报提取完毕后，先攻最脆弱的三个点（四方比对唯一定义处）</h2><p><b>① 银行流水 · 关键切入点</b>：钱必须真金白银地走，最难造假。系统在这一步做<strong>四方比对（本节为唯一定义处，后文不再重述）</strong>——把银行收款和账载收入、发票开具、纳税申报四套口径摊开，进账>开票→无票收入需核查；进账>账载→款项未入账直指隐匿。</p><p><b>② 发票 · 关卡</b>：进销两端都要看。进项品名是否与实质行业匹配（做广告却进钢材→虚开信号）；销项品名与经营范围匹配性；红冲作废频率异常放大。</p><p><b>③ 往来款 · 重点关注领域</b>：最容易埋东西的地方：预收账款长期挂账不转收入、应付账款异常膨胀——金额大+账龄长+对手可疑=必有蹊跷。股东借款跨年不还视同分红问题详见第三层战法⑥关联交易穿透。</p></section>';
+  h+='<section id="au-s6"><h2>三大优先入口：先找可复核的差异</h2><p><b>① 资金入口</b>：把银行收付与账载、发票和申报按主体、期间、金额及交易性质匹配。无法匹配的款项先分类为借款、注资、代收、退款、经营收支或其他待核性质，不直接下结论。</p><p><b>② 发票入口</b>：检查进销两端的主体、品名、金额、税率或征收率、开具时点及红冲作废轨迹；行业不匹配和开具模式异常只负责触发逐笔核验。</p><p><b>③ 往来入口</b>：按金额、账龄、对手方和后续结算检查预收、应收、预付、应付及其他往来。长期挂账须结合合同、资金和会计处理判断，不以账龄或单一身份关系推定性质。</p></section>';
   // 新增 s7 时间序列分析
-  h+='<section id="au-s7"><h2>时间序列分析：跨期波动是隐匿的指纹</h2><p>系统对关键财务指标做<strong>月份环比/季度同比/年度趋势</strong>三维度扫描，识别三类异常模式。</p>';
-  h+='<p><b>① 收入季节性断裂</b>：同行业正常波动范围内，年末/季末收入突增或骤降（偏离均值±2σ）→跨期调节信号。系统自动对比相邻两期开票时点与收款时点，识别"开票集中化、收款均匀化"的时间错配。</p>';
-  h+='<p><b>② 成本费用脉冲</b>：大额费用集中在某月突发（如咨询费单月超全年50%）→可能虚列或跨期调节。系统追踪费用的发票开具时间、付款时间、服务合同签署时间——三时点不一致即为疑点。</p>';
-  h+='<p><b>③ 往来款周期性波动</b>：应收/应付/预收/预付的余额在特定月份规律性冲减→可能循环倒账。系统绘制科目余额时间曲线，识别"月初大额挂账、月末集中冲平"的周期模式。</p>';
+  h+='<section id="au-s7"><h2>时间序列分析：把突变还原到具体交易</h2><p>系统对关键财务指标做<strong>月份环比、跨期对比和业务季节性</strong>扫描，识别三类需要解释的变化。</p>';
+  h+='<p><b>① 收入时点变化</b>：识别期末集中开票、收款与开票错期等模式，再逐笔核对合同履行、纳税义务发生时间和正常季节性。</p>';
+  h+='<p><b>② 成本费用脉冲</b>：识别单月集中发生或同比显著变化的费用，再核对发票、付款、合同和成果交付时间。</p>';
+  h+='<p><b>③ 往来款周期性变化</b>：追踪应收、应付、预收、预付等科目在期初期末的规律性变动，核实结算、冲销和重分类原因。</p>';
   h+='<p>时间序列分析产出<strong>趋势异常信号</strong>，作为Phase2深挖的优先线索。</p></section>';
   h+='<p>扫描层产出的是<strong>结构化情报池</strong>——身份标签+行业标签+每行数据的域标签+三突破口的第一批疑点。初步线索已锁定，下一层是真正的火力覆盖。</p>';
 
@@ -6079,34 +6258,28 @@ function renderMethodologyContent(){
 function renderMethodologyPart2(){
   var h='';
   // ═══ 第三层·布网 ═══
-  h+='<h2>第三层 · 分析布网 —— 全面启动，四链齐发</h2><p>情报池就绪。系统全线激活规则系统驱动→线索链调查+证据链闭环（并行配合）→分析链跨域串联。{{rules_count}}条指令+{{clue_chains}}条线索+{{evidence_chains}}条证据+11720条跨域分析链+{{domain_functions}}个域分析函数——同时启动、四层协作。这是系统的全面分析。</p>';
+  h+='<h2 id="au-L3">第三层 · 分析布网 —— 规则、调查、证据与推理协同</h2><p>情报池就绪后，系统按资料类型和行业适用性激活规则底座、调查线索链、证据闭环链、跨域分析链和业务域分析。各层并非追求“全部命中”，而是分工协作：规则负责筛查，线索链负责调查，证据链负责验证，分析链负责组织推理，业务域负责提供专业上下文。</p>';
   h+='<section id="au-s8"><h2>规则系统全面激活：Phase1-4四阶段递进</h2><p>系统并非逐条独立判断，而是按<strong>四个阶段</strong>逐级收敛。</p>';
-  h+='<p><b>Phase1  初查·全量信号扫描</b>：{{rules_count}}条指令一次扫过全部已提取的行数据。被触发的规则带<strong>溯源链</strong>（是哪个域的哪项数据点燃了它），形成"数据→规则→信号"的第一环。这一阶段只问"有没有可能"，不下判断。</p>';
-  h+='<p><b>Phase2  深挖·线索链逐条调查（引用六大战法为方法库）</b>：Phase1的信号被投喂给{{clue_chains}}条线索链——每条是一条完整的调查路径（investigation_path，1-15步），从"这个信号该从哪查"到"查到了什么结果"。本阶段的<strong>调查方法</strong>来源于下节六大战法——每条线索链可调用战法①-⑥中的任一方法组合。三类触发：<strong>定量阈值</strong>（数值超限）、<strong>定性模式</strong>（特定关键词匹配）、<strong>缺失数据</strong>（资料缺口触发替代链）。</p>';
+  h+='<p><b>Phase1  初查·信号扫描</b>：适用规则扫描已提取数据。每个触发结果保留<strong>溯源链</strong>——由哪个业务域、哪项原始数据和哪条规则触发，形成“数据→规则→信号”的第一环。这一阶段只回答“是否需要进一步核验”，不作定案。</p>';
+  h+='<p><b>Phase2  深挖·线索链逐条调查</b>：Phase1信号进入适用的调查路径，从“下一步查什么”推进到“取得了什么结果”。调查方法按资金、货物流、合同、人员、关联关系和时间序列等维度组合；定量阈值、定性模式和资料缺口都只能触发调查，不能直接替代证据。</p>';
   h+='<p><b>Phase3  交叉验证·证据链闭环</b>：线索链是"一条线追到底"，证据链是"多条路同时验证"。每个证据闭环定义若干独立维度——当<strong>≥2个不同数据源的维度</strong>同时命中、达到min_evidence阈值，闭环成立。单域孤证不构成闭环。闭环后的证据自动汇入发现池，等待分析链做综合推理。</p>';
-  h+='<p><b>Phase4  综合定性·跨域分析链判定（引用分税种为计算依据）</b>：11720条跨域分析链做多源综合推理（每条含多步推理路径，每步带回退分支——能进能退）。如"七维系统性造假判定模型"：经营实质×供应商×资金流×四流合一×跨税种×关联交易×综合——七维命中越多风险越高，全异常则系统性造假立案。本阶段的<strong>税款测算</strong>依据来源于下节分税种杀手锏——每条分析链按税种规则计算补税额、滞纳金、罚款区间。</p></section>';
+  h+='<p><b>Phase4  综合判断·跨域分析链复核</b>：跨域分析链组织多源事实、支持证据、反向证据和竞争性解释，每一步都保留回退条件。多个维度同时异常只能提高核验优先级；只有在适用性、证据闭环、法律依据和人工复核均通过后，才能形成专业判断。税额测算与行政定性分开进行，并保存可复算的口径和限制条件。</p></section>';
 
-  h+='<section id="au-s9"><h2>六大战法：Phase2深挖的方法库</h2><p>{{domain_functions}}个域分析函数并行审视所有数据——同一笔银行流水，在资金流域看收款来源、在经营实质域看费用结构、在税务域看税费支出。以下是Phase2调查阶段可调用的核心战法（战法①资金流与第二层突破口①四方比对内容一致，仅作引用不重述）。</p>';
-  h+='<p><b>① 资金流突破（引用第二层s6突破口①）</b>：<em>本战法与第二层s6突破口①四方比对内容一致，此处仅作引用。具体内容参见第二层s6。</em></p>';
-  h+='<p><b>② 收入完整性（视同销售为唯一权威定义处）</b>：三条线：<strong>完整性</strong>——所有渠道（对公、私户、现金、平台、微信支付宝）收款是否全部入账；<strong>及时性</strong>——纳税义务时点是否被人为推迟（预收挂账、跨期调节）；<strong>视同销售（唯一权威定义处，后文不再重述）</strong>——赠送/投资/职工福利/以物易物/抵债/非货币性资产交换——最容易遗漏，系统单列排查。</p>';
-  h+='<p><b>③ 成本真实性（吸收识伪图谱增量）</b>：系统做<strong>进销匹配</strong>：进的料和销的品，在产品链上必须对得上——进钢材销服装且无加工=异常线索。同时做<strong>成本收入配比</strong>：收入没涨成本猛增→毛利断崖→虚增信号。<strong>凭证合规</strong>：大额费用须有合法有效税前扣除凭证，白条、顶替发票、无票列支不得扣除。特别盯紧<strong>虚列高发科目</strong>：咨询费/服务费/会议费/佣金——集中爆发无合同无成果交付=纯虚列。<strong>识伪图谱增量检测</strong>：无货虚增、虚构人员工资、费用化资本性支出。</p>';
-  h+='<p><b>④ 四流合一查虚开（引用第一层s3定义）</b>：<em>四流合一定义见第一层s3。本战法为应用层执行。</em>系统把每笔交易的合同流、货物流、资金流、发票流在数据库里对齐比对：票款一致但货没动→无货虚开；货票匹配但款由第三方付且回流→资金过账；合同与发票品名金额不符→变名开票。四流查通，虚开现形。</p>';
-  h+='<p><b>⑤ 人场货查空壳（吸收两套账）</b>：系统做三向比对：<strong>人</strong>——社保参保数+个税申报数是否匹配业务规模（年入千万零参保→查哪来的人）。<strong>场</strong>——注册地是否有水电物业费、仓储物流记录（无办公痕迹=纸面企业）。<strong>货</strong>——购销品名与经营范围匹配性、物流凭证齐全度、进销存计量合理性。三者全空的，被标为"空壳嫌疑"。<strong>两套账与体外循环检测</strong>：内账（真实经营数据）与外账（报税数据）之间的差额即逃税证据。</p>';
-  h+='<p><b>⑥ 关联交易穿透（唯一权威定义处）</b>：<em>本战法为关联交易穿透的唯一权威定义处，后文不再独立设节。</em>系统从股东/董监高/共同地址电话/资金往来维度自动绘制<strong>关联方网络图</strong>（含隐性关联）。然后四步穿透：Step1比对关联价格与独立第三方价→偏离度超30%触发预警；Step2追利润流向（高税负向低税负低卖高买→腾挪）；Step3查关联方无息大额资金占用→视同贷款利息收入；Step4关联债资比超2:1（金融5:1）触发资本弱化。股东借款跨年不还视同分红（20%）在此战法一并检测。</p></section>';
+  h+='<section id="au-s9"><h2>六类调查方法：Phase2深挖的方法库</h2><p>适用业务域从资金、收入、成本、交易履行、经营实质和关联关系六个角度审视同一事实。每种方法都必须记录适用前提、支持资料、反向解释和退出条件。</p>';
+  h+='<p><b>① 资金路径复原</b>：按账户、对手方和时间轴复原收付款，区分交易款、融资款、往来款、代收代付和退款；资金图形只负责定位调查样本。</p>';
+  h+='<p><b>② 收入完整性与时点</b>：覆盖对公、个人账户、现金和平台等渠道，核验是否入账、是否开票、是否申报，并依据适用期间规则检查确认和纳税义务时点。</p>';
+  h+='<p><b>③ 成本费用真实性与关联性</b>：核对采购或服务内容、成果交付、受益对象、付款、凭证和会计处理；比例异常或特定科目名称不能单独证明虚列。</p>';
+  h+='<p><b>④ 交易履行交叉验证</b>：将合同或订单、货物或服务、资金、发票和会计记录对齐，逐项解释主体、金额、日期和内容差异。</p>';
+  h+='<p><b>⑤ 人员、场地、产能和物流</b>：结合用工方式、场所使用、设备产能、物耗能耗及物流安排验证经营规模；外包、委托加工和轻资产模式必须作为竞争性解释。</p>';
+  h+='<p><b>⑥ 关联关系与交易条件</b>：基于股权、任职、控制、共同联系方式和资金关系绘制关系网络，再核验定价方法、商业目的、资金占用和披露；单一重合信息未经身份确认不构成关联事实。</p></section>';
 
-  h+='<section id="au-s10"><h2>分税种杀手锏：Phase4定性的计算依据</h2>';
-  h+='<p><b>增值税</b>·销端：无票收入不入账、视同销售不申报、混合销售低套税率、价外费用漏计、关联低价、纳税时点后移。进端：虚抵进项（有票无业务）、不得抵扣混入、异常凭证（供应商走逃）、取得与经营无关进项</p>';
-  h+='<p><b>企业所得税</b>·收入与调整：政府补助计税、投资收益/债务重组/资产处置遗漏、视同销售、跨期收入。扣除项：<strong>招待费限额（唯一权威定义处）</strong>——发生额60%且不超过营收5‰，孰低原则；广宣费15%（化妆品/医药/饮料30%）；福利费14%；工资须实发且与社保个税勾稽；折旧摊销年限方法；研发加计归集合规性</p>';
-  h+='<p><b>个人所得税</b>·私户/现金发薪未扣缴、股东借款跨年视同分红(20%)、股权转让平价无理由、发票报销顶替工资、多处取酬未合并。三数勾稽：工资发放人数=社保参保=个税申报</p>';
-  h+='<p><b>社保</b>·缴费基数低于实发、试用期不参保、劳务派遣责任、参保人数与个税申报不一致</p>';
-  h+='<p><b>残保金</b>·未按在岗人数1.5%（各地比例）申报缴纳、减免政策适用错误</p>';
-  h+='<p><b>印花税</b>·合同台账逐笔对税目、实收资本+资本公积增加未缴、产权转移书据漏缴</p>';
-  h+='<p><b>房产税</b>·自用从价/出租从租之争、地下建筑未入原值</p>';
-  h+='<p><b>土地使用税</b>·面积不符、等级税率适用错误</p>';
-  h+='<p><b>资源税</b>·开采量与销售量比对、税率适用错误（从价/从量）、减免政策适用</p>';
-  h+='<p><b>契税</b>·房屋/土地权属转移未缴、计税依据错误、减免政策适用</p>';
-  h+='<p><b>土地增值税</b>·房地产企业清算条件、增值率计算、扣除项目归集、预征率与清算率差异</p>';
-  h+='<p><b>附加税费</b>·随增值税补缴：城建7%/5%/1%、教育附加3%、地方教育附加2%</p>';
+  h+='<section id="au-s10"><h2>分税费种核验索引：先定口径，再作测算</h2>';
+  h+='<p><b>增值税及附加</b>：核验销售或服务性质、计税方法、纳税义务时点、价外费用、进项抵扣条件、红冲作废和申报勾稽。</p>';
+  h+='<p><b>企业所得税</b>：核验收入确认、税会差异、扣除凭证、成本费用关联性、资产税务处理、亏损弥补和优惠条件。</p>';
+  h+='<p><b>个人所得税与社会保险费</b>：核验人员身份、所得项目、支付主体、扣缴申报、工资发放和参保缴费之间的口径差异。</p>';
+  h+='<p><b>印花税、房产税、城镇土地使用税、契税和土地增值税</b>：围绕应税凭证、权属、用途、面积、计税依据、应税行为发生时间和属地规定分别核验。</p>';
+  h+='<p><b>资源税、环境保护税及其他行业税费</b>：根据企业实际经营活动、计量资料、适用税目和属地政策决定是否激活。</p>';
+  h+='<p><b>统一要求</b>：税率、征收率、扣除比例、优惠和处罚规则不得硬编码为永久常量；测算前必须核对适用期间、地区、纳税人身份和现行有效依据。</p>';
   h+='</section>';
 
   h+='<section id="au-s11"><h2>行业专属检测包：十类重点行业特化规则</h2><p>系统加载<strong>行业自适应配置</strong>——根据第一层行业标签，激活对应行业专属检测包。每个包含特化关键词、基准值范围、风险模式、合规要点。</p>';
@@ -6122,16 +6295,16 @@ function renderMethodologyPart2(){
   h+='<p><b>教育培训</b>·预收款确认、课时消耗、教材收入、线上/线下差异、民办非企业税收</p>';
   h+='<p><em>行业包为增量检测规则——不替代通用规则，在通用规则基础上叠加行业特化维度。未匹配行业的，仅执行通用规则。</em></p></section>';
 
-  h+='<div class="card"><div class="ct">方法与数据一体化</div><div class="cx">疑点规则、域分析和三类证据推理链不再作为独立散列页面堆叠在总纲正文中。请使用本模块上方的“疑点规则”“域分析”“证据推理链”分区，在阅读相应方法后直接查看全量数据和实际检出结果。</div></div>';
+  h+='<div class="card"><div class="ct">方法与数据一体化</div><div class="cx">疑点规则、业务域、执行结果和三类链路已融入本页对应分区。总纲只定义作业逻辑，不再重复粘贴规则或链条正文。</div></div>';
 
   // ═══ 第四层·过滤 ═══
-  h+='<h2>第四层 · 疑点过滤 —— 把101720条信号淬成1720条铁证</h2><p>布网阶段{{domain_functions}}个域同时发动，会产生大量粗糙信号。把粗糙信号淬成铁证，靠的是三道过滤器。</p>';
-  h+='<section id="au-s12"><h2>七类噪声过滤器：97%的噪音在这里被拦截</h2><p>过滤器依次执行，逐条筛除不可靠信号：</p>';
+  h+='<h2 id="au-L4">第四层 · 疑点过滤 —— 从粗筛信号到可核验事项</h2><p>布网阶段可能产生大量粗筛信号。过滤的目标不是追求更高风险数量，而是剔除不适用、重复、低质量和存在合理解释的项目，把剩余事项送入证据核验。</p>';
+  h+='<section id="au-s12"><h2>七类质量过滤：把粗筛信号变成可核验事项</h2><p>过滤器依次执行，逐条筛除不适用、重复或无法验证的信号：</p>';
   h+='<p>行业豁免→数据缺失豁免→重复合并→低置信度→金额阈值→矛盾消解→白名单</p>';
-  h+='<p>行业豁免排除不适用的域（服务业无需进销存分析）；数据缺失豁免免除因缺资料无法验证的信号；重复合并将同一问题被多域触发时只保留最高分；低置信度/金额阈值切除弱信号和小额噪音；矛盾消解解决域间互驳；白名单执行合理商业解释排除。<strong>最终能穿透这七层、到达下一层的发现，才是值得严肃对待的疑点。</strong></p>';
+  h+='<p>行业豁免排除不适用业务域；资料缺失项改为“无法验证”而非自动认定正常；重复合并保留全部来源；置信度和金额用于排序而非裁决；矛盾消解保留双方证据；白名单必须说明适用范围和理由。通过过滤的事项仍然只是待核疑点。</p>';
   h+='<p><strong>唯一归属规则</strong>：发现类信号归第二层、调查类归第三层、过滤类归第四层、定性类归第五层、输出类归第六层。同一内容在唯一权威处定义，其他位置仅引用。</p></section>';
-  h+='<section id="au-s13"><h2>跨域协商：当两个域给出相反结论</h2><p>{{domain_functions}}个域同时运行，难免同一个信号在A域被标为高风险、在B域被判定为正常。协商系统按<strong>"数据证据>推理证据>经验证据"的权重</strong>裁决。同向证据叠加升权、反向证据消解、无法消解的标存疑提交人工复核。<em>宁可存疑，不可错杀。</em></p>';
-  h+='<p><strong>三档定级</strong>：铁证（≥3独立来源闭环）→强证据（2独立来源验证）→线索（单源数据触发，需深挖）。</p></section>';
+  h+='<section id="au-s13"><h2>跨域协商：当不同业务域给出相反解释</h2><p>多个业务域同时运行时，同一信号可能得到相反解释。协商系统按<strong>原始事实与合法取得的证据优先，结构化推理次之，历史经验仅作参考</strong>的顺序裁决。同向证据可增强核验优先级，反向证据必须保留；无法消解时标记存疑并提交人工复核。</p>';
+  h+='<p><strong>证据成熟度</strong>：单源触发为线索；两个或以上真正独立来源相互印证可提升为待形成专业判断；是否达到法定证明要求仍由具备职责的人员结合事项性质和程序审查决定。</p></section>';
 
   window.__au2=h;
   renderMethodologyPart3();
@@ -6139,41 +6312,28 @@ function renderMethodologyPart2(){
 
 function renderMethodologyPart3(){
   var h='';
-  // ═══ 第五层·定案 ═══
-  h+='<h2>第五层 · 定性定案 —— 从"可能有"到"就是有"</h2><p>前四层产出了一批经得起推敲的发现。这一层是稽查的灵魂——将发现固化为经得起检验的稽查结论。</p>';
-  h+='<section id="au-s14"><h2>证据三性与闭环：每一条发现过三道安检</h2><p>系统对每条发现做<strong>三性校验</strong>：真实性——数据来源可核实非篡改；关联性——直接相关非旁枝末节；合法性——取证程序符法定。三性不齐的证据上不了复议台。</p><p><strong>证据闭环</strong>是定案的底线——不是"有一份证据就够了"，而是多个独立来源的证据<em>相互印证形成闭环</em>。银行进账→缺少对应开票→无对应入账凭证→无对应申报——四环全闭才是铁证。单环不闭只标存疑。<em>不做证据闭环的结论，迟早被人翻案。</em></p></section>';
-  h+='<section id="au-s15"><h2>税款测算：稽查的每一条发现最终都是一个金额</h2><p>没有金额的腐败是半成品。系统对每条风险发现自动测算三类金额。<strong>补税额</strong>：隐匿收入×适用税率、不得扣除额×税率；<strong>滞纳金</strong>：应补税额×日万分之五×税款所属期截至缴清日的天数；<strong>罚款区间（唯一权威定义处）</strong>：</p>';
-  h+='<p><b>征管法§63 偷税（伪造/变造/隐匿/擅自销毁账簿，虚假申报）</b>：罚款：<strong>税款50%至5倍</strong>。情节严重（金额巨大/屡查屡犯/对抗检查）从重；主动补缴从轻。</p>';
-  h+='<p><b>征管法§64 少缴税款（不申报，但无伪造/变造/隐匿账册行为）</b>：罚款：<strong>税款50%至5倍</strong>。与偷税差别在于主观故意证据——无账册造假/无资金回流→倾向于少缴。</p>';
-  h+='<p><b>征管法§68 抗税（暴力/威胁方法拒不缴纳税款）</b>：罚款：<strong>拒缴税款1倍至5倍</strong>。情节严重的，移送司法机关追究刑事责任。</p></section>';
-  h+='<section id="au-s16"><h2>定性分寸：主观故意判定依据（征管法§63四种手段）</h2><p>系统区分三个层次：</p>';
-  h+='<p><b>① 偷税（征管法§63）</b>：有<strong>四种法定手段之一</strong>且造成不缴/少缴结果：伪造/变造账簿记账凭证、在账簿上多列支出/不列/少列收入、隐匿/擅自销毁账簿记账凭证、虚假纳税申报。<strong>证据闭环要求</strong>：资金回流+内外账不符+反复操作+销毁隐匿账册——≥3项闭环。</p>';
-  h+='<p><b>② 少缴税款（征管法§64）</b>：有少申报事实但<strong>无主观故意证据</strong>（偶发性计算错误、政策理解偏差、未涉及账册造假）。罚款区间与偷税相同，但量刑轻重不同。</p>';
-  h+='<p><b>③ 虚开发票</b>：有证据证明交易不存在或票面信息与实际交易不符。<em>定性准不准，是法律判决能不能立住的关键。够什么级别定什么级，不拔高不放过。</em></p></section>';
-  h+='<section id="au-s17"><h2>对抗性自检：把案子反过来审</h2><p>稽查不是单向指控——每一条结论写完，系统必须<strong>反过来</strong>做三件事，确保铁案推不翻。</p>';
-  h+='<p><b>① 反向假设验证</b>：假设发现的异常信号存在合法商业解释——是否能用正常业务逻辑自圆其说？如果能（如季节性/新开业/大单结算），降档；如果所有合理解释都不成立，强化的不是怀疑、是证据。</p>';
-  h+='<p><b>② 对手方交叉比对</b>：系统搜索数据库中的交易对手方信息——检查对手方对该笔交易的记录是否一致（金额/时间/性质）。如果对手方已申报而本方未申报，隐匿证据成立。</p>';
-  h+='<p><b>③ 政策适用性复查</b>：检查结论引用的法规是否现行有效、是否存在特殊优惠或过渡期政策覆盖该事项。以最新法规库为准，不引用失效条款。</p></section>';
+  // ═══ 第五层·专业判断 ═══
+  h+='<h2 id="au-L5">第五层 · 专业判断 —— 事实、证据、测算与法律适用分别复核</h2><p>前四层产出的是经过筛选的待核事项。本层把事实认定建议、证据评价、金额测算和法律适用分开处理，并明确系统与有权人员的职责边界。</p>';
+  h+='<section id="au-s14"><h2>证据三性与闭环：支持证据和反向证据同屏</h2><p>每项材料分别记录<strong>真实性、关联性、合法性</strong>及来源定位。多个材料只有在来源真正独立、指向同一待证事实且不存在未解释冲突时，才可形成证据闭环；同一文件的多种统计不能重复计算为多源证据。</p><p>系统展示证据成熟度和缺口，但不以固定数量替代法定证明标准。涉及取证程序、证据资格和证明力的最终判断由具备职责的人员完成。</p></section>';
+  h+='<section id="au-s15"><h2>金额测算：事实口径与计算参数全部可复算</h2><p>每项测算固定保存：税费种、所属期间、计税依据、调整项目、适用税率或征收率来源、计算公式、舍入方式、已缴金额和限制条件。估算、情景测算与正式核定建议分开显示。</p><p>滞纳金、罚款或其他法律后果不得由前端固定数值自动生成；必须先核验现行有效依据、适用期间、法定程序和裁量权限，再由有权人员确认。</p></section>';
+  h+='<section id="au-s16"><h2>法律适用：系统只提供结构化复核，不作行政认定</h2><p>系统把<strong>待证事实、证据、适用条件、依据名称与条款、效力期间、地域、程序要求和竞争性解释</strong>并列呈现。条款号、法律性质或主观状态任何一项未核实，状态均保持为“待法律复核”。</p><p>违法性质、主观状态、处理处罚和移送等结论属于法定职权事项，不能由规则命中、模型评分或预设证据数量自动决定。</p></section>';
+  h+='<section id="au-s17"><h2>对抗性自检：用最强的合理解释反向验证</h2><p><b>① 替代解释</b>：针对季节性、新开业、大额结算、委外加工、第三方付款等可能情形逐项验证，能被可靠资料解释的应降级或撤回。</p><p><b>② 对手方与外部资料</b>：在权限、来源和程序合规的前提下核对交易对手信息；差异仍须回到主体、期间、金额和性质逐笔解释。</p><p><b>③ 政策适用</b>：核对依据是否现行有效，是否存在地区差异、过渡规则、优惠或例外。无法核验时公开限制，不使用失效或来源不明条款。</p></section>';
 
-  // ═══ 第六层·出鞘 ═══
-  h+='<h2>第六层 · 报告出鞘 —— 资深稽查人员完成报告编制</h2><p>前五层打完，系统已完成证据固定。这一层是收口——将证据转化为正式稽查报告，交给稽查人员过目。</p>';
-  h+='<section id="au-s18"><h2>报告生成与净化：系统的交卷必须确保规范准确</h2><p>系统产出的报告自动经过<strong>纯净度净化</strong>——移除所有内部术语（系统名称/代码位置引用/配置参数/AI推理过程描述），统一替换为税务专业表述。12项质量标准的自动检测在报告生成后依序执行：模板句清除、重复句合并、空描述删除、人性化表述、六要素完整、法律引用准确、具体数值、因果链、可执行建议、条款号、反跨复制、空占位符清除。</p><p>然后<strong>全链路溯源</strong>贯通全文——从每一条发现结论反向追踪到触发规则→匹配字段→来源文件→原始行号→原始凭证。可复核、可审计、可对质。系统全程可审计，六步溯源链就是它的底气。</p></section>';
-  h+='<section id="au-s19"><h2>文书规范：一纸报告就是一把刀</h2><p>每条发现用<strong>六要素叙事框架</strong>：发现了什么→怎么发现的→证据是什么（精确到发票号/账页/金额）→违反什么规定（法条编号+条文）→税务影响多大（涉及税款金额）→建议怎么处理。用语只许用<em>"涉嫌/可能存在/与申报不符/未能提供合理说明"</em>——不用"违法/认定/偷税"。报告出口时的检查：每条结论背后至少两个独立来源的证据在撑着它吗？是→可落笔；不是→继续补证据。</p></section>';
-  h+='<section id="au-s20"><h2>合规度评估：0-100分量化风险画像</h2><p>系统对每户企业生成<strong>合规度评分</strong>（0-100分），由五维风险热力图加权计算：</p>';
-  h+='<p><b>五维风险热力图</b>：<strong>收入端</strong>（无票收入/私户收款/跨期调节权重30%）→<strong>成本端</strong>（虚列成本/无票列支权重20%）→<strong>税种合规</strong>（各税种穿透权重25%）→<strong>证据链强度</strong>（闭环数量权重15%）→<strong>行业对标</strong>（基准偏离度权重10%）。每维度0-100分，加权得出总分。</p>';
-  h+='<p><strong>合规亮点</strong>：高于行业基准的维度标注为"合规亮点"，写入报告正向段落。</p>';
-  h+='<p><strong>高风险预警</strong>：得分<60的维度标红，写入报告高风险段落。</p>';
-  h+='<p><strong>建议稽查频率</strong>：合规度≥90→两年一查；60-90→一年一查；<60→重点监控。</p></section>';
+  // ═══ 第六层·报告衔接 ═══
+  h+='<h2 id="au-L6">第六层 · 报告衔接 —— 只移交通过门禁的材料</h2><p>本模块不重复“报告编制要求”的格式内容，只规定移交给报告模块的输入质量和追溯要求。</p>';
+  h+='<section id="au-s18"><h2>移交包：事实、证据、测算、依据和限制成套交付</h2><p>每个事项的移交包包含：事实摘要、原始来源定位、支持与反向证据、核验过程、证据缺口、金额底稿、法律复核状态、人工复核记录和附件清单。内部调试标记、无来源模板句、空占位符和重复内容不得进入移交包。</p><p>每项事实可以追踪到来源文件、工作表或页码、原始行及必要的凭证标识；任何清洗或转换都保留原值和处理记录。</p></section>';
+  h+='<section id="au-s19"><h2>叙事边界：分清事实、疑点、专业判断与法定认定</h2><p>移交材料按六要素组织：事实是什么、如何发现、证据在哪里、仍有哪些反向解释、影响如何测算、下一步由谁复核。事实使用确定性表述；疑点使用“存在差异、需要核验”；专业判断写明前提和限制；法定认定只由有权机关依程序作出。</p></section>';
+  h+='<section id="au-s20"><h2>风险排序：服务办案，不替代裁量</h2><p>风险评分仅用于安排核验顺序，评分维度、权重、数据覆盖和版本必须公开。系统同时展示资料完整度、证据成熟度、金额重要性和影响范围，避免用一个总分掩盖不同性质。</p><p>评分不得自动决定检查频率、违法性质、处理处罚或纳税信用结果；这些事项必须按照现行规则和法定权限另行处理。</p></section>';
 
   // ═══ 第七层·进化 ═══
-  h+='<h2>第七层 · 经验进化 —— 系统持续进化优化</h2><p>前六层是"稽查经验转化为系统规则"。这一层是"系统持续进化优化"——从每一条发现、每一次判定中汲取经验，校准规则、发现新模式、同步政策变更。</p>';
-  h+='<section id="au-s21"><h2>规则置信度自校准：历史数据修正阈值</h2><p>系统维护<strong>规则置信度</strong>（0-1.0）——每条规则触发后，追踪最终是否被证据闭环验证。验证通过→置信度上升；验证失败→置信度下降。当某规则置信度连续10次<0.5时，系统自动调低触发阈值或标记"需人工复核"。置信度数据跨会话持久化存储。</p></section>';
-  h+='<section id="au-s22"><h2>新模式发现：从未见过的风险模式自动提炼</h2><p>系统在分析过程中检测到<strong>未匹配任何现有规则</strong>的异常信号时，自动记录为"待确认模式"。当同一模式在≥3户企业中出现时，系统自动生成候选规则（含触发条件/阈值建议/置信度初值0.3），提交人工审核。审核通过后，候选规则升级为正式规则——系统具备了自动发现新疑点模式的能力。</p></section>';
-  h+='<section id="au-s23"><h2>政策同步：法规变更自动注入规则库</h2><p>系统内置<strong>政策变更监测模块</strong>——当税法/征管规定发生修订时（如扣除比例调整/新增减免政策/处罚标准变更），系统自动定位受影响的规则，生成变更建议（原规则→新规则→影响范围），提交人工确认后更新。<em>政策同步确保系统永远紧跟最新法规，不因法规滞后而误判。</em></p></section>';
+  h+='<h2 id="au-L7">第七层 · 受控进化 —— 纠正可追踪，规则可回退</h2><p>系统可以从人工复核中积累经验，但任何学习结果都先作为候选变更，不得绕过测试、审批和版本管理直接影响正式结论。</p>';
+  h+='<section id="au-s21"><h2>规则效果评估：分场景统计，不自动改阈值</h2><p>系统记录每条规则的触发、确认、撤回和资料不足情况，按行业、业务模式和期间评估准确性。样本不足或场景混杂时不调整规则；拟变更阈值必须说明样本、影响和回退方案，经人工审核后发布。</p></section>';
+  h+='<section id="au-s22"><h2>新模式发现：候选线索先验证再推广</h2><p>未匹配现有规则的重复异常可以登记为候选模式，但须经过样本去重、反例检验、适用范围界定和人工审核。候选规则与正式规则分库管理，未经批准不得进入正式报告路径。</p></section>';
+  h+='<section id="au-s23"><h2>政策维护：来源核验与双人复核</h2><p>法规政策变更由受控流程登记来源、发布日期、生效和失效时间、适用范围及受影响规则。系统可以提示可能受影响的内容，但只有在权威来源核验、人工复核、回归测试和版本发布完成后才可生效。</p></section>';
 
   h+='<div class="card"><div class="ct">职责边界 · 税收优惠归入权益保障</div><div class="cx">税收优惠属于纳税人正向权益保障，不属于风险疑点、稽查定性或报告编制。为避免把“查风险”与“保权益”混为一谈，优惠扫描已完整迁入“税收权益保障”模块；本方法论仅保留职责边界说明。</div></div>';
 
-  h+='<p><b>七层毕、一卷成、系统持续进化。</b>查前准备定身份、数据采集集情报、分析布网铺火力、疑点过滤淬铁证、定性定案下结论、报告出鞘交铁卷、经验进化学新招。系统就是这样建立起来的——不是靠散装规则堆砌，而是掌握了从查前准备到报告出鞘再到持续进化的完整稽查规程。按下一键稽查，背后是这七层递进的稽查系统；审阅这份报告，背后是多年的稽查实战经验；而系统的持续进化，来自每一次稽查判定后的总结与反思。</p>';
+  h+='<p><b>七层形成一个可审计的闭环：</b>先确认对象与边界，再把资料转为可追溯数据；规则只产生线索，调查形成证据，专业判断经过人工复核，报告模块接收合格移交包，反馈则通过受控版本迭代回到规则层。</p>';
 
   window.__au3=h;
   renderMethodologyAssemble();
@@ -6183,7 +6343,7 @@ function renderMethodologyAssemble(){
   var full=(window.__au1||'')+(window.__au2||'')+(window.__au3||'');
   if(typeof applySysStats==='function'&&window._systemConfig)full=applySysStats(full,window._systemConfig);
   t.innerHTML=full;
-  // 异步加载31720条方法论详细列表
+  // 异步加载结构化方法论详细列表
   setTimeout(function(){ loadMethodologies(); }, 100);
 }
 
@@ -6202,7 +6362,7 @@ function renderCompactClueChains(el) {
         var sc = (c.level==='极高风险'||c.level==='高风险') ? '#dc2626' : '#64748b';
         h += '<div style="padding:2px 0;display:flex;gap:8px"><span style="color:'+sc+';white-space:nowrap">['+(c.level||'')+']</span><span style="color:#3a4048">'+esc(c.name||'')+'</span><span style="color:#94a3b8">'+(c.investigation_path||[]).length+'步</span></div>';
       });
-      if(cats[cat].length>5) h += '<div style="color:#94a3b8;padding-left:16px">... 共'+cats[cat].length+'条，<a href="javascript:navigateTo(\"chains-page\")" style="color:#2563eb">查看全部</a></div>';
+      if(cats[cat].length>5) h += '<div style="color:#94a3b8;padding-left:16px">... 共'+cats[cat].length+'条，<a href="#methodology-chain-clues" style="color:#2563eb">查看完整调查链</a></div>';
     });
     h += '</div>';
     el.innerHTML = h;

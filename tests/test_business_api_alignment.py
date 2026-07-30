@@ -356,18 +356,79 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         )
         for panel_id in ("status", "rules", "brain", "quality", "methods", "details"):
             self.assertIn(f"id:'{panel_id}'", engine_dashboard)
+        methodology_start = methodology.index(
+            "var METHODOLOGY_PAGE_SECTIONS"
+        )
+        methodology_end = methodology.index(
+            "function _renderMethodologyGuide",
+            methodology_start,
+        )
+        active_methodology = methodology[methodology_start:methodology_end]
         for section_id in (
+            "overview",
             "guide",
             "files",
-            "results",
             "rules",
             "domains",
+            "results",
             "chains",
             "handbook",
         ):
-            self.assertIn(f"id:'{section_id}'", methodology)
-        for view_id in ("clues", "evidence", "analysis", "compact"):
-            self.assertIn(f"{view_id}:", methodology)
+            self.assertIn(f"id:'{section_id}'", active_methodology)
+        for view_id in ("compact", "clues", "evidence", "analysis"):
+            self.assertIn(
+                f'id="methodology-chain-{view_id}"',
+                active_methodology,
+            )
+        for renderer in (
+            "_renderMethodologyOverview",
+            "_renderMethodologyGuide",
+            "renderFileParsingPage",
+            "renderTaxRiskRules",
+            "renderUnifiedDomainPanel",
+            "renderAnalyzePage",
+            "renderMethodologyChainsIntegrated",
+            "_renderMethodologyPracticeManual",
+        ):
+            self.assertIn(renderer, active_methodology)
+        self.assertIn("单页融合 · 方法驱动 · 证据闭环", active_methodology)
+        self.assertNotIn('class="method-tabs"', active_methodology)
+        self.assertNotIn('id="methodology-workspace"', active_methodology)
+        self.assertNotIn("data-method-section", active_methodology)
+
+        domain_start = methodology.index(
+            "// 稽查方法论单页使用的业务域协同视图。"
+        )
+        domain_end = methodology.index("function renderDAResult()", domain_start)
+        active_domains = methodology[domain_start:domain_end]
+        self.assertIn("八类业务域及其职责边界", active_domains)
+        self.assertIn("统一激活与放行规则", active_domains)
+        self.assertIn("常用跨域调查模式", active_domains)
+        self.assertIn("域分析的标准输出合同", active_domains)
+        self.assertNotIn("1720条", active_domains)
+        self.assertNotIn("系统性造假", active_domains)
+
+        guide_start = methodology.index("function _renderMethodologyGuide")
+        guide_end = methodology.index(
+            "// 方法论面板内的紧凑线索链渲染",
+            guide_start,
+        )
+        active_guide = methodology[guide_start:guide_end]
+        for required_text in (
+            "事实、证据、测算与法律适用分别复核",
+            "系统只提供结构化复核，不作行政认定",
+            "风险评分仅用于安排核验顺序",
+            "候选规则与正式规则分库管理",
+        ):
+            self.assertIn(required_text, active_guide)
+        for unsafe_text in (
+            "差额即逃税证据",
+            "虚开现形",
+            "从“可能有”到“就是有”",
+            "系统永远紧跟最新法规",
+            "建议稽查频率",
+        ):
+            self.assertNotIn(unsafe_text, active_guide)
 
         self.assertIn("window._engineHubSection = 'knowledge';", core)
         self.assertIn(
@@ -393,10 +454,10 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         for script in (
             "tax-engine-dashboard.js",
             "engine-hub.js",
-            "tax-pipeline-pages.js",
             "tax-knowledge-hub.js",
         ):
             self.assertIn(f"{script}?v=2026073018", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026073021", index)
         self.assertIn("core.js?v=2026073020", index)
 
         self.assertNotIn("page:'report-spec'", dashboard)
