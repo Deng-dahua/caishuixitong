@@ -678,6 +678,28 @@ function _ensureContainer(page) {
   return el;
 }
 
+function _applySystemStatsWithoutRebuilding(root) {
+  if (!root || typeof applySysStats !== 'function' || !window._systemConfig) return;
+  var textWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var textNodes = [];
+  while (textWalker.nextNode()) textNodes.push(textWalker.currentNode);
+  textNodes.forEach(function(node) {
+    if (node.nodeValue && node.nodeValue.indexOf('{{') !== -1) {
+      node.nodeValue = applySysStats(node.nodeValue, window._systemConfig);
+    }
+  });
+  root.querySelectorAll('*').forEach(function(element) {
+    Array.from(element.attributes || []).forEach(function(attribute) {
+      if (attribute.value && attribute.value.indexOf('{{') !== -1) {
+        element.setAttribute(
+          attribute.name,
+          applySysStats(attribute.value, window._systemConfig)
+        );
+      }
+    });
+  });
+}
+
 function navigateTo(page) {
   currentPage = page;
   // 离开资料分析页时标记为非活跃
@@ -794,11 +816,12 @@ function navigateTo(page) {
     // 异步页面二次尝试
     setTimeout(function(){ injectModuleHeader(page); }, 500);
   }
-  // 全局模板替换：{{key}} → window._systemConfig 中的实际数字
-  if (typeof applySysStats === 'function' && window._systemConfig) {
-    var pageDiv = document.getElementById('page-' + page);
-    if (pageDiv) pageDiv.innerHTML = applySysStats(pageDiv.innerHTML, window._systemConfig);
-  }
+  // 全局模板替换不能重建页面，否则异步加载函数会继续写入已脱离 DOM 的旧节点。
+  var pageDiv = document.getElementById('page-' + page);
+  _applySystemStatsWithoutRebuilding(pageDiv);
+  setTimeout(function() {
+    _applySystemStatsWithoutRebuilding(pageDiv);
+  }, 750);
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {

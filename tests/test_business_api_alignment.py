@@ -254,6 +254,20 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             function_body,
         )
 
+    def test_system_stat_replacement_preserves_async_page_nodes(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "static" / "js" / "core.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn(
+            "pageDiv.innerHTML = applySysStats(pageDiv.innerHTML",
+            source,
+        )
+        self.assertIn(
+            "_applySystemStatsWithoutRebuilding(pageDiv);",
+            source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
