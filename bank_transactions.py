@@ -33,21 +33,107 @@ class BankRuleUpdate(BaseModel):
     priority: Optional[int] = None
     is_active: Optional[int] = None
 
-class BankAccountCreate(BaseModel):
-    account_name: str
-    account_no: str
+class BankConfigCreate(BaseModel):
     bank_name: str
-    is_active: Optional[bool] = True
-
-class BankAccountUpdate(BaseModel):
+    account_number: Optional[str] = None
     account_name: Optional[str] = None
-    account_no: Optional[str] = None
-    bank_name: Optional[str] = None
-    is_active: Optional[bool] = None
+    column_mapping: Optional[str] = None
 
 class BankConfigUpdate(BaseModel):
-    key: str
-    value: str
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    account_name: Optional[str] = None
+    column_mapping: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+def _validate_bank_config_payload(payload: dict) -> dict:
+    if "bank_name" in payload:
+        payload["bank_name"] = (payload["bank_name"] or "").strip()
+        if not payload["bank_name"]:
+            raise HTTPException(422, detail="银行名称不能为空")
+    for field in ("account_number", "account_name"):
+        if field in payload and payload[field] is not None:
+            payload[field] = payload[field].strip()
+    mapping = payload.get("column_mapping")
+    if mapping not in (None, ""):
+        try:
+            parsed = json.loads(mapping)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(422, detail="列映射必须是有效的 JSON 对象") from exc
+        if not isinstance(parsed, dict):
+            raise HTTPException(422, detail="列映射必须是 JSON 对象")
+        payload["column_mapping"] = json.dumps(parsed, ensure_ascii=False)
+    return payload
+
+
+@router.get("/api/bank-configs")
+def list_bank_configs(company_id: int = Query(...), db: Session = Depends(get_db)):
+    configs = db.query(BankConfig).filter(
+        BankConfig.company_id == company_id,
+        BankConfig.is_active == True,
+    ).order_by(BankConfig.bank_name, BankConfig.id).all()
+    return [{
+        "id": config.id,
+        "bank_name": config.bank_name,
+        "account_number": config.account_number or "",
+        "account_name": config.account_name or "",
+        "column_mapping": config.column_mapping or "{}",
+        "created_at": str(config.created_at) if config.created_at else "",
+    } for config in configs]
+
+
+@router.post("/api/bank-configs")
+def create_bank_config(
+    data: BankConfigCreate,
+    company_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    payload = _validate_bank_config_payload(data.model_dump())
+    config = BankConfig(company_id=company_id, **payload)
+    db.add(config)
+    db.commit()
+    db.refresh(config)
+    return {"id": config.id, "message": "银行配置创建成功"}
+
+
+@router.put("/api/bank-configs/{config_id}")
+def update_bank_config(
+    config_id: int,
+    data: BankConfigUpdate,
+    company_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    config = db.query(BankConfig).filter(
+        BankConfig.company_id == company_id,
+        BankConfig.id == config_id,
+    ).first()
+    if not config:
+        raise HTTPException(404, detail="银行配置不存在")
+    payload = _validate_bank_config_payload(data.model_dump(exclude_unset=True))
+    for field, value in payload.items():
+        setattr(config, field, value)
+    config.updated_at = datetime.now()
+    db.commit()
+    return {"message": "更新成功"}
+
+
+@router.delete("/api/bank-configs/{config_id}")
+def delete_bank_config(
+    config_id: int,
+    company_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    config = db.query(BankConfig).filter(
+        BankConfig.company_id == company_id,
+        BankConfig.id == config_id,
+    ).first()
+    if not config:
+        raise HTTPException(404, detail="银行配置不存在")
+    config.is_active = False
+    config.updated_at = datetime.now()
+    db.commit()
+    return {"message": "已停用"}
 
 
 @router.get("/api/bank-rules")

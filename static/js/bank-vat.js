@@ -29,8 +29,8 @@ async function loadBankConfigs() {
 }
 
 async function renderBankTransactions(container) {
-  try {
   let el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
+  try {
   const [configs, stats] = await Promise.all([
     loadBankConfigs(),
     api('/api/bank-transactions/stats' + (_currentBankId ? '?bank_config_id=' + _currentBankId : ''))
@@ -365,8 +365,8 @@ async function deleteBankConfig(id) {
 // ==================== 进项抵扣 - 认证台账 ====================
 
 async function renderInputVATDeductions(container) {
-  try {
   let el = container || document.getElementById('page-' + currentPage) || document.getElementById('content-area');
+  try {
   // 全局期间联动
   if (currentPeriod && !ivdFilter.dateFrom) { const r = periodToDateRange(currentPeriod); ivdFilter.dateFrom = r.from; ivdFilter.dateTo = r.to; }
   const params = new URLSearchParams();

@@ -677,7 +677,6 @@ app.include_router(file_parser_router)
 app.include_router(archives_router)
 app.include_router(financial_reports_router)
 app.include_router(bank_transactions_router)
-app.include_router(bank_transactions_router)
 app.include_router(bookkeeping_invoices_router)
 app.include_router(contracts_router)
 app.include_router(inventory_router)
@@ -9031,12 +9030,6 @@ def agi_learn(data: dict):
     
     result = agi.learn(finding_type, industry, level, reason)
     return {"ok": True, "result": result}
-
-@app.get("/api/agi/status")
-def agi_status():
-    """AGI引擎状态"""
-    from engine.agi_engine import agi
-    return {"ok": True, "status": agi.status()}
 
 # ═══════════ 新增6模块API ═══════════
 

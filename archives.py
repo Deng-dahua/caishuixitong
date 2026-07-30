@@ -10,6 +10,10 @@ from typing import Optional, List
 from datetime import date, datetime
 import os, io, json, re as _re_module, openpyxl, hashlib, csv, logging
 from runtime_storage import company_upload_dir
+from utils import (
+    build_account_hierarchy as _build_account_hierarchy,
+    renumber_archive as _renumber_archive,
+)
 
 from database import get_db, Department, Employee, Customer, Supplier, Company, Account, Period, JournalEntry, \
     SalesInvoice, PurchaseInvoice, BookkeepingInvoice, BankTransaction, InputVATDeduction, \

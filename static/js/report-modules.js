@@ -463,6 +463,10 @@ var ReportEngine = (function() {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // Start loading server-managed processing keywords while this closure still
+  // owns the private cache and loader.
+  _loadServerConfig();
+
   // ── 公共 API ──
   return {
     register: register,
@@ -1926,8 +1930,5 @@ var ReportEngine = (function() {
   });
 
   console.log('[report-modules] 已加载 ' + Object.keys(R.listModules()).length + ' 个模块 — 自由编制模式：每个模块自行判断启用/禁用，系统不替模块做决定');
-
-  // 启动加载服务端配置（加工判定关键词等）
-  _loadServerConfig();
 
 })();
