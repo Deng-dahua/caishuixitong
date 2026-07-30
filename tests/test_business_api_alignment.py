@@ -444,6 +444,41 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         ):
             self.assertIn(gate, active_quality)
 
+    def test_correction_learning_section_is_complete_and_private(self):
+        root = Path(__file__).resolve().parents[1]
+        correction_ui = (
+            root / "static" / "js" / "correction-rules.js"
+        ).read_text(encoding="utf-8")
+        index = (root / "static" / "index.html").read_text(encoding="utf-8")
+        main = (root / "main.py").read_text(encoding="utf-8")
+        storage = (root / "runtime_storage.py").read_text(encoding="utf-8")
+        learning = (root / "engine" / "self_learning.py").read_text(
+            encoding="utf-8"
+        )
+        coordinator = (
+            root / "engine" / "agents" / "coordinator.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("function renderCRHList(rules, filter)", correction_ui)
+        self.assertIn("function filterCRH(filter)", correction_ui)
+        self.assertIn("_crhEscape(itemReason)", correction_ui)
+        self.assertIn("当前筛选条件下没有规则", correction_ui)
+        self.assertIn("correction-rules.js?v=2026073019", index)
+
+        self.assertIn("CORRECTION_RULES = DATA_DIR /", storage)
+        self.assertIn("CONTENT_FEEDBACK = DATA_DIR /", storage)
+        self.assertIn("ARCHIVED_CORRECTION_RULES = DATA_DIR /", storage)
+        self.assertIn("LEARNING_AGENT_WEIGHTS = DATA_DIR /", storage)
+        self.assertIn("raw_rules = read_json(CORRECTION_RULES, [])", main)
+        self.assertIn("elif isinstance(raw_rules, list):", main)
+        self.assertIn("_find_correction_rule(rules, fingerprint)", main)
+        self.assertIn("_CORRECTIONS_PATH = CORRECTION_RULES", learning)
+        self.assertIn("self._corrections_path = LEARNING_AGENT_WEIGHTS", coordinator)
+        self.assertNotIn(
+            'os.path.join("static", "user_corrections.json")',
+            main,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

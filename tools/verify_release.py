@@ -12,12 +12,17 @@ ROOT = Path(__file__).resolve().parents[1]
 SENSITIVE_NAMES = {
     "api_key.json", "sessions.json", "access_logs.jsonl", "accounting.db",
     "last_analysis_cache.json", "analysis_history.json",
+    "user_corrections.json", "deleted_correction_rules.json",
+    "_deleted_correction_rules.json", "content_feedback.json",
+    "learning_agent_weights.json",
 }
 PRODUCTION_PYTHON = [
     "security.py", "security_web.py", "runtime_storage.py", "llm_config.py",
     "llm_credentials.py", "llm_providers.py", "request_context.py",
     "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
-    "engine/llm_client.py", "engine/pipeline.py",
+    "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
+    "engine/agi_pipeline.py", "engine/rule_discovery.py",
+    "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
 

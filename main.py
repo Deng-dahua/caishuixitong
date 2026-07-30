@@ -102,8 +102,9 @@ from llm_credentials import (
     set_default_credential,
 )
 from runtime_storage import (
-    ACCESS_LOG, ANALYSIS_HISTORY, CACHE_DIR, LAST_ANALYSIS_CACHE,
-    UPLOAD_DIR as RUNTIME_UPLOAD_DIR,
+    ACCESS_LOG, ANALYSIS_HISTORY, ARCHIVED_CORRECTION_RULES, CACHE_DIR,
+    LAST_ANALYSIS_CACHE,
+    CONTENT_FEEDBACK, CORRECTION_RULES, UPLOAD_DIR as RUNTIME_UPLOAD_DIR,
     atomic_write_json, company_upload_dir, read_json, safe_filename,
 )
 from security import (
@@ -9463,16 +9464,11 @@ async def post_content_feedback(request: Request):
         "correct_content": correct_content,
     }
 
-    cf_path = os.path.join("static", "content_feedback.json")
-    existing = []
-    try:
-        with open(cf_path, encoding="utf-8") as f:
-            existing = json.load(f)
-    except:
+    existing = read_json(CONTENT_FEEDBACK, [])
+    if not isinstance(existing, list):
         existing = []
     existing.append(feedback)
-    with open(cf_path, "w", encoding="utf-8") as f:
-        json.dump(existing[-100:], f, ensure_ascii=False, indent=2)
+    atomic_write_json(CONTENT_FEEDBACK, existing[-100:])
 
     # ═══ 闭环：反馈注入规则库 ═══
     _close_feedback_loop(feedback)
@@ -9760,52 +9756,71 @@ def _update_methodology(rules, summary):
     return count
 
 
+def _correction_count(rule: dict) -> int:
+    history = rule.get("corrections", rule.get("history", []))
+    history_count = len(history) if isinstance(history, list) else 0
+    try:
+        explicit_count = int(rule.get("correction_count", rule.get("count", 0)) or 0)
+    except (TypeError, ValueError):
+        explicit_count = 0
+    return max(1, history_count, explicit_count)
+
+
+def _find_correction_rule(rules, fingerprint: str):
+    if isinstance(rules, list):
+        for index, rule in enumerate(rules):
+            if isinstance(rule, dict) and str(rule.get("fingerprint", "")) == fingerprint:
+                return index, rule
+        return None, None
+    if isinstance(rules, dict):
+        rule = rules.get(fingerprint)
+        return fingerprint, rule if isinstance(rule, dict) else None
+    return None, None
+
+
 @app.delete("/api/feedback/delete")
 def delete_correction_rule(fingerprint: str = ""):
-    """软删除纠正规则 — 归档到 _deleted_correction_rules.json，不丢失数据"""
+    """软删除纠正规则并移入私有归档，不丢失历史数据。"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "user_corrections.json")
-    archive_file = os.path.join("static", "_deleted_correction_rules.json")
     fingerprint = unquote(fingerprint)
     
-    if not os.path.exists(cr_file):
+    if not CORRECTION_RULES.exists():
         return {"ok": False, "message": "纠正规则文件不存在"}
-    
-    with open(cr_file, "r", encoding="utf-8") as f:
-        rules = json.load(f)
-    
-    if fingerprint not in rules:
+
+    rules = read_json(CORRECTION_RULES, [])
+    location, deleted_rule = _find_correction_rule(rules, fingerprint)
+    if deleted_rule is None:
         return {"ok": False, "message": f"未找到规则: {fingerprint}"}
-    
-    deleted_rule = rules.pop(fingerprint)
-    correction_count = len(deleted_rule.get("corrections", []))
+
+    if isinstance(rules, list):
+        rules.pop(location)
+    else:
+        rules.pop(fingerprint)
+    correction_count = _correction_count(deleted_rule)
     
     # 归档到删除记录（可恢复）
-    try:
-        if os.path.exists(archive_file):
-            with open(archive_file, "r", encoding="utf-8") as f:
-                archive = json.load(f)
-        else:
-            archive = {}
-        archive[fingerprint] = {
-            "deleted_at": datetime.now().isoformat(),
-            "rule": deleted_rule,
-            "correction_count": correction_count,
-            "industry": deleted_rule.get("industry", ""),
-            "finding_type": deleted_rule.get("finding_type", ""),
-        }
-        with open(archive_file, "w", encoding="utf-8") as f:
-            json.dump(archive, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-    
-    with open(cr_file, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
+    archive = read_json(ARCHIVED_CORRECTION_RULES, {})
+    if not isinstance(archive, dict):
+        archive = {}
+    archive[fingerprint] = {
+        "deleted_at": datetime.now().isoformat(),
+        "rule": deleted_rule,
+        "correction_count": correction_count,
+        "industry": deleted_rule.get("industry", ""),
+        "finding_type": deleted_rule.get("finding_type", deleted_rule.get("rule_id", "")),
+    }
+    atomic_write_json(ARCHIVED_CORRECTION_RULES, archive)
+    atomic_write_json(CORRECTION_RULES, rules)
+
+    reason = deleted_rule.get("last_reason", deleted_rule.get("reason", ""))
+    history = deleted_rule.get("corrections", [])
+    if not reason and isinstance(history, list) and history:
+        reason = history[-1].get("reason", "")
     
     return {
         "ok": True, "deleted": fingerprint, "correction_count": correction_count,
-        "reason_sample": deleted_rule.get("corrections", [{}])[-1].get("reason", "")[:60],
-        "note": f"已归档{correction_count}条纠正记录，可从 _deleted_correction_rules.json 恢复"
+        "reason_sample": str(reason)[:60],
+        "note": f"已归档{correction_count}条纠正记录，可在纠正规则归档中恢复"
     }
 
 
@@ -9813,30 +9828,32 @@ def delete_correction_rule(fingerprint: str = ""):
 def restore_correction_rule(fingerprint: str = ""):
     """恢复已归档的纠正规则"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "user_corrections.json")
-    archive_file = os.path.join("static", "_deleted_correction_rules.json")
     fingerprint = unquote(fingerprint)
     
-    if not os.path.exists(archive_file):
+    if not ARCHIVED_CORRECTION_RULES.exists():
         return {"ok": False, "message": "归档文件不存在"}
-    
-    with open(archive_file, "r", encoding="utf-8") as f:
-        archive = json.load(f)
+
+    archive = read_json(ARCHIVED_CORRECTION_RULES, {})
+    if not isinstance(archive, dict):
+        archive = {}
     
     if fingerprint not in archive:
         return {"ok": False, "message": f"未找到归档规则: {fingerprint}"}
     
     restored = archive.pop(fingerprint)
-    
-    with open(cr_file, "r", encoding="utf-8") as f:
-        rules = json.load(f)
-    
-    rules[fingerprint] = restored["rule"]
-    
-    with open(cr_file, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
-    with open(archive_file, "w", encoding="utf-8") as f:
-        json.dump(archive, f, ensure_ascii=False, indent=2)
+    rules = read_json(CORRECTION_RULES, [])
+    restored_rule = restored.get("rule", {})
+    if not isinstance(restored_rule, dict):
+        return {"ok": False, "message": "归档规则格式无效"}
+    if isinstance(rules, dict):
+        rules[fingerprint] = restored_rule
+    else:
+        if not isinstance(rules, list):
+            rules = []
+        restored_rule["fingerprint"] = fingerprint
+        rules.append(restored_rule)
+    atomic_write_json(CORRECTION_RULES, rules)
+    atomic_write_json(ARCHIVED_CORRECTION_RULES, archive)
     
     return {
         "ok": True, "restored": fingerprint,
@@ -9848,11 +9865,11 @@ def restore_correction_rule(fingerprint: str = ""):
 @app.get("/api/feedback/archived")
 def get_archived_rules():
     """获取已归档的纠正规则列表"""
-    archive_file = os.path.join("static", "_deleted_correction_rules.json")
-    if not os.path.exists(archive_file):
+    if not ARCHIVED_CORRECTION_RULES.exists():
         return {"ok": True, "rules": []}
-    with open(archive_file, "r", encoding="utf-8") as f:
-        archive = json.load(f)
+    archive = read_json(ARCHIVED_CORRECTION_RULES, {})
+    if not isinstance(archive, dict):
+        archive = {}
     return {"ok": True, "rules": [
         {
             "fingerprint": fp,
@@ -9869,40 +9886,57 @@ def get_archived_rules():
 def update_correction_rule(data: dict):
     """修改纠正规则 — 智能大脑纠正规则库的编辑按钮调用"""
     from urllib.parse import unquote
-    cr_file = os.path.join("static", "user_corrections.json")
     fingerprint = unquote(data.get("fingerprint", ""))
     
     if not fingerprint:
         return {"ok": False, "message": "指纹不能为空"}
-    if not os.path.exists(cr_file):
+    if not CORRECTION_RULES.exists():
         return {"ok": False, "message": "纠正规则文件不存在"}
-    
-    with open(cr_file, "r", encoding="utf-8") as f:
-        rules = json.load(f)
-    
-    if fingerprint not in rules:
+
+    rules = read_json(CORRECTION_RULES, [])
+    _, rule = _find_correction_rule(rules, fingerprint)
+    if rule is None:
         return {"ok": False, "message": f"未找到规则: {fingerprint}"}
     
     new_reason = data.get("reason", "").strip()
     if not new_reason:
         return {"ok": False, "message": "修改原因不能为空"}
     
-    rule = rules[fingerprint]
-    if "corrections" not in rule:
-        rule["corrections"] = []
-    rule["corrections"].append({
-        "timestamp": __import__("datetime").datetime.now().isoformat(),
-        "previous_reason": rule["corrections"][-1]["reason"] if rule["corrections"] else "",
-        "corrected_risk": data.get("corrected_risk", rule["corrections"][-1].get("corrected_risk", "低风险（用户审核）")),
-        "reason": new_reason,
-        "edited": True
-    })
-    rule["correction_count"] = len(rule["corrections"])
-    
-    with open(cr_file, "w", encoding="utf-8") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
-    
-    return {"ok": True, "updated": fingerprint, "count": rule["correction_count"]}
+    now = datetime.now().isoformat()
+    if isinstance(rules, list):
+        history = rule.get("history", [])
+        if not isinstance(history, list):
+            history = []
+        history.append({
+            "timestamp": now,
+            "previous_reason": rule.get("reason", ""),
+            "corrected_risk": data.get("corrected_risk", rule.get("corrected", "低风险（用户审核）")),
+            "reason": new_reason,
+            "edited": True,
+        })
+        rule["history"] = history[-20:]
+        rule["reason"] = new_reason
+        rule["corrected"] = data.get("corrected_risk", rule.get("corrected", "低风险（用户审核）"))
+        rule["timestamp"] = now
+        rule["count"] = _correction_count(rule) + 1
+        updated_count = rule["count"]
+    else:
+        corrections = rule.get("corrections", [])
+        if not isinstance(corrections, list):
+            corrections = []
+        corrections.append({
+            "timestamp": now,
+            "previous_reason": corrections[-1].get("reason", "") if corrections else "",
+            "corrected_risk": data.get("corrected_risk", corrections[-1].get("corrected_risk", "低风险（用户审核）") if corrections else "低风险（用户审核）"),
+            "reason": new_reason,
+            "edited": True,
+        })
+        rule["corrections"] = corrections
+        rule["correction_count"] = len(corrections)
+        updated_count = rule["correction_count"]
+
+    atomic_write_json(CORRECTION_RULES, rules)
+    return {"ok": True, "updated": fingerprint, "count": updated_count}
 
 
 @app.post("/api/feedback/sync-modules")
@@ -10077,34 +10111,53 @@ def get_engine_details(company_id: int = 1):
 
 @app.get("/api/feedback/corrections")
 def get_correction_rules():
-    """获取所有纠正规则（规则中转站 + LLM自学习规则）"""
+    """获取所有纠正规则，统一兼容当前列表格式和历史指纹字典。"""
     result = {"ok": True, "rules": [], "count": 0, "learned_rules": {"active": [], "reset": [], "active_count": 0, "reset_count": 0}}
-    
-    # 原有的纠正规则（user_corrections.json）
-    try:
-        from engine.self_learning import _load_correction_rules
-        rules = _load_correction_rules()
-        legacy = []
-        for fp, rule in rules.items():
-            c = rule.get("corrections", [])
-            legacy.append({
-                "fingerprint": fp,
-                "finding_type": rule.get("finding_type", ""),
-                "industry": rule.get("industry", ""),
-                "biz_model": rule.get("biz_model", ""),
-                "auto_apply": rule.get("auto_apply", False),
-                "confidence": rule.get("confidence", 0),
-                "correction_count": len(c),
-                "last_reason": c[-1].get("reason", "") if c else "",
-                "corrections": c[-5:],
-                "updated_at": c[-1].get("timestamp", "") if c else "",
-            })
-        legacy.sort(key=lambda x: -(x["confidence"] or 0))
-        result["rules"] = legacy
-        result["count"] = len(legacy)
-    except: pass
-    
 
+    raw_rules = read_json(CORRECTION_RULES, [])
+    normalized = []
+    if isinstance(raw_rules, dict):
+        iterable = ((fingerprint, rule) for fingerprint, rule in raw_rules.items())
+    elif isinstance(raw_rules, list):
+        iterable = (
+            (str(rule.get("fingerprint", "")), rule)
+            for rule in raw_rules
+            if isinstance(rule, dict)
+        )
+    else:
+        iterable = ()
+
+    for fingerprint, rule in iterable:
+        history = rule.get("corrections", rule.get("history", []))
+        if not isinstance(history, list):
+            history = []
+        latest = history[-1] if history else {}
+        count = _correction_count(rule)
+        auto_apply = bool(rule.get("auto_apply", count >= 3))
+        raw_confidence = rule.get("confidence")
+        if raw_confidence is None:
+            confidence = min(1.0, count / 3)
+        else:
+            try:
+                confidence = max(0.0, min(1.0, float(raw_confidence)))
+            except (TypeError, ValueError):
+                confidence = 0.0
+        normalized.append({
+            "fingerprint": fingerprint,
+            "finding_type": rule.get("finding_type", rule.get("rule_id", "")),
+            "industry": rule.get("industry", ""),
+            "biz_model": rule.get("biz_model", ""),
+            "auto_apply": auto_apply,
+            "confidence": round(confidence, 3),
+            "correction_count": count,
+            "last_reason": rule.get("last_reason", rule.get("reason", latest.get("reason", ""))),
+            "corrections": (history or [rule])[-5:],
+            "updated_at": rule.get("updated_at", rule.get("timestamp", latest.get("timestamp", ""))),
+        })
+
+    normalized.sort(key=lambda item: (-item["confidence"], str(item["updated_at"])), reverse=False)
+    result["rules"] = normalized
+    result["count"] = len(normalized)
     return result
 
 @app.get("/api/human-learning/status")
@@ -10150,17 +10203,10 @@ def trigger_relationships():
 @app.get("/api/feedback/content-logs")
 def get_content_feedback_logs():
     """获取内容反馈日志（编辑/审核/追问记录）"""
-    try:
-        p = os.path.join(os.path.dirname(__file__), "static", "content_feedback.json")
-        if os.path.exists(p):
-            with open(p, "r", encoding="utf-8") as f:
-                import json
-                logs = json.load(f)
-            if isinstance(logs, list):
-                return {"ok": True, "logs": logs[-100:], "count": len(logs)}
-        return {"ok": True, "logs": [], "count": 0}
-    except:
-        return {"ok": True, "logs": [], "count": 0}
+    logs = read_json(CONTENT_FEEDBACK, [])
+    if not isinstance(logs, list):
+        logs = []
+    return {"ok": True, "logs": logs[-100:], "count": len(logs)}
 
 @app.get("/api/feedback/sync-status")
 def get_sync_status():

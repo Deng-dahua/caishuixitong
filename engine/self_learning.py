@@ -24,6 +24,12 @@ import os
 import time
 from datetime import datetime
 from collections import defaultdict
+from runtime_storage import (
+    CONTENT_FEEDBACK,
+    CORRECTION_RULES,
+    atomic_write_json,
+    read_json,
+)
 
 # ═══════════════ 运行日志路径 ═══════════════
 RUN_LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "module_run_log.json")
@@ -683,21 +689,36 @@ import json as _json
 import os as _os
 from datetime import datetime as _datetime
 
-_CORRECTIONS_PATH = _os.path.join(_os.path.dirname(__file__), "..", "static", "user_corrections.json")
+_CORRECTIONS_PATH = CORRECTION_RULES
 
 def _load_correction_rules():
     """加载用户纠正规则库"""
-    if not _os.path.exists(_CORRECTIONS_PATH):
-        return []
-    try:
-        with open(_CORRECTIONS_PATH, "r", encoding="utf-8") as f:
-            data = _json.load(f)
-        if isinstance(data, list):
-            return data
-        # 兼容旧格式 {} → 转为 []
-        return []
-    except Exception:
-        return []
+    data = read_json(_CORRECTIONS_PATH, [])
+    if isinstance(data, list):
+        return data
+    # 旧版指纹字典转换为当前列表结构，避免历史纠正丢失。
+    if isinstance(data, dict):
+        converted = []
+        for fingerprint, rule in data.items():
+            if not isinstance(rule, dict):
+                continue
+            corrections = rule.get("corrections", [])
+            latest = corrections[-1] if corrections else {}
+            converted.append({
+                "rule_id": rule.get("finding_type", fingerprint),
+                "original": latest.get("original", ""),
+                "corrected": latest.get("corrected", latest.get("corrected_risk", "")),
+                "reason": latest.get("reason", ""),
+                "source": latest.get("source", "legacy"),
+                "industry": rule.get("industry", ""),
+                "biz_model": rule.get("biz_model", ""),
+                "timestamp": latest.get("timestamp", ""),
+                "fingerprint": fingerprint,
+                "count": max(1, len(corrections)),
+                "history": corrections[-20:],
+            })
+        return converted
+    return []
 
 
 def record_correction(rule_id, original, corrected, reason="", source="user", industry=""):
@@ -723,9 +744,7 @@ def record_correction(rule_id, original, corrected, reason="", source="user", in
     else:
         rules.append(entry)
     try:
-        _os.makedirs(_os.path.dirname(_CORRECTIONS_PATH), exist_ok=True)
-        with open(_CORRECTIONS_PATH, "w", encoding="utf-8") as f:
-            _json.dump(rules, f, ensure_ascii=False, indent=2)
+        atomic_write_json(_CORRECTIONS_PATH, rules)
     except Exception:
         pass
     return {"ok": True, "count": len(rules)}
@@ -786,15 +805,13 @@ def _close_feedback_loop(feedback_data, pipeline_log=None):
     content = str(feedback_data.get("content", ""))[:500]
     rule_id = str(feedback_data.get("rule_id", ""))
     # 写入内容反馈日志
-    fb_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "content_feedback.json")
+    fb_path = CONTENT_FEEDBACK
     try:
-        existing = []
-        if _os.path.exists(fb_path):
-            with open(fb_path, "r", encoding="utf-8") as f:
-                existing = _json.load(f)
+        existing = read_json(fb_path, [])
+        if not isinstance(existing, list):
+            existing = []
         existing.append({"rule_id": rule_id, "content": content, "timestamp": _datetime.now().isoformat()})
-        with open(fb_path, "w", encoding="utf-8") as f:
-            _json.dump(existing, f, ensure_ascii=False, indent=2)
+        atomic_write_json(fb_path, existing[-100:])
     except Exception:
         pass
     # 如果有关联规则ID，同时记录纠正

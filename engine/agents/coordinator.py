@@ -614,6 +614,7 @@ import json, os
 from datetime import datetime
 from .base import BaseAgent
 from typing import Dict, List, Any
+from runtime_storage import LEARNING_AGENT_WEIGHTS, atomic_write_json, read_json
 
 class LearningAgent(BaseAgent):
     """从用户纠正中学习，自动调整规则权重和行业适配"""
@@ -631,29 +632,21 @@ class LearningAgent(BaseAgent):
             ]
         )
         
-        self._corrections_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "static", "user_corrections.json"
-        )
+        self._corrections_path = LEARNING_AGENT_WEIGHTS
         self._weights = self._load_weights()
     
     def _load_weights(self) -> Dict:
-        try:
-            with open(self._corrections_path, encoding="utf-8") as f:
-                data = json.load(f)
-            # Handle empty list case
-            if isinstance(data, list):
-                return {"rules": {}, "industries": {}, "patterns": []}
-            # Handle record_correction format (fingerprint dict without "rules" key)
-            if isinstance(data, dict) and "rules" not in data:
-                return {"rules": data, "industries": {}, "patterns": []}
-            return data
-        except:
+        data = read_json(self._corrections_path, {})
+        if not isinstance(data, dict):
             return {"rules": {}, "industries": {}, "patterns": []}
+        return {
+            "rules": data.get("rules", {}),
+            "industries": data.get("industries", {}),
+            "patterns": data.get("patterns", []),
+        }
     
     def _save_weights(self):
-        with open(self._corrections_path, "w", encoding="utf-8") as f:
-            json.dump(self._weights, f, ensure_ascii=False, indent=2)
+        atomic_write_json(self._corrections_path, self._weights)
     
     def process(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """分析纠正，更新权重"""

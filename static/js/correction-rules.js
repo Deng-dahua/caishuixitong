@@ -32,7 +32,11 @@ function renderCorrectionRulesHub(container) {
     '.crh-meta{font-size:11px;color:#94a3b8;display:flex;gap:16px;flex-wrap:wrap}' +
     '.crh-reason{font-size:12px;color:#475569;margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;line-height:1.8}' +
     '.crh-chain{font-size:11px;color:#64748b;margin-top:6px}' +
+    '.crh-history{margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:8px}' +
+    '.crh-history summary{font-size:12px;color:#2563eb;cursor:pointer}' +
+    '.crh-history-item{font-size:12px;color:#475569;padding:8px 0;border-bottom:1px solid #f1f5f9;line-height:1.7}' +
     '.crh-empty{text-align:center;padding:60px;color:#94a3b8}' +
+    '@media(max-width:760px){.crh-stats{grid-template-columns:repeat(2,1fr)}.crh-card-hd{align-items:flex-start;gap:8px}.crh-meta{display:grid;gap:5px}}' +
     '</style>' +
     '<div class="crh-layout">' +
     '<h2 class="crh-h2">🔄 纠正规则中转站</h2>' +
@@ -88,3 +92,106 @@ function renderCorrectionData(corrections, contents) {
   
 }
 
+function _crhEscape(value) {
+  if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _crhConfidence(rule) {
+  var value = Number(rule && rule.confidence);
+  if (!Number.isFinite(value)) value = 0;
+  if (value > 1) value = value / 100;
+  return Math.max(0, Math.min(1, value));
+}
+
+function _crhIsAuto(rule) {
+  return rule && (rule.auto_apply === true || rule.auto_apply === 1 || rule.auto_apply === 'true');
+}
+
+function _crhFormatDate(value) {
+  if (!value) return '暂无时间';
+  var date = new Date(value);
+  if (Number.isNaN(date.getTime())) return _crhEscape(value);
+  return _crhEscape(date.toLocaleString('zh-CN', {hour12:false}));
+}
+
+function renderCRHList(rules, filter) {
+  var body = document.getElementById('crh-body');
+  if (!body) return;
+  var source = Array.isArray(rules) ? rules : [];
+  var visible = source.filter(function(rule) {
+    if (filter === 'high') return _crhConfidence(rule) >= 0.8;
+    if (filter === 'auto') return _crhIsAuto(rule);
+    return true;
+  });
+
+  if (!visible.length) {
+    var label = filter === 'all' ? '尚未形成纠正规则' : '当前筛选条件下没有规则';
+    body.innerHTML = '<div class="crh-empty">📭 ' + label +
+      '<div style="font-size:12px;margin-top:8px">审核、编辑或追问形成反馈后，系统会在这里展示可追溯的学习结果。</div></div>';
+    return;
+  }
+
+  body.innerHTML = visible.map(function(rule) {
+    var confidence = _crhConfidence(rule);
+    var confidencePct = Math.round(confidence * 100);
+    var confidenceClass = confidence >= 0.8 ? 'crh-badge-high' :
+      (confidence >= 0.5 ? 'crh-badge-mid' : 'crh-badge-low');
+    var autoApply = _crhIsAuto(rule);
+    var type = rule.finding_type || rule.rule_id || '未分类纠正规则';
+    var reason = rule.last_reason || rule.reason || '尚未填写纠正原因';
+    var corrections = Array.isArray(rule.corrections) ? rule.corrections : [];
+    var fingerprint = String(rule.fingerprint || '');
+    var shortFingerprint = fingerprint.length > 36 ?
+      fingerprint.slice(0, 18) + '…' + fingerprint.slice(-12) : fingerprint;
+    var history = '';
+
+    if (corrections.length) {
+      history = '<details class="crh-history"><summary>查看最近 ' + corrections.length + ' 次纠正记录</summary>' +
+        corrections.slice().reverse().map(function(item) {
+          var itemReason = item.reason || item.corrected || item.correct_content || '未记录说明';
+          return '<div class="crh-history-item"><b>' + _crhFormatDate(item.timestamp || item.time) +
+            '</b><br>' + _crhEscape(itemReason) + '</div>';
+        }).join('') + '</details>';
+    }
+
+    return '<article class="crh-card">' +
+      '<div class="crh-card-hd"><div class="crh-card-type">' + _crhEscape(type) + '</div>' +
+      '<div><span class="crh-badge ' + (autoApply ? 'crh-badge-audit' : 'crh-badge-edit') + '">' +
+      (autoApply ? '已进入自动应用' : '学习观察中') + '</span> ' +
+      '<span class="crh-badge ' + confidenceClass + '">置信度 ' + confidencePct + '%</span></div></div>' +
+      '<div class="crh-meta">' +
+      '<span>行业：' + _crhEscape(rule.industry || '通用') + '</span>' +
+      '<span>经营模式：' + _crhEscape(rule.biz_model || '通用') + '</span>' +
+      '<span>累计纠正：' + Math.max(0, Number(rule.correction_count || rule.count || 0)) + ' 次</span>' +
+      '<span>最近更新：' + _crhFormatDate(rule.updated_at || rule.timestamp) + '</span>' +
+      '</div>' +
+      '<div class="crh-reason"><b>纠正依据：</b>' + _crhEscape(reason) + '</div>' +
+      (shortFingerprint ? '<div class="crh-chain">规则指纹：<span title="' +
+        _crhEscape(fingerprint) + '">' + _crhEscape(shortFingerprint) + '</span></div>' : '') +
+      history + '</article>';
+  }).join('');
+}
+
+function filterCRH(filter) {
+  var allowed = {all:true, high:true, auto:true};
+  var selected = allowed[filter] ? filter : 'all';
+  window._crhFilter = selected;
+  var mount = document.getElementById('engine-mount-corrections') || document;
+  var buttons = mount.querySelectorAll('#crh-filter .crh-filter-btn');
+  buttons.forEach(function(button, index) {
+    var buttonFilter = index === 1 ? 'high' : (index === 2 ? 'auto' : 'all');
+    var active = buttonFilter === selected;
+    button.classList.toggle('active', active);
+    button.style.background = active ? '#2563eb' : '#fff';
+    button.style.color = active ? '#fff' : '#475569';
+    button.style.borderColor = active ? '#2563eb' : '#e2e8f0';
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  renderCRHList(window._crhRules || [], selected);
+}

@@ -12,10 +12,11 @@
 import json, os
 from datetime import datetime
 from collections import defaultdict, Counter
+from runtime_storage import CORRECTION_RULES
 
 DISCOVERED_RULES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "discovered_rules.json")
 RUN_LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "module_run_log.json")
-CORRECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "user_corrections.json")
+CORRECTION_PATH = CORRECTION_RULES
 MEMORY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "audit_memory.json")
 
 

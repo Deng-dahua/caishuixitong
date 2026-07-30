@@ -21,6 +21,10 @@ UPLOAD_DIR = DATA_DIR / "uploads"
 LOG_DIR = DATA_DIR / "logs"
 SECURITY_DB = DATA_DIR / "security.db"
 ACCOUNTING_DB = DATA_DIR / "accounting.db"
+CORRECTION_RULES = DATA_DIR / "user_corrections.json"
+ARCHIVED_CORRECTION_RULES = DATA_DIR / "deleted_correction_rules.json"
+CONTENT_FEEDBACK = DATA_DIR / "content_feedback.json"
+LEARNING_AGENT_WEIGHTS = DATA_DIR / "learning_agent_weights.json"
 
 for _directory in (DATA_DIR, CACHE_DIR, UPLOAD_DIR, LOG_DIR):
     _directory.mkdir(parents=True, exist_ok=True)
@@ -31,6 +35,38 @@ ACCESS_LOG = LOG_DIR / "access.jsonl"
 
 _json_lock = threading.RLock()
 _unsafe_filename = re.compile(r"[^A-Za-z0-9._\-\u4e00-\u9fff]+")
+
+
+def _move_legacy_private_file(destination: Path, legacy: Path) -> None:
+    """Remove mutable data from the public static tree without losing it."""
+    if not legacy.exists():
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        os.replace(legacy, destination)
+        return
+    legacy_archive = DATA_DIR / "legacy"
+    legacy_archive.mkdir(parents=True, exist_ok=True)
+    archived = legacy_archive / legacy.name
+    counter = 1
+    while archived.exists():
+        archived = legacy_archive / f"{legacy.stem}.{counter}{legacy.suffix}"
+        counter += 1
+    os.replace(legacy, archived)
+
+
+_move_legacy_private_file(
+    CORRECTION_RULES,
+    PROJECT_ROOT / "static" / "user_corrections.json",
+)
+_move_legacy_private_file(
+    CONTENT_FEEDBACK,
+    PROJECT_ROOT / "static" / "content_feedback.json",
+)
+_move_legacy_private_file(
+    ARCHIVED_CORRECTION_RULES,
+    PROJECT_ROOT / "static" / "_deleted_correction_rules.json",
+)
 
 
 def safe_filename(name: str, fallback: str = "upload") -> str:

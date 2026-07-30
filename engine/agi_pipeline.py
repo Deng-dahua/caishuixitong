@@ -14,6 +14,7 @@ import json, time, os
 from datetime import datetime
 from collections import Counter, defaultdict
 from typing import Dict, List, Any, Optional
+from runtime_storage import CORRECTION_RULES
 
 # ==================== 学习事件类型 ====================
 
@@ -2415,8 +2416,7 @@ class MetacognitionEngine:
     
     def _score_capabilities(self, findings, avg_quality):
         """六维能力自评分（自知层核心）"""
-        has_correction_rules = os.path.exists(
-            os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "user_corrections.json"))
+        has_correction_rules = CORRECTION_RULES.exists()
         has_memory = len(self.reasoning_log) > 1
         total_findings = len(findings)
         high_risk = sum(1 for f in findings if f.get("level") in ("高风险","极高风险"))
