@@ -88,7 +88,7 @@ class ConstructionScenarioIntegrationTests(unittest.TestCase):
         from engine.methodology_coverage import build_methodology_coverage
 
         report = build_methodology_coverage(STATIC)
-        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 31)
+        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 39)
         manufacturing = next(row for row in report["industry_matrix"] if row["code"] == "C")
         construction = next(row for row in report["industry_matrix"] if row["code"] == "E")
         self.assertEqual(manufacturing["rewritten_m25_scenarios"], 8)
@@ -114,7 +114,7 @@ class ConstructionScenarioIntegrationTests(unittest.TestCase):
         self.assertIn("scenario_methodology.get('scene_count', 0)", scenario_block)
         self.assertIn("/api/methodology/assets/construction_scenario_contracts", frontend)
         self.assertIn("建筑业真实场景五链配套重写", frontend)
-        self.assertIn("tax-pipeline-pages.js?v=2026080207", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080208", index)
 
 
 if __name__ == "__main__":

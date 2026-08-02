@@ -6219,6 +6219,7 @@ var _manufacturingScenarioContractsPromise = null;
 var _constructionScenarioContractsPromise = null;
 var _realEstateScenarioContractsPromise = null;
 var _wholesaleRetailScenarioContractsPromise = null;
+var _platformScenarioContractsPromise = null;
 var _candidateRewriteLedgerPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
@@ -6308,6 +6309,17 @@ function _loadWholesaleRetailScenarioContracts() {
   return _wholesaleRetailScenarioContractsPromise;
 }
 
+function _loadPlatformScenarioContracts() {
+  if (!_platformScenarioContractsPromise) {
+    _platformScenarioContractsPromise = fetch('/api/methodology/assets/platform_scenario_contracts?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('平台经济五链场景加载失败');
+        return response.json();
+      });
+  }
+  return _platformScenarioContractsPromise;
+}
+
 function _loadCandidateRewriteLedger() {
   if (!_candidateRewriteLedgerPromise) {
     _candidateRewriteLedgerPromise = fetch('/api/methodology/rewrite-ledger?offset=0&limit=40&_t=' + Date.now())
@@ -6328,6 +6340,7 @@ function _renderMethodologyCoverageMatrix(container) {
     _loadConstructionScenarioContracts(),
     _loadRealEstateScenarioContracts(),
     _loadWholesaleRetailScenarioContracts(),
+    _loadPlatformScenarioContracts(),
     _loadCandidateRewriteLedger()
   ]).then(function(values){
     var report = values[0] || {};
@@ -6348,8 +6361,10 @@ function _renderMethodologyCoverageMatrix(container) {
     var constructionContracts = values[3] || {};
     var realEstateContracts = values[4] || {};
     var wholesaleRetailContracts = values[5] || {};
-    var rewriteLedger = values[6] || {};
+    var platformContracts = values[6] || {};
+    var rewriteLedger = values[7] || {};
     var rewriteSummary = rewriteLedger.summary || {};
+    var overlaySummary = report.overlay_scenario_summary || {};
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
       + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
       + '<div class="method-coverage-summary">'
@@ -6418,6 +6433,9 @@ function _renderMethodologyCoverageMatrix(container) {
         + '</td><td>' + escHtml(item.staged_m2_scenarios || 0) + '</td><td>' + escHtml(item.rewritten_m25_scenarios || 0)
         + '</td><td>' + escHtml(item.verified_specific_rules)
         + '</td><td>' + escHtml(item.state) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<div class="method-source-note"><b>平台经济叠加能力：</b>' + escHtml(overlaySummary.name || '平台经济叠加场景')
+      + '已完成 ' + escHtml(overlaySummary.rewritten_m25_scenarios || 0) + ' 个M2.5场景；'
+      + escHtml(overlaySummary.state || '') + '。平台叠加场景不替代经营主体所属国民经济行业。</div>'
       + '<div class="method-source-note"><b>行业场景使用边界：</b>' + escHtml(report.industry_profile_boundary || '') + '</div>'
       + '<div class="method-two-column">' + industryProfiles.map(function(profile){
         return '<details class="method-framework-card"><summary><b>' + escHtml(profile.code + ' · ' + profile.name) + '</b></summary>'
@@ -6433,6 +6451,7 @@ function _renderMethodologyCoverageMatrix(container) {
       + ' 个场景、建筑业 ' + escHtml((constructionContracts.scenarios || []).length)
       + ' 个场景、房地产开发业 ' + escHtml((realEstateContracts.scenarios || []).length)
       + ' 个场景、批发零售业 ' + escHtml((wholesaleRetailContracts.scenarios || []).length)
+      + ' 个场景、平台经济叠加 ' + escHtml((platformContracts.scenarios || []).length)
       + ' 个场景已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体；其余行业仍保留M2状态并按同一合同逐批重写。'
       + '<br><b>房地产开发业边界：</b>' + escHtml(realEstateContracts.positioning || '') + '</div>'
       + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
@@ -7035,7 +7054,8 @@ function renderMethodologyChainsIntegrated(container) {
     _loadManufacturingScenarioContracts(),
     _loadConstructionScenarioContracts(),
     _loadRealEstateScenarioContracts(),
-    _loadWholesaleRetailScenarioContracts()
+    _loadWholesaleRetailScenarioContracts(),
+    _loadPlatformScenarioContracts()
   ]).then(function(values){
   var framework = values[0] || {};
   var playbookPayload = values[1] || {};
@@ -7043,6 +7063,7 @@ function renderMethodologyChainsIntegrated(container) {
   var constructionContracts = values[3] || {};
   var realEstateContracts = values[4] || {};
   var wholesaleRetailContracts = values[5] || {};
+  var platformContracts = values[6] || {};
   var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
@@ -7059,6 +7080,8 @@ function renderMethodologyChainsIntegrated(container) {
     ${_renderIndustryScenarioContracts(realEstateContracts)}
     <h3 class="method-subheading">批发零售业真实场景五链配套重写</h3>
     ${_renderIndustryScenarioContracts(wholesaleRetailContracts)}
+    <h3 class="method-subheading">平台经济叠加场景五链配套重写</h3>
+    ${_renderIndustryScenarioContracts(platformContracts)}
     <h3 class="method-subheading">十三组调查—证据—分析专项路径</h3>
     <div class="method-two-column">
       ${playbooks.map(function(item){return '<details class="method-framework-card"><summary><b>' + escHtml(item.id + ' · ' + item.name) + '</b></summary>'

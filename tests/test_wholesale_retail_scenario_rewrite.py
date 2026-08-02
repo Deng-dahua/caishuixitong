@@ -91,14 +91,14 @@ class WholesaleRetailScenarioIntegrationTests(unittest.TestCase):
         from engine.methodology_coverage import build_methodology_coverage
 
         report = build_methodology_coverage(STATIC)
-        self.assertEqual(report["version"], "1.4.0")
-        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 31)
+        self.assertEqual(report["version"], "1.5.0")
+        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 39)
         retail = next(row for row in report["industry_matrix"] if row["code"] == "F")
         self.assertEqual(retail["rewritten_m25_scenarios"], 7)
         self.assertEqual(retail["verified_specific_rules"], 0)
         self.assertIn("待脱敏真实样本验证", retail["state"])
         rewrite = report["candidate_governance"]["rewrite_program"]["summary"]
-        self.assertEqual(rewrite["absorbed_into_scene_contract"], 63)
+        self.assertEqual(rewrite["absorbed_into_scene_contract"], 106)
         self.assertEqual(rewrite["queued_not_rewritten"] + rewrite["absorbed_into_scene_contract"], 1720)
         self.assertEqual(rewrite["released_from_legacy_library"], 0)
 
@@ -112,7 +112,7 @@ class WholesaleRetailScenarioIntegrationTests(unittest.TestCase):
         self.assertIn("/api/methodology/assets/wholesale_retail_scenario_contracts", frontend)
         self.assertIn("批发零售业真实场景五链配套重写", frontend)
         self.assertIn("已吸收进场景未放行", frontend)
-        self.assertIn("tax-pipeline-pages.js?v=2026080207", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080208", index)
 
 
 if __name__ == "__main__":

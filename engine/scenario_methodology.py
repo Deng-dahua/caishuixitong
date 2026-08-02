@@ -29,6 +29,11 @@ CONTRACT_ASSETS = {
         "path": _PROJECT_ROOT / "static" / "wholesale_retail_scenario_contracts.json",
         "terms": ("批发", "零售", "商贸", "贸易", "商超", "电商零售"),
     },
+    "OVERLAY-PLATFORM": {
+        "asset": "platform_scenario_contracts",
+        "path": _PROJECT_ROOT / "static" / "platform_scenario_contracts.json",
+        "terms": ("互联网平台", "网络平台", "平台经济", "网络直播", "灵活用工平台", "网络货运平台", "内容平台", "数字平台"),
+    },
     "K": {
         "asset": "real_estate_scenario_contracts",
         "path": _PROJECT_ROOT / "static" / "real_estate_scenario_contracts.json",
@@ -220,6 +225,46 @@ SCENE_SOURCE_GATES = {
         {"name": "支付商户和账户", "any": ["支付结算", "平台结算"]},
         {"name": "收入发票申报", "any": ["会计核算", "发票申报", "税费申报"]},
     ],
+    "PLT-01": [
+        {"name": "平台入口与运营", "any": ["平台基础信息", "合同权利义务"]},
+        {"name": "系统权限与结算", "any": ["平台系统日志", "支付结算"]},
+        {"name": "涉税信息报送", "any": ["平台涉税报送", "税费申报"]},
+    ],
+    "PLT-02": [
+        {"name": "账户与实名历史", "any": ["平台账户身份"]},
+        {"name": "合同运营与收款", "any": ["合同权利义务", "支付结算"]},
+        {"name": "身份报送与安全", "any": ["平台涉税报送", "平台系统日志"]},
+    ],
+    "PLT-03": [
+        {"name": "平台订单售后", "any": ["平台订单", "售后退款"]},
+        {"name": "分账结算", "any": ["平台结算", "支付结算"]},
+        {"name": "收入报送税会", "any": ["平台涉税报送", "会计核算", "税费申报"]},
+    ],
+    "PLT-04": [
+        {"name": "业务线和协议", "any": ["平台基础信息", "合同权利义务"]},
+        {"name": "履约售后分账", "any": ["平台订单", "售后退款", "平台结算"]},
+        {"name": "角色税会", "any": ["会计核算", "发票申报", "税费申报"]},
+    ],
+    "PLT-05": [
+        {"name": "直播内容钱包", "any": ["直播内容", "虚拟权益"]},
+        {"name": "退款和多方分成", "any": ["售后退款", "平台结算", "支付结算"]},
+        {"name": "直播报送扣缴", "any": ["平台涉税报送", "税费申报", "人员薪酬"]},
+    ],
+    "PLT-06": [
+        {"name": "任务人员成果", "any": ["灵活用工任务", "人员薪酬"]},
+        {"name": "验收和票款", "any": ["合同权利义务", "支付结算", "发票申报"]},
+        {"name": "扣缴代办报送", "any": ["平台涉税报送", "税费申报"]},
+    ],
+    "PLT-07": [
+        {"name": "托运承运订单", "any": ["网络货运", "合同权利义务"]},
+        {"name": "车辆司机轨迹", "any": ["网络货运轨迹", "人员薪酬"]},
+        {"name": "结算票税报送", "any": ["平台结算", "发票申报", "平台涉税报送"]},
+    ],
+    "PLT-08": [
+        {"name": "境内外主体交易", "any": ["跨境平台", "合同权利义务"]},
+        {"name": "地点币种结算", "any": ["跨境履约", "资金结算"]},
+        {"name": "跨境报送申报", "any": ["平台涉税报送", "税费申报"]},
+    ],
 }
 
 
@@ -255,6 +300,14 @@ SCENE_SIGNAL_TERMS = {
     "RET-05": ("代销", "联营", "主要责任人", "代理人", "净额", "佣金"),
     "RET-06": ("会员", "储值", "预付卡", "礼券", "积分", "核销"),
     "RET-07": ("现金", "聚合支付", "个人账户", "收款码", "POS", "班次"),
+    "PLT-01": ("平台域名", "运营主体", "报送主体", "基本信息报送", "平台备案"),
+    "PLT-02": ("平台账户", "实名认证", "经营者身份", "从业人员身份", "收款主体"),
+    "PLT-03": ("平台订单", "季度报送", "报送收入", "分账", "平台佣金", "平台服务费"),
+    "PLT-04": ("平台自营", "撮合", "主要责任人", "代理人", "总额净额", "平台角色"),
+    "PLT-05": ("直播", "主播", "虚拟币", "虚拟礼物", "打赏", "MCN", "创作者"),
+    "PLT-06": ("灵活用工", "任务订单", "劳务报酬", "代办申报", "众包", "自由职业者"),
+    "PLT-07": ("网络货运", "货运平台", "实际承运人", "司机", "车辆轨迹", "运单"),
+    "PLT-08": ("境外平台", "跨境平台", "数字服务", "境外经营者", "外币", "境外收入"),
 }
 
 
@@ -326,6 +379,30 @@ def _available_source_families(file_results):
             families.add("代销联营")
         if any(term in name_text for term in ("会员", "储值", "预付卡", "礼券", "积分", "卡券")):
             families.add("会员权益")
+        if any(term in name_text for term in ("平台基本信息", "域名", "应用清单", "许可证", "业务线", "平台运营")):
+            families.add("平台基础信息")
+        if any(term in name_text for term in ("平台账户", "实名认证", "经营者身份", "从业人员身份", "账号变更")):
+            families.add("平台账户身份")
+        if any(term in name_text for term in ("平台订单", "交易流水", "订单事件", "平台交易")):
+            families.add("平台订单")
+        if any(term in name_text for term in ("报送表", "涉税信息报送", "季度报送", "报送回执", "代办申报")):
+            families.add("平台涉税报送")
+        if any(term in name_text for term in ("系统日志", "接口日志", "权限记录", "数据谱系")):
+            families.add("平台系统日志")
+        if any(term in name_text for term in ("直播", "直播间", "主播", "MCN", "创作者", "内容事件")):
+            families.add("直播内容")
+        if any(term in name_text for term in ("虚拟币", "虚拟礼物", "打赏", "虚拟钱包")):
+            families.add("虚拟权益")
+        if any(term in name_text for term in ("灵活用工", "任务订单", "自由职业", "众包", "服务成果")):
+            families.add("灵活用工任务")
+        if any(term in name_text for term in ("网络货运", "货主订单", "实际承运", "运单")):
+            families.add("网络货运")
+        if any(term in name_text for term in ("车辆轨迹", "装卸地点", "签收轨迹", "司机车辆")):
+            families.add("网络货运轨迹")
+        if any(term in name_text for term in ("境外平台", "跨境平台", "境外经营者")):
+            families.add("跨境平台")
+        if any(term in name_text for term in ("客户地点", "履约地点", "数字服务", "境外服务")):
+            families.add("跨境履约")
     return sorted(families), sorted(file_types)
 
 

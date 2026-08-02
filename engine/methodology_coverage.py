@@ -132,11 +132,13 @@ def build_methodology_coverage(static_root):
     construction_contracts = _read(root / "construction_scenario_contracts.json")
     real_estate_contracts = _read(root / "real_estate_scenario_contracts.json")
     wholesale_retail_contracts = _read(root / "wholesale_retail_scenario_contracts.json")
+    platform_contracts = _read(root / "platform_scenario_contracts.json")
     rewritten_contracts = {
         "C": manufacturing_contracts,
         "E": construction_contracts,
         "F": wholesale_retail_contracts,
         "K": real_estate_contracts,
+        "OVERLAY-PLATFORM": platform_contracts,
     }
     rules = _read(root / "tax_risk_rules_local_export.json")
     clues = _read(root / "cross_domain_clues.json")
@@ -207,7 +209,7 @@ def build_methodology_coverage(static_root):
     ]
 
     return {
-        "version": "1.4.0",
+        "version": "1.5.0",
         "positioning": "覆盖矩阵衡量的是已验证能力和已知空白，不把规则数量、关键词命中或模型评分当成真实稽查覆盖。",
         "taxonomy_basis": {
             "name": "国民经济行业分类（GB/T 4754—2017，按第1号修改单修订）",
@@ -246,6 +248,14 @@ def build_methodology_coverage(static_root):
         "candidate_governance": candidate_governance,
         "industry_pack_summary": pack_summaries,
         "industry_matrix": industry_matrix,
+        "overlay_scenario_summary": {
+            "code": "OVERLAY-PLATFORM",
+            "name": platform_contracts.get("name", ""),
+            "maturity": platform_contracts.get("maturity", ""),
+            "rewritten_m25_scenarios": len(platform_contracts.get("scenarios", [])),
+            "verified_specific_rules": 0,
+            "state": "M2.5平台叠加场景已完成边界测试，待脱敏真实样本验证后升级M3",
+        },
         "industry_profiles": industry_profiles_payload.get("profiles", []),
         "industry_profile_boundary": industry_profiles_payload.get("use_boundary", ""),
         "tax_matrix": tax_matrix,

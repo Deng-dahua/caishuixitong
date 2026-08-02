@@ -6911,6 +6911,7 @@ def get_methodology_asset(asset_name: str):
         "construction_scenario_contracts": "construction_scenario_contracts.json",
         "real_estate_scenario_contracts": "real_estate_scenario_contracts.json",
         "wholesale_retail_scenario_contracts": "wholesale_retail_scenario_contracts.json",
+        "platform_scenario_contracts": "platform_scenario_contracts.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6952,6 +6953,7 @@ def get_methodology_coverage():
         "construction_scenario_contracts.json",
         "real_estate_scenario_contracts.json",
         "wholesale_retail_scenario_contracts.json",
+        "platform_scenario_contracts.json",
     )
     try:
         cache_key = tuple(
@@ -6979,15 +6981,22 @@ def get_methodology_rewrite_ledger(
     rules_path = _os.path.join(
         _os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json"
     )
-    contract_path = _os.path.join(
-        _os.path.dirname(__file__), "static", "wholesale_retail_scenario_contracts.json"
-    )
+    contract_paths = [
+        _os.path.join(_os.path.dirname(__file__), "static", filename)
+        for filename in (
+            "wholesale_retail_scenario_contracts.json",
+            "platform_scenario_contracts.json",
+        )
+    ]
     try:
         stat = _os.stat(rules_path)
-        contract_stat = _os.stat(contract_path)
+        contract_stats = [
+            (path, _os.stat(path).st_mtime_ns, _os.stat(path).st_size)
+            for path in contract_paths
+        ]
         cache_key = (
             rules_path, stat.st_mtime_ns, stat.st_size,
-            contract_path, contract_stat.st_mtime_ns, contract_stat.st_size,
+            tuple(contract_stats),
             int(offset), int(limit),
         )
         cached = _methodology_rewrite_cache.get(cache_key)
@@ -6995,8 +7004,10 @@ def get_methodology_rewrite_ledger(
             return cached
         with open(rules_path, "r", encoding="utf-8") as rule_file:
             rules = _json.load(rule_file)
-        with open(contract_path, "r", encoding="utf-8") as contract_file:
-            contracts = _json.load(contract_file)
+        contracts = []
+        for contract_path in contract_paths:
+            with open(contract_path, "r", encoding="utf-8") as contract_file:
+                contracts.append(_json.load(contract_file))
         from engine.candidate_rule_governance import build_absorption_map, build_candidate_rewrite_ledger
         absorption_map = build_absorption_map(contracts)
         report = build_candidate_rewrite_ledger(

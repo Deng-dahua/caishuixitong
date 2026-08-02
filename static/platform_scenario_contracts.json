@@ -1,0 +1,292 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-08-02",
+  "name": "平台经济叠加稽查场景五链配套合同",
+  "industry_code": "OVERLAY-PLATFORM",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "平台经济是叠加经营模式而不是单一行业。以平台、业务线、平台内经营者或从业人员、账户、订单、支付、退款、结算和报送批次为共同主键，分别核验平台自身经营收入、平台内主体收入、扣缴代办和涉税信息报送。当前版本只生成资料缺口、矛盾事项和受控核验计划；平台交易总额、支付净入账、季度报送收入和纳税申报收入不得互相直接替代，未经主体角色、口径、期间、退款及合法取证核验，不形成违法定性、税额、处罚或立案结论。",
+  "release_boundary": [
+    "先区分平台企业、相关运营主体、平台内经营者、从业人员、直播间运营者、机构、实际承运人和消费者，再判断各自主体义务",
+    "平台基本信息、身份信息、收入信息、扣缴申报、代办申报和检查时依法提供明细属于不同报送或提供事项",
+    "订单总额、交易净额、平台佣金、商户结算、从业人员实收和平台自身收入必须分别建账，不允许净额相互替代",
+    "退款、取消、平台补贴、优惠承担、手续费、冻结款、跨期更正和汇率必须进入逐事件复算",
+    "身份、金融账户、行踪轨迹及人脸信息属于高敏感资料，只有依法取得、必要使用、权限隔离并保留访问审计时才能进入分析",
+    "2025年前后报送制度和2026网络货运、直播电商、增值税规则必须按生效期间分段，不得以新规倒推历史义务",
+    "M3放行需要脱敏真实样本、接口字段回归、误报漏报记录、官方来源期间核验、数据安全审查和具名复核"
+  ],
+  "official_sources": [
+    {"id": "SRC-PLT-REPORT-810", "name": "互联网平台企业涉税信息报送规定", "issuer": "国务院", "effective_period": "2025-06-20起施行；施行前涉税信息不要求报送", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100010/c5241238/content.html"},
+    {"id": "SRC-PLT-REPORT-15", "name": "关于互联网平台企业报送涉税信息有关事项的公告", "issuer": "国家税务总局", "effective_period": "2025-06-26发布并施行；首次身份收入报送为2025年10月", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5241477/content.html"},
+    {"id": "SRC-PLT-WORKER-16", "name": "关于互联网平台企业为平台内从业人员办理扣缴申报、代办申报若干事项的公告", "issuer": "国家税务总局", "effective_period": "2025-10-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5241472/content.html"},
+    {"id": "SRC-PLT-PENALTY-22", "name": "关于规范互联网平台企业涉税信息报送有关行政处罚事项的公告", "issuer": "国家税务总局、工业和信息化部、国家互联网信息办公室", "effective_period": "2025-09-28发布并施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5243496/content.html"},
+    {"id": "SRC-PLT-ECOMMERCE-LAW", "name": "中华人民共和国电子商务法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2019-01-01起施行", "url": "https://www.npc.gov.cn/WZWSREL3pncmR3L25wYy9sZnp0L3JseXcvMjAxOC0wOC8zMS9jb250ZW50XzIwNjA4MjcuaHRt"},
+    {"id": "SRC-PLT-PIPL", "name": "中华人民共和国个人信息保护法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2021-11-01起施行", "url": "https://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html"},
+    {"id": "SRC-PLT-FREIGHT-2026", "name": "网络货运承运平台经营管理办法", "issuer": "交通运输部、国家税务总局", "effective_period": "2026-01-23印发并实施", "url": "https://xxgk.mot.gov.cn/xzgfxwj/202601/t20260126_4199002.html"},
+    {"id": "SRC-PLT-LIVE-2026", "name": "直播电商监督管理办法", "issuer": "国家市场监督管理总局、国家互联网信息办公室", "effective_period": "2026-02-01起施行", "url": "https://www.cac.gov.cn/2026-01/07/c_1769516655383334.htm"},
+    {"id": "SRC-PLT-PLATFORM-RULES-2026", "name": "网络交易平台规则监督管理办法", "issuer": "国家市场监督管理总局、国家互联网信息办公室", "effective_period": "2026-02-01起施行", "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/fgs/art/2026/art_85b474fc5a08494bb60ca6a280b98d7d.html"},
+    {"id": "SRC-PLT-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2026-01-01起施行", "url": "https://www.npc.gov.cn/npc/c2/c30834/202412/t20241225_442015.html"},
+    {"id": "SRC-PLT-VAT-RULES", "name": "中华人民共和国增值税法实施条例", "issuer": "国务院", "effective_period": "2026-01-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100010/c5246349/content.html"},
+    {"id": "SRC-PLT-REVENUE-AS14", "name": "企业会计准则第14号——收入", "issuer": "财政部", "effective_period": "按现行准则及应用指南适用", "url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/201709/t20170907_2694006.htm"}
+  ],
+  "common_contract": {
+    "identity_keys": ["platform_id", "operator_id", "related_operator_id", "platform_account_id", "seller_worker_id", "agency_id", "customer_id"],
+    "platform_keys": ["domain_app", "business_line_id", "store_room_id", "merchant_id", "platform_unique_id", "reporting_entity"],
+    "transaction_keys": ["order_id", "task_id", "freight_order_id", "payment_id", "refund_id", "settlement_id", "invoice_no"],
+    "time_keys": ["registration_time", "order_time", "completion_time", "payment_time", "refund_time", "settlement_time", "reporting_period", "tax_period", "policy_period"],
+    "amount_keys": ["gross_amount", "refund_amount", "platform_subsidy", "commission", "platform_revenue", "seller_worker_income", "reported_income", "tax_amount"],
+    "source_lineage": ["source_system", "interface_version", "source_table", "source_row", "event_id", "event_time", "extracted_at", "file_sha256"],
+    "privacy_controls": ["lawful_basis", "purpose", "minimum_fields", "access_role", "masked_value", "retention_period", "access_audit_id"],
+    "allowed_states": ["不适用", "资料不足_未启动", "待补资料_可初筛", "资料就绪_待人工核验", "存在矛盾_待调查", "解释成立_关闭", "事实部分支持_待补证", "事实充分支持_待审理"],
+    "forbidden_outputs": ["自动认定漏报瞒报", "自动认定虚假交易", "自动核定税额", "自动处罚建议", "自动停业整顿", "自动立案", "平台交易总额直接等同平台收入", "平台报送收入直接等同应税收入", "个人账户或轨迹未经合法授权进入分析"]
+  },
+  "scenarios": [
+    {
+      "id": "PLT-01",
+      "name": "平台范围、运营主体与报送责任闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-810", "SRC-PLT-REPORT-15", "SRC-PLT-PENALTY-22", "SRC-PLT-ECOMMERCE-LAW"],
+      "applicability": {"business": "为网络交易提供网络经营场所、交易撮合、信息发布等营利性服务的境内或向境内提供服务的境外平台", "not_applicable": ["企业内部非营利业务系统", "仅提供基础通信且不参与平台经营", "无法证明属于规定范围的普通网站"]},
+      "doubt": {"observed_signal": "域名、应用、小程序、许可证备案、实际运营、数据控制、结算主体和报送主体不一致或存在遗漏", "target_fact": "每个线上入口和业务线由谁实际运营、谁控制交易数据、谁与平台内主体结算、谁承担法定报送，以及变更和终止期间如何衔接。", "must_exclude": ["集团内合法运营分工", "同一平台多域名多应用", "代运营但法定主体未变", "运营主体依法变更", "境内外业务边界", "重复报送豁免"], "output": "平台入口—业务线—运营—数据—结算—报送六层映射和缺口，不自动认定未报或漏报"},
+      "clue_chain": {"start": "从公开域名、应用、小程序、许可证备案和内部产品目录建立平台入口全集", "steps": [
+        {"step": 1, "action": "连接入口、许可证备案和业务类型", "join_keys": ["platform_id", "domain_app", "license_id"], "deliverable": "平台入口清单"},
+        {"step": 2, "action": "连接实际运营、系统权限、客户协议和数据控制", "join_keys": ["business_line_id", "operator_id", "system_role"], "deliverable": "实际运营证据链"},
+        {"step": 3, "action": "连接支付商户、结算和相关运营主体", "join_keys": ["business_line_id", "merchant_id", "related_operator_id"], "deliverable": "结算主体映射"},
+        {"step": 4, "action": "核对基本信息、首次、季度、更正、延期和终止报送", "join_keys": ["reporting_entity", "reporting_period", "submission_id"], "deliverable": "报送生命周期"},
+        {"step": 5, "action": "核验免予重复报送、历史期间和境外边界", "join_keys": ["policy_period", "exemption_type"], "deliverable": "义务适用底稿"}
+      ], "terminal": "平台范围、运营和报送责任均能按业务线及期间定位后才形成报送缺口"},
+      "evidence_chain": {"fact_elements": ["平台范围", "业务类型", "实际运营主体", "数据和结算控制", "报送责任主体", "报送及变更期间"], "supporting_sources": ["许可证备案及域名应用清单", "用户商户协议", "系统权限和产品组织架构", "支付商户及结算合同", "基本信息和季度报送回执", "更正延期终止记录"], "opposing_sources": ["集团运营分工协议", "代运营授权", "主体变更文件", "非营利系统说明", "境内外业务隔离证据", "重复报送豁免记录"], "insufficient_when": ["只按工商名称推定运营", "未取得报送回执", "未按业务线拆分"]},
+      "analysis_chain": {"proposition": "特定主体是否在特定期间对特定平台业务线负有并履行涉税信息报送责任", "alternatives": ["不属于互联网平台企业", "由相关运营主体合法报送", "已通过扣缴代办免予重复", "运营主体变更", "施行前历史信息"], "reasoning": ["锁定政策期间", "识别平台和业务范围", "验证实际运营和数据控制", "确认结算及报送主体", "检查报送回执和更正", "排除豁免重复及历史边界", "仅对责任明确且记录缺失部分形成待核事项"], "conclusion_ladder": ["责任履行闭环_关闭", "平台范围待补证", "报送缺口待调查", "事实充分支持_待审理"], "tax_boundary": "报送责任和平台内主体纳税义务相互独立；报送缺口不能直接证明平台内主体少缴税"},
+      "domain_collaboration": {"lead": "平台主体与涉税报送域", "partners": [
+        {"domain": "法务许可证", "responsibility": "确认平台范围和运营资格", "handoff": "入口许可清单"},
+        {"domain": "产品运营", "responsibility": "确认业务线和实际运营", "handoff": "业务线责任图"},
+        {"domain": "数据技术", "responsibility": "确认数据控制、接口和权限", "handoff": "系统数据谱系"},
+        {"domain": "支付结算", "responsibility": "确认商户号和结算主体", "handoff": "结算主体映射"},
+        {"domain": "税务征管", "responsibility": "核验报送责任、期间和回执", "handoff": "报送生命周期底稿"}
+      ], "conflict_rule": "许可证持有人、合同主体、实际运营和报送主体冲突时保留四套原始关系，不以集团口头分工覆盖法定责任"},
+      "report_contract": {"title": "平台范围运营主体及报送责任核验", "must_state": ["平台入口", "业务类型", "实际运营", "数据结算控制", "报送主体期间", "豁免更正及缺口"], "forbidden": ["只凭域名持有人认定报送主体", "报送缺口直接写成偷逃税"]},
+      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["平台基本信息", "运营主体", "报送责任"], "absorption_reason": "旧库形成于平台涉税信息报送制度实施前，没有可准确归并的直接规则，本场景作为新增合同建立。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "不得为追求吸收数量而错误挪用广告备案、一般工商登记或其他报送规则。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "某业务线由境内主体实际运营并控制订单结算，连续季度无任何报送记录且不存在免予重复情形", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "集团相关运营主体已依法统一报送，主体关系、授权、接口回执和免重复记录完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "域名备案与结算主体不同但实际系统权限和运营协议缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-02",
+      "name": "经营者、从业人员与账户历史身份闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-810", "SRC-PLT-REPORT-15", "SRC-PLT-WORKER-16", "SRC-PLT-PIPL", "SRC-PLT-LIVE-2026"],
+      "applicability": {"business": "平台内经营者、从业人员、主播、机构或实际承运人通过账户开展营利性活动并取得结算", "not_applicable": ["纯消费者账户", "无法依法取得身份资料", "不发生经营或服务收入的测试账户"]},
+      "doubt": {"observed_signal": "注册账户、实名认证、店铺或直播间实际运营者、合同主体、收款主体和报送身份无法唯一对应或历史变更断裂", "target_fact": "每个账户在每个有效期间的真实经营或服务主体是谁，是否存在多人共用、多号同人、机构代运营、主体继承或收款错配，并按正确身份报送。", "must_exclude": ["企业员工代运营", "机构依法统一运营", "集团统一收款", "账号迁移继承", "主体依法变更", "重名和证件更新"], "output": "账户—主体—合同—收款—报送历史映射和身份待核清单"},
+      "clue_chain": {"start": "以平台不可变账户标识和全部历史版本为起点", "steps": [
+        {"step": 1, "action": "连接注册、实名核验、店铺直播间和设备登录", "join_keys": ["platform_account_id", "platform_unique_id", "valid_from"], "deliverable": "账户身份历史"},
+        {"step": 2, "action": "连接商户从业协议、机构关系和实际运营", "join_keys": ["seller_worker_id", "agency_id", "contract_id"], "deliverable": "法律及实际主体映射"},
+        {"step": 3, "action": "连接收款账户、支付商户和最终受益主体", "join_keys": ["platform_account_id", "settlement_account", "beneficiary_id"], "deliverable": "结算身份链"},
+        {"step": 4, "action": "识别多号同主体、多人共用和频繁变更并核验正常解释", "join_keys": ["identity_hash", "device_id", "change_event_id"], "deliverable": "身份关系图"},
+        {"step": 5, "action": "核对各季度报送身份、收入归属和更正记录", "join_keys": ["seller_worker_id", "reporting_period", "submission_id"], "deliverable": "身份报送对照"}
+      ], "terminal": "身份依法取得且账户、实际经营、合同、收款和期间一致后才评价报送准确性"},
+      "evidence_chain": {"fact_elements": ["不可变账户标识", "实名核验", "实际运营主体", "合同关系", "收款受益人", "身份报送期间"], "supporting_sources": ["账户注册变更日志", "实名核验时间结果", "店铺直播间运营记录", "合同和机构关系", "结算账户绑定历史", "身份报送及更正回执"], "opposing_sources": ["企业员工授权", "机构代运营协议", "集团收款安排", "账号迁移记录", "证件更新", "重名排除材料"], "insufficient_when": ["敏感信息无合法依据", "只有显示昵称", "历史版本被覆盖"]},
+      "analysis_chain": {"proposition": "平台账户收入是否归属于正确经营者或从业人员并按期间准确报送", "alternatives": ["员工操作企业账户", "合法机构代运营", "统一收款后准确分账", "账号迁移或主体变更", "身份识别技术误差"], "reasoning": ["确认合法取证和最小字段", "锁定不可变账户号", "重建实名及变更历史", "验证合同和实际运营", "追踪收款受益", "对照报送及更正", "只对无法解释错配形成待核事实"], "conclusion_ladder": ["身份归属闭环_关闭", "历史身份待补证", "归属错配待调查", "事实充分支持_待审理"], "tax_boundary": "账户或设备关联只提供身份线索，不能单独认定收入归属；高敏感信息必须最小化使用并保留访问审计"},
+      "domain_collaboration": {"lead": "平台身份与账户治理域", "partners": [
+        {"domain": "用户治理", "responsibility": "提供账户和实名历史", "handoff": "账户身份表"},
+        {"domain": "业务运营", "responsibility": "确认店铺直播间实际运营", "handoff": "运营主体说明"},
+        {"domain": "合同机构", "responsibility": "确认签约和代运营关系", "handoff": "法律关系矩阵"},
+        {"domain": "支付结算", "responsibility": "确认收款绑定和受益人", "handoff": "结算身份链"},
+        {"domain": "数据安全税务", "responsibility": "控制敏感资料并核对报送", "handoff": "合规访问与报送底稿"}
+      ], "conflict_rule": "实名、合同、实际运营和收款冲突时不得自动合并身份，先保留历史版本并发起人工核验"},
+      "report_contract": {"title": "平台账户经营者从业人员身份核验", "must_state": ["合法取证", "账户历史", "实名主体", "实际运营", "收款受益", "报送期间"], "forbidden": ["用昵称或设备直接认定自然人", "展示完整敏感个人信息"]},
+      "legacy_absorption": {"legacy_rule_ids": ["1056", "1370"], "mapping_basis": ["登记状态", "实际经营者身份", "代开发票申请人"], "absorption_reason": "将旧库零散的登记和实际经营者错配问题，归并到账户全生命周期和收款受益身份合同；旧阈值与定性不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "两条旧规则只提供身份核验切口，不代表平台身份报送场景已经完成真实样本验证。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "店铺账号实名为已注销主体，长期由另一自然人运营并收款，报送仍归属原主体且无变更记录", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "企业员工操作账号，合同、授权、企业收款和报送均归属于企业", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "账号和收款主体不同但存在机构代运营口头说明，书面协议缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-03",
+      "name": "订单、退款、分账、平台收入与季度报送闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-810", "SRC-PLT-REPORT-15", "SRC-PLT-WORKER-16", "SRC-PLT-VAT-LAW", "SRC-PLT-VAT-RULES"],
+      "applicability": {"business": "平台记录订单、支付、退款、优惠、佣金或服务费并向平台内主体结算和报送收入", "not_applicable": ["无交易撮合和结算的纯信息展示", "无法识别经营者或从业人员", "仅平台自营且无平台内主体"]},
+      "doubt": {"observed_signal": "订单总额、取消退款、优惠承担、支付手续费、平台佣金、商户或从业人员结算、平台自身收入和季度报送不能逐单复算", "target_fact": "每笔订单的交易主体、履约状态、收入总额、退款、净额、平台收入、平台内主体收入、报送期间及更正是否采用正确口径。", "must_exclude": ["取消未支付订单", "真实退款拒付", "平台自付补贴", "商户承担优惠", "支付渠道手续费", "冻结款和跨期结算", "季度后更正"], "output": "订单口径桥接表、平台与平台内主体双边收入表及报送差异"},
+      "clue_chain": {"start": "从平台全量订单事件日志而非银行净入账建立母表", "steps": [
+        {"step": 1, "action": "统一订单成立、支付、履约、取消和售后状态", "join_keys": ["business_line_id", "order_id", "event_id"], "deliverable": "订单状态时间线"},
+        {"step": 2, "action": "拆分商品服务总额、各方优惠、退款和拒付", "join_keys": ["order_id", "payment_id", "refund_id"], "deliverable": "交易总额净额桥接"},
+        {"step": 3, "action": "拆分平台佣金服务费与平台内主体应结收入", "join_keys": ["order_id", "settlement_id", "seller_worker_id"], "deliverable": "双边收入复算"},
+        {"step": 4, "action": "连接支付结算、发票、会计和申报", "join_keys": ["settlement_id", "invoice_no", "tax_period"], "deliverable": "平台自身税会链"},
+        {"step": 5, "action": "核对季度报送净额、币种、归属期间和更正", "join_keys": ["seller_worker_id", "reporting_period", "submission_id"], "deliverable": "报送收入对照"}
+      ], "terminal": "订单、退款、优惠承担、平台收入、主体收入和报送期间分别复算后才形成差异"},
+      "evidence_chain": {"fact_elements": ["订单交易主体", "履约状态", "总额退款优惠", "平台收费", "主体结算收入", "季度报送及更正"], "supporting_sources": ["订单事件日志", "支付退款明细", "优惠规则及承担方", "佣金费率和结算单", "发票会计申报", "季度报送与更正回执"], "opposing_sources": ["取消未支付", "真实退款拒付", "平台补贴", "渠道手续费", "冻结解冻", "跨季度更正"], "insufficient_when": ["只有支付净额", "订单状态定义缺失", "未拆分平台和主体收入"]},
+      "analysis_chain": {"proposition": "平台及平台内主体收入是否依据统一订单事实按正确口径和期间分别报送处理", "alternatives": ["订单未履约", "真实退款", "平台承担优惠", "支付费用和冻结", "跨期更正"], "reasoning": ["确认业务线和主体角色", "复原订单状态", "拆分退款优惠", "复算平台收费和主体收入", "连接结算发票税会", "核对季度报送及更正", "只对剩余断链形成待核事实"], "conclusion_ladder": ["订单报送闭环_关闭", "口径或更正待补证", "收入报送差异待调查", "事实充分支持_待审理"], "tax_boundary": "平台报送的收入净额用于涉税信息管理，不当然等于任何税种应税收入；具体纳税义务另行判断"},
+      "domain_collaboration": {"lead": "平台交易与收入报送域", "partners": [
+        {"domain": "订单产品", "responsibility": "提供状态定义和事件日志", "handoff": "订单时间线"},
+        {"domain": "支付售后", "responsibility": "确认支付退款优惠和冻结", "handoff": "资金售后链"},
+        {"domain": "商业结算", "responsibility": "复算佣金服务费和主体收入", "handoff": "双边收入表"},
+        {"domain": "财税发票", "responsibility": "核验平台自身收入及申报", "handoff": "税会链"},
+        {"domain": "涉税报送", "responsibility": "核验季度报送和更正", "handoff": "报送差异表"}
+      ], "conflict_rule": "订单、支付、结算和报送口径冲突时不得用任一汇总数覆盖原始事件，必须通过桥接表解释"},
+      "report_contract": {"title": "平台订单分账收入及季度报送核验", "must_state": ["交易主体", "订单状态", "退款优惠", "平台收入", "主体收入", "报送口径期间"], "forbidden": ["平台GMV等同平台收入", "报送净额等同应税收入"]},
+      "legacy_absorption": {"legacy_rule_ids": ["175", "1258", "1312", "1319", "1329", "1553", "1710"], "mapping_basis": ["平台订单交易流水", "平台结算", "佣金服务费", "从业人员报酬"], "absorption_reason": "把旧库按银行、订单、佣金和个税分别比较的规则，归并为订单总额、退款、平台收入和主体收入的双边桥接。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未采用2025报送净额口径，原阈值和结论不得继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "大量已履约无退款订单已向商户结算，但季度报送遗漏且后续无更正", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "总额差异由平台券、真实退款、支付费和跨季更正完整桥接", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "报送净额低于订单总额但优惠承担方字段缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-04",
+      "name": "平台自营、主要责任人、代理与撮合角色闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-ECOMMERCE-LAW", "SRC-PLT-PLATFORM-RULES-2026", "SRC-PLT-REVENUE-AS14", "SRC-PLT-VAT-LAW", "SRC-PLT-VAT-RULES"],
+      "applicability": {"business": "同一平台包含自营、撮合、代理、代收分账或技术服务等一种或多种业务线", "not_applicable": ["平台角色和交易对手均明确的单一自营", "纯内部系统", "无真实交易履约"]},
+      "doubt": {"observed_signal": "平台协议标签与定价控制、履约责任、库存或服务风险、退款售后、开票主体、资金分账和会计总额净额不一致", "target_fact": "平台在每条业务线和交易中承诺了什么、在向消费者转让前是否控制商品服务、由谁履约售后并承担主要风险，以及平台收入和开票是否与实际角色一致。", "must_exclude": ["混合自营与撮合", "品牌方控制定价", "平台先赔后追偿", "代收代付", "技术服务与交易服务组合", "法律要求承担的平台管理责任"], "output": "逐业务线角色判断、消费者—商户—平台权利义务和票款链"},
+      "clue_chain": {"start": "以业务线和协议版本为分析单元，不按平台名称或会计列报预设角色", "steps": [
+        {"step": 1, "action": "提取对消费者、商户和服务者的承诺及合同版本", "join_keys": ["business_line_id", "agreement_version", "order_id"], "deliverable": "权利义务矩阵"},
+        {"step": 2, "action": "核验定价、控制、库存服务风险和履约责任", "join_keys": ["order_id", "principal_party", "performance_party"], "deliverable": "实际角色证据"},
+        {"step": 3, "action": "连接售后退款、赔付和追偿责任", "join_keys": ["order_id", "refund_id", "recourse_id"], "deliverable": "售后责任链"},
+        {"step": 4, "action": "重建消费者付款、平台分账和商户结算", "join_keys": ["payment_id", "settlement_id", "merchant_id"], "deliverable": "票款分账链"},
+        {"step": 5, "action": "复核总额净额、发票和税务申报", "join_keys": ["business_line_id", "invoice_no", "tax_period"], "deliverable": "角色税会底稿"}
+      ], "terminal": "合同、控制、履约、售后和票款事实完整后才判断角色"},
+      "evidence_chain": {"fact_elements": ["业务线和协议", "交易承诺", "转让前控制", "定价风险履约", "售后责任", "票款和总额净额"], "supporting_sources": ["用户商户协议全版本", "定价及商品服务规则", "履约和售后记录", "分账结算", "对客对商户发票", "会计政策和申报"], "opposing_sources": ["品牌方定价证明", "平台先赔追偿", "纯代收代付", "混合业务线拆分", "监管性平台责任", "协议实际变更"], "insufficient_when": ["只看协议标题", "未按业务线拆分", "缺少实际履约资料"]},
+      "analysis_chain": {"proposition": "平台对特定交易是主要责任人、代理撮合者还是其他服务提供者，税会处理是否匹配", "alternatives": ["自营主要责任人", "代理撮合", "代收代付", "混合履约安排", "独立技术服务"], "reasoning": ["拆分业务线和协议期间", "识别对客户承诺", "判断转让前控制", "评价定价风险履约售后", "复原资金分账和开票", "复核总额净额及税务", "保存综合判断与反证"], "conclusion_ladder": ["角色处理一致_关闭", "履约控制待补证", "角色税会差异待调查", "事实充分支持_待审理"], "tax_boundary": "会计主要责任人判断、电子商务平台责任和各税种纳税义务分别核验，不互相自动替代"},
+      "domain_collaboration": {"lead": "平台合同角色与收入确认域", "partners": [
+        {"domain": "产品业务", "responsibility": "拆分业务线和交易流程", "handoff": "业务线流程图"},
+        {"domain": "法务合同", "responsibility": "提取承诺和协议版本", "handoff": "权利义务矩阵"},
+        {"domain": "履约售后", "responsibility": "确认控制风险和责任", "handoff": "实际履约证据"},
+        {"domain": "支付结算", "responsibility": "还原分账和追偿", "handoff": "票款分账链"},
+        {"domain": "财税发票", "responsibility": "复核收入列报、开票和申报", "handoff": "角色税会底稿"}
+      ], "conflict_rule": "合同标签、产品规则和实际履约冲突时以完整事实综合判断，不以总额或净额列报倒推角色"},
+      "report_contract": {"title": "平台自营代理撮合角色核验", "must_state": ["业务线", "协议版本", "控制与履约", "售后责任", "分账开票", "税会判断边界"], "forbidden": ["所有平台一律按佣金收入", "总额列报直接认定自营"]},
+      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["平台角色", "主要责任人", "代理撮合"], "absorption_reason": "旧库没有以平台业务线和实际控制为核心的合格规则，本场景依据现行平台和收入规范新增。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "不得把一般代理办税或代扣规则错误吸收到平台角色判断。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "平台控制定价、履约和售后并向消费者开票，却将全部收款作为代收，仅确认少量技术服务费", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "商户控制商品定价和履约售后，平台只撮合分账并按协议收取佣金", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "协议称撮合但平台先赔且追偿资料缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-05",
+      "name": "直播、内容、虚拟权益与多方分成闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-15", "SRC-PLT-WORKER-16", "SRC-PLT-LIVE-2026", "SRC-PLT-PIPL", "SRC-PLT-VAT-LAW"],
+      "applicability": {"business": "网络直播、电商带货、内容创作、虚拟礼物或其他线上娱乐形成用户支付和平台、机构、主播或创作者分成", "not_applicable": ["仅免费内容无营利行为", "纯广告采购且无平台分成", "无法依法取得主播身份"]},
+      "doubt": {"observed_signal": "法币充值、赠送虚拟币、礼物或内容消费、退款、未消费余额、平台分成、机构分成、主播结算、扣缴代办和直播报送无法对应", "target_fact": "用户支付如何转换和消费，谁提供商品服务，平台、直播间、机构、主播或创作者各自取得多少、何时取得、由谁报送扣缴代办。", "must_exclude": ["赠送虚拟权益", "未消费余额", "真实退款", "平台活动补贴", "机构代结算", "未成年人退款", "跨期分成结算"], "output": "充值—消费—退款—余额—多方分成—报送扣缴链"},
+      "clue_chain": {"start": "从用户法币充值和虚拟钱包事件建立可复算账本", "steps": [
+        {"step": 1, "action": "统一法币、虚拟币、赠送币和礼物内容换算", "join_keys": ["user_id", "virtual_wallet_id", "event_id"], "deliverable": "虚拟权益账本"},
+        {"step": 2, "action": "连接直播内容事件、消费、退款和未消费余额", "join_keys": ["content_event_id", "payment_id", "refund_id"], "deliverable": "消费售后链"},
+        {"step": 3, "action": "连接平台、直播间、机构、主播和商户协议", "join_keys": ["store_room_id", "agency_id", "creator_id", "agreement_version"], "deliverable": "多方关系矩阵"},
+        {"step": 4, "action": "复算各方分成、代结算和最终入账", "join_keys": ["content_event_id", "settlement_id", "creator_id"], "deliverable": "分成资金链"},
+        {"step": 5, "action": "核对直播专项报送、扣缴代办、发票和申报", "join_keys": ["creator_id", "reporting_period", "withholding_period"], "deliverable": "直播涉税对照"}
+      ], "terminal": "充值、消费、余额、退款、各方角色和分成期间全部复算后才形成差异"},
+      "evidence_chain": {"fact_elements": ["充值对价", "虚拟权益换算", "内容或带货履约", "退款余额", "多方合同分成", "身份报送扣缴"], "supporting_sources": ["充值和钱包日志", "直播内容礼物订单", "退款余额明细", "平台机构主播协议", "分成结算流水", "直播报送扣缴代办资料"], "opposing_sources": ["赠送权益规则", "未消费余额", "未成年人退款", "平台活动补贴", "机构代结算证明", "跨期结算"], "insufficient_when": ["虚拟币换算缺失", "多方合同不全", "身份未合法核验"]},
+      "analysis_chain": {"proposition": "直播和内容交易各方收入是否按真实履约、分成和期间准确报送及处理", "alternatives": ["赠送权益无现金对价", "未履约余额", "真实退款", "平台补贴", "机构合法代结算"], "reasoning": ["确认直播类型和主体", "复算法币虚拟币", "验证消费或带货履约", "处理退款余额", "按合同拆分多方分成", "核对报送扣缴代办", "只对剩余断链形成待核事实"], "conclusion_ladder": ["直播分成闭环_关闭", "换算身份待补证", "收入报送待调查", "事实充分支持_待审理"], "tax_boundary": "直播带货、娱乐打赏、广告推广和内容服务可能具有不同交易实质，不能按主播身份统一定性所得或税目"},
+      "domain_collaboration": {"lead": "直播内容与多方分成域", "partners": [
+        {"domain": "直播产品", "responsibility": "提供钱包内容和礼物事件", "handoff": "虚拟权益账本"},
+        {"domain": "直播治理", "responsibility": "确认直播间运营者和营销人员", "handoff": "主体关系表"},
+        {"domain": "机构商务", "responsibility": "确认机构主播和商户合同", "handoff": "多方分成矩阵"},
+        {"domain": "支付结算", "responsibility": "确认充值退款和分成", "handoff": "分成资金链"},
+        {"domain": "税务报送", "responsibility": "核验专项报送扣缴代办", "handoff": "直播涉税底稿"}
+      ], "conflict_rule": "钱包账本、合同分成和银行结算冲突时保留全部事件，不以最终净入账覆盖赠送、余额和退款"},
+      "report_contract": {"title": "直播内容虚拟权益及多方分成核验", "must_state": ["直播类型", "充值换算", "消费履约", "退款余额", "多方分成", "报送扣缴"], "forbidden": ["全部充值立即作为主播收入", "所有主播收入统一认定同一所得性质"]},
+      "legacy_absorption": {"legacy_rule_ids": ["174", "388", "602", "1166", "1223", "1321", "1665"], "mapping_basis": ["主播收入", "直播平台", "投流推广", "平台向创作者支付"], "absorption_reason": "把旧库针对投流、银行收款和个税申报的分散比较，重写为虚拟权益和平台、机构、主播多方分成链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未区分直播带货、打赏和内容服务，原所得性质和结论不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "用户礼物已消费且分成已支付主播机构，但专项报送和扣缴记录均缺失，无退款余额解释", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "差异完全由赠送币、未消费余额和未成年人退款解释，账本与资金一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "机构统一收款但主播分成合同和最终支付明细缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-06",
+      "name": "灵活用工任务、真实服务、结算与扣缴代办闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-810", "SRC-PLT-REPORT-15", "SRC-PLT-WORKER-16", "SRC-PLT-PIPL", "SRC-PLT-VAT-LAW"],
+      "applicability": {"business": "平台撮合或组织自然人提供配送、家政、咨询、设计、推广、技术等营利性服务并结算", "not_applicable": ["真实劳动关系工资另行处理", "实际由企业提供服务", "任务取消且未履约未付款"]},
+      "doubt": {"observed_signal": "用工企业需求、任务订单、自然人身份、服务成果、验收、平台结算、发票、扣缴、代办申报和成本扣除不能逐笔对应", "target_fact": "每项服务是否真实、由谁提供、受益企业是谁、法律关系和所得性质如何、实际支付多少、平台是否依法取得授权并完成扣缴代办及保存真实性资料。", "must_exclude": ["真实独立承揽", "短期兼职", "真实劳动关系", "机构或个体户承接", "任务取消退款", "多平台合并申报", "依法免予重复报送"], "output": "需求—任务—人员—成果—验收—支付—扣缴代办—成本链"},
+      "clue_chain": {"start": "从用工企业真实业务需求和受益对象验证任务存在", "steps": [
+        {"step": 1, "action": "连接企业合同、需求、任务发布和定价", "join_keys": ["requester_id", "contract_id", "task_id"], "deliverable": "任务来源链"},
+        {"step": 2, "action": "连接实名人员、接单、定位或过程和服务成果", "join_keys": ["task_id", "worker_id", "completion_event_id"], "deliverable": "真实服务链"},
+        {"step": 3, "action": "核验验收、取消退款、争议和实际受益", "join_keys": ["task_id", "acceptance_id", "refund_id"], "deliverable": "履约验收链"},
+        {"step": 4, "action": "复算企业付款、平台费、人员实收和发票", "join_keys": ["task_id", "settlement_id", "invoice_no"], "deliverable": "任务票款链"},
+        {"step": 5, "action": "核对法律关系、所得性质、授权、扣缴代办、报送和成本凭证", "join_keys": ["worker_id", "withholding_period", "reporting_period"], "deliverable": "用工涉税底稿"}
+      ], "terminal": "真实任务、人员、成果、验收、票款和扣缴代办齐全后才评价税会处理"},
+      "evidence_chain": {"fact_elements": ["真实需求", "人员身份", "服务过程成果", "验收受益", "支付平台费", "法律关系和扣缴代办"], "supporting_sources": ["企业平台合同", "任务订单", "实名和授权记录", "过程成果验收", "结算支付发票", "扣缴代办完税及成本凭证"], "opposing_sources": ["真实劳动合同工资记录", "个体户或机构合同", "任务取消退款", "服务争议", "多平台汇总申报", "独立承揽证据"], "insufficient_when": ["任务成果不存在", "身份资料未依法取得", "只凭开票和完税证明"]},
+      "analysis_chain": {"proposition": "平台结算的自然人服务是否真实，所得和税费是否按适用关系、期间及授权正确处理", "alternatives": ["劳动关系工资", "独立劳务报酬", "经营所得", "机构承接", "任务取消退款"], "reasoning": ["验证真实业务需求", "锁定实际服务者", "检查过程成果验收", "区分法律关系和所得性质", "复算票款平台费", "核验授权扣缴代办报送", "评价成本凭证和反证"], "conclusion_ladder": ["任务涉税闭环_关闭", "关系或成果待补证", "服务结算待调查", "事实充分支持_待审理"], "tax_boundary": "平台标签不决定劳动关系或所得性质；扣缴代办和完税凭证也不能替代真实服务及企业所得税税前扣除事实"},
+      "domain_collaboration": {"lead": "灵活用工任务与扣缴代办域", "partners": [
+        {"domain": "用工业务", "responsibility": "证明需求、受益和验收", "handoff": "任务履约包"},
+        {"domain": "平台运营", "responsibility": "提供任务和人员事件", "handoff": "任务人员链"},
+        {"domain": "人力法务", "responsibility": "判断关系和合同实质", "handoff": "法律关系意见"},
+        {"domain": "支付发票", "responsibility": "复算企业付款和人员实收", "handoff": "任务票款链"},
+        {"domain": "个税增值税所得税", "responsibility": "核验扣缴代办报送和扣除", "handoff": "三税协同底稿"}
+      ], "conflict_rule": "任务系统、合同和实际服务冲突时不得以完税或发票记录反推服务真实，先核验成果和受益"},
+      "report_contract": {"title": "灵活用工任务服务及扣缴代办核验", "must_state": ["真实需求", "实际服务者", "成果验收", "法律关系", "票款结算", "扣缴代办报送"], "forbidden": ["平台用工一律认定劳务报酬", "完税证明直接证明服务真实"]},
+      "legacy_absorption": {"legacy_rule_ids": ["31", "151", "192", "843", "865", "1272", "1309", "1478", "1490", "1643", "1644"], "mapping_basis": ["灵活用工", "劳务报酬", "任务成果", "平台支付与扣缴"], "absorption_reason": "把旧库的劳务费、银行支付、个税和人员分布比较归并为真实任务、人员、成果、结算及扣缴代办五层合同。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧库未采用2025年第16号公告流程，原所得分类、阈值和税前扣除结论不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "批量任务无过程成果和受益人，资金由同一设备控制的多个人员账户迅速回流，平台仍批量代办申报并列支成本", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "独立设计任务有需求、过程版本、成果验收、实名授权、支付和扣缴代办完整链条", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "任务和付款存在但成果只能由用工企业确认，尚未取得验收资料", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-07",
+      "name": "网络货运承运、真实运输、结算与票税闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-FREIGHT-2026", "SRC-PLT-REPORT-15", "SRC-PLT-WORKER-16", "SRC-PLT-PIPL", "SRC-PLT-VAT-LAW"],
+      "applicability": {"business": "网络货运承运平台以承运人身份与托运人签约并委托实际承运人完成道路货物运输", "not_applicable": ["仅提供信息撮合的网络货运撮合平台", "非道路货物运输", "平台不承担承运人责任"]},
+      "doubt": {"observed_signal": "托运订单、货物、车辆司机资质、装卸地点、实时轨迹、签收、运费、燃料通行费、平台费、实际承运人结算、发票和报送不能逐单闭合", "target_fact": "每张运单是否对应真实合法运输，线上车辆司机与线下一致，平台与托运人和实际承运人的权利义务、运费成本、发票及涉税资料是否完整。", "must_exclude": ["合法改派车辆司机", "多式联运", "返程空驶补贴", "货损扣款", "燃料实物交付", "通行费代付", "运输取消"], "output": "货主订单—实际承运—轨迹签收—运费成本—发票报送闭环"},
+      "clue_chain": {"start": "从平台与托运人签订的承运订单确认平台承运人角色", "steps": [
+        {"step": 1, "action": "连接托运人、货物、装卸地点、运价和承运合同", "join_keys": ["freight_order_id", "shipper_id", "contract_id"], "deliverable": "托运订单链"},
+        {"step": 2, "action": "核验实际承运人、车辆、司机资质和改派历史", "join_keys": ["freight_order_id", "carrier_id", "vehicle_id", "driver_id"], "deliverable": "承运身份链"},
+        {"step": 3, "action": "连接装货、轨迹、卸货、签收和异常", "join_keys": ["freight_order_id", "route_event_id", "signed_time"], "deliverable": "真实运输链"},
+        {"step": 4, "action": "复算托运人付款、司机承运人结算、平台费、燃料和通行费", "join_keys": ["freight_order_id", "settlement_id", "cost_event_id"], "deliverable": "运费成本桥接"},
+        {"step": 5, "action": "连接监测上传、发票、申报、扣缴代办和平台报送", "join_keys": ["freight_order_id", "invoice_no", "reporting_period"], "deliverable": "运输票税报送链"}
+      ], "terminal": "承运角色、车辆司机、真实轨迹签收、结算成本和票税资料逐单闭合后才评价异常"},
+      "evidence_chain": {"fact_elements": ["平台承运角色", "托运货物", "承运人车辆司机", "真实运输轨迹", "运费及成本", "票税和报送"], "supporting_sources": ["托运运输合同订单", "车辆司机资质", "装卸和实时轨迹", "签收异常记录", "运费燃料通行费结算", "监测上传发票申报报送"], "opposing_sources": ["合法改派记录", "多式联运单证", "返程补贴", "货损扣款", "燃料交付使用回收", "取消订单"], "insufficient_when": ["轨迹未依法取得", "只凭运单或发票", "撮合与承运角色不清"]},
+      "analysis_chain": {"proposition": "平台承运交易和实际运输是否真实一致，相关收入成本发票及报送是否有完整业务基础", "alternatives": ["合法改派", "多式联运", "真实运输但轨迹设备故障", "燃料通行费代付", "取消或货损调整"], "reasoning": ["确认平台是否承运人", "核验托运订单货物", "核验实际承运人车辆司机", "复原装卸轨迹签收", "复算运费平台费和成本", "对照监测发票申报报送", "评价反证和数据安全边界"], "conclusion_ladder": ["运输票税闭环_关闭", "轨迹身份待补证", "真实运输待调查", "事实充分支持_待审理"], "tax_boundary": "轨迹和运单是运输事实证据组成部分，不能单独认定虚假交易；撮合平台不适用承运平台的全部义务"},
+      "domain_collaboration": {"lead": "网络货运真实运输与票税域", "partners": [
+        {"domain": "交通许可", "responsibility": "确认承运平台和车辆司机资质", "handoff": "许可资质表"},
+        {"domain": "货运运营", "responsibility": "确认订单货物及改派", "handoff": "托运承运链"},
+        {"domain": "轨迹监测", "responsibility": "确认装卸轨迹签收及上传", "handoff": "真实运输证据"},
+        {"domain": "资金成本", "responsibility": "复算运费燃料通行费和平台费", "handoff": "运费成本桥接"},
+        {"domain": "税务发票", "responsibility": "核验发票申报扣缴代办和报送", "handoff": "运输票税底稿"}
+      ], "conflict_rule": "线上登记与线下运输冲突时保留原始轨迹、装卸、签收和改派记录，不以补录运单覆盖历史"},
+      "report_contract": {"title": "网络货运承运真实运输及票税核验", "must_state": ["平台角色", "托运货物", "车辆司机", "轨迹签收", "运费成本", "发票报送"], "forbidden": ["无轨迹即认定虚假", "撮合平台直接套用承运平台规则"]},
+      "legacy_absorption": {"legacy_rule_ids": ["430", "988", "997", "1028", "1051", "1228", "1238", "1639"], "mapping_basis": ["网络货运", "车辆司机", "运单轨迹", "运输订单和发票"], "absorption_reason": "把旧库运力、轨迹、运单、路线和发票比较，归并为2026规则下的平台承运角色和逐单真实运输链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未区分撮合与承运平台，行业运力阈值和虚假推断不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "批量运单车辆司机重复冲突、无装卸签收且轨迹物理不可达，资金结算后回流", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "车辆故障后合法改派，双司机轨迹、装卸签收、结算和改派审批完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "订单和签收存在但部分轨迹因设备故障缺失，维修记录待取得", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "PLT-08",
+      "name": "境外平台、跨境数字交易与涉税报送闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-PLT-REPORT-810", "SRC-PLT-REPORT-15", "SRC-PLT-VAT-LAW", "SRC-PLT-VAT-RULES", "SRC-PLT-PIPL"],
+      "applicability": {"business": "境外平台向境内提供营利性服务，或境内经营者从业人员依托境内外平台发生跨境商品、服务、无形资产或数字内容交易", "not_applicable": ["纯境外主体之间且与境内无连接的交易", "仅货物出口且不涉及平台报送的部分另按出口场景", "客户和履约地点均无法确认"]},
+      "doubt": {"observed_signal": "境内外平台主体、经营者从业人员、客户地点、货物服务或无形资产性质、币种汇率、退款拒付、结算收汇、报送与申报不能对应", "target_fact": "跨境平台交易由谁向谁提供何种商品服务，客户和使用履约地点在哪里，各方收入净额、币种换算、报送主体和税收义务期间如何确定。", "must_exclude": ["纯境外交易", "真实退款拒付", "平台代理结算", "汇率差异", "渠道手续费", "货物和数字服务混合", "境内外经营者报送口径差异"], "output": "境内外主体—交易性质—地点—币种—结算—报送税务矩阵"},
+      "clue_chain": {"start": "以境内外平台账户、合同和经营者从业人员身份确定交易参与方", "steps": [
+        {"step": 1, "action": "连接平台、经营者从业人员、客户和关联运营主体", "join_keys": ["foreign_platform_id", "seller_worker_id", "customer_id"], "deliverable": "跨境主体矩阵"},
+        {"step": 2, "action": "区分货物、服务、无形资产和数字内容并确认履约", "join_keys": ["order_id", "service_type", "completion_event_id"], "deliverable": "交易性质证据"},
+        {"step": 3, "action": "核验客户、使用、履约、收货和经营连接地点", "join_keys": ["order_id", "customer_location", "performance_location"], "deliverable": "地点连接表"},
+        {"step": 4, "action": "复算外币总额、退款、平台费用、结算收汇和汇率", "join_keys": ["order_id", "currency", "settlement_date"], "deliverable": "跨境金额桥接"},
+        {"step": 5, "action": "核对境外平台报送、境内主体申报、扣缴及跨境资料", "join_keys": ["seller_worker_id", "reporting_period", "tax_period"], "deliverable": "跨境报送税务对照"}
+      ], "terminal": "主体、交易性质、地点、金额、报送和税务期间分别证明后才形成跨境差异"},
+      "evidence_chain": {"fact_elements": ["境内外主体", "经营者从业人员身份", "交易性质", "客户履约地点", "币种结算", "报送扣缴情形"], "supporting_sources": ["境外平台账户协议", "订单和服务成果", "客户及使用地点证据", "外币结算收汇", "退款渠道费用", "平台报送及境内申报扣缴"], "opposing_sources": ["纯境外交易证据", "真实退款拒付", "平台代理结算", "汇率政策选择", "货物报关物流", "跨期在途结算"], "insufficient_when": ["境外资料来源不合法", "客户或履约地点不明", "未按交易类型拆分"]},
+      "analysis_chain": {"proposition": "跨境平台交易是否按正确主体、交易性质、地点、金额和期间履行报送及税收义务", "alternatives": ["纯境外交易", "货物出口另行处理", "平台代理结算", "退款或拒付", "汇率及渠道费用"], "reasoning": ["锁定政策期间和平台主体", "识别经营者从业人员", "确定交易性质和履约", "核验客户使用地点", "复算外币退款费用", "核对平台报送和境内申报扣缴", "对未解决连接形成待核事实"], "conclusion_ladder": ["跨境交易闭环_关闭", "地点性质待补证", "报送税务差异待调查", "事实充分支持_待审理"], "tax_boundary": "境外平台报送范围、境内增值税、所得税和个人所得税可能适用不同连接因素，不能用收汇地点或IP地址单独决定"},
+      "domain_collaboration": {"lead": "跨境平台交易与报送域", "partners": [
+        {"domain": "国际业务法务", "responsibility": "确认境内外主体和合同", "handoff": "跨境主体矩阵"},
+        {"domain": "产品履约", "responsibility": "确认交易类型和服务成果", "handoff": "交易性质证据"},
+        {"domain": "支付外汇", "responsibility": "确认币种退款费用和结算", "handoff": "跨境金额桥接"},
+        {"domain": "数据隐私", "responsibility": "控制跨境身份和地点资料使用", "handoff": "合规访问记录"},
+        {"domain": "国际税收", "responsibility": "核验平台报送、申报和扣缴", "handoff": "跨境税务底稿"}
+      ], "conflict_rule": "IP、支付地区、客户声明和实际履约地点冲突时保留多源证据，不以单一技术字段决定税收连接"},
+      "report_contract": {"title": "境外平台跨境数字交易及报送核验", "must_state": ["境内外主体", "交易性质", "地点连接", "币种退款", "平台费用", "报送申报扣缴"], "forbidden": ["收汇即认定境内应税", "单一IP决定客户或履约地点"]},
+      "legacy_absorption": {"legacy_rule_ids": ["178", "425", "679", "793", "794", "1307", "1564", "1655"], "mapping_basis": ["境外收入", "外币结算", "跨境服务", "境外账户与申报"], "absorption_reason": "把旧库外汇、境外账户和申报比较，归并为境外平台主体、交易性质、地点和币种的跨境事实矩阵。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "多数旧规则针对货物出口或一般境外所得，只有可迁移的金额与身份切口被吸收，原结论不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "境外平台向境内客户提供已完成数字服务并结算，平台报送和境内扣缴申报均无记录，地点合同资金一致", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "交易双方、服务使用和结算均在境外，仅因境内人员登录后台产生境内IP", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "外币收款存在但客户和服务使用地点资料缺失", "expected": "待补资料_可初筛"}
+      ]
+    }
+  ]
+}
