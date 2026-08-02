@@ -718,7 +718,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
         self.assertIn("tax-risk-rules.js?v=2026080203", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026080205", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080206", index)
         self.assertIn("system-logs.js?v=2026073101", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)

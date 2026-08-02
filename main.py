@@ -6890,6 +6890,7 @@ def get_system_stats():
 
 _methodology_asset_cache = {}
 _methodology_coverage_cache = {}
+_methodology_rewrite_cache = {}
 
 
 @app.get("/api/methodology/assets/{asset_name}")
@@ -6908,6 +6909,7 @@ def get_methodology_asset(asset_name: str):
         "industry_packs": "industry_methodology_packs.json",
         "manufacturing_scenario_contracts": "manufacturing_scenario_contracts.json",
         "construction_scenario_contracts": "construction_scenario_contracts.json",
+        "real_estate_scenario_contracts": "real_estate_scenario_contracts.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6947,6 +6949,7 @@ def get_methodology_coverage():
         "industry_methodology_packs.json",
         "manufacturing_scenario_contracts.json",
         "construction_scenario_contracts.json",
+        "real_estate_scenario_contracts.json",
     )
     try:
         cache_key = tuple(
@@ -6963,6 +6966,33 @@ def get_methodology_coverage():
         return report
     except (OSError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=500, detail="方法论覆盖矩阵生成失败") from exc
+
+
+@app.get("/api/methodology/rewrite-ledger")
+def get_methodology_rewrite_ledger(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(40, ge=1, le=200),
+):
+    """分页返回1720条候选规则的只读重写迁移账册。"""
+    rules_path = _os.path.join(
+        _os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json"
+    )
+    try:
+        stat = _os.stat(rules_path)
+        cache_key = (rules_path, stat.st_mtime_ns, stat.st_size, int(offset), int(limit))
+        cached = _methodology_rewrite_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        with open(rules_path, "r", encoding="utf-8") as rule_file:
+            rules = _json.load(rule_file)
+        from engine.candidate_rule_governance import build_candidate_rewrite_ledger
+        report = build_candidate_rewrite_ledger(rules, offset=offset, limit=limit)
+        if len(_methodology_rewrite_cache) >= 16:
+            _methodology_rewrite_cache.clear()
+        _methodology_rewrite_cache[cache_key] = report
+        return report
+    except (OSError, ValueError, TypeError) as exc:
+        raise HTTPException(status_code=500, detail="候选规则重写账册生成失败") from exc
 
 
 def patrol_status_v2():

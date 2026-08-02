@@ -130,9 +130,11 @@ def build_methodology_coverage(static_root):
     industry_packs_payload = _read(root / "industry_methodology_packs.json")
     manufacturing_contracts = _read(root / "manufacturing_scenario_contracts.json")
     construction_contracts = _read(root / "construction_scenario_contracts.json")
+    real_estate_contracts = _read(root / "real_estate_scenario_contracts.json")
     rewritten_contracts = {
         "C": manufacturing_contracts,
         "E": construction_contracts,
+        "K": real_estate_contracts,
     }
     rules = _read(root / "tax_risk_rules_local_export.json")
     clues = _read(root / "cross_domain_clues.json")
@@ -202,7 +204,7 @@ def build_methodology_coverage(static_root):
     ]
 
     return {
-        "version": "1.2.0",
+        "version": "1.3.0",
         "positioning": "覆盖矩阵衡量的是已验证能力和已知空白，不把规则数量、关键词命中或模型评分当成真实稽查覆盖。",
         "taxonomy_basis": {
             "name": "国民经济行业分类（GB/T 4754—2017，按第1号修改单修订）",

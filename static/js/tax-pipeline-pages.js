@@ -6217,6 +6217,8 @@ var _methodologyPlaybookPromise = null;
 var _methodologyIndustryPacksPromise = null;
 var _manufacturingScenarioContractsPromise = null;
 var _constructionScenarioContractsPromise = null;
+var _realEstateScenarioContractsPromise = null;
+var _candidateRewriteLedgerPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6283,13 +6285,37 @@ function _loadConstructionScenarioContracts() {
   return _constructionScenarioContractsPromise;
 }
 
+function _loadRealEstateScenarioContracts() {
+  if (!_realEstateScenarioContractsPromise) {
+    _realEstateScenarioContractsPromise = fetch('/api/methodology/assets/real_estate_scenario_contracts?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('房地产开发业五链场景加载失败');
+        return response.json();
+      });
+  }
+  return _realEstateScenarioContractsPromise;
+}
+
+function _loadCandidateRewriteLedger() {
+  if (!_candidateRewriteLedgerPromise) {
+    _candidateRewriteLedgerPromise = fetch('/api/methodology/rewrite-ledger?offset=0&limit=40&_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('候选规则重写账册加载失败');
+        return response.json();
+      });
+  }
+  return _candidateRewriteLedgerPromise;
+}
+
 function _renderMethodologyCoverageMatrix(container) {
   if (!container) return;
   return Promise.all([
     _loadMethodologyCoverageReport(),
     _loadMethodologyIndustryPacks(),
     _loadManufacturingScenarioContracts(),
-    _loadConstructionScenarioContracts()
+    _loadConstructionScenarioContracts(),
+    _loadRealEstateScenarioContracts(),
+    _loadCandidateRewriteLedger()
   ]).then(function(values){
     var report = values[0] || {};
     var industryPackPayload = values[1] || {};
@@ -6307,6 +6333,9 @@ function _renderMethodologyCoverageMatrix(container) {
     var industryPacks = industryPackPayload.packs || [];
     var manufacturingContracts = values[2] || {};
     var constructionContracts = values[3] || {};
+    var realEstateContracts = values[4] || {};
+    var rewriteLedger = values[5] || {};
+    var rewriteSummary = rewriteLedger.summary || {};
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
       + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
       + '<div class="method-coverage-summary">'
@@ -6336,6 +6365,25 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<div><strong>' + escHtml(governanceSummary.normalised_duplicate_rule_count || 0) + '</strong><span>标准化重复条目</span></div>'
       + '<div><strong>' + escHtml(governanceSummary.candidate_field_contracts_present || 0) + '</strong><span>候选库字段契约</span></div>'
       + '</div>'
+      + '<h3 class="method-subheading">1720条候选规则重写迁移账册</h3>'
+      + '<div class="method-stop"><b>重写原则：</b>' + escHtml(rewriteLedger.positioning || '')
+      + ' 重写后的真实场景数量不与旧规则数量绑定；多条旧规则允许归并，一条旧规则也允许拆成多个可验证事实命题。</div>'
+      + '<div class="method-coverage-summary">'
+      + '<div><strong>' + escHtml(rewriteSummary.legacy_rules || 0) + '</strong><span>旧规则总数</span></div>'
+      + '<div><strong>' + escHtml(rewriteSummary.legacy_rules_preserved || 0) + '</strong><span>原文与编号已保留</span></div>'
+      + '<div><strong>' + escHtml(rewriteSummary.queued_not_rewritten || 0) + '</strong><span>已进入重写队列</span></div>'
+      + '<div><strong>' + escHtml(rewriteSummary.candidate_scene_mapped || 0) + '</strong><span>已有候选场景路由</span></div>'
+      + '<div><strong>' + escHtml(rewriteSummary.waiting_scene_assignment || 0) + '</strong><span>待场景归属</span></div>'
+      + '<div><strong>' + escHtml(rewriteSummary.released_from_legacy_library || 0) + '</strong><span>旧库直接放行</span></div>'
+      + '</div>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:10%">闸门</th><th style="width:27%">阶段</th><th>通过条件</th></tr></thead><tbody>'
+      + (rewriteLedger.phases || []).map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>'
+        + escHtml(item.name) + '</td><td>' + escHtml(item.release) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h4>迁移账册首批40项</h4><table class="method-framework-table"><thead><tr><th style="width:10%">重写号</th><th style="width:10%">旧编号</th><th>旧标题</th><th style="width:18%">当前闸门</th><th style="width:18%">候选场景</th></tr></thead><tbody>'
+      + (rewriteLedger.records || []).map(function(item){return '<tr><td>' + escHtml(item.rewrite_id) + '</td><td>'
+        + escHtml(item.legacy_rule_id) + '</td><td>' + escHtml(item.legacy_title) + '</td><td>'
+        + escHtml(item.current_gate) + '</td><td>' + escHtml((item.candidate_scene_ids || []).join('、') || '待归属')
+        + '</td></tr>';}).join('') + '</tbody></table>'
       + '<div class="method-two-column"><article class="method-framework-card"><h4>生产放行必须同时满足</h4>'
       + _methodologyList(governance.release_gate || []) + '</article>'
       + '<article class="method-framework-card"><h4>当前优先整改队列（前20项）</h4>'
@@ -6368,8 +6416,9 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
       + '<div class="method-source-note"><b>五链重写进度：</b>制造业 ' + escHtml((manufacturingContracts.scenarios || []).length)
       + ' 个场景、建筑业 ' + escHtml((constructionContracts.scenarios || []).length)
+      + ' 个场景、房地产开发业 ' + escHtml((realEstateContracts.scenarios || []).length)
       + ' 个场景已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体；其余行业仍保留M2状态并按同一合同逐批重写。'
-      + '<br><b>建筑业边界：</b>' + escHtml(constructionContracts.positioning || '') + '</div>'
+      + '<br><b>房地产开发业边界：</b>' + escHtml(realEstateContracts.positioning || '') + '</div>'
       + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
         return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
           + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
@@ -6961,12 +7010,14 @@ function renderMethodologyChainsIntegrated(container) {
     _loadMethodologyFramework(),
     _loadMethodologyPlaybooks(),
     _loadManufacturingScenarioContracts(),
-    _loadConstructionScenarioContracts()
+    _loadConstructionScenarioContracts(),
+    _loadRealEstateScenarioContracts()
   ]).then(function(values){
   var framework = values[0] || {};
   var playbookPayload = values[1] || {};
   var manufacturingContracts = values[2] || {};
   var constructionContracts = values[3] || {};
+  var realEstateContracts = values[4] || {};
   var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
@@ -6979,6 +7030,8 @@ function renderMethodologyChainsIntegrated(container) {
     ${_renderIndustryScenarioContracts(manufacturingContracts)}
     <h3 class="method-subheading">建筑业真实场景五链配套重写</h3>
     ${_renderIndustryScenarioContracts(constructionContracts)}
+    <h3 class="method-subheading">房地产开发业真实场景五链配套重写</h3>
+    ${_renderIndustryScenarioContracts(realEstateContracts)}
     <h3 class="method-subheading">十三组调查—证据—分析专项路径</h3>
     <div class="method-two-column">
       ${playbooks.map(function(item){return '<details class="method-framework-card"><summary><b>' + escHtml(item.id + ' · ' + item.name) + '</b></summary>'

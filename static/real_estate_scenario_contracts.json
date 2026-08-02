@@ -1,0 +1,504 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-08-02",
+  "name": "房地产开发业稽查场景五链配套合同",
+  "industry_code": "K",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "以项目—分期—楼栋—房源—清算单位为事实主键，将土地规划、预售许可、合同房源、收退款、交付办证、发票、成本、申报和地方清算口径放入同一时间线。当前版本完成政策边界、字段结构和正反例桌面测试，只生成受控核验计划和资料缺口；未经项目所在地政策核验和脱敏真实案件样本验证，不自动形成违法定性、税额、处罚或立案结论。",
+  "release_boundary": [
+    "先确认开发主体、项目所在地、项目分期、业态、清算单位、政策期间和计税方法，再启动任何场景",
+    "2026年前后增值税预缴、土地增值税预征和尾盘销售口径必须分段，不得以新规倒推已经完成的历史事项",
+    "认购、合同备案、预收、按揭到账、交付、办证、开票、会计收入和各税种收入是不同事件",
+    "土地增值税清算单位、预征周期、普通住宅分类和成本核定标准必须核验项目所在地有效文件",
+    "价格偏离、毛利偏离、成本超标或关系人购房只形成待核事项，不替代权利义务、真实交易和正反证据评价",
+    "M3放行需要脱敏真实样本、地方政策版本、字段映射回归、误报漏报记录和具名复核"
+  ],
+  "official_sources": [
+    {
+      "id": "SRC-REA-VAT-RULES",
+      "name": "中华人民共和国增值税法实施条例",
+      "issuer": "国务院",
+      "effective_period": "2026-01-01起施行",
+      "url": "https://fgk.chinatax.gov.cn/zcfgk/c100010/c5246349/content.html"
+    },
+    {
+      "id": "SRC-REA-PREPAY-2026",
+      "name": "增值税预缴税款管理办法",
+      "issuer": "财政部、国家税务总局",
+      "effective_period": "2026-01-01起施行；此前规定不一致的以该办法为准",
+      "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5247497/content.html"
+    },
+    {
+      "id": "SRC-REA-VAT-TRANSITION-2026",
+      "name": "增值税法施行后优惠政策衔接及房地产项目相关政策",
+      "issuer": "财政部、国家税务总局",
+      "effective_period": "2026-01-01起按公告及过渡条款执行",
+      "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5247434/content.html"
+    },
+    {
+      "id": "SRC-REA-LAT-2026",
+      "name": "关于土地增值税若干征管口径的公告",
+      "issuer": "国家税务总局",
+      "effective_period": "2026-01-01起施行；按清算受理状态适用过渡规则",
+      "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5246543/content.html"
+    },
+    {
+      "id": "SRC-REA-LAT-CLEARANCE",
+      "name": "土地增值税清算管理规程",
+      "issuer": "国家税务总局",
+      "effective_period": "结合后续修改及项目所在地有效口径适用",
+      "url": "https://www.chinatax.gov.cn/chinatax/n810341/n810765/n812166/200905/c1188962/content.html"
+    },
+    {
+      "id": "SRC-REA-LAT-187",
+      "name": "房地产开发企业土地增值税清算管理有关问题的通知",
+      "issuer": "国家税务总局",
+      "effective_period": "已修改；2026-01-01起按公告2026年第3号处理废止条款",
+      "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5193854/content.html"
+    },
+    {
+      "id": "SRC-REA-CIT-31",
+      "name": "房地产开发经营业务企业所得税处理办法",
+      "issuer": "国家税务总局",
+      "effective_period": "已修改；第二十六条第二款已失效，其余结合后续文件适用",
+      "url": "https://zhejiang.chinatax.gov.cn/art/2009/3/6/art_8409_15939.html"
+    },
+    {
+      "id": "SRC-REA-COST-OBJECT-35",
+      "name": "关于房地产开发企业成本对象管理问题的公告",
+      "issuer": "国家税务总局",
+      "effective_period": "2014年发布后施行，成本对象事先备案制度已取消",
+      "url": "https://www.chinatax.gov.cn/chinatax/n810341/n810765/n812141/201406/c1078738/content.html"
+    },
+    {
+      "id": "SRC-REA-PRESALE",
+      "name": "城市商品房预售管理办法",
+      "issuer": "住房和城乡建设部",
+      "effective_period": "按现行修订文本及项目所在地预售监管规则适用",
+      "url": "https://www.mohurd.gov.cn/api-gateway/jpaas-web-server/front/document/download?fileName=%E5%BB%BA%E8%AE%BE%E9%83%A8%E5%85%B3%E4%BA%8E%E4%BF%AE%E6%94%B9%E3%80%8A%E5%9F%8E%E5%B8%82%E5%95%86%E5%93%81%E6%88%BF%E9%A2%84%E5%94%AE%E7%AE%A1%E7%90%86%E5%8A%9E%E6%B3%95%E3%80%8B%E7%9A%84%E5%86%B3%E5%AE%9A-%E5%9B%BE%E7%89%87%E7%89%88&fileUrl=YW5UzzlvCwcM%2FNHHX%2FtT6BJ6yM%2FAU1LVtmOVIvNjcuqxaLMLAlBp0EDqzYTeRbwVThr17pz6rWqn%2F8mU3dCjwKI%2FGjBhIs%2BD2nzArU5wxPKUaRL28msUapsvCUneXd91sOv3nSi7vICz0WuCAmwiiQ%3D%3D"
+    }
+  ],
+  "common_contract": {
+    "identity_keys": ["company_id", "taxpayer_id", "project_id", "customer_id", "related_party_id"],
+    "time_keys": ["land_date", "permit_date", "contract_date", "receipt_date", "delivery_date", "tax_period", "policy_period"],
+    "transaction_keys": ["contract_id", "unit_id", "receipt_id", "invoice_no", "refund_id", "cost_id"],
+    "project_keys": ["project_id", "phase_id", "land_parcel_id", "building_id", "unit_id", "clearance_unit"],
+    "local_policy_keys": ["location_code", "local_document_no", "effective_period", "clearance_acceptance_date"],
+    "source_lineage": ["source_file", "source_sheet", "source_row", "extracted_at", "file_sha256"],
+    "allowed_states": ["不适用", "资料不足_未启动", "待补资料_可初筛", "资料就绪_待人工核验", "存在矛盾_待调查", "解释成立_关闭", "事实部分支持_待补证", "事实充分支持_待审理"],
+    "forbidden_outputs": ["自动认定偷税", "自动核定税额", "自动处罚建议", "自动立案", "以售价或毛利偏离直接认定关联交易不公允", "以地方平均造价代替具体项目证据"]
+  },
+  "scenarios": [
+    {
+      "id": "REA-01",
+      "name": "项目、分期、业态与清算单位闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {
+        "business": "房地产开发项目从土地取得、规划建设、预售交付至清算尾盘的项目边界核验",
+        "not_applicable": ["单纯持有出租且未发生开发销售", "仅提供物业服务", "项目所在地和开发主体均无法确认"]
+      },
+      "doubt": {
+        "observed_signal": "土地、立项、规划、施工、预售、成本对象、会计和土地增值税清算采用的项目或分期边界不一致",
+        "target_fact": "每一地块、项目、分期、楼栋、业态、房源、成本对象和清算单位之间是否具有连续、可复算且符合所在地政策的映射关系。",
+        "must_exclude": ["依法调整规划或分期", "公共配套跨期受益", "项目并购或主体依法变更", "地方清算单位分类规则差异", "历史系统编码迁移"],
+        "output": "项目层级映射表、边界冲突清单和待核地方政策，不形成税务定性"
+      },
+      "clue_chain": {
+        "start": "以土地出让合同和项目所在地为起点建立唯一项目主数据",
+        "steps": [
+          {"step": 1, "action": "连接土地、立项、规划、施工和预售许可", "join_keys": ["land_parcel_id", "project_id", "phase_id", "building_id"], "deliverable": "行政许可项目树"},
+          {"step": 2, "action": "连接成本对象、会计核算、申报和清算单位", "join_keys": ["project_id", "phase_id", "clearance_unit"], "deliverable": "财税项目树"},
+          {"step": 3, "action": "逐项解释两个项目树的合并、拆分和跨期差异", "join_keys": ["policy_period", "location_code"], "deliverable": "边界差异解释表"},
+          {"step": 4, "action": "核验项目所在地有效清算文件和过渡状态", "join_keys": ["local_document_no", "clearance_acceptance_date"], "deliverable": "地方政策适用清单"}
+        ],
+        "terminal": "项目、分期、业态和清算单位可双向追溯后才允许其他场景使用该主键"
+      },
+      "evidence_chain": {
+        "fact_elements": ["开发主体", "项目所在地", "地块项目关系", "分期楼栋关系", "业态及可售范围", "清算单位及适用期间"],
+        "supporting_sources": ["土地出让及立项资料", "规划施工预售许可", "楼盘表和测绘成果", "成本对象专项报告", "土地增值税申报清算资料"],
+        "opposing_sources": ["规划变更批复", "分期开发计划", "公共配套受益说明", "项目主体变更文件", "所在地清算单位规定"],
+        "insufficient_when": ["项目所在地未锁定", "许可编号与财税台账无法连接", "地方政策仅有口头说明"]
+      },
+      "analysis_chain": {
+        "proposition": "项目边界差异是否导致收入、成本或申报跨单位迁移",
+        "alternatives": ["合法分期调整", "公共成本共同受益", "编码转换错误", "地方政策允许的清算边界"],
+        "reasoning": ["先锁定主体地点和期间", "再复原行政许可项目树", "再复原财税项目树", "比较合并拆分差异", "核验地方文件及过渡期", "仅对无法解释且影响具体金额的差异形成待核事实"],
+        "conclusion_ladder": ["项目映射完整_关闭", "边界解释待补证", "跨项目迁移待调查", "事实充分支持_待审理"],
+        "tax_boundary": "不同税种的项目或清算单位不当然相同，必须分别援引有效依据"
+      },
+      "domain_collaboration": {
+        "lead": "项目主数据与土地增值税域",
+        "partners": [
+          {"domain": "住房建设与规划", "responsibility": "确认许可项目、分期、楼栋和业态", "handoff": "行政许可项目树"},
+          {"domain": "销售房源", "responsibility": "连接楼盘表、房源和合同", "handoff": "房源层级映射"},
+          {"domain": "财务成本", "responsibility": "连接成本对象和核算层级", "handoff": "财税项目树"},
+          {"domain": "政策法制", "responsibility": "核验所在地清算规定和生效期间", "handoff": "地方政策适用意见"}
+        ],
+        "conflict_rule": "行政许可、实际开发和财税口径冲突时保留三套原始边界，不允许为对齐数据而覆盖原记录"
+      },
+      "report_contract": {"title": "项目与清算单位边界核验", "must_state": ["项目所在地", "分期楼栋映射", "各税种口径", "地方政策版本", "未解决差异"], "forbidden": ["以一个项目编码替代全部法律口径", "未核验所在地政策即认定跨项目调节"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "同一成本被无依据迁入已进入清算的分期且影响扣除", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "规划批复和成本专项报告完整证明依法调整分期且分配可复算", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "财税编码不同但地方清算单位文件缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-02",
+      "name": "认购、预售收款与税款预缴闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "采取预售方式销售自行开发房地产项目并取得认购、首付、按揭或其他款项", "not_applicable": ["非房地产开发企业转让不动产", "无预售收款的现房销售", "仅收取可退意向金且性质未确认"]},
+      "doubt": {
+        "observed_signal": "房源合同、监管账户、按揭到账、退款、发票与增值税和土地增值税预缴期间存在差异",
+        "target_fact": "每笔款项的房源、客户、性质、取得日、退款日、含税金额、预缴期间和抵减去向是否完整对应。",
+        "must_exclude": ["退房退款", "按揭放款延迟", "监管账户划拨时点差", "合法代收代付", "合同换房及面积补差"],
+        "output": "逐房源收退款时间线和预缴差异，不直接计算最终应补税额"
+      },
+      "clue_chain": {
+        "start": "从预售许可证和楼盘表锁定可售房源",
+        "steps": [
+          {"step": 1, "action": "连接认购、网签、客户与房源状态", "join_keys": ["project_id", "unit_id", "customer_id", "contract_id"], "deliverable": "房源合同主表"},
+          {"step": 2, "action": "汇总监管账户、普通账户、按揭、现金及第三方收退款", "join_keys": ["receipt_id", "unit_id", "receipt_date"], "deliverable": "逐笔收退款表"},
+          {"step": 3, "action": "区分房款、订金、代收款和可退意向金并核验合同权利", "join_keys": ["receipt_type", "contract_id"], "deliverable": "款项性质认定底稿"},
+          {"step": 4, "action": "按政策期间连接增值税预缴、土地增值税预征及后续抵减", "join_keys": ["project_id", "tax_period", "policy_period"], "deliverable": "预缴预征核对表"}
+        ],
+        "terminal": "房源、客户、款项性质和期间均可定位后才形成预缴差异"
+      },
+      "evidence_chain": {
+        "fact_elements": ["预售资格", "房源客户", "款项性质", "实际取得和退款", "预缴预征期间", "后续抵减"],
+        "supporting_sources": ["预售许可证和楼盘表", "认购网签及补充协议", "监管及银行账户流水", "按揭放款和退款单", "税费预缴申报完税资料"],
+        "opposing_sources": ["合同解除备案", "退款原路凭证", "按揭延迟证明", "代收款政策与支付去向", "换房对应关系"],
+        "insufficient_when": ["客户或房源不能唯一匹配", "款项性质只有摘要推断", "预缴抵减资料缺失"]
+      },
+      "analysis_chain": {
+        "proposition": "取得的特定款项是否在正确期间进入相应税费预缴或预征口径",
+        "alternatives": ["款项尚不构成预收房款", "已真实退款", "合法代收代付", "跨期仅因银行在途"],
+        "reasoning": ["确认项目和许可证期间", "逐房源重建合同状态", "逐笔确认款项实际控制", "区分退款和内部划拨", "匹配各税种预缴规则", "追踪抵减防止重复计算"],
+        "conclusion_ladder": ["收退款与申报一致_关闭", "款项性质待补证", "期间差异待调查", "事实充分支持_待审理"],
+        "tax_boundary": "增值税预缴与土地增值税预征的起止和计税口径分别核验，不得互相替代"
+      },
+      "domain_collaboration": {
+        "lead": "销售收款与税费申报域",
+        "partners": [
+          {"domain": "销售房源", "responsibility": "确认房源、客户和合同状态", "handoff": "逐房源合同台账"},
+          {"domain": "资金监管", "responsibility": "确认款项取得、退款和账户划拨", "handoff": "资金时间线"},
+          {"domain": "增值税", "responsibility": "核验预缴和抵减", "handoff": "增值税预缴核对表"},
+          {"domain": "土地增值税", "responsibility": "核验所在地预征周期与截止", "handoff": "土地增值税预征核对表"}
+        ],
+        "conflict_rule": "销售系统状态与银行事实冲突时以原始凭证分别保留，不用内部状态覆盖资金日期"
+      },
+      "report_contract": {"title": "预售收退款与税款预缴核验", "must_state": ["房源范围", "款项分类", "预缴政策期间", "退款和抵减", "资料缺口"], "forbidden": ["把全部账户流入都当房款", "忽略真实退款或重复追缴"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "预售房款已实际取得且未退款，连续跨期未进入对应预缴申报", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "款项为依法代收并已等额支付第三方，合同和资金链完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "银行摘要为购房款但无法连接房源客户", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-03",
+      "name": "完工、交付、办证、开票与收入期间闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "开发产品达到完工或交付阶段并涉及增值税、企业所得税和会计收入确认", "not_applicable": ["项目仍处施工且无交付使用", "纯土地开发另行适用", "房源已经依法解除合同"]},
+      "doubt": {
+        "observed_signal": "竣工备案、投入使用、交付通知、钥匙移交、产权、开票及税会收入时点长期错位",
+        "target_fact": "每套开发产品何时达到相应税种的完工或交易时点，延迟交付是否由谁造成，收入和成本是否在正确期间配比。",
+        "must_exclude": ["质量整改", "客户无正当理由拒收", "政府手续延迟", "附条件交付", "退房换房和面积补差"],
+        "output": "房源事件时间线、完工条件核验和期间差异"
+      },
+      "clue_chain": {
+        "start": "从竣工备案、投入使用和初始产权三个完工条件建立项目时间线",
+        "steps": [
+          {"step": 1, "action": "连接楼栋竣工、物业接管和初始产权", "join_keys": ["project_id", "building_id", "completion_date"], "deliverable": "楼栋完工事件表"},
+          {"step": 2, "action": "逐房源连接交付通知、验房、钥匙、入住和拒收", "join_keys": ["unit_id", "customer_id", "handover_date"], "deliverable": "实际交付时间线"},
+          {"step": 3, "action": "连接发票、会计收入、所得税完工结算和增值税申报", "join_keys": ["unit_id", "tax_period", "revenue_period"], "deliverable": "税会期间对照表"},
+          {"step": 4, "action": "复核退换房、面积补差及延迟原因对期间的影响", "join_keys": ["contract_id", "change_id"], "deliverable": "期间调整底稿"}
+        ],
+        "terminal": "完工、交付和各税种时点分别证明后才允许形成期间差异"
+      },
+      "evidence_chain": {
+        "fact_elements": ["开发产品完工条件", "实际可交付状态", "房源控制转移", "延迟责任", "开票申报期间", "收入成本配比"],
+        "supporting_sources": ["竣工备案及初始产权", "物业承接和交付通知", "验房钥匙及入住记录", "发票和网签变更", "会计及企业所得税申报"],
+        "opposing_sources": ["质量整改记录", "客户拒收函", "政府延期文件", "解除合同及退款", "面积实测补差"],
+        "insufficient_when": ["仅有开票日期", "交付事实相互矛盾", "企业所得税完工结算资料缺失"]
+      },
+      "analysis_chain": {
+        "proposition": "开发产品是否已达到适用规则的完工或交易时点并在正确期间确认",
+        "alternatives": ["项目尚未达到完工条件", "延迟由客户造成", "合同已解除", "仅为会计估计调整"],
+        "reasoning": ["识别政策期间", "先按楼栋核验完工条件", "再按房源核验实际交付", "区分客户与开发商原因", "分别适用增值税和所得税时点", "检查收入成本及退款的跨期闭环"],
+        "conclusion_ladder": ["期间处理一致_关闭", "交付事实待补证", "跨期差异待调查", "事实充分支持_待审理"],
+        "tax_boundary": "会计收入、企业所得税完工和增值税纳税义务时点分别判断，不能只凭开票或办证日期"
+      },
+      "domain_collaboration": {
+        "lead": "交付与收入确认域",
+        "partners": [
+          {"domain": "工程物业", "responsibility": "确认完工、接管、整改和可交付状态", "handoff": "楼栋完工证据包"},
+          {"domain": "销售客服", "responsibility": "确认通知、验房、拒收和退换房", "handoff": "房源交付时间线"},
+          {"domain": "会计所得税", "responsibility": "核验完工产品计税成本和收入", "handoff": "所得税期间底稿"},
+          {"domain": "增值税发票", "responsibility": "核验开票及申报时点", "handoff": "增值税期间底稿"}
+        ],
+        "conflict_rule": "办证、开票和交付日期冲突时回到实际权利义务及原始交付证据，不预设其中任一日期优先"
+      },
+      "report_contract": {"title": "开发产品完工交付与收入期间核验", "must_state": ["完工条件", "实际交付", "延迟原因", "税会差异", "成本配比"], "forbidden": ["仅凭开票认定全部收入时点", "忽略客户拒收和合同解除"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "楼栋已投入使用且大量房源实际交付，所得税长期仍按未完工产品处理", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "质量整改导致未达到合同交付条件且未实际投入使用，证据完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "已发交付通知但无钥匙、入住或拒收记录", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-04",
+      "name": "土地价款与增值税销售额扣除闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "房地产开发企业销售适用一般计税方法的自行开发项目并申报扣除土地价款", "not_applicable": ["不适用一般计税方法的项目", "非自行开发项目", "政策期间不允许的价款类型"]},
+      "doubt": {
+        "observed_signal": "土地价款支付、合法凭证、地块项目关系、可售面积、当期销售面积和累计扣除无法复算",
+        "target_fact": "扣除价款是否属于政策允许范围、已实际支付并取得有效凭证，且按正确地块项目、政策期间和面积口径计算且不重复。",
+        "must_exclude": ["规划面积调整", "不可售公共配套", "多地块合并开发", "历史期间结转", "依法由项目公司扣除的特殊安排"],
+        "output": "土地价款来源和累计扣除复算表"
+      },
+      "clue_chain": {
+        "start": "从土地出让合同、拆迁协议和支付凭证确认价款范围",
+        "steps": [
+          {"step": 1, "action": "核验价款类型、收款方、支付及合法凭证", "join_keys": ["land_parcel_id", "payment_id", "policy_period"], "deliverable": "可核价款清单"},
+          {"step": 2, "action": "连接地块、开发主体、项目及分期", "join_keys": ["land_parcel_id", "project_id", "phase_id"], "deliverable": "地块项目映射"},
+          {"step": 3, "action": "统一规划、测绘、可售和当期销售面积", "join_keys": ["project_id", "unit_id", "sale_area"], "deliverable": "面积口径桥接表"},
+          {"step": 4, "action": "复算累计和当期扣除并检查跨项目重复", "join_keys": ["project_id", "tax_period"], "deliverable": "扣除复算及上限检查"}
+        ],
+        "terminal": "价款范围、合法凭证、项目归属和面积公式全部可复算"
+      },
+      "evidence_chain": {
+        "fact_elements": ["政策适用资格", "价款类型", "实际支付", "合法凭证", "地块项目归属", "面积和累计扣除"],
+        "supporting_sources": ["土地出让合同及补充协议", "财政票据或拆迁协议凭证", "银行支付", "规划测绘和楼盘表", "扣除台账及增值税申报"],
+        "opposing_sources": ["规划变更", "项目公司设立安排", "公共配套不可售说明", "历史结转台账", "多地块共同开发底稿"],
+        "insufficient_when": ["价款凭证未核验", "地块与项目关系不明", "面积口径无法桥接"]
+      },
+      "analysis_chain": {
+        "proposition": "申报扣除的土地价款是否满足实体范围、凭证、归属和计算要求",
+        "alternatives": ["合法历史结转", "规划面积变化", "多地块合理分配", "依法由项目公司承接扣除"],
+        "reasoning": ["确认政策期间和计税方法", "逐笔审查价款与凭证", "锁定支付和受让主体", "建立地块项目映射", "统一面积口径", "复算累计扣除并排除重复"],
+        "conclusion_ladder": ["扣除可复算_关闭", "凭证或面积待补证", "重复或越界待调查", "事实充分支持_待审理"],
+        "tax_boundary": "不得以土地增值税土地成本口径替代增值税销售额扣除范围"
+      },
+      "domain_collaboration": {
+        "lead": "土地与增值税域",
+        "partners": [
+          {"domain": "土地投资", "responsibility": "确认合同价款和地块取得结构", "handoff": "土地价款底表"},
+          {"domain": "资金票据", "responsibility": "确认实际支付及凭证有效性", "handoff": "价款凭证包"},
+          {"domain": "规划测绘", "responsibility": "桥接可售和销售面积", "handoff": "面积口径表"},
+          {"domain": "增值税申报", "responsibility": "复算扣除和累计上限", "handoff": "扣除复算底稿"}
+        ],
+        "conflict_rule": "合同金额、支付金额和票据金额不一致时逐笔保留，不以任一总额直接替代"
+      },
+      "report_contract": {"title": "房地产土地价款销售额扣除核验", "must_state": ["政策期间", "计税方法", "价款及凭证", "地块项目映射", "面积公式和累计扣除"], "forbidden": ["把全部土地相关支出一概扣除", "未连接项目即用总额比例推定"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "同一财政票据价款被两个项目累计重复扣除且超过实际支付", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "规划面积调整有批复，累计扣除随销售面积重算且未超过实际价款", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "价款已支付但地块与当前项目的承接文件缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-05",
+      "name": "土地增值税清算收入与特殊处置闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "房地产开发项目进入土地增值税清算、尾盘或涉及视同销售、自用出租等特殊处置", "not_applicable": ["清算单位未确认", "非房地产开发项目", "产权未转移且仅自用出租的事项需按适用规则单独判断"]},
+      "doubt": {
+        "observed_signal": "清算收入与房源合同、收款、发票、产权及自用出租、安置抵债、关联处置不能逐套对应",
+        "target_fact": "清算单位和截止日内每套房源的交易性质、收入金额、面积、是否视同销售及尾盘处理是否完整准确。",
+        "must_exclude": ["真实退房解除", "未计入房价的合法代收费用", "产权未转移的自用出租", "面积补退价", "地方普通住宅分类差异"],
+        "output": "清算房源全景表和特殊处置待核清单"
+      },
+      "clue_chain": {
+        "start": "以清算受理通知、清算单位和截止日冻结房源范围",
+        "steps": [
+          {"step": 1, "action": "连接楼盘表、网签、合同、产权和房源状态", "join_keys": ["clearance_unit", "unit_id"], "deliverable": "清算房源母表"},
+          {"step": 2, "action": "连接收退款、发票、会计和清算申报收入", "join_keys": ["unit_id", "contract_id", "receipt_id"], "deliverable": "逐房源收入桥接"},
+          {"step": 3, "action": "识别安置、抵债、投资、福利、关联销售、自用出租及无产权车位", "join_keys": ["unit_id", "transaction_type"], "deliverable": "特殊处置分类表"},
+          {"step": 4, "action": "按2026口径和受理状态核验预征截止、清算后转让及尾盘", "join_keys": ["clearance_acceptance_date", "tax_period"], "deliverable": "清算尾盘期间表"}
+        ],
+        "terminal": "清算单位内全部可售、已售、未售和特殊处置房源数量金额闭合"
+      },
+      "evidence_chain": {
+        "fact_elements": ["清算单位和截止日", "房源交易性质", "收入完整性", "产权转移", "特殊处置计价", "尾盘销售期间"],
+        "supporting_sources": ["清算申报及受理文件", "楼盘表网签产权", "收退款发票会计", "安置抵债投资协议", "自用出租和尾盘台账"],
+        "opposing_sources": ["解除合同备案", "退款凭证", "产权未转移证明", "合法代收去向", "地方清算分类文件"],
+        "insufficient_when": ["清算单位和受理状态不明", "房源台账不完整", "特殊处置没有权属资料"]
+      },
+      "analysis_chain": {
+        "proposition": "清算收入是否覆盖全部依法应计交易并正确排除不应计事项",
+        "alternatives": ["交易真实解除", "产权未转移的自用出租", "合法价外代收", "尾盘在后续期间申报"],
+        "reasoning": ["锁定清算受理和政策期间", "冻结清算房源范围", "逐套桥接收入证据", "按产权和经济实质分类特殊处置", "比较同类价格并处理正当理由", "核验尾盘后续申报"],
+        "conclusion_ladder": ["收入房源闭合_关闭", "特殊处置待补证", "收入遗漏待调查", "事实充分支持_待审理"],
+        "tax_boundary": "自用出租、视同销售和尾盘规则按产权转移、受理时点及现行文件分别判断"
+      },
+      "domain_collaboration": {
+        "lead": "土地增值税清算域",
+        "partners": [
+          {"domain": "房源产权", "responsibility": "确认每套房源交易和权属状态", "handoff": "清算房源母表"},
+          {"domain": "资金发票", "responsibility": "桥接价款、退款和发票", "handoff": "逐房源收入表"},
+          {"domain": "合同法务", "responsibility": "判断特殊处置权利义务", "handoff": "特殊处置事实意见"},
+          {"domain": "地方政策", "responsibility": "核验分类、预征和尾盘口径", "handoff": "所在地政策底稿"}
+        ],
+        "conflict_rule": "房源系统、产权和资金冲突时保持待调查状态，不以内部销售状态直接确定收入"
+      },
+      "report_contract": {"title": "土地增值税清算收入完整性核验", "must_state": ["清算单位及截止", "房源总量", "收入桥接", "特殊处置", "尾盘口径", "地方政策"], "forbidden": ["把自用出租一概视同销售", "仅以价格偏低认定少计收入"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "抵债房源已办理产权转移但未进入清算收入且对价证据完整", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "未售商铺仅用于出租且产权未转移，收入和对应成本均未列入清算", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "房源显示自用但存在关联方长期占用，产权和协议缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-06",
+      "name": "开发成本、成本对象与分摊闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "土地、前期、建安、基础设施、公共配套和开发间接费用在项目分期业态间归集分配", "not_applicable": ["未发生房地产开发成本", "仅取得土地未实质开发的事项需另行判断", "资料不足以确认成本对象"]},
+      "doubt": {
+        "observed_signal": "成本真实发生、受益对象、成本对象、分摊基础、暂估冲回和税种扣除口径不能复算",
+        "target_fact": "每项成本是否真实、与项目相关、归属于正确成本对象和期间，并按持续一致且反映受益关系的基础分配。",
+        "must_exclude": ["公共配套共同受益", "统一采购合理分配", "工程结算滞后", "规划调整", "跨期暂估后及时冲回"],
+        "output": "成本谱系、分配复算和异常待核清单"
+      },
+      "clue_chain": {
+        "start": "从成本对象专项报告建立已完工、在建和未建对象",
+        "steps": [
+          {"step": 1, "action": "连接成本合同、工程量、发票付款和供应商履约", "join_keys": ["cost_id", "contract_id", "supplier_id"], "deliverable": "成本真实性底表"},
+          {"step": 2, "action": "确认成本类别、直接受益和共同受益范围", "join_keys": ["project_id", "phase_id", "beneficiary"], "deliverable": "成本受益矩阵"},
+          {"step": 3, "action": "复算面积、预算、工程量或其他分摊基础并核验持续一致", "join_keys": ["allocation_basis", "cost_object_id"], "deliverable": "共同成本分配表"},
+          {"step": 4, "action": "检查跨项目关联方、暂估冲回和土地增值税与所得税口径差异", "join_keys": ["accounting_period", "tax_period"], "deliverable": "税会成本桥接表"}
+        ],
+        "terminal": "成本发生、受益对象、分摊和税种口径均有可复算证据"
+      },
+      "evidence_chain": {
+        "fact_elements": ["成本真实发生", "项目相关性", "成本对象", "受益范围", "分摊基础", "暂估冲回与税种扣除"],
+        "supporting_sources": ["成本对象专项报告", "合同工程量结算", "发票付款及验收", "成本台账和分配底稿", "预算决算及暂估冲回"],
+        "opposing_sources": ["公共配套受益说明", "统一采购分配制度", "规划变更", "工程结算争议", "第三方造价或监理资料"],
+        "insufficient_when": ["仅有发票无履约", "成本对象未锁定", "分配基础无法重算"]
+      },
+      "analysis_chain": {
+        "proposition": "开发成本是否真实归属于清算单位或所得税成本对象并合理分配",
+        "alternatives": ["共同受益合理分配", "结算滞后导致暂估", "规划调整引起重分配", "税种口径本就不同"],
+        "reasoning": ["锁定成本对象及政策期间", "验证合同工程和资金三流", "确认实际受益对象", "独立重算分配基础", "检查方法变更及跨项目迁移", "分别评价土地增值税和所得税扣除"],
+        "conclusion_ladder": ["成本分配可复算_关闭", "履约或分配待补证", "跨项目迁移待调查", "事实充分支持_待审理"],
+        "tax_boundary": "地方造价标准只是资料不实情况下依法处理的参照条件之一，不能代替具体成本真实性证据"
+      },
+      "domain_collaboration": {
+        "lead": "开发成本与土地增值税域",
+        "partners": [
+          {"domain": "工程造价", "responsibility": "确认工程量、结算和实际受益", "handoff": "工程履约证据"},
+          {"domain": "采购资金", "responsibility": "确认供应商、发票和支付", "handoff": "成本三流底稿"},
+          {"domain": "会计所得税", "responsibility": "核验成本对象和完工结转", "handoff": "所得税成本表"},
+          {"domain": "土地增值税", "responsibility": "核验清算扣除和所在地口径", "handoff": "清算成本表"}
+        ],
+        "conflict_rule": "造价、会计、工程结算不一致时逐项核验数量单价和受益对象，不以行业均值直接覆盖账面"
+      },
+      "report_contract": {"title": "房地产开发成本归集与分摊核验", "must_state": ["成本对象", "真实性证据", "受益范围", "分摊方法", "暂估冲回", "税种差异"], "forbidden": ["以平均造价直接认定虚增", "把不同税种扣除口径混为一体"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "已售分期承担本不受益的后续商业配套成本且分配方法临近清算时变更", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "统一基础设施按可售面积分配，制度持续一致且工程资金证据完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "成本发票齐全但工程量结算和受益对象缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-07",
+      "name": "车位、储藏室、配套与代收费用闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "房地产项目中的地上地下车位、储藏室、会所、物业配套及向购房人收取的附加费用", "not_applicable": ["与开发项目无关的独立物业服务", "依法由政府部门直接收取的费用", "权属和收款主体均无法定位"]},
+      "doubt": {
+        "observed_signal": "资产权属、可售范围、合同形式、定价、收款主体、发票会计和税务处理不一致",
+        "target_fact": "每项附属资产或费用的权属、实质交易、对价、收款归属和各税种处理是否一致。",
+        "must_exclude": ["人防或共有权属限制", "合法长期租赁", "未计入房价的政府代收", "物业公司独立服务", "真实优惠绑定销售"],
+        "output": "附属资产权属交易表和代收费资金去向表"
+      },
+      "clue_chain": {
+        "start": "从规划测绘、产权和人防资料建立附属资产清单",
+        "steps": [
+          {"step": 1, "action": "确认车位储藏室配套的权属、可售可租和成本归属", "join_keys": ["asset_unit_id", "asset_type", "ownership"], "deliverable": "附属资产权属表"},
+          {"step": 2, "action": "连接销售、租赁、使用权、服务及捆绑合同", "join_keys": ["asset_unit_id", "contract_id", "customer_id"], "deliverable": "交易实质分类表"},
+          {"step": 3, "action": "追踪开发商、物业、关联方和个人账户收退款", "join_keys": ["receipt_id", "receipt_party"], "deliverable": "收款主体和资金去向"},
+          {"step": 4, "action": "分别连接发票、会计、增值税、所得税和土地增值税处理", "join_keys": ["asset_unit_id", "tax_period"], "deliverable": "附属业务税会桥接"}
+        ],
+        "terminal": "权属、交易实质、资金和税会处理均可逐项对应"
+      },
+      "evidence_chain": {
+        "fact_elements": ["资产权属", "可售可租资格", "交易法律形式", "实际对价", "收款主体", "税会处理"],
+        "supporting_sources": ["规划测绘产权人防", "销售租赁及使用权合同", "房源车位系统", "银行收退款和发票", "会计申报清算资料"],
+        "opposing_sources": ["共有或人防权属文件", "物业独立服务协议", "政府代收依据", "长期租赁实际履约", "优惠审批及定价策略"],
+        "insufficient_when": ["权属文件缺失", "合同名称与实质冲突未调查", "资金进入第三方账户未穿透"]
+      },
+      "analysis_chain": {
+        "proposition": "附属资产和代收费是否按真实权属、交易和资金归属完整反映",
+        "alternatives": ["合法租赁或使用权安排", "物业独立收费", "政府法定代收", "共有或人防不可售"],
+        "reasoning": ["先定权属和可交易范围", "再识别合同经济实质", "穿透收款主体和资金去向", "比较同项目房源绑定关系", "分别适用各税种规则", "处理真实退款和合同解除"],
+        "conclusion_ladder": ["权属交易一致_关闭", "合同实质待补证", "收入归属待调查", "事实充分支持_待审理"],
+        "tax_boundary": "不得只因合同名为租赁或服务就否定实际转让，也不得只因期限较长就自动认定销售"
+      },
+      "domain_collaboration": {
+        "lead": "房源权属与特殊业务域",
+        "partners": [
+          {"domain": "规划产权人防", "responsibility": "确认附属资产权属和用途", "handoff": "权属资格表"},
+          {"domain": "销售物业", "responsibility": "确认合同、客户和实际使用", "handoff": "交易履约表"},
+          {"domain": "资金关联方", "responsibility": "穿透不同收款主体", "handoff": "资金归属图"},
+          {"domain": "多税种", "responsibility": "分别评价税会和清算处理", "handoff": "税种处理矩阵"}
+        ],
+        "conflict_rule": "产权、合同和实际使用不一致时保持多假设，不以合同名称直接定性"
+      },
+      "report_contract": {"title": "车位配套及代收费用核验", "must_state": ["权属用途", "交易实质", "对价及收款", "各税种处理", "正常解释"], "forbidden": ["把长期租赁一概视同销售", "把第三方收款直接归入开发商收入"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "可售产权车位价款由关联物业代收并最终回流开发商，未在开发商账税反映", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "物业独立提供有真实成本和履约的服务，合同资金发票均由物业承担", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "人防车位签订二十年使用协议但资金和实际管理主体尚未穿透", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "REA-08",
+      "name": "关联销售、内部认购与特殊价格闭环",
+      "maturity": "M2.5_boundary_tested",
+      "applicability": {"business": "向关联方、股东员工、渠道方或特殊客户销售房产或附属资产并存在显著价格或条款差异", "not_applicable": ["公开促销且条件一致", "房源差异足以解释价格", "政府限价或人才安置政策销售"]},
+      "doubt": {
+        "observed_signal": "特殊客户购房价格、付款、装修、返佣或后续转让与同期可比房源显著不同且理由不完整",
+        "target_fact": "客户关系、房源可比性、完整交易对价、优惠审批、商业理由和后续利益流转是否真实合理。",
+        "must_exclude": ["楼层朝向装修差异", "公开促销", "付款条件差异", "政府限价安置", "质量瑕疵和尾盘折价"],
+        "output": "可比房源调整表、关系图和特殊价格待核事项"
+      },
+      "clue_chain": {
+        "start": "从客户、员工、股东、关联企业和渠道名单建立关系图",
+        "steps": [
+          {"step": 1, "action": "识别客户与开发商、股东员工渠道的关系", "join_keys": ["customer_id", "related_party_id"], "deliverable": "客户关系图"},
+          {"step": 2, "action": "按楼栋业态、面积、楼层、朝向、装修和时间选择可比房源", "join_keys": ["project_id", "building_id", "unit_id"], "deliverable": "可比房源池"},
+          {"step": 3, "action": "汇总合同价、装修升级、返佣、代付款和后续转让的完整对价", "join_keys": ["contract_id", "receipt_id", "commission_id"], "deliverable": "完整对价表"},
+          {"step": 4, "action": "核验优惠审批、营销政策、商业理由和税务处理", "join_keys": ["approval_id", "contract_date"], "deliverable": "价格差异解释底稿"}
+        ],
+        "terminal": "关系、可比性、完整对价和商业理由均可核验后才评价价格差异"
+      },
+      "evidence_chain": {
+        "fact_elements": ["客户关系", "房源可比性", "完整对价", "优惠审批", "商业理由", "后续利益流转"],
+        "supporting_sources": ["股权员工渠道名单", "楼盘表及价格日志", "网签和补充协议", "收款返佣及装修资料", "优惠审批和后续产权"],
+        "opposing_sources": ["公开促销方案", "房源瑕疵证明", "政府限价安置文件", "付款条件差异", "尾盘库存及市场变化"],
+        "insufficient_when": ["仅有均价偏离", "客户关系未经合法资料确认", "可比房源未作差异调整"]
+      },
+      "analysis_chain": {
+        "proposition": "特殊价格是否由真实商业条件解释，或存在未反映的利益转移和收入事项",
+        "alternatives": ["房源物理差异", "公开促销", "市场下行尾盘折价", "付款或交付条件差异", "政策性安置"],
+        "reasoning": ["依法确认关系而非猜测", "构建同期同类可比池", "调整物理和合同差异", "还原返佣装修等完整对价", "核验审批及商业目的", "检查后续快速转让和利益回流"],
+        "conclusion_ladder": ["价格有合理解释_关闭", "可比性待补证", "利益转移待调查", "事实充分支持_待审理"],
+        "tax_boundary": "价格偏离只是调查起点，不能代替可比性分析、完整对价和正当理由评价"
+      },
+      "domain_collaboration": {
+        "lead": "关联关系与销售定价域",
+        "partners": [
+          {"domain": "主体关系", "responsibility": "依法确认关联和员工渠道身份", "handoff": "关系证据图"},
+          {"domain": "销售定价", "responsibility": "构建可比房源并调整差异", "handoff": "可比价格分析"},
+          {"domain": "资金佣金", "responsibility": "还原完整对价及利益回流", "handoff": "资金利益路径"},
+          {"domain": "多税种法制", "responsibility": "评价具体税务影响和程序边界", "handoff": "受限复核意见"}
+        ],
+        "conflict_rule": "模型均价、评估价和实际成交价冲突时披露各自口径，不以单一价格自动替换合同事实"
+      },
+      "report_contract": {"title": "房地产特殊客户与价格差异核验", "must_state": ["关系证据", "可比房源", "差异调整", "完整对价", "商业理由", "反向证据"], "forbidden": ["价格低于均价即认定少计收入", "未经合法资料确认个人关系"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "股东关联方低价购房后短期按市场价转售，差额经其他安排回流且无公开优惠", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "特殊价格来自全体客户可参加的公开尾盘促销且房源条件一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "员工购房折扣较大但员工政策、房源瑕疵和完整对价资料不全", "expected": "待补资料_可初筛"}
+      ]
+    }
+  ]
+}
