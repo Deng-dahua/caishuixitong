@@ -24,6 +24,11 @@ CONTRACT_ASSETS = {
         "path": _PROJECT_ROOT / "static" / "construction_scenario_contracts.json",
         "terms": ("建筑", "施工", "工程承包", "建设工程"),
     },
+    "F": {
+        "asset": "wholesale_retail_scenario_contracts",
+        "path": _PROJECT_ROOT / "static" / "wholesale_retail_scenario_contracts.json",
+        "terms": ("批发", "零售", "商贸", "贸易", "商超", "电商零售"),
+    },
     "K": {
         "asset": "real_estate_scenario_contracts",
         "path": _PROJECT_ROOT / "static" / "real_estate_scenario_contracts.json",
@@ -33,17 +38,17 @@ CONTRACT_ASSETS = {
 
 
 FILE_TYPE_SOURCE_FAMILIES = {
-    "inventory": {"生产存货", "仓储物流", "工程材料"},
-    "sales_invoice": {"发票申报", "销售履约"},
-    "purchase_invoice": {"发票申报", "采购成本", "工程材料"},
+    "inventory": {"生产存货", "仓储物流", "工程材料", "商品库存"},
+    "sales_invoice": {"发票申报", "销售履约", "渠道订单"},
+    "purchase_invoice": {"发票申报", "采购成本", "工程材料", "商品库存"},
     "invoice": {"发票申报"},
     "invoice_universal": {"发票申报"},
     "input_vat_deduction": {"发票申报"},
     "tax_return": {"税费申报"},
     "tax_declaration": {"税费申报"},
-    "bank": {"资金结算"},
-    "bank_statement": {"资金结算"},
-    "bank_transaction": {"资金结算"},
+    "bank": {"资金结算", "支付结算"},
+    "bank_statement": {"资金结算", "支付结算"},
+    "bank_transaction": {"资金结算", "支付结算"},
     "voucher": {"会计核算"},
     "trial_balance": {"会计核算"},
     "financial": {"会计核算"},
@@ -180,6 +185,41 @@ SCENE_SOURCE_GATES = {
         {"name": "价格合同与审批", "any": ["合同权利义务", "房源交易"]},
         {"name": "完整对价与税会", "any": ["资金结算", "会计核算", "税费申报"]},
     ],
+    "RET-01": [
+        {"name": "商品采购与库存", "any": ["商品库存", "采购成本", "仓储物流"]},
+        {"name": "订单出库与退货", "any": ["渠道订单", "销售履约", "售后退款"]},
+        {"name": "会计发票申报", "any": ["会计核算", "发票申报", "税费申报"]},
+    ],
+    "RET-02": [
+        {"name": "全渠道订单", "any": ["渠道订单"]},
+        {"name": "支付履约与结算", "any": ["支付结算", "销售履约", "平台结算"]},
+        {"name": "开票税会", "any": ["发票申报", "会计核算", "税费申报"]},
+    ],
+    "RET-03": [
+        {"name": "原订单与售后", "any": ["渠道订单", "售后退款"]},
+        {"name": "退货退款", "any": ["销售履约", "支付结算", "商品库存"]},
+        {"name": "蓝红票和税会", "any": ["发票申报", "会计核算", "税费申报"]},
+    ],
+    "RET-04": [
+        {"name": "商业协议和条件", "any": ["商业政策", "合同权利义务"]},
+        {"name": "履约及结算", "any": ["渠道订单", "平台结算", "支付结算"]},
+        {"name": "票据和税会", "any": ["发票申报", "会计核算", "税费申报"]},
+    ],
+    "RET-05": [
+        {"name": "代销联营合同", "any": ["代销联营", "合同权利义务"]},
+        {"name": "货权订单和结算", "any": ["商品库存", "渠道订单", "平台结算"]},
+        {"name": "角色和税会", "any": ["会计核算", "发票申报", "税费申报"]},
+    ],
+    "RET-06": [
+        {"name": "会员钱包和卡券", "any": ["会员权益"]},
+        {"name": "充值核销退款", "any": ["支付结算", "渠道订单", "售后退款"]},
+        {"name": "余额和税会", "any": ["会计核算", "发票申报", "税费申报"]},
+    ],
+    "RET-07": [
+        {"name": "门店订单和班次", "any": ["渠道订单", "销售履约"]},
+        {"name": "支付商户和账户", "any": ["支付结算", "平台结算"]},
+        {"name": "收入发票申报", "any": ["会计核算", "发票申报", "税费申报"]},
+    ],
 }
 
 
@@ -208,6 +248,13 @@ SCENE_SIGNAL_TERMS = {
     "REA-06": ("开发成本", "成本对象", "公共配套", "分摊", "暂估", "造价"),
     "REA-07": ("车位", "储藏室", "配套", "代收费用", "人防", "物业收款"),
     "REA-08": ("关联销售", "内部认购", "员工购房", "特殊价格", "返佣", "低价售房"),
+    "RET-01": ("进销存", "SKU", "采购入库", "仓店", "调拨", "盘点", "负库存"),
+    "RET-02": ("订单", "支付", "签收", "平台结算", "商户号", "渠道"),
+    "RET-03": ("退货", "退款", "红冲", "红字发票", "重新开票", "销售折让"),
+    "RET-04": ("返利", "商业折扣", "促销", "补贴", "陈列费", "渠道服务"),
+    "RET-05": ("代销", "联营", "主要责任人", "代理人", "净额", "佣金"),
+    "RET-06": ("会员", "储值", "预付卡", "礼券", "积分", "核销"),
+    "RET-07": ("现金", "聚合支付", "个人账户", "收款码", "POS", "班次"),
 }
 
 
@@ -263,6 +310,22 @@ def _available_source_families(file_results):
             families.add("房源交易")
         if any(term in name_text for term in ("开发成本", "成本对象", "工程结算", "公共配套", "造价", "分摊")):
             families.add("开发成本")
+        if any(term in name_text for term in ("SKU", "商品", "进销存", "采购入库", "门店库存", "仓店", "盘点", "调拨")):
+            families.add("商品库存")
+        if any(term in name_text for term in ("订单", "POS", "收银", "渠道销售", "店铺交易", "发货", "签收")):
+            families.add("渠道订单")
+        if any(term in name_text for term in ("支付", "商户号", "收款码", "聚合支付", "微信", "支付宝", "现金日结")):
+            families.add("支付结算")
+        if any(term in name_text for term in ("平台账单", "平台结算", "分账", "佣金", "冻结款")):
+            families.add("平台结算")
+        if any(term in name_text for term in ("退货", "退款", "红冲", "红字", "售后", "换货")):
+            families.add("售后退款")
+        if any(term in name_text for term in ("返利", "折扣", "促销", "补贴", "陈列", "渠道服务")):
+            families.add("商业政策")
+        if any(term in name_text for term in ("代销", "联营", "寄售", "总额净额")):
+            families.add("代销联营")
+        if any(term in name_text for term in ("会员", "储值", "预付卡", "礼券", "积分", "卡券")):
+            families.add("会员权益")
     return sorted(families), sorted(file_types)
 
 

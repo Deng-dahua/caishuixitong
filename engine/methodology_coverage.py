@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from engine.candidate_rule_governance import build_candidate_governance
+from engine.candidate_rule_governance import build_absorption_map, build_candidate_governance
 from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
 
 
@@ -131,9 +131,11 @@ def build_methodology_coverage(static_root):
     manufacturing_contracts = _read(root / "manufacturing_scenario_contracts.json")
     construction_contracts = _read(root / "construction_scenario_contracts.json")
     real_estate_contracts = _read(root / "real_estate_scenario_contracts.json")
+    wholesale_retail_contracts = _read(root / "wholesale_retail_scenario_contracts.json")
     rewritten_contracts = {
         "C": manufacturing_contracts,
         "E": construction_contracts,
+        "F": wholesale_retail_contracts,
         "K": real_estate_contracts,
     }
     rules = _read(root / "tax_risk_rules_local_export.json")
@@ -182,7 +184,8 @@ def build_methodology_coverage(static_root):
     dominant_analysis = analysis_signatures.most_common(1)[0][1] if analysis_signatures else 0
     provenance_missing = sum(not str(rule.get("source", "")).strip() for rule in rules)
     risk_distribution = Counter(str(rule.get("level", "未分级")) for rule in rules)
-    candidate_governance = build_candidate_governance(rules)
+    absorption_map = build_absorption_map(list(rewritten_contracts.values()))
+    candidate_governance = build_candidate_governance(rules, absorption_map=absorption_map)
     pack_summaries = [
         {
             "id": pack.get("id"),
@@ -195,7 +198,7 @@ def build_methodology_coverage(static_root):
     ]
 
     gaps = [
-        {"priority": "P0", "gap": "候选规则被误当成熟规则", "control": "1720条统一标记为结构化候选；只有经过数据契约和回归测试的规则进入可执行层。"},
+        {"priority": "P0", "gap": "候选规则被误当成熟规则", "control": f"1720条统一标记为结构化候选；其中{candidate_governance['rewrite_program']['summary']['absorbed_into_scene_contract']}条已归并到真实场景合同但仍未放行，只有经过数据契约、真实正反例和人工复核的规则才能进入可执行层。"},
         {"priority": "P0", "gap": "分析链高度模板化", "control": f"最大单一分析链结构覆盖{dominant_analysis}条；未完成事实、反证、因果、金额和法律程序契约前不得升级。"},
         {"priority": "P0", "gap": "来源和验证记录不足", "control": f"{candidate_governance['summary']['candidate_rules'] - candidate_governance['summary']['official_provenance_recorded']}条候选规则尚无完整官方来源记录；其中{provenance_missing}条来源字段为空。需要逐条补官方链接、适用期间、核验人、案例验证和回退版本。"},
         {"priority": "P1", "gap": "行业专项可执行规则不足", "control": "行业矩阵只显示候选知识，不以关键词命中冒充行业验证；按行业包逐批建立样本和原子计算。"},
@@ -204,7 +207,7 @@ def build_methodology_coverage(static_root):
     ]
 
     return {
-        "version": "1.3.0",
+        "version": "1.4.0",
         "positioning": "覆盖矩阵衡量的是已验证能力和已知空白，不把规则数量、关键词命中或模型评分当成真实稽查覆盖。",
         "taxonomy_basis": {
             "name": "国民经济行业分类（GB/T 4754—2017，按第1号修改单修订）",

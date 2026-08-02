@@ -1,0 +1,256 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-08-02",
+  "name": "批发和零售业稽查场景五链配套合同",
+  "industry_code": "F",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "以商品、仓店、渠道、订单、支付、退款、发票和结算为共同主键，重建采购入库、调拨盘点、销售履约、售后冲红、商业利益、代销联营、会员储值和多通道收款的完整事实时间线。系统只生成资料缺口、矛盾事项和受控核验计划；价格、毛利、库存、红冲或资金偏离均须经过交易真实性、权利义务、正反证据和政策期间核验，不自动形成违法定性、税额、处罚或立案结论。",
+  "release_boundary": [
+    "先确认经营主体、门店仓库、线上线下渠道、业务模式、纳税人身份和政策期间，再启动场景",
+    "订单、收款、发货、签收、退货、退款、红冲、重新开票、平台结算和会计收入是不同事件，不得用单一日期替代",
+    "商品单位、组合拆分、赠品、损耗、盘盈盘亏、在途、寄售和跨仓调拨必须统一换算并保留原始单位",
+    "平台或第三方支付数据只能在依法取得、主体和商户号可识别、退款及手续费可还原时用于核验",
+    "商业折扣、返利、促销补贴、陈列服务和代销佣金必须回到合同权利义务及实际履约，名称不决定税会处理",
+    "M3放行需要脱敏真实样本、字段映射回归、误报漏报记录、官方来源期间核验和具名复核"
+  ],
+  "official_sources": [
+    {"id": "SRC-RET-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2026-01-01起施行", "url": "https://www.npc.gov.cn/npc/c2/c30834/202412/t20241225_442015.html"},
+    {"id": "SRC-RET-VAT-RULES", "name": "中华人民共和国增值税法实施条例", "issuer": "国务院", "effective_period": "2026-01-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100010/c5246349/content.html"},
+    {"id": "SRC-RET-VAT-TRANSITION", "name": "增值税法施行后有关优惠政策衔接事项", "issuer": "财政部、国家税务总局", "effective_period": "2026-01-01起按公告及过渡条款执行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5247434/content.html"},
+    {"id": "SRC-RET-CIT-REVENUE", "name": "关于确认企业所得税收入若干问题的通知", "issuer": "国家税务总局", "effective_period": "结合后续有效修改适用；商业折扣、销售折让和销售退回分别核验", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5193986/content.html"},
+    {"id": "SRC-RET-REVENUE-AS14", "name": "企业会计准则第14号——收入", "issuer": "财政部", "effective_period": "按现行准则及应用指南适用", "url": "https://kjs.mof.gov.cn/zt/kjzzss/kuaijizhunzeshishi/201709/t20170907_2694006.htm"},
+    {"id": "SRC-RET-INVOICE-RULES", "name": "中华人民共和国发票管理办法实施细则", "issuer": "国家税务总局", "effective_period": "2024-03-01起按修订文本施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100011/c5221006/5221006/files/26eb7c984dcaa45695231408ca4dfb_1.0.pdf"},
+    {"id": "SRC-RET-EINVOICE", "name": "全面数字化的电子发票全国推广应用公告", "issuer": "国家税务总局", "effective_period": "2024-12-01起全国正式推广", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100012/c5236067/content.html"},
+    {"id": "SRC-RET-PREPAID", "name": "单用途商业预付卡管理办法（试行）", "issuer": "商务部", "effective_period": "按现行修订文本适用", "url": "https://www.mofcom.gov.cn/zcfb/blgg/art/2012/art_3ee43bfc933f4713a0a44e04b3b72939.html"},
+    {"id": "SRC-RET-ONLINE-TRADE", "name": "网络交易监督管理办法", "issuer": "国家市场监督管理总局", "effective_period": "2021-05-01起施行", "url": "https://www.samr.gov.cn/wljys/gzzd/art/2023/art_09c394cce74f424a8d82dbc4811a11ec.html"},
+    {"id": "SRC-RET-PLATFORM-RULES-2026", "name": "网络交易平台规则监督管理办法", "issuer": "国家市场监督管理总局、国家互联网信息办公室", "effective_period": "2026-02-01起施行", "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/fgs/art/2026/art_85b474fc5a08494bb60ca6a280b98d7d.html"}
+  ],
+  "common_contract": {
+    "identity_keys": ["company_id", "taxpayer_id", "store_id", "warehouse_id", "channel_id", "merchant_id", "counterparty_id"],
+    "time_keys": ["order_time", "payment_time", "shipment_time", "receipt_time", "return_time", "refund_time", "invoice_time", "settlement_time", "tax_period", "policy_period"],
+    "transaction_keys": ["sku_id", "batch_id", "order_id", "payment_id", "shipment_id", "return_id", "refund_id", "invoice_no", "settlement_id"],
+    "amount_keys": ["listed_amount", "discount_amount", "paid_amount", "refund_amount", "settled_amount", "tax_inclusive_amount", "tax_amount"],
+    "source_lineage": ["source_file", "source_sheet", "source_row", "source_system", "extracted_at", "file_sha256"],
+    "allowed_states": ["不适用", "资料不足_未启动", "待补资料_可初筛", "资料就绪_待人工核验", "存在矛盾_待调查", "解释成立_关闭", "事实部分支持_待补证", "事实充分支持_待审理"],
+    "forbidden_outputs": ["自动认定隐匿收入", "自动核定税额", "自动处罚建议", "自动立案", "以行业毛利率直接推定收入", "把全部账户流入直接视为销售收入", "把红冲或退款比例直接视为舞弊"]
+  },
+  "scenarios": [
+    {
+      "id": "RET-01",
+      "name": "采购、库存、调拨与销售数量金额闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-INVOICE-RULES"],
+      "applicability": {"business": "具有商品采购、入库、仓店调拨、盘点和线上线下销售的批发零售主体", "not_applicable": ["纯撮合平台且不控制商品", "纯服务业务无商品库存", "仅有汇总余额而无SKU或品类明细"]},
+      "doubt": {"observed_signal": "同一商品的采购、入库、调拨、盘点、出库、销售和期末库存数量或金额不能连续勾稽", "target_fact": "每个SKU或可比品类在统一计量单位下，其货权、数量、成本和销售去向是否可逐事件复原，并能解释损耗、赠品、退换货、寄售和在途差异。", "must_exclude": ["单位换算或组合拆分", "正常损耗及保质期报废", "在途和跨仓未达", "赠品及试用品", "寄售或受托代销", "盘点和系统切换调整"], "output": "SKU收发存复算表、差异事件和补证清单，不以负库存或毛利偏离直接认定收入"},
+      "clue_chain": {"start": "以商品主数据和期初库存为起点统一SKU、条码、批次和计量单位", "steps": [
+        {"step": 1, "action": "连接采购订单、发票、付款、到货验收和入库", "join_keys": ["supplier_id", "purchase_order_id", "sku_id", "batch_id"], "deliverable": "采购入库链"},
+        {"step": 2, "action": "连接仓店调拨、在途、签收和差异处理", "join_keys": ["transfer_id", "from_location", "to_location", "sku_id"], "deliverable": "双端调拨链"},
+        {"step": 3, "action": "连接销售订单、出库、物流签收和销退入库", "join_keys": ["order_id", "shipment_id", "return_id", "sku_id"], "deliverable": "销售履约链"},
+        {"step": 4, "action": "按日或月复算期初加流入减流出等于期末", "join_keys": ["store_id", "warehouse_id", "sku_id", "event_time"], "deliverable": "数量金额滚动复算"},
+        {"step": 5, "action": "逐项核验损耗、赠品、盘点、寄售、组合拆分和单位换算", "join_keys": ["adjustment_id", "reason_code", "approval_id"], "deliverable": "差异解释与反证表"}
+      ], "terminal": "数量、货权、金额和真实去向均能追溯后，才允许把无法解释差异移交其他场景"},
+      "evidence_chain": {"fact_elements": ["商品身份和单位", "采购及货权取得", "实物入库调拨", "销售及履约", "期末实存", "差异原因和审批"], "supporting_sources": ["商品主数据及单位换算表", "采购合同订单发票付款", "验收入库调拨签收记录", "销售订单出库物流签收", "盘点底稿和影像", "总账明细账及纳税申报"], "opposing_sources": ["组合拆分规则", "赠品促销方案", "损耗报废审批", "寄售代销协议", "在途及未达说明", "系统迁移映射"], "insufficient_when": ["只比较金额未统一数量", "只取单一仓店", "期初期末或退货数据缺失"]},
+      "analysis_chain": {"proposition": "无法解释的库存差异是否对应未记录采购、未记录销售、错误截止或资产损失", "alternatives": ["单位和商品映射错误", "正常损耗报废", "跨仓未达", "寄售货权差异", "系统截止或迁移错误"], "reasoning": ["先统一商品和单位", "再确定各时点货权", "逐事件复算数量", "匹配订单物流和资金", "核验盘点调整及审批", "分别评价支持证据和反证", "仅将剩余差异形成待核事实"], "conclusion_ladder": ["收发存闭环_关闭", "映射或截止待补证", "实物差异待调查", "事实充分支持_待审理"], "tax_boundary": "库存差异只是事实入口；具体税种、纳税义务时点和金额必须依据交易、期间及合法证据另行判断"},
+      "domain_collaboration": {"lead": "商品库存与履约域", "partners": [
+        {"domain": "采购供应链", "responsibility": "确认采购、到货、退供和货权", "handoff": "采购入库链"},
+        {"domain": "仓储门店", "responsibility": "确认调拨盘点损耗和在途", "handoff": "SKU事件台账"},
+        {"domain": "订单物流", "responsibility": "确认销售、发货、签收和销退", "handoff": "订单履约链"},
+        {"domain": "财务成本", "responsibility": "确认存货计价、结转和差异调整", "handoff": "数量金额复算"},
+        {"domain": "税费发票", "responsibility": "核验交易对应发票和申报期间", "handoff": "税会差异清单"}
+      ], "conflict_rule": "系统库存与实物、物流或货权冲突时分别保留原始记录，不用盘点调整倒推覆盖历史事件"},
+      "report_contract": {"title": "商品采购库存销售闭环核验", "must_state": ["商品范围和单位", "期初期末", "调拨在途", "退换赠损", "剩余差异及证据"], "forbidden": ["以负库存直接认定无票收入", "以行业周转率替代实物证据"]},
+      "legacy_absorption": {"legacy_rule_ids": ["25", "56", "85", "245", "262", "282", "353", "500", "519", "662", "692", "1220", "1333", "1345", "1358", "1558", "1618"], "mapping_basis": ["进销存", "库存与仓店", "调拨盘点", "采购销售数量勾稽"], "absorption_reason": "把原规则中彼此分散的库存、仓容、物流、进销差价和申报比较，归并为同一SKU事件时间线；阈值和原结论不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧编号、原文和指纹保留；当前只完成场景归并，不代表官方溯源、字段验证或生产放行。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "同一SKU连续出现已签收销售和收款但无出库、无期末实物且无赠品或代销解释", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "组合商品拆分和跨仓未达经订单、运输、双端签收及次期入账完整证明", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "账面负库存但缺少期初和单位换算资料", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-02",
+      "name": "订单、支付、发货、开票与平台结算完整性",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-INVOICE-RULES", "SRC-RET-EINVOICE", "SRC-RET-ONLINE-TRADE", "SRC-RET-PLATFORM-RULES-2026"],
+      "applicability": {"business": "通过门店、电商、自营小程序、直播或第三方平台形成订单并由多种渠道支付结算", "not_applicable": ["仅平台撮合且本主体不是交易一方", "无订单明细只能取得合法汇总资料", "非销售性质的内部资金划拨"]},
+      "doubt": {"observed_signal": "订单、支付、发货签收、发票、退款、平台账单、银行净入账和申报收入之间存在未解释差异", "target_fact": "每笔订单的交易主体、商品服务、总额折扣、实收退款、履约状态、发票和平台结算是否完整，净入账差额是否由手续费、退款、垫资或结算周期真实构成。", "must_exclude": ["取消订单和未支付订单", "真实退款和拒收", "平台手续费及佣金", "跨期结算及冻结款", "代收代付和内部划拨", "优惠券由平台承担"], "output": "订单全生命周期对账表和断链事项，不把平台净入账直接等同销售额"},
+      "clue_chain": {"start": "从各渠道原始订单和店铺主体建立全量订单清单", "steps": [
+        {"step": 1, "action": "连接订单行、商品、买方、优惠和订单状态变更", "join_keys": ["channel_id", "store_id", "order_id", "order_line_id"], "deliverable": "订单状态时间线"},
+        {"step": 2, "action": "连接支付、分账、退款、拒付和资金账户", "join_keys": ["order_id", "payment_id", "refund_id", "merchant_id"], "deliverable": "订单资金链"},
+        {"step": 3, "action": "连接出库、运单、签收、退货和取消", "join_keys": ["order_id", "shipment_id", "return_id"], "deliverable": "订单履约链"},
+        {"step": 4, "action": "连接蓝红发票、会计收入和纳税申报", "join_keys": ["order_id", "invoice_no", "tax_period"], "deliverable": "订单税会链"},
+        {"step": 5, "action": "将平台结算毛额还原为销售、退款、佣金、服务费、补贴、冻结和净入账", "join_keys": ["settlement_id", "merchant_id", "settlement_time"], "deliverable": "平台结算桥接表"}
+      ], "terminal": "订单状态、履约、资金和税会均可逐笔或可验证汇总连接后才形成完整性差异"},
+      "evidence_chain": {"fact_elements": ["店铺与交易主体", "订单成立和变更", "实际履约", "收款退款", "发票状态", "结算及申报期间"], "supporting_sources": ["平台或POS原始订单", "支付机构交易及分账明细", "出库运单签收", "平台结算账单", "蓝红发票底账", "会计收入及申报表"], "opposing_sources": ["取消拒付记录", "退货退款凭证", "平台费率协议", "冻结解冻明细", "平台承担优惠证明", "代收代付合同"], "insufficient_when": ["只有银行净入账", "店铺主体或商户号未知", "订单和退款无法连接"]},
+      "analysis_chain": {"proposition": "订单全生命周期断链是否形成尚未入账申报的真实已履约交易", "alternatives": ["订单未生效或已取消", "已真实退款退货", "平台费用导致净额差", "跨期在途结算", "其他主体交易或代收代付"], "reasoning": ["确认店铺和交易主体", "逐订单还原状态", "验证支付及履约", "还原平台毛额净额", "连接蓝红发票和税会期间", "排除退款冻结费用和跨期", "对剩余已履约差异形成待核事实"], "conclusion_ladder": ["订单税会闭环_关闭", "主体或结算待补证", "已履约断链待调查", "事实充分支持_待审理"], "tax_boundary": "网络交易监管记录可证明业务事件，但具体税收结论仍依税法、交易主体、销售额组成和纳税义务期间判断"},
+      "domain_collaboration": {"lead": "全渠道订单与结算域", "partners": [
+        {"domain": "渠道店铺", "responsibility": "确认店铺主体和全量订单", "handoff": "订单主表"},
+        {"domain": "仓储物流", "responsibility": "确认发货签收退货", "handoff": "履约事件表"},
+        {"domain": "支付资金", "responsibility": "确认支付分账退款和净入账", "handoff": "订单资金链"},
+        {"domain": "平台结算", "responsibility": "解释佣金优惠冻结和账期", "handoff": "毛额净额桥接表"},
+        {"domain": "财税发票", "responsibility": "连接收入、蓝红票和申报", "handoff": "税会期间对照"}
+      ], "conflict_rule": "平台订单、支付和银行到账冲突时按事件时间分别记录，不以净结算金额覆盖订单原价、退款和费用"},
+      "report_contract": {"title": "全渠道订单支付履约与申报核验", "must_state": ["渠道主体", "订单状态", "支付退款", "履约事实", "毛额净额桥接", "税会期间"], "forbidden": ["以银行净入账推定销售额", "把未支付或取消订单计入差异"]},
+      "legacy_absorption": {"legacy_rule_ids": ["64", "176", "502", "601", "993", "1460", "1635", "1673"], "mapping_basis": ["订单金额", "第三方支付", "平台结算", "开票与申报"], "absorption_reason": "把订单、物流、支付、开票和平台净结算比较统一到订单生命周期，显式拆出退款、费用、冻结和跨期。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则只作为调查知识来源；未核验平台字段和交易主体前不得执行。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "订单已支付签收且结算完成，无退款，连续跨期未进入会计和申报", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "平台净入账差额由合同约定佣金、平台券和可核验退款完整解释", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "仅有银行聚合入账且无法取得订单明细", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-03",
+      "name": "退货、退款、红冲与重新开票闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-CIT-REVENUE", "SRC-RET-INVOICE-RULES", "SRC-RET-EINVOICE"],
+      "applicability": {"business": "已发生销售退回、折让、退款、红字发票或换货重新开票", "not_applicable": ["订单从未生效且未收款开票", "仅内部价格调整不影响客户权利", "无法识别原交易"]},
+      "doubt": {"observed_signal": "退货、退款、红冲、折让、换货和重新开票之间缺少原交易对应或金额数量期间不一致", "target_fact": "每笔负向调整是否源于真实原交易和真实售后事实，数量、资金、发票、库存、收入及申报是否同步且未重复冲减。", "must_exclude": ["真实质量退货", "价格折让", "换货后重新开票", "客户拒收", "平台先行退款", "跨期红字确认流程"], "output": "原交易—售后—红票—退款—库存闭环表和未解释差异"},
+      "clue_chain": {"start": "以原订单、原蓝字发票和原收款为锚点", "steps": [
+        {"step": 1, "action": "连接退货申请、审批、原因、商品数量和实物收回", "join_keys": ["original_order_id", "return_id", "sku_id"], "deliverable": "退货事实链"},
+        {"step": 2, "action": "连接退款、拒付、折让和支付原路", "join_keys": ["payment_id", "refund_id", "return_id"], "deliverable": "退款资金链"},
+        {"step": 3, "action": "连接红字确认、红字发票和原蓝票", "join_keys": ["original_invoice_no", "red_invoice_no"], "deliverable": "蓝红票链"},
+        {"step": 4, "action": "连接退货入库、报废、换货出库和重新开票", "join_keys": ["return_id", "replacement_order_id", "replacement_invoice_no"], "deliverable": "售后履约链"},
+        {"step": 5, "action": "核验会计收入成本及各期申报调整且防止重复冲减", "join_keys": ["original_order_id", "tax_period", "accounting_period"], "deliverable": "跨期调整底稿"}
+      ], "terminal": "原交易、售后事实、资金、票据、库存和申报全部对应后才评价负向调整"},
+      "evidence_chain": {"fact_elements": ["原交易存在", "售后原因和审批", "商品是否退回", "款项是否退回", "蓝红票对应", "税会调整及期间"], "supporting_sources": ["原订单合同和蓝票", "退货申请及客服记录", "逆向物流和收货质检", "退款流水", "红字发票及确认信息", "退货入库和会计申报"], "opposing_sources": ["换货重发记录", "价格折让协议", "拒收证明", "平台先赔后追偿", "红字流程跨期记录"], "insufficient_when": ["红票不能对应原票", "退款与退货不能连接", "只比较红冲比例"]},
+      "analysis_chain": {"proposition": "负向调整是否有真实售后事实并在数量、资金、发票和税会期间一致反映", "alternatives": ["真实退货退款", "合法销售折让", "换货重新开票", "平台先行赔付", "红字流程导致合理跨期"], "reasoning": ["锁定原交易", "复原售后时间线", "验证实物和资金", "核对蓝红票关系", "核验换货重开", "检查税会期间和重复冲减", "仅对无事实支撑部分形成待核事项"], "conclusion_ladder": ["售后闭环_关闭", "原交易或期间待补证", "负向调整待调查", "事实充分支持_待审理"], "tax_boundary": "退货、折让和红字发票处理分别依适用期间规则核验，不以红冲比例或次月重开本身推定异常"},
+      "domain_collaboration": {"lead": "售后与红字发票域", "partners": [
+        {"domain": "客服售后", "responsibility": "确认退换折让原因和审批", "handoff": "售后事件表"},
+        {"domain": "逆向物流", "responsibility": "确认实物退回质检和处置", "handoff": "逆向物流链"},
+        {"domain": "支付资金", "responsibility": "确认退款拒付和追偿", "handoff": "退款资金链"},
+        {"domain": "发票", "responsibility": "确认蓝红对应和重开", "handoff": "蓝红票映射"},
+        {"domain": "财税", "responsibility": "确认收入成本和申报调整", "handoff": "跨期调整底稿"}
+      ], "conflict_rule": "红字发票状态与实物、资金事实冲突时保留各链，不用票据状态代替真实退换事实"},
+      "report_contract": {"title": "退货退款红冲及重开闭环核验", "must_state": ["原交易", "售后事实", "实物去向", "退款路径", "蓝红票关系", "跨期和重复调整"], "forbidden": ["红冲即认定虚假", "忽略真实换货或折让"]},
+      "legacy_absorption": {"legacy_rule_ids": ["6", "58", "107", "126", "322", "402", "469", "528", "530", "642", "969"], "mapping_basis": ["销售退回", "退款", "红字发票", "重新开票"], "absorption_reason": "将原库按红冲比例、退款金额、申报差异分别触发的规则，重写为以原交易为锚点的完整售后闭环。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "原有阈值、风险等级和定性文字不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "大额红冲无退货、无退款、无折让协议且对应收入成本被重复冲减", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "质量退货、逆向物流、原路退款、红字发票和退货入库完全一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "红票已开但跨期退款仍在处理中", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-04",
+      "name": "返利、折扣、促销补贴与渠道服务闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-CIT-REVENUE", "SRC-RET-REVENUE-AS14", "SRC-RET-INVOICE-RULES"],
+      "applicability": {"business": "供应商、经销商、门店或平台之间存在返利、折扣、补贴、陈列、进场、推广或渠道服务安排", "not_applicable": ["无商业利益安排", "纯股东分配", "与销售采购无关的政府补助另行判断"]},
+      "doubt": {"observed_signal": "合同中的返利折扣补贴与实际销量、达成条件、结算、发票和税会处理不一致", "target_fact": "每项商业利益的提供方、接受方、真实履约、计量基础、归属期间、结算方式和交易价款关系是否明确。", "must_exclude": ["发票内商业折扣", "销量达标后返利", "真实陈列推广服务", "平台承担优惠", "跨期结算暂估", "依法取得的政府补助"], "output": "商业利益合同矩阵、条件达成和税会处理差异"},
+      "clue_chain": {"start": "从年度框架协议、补充协议和促销方案提取全部利益条款", "steps": [
+        {"step": 1, "action": "分类价格折扣、数量返利、市场补贴和独立服务", "join_keys": ["agreement_id", "benefit_type"], "deliverable": "商业利益分类表"},
+        {"step": 2, "action": "按SKU渠道期间复算条件和应计金额", "join_keys": ["counterparty_id", "sku_id", "channel_id", "earned_period"], "deliverable": "条件达成复算"},
+        {"step": 3, "action": "验证陈列推广等服务的实际履约", "join_keys": ["service_order_id", "store_id", "campaign_id"], "deliverable": "服务履约证据包"},
+        {"step": 4, "action": "连接付款抵扣、发票和结算通知", "join_keys": ["settlement_id", "invoice_no", "payment_id"], "deliverable": "结算票款链"},
+        {"step": 5, "action": "比较合同实质、会计列报和各税种期间", "join_keys": ["agreement_id", "accounting_period", "tax_period"], "deliverable": "权利义务与税会对照"}
+      ], "terminal": "利益性质、履约、计量、结算和期间均被证明后才评价处理差异"},
+      "evidence_chain": {"fact_elements": ["合同权利义务", "利益类型", "条件达成", "实际服务", "结算支付", "发票及税会期间"], "supporting_sources": ["框架及补充协议", "销量和进货台账", "促销陈列方案及验收", "返利计算和结算通知", "发票及付款抵扣", "会计凭证和申报"], "opposing_sources": ["平台承担优惠证明", "价格保护政策", "跨期暂估冲回", "真实服务成果", "政府补助文件"], "insufficient_when": ["只凭会计科目名称", "返利条件无法复算", "服务无验收或反证"]},
+      "analysis_chain": {"proposition": "商业利益实质是交易价格调整、独立服务、代垫款还是其他安排，并是否在正确期间处理", "alternatives": ["发票内商业折扣", "销量返利", "真实独立渠道服务", "平台承担促销", "跨期结算暂估"], "reasoning": ["读取完整合同而非科目名称", "识别利益提供和接受主体", "复算达成条件", "验证服务实质", "还原票款和抵扣", "分别评价会计及税收口径", "对无法解释差异形成待核事实"], "conclusion_ladder": ["商业利益闭环_关闭", "性质或履约待补证", "价款处理待调查", "事实充分支持_待审理"], "tax_boundary": "商业折扣、销售折让、返利和独立服务不是同一概念，必须依合同实质、发票形式、履约和适用期间分别判断"},
+      "domain_collaboration": {"lead": "商业政策与渠道结算域", "partners": [
+        {"domain": "采购销售", "responsibility": "提供完整协议和业务背景", "handoff": "商业条款矩阵"},
+        {"domain": "商品渠道", "responsibility": "复算销量、价格和达成条件", "handoff": "条件达成表"},
+        {"domain": "市场运营", "responsibility": "证明促销陈列和推广履约", "handoff": "服务证据包"},
+        {"domain": "资金结算", "responsibility": "确认支付抵扣和账期", "handoff": "结算资金链"},
+        {"domain": "财税发票", "responsibility": "核验列报、发票和申报", "handoff": "税会处理对照"}
+      ], "conflict_rule": "合同名称、发票品名和会计科目不一致时回到权利义务和实际履约，不以任何单一标签决定性质"},
+      "report_contract": {"title": "返利折扣促销补贴及服务核验", "must_state": ["交易主体", "合同条款", "达成条件", "履约事实", "结算票款", "税会差异"], "forbidden": ["按科目名称直接定性", "无条件复算即否定返利"]},
+      "legacy_absorption": {"legacy_rule_ids": ["59", "1378", "1679"], "mapping_basis": ["商业折扣", "供应商返利", "陈列费", "收入调整"], "absorption_reason": "把少量旧规则从单一票款差异提升为合同条件、实际履约和税会期间共同判断。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "数量较少不代表场景覆盖完成，后续仍需真实协议样本验证。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "以陈列服务名义大额付款，但无门店、档期、成果和验收，金额仅按采购额比例自动计算", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "促销服务有合同、排期、门店影像、第三方数据、验收和合理结算", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "年度返利条件已达成但结算通知跨年到达", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-05",
+      "name": "代销、联营与总额净额角色闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-CIT-REVENUE", "SRC-RET-REVENUE-AS14", "SRC-RET-INVOICE-RULES"],
+      "applicability": {"business": "存在委托代销、受托代销、联营扣点、平台代理、柜台合作或佣金安排", "not_applicable": ["普通买断经销", "仅提供仓储物流", "主体和合同均无法确定"]},
+      "doubt": {"observed_signal": "合同称谓、商品货权、定价控制、库存风险、退货责任、收款开票主体和会计总额净额列报相互矛盾", "target_fact": "本主体在向客户转让前是否控制商品或服务、承担哪些主要风险和义务，以及销售款、代销款和佣金是否按真实角色处理。", "must_exclude": ["买断经销", "附退货权采购", "纯代理撮合", "柜台租赁", "平台代收代付", "暂估未结代销款"], "output": "逐安排角色判断表、货权资金发票路径和总额净额差异"},
+      "clue_chain": {"start": "以每份代销联营协议为分析单元，不按会计科目预设角色", "steps": [
+        {"step": 1, "action": "提取定价、货权、损毁滞销、退货和客户责任", "join_keys": ["arrangement_id", "principal_party"], "deliverable": "权利义务矩阵"},
+        {"step": 2, "action": "连接商品入场、保管、销售、退货和库存归属", "join_keys": ["arrangement_id", "sku_id", "location_id"], "deliverable": "货权履约链"},
+        {"step": 3, "action": "连接客户收款、分账、代销清单和供应商结算", "join_keys": ["order_id", "settlement_id", "counterparty_id"], "deliverable": "资金结算链"},
+        {"step": 4, "action": "连接对客和对供应商发票及申报", "join_keys": ["order_id", "invoice_no", "tax_period"], "deliverable": "发票申报链"},
+        {"step": 5, "action": "根据实际控制和履约复核总额净额及收入期间", "join_keys": ["arrangement_id", "accounting_period"], "deliverable": "角色与列报底稿"}
+      ], "terminal": "控制、风险义务、货权、票款和履约事实完整后才判断角色和期间"},
+      "evidence_chain": {"fact_elements": ["合同安排", "定价和客户责任", "商品控制和风险", "货权及退货", "收款结算", "开票申报和列报"], "supporting_sources": ["代销联营合同", "商品入场销售退货台账", "代销清单和对账单", "客户及供应商结算流水", "双方发票", "会计政策和收入明细"], "opposing_sources": ["买断及货权转移证明", "滞销损失承担记录", "平台纯撮合条款", "租赁固定租金协议", "暂估结算冲回"], "insufficient_when": ["只看合同标题", "未取得实际执行证据", "只比较总额净额"]},
+      "analysis_chain": {"proposition": "主体在交易中是主要责任人还是代理人，以及货款佣金和收入期间是否与实际角色一致", "alternatives": ["买断经销主要责任人", "受托代销代理人", "联营共同安排", "柜台租赁", "平台代收代付"], "reasoning": ["逐合同识别承诺", "确认转让前控制", "评价定价库存退货和履约责任", "追踪货权及客户关系", "还原收款分账开票", "复核总额净额和期间", "保留综合判断依据及反证"], "conclusion_ladder": ["角色列报一致_关闭", "控制事实待补证", "角色与税会待调查", "事实充分支持_待审理"], "tax_boundary": "会计主要责任人判断与各税种纳税义务需要分别援引依据；总额或净额列报本身不直接决定是否少缴税"},
+      "domain_collaboration": {"lead": "合同角色与代销结算域", "partners": [
+        {"domain": "法务合同", "responsibility": "提取权利义务和变更", "handoff": "合同角色矩阵"},
+        {"domain": "商品运营", "responsibility": "确认定价库存和退货责任", "handoff": "实际履约说明"},
+        {"domain": "客户渠道", "responsibility": "确认客户关系和售后责任", "handoff": "客户履约链"},
+        {"domain": "资金结算", "responsibility": "确认代收分账和佣金", "handoff": "结算桥接表"},
+        {"domain": "财税发票", "responsibility": "复核总额净额、发票和申报", "handoff": "角色税会底稿"}
+      ], "conflict_rule": "书面合同与长期实际执行冲突时双线记录并核实变更，不以合同标题或会计列报代替事实"},
+      "report_contract": {"title": "代销联营角色及总额净额核验", "must_state": ["合同安排", "转让前控制", "风险义务", "货权客户", "票款路径", "税会处理"], "forbidden": ["以合同名为代销直接定性", "以净额列报直接认定少报"]},
+      "legacy_absorption": {"legacy_rule_ids": ["626", "691", "838", "1262", "1318", "1715"], "mapping_basis": ["委托代销", "代销商品", "净额法", "佣金收入"], "absorption_reason": "把代销清单时点、库存、开票和申报差异纳入实际控制与主要责任人判断，避免只按到账或会计列报推断。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "需要合同与实际履行共同验证，旧规则不得直接执行。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "主体控制定价、承担库存和退货责任并对客户履约，却仅确认固定佣金且票款申报断链", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "供应商控制商品定价和售后，门店只撮合并按合同收取佣金，票款完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "合同称代销但实际退货和定价资料缺失", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-06",
+      "name": "会员储值、礼券、预付卡与积分核销闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-CIT-REVENUE", "SRC-RET-REVENUE-AS14", "SRC-RET-PREPAID", "SRC-RET-INVOICE-RULES"],
+      "applicability": {"business": "发行或接受储值、单用途预付卡、礼券、代金券、会员余额或积分并发生充值、赠送、核销、退款、过期和清算", "not_applicable": ["银行多用途卡及支付账户监管另行适用", "仅记录普通会员身份无价值余额", "第三方券但本主体不承担履约义务"]},
+      "doubt": {"observed_signal": "充值现金、赠送余额、售卡、开票、消费核销、退款、过期余额和会计申报不能逐钱包滚动复算", "target_fact": "每个钱包或卡券的发行主体、持有人、对价、赠送权益、履约义务、核销商品、退款过期和跨主体清算是否完整。", "must_exclude": ["赠送积分无现金对价", "跨门店未达清算", "退卡退款", "系统迁移余额", "第三方承担优惠", "依法延期或未到履约时点"], "output": "钱包卡券滚动台账、履约及税会期间差异"},
+      "clue_chain": {"start": "以会员、钱包、卡号或券号建立发行至终止的唯一生命周期", "steps": [
+        {"step": 1, "action": "拆分现金充值、赠送、购卡、转赠和开票", "join_keys": ["member_id", "wallet_id", "card_id", "event_id"], "deliverable": "发行充值链"},
+        {"step": 2, "action": "连接资金到账、支付渠道和发行主体", "join_keys": ["payment_id", "issuer_id", "wallet_id"], "deliverable": "充值资金链"},
+        {"step": 3, "action": "连接消费订单、核销、商品、门店和承担优惠方", "join_keys": ["redemption_id", "order_id", "sku_id", "store_id"], "deliverable": "消费核销链"},
+        {"step": 4, "action": "连接退款、过期、冻结、转卡和跨主体清算", "join_keys": ["wallet_id", "refund_id", "settlement_id"], "deliverable": "余额变动链"},
+        {"step": 5, "action": "按钱包滚动复算余额并连接收入、发票和申报期间", "join_keys": ["wallet_id", "accounting_period", "tax_period"], "deliverable": "余额税会桥接表"}
+      ], "terminal": "对价、履约义务、核销和余额变动均可追溯后才评价确认期间"},
+      "evidence_chain": {"fact_elements": ["发行和持有人", "现金与赠送拆分", "履约义务", "消费核销", "退款过期", "发票税会期间"], "supporting_sources": ["会员及钱包事件日志", "售卡充值流水", "卡券条款", "消费订单和核销明细", "退款及跨门店清算", "发票会计和申报"], "opposing_sources": ["赠送活动规则", "第三方承担优惠证明", "真实退卡退款", "系统迁移对账", "冻结解冻记录", "未到期余额"], "insufficient_when": ["只取得期末余额", "现金和赠送无法拆分", "核销不能连接订单"]},
+      "analysis_chain": {"proposition": "储值卡券和积分的对价及履约是否在正确事件和期间进入税会处理", "alternatives": ["尚未履约的预收性质", "赠送权益", "第三方承担优惠", "真实退款", "跨主体清算未达"], "reasoning": ["确认发行和履约主体", "区分现金与赠送", "逐事件复算余额", "连接具体消费履约", "核验退款过期和清算", "分别评价发票会计和税收期间", "仅对无法解释余额形成待核事实"], "conclusion_ladder": ["钱包履约闭环_关闭", "发行或余额待补证", "确认期间待调查", "事实充分支持_待审理"], "tax_boundary": "预付卡监管、会计履约义务和税收纳税义务属于不同规范层次，不得互相替代"},
+      "domain_collaboration": {"lead": "会员权益与预收履约域", "partners": [
+        {"domain": "会员产品", "responsibility": "确认卡券规则和发行主体", "handoff": "权益条款表"},
+        {"domain": "支付资金", "responsibility": "确认充值退款和支付渠道", "handoff": "充值资金链"},
+        {"domain": "门店订单", "responsibility": "确认消费商品和实际履约", "handoff": "核销订单链"},
+        {"domain": "系统技术", "responsibility": "提供不可篡改事件日志和迁移对账", "handoff": "钱包事件轨迹"},
+        {"domain": "财税发票", "responsibility": "核验收入、开票和申报期间", "handoff": "余额税会底稿"}
+      ], "conflict_rule": "期末余额与事件日志冲突时不得以手工余额覆盖事件，必须重建调整来源和审批"},
+      "report_contract": {"title": "会员储值卡券积分履约核验", "must_state": ["发行主体", "现金赠送", "履约义务", "核销退款", "期末余额", "税会期间"], "forbidden": ["全部充值立即认定收入", "全部过期余额自动认定应税"]},
+      "legacy_absorption": {"legacy_rule_ids": ["198", "428", "1323", "1324", "1330"], "mapping_basis": ["预付卡", "会员储值", "积分发放与兑换", "发票和申报"], "absorption_reason": "把售卡、充值余额、积分核销和发票申报比较统一为逐钱包履约义务和余额事件链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "未验证卡券条款和履约主体前不允许执行。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "大量余额已消费核销且商品已交付，税会长期仍保持未履约状态，无退款或跨店未达", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "未到期储值余额、现金和赠送拆分清晰，核销和退款均可滚动复算", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "只有期末储值余额和充值总额，缺少逐笔核销", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "RET-07",
+      "name": "现金、聚合支付与个人账户收款闭环",
+      "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-RET-VAT-LAW", "SRC-RET-VAT-RULES", "SRC-RET-INVOICE-RULES", "SRC-RET-ONLINE-TRADE"],
+      "applicability": {"business": "门店或线上业务使用现金、POS、微信支付宝、聚合支付、收款码或与经营相关的个人账户收退款", "not_applicable": ["纯对公单一结算且已完整对应订单", "个人账户与经营无可验证关系", "依法取得和使用边界不明确的外部数据"]},
+      "doubt": {"observed_signal": "班次销售、订单、支付商户号、聚合结算、现金缴存、个人账户和会计申报之间存在无法解释缺口", "target_fact": "每笔或每班次收款的实际付款人、交易订单、商户及受益主体、退款和结算去向是否可识别，非销售流入是否有独立证据。", "must_exclude": ["股东借款或出资", "账户间划转", "真实退款", "代收代付", "押金及保证金", "平台结算和手续费", "家庭或个人非经营交易"], "output": "支付渠道—商户—账户—订单桥接表和待核资金，不把账户总流入直接作为收入"},
+      "clue_chain": {"start": "建立所有门店、收银台、收款码、商户号和结算账户的控制关系", "steps": [
+        {"step": 1, "action": "连接班次、收银员、POS订单和现金长短款", "join_keys": ["store_id", "shift_id", "cashier_id"], "deliverable": "门店班次日结"},
+        {"step": 2, "action": "连接支付流水、商户号、订单号和退款", "join_keys": ["merchant_id", "payment_id", "order_id", "refund_id"], "deliverable": "电子支付订单链"},
+        {"step": 3, "action": "还原聚合支付结算、手续费、冻结和银行净入账", "join_keys": ["settlement_id", "merchant_id", "bank_transaction_id"], "deliverable": "聚合结算桥接表"},
+        {"step": 4, "action": "识别与经营有关的个人账户收退款并逐笔询证用途", "join_keys": ["account_holder", "payer_id", "amount", "event_time"], "deliverable": "个人账户待核清单"},
+        {"step": 5, "action": "连接现金缴存、会计收入、发票和申报，分离非销售流入", "join_keys": ["store_id", "business_date", "tax_period"], "deliverable": "全渠道收款税会对照"}
+      ], "terminal": "收款主体、订单、退款、结算和非销售性质均有证据后才形成资金差异"},
+      "evidence_chain": {"fact_elements": ["收款工具控制关系", "付款人与订单", "商品服务履约", "退款和手续费", "资金最终去向", "非销售性质及税会期间"], "supporting_sources": ["门店收银日结", "支付机构及聚合平台明细", "商户号绑定资料", "银行和现金日记账", "个人账户依法取得流水", "订单发票会计申报"], "opposing_sources": ["借款出资协议及回款", "账户间同名划转", "押金保证金合同", "代收代付及支付去向", "真实退款", "平台手续费和冻结"], "insufficient_when": ["只比较账户总流入", "商户号控制人未知", "未排除非销售流入"]},
+      "analysis_chain": {"proposition": "多通道收款中无法解释部分是否对应本主体已履约但未进入税会处理的交易", "alternatives": ["借款出资", "账户划转", "押金保证金", "代收代付", "退款及平台结算差", "个人非经营交易"], "reasoning": ["确认账户和商户号控制关系", "逐笔或按班次连接订单", "验证实际履约", "还原退款费用冻结", "分离非销售流入", "连接发票会计申报", "对剩余经营性收款形成待核事实"], "conclusion_ladder": ["全渠道收款闭环_关闭", "账户或用途待补证", "经营性收款待调查", "事实充分支持_待审理"], "tax_boundary": "账户流水是资金事实而非税收结论；调取、使用和个人信息处理必须依法，且销售额和纳税义务期间需另行核验"},
+      "domain_collaboration": {"lead": "支付资金与门店收入域", "partners": [
+        {"domain": "门店收银", "responsibility": "确认班次订单现金和长短款", "handoff": "班次日结表"},
+        {"domain": "支付平台", "responsibility": "确认商户号、退款、分账和结算", "handoff": "支付结算明细"},
+        {"domain": "银行资金", "responsibility": "确认账户控制和最终入账", "handoff": "账户资金链"},
+        {"domain": "法务内控", "responsibility": "核验个人账户使用和非销售事项", "handoff": "用途证明包"},
+        {"domain": "财税发票", "responsibility": "连接订单、收入、发票和申报", "handoff": "全渠道税会对照"}
+      ], "conflict_rule": "支付平台、银行和门店日结冲突时保留全部原始流水及时间戳，不用汇总补录覆盖缺口"},
+      "report_contract": {"title": "现金聚合支付及个人账户收款核验", "must_state": ["账户商户控制", "订单履约", "退款费用", "非销售流入", "个人信息边界", "税会差异"], "forbidden": ["账户总流入等同收入", "无法证明非经营即推定经营"]},
+      "legacy_absorption": {"legacy_rule_ids": ["96", "173", "249", "427", "671", "1375", "1387", "1397", "1410", "1549", "1554", "1611", "1691"], "mapping_basis": ["个人账户", "收款码和聚合支付", "现金缴存", "银行与申报"], "absorption_reason": "把原库多条银行流入差异规则收束为账户控制、订单履约、非销售排除和最终入账的证据链，禁止账户总流入直接定性。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "个人账户数据须依法取得；旧阈值和定性不继承。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "经营收款码绑定个人账户，逐笔对应已完成订单且无退款，长期未进入企业账和申报", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "大额账户流入由股东借款合同、付款方询证、入账凭证和后续还款完整证明", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "个人账户存在频繁收款但无法取得订单、付款人和用途资料", "expected": "待补资料_可初筛"}
+      ]
+    }
+  ]
+}

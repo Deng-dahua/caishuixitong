@@ -44,6 +44,13 @@ SCENE_REWRITE_ROUTING = {
     "REA-06": ("开发成本", "成本对象", "公共配套", "建安造价"),
     "REA-07": ("车位", "储藏室", "人防", "代收费用"),
     "REA-08": ("员工购房", "内部认购", "特殊价格", "低价售房"),
+    "RET-01": ("进销存", "库存商品", "仓库", "门店库存", "调拨", "盘点"),
+    "RET-02": ("订单支付", "订单金额", "第三方支付", "平台结算", "线上订单"),
+    "RET-03": ("销售退回", "销售退货", "退货退款", "红字发票", "红冲", "销售折让"),
+    "RET-04": ("供应商返利", "销售返利", "渠道返利", "商业折扣", "促销补贴", "陈列费"),
+    "RET-05": ("委托代销", "受托代销", "代销商品", "联营", "主要责任人", "净额法", "佣金收入"),
+    "RET-06": ("预付卡", "储值卡", "会员储值", "礼品卡", "积分兑换", "积分核销"),
+    "RET-07": ("个人账户收款", "个人卡收款", "私户收款", "聚合支付", "收款码", "现金收款"),
 }
 
 REWRITE_PHASES = [
@@ -114,7 +121,28 @@ def _candidate_scene_ids(rule):
     )
 
 
-def _rewrite_record(rule, duplicate_by_rule):
+def build_absorption_map(contract_payloads):
+    """从场景合同生成旧规则到已吸收场景的只读映射。"""
+    mapping = defaultdict(set)
+    payloads = contract_payloads if isinstance(contract_payloads, (list, tuple)) else [contract_payloads]
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        for scene in payload.get("scenarios", []):
+            if not isinstance(scene, dict):
+                continue
+            scene_id = str(scene.get("id", "") or "").strip()
+            absorption = scene.get("legacy_absorption") or {}
+            if not scene_id or not isinstance(absorption, dict):
+                continue
+            for legacy_id in absorption.get("legacy_rule_ids", []):
+                legacy_id = str(legacy_id or "").strip()
+                if legacy_id:
+                    mapping[legacy_id].add(scene_id)
+    return {legacy_id: sorted(scene_ids) for legacy_id, scene_ids in mapping.items()}
+
+
+def _rewrite_record(rule, duplicate_by_rule, absorption_by_rule=None):
     governance = _governance_for_rule(rule, duplicate_by_rule)
     legacy_id = str(rule.get("id", ""))
     title = str(rule.get("item", "") or "").strip()
@@ -125,6 +153,7 @@ def _rewrite_record(rule, duplicate_by_rule):
     ))
     fingerprint = hashlib.sha256(fingerprint_source.encode("utf-8")).hexdigest()[:16]
     candidate_scenes = _candidate_scene_ids(rule)
+    absorbed_scene_ids = sorted((absorption_by_rule or {}).get(legacy_id, []))
     if governance["duplicate_rule_ids"]:
         gate = "G0_待去重归并"
     elif governance["provenance_status"] != "official_provenance_recorded":
@@ -146,16 +175,29 @@ def _rewrite_record(rule, duplicate_by_rule):
         "duplicate_rule_ids": governance["duplicate_rule_ids"],
         "provenance_status": governance["provenance_status"],
         "candidate_scene_ids": candidate_scenes,
-        "scene_mapping_status": "candidate_only" if candidate_scenes else "unassigned",
+        "absorbed_scene_ids": absorbed_scene_ids,
+        "scene_mapping_status": (
+            "absorbed_contract" if absorbed_scene_ids else
+            ("candidate_only" if candidate_scenes else "unassigned")
+        ),
         "current_gate": gate,
-        "migration_status": "queued_not_rewritten",
+        "migration_status": (
+            "absorbed_into_scene_contract_not_released"
+            if absorbed_scene_ids else "queued_not_rewritten"
+        ),
         "release_status": "candidate_not_executable",
-        "next_action": governance["next_action"],
+        "next_action": (
+            "已归并到场景合同；继续完成官方溯源、字段映射、真实正反例验证和具名复核，未通过G5前不得执行。"
+            if absorbed_scene_ids else governance["next_action"]
+        ),
     }
 
 
-def _rewrite_records(rules, duplicate_by_rule):
-    return [_rewrite_record(rule, duplicate_by_rule) for rule in rules]
+def _rewrite_records(rules, duplicate_by_rule, absorption_by_rule=None):
+    return [
+        _rewrite_record(rule, duplicate_by_rule, absorption_by_rule)
+        for rule in rules
+    ]
 
 
 def _rewrite_summary(records):
@@ -170,6 +212,10 @@ def _rewrite_summary(records):
         "legacy_rules": len(records),
         "legacy_rules_preserved": sum(record["legacy_preserved"] for record in records),
         "queued_not_rewritten": sum(record["migration_status"] == "queued_not_rewritten" for record in records),
+        "absorbed_into_scene_contract": sum(
+            record["migration_status"] == "absorbed_into_scene_contract_not_released"
+            for record in records
+        ),
         "candidate_scene_mapped": sum(bool(record["candidate_scene_ids"]) for record in records),
         "waiting_scene_assignment": sum(not record["candidate_scene_ids"] for record in records),
         "released_from_legacy_library": 0,
@@ -227,12 +273,12 @@ def _governance_for_rule(rule, duplicate_by_rule):
     }
 
 
-def build_candidate_governance(rules, queue_limit=80):
+def build_candidate_governance(rules, queue_limit=80, absorption_map=None):
     """生成全量治理摘要和可排序整改队列。"""
     rules = [rule for rule in (rules or []) if isinstance(rule, dict)]
     duplicate_clusters, duplicate_by_rule = _duplicate_index(rules)
     items = [_governance_for_rule(rule, duplicate_by_rule) for rule in rules]
-    rewrite_records = _rewrite_records(rules, duplicate_by_rule)
+    rewrite_records = _rewrite_records(rules, duplicate_by_rule, absorption_map)
     source_distribution = Counter(item["provenance_status"] for item in items)
     maturity_distribution = Counter(item["maturity"] for item in items)
     raw_unsafe = sum(bool(item["unsafe_raw_fields"]) for item in items)
@@ -246,7 +292,7 @@ def build_candidate_governance(rules, queue_limit=80):
         ),
     )
     return {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "positioning": "治理清单只说明候选知识的质量和整改顺序，不把法条文字、模型生成或风险等级当成规则验证。",
         "summary": {
             "candidate_rules": len(rules),
@@ -266,8 +312,8 @@ def build_candidate_governance(rules, queue_limit=80):
         "duplicate_clusters": list(duplicate_clusters.values()),
         "priority_queue": queue[:max(int(queue_limit or 0), 0)],
         "rewrite_program": {
-            "version": "1.0.0",
-            "positioning": "1720条旧规则全部冻结为只读候选并进入迁移账册；重写结果按真实场景归并，不追求与旧库一一对应或维持1720条数量。",
+            "version": "1.1.0",
+            "positioning": "1720条旧规则全部冻结为只读候选并进入迁移账册；已吸收记录只表示旧知识已归并到真实场景合同，未吸收记录继续排队，二者均不得直接执行。重写不追求与旧库一一对应，也不追求维持1720条最终数量。",
             "summary": _rewrite_summary(rewrite_records),
             "phases": REWRITE_PHASES,
             "invariants": [
@@ -288,17 +334,17 @@ def build_candidate_governance(rules, queue_limit=80):
     }
 
 
-def build_candidate_rewrite_ledger(rules, offset=0, limit=80):
+def build_candidate_rewrite_ledger(rules, offset=0, limit=80, absorption_map=None):
     """返回可分页的全量候选规则迁移账册，不改写原始规则。"""
     source_rules = [rule for rule in (rules or []) if isinstance(rule, dict)]
     duplicate_clusters, duplicate_by_rule = _duplicate_index(source_rules)
-    records = _rewrite_records(source_rules, duplicate_by_rule)
+    records = _rewrite_records(source_rules, duplicate_by_rule, absorption_map)
     offset = max(int(offset or 0), 0)
     limit = min(max(int(limit or 0), 1), 200)
     page = records[offset:offset + limit]
     return {
-        "version": "1.0.0",
-        "positioning": "迁移账册记录旧规则如何进入去重、溯源、场景化和验证流程；账册状态不表示已经重写或可以执行。",
+        "version": "1.1.0",
+        "positioning": "迁移账册记录旧规则如何进入去重、溯源、场景吸收和验证流程；已吸收只表示内容进入对应场景合同，未通过G5仍不可执行。",
         "summary": _rewrite_summary(records),
         "phases": REWRITE_PHASES,
         "duplicate_clusters": list(duplicate_clusters.values()),
