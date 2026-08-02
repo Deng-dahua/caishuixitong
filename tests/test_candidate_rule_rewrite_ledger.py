@@ -24,12 +24,16 @@ class CandidateRuleRewriteLedgerTests(unittest.TestCase):
         cls.agriculture_contracts = json.loads(
             (STATIC / "agriculture_scenario_contracts.json").read_text(encoding="utf-8")
         )
+        cls.mining_contracts = json.loads(
+            (STATIC / "mining_scenario_contracts.json").read_text(encoding="utf-8")
+        )
 
     def test_all_legacy_rules_are_preserved_and_queued_not_released(self):
         from engine.candidate_rule_governance import build_absorption_map, build_candidate_rewrite_ledger
 
         absorption_map = build_absorption_map([
-            self.contracts, self.platform_contracts, self.agriculture_contracts
+            self.contracts, self.platform_contracts, self.agriculture_contracts,
+            self.mining_contracts,
         ])
         ledger = build_candidate_rewrite_ledger(
             self.rules, offset=0, limit=200, absorption_map=absorption_map
@@ -37,8 +41,8 @@ class CandidateRuleRewriteLedgerTests(unittest.TestCase):
         summary = ledger["summary"]
         self.assertEqual(summary["legacy_rules"], 1720)
         self.assertEqual(summary["legacy_rules_preserved"], 1720)
-        self.assertEqual(summary["absorbed_into_scene_contract"], 140)
-        self.assertEqual(summary["queued_not_rewritten"], 1580)
+        self.assertEqual(summary["absorbed_into_scene_contract"], 167)
+        self.assertEqual(summary["queued_not_rewritten"], 1553)
         self.assertEqual(summary["released_from_legacy_library"], 0)
         self.assertEqual(ledger["returned"], 200)
         self.assertTrue(ledger["has_more"])
@@ -52,14 +56,15 @@ class CandidateRuleRewriteLedgerTests(unittest.TestCase):
         governance = build_candidate_governance(
             self.rules,
             absorption_map=build_absorption_map([
-                self.contracts, self.platform_contracts, self.agriculture_contracts
+                self.contracts, self.platform_contracts, self.agriculture_contracts,
+                self.mining_contracts,
             ]),
         )
         program = governance["rewrite_program"]
         self.assertEqual([phase["id"] for phase in program["phases"]], ["G0", "G1", "G2", "G3", "G4", "G5"])
         self.assertIn("不追求与旧库一一对应", program["positioning"])
         self.assertTrue(any("多条旧规则可以归并" in item for item in program["invariants"]))
-        self.assertEqual(program["summary"]["absorbed_into_scene_contract"], 140)
+        self.assertEqual(program["summary"]["absorbed_into_scene_contract"], 167)
         self.assertEqual(program["summary"]["released_from_legacy_library"], 0)
 
     def test_read_only_api_and_frontend_expose_paginated_ledger(self):

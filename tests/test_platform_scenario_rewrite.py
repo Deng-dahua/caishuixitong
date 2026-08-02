@@ -111,14 +111,14 @@ class PlatformScenarioIntegrationTests(unittest.TestCase):
         from engine.methodology_coverage import build_methodology_coverage
 
         report = build_methodology_coverage(STATIC)
-        self.assertEqual(report["version"], "1.6.0")
-        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 47)
+        self.assertEqual(report["version"], "1.7.0")
+        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 55)
         overlay = report["overlay_scenario_summary"]
         self.assertEqual(overlay["rewritten_m25_scenarios"], 8)
         self.assertEqual(overlay["verified_specific_rules"], 0)
         self.assertIn("待脱敏真实样本验证", overlay["state"])
         rewrite = report["candidate_governance"]["rewrite_program"]["summary"]
-        self.assertEqual(rewrite["absorbed_into_scene_contract"], 140)
+        self.assertEqual(rewrite["absorbed_into_scene_contract"], 167)
         self.assertEqual(rewrite["queued_not_rewritten"] + rewrite["absorbed_into_scene_contract"], 1720)
         self.assertEqual(rewrite["released_from_legacy_library"], 0)
 
@@ -131,7 +131,7 @@ class PlatformScenarioIntegrationTests(unittest.TestCase):
         self.assertIn("/api/methodology/assets/platform_scenario_contracts", frontend)
         self.assertIn("平台经济叠加场景五链配套重写", frontend)
         self.assertIn("平台经济叠加能力", frontend)
-        self.assertIn("tax-pipeline-pages.js?v=2026080209", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080301", index)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,275 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-08-03",
+  "name": "采矿业稽查场景五链配套合同",
+  "industry_code": "B",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "以矿业权、矿区、矿种、采区、生产班次、矿石批次和销售结算批次为主轴，贯通储量动用、采剥、运输、破碎洗选、品位水分化验、堆场库存、销售交付、资源税、矿业权出让收益、安全生产费用和矿区生态修复。核定产能、设计回采率、行业单耗、市场均价和第三方模型只能提出核验问题；必须先统一矿种、原矿或选矿产品、计量单位、干湿基、品位、期间、货权和合法数据来源，再评价差异。系统只输出待证事实、资料缺口和受控调查计划，不自动推定超采、少报收入、关联交易不公允、偷逃税、处罚或立案。",
+  "release_boundary": [
+    "先确认矿业权人、实际开采经营者、许可证有效期间、登记矿区、矿种、开采方式、核定生产能力、采区和纳税主体，再启用对应场景",
+    "储量、地质品位、设计回采率、贫化率、选矿回收率和核定产能均有技术口径与适用期间，不能把任一理论参数直接当成实际产量或销量",
+    "原矿、选矿产品、尾矿、副产品和外购矿产品必须分别标识；吨、立方米、湿基、干基、金属量、热值和品位折算须保留原始值、方法、化验来源和不确定性",
+    "资源税税目、征税对象、计征方式、税率、运杂费扣除、外购扣减、自用和减免必须按矿种、地区、交易及申报期间逐项核验",
+    "矿业权、自然资源、应急、生态环境、能源、海关、港口、轨迹和地磅数据仅在依法取得、最小必要、用途限定、字段释义明确和访问留痕条件下使用",
+    "现场停产、检修、安全限产、地质变化、贫化、含水率、库存跨期、代加工和外购混配等正常解释必须先验证，模型不得用行业均值覆盖现场证据",
+    "2026年6月15日起适用新的矿产资源法实施条例，2026年8月1日起适用矿业权出让收益新规定；被废止或被替代的旧规不得作为现行结论依据",
+    "M3放行需要脱敏真实矿山样本、矿种和地区参数、计量化验字段映射、正反例、误报漏报记录、官方来源期间核验和具名复核"
+  ],
+  "official_sources": [
+    {"id": "SRC-MIN-MRL", "name": "中华人民共和国矿产资源法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2025-07-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193020/content.html"},
+    {"id": "SRC-MIN-MRL-RULES", "name": "中华人民共和国矿产资源法实施条例", "issuer": "国务院", "effective_period": "2026-06-15起施行；同时废止旧实施细则及多项旧矿业权登记转让办法", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100010/c5250264/content.html"},
+    {"id": "SRC-MIN-RESOURCE-LAW", "name": "中华人民共和国资源税法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2020-09-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193040/content.html"},
+    {"id": "SRC-MIN-RESOURCE-34", "name": "资源税有关问题执行口径公告", "issuer": "财政部、国家税务总局", "effective_period": "2020-09-01起施行；原矿加工选矿产品、运杂费及减免分别核算按现行条款执行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202198/content.html"},
+    {"id": "SRC-MIN-RESOURCE-14", "name": "资源税征收管理若干问题公告", "issuer": "国家税务总局", "effective_period": "2020-09-01起施行；正文部分有效，申报表附件已废止", "url": "https://shanghai.chinatax.gov.cn/zcfw/zcfgk/zys/202009/t455046.html"},
+    {"id": "SRC-MIN-RESOURCE-2025", "name": "关于明确资源税有关政策执行口径的公告", "issuer": "财政部、国家税务总局", "effective_period": "2025-12-01起施行；涵盖尾矿、煤及稀土等征税对象、外购扣减、关联交易、减免和义务时间", "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5245170/content.html"},
+    {"id": "SRC-MIN-PROCEEDS-2023", "name": "矿业权出让收益征收办法", "issuer": "财政部、自然资源部、国家税务总局", "effective_period": "2023-05-01起施行，结合后续现行文件执行", "url": "https://www.mof.gov.cn/gkml/caizhengwengao/wg2023/wg202304/202309/t20230922_3908747.htm"},
+    {"id": "SRC-MIN-PROCEEDS-2026", "name": "进一步完善矿业权出让收益征收有关工作的通知", "issuer": "财政部、自然资源部、国家税务总局", "effective_period": "2026-08-01起施行；此前规定与其不符的以该通知为准", "url": "https://fgk.chinatax.gov.cn/zcfgk/c102416/c5250578/content.html"},
+    {"id": "SRC-MIN-SAFETY", "name": "企业安全生产费用提取和使用管理办法", "issuer": "财政部、应急管理部", "effective_period": "财资〔2022〕136号施行期间；矿山企业按对应类别、产量或规定基础核验", "url": "https://www.mof.gov.cn/gkml/caizhengwengao/wg2022/wg202212/202304/t20230407_3877736.htm"},
+    {"id": "SRC-MIN-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人民代表大会常务委员会", "effective_period": "2026-01-01起施行", "url": "https://fgk.chinatax.gov.cn/zcfgk/c100009/c5237365/content.html"}
+  ],
+  "common_contract": {
+    "identity_keys": ["company_id", "taxpayer_id", "mining_right_holder_id", "operator_id", "contractor_id", "counterparty_id"],
+    "resource_keys": ["mining_right_id", "license_no", "mine_id", "mining_area_id", "ore_type_id", "stope_id", "reserve_block_id"],
+    "production_keys": ["shift_id", "blast_id", "haul_batch_id", "raw_ore_batch_id", "beneficiation_batch_id", "stockpile_id", "tailings_batch_id"],
+    "time_keys": ["license_period", "operation_date", "shift_time", "weighing_time", "assay_time", "delivery_time", "tax_period", "policy_period"],
+    "transaction_keys": ["contract_id", "settlement_id", "weighing_id", "transport_id", "delivery_id", "invoice_no", "payment_id", "customs_declaration_no"],
+    "measure_keys": ["quantity_original", "unit_original", "quantity_standard", "wet_dry_basis", "moisture_rate", "ore_grade", "metal_content", "calorific_value", "recovery_rate", "loss_quantity"],
+    "source_lineage": ["source_file", "source_sheet", "source_row", "source_system", "collector", "collected_at", "file_sha256", "access_basis", "calibration_status"],
+    "allowed_states": ["不适用", "资料不足_未启动", "待补资料_可初筛", "资料就绪_待人工核验", "存在矛盾_待调查", "解释成立_关闭", "事实部分支持_待补证", "事实充分支持_待审理"],
+    "forbidden_outputs": ["以许可证产能直接推定实际开采量", "以储量变化直接核定销量", "以行业回采率直接推定隐匿产量", "以市场均价直接核定关联交易价格", "把原矿与选矿产品混为同一计税对象", "忽略品位水分和计量不确定性", "自动认定超层越界开采", "自动认定少缴资源税", "自动核定税额", "自动处罚建议", "自动立案"]
+  },
+  "scenarios": [
+    {
+      "id": "MIN-01", "name": "矿业权、许可矿区、储量动用与核定产能边界", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-MRL", "SRC-MIN-MRL-RULES"],
+      "applicability": {"business": "持有或实际运营探矿权、采矿权并在具体矿区开展勘查、建设或开采", "not_applicable": ["仅购买矿产品转售", "只提供技术服务且不控制开采", "许可证、矿种和矿区无法定位"]},
+      "doubt": {"observed_signal": "许可证矿区、矿种、核定能力、储量报告、采剥工程、产量和资源税申报之间出现范围或数量差异", "target_fact": "报告期间的权利主体、许可范围、实际采区、动用储量、实际采出量及停产限产事件是否可以逐期复原。", "must_exclude": ["建设期尚未达产", "安全环保停产限产", "检修和地质灾害", "采剥比及贫化率变化", "储量重估或分类转换", "外购矿石进入生产系统"], "output": "矿业权—矿区—储量块段—采区—期间事实矩阵和补证清单，不以许可证产能或储量变化直接推定产量"},
+      "clue_chain": {"start": "建立矿业权、许可证、矿业权出让合同、矿区坐标、矿种、有效期和权利变更清单", "steps": [
+        {"step": 1, "action": "连接开发利用方案、开采设计、核定能力、年度计划和采掘进度图", "join_keys": ["mining_right_id", "mine_id", "policy_period"], "deliverable": "许可与计划边界"},
+        {"step": 2, "action": "连接储量报告、年度储量变化、动用块段、测量验收和地质解释", "join_keys": ["reserve_block_id", "mining_area_id", "report_date"], "deliverable": "储量动用链"},
+        {"step": 3, "action": "连接采区、爆破、铲装、运输、班次和原矿计量", "join_keys": ["stope_id", "blast_id", "shift_id", "haul_batch_id"], "deliverable": "实际开采事件链"},
+        {"step": 4, "action": "标记基建矿、试生产、停产、限产、检修和灾害期间", "join_keys": ["mine_id", "operation_date", "event_id"], "deliverable": "产能可用期间表"},
+        {"step": 5, "action": "将实际采出、入选、库存、销售和资源税期间连接并保留口径差异", "join_keys": ["raw_ore_batch_id", "stockpile_id", "tax_period"], "deliverable": "许可生产税会对照"}
+      ], "terminal": "只有权利期间、空间范围、矿种、采区事件和实际计量连续后，才把剩余差异交给产量平衡或资源税场景"},
+      "evidence_chain": {"fact_elements": ["矿业权主体及期间", "登记矿区和矿种", "核定能力适用口径", "储量块段及动用", "实际采掘事件", "原矿计量及申报"], "supporting_sources": ["许可证和出让合同", "矿区坐标与采掘图", "开发利用方案及核定文件", "储量报告和测量验收", "爆破铲装运输班报", "原矿计量库存申报"], "opposing_sources": ["建设试生产批复", "停产限产通知", "检修和灾害记录", "地质变化说明", "储量重估报告", "外购矿石台账"], "insufficient_when": ["只比较许可证年产量和销量", "储量口径或块段不一致", "缺少实际采区和班次计量"]},
+      "analysis_chain": {"proposition": "许可储量与实际生产申报差异是否反映权利范围、生产记录或申报链条的真实断点", "alternatives": ["未达产或停限产", "储量分类转换", "地质贫化", "跨期堆存", "外购混入"], "reasoning": ["确认主体和许可证期间", "空间定位矿区采区", "区分储量与实际采出概念", "验证计划和可用产能期间", "复原采掘运输计量", "连接入选库存销售申报", "评价支持证据和反证"], "conclusion_ladder": ["许可生产闭环_关闭", "空间期间待补证", "实际采出待调查", "事实充分支持_待审理"], "tax_boundary": "许可证能力、储量和监管统计均不是税收计税依据本身；税收结论必须回到应税产品、真实交易、自用、期间和现行政策"},
+      "domain_collaboration": {"lead": "矿业权与开采实质域", "partners": [
+        {"domain": "自然资源矿业权", "responsibility": "确认权利、矿区、矿种、储量和变更", "handoff": "矿业权空间期间底图"},
+        {"domain": "地质测量", "responsibility": "解释储量块段、动用和重估", "handoff": "储量动用表"},
+        {"domain": "生产调度", "responsibility": "提供采区班次和停限产事件", "handoff": "采掘事件链"},
+        {"domain": "计量仓储", "responsibility": "确认原矿计量和堆场去向", "handoff": "原矿批次链"},
+        {"domain": "财税申报", "responsibility": "核验销售、自用和资源税期间", "handoff": "生产申报对照"}
+      ], "conflict_rule": "储量模型、监管统计与班次实测冲突时保留口径、测量日期和不确定性，不用单一模型覆盖现场原始记录"},
+      "report_contract": {"title": "矿业权许可储量动用与实际开采边界核验", "must_state": ["权利主体期间", "空间矿种", "储量口径", "采区班次", "停限产事件", "计量申报"], "forbidden": ["许可证产能直接等于产量", "储量减少直接等于销售"]},
+      "legacy_absorption": {"legacy_rule_ids": ["956", "1184"], "mapping_basis": ["自然资源监测开采量", "许可证年产量", "资源税申报数量"], "absorption_reason": "将旧库许可证或第三方开采量与申报量的直接比较，重写为权利、空间、储量口径、可用产能期间、实际采掘和计量逐层验证；旧阈值不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "许可能力和监管估算仅触发核验，不直接证明实际开采、销量或税收违法。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "持续生产的采区有爆破、铲装、运输和地磅记录，原矿进入堆场但生产、库存和申报均缺失且无外购或跨期解释", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "许可证能力较高但因安全整改停产，监管通知、用能、人员、爆破和地磅记录一致为零", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "许可证年产量高于申报销量，但没有采区班报、库存和停产资料", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-02", "name": "采剥、原矿、选矿、精矿、尾矿与库存质量平衡", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-MRL", "SRC-MIN-RESOURCE-34", "SRC-MIN-RESOURCE-2025"],
+      "applicability": {"business": "存在采剥、破碎、筛分、洗选、磨矿、浮选或其他选矿环节并形成原矿、选矿产品、尾矿或副产品", "not_applicable": ["纯矿产品贸易", "无任何加工且只按交付批次销售", "无法确认矿种和计量基准"]},
+      "doubt": {"observed_signal": "采出、入选、精矿、尾矿、副产品、能耗、品位和堆场库存之间出现无法解释的数量或金属量差异", "target_fact": "每个矿石批次从采区到原矿堆、选矿流程、精矿尾矿、副产品、库存和销售的数量与质量去向是否完整。", "must_exclude": ["水分和干湿基差异", "品位波动及贫化", "在制品和管线滞留", "合理工艺损失", "循环水或介质影响", "委托选矿和外购混配"], "output": "矿石批次数量—品位—金属量平衡表、差异区间和补证事项，不用理论回收率或电耗直接推定隐匿产量"},
+      "clue_chain": {"start": "按矿种、采区、班次和原矿批次统一吨、体积、干湿基、品位和化验方法", "steps": [
+        {"step": 1, "action": "连接爆破、铲装、运输和原矿地磅或体积测量", "join_keys": ["stope_id", "shift_id", "raw_ore_batch_id"], "deliverable": "采出原矿账"},
+        {"step": 2, "action": "连接原矿堆场、领料、破碎筛分、入选和在制品", "join_keys": ["raw_ore_batch_id", "stockpile_id", "beneficiation_batch_id"], "deliverable": "原矿入选链"},
+        {"step": 3, "action": "连接化验样品、品位水分、工艺参数、精矿、尾矿和副产品计量", "join_keys": ["beneficiation_batch_id", "sample_id", "assay_id"], "deliverable": "选矿质量链"},
+        {"step": 4, "action": "按批次复算数量平衡和金属量平衡并记录测量误差", "join_keys": ["ore_type_id", "wet_dry_basis", "assay_method_id"], "deliverable": "双重平衡表"},
+        {"step": 5, "action": "连接精矿尾矿库存、销售、自用、再选、处置和会计申报", "join_keys": ["beneficiation_batch_id", "stockpile_id", "delivery_id"], "deliverable": "产品去向税会链"}
+      ], "terminal": "数量、质量、在制品、损失和全部去向可解释后，剩余差异才进入销售完整性或资源税核验"},
+      "evidence_chain": {"fact_elements": ["采出原矿批次", "入选数量", "品位水分", "精矿产出", "尾矿副产品", "库存销售自用去向"], "supporting_sources": ["采掘运输班报", "原矿地磅堆场", "领料和选矿日报", "取样化验及复检", "精尾矿计量盘点", "销售自用处置税会"], "opposing_sources": ["干湿基折算", "地质品位变化", "在制品盘点", "工艺检修记录", "委托选矿结算", "外购矿石混配"], "insufficient_when": ["只用理论回收率", "化验样品与批次无谱系", "忽略在制品和测量误差"]},
+      "analysis_chain": {"proposition": "数量或金属量缺口是否反映生产记录、库存去向或销售申报断裂", "alternatives": ["含水率变化", "品位贫化", "正常尾损", "跨期在制", "外购委托混配"], "reasoning": ["统一矿种和计量基准", "锁定采出原矿批次", "验证入选和在制品", "核对样品化验谱系", "复算数量与金属量", "追踪精尾矿全部去向", "分别评价支持和反向证据"], "conclusion_ladder": ["质量平衡闭环_关闭", "计量化验待补证", "产品去向待调查", "事实充分支持_待审理"], "tax_boundary": "工艺平衡只能定位资料缺口；应税对象、销售额或数量必须依据真实交易、自用、原矿选矿产品分类和现行资源税规则判断"},
+      "domain_collaboration": {"lead": "采选质量平衡域", "partners": [
+        {"domain": "采矿生产", "responsibility": "提供采区班次和原矿批次", "handoff": "采出原矿账"},
+        {"domain": "选矿工艺", "responsibility": "解释入选、在制和工艺损失", "handoff": "工艺流程批次图"},
+        {"domain": "化验质检", "responsibility": "确认取样、品位、水分及复检", "handoff": "化验谱系"},
+        {"domain": "堆场仓储", "responsibility": "盘点原矿精矿尾矿和在途", "handoff": "库存去向表"},
+        {"domain": "财税销售", "responsibility": "连接销售、自用、处置和申报", "handoff": "产品税会链"}
+      ], "conflict_rule": "理论回收率、设备产能或行业电耗与批次化验和实测冲突时，先审查计量校准、样品代表性和工况，不直接采用理论值"},
+      "report_contract": {"title": "采选精尾矿数量质量及去向平衡核验", "must_state": ["矿种批次", "干湿基", "品位化验", "数量金属量", "工艺损失", "库存去向"], "forbidden": ["行业回收率直接定案", "忽略尾矿和在制品"]},
+      "legacy_absorption": {"legacy_rule_ids": ["240", "351", "354", "701", "994", "1164"], "mapping_basis": ["能耗反推", "理论产能", "原材料产出", "产量与费用"], "absorption_reason": "把旧库能耗、BOM、设备产能和产量费用的通用比较，重写为矿种批次、干湿基、品位、数量与金属量双平衡，并强制评价工况、化验和在制品反证。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "所有理论参数仅用于形成差异区间，不直接推定隐匿产量、收入或税额。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "连续多个选矿批次精矿入库及装运完整，但原矿领用和尾矿去向无法支撑且计量设备校准有效", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "账面差异全部由湿基转干基、期末在制品和经复检确认的低品位矿解释，批次谱系完整", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "电耗推算产量高于账面，但缺少矿石硬度、工况、品位和在制品资料", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-03", "name": "资源税税目、原矿选矿、自用、运杂费、外购扣减与减免", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-RESOURCE-LAW", "SRC-MIN-RESOURCE-34", "SRC-MIN-RESOURCE-14", "SRC-MIN-RESOURCE-2025"],
+      "applicability": {"business": "开采或生产资源税应税产品并发生销售、自用、外购混配、运杂费扣除或减免申报", "not_applicable": ["仅购进已税矿产品且无自产或混配", "工程批准占地范围内直接回填且符合现行不缴税口径", "水资源税等另有专门规则的事项"]},
+      "doubt": {"observed_signal": "矿种、税目、原矿与选矿产品、销售数量金额、自用、外购扣减、运杂费和优惠资料之间无法对应", "target_fact": "每个税期应税产品的征税对象、税率地区、销售或自用、可扣项目、减免项目和纳税义务时间是否逐笔准确。", "must_exclude": ["原矿与选矿产品口径转换", "外购应税产品合法扣减", "取得合法凭据的运杂费", "跨期发货收款", "省级减免差异", "连续生产应税产品的自用"], "output": "矿种—产品—交易—税率—扣减—优惠—期间资源税复核底稿，不以增值税收入或第三方产量机械替代计税依据"},
+      "clue_chain": {"start": "按省区、矿种、税目、原矿或选矿产品和计征方式建立税源清单", "steps": [
+        {"step": 1, "action": "连接自产、外购、混配、洗选加工和库存批次", "join_keys": ["ore_type_id", "raw_ore_batch_id", "beneficiation_batch_id"], "deliverable": "应税产品来源表"},
+        {"step": 2, "action": "连接合同、销售清单、结算、发票、收款和义务发生时间", "join_keys": ["contract_id", "settlement_id", "invoice_no", "tax_period"], "deliverable": "销售期间链"},
+        {"step": 3, "action": "识别投资分配抵债赠与、非连续生产自用及连续生产应税产品", "join_keys": ["product_batch_id", "usage_event_id", "tax_period"], "deliverable": "销售自用分类"},
+        {"step": 4, "action": "核验运杂费合法凭据、外购扣减算法和分别核算", "join_keys": ["settlement_id", "transport_id", "purchase_id"], "deliverable": "扣除扣减底稿"},
+        {"step": 5, "action": "核验减免条件、产量台账、许可证储量资料和申报表", "join_keys": ["mine_id", "benefit_id", "tax_period"], "deliverable": "资源税申报复核"}
+      ], "terminal": "税目、征税对象、真实交易、自用、扣减、减免和期间全部确认后，才形成受限税务复核意见"},
+      "evidence_chain": {"fact_elements": ["矿种地区税目", "原矿选矿产品", "销售或自用", "销售额或数量", "外购与运杂费扣减", "减免及义务期间"], "supporting_sources": ["许可证矿种和省级税率", "采选库存批次", "合同结算发票收款", "自用领用用途", "外购及运杂费合法凭据", "减免台账和申报"], "opposing_sources": ["原矿选矿转换说明", "外购混配扣减表", "跨期发运收款", "连续生产应税产品证明", "运杂费独立结算", "省级减免文件"], "insufficient_when": ["只比较资源税和增值税收入", "未确认省级税率及期间", "外购自产和运杂费未分别核算"]},
+      "analysis_chain": {"proposition": "资源税申报差异是否源于应税产品分类、交易完整性、扣减减免或义务期间错误", "alternatives": ["口径和税率地区差异", "合法外购扣减", "合法运杂费扣除", "连续生产自用", "跨期结算"], "reasoning": ["锁定矿种地区期间", "区分原矿选矿产品", "穿透自产外购混配", "复原销售和自用", "核验运杂费与外购扣减", "核验减免条件和留存资料", "对照申报并保留反证"], "conclusion_ladder": ["资源税申报闭环_关闭", "税目口径待补证", "交易扣减待调查", "事实充分支持_待审理"], "tax_boundary": "税率、减免和征税对象具有地区、矿种与期间差异；系统不得自动选率、核定税额或把增值税口径直接等同资源税口径"},
+      "domain_collaboration": {"lead": "资源税税源与交易域", "partners": [
+        {"domain": "自然资源矿种", "responsibility": "确认矿种、矿区和许可期间", "handoff": "矿种权利清单"},
+        {"domain": "采选生产", "responsibility": "区分原矿选矿及自产外购批次", "handoff": "产品来源链"},
+        {"domain": "销售物流", "responsibility": "确认结算、运杂费和交付", "handoff": "销售运杂链"},
+        {"domain": "生产领用", "responsibility": "确认自用目的和连续生产关系", "handoff": "自用分类表"},
+        {"domain": "税费申报", "responsibility": "核验税率、扣减、减免和期间", "handoff": "资源税复核底稿"}
+      ], "conflict_rule": "增值税收入、资源税销售额和会计收入冲突时按各自法定口径调节，不把一表数据强行覆盖另一表"},
+      "report_contract": {"title": "资源税税目产品交易扣减减免与期间核验", "must_state": ["地区矿种", "征税对象", "销售自用", "外购扣减", "运杂费", "减免期间"], "forbidden": ["增值税收入直接等于资源税计税额", "忽略外购扣减和运杂费"]},
+      "legacy_absorption": {"legacy_rule_ids": ["1287", "1659"], "mapping_basis": ["资源税计税收入", "第三方开采销售量", "增值税申报收入"], "absorption_reason": "把旧库申报额与增值税或第三方产量的单一比例比较，重写为税目、产品、交易、自用、运杂费、外购扣减、减免和期间完整复核。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "不同税种和数据源必须先调节口径，差异本身不是少缴资源税结论。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "自产选矿产品销售结算及收款完整，资源税仅申报部分数量，外购扣减和运杂费均无凭据", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "差异全部对应取得合法凭据的运杂费和可追溯外购矿产品扣减，分别核算及申报一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "资源税销售额低于增值税收入，但未区分非矿产品收入、运杂费和原矿选矿产品", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-04", "name": "外包采掘、剥离、运输、勘探、设备租赁与结算", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-MRL", "SRC-MIN-MRL-RULES", "SRC-MIN-VAT-LAW"],
+      "applicability": {"business": "将采掘、剥离、井巷、勘探、爆破、矿内运输、选矿或设备作业部分或全部交由外部单位实施", "not_applicable": ["全部由自有人员设备实施", "仅采购标准备品备件", "合同无法定位具体矿区和作业内容"]},
+      "doubt": {"observed_signal": "外包合同、资质人员设备、工程量、班次记录、油料配件、验收结算、票款和产量之间不一致", "target_fact": "外包单位是否真实完成约定作业，工程量、计价基础、实际承载能力、成果归属、结算和税会处理是否一致。", "must_exclude": ["按进尺而非吨位结算", "固定费与变动费组合", "甲供油料设备", "跨期验收和质保", "灾害抢险临时作业", "联合体或合法分包"], "output": "合同—人员设备—作业事件—工程量—验收—票款结算链和异常补证清单，不以单一吨耗或人数阈值否定履约"},
+      "clue_chain": {"start": "按矿区、承包人、作业类型、合同期间、计价方式和责任边界建立外包台账", "steps": [
+        {"step": 1, "action": "核验承包资质、人员证照、设备权属租赁和进场记录", "join_keys": ["contractor_id", "contract_id", "equipment_id"], "deliverable": "承载能力链"},
+        {"step": 2, "action": "连接派工、班次、定位、爆破、进尺、车次、油料和维修", "join_keys": ["contract_id", "shift_id", "work_order_id"], "deliverable": "实际作业链"},
+        {"step": 3, "action": "连接测量、工程量签认、称重、化验、成果报告和验收", "join_keys": ["work_order_id", "measurement_id", "acceptance_id"], "deliverable": "成果验收链"},
+        {"step": 4, "action": "复核固定单价、吨公里、进尺、台班、奖罚和甲供扣款", "join_keys": ["contract_id", "settlement_id", "pricing_item_id"], "deliverable": "结算复算表"},
+        {"step": 5, "action": "连接发票、付款、回流检查、成本对象和税会期间", "join_keys": ["settlement_id", "invoice_no", "payment_id"], "deliverable": "外包票款税会链"}
+      ], "terminal": "主体、人员设备、作业成果、验收、结算和资金一致后才评价成本真实性或交易完整性"},
+      "evidence_chain": {"fact_elements": ["外包主体资质", "人员设备承载", "实际作业事件", "工程量或成果", "验收计价", "发票资金和成本归属"], "supporting_sources": ["合同资质证照", "进场人员设备", "派工定位班报", "测量称重成果", "验收结算单", "发票付款成本台账"], "opposing_sources": ["甲供油料设备", "计价口径说明", "跨期验收资料", "抢险临时指令", "联合体分工", "退场质保扣款"], "insufficient_when": ["只凭发票或合同", "未区分计价方式", "工程量无双方签认或独立记录"]},
+      "analysis_chain": {"proposition": "外包成本和结算是否对应真实、可定位、可验收的矿山作业", "alternatives": ["计价口径差异", "甲供资源", "跨期验收", "抢险变更", "合法联合分包"], "reasoning": ["锁定合同责任边界", "核验承包资质和承载", "复原人员设备作业事件", "验证工程量和成果", "复算计价奖罚扣款", "连接票款和成本对象", "排查资金回流并评价反证"], "conclusion_ladder": ["外包履约闭环_关闭", "工程量计价待补证", "履约票款待调查", "事实充分支持_待审理"], "tax_boundary": "合同、发票、付款或低毛利均不能单独证明虚假交易；必须以真实履约、成果、资金和合法凭证综合判断"},
+      "domain_collaboration": {"lead": "矿山外包履约域", "partners": [
+        {"domain": "采购合同", "responsibility": "确认范围、计价和变更", "handoff": "合同责任矩阵"},
+        {"domain": "生产安全", "responsibility": "确认进场、派工和特殊工种", "handoff": "人员设备事件链"},
+        {"domain": "地测验收", "responsibility": "确认进尺、方量、吨位和成果", "handoff": "工程量验收底稿"},
+        {"domain": "设备物资", "responsibility": "核验甲供油料设备和台班", "handoff": "资源耗用表"},
+        {"domain": "财务税务", "responsibility": "复核结算票款成本和期间", "handoff": "外包税会链"}
+      ], "conflict_rule": "承包方与矿方工程量冲突时保留原始测量、签认权限和版本，不以最终发票金额倒推实际工程量"},
+      "report_contract": {"title": "矿山外包作业履约工程量与结算核验", "must_state": ["作业范围", "人员设备", "班次事件", "工程量成果", "计价变更", "票款成本"], "forbidden": ["无自有设备即认定无生产", "发票金额反推工程量"]},
+      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": [], "absorption_reason": "旧库没有同时覆盖矿山作业责任边界、特殊工种设备、采掘事件、地测验收、甲供资源和多种计价方式的可直接吸收规则，因此建立新的场景合同。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "通用外包和发票规则仅可作为资料检索入口，不冒充本场景的矿山履约结论。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "承包方无进场人员设备和作业记录，工程量签认人为无权限人员，付款后短期回流", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "人员设备、定位班报、测量验收、甲供扣款、发票付款与合同逐期一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "有合同发票和付款但缺少原始派工、测量及验收版本", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-05", "name": "品位化验、计价系数、关联销售与内外部结算", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-RESOURCE-34", "SRC-MIN-RESOURCE-2025", "SRC-MIN-VAT-LAW"],
+      "applicability": {"business": "矿产品按品位、热值、水分、杂质、金属价格或公式计价，尤其向关联方或内部选冶单位销售", "not_applicable": ["政府定价且无其他调整项", "统一规格现货交易且不存在质量结算", "无法确认关联关系和交易产品"]},
+      "doubt": {"observed_signal": "取样化验、合同计价公式、基准价、升贴水、结算品位、客户复检、关联价格和资源税销售额之间异常", "target_fact": "每笔销售的真实质量、价格形成、关联关系、履约成本和全部对价是否符合合同与可比商业条件。", "must_exclude": ["政府指导价或中长期机制价", "运杂费和加工费差异", "水分杂质及回收率扣减", "结算期金属价格波动", "客户复检和仲裁结果", "长期包销承担市场风险"], "output": "样品谱系—质量结算—价格公式—可比交易—关联职能风险—全部对价底稿，不用市场均价或毛利差直接认定价格不公允"},
+      "clue_chain": {"start": "按产品批次、买方关系、合同版本、交货地点、计价周期和币种建立销售清单", "steps": [
+        {"step": 1, "action": "连接取样、制样、化验、复检、仲裁、品位水分和样品保管", "join_keys": ["delivery_id", "sample_id", "assay_id"], "deliverable": "质量证据谱系"},
+        {"step": 2, "action": "还原基准价、计价金属、升贴水、回收率、杂质、运费和加工费公式", "join_keys": ["contract_id", "settlement_id", "pricing_formula_id"], "deliverable": "价格公式复算"},
+        {"step": 3, "action": "连接重量、质量、临时结算、最终结算、补差和贷借项", "join_keys": ["delivery_id", "settlement_id", "adjustment_id"], "deliverable": "完整对价链"},
+        {"step": 4, "action": "比较同期同品种同质量独立交易并调整地点、数量、信用和职能风险", "join_keys": ["product_grade_id", "pricing_period", "market_id"], "deliverable": "可比调整表"},
+        {"step": 5, "action": "连接发票、收款、关联披露、会计和资源税申报", "join_keys": ["settlement_id", "invoice_no", "payment_id", "tax_period"], "deliverable": "关联销售税会链"}
+      ], "terminal": "质量、公式、补差、可比条件、职能风险和全部对价确认后才评价价格差异"},
+      "evidence_chain": {"fact_elements": ["关联关系", "销售产品和交货条件", "取样化验质量", "合同计价公式", "最终完整对价", "可比交易和申报"], "supporting_sources": ["关联关系台账", "合同及补充协议", "取制样化验复检", "基准价和公式参数", "临时最终结算补差", "发票资金申报"], "opposing_sources": ["政府或机制价格", "质量和地点差异", "长期包销风险", "加工运输费用", "信用和数量折扣", "仲裁化验结果"], "insufficient_when": ["只比较进销吨价", "样品与交付批次无法关联", "未纳入期后结算补差"]},
+      "analysis_chain": {"proposition": "关联或特殊价格是否在考虑真实质量、合同公式和可比条件后仍存在无法解释的偏离", "alternatives": ["品位水分差异", "地点运费差异", "长期合同风险", "基准期波动", "最终补差未入当期"], "reasoning": ["确认关联关系和合同版本", "验证样品化验谱系", "复算质量和价格公式", "归集临时最终全部对价", "选择并调整可比交易", "分析职能资产风险", "连接资源税和财税申报"], "conclusion_ladder": ["价格形成闭环_关闭", "质量公式待补证", "关联定价待调查", "事实充分支持_待审理"], "tax_boundary": "市场均价、毛利率和进销差仅是筛选信号；关联价格调整必须考虑现行资源税口径、真实可比条件和正当理由"},
+      "domain_collaboration": {"lead": "矿产品质量定价域", "partners": [
+        {"domain": "质检化验", "responsibility": "确认样品、品位水分和复检", "handoff": "质量证据谱系"},
+        {"domain": "销售合同", "responsibility": "确认公式、交货和补差条款", "handoff": "计价合同矩阵"},
+        {"domain": "市场交易", "responsibility": "提供同品种可比价和调整因素", "handoff": "可比价格区间"},
+        {"domain": "关联交易", "responsibility": "分析职能资产风险和正当理由", "handoff": "关联定价底稿"},
+        {"domain": "财税申报", "responsibility": "连接全部对价、发票和资源税", "handoff": "销售税会对照"}
+      ], "conflict_rule": "矿方、客户和第三方化验冲突时按合同取样制样、留样和仲裁机制评价，不选择对结论最有利的单一结果"},
+      "report_contract": {"title": "矿产品质量计价关联销售与完整对价核验", "must_state": ["关联关系", "样品谱系", "质量指标", "计价公式", "全部补差", "可比调整"], "forbidden": ["市场均价直接定价", "忽略质量和期后补差"]},
+      "legacy_absorption": {"legacy_rule_ids": ["302", "597", "599", "600"], "mapping_basis": ["关联方名单", "进销吨价", "煤炭单价", "采购销售单价"], "absorption_reason": "把旧库进销单价和关联名单的平面比较，重写为样品化验、合同公式、临时最终结算、可比调整和职能风险的完整定价链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "价格差异不直接等于少计收入或关联定价不公允。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "向关联方销售同品种同质量矿产品价格显著低于同期独立交易，最终补差也未发生且无运费或长期风险解释", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "低价由低品位高水分、买方承担运输加工和长期包销风险解释，公式、化验和结算一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "关联销售单价偏低但缺少留样复检、交货条件和期后补差资料", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-06", "name": "矿业权出让收益、权利变更、勘查开发投入与资产事实", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-MRL", "SRC-MIN-MRL-RULES", "SRC-MIN-PROCEEDS-2023", "SRC-MIN-PROCEEDS-2026"],
+      "applicability": {"business": "取得、增列、延续、变更、转让矿业权或按金额、收益率等方式缴纳矿业权出让收益", "not_applicable": ["仅购买矿产品", "不涉及矿业权取得或变更", "历史事项无权利和费源资料且无法确定期间"]},
+      "doubt": {"observed_signal": "矿业权出让合同、矿种目录、成交价、收益率销售收入、缴费通知、权利变更、勘查开发投入、付款和账面资产之间不一致", "target_fact": "矿业权取得变更事实、应缴方式、费源推送、缴费期间、违约金边界、勘查开发投入归属和账面记录是否可追溯。", "must_exclude": ["2026年8月1日前后规则差异", "分期缴纳安排", "收益率征收与成交价并存", "国家出资勘查情形", "权利合并分立或资源储量变化", "勘查费用与开发建设支出边界"], "output": "权利事件—出让合同—计征方式—费源—缴费—资金—资产事实矩阵，不自动判断会计计量、税前扣除或欠费责任"},
+      "clue_chain": {"start": "建立探矿权采矿权取得、延续、变更、转让和注销的权利事件时间轴", "steps": [
+        {"step": 1, "action": "连接出让方式、矿种目录、成交结果、评估或基准价和出让合同", "join_keys": ["mining_right_id", "contract_id", "right_event_id"], "deliverable": "权利合同链"},
+        {"step": 2, "action": "识别成交价、按收益率、分期和2026年8月1日前后适用规则", "join_keys": ["mining_right_id", "policy_period", "assessment_method_id"], "deliverable": "计征方式表"},
+        {"step": 3, "action": "连接自然资源费源、税务征收明细、缴费通知、缴款和违约事项", "join_keys": ["mining_right_id", "fee_source_id", "payment_id"], "deliverable": "费源缴费链"},
+        {"step": 4, "action": "连接勘查、可研、设计、建设、试生产投入及成果归属", "join_keys": ["mining_right_id", "project_id", "cost_item_id"], "deliverable": "勘查开发投入表"},
+        {"step": 5, "action": "连接付款、资产台账、摊销减值和披露并标记待专业判断事项", "join_keys": ["mining_right_id", "asset_id", "voucher_id"], "deliverable": "权利资产事实链"}
+      ], "terminal": "权利事件、计征方式、费源缴费和投入归属确认后，只输出事实差异；会计税务结论另按适用制度人工复核"},
+      "evidence_chain": {"fact_elements": ["矿业权事件", "出让合同和矿种", "计征方式及期间", "费源缴费", "勘查开发投入", "账面资产及披露"], "supporting_sources": ["权利登记和变更", "出让公告成交合同", "评估基准价及矿种目录", "费源缴费通知回执", "勘查开发项目资料", "付款凭证资产台账"], "opposing_sources": ["分期缴费协议", "政策过渡文件", "国家出资勘查说明", "权利合并分立资料", "项目终止成果处置", "会计政策和审计调整"], "insufficient_when": ["只凭账面无形资产", "未区分政策生效日期", "缺少出让合同或费源明细"]},
+      "analysis_chain": {"proposition": "矿业权取得变更、出让收益缴纳与勘查开发资产事实是否完整一致", "alternatives": ["分期缴费", "过渡政策", "收益率后续征收", "权利重组", "项目阶段转换"], "reasoning": ["建立权利事件时间轴", "核验出让方式和合同", "确定计征方法与政策期间", "对接费源缴费明细", "归集勘查开发投入", "连接资金和资产记录", "隔离需会计税务专业判断事项"], "conclusion_ladder": ["权利缴费闭环_关闭", "费源期间待补证", "权利资产待调查", "事实充分支持_待审理"], "tax_boundary": "矿业权出让收益属于专项收入征收事项，其事实核验不等同于所得税扣除、资产计量或违法责任结论"},
+      "domain_collaboration": {"lead": "矿业权收益与资产事实域", "partners": [
+        {"domain": "自然资源权利", "responsibility": "确认取得变更、矿种和出让合同", "handoff": "权利事件链"},
+        {"domain": "财政税务征收", "responsibility": "确认费源、计征方式和缴费", "handoff": "征收明细表"},
+        {"domain": "地质勘查", "responsibility": "确认勘查成果和投入归属", "handoff": "勘查项目底稿"},
+        {"domain": "工程建设", "responsibility": "区分开发建设和试生产阶段", "handoff": "开发阶段表"},
+        {"domain": "财务审计", "responsibility": "复核资金、资产、摊销减值和披露", "handoff": "资产专业判断清单"}
+      ], "conflict_rule": "自然资源费源、税务缴费和账面资产冲突时分别保留权利、征收和会计口径，不能用其中一套记录覆盖其他事实"},
+      "report_contract": {"title": "矿业权出让收益权利事件与资产事实核验", "must_state": ["权利事件", "政策期间", "计征方式", "费源缴费", "勘查开发投入", "资产待判断事项"], "forbidden": ["缴费差异自动认定欠费", "自动判断资产和税前扣除"]},
+      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": [], "absorption_reason": "旧库没有覆盖2026年矿产资源法实施条例及2026年8月1日矿业权出让收益新规则的完整权利—费源—缴费—资产事实链，因此新增合同而不强行吸收通用产权规则。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "历史产权或印花税规则不能替代矿业权专项收入和权利事实核验。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "权利变更新增矿种已有出让合同和费源推送，企业持续开采销售但无对应缴费或分期安排记录", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "分期缴费、收益率销售收入、税务回执和账面记录逐期一致，并按2026年新规处理违约事项", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "账面矿业权资产与缴费额不同，但缺少出让合同、评估和勘查开发投入明细", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-07", "name": "安全生产费用、矿区生态修复、闭坑义务与专项支出", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-MRL", "SRC-MIN-MRL-RULES", "SRC-MIN-SAFETY"],
+      "applicability": {"business": "矿山企业提取使用安全生产费用，编制实施矿区生态修复方案，承担边采边修、分期修复或闭坑义务", "not_applicable": ["纯矿产品贸易", "不承担矿区安全和修复责任的普通供应商", "仅有一般环保费用且无法定位矿区项目"]},
+      "doubt": {"observed_signal": "矿种开采方式、产量、提取基础、专项台账、实际安全项目、生态修复方案、工程验收、闭坑时序、合同票款和会计记录之间不一致", "target_fact": "安全生产费用和生态修复支出是否基于真实义务、正确矿山期间、批准方案、实际工程和可验收成果，并被专账追踪。", "must_exclude": ["不同矿种开采方式提取标准差异", "跨期安全工程", "应急抢险支出", "边采边修或分区分期修复", "方案调整和验收时差", "保证金基金与企业自有资金口径差异"], "output": "义务—方案—计提—项目—施工—验收—付款—专账链及待专业判断事项，不用产量或行业系数直接认定少提多列"},
+      "clue_chain": {"start": "按矿山、矿种、开采方式、期间和责任主体建立安全及生态修复义务清单", "steps": [
+        {"step": 1, "action": "连接实际产量或适用提取基础、标准、月度计提和专项台账", "join_keys": ["mine_id", "ore_type_id", "tax_period"], "deliverable": "安全费用计提表"},
+        {"step": 2, "action": "连接安全风险清单、年度计划、审批、采购施工、领用和应急事件", "join_keys": ["mine_id", "safety_project_id", "approval_id"], "deliverable": "安全项目实施链"},
+        {"step": 3, "action": "连接生态修复方案、修复单元、时序、经费概算和方案调整", "join_keys": ["mine_id", "restoration_unit_id", "plan_version_id"], "deliverable": "修复义务计划链"},
+        {"step": 4, "action": "连接修复工程量、影像测绘、监理、分区分期验收和闭坑节点", "join_keys": ["restoration_unit_id", "contract_id", "acceptance_id"], "deliverable": "修复成果证据链"},
+        {"step": 5, "action": "连接合同、发票、付款、专项资金、资产费用和披露", "join_keys": ["safety_project_id", "restoration_unit_id", "invoice_no", "payment_id"], "deliverable": "专项支出税会链"}
+      ], "terminal": "义务、计提基础、批准方案、真实项目、验收成果和资金专账一致后，才评价剩余支出或义务差异"},
+      "evidence_chain": {"fact_elements": ["矿山安全修复义务", "适用计提基础", "批准计划方案", "真实工程项目", "验收成果", "专项资金和账务"], "supporting_sources": ["矿种开采方式产量", "安全费用专项台账", "风险清单审批计划", "生态修复方案版本", "施工监理测绘验收", "合同发票付款账务"], "opposing_sources": ["应急抢险指令", "跨期项目进度", "方案调整备案", "分区分期验收", "停产闭坑时序", "退回质保和结余说明"], "insufficient_when": ["只按申报产量套标准", "项目无矿区单元定位", "缺少方案版本或验收成果"]},
+      "analysis_chain": {"proposition": "安全和生态修复专项资金差异是否反映义务遗漏、项目不实、期间错配或核算不清", "alternatives": ["标准适用差异", "跨期工程", "应急支出", "方案调整", "分期验收"], "reasoning": ["确认责任主体和矿山期间", "确定矿种开采方式及提取基础", "核验计划方案和审批", "复原项目施工与领用", "验证工程量和验收成果", "连接票款和专项台账", "区分事实核验与会计税务判断"], "conclusion_ladder": ["专项义务闭环_关闭", "标准方案待补证", "项目资金待调查", "事实充分支持_待审理"], "tax_boundary": "安全费用和生态修复涉及监管、会计和税务不同口径；系统仅复原事实，不自动决定扣除、预计负债、处罚或修复责任"},
+      "domain_collaboration": {"lead": "矿山安全生态义务域", "partners": [
+        {"domain": "安全生产", "responsibility": "确认风险、标准、项目和应急事件", "handoff": "安全费用实施链"},
+        {"domain": "自然资源生态修复", "responsibility": "确认方案、单元、时序和验收", "handoff": "修复义务链"},
+        {"domain": "工程监理测绘", "responsibility": "核实工程量和实际成果", "handoff": "修复成果底稿"},
+        {"domain": "采购资金", "responsibility": "核验合同、供应商、票款和资金用途", "handoff": "专项资金链"},
+        {"domain": "财务税务", "responsibility": "复核专账、资产费用和专业判断", "handoff": "税会判断清单"}
+      ], "conflict_rule": "方案概算、计提金额和实际工程支出不一致时分别评价义务、预算与履约，不以概算直接证明已发生支出"},
+      "report_contract": {"title": "矿山安全费用生态修复与闭坑义务核验", "must_state": ["责任主体", "提取基础", "方案版本", "项目实施", "成果验收", "专项资金"], "forbidden": ["概算等于实际支出", "产量差异直接认定少提"]},
+      "legacy_absorption": {"legacy_rule_ids": ["167", "275", "276", "379", "952", "953", "1285"], "mapping_basis": ["环保支出申报", "特殊工种与产能", "设备维修生产", "排放产量", "固废处置", "在线监测"], "absorption_reason": "将旧库人员、维修、排放和固废指标的分散比较，纳入矿山安全义务、生态修复方案、项目实施、成果验收和专项资金的一条事实链；环保税指标不直接转化为修复或安全结论。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "排放、产废和人员指标只用于验证项目背景，不能单独证明安全费用或修复支出不实。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "大额修复支出无对应修复单元、施工影像、监理工程量和验收，供应商收款后回流关联个人", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "边采边修方案、分区工程、监理测绘、验收、专项台账和付款逐项一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "安全费用计提低于理论测算，但矿种、开采方式和实际产量口径未确认", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MIN-08", "name": "过磅、装运、轨迹、客户签收、港口海关与销售申报完整性", "maturity": "M2.5_boundary_tested",
+      "policy_source_ids": ["SRC-MIN-RESOURCE-LAW", "SRC-MIN-RESOURCE-34", "SRC-MIN-RESOURCE-2025", "SRC-MIN-VAT-LAW"],
+      "applicability": {"business": "矿产品通过公路、铁路、水运、管道或港口对外交付、外销或出口并按重量质量结算", "not_applicable": ["期内无对外销售或移送", "仅提供运输服务", "无法确认货权主体和矿产品批次"]},
+      "doubt": {"observed_signal": "地磅毛皮净重、装车装船、车辆船舶轨迹、港口堆存、客户签收、质检结算、发票收款和申报之间存在批次缺口或重复", "target_fact": "每批矿产品是否真实装运交付、货权何时转移、数量质量如何结算、全部对价是否进入会计与税费申报。", "must_exclude": ["回皮和车牌识别错误", "途中损耗和水分变化", "多车合并或一票多批", "港口跨期堆存", "退货折让及质量索赔", "代运代储和外购贸易货物"], "output": "地磅—装运—轨迹—签收—质检—结算—票款—申报逐批链及断点清单，不以单一轨迹或过磅差异直接推定未申报收入"},
+      "clue_chain": {"start": "按销售或移送批次建立货权主体、矿种规格、起运地、目的地、运输方式和合同交付条件", "steps": [
+        {"step": 1, "action": "连接地磅原始日志、仪表校准、毛皮净重、照片视频和门禁", "join_keys": ["weighing_id", "vehicle_id", "weighing_time"], "deliverable": "过磅真实性链"},
+        {"step": 2, "action": "连接装车装船、铁路大票、运单、司机船舶和轨迹节点", "join_keys": ["weighing_id", "transport_id", "vehicle_vessel_id"], "deliverable": "装运轨迹链"},
+        {"step": 3, "action": "连接港口堆场、海关报关、客户签收、卸货称重和质量复检", "join_keys": ["transport_id", "delivery_id", "customs_declaration_no"], "deliverable": "到货交付链"},
+        {"step": 4, "action": "连接临时结算、质量数量调整、退货折让、运杂费和最终结算", "join_keys": ["delivery_id", "settlement_id", "adjustment_id"], "deliverable": "最终对价链"},
+        {"step": 5, "action": "连接发票、收款、会计收入、资源税和增值税义务期间", "join_keys": ["settlement_id", "invoice_no", "payment_id", "tax_period"], "deliverable": "销售申报完整性表"}
+      ], "terminal": "地磅、运输、交付、最终结算和财税申报逐批贯通后，才评价剩余未记录或重复事项"},
+      "evidence_chain": {"fact_elements": ["货权和产品批次", "地磅原始记录", "装运及轨迹", "客户或港口交付", "最终数量质量对价", "发票资金和申报"], "supporting_sources": ["合同货权条款", "地磅日志校准影像", "运单车辆船舶轨迹", "港口海关客户签收", "质检最终结算", "发票收款会计税表"], "opposing_sources": ["回皮异常说明", "合理运输损耗", "水分品位调整", "港口跨期堆存", "退货索赔折让", "代运外购货物"], "insufficient_when": ["只看车牌或轨迹", "地磅数据无校准和原始日志", "未连接期后最终结算"]},
+      "analysis_chain": {"proposition": "装运交付记录与销售申报断点是否反映未记录销售、重复计量或正常物流结算差异", "alternatives": ["回皮识别错误", "跨期在途堆存", "运输损耗", "质量调整", "代运外购或退货"], "reasoning": ["确认货权和产品批次", "验证地磅设备与原始日志", "复原装运和轨迹", "核验港口海关客户交付", "归集质量数量调整和最终对价", "连接票款会计和税期", "评价重复缺失及全部反证"], "conclusion_ladder": ["销售物流闭环_关闭", "地磅轨迹待补证", "交付申报待调查", "事实充分支持_待审理"], "tax_boundary": "运输轨迹和称重仅证明物流事实的一部分；收入及税费义务须结合货权、交付、结算、收款开票和现行规则判断"},
+      "domain_collaboration": {"lead": "矿产品销售物流域", "partners": [
+        {"domain": "计量门禁", "responsibility": "确认地磅、校准、车辆和原始日志", "handoff": "过磅证据链"},
+        {"domain": "运输调度", "responsibility": "确认装运、承运和轨迹", "handoff": "运输事件链"},
+        {"domain": "港口海关客户", "responsibility": "确认堆存、报关、签收和卸货", "handoff": "外部交付链"},
+        {"domain": "质检销售", "responsibility": "确认质量调整、索赔和最终结算", "handoff": "最终对价表"},
+        {"domain": "资金财税", "responsibility": "连接发票收款会计及税期", "handoff": "销售申报对照"}
+      ], "conflict_rule": "矿山磅、港口磅和客户磅冲突时先核验校准、时间、干湿基和合同结算磅，不选择单一重量直接定性"},
+      "report_contract": {"title": "矿产品过磅运输交付与销售申报完整性核验", "must_state": ["货权批次", "地磅校准", "运输轨迹", "外部签收", "最终结算", "财税期间"], "forbidden": ["一条轨迹直接认定销售", "忽略水分质量和跨期"]},
+      "legacy_absorption": {"legacy_rule_ids": ["242", "346", "415", "518", "1237", "1449"], "mapping_basis": ["物流轨迹", "运力重量", "第三方仓储", "进销吨位", "进销存与运单", "采购与过磅"], "absorption_reason": "把旧库吨位、运力、轨迹和过磅的分散比较，重写为货权、地磅原始日志、装运轨迹、外部交付、质量调整、最终对价和财税期间的一条批次链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "过磅或轨迹差异必须排除校准、损耗、跨期、代运、外购和质量结算后才可升级调查。"},
+      "validation_cases": [
+        {"case": "positive", "facts": "多批矿产品有有效地磅、连续轨迹、客户签收和结算收款，但无发票、会计收入及税费申报且无代运解释", "expected": "事实部分支持_待补证"},
+        {"case": "negative", "facts": "矿山磅与客户磅差异由水分和合同结算磅解释，轨迹、签收、折价、发票和申报一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "地磅记录高于销售数量但缺少车牌回皮、跨期堆场、退货和外购代运资料", "expected": "待补资料_可初筛"}
+      ]
+    }
+  ]
+}

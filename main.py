@@ -6908,6 +6908,7 @@ def get_methodology_asset(asset_name: str):
         "playbooks": "methodology_chain_playbooks.json",
         "industry_packs": "industry_methodology_packs.json",
         "agriculture_scenario_contracts": "agriculture_scenario_contracts.json",
+        "mining_scenario_contracts": "mining_scenario_contracts.json",
         "manufacturing_scenario_contracts": "manufacturing_scenario_contracts.json",
         "construction_scenario_contracts": "construction_scenario_contracts.json",
         "real_estate_scenario_contracts": "real_estate_scenario_contracts.json",
@@ -6951,6 +6952,7 @@ def get_methodology_coverage():
         "industry_audit_profiles.json",
         "industry_methodology_packs.json",
         "agriculture_scenario_contracts.json",
+        "mining_scenario_contracts.json",
         "manufacturing_scenario_contracts.json",
         "construction_scenario_contracts.json",
         "real_estate_scenario_contracts.json",
@@ -6987,6 +6989,7 @@ def get_methodology_rewrite_ledger(
         _os.path.join(_os.path.dirname(__file__), "static", filename)
         for filename in (
             "agriculture_scenario_contracts.json",
+            "mining_scenario_contracts.json",
             "wholesale_retail_scenario_contracts.json",
             "platform_scenario_contracts.json",
         )

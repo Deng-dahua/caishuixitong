@@ -6216,6 +6216,7 @@ var _methodologyCoveragePromise = null;
 var _methodologyPlaybookPromise = null;
 var _methodologyIndustryPacksPromise = null;
 var _agricultureScenarioContractsPromise = null;
+var _miningScenarioContractsPromise = null;
 var _manufacturingScenarioContractsPromise = null;
 var _constructionScenarioContractsPromise = null;
 var _realEstateScenarioContractsPromise = null;
@@ -6288,6 +6289,17 @@ function _loadAgricultureScenarioContracts() {
   return _agricultureScenarioContractsPromise;
 }
 
+function _loadMiningScenarioContracts() {
+  if (!_miningScenarioContractsPromise) {
+    _miningScenarioContractsPromise = fetch('/api/methodology/assets/mining_scenario_contracts?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('采矿业五链场景加载失败');
+        return response.json();
+      });
+  }
+  return _miningScenarioContractsPromise;
+}
+
 function _loadConstructionScenarioContracts() {
   if (!_constructionScenarioContractsPromise) {
     _constructionScenarioContractsPromise = fetch('/api/methodology/assets/construction_scenario_contracts?_t=' + Date.now())
@@ -6349,6 +6361,7 @@ function _renderMethodologyCoverageMatrix(container) {
     _loadMethodologyCoverageReport(),
     _loadMethodologyIndustryPacks(),
     _loadAgricultureScenarioContracts(),
+    _loadMiningScenarioContracts(),
     _loadManufacturingScenarioContracts(),
     _loadConstructionScenarioContracts(),
     _loadRealEstateScenarioContracts(),
@@ -6371,12 +6384,13 @@ function _renderMethodologyCoverageMatrix(container) {
     var verified = report.verified_rule_catalog || [];
     var industryPacks = industryPackPayload.packs || [];
     var agricultureContracts = values[2] || {};
-    var manufacturingContracts = values[3] || {};
-    var constructionContracts = values[4] || {};
-    var realEstateContracts = values[5] || {};
-    var wholesaleRetailContracts = values[6] || {};
-    var platformContracts = values[7] || {};
-    var rewriteLedger = values[8] || {};
+    var miningContracts = values[3] || {};
+    var manufacturingContracts = values[4] || {};
+    var constructionContracts = values[5] || {};
+    var realEstateContracts = values[6] || {};
+    var wholesaleRetailContracts = values[7] || {};
+    var platformContracts = values[8] || {};
+    var rewriteLedger = values[9] || {};
     var rewriteSummary = rewriteLedger.summary || {};
     var overlaySummary = report.overlay_scenario_summary || {};
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
@@ -6462,13 +6476,15 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<h3 class="method-subheading">第一批重点行业专项包</h3>'
       + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
       + '<div class="method-source-note"><b>五链重写进度：</b>农林牧渔业 ' + escHtml((agricultureContracts.scenarios || []).length)
+      + ' 个场景、采矿业 ' + escHtml((miningContracts.scenarios || []).length)
       + ' 个场景、制造业 ' + escHtml((manufacturingContracts.scenarios || []).length)
       + ' 个场景、建筑业 ' + escHtml((constructionContracts.scenarios || []).length)
       + ' 个场景、房地产开发业 ' + escHtml((realEstateContracts.scenarios || []).length)
       + ' 个场景、批发零售业 ' + escHtml((wholesaleRetailContracts.scenarios || []).length)
       + ' 个场景、平台经济叠加 ' + escHtml((platformContracts.scenarios || []).length)
       + ' 个场景已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体；其余行业仍保留M2状态并按同一合同逐批重写。'
-      + '<br><b>农林牧渔业边界：</b>' + escHtml(agricultureContracts.positioning || '') + '</div>'
+      + '<br><b>农林牧渔业边界：</b>' + escHtml(agricultureContracts.positioning || '')
+      + '<br><b>采矿业边界：</b>' + escHtml(miningContracts.positioning || '') + '</div>'
       + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
         return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
           + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
@@ -7067,6 +7083,7 @@ function renderMethodologyChainsIntegrated(container) {
     _loadMethodologyFramework(),
     _loadMethodologyPlaybooks(),
     _loadAgricultureScenarioContracts(),
+    _loadMiningScenarioContracts(),
     _loadManufacturingScenarioContracts(),
     _loadConstructionScenarioContracts(),
     _loadRealEstateScenarioContracts(),
@@ -7076,11 +7093,12 @@ function renderMethodologyChainsIntegrated(container) {
   var framework = values[0] || {};
   var playbookPayload = values[1] || {};
   var agricultureContracts = values[2] || {};
-  var manufacturingContracts = values[3] || {};
-  var constructionContracts = values[4] || {};
-  var realEstateContracts = values[5] || {};
-  var wholesaleRetailContracts = values[6] || {};
-  var platformContracts = values[7] || {};
+  var miningContracts = values[3] || {};
+  var manufacturingContracts = values[4] || {};
+  var constructionContracts = values[5] || {};
+  var realEstateContracts = values[6] || {};
+  var wholesaleRetailContracts = values[7] || {};
+  var platformContracts = values[8] || {};
   var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
@@ -7091,6 +7109,8 @@ function renderMethodologyChainsIntegrated(container) {
     <div class="method-stop"><b>路径库边界：</b>${escHtml(playbookPayload.positioning || '')}</div>
     <h3 class="method-subheading">农林牧渔业真实场景五链配套重写</h3>
     ${_renderIndustryScenarioContracts(agricultureContracts)}
+    <h3 class="method-subheading">采矿业真实场景五链配套重写</h3>
+    ${_renderIndustryScenarioContracts(miningContracts)}
     <h3 class="method-subheading">制造业真实场景五链配套重写</h3>
     ${_renderIndustryScenarioContracts(manufacturingContracts)}
     <h3 class="method-subheading">建筑业真实场景五链配套重写</h3>

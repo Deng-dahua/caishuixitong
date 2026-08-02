@@ -75,7 +75,7 @@ class RealEstateScenarioIntegrationTests(unittest.TestCase):
         from engine.methodology_coverage import build_methodology_coverage
 
         report = build_methodology_coverage(STATIC)
-        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 47)
+        self.assertEqual(report["inventory"]["rewritten_m25_scenarios"], 55)
         real_estate = next(row for row in report["industry_matrix"] if row["code"] == "K")
         self.assertEqual(real_estate["rewritten_m25_scenarios"], 8)
         self.assertEqual(real_estate["verified_specific_rules"], 0)
@@ -93,7 +93,7 @@ class RealEstateScenarioIntegrationTests(unittest.TestCase):
         self.assertNotIn("all_findings.extend", scenario_block)
         self.assertIn("/api/methodology/assets/real_estate_scenario_contracts", frontend)
         self.assertIn("房地产开发业真实场景五链配套重写", frontend)
-        self.assertIn("tax-pipeline-pages.js?v=2026080209", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080301", index)
 
 
 if __name__ == "__main__":
