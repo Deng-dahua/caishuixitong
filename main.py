@@ -117,7 +117,10 @@ from security_web import (
     auth_me_handler, enforce_request_security, login_handler, logout_handler,
     select_company_handler,
 )
-from request_context import reset_current_user_id, set_current_user_id
+from request_context import (
+    reset_current_user_id,
+    set_current_user_id,
+)
 
 
 @asynccontextmanager
@@ -7437,6 +7440,207 @@ def _append_analysis_history(company_id, result):
         except: pass
     except: pass
 
+
+_ONE_CLICK_PIPELINE_VERSION = "1.0"
+_MAX_ANALYSIS_CACHE = 30
+
+
+def _append_one_click_log(report_data, message):
+    pipeline_log = report_data.setdefault("pipeline_log", [])
+    if isinstance(pipeline_log, list):
+        pipeline_log.append(message)
+
+
+def _apply_engine_hub_stage(report_data, result=None):
+    """从核心管道结果汇总智能引擎状态，不重复执行调度。"""
+    comprehensive = report_data.get("comprehensive", {}) or {}
+    orchestration = comprehensive.get("orchestration_plan", {}) or {}
+    report_data["_engine_hub"] = {
+        "active_modules": orchestration.get("active_modules", []),
+        "skipped_modules": orchestration.get("skipped_modules", []),
+        "execution_order": orchestration.get("execution_order", []),
+        "summary": orchestration.get("summary", ""),
+        "agi_pipeline": (result or {}).get("agi_pipeline", {}),
+        "engine_status": report_data.get("engine_status", {}),
+    }
+    _append_one_click_log(report_data, "[统一主流程] 智能引擎中枢完成报告级调度汇总")
+    return {
+        "status": "completed",
+        "active_modules": len(orchestration.get("active_modules", [])),
+    }
+
+
+def _apply_methodology_stage(report_data):
+    """把方法论和现行法依据匹配到本次全部待核发现。"""
+    from engine.methodology_loader import (
+        METHODOLOGY_KNOWLEDGE,
+        get_relevant_laws,
+        match_methodology,
+    )
+
+    findings = report_data.get("all_findings", []) or []
+    enriched = 0
+    for finding in findings:
+        finding_type = finding.get("type", "")
+        matched = match_methodology(finding_type)
+        laws = get_relevant_laws(finding_type)
+        if matched:
+            finding["_methodology"] = matched[:3]
+        if laws:
+            finding["_methodology_laws"] = laws[:5]
+        if matched or laws:
+            enriched += 1
+
+    summary = {
+        "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
+        "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
+        "findings_reviewed": len(findings),
+        "findings_enriched": enriched,
+    }
+    report_data["_methodology_applied"] = summary
+    _append_one_click_log(
+        report_data,
+        f"[统一主流程] 稽查方法论完成：复核{len(findings)}项，匹配{enriched}项",
+    )
+    return {"status": "completed", **summary}
+
+
+def _apply_report_compilation_stage(report_data):
+    """执行报告编制要求；该阶段失败时不得发布不完整报告。"""
+    from engine.report_standards import apply_report_standards
+
+    standardized = apply_report_standards(report_data)
+    if not isinstance(standardized, dict):
+        raise RuntimeError("报告编制要求未返回有效报告")
+    quality = standardized.get("_report_standards_check", {})
+    _append_one_click_log(
+        standardized,
+        "[统一主流程] 报告编制要求已应用并完成质量检查",
+    )
+    return standardized, {
+        "status": "completed",
+        "quality_score": quality.get("score", ""),
+        "failed_checks": quality.get("failed", 0),
+    }
+
+
+def _persist_one_click_result(company_id, result):
+    """只在全部必经阶段完成后写入最近结果和分析历史。"""
+    if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
+        oldest = min(
+            _last_analysis_cache,
+            key=lambda key: _last_analysis_cache[key].get("timestamp", ""),
+        )
+        del _last_analysis_cache[oldest]
+
+    _last_analysis_cache[company_id] = {
+        "report": result,
+        "timestamp": datetime.now().isoformat(),
+    }
+    disk_cache = {
+        str(key): {
+            "timestamp": value.get("timestamp", ""),
+            "report": value.get("report", {}),
+        }
+        for key, value in _last_analysis_cache.items()
+    }
+    atomic_write_json(LAST_ANALYSIS_CACHE, disk_cache)
+    _append_analysis_history(company_id, result)
+
+
+def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
+    """一键分析唯一后台主流程。
+
+    同步、异步和兼容入口均必须调用本函数，不得绕过方法论、报告编制、
+    智能引擎汇总或最终持久化阶段。
+    """
+    import traceback as _traceback
+
+    execution = {
+        "version": _ONE_CLICK_PIPELINE_VERSION,
+        "status": "running",
+        "stages": {},
+    }
+    try:
+        # 分析前只传播已正式启用的纠正规则；候选规则不会自动生效。
+        try:
+            from engine.self_learning import (
+                _load_correction_rules,
+                apply_cross_company_synthesis,
+            )
+
+            if _load_correction_rules():
+                propagate_corrections_to_chains()
+            cross_result = apply_cross_company_synthesis() or {}
+            execution["stages"]["preparation"] = {
+                "status": "completed",
+                "cross_rules": cross_result.get("cross_rules_count", 0),
+            }
+        except Exception as exc:
+            execution["stages"]["preparation"] = {
+                "status": "degraded",
+                "message": str(exc),
+            }
+
+        result = _run_analyze(
+            company_id,
+            db,
+            progress_callback=progress_callback,
+        )
+        if not isinstance(result, dict) or not result.get("ok"):
+            return result if isinstance(result, dict) else {
+                "ok": False,
+                "message": "分析引擎未返回有效结果",
+            }
+        report_data = result.get("report")
+        if not isinstance(report_data, dict):
+            raise RuntimeError("分析引擎未生成有效报告")
+        execution["stages"]["methodology_analysis"] = {
+            "status": "completed",
+            "findings": len(report_data.get("all_findings", []) or []),
+        }
+
+        # 智能引擎贯穿核心分析；此处只补齐报告级能力，不重复运行核心管道。
+        result["report"] = _inject_agi_into_report(report_data, company_id)
+        report_data = result["report"]
+        try:
+            execution["stages"]["engine_hub"] = _apply_engine_hub_stage(
+                report_data,
+                result,
+            )
+        except Exception as exc:
+            execution["stages"]["engine_hub"] = {
+                "status": "degraded",
+                "message": str(exc),
+            }
+
+        try:
+            execution["stages"]["methodology_enrichment"] = (
+                _apply_methodology_stage(report_data)
+            )
+        except Exception as exc:
+            execution["stages"]["methodology_enrichment"] = {
+                "status": "degraded",
+                "message": str(exc),
+            }
+
+        report_data, report_stage = _apply_report_compilation_stage(report_data)
+        execution["stages"]["report_compilation"] = report_stage
+        execution["status"] = "completed"
+        report_data["_one_click_pipeline"] = execution
+        result["report"] = report_data
+
+        _persist_one_click_result(company_id, result)
+        return result
+    except Exception as exc:
+        execution["status"] = "failed"
+        return {
+            "ok": False,
+            "message": f"分析异常: {exc}",
+            "execution": execution,
+            "traceback": _traceback.format_exc()[:2000],
+        }
+
 def _analysis_progress(task_id, progress, msg, step=None):
     """进度回调（在线程中被调用）— step参数用于前端七步实时追踪"""
     with _analysis_lock:
@@ -7446,25 +7650,35 @@ def _analysis_progress(task_id, progress, msg, step=None):
             if step is not None:
                 _analysis_tasks[task_id]["current_step"] = step
 
-def _run_analysis_thread(task_id, company_id):
+def _run_analysis_thread(task_id, company_id, user_id):
     """在后台线程中运行分析"""
     import traceback as _tb
     import socket as _socket
     _socket.setdefaulttimeout(10)
+    user_context_token = set_current_user_id(user_id)
     try:
         from database import SessionLocal
         db = SessionLocal()
         try:
-            result = _run_analyze(company_id, db, progress_callback=lambda p, m, s=None: _analysis_progress(task_id, p, m, s))
-            # ═══ 异步路径也追加分析历史（前端主流程走异步，否则history永远为空）═══
-            if result and result.get("ok"):
-                _append_analysis_history(company_id, result)
+            result = _execute_tax_risk_analysis(
+                company_id,
+                db,
+                progress_callback=lambda p, m, s=None: _analysis_progress(
+                    task_id, p, m, s
+                ),
+            )
             with _analysis_lock:
                 if task_id in _analysis_tasks:
-                    _analysis_tasks[task_id]["status"] = "done"
                     _analysis_tasks[task_id]["result"] = result
-                    _analysis_tasks[task_id]["progress"] = 100
-                    _analysis_tasks[task_id]["message"] = "分析完成"
+                    if result and result.get("ok"):
+                        _analysis_tasks[task_id]["status"] = "done"
+                        _analysis_tasks[task_id]["progress"] = 100
+                        _analysis_tasks[task_id]["message"] = "分析完成"
+                    else:
+                        message = (result or {}).get("message", "分析失败")
+                        _analysis_tasks[task_id]["status"] = "error"
+                        _analysis_tasks[task_id]["error"] = message
+                        _analysis_tasks[task_id]["message"] = message
         finally:
             db.close()
     except Exception as _e:
@@ -7473,14 +7687,34 @@ def _run_analysis_thread(task_id, company_id):
                 _analysis_tasks[task_id]["status"] = "error"
                 _analysis_tasks[task_id]["error"] = f"{_e}"
                 _analysis_tasks[task_id]["traceback"] = _tb.format_exc()[:3000]
+    finally:
+        reset_current_user_id(user_context_token)
 
 @app.post("/api/tax-risk-docs/analyze-start")
-def analyze_tax_risk_docs_start(company_id: int = Query(...)):
+def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...)):
     """启动异步分析，立即返回task_id"""
     # 2026-06-26 账套隔离防护：拒绝未选择公司的分析请求
     if company_id <= 0:
         return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
     import uuid as _uuid, time as _time_
+    request_user_id = request.state.auth.user_id
+    with _analysis_lock:
+        for existing_id, existing in _analysis_tasks.items():
+            if (
+                existing.get("company_id") == company_id
+                and existing.get("status") == "running"
+            ):
+                if existing.get("user_id") == request_user_id:
+                    return {
+                        "ok": True,
+                        "task_id": existing_id,
+                        "message": "该账套正在分析，已返回现有任务",
+                        "reused": True,
+                    }
+                return {
+                    "ok": False,
+                    "message": "该账套正在执行分析，请稍后再试",
+                }
     task_id = _uuid.uuid4().hex[:12]
     with _analysis_lock:
         _analysis_tasks[task_id] = {
@@ -7490,19 +7724,24 @@ def analyze_tax_risk_docs_start(company_id: int = Query(...)):
             "result": None,
             "error": None,
             "company_id": company_id,
+            "user_id": request_user_id,
             "started_at": _time_.time(),
             "current_step": 0,
         }
-    t = threading.Thread(target=_run_analysis_thread, args=(task_id, company_id), daemon=True)
+    t = threading.Thread(
+        target=_run_analysis_thread,
+        args=(task_id, company_id, request_user_id),
+        daemon=True,
+    )
     t.start()
     return {"ok": True, "task_id": task_id, "message": "分析已启动"}
 
 @app.get("/api/tax-risk-docs/analyze-status/{task_id}")
-def analyze_tax_risk_docs_status(task_id: str):
+def analyze_tax_risk_docs_status(task_id: str, request: Request):
     """轮询分析进度"""
     with _analysis_lock:
         task = _analysis_tasks.get(task_id)
-        if not task:
+        if not task or task.get("user_id") != request.state.auth.user_id:
             return {"ok": False, "message": "任务不存在或已过期"}
         result = {
             "ok": True,
@@ -7532,6 +7771,7 @@ async def ws_pipeline_progress(websocket: WebSocket, task_id: str):
     if (
         not session
         or not requested_task
+        or requested_task.get("user_id") != session.user_id
         or not session.can_access_company(int(requested_task.get("company_id", 0)))
     ):
         await websocket.close(code=4403)
@@ -7573,11 +7813,11 @@ async def ws_pipeline_progress(websocket: WebSocket, task_id: str):
         except: pass
 
 @app.get("/api/tax-risk-docs/analyze-result/{task_id}")
-def analyze_tax_risk_docs_result(task_id: str):
+def analyze_tax_risk_docs_result(task_id: str, request: Request):
     """获取分析结果"""
     with _analysis_lock:
         task = _analysis_tasks.get(task_id)
-        if not task:
+        if not task or task.get("user_id") != request.state.auth.user_id:
             return {"ok": False, "message": "任务不存在或已过期"}
         if task["status"] == "running":
             return {"ok": False, "message": "分析还在进行中", "progress": task["progress"]}
@@ -7608,101 +7848,19 @@ def analyze_tax_risk_docs_result(task_id: str):
 # 旧同步端点保留（兼容性），但建议前端改用异步
 @app.post("/api/tax-risk-docs/analyze")
 def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
-    """分析涉税资料（同步端点）——每次强制重新分析，不使用缓存"""
+    """兼容同步入口；与前端异步按钮共用唯一后台主流程。"""
     if company_id <= 0:
         return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
-    import traceback as _tb
     import socket as _socket
     _socket.setdefaulttimeout(10)
-    # 清除旧缓存，强制重新分析
-    _last_analysis_cache.pop(company_id, None)
-    # ═══ 闭环：分析前先传播积累的纠正规则到五链 ═══
-    try:
-        from engine.self_learning import _load_correction_rules, apply_cross_company_synthesis
-        rules = _load_correction_rules()
-        if rules:
-            propagate_corrections_to_chains()
-        # 跨公司合成规则应用到本次分析
-        cross = apply_cross_company_synthesis()
-        if cross.get("cross_rules_count", 0) > 0:
-            _tb = __import__('traceback')
-            pass  # 跨公司规则已加载到apply_correction_rules中生效
-    except: pass
-    try:
-        result = _run_analyze(company_id, db)
-        
-        # ═══ AGI注入报告生成 ═══
-        # 分析完成后，用AGI引擎增强每条发现，注入到report中
-        if result.get("ok") and result.get("report"):
-            result["report"] = _inject_agi_into_report(result["report"], company_id)
-        
-        # ═══ 三模块调用：智能引擎中枢 + 稽查方法论 + 报告编制总纲 ═══
-        if result.get("ok") and result.get("report"):
-            report_data = result.get("report", {})
-            # 1. 智能引擎中枢：获取企业生命周期上下文
-            try:
-                from engine.orchestrator import build_orchestration_plan
-                # 构建简易数据画像用于调度
-                findings = report_data.get("all_findings", [])
-                simple_profile = {
-                    "total_records": sum(1 for f in findings),
-                    "risk_levels": {lv: sum(1 for f in findings if f.get("level")==lv) for lv in set(f.get("level","") for f in findings)},
-                    "industry": report_data.get("target_entity", {}).get("industry", ""),
-                }
-                orch_plan = build_orchestration_plan(simple_profile)
-                if orch_plan:
-                    report_data["_engine_hub"] = {
-                        "plan": orch_plan.get("plan", []),
-                        "modules_count": len(str(orch_plan)),
-                    }
-            except Exception: pass
-            # 2. 稽查方法论：为每条发现匹配稽查方法和法规依据
-            try:
-                from engine.methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
-                findings = report_data.get("all_findings", [])
-                if findings and METHODOLOGY_KNOWLEDGE:
-                    for f in findings[:10]:
-                        if f.get("level") in ("高风险", "极高风险", "极高"):
-                            matched = match_methodology(f.get("type", ""))
-                            if matched: f["_methodology"] = matched[:3]
-                            laws = get_relevant_laws(f.get("type", ""))
-                            if laws: f["_methodology_laws"] = laws[:5]
-                    report_data["_methodology_applied"] = {
-                        "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
-                        "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
-                        "findings_enriched": sum(1 for f in findings if f.get("_methodology")),
-                    }
-            except Exception: pass
-            # 3. 报告编制总纲：应用11720条质量标准 + 七章结构
-            try:
-                from engine.report_standards import apply_report_standards
-                result["report"] = apply_report_standards(result["report"])
-            except Exception: pass
-        
-        # ═══ 缓存回写 ═══
-        # pipeline.py 在_inject_agi_into_report之前写缓存，需要再次回写
-        if result.get("ok"):
-            _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
-            try:
-                import json as _json
-                _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
-                atomic_write_json(LAST_ANALYSIS_CACHE, _disk)
-            except: pass
-            # ═══ 追加分析历史（统一公共函数，含回放快照+落盘）═══
-            _append_analysis_history(company_id, result)
-        
-        return result
-    except Exception as _e:
-        return {"ok": False, "message": f"分析异常: {_e}", "traceback": _tb.format_exc()[:2000]}
+    return _execute_tax_risk_analysis(company_id, db)
 
 
 def _inject_agi_into_report(report: dict, company_id: int) -> dict:
-    """将AGI全量推理注入到报告的每一章"""
+    """把核心管道已产生的智能结果组织成报告级视图。"""
     try:
-        from engine.agi_engine import agi
         from engine.director import get_director
-        from engine.agi_core import memory, boundary, generalizer, counterfactual
-        from engine.agi_meta import meta_loop
+        from engine.agi_core import boundary
         
         director = get_director()
         report_data = report.get("report", report)
@@ -7715,36 +7873,27 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
         
         # 为每条发现注入AGI分析
         for f in all_findings[:20]:
-            uc = director.quantify_uncertainty(f, comprehensive.get("material_intel", {}))
+            uc = f.get("_agi_confidence")
+            if not uc:
+                uc = director.quantify_uncertainty(
+                    f,
+                    comprehensive.get("material_intel", {}),
+                )
             pen = director.penetrate_essence(f)
             ba = boundary.assess(f, {"industry": target.get("industry",""), "material_intel": comprehensive.get("material_intel", {})})
-            cf = counterfactual.reason(f, comprehensive.get("material_intel", {}))
-            
+
             f["_agi_enhanced"] = {
                 "confidence": uc,
                 "penetration": pen if pen.get("flags") else None,
                 "boundary": ba,
-                "counterfactual": cf if cf.get("status") == "reasoned" else None,
+                "counterfactual": f.get("_counterfactual"),
             }
         
         # 报告级AGI增强
         ct = director.cross_tax_chain(all_findings)
-        gen = generalizer.generalize(all_findings, target.get("name",""), target.get("industry",""))
+        gen = comprehensive.get("agi_generalization", {})
         inv = director.generate_investigation_plan(all_findings, comprehensive.get("material_intel", {}))
         lifecycle = director.get_lifecycle_context(report_data.get("company_age", 3))
-        
-        # 自审
-        materials = comprehensive.get("material_intel", {})
-        meta_result = meta_loop.run(all_findings, target, materials)
-        
-        # 将逐条审核结果注入到每条发现
-        per_finding = meta_result.get("audit", {}).get("per_finding_audits", [])
-        for pfa in per_finding:
-            idx = pfa.get("index", 0) - 1
-            if 0 <= idx < len(all_findings):
-                if not all_findings[idx].get("_agi_enhanced"):
-                    all_findings[idx]["_agi_enhanced"] = {}
-                all_findings[idx]["_agi_enhanced"]["audit_verdict"] = pfa
         
         # 注入到报告顶层
         report_data["_agi_report_level"] = {
@@ -7752,22 +7901,13 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
             "generalization": gen,
             "investigation_plan": inv,
             "lifecycle": lifecycle,
-            "meta_audit": meta_result.get("audit", {}),
+            "meta_audit": report_data.get("red_team", {}),
             "cross_industry_insight": _get_cross_industry_insight(all_findings),
             "planning_advice": {
                 f.get("type","")[:40]: director.get_planning_advice(f)
                 for f in all_findings[:5] if director.get_planning_advice(f)
             },
         }
-        
-        # 写入记忆
-        memory.remember_analysis(company_id, {
-            "findings": all_findings,
-            "overall_risk": comprehensive.get("overall_risk", ""),
-            "risk_score": comprehensive.get("risk_score", 0),
-            "industry": target.get("industry", ""),
-            "active_signals": [],
-        })
         
         return report
     except Exception as e:

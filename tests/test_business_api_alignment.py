@@ -11,6 +11,198 @@ from pathlib import Path
 
 
 class BusinessApiAlignmentTests(unittest.TestCase):
+    def test_one_click_analysis_uses_one_ordered_backend_flow(self):
+        root = Path(__file__).resolve().parents[1]
+        main_source = (root / "main.py").read_text(encoding="utf-8")
+        pipeline_source = (root / "engine" / "pipeline.py").read_text(
+            encoding="utf-8"
+        )
+
+        unified_start = main_source.index(
+            "def _execute_tax_risk_analysis(company_id, db, progress_callback=None):"
+        )
+        unified_end = main_source.index(
+            "\ndef _analysis_progress", unified_start
+        )
+        unified = main_source[unified_start:unified_end]
+        ordered_calls = (
+            "result = _run_analyze(",
+            "_inject_agi_into_report(report_data, company_id)",
+            "_apply_engine_hub_stage(",
+            "_apply_methodology_stage(report_data)",
+            "_apply_report_compilation_stage(report_data)",
+            "_persist_one_click_result(company_id, result)",
+        )
+        positions = [unified.index(call) for call in ordered_calls]
+        self.assertEqual(positions, sorted(positions))
+
+        worker_start = main_source.index(
+            "def _run_analysis_thread(task_id, company_id, user_id):"
+        )
+        worker_end = main_source.index(
+            '\n@app.post("/api/tax-risk-docs/analyze-start")', worker_start
+        )
+        worker = main_source[worker_start:worker_end]
+        self.assertIn("set_current_user_id(user_id)", worker)
+        self.assertIn("_execute_tax_risk_analysis(", worker)
+        self.assertNotIn("result = _run_analyze(", worker)
+        self.assertNotIn("_append_analysis_history(", worker)
+
+        sync_start = main_source.index(
+            '\n@app.post("/api/tax-risk-docs/analyze")'
+        )
+        sync_end = main_source.index(
+            "\ndef _inject_agi_into_report", sync_start
+        )
+        sync_endpoint = main_source[sync_start:sync_end]
+        self.assertIn(
+            "return _execute_tax_risk_analysis(company_id, db)",
+            sync_endpoint,
+        )
+        self.assertNotIn("_run_analyze(company_id, db)", sync_endpoint)
+        self.assertNotIn("apply_report_standards", sync_endpoint)
+
+        self.assertNotIn("_last_analysis_cache", pipeline_source)
+        self.assertIn('"user_id": request_user_id', main_source)
+        self.assertIn(
+            'requested_task.get("user_id") != session.user_id',
+            main_source,
+        )
+
+    def test_one_click_flow_runs_each_required_stage_once(self):
+        root = Path(__file__).resolve().parents[1]
+        script = textwrap.dedent(
+            """
+            from unittest.mock import patch
+
+            import main
+
+            calls = []
+            raw_result = {
+                "ok": True,
+                "report": {
+                    "all_findings": [],
+                    "pipeline_log": [],
+                    "comprehensive": {},
+                },
+            }
+
+            def run_engine(*args, **kwargs):
+                calls.append("analysis")
+                return raw_result
+
+            def inject(report, company_id):
+                calls.append("engine_report")
+                return report
+
+            def engine_hub(report, result):
+                calls.append("engine_hub")
+                return {"status": "completed"}
+
+            def methodology(report):
+                calls.append("methodology")
+                return {"status": "completed"}
+
+            def compilation(report):
+                calls.append("report_compilation")
+                report["compiled"] = True
+                return report, {"status": "completed"}
+
+            def persist(company_id, result):
+                calls.append("persist")
+
+            with patch(
+                "engine.self_learning._load_correction_rules",
+                return_value=[],
+            ), patch(
+                "engine.self_learning.apply_cross_company_synthesis",
+                return_value={},
+            ), patch.object(
+                main, "_run_analyze", side_effect=run_engine
+            ), patch.object(
+                main, "_inject_agi_into_report", side_effect=inject
+            ), patch.object(
+                main, "_apply_engine_hub_stage", side_effect=engine_hub
+            ), patch.object(
+                main, "_apply_methodology_stage", side_effect=methodology
+            ), patch.object(
+                main,
+                "_apply_report_compilation_stage",
+                side_effect=compilation,
+            ), patch.object(
+                main, "_persist_one_click_result", side_effect=persist
+            ):
+                result = main._execute_tax_risk_analysis(7, object())
+
+            assert result["ok"] is True
+            assert result["report"]["compiled"] is True
+            assert result["report"]["_one_click_pipeline"]["status"] == "completed"
+            assert calls == [
+                "analysis",
+                "engine_report",
+                "engine_hub",
+                "methodology",
+                "report_compilation",
+                "persist",
+            ], calls
+
+            calls.clear()
+            with patch(
+                "engine.self_learning._load_correction_rules",
+                return_value=[],
+            ), patch(
+                "engine.self_learning.apply_cross_company_synthesis",
+                return_value={},
+            ), patch.object(
+                main, "_run_analyze", return_value=raw_result
+            ), patch.object(
+                main, "_inject_agi_into_report", side_effect=inject
+            ), patch.object(
+                main, "_apply_engine_hub_stage", side_effect=engine_hub
+            ), patch.object(
+                main, "_apply_methodology_stage", side_effect=methodology
+            ), patch.object(
+                main,
+                "_apply_report_compilation_stage",
+                side_effect=RuntimeError("quality gate failed"),
+            ), patch.object(
+                main, "_persist_one_click_result", side_effect=persist
+            ):
+                failed = main._execute_tax_risk_analysis(7, object())
+
+            assert failed["ok"] is False
+            assert "quality gate failed" in failed["message"]
+            assert "persist" not in calls
+            """
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "APP_DATA_DIR": directory,
+                    "APP_COOKIE_SECURE": "0",
+                    "APP_ALLOWED_ORIGINS": "http://testserver",
+                    "APP_ADMIN_USERNAME": "businessadmin",
+                    "APP_ADMIN_PASSWORD": "Business-Test-2026!",
+                    "APP_LLM_MASTER_KEY": base64.urlsafe_b64encode(
+                        bytes(range(32))
+                    ).decode("ascii"),
+                }
+            )
+            result = subprocess.run(
+                [sys.executable, "-c", script],
+                cwd=root,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+        )
+
     def test_bank_and_journal_contracts_match_the_frontend(self):
         root = Path(__file__).resolve().parents[1]
         script = textwrap.dedent(

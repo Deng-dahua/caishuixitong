@@ -38,7 +38,7 @@ from engine.enterprise_profile import _profile_enterprise  # 案情画像与策�
 from engine.associate_findings import _associate_findings  # 多疑点关联推理 (P1)
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _tax_risk_docs  # 共享全局状态
+from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _tax_risk_docs  # 共享全局状态
 
 def _auto_assign_rule_ids(all_findings, pipeline_log=None):
     """自动为每条发现分配规则ID——没有匹配规则的发现也有兜底"""
@@ -4052,20 +4052,6 @@ def _run_analyze(company_id, db, progress_callback=None):
         "step7_报告输出": _step_timing.get("step7", 0),
         "total": round(sum(v for k,v in _step_timing.items() if not k.endswith("_start")), 2),
     }
-    # 缓存最近分析结果（LRU: 最多保留1720条，超出删除最旧）
-    _MAX_CACHE = 30
-    if len(_last_analysis_cache) >= _MAX_CACHE:
-        oldest = min(_last_analysis_cache.keys(), key=lambda k: _last_analysis_cache[k].get("timestamp", ""))
-        del _last_analysis_cache[oldest]
-    _last_analysis_cache[company_id] = {"report": result, "timestamp": datetime.now().isoformat()}
-    # 持久化到磁盘——服务器重启不丢、跨进程共享
-    try:
-        import json as _json
-        _disk = {str(k): {"timestamp": v.get("timestamp",""), "report": v.get("report",{})} for k,v in _last_analysis_cache.items()}
-        from runtime_storage import LAST_ANALYSIS_CACHE, atomic_write_json
-        atomic_write_json(LAST_ANALYSIS_CACHE, _disk)
-    except: pass
-    
     # ═══ 假设-验证推理 ───
     try:
         from engine.hypothesis_engine import run_hypothesis_verification
