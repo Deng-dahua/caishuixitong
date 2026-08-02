@@ -145,12 +145,10 @@ def scan_voucher_volume_anomaly(vouchers):
     return []
 
 
-# 阈值扫描函数注册表: rule_id -> scanner function
-SCANNERS = {
-    1: scan_balance_equation,
-    2: scan_voucher_volume_anomaly,
-    21: scan_bank_vs_revenue,
-}
+# 旧扫描函数保留用于历史结果解释，但其数据口径不足以支持生产触发：
+# 规则#1缺少资产负债表两侧字段，#2使用未经验证的固定行业基准，#21把开票
+# 金额误写成申报收入。生产可执行规则已迁移至 verified_rule_engine。
+SCANNERS = {}
 
 
 def scan_all(engine_data):

@@ -642,11 +642,12 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             '@app.get("/api/methodology/assets/{asset_name}")',
             main,
         )
-        for asset_name in ("rules", "clues", "evidence", "analysis", "framework"):
+        for asset_name in ("rules", "clues", "evidence", "analysis", "framework", "playbooks"):
             self.assertIn(
                 f"'/api/methodology/assets/{asset_name}",
                 methodology + risk_rules,
             )
+        self.assertIn('"industry_profiles": "industry_audit_profiles.json"', main)
         for protected_asset in (
             "tax_risk_rules_local_export",
             "cross_domain_clues",
@@ -716,8 +717,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
-        self.assertIn("tax-risk-rules.js?v=2026080201", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026080201", index)
+        self.assertIn("tax-risk-rules.js?v=2026080202", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080202", index)
         self.assertIn("system-logs.js?v=2026073101", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)

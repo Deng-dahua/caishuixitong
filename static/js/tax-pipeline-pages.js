@@ -6201,6 +6201,7 @@ function METHODOLOGY_TOC() {
 }
 var METHODOLOGY_PAGE_SECTIONS = [
   {id:'overview', label:'🧭 作业闭环总览', desc:'先明确职责、层序和放行条件，再进入具体方法、数据与证据。'},
+  {id:'coverage', label:'🗺️ 真实覆盖矩阵', desc:'区分候选知识、可执行规则和行业场景，公开当前覆盖、质量缺口及升级计划。'},
   {id:'guide', label:'📖 全流程作业规程', desc:'从任务权限、资料保全到调查取证、证据复核、审理移交和受控进化。'},
   {id:'files', label:'📁 资料接收与解析', desc:'识别资料、提取结构、保留来源并公开解析限制。'},
   {id:'rules', label:'📑 疑点规则底座', desc:'展示疑点从什么条件触发、适用于什么范围以及需要什么后续核验。'},
@@ -6211,6 +6212,8 @@ var METHODOLOGY_PAGE_SECTIONS = [
 ];
 
 var _methodologyFrameworkPromise = null;
+var _methodologyCoveragePromise = null;
+var _methodologyPlaybookPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6220,6 +6223,94 @@ function _loadMethodologyFramework() {
       });
   }
   return _methodologyFrameworkPromise;
+}
+
+function _loadMethodologyCoverageReport() {
+  if (!_methodologyCoveragePromise) {
+    _methodologyCoveragePromise = fetch('/api/methodology/coverage?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('真实覆盖矩阵加载失败');
+        return response.json();
+      });
+  }
+  return _methodologyCoveragePromise;
+}
+
+function _loadMethodologyPlaybooks() {
+  if (!_methodologyPlaybookPromise) {
+    _methodologyPlaybookPromise = fetch('/api/methodology/assets/playbooks?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('调查路径库加载失败');
+        return response.json();
+      });
+  }
+  return _methodologyPlaybookPromise;
+}
+
+function _renderMethodologyCoverageMatrix(container) {
+  if (!container) return;
+  return _loadMethodologyCoverageReport().then(function(report){
+    var inventory = report.inventory || {};
+    var maturity = report.maturity_model || [];
+    var industries = report.industry_matrix || [];
+    var industryProfiles = report.industry_profiles || [];
+    var taxes = report.tax_matrix || [];
+    var lifecycle = report.lifecycle_matrix || [];
+    var dataCapabilities = report.data_capability_matrix || [];
+    var gaps = report.gap_register || [];
+    var verified = report.verified_rule_catalog || [];
+    container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
+      + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
+      + '<div class="method-coverage-summary">'
+      + '<div><strong>' + escHtml(inventory.candidate_rules || 0) + '</strong><span>结构化候选规则</span></div>'
+      + '<div><strong>' + escHtml(inventory.verified_executable_rules || 0) + '</strong><span>已验证可执行规则</span></div>'
+      + '<div><strong>' + escHtml(inventory.candidate_rules_missing_provenance || 0) + '</strong><span>待补来源记录</span></div>'
+      + '<div><strong>' + escHtml(inventory.unique_analysis_structures || 0) + '</strong><span>分析链结构类型</span></div>'
+      + '<div><strong>' + escHtml(inventory.dominant_analysis_structure_count || 0) + '</strong><span>最大模板结构覆盖数</span></div>'
+      + '</div>'
+      + '<div class="method-source-note"><b>行业分类基线：</b>' + escHtml((report.taxonomy_basis || {}).name || '')
+      + '，覆盖范围为' + escHtml((report.taxonomy_basis || {}).scope || '') + '。行业关键词命中只表示候选知识分布，不代表行业规则已经验证。</div>'
+      + '<h3 class="method-subheading">规则成熟度与放行边界</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:10%">等级</th><th style="width:28%">状态</th><th>允许用途</th></tr></thead><tbody>'
+      + maturity.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
+        + '</td><td>' + escHtml(item.release) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h3 class="method-subheading">已验证原子规则</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:10%">编号</th><th style="width:24%">规则</th><th style="width:20%">实际资料</th><th>结论限制</th></tr></thead><tbody>'
+      + verified.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
+        + '</td><td>' + escHtml((item.required_sources || []).join('、')) + '</td><td>' + escHtml(item.limitation) + '</td></tr>';}).join('')
+      + '</tbody></table>'
+      + '<h3 class="method-subheading">二十个国民经济行业门类</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:7%">代码</th><th style="width:27%">行业门类</th><th style="width:14%">候选知识提及</th><th style="width:15%">可适用原子规则</th><th style="width:15%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
+      + industries.map(function(item){return '<tr><td>' + escHtml(item.code) + '</td><td>' + escHtml(item.name)
+        + '</td><td>' + escHtml(item.candidate_mentions) + '</td><td>' + escHtml(item.verified_applicable_rules)
+        + '</td><td>' + escHtml(item.verified_specific_rules)
+        + '</td><td>' + escHtml(item.state) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<div class="method-source-note"><b>行业场景使用边界：</b>' + escHtml(report.industry_profile_boundary || '') + '</div>'
+      + '<div class="method-two-column">' + industryProfiles.map(function(profile){
+        return '<details class="method-framework-card"><summary><b>' + escHtml(profile.code + ' · ' + profile.name) + '</b></summary>'
+          + '<p><strong>经营锚点</strong></p>' + _methodologyList(profile.business_anchors)
+          + '<p><strong>重点核验场景</strong></p>' + _methodologyList(profile.priority_scenarios)
+          + '<p><strong>跨资料核验路径</strong></p>' + _methodologyList(profile.cross_checks)
+          + '<p><strong>应主动排除的正常解释</strong></p>' + _methodologyList(profile.normal_explanations)
+          + '<p><strong>专项资料缺口</strong></p>' + _methodologyList(profile.data_gaps) + '</details>';
+      }).join('') + '</div>'
+      + '<h3 class="method-subheading">税费事项与业务生命周期</h3>'
+      + '<div class="method-two-column"><article class="method-framework-card"><h4>税费事项</h4><table class="method-framework-table"><thead><tr><th>事项</th><th>候选</th><th>可执行</th></tr></thead><tbody>'
+      + taxes.map(function(item){return '<tr><td>' + escHtml(item.name) + '</td><td>' + escHtml(item.candidate_mentions)
+        + '</td><td>' + escHtml(item.verified_executable_rules) + '</td></tr>';}).join('') + '</tbody></table></article>'
+      + '<article class="method-framework-card"><h4>业务生命周期</h4><table class="method-framework-table"><thead><tr><th>环节</th><th>候选</th><th>可执行</th></tr></thead><tbody>'
+      + lifecycle.map(function(item){return '<tr><td>' + escHtml(item.name) + '</td><td>' + escHtml(item.candidate_mentions)
+        + '</td><td>' + escHtml(item.verified_executable_rules) + '</td></tr>';}).join('') + '</tbody></table></article></div>'
+      + '<h3 class="method-subheading">资料能力与接入边界</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:24%">资料族</th><th style="width:15%">当前能力</th><th style="width:25%">可支持用途</th><th>必须说明的边界</th></tr></thead><tbody>'
+      + dataCapabilities.map(function(item){return '<tr><td>' + escHtml(item.source) + '</td><td>' + escHtml(item.state)
+        + '</td><td>' + escHtml(item.use) + '</td><td>' + escHtml(item.boundary) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h3 class="method-subheading">已知缺口与整改队列</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:10%">优先级</th><th style="width:28%">已知缺口</th><th>控制与补齐方式</th></tr></thead><tbody>'
+      + gaps.map(function(item){return '<tr><td>' + escHtml(item.priority) + '</td><td>' + escHtml(item.gap)
+        + '</td><td>' + escHtml(item.control) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<div class="method-source-note"><b>新增规则原则：</b>' + escHtml(report.release_rule || '') + '</div>';
+  });
 }
 
 function _methodologyList(items) {
@@ -6620,6 +6711,7 @@ function renderMethodologyPage(container) {
       </div>
     </div>`;
   _renderMethodologyMount('overview', _renderMethodologyOverview);
+  _renderMethodologyMount('coverage', _renderMethodologyCoverageMatrix);
   _renderMethodologyMount('guide', _renderMethodologyGuide);
   _renderMethodologyMount('files', renderFileParsingPage);
   _renderMethodologyMount('rules', renderTaxRiskRules);
@@ -6707,13 +6799,28 @@ function _renderMethodologyOverview(container) {
 
 function renderMethodologyChainsIntegrated(container) {
   if (!container) return;
-  return _loadMethodologyFramework().then(function(framework){
+  return Promise.all([_loadMethodologyFramework(), _loadMethodologyPlaybooks()]).then(function(values){
+  var framework = values[0] || {};
+  var playbookPayload = values[1] || {};
+  var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
     <div class="method-two-column">
       ${['clue','evidence','analysis'].map(function(key){var c=contracts[key]||{};return '<article class="method-framework-card"><h4>'+(key==='clue'?'调查线索链':key==='evidence'?'证据闭环链':'分析推理链')+'</h4><p>'+escHtml(c.purpose||'')+'</p><p><strong>必备结构：</strong>'+escHtml((c.required_fields||[]).join('、'))+'</p><p><strong>状态：</strong>'+escHtml((c.states||[]).join(' → '))+'</p></article>';}).join('')}
     </div>
     <div class="method-source-note"><b>链间交接：</b>调查链只有形成可定位的待证事实才交给证据链；证据链完成来源谱系去重、支持与反向证据评价后才交给分析链；分析链只能形成有前提和限制的人工复核意见。固定来源数量是内部成熟度提示，不替代具体事项的证明要求。</div>
+    <div class="method-stop"><b>路径库边界：</b>${escHtml(playbookPayload.positioning || '')}</div>
+    <h3 class="method-subheading">十三组调查—证据—分析专项路径</h3>
+    <div class="method-two-column">
+      ${playbooks.map(function(item){return '<details class="method-framework-card"><summary><b>' + escHtml(item.id + ' · ' + item.name) + '</b></summary>'
+        + '<p><strong>启动边界：</strong>' + escHtml(item.trigger_boundary) + '</p>'
+        + '<p><strong>调查顺序</strong></p>' + _methodologyList(item.investigation_sequence)
+        + '<p><strong>对抗性模式</strong></p>' + _methodologyList(item.evasive_patterns)
+        + '<p><strong>正常解释</strong></p>' + _methodologyList(item.alternative_explanations)
+        + '<p><strong>证据最低结构</strong></p>' + _methodologyList(item.evidence_minimum)
+        + '<p><strong>分析问题</strong></p>' + _methodologyList(item.analysis_questions)
+        + '<p><strong>强制停点</strong></p>' + _methodologyList(item.stop_conditions) + '</details>';}).join('')}
+    </div>
     <div id="methodology-chain-compact" class="method-chain-block">
       <h3>📌 链路紧凑总览</h3>
       <p>先按类别快速定位，再进入完整调查、证据和推理明细；数量不代表质量，执行状态和证据缺口必须同时查看。</p>

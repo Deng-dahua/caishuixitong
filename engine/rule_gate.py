@@ -188,6 +188,11 @@ def scan_extended_thresholds(engine_data, rules_data, company_data):
     for rule in rules_data:
         if not isinstance(rule, dict):
             continue
+        # 旧规则中的自然语言阈值没有统一字段契约，不能套用同一个“银行收款
+        # vs 开票金额”算法批量触发。只有显式通过验证并登记 executable_spec
+        # 的规则才允许进入扩展扫描；其余规则保留为候选调查知识。
+        if not isinstance(rule.get("executable_spec"), dict):
+            continue
         rid = rule.get('id')
         threshold_text = rule.get('threshold', '')
         if not threshold_text:
@@ -267,60 +272,30 @@ def _scan_one_rule(rule, engine_data, company_data):
 
 def auto_grade_determination(all_findings):
     """
-    对每条发现按独立数据源数量自动定级。
-    1源=线索级, 2源=强证据级, ≥3源=铁证级。
-    在规则enricher注入完毕后运行。
+    只根据运行时真实记录的来源谱系标记证据成熟度。
+
+    规则文本中“提到”银行、发票或合同，不代表系统实际取得并核验了这些
+    资料；业务域数量也不是独立证据数量。
     """
     for f in all_findings:
         if not isinstance(f, dict):
             continue
 
-        # 统计独立来源
-        sources = set()
-        # 从 _rule_evidence 或 evidence 字段推断来源数
-        evidence_text = f.get('_rule_evidence', f.get('evidence', ''))
-        # 简化的来源计数: 检查提到了哪些数据源类型
-        for kw in ['银行', '流水', 'bank']:
-            if kw in str(evidence_text).lower():
-                sources.add('bank')
-        for kw in ['发票', '进项', '销项', 'invoice']:
-            if kw in str(evidence_text).lower():
-                sources.add('invoice')
-        for kw in ['合同', 'contract']:
-            if kw in str(evidence_text).lower():
-                sources.add('contract')
-        for kw in ['凭证', '账', 'voucher', '序时账']:
-            if kw in str(evidence_text).lower():
-                sources.add('voucher')
-        for kw in ['申报', 'declaration']:
-            if kw in str(evidence_text).lower():
-                sources.add('declaration')
-        for kw in ['社保', '工资', '个税', 'salary', 'social']:
-            if kw in str(evidence_text).lower():
-                sources.add('personnel')
-        for kw in ['存货', '库存', 'inventory']:
-            if kw in str(evidence_text).lower():
-                sources.add('inventory')
-
-        # 如果 chain_executor 已经提供了 source_chain 信息，也算源
-        sc = f.get('source_chain', '')
-        if sc:
-            sources.add(f'chain_{sc}')
-
-        n_sources = len(sources) if sources else 1
-
-        # 三路径分级
-        if n_sources >= 3:
-            f['evidence_grade'] = '铁证'
-            f['determination_path'] = '路径三·完整证明'
-        elif n_sources >= 2:
-            f['evidence_grade'] = '强证据'
-            f['determination_path'] = '路径二·部分证明'
+        observed = f.get('independent_sources')
+        sources = set(observed) if isinstance(observed, (list, tuple, set)) else set()
+        if not sources:
+            f['evidence_grade'] = '来源未核验'
+            f['evidence_maturity'] = 'unverified_source_lineage'
+            f['independent_source_count'] = 0
+        elif len(sources) == 1:
+            f['evidence_grade'] = '单一来源待补证'
+            f['evidence_maturity'] = 'single_source'
+            f['independent_source_count'] = 1
         else:
-            f['evidence_grade'] = '线索'
-            f['determination_path'] = '路径一·无法证明'
-
-        f['independent_sources'] = n_sources
+            f['evidence_grade'] = '多源材料待人工复核'
+            f['evidence_maturity'] = 'multi_source_pending_human_review'
+            f['independent_source_count'] = len(sources)
+        f['determination_path'] = '不自动定性；按证据成熟度移交人工复核'
 
     return all_findings
 
@@ -357,7 +332,8 @@ def apply_all_gates(all_findings, rules_data, company_data, engine_data):
             if not passed:
                 # 闸门未通过：降级为线索且不入正式结论
                 f['severity'] = '低风险'
-                f['evidence_grade'] = '线索'
+                f['evidence_grade'] = '适用性未通过'
+                f['evidence_maturity'] = 'applicability_gate_failed'
                 f['_gate_blocked'] = True
 
     return all_findings

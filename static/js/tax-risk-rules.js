@@ -311,7 +311,7 @@ function renderTaxRiskRules(container) {
     + '.rr-row:hover .rr-name{color:#9a1f2b;text-decoration:underline}'
     + '</style>';
   h += '<div id="rr-list-view">';
-  h += '<div class="rr-pre">规则库用于把数据差异转换为<em>可追溯的核验任务</em>。每条规则必须公开适用条件、触发字段、排除情形、所需资料和后续责任；规则命中、风险评分和阈值只负责排序，不代表事实已经查实或法律性质已经认定。以下展示当前已加载规则，使用时仍须核验数据、证据和适用期间。</div>';
+  h += '<div class="rr-pre"><em>当前列表是结构化候选知识库，不是1720条成熟可执行规则。</em> 候选内容用于检索调查方向，必须经过适用性、字段契约、正常解释、来源谱系和案例验证后才能升级。生产执行范围及行业空白以“真实覆盖矩阵”中的已验证原子规则为准；规则命中、旧风险等级和阈值均不代表事实查实或法律认定。</div>';
 
   h += '<div class="rr-search">'
     + '<input id="rr-search-input" type="text" placeholder="搜索规则..." oninput="window._rrFilter()" style="max-width:220px">'
@@ -761,7 +761,7 @@ function renderTaxRiskRulesList() {
   var sortNames = {time:'按时间排序', high:'高风险优先', low:'低风险优先', trigger:'触发优先'};
   var sortName = sortNames[_currentSort] || '按时间排序';
   var timeStr = window._rulesUpdateTime ? ' · 数据更新于 ' + window._rulesUpdateTime : '';
-  if (countEl) countEl.innerHTML = data.length + ' 条税务疑点 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
+  if (countEl) countEl.innerHTML = data.length + ' 条结构化候选规则 ' + triggerText + ' · ' + sortName + ' · 支持搜索筛选' + timeStr;
 
   if (data.length === 0) {
     listEl.innerHTML = '<div style="padding:40px 0;font-size:10px;color:#94a3b8">暂无税务疑点，请加载数据</div>';
@@ -801,7 +801,7 @@ function renderTaxRiskRulesList() {
   listEl.innerHTML = window._rrTable(sortedData);
 
   if (statsEl) {
-    statsEl.innerHTML = '共 ' + data.length + ' 条税务疑点 · '
+    statsEl.innerHTML = '共 ' + data.length + ' 条候选知识 · 旧库优先级标注：'
       + '<span style="color:#dc2626">高 ' + high + '</span> · '
       + '<span style="color:#f59e0b">中 ' + mid + '</span> · '
       + '<span style="color:#10b981">低/良 ' + low + '</span> · '

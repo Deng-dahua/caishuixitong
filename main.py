@@ -1539,17 +1539,29 @@ def batch_refresh_rules():
     except Exception as _e:
         return {"ok": False, "message": f"保存失败: {_e}"}
 
+_tax_risk_rules_display_cache = {}
+
+
 @app.get("/api/tax-risk-rules/data")
 def get_tax_risk_rules_data():
-    """直接读取并返回规则JSON数据（绕过StaticFiles的大文件限制）"""
+    """返回只读候选规则；展示响应统一执行方法论边界适配。"""
     import os as _os
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
         return {"ok": False, "message": "规则文件不存在"}
     try:
+        stat = _os.stat(rp)
+        cache_key = (stat.st_mtime_ns, stat.st_size)
+        cached = _tax_risk_rules_display_cache.get(cache_key)
+        if cached is not None:
+            return cached
         with open(rp, "r", encoding="utf-8") as _f:
             data = _json.load(_f)
-        return data
+        from engine.methodology_assets import prepare_methodology_asset
+        prepared = prepare_methodology_asset("rules", data)
+        _tax_risk_rules_display_cache.clear()
+        _tax_risk_rules_display_cache[cache_key] = prepared
+        return prepared
     except Exception as _e:
         return {"ok": False, "message": f"读取失败: {_e}"}
 
@@ -6871,6 +6883,7 @@ def get_system_stats():
 
 
 _methodology_asset_cache = {}
+_methodology_coverage_cache = {}
 
 
 @app.get("/api/methodology/assets/{asset_name}")
@@ -6884,6 +6897,8 @@ def get_methodology_asset(asset_name: str):
         "evidence": "cross_domain_evidence.json",
         "analysis": "cross_domain_analysis.json",
         "framework": "methodology_framework.json",
+        "industry_profiles": "industry_audit_profiles.json",
+        "playbooks": "methodology_chain_playbooks.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6908,6 +6923,34 @@ def get_methodology_asset(asset_name: str):
         return prepared
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=500, detail="方法论数据读取失败") from exc
+
+
+@app.get("/api/methodology/coverage")
+def get_methodology_coverage():
+    """返回候选规则、已验证规则和已知空白的真实覆盖矩阵。"""
+    static_root = _os.path.join(_os.path.dirname(__file__), "static")
+    filenames = (
+        "tax_risk_rules_local_export.json",
+        "cross_domain_clues.json",
+        "cross_domain_evidence.json",
+        "cross_domain_analysis.json",
+        "industry_audit_profiles.json",
+    )
+    try:
+        cache_key = tuple(
+            (_os.path.getmtime(_os.path.join(static_root, name)), _os.path.getsize(_os.path.join(static_root, name)))
+            for name in filenames
+        )
+        cached = _methodology_coverage_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        from engine.methodology_coverage import build_methodology_coverage
+        report = build_methodology_coverage(static_root)
+        _methodology_coverage_cache.clear()
+        _methodology_coverage_cache[cache_key] = report
+        return report
+    except (OSError, ValueError, TypeError) as exc:
+        raise HTTPException(status_code=500, detail="方法论覆盖矩阵生成失败") from exc
 
 
 def patrol_status_v2():

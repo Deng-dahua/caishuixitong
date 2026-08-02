@@ -143,6 +143,20 @@ def review_finding(finding):
     finding["required_human_review"] = True
     finding["legal_review_status"] = "not_verified_for_case_period"
     finding["conclusion_scope"] = "screening_and_review_only"
+    observed_sources = finding.get("independent_sources")
+    source_count = len(set(observed_sources)) if isinstance(observed_sources, (list, tuple, set)) else 0
+    safe_grade = (
+        "多源材料待人工复核" if source_count >= 2
+        else ("单一来源待补证" if source_count == 1 else "来源未核验")
+    )
+    finding["evidence_grade"] = safe_grade
+    finding["_evidence_grade"] = safe_grade
+    finding["independent_source_count"] = source_count
+    finding["evidence_maturity"] = (
+        "multi_source_pending_human_review" if source_count >= 2
+        else ("single_source" if source_count == 1 else "unverified_source_lineage")
+    )
+    finding["determination_path"] = "不自动定性；按证据成熟度移交人工复核"
     finding["alternative_explanations"] = finding.get("alternative_explanations") or _alternative_explanations(combined)
     finding["methodology_controls"] = {
         "source_trace_required": True,

@@ -2062,6 +2062,31 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _ts:
         pipeline_log.append(f"[阈值扫描] 异常: {_ts}")
 
+    # ── 已验证原子规则：只运行具有明确字段契约和回归测试的计算 ──
+    try:
+        from engine.verified_rule_engine import run_verified_rules
+        _verified_data = _eng_data if '_eng_data' in dir() else {
+            "bank_txs": bank_txs,
+            "sal_invs": sal_invs,
+            "pur_invs": pur_invs,
+            "vouchers": vouchers,
+            "salaries": salaries,
+            "social_security": social_security,
+            "inventory": inventory,
+            "trial_balance": trial_balance_data,
+        }
+        _verified_result = run_verified_rules(_verified_data)
+        _verified_findings = _verified_result.get("findings", [])
+        if _verified_findings:
+            domain_results.append({"domain": "已验证原子规则", "findings": _verified_findings})
+            all_findings.extend(_verified_findings)
+        pipeline_log.append(
+            f"[已验证原子规则] 运行{_verified_result.get('catalog_count', 0)}条，"
+            f"形成{len(_verified_findings)}项待核事实或资料质量事项"
+        )
+    except Exception as _verified_error:
+        pipeline_log.append(f"[已验证原子规则] 执行异常: {_verified_error}")
+
     # ── 域→规则自动分配：为没有rule_id的发现自动匹配税务合规指令 ──
     all_findings = _auto_assign_rule_ids(all_findings, pipeline_log)
 
@@ -4060,13 +4085,18 @@ def _run_analyze(company_id, db, progress_callback=None):
         )
         comprehensive["hypothesis_verification"] = hypothesis_summary
         # ── 同步result中的all_findings（因为假设验证修改了all_findings）──
-        # ── 执行覆盖·⑰determination定性分级：按独立来源域数量映射三档（1域=线索/2域=强证据/≥3域=铁证）──
-        _type_domains = {}
+        # 业务域数量、同名发现数量和规则文本均不能替代独立证据来源。
         for _f in all_findings:
-            _type_domains.setdefault(str(_f.get("type", "")), set()).add(str(_f.get("domain", "")))
-        for _f in all_findings:
-            _nsrc = len(_type_domains.get(str(_f.get("type", "")), set()) - {""})
-            _f["_evidence_grade"] = "铁证" if _nsrc >= 3 else ("强证据" if _nsrc == 2 else "线索")
+            _observed_sources = _f.get("independent_sources")
+            _source_count = len(set(_observed_sources)) if isinstance(_observed_sources, (list, tuple, set)) else 0
+            _f["_evidence_grade"] = (
+                "多源材料待人工复核" if _source_count >= 2
+                else ("单一来源待补证" if _source_count == 1 else "来源未核验")
+            )
+            _f["_evidence_maturity"] = (
+                "multi_source_pending_human_review" if _source_count >= 2
+                else ("single_source" if _source_count == 1 else "unverified_source_lineage")
+            )
         # ── 执行覆盖·monitor_category维度汇总：13大监控维度触发分布 ──
         from collections import Counter as _MonCtr
         _mon_dist = _MonCtr((_f.get("_monitor_category") or "未映射") for _f in all_findings)

@@ -182,6 +182,11 @@ class FrontendMethodologyAlignmentTests(unittest.TestCase):
         self.assertIn("十一环节作业规程与强制停点", source)
         self.assertIn('"framework": "methodology_framework.json"', main)
         self.assertIn("prepare_methodology_asset", main)
+        self.assertIn('prepared = prepare_methodology_asset("rules", data)', main)
+        self.assertIn('/api/methodology/coverage', source)
+        self.assertIn('@app.get("/api/methodology/coverage")', main)
+        self.assertIn("真实覆盖矩阵", source)
+        self.assertIn("已验证原子规则", source)
 
     def test_methodology_guard_is_mandatory_before_report_publication(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
