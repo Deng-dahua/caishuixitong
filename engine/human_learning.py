@@ -314,18 +314,21 @@ class HumanLearner:
                 v["submit_count"] += 1
                 v["last_seen"] = self._now()
                 if v["submit_count"] >= 3:
-                    v["status"] = "verified"
+                    v["status"] = "repeated_candidate"
                     self.state["pending_verification"].remove(v)
-                    # 经过3次验证 → 创建正式规则
+                    # 重复反馈只能形成场景候选，不能替代来源、字段契约和样本验证。
                     rule_id = f"verified_{v['id']}"
                     self.state["active_rules"][rule_id] = {
                         "id": rule_id, "content": v["content"],
-                        "confidence": 0.8, "source": "容错验证(3次确认)",
+                        "confidence": 0.8, "source": "重复反馈(3次)",
+                        "maturity": "M1_structured_candidate",
+                        "release_status": "candidate_not_executable",
+                        "auto_apply": False,
                         "created_at": self._now(),
                         "last_used": "", "usage_count": 0,
                     }
                     self._persist()
-                    return {"ok": True, "status": "verified", "message": "经3次确认，已采纳为正式规则", "rule_id": rule_id}
+                    return {"ok": True, "status": "candidate", "message": "重复反馈已进入候选队列，仍需来源、字段契约和正反样本验证", "rule_id": rule_id}
                 self._persist()
                 return {"ok": True, "status": "pending", "message": f"第{v['submit_count']}次出现，再{v['submit_count']}次即可采纳"}
 

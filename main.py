@@ -1289,7 +1289,13 @@ async def tax_risk_rules_upload_report(request: Request):
 
 @app.post("/api/tax-risk-rules/promote-auto-rule")
 def promote_auto_rule(rule_id: str = Query(...)):
-    """将自动发现规则升级为正式规则：LLM(API Key→Ollama)推理填充11字段→模板兜底"""
+    """自动发现只能进入候选队列，模型填充不能替代规则验证。"""
+    return {
+        "ok": False,
+        "status": "candidate_review_required",
+        "message": "自动发现信号不能直接升级为正式规则；请补齐官方来源、适用期间、字段契约、正反样本、维护人和回退方案。",
+        "rule_id": rule_id,
+    }
     import json as _json, os as _os, shutil as _sh
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
@@ -1377,7 +1383,8 @@ def promote_auto_rule(rule_id: str = Query(...)):
 
 # —— 自动发现规则精写：用LLM按23字段标准填充内容 ——
 def enrich_auto_rules_with_llm():
-    """后台任务：读取自动发现规则，对缺少精写内容的用LLM补全23字段"""
+    """保留兼容入口；自动规则模型精写已停用。"""
+    return {"ok": False, "status": "disabled_by_methodology_governance"}
     import json as _json, os as _os, shutil as _sh, threading
     def _do_enrich():
         try:
@@ -1499,22 +1506,21 @@ async def update_rule(request: Request):
 
 @app.get("/api/tax-risk-rules/execution-guide")
 def get_execution_guide():
-    """返回精写编制说明（v3配套执行指引）——前端展示+智能更新按钮读取"""
-    try:
-        from engine.memory import TAX_BURDEN_RULES
-        eg = TAX_BURDEN_RULES["rule_precise_writing"].get("execution_guide", {})
-        from fastapi.responses import JSONResponse
-        resp = JSONResponse(content={"ok": True, "data": eg})
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp
-    except Exception as e:
-        return {"ok": False, "message": str(e)}
+    """旧精写标准已移出系统产品，不再作为页面资产或自动生成提示词。"""
+    return {
+        "ok": False,
+        "status": "retired_from_product",
+        "message": "该编制标准已移出系统；当前规则治理以真实覆盖矩阵和M0—M4放行条件为准。",
+    }
 
 @app.post("/api/tax-risk-rules/batch-refresh")
 def batch_refresh_rules():
-    """统一刷新全部人工规则：更新政策/法律依据时效标记（如有外部源则填充，否则仅刷新时间戳）"""
+    """禁止用更新时间戳冒充政策核验。"""
+    return {
+        "ok": False,
+        "status": "provenance_review_required",
+        "message": "批量时间戳刷新已停用：政策核验必须逐条记录官方链接、适用期间、核验日期和复核人。",
+    }
     import json as _json, os as _os, shutil as _sh
     rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
     if not _os.path.exists(rp):
@@ -1567,12 +1573,12 @@ def get_tax_risk_rules_data():
 
 @app.post("/api/tax-risk-rules/batch-rewrite")
 async def batch_rewrite_rules(request: Request):
-    """批量精写——按23字段精写标准，用LLM逐条重写指定规则。
-    驱动智能更新按钮，让引擎按精写编制标准生成深度内容。
-    
-    Body: {"rule_ids": [1,2,3], "max_per_call": 5}
-    每次调用精写 max_per_call 条，返回精写后的完整23字段规则列表 + 统计。
-    """
+    """模型批量改写不能升级规则成熟度，旧入口停用。"""
+    return {
+        "ok": False,
+        "status": "disabled_by_methodology_governance",
+        "message": "模型批量改写已停用；规则必须经过来源、字段契约、正反样本和人工复核后分批升级。",
+    }
     api_cfg = get_api_config()
     api_key = api_cfg.get("key", "")
     if not api_key:
@@ -6899,6 +6905,7 @@ def get_methodology_asset(asset_name: str):
         "framework": "methodology_framework.json",
         "industry_profiles": "industry_audit_profiles.json",
         "playbooks": "methodology_chain_playbooks.json",
+        "industry_packs": "industry_methodology_packs.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6935,6 +6942,7 @@ def get_methodology_coverage():
         "cross_domain_evidence.json",
         "cross_domain_analysis.json",
         "industry_audit_profiles.json",
+        "industry_methodology_packs.json",
     )
     try:
         cache_key = tuple(

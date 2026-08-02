@@ -2496,3 +2496,7 @@ TAX_BURDEN_RULES = {
         },
 }
 
+# “精写编制标准”已按产品边界移出财税稽查系统。保留历史源片段只用于
+# 版本回退审计，运行时知识对象、接口和自动生成流程均不得读取或展示。
+TAX_BURDEN_RULES.pop("rule_precise_writing", None)
+

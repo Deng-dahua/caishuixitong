@@ -38,6 +38,7 @@ from engine.enterprise_profile import _profile_enterprise  # 案情画像与策�
 from engine.associate_findings import _associate_findings  # 多疑点关联推理 (P1)
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED = False
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _tax_risk_docs  # 共享全局状态
 
 def _auto_assign_rule_ids(all_findings, pipeline_log=None):
@@ -63,15 +64,7 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
             rules = _json.load(_f)
     except Exception:
         return all_findings
-    # 合并自动发现规则
-    auto_path = os.path.join(_PROJECT_ROOT, 'static', 'auto_discovered_rules.json')
-    if os.path.exists(auto_path):
-        try:
-            with open(auto_path, 'r', encoding='utf-8') as _f:
-                auto_rules = _json.load(_f)
-            rules = rules + auto_rules
-        except Exception:
-            pass
+    # 自动发现信号只能进入候选治理队列，不能参与运行时规则匹配。
     
     # 构建规则关键词索引
     rule_kw_index = {}
@@ -1892,10 +1885,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 if os.path.exists(_rp):
                     with open(_rp, "r", encoding="utf-8") as _rf:
                         _real_rule_count = len(json.load(_rf))
-                _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
-                if os.path.exists(_ap):
-                    with open(_ap, "r", encoding="utf-8") as _af:
-                        _real_rule_count += len(json.load(_af))
+                # 自动发现信号不计入生产规则数量。
             except: pass
 
             # 运行规则引擎
@@ -1969,15 +1959,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 再次过滤非 dict 项（引擎结果中可能有错误字符串）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
 
-    # ── 域18 & 域19: 依赖all_findings的域，必须在all_findings构建完成后运行 ──
-    domain_results.append({"domain": "规则全覆盖验证", "findings": _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs)})
-    domain_results.append({"domain": "跨域关联推理", "findings": _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory)})
-    # 跨域线索链：加载 cross_domain_clues.json 匹配发现
+    # 原“规则全覆盖”和1720套三链均属于候选知识。未完成逐场景字段契约、
+    # 来源核验及正反样本回归前，不在生产管线中运行或生成发现。
     if all_findings:
-        domain_results.append({"domain": "跨域线索链", "findings": _domain_cross_domain_clues(all_findings)})
-    # 跨域分析链：加载 cross_domain_analysis.json 推理分析
-    if all_findings:
-        domain_results.append({"domain": "跨域分析链", "findings": _domain_cross_domain_analysis(all_findings)})
+        pipeline_log.append("[候选规则与三链] 未进入生产执行；仅保留只读治理资产")
 
     # ── 可执行三链引擎 (v3.0): 基于JSON链定义执行真实的聚合/比对/查询/判定操作 ──
     try:
@@ -1994,11 +1979,12 @@ def _run_analyze(company_id, db, progress_callback=None):
         _evid_data = _evid_data_raw if isinstance(_evid_data_raw, list) else _evid_data_raw.get("evidence_chains", [])
         _anal_data = _anal_data_raw if isinstance(_anal_data_raw, list) else _anal_data_raw.get("analysis_chains", [])
         
-        # 一次性建立 rule_id 索引，后续 O(1) 查找
-        if _clue_data or _evid_data or _anal_data:
+        _candidate_chain_execution_enabled = LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED
+        # 候选链不进入执行索引。
+        if _candidate_chain_execution_enabled and (_clue_data or _evid_data or _anal_data):
             _build_chain_index(_clue_data, _evid_data, _anal_data)
         
-        if _clue_data or _evid_data or _anal_data:
+        if _candidate_chain_execution_enabled and (_clue_data or _evid_data or _anal_data):
             # 打包引擎数据
             _eng_data = {
                 "bank_txs": bank_txs,
@@ -2178,15 +2164,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     try:
         chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
         rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-        if os.path.exists(chain_path) and os.path.exists(rules_path):
+        if LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED and os.path.exists(chain_path) and os.path.exists(rules_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 chains_data = json.load(cf)
             with open(rules_path, "r", encoding="utf-8") as rf:
                 rules_data = json.load(rf)
-            _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
-            if os.path.exists(_ap):
-                with open(_ap, "r", encoding="utf-8") as _af:
-                    rules_data = rules_data + json.load(_af)
+            # 自动发现信号不进入链驱动执行。
             
             # 构建规则查找
             rule_map = {r["id"]: r for r in rules_data}
@@ -2929,7 +2912,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         import re as _re_find
         chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
         rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-        if os.path.exists(chain_path):
+        if LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED and os.path.exists(chain_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 raw = json.load(cf)
                 chains_data = raw if isinstance(raw, dict) else {}
@@ -2937,10 +2920,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             with open(rules_path, "r", encoding="utf-8") as rf:
                 raw_r = json.load(rf)
                 rules_data = raw_r if isinstance(raw_r, list) else []
-        _ap = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
-        if os.path.exists(_ap):
-            with open(_ap, "r", encoding="utf-8") as _af:
-                rules_data = rules_data + json.load(_af)
+        # 自动发现信号不进入证据链匹配。
         
         rule_map = {r["id"]: r for r in rules_data}
         
@@ -4426,15 +4406,10 @@ def _run_analyze(company_id, db, progress_callback=None):
             # ①② 税务合规指令+线索链学习
             rule_details_list = []
             try:
-                static_dir = os.path.join(_PROJECT_ROOT, "static")
-                with open(os.path.join(static_dir, "tax_risk_rules_local_export.json"), "r", encoding="utf-8") as _rf:
-                    rule_details_list = json.load(_rf)
-                _ap2 = os.path.join(static_dir, "auto_discovered_rules.json")
-                if os.path.exists(_ap2):
-                    with open(_ap2, "r", encoding="utf-8") as _af2:
-                        rule_details_list = rule_details_list + json.load(_af2)
+                from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
+                rule_details_list = [dict(rule) for rule in VERIFIED_RULE_CATALOG]
             except: pass
-            agi_pipeline.ingest_audit_rules(_actual_rule_count, rule_details_list, all_findings, analysis_trace_id, company_id)
+            agi_pipeline.ingest_audit_rules(len(rule_details_list), rule_details_list, all_findings, analysis_trace_id, company_id)
             
             # ②③ 线索链+证据链学习（从comprehensive中提取触发记录）
             try:

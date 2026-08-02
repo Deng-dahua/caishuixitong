@@ -354,34 +354,21 @@ def get_or_create_procedure(company_id: str) -> EnforcementProcedure:
 
 
 def on_finding_confirmed(company_id: str, finding_id: str, 
-                          determination_level: str = "铁证") -> Optional[StateTransition]:
+                          determination_level: str = "待人工复核") -> Optional[StateTransition]:
     """
-    疑点确认事件处理（由 pipeline Phase4 调用）。
-    
-    Args:
-        company_id: 账套ID
-        finding_id: 疑点ID
-        determination_level: 定性等级（铁证/强证据/线索）
+    兼容旧调用的只读事件入口。
+
+    分析结果、证据成熟度或模型评分均不得自动启动执法程序。立案及后续状态
+    只能由有权人员在独立业务系统中按权限、审批和程序要求办理。
     """
-    if determination_level not in ("铁证",):
-        return None  # 只有铁证才自动触发程序流
-    
-    proc = get_or_create_procedure(company_id)
-    
-    # 如果已经启动，不重复操作
-    if proc.current_state != EnforcementState.IDLE:
-        return None
-    
-    # 自动立案
-    transition = proc.transit(
-        EnforcementState.CASE_OPENED,
-        triggered_by=finding_id,
-        operator="系统（铁证触发）",
-        note=f"疑点 {finding_id} 定性为铁证→自动立案"
+    logger.info(
+        "[ENFORCEMENT] analysis event retained for human review only "
+        "(company=%s, finding=%s, maturity=%s)",
+        company_id,
+        finding_id,
+        determination_level,
     )
-    
-    logger.info(f"[ENFORCEMENT] {company_id}: 铁证触发自动立案 (疑点={finding_id})")
-    return transition
+    return None
 
 
 def get_procedure_report(company_id: str) -> Optional[Dict[str, Any]]:

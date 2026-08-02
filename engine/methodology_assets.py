@@ -27,6 +27,9 @@ def _adapt(value):
 
 
 def prepare_methodology_asset(asset_name, payload):
+    if asset_name == "rules" and isinstance(payload, list):
+        from engine.candidate_rule_governance import annotate_candidate_rules
+        payload = annotate_candidate_rules(payload)
     adapted = _adapt(payload)
     if asset_name == "framework":
         return adapted

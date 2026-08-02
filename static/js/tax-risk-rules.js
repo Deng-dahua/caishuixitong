@@ -45,6 +45,14 @@ var CATEGORY_DESCRIPTIONS = {
 window._rrDetailHtml = function(rl) {
   var card = '<div class="rr-rule">'
     + '<div class="rh">#' + (rl.id || '') + ' ' + escHtml(rl.item || '未命名') + '</div>';
+  var governance = rl._governance || {};
+  if (governance.release_status) {
+    card += '<div style="margin:6px 0 12px;padding:10px 12px;background:#fff7ed;border-left:3px solid #c2410c;color:#7c2d12;line-height:1.8">'
+      + '<b>治理状态：</b>' + escHtml(governance.maturity || 'M1_structured_candidate')
+      + ' ｜ ' + escHtml(governance.release_status)
+      + ' ｜ 来源：' + escHtml(governance.provenance_status || 'not_verified')
+      + '<br><b>下一步：</b>' + escHtml(governance.next_action || '') + '</div>';
+  }
 
   // 7段式新格式：phenomena → direction → focus → risk_table → normal_reason → determination → drill_questions
   if (rl.phenomena) {
@@ -125,7 +133,7 @@ window._rrTitleRow = function(rl) {
     + '<td style="white-space:nowrap;color:#94a3b8">#' + rid + '</td>'
     + '<td class="rr-name">' + escHtml(rl.item || rl.signal || '未命名') + '</td>'
     + '<td class="rr-dimension">' + escHtml(rl.monitor_category || '-') + '</td>'
-    + '<td style="white-space:nowrap"><span style="color:#7c3aed">✍ 人工规则</span></td>'
+    + '<td style="white-space:normal"><span style="color:#7c3aed">' + escHtml(((rl._governance || {}).maturity) || 'M1候选') + '</span></td>'
     + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + cue + '</td>'
     + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + evd + '</td>'
     + '<td style="text-align:center;font-size:9px;white-space:nowrap;color:#64748b">' + alc + '</td>'
@@ -139,7 +147,7 @@ window._rrTable = function(rules) {
   var h = '<div class="rr-table-scroll"><table class="rr-table rr-rule-table">'
     + '<colgroup><col style="width:6%"><col style="width:28%"><col style="width:14%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:12%"><col style="width:9%"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次筛查</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>治理状态</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次筛查</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table></div>';
@@ -197,9 +205,9 @@ window._rrBackToList = function() {
 // ═══ 点击线索/证据/分析链编号 → 弹窗查看链内容 ═══
 window._rrShowChainDetail = function(chainId) {
   var prefix = chainId.substring(0, 4); // clue / evid / alc
-  var fileMap = { 'clue': 'cross_domain_clues.json', 'evid': 'cross_domain_evidence.json', 'alc': 'cross_domain_analysis.json' };
-  var fname = fileMap[prefix];
-  if (!fname) return;
+  var assetMap = { 'clue': 'clues', 'evid': 'evidence', 'alc': 'analysis' };
+  var assetName = assetMap[prefix];
+  if (!assetName) return;
 
   // 显示加载状态
   var overlay = document.createElement('div');
@@ -209,7 +217,7 @@ window._rrShowChainDetail = function(chainId) {
   document.body.appendChild(overlay);
   overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); } };
 
-  fetch('/static/' + fname + '?_t=' + Date.now())
+  fetch('/api/methodology/assets/' + assetName + '?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var items = Array.isArray(data) ? data : (data[prefix + '_chains'] || data.evidence_chains || data.analysis_chains || []);

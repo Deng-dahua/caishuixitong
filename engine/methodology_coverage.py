@@ -8,6 +8,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from engine.candidate_rule_governance import build_candidate_governance
 from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
 
 
@@ -126,6 +127,7 @@ def _matrix(rows, dimensions, text_getter):
 def build_methodology_coverage(static_root):
     root = Path(static_root)
     industry_profiles_payload = _read(root / "industry_audit_profiles.json")
+    industry_packs_payload = _read(root / "industry_methodology_packs.json")
     rules = _read(root / "tax_risk_rules_local_export.json")
     clues = _read(root / "cross_domain_clues.json")
     evidence_payload = _read(root / "cross_domain_evidence.json")
@@ -141,6 +143,13 @@ def build_methodology_coverage(static_root):
         "item", "category", "monitor_category", "applicable_condition",
     ))
     industry_matrix = _matrix(rules, INDUSTRIES, industry_text_getter)
+    staged_scenes = Counter()
+    for pack in industry_packs_payload.get("packs", []):
+        staged_scenes[str(pack.get("industry_code", ""))] += len(pack.get("scenarios", []))
+    for row in industry_matrix:
+        row["staged_m2_scenarios"] = staged_scenes.get(row["code"], 0)
+        if row["staged_m2_scenarios"]:
+            row["state"] = "M2专项场景和字段契约已定义，待真实样本与反例验证"
     tax_matrix = []
     for code, name, keywords in TAXES:
         count = sum(any(keyword in text_getter(rule) for keyword in keywords) for rule in rules)
@@ -160,11 +169,22 @@ def build_methodology_coverage(static_root):
     dominant_analysis = analysis_signatures.most_common(1)[0][1] if analysis_signatures else 0
     provenance_missing = sum(not str(rule.get("source", "")).strip() for rule in rules)
     risk_distribution = Counter(str(rule.get("level", "未分级")) for rule in rules)
+    candidate_governance = build_candidate_governance(rules)
+    pack_summaries = [
+        {
+            "id": pack.get("id"),
+            "industry_code": pack.get("industry_code"),
+            "name": pack.get("name"),
+            "maturity": pack.get("maturity"),
+            "scene_count": len(pack.get("scenarios", [])),
+        }
+        for pack in industry_packs_payload.get("packs", [])
+    ]
 
     gaps = [
         {"priority": "P0", "gap": "候选规则被误当成熟规则", "control": "1720条统一标记为结构化候选；只有经过数据契约和回归测试的规则进入可执行层。"},
         {"priority": "P0", "gap": "分析链高度模板化", "control": f"最大单一分析链结构覆盖{dominant_analysis}条；未完成事实、反证、因果、金额和法律程序契约前不得升级。"},
-        {"priority": "P0", "gap": "来源和验证记录不足", "control": f"{provenance_missing}条候选规则未记录来源；需要补政策期间、案例验证、维护人和回退版本。"},
+        {"priority": "P0", "gap": "来源和验证记录不足", "control": f"{candidate_governance['summary']['candidate_rules'] - candidate_governance['summary']['official_provenance_recorded']}条候选规则尚无完整官方来源记录；其中{provenance_missing}条来源字段为空。需要逐条补官方链接、适用期间、核验人、案例验证和回退版本。"},
         {"priority": "P1", "gap": "行业专项可执行规则不足", "control": "行业矩阵只显示候选知识，不以关键词命中冒充行业验证；按行业包逐批建立样本和原子计算。"},
         {"priority": "P1", "gap": "外部数据权限和字段契约不足", "control": "银行、平台、海关、市场监管等资料只有在合法取得且字段契约明确时才能启用对应规则。"},
         {"priority": "P1", "gap": "风险分级严重偏高", "control": "旧库风险等级不再决定报告结论；运行时改用资料质量、线索、部分支持和待人工复核状态。"},
@@ -181,10 +201,13 @@ def build_methodology_coverage(static_root):
         "inventory": {
             "candidate_rules": len(rules),
             "verified_executable_rules": len(VERIFIED_RULE_CATALOG),
+            "priority_industry_packs": len(pack_summaries),
+            "staged_m2_industry_scenarios": sum(item["scene_count"] for item in pack_summaries),
             "clue_chains": len(clues),
             "evidence_chains": len(evidence),
             "analysis_chains": len(analysis),
             "candidate_rules_missing_provenance": provenance_missing,
+            "candidate_rules_without_verified_official_provenance": candidate_governance["summary"]["candidate_rules"] - candidate_governance["summary"]["official_provenance_recorded"],
             "normalised_duplicate_rule_count": duplicate_rule_count,
             "unique_clue_structures": len(clue_signatures),
             "unique_evidence_structures": len(evidence_signatures),
@@ -200,6 +223,8 @@ def build_methodology_coverage(static_root):
             {"id": "M4", "name": "案例与反例验证完成", "release": "可进入受控生产并持续监测误报漏报"},
         ],
         "verified_rule_catalog": VERIFIED_RULE_CATALOG,
+        "candidate_governance": candidate_governance,
+        "industry_pack_summary": pack_summaries,
         "industry_matrix": industry_matrix,
         "industry_profiles": industry_profiles_payload.get("profiles", []),
         "industry_profile_boundary": industry_profiles_payload.get("use_boundary", ""),

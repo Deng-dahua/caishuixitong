@@ -826,11 +826,11 @@ function renderDomainAnalysisStatic() {
     + '<div style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">'
     + '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:6px">\u{1f517} 跨域串联</div>'
     + '<div style="font-size:10px;color:#64748b;line-height:20px">'
-    + '单域发现→多域交叉印证<br>'
-    + '→ 跨域关联推理自动串联<br>'
-    + '→ 线索链+证据链+分析链<br>'
-    + '→ 证据矛盾→协商系统消解<br>'
-    + '→ 同向证据→置信度叠加升权'
+    + '单域发现→来源谱系核验<br>'
+    + '→ 场景调查链提出待证事实<br>'
+    + '→ 支持材料与反向材料分别评价<br>'
+    + '→ 事实、因果、金额和期间复核<br>'
+    + '→ 人工决定是否进入报告'
     + '</div>'
     + '</div>'
     
@@ -978,7 +978,7 @@ function renderDomainAnalysisStatic() {
       {name:'凭证科目异常', fn:'_domain_voucher_anomaly', line:'12320', desc:'科目使用合规性检查 · 借贷方向正确性 · 分录借贷平衡 · 异常科目组合检测 · 凭证号连续性验证'},
     ]},
     // ══════ 九、税务与社保（3域） ══════
-    {cat:'九、税务与社保', color:'#065f46', desc:'各税种申报数据与发票/银行数据交叉比对，社保与工资数据一致性验证。申报表与基础数据的偏差是偷漏税的直接证据。', items:[
+    {cat:'九、税务与社保', color:'#065f46', desc:'各税种申报数据与发票、银行、工资及社保资料交叉比对。资料偏差只形成待核事项，须统一口径并排除合理解释。', items:[
       {name:'税务缴纳一致性', fn:'_domain_tax_consistency', line:'12524', desc:'银行税费支出vs发票推算应纳税额差异 · 申报表vs实际数据偏差 · 税种覆盖完整性检查'},
       {name:'增值税申报比对', fn:'_domain_vat_declaration_compare', line:'14569', desc:'进项发票vs认证抵扣vs申报进项三方比对 · 销项vs申报 · 差异>1000元→预警 · 期末留抵税额验证'},
       {name:'工资社保比对', fn:'_domain_salary_ss_hf_compare', line:'12546', desc:'工资表vs社保明细交叉验证——缴费基数匹配 · 参保人数一致 · 单位/个人缴纳比例合规 · 公积金缴存一致性'},
@@ -989,10 +989,10 @@ function renderDomainAnalysisStatic() {
       {name:'关联交易穿透检测', fn:'_domain_related_party_check', line:'14339', desc:'名称相似度比对 · 同法人代表 · 同注册地 · 同联系电话→关联关系未披露 · 买卖双方重叠（同名对倒）'},
     ]},
     // ══════ 十一、行业对标与规则系统（4域） ══════
-    {cat:'十一、行业对标与规则系统', color:'#6366f1', desc:"{{industries}}行业基准库对标，{{rules_count}}条规则全覆盖验证。行业对标告诉你“正常范围”，规则系统告诉你“合规底线”。", items:[
+    {cat:'十一、行业对标与规则系统', color:'#6366f1', desc:"行业参考资料与候选知识用于安排核验顺序；真实能力以字段契约、适用边界和回归测试为准。", items:[
       {name:'行业对标分析', fn:'_domain_industry_benchmark', line:'14475', desc:'行业基准库（持续建设中）——毛利率/税负率/进销比/人均营收/费用率五维对标 · 偏离度>2σ→行业异常预警 · 自动匹配行业代码'},
-      {name:'规则全覆盖验证', fn:'_domain_rule_coverage', line:'15114', desc:'{{rules_count}}条规则逐条检查 · 已触发vs未触发分类 · 未触发→标注资料缺口 · 数据不足时作无依据结论（不作无证据判断）'},
-      {name:'跨域关联推理', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点发现→多域交叉印证→证据链闭环 · 1720条内置跨域证据链（JSON驱动+内置回退）· A域+B域+C域同时异常→高置信度'},
+      {name:'候选知识适用性检查', fn:'_domain_rule_coverage', line:'15114', desc:'候选知识只供检索和资料缺口提示；未达到字段契约和样本验证条件时不得运行或形成结论'},
+      {name:'跨域关联复核', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点发现→来源谱系去重→支持与反向材料评价→人工复核；多域异常不能替代事实、因果和法律判断'},
       {name:'跨域线索链', fn:'_domain_cross_domain_clues', line:'14000', desc:'从cross_domain_clues.json加载跨域线索定义 · 线索→发现→证据三级转换 · 叙事生成器集成 · 线索链可视化追溯'},
     ]},
     // ══════ 十二、跨域分析链 ══════
@@ -2341,18 +2341,18 @@ function renderCoreDataAssets(container) {
   h += '<div style="font-size:10px;font-weight:700;color:#16233a;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">四大组件</div>';
 
   var comps = [
-    { name: '规则系统', icon: '📋', color: '#2563eb',
-      source: '税务合规指令',
-      desc: '覆盖20个分类的税务合规指令，每条含触发条件、风险等级、调查步骤、法定处罚依据四项必备要素。Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。' },
-    { name: '线索链系统', icon: '🔗', color: '#7c3aed',
-      source: '线索链页面',
-      desc: '全部可执行，每条含1-15个调查步骤。三类触发方式：定量阈值触发、定性模式触发、缺失数据触发。每步含domain/action/data_required字段，可追溯至调查来源。' },
-    { name: '证据链系统', icon: '🔒', color: '#059669',
-      source: '证据链页面',
-      desc: '全部可执行，证据闭环机制——每个证据链定义dimensions数组，各维度关键词匹配发现，达到min_evidence阈值触发闭环。要求≥2个不同数据源的维度同时匹配。' },
-    { name: '跨域分析链', icon: '🔀', color: '#f59e0b',
-      source: '调度中枢',
-      desc: '多源数据综合推理系统，不同于单域分析。reasoning_path定义多步推理路径，从证据到结论的因果推断。Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定。' }
+    { name: '规则治理', icon: '📋', color: '#2563eb',
+      source: '候选规则与已验证原子规则',
+      desc: '候选知识只供检索；只有适用条件、字段契约、计算方法、正常解释和回归测试全部通过的原子规则才可执行。' },
+    { name: '调查线索链', icon: '🔗', color: '#7c3aed',
+      source: '场景路径库',
+      desc: '把信号拆成待证事实、资料请求、调查动作和停止条件。原1720套链属于待重构候选知识，不进入生产执行。' },
+    { name: '证据组织链', icon: '🔒', color: '#059669',
+      source: '证据矩阵',
+      desc: '分别评价真实性、关联性、合法性、来源独立性、支持材料和反向材料；来源数量不是证据结论。' },
+    { name: '分析复核链', icon: '🔀', color: '#f59e0b',
+      source: '人工复核底稿',
+      desc: '分别处理事实、因果、竞争性解释、金额、适用期间和程序边界，只输出带限制的人工复核意见。' }
   ];
 
   comps.forEach(function(c, i) {
@@ -2386,10 +2386,10 @@ function _renderLegacyQualitySystem(container) {
     { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
       desc:'规则系统、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
-        {name:'规则系统',source:'税务合规指令',desc:'{{rules_count}}条税务合规指令，覆盖20个分类：收入确认/成本费用/存货/固定资产/往来款/资金流/发票合规/申报比对/关联交易/个税/社保/印花税/增值税/企业所得税/特殊交易/银行账户/进销存/税务登记/资料完备度/经营实质。每条规则含4项必备要素：①触发条件——定义什么数据模式触发该规则（如\"银行贷方金额与销项开票金额偏差超过20%\"）②风险等级——极高/高/中/低四级，基于行业历史税务合规数据自动标定 ③调查步骤——从发现到确认的具体操作路径 ④法定处罚依据——引用的具体法条名称和条款号，由法律推理系统自动匹配。规则系统在Phase1初查阶段首次激活，后续Phase2深挖和Phase3交叉验证中持续调用。1514这个数字本身由system_config.json实时统计保证准确性。'},
-        {name:'线索链系统',source:'线索链调查数据',desc:'{{clue_chains}}条线索链（全部可执行），每条为一条完整的标准化调查路径，包含1-15个递进调查步骤。三类触发机制驱动调查启动：①定量阈值触发——数值超过预设阈值自动启动调查程序（如偏差率>20%）②定性模式触发——特定数据特征匹配（如公转私频繁交易）③缺失数据触发——关键资料缺失触发替代验证调查程序。每步含调查领域、调查动作、所需数据三个字段，全程可追溯至调查发起来源。代码实现：pipeline.py调用_domain_cross_domain_clues，系统通过触发关键词自动匹配风险发现并启动调查链。'},
-        {name:'证据链系统',source:'证据链页面',desc:'{{evidence_chains}}条证据链（全部可执行）。证据闭环机制——每个证据链定义dimensions[]数组，各维度kws匹配findings→达到min_evidence阈值→触发闭环。要求≥2个不同数据源的维度同时匹配，单域数据不构成闭环。全部达标→形成有效证据→输入分析链推理。每条证据链含rule_refs关联规则，证据收集全程可追溯。代码：_domain_cross_domain_reasoning在all_findings构建后运行。'},
-        {name:'跨域分析链',source:'调度中枢',desc:'11720条跨域分析链，多源数据综合推理系统。不同于单域分析（只在银行流水域内分析收款模式），跨域分析将多个证据链的结论进行综合推理判定：reasoning_path[]定义多步推理路径→从证据到结论的因果推断。典型分析链如\"七维系统性造假综合判定模型\"——经营实质×供应商×资金流×三流合一×跨税种×关联交易×综合，7维中0-2维低风险、3-4维中风险、5-6维高风险、7维全异常→系统性造假立案。跨域分析链在Phase3交叉验证阶段集中执行，输出含score/level/triggered_dimensions的综合判定发现。'},
+        {name:'候选规则系统',source:'结构化候选知识',desc:'原有{{rules_count}}条内容统一作为M1候选知识，仅供检索调查方向。生产执行只允许使用具有适用条件、字段契约、计算方法、正常解释和回归测试的原子规则。'},
+        {name:'候选线索链',source:'线索链调查数据',desc:'原有{{clue_chains}}条线索链是待重构调查知识，不宣称全部可执行。只有形成可定位的待证事实、合法资料范围和停止条件后，才能进入受控调查路径。'},
+        {name:'候选证据链',source:'证据链页面',desc:'原有证据链仅提供材料组织参考。关键词命中、维度数量和业务域数量不能形成证据结论，必须评价来源独立性、真实性、关联性、合法性及反向材料。'},
+        {name:'候选分析链',source:'调度中枢',desc:'原有分析链高度模板化，统一降为候选推理知识。分析必须分别回答事实、反证、因果、金额、适用期间和程序边界，并由人工复核。'},
       ]},
     { id:2, name:'方法论体系', icon:'📐', color:'#7c3aed',
       desc:'31720条税务合规方法论全部代码化，六大分析框架覆盖从文件解析到结论输出的全流程。方法论是系统的\"思维方式\"——不是写死的规则，而是面对不同数据情况时的处理策略。每条方法论在代码中有明确的实现位置和调用时机。',
@@ -3115,8 +3115,8 @@ function renderJudgmentRules(container) {
 
   // ── 段落说明 ──
   h += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin-bottom:10px">';
-  h += '<p style="margin:0 0 10px">以下<strong>1720条判定规则</strong>是系统分析的基础——每一条都在分析启动前完成判定，判定结论贯穿后续所有分析域。判定规则的执行顺序不可颠倒：<strong style="color:#dc2626">身份锚定→发票方向→进项再分类→服务闸门→品名过滤→四方交叉→COND_BAN→证据闭环</strong>。如果第一步的身份锚定出错，后续所有判定都建立在错误基础上。</p>';
-  h += '<p style="margin:0">每条判定规则均由代码层（phase1_triage.py / pipeline.py / cross_domain_negotiation.py）独立实现，并通过<strong>系统记忆（engine/memory.py）</strong>记载规则定义与执行约束。证据闭环要求：≥60%触发率 + ≥1720条规则触发 + ≥2个数据域交叉验证，三重门禁全部通过才形成有效证据闭环。</p>';
+  h += '<p style="margin:0 0 10px">以下内容用于说明数据处理顺序，不代表1720条候选知识均已实现。身份、发票方向、资料分类和适用性判断一旦出错，后续分析必须停止并返回资料校正。</p>';
+  h += '<p style="margin:0">候选知识、规则命中率和数据域数量均不能形成证据结论。只有经过字段契约与回归测试的原子规则才可运行；运行结果仍须完成来源谱系、支持与反向材料及人工复核。</p>';
   h += '</div>';
 
   // ── 1720条判定规则（静态卡片 + 异步填充详情） ──
@@ -3271,9 +3271,9 @@ function renderProcedureMapping(container) {
   var modules = [
     {n:'①',name:'一键稽查',clause:'第21-41720条（检查）',desc:'_run_analyze自动执行全部分析域+四步核查法+链驱动系统+协商系统+方法论过滤器。一次点击=完整模拟税务合规检查环节——从文件上传到报告输出全部自动化。',color:'#2563eb'},
     {n:'②',name:'文件解析',clause:'第21720条（取证）',desc:'{{file_fingerprints}}类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。',color:'#7c3aed'},
-    {n:'③',name:'线索链',clause:'第21720条（取证逻辑）',desc:'{{clue_chains}}条线索链全部可执行。每条含触发关键词+调查步骤+关联规则ID+风险等级+建议+法条引用。每条线索链=一个税务合规员的调查思路——"从这里开始查，每一步查什么，查到了怎么办"。',color:'#059669'},
-    {n:'④',name:'证据链',clause:'第21720条（证据真实性）',desc:'{{evidence_chains}}条证据链，需≥2域交叉→≥最小证据触发→多维印证闭环。从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。',color:'#d97706'},
-    {n:'⑤',name:'分析链',clause:'第41720条（审理审核）',desc:'11720条分析链，含推理路径多步推理，从证据到结论的综合判定。模拟审理部门的逐项审核——检查对象准确性/事实证据充分性/法律适用正确性→0-7维异常评分→定案。',color:'#dc2626'},
+    {n:'③',name:'线索链',clause:'调查路径治理',desc:'原有线索链属于候选调查知识；只有明确待证事实、资料范围、调查动作、正常解释和停止条件的场景链才可进入人工调查计划。',color:'#059669'},
+    {n:'④',name:'证据链',clause:'证据质量治理',desc:'系统组织材料来源和缺口，但不按来源数量自动形成结论。真实性、关联性、合法性、来源独立性及反向材料必须分别复核。',color:'#d97706'},
+    {n:'⑤',name:'分析链',clause:'分析复核治理',desc:'分析链只能形成带前提和限制的人工复核意见；维度数量和评分不替代事实、因果、金额、法律适用及程序审查。',color:'#dc2626'},
     {n:'⑥',name:'方法论过滤器',clause:'第41720条（审核重点）',desc:'全链路质量保障→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。',color:'#6366f1'},
     {n:'⑦',name:'跨域协商系统',clause:'第41720条（审核重点）',desc:'21720条协商规则四类场景：行业闸门消解/资料驱动的跨域标记/证据矛盾消解/联合增强。域间自动对话——确保报告不会出现自相矛盾的结论。',color:'#0891b2'},
     {n:'⑧',name:'风险评分',clause:'第41720条（审理意见）',desc:'综合评分(76/100)→四级风险等级→P0/P1/P2策略→因果叙事链→证据闭环→形成税务合规结论。完全对应审理环节的"审理意见"——对检查结果的综合判断和定性建议。',color:'#ea580c'},
@@ -4588,7 +4588,7 @@ function renderDAIntro() {
       "域分析的产出"
     ]
   ],
-  "desc": "<p style=\"margin:0 0 10px\">域分析工作流程：①数据流入——文件解析模块输出的结构化数据（bank_txs/sal_invs/pur_invs/工资社保凭证库存合同/行业画像ctx.industry）②域执行——{{domain_functions}}个域分析函数独立运行，每个域有数据守卫条件，缺数据标记资料缺口不空跑，行业闸门自动跳过不适用域 ③发现输出——每条发现含9个标准字段 ④跨域串联——单域发现→多域交叉印证→线索链+证据链+分析链→协商系统消解→同向证据置信度叠加升权。</p>",
+  "desc": "<p style=\"margin:0 0 10px\">域分析工作流程：①数据流入——解析结构化资料并保留来源；②域执行——缺数据不空跑，不适用场景主动跳过；③发现输出——只形成资料质量事项或待核事实；④跨域复核——来源谱系去重、支持与反向材料评价后提交人工复核。多域同向只能提高核验优先级。</p>",
   "cards": [
     [
       "数据流入",
@@ -4607,7 +4607,7 @@ function renderDAIntro() {
     ],
     [
       "跨域串联",
-      "单域发现→多域交叉印证→线索链+证据链+分析链→协商系统消解矛盾→同向证据置信度叠加升权。从离散发现到系统结论。",
+      "单域发现→来源谱系去重→场景链调查→支持与反向材料评价→人工复核。多域同向不自动提高法律结论等级。",
       "#d97706"
     ]
   ]
@@ -6214,6 +6214,7 @@ var METHODOLOGY_PAGE_SECTIONS = [
 var _methodologyFrameworkPromise = null;
 var _methodologyCoveragePromise = null;
 var _methodologyPlaybookPromise = null;
+var _methodologyIndustryPacksPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6247,10 +6248,25 @@ function _loadMethodologyPlaybooks() {
   return _methodologyPlaybookPromise;
 }
 
+function _loadMethodologyIndustryPacks() {
+  if (!_methodologyIndustryPacksPromise) {
+    _methodologyIndustryPacksPromise = fetch('/api/methodology/assets/industry_packs?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('行业专项核查包加载失败');
+        return response.json();
+      });
+  }
+  return _methodologyIndustryPacksPromise;
+}
+
 function _renderMethodologyCoverageMatrix(container) {
   if (!container) return;
-  return _loadMethodologyCoverageReport().then(function(report){
+  return Promise.all([_loadMethodologyCoverageReport(), _loadMethodologyIndustryPacks()]).then(function(values){
+    var report = values[0] || {};
+    var industryPackPayload = values[1] || {};
     var inventory = report.inventory || {};
+    var governance = report.candidate_governance || {};
+    var governanceSummary = governance.summary || {};
     var maturity = report.maturity_model || [];
     var industries = report.industry_matrix || [];
     var industryProfiles = report.industry_profiles || [];
@@ -6259,6 +6275,7 @@ function _renderMethodologyCoverageMatrix(container) {
     var dataCapabilities = report.data_capability_matrix || [];
     var gaps = report.gap_register || [];
     var verified = report.verified_rule_catalog || [];
+    var industryPacks = industryPackPayload.packs || [];
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
       + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
       + '<div class="method-coverage-summary">'
@@ -6267,6 +6284,8 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<div><strong>' + escHtml(inventory.candidate_rules_missing_provenance || 0) + '</strong><span>待补来源记录</span></div>'
       + '<div><strong>' + escHtml(inventory.unique_analysis_structures || 0) + '</strong><span>分析链结构类型</span></div>'
       + '<div><strong>' + escHtml(inventory.dominant_analysis_structure_count || 0) + '</strong><span>最大模板结构覆盖数</span></div>'
+      + '<div><strong>' + escHtml(inventory.priority_industry_packs || 0) + '</strong><span>第一批行业专项包</span></div>'
+      + '<div><strong>' + escHtml(inventory.staged_m2_industry_scenarios || 0) + '</strong><span>M2场景与字段契约</span></div>'
       + '</div>'
       + '<div class="method-source-note"><b>行业分类基线：</b>' + escHtml((report.taxonomy_basis || {}).name || '')
       + '，覆盖范围为' + escHtml((report.taxonomy_basis || {}).scope || '') + '。行业关键词命中只表示候选知识分布，不代表行业规则已经验证。</div>'
@@ -6274,16 +6293,34 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<table class="method-framework-table"><thead><tr><th style="width:10%">等级</th><th style="width:28%">状态</th><th>允许用途</th></tr></thead><tbody>'
       + maturity.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
         + '</td><td>' + escHtml(item.release) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h3 class="method-subheading">候选规则治理实况</h3>'
+      + '<div class="method-stop"><b>治理结论：</b>' + escHtml(governance.positioning || '')
+      + ' 原始候选中的强制性措辞只允许在只读响应中净化展示，不能成为系统自动定性、处罚或程序启动条件。</div>'
+      + '<div class="method-coverage-summary">'
+      + '<div><strong>' + escHtml(governanceSummary.official_provenance_recorded || 0) + '</strong><span>官方来源完整记录</span></div>'
+      + '<div><strong>' + escHtml(governanceSummary.source_missing || 0) + '</strong><span>来源字段为空</span></div>'
+      + '<div><strong>' + escHtml(governanceSummary.author_or_model_only || 0) + '</strong><span>仅人工或模型来源</span></div>'
+      + '<div><strong>' + escHtml(governanceSummary.raw_rules_requiring_language_neutralisation || 0) + '</strong><span>原文需边界净化</span></div>'
+      + '<div><strong>' + escHtml(governanceSummary.normalised_duplicate_rule_count || 0) + '</strong><span>标准化重复条目</span></div>'
+      + '<div><strong>' + escHtml(governanceSummary.candidate_field_contracts_present || 0) + '</strong><span>候选库字段契约</span></div>'
+      + '</div>'
+      + '<div class="method-two-column"><article class="method-framework-card"><h4>生产放行必须同时满足</h4>'
+      + _methodologyList(governance.release_gate || []) + '</article>'
+      + '<article class="method-framework-card"><h4>当前优先整改队列（前20项）</h4>'
+      + '<table class="method-framework-table"><thead><tr><th>规则</th><th>成熟度</th><th>缺口</th></tr></thead><tbody>'
+      + (governance.priority_queue || []).slice(0,20).map(function(item){return '<tr><td>#' + escHtml(item.rule_id)
+        + '</td><td>' + escHtml(item.maturity) + '</td><td>' + escHtml((item.quality_flags || []).join('、')) + '</td></tr>';}).join('')
+      + '</tbody></table></article></div>'
       + '<h3 class="method-subheading">已验证原子规则</h3>'
       + '<table class="method-framework-table"><thead><tr><th style="width:10%">编号</th><th style="width:24%">规则</th><th style="width:20%">实际资料</th><th>结论限制</th></tr></thead><tbody>'
       + verified.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
         + '</td><td>' + escHtml((item.required_sources || []).join('、')) + '</td><td>' + escHtml(item.limitation) + '</td></tr>';}).join('')
       + '</tbody></table>'
       + '<h3 class="method-subheading">二十个国民经济行业门类</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:7%">代码</th><th style="width:27%">行业门类</th><th style="width:14%">候选知识提及</th><th style="width:15%">可适用原子规则</th><th style="width:15%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:6%">代码</th><th style="width:22%">行业门类</th><th style="width:12%">候选提及</th><th style="width:12%">通用原子规则</th><th style="width:12%">M2专项场景</th><th style="width:13%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
       + industries.map(function(item){return '<tr><td>' + escHtml(item.code) + '</td><td>' + escHtml(item.name)
         + '</td><td>' + escHtml(item.candidate_mentions) + '</td><td>' + escHtml(item.verified_applicable_rules)
-        + '</td><td>' + escHtml(item.verified_specific_rules)
+        + '</td><td>' + escHtml(item.staged_m2_scenarios || 0) + '</td><td>' + escHtml(item.verified_specific_rules)
         + '</td><td>' + escHtml(item.state) + '</td></tr>';}).join('') + '</tbody></table>'
       + '<div class="method-source-note"><b>行业场景使用边界：</b>' + escHtml(report.industry_profile_boundary || '') + '</div>'
       + '<div class="method-two-column">' + industryProfiles.map(function(profile){
@@ -6293,6 +6330,27 @@ function _renderMethodologyCoverageMatrix(container) {
           + '<p><strong>跨资料核验路径</strong></p>' + _methodologyList(profile.cross_checks)
           + '<p><strong>应主动排除的正常解释</strong></p>' + _methodologyList(profile.normal_explanations)
           + '<p><strong>专项资料缺口</strong></p>' + _methodologyList(profile.data_gaps) + '</details>';
+      }).join('') + '</div>'
+      + '<h3 class="method-subheading">第一批重点行业专项包</h3>'
+      + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
+      + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
+        return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
+          + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
+          + '<p><strong>业务主键：</strong>' + escHtml((pack.business_keys || []).join('、')) + '</p>'
+          + '<p><strong>官方依据与适用期间</strong></p><ul class="method-detail-list">'
+          + (pack.official_sources || []).map(function(source){return '<li><b>' + escHtml(source.name) + '</b>：'
+            + escHtml(source.period) + '</li>';}).join('') + '</ul>'
+          + (pack.scenarios || []).map(function(scene){return '<details class="method-framework-card"><summary>'
+            + escHtml(scene.id + ' · ' + scene.name) + '</summary>'
+            + '<p><strong>启动边界：</strong>' + escHtml(scene.trigger_boundary) + '</p>'
+            + '<p><strong>税费与环节：</strong>' + escHtml((scene.taxes || []).join('、')) + ' ｜ '
+            + escHtml((scene.lifecycle || []).join('、')) + '</p>'
+            + '<p><strong>所需资料</strong></p>' + _methodologyList(scene.required_sources)
+            + '<p><strong>字段契约</strong></p>' + _methodologyList(scene.field_contract)
+            + '<p><strong>调查顺序</strong></p>' + _methodologyList(scene.investigation_path)
+            + '<p><strong>反向证据与正常解释</strong></p>' + _methodologyList(scene.opposing_evidence)
+            + '<p><strong>强制停点</strong></p>' + _methodologyList(scene.stop_conditions)
+            + '</details>';}).join('') + '</details>';
       }).join('') + '</div>'
       + '<h3 class="method-subheading">税费事项与业务生命周期</h3>'
       + '<div class="method-two-column"><article class="method-framework-card"><h4>税费事项</h4><table class="method-framework-table"><thead><tr><th>事项</th><th>候选</th><th>可执行</th></tr></thead><tbody>'
