@@ -6216,6 +6216,7 @@ var _methodologyCoveragePromise = null;
 var _methodologyPlaybookPromise = null;
 var _methodologyIndustryPacksPromise = null;
 var _manufacturingScenarioContractsPromise = null;
+var _constructionScenarioContractsPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6271,9 +6272,25 @@ function _loadManufacturingScenarioContracts() {
   return _manufacturingScenarioContractsPromise;
 }
 
+function _loadConstructionScenarioContracts() {
+  if (!_constructionScenarioContractsPromise) {
+    _constructionScenarioContractsPromise = fetch('/api/methodology/assets/construction_scenario_contracts?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('建筑业五链场景加载失败');
+        return response.json();
+      });
+  }
+  return _constructionScenarioContractsPromise;
+}
+
 function _renderMethodologyCoverageMatrix(container) {
   if (!container) return;
-  return Promise.all([_loadMethodologyCoverageReport(), _loadMethodologyIndustryPacks(), _loadManufacturingScenarioContracts()]).then(function(values){
+  return Promise.all([
+    _loadMethodologyCoverageReport(),
+    _loadMethodologyIndustryPacks(),
+    _loadManufacturingScenarioContracts(),
+    _loadConstructionScenarioContracts()
+  ]).then(function(values){
     var report = values[0] || {};
     var industryPackPayload = values[1] || {};
     var inventory = report.inventory || {};
@@ -6289,6 +6306,7 @@ function _renderMethodologyCoverageMatrix(container) {
     var verified = report.verified_rule_catalog || [];
     var industryPacks = industryPackPayload.packs || [];
     var manufacturingContracts = values[2] || {};
+    var constructionContracts = values[3] || {};
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
       + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
       + '<div class="method-coverage-summary">'
@@ -6348,8 +6366,10 @@ function _renderMethodologyCoverageMatrix(container) {
       }).join('') + '</div>'
       + '<h3 class="method-subheading">第一批重点行业专项包</h3>'
       + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
-      + '<div class="method-source-note"><b>制造业重写进度：</b>' + escHtml(manufacturingContracts.positioning || '')
-      + ' 当前已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体，其余行业仍保留M2状态并按同一合同逐批重写。</div>'
+      + '<div class="method-source-note"><b>五链重写进度：</b>制造业 ' + escHtml((manufacturingContracts.scenarios || []).length)
+      + ' 个场景、建筑业 ' + escHtml((constructionContracts.scenarios || []).length)
+      + ' 个场景已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体；其余行业仍保留M2状态并按同一合同逐批重写。'
+      + '<br><b>建筑业边界：</b>' + escHtml(constructionContracts.positioning || '') + '</div>'
       + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
         return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
           + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
@@ -6872,14 +6892,15 @@ function _renderMethodologyOverview(container) {
   });
 }
 
-function _renderManufacturingScenarioContracts(payload) {
+function _renderIndustryScenarioContracts(payload) {
   payload = payload || {};
   var scenes = payload.scenarios || [];
   var sources = payload.official_sources || [];
+  var industryName = String(payload.name || '行业场景').replace(/稽查场景五链配套合同$/, '');
   function list(items) { return _methodologyList(items || []); }
   return '<div class="method-stop"><b>场景重写边界：</b>' + escHtml(payload.positioning || '') + '</div>'
     + '<div class="method-coverage-summary">'
-    + '<div><strong>' + escHtml(scenes.length) + '</strong><span>制造业五链场景</span></div>'
+    + '<div><strong>' + escHtml(scenes.length) + '</strong><span>' + escHtml(industryName) + '五链场景</span></div>'
     + '<div><strong>5</strong><span>每场景配套环节</span></div>'
     + '<div><strong>3</strong><span>正例、反例、边界例</span></div>'
     + '<div><strong>' + escHtml(sources.length) + '</strong><span>官方政策入口</span></div></div>'
@@ -6936,10 +6957,16 @@ function _renderManufacturingScenarioContracts(payload) {
 
 function renderMethodologyChainsIntegrated(container) {
   if (!container) return;
-  return Promise.all([_loadMethodologyFramework(), _loadMethodologyPlaybooks(), _loadManufacturingScenarioContracts()]).then(function(values){
+  return Promise.all([
+    _loadMethodologyFramework(),
+    _loadMethodologyPlaybooks(),
+    _loadManufacturingScenarioContracts(),
+    _loadConstructionScenarioContracts()
+  ]).then(function(values){
   var framework = values[0] || {};
   var playbookPayload = values[1] || {};
   var manufacturingContracts = values[2] || {};
+  var constructionContracts = values[3] || {};
   var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
@@ -6949,7 +6976,9 @@ function renderMethodologyChainsIntegrated(container) {
     <div class="method-source-note"><b>链间交接：</b>调查链只有形成可定位的待证事实才交给证据链；证据链完成来源谱系去重、支持与反向证据评价后才交给分析链；分析链只能形成有前提和限制的人工复核意见。固定来源数量是内部成熟度提示，不替代具体事项的证明要求。</div>
     <div class="method-stop"><b>路径库边界：</b>${escHtml(playbookPayload.positioning || '')}</div>
     <h3 class="method-subheading">制造业真实场景五链配套重写</h3>
-    ${_renderManufacturingScenarioContracts(manufacturingContracts)}
+    ${_renderIndustryScenarioContracts(manufacturingContracts)}
+    <h3 class="method-subheading">建筑业真实场景五链配套重写</h3>
+    ${_renderIndustryScenarioContracts(constructionContracts)}
     <h3 class="method-subheading">十三组调查—证据—分析专项路径</h3>
     <div class="method-two-column">
       ${playbooks.map(function(item){return '<details class="method-framework-card"><summary><b>' + escHtml(item.id + ' · ' + item.name) + '</b></summary>'

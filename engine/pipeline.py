@@ -3444,7 +3444,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         comprehensive["scenario_methodology"] = scenario_methodology
         if scenario_methodology.get("applicable"):
             pipeline_log.append(
-                "[场景方法论] 制造业8个五链配套场景已生成核验计划："
+                f"[场景方法论] {scenario_methodology.get('industry_code', '')}行业"
+                f"{scenario_methodology.get('scene_count', 0)}个五链配套场景已生成核验计划："
                 f"{scenario_methodology.get('ready_for_human_review', 0)}个资料就绪，"
                 f"{scenario_methodology.get('pending_more_sources', 0)}个待补资料；"
                 "候选信号未转化为证据或结论"

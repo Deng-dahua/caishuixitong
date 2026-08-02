@@ -13,16 +13,29 @@ from pathlib import Path
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
-_CONTRACT_PATH = _PROJECT_ROOT / "static" / "manufacturing_scenario_contracts.json"
+CONTRACT_ASSETS = {
+    "C": {
+        "asset": "manufacturing_scenario_contracts",
+        "path": _PROJECT_ROOT / "static" / "manufacturing_scenario_contracts.json",
+        "terms": ("制造", "生产企业", "加工企业", "工厂"),
+    },
+    "E": {
+        "asset": "construction_scenario_contracts",
+        "path": _PROJECT_ROOT / "static" / "construction_scenario_contracts.json",
+        "terms": ("建筑", "施工", "工程承包", "建设工程"),
+    },
+}
 
 
 FILE_TYPE_SOURCE_FAMILIES = {
-    "inventory": {"生产存货", "仓储物流"},
+    "inventory": {"生产存货", "仓储物流", "工程材料"},
     "sales_invoice": {"发票申报", "销售履约"},
-    "purchase_invoice": {"发票申报", "采购成本"},
+    "purchase_invoice": {"发票申报", "采购成本", "工程材料"},
     "invoice": {"发票申报"},
     "invoice_universal": {"发票申报"},
     "input_vat_deduction": {"发票申报"},
+    "tax_return": {"税费申报"},
+    "tax_declaration": {"税费申报"},
     "bank": {"资金结算"},
     "bank_statement": {"资金结算"},
     "bank_transaction": {"资金结算"},
@@ -34,6 +47,7 @@ FILE_TYPE_SOURCE_FAMILIES = {
     "customs": {"海关出口"},
     "export": {"海关出口"},
     "salary": {"人员薪酬"},
+    "payroll": {"人员薪酬"},
     "social_security": {"人员薪酬"},
     "generic_data": {"其他业务资料"},
 }
@@ -81,6 +95,46 @@ SCENE_SOURCE_GATES = {
         {"name": "报关物流", "any": ["海关出口", "其他业务资料"]},
         {"name": "收汇和申报", "any": ["资金结算", "发票申报"]},
     ],
+    "CON-01": [
+        {"name": "项目与工程地点", "any": ["工程项目", "合同权利义务"]},
+        {"name": "预缴与申报", "any": ["税费申报", "发票申报"]},
+        {"name": "项目会计", "any": ["会计核算"]},
+    ],
+    "CON-02": [
+        {"name": "合同与进度结算", "any": ["合同权利义务", "工程项目"]},
+        {"name": "开票与收款", "any": ["发票申报", "资金结算"]},
+        {"name": "收入核算", "any": ["会计核算"]},
+    ],
+    "CON-03": [
+        {"name": "分包合同与工程量", "any": ["合同权利义务", "工程项目"]},
+        {"name": "分包票款", "any": ["发票申报", "资金结算"]},
+        {"name": "成本核算", "any": ["会计核算", "采购成本"]},
+    ],
+    "CON-04": [
+        {"name": "项目与计税选择", "any": ["工程项目", "合同权利义务"]},
+        {"name": "申报与预缴", "any": ["税费申报", "发票申报"]},
+        {"name": "进项与会计划分", "any": ["采购成本", "会计核算"]},
+    ],
+    "CON-05": [
+        {"name": "材料收发存", "any": ["工程材料", "生产存货", "仓储物流"]},
+        {"name": "工程量与施工部位", "any": ["工程项目"]},
+        {"name": "材料计价核算", "any": ["会计核算", "发票申报"]},
+    ],
+    "CON-06": [
+        {"name": "实名与考勤", "any": ["人员薪酬", "工程项目"]},
+        {"name": "工资与资金", "any": ["人员薪酬", "资金结算"]},
+        {"name": "扣缴与社保", "any": ["税费申报", "人员薪酬"]},
+    ],
+    "CON-07": [
+        {"name": "项目成本与分配", "any": ["会计核算", "工程项目"]},
+        {"name": "合同采购与分包", "any": ["合同权利义务", "采购成本"]},
+        {"name": "暂估与票款", "any": ["发票申报", "资金结算"]},
+    ],
+    "CON-08": [
+        {"name": "变更索赔与确认", "any": ["合同权利义务", "工程项目"]},
+        {"name": "开票与资金", "any": ["发票申报", "资金结算"]},
+        {"name": "收入成本与申报", "any": ["会计核算", "税费申报"]},
+    ],
 }
 
 
@@ -93,17 +147,31 @@ SCENE_SIGNAL_TERMS = {
     "MFG-06": ("固定资产", "设备", "转固", "折旧", "试生产", "政府补助"),
     "MFG-07": ("关联交易", "转让定价", "委托生产", "功能风险", "同期资料"),
     "MFG-08": ("出口", "报关", "收汇", "退税", "免抵退"),
+    "CON-01": ("异地项目", "跨地区", "预缴", "项目台账", "工程地点", "抵减"),
+    "CON-02": ("预收", "进度款", "结算", "产值", "收入确认", "质保金"),
+    "CON-03": ("分包", "工程量", "扣除", "劳务班组", "分包款", "合法凭证"),
+    "CON-04": ("简易计税", "一般计税", "甲供", "老项目", "进项划分", "计税方法"),
+    "CON-05": ("甲供材", "领料", "退料", "调拨", "材料损耗", "工程物资"),
+    "CON-06": ("实名制", "考勤", "工资专户", "班组", "代扣代缴", "农民工"),
+    "CON-07": ("暂估", "冲回", "跨项目", "成本分配", "机械费", "项目成本"),
+    "CON-08": ("合同变更", "签证", "索赔", "奖励", "停工补偿", "质保金"),
 }
 
 
-@lru_cache(maxsize=1)
-def load_scenario_contracts():
-    return json.loads(_CONTRACT_PATH.read_text(encoding="utf-8-sig"))
+@lru_cache(maxsize=len(CONTRACT_ASSETS))
+def load_scenario_contracts(industry_code="C"):
+    spec = CONTRACT_ASSETS[str(industry_code or "").upper()]
+    return json.loads(spec["path"].read_text(encoding="utf-8-sig"))
 
 
-def _is_manufacturing(industry):
+def _resolve_industry_code(industry):
     text = str(industry or "").strip().lower()
-    return text == "c" or any(term in text for term in ("制造", "生产企业", "加工企业", "工厂"))
+    for code, spec in CONTRACT_ASSETS.items():
+        if text == code.lower() or text.startswith(f"{code.lower()} "):
+            return code
+        if any(term.lower() in text for term in spec["terms"]):
+            return code
+    return ""
 
 
 def _available_source_families(file_results):
@@ -126,6 +194,16 @@ def _available_source_families(file_results):
             families.add("海关出口")
         if any(term in name_text for term in ("研发", "立项", "辅助账", "试验")):
             families.add("其他业务资料")
+        if any(term in name_text for term in ("项目", "施工", "工程量", "监理", "进度", "结算", "签证", "索赔")):
+            families.add("工程项目")
+        if any(term in name_text for term in ("材料", "甲供", "领退料", "工程物资")):
+            families.add("工程材料")
+        if any(term in name_text for term in ("预缴", "申报", "完税", "计税方法", "扣缴")):
+            families.add("税费申报")
+        if any(term in name_text for term in ("实名", "考勤", "工资", "班组", "社保", "人员")):
+            families.add("人员薪酬")
+        if any(term in name_text for term in ("合同", "分包", "承包协议", "补充协议")):
+            families.add("合同权利义务")
     return sorted(families), sorted(file_types)
 
 
@@ -146,18 +224,21 @@ def _candidate_signal_count(scene_id, findings):
 
 def build_scenario_review_plan(industry, file_results=None, findings=None):
     """生成只读的场景核验计划，不改变或新增 finding。"""
-    payload = load_scenario_contracts()
-    if not _is_manufacturing(industry):
+    industry_code = _resolve_industry_code(industry)
+    if not industry_code:
         return {
-            "version": payload.get("version"),
+            "version": None,
             "industry": str(industry or ""),
+            "industry_code": "",
             "applicable": False,
             "status": "不适用",
-            "maturity": payload.get("maturity"),
+            "maturity": None,
             "scenes": [],
-            "boundary": payload.get("positioning"),
+            "boundary": "当前仅对已完成五链重写的行业生成场景计划。",
         }
 
+    spec = CONTRACT_ASSETS[industry_code]
+    payload = load_scenario_contracts(industry_code)
     available_families, file_types = _available_source_families(file_results)
     available_set = set(available_families)
     plans = []
@@ -193,12 +274,15 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             "candidate_signal_boundary": "候选信号只用于确定核验顺序，不是证据或结论。",
             "target_fact": (scene.get("doubt") or {}).get("target_fact", ""),
             "lead_domain": (scene.get("domain_collaboration") or {}).get("lead", ""),
-            "contract_asset": "manufacturing_scenario_contracts",
+            "contract_asset": spec["asset"],
         })
 
     return {
         "version": payload.get("version"),
         "industry": str(industry or ""),
+        "industry_code": industry_code,
+        "industry_name": payload.get("name", ""),
+        "contract_asset": spec["asset"],
         "applicable": True,
         "status": "核验计划已生成",
         "maturity": payload.get("maturity"),

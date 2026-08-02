@@ -6907,6 +6907,7 @@ def get_methodology_asset(asset_name: str):
         "playbooks": "methodology_chain_playbooks.json",
         "industry_packs": "industry_methodology_packs.json",
         "manufacturing_scenario_contracts": "manufacturing_scenario_contracts.json",
+        "construction_scenario_contracts": "construction_scenario_contracts.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6945,6 +6946,7 @@ def get_methodology_coverage():
         "industry_audit_profiles.json",
         "industry_methodology_packs.json",
         "manufacturing_scenario_contracts.json",
+        "construction_scenario_contracts.json",
     )
     try:
         cache_key = tuple(
