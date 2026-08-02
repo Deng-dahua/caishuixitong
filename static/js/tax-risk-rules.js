@@ -56,7 +56,7 @@ window._rrDetailHtml = function(rl) {
     card += '<div style="font-size:10px;color:#64748b;line-height:20px;padding-left:10px;border-left:2px solid #9a1f2b;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.direction) + '</div>';
   }
   if (rl.focus && rl.focus !== '待明确重点') {
-    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查重点指向</div>';
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">重点核验方向</div>';
     card += '<div style="font-size:10px;color:#dc2626;line-height:20px;padding-left:10px;border-left:2px solid #dc2626;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.focus) + '</div>';
   }
   
@@ -87,13 +87,13 @@ window._rrDetailHtml = function(rl) {
   
   // 定性路径
   if (rl.determination) {
-    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查定性路径</div>';
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">分级复核路径</div>';
     card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;white-space:pre-wrap">' + escHtml(rl.determination) + '</div>';
   }
   
   // 穿透式追问（整段完整展示，忠实原文换行，不做正则截取）
   if (rl.drill_questions) {
-    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">稽查常见穿透式追问与应对</div>';
+    card += '<div style="font-size:10px;font-weight:600;color:#16233a;margin:8px 0 4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">调查询问提纲与可能说明</div>';
     var dq = typeof rl.drill_questions === 'string' ? rl.drill_questions : (Array.isArray(rl.drill_questions) ? rl.drill_questions.join('\n') : '');
     card += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin:4px 0 10px;padding:8px 12px;background:#fef8f8;border-left:3px solid #9a1f2b;white-space:pre-wrap">' + escHtml(dq) + '</div>';
   }
@@ -104,7 +104,7 @@ window._rrDetailHtml = function(rl) {
     + (rl.threshold && !rl.threshold.startsWith('评分阈值') ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📏 触发指标：' + escHtml(rl.threshold) + '</div>' : '')
     + (rl.evidence ? '<div style="font-size:10px;color:#94a3b8;margin:2px 0;white-space:pre-wrap">📎 证据清单：' + escHtml(rl.evidence) + '</div>' : '')
     + (rl.policy_ref ? '<div class="ra" style="white-space:pre-wrap">📜 法律依据：' + escHtml(rl.policy_ref) + '</div>' : '')
-    + (rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">⚖ 稽查处理：' + escHtml(rl.suggestion) + '</div>' : '')
+    + (rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">⚖ 处理事项复核提示：' + escHtml(rl.suggestion) + '</div>' : '')
     + (rl.tax_impact ? '<div class="ra" style="white-space:pre-wrap">💰 税务影响：' + escHtml(rl.tax_impact) + '</div>' : '')
     + (rl.remedy && rl.remedy !== rl.suggestion ? '<div class="ra" style="white-space:pre-wrap">🔧 整改建议：' + escHtml(rl.remedy) + '</div>' : '')
     + (rl.applicable_condition ? '<div class="ra" style="white-space:pre-wrap">📋 适用条件：' + escHtml(rl.applicable_condition) + '</div>' : '');
@@ -139,7 +139,7 @@ window._rrTable = function(rules) {
   var h = '<div class="rr-table-scroll"><table class="rr-table rr-rule-table">'
     + '<colgroup><col style="width:6%"><col style="width:28%"><col style="width:14%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:12%"><col style="width:9%"></colgroup>'
     + '<thead><tr>'
-    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th>'
+    + '<th>编号</th><th>疑点名称</th><th>监控维度</th><th>来源</th><th style="text-align:center">线索链</th><th style="text-align:center">证据链</th><th style="text-align:center">分析链</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次筛查</th>'
     + '</tr></thead><tbody>';
   rules.forEach(function(rl) { h += window._rrTitleRow(rl); });
   h += '</tbody></table></div>';

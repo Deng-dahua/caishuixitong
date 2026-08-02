@@ -1,79 +1,70 @@
 # ══════════════════════════════════════════════════════════════
-# 方法论加载器 — 让引擎动态读取稽查秘笈
-# 2026-07-17 新建：稽查方法论和报告编制总纲从前端静态文档
-# 转为引擎可读取的活配置
+# 方法论加载器 — 让前端说明、后台匹配和质量门禁共用同一框架
 # ══════════════════════════════════════════════════════════════
 
 import json
 import os
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_config.json")
+_FRAMEWORK_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_framework.json")
+
+
+def load_methodology_framework():
+    """加载只读的方法论权威框架；运行期个性化配置仍由 config 单独管理。"""
+    try:
+        with open(_FRAMEWORK_PATH, "r", encoding="utf-8") as framework_file:
+            framework = json.load(framework_file)
+        if isinstance(framework, dict) and framework.get("workflow"):
+            return framework
+    except (OSError, ValueError, TypeError):
+        pass
+    return {
+        "version": "fallback",
+        "workflow": [],
+        "business_domains": [],
+        "legal_sources": [],
+        "positioning": "系统只形成待核线索和复核建议，不替代法定认定。",
+    }
 
 
 def load_methodology_config():
-    """加载七层执行框架配置"""
+    """加载运行配置；核心流程和边界始终以只读 v4 框架为准。"""
     if os.path.exists(_CONFIG_PATH):
         try:
             with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+                configured = json.load(f)
+            authoritative = _default_config()
+            for key in ("version", "layers", "iron_rules", "six_steps"):
+                configured[key] = authoritative[key]
+            return configured
         except Exception:
             pass
     return _default_config()
 
 
 def _default_config():
-    """默认七层执行框架（与前端稽查方法论页面同步）"""
+    """默认全流程执行框架。"""
     return {
-        "version": "2026-07-17",
+        "version": "4.0.0",
         "layers": [
-            {
-                "name": "启动",
-                "order": 1,
-                "steps": ["锁定身份", "三层穿透定行业", "三相符·四流合一立标尺"],
-                "broadcast": "phase1_triage",
-            },
-            {
-                "name": "扫描",
-                "order": 2,
-                "steps": ["34类文件指纹识别", "数据打元标签提取", "三大突破口分析", "结构对比时间序列"],
-                "broadcast": "phase2_deep_dive",
-            },
-            {
-                "name": "布网",
-                "order": 3,
-                "steps": ["规则引擎+线索链+证据链+分析链四阶段递进", "六大战法", "分税种杀手锏", "10类行业专属检测包"],
-                "broadcast": "phase3_cross_validate",
-            },
-            {
-                "name": "过滤",
-                "order": 4,
-                "steps": ["行业豁免", "数据缺失豁免", "重复合并", "低置信度切除", "金额阈值", "矛盾消解", "白名单排除"],
-                "broadcast": None,
-            },
-            {
-                "name": "定案",
-                "order": 5,
-                "steps": ["证据三性与闭环", "税款测算", "定性分寸(偷税/少缴/虚开)", "对抗性自检(反向假设/对手交叉/政策复查)"],
-                "broadcast": "phase4_synthesis",
-            },
-            {
-                "name": "出鞘",
-                "order": 6,
-                "steps": ["报告生成与净化", "六要素叙事框架", "合规度五维热力图评估"],
-                "broadcast": None,
-            },
-            {
-                "name": "进化",
-                "order": 7,
-                "steps": ["规则置信度自校准", "新模式自动发现", "政策同步更新"],
-                "broadcast": None,
-            },
+            {"name": "任务与权限", "order": 1, "steps": ["主体、期间、税费种和授权范围确认"], "broadcast": "phase1_triage"},
+            {"name": "资料接收保全", "order": 2, "steps": ["原件、来源、哈希、交接和缺口登记"], "broadcast": None},
+            {"name": "解析与质量", "order": 3, "steps": ["结构化、口径统一、去重和解析限制"], "broadcast": "phase1_triage"},
+            {"name": "画像与适用性", "order": 4, "steps": ["经营实质、行业、业务模式和规则闸门"], "broadcast": "phase2_deep_dive"},
+            {"name": "全域扫描", "order": 5, "steps": ["税费种、业务周期、账票表税和时间序列扫描"], "broadcast": "phase2_deep_dive"},
+            {"name": "调查线索", "order": 6, "steps": ["待证事实、资料请求、访谈问题和停止条件"], "broadcast": "phase3_cross_validate"},
+            {"name": "证据复核", "order": 7, "steps": ["三性、独立性、支持证据、反证和矛盾"], "broadcast": "phase3_cross_validate"},
+            {"name": "分析测算", "order": 8, "steps": ["规则要件、竞争解释、因果和可复算底稿"], "broadcast": "phase4_synthesis"},
+            {"name": "法律程序权益", "order": 9, "steps": ["效力期间、取证程序、陈述申辩和权限复核"], "broadcast": None},
+            {"name": "审理移交", "order": 10, "steps": ["事实、证据、反证、测算、依据和限制成套移交"], "broadcast": None},
+            {"name": "受控进化", "order": 11, "steps": ["效果评估、候选变更、审批测试和版本回退"], "broadcast": None}
         ],
         "iron_rules": [
-            "实质重于形式（登记不算、干的才算）",
-            "孤证不立（单源数据不定案）",
-            "疑点非结论（起点是疑点、落点是铁证）",
-            "宁存疑不错杀（说不清的标存疑、有铁证的才下定论）",
+            "经营实质必须由依法取得且可追溯的多源事实支持",
+            "规则命中和模型评分只产生待核线索，不是证据或法律结论",
+            "同源派生结果不重复计算为独立证据，反向证据同等评价",
+            "事实、证据、金额、法律性质和程序条件分别复核",
+            "证据不足、冲突未解或权限不明时必须停在待核状态",
         ],
         "report_standards": {
             "chapters": 8,
@@ -85,10 +76,7 @@ def _default_config():
                 "防跨发现复制", "空占位符检测", "法律条款号",
             ],
         },
-        "six_steps": [
-            "数据锚定", "文件识别与方向判定", "行业锚定与域闸门",
-            "全维度扫描", "跨域协商自洽", "结论生成与分级",
-        ],
+        "six_steps": ["范围锚定", "资料保全", "适用性判断", "调查取证", "证据与反证复核", "审理移交"],
     }
 
 
@@ -113,7 +101,7 @@ def get_layer_by_name(name):
 
 
 def validate_execution(pipeline_log, layer_names=None):
-    """验证七层执行完整性：检查 pipeline_log 是否覆盖了所有层"""
+    """验证十一环节执行完整性：检查 pipeline_log 是否覆盖了全部必经环节。"""
     config = load_methodology_config()
     if layer_names is None:
         layer_names = [layer["name"] for layer in config["layers"]]
@@ -176,41 +164,111 @@ def set_filter_rule(rule_type, rule_value, enabled=True):
 
 # ═══════════ 兼容旧接口（orchestrator.py / pipeline.py / __init__.py 依赖） ═══════════
 
+_FRAMEWORK = load_methodology_framework()
+
 METHODOLOGY_KNOWLEDGE = {
+    "version": _FRAMEWORK.get("version", "fallback"),
     "methodologies": [
-        {"name": "四步税务合规分析法", "category": "核心方法论", "description": "收入核查→成本核查→费用核查→资产核查"},
-        {"name": "三相符·四流合一", "category": "标尺", "description": "账载/票载/申报三相符 + 合同/货物/资金/发票四流合一"},
-        {"name": "三层穿透定行业", "category": "启动层", "description": "工商登记→发票数据→加工信号三层穿透判定实质经营行业"},
-        {"name": "证据三性校验", "category": "定案层", "description": "真实性(可追溯)、关联性(直接相关)、合法性(程序合规)"},
-        {"name": "红队证伪", "category": "定案层", "description": "生成无罪假设→证据逐一攻击→程序合规审查"},
-        {"name": "六要素叙事框架", "category": "出鞘层", "description": "性质→事实→证据→来源→法律→建议"},
-        {"name": "跨域协商", "category": "过滤层", "description": "消解/调整/标记/增强四种协商结果"},
-        {"name": "规则置信度自校准", "category": "进化层", "description": "验证通过置信度上升，连续10次误报降级或暂停"},
+        {
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "category": "全流程作业",
+            "description": item.get("objective", ""),
+            "gate": item.get("gate", ""),
+            "output": item.get("output", ""),
+        }
+        for item in _FRAMEWORK.get("workflow", [])
+    ] + [
+        {
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "category": "业务域",
+            "description": item.get("scope", ""),
+            "output": "、".join(item.get("key_outputs", [])),
+        }
+        for item in _FRAMEWORK.get("business_domains", [])
     ],
-    "laws": [
-        {"name": "增值税法", "articles": ["第十七条(进项税额)", "第二十条(销项税额)"]},
-        {"name": "企业所得税法", "articles": ["第八条(成本扣除)", "第二十八条(税率优惠)"]},
-        {"name": "税收征收管理法", "articles": ["第三十五条(核定征收)", "第六十三条(偷税)", "第六十四条(少缴)"]},
-    ],
+    "law_references": _FRAMEWORK.get("legal_sources", []),
+    # 兼容旧调用方，但不再维护可能过期的硬编码条款号。
+    "laws": _FRAMEWORK.get("legal_sources", []),
 }
 
 
+def _normalise_profile(data_profile):
+    """兼容文本、字典和列表输入，统一生成方法论匹配画像。"""
+    if isinstance(data_profile, dict):
+        profile = dict(data_profile)
+        text_parts = [str(profile.get(key, "")) for key in (
+            "type", "name", "category", "detail", "description", "tax_type",
+            "industry", "business_model",
+        )]
+        profile["text"] = " ".join(text_parts)
+        return profile
+    if isinstance(data_profile, (list, tuple, set)):
+        return {"text": " ".join(str(item) for item in data_profile)}
+    return {"text": str(data_profile or "")}
+
+
 def match_methodology(data_profile, knowledge=None):
-    """根据数据画像匹配适用的方法论"""
+    """根据发现或数据画像匹配流程与业务域；不会因字符串输入而降级失败。"""
     if knowledge is None:
         knowledge = METHODOLOGY_KNOWLEDGE
+    profile = _normalise_profile(data_profile)
+    text = profile.get("text", "")
     methods = knowledge.get("methodologies", [])
-    # 简单匹配：数据画像中包含的领域激活对应方法论
     matched = []
-    if data_profile.get("has_invoices"):
-        matched.extend([m for m in methods if m["category"] in ("核心方法论", "标尺")])
-    if data_profile.get("has_bank"):
-        matched.extend([m for m in methods if "资金" in m.get("description", "") or "三相符" in m.get("name", "")])
-    return matched if matched else methods[:3]
+    keyword_groups = {
+        "D03": ("账", "凭证", "报表", "申报", "税会差异"),
+        "D04": ("收入", "销售", "应收", "预收", "客户"),
+        "D05": ("采购", "成本", "应付", "预付", "供应商"),
+        "D06": ("发票", "开票", "进项", "销项", "红冲", "数电"),
+        "D07": ("资金", "收款", "付款", "银行", "账户", "往来"),
+        "D08": ("存货", "库存", "物流", "产能", "能耗", "加工", "BOM"),
+        "D09": ("费用", "资产", "折旧", "摊销", "个人消费"),
+        "D10": ("工资", "薪酬", "个税", "社保", "人员", "劳务"),
+        "D11": ("合同", "履约", "经营实质", "商业目的"),
+        "D12": ("关联", "集团", "跨境", "非居民", "转让定价"),
+        "D13": ("房产", "土地", "资源", "环保", "车辆", "印花", "项目"),
+        "D14": ("证据", "法律", "处罚", "申辩", "听证", "程序", "移送"),
+    }
+    selected_ids = {
+        domain_id for domain_id, keywords in keyword_groups.items()
+        if any(keyword in text for keyword in keywords)
+    }
+    if profile.get("has_invoices"):
+        selected_ids.add("D06")
+    if profile.get("has_bank"):
+        selected_ids.add("D07")
+    if profile.get("has_inventory"):
+        selected_ids.add("D08")
+
+    # 每个事项始终需要适用性、证据和法律程序三道流程闸门。
+    core_ids = {"W04", "W07", "W09"}
+    for method in methods:
+        if method.get("id") in selected_ids:
+            matched.append(method)
+    for method in methods:
+        if method.get("id") in core_ids:
+            matched.append(method)
+    return matched or methods[:3]
 
 
 def get_relevant_laws(data_profile, knowledge=None):
-    """根据数据画像匹配相关法律条款"""
+    """按事项匹配官方依据类别；具体条款仍须按期间和事实人工核验。"""
     if knowledge is None:
         knowledge = METHODOLOGY_KNOWLEDGE
-    return knowledge.get("laws", [])
+    profile = _normalise_profile(data_profile)
+    text = profile.get("text", "")
+    laws = knowledge.get("law_references", knowledge.get("laws", []))
+    selected = []
+    for law in laws:
+        name = str(law.get("name", ""))
+        if "税务稽查案件办理程序" in name or "行政处罚法" in name:
+            selected.append(law)
+        elif "增值税" in name and any(word in text for word in ("增值税", "发票", "进项", "销项", "销售")):
+            selected.append(law)
+        elif "税收征收管理法" in name:
+            selected.append(law)
+        elif "危害税收征管" in name and any(word in text for word in ("移送", "刑事", "虚开", "骗税", "偷税")):
+            selected.append(law)
+    return selected

@@ -627,22 +627,22 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             active_results,
         )
 
-        domain_start = methodology.index(
-            "// 稽查方法论单页使用的业务域协同视图。"
+        domain_start = methodology.index("function renderUnifiedDomainPanelV4")
+        domain_end = methodology.index(
+            "function _renderMethodologyOverview", domain_start
         )
-        domain_end = methodology.index("function renderDAResult()", domain_start)
         active_domains = methodology[domain_start:domain_end]
-        self.assertIn("八类业务域及其职责边界", active_domains)
-        self.assertIn("统一激活与放行规则", active_domains)
-        self.assertIn("常用跨域调查模式", active_domains)
-        self.assertIn("域分析的标准输出合同", active_domains)
+        self.assertIn("十四个专业业务域及输出合同", active_domains)
+        self.assertIn("统一放行规则", active_domains)
+        self.assertIn("跨域协同场景库", active_domains)
+        self.assertIn("全税费种协同范围", active_domains)
         self.assertNotIn("1720条", active_domains)
         self.assertNotIn("系统性造假", active_domains)
         self.assertIn(
             '@app.get("/api/methodology/assets/{asset_name}")',
             main,
         )
-        for asset_name in ("rules", "clues", "evidence", "analysis"):
+        for asset_name in ("rules", "clues", "evidence", "analysis", "framework"):
             self.assertIn(
                 f"'/api/methodology/assets/{asset_name}",
                 methodology + risk_rules,
@@ -716,8 +716,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
-        self.assertIn("tax-risk-rules.js?v=2026073101", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026073101", index)
+        self.assertIn("tax-risk-rules.js?v=2026080201", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080201", index)
         self.assertIn("system-logs.js?v=2026073101", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)

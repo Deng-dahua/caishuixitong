@@ -6870,6 +6870,9 @@ def get_system_stats():
     return stats
 
 
+_methodology_asset_cache = {}
+
+
 @app.get("/api/methodology/assets/{asset_name}")
 def get_methodology_asset(asset_name: str):
     """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
@@ -6880,6 +6883,7 @@ def get_methodology_asset(asset_name: str):
         "clues": "cross_domain_clues.json",
         "evidence": "cross_domain_evidence.json",
         "analysis": "cross_domain_analysis.json",
+        "framework": "methodology_framework.json",
     }
     filename = filenames.get(str(asset_name or "").strip().lower())
     if not filename:
@@ -6888,8 +6892,20 @@ def get_methodology_asset(asset_name: str):
     if not _os.path.isfile(asset_path):
         raise HTTPException(status_code=404, detail="方法论数据不存在")
     try:
+        stat = _os.stat(asset_path)
+        cache_key = (asset_path, stat.st_mtime_ns, stat.st_size)
+        cached = _methodology_asset_cache.get(cache_key)
+        if cached is not None:
+            return cached
         with open(asset_path, "r", encoding="utf-8") as asset_file:
-            return _json.load(asset_file)
+            payload = _json.load(asset_file)
+        from engine.methodology_assets import prepare_methodology_asset
+        prepared = prepare_methodology_asset(str(asset_name or "").strip().lower(), payload)
+        for old_key in list(_methodology_asset_cache):
+            if old_key[0] == asset_path and old_key != cache_key:
+                del _methodology_asset_cache[old_key]
+        _methodology_asset_cache[cache_key] = prepared
+        return prepared
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=500, detail="方法论数据读取失败") from exc
 
@@ -7471,31 +7487,43 @@ def _apply_engine_hub_stage(report_data, result=None):
 
 
 def _apply_methodology_stage(report_data):
-    """把方法论和现行法依据匹配到本次全部待核发现。"""
+    """对全部发现执行方法论门禁，并匹配流程、业务域和官方依据类别。"""
     from engine.methodology_loader import (
         METHODOLOGY_KNOWLEDGE,
         get_relevant_laws,
         match_methodology,
     )
+    from engine.methodology_guardrails import review_finding, review_report_methodology
 
     findings = report_data.get("all_findings", []) or []
     enriched = 0
     for finding in findings:
-        finding_type = finding.get("type", "")
-        matched = match_methodology(finding_type)
-        laws = get_relevant_laws(finding_type)
+        review_finding(finding)
+        profile = {
+            "type": finding.get("type", ""),
+            "category": finding.get("category", ""),
+            "domain": finding.get("domain", ""),
+            "detail": finding.get("detail", ""),
+            "description": finding.get("description", ""),
+            "tax_type": finding.get("tax_type", ""),
+        }
+        matched = match_methodology(profile)
+        laws = get_relevant_laws(profile)
         if matched:
-            finding["_methodology"] = matched[:3]
+            finding["_methodology"] = matched[:6]
         if laws:
             finding["_methodology_laws"] = laws[:5]
         if matched or laws:
             enriched += 1
+
+    review_report_methodology(report_data)
 
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
         "findings_reviewed": len(findings),
         "findings_enriched": enriched,
+        "decision_boundary": "全部发现均为待核、待补证或待人工复核状态，系统不自动作出行政认定。",
     }
     report_data["_methodology_applied"] = summary
     _append_one_click_log(
@@ -7614,15 +7642,11 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
                 "message": str(exc),
             }
 
-        try:
-            execution["stages"]["methodology_enrichment"] = (
-                _apply_methodology_stage(report_data)
-            )
-        except Exception as exc:
-            execution["stages"]["methodology_enrichment"] = {
-                "status": "degraded",
-                "message": str(exc),
-            }
+        # 方法论复核是发布前的强制安全门禁，异常时必须由外层统一失败处理；
+        # 不允许绕过证据成熟度、人工复核和程序边界继续编制或持久化报告。
+        execution["stages"]["methodology_enrichment"] = (
+            _apply_methodology_stage(report_data)
+        )
 
         report_data, report_stage = _apply_report_compilation_stage(report_data)
         execution["stages"]["report_compilation"] = report_stage

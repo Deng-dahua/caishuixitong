@@ -10,7 +10,7 @@
 - social_security: [{name, personal_amount(float), company_amount(float), salary_base(float), ...}]
 - inventory: [{code, name, in_qty(float), out_qty(float), end_qty(float), total_amount(float), ...}]
 """
-import json, os, math
+import json, os, math, re
 from datetime import datetime
 from collections import defaultdict
 
@@ -23,6 +23,18 @@ DATA_SOURCES = {
     "social_security": "social_security",
     "inventory": "inventory",
 }
+
+CHAIN_TYPE_KEYS = {
+    "clue": "clue",
+    "evidence": "evid",
+    "analysis": "alc",
+}
+
+DECISION_LANGUAGE = (
+    "定性成立", "认定为", "构成偷税", "构成虚开", "依法定性", "应予处罚",
+    "处以罚款", "建议追缴", "移送公安", "刑事追诉", "铁证", "即可定案",
+    "直接定案", "违法成立", "犯罪成立",
+)
 
 
 def _safe_float(v, default=0.0):
@@ -100,6 +112,13 @@ def _op_aggregate(data, step, ctx):
         result = [result]
 
     ctx[step["output"]] = result
+    ctx.setdefault("_output_meta", {})[step["output"]] = {
+        "kind": "aggregate",
+        "source": source,
+        "sources": [source] if source and rows else [],
+        "filters": filters,
+        "source_rows": len(rows),
+    }
     return result
 
 
@@ -173,6 +192,14 @@ def _op_compare(data, step, ctx):
         })
 
     ctx[step["output"]] = results
+    ctx.setdefault("_output_meta", {})[step["output"]] = {
+        "kind": "compare",
+        "anomaly_count": sum(1 for item in results if item.get("is_anomaly")),
+        "sources": sorted(set(
+            ctx.get("_output_meta", {}).get(left_key, {}).get("sources", [])
+            + ctx.get("_output_meta", {}).get(right_key, {}).get("sources", [])
+        )),
+    }
     return results
 
 
@@ -189,6 +216,14 @@ def _op_query(data, step, ctx):
         rows = ctx.get(source, [])
         if not rows:
             ctx[step["output"]] = []
+            ctx.setdefault("_output_meta", {})[step["output"]] = {
+                "kind": "query",
+                "source": source,
+                "sources": [],
+                "filters": filters,
+                "source_rows": 0,
+                "filtered_query": bool(filters),
+            }
             return []
 
     # 特殊过滤：not_in 需要对比集合
@@ -230,6 +265,14 @@ def _op_query(data, step, ctx):
         result = list(rows)
 
     ctx[step["output"]] = result
+    ctx.setdefault("_output_meta", {})[step["output"]] = {
+        "kind": "query",
+        "source": source,
+        "sources": [source] if source and rows else [],
+        "filters": filters,
+        "source_rows": len(rows),
+        "filtered_query": bool(filters),
+    }
     return result
 
 
@@ -248,15 +291,22 @@ def _op_conclude(data, step, ctx):
             continue
 
         triggered = False
+        condition_refs = []
 
         # 格式1: "key exists" — 存在性检查
         if cond_expr.endswith(" exists"):
             ref_key = cond_expr[:-7].strip()
+            condition_refs.append(ref_key)
             ref_data = ctx.get(ref_key, [])
-            if isinstance(ref_data, list) and len(ref_data) > 0:
-                triggered = True
-            elif isinstance(ref_data, dict) and ref_data:
-                triggered = True
+            meta = ctx.get("_output_meta", {}).get(ref_key, {})
+            # “有数据”不等于“有异常”。只有明确的异常比对结果，或带筛选
+            # 条件的查询命中，才允许 exists 触发待核事项。
+            if meta.get("kind") == "compare":
+                triggered = meta.get("anomaly_count", 0) > 0
+            elif meta.get("kind") == "query" and meta.get("filtered_query"):
+                triggered = bool(ref_data)
+            elif cond.get("allow_plain_exists") is True:
+                triggered = bool(ref_data)
 
         # 格式2: "key.field > value" 或 "key.field >= value" 
         elif " > " in cond_expr or " >= " in cond_expr or " < " in cond_expr or " = " in cond_expr:
@@ -273,8 +323,11 @@ def _op_conclude(data, step, ctx):
             # 解析 left: "key.field" 或 "key"
             if "." in left_raw:
                 ref_key, field = left_raw.rsplit(".", 1)
+            elif len(left_raw.split()) == 2:
+                ref_key, field = left_raw.split(None, 1)
             else:
                 ref_key, field = left_raw, "value"
+            condition_refs.append(ref_key)
             
             ref_data = ctx.get(ref_key, [])
             if isinstance(ref_data, list):
@@ -296,6 +349,7 @@ def _op_conclude(data, step, ctx):
         # 格式3: "key.field" — 布尔检查（如 is_anomaly）
         elif "." in cond_expr:
             ref_key, field = cond_expr.rsplit(".", 1)
+            condition_refs.append(ref_key)
             ref_data = ctx.get(ref_key, [])
             if isinstance(ref_data, list):
                 for item in ref_data:
@@ -306,6 +360,7 @@ def _op_conclude(data, step, ctx):
         # 格式4: "key" — 简单存在且非空
         else:
             ref_data = ctx.get(cond_expr)
+            condition_refs.append(cond_expr)
             if ref_data:
                 if isinstance(ref_data, list) and len(ref_data) > 0:
                     triggered = True
@@ -313,11 +368,22 @@ def _op_conclude(data, step, ctx):
                     triggered = True
 
         if triggered:
+            for supporting_ref in cond.get("supporting_refs", []):
+                if _has_material_value(ctx.get(supporting_ref)):
+                    condition_refs.append(supporting_ref)
+            supporting_sources = set()
+            for ref_key in condition_refs:
+                supporting_sources.update(
+                    ctx.get("_output_meta", {}).get(ref_key, {}).get("sources", [])
+                )
+                if ref_key in DATA_SOURCES and _has_material_value(data.get(ref_key)):
+                    supporting_sources.add(ref_key)
             findings.append({
                 "type": cond.get("conclusion", ""),
                 "severity": cond.get("severity", "中"),
                 "detail": cond.get("detail", ""),
-                "law_refs": step.get("law_refs", [])
+                "law_refs": step.get("law_refs", []),
+                "_supporting_sources": sorted(supporting_sources),
             })
 
     output_name = step.get("output", "findings")
@@ -360,7 +426,58 @@ def _apply_filters(rows, filters):
 
 # ════════════════ 链执行入口 ════════════════
 
-def execute_chain(chain_def, data, company_name=""):
+def _normalise_rule_id(rule_id):
+    try:
+        return int(rule_id)
+    except (TypeError, ValueError):
+        return str(rule_id or "").strip()
+
+
+def _has_material_value(value):
+    if value is None:
+        return False
+    if isinstance(value, (list, tuple, set, dict, str)):
+        return len(value) > 0
+    return True
+
+
+def _strip_decision_language(text):
+    """保留可复核的事实描述，移除模板中的自动定性、处罚和移送语句。"""
+    text = str(text or "").strip()
+    if not text:
+        return ""
+    parts = re.split(r"(?<=[。；;\n])", text)
+    kept = [part.strip() for part in parts if part.strip() and not any(token in part for token in DECISION_LANGUAGE)]
+    return "".join(kept).strip()
+
+
+def _neutralise_finding(finding, chain_type, evidence_state):
+    """把链模板输出限定为待核事项，避免算法越过调查、审理和裁量。"""
+    original_type = str(finding.get("type", "") or "未命名事项")
+    safe_type = original_type
+    for token in ("定性成立", "违法成立", "犯罪成立", "即可定案", "直接定案"):
+        safe_type = safe_type.replace(token, "待核")
+    if any(token in safe_type for token in ("认定", "处罚", "追缴", "移送")):
+        safe_type = "待核事项"
+    if not safe_type.startswith("待核") and chain_type in ("evidence", "analysis"):
+        safe_type = f"待核事项：{safe_type}"
+
+    detail = _strip_decision_language(finding.get("detail", ""))
+    if not detail:
+        detail = "链路条件已触发，须回到原始资料核验适用前提、款项或交易性质、反向证据和合理解释。"
+
+    return {
+        **finding,
+        "type": safe_type,
+        "detail": detail,
+        "finding_status": evidence_state,
+        "conclusion_scope": "screening_and_review_only",
+        "required_human_review": True,
+        "decision_boundary": "不得由规则命中、模型评分或预设证据数量自动作出行政认定、处理处罚或刑事判断。",
+    }
+
+
+def execute_chain(chain_def, data, company_name="", prior_context=None, chain_type="clue"):
     """
     执行一条链（线索链/证据链/分析链均有统一的执行模型）
 
@@ -372,29 +489,44 @@ def execute_chain(chain_def, data, company_name=""):
     Returns:
         dict: {chain_id, findings: [...], execution_log: [...]}
     """
-    ctx = {
-        "company_name": company_name,
-    }
-    # 将data也注入ctx，供op_query跨源引用
+    ctx = {"company_name": company_name}
+    if isinstance(prior_context, dict):
+        ctx.update(prior_context)
+    input_keys = set(ctx)
+    # 同时保留原始键和兼容的 *_data 键，供跨链步骤引用。
     for k, v in data.items():
-        if isinstance(v, list):
+        ctx[k] = v
+        input_keys.add(k)
+        if isinstance(v, (list, tuple, set, dict)):
             ctx[k + "_data"] = v
+            input_keys.add(k + "_data")
+    # 每条链单独维护输出谱系，不把上游“存在性”当作本链证据。
+    ctx["_output_meta"] = {}
 
     log = []
+    errors = []
+    queried_sources = set()
     chain_id = chain_def.get("id", chain_def.get("rule_id", "?"))
 
     steps = chain_def.get("steps", [])
     for step in steps:
         op = step.get("op", "")
         if op not in OPERATIONS:
-            log.append(f"未知操作: {op} (step {step.get('step','?')})")
+            message = f"未知操作: {op} (step {step.get('step','?')})"
+            log.append(message)
+            errors.append(message)
             continue
         try:
             result = OPERATIONS[op](data, step, ctx)
+            source = step.get("source")
+            if source and _has_material_value(data.get(source, ctx.get(source))):
+                queried_sources.add(source)
             output_name = step.get("output", "unnamed")
             log.append(f"[{op}] step {step.get('step','?')} -> {output_name}: {len(result) if isinstance(result, list) else 1} items")
         except Exception as e:
-            log.append(f"[{op}] step {step.get('step','?')} ERROR: {e}")
+            message = f"[{op}] step {step.get('step','?')} ERROR: {e}"
+            log.append(message)
+            errors.append(message)
 
     # 收集所有findings
     all_findings = []
@@ -404,12 +536,54 @@ def execute_chain(chain_def, data, company_name=""):
             if isinstance(f, list):
                 all_findings.extend(f)
 
+    min_evidence_dimensions = max(int(chain_def.get("min_evidence", 2) or 2), 1)
+    min_independent_sources = max(int(chain_def.get("min_independent_sources", 2) or 2), 1)
+    supporting_sources = set()
+    for finding in all_findings:
+        if isinstance(finding, dict):
+            supporting_sources.update(finding.pop("_supporting_sources", []))
+    if errors:
+        state = "execution_incomplete"
+    elif chain_type == "clue":
+        state = "formed_pending_investigation" if all_findings else "not_triggered"
+    elif chain_type == "evidence":
+        if not all_findings:
+            state = "not_supported"
+        elif (
+            len(all_findings) < min_evidence_dimensions
+            or len(supporting_sources) < min_independent_sources
+        ):
+            state = "single_source_or_insufficient"
+        else:
+            state = "partially_supported_pending_human_review"
+    else:
+        state = "ready_for_human_review" if all_findings else "hypothesis_not_supported"
+
+    all_findings = [
+        _neutralise_finding(finding, chain_type, state)
+        for finding in all_findings if isinstance(finding, dict)
+    ]
+    output_context = {
+        key: value for key, value in ctx.items()
+        if key not in input_keys and key != "company_name" and not key.startswith("findings")
+    }
     return {
         "chain_id": chain_id,
         "rule_id": chain_def.get("rule_id"),
+        "chain_type": chain_type,
+        "status": state,
+        "complete": not errors,
+        "ready_for_analysis": chain_type == "evidence" and state == "partially_supported_pending_human_review",
+        "queried_sources": sorted(queried_sources),
+        "independent_sources": sorted(supporting_sources),
+        "independent_source_count": len(supporting_sources),
+        "evidence_dimension_count": len(all_findings) if chain_type == "evidence" else None,
+        "minimum_evidence_dimensions": min_evidence_dimensions if chain_type == "evidence" else None,
+        "minimum_independent_sources": min_independent_sources if chain_type == "evidence" else None,
         "findings": all_findings,
         "execution_log": log,
-        "context": {k: v for k, v in ctx.items() if isinstance(v, (int, float, str, bool)) or (isinstance(v, list) and len(str(v)) < 500)}
+        "errors": errors,
+        "context": output_context,
     }
 
 
@@ -423,48 +597,66 @@ def run_chains_for_rule(rule_id, clues_data, evidence_data, analysis_data, engin
     results = {}
 
     # 线索链
-    clue_chain = _find_chain(clues_data, rule_id)
+    clue_chain = _find_chain(clues_data, rule_id, "clue")
     if clue_chain:
-        results["clue"] = execute_chain(clue_chain, engine_data)
+        results["clue"] = execute_chain(clue_chain, engine_data, chain_type="clue")
     else:
         results["clue"] = None
 
     # 证据链
-    evid_chain = _find_chain(evidence_data, rule_id)
+    evid_chain = _find_chain(evidence_data, rule_id, "evidence")
     if evid_chain:
-        # 证据链可以引用线索链的上下文
         clues_ctx = results.get("clue", {}).get("context", {}) if isinstance(results.get("clue"), dict) else {}
-        merged_data = {**engine_data}
-        for k, v in clues_ctx.items():
-            if not k.endswith("_data"):
-                merged_data[k] = v
-        results["evidence"] = execute_chain(evid_chain, merged_data)
+        results["evidence"] = execute_chain(
+            evid_chain,
+            engine_data,
+            prior_context=clues_ctx,
+            chain_type="evidence",
+        )
     else:
         results["evidence"] = None
 
     # 分析链
-    anal_chain = _find_chain(analysis_data, rule_id)
-    if anal_chain:
-        # 分析链可以引用线索链和证据链的结果
-        merged_data = {**engine_data}
+    anal_chain = _find_chain(analysis_data, rule_id, "analysis")
+    evidence_result = results.get("evidence")
+    if anal_chain and isinstance(evidence_result, dict) and evidence_result.get("ready_for_analysis"):
+        prior_context = {}
         for result_key in ("clue", "evidence"):
-            r = results.get(result_key)
-            if r and isinstance(r, dict):
-                for k, v in r.get("context", {}).items():
-                    if not k.endswith("_data"):
-                        merged_data[k] = v
-        results["analysis"] = execute_chain(anal_chain, merged_data)
+            result = results.get(result_key)
+            if isinstance(result, dict):
+                prior_context.update(result.get("context", {}))
+        results["analysis"] = execute_chain(
+            anal_chain,
+            engine_data,
+            prior_context=prior_context,
+            chain_type="analysis",
+        )
+    elif anal_chain:
+        results["analysis"] = {
+            "chain_id": anal_chain.get("id"),
+            "rule_id": anal_chain.get("rule_id"),
+            "chain_type": "analysis",
+            "status": "blocked_by_evidence",
+            "complete": True,
+            "ready_for_analysis": False,
+            "findings": [],
+            "execution_log": ["证据来源未达到独立性和数量要求，分析链停在补证环节。"],
+            "errors": [],
+            "context": {},
+        }
     else:
         results["analysis"] = None
 
     # ═══ 规则增强：为每条链的发现注入23字段规则数据 ═══
     try:
         from engine.rule_enricher import enrich_finding
+        from engine.methodology_guardrails import review_finding
         for key in ("clue", "evidence", "analysis"):
             r = results.get(key)
             if r and isinstance(r, dict) and r.get("findings"):
                 for f in r["findings"]:
                     enrich_finding(f, rule_id)
+                    review_finding(f)
     except Exception:
         pass
 
@@ -477,29 +669,31 @@ _chain_index = {}  # key: (clue|evid|alc), value: {rule_id: chain}
 def _build_chain_index(clues_data, evidence_data, analysis_data):
     """一次性将所有链数据按 rule_id 建立索引"""
     global _chain_index
+    _chain_index = {}
     for key, data in [("clue", clues_data), ("evid", evidence_data), ("alc", analysis_data)]:
         idx = {}
         if isinstance(data, list):
             for item in data:
-                rid = item.get("rule_id")
+                rid = _normalise_rule_id(item.get("rule_id"))
                 if rid is not None: idx[rid] = item
         elif isinstance(data, dict):
             items = data.get("evidence_chains", data.get("analysis_chains", []))
             for item in items:
-                rid = item.get("rule_id")
+                rid = _normalise_rule_id(item.get("rule_id"))
                 if rid is not None: idx[rid] = item
         _chain_index[key] = idx
 
-def _find_chain(chains_data, rule_id):
-    """在链数据中查找匹配 rule_id 的链（优先使用全局索引 O(1)）"""
-    # 优先从全局索引查找
-    for key in ("clue", "evid", "alc"):
-        idx = _chain_index.get(key, {})
-        if rule_id in idx:
-            return idx[rule_id]
+def _find_chain(chains_data, rule_id, chain_type=None):
+    """只在指定链类型中查找，防止证据链或分析链误取线索链。"""
+    normalised_id = _normalise_rule_id(rule_id)
+    index_key = CHAIN_TYPE_KEYS.get(chain_type or "")
+    if index_key:
+        item = _chain_index.get(index_key, {}).get(normalised_id)
+        if item is not None:
+            return item
     # 降级: 线性扫描
     items = chains_data if isinstance(chains_data, list) else chains_data.get("evidence_chains", chains_data.get("analysis_chains", []))
     for item in items:
-        if isinstance(item, dict) and item.get("rule_id") == rule_id:
+        if isinstance(item, dict) and _normalise_rule_id(item.get("rule_id")) == normalised_id:
             return item
     return None

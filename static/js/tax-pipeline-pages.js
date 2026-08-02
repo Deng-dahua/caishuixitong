@@ -1294,7 +1294,7 @@ function renderChainsList(chains) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配线索链</div>';
   } else {
     html += '<div class="rr-table-scroll"><table class="rr-table method-chain-table"><colgroup><col style="width:6%"><col style="width:40%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>';
-    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+    html += '<thead><tr><th>#</th><th>调查路径名称</th><th>疑点</th><th>步数</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次筛查</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var steps = (c.steps||c.investigation_path||[]).length;
       var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
@@ -1334,7 +1334,7 @@ window._showChainDetail = function(idx) {
 
   if (trigN > 0) {
     h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
-      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已触发此线索链</div>'
+      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已进入此调查线索链</div>'
       + '</div>';
   }
 
@@ -1432,7 +1432,7 @@ function renderEvidenceList(chains) {
     html = '<div style="text-align:center;padding:40px;color:#64748b;font-size:10px">无匹配证据链</div>';
   } else {
     html = '<div class="rr-table-scroll"><table class="rr-table method-chain-table"><colgroup><col style="width:6%"><col style="width:40%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>';
-    html += '<thead><tr><th>#</th><th>证据闭环名称</th><th>疑点</th><th>验证要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次触发</th></tr></thead><tbody>';
+    html += '<thead><tr><th>#</th><th>证据复核路径</th><th>疑点</th><th>来源要求</th><th style="text-align:center">更新时间</th><th style="text-align:center">本次状态</th></tr></thead><tbody>';
     chains.forEach(function(c, ci) {
       var dims = (c.steps||c.dimensions||[]).length;
       var ruleId = c.rule_id ? '#' + c.rule_id : (c.rule_refs && c.rule_refs.length ? '#' + c.rule_refs[0] : '-');
@@ -1441,7 +1441,7 @@ function renderEvidenceList(chains) {
       html += '<td style="color:#94a3b8">#' + (ci+1) + '</td>';
       html += '<td class="rr-name">' + esc(c.name||'') + '</td>';
       html += '<td style="font-weight:600;color:#16233a">' + ruleId + '</td>';
-      html += '<td>' + (c.min_evidence||'?') + '\u00d7' + dims + '维</td>';
+      html += '<td>≥' + (c.min_evidence||'?') + '独立源 / ' + dims + '步</td>';
       html += '<td style="text-align:center;color:#64748b">' + updatedAt + '</td>';
       html += '<td style="text-align:center">' + (trigN > 0 ? '<span style="color:#dc2626;font-weight:700">✓</span>' : '') + '</td>';
       html += '</tr>';
@@ -1472,7 +1472,7 @@ window._showEvDetail = function(idx) {
 
   if (trigN > 0) {
     h += '<div style="margin:0 0 10px;padding:8px 12px;background:#fef2f2;font-size:10px;line-height:20px">'
-      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已触发此证据闭环</div>'
+      + '<div style="font-weight:600;color:#991b1b">✅ 本次分析已进入此证据复核路径；是否相互印证仍以来源独立性、反证和人工审查为准</div>'
       + '</div>';
   }
 
@@ -1627,10 +1627,22 @@ function _methodologyResultLevelClass(level) {
 
 function _methodologyResultReviewState(finding) {
   var state = finding && (
-    finding.review_status || finding.evidence_status ||
+    finding.finding_status || finding.review_status || finding.evidence_status ||
     finding.conclusion_status || finding.status
   );
-  return state ? String(state) : '待人工复核';
+  var labels = {
+    insufficient_data:'资料不足',
+    clue_pending_investigation:'待调查',
+    formed_pending_investigation:'已形成线索·待调查',
+    single_source_or_insufficient:'单源或证据不足',
+    partially_supported_pending_human_review:'部分印证·待人工复核',
+    hypothesis_pending_evidence_review:'分析假设·待证据复核',
+    ready_for_human_review:'可提交人工复核',
+    blocked_by_evidence:'证据不足·已停止',
+    not_supported:'未获证据支持',
+    not_triggered:'未触发'
+  };
+  return state ? (labels[String(state)] || String(state)) : '待人工复核';
 }
 
 function _renderMethodologyResultSnapshot(target, report, envelope) {
@@ -1661,8 +1673,8 @@ function _renderMethodologyResultSnapshot(target, report, envelope) {
   var shown = ranked.slice(0, 50);
   var stats = [
     [findings.length, '待审发现'],
-    [high, '高风险层'],
-    [medium, '中风险层'],
+    [high, '高影响优先'],
+    [medium, '中影响优先'],
     [triggeredDomains, '触发业务域'],
     [explicitReviewed, '显式已复核']
   ];
@@ -6189,7 +6201,7 @@ function METHODOLOGY_TOC() {
 }
 var METHODOLOGY_PAGE_SECTIONS = [
   {id:'overview', label:'🧭 作业闭环总览', desc:'先明确职责、层序和放行条件，再进入具体方法、数据与证据。'},
-  {id:'guide', label:'📖 七层作业规程', desc:'查前准备、数据采集、分析布网、疑点过滤、定性复核、报告衔接和经验进化。'},
+  {id:'guide', label:'📖 全流程作业规程', desc:'从任务权限、资料保全到调查取证、证据复核、审理移交和受控进化。'},
   {id:'files', label:'📁 资料接收与解析', desc:'识别资料、提取结构、保留来源并公开解析限制。'},
   {id:'rules', label:'📑 疑点规则底座', desc:'展示疑点从什么条件触发、适用于什么范围以及需要什么后续核验。'},
   {id:'domains', label:'🌐 业务域协同', desc:'按业务域说明检测范围、数据基础、行业闸门和本次执行状态。'},
@@ -6197,6 +6209,40 @@ var METHODOLOGY_PAGE_SECTIONS = [
   {id:'chains', label:'🔗 调查—证据—分析链', desc:'贯通调查起点、取证要求、证据闭环与推理路径，确保每项专业判断能够逐级回溯。'},
   {id:'handbook', label:'⚖️ 岗位手册与程序保障', desc:'明确岗位职责、底稿要素、程序权利和交付复核要求，保证作业过程可追踪、可问责、可复核。'}
 ];
+
+var _methodologyFrameworkPromise = null;
+function _loadMethodologyFramework() {
+  if (!_methodologyFrameworkPromise) {
+    _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('方法论框架加载失败');
+        return response.json();
+      });
+  }
+  return _methodologyFrameworkPromise;
+}
+
+function _methodologyList(items) {
+  return '<ul class="method-detail-list">' + (items || []).map(function(item){
+    return '<li>' + escHtml(item) + '</li>';
+  }).join('') + '</ul>';
+}
+
+function _renderMethodologyCoverage(framework) {
+  var tax = framework.tax_coverage || [];
+  var industries = framework.industry_coverage || [];
+  var sources = framework.data_sources || [];
+  var scenarios = framework.cross_domain_scenarios || [];
+  var taxItems = tax.reduce(function(total,item){return total + (item.items || []).length;},0);
+  var scenarioPaths = scenarios.reduce(function(total,item){return total + (item.paths || []).length;},0);
+  return '<div class="method-coverage-summary">'
+    + '<div><strong>' + taxItems + '</strong><span>税费与专项事项</span></div>'
+    + '<div><strong>' + industries.length + '</strong><span>行业大类与跨境场景</span></div>'
+    + '<div><strong>' + sources.length + '</strong><span>资料来源族</span></div>'
+    + '<div><strong>' + scenarioPaths + '</strong><span>跨域调查路径族</span></div>'
+    + '<div><strong>' + (framework.business_domains || []).length + '</strong><span>专业业务域</span></div>'
+    + '</div>';
+}
 
 function renderMethodologyPage(container) {
   if (!container) return;
@@ -6465,6 +6511,22 @@ function renderMethodologyPage(container) {
       .method-checklist{margin:17px 0 2px;padding:0;list-style:none;columns:2;column-gap:32px}
       .method-checklist li{break-inside:avoid;position:relative;margin:0 0 11px;padding-left:22px;color:#4e6075;font-size:14px;line-height:1.8}
       .method-checklist li:before{content:"✓";position:absolute;left:0;color:#0e8b63;font-weight:800}
+      .method-coverage-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 24px}
+      .method-coverage-summary>div{padding:18px 14px;border:1px solid #dfe6ee;border-radius:9px;background:#f8fafc;text-align:center}
+      .method-coverage-summary strong{display:block;color:var(--method-ink);font-size:24px;line-height:1.25}
+      .method-coverage-summary span{display:block;margin-top:6px;color:#6b7b8f;font-size:12px;line-height:1.5}
+      .method-subheading{margin:28px 0 14px;color:var(--method-ink);font-size:18px;line-height:1.5}
+      .method-two-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:0 0 22px}
+      .method-framework-card{padding:19px 20px;border:1px solid #dfe6ee;border-radius:10px;background:#fff}
+      .method-framework-card h4{margin:0 0 9px;color:var(--method-ink);font-size:15px}
+      .method-framework-card p{margin:6px 0;color:#5c6d81;font-size:13px;line-height:1.85;text-align:justify}
+      .method-framework-card .method-gate{margin-top:10px;padding:10px 12px;border-left:3px solid var(--method-accent);background:#fdf6f7;color:#6e4a4f}
+      .method-detail-list{margin:8px 0 0;padding-left:20px;color:#586a7f;font-size:13px;line-height:1.8}
+      .method-detail-list li{margin:4px 0}
+      .method-framework-table{width:100%;border-collapse:collapse;margin:0 0 24px;font-size:13px}
+      .method-framework-table th,.method-framework-table td{padding:12px 14px;border:1px solid #dfe6ee;text-align:left;vertical-align:top;line-height:1.75}
+      .method-framework-table th{color:#34465c;background:#f6f8fb}
+      .method-source-note{margin:16px 0 24px;padding:17px 19px;border:1px solid #d8e4ed;border-radius:9px;background:#f4f8fb;color:#526579;line-height:1.9}
       .method-mount .rr-pre,.method-mount .rr-rule .rb{font-size:13px!important;line-height:1.82!important}
       .method-mount .rr-tax{gap:13px!important;margin-bottom:18px!important}
       .method-mount .rr-tax .rt{padding:14px!important;font-size:13px!important}
@@ -6513,6 +6575,7 @@ function renderMethodologyPage(container) {
         .method-shell-head h1{font-size:29px}
         .method-section-head{padding:28px 25px 20px}
         .method-mount{padding:24px 25px 30px}
+        .method-coverage-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
       }
       @media(max-width:680px){
         .method-shell{padding:14px 4px 34px;font-size:14px}
@@ -6526,6 +6589,8 @@ function renderMethodologyPage(container) {
         .method-section-head p{font-size:13px}
         .method-mount{padding:20px 18px 25px;overflow-x:auto}
         .method-overview-grid,.method-manual-grid{grid-template-columns:1fr}
+        .method-two-column{grid-template-columns:1fr}
+        .method-coverage-summary{grid-template-columns:1fr 1fr}
         .method-checklist{columns:1}
         .method-mount .au p,.method-overview-card p,.method-manual-card p{text-align:left}
       }
@@ -6554,11 +6619,11 @@ function renderMethodologyPage(container) {
         </main>
       </div>
     </div>`;
-  _renderMethodologyOverview(document.getElementById('methodology-mount-overview'));
+  _renderMethodologyMount('overview', _renderMethodologyOverview);
   _renderMethodologyMount('guide', _renderMethodologyGuide);
   _renderMethodologyMount('files', renderFileParsingPage);
   _renderMethodologyMount('rules', renderTaxRiskRules);
-  _renderMethodologyMount('domains', renderUnifiedDomainPanel);
+  _renderMethodologyMount('domains', renderUnifiedDomainPanelV4);
   _renderMethodologyMount('results', renderAnalyzePage);
   _renderMethodologyMount('chains', renderMethodologyChainsIntegrated);
   _renderMethodologyPracticeManual(document.getElementById('methodology-mount-handbook'));
@@ -6593,30 +6658,65 @@ function _renderMethodologyMount(sectionId, renderer) {
   }
 }
 
+function renderUnifiedDomainPanelV4(container) {
+  if (!container) return;
+  return _loadMethodologyFramework().then(function(framework){
+    var domains = framework.business_domains || [];
+    var taxes = framework.tax_coverage || [];
+    var scenarios = framework.cross_domain_scenarios || [];
+    container.innerHTML = '<div class="method-source-note"><b>业务域协同原则：</b>每个业务域只对自己的事实、数据和核验动作负责；跨域结果通过统一的主体、期间、交易和来源编号合并。多域同向只能提高核验优先级，不能把相关性自动变成因果关系或法律认定。</div>'
+      + '<h3 class="method-subheading">十四个专业业务域及输出合同</h3>'
+      + '<div class="method-two-column">' + domains.map(function(domain){
+        return '<article class="method-framework-card"><h4>' + escHtml(domain.id + ' · ' + domain.name) + '</h4>'
+          + '<p>' + escHtml(domain.scope) + '</p><p><strong>标准产出：</strong>'
+          + escHtml((domain.key_outputs || []).join('、')) + '</p></article>';
+      }).join('') + '</div>'
+      + '<h3 class="method-subheading">全税费种协同范围</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:18%">事项组</th><th style="width:32%">覆盖事项</th><th>核验主线</th></tr></thead><tbody>'
+      + taxes.map(function(item){return '<tr><td>' + escHtml(item.group) + '</td><td>'
+          + escHtml((item.items || []).join('、')) + '</td><td>' + escHtml(item.focus) + '</td></tr>';}).join('')
+      + '</tbody></table>'
+      + '<h3 class="method-subheading">跨域协同场景库</h3>'
+      + '<div class="method-two-column">' + scenarios.map(function(item){
+        return '<article class="method-framework-card"><h4>' + escHtml(item.theme) + '</h4>' + _methodologyList(item.paths) + '</article>';
+      }).join('') + '</div>'
+      + '<div class="method-stop"><b>统一放行规则：</b>适用性已确认、关键事实可追溯、支持与反向证据均已处理、来源谱系去重、金额可复算、法律和程序已复核且高影响事项经人工审理，方可移交报告编制模块；否则退回相应业务域补证或解释。</div>';
+  });
+}
+
 function _renderMethodologyOverview(container) {
   if (!container) return;
-  var stages = [
-    ['1. 查前准备','锁定主体、期间、行业实质、纳税人资格和授权范围；未确认对象与边界，不启动风险判断。'],
-    ['2. 数据采集','识别文件、保留原始值、记录来源与解析置信度；资料缺失只形成核验限制，不推定违法。'],
-    ['3. 分析布网','按资料和行业激活规则与业务域，生成线索和竞争性假设；阈值只负责筛查。'],
-    ['4. 疑点过滤','执行行业闸门、重复合并、适用性、金额重要性、反向解释和跨域冲突消解。'],
-    ['5. 证据复核','核验真实性、关联性、合法性，形成至少两个独立来源的闭环，并保留反向证据。'],
-    ['6. 专业判断','区分事实、疑点、专业判断和有权机关认定；税额、期间、依据和限制条件分别复核。'],
-    ['7. 报告衔接','把通过门禁的内容交给报告编制模块，方法论只规定输入要求，不在这里重复报告格式。'],
-    ['8. 反馈进化','人工纠正先限定场景并保留版本，跨样本验证后才能提升置信度或扩大适用范围。']
-  ];
-  container.innerHTML = '<div class="method-overview-grid">' + stages.map(function(stage){
-    return '<div class="method-overview-card"><b>' + stage[0] + '</b><p>' + stage[1] + '</p></div>';
-  }).join('') + '</div>'
-    + '<div class="method-stop"><b>统一停点：</b>主体或期间不明、资料来源不可定位、法条状态未核验、证据不足、跨域结论冲突、高影响事项未完成人工复核时，系统只能输出“待核事项”，不得升级为正式结论。</div>';
+  return _loadMethodologyFramework().then(function(framework){
+    var workflow = framework.workflow || [];
+    var boundary = framework.public_capability_boundary || {};
+    container.innerHTML = _renderMethodologyCoverage(framework)
+      + '<div class="method-source-note"><b>能力边界：</b>' + escHtml(framework.positioning || '')
+      + ' 金税四期在公开层面体现为以数治税、跨部门信息共享、精准监管和全流程留痕；本系统不声称掌握任何未公开内部指标、名单、阈值或算法。</div>'
+      + '<h3 class="method-subheading">十一环节证据成熟流程</h3>'
+      + '<div class="method-overview-grid">' + workflow.map(function(stage){
+        return '<div class="method-overview-card"><b>' + escHtml(stage.id + ' · ' + stage.name) + '</b>'
+          + '<p>' + escHtml(stage.objective) + '</p><p><strong>产出：</strong>' + escHtml(stage.output) + '</p></div>';
+      }).join('') + '</div>'
+      + '<h3 class="method-subheading">公开能力与禁止越界</h3>'
+      + '<div class="method-two-column">'
+      + '<div class="method-framework-card"><h4>可依法开展的分析</h4>' + _methodologyList(boundary.supported) + '</div>'
+      + '<div class="method-framework-card"><h4>系统明确不作的声明</h4>' + _methodologyList(boundary.not_claimed) + '</div></div>'
+      + '<div class="method-stop"><b>统一停点：</b>主体、期间或权限不明，资料来源不可定位，解析质量不足，适用性未确认，反向证据未处理，来源不独立，法律效力未核验，程序条件缺失或高影响事项未完成人工复核时，只能保持“不适用、资料不足、待调查、待补证或待人工复核”状态。</div>';
+  });
 }
 
 function renderMethodologyChainsIntegrated(container) {
   if (!container) return;
+  return _loadMethodologyFramework().then(function(framework){
+  var contracts = framework.chain_contracts || {};
   container.innerHTML = `
+    <div class="method-two-column">
+      ${['clue','evidence','analysis'].map(function(key){var c=contracts[key]||{};return '<article class="method-framework-card"><h4>'+(key==='clue'?'调查线索链':key==='evidence'?'证据闭环链':'分析推理链')+'</h4><p>'+escHtml(c.purpose||'')+'</p><p><strong>必备结构：</strong>'+escHtml((c.required_fields||[]).join('、'))+'</p><p><strong>状态：</strong>'+escHtml((c.states||[]).join(' → '))+'</p></article>';}).join('')}
+    </div>
+    <div class="method-source-note"><b>链间交接：</b>调查链只有形成可定位的待证事实才交给证据链；证据链完成来源谱系去重、支持与反向证据评价后才交给分析链；分析链只能形成有前提和限制的人工复核意见。固定来源数量是内部成熟度提示，不替代具体事项的证明要求。</div>
     <div id="methodology-chain-compact" class="method-chain-block">
       <h3>📌 链路紧凑总览</h3>
-      <p>先按类别快速定位，再进入完整调查、证据和推理明细。</p>
+      <p>先按类别快速定位，再进入完整调查、证据和推理明细；数量不代表质量，执行状态和证据缺口必须同时查看。</p>
       <div id="methodology-chain-compact-target" class="method-chain-target"></div>
     </div>
     <div id="methodology-chain-clues" class="method-chain-block">
@@ -6639,17 +6739,20 @@ function renderMethodologyChainsIntegrated(container) {
   renderEvidencePage(document.getElementById('methodology-chain-evidence-target'));
   renderAnalysisChainsPage(document.getElementById('methodology-chain-analysis-target'));
   window.currentModule = '稽查方法论';
+  });
 }
 
 function _renderMethodologyPracticeManual(container) {
   if (!container) return;
   var cards = [
-    ['资料接收岗','建立资料目录，记录文件名、来源主体、所属期间、接收时间、原始哈希和解析状态；任何转换不得覆盖原件。'],
-    ['分析主办岗','确认分析对象与范围，选择适用业务域，登记每条疑点的触发条件、排除条件、重要性和待补资料。'],
-    ['证据复核岗','分别核验真实性、关联性、合法性；标注支持证据、反向证据、证据缺口和闭环状态。'],
-    ['法律复核岗','核对规范名称、条款号、效力状态、适用期间、地域和程序要求；不确定时明确标注待复核。'],
-    ['金额复核岗','保存计算公式、计税依据、期间、税率来源、舍入方式和调整项；估算值与正式测算分开。'],
-    ['审理与终审岗','复核事实是否清楚、证据是否充分、程序是否适当、用语是否越界以及高影响事项是否人工确认。']
+    ['任务与权限复核','确认主体、期间、税费种、管辖或授权范围、资料用途、岗位分工和回避事项；系统分析不得扩大检查权限。'],
+    ['资料接收与电子数据保全','记录来源主体、取得方式、原始载体、制作或提取人、时间、格式、大小、哈希和交接过程；转换件与原件双向定位。'],
+    ['分析主办','确认经营模式与规则适用性，把信号拆成待证事实、调查问题、资料请求、访谈对象、替代解释和停止条件。'],
+    ['调查取证协同','按法定权限和程序组织账簿资料、询问、实地、账户查询或异地协查等任务；本系统只管理任务和底稿，不替代审批。'],
+    ['证据复核','分别审查真实性、关联性、合法性、独立性和完整性；支持证据、反向证据、当事人说明和矛盾同屏保留。'],
+    ['金额复核','保存计税依据、调整项目、税率来源、所属期间、公式、舍入、已缴和限制；估算、情景测算与正式建议分开。'],
+    ['法律程序与权益复核','核对依据效力、适用期间、条款要件、权利告知、陈述申辩、听证、回避和行政刑事衔接边界。'],
+    ['审理与质量门禁','按照事实是否清楚、证据是否充分、程序是否适当、处理建议是否恰当分别审查；不合格项退回补证。']
   ];
   var checks = [
     '主体、账套、检查期间和权限范围已经确认',
@@ -6658,10 +6761,15 @@ function _renderMethodologyPracticeManual(container) {
     '疑点触发条件与排除条件均有记录',
     '行业闸门和业务实质已经核验',
     '支持证据与反向证据同屏保留',
-    '至少两个独立来源形成证据闭环',
+    '证据来源谱系已去重，同源派生统计未冒充多源',
+    '电子数据原始载体、提取过程、哈希和转换记录齐全',
+    '询问、实地、账户查询或协查事项的权限和审批已经核验',
+    '当事人的陈述申辩、合理解释及复核结果完整保留',
     '法律依据的名称、条号、期间和效力已核验',
     '金额口径、公式和参数可以复算',
     '高影响事项已经完成人工复核',
+    '事实认定、税款测算、法律性质、处罚和移送判断没有混为一步',
+    '选案、检查、审理、执行的分工制约未被系统绕过',
     '原始结论与人工纠正记录并存且可撤销',
     '交付内容已通过质量门禁并转交报告编制模块'
   ];
@@ -6669,15 +6777,52 @@ function _renderMethodologyPracticeManual(container) {
     return '<div class="method-manual-card"><b>' + card[0] + '</b><p>' + card[1] + '</p></div>';
   }).join('') + '</div>'
     + '<div class="method-stop"><b>程序保障原则：</b>方法论提供的是调查、验证和专业判断框架，不替代有权机关的行政认定、处罚决定或司法判断。涉及检查权限、取证程序、陈述申辩、听证、复议诉讼等事项，必须由具备相应权限和职责的人员依据现行规定办理。</div>'
-    + '<h3 style="margin:18px;color:#16233a">交付前十二项复核清单</h3>'
+    + '<h3 style="margin:18px;color:#16233a">交付前完整复核清单</h3>'
     + '<ul class="method-checklist">' + checks.map(function(check){return '<li>' + check + '</li>';}).join('') + '</ul>';
 }
 
 function _renderMethodologyGuide(container) {
-  if(!container)return;
-  window.currentModule='稽查方法论';
-  container.innerHTML=METHODOLOGY_CSS()+'<div class="au"><div class="au-wrap"><div id="au-toc-div"></div><div class="au-body" id="au-body"></div></div></div>';
-  renderMethodologyContent();
+  if (!container) return;
+  window.currentModule = '稽查方法论';
+  return _loadMethodologyFramework().then(function(framework){
+    var workflow = framework.workflow || [];
+    var industries = framework.industry_coverage || [];
+    var sources = framework.data_sources || [];
+    var evidence = framework.evidence_model || {};
+    var metrics = framework.quality_metrics || [];
+    var laws = framework.legal_sources || [];
+    container.innerHTML = '<div class="method-source-note"><b>规程定位：</b>本规程把实际作业拆成连续证据成熟过程。事实、证据、测算与法律适用分别复核；系统只提供结构化复核，不作行政认定。模型评分、规则命中和链路匹配只负责排序与提示，风险评分仅用于安排核验顺序。</div>'
+      + '<h3 class="method-subheading">十一环节作业规程与强制停点</h3>'
+      + '<div class="method-two-column">' + workflow.map(function(stage){
+        return '<article class="method-framework-card"><h4>' + escHtml(stage.id + ' · ' + stage.name) + '</h4>'
+          + '<p><strong>任务：</strong>' + escHtml(stage.objective) + '</p>'
+          + '<p class="method-gate"><strong>停点：</strong>' + escHtml(stage.gate) + '</p>'
+          + '<p><strong>交付：</strong>' + escHtml(stage.output) + '</p></article>';
+      }).join('') + '</div>'
+      + '<h3 class="method-subheading">资料来源谱系</h3>'
+      + '<div class="method-two-column">' + sources.map(function(item){
+        return '<article class="method-framework-card"><h4>' + escHtml(item.class) + '</h4>' + _methodologyList(item.items) + '</article>';
+      }).join('') + '</div>'
+      + '<div class="method-stop"><b>资料规则：</b>外部资料只有在权限、来源和取得程序明确时才能进入证据评价；规则、模型、行业均值及同一原始文件的派生统计不属于独立证据。资料缺失只形成分析限制和补证任务，不推定违法。</div>'
+      + '<h3 class="method-subheading">二十类行业大类与专项业务场景</h3>'
+      + '<div class="method-two-column">' + industries.map(function(item){
+        return '<article class="method-framework-card"><h4>' + escHtml(item.group) + '</h4>' + _methodologyList(item.scenarios) + '</article>';
+      }).join('') + '</div>'
+      + '<div class="method-source-note"><b>行业覆盖说明：</b>行业库覆盖国民经济主要行业大类和跨境业务，但不宣称穷尽每一种细分业态。新业态先由合同履行、收入模式、成本结构、交付方式和受监管特征确定业务模型，再叠加通用规则与专项规则；候选规则与正式规则分库管理。</div>'
+      + '<h3 class="method-subheading">证据组织标准</h3>'
+      + '<div class="method-two-column"><article class="method-framework-card"><h4>法定证据类型</h4>' + _methodologyList(evidence.legal_types) + '</article>'
+      + '<article class="method-framework-card"><h4>质量评价维度</h4>' + _methodologyList(evidence.quality_dimensions) + '</article></div>'
+      + _methodologyList(evidence.rules)
+      + '<h3 class="method-subheading">法规依据与期间控制</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:28%">公开依据</th><th style="width:22%">状态</th><th>控制事项</th></tr></thead><tbody>'
+      + laws.map(function(law){return '<tr><td><a href="' + escHtml(law.url || '#') + '" target="_blank" rel="noopener">'
+          + escHtml(law.name) + '</a></td><td>' + escHtml(law.status) + '</td><td>'
+          + escHtml((law.controls || []).join('、')) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h3 class="method-subheading">效果度量与受控进化</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:22%">指标</th><th>计算口径</th><th style="width:26%">控制目标</th></tr></thead><tbody>'
+      + metrics.map(function(metric){return '<tr><td>' + escHtml(metric.name) + '</td><td>'
+          + escHtml(metric.formula) + '</td><td>' + escHtml(metric.target) + '</td></tr>';}).join('') + '</tbody></table>';
+  });
 }
 
 function renderMethodologyContent(){
