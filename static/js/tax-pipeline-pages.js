@@ -6215,6 +6215,7 @@ var _methodologyFrameworkPromise = null;
 var _methodologyCoveragePromise = null;
 var _methodologyPlaybookPromise = null;
 var _methodologyIndustryPacksPromise = null;
+var _manufacturingScenarioContractsPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6259,9 +6260,20 @@ function _loadMethodologyIndustryPacks() {
   return _methodologyIndustryPacksPromise;
 }
 
+function _loadManufacturingScenarioContracts() {
+  if (!_manufacturingScenarioContractsPromise) {
+    _manufacturingScenarioContractsPromise = fetch('/api/methodology/assets/manufacturing_scenario_contracts?_t=' + Date.now())
+      .then(function(response){
+        if (!response.ok) throw new Error('制造业五链场景加载失败');
+        return response.json();
+      });
+  }
+  return _manufacturingScenarioContractsPromise;
+}
+
 function _renderMethodologyCoverageMatrix(container) {
   if (!container) return;
-  return Promise.all([_loadMethodologyCoverageReport(), _loadMethodologyIndustryPacks()]).then(function(values){
+  return Promise.all([_loadMethodologyCoverageReport(), _loadMethodologyIndustryPacks(), _loadManufacturingScenarioContracts()]).then(function(values){
     var report = values[0] || {};
     var industryPackPayload = values[1] || {};
     var inventory = report.inventory || {};
@@ -6276,6 +6288,7 @@ function _renderMethodologyCoverageMatrix(container) {
     var gaps = report.gap_register || [];
     var verified = report.verified_rule_catalog || [];
     var industryPacks = industryPackPayload.packs || [];
+    var manufacturingContracts = values[2] || {};
     container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
       + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
       + '<div class="method-coverage-summary">'
@@ -6286,6 +6299,7 @@ function _renderMethodologyCoverageMatrix(container) {
       + '<div><strong>' + escHtml(inventory.dominant_analysis_structure_count || 0) + '</strong><span>最大模板结构覆盖数</span></div>'
       + '<div><strong>' + escHtml(inventory.priority_industry_packs || 0) + '</strong><span>第一批行业专项包</span></div>'
       + '<div><strong>' + escHtml(inventory.staged_m2_industry_scenarios || 0) + '</strong><span>M2场景与字段契约</span></div>'
+      + '<div><strong>' + escHtml(inventory.rewritten_m25_scenarios || 0) + '</strong><span>M2.5五链重写场景</span></div>'
       + '</div>'
       + '<div class="method-source-note"><b>行业分类基线：</b>' + escHtml((report.taxonomy_basis || {}).name || '')
       + '，覆盖范围为' + escHtml((report.taxonomy_basis || {}).scope || '') + '。行业关键词命中只表示候选知识分布，不代表行业规则已经验证。</div>'
@@ -6317,10 +6331,11 @@ function _renderMethodologyCoverageMatrix(container) {
         + '</td><td>' + escHtml((item.required_sources || []).join('、')) + '</td><td>' + escHtml(item.limitation) + '</td></tr>';}).join('')
       + '</tbody></table>'
       + '<h3 class="method-subheading">二十个国民经济行业门类</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:6%">代码</th><th style="width:22%">行业门类</th><th style="width:12%">候选提及</th><th style="width:12%">通用原子规则</th><th style="width:12%">M2专项场景</th><th style="width:13%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:6%">代码</th><th style="width:19%">行业门类</th><th style="width:10%">候选提及</th><th style="width:11%">通用原子规则</th><th style="width:10%">M2场景</th><th style="width:10%">M2.5重写</th><th style="width:11%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
       + industries.map(function(item){return '<tr><td>' + escHtml(item.code) + '</td><td>' + escHtml(item.name)
         + '</td><td>' + escHtml(item.candidate_mentions) + '</td><td>' + escHtml(item.verified_applicable_rules)
-        + '</td><td>' + escHtml(item.staged_m2_scenarios || 0) + '</td><td>' + escHtml(item.verified_specific_rules)
+        + '</td><td>' + escHtml(item.staged_m2_scenarios || 0) + '</td><td>' + escHtml(item.rewritten_m25_scenarios || 0)
+        + '</td><td>' + escHtml(item.verified_specific_rules)
         + '</td><td>' + escHtml(item.state) + '</td></tr>';}).join('') + '</tbody></table>'
       + '<div class="method-source-note"><b>行业场景使用边界：</b>' + escHtml(report.industry_profile_boundary || '') + '</div>'
       + '<div class="method-two-column">' + industryProfiles.map(function(profile){
@@ -6333,6 +6348,8 @@ function _renderMethodologyCoverageMatrix(container) {
       }).join('') + '</div>'
       + '<h3 class="method-subheading">第一批重点行业专项包</h3>'
       + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
+      + '<div class="method-source-note"><b>制造业重写进度：</b>' + escHtml(manufacturingContracts.positioning || '')
+      + ' 当前已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体，其余行业仍保留M2状态并按同一合同逐批重写。</div>'
       + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
         return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
           + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
@@ -6855,11 +6872,74 @@ function _renderMethodologyOverview(container) {
   });
 }
 
+function _renderManufacturingScenarioContracts(payload) {
+  payload = payload || {};
+  var scenes = payload.scenarios || [];
+  var sources = payload.official_sources || [];
+  function list(items) { return _methodologyList(items || []); }
+  return '<div class="method-stop"><b>场景重写边界：</b>' + escHtml(payload.positioning || '') + '</div>'
+    + '<div class="method-coverage-summary">'
+    + '<div><strong>' + escHtml(scenes.length) + '</strong><span>制造业五链场景</span></div>'
+    + '<div><strong>5</strong><span>每场景配套环节</span></div>'
+    + '<div><strong>3</strong><span>正例、反例、边界例</span></div>'
+    + '<div><strong>' + escHtml(sources.length) + '</strong><span>官方政策入口</span></div></div>'
+    + '<div class="method-source-note"><b>统一主键：</b>同一个场景编号贯穿待证事实、调查步骤、证据要素、分析命题和域间交接。旧有1720条三链只作为候选检索索引，不再以数量或模板命中代表调查完成。</div>'
+    + '<div class="method-framework-stack">' + scenes.map(function(scene){
+      var doubt = scene.doubt || {};
+      var clue = scene.clue_chain || {};
+      var evidence = scene.evidence_chain || {};
+      var analysis = scene.analysis_chain || {};
+      var domains = scene.domain_collaboration || {};
+      var report = scene.report_contract || {};
+      return '<details class="method-framework-card"><summary><b>' + escHtml(scene.id + ' · ' + scene.name)
+        + '</b> · ' + escHtml(scene.maturity || '') + '</summary>'
+        + '<div class="method-source-note"><b>待证事实：</b>' + escHtml(doubt.target_fact || '')
+        + '<br><b>初筛信号：</b>' + escHtml(doubt.observed_signal || '')
+        + '<br><b>初筛输出：</b>' + escHtml(doubt.output || '') + '</div>'
+        + '<div class="method-two-column">'
+        + '<article class="method-framework-card"><h4>① 疑点组织</h4><p><strong>必须先排除</strong></p>' + list(doubt.must_exclude)
+        + '<p><strong>适用业务：</strong>' + escHtml((scene.applicability || {}).business || '') + '</p>'
+        + '<p><strong>不适用：</strong>' + escHtml(((scene.applicability || {}).not_applicable || []).join('、')) + '</p></article>'
+        + '<article class="method-framework-card"><h4>② 调查线索</h4><p><strong>起点：</strong>' + escHtml(clue.start || '') + '</p>'
+        + '<table class="method-framework-table"><thead><tr><th>步</th><th>核验动作</th><th>连接主键</th><th>产出</th></tr></thead><tbody>'
+        + (clue.steps || []).map(function(step){return '<tr><td>' + escHtml(step.step) + '</td><td>' + escHtml(step.action)
+          + '</td><td>' + escHtml((step.join_keys || []).join('、')) + '</td><td>' + escHtml(step.deliverable) + '</td></tr>';}).join('')
+        + '</tbody></table><p><strong>交接条件：</strong>' + escHtml(clue.terminal || '') + '</p></article>'
+        + '<article class="method-framework-card"><h4>③ 证据组织</h4><p><strong>待证要素</strong></p>' + list(evidence.fact_elements)
+        + '<p><strong>支持材料</strong></p>' + list(evidence.supporting_sources)
+        + '<p><strong>反向材料</strong></p>' + list(evidence.opposing_sources)
+        + '<p><strong>证据不足</strong></p>' + list(evidence.insufficient_when) + '</article>'
+        + '<article class="method-framework-card"><h4>④ 分析论证</h4><p><strong>命题：</strong>' + escHtml(analysis.proposition || '') + '</p>'
+        + '<p><strong>替代解释</strong></p>' + list(analysis.alternatives)
+        + '<p><strong>推理顺序</strong></p>' + list(analysis.reasoning)
+        + '<p><strong>结论阶梯</strong></p>' + list(analysis.conclusion_ladder)
+        + '<p><strong>税法边界：</strong>' + escHtml(analysis.tax_boundary || '') + '</p></article>'
+        + '</div>'
+        + '<article class="method-framework-card"><h4>⑤ 业务域协同</h4><p><strong>主办域：</strong>' + escHtml(domains.lead || '') + '</p>'
+        + '<table class="method-framework-table"><thead><tr><th>协同域</th><th>职责</th><th>交接成果</th></tr></thead><tbody>'
+        + (domains.partners || []).map(function(item){return '<tr><td>' + escHtml(item.domain) + '</td><td>'
+          + escHtml(item.responsibility) + '</td><td>' + escHtml(item.handoff) + '</td></tr>';}).join('')
+        + '</tbody></table><p><strong>冲突处理：</strong>' + escHtml(domains.conflict_rule || '') + '</p></article>'
+        + '<div class="method-two-column"><article class="method-framework-card"><h4>报告落点</h4><p><strong>标题：</strong>'
+        + escHtml(report.title || '') + '</p><p><strong>必须列明</strong></p>' + list(report.must_state)
+        + '<p><strong>禁止写法</strong></p>' + list(report.forbidden) + '</article>'
+        + '<article class="method-framework-card"><h4>正反例边界验证</h4><table class="method-framework-table"><thead><tr><th>样例</th><th>事实</th><th>预期状态</th></tr></thead><tbody>'
+        + (scene.validation_cases || []).map(function(item){return '<tr><td>' + escHtml(item.case) + '</td><td>'
+          + escHtml(item.facts) + '</td><td>' + escHtml(item.expected) + '</td></tr>';}).join('')
+        + '</tbody></table></article></div></details>';
+    }).join('') + '</div>'
+    + '<h3 class="method-subheading">本批次官方政策入口</h3>'
+    + '<table class="method-framework-table"><thead><tr><th>依据</th><th>发布机关</th><th>适用期间</th></tr></thead><tbody>'
+    + sources.map(function(source){return '<tr><td>' + escHtml(source.name) + '</td><td>' + escHtml(source.issuer)
+      + '</td><td>' + escHtml(source.effective_period) + '</td></tr>';}).join('') + '</tbody></table>';
+}
+
 function renderMethodologyChainsIntegrated(container) {
   if (!container) return;
-  return Promise.all([_loadMethodologyFramework(), _loadMethodologyPlaybooks()]).then(function(values){
+  return Promise.all([_loadMethodologyFramework(), _loadMethodologyPlaybooks(), _loadManufacturingScenarioContracts()]).then(function(values){
   var framework = values[0] || {};
   var playbookPayload = values[1] || {};
+  var manufacturingContracts = values[2] || {};
   var playbooks = playbookPayload.playbooks || [];
   var contracts = framework.chain_contracts || {};
   container.innerHTML = `
@@ -6868,6 +6948,8 @@ function renderMethodologyChainsIntegrated(container) {
     </div>
     <div class="method-source-note"><b>链间交接：</b>调查链只有形成可定位的待证事实才交给证据链；证据链完成来源谱系去重、支持与反向证据评价后才交给分析链；分析链只能形成有前提和限制的人工复核意见。固定来源数量是内部成熟度提示，不替代具体事项的证明要求。</div>
     <div class="method-stop"><b>路径库边界：</b>${escHtml(playbookPayload.positioning || '')}</div>
+    <h3 class="method-subheading">制造业真实场景五链配套重写</h3>
+    ${_renderManufacturingScenarioContracts(manufacturingContracts)}
     <h3 class="method-subheading">十三组调查—证据—分析专项路径</h3>
     <div class="method-two-column">
       ${playbooks.map(function(item){return '<details class="method-framework-card"><summary><b>' + escHtml(item.id + ' · ' + item.name) + '</b></summary>'
@@ -6880,23 +6962,23 @@ function renderMethodologyChainsIntegrated(container) {
         + '<p><strong>强制停点</strong></p>' + _methodologyList(item.stop_conditions) + '</details>';}).join('')}
     </div>
     <div id="methodology-chain-compact" class="method-chain-block">
-      <h3>📌 链路紧凑总览</h3>
-      <p>先按类别快速定位，再进入完整调查、证据和推理明细；数量不代表质量，执行状态和证据缺口必须同时查看。</p>
+      <h3>📌 候选链路索引</h3>
+      <p>以下旧库仅供检索可能相关的资料主题；正式作业优先使用上方按同一场景编号配套重写的五链合同。数量不代表质量。</p>
       <div id="methodology-chain-compact-target" class="method-chain-target"></div>
     </div>
     <div id="methodology-chain-clues" class="method-chain-block">
-      <h3>🔗 调查线索链</h3>
-      <p>回答“从哪个信号出发、下一步查什么、需要哪些资料”。</p>
+      <h3>🔗 候选调查线索索引</h3>
+      <p>用于检索可能的调查方向；未进入场景合同的内容不得直接执行。</p>
       <div id="methodology-chain-clues-target" class="method-chain-target"></div>
     </div>
     <div id="methodology-chain-evidence" class="method-chain-block">
-      <h3>📎 证据闭环链</h3>
-      <p>回答“哪些独立来源能够相互印证，反向证据是否已经排除”。</p>
+      <h3>📎 候选证据主题索引</h3>
+      <p>用于提示可能需要的材料；模板列举不代表已经取得、合法或相互独立。</p>
       <div id="methodology-chain-evidence-target" class="method-chain-target"></div>
     </div>
     <div id="methodology-chain-analysis" class="method-chain-block">
-      <h3>🧩 分析推理链</h3>
-      <p>回答“事实如何经过适用性、因果、法律和反事实检验形成专业判断”。</p>
+      <h3>🧩 候选分析主题索引</h3>
+      <p>用于检索可能的分析问题；正式论证必须回到同一场景的待证事实和正反证据。</p>
       <div id="methodology-chain-analysis-target" class="method-chain-target"></div>
     </div>`;
   renderCompactClueChains(document.getElementById('methodology-chain-compact-target'));

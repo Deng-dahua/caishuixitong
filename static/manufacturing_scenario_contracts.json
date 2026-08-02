@@ -1,0 +1,343 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-08-02",
+  "name": "制造业稽查场景五链配套合同",
+  "industry_code": "C",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "以同一待证事实为主键，配套组织疑点、调查线索、证据、分析和业务域协同。当前版本已完成政策边界、字段结构与正反例桌面测试，可生成核验计划和资料缺口，但未经过脱敏真实案件样本验证，不能自动形成违法定性、税额、处罚或立案结论。",
+  "release_boundary": [
+    "场景命中只表示存在需要核验的事实问题，不表示存在税收违法行为",
+    "资料缺失、单一比率偏离、行业均值偏离或多模块同时提示均不得单独作为结论",
+    "支持材料和反向材料必须同屏保留，同一原始来源的派生计算不得冒充独立证据",
+    "税种、期间、主体、交易性质和政策效力未确认时，必须停留在待补资料或待人工复核",
+    "M3放行需要脱敏真实样本、明确反例、字段映射回归、误报漏报记录和具名复核"
+  ],
+  "official_sources": [
+    {
+      "id": "SRC-VAT-LAW",
+      "name": "中华人民共和国增值税法",
+      "issuer": "全国人民代表大会常务委员会",
+      "effective_period": "2026-01-01起施行",
+      "url": "https://www.npc.gov.cn/npc/c2/c30834/202412/t20241225_442015.html"
+    },
+    {
+      "id": "SRC-VAT-RULES",
+      "name": "中华人民共和国增值税法实施条例",
+      "issuer": "国务院",
+      "effective_period": "2026-01-01起施行",
+      "url": "https://tianjin.chinatax.gov.cn/11200000000/0300/030004/03000418/20251231101843846.shtml"
+    },
+    {
+      "id": "SRC-CIT-RULES",
+      "name": "中华人民共和国企业所得税法实施条例",
+      "issuer": "国务院",
+      "effective_period": "按现行有效文本及业务所属期间核验",
+      "url": "https://www.chinatax.gov.cn/n810341/n810765/n812176/n812748/c1193046/content.html"
+    },
+    {
+      "id": "SRC-RD",
+      "name": "研发费用税前加计扣除政策",
+      "issuer": "财政部、国家税务总局等",
+      "effective_period": "按研发活动、费用归集和申报所属期间核验",
+      "url": "https://www.chinatax.gov.cn/chinatax/c102419/c5204648/content.html"
+    },
+    {
+      "id": "SRC-EQUIPMENT",
+      "name": "设备、器具扣除有关企业所得税政策",
+      "issuer": "财政部、国家税务总局",
+      "effective_period": "2024-01-01至2027-12-31",
+      "url": "https://zhejiang.chinatax.gov.cn/art/2025/2/24/art_26315_632242.html"
+    },
+    {
+      "id": "SRC-TP",
+      "name": "特别纳税调查调整及相互协商程序管理办法",
+      "issuer": "国家税务总局",
+      "effective_period": "2017-05-01起施行，使用时复核现行状态",
+      "url": "https://www.chinatax.gov.cn/chinatax/n810341/n810765/n2511651/201703/c2712540/content.html"
+    },
+    {
+      "id": "SRC-EXPORT-2026",
+      "name": "出口业务增值税和消费税退（免）税管理办法及官方解读",
+      "issuer": "国家税务总局",
+      "effective_period": "2026-01-01起按新办法办理",
+      "url": "https://www.chinatax.gov.cn/chinatax/n810219/n810724/c5247479/content.html"
+    }
+  ],
+  "common_contract": {
+    "identity_keys": ["company_id", "taxpayer_id", "related_party_id"],
+    "time_keys": ["business_date", "accounting_period", "tax_period", "policy_period"],
+    "transaction_keys": ["contract_id", "order_id", "document_id", "invoice_no", "payment_id"],
+    "goods_keys": ["product_id", "material_id", "batch_id", "uom", "quantity"],
+    "source_lineage": ["source_file", "source_sheet", "source_row", "extracted_at", "file_sha256"],
+    "allowed_states": ["不适用", "资料不足_未启动", "待补资料_可初筛", "资料就绪_待人工核验", "存在矛盾_待调查", "解释成立_关闭", "事实部分支持_待补证", "事实充分支持_待审理"],
+    "forbidden_outputs": ["自动认定偷税", "自动核定税额", "自动处罚建议", "自动立案", "以资料缺失代替违法事实", "以模型评分代替证据评价"]
+  },
+  "scenarios": [
+    {
+      "id": "MFG-01",
+      "name": "订单—投料—完工—发货—收入数量闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-VAT-RULES", "SRC-CIT-RULES"],
+      "applicability": {
+        "business": "存在自制产品、受托加工或按生产工单组织生产的制造企业",
+        "period": "按月形成滚动，期末执行截止性复核",
+        "not_applicable": ["纯贸易且无生产加工", "无法识别产品、批次或工艺版本", "资料只覆盖单一时点且无期初期末"]
+      },
+      "doubt": {
+        "target_fact": "特定产品在特定期间的材料投入、完工、发货、开票、收款和期末库存是否能够按单位、批次及货权复算。",
+        "observed_signal": "经统一计量单位、工艺版本、委外、调拨、返工、报废和在途后，仍存在持续且重大的数量或期间差异。",
+        "must_exclude": ["BOM版本切换", "替代料和单位换算", "合理工艺损耗", "返工复投", "客户供料", "委外在制", "寄售或在途", "系统过账延迟"],
+        "output": "形成按产品—批次—月份列示的待证差异，不使用‘隐匿收入’或‘虚列成本’作为初筛标题。"
+      },
+      "clue_chain": {
+        "start": "选取差异金额或数量最大的产品—期间组合，并锁定产品、单位、工艺版本和仓库范围。",
+        "steps": [
+          {"step": 1, "action": "重建期初＋采购入库＋生产入库＋调拨入－领料－销售出库－调拨出－报废＝期末", "join_keys": ["product_id", "warehouse_id", "uom", "accounting_period"], "deliverable": "数量滚动表", "branch_if_missing": "资料不足_未启动"},
+          {"step": 2, "action": "由生产工单连接BOM版本、领退料、完工、返工、报废及质检", "join_keys": ["work_order_id", "bom_version", "batch_id"], "deliverable": "工单投入产出表", "branch_if_missing": "待补资料_可初筛"},
+          {"step": 3, "action": "由销售出库连接订单、签收、发票、收款和收入凭证", "join_keys": ["order_id", "delivery_id", "invoice_no", "payment_id"], "deliverable": "销售履约时间线", "branch_if_missing": "存在矛盾_待调查"},
+          {"step": 4, "action": "对剩余差异抽样回到原始单据、实物盘点和经办人说明", "join_keys": ["document_id", "batch_id", "source_row"], "deliverable": "差异逐项解释表", "branch_if_missing": "事实部分支持_待补证"}
+        ],
+        "terminal": "只把排除正常解释后仍能定位到具体批次、订单和期间的差异移交证据链。"
+      },
+      "evidence_chain": {
+        "fact_elements": ["主体和货权", "产品及计量单位", "生产及销售期间", "投入产出数量", "交付事实", "开票收款与会计税务处理"],
+        "supporting_sources": ["原始生产工单和领退料", "仓库收发存及盘点", "订单、出库、物流签收", "发票及资金流水", "总账明细账和申报表"],
+        "opposing_sources": ["工艺变更和替代料审批", "损耗报废及返工记录", "委外或客户供料合同", "调拨在途和寄售证明", "期后冲销更正"],
+        "quality_checks": ["同源ERP导出只计一个来源", "抽样回查原始单据和系统日志", "数量差异与金额影响分别计算", "确认盘点时点和货权边界"],
+        "insufficient_when": ["产品或单位不能统一", "关键期间缺期初期末", "只有汇总表无原始业务单据", "交付或货权无法确定"]
+      },
+      "analysis_chain": {
+        "proposition": "剩余数量差异是否对应未入账销售、成本错配、存货账实差异或仅为业务时点差。",
+        "alternatives": ["正常跨期", "工艺损耗", "系统接口失败", "委外在制", "寄售未转移控制", "真实未入账交易"],
+        "reasoning": ["确认适用业务模式", "验证数据完整性和来源独立性", "复算数量差异", "逐项检验替代解释", "连接交付、价款和税会期间", "区分事实、税额测算和法律评价"],
+        "conclusion_ladder": ["差异已解释并关闭", "资料不足无法判断", "存在具体数量矛盾待调查", "交付及价款事实部分支持待补证", "事实充分支持待审理"],
+        "tax_boundary": "数量不平衡本身不是应税交易；必须另行证明销售、视同应税交易、成本扣除或存货损失等具体税法要件。"
+      },
+      "domain_collaboration": {
+        "lead": "生产与存货域",
+        "partners": [
+          {"domain": "合同订单域", "responsibility": "确认标的、数量、交付和货权条款", "handoff": "订单及合同版本"},
+          {"domain": "物流仓储域", "responsibility": "确认实物流转、在途、签收和盘点", "handoff": "批次轨迹及盘点差异"},
+          {"domain": "发票申报域", "responsibility": "核对开票及申报所属期间", "handoff": "发票状态和申报勾稽"},
+          {"domain": "资金会计域", "responsibility": "核对价款、收入成本和跨期处理", "handoff": "收付款及凭证链"}
+        ],
+        "conflict_rule": "实物、合同、发票和资金冲突时不按多数表决；回到原始单据、控制权或货权事实和经办流程逐项解释。"
+      },
+      "report_contract": {
+        "title": "特定产品投入产出及销售履约存在待核差异",
+        "fact_fields": ["产品批次", "期间", "投入", "完工", "发货", "期末", "剩余差异"],
+        "must_state": ["已排除事项", "未取得资料", "差异复算表", "支持与反向证据", "人工复核状态"],
+        "forbidden": ["根据投入倒推销售后直接认定收入", "使用固定损耗率覆盖不同工艺", "把同一ERP的多个报表算作多源证据"]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "工单、仓库、出库、签收、收款均指向同一批已交付产品，但账簿和申报未反映且无合理跨期解释。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "差异全部由BOM升级、返工复投、合理损耗和期后正常入账解释，原始审批及系统日志完整。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "只有汇总进销存和发票，无工单、批次、签收及货权资料。", "expected": "资料不足_未启动"}
+      ]
+    },
+    {
+      "id": "MFG-02",
+      "name": "委托加工材料、成果与加工费闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-VAT-RULES", "SRC-CIT-RULES"],
+      "applicability": {"business": "企业存在发外加工、受托加工、来料加工或名为加工实为购销的安排", "period": "按合同—批次—结算期间核验", "not_applicable": ["无加工业务", "仅购买标准成品", "无法确认材料所有权"]},
+      "doubt": {"target_fact": "材料和加工成果的所有权、实际收发数量、加工成果、损耗、加工费及税会处理是否一致。", "observed_signal": "发料、承揽方收料、回收成品、余料、损耗、结算和付款无法按批次闭合。", "must_exclude": ["合理损耗", "余料退回或折价", "跨期在制", "直接发往客户", "代购辅料", "加工转购销"], "output": "形成具体合同和批次的货权、数量及结算待证事项。"},
+      "clue_chain": {"start": "从加工费发票、委外发料或委外在制余额中选择金额最大的合同批次。", "steps": [
+        {"step": 1, "action": "审阅合同并标注材料、成果、损耗和余料所有权", "join_keys": ["processing_contract_id", "material_owner"], "deliverable": "权利义务表", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "逐批匹配发料、承揽方签收、加工、回收、余料和报废", "join_keys": ["processing_contract_id", "batch_id", "material_id"], "deliverable": "委外数量闭环表", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "核对加工成果质检入库或直发客户及物流签收", "join_keys": ["batch_id", "delivery_id"], "deliverable": "成果交付链", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "复核加工费计算、发票、付款和会计税务处理", "join_keys": ["settlement_id", "invoice_no", "payment_id"], "deliverable": "结算勾稽表", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "货权、实物和价款能够定位后才进入证据评价。"},
+      "evidence_chain": {"fact_elements": ["合同关系", "材料与成果货权", "实际加工", "数量损耗", "成果交付", "加工费和税会处理"], "supporting_sources": ["合同及技术附件", "双方收发存", "物流及签收", "质检和入库", "结算发票付款"], "opposing_sources": ["损耗标准", "余料处置协议", "直发客户指令", "在制品盘点", "代购辅料清单"], "quality_checks": ["双方资料是否独立形成", "签收人和地点是否真实", "加工能力与实际工序是否匹配", "结算数量与质检数量是否一致"], "insufficient_when": ["只有发票付款无实际加工资料", "合同模板未反映实际履约", "批次不能互相映射"]},
+      "analysis_chain": {"proposition": "该安排究竟是委托加工、受托加工、购销、代购还是其他混合交易，以及数量和价款差异对税会处理的影响。", "alternatives": ["正常在制", "合理损耗", "直发客户", "混合购销", "无真实加工"], "reasoning": ["按实际权利义务识别交易", "核验承揽方人员设备和工序", "复算材料成果数量", "核验交付及价款", "检验正常解释", "分别评价增值税与所得税事项"], "conclusion_ladder": ["安排及差异已解释", "资料不足", "交易性质待核", "实际加工部分支持待补证", "事实充分支持待审理"], "tax_boundary": "不能仅因异地发料、加工费率偏低或承揽方规模小就否定真实加工。"},
+      "domain_collaboration": {"lead": "采购生产域", "partners": [
+        {"domain": "合同法务域", "responsibility": "识别所有权、风险和交付条款", "handoff": "实际权利义务矩阵"},
+        {"domain": "物流存货域", "responsibility": "重建双方批次流转", "handoff": "材料成果轨迹"},
+        {"domain": "经营实质域", "responsibility": "核验承揽方加工能力和现场事实", "handoff": "能力核验底稿"},
+        {"domain": "发票资金域", "responsibility": "复核加工费、开票和结算", "handoff": "价款税会勾稽"}
+      ], "conflict_rule": "合同名称不优先于实际履约；单方台账不优先于双方原始收发和物流资料。"},
+      "report_contract": {"title": "特定委外批次货权、数量及加工结算存在待核事项", "fact_fields": ["合同批次", "发料", "收料", "回收", "损耗余料", "加工费", "差异"], "must_state": ["交易性质判断过程", "承揽能力核验", "双方资料差异", "反向解释"], "forbidden": ["仅凭加工费发票直接认定虚假", "以合同名称替代实际履约分析"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "承揽方无相应设备人员，双方无收发物流，所谓成果直接由第三方购入且资金回流。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "合同、双方批次台账、物流、质检、加工能力和结算全部闭合，差异为约定损耗。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "存在合同、发票和付款，但对方收发存及成果质检尚未取得。", "expected": "事实部分支持_待补证"}
+      ]
+    },
+    {
+      "id": "MFG-03",
+      "name": "废料、副产品和边角料形成与处置闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税", "环境保护税（条件适用）"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-VAT-RULES", "SRC-CIT-RULES"],
+      "applicability": {"business": "生产工艺会形成可回用、可销售、需委外处置的废料、副产品、边角料或应税污染物", "period": "按产品工艺和处置批次核验", "not_applicable": ["工艺不产生相应物料", "仅存在无价值损耗且有完整处置记录"]},
+      "doubt": {"target_fact": "工艺实际形成的废料、副产品及边角料是否完整计量、保管、回用、销售或依法处置。", "observed_signal": "理论形成范围、称重、入库、出门、处置、开票和收款长期不一致。", "must_exclude": ["循环回用", "含水率及称重误差", "合理损耗", "无价值危废", "供应商回收", "客户供料余料"], "output": "形成物料种类—来源批次—数量—去向—价款的待证清单。"},
+      "clue_chain": {"start": "从工艺损耗、废料收入、其他业务收入、处置费或门禁称重记录选取可复核物料。", "steps": [
+        {"step": 1, "action": "确认工艺和物料属性，建立合理形成区间而非固定行业率", "join_keys": ["product_id", "bom_version", "waste_type"], "deliverable": "工艺形成口径", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "连接来源批次、称重、废料仓、回用和出门记录", "join_keys": ["source_batch", "weight_ticket_id", "warehouse_id"], "deliverable": "数量去向表", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "核对处置合同、购买方或处置方资质、运输签收", "join_keys": ["disposal_contract_id", "buyer_handler_id", "delivery_id"], "deliverable": "处置履约链", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "核对开票收款、处置费用和会计申报", "join_keys": ["invoice_no", "payment_id", "accounting_period"], "deliverable": "价款税会表", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "只有具体物料、数量、去向和价款可定位时才评价税务影响。"},
+      "evidence_chain": {"fact_elements": ["物料属性", "形成数量", "保管去向", "购买或处置主体", "价款", "环境税适用条件"], "supporting_sources": ["工艺BOM及损耗记录", "称重门禁和废料台账", "处置合同物流签收", "发票资金", "危废联单或回用记录"], "opposing_sources": ["循环回用记录", "含水率检测", "无价值鉴定", "供应商回收条款", "盘点差异说明"], "quality_checks": ["称重设备期间和校验", "理论区间是否来自本企业工艺", "购买方和收款方是否一致", "危废与可售废料不得混同"], "insufficient_when": ["没有企业工艺基准", "废料分类不明", "称重期间不完整", "处置资料未依法取得"]},
+      "analysis_chain": {"proposition": "差异是否反映未记录销售、错误成本归集、正常回用损耗或依法处置。", "alternatives": ["回用", "合理损耗", "无价值处置", "供应商回收", "账外销售"], "reasoning": ["识别物料法律和经济属性", "估计企业自身合理形成区间", "复算数量去向", "核验交付价款", "处理反向证据", "分别判断增值税、所得税和条件适用事项"], "conclusion_ladder": ["去向解释成立", "资料不足", "数量去向存在矛盾", "销售或处置事实部分支持", "事实充分支持待审理"], "tax_boundary": "工艺理论产量只用于选样，不能代替实际称重、交付和价款证据；环境保护税须另行核验应税污染物和法定条件。"},
+      "domain_collaboration": {"lead": "生产环保域", "partners": [
+        {"domain": "仓储门禁域", "responsibility": "确认称重、保管和出门", "handoff": "物料轨迹"},
+        {"domain": "合同物流域", "responsibility": "确认购买或处置履约", "handoff": "去向及签收"},
+        {"domain": "发票资金域", "responsibility": "确认价款和收款主体", "handoff": "收入或处置费链"},
+        {"domain": "税费适用域", "responsibility": "分别判断增值税、所得税和环境税条件", "handoff": "税种适用底稿"}
+      ], "conflict_rule": "理论产量与实际称重冲突时先复核工艺、含水率和计量设备，不以理论值直接替代事实。"},
+      "report_contract": {"title": "特定废料或副产品数量去向及价款存在待核差异", "fact_fields": ["物料", "来源批次", "理论区间", "实际称重", "回用", "处置", "价款"], "must_state": ["工艺依据", "计量误差", "实际去向", "税种条件"], "forbidden": ["按固定废料率倒算收入并直接定性", "将危废处置和废料销售混为一类"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "连续称重出门且由固定购买方付款至个人账户，企业无回用和处置记录。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "全部差异由回用、含水率和合法危废处置解释，称重、联单及财务记录完整。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "只有行业废料率和账面其他收入，无企业工艺、称重和去向资料。", "expected": "资料不足_未启动"}
+      ]
+    },
+    {
+      "id": "MFG-04",
+      "name": "跨仓调拨、在途和期末截止闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-VAT-RULES", "SRC-CIT-RULES"],
+      "applicability": {"business": "存在多仓、异地仓、寄售仓、委外仓或跨期运输", "period": "期末前后至少覆盖一个完整收货窗口", "not_applicable": ["单仓且无在途", "盘点范围和时点不能确认"]},
+      "doubt": {"target_fact": "期末前后货物的地点、货权、数量和会计截止是否一致。", "observed_signal": "集中调拨、负库存、长期在途、两端不对称或盘点差异不能由合法业务单据解释。", "must_exclude": ["异地仓", "寄售代储", "节假日运输", "系统接口延迟", "合理盘点时点差", "客户已签收未过账"], "output": "形成逐笔调拨或在途事项的发出、接收、货权和记账时间线。"},
+      "clue_chain": {"start": "筛选期末前后大额、长期未结、负库存或重复往返调拨。", "steps": [
+        {"step": 1, "action": "确认仓库主体、地址、货权和盘点范围", "join_keys": ["warehouse_id", "owner_id"], "deliverable": "仓库货权清单", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "逐单匹配调出、承运、到货、验收和调入", "join_keys": ["transfer_id", "delivery_id", "batch_id"], "deliverable": "两端调拨表", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "比较业务时点、控制权货权、会计凭证和税务期间", "join_keys": ["transfer_id", "accounting_period", "tax_period"], "deliverable": "截止性复核表", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "对长期在途、反复调拨和盘点差异执行原始单据抽查", "join_keys": ["document_id", "source_row"], "deliverable": "异常样本底稿", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "不以期末移动本身推定调节利润，需证明货权、实物或会计截止存在具体错误。"},
+      "evidence_chain": {"fact_elements": ["仓库及主体", "货权", "发出接收", "实物地点", "盘点", "会计税务截止"], "supporting_sources": ["仓库主数据", "调拨单", "物流轨迹", "两端收发存", "盘点表和会计凭证"], "opposing_sources": ["寄售合同", "客户代储", "节假日运输证明", "系统补录日志", "期后正常收货"], "quality_checks": ["调拨两端来源是否独立", "盘点人员和范围是否明确", "物流轨迹是否连续", "货权与物理地点分开评价"], "insufficient_when": ["仓库编码不唯一", "只有发出端无接收端", "盘点时点范围不明"]},
+      "analysis_chain": {"proposition": "期末差异是正常运输和系统时点差，还是存货账实、收入成本截止或交易真实性问题。", "alternatives": ["正常在途", "寄售代储", "系统延迟", "盘点范围差", "虚假调拨", "提前或延后确认"], "reasoning": ["确认仓库和货权", "连接双端和物流", "复算期末数量", "检验期后事项", "核对收入成本及税务期间", "保留不能判断事项"], "conclusion_ladder": ["正常跨期关闭", "资料不足", "两端差异待调查", "截止错误部分支持", "事实充分支持待审理"], "tax_boundary": "货物移动不当然等于销售或应税交易，应结合权利义务和实际交易性质。"},
+      "domain_collaboration": {"lead": "存货截止域", "partners": [
+        {"domain": "物流仓储域", "responsibility": "确认两端实物和运输", "handoff": "轨迹及签收"},
+        {"domain": "合同销售域", "responsibility": "确认货权和交付条款", "handoff": "控制权节点"},
+        {"domain": "会计报表域", "responsibility": "复核收入成本和存货截止", "handoff": "截止调整底稿"},
+        {"domain": "发票申报域", "responsibility": "核对开票和申报期间", "handoff": "税务期间勾稽"}
+      ], "conflict_rule": "物流到达、合同货权和会计确认可能处于不同日期，须分别说明，不用单一日期覆盖全部判断。"},
+      "report_contract": {"title": "特定调拨或在途存货的货权与期末截止存在待核差异", "fact_fields": ["调拨单", "发出", "接收", "货权", "盘点", "记账", "期后事项"], "must_state": ["仓库范围", "运输窗口", "期后验证", "会计税务分别评价"], "forbidden": ["期末集中调拨即认定利润调节", "仅凭负库存定性"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "发出和接收均无实物及物流，期末凭证增加存货并在期后反向冲回。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "节前发出、节后到货，物流和两端收发完整，货权和会计处理符合实际条款。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "仅有调出记录和期末余额，无接收、物流及期后资料。", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MFG-05",
+      "name": "研发项目、活动与费用归集闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["企业所得税"],
+      "source_refs": ["SRC-RD", "SRC-CIT-RULES"],
+      "applicability": {"business": "申报研发费用加计扣除或存在研发项目费用归集", "period": "按研发项目和纳税年度核验", "not_applicable": ["未开展研发活动", "仅有常规产品维护或市场调研且不属于研发活动"]},
+      "doubt": {"target_fact": "项目是否属于符合条件的研发活动，人员、材料、设备、委外和其他费用是否真实发生并按项目合理归集。", "observed_signal": "项目目标、研发活动、工时、材料设备、成果或失败记录与辅助账和申报金额缺少可追溯关系。", "must_exclude": ["失败研发项目", "兼职人员合理工时", "共用设备合理分配", "试制品处置", "集团合理分摊", "委托研发合法归集"], "output": "按项目和费用类别列示资格、归集、分配及申报待核事项。"},
+      "clue_chain": {"start": "从加计扣除申报表和研发辅助账选择金额、增幅或共用费用占比较高的项目。", "steps": [
+        {"step": 1, "action": "确认研发目标、技术不确定性、活动边界、起止期间和项目责任人", "join_keys": ["rd_project_id", "policy_period"], "deliverable": "项目适用性底稿", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "逐人逐月核对任职、工时、工资社保和项目任务", "join_keys": ["rd_project_id", "employee_id", "attendance_month"], "deliverable": "人员人工表", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "核对材料领用、设备使用、折旧摊销、试制和成果", "join_keys": ["rd_project_id", "material_id", "asset_id", "batch_id"], "deliverable": "直接投入和资产表", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "复核委外、共用费用分配、辅助账、总账和申报勾稽", "join_keys": ["rd_project_id", "expense_type", "accounting_period"], "deliverable": "申报调整表", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "项目活动和费用发生均能定位后，才评价可加计扣除范围。"},
+      "evidence_chain": {"fact_elements": ["研发活动资格", "项目期间", "费用真实发生", "项目归属", "共用分配", "申报金额"], "supporting_sources": ["立项及技术资料", "工时任务记录", "领料和设备日志", "委外合同成果", "辅助账总账申报表"], "opposing_sources": ["研发失败记录", "跨部门兼职说明", "共用资源分配底稿", "试制品冲减记录", "项目变更终止审批"], "quality_checks": ["不能以专利或成果作为唯一资格标准", "人员名单需连接实际活动", "材料和设备需连接项目使用", "辅助账不得替代原始支出"], "insufficient_when": ["项目无法唯一识别", "研发与生产边界不清", "费用分配依据不存在", "只有辅助账无原始资料"]},
+      "analysis_chain": {"proposition": "项目活动和各类费用是否满足适用政策及归集要求，哪些金额应保留、调整或待补证。", "alternatives": ["真实失败研发", "常规生产改进", "合理兼职", "共用资源合理分配", "不符合范围费用"], "reasoning": ["先判研发活动边界", "再验证费用真实发生", "再连接项目归属", "复核分配方法", "勾稽申报金额", "按费用类别而非整项目一刀切"], "conclusion_ladder": ["项目及归集支持", "资料不足", "部分费用待核", "部分金额支持调整待审理", "项目或费用事实充分支持待审理"], "tax_boundary": "没有成功成果不等于不是研发；存在立项文件也不当然证明全部费用可加计扣除。"},
+      "domain_collaboration": {"lead": "研发税收域", "partners": [
+        {"domain": "技术生产域", "responsibility": "确认技术目标、活动和生产边界", "handoff": "研发活动判断"},
+        {"domain": "人力薪酬域", "responsibility": "核对人员工时和薪酬", "handoff": "人员人工明细"},
+        {"domain": "存货资产域", "responsibility": "核对材料设备和试制", "handoff": "直接投入和资产使用"},
+        {"domain": "会计申报域", "responsibility": "复核归集分配及申报", "handoff": "税会调整表"}
+      ], "conflict_rule": "技术部门证明活动、财务部门证明金额，两者任何一方不能单独覆盖另一方职责。"},
+      "report_contract": {"title": "特定研发项目活动边界及费用归集存在待核事项", "fact_fields": ["项目", "研发活动", "人员", "材料", "设备", "委外", "申报金额"], "must_state": ["项目资格与费用范围分开", "失败项目处理", "共用分配方法", "逐类金额"], "forbidden": ["无成果即否定研发", "有立项即认可全部费用", "按研发收入比例机械否定"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "大量生产人员、量产材料和销售费用无工时及项目使用记录却全部计入研发辅助账。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "失败项目仍有完整技术活动、工时、领料、测试及合理分配，辅助账与申报闭合。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "有立项和辅助账，但缺工时、材料及设备使用记录。", "expected": "事实部分支持_待补证"}
+      ]
+    },
+    {
+      "id": "MFG-06",
+      "name": "设备取得、投用、试生产、折旧和补助闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["企业所得税", "增值税"],
+      "source_refs": ["SRC-CIT-RULES", "SRC-EQUIPMENT", "SRC-VAT-LAW", "SRC-VAT-RULES"],
+      "applicability": {"business": "存在重大设备购置、安装调试、试生产、加速或一次性扣除、政府补助", "period": "从采购至正式投用并覆盖期后折旧", "not_applicable": ["无相关资产事项", "资产无法定位到实物和卡片"]},
+      "doubt": {"target_fact": "设备取得成本、权属、达到预定可使用状态、投入使用、折旧扣除、进项和补助确认是否按真实期间一致处理。", "observed_signal": "合同验收、安装调试、试生产、资产卡片、折旧起点、一次性扣除或补助条件互相矛盾。", "must_exclude": ["分阶段验收", "技术整改", "停工待料", "融资租赁", "附条件补助", "2024—2027设备器具一次性扣除政策"], "output": "形成逐项资产时间线及税会差异表。"},
+      "clue_chain": {"start": "从新增资产、在建工程转固、一次性扣除或补助金额中选取重大项目。", "steps": [
+        {"step": 1, "action": "核对合同、发票、付款、到货和权属，确定计税基础组成", "join_keys": ["asset_id", "contract_id", "invoice_no"], "deliverable": "取得成本表", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "重建安装、调试、试生产、验收、可使用和实际投用时间线", "join_keys": ["asset_id", "commissioning_event_id"], "deliverable": "投用时间线", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "复核资产卡片、折旧方法、一次性或加速扣除及进项处理", "join_keys": ["asset_id", "accounting_period", "tax_period"], "deliverable": "税会折旧表", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "核验补助条件、收款、验收和会计税务确认", "join_keys": ["grant_id", "asset_id", "payment_id"], "deliverable": "补助条件表", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "时间点和政策期间能够定位后才计算税会调整。"},
+      "evidence_chain": {"fact_elements": ["资产权属", "计税基础", "投入使用", "折旧或扣除政策", "进项用途", "补助条件"], "supporting_sources": ["合同发票付款", "到货安装调试", "验收和生产日志", "资产卡片折旧表", "补助文件收款验收"], "opposing_sources": ["分期验收", "整改停工", "租赁安排", "政策期内一次性扣除", "附条件未满足"], "quality_checks": ["会计转固日不当然等于投入使用日", "设备器具政策需核验价值和期间", "资产实物与卡片一致", "补助文件条件逐项核对"], "insufficient_when": ["资产不能现场或编号定位", "投用证据冲突", "政策期间不明", "补助附件缺失"]},
+      "analysis_chain": {"proposition": "设备相关税会差异是正常政策选择和时点差，还是计税基础、扣除期间或补助确认错误。", "alternatives": ["分阶段投用", "合法一次性扣除", "合理停工", "租赁而非购置", "附条件补助"], "reasoning": ["确认资产和权属", "重建投用事实", "确定政策所属期间", "复算折旧或扣除", "核验进项用途和补助", "分项计算影响"], "conclusion_ladder": ["处理支持", "资料不足", "时点或政策待核", "部分调整支持待审理", "事实充分支持待审理"], "tax_boundary": "会计处理与税务扣除可以不同；差异本身不是错误，必须建立税会调整。"},
+      "domain_collaboration": {"lead": "资产税务域", "partners": [
+        {"domain": "采购合同域", "responsibility": "确认取得成本和权属", "handoff": "资产取得链"},
+        {"domain": "工程生产域", "responsibility": "确认安装、调试和投用", "handoff": "实际使用时间线"},
+        {"domain": "会计所得税域", "responsibility": "复核折旧和扣除", "handoff": "税会差异"},
+        {"domain": "增值税补助域", "responsibility": "复核进项用途和补助条件", "handoff": "专项处理底稿"}
+      ], "conflict_rule": "合同验收、会计转固和实际投用日期冲突时，分别保留并查明各自业务含义。"},
+      "report_contract": {"title": "特定设备投用时点及税会扣除存在待核差异", "fact_fields": ["资产", "取得成本", "到货", "验收", "投用", "折旧扣除", "补助"], "must_state": ["政策期间", "一次性扣除条件", "税会差异", "进项用途"], "forbidden": ["会计折旧与税务扣除不同即认定错误", "以发票日期替代投用日期"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "设备尚未到货即全额转固并扣除，合同物流和现场均无法证明资产存在。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "设备价值、购置期间和投用事实满足一次性扣除政策，会计与税务差异已完整调整。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "存在资产卡片和折旧，但缺验收、生产日志及现场编号。", "expected": "待补资料_可初筛"}
+      ]
+    },
+    {
+      "id": "MFG-07",
+      "name": "关联方委托生产、功能风险与利润匹配",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["企业所得税", "增值税", "跨境与非居民"],
+      "source_refs": ["SRC-TP", "SRC-CIT-RULES", "SRC-VAT-LAW"],
+      "applicability": {"business": "存在关联方委托生产、来料加工、进料加工、合约制造或关联销售", "period": "按关联交易年度和可比期间核验", "not_applicable": ["关联关系未经核实", "只有利润偏低但无具体关联交易"]},
+      "doubt": {"target_fact": "关联交易中各方实际执行的功能、使用的资产、承担的风险、无形资产贡献和取得利润是否匹配。", "observed_signal": "合同与实际功能风险不一致，或有限功能企业长期承担与其控制能力不匹配的重大亏损和风险。", "must_exclude": ["真实市场策略", "开工不足", "产品生命周期", "产能利用差异", "区域和产品差异", "境内同税负且未减少总体税收"], "output": "形成交易类型、功能资产风险、价值贡献、可比性和利润分布待核事项。"},
+      "clue_chain": {"start": "从关联申报、同期资料、关联往来和分部利润中识别重大交易类型。", "steps": [
+        {"step": 1, "action": "核实关联关系、交易范围、合同和实际执行主体", "join_keys": ["related_party_id", "transaction_id"], "deliverable": "关联交易全景表", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "访谈并核验人员决策、设备资产、库存信用市场等风险控制", "join_keys": ["entity_id", "function", "risk"], "deliverable": "功能资产风险矩阵", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "连接产品、订单、成本、定价、利润和无形资产贡献", "join_keys": ["transaction_id", "product_id", "pricing_method"], "deliverable": "价值链和利润表", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "选择方法并执行可比性分析和差异调整，不机械套用行业均值", "join_keys": ["tested_party_id", "comparable_set_id"], "deliverable": "可比性分析底稿", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "没有完整功能风险和可比性分析，不得形成转让定价调整意见。"},
+      "evidence_chain": {"fact_elements": ["关联关系", "实际交易", "功能资产风险", "风险控制", "定价方法", "价值贡献和利润"], "supporting_sources": ["关联申报和同期资料", "合同及实际执行", "组织岗位和决策记录", "设备产能和订单成本", "分部利润及可比资料"], "opposing_sources": ["市场进入策略", "产能利用差异", "产品生命周期", "不可比会计口径", "境内同税负情形"], "quality_checks": ["合同风险需验证实际控制", "可比企业筛选可复现", "关联与非关联交易口径一致", "逐年和多年度分析区分"], "insufficient_when": ["关联关系未确认", "功能风险只来自模板问卷", "分部数据不能可靠划分", "可比差异无法调整"]},
+      "analysis_chain": {"proposition": "关联交易是否符合独立交易原则，利润是否与经济活动和价值创造匹配。", "alternatives": ["商业周期", "市场策略", "产能不足", "产品差异", "会计口径", "不独立定价"], "reasoning": ["识别受控交易", "完成事实型功能风险分析", "选择被测试对象", "选择并说明定价方法", "执行可比性调整", "评价总体税收和程序边界"], "conclusion_ladder": ["利润与功能风险支持", "资料不足", "可比性待核", "独立交易偏离部分支持待协商", "事实充分支持_待审理"], "tax_boundary": "利润率低、长期亏损或关联交易金额大只是风险特征，不能单独证明不符合独立交易原则。"},
+      "domain_collaboration": {"lead": "国际税收与关联交易域", "partners": [
+        {"domain": "主体关系域", "responsibility": "核实控制和关联关系", "handoff": "关联图谱"},
+        {"domain": "生产经营域", "responsibility": "核实实际功能资产风险", "handoff": "事实型功能分析"},
+        {"domain": "财务成本域", "responsibility": "形成可靠分部利润和成本口径", "handoff": "分部数据"},
+        {"domain": "法律程序域", "responsibility": "核验特别纳税调查和协商程序", "handoff": "程序清单"}
+      ], "conflict_rule": "书面合同与实际风险控制冲突时，以可验证的人员决策、资产使用和损失承担事实为核心，但保留合同差异。"},
+      "report_contract": {"title": "特定关联制造交易的功能风险与利润匹配存在待核事项", "fact_fields": ["关联方", "交易类型", "功能", "资产", "风险", "定价方法", "利润"], "must_state": ["可比筛选", "差异调整", "替代解释", "程序状态"], "forbidden": ["低于行业均值即调整", "以合同模板代替实际功能风险", "忽略境内同税负边界"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "境内企业实际承担研发生产质量和市场风险并控制关键决策，却持续向无实质境外关联方支付费用造成亏损。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "利润下降可由产能闲置和产品周期解释，关联与非关联交易调整后处于可靠可比区间。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "只有关联申报和总体利润率，无分部数据、功能访谈和可比分析。", "expected": "资料不足_未启动"}
+      ]
+    },
+    {
+      "id": "MFG-08",
+      "name": "出口订单、生产、报关、物流、收汇和退税闭环",
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["出口退（免）税", "增值税", "企业所得税"],
+      "source_refs": ["SRC-EXPORT-2026", "SRC-VAT-LAW", "SRC-VAT-RULES", "SRC-CIT-RULES"],
+      "applicability": {"business": "生产企业存在自营、委托或代理出口并办理退（免）税", "period": "2026年业务按新管理办法，历史业务按所属期间政策分别核验", "not_applicable": ["无出口业务", "境外资料未依法取得", "代理关系无法确认"]},
+      "doubt": {"target_fact": "出口货物的生产来源、货权、报关、离境、物流、收汇、单证和退（免）税申报是否逐单一致。", "observed_signal": "订单、生产批次、商品编码数量、报关、提运、收汇和申报存在不能由合法代理、分批出运或费用扣减解释的差异。", "must_exclude": ["分批出运", "合法代理出口", "汇率和银行费用", "境外佣金扣减", "退款拒付", "改单退运", "备案变更"], "output": "按出口业务号形成单证、货物、资金和申报待证事项。"},
+      "clue_chain": {"start": "从退税申报、报关单或出口收入中选择单证缺失、数量金额差异或跨期较大的业务。", "steps": [
+        {"step": 1, "action": "确认出口主体、经营模式、备案和代理关系", "join_keys": ["export_entity_id", "export_order_id", "agency_contract_id"], "deliverable": "出口模式表", "branch_if_missing": "资料不足_未启动"},
+        {"step": 2, "action": "连接订单、生产批次、商品编码、数量和报关", "join_keys": ["export_order_id", "batch_id", "declaration_no", "product_code"], "deliverable": "货物单证表", "branch_if_missing": "待补资料_可初筛"},
+        {"step": 3, "action": "连接提运、离境、签收、收汇及费用扣减", "join_keys": ["declaration_no", "bill_of_lading_no", "receipt_id"], "deliverable": "物流资金时间线", "branch_if_missing": "存在矛盾_待调查"},
+        {"step": 4, "action": "核对退免税申报、进项、备案变更、改单退运和期后更正", "join_keys": ["declaration_no", "refund_period", "invoice_no"], "deliverable": "退免税复核表", "branch_if_missing": "事实部分支持_待补证"}
+      ], "terminal": "业务模式、货物离境和申报单证可定位后才评价退免税资格及金额。"},
+      "evidence_chain": {"fact_elements": ["出口主体和模式", "货物来源", "报关离境", "物流交付", "收汇价款", "退免税申报"], "supporting_sources": ["出口合同订单", "生产批次和出库", "报关和提运", "收汇及结算", "退免税申报和进项资料"], "opposing_sources": ["代理出口协议", "分批出运", "境外费用扣减", "退款拒付", "改单退运和备案变更"], "quality_checks": ["商品编码和计量单位统一", "报关与生产数量不机械一一对应但需解释", "收汇主体和币种明确", "2026年前后政策分开"], "insufficient_when": ["报关或物流资料未依法取得", "商品编码不能映射", "代理关系不清", "政策所属期间未分开"]},
+      "analysis_chain": {"proposition": "单证和金额差异是否影响出口业务真实性、退免税申报或收入确认。", "alternatives": ["分批出运", "合法代理", "合理费用扣减", "汇率差", "改单退运", "不真实出口"], "reasoning": ["确认业务模式和政策期间", "验证生产及货物来源", "验证报关离境和物流", "复算收汇及差额", "勾稽申报进项和更正", "分别评价真实性、资格和金额"], "conclusion_ladder": ["单证差异已解释", "资料不足", "单证矛盾待调查", "资格或金额部分支持待补证", "事实充分支持待审理"], "tax_boundary": "未收齐个别资料、收汇金额差异或申报更正不当然等于骗取出口退税；应按2026年新办法及所属期间规则逐项核验。"},
+      "domain_collaboration": {"lead": "出口退税域", "partners": [
+        {"domain": "生产存货域", "responsibility": "确认货物来源和出库", "handoff": "生产批次链"},
+        {"domain": "海关物流域", "responsibility": "确认报关离境和运输", "handoff": "单证物流链"},
+        {"domain": "外汇资金域", "responsibility": "确认收汇、币种和差额", "handoff": "收汇复算"},
+        {"domain": "发票申报域", "responsibility": "复核进项、退免税申报及更正", "handoff": "申报资格金额表"}
+      ], "conflict_rule": "生产、报关、物流和收汇可能因分批及代理形成多对多关系，须按业务号归集，不能强制一对一后制造假差异。"},
+      "report_contract": {"title": "特定出口业务的货物、单证、收汇和退免税申报存在待核差异", "fact_fields": ["出口业务号", "生产批次", "报关", "物流", "收汇", "申报", "差异"], "must_state": ["业务模式", "政策期间", "合法代理", "分批及费用扣减", "更正退运"], "forbidden": ["单证不一一对应即认定虚假出口", "沿用已废止旧办法评价2026年业务"]},
+      "validation_cases": [
+        {"case": "positive", "facts": "无对应生产采购和物流，报关信息与企业产品能力明显冲突，退税款经关联账户回流。", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "分批出运和境外费用扣减均有合同、物流、银行及申报更正资料支持。", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "有报关和退税申报，但生产批次、提运及收汇资料未完整取得。", "expected": "事实部分支持_待补证"}
+      ]
+    }
+  ]
+}

@@ -128,6 +128,7 @@ def build_methodology_coverage(static_root):
     root = Path(static_root)
     industry_profiles_payload = _read(root / "industry_audit_profiles.json")
     industry_packs_payload = _read(root / "industry_methodology_packs.json")
+    manufacturing_contracts = _read(root / "manufacturing_scenario_contracts.json")
     rules = _read(root / "tax_risk_rules_local_export.json")
     clues = _read(root / "cross_domain_clues.json")
     evidence_payload = _read(root / "cross_domain_evidence.json")
@@ -148,8 +149,13 @@ def build_methodology_coverage(static_root):
         staged_scenes[str(pack.get("industry_code", ""))] += len(pack.get("scenarios", []))
     for row in industry_matrix:
         row["staged_m2_scenarios"] = staged_scenes.get(row["code"], 0)
+        row["rewritten_m25_scenarios"] = (
+            len(manufacturing_contracts.get("scenarios", [])) if row["code"] == "C" else 0
+        )
         if row["staged_m2_scenarios"]:
             row["state"] = "M2专项场景和字段契约已定义，待真实样本与反例验证"
+        if row["rewritten_m25_scenarios"]:
+            row["state"] = "M2.5五链场景已完成边界测试，待脱敏真实样本验证后升级M3"
     tax_matrix = []
     for code, name, keywords in TAXES:
         count = sum(any(keyword in text_getter(rule) for keyword in keywords) for rule in rules)
@@ -191,7 +197,7 @@ def build_methodology_coverage(static_root):
     ]
 
     return {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "positioning": "覆盖矩阵衡量的是已验证能力和已知空白，不把规则数量、关键词命中或模型评分当成真实稽查覆盖。",
         "taxonomy_basis": {
             "name": "国民经济行业分类（GB/T 4754—2017，按第1号修改单修订）",
@@ -203,6 +209,7 @@ def build_methodology_coverage(static_root):
             "verified_executable_rules": len(VERIFIED_RULE_CATALOG),
             "priority_industry_packs": len(pack_summaries),
             "staged_m2_industry_scenarios": sum(item["scene_count"] for item in pack_summaries),
+            "rewritten_m25_scenarios": len(manufacturing_contracts.get("scenarios", [])),
             "clue_chains": len(clues),
             "evidence_chains": len(evidence),
             "analysis_chains": len(analysis),
@@ -219,6 +226,7 @@ def build_methodology_coverage(static_root):
             {"id": "M0", "name": "退役或重复", "release": "不进入运行"},
             {"id": "M1", "name": "结构化候选知识", "release": "仅供检索和人工参考"},
             {"id": "M2", "name": "场景已定义", "release": "可生成资料清单和调查计划"},
+            {"id": "M2.5", "name": "五链配套并完成边界桌面测试", "release": "可按场景生成受控核验计划，不形成自动结论"},
             {"id": "M3", "name": "数据契约已验证", "release": "可执行原子筛查，只形成待核事实"},
             {"id": "M4", "name": "案例与反例验证完成", "release": "可进入受控生产并持续监测误报漏报"},
         ],

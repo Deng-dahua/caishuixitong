@@ -3431,6 +3431,26 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
+
+    # ═══ 场景主键制方法论：疑点—线索—证据—分析—域协同统一计划 ═══
+    # 仅生成核验任务和资料缺口，不新增/升级finding，不形成自动定性。
+    try:
+        from engine.scenario_methodology import build_scenario_review_plan
+        scenario_methodology = build_scenario_review_plan(
+            _target_industry,
+            file_results=file_results,
+            findings=all_findings,
+        )
+        comprehensive["scenario_methodology"] = scenario_methodology
+        if scenario_methodology.get("applicable"):
+            pipeline_log.append(
+                "[场景方法论] 制造业8个五链配套场景已生成核验计划："
+                f"{scenario_methodology.get('ready_for_human_review', 0)}个资料就绪，"
+                f"{scenario_methodology.get('pending_more_sources', 0)}个待补资料；"
+                "候选信号未转化为证据或结论"
+            )
+    except Exception as _scene_methodology_error:
+        pipeline_log.append(f"[场景方法论] 计划生成失败，降级继续: {_scene_methodology_error}")
     
     # ═══ 规则深度字段消费：把税务疑点库的 direction/drill_questions/determination 等注入每条发现 ═══
     try:
@@ -4018,6 +4038,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             topology_pattern if 'topology_pattern' in dir() else {},
         ),
         "methodology_summary": _build_methodology_summary(all_findings, quality_report, cross_verify_result if 'cross_verify_result' in dir() else {}, pipeline_log),
+        "scenario_methodology": comprehensive.get("scenario_methodology", {}),
         "doubt_library_summary": _build_doubt_library_summary(all_findings),
         "rights_and_signature": _generate_rights_and_signature_chapters(target_entity),
         "case_source": case_source if 'case_source' in dir() else {},

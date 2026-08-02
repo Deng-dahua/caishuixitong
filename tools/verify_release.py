@@ -22,6 +22,7 @@ PRODUCTION_PYTHON = [
     "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
+    "engine/scenario_methodology.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]

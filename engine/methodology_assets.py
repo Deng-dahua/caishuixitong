@@ -46,7 +46,7 @@ def prepare_methodology_asset(asset_name, payload):
     if isinstance(adapted, list):
         return [mark(item) for item in adapted]
     if isinstance(adapted, dict):
-        for collection_key in ("rules", "items", "chains", "evidence_chains", "analysis_chains"):
+        for collection_key in ("rules", "items", "chains", "evidence_chains", "analysis_chains", "scenarios"):
             collection = adapted.get(collection_key)
             if isinstance(collection, list):
                 adapted[collection_key] = [mark(item) for item in collection]
