@@ -6462,15 +6462,16 @@ def get_methodology_asset(asset_name: str):
     normalized_asset = str(asset_name or "").strip().lower()
     from engine.methodology_catalog import (
         load_canonical_catalog, load_flat_analysis, load_flat_clues,
-        load_flat_evidence, load_flat_rules, load_industry_review,
+        load_flat_evidence, load_flat_rules,
     )
+    from engine.methodology_portfolio import load_methodology_portfolio
     virtual_assets = {
         "rules": load_flat_rules,
         "clues": load_flat_clues,
         "evidence": lambda: {"evidence_chains": load_flat_evidence()},
         "analysis": lambda: {"analysis_chains": load_flat_analysis()},
         "canonical_catalog": load_canonical_catalog,
-        "industry_review": load_industry_review,
+        "portfolio": load_methodology_portfolio,
     }
     if normalized_asset in virtual_assets:
         return virtual_assets[normalized_asset]()
@@ -6516,10 +6517,10 @@ def get_methodology_asset(asset_name: str):
 @app.get("/api/methodology/coverage")
 def get_methodology_coverage():
     """返回权威方法论、行业场景深度和已知空白的真实覆盖矩阵。"""
-    static_root = _os.path.join(_os.path.dirname(__file__), "static")
+    static_root = os.path.join(os.path.dirname(__file__), "static")
     filenames = (
         "methodology_canonical_catalog.json",
-        "industry_scenario_review.json",
+        "methodology_framework.json",
         "industry_audit_profiles.json",
         "industry_methodology_packs.json",
         "agriculture_scenario_contracts.json",
@@ -6532,7 +6533,7 @@ def get_methodology_coverage():
     )
     try:
         cache_key = tuple(
-            (_os.path.getmtime(_os.path.join(static_root, name)), _os.path.getsize(_os.path.join(static_root, name)))
+            (os.path.getmtime(os.path.join(static_root, name)), os.path.getsize(os.path.join(static_root, name)))
             for name in filenames
         )
         cached = _methodology_coverage_cache.get(cache_key)

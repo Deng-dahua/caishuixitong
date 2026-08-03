@@ -23,7 +23,8 @@ PRODUCTION_PYTHON = [
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
     "engine/scenario_methodology.py", "engine/methodology_coverage.py",
-    "engine/methodology_catalog.py", "engine/methodology_assets.py",
+    "engine/methodology_catalog.py", "engine/methodology_portfolio.py",
+    "engine/methodology_assets.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
@@ -187,7 +188,7 @@ def main() -> int:
     ]
     check(
         not any((ROOT / relative).exists() for relative in retired_assets),
-        "retired 1720-item assets and candidate governance are absent",
+        "superseded rule and chain assets are absent",
         failures,
     )
 
@@ -199,18 +200,21 @@ def main() -> int:
             load_reviewed_scenario_contracts,
             methodology_inventory,
         )
+        from engine.methodology_portfolio import load_methodology_portfolio
 
         catalog = load_canonical_catalog()
         inventory = methodology_inventory()
         modules = catalog.get("modules", [])
         rules = [rule for module in modules for rule in module.get("rules", [])]
+        portfolio = load_methodology_portfolio()
         scenarios = [
             scene
             for code in SCENARIO_FILES
             for scene in load_reviewed_scenario_contracts(code).get("scenarios", [])
         ]
         catalog_valid = (
-            len(modules) == 20
+            catalog.get("version") == "3.0.0"
+            and len(modules) == 20
             and len(rules) == 67
             and len({rule.get("id") for rule in rules}) == len(rules)
             and all(rule.get("fact_hypothesis") for rule in rules)
@@ -218,15 +222,22 @@ def main() -> int:
             and all("excludes" in rule for rule in rules)
         )
         scene_valid = (
-            len(scenarios) == 69
+            portfolio.get("version") == "3.0.0"
+            and len(portfolio.get("contracts", [])) == 23
+            and len(scenarios) == 161
             and all("legacy_absorption" not in scene for scene in scenarios)
-            and all((scene.get("methodology_revision") or {}).get("depth_rationale") for scene in scenarios)
+            and all("已吸收" not in json.dumps(scene, ensure_ascii=False) for scene in scenarios)
+            and all("1720条" not in json.dumps(scene, ensure_ascii=False) for scene in scenarios)
             and all((scene.get("clue_chain") or {}).get("steps") for scene in scenarios)
             and all((scene.get("evidence_chain") or {}).get("supporting_sources") for scene in scenarios)
             and all((scene.get("evidence_chain") or {}).get("opposing_sources") for scene in scenarios)
             and all((scene.get("analysis_chain") or {}).get("reasoning") for scene in scenarios)
             and all(scene.get("validation_cases") for scene in scenarios)
-            and len(inventory.get("clue_depths", [])) >= 4
+            and inventory.get("rules") == 228
+            and inventory.get("clue_paths") == 188
+            and inventory.get("evidence_plans") == 181
+            and inventory.get("analysis_plans") == 181
+            and len(inventory.get("clue_depths", [])) >= 5
             and len(inventory.get("validation_depths", [])) >= 4
         )
     except Exception:

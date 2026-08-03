@@ -643,7 +643,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             main,
         )
         self.assertIn("/api/methodology/assets/canonical_catalog", risk_rules)
-        for asset_name in ("rules", "clues", "evidence", "analysis", "canonical_catalog", "industry_review"):
+        for asset_name in ("rules", "clues", "evidence", "analysis", "canonical_catalog", "portfolio"):
             self.assertIn(f'"{asset_name}"', main)
         self.assertIn('"industry_profiles": "industry_audit_profiles.json"', main)
         for protected_asset in (

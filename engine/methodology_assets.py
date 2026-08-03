@@ -49,5 +49,9 @@ def prepare_methodology_asset(asset_name, payload):
             collection = adapted.get(collection_key)
             if isinstance(collection, list):
                 adapted[collection_key] = [mark(item) for item in collection]
+        if asset_name == "portfolio":
+            for contract in adapted.get("contracts", []):
+                if isinstance(contract, dict):
+                    contract["scenarios"] = [mark(item) for item in contract.get("scenarios", [])]
         return adapted
     return adapted

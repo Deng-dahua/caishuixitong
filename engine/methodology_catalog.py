@@ -19,7 +19,7 @@ STATIC = ROOT / "static"
 CATALOG_FILE = STATIC / "methodology_canonical_catalog.json"
 REVIEW_FILE = STATIC / "industry_scenario_review.json"
 
-SCENARIO_FILES = {
+V2_SCENARIO_FILES = {
     "A": "agriculture_scenario_contracts.json",
     "B": "mining_scenario_contracts.json",
     "C": "manufacturing_scenario_contracts.json",
@@ -28,7 +28,12 @@ SCENARIO_FILES = {
     "K": "real_estate_scenario_contracts.json",
     "OVERLAY-PLATFORM": "platform_scenario_contracts.json",
 }
-ASSET_TO_CODE = {filename.removesuffix(".json"): code for code, filename in SCENARIO_FILES.items()}
+ASSET_TO_CODE = {filename.removesuffix(".json"): code for code, filename in V2_SCENARIO_FILES.items()}
+SCENARIO_FILES = {
+    code: "methodology_portfolio"
+    for code in tuple("ABCDEFGHIJKLMNOPQRST")
+    + ("OVERLAY-PLATFORM", "OVERLAY-CROSS-BORDER", "OVERLAY-GROUP")
+}
 
 
 def _read(path: Path) -> Any:
@@ -84,6 +89,48 @@ def load_flat_rules() -> list[dict]:
                 "automatic_determination_allowed": False,
                 "threshold": None,
             })
+    for code in SCENARIO_FILES:
+        payload = load_reviewed_scenario_contracts(code)
+        for scene in payload.get("scenarios", []):
+            doubt = scene.get("doubt") or {}
+            evidence = scene.get("evidence_chain") or {}
+            analysis = scene.get("analysis_chain") or {}
+            output.append({
+                "id": f"{scene['id']}-R",
+                "item": doubt.get("target_fact", scene.get("name", "")),
+                "name": scene.get("name", ""),
+                "category": payload.get("name", code),
+                "score": 0,
+                "level": "信息",
+                "type": "industry_fact_review_contract",
+                "maturity": scene.get("maturity", "M2.5_boundary_tested"),
+                "applicable_condition": "；".join(
+                    (scene.get("applicability") or {}).get("apply_when", [])
+                ),
+                "required_fields": list(evidence.get("fact_elements", [])),
+                "reasonable_explanations": list(
+                    analysis.get("alternatives")
+                    or doubt.get("must_exclude")
+                    or doubt.get("reasonable_explanations")
+                    or []
+                ),
+                "direction": " → ".join(
+                    str(step.get("action", ""))
+                    for step in (scene.get("clue_chain") or {}).get("steps", [])
+                    if isinstance(step, dict)
+                ),
+                "evidence_requirements": copy.deepcopy(evidence),
+                "analysis_tests": list(analysis.get("reasoning", [])),
+                "validation_cases": copy.deepcopy(scene.get("validation_cases", [])),
+                "suggestion": (scene.get("clue_chain") or {}).get("terminal", "完成事实、证据和程序复核后提交人工审理。"),
+                "policy_ref": "按业务期间的现行有效依据逐项核验",
+                "source": "全行业税务稽查方法论场景组合",
+                "industry_code": code,
+                "scene_id": scene.get("id"),
+                "human_review_required": True,
+                "automatic_determination_allowed": False,
+                "threshold": None,
+            })
     return output
 
 
@@ -104,6 +151,23 @@ def load_flat_clues() -> list[dict]:
                 ],
                 "trigger_boundary": list(module.get("activation_gate", [])),
                 "terminal": module.get("report_boundary", ""),
+                "executable": False,
+                "human_review_required": True,
+            })
+    for code in SCENARIO_FILES:
+        payload = load_reviewed_scenario_contracts(code)
+        for scene in payload.get("scenarios", []):
+            clue = scene.get("clue_chain") or {}
+            output.append({
+                "id": f"{scene['id']}-C",
+                "name": f"{scene.get('name', '')}调查路径",
+                "chain_type": "调查线索链",
+                "sub_topic": payload.get("name", code),
+                "investigation_path": copy.deepcopy(clue.get("steps", [])),
+                "trigger_boundary": list((scene.get("applicability") or {}).get("apply_when", [])),
+                "terminal": clue.get("terminal", ""),
+                "industry_code": code,
+                "scene_id": scene.get("id"),
                 "executable": False,
                 "human_review_required": True,
             })
@@ -128,6 +192,25 @@ def load_flat_evidence() -> list[dict]:
             "executable": False,
             "human_review_required": True,
         })
+    for code in SCENARIO_FILES:
+        payload = load_reviewed_scenario_contracts(code)
+        for scene in payload.get("scenarios", []):
+            plan = scene.get("evidence_chain") or {}
+            output.append({
+                "id": f"{scene['id']}-E",
+                "name": f"{scene.get('name', '')}证据组织方案",
+                "chain_type": "证据链",
+                "sub_topic": payload.get("name", code),
+                "fact_elements": list(plan.get("fact_elements", [])),
+                "supporting_sources": list(plan.get("supporting_sources", [])),
+                "opposing_sources": list(plan.get("opposing_sources", [])),
+                "insufficient_when": list(plan.get("insufficient_when", [])),
+                "quality_dimensions": list(load_canonical_catalog().get("common_contract", {}).get("evidence_dimensions", [])),
+                "industry_code": code,
+                "scene_id": scene.get("id"),
+                "executable": False,
+                "human_review_required": True,
+            })
     return output
 
 
@@ -150,6 +233,28 @@ def load_flat_analysis() -> list[dict]:
             "executable": False,
             "human_review_required": True,
         })
+    for code in SCENARIO_FILES:
+        payload = load_reviewed_scenario_contracts(code)
+        for scene in payload.get("scenarios", []):
+            plan = scene.get("analysis_chain") or {}
+            tests = list(plan.get("reasoning", []))
+            output.append({
+                "id": f"{scene['id']}-A",
+                "name": f"{scene.get('name', '')}分析论证方案",
+                "chain_type": "分析链",
+                "sub_topic": payload.get("name", code),
+                "analysis_tests": tests,
+                "validation_cases": copy.deepcopy(scene.get("validation_cases", [])),
+                "reasoning_path": [
+                    {"step": index, "action": test}
+                    for index, test in enumerate(tests, 1)
+                ],
+                "suggestion": plan.get("tax_boundary", ""),
+                "industry_code": code,
+                "scene_id": scene.get("id"),
+                "executable": False,
+                "human_review_required": True,
+            })
     return output
 
 
@@ -262,10 +367,10 @@ def _build_additional_scene(spec: dict) -> dict:
     }
 
 
-@lru_cache(maxsize=len(SCENARIO_FILES))
-def load_reviewed_scenario_contracts(industry_code: str) -> dict:
+@lru_cache(maxsize=len(V2_SCENARIO_FILES))
+def _load_v2_reviewed_contracts(industry_code: str) -> dict:
     code = str(industry_code or "").upper()
-    filename = SCENARIO_FILES[code]
+    filename = V2_SCENARIO_FILES[code]
     payload = copy.deepcopy(_read(STATIC / filename))
     review = load_industry_review()
     addenda = {item["scene_id"]: item for item in review.get("review_addenda", [])}
@@ -293,16 +398,34 @@ def load_reviewed_scenario_contracts(industry_code: str) -> dict:
     return payload
 
 
+@lru_cache(maxsize=len(SCENARIO_FILES))
+def load_reviewed_scenario_contracts(industry_code: str) -> dict:
+    """Return the current v3 full-industry scenario contract."""
+    from engine.methodology_portfolio import load_industry_contract
+
+    return load_industry_contract(str(industry_code or "").upper())
+
+
 def load_reviewed_scenario_asset(asset_name: str) -> dict:
-    return load_reviewed_scenario_contracts(ASSET_TO_CODE[asset_name])
+    code = ASSET_TO_CODE[asset_name]
+    return load_reviewed_scenario_contracts(code)
 
 
 def methodology_inventory() -> dict:
     catalog = load_canonical_catalog()
     scenario_payloads = [load_reviewed_scenario_contracts(code) for code in SCENARIO_FILES]
     scenarios = [scene for payload in scenario_payloads for scene in payload.get("scenarios", [])]
+    canonical_rule_count = sum(len(module.get("rules", [])) for module in catalog.get("modules", []))
+    canonical_clue_count = sum(len(module.get("clue_paths", [])) for module in catalog.get("modules", []))
+    canonical_evidence_count = len(catalog.get("modules", []))
+    canonical_analysis_count = len(catalog.get("modules", []))
     return {
         "canonical_modules": len(catalog.get("modules", [])),
+        "canonical_rules": canonical_rule_count,
+        "canonical_clue_paths": canonical_clue_count,
+        "canonical_evidence_plans": canonical_evidence_count,
+        "canonical_analysis_plans": canonical_analysis_count,
+        "industry_fact_contracts": len(scenarios),
         "rules": len(load_flat_rules()),
         "clue_paths": len(load_flat_clues()),
         "evidence_plans": len(load_flat_evidence()),
@@ -314,4 +437,5 @@ def methodology_inventory() -> dict:
         },
         "clue_depths": sorted({len(scene.get("clue_chain", {}).get("steps", [])) for scene in scenarios}),
         "validation_depths": sorted({len(scene.get("validation_cases", [])) for scene in scenarios}),
+        "domain_collaboration_depths": sorted({len((scene.get("domain_collaboration") or {}).get("partners", [])) for scene in scenarios}),
     }

@@ -417,7 +417,7 @@ SCENE_SIGNAL_TERMS = {
 }
 
 
-@lru_cache(maxsize=len(CONTRACT_ASSETS))
+@lru_cache(maxsize=32)
 def load_scenario_contracts(industry_code="C"):
     from engine.methodology_catalog import load_reviewed_scenario_contracts
 
@@ -425,13 +425,9 @@ def load_scenario_contracts(industry_code="C"):
 
 
 def _resolve_industry_code(industry):
-    text = str(industry or "").strip().lower()
-    for code, spec in CONTRACT_ASSETS.items():
-        if text == code.lower() or text.startswith(f"{code.lower()} "):
-            return code
-        if any(term.lower() in text for term in spec["terms"]):
-            return code
-    return ""
+    from engine.methodology_portfolio import resolve_industry_code
+
+    return resolve_industry_code(industry)
 
 
 def _available_source_families(file_results):
@@ -568,17 +564,17 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             "status": "不适用",
             "maturity": None,
             "scenes": [],
-            "boundary": "当前仅对已完成五链重写的行业生成场景计划。",
+            "boundary": "未能依据实际经营活动确定适用行业；仅运行跨行业共同事实合同，并要求人工确认业务模式。",
         }
 
-    spec = CONTRACT_ASSETS[industry_code]
+    spec = CONTRACT_ASSETS.get(industry_code, {"asset": "methodology_portfolio"})
     payload = load_scenario_contracts(industry_code)
     available_families, file_types = _available_source_families(file_results)
     available_set = set(available_families)
     plans = []
     for scene in payload.get("scenarios", []):
         scene_id = scene.get("id")
-        gates = SCENE_SOURCE_GATES.get(scene_id, [])
+        gates = scene.get("source_gates") or SCENE_SOURCE_GATES.get(scene_id, [])
         gate_results = []
         for gate in gates:
             observed = sorted(available_set.intersection(gate.get("any", [])))
@@ -590,7 +586,9 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             })
         satisfied = sum(1 for gate in gate_results if gate["satisfied"])
         total = len(gate_results)
-        if satisfied == 0:
+        if total == 0:
+            status = "待补资料_可初筛" if available_set else "资料不足_未启动"
+        elif satisfied == 0:
             status = "资料不足_未启动"
         elif satisfied < total:
             status = "待补资料_可初筛"
