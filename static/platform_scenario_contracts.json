@@ -64,7 +64,6 @@
         {"domain": "税务征管", "responsibility": "核验报送责任、期间和回执", "handoff": "报送生命周期底稿"}
       ], "conflict_rule": "许可证持有人、合同主体、实际运营和报送主体冲突时保留四套原始关系，不以集团口头分工覆盖法定责任"},
       "report_contract": {"title": "平台范围运营主体及报送责任核验", "must_state": ["平台入口", "业务类型", "实际运营", "数据结算控制", "报送主体期间", "豁免更正及缺口"], "forbidden": ["只凭域名持有人认定报送主体", "报送缺口直接写成偷逃税"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["平台基本信息", "运营主体", "报送责任"], "absorption_reason": "旧库形成于平台涉税信息报送制度实施前，没有可准确归并的直接规则，本场景作为新增合同建立。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "不得为追求吸收数量而错误挪用广告备案、一般工商登记或其他报送规则。"},
       "validation_cases": [
         {"case": "positive", "facts": "某业务线由境内主体实际运营并控制订单结算，连续季度无任何报送记录且不存在免予重复情形", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "集团相关运营主体已依法统一报送，主体关系、授权、接口回执和免重复记录完整", "expected": "解释成立_关闭"},
@@ -95,7 +94,6 @@
         {"domain": "数据安全税务", "responsibility": "控制敏感资料并核对报送", "handoff": "合规访问与报送底稿"}
       ], "conflict_rule": "实名、合同、实际运营和收款冲突时不得自动合并身份，先保留历史版本并发起人工核验"},
       "report_contract": {"title": "平台账户经营者从业人员身份核验", "must_state": ["合法取证", "账户历史", "实名主体", "实际运营", "收款受益", "报送期间"], "forbidden": ["用昵称或设备直接认定自然人", "展示完整敏感个人信息"]},
-      "legacy_absorption": {"legacy_rule_ids": ["1056", "1370"], "mapping_basis": ["登记状态", "实际经营者身份", "代开发票申请人"], "absorption_reason": "将旧库零散的登记和实际经营者错配问题，归并到账户全生命周期和收款受益身份合同；旧阈值与定性不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "两条旧规则只提供身份核验切口，不代表平台身份报送场景已经完成真实样本验证。"},
       "validation_cases": [
         {"case": "positive", "facts": "店铺账号实名为已注销主体，长期由另一自然人运营并收款，报送仍归属原主体且无变更记录", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "企业员工操作账号，合同、授权、企业收款和报送均归属于企业", "expected": "解释成立_关闭"},
@@ -126,7 +124,6 @@
         {"domain": "涉税报送", "responsibility": "核验季度报送和更正", "handoff": "报送差异表"}
       ], "conflict_rule": "订单、支付、结算和报送口径冲突时不得用任一汇总数覆盖原始事件，必须通过桥接表解释"},
       "report_contract": {"title": "平台订单分账收入及季度报送核验", "must_state": ["交易主体", "订单状态", "退款优惠", "平台收入", "主体收入", "报送口径期间"], "forbidden": ["平台GMV等同平台收入", "报送净额等同应税收入"]},
-      "legacy_absorption": {"legacy_rule_ids": ["175", "1258", "1312", "1319", "1329", "1553", "1710"], "mapping_basis": ["平台订单交易流水", "平台结算", "佣金服务费", "从业人员报酬"], "absorption_reason": "把旧库按银行、订单、佣金和个税分别比较的规则，归并为订单总额、退款、平台收入和主体收入的双边桥接。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未采用2025报送净额口径，原阈值和结论不得继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "大量已履约无退款订单已向商户结算，但季度报送遗漏且后续无更正", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "总额差异由平台券、真实退款、支付费和跨季更正完整桥接", "expected": "解释成立_关闭"},
@@ -157,7 +154,6 @@
         {"domain": "财税发票", "responsibility": "复核收入列报、开票和申报", "handoff": "角色税会底稿"}
       ], "conflict_rule": "合同标签、产品规则和实际履约冲突时以完整事实综合判断，不以总额或净额列报倒推角色"},
       "report_contract": {"title": "平台自营代理撮合角色核验", "must_state": ["业务线", "协议版本", "控制与履约", "售后责任", "分账开票", "税会判断边界"], "forbidden": ["所有平台一律按佣金收入", "总额列报直接认定自营"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["平台角色", "主要责任人", "代理撮合"], "absorption_reason": "旧库没有以平台业务线和实际控制为核心的合格规则，本场景依据现行平台和收入规范新增。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "不得把一般代理办税或代扣规则错误吸收到平台角色判断。"},
       "validation_cases": [
         {"case": "positive", "facts": "平台控制定价、履约和售后并向消费者开票，却将全部收款作为代收，仅确认少量技术服务费", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "商户控制商品定价和履约售后，平台只撮合分账并按协议收取佣金", "expected": "解释成立_关闭"},
@@ -188,7 +184,6 @@
         {"domain": "税务报送", "responsibility": "核验专项报送扣缴代办", "handoff": "直播涉税底稿"}
       ], "conflict_rule": "钱包账本、合同分成和银行结算冲突时保留全部事件，不以最终净入账覆盖赠送、余额和退款"},
       "report_contract": {"title": "直播内容虚拟权益及多方分成核验", "must_state": ["直播类型", "充值换算", "消费履约", "退款余额", "多方分成", "报送扣缴"], "forbidden": ["全部充值立即作为主播收入", "所有主播收入统一认定同一所得性质"]},
-      "legacy_absorption": {"legacy_rule_ids": ["174", "388", "602", "1166", "1223", "1321", "1665"], "mapping_basis": ["主播收入", "直播平台", "投流推广", "平台向创作者支付"], "absorption_reason": "把旧库针对投流、银行收款和个税申报的分散比较，重写为虚拟权益和平台、机构、主播多方分成链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未区分直播带货、打赏和内容服务，原所得性质和结论不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "用户礼物已消费且分成已支付主播机构，但专项报送和扣缴记录均缺失，无退款余额解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "差异完全由赠送币、未消费余额和未成年人退款解释，账本与资金一致", "expected": "解释成立_关闭"},
@@ -219,7 +214,6 @@
         {"domain": "个税增值税所得税", "responsibility": "核验扣缴代办报送和扣除", "handoff": "三税协同底稿"}
       ], "conflict_rule": "任务系统、合同和实际服务冲突时不得以完税或发票记录反推服务真实，先核验成果和受益"},
       "report_contract": {"title": "灵活用工任务服务及扣缴代办核验", "must_state": ["真实需求", "实际服务者", "成果验收", "法律关系", "票款结算", "扣缴代办报送"], "forbidden": ["平台用工一律认定劳务报酬", "完税证明直接证明服务真实"]},
-      "legacy_absorption": {"legacy_rule_ids": ["31", "151", "192", "843", "865", "1272", "1309", "1478", "1490", "1643", "1644"], "mapping_basis": ["灵活用工", "劳务报酬", "任务成果", "平台支付与扣缴"], "absorption_reason": "把旧库的劳务费、银行支付、个税和人员分布比较归并为真实任务、人员、成果、结算及扣缴代办五层合同。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧库未采用2025年第16号公告流程，原所得分类、阈值和税前扣除结论不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "批量任务无过程成果和受益人，资金由同一设备控制的多个人员账户迅速回流，平台仍批量代办申报并列支成本", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "独立设计任务有需求、过程版本、成果验收、实名授权、支付和扣缴代办完整链条", "expected": "解释成立_关闭"},
@@ -250,7 +244,6 @@
         {"domain": "税务发票", "responsibility": "核验发票申报扣缴代办和报送", "handoff": "运输票税底稿"}
       ], "conflict_rule": "线上登记与线下运输冲突时保留原始轨迹、装卸、签收和改派记录，不以补录运单覆盖历史"},
       "report_contract": {"title": "网络货运承运真实运输及票税核验", "must_state": ["平台角色", "托运货物", "车辆司机", "轨迹签收", "运费成本", "发票报送"], "forbidden": ["无轨迹即认定虚假", "撮合平台直接套用承运平台规则"]},
-      "legacy_absorption": {"legacy_rule_ids": ["430", "988", "997", "1028", "1051", "1228", "1238", "1639"], "mapping_basis": ["网络货运", "车辆司机", "运单轨迹", "运输订单和发票"], "absorption_reason": "把旧库运力、轨迹、运单、路线和发票比较，归并为2026规则下的平台承运角色和逐单真实运输链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未区分撮合与承运平台，行业运力阈值和虚假推断不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "批量运单车辆司机重复冲突、无装卸签收且轨迹物理不可达，资金结算后回流", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "车辆故障后合法改派，双司机轨迹、装卸签收、结算和改派审批完整", "expected": "解释成立_关闭"},
@@ -281,7 +274,6 @@
         {"domain": "国际税收", "responsibility": "核验平台报送、申报和扣缴", "handoff": "跨境税务底稿"}
       ], "conflict_rule": "IP、支付地区、客户声明和实际履约地点冲突时保留多源证据，不以单一技术字段决定税收连接"},
       "report_contract": {"title": "境外平台跨境数字交易及报送核验", "must_state": ["境内外主体", "交易性质", "地点连接", "币种退款", "平台费用", "报送申报扣缴"], "forbidden": ["收汇即认定境内应税", "单一IP决定客户或履约地点"]},
-      "legacy_absorption": {"legacy_rule_ids": ["178", "425", "679", "793", "794", "1307", "1564", "1655"], "mapping_basis": ["境外收入", "外币结算", "跨境服务", "境外账户与申报"], "absorption_reason": "把旧库外汇、境外账户和申报比较，归并为境外平台主体、交易性质、地点和币种的跨境事实矩阵。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "多数旧规则针对货物出口或一般境外所得，只有可迁移的金额与身份切口被吸收，原结论不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "境外平台向境内客户提供已完成数字服务并结算，平台报送和境内扣缴申报均无记录，地点合同资金一致", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "交易双方、服务使用和结算均在境外，仅因境内人员登录后台产生境内IP", "expected": "解释成立_关闭"},

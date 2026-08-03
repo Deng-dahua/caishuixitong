@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""只读方法论资产的展示适配。
-
-原始规则资产保持可回退；接口响应在内存中加入统一状态并净化自动定性措辞。
-"""
+"""只读权威方法论资产的展示适配。"""
 
 from __future__ import annotations
 
@@ -27,9 +24,11 @@ def _adapt(value):
 
 
 def prepare_methodology_asset(asset_name, payload):
-    if asset_name == "rules" and isinstance(payload, list):
-        from engine.candidate_rule_governance import annotate_candidate_rules
-        payload = annotate_candidate_rules(payload)
+    if str(asset_name or "").endswith("_scenario_contracts"):
+        from engine.methodology_catalog import ASSET_TO_CODE, load_reviewed_scenario_contracts
+        code = ASSET_TO_CODE.get(str(asset_name or ""))
+        if code:
+            payload = load_reviewed_scenario_contracts(code)
     adapted = _adapt(payload)
     if asset_name == "framework":
         return adapted

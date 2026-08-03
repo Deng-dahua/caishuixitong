@@ -59,7 +59,6 @@
         {"domain": "税费发票", "responsibility": "核验交易对应发票和申报期间", "handoff": "税会差异清单"}
       ], "conflict_rule": "系统库存与实物、物流或货权冲突时分别保留原始记录，不用盘点调整倒推覆盖历史事件"},
       "report_contract": {"title": "商品采购库存销售闭环核验", "must_state": ["商品范围和单位", "期初期末", "调拨在途", "退换赠损", "剩余差异及证据"], "forbidden": ["以负库存直接认定无票收入", "以行业周转率替代实物证据"]},
-      "legacy_absorption": {"legacy_rule_ids": ["25", "56", "85", "245", "262", "282", "353", "500", "519", "662", "692", "1220", "1333", "1345", "1358", "1558", "1618"], "mapping_basis": ["进销存", "库存与仓店", "调拨盘点", "采购销售数量勾稽"], "absorption_reason": "把原规则中彼此分散的库存、仓容、物流、进销差价和申报比较，归并为同一SKU事件时间线；阈值和原结论不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧编号、原文和指纹保留；当前只完成场景归并，不代表官方溯源、字段验证或生产放行。"},
       "validation_cases": [
         {"case": "positive", "facts": "同一SKU连续出现已签收销售和收款但无出库、无期末实物且无赠品或代销解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "组合商品拆分和跨仓未达经订单、运输、双端签收及次期入账完整证明", "expected": "解释成立_关闭"},
@@ -90,7 +89,6 @@
         {"domain": "财税发票", "responsibility": "连接收入、蓝红票和申报", "handoff": "税会期间对照"}
       ], "conflict_rule": "平台订单、支付和银行到账冲突时按事件时间分别记录，不以净结算金额覆盖订单原价、退款和费用"},
       "report_contract": {"title": "全渠道订单支付履约与申报核验", "must_state": ["渠道主体", "订单状态", "支付退款", "履约事实", "毛额净额桥接", "税会期间"], "forbidden": ["以银行净入账推定销售额", "把未支付或取消订单计入差异"]},
-      "legacy_absorption": {"legacy_rule_ids": ["64", "176", "502", "601", "993", "1460", "1635", "1673"], "mapping_basis": ["订单金额", "第三方支付", "平台结算", "开票与申报"], "absorption_reason": "把订单、物流、支付、开票和平台净结算比较统一到订单生命周期，显式拆出退款、费用、冻结和跨期。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则只作为调查知识来源；未核验平台字段和交易主体前不得执行。"},
       "validation_cases": [
         {"case": "positive", "facts": "订单已支付签收且结算完成，无退款，连续跨期未进入会计和申报", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "平台净入账差额由合同约定佣金、平台券和可核验退款完整解释", "expected": "解释成立_关闭"},
@@ -121,7 +119,6 @@
         {"domain": "财税", "responsibility": "确认收入成本和申报调整", "handoff": "跨期调整底稿"}
       ], "conflict_rule": "红字发票状态与实物、资金事实冲突时保留各链，不用票据状态代替真实退换事实"},
       "report_contract": {"title": "退货退款红冲及重开闭环核验", "must_state": ["原交易", "售后事实", "实物去向", "退款路径", "蓝红票关系", "跨期和重复调整"], "forbidden": ["红冲即认定虚假", "忽略真实换货或折让"]},
-      "legacy_absorption": {"legacy_rule_ids": ["6", "58", "107", "126", "322", "402", "469", "528", "530", "642", "969"], "mapping_basis": ["销售退回", "退款", "红字发票", "重新开票"], "absorption_reason": "将原库按红冲比例、退款金额、申报差异分别触发的规则，重写为以原交易为锚点的完整售后闭环。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "原有阈值、风险等级和定性文字不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "大额红冲无退货、无退款、无折让协议且对应收入成本被重复冲减", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "质量退货、逆向物流、原路退款、红字发票和退货入库完全一致", "expected": "解释成立_关闭"},
@@ -152,7 +149,6 @@
         {"domain": "财税发票", "responsibility": "核验列报、发票和申报", "handoff": "税会处理对照"}
       ], "conflict_rule": "合同名称、发票品名和会计科目不一致时回到权利义务和实际履约，不以任何单一标签决定性质"},
       "report_contract": {"title": "返利折扣促销补贴及服务核验", "must_state": ["交易主体", "合同条款", "达成条件", "履约事实", "结算票款", "税会差异"], "forbidden": ["按科目名称直接定性", "无条件复算即否定返利"]},
-      "legacy_absorption": {"legacy_rule_ids": ["59", "1378", "1679"], "mapping_basis": ["商业折扣", "供应商返利", "陈列费", "收入调整"], "absorption_reason": "把少量旧规则从单一票款差异提升为合同条件、实际履约和税会期间共同判断。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "数量较少不代表场景覆盖完成，后续仍需真实协议样本验证。"},
       "validation_cases": [
         {"case": "positive", "facts": "以陈列服务名义大额付款，但无门店、档期、成果和验收，金额仅按采购额比例自动计算", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "促销服务有合同、排期、门店影像、第三方数据、验收和合理结算", "expected": "解释成立_关闭"},
@@ -183,7 +179,6 @@
         {"domain": "财税发票", "responsibility": "复核总额净额、发票和申报", "handoff": "角色税会底稿"}
       ], "conflict_rule": "书面合同与长期实际执行冲突时双线记录并核实变更，不以合同标题或会计列报代替事实"},
       "report_contract": {"title": "代销联营角色及总额净额核验", "must_state": ["合同安排", "转让前控制", "风险义务", "货权客户", "票款路径", "税会处理"], "forbidden": ["以合同名为代销直接定性", "以净额列报直接认定少报"]},
-      "legacy_absorption": {"legacy_rule_ids": ["626", "691", "838", "1262", "1318", "1715"], "mapping_basis": ["委托代销", "代销商品", "净额法", "佣金收入"], "absorption_reason": "把代销清单时点、库存、开票和申报差异纳入实际控制与主要责任人判断，避免只按到账或会计列报推断。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "需要合同与实际履行共同验证，旧规则不得直接执行。"},
       "validation_cases": [
         {"case": "positive", "facts": "主体控制定价、承担库存和退货责任并对客户履约，却仅确认固定佣金且票款申报断链", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "供应商控制商品定价和售后，门店只撮合并按合同收取佣金，票款完整", "expected": "解释成立_关闭"},
@@ -214,7 +209,6 @@
         {"domain": "财税发票", "responsibility": "核验收入、开票和申报期间", "handoff": "余额税会底稿"}
       ], "conflict_rule": "期末余额与事件日志冲突时不得以手工余额覆盖事件，必须重建调整来源和审批"},
       "report_contract": {"title": "会员储值卡券积分履约核验", "must_state": ["发行主体", "现金赠送", "履约义务", "核销退款", "期末余额", "税会期间"], "forbidden": ["全部充值立即认定收入", "全部过期余额自动认定应税"]},
-      "legacy_absorption": {"legacy_rule_ids": ["198", "428", "1323", "1324", "1330"], "mapping_basis": ["预付卡", "会员储值", "积分发放与兑换", "发票和申报"], "absorption_reason": "把售卡、充值余额、积分核销和发票申报比较统一为逐钱包履约义务和余额事件链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "未验证卡券条款和履约主体前不允许执行。"},
       "validation_cases": [
         {"case": "positive", "facts": "大量余额已消费核销且商品已交付，税会长期仍保持未履约状态，无退款或跨店未达", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "未到期储值余额、现金和赠送拆分清晰，核销和退款均可滚动复算", "expected": "解释成立_关闭"},
@@ -245,7 +239,6 @@
         {"domain": "财税发票", "responsibility": "连接订单、收入、发票和申报", "handoff": "全渠道税会对照"}
       ], "conflict_rule": "支付平台、银行和门店日结冲突时保留全部原始流水及时间戳，不用汇总补录覆盖缺口"},
       "report_contract": {"title": "现金聚合支付及个人账户收款核验", "must_state": ["账户商户控制", "订单履约", "退款费用", "非销售流入", "个人信息边界", "税会差异"], "forbidden": ["账户总流入等同收入", "无法证明非经营即推定经营"]},
-      "legacy_absorption": {"legacy_rule_ids": ["96", "173", "249", "427", "671", "1375", "1387", "1397", "1410", "1549", "1554", "1611", "1691"], "mapping_basis": ["个人账户", "收款码和聚合支付", "现金缴存", "银行与申报"], "absorption_reason": "把原库多条银行流入差异规则收束为账户控制、订单履约、非销售排除和最终入账的证据链，禁止账户总流入直接定性。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "个人账户数据须依法取得；旧阈值和定性不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "经营收款码绑定个人账户，逐笔对应已完成订单且无退款，长期未进入企业账和申报", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "大额账户流入由股东借款合同、付款方询证、入账凭证和后续还款完整证明", "expected": "解释成立_关闭"},

@@ -200,7 +200,7 @@ async function renderChat(container) {
         <a class="cq-kb-link" href="javascript:navigateTo('knowledge-hub')">🧠 引擎知识中枢</a>
         <a class="cq-kb-link" href="javascript:navigateTo('methodology')">📖 稽查方法论</a>
         <a class="cq-kb-link" href="javascript:navigateTo('auditor-handbook')">⚖️ 稽查员手册</a>
-        <a class="cq-kb-link" href="javascript:navigateTo('tax-risk-rules-list')">📋 疑点库（1720条）</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('tax-risk-rules-list')">📋 规则与调查目录</a>
         <a class="cq-kb-link" href="javascript:navigateTo('report-standards')">📐 报告编制要求</a>
       </div>
       <div class="cq-right-section cq-footer">

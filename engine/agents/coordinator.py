@@ -131,9 +131,10 @@ class DialogAgent(BaseAgent):
         
         # 知识库
         self._tax_knowledge = self._init_tax_knowledge()
-        self._analysis_chains = self._load_json("static/cross_domain_analysis.json")
-        self._evidence_chains = self._load_json("static/cross_domain_evidence.json")
-        self._rules = self._load_json("static/tax_risk_rules_local_export.json")
+        from engine.methodology_catalog import load_flat_analysis, load_flat_evidence, load_flat_rules
+        self._analysis_chains = load_flat_analysis()
+        self._evidence_chains = load_flat_evidence()
+        self._rules = load_flat_rules()
     
     def _load_json(self, path: str) -> List[Dict]:
         full = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), path)
@@ -782,14 +783,16 @@ class RuleReasonerAgent(BaseAgent):
             ]
         )
         
-        # 加载规则库
+        # 加载权威事实核验合同
+        from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
         self._rules = self._load_rules()
-        self._evidence = self._load_json("static/cross_domain_evidence.json")
-        self._clues = self._load_json("static/cross_domain_clues.json")
-        self._analysis = self._load_json("static/cross_domain_analysis.json")
+        self._evidence = load_flat_evidence()
+        self._clues = load_flat_clues()
+        self._analysis = load_flat_analysis()
     
     def _load_rules(self) -> List[Dict]:
-        return self._load_json("static/tax_risk_rules_local_export.json")
+        from engine.methodology_catalog import load_flat_rules
+        return load_flat_rules()
     
     def _load_json(self, path: str) -> List[Dict]:
         full = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), path)

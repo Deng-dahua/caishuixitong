@@ -642,11 +642,9 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             '@app.get("/api/methodology/assets/{asset_name}")',
             main,
         )
-        for asset_name in ("rules", "clues", "evidence", "analysis", "framework", "playbooks"):
-            self.assertIn(
-                f"'/api/methodology/assets/{asset_name}",
-                methodology + risk_rules,
-            )
+        self.assertIn("/api/methodology/assets/canonical_catalog", risk_rules)
+        for asset_name in ("rules", "clues", "evidence", "analysis", "canonical_catalog", "industry_review"):
+            self.assertIn(f'"{asset_name}"', main)
         self.assertIn('"industry_profiles": "industry_audit_profiles.json"', main)
         for protected_asset in (
             "tax_risk_rules_local_export",
@@ -658,14 +656,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 f"fetch('/static/{protected_asset}.json",
                 methodology + risk_rules,
             )
-        self.assertIn(
-            '_asset_items(_json.load(f), "evidence_chains"',
-            main,
-        )
-        self.assertIn(
-            '"analysis_chains",\n                    "chains",',
-            main,
-        )
+        self.assertIn('"evidence": lambda: {"evidence_chains": load_flat_evidence()}', main)
+        self.assertIn('"analysis": lambda: {"analysis_chains": load_flat_analysis()}', main)
 
         guide_start = methodology.index("function _renderMethodologyGuide")
         guide_end = methodology.index(
@@ -677,7 +669,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "事实、证据、测算与法律适用分别复核",
             "系统只提供结构化复核，不作行政认定",
             "风险评分仅用于安排核验顺序",
-            "候选规则与正式规则分库管理",
+            "规则、调查、证据、分析和域协同作为同一场景合同编制并复审",
         ):
             self.assertIn(required_text, active_guide)
         for unsafe_text in (
@@ -711,14 +703,14 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         self.assertIn("税收优惠与权益保障", index)
         self.assertIn("tax-rights-hub.js?v=2026073101", index)
         self.assertIn("app.css?v=2026073034", index)
-        self.assertIn("chat.js?v=2026073101", index)
+        self.assertIn("chat.js?v=2026080302", index)
         self.assertIn("#main{margin-left:0;padding:3px}", index)
         self.assertIn(".content-area{padding:4px}", index)
         self.assertIn("engine-hub.js?v=2026073033", index)
         self.assertIn("tax-knowledge-hub.js?v=2026073018", index)
         self.assertIn("tax-engine-dashboard.js?v=2026073019", index)
-        self.assertIn("tax-risk-rules.js?v=2026080203", index)
-        self.assertIn("tax-pipeline-pages.js?v=2026080301", index)
+        self.assertIn("tax-risk-rules.js?v=2026080301", index)
+        self.assertIn("tax-pipeline-pages.js?v=2026080302", index)
         self.assertIn("system-logs.js?v=2026073101", index)
         self.assertIn("core.js?v=2026073021", index)
         self.assertIn("tax-report-standards.js?v=2026073032", index)
@@ -971,16 +963,11 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn('class="rr-table rr-rule-table"', rules)
-        self.assertIn(".rr-rule-table{min-width:1160px", rules)
-        self.assertIn(
-            '<colgroup><col style="width:6%"><col style="width:28%">'
-            '<col style="width:14%"><col style="width:10%">'
-            '<col style="width:7%"><col style="width:7%">'
-            '<col style="width:7%"><col style="width:12%">'
-            '<col style="width:9%"></colgroup>',
-            rules,
-        )
+        self.assertIn('class="method-framework-table"', rules)
+        self.assertIn('<th style="width:13%">编号</th>', rules)
+        self.assertIn('<th style="width:27%">必需字段</th>', rules)
+        self.assertIn('<th style="width:24%">应先排除</th>', rules)
+        self.assertNotIn('class="rr-table rr-rule-table"', rules)
         self.assertEqual(
             methodology.count(
                 'class="rr-table method-chain-table"><colgroup>'

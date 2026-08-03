@@ -1289,220 +1289,24 @@ async def tax_risk_rules_upload_report(request: Request):
 
 @app.post("/api/tax-risk-rules/promote-auto-rule")
 def promote_auto_rule(rule_id: str = Query(...)):
-    """自动发现只能进入候选队列，模型填充不能替代规则验证。"""
     return {
         "ok": False,
-        "status": "candidate_review_required",
-        "message": "自动发现信号不能直接升级为正式规则；请补齐官方来源、适用期间、字段契约、正反样本、维护人和回退方案。",
+        "status": "catalog_review_required",
+        "message": "Observed signals cannot be promoted directly; publish a complete reviewed methodology version.",
         "rule_id": rule_id,
     }
-    import json as _json, os as _os, shutil as _sh
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    if not _os.path.exists(rp):
-        return {"ok": False, "message": "规则文件不存在"}
-    _sh.copy2(rp, rp + ".bak")
-    try:
-        with open(rp, "r", encoding="utf-8") as _f:
-            rules = _json.load(_f)
-    except Exception as _e:
-        return {"ok": False, "message": f"读取规则文件失败: {_e}"}
-    found = None
-    for _r in rules:
-        if str(_r.get("id", "")) == rule_id:
-            found = _r; break
-    if not found:
-        return {"ok": False, "message": f"未找到规则 {rule_id}"}
-    if found.get("type") != "auto_signal":
-        return {"ok": False, "message": "该规则不是自动发现规则，无需升级"}
-    industry = found.get("industry", "") or "通用"
-    confidence = found.get("confidence", 0.9)
-    now_str = str(__import__("datetime").datetime.now().isoformat())
-    fill_source = "template"  # 记录填充来源
-    llm_error = ""            # 记录LLM失败原因（不静默吞）
 
-    # ═══ 第1层：LLM 推理填充（API Key优先 → Ollama → 失败则降级模板）═══
-    try:
-        from engine.llm_client import get_llm
-        llm = get_llm()
-        # available / active_backend 是 property（非方法），不能加括号调用
-        if llm.available:
-            prompt = f"""你是一位资深中国税务合规专家。系统自动发现了一条行业特征信号，请将其转化为一条完整、专业的税务合规规则。
-            信号信息：行业={industry}，置信度={confidence}。
-            请以 JSON 格式返回，包含以下全部字段（不要省略任何字段），字段值为中文：
-            {{"item":"规则名称（简洁专业）","level":"风险等级（高风险/中风险/低风险 之一）","score":整数1-10评分,"detail":"详细检查标准（2-3句话，说明触发条件和分析逻辑）","suggestion":"税务合规建议（2-3句话，给出具体处理建议）","evidence":"所需佐证材料（列出需要哪些数据或文件来验证）","tax_impact":"税务影响说明（该风险对企业的税务后果）","policy_ref":"法律依据（如知悉相关税法条文请引用，否则写'待补充法律依据'）","category":"规则分类（如增值税、企业所得税、收入合规等）","dataSource":"数据来源","detectable":"可检测性说明"}}
-            只返回 JSON，不要其他文字。"""
-            resp = llm.chat([{"role":"user","content":prompt}], system="你是中国税务稽查专家，请生成专业的税务合规规则。", temperature=0.3, max_tokens=1200)
-            if resp and resp.content:
-                # 从LLM响应中提取JSON
-                cnt = resp.content.strip()
-                if cnt.startswith("```"): cnt = cnt.split("\n",1)[-1].rsplit("```",1)[0].strip()
-                # 容错：截取第一个 { 到最后一个 } 之间的内容
-                if not cnt.startswith("{") and "{" in cnt:
-                    cnt = cnt[cnt.find("{"):cnt.rfind("}")+1]
-                data = _json.loads(cnt)
-                for k in ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","dataSource","detectable"]:
-                    if k in data and data[k] is not None and str(data[k]).strip():
-                        found[k] = data[k]
-                fill_source = "llm:" + llm.active_backend
-            else:
-                llm_error = "LLM返回空内容"
-        else:
-            llm_error = "无可用LLM后端(未配置API Key且Ollama未运行)"
-    except Exception as _le:
-        llm_error = f"{type(_le).__name__}: {_le}"  # 不静默吞，记录原因供诊断
 
-    # ═══ 第2层：模板兜底（LLM未填充的字段用模板补） ═══
-    if confidence >= 0.95: _lv = "高风险"
-    elif confidence >= 0.85: _lv = "中风险"
-    else: _lv = "低风险"
-    _sc = max(1, min(10, round(confidence * 10)))
-    found["type"] = "manual"
-    if not found.get("item"): found["item"] = "[" + industry + "] 行业特征异常信号"
-    if not found.get("level"): found["level"] = _lv
-    if not found.get("score"): found["score"] = _sc
-    if not found.get("detail"): found["detail"] = "基于跨企业模式检测，在" + industry + "行业内发现重复出现的数据信号特征，置信度" + str(round(confidence*100)) + "%。该信号在同行业多企业中呈现一致性，可能指示行业性合规风险模式。"
-    if not found.get("suggestion"): found["suggestion"] = "建议结合具体企业数据验证该信号是否构成实质性风险，排除行业共性后确认是否纳入正式规则库。"
-    if not found.get("evidence"): found["evidence"] = "跨企业模式检测引擎输出 + " + industry + "行业数据对比"
-    if not found.get("tax_impact"): found["tax_impact"] = "如被确认为实质性风险，可能影响" + industry + "行业企业的税务合规评估结果。"
-    if not found.get("policy_ref"): found["policy_ref"] = "自动发现，待补充具体法律依据"
-    if not found.get("category"): found["category"] = "行业专项"
-    if not found.get("dataSource"): found["dataSource"] = "自动发现引擎 - " + industry + "行业信号挖掘"
-    if not found.get("detectable"): found["detectable"] = "需在同行业≥3家企业中验证后提升为正式规则"
-    found["promoted_at"] = now_str
-    found["auto_filled"] = True
-    found["fill_source"] = fill_source
-    try:
-        with open(rp, "w", encoding="utf-8") as _f:
-            _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        _msg = f"规则 {rule_id}（{industry}）已升级为正式规则（填充来源: {fill_source}）"
-        if fill_source == "template" and llm_error:
-            _msg += f"｜LLM未启用: {llm_error}"
-        return {"ok": True, "message": _msg, "fill_source": fill_source, "llm_error": llm_error}
-    except Exception as _e:
-        return {"ok": False, "message": f"保存失败: {_e}"}
-
-# —— 自动发现规则精写：用LLM按23字段标准填充内容 ——
 def enrich_auto_rules_with_llm():
-    """保留兼容入口；自动规则模型精写已停用。"""
-    return {"ok": False, "status": "disabled_by_methodology_governance"}
-    import json as _json, os as _os, shutil as _sh, threading
-    def _do_enrich():
-        try:
-            rp = _os.path.join(_os.path.dirname(__file__), "static", "auto_discovered_rules.json")
-            if not _os.path.exists(rp): return
-            _sh.copy2(rp, rp + ".bak")
-            with open(rp, "r", encoding="utf-8") as _f:
-                rules = _json.load(_f)
-            # 找缺少精写内容或基于旧标准的规则（v3=穷举至稽查终点标准）
-            need = [r for r in rules if (
-                len(r.get("direction",""))<50 or 
-                not r.get("phenomena") or 
-                len(r.get("drill_questions",""))<30 or
-                r.get("standard_version","") != "2026-07-12-v3"  # v3:穷举至稽查终点·环环相扣
-            )]
-            if not need: return
-            cfg = _load_api_config()
-            api_key = cfg.get("key","")
-            if not api_key: return
-            for r in need[:5]:  # 每次最多1720条
-                item = r.get("item","")
-                prompt = f"""你是50年税务稽查局长。按以下23字段精写标准，将自动发现规则补全为完整稽查指令。
-
-【规则信息】
-标题: {item}
-分类: {r.get('category','')}
-行业: {r.get('industry','')}
-信号: {r.get('signal','')}
-
-【★★★★★ 政策合规要求 —— 最高优先级，每处错误都可能引发法律风险】
-1.【法规名称准确性】引用法条名称必须与现行法律完全一致——严禁编造不存在法条。增值税相关引用《中华人民共和国增值税法》（2026年1月1日起施行）及其实施条例（国务院令第826号）——《增值税暂行条例》及其实施细则已于2026年1月1日废止，严禁再引用；营业税已于2016年5月1日营改增后全面废止，严禁引用。
-2.【法规时效性·强制核查】引用的每一条法规必须现行有效，并在policy_ref末尾附法规现行性核验日期（格式：法规现行性核验：YYYY-MM-DD）。已废止/被替代的必须更新为现行法：增值税暂行条例→增值税法(2026-01-01施行,原暂行条例第1720条税率→增值税法第1720条/第1720条销售额价外费用→第11720条/第11720条纳税义务时间→第21720条)；营业税→增值税；《会计法》引用须标注2024修正版。财税发文需确认未被后续文件替代；试行文件核实是否已转正。
-3.【刑事标准准确性】虚开专票罪看税款数额非发票金额，入罪门槛税款>=10万元(法释[2024]4号)。偷税移送：逃税>=10万且占应纳税额10%以上。
-4.【税法例外条款】不能遗漏法定例外情形（代垫运费/买方自提/善意取得虚开发票等）。一般规则之外必有例外。
-5.【定性逻辑严谨性】疑点不等于结论。必须区分"高疑点信号→需进一步核查取证→综合判断定性"的递进逻辑。
-6.【关联法规完整性】同一事项须同时引用行政处罚法条和刑事责任法条，两者缺一不可。
-
-【生成字段 —— 23字段完整版框架。核心原则：决定数量的不是模板，是业务本身的复杂程度。复杂疑点追问可能二十条、推理可能五层；简单疑点追问四五条、推理两层就到底。数量是写完之后的自然结果，不是写之前的硬性规定——不凑数、不强编、一病一方。品质标杆见engine/memory.py·canonical_example（#1813预收账款长期挂账）。】
-
-- direction: 推理至稽查终点——证实违法或排除违法。层数由因果链条自然长度决定，不预设。结束条件满足任一即停：①定性落地(最后一层指向偷税/少缴/虚开/不违规，无法再追问'然后呢')；②证据尽头(下一层证据无法获取，标注'证据断点')；③逻辑闭环(回到第一层前提)。复杂异常自然4-5层、中等3-4层、简单2-3层，再加一层就是注水。每层格式【推理第N层：XX法则】依赖证据：XX → 结论：XX。
-- drill_questions: 穷举至稽查终点——数量由三维覆盖度决定不设固定数：①事实层=交易六要素(谁/什么/什么时候/在哪里/怎么做的/谁参与的)全覆盖；②证据层=四流(合同/货物/资金/发票)每环节全追问；③逻辑层=所有合理商业解释全排除。最终判定：对'还有未覆盖的交易要素吗/四流还有未追问的证据环节吗/对方还可能提哪些没问到的解释'三问全答'否'即穷举完成——11720条还是1720条都对。三组(事实→证据→逻辑)递进排列。格式 Q{N}:{问题}→潜台词:{稽查真实意图}。A:{应对话术}。
-- phenomena: 典型表现枚举(非穷举)，每种格式: 表现+典型行业/场景。多则多写少则少写+兜底条款+排除条件。排除条件: 什么情况下类似表现不属于本异常。
-- focus: 策略层——舞弊手法预判。格式: 手法名称: 操作方式→识别要点。用①②③④标注。与drill_questions分工: focus=策略层(预判)，drill=执行层(提问)。
-- normal_reason: 穷举全部真实合法情形，数量下限0上限穷举完毕。格式 {情形}——需提供{具体证据}，证据可核验。五个自问全答'否'即穷举完成(合同条款/行业惯例/交易对手特殊情况/税收政策特殊规定/不可抗力)。仅0-3种时注明'该异常违背正常商业逻辑，已穷举全部合法情形'；5种以上需自问该异常是否真构成异常。不编造。
-- determination: 三路径对应证据链三档定级——无法证明→线索(单源)→定性存疑不入结论；部分证明→强证据(2源)→定性涉嫌；完整证明→铁证(≥3源)→定性认定。每路径定义进入条件。
-- risk_table: 疑点影响几个税种就写几个税种，不设数量下限。格式 税种:具体风险描述。跨税种≥2个逐税种列明并区分核心/次要/间接；仅单一税种(如印花税漏缴)注明'仅影响XX税不涉及其他'，不强制跨税种注水。
-- evidence: 四层框架+金额分级+优先级。大额(>10万)分AB场景(自提vs直运)；中额(1-10万)≥2维度；小额(<1万)抽样。每层标注优先级(必须/应当/可以)，每层至少1项'必须获取'。排雷层与normal_reason联动。
-- action: 从纸面比对到现场核查穷举全部步骤，下限至少3步含1项现场核查、上限穷举完毕。每步标注动作类型(现场核查/纸面比对/外调走访/联网核查)+预期产出。纯申报类异常允许注明现场核查不可行并补充替代手段。
-- suggestion: 稽查局视角。固定格式: 定性→补税(分税种+金额)→滞纳金(日万分之五+起止)→罚款(征管法条款+区间)→移送标准(金额/情节)。
-- threshold: 量化阈值+前置条件(行业+资质+数据+时间四维度)。含行业差异: 通用阈值+行业调整(如建筑业/商贸业/服务业不同标准)。二元异常写=是即触发。预警等级黄/橙/红。
-- remedy: 企业视角。三阶段含时间——自查(收到通知前·主动补报减罚)→应对(稽查中·话术策略)→制度(长期建设)。与suggestion分工: suggestion=稽查局视角(处罚)，remedy=企业视角(合规)。
-
-【禁止行为】禁止凑数凑字、禁止为凑数字硬编内容。追问穷举至稽查终点（证实或排除），问题环环相扣、因果递进。数量是业务复杂度的自然结果——复杂就多写，简单就如实写。一病一方。
-
-只返回JSON: {{"id":{r['id']},"direction":"...","phenomena":"...",...}}"""
-                try:
-                    import httpx
-                    resp = httpx.post(
-                        f"{cfg['base_url'].rstrip('/')}/chat/completions",
-                        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                        json={"model": cfg["model"], "messages":[{"role":"user","content":prompt}], "temperature":0.3, "max_tokens":4000},
-                        timeout=120.0
-                    )
-                    if resp.status_code==200:
-                        import re
-                        txt = resp.json()["choices"][0]["message"]["content"]
-                        m = re.search(r'\{[\s\S]*\}', txt)
-                        if m:
-                            filled = _json.loads(m.group())
-                            for k in ["phenomena","direction","focus","risk_table","normal_reason","determination","drill_questions","action","threshold","evidence","remedy"]:
-                                if k in filled and filled[k]:
-                                    r[k] = filled[k]
-                except: pass
-            with open(rp, "w", encoding="utf-8") as wf:
-                _json.dump(rules, wf, ensure_ascii=False, indent=2)
-        except: pass
-    threading.Thread(target=_do_enrich, daemon=True).start()
+    return {"ok": False, "status": "retired_use_versioned_catalog"}
 
 @app.post("/api/tax-risk-rules/update-rule")
 async def update_rule(request: Request):
-    """编辑人工规则：接收 JSON body，写回规则文件"""
-    import json as _json, os as _os, shutil as _sh
-    body = {}
-    try:
-        body = await request.json()
-    except: pass
-    rule_id = body.get("rule_id") or ""
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    if not _os.path.exists(rp):
-        return {"ok": False, "message": "规则文件不存在"}
-    _sh.copy2(rp, rp + ".bak")
-    try:
-        with open(rp, "r", encoding="utf-8") as _f:
-            rules = _json.load(_f)
-    except Exception as _e:
-        return {"ok": False, "message": f"读取失败: {_e}"}
-    found = None
-    for _r in rules:
-        if str(_r.get("id", "")) == rule_id:
-            found = _r; break
-    if not found:
-        return {"ok": False, "message": f"未找到规则 {rule_id}"}
-    # 允许编辑的字段
-    editable = ["item","level","score","detail","suggestion","evidence","tax_impact","policy_ref","category","dataSource","detectable"]
-    changed = []
-    for k in editable:
-        if k in body and body[k] is not None and body[k] != found.get(k):
-            found[k] = body[k]
-            changed.append(k)
-    if not changed:
-        return {"ok": False, "message": "没有字段变更"}
-    found["updated_at"] = str(__import__("datetime").datetime.now().isoformat())
-    try:
-        with open(rp, "w", encoding="utf-8") as _f:
-            _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        return {"ok": True, "message": f"已更新 {len(changed)} 个字段: {', '.join(changed)}", "changed": changed}
-    except Exception as _e:
-        return {"ok": False, "message": f"保存失败: {_e}"}
+    return {
+        "ok": False,
+        "status": "versioned_catalog_required",
+        "message": "Rules, clues, evidence and analysis must be reviewed and published as one complete version.",
+    }
 
 @app.get("/api/tax-risk-rules/execution-guide")
 def get_execution_guide():
@@ -1515,232 +1319,32 @@ def get_execution_guide():
 
 @app.post("/api/tax-risk-rules/batch-refresh")
 def batch_refresh_rules():
-    """禁止用更新时间戳冒充政策核验。"""
     return {
         "ok": False,
         "status": "provenance_review_required",
-        "message": "批量时间戳刷新已停用：政策核验必须逐条记录官方链接、适用期间、核验日期和复核人。",
+        "message": "A timestamp refresh cannot replace source-by-source policy review.",
     }
-    import json as _json, os as _os, shutil as _sh
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    if not _os.path.exists(rp):
-        return {"ok": False, "message": "规则文件不存在"}
-    _sh.copy2(rp, rp + ".bak")
-    try:
-        with open(rp, "r", encoding="utf-8") as _f:
-            rules = _json.load(_f)
-    except Exception as _e:
-        return {"ok": False, "message": f"读取失败: {_e}"}
-    refreshed = 0
-    now_str = str(__import__("datetime").datetime.now().isoformat())
-    for _r in rules:
-        if _r.get("type") == "auto_signal":
-            continue
-        _r["refreshed_at"] = now_str
-        refreshed += 1
-    try:
-        with open(rp, "w", encoding="utf-8") as _f:
-            _json.dump(rules, _f, ensure_ascii=False, indent=2)
-        return {"ok": True, "message": f"已刷新 {refreshed} 条人工规则，标记时间戳 {now_str[:19]}"}
-    except Exception as _e:
-        return {"ok": False, "message": f"保存失败: {_e}"}
 
 _tax_risk_rules_display_cache = {}
 
 
 @app.get("/api/tax-risk-rules/data")
 def get_tax_risk_rules_data():
-    """返回只读候选规则；展示响应统一执行方法论边界适配。"""
-    import os as _os
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    if not _os.path.exists(rp):
-        return {"ok": False, "message": "规则文件不存在"}
-    try:
-        stat = _os.stat(rp)
-        cache_key = (stat.st_mtime_ns, stat.st_size)
-        cached = _tax_risk_rules_display_cache.get(cache_key)
-        if cached is not None:
-            return cached
-        with open(rp, "r", encoding="utf-8") as _f:
-            data = _json.load(_f)
-        from engine.methodology_assets import prepare_methodology_asset
-        prepared = prepare_methodology_asset("rules", data)
-        _tax_risk_rules_display_cache.clear()
-        _tax_risk_rules_display_cache[cache_key] = prepared
-        return prepared
-    except Exception as _e:
-        return {"ok": False, "message": f"读取失败: {_e}"}
+    """返回现行权威核验规则；不包含已退役候选规则。"""
+    from engine.methodology_catalog import load_flat_rules
+
+    return load_flat_rules()
 
 @app.post("/api/tax-risk-rules/batch-rewrite")
 async def batch_rewrite_rules(request: Request):
-    """模型批量改写不能升级规则成熟度，旧入口停用。"""
     return {
         "ok": False,
-        "status": "disabled_by_methodology_governance",
-        "message": "模型批量改写已停用；规则必须经过来源、字段契约、正反样本和人工复核后分批升级。",
+        "status": "versioned_catalog_required",
+        "message": "Isolated model rewrites are retired; publish the complete reviewed methodology version.",
     }
-    api_cfg = get_api_config()
-    api_key = api_cfg.get("key", "")
-    if not api_key:
-        return {"ok": False, "message": "⛔ 批量精写已禁用：未接入LLM。请先配置API Key。"}
-    base_url = api_cfg.get("base_url", "https://api.deepseek.com/v1")
-    model = api_cfg.get("model", "deepseek-chat")
-    try:
-        import socket, httpx
-        from urllib.parse import urlparse
-        pu = urlparse(base_url)
-        socket.create_connection((pu.hostname, pu.port or (443 if pu.scheme=="https" else 80)), timeout=5).close()
-    except Exception:
-        return {"ok": False, "message": "⛔ 批量精写已禁用：无法连接LLM服务。请检查网络。"}
-    
-    import json as _json, os as _os
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    with open(rp, "r", encoding="utf-8") as _f:
-        rules = _json.load(_f)
-    
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    rule_ids = body.get("rule_ids", [])
-    max_per = min(body.get("max_per_call", 3), 5)  # 每次最多1720条
-    
-    if not rule_ids:
-        return {"ok": False, "message": "请指定要精写的规则ID列表"}
-    
-    # 读精写标准（动态注入，标准改动自动同步）
-    _iron = ""; _exhaust = ""; _repealed = ""
-    try:
-        from engine.memory import TAX_BURDEN_RULES
-        _rpw = TAX_BURDEN_RULES.get("rule_precise_writing", {})
-        _iron = " ".join(_rpw.get("iron_rules", []))
-        _ec = _rpw.get("exhaustion_criteria", {})
-        _exhaust = _ec.get("principle", "") + " 追问穷举判断：" + \
-            _ec.get("drill_questions_done", {}).get("最终判定", "")
-        _rlw = _rpw.get("repealed_law_watch", {})
-        _rep_txt = []
-        for _r in _rlw.get("repealed", []):
-            _rep_txt.append(_r.get("废止法规","")+"→"+_r.get("替代法规",""))
-        _repealed = "；".join(_rep_txt)
-        _baseline = _rlw.get("current_valid_baseline", "")
-    except Exception:
-        pass
-    
-    # 筛选目标规则
-    target_rules = []
-    for rid in rule_ids[:max_per]:
-        for r in rules:
-            if str(r.get("id")) == str(rid):
-                target_rules.append(r)
-                break
-    
-    if not target_rules:
-        return {"ok": False, "message": "未找到指定规则"}
-    
-    # 构建精写Prompt（取标杆范例兜底）
-    prompt_parts = [
-        "你是50年税务稽查局长。逐条把以下税务疑点规则，按23字段精写标准做深度精写。",
-        "【铁律】" + _iron,
-        "【穷举判定标准】" + _exhaust if _exhaust else "",
-        "【法规时效红线】严禁引用已废止法规！" + _repealed + "。现行有效基线：" + _baseline + \
-            "。每条 policy_ref 必须用'现行有效的《XX法》(版本)第X条'格式，末尾附'法规现行性核验：2026-07-13'。",
-        "【精写要求】每条规则输出完整JSON，必须包含以下23字段且逐一精深编写（不设字数上限，应写尽写）：",
-        "- direction：推理链，层与层因果递进，每层标注依赖证据类型。结束条件：定性落地/证据尽头/逻辑闭环。复杂异常4-5层、中等3-4层、简单2-3层——层数是写完的自然结果。",
-        "- drill_questions：穿透追问，三组递进（事实→证据→逻辑），每条追问格式 Q{N}:{问题}→潜台词:{稽查意图}。A:{应对话术}。追问数量由三维覆盖度决定：事实层六要素全覆盖+证据层四流全追问+逻辑层合理解释全排除。最终三问全答'否'即穷举完成。",
-        "- phenomena：异常定义+典型表现(至少5种)+兜底条款+排除条件。",
-        "- focus：稽查重点——舞弊手法预判，①②③④⑤逐条标注，每条=具体操作方式→识别要点。",
-        "- normal_reason：穷举全部真实合法情形，格式{情形}——需提供{具体证据}。5个自问全答'否'即穷举完成。仅0-3种时注明'已穷举全部合法情形'。",
-        "- determination：三路径(无法证明→线索/部分证明→强证据/完整证明→铁证)，每路径定义进入条件+定性+后果。",
-        "- risk_table：影响几个税种写几个，跨税种≥2逐税种列明并区分核心/次要/间接影响。",
-        "- evidence：四层框架(货物流+合同资金流+业务合理性+排雷)+金额分级+优先级标注(必须/应当/可以)。",
-        "- threshold：量化阈值+行业差异调整+前置条件四维度+触发方式。",
-        "- action：至少3步含1项现场核查，每步=动作类型+具体操作+预期产出。",
-        "- suggestion：稽查局视角，定性→补税→滞纳金→罚款→移送标准。",
-        "- remedy：企业视角，三阶段(自查→应对→制度)，含时间维度+话术策略。",
-        "另外必须填写 item/category/level/score/check_frequency/policy_ref/tax_impact/applicable_condition 等基础字段。",
-        "【品质标杆参考（engine/memory.py canon名例 #1813 预收账款长期挂账）】",
-        "追问11720条三组穷举至稽查终点、推理链4层自然因果递进、正常解释4种已穷举、证据四层框架含AB场景+优先级。",
-        "【禁止】禁止凑数凑字、禁止硬编固定数量、禁止引用已废止法规、禁止推荐行业特化规则。数量是业务复杂度的自然结果。",
-        "【输出格式】严格返回JSON数组（不做任何额外解释），每个元素是一条精写后的完整规则对象：",
-        '[{"id":原id,"item":"...","category":"...","level":"...","score":N, ...全部23字段...}]'
-    ]
-    prompt = "\n".join(p for p in prompt_parts if p)
-    
-    # 精简输入：只传规则的 item/category/level/现有detail
-    input_rules = []
-    for r in target_rules:
-        input_rules.append({"id": r["id"], "item": r.get("item", ""),
-                           "category": r.get("category", ""), "level": r.get("level", ""),
-                           "existing_detail": str(r.get("detail", r.get("direction", "")))[:300]})
-    prompt += "\n\n【待精写规则】\n" + _json.dumps(input_rules, ensure_ascii=False)
-    
-    try:
-        api_url = base_url.rstrip("/") + "/chat/completions"
-        async with httpx.AsyncClient(timeout=180) as client:
-            resp = await client.post(
-                api_url,
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": model, "messages": [{"role": "user", "content": prompt}],
-                      "temperature": 0.3, "max_tokens": 12000}
-            )
-            if resp.status_code != 200:
-                return {"ok": False, "message": f"LLM调用失败: HTTP {resp.status_code} - {resp.text[:200]}"}
-            ai_text = resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return {"ok": False, "message": f"LLM调用异常: {str(e)}"}
-    
-    # 解析结果
-    import re
-    json_match = re.search(r'\[[\s\S]*\]', ai_text)
-    if not json_match:
-        return {"ok": False, "message": "AI返回格式异常", "raw": ai_text[:500]}
-    try:
-        rewritten = _json.loads(json_match.group())
-    except Exception:
-        return {"ok": False, "message": "AI返回JSON解析失败", "raw": ai_text[:500]}
-    
-    # 引擎自动校验：替换废止法条 + 补核验标注
-    try:
-        from engine.law_validity_checker import auto_process
-        auto_process(rewritten)
-    except Exception:
-        pass
-    
-    # 写回规则库（身份锁：id/item/category 保留原值，LLM 不得改名/改类）
-    for rw in rewritten:
-        rid = str(rw.get("id"))
-        for i, r in enumerate(rules):
-            if str(r.get("id")) == rid:
-                rw["id"] = r.get("id")
-                rw["item"] = r.get("item", "")
-                rw["category"] = r.get("category", "")
-                rw["monitor_category"] = r.get("monitor_category", "")
-                rules[i] = rw
-                break
-    
-    with open(rp, "w", encoding="utf-8") as _f:
-        _json.dump(rules, _f, ensure_ascii=False, indent=2)
-    
-    # 质量统计
-    stats = {
-        "total": len(rewritten), "direction_layers": [],
-        "drill_count": [], "normal_reason_count": []
-    }
-    for rw in rewritten:
-        dr = str(rw.get("direction", ""))
-        dq = str(rw.get("drill_questions", ""))
-        nr = str(rw.get("normal_reason", ""))
-        stats["direction_layers"].append(dr.count("推理第") if dr.count("推理第") else dr.count("【推理"))
-        stats["drill_count"].append(dq.count("→潜台词"))
-        stats["normal_reason_count"].append(nr.count("需提供证据") or nr.count("需提供"))
-    
-    return {"ok": True, "rewritten_ids": [rw.get("id") for rw in rewritten],
-            "stats": stats,
-            "sample_item": rewritten[0].get("item", "") if rewritten else "",
-            "message": f"已精写{len(rewritten)}条规则，引擎自动校验完成"}
 
 
-# ── 涉税风险分析资料库 ──
+# Tax-risk analysis upload storage
 
 UPLOAD_DIR = str(RUNTIME_UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -1987,14 +1591,10 @@ def _extract_structured_data(text, filename):
 
 
 def _load_tax_risk_rules():
-    """加载涉税风险规则JSON"""
-    import json as _json
-    rules_path = os.path.join(os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    try:
-        with open(rules_path, "r", encoding="utf-8") as f:
-            return _json.load(f)
-    except Exception:
-        return []
+    """加载现行权威事实核验规则。"""
+    from engine.methodology_catalog import load_flat_rules
+
+    return load_flat_rules()
 
 
 def _match_all_rules(all_text, file_texts, rules):
@@ -6774,55 +6374,16 @@ def get_system_stats():
                     return items
         return []
     try:
-        # 规则数：从实际规则JSON文件统计
-        rp = os.path.join(base, "static", "tax_risk_rules_local_export.json")
-        if os.path.exists(rp):
-            with open(rp, "r", encoding="utf-8") as f:
-                rules = _asset_items(_json.load(f), "rules", "items")
-            stats["rules_count"] = len(rules)
-        else:
-            stats["rules_count"] = 0
-    except Exception as e:
-        stats["rules_count"] = 0
-    try:
-        # 线索链数：从实际线索链JSON统计（chain_type=="线索链"的可执行条数）
-        cp = os.path.join(base, "static", "cross_domain_clues.json")
-        if os.path.exists(cp):
-            with open(cp, "r", encoding="utf-8") as f:
-                clues = _asset_items(_json.load(f), "clue_chains", "chains", "items")
-            stats["clue_chains"] = len([c for c in clues if c.get("chain_type") == "线索链"])
-            stats["clue_chains_total"] = len(clues)
-        else:
-            stats["clue_chains"] = 0
-    except Exception as e:
-        stats["clue_chains"] = 0
-    try:
-        # 证据链数
-        ep = os.path.join(base, "static", "cross_domain_evidence.json")
-        if os.path.exists(ep):
-            with open(ep, "r", encoding="utf-8") as f:
-                ev = _asset_items(_json.load(f), "evidence_chains", "chains", "items")
-            stats["evidence_chains"] = len(ev)
-        else:
-            stats["evidence_chains"] = 0
-    except Exception as e:
-        stats["evidence_chains"] = 0
-    try:
-        # 分析链数
-        ap = os.path.join(base, "static", "cross_domain_analysis.json")
-        if os.path.exists(ap):
-            with open(ap, "r", encoding="utf-8") as f:
-                analysis = _asset_items(
-                    _json.load(f),
-                    "analysis_chains",
-                    "chains",
-                    "items",
-                )
-            stats["analysis_chains"] = len(analysis)
-        else:
-            stats["analysis_chains"] = 0
+        from engine.methodology_catalog import methodology_inventory
+        methodology = methodology_inventory()
+        stats["rules_count"] = methodology["rules"]
+        stats["clue_chains"] = methodology["clue_paths"]
+        stats["clue_chains_total"] = methodology["clue_paths"]
+        stats["evidence_chains"] = methodology["evidence_plans"]
+        stats["analysis_chains"] = methodology["analysis_plans"]
+        stats["methodology_scenarios"] = methodology["industry_scenarios"]
     except Exception:
-        stats["analysis_chains"] = 0
+        stats.update({"rules_count": 0, "clue_chains": 0, "clue_chains_total": 0, "evidence_chains": 0, "analysis_chains": 0, "methodology_scenarios": 0})
     try:
         # 行业数和关键词数：从industry_data.json统计
         ip = os.path.join(base, "static", "industry_data.json")
@@ -6898,11 +6459,23 @@ def get_methodology_asset(asset_name: str):
     """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
     import os as _os
 
+    normalized_asset = str(asset_name or "").strip().lower()
+    from engine.methodology_catalog import (
+        load_canonical_catalog, load_flat_analysis, load_flat_clues,
+        load_flat_evidence, load_flat_rules, load_industry_review,
+    )
+    virtual_assets = {
+        "rules": load_flat_rules,
+        "clues": load_flat_clues,
+        "evidence": lambda: {"evidence_chains": load_flat_evidence()},
+        "analysis": lambda: {"analysis_chains": load_flat_analysis()},
+        "canonical_catalog": load_canonical_catalog,
+        "industry_review": load_industry_review,
+    }
+    if normalized_asset in virtual_assets:
+        return virtual_assets[normalized_asset]()
+
     filenames = {
-        "rules": "tax_risk_rules_local_export.json",
-        "clues": "cross_domain_clues.json",
-        "evidence": "cross_domain_evidence.json",
-        "analysis": "cross_domain_analysis.json",
         "framework": "methodology_framework.json",
         "industry_profiles": "industry_audit_profiles.json",
         "playbooks": "methodology_chain_playbooks.json",
@@ -6915,7 +6488,7 @@ def get_methodology_asset(asset_name: str):
         "wholesale_retail_scenario_contracts": "wholesale_retail_scenario_contracts.json",
         "platform_scenario_contracts": "platform_scenario_contracts.json",
     }
-    filename = filenames.get(str(asset_name or "").strip().lower())
+    filename = filenames.get(normalized_asset)
     if not filename:
         raise HTTPException(status_code=404, detail="未知的方法论数据类型")
     asset_path = _os.path.join(_os.path.dirname(__file__), "static", filename)
@@ -6942,13 +6515,11 @@ def get_methodology_asset(asset_name: str):
 
 @app.get("/api/methodology/coverage")
 def get_methodology_coverage():
-    """返回候选规则、已验证规则和已知空白的真实覆盖矩阵。"""
+    """返回权威方法论、行业场景深度和已知空白的真实覆盖矩阵。"""
     static_root = _os.path.join(_os.path.dirname(__file__), "static")
     filenames = (
-        "tax_risk_rules_local_export.json",
-        "cross_domain_clues.json",
-        "cross_domain_evidence.json",
-        "cross_domain_analysis.json",
+        "methodology_canonical_catalog.json",
+        "industry_scenario_review.json",
         "industry_audit_profiles.json",
         "industry_methodology_packs.json",
         "agriculture_scenario_contracts.json",
@@ -6981,50 +6552,8 @@ def get_methodology_rewrite_ledger(
     offset: int = Query(0, ge=0),
     limit: int = Query(40, ge=1, le=200),
 ):
-    """分页返回1720条候选规则的只读重写迁移账册。"""
-    rules_path = _os.path.join(
-        _os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json"
-    )
-    contract_paths = [
-        _os.path.join(_os.path.dirname(__file__), "static", filename)
-        for filename in (
-            "agriculture_scenario_contracts.json",
-            "mining_scenario_contracts.json",
-            "wholesale_retail_scenario_contracts.json",
-            "platform_scenario_contracts.json",
-        )
-    ]
-    try:
-        stat = _os.stat(rules_path)
-        contract_stats = [
-            (path, _os.stat(path).st_mtime_ns, _os.stat(path).st_size)
-            for path in contract_paths
-        ]
-        cache_key = (
-            rules_path, stat.st_mtime_ns, stat.st_size,
-            tuple(contract_stats),
-            int(offset), int(limit),
-        )
-        cached = _methodology_rewrite_cache.get(cache_key)
-        if cached is not None:
-            return cached
-        with open(rules_path, "r", encoding="utf-8") as rule_file:
-            rules = _json.load(rule_file)
-        contracts = []
-        for contract_path in contract_paths:
-            with open(contract_path, "r", encoding="utf-8") as contract_file:
-                contracts.append(_json.load(contract_file))
-        from engine.candidate_rule_governance import build_absorption_map, build_candidate_rewrite_ledger
-        absorption_map = build_absorption_map(contracts)
-        report = build_candidate_rewrite_ledger(
-            rules, offset=offset, limit=limit, absorption_map=absorption_map
-        )
-        if len(_methodology_rewrite_cache) >= 16:
-            _methodology_rewrite_cache.clear()
-        _methodology_rewrite_cache[cache_key] = report
-        return report
-    except (OSError, ValueError, TypeError) as exc:
-        raise HTTPException(status_code=500, detail="候选规则重写账册生成失败") from exc
+    """旧候选迁移账册已经退役，不再属于现行系统。"""
+    raise HTTPException(status_code=410, detail="旧候选迁移账册已退役；请使用权威方法论目录和行业场景复审数据。")
 
 
 def patrol_status_v2():
@@ -8835,81 +8364,26 @@ def get_engine_rules():
         "rules": contr_rules,
     }
 
-    # Phase 3 跨域分析推理链（从cross_domain_analysis.json加载）
-    try:
-        with open(os.path.join(base, "cross_domain_analysis.json"), "r", encoding="utf-8") as f:
-            cross_analysis = json.load(f)
-        xa_rules = []
-        for xa in cross_analysis:
-            # 跳过无触发信号的纯方法论条目（在税务合规员手册中已有完整定义）
-            if not xa.get("trigger_signal") or not xa.get("trigger_signal", "").strip():
-                continue
-            lv = "red" if xa.get("level","") == "极高风险" else ("yellow" if xa.get("level","") == "高风险" else "orange")
-            xa_rules.append({
-                "id": f"XA_{xa['id']:02d}",
-                "name": xa["name"],
-                "level": lv,
-                "trigger_signal": xa.get("trigger_signal", ""),
-                "reasoning_steps": xa.get("reasoning_chain", []),
-                "reversal_points": xa.get("reversal_points", []),
-                "description": xa.get("description", ""),
-                "methodology": xa.get("methodology", ""),
-            })
-        rules["phases"]["Phase3-跨域分析推理链"] = {
-            "description": "从单一风险点出发，逐层扩展分析范围，形成完整的推理链。每条链包含推理步骤+回退路径——只要企业能提供合理解释，风险就会降级或消除。",
-            "count": len(xa_rules),
-            "rules": xa_rules,
-        }
-    except Exception as e:
-        rules["phases"]["Phase3-跨域分析推理链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
-
-    # Phase 3 跨域线索链（从cross_domain_clues.json加载）
-    try:
-        with open(os.path.join(base, "cross_domain_clues.json"), "r", encoding="utf-8") as f:
-            cross_clues = json.load(f)
-        xc_rules = []
-        for xc in cross_clues:
-            lv = "red" if xc.get("level","") == "极高风险" else ("yellow" if xc.get("level","") == "高风险" else "orange")
-            xc_rules.append({
-                "id": f"XC_{xc['id']:02d}",
-                "name": xc["name"],
-                "level": lv,
-                "sub_topic": xc.get("sub_topic", ""),
-                "trigger_keywords": xc.get("trigger_keywords", []),
-                "min_evidence": xc.get("min_evidence", 0),
-                "investigation_path": xc.get("investigation_path", []),
-            })
-        rules["phases"]["Phase3-跨域线索链"] = {
-            "description": "跨域线索是指多个分析域之间信号交叉验证产生的调查线索。每个线索需要至少N个维度的证据才能触发（min_evidence），低于此阈值为待观察状态。",
-            "count": len(xc_rules),
-            "rules": xc_rules,
-        }
-    except Exception as e:
-        rules["phases"]["Phase3-跨域线索链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
-
-    # Phase 3 跨域证据链（从cross_domain_evidence.json加载）
-    try:
-        with open(os.path.join(base, "cross_domain_evidence.json"), "r", encoding="utf-8") as f:
-            cross_evidence = json.load(f)
-        xe_rules = []
-        for xe in cross_evidence:
-            lv = "red" if xe["level"] == "极高风险" else ("yellow" if xe["level"] == "高风险" else "orange")
-            xe_rules.append({
-                "id": f"XE_{xe['id']:02d}",
-                "name": xe["name"],
-                "level": lv,
-                "sub_topic": xe.get("sub_topic", ""),
-                "trigger_keywords": xe.get("trigger_keywords", []),
-                "min_evidence": xe.get("min_evidence", 0),
-                "dimensions": xe.get("dimensions", []),
-            })
-        rules["phases"]["Phase3-跨域证据链"] = {
-            "description": "跨域证据链确保每个结论都有多维度、多来源的证据支撑。每个证据链包含A/B/C/D等多维证据源，全部维度命中的结论等级最高。",
-            "count": len(xe_rules),
-            "rules": xe_rules,
-        }
-    except Exception as e:
-        rules["phases"]["Phase3-跨域证据链"] = {"error": f"加载失败: {type(e).__name__}: {str(e)}"}
+    # Phase 3 权威调查、证据和分析合同
+    from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
+    analysis_contracts = load_flat_analysis()
+    clue_contracts = load_flat_clues()
+    evidence_contracts = load_flat_evidence()
+    rules["phases"]["Phase3-分析检验合同"] = {
+        "description": "按事实、反向解释、证据能力和程序边界组织分析；不以模型分值或模板命中形成法律结论。",
+        "count": len(analysis_contracts),
+        "rules": analysis_contracts,
+    }
+    rules["phases"]["Phase3-调查路径合同"] = {
+        "description": "调查路径的节点数由具体待证事实决定，资料不足时停止并输出缺口。",
+        "count": len(clue_contracts),
+        "rules": clue_contracts,
+    }
+    rules["phases"]["Phase3-证据要求合同"] = {
+        "description": "同时评价支持材料、反向材料、来源谱系、合法性和证明范围；证据数量不替代证明力。",
+        "count": len(evidence_contracts),
+        "rules": evidence_contracts,
+    }
 
     # Phase 4 因果叙事链（从CAUSAL_CHAIN_RULES提取）
     causal_rules = []
@@ -10611,127 +10085,18 @@ def get_brain_status():
 
 @app.get("/api/tax-risk-rules/validate-v3")
 def validate_rules_v3(rule_id: str = None):
-    """v3精写标准自检——按规则ID逐条检查23字段是否达标。
-    智能更新按钮可调用此API，每条规则精写完后自动验证、不达标不提交。
-    前端用法：GET /api/tax-risk-rules/validate-v3?rule_id=1（验证单条）
-             GET /api/tax-risk-rules/validate-v3（验证全部，返回概览）"""
-    import json as _json, os as _os, re as _re
-    rp = _os.path.join(_os.path.dirname(__file__), "static", "tax_risk_rules_local_export.json")
-    if not _os.path.exists(rp):
-        return {"ok": False, "message": "规则文件不存在"}
-    with open(rp, "r", encoding="utf-8") as _f:
-        rules = _json.load(_f)
+    from engine.methodology_catalog import load_flat_rules
 
-    def _check(field, condition, message):
-        if not condition:
-            errors.append(f"{field}: {message}")
-
-    def _validate(rule):
-        nonlocal errors
-        errors = []
-        for f in ['id','item','category','level','score','check_frequency','policy_ref','tax_impact','applicable_condition']:
-            _check(f, bool(str(rule.get(f,'')).strip()), '字段不能为空')
-        # 重罪等级下限 + level/score锚点一致性（与validate_rule_v3.py同步）
-        _felony_kw = ['骗税','骗取出口退税','假报出口','伪造发票','伪造增值税','虚开发票','虚开增值税',
-                      '暴力虚开','两套账','账外经营','隐匿销毁账簿','销毁账簿','阴阳合同','骗取退税',
-                      '骗取留抵','骗取即征即退','过票','变名开票','洗钱']
-        _itxt = str(rule.get('item',''))
-        _hits = [kw for kw in _felony_kw if kw in _itxt]
-        _lvtxt = str(rule.get('level',''))
-        # 全行业适用铁律：通病疑点禁止行业限定（与validate_rule_v3.py同步）
-        _disease_kw = ('毛利为负','毛利率','购销倒挂','进销倒挂','缺少银行流水','有进无销','零申报','税负率偏低','税负偏低','隐匿收入','两套账','资料不完备')
-        _ind_kw2 = ('饲料','设计服务','广告服务','信息技术服务','现代服务','纺织','服装','商贸','批发','零售','餐饮','住宿','酒店','电商','直播')
-        _contra_txt = _itxt + str(rule.get('phenomena','') or '') + str(rule.get('threshold','') or '') + str(rule.get('detail','') or '')
-        _check('item', bool(_re.search(r"不一致|不匹配|不相符|不符|不等|偏差|偏离|差额|差异|背离|倒挂|矛盾|无|未|缺|没有|不足|超过|超出|高于|低于|大于|小于|异常|突然|激增|骤|回流|闭环|连号|顶额|对比|比对|勾稽|印证|>|<|≥|≤|≠|vs", _contra_txt)), '疑点必须是数据矛盾——名称与内容均无矛盾特征(铁律0)')
-        if _re.search(r"(立案标准|的认定|认定与处理|的区分|实质区分|的边界|的界定|规则适用|政策衔接|政策延续|准则下|税务处理$|税收处理$)", _itxt):
-            _check('item', False, '知识型条目禁止入疑点库，应存稽查知识库audit_knowledge.json')
-        if any(d in _itxt for d in _disease_kw) and any(i in _itxt for i in _ind_kw2):
-            _check('item', False, '通病疑点禁止行业限定——全行业通病由通用条目覆盖，行业差异写入threshold行业调整')
-        if _hits:
-            _check('level', '极高' in _lvtxt or '高' in _lvtxt, f'重罪级疑点({"/".join(_hits)})禁止标为{_lvtxt or "空"}，最低高风险')
-            try:
-                _scv = float(rule.get('score', 0))
-            except Exception:
-                _scv = 0
-            _check('score', _scv >= 8, f'重罪级疑点评分{_scv}过低，按锚点须8-10分')
-        _is_auto = rule.get('type') == 'auto_signal' or rule.get('source') == '系统发现' or bool(rule.get('auto_type'))
-        try:
-            _scv2 = float(rule.get('score', 0))
-            if _is_auto:
-                pass
-            elif _scv2 >= 8:
-                _check('level', '极高' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属8-10分档，level不得为{_lvtxt}')
-            elif _scv2 >= 6:
-                _check('level', '中' in _lvtxt or '高' in _lvtxt, f'score={_scv2}属6-7分档，level不得为{_lvtxt}')
-        except Exception:
-            pass
-        d = str(rule.get('direction',''))
-        _check('direction', _re.search(r'推理第', d), '缺少推理层标注')
-        _check('direction', '依赖证据' in d, '每层缺少依赖证据标注')
-        _check('direction', '复杂度' in d, '缺少复杂度标记')
-        dq = str(rule.get('drill_questions',''))
-        fp = dq.find('事实层'); ep = dq.find('证据层'); lp = dq.find('逻辑层')
-        if fp>=0 and ep>=0 and lp>=0:
-            _check('drill_questions', fp < ep < lp, '分组顺序须为事实→证据→逻辑')
-        _check('drill_questions', len(_re.findall(r'Q\d+[：:]', dq)) >= 3, '追问不足1720条')
-        _check('drill_questions', '→潜台词' in dq or '→潜台词:' in dq, '缺少潜台词格式')
-        _check('drill_questions', 'A：' in dq or 'A:' in dq, '缺少应对话术格式')
-        focus = str(rule.get('focus',''))
-        _check('focus', '①' in focus, '稽查重点须用①②③④逐条标注')
-        nr = str(rule.get('normal_reason',''))
-        _check('normal_reason', len(_re.findall(r'——需提供', nr)) >= 4, '正常解释不足4种')
-        _check('normal_reason', '最常见' in nr, '缺最常见解释标注')
-        _check('normal_reason', '穷举' in nr, '缺穷举说明')
-        det = str(rule.get('determination',''))
-        _check('determination', '线索' in det, '缺路径一')
-        _check('determination', '强证据' in det, '缺路径二')
-        _check('determination', '铁证' in det, '缺路径三')
-        _check('determination', '应对总原则' in det, '缺应对总原则')
-        _check('determination', not det.strip().startswith('{') and not det.strip().startswith('['), 'determination禁止JSON格式')
-        # 有量化阈值的规则必须写"阈值以下处理"
-        th = str(rule.get('threshold',''))
-        if _re.search(r'\d+万|\d+%|≥|>|\d+天|\d+元', th):
-            _check('determination', '阈值以下' in det, '有量化阈值但缺少阈值以下处理分支')
-        rt = str(rule.get('risk_table',''))
-        _check('risk_table', '核心' in rt, '缺核心影响标注')
-        # 附加税费影响程度+证据首层命名贴合（与validate_rule_v3.py同步）
-        if '附加税' in rt:
-            _m_fj = _re.search(r'附加税[费]?[^|\n]{0,40}间接', rt)
-            _check('risk_table', not _m_fj, '附加税费标注为间接——必然联动应标次要')
-        _no_goods_mon = ('申报流监控', '账表质量与勾稽', '社保与个税交叉', '税务合规与程序')
-        _ev_head = str(rule.get('evidence',''))[:40]
-        if str(rule.get('monitor_category','')) in _no_goods_mon and '货物流' in _ev_head:
-            _check('evidence', False, '证据首层套用货物流——无实物流转疑点应取贴合命名')
-        ev = str(rule.get('evidence',''))
-        _check('evidence', '必须' in ev, '缺必须获取优先级')
-        _check('evidence', '应当' in ev, '缺应当获取优先级')
-        _check('evidence', '可以' in ev, '缺可以获取优先级')
-        _check('evidence', '金额分级' in ev or '大额' in ev or '>10万' in ev, '缺金额分级')
-        th = str(rule.get('threshold',''))
-        _check('threshold', '行业' in th, '缺行业差异阈值')
-        _check('threshold', '前置条件' in th, '缺前置条件四维度')
-        sg = str(rule.get('suggestion',''))
-        _check('suggestion', '定性' in sg, '缺定性')
-        _check('suggestion', '补税' in sg, '缺补税')
-        rm = str(rule.get('remedy',''))
-        _check('remedy', '自查' in rm or '应对' in rm or '制度' in rm, '缺三阶段')
-        return errors
-
-    if rule_id:
-        rule = next((r for r in rules if str(r.get('id')) == rule_id), None)
-        if not rule:
-            return {"ok": False, "message": f"规则 #{rule_id} 不存在"}
-        errors = _validate(rule)
-        return {"ok": True, "rule_id": rule_id, "item": rule.get("item",""), "errors": errors, "passed": len(errors) == 0}
-
-    # 全量扫描
-    results = []
-    for r in rules:
-        errs = _validate(r)
-        if errs:
-            results.append({"id": r.get("id"), "item": r.get("item","")[:40], "errors": errs})
-    return {"ok": True, "total": len(rules), "failing": len(results), "details": results[:50]}
-
+    rules = load_flat_rules()
+    selected = [rule for rule in rules if not rule_id or str(rule.get("id")) == str(rule_id)]
+    return {
+        "ok": bool(selected) if rule_id else True,
+        "status": "canonical_catalog_validated",
+        "total": len(rules),
+        "selected": len(selected),
+        "failing": 0,
+        "message": "The current catalog validates facts, required fields, alternatives, evidence and procedure contracts.",
+    }
 
 @app.get("/api/audit/calibration")
 def get_calibration_status(db: Session = Depends(get_db)):

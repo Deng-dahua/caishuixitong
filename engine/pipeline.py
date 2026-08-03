@@ -57,11 +57,9 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
     if not all_findings:
         return all_findings
     
-    # 加载规则
-    rules_path = os.path.join(_PROJECT_ROOT, 'static', 'tax_risk_rules_local_export.json')
     try:
-        with open(rules_path, 'r', encoding='utf-8') as _f:
-            rules = _json.load(_f)
+        from engine.methodology_catalog import load_flat_rules
+        rules = load_flat_rules()
     except Exception:
         return all_findings
     # 自动发现信号只能进入候选治理队列，不能参与运行时规则匹配。
@@ -1879,13 +1877,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 bk_ids, bt_ids, sr_ids = [], [], []  # 清空ID列表，避免后续清理报错
 
             # 读取实际规则数
-            _real_rule_count = 1514
+            _real_rule_count = 0
             try:
-                _rp = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-                if os.path.exists(_rp):
-                    with open(_rp, "r", encoding="utf-8") as _rf:
-                        _real_rule_count = len(json.load(_rf))
-                # 自动发现信号不计入生产规则数量。
+                from engine.methodology_catalog import load_flat_rules
+                _real_rule_count = len(load_flat_rules())
             except: pass
 
             # 运行规则引擎
@@ -1959,28 +1954,23 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 再次过滤非 dict 项（引擎结果中可能有错误字符串）
     all_findings = [f for f in all_findings if isinstance(f, dict)]
 
-    # 原“规则全覆盖”和1720套三链均属于候选知识。未完成逐场景字段契约、
+    # 旧式规则全量扫描和一对一三链已经退役。现行目录未完成逐场景字段契约、
     # 来源核验及正反样本回归前，不在生产管线中运行或生成发现。
     if all_findings:
-        pipeline_log.append("[候选规则与三链] 未进入生产执行；仅保留只读治理资产")
+        pipeline_log.append("[方法论目录] 本批资料未满足相应事实与证据契约，不进入结论计算")
 
     # ── 可执行三链引擎 (v3.0): 基于JSON链定义执行真实的聚合/比对/查询/判定操作 ──
     try:
         from engine.chain_executor import run_chains_for_rule, _build_chain_index
         import json as _json, os as _os
         
-        _clue_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_clues.json")
-        _evid_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_evidence.json")
-        _anal_path = _os.path.join(_os.path.dirname(__file__), "..", "static", "cross_domain_analysis.json")
-        
-        _clue_data = _json.load(open(_clue_path, 'r', encoding='utf-8')) if _os.path.exists(_clue_path) else []
-        _evid_data_raw = _json.load(open(_evid_path, 'r', encoding='utf-8')) if _os.path.exists(_evid_path) else {}
-        _anal_data_raw = _json.load(open(_anal_path, 'r', encoding='utf-8')) if _os.path.exists(_anal_path) else {}
-        _evid_data = _evid_data_raw if isinstance(_evid_data_raw, list) else _evid_data_raw.get("evidence_chains", [])
-        _anal_data = _anal_data_raw if isinstance(_anal_data_raw, list) else _anal_data_raw.get("analysis_chains", [])
+        from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
+        _clue_data = load_flat_clues()
+        _evid_data = load_flat_evidence()
+        _anal_data = load_flat_analysis()
         
         _candidate_chain_execution_enabled = LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED
-        # 候选链不进入执行索引。
+        # 调查与证据计划只负责组织核验，不作为自动定性索引。
         if _candidate_chain_execution_enabled and (_clue_data or _evid_data or _anal_data):
             _build_chain_index(_clue_data, _evid_data, _anal_data)
         
@@ -2163,7 +2153,6 @@ def _run_analyze(company_id, db, progress_callback=None):
     chain_findings = []   # 链驱动生成的新发现
     try:
         chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
-        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         if LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED and os.path.exists(chain_path) and os.path.exists(rules_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 chains_data = json.load(cf)
@@ -2911,15 +2900,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     try:
         import re as _re_find
         chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
-        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
         if LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED and os.path.exists(chain_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 raw = json.load(cf)
                 chains_data = raw if isinstance(raw, dict) else {}
-        if os.path.exists(rules_path):
-            with open(rules_path, "r", encoding="utf-8") as rf:
-                raw_r = json.load(rf)
-                rules_data = raw_r if isinstance(raw_r, list) else []
+        from engine.methodology_catalog import load_flat_rules
+        rules_data = load_flat_rules()
         # 自动发现信号不进入证据链匹配。
         
         rule_map = {r["id"]: r for r in rules_data}
@@ -3333,9 +3319,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
     try:
         from engine.rule_consumer import verify_with_threshold, check_applicable
-        _rules_path2 = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-        with open(_rules_path2, "r", encoding="utf-8") as _rf2:
-            _doubt_rules = json.load(_rf2)
+        from engine.methodology_catalog import load_flat_rules
+        _doubt_rules = load_flat_rules()
         _existing_types = {str(f.get("type", "")).strip() for f in all_findings}
         _scan_hits = []
         _scanned = 0
@@ -3448,7 +3433,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 f"{scenario_methodology.get('scene_count', 0)}个五链配套场景已生成核验计划："
                 f"{scenario_methodology.get('ready_for_human_review', 0)}个资料就绪，"
                 f"{scenario_methodology.get('pending_more_sources', 0)}个待补资料；"
-                "候选信号未转化为证据或结论"
+                "观察信号未转化为证据或结论"
             )
     except Exception as _scene_methodology_error:
         pipeline_log.append(f"[场景方法论] 计划生成失败，降级继续: {_scene_methodology_error}")
@@ -3459,9 +3444,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             build_rule_context_for_llm, build_report_context_from_rule,
             build_rule_match_index, match_rule_semantic,
         )
-        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-        with open(rules_path, "r", encoding="utf-8") as _rf:
-            _all_rules = json.load(_rf)
+        from engine.methodology_catalog import load_flat_rules
+        _all_rules = load_flat_rules()
         _rule_by_item = {}
         _rule_by_id = {}
         for _r in _all_rules:
@@ -3753,8 +3737,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         from engine.rule_gate import apply_all_gates, scan_extended_thresholds
         import json as _json2, os as _os2
         # 加载规则数据
-        _rules_path = _os2.path.join(_os2.path.dirname(__file__), "..", "static", "tax_risk_rules_local_export.json")
-        _rules_data = _json2.load(open(_rules_path, 'r', encoding='utf-8')) if _os2.path.exists(_rules_path) else []
+        from engine.methodology_catalog import load_flat_rules
+        _rules_data = load_flat_rules()
         # 构建企业数据
         _co_data = {}
         try:
@@ -4261,18 +4245,14 @@ def _run_analyze(company_id, db, progress_callback=None):
         auto_signals = [d for d in discoveries if d.get("type") == "auto_signal"]
         if auto_signals:
             auto_path = os.path.join(_PROJECT_ROOT, "static", "auto_discovered_rules.json")
-            main_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
             try:
                 if os.path.exists(auto_path):
                     with open(auto_path, "r", encoding="utf-8") as rf:
                         existing_auto = json.load(rf)
                 else:
                     existing_auto = []
-                # 取全局最大ID（主规则库+自动发现规则库）
+                # 自动发现信号只进入隔离观察库，不写入权威方法论目录。
                 all_ids = [r.get("id", 0) for r in existing_auto]
-                if os.path.exists(main_path):
-                    with open(main_path, "r", encoding="utf-8") as rf:
-                        all_ids += [r.get("id", 0) for r in json.load(rf)]
                 max_id = max(all_ids, default=1600)
                 new_rules_added = 0
                 # 全行业通病黑名单：通用疑点已覆盖的信号禁止按行业生成变体
@@ -5157,9 +5137,8 @@ def _build_doubt_library_summary(all_findings):
     """
     lines = []
     try:
-        rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-        with open(rules_path, "r", encoding="utf-8") as _rf:
-            _rules = json.load(_rf)
+        from engine.methodology_catalog import load_flat_rules
+        _rules = load_flat_rules()
         total_rules = len(_rules)
         deep_written = sum(
             1 for x in _rules

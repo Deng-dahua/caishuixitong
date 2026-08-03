@@ -143,7 +143,7 @@ function renderAuditorHandbook(container) {
   h += '<table class="hb-tbl">';
   [['一键分析','第21-41720条(检查)','_run_analyze自动执行全部分析域+四步核查法+链驱动引擎+协商引擎+方法论语料对账。一次点击=完整模拟税务合规检查环节——从文件上传到报告输出，全部自动化。'],
    ['文件解析','第21720条(取证)','{{file_fingerprints}}类文件指纹+三层递进识别+四方交叉验证。82+列名映射自适应匹配。自动完成文件取证的数据准备——把格式各异的原始资料转化为结构化分析数据。'],
-   ['线索链','第21720条(取证逻辑)','{{clue_chains}}条线索链(全部可执行),管理于cross_domain_clues.json。每条含触发关键词+investigation_path调查步骤+rule_refs关联规则ID+风险等级+建议+法条引用。每条线索链=一个税务合规员的调查思路——\"从这里开始查，每一步查什么，查到了怎么办\"。'],
+   ['调查路径','取证逻辑','调查路径由现行方法论目录和行业场景合同统一管理，说明从哪里开始、按什么主键连接、取得哪些材料、遇到缺口如何停止；路径本身不作违法定性。'],
    ['证据链','第21720条(证据真实性)','{{evidence_chains}}条证据链≥2域交叉→≥min_evidence触发→多维印证闭环。investigation_path数组从不同数据源收集支撑证据→满足最小证据数→证据闭环→结论的证明力达到可交付标准。'],
    ['分析链','第41720条(审理审核)','11720条分析链→reasoning_path[]多步推理→从证据→结论的综合判定。模拟审理部门的逐项审核——检查对象的准确性/事实证据的充分性/法律适用的正确性→0-7维异常评分→定案。'],
    ['方法论过滤器','第41720条(审核重点)','全链路质量保障体系→七类过滤规则依次执行→剔除证据不足的噪声→97%噪声过滤率。HARD_BAN 23类→COND_BAN 5类→税务合规重点保护12类→正常结论排除→资料缺口限流→行业不匹配过滤→去重合并。'],
@@ -182,7 +182,7 @@ function renderAuditorHandbook(container) {
   h += '<div class="hb-detail">引擎记忆（engine/memory.py）是系统的核心知识库，分为两层：<b>文档层</b>（26章规则+架构，存储在docstring中）+ <b>代码层</b>（Python函数：存储/检索/学习/纠正）。一键分析驱动数据层（audit_memory.json分析记忆 + user_corrections.json纠正规则），四触发机制确保文档层自动与代码层同步——任何时候启动系统，数据一致性自检自动运行。</div>';
   h += '<table class="hb-tbl">';
   h += '<tr><td class="lbl">代码位置</td><td class="val" style="font-size:12px">audit_consistency.py（扫描引擎+同步引擎）+ system_config.json（权威数据源）+ engine/system_config.py（Python端配置）</td></tr>';
-  h += '<tr><td class="lbl">权威数据源</td><td class="val" style="font-size:12px">从原始数据文件实时统计生成：tax_risk_rules_local_export.json→规则数 / cross_domain_clues.json→线索链数 / cross_domain_evidence.json→证据链数 / cross_domain_analysis.json→分析链数。每次--calibrate重新统计。</td></tr>';
+  h += '<tr><td class="lbl">方法论数据源</td><td class="val" style="font-size:12px">从权威主题目录、行业场景合同和复审记录实时统计事实规则、调查路径、证据计划、分析检验与边界样本；发布检查验证结构和完整性。</td></tr>';
   h += '<tr><td class="lbl">扫描范围</td><td class="val" style="font-size:12px">所有JS文件（static/js/*.js）+ 所有PY文件（engine/*.py + *.py）。扫描硬编码数字与权威数据对比，跳过system_config/getConfig等动态获取行。</td></tr>';
   h += '<tr><td class="lbl">四触发机制</td><td class="val" style="font-size:12px">①手动：python audit_consistency.py --sync ②start.bat启动：先--sync再审计验证 ③git commit：.git/hooks/pre-commit自动--sync ④一键分析：pipeline.py启动时subprocess调用--sync。任一入口触发→全项目扫描→修正→报告。</td></tr>';
   h += '<tr><td class="lbl">同步范围</td><td class="val" style="font-size:12px">代码层：硬编码数字 vs 权威数据，逐行替换。文档层：engine/memory.py docstring中的规则数/链数/方法论数/域函数数/权威数据区块，正则匹配更新。</td></tr>';
@@ -229,7 +229,7 @@ function renderAuditorHandbook(container) {
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">核心引擎（12个文件）</td></tr>';
   h += '<tr><td class="lbl">engine/</td><td class="val" style="font-size:12px">pipeline.py（主分析管线·25000行）/ domain_analysis.py（36域函数·70000行） / phase1_triage.py（初查）/ phase2_deep_dive.py（深挖）/ phase3_cross_validate.py（交叉验证）/ phase4_synthesis.py（综合定性）/ cross_domain_negotiation.py（21720条协商规则）/ self_learning.py（审核反馈）/ hypothesis_engine.py（假设验证）/ orchestrator.py（调度中枢）/ knowledge_base.py（知识库）/ legal_reasoner.py（法律推理）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">数据与配置（8个文件）</td></tr>';
-  h += '<tr><td class="lbl">static/ + 根目录</td><td class="val" style="font-size:12px">system_config.json（权威数据源）/ audit_chains.json（线索链+证据链+方法论·7MB）/ user_corrections.json（纠正规则）/ industry_data.json（25行业词典+11720条收款分类）/ tax_risk_rules_local_export.json（{{rules_count}}条税务合规指令·2MB）/ audit_memory.json（501720条分析记忆）/ sessions.json（会话持久化）/ database.py（SQLite数据库定义）</td></tr>';
+  h += '<tr><td class="lbl">方法论与运行数据</td><td class="val" style="font-size:12px">methodology_canonical_catalog.json（权威主题目录）/ industry_scenario_review.json（行业复审与新增场景）/ 七类行业场景合同 / 私有运行数据目录 / database.py（SQLite数据库定义）。</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">前端页面（9个JS文件）</td></tr>';
   h += '<tr><td class="lbl">static/js/</td><td class="val" style="font-size:12px">tax-pipeline-pages.js（方法论与管线页面）/ tax-doc-analysis.js（资料风险分析报告）/ tax-auditor-handbook.js（岗位手册）/ tax-report-standards.js（编制、审核、误判复核与交付融合单页）/ tax-engine-dashboard.js（推理引擎仪表盘）/ core.js（全局路由）/ report-block-renderer.js（报告发现与审核入口）/ tax-risk-rules.js（税务合规指令浏览）</td></tr>';
   h += '<tr><td class="lbl" colspan="2" style="font-weight:700;text-align:center">基础设施（4个文件）</td></tr>';

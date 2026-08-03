@@ -203,7 +203,7 @@ def build_narrative(chain_def, triggered_findings, all_findings=None):
     为一条线索构建完整叙事。
 
     参数：
-      chain_def: dict, 线索定义 (来自 cross_domain_clues.json)
+      chain_def: dict, 线索定义（来自现行方法论目录）
       triggered_findings: list, 被该线索触发的全部发现
       all_findings: list, 全部发现（用于查找证据链闭环等）
 

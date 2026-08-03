@@ -2,18 +2,14 @@
 import json, os, sys
 from typing import Dict, Any
 
-RULES_FILE = os.path.join(os.path.dirname(__file__), 'static', 'tax_risk_rules_local_export.json')
 CONFLICT_ANSWERS_FILE = os.path.join(os.path.dirname(__file__), 'tax_risk_conflict_answers.json')
 
 def _load_saved_rules():
-    """加载用户保存的涉税风险规则（从风险规则管理模块）"""
-    if not os.path.exists(RULES_FILE):
-        return None
+    """加载现行权威事实核验规则。"""
     try:
-        with open(RULES_FILE, 'r', encoding='utf-8') as f:
-            rules = json.load(f)
+        from engine.methodology_catalog import load_flat_rules
+        rules = load_flat_rules()
         if isinstance(rules, list) and len(rules) > 0:
-            _validate_rules_on_load(rules)  # 启动时自动校验规则完整性
             return rules
         return None
     except Exception:
@@ -22,7 +18,7 @@ def _load_saved_rules():
 
 # ── 规则校验标准（启动时自动审计·2026-07-18 对齐23字段现行体系）──
 # 旧schema(urgency/remark/dataSource必填、score0-100、无极高风险)已废——那是23字段体系之前的老格式，
-# 曾对1720条规则误报7710个"问题"。现行必填=基础字段核心；level含极高风险与auto规则的"信息"档。
+# 兼容旧调用方的最低字段校验；权威目录的完整结构由专门测试负责。
 VALID_LEVELS = {'极高风险', '高风险', '中风险', '低风险', '良好', '信息'}
 RULE_REQUIRED_FIELDS = ['id', 'item', 'category', 'score', 'level', 'suggestion']
 

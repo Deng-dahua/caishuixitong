@@ -989,15 +989,15 @@ function renderDomainAnalysisStatic() {
       {name:'关联交易穿透检测', fn:'_domain_related_party_check', line:'14339', desc:'名称相似度比对 · 同法人代表 · 同注册地 · 同联系电话→关联关系未披露 · 买卖双方重叠（同名对倒）'},
     ]},
     // ══════ 十一、行业对标与规则系统（4域） ══════
-    {cat:'十一、行业对标与规则系统', color:'#6366f1', desc:"行业参考资料与候选知识用于安排核验顺序；真实能力以字段契约、适用边界和回归测试为准。", items:[
+    {cat:'十一、行业对标与规则系统', color:'#6366f1', desc:"行业参考资料用于校准比较口径；现行规则能力以字段契约、适用边界、正反样本和回归测试为准。", items:[
       {name:'行业对标分析', fn:'_domain_industry_benchmark', line:'14475', desc:'行业基准库（持续建设中）——毛利率/税负率/进销比/人均营收/费用率五维对标 · 偏离度>2σ→行业异常预警 · 自动匹配行业代码'},
-      {name:'候选知识适用性检查', fn:'_domain_rule_coverage', line:'15114', desc:'候选知识只供检索和资料缺口提示；未达到字段契约和样本验证条件时不得运行或形成结论'},
+      {name:'规则适用性检查', fn:'_domain_rule_coverage', line:'15114', desc:'先核验主体、业务、期间和资料条件；未达到字段契约和样本验证条件时不得运行或形成结论'},
       {name:'跨域关联复核', fn:'_domain_cross_domain_reasoning', line:'13490', desc:'单点发现→来源谱系去重→支持与反向材料评价→人工复核；多域异常不能替代事实、因果和法律判断'},
-      {name:'跨域线索链', fn:'_domain_cross_domain_clues', line:'14000', desc:'从cross_domain_clues.json加载跨域线索定义 · 线索→发现→证据三级转换 · 叙事生成器集成 · 线索链可视化追溯'},
+      {name:'跨域线索链', fn:'_domain_cross_domain_clues', line:'14000', desc:'从现行方法论目录加载调查路径 · 观察信号→待证事实→证据计划 · 叙事生成器集成 · 调查路径可视化追溯'},
     ]},
     // ══════ 十二、跨域分析链 ══════
     {cat:'十二、跨域分析链', color:'#8b5cf6', desc:'跨域分析链是最上层的推理系统——它不直接分析数据，而是基于所有域的发现结果进行二阶推理，从交叉异常中推导出更深层的税务合规结论。', items:[
-      {name:'跨域分析链', fn:'_domain_cross_domain_analysis', line:'14080', desc:'从cross_domain_analysis.json加载分析路径 · 二阶推理系统——基于域发现而非原始数据 · 多域异常→综合结论 · 因果链追溯'},
+      {name:'跨域分析链', fn:'_domain_cross_domain_analysis', line:'14080', desc:'从现行方法论目录加载分析检验 · 基于可追溯域事实而非标签数量 · 多域差异→替代解释检验 · 推理过程可追溯'},
     ]},
     // ══════ 十三、补充税种检查（3域） ══════
     {cat:'十三、补充税种检查', color:'#f97316', desc:'2026-06-30新增：印花税合规检查、企业所得税汇算清缴基础分析、出口退税验证。补充传统税务审计中常见但前期域分析未覆盖的税种检查。', items:[
@@ -2342,11 +2342,11 @@ function renderCoreDataAssets(container) {
 
   var comps = [
     { name: '规则治理', icon: '📋', color: '#2563eb',
-      source: '候选规则与已验证原子规则',
-      desc: '候选知识只供检索；只有适用条件、字段契约、计算方法、正常解释和回归测试全部通过的原子规则才可执行。' },
+      source: '权威主题目录与已验证原子规则',
+      desc: '目录组织待证事实与调查计划；只有适用条件、字段契约、计算方法、正常解释和回归测试全部通过的原子规则才可执行。' },
     { name: '调查线索链', icon: '🔗', color: '#7c3aed',
       source: '场景路径库',
-      desc: '把信号拆成待证事实、资料请求、调查动作和停止条件。原1720套链属于待重构候选知识，不进入生产执行。' },
+      desc: '把信号拆成待证事实、资料请求、调查动作和停止条件；调查链只组织核验，不自动形成结论。' },
     { name: '证据组织链', icon: '🔒', color: '#059669',
       source: '证据矩阵',
       desc: '分别评价真实性、关联性、合法性、来源独立性、支持材料和反向材料；来源数量不是证据结论。' },
@@ -2386,7 +2386,7 @@ function _renderLegacyQualitySystem(container) {
     { id:1, name:'核心数据资产', icon:'🗄️', color:'#2563eb',
       desc:'规则系统、线索链、证据链、跨域分析链构成完整的数据资产底座。四者形成递进关系——规则定义风险判断标准，线索链定义从风险到发现的调查路径，证据链定义多源验证的闭环条件，跨域分析链执行多维度交叉验证。',
       items:[
-        {name:'候选规则系统',source:'结构化候选知识',desc:'原有{{rules_count}}条内容统一作为M1候选知识，仅供检索调查方向。生产执行只允许使用具有适用条件、字段契约、计算方法、正常解释和回归测试的原子规则。'},
+        {name:'权威规则目录',source:'可证伪事实合同',desc:'规则、调查、证据和分析共同编制。生产执行只允许使用具有适用条件、字段契约、计算方法、正常解释和回归测试的原子规则。'},
         {name:'候选线索链',source:'线索链调查数据',desc:'原有{{clue_chains}}条线索链是待重构调查知识，不宣称全部可执行。只有形成可定位的待证事实、合法资料范围和停止条件后，才能进入受控调查路径。'},
         {name:'候选证据链',source:'证据链页面',desc:'原有证据链仅提供材料组织参考。关键词命中、维度数量和业务域数量不能形成证据结论，必须评价来源独立性、真实性、关联性、合法性及反向材料。'},
         {name:'候选分析链',source:'调度中枢',desc:'原有分析链高度模板化，统一降为候选推理知识。分析必须分别回答事实、反证、因果、金额、适用期间和程序边界，并由人工复核。'},
@@ -3115,8 +3115,8 @@ function renderJudgmentRules(container) {
 
   // ── 段落说明 ──
   h += '<div style="font-size:10px;color:#3a4048;line-height:20px;margin-bottom:10px">';
-  h += '<p style="margin:0 0 10px">以下内容用于说明数据处理顺序，不代表1720条候选知识均已实现。身份、发票方向、资料分类和适用性判断一旦出错，后续分析必须停止并返回资料校正。</p>';
-  h += '<p style="margin:0">候选知识、规则命中率和数据域数量均不能形成证据结论。只有经过字段契约与回归测试的原子规则才可运行；运行结果仍须完成来源谱系、支持与反向材料及人工复核。</p>';
+  h += '<p style="margin:0 0 10px">以下内容用于说明数据处理顺序。身份、发票方向、资料分类和适用性判断一旦出错，后续分析必须停止并返回资料校正。</p>';
+  h += '<p style="margin:0">目录规模、规则命中率和数据域数量均不能形成证据结论。只有经过字段契约与回归测试的原子规则才可运行；运行结果仍须完成来源谱系、支持与反向材料及人工复核。</p>';
   h += '</div>';
 
   // ── 1720条判定规则（静态卡片 + 异步填充详情） ──
@@ -3504,7 +3504,7 @@ function renderDataConsistencyCheck() {
     ],
     [
       "权威数据源",
-      "从原始数据文件实时统计：tax_risk_rules_local_export.json→规则数 / cross_domain_clues.json→线索链数 / cross_domain_evidence.json→证据链数",
+      "从现行权威主题目录与行业场景合同实时统计规则、调查路径、证据计划和分析检验",
       "#7c3aed"
     ],
     [
@@ -3812,7 +3812,7 @@ function renderFileAssociation() {
     ],
     [
       "数据与配置（8个）",
-      "system_config.json、audit_chains.json、user_corrections.json、industry_data.json、tax_risk_rules_local_export.json、audit_memory.json、sessions.json、database.py",
+      "methodology_canonical_catalog.json、industry_scenario_review.json、行业场景合同、运行期私有数据与数据库",
       "#7c3aed"
     ],
     [
@@ -4869,7 +4869,7 @@ function _renderLegacyUnifiedDomainPanel(container) {
   h += '<p><b>EMA动态校准参数：</b>校准频率——按季度批量校准，每次使用最近12个月的全量历史分析数据。初始值来源——取最近三年国家统计局及行业协会公开发布的行业统计数据，过渡期内每次校准结果须经人工审核确认。单次校准样本量下限——单个行业有效分析样本量低于10户时，本次不校准，沿用上期基准值；样本量10-30户时校准结果标记为低置信度，需人工复核。数据源：industry_benchmarks表。</p>';
 
   h += '<h2>五、跨域综合推理链（共11720条，编号1-19连续）</h2>';
-  h += '<p>经甄别，原41720条分析链中以下11720条属于真正的跨域综合推理链——每条均产生跨域数据分析结果并输出综合结论。已重新编号为1-19连续编号（原编号见分析链名称，对应关系可查cross_domain_analysis.json）。其余21720条已分别归入前置判定规则、数据预处理模块、质量保障准则或系统铁律。</p>';
+  h += '<p>跨域综合推理按可复核事实组织，不以预设条数或历史编号证明覆盖度。每条路径必须说明参与业务域、连接主键、支持与反向证据、替代解释以及证据不足时的停止条件。</p>';
   h += '<p><b>1. 收款来源不匹配→隐匿收入推理链</b>——从单一的收款来源不匹配信号出发，逐层扩展分析范围。第一步确认不匹配的规模，第二步核实付款方身份（排除法人/股东的打款），第三步判断资金性质（经营收入还是非经营资金），第四步对无法解释的收款做出隐匿收入的判断。每一步都有回退路径——只要企业能提供合理解释，风险就会降级或消除。推理路径：从资金流分析到发票比对：逐名交叉比对全部收款方与销项发票购方名称；从发票比对到付款方身份核实：联网查询法定代表人/股东名单，比对未匹配的付款方；从付款方身份核实到资金性质判断：区分注资/借款/往来款/未开票收入四种可能；从资金性质判断到综合结论：无法说明来源的收款推定为未开票经营收入→隐匿收入风险。关联规则（共11720条）：44、44、175、175、44、303、399、372、401、347、690、127、540、399。</p>';
   h += '<p><b>2. 加工费来自外地→全链条经营异常推理链（点→面推理核心）</b>——从加工费这一个单点异常出发，扩展到面的推理。第一步发现加工费在外地，第二步判断商业合理性（本地是否有集群），第三步扩展到三组地址对比，第四步检测运输成本缺失，第五步得出物理不可能的结论。这是点→面推理的标准案例——单点异常可解释，但四点叠加无法解释——换由另一名稽查人员使用相同资料独立复核，亦会得出相同结论。推理路径：从发票分析到产业集群判断：分析企业所在地是否有同类加工产业集群；从产业集群判断到商业合理性判断：外地加工增加了运输成本和周期，舍近求远→商业逻辑存疑；从商业合理性判断到全链条地理分析：提取三组地址做城市交叉比对；从全链条地理分析到物理合理性判断：货物在N个城市间反复运输但无运输费→在物理上不具备可行性；从物理合理性判断到综合结论：全链条经营实质存疑→所有跨省交易的真实性需要逐笔验证。关联规则（共1720条）：44、44、44、1317、326、1267、1269、372、1059。</p>';
   h += '<p><b>3. 进销品名不匹配→企业类型重判推理链（三层穿透）</b>——不从单一来源判定企业类型，而是通过三层递进穿透：工商登记看法律形式、发票数据看经营实质、加工信号看业务模式。三者不一致时以实质重于形式为原则。风险不是消除了，而是从品名问题转移到了加工真实性问题——此属于风险转移，并非风险消除。推理路径：从工商查询到发票推断：从全部发票品名关键词做66行业加权投票，得出发票推断行业；从发票推断到加工信号检测：筛查进项发票中是否含加工费+是否存在原材料采购；从加工信号检测到三层综合判断：工商登记=批发业(形式)+发票推断=纺织制造(实质)+加工信号=制造业(模式)；从三层综合判断到风险重定向：风险从「有进无销=隐匿收入」转移至「加工链条是否真实」。关联规则（共1720条）：127、347、372、372、775、891、44、1325、1052。</p>';
@@ -6201,7 +6201,7 @@ function METHODOLOGY_TOC() {
 }
 var METHODOLOGY_PAGE_SECTIONS = [
   {id:'overview', label:'🧭 作业闭环总览', desc:'先明确职责、层序和放行条件，再进入具体方法、数据与证据。'},
-  {id:'coverage', label:'🗺️ 真实覆盖矩阵', desc:'区分候选知识、可执行规则和行业场景，公开当前覆盖、质量缺口及升级计划。'},
+  {id:'coverage', label:'🗺️ 真实覆盖矩阵', desc:'区分权威主题、可执行原子规则和行业场景，公开当前覆盖、质量缺口及升级计划。'},
   {id:'guide', label:'📖 全流程作业规程', desc:'从任务权限、资料保全到调查取证、证据复核、审理移交和受控进化。'},
   {id:'files', label:'📁 资料接收与解析', desc:'识别资料、提取结构、保留来源并公开解析限制。'},
   {id:'rules', label:'📑 疑点规则底座', desc:'展示疑点从什么条件触发、适用于什么范围以及需要什么后续核验。'},
@@ -6222,7 +6222,6 @@ var _constructionScenarioContractsPromise = null;
 var _realEstateScenarioContractsPromise = null;
 var _wholesaleRetailScenarioContractsPromise = null;
 var _platformScenarioContractsPromise = null;
-var _candidateRewriteLedgerPromise = null;
 function _loadMethodologyFramework() {
   if (!_methodologyFrameworkPromise) {
     _methodologyFrameworkPromise = fetch('/api/methodology/assets/framework?_t=' + Date.now())
@@ -6344,182 +6343,44 @@ function _loadPlatformScenarioContracts() {
   return _platformScenarioContractsPromise;
 }
 
-function _loadCandidateRewriteLedger() {
-  if (!_candidateRewriteLedgerPromise) {
-    _candidateRewriteLedgerPromise = fetch('/api/methodology/rewrite-ledger?offset=0&limit=40&_t=' + Date.now())
-      .then(function(response){
-        if (!response.ok) throw new Error('候选规则重写账册加载失败');
-        return response.json();
-      });
-  }
-  return _candidateRewriteLedgerPromise;
-}
-
 function _renderMethodologyCoverageMatrix(container) {
   if (!container) return;
-  return Promise.all([
-    _loadMethodologyCoverageReport(),
-    _loadMethodologyIndustryPacks(),
-    _loadAgricultureScenarioContracts(),
-    _loadMiningScenarioContracts(),
-    _loadManufacturingScenarioContracts(),
-    _loadConstructionScenarioContracts(),
-    _loadRealEstateScenarioContracts(),
-    _loadWholesaleRetailScenarioContracts(),
-    _loadPlatformScenarioContracts(),
-    _loadCandidateRewriteLedger()
-  ]).then(function(values){
-    var report = values[0] || {};
-    var industryPackPayload = values[1] || {};
+  return _loadMethodologyCoverageReport().then(function(report){
+    report = report || {};
     var inventory = report.inventory || {};
-    var governance = report.candidate_governance || {};
-    var governanceSummary = governance.summary || {};
-    var maturity = report.maturity_model || [];
+    var modules = report.canonical_modules || [];
     var industries = report.industry_matrix || [];
-    var industryProfiles = report.industry_profiles || [];
-    var taxes = report.tax_matrix || [];
-    var lifecycle = report.lifecycle_matrix || [];
-    var dataCapabilities = report.data_capability_matrix || [];
-    var gaps = report.gap_register || [];
-    var verified = report.verified_rule_catalog || [];
-    var industryPacks = industryPackPayload.packs || [];
-    var agricultureContracts = values[2] || {};
-    var miningContracts = values[3] || {};
-    var manufacturingContracts = values[4] || {};
-    var constructionContracts = values[5] || {};
-    var realEstateContracts = values[6] || {};
-    var wholesaleRetailContracts = values[7] || {};
-    var platformContracts = values[8] || {};
-    var rewriteLedger = values[9] || {};
-    var rewriteSummary = rewriteLedger.summary || {};
-    var overlaySummary = report.overlay_scenario_summary || {};
-    container.innerHTML = '<div class="method-stop"><b>覆盖结论：</b>' + escHtml(report.positioning || '')
-      + ' 当前1720条属于候选知识库，不再等同于1720条成熟能力；生产可执行范围以经过字段契约和回归测试的原子规则为准。</div>'
-      + '<div class="method-coverage-summary">'
-      + '<div><strong>' + escHtml(inventory.candidate_rules || 0) + '</strong><span>结构化候选规则</span></div>'
-      + '<div><strong>' + escHtml(inventory.verified_executable_rules || 0) + '</strong><span>已验证可执行规则</span></div>'
-      + '<div><strong>' + escHtml(inventory.candidate_rules_missing_provenance || 0) + '</strong><span>待补来源记录</span></div>'
-      + '<div><strong>' + escHtml(inventory.unique_analysis_structures || 0) + '</strong><span>分析链结构类型</span></div>'
-      + '<div><strong>' + escHtml(inventory.dominant_analysis_structure_count || 0) + '</strong><span>最大模板结构覆盖数</span></div>'
-      + '<div><strong>' + escHtml(inventory.priority_industry_packs || 0) + '</strong><span>第一批行业专项包</span></div>'
-      + '<div><strong>' + escHtml(inventory.staged_m2_industry_scenarios || 0) + '</strong><span>M2场景与字段契约</span></div>'
-      + '<div><strong>' + escHtml(inventory.rewritten_m25_scenarios || 0) + '</strong><span>M2.5五链重写场景</span></div>'
-      + '</div>'
-      + '<div class="method-source-note"><b>行业分类基线：</b>' + escHtml((report.taxonomy_basis || {}).name || '')
-      + '，覆盖范围为' + escHtml((report.taxonomy_basis || {}).scope || '') + '。行业关键词命中只表示候选知识分布，不代表行业规则已经验证。</div>'
-      + '<h3 class="method-subheading">规则成熟度与放行边界</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:10%">等级</th><th style="width:28%">状态</th><th>允许用途</th></tr></thead><tbody>'
-      + maturity.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
-        + '</td><td>' + escHtml(item.release) + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<h3 class="method-subheading">候选规则治理实况</h3>'
-      + '<div class="method-stop"><b>治理结论：</b>' + escHtml(governance.positioning || '')
-      + ' 原始候选中的强制性措辞只允许在只读响应中净化展示，不能成为系统自动定性、处罚或程序启动条件。</div>'
-      + '<div class="method-coverage-summary">'
-      + '<div><strong>' + escHtml(governanceSummary.official_provenance_recorded || 0) + '</strong><span>官方来源完整记录</span></div>'
-      + '<div><strong>' + escHtml(governanceSummary.source_missing || 0) + '</strong><span>来源字段为空</span></div>'
-      + '<div><strong>' + escHtml(governanceSummary.author_or_model_only || 0) + '</strong><span>仅人工或模型来源</span></div>'
-      + '<div><strong>' + escHtml(governanceSummary.raw_rules_requiring_language_neutralisation || 0) + '</strong><span>原文需边界净化</span></div>'
-      + '<div><strong>' + escHtml(governanceSummary.normalised_duplicate_rule_count || 0) + '</strong><span>标准化重复条目</span></div>'
-      + '<div><strong>' + escHtml(governanceSummary.candidate_field_contracts_present || 0) + '</strong><span>候选库字段契约</span></div>'
-      + '</div>'
-      + '<h3 class="method-subheading">1720条候选规则重写迁移账册</h3>'
-      + '<div class="method-stop"><b>重写原则：</b>' + escHtml(rewriteLedger.positioning || '')
-      + ' 重写后的真实场景数量不与旧规则数量绑定；多条旧规则允许归并，一条旧规则也允许拆成多个可验证事实命题。</div>'
-      + '<div class="method-coverage-summary">'
-      + '<div><strong>' + escHtml(rewriteSummary.legacy_rules || 0) + '</strong><span>旧规则总数</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.legacy_rules_preserved || 0) + '</strong><span>原文与编号已保留</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.queued_not_rewritten || 0) + '</strong><span>已进入重写队列</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.absorbed_into_scene_contract || 0) + '</strong><span>已吸收进场景未放行</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.candidate_scene_mapped || 0) + '</strong><span>已有候选场景路由</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.waiting_scene_assignment || 0) + '</strong><span>待场景归属</span></div>'
-      + '<div><strong>' + escHtml(rewriteSummary.released_from_legacy_library || 0) + '</strong><span>旧库直接放行</span></div>'
-      + '</div>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:10%">闸门</th><th style="width:27%">阶段</th><th>通过条件</th></tr></thead><tbody>'
-      + (rewriteLedger.phases || []).map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>'
-        + escHtml(item.name) + '</td><td>' + escHtml(item.release) + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<h4>迁移账册首批40项</h4><table class="method-framework-table"><thead><tr><th style="width:9%">重写号</th><th style="width:8%">旧编号</th><th>旧标题</th><th style="width:16%">当前闸门</th><th style="width:16%">候选场景</th><th style="width:16%">已吸收场景</th></tr></thead><tbody>'
-      + (rewriteLedger.records || []).map(function(item){return '<tr><td>' + escHtml(item.rewrite_id) + '</td><td>'
-        + escHtml(item.legacy_rule_id) + '</td><td>' + escHtml(item.legacy_title) + '</td><td>'
-        + escHtml(item.current_gate) + '</td><td>' + escHtml((item.candidate_scene_ids || []).join('、') || '待归属')
-        + '</td><td>' + escHtml((item.absorbed_scene_ids || []).join('、') || '尚未吸收') + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<div class="method-two-column"><article class="method-framework-card"><h4>生产放行必须同时满足</h4>'
-      + _methodologyList(governance.release_gate || []) + '</article>'
-      + '<article class="method-framework-card"><h4>当前优先整改队列（前20项）</h4>'
-      + '<table class="method-framework-table"><thead><tr><th>规则</th><th>成熟度</th><th>缺口</th></tr></thead><tbody>'
-      + (governance.priority_queue || []).slice(0,20).map(function(item){return '<tr><td>#' + escHtml(item.rule_id)
-        + '</td><td>' + escHtml(item.maturity) + '</td><td>' + escHtml((item.quality_flags || []).join('、')) + '</td></tr>';}).join('')
-      + '</tbody></table></article></div>'
-      + '<h3 class="method-subheading">已验证原子规则</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:10%">编号</th><th style="width:24%">规则</th><th style="width:20%">实际资料</th><th>结论限制</th></tr></thead><tbody>'
-      + verified.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
-        + '</td><td>' + escHtml((item.required_sources || []).join('、')) + '</td><td>' + escHtml(item.limitation) + '</td></tr>';}).join('')
-      + '</tbody></table>'
-      + '<h3 class="method-subheading">二十个国民经济行业门类</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:6%">代码</th><th style="width:19%">行业门类</th><th style="width:10%">候选提及</th><th style="width:11%">通用原子规则</th><th style="width:10%">M2场景</th><th style="width:10%">M2.5重写</th><th style="width:11%">行业专项原子规则</th><th>当前状态</th></tr></thead><tbody>'
+    var controls = report.quality_controls || [];
+    var gaps = report.known_gaps || [];
+    function depthText(values) {
+      return (values || []).join('、') || '—';
+    }
+    container.innerHTML = '<div class="method-stop"><b>现行方法论：</b>' + escHtml(report.positioning || '')
+      + '</div><div class="method-coverage-summary">'
+      + '<div><strong>' + escHtml(inventory.canonical_modules || 0) + '</strong><span>跨行业权威主题</span></div>'
+      + '<div><strong>' + escHtml(inventory.rules || 0) + '</strong><span>可证伪事实规则</span></div>'
+      + '<div><strong>' + escHtml(inventory.clue_paths || 0) + '</strong><span>调查路径合同</span></div>'
+      + '<div><strong>' + escHtml(inventory.evidence_plans || 0) + '</strong><span>证据要求合同</span></div>'
+      + '<div><strong>' + escHtml(inventory.analysis_plans || 0) + '</strong><span>分析检验合同</span></div>'
+      + '<div><strong>' + escHtml(inventory.industry_scenarios || 0) + '</strong><span>已复审行业场景</span></div>'
+      + '</div><div class="method-source-note"><b>数量原则：</b>'
+      + escHtml(((report.governance || {}).count_policy) || '条目数量由独立待证事实、取证路径和法律要件决定，不设固定总量。')
+      + '</div><h3 class="method-subheading">统一权威核验主题</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:9%">编号</th><th style="width:22%">主题</th><th style="width:10%">规则</th><th style="width:10%">调查路径</th><th style="width:11%">分析检验</th><th style="width:11%">边界样本</th><th>报告边界</th></tr></thead><tbody>'
+      + modules.map(function(item){return '<tr><td>' + escHtml(item.id) + '</td><td>' + escHtml(item.name)
+        + '</td><td>' + escHtml(item.rule_count) + '</td><td>' + escHtml(item.clue_path_count)
+        + '</td><td>' + escHtml(item.analysis_test_count) + '</td><td>' + escHtml(item.validation_case_count)
+        + '</td><td>' + escHtml(item.report_boundary) + '</td></tr>';}).join('') + '</tbody></table>'
+      + '<h3 class="method-subheading">已编行业逐场景复审结果</h3>'
+      + '<table class="method-framework-table"><thead><tr><th style="width:10%">行业</th><th style="width:22%">名称</th><th style="width:12%">场景数</th><th style="width:12%">新增场景</th><th style="width:14%">调查步骤分布</th><th style="width:14%">边界样本分布</th><th>状态</th></tr></thead><tbody>'
       + industries.map(function(item){return '<tr><td>' + escHtml(item.code) + '</td><td>' + escHtml(item.name)
-        + '</td><td>' + escHtml(item.candidate_mentions) + '</td><td>' + escHtml(item.verified_applicable_rules)
-        + '</td><td>' + escHtml(item.staged_m2_scenarios || 0) + '</td><td>' + escHtml(item.rewritten_m25_scenarios || 0)
-        + '</td><td>' + escHtml(item.verified_specific_rules)
+        + '</td><td>' + escHtml(item.scenario_count) + '</td><td>' + escHtml(item.new_scenario_count)
+        + '</td><td>' + escHtml(depthText(item.clue_depths)) + '</td><td>' + escHtml(depthText(item.validation_depths))
         + '</td><td>' + escHtml(item.state) + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<div class="method-source-note"><b>平台经济叠加能力：</b>' + escHtml(overlaySummary.name || '平台经济叠加场景')
-      + '已完成 ' + escHtml(overlaySummary.rewritten_m25_scenarios || 0) + ' 个M2.5场景；'
-      + escHtml(overlaySummary.state || '') + '。平台叠加场景不替代经营主体所属国民经济行业。</div>'
-      + '<div class="method-source-note"><b>行业场景使用边界：</b>' + escHtml(report.industry_profile_boundary || '') + '</div>'
-      + '<div class="method-two-column">' + industryProfiles.map(function(profile){
-        return '<details class="method-framework-card"><summary><b>' + escHtml(profile.code + ' · ' + profile.name) + '</b></summary>'
-          + '<p><strong>经营锚点</strong></p>' + _methodologyList(profile.business_anchors)
-          + '<p><strong>重点核验场景</strong></p>' + _methodologyList(profile.priority_scenarios)
-          + '<p><strong>跨资料核验路径</strong></p>' + _methodologyList(profile.cross_checks)
-          + '<p><strong>应主动排除的正常解释</strong></p>' + _methodologyList(profile.normal_explanations)
-          + '<p><strong>专项资料缺口</strong></p>' + _methodologyList(profile.data_gaps) + '</details>';
-      }).join('') + '</div>'
-      + '<h3 class="method-subheading">第一批重点行业专项包</h3>'
-      + '<div class="method-stop"><b>成熟度边界：</b>' + escHtml(industryPackPayload.positioning || '') + '</div>'
-      + '<div class="method-source-note"><b>五链重写进度：</b>农林牧渔业 ' + escHtml((agricultureContracts.scenarios || []).length)
-      + ' 个场景、采矿业 ' + escHtml((miningContracts.scenarios || []).length)
-      + ' 个场景、制造业 ' + escHtml((manufacturingContracts.scenarios || []).length)
-      + ' 个场景、建筑业 ' + escHtml((constructionContracts.scenarios || []).length)
-      + ' 个场景、房地产开发业 ' + escHtml((realEstateContracts.scenarios || []).length)
-      + ' 个场景、批发零售业 ' + escHtml((wholesaleRetailContracts.scenarios || []).length)
-      + ' 个场景、平台经济叠加 ' + escHtml((platformContracts.scenarios || []).length)
-      + ' 个场景已用统一场景编号把疑点、调查线索、证据、分析和业务域协同配套为一体；其余行业仍保留M2状态并按同一合同逐批重写。'
-      + '<br><b>农林牧渔业边界：</b>' + escHtml(agricultureContracts.positioning || '')
-      + '<br><b>采矿业边界：</b>' + escHtml(miningContracts.positioning || '') + '</div>'
-      + '<div class="method-framework-stack">' + industryPacks.map(function(pack){
-        return '<details class="method-framework-card"><summary><b>' + escHtml(pack.name) + '</b> · '
-          + escHtml(pack.maturity) + ' · ' + escHtml((pack.scenarios || []).length) + '个场景</summary>'
-          + '<p><strong>业务主键：</strong>' + escHtml((pack.business_keys || []).join('、')) + '</p>'
-          + '<p><strong>官方依据与适用期间</strong></p><ul class="method-detail-list">'
-          + (pack.official_sources || []).map(function(source){return '<li><b>' + escHtml(source.name) + '</b>：'
-            + escHtml(source.period) + '</li>';}).join('') + '</ul>'
-          + (pack.scenarios || []).map(function(scene){return '<details class="method-framework-card"><summary>'
-            + escHtml(scene.id + ' · ' + scene.name) + '</summary>'
-            + '<p><strong>启动边界：</strong>' + escHtml(scene.trigger_boundary) + '</p>'
-            + '<p><strong>税费与环节：</strong>' + escHtml((scene.taxes || []).join('、')) + ' ｜ '
-            + escHtml((scene.lifecycle || []).join('、')) + '</p>'
-            + '<p><strong>所需资料</strong></p>' + _methodologyList(scene.required_sources)
-            + '<p><strong>字段契约</strong></p>' + _methodologyList(scene.field_contract)
-            + '<p><strong>调查顺序</strong></p>' + _methodologyList(scene.investigation_path)
-            + '<p><strong>反向证据与正常解释</strong></p>' + _methodologyList(scene.opposing_evidence)
-            + '<p><strong>强制停点</strong></p>' + _methodologyList(scene.stop_conditions)
-            + '</details>';}).join('') + '</details>';
-      }).join('') + '</div>'
-      + '<h3 class="method-subheading">税费事项与业务生命周期</h3>'
-      + '<div class="method-two-column"><article class="method-framework-card"><h4>税费事项</h4><table class="method-framework-table"><thead><tr><th>事项</th><th>候选</th><th>可执行</th></tr></thead><tbody>'
-      + taxes.map(function(item){return '<tr><td>' + escHtml(item.name) + '</td><td>' + escHtml(item.candidate_mentions)
-        + '</td><td>' + escHtml(item.verified_executable_rules) + '</td></tr>';}).join('') + '</tbody></table></article>'
-      + '<article class="method-framework-card"><h4>业务生命周期</h4><table class="method-framework-table"><thead><tr><th>环节</th><th>候选</th><th>可执行</th></tr></thead><tbody>'
-      + lifecycle.map(function(item){return '<tr><td>' + escHtml(item.name) + '</td><td>' + escHtml(item.candidate_mentions)
-        + '</td><td>' + escHtml(item.verified_executable_rules) + '</td></tr>';}).join('') + '</tbody></table></article></div>'
-      + '<h3 class="method-subheading">资料能力与接入边界</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:24%">资料族</th><th style="width:15%">当前能力</th><th style="width:25%">可支持用途</th><th>必须说明的边界</th></tr></thead><tbody>'
-      + dataCapabilities.map(function(item){return '<tr><td>' + escHtml(item.source) + '</td><td>' + escHtml(item.state)
-        + '</td><td>' + escHtml(item.use) + '</td><td>' + escHtml(item.boundary) + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<h3 class="method-subheading">已知缺口与整改队列</h3>'
-      + '<table class="method-framework-table"><thead><tr><th style="width:10%">优先级</th><th style="width:28%">已知缺口</th><th>控制与补齐方式</th></tr></thead><tbody>'
-      + gaps.map(function(item){return '<tr><td>' + escHtml(item.priority) + '</td><td>' + escHtml(item.gap)
-        + '</td><td>' + escHtml(item.control) + '</td></tr>';}).join('') + '</tbody></table>'
-      + '<div class="method-source-note"><b>新增规则原则：</b>' + escHtml(report.release_rule || '') + '</div>';
+      + '<div class="method-two-column"><article class="method-framework-card"><h4>质量控制</h4>'
+      + _methodologyList(controls) + '</article><article class="method-framework-card"><h4>仍需持续验证</h4>'
+      + _methodologyList(gaps.map(function(item){return item.priority + ' · ' + item.gap + '：' + item.control;}))
+      + '</article></div>';
   });
 }
 
@@ -7012,14 +6873,17 @@ function _renderIndustryScenarioContracts(payload) {
   var scenes = payload.scenarios || [];
   var sources = payload.official_sources || [];
   var industryName = String(payload.name || '行业场景').replace(/稽查场景五链配套合同$/, '');
+  var reviewSummary = payload.review_summary || {};
+  var clueDepths = (reviewSummary.clue_depths || []).filter(function(value,index,array){return array.indexOf(value) === index;}).sort();
+  var caseDepths = (reviewSummary.validation_depths || []).filter(function(value,index,array){return array.indexOf(value) === index;}).sort();
   function list(items) { return _methodologyList(items || []); }
   return '<div class="method-stop"><b>场景重写边界：</b>' + escHtml(payload.positioning || '') + '</div>'
     + '<div class="method-coverage-summary">'
-    + '<div><strong>' + escHtml(scenes.length) + '</strong><span>' + escHtml(industryName) + '五链场景</span></div>'
-    + '<div><strong>5</strong><span>每场景配套环节</span></div>'
-    + '<div><strong>3</strong><span>正例、反例、边界例</span></div>'
+    + '<div><strong>' + escHtml(scenes.length) + '</strong><span>' + escHtml(industryName) + '独立场景</span></div>'
+    + '<div><strong>' + escHtml(clueDepths.join('、') || '—') + '</strong><span>调查步骤实际分布</span></div>'
+    + '<div><strong>' + escHtml(caseDepths.join('、') || '—') + '</strong><span>边界样本实际分布</span></div>'
     + '<div><strong>' + escHtml(sources.length) + '</strong><span>官方政策入口</span></div></div>'
-    + '<div class="method-source-note"><b>统一主键：</b>同一个场景编号贯穿待证事实、调查步骤、证据要素、分析命题和域间交接。旧有1720条三链只作为候选检索索引，不再以数量或模板命中代表调查完成。</div>'
+    + '<div class="method-source-note"><b>编制原则：</b>同一个场景编号贯穿待证事实、调查步骤、证据要素、分析命题和域间交接；场景数、步骤数和案例数均由实际业务及取证需要决定。</div>'
     + '<div class="method-framework-stack">' + scenes.map(function(scene){
       var doubt = scene.doubt || {};
       var clue = scene.clue_chain || {};
@@ -7027,9 +6891,10 @@ function _renderIndustryScenarioContracts(payload) {
       var analysis = scene.analysis_chain || {};
       var domains = scene.domain_collaboration || {};
       var report = scene.report_contract || {};
-      var absorption = scene.legacy_absorption || {};
+      var revision = scene.methodology_revision || {};
       return '<details class="method-framework-card"><summary><b>' + escHtml(scene.id + ' · ' + scene.name)
         + '</b> · ' + escHtml(scene.maturity || '') + '</summary>'
+        + '<div class="method-source-note"><b>深度依据：</b>' + escHtml(revision.depth_rationale || '按本场景事实与证据需要编制') + '</div>'
         + '<div class="method-source-note"><b>待证事实：</b>' + escHtml(doubt.target_fact || '')
         + '<br><b>初筛信号：</b>' + escHtml(doubt.observed_signal || '')
         + '<br><b>初筛输出：</b>' + escHtml(doubt.output || '') + '</div>'
@@ -7063,13 +6928,7 @@ function _renderIndustryScenarioContracts(payload) {
         + '<article class="method-framework-card"><h4>正反例边界验证</h4><table class="method-framework-table"><thead><tr><th>样例</th><th>事实</th><th>预期状态</th></tr></thead><tbody>'
         + (scene.validation_cases || []).map(function(item){return '<tr><td>' + escHtml(item.case) + '</td><td>'
           + escHtml(item.facts) + '</td><td>' + escHtml(item.expected) + '</td></tr>';}).join('')
-        + '</tbody></table></article></div>'
-        + (absorption.legacy_rule_ids ? '<article class="method-framework-card"><h4>旧规则吸收与迁移边界</h4><p><strong>已吸收旧编号：</strong>'
-          + escHtml((absorption.legacy_rule_ids || []).join('、')) + '</p><p><strong>吸收理由：</strong>'
-          + escHtml(absorption.absorption_reason || '') + '</p><p><strong>当前状态：</strong>'
-          + escHtml(absorption.absorption_status || '') + '</p><p><strong>放行限制：</strong>'
-          + escHtml(absorption.boundary || '') + '</p></article>' : '')
-        + '</details>';
+        + '</tbody></table></article></div></details>';
     }).join('') + '</div>'
     + '<h3 class="method-subheading">本批次官方政策入口</h3>'
     + '<table class="method-framework-table"><thead><tr><th>依据</th><th>发布机关</th><th>适用期间</th></tr></thead><tbody>'
@@ -7226,7 +7085,7 @@ function _renderMethodologyGuide(container) {
       + '<div class="method-two-column">' + industries.map(function(item){
         return '<article class="method-framework-card"><h4>' + escHtml(item.group) + '</h4>' + _methodologyList(item.scenarios) + '</article>';
       }).join('') + '</div>'
-      + '<div class="method-source-note"><b>行业覆盖说明：</b>行业库覆盖国民经济主要行业大类和跨境业务，但不宣称穷尽每一种细分业态。新业态先由合同履行、收入模式、成本结构、交付方式和受监管特征确定业务模型，再叠加通用规则与专项规则；候选规则与正式规则分库管理。</div>'
+      + '<div class="method-source-note"><b>行业覆盖说明：</b>行业库覆盖国民经济主要行业大类和跨境业务，但不宣称穷尽每一种细分业态。新业态先由合同履行、收入模式、成本结构、交付方式和受监管特征确定业务模型，再把规则、调查、证据、分析和域协同作为同一场景合同编制并复审。</div>'
       + '<h3 class="method-subheading">证据组织标准</h3>'
       + '<div class="method-two-column"><article class="method-framework-card"><h4>法定证据类型</h4>' + _methodologyList(evidence.legal_types) + '</article>'
       + '<article class="method-framework-card"><h4>质量评价维度</h4>' + _methodologyList(evidence.quality_dimensions) + '</article></div>'

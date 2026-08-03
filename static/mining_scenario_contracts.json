@@ -61,7 +61,6 @@
         {"domain": "财税申报", "responsibility": "核验销售、自用和资源税期间", "handoff": "生产申报对照"}
       ], "conflict_rule": "储量模型、监管统计与班次实测冲突时保留口径、测量日期和不确定性，不用单一模型覆盖现场原始记录"},
       "report_contract": {"title": "矿业权许可储量动用与实际开采边界核验", "must_state": ["权利主体期间", "空间矿种", "储量口径", "采区班次", "停限产事件", "计量申报"], "forbidden": ["许可证产能直接等于产量", "储量减少直接等于销售"]},
-      "legacy_absorption": {"legacy_rule_ids": ["956", "1184"], "mapping_basis": ["自然资源监测开采量", "许可证年产量", "资源税申报数量"], "absorption_reason": "将旧库许可证或第三方开采量与申报量的直接比较，重写为权利、空间、储量口径、可用产能期间、实际采掘和计量逐层验证；旧阈值不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "许可能力和监管估算仅触发核验，不直接证明实际开采、销量或税收违法。"},
       "validation_cases": [
         {"case": "positive", "facts": "持续生产的采区有爆破、铲装、运输和地磅记录，原矿进入堆场但生产、库存和申报均缺失且无外购或跨期解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "许可证能力较高但因安全整改停产，监管通知、用能、人员、爆破和地磅记录一致为零", "expected": "解释成立_关闭"},
@@ -90,7 +89,6 @@
         {"domain": "财税销售", "responsibility": "连接销售、自用、处置和申报", "handoff": "产品税会链"}
       ], "conflict_rule": "理论回收率、设备产能或行业电耗与批次化验和实测冲突时，先审查计量校准、样品代表性和工况，不直接采用理论值"},
       "report_contract": {"title": "采选精尾矿数量质量及去向平衡核验", "must_state": ["矿种批次", "干湿基", "品位化验", "数量金属量", "工艺损失", "库存去向"], "forbidden": ["行业回收率直接定案", "忽略尾矿和在制品"]},
-      "legacy_absorption": {"legacy_rule_ids": ["240", "351", "354", "701", "994", "1164"], "mapping_basis": ["能耗反推", "理论产能", "原材料产出", "产量与费用"], "absorption_reason": "把旧库能耗、BOM、设备产能和产量费用的通用比较，重写为矿种批次、干湿基、品位、数量与金属量双平衡，并强制评价工况、化验和在制品反证。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "所有理论参数仅用于形成差异区间，不直接推定隐匿产量、收入或税额。"},
       "validation_cases": [
         {"case": "positive", "facts": "连续多个选矿批次精矿入库及装运完整，但原矿领用和尾矿去向无法支撑且计量设备校准有效", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "账面差异全部由湿基转干基、期末在制品和经复检确认的低品位矿解释，批次谱系完整", "expected": "解释成立_关闭"},
@@ -119,7 +117,6 @@
         {"domain": "税费申报", "responsibility": "核验税率、扣减、减免和期间", "handoff": "资源税复核底稿"}
       ], "conflict_rule": "增值税收入、资源税销售额和会计收入冲突时按各自法定口径调节，不把一表数据强行覆盖另一表"},
       "report_contract": {"title": "资源税税目产品交易扣减减免与期间核验", "must_state": ["地区矿种", "征税对象", "销售自用", "外购扣减", "运杂费", "减免期间"], "forbidden": ["增值税收入直接等于资源税计税额", "忽略外购扣减和运杂费"]},
-      "legacy_absorption": {"legacy_rule_ids": ["1287", "1659"], "mapping_basis": ["资源税计税收入", "第三方开采销售量", "增值税申报收入"], "absorption_reason": "把旧库申报额与增值税或第三方产量的单一比例比较，重写为税目、产品、交易、自用、运杂费、外购扣减、减免和期间完整复核。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "不同税种和数据源必须先调节口径，差异本身不是少缴资源税结论。"},
       "validation_cases": [
         {"case": "positive", "facts": "自产选矿产品销售结算及收款完整，资源税仅申报部分数量，外购扣减和运杂费均无凭据", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "差异全部对应取得合法凭据的运杂费和可追溯外购矿产品扣减，分别核算及申报一致", "expected": "解释成立_关闭"},
@@ -148,7 +145,6 @@
         {"domain": "财务税务", "responsibility": "复核结算票款成本和期间", "handoff": "外包税会链"}
       ], "conflict_rule": "承包方与矿方工程量冲突时保留原始测量、签认权限和版本，不以最终发票金额倒推实际工程量"},
       "report_contract": {"title": "矿山外包作业履约工程量与结算核验", "must_state": ["作业范围", "人员设备", "班次事件", "工程量成果", "计价变更", "票款成本"], "forbidden": ["无自有设备即认定无生产", "发票金额反推工程量"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": [], "absorption_reason": "旧库没有同时覆盖矿山作业责任边界、特殊工种设备、采掘事件、地测验收、甲供资源和多种计价方式的可直接吸收规则，因此建立新的场景合同。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "通用外包和发票规则仅可作为资料检索入口，不冒充本场景的矿山履约结论。"},
       "validation_cases": [
         {"case": "positive", "facts": "承包方无进场人员设备和作业记录，工程量签认人为无权限人员，付款后短期回流", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "人员设备、定位班报、测量验收、甲供扣款、发票付款与合同逐期一致", "expected": "解释成立_关闭"},
@@ -177,7 +173,6 @@
         {"domain": "财税申报", "responsibility": "连接全部对价、发票和资源税", "handoff": "销售税会对照"}
       ], "conflict_rule": "矿方、客户和第三方化验冲突时按合同取样制样、留样和仲裁机制评价，不选择对结论最有利的单一结果"},
       "report_contract": {"title": "矿产品质量计价关联销售与完整对价核验", "must_state": ["关联关系", "样品谱系", "质量指标", "计价公式", "全部补差", "可比调整"], "forbidden": ["市场均价直接定价", "忽略质量和期后补差"]},
-      "legacy_absorption": {"legacy_rule_ids": ["302", "597", "599", "600"], "mapping_basis": ["关联方名单", "进销吨价", "煤炭单价", "采购销售单价"], "absorption_reason": "把旧库进销单价和关联名单的平面比较，重写为样品化验、合同公式、临时最终结算、可比调整和职能风险的完整定价链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "价格差异不直接等于少计收入或关联定价不公允。"},
       "validation_cases": [
         {"case": "positive", "facts": "向关联方销售同品种同质量矿产品价格显著低于同期独立交易，最终补差也未发生且无运费或长期风险解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "低价由低品位高水分、买方承担运输加工和长期包销风险解释，公式、化验和结算一致", "expected": "解释成立_关闭"},
@@ -206,7 +201,6 @@
         {"domain": "财务审计", "responsibility": "复核资金、资产、摊销减值和披露", "handoff": "资产专业判断清单"}
       ], "conflict_rule": "自然资源费源、税务缴费和账面资产冲突时分别保留权利、征收和会计口径，不能用其中一套记录覆盖其他事实"},
       "report_contract": {"title": "矿业权出让收益权利事件与资产事实核验", "must_state": ["权利事件", "政策期间", "计征方式", "费源缴费", "勘查开发投入", "资产待判断事项"], "forbidden": ["缴费差异自动认定欠费", "自动判断资产和税前扣除"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": [], "absorption_reason": "旧库没有覆盖2026年矿产资源法实施条例及2026年8月1日矿业权出让收益新规则的完整权利—费源—缴费—资产事实链，因此新增合同而不强行吸收通用产权规则。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "历史产权或印花税规则不能替代矿业权专项收入和权利事实核验。"},
       "validation_cases": [
         {"case": "positive", "facts": "权利变更新增矿种已有出让合同和费源推送，企业持续开采销售但无对应缴费或分期安排记录", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "分期缴费、收益率销售收入、税务回执和账面记录逐期一致，并按2026年新规处理违约事项", "expected": "解释成立_关闭"},
@@ -235,7 +229,6 @@
         {"domain": "财务税务", "responsibility": "复核专账、资产费用和专业判断", "handoff": "税会判断清单"}
       ], "conflict_rule": "方案概算、计提金额和实际工程支出不一致时分别评价义务、预算与履约，不以概算直接证明已发生支出"},
       "report_contract": {"title": "矿山安全费用生态修复与闭坑义务核验", "must_state": ["责任主体", "提取基础", "方案版本", "项目实施", "成果验收", "专项资金"], "forbidden": ["概算等于实际支出", "产量差异直接认定少提"]},
-      "legacy_absorption": {"legacy_rule_ids": ["167", "275", "276", "379", "952", "953", "1285"], "mapping_basis": ["环保支出申报", "特殊工种与产能", "设备维修生产", "排放产量", "固废处置", "在线监测"], "absorption_reason": "将旧库人员、维修、排放和固废指标的分散比较，纳入矿山安全义务、生态修复方案、项目实施、成果验收和专项资金的一条事实链；环保税指标不直接转化为修复或安全结论。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "排放、产废和人员指标只用于验证项目背景，不能单独证明安全费用或修复支出不实。"},
       "validation_cases": [
         {"case": "positive", "facts": "大额修复支出无对应修复单元、施工影像、监理工程量和验收，供应商收款后回流关联个人", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "边采边修方案、分区工程、监理测绘、验收、专项台账和付款逐项一致", "expected": "解释成立_关闭"},
@@ -264,7 +257,6 @@
         {"domain": "资金财税", "responsibility": "连接发票收款会计及税期", "handoff": "销售申报对照"}
       ], "conflict_rule": "矿山磅、港口磅和客户磅冲突时先核验校准、时间、干湿基和合同结算磅，不选择单一重量直接定性"},
       "report_contract": {"title": "矿产品过磅运输交付与销售申报完整性核验", "must_state": ["货权批次", "地磅校准", "运输轨迹", "外部签收", "最终结算", "财税期间"], "forbidden": ["一条轨迹直接认定销售", "忽略水分质量和跨期"]},
-      "legacy_absorption": {"legacy_rule_ids": ["242", "346", "415", "518", "1237", "1449"], "mapping_basis": ["物流轨迹", "运力重量", "第三方仓储", "进销吨位", "进销存与运单", "采购与过磅"], "absorption_reason": "把旧库吨位、运力、轨迹和过磅的分散比较，重写为货权、地磅原始日志、装运轨迹、外部交付、质量调整、最终对价和财税期间的一条批次链。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "过磅或轨迹差异必须排除校准、损耗、跨期、代运、外购和质量结算后才可升级调查。"},
       "validation_cases": [
         {"case": "positive", "facts": "多批矿产品有有效地磅、连续轨迹、客户签收和结算收款，但无发票、会计收入及税费申报且无代运解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "矿山磅与客户磅差异由水分和合同结算磅解释，轨迹、签收、折价、发票和申报一致", "expected": "解释成立_关闭"},

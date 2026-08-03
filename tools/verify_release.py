@@ -23,7 +23,7 @@ PRODUCTION_PYTHON = [
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
     "engine/scenario_methodology.py", "engine/methodology_coverage.py",
-    "engine/candidate_rule_governance.py",
+    "engine/methodology_catalog.py", "engine/methodology_assets.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
@@ -178,12 +178,62 @@ def main() -> int:
         failures,
     )
 
-    rule_report = ROOT / "reports" / "rule_quality_report.json"
-    if rule_report.exists():
-        result = json.loads(rule_report.read_text(encoding="utf-8")).get("result")
-        check(result == "pass", "rule structure audit passes", failures)
-    else:
-        check(False, "rule audit report exists", failures)
+    retired_assets = [
+        "static/tax_risk_rules_local_export.json",
+        "static/cross_domain_clues.json",
+        "static/cross_domain_evidence.json",
+        "static/cross_domain_analysis.json",
+        "engine/candidate_rule_governance.py",
+    ]
+    check(
+        not any((ROOT / relative).exists() for relative in retired_assets),
+        "retired 1720-item assets and candidate governance are absent",
+        failures,
+    )
+
+    sys.path.insert(0, str(ROOT))
+    try:
+        from engine.methodology_catalog import (
+            SCENARIO_FILES,
+            load_canonical_catalog,
+            load_reviewed_scenario_contracts,
+            methodology_inventory,
+        )
+
+        catalog = load_canonical_catalog()
+        inventory = methodology_inventory()
+        modules = catalog.get("modules", [])
+        rules = [rule for module in modules for rule in module.get("rules", [])]
+        scenarios = [
+            scene
+            for code in SCENARIO_FILES
+            for scene in load_reviewed_scenario_contracts(code).get("scenarios", [])
+        ]
+        catalog_valid = (
+            len(modules) == 20
+            and len(rules) == 67
+            and len({rule.get("id") for rule in rules}) == len(rules)
+            and all(rule.get("fact_hypothesis") for rule in rules)
+            and all(rule.get("required_fields") for rule in rules)
+            and all("excludes" in rule for rule in rules)
+        )
+        scene_valid = (
+            len(scenarios) == 69
+            and all("legacy_absorption" not in scene for scene in scenarios)
+            and all((scene.get("methodology_revision") or {}).get("depth_rationale") for scene in scenarios)
+            and all((scene.get("clue_chain") or {}).get("steps") for scene in scenarios)
+            and all((scene.get("evidence_chain") or {}).get("supporting_sources") for scene in scenarios)
+            and all((scene.get("evidence_chain") or {}).get("opposing_sources") for scene in scenarios)
+            and all((scene.get("analysis_chain") or {}).get("reasoning") for scene in scenarios)
+            and all(scene.get("validation_cases") for scene in scenarios)
+            and len(inventory.get("clue_depths", [])) >= 4
+            and len(inventory.get("validation_depths", [])) >= 4
+        )
+    except Exception:
+        catalog_valid = False
+        scene_valid = False
+    check(catalog_valid, "canonical methodology catalog passes structural review", failures)
+    check(scene_valid, "industry scenarios use complete variable-depth contracts", failures)
 
     if failures:
         print(f"\n{len(failures)} check(s) failed.")

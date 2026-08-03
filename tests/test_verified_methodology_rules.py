@@ -67,22 +67,20 @@ class VerifiedRuleEngineTests(unittest.TestCase):
 
 
 class CoverageGovernanceTests(unittest.TestCase):
-    def test_coverage_report_separates_candidates_from_verified_rules(self):
+    def test_coverage_report_uses_canonical_and_reviewed_assets(self):
         from engine.methodology_coverage import build_methodology_coverage
 
         report = build_methodology_coverage(ROOT / "static")
         inventory = report["inventory"]
-        self.assertEqual(inventory["candidate_rules"], 1720)
-        self.assertEqual(inventory["verified_executable_rules"], 13)
-        self.assertGreaterEqual(inventory["candidate_rules_missing_provenance"], 1500)
-        self.assertGreaterEqual(inventory["dominant_analysis_structure_count"], 1600)
-        self.assertEqual(len(report["industry_matrix"]), 20)
-        self.assertEqual(len(report["industry_profiles"]), 20)
-        self.assertGreaterEqual(len(report["data_capability_matrix"]), 12)
-        self.assertTrue(any(item["code"] == "T" for item in report["industry_matrix"]))
-        self.assertTrue(all(len(item["cross_checks"]) >= 3 for item in report["industry_profiles"]))
-        self.assertTrue(all(item["verified_specific_rules"] == 0 for item in report["industry_matrix"]))
-        self.assertTrue(any(gap["priority"] == "P0" for gap in report["gap_register"]))
+        self.assertEqual(inventory["canonical_modules"], 20)
+        self.assertEqual(inventory["rules"], 67)
+        self.assertEqual(inventory["industry_scenarios"], 69)
+        self.assertEqual(inventory["clue_depths"], [4, 5, 6, 7])
+        self.assertEqual(inventory["validation_depths"], [3, 4, 5, 6])
+        self.assertEqual(len(report["industry_matrix"]), 7)
+        self.assertEqual(len(report["canonical_modules"]), 20)
+        self.assertTrue(all(item["scenario_count"] >= 9 for item in report["industry_matrix"]))
+        self.assertTrue(any(gap["priority"] == "P0" for gap in report["known_gaps"]))
 
     def test_chain_playbooks_cover_investigation_evidence_and_analysis(self):
         payload = json.loads(

@@ -16,9 +16,8 @@ def _load_rules():
     if _RULES is not None:
         return
     try:
-        path = os.path.join(os.path.dirname(__file__), "..", "static", "tax_risk_rules_local_export.json")
-        with open(path, 'r', encoding='utf-8') as f:
-            _RULES = json.load(f)
+        from engine.methodology_catalog import load_flat_rules
+        _RULES = load_flat_rules()
         for r in _RULES:
             rid = str(r.get("id", ""))
             if rid:

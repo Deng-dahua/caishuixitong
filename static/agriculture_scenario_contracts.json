@@ -59,7 +59,6 @@
         {"domain": "财税申报", "responsibility": "核验成本收入优惠和申报期间", "handoff": "生产税会对照"}
       ], "conflict_rule": "理论参数与现场、气象或生产日志冲突时保留地区品种和周期差异，不用均值覆盖实际证据"},
       "report_contract": {"title": "农业生产单元投入收获销售闭环核验", "must_state": ["经营单元", "品种周期", "参数来源", "投入存栏", "收获损耗", "销售申报"], "forbidden": ["以亩产或料肉比直接定案", "忽略灾害和跨期生长"]},
-      "legacy_absorption": {"legacy_rule_ids": ["91", "660", "1183"], "mapping_basis": ["种植面积", "投入产出", "苗木产量销售"], "absorption_reason": "将旧库土地成本、苗木面积和理论产量比较改造为按经营单元、品种、生产周期和真实收获逐层验证的事实链，原阈值不继承。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则仅提供入口，理论产量不得直接成为收入或违法结论。"},
       "validation_cases": [
         {"case": "positive", "facts": "同一温室批次有完整投入和连续采收称重，货物交付客户并收款，但仓储、会计和申报均无记录且无代销解释", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "暴雨和病害造成减产，气象、植保、保险查勘、销毁和盘点资料一致", "expected": "解释成立_关闭"},
@@ -88,7 +87,6 @@
         {"domain": "财税优惠", "responsibility": "分别核验增值税、所得税及核算", "handoff": "优惠适用底稿"}
       ], "conflict_rule": "成员名单、交付批次和资金收款冲突时逐笔保留，不以补录成员资格覆盖交易发生时事实"},
       "report_contract": {"title": "自产成员产品外购转售及优惠边界核验", "must_state": ["优惠税种期间", "实际生产者", "成员关系", "批次来源", "加工形态", "分别核算"], "forbidden": ["合作社全部销售自动免税", "有外购即否定全部自产"]},
-      "legacy_absorption": {"legacy_rule_ids": ["466", "501", "635", "826", "1222"], "mapping_basis": ["农林牧渔优惠", "免税销售", "自产场地", "银行收款"], "absorption_reason": "把旧库免税收入与场地、收款的粗略比较，重写为逐批判断实际生产者、成员关系、外购来源、产品形态和分别核算。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧库把面积和收款偏差作为高风险结论的做法不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "全年免税销售大部分批次来自外购贸易商，货物直接入库销售且未与自产分别核算", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "合作社成员资格、成员账户、生产地块、交付称重和成员交易分账逐批一致", "expected": "解释成立_关闭"},
@@ -117,7 +115,6 @@
         {"domain": "增值税申报", "responsibility": "确认凭证、试点及进项计算", "handoff": "抵扣复算底稿"}
       ], "conflict_rule": "身份、交付和付款冲突时分别保留原始记录并回访外调，不以发票或付款单一来源覆盖其他事实"},
       "report_contract": {"title": "农产品收购真实交易及进项抵扣核验", "must_state": ["凭证类型", "生产者身份", "交付称重", "价款归属", "加工使用", "扣除方法"], "forbidden": ["登记地不一致即虚假", "理论产量直接否定收购"]},
-      "legacy_absorption": {"legacy_rule_ids": ["60", "143", "431", "432", "453", "562", "563", "970", "1175"], "mapping_basis": ["收购发票", "农户身份", "当地产量", "加工能力", "核定扣除"], "absorption_reason": "将旧库分散的身份证、产量、加工能力和抵扣金额比较统一到逐笔票货款、生产者身份、加工使用和政策方法链，删除单因子定性。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "原规则阈值、身份证属地推断和直接虚开结论均不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "批量收购发票对应农户无生产单元，过磅车辆循环重复，款项集中回流企业控制账户且无入库加工", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "异地承包农户提供合同、生产记录、称重交付、入库投料和本人收款，登记地虽不同但链条完整", "expected": "解释成立_关闭"},
@@ -146,7 +143,6 @@
         {"domain": "财税与分配", "responsibility": "复核盈余返还及申报", "handoff": "成员分配底稿"}
       ], "conflict_rule": "名册、成员账户和交易发生时状态不一致时以当期原始资料分别评价，不以事后补录倒签覆盖历史"},
       "report_contract": {"title": "合作社订单农业及成员利益分配核验", "must_state": ["主体章程", "成员期间", "交易分账", "订单履约", "代办资金", "盈余分配"], "forbidden": ["合作社全部业务自动优惠", "集中付款即否定成员交易"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["成员资格", "成员非成员交易", "订单农业", "盈余分配"], "absorption_reason": "旧库没有能同时覆盖合作社治理、成员账户、成员与非成员分别核算及盈余返还的直接规则，因此建立新合同而不强行吸收。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "新场景仅达到M2.5，须以合作社脱敏真实样本验证后才能升级。"},
       "validation_cases": [
         {"case": "positive", "facts": "大量非成员购进被记作成员交易，成员账户无交易量记录，价款回流控制人并据此申报成员产品优惠", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "成员名册、生产单元、交付、成员账户、分户付款和按交易量返还完整一致", "expected": "解释成立_关闭"},
@@ -175,7 +171,6 @@
         {"domain": "财税资金", "responsibility": "核验租金补偿和税会", "handoff": "价款税会底稿"}
       ], "conflict_rule": "合同面积、图斑和实际使用面积不一致时同时保留测量基准及期间，不直接采用最大或最小值"},
       "report_contract": {"title": "土地经营权流转农业设施及投入归属核验", "must_state": ["土地性质", "流转主体", "面积用途", "使用期间", "价款补偿", "设施投入"], "forbidden": ["农村经营权等同土地所有权转让", "合同面积直接代替现场"]},
-      "legacy_absorption": {"legacy_rule_ids": ["90", "923", "1283"], "mapping_basis": ["场地付款", "集体土地实际占用", "规划用途与经营用途"], "absorption_reason": "仅吸收可迁移的实际使用、场地付款和用途核验入口，并按农村经营权、农业用途和设施归属重构；房地产土地税规则不纳入。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则对城镇土地和房产税的结论不得直接套用于农村农业经营权。"},
       "validation_cases": [
         {"case": "positive", "facts": "账列大额流转费和设施投入但合同主体否认、现场无农业生产，资金回到关联个人且用途已改变", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "集体统一流转并代收分配，备案合同、图斑、分户表、生产现场和付款完整一致", "expected": "解释成立_关闭"},
@@ -204,7 +199,6 @@
         {"domain": "财务所得税", "responsibility": "确认会计递延和纳税调整", "handoff": "资金税会底稿"}
       ], "conflict_rule": "拨付文件、银行摘要、会计科目和实际用途不一致时逐笔保留并以完整法律事实判断，不由科目名称决定性质"},
       "report_contract": {"title": "农业财政资金收储结算及保险赔款核验", "must_state": ["资金来源", "法律性质", "项目条件", "交付或损失", "专项用途", "税会期间"], "forbidden": ["政府付款一律不征税", "保险赔款一律免税"]},
-      "legacy_absorption": {"legacy_rule_ids": ["129", "381", "382", "807", "1097", "1108", "1509", "1510"], "mapping_basis": ["财政性资金", "不征税收入", "政府补助", "递延收益"], "absorption_reason": "把旧库对银行流入、补贴收入和申报表的比较重写为逐笔区分补助、收储、赔款，验证专项条件、实际用途和期间；旧库未覆盖保险事故事实，本场景补齐。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则关于政府资金应税或不征税的预设结论不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "企业将无专项用途和管理要求的价格补贴全额列为不征税收入，且对应支出继续税前扣除", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "灾害保险赔款对应具体地块保单、气象灾害、现场查勘、定损、赔付和受损资产处置完整", "expected": "解释成立_关闭"},
@@ -233,7 +227,6 @@
         {"domain": "资产财税", "responsibility": "复核分类成本损失和申报", "handoff": "数量成本底稿"}
       ], "conflict_rule": "生产台账、兽医记录和财务卡片冲突时按原始事件分别保留，不用年末盘点倒挤覆盖死亡或销售历史"},
       "report_contract": {"title": "生物资产存栏繁育死亡毁损及处置核验", "must_state": ["资产类别", "群组口径", "新增转群", "期末存栏", "死亡处置", "残值赔款税会"], "forbidden": ["死亡率偏高即认定虚假损失", "会计重分类等同销售"]},
-      "legacy_absorption": {"legacy_rule_ids": [], "mapping_basis": ["生物资产", "繁育转群", "死亡毁损", "活体存栏"], "absorption_reason": "旧库没有能够处理活体生长、繁育转群、死亡毁损和残值赔款的直接规则，故建立全新行业合同。", "absorption_status": "no_direct_legacy_match_new_contract", "boundary": "地区物种参数尚需脱敏真实样本和专业人员验证，不使用通用库存阈值替代。"},
       "validation_cases": [
         {"case": "positive", "facts": "大量成畜以死亡冲减但无兽医诊断、无害化处理或保险记录，同期出现现金销售和运输出场", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "疫病死亡有诊断、政府处置、现场影像、无害化联单、盘点和保险定损一致证明", "expected": "解释成立_关闭"},
@@ -262,7 +255,6 @@
         {"domain": "财税优惠", "responsibility": "核验进项分摊和项目优惠", "handoff": "优惠税会底稿"}
       ], "conflict_rule": "工艺定额与实际称重质检冲突时保留批次、季节和含水率差异，不以单一标准损耗率覆盖实测记录"},
       "report_contract": {"title": "农产品加工冷链损耗及优惠边界核验", "must_state": ["原料来源", "工艺产品形态", "质量平衡", "冷链损耗", "主副产品去向", "优惠分账"], "forbidden": ["发票品名决定加工性质", "超定额损耗直接认定销售"]},
-      "legacy_absorption": {"legacy_rule_ids": ["114", "331", "467", "558", "966", "1250"], "mapping_basis": ["免税项目进项转出", "商品编码", "自产货物", "产品形态"], "absorption_reason": "把旧库进项转出、商品编码和自产货物比较嵌入原料来源、真实工艺、产品形态、质量平衡和分别核算，不采用编码或比例单因子结论。", "absorption_status": "absorbed_into_scene_contract_not_released", "boundary": "旧规则未区分初加工、深加工和冷链自然损耗，原判定与阈值不继承。"},
       "validation_cases": [
         {"case": "positive", "facts": "外购原料经深加工形成新产品却全部按自产初级农产品优惠申报，工单、配方、包装和销售批次一致", "expected": "事实部分支持_待补证"},
         {"case": "negative", "facts": "清洗分选冷藏仅产生可验证含水率和自然失重，来源批次、温控、称重和分别核算完整", "expected": "解释成立_关闭"},

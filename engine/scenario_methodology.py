@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """真实业务场景驱动的方法论计划器。
 
-该模块只生成核验任务、资料缺口和候选信号，不生成违法定性、税额、
+该模块只生成核验任务、资料缺口和观察信号，不生成违法定性、税额、
 处罚或立案意见。场景合同的完整正文由受保护的只读接口提供。
 """
 
@@ -419,8 +419,9 @@ SCENE_SIGNAL_TERMS = {
 
 @lru_cache(maxsize=len(CONTRACT_ASSETS))
 def load_scenario_contracts(industry_code="C"):
-    spec = CONTRACT_ASSETS[str(industry_code or "").upper()]
-    return json.loads(spec["path"].read_text(encoding="utf-8-sig"))
+    from engine.methodology_catalog import load_reviewed_scenario_contracts
+
+    return load_reviewed_scenario_contracts(str(industry_code or "").upper())
 
 
 def _resolve_industry_code(industry):
@@ -540,7 +541,7 @@ def _available_source_families(file_results):
     return sorted(families), sorted(file_types)
 
 
-def _candidate_signal_count(scene_id, findings):
+def _observed_signal_count(scene_id, findings):
     terms = SCENE_SIGNAL_TERMS.get(scene_id, ())
     count = 0
     for finding in findings or []:
@@ -603,8 +604,8 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             "source_gate_satisfied": satisfied,
             "source_gate_total": total,
             "source_gate_results": gate_results,
-            "candidate_signal_count": _candidate_signal_count(scene_id, findings),
-            "candidate_signal_boundary": "候选信号只用于确定核验顺序，不是证据或结论。",
+            "observed_signal_count": _observed_signal_count(scene_id, findings),
+            "observed_signal_boundary": "观察信号只用于确定核验顺序，不是证据或结论。",
             "target_fact": (scene.get("doubt") or {}).get("target_fact", ""),
             "lead_domain": (scene.get("domain_collaboration") or {}).get("lead", ""),
             "contract_asset": spec["asset"],

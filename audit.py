@@ -281,70 +281,27 @@ def _check_system_consistency() -> list:
     errors = []
     base = os.path.dirname(os.path.abspath(__file__)) or "."
 
-    # ═══ 1. 数据源计数核对 ═══
+    # ═══ 1. 权威方法论目录核对 ═══
     try:
-        sc_path = os.path.join(base, "static", "system_config.json")
-        with open(sc_path, "r", encoding="utf-8") as f:
-            sc = json.load(f)
-        data_files = {
-            "rules_count": "tax_risk_rules_local_export.json",
-            "clue_chains": "cross_domain_clues.json",
-            "evidence_chains": "cross_domain_evidence.json",
-            "analysis_chains": "cross_domain_analysis.json",
-        }
-        for key, filename in data_files.items():
-            path = os.path.join(base, "static", filename)
-            if os.path.exists(path):
-                with open(path, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                if isinstance(raw, list):
-                    actual = len(raw)
-                elif isinstance(raw, dict):
-                    actual = len(raw.get("evidence_chains") or raw.get("analysis_chains") or raw.get("clues") or [])
-                else:
-                    actual = 0
-                config_val = sc.get(key)
-                if config_val != actual:
-                    errors.append(
-                        f"[系统一致性] system_config.{key}={config_val} ≠ {filename}实际{actual}"
-                    )
+        from engine.methodology_catalog import methodology_inventory
+        inventory = methodology_inventory()
+        if not inventory.get("rules") or not inventory.get("industry_scenarios"):
+            errors.append("[系统一致性] 权威规则或行业场景为空")
+        if len(inventory.get("clue_depths", [])) < 2 or len(inventory.get("validation_depths", [])) < 2:
+            errors.append("[系统一致性] 行业场景仍呈现固定链深或固定案例数")
     except Exception as e:
-        errors.append(f"[系统一致性] 数据源核对失败: {e}")
+        errors.append(f"[系统一致性] 权威方法论目录核对失败: {e}")
 
-    # ═══ 2. 链字段完整性 ═══
-    for name, filename, required in [
-        ("线索链", "cross_domain_clues.json", ["name", "rule_refs", "sub_topic"]),
-        ("证据链", "cross_domain_evidence.json", ["name", "sub_topic", "level"]),
-        ("分析链", "cross_domain_analysis.json", ["name", "sub_topic", "level", "suggestion"]),
-    ]:
-        try:
-            path = os.path.join(base, "static", filename)
-            with open(path, "r", encoding="utf-8") as f:
-                raw = json.load(f)
-            # 线索链是list，证据链/分析链是dict含chains数组
-            if isinstance(raw, list):
-                items = raw
-            elif isinstance(raw, dict):
-                # 尝试常见的chains键名
-                items = raw.get("evidence_chains") or raw.get("analysis_chains") or raw.get("clues") or []
-            else:
-                items = []
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                for field in required:
-                    if field not in item:  # 字段不存在才算缺失，空值不算
-                        item_name = item.get("name", item.get("id", "?"))
-                        if isinstance(item_name, str):
-                            item_name = item_name[:30]
-                        else:
-                            item_name = str(item_name)[:30]
-                        errors.append(
-                            f"[系统一致性] {name} \"{item_name}\" 缺少字段 {field}"
-                        )
-                        break
-        except Exception as e:
-            errors.append(f"[系统一致性] {filename}检查失败: {e}")
+    # ═══ 2. 规则—线索—证据—分析合同字段完整性 ═══
+    try:
+        from engine.methodology_catalog import load_canonical_catalog
+        catalog = load_canonical_catalog()
+        for module in catalog.get("modules", []):
+            for field in ("rules", "clue_paths", "evidence_plan", "analysis_tests", "validation_cases", "report_boundary"):
+                if not module.get(field):
+                    errors.append(f"[系统一致性] {module.get('id')} 缺少 {field}")
+    except Exception as e:
+        errors.append(f"[系统一致性] 方法论合同字段检查失败: {e}")
 
     # ═══ 3. JS过时数字扫描 ═══
     try:

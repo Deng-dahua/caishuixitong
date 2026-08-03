@@ -2186,19 +2186,13 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
 def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, vouchers, inventory):
     """将所有发现的关联关系串联成证据链，实现单点→多域印证→风险主题
     
-    税务合规方法论⑥：从 cross_domain_evidence.json 加载链定义（数据驱动，非硬编码）
+    从现行方法论目录加载证据计划（数据驱动，非硬编码）
     """
     findings = []
     
     # ═══ 加载跨域证据链定义（JSON驱动） ═══
-    chain_defs = []
-    try:
-        chain_path = os.path.join(os.path.dirname(__file__), "static", "cross_domain_evidence.json")
-        with open(chain_path, 'r', encoding='utf-8') as _f:
-            chain_defs = json.load(_f)
-    except Exception as _e:
-        # 回退：JSON加载失败时使用内置定义（保持系统可用性）
-        chain_defs = _BUILTIN_CROSS_DOMAIN_CHAINS
+    from engine.methodology_catalog import load_flat_evidence
+    chain_defs = load_flat_evidence()
     
     # 只执行 executable=True 且非 legacy 的链（旧证据链仅用于UI展示）
     chain_defs = [c for c in chain_defs if c.get("executable", True)]
@@ -2324,7 +2318,8 @@ def _domain_cross_domain_clues(all_findings):
     """加载跨域线索链，匹配发现并记录触发状态到报告中。
     增强：调用 narratives_builder 生成结构化叙事 detail（含分步叙事+交叉验证表+证据链闭环）。
     """
-    chain_defs = _load_json("static/cross_domain_clues.json", [])
+    from engine.methodology_catalog import load_flat_clues
+    chain_defs = load_flat_clues()
     if not chain_defs:
         return []
     
@@ -2397,7 +2392,8 @@ def _domain_cross_domain_clues(all_findings):
 
 def _domain_cross_domain_analysis(all_findings):
     """加载跨域分析链，匹配触发信号并产生结构化推理发现"""
-    chain_defs = _load_json("static/cross_domain_analysis.json", [])
+    from engine.methodology_catalog import load_flat_analysis
+    chain_defs = load_flat_analysis()
     if not chain_defs:
         return []
     
@@ -4133,16 +4129,13 @@ RULE_DATA_REQUIREMENTS = {
 }
 
 def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, salaries, social_security, inventory, docs):
-    """对全量规则做全覆盖验证：未触发的规则给出缺失数据兜底结论"""
+    """旧式全量规则兜底已退役；资料缺口由适用场景逐项说明。"""
+    return []
     findings = []
     
     # 读取规则库
-    rules_path = os.path.join(_PROJECT_ROOT, "static", "tax_risk_rules_local_export.json")
-    try:
-        with open(rules_path, "r", encoding="utf-8") as f:
-            all_rules = json.load(f)
-    except:
-        return findings
+    from engine.methodology_catalog import load_flat_rules
+    all_rules = load_flat_rules()
     
     # 已触发的规则ID集合
     triggered_ids = set()
