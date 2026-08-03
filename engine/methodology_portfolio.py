@@ -323,6 +323,61 @@ def _validation_cases(name: str, sources: list[str], explanations: list[str], in
     return cases
 
 
+def _acceptance_cases(name: str, sources: list[str], explanations: list[str]) -> list[dict]:
+    """为每个场景生成同口径、可执行的五类证据状态验收样本。"""
+    source_text = "、".join(sources[:3]) or "原始业务、资金和申报资料"
+    explanation_text = "、".join(explanations[:2]) or "正常商业安排和期间口径差异"
+    return [
+        {
+            "case": "充分支持",
+            "evidence_state": "supported",
+            "facts": f"{name}能够由{source_text}逐笔闭合，主要反向解释已经取得独立材料并被排除。",
+            "expected": "事实充分支持_待审理",
+            "required_assertions": ["主体事项期间唯一", "支持证据来源独立", "主要反向解释已核验", "仍须人工审理"],
+        },
+        {
+            "case": "正常解释成立",
+            "evidence_state": "rebutted",
+            "facts": f"表面差异能够由{explanation_text}完整解释，解释范围、期间、金额和期后结果相互印证。",
+            "expected": "解释成立_关闭",
+            "required_assertions": ["解释覆盖全部差异", "解释材料可回查", "支持和反向证据使用同一标准", "人工确认关闭"],
+        },
+        {
+            "case": "事实范围有限",
+            "evidence_state": "partial",
+            "facts": f"资料只支持{name}的部分主体、项目、交易或期间，其他范围没有同等证明材料。",
+            "expected": "事实部分支持_限定范围",
+            "required_assertions": ["限定主体", "限定事项", "限定期间金额", "禁止向总体外推"],
+        },
+        {
+            "case": "证据相互矛盾",
+            "evidence_state": "contradictory",
+            "facts": f"{name}的合同权利义务、实际履行、资金、会计或申报记录存在尚未消解的实质矛盾。",
+            "expected": "存在具体矛盾_待补证",
+            "required_assertions": ["逐项登记矛盾", "回到原始记录", "提出补证路径", "禁止按分数裁决"],
+        },
+        {
+            "case": "关键资料不足",
+            "evidence_state": "insufficient",
+            "facts": f"缺少{source_text}中的关键资料，仅有汇总数字、模型评分或来源无法说明的材料。",
+            "expected": "资料不足_未启动",
+            "required_assertions": ["登记资料缺口", "记录停止原因", "不得反向推定违法", "不得测算确定税额"],
+        },
+    ]
+
+
+def _policy_applicability_contract() -> dict:
+    """政策依据必须按个案事实期间核验，场景正文不固化易失效条文。"""
+    return {
+        "status": "case_time_verification_required",
+        "required_dimensions": ["事实发生期间", "税收管辖地", "纳税人身份", "交易或所得性质", "程序阶段"],
+        "required_source_fields": ["法规名称", "发文机关", "文号或条款", "生效日期", "失效日期或现行状态", "适用地区", "官方来源"],
+        "verification_order": ["先确认事实期间和业务性质", "再取得该期间有效官方全文", "核对上位法、特别规定和过渡条款", "由有权人员确认适用及法律评价"],
+        "stop_if": ["只能取得摘要或二手转载", "无法确认业务期间有效性", "地方授权范围或纳税人身份未核清", "新旧政策衔接存在未解决冲突"],
+        "output_boundary": "政策未完成期间、地区、身份和效力核验时，只能列为待核依据，不得进入正式定性、税额、处罚或移送表述。",
+    }
+
+
 def _build_generated_scene(profile: dict, name: str, index: int) -> dict:
     code = profile["code"]
     prefix = CODE_PREFIX[code]
@@ -432,21 +487,66 @@ def _build_generated_scene(profile: dict, name: str, index: int) -> dict:
             "fact_fields": ["主体与角色", "事项与期间", "业务主键", "差异范围", "支持材料", "反向材料", "资料缺口", "人工复核状态"],
             "must_state": ["适用性判断", "事实时间线", "差异复算", "反向解释处理", "税费及程序边界"],
             "forbidden": ["把行业均值或模型评分写成证据", "把资料缺失写成违法事实", "自动形成违法定性、税额、处罚或移送意见"],
+            "release_gate": "事实、证据、政策时效、金额复算和人工复核状态全部可追溯后，方可进入正式报告审签。",
         },
         "validation_cases": _validation_cases(name, supporting, opposing, index),
+        "acceptance_cases": _acceptance_cases(name, supporting, opposing),
+        "policy_applicability": _policy_applicability_contract(),
     }
 
 
 def _clean_detailed_scene(scene: dict, code: str) -> dict:
     cleaned = copy.deepcopy(scene)
     cleaned.pop("methodology_revision", None)
-    cleaned["edition"] = "3.0.0"
+    cleaned["edition"] = "3.1.0"
     cleaned.setdefault("maturity", "M2.5_boundary_tested")
     applicability = cleaned.setdefault("applicability", {})
+    if not applicability.get("apply_when"):
+        business = str(applicability.get("business", "")).strip()
+        applicability["apply_when"] = [business] if business else ["能够唯一界定本场景的主体、事项和业务期间"]
+    if not applicability.get("do_not_apply_when"):
+        applicability["do_not_apply_when"] = list(applicability.get("not_applicable", [])) or [
+            "主体、事项或业务期间无法唯一界定"
+        ]
     sources = list((cleaned.get("evidence_chain") or {}).get("supporting_sources", []))
     applicability.setdefault("required_source_families", _unique(sources[:4] + ["会计核算", "税费申报"]))
     cleaned["source_gates"] = _source_gates(applicability.get("required_source_families", []))
     cleaned.setdefault("taxes", _taxes_for(code, cleaned.get("name", "")))
+    doubt = cleaned.setdefault("doubt", {})
+    doubt.setdefault(
+        "observed_signal",
+        f"{cleaned.get('name', '本场景')}涉及的主体、权利义务、实际履行、数量金额、期间或申报记录存在尚不能直接解释的差异。",
+    )
+    evidence = cleaned.setdefault("evidence_chain", {})
+    evidence.setdefault("quality_checks", [
+        "逐项记录资料来源、取得方式、原始载体和文件指纹",
+        "同源派生资料不得重复计算证明力",
+        "支持证据和反向证据使用同一真实性、关联性及合法性标准",
+        "电子数据能够回查源行、处理日志和经办过程",
+    ])
+    analysis = cleaned.setdefault("analysis_chain", {})
+    ladder = list(analysis.get("conclusion_ladder", []))
+    for state in (
+        "解释成立_关闭",
+        "资料不足_未启动",
+        "事实部分支持_限定范围",
+        "存在具体矛盾_待补证",
+        "事实充分支持_待审理",
+    ):
+        if state not in ladder:
+            ladder.append(state)
+    analysis["conclusion_ladder"] = ladder
+    opposing = list((cleaned.get("analysis_chain") or {}).get("alternatives", []))
+    if not opposing:
+        opposing = list((cleaned.get("doubt") or {}).get("must_exclude", []))
+    cleaned["acceptance_cases"] = _acceptance_cases(
+        cleaned.get("name", ""), sources, opposing
+    )
+    cleaned["policy_applicability"] = _policy_applicability_contract()
+    report_contract = cleaned.setdefault("report_contract", {})
+    report_contract["release_gate"] = (
+        "事实、证据、政策时效、金额复算和人工复核状态全部可追溯后，方可进入正式报告审签。"
+    )
     return cleaned
 
 
@@ -462,7 +562,7 @@ def load_industry_contract(code: str) -> dict:
         scenes = [_clean_detailed_scene(scene, code) for scene in base.get("scenarios", [])]
         name = str(base.get("name") or code).replace("五链配套合同", "完整场景合同")
         return {
-            "version": "3.0.0",
+            "version": "3.1.0",
             "effective_date": "2026-08-03",
             "code": code,
             "name": name,
@@ -477,7 +577,7 @@ def load_industry_contract(code: str) -> dict:
     names = _scenario_names().get(code) or list(profile.get("priority_scenarios", []))
     scenes = [_build_generated_scene(profile, name, index) for index, name in enumerate(names)]
     return {
-        "version": "3.0.0",
+        "version": "3.1.0",
         "effective_date": "2026-08-03",
         "code": code,
         "name": f"{profile['name']}完整场景合同",
@@ -494,7 +594,7 @@ def load_industry_contract(code: str) -> dict:
 def load_methodology_portfolio() -> dict:
     contracts = [load_industry_contract(code) for code in PORTFOLIO_CODES]
     return {
-        "version": "3.0.0",
+        "version": "3.1.0",
         "effective_date": "2026-08-03",
         "name": "全行业税务稽查方法论场景组合",
         "positioning": "以可证伪事实为起点，把调查路径、支持与反向证据、分析检验、业务域协同和报告交付编入同一场景合同。",

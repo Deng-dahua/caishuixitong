@@ -75,7 +75,7 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
 
     def test_portfolio_covers_all_industries_and_overlay_businesses(self):
         contracts = self.portfolio["contracts"]
-        self.assertEqual(self.portfolio["version"], "3.0.0")
+        self.assertEqual(self.portfolio["version"], "3.1.0")
         self.assertEqual(len(contracts), 23)
         self.assertEqual({item["code"] for item in contracts if len(item["code"]) == 1}, set("ABCDEFGHIJKLMNOPQRST"))
         self.assertEqual(
@@ -111,7 +111,18 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
             self.assertTrue((scene.get("domain_collaboration") or {}).get("lead"), scene.get("id"))
             self.assertTrue((scene.get("domain_collaboration") or {}).get("partners"), scene.get("id"))
             self.assertTrue((scene.get("report_contract") or {}).get("forbidden"), scene.get("id"))
+            self.assertTrue((scene.get("report_contract") or {}).get("release_gate"), scene.get("id"))
             self.assertTrue(scene.get("validation_cases"), scene.get("id"))
+            self.assertEqual(len(scene.get("acceptance_cases") or []), 5, scene.get("id"))
+            self.assertEqual(
+                {item.get("evidence_state") for item in scene.get("acceptance_cases") or []},
+                {"supported", "rebutted", "partial", "contradictory", "insufficient"},
+                scene.get("id"),
+            )
+            policy = scene.get("policy_applicability") or {}
+            self.assertEqual(policy.get("status"), "case_time_verification_required", scene.get("id"))
+            self.assertTrue(policy.get("required_dimensions"), scene.get("id"))
+            self.assertTrue(policy.get("stop_if"), scene.get("id"))
             encoded = json.dumps(scene, ensure_ascii=False)
             for forbidden in ("legacy_absorption", "已吸收", "1720条", "候选检索", "迁移账册"):
                 self.assertNotIn(forbidden, encoded, scene.get("id"))
@@ -177,6 +188,42 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
             self.assertGreaterEqual(plan["scene_count"], 5, industry)
             for scene in plan["scenes"]:
                 self.assertIn("观察信号只用于确定核验顺序", scene["observed_signal_boundary"])
+                self.assertTrue(scene["acceptance_passed"])
+                self.assertEqual(scene["acceptance_case_count"], 5)
+                self.assertFalse(scene["report_release_allowed"])
+                self.assertTrue(scene["policy_verification_required"])
+
+    def test_all_scenes_pass_five_state_acceptance(self):
+        from engine.methodology_acceptance import run_portfolio_acceptance
+
+        result = run_portfolio_acceptance()
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["portfolio_version"], "3.1.0")
+        self.assertEqual(result["contract_count"], 23)
+        self.assertEqual(result["scene_count"], 161)
+        self.assertEqual(result["passed_scene_count"], 161)
+        self.assertEqual(result["failed_scene_count"], 0)
+        self.assertEqual(result["acceptance_case_count"], 805)
+        self.assertFalse(result["duplicate_scene_ids"])
+        self.assertFalse(result["duplicate_target_facts"])
+        self.assertFalse(result["duplicate_clue_paths"])
+
+    def test_uploaded_industry_sources_can_satisfy_every_scene_gate(self):
+        from engine.scenario_methodology import build_scenario_review_plan
+
+        for code, payload in self.payloads.items():
+            source_families = sorted({
+                family
+                for scene in payload.get("scenarios", [])
+                for family in (scene.get("applicability") or {}).get("required_source_families", [])
+            })
+            files = [
+                {"type": "generic_data", "file": f"{family}.xlsx", "original_name": f"{family}.xlsx"}
+                for family in source_families
+            ]
+            plan = build_scenario_review_plan(code, files, [])
+            self.assertEqual(plan["ready_for_human_review"], plan["scene_count"], code)
+            self.assertEqual(plan["pending_more_sources"], 0, code)
 
     def test_runtime_and_frontend_use_current_portfolio(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")

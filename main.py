@@ -6464,6 +6464,7 @@ def get_methodology_asset(asset_name: str):
         load_canonical_catalog, load_flat_analysis, load_flat_clues,
         load_flat_evidence, load_flat_rules,
     )
+    from engine.methodology_acceptance import run_portfolio_acceptance
     from engine.methodology_portfolio import load_methodology_portfolio
     virtual_assets = {
         "rules": load_flat_rules,
@@ -6472,6 +6473,7 @@ def get_methodology_asset(asset_name: str):
         "analysis": lambda: {"analysis_chains": load_flat_analysis()},
         "canonical_catalog": load_canonical_catalog,
         "portfolio": load_methodology_portfolio,
+        "acceptance": run_portfolio_acceptance,
     }
     if normalized_asset in virtual_assets:
         return virtual_assets[normalized_asset]()
@@ -7135,6 +7137,7 @@ def _apply_engine_hub_stage(report_data, result=None):
 
 def _apply_methodology_stage(report_data):
     """对全部发现执行方法论门禁，并匹配流程、业务域和官方依据类别。"""
+    from engine.methodology_acceptance import run_portfolio_acceptance
     from engine.methodology_loader import (
         METHODOLOGY_KNOWLEDGE,
         get_relevant_laws,
@@ -7165,11 +7168,16 @@ def _apply_methodology_stage(report_data):
 
     review_report_methodology(report_data)
 
+    acceptance = run_portfolio_acceptance()
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
         "findings_reviewed": len(findings),
         "findings_enriched": enriched,
+        "portfolio_version": acceptance.get("portfolio_version"),
+        "portfolio_acceptance_status": acceptance.get("status"),
+        "portfolio_scenes_validated": acceptance.get("passed_scene_count", 0),
+        "portfolio_acceptance_cases": acceptance.get("acceptance_case_count", 0),
         "decision_boundary": "全部发现均为待核、待补证或待人工复核状态，系统不自动作出行政认定。",
     }
     report_data["_methodology_applied"] = summary

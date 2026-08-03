@@ -1192,17 +1192,19 @@ def _run_analyze(company_id, db, progress_callback=None):
                 })
             else:
                 inv_match_findings.append({
-                    "type": "有销无进风险",
-                    "level": "高风险", "score": 9,
+                    "type": "有销无进待核事实",
+                    "level": "中风险", "score": 5,
                     "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
-                    "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但进项核心成本中未发现对应商品的采购记录。在没有采购的情况下对外销售，是虚开发票的典型特征。",
+                    "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但现有进项核心成本中未找到对应采购记录。该差异可能由期初存货、自产加工、客户供料、受托代销、调拨在途、资料缺失或其他正常业务形成，须逐项核验。",
                     "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品的品名从未出现在核心进项中。",
-                    "tax_impact": "虚开发票→刑事责任（刑法第201720条，最高无期徒刑）+行政处罚（50万以下罚款）+税款追缴+滞纳金+纳税信用等级降为D级",
-                    "policy_ref": "《发票管理办法》第二十二条（禁止虚开发票）；《刑法》第二百零五条（虚开增值税专用发票罪）；《重大税收违法失信主体信息公布管理办法》",
-                    "suggestion": f"要求被查单位立即提供{len(only_sell)}种商品的采购来源证明材料。无法提供真实采购来源的，按虚开发票立案处理。",
+                    "tax_impact": "现阶段不测算税费或法律后果；只有交易事实、货权来源、实际履行、票款物流和业务期间均经合法证据复核后，才能分别评价税费影响。",
+                    "policy_ref": "《中华人民共和国发票管理办法》第二十一条；具体适用须按业务发生期间取得官方有效文本并由有权人员复核。",
+                    "suggestion": f"补取并核验{len(only_sell)}种商品的期初库存、采购或自产来源、委托加工、客户供料、调拨、出库交付、物流、收款及会计申报资料；资料不足时只记录缺口，不作违法推定。",
                     "category": "进销存匹配",
                     "rule_id": 337,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                    "required_human_review": True,
+                    "automatic_determination_allowed": False,
                 })
         
         # ═══════════════════════════════════════════════════
@@ -1255,7 +1257,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
     # 统计识别为unknown的文件数
     unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
-    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取1720条" in str(fr.get("actions", [])))
+    zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取0条" in str(fr.get("actions", [])))
     failure_count = sum(1 for fr in file_results if any("失败" in a for a in fr.get("actions", [])))
     
     # ═══ 涉税相关性评分：标记非涉税文件 ═══
@@ -1289,7 +1291,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             unknown_files = [fr["file"] for fr in file_results if fr["type"] == "unknown"]
             fail_reasons.append(f"{unknown_count}个文件未能识别类型: {', '.join(unknown_files)}")
         if zero_record_count > 0:
-            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取1720条" in str(fr.get("actions", []))]
+            zero_files = [fr["file"] for fr in file_results if fr["type"] != "unknown" and "提取0条" in str(fr.get("actions", []))]
             fail_reasons.append(f"{zero_record_count}个文件识别成功但未提取到数据: {', '.join(zero_files)}")
         if failure_count > 0:
             fail_files = [fr["file"] for fr in file_results if any("失败" in a for a in fr.get("actions", []))]
@@ -1301,7 +1303,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "suggestion": "请检查文件格式：1)确认Excel文件包含表头行 2)确认文件内容是财税相关数据(发票/工资/银行流水/凭证/社保等) 3)尝试用标准模板格式重新导出"}
     
     # _ 数据不足警告（少量数据，报告标注）
-    low_data_warning = total_parsed < 10  # 少于11720条记录视为数据不足
+    low_data_warning = total_parsed < 10  # 少于10条记录视为数据不足
     
     # ── 凭证收入提取（区分开票/未开票）──
     voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "total": 0.0, "rows": 0}
@@ -2024,20 +2026,6 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _e:
         pipeline_log.append(f"[可执行链] 执行异常: {_e}")
 
-    # ── 阈值扫描器: 解析规则的threshold字段，对数据执行硬性量化检查 ──
-    try:
-        from engine.threshold_scanner import scan_all as threshold_scan
-        _thr_findings = threshold_scan(_eng_data if '_eng_data' in dir() else {
-            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
-            "vouchers": vouchers, "trial_balance": trial_balance_data
-        })
-        if _thr_findings:
-            domain_results.append({"domain": "阈值量化扫描", "findings": _thr_findings})
-            all_findings.extend(_thr_findings)
-            pipeline_log.append(f"[阈值扫描] {len(_thr_findings)}条量化阈值触发")
-    except Exception as _ts:
-        pipeline_log.append(f"[阈值扫描] 异常: {_ts}")
-
     # ── 已验证原子规则：只运行具有明确字段契约和回归测试的计算 ──
     try:
         from engine.verified_rule_engine import run_verified_rules
@@ -2517,7 +2505,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                         "total_steps": total_steps,
                         "triggered_steps": triggered_in_chain,
                         "ratio": round(ratio * 100),
-                        "closed": (ratio >= 0.6 and triggered_in_chain >= 3),  # 修复：≥60%且≥1720条规则才闭环
+                        "closed": (ratio >= 0.6 and triggered_in_chain >= 3),  # 历史解释专用：≥60%且至少3个步骤
                         "steps": step_results,
                     })
                     
@@ -2885,10 +2873,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 证据链闭环 → 强制升级风险等级
     closed_count = comprehensive.get("closed_chain_count", 0)
     if closed_count >= 3:
-        overall = "高风险"  # 1720条以上证据链闭环 → 直接高风险
+        overall = "高风险"  # 历史结果兼容：3条以上闭环记录
         pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级强制提升为高风险")
     elif closed_count >= 1 and overall == "低风险":
-        overall = "中风险"  # 至少1720条闭环 → 至少中风险
+        overall = "中风险"  # 历史结果兼容：至少1条闭环记录
         pipeline_log.append(f"风险升级: {closed_count}条证据链闭环→等级提升为中风险")
     if overall == "未触发":
         overall = "高风险" if high >= 3 else ("中风险" if high + mid >= 5 else "低风险")
@@ -2928,7 +2916,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 # 修复：要求3+词命中或2词命中+分类一致，杜绝字符级误匹配
                 if hits >= 3 or (hits >= 2 and cat_match):
                     matched_ids.append(r["id"])
-            f["matched_rule_ids"] = matched_ids  # 最多1720条规则
+            f["matched_rule_ids"] = matched_ids
             f["matched_rule_count"] = len(matched_ids)
         
         # 构建 rule_id → 证据链 反向索引 + 链详情缓存
@@ -2957,7 +2945,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                         chain_names.add(cn)
             f["matched_chain_ids"] = list(chain_names)
             f["matched_chain_count"] = len(chain_names)
-            # 附带前1720条链的调查步骤（线索链+证据链共用）
+            # 附带已匹配链的调查步骤（仅用于解释历史结果）
             for cn in list(chain_names):
                 c = chain_map.get(cn, {})
                 steps_summary = []
@@ -3312,70 +3300,6 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     _step_timing["step5_start"] = time.time()
     _report(98, "步骤⑤方法论噪声过滤 — 开始...", step=5)
-
-    # ═══ 疑点库threshold主动扫描（2026-07-17）：让1720条规则真正被引擎执行 ═══
-    # 此前疑点库只用于给已有发现贴标签（被动消费）；现在引擎主动拿每条规则的
-    # threshold结构化条件去查数据，触发即生成发现。放在方法论过滤器之前，
-    # 让新发现同样经过 HARD_BAN/COND_BAN/正常结论 全套防线清洗。
-    try:
-        from engine.rule_consumer import verify_with_threshold, check_applicable
-        from engine.methodology_catalog import load_flat_rules
-        _doubt_rules = load_flat_rules()
-        _existing_types = {str(f.get("type", "")).strip() for f in all_findings}
-        _scan_hits = []
-        _scanned = 0
-        for _dr in _doubt_rules:
-            _item = str(_dr.get("item", "")).strip()
-            if not _item or _item in _existing_types:
-                continue  # 已有同名发现，不重复生成
-            # ── 执行覆盖·⑨applicable_condition前置闸门：行业限定不符直接拦截（防误报）──
-            _ok_ac, _ac_reason = check_applicable(_dr, target_entity.get("industry", ""))
-            if not _ok_ac:
-                continue
-            # ── 执行覆盖·⑥check_frequency调度：低频=特定条件触发时查→要求强触发(0.95)；高频/中频常规门槛(0.85) ──
-            _freq = str(_dr.get("check_frequency", "") or "")
-            _conf_floor = 0.95 if "低频" in _freq else 0.85
-            _v = verify_with_threshold(_dr, bank_txs, invoices, salaries, social_security, vouchers)
-            if _v is None:
-                continue  # threshold无法结构化解析，降级跳过
-            _scanned += 1
-            _trig, _reason, _conf, _evd = _v
-            # 定量条件触发按频率档位取门槛；"=是即触发"类太宽泛，全库扫描会误报爆炸
-            if not _trig or _conf < _conf_floor:
-                continue
-            _scan_hits.append({
-                "type": _item,
-                # 疑点非结论（铁律）：threshold只验证了金额维度，规则的业务限定属性
-                # （如红冲/微信收款/账外）未经数据核实，不得继承规则原定性等级。
-                # 统一降为中风险疑点提示，score上限5，留待稽查员核实后升级。
-                "level": "中风险",
-                "score": min(int(_dr.get("score", 5) or 5), 5),
-                "detail": (
-                    f"疑点库规则金额条件已触发：{_reason}。"
-                    f"证据：{json.dumps(_evd, ensure_ascii=False)[:200]}。"
-                    f"注：本条属疑点提示——金额维度已验证，规则完整判定所需的业务属性"
-                    f"（交易性质/票种属性等）需结合原始凭证人工核实，核实前不作风险定性。"
-                ),
-                "suggestion": str(_dr.get("suggestion", ""))[:500],
-                "policy_ref": str(_dr.get("policy_ref", ""))[:500],
-                "tax_impact": str(_dr.get("tax_impact", ""))[:500],
-                "domain": "疑点库threshold扫描",
-                "_rule_id": _dr.get("id"),
-                "_rule_match_mode": "threshold_scan",
-                "_rule_match_score": _conf,
-                "_rule_direction": str(_dr.get("direction", "")),
-                "_rule_determination": str(_dr.get("determination", "")),
-            })
-        # 上限保护：按score降序最多注入1720条，防止发现列表被扫描结果淹没
-        _scan_hits.sort(key=lambda x: x.get("score", 0), reverse=True)
-        _scan_hits = _scan_hits[:30]
-        all_findings.extend(_scan_hits)
-        pipeline_log.append(
-            f"[疑点库扫描] {len(_doubt_rules)}条规则中{_scanned}条threshold可结构化执行，"
-            f"触发{len(_scan_hits)}条新发现（已限量，随后进入方法论过滤防线）"
-        )
-    except Exception as _ts_err:
-        pipeline_log.append(f"[疑点库扫描] ERROR(降级继续): {_ts_err}")
 
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
@@ -5129,40 +5053,34 @@ def _build_methodology_summary(all_findings, quality_report, cross_verify, pipel
 
 
 def _build_doubt_library_summary(all_findings):
-    """构建税务疑点库消费执行摘要（一键分析可见语言）
-
-    2026-07-17 新增：把疑点库的规模、精写覆盖、本次命中、
-    深度字段消费（direction推理链/determination定性/报告驱动）
-    编制成一键分析按钮看得懂的执行报告。
-    """
+    """构建现行事实合同的消费摘要，不运行无来源的固定阈值。"""
     lines = []
     try:
         from engine.methodology_catalog import load_flat_rules
         _rules = load_flat_rules()
         total_rules = len(_rules)
-        deep_written = sum(
-            1 for x in _rules
-            if all(str(x.get(k, "")).strip() for k in ("direction", "determination", "threshold"))
-        )
+        common_rules = sum(x.get("type") == "authoritative_review_contract" for x in _rules)
+        industry_rules = sum(x.get("type") == "industry_fact_review_contract" for x in _rules)
         rule_cat = {str(x.get("id", "")): str(x.get("category", "")) for x in _rules}
     except Exception:
-        total_rules, deep_written, rule_cat = 0, 0, {}
+        total_rules, common_rules, industry_rules, rule_cat = 0, 0, 0, {}
 
     # 本次消费统计（来自规则深度字段消费环节注入的标记）
     hit = [f for f in all_findings if f.get("_rule_id")]
     exact_n = sum(1 for f in hit if f.get("_rule_match_mode") == "exact")
     sem_n = sum(1 for f in hit if f.get("_rule_match_mode") == "semantic")
-    scan_n = sum(1 for f in hit if f.get("_rule_match_mode") == "threshold_scan")
     llm_injected = sum(1 for f in all_findings if f.get("_llm_context"))
     det_injected = sum(1 for f in all_findings if str(f.get("_rule_determination", "")).strip())
     rep_injected = sum(1 for f in all_findings if f.get("_report_ctx"))
 
     if total_rules:
-        pct = deep_written / total_rules * 100
-        lines.append(f"疑点库规模: {total_rules}条规则 · 23字段 · 精写{deep_written}条({pct:.1f}%)")
+        lines.append(
+            f"事实合同: {total_rules}项（跨行业共同事实{common_rules}项，"
+            f"行业场景事实{industry_rules}项）；全部要求人工复核且不设置自动定性阈值"
+        )
     lines.append(
-        f"规则命中: {len(hit)}/{len(all_findings)}条发现关联疑点库规则"
-        f"（精确{exact_n} 语义{sem_n} threshold主动扫描{scan_n}）"
+        f"合同关联: {len(hit)}/{len(all_findings)}项待核事项关联现行事实合同"
+        f"（精确{exact_n}，语义{sem_n}）"
     )
     lines.append(f"推理注入: {llm_injected}条注入direction推理链+drill_questions穿透追问")
     lines.append(f"定性注入: {det_injected}条注入determination定性路径")
@@ -5747,7 +5665,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
         evidence_rows = []
-        max_rows = 8  # 每种finding最多1720条证据行
+        max_rows = 8  # 每项待核事实最多8条示例证据行
         
         # ── 按finding类型采样相关原始数据 ──
         # 进销相关 → 采样销项/进项发票
@@ -7176,7 +7094,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     removed_reasons = {}
     removed_items = []  # 详细删除日志
     gap_count = 0
-    gap_limit = 5  # 资料缺失类最多保留1720条
+    gap_limit = 5  # 资料缺失类最多保留5项代表性缺口
     
     for f in all_findings:
         f_type = str(f.get("type", ""))

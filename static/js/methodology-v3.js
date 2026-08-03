@@ -28,6 +28,7 @@
     var analysis = scene.analysis_chain || {};
     var domains = scene.domain_collaboration || {};
     var report = scene.report_contract || {};
+    var policy = scene.policy_applicability || {};
     var steps = (clue.steps || []).map(function (step) {
       return '<li><b>' + esc(step.step || '') + '</b><span>' + esc(step.action || '') + '</span>'
         + (step.deliverable ? '<small>交付：' + esc(step.deliverable) + '</small>' : '') + '</li>';
@@ -37,6 +38,10 @@
         + '</td><td>' + esc(partner.handoff || '') + '</td></tr>';
     }).join('');
     var cases = (scene.validation_cases || []).map(function (item) {
+      return '<tr><td>' + esc(item.case || '') + '</td><td>' + esc(item.facts || '')
+        + '</td><td>' + esc(item.expected || '') + '</td></tr>';
+    }).join('');
+    var acceptanceCases = (scene.acceptance_cases || []).map(function (item) {
       return '<tr><td>' + esc(item.case || '') + '</td><td>' + esc(item.facts || '')
         + '</td><td>' + esc(item.expected || '') + '</td></tr>';
     }).join('');
@@ -60,12 +65,16 @@
       + '</article><article><h5>证据质量复核</h5>' + list(evidence.quality_checks) + '</article></div>'
       + '<article><h5>分析论证路径</h5><p><b>核心命题：</b>' + esc(analysis.proposition || '') + '</p>'
       + list(analysis.reasoning) + '<p class="m3-boundary"><b>税法边界：</b>' + esc(analysis.tax_boundary || '') + '</p></article>'
+      + '<article><h5>政策期间与效力核验</h5><div class="m3-grid-2"><div><p class="m3-label">必须核对</p>'
+      + list(policy.required_dimensions) + '</div><div><p class="m3-label">停止使用依据</p>' + list(policy.stop_if)
+      + '</div></div><p class="m3-boundary">' + esc(policy.output_boundary || '') + '</p></article>'
       + '<article><h5>业务域协同</h5><p><b>牵头业务域：</b>' + esc(domains.lead || '') + '</p>'
       + '<div class="m3-table-wrap"><table><thead><tr><th>协同业务域</th><th>职责</th><th>交付</th></tr></thead><tbody>'
       + partners + '</tbody></table></div><p class="m3-boundary">' + esc(domains.conflict_rule || '') + '</p></article>'
       + '<article><h5>报告移交合同</h5><div class="m3-grid-2"><div><p class="m3-label">必须写明</p>'
       + list(report.must_state) + '</div><div><p class="m3-label">禁止写法</p>' + list(report.forbidden) + '</div></div></article>'
       + (cases ? '<article><h5>正向、反向与边界验证</h5><div class="m3-table-wrap"><table><thead><tr><th>样本</th><th>事实</th><th>预期状态</th></tr></thead><tbody>' + cases + '</tbody></table></div></article>' : '')
+      + (acceptanceCases ? '<article><h5>五类证据状态验收</h5><div class="m3-table-wrap"><table><thead><tr><th>证据状态</th><th>场景化事实</th><th>输出上限</th></tr></thead><tbody>' + acceptanceCases + '</tbody></table></div></article>' : '')
       + '</div></details>';
   }
 
@@ -131,6 +140,7 @@
 
   function renderPage(container, coverage, portfolio, catalog, framework, latest) {
     var inventory = coverage.inventory || {};
+    var acceptance = coverage.acceptance || {};
     var contracts = portfolio.contracts || [];
     var industries = contracts.filter(function (item) { return /^[A-T]$/.test(item.code || ''); });
     var overlays = contracts.filter(function (item) { return String(item.code || '').indexOf('OVERLAY-') === 0; });
@@ -169,6 +179,7 @@
       + metric(overlays.length, '叠加业务层', '平台、跨境与集团关联')
       + metric(inventory.clue_paths || 0, '调查路径', '共同路径与行业路径合计')
       + metric(inventory.evidence_plans || 0, '证据方案', '同时处理支持与反向材料')
+      + metric(acceptance.acceptance_case_count || 0, '证据状态验收', '五类状态逐场景校准')
       + '</div><div class="m3-principle"><b>数量原则</b><p>' + esc(portfolio.count_policy || '') + '</p></div>'
       + '<h3>税费事项覆盖</h3><div class="m3-table-wrap"><table><thead><tr><th>税费组</th><th>覆盖事项</th><th>核验重点</th></tr></thead><tbody>' + taxRows + '</tbody></table></div>'
       + '<h3>行业和叠加业务覆盖</h3><div class="m3-table-wrap"><table><thead><tr><th>代码</th><th>合同</th><th>场景</th><th>调查深度</th><th>边界样本深度</th></tr></thead><tbody>' + industryRows + '</tbody></table></div></section>'
@@ -198,6 +209,10 @@
       + '<div class="m3-grid-2"><article><h4>放行控制</h4>' + list(coverage.quality_controls)
       + '</article><article><h4>持续验证</h4>' + list((coverage.known_gaps || []).map(function (item) { return item.priority + '｜' + item.gap + '：' + item.control; }))
       + '</article></div><div class="m3-metrics m3-quality-metrics">'
+      + metric(acceptance.passed_scene_count || 0, '已通过结构验收场景', '共' + esc(acceptance.scene_count || 0) + '个')
+      + metric(acceptance.failed_scene_count || 0, '未通过场景', '必须为0才允许发布')
+      + metric(acceptance.acceptance_case_count || 0, '已执行边界样本', '充分支持、正常解释、限定范围、矛盾、资料不足')
+      + metric(acceptance.status || '待执行', '组合验收状态', acceptance.decision_boundary || '')
       + (framework.quality_metrics || []).map(function (item) { return metric(item.target || '持续观测', item.name, item.formula); }).join('')
       + '</div></section></main></div>';
     container.innerHTML = html;

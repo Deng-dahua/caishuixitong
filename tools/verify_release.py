@@ -24,7 +24,8 @@ PRODUCTION_PYTHON = [
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
     "engine/scenario_methodology.py", "engine/methodology_coverage.py",
     "engine/methodology_catalog.py", "engine/methodology_portfolio.py",
-    "engine/methodology_assets.py",
+    "engine/methodology_acceptance.py", "engine/methodology_assets.py",
+    "engine/report_standards.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
@@ -74,6 +75,8 @@ def main() -> int:
     provider_source = (ROOT / "llm_providers.py").read_text(encoding="utf-8")
     request_context_source = (ROOT / "request_context.py").read_text(encoding="utf-8")
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
+    pipeline_source = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8")
+    report_standard_source = (ROOT / "engine" / "report_standards.py").read_text(encoding="utf-8")
     chat_source = (ROOT / "chat.py").read_text(encoding="utf-8")
     llm_client_source = (ROOT / "engine" / "llm_client.py").read_text(encoding="utf-8")
     core_source = (ROOT / "static" / "js" / "core.js").read_text(encoding="utf-8")
@@ -82,6 +85,21 @@ def main() -> int:
     new_company_source = (ROOT / "static" / "new-company.html").read_text(encoding="utf-8")
     knowledge_source = (ROOT / "engine" / "knowledge_base.py").read_text(encoding="utf-8")
     check("hashlib.scrypt" in security_source, "passwords use scrypt", failures)
+    check(
+        "from engine.threshold_scanner import" not in pipeline_source
+        and '"_rule_match_mode": "threshold_scan"' not in pipeline_source
+        and "threshold主动扫描" not in pipeline_source
+        and "1720" not in pipeline_source,
+        "one-click analysis does not execute the retired threshold rule scan",
+        failures,
+    )
+    check(
+        "_MALFORMED_POLICY_RE" in report_standard_source
+        and 'release_status"] = "草稿_待人工复核"' in report_standard_source
+        and "automatic_determination_allowed" in report_standard_source,
+        "report gate blocks malformed law references and automatic determination",
+        failures,
+    )
     check("csrf_is_valid" in web_source, "unsafe requests enforce CSRF", failures)
     check("can_access_company" in web_source, "tenant authorization is centralized", failures)
     check(
@@ -200,6 +218,7 @@ def main() -> int:
             load_reviewed_scenario_contracts,
             methodology_inventory,
         )
+        from engine.methodology_acceptance import run_portfolio_acceptance
         from engine.methodology_portfolio import load_methodology_portfolio
 
         catalog = load_canonical_catalog()
@@ -207,6 +226,7 @@ def main() -> int:
         modules = catalog.get("modules", [])
         rules = [rule for module in modules for rule in module.get("rules", [])]
         portfolio = load_methodology_portfolio()
+        acceptance = run_portfolio_acceptance()
         scenarios = [
             scene
             for code in SCENARIO_FILES
@@ -222,7 +242,7 @@ def main() -> int:
             and all("excludes" in rule for rule in rules)
         )
         scene_valid = (
-            portfolio.get("version") == "3.0.0"
+            portfolio.get("version") == "3.1.0"
             and len(portfolio.get("contracts", [])) == 23
             and len(scenarios) == 161
             and all("legacy_absorption" not in scene for scene in scenarios)
@@ -233,6 +253,11 @@ def main() -> int:
             and all((scene.get("evidence_chain") or {}).get("opposing_sources") for scene in scenarios)
             and all((scene.get("analysis_chain") or {}).get("reasoning") for scene in scenarios)
             and all(scene.get("validation_cases") for scene in scenarios)
+            and all(len(scene.get("acceptance_cases") or []) == 5 for scene in scenarios)
+            and all((scene.get("policy_applicability") or {}).get("status") == "case_time_verification_required" for scene in scenarios)
+            and acceptance.get("status") == "passed"
+            and acceptance.get("passed_scene_count") == 161
+            and acceptance.get("acceptance_case_count") == 805
             and inventory.get("rules") == 228
             and inventory.get("clue_paths") == 188
             and inventory.get("evidence_plans") == 181

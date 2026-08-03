@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -430,6 +431,40 @@ def _resolve_industry_code(industry):
     return resolve_industry_code(industry)
 
 
+@lru_cache(maxsize=1)
+def _portfolio_source_families():
+    """收集现行场景合同中的行业资料族，避免新增行业只写不运行。"""
+    from engine.methodology_portfolio import load_methodology_portfolio
+
+    values = set()
+    for contract in load_methodology_portfolio().get("contracts", []):
+        for scene in contract.get("scenarios", []):
+            values.update((scene.get("applicability") or {}).get("required_source_families", []))
+    return tuple(sorted(str(item).strip() for item in values if str(item).strip()))
+
+
+def _family_tokens(family):
+    text = re.sub(r"原始明细|形成说明|版本记录|原始记录|相关资料|业务资料", "", str(family))
+    parts = re.split(r"[、，,；;/（）()及和与或]", text)
+    stop = {"资料", "记录", "明细", "台账", "系统", "业务", "其他", "原始", "合同"}
+    return [part.strip() for part in parts if len(part.strip()) >= 2 and part.strip() not in stop]
+
+
+def _match_portfolio_source_families(name_text):
+    matched = set()
+    compact_name = re.sub(r"\s+", "", str(name_text or ""))
+    for family in _portfolio_source_families():
+        compact_family = re.sub(r"\s+", "", family)
+        if compact_family and compact_family in compact_name:
+            matched.add(family)
+            continue
+        tokens = _family_tokens(family)
+        token_hits = [token for token in tokens if token in compact_name]
+        if len(token_hits) >= 2 or any(len(token) >= 4 for token in token_hits):
+            matched.add(family)
+    return matched
+
+
 def _available_source_families(file_results):
     families = set()
     file_types = set()
@@ -442,6 +477,7 @@ def _available_source_families(file_results):
         name_text = " ".join(
             str(item.get(key, "") or "") for key in ("file", "original_name", "_header_row")
         )
+        families.update(_match_portfolio_source_families(name_text))
         if any(term in name_text for term in ("BOM", "工单", "领料", "完工", "生产", "进销存")):
             families.add("生产存货")
         if any(term in name_text for term in ("物流", "运单", "签收", "调拨", "盘点", "称重")):
@@ -554,6 +590,8 @@ def _observed_signal_count(scene_id, findings):
 
 def build_scenario_review_plan(industry, file_results=None, findings=None):
     """生成只读的场景核验计划，不改变或新增 finding。"""
+    from engine.methodology_acceptance import audit_scene_contract
+
     industry_code = _resolve_industry_code(industry)
     if not industry_code:
         return {
@@ -594,6 +632,16 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             status = "待补资料_可初筛"
         else:
             status = "资料就绪_待人工核验"
+        if status == "资料不足_未启动":
+            next_action = "登记缺失资料、受影响范围和停止原因；不得反向推定违法。"
+            conclusion_cap = "资料不足_未启动"
+        elif status == "待补资料_可初筛":
+            next_action = "只核验已有资料能够支持的范围，并按资料门槛补取原始记录。"
+            conclusion_cap = "待补资料_可初筛"
+        else:
+            next_action = "按调查路径复核支持与反向证据，完成政策时效和人工审理。"
+            conclusion_cap = "资料就绪_待人工核验"
+        acceptance = audit_scene_contract(scene)
         plans.append({
             "scene_id": scene_id,
             "name": scene.get("name"),
@@ -604,6 +652,12 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
             "source_gate_results": gate_results,
             "observed_signal_count": _observed_signal_count(scene_id, findings),
             "observed_signal_boundary": "观察信号只用于确定核验顺序，不是证据或结论。",
+            "next_action": next_action,
+            "conclusion_cap": conclusion_cap,
+            "report_release_allowed": False,
+            "policy_verification_required": True,
+            "acceptance_passed": acceptance["passed"],
+            "acceptance_case_count": acceptance["acceptance_case_count"],
             "target_fact": (scene.get("doubt") or {}).get("target_fact", ""),
             "lead_domain": (scene.get("domain_collaboration") or {}).get("lead", ""),
             "contract_asset": spec["asset"],
@@ -621,6 +675,8 @@ def build_scenario_review_plan(industry, file_results=None, findings=None):
         "available_source_families": available_families,
         "observed_file_types": file_types,
         "scene_count": len(plans),
+        "acceptance_passed": all(item["acceptance_passed"] for item in plans),
+        "acceptance_case_count": sum(item["acceptance_case_count"] for item in plans),
         "ready_for_human_review": sum(
             item["status"] == "资料就绪_待人工核验" for item in plans
         ),
