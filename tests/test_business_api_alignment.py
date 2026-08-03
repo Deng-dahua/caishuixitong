@@ -95,6 +95,10 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 calls.append("engine_report")
                 return report
 
+            def scenario_boundary(report):
+                calls.append("scenario_boundary")
+                return {"status": "completed"}
+
             def engine_hub(report, result):
                 calls.append("engine_hub")
                 return {"status": "completed"}
@@ -120,6 +124,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             ), patch.object(
                 main, "_run_analyze", side_effect=run_engine
             ), patch.object(
+                main, "_enforce_scenario_execution_boundary", side_effect=scenario_boundary
+            ), patch.object(
                 main, "_inject_agi_into_report", side_effect=inject
             ), patch.object(
                 main, "_apply_engine_hub_stage", side_effect=engine_hub
@@ -139,6 +145,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             assert result["report"]["_one_click_pipeline"]["status"] == "completed"
             assert calls == [
                 "analysis",
+                "scenario_boundary",
                 "engine_report",
                 "engine_hub",
                 "methodology",
@@ -155,6 +162,8 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 return_value={},
             ), patch.object(
                 main, "_run_analyze", return_value=raw_result
+            ), patch.object(
+                main, "_enforce_scenario_execution_boundary", side_effect=scenario_boundary
             ), patch.object(
                 main, "_inject_agi_into_report", side_effect=inject
             ), patch.object(

@@ -2884,7 +2884,7 @@ def _add_failure_suggestions():
             # 完全无结构候选——数据行全被判为重复表头/小计行/空行
             suggestions.append({
                 "issue": "表头检测失败：所有行被跳过",
-                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终1720条有效数据行。",
+                "detail": "前几行可能全是数字（金额/日期），系统误判数据行为表头，导致后续所有数据行被判为'重复表头'或'小计行'而被跳过，最终没有提取到有效数据行。",
                 "fix": "(1)确认Excel前1-3行包含文本型列名（如'发票号码''金额''姓名'等），而非纯数字 (2)若数据从第1行开始，在首行上方插入一行列名 (3)检查是否有多余的空白行或标题行干扰了表头定位。"
             })
         elif st_candidates and not st_best:
@@ -5398,7 +5398,7 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
     }
 @app.get("/api/pipeline/history")
 def get_pipeline_history(company_id: int = Query(...)):
-    """获取分析历史列表（最多21720条）"""
+    """获取分析历史列表（最多20条）"""
     hist = _analysis_history.get(company_id, [])
     return {"ok": True, "history": hist, "count": len(hist)}
 
@@ -6975,7 +6975,7 @@ def methodology_audit():
     import re, json
     base_dir = os.path.dirname(__file__) or "."
     
-    # ── 1. 从 methodology_items.json 读取31720条方法论文档声明 ──
+    # ── 1. 从 methodology_items.json 读取方法论文档声明 ──
     json_path = os.path.join(base_dir, "static", "methodology_items.json")
     declared = {}
     if os.path.exists(json_path):
@@ -7096,7 +7096,7 @@ def _append_analysis_history(company_id, result):
         }
         hist = _analysis_history.setdefault(company_id, [])
         hist.insert(0, summary)
-        _analysis_history[company_id] = hist[:20]  # 最多保留21720条
+        _analysis_history[company_id] = hist[:20]  # 最多保留20条
         # 落盘（重启不丢）
         try:
             import json as _json2
@@ -7106,7 +7106,7 @@ def _append_analysis_history(company_id, result):
     except: pass
 
 
-_ONE_CLICK_PIPELINE_VERSION = "1.0"
+_ONE_CLICK_PIPELINE_VERSION = "2.0-scenario-driven"
 _MAX_ANALYSIS_CACHE = 30
 
 
@@ -7114,6 +7114,45 @@ def _append_one_click_log(report_data, message):
     pipeline_log = report_data.setdefault("pipeline_log", [])
     if isinstance(pipeline_log, list):
         pipeline_log.append(message)
+
+
+def _enforce_scenario_execution_boundary(report_data):
+    """一键分析硬门禁：正式发现只能来自场景执行核心。"""
+    from engine.scenario_execution import seal_scenario_findings
+
+    if not isinstance(report_data, dict):
+        raise RuntimeError("报告数据无效，无法执行场景门禁")
+    execution = report_data.get("scenario_execution")
+    if not isinstance(execution, dict):
+        comprehensive = report_data.get("comprehensive") or {}
+        execution = comprehensive.get("scenario_execution")
+    if not isinstance(execution, dict):
+        raise RuntimeError("场景执行结果缺失，禁止进入报告编制")
+
+    findings = seal_scenario_findings(execution)
+    report_data["scenario_execution"] = execution
+    report_data["scenario_methodology"] = execution.get("review_plan", {})
+    report_data["all_findings"] = findings
+    report_data["domain_summary"] = execution.get("domain_summary", [])
+    report_data["total_risks"] = len(findings)
+    report_data["high_risk"] = 0
+    report_data["mid_risk"] = 0
+    report_data["low_risk"] = 0
+    report_data["overall_level"] = "待人工复核" if findings else "未形成待核事实"
+    report_data["release_status"] = "草稿_待人工复核"
+    report_data["automatic_determination_allowed"] = False
+    _append_one_click_log(
+        report_data,
+        f"[统一主流程] 场景执行门禁通过：{len(findings)}项规范待核事实进入后续阶段",
+    )
+    return {
+        "status": "completed",
+        "governance_status": execution.get("governance_status"),
+        "industry_code": execution.get("industry_code", ""),
+        "industry_scenes_assessed": execution.get("industry_scenes_assessed", 0),
+        "trusted_observations": execution.get("trusted_observation_count", 0),
+        "findings": len(findings),
+    }
 
 
 def _apply_engine_hub_stage(report_data, result=None):
@@ -7278,6 +7317,9 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         report_data = result.get("report")
         if not isinstance(report_data, dict):
             raise RuntimeError("分析引擎未生成有效报告")
+        execution["stages"]["scenario_execution"] = (
+            _enforce_scenario_execution_boundary(report_data)
+        )
         execution["stages"]["methodology_analysis"] = {
             "status": "completed",
             "findings": len(report_data.get("all_findings", []) or []),
@@ -8157,7 +8199,7 @@ def toggle_parallel():
     # 只验证高风险结论
     high_risk = [f for f in all_findings if f.get("level") == "高风险"]
     
-    for f in high_risk[:20]:  # 最多验证21720条
+    for f in high_risk[:20]:  # 最多验证20条
         ftype = f.get("type", "")
         
         # 检查结论是否有法律依据
@@ -8275,7 +8317,7 @@ def get_engine_rules():
             {"id": "TRIAGE_003", "name": "毛利率异常高", "trigger": "毛利率 > 80% 且销项 > 100万", "level": "yellow", "detail": "可能虚增售价或进项未全额入账"},
             {"id": "TRIAGE_004", "name": "缺少银行流水", "trigger": "有销售但无银行流水记录", "level": "red", "detail": "无法验证资金流真实性"},
             {"id": "TRIAGE_005", "name": "无进项发票", "trigger": "有销项发票但0张进项（非服务/劳务）", "level": "yellow", "detail": "需要解释进项来源"},
-            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但1720条工资", "level": "yellow", "detail": "可能虚开发票或隐匿人员"},
+            {"id": "TRIAGE_006", "name": "无工资记录", "trigger": "销项 > 500万但没有工资记录", "level": "yellow", "detail": "须核验外包、派遣、关联方用工或资料缺失，不自动作出定性"},
             {"id": "TRIAGE_007", "name": "存在加工费", "trigger": "进项中有加工费发票", "level": "yellow", "detail": "可能为制造业，需BOM表验证加工链条"},
             {"id": "TRIAGE_008", "name": "制造业加工链条待验证", "trigger": "核心成本>0 + 加工费 + 制造业", "level": "yellow", "detail": "进销品名差异需BOM表解释"},
             {"id": "TRIAGE_009", "name": "存在日常费用报销", "trigger": "进项中有日常报销（餐饮住宿汽油等）", "level": "green", "detail": "正常经营信号，排除误报"},
@@ -8900,7 +8942,7 @@ def trigger_patrol(company_id: int = Query(...)):
         "ok": True,
         "patrol_enabled": True,
         "agi_status": current_status,
-        "note": "巡逻引擎已就绪——当因果边或模式增加>=1720条时自动触发重新分析"
+        "note": "巡逻引擎已就绪——当因果边或模式达到配置阈值时自动触发重新分析"
     }
 
 @app.get("/api/agi/semantic")
@@ -9466,7 +9508,7 @@ def propagate_corrections_to_chains():
             "total_rules": len(rules),
             "propagation_summary": summary,
             "chains_updated": updated,
-            "message": f"已从{len(rules)}条纠正规则提炼更新1720条链",
+            "message": f"已从{len(rules)}条纠正规则提炼更新{updated}条链",
         }
     except Exception as e:
         import traceback as _tb

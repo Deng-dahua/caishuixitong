@@ -3341,26 +3341,61 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
 
-    # ═══ 场景主键制方法论：疑点—线索—证据—分析—域协同统一计划 ═══
-    # 仅生成核验任务和资料缺口，不新增/升级finding，不形成自动定性。
+    # ═══ 场景驱动执行核心：原子观察→共同事实门→行业场景→待核事实 ═══
+    # 旧域分析、评分和经验模型的输出不得越过本边界进入正式报告。
     try:
-        from engine.scenario_methodology import build_scenario_review_plan
-        scenario_methodology = build_scenario_review_plan(
-            _target_industry,
+        from engine.scenario_execution import execute_scenario_methodology
+        from engine.methodology_portfolio import resolve_industry_code
+        _scenario_industry = _target_industry
+        if not resolve_industry_code(_scenario_industry):
+            _industry_candidates = [
+                target_entity.get("industry_online", ""),
+                (ctx.company_profile or {}).get("industry", "") if ctx else "",
+            ]
+            try:
+                _scenario_company = db.query(Company).filter(Company.id == company_id).first()
+                if _scenario_company:
+                    _industry_candidates.extend([
+                        _scenario_company.industry_code or "",
+                        _scenario_company.business_scope or "",
+                    ])
+            except Exception:
+                pass
+            for _industry_candidate in _industry_candidates:
+                if resolve_industry_code(_industry_candidate):
+                    _scenario_industry = _industry_candidate
+                    break
+        _scenario_engine_data = {
+            "bank_txs": bank_txs,
+            "sal_invs": sal_invs,
+            "pur_invs": pur_invs,
+            "vouchers": vouchers,
+            "salaries": salaries,
+            "social_security": social_security,
+            "inventory": inventory,
+            "trial_balance": trial_balance_data,
+        }
+        _pre_scenario_candidate_count = len(all_findings)
+        _scenario_execution = execute_scenario_methodology(
+            _scenario_industry,
             file_results=file_results,
-            findings=all_findings,
+            engine_data=_scenario_engine_data,
         )
+        scenario_methodology = _scenario_execution.get("review_plan", {})
+        all_findings = _scenario_execution.get("findings", [])
+        domain_summary = _scenario_execution.get("domain_summary", [])
+        comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
-        if scenario_methodology.get("applicable"):
-            pipeline_log.append(
-                f"[场景方法论] {scenario_methodology.get('industry_code', '')}行业"
-                f"{scenario_methodology.get('scene_count', 0)}个完整行业场景已生成核验计划："
-                f"{scenario_methodology.get('ready_for_human_review', 0)}个资料就绪，"
-                f"{scenario_methodology.get('pending_more_sources', 0)}个待补资料；"
-                "观察信号未转化为证据或结论"
-            )
+        pipeline_log.append(
+            f"[场景执行核心] 已隔离{_pre_scenario_candidate_count}项旧式候选输出；"
+            f"运行{_scenario_execution.get('atomic_rule_count', 0)}项已验证原子计算，"
+            f"形成{_scenario_execution.get('trusted_observation_count', 0)}项客观观察；"
+            f"{_scenario_execution.get('industry_scenes_assessed', 0)}个完整行业场景已生成核验计划，"
+            f"输出{len(all_findings)}项待核事实。全部输出须人工复核且禁止自动定性。"
+        )
     except Exception as _scene_methodology_error:
-        pipeline_log.append(f"[场景方法论] 计划生成失败，降级继续: {_scene_methodology_error}")
+        # 场景主流程是正式输出的强制边界，不允许退回旧式发现。
+        raise RuntimeError(f"场景驱动执行核心失败: {_scene_methodology_error}") from _scene_methodology_error
     
     # ═══ 规则深度字段消费：把税务疑点库的 direction/drill_questions/determination 等注入每条发现 ═══
     try:
@@ -4459,6 +4494,27 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     
+    # ═══ 正式输出封印：仅允许场景执行器的规范待核事实进入报告 ═══
+    if '_scenario_execution' not in locals():
+        raise RuntimeError("场景驱动执行结果缺失，禁止生成报告")
+    from engine.scenario_execution import seal_scenario_findings
+    all_findings = seal_scenario_findings(_scenario_execution)
+    result["report"]["all_findings"] = all_findings
+    result["report"]["scenario_execution"] = _scenario_execution
+    result["report"]["scenario_methodology"] = _scenario_execution.get("review_plan", {})
+    result["report"]["domain_summary"] = _scenario_execution.get("domain_summary", [])
+    result["report"]["total_risks"] = len(all_findings)
+    result["report"]["high_risk"] = 0
+    result["report"]["mid_risk"] = 0
+    result["report"]["low_risk"] = 0
+    result["report"]["overall_level"] = "待人工复核" if all_findings else "未形成待核事实"
+    result["report"]["summary_text"] = (
+        f"场景驱动分析完成：{_scenario_execution.get('industry_scenes_assessed', 0)}个行业场景已评估，"
+        f"{_scenario_execution.get('trusted_observation_count', 0)}项客观观察形成{len(all_findings)}项待核事实。"
+        "所有事项均未自动定性，须完成调查、正反证据、政策时效、金额底稿和人工审签。"
+    )
+    pipeline_log.append(f"[正式输出封印] 保留{len(all_findings)}项场景治理待核事实，其他派生输出均未进入报告")
+
     # ═══ 报告块架构：将分析结果转化为结构化 blocks 数组 ═══
     # 每个 block 是独立的、自描述的。前端通用渲染器遍历 blocks 按 type 渲染。
     # 加段落→push block；调顺序→调 blocks 顺序；删段落→不 push。

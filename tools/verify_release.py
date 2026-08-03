@@ -22,7 +22,8 @@ PRODUCTION_PYTHON = [
     "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
-    "engine/scenario_methodology.py", "engine/methodology_coverage.py",
+    "engine/scenario_methodology.py", "engine/scenario_execution.py",
+    "engine/orchestrator.py", "engine/methodology_coverage.py",
     "engine/methodology_catalog.py", "engine/methodology_portfolio.py",
     "engine/methodology_acceptance.py", "engine/methodology_assets.py",
     "engine/report_standards.py",
@@ -76,6 +77,7 @@ def main() -> int:
     request_context_source = (ROOT / "request_context.py").read_text(encoding="utf-8")
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
     pipeline_source = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8")
+    scenario_execution_source = (ROOT / "engine" / "scenario_execution.py").read_text(encoding="utf-8")
     report_standard_source = (ROOT / "engine" / "report_standards.py").read_text(encoding="utf-8")
     chat_source = (ROOT / "chat.py").read_text(encoding="utf-8")
     llm_client_source = (ROOT / "engine" / "llm_client.py").read_text(encoding="utf-8")
@@ -98,6 +100,15 @@ def main() -> int:
         and 'release_status"] = "草稿_待人工复核"' in report_standard_source
         and "automatic_determination_allowed" in report_standard_source,
         "report gate blocks malformed law references and automatic determination",
+        failures,
+    )
+    check(
+        "execute_scenario_methodology" in pipeline_source
+        and "seal_scenario_findings" in pipeline_source
+        and "_enforce_scenario_execution_boundary" in main_source
+        and 'GOVERNANCE_STATUS = "scenario_contract_governed"' in scenario_execution_source
+        and 'automatic_determination_allowed"] = False' in scenario_execution_source,
+        "one-click findings are sealed by the scenario execution core",
         failures,
     )
     check("csrf_is_valid" in web_source, "unsafe requests enforce CSRF", failures)

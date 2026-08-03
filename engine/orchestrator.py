@@ -98,12 +98,12 @@ MODULE_REGISTRY = {
         }
     },
     "M009_rule_engine": {
-        "name": "规则引擎(1720条)",
-        "description": "涉税风险规则匹配，全量规则扫描",
-        "requires": {"data": ["invoices"], "condition": "len(invoices) > 0"},
-        "depends_on": ["M003_entity_recognition"],
+        "name": "场景执行核心",
+        "description": "运行已验证原子计算，并将客观观察交给共同事实门和适用行业场景",
+        "requires": {"data": ["file_results"], "condition": "len(file_results) > 0"},
+        "depends_on": ["M002_data_normalize"],
         "priority": 9,
-        "produces": ["rule_findings"],
+        "produces": ["scenario_execution", "pending_facts"],
         "domain": "分析"
     },
     "M010_chain_engine": {
@@ -208,7 +208,7 @@ MODULE_REGISTRY = {
     },
     "M021_compliance_gate": {
         "name": "合规门禁与渐进学习",
-        "description": "11720条税务合规铁律+11720条报告标准门禁检查+模块信任度自适应调度",
+        "description": "场景治理边界、12项报告质量门禁和模块信任度自适应调度",
         "requires": {"data": [], "condition": "True"},
         "depends_on": ["M016_report_render"],
         "priority": 18,
@@ -354,9 +354,9 @@ def _match_laws(data_profile, knowledge):
     has_inventory = data_profile.get("has_inventory", False)
     
     if not has_vouchers:
-        laws.append("L01-征管法31720条(核定征收)")
+        laws.append("L01-会计资料完整性待核，不自动匹配法律条文")
     if not has_bank:
-        laws.append("L07-征管法1720条(账簿不健全)")
+        laws.append("L07-资金资料完整性待核，不自动匹配法律条文")
     
     return laws
 
