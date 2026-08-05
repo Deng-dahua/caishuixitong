@@ -24,6 +24,7 @@ PORTFOLIO_CODES = INDUSTRY_CODES + OVERLAY_CODES
 
 DETAILED_CODES = {
     "A", "B", "C", "E", "F", "K", "OVERLAY-PLATFORM",
+    "G", "H", "I", "J", "P", "Q", "R", "D",
 }
 
 CODE_PREFIX = {

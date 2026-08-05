@@ -6879,6 +6879,15 @@ def get_methodology_coverage():
         "real_estate_scenario_contracts.json",
         "wholesale_retail_scenario_contracts.json",
         "platform_scenario_contracts.json",
+        "transportation_scenario_contracts.json",
+        "medical_scenario_contracts.json",
+        "catering_scenario_contracts.json",
+        "it_software_scenario_contracts.json",
+        "culture_scenario_contracts.json",
+        "cross_border_ecommerce_scenario_contracts.json",
+        "education_scenario_contracts.json",
+        "finance_scenario_contracts.json",
+        "energy_scenario_contracts.json",
     )
     try:
         cache_key = tuple(

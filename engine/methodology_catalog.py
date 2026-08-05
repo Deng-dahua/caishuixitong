@@ -27,13 +27,26 @@ V2_SCENARIO_FILES = {
     "F": "wholesale_retail_scenario_contracts.json",
     "K": "real_estate_scenario_contracts.json",
     "OVERLAY-PLATFORM": "platform_scenario_contracts.json",
+    "G": "transportation_scenario_contracts.json",
+    "H": "catering_scenario_contracts.json",
+    "I": "it_software_scenario_contracts.json",
+    "J": "finance_scenario_contracts.json",
+    "P": "education_scenario_contracts.json",
+    "Q": "medical_scenario_contracts.json",
+    "R": "culture_scenario_contracts.json",
+    "D": "energy_scenario_contracts.json",
+    "TRA": "transportation_scenario_contracts.json",
+    "MED": "medical_scenario_contracts.json",
+    "CAT": "catering_scenario_contracts.json",
+    "IT": "it_software_scenario_contracts.json",
+    "CUL": "culture_scenario_contracts.json",
+    "CBEC": "cross_border_ecommerce_scenario_contracts.json",
+    "EDU": "education_scenario_contracts.json",
+    "FIN": "finance_scenario_contracts.json",
+    "ENE": "energy_scenario_contracts.json",
 }
 ASSET_TO_CODE = {filename.removesuffix(".json"): code for code, filename in V2_SCENARIO_FILES.items()}
-SCENARIO_FILES = {
-    code: "methodology_portfolio"
-    for code in tuple("ABCDEFGHIJKLMNOPQRST")
-    + ("OVERLAY-PLATFORM", "OVERLAY-CROSS-BORDER", "OVERLAY-GROUP")
-}
+SCENARIO_FILES = tuple(V2_SCENARIO_FILES.keys())
 
 
 def _read(path: Path) -> Any:
