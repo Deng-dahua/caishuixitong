@@ -5307,7 +5307,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     inc_total = round(sum(t["income_tax_est"] for t in tax_burden), 2)
     
     # 3. 资料缺口影响链
-    material_intel = report_data.get("comprehensive", {}).get("material_intel", {})
+    material_intel = report_data.get("material_intel", {}) or report_data.get("comprehensive", {}).get("material_intel", {})
     gap_chain = []
     gap_mapping = {
         "合同": {"risk": "无法核定印花税，无法排除虚开发票嫌疑", "impact": "影响印花税核定+虚开风险排除", "chain": "缺合同 → 无法核定印花税 → 无法验证交易真实性 → 虚开风险无法排除"},
@@ -7978,7 +7978,7 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
             "generalization": gen,
             "investigation_plan": inv,
             "lifecycle": lifecycle,
-            "meta_audit": report_data.get("red_team", {}),
+            "meta_audit": comprehensive.get("agi_meta", report_data.get("red_team", {})),
             "cross_industry_insight": _get_cross_industry_insight(all_findings),
             "planning_advice": {
                 f.get("type","")[:40]: director.get_planning_advice(f)
