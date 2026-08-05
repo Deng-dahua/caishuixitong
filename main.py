@@ -5183,9 +5183,9 @@ async def get_report_intelligence(company_id: int = Query(...)):
     target_entity = report_data.get("target_entity", report.get("target_entity", {}))
     all_findings = report_data.get("all_findings", []) or report.get("all_findings", [])
     
-    # AGI和material_intel在外层report上
-    agi_report = report.get("_agi_report_level", {})
-    outer_comprehensive = report.get("comprehensive", {})
+    # AGI和material_intel在report.report层上
+    agi_report = report.get("_agi_report_level", report.get("report", {}).get("_agi_report_level", {}))
+    outer_comprehensive = report.get("comprehensive", report.get("report", {}).get("comprehensive", {}))
     
     # 1. 风险叙事
     level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
@@ -5308,7 +5308,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     inc_total = round(sum(t["income_tax_est"] for t in tax_burden), 2)
     
     # 3. 资料缺口影响链
-    material_intel = report.get("material_intel", {}) or report.get("report", {}).get("material_intel", {}) or outer_comprehensive.get("material_intel", {})
+    material_intel = report.get("report", {}).get("material_intel", {}) or report.get("material_intel", {}) or outer_comprehensive.get("material_intel", {})
     gap_chain = []
     gap_mapping = {
         "合同": {"risk": "无法核定印花税，无法排除虚开发票嫌疑", "impact": "影响印花税核定+虚开风险排除", "chain": "缺合同 → 无法核定印花税 → 无法验证交易真实性 → 虚开风险无法排除"},
