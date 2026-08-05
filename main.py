@@ -7944,7 +7944,7 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
         report_data = report.get("report", report)
         all_findings = report_data.get("all_findings", []) or report.get("findings", [])
         target = report_data.get("target_entity", {})
-        comprehensive = report_data.get("comprehensive", {})
+        comprehensive = report.get("comprehensive", report_data.get("comprehensive", {}))
         
         if not all_findings:
             return report
