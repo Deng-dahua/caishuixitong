@@ -7973,13 +7973,15 @@ def _inject_agi_into_report(report: dict, company_id: int) -> dict:
         inv = director.generate_investigation_plan(all_findings, comprehensive.get("material_intel", {}))
         lifecycle = director.get_lifecycle_context(report_data.get("company_age", 3))
         
-        # 注入到报告顶层
+        # 注入到报告顶层 — 展平agi_meta结构, JS端直接用meta_audit.grade/overall_score
+        agi_meta_raw = comprehensive.get("agi_meta", report_data.get("red_team", {}))
+        agi_audit = agi_meta_raw.get("audit", agi_meta_raw)  # 展平嵌套
         report_data["_agi_report_level"] = {
             "cross_tax": ct,
             "generalization": gen,
             "investigation_plan": inv,
             "lifecycle": lifecycle,
-            "meta_audit": comprehensive.get("agi_meta", report_data.get("red_team", {})),
+            "meta_audit": agi_audit,
             "cross_industry_insight": _get_cross_industry_insight(all_findings),
             "planning_advice": {
                 f.get("type","")[:40]: director.get_planning_advice(f)
