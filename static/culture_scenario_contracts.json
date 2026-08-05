@@ -1,0 +1,106 @@
+{
+  "version": "1.1.0", "effective_date": "2026-08-05",
+  "name": "文化娱乐与影视行业稽查场景合同", "industry_code": "CUL", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦文娱影视行业核心风险——明星工作室核定征收滥用、直播打赏个税隐匿、影视制作成本虚列、版权收入拆分、关联方定价转移。该行业高净值个人集中，收入形式多样化（片酬/分红/打赏/版权），个税和增值税风险高度交织。",
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "增值税法"},
+    {"id": "SRC-IIT-LAW", "name": "个人所得税法"},
+    {"id": "SRC-CULTURE", "name": "电影产业促进法"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "studio_registration", "performer_contract", "copyright_registration"],
+    "transaction_keys": ["project_id", "episode_id", "live_session_id", "gift_transaction_id"],
+    "evidence_dimensions": ["劳务vs经营所得判定", "片酬合理性", "制作成本真实性", "版权流转"]
+  },
+  "scenarios": [
+    {
+      "id": "CUL-STUDIO-DISGUISE",
+      "name": "明星工作室——个人劳务报酬伪装为个体户经营所得",
+      "trigger_signals": ["工作室/个体户收款>500万且只有1-2个主要客户", "工作室无独立办公场所/无独立员工", "工作室收入几乎全部来自同一影视/经纪公司"],
+      "severity_modifiers": {"amount_threshold": 5000000, "customer_concentration": 0.8},
+      "cross_industry_tags": ["高净值个人", "个税避税", "劳务报酬vs经营所得"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["个人所得税", "增值税"],
+      "applicability": {"business": "明星/网红/主播以工作室名义收款", "activate_when": "工作室年收入>500万 AND 客户集中度>80% AND 无独立经营能力"},
+      "doubt": {"target_fact": "工作室是真实独立经营还是仅为个人劳务报酬的壳——有没有独立场地、独立员工、独立承担经营风险。", "observed_signal": "工作室只有1个人、没有办公场所、所有收入来自同一家公司→实质为个人劳务报酬，应按3-45%累进税率缴个税而非核定征收。", "must_exclude": ["工作室有独立团队/场地/多客户", "工作室承担真实的经营风险（制作投资/版权）"], "output": "形成工作室→合同→收入→经营能力四方验证"},
+      "clue_chain": {"start": "列出所有以工作室名义收款的高净值个人→核查工作室经营实质。", "steps": [
+        {"step": 1, "action": "提取工作室收款→按个人汇总→识别高收入工作室", "deliverable": "工作室收入排行"},
+        {"step": 2, "action": "核查工作室经营实质→办公场所/员工/设备/多客户", "deliverable": "经营能力评估"},
+        {"step": 3, "action": "核查合同→服务内容/期限/排他性→是否实质为雇佣关系", "deliverable": "合同性质判定"},
+        {"step": 4, "action": "重新定性→劳务报酬vs经营所得→测算个税差异", "deliverable": "个税差异测算"}
+      ], "terminal": "实质为劳务报酬→按3-45%累进税率补缴个税→滞纳金+罚款。"},
+      "evidence_chain": {"supporting": ["工作室合同", "银行收款", "工商登记"], "opposing": ["独立团队/场地", "多客户收入", "独立经营风险"], "must_state": ["工作室数量", "无独立经营能力的工作室", "潜在个税差异"]},
+      "domain_collaboration": {"lead": "人员薪酬域", "partners": [{"domain": "经营实质域", "responsibility": "核查工作室经营能力"}]}
+    },
+    {
+      "id": "CUL-LIVE-GIFT",
+      "name": "直播打赏隐匿收入——平台打赏收入未全额申报",
+      "trigger_signals": ["直播打赏收入>100万", "平台后台流水>申报收入×1.3", "多平台直播但只申报单平台收入"],
+      "severity_modifiers": {"amount_threshold": 1000000, "gap_threshold": 0.3},
+      "cross_industry_tags": ["直播", "打赏", "隐匿收入", "多平台"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "个人所得税"],
+      "applicability": {"business": "网络主播/直播机构", "activate_when": "平台后台流水>申报收入×1.3 OR 同时入驻多个平台但只申报部分"},
+      "doubt": {"target_fact": "直播打赏收入是否全部入账申报——抖音/快手/B站等多平台收入是否汇总。", "observed_signal": "只申报了抖音收入，但快手/B站后台也有几十万流水。", "must_exclude": ["平台扣减手续费后净额入账", "刷量/机器人在合理范围内"], "output": "形成全平台→提现→银行→申报四链路对照"},
+      "clue_chain": {"start": "获取各直播平台后台结算数据→汇总→与申报收入比对。", "steps": [
+        {"step": 1, "action": "汇总各平台后台结算→抖音/快手/B站/视频号等→全口径收入", "deliverable": "全平台收入"},
+        {"step": 2, "action": "比对提现→银行账户→是否全额入账", "deliverable": "提现-入账对照"},
+        {"step": 3, "action": "核查个税→MCN机构代扣/个人自行申报→是否完整", "deliverable": "个税申报核查"}
+      ], "terminal": "未入账差额→隐匿收入→补缴增值税+个税+滞纳金。"},
+      "evidence_chain": {"supporting": ["平台后台结算", "银行流水", "申报表"], "opposing": ["平台手续费", "退款/拒付"], "must_state": ["平台总数", "全平台收入", "申报收入", "差额"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "资金全链路域", "responsibility": "多平台收款追踪"}]}
+    },
+    {
+      "id": "CUL-FILM-COST-FRAUD",
+      "name": "影视制作成本虚列——虚增制作成本冲抵利润",
+      "trigger_signals": ["影视制作成本率>80%（行业正常60-70%）", "大额道具/置景/特效费用无对应实物或成果", "群演/外聘费用大量现金支付无凭证"],
+      "severity_modifiers": {"cost_ratio_threshold": 0.8, "amount_threshold": 5000000},
+      "cross_industry_tags": ["成本虚列", "影视制作", "现金交易"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税", "增值税"],
+      "applicability": {"business": "影视制作公司/剧组", "activate_when": "制作成本率>80% AND 现金支付占比>30%"},
+      "doubt": {"target_fact": "影视制作成本是否真实——道具/置景/群演/后期是否与作品规模匹配。", "observed_signal": "网剧制作成本堪比院线电影、道具费奇高但画面中看不到对应置景。", "must_exclude": ["特效大片天然高成本（需有效果公司合同/成品）", "实景拍摄高租金（需租赁合同）"], "output": "形成制作预算→实际支出→成果呈现三方验证"},
+      "clue_chain": {"start": "按成本类别拆分制作总成本→与行业基准和作品成品对比。", "steps": [
+        {"step": 1, "action": "拆分制作成本→演员片酬/制作团队/置景道具/后期特效/其他", "deliverable": "成本结构分析"},
+        {"step": 2, "action": "核查大额支出→合同/发票/成果→是否真实交付", "deliverable": "大额支出验证"},
+        {"step": 3, "action": "核查现金支付→群演/临时工→是否有个税代扣→是否有签收记录", "deliverable": "现金支付核查"},
+        {"step": 4, "action": "与行业基准比较→同类型/同体量作品成本区间→偏差分析", "deliverable": "行业对标分析"}
+      ], "terminal": "虚列成本→不得税前扣除→调增应纳税所得额→补税。"},
+      "evidence_chain": {"supporting": ["制作预算/决算", "合同发票", "成片/素材"], "opposing": ["行业成本分析", "特效公司成果"], "must_state": ["总成本", "虚列估算", "调整建议"]},
+      "domain_collaboration": {"lead": "成本费用域", "partners": [{"domain": "资产研发域", "responsibility": "影视版权/无形资产"}]}
+    },
+    {
+      "id": "CUL-COPYRIGHT-SPLIT",
+      "name": "版权收入拆分——通过关联方转移版权收益",
+      "trigger_signals": ["版权收入通过多层主体分配", "版权持有主体在低税地", "版权许可费与市场公允价值偏离"],
+      "severity_modifiers": {"amount_threshold": 3000000, "layer_threshold": 3},
+      "cross_industry_tags": ["版权", "关联交易", "利润转移"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税", "增值税"],
+      "applicability": {"business": "拥有大量版权/内容IP的文娱企业", "activate_when": "版权许可费>300万 AND 被许可方在低税地 OR 许可主体>2层"},
+      "doubt": {"target_fact": "版权许可费是否为真实的市场定价还是利润转移工具。", "observed_signal": "核心IP由霍尔果斯/喀什等税收优惠地主体持有→向经营主体收取高额许可费→利润转移。", "must_exclude": ["真实的多区域授权（各区域独立开发）", "政府指导价授权"], "output": "形成版权持有→许可费→被许可方→可比价格四方验证"},
+      "clue_chain": {"start": "识别核心版权→追踪持有主体→分析许可费合理性。", "steps": [
+        {"step": 1, "action": "列出核心IP/版权→著作权登记→持有主体→所在地", "deliverable": "版权持有清单"},
+        {"step": 2, "action": "追踪许可费→收取方/支付方→费率/金额→与行业可比", "deliverable": "许可费分析"},
+        {"step": 3, "action": "核查关联关系→版权持有方与实际经营方是否同一控制", "deliverable": "关联关系图"},
+        {"step": 4, "action": "与独立版权交易比价→判断许可费是否公允", "deliverable": "公允价值分析"}
+      ], "terminal": "非公允许可费→按独立交易原则调整→补税。"},
+      "evidence_chain": {"supporting": ["版权登记", "许可合同", "许可费收款/付款"], "opposing": ["行业可比许可费率", "多区域授权"], "must_state": ["版权持有主体", "许可费率", "关联关系"]},
+      "domain_collaboration": {"lead": "关联交易域", "partners": [{"domain": "资产研发域", "responsibility": "版权价值评估"}]}
+    },
+    {
+      "id": "CUL-DIRECTOR-FEE",
+      "name": "导演/编剧劳务报酬——以工作室名义逃避高税率",
+      "trigger_signals": ["知名导演/编剧以工作室名义收款>300万", "工作室只有该导演/编剧一人", "收入集中在1-2个影视项目"],
+      "severity_modifiers": {"amount_threshold": 3000000},
+      "cross_industry_tags": ["高净值个人", "劳务报酬", "工作室避税"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["个人所得税"],
+      "applicability": {"business": "导演/编剧/制片人以工作室名义收款", "activate_when": "单人工作室>300万 AND 客户集中度>70%"},
+      "doubt": {"target_fact": "导演/编剧与影视公司的关系是个人劳务还是独立经营——是否像明星工作室一样开了壳。", "observed_signal": "多个知名导演/编剧集中在霍尔果斯/海南等税收优惠地注册工作室。", "must_exclude": ["导演同时经营制片公司且承担投资风险", "编剧有多家客户且出版独立作品"], "output": "形成个人→工作室→合同→经营实质判定"},
+      "clue_chain": {"start": "筛选导演/编剧类工作室→分析经营实质和个税风险。", "steps": [
+        {"step": 1, "action": "提取导演/编剧工作室→按个人汇总收入→定位高风险", "deliverable": "高收入清单"},
+        {"step": 2, "action": "分析工作室实质→多客户/独立团队/经营风险/场地", "deliverable": "经营实质判定"},
+        {"step": 3, "action": "重新定性→个人劳务报酬→按累进税率计算应补个税", "deliverable": "个税差异"}
+      ], "terminal": "实质为个人劳务→补缴个税差额。"},
+      "evidence_chain": {"supporting": ["工作室合同", "银行流水", "纳税记录"], "opposing": ["独立经营证据"], "must_state": ["高风险工作室", "个税差异估算"]},
+      "domain_collaboration": {"lead": "人员薪酬域", "partners": [{"domain": "经营实质域", "responsibility": "经营能力核查"}]}
+    }
+  ],
+  "forbidden_outputs": ["自动认定逃税", "以工作室数量推定违法"]
+}

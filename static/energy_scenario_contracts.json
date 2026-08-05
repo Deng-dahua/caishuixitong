@@ -1,0 +1,87 @@
+{
+  "version": "1.1.0", "effective_date": "2026-08-05",
+  "name": "能源电力行业稽查场景合同", "industry_code": "ENE", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦能源电力行业特有风险——新能源补贴收入确认、碳排放权交易、自产能源税务处理、煤矿/电厂资产处置。该行业以重资产和资源依赖为特征，国有资本占比高，稽查重点在于补贴合规和资源税。",
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "增值税法"},
+    {"id": "SRC-RESOURCE-TAX", "name": "资源税法", "issuer": "全国人大常委会"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "mining_license", "power_generation_license", "emission_permit"],
+    "transaction_keys": ["carbon_credit_id", "ppa_contract_id", "grid_settlement_id"],
+    "evidence_dimensions": ["补贴收入确认", "资源税申报", "碳排放权处理"]
+  },
+  "scenarios": [
+    {
+      "id": "ENE-SUBSIDY-REVENUE",
+      "name": "新能源补贴——补贴收入确认与增值税处理",
+      "trigger_signals": ["新能源补贴收入>1000万（光伏/风电/生物质等）", "补贴收入与发电量不匹配", "补贴增值税处理不一致"],
+      "severity_modifiers": {"amount_threshold": 10000000},
+      "cross_industry_tags": ["新能源", "补贴", "收入确认"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "享受新能源电价补贴的发电企业", "activate_when": "补贴收入>1000万"},
+      "doubt": {"target_fact": "新能源补贴是否全额确认收入并正确进行增值税处理——中央补贴和地方补贴的税务处理是否合规。", "observed_signal": "补贴收入与发改委核准的上网电量×补贴电价不匹配→少确认收入或补贴资金体外循环。", "must_exclude": ["补贴清算跨期", "补贴标准调整（发改价格变动）"], "output": "形成核准电量→上网电量→补贴计算→收入确认对照表"},
+      "clue_chain": {"start": "提取补贴收入→按补贴类型/来源→与发电量/电价对比。", "steps": [
+        {"step": 1, "action": "提取补贴收入→中央补贴/地方补贴/省级补贴→分来源", "deliverable": "补贴分类"},
+        {"step": 2, "action": "核对上网电量→国网/南网结算→补贴电价×电量=理论补贴", "deliverable": "理论补贴计算"},
+        {"step": 3, "action": "理论vs实际→差异分析→是否少确认收入", "deliverable": "差异分析"},
+        {"step": 4, "action": "增值税处理→补贴是否缴纳增值税（中央财政补贴不征/地方补贴需征）", "deliverable": "增值税合规"}
+      ], "terminal": "少确认补贴收入→调增应纳税所得额→补税。"},
+      "evidence_chain": {"supporting": ["补贴到账记录", "上网电量结算单"], "opposing": ["补贴标准文件", "补贴清算跨期说明"], "must_state": ["补贴分类", "理论vs实际", "差异"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "税会申报域", "responsibility": "增值税处理"}]}
+    },
+    {
+      "id": "ENE-CARBON-TRADING",
+      "name": "碳排放权交易——配额买卖的税务处理",
+      "trigger_signals": ["碳排放配额交易金额>100万", "免费配额转为有偿处置", "碳交易无发票/无增值税申报"],
+      "severity_modifiers": {"amount_threshold": 1000000},
+      "cross_industry_tags": ["碳交易", "排放权", "无形资产"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "参与碳排放权交易的企业（电力/钢铁/水泥等）", "activate_when": "碳交易>100万"},
+      "doubt": {"target_fact": "碳排放配额的取得/持有/出售是否按无形资产或金融资产进行税务处理。", "observed_signal": "出售碳排放配额收入未申报增值税。", "must_exclude": ["免费分配的配额（取得时无成本）"], "output": "形成配额取得→持有→出售→税务处理"},
+      "clue_chain": {"start": "提取碳排放配额交易记录→分析取得方式和出售情况。", "steps": [
+        {"step": 1, "action": "提取碳配额变动→政府免费分配/拍卖取得/二级市场购买/出售", "deliverable": "配额变动表"},
+        {"step": 2, "action": "核查出售→是否确认收入→增值税处理（无形资产转让6%或金融商品转让6%）", "deliverable": "出售税务处理"},
+        {"step": 3, "action": "核查购入→对外购买配额是否取得发票→是否计入无形资产", "deliverable": "购入处理"}
+      ], "terminal": "未申报碳交易收入→补缴增值税+企业所得税。"},
+      "evidence_chain": {"supporting": ["碳交易记录", "配额分配文件"], "opposing": ["免费分配说明"], "must_state": ["交易金额", "税收处理", "差异"]},
+      "domain_collaboration": {"lead": "资产研发域", "partners": [{"domain": "税会申报域", "responsibility": "税务处理"}]}
+    },
+    {
+      "id": "ENE-RESOURCE-TAX",
+      "name": "资源税——资源产品数量/价格与实际不符",
+      "trigger_signals": ["资源税申报产量与销售/库存不匹配", "资源税计税价格显著偏低", "共伴生矿/低品位矿减免条件不满足"],
+      "severity_modifiers": {"volume_gap_threshold": 0.1},
+      "cross_industry_tags": ["资源税", "矿产品", "计税价格"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["资源税"],
+      "applicability": {"business": "煤矿/油气/金属矿/非金属矿企业", "activate_when": "申报产量vs销售+库存变化差异>10%"},
+      "doubt": {"target_fact": "资源税的计税产量和价格是否真实——有没有少报产量、低报价格。", "observed_signal": "销售记录显示卖了100万吨煤但资源税申报只有80万吨。", "must_exclude": ["合理损耗", "洗选损耗", "库存煤正常差异"], "output": "形成产量→销售→库存→申报四方对照"},
+      "clue_chain": {"start": "统计实际产量和销量→与资源税申报比对。", "steps": [
+        {"step": 1, "action": "统计产量→采矿统计/计量/监测→实际产量", "deliverable": "实际产量"},
+        {"step": 2, "action": "统计销量→销售合同/发票/出库→加上库存变化→倒推产量", "deliverable": "倒推产量"},
+        {"step": 3, "action": "比对资源税申报→产量差异→价格差异→计算少缴", "deliverable": "税负差异"}
+      ], "terminal": "少报产量/低报价格→补缴资源税+滞纳金。"},
+      "evidence_chain": {"supporting": ["产量/销量记录", "资源税申报表"], "opposing": ["损耗/库存说明"], "must_state": ["产量差异", "价格差异", "少缴税额"]},
+      "domain_collaboration": {"lead": "财产行为税域", "partners": [{"domain": "存货物流域", "responsibility": "产量/库存"}]}
+    },
+    {
+      "id": "ENE-ASSET-DISPOSAL",
+      "name": "煤矿/电厂关停资产处置——资产处置损益与环保恢复义务",
+      "trigger_signals": ["煤矿关停/电厂退役", "资产处置收益/损失>1000万", "矿山环境恢复治理保证金计提和使用"],
+      "severity_modifiers": {"amount_threshold": 10000000},
+      "cross_industry_tags": ["资产处置", "关停", "环境恢复"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税", "增值税"],
+      "applicability": {"business": "关停或退役的煤矿/电厂", "activate_when": "资产处置>1000万 OR 关停公告发布"},
+      "doubt": {"target_fact": "煤矿/电厂关停涉及的资产处置——报废/转让/拆除的税务处理是否完整。", "observed_signal": "大型煤矿关停但账面资产仍在→未做报废处理→资产减值未体现。", "must_exclude": ["暂停生产（非永久关停）", "资产转让给关联方继续使用"], "output": "形成关停资产→处置方式→损益确认→环保恢复义务"},
+      "clue_chain": {"start": "列出关停资产→逐项核查处置方式和税务处理。", "steps": [
+        {"step": 1, "action": "识别关停资产→矿井/设备/建筑物→原值/净值/处置方式", "deliverable": "关停资产清单"},
+        {"step": 2, "action": "核查资产处置→报废/拆除/转让→损益确认→增值税处理", "deliverable": "资产处置核查"},
+        {"step": 3, "action": "核查环境恢复义务→治理保证金→实际治理支出→预计负债", "deliverable": "环保义务核查"},
+        {"step": 4, "action": "测算税务影响→资产损失税前扣除→增值税留抵处理", "deliverable": "税务影响"}
+      ], "terminal": "未及时处置→资产损失延迟确认→影响税前扣除年度。"},
+      "evidence_chain": {"supporting": ["关停批文", "资产评估报告", "处置合同"], "opposing": ["资产继续使用证明"], "must_state": ["关停资产总额", "处置方式", "税务影响"]},
+      "domain_collaboration": {"lead": "资产研发域", "partners": [{"domain": "税会申报域", "responsibility": "税前扣除"}]}
+    }
+  ],
+  "forbidden_outputs": ["自动核定资源税", "自动认定补贴违规"]
+}

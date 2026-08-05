@@ -1,0 +1,126 @@
+{
+  "version": "1.1.0", "effective_date": "2026-08-05",
+  "name": "信息技术与软件行业稽查场景合同", "industry_code": "IT", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦IT/软件行业核心风险——研发加计扣除造假、软件即征即退骗税、跨境数字服务、技术转让滥用、人力成本虚列。该行业以人力和技术为主要投入，传统稽查手段难以覆盖无形资产的真实性和定价。",
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "增值税法", "effective_period": "2026-01-01起"},
+    {"id": "SRC-RD-DEDUCTION", "name": "研发费用加计扣除政策", "issuer": "财政部/税务总局"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "software_copyright", "tech_contract_registration", "high_tech_cert"],
+    "transaction_keys": ["project_id", "task_id", "sprint_id", "repo_commit", "deploy_record"],
+    "evidence_dimensions": ["研发活动真实性", "人员工时", "软硬件投入", "成果可验证"]
+  },
+  "scenarios": [
+    {
+      "id": "IT-RD-FICTITIOUS",
+      "name": "研发加计扣除造假——非研发活动冒充研发",
+      "trigger_signals": ["研发费用加计扣除金额>200万", "研发人员占比>80%但无专利/软著产出", "研发材料费占比异常（真实研发以人力为主）"],
+      "severity_modifiers": {"amount_threshold": 2000000, "rd_staff_ratio_ceiling": 0.8, "patent_output_threshold": 1},
+      "cross_industry_tags": ["研发加计扣除", "税收优惠滥用", "费用造假"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税"],
+      "applicability": {"business": "享受研发费用加计扣除的高新技术/软件企业", "activate_when": "加计扣除>200万 AND (专利/软著=0 OR 研发人员占比>80%)"},
+      "doubt": {"target_fact": "申报的研发活动是否真实——技术人员是否真的在做研发，还是日常运维/客户支持被包装成了研发。", "observed_signal": "研发人员占比畸高、研发材料费占比异常、多年加计扣除但无知识产权产出。", "must_exclude": ["基础研究项目长周期", "开源贡献无专利", "研发失败但活动真实"], "output": "形成研发项目→人员工时→成果产出三方验证表"},
+      "clue_chain": {"start": "提取研发费用加计扣除明细→按项目分组→统计各项目投入和产出。", "steps": [
+        {"step": 1, "action": "列出所有加计扣除项目→立项/预算/人员/周期", "deliverable": "研发项目清单"},
+        {"step": 2, "action": "核查研发人员→岗位职责/工时记录/开发日志/代码提交→是否为真实研发工作", "deliverable": "人员研发活动验证"},
+        {"step": 3, "action": "核查研发成果→专利/软著/论文/产品版本→与项目投入的对应关系", "deliverable": "研发产出清单"},
+        {"step": 4, "action": "区分研发与非研发→日常运维/客户定制/技术支持是否被包装为研发", "deliverable": "研发vs非研发分类"},
+        {"step": 5, "action": "剔除不符合条件的费用重算→测算少加计的最大影响", "deliverable": "调整后加计扣除额"}
+      ], "terminal": "非研发活动不得享受加计扣除→调增应纳税所得额→补税。"},
+      "evidence_chain": {"supporting": ["研发立项书", "人员工时", "成果证明", "辅助账"], "opposing": ["开源贡献", "失败项目", "长周期研究"], "must_state": ["项目数", "真实研发占比", "调整金额"]},
+      "domain_collaboration": {"lead": "成本费用域", "partners": [{"domain": "人员薪酬域", "responsibility": "核查研发人员工时"}]}
+    },
+    {
+      "id": "IT-SOFTWARE-REFUND",
+      "name": "软件即征即退骗税——虚增软件收入骗取退税",
+      "trigger_signals": ["软件即征即退申请金额>100万", "软件收入占比>90%但无可验证的软件产品", "软件销售与硬件捆绑但未分别核算"],
+      "severity_modifiers": {"amount_threshold": 1000000, "sw_revenue_ratio_ceiling": 0.9},
+      "cross_industry_tags": ["即征即退", "骗税", "软件收入造假"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税"],
+      "applicability": {"business": "享受软件即征即退优惠的企业", "activate_when": "即征即退>100万 AND (无软件著作权 OR 软件收入占比>90%)"},
+      "doubt": {"target_fact": "即征即退对应的软件销售是否真实——是卖了软件还是把硬件/服务收入包装成软件收入。", "observed_signal": "软件收入畸高但无可验证的软件产品/版本号/著作权登记。", "must_exclude": ["嵌入式软件（需分别核算硬件和软件）", "SaaS订阅（服务收入非软件销售收入）"], "output": "形成软件产品—销售收入—著作权—退税四方验证表"},
+      "clue_chain": {"start": "提取即征即退申请数据→列出所有软件产品→逐项核查。", "steps": [
+        {"step": 1, "action": "列出即征即退软件产品→著作权/版本号/检测报告", "deliverable": "软件产品清单"},
+        {"step": 2, "action": "核查软件收入→合同→是否为软件销售（排除硬件/服务/运维）", "deliverable": "软件收入分类"},
+        {"step": 3, "action": "核查软硬件拆分→嵌入式软件/硬件一体化→拆分是否合理", "deliverable": "软硬件拆分验证"},
+        {"step": 4, "action": "核查即征即退计算→进项分摊→退税金额复算", "deliverable": "退税复算表"}
+      ], "terminal": "非软件收入不得享受即征即退→追缴多退税款。"},
+      "evidence_chain": {"supporting": ["软件著作权", "检测报告", "销售合同", "即征即退申报表"], "opposing": ["嵌入式软件拆分说明", "SaaS服务说明"], "must_state": ["软件产品数", "合格软件收入", "多退金额"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "税会申报域", "responsibility": "退税金额复算"}]}
+    },
+    {
+      "id": "IT-CROSS-BORDER-DIGITAL",
+      "name": "跨境数字服务——境外收入不申报或滥用零税率",
+      "trigger_signals": ["境外收款>100万但增值税申报无出口/跨境服务", "境外合同服务内容含软件开发/云服务/技术许可", "服务成果在境内但以境外主体签约"],
+      "severity_modifiers": {"amount_threshold": 1000000},
+      "cross_industry_tags": ["跨境服务", "零税率", "收入隐匿"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "向境外提供数字服务/软件开发/技术许可的IT企业", "activate_when": "境外收款>100万 AND 无跨境服务申报"},
+      "doubt": {"target_fact": "境外数字服务收入是否按适用税率申报——是零税率出口还是应税境内服务。", "observed_signal": "收款方为境外实体但服务器/研发人员/交付均在境内。", "must_exclude": ["完全在境外消费的数字服务（需境外IP/设备/支付证据）", "经备案的技术出口合同"], "output": "形成境外收入—服务地点—消费受益—申报对照表"},
+      "clue_chain": {"start": "提取境外银行收款→匹配合同→分析服务性质和履行地点。", "steps": [
+        {"step": 1, "action": "提取所有境外收款→匹配合同/订单→判断服务类型", "deliverable": "境外收入清单"},
+        {"step": 2, "action": "分析服务履行地→服务器位置/人员地点/交付物→是否在境内消费", "deliverable": "服务地点分析"},
+        {"step": 3, "action": "核查增值税申报→是否已按跨境服务零税率或免税申报", "deliverable": "申报合规核查"},
+        {"step": 4, "action": "核查技术出口合同备案→是否符合零税率条件", "deliverable": "备案状态核查"}
+      ], "terminal": "境内消费的数字化服务→按6%缴纳增值税→未申报则补税+滞纳金。"},
+      "evidence_chain": {"supporting": ["境外合同", "银行收款", "服务器部署记录"], "opposing": ["技术出口合同备案", "境外IP访问记录"], "must_state": ["境外收入", "服务履行地", "申报状态"]},
+      "domain_collaboration": {"lead": "跨境海关域", "partners": [{"domain": "收入完整性域", "responsibility": "境外收入完整性"}]}
+    },
+    {
+      "id": "IT-TECH-TRANSFER",
+      "name": "技术转让免税滥用——关联方低价转让技术/无形资产",
+      "trigger_signals": ["技术转让收入享受免税但转让对象为关联方", "转让价格显著偏离公允价值", "转让后技术仍由原企业使用（licence-back）"],
+      "severity_modifiers": {"amount_threshold": 5000000, "related_party_weight": 0.6},
+      "cross_industry_tags": ["关联交易", "技术转让", "免税滥用"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税", "增值税"],
+      "applicability": {"business": "享受技术转让所得减免税的企业", "activate_when": "技术转让免税>500万 AND 受让方为关联方"},
+      "doubt": {"target_fact": "技术转让是真实的市场化交易还是关联方之间的利润转移。", "observed_signal": "转让给位于低税地的关联方、转让价格远低于独立第三方可比价格、转让后通过license-back继续使用。", "must_exclude": ["经科技部门认定的技术合同", "独立第三方之间的正常技术交易"], "output": "形成转让价格→可比价格→受让方使用→转让后使用四方验证"},
+      "clue_chain": {"start": "提取技术转让合同→确认转让标的/价格/受让方。", "steps": [
+        {"step": 1, "action": "核查技术转让合同→专利权/软著/技术秘密→转让范围", "deliverable": "技术转让清单"},
+        {"step": 2, "action": "核查受让方→工商信息→与原企业的是否存在关联关系", "deliverable": "关联关系判定"},
+        {"step": 3, "action": "核查转让价格→与原企业研发成本/市场可比价格→是否公允", "deliverable": "转让价格分析"},
+        {"step": 4, "action": "核查转让后→原企业是否仍使用该技术→是否通过许可费回流", "deliverable": "转让后使用分析"}
+      ], "terminal": "关联方低价转让→按公允价值调整转让所得→补缴所得税。"},
+      "evidence_chain": {"supporting": ["技术转让合同", "科技部门认定", "资产评估报告"], "opposing": ["可比交易价格", "独立第三方鉴定"], "must_state": ["转让对象", "转让价格", "关联关系"]},
+      "domain_collaboration": {"lead": "关联交易域", "partners": [{"domain": "资产研发域", "responsibility": "研发成本与转让价格比较"}]}
+    },
+    {
+      "id": "IT-STAFF-DISGUISE",
+      "name": "人力成本虚列——外包人员伪装为研发人员享受加计扣除",
+      "trigger_signals": ["研发人员中大量为外部顾问/自由职业者", "劳务费/外包费计入研发费用加计扣除", "外包人员无考勤/无工位/无代码提交记录"],
+      "severity_modifiers": {"outsource_ratio_threshold": 0.4},
+      "cross_industry_tags": ["研发加计扣除", "外包人员", "人力成本造假"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税", "个人所得税"],
+      "applicability": {"business": "大量使用外包人员但计入研发费用的IT企业", "activate_when": "研发费用中外包/劳务占比>40%"},
+      "doubt": {"target_fact": "计入研发加计扣除的人员费用是否对应直接从事研发活动的人员。", "observed_signal": "外包/劳务人员占比过高、无实质研发工作记录。", "must_exclude": ["有明确研发任务和成果的外包团队", "经认定的委托研发项目"], "output": "形成人员分类→工作记录→研发成果三方验证"},
+      "clue_chain": {"start": "列出研发费用中的人员费用→按员工/外包/顾问/实习生分类。", "steps": [
+        {"step": 1, "action": "统计研发人员构成→直接雇佣vs外包vs顾问→占比分析", "deliverable": "人员构成分析"},
+        {"step": 2, "action": "核查外包人员→合同/工作内容/代码提交/成果→是否真实研发", "deliverable": "外包人员验证"},
+        {"step": 3, "action": "区分可加计与不可加计→只有直接从事研发活动的人员费用可加计", "deliverable": "加计扣除调整"}
+      ], "terminal": "非直接研发人员费用不得加计扣除→调增应纳税所得额。"},
+      "evidence_chain": {"supporting": ["人员清单", "劳动合同/外包协议", "工时/成果"], "opposing": ["外包合同（研发任务明确）", "成果输出"], "must_state": ["直接研发人员", "外包/顾问", "调整金额"]},
+      "domain_collaboration": {"lead": "人员薪酬域", "partners": [{"domain": "成本费用域", "responsibility": "研发费用分类"}]}
+    },
+    {
+      "id": "IT-HIGH-TECH-CERT",
+      "name": "高新技术企业资格造假——条件不满足但持续享受15%税率",
+      "trigger_signals": ["高企证书即将到期但核心指标不满足", "研发费用/高新收入占比不达标", "科技人员占比不达标"],
+      "severity_modifiers": {"tax_saving_threshold": 1000000, "qualification_gap": 0.1},
+      "cross_industry_tags": ["高企资格", "税率优惠", "资格造假"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税"],
+      "applicability": {"business": "享受高新技术企业15%优惠税率的企业", "activate_when": "研发费用占比<3% OR 高新收入占比<60% OR 科技人员占比<10%"},
+      "doubt": {"target_fact": "高新技术企业资格是否持续满足——研发投入、高新收入、人员结构是否都达标。", "observed_signal": "核心指标接近或低于门槛值、证书即将到期但指标恶化。", "must_exclude": ["年度波动在政策允许范围内", "新取得资格尚在有效期"], "output": "形成高企指标→实际数→达标判断→潜在税收影响"},
+      "clue_chain": {"start": "逐项核实高企认定条件→研发费用/高新收入/科技人员/知识产权。", "steps": [
+        {"step": 1, "action": "核查研发费用占比→近三个会计年度→是否符合>3%/4%/5%要求", "deliverable": "研发费用率核查"},
+        {"step": 2, "action": "核查高新收入占比→是否>60%→高新收入分类是否准确", "deliverable": "高新收入率核查"},
+        {"step": 3, "action": "核查科技人员占比→是否>10%→人员学历/岗位是否达标", "deliverable": "人员占比核查"},
+        {"step": 4, "action": "核查知识产权→是否在近三年内取得→是否与主营相关", "deliverable": "知识产权核查"},
+        {"step": 5, "action": "测算资格失效影响→按25%税率重算→差额=潜在税务风险", "deliverable": "税收影响测算"}
+      ], "terminal": "核心条件不满足→高企资格可能被取消→补缴10%税率差。"},
+      "evidence_chain": {"supporting": ["高企证书", "研发辅助账", "高新收入台账", "人员花名册"], "opposing": ["年度波动说明", "新取得资格证明"], "must_state": ["各指标达标状态", "税率差", "潜在补税金额"]},
+      "domain_collaboration": {"lead": "税收优惠域", "partners": [{"domain": "人员薪酬域", "responsibility": "科技人员核查"}]}
+    }
+  ],
+  "forbidden_outputs": ["自动取消高企资格", "自动核定补税金额"]
+}

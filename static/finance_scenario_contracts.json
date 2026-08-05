@@ -1,0 +1,87 @@
+{
+  "version": "1.1.0", "effective_date": "2026-08-05",
+  "name": "金融保险行业稽查场景合同", "industry_code": "FIN", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦金融保险业特有风险——资管产品增值税、金融商品转让、贷款损失准备金、手续费收入确认。该行业税制复杂且有专门的金融业增值税政策。",
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "增值税法"},
+    {"id": "SRC-FIN-VAT", "name": "关于全面推开营业税改征增值税试点的通知(金融服务)", "issuer": "财政部/税务总局"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "financial_license", "product_code"],
+    "transaction_keys": ["trade_id", "settlement_id", "fund_product_id", "policy_no"],
+    "evidence_dimensions": ["金融商品定价", "手续费vs利息收入", "准备金合规"]
+  },
+  "scenarios": [
+    {
+      "id": "FIN-FUND-VAT",
+      "name": "资管产品增值税——管理人未申报或错误适用简易计税",
+      "trigger_signals": ["管理资管产品规模>1亿", "资管产品运营收入（利息/红利/差价）未申报增值税", "资管产品多但未分别核算"],
+      "severity_modifiers": {"aum_threshold": 100000000},
+      "cross_industry_tags": ["资管产品", "增值税", "简易计税"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税"],
+      "applicability": {"business": "银行理财/基金/信托/券商资管等管理人", "activate_when": "资管规模>1亿 AND 无资管产品增值税申报"},
+      "doubt": {"target_fact": "资管产品运营过程中发生的应税行为（贷款利息/金融商品转让差价）是否申报缴纳了增值税。", "observed_signal": "管理数十亿资管产品但从未申报资管产品增值税。", "must_exclude": ["资管产品投资于免税项目（国债/地方债等）", "适用简易计税的已分别核算"], "output": "形成资管产品→运营收入→应税/免税→申报状态"},
+      "clue_chain": {"start": "列出所有资管产品→分类运营收入→判断应税范围。", "steps": [
+        {"step": 1, "action": "列出管理的全部资管产品→产品类型/规模/期限", "deliverable": "资管产品清单"},
+        {"step": 2, "action": "提取运营收入→利息/红利/金融商品转让→区分应税/免税", "deliverable": "应税收入统计"},
+        {"step": 3, "action": "核查分别核算→是否不同产品分开→是否按规定适用简易计税", "deliverable": "核算和计税方式"},
+        {"step": 4, "action": "测算应补增值税→3%简易计税或6%一般计税", "deliverable": "应补税额"}
+      ], "terminal": "未申报资管产品增值税→补缴+滞纳金+罚款。"},
+      "evidence_chain": {"supporting": ["资管产品合同", "运营收入明细"], "opposing": ["免税投资明细"], "must_state": ["产品数", "应税收入", "应补税额"]},
+      "domain_collaboration": {"lead": "税会申报域", "partners": [{"domain": "收入完整性域", "responsibility": "运营收入完整性"}]}
+    },
+    {
+      "id": "FIN-TRADE-TAX",
+      "name": "金融商品转让——买卖差价未完整确认",
+      "trigger_signals": ["金融资产买卖频繁（交易额>1亿）", "买卖差价计算不完整", "跨年盈亏互抵处理不当"],
+      "severity_modifiers": {"amount_threshold": 100000000},
+      "cross_industry_tags": ["金融商品转让", "增值税", "盈亏互抵"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税"],
+      "applicability": {"business": "持有并交易股票/债券/基金等金融商品的企业", "activate_when": "金融商品交易额>1亿"},
+      "doubt": {"target_fact": "金融商品买卖差价是否完整计入增值税应税销售额——盈亏互抵是否正确、跨年是否处理恰当。", "observed_signal": "年末集中处置亏损金融资产→跨年负差→影响下年增值税。", "must_exclude": ["按净价结算的品种"], "output": "形成金融商品→买入价→卖出价→差价→增值税"},
+      "clue_chain": {"start": "提取金融商品交易记录→按品种→计算价差→汇总应税销售额。", "steps": [
+        {"step": 1, "action": "提取金融资产交易流水→买入/卖出/品种/时间/价格", "deliverable": "交易流水"},
+        {"step": 2, "action": "按品种计算买卖差价→正差/负差→汇总当期应税额", "deliverable": "价差汇总"},
+        {"step": 3, "action": "核查负差处理→年末负差不得转入下年→是否违规结转", "deliverable": "负差处理核查"}
+      ], "terminal": "价差计算错误或负差违规结转→调整增值税申报→补税。"},
+      "evidence_chain": {"supporting": ["交易记录", "结算单"], "opposing": ["净价结算说明"], "must_state": ["交易总额", "应税价差", "违规负差"]},
+      "domain_collaboration": {"lead": "税会申报域", "partners": [{"domain": "收入完整性域", "responsibility": "交易记录完整性"}]}
+    },
+    {
+      "id": "FIN-LOAN-LOSS",
+      "name": "贷款损失准备金——计提超标准或核销不合规",
+      "trigger_signals": ["贷款损失准备金计提>税前扣除限额（贷款余额×1%）", "贷款核销无追索记录/法院判决", "已核销贷款收回未计入收入"],
+      "severity_modifiers": {"provision_ratio_threshold": 0.01},
+      "cross_industry_tags": ["准备金", "贷款", "税前扣除"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["企业所得税"],
+      "applicability": {"business": "银行/小贷/担保/融资租赁等", "activate_when": "贷款损失准备金>贷款余额×1%"},
+      "doubt": {"target_fact": "计提的贷款损失准备金是否超过税前扣除限额——核销是否满足法定条件。", "observed_signal": "准备金计提率2%远超1%限额→超额部分需纳税调增。", "must_exclude": ["准予特殊计提的涉农/中小企业贷款"], "output": "形成贷款余额→准备金→扣除限额→差异"},
+      "clue_chain": {"start": "提取贷款损失准备明细→与税前扣除限额比较。", "steps": [
+        {"step": 1, "action": "统计期末贷款余额→按税法计算扣除限额(1%)", "deliverable": "限额计算"},
+        {"step": 2, "action": "提取实际计提→比较→超额部分纳税调增", "deliverable": "差异分析"},
+        {"step": 3, "action": "核查核销贷款→追索记录/法院判决/损失证明→是否合规", "deliverable": "核销核查"},
+        {"step": 4, "action": "核查已核销贷款收回→是否计入收回当期收入", "deliverable": "收回核查"}
+      ], "terminal": "超额计提→纳税调增→补缴企业所得税。"},
+      "evidence_chain": {"supporting": ["准备金计提表", "核销审批"], "opposing": ["追索记录", "税法允许的特别计提"], "must_state": ["扣除限额", "超额", "纳税调增额"]},
+      "domain_collaboration": {"lead": "税会申报域", "partners": [{"domain": "成本费用域", "responsibility": "准备金税前扣除"}]}
+    },
+    {
+      "id": "FIN-FEE-REVENUE",
+      "name": "手续费收入确认——中间业务收入延迟确认或错误分类",
+      "trigger_signals": ["手续费/佣金收入>500万", "手续费收入跨期确认不一致", "表外业务收入未入账"],
+      "severity_modifiers": {"amount_threshold": 5000000},
+      "cross_industry_tags": ["手续费", "中间业务", "收入确认"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "银行/证券/保险等金融机构", "activate_when": "手续费收入>500万 AND 跨期差异>10%"},
+      "doubt": {"target_fact": "中间业务手续费是否按权责发生制及时确认——承销费/顾问费/托管费是否在服务完成时确认。", "observed_signal": "年终集中的大额手续费收入→可能提前或延迟确认收入调节利润。", "must_exclude": ["分期收取按进度确认", "成功费按合同约定时点（如IPO成功）"], "output": "形成业务合同→服务完成→收款→收入确认时间线"},
+      "clue_chain": {"start": "提取大额手续费收入→按合同/业务类型→核查确认时点。", "steps": [
+        {"step": 1, "action": "提取手续费收入明细→按业务类型/客户→金额/时间", "deliverable": "手续费清单"},
+        {"step": 2, "action": "抽取大额合同→业务完成时间vs收入确认时间→是否跨期", "deliverable": "跨期分析"},
+        {"step": 3, "action": "核查表外业务→表外承诺/担保是否产生手续费→是否入账", "deliverable": "表外核查"}
+      ], "terminal": "跨期不当→重新确认收入时点→补税+滞纳金。"},
+      "evidence_chain": {"supporting": ["手续费收入明细", "业务合同"], "opposing": ["分期确认说明"], "must_state": ["跨期差异金额", "调整时点"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "合同履约域", "responsibility": "服务完成时点"}]}
+    }
+  ],
+  "forbidden_outputs": ["自动核定资管产品增值税", "自动认定延期确认"]
+}
