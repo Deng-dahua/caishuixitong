@@ -46,7 +46,7 @@ V2_SCENARIO_FILES = {
     "ENE": "energy_scenario_contracts.json",
 }
 ASSET_TO_CODE = {filename.removesuffix(".json"): code for code, filename in V2_SCENARIO_FILES.items()}
-SCENARIO_FILES = tuple(V2_SCENARIO_FILES.keys())
+SCENARIO_FILES = tuple(set(k for k in V2_SCENARIO_FILES if len(k) == 1 or k.startswith("OVERLAY-")))
 
 
 def _read(path: Path) -> Any:
