@@ -2175,6 +2175,15 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: _parse_inventory_sheet(s)
     },
+    "bom": {
+        "keywords": ["物料编码", "物料名称", "成品编码", "成品名称", "BOM版本", "bom版本",
+                     "单位用量", "标准用量", "定额用量", "损耗率", "工艺路线", "工序",
+                     "原料编码", "原料名称", "父项编码", "子项编码", "物料清单", "配方",
+                     "组件编码", "组件名称", "替代料", "替代料编码", "投料比例",
+                     "BOM层级", "bom层级", "层级", "自制/外购", "虚拟件"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_bom_sheet(s)
+    },
     # 科目余额表
     "trial_balance": {
         "keywords": ["科目编码", "科目名称", "期初余额", "本期发生额", "本年累计发生额",
@@ -2393,7 +2402,226 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 1,
         "parser": lambda s, h: {"type": "generic_data", "rows": _parse_generic_table(s, h)}
     },
+    # ══════════ 出口退税专用 ══════════
+    "customs_declaration": {
+        "keywords": ["报关单号", "海关编号", "出口日期", "商品编码", "HS编码",
+                     "出口口岸", "运抵国", "指运港", "成交方式", "成交币制",
+                     "美元金额", "美元统计价", "FOB价", "CIF价", "征免方式",
+                     "监管方式", "运输方式", "包装件数", "毛重", "净重",
+                     "境内货源地", "生产销售单位", "申报单位", "结汇方式",
+                     "最终目的国", "贸易国别", "法定数量", "法定单位",
+                     "第一数量", "第一单位", "第二数量", "第二单位",
+                     "报关单类型", "进出口标志", "出口退税", "报关行"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_customs_sheet(s)
+    },
+    "export_invoice": {
+        "keywords": ["出口发票", "外销发票", "出口专用发票", "商业发票", "形式发票",
+                     "境外买方", "境外购买方", "收货人", "通知方",
+                     "起运港", "目的港", "装运港", "船名航次", "集装箱号",
+                     "贸易术语", "FOB", "CIF", "CFR", "EXW", "DDP",
+                     "原产国", "目的地国家", "合同号", "信用证号",
+                     "英文品名", "外文品名", "唛头", "包装", "件数"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_export_invoice_sheet(s)
+    },
+    "forex_collection": {
+        "keywords": ["收汇金额", "核销单号", "收汇水单", "出口收汇", "外汇收入",
+                     "结汇金额", "收汇日期", "收汇币种", "汇款人", "汇款银行",
+                     "国际收支申报号", "涉外收入", "外汇局", "已核销",
+                     "未核销", "出口收汇核销", "核销状态", "收汇登记",
+                     "核销金额", "核销余额", "对应报关单", "收汇明细"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_forex_sheet(s)
+    },
 }
+
+# ═══════════ 出口退税专用解析器 ═══════════
+
+def _parse_customs_sheet(sheet):
+    """解析报关单：提取出口商品明细——用于退税单证比对和报关vs开票一致性验证"""
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "报关单号", "海关编号", "出口日期", "商品编码", "HS编码",
+        "商品名称", "美元金额", "人民币金额", "运抵国", "成交方式"
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "报关单号": "declaration_no",
+        "海关编号": "declaration_no",
+        "出口日期": "export_date",
+        "商品编码": "hs_code",
+        "HS编码": "hs_code",
+        "商品名称": "goods_name",
+        "美元金额": "usd_amount",
+        "美元统计价": "usd_amount",
+        "FOB价": "fob_amount",
+        "CIF价": "cif_amount",
+        "人民币金额": "rmb_amount",
+        "运抵国": "dest_country",
+        "最终目的国": "dest_country",
+        "成交方式": "trade_term",
+        "成交币制": "currency",
+        "征免方式": "tax_mode",
+        "数量": "qty",
+        "法定数量": "qty",
+        "第一数量": "qty",
+        "单位": "unit",
+        "法定单位": "unit",
+        "第一单位": "unit",
+        "监管方式": "customs_mode",
+        "运输方式": "transport_mode",
+        "出口口岸": "port",
+        "境内货源地": "origin",
+        "毛重": "gross_weight",
+        "净重": "net_weight",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("declaration_no") and not vals.get("hs_code"): continue
+        all_vals = "".join(str(v) for v in vals.values())
+        if any(kw in all_vals for kw in ["报关单号", "海关编号", "商品编码"]): continue
+        for k in ["usd_amount", "rmb_amount", "fob_amount", "cif_amount", "qty", "gross_weight", "net_weight"]:
+            try: vals[k] = float(vals.get(k, "0").replace(",", ""))
+            except: vals[k] = 0
+        rows.append(vals)
+    
+    if not rows: return None
+    
+    # 按报关单号分组汇总
+    by_decl = {}
+    for r in rows:
+        dno = r.get("declaration_no", "未知")
+        if dno not in by_decl:
+            by_decl[dno] = {"declaration_no": dno, "total_usd": 0, "total_rmb": 0, "items": [], "dest_countries": set()}
+        by_decl[dno]["total_usd"] += r.get("usd_amount", 0) or r.get("fob_amount", 0)
+        by_decl[dno]["total_rmb"] += r.get("rmb_amount", 0)
+        by_decl[dno]["items"].append(r)
+        if r.get("dest_country"): by_decl[dno]["dest_countries"].add(r.get("dest_country"))
+    
+    return {
+        "type": "customs_declaration",
+        "rows": rows,
+        "declarations": [{**v, "dest_countries": list(v["dest_countries"])} for v in by_decl.values()],
+        "declaration_count": len(by_decl),
+        "total_usd": sum(v["total_usd"] for v in by_decl.values()),
+        "total_rmb": sum(v["total_rmb"] for v in by_decl.values()),
+    }
+
+def _parse_export_invoice_sheet(sheet):
+    """解析出口发票：识别境外买方、贸易术语、起运港/目的港等出口特有信息"""
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "发票号", "出口日期", "买方", "境外", "贸易术语", "FOB", "CIF", "起运港", "目的港"
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "发票号": "invoice_no",
+        "出口发票号": "invoice_no",
+        "商业发票号": "invoice_no",
+        "出口日期": "invoice_date",
+        "境外买方": "buyer",
+        "境外购买方": "buyer",
+        "收货人": "buyer",
+        "买方": "buyer",
+        "商品名称": "goods_name",
+        "英文品名": "goods_name_en",
+        "数量": "qty",
+        "单价": "unit_price",
+        "金额": "amount",
+        "总金额": "total_amount",
+        "贸易术语": "trade_term",
+        "成交方式": "trade_term",
+        "起运港": "port_from",
+        "装运港": "port_from",
+        "目的港": "port_to",
+        "目的地国家": "dest_country",
+        "合同号": "contract_no",
+        "船名航次": "vessel",
+        "集装箱号": "container_no",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("invoice_no") and not vals.get("buyer"): continue
+        for k in ["qty", "unit_price", "amount", "total_amount"]:
+            try: vals[k] = float(vals.get(k, "0").replace(",", ""))
+            except: vals[k] = 0
+        rows.append(vals)
+    
+    if not rows: return None
+    
+    total = sum(r.get("amount", 0) or r.get("total_amount", 0) for r in rows)
+    return {"type": "export_invoice", "rows": rows, "total_amount": total, "invoice_count": len(rows)}
+
+def _parse_forex_sheet(sheet):
+    """解析收汇核销表：核对外汇收入与报关出口的匹配关系"""
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "收汇金额", "核销单号", "收汇日期", "收汇币种", "汇款人", "对应报关单"
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "核销单号": "verification_no",
+        "收汇水单号": "receipt_no",
+        "收汇金额": "forex_amount",
+        "外汇收入": "forex_amount",
+        "收汇币种": "forex_currency",
+        "收汇日期": "receipt_date",
+        "汇款人": "remitter",
+        "汇款银行": "remitting_bank",
+        "对应报关单": "linked_declaration",
+        "国际收支申报号": "bop_no",
+        "核销金额": "verified_amount",
+        "核销余额": "balance",
+        "核销状态": "status",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("verification_no") and not vals.get("forex_amount"): continue
+        for k in ["forex_amount", "verified_amount", "balance"]:
+            try: vals[k] = float(vals.get(k, "0").replace(",", ""))
+            except: vals[k] = 0
+        rows.append(vals)
+    
+    if not rows: return None
+    
+    total_forex = sum(r.get("forex_amount", 0) for r in rows)
+    verified = sum(1 for r in rows if r.get("status", "") == "已核销")
+    return {
+        "type": "forex_collection",
+        "rows": rows,
+        "total_forex": total_forex,
+        "total_records": len(rows),
+        "verified_count": verified,
+        "unverified_count": len(rows) - verified,
+    }
 
 def _parse_generic_table(sheet, header):
     """通用表格解析: 提取表头+数据行，不做特定类型转换"""
@@ -4236,6 +4464,125 @@ def _parse_inventory_sheet(sheet):
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "inventory", "rows": rows}
+
+# ═══════════ BOM表解析 ═══════════
+
+def _parse_bom_sheet(sheet):
+    """解析BOM物料清单：成品→原料的配方/用量/损耗映射关系。
+    
+    BOM表是生产型企业的核心资料，定义了每个成品由哪些原料、按什么比例、
+    经过哪些工序制成。税务局稽查生产型企业时，BOM表是验证投入产出逻辑
+    是否合理的最重要依据。
+    
+    常见BOM表格式：
+    - 成品编码 | 成品名称 | 原料编码 | 原料名称 | 单位用量 | 损耗率 | 工艺路线
+    - 父项编码 | 子项编码 | 子项名称 | 用量 | 单位
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "物料编码", "成品编码", "原料编码", "子项编码", "父项编码",
+        "物料名称", "成品名称", "原料名称", "组件名称", "BOM版本",
+        "单位用量", "标准用量", "定额用量", "损耗率", "工艺路线",
+        "规格型号", "单位", "数量", "层级", "版本"
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "成品编码": "finished_code",
+        "成品名称": "finished_name",
+        "父项编码": "finished_code",
+        "父项名称": "finished_name",
+        "物料编码": "material_code",
+        "原料编码": "material_code",
+        "子项编码": "material_code",
+        "组件编码": "material_code",
+        "物料名称": "material_name",
+        "原料名称": "material_name",
+        "子项名称": "material_name",
+        "组件名称": "material_name",
+        "单位用量": "unit_qty",
+        "标准用量": "unit_qty",
+        "定额用量": "unit_qty",
+        "数量": "unit_qty",
+        "单位": "uom",
+        "损耗率": "scrap_rate",
+        "工艺路线": "process_route",
+        "工序": "process_route",
+        "BOM版本": "bom_version",
+        "版本": "bom_version",
+        "规格型号": "spec",
+        "替代料": "alt_material",
+        "替代料编码": "alt_material",
+        "自制/外购": "make_or_buy",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 5000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        
+        # 跳过空行和汇总行
+        if not vals.get("finished_code") and not vals.get("finished_name") and not vals.get("material_code"):
+            continue
+        # 跳过表头重复行
+        all_vals = "".join(str(v) for v in vals.values())
+        if any(kw in all_vals for kw in ["物料编码", "成品编码", "物料清单"]):
+            continue
+        
+        # 数值字段标准化
+        for k in ["unit_qty", "scrap_rate"]:
+            try:
+                v = vals.get(k, "0")
+                if isinstance(v, str):
+                    v = v.replace("%", "").strip()
+                vals[k] = float(v) if v else 0
+            except:
+                vals[k] = 0
+        
+        rows.append(vals)
+    
+    if not rows: return None
+    
+    # 构建BOM结构：按成品分组，每个成品包含原料清单
+    bom_products = {}
+    for r in rows:
+        finished = r.get("finished_code", "") or r.get("finished_name", "")
+        if not finished: continue
+        
+        if finished not in bom_products:
+            bom_products[finished] = {
+                "finished_code": r.get("finished_code", ""),
+                "finished_name": r.get("finished_name", finished),
+                "spec": r.get("spec", ""),
+                "bom_version": r.get("bom_version", ""),
+                "materials": []
+            }
+        
+        material = {
+            "material_code": r.get("material_code", ""),
+            "material_name": r.get("material_name", ""),
+            "unit_qty": r.get("unit_qty", 0),
+            "uom": r.get("uom", ""),
+            "scrap_rate": r.get("scrap_rate", 0),
+            "process_route": r.get("process_route", ""),
+            "alt_material": r.get("alt_material", ""),
+            "make_or_buy": r.get("make_or_buy", ""),
+        }
+        if material["material_code"] or material["material_name"]:
+            bom_products[finished]["materials"].append(material)
+    
+    return {
+        "type": "bom",
+        "rows": rows,
+        "products": list(bom_products.values()),
+        "product_count": len(bom_products),
+        "total_materials": sum(len(p["materials"]) for p in bom_products.values())
+    }
 
 # ═══════════ PDF 银行流水解析 ═══════════
 

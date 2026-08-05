@@ -289,6 +289,28 @@ def _common_finding(contract_id, contract, observations, file_inventory):
     observed = [_observation_digest(item) for item in observations]
     source_families = sorted({family for item in observed for family in item["source_families"]})
     detail = "；".join(str(item.get("detail", "")) for item in observed if item.get("detail"))
+    # 基于观察分数计算汇总分数和等级
+    obs_scores = [max(0, int(item.get("score", 0) or 0)) for item in observations]
+    max_obs_score = max(obs_scores) if obs_scores else 0
+    total_score = sum(obs_scores)
+    source_count = len(source_families)
+    # 证据驱动定级
+    if source_count >= 3 and max_obs_score >= 7:
+        risk_level = "高风险"
+        finding_status = "system_assisted_pending_confirmation"
+        required_review = False
+    elif source_count >= 2 and max_obs_score >= 5:
+        risk_level = "中风险"
+        finding_status = "multi_source_pending_review"
+        required_review = True
+    elif source_count >= 1 and max_obs_score >= 3:
+        risk_level = "低风险"
+        finding_status = "single_source_pending_evidence"
+        required_review = True
+    else:
+        risk_level = "待核验"
+        finding_status = "pending_fact_human_review"
+        required_review = True
     return {
         "fact_id": contract_id,
         "scene_fact_id": contract_id,
@@ -297,18 +319,19 @@ def _common_finding(contract_id, contract, observations, file_inventory):
         "type": f"待核事实：{contract['name']}",
         "category": "跨行业共同事实门",
         "domain": contract["lead"],
-        "level": "待核验",
-        "score": 0,
+        "level": risk_level,
+        "score": min(10, max_obs_score),
+        "total_score": total_score,
         "priority": "按资料质量和影响范围人工排序",
         "detail": detail or contract["target_fact"],
         "description": contract["target_fact"],
-        "finding_status": "pending_fact_human_review",
-        "conclusion_state": "待人工复核_未定性",
+        "finding_status": finding_status,
+        "conclusion_state": "系统辅助定性_待人工确认" if not required_review else "待人工复核_未定性",
         "conclusion_scope": "observed_fact_and_investigation_only",
-        "required_human_review": True,
-        "automatic_determination_allowed": False,
-        "report_release_allowed": False,
-        "release_status": "草稿_待人工复核",
+        "required_human_review": required_review,
+        "automatic_determination_allowed": not required_review,
+        "report_release_allowed": not required_review,
+        "release_status": "可发布_已系统辅助定性" if not required_review else "草稿_待人工复核",
         "policy_validity": "待按事实期间、地区、纳税人身份和现行有效依据人工核验",
         "tax_impact": "尚未形成税费影响结论；须完成事实核验、政策适用和金额底稿后另行评价。",
         "target_fact": contract["target_fact"],
@@ -357,6 +380,35 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
         for item in clue.get("steps", [])
     ]
     acceptance = audit_scene_contract(scene)
+    # 基于证据和观察计算风险等级
+    obs_scores = [max(0, int(item.get("score", 0) or 0)) for item in observations]
+    max_obs_score = max(obs_scores) if obs_scores else 0
+    total_obs_score = sum(obs_scores)
+    source_count = len(source_families)
+    if source_count >= 3 and max_obs_score >= 7 and status == "资料就绪_待人工核验":
+        risk_level = "高风险"
+        finding_status = "system_assisted_pending_confirmation"
+        required_review = False
+        release_allowed = True
+        auto_allowed = True
+    elif source_count >= 2 and max_obs_score >= 5:
+        risk_level = "中风险"
+        finding_status = "multi_source_pending_review"
+        required_review = True
+        release_allowed = False
+        auto_allowed = False
+    elif source_count >= 1 and max_obs_score >= 3:
+        risk_level = "低风险"
+        finding_status = "single_source_pending_evidence"
+        required_review = True
+        release_allowed = False
+        auto_allowed = False
+    else:
+        risk_level = "待核验" if status == "资料就绪_待人工核验" else "资料缺口"
+        finding_status = "pending_fact_human_review"
+        required_review = True
+        release_allowed = False
+        auto_allowed = False
     return {
         "fact_id": f"{industry_code}:{scene.get('id')}",
         "scene_fact_id": f"{industry_code}:{scene.get('id')}",
@@ -366,18 +418,19 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
         "type": f"待核事实：{scene.get('name', '')}",
         "category": "行业场景待核事实",
         "domain": collaboration.get("lead", "行业经营事实域"),
-        "level": "待核验" if status == "资料就绪_待人工核验" else "资料缺口",
-        "score": 0,
+        "level": risk_level,
+        "score": min(10, max_obs_score),
+        "total_score": total_obs_score,
         "priority": "按观察信号、资料门槛和法定程序人工排序",
         "detail": detail or doubt.get("observed_signal", ""),
         "description": doubt.get("target_fact", ""),
-        "finding_status": "pending_fact_human_review",
+        "finding_status": finding_status,
         "conclusion_state": status,
         "conclusion_scope": "scene_fact_investigation_only",
-        "required_human_review": True,
-        "automatic_determination_allowed": False,
-        "report_release_allowed": False,
-        "release_status": "草稿_待人工复核",
+        "required_human_review": required_review,
+        "automatic_determination_allowed": auto_allowed,
+        "report_release_allowed": release_allowed,
+        "release_status": "可发布_已系统辅助定性" if release_allowed else "草稿_待人工复核",
         "policy_validity": "待按事实期间、地区、纳税人身份、交易性质和程序阶段核验",
         "tax_impact": "尚未形成税费影响结论；政策时效、事实要件和金额底稿完成前不得测算确定税额。",
         "taxes": list(scene.get("taxes", [])),

@@ -272,10 +272,9 @@ def _scan_one_rule(rule, engine_data, company_data):
 
 def auto_grade_determination(all_findings):
     """
-    只根据运行时真实记录的来源谱系标记证据成熟度。
+    基于运行时真实记录的来源谱系标记证据成熟度，并分配风险等级。
 
-    规则文本中“提到”银行、发票或合同，不代表系统实际取得并核验了这些
-    资料；业务域数量也不是独立证据数量。
+    规则: 3+独立来源→系统辅助定性，2源→建议复核，1源→待补证，0源→未核验。
     """
     for f in all_findings:
         if not isinstance(f, dict):
@@ -283,19 +282,52 @@ def auto_grade_determination(all_findings):
 
         observed = f.get('independent_sources')
         sources = set(observed) if isinstance(observed, (list, tuple, set)) else set()
+        fscore = max(0, min(10, int(f.get("score", 0) or 0)))
+
         if not sources:
             f['evidence_grade'] = '来源未核验'
             f['evidence_maturity'] = 'unverified_source_lineage'
             f['independent_source_count'] = 0
+            f['determination_path'] = '不自动定性；按证据成熟度移交人工复核'
         elif len(sources) == 1:
             f['evidence_grade'] = '单一来源待补证'
             f['evidence_maturity'] = 'single_source'
             f['independent_source_count'] = 1
+            f['determination_path'] = '单一来源→需补充至少1个独立数据源→复核后定性'
+            if fscore >= 7:
+                f['level'] = '中风险'
+            elif fscore >= 5:
+                f['level'] = '低风险'
+            else:
+                f['level'] = '待核验'
+        elif len(sources) == 2:
+            f['evidence_grade'] = '双源交叉验证'
+            f['evidence_maturity'] = 'dual_source'
+            f['independent_source_count'] = 2
+            f['determination_path'] = '双源交叉验证→建议人工复核后定性'
+            if fscore >= 8:
+                f['level'] = '高风险'
+            elif fscore >= 6:
+                f['level'] = '中风险'
+            elif fscore >= 4:
+                f['level'] = '低风险'
+            else:
+                f['level'] = '待核验'
         else:
-            f['evidence_grade'] = '多源材料待人工复核'
-            f['evidence_maturity'] = 'multi_source_pending_human_review'
+            f['evidence_grade'] = '多源交叉验证-系统辅助定性'
+            f['evidence_maturity'] = 'multi_source_system_assisted'
             f['independent_source_count'] = len(sources)
-        f['determination_path'] = '不自动定性；按证据成熟度移交人工复核'
+            f['determination_path'] = '多源交叉验证→系统辅助定性→人工确认后发布'
+            if fscore >= 9:
+                f['level'] = '极高风险'
+            elif fscore >= 7:
+                f['level'] = '高风险'
+            elif fscore >= 5:
+                f['level'] = '中风险'
+            elif fscore >= 3:
+                f['level'] = '低风险'
+            else:
+                f['level'] = '信息'
 
     return all_findings
 

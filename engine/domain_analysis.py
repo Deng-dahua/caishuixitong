@@ -57,6 +57,7 @@ __all__ = [
     "_detect_conflicts",
     "_domain_advanced_rules",
     "_domain_bank_tracking",
+    "_domain_bom_verify",
     "_domain_business_premise_geo",
     "_domain_business_substance",
     "_domain_cit_reconciliation",
@@ -587,7 +588,14 @@ def _domain_supplier_deep(pur_invs):
 def _domain_voucher_anomaly(vouchers):
     """域5: 凭证科目异常 — 双通道复核：总账平衡 + 逐张校验"""
     findings = []
-    if not vouchers: return findings
+    if not vouchers:
+        findings.append({"type": "资料缺失-凭证数据", "level": "中风险", "score": 6,
+            "detail": "未提供会计凭证数据，无法进行域5(凭证科目异常)分析。",
+            "description": "缺少会计凭证数据，导致无法进行总账借贷平衡复核和逐张凭证校验。凭证是企业会计核算的基础，缺失意味着无法验证科目余额的真实性和准确性。可能原因：未上传凭证文件、文件格式不支持解析。",
+            "tax_impact": "无法验证会计凭证的合规性，存在科目错记、借贷不平、虚增成本费用等风险无法识别。",
+            "suggestion": "上传会计凭证Excel或CSV文件（含日期、凭证号、科目、借方金额、贷方金额字段）。",
+            "category": "域5 凭证异常"})
+        return findings
     
     total_rows = len(vouchers)
     
@@ -788,6 +796,185 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
             "category": "域6 存货"})
     return findings
 
+# ═══════════ BOM投入产出验证 — 生产型企业核心分析 ═══════════
+
+def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
+    """域6-B: BOM投入产出验证——将BOM配方与实际采购/生产数据进行交叉比对。
+    
+    这是生产型企业稽查的核心验证：用BOM表的标准配方，验证企业的
+    实际原材料采购量是否与成品产出量匹配。投入产出严重偏离意味着：
+    1) 虚列原材料采购（进项虚抵）
+    2) 隐匿成品销售（账外收入）
+    3) BOM表不真实（应付检查的假BOM）
+    
+    分析链：
+    BOM配方 → 理论原料消耗 = 成品产出量 × 单位用量 × (1+损耗率)
+    → 与实际原料采购量比较 → 差异分析
+    """
+    findings = []
+    
+    if not bom_data:
+        return findings
+    
+    # 汇总BOM信息
+    all_products = []
+    for bom_file in bom_data:
+        all_products.extend(bom_file.get("products", []))
+    
+    if not all_products:
+        return findings
+    
+    # 构建原料到成品的映射
+    material_to_products = {}  # 每种原料用于哪些成品
+    product_recipes = {}  # 每种成品的配方
+    total_materials_count = 0
+    
+    for prod in all_products:
+        name = prod.get("finished_name", prod.get("finished_code", "未知成品"))
+        product_recipes[name] = prod
+        for mat in prod.get("materials", []):
+            m_name = mat.get("material_name", mat.get("material_code", ""))
+            if not m_name: continue
+            total_materials_count += 1
+            if m_name not in material_to_products:
+                material_to_products[m_name] = []
+            material_to_products[m_name].append(name)
+    
+    # ═══ 1. BOM概况 ═══
+    findings.append({"type": "BOM表概况", "level": "信息", "score": 2,
+        "how_found": f"解析了{len(bom_data)}个BOM文件，共{len(all_products)}个成品、{len(product_recipes)}种配方、{total_materials_count}条原料映射。",
+        "detail": f"识别{len(all_products)}个成品，{total_materials_count}条原料配方映射。",
+        "description": f"BOM表定义了{len(all_products)}种成品的配方关系，共涉及{len(material_to_products)}种原料。这些配方关系是验证生产型企业投入产出真实性的基础依据。",
+        "category": "域6 存货"})
+    
+    # ═══ 2. BOM配方 vs 进项发票交叉验证 ═══
+    if pur_invs:
+        # 提取进项发票中的品名
+        pur_goods = set()
+        for inv in pur_invs:
+            goods = str(inv.get("goods", ""))
+            if goods:
+                pur_goods.add(goods)
+        
+        # 检查BOM中的原料是否都有对应的采购记录
+        matched_materials = set()
+        unmatched_materials = []
+        for m_name in material_to_products:
+            matched = False
+            for pg in pur_goods:
+                # 模糊匹配：原料名在品名中出现 或 品名在原料名中出现
+                if m_name[:4] in pg or pg[:4] in m_name:
+                    matched = True
+                    matched_materials.add(m_name)
+                    break
+            if not matched:
+                unmatched_materials.append(m_name)
+        
+        if unmatched_materials:
+            unmatched_str = "、".join(unmatched_materials[:10])
+            if len(unmatched_materials) > 10:
+                unmatched_str += f"...等{len(unmatched_materials)}种"
+            findings.append({"type": "BOM原料无采购记录", "level": "高风险", "score": 8,
+                "how_found": f"将BOM表中{len(material_to_products)}种原料与进项发票{len(pur_goods)}种品名逐项交叉比对。",
+                "detail": f"BOM配方中{len(unmatched_materials)}种原料在进项发票中找不到对应采购记录：{unmatched_str}。",
+                "description": f"BOM表定义的{len(unmatched_materials)}种原料在进项发票中找不到采购记录。这有两种可能：(1)BOM表不真实——为了应付检查编造的配方，实际并不使用这些原料；(2)原料采购未取得发票——供应商未开票，企业通过其他渠道购入。无论哪种情况，都严重影响生产真实性的认定。",
+                "tax_impact": "若BOM配方不真实，则基于该配方的成本核算、存货计价、进项税额抵扣均不成立。进项税额可能需要转出。",
+                "suggestion": f"① 逐项核实{len(unmatched_materials)}种原料的实际采购情况，提供采购合同、入库单、付款记录；② 若BOM表为早期版本，提供更新后的BOM表；③ 若部分原料由客户提供（来料加工），需提供委外加工合同。",
+                "category": "域6 存货"})
+        
+        if matched_materials:
+            findings.append({"type": "BOM-采购匹配概述", "level": "低风险", "score": 2,
+                "detail": f"BOM中{len(matched_materials)}/{len(material_to_products)}种原料在进项发票中找到对应采购记录，匹配率{len(matched_materials)/max(len(material_to_products),1)*100:.1f}%。",
+                "description": f"BOM表原料与进项发票品名的初步匹配结果表明，{len(matched_materials)}/{len(material_to_products)}种原料有对应的采购记录。匹配率较高说明BOM表与实际情况基本吻合；匹配率较低则需要进一步核实BOM版本或采购记录。",
+                "category": "域6 存货"})
+    
+    # ═══ 3. 投入产出数量验证（需要进销存数据） ═══
+    if inventory and pur_invs:
+        # 从进销存中统计每种成品的出库量（近似成品产出）
+        finished_output = {}
+        for inv in inventory:
+            item = str(inv.get("item", "")).strip()
+            if not item: continue
+            out_qty = float(inv.get("out_qty", 0) or 0)
+            if out_qty <= 0: continue
+            
+            # 检查这个品名是否对应BOM中的成品
+            for prod_name, recipe in product_recipes.items():
+                if item[:4] in prod_name or prod_name[:4] in item:
+                    if prod_name not in finished_output:
+                        finished_output[prod_name] = {"output_qty": 0, "recipe": recipe}
+                    finished_output[prod_name]["output_qty"] += out_qty
+                    break
+        
+        # 对每个有产出数据的成品，计算理论原料消耗
+        if finished_output:
+            raw_material_theoretical = {}
+            for prod_name, data in finished_output.items():
+                output = data["output_qty"]
+                recipe = data["recipe"]
+                for mat in recipe.get("materials", []):
+                    m_name = mat.get("material_name", mat.get("material_code", ""))
+                    if not m_name: continue
+                    unit_qty = mat.get("unit_qty", 0)
+                    scrap_rate = mat.get("scrap_rate", 0)
+                    if unit_qty <= 0: continue
+                    theoretical = output * unit_qty * (1 + scrap_rate)
+                    if m_name not in raw_material_theoretical:
+                        raw_material_theoretical[m_name] = 0
+                    raw_material_theoretical[m_name] += theoretical
+            
+            # 统计实际采购量（从进项发票）
+            actual_purchases = {}
+            for inv in pur_invs:
+                goods = str(inv.get("goods", "")).strip()
+                if not goods: continue
+                qty = float(inv.get("qty", 0) or 0)
+                if qty <= 0: continue
+                for m_name in raw_material_theoretical:
+                    if m_name[:4] in goods or goods[:4] in m_name:
+                        if m_name not in actual_purchases:
+                            actual_purchases[m_name] = 0
+                        actual_purchases[m_name] += qty
+                        break
+            
+            # 比较理论消耗 vs 实际采购
+            large_deviations = []
+            for m_name, theoretical in sorted(raw_material_theoretical.items(), key=lambda x: -x[1]):
+                actual = actual_purchases.get(m_name, 0)
+                if theoretical > 0:
+                    ratio = actual / theoretical
+                    if ratio < 0.5:  # 实际采购不足理论消耗的50%
+                        large_deviations.append((m_name, "采购不足", theoretical, actual, ratio))
+                    elif ratio > 3.0:  # 实际采购超过理论消耗的3倍
+                        large_deviations.append((m_name, "采购过量", theoretical, actual, ratio))
+            
+            if large_deviations:
+                for m_name, issue, theo, act, ratio in large_deviations[:8]:
+                    findings.append({"type": f"BOM投入产出偏离-{issue}", "level": "高风险" if abs(1-ratio) > 0.8 else "中风险",
+                        "score": 9 if abs(1-ratio) > 0.8 else 6,
+                        "how_found": f"成品产出→BOM配方反推理论原料消耗={theo:.1f}，与实际采购量={act:.1f}比较。",
+                        "detail": f"{m_name}：理论需消耗{theo:.1f}，实际采购{act:.1f}，偏差率{(ratio-1)*100:+.0f}%。",
+                        "description": f"根据BOM配方和实际成品产出量，{m_name}的理论消耗为{theo:.1f}，但实际采购量为{act:.1f}。偏差率{(ratio-1)*100:+.0f}%。{issue}可能原因：{'BOM配方不准确、存在替代料或配方变更、部分原料未取得发票（采购不足）；虚列采购、BOM表编造或车间损耗异常（采购过量）' if issue=='采购不足' else '虚开发票多列成本、BOM损耗率偏低、存在代购或拼单采购、原料用于其他非BOM成品'}。",
+                        "tax_impact": "投入产出严重偏离→虚抵进项税额或隐匿收入→补税+滞纳金+罚款。税务机关将以BOM配方为基础核定产量和成本。",
+                        "suggestion": f"① 核实BOM表的{issue}原料配方是否准确（版本、损耗率、替代料）；② 提供车间投料记录和领料单；③ 若使用替代料，更新BOM表；④ 若部分原料自行生产（半成品），提供半成品BOM。",
+                        "category": "域6 存货"})
+            else:
+                findings.append({"type": "BOM投入产出基本吻合", "level": "低风险", "score": 2,
+                    "detail": f"对{len(finished_output)}个有产出数据的成品进行BOM验证，原料理论消耗与实际采购基本匹配。",
+                    "description": f"基于BOM配方反推的原料理论消耗量与实际采购量基本吻合，偏差在合理范围内。这表明BOM表与实际生产情况一致，采购记录可信。",
+                    "category": "域6 存货"})
+    
+    # ═══ 4. BOM完整性建议 ═══
+    if not inventory:
+        findings.append({"type": "BOM验证-缺少进销存数据", "level": "中风险", "score": 5,
+            "detail": "虽有BOM表但缺少进销存台账，无法进行成品产出→原料消耗的数量验证。",
+            "description": "BOM表定义了配方关系，但要验证投入产出是否合理，还需要进销存台账中的成品出库数量。缺少进销存数据导致只能做品名匹配，无法做数量级验证。",
+            "tax_impact": "无法验证投入产出的数量合理性，BOM表可能形同虚设。",
+            "suggestion": "上传进销存台账（含产品名称、出库数量、单位字段），以实现BOM配方→实际产出的完整验证。",
+            "category": "域6 存货"})
+    
+    return findings
+
 def _domain_tax_consistency(bank_txs, db, company_id):
     """域7: 税务缴纳一致性"""
     import json
@@ -898,6 +1085,12 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
 
     # ═══ 守卫: 进项发票和银行流水全空 → 无法判断费用是否真实缺失（可能是文件解析失败） ═══
     if not pur_invs and not bank_txs:
+        findings.append({"type": "资料缺失-无法执行经营实质分析", "level": "高风险", "score": 8,
+            "detail": "进项发票和银行流水数据均为空，无法验证六项基础经营费用和业务真实性。",
+            "description": "经营实质分析依赖进项发票（检测采购、租赁、水电、物流等基础费用）和银行流水（验证资金流向真实性）。两项数据同时缺失意味着：无法判断企业是否实际发生经营费用、无法验证是否存在真实经营场所、无法排除空壳企业或账外经营的可能。税务稽查中，无法提供经营费用凭证是企业缺乏实际经营能力的最强信号之一。",
+            "tax_impact": "无法验证经营实质是税务机关认定虚开发票或空壳企业的关键依据。一般纳税人资格可能被取消，已抵扣进项税额需转出。",
+            "suggestion": "务必上传进项发票数据和银行账户交易流水。如确实无进项发票（全部为无票采购），请上传银行流水以验证费用真实性。",
+            "category": "域12 经营实质"})
         return findings
 
     # ═══════ 维度1: 基础经营费用六要素检测 ═══════
@@ -1595,6 +1788,15 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
     
     findings = []
     if not bank_txs or not sal_invs:
+        missing = []
+        if not bank_txs: missing.append("银行流水")
+        if not sal_invs: missing.append("销项发票")
+        findings.append({"type": "资料缺失-无法执行客户收入穿透分析", "level": "中风险", "score": 6,
+            "detail": f"缺少{'、'.join(missing)}数据，无法进行逐客户收入-收款三源交叉验证。",
+            "description": f"客户收入穿透分析需要同时具备销项发票（获取开票金额和买方名称）和银行流水（获取实际收款金额和付款方名称），以实现逐客户维度的三源交叉验证（开票金额 vs 银行收款金额 vs 合同金额）。缺少{'、'.join(missing)}将导致无法识别：客户少收款/多收款、付款方与开票对象不匹配（代付/两套账嫌疑）、未开票大额收款（隐匿收入）。",
+            "tax_impact": "客户维度的收入-收款不匹配是隐匿收入和两套账的核心识别手段。跳过此分析可能导致重大收入隐匿未被发现。",
+            "suggestion": f"补充上传{'、'.join(missing)}数据文件。",
+            "category": "域2 进销毛利"})
         return findings
     
     # ── 1. 构建客户维度数据 ──
@@ -2538,7 +2740,14 @@ def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
 def _domain_supplier_profiling(pur_invs, bank_txs):
     """对核心供应商做深度画像: 交易频率/金额/时间/资金匹配"""
     findings = []
-    if not pur_invs: return findings
+    if not pur_invs:
+        findings.append({"type": "资料缺失-进项发票", "level": "中风险", "score": 6,
+            "detail": "未提供进项发票数据，无法进行供应商深度画像分析。",
+            "description": "缺少进项发票数据，导致无法进行供应商交易频率、金额分布、时间模式和资金匹配分析。进项发票是验证采购真实性和供应商合规性的核心依据。缺失原因可能包括：未上传发票文件、进项数据为空（全部为无票采购）。",
+            "tax_impact": "无法验证供应商的真实性和交易合理性，存在虚开发票、无票采购、成本虚增等风险无法识别。",
+            "suggestion": "上传进项发票Excel/CSV文件（含销方名称、金额、税额、日期、品名字段）。",
+            "category": "域4 供应商穿透"})
+        return findings
     
     from collections import defaultdict
     supplier_stats = defaultdict(lambda: {"count": 0, "total": 0.0, "months": set()})
@@ -2587,7 +2796,14 @@ def _domain_supplier_profiling(pur_invs, bank_txs):
 def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
     """绘制资金流向图: 谁在给企业钱→企业把钱给了谁"""
     findings = []
-    if not bank_txs: return findings
+    if not bank_txs:
+        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 6,
+            "detail": "未提供银行流水数据，无法进行资金流向追踪分析。",
+            "description": "缺少银行账户交易流水，导致无法绘制资金流向图、无法核实付款方身份是否为企业法定代表人或关联方、无法验证资金回流风险。银行流水是税务稽查中验证资金真实性的核心依据。",
+            "tax_impact": "无法识别资金回流、账外资金循环、个人账户收款等高风险行为。资金流向不透明是税务机关认定偷逃税的重要线索。",
+            "suggestion": "上传银行流水Excel/CSV文件（含交易日期、摘要、收入金额、支出金额、对方账户名字段）。",
+            "category": "域1 资金全链路"})
+        return findings
     
     # ═══ 税务合规方法论③：付款方身份核实 ═══
     # 从联网核查获取法定代表人/股东名单
@@ -2746,7 +2962,14 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
 def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security):
     """人员画像: 人数规模与业务量匹配、薪酬结构合理性"""
     findings = []
-    if not salaries: return findings
+    if not salaries:
+        findings.append({"type": "资料缺失-工资表", "level": "中风险", "score": 5,
+            "detail": "未提供工资表/薪酬数据，无法进行人员画像分析。",
+            "description": "缺少员工工资数据，导致无法分析人数规模与业务量的匹配度、薪酬结构合理性（高管/普通员工比例）、人均产出等关键指标。工资表是验证企业真实用工规模和社保缴纳情况的基础。",
+            "tax_impact": "无法识别虚列人员工资、少缴社保、个税申报不实等风险。",
+            "suggestion": "上传工资表Excel/CSV文件（含姓名、工资金额、部门/岗位字段）。",
+            "category": "域8 工资社保"})
+        return findings
     
     # 提取员工姓名和薪资
     emp_count = len(set(str(s.get("name", "")).strip() for s in salaries if str(s.get("name", "")).strip()))
@@ -2801,7 +3024,17 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
 def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     """三角链: 进项发票时间→存货入库时间→银行付款时间 是否逻辑一致"""
     findings = []
-    if not pur_invs or not bank_txs: return findings
+    if not pur_invs or not bank_txs:
+        missing = []
+        if not pur_invs: missing.append("进项发票")
+        if not bank_txs: missing.append("银行流水")
+        findings.append({"type": "资料缺失-无法执行三角链验证", "level": "中风险", "score": 7,
+            "detail": f"缺少{'、'.join(missing)}数据，无法进行发票→入库→付款三角链时间一致性验证。",
+            "description": f"三角链验证需要同时具备进项发票、存货台账和银行流水三方数据才能验证采购时间→入库时间→付款时间的逻辑一致性。缺少{'、'.join(missing)}将导致无法识别以下风险：先入库后开票的时间倒挂、无采购发票却有库存入库（虚增存货）、有付款无入库（虚假采购）。",
+            "tax_impact": "三角链不一致是虚开发票和虚假交易的重要识别手段，缺失此分析将大幅降低稽查深度。",
+            "suggestion": f"补充上传{'、'.join(missing)}数据文件。",
+            "category": "域6 存货"})
+        return findings
     
     from collections import defaultdict
     # 构建供应商付款时间线
@@ -3008,7 +3241,17 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
     5. 交叉推理：客户分布 ≠ 供应商分布 ≠ 加工商分布 ≠ 运输成本缺失 → 经营链条可疑
     """
     findings = []
-    if not invoices or not bank_txs: return findings
+    if not invoices or not bank_txs:
+        missing = []
+        if not invoices: missing.append("发票")
+        if not bank_txs: missing.append("银行流水")
+        findings.append({"type": "资料缺失-经营实质地理分析无法执行", "level": "中风险", "score": 7,
+            "detail": f"缺少{'、'.join(missing)}数据，无法进行经营实质地理分布分析。",
+            "description": f"经营实质地理分析需要发票（提取客户/供应商/加工商所在地）和银行流水（验证资金流向）双重数据。缺少{'、'.join(missing)}将导致无法检测：供应商集中度过高、客户与供应商地理分布不合理、物流成本缺失、经营链条地理异常等核心风险。",
+            "tax_impact": "经营实质地理分析是识别虚开发票、空壳企业、无实际经营场所的重要手段。跳过此分析可能导致严重的虚开风险未被发现。",
+            "suggestion": f"补充上传{'、'.join(missing)}数据文件。",
+            "category": "域12 经营实质"})
+        return findings
     
     # ── 提取企业所在城市（从发票中推断） ──
     from collections import Counter
@@ -3285,7 +3528,14 @@ def _domain_red_void_invoice(invoices):
 def _domain_profit_cashflow_gap(voucher_rev, bank_txs, pur_invs):
     """账面有利润但银行没钱=虚假利润"""
     findings = []
-    if not bank_txs: return findings
+    if not bank_txs:
+        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 6,
+            "detail": "未提供银行流水数据，无法进行利润-现金流缺口分析。",
+            "description": "缺少银行流水数据，无法验证账面利润是否有对应的现金流入支撑。利润-现金流缺口分析是识别虚假收入、应收账款虚增、关联方资金占用等问题的核心手段。缺少此分析意味着无法判断企业经营是否产生真实的现金回报。",
+            "tax_impact": "无法识别账面盈利但实际无现金流入的异常情况——这是虚增收入和利润造假的典型特征。",
+            "suggestion": "上传银行账户交易流水文件。",
+            "category": "域12 经营实质"})
+        return findings
     
     bank_in = sum(float(b.get("credit",0) or 0) for b in bank_txs)
     bank_out = sum(float(b.get("debit",0) or 0) for b in bank_txs)
@@ -3315,7 +3565,14 @@ def _domain_profit_cashflow_gap(voucher_rev, bank_txs, pur_invs):
 def _domain_temporal_anomaly(bank_txs):
     """检测非正常交易时间: 周末/深夜/节假日/整数金额"""
     findings = []
-    if not bank_txs: return findings
+    if not bank_txs:
+        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 5,
+            "detail": "未提供银行流水数据，无法进行时间异常检测分析。",
+            "description": "缺少银行流水数据，无法检测以下交易异常：非工作时间交易（周末/深夜/节假日）、整数金额交易（可能为虚假交易）、同一时段密集交易（可能为拆分交易规避监控）。这些是税务稽查中识别异常交易的经典指标。",
+            "tax_impact": "无法识别异常交易时间模式——这是虚开发票和洗钱活动的重要信号。",
+            "suggestion": "上传银行账户交易流水文件（含精确到时分秒的交易时间字段）。",
+            "category": "域1 资金全链路"})
+        return findings
     
     import datetime
     weekend_count = 0; round_count = 0; round_total = 0.0
@@ -3356,7 +3613,17 @@ def _domain_temporal_anomaly(bank_txs):
 def _domain_related_party_check(sal_invs, pur_invs, bank_txs):
     """从名称中检测关联方: 供应商和客户同名/同一控制人"""
     findings = []
-    if not sal_invs or not pur_invs: return findings
+    if not sal_invs or not pur_invs:
+        missing = []
+        if not sal_invs: missing.append("销项发票")
+        if not pur_invs: missing.append("进项发票")
+        findings.append({"type": "资料缺失-无法执行关联方检测", "level": "中风险", "score": 6,
+            "detail": f"缺少{'、'.join(missing)}数据，无法进行关联方名称交叉比对。",
+            "description": f"关联方检测需要对销项发票的买方名称和进项发票的卖方名称进行交叉比对。缺少{'、'.join(missing)}将导致无法识别：供应商与客户为同一主体（循环开票）、同一控制人名下多家公司间交易（关联交易未披露）、主要交易对手方名称异常（名称过短/异常字符）等风险。",
+            "tax_impact": "关联交易未披露可能导致转让定价调整、补缴税款及滞纳金。循环开票是虚开发票的典型模式。",
+            "suggestion": f"补充上传{'、'.join(missing)}数据文件。",
+            "category": "域4 供应商穿透"})
+        return findings
     
     buyers = set()
     for i in sal_invs:
@@ -3390,7 +3657,14 @@ def _domain_related_party_check(sal_invs, pur_invs, bank_txs):
 def _domain_depreciation_match(bank_txs, pur_invs):
     """从支付记录反推固定资产→应存在对应的折旧费用"""
     findings = []
-    if not bank_txs: return findings
+    if not bank_txs:
+        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 5,
+            "detail": "未提供银行流水数据，无法进行固定资产折旧匹配分析。",
+            "description": "缺少银行流水数据，无法从支付记录中识别固定资产采购（如设备、车辆、装修等），从而无法反推应存在的折旧费用。固定资产采购与折旧费用的匹配是验证资产真实性和折旧计提准确性的重要手段。",
+            "tax_impact": "无法识别虚增固定资产以多提折旧、固定资产已处置但仍计提折旧等风险。",
+            "suggestion": "上传银行流水文件，同时建议上传固定资产台账。",
+            "category": "域12 经营实质"})
+        return findings
     
     # 搜索固定资产采购类付款
     asset_keywords = ["设备","机器","车辆","电脑","服务器","家具","装修"]
@@ -3568,6 +3842,14 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
         from database import VATDeclaration
         decls = db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).order_by(VATDeclaration.period).all()
     except:
+        findings.append({
+            "type": "数据库异常-无法读取增值税申报表",
+            "level": "中风险", "score": 5,
+            "detail": "读取增值税申报表数据时发生数据库异常，无法进行申报表vs发票/银行流水实际数据比对。",
+            "description": "增值税申报表比对需要从数据库读取已保存的申报表数据。当前数据库查询失败，可能原因：数据库连接异常、表结构不兼容或申报表数据已损坏。这不代表企业没有申报表数据，而是系统内部数据读取失败。",
+            "tax_impact": "无法验证企业申报收入与实际开票收入是否一致——这是税务稽查中最基础的比对项之一。",
+            "suggestion": "检查数据库连接状态，确认增值税申报表数据表结构完整。",
+            "category": "域7 税务一致性"})
         return findings
     
     if not decls:
@@ -3655,7 +3937,14 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
 def _domain_supply_chain_deep(invoices, bank_txs):
     """供应商/客户多级穿透——虚开识别的核心武器"""
     findings = []
-    if not invoices: return findings
+    if not invoices:
+        findings.append({"type": "资料缺失-发票数据", "level": "中风险", "score": 7,
+            "detail": "未提供发票数据，无法进行供应链穿透分析（虚开识别核心模块）。",
+            "description": "供应链穿透分析是虚开发票识别的核心模块，需要发票数据来构建供应商-客户多级关系图谱。缺少发票数据将导致无法进行：供应商集中度分析、客户集中度分析、同一控制人识别、上下游产业合理性判断、发票流向与货物流向一致性验证。",
+            "tax_impact": "供应链穿透是识别虚开发票团伙作案的核心手段。跳过此分析意味着虚开风险几乎无法被系统发现。",
+            "suggestion": "上传进项/销项发票数据文件。",
+            "category": "域4 供应商穿透"})
+        return findings
     
     from collections import Counter, defaultdict
     
@@ -7747,7 +8036,7 @@ def _check_conclusion_consistency(all_findings):
         a_types = list(set(f.get("type", "") for f in a_findings))[:3]
         description = f"矛盾检测命中模式'{rule['id']}': {rule['name']}\n命中信号A: {'、'.join(a_types)}"
         a_provenance = {
-            "sources": list(set(s for f in a_findings for s in (f.get("provenance", {}).get("sources", ["unknown"])))),
+            "sources": list(set(s for f in a_findings for s in (f.get("provenance", {}).get("sources", [f.get("domain", "综合分析")])))),
             "domains": list(set(f.get("domain", "") for f in a_findings if f.get("domain"))),
             "types": a_types,
         }
@@ -7756,7 +8045,7 @@ def _check_conclusion_consistency(all_findings):
             b_types = list(set(f.get("type", "") for f in b_findings))[:3]
             description += f"\n命中信号B: {'、'.join(b_types)}"
             b_provenance = {
-                "sources": list(set(s for f in b_findings for s in (f.get("provenance", {}).get("sources", ["unknown"])))),
+                "sources": list(set(s for f in b_findings for s in (f.get("provenance", {}).get("sources", [f.get("domain", "综合分析")])))),
                 "domains": list(set(f.get("domain", "") for f in b_findings if f.get("domain"))),
                 "types": b_types,
             }
@@ -9314,9 +9603,18 @@ def _inject_provenance(all_findings):
         # 数据独立性判定：缺资料类 finding 不依赖具体数据
         data_independent = any(kw in ftype for kw in ["资料完备", "资料缺失", "缺失", "无此资料"])
         
+        # 兜底来源：当 DOMAIN_DATA_MAP 和 how_found 都没匹配到时，从 domain/ftype 生成有意义的来源名
+        if not sources:
+            if domain:
+                sources = [domain]
+            elif ftype:
+                sources = [ftype[:20]]
+            else:
+                sources = ["综合分析"]
+        
         f["provenance"] = {
-            "sources": sources if sources else ["unknown"],
-            "domain": domain or "unknown",
+            "sources": sources,
+            "domain": domain or "综合分析",
             "stage": stage,
             "data_independent": data_independent,
         }
@@ -12454,49 +12752,225 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
 
 
 def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None, pur_invs=None,
-                                     vouchers=None, ctx=None, pipeline_log=None, **kwargs):
-    """出口退税验证——出口收入确认与退税合规检测"""
+                                     vouchers=None, ctx=None, pipeline_log=None, export_data=None, **kwargs):
+    """出口退税验证——报关单/发票/收汇三单比对 + 免抵退公式验证
+    
+    出口退税是企业税务合规的重灾区。系统通过以下维度验证：
+    1. 出口收入识别：从发票和凭证中提取出口相关金额
+    2. 报关vs发票金额比对：差异>5%→风险
+    3. 收汇核销：外汇收入是否覆盖出口报关额
+    4. 退税率验证：逐项匹配商品HS编码与退税率
+    5. 免抵退公式应用：计算预期退税与实际退税的偏差
+    6. 单证备案完整性检查
+    """
     findings = []
     try:
+        # ═══ 1. 出口收入识别 ═══
         export_revenue = 0.0
+        export_inv_count = 0
         if sal_invs:
             for inv in sal_invs:
-                if any(k in str(inv.get("goods", "")) for k in ["出口","外销","EXPORT"]):
-                    export_revenue += float(inv.get("amount", 0) or 0)
+                goods = str(inv.get("goods", ""))
+                buyer = str(inv.get("buyer", ""))
+                if any(k in goods + buyer for k in ["出口", "外销", "EXPORT", "境外", "海外"]):
+                    export_revenue += float(inv.get("amount", 0) or inv.get("total", 0) or 0)
+                    export_inv_count += 1
         if not export_revenue and vouchers:
             for v in vouchers:
                 text = str(v.get("account_name", "")) + str(v.get("summary", ""))
-                if any(k in text for k in ["出口","外销","出口退税"]):
+                if any(k in text for k in ["出口", "外销", "出口退税", "应收出口退税"]):
                     export_revenue += abs(float(v.get("credit_amount", v.get("贷方金额", 0)) or 0))
         
-        if export_revenue > 0:
-            estimated_refund = export_revenue * 0.13
+        # 从出口发票/报关单直接获取
+        export_inv_data = export_data.get("export_invoices", []) if export_data else []
+        export_inv_from_data = sum(r.get("amount", 0) or r.get("total_amount", 0) for r in export_inv_data)
+        customs_data = export_data.get("declarations", []) if export_data else []
+        customs_usd = export_data.get("total_usd", 0) if export_data else 0
+        customs_rmb = export_data.get("total_rmb", 0) if export_data else 0
+        forex_data = export_data.get("forex_records", []) if export_data else []
+        forex_total = export_data.get("forex_total", 0) if export_data else 0
+        
+        has_export = (export_revenue > 0 or export_inv_from_data > 0 or customs_rmb > 0)
+        if not has_export:
+            return findings
+        
+        # 确定出口收入基准（优先报关单数据）
+        base_export = customs_rmb if customs_rmb > 0 else (export_inv_from_data if export_inv_from_data > 0 else export_revenue)
+        
+        # ═══ 2. 出口概况 ═══
+        findings.append({
+            "type": "出口退税 — 出口概况",
+            "level": "信息", "score": 3,
+            "detail": f"出口收入{base_export:,.0f}元（发票{export_inv_count}张/报关{customs_usd:,.0f}USD/{customs_rmb:,.0f}RMB），收汇{forex_total:,.0f}元。",
+            "description": f"识别到企业存在出口业务：出口收入约{base_export:,.0f}元。出口退税验证需要报关单、出口发票、收汇核销单三单比对。以下逐项核查。",
+            "category": "出口退税", "domain": "出口退税验证", "rule_id": 999680,
+        })
+        
+        # ═══ 3. 报关单vs出口发票金额比对 ═══
+        if customs_rmb > 0 and export_inv_from_data > 0:
+            diff = abs(customs_rmb - export_inv_from_data)
+            diff_pct = diff / max(customs_rmb, 1)
+            if diff_pct > 0.05:
+                findings.append({
+                    "type": "出口退税 — 报关与开票金额偏差",
+                    "level": "高风险" if diff_pct > 0.15 else "中风险",
+                    "score": 9 if diff_pct > 0.15 else 6,
+                    "detail": f"报关金额{customs_rmb:,.0f}元 vs 出口开票金额{export_inv_from_data:,.0f}元，差异{diff:,.0f}元({diff_pct*100:.1f}%)。",
+                    "description": f"报关金额与出口开票金额偏差{diff_pct*100:.1f}%。正常偏差应在5%以内（汇率波动、运费保险费差异）。偏差过大意味着：(1)部分出口未开票→隐匿收入；(2)报关金额虚高→多退税；(3)买单出口→无真实出口业务。",
+                    "tax_impact": "报关出口但未开票→隐匿销售收入→补税+滞纳金+罚款。报关虚高→骗取出口退税→刑事追诉。",
+                    "suggestion": "逐票核对报关单与出口发票，确保报关金额与开票金额一致。差异部分提供合理解释（运费、保险费、佣金等可从FOB中扣除的项目）。",
+                    "policy_ref": "《出口货物退（免）税管理办法》；《税收征收管理法》第六十六条（骗取出口退税）",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999681,
+                })
+            else:
+                findings.append({
+                    "type": "出口退税 — 报关开票基本一致",
+                    "level": "低风险", "score": 2,
+                    "detail": f"报关{customs_rmb:,.0f}元 vs 开票{export_inv_from_data:,.0f}元，偏差{diff_pct*100:.1f}%（<5%）。",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999681,
+                })
+        
+        # ═══ 4. 收汇核销验证 ═══
+        if forex_total > 0 and customs_usd > 0:
+            # 简化汇率（实际应从银行获取）
+            approx_rate = 7.1
+            expected_forex = customs_usd * approx_rate
+            forex_ratio = forex_total / max(expected_forex, 1)
+            if forex_ratio < 0.8:
+                findings.append({
+                    "type": "出口退税 — 收汇不足",
+                    "level": "高风险", "score": 9,
+                    "detail": f"报关出口{customs_usd:,.0f}USD(≈{expected_forex:,.0f}RMB)，已收汇{forex_total:,.0f}RMB，收汇率{forex_ratio*100:.0f}%。",
+                    "description": f"收汇比例仅{forex_ratio*100:.0f}%，远低于要求。出口退税的前提条件之一是外汇已经收妥。收汇不足意味着：(1)应收账款无法收回→坏账风险→不得退税；(2)通过地下钱庄结汇→未申报；(3)虚假出口→无真实外汇收入。",
+                    "tax_impact": "未收汇的出口不得办理退税。已退税但超期未收汇→追缴已退税款。",
+                    "suggestion": "① 逐票核对未收汇报关单，核查是否超过收汇期限；② 对已收汇但未核销的，办理延期收汇备案或视同收汇申报；③ 确实无法收汇的，不得申报退税。",
+                    "policy_ref": "国家税务总局公告2013年第30号（出口退税收汇管理）",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999682,
+                })
+            else:
+                findings.append({
+                    "type": "出口退税 — 收汇正常",
+                    "level": "低风险", "score": 2,
+                    "detail": f"报关{customs_usd:,.0f}USD/收汇{forex_total:,.0f}RMB，收汇率{forex_ratio*100:.0f}%（≥80%）。",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999682,
+                })
+        elif customs_usd > 0 and not forex_data:
+            findings.append({
+                "type": "出口退税 — 缺少收汇核销数据",
+                "level": "中风险", "score": 5,
+                "detail": f"有报关出口{customs_usd:,.0f}USD但未上传收汇核销单，无法验证外汇是否已收妥。",
+                "description": "出口退税的核心条件之一是外汇已经收妥。缺少收汇核销数据意味着无法判断该出口业务是否真实收到外汇。这是税务机关重点核查的事项。",
+                "tax_impact": "无法证明已收汇→不得申报退税或需追缴已退税款。",
+                "suggestion": "上传收汇核销单或涉外收入申报表。",
+                "category": "出口退税", "domain": "出口退税验证", "rule_id": 999682,
+            })
+        
+        # ═══ 5. 退税率验证与免抵退估算 ═══
+        if base_export > 0 and pur_invs:
+            # 估算进项税额
+            total_input_tax = sum(
+                float(inv.get("tax", 0) or 0)
+                for inv in pur_invs
+                if (float(inv.get("tax", 0) or 0) > 0)
+            )
+            
+            # 根据HS编码匹配退税率（简化版：按常见大类）
+            # 实际应用中应接入退税率数据库，这里用常见退税率做估算
+            refund_rate = 0.13  # 默认13%（大部分产品）
+            hs_codes = set()
+            for decl in customs_data:
+                for item in decl.get("items", []):
+                    if item.get("hs_code"): hs_codes.add(item.get("hs_code", "")[:4])
+            
+            # HS编码退税率速查（常见大类）
+            hs_rate_map = {
+                "61": 0.13, "62": 0.13,  # 服装
+                "84": 0.13, "85": 0.13,  # 机电
+                "94": 0.13,  # 家具
+                "39": 0.09,  # 塑料制品
+                "73": 0.09,  # 钢铁制品
+                "72": 0.00,  # 钢铁（取消退税）
+                "44": 0.00, "47": 0.00,  # 木材/纸浆（高污染取消退税）
+                "27": 0.00,  # 矿物燃料
+            }
+            matched_rates = [hs_rate_map.get(hs, 0.13) for hs in hs_codes]
+            if matched_rates:
+                refund_rate = sum(matched_rates) / len(matched_rates)
+            
+            # 免抵退简化公式
+            # 当期不得免征和抵扣税额 = 出口FOB价 × (征税率 - 退税率)
+            tax_rate = 0.13
+            non_exempt = base_export * (tax_rate - refund_rate)
+            
+            # 当期免抵退税额 = 出口FOB价 × 退税率
+            max_refund = base_export * refund_rate
+            
+            # 找实际退税入账
             refund_received = 0.0
             if bank_txs:
                 for tx in bank_txs:
-                    if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["出口退税","退税","出口退"]):
+                    if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["出口退税", "退税", "出口退"]):
                         refund_received += float(tx.get("credit", tx.get("收入金额", 0)) or 0)
             
             findings.append({
-                "type": "出口退税 — 收入与退税匹配",
+                "type": "出口退税 — 免抵退公式验证",
                 "level": "信息", "score": 3,
-                "detail": f"出口收入{export_revenue:,.0f}元，推算退税额{estimated_refund:,.0f}元（13%），银行退税入账{refund_received:,.0f}元。",
-                "description": "出口收入对应增值税退税核对。",
-                "suggestion": "核对出口退税申报表，确认退税率和退税金额准确。",
-                "policy_ref": "出口货物退（免）税管理办法",
-                "category": "出口退税", "domain": "出口退税验证", "rule_id": 999680,
+                "detail": f"退税率{refund_rate*100:.0f}%｜不得免征抵扣{non_exempt:,.0f}元｜免抵退上限{max_refund:,.0f}元｜进项{total_input_tax:,.0f}元｜实际退税{refund_received:,.0f}元。",
+                "description": f"基于出口收入{base_export:,.0f}元和检测到退税率{refund_rate*100:.0f}%，计算得：当期不得免征和抵扣税额≈{non_exempt:,.0f}元（需做进项税额转出），当期免抵退税额上限≈{max_refund:,.0f}元。企业进项税额合计{total_input_tax:,.0f}元。实际应退税额取免抵退上限与期末留抵税额的较小值。",
+                "tax_impact": f"不得免征和抵扣税额{non_exempt:,.0f}元需从进项税额中转出。若未做转出，多抵扣了进项税额。",
+                "suggestion": "① 确认每笔出口对应的退税率（不同HS编码退税率不同）；② 核实当期不得免征和抵扣税额是否已在增值税申报表中转出；③ 核对免抵退税申报汇总表。",
+                "policy_ref": "财税〔2012〕39号（出口货物劳务增值税和消费税政策）；出口退税率文库",
+                "category": "出口退税", "domain": "出口退税验证", "rule_id": 999683,
             })
             
-            if refund_received > 0 and abs(refund_received - estimated_refund) > estimated_refund * 0.3:
+            # 退税偏差检测
+            if refund_received > 0:
+                refund_diff_pct = abs(refund_received - max_refund) / max(max_refund, 1)
+                if refund_diff_pct > 0.3:
+                    findings.append({
+                        "type": "出口退税 — 退税金额偏差",
+                        "level": "中风险", "score": 7,
+                        "detail": f"估算退税上限{max_refund:,.0f}元 vs 实际退税{refund_received:,.0f}元，偏差{refund_diff_pct*100:.0f}%。",
+                        "description": f"基于报关出口金额和退税率计算的退税上限与银行实际退税收款偏差{refund_diff_pct*100:.0f}%。可能原因：(1)退税率估算不准确（不同产品实际退税率不同）；(2)存在内销抵减出口退税；(3)上期留抵税额影响。",
+                        "suggestion": "逐项核对免抵退税申报汇总表，确认退税率、FOB金额、留抵税额等关键数据。",
+                        "category": "出口退税", "domain": "出口退税验证", "rule_id": 999683,
+                    })
+            
+            # 征退税率差产生的进项转出提醒
+            if refund_rate < tax_rate:
                 findings.append({
-                    "type": "出口退税 — 退税偏差",
-                    "level": "中风险", "score": 7,
-                    "detail": f"推算退税额{estimated_refund:,.0f}元 vs 实际退税{refund_received:,.0f}元，偏差>30%。",
-                    "description": "退税偏差>30%需核查退税率差异或申报错误。",
-                    "suggestion": "逐票核对出口退税申报明细。",
-                    "policy_ref": "出口货物退（免）税管理办法",
-                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999680,
+                    "type": "出口退税 — 征退税率差进项转出",
+                    "level": "中风险", "score": 5,
+                    "detail": f"征税率{int(tax_rate*100)}%与退税率{int(refund_rate*100)}%存在{int((tax_rate-refund_rate)*100)}%差异，需做进项税额转出约{non_exempt:,.0f}元。",
+                    "description": f"该出口产品的增值税征税率({int(tax_rate*100)}%)高于退税率({int(refund_rate*100)}%)，差额{int((tax_rate-refund_rate)*100)}%对应的进项税额需做转出处理，不得参与退税计算。未做转出将导致多退税款。",
+                    "tax_impact": f"未做进项税额转出→多抵进项→少缴应纳增值税→补税+滞纳金。",
+                    "suggestion": f"在增值税申报表附表二第18栏填报'免抵退税办法不得抵扣的进项税额'{non_exempt:,.0f}元。",
+                    "policy_ref": "财税〔2012〕39号第五条（征退税率之差处理）",
+                    "category": "出口退税", "domain": "出口退税验证", "rule_id": 999684,
                 })
+        
+        # ═══ 6. 单证备案完整性 ═══
+        doc_status = []
+        if customs_data: doc_status.append("✅报关单")
+        else: doc_status.append("❌报关单")
+        if export_inv_data or (export_inv_count > 0): doc_status.append("✅出口发票")
+        else: doc_status.append("❌出口发票")
+        if forex_data: doc_status.append("✅收汇核销")
+        else: doc_status.append("❌收汇核销")
+        
+        missing_docs = [d.replace("❌", "") for d in doc_status if d.startswith("❌")]
+        if missing_docs:
+            findings.append({
+                "type": "出口退税 — 单证备案不完整",
+                "level": "中风险", "score": 6,
+                "detail": f"出口退税备案单证缺失：{'、'.join(missing_docs)}。已有：{'、'.join(d.replace('✅','') for d in doc_status if d.startswith('✅'))}。",
+                "description": f"出口退税必须留存备查的单证包括：报关单（出口货物报关单）、出口发票、收汇核销单（或涉外收入申报表）、购货合同、运输单据。当前缺失{'、'.join(missing_docs)}，在税务稽查中可能被认定为单证不齐，不得办理退税。",
+                "tax_impact": "单证不齐→不得办理出口退税→已退税需追缴。",
+                "suggestion": f"补全{'、'.join(missing_docs)}等出口退税备案单证。",
+                "policy_ref": "国家税务总局公告2022年第9号（出口退税单证备案管理规定）",
+                "category": "出口退税", "domain": "出口退税验证", "rule_id": 999685,
+            })
+    
     except Exception:
         pass
     return findings

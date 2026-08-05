@@ -1497,8 +1497,67 @@ async function init() {
         cond_ban_categories: stats.cond_ban_categories,
         total_chains: (stats.clue_chains||0) + (stats.evidence_chains||0) + (stats.analysis_chains||48)
       };
+      // 注入模板替换函数到全局，供所有页面使用
+      window.applyTemplates = function(html) {
+        if (!html || typeof html !== 'string') return html || '';
+        var cfg = window._systemConfig || {};
+        return html.replace(/\{\{(\w+)\}\}/g, function(m, key) {
+          return cfg[key] != null ? cfg[key] : m;
+        });
+      };
+      // 为所有页面提供便捷取值函数（兼容 tax-pipeline-pages.js 的 pc()）
+      if (!window.pc) {
+        window.pc = function(key, fallback) {
+          var cfg = window._systemConfig || {};
+          return cfg[key] != null ? cfg[key] : (fallback != null ? fallback : '—');
+        };
+      }
     }
   } catch(e) {}
+  // 页面加载后替换DOM中所有遗留的 {{...}} 模板
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.applyTemplates && document.body) {
+      var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while ((node = walker.nextNode())) {
+        var txt = node.textContent || '';
+        if (txt.indexOf('{{') !== -1) {
+          node.textContent = window.applyTemplates(txt);
+        }
+      }
+    }
+  });
+  // MutationObserver 自动替换动态注入HTML中的 {{...}} 模板
+  if (typeof MutationObserver !== 'undefined') {
+    var tplObserver = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (!window.applyTemplates) return;
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            var txt = node.textContent || '';
+            if (txt.indexOf('{{') !== -1) {
+              node.textContent = window.applyTemplates(txt);
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE && node.querySelectorAll) {
+            var textNodes = node.querySelectorAll('*');
+            for (var i = 0; i < textNodes.length; i++) {
+              var childNodes = textNodes[i].childNodes;
+              for (var j = 0; j < childNodes.length; j++) {
+                var cn = childNodes[j];
+                if (cn.nodeType === Node.TEXT_NODE) {
+                  var t = cn.textContent || '';
+                  if (t.indexOf('{{') !== -1) {
+                    cn.textContent = window.applyTemplates(t);
+                  }
+                }
+              }
+            }
+          }
+        });
+      });
+    });
+    tplObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
   return initAppFlow();
 }
 

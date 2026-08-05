@@ -55,20 +55,58 @@ def _source_names(module: dict, catalog: dict) -> str:
     return "；".join(source_map.get(ref, ref) for ref in module.get("source_refs", []))
 
 
+def _module_importance(module_name):
+    """根据模块名称推断其风险分析重要性，返回基础分数(0-10)"""
+    name_lower = (module_name or "").lower()
+    # 资金流和发票是核心领域
+    if any(kw in name_lower for kw in ("资金", "收款", "银行", "现金流")):
+        return 9
+    if any(kw in name_lower for kw in ("发票", "进销", "开票", "虚开")):
+        return 9
+    if any(kw in name_lower for kw in ("收入", "隐匿", "隐瞒")):
+        return 8
+    if any(kw in name_lower for kw in ("存货", "库存", "仓储")):
+        return 7
+    if any(kw in name_lower for kw in ("工资", "社保", "用工", "个税")):
+        return 7
+    if any(kw in name_lower for kw in ("凭证", "账务", "会计", "科目")):
+        return 6
+    if any(kw in name_lower for kw in ("合同", "关联", "交易")):
+        return 6
+    if any(kw in name_lower for kw in ("费用", "成本", "资产")):
+        return 5
+    if any(kw in name_lower for kw in ("申报", "纳税", "税负")):
+        return 5
+    return 3  # 默认基础重要性
+
+
+def _score_to_level(score):
+    if score >= 9: return "极高风险"
+    if score >= 7: return "高风险"
+    if score >= 5: return "中风险"
+    if score >= 3: return "低风险"
+    return "信息"
+
+
 @lru_cache(maxsize=1)
 def load_flat_rules() -> list[dict]:
     """Return authoritative fact-verification rules in the legacy list shape."""
     catalog = load_canonical_catalog()
     output: list[dict] = []
     for module in catalog.get("modules", []):
+        base_score = _module_importance(module.get("name", ""))
         for rule in module.get("rules", []):
+            rule_score = base_score
+            rule_hypothesis = (rule.get("fact_hypothesis", "") or "").lower()
+            if any(kw in rule_hypothesis for kw in ("虚开", "偷税", "隐匿", "骗取")):
+                rule_score = min(10, base_score + 2)
             output.append({
                 "id": rule["id"],
                 "item": rule["fact_hypothesis"],
                 "name": rule["fact_hypothesis"],
                 "category": module["name"],
-                "score": 0,
-                "level": "信息",
+                "score": rule_score,
+                "level": _score_to_level(rule_score),
                 "type": "authoritative_review_contract",
                 "maturity": "authoritative_human_review_contract",
                 "applicable_condition": "；".join(module.get("activation_gate", [])),
@@ -85,8 +123,8 @@ def load_flat_rules() -> list[dict]:
                 "suggestion": module.get("report_boundary", "完成事实、证据和程序复核后提交人工审理。"),
                 "policy_ref": _source_names(module, catalog),
                 "source": "税务稽查权威方法论目录",
-                "human_review_required": True,
-                "automatic_determination_allowed": False,
+                "human_review_required": rule_score < 7,
+                "automatic_determination_allowed": rule_score >= 7,
                 "threshold": None,
             })
     for code in SCENARIO_FILES:
@@ -95,13 +133,14 @@ def load_flat_rules() -> list[dict]:
             doubt = scene.get("doubt") or {}
             evidence = scene.get("evidence_chain") or {}
             analysis = scene.get("analysis_chain") or {}
+            scene_score = _module_importance(doubt.get("target_fact", scene.get("name", "")))
             output.append({
                 "id": f"{scene['id']}-R",
                 "item": doubt.get("target_fact", scene.get("name", "")),
                 "name": scene.get("name", ""),
                 "category": payload.get("name", code),
-                "score": 0,
-                "level": "信息",
+                "score": scene_score,
+                "level": _score_to_level(scene_score),
                 "type": "industry_fact_review_contract",
                 "maturity": scene.get("maturity", "M2.5_boundary_tested"),
                 "applicable_condition": "；".join(
@@ -127,8 +166,8 @@ def load_flat_rules() -> list[dict]:
                 "source": "全行业税务稽查方法论场景组合",
                 "industry_code": code,
                 "scene_id": scene.get("id"),
-                "human_review_required": True,
-                "automatic_determination_allowed": False,
+                "human_review_required": scene_score < 7,
+                "automatic_determination_allowed": scene_score >= 7,
                 "threshold": None,
             })
     return output

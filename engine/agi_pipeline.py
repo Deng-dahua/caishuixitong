@@ -2426,8 +2426,8 @@ class MetacognitionEngine:
         return {
             "记忆": min(0.95, 0.6 + 0.15 * has_memory + 0.1 * min(total_findings/50, 1)),
             "学习": min(0.95, 0.5 + 0.3 * has_correction_rules + 0.15 * min(len(self.reasoning_log)/5, 1)),
-            "思考": min(0.95, 0.5 + 0.2 * min(has_evidence/total_findings, 1) if total_findings else 0.5),
-            "判断": min(0.95, 0.6 + 0.2 * min(has_law/total_findings, 1) + 0.1 * avg_quality),
+            "思考": min(0.95, 0.5 + 0.2 * min(has_evidence/max(total_findings,1), 1)) if total_findings else 0.5,
+            "判断": min(0.95, 0.6 + 0.2 * min(has_law/max(total_findings,1), 1) + 0.1 * avg_quality) if total_findings else 0.6,
             "决策": min(0.95, 0.5 + 0.25 * min(high_risk/5, 1) + 0.2 * avg_quality),
             "自知": min(0.95, 0.4 + 0.3 * has_memory + 0.15 * avg_quality),
         }

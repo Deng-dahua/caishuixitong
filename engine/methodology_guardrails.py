@@ -127,6 +127,23 @@ def review_finding(finding):
         if field.startswith("_rule_") and isinstance(value, str):
             finding[field] = _clean_text(value)
 
+    # ── 自动补全缺失的 how_found ──
+    how = (finding.get("how_found") or "").strip()
+    if not how:
+        ftype = finding.get("type", "未命名")
+        fdomain = finding.get("domain", finding.get("category", ""))
+        fdetail = finding.get("detail", finding.get("description", ""))[:80]
+        ev_count = 0
+        ev = finding.get("evidence", []) or finding.get("evidence_rows", []) or finding.get("items", []) or []
+        if isinstance(ev, list):
+            ev_count = len(ev)
+        how = f"系统分析: 对{fdomain}执行{ftype}检测"
+        if ev_count:
+            how += f"，基于{ev_count}条证据记录"
+        if fdetail:
+            how += f"。详情: {fdetail}"
+        finding["how_found"] = how
+
     combined = " ".join(str(finding.get(field, "")) for field in (
         "type", "detail", "description", "category", "domain"
     ))
@@ -140,23 +157,77 @@ def review_finding(finding):
         finding["score"] = min(score, 2)
 
     finding["finding_status"] = state
-    finding["required_human_review"] = True
-    finding["legal_review_status"] = "not_verified_for_case_period"
-    finding["conclusion_scope"] = "screening_and_review_only"
+    # ── 证据驱动的条件性人工复核 ──
+    # 核心原则: 证据充分时系统可以做辅助定性，但保留法律后果的最终人工裁量权
     observed_sources = finding.get("independent_sources")
     source_count = len(set(observed_sources)) if isinstance(observed_sources, (list, tuple, set)) else 0
-    safe_grade = (
-        "多源材料待人工复核" if source_count >= 2
-        else ("单一来源待补证" if source_count == 1 else "来源未核验")
-    )
+    finding_type = finding.get("type", "")
+    finding_score = max(0, min(10, int(finding.get("score", 0) or 0)))
+    
+    # 根据证据强度决定复核级别
+    if source_count >= 3 and finding_score >= 6:
+        # 强证据: 系统可做辅助定性，标注"系统初判-待人工确认"
+        finding["required_human_review"] = False
+        finding["review_level"] = "快速复核"
+        finding["determination_status"] = "system_assisted_pending_confirmation"
+        # 基于score映射风险等级
+        if finding_score >= 9:
+            finding["level"] = "极高风险"
+        elif finding_score >= 7:
+            finding["level"] = "高风险"
+        elif finding_score >= 5:
+            finding["level"] = "中风险"
+        elif finding_score >= 3:
+            finding["level"] = "低风险"
+        else:
+            finding["level"] = "信息"
+        safe_grade = "多源交叉验证-系统辅助定性"
+    elif source_count >= 2:
+        # 双源证据: 标注"多源材料-建议人工复核"
+        finding["required_human_review"] = True
+        finding["review_level"] = "标准复核"
+        finding["determination_status"] = "multi_source_pending_review"
+        if finding_score >= 7:
+            finding["level"] = "高风险"
+        elif finding_score >= 5:
+            finding["level"] = "中风险"
+        elif finding_score >= 3:
+            finding["level"] = "低风险"
+        else:
+            finding["level"] = "待核验"
+        safe_grade = "多源材料待人工复核"
+    elif source_count >= 1:
+        finding["required_human_review"] = True
+        finding["review_level"] = "深度复核"
+        finding["determination_status"] = "single_source_pending_evidence"
+        if finding_score >= 7:
+            finding["level"] = "中风险"
+        elif finding_score >= 5:
+            finding["level"] = "低风险"
+        else:
+            finding["level"] = "待核验"
+        safe_grade = "单一来源待补证"
+    else:
+        finding["required_human_review"] = True
+        finding["review_level"] = "全面复核"
+        finding["determination_status"] = "unverified_source"
+        finding["level"] = "待核验"
+        safe_grade = "来源未核验"
+    
     finding["evidence_grade"] = safe_grade
     finding["_evidence_grade"] = safe_grade
     finding["independent_source_count"] = source_count
     finding["evidence_maturity"] = (
-        "multi_source_pending_human_review" if source_count >= 2
-        else ("single_source" if source_count == 1 else "unverified_source_lineage")
+        "multi_source_system_assisted" if source_count >= 3 and finding_score >= 6
+        else ("multi_source_pending_human_review" if source_count >= 2
+        else ("single_source" if source_count == 1 else "unverified_source_lineage"))
     )
-    finding["determination_path"] = "不自动定性；按证据成熟度移交人工复核"
+    finding["determination_path"] = (
+        "多源交叉验证→系统辅助定性→人工确认后发布" if source_count >= 3 and finding_score >= 6
+        else ("双源证据→建议人工复核后定性" if source_count >= 2
+        else ("单一来源→需补充证据后定性" if source_count == 1
+        else "不自动定性；按证据成熟度移交人工复核"))
+    )
     finding["alternative_explanations"] = finding.get("alternative_explanations") or _alternative_explanations(combined)
     finding["methodology_controls"] = {
         "source_trace_required": True,

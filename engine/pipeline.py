@@ -193,7 +193,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     try: db.rollback()
     except Exception: pass
 
-    bank_txs, invoices, salaries, social_security, vouchers, inventory = [], [], [], [], [], []
+    bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data = [], [], [], [], [], [], [], {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
@@ -458,6 +458,31 @@ def _run_analyze(company_id, db, progress_callback=None):
                         fr["actions"].append(f"提取{n}条发票")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
+                    elif ftype == "bom":
+                        bom_data.append({
+                            "products": parsed.get("products", []),
+                            "product_count": parsed.get("product_count", 0),
+                            "total_materials": parsed.get("total_materials", 0),
+                            "rows": parsed.get("rows", []),
+                        })
+                        fr["actions"].append(f"提取BOM表({parsed.get('product_count',0)}成品×{parsed.get('total_materials',0)}原料)")
+                    elif ftype == "customs_declaration":
+                        if "declarations" not in export_data: export_data["declarations"] = []
+                        export_data["declarations"].extend(parsed.get("declarations", []))
+                        export_data["total_usd"] = export_data.get("total_usd", 0) + parsed.get("total_usd", 0)
+                        export_data["total_rmb"] = export_data.get("total_rmb", 0) + parsed.get("total_rmb", 0)
+                        fr["actions"].append(f"提取报关单({parsed.get('declaration_count',0)}票/USD{parsed.get('total_usd',0):,.0f})")
+                    elif ftype == "export_invoice":
+                        if "export_invoices" not in export_data: export_data["export_invoices"] = []
+                        export_data["export_invoices"].extend(parsed.get("rows", []))
+                        export_data["export_inv_total"] = export_data.get("export_inv_total", 0) + parsed.get("total_amount", 0)
+                        fr["actions"].append(f"提取出口发票({parsed.get('invoice_count',0)}张)")
+                    elif ftype == "forex_collection":
+                        if "forex_records" not in export_data: export_data["forex_records"] = []
+                        export_data["forex_records"].extend(parsed.get("rows", []))
+                        export_data["forex_total"] = export_data.get("forex_total", 0) + parsed.get("total_forex", 0)
+                        export_data["forex_verified"] = export_data.get("forex_verified", 0) + parsed.get("verified_count", 0)
+                        fr["actions"].append(f"提取收汇核销(共{parsed.get('total_records',0)}条/已核{parsed.get('verified_count',0)}条)")
                     elif ftype in ("bank", "bank_statement", "bank_transaction"): 
                         # 银行流水→标准化后加入bank_txs
                         success_count = 0
@@ -1476,6 +1501,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "合同比对分析", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "经营实质分析", "findings": _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries)})
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
+    if bom_data: domain_results.append({"domain": "BOM投入产出验证", "findings": _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs)})
+    else: domain_results.append({"domain": "BOM投入产出验证", "findings": []})
     if clean_invs: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(clean_invs)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results, ctx.company_profile.get("industry", ""))
@@ -1540,7 +1567,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "印花税检查", "findings": []})
     if _has_any_data: domain_results.append({"domain": "CIT汇算清缴", "findings": _domain_cit_reconciliation(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
     else: domain_results.append({"domain": "CIT汇算清缴", "findings": []})
-    if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, vouchers=vouchers)})
+    if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, pur_invs=pur_invs, vouchers=vouchers, export_data=export_data)})
     else: domain_results.append({"domain": "出口退税验证", "findings": []})
 
     # ═══ 财务报表税务合规分析（新增） ═══
@@ -4075,8 +4102,23 @@ def _run_analyze(company_id, db, progress_callback=None):
             # 元认知自审
             from engine.agi_meta import meta_loop
             meta_result = meta_loop.run(all_findings, target_entity, {"files": len(file_results)})
-            all_findings = meta_result.get("enhanced_findings", all_findings)
-            pipeline_log.append(f"[AGI] 元认知自审完成: {meta_result.get('grade','?')}级")
+            # 将自审结果注入每条 finding 的 AGI 置信度
+            audit_scores = {}
+            if meta_result.get("ok") and meta_result.get("audit"):
+                per_finding = meta_result["audit"].get("per_finding_audits", [])
+                for pfa in per_finding:
+                    idx = pfa.get("index", 0) - 1
+                    if 0 <= idx < len(all_findings):
+                        all_findings[idx]["_agi_audit_score"] = pfa.get("score", 0)
+                        all_findings[idx]["_agi_audit_verdict"] = pfa.get("verdict", "")
+                        all_findings[idx]["_agi_audit_issues"] = pfa.get("issues", [])
+            grade = (meta_result.get("audit") or {}).get("grade", 
+                     (meta_result.get("meta_analysis") or {}).get("grade", "?"))
+            score = (meta_result.get("audit") or {}).get("overall_score",
+                     (meta_result.get("meta_analysis") or {}).get("score", 0))
+            pipeline_log.append(f"[AGI] 元认知自审完成: {grade}级 评分{score:.2f}")
+            comprehensive["_agi_meta"] = meta_result
+            comprehensive["agi_meta"] = meta_result
         except Exception as _e:
             pipeline_log.append(f"[AGI] 元认知自审失败→跳过: {_e}")
         try:
@@ -5046,7 +5088,12 @@ def _four_way_cross_verify(invoices, bank_txs, pipeline_log):
     """四方交叉验证：发票流↔资金流初步比对"""
     result = {"verified": True, "conflicts": []}
     if not invoices or not bank_txs:
-        pipeline_log.append("四方交叉验证: 资料不足跳过")
+        missing = []
+        if not invoices: missing.append("发票")
+        if not bank_txs: missing.append("银行流水")
+        result["verified"] = False
+        result["conflicts"].append(f"⚠️ 资料缺失：缺少{'、'.join(missing)}数据，无法执行四方交叉验证。缺失{'、'.join(missing)}意味着发票流与资金流的比对无法完成，四流一致（合同流/发票流/货物流/资金流）的核心验证缺失。")
+        pipeline_log.append(f"四方交叉验证: 资料不足跳过(缺少{'、'.join(missing)})")
         return result
     inv_amt = sum(float(i.get("amount", 0) or i.get("金额", 0) or 0) for i in invoices)
     bank_amt = sum(float(t.get("amount", 0) or t.get("金额", 0) or 0) for t in bank_txs)
@@ -7095,8 +7142,6 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
         "金税四期综合风险积分","税务四源偏差",
         # 需要专项调查
         "挂靠经营","转让定价","同期资料","主体文档","本地文档",
-        # 需要跨境数据
-        "跨境","出口退税","报关",
         # 需要个人账户/对私数据
         "公转私","对私转账",
         # 需要完整损益表/成本核算（无凭证时不可判断）
