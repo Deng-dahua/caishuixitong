@@ -1,0 +1,257 @@
+{
+  "version": "1.1.0",
+  "effective_date": "2026-08-05",
+  "name": "交通运输业稽查场景合同",
+  "industry_code": "TRA",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦交通运输业特有的虚开发票风险特征——油票分离、ETC虚抵、无车承运、代开链条、挂靠经营。场景非固定模板，触发条件与线索步数根据实际资料可用性动态调整。每个场景保留 trigger_signals（数据触发条件）、severity_modifiers（风险调节因子）、cross_industry_tags（跨行业复用标签）。",
+  "release_boundary": [
+    "场景命中只表示存在需要核验的事实问题，不表示存在税收违法行为",
+    "资料缺失不得反向推定虚开——'无运单'不等于'虚开发票'"
+  ],
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人大常委会", "effective_period": "2026-01-01起", "url": "https://www.npc.gov.cn/npc/c2/c30834/202412/t20241225_442015.html"},
+    {"id": "SRC-ROAD-TRANSPORT", "name": "道路运输条例", "issuer": "国务院", "effective_period": "现行有效"},
+    {"id": "SRC-NO-TRUCK", "name": "网络平台道路货物运输经营管理暂行办法", "issuer": "交通运输部/国家税务总局", "effective_period": "按现行有效文本适用"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "vehicle_id", "driver_id", "transport_permit", "logistics_platform_id"],
+    "transaction_keys": ["waybill_no", "contract_id", "invoice_no", "payment_id", "fuel_card_no", "etc_card_no"],
+    "evidence_dimensions": ["运单真实性", "车辆轨迹", "油料消耗匹配", "通行费匹配", "驾驶员身份"]
+  },
+  "scenarios": [
+    {
+      "id": "TRA-FUEL-SPLIT",
+      "name": "油票分离——进项柴油/汽油与运输业务不匹配",
+      "trigger_signals": ["进项发票品名含柴油/汽油/燃料且金额>50万", "销项无运输服务类品名或运输收入远低于油耗推算运力", "加油卡充值额与消耗额严重偏离"],
+      "severity_modifiers": {"amount_threshold": 500000, "ratio_threshold": 0.3, "frequency_threshold": 12},
+      "cross_industry_tags": ["虚开发票", "进项虚抵", "票货分离"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-ROAD-TRANSPORT"],
+      "applicability": {
+        "business": "取得大额柴油/汽油进项发票的运输企业或物流平台",
+        "activate_when": "进项燃料金额 > 500000 AND 销项运输收入/油耗推算运力 < 0.7",
+        "deactivate_when": "企业自有加油站或燃料为生产性自用（非运输）"
+      },
+      "doubt": {
+        "target_fact": "大额油料进项是否有对应的运输业务支撑——每吨柴油可支撑的运输里程/收入是否与账面匹配。",
+        "observed_signal": "燃料进项与运输收入的比例严重偏离行业均值（正常约25-35%），或油料进项持续增长但运输收入停滞。",
+        "must_exclude": ["自有加油站且对非运输车辆单独计量", "油料用于非运输生产（如矿山/工程机械）", "油价波动导致的期间差异"],
+        "output": "形成燃料消耗—运力—收入三角对照表，差异部分标记为'燃料去向待核'"
+      },
+      "clue_chain": {
+        "start": "汇总柴油/汽油进项发票金额、数量，按月度建立燃料消耗台账。",
+        "steps": [
+          {"step": 1, "action": "从进项发票提取油料品名→金额→数量→供应商→时间", "join_keys": ["invoice_no", "goods_name", "seller"], "deliverable": "油料进项明细表", "branch_if_missing": "资料不足_未启动"},
+          {"step": 2, "action": "统计销项运输收入→按行业油耗标准反推理论运力→与实际油料消耗比对", "join_keys": ["goods_name", "amount"], "deliverable": "油耗-运力对照表", "branch_if_missing": "待补资料_可初筛"},
+          {"step": 3, "action": "调取加油卡消费明细、ETC通行记录、GPS轨迹→验证运单是否真实执行", "join_keys": ["fuel_card_no", "etc_card_no", "vehicle_id"], "deliverable": "三轨迹交叉验证表", "branch_if_missing": "存在矛盾_待调查"},
+          {"step": 4, "action": "核查资金流→油料供应商与运输客户之间是否存在闭环", "join_keys": ["supplier_name", "customer_name"], "deliverable": "资金闭环检测报告", "branch_if_missing": "事实部分支持_待补证"},
+          {"step": 5, "action": "对偏差>30%的月份进行逐车、逐司机核查→排除合理因素后锁定差异", "join_keys": ["vehicle_id", "driver_id", "month"], "deliverable": "差异逐项解释表", "branch_if_missing": "事实部分支持_待补证"}
+        ],
+        "terminal": "排除油价波动、非运输用油、车辆更新等因素后仍无法解释的燃料偏差，移交证据链。"
+      },
+      "evidence_chain": {
+        "supporting": ["油料进项发票", "加油卡消费明细", "ETC通行记录", "GPS轨迹数据", "运单", "运输合同"],
+        "opposing": ["自有加油站计量记录", "非运输车辆用油清单", "油价波动分析", "车辆报废/更新证明"],
+        "must_state": ["已排除因素", "未取得资料", "运输收入与油耗对照", "差异余额"]
+      },
+      "domain_collaboration": {
+        "lead": "进销存匹配域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "核查油款支付与运输收入资金流向", "handoff": "资金闭环检测结果"},
+          {"domain": "经营实质域", "responsibility": "验证实际拥有车辆数量和运力", "handoff": "车辆/运力核验底稿"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "大额柴油进项、无运输发票、银行显示油款回流至运输客户", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "自有加油站、油料全部用于自有运输车队、运单/ETC/GPS三轨迹一致", "expected": "解释成立_关闭"},
+        {"case": "ambiguous", "facts": "只有进项发票无运单/GPS/ETC→无法判断油料真实去向", "expected": "资料不足_未启动"}
+      ]
+    },
+    {
+      "id": "TRA-ETC-FICTITIOUS",
+      "name": "ETC通行费虚抵——通行费抵扣无对应运输业务",
+      "trigger_signals": ["ETC通行费进项抵扣金额>20万且无运输收入", "通行费发票车辆号与名下车辆不匹配", "同车多地同时段通行费记录"],
+      "severity_modifiers": {"amount_threshold": 200000, "ratio_threshold": 0.2},
+      "cross_industry_tags": ["虚开发票", "进项虚抵"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-ROAD-TRANSPORT"],
+      "applicability": {
+        "business": "取得ETC通行费电子发票用于进项抵扣的企业",
+        "activate_when": "ETC通行费>200000 AND NOT EXISTS(对应运单) AND 销项运输收入<通行费推算运距×运价"
+      },
+      "doubt": {
+        "target_fact": "ETC通行费是否有实际运输业务支撑——车在哪、运的什么、运费收了多少。",
+        "observed_signal": "通行费对应的行驶路线与运输合同目的地不一致，或同一车辆在逻辑上不可能的时间段出现在两个地方。",
+        "must_exclude": ["自有通勤车辆正常使用", "车辆租赁且由承租方负担通行费", "多车同号牌误报"],
+        "output": "形成车辆—通行记录—运单—运费收入四维对照表"
+      },
+      "clue_chain": {
+        "start": "提取ETC通行费发票→按车牌号分组→统计每车通行里程和费用。",
+        "steps": [
+          {"step": 1, "action": "提取ETC发票→车牌号→通行时间→入口出口→金额", "join_keys": ["etc_invoice_no", "plate_no", "entry_time", "exit_time"], "deliverable": "车辆通行明细表"},
+          {"step": 2, "action": "匹配名下车辆登记→排除非本企业车辆", "join_keys": ["plate_no"], "deliverable": "自有车辆通行清单"},
+          {"step": 3, "action": "交叉运单→通行路线vs运输合同目的地", "join_keys": ["waybill_no", "destination"], "deliverable": "通行-运单匹配表"},
+          {"step": 4, "action": "核查非自有车辆来源→是否为挂靠/代开/购买他人ETC票", "join_keys": ["plate_no", "vehicle_owner"], "deliverable": "车辆权属核查表"}
+        ],
+        "terminal": "排除自有通勤和正常出车后仍无法解释的通行费，移交证据链。"
+      },
+      "evidence_chain": {
+        "supporting": ["ETC通行费电子发票", "车辆行驶证/登记证", "运单", "运输合同", "GPS轨迹"],
+        "opposing": ["车辆使用登记（区分营运/非营运）", "通勤路线说明", "挂靠/租赁合同"],
+        "must_state": ["自有车辆数", "通行费总抵扣额", "匹配成功/失败明细"]
+      },
+      "domain_collaboration": {
+        "lead": "进销存匹配域",
+        "partners": [
+          {"domain": "经营实质域", "responsibility": "核实实际拥有车辆数", "handoff": "车辆权属清单"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "大量外地牌照ETC费、名下无该车、无运单", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "全部自有车辆通行、运单合同齐备", "expected": "解释成立_关闭"}
+      ]
+    },
+    {
+      "id": "TRA-NO-TRUCK-ISSUE",
+      "name": "无车承运发票虚开——开票方无实际运输能力",
+      "trigger_signals": ["销项品名为运输服务且金额>200万", "名下无货运车辆登记或车辆数远低于运输量需求", "进项无油料/维修/轮胎等运输必要成本"],
+      "severity_modifiers": {"amount_threshold": 2000000, "vehicle_deficit_threshold": 0.3},
+      "cross_industry_tags": ["虚开发票", "空壳企业", "无实际经营能力"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-NO-TRUCK"],
+      "applicability": {
+        "business": "网络货运平台或无自有车辆的物流企业",
+        "activate_when": "运输收入>2000000 AND 自有货车数量<运力需求×0.3 AND 无油料/维修/轮胎进项"
+      },
+      "doubt": {
+        "target_fact": "开具运输发票的主体是否实际组织和完成了运输——没有车、没有油、没有维修，凭什么开出运输发票？",
+        "observed_signal": "运输收入持续增长但名下车辆为零，进项发票无任何运输相关成本（油、轮胎、维修、保险）。",
+        "must_exclude": ["网络货运平台整合社会运力（需有实际调车记录）", "纯代理运输不承担承运责任", "车辆全部租赁且租赁费已入账"],
+        "output": "形成运力—成本—车主身份三角验证表"
+      },
+      "clue_chain": {
+        "start": "统计名下车辆登记→计算理论最大运力→与实际运输量比较。",
+        "steps": [
+          {"step": 1, "action": "从车管/运管数据获取名下货运车辆→核定吨位→计算月理论运力", "join_keys": ["plate_no", "tonnage"], "deliverable": "运力评估表"},
+          {"step": 2, "action": "汇总进项→是否包含油料/维修/轮胎/保险→运输成本占比分析", "join_keys": ["goods_name"], "deliverable": "运输成本结构表"},
+          {"step": 3, "action": "如有网络货运平台资质→调取平台调车记录→核实社会运力整合真实性", "join_keys": ["waybill_no", "driver_id"], "deliverable": "平台调车记录核查"},
+          {"step": 4, "action": "核查资金流→运输收入收款后是否立即转出→是否存在资金回流", "join_keys": ["payment_id"], "deliverable": "资金流向分析"},
+          {"step": 5, "action": "实地核查→经营场所/停车场地/调度人员是否真实存在", "join_keys": [], "deliverable": "经营实地核查报告"}
+        ],
+        "terminal": "确认无实际运输组织和执行能力后，将虚开事实移交审理。"
+      },
+      "evidence_chain": {
+        "supporting": ["车辆登记证/行驶证", "营运证", "油料/维修进项发票", "运单", "驾驶员合同/社保"],
+        "opposing": ["网络货运平台资质", "社会运力调车记录", "车辆租赁合同", "实际承运人协议"],
+        "must_state": ["名下车辆数", "理论运力上限", "实际运输收入", "运输成本率"]
+      },
+      "domain_collaboration": {
+        "lead": "经营实质域",
+        "partners": [
+          {"domain": "进销存匹配域", "responsibility": "核查运输成本与收入匹配", "handoff": "成本结构分析"},
+          {"domain": "资金全链路域", "responsibility": "核查资金回流", "handoff": "资金闭环检测"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "零车辆、零运输成本、千万运输收入、资金快速回流", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "网络货运平台资质完整、调车记录可查、GPS实时监控", "expected": "解释成立_关闭"}
+      ]
+    },
+    {
+      "id": "TRA-AGENT-INVOICE",
+      "name": "个体司机代开链条——第三方代开运输发票+资金回流",
+      "trigger_signals": ["进项运输发票销方名称集中且与付款对象不一致", "付款对象为个人或小额分散→资金回流至同一控制人", "代开发票企业与实际承运人无劳动关系/合同关系"],
+      "severity_modifiers": {"concentration_threshold": 0.6, "amount_threshold": 500000},
+      "cross_industry_tags": ["虚开发票", "资金回流", "代开发票"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "个人所得税"],
+      "source_refs": ["SRC-VAT-LAW"],
+      "applicability": {
+        "business": "存在大量运输服务进项的制造/贸易/物流企业",
+        "activate_when": "运输进项>500000 AND 进项发票供应商数量少但付款对象数量多且分散"
+      },
+      "doubt": {
+        "target_fact": "运输发票的开票方与实际承运人是否一致——发票是A公司开的，但实际运货的是B司机，付款却到了C账户。",
+        "observed_signal": "运输发票固定1-2家供应商，但银行付款对象多达数十个个人账户，且个人收款后资金汇集到同一控制人。",
+        "must_exclude": ["网络货运平台统一开票但实际调多个个体司机（需调车记录）", "运输公司自有员工内部结算"],
+        "output": "形成开票方—付款方—实际承运人三棱镜对照表"
+      },
+      "clue_chain": {
+        "start": "筛选运输服务进项→提取销方名称→统计供应商集中度→与银行付款对象交叉比对。",
+        "steps": [
+          {"step": 1, "action": "汇总运输进项发票→按销方分组→供应商集中度分析", "join_keys": ["seller"], "deliverable": "运输供应商清单"},
+          {"step": 2, "action": "提取对应银行付款→付款对象与发票销方比对→不匹配清单", "join_keys": ["seller", "counterparty"], "deliverable": "票-款不匹配清单"},
+          {"step": 3, "action": "追踪不匹配付款账户→是否汇集至同一控制人→资金回流判断", "join_keys": ["account_no"], "deliverable": "资金归集关系图谱"},
+          {"step": 4, "action": "核查实际承运人→劳动合同/社保/个税申报→与开票方关系", "join_keys": ["driver_id"], "deliverable": "承运人身份核实表"}
+        ],
+        "terminal": "确认发票流、资金流、业务流三者分离后移交虚开证据链。"
+      },
+      "evidence_chain": {
+        "supporting": ["运输进项发票", "银行付款记录（含个人账户）", "实际承运人劳动合同/协议"],
+        "opposing": ["网络货运平台调车记录", "代收代付协议"],
+        "must_state": ["供应商集中度", "票-款不匹配明细", "资金归集关系"]
+      },
+      "domain_collaboration": {
+        "lead": "资金全链路域",
+        "partners": [
+          {"domain": "进销存匹配域", "responsibility": "核实运输服务必要性", "handoff": "运输需求分析"},
+          {"domain": "经营实质域", "responsibility": "核实实际承运人", "handoff": "承运人清单"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "1家开票50人收款→全部汇集至开票企业法人账户", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "网络货运平台调车记录完整+实际承运人合同齐备", "expected": "解释成立_关闭"}
+      ]
+    },
+    {
+      "id": "TRA-ANCHOR-ENTITY",
+      "name": "挂靠经营——纳税主体与实际承运人分离",
+      "trigger_signals": ["名下登记多辆货运车辆但与驾驶员无劳动关系", "车辆实际由他人经营且收入不入企业账", "企业收取挂靠管理费但运输收入归个人"],
+      "severity_modifiers": {"vehicle_count_threshold": 5, "revenue_gap_threshold": 0.5},
+      "cross_industry_tags": ["挂靠经营", "纳税主体分离", "收入隐匿"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税", "个人所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-ROAD-TRANSPORT"],
+      "applicability": {
+        "business": "名下登记货运车辆但实际由他方经营的运输企业",
+        "activate_when": "名下车辆>5 AND 驾驶员无社保/个税申报 AND 运输收入与车辆数量不匹配"
+      },
+      "doubt": {
+        "target_fact": "登记在企业名下的车辆实际由谁经营、运输收入归谁所有、企业在其中扮演什么角色。",
+        "observed_signal": "企业有大量货运车辆登记但运输收入很少，驾驶员不是企业员工——车辆实质挂靠经营。",
+        "must_exclude": ["融资租赁车辆（租赁合同完整）", "车辆已出售但未过户", "长期停驶/报废车辆"],
+        "output": "形成车辆权属—经营主体—收入归属三方对照表"
+      },
+      "clue_chain": {
+        "start": "提取名下货运车辆→对比驾驶员劳动关系→分析运输收入归属。",
+        "steps": [
+          {"step": 1, "action": "统计名下货运车辆→车龄/吨位/年检状态→排除报废/停驶车辆", "join_keys": ["plate_no"], "deliverable": "有效车辆清单"},
+          {"step": 2, "action": "匹配驾驶员信息→社保/个税/工资→判断劳动关系", "join_keys": ["driver_id", "id_number"], "deliverable": "驾驶员劳动关系判定"},
+          {"step": 3, "action": "核查运输收入→是否全部入企业账→有无体外循环", "join_keys": ["payment_id"], "deliverable": "收入完整性核查"},
+          {"step": 4, "action": "核查挂靠协议→管理费收取→是否已申报纳税", "join_keys": ["contract_id"], "deliverable": "挂靠协议审核"}
+        ],
+        "terminal": "确认挂靠关系后，分别核查挂靠方的个税和被挂靠方的企业所得税。"
+      },
+      "evidence_chain": {
+        "supporting": ["行驶证/营运证", "挂靠协议/管理费收据", "GPS轨迹", "年检记录"],
+        "opposing": ["劳动合同", "社保缴纳记录", "工资发放记录"],
+        "must_state": ["车辆数", "自营车辆vs挂靠车辆", "管理费收入", "挂靠经营收入"]
+      },
+      "domain_collaboration": {
+        "lead": "经营实质域",
+        "partners": [
+          {"domain": "人员薪酬域", "responsibility": "核查驾驶员劳动关系", "handoff": "劳动关系判定"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "30辆车全部挂靠/零员工/只收管理费不开运输发票", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "全部驾驶员签订劳动合同+社保齐全+运输收入全部入账", "expected": "解释成立_关闭"}
+      ]
+    }
+  ],
+  "forbidden_outputs": ["自动认定虚开", "自动核定税额", "自动处罚建议", "以无运单推定虚开发票"]
+}

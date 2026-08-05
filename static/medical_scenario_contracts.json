@@ -1,0 +1,278 @@
+{
+  "version": "1.1.0",
+  "effective_date": "2026-08-05",
+  "name": "医疗医药行业稽查场景合同",
+  "industry_code": "MED",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦两票制下医药行业核心风险——CSO虚开推广费、学术会议费虚构、回扣伪装咨询费、器械成本虚增、民营医疗现金隐匿。场景根据实际资料可用性动态调整线索步数。",
+  "release_boundary": [
+    "场景命中只表示存在需要核验的事实问题，不表示存在税收违法行为",
+    "CSO模式本身不违法→需区分合规推广与虚假推广"
+  ],
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人大常委会", "effective_period": "2026-01-01起"},
+    {"id": "SRC-TWO-TICKET", "name": "关于在公立医疗机构药品采购中推行两票制的实施意见", "issuer": "国务院医改办等", "effective_period": "按现行有效文本适用"},
+    {"id": "SRC-ANTI-BRIBERY", "name": "刑法第一百六十三条（非国家工作人员受贿罪）", "issuer": "全国人大常委会", "effective_period": "现行有效"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "gmp_cert", "gsp_cert", "drug_approval_no", "medical_license"],
+    "transaction_keys": ["cso_contract_id", "promotion_plan", "meeting_approval", "speaker_id", "prescription_volume"],
+    "evidence_dimensions": ["推广活动真实性", "处方量关联性", "价格合理性", "服务成果可验证性"]
+  },
+  "scenarios": [
+    {
+      "id": "MED-CSO-FICTITIOUS",
+      "name": "CSO虚开发票——合同销售组织无实际推广能力",
+      "trigger_signals": ["进项咨询服务费/推广费/市场服务费金额>100万", "CSO供应商成立时间短且无专业人员", "CSO与医药企业之间资金快速回流"],
+      "severity_modifiers": {"amount_threshold": 1000000, "cso_age_threshold": 12, "staff_count_threshold": 3},
+      "cross_industry_tags": ["虚开发票", "CSO", "两票制", "空壳企业"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-TWO-TICKET", "SRC-ANTI-BRIBERY"],
+      "applicability": {
+        "business": "制药企业、医疗器械企业通过CSO进行推广的",
+        "activate_when": "推广费/咨询费>1000000 AND CSO成立时间<12个月 AND CSO员工<3人",
+        "deactivate_when": "CSO为大型专业推广公司且有独立办公场所和专业人员"
+      },
+      "doubt": {
+        "target_fact": "CSO是否实际提供了推广服务——有没有人、有没有活动、有没有成果。",
+        "observed_signal": "高额推广费支付给无人员、无场所、无经营痕迹的CSO公司，资金短期内通过多层账户回流至医药企业内部人员。",
+        "must_exclude": ["CSO确为专业推广公司且有完整活动记录", "推广成果可直接验证（销量增长/学术论文/医生评价）", "CSO与药企无股权/人员关联"],
+        "output": "形成CSO能力画像—资金流向—推广成果三方验证表"
+      },
+      "clue_chain": {
+        "start": "列出所有CSO供应商→统计交易金额/时间/频率→按金额排序锁定重点。",
+        "steps": [
+          {"step": 1, "action": "提取咨询服务/推广费/市场服务进项发票→按销方分组", "deliverable": "CSO供应商清单", "join_keys": ["invoice_no", "seller"], "branch_if_missing": "资料不足_未启动"},
+          {"step": 2, "action": "核查CSO工商登记→成立时间/注册资本/社保人数/经营范围", "deliverable": "CSO能力画像", "join_keys": ["seller"], "branch_if_missing": "待补资料_可初筛"},
+          {"step": 3, "action": "追踪推广费支付→银行流水→资金流向→是否闭环回流", "deliverable": "资金流追踪图", "join_keys": ["payment_id", "account_no"], "branch_if_missing": "存在矛盾_待调查"},
+          {"step": 4, "action": "核查推广活动真实记录→会议照片/签到表/学术材料/旅行记录", "deliverable": "推广活动证据清单", "join_keys": ["meeting_id"], "branch_if_missing": "事实部分支持_待补证"},
+          {"step": 5, "action": "交叉验证→推广活动时间地点与机票酒店记录一致→医生实际是否参加", "deliverable": "时空一致性核查", "join_keys": ["meeting_date", "location", "attendee_id"]}
+        ],
+        "terminal": "排除正常推广后仍无法证明实际服务的，移交虚开证据链。"
+      },
+      "evidence_chain": {
+        "supporting": ["推广费发票", "推广合同", "成果报告", "会议记录", "机票酒店"],
+        "opposing": ["CSO独立经营证明", "专业资质", "员工社保", "独立办公场所"],
+        "must_state": ["CSO供应商总数", "高/中/低风险CSO分类", "资金回流线索"]
+      },
+      "domain_collaboration": {
+        "lead": "采购与成本域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "追踪推广费资金流向", "handoff": "资金闭环检测"},
+          {"domain": "经营实质域", "responsibility": "核查CSO经营真实性", "handoff": "CSO工商/社保/场地核查"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "5家CSO总推广费2000万/成立均不到半年/零社保/资金全部回流", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "CSO为专业医药推广公司50人团队/完整活动记录/独立办公", "expected": "解释成立_关闭"}
+      ]
+    },
+    {
+      "id": "MED-MEETING-FRAUD",
+      "name": "学术会议费虚构——会议费大量发生但无会议证据",
+      "trigger_signals": ["会议费/学术会议进项金额>30万", "同一CSO频繁开会议费发票", "会议时间/地点与出差记录不匹配"],
+      "severity_modifiers": {"amount_threshold": 300000, "frequency_threshold": 6},
+      "cross_industry_tags": ["虚开发票", "会议费", "学术推广"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税", "个人所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-ANTI-BRIBERY"],
+      "applicability": {
+        "business": "医药企业大量报销学术会议费的",
+        "activate_when": "会议费>300000 AND 无会议记录/签到表/议程/现场照片"
+      },
+      "doubt": {
+        "target_fact": "学术会议是否真实召开——有没有场地、有没有讲者、有没有参会医生。",
+        "observed_signal": "会议费集中在几家CSO/酒店、会议日期与出差记录不匹配、同一会议反复开票。",
+        "must_exclude": ["线上会议（需有平台登录/参会记录）", "小型科室会无法提供大规模签到", "受疫情影响改为线上"],
+        "output": "形成会议费—证据—参会人交叉验证表"
+      },
+      "clue_chain": {
+        "start": "提取会议费进项→按供应商/时间/地点分组→锁定高频异常。",
+        "steps": [
+          {"step": 1, "action": "汇总会议费→供应商/金额/日期/地点/事由", "deliverable": "会议费明细表"},
+          {"step": 2, "action": "核查会议证据→邀请函/议程/签到表/照片/会后总结", "deliverable": "会议证据完整性评分"},
+          {"step": 3, "action": "交叉机票酒店→会议时间地点是否一致", "deliverable": "时空一致性核查"},
+          {"step": 4, "action": "核查讲者→劳务费申报→个税代扣→讲者是否真实存在", "deliverable": "讲者真实性核查"}
+        ],
+        "terminal": "确定会议虚构的→进项转出+不得税前列支。"
+      },
+      "evidence_chain": {
+        "supporting": ["会议费发票", "会议合同", "邀请函/议程"],
+        "opposing": ["签到表/现场照片", "讲者劳务合同", "线上会议平台记录"],
+        "must_state": ["会议总次数", "有证据的会议占比", "无证据会议金额"]
+      },
+      "domain_collaboration": {
+        "lead": "采购与成本域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "追踪会议费资金流向", "handoff": "资金闭环检测"}
+        ]
+      }
+    },
+    {
+      "id": "MED-REBATE-DISGUISE",
+      "name": "回扣伪装——咨询费/服务费与医师处方量挂钩",
+      "trigger_signals": ["咨询费/服务费收款方为医疗从业人员或关联方", "服务费金额与处方量正相关（>0.7）", "服务合同内容模糊不可验证"],
+      "severity_modifiers": {"correlation_threshold": 0.7, "amount_threshold": 200000},
+      "cross_industry_tags": ["商业贿赂", "回扣", "咨询费伪装"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["企业所得税", "个人所得税"],
+      "source_refs": ["SRC-ANTI-BRIBERY"],
+      "applicability": {
+        "business": "医药企业支付高额咨询费、服务费给医疗从业人员或其关联方",
+        "activate_when": "咨询费收款方为医生/药师/科室主任或其亲属 AND 金额与处方量相关>0.7"
+      },
+      "doubt": {
+        "target_fact": "咨询费是否真实服务报酬——还是处方回扣的伪装。",
+        "observed_signal": "咨询服务内容无法验证（'市场调研'无报告、'学术交流'无内容），但收款人恰好是处方量最大的医生。",
+        "must_exclude": ["真实研究项目且成果可发表", "合规的患者教育项目", "政府定价的专家顾问费"],
+        "output": "形成咨询费—处方量—服务成果三方对照表"
+      },
+      "clue_chain": {
+        "start": "筛选高额咨询费/服务费收款方→提取收款人身份信息。",
+        "steps": [
+          {"step": 1, "action": "提取咨询费/服务费→收款方名称/身份证号→身份判定（医生/药师/关联人）", "deliverable": "收款方身份清单"},
+          {"step": 2, "action": "调取对应药品/器械的处方量/销量数据→与咨询费金额做相关性分析", "deliverable": "处方量-咨询费相关性分析"},
+          {"step": 3, "action": "核查咨询服务成果→调研报告/会议纪要/学术论文", "deliverable": "服务真实性核查"},
+          {"step": 4, "action": "核查个税申报→劳务报酬是否已代扣代缴", "deliverable": "个税合规核查"}
+        ],
+        "terminal": "处方量与咨询费高度相关且无真实服务成果→回扣嫌疑→移交反腐线索。"
+      },
+      "evidence_chain": {
+        "supporting": ["咨询合同", "服务费发票", "付款记录"],
+        "opposing": ["服务成果（调研报告/论文/患者教育材料）", "市场定价依据"],
+        "must_state": ["收款方身份类别", "处方量相关性", "服务成果"]
+      },
+      "domain_collaboration": {
+        "lead": "采购与成本域",
+        "partners": [
+          {"domain": "人员薪酬域", "responsibility": "核查收款方个税申报", "handoff": "个税申报记录"}
+        ]
+      }
+    },
+    {
+      "id": "MED-TWO-TICKET-SYSTEM",
+      "name": "两票制下的票货分离与成本归集",
+      "trigger_signals": ["制药企业→配送商的发票金额与实际入库不一致", "配送商→医院的销售价格与投标价不一致", "中间环节费用以咨询费形式消化"],
+      "severity_modifiers": {"price_gap_threshold": 0.1, "amount_threshold": 5000000},
+      "cross_industry_tags": ["两票制", "票货分离", "成本归集"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-TWO-TICKET"],
+      "applicability": {
+        "business": "两票制下的药品/医疗器械生产和流通企业",
+        "activate_when": "制药→配送价格>投标价×1.1 OR 推广费占比>销售收入×0.3"
+      },
+      "doubt": {
+        "target_fact": "两票制下的实际价格结构——开票价格包含了多少推广、物流、资金成本，这些成本是否真实合理。",
+        "observed_signal": "一票（制药→配送）价格远高于二票（配送→医院），差价通过CSO以推广费形式流出。",
+        "must_exclude": ["创新药合理的市场推广期", "带量采购品种的低价政策", "正常配送费率3-8%"],
+        "output": "形成两票价格链—推广费归集路径—差价分解表"
+      },
+      "clue_chain": {
+        "start": "锁定重点品种→提取制药→配送和配送→医院两端价格→分析差价。",
+        "steps": [
+          {"step": 1, "action": "选取销售额前10品种→提取出厂价/投标价/中标价/实际开票价", "deliverable": "品种价格链"},
+          {"step": 2, "action": "计算差价→配送费率→超出正常费率部分需解释", "deliverable": "差价分解表"},
+          {"step": 3, "action": "追踪差价资金流向→CSO账户→最终受益人", "deliverable": "差价资金流向"},
+          {"step": 4, "action": "核查推广费归集→是否按品种/区域合理分配→有无跨品种补贴", "deliverable": "推广费归集合理性分析"}
+        ],
+        "terminal": "差价不能由正常商业逻辑解释的→税前不得扣除→补税。"
+      },
+      "evidence_chain": {
+        "supporting": ["购销合同", "开票记录", "投标价格文件"],
+        "opposing": ["配送合同", "推广计划", "CSO推广成果"],
+        "must_state": ["品种价格链", "差价分解", "推广费占比"]
+      },
+      "domain_collaboration": {
+        "lead": "采购与成本域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "差价资金追踪", "handoff": "资金流向图"}
+        ]
+      }
+    },
+    {
+      "id": "MED-DEVICE-INFLATION",
+      "name": "医疗器械成本虚增——经销商层层加价",
+      "trigger_signals": ["医疗器械进价显著高于出厂价或可比采购价", "经销商层级过多（>3层）", "各层经销商利润率极低或无独立经营能力"],
+      "severity_modifiers": {"price_multiplier_threshold": 2.0, "layer_threshold": 3},
+      "cross_industry_tags": ["成本虚增", "关联交易", "经销商利润转移"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["企业所得税", "增值税"],
+      "source_refs": ["SRC-VAT-LAW"],
+      "applicability": {
+        "business": "医疗器械生产或终端使用企业",
+        "activate_when": "器械采购价格>可比价格×2.0 OR 经销商层级>3"
+      },
+      "doubt": {
+        "target_fact": "多层经销商的加价是否具有商业实质——每层经销商是否真实提供了物流、服务、资金等价值。",
+        "observed_signal": "经销商层数异常多但每层利润微薄，最终加价倍数远超正常商业逻辑。",
+        "must_exclude": ["独家代理且代理协议合理", "区域性配送服务加价", "进口器械正常的关税/汇率/代理加成"],
+        "output": "形成经销商层级—加价率—服务价值评估表"
+      },
+      "clue_chain": {
+        "start": "选取单价最高的器械品类→追溯上游供应链→列出每层经销商。",
+        "steps": [
+          {"step": 1, "action": "选前5器械品种→追溯经销商链→每层名称/加价/服务内容", "deliverable": "经销商层级图"},
+          {"step": 2, "action": "核查经销商经营实质→办公场所/人员/仓储/物流→是否空壳", "deliverable": "经销商能力画像"},
+          {"step": 3, "action": "核查关联关系→经销商与医院/药企是否存在股权/人员交叉", "deliverable": "关联方检测"},
+          {"step": 4, "action": "对比行业可比价格→超出合理溢价部分→是否构成利益输送", "deliverable": "价格合理性分析"}
+        ],
+        "terminal": "无商业实质的加价层级→成本不得税前扣除。"
+      },
+      "evidence_chain": {
+        "supporting": ["采购合同", "发票", "付款记录"],
+        "opposing": ["经销商服务说明", "仓储物流凭证", "技术服务记录"],
+        "must_state": ["经销商层数", "每层加价率", "行业可比价格"]
+      },
+      "domain_collaboration": {
+        "lead": "采购与成本域",
+        "partners": [
+          {"domain": "经营实质域", "responsibility": "经销商经营能力核查", "handoff": "经销商画像"}
+        ]
+      }
+    },
+    {
+      "id": "MED-CLINIC-CASH",
+      "name": "民营医院/诊所现金收入隐匿",
+      "trigger_signals": ["民营医疗机构的收入申报额显著低于同规模同业", "现金/个人码收款占比>50%", "药品/耗材采购量与申报收入不匹配"],
+      "severity_modifiers": {"cash_ratio_threshold": 0.5, "revenue_gap_threshold": 0.3},
+      "cross_industry_tags": ["现金收入隐匿", "个人码收款", "账外经营"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税", "个人所得税"],
+      "source_refs": ["SRC-VAT-LAW"],
+      "applicability": {
+        "business": "民营医院/诊所/门诊部",
+        "activate_when": "现金/扫码收款>总收入×0.5 AND 采购量推算收入>申报收入×1.3"
+      },
+      "doubt": {
+        "target_fact": "民营医疗机构是否存在通过现金和私人收款码隐匿诊疗收入。",
+        "observed_signal": "药品耗材采购量推算的诊疗收入远超申报收入，差额巨大且无合理解释。",
+        "must_exclude": ["医保结算回款滞后（跨期差异）", "义诊/免费诊疗", "药品正常报损"],
+        "output": "形成采购量→理论诊疗收入→申报收入三线对照表"
+      },
+      "clue_chain": {
+        "start": "汇总药品/耗材/试剂采购量→按行业标准用量反推理论诊疗收入。",
+        "steps": [
+          {"step": 1, "action": "汇总药品/耗材进项→按品类/数量/金额→估算理论消耗", "deliverable": "采购消耗表"},
+          {"step": 2, "action": "按行业标准→药品成本率约25-40%→反推理论诊疗收入", "deliverable": "理论收入推算"},
+          {"step": 3, "action": "比对银行对公流水+支付宝/微信商户收款→与申报收入差异", "deliverable": "收入差异分析"},
+          {"step": 4, "action": "核查私人收款码→实际控制人→交易量→是否有未入账", "deliverable": "个人收款核查"}
+        ],
+        "terminal": "采购量支持的收入远超申报→隐匿收入→补税+罚款。"
+      },
+      "evidence_chain": {
+        "supporting": ["进项发票", "采购台账", "银行流水"],
+        "opposing": ["医保回款明细", "就诊记录", "诊疗台账"],
+        "must_state": ["理论收入", "申报收入", "差额", "现金收款占比"]
+      },
+      "domain_collaboration": {
+        "lead": "经营实质域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "追踪现金/个人码收款", "handoff": "个人账户排查"}
+        ]
+      }
+    }
+  ],
+  "forbidden_outputs": ["自动认定回扣", "自动认定虚开", "以处方量推定贿赂"]
+}

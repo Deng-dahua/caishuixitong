@@ -1,0 +1,235 @@
+{
+  "version": "1.1.0",
+  "effective_date": "2026-08-05",
+  "name": "餐饮住宿业稽查场景合同",
+  "industry_code": "CAT",
+  "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦餐饮住宿业核心风险——现金/扫码收入隐匿、个人消费开企业发票、农产品收购发票虚开、平台流水差异、食材采购替票。该行业现金交易+个人消费双重特征使其成为隐匿收入和虚开发票的高危行业。",
+  "release_boundary": [
+    "场景命中只表示存在需要核验的事实问题，不表示存在税收违法行为"
+  ],
+  "official_sources": [
+    {"id": "SRC-VAT-LAW", "name": "中华人民共和国增值税法", "issuer": "全国人大常委会", "effective_period": "2026-01-01起"},
+    {"id": "SRC-CIT-RULES", "name": "企业所得税法实施条例", "issuer": "国务院", "effective_period": "现行有效"}
+  ],
+  "common_contract": {
+    "identity_keys": ["taxpayer_id", "food_license", "hotel_license", "fire_cert", "health_cert"],
+    "transaction_keys": ["pos_machine_id", "payment_qr_id", "platform_order_id", "room_no", "table_no"],
+    "evidence_dimensions": ["收银系统真实性", "平台流水完整性", "采购与消耗匹配度", "开票与实际消费一致性"]
+  },
+  "scenarios": [
+    {
+      "id": "CAT-CASH-CONCEAL",
+      "name": "现金/扫码收入不入账——收银系统外循环",
+      "trigger_signals": ["餐饮收入申报显著低于同规模同业（偏差>30%）", "食材采购成本推算收入>申报收入×1.3", "银行对公流水收入远低于收银系统POS流水"],
+      "severity_modifiers": {"revenue_gap_threshold": 0.3, "cost_ratio_ceiling": 0.45},
+      "cross_industry_tags": ["现金交易", "隐匿收入", "账外经营"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-CIT-RULES"],
+      "applicability": {
+        "business": "餐饮企业、酒店、民宿",
+        "activate_when": "(采购成本推算收入>申报收入×1.3) OR (POS流水>银行对公收入×1.5)"
+      },
+      "doubt": {
+        "target_fact": "餐饮实际收入是否全部入账申报——采购了足够300万收入的食材，只报了180万收入，剩下的120万去哪了？",
+        "observed_signal": "食材成本率为50%（正常范围25-40%），表明申报收入被严重低估——不是成本虚高，而是收入偏低。",
+        "must_exclude": ["高端餐饮天然高成本率（和牛/松露等）", "新开业期大量备货", "大型宴会食材集中采购跨期"],
+        "output": "形成食材→理论收入→POS流水→申报收入四线对照表"
+      },
+      "clue_chain": {
+        "start": "从食材采购量和行业标准成本率出发，反推理论餐饮收入。",
+        "steps": [
+          {"step": 1, "action": "汇总食材采购进项→按品类→金额→估算消耗量", "deliverable": "食材消耗表"},
+          {"step": 2, "action": "按行业标准→食材成本率25-40%→反推理论收入区间", "deliverable": "理论收入推算"},
+          {"step": 3, "action": "比对POS机/收银系统数据→与对公银行流水差异", "deliverable": "POS-银行差异表"},
+          {"step": 4, "action": "追踪非对公收款→微信/支付宝个人码→外卖平台商户号→是否全额入账", "deliverable": "多渠道收款对照"},
+          {"step": 5, "action": "实地测算→日均翻台率/客房入住率→推算收入与申报比较", "deliverable": "经营指标对账"}
+        ],
+        "terminal": "差额部分无法合理解释→隐匿收入→补税+罚款。"
+      },
+      "evidence_chain": {
+        "supporting": ["食材采购发票/台账", "POS流水", "银行对公流水", "外卖平台对账单"],
+        "opposing": ["成本率分析（高端餐饮可能>40%）", "宴会/团购合同", "自助餐/包场特殊场景"],
+        "must_state": ["理论收入区间", "申报收入", "差额", "多渠道收款去向"]
+      },
+      "domain_collaboration": {
+        "lead": "收入完整性域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "追踪多渠道收款去向", "handoff": "收款渠道全景"},
+          {"domain": "经营实质域", "responsibility": "实地测算经营规模", "handoff": "翻台率/入住率"}
+        ]
+      },
+      "validation_cases": [
+        {"case": "positive", "facts": "食材进项500万/成本率55%/申报收入350万→差额约450万→个人码收款未入账", "expected": "事实充分支持_待审理"},
+        {"case": "negative", "facts": "高端日料食材成本率52%合理+POS与银行流水一致+所有收款入对公账户", "expected": "解释成立_关闭"}
+      ]
+    },
+    {
+      "id": "CAT-PERSONAL-INVOICE",
+      "name": "个人消费开企业发票——公款消费/虚假报销",
+      "trigger_signals": ["餐饮/住宿销项发票购买方为企业且金额>20万", "同一企业重复频繁消费", "发票开具时间集中在工作日午/晚间（非商务宴请时段）"],
+      "severity_modifiers": {"amount_threshold": 200000, "frequency_threshold": 24, "time_pattern_weight": 0.2},
+      "cross_industry_tags": ["虚假报销", "个人消费", "公款吃喝", "发票套现"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税", "个人所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-CIT-RULES"],
+      "applicability": {
+        "business": "餐饮企业、酒店",
+        "activate_when": "企业客户消费金额>200000 AND 消费频率>月均2次"
+      },
+      "doubt": {
+        "target_fact": "企业抬头的餐饮住宿发票是否对应真实商务活动——还是个人消费借企业名义开票报销。",
+        "observed_signal": "发票购买方集中在少数企业、消费时间在非商务时段（如深夜KTV、周末度假酒店）、单笔金额接近发票限额。",
+        "must_exclude": ["旅行社团体住宿", "会议/培训/年会等有议程的活动", "长期签约的商务协议酒店"],
+        "output": "形成客户消费画像—时间模式—金额模式异常标记表"
+      },
+      "clue_chain": {
+        "start": "提取全部企业抬头销项发票→按购买方分组→分析消费模式。",
+        "steps": [
+          {"step": 1, "action": "汇总销项发票→筛选购买方为企业→按企业分组→统计金额/次数", "deliverable": "企业客户消费清单"},
+          {"step": 2, "action": "分析消费时间→工作日/周末/节假日分布→是否为商务场景", "deliverable": "消费时间模式分析"},
+          {"step": 3, "action": "锁定高消费企业→核查工商信息→是否为真实经营企业", "deliverable": "购买方画像"},
+          {"step": 4, "action": "如有酒店住宿→身份证登记→入住人与发票购买方是否一致", "deliverable": "住宿-开票一致性"}
+        ],
+        "terminal": "报告异常消费模式供购买方税务机关核查——开票方的义务是如实开具，购买方负责证明业务真实性。"
+      },
+      "evidence_chain": {
+        "supporting": ["销项发票", "POS消费记录", "预订记录"],
+        "opposing": ["会议/培训合同", "旅行社协议", "长期商务协议"],
+        "must_state": ["前10企业客户", "异常消费时段占比"]
+      },
+      "domain_collaboration": {
+        "lead": "收入完整性域",
+        "partners": [
+          {"domain": "经营实质域", "responsibility": "核查酒店入住记录", "handoff": "入住登记记录"}
+        ]
+      }
+    },
+    {
+      "id": "CAT-PRODUCE-FICTITIOUS",
+      "name": "农产品收购发票虚开——自开收购发票无真实农户交易",
+      "trigger_signals": ["自开农产品收购发票金额>30万", "同一农户/合作社反复大量出售", "农户身份信息异常（身份证号重复/非农业户籍/已故）"],
+      "severity_modifiers": {"amount_threshold": 300000, "farmer_count_threshold": 10, "identity_anomaly_weight": 0.5},
+      "cross_industry_tags": ["虚开发票", "农产品收购", "进项虚抵"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税"],
+      "source_refs": ["SRC-VAT-LAW"],
+      "applicability": {
+        "business": "餐饮企业自开农产品收购发票",
+        "activate_when": "自开收购发票>300000 AND (农户人均出售额>50000 OR 农户身份异常)"
+      },
+      "doubt": {
+        "target_fact": "自开的农产品收购发票是否对应真实的农户交易——卖的农户是不是真农民、卖的农产品是不是他自家种的。",
+        "observed_signal": "同一农户一年出售50万蔬菜→一个农民不可能产出这么多→身份和产量造假。",
+        "must_exclude": ["农业合作社的集中销售（合作社是法人主体非自然人）", "真实的种养殖大户", "多个农户委托一人代办出售"],
+        "output": "形成农户—土地—产量—出售额四方验证表"
+      },
+      "clue_chain": {
+        "start": "提取自开农产品收购发票→按农户分组→统计出售额/品种→锁定异常。",
+        "steps": [
+          {"step": 1, "action": "汇总自开收购发票→农户姓名/身份证号/品种/数量/金额", "deliverable": "农户收购清单"},
+          {"step": 2, "action": "核查农户身份→身份证真实性→是否为农业户籍→是否在世", "deliverable": "农户身份验证"},
+          {"step": 3, "action": "核查产量合理性→承包土地面积→每亩产量→理论上限vs实际出售", "deliverable": "产量合理性分析"},
+          {"step": 4, "action": "核查资金流→收购款是否真实支付到农户账户→有无回流", "deliverable": "收购款资金追踪"}
+        ],
+        "terminal": "农户身份造假或产量远超合理上限→虚开收购发票→进项税额转出+罚金。"
+      },
+      "evidence_chain": {
+        "supporting": ["自开收购发票", "农户身份证复印件", "村委会证明"],
+        "opposing": ["土地承包合同", "农药/种子/化肥购买记录", "农户银行收款记录"],
+        "must_state": ["农户总数", "人均出售额", "身份异常数", "产量异常数"]
+      },
+      "domain_collaboration": {
+        "lead": "进销存匹配域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "收购款资金追踪", "handoff": "农户收款记录"},
+          {"domain": "经营实质域", "responsibility": "核查农产品实际消耗", "handoff": "厨房消耗/库存"}
+        ]
+      }
+    },
+    {
+      "id": "CAT-PLATFORM-GAP",
+      "name": "外卖/团购平台流水差异——平台结算与申报收入不一致",
+      "trigger_signals": ["入驻美团/饿了么/抖音团购等平台", "平台后台流水>申报收入×1.2", "平台扣点/佣金与收入不匹配"],
+      "severity_modifiers": {"gap_threshold": 0.2, "platform_count_threshold": 2},
+      "cross_industry_tags": ["平台经济", "隐匿收入", "多平台收款"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW"],
+      "applicability": {
+        "business": "入驻外卖/团购平台且平台收款未全额入账的餐饮企业",
+        "activate_when": "平台后台流水>申报收入×1.2 OR 多平台同时入驻但只申报单一渠道收入"
+      },
+      "doubt": {
+        "target_fact": "外卖平台和团购平台的结算款是否全额入账——平台后台显示卖了100万，账面只记了70万。",
+        "observed_signal": "平台季度结算金额与增值税申报销售额不一致，差额外流至个人账户。",
+        "must_exclude": ["平台扣点/推广费/配送费已扣除（以净额入账）", "平台结算周期跨月", "退款/差评赔付"],
+        "output": "形成平台→提现→银行→申报四链路对照表"
+      },
+      "clue_chain": {
+        "start": "获取美团/饿了么/抖音等平台后台结算数据→与账面收入比对。",
+        "steps": [
+          {"step": 1, "action": "汇总各平台后台收入→按平台/月份→含扣点/推广费", "deliverable": "平台收入全景"},
+          {"step": 2, "action": "比对结算款提现→对公银行账户→是否全部入账", "deliverable": "提现-入账对照"},
+          {"step": 3, "action": "核查平台扣点/推广费→进项发票→是否已认证抵扣→占比分析", "deliverable": "平台费用核查"},
+          {"step": 4, "action": "追踪未入账差额→是否流向个人账户→是否为股东/法人私人收款", "deliverable": "差额资金去向"}
+        ],
+        "terminal": "平台收入未全额入账→隐匿收入→补税+罚款。"
+      },
+      "evidence_chain": {
+        "supporting": ["平台后台结算记录", "银行流水", "增值税申报表"],
+        "opposing": ["平台扣费明细", "退款记录", "配送费分离记录"],
+        "must_state": ["平台总额", "入账金额", "差额", "资金去向"]
+      },
+      "domain_collaboration": {
+        "lead": "收入完整性域",
+        "partners": [
+          {"domain": "资金全链路域", "responsibility": "差额资金追踪", "handoff": "资金流向图"}
+        ]
+      }
+    },
+    {
+      "id": "CAT-MATERIAL-DISGUISE",
+      "name": "食材采购替票入账——超市/批发市场采购无票→找票代替",
+      "trigger_signals": ["进项发票供应商为商贸公司/超市但品名与食材种类不匹配", "同一供应商同时供应多种不相关品类", "发票品名为'日用品/办公用品/劳保用品'但金额大且无法对应经营需求"],
+      "severity_modifiers": {"amount_threshold": 100000, "category_mismatch_weight": 0.4},
+      "cross_industry_tags": ["替票", "无票采购", "进项造假"],
+      "maturity": "M2.5_boundary_tested",
+      "taxes": ["增值税", "企业所得税"],
+      "source_refs": ["SRC-VAT-LAW", "SRC-CIT-RULES"],
+      "applicability": {
+        "business": "从农贸市场/批发市场采购食材无法取得发票的餐饮企业",
+        "activate_when": "进项品名与餐饮经营需求不匹配 AND 供应商集中但品类不相关"
+      },
+      "doubt": {
+        "target_fact": "进项发票对应的货物是否真实——品名是办公用品但餐饮企业不可能用这么多办公用品→替票。",
+        "observed_signal": "大量日用品/办公用品进项发票，但企业是餐厅→盘子碗和餐巾纸需要那么多吗。",
+        "must_exclude": ["真实的大规模装修/设备采购期", "连锁餐饮总部的集中采购（但需分店领用记录）", "酒店客房消耗品采购"],
+        "output": "形成品名—经营相关性—实际消耗量三方验证表"
+      },
+      "clue_chain": {
+        "start": "筛选品名与餐饮经营不直接相关的进项发票→分析金额合理性。",
+        "steps": [
+          {"step": 1, "action": "提取全部进项发票→按品名大类→标记与餐饮经营的关联度（高/中/低）", "deliverable": "品名关联度分类"},
+          {"step": 2, "action": "锁定低关联进项→统计金额→按供应商分组", "deliverable": "可疑进项清单"},
+          {"step": 3, "action": "核查实际消耗→库存/领用记录→是否真实使用→能否对应经营规模", "deliverable": "实际消耗验证"},
+          {"step": 4, "action": "判断替票可能→无实际消耗的差异→推测真实食材采购金额→无票成本", "deliverable": "替票金额估算"}
+        ],
+        "terminal": "确认替票→进项税额转出+成本不得税前扣除。"
+      },
+      "evidence_chain": {
+        "supporting": ["进项发票", "库存/领用记录"],
+        "opposing": ["实际消耗证明", "装修/设备采购合同"],
+        "must_state": ["低关联进项金额", "推测替票金额", "真实无票采购估算"]
+      },
+      "domain_collaboration": {
+        "lead": "进销存匹配域",
+        "partners": [
+          {"domain": "经营实质域", "responsibility": "核查实际经营所需物资", "handoff": "物资消耗基准"}
+        ]
+      }
+    }
+  ],
+  "forbidden_outputs": ["自动认定隐匿收入", "以成本率推定偷税", "以平台流水直接核定营业额"]
+}
