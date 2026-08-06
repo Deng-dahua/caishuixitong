@@ -1971,20 +1971,23 @@ def clear_transfer_cache(company_id: int = Query(...)):
 
 @app.delete("/api/tax-risk-docs/{doc_id}")
 def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
-    """删除单条涉税资料（容错版：沙箱下文件删除可能失败）"""
+    """删除单条涉税资料"""
     global _tax_risk_docs
     for i, d in enumerate(_tax_risk_docs):
         if d["id"] == doc_id and d["company_id"] == company_id:
             removed_file = False
-            try: import stat; os.chmod(d["path"], stat.S_IWUSR | stat.S_IRUSR)
+            # 尝试多种方式确保文件被删除
+            fpath = d.get("path", "")
+            try: import stat; os.chmod(fpath, stat.S_IWUSR | stat.S_IRUSR | stat.S_IWGRP)
             except: pass
             try:
-                os.remove(d["path"])
+                os.remove(fpath)
                 removed_file = True
-            except Exception as _e:
-                pass  # 沙箱下删除失败，仍从列表中移除
+            except Exception:
+                pass
+            # 无论磁盘删除是否成功，从内存列表移除
             _tax_risk_docs.pop(i)
-            return {"ok": True, "message": "删除成功" if removed_file else "已从列表移除（文件删除失败，可能是权限限制）"}
+            return {"ok": True, "message": "删除成功" if removed_file else "已从列表移除（磁盘残留将在下次分析时自动跳过）"}
     raise HTTPException(404, "文件不存在")
 
 

@@ -170,10 +170,17 @@ def _run_analyze(company_id, db, progress_callback=None):
     analysis_trace_id = str(uuid.uuid4())[:8]
     _analysis_traces = []  # 收集所有finding的推理链路
     
-    # 直接从磁盘扫描文件列表——不依赖全局 _tax_risk_docs 状态
-    # 使用公司专属子目录物理隔离，防止不同公司数据串混
+    # 从磁盘扫描 + 内存列表交叉验证 —— 防止沙箱下删除失败导致已删除文件被误扫
+    # _tax_risk_docs 是前端用户看到的真实文件列表，磁盘可能有残留
     company_upload_dir = _get_company_upload_dir(company_id)
     docs = []
+    # 构建内存列表中的有效文件ID集合
+    from shared_state import _tax_risk_docs
+    valid_ids = set()
+    for d in _tax_risk_docs:
+        if d.get("company_id") == company_id:
+            valid_ids.add(d.get("id"))
+    
     if os.path.exists(company_upload_dir):
         for fname in os.listdir(company_upload_dir):
             if not os.path.isfile(os.path.join(company_upload_dir, fname)):
@@ -182,6 +189,13 @@ def _run_analyze(company_id, db, progress_callback=None):
             if len(parts) < 3: continue
             try: f_cid = int(parts[0]); f_doc_id = int(parts[1])
             except: continue
+            
+            # ═══ 交叉验证：文件必须在 _tax_risk_docs 内存列表中才有效 ═══
+            # 沙箱下 os.remove() 可能失败，磁盘残留文件不参与分析
+            if f_doc_id not in valid_ids:
+                pipeline_log.append(f"[磁盘残留跳过] {fname}（已从前端删除但磁盘未清理）")
+                continue
+            
             orig_name = parts[2]
             fpath = os.path.join(company_upload_dir, fname)
             if os.path.isfile(fpath):
