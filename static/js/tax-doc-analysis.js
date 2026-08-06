@@ -2437,7 +2437,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🧠 引擎智能分析总览：</strong>' + (smart.narrative||'') + '</p></span>';
 
 
-          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-narrative\',title:\'引擎智能分析总览\',content:\'' + (smart.narrative||'').replace(/'/g,"\\'") + '\'};window._unifiedEditPopup();window._edtBlockNode=event.target.closest(\x27.edt-block\x27);" title="编辑/审核/追问" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '';
 
 
           smartHtml += '</div>';
@@ -2464,7 +2464,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>💰 税负模拟</strong></p></span>';
 
 
-          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-tax\',title:\'税负模拟\',content:\'税负模拟表格及计算\\n涉税金额合计'+(smart.tax_total||0).toLocaleString('zh-CN')+'元，增值税合计'+(smart.vat_total||0).toLocaleString('zh-CN')+'元，企业所得税合计'+(smart.income_tax_total||0).toLocaleString('zh-CN')+'元\'};window._unifiedEditPopup();window._edtBlockNode=event.target.closest(\x27.edt-block\x27);" title="编辑/审核/追问" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '';
 
 
           smartHtml += '</div>';
@@ -2518,7 +2518,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔗 资料缺口影响链</strong></p></span>';
 
 
-          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-gap\',title:\'资料缺口影响链\',content:\'资料缺口影响链：' + smart.gap_chain.map(function(g){return g.material;}).join('、') + '等资料缺失\'};window._unifiedEditPopup();window._edtBlockNode=event.target.closest(\x27.edt-block\x27);" title="编辑/审核/追问" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '';
 
 
           smartHtml += '</div>';
@@ -2569,7 +2569,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI自审报告：</strong>' + auditSummary + '</p></span>';
 
 
-          smartHtml += '<span class="edt-icon edt-block-icon" onclick="event.stopPropagation();window._editScope={level:\'block\',id:\'block-audit\',title:\'AGI自审报告\',content:\'' + auditSummary.replace(/'/g,"\\'") + '\'};window._unifiedEditPopup();window._edtBlockNode=event.target.closest(\x27.edt-block\x27);" title="编辑/审核/追问" style="font-size:14px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:4px;flex-shrink:0;line-height:1.85">✏️</span>';
+          smartHtml += '';
 
 
           var dims = audit.dimensions || {};
@@ -3425,7 +3425,7 @@ window._clearAskChat = function() {
 window._editScope = {};
 
 
-window._initAllEditIcons = function() { return; /* 2026-07-25 老邓要求删除全部✏️ */
+window._initAllEditIcons = function() { return; /* 2026-07-25 老邓要求删除全部 */
 
 
   var area = document.getElementById('tda-report-area');
@@ -3451,7 +3451,7 @@ window._initAllEditIcons = function() { return; /* 2026-07-25 老邓要求删除
 
 
       var chHtml = ''; var nextSib = h2.nextElementSibling; while (nextSib && nextSib.tagName !== 'H2') { var tmp=nextSib.cloneNode(true); var eis=tmp.querySelectorAll('.edt-icon,.edt-icon-inline,.edt-block-icon'); for(var ei=0;ei<eis.length;ei++)eis[ei].remove(); chHtml += tmp.outerHTML; nextSib = nextSib.nextElementSibling; }
-window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('✏️','').trim(), content: chHtml, isHtml: true};
+window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('','').trim(), content: chHtml, isHtml: true};
 
 
       window._unifiedEditPopup();
@@ -3606,7 +3606,7 @@ window._editScope = {level:'chapter', id:h2.id, title:h2.textContent.replace('�
   area.querySelectorAll('table.tbl, table.tbl2').forEach(function(table, ti) {
 
 
-    if (table.closest('.appendix') || table.closest('.edt-block')) return;  // 附件表格不开编辑，块级已有✏️
+    if (table.closest('.appendix') || table.closest('.edt-block')) return;  // 附件表格不开编辑，块级已有
 
 
     if (table.querySelector('.edt-tbl-col')) return;
@@ -3693,7 +3693,7 @@ window._makeEditIcon = function(tip) {
   btn.className = 'edt-icon';
 
 
-  btn.innerHTML = ' ✏️';
+  btn.innerHTML = ''; /*  removed */
 
 
   btn.title = '编辑 / 审核 / 追问 / 重置';
@@ -3717,237 +3717,7 @@ window._makeEditIcon = function(tip) {
 // ═══ 统一弹窗（Tab切换：编辑/审核/追问） ═══
 
 
-window._unifiedEditPopup = function(rowData) {
-
-
-  var old = document.getElementById("edt-popup");
-
-
-  if (old) old.remove();
-
-
-  var scope = window._editScope;
-
-
-  var title = (scope.title || "报告反馈");
-
-
-  
-
-
-  var reportContentHtml = ""; var reportContent = "";
-
-
-  if (scope.level === "table_row" && rowData) { reportContent = rowData; }
-
-
-  else if (scope.level === "block" && window._edtBlockNode) {
-
-
-    var clone = window._edtBlockNode.cloneNode(true);
-
-
-    var btns = clone.querySelectorAll(".edt-icon,.edt-icon-inline,.rpt-btn-bar,.edt-block-icon");
-
-
-    btns.forEach(function(b){ b.remove(); });
-
-
-    reportContent = (clone.textContent || "").trim(); reportContentHtml = clone.innerHTML;
-
-
-    window._edtBlockNode = null;
-
-
-  }
-
-
-  else if (scope.content) { reportContent = scope.isHtml ? (function(){var d=document.createElement('div');d.innerHTML=scope.content;return d.textContent||'';})() : scope.content; reportContentHtml = scope.isHtml ? scope.content : (scope.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-
-
-  else {
-
-
-    var el = document.getElementById(scope.id);
-
-
-    if (el) {
-
-
-      var clone = el.cloneNode(true);
-
-
-      var btns = clone.querySelectorAll(".edt-icon,.edt-icon-inline,.rpt-btn-bar");
-
-
-      btns.forEach(function(b){ b.remove(); });
-
-
-      reportContent = (clone.textContent || "").trim(); reportContentHtml = clone.innerHTML;
-
-
-    }
-
-
-  }
-
-
-  var popup = document.createElement("div");
-
-
-  popup.id = "edt-popup";
-
-
-  popup.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center";
-
-
-  popup.onclick = function(e){ if (e.target === popup) popup.remove(); };
-
-
-  popup.innerHTML = "<style>#edt-report-content,#edt-report-content *{font-size:11px!important;line-height:1.5!important}#edt-report-content table{width:100%;border-collapse:collapse}#edt-report-content td,#edt-report-content th{border:1px solid #e2e8f0;padding:3px 6px}#edt-report-content h2,#edt-report-content h3,#edt-report-content p{margin:2px 0}#edt-report-content ul,#edt-report-content ol{margin:2px 0;padding-left:16px}</style>" +
-
-
-    "<div style=\"background:#fff;border-radius:12px;width:96vw;max-width:1400px;height:96vh;max-height:96vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)\">" +
-
-
-    "<div style=\"padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0\">" +
-
-
-    "<b style=\"font-size:15px\">✏️ "+title+"</b>" +
-
-
-    "<button onclick=\"var p=document.getElementById(&#39;edt-popup&#39;);if(p)p.remove()\" style=\"border:none;background:transparent;font-size:18px;cursor:pointer;color:#94a3b8\">✕</button>" +
-
-
-    "</div>" +
-
-
-    "<div style=\"padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;max-height:33vh;overflow-y:auto\">" +
-
-
-    "<div style=\"font-size:10px;color:#94a3b8;margin-bottom:4px\">报告内容：</div>" +
-
-
-    "<div id=\"edt-report-content\" style=\"font-size:11px;color:#334155;line-height:1.6;word-break:break-word\">"+(reportContentHtml||reportContent||"(无)")+"</div>" +
-
-
-    "</div>" +
-
-
-    "<div style=\"display:flex;border-bottom:2px solid #e2e8f0;flex-shrink:0\">" +
-
-
-    "<button class=\"edt-tab active\" data-tab=\"edit\" onclick=\"window._edtSwitchTab(&#39;edit&#39;)\" style=\"flex:1;padding:10px;border:none;background:transparent;border-bottom:2px solid #6366f1;margin-bottom:-2px;font-size:13px;font-weight:600;color:#6366f1;cursor:pointer\">📝 编辑</button>" +
-
-
-    "<button class=\"edt-tab\" data-tab=\"audit\" onclick=\"window._edtSwitchTab(&#39;audit&#39;)\" style=\"flex:1;padding:10px;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-2px;font-size:13px;font-weight:500;color:#94a3b8;cursor:pointer\">✅ 审核</button>" +
-
-
-    "<button class=\"edt-tab\" data-tab=\"ask\" onclick=\"window._edtSwitchTab(&#39;ask&#39;)\" style=\"flex:1;padding:10px;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-2px;font-size:13px;font-weight:500;color:#94a3b8;cursor:pointer\">🔍 追问</button>" +
-
-
-    "<button class=\"edt-tab\" data-tab=\"reset\" onclick=\"window._edtSwitchTab(&#39;reset&#39;)\" style=\"flex:1;padding:10px;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-2px;font-size:13px;font-weight:500;color:#94a3b8;cursor:pointer\">🔄 重置</button>" +
-
-
-    "</div>" +
-
-
-    "<div style=\"flex:1;min-height:0;overflow-y:auto;padding:16px 20px\">" +
-
-
-    "<div id=\"edt-panel-edit\" class=\"edt-panel\">" +
-
-
-    "<div style=\"font-size:11px;color:#94a3b8;margin-bottom:4px\">模板（可选参考）：</div>" +
-
-
-    "<div style=\"background:#f0f4ff;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:11px;color:#1e40af;line-height:2\">" +
-
-
-    "【判断结论】[正确 / 需纠正 / 不适用]<br>【具体问题】[指出哪里判断错了]<br>【正确逻辑】[说明正确的判断方法]<br>【需要证据】[需要什么资料才能正确判断]<br>【法律依据】[引用的法条或法规]</div>" +
-
-
-    "<div style=\"font-size:11px;color:#94a3b8;margin-bottom:4px\">编辑区：</div>" +
-
-
-    "<textarea id=\"edt-edit-input\" placeholder=\"输入你的修改内容...\" style=\"width:100%;min-height:120px;border:1px solid #6366f1;border-radius:6px;padding:10px;font-size:12px;line-height:1.8;box-sizing:border-box;resize:vertical;font-family:inherit\"></textarea>" +
-
-
-    "<div style=\"margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:8px\">" +
-
-
-    "<span id=\"edt-edit-result\" style=\"font-size:11px;color:#94a3b8\"></span>" +
-
-
-    "<button onclick=\"window._edtSubmitEdit()\" style=\"background:#6366f1;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">提交</button>" +
-
-
-    "</div></div>" +
-
-
-    "<div id=\"edt-panel-audit\" class=\"edt-panel\" style=\"display:none\">" +
-
-
-    "<div style=\"background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 16px;margin-bottom:12px;font-size:12px;color:#991b1b;line-height:1.8\">" +
-
-
-    "审核提示：确认该内容判断正确后，引擎将记录此审核结果，增强对应规则的置信度权重。请仔细核对后再提交。</div>" +
-
-
-    "<div style=\"font-size:11px;color:#94a3b8;margin-bottom:4px\">审核备注（可选）：</div>" +
-
-
-    "<textarea id=\"edt-audit-note\" placeholder=\"可补充审核意见...\" style=\"width:100%;min-height:80px;border:1px solid #fecaca;border-radius:6px;padding:10px;font-size:12px;line-height:1.8;box-sizing:border-box;resize:vertical;font-family:inherit\"></textarea>" +
-
-
-    "<div style=\"margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:8px\">" +
-
-
-    "<span id=\"edt-audit-result\" style=\"font-size:11px;color:#94a3b8\"></span>" +
-
-
-    "<button onclick=\"window._edtSubmitAudit()\" style=\"background:#dc2626;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">提交</button>" +
-
-
-    "</div></div>" +
-
-
-    "<div id=\"edt-panel-ask\" class=\"edt-panel\" style=\"display:none\">" +
-
-
-    "<div id=\"edt-ask-history\" style=\"max-height:200px;overflow-y:auto;margin-bottom:10px;font-size:12px;color:#475569;line-height:1.8\"></div>" +
-
-
-    "<div style=\"display:flex;gap:8px\">" +
-
-
-    "<input id=\"edt-ask-input\" placeholder=\"输入你的问题...\" style=\"flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box\" onkeydown=\"if(event.key===&#39;Enter&#39;)window._edtSendAsk()\">" +
-
-
-    "<button onclick=\"window._edtSendAsk()\" style=\"background:#0f172a;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0\">发送</button>" +
-
-
-    "</div>" +
-
-
-    "<div style=\"margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:8px\">" +
-
-
-    "<span id=\"edt-ask-result\" style=\"font-size:11px;color:#94a3b8\"></span>" +
-
-
-    "<button onclick=\"window._edtSubmitAskResult()\" style=\"background:#6366f1;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer\">提交</button>" +
-
-
-    "</div>" +
-
-
-    "</div></div></div>";
-
-
-  document.body.appendChild(popup);
-
-
+window._unifiedEditPopup = function(rowData) { return; /* 编辑弹窗已禁用 */ 
 };
 
 
@@ -5610,7 +5380,7 @@ function _renderReportFallback(r, allF) {
     h += '</span>' +
 
 
-      '<span class="edt-icon" onclick="event.stopPropagation();window._editScope={level:\'finding\',id:'+fi+',title:\'发现'+(fi+1)+'·'+safeFinType+'\',findingIdx:'+realIdx+',content:(function(){var tp=this.closest(\'p\');var h=\'\';var ns=tp.nextElementSibling;while(ns&&ns.textContent.indexOf(\'【发现\')===-1){var t=ns.cloneNode(true);var eis=t.querySelectorAll(\'.edt-icon,.edt-icon-inline,.edt-block-icon\');for(var ei=0;ei<eis.length;ei++)eis[ei].remove();h+=t.outerHTML;ns=ns.nextElementSibling;}return h;}).call(this),isHtml:true};window._unifiedEditPopup();" title="编辑/审核/追问" style="font-size:16px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;margin-left:auto;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;padding:0 4px">✏️</span>' +
+      '' +
 
 
       '</p>';
