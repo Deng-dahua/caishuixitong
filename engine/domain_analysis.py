@@ -4995,6 +4995,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 counterparties[cp] += round(max_amt, 2)
         
         intel["银行流水"] = {
+            "exists": True,
             "总收款": f"{total_in:,.2f}元",
             "总付款": f"{total_out:,.2f}元",
             "净流入": f"{total_in - total_out:,.2f}元",
@@ -5187,6 +5188,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 pur_unique_nos.add(inv_no)
         
         intel["发票"] = {
+            "exists": True,
             "销项发票": f"{len(sal_invs)}行，去重{len(sal_unique_nos)}张，金额{sal_total:,.2f}元，税额{sal_tax:,.2f}元",
             "进项发票": f"{len(pur_invs)}行，去重{len(pur_unique_nos)}张，金额{pur_total:,.2f}元，税额{pur_tax:,.2f}元",
             "进销比": f"{pur_total/sal_total:.2f}" if sal_total > 0 else "N/A",
@@ -5248,6 +5250,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         # 未勾选/已作废等
         total_ded_rows = len(deds)
         intel["进项认证抵扣"] = {
+            "exists": True,
             "总行数": total_ded_rows,
             "已认证抵扣_张数": checked["count"],
             "已认证抵扣_金额": f"{checked['amount']:,.2f}元",
@@ -5261,6 +5264,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         total_salary = sum(float(s.get("amount", 0) or s.get("实发工资", 0) or 0) for s in salaries)
         emp_count = len(set(str(s.get("name", "") or s.get("姓名", "") or s.get("id", "")) for s in salaries))
         intel["工资"] = {
+            "exists": True,
             "总工资": f"{total_salary:,.2f}元",
             "员工人数": emp_count,
             "人均工资": f"{total_salary/max(emp_count,1):,.2f}元" if emp_count > 0 else "0",
@@ -5272,6 +5276,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         ss_total = sum(float(s.get("amount", 0) or 0) for s in social_security)
         ss_count = len(social_security)
         intel["社保"] = {
+            "exists": True,
             "记录条数": ss_count,
             "总缴费金额": f"{ss_total:,.2f}元",
         }
