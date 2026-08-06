@@ -207,7 +207,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     try: db.rollback()
     except Exception: pass
 
-    bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data = [], [], [], [], [], [], [], {}
+    bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data = [], [], []
     pipeline_log, file_results = [], []
@@ -501,6 +501,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                         # 通知书记录到file_results中，后续由report生成器直接使用
                         fr["actions"].append(f"解析{parsed.get('notice_type','')}({parsed.get('notice_no','')})")
                         fr["audit_notice"] = parsed  # 保存完整解析结果
+                    elif ftype == "rd_aux_ledger":
+                        rd_data = parsed
+                        fr["actions"].append(f"提取研发辅助账({parsed.get('project_count',0)}项目/{parsed.get('total_rd_expense',0):,.0f}元)")
                     elif ftype in ("bank", "bank_statement", "bank_transaction"): 
                         # 银行流水→标准化后加入bank_txs
                         success_count = 0
@@ -1587,6 +1590,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "CIT汇算清缴", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "出口退税验证", "findings": _domain_export_vat_verification(bank_txs=bank_txs, sal_invs=sal_invs, pur_invs=pur_invs, vouchers=vouchers, export_data=export_data)})
     else: domain_results.append({"domain": "出口退税验证", "findings": []})
+    # 研发费加计扣除审计
+    if rd_data and rd_data.get("projects"):
+        from engine.rd_audit import audit_rd_deduction
+        rd_findings = audit_rd_deduction(rd_data, clean_invs, salaries, target_entity, pipeline_log)
+        domain_results.append({"domain": "研发加计扣除审计", "findings": rd_findings})
 
     # ═══ 财务报表税务合规分析（新增） ═══
     try:

@@ -2446,6 +2446,15 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 3,
         "parser": lambda s, h: _parse_audit_notice(s)
     },
+    "rd_aux_ledger": {
+        "keywords": ["研发费用辅助账", "研发支出辅助账", "A107012", "加计扣除", "自主研发",
+                     "委托研发", "合作研发", "研发项目", "费用化", "资本化",
+                     "人员人工", "直接投入", "折旧费用", "无形资产摊销", "设计费",
+                     "其他相关费用", "可加计扣除", "不可加计扣除", "研究阶段",
+                     "开发阶段", "立项", "结题", "研发成果"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_rd_aux_ledger(s)
+    },
 }
 
 # ═══════════ 出口退税专用解析器 ═══════════
@@ -2894,6 +2903,109 @@ def _build_response_checklist(notice_info):
     items.append({"seq": len(items) + 1, "action": "持续关注", "detail": "关注税务机关后续通知，准备可能的补充资料要求或约谈安排", "category": "跟踪", "deadline": "持续"})
     
     return items
+
+# ═══════════ 研发费用辅助账解析器 ═══════════
+
+def _parse_rd_aux_ledger(sheet):
+    """解析研发费用辅助账（A107012表等效数据）
+    
+    典型列名：项目名称、费用类型、资本化/费用化、本年发生额、可加计扣除金额
+    解析后按项目分组，每个项目包含费用分类和人员信息。
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "项目名称", "研发项目", "费用类型", "费用类别", "本年发生额",
+        "可加计扣除", "资本化", "费用化", "人员人工", "直接投入",
+        "项目编号", "研发形式", "自主研发", "委托研发", "合作研发",
+        "研究阶段", "开发阶段", "起始日期", "完成日期", "成果形式"
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "项目名称": "project_name",
+        "研发项目": "project_name",
+        "项目编号": "project_id",
+        "费用类型": "expense_type",
+        "费用类别": "expense_type",
+        "本年发生额": "annual_amount",
+        "研发费用": "annual_amount",
+        "可加计扣除": "deductible_amount",
+        "可加计扣除金额": "deductible_amount",
+        "资本化金额": "capitalized",
+        "费用化金额": "expensed",
+        "研发形式": "rd_form",
+        "起始日期": "start_date",
+        "完成日期": "end_date",
+        "成果形式": "output_form",
+        "研发人员": "personnel_names",
+        "项目人员": "personnel_names",
+    })
+    if not cols: return None
+    
+    rows = []
+    for r in range(header_row + 1, min(nrows, 2000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("project_name"): continue
+        for k in ["annual_amount", "deductible_amount", "capitalized", "expensed"]:
+            try: vals[k] = float(vals.get(k, "0").replace(",", ""))
+            except: vals[k] = 0
+        rows.append(vals)
+    
+    if not rows: return None
+    
+    # 按项目分组
+    projects = {}
+    for r in rows:
+        pname = r.get("project_name", "")
+        if not pname: continue
+        
+        if pname not in projects:
+            projects[pname] = {
+                "name": pname,
+                "project_id": r.get("project_id", ""),
+                "start_date": r.get("start_date", ""),
+                "end_date": r.get("end_date", ""),
+                "rd_form": r.get("rd_form", ""),
+                "output_form": r.get("output_form", ""),
+                "categories": {},
+                "personnel": [],
+                "outputs": [],
+                "outsourced_rd": [],
+                "capitalized_amount": 0,
+                "expensed_amount": 0,
+                "total_deductible": 0,
+                "notes": "",
+            }
+        
+        cat = r.get("expense_type", "其他相关费用")
+        projects[pname]["categories"][cat] = projects[pname]["categories"].get(cat, 0) + r.get("annual_amount", 0)
+        projects[pname]["total_deductible"] += r.get("deductible_amount", 0)
+        projects[pname]["capitalized_amount"] += r.get("capitalized", 0)
+        projects[pname]["expensed_amount"] += r.get("expensed", 0)
+        
+        # 提取人员
+        personnel = r.get("personnel_names", "")
+        if personnel:
+            for name in personnel.replace("，", ",").replace("、", ",").split(","):
+                name = name.strip()
+                if name and name not in [p if isinstance(p, str) else p.get("name","") for p in projects[pname]["personnel"]]:
+                    projects[pname]["personnel"].append(name)
+    
+    total_rd = sum(sum(p["categories"].values()) for p in projects.values())
+    
+    return {
+        "type": "rd_aux_ledger",
+        "rows": rows,
+        "projects": list(projects.values()),
+        "project_count": len(projects),
+        "total_rd_expense": total_rd,
+        "total_deductible": sum(p["total_deductible"] for p in projects.values()),
+    }
 
 def _parse_generic_table(sheet, header):
     """通用表格解析: 提取表头+数据行，不做特定类型转换"""
