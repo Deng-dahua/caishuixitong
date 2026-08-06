@@ -2434,6 +2434,15 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 3,
         "parser": lambda s, h: _parse_forex_sheet(s)
     },
+    "audit_notice": {
+        "keywords": ["税务稽查通知书", "税务检查通知书", "税务自查通知书", "稽查局", "税务稽查",
+                     "自查提纲", "自查事项", "稽查所属期间", "检查期间", "检查所属期",
+                     "稽查人员", "检查人员", "联系电话", "稽查局盖章", "文书字号",
+                     "税稽通", "税自查", "被查单位", "纳税人识别号", "稽查任务",
+                     "案源编号", "稽查类型", "重点稽查", "专项检查"],
+        "score_threshold": 3,
+        "parser": lambda s, h: _parse_audit_notice(s)
+    },
 }
 
 # ═══════════ 出口退税专用解析器 ═══════════
@@ -2622,6 +2631,266 @@ def _parse_forex_sheet(sheet):
         "verified_count": verified,
         "unverified_count": len(rows) - verified,
     }
+
+# ═══════════ 税务通知书解析器 ═══════════
+
+def _parse_audit_notice(sheet):
+    """解析税务稽查/自查通知书——提取稽查机关、税种、期间、重点事项等关键信息。
+    
+    通知书类型包括：
+    - 税务稽查通知书（稽查局发出，正式稽查）
+    - 税务自查通知书（税务机关发出，要求企业自查）
+    - 税务检查通知书（日常检查或专项检查）
+    
+    解析后自动生成应对材料推荐清单。
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    
+    # 提取所有文本内容（通知书通常是文本书而非表格结构）
+    all_text = []
+    for r in range(min(nrows, 200)):
+        vals = _get_row_values(sheet, r)
+        row_text = " ".join(str(v) for v in vals if v and str(v).strip())
+        if row_text.strip():
+            all_text.append(row_text.strip())
+    full_text = "\n".join(all_text)
+    
+    if not full_text.strip():
+        return None
+    
+    # ── 提取字段 ──
+    import re
+    
+    result = {
+        "type": "audit_notice",
+        "full_text": full_text,
+        "notice_type": "稽查通知书",  # 默认
+        "notice_no": "",
+        "audit_authority": "",
+        "company_name": "",
+        "taxpayer_id": "",
+        "audit_period_start": "",
+        "audit_period_end": "",
+        "tax_types": [],
+        "focus_areas": [],
+        "contact_person": "",
+        "contact_phone": "",
+        "issue_date": "",
+        "deadline": "",
+        "required_materials": [],      # 通知书直接列出的材料
+        "recommended_materials": [],   # 系统智能推荐的应对材料
+        "response_checklist": [],      # 最终应对清单
+    }
+    
+    # 识别通知书类型
+    if any(kw in full_text for kw in ["自查", "自查提纲", "自查事项"]):
+        result["notice_type"] = "自查通知书"
+    elif any(kw in full_text for kw in ["稽查", "稽查局"]):
+        result["notice_type"] = "稽查通知书"
+    elif any(kw in full_text for kw in ["检查", "检查通知书"]):
+        result["notice_type"] = "检查通知书"
+    
+    # 文书字号
+    m = re.search(r'([\u4e00-\u9fa5]+税[\u4e00-\u9fa5]?[通字查检]?\s*[〔\[\(]?\s*\d{4}\s*[〕\]\)]?\s*\d+\s*号)', full_text)
+    if m: result["notice_no"] = m.group(1).strip()
+    
+    # 稽查机关
+    m = re.search(r'(国家税务总?局[\u4e00-\u9fa5]*税务局[\u4e00-\u9fa5]*(?:稽查局|税务分局)?)', full_text)
+    if m: result["audit_authority"] = m.group(1).strip()
+    
+    # 公司名称
+    m = re.search(r'(?:被查单位|被检查单位|纳税人|自查单位)[\s:：]*[（(]?([\u4e00-\u9fa5（）()\d]{4,40})[）)]?', full_text)
+    if m: result["company_name"] = m.group(1).strip()
+    
+    # 税号
+    m = re.search(r'(?:纳税人识别号|统一社会信用代码|税号)[\s:：]*(\d{15,18}[A-Za-z0-9]?)', full_text)
+    if m: result["taxpayer_id"] = m.group(1).strip()
+    
+    # 稽查期间
+    period_patterns = [
+        r'(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)\s*[至到—\-]+\s*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)',
+        r'(?:稽查|检查|自查|所属)[\s:：]*期[间限][\s:：]*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)\s*[至到—\-]+\s*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)',
+        r'(\d{4})\s*年\s*度',
+    ]
+    for pat in period_patterns:
+        m = re.search(pat, full_text)
+        if m:
+            groups = m.groups()
+            if len(groups) >= 2 and groups[1]:
+                result["audit_period_start"] = groups[0].strip()
+                result["audit_period_end"] = groups[1].strip()
+            elif len(groups) == 1:
+                result["audit_period_start"] = f"{groups[0].strip()}-01"
+                result["audit_period_end"] = f"{groups[0].strip()}-12"
+            break
+    
+    # 稽查税种
+    tax_map = {
+        "增值税": ["增值税", "增值税及附加"],
+        "企业所得税": ["企业所得税", "企业所得税及"],
+        "个人所得税": ["个人所得税", "工资薪金个人所得税"],
+        "消费税": ["消费税"],
+        "土地增值税": ["土地增值税"],
+        "印花税": ["印花税"],
+        "房产税": ["房产税", "房产税和城镇土地使用税"],
+        "城镇土地使用税": ["城镇土地使用税"],
+        "城市维护建设税": ["城市维护建设税", "城建税"],
+        "教育费附加": ["教育费附加"],
+        "契税": ["契税"],
+        "资源税": ["资源税"],
+        "环境保护税": ["环境保护税", "环保税"],
+    }
+    for tax_name, keywords in tax_map.items():
+        if any(kw in full_text for kw in keywords):
+            result["tax_types"].append(tax_name)
+    if not result["tax_types"]:
+        result["tax_types"] = ["增值税", "企业所得税"]  # 默认最常见
+    
+    # 稽查重点/自查提纲
+    focus_map = {
+        "发票合规": ["发票", "虚开", "代开", "发票真实性", "发票管理"],
+        "关联交易": ["关联交易", "关联方", "转让定价", "同期资料"],
+        "研发加计扣除": ["研发", "加计扣除", "高新技术"],
+        "出口退税": ["出口退税", "出口", "外销", "报关"],
+        "股权转让": ["股权转让", "股权", "资本公积转增"],
+        "个人账户收款": ["个人账户", "私户", "个人卡", "资金回流"],
+        "进销存": ["进销存", "库存", "盘点", "数量差异"],
+        "虚列成本": ["虚列成本", "虚增成本", "成本不实"],
+        "收入隐匿": ["隐匿收入", "账外经营", "未开票收入"],
+        "社保合规": ["社保", "社会保险", "公积金"],
+    }
+    for focus, keywords in focus_map.items():
+        if any(kw in full_text for kw in keywords):
+            result["focus_areas"].append(focus)
+    
+    # 联系人信息
+    m = re.search(r'(?:联系人|稽查人员|检查人员)[\s:：]*([\u4e00-\u9fa5]{2,4})', full_text)
+    if m: result["contact_person"] = m.group(1).strip()
+    m = re.search(r'(?:联系|电话)[\s:：]*(\d[\d\-]{7,15})', full_text)
+    if m: result["contact_phone"] = m.group(1).strip()
+    
+    # 通知书日期
+    m = re.search(r'(\d{4})[\s\-./年](\d{1,2})[\s\-./月](\d{1,2})[\s\-./日]?', full_text)
+    if m: result["issue_date"] = f"{m.group(1)}-{m.group(2).zfill(2)}-{m.group(3).zfill(2)}"
+    
+    # ── 智能生成应对材料推荐 ──
+    result["recommended_materials"] = _generate_notice_materials(result)
+    result["response_checklist"] = _build_response_checklist(result)
+    
+    return result
+
+def _generate_notice_materials(notice_info):
+    """根据通知书内容智能推荐应对材料。
+    
+    映射逻辑：稽查重点 + 税种 → 需要准备的资料类型
+    分为三个优先级：P0（必交）、P1（重点核查）、P2（辅助支持）
+    """
+    tax_types = notice_info.get("tax_types", [])
+    focus_areas = notice_info.get("focus_areas", [])
+    notice_type = notice_info.get("notice_type", "")
+    period = f"{notice_info.get('audit_period_start', '')}至{notice_info.get('audit_period_end', '')}"
+    if not notice_info.get("audit_period_start"):
+        period = "稽查所属期间"
+    
+    p0 = []  # 必交
+    p1 = []  # 重点核查
+    p2 = []  # 辅助支持
+    
+    # ── P0: 所有稽查必须提供的基础材料 ──
+    p0.append({"material": "营业执照副本", "reason": "核实被查主体身份", "format": "PDF/图片"})
+    p0.append({"material": "公司章程及修正案", "reason": "了解股权结构和治理机制", "format": "PDF"})
+    
+    if "增值税" in tax_types:
+        p0.append({"material": f"增值税纳税申报表（{period}，按月/季）", "reason": "核查销项税额、进项税额、应纳税额及留抵情况", "format": "Excel"})
+        p0.append({"material": f"销项发票台账（{period}，全部发票明细）", "reason": "核查销售收入完整性", "format": "Excel"})
+        p0.append({"material": f"进项发票台账（{period}，含认证抵扣明细）", "reason": "核查进项税额抵扣合规性", "format": "Excel"})
+    
+    if "企业所得税" in tax_types:
+        p0.append({"material": f"企业所得税年度申报表（{period}，各年度）", "reason": "核查收入、成本、费用、纳税调整", "format": "Excel/PDF"})
+        p0.append({"material": f"年度财务报表（资产负债表+利润表+现金流量表，{period}）", "reason": "与申报表交叉比对", "format": "Excel/PDF"})
+    
+    p0.append({"material": f"银行对账单（{period}，全部对公账户，按月）", "reason": "核查资金流与发票流一致性", "format": "Excel/PDF"})
+    p0.append({"material": "科目余额表（逐月，至最末级科目）", "reason": "核查账务记录完整性", "format": "Excel"})
+    
+    # ── P1: 根据稽查重点推荐 ──
+    for focus in focus_areas:
+        if focus == "发票合规":
+            p1.append({"material": "发票领用存台账", "reason": "核查发票管理规范性", "focus": "发票合规"})
+            p1.append({"material": "红字发票/作废发票清单及说明", "reason": "核查异常发票原因", "focus": "发票合规"})
+        elif focus == "关联交易":
+            p1.append({"material": "关联方清单及关联关系说明", "reason": "识别关联交易范围", "focus": "关联交易"})
+            p1.append({"material": "关联交易合同及定价说明", "reason": "评估转让定价公允性", "focus": "关联交易"})
+            p1.append({"material": "同期资料（主体文档/本地文档）", "reason": "关联交易合规证明", "focus": "关联交易"})
+        elif focus == "研发加计扣除":
+            p1.append({"material": "研发项目立项书及预算", "reason": "证明研发项目真实性", "focus": "研发加计扣除"})
+            p1.append({"material": "研发人员名单及工时记录", "reason": "证明人员从事研发活动", "focus": "研发加计扣除"})
+            p1.append({"material": "研发成果证明（专利/软著/检测报告）", "reason": "证明研发产出", "focus": "研发加计扣除"})
+            p1.append({"material": "研发费用辅助账", "reason": "核查加计扣除金额计算", "focus": "研发加计扣除"})
+        elif focus == "出口退税":
+            p1.append({"material": "出口报关单（{period}）", "reason": "核查出口真实性", "focus": "出口退税"})
+            p1.append({"material": "收汇核销单/涉外收入申报表", "reason": "核查外汇收入", "focus": "出口退税"})
+            p1.append({"material": "出口发票及合同", "reason": "核查出口交易真实性", "focus": "出口退税"})
+        elif focus == "个人账户收款":
+            p1.append({"material": "全部银行账户清单（含个人账户用于经营的）", "reason": "核查全部收款渠道", "focus": "个人账户收款"})
+            p1.append({"material": "个人账户收款明细及用途说明", "reason": "区分经营收款与个人资金", "focus": "个人账户收款"})
+        elif focus == "进销存":
+            p1.append({"material": "进销存台账（按品种，{period}）", "reason": "核查购销数量平衡", "focus": "进销存"})
+            p1.append({"material": "存货盘点表及盘点报告", "reason": "核查账实一致性", "focus": "进销存"})
+        elif focus == "虚列成本":
+            p1.append({"material": "主营业务成本明细账", "reason": "逐项核实成本真实性", "focus": "虚列成本"})
+            p1.append({"material": "大额采购合同及验收记录", "reason": "核实采购真实性", "focus": "虚列成本"})
+        elif focus == "社保合规":
+            p1.append({"material": "工资表（{period}，按月/全员）", "reason": "比对社保缴纳基数", "focus": "社保合规"})
+            p1.append({"material": "社保缴纳明细（{period}，按月）", "reason": "核查缴纳完整性", "focus": "社保合规"})
+    
+    # ── P2: 辅助支持材料 ──
+    p2.append({"material": "主要客户/供应商合同清单", "reason": "辅助核查交易真实性"})
+    p2.append({"material": f"记账凭证（{period}）", "reason": "辅助核查账务处理"})
+    if "个人所得税" in tax_types:
+        p2.append({"material": f"个税扣缴明细（{period}）", "reason": "核查个税扣缴义务履行"})
+    if notice_type == "自查通知书":
+        p2.append({"material": "自查报告（按通知书要求的格式）", "reason": "自查结果书面报告"})
+        p2.append({"material": "自查问题整改方案", "reason": "说明整改措施和时间表"})
+    
+    return [
+        {"priority": "P0-必交", "level": "critical", "description": f"{len(p0)}项：基础资料必须提交，缺失可能导致程序性不利后果", "items": p0},
+        {"priority": "P1-重点核查", "level": "focus", "description": f"{len(p1)}项：根据通知书明确的稽查重点推荐的专项材料", "items": p1},
+        {"priority": "P2-辅助支持", "level": "support", "description": f"{len(p2)}项：支持性材料，有助于全面说明情况", "items": p2},
+    ]
+
+def _build_response_checklist(notice_info):
+    """构建完整的应对清单——将通知书要求+系统推荐合成为可执行的行动清单"""
+    items = []
+    
+    # 1. 程序性事项
+    items.append({"seq": 1, "action": "确认收到通知书", "detail": f"收到{notice_info.get('notice_type', '')}（文书字号：{notice_info.get('notice_no', '待确认')}），确认送达日期并计算法定期限", "category": "程序", "deadline": "收到当日"})
+    
+    if notice_info.get("contact_person"):
+        items.append({"seq": 2, "action": "联系稽查人员", "detail": f"联系{notice_info['audit_authority']}的{notice_info['contact_person']}（电话：{notice_info.get('contact_phone', '待确认')}），确认稽查安排和资料提交方式", "category": "程序", "deadline": "2个工作日内"})
+    
+    # 2. 内部准备
+    items.append({"seq": 3, "action": "成立稽查应对小组", "detail": "指定财务负责人+税务顾问+法务（如需要），明确分工", "category": "组织", "deadline": "2个工作日内"})
+    items.append({"seq": 4, "action": "内部预审", "detail": f"针对{', '.join(notice_info.get('tax_types', []))}等税种{', '.join(notice_info.get('focus_areas', ['整体合规']))}等重点，使用本系统做预分析", "category": "分析", "deadline": "5个工作日内"})
+    
+    # 3. 材料收集
+    for rec in notice_info.get("recommended_materials", []):
+        for item in rec.get("items", [])[:5]:  # 每类最多5条
+            items.append({
+                "seq": len(items) + 1,
+                "action": f"准备：{item['material']}",
+                "detail": item.get("reason", ""),
+                "category": f"材料-{rec['priority']}",
+                "deadline": "按通知书要求",
+            })
+    
+    # 4. 自查报告（如果是自查通知书）
+    if notice_info.get("notice_type") == "自查通知书":
+        items.append({"seq": len(items) + 1, "action": "撰写自查报告", "detail": "按通知书要求的格式，逐项说明自查情况、发现问题和整改措施。建议先运行本系统的一键分析获取全面的风险发现，再撰写报告。", "category": "报告", "deadline": "通知书规定期限内"})
+    
+    # 5. 后续关注
+    items.append({"seq": len(items) + 1, "action": "持续关注", "detail": "关注税务机关后续通知，准备可能的补充资料要求或约谈安排", "category": "跟踪", "deadline": "持续"})
+    
+    return items
 
 def _parse_generic_table(sheet, header):
     """通用表格解析: 提取表头+数据行，不做特定类型转换"""
@@ -5325,6 +5594,14 @@ async def get_report_intelligence(company_id: int = Query(...)):
                 info = gap_mapping.get(k, {"risk": "资料缺失影响判断", "impact": f"缺少{k}无法进行相关分析", "chain": f"缺{k} → 对应分析域无法运行 → 相关风险无法排除"})
                 gap_chain.append({"material": k, "risk": info["risk"], "impact": info["impact"], "chain": info["chain"]})
     
+    # 4. 通知书应对材料（如有上传通知书）
+    notice_response = None
+    file_results_from_cache = report.get("file_results", report_data.get("file_results", []))
+    for fr in file_results_from_cache:
+        if isinstance(fr, dict) and fr.get("audit_notice"):
+            notice_response = fr["audit_notice"]
+            break
+    
     return {
         "ok": True,
         "narrative": narrative,
@@ -5344,6 +5621,8 @@ async def get_report_intelligence(company_id: int = Query(...)):
             }
             for i, f in enumerate(all_findings[:15])
         ] if any(f.get("_agi_enhanced") for f in all_findings[:5]) else [],
+        # 通知书应对
+        "notice_response": notice_response,
     }
 
 @app.post("/api/tax-risk-docs/edit-preview")

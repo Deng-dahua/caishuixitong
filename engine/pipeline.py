@@ -483,6 +483,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                         export_data["forex_total"] = export_data.get("forex_total", 0) + parsed.get("total_forex", 0)
                         export_data["forex_verified"] = export_data.get("forex_verified", 0) + parsed.get("verified_count", 0)
                         fr["actions"].append(f"提取收汇核销(共{parsed.get('total_records',0)}条/已核{parsed.get('verified_count',0)}条)")
+                    elif ftype == "audit_notice":
+                        # 通知书记录到file_results中，后续由report生成器直接使用
+                        fr["actions"].append(f"解析{parsed.get('notice_type','')}({parsed.get('notice_no','')})")
+                        fr["audit_notice"] = parsed  # 保存完整解析结果
                     elif ftype in ("bank", "bank_statement", "bank_transaction"): 
                         # 银行流水→标准化后加入bank_txs
                         success_count = 0
