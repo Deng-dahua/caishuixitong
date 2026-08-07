@@ -592,7 +592,7 @@ function renderAnalyzeHeader(report) {
     { title: '第五阶段：方法论过滤——噪声剔除97%', desc: '㉚ 禁止词硬删除（40+） → ㉛ 无资料条件过滤 → ㉜ 行业不匹配过滤 → ㉝ 服务行业进销存过滤（三层闸门） → ㉞ 重复发现去重 → ㉟ 正常结论排除 → ㊱ 1720条→21720条，剔除31720条噪声' },
 
 
-    { title: '第六阶段：Phase4 综合定性——AI推理与因果叙事', desc: '㊲ 风险综合评分 → ㊳ 因果叙事链（1720条因果规则推理） → ㊴ 缺失后果自动触发（14类资料缺失→1720条风险结论） → ㊵ 贝叶斯因果推理 → ㊶ 矛盾检测（11720条逻辑冲突） → ㊷ 回溯引擎定位根因 → ㊸ 四步税务合规分析法（detect→verify→diagnose→report）' },
+    { title: '第六阶段：Phase4 综合定性——AI推理与因果叙事', desc: '㊲ 风险综合评分 → ㊳ 因果叙事链（1720条因果规则推理） → ㊴ 缺失后果自动触发（14类资料缺失→1720条风险结论） → ㊵ 贝叶斯因果推理 → ㊶ 矛盾检测（11720条逻辑冲突） → ㊷ 回溯引擎定位根因 → ㊸ 四步税务审查法（detect→verify→diagnose→report）' },
 
 
     { title: '第七阶段：质量保障——三层门禁', desc: '㊹ 文本净化（剔除模板句/重复句/空描述） → ㊺ 建议质量增强（11720条补充操作路径） → ㊻ 12项质量标准检测（5/32项通过·15.62%） → ㊼ 合规门禁（178项检测+自动修复+质量标记） → ㊽ Provenance溯源链注入（21720条） → ㊾ Benford数字检验 → ㊿ EMA自学习（58样本）' },
@@ -661,7 +661,7 @@ function renderAnalyzeHeader(report) {
     + '<div style="font-size:12px;color:#94a3b8;padding-top:4px">'
 
 
-    + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 证据来源 ✓ · 一键分析 ✓ · 证据链闭环 ✓ · 跨域证据链 ✓'
+    + '全链路闭环：规则ID追溯 ✓ · 线索链追溯 ✓ · 数据来源 ✓ · 一键分析 ✓ · 证据链闭环 ✓ · 跨域证据链 ✓'
 
 
     + '</div>'
@@ -1087,7 +1087,7 @@ function renderMissingConsequenceTriggers(cc) {
   h += '<div style="font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ 资料缺失触发风险</div>';
 
 
-  h += '<table class="tbl2"><tr><th>缺失资料</th><th>风险等级</th><th>推定后果</th><th>法律依据</th><th>处理行动</th></tr>';
+  h += '<table class="tbl2"><tr><th>缺失资料</th><th>风险等级</th><th>推定后果</th><th>涉及法规</th><th>处理行动</th></tr>';
 
 
   for (var i = 0; i < trs.length; i++) {
@@ -4483,7 +4483,7 @@ function _renderReportFallback(r, allF) {
     + '报告编号：未配置（交付前由有权人员按适用制度填写）<br>'
 
 
-    + '被查单位：' + (te.name || te.company_name || '未指定') + '<br>'
+    + '被审查企业：' + (te.name || te.company_name || '未指定') + '<br>'
 
 
     + '报告日期：'+dateStr+'<br>'
@@ -4501,25 +4501,25 @@ function _renderReportFallback(r, allF) {
   h += '<div class="toc">';
 
 
-  h += '<a href="#ch1"><span class="num">一、</span>案件来源及税务合规对象基本情况</a><br>';
+  h += '<a href="#ch1"><span class="num">一、</span>公司和基本情况</a><br>';
 
 
-  h += '<a href="#ch2"><span class="num">二、</span>税务合规实施情况</a><br>';
+  h += '<a href="#ch2"><span class="num">二、</span>审查过程</a><br>';
 
 
-  h += '<a href="#ch3"><span class="num">三、</span>税务合规发现问题及事实认定</a><br>';
+  h += '<a href="#ch3"><span class="num">三、</span>发现的问题</a><br>';
 
 
-  h += '<a href="#ch4"><span class="num">四、</span>税务合规结论</a><br>';
+  h += '<a href="#ch4"><span class="num">四、</span>总体结论</a><br>';
 
 
-  h += '<a href="#ch5"><span class="num">五、</span>处理处罚建议</a><br>';
+  h += '<a href="#ch5"><span class="num">五、</span>整改建议</a><br>';
 
 
-  h += '<a href="#ch6"><span class="num">六、</span>告知权利义务</a><br>';
+  h += '<a href="#ch6"><span class="num">六、</span>您的权利</a><br>';
 
 
-  h += '<a href="#ch7"><span class="num">七、</span>税务合规人员签字</a><br>';
+  h += '<a href="#ch7"><span class="num">七、</span>签字页</a><br>';
 
 
   h += '<a href="#appendix"><span class="num">附件</span>证据清单</a><br>';
@@ -4762,19 +4762,19 @@ function _renderReportFallback(r, allF) {
   
 
 
-  // ═══ 第一章：案件来源及税务合规对象基本情况 ═══
+  // ═══ 第一章：公司和基本情况 ═══
 
 
-  h += '<h2 id="ch1">第一章 案件来源及税务合规对象基本情况</h2>';
+  h += '<h2 id="ch1">第一章 公司和基本情况</h2>';
 
 
-  h += '<p class="i2">根据《税务合规工作规程》第二十一条之规定，本系统在对账套内' + (r.files_count || 0) + '份经营资料执行涉税风险自动预审时，检出多项涉税风险指标异常，触发税务合规预审程序。预审程序启动后，系统依法对被查单位提交的全部经营资料进行了系统性综合判定。以下为被查单位的基本情况及本税务合规事项的立案依据。</p>';
+  h += '<p class="i2">根据《税务合规工作规程》第二十一条之规定，本系统在对账套内' + (r.files_count || 0) + '份经营资料执行涉税风险自动预审时，检出多项涉税风险指标异常，触发税务合规预审程序。预审程序启动后，系统依法对被审查企业提交的全部经营资料进行了系统性综合判定。以下为被审查企业的基本情况及本税务合规事项的立案依据。</p>';
 
 
   h += '<table class="tbl">';
 
 
-  h += '<tr><td class="lbl">被查单位</td><td>' + (te.name || te.company_name || '-') + '</td></tr>';
+  h += '<tr><td class="lbl">被审查企业</td><td>' + (te.name || te.company_name || '-') + '</td></tr>';
 
 
   h += '<tr><td class="lbl">统一社会信用代码</td><td>' + (te.uscc || '-') + '</td></tr>';
@@ -4807,10 +4807,10 @@ function _renderReportFallback(r, allF) {
   if (scope) h += '<tr><td class="lbl">经营范围</td><td>' + scope + '</td></tr>';
 
 
-  h += '<tr><td class="lbl">税务合规期间</td><td>' + (te.period || '全量数据分析期间') + '</td></tr>';
+  h += '<tr><td class="lbl">审查期间</td><td>' + (te.period || '全量数据分析期间') + '</td></tr>';
 
 
-  h += '<tr><td class="lbl">税务合规范围</td><td>' + _detectTaxScope(r, te).join('、') + '</td></tr>';
+  h += '<tr><td class="lbl">审查范围</td><td>' + _detectTaxScope(r, te).join('、') + '</td></tr>';
 
 
   h += '<tr><td class="lbl">执行标准</td><td>《税务合规工作规程》（国税发[2009]157号）、《税收征收管理法》及其实施细则</td></tr>';
@@ -4819,13 +4819,13 @@ function _renderReportFallback(r, allF) {
   h += '</table>';
 
 
-  // ═══ 第二章：税务合规实施情况 ═══
+  // ═══ 第二章：审查过程情况 ═══
 
 
-  h += '<h2 id="ch2">第二章 税务合规实施情况</h2>';
+  h += '<h2 id="ch2">第二章 审查过程</h2>';
 
 
-  h += '<p class="i2">根据《税务合规工作规程》第二十二条至第四十五条关于检查程序的规定，本次税务合规实施对被查单位提交的' + (r.files_count || 0) + '份经营资料执行了全面、系统的综合判定和深度交叉分析。实施过程中，税务合规工作覆盖了资料审阅与类型识别、公司身份锚定与发票方向判定、行业判定与服务闸门验证、资金流与发票流双向核对、穿透分析与知识图谱构建、行业对标、综合分析与结论形成共七个维度，全部分析过程由系统自动执行并记录于税务合规工作底稿，每项结论均可通过规则ID、线索链ID、证据链ID逐级追溯至原始数据。具体实施过程如下：</p>';
+  h += '<p class="i2">根据《税务合规工作规程》第二十二条至第四十五条关于检查程序的规定，本次审查过程对被审查企业提交的' + (r.files_count || 0) + '份经营资料执行了全面、系统的综合判定和深度交叉分析。实施过程中，税务合规工作覆盖了资料审阅与类型识别、公司身份锚定与发票方向判定、行业判定与服务闸门验证、资金流与发票流双向核对、穿透分析与知识图谱构建、行业对标、综合分析与结论形成共七个维度，全部分析过程由系统自动执行并记录于税务合规工作底稿，每项结论均可通过规则ID、线索链ID、证据链ID逐级追溯至原始数据。具体实施过程如下：</p>';
 
 
   
@@ -4870,7 +4870,7 @@ function _renderReportFallback(r, allF) {
     });
 
 
-    h += '<p class="i2">税务合规启动后，首先对被查单位提交的' + (r.files_count || 0) + '份经营资料进行逐一审阅和类型识别。识别过程采用"四方交叉验证"法，从四个维度独立判定、交叉校验：</p>';
+    h += '<p class="i2">税务合规启动后，首先对被审查企业提交的' + (r.files_count || 0) + '份经营资料进行逐一审阅和类型识别。识别过程采用"四方交叉验证"法，从四个维度独立判定、交叉校验：</p>';
 
 
     h += '<h4>' + '第一方（文件名关键词扫描）' + '</h4><p class="i2">' + '扫描文件名中的业务关键词（如"工资薪金""抵扣""开票""取票""社保""公积金""银行"等），形成初步类型假设，为后续深度分析提供方向指引。' + '</p>';
@@ -4930,7 +4930,7 @@ function _renderReportFallback(r, allF) {
     h += '</tbody></table>';
 
 
-    h += '<p class="i2">以上' + (r.files_count || 0) + '份文件经四方交叉验证后全部成功识别，共提取' + (totalRecords || '-') + '条有效数据记录（已自动过滤空白行、小计行、合计行等无效数据），涵盖销项发票、进项发票、进项抵扣认证、银行流水、工资表、社保明细、公积金缴存共7种资料类型，为后续税务合规分析提供了完整的数据基础。</p>';
+    h += '<p class="i2">以上' + (r.files_count || 0) + '份文件经四方交叉验证后全部成功识别，共提取' + (totalRecords || '-') + '条有效数据记录（已自动过滤空白行、小计行、合计行等无效数据），涵盖销项发票、进项发票、进项抵扣认证、银行流水、工资表、社保明细、公积金缴存共7种资料类型，为后续税务审查提供了完整的数据基础。</p>';
 
 
   }
@@ -4948,7 +4948,7 @@ function _renderReportFallback(r, allF) {
   var ic = r.invoice_counts || {};
 
 
-  h += '<p class="i2">身份锚定是全部税务合规分析的逻辑起点。系统从账套数据库中读取当前被查单位的法定名称「' + (te.name || '') + '」及统一社会信用代码「' + (te.uscc || '') + '」，以此作为唯一锚点，对全部' + ((ic.sales||0) + (ic.purchases||0)) + '张发票执行逐行身份比对。</p>';
+  h += '<p class="i2">身份锚定是全部税务审查的逻辑起点。系统从账套数据库中读取当前被审查企业的法定名称「' + (te.name || '') + '」及统一社会信用代码「' + (te.uscc || '') + '」，以此作为唯一锚点，对全部' + ((ic.sales||0) + (ic.purchases||0)) + '张发票执行逐行身份比对。</p>';
 
 
   h += '<p class="i2">比对逻辑基于发票的基本法律关系——销项发票的销售方永远是开票主体自身，进项发票的购买方永远是受票主体自身。系统据此对每张发票执行以下三种判定：</p>';
@@ -5053,7 +5053,7 @@ function _renderReportFallback(r, allF) {
   h += '<h3>（三）行业判定与服务行业闸门</h3>';
 
 
-  h += '<p class="i2">提取全部' + (ic.sales || 0) + '张销项发票的品名字段，解析其中的金税分类编码前缀（格式为*分类名称*品名）。统计发现：销项品名的金税分类编码类别为"' + ((te.industry||'服务').slice(0,20)) + '"等行业编码。系统根据金税分类编码自动判定被查单位所属行业为' + (te.industry||'未识别') + '。</p>';
+  h += '<p class="i2">提取全部' + (ic.sales || 0) + '张销项发票的品名字段，解析其中的金税分类编码前缀（格式为*分类名称*品名）。统计发现：销项品名的金税分类编码类别为"' + ((te.industry||'服务').slice(0,20)) + '"等行业编码。系统根据金税分类编码自动判定被审查企业所属行业为' + (te.industry||'未识别') + '。</p>';
 
 
   h += '<p class="i2">据此启动服务行业闸门规则，自动跳过以下不适用于服务行业的分析域：</p>';
@@ -5191,7 +5191,7 @@ function _renderReportFallback(r, allF) {
   h += '<h4>' + '④关联方穿透' + '</h4><p class="i2">' + '将工商登记信息中的法定代表人、股东、高管姓名及关联企业名单，与供应商/客户名单做交叉比对。检测以下关联交易风险：法定代表人/股东名下的其他企业与本公司存在购销交易（关联交易未披露）、供应商/客户的法定代表人同时出现在本公司员工名单中（人员混同，可能涉及关联方资金占用或利润转移）。' + '</p>';
 
 
-  h += '<h4>' + '⑤六员跨企业比对' + '</h4><p class="i2">' + '提取被查单位的六员名册（法定代表人、董事、监事、财务负责人、股东、经理），与全部供应商和客户的工商信息做逐名交叉比对。首先执行"一人多角"检测——同一人是否在本企业兼任多个角色；其次执行"跨企业重叠检测"——本企业六员是否同时出现在供应商或客户的任职名单中。六员重叠+购销交易→关联交易嫌疑→购销闭环→可能涉及虚开发票。联网查询失败时从本地数据库回退读取。' + '</p>';
+  h += '<h4>' + '⑤六员跨企业比对' + '</h4><p class="i2">' + '提取被审查企业的六员名册（法定代表人、董事、监事、财务负责人、股东、经理），与全部供应商和客户的工商信息做逐名交叉比对。首先执行"一人多角"检测——同一人是否在本企业兼任多个角色；其次执行"跨企业重叠检测"——本企业六员是否同时出现在供应商或客户的任职名单中。六员重叠+购销交易→关联交易嫌疑→购销闭环→可能涉及虚开发票。联网查询失败时从本地数据库回退读取。' + '</p>';
 
 
   
@@ -5203,7 +5203,7 @@ function _renderReportFallback(r, allF) {
   h += '<h3>（六）行业对标</h3>';
 
 
-  h += '<p class="i2">将被查单位的核心经营指标与' + (te.industry || '广告传媒') + '行业的{{industries}}行业基准值进行系统性对比。鉴于被查单位经金税编码判定为服务行业，毛利率、进销比等基于实物采购成本与销售收入比例关系的指标不适用于服务行业的成本结构特征——服务行业的成本主要由人力成本、创意制作成本、渠道推广成本构成，而非原材料采购成本。因此系统自动跳过了毛利率对标和进销比对标。</p>';
+  h += '<p class="i2">将被审查企业的核心经营指标与' + (te.industry || '广告传媒') + '行业的{{industries}}行业基准值进行系统性对比。鉴于被审查企业经金税编码判定为服务行业，毛利率、进销比等基于实物采购成本与销售收入比例关系的指标不适用于服务行业的成本结构特征——服务行业的成本主要由人力成本、创意制作成本、渠道推广成本构成，而非原材料采购成本。因此系统自动跳过了毛利率对标和进销比对标。</p>';
 
 
   h += '<p class="i2">对于适用于服务行业的指标，系统执行了以下对比分析：人均产值——以销项开票总额（含未开票收入）除以工资表人数，评估每人创造价值是否处于行业正常区间。人均产值异常偏低可能指向虚列人员（多列工资偷逃企业所得税）、隐匿收入（实际收入远大于开票收入）或经营能力严重不足；人均产值异常偏高则需要核实是否存在未全员申报个税的情况。</p>';
@@ -5239,10 +5239,10 @@ function _renderReportFallback(r, allF) {
   h += '<h4>' + '最终产出' + '</h4><p class="i2">' + '经上述五环节全链路处理后，形成完整的税务合规结论。本次分析启用了全部核心引擎：文件识别引擎（四方交叉验证）、身份锚定引擎（逐行比对）、规则引擎（1720条）、线索链驱动（391720条）、证据链闭环（741720条）、因果叙事链、Benford检验、方法论过滤器、合规门禁、知识图谱构建、六员跨企业比对、收款分类自适应纠错。服务行业专属分析域（人均产值/经营费用完整性/工资社保合规）全量执行，进销存实物分析域自动跳过。每条结论均可通过规则ID→线索链ID→证据链ID→原始数据位置进行全链路追溯。' + '</p>';
 
 
-  // ═══ 第三章：税务合规发现问题及事实认定 ═══
+  // ═══ 第三章：发现的问题问题及事实认定 ═══
 
 
-  h += '<h2 id="ch3">第三章 税务合规发现问题及事实认定</h2>';
+  h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
   
@@ -5452,7 +5452,7 @@ function _renderReportFallback(r, allF) {
         if (sub.suggestion && sub.suggestion.length > 10) {
 
 
-          h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">→ 处理建议：' + sub.suggestion + '</p>';
+          h += '<p style="text-indent:2em;margin:8px 0;text-align:justify">→ 建议：' + sub.suggestion + '</p>';
 
 
         }
@@ -5482,19 +5482,19 @@ function _renderReportFallback(r, allF) {
     var provenance = f.provenance || {};
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>① 税务合规性质：</strong>' + finType + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>① 问题说明：</strong>' + finType + '</p>';
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>② 税务合规事实：</strong>' + (f.description || f.detail || '') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>② 具体情况：</strong>' + (f.description || f.detail || '') + '</p>';
 
 
     
 
 
-    // ③ 证据材料（表格无按钮）
+    // ③ 相关数据（表格无按钮）
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>③ 证据材料：</strong></p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>③ 相关数据：</strong></p>';
 
 
     if (f.items && f.items.length > 0) {
@@ -5560,22 +5560,22 @@ function _renderReportFallback(r, allF) {
     
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>④ 证据来源：</strong>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>④ 数据来源：</strong>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</p>';
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 法律依据：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务合规工作规程》相关规定') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 涉及法规：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务合规工作规程》相关规定') + '</p>';
 
 
     if (f.suggestion && f.suggestion.length > 5) {
 
 
-      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 处理建议：</strong>' + f.suggestion + '</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 建议：</strong>' + f.suggestion + '</p>';
 
 
     } else {
 
 
-      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 处理建议：</strong>建议进一步核实相关业务资料。</p>';
+      h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑥ 建议：</strong>建议进一步核实相关资料。</p>';
 
 
     }
@@ -5602,7 +5602,7 @@ function _renderReportFallback(r, allF) {
   // ═══ 第四章：税务合规结论 ═══
 
 
-  h += '<h2 id="ch4">第四章 税务合规结论</h2>';
+  h += '<h2 id="ch4">第四章 总体结论</h2>';
 
 
   
@@ -5665,7 +5665,7 @@ function _renderReportFallback(r, allF) {
   
 
 
-  // 综合风险评级
+  // 风险等级
 
 
   var synth = r.comprehensive || {};
@@ -5677,7 +5677,7 @@ function _renderReportFallback(r, allF) {
   // conclusion-box wrapper removed
 
 
-  h += '<p class="i2"><strong>综合风险评级：</strong><span class="' + (overall==='高风险'||overall==='极高风险'?'rtag':'atag') + '" style="font-size:18px">' + overall + '</span></p>';
+  h += '<p class="i2"><strong>风险等级：</strong><span class="' + (overall==='高风险'||overall==='极高风险'?'rtag':'atag') + '" style="font-size:18px">' + overall + '</span></p>';
 
 
   
@@ -5686,7 +5686,7 @@ function _renderReportFallback(r, allF) {
   // 风险分布
 
 
-  h += '<p class="i2">经对被查单位「' + (te.name || te.company_name || '') + '」（信用代码：' + (te.uscc || '') + '）提交的' + (r.files_count || 0) + '份经营资料进行全面税务合规分析，共发现<strong>' + allF.length + '</strong>项涉税风险事项，按风险等级分布如下：</p>';
+  h += '<p class="i2">经对被审查企业「' + (te.name || te.company_name || '') + '」（信用代码：' + (te.uscc || '') + '）提交的' + (r.files_count || 0) + '份经营资料进行全面税务审查，共发现<strong>' + allF.length + '</strong>项涉税风险事项，按风险等级分布如下：</p>';
 
 
   h += '<table class="tbl" style="margin:12px 0"><thead><tr><th>风险等级</th><th>数量</th><th>占比</th><th>代表事项</th></tr></thead><tbody>';
@@ -5713,7 +5713,7 @@ function _renderReportFallback(r, allF) {
   // 证据链完整性
 
 
-  h += '<p class="i2"><strong>证据链完整性：</strong>本次税务合规分析覆盖了18个分析域，共触发证据链交叉验证。所有高风险发现均经过多源数据交叉验证——银行流水、销项发票、进项发票三源比对构成了核心证据闭环。每条发现均标注了证据来源（数据源+规则ID+查证方法），可供后续审理环节逐条追溯复核。</p>';
+  h += '<p class="i2"><strong>证据链完整性：</strong>本次税务审查覆盖了18个分析域，共触发证据链交叉验证。所有高风险发现均经过多源数据交叉验证——银行流水、销项发票、进项发票三源比对构成了核心证据闭环。每条发现均标注了数据来源（数据源+规则ID+查证方法），可供后续审理环节逐条追溯复核。</p>';
 
 
   
@@ -5722,7 +5722,7 @@ function _renderReportFallback(r, allF) {
   // 税务合规局限性声明
 
 
-  h += '<p class="i2"><strong>税务合规局限性声明：</strong>本次分析基于被查单位提交的' + (r.files_count || 0) + '份资料。根据14类税务合规必查资料清单，尚有部分资料未提交（如记账凭证、合同文件、申报表等）。对于资料缺失的分析域，本次税务合规已在对应发现中标注资料缺口，并说明缺失资料对税务合规判断的影响。被查单位补充提交相关资料后，税务合规结论可能需要相应调整。</p>';
+  h += '<p class="i2"><strong>税务合规局限性声明：</strong>本次分析基于被审查企业提交的' + (r.files_count || 0) + '份资料。根据14类税务合规必查资料清单，尚有部分资料未提交（如记账凭证、合同文件、申报表等）。对于资料缺失的分析域，本次税务合规已在对应发现中标注资料缺口，并说明缺失资料对税务合规判断的影响。被审查企业补充提交相关资料后，税务合规结论可能需要相应调整。</p>';
 
 
   
@@ -5737,19 +5737,19 @@ function _renderReportFallback(r, allF) {
   if (overall === '高风险' || overall === '极高风险') {
 
 
-    h += '被查单位存在多项高风险涉税事项，涉及银行收款与开票金额严重偏差（涉嫌隐匿收入）、基础经营费用缺失（经营实质存疑）、供应商与客户存在关联交易嫌疑等核心问题。建议在收到本报告后立即启动深度核查程序，重点核实：银行收款来源的真实性、经营场所和经营能力的实际情况、关联交易的商业实质。同时要求被查单位在15个工作日内补充提交缺失的9类资料，为后续审理提供完整的证据基础。';
+    h += '被审查企业存在多项高风险涉税事项，涉及银行收款与开票金额严重偏差（涉嫌隐匿收入）、基础经营费用缺失（经营实质存疑）、供应商与客户存在关联交易嫌疑等核心问题。建议在收到本报告后立即启动深度核查程序，重点核实：银行收款来源的真实性、经营场所和经营能力的实际情况、关联交易的商业实质。同时要求被审查企业在15个工作日内补充提交缺失的9类资料，为后续审理提供完整的证据基础。';
 
 
   } else if (overall === '中风险') {
 
 
-    h += '被查单位存在一定数量的涉税风险事项，主要集中在发票合规、社保缴纳、资料完备度等方面。虽未发现明显的逃税或虚开信号，但多项中低风险问题叠加可能影响企业的纳税信用等级和税务合规形象。建议被查单位在收到本报告后15个工作日内完成自查整改，补充相关资料并规范财务税务处理。';
+    h += '被审查企业存在一定数量的涉税风险事项，主要集中在发票合规、社保缴纳、资料完备度等方面。虽未发现明显的逃税或虚开信号，但多项中低风险问题叠加可能影响企业的纳税信用等级和税务合规形象。建议被审查企业在收到本报告后15个工作日内完成整改，补充相关资料并规范财务税务处理。';
 
 
   } else {
 
 
-    h += '被查单位整体税务合规状况良好，仅存在少量低风险事项和税收优惠提醒。建议被查单位继续保持规范的财务税务管理，并对报告中指出的低风险事项进行完善。';
+    h += '被审查企业整体税务合规状况良好，仅存在少量低风险事项和税收优惠提醒。建议被审查企业继续保持规范的财务税务管理，并对报告中指出的低风险事项进行完善。';
 
 
   }
@@ -5761,10 +5761,10 @@ function _renderReportFallback(r, allF) {
   // ═══ 第五章：处理处罚建议 ═══
 
 
-  h += '<h2 id="ch5">第五章 处理处罚建议</h2>';
+  h += '<h2 id="ch5">第五章 整改建议</h2>';
 
 
-  h += '<p class="i2">根据本次税务合规发现的事实和被查单位的风险等级，按照紧急程度和影响程度，分级提出以下处理建议：</p>';
+  h += '<p class="i2">根据本次发现的问题的事实和被审查企业的风险等级，按照紧急程度和影响程度，分级提出以下建议：</p>';
 
 
   
@@ -5890,28 +5890,28 @@ function _renderReportFallback(r, allF) {
   // 整改期限
 
 
-  h += '<h3>四、自查整改期限</h3>';
+  h += '<h3>四、整改期限</h3>';
 
 
-  h += '<p class="i2">1. <strong>P0事项：</strong>被查单位应在收到本报告之日起<strong>5个工作日</strong>内，对以上P0事项逐条书面说明情况并提供相关佐证资料。逾期未回复的，税务合规部门将依据现有证据材料直接作出处理决定。</p>';
+  h += '<p class="i2">1. <strong>P0事项：</strong>被审查企业应在收到本报告之日起<strong>5个工作日</strong>内，对以上P0事项逐条书面说明情况并提供相关佐证资料。逾期未回复的，税务合规部门将依据现有相关数据直接作出处理决定。</p>';
 
 
-  h += '<p class="i2">2. <strong>P1事项：</strong>被查单位应在收到本报告之日起<strong>15个工作日</strong>内，完成P1事项的自查整改，并向税务合规部门提交书面整改报告及相关证明材料。</p>';
+  h += '<p class="i2">2. <strong>P1事项：</strong>被审查企业应在收到本报告之日起<strong>15个工作日</strong>内，完成P1事项的整改，并向税务合规部门提交书面整改报告及相关证明材料。</p>';
 
 
-  h += '<p class="i2">3. <strong>P2事项：</strong>被查单位应在收到本报告之日起<strong>30个工作日</strong>内，对P2事项进行完善，并在后续税务申报和财务管理中持续规范。</p>';
+  h += '<p class="i2">3. <strong>P2事项：</strong>被审查企业应在收到本报告之日起<strong>30个工作日</strong>内，对P2事项进行完善，并在后续税务申报和财务管理中持续规范。</p>';
 
 
-  h += '<p class="i2">4. 被查单位如对以上发现的事实有异议，可依据第六章规定的陈述申辩权和听证权，在法定期限内提出。</p>';
+  h += '<p class="i2">4. 被审查企业如对以上发现的事实有异议，可依据第六章规定的陈述申辩权和听证权，在法定期限内提出。</p>';
 
 
   // ═══ 第六章：告知权利义务 ═══
 
 
-  h += '<h2 id="ch6">第六章 告知权利义务</h2>';
+  h += '<h2 id="ch6">第六章 您的权利</h2>';
 
 
-  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被查单位「' + (te.name || te.company_name || '') + '」在本次税务合规过程中依法享有以下权利：</p>';
+  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次税务合规过程中依法享有以下权利：</p>';
 
 
   
@@ -5920,10 +5920,10 @@ function _renderReportFallback(r, allF) {
   h += '<h3>一、申请回避权</h3>';
 
 
-  h += '<p class="i2">被查单位认为税务合规人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该税务合规人员回避。申请回避应当在税务合规人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向税务合规部门提出，说明申请回避的理由。税务合规部门应当在收到申请后3日内作出决定并告知申请人。</p>';
+  h += '<p class="i2">被审查企业认为税务合规人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该税务合规人员回避。申请回避应当在税务合规人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向税务合规部门提出，说明申请回避的理由。税务合规部门应当在收到申请后3日内作出决定并告知申请人。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《税收征收管理法》第十二条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第十二条</p>';
 
 
   
@@ -5932,10 +5932,10 @@ function _renderReportFallback(r, allF) {
   h += '<h3>二、陈述申辩权</h3>';
 
 
-  h += '<p class="i2">被查单位对税务合规认定的事实、依据和处理建议，有权进行陈述和申辩。税务合规部门应当充分听取被查单位的意见，对其提出的事实、理由和证据进行复核。被查单位提出的事实、理由或者证据成立的，税务合规部门应当采纳。陈述申辩应当在收到《税务合规报告》后<strong>7日内</strong>以书面形式提交。</p>';
+  h += '<p class="i2">被审查企业对税务合规认定的事实、依据和建议，有权进行陈述和申辩。税务合规部门应当充分听取被审查企业的意见，对其提出的事实、理由和证据进行复核。被审查企业提出的事实、理由或者证据成立的，税务合规部门应当采纳。陈述申辩应当在收到《税务合规报告》后<strong>7日内</strong>以书面形式提交。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政处罚法》第三十二条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政处罚法》第三十二条</p>';
 
 
   
@@ -5944,10 +5944,10 @@ function _renderReportFallback(r, allF) {
   h += '<h3>三、要求听证权</h3>';
 
 
-  h += '<p class="i2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被查单位有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。税务合规部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</p>';
+  h += '<p class="i2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被审查企业有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。税务合规部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</p>';
 
 
   
@@ -5956,10 +5956,10 @@ function _renderReportFallback(r, allF) {
   h += '<h3>四、申请行政复议权</h3>';
 
 
-  h += '<p class="i2">被查单位对税务合规部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被查单位按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</p>';
+  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被审查企业按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政复议法》第九条、第二十一条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政复议法》第九条、第二十一条</p>';
 
 
   
@@ -5968,10 +5968,10 @@ function _renderReportFallback(r, allF) {
   h += '<h3>五、提起行政诉讼权</h3>';
 
 
-  h += '<p class="i2">被查单位对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
+  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">法律依据：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
 
 
   
@@ -5980,7 +5980,7 @@ function _renderReportFallback(r, allF) {
   // ═══ 第七章：税务合规人员签字 ═══
 
 
-  h += '<h2 id="ch7">第七章 税务合规人员签字</h2>';
+  h += '<h2 id="ch7">第七章 签字页</h2>';
 
 
   h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
@@ -5998,7 +5998,7 @@ function _renderReportFallback(r, allF) {
   h += '<p style="margin-top:20px">报告日期：' + dateStr + '</p>';
 
 
-  h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告一式三份：税务合规部门留存一份，被查单位一份，报送上一级税务机关备案一份。</p>';
+  h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告一式三份：税务合规部门留存一份，被审查企业一份，报送上一级税务机关备案一份。</p>';
 
 
   h += '</div>';
@@ -7924,7 +7924,7 @@ function _ttsSetNewsTone(utt, text) {
   var isLaw = text.indexOf('《') >= 0 && text.indexOf('》') >= 0 && text.indexOf('第') >= 0 && text.indexOf('条') >= 0;
 
 
-  var isSuggestion = text.indexOf('处理建议') >= 0 || text.indexOf('自查整改') >= 0;
+  var isSuggestion = text.indexOf('建议') >= 0 || text.indexOf('整改') >= 0;
 
 
   
