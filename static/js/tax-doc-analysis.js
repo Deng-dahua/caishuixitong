@@ -4825,6 +4825,15 @@ function _renderReportFallback(r, allF) {
   h += '<h2 id="ch2">第二章 审查过程</h2>';
 
 
+  // ── 计算总记录数 ──
+  var totalRecords = 0;
+  var fileList = r.file_list || r.files || [];
+  var fileResults = r.file_results || [];
+  for (var tri = 0; tri < fileResults.length; tri++) {
+    var fr = fileResults[tri];
+    if (fr) totalRecords += (fr.rowCount || fr.recordCount || fr.totalRows || 0);
+  }
+  
   h += '<p class="i2">本次审查对' + (r.files_count || 0) + '份资料进行了自动分析，共提取' + (totalRecords || '-') + '条有效数据记录。分析覆盖身份核实、资金追踪、票流比对、工资社保、行业对标等多个维度，全部由系统自动完成。</p>';
   
   // ── 动态资料摘要表格（仅显示实际解析的数据）──
