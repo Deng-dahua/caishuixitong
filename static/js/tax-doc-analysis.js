@@ -4886,7 +4886,6 @@ function _renderReportFallback(r, allF) {
     h += '<h4>关键数据量</h4>';
     h += '<p class="i2">' + summaryItems.join('；') + '。</p>';
   }
-';
 
 
   
