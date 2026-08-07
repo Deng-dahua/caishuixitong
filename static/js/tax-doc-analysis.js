@@ -4831,22 +4831,38 @@ function _renderReportFallback(r, allF) {
   var fileResults = r.file_results || [];
   for (var tri = 0; tri < fileResults.length; tri++) {
     var fr = fileResults[tri];
-    if (fr) totalRecords += (fr.rowCount || fr.recordCount || fr.totalRows || 0);
+    if (!fr) continue;
+    // 从actions文本中提取条数 (格式: '提取5条工资' 或 '推理判定:xxx 4条')
+    var acts = fr.actions || [];
+    for (var ai = 0; ai < acts.length; ai++) {
+      var m = acts[ai].match(/(\d+)条/);
+      if (m) totalRecords += parseInt(m[1]) || 0;
+    }
   }
   
-  h += '<p class="i2">本次审查对' + (r.files_count || 0) + '份资料进行了自动分析，共提取' + (totalRecords || '-') + '条有效数据记录。分析覆盖身份核实、资金追踪、票流比对、工资社保、行业对标等多个维度，全部由系统自动完成。</p>';
+  h += '<p class="i2">本次审查对' + (r.files_count || 0) + '份资料进行了自动分析' + (totalRecords > 0 ? '，共提取' + totalRecords + '条有效数据记录' : '') + '。分析覆盖身份核实、资金追踪、票流比对、工资社保、行业对标等多个维度，全部由系统自动完成。</p>';
   
   // ── 动态资料摘要表格（仅显示实际解析的数据）──
   h += '<h4>资料解析情况</h4>';
   h += '<div class="wide-table"><table><thead><tr><th>序号</th><th>文件名</th><th>识别类型</th><th>有效记录</th><th>解析状态</th></tr></thead><tbody>';
-  for (var fi = 0; fi < fileList.length; fi++) {
-    var fn = fileList[fi] && fileList[fi].original_name ? fileList[fi].original_name : '';
-    var fr = fileResults && fileResults[fi] ? fileResults[fi] : null;
-    if (!fr) continue;
-    var recCount = (fr.rowCount || fr.recordCount || fr.totalRows || 0);
-    var acts = (fr.actions || []);
-    var statusText = acts.length > 0 ? acts.join('；') : '解析完成';
-    var ftype = (fr.type || 'general');
+  for (var fi = 0; fi < fileResults.length; fi++) {
+    var fr2 = fileResults[fi];
+    if (!fr2) continue;
+    // 从file_results取文件名
+    var originalName = '';
+    if (fr2.file && fr2.file.original_name) originalName = fr2.file.original_name;
+    else if (fileList[fi] && fileList[fi].original_name) originalName = fileList[fi].original_name;
+    else originalName = '文件' + (fi+1);
+    
+    // 提取行数
+    var rowCount = 0;
+    var acts2 = fr2.actions || [];
+    for (var ai2 = 0; ai2 < acts2.length; ai2++) {
+      var m2 = acts2[ai2].match(/(\d+)条/);
+      if (m2) rowCount += parseInt(m2[1]) || 0;
+    }
+    
+    var ftype = (fr2.type || 'general');
     var ftypeName = ftype;
     if (ftype === 'salary') ftypeName = '工资表';
     else if (ftype === 'social_security') ftypeName = '社保明细';
@@ -4862,7 +4878,10 @@ function _renderReportFallback(r, allF) {
     else if (ftype === 'audit_notice') ftypeName = '稽查通知书';
     else if (ftype === 'rd_aux_ledger') ftypeName = '研发辅助账';
     else ftypeName = ftype;
-    h += '<tr><td>' + (fi+1) + '</td><td>' + (fn || '文件'+(fi+1)) + '</td><td>' + ftypeName + '</td><td>' + (recCount || '-') + '条</td><td style=\"color:#166534\">' + (statusText || '成功') + '</td></tr>';
+    
+    var statusText = acts2.join('；') || '解析完成';
+    if (statusText.length > 50) statusText = statusText.substring(0, 50) + '...';
+    h += '<tr><td>' + (fi+1) + '</td><td>' + (originalName || '文件'+(fi+1)) + '</td><td>' + ftypeName + '</td><td>' + (rowCount || '-') + '条</td><td style=\"color:#166534\">' + (statusText || '成功') + '</td></tr>';
   }
   h += '</tbody></table></div>';
   
@@ -4883,17 +4902,24 @@ function _renderReportFallback(r, allF) {
   // ── 关键数据摘要 ──
   var ic = r.invoice_counts || {};
   var bi_data = r.stats || {};
-  var hasInvoices = (ic.sales + ic.purchases) > 0;
-  var hasBank = bi_data.bank_tx_count > 0 || ic._bank_count > 0;
-  var hasSalary = bi_data.salary_count > 0 || ic._salary_count > 0;
+  var mi = (r.comprehensive || {}).material_intel || {};
+  var hasBank = mi['银行流水'] && mi['银行流水'].exists;
+  var hasSalary = mi['工资'] && mi['工资'].exists;
   
   var summaryItems = [];
-  if (hasInvoices) summaryItems.push('识别发票' + ((ic.sales||0)+(ic.purchases||0)) + '张（销项' + (ic.sales||0) + '张、进项' + (ic.purchases||0) + '张）');
-  if (hasBank) summaryItems.push('解析银行交易' + (bi_data.bank_tx_count || 0) + '笔');
-  if (hasSalary) summaryItems.push('提取工资' + (bi_data.salary_count || 0) + '条、社保' + (bi_data.ss_count || 0) + '条');
+  if ((ic.sales||0) > 0) summaryItems.push('销项发票' + (ic.sales||0) + '张');
+  if ((ic.purchases||0) > 0) summaryItems.push('进项发票' + (ic.purchases||0) + '张');
+  if (hasBank) {
+    var bankInfo = mi['银行流水'] || {};
+    summaryItems.push('银行流水' + (bankInfo['笔数'] || '?') + '笔');
+  }
+  if (hasSalary) {
+    var salInfo = mi['工资'] || {};
+    summaryItems.push('工资' + (salInfo['记录条数'] || salInfo['员工人数'] || '?') + '条');
+  }
   if (summaryItems.length > 0) {
     h += '<h4>关键数据量</h4>';
-    h += '<p class="i2">' + summaryItems.join('；') + '。</p>';
+    h += '<p class="i2">' + summaryItems.join('、') + '。</p>';
   }
 
 
