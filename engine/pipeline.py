@@ -3427,6 +3427,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             "social_security": social_security,
             "inventory": inventory,
             "trial_balance": trial_balance_data,
+            "rd_data": rd_data,
         }
         _pre_scenario_candidate_count = len(all_findings)
         _scenario_execution = execute_scenario_methodology(

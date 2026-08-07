@@ -536,14 +536,18 @@ def execute_scenario_methodology(industry, file_results=None, engine_data=None):
             }
             scene_assessments.append(assessment)
             if scene_observations and status != "资料不足_未启动":
-                # ═══ 行业门禁：研发场景仅适用于科技/制造/IT行业 ═══
+                # ═══ 行业门禁：研发场景仅适用于确有研发活动的企业 ═══
                 lead_domain = (scene.get("domain_collaboration") or {}).get("lead", "")
-                if "研发" in lead_domain or "研发" in scene.get("id", ""):
+                scene_id = scene.get("id", "")
+                if "研发" in lead_domain or "研发" in scene_id:
+                    # 双重验证：行业匹配 + 实际研发信号
                     industry_text = str(industry or "").lower()
-                    tech_kw = ["科技", "技术", "软件", "信息", "制造", "医药", "电子", "新能源"]
-                    is_tech = any(k in (industry_text) for k in tech_kw)
-                    if not is_tech:
-                        scene_assessments[-1]["applicability_status"] = "行业不适用：非科技/制造/IT行业"
+                    tech_kw = ["科技", "技术", "软件", "信息", "医药", "电子", "新能源", "互联网"]
+                    is_tech = any(k in industry_text for k in tech_kw)
+                    # 检查是否有研发辅助账或研发事项的实际数据
+                    has_rd_data = bool(engine_data and (engine_data.get("rd_data") or {}).get("projects")) if engine_data else False
+                    if not is_tech and not has_rd_data:
+                        scene_assessments[-1]["applicability_status"] = "行业不适用：非科技/制造/IT行业且无研发辅助账"
                         continue
                 industry_findings.append(
                     _industry_finding(
