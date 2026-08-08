@@ -4824,111 +4824,58 @@ function _renderReportFallback(r, allF) {
 
   h += '<h2 id="ch2">第二章 审查过程</h2>';
 
-
-  // ── 计算总记录数 ──
   var totalRecords = 0;
-  var fileList = r.file_list || r.files || [];
   var fileResults = r.file_results || [];
+  var ftypeCounts = {};
+  var allFileNames = [];
   for (var tri = 0; tri < fileResults.length; tri++) {
-    var fr = fileResults[tri];
-    if (!fr) continue;
-    // 从actions文本中提取条数 (格式: '提取5条工资' 或 '推理判定:xxx 4条')
-    var acts = fr.actions || [];
+    var fr3 = fileResults[tri];
+    if (!fr3) continue;
+    var ft = fr3.type || 'other';
+    var acts = fr3.actions || [];
     for (var ai = 0; ai < acts.length; ai++) {
       var m = acts[ai].match(/(\d+)条/);
       if (m) totalRecords += parseInt(m[1]) || 0;
     }
+    ftypeCounts[ft] = (ftypeCounts[ft] || 0) + 1;
+    if (fr3.file && fr3.file.original_name) allFileNames.push(fr3.file.original_name);
   }
   
-  h += '<p class="i2">本次审查对' + (r.files_count || 0) + '份资料进行了自动分析' + (totalRecords > 0 ? '，共提取' + totalRecords + '条有效数据记录' : '') + '。分析覆盖身份核实、资金追踪、票流比对、工资社保、行业对标等多个维度，全部由系统自动完成。</p>';
-  
-  // ── 动态资料摘要表格（仅显示实际解析的数据）──
-  h += '<h4>资料解析情况</h4>';
-  h += '<div class="wide-table"><table><thead><tr><th>序号</th><th>文件名</th><th>识别类型</th><th>有效记录</th><th>解析状态</th></tr></thead><tbody>';
-  for (var fi = 0; fi < fileResults.length; fi++) {
-    var fr2 = fileResults[fi];
-    if (!fr2) continue;
-    // 从file_results取文件名
-    var originalName = '';
-    if (fr2.file && fr2.file.original_name) originalName = fr2.file.original_name;
-    else if (fileList[fi] && fileList[fi].original_name) originalName = fileList[fi].original_name;
-    else originalName = '文件' + (fi+1);
-    
-    // 提取行数
-    var rowCount = 0;
-    var acts2 = fr2.actions || [];
-    for (var ai2 = 0; ai2 < acts2.length; ai2++) {
-      var m2 = acts2[ai2].match(/(\d+)条/);
-      if (m2) rowCount += parseInt(m2[1]) || 0;
-    }
-    
-    var ftype = (fr2.type || 'general');
-    var ftypeName = ftype;
-    if (ftype === 'salary') ftypeName = '工资表';
-    else if (ftype === 'social_security') ftypeName = '社保明细';
-    else if (ftype === 'housing_fund') ftypeName = '公积金';
-    else if (ftype === 'bank' || ftype === 'bank_statement') ftypeName = '银行流水';
-    else if (ftype === 'sales_invoice') ftypeName = '销项发票';
-    else if (ftype === 'purchase_invoice') ftypeName = '进项发票';
-    else if (ftype === 'input_vat_deduction') ftypeName = '进项认证抵扣';
-    else if (ftype === 'bom') ftypeName = 'BOM表';
-    else if (ftype === 'customs_declaration') ftypeName = '报关单';
-    else if (ftype === 'export_invoice') ftypeName = '出口发票';
-    else if (ftype === 'forex_sheet') ftypeName = '收汇核销';
-    else if (ftype === 'audit_notice') ftypeName = '稽查通知书';
-    else if (ftype === 'rd_aux_ledger') ftypeName = '研发辅助账';
-    else ftypeName = ftype;
-    
-    var statusText = acts2.join('；') || '解析完成';
-    if (statusText.length > 50) statusText = statusText.substring(0, 50) + '...';
-    h += '<tr><td>' + (fi+1) + '</td><td>' + (originalName || '文件'+(fi+1)) + '</td><td>' + ftypeName + '</td><td>' + (rowCount || '-') + '条</td><td style=\"color:#166534\">' + (statusText || '成功') + '</td></tr>';
-  }
-  h += '</tbody></table></div>';
-  
-  // ── 动态分析摘要（基于实际运行的域）──
-  var domainSummary = r.domain_summary || [];
-  var activeDomains = [];
-  for (var di = 0; di < domainSummary.length; di++) {
-    var ds = domainSummary[di];
-    if (ds && ds.count > 0) {
-      activeDomains.push(ds.name || ds.domain || '');
-    }
-  }
-  if (activeDomains.length > 0) {
-    h += '<h4>实际运行的分析域</h4>';
-    h += '<p class="i2">本次审查中共有' + activeDomains.length + '个分析域产生了发现：' + activeDomains.join('、') + '。其他域因数据类型不适用或未检测到相关信号而自动跳过。</p>';
-  }
-  
-  // ── 关键数据摘要 ──
-  var ic = r.invoice_counts || {};
-  var bi_data = r.stats || {};
   var mi = (r.comprehensive || {}).material_intel || {};
-  var hasBank = mi['银行流水'] && mi['银行流水'].exists;
-  var hasSalary = mi['工资'] && mi['工资'].exists;
+  var ic = r.invoice_counts || {};
+  var ds = r.domain_summary || [];
   
-  var summaryItems = [];
-  if ((ic.sales||0) > 0) summaryItems.push('销项发票' + (ic.sales||0) + '张');
-  if ((ic.purchases||0) > 0) summaryItems.push('进项发票' + (ic.purchases||0) + '张');
-  if (hasBank) {
-    var bankInfo = mi['银行流水'] || {};
-    summaryItems.push('银行流水' + (bankInfo['笔数'] || '?') + '笔');
-  }
-  if (hasSalary) {
-    var salInfo = mi['工资'] || {};
-    summaryItems.push('工资' + (salInfo['记录条数'] || salInfo['员工人数'] || '?') + '条');
-  }
-  if (summaryItems.length > 0) {
-    h += '<h4>关键数据量</h4>';
-    h += '<p class="i2">' + summaryItems.join('、') + '。</p>';
-  }
-
-
+  h += '<p class="i2"><strong>收到资料。</strong>本次共接收' + (r.files_count || fileResults.length) + '份电子资料，识别出';
+  var typeParts = [];
+  if (ftypeCounts.salary) typeParts.push('工资表' + ftypeCounts.salary + '份');
+  if (ftypeCounts.social_security) typeParts.push('社保' + ftypeCounts.social_security + '份');
+  if (ftypeCounts.housing_fund) typeParts.push('公积金' + ftypeCounts.housing_fund + '份');
+  if (ftypeCounts.sales_invoice) typeParts.push('销项发票' + ftypeCounts.sales_invoice + '份');
+  if (ftypeCounts.purchase_invoice) typeParts.push('进项发票' + ftypeCounts.purchase_invoice + '份');
+  if (ftypeCounts.input_vat_deduction) typeParts.push('进项抵扣' + ftypeCounts.input_vat_deduction + '份');
+  if (ftypeCounts.bank || ftypeCounts.bank_statement) typeParts.push('银行流水' + (ftypeCounts.bank || ftypeCounts.bank_statement) + '份');
+  if (typeParts.length > 0) h += typeParts.join('、') + '，共' + typeParts.length + '类资料';
+  h += '，提取有效数据' + (totalRecords || '若干') + '条。</p>';
   
+  h += '<p class="i2"><strong>数据概览。</strong>';
+  var ov = [];
+  var bk = mi['银行流水'] || {};
+  if (bk.exists && bk['笔数']) ov.push('银行流水共' + bk['笔数'] + '笔，总收款' + (bk['总收款']||'?') + '，总付款' + (bk['总付款']||'?'));
+  var inv = mi['发票'] || {};
+  if (inv.exists) ov.push('销项' + (ic.sales||0) + '张、进项' + (ic.purchases||0) + '张');
+  var sl = mi['工资'] || {};
+  if (sl.exists) ov.push('工资' + (sl['员工人数']||'?') + '人，人均' + (sl['人均工资']||'?'));
+  var ss = mi['社保'] || {};
+  if (ss.exists) ov.push('社保' + (ss['记录条数']||'?') + '条，缴费' + (ss['总缴费金额']||'?'));
+  h += ov.join('。') + '。</p>';
+  
+  var activeDomains = [];
+  for (var di = 0; di < ds.length; di++) {
+    if (ds[di] && ds[di].count > 0) activeDomains.push(ds[di].name || ds[di].domain || '');
+  }
+  h += '<p class="i2"><strong>分析方法。</strong>基于以上资料，系统自动执行了' + activeDomains.length + '个维度的交叉核查：' + (activeDomains.length > 0 ? activeDomains.join('、') : '多维度比对') + '。其中产生关注事项的分析域详见第三章，其余未产生信号的域自动跳过，不占用报告篇幅。</p>';
 
-
-
-
-  h += '<h2 id="ch3">第三章 发现的问题</h2>';
+h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
   
