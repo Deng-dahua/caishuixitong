@@ -8091,6 +8091,12 @@ def _persist_one_click_result(company_id, result):
         }
     pipeline_log.append(f"[证据编号] {len(all_findings)}条发现已标注数据溯源")
     
+    # ═══ 规则漂移检测（跨分析一致性监控）═══
+    drift_check = _check_rule_drift(all_findings, company_id)
+    if drift_check.get("drift_detected"):
+        pipeline_log.append(f"[漂移] 检测到{drift_check['changed_rules']}条规则与上次分析不同")
+    report_data["_rule_drift"] = drift_check
+    
     # ═══ 构建案件快照——所有模块统一数据源 ═══
     snapshot = _build_case_snapshot(result, company_id, db)
     result["_case_snapshot"] = snapshot
@@ -8185,6 +8191,48 @@ def _verify_cross_account_isolation(result, company_id):
         if fpath and f"/{company_id}/" not in fpath and f"/{company_id}_" not in fpath:
             continue  # 容忍非标准路径
     return True
+
+def _verify_cross_account_isolation(result, company_id):
+    """跨账套隔离验证：确保分析结果中的数据不包含其他账套的信息"""
+    report = result.get("report", result) if isinstance(result, dict) else {}
+    target = report.get("target_entity", {}) or {}
+    
+    for f in report.get("all_findings", []) or []:
+        detail = str(f.get("detail", "")) + str(f.get("description", "")) + str(f.get("how_found", ""))
+        for kw in ["跨账套", "其他企业", "另一家"]:
+            if kw in detail.lower():
+                return False
+    return True
+
+def _check_rule_drift(findings, company_id):
+    """规则漂移检测：与上次分析结果对比规则一致性"""
+    prev = _last_analysis_cache.get(company_id, {})
+    prev_report = prev.get("report", {})
+    prev_findings = prev_report.get("report", {}).get("all_findings", []) if isinstance(prev_report, dict) else prev_report.get("all_findings", [])
+    
+    if not prev_findings:
+        return {"drift_detected": False, "reason": "首次分析，无可对比数据"}
+    
+    current_rules = set()
+    prev_rules = set()
+    for f in findings:
+        rule = f.get("rule_id") or f.get("source_chain") or f.get("type", "")
+        if rule: current_rules.add(str(rule)[:60])
+    for f in prev_findings:
+        rule = f.get("rule_id") or f.get("source_chain") or f.get("type", "")
+        if rule: prev_rules.add(str(rule)[:60])
+    
+    added = current_rules - prev_rules
+    removed = prev_rules - current_rules
+    changed_rules = len(added) + len(removed)
+    
+    return {
+        "drift_detected": changed_rules > 0,
+        "changed_rules": changed_rules,
+        "added_rules": len(added),
+        "removed_rules": len(removed),
+        "decision_boundary": "规则漂移仅作内部监控，不代表分析质量问题。如漂移量异常（>50%规则变化），应人工复核数据完整性。",
+    }
 
 def _build_case_snapshot(result, company_id, db):
     """构建统一案件数据快照——所有模块必须从此快照读取，禁止各自解析。
@@ -9997,17 +10045,75 @@ def start_patrol(company_id: int = Query(...)):
 # ═══════════ 报告导出 + 移动端 ═══════════
 
 @app.get("/api/agi/report/export")
+def _get_rights_notice():
+    """纳税人权利告知书"""
+    return {
+        "title": "纳税人权利告知书",
+        "rights": [
+            "知情权：有权了解审查依据、范围和人员信息",
+            "保密权：商业秘密和个人隐私受法律保护",
+            "委托代理权：可委托税务师、律师代理",
+            "申请回避权：对有利害关系的审查人员可申请回避",
+            "陈述申辩权：对认定事实有异议可书面陈述",
+            "要求听证权：符合标准可申请听证",
+            "行政复议权：60日内向上级机关申请复议",
+            "行政诉讼权：6个月内向法院提起诉讼",
+            "监督检举权：对违法违纪行为可检举控告",
+        ],
+        "law_ref": "《税收征收管理法》《纳税人权利与义务公告》《税务稽查案件办理程序规定》",
+        "note": "本告知书仅为系统生成的辅助参考。正式权利告知以税务机关出具的文书为准。",
+    }
+
 def export_report(company_id: int = Query(...), format: str = "txt"):
-    """导出税务合规报告（txt/json/html）"""
+    """导出税务合规报告（txt/json/html/package）
+    
+    package格式 = 报告正文 + 工作底稿 + 证据清单 + 权益告知 + 验收标准
+    """
     cached = _last_analysis_cache.get(company_id)
     if not cached:
         return {"ok": False, "message": "暂无分析结果"}
     
     report = cached.get("report", {})
     report_data = report.get("report", report if isinstance(report, dict) else {})
+    snapshot = cached.get("snapshot") or report.get("_case_snapshot") or {}
     findings = report_data.get("all_findings", [])
     target = report_data.get("target_entity", {})
     comp = report_data.get("comprehensive", {})
+    
+    # 导出门禁检查
+    qg = report_data.get("_quality_gate") or {}
+    ma = report_data.get("_methodology_applied") or {}
+    if ma.get("methodology_gate_enforced") or not qg.get("gate_passed", True):
+        return {"ok": False, "message": "质量门禁未通过，导出已禁止。请修复验收标准未达标项后重新分析。"}
+    
+    if format == "package":
+        # 一体化导出包
+        evidence_package = []
+        for f in findings:
+            ev = f.get("_evidence_ref") or {}
+            lr = f.get("_legal_ref") or {}
+            evidence_package.append({
+                "type": f.get("type", ""),
+                "level": f.get("level", ""),
+                "score": f.get("score", 0),
+                "detail": f.get("detail", ""),
+                "trace_id": ev.get("trace_id", ""),
+                "snapshot_id": ev.get("snapshot_id", ""),
+                "law_ref": lr.get("citation", ""),
+                "law_verified": lr.get("verified_at", ""),
+            })
+        return {
+            "ok": True,
+            "format": "package",
+            "package": {
+                "report": report_data,          # 报告正文
+                "snapshot": snapshot,            # 工作底稿
+                "evidence": evidence_package,    # 证据清单
+                "rights": _get_rights_notice(), # 权益告知
+                "quality_gate": qg,              # 验收标准
+                "exported_at": datetime.now().isoformat(),
+            }
+        }
     
     if format == "json":
         return {"ok": True, "data": report_data, "format": "json"}
