@@ -6036,6 +6036,15 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
         try: return f"{float(v)/10000:.0f}万元"
         except: return "—"
     
+    def _parse_money(s):
+        """从格式化金额字符串中提取数值"""
+        if s is None: return 0
+        if isinstance(s, (int, float)): return s
+        try:
+            return float(str(s).replace(",", "").replace("元", "").strip())
+        except:
+            return 0
+    
     # ① 企业名片
     comp = cached.get("company") or {}
     company_info = {
@@ -6062,21 +6071,23 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
     else:
         biz["note"] = "未上传科目余额表，无法计算经营指标"
     
-    # ③ 资金流水
-    cashflow = report.get("comprehensive", {}).get("cashflow", {})
+    # ③ 资金流水 — 从material_intel或bank_txs直接提取
+    mi = report.get("comprehensive", {}).get("material_intel", {}) or {}
+    bk = mi.get("银行流水", {}) or {}
     cash = {
-        "total_in": round(cashflow.get("total_inflow", 0) or 0, 2),
-        "total_out": round(cashflow.get("total_outflow", 0) or 0, 2),
-        "net": round((cashflow.get("total_inflow", 0) or 0) - (cashflow.get("total_outflow", 0) or 0), 2)
+        "total_in": _parse_money(bk.get("总收款", "0")),
+        "total_out": _parse_money(bk.get("总付款", "0")),
+        "net": round(_parse_money(bk.get("净流入", "0")), 2),
+        "tx_count": bk.get("笔数", 0) or 0,
+        "months": len(bk.get("覆盖月份", [])),
+        "available": bool(bk.get("exists")),
     }
     
-    # ④ 发票概况
+    # ④ 发票概况 — invoice_counts是扁平字典,非嵌套结构
     ic = report.get("invoice_counts", {}) or {}
     inv = {
-        "sales_count": ic.get("sales", {}).get("count", 0) or 0,
-        "sales_tax": round(ic.get("sales", {}).get("tax", 0) or 0, 2),
-        "purchase_count": ic.get("purchase", {}).get("count", 0) or 0,
-        "purchase_tax": round(ic.get("purchase", {}).get("tax", 0) or 0, 2)
+        "sales_count": ic.get("sales", 0) if isinstance(ic.get("sales"), (int, float)) else (ic.get("sales", {}).get("count", 0) if isinstance(ic.get("sales"), dict) else 0),
+        "purchase_count": ic.get("purchases", 0) if isinstance(ic.get("purchases"), (int, float)) else (ic.get("purchases", {}).get("count", 0) if isinstance(ic.get("purchases"), dict) else 0),
     }
     
     # ⑤ 税负与纳税 — 无申报表数据源，诚实标注
@@ -7959,6 +7970,23 @@ def _apply_methodology_stage(report_data):
     review_report_methodology(report_data)
 
     acceptance = run_portfolio_acceptance()
+    # ═══ 方法论门禁：失败场景阻断自动定性/评分/报告引用 ═══
+    if acceptance.get("status") == "failed":
+        failed_scene_count = acceptance.get("failed_scene_count", 0)
+        failed_scene_ids = set()
+        for fs in acceptance.get("failed_scenes", []):
+            failed_scene_ids.add(fs.get("scene_id", ""))
+        # 跨行业阻断：对所有finding中属于失败场景的做降级处理
+        degraded = 0
+        for f in all_findings:
+            sid = f.get("scene_id") or f.get("fact_id") or f.get("scene_fact_id") or ""
+            if sid in failed_scene_ids:
+                f["level"] = "待核验（方法论未验收）"
+                f["score"] = 0
+                f["_methodology_blocked"] = True
+                degraded += 1
+        if degraded > 0:
+            pipeline_log.append(f"[门禁] 阻断{degraded}条来自{len(failed_scene_ids)}个失败场景的发现")
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
@@ -7968,7 +7996,9 @@ def _apply_methodology_stage(report_data):
         "portfolio_acceptance_status": acceptance.get("status"),
         "portfolio_scenes_validated": acceptance.get("passed_scene_count", 0),
         "portfolio_acceptance_cases": acceptance.get("acceptance_case_count", 0),
-        "decision_boundary": "全部发现均为待核、待补证或待人工复核状态，系统不自动作出行政认定。",
+        "portfolio_failed_scenes": acceptance.get("failed_scene_count", 0),
+        "methodology_gate_enforced": acceptance.get("status") == "failed",
+        "decision_boundary": "方法论验收不通过时，失败场景的发现已降级为'待核验'，不得自动定性、打分或引用至正式报告。全部发现均为待核、待补证或待人工复核状态，系统不自动作出行政认定。",
     }
     report_data["_methodology_applied"] = summary
     _append_one_click_log(

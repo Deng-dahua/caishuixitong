@@ -1,526 +1,5 @@
 [
   {
-    "timestamp": "2026-07-13T22:33:41.495201",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-13T22:36:36.680736",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-14T22:37:13.303329",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-14T22:48:12.102847",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-15T19:23:17.052192",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T07:39:13.614700",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:00:02.555894",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:04:51.410552",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:22:05.431698",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:40:02.825860",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:54:55.589140",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T08:59:41.954471",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T09:03:08.192995",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T09:20:54.755236",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T09:22:48.702607",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [
-      "进项发票连号",
-      "存在异常大额交易日"
-    ],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T09:24:27.493863",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-17T21:33:00.232828",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T09:30:55.508170",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T14:09:58.827417",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T16:01:38.823306",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
     "timestamp": "2026-07-18T16:30:22.620256",
     "industry": "现代服务",
     "biz_model": "未确定",
@@ -2729,6 +2208,556 @@
     "yellow_flags": [],
     "pattern_hits": 1,
     "total_findings": 55,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:09:56.618528",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "人员薪酬与扣缴域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:09:56.622953",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:45:01.705591",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "人员薪酬与扣缴域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:45:01.712248",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:46:16.181098",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "人员薪酬与扣缴域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:46:16.187968",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:47:03.098492",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "人员薪酬与扣缴域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:47:03.105335",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:48:41.383108",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:48:41.391494",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:49:05.296190",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:49:05.299677",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:49:49.127859",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:49:49.131301",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:50:18.883317",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:50:18.890860",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-07T08:56:40.549786",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-07T08:56:40.553665",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": false,
+    "has_personal_payments": true,
+    "supplier_concentration": 34.41335674163506,
+    "customer_concentration": 100.0,
+    "data_quality_score": 100,
+    "snapshot": {
+      "sales": 245827.02,
+      "purchases": 466564.46,
+      "bank_in": 395905.76,
+      "bank_out": 346722.77,
+      "salary": 0.0,
+      "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-08T11:15:31.339924",
+    "company_id": 1,
+    "company_name": "深圳海更数字传媒有限公司",
+    "industry": "广告传媒",
+    "total_contradictions": 1,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "人员薪酬与扣缴域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-08T11:15:31.357924",
+    "industry": "信息技术服务",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 59.8,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
     "has_processing": false,
     "has_personal_payments": true,
     "supplier_concentration": 34.41335674163506,
