@@ -319,9 +319,9 @@ async function sendChat() {
     hideTyping();
     
     if (data.ok && data.answer) {
-      appendMessage('ai', data.answer);
+      appendMessage('ai', data.answer + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。如涉及重大税务事项，请咨询专业税务顾问。*');
     } else if (data.ok && data.reply) {
-      appendMessage('ai', data.reply);
+      appendMessage('ai', data.reply + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。*');
     } else {
       appendMessage('ai', '⚠️ ' + (data.message || '服务暂不可用，请稍后重试'));
     }
