@@ -5409,7 +5409,20 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   // ═══ 第五章：处理处罚建议 ═══
 
 
-  h += '<h2 id="ch5">第五章 整改建议</h2>';
+    var qg = r._quality_gate || {};
+
+  h += '<h2 id="ch4b">附：验收标准自检</h2>';
+  h += '<div class="wide-table"><table><thead><tr><th>验收项</th><th>标准</th><th>当前</th><th>状态</th></tr></thead><tbody>';
+  h += '<tr><td>数据一致率</td><td>100%</td><td>' + (qg.data_consistency_rate||'未检') + '%</td><td>' + ((qg.data_consistency_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
+  h += '<tr><td>关键事实可追溯率</td><td>100%</td><td>' + (qg.key_facts_traceability_rate||'未检') + '%</td><td>' + ((qg.key_facts_traceability_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
+  h += '<tr><td>高影响反证处理率</td><td>100%</td><td>' + (qg.adverse_evidence_rate||'未检') + '%</td><td>' + ((qg.adverse_evidence_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
+  h += '<tr><td>法律时效核验率</td><td>100%</td><td>' + (qg.legal_validity_rate||'未检') + '%</td><td>' + ((qg.legal_validity_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
+  h += '<tr><td>金额可复算率</td><td>100%</td><td>' + (qg.amount_recomputability_rate||'未检') + '%</td><td>' + ((qg.amount_recomputability_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
+  h += '</tbody></table></div>';
+  if (!qg.gate_passed) {
+    h += '<p class="i2" style="background:#fef2f2;padding:10px;border-radius:6px;font-size:13px"><strong>验收警告：</strong>五项标准未全部达标。本报告为系统辅助分析结果，不得直接作为正式稽查结论、补税金额或违法定性使用。请经有权人员复核确认后签署。</p>';
+  }
+h += '<h2 id="ch5">第五章 整改建议</h2>';
 
 
   h += '<p class="i2">根据本次发现的问题的事实和被审查企业的风险等级，按照紧急程度和影响程度，分级提出以下建议：</p>';
