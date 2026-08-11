@@ -2560,13 +2560,17 @@ function renderTaxDocReport(r) {
           var audit = smart.agi_enhanced.meta_audit;
 
 
-          var auditSummary = '综合等级' + (audit.grade||'?') + '级，总分' + (audit.overall_score||0) + '，严重问题' + (audit.critical_count||0) + '个，警告' + (audit.warning_count||0) + '个';
+          var auditSummary = '综合等级' + (audit.grade||'?') + '级，总分' + (audit.overall_score||0) + '，严重' + (audit.critical_count||0) + '项、警告' + (audit.warning_count||0) + '项';
+          var dims = audit.dimensions || {};
+          var dimParts = [];
+          for (var dk in dims) { if (dims.hasOwnProperty(dk)) { var ds = dims[dk]; dimParts.push(dk + ' ' + Math.round((ds.score||0)*100) + '%'); } }
+          var dimNote = dimParts.length > 0 ? '（评分构成：' + dimParts.join('，') + '）' : '';
 
 
           smartHtml += '<div class="edt-block" style="display:flex;align-items:flex-start;gap:0;margin:4px 0">';
 
 
-          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI自审报告：</strong>' + auditSummary + '</p></span>';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI报告质量自审：</strong>' + auditSummary + '</p>' + (dimNote ? '<p class="i2" style="margin:4px 0 0 0;font-size:11px;color:#64748b">' + dimNote + '</p>' : '') + + '<p class="i2" style="margin:2px 0 0 0;font-size:10px;color:#94a3b8">⚠ 本评分为内部质量自审，不得直接用于处罚或正式定性</p></span>';
 
 
           smartHtml += '';
@@ -5544,13 +5548,25 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   h += '<h2 id="ch6">第六章 您的权利</h2>';
 
 
-  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次税务合规过程中依法享有以下权利：</p>';
+  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次审查中依法享有以下权利。系统仅提供线索核验辅助，不得直接用于正式稽查结论或处罚：</p>
+
+  h += '<h3>一、知情权</h3>';
+  h += '<p class="i2">有权了解审查的法律依据、审查范围、审查期间以及审查人员的身份信息。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条、《纳税人权利与义务公告》</p>';
+
+  h += '<h3>二、保密权</h3>';
+  h += '<p class="i2">审查中知悉的商业秘密和个人隐私受法律保护，审查部门应依法保密。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条</p>';
+
+  h += '<h3>三、委托代理权</h3>';
+  h += '<p class="i2">有权委托税务师、律师或其他代理人代为办理涉税事宜。</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第五十七条</p>';';
 
 
   
 
 
-  h += '<h3>一、申请回避权</h3>';
+  h += '<h3>四、申请回避权</h3>';
 
 
   h += '<p class="i2">被审查企业认为税务合规人员与本案有利害关系或其他关系可能影响公正执法的，有权申请该税务合规人员回避。申请回避应当在税务合规人员送达《税务检查通知书》后<strong>3日内</strong>，以书面形式向税务合规部门提出，说明申请回避的理由。税务合规部门应当在收到申请后3日内作出决定并告知申请人。</p>';
@@ -5562,7 +5578,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  h += '<h3>二、陈述申辩权</h3>';
+  h += '<h3>五、陈述申辩权</h3>';
 
 
   h += '<p class="i2">被审查企业对税务合规认定的事实、依据和建议，有权进行陈述和申辩。税务合规部门应当充分听取被审查企业的意见，对其提出的事实、理由和证据进行复核。被审查企业提出的事实、理由或者证据成立的，税务合规部门应当采纳。陈述申辩应当在收到《税务合规报告》后<strong>7日内</strong>以书面形式提交。</p>';
@@ -5574,7 +5590,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  h += '<h3>三、要求听证权</h3>';
+  h += '<h3>六、要求听证权</h3>';
 
 
   h += '<p class="i2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被审查企业有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。税务合规部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</p>';
@@ -5586,7 +5602,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  h += '<h3>四、申请行政复议权</h3>';
+  h += '<h3>七、申请行政复议权</h3>';
 
 
   h += '<p class="i2">被审查企业对税务合规部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被审查企业按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</p>';
@@ -5598,10 +5614,11 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  h += '<h3>五、提起行政诉讼权</h3>';
+  h += '<h3>八、提起行政诉讼权</h3>';
 
 
-  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
+  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。对审查过程中发现的违法违纪行为，有权向税务机关或纪检监察部门检举控告。</p>
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条</p>';';
 
 
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
