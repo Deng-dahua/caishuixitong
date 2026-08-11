@@ -5209,6 +5209,11 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
     h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>④ 数据来源：</strong>' + (f.how_found || f.source_chain || (provenance.sources||[]).join('+') || '系统分析引擎自动识别') + '</p>';
+    // 证据追溯号
+    var evr = f._evidence_ref || {};
+    if (evr.trace_id) {
+      h += '<p style="text-indent:2em;margin:4px 0;font-size:10px;color:#94a3b8">证据编号: ' + evr.trace_id + ' | 快照: ' + (evr.snapshot_id||'') + '</p>';
+    }
 
 
     h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 涉及法规：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务合规工作规程》相关规定') + '</p>';
