@@ -106,7 +106,7 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
 
 
-    + '<button class="btn-toolbar" onclick="exportTaxDocReport()" id="tda-export-btn">导出报告</button>'
+    + '<button class="btn-toolbar" id="tda-export-btn">导出报告</button>'
 
 
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
@@ -1978,7 +1978,18 @@ async function analyzeTaxDocs() {
     
 
 
-    var exportBtn = document.getElementById('tda-export-btn');
+        var exportBtn = document.getElementById('tda-export-btn');
+    if (exportBtn) {
+      var ma = (data.report||{})._methodology_applied || {};
+      if (ma.methodology_gate_enforced) {
+        exportBtn.style.display = 'inline-block';
+        exportBtn.title = '方法论验收未通过，导出已禁用。请修复失败场景后重新分析。';
+        exportBtn.style.opacity = '0.5';
+        exportBtn.style.cursor = 'not-allowed';
+      } else {
+        exportBtn.style.display = 'inline-block';
+      }
+    }
 
 
     if (exportBtn) exportBtn.style.display = 'inline-block';
@@ -5631,6 +5642,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
   h += '<h2 id="ch7">第七章 签字页</h2>';
+  h += '<p class="i2" style="background:#fef3c7;padding:10px;border-radius:6px;font-size:12px"><strong>角色分离提醒：</strong>根据国家税务总局令第52号《税务稽查案件办理程序规定》，正式稽查应当实行选案、检查、审理、执行四环节分工制约。本系统为辅助分析工具，不应由同一角色完成全部流程。正式报告须经编制、复核、审理分别签署。</p>';
 
 
   h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
