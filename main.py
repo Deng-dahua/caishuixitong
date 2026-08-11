@@ -6020,6 +6020,8 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
     if not cached:
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
     report = cached["report"]
+    # 优先从案件快照读取——保证所有模块数据一致
+    snap = cached.get("snapshot") or report.get("_case_snapshot") or {}
     
     def _sum_tb(keywords):
         """从科目余额表汇总匹配关键字的科目金额"""
@@ -8036,20 +8038,98 @@ def _persist_one_click_result(company_id, result):
         )
         del _last_analysis_cache[oldest]
 
+    # ═══ 构建案件快照——所有模块统一数据源 ═══
+    snapshot = _build_case_snapshot(result, company_id, db)
+    result["_case_snapshot"] = snapshot
+    
     _last_analysis_cache[company_id] = {
         "report": result,
         "timestamp": datetime.now().isoformat(),
+        "snapshot": snapshot,
     }
     disk_cache = {
         str(key): {
             "timestamp": value.get("timestamp", ""),
             "report": value.get("report", {}),
+            "snapshot": value.get("snapshot", {}),
         }
         for key, value in _last_analysis_cache.items()
     }
     atomic_write_json(LAST_ANALYSIS_CACHE, disk_cache)
     _append_analysis_history(company_id, result)
 
+
+def _build_case_snapshot(result, company_id, db):
+    """构建统一案件数据快照——所有模块必须从此快照读取，禁止各自解析。
+    
+    审计要求：同一企业的数据在不同模块显示必须一致。
+    快照包含：主体标识、资料批次、分析参数、数据摘要、文件哈希、时间戳。
+    """
+    import hashlib
+    now = datetime.now().isoformat()
+    
+    report = result.get("report", result) if isinstance(result, dict) else {}
+    target = report.get("target_entity", {}) or {}
+    file_results = report.get("file_results", []) or []
+    
+    # 计算资料批次哈希
+    file_hashes = []
+    total_rows = 0
+    for fr in file_results:
+        f = fr.get("file", {}) or {}
+        orig = f.get("original_name", "") or ""
+        rows = 0
+        for a in (fr.get("actions") or []):
+            m = re.search(r"(\d+)条", str(a))
+            if m: rows += int(m.group(1))
+        total_rows += rows
+        file_hashes.append({"name": orig, "type": fr.get("type","?"), "rows": rows})
+    
+    batch_str = json.dumps(file_hashes, sort_keys=True, ensure_ascii=False)
+    batch_hash = hashlib.md5(batch_str.encode()).hexdigest()[:12]
+    
+    # 数据摘要
+    ic = report.get("invoice_counts", {}) or {}
+    mi = report.get("comprehensive", {}).get("material_intel", {}) or {}
+    findings = report.get("all_findings", []) or []
+    
+    snapshot = {
+        "snapshot_id": f"{company_id}-{now[:10]}-{batch_hash}",
+        "generated_at": now,
+        "company": {
+            "id": company_id,
+            "name": target.get("name", ""),
+            "credit_code": target.get("taxpayer_id", ""),
+            "industry": target.get("industry", ""),
+        },
+        "data_batch": {
+            "file_count": len(file_results),
+            "total_rows": total_rows,
+            "batch_hash": batch_hash,
+            "files": file_hashes,
+        },
+        "data_summary": {
+            "invoices": {"sales": ic.get("sales", 0), "purchases": ic.get("purchases", 0)},
+            "bank_available": bool((mi.get("银行流水") or {}).get("exists")),
+            "salary_available": bool((mi.get("工资") or {}).get("exists")),
+            "social_security_available": bool((mi.get("社保") or {}).get("exists")),
+        },
+        "analysis": {
+            "pipeline_version": report.get("_one_click_pipeline", {}).get("version", ""),
+            "methodology_status": report.get("_methodology_applied", {}).get("portfolio_acceptance_status", ""),
+            "scenario_status": report.get("scenario_methodology", {}).get("status", ""),
+            "finding_count": len(findings),
+            "findings_by_level": {
+                lv: sum(1 for f in findings if f.get("level","") == lv)
+                for lv in set(f.get("level","") for f in findings)
+            },
+        },
+        "traceability": {
+            "source": "统一主流程分析结果",
+            "data_boundary": "所有模块必须以此快照为唯一数据源，禁止各自从原始资料重新解析",
+        },
+    }
+    return snapshot
 
 def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
     """一键分析唯一后台主流程。
