@@ -2560,7 +2560,7 @@ function renderTaxDocReport(r) {
           var audit = smart.agi_enhanced.meta_audit;
 
 
-          var auditSummary = '综合等级' + (audit.grade||'?') + '级，总分' + (audit.overall_score||0) + '，严重' + (audit.critical_count||0) + '项、警告' + (audit.warning_count||0) + '项';
+                    var auditSummary = '综合等级' + (audit.grade||'?') + '级，总分' + (audit.overall_score||0) + '，严重' + (audit.critical_count||0) + '项、警告' + (audit.warning_count||0) + '项';
           var dims = audit.dimensions || {};
           var dimParts = [];
           for (var dk in dims) { if (dims.hasOwnProperty(dk)) { var ds = dims[dk]; dimParts.push(dk + ' ' + Math.round((ds.score||0)*100) + '%'); } }
@@ -2570,7 +2570,7 @@ function renderTaxDocReport(r) {
           smartHtml += '<div class="edt-block" style="display:flex;align-items:flex-start;gap:0;margin:4px 0">';
 
 
-          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI报告质量自审：</strong>' + auditSummary + '</p>' + (dimNote ? '<p class="i2" style="margin:4px 0 0 0;font-size:11px;color:#64748b">' + dimNote + '</p>' : '') + + '<p class="i2" style="margin:2px 0 0 0;font-size:10px;color:#94a3b8">⚠ 本评分为内部质量自审，不得直接用于处罚或正式定性</p></span>';
+          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI报告质量自审：</strong>' + auditSummary + '</p>' + (dimNote ? '<p class="i2" style="margin:4px 0 0 0;font-size:11px;color:#64748b">' + dimNote + '</p>' : '') + '<p class="i2" style="margin:2px 0 0 0;font-size:10px;color:#94a3b8">本评分为内部质量自审，不得直接用于处罚或正式定性</p></span>';
 
 
           smartHtml += '';
@@ -5548,19 +5548,20 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   h += '<h2 id="ch6">第六章 您的权利</h2>';
 
 
-  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次审查中依法享有以下权利。系统仅提供线索核验辅助，不得直接用于正式稽查结论或处罚：</p>
+  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次审查中依法享有以下权利。系统仅提供线索核验辅助，不得直接用于正式稽查结论：</p>';
 
   h += '<h3>一、知情权</h3>';
   h += '<p class="i2">有权了解审查的法律依据、审查范围、审查期间以及审查人员的身份信息。</p>';
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条、《纳税人权利与义务公告》</p>';
 
   h += '<h3>二、保密权</h3>';
-  h += '<p class="i2">审查中知悉的商业秘密和个人隐私受法律保护，审查部门应依法保密。</p>';
+  h += '<p class="i2">审查中知悉的商业秘密和个人隐私受法律保护。</p>';
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条</p>';
 
   h += '<h3>三、委托代理权</h3>';
   h += '<p class="i2">有权委托税务师、律师或其他代理人代为办理涉税事宜。</p>';
-  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第五十七条</p>';';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第五十七条</p>';
+
 
 
   
@@ -5617,8 +5618,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   h += '<h3>八、提起行政诉讼权</h3>';
 
 
-  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。对审查过程中发现的违法违纪行为，有权向税务机关或纪检监察部门检举控告。</p>
-  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第八条</p>';';
+  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
 
 
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
