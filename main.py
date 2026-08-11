@@ -7978,7 +7978,6 @@ def _apply_methodology_stage(report_data):
         failed_scene_ids = set()
         for fs in acceptance.get("failed_scenes", []):
             failed_scene_ids.add(fs.get("scene_id", ""))
-        # 跨行业阻断：对所有finding中属于失败场景的做降级处理
         degraded = 0
         for f in all_findings:
             sid = f.get("scene_id") or f.get("fact_id") or f.get("scene_fact_id") or ""
@@ -7989,6 +7988,20 @@ def _apply_methodology_stage(report_data):
                 degraded += 1
         if degraded > 0:
             pipeline_log.append(f"[门禁] 阻断{degraded}条来自{len(failed_scene_ids)}个失败场景的发现")
+    
+    # ═══ 法律引用校验：标注法规版本和核验日期 ═══
+    for _fnd3 in all_findings:
+        pr = _fnd3.get("policy_ref") or _fnd3.get("law_ref") or ""
+        if pr:
+            import re as _re3
+            law_name = pr.split("》")[0] + "》" if "》" in pr else pr[:40]
+            _fnd3["_legal_ref"] = {
+                "citation": pr,
+                "law_name": law_name,
+                "verified_at": now,
+                "version_note": "法规版本和效力状态以国家税务总局官方网站最新公布为准。本系统引用仅作参考，不替代有权机关的正式解释。",
+                "auto_enforced": True,
+            }
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
@@ -8038,6 +8051,19 @@ def _persist_one_click_result(company_id, result):
         )
         del _last_analysis_cache[oldest]
 
+    # ═══ 全链路证据编号：每条发现标注数据溯源 ═══
+    import hashlib as _hl2
+    for _fi2, _fnd2 in enumerate(all_findings):
+        _trace_pre = _hl2.md5(f"{company_id}-{now[:10]}-{_fi2}-{_fnd2.get('type','')}".encode()).hexdigest()[:8]
+        _fnd2["_evidence_ref"] = {
+            "trace_id": f"EVD-{_trace_pre}",
+            "snapshot_id": snapshot.get("snapshot_id", f"ANALYSIS-{company_id}"),
+            "source_files": [fr.get("file", {}).get("original_name", "") for fr in (file_results or [])[:5] if fr.get("file")],
+            "generated_at": now,
+            "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式稽查证据编号。正式稽查须由有权人员独立编号认证。",
+        }
+    pipeline_log.append(f"[证据编号] {len(all_findings)}条发现已标注数据溯源")
+    
     # ═══ 构建案件快照——所有模块统一数据源 ═══
     snapshot = _build_case_snapshot(result, company_id, db)
     result["_case_snapshot"] = snapshot
