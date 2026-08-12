@@ -5573,7 +5573,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     
     # 1. 风险叙事
     level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
-    for f in all_findings:
+    for f in findings:
         lv = f.get("level", "")
         if lv in level_stats: level_stats[lv] += 1
     
@@ -5601,7 +5601,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     # 按风险类型分组，记录每类涉及的发票
     type_invoices = {}  # {风险类型: {(发票key, amount, tax_amt, invoice_type)}}
     
-    for f in all_findings:
+    for f in findings:
         ftype = f.get("type","")[:40]
         items = f.get("items", []) or f.get("evidence_rows", []) or []
         if ftype not in type_invoices:
@@ -5671,7 +5671,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
         
         # 获取该类型的风险等级
         level = ""
-        for f in all_findings:
+        for f in findings:
             if f.get("type","")[:40] == ftype:
                 level = f.get("level","")
                 break
@@ -7979,7 +7979,7 @@ def _apply_methodology_stage(report_data):
         for fs in acceptance.get("failed_scenes", []):
             failed_scene_ids.add(fs.get("scene_id", ""))
         degraded = 0
-        for f in all_findings:
+        for f in findings:
             sid = f.get("scene_id") or f.get("fact_id") or f.get("scene_fact_id") or ""
             if sid in failed_scene_ids:
                 f["level"] = "待核验（方法论未验收）"
@@ -7990,7 +7990,7 @@ def _apply_methodology_stage(report_data):
             pipeline_log.append(f"[门禁] 阻断{degraded}条来自{len(failed_scene_ids)}个失败场景的发现")
     
     # ═══ 法律引用校验：标注法规版本和核验日期 ═══
-    for _fnd3 in all_findings:
+    for _fnd3 in findings:
         pr = _fnd3.get("policy_ref") or _fnd3.get("law_ref") or ""
         if pr:
             import re as _re3
@@ -8078,23 +8078,28 @@ def _persist_one_click_result(company_id, result):
         )
         del _last_analysis_cache[oldest]
 
-    # ═══ 全链路证据编号：每条发现标注数据溯源 ═══
+    # 从result提取数据
+    report_data = result.get("report", {})
+    all_findings = report_data.get("all_findings", []) or result.get("all_findings", [])
+    file_results = report_data.get("file_results", []) or result.get("file_results", [])
+    now = datetime.now().isoformat()
+
+    # ═══ 全链路证据编号 ═══
     import hashlib as _hl2
     for _fi2, _fnd2 in enumerate(all_findings):
         _trace_pre = _hl2.md5(f"{company_id}-{now[:10]}-{_fi2}-{_fnd2.get('type','')}".encode()).hexdigest()[:8]
         _fnd2["_evidence_ref"] = {
             "trace_id": f"EVD-{_trace_pre}",
-            "snapshot_id": snapshot.get("snapshot_id", f"ANALYSIS-{company_id}"),
+            "snapshot_id": f"ANALYSIS-{company_id}-{now[:10]}",
             "source_files": [fr.get("file", {}).get("original_name", "") for fr in (file_results or [])[:5] if fr.get("file")],
             "generated_at": now,
-            "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式稽查证据编号。正式稽查须由有权人员独立编号认证。",
+            "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式稽查证据编号。",
         }
-    pipeline_log.append(f"[证据编号] {len(all_findings)}条发现已标注数据溯源")
-    
-    # ═══ 规则漂移检测（跨分析一致性监控）═══
+
+    # ═══ 规则漂移检测 ═══
     drift_check = _check_rule_drift(all_findings, company_id)
     if drift_check.get("drift_detected"):
-        pipeline_log.append(f"[漂移] 检测到{drift_check['changed_rules']}条规则与上次分析不同")
+        _append_one_click_log(report_data, f"[漂移] 检测到{drift_check.get('changed_rules',0)}条规则与上次分析不同")
     report_data["_rule_drift"] = drift_check
     
     # ═══ 构建案件快照——所有模块统一数据源 ═══
@@ -8948,7 +8953,7 @@ def get_english_report(company_id: int, db: Session = Depends(get_db)):
     all_findings = report.get("all_findings", [])
     
     # 翻译关键字段
-    for f in all_findings:
+    for f in findings:
         f["level_en"] = _ZH_EN_MAP.get(f.get("level", ""), f.get("level", ""))
         f["type_en"] = _ZH_EN_MAP.get(f.get("type", ""), f.get("type", ""))
     
@@ -9585,7 +9590,7 @@ def get_analysis_trace(analysis_id: str, company_id: int = Query(...), db: Sessi
     
     # 提取所有trace记录
     traces = []
-    for f in all_findings:
+    for f in findings:
         t = f.get("_trace", {})
         if t:
             traces.append({
