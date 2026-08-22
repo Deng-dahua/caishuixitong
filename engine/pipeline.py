@@ -3098,7 +3098,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     comprehensive["rule_count"] = _actual_rule_count  # 用动态值覆盖可能存在的默认值
 
     # ═══ 确定分析对象 ═══
-    target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id)
+    target_entity = _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline_log)
     
     # ═══ 经营实质信号检测（pur_invs/sal_invs 经 Phase1 方向校正后可用） ═══
     if pur_invs and sal_invs:
@@ -3209,7 +3209,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 税务合规方法论⑥ 联网核查 ═══
     if target_entity.get("name"):
         try:
-            target_entity = _enrich_target_entity_from_online(target_entity, db, company_id)
+            target_entity = _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_log)
             if target_entity.get("_online_lookup"):
                 pipeline_log.append(f"联网核查: {target_entity['name']} — 来源: {target_entity.get('lookup_source', '未知')}")
                 if target_entity.get("_company_status_warning"):
@@ -5870,9 +5870,10 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
 
 # ═══════════ 报告复核函数 ═══════════
 
-def _detect_target_entity(bank_txs, invoices, salaries, db, company_id):
+def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline_log=None):
     """从银行流水/发票/工资中自动识别被分析对象"""
     from collections import Counter
+    pipeline_log = pipeline_log or []
     
     entity = {"name": "", "biz_model": "", "industry": "", "period": "", "bank_account": "", "source": [],
               "legal_person": "", "legal_person_role": ""}
@@ -7039,7 +7040,7 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
     return results
 
 
-def _enrich_target_entity_from_online(target_entity, db, company_id):
+def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_log=None):
     """
     将联网查询结果注入 target_entity —— 在 _run_analyze 管道中调用
     
@@ -7050,6 +7051,7 @@ def _enrich_target_entity_from_online(target_entity, db, company_id):
     - shareholders → 用于关联交易判断
     - industry → 覆盖发票关键词推断结果（更准确）
     """
+    pipeline_log = pipeline_log or []
     if not target_entity.get("name"):
         return target_entity
     

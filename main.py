@@ -7970,6 +7970,7 @@ def _apply_methodology_stage(report_data):
     from engine.methodology_guardrails import review_finding, review_report_methodology
 
     findings = report_data.get("all_findings", []) or []
+    pipeline_log = report_data.setdefault("pipeline_log", [])
     enriched = 0
     for finding in findings:
         review_finding(finding)
@@ -8124,13 +8125,13 @@ def _persist_one_click_result(company_id, result):
     report_data["_rule_drift"] = drift_check
     
     # ═══ 构建案件快照——所有模块统一数据源 ═══
-    snapshot = _build_case_snapshot(result, company_id, db)
+    snapshot = _build_case_snapshot(result, company_id)
     result["_case_snapshot"] = snapshot
     
     # ═══ 跨账套隔离验证 ═══
     isolation_ok = _verify_cross_account_isolation(result, company_id)
     if not isolation_ok:
-        pipeline_log.append("[隔离] 检测到跨账套数据串混风险，已标记")
+        report_data.setdefault("pipeline_log", []).append("[隔离] 检测到跨账套数据串混风险，已标记")
     result["_isolation_check"] = {"passed": isolation_ok, "checked_at": now}
     
     _last_analysis_cache[company_id] = {
@@ -8260,7 +8261,7 @@ def _check_rule_drift(findings, company_id):
         "decision_boundary": "规则漂移仅作内部监控，不代表分析质量问题。如漂移量异常（>50%规则变化），应人工复核数据完整性。",
     }
 
-def _build_case_snapshot(result, company_id, db):
+def _build_case_snapshot(result, company_id):
     """构建统一案件数据快照——所有模块必须从此快照读取，禁止各自解析。
     
     审计要求：同一企业的数据在不同模块显示必须一致。
