@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-08-08T11:15:35.504222",
-  "total_events": 6,
+  "updated_at": "2026-08-12T21:41:34.220011",
+  "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
@@ -11,68 +11,8 @@
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-08-07T08:48:43.142440",
+      "timestamp": "2026-08-12T21:41:34.219763",
       "id": "evt_000000"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 0,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-08-07T08:49:06.273294",
-      "id": "evt_000001"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 0,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-08-07T08:49:50.050425",
-      "id": "evt_000002"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 0,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-08-07T08:50:20.911860",
-      "id": "evt_000003"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 0,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-08-07T08:56:41.628003",
-      "id": "evt_000004"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "深圳海更数字传媒有限公司",
-        "findings_count": 0,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-08-08T11:15:35.496322",
-      "id": "evt_000005"
     }
   ]
 }

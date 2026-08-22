@@ -9886,6 +9886,34 @@
       },
       "learning_points": [],
       "timestamp": "2026-08-08T11:15:35.460368"
+    },
+    {
+      "trace_id": "3ac4df86",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "设计服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-12T21:41:33.816195",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.61,
+        "supplier_concentration": 34.41335674163506,
+        "goods_match_ratio": 0.06
+      }
+    },
+    {
+      "trace_id": "9d483e3a",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-12T21:41:34.210390"
     }
   ],
   "industry_patterns": {
@@ -9908,7 +9936,7 @@
       "typical_data_profile": {}
     },
     "设计服务": {
-      "analyses_count": 1,
+      "analyses_count": 2,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
