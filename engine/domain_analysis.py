@@ -1352,6 +1352,9 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
                 "description": f"企业购销货值{goods_value:,.0f}元，理应产生相应的运输/物流费用，但全部流水与发票中均无运输类支出。货物流缺乏物证支撑，交易真实性存疑。",
                 "tax_impact": "无运输费→货物流无法验证→成本费用扣除与进项抵扣面临被否定风险。",
                 "suggestion": "提供运输合同、物流运单、运费发票及合同中运费承担方式条款。",
+                "observed_metrics": {"goods_value": round(goods_value, 2), "actual_transport": 0.0,
+                                     "expected_freight_low": round(exp_low, 2), "expected_freight_high": round(exp_high, 2),
+                                     "cities": sorted(cities)},
                 "category": "域4 成本费用"})
     elif ratio < 0.015:
         findings.append({"type": "运输费占比严重偏低", "level": "高风险", "score": 8,

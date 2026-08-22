@@ -45,6 +45,17 @@ def _brief(text, limit=180):
     return cut.rstrip("，、；, ") + "。"
 
 
+def _fmt_metric_val(v):
+    """明细表单元格格式化：浮点千分位、列表转中文顿号、其余转字符串。"""
+    if isinstance(v, float):
+        return f"{v:,.2f}" if abs(v) < 1e9 else f"{v:,.0f}"
+    if isinstance(v, list):
+        return "、".join(str(x) for x in v)
+    if isinstance(v, dict):
+        return "、".join(f"{kk}={vv}" for kk, vv in v.items())
+    return str(v)
+
+
 def _build_detail_table(f):
     """从 finding 的 observed_metrics / examples / 明细 生成可回查的代表性明细表。
 
@@ -94,8 +105,47 @@ def _build_detail_table(f):
             "only_buy_count": "仅采购商品类数", "only_buy_amount": "涉及金额", "core_cost_pct": "占核心成本%",
             "has_processing": "是否存在加工费", "only_buy_goods": "仅采购商品",
             "only_sell_count": "仅销售商品类数", "only_sell_amount": "涉及金额", "only_sell_goods": "仅销售商品",
+            "count": "家数", "amount": "金额", "credit": "收款", "debit": "付款",
+            "month": "月份", "left": "收款(银行)", "right": "开票(销项)", "gap": "差额",
+            "gap_ratio": "差额率", "province": "省份", "supplier_count": "供应商家数",
+            "province_count": "涉及省份", "supplier_top3_ratio": "前3大供应商占比",
+            "customer_top3_ratio": "前3大客户占比", "individual_supplier_count": "个体户供应商数",
+            "raw_material_amount": "原材料采购金额", "production_energy_amount": "生产能源金额",
+            "production_energy_invoice_count": "生产能源发票数", "personnel_match_count": "命中六员数",
+            "total_amount": "往来总额", "person_account_count": "涉及个人账号数",
+            "anomaly_months": "异常月份", "supplier_amount": "个体户供应商金额",
+            "goods": "货物", "sale_qty": "销数量", "purchase_qty": "进数量", "diff": "差额",
         }
         skip = {"examples"}
+        # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、
+        #      matches{姓名:{credit,debit,count}}——渲染成多行多列表格
+        if not rows:
+            for k, v in metrics.items():
+                if k in skip or not isinstance(v, dict) or not v:
+                    continue
+                if all(isinstance(inner, dict) and inner for inner in v.values()):
+                    inner_keys = list(next(iter(v.values())).keys())
+                    label = {"province_breakdown": "省份", "matches": "人员",
+                             "supplier_breakdown": "供应商", "customer_breakdown": "客户"}.get(k, "项目")
+                    rows = []
+                    for key, inner in list(v.items())[:30]:
+                        row = {label: str(key)}
+                        for ik in inner_keys:
+                            row[_scalar_cn.get(ik, str(ik))] = _fmt_metric_val(inner.get(ik))
+                        rows.append(row)
+                    columns = [label] + [_scalar_cn.get(ik, str(ik)) for ik in inner_keys]
+                    break
+        # 2.6) 列表嵌套字典（list-of-dicts）：如 anomaly_months[{month,left,right,gap,...}]——逐行表格
+        if not rows:
+            for k, v in metrics.items():
+                if k in skip or not isinstance(v, list) or not v or not isinstance(v[0], dict):
+                    continue
+                inner_keys = list(v[0].keys())
+                # 列名：把已知 key 汉化
+                columns = [_scalar_cn.get(ik, str(ik)) for ik in inner_keys]
+                rows = [{_scalar_cn.get(ik, str(ik)): _fmt_metric_val(item.get(ik)) for ik in inner_keys}
+                        for item in v[:30]]
+                break
         scalar_rows = []
         for k, v in metrics.items():
             if k in skip or isinstance(v, dict):
@@ -117,7 +167,7 @@ def _build_detail_table(f):
             if isinstance(v, float):
                 val = f"{v:,.2f}" if abs(v) < 1e9 else f"{v:,.0f}"
             scalar_rows.append({"指标": _scalar_cn.get(k, str(k)), "数值": val})
-        if scalar_rows:
+        if scalar_rows and not rows:
             rows = scalar_rows
             columns = ["指标", "数值"]
     if not rows:
@@ -131,6 +181,7 @@ def _build_detail_table(f):
         "counterparty": "资金对手方", "receipts": "累计收款", "payments": "累计付款",
         "transaction_count": "笔数", "name": "对手方", "month": "月份", "voucher_no": "凭证号",
         "supplier": "加工方", "goods": "货物", "cross_region": "是否跨地区",
+        "rows": "出现行号", "invoice_code": "发票代码",
         "debit": "借方", "credit": "贷方", "code": "存货编码", "end_qty": "期末数量",
         "name": "品项", "begin": "期初", "in_qty": "入库", "out_qty": "出库",
         "expected_end_qty": "应滚期末", "reported_end_qty": "账面期末",

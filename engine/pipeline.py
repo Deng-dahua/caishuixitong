@@ -1322,6 +1322,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "tax_impact": "进销数量严重偏差是账外经营和不实申报的典型特征。若销>进且无合理库存解释→可能存在未开票采购或虚开发票；若进>销且无合理库存解释→可能存在隐匿销售或存货异常损失。涉及增值税和企业所得税的少缴风险。",
                 "suggestion": "要求企业提供：(1)每种偏差商品的期初期末库存数量；(2)偏差商品对应的采购合同和销售合同；(3)如为正常库存变动，提供进销存台账佐证。",
                 "category": "进销存匹配",
+                "observed_metrics": {
+                    "big_diff_count": len(big_diff),
+                    "quantity_diffs": [
+                        {"goods": g, "sale_qty": round(sale_by_goods[g]["qty"], 2),
+                         "purchase_qty": round(pur_core_by_goods[g]["qty"], 2), "diff": round(d, 2)}
+                        for g, d in big_diff[:30]
+                    ],
+                },
             })
         
         # 总额概括

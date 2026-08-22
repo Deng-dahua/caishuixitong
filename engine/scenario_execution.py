@@ -359,6 +359,36 @@ def _merge_observation_details(observed):
     return merged
 
 
+def _merge_observed_metrics(observations):
+    """汇总多条观察的 observed_metrics，供企业版报告渲染『可回查明细表』。
+
+    合并策略：标量/集合取并集式合并；同名列表（examples / *_examples）拼接去重，
+    避免后一条覆盖前一条导致明细丢失。返回的 dict 可直接挂到 finding 上。
+    """
+    merged = {}
+    list_keys = {"examples", "duplicate_invoice_examples", "balance_mismatch_examples",
+                 "invoice_mismatch_examples", "counterparty_examples", "overlap_examples",
+                 "voucher_examples", "negative_items", "inventory_mismatch_examples"}
+    for item in observations:
+        om = (item.get("observed_metrics") if isinstance(item, dict) else {}) or {}
+        if not isinstance(om, dict):
+            continue
+        for k, v in om.items():
+            if k in list_keys and isinstance(v, list):
+                base = merged.setdefault(k, [])
+                seen = {id(x) for x in base}
+                for x in v:
+                    if id(x) not in seen:
+                        base.append(x); seen.add(id(x))
+            elif k in merged:
+                # 标量冲突：保留首个非空值（多个观察的同名汇总指标取首个）
+                if not merged[k]:
+                    merged[k] = v
+            else:
+                merged[k] = v
+    return merged
+
+
 def _common_finding(contract_id, contract, observations, file_inventory):
     observed = [_observation_digest(item) for item in observations]
     source_families = sorted({family for item in observed for family in item["source_families"]})
@@ -410,6 +440,7 @@ def _common_finding(contract_id, contract, observations, file_inventory):
         "tax_impact": "尚未形成税费影响结论；须完成事实核验、政策适用和金额底稿后另行评价。",
         "target_fact": contract["target_fact"],
         "observations": observed,
+        "observed_metrics": _merge_observed_metrics(observed),
         "independent_sources": source_families,
         "independent_source_count": len(source_families),
         "source_files": copy.deepcopy(file_inventory),
@@ -512,6 +543,7 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
         "observed_signal": doubt.get("observed_signal", ""),
         "must_exclude": list(doubt.get("must_exclude", [])),
         "observations": observed,
+        "observed_metrics": _merge_observed_metrics(observed),
         "independent_sources": source_families,
         "independent_source_count": len(source_families),
         "source_files": copy.deepcopy(file_inventory),
