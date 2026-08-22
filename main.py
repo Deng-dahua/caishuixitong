@@ -8041,10 +8041,10 @@ def _apply_methodology_stage(report_data):
     # ═══ 五标准验收自检（P2最终验收条件）═══
     quality_gate = {
         "data_consistency_rate": _check_data_consistency(report_data),        # 数据一致率
-        "key_facts_traceability_rate": _check_traceability(all_findings),       # 关键事实可追溯率
-        "adverse_evidence_rate": _check_adverse_evidence(all_findings),         # 高影响事项反证处理率
-        "legal_validity_rate": _check_legal_validity(all_findings),            # 法律时效核验率
-        "amount_recomputability_rate": _check_amount_recomputability(all_findings), # 金额可复算率
+        "key_facts_traceability_rate": _check_traceability(findings),       # 关键事实可追溯率
+        "adverse_evidence_rate": _check_adverse_evidence(findings),         # 高影响事项反证处理率
+        "legal_validity_rate": _check_legal_validity(findings),            # 法律时效核验率
+        "amount_recomputability_rate": _check_amount_recomputability(findings), # 金额可复算率
         "gate_passed": None,  # 由下面计算
     }
     # 全部5项100%才算通过
