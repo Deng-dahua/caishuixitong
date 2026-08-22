@@ -6148,6 +6148,122 @@ async def get_last_analysis(company_id: int = Query(...)):
         return {"ok": False, "message": "暂无分析结果，请先运行一键分析"}
     return cached["report"]
 
+
+def _find_round_by_id(round_id: str):
+    """遍历分析缓存，定位受控分析轮次及其所属报告。"""
+    for company_id, cached in _last_analysis_cache.items():
+        if not isinstance(cached, dict):
+            continue
+        result = cached.get("report", {})
+        # 兼容双层嵌套：result 可能是 {"ok":True,"report":report_data} 或直接是 report_data
+        report = result.get("report", {}) if isinstance(result, dict) and "report" in result else result
+        if isinstance(report, dict) and (report.get("compliance_round") or {}).get("round_id") == round_id:
+            return company_id, report
+    return None, None
+
+
+def _build_delivery_html(report, delivery_type):
+    """生成可交付的报告 HTML（内部草稿带水印，正式报告无水印）。"""
+    import html as _html
+    target = report.get("target_entity", {}) or {}
+    name = _html.escape(str(target.get("name", "被审查企业")))
+    findings = report.get("all_findings", []) or []
+    requests = report.get("document_requests", []) or []
+    fingerprint = (report.get("compliance_round", {}) or {}).get("report_fingerprint", "")
+    is_draft = (delivery_type == "draft")
+
+    rows = []
+    for f in findings:
+        if not isinstance(f, dict):
+            continue
+        level = _html.escape(str(f.get("level", "待核验")))
+        ftype = _html.escape(str(f.get("type", "")))
+        detail = _html.escape(str(f.get("detail", "")))
+        rows.append(f"<tr><td class='lv'>{level}</td><td><b>{ftype}</b><p class='d'>{detail}</p></td></tr>")
+
+    flow_rows = []
+    for r in requests:
+        if not isinstance(r, dict):
+            continue
+        flow = _html.escape(str(r.get("flow", "")))
+        status = _html.escape(str(r.get("status", "")))
+        missing = "、".join(_html.escape(str(x)) for x in (r.get("missing_items") or []))
+        flow_rows.append(f"<tr><td>{flow}</td><td class='st'>{status}</td><td>{missing or '—'}</td></tr>")
+
+    watermark = (
+        "<div class='wm'>内部草稿 · 仅供内部复核 · 非正式结论</div>"
+        if is_draft else ""
+    )
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>税务合规风险分析报告</title>
+<style>
+body{{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1a1a1a;margin:0;padding:48px 56px;line-height:1.7;position:relative;}}
+h1{{font-size:22px;font-weight:600;text-align:center;margin:0 0 4px;}}
+.sub{{text-align:center;color:#666;font-size:13px;margin-bottom:28px;}}
+h2{{font-size:16px;font-weight:600;border-left:4px solid #185FA5;padding-left:10px;margin:28px 0 12px;}}
+table{{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}}
+th,td{{border:1px solid #ddd;padding:8px 10px;text-align:left;vertical-align:top;}}
+th{{background:#f4f6f8;font-weight:600;}}
+.lv{{white-space:nowrap;font-weight:600;}}
+.d{{color:#555;margin:4px 0 0;font-size:12px;}}
+.st{{white-space:nowrap;font-weight:600;}}
+.note{{font-size:12px;color:#888;margin-top:24px;border-top:1px solid #eee;padding-top:12px;}}
+.wm{{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:52px;color:rgba(0,0,0,0.07);font-weight:700;transform:rotate(-24deg);pointer-events:none;z-index:9;}}
+</style></head><body>
+{watermark}
+<h1>税务合规风险分析报告</h1>
+<div class="sub">{name}</div>
+<h2>一、报告性质</h2>
+<p>本报告由系统依据企业上传的经营资料自动生成待核事项，仅用于内部税务合规辅助复核。所有发现均为待核事实，不代表违法定性、税额确定、处罚或移送结论，最终结论须由有权人员依法复核。</p>
+<h2>二、待核事项（{len(rows)}项）</h2>
+<table><tr><th style="width:70px">等级</th><th>待核事实与说明</th></tr>{''.join(rows) or '<tr><td colspan="2">暂无待核事项</td></tr>'}</table>
+<h2>三、五流调取资料清单</h2>
+<table><tr><th style="width:80px">数据流</th><th style="width:70px">状态</th><th>缺失资料</th></tr>{''.join(flow_rows) or '<tr><td colspan="3">—</td></tr>'}</table>
+<p class="note">报告指纹：{fingerprint} &nbsp;|&nbsp; 报告性质：{'内部草稿' if is_draft else '正式报告'} &nbsp;|&nbsp; 生成方式：系统自动生成，人工复核后生效。</p>
+</body></html>"""
+
+
+@app.get("/api/compliance/rounds/{round_id}")
+async def get_compliance_round(round_id: str, company_id: int = Query(...)):
+    """查询受控分析轮次状态。"""
+    _, report = _find_round_by_id(round_id)
+    if report is None:
+        return {"ok": False, "message": "未找到对应分析轮次，请重新执行一键分析"}
+    return {"ok": True, "round": report.get("compliance_round", {})}
+
+
+@app.post("/api/compliance/rounds/{round_id}/deliver")
+async def deliver_compliance_report(round_id: str, request: Request, company_id: int = Query(...)):
+    """交付报告：草稿直接下载带水印HTML；正式报告须轮次已发布且记录接收对象。"""
+    from fastapi.responses import Response
+    _, report = _find_round_by_id(round_id)
+    if report is None:
+        return {"ok": False, "message": "未找到对应分析轮次，请重新执行一键分析"}
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    delivery_type = body.get("delivery_type", "draft")
+    recipient = str(body.get("recipient", "") or "").strip()
+    purpose = str(body.get("purpose", "") or "").strip()
+
+    round_info = report.get("compliance_round", {})
+    if delivery_type == "official":
+        if round_info.get("status") != "published":
+            return {"ok": False, "message": "报告尚未正式发布（当前为草稿），须完成人工复核并发布后才能交付正式报告"}
+        if not recipient:
+            return {"ok": False, "message": "正式报告交付须记录接收对象"}
+
+    html = _build_delivery_html(report, delivery_type)
+    filename = "tax-compliance-official.html" if delivery_type == "official" else "tax-compliance-draft.html"
+    return Response(
+        content=html,
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/api/company-overview")
 async def api_company_overview(request: Request, company_id: int = Query(...)):
     """企业总览：从分析缓存中提取8板块数据"""
@@ -8205,6 +8321,87 @@ def _apply_report_compilation_stage(report_data):
     }
 
 
+def _build_five_flow_document_requests(report_data):
+    """按五流生成调取资料清单：识别每流已提供/缺失的资料，缺失说明影响。
+
+    五流：合同流、货物流、发票流、资金流、税流（另加人员流）。这是"稽查分身"
+    数据准入层——像稽查员发《调取资料清单》，缺哪流就提示补哪流。
+    """
+    file_results = report_data.get("file_results", []) or []
+    provided_types = set()
+    for fr in file_results:
+        if isinstance(fr, dict):
+            t = str(fr.get("type", "")).strip()
+            if t:
+                provided_types.add(t)
+
+    flows = [
+        ("合同流", ["contract", "contract_list"],
+         ["销售合同", "采购合同", "委托加工合同", "订单", "履约验收记录"],
+         "无合同无法核验交易真实性、权利义务和商业目的"),
+        ("货物流", ["inventory", "logistics", "delivery", "acceptance", "warehouse"],
+         ["物流单据", "入库单", "出库单", "存货台账", "盘点表"],
+         "无货物流转记录无法核验真实交易与账实相符"),
+        ("发票流", ["sales_invoice", "purchase_invoice", "input_vat_deduction"],
+         ["销项发票", "进项发票", "进项抵扣认证"],
+         "无发票无法核验开票合规与进销项匹配"),
+        ("资金流", ["bank_statement", "bank_transaction"],
+         ["银行流水", "个人账户流水", "现金日记账"],
+         "无资金流无法核验收款完整性与资金回流"),
+        ("税流", ["vat_declaration", "cit_declaration", "tax_payment", "tax_declaration", "individual_tax", "stamp_duty"],
+         ["增值税申报表", "企业所得税申报表", "个税申报表", "缴税凭证"],
+         "无申报表无法做票税账表勾稽"),
+        ("人员流", ["salary", "social_security", "salary_tax", "housing_fund"],
+         ["工资表", "社保明细", "个税扣缴明细"],
+         "无人员数据无法核验用工规模、人工成本与扣缴义务"),
+    ]
+
+    requests = []
+    for flow_name, type_keys, item_labels, impact in flows:
+        provided = [t for t in type_keys if t in provided_types]
+        missing = [t for t in type_keys if t not in provided_types]
+        if len(provided) == len(type_keys):
+            status = "齐全"
+        elif provided:
+            status = "部分"
+        else:
+            status = "缺失"
+        requests.append({
+            "flow": flow_name,
+            "status": status,
+            "provided_types": provided,
+            "missing_types": missing,
+            "missing_items": [lbl for t, lbl in zip(type_keys, item_labels) if t not in provided_types],
+            "impact": impact,
+        })
+    return requests
+
+
+def _build_compliance_round(report_data, company_id):
+    """生成受控分析轮次：正式报告发布前一律为草稿，须人工复核后才能转正式。"""
+    import hashlib
+    from datetime import datetime
+    try:
+        payload = json.dumps({
+            "company_id": company_id,
+            "findings": report_data.get("all_findings", []) or [],
+            "target": report_data.get("target_entity", {}),
+        }, ensure_ascii=False, sort_keys=True, default=str)
+        fingerprint = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    except Exception:
+        fingerprint = ""
+    stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    return {
+        "round_id": f"ROUND-{company_id}-{stamp}",
+        "company_id": company_id,
+        "status": "draft",
+        "created_at": datetime.now().isoformat(),
+        "report_fingerprint": fingerprint,
+        "release_allowed": False,
+        "release_note": "草稿状态：正式发布须完成证据成熟度、政策时效、金额底稿和有权人员复核。",
+    }
+
+
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
@@ -8534,6 +8731,15 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             report_data["enterprise_readable_report"] = build_enterprise_readable_report(report_data)
         except Exception as _ere_exc:
             _append_one_click_log(report_data, f"[企业版报告] 生成失败: {_ere_exc}")
+
+        # ═══ 稽查分身·数据准入：五流调取资料清单（缺哪流提示补哪流）═══
+        try:
+            report_data["document_requests"] = _build_five_flow_document_requests(report_data)
+        except Exception as _dreq_exc:
+            _append_one_click_log(report_data, f"[五流调取清单] 生成失败: {_dreq_exc}")
+
+        # ═══ 稽查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
+        report_data["compliance_round"] = _build_compliance_round(report_data, company_id)
 
         result["report"] = report_data
 
