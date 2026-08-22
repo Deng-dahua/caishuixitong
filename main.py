@@ -8113,7 +8113,7 @@ def _persist_one_click_result(company_id, result):
         _fnd2["_evidence_ref"] = {
             "trace_id": f"EVD-{_trace_pre}",
             "snapshot_id": f"ANALYSIS-{company_id}-{now[:10]}",
-            "source_files": [fr.get("file", {}).get("original_name", "") for fr in (file_results or [])[:5] if fr.get("file")],
+            "source_files": [str(fr.get("file", "") or "") for fr in (file_results or [])[:5] if isinstance(fr, dict) and fr.get("file")],
             "generated_at": now,
             "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式稽查证据编号。",
         }
@@ -8278,14 +8278,15 @@ def _build_case_snapshot(result, company_id):
     file_hashes = []
     total_rows = 0
     for fr in file_results:
-        f = fr.get("file", {}) or {}
-        orig = f.get("original_name", "") or ""
+        if not isinstance(fr, dict):
+            continue
+        orig = str(fr.get("file", "") or "")
         rows = 0
         for a in (fr.get("actions") or []):
             m = re.search(r"(\d+)条", str(a))
             if m: rows += int(m.group(1))
         total_rows += rows
-        file_hashes.append({"name": orig, "type": fr.get("type","?"), "rows": rows})
+        file_hashes.append({"name": orig, "type": fr.get("type", "?"), "rows": rows})
     
     batch_str = json.dumps(file_hashes, sort_keys=True, ensure_ascii=False)
     batch_hash = hashlib.md5(batch_str.encode()).hexdigest()[:12]
