@@ -3116,6 +3116,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         # 加工费信号——从全部进项中检测（已修复：排除分类码*X加工品*误判）
         import re as _re_proc3
         has_processing_fee = False
+        _outsourcing_finding = None
         for i in pur_invs:
             g = _get_goods(i)
             if '加工费' in g:
@@ -3203,6 +3204,87 @@ def _run_analyze(company_id, db, progress_callback=None):
             "_processing_applicable": processing_applicable,
         }
         pipeline_log.append(f"加工信号评分: {processing_score:.2f}, signals={processing_signals}, applicable={processing_applicable}")
+        
+        # ═══ 委外加工供应商地域分析：跨省委外加工疑点 ═══
+        if has_processing_fee and pur_invs:
+            try:
+                _PROV_CITIES = {
+                    "广东": ["广州","深圳","东莞","中山","佛山","珠海","惠州","江门","汕头","湛江","肇庆","茂名","梅州","揭阳","潮州","清远"],
+                    "山东": ["济南","青岛","淄博","潍坊","临沂","烟台","日照","德州","威海","菏泽","泰安","济宁","聊城","滨州","东营","枣庄"],
+                    "江苏": ["南京","苏州","无锡","常州","南通","徐州","扬州","盐城","泰州","镇江","淮安","连云港","宿迁"],
+                    "浙江": ["杭州","宁波","温州","绍兴","嘉兴","湖州","金华","台州","衢州","丽水","舟山"],
+                    "福建": ["福州","厦门","泉州","漳州","莆田","三明","南平","龙岩","宁德"],
+                    "上海": ["上海"], "北京": ["北京"], "天津": ["天津"], "重庆": ["重庆"],
+                    "河北": ["石家庄","唐山","秦皇岛","邯郸","邢台","保定","张家口","承德","沧州","廊坊","衡水"],
+                    "河南": ["郑州","开封","洛阳","平顶山","安阳","新乡","焦作","许昌","漯河","南阳","商丘","信阳","周口","驻马店"],
+                    "湖北": ["武汉","黄石","宜昌","襄阳","鄂州","荆门","孝感","荆州","黄冈","咸宁"],
+                    "湖南": ["长沙","株洲","湘潭","衡阳","邵阳","岳阳","常德","益阳","郴州","永州","怀化","娄底"],
+                    "四川": ["成都","自贡","泸州","德阳","绵阳","广元","遂宁","内江","乐山","南充","眉山","宜宾","达州"],
+                    "安徽": ["合肥","芜湖","蚌埠","淮南","马鞍山","铜陵","安庆","黄山","滁州","阜阳","宿州","六安","宣城"],
+                    "江西": ["南昌","景德镇","萍乡","九江","新余","赣州","吉安","宜春","抚州","上饶"],
+                    "辽宁": ["沈阳","大连","鞍山","抚顺","本溪","丹东","锦州","营口","盘锦"],
+                    "陕西": ["西安","铜川","宝鸡","咸阳","渭南","延安","汉中","榆林","安康","商洛"],
+                    "广西": ["南宁","柳州","桂林","梧州","北海","钦州","贵港","玉林","百色"],
+                    "云南": ["昆明","曲靖","玉溪","保山","昭通","丽江","普洱","临沧"],
+                    "贵州": ["贵阳","六盘水","遵义","安顺","毕节","铜仁"],
+                    "山西": ["太原","大同","阳泉","长治","晋城","晋中","运城","忻州","临汾","吕梁"],
+                    "黑龙江": ["哈尔滨","齐齐哈尔","大庆","佳木斯","牡丹江","绥化"],
+                    "吉林": ["长春","吉林","四平","通化","白山","松原","延边"],
+                    "甘肃": ["兰州","天水","武威","张掖","平凉","酒泉","庆阳","陇南"],
+                    "内蒙古": ["呼和浩特","包头","赤峰","通辽","鄂尔多斯","呼伦贝尔"],
+                    "新疆": ["乌鲁木齐","克拉玛依","吐鲁番","哈密"],
+                    "海南": ["海口","三亚","儋州"],
+                    "宁夏": ["银川","石嘴山","吴忠","固原"],
+                    "青海": ["西宁","海东"],
+                    "西藏": ["拉萨","日喀则","昌都","林芝"],
+                }
+                def _seller_province(_nm):
+                    for _p, _cs in _PROV_CITIES.items():
+                        if _p in _nm or any(_c in _nm for _c in _cs):
+                            return _p
+                    return None
+                _proc_sellers = {}
+                for _i in pur_invs:
+                    _g = str(_get_goods(_i) or "")
+                    if "加工" not in _g:
+                        continue
+                    _s = str(_i.get("seller") or _i.get("销方名称") or "").strip()
+                    if not _s:
+                        continue
+                    try:
+                        _amt = float(_i.get("amount", 0) or 0)
+                    except Exception:
+                        _amt = 0.0
+                    _d = _proc_sellers.setdefault(_s, {"amount": 0.0, "count": 0, "province": _seller_province(_s)})
+                    _d["amount"] += _amt
+                    _d["count"] += 1
+                if _proc_sellers:
+                    _co_prov = _seller_province(target_entity.get("name", ""))
+                    _cross = [s for s, d in _proc_sellers.items() if d.get("province") and d["province"] != _co_prov]
+                    _total_amt = sum(d["amount"] for d in _proc_sellers.values())
+                    _cross_amt = sum(_proc_sellers[s]["amount"] for s in _cross)
+                    if _cross:
+                        _detail = "、".join(f"{s}({_proc_sellers[s]['province']},{_proc_sellers[s]['count']}张{_proc_sellers[s]['amount']:,.0f}元)" for s in _cross[:5])
+                        all_findings.append({
+                            "fact_id": "COMMON-OUTSOURCING-GEO",
+                            "scene_fact_id": "COMMON-OUTSOURCING-GEO",
+                            "scene_id": "COMMON-OUTSOURCING-GEO",
+                            "scenario_scope": "common_fact_gate",
+                            "_scenario_governed": True,
+                            "type": "待核事实：委外加工供应商地域分散核验",
+                            "level": "中风险",
+                            "level_fixed": True,
+                            "score": 6,
+                            "detail": f"进项发票中有{len(_proc_sellers)}家委外加工供应商，合计加工费{_total_amt:,.2f}元，其中{len(_cross)}家位于被查企业所在地（{_co_prov or '未知'}）之外，跨省加工费{_cross_amt:,.2f}元：{_detail}。跨省委外加工需核验委托加工合同、物流单据和加工成果交付，以确认加工业务真实性和成本扣除依据。",
+                            "description": "委外加工供应商跨省分布，需核验加工业务真实性",
+                            "how_found": "扫描进项发票品名含'加工'的发票，按销方名称判定省市，发现跨省加工供应商",
+                            "suggestion": "核验委外加工合同、物流单据、加工成果交付和付款用途；确认跨省加工的真实性和商业合理性",
+                            "category": "委外加工核查",
+                        })
+                        _outsourcing_finding = all_findings[-1]
+                        pipeline_log.append(f"[委外加工] 发现{len(_cross)}家跨省加工供应商，加工费合计{_total_amt:,.2f}元，跨省{_cross_amt:,.2f}元")
+            except Exception as _proc_err:
+                pipeline_log.append(f"[委外加工] 地域分析失败: {_proc_err}")
     else:
         target_entity["_has_processing_signal"] = False
         target_entity["_goods_analysis"] = {}
@@ -3440,6 +3522,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         )
         scenario_methodology = _scenario_execution.get("review_plan", {})
         all_findings = _scenario_execution.get("findings", [])
+        # 委外加工地域分析是基于进项发票的直接事实，并入场景执行结果（带 _scenario_governed 标记，才能通过正式输出封印）
+        if _outsourcing_finding:
+            _scenario_execution.setdefault("findings", []).append(_outsourcing_finding)
+            all_findings = _scenario_execution["findings"]
+            pipeline_log.append("[委外加工] 已并入正式输出：跨省加工供应商地域分散核验")
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
@@ -7317,7 +7404,9 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
     for f in filtered:
         ft = str(f.get("type", ""))
         fd = str(f.get("detail", ""))
-        full = ft + fd
+        # 行业匹配只看 type(主题)，不看 detail——避免 detail 里顺带提到"物流""运输"
+        # 等通用词就误判为其他行业，导致实质发现被误删
+        full = ft
         skip = False
         for ind_name, keywords in _load_industry_data().get("all_industries", {}).items():
             if ind_name == target_industry or not target_industry:
