@@ -703,7 +703,14 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
                 "description": f"进销存台账的数量勾稽关系为「期初库存 + 本期入库 − 本期出库 = 期末库存」。逐行核对发现{len(imbalances)}条品项不满足该恒等式，差额异常。勾稽不平衡意味着：① 账实不符（实际存货与账面不一致，可能已销售未入账或虚增库存）；② 单据缺失或串户（出库/入库漏记）；③ 单位换算或盘点错误。这是稽查判定存货真实性的第一道闸门。",
                 "tax_impact": "勾稽不平衡→税务机关直接怀疑存货账实不符→可能已销售未确认收入（账外销售）或虚增存货虚抵成本→补税+滞纳金+罚款。",
                 "suggestion": "① 对不平衡品项逐笔核对出入库单、领料单、盘点表；② 说明差异来源（串户/单位换算/暂估入库）；③ 出具差异调节表；④ 对长期不平衡品项做实地盘点。",
-                "category": "域6 存货"})
+                "category": "域6 存货",
+                "observed_metrics": {
+                    "imbalance_count": len(imbalances),
+                    "inventory_mismatch_examples": [
+                        {"name": it, "begin": bf, "in_qty": inq, "out_qty": ot, "expected_end_qty": exp, "reported_end_qty": en, "difference": en - exp}
+                        for it, bf, inq, ot, en, exp in imbalances[:30]
+                    ],
+                }})
 
     # ── 存货积压：基础判断 ──
     if total_in > 0 and total_out > 0 and total_in / max(total_out, 1) > 10:
@@ -1038,10 +1045,13 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
                 findings.append({"type": f"BOM投入产出偏离-{issue}", "level": "高风险" if (abs(1-ratio) > 0.8 or issue == "无耗用数据") else "中风险",
                     "score": 9 if (abs(1-ratio) > 0.8 or issue == "无耗用数据") else 6,
                     "how_found": f"成品产出→BOM配方反推理论原料消耗={theo:.1f}，实际耗用={act:.1f}（含期初期末缓冲）。",
-                    "detail": f"{m_name}：理论需消耗{theo:.1f}，实际耗用{act:.1f}，偏差率{(ratio-1)*100:+.0f}%。",
+                    "detail": (f"{m_name}：理论需消耗{theo:.1f}，实际耗用{act:.1f}，偏差率{(ratio-1)*100:+.0f}%；"
+                               f"对应成品为{'、'.join(finished_output.keys()) or '本轮产出成品'}。"),
                     "description": f"根据BOM配方和实际成品产出量，{m_name}的理论消耗为{theo:.1f}，但实际耗用量为{act:.1f}。偏差率{(ratio-1)*100:+.0f}%。{issue}可能原因：{'BOM配方不准确、存在替代料或配方变更、部分原料未取得发票（采购不足）；虚列采购、BOM表编造或车间损耗异常（采购过量）' if issue=='采购不足' else ('缺乏对应耗用/采购数据，无法支撑该原料的投入产出闭环，须补录进销存或采购明细' if issue=='无耗用数据' else '虚开发票多列成本、BOM损耗率偏低、存在代购或拼单采购、原料用于其他非BOM成品')}。",
                     "tax_impact": "投入产出严重偏离→虚抵进项税额或隐匿收入→补税+滞纳金+罚款。税务机关将以BOM配方为基础核定产量和成本。",
                     "suggestion": f"① 核实BOM表的{issue}原料配方是否准确（版本、损耗率、替代料）；② 提供车间投料记录和领料单；③ 若使用替代料，更新BOM表；④ 若部分原料自行生产（半成品），提供半成品BOM。",
+                    "observed_metrics": {"material": m_name, "issue": issue, "theoretical": round(theo, 2), "actual": round(act, 2), "deviation_ratio": round(ratio, 3),
+                                         "finished_products": list(finished_output.keys())},
                     "category": "域6 存货"})
         else:
             findings.append({"type": "BOM投入产出基本吻合", "level": "低风险", "score": 2,
@@ -1061,11 +1071,16 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
         total_amt = sum(p[1] for p in processing)
         cross = [p for p in processing if p[3]]
         cross_str = "、".join(f"{p[0]}({p[1]:,.0f}元)" for p in cross[:5])
+        all_str = "；".join(f"{p[0]}（{p[2]}，{p[1]:,.0f}元{'，跨地区' if p[3] else '，本地'}）" for p in processing[:8])
         findings.append({"type": "委外加工链条待BOM核验", "level": "中风险", "score": 6,
-            "detail": f"发现{len(processing)}笔加工费类进项（合计{total_amt:,.0f}元）" + (f"，其中跨地区：{cross_str}" if cross else "，均为本地加工") + "。须以BOM配方核验发出原料→加工→收回成品的闭环。",
+            "detail": (f"发现{len(processing)}笔加工费类进项（合计{total_amt:,.0f}元）" + (f"，其中跨地区：{cross_str}" if cross else "，均为本地加工") + "。"
+                         f"全部加工费发票：{all_str}。须以BOM配方核验发出原料→加工→收回成品的闭环。"),
             "description": f"企业存在委托加工业务（加工费合计{total_amt:,.0f}元）。税务稽查委外加工的核心证据链：① 委托加工合同；② 发出原料清单（应与BOM原料一致）；③ 收回成品数量（应与BOM产出匹配）；④ 加工费定价依据（加工费率合理性）。" + (f"跨地区委托加工（{cross_str}）运输与税务风险更高，须重点核实发出原料与收回成品是否形成完整闭环，防范虚增加工成本或接受虚开发票。" if cross else "本地加工亦须核实合同与收回数量。"),
             "tax_impact": "委外加工链条不完整→加工费真实性存疑→可能虚增成本、虚抵进项；收回成品未入账→隐匿收入。",
             "suggestion": "① 提供委托加工合同与发出原料出库单；② 提供收回成品入库单（数量须≥BOM应产出）；③ 提供加工费结算单与定价依据；④ 跨地区加工须提供物流单据。",
+            "observed_metrics": {"processing_count": len(processing), "total_amount": round(total_amt, 2),
+                                 "cross_region_count": len(cross),
+                                 "examples": [{"supplier": p[0], "goods": p[2], "amount": round(p[1], 2), "cross_region": p[3]} for p in processing[:8]]},
             "category": "域6 存货"})
 
     # ═══ 5. BOM完整性建议 ═══
@@ -1147,8 +1162,10 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
         elif contract_area > 0:
             findings.append({"type": "合同面积与库存匹配", "level": "低风险", "score": 2,
                 "how_found": f"上传{len(contracts)}份仓库租赁合同，合同面积合计{contract_area:,.0f}㎡，≥存货所需约{required_area:,.0f}㎡。",
-                "detail": f"合同面积{contract_area:,.0f}㎡ ≥ 所需{required_area:,.0f}㎡，面积条款与库存规模匹配。",
+                "detail": f"合同面积{contract_area:,.0f}㎡ ≥ 所需{required_area:,.0f}㎡，面积条款与库存规模匹配。期末存货货值{total_end_val:,.0f}元、期末数量{total_end_qty:,.0f}件。",
                 "description": f"仓库租赁合同明确载明仓储面积合计{contract_area:,.0f}平方米，能够容纳账面期末存货所需空间（约{required_area:,.0f}平方米）。合同面积条款、租金与库存规模三者互相印证，存货物理存放具备合理性基础。",
+                "observed_metrics": {"contract_area": round(contract_area, 2), "required_area": round(required_area, 2),
+                                     "end_inventory_value": round(total_end_val, 2), "end_inventory_qty": round(total_end_qty, 2)},
                 "category": "域6 存货"})
         if contracts_no_area:
             findings.append({"type": "仓库租赁合同缺面积条款", "level": "中风险", "score": 6,
@@ -1307,20 +1324,26 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
         elif has_buyer_borne:
             findings.append({"type": "到货价含运-零运费有条款解释仍需物流单据", "level": "中风险", "score": 6,
                 "how_found": f"货值{goods_value:,.0f}元，账面运输费0元；运输合同约定运费承担方式为「{bearer_str}」——运费隐含在货物价格中。",
-                "detail": f"运费承担条款：{bearer_str}。账面零运费源于到货价定价，但货物流物证仍缺失。",
+                "detail": f"运费承担条款：{bearer_str}。账面零运费源于到货价定价，但货物流物证仍缺失。涉及购销地区：{', '.join(sorted(cities)) or '未标注'}。",
                 "description": f"运输合同采用到货价（含运）定价、运费由购方承担并计入货物采购成本，这为账面无独立运输费提供了合同解释。但注意两点稽查要点：① 到货价下运费已隐含在采购成本中，须防范以虚高「含运价」虚增采购成本、多抵进项；② 定价方式不能免除货物流举证——新疆等地跨省运输仍须提供物流运单、签收记录等物证，否则货物流链条依然断裂。",
                 "tax_impact": "到货价含运可解释账面零运费，但若无法提供物流单据，货物流仍无法验证；含运价虚高部分属于虚增成本，不得税前扣除。",
                 "policy_ref": "《企业所得税法》第八条（成本费用真实性）；三流一致（货物流、资金流、发票流）核验要求。",
                 "suggestion": "① 提供全部运输合同的运费承担条款原件；② 提供物流运单/签收单/过磅单等货物流物证；③ 提供采购定价依据（同期市场价比对），证明含运价未虚高；④ 销售端的运输安排（谁承担、有无运费收入）一并说明。",
+                "observed_metrics": {"goods_value": round(goods_value, 2), "actual_transport": round(actual_transport, 2),
+                                     "contract_freight": round(contract_freight, 2), "cities": sorted(cities),
+                                     "freight_bearer": bearer_str},
                 "category": "域4 成本费用"})
         elif cross:
             findings.append({"type": "零运输费+跨省购销-货物流断裂", "level": "高风险", "score": 9,
                 "how_found": f"货值{goods_value:,.0f}元，购销涉及{len(cities)}个地区（{', '.join(sorted(cities))}），但银行流水与进项发票中运输/物流类支出为0。",
-                "detail": f"实际运输费0元，货值{goods_value:,.0f}元（含跨省重物购销）。",
+                "detail": f"实际运输费0元，货值{goods_value:,.0f}元（含跨省重物购销）。预期运输费约占货值3%~8%，即{exp_low:,.0f}~{exp_high:,.0f}元。",
                 "description": f"企业购销货值达{goods_value:,.0f}元，且交易跨越{len(cities)}个地区（{', '.join(sorted(cities))}）。按行业经验，跨省运输成本通常占货值3%~8%（即{exp_low:,.0f}~{exp_high:,.0f}元）。但全部流水与发票中运输/物流类支出为0。\n\n这在物理上不可能：货物不可能不花运费就跨省往返。零运输费意味着货物流物证链完全断裂。",
                 "tax_impact": "货物流断裂→票流+资金流虽在，但第三流（货物流）无法验证→交易真实性存疑→企业所得税成本扣除资格可能被否定+增值税进项抵扣面临被否定。定性方向：账外经营/隐匿收入（真实交易在账外，运费也在账外）或虚开发票/虚列成本（只有进项无物流）。",
                 "policy_ref": "《企业所得税法》第八条（成本费用真实性）；国家税务总局三流一致要求（货物流、资金流、发票流）。",
                 "suggestion": "① 提供全部采购/销售合同中的运输费用承担条款（到货价/出厂价）；② 提供物流运输单据（运单、签收单、物流公司对账单）；③ 若供应商承担运费，提供合同运费条款及供应商运费发票复印件；④ 无法提供任何运输证明→成本费用不得税前扣除、进项税额转出。",
+                "observed_metrics": {"goods_value": round(goods_value, 2), "actual_transport": 0.0,
+                                     "expected_freight_low": round(exp_low, 2), "expected_freight_high": round(exp_high, 2),
+                                     "cities": sorted(cities)},
                 "category": "域4 成本费用"})
         else:
             findings.append({"type": "无运输费记录-货物流存疑", "level": "中风险", "score": 6,

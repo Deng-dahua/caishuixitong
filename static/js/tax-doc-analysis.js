@@ -4533,12 +4533,29 @@ function _renderProcessInvoiceAppendix(r) {
 }
 
 
+function _renderDetailTable(table) {
+  if (!table || !Array.isArray(table.rows) || !table.rows.length) return '';
+  var cols = Array.isArray(table.columns) ? table.columns : [];
+  var head = '<tr>' + cols.map(function(c){ return '<th>' + esc(String(c)) + '</th>'; }).join('') + '</tr>';
+  var body = table.rows.map(function(r){
+    var tds = cols.map(function(c){
+      var v = r[c];
+      if (v === undefined || v === null) v = '';
+      if (typeof v === 'object') v = JSON.stringify(v);
+      return '<td>' + esc(String(v)) + '</td>';
+    });
+    return '<tr>' + tds.join('') + '</tr>';
+  }).join('');
+  return '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+}
+
 function _renderNarrativeParagraphs(rows, emptyText) {
   rows = Array.isArray(rows) ? rows : [];
   if (!rows.length) return '<p class="i2">' + esc(emptyText || '本轮未形成可展示的段落内容。') + '</p>';
   return rows.map(function(row){
     var heading = row && row.heading ? '<strong>' + esc(row.heading) + '。</strong>' : '';
-    return '<p class="i2" style="margin:10px 0;text-align:justify;line-height:2">' + heading + esc((row && row.text) || '') + '</p>';
+    var table = row && row.detail_table ? _renderDetailTable(row.detail_table) : '';
+    return '<p class="i2" style="margin:10px 0;text-align:justify;line-height:2">' + heading + esc((row && row.text) || '') + '</p>' + table;
   }).join('');
 }
 
@@ -4668,6 +4685,29 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
       return '<p class="i2" style="line-height:2">' + esc(item) + '</p>';
     }).join('');
+  }
+
+  // 本轮全部发现一览：让负责人不展开各章就能看到全貌
+  var overview = report.discovery_overview || [];
+  if (overview.length) {
+    html += '<h3>本轮全部发现一览</h3>' +
+      '<p class="i2">下表汇总本轮确认问题、已执行检查与受阻检查的全部条目；点击目录可跳转至对应章节查看逐笔明细。</p>' +
+      '<table class="fact-detail-table discovery-overview"><thead><tr>' +
+      '<th>序号</th><th>类别</th><th>项目</th><th>结论等级</th><th>一句话结论</th>' +
+      '</tr></thead><tbody>';
+    overview.forEach(function(row){
+      var gradeCls = '';
+      if (row.grade === '已核定') gradeCls = ' grade-verified';
+      else if (row.grade === '待核' || row.grade === '待补资料') gradeCls = ' grade-pending';
+      html += '<tr class="' + (gradeCls || '') + '">' +
+        '<td>' + esc(row.no || '') + '</td>' +
+        '<td>' + esc(row.category || '') + '</td>' +
+        '<td>' + esc(row.type || '') + '</td>' +
+        '<td>' + esc(row.grade || '') + '</td>' +
+        '<td>' + esc(row.summary || '') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
   }
 
   html += '<h2 id="company-materials">二、本轮接收和使用的资料</h2>' +
@@ -4977,6 +5017,16 @@ function _renderReportFallback(r, allF) {
 
 
     + '#tda-report-area table.tbl td,#tda-report-area table.tbl2 td{padding:7px 12px;border:1px solid #e2e8f0;white-space:normal;line-height:1.7;vertical-align:top;font-size:12px;color:#334155}'
+
+    + '#tda-report-area table.fact-detail-table{width:100%;border-collapse:collapse;margin:10px 0 14px;font-size:12px;background:#fff}'
+    + '#tda-report-area table.fact-detail-table th{background:#1e3a8a;color:#fff;padding:7px 10px;text-align:left;border:1px solid #1e3a8a;font-weight:600;white-space:nowrap}'
+    + '#tda-report-area table.fact-detail-table td{padding:6px 10px;border:1px solid #dbeafe;white-space:normal;line-height:1.6;vertical-align:top;color:#1a1a2e}'
+    + '#tda-report-area table.fact-detail-table tbody tr:nth-child(even){background:#f5f8ff}'
+    + '#tda-report-area table.fact-detail-table.discovery-overview td{font-size:12px}'
+    + '#tda-report-area table.fact-detail-table tbody tr.grade-verified{background:#ecfdf5}'
+    + '#tda-report-area table.fact-detail-table tbody tr.grade-verified td:first-child{color:#047857;font-weight:600}'
+    + '#tda-report-area table.fact-detail-table tbody tr.grade-pending{background:#fffbeb}'
+    + '#tda-report-area table.fact-detail-table tbody tr.grade-pending td:first-child{color:#b45309;font-weight:600}'
 
 
     + '#tda-report-area .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}'

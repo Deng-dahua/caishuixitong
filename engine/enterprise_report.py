@@ -45,6 +45,100 @@ def _brief(text, limit=180):
     return cut.rstrip("，、；, ") + "。"
 
 
+def _build_detail_table(f):
+    """从 finding 的 observed_metrics / examples / 明细 生成可回查的代表性明细表。
+
+    返回 (rows, columns)：rows 为 dict 列表，columns 为列中文名列表；无可用明细时返回 ([], [])。
+    明细是让报告『详尽』的关键：把后台已经算出的逐笔差异落到正文，而不是只在 Detail 里写汇总数。
+    """
+    metrics = f.get("observed_metrics") or {}
+    if not isinstance(metrics, dict):
+        metrics = {}
+    # 兼容直接挂在 finding 上的 examples 列表
+    examples = f.get("examples") or metrics.get("examples") or []
+    rows, columns = [], []
+    # 1) 通用 examples 列表（每项是一行 dict）
+    if isinstance(examples, list) and examples and isinstance(examples[0], dict):
+        columns = list(examples[0].keys())
+        rows = [dict(x) for x in examples[:30]]
+    # 2) 各类命名明细字段
+    named = {
+        "duplicate_invoice_examples": ["invoice_number", "invoice_code", "rows", "count"],
+        "balance_mismatch_examples": ["account", "date", "expected_balance", "reported_balance", "difference"],
+        "invoice_mismatch_examples": ["invoice_number", "row", "amount", "tax", "total", "difference"],
+        "counterparty_examples": ["counterparty", "receipts", "payments", "transaction_count"],
+        "overlap_examples": ["name"],
+        "voucher_examples": ["month", "voucher_no", "debit", "credit", "difference"],
+        "negative_items": ["code", "name", "end_qty", "row"],
+        "inventory_mismatch_examples": ["name", "begin", "in_qty", "out_qty", "expected_end_qty", "reported_end_qty", "difference"],
+    }
+    for key, cols in named.items():
+        if key in metrics and isinstance(metrics[key], list) and metrics[key]:
+            rows = [dict(x) for x in metrics[key][:30]]
+            columns = cols
+            break
+    # 3) 兜底：标量 observed_metrics（无逐笔列表时）按『指标/数值』两列渲染，
+    #    让 BOM 投入产出、合同面积、到货价等所有带指标的发现都能落到明细表。
+    if not rows:
+        _scalar_cn = {
+            "material": "原料", "issue": "问题", "theoretical": "理论耗用", "actual": "实际耗用",
+            "deviation_ratio": "偏差率", "finished_products": "对应成品",
+            "processing_count": "加工费笔数", "total_amount": "加工费合计", "cross_region_count": "跨地区笔数",
+            "contract_area": "合同面积(㎡)", "required_area": "库存所需面积(㎡)",
+            "end_inventory_value": "期末存货货值", "end_inventory_qty": "期末存货数量",
+            "goods_value": "购销货值", "actual_transport": "账面运输费", "contract_freight": "合同运费",
+            "cities": "涉及城市", "freight_bearer": "运费承担方",
+            "duplicate_invoice_count": "重复发票号数", "salary_only_count": "仅工资册人数",
+            "social_only_count": "仅社保册人数", "supplier": "加工方", "goods": "货物",
+            "amount": "金额", "cross_region": "是否跨地区",
+            "only_buy_count": "仅采购商品类数", "only_buy_amount": "涉及金额", "core_cost_pct": "占核心成本%",
+            "has_processing": "是否存在加工费", "only_buy_goods": "仅采购商品",
+            "only_sell_count": "仅销售商品类数", "only_sell_amount": "涉及金额", "only_sell_goods": "仅销售商品",
+        }
+        skip = {"examples"}
+        scalar_rows = []
+        for k, v in metrics.items():
+            if k in skip or isinstance(v, dict):
+                continue
+            if isinstance(v, list):
+                if v and isinstance(v[0], dict):
+                    continue  # 已由命名明细或通用 examples 处理
+                if v:
+                    # 字符串/标量列表：单列渲染（用中文标签）
+                    col = {"only_buy_goods": "仅采购商品", "only_sell_goods": "仅销售商品",
+                           "finished_products": "对应成品"}.get(k, "明细")
+                    rows = [{col: str(x)} for x in v[:30]]
+                    if rows:
+                        return rows, [col]
+                continue
+            if v in (None, ""):
+                continue
+            val = v
+            if isinstance(v, float):
+                val = f"{v:,.2f}" if abs(v) < 1e9 else f"{v:,.0f}"
+            scalar_rows.append({"指标": _scalar_cn.get(k, str(k)), "数值": val})
+        if scalar_rows:
+            rows = scalar_rows
+            columns = ["指标", "数值"]
+    if not rows:
+        return [], []
+    # 列名汉化
+    _col_cn = {
+        "invoice_number": "发票号码", "invoice_code": "发票代码", "rows": "出现行号",
+        "count": "出现次数", "account": "账户尾号", "date": "日期",
+        "expected_balance": "应滚余额", "reported_balance": "账面余额", "difference": "差额",
+        "row": "行号", "amount": "金额", "tax": "税额", "total": "价税合计",
+        "counterparty": "资金对手方", "receipts": "累计收款", "payments": "累计付款",
+        "transaction_count": "笔数", "name": "对手方", "month": "月份", "voucher_no": "凭证号",
+        "supplier": "加工方", "goods": "货物", "cross_region": "是否跨地区",
+        "debit": "借方", "credit": "贷方", "code": "存货编码", "end_qty": "期末数量",
+        "name": "品项", "begin": "期初", "in_qty": "入库", "out_qty": "出库",
+        "expected_end_qty": "应滚期末", "reported_end_qty": "账面期末",
+    }
+    columns = [_col_cn.get(c, str(c)) for c in columns]
+    return rows, columns
+
+
 # ── 14 类税务合规必查资料（与 domain_analysis.py 保持一致）──
 _REQUIRED_DOC_CATEGORIES = [
     "银行流水", "销项发票", "进项发票", "记账凭证", "工资表", "社保明细",
@@ -169,8 +263,22 @@ def _build_procedures(report_data):
             for i, (name, narrative) in enumerate(procedures)]
 
 
+def _extract_rows_from_actions(fr):
+    """从 file_result 的 actions 文本中累加已提取行数（如『提取N条…』『N条流水』）。"""
+    total = 0
+    for a in (fr.get("actions") or []):
+        a = str(a)
+        # 优先匹配『提取N条』『N条流水』『N行』『N条…』
+        for pat in (r"提取(\d+)[条行]", r"(\d+)条流水", r"(\d+)行", r"(\d+)条"):
+            m = re.search(pat, a)
+            if m:
+                total += int(m.group(1))
+                break
+    return total
+
+
 def _build_materials(report_data):
-    """按资料类别归并 file_results，生成资料清单"""
+    """按资料类别归并 file_results，生成资料清单（含具体文件名与行数，便于回查与佐证）。"""
     file_results = report_data.get("file_results", []) or []
     groups = OrderedDict()
     for fr in file_results:
@@ -184,20 +292,31 @@ def _build_materials(report_data):
     for ftype, items in groups.items():
         display = _DOC_TYPE_NAME.get(ftype, "财税资料")
         total_rows = 0
+        file_names = []
         for fr in items:
-            for a in (fr.get("actions") or []):
-                import re as _re
-                m = _re.search(r"(\d+)条", str(a))
-                if m:
-                    total_rows += int(m.group(1))
+            total_rows += _extract_rows_from_actions(fr)
+            fname = fr.get("file") or fr.get("original_name") or fr.get("name")
+            if fname:
+                # 仅保留文件名，去掉路径，避免泄露目录结构
+                base = str(fname).replace("\\", "/").split("/")[-1]
+                if base not in file_names:
+                    file_names.append(base)
+        files_text = "、".join(file_names) if file_names else "（文件名见内部资料底稿）"
         materials.append({
             "seq": seq,
             "document_type": display,
             "display_name": display,
-            "read_method": "电子表格读取",
-            "read_result": f"{len(items)}份读取完整",
+            "read_method": "电子表格/结构化读取",
+            "read_result": f"{len(items)}份读取完整，共{total_rows}条记录",
             "use_boundary": "全部可进入本轮自动核对",
-            "narrative": f"本轮共收到{len(items)}份{display}，共读取{total_rows}条记录。系统通过电子表格读取进行处理，读取结果为{len(items)}份读取完整。本轮使用范围为：全部可进入本轮自动核对。具体文件名称、文件指纹、解析回执和逐行定位保留在内部资料底稿中。",
+            "file_names": file_names,
+            "row_count": total_rows,
+            "narrative": (
+                f"本轮共收到{len(items)}份{display}，读取并进入核对{total_rows}条记录。"
+                f"涉及文件为：{files_text}。"
+                f"系统通过结构化读取逐份解析，读取结果为{len(items)}份读取完整。"
+                f"本轮使用范围为：全部可进入本轮自动核对。文件指纹、解析回执、复算指标和逐行定位保留在内部资料底稿中，可按文件名回查。"
+            ),
         })
         seq += 1
     return materials
@@ -225,11 +344,16 @@ def _problem_paragraphs(f):
     if not tax_impact or "尚未形成" in tax_impact:
         tax_impact = "本项只确认资料中存在需要核清的具体差异，不把差异直接当作应补税额。税额影响以完成资料更正、账税核对和重新计算后的结果为准。"
 
+    # 代表性明细：把后台已算出的逐笔差异落到正文，是报告『详尽』的关键
+    detail_rows, detail_cols = _build_detail_table(f)
     paragraphs = [
         {"heading": "查明的主要事实",
          "text": "经查，" + detail + "上述数字来自本轮已读取资料的全量筛查，不是抽样估计。"},
         {"heading": "结论状态",
          "text": _conclusion_statement(f)},
+        {"heading": "代表性明细（可回查）",
+         "text": ("以下为本项涉及的逐笔/代表明细（已脱敏行号与金额，原始数据见工作底稿）：" if detail_rows
+                  else "本项明细已留存于内部稽查底稿，可按上述资料范围逐笔回查。")},
         {"heading": "检查范围、方法和资料依据",
          "text": "本项使用的资料范围为" + scope + "。稽查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并将计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部稽查底稿中；专业人员可在工作底稿中回查。"},
         {"heading": "这件事对企业意味着什么",
@@ -244,6 +368,9 @@ def _problem_paragraphs(f):
                                                           "补充资料后重新检查，系统能够分别列示合理事项、仍需处理事项和证据不足事项"],
                                                          "问题能够定位、处理过程能够回查，重新检查不再出现同一差异。")},
     ]
+    if detail_rows:
+        # 把明细表挂在第一段对象上，供前端渲染；同时保留文本回退
+        paragraphs[0]["detail_table"] = {"columns": detail_cols, "rows": detail_rows}
     return paragraphs
 
 
@@ -282,6 +409,7 @@ def _build_confirmed_problems(report_data):
             "title": (f.get("type") or "具体资料问题").replace("待核事实：", "").replace("待核事实:", ""),
             "conclusion_grade": f.get("conclusion_grade") or "待核",
             "final_answer": str(f.get("final_answer") or ""),
+            "observed_metrics": f.get("observed_metrics") or {},
             "narrative_paragraphs": _problem_paragraphs(f),
             "trace_id": ev.get("trace_id", ""),
         })
@@ -365,9 +493,13 @@ def _build_summary(report_data, problems, completed, further):
     te = report_data.get("target_entity", {}) or {}
 
     key_points = []
-    for p in problems[:3]:
+    for p in problems[:5]:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
-        key_points.append(f"重点{p['seq']}：{p.get('title', '')}。{_brief(first)}")
+        grade = p.get("conclusion_grade") or "待核"
+        grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
+        key_points.append(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{_brief(first, limit=110)}")
+    if len(problems) > 5:
+        key_points.append(f"另有{len(problems) - 5}项具体问题见第四章及本章『本轮全部发现一览』。")
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
 
@@ -405,6 +537,42 @@ def _build_summary(report_data, problems, completed, further):
     }
 
 
+def _build_discovery_overview(report_data, problems, completed, further):
+    """本轮全部发现一览：把确认问题、已执行检查、受阻检查合并成一张总表，
+    让企业负责人不展开各章就能看到全貌（类型 + 等级 + 一句话结论）。
+
+    用于增厚报告：原来负责人只能逐章钻取，现在第一章即给全景。
+    """
+    rows = []
+    for p in problems:
+        first_para = (p.get("narrative_paragraphs") or [{}])[0] or {}
+        one_line = _brief(first_para.get("text", ""), limit=70)
+        rows.append({
+            "no": p.get("seq"),
+            "category": "确认问题",
+            "type": p.get("title", ""),
+            "grade": p.get("conclusion_grade") or "待核",
+            "summary": one_line,
+        })
+    for c in completed:
+        rows.append({
+            "no": c.get("seq"),
+            "category": "已执行检查",
+            "type": c.get("title", ""),
+            "grade": "无异常",
+            "summary": "本轮资料满足条件且规则已执行，未发现达到检查条件的异常。",
+        })
+    for f in further:
+        rows.append({
+            "no": f.get("seq"),
+            "category": "受阻检查",
+            "type": f.get("title", "").replace("未收到", "缺资料：").replace("导致相关检查未完成", ""),
+            "grade": "待补资料",
+            "summary": "本轮未收到相应资料，相关检查未能完成；资料补齐后重新检查。",
+        })
+    return rows
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -417,6 +585,7 @@ def build_enterprise_readable_report(report_data):
     further = _build_further_checks(report_data)
     summary = _build_summary(report_data, problems, completed, further)
     plans = _build_action_plan(problems)
+    discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -424,6 +593,7 @@ def build_enterprise_readable_report(report_data):
         "identity": _build_identity(report_data),
         "inspector_perspective": _build_inspector_perspective(),
         "summary": summary,
+        "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,
         "confirmed_problems": problems,

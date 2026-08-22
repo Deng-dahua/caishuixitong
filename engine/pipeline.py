@@ -1156,7 +1156,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "category": "进销存匹配",
                     "rule_id": 338,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                    "_cross_refs": ["缺少BOM表"]  # 跨结论引用标记
+                    "_cross_refs": ["缺少BOM表"],  # 跨结论引用标记
+                    "observed_metrics": {
+                        "only_buy_goods": core_only_buy[:20],
+                        "only_buy_count": len(core_only_buy),
+                        "only_buy_amount": round(pur_amount_only, 2),
+                        "core_cost_pct": round(pct, 2),
+                        "has_processing": has_processing,
+                    }
                 })
             else:
                 inv_match_findings.append({
@@ -1172,6 +1179,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "category": "进销存匹配",
                     "rule_id": 338,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                    "observed_metrics": {
+                        "only_buy_goods": core_only_buy[:20],
+                        "only_buy_count": len(core_only_buy),
+                        "only_buy_amount": round(pur_amount_only, 2),
+                        "core_cost_pct": round(pct, 2),
+                    }
                 })
         
         # ═══════════════════════════════════════════════════
@@ -1250,7 +1263,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "category": "进销存匹配",
                     "rule_id": 337,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
-                    "_cross_refs": ["缺少BOM表"]
+                    "_cross_refs": ["缺少BOM表"],
+                    "observed_metrics": {
+                        "only_sell_goods": only_sell[:20],
+                        "only_sell_count": len(only_sell),
+                        "only_sell_amount": round(sell_amount_only, 2),
+                    }
                 })
             else:
                 inv_match_findings.append({
@@ -1267,6 +1285,11 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
                     "required_human_review": True,
                     "automatic_determination_allowed": False,
+                    "observed_metrics": {
+                        "only_sell_goods": only_sell[:20],
+                        "only_sell_count": len(only_sell),
+                        "only_sell_amount": round(sell_amount_only, 2),
+                    }
                 })
         
         # ═══════════════════════════════════════════════════
