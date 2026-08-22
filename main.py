@@ -7612,6 +7612,43 @@ def get_methodology_asset(asset_name: str):
         raise HTTPException(status_code=500, detail="方法论数据读取失败") from exc
 
 
+@app.get("/api/knowledge/assets")
+def list_knowledge_assets():
+    """列出知识库可用的 JSON 资产文件名（只读，静态目录）。"""
+    import os
+    static_root = os.path.join(os.path.dirname(__file__), "static")
+    assets = [
+        fn for fn in os.listdir(static_root)
+        if fn.endswith(".json") and os.path.isfile(os.path.join(static_root, fn))
+    ]
+    assets.sort()
+    return {"assets": assets, "count": len(assets)}
+
+
+@app.get("/api/knowledge/assets/{asset_name}")
+def get_knowledge_asset(asset_name: str):
+    """向已登录用户提供只读知识库 JSON 资产（audit_knowledge.json、system_config.json 等）。"""
+    import os, json
+    name = str(asset_name or "").strip()
+    base = os.path.basename(name)
+    if not base or not base.endswith(".json") or "/" in name or "\\" in name:
+        raise HTTPException(status_code=400, detail="仅支持 .json 知识资产文件名")
+    static_root = os.path.join(os.path.dirname(__file__), "static")
+    candidate = os.path.join(static_root, base)
+    if not os.path.isfile(candidate):
+        sub = os.path.join(static_root, "knowledge", base)
+        if os.path.isfile(sub):
+            candidate = sub
+        else:
+            raise HTTPException(status_code=404, detail="知识资产不存在: " + base)
+    try:
+        with open(candidate, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail="知识资产读取失败") from exc
+    return data
+
+
 @app.get("/api/methodology/coverage")
 def get_methodology_coverage():
     """返回权威方法论、行业场景深度和已知空白的真实覆盖矩阵。"""
