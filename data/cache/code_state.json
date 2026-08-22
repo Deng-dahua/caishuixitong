@@ -76,8 +76,8 @@
     "size": 23443
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\domain_analysis.py": {
-    "mtime": 1786034282.5496354,
-    "size": 755331
+    "mtime": 1787369428.467851,
+    "size": 768301
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enforcement_procedure.py": {
     "mtime": 1785672073.2471752,
@@ -86,6 +86,10 @@
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enterprise_profile.py": {
     "mtime": 1785112565.7678652,
     "size": 23555
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enterprise_report.py": {
+    "mtime": 1787371865.1248522,
+    "size": 21965
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\evolution.py": {
     "mtime": 1785112565.7688656,
@@ -192,8 +196,8 @@
     "size": 17144
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\pipeline.py": {
-    "mtime": 1786061272.726304,
-    "size": 432396
+    "mtime": 1787370356.2313528,
+    "size": 440087
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rd_audit.py": {
     "mtime": 1786031948.2252183,
@@ -312,16 +316,16 @@
     "size": 43105
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\bank-vat.js": {
-    "mtime": 1785382773.8558083,
-    "size": 59728
+    "mtime": 1787367704.1381025,
+    "size": 58365
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\bookkeeping-invoices.js": {
     "mtime": 1785112565.8468652,
     "size": 27477
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\chat.js": {
-    "mtime": 1786432306.6128821,
-    "size": 18173
+    "mtime": 1787364905.008218,
+    "size": 20478
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\company.js": {
     "mtime": 1785112565.8468652,
@@ -336,16 +340,16 @@
     "size": 42574
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\core.js": {
-    "mtime": 1785858097.35527,
-    "size": 88676
+    "mtime": 1787364905.0396452,
+    "size": 92186
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\correction-rules.js": {
     "mtime": 1785405575.6118262,
     "size": 10961
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\dashboard.js": {
-    "mtime": 1785401840.4520965,
-    "size": 6811
+    "mtime": 1787364905.0552363,
+    "size": 6905
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\engine-hub.js": {
     "mtime": 1785426903.385001,
@@ -368,28 +372,28 @@
     "size": 67698
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\journal.js": {
-    "mtime": 1785112565.8498657,
-    "size": 38204
+    "mtime": 1787367505.5518506,
+    "size": 37766
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\ledgers-reports.js": {
     "mtime": 1785112565.8508656,
     "size": 51343
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\methodology-v3.js": {
-    "mtime": 1785941401.2710207,
-    "size": 29792
+    "mtime": 1787364905.0757785,
+    "size": 37471
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\module-headers.js": {
-    "mtime": 1785746674.5799398,
-    "size": 76787
+    "mtime": 1787364905.0915127,
+    "size": 77727
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\report-block-renderer.js": {
-    "mtime": 1785420004.1947474,
-    "size": 14302
+    "mtime": 1787364905.107038,
+    "size": 14333
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\report-modules.js": {
-    "mtime": 1785420705.3462946,
-    "size": 97952
+    "mtime": 1787364905.107038,
+    "size": 97906
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\rewrite_methodology.py": {
     "mtime": 1785112565.8518653,
@@ -416,24 +420,24 @@
     "size": 9176
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-auditor-handbook.js": {
-    "mtime": 1785746704.156358,
-    "size": 49319
+    "mtime": 1787364905.1226513,
+    "size": 4572
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1786434549.570077,
-    "size": 177460
+    "mtime": 1787366244.4027884,
+    "size": 237013
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
-    "mtime": 1785420359.853431,
-    "size": 230373
+    "mtime": 1787364905.158009,
+    "size": 230271
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-knowledge-hub.js": {
-    "mtime": 1785404040.1115294,
-    "size": 42057
+    "mtime": 1787364905.1735213,
+    "size": 42653
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
-    "mtime": 1785747124.8837066,
-    "size": 544162
+    "mtime": 1787364905.1892517,
+    "size": 562696
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-report-standards.js": {
     "mtime": 1785426905.219388,
@@ -468,7 +472,7 @@
     "size": 41313
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\main.py": {
-    "mtime": 1786541406.8376758,
-    "size": 530015
+    "mtime": 1787371879.333063,
+    "size": 531342
   }
 }

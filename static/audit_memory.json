@@ -1,705 +1,5 @@
 [
   {
-    "timestamp": "2026-07-18T19:59:07.689836",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T20:28:46.097243",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T21:10:29.856799",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T21:20:49.077771",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T21:31:54.500150",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T21:49:29.835058",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T23:19:22.924114",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T23:27:02.089841",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T23:32:42.346787",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T23:36:51.935656",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-18T23:47:32.348269",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T00:35:34.155627",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T00:38:22.173008",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T00:40:43.960514",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T08:27:45.148185",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T10:53:12.010805",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T12:40:45.961516",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T13:11:03.187309",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T14:19:13.279727",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T16:38:44.206480",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T16:40:48.042770",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T19:25:19.924113",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-19T19:55:11.747454",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:00:56.964788",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:02:54.834929",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:04:49.121406",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:39:19.723312",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:44:27.486433",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
     "timestamp": "2026-07-25T00:47:24.447439",
     "industry": "现代服务",
     "biz_model": "未确定",
@@ -2775,6 +2075,874 @@
       "bank_out": 346722.77,
       "salary": 0.0,
       "gross_margin_pct": -89.79380704366837
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:31:57.390435",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:31:57.408867",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:33:15.118369",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:33:15.129405",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:42:10.358966",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:42:10.375396",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:42:32.739641",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:42:32.750449",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:48:56.153289",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:48:56.167506",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:49:57.506655",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:49:57.516270",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:53:23.147173",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:53:23.157198",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:53:50.734946",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:53:50.745410",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:55:20.772975",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:55:20.783795",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T11:58:41.881374",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T11:58:41.893638",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:01:32.651255",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:01:32.662767",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:08:45.178491",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:08:45.187856",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:09:24.081428",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:09:24.091335",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:11:52.372707",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:11:52.383433",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
     }
   }
 ]

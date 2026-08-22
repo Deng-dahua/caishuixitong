@@ -17494,5 +17494,625 @@
     "action": "自动更新广告传媒行业风险基准为0.0分",
     "discovered_at": "2026-08-12T21:41:33.350430",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 52,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:31:57.429162",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:31:57.429176",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:31:57.429189",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 50,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:33:15.157517",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:33:15.157530",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:33:15.157538",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 48,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:42:10.404488",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:42:10.404503",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:42:10.404515",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 46,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:42:32.776835",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:42:32.776847",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:42:32.776860",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 44,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:48:56.198786",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:48:56.198800",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:48:56.198810",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 5,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:48:56.198814",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 5,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:48:56.198819",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 42,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:49:57.547317",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:49:57.547329",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:49:57.547338",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 6,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:49:57.547343",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 6,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:49:57.547347",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 40,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:53:23.186474",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:53:23.186487",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:53:23.186496",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 7,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:53:23.186501",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 7,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:53:23.186506",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 38,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:53:50.777405",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:53:50.777421",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:53:50.777431",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:53:50.777436",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 8,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:53:50.777441",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 36,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:55:20.818094",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:55:20.818110",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:55:20.818120",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 9,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:55:20.818125",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 9,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:55:20.818131",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.2,
+    "sample_size": 34,
+    "action": "自动更新现代服务行业风险基准为68.2分",
+    "discovered_at": "2026-08-22T11:58:41.924111",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T11:58:41.924128",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:58:41.924141",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 10,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T11:58:41.924146",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 10,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T11:58:41.924154",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.3,
+    "sample_size": 32,
+    "action": "自动更新现代服务行业风险基准为68.3分",
+    "discovered_at": "2026-08-22T12:01:32.688283",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T12:01:32.688296",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:01:32.688305",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 11,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:01:32.688311",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 11,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T12:01:32.688316",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.3,
+    "sample_size": 30,
+    "action": "自动更新现代服务行业风险基准为68.3分",
+    "discovered_at": "2026-08-22T12:08:45.212249",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T12:08:45.212263",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:08:45.212273",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 12,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:08:45.212278",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 12,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T12:08:45.212284",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.3,
+    "sample_size": 28,
+    "action": "自动更新现代服务行业风险基准为68.3分",
+    "discovered_at": "2026-08-22T12:09:24.119533",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T12:09:24.119548",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:09:24.119557",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 13,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:09:24.119563",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 13,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T12:09:24.119569",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "现代服务",
+    "avg_risk_score": 68.3,
+    "sample_size": 26,
+    "action": "自动更新现代服务行业风险基准为68.3分",
+    "discovered_at": "2026-08-22T12:11:52.415329",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "信息技术服务",
+    "avg_risk_score": 59.8,
+    "sample_size": 13,
+    "action": "自动更新信息技术服务行业风险基准为59.8分",
+    "discovered_at": "2026-08-22T12:11:52.415344",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 29,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:11:52.415353",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合贸易/批发",
+    "avg_risk_score": 0.0,
+    "sample_size": 14,
+    "action": "自动更新综合贸易/批发行业风险基准为0.0分",
+    "discovered_at": "2026-08-22T12:11:52.415359",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 85.7,
+    "sample_size": 14,
+    "action": "自动更新纺织产品行业风险基准为85.7分",
+    "discovered_at": "2026-08-22T12:11:52.415366",
+    "source": "audit_memory.json"
   }
 ]

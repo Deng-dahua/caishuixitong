@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-08-12T21:41:34.220011",
+  "updated_at": "2026-08-22T12:11:53.843126",
   "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
       "data": {
-        "company": "深圳海更数字传媒有限公司",
+        "company": "中山市达冠纺织有限公司",
         "findings_count": 0,
         "causal_edges": 0,
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-08-12T21:41:34.219763",
+      "timestamp": "2026-08-22T12:11:53.841372",
       "id": "evt_000000"
     }
   ]

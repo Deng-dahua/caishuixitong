@@ -1,6 +1,6 @@
 {
   "entities": {
-    "深圳海更数字传媒有限公司": {
+    "中山市达冠纺织有限公司": {
       "type": "enterprise",
       "props": {
         "source": "analysis"
@@ -8,5 +8,5 @@
     }
   },
   "relations": [],
-  "updated_at": "2026-08-12T21:41:34.220500"
+  "updated_at": "2026-08-22T12:11:53.845404"
 }

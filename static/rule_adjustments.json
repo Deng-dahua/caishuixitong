@@ -1,27 +1,5 @@
 [
   {
-    "id": "ADJ-0068",
-    "rule_id": "dfafc011",
-    "trigger": "发现#41引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "固定资产出租租金未计入其他业务收入",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T14:19:20.159786",
-    "applied_count": 3,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0069",
-    "rule_id": "765cdbac",
-    "trigger": "高风险发现#56仅0条证据",
-    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
-    "target": "Causal: 关联交易的利润转移路径",
-    "dimension": "证据充分性",
-    "applied_at": "2026-07-19T16:38:44.170894",
-    "applied_count": 4,
-    "status": "active"
-  },
-  {
     "id": "ADJ-0070",
     "rule_id": "b802b82d",
     "trigger": "发现#37引用了已废止的《增值税暂行条例》",
@@ -1097,6 +1075,28 @@
     "dimension": "法条准确性",
     "applied_at": "2026-07-25T10:53:47.684620",
     "applied_count": 0,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "697ce4f0",
+    "trigger": "高风险发现#6仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-缺水电支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T11:31:57.366153",
+    "applied_count": 13,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "bc39bc00",
+    "trigger": "高风险发现#8仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T11:31:57.366170",
+    "applied_count": 13,
     "status": "active"
   }
 ]
