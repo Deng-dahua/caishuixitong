@@ -1,0 +1,474 @@
+{
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\__init__.py": {
+    "mtime": 1785112565.7598655,
+    "size": 2696
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_core.py": {
+    "mtime": 1785112565.760866,
+    "size": 32678
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_engine.py": {
+    "mtime": 1785112565.760866,
+    "size": 44375
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_enhanced.py": {
+    "mtime": 1785112565.760866,
+    "size": 22105
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_final.py": {
+    "mtime": 1785112565.760866,
+    "size": 21113
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_meta.py": {
+    "mtime": 1785112565.7618656,
+    "size": 24522
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agi_pipeline.py": {
+    "mtime": 1785860271.605545,
+    "size": 111028
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\associate_findings.py": {
+    "mtime": 1785112565.7618656,
+    "size": 19866
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\auto_patrol.py": {
+    "mtime": 1785112565.7628655,
+    "size": 16248
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\capability_matrix.py": {
+    "mtime": 1785112565.7628655,
+    "size": 19767
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\case_library.py": {
+    "mtime": 1785112565.7628655,
+    "size": 5184
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\causal_discovery.py": {
+    "mtime": 1785112565.7628655,
+    "size": 10413
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\causal_network.py": {
+    "mtime": 1785112565.7628655,
+    "size": 24674
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\chain_executor.py": {
+    "mtime": 1785667737.1549015,
+    "size": 27773
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\cognitive_bridge.py": {
+    "mtime": 1785112565.7638652,
+    "size": 12537
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\context.py": {
+    "mtime": 1785112565.7638652,
+    "size": 6980
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\cross_domain_negotiation.py": {
+    "mtime": 1785112565.7638652,
+    "size": 30220
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\cross_enterprise_graph.py": {
+    "mtime": 1785112565.7638652,
+    "size": 12360
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\director.py": {
+    "mtime": 1785112565.7638652,
+    "size": 23443
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\domain_analysis.py": {
+    "mtime": 1786034282.5496354,
+    "size": 755331
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enforcement_procedure.py": {
+    "mtime": 1785672073.2471752,
+    "size": 14957
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enterprise_profile.py": {
+    "mtime": 1785112565.7678652,
+    "size": 23555
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\evolution.py": {
+    "mtime": 1785112565.7688656,
+    "size": 10762
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\external_verifier.py": {
+    "mtime": 1785112565.7688656,
+    "size": 10036
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\financial_analyzer.py": {
+    "mtime": 1785112565.7688656,
+    "size": 23309
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\human_learning.py": {
+    "mtime": 1785672182.3948936,
+    "size": 30715
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\hypothesis_engine.py": {
+    "mtime": 1785112565.7688656,
+    "size": 23433
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\knowledge_base.py": {
+    "mtime": 1785117211.9827833,
+    "size": 21229
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\law_validity_checker.py": {
+    "mtime": 1785112565.7698653,
+    "size": 9068
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\legal_reasoner.py": {
+    "mtime": 1785112565.7698653,
+    "size": 25602
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\legal_updater.py": {
+    "mtime": 1785112565.7698653,
+    "size": 9160
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\llm_client.py": {
+    "mtime": 1785122153.6670966,
+    "size": 5682
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\main_biz_cost.py": {
+    "mtime": 1785112565.7698653,
+    "size": 12223
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\memory.py": {
+    "mtime": 1785747098.8081775,
+    "size": 104201
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_acceptance.py": {
+    "mtime": 1785761897.3162518,
+    "size": 7909
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_assets.py": {
+    "mtime": 1785749331.6189241,
+    "size": 2292
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_catalog.py": {
+    "mtime": 1785943180.1306238,
+    "size": 23058
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_coverage.py": {
+    "mtime": 1785761914.8697412,
+    "size": 5255
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_guardrails.py": {
+    "mtime": 1785857673.5988295,
+    "size": 14476
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_loader.py": {
+    "mtime": 1785667737.9512112,
+    "size": 12838
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_portfolio.py": {
+    "mtime": 1785942629.8644543,
+    "size": 78518
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\orchestrator.py": {
+    "mtime": 1785767669.7929542,
+    "size": 19439
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\override_engine.py": {
+    "mtime": 1785112565.7718654,
+    "size": 14363
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\parallel_runner.py": {
+    "mtime": 1785112565.7718654,
+    "size": 3827
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\phase1_triage.py": {
+    "mtime": 1785112565.7728658,
+    "size": 32072
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\phase2_deep_dive.py": {
+    "mtime": 1785112565.7728658,
+    "size": 29423
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\phase3_cross_validate.py": {
+    "mtime": 1785112565.7728658,
+    "size": 38653
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\phase4_synthesis.py": {
+    "mtime": 1785112565.7728658,
+    "size": 17144
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\pipeline.py": {
+    "mtime": 1786061272.726304,
+    "size": 432396
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rd_audit.py": {
+    "mtime": 1786031948.2252183,
+    "size": 23093
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rectification.py": {
+    "mtime": 1785112565.7748656,
+    "size": 7407
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\red_team.py": {
+    "mtime": 1785112565.7758653,
+    "size": 7725
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\report_standards.py": {
+    "mtime": 1785762231.0112762,
+    "size": 10641
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\risk_predictor.py": {
+    "mtime": 1785112565.7758653,
+    "size": 6727
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rule_consumer.py": {
+    "mtime": 1785112565.7758653,
+    "size": 17482
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rule_discovery.py": {
+    "mtime": 1785405704.963722,
+    "size": 11245
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rule_enricher.py": {
+    "mtime": 1785745740.2283678,
+    "size": 4982
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rule_gate.py": {
+    "mtime": 1785857706.677444,
+    "size": 14132
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\scenario_execution.py": {
+    "mtime": 1786061174.220473,
+    "size": 30981
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\scenario_methodology.py": {
+    "mtime": 1785762551.1088674,
+    "size": 39808
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\scm_reasoner.py": {
+    "mtime": 1785112565.7768652,
+    "size": 10903
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\self_healing.py": {
+    "mtime": 1785112565.7768652,
+    "size": 17455
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\self_learning.py": {
+    "mtime": 1785420563.7880468,
+    "size": 43359
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\semantic_reasoner.py": {
+    "mtime": 1785112565.7778654,
+    "size": 8915
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\shared_content_sync.py": {
+    "mtime": 1785112565.7778654,
+    "size": 12307
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\smart_sampler.py": {
+    "mtime": 1785112565.7778654,
+    "size": 5434
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\tax_incentive_analyzer.py": {
+    "mtime": 1785112565.7778654,
+    "size": 37966
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\threshold_scanner.py": {
+    "mtime": 1785669207.2795804,
+    "size": 5905
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\thresholds.py": {
+    "mtime": 1785112565.7778654,
+    "size": 1151
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\trend_analyzer.py": {
+    "mtime": 1785112565.7788653,
+    "size": 15445
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\trend_group.py": {
+    "mtime": 1785112565.7788653,
+    "size": 8840
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\unknown_pattern_detector.py": {
+    "mtime": 1785112565.7788653,
+    "size": 22012
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\verified_rule_engine.py": {
+    "mtime": 1785767180.9809408,
+    "size": 26487
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agents\\__init__.py": {
+    "mtime": 1785112565.7598655,
+    "size": 0
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agents\\base.py": {
+    "mtime": 1785112565.7598655,
+    "size": 3184
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agents\\coordinator.py": {
+    "mtime": 1785745739.47511,
+    "size": 42288
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\archives.js": {
+    "mtime": 1785112565.845865,
+    "size": 49042
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\assets.js": {
+    "mtime": 1785112565.845865,
+    "size": 43105
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\bank-vat.js": {
+    "mtime": 1785382773.8558083,
+    "size": 59728
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\bookkeeping-invoices.js": {
+    "mtime": 1785112565.8468652,
+    "size": 27477
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\chat.js": {
+    "mtime": 1786432306.6128821,
+    "size": 18173
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\company.js": {
+    "mtime": 1785112565.8468652,
+    "size": 19793
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\constants.js": {
+    "mtime": 1785112565.8468652,
+    "size": 917
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\contracts-payments.js": {
+    "mtime": 1785112565.847865,
+    "size": 42574
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\core.js": {
+    "mtime": 1785858097.35527,
+    "size": 88676
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\correction-rules.js": {
+    "mtime": 1785405575.6118262,
+    "size": 10961
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\dashboard.js": {
+    "mtime": 1785401840.4520965,
+    "size": 6811
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\engine-hub.js": {
+    "mtime": 1785426903.385001,
+    "size": 32532
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\file-import.js": {
+    "mtime": 1785112565.8488657,
+    "size": 28862
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\housing-fund.js": {
+    "mtime": 1785112565.8488657,
+    "size": 33499
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\human-learning-page.js": {
+    "mtime": 1785112565.8498657,
+    "size": 16816
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\invoices.js": {
+    "mtime": 1785112565.8498657,
+    "size": 67698
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\journal.js": {
+    "mtime": 1785112565.8498657,
+    "size": 38204
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\ledgers-reports.js": {
+    "mtime": 1785112565.8508656,
+    "size": 51343
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\methodology-v3.js": {
+    "mtime": 1785941401.2710207,
+    "size": 29792
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\module-headers.js": {
+    "mtime": 1785746674.5799398,
+    "size": 76787
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\report-block-renderer.js": {
+    "mtime": 1785420004.1947474,
+    "size": 14302
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\report-modules.js": {
+    "mtime": 1785420705.3462946,
+    "size": 97952
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\rewrite_methodology.py": {
+    "mtime": 1785112565.8518653,
+    "size": 7840
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\rewrite_steps.py": {
+    "mtime": 1785112565.8518653,
+    "size": 5767
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\salary.js": {
+    "mtime": 1785112565.8518653,
+    "size": 41356
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\security.js": {
+    "mtime": 1785112565.8518653,
+    "size": 1073
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\social-security.js": {
+    "mtime": 1785112565.8528652,
+    "size": 38692
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\system-logs.js": {
+    "mtime": 1785429328.208129,
+    "size": 9176
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-auditor-handbook.js": {
+    "mtime": 1785746704.156358,
+    "size": 49319
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
+    "mtime": 1786434549.570077,
+    "size": 177460
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
+    "mtime": 1785420359.853431,
+    "size": 230373
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-knowledge-hub.js": {
+    "mtime": 1785404040.1115294,
+    "size": 42057
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
+    "mtime": 1785747124.8837066,
+    "size": 544162
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-report-standards.js": {
+    "mtime": 1785426905.219388,
+    "size": 33828
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-rights-hub.js": {
+    "mtime": 1785429227.0759807,
+    "size": 9393
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-risk-report.js": {
+    "mtime": 1785112565.8588662,
+    "size": 34467
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-risk-rules.js": {
+    "mtime": 1785747027.197006,
+    "size": 4207
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\unbookkept-invoices.js": {
+    "mtime": 1785112565.859866,
+    "size": 30409
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\update_analyze_page.py": {
+    "mtime": 1785112565.859866,
+    "size": 1541
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\vat-declaration.js": {
+    "mtime": 1785112565.8608656,
+    "size": 169221
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\\u6587\u5316\u4e8b\u4e1a\u5efa\u8bbe\u8d39.js": {
+    "mtime": 1785112565.8608656,
+    "size": 41313
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\main.py": {
+    "mtime": 1786541406.8376758,
+    "size": 530015
+  }
+}
