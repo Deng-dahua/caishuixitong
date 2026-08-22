@@ -9,8 +9,40 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime
 from collections import Counter, OrderedDict
+
+
+def _norm_text(text):
+    """中文标点规范化：消除拼接残留的 "。。""。；"".、" 等异常序列。"""
+    t = str(text or "")
+    if not t:
+        return t
+    t = re.sub(r"[。．]\s*[。．]+\s*", "。", t)
+    t = re.sub(r"\.{2,}", "。", t)
+    t = re.sub(r"。+\s*[；;]", "；", t)
+    t = re.sub(r"[；;]\s*。+", "；", t)
+    t = re.sub(r"[；;]{2,}", "；", t)
+    t = re.sub(r"、\s*、+", "、", t)
+    t = re.sub(r"[.．]\s*[、]", "。", t)
+    t = re.sub(r"。+\s*[、]", "。", t)
+    t = re.sub(r"[，,]\s*。+", "。", t)
+    t = re.sub(r"[，,]\s*[；;]", "；", t)
+    return t.strip()
+
+
+def _brief(text, limit=180):
+    """按句子边界截断摘要文本，避免半句话被切断。"""
+    t = _norm_text(text)
+    if len(t) <= limit:
+        return t
+    cut = t[:limit]
+    for stop in ("。", "；", "！", "？"):
+        idx = cut.rfind(stop)
+        if idx >= 40:
+            return cut[:idx + 1]
+    return cut.rstrip("，、；, ") + "。"
 
 
 # ── 14 类税务合规必查资料（与 domain_analysis.py 保持一致）──
@@ -38,6 +70,11 @@ _DOC_TYPE_NAME = {
     "related_party": "关联方资料",
     "customs": "海关报关资料", "export": "出口退税资料",
     "financial": "财务报表", "financial_statement": "财务报表",
+    "bom": "BOM物料清单",
+    "warehouse_lease": "仓库租赁合同",
+    "transport_contract": "运输合同",
+    "generic_data": "其他财税资料",
+    "unknown": "其他财税资料",
 }
 
 # type → 已覆盖的"必查资料类别"
@@ -168,14 +205,23 @@ def _build_materials(report_data):
 
 def _problem_paragraphs(f):
     """从 finding 生成六段式问题说明"""
-    detail = str(f.get("detail") or f.get("description") or "")
-    how = str(f.get("how_found") or "")
+    detail = _norm_text(str(f.get("detail") or f.get("description") or ""))
+    how = _norm_text(str(f.get("how_found") or ""))
     reasons = f.get("reasonable_explanations") or f.get("alternative_explanations") or []
-    suggestion = str(f.get("suggestion") or "")
+    suggestion = _norm_text(str(f.get("suggestion") or ""))
     steps = f.get("investigation_steps") or []
     src_files = f.get("source_files") or []
-    scope = "、".join(sorted({str(s.get("type") or s.get("file") or "") for s in src_files if isinstance(s, dict)})) or "本轮已上传并成功读取的相关资料"
-    tax_impact = str(f.get("tax_impact") or "")
+    scope_names = set()
+    for s in src_files:
+        if not isinstance(s, dict):
+            continue
+        ftype = str(s.get("type") or "")
+        if ftype:
+            scope_names.add(_DOC_TYPE_NAME.get(ftype, ftype))
+        elif s.get("file"):
+            scope_names.add(str(s.get("file")))
+    scope = "、".join(sorted(scope_names)) or "本轮已上传并成功读取的相关资料"
+    tax_impact = _norm_text(str(f.get("tax_impact") or ""))
     if not tax_impact or "尚未形成" in tax_impact:
         tax_impact = "本项只确认资料中存在需要核清的具体差异，不把差异直接当作应补税额。税额影响以完成资料更正、账税核对和重新计算后的结果为准。"
 
@@ -205,14 +251,14 @@ def _conclusion_statement(f):
     """两级结论文本：可核定→最终答案；待核→建议与补证要求"""
     grade = str(f.get("conclusion_grade") or "")
     if grade == "已核定":
-        answer = str(f.get("final_answer") or "").strip()
-        scope_note = str(f.get("conclusion_scope_note") or "").strip()
+        answer = _norm_text(str(f.get("final_answer") or "").strip())
+        scope_note = _norm_text(str(f.get("conclusion_scope_note") or "").strip())
         return (
             (answer or "本项结论已由本轮所报资料直接计算核定。")
             + (" " + scope_note if scope_note else "")
             + " 本项无须补充核实即可作为定案事实引用；行政处理决定仍由稽查人员依程序作出。"
         )
-    suggestion = str(f.get("suggestion") or "").strip()
+    suggestion = _norm_text(str(f.get("suggestion") or "").strip())
     return (
         "本项为待核事项：现有资料只能确认疑点信号，尚不足以作出最终认定。"
         "须补充外部证据（合同、物流单据、盘点表、权属证明等）后方可定性。"
@@ -321,7 +367,7 @@ def _build_summary(report_data, problems, completed, further):
     key_points = []
     for p in problems[:3]:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
-        key_points.append(f"重点{p['seq']}：{p.get('title', '')}。{first[:120]}")
+        key_points.append(f"重点{p['seq']}：{p.get('title', '')}。{_brief(first)}")
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
 

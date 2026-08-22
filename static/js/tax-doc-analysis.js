@@ -4645,7 +4645,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '</div></div>';
 
   html += '<div style="padding:16px 18px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.9">' +
-    esc(openingText) + '<br>' + esc(headlineText) + '<br>' + esc(summary.owner_message || '') +
+    esc(openingText) + '<br>检查范围、总体结论和给企业负责人的整改要求，详见本报告第一章。' +
     '</div>';
 
   html += '<div class="toc"><a href="#company-conclusion">一、稽查任务和给企业负责人的总体结论</a><br>' +

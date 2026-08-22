@@ -343,10 +343,26 @@ def _observation_digest(observation):
     }
 
 
+def _merge_observation_details(observed):
+    """多条观察合并为一段 detail：各项去尾句号后以"。"分隔，避免 "。；""。。"。"""
+    parts = []
+    for item in observed:
+        text = str(item.get("detail", "") or "").strip()
+        if not text:
+            continue
+        text = text.rstrip("。；;、 ")
+        if text:
+            parts.append(text)
+    merged = "。".join(parts)
+    if merged and not merged.endswith(("。", "！", "？")):
+        merged += "。"
+    return merged
+
+
 def _common_finding(contract_id, contract, observations, file_inventory):
     observed = [_observation_digest(item) for item in observations]
     source_families = sorted({family for item in observed for family in item["source_families"]})
-    detail = "；".join(str(item.get("detail", "")) for item in observed if item.get("detail"))
+    detail = _merge_observation_details(observed)
     # 基于观察分数计算汇总分数和等级
     obs_scores = [max(0, int(item.get("score", 0) or 0)) for item in observations]
     max_obs_score = max(obs_scores) if obs_scores else 0
@@ -426,7 +442,7 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
     observed = [_observation_digest(item) for item in observations]
     source_families = sorted({family for item in observed for family in item["source_families"]})
     missing_gates = [item["name"] for item in gates if not item.get("satisfied")]
-    detail = "；".join(str(item.get("detail", "")) for item in observed if item.get("detail"))
+    detail = _merge_observation_details(observed)
     steps = [
         {
             "step": item.get("step"),

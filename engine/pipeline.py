@@ -4792,6 +4792,14 @@ def _run_analyze(company_id, db, progress_callback=None):
     result["report"]["high_risk"] = _lvl_high
     result["report"]["mid_risk"] = _lvl_mid
     result["report"]["low_risk"] = _lvl_low
+    # ═══ 报告文本标点规范化：消除 "。。""。；" 等拼接残留 ═══
+    for _sf in all_findings:
+        if not isinstance(_sf, dict):
+            continue
+        for _field in ("detail", "description", "suggestion", "how_found"):
+            if _sf.get(_field):
+                _sf[_field] = _normalize_punct(_sf.get(_field))
+
     # ═══ 两级结论统计：可核定（已给出最终答案）/ 待核（保留建议）═══
     _verified_cnt = sum(1 for _sf in all_findings if isinstance(_sf, dict) and _sf.get("conclusion_grade") == "已核定")
     _pending_cnt = len(all_findings) - _verified_cnt
@@ -4975,6 +4983,26 @@ def _load_boilerplate_rules():
     except Exception:
         return list(_BOILERPLATE_PREFIXES), list(_BOILERPLATE_SUFFIXES)
 
+def _normalize_punct(text):
+    """中文标点规范化：消除拼接造成的 "。。""。；"".、" 等异常序列。
+    注意：小数点单次出现不受影响（如 12.57）。"""
+    import re as _re
+    t = str(text or "")
+    if not t:
+        return t
+    t = _re.sub(r"[。．]\s*[。．]+\s*", "。", t)          # 。。／．． → 。
+    t = _re.sub(r"\.{2,}", "。", t)                       # ... → 。
+    t = _re.sub(r"。+\s*[；;]", "；", t)                  # 。； → ；
+    t = _re.sub(r"[；;]\s*。+", "；", t)                  # ；。 → ；
+    t = _re.sub(r"[；;]{2,}", "；", t)                    # ；； → ；
+    t = _re.sub(r"[、]\s*[、]+\s*", "、", t)              # 、、 → 、
+    t = _re.sub(r"[.．]\s*[、]", "。", t)                 # .、 → 。
+    t = _re.sub(r"。+\s*[、]", "。", t)                   # 。、 → 。
+    t = _re.sub(r"[，,]\s*。+", "。", t)                  # ，。 → 。
+    t = _re.sub(r"[，,]\s*[；;]", "；", t)                # ，； → ；
+    return t.strip()
+
+
 def _sanitize_finding_boilerplate(all_findings):
     """剔除每条发现中的模板句、重复句、空描述，确保报告文本专业可读。
     
@@ -5016,7 +5044,8 @@ def _sanitize_finding_boilerplate(all_findings):
                 deduped.append(s)
         if len(deduped) < len(sentences):
             stats["dedup"] += 1
-        detail = "。".join(s for s in deduped if s)
+        # 各句已自带句号，直接拼接；避免 "。".join 造成 "。。"
+        detail = _normalize_punct("".join(s for s in deduped if s))
         
         # ── 3. 检测空描述——detail仅等于标题或title的变体，无实质内容 ──
         desc = str(f.get("description", ""))

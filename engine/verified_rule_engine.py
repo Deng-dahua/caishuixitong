@@ -342,6 +342,14 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
     }
 
 
+def _fmt_yuan(value):
+    """金额格式化为千分位中文口径，用于 detail 中给出可回查明细。"""
+    try:
+        return f"{float(value):,.2f}元"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 def _monthly_amount(rows, value_fn, predicate=None):
     totals = defaultdict(float)
     for row in rows or []:
@@ -431,9 +439,14 @@ def _scan_duplicate_invoices(data, spec, source):
     ]
     if not duplicates:
         return []
+    example_text = "；".join(
+        f"发票号{d['invoice_number'] or d['invoice_code']}（出现{len(d['rows'])}次，第{'、'.join(str(r) for r in d['rows'][:4])}行）"
+        for d in duplicates[:5]
+    )
     return [_finding(
         spec,
-        f"上传资料中有{len(duplicates)}个发票号码出现多次。应先核对是否为重复上传、多行明细或解析拆分，再决定是否进入交易核验。",
+        (f"上传资料中有{len(duplicates)}个发票号码出现多次，应先核对是否为重复上传、多行明细或解析拆分，再决定是否进入交易核验。"
+         f"重复发票号举例：{example_text}。全部明细已留存于工作底稿，可逐笔回查。"),
         {"duplicate_invoice_count": len(duplicates), "examples": duplicates[:30]},
         [source],
         status="data_quality_limitation",
@@ -456,9 +469,14 @@ def _scan_payroll_social(data, spec):
     denominator = max(len(salary_names | social_names), 1)
     if mismatch < 2 or mismatch / denominator < 0.2:
         return []
+    example_text = (
+        (f"仅在工资名册的人员举例：{'、'.join(only_salary[:5])}。" if only_salary else "")
+        + (f"仅在社保清单的人员举例：{'、'.join(only_social[:5])}。" if only_social else "")
+    )
     return [_finding(
         spec,
-        f"工资名册与社会保险人员清单共有{mismatch}人未能双向匹配，占合并人员范围的{mismatch / denominator:.1%}。该差异需要按人员身份和所属月份逐人解释。",
+        (f"工资名册与社会保险人员清单共有{mismatch}人未能双向匹配，占合并人员范围的{mismatch / denominator:.1%}。该差异需要按人员身份和所属月份逐人解释。"
+         + example_text),
         {
             "salary_only_count": len(only_salary),
             "social_only_count": len(only_social),
@@ -489,9 +507,14 @@ def _scan_negative_inventory(data, spec):
             })
     if not items:
         return []
+    example_text = "；".join(
+        f"{it['name'] or it['code'] or '第' + str(it['row']) + '行'}（期末数量{it['end_qty']:g}）"
+        for it in items[:5]
+    )
     return [_finding(
         spec,
-        f"进销存资料中有{len(items)}项期末数量为负，应先核对单据时点、跨仓调拨、单位换算和解析完整性。",
+        (f"进销存资料中有{len(items)}项期末数量为负，应先核对单据时点、跨仓调拨、单位换算和解析完整性。"
+         f"涉及品项：{example_text}。"),
         {"negative_items": items[:50], "negative_count": len(items)},
         spec["required_sources"],
         status="data_quality_limitation",
@@ -523,9 +546,14 @@ def _scan_inventory_rollforward(data, spec):
             })
     if comparable < 3 or not mismatches:
         return []
+    example_text = "；".join(
+        f"{m['name'] or m['code'] or '第' + str(m['row']) + '行'}（期初＋入库－出库应为{m['expected_end_qty']:g}，账面期末为{m['reported_end_qty']:g}，差{m['difference']:+g}）"
+        for m in mismatches[:5]
+    )
     return [_finding(
         spec,
-        f"{comparable}项具有完整数量字段的存货中，{len(mismatches)}项不满足“期初＋入库－出库＝期末”的滚动关系。",
+        (f"{comparable}项具有完整数量字段的存货中，{len(mismatches)}项不满足“期初＋入库－出库＝期末”的滚动关系。"
+         f"涉及品项：{example_text}。"),
         {"comparable_count": comparable, "mismatch_count": len(mismatches), "examples": mismatches[:50]},
         spec["required_sources"],
         status="data_quality_limitation",
@@ -557,9 +585,15 @@ def _scan_voucher_balance(data, spec):
             })
     if not mismatches:
         return []
+    top = sorted(mismatches, key=lambda m: -abs(m["difference"]))[:3]
+    example_text = "；".join(
+        f"{m['month']}月{m['voucher_no']}号凭证：借方{_fmt_yuan(m['debit'])}、贷方{_fmt_yuan(m['credit'])}，差{_fmt_yuan(m['difference'])}"
+        for m in top
+    )
     return [_finding(
         spec,
-        f"按月份和凭证号汇总后，有{len(mismatches)}张凭证借贷差额超过1元；应优先检查上传是否缺行或解析失败。",
+        (f"按月份和凭证号汇总后，有{len(mismatches)}张凭证借贷差额超过1元；应优先检查上传是否缺行或解析失败。"
+         f"差额最大的凭证：{example_text}。"),
         {"unbalanced_count": len(mismatches), "examples": mismatches[:50]},
         spec["required_sources"],
         status="data_quality_limitation",
@@ -592,9 +626,15 @@ def _scan_bank_balance_rollforward(data, spec):
                 })
     if comparable < 3 or not mismatches:
         return []
+    top = sorted(mismatches, key=lambda m: -abs(m["difference"]))[:3]
+    example_text = "；".join(
+        f"账户尾号{m['account']}，{m['date']}，应为{_fmt_yuan(m['expected_balance'])}而账面为{_fmt_yuan(m['reported_balance'])}，差{_fmt_yuan(m['difference'])}"
+        for m in top
+    )
     return [_finding(
         spec,
-        f"在{comparable}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动。",
+        (f"在{comparable}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动。"
+         f"差异最大的组别：{example_text}。全部{len(mismatches)}组差异明细已留存于工作底稿，可逐笔回查。"),
         {"comparable_count": comparable, "mismatch_count": len(mismatches), "examples": mismatches[:50]},
         spec["required_sources"],
         status="data_quality_limitation",
@@ -622,9 +662,15 @@ def _scan_invoice_arithmetic(data, spec, source):
             })
     if comparable < 3 or not mismatches:
         return []
+    top = sorted(mismatches, key=lambda m: -abs(m["difference"]))[:3]
+    example_text = "；".join(
+        f"{'发票号' + m['invoice_number'] if m['invoice_number'] else '第' + str(m['row']) + '行'}：金额{_fmt_yuan(m['amount'])}＋税额{_fmt_yuan(m['tax'])}≠价税合计{_fmt_yuan(m['total'])}，差{_fmt_yuan(m['difference'])}"
+        for m in top
+    )
     return [_finding(
         spec,
-        f"{comparable}条字段齐全的发票记录中，有{len(mismatches)}条不满足“金额＋税额＝价税合计”（容差1元）。",
+        (f"{comparable}条字段齐全的发票记录中，有{len(mismatches)}条不满足“金额＋税额＝价税合计”（容差1元）。"
+         f"差异最大的记录：{example_text}。"),
         {"comparable_count": comparable, "mismatch_count": len(mismatches), "examples": mismatches[:50]},
         spec["required_sources"],
         status="data_quality_limitation",
@@ -658,9 +704,11 @@ def _scan_customer_supplier_overlap(data, spec):
     if not overlaps:
         return []
     examples = [sorted(customers[key] | suppliers[key])[0] for key in overlaps[:50]]
+    example_text = "、".join(examples[:5])
     return [_finding(
         spec,
-        f"进销项发票中有{len(overlaps)}个标准化交易对手名称同时出现在客户和供应商范围，应按业务合同和实际履约判断双向交易性质。",
+        (f"进销项发票中有{len(overlaps)}个标准化交易对手名称同时出现在客户和供应商范围，应按业务合同和实际履约判断双向交易性质。"
+         f"涉及的对手方举例：{example_text}。"),
         {"overlap_count": len(overlaps), "examples": examples},
         spec["required_sources"],
     )]
@@ -690,9 +738,14 @@ def _scan_bidirectional_bank(data, spec):
     if not matches:
         return []
     matches.sort(key=lambda item: -(item["receipts"] + item["payments"]))
+    example_text = "；".join(
+        f"{m['counterparty']}（累计收款{_fmt_yuan(m['receipts'])}、付款{_fmt_yuan(m['payments'])}，共{m['transaction_count']}笔）"
+        for m in matches[:3]
+    )
     return [_finding(
         spec,
-        f"有{len(matches)}个资金对手方同时存在累计不低于10万元的收款和付款，且较小方向达到较大方向的20%。",
+        (f"有{len(matches)}个资金对手方同时存在累计不低于10万元的收款和付款，且较小方向达到较大方向的20%。"
+         f"涉及的对手方：{example_text}。全部对手方累计收付明细已留存于工作底稿，可逐笔回查。"),
         {"counterparty_count": len(matches), "examples": matches[:50]},
         spec["required_sources"],
         priority="调查优先级",
