@@ -1,2182 +1,5 @@
 [
   {
-    "timestamp": "2026-07-25T00:47:24.447439",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:52:26.081983",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T00:56:20.493701",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:00:25.091624",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:04:20.538131",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:06:30.207019",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:09:22.440350",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:15:18.282028",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T01:56:31.421617",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T02:09:05.154801",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-07-25T10:53:48.589288",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.2,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 648,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 31.880140047146615,
-    "customer_concentration": 55.421615481275765,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6636800.57,
-      "purchases": 5757171.49,
-      "bank_in": 8371659.92,
-      "bank_out": 7214019.55,
-      "salary": 0.0,
-      "gross_margin_pct": 13.2538121452096
-    }
-  },
-  {
-    "timestamp": "2026-08-04T23:13:09.956682",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "timestamp": "2026-08-04T23:20:25.614046",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "timestamp": "2026-08-05T00:13:30.847874",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "timestamp": "2026-08-05T00:15:31.757710",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-05T00:29:58.934749",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "人员薪酬与扣缴域",
-          "发票数据质量域",
-          "交易对手与合同履约域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息系统服务', '现代服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-05T00:29:58.938592",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-05T20:05:47.031972",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "人员薪酬与扣缴域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '信息系统服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-05T20:05:47.043814",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-05T20:37:32.853762",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "交易对手与合同履约域",
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "人员薪酬与扣缴域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '现代服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-05T20:37:32.859411",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-05T20:59:41.920835",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "人员薪酬与扣缴域",
-          "交易对手与合同履约域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息系统服务', '信息技术服务', '广告服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-05T20:59:41.926155",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-05T23:32:30.467016",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "人员薪酬与扣缴域",
-          "交易对手与合同履约域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息系统服务', '信息技术服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-05T23:32:30.476732",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T00:33:45.700876",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "交易对手与合同履约域",
-          "收入与申报协同域",
-          "人员薪酬与扣缴域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '信息系统服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T00:33:45.706363",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T00:42:02.440212",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "交易对手与合同履约域",
-          "人员薪酬与扣缴域",
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '信息系统服务', '现代服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T00:42:02.445147",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T00:46:37.992274",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "交易对手与合同履约域",
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T00:46:37.997534",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T00:51:16.424087",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域",
-          "人员薪酬与扣缴域",
-          "交易对手与合同履约域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['交易对手与合同履约域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息系统服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T00:51:16.429472",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T00:58:20.557603",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['现代服务', '信息技术服务', '广告服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T00:58:20.563710",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.3,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 749,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 30.22693760465472,
-    "customer_concentration": 56.819209939371426,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 6882627.59,
-      "purchases": 6223735.95,
-      "bank_in": 8767565.68,
-      "bank_out": 7560742.32,
-      "salary": 0.0,
-      "gross_margin_pct": 9.57325718098311
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T23:09:37.202432",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['现代服务', '信息技术服务', '广告服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T23:09:37.211161",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.4,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 857,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 28.80298451432841,
-    "customer_concentration": 58.131835232578425,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 7128454.61,
-      "purchases": 6690300.41,
-      "bank_in": 9163471.44,
-      "bank_out": 7907465.09,
-      "salary": 0.0,
-      "gross_margin_pct": 6.146552429264892
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T23:15:29.890647",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['现代服务', '信息技术服务', '广告服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T23:15:29.900017",
-    "industry": "现代服务",
-    "biz_model": "未确定",
-    "scale": "小",
-    "risk_score": 68.4,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 857,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 28.80298451432841,
-    "customer_concentration": 58.131835232578425,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 7128454.61,
-      "purchases": 6690300.41,
-      "bank_in": 9163471.44,
-      "bank_out": 7907465.09,
-      "salary": 0.0,
-      "gross_margin_pct": 6.146552429264892
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-06T23:52:18.711315",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "研发税收域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-06T23:52:18.734943",
-    "industry": "广告服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 60.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 55,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T07:39:50.846886",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "研发税收域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T07:39:50.854480",
-    "industry": "广告服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 60.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 55,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T07:40:34.201953",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "研发税收域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T07:40:34.208424",
-    "industry": "广告服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 60.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 55,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T07:46:10.615760",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "研发税收域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T07:46:10.622018",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T07:58:37.587299",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "研发税收域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T07:58:37.593331",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:05:17.861426",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "研发税收域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:05:17.867503",
-    "industry": "设计服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 60.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 55,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:09:56.618528",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:09:56.622953",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:45:01.705591",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:45:01.712248",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:46:16.181098",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:46:16.187968",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:47:03.098492",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:47:03.105335",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:48:41.383108",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:48:41.391494",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:49:05.296190",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:49:05.299677",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:49:49.127859",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:49:49.131301",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:50:18.883317",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:50:18.890860",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-07T08:56:40.549786",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-07T08:56:40.553665",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-08T11:15:31.339924",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "人员薪酬与扣缴域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['设计服务', '广告服务', '信息技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-08T11:15:31.357924",
-    "industry": "信息技术服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 59.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 56,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-12T21:41:33.332141",
-    "company_id": 1,
-    "company_name": "深圳海更数字传媒有限公司",
-    "industry": "广告传媒",
-    "total_contradictions": 1,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['信息技术服务', '广告服务', '设计服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-12T21:41:33.335618",
-    "industry": "设计服务",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 60.8,
-    "risk_level": "高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 1,
-    "total_findings": 55,
-    "has_processing": false,
-    "has_personal_payments": true,
-    "supplier_concentration": 34.41335674163506,
-    "customer_concentration": 100.0,
-    "data_quality_score": 100,
-    "snapshot": {
-      "sales": 245827.02,
-      "purchases": 466564.46,
-      "bank_in": 395905.76,
-      "bank_out": 346722.77,
-      "salary": 0.0,
-      "gross_margin_pct": -89.79380704366837
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:31:57.390435",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:31:57.408867",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:33:15.118369",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
     "timestamp": "2026-08-22T11:33:15.129405",
     "industry": "纺织产品",
     "biz_model": "制造业",
@@ -2943,6 +766,2589 @@
       "bank_out": 10270235.99,
       "salary": 0,
       "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:22:05.829694",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:22:05.841763",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:22:46.045856",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:22:46.056136",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:23:26.146802",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:23:26.156405",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:24:16.214034",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:24:16.227119",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:32:34.714450",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:32:34.725467",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 85.7,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 66,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 376012608.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": -2097.1119394386865
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:34:22.669830",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:34:22.681006",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:34:56.303378",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "综合贸易/批发",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:34:56.315641",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:37:03.527793",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:37:03.538716",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:37:35.960834",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:37:35.972984",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:38:13.054530",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:38:13.065280",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:39:19.711852",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:39:19.731356",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:40:51.111336",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:40:51.123487",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:41:23.974469",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:41:23.985930",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:43:21.280518",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:43:21.290733",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:45:02.585288",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:45:02.597876",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:45:34.187509",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:45:34.197906",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:47:08.250740",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 2,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:47:08.262133",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:48:39.072381",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['pur_invs', 'Synthesis: Causal Narrative', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:48:39.083271",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:49:11.830016",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:49:11.840948",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T12:50:36.936422",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "综合分析",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T12:50:36.949166",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:32:15.043872",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:32:15.055969",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:32:48.689466",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "资金结算与往来域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "综合分析",
+          "pur_invs",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:32:48.698723",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:33:40.320664",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', 'Synthesis: Causal Narrative', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:33:40.334575",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:34:34.770119",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域', 'Synthesis: Causal Narrative', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:34:34.781114",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:35:11.335423",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:35:11.348370",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:37:08.633910",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "Synthesis: Causal Narrative",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:37:08.645855",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:37:43.499370",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:37:43.511379",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:39:34.767682",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "收入与申报协同域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "Synthesis: Causal Narrative",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['pur_invs', 'Synthesis: Causal Narrative', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:39:34.777007",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:42:17.067759",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "交易对手与合同履约域",
+          "存货物流与生产经营域",
+          "发票数据质量域",
+          "收入与申报协同域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "Synthesis: Causal Narrative"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['pur_invs', '交易对手与合同履约域', '存货物流与生产经营域', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', '交易对手与合同履约域', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:42:17.078992",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:42:55.914915",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "收入与申报协同域",
+          "存货物流与生产经营域"
+        ],
+        "sources_b": [
+          "综合分析",
+          "Synthesis: Causal Narrative",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域', 'pur_invs', 'Synthesis: Causal Narrative', '存货物流与生产经营域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['交易对手与合同履约域', 'pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:42:55.927244",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:43:49.440559",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "交易对手与合同履约域",
+          "资金结算与往来域",
+          "存货物流与生产经营域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "综合分析",
+          "Synthesis: Causal Narrative",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs', '存货物流与生产经营域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:43:49.453025",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:44:48.190357",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "存货物流与生产经营域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative', '存货物流与生产经营域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:44:48.200757",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T13:57:40.713848",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 3,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "存货物流与生产经营域",
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "综合分析",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['存货物流与生产经营域', 'pur_invs', '发票数据质量域', '交易对手与合同履约域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T13:57:40.728458",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T14:01:20.467749",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 5,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "bank_txs",
+          "vouchers",
+          "交易对手与合同履约域",
+          "存货物流与生产经营域",
+          "发票数据质量域",
+          "收入与申报协同域",
+          "资金结算与往来域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "综合分析",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_009",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['bank_txs', 'vouchers'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['交易对手与合同履约域', 'Synthesis: Causal Narrative', '综合分析', 'pur_invs'] vs ['bank_txs', 'vouchers'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', 'bank_txs', 'vouchers', '收入与申报协同域', '资金结算与往来域'] vs ['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域', '存货物流与生产经营域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs'] vs ['bank_txs', 'vouchers', '综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T14:01:20.478929",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T14:07:32.928733",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 5,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "收入与申报协同域",
+          "vouchers",
+          "存货物流与生产经营域",
+          "资金结算与往来域",
+          "bank_txs"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "Synthesis: Causal Narrative",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_009",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative', '综合分析', '交易对手与合同履约域'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', 'vouchers', '收入与申报协同域', 'bank_txs'] vs ['发票数据质量域', 'pur_invs', '交易对手与合同履约域', 'Synthesis: Causal Narrative', '存货物流与生产经营域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative', '交易对手与合同履约域'] vs ['综合分析', 'vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T14:07:32.940188",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T14:13:37.771967",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 5,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "存货物流与生产经营域",
+          "交易对手与合同履约域",
+          "vouchers",
+          "收入与申报协同域",
+          "资金结算与往来域",
+          "bank_txs"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_009",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['bank_txs', 'vouchers'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域', 'pur_invs', '综合分析'] vs ['bank_txs', 'vouchers'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['vouchers', '综合分析', '收入与申报协同域', '资金结算与往来域', 'bank_txs'] vs ['发票数据质量域', '存货物流与生产经营域', '交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域'] vs ['bank_txs', 'vouchers', '综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T14:13:37.783877",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T14:14:16.177146",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 5,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "收入与申报协同域",
+          "vouchers",
+          "交易对手与合同履约域",
+          "资金结算与往来域",
+          "发票数据质量域",
+          "bank_txs",
+          "存货物流与生产经营域"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_009",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域', '综合分析'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['收入与申报协同域', 'vouchers', '资金结算与往来域', 'bank_txs', '综合分析'] vs ['Synthesis: Causal Narrative', '交易对手与合同履约域', '发票数据质量域', 'pur_invs', '存货物流与生产经营域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域'] vs ['vouchers', '综合分析', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T14:14:16.188098",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T14:14:57.591471",
+    "company_id": 2,
+    "company_name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "total_contradictions": 5,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "资金结算与往来域",
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "收入与申报协同域",
+          "存货物流与生产经营域",
+          "vouchers",
+          "bank_txs"
+        ],
+        "sources_b": [
+          "Synthesis: Causal Narrative",
+          "pur_invs",
+          "综合分析"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_009",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域', 'pur_invs', '综合分析'] vs ['vouchers', 'bank_txs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析', 'vouchers', 'bank_txs'] vs ['交易对手与合同履约域', '发票数据质量域', 'Synthesis: Causal Narrative', '存货物流与生产经营域', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域', 'pur_invs'] vs ['vouchers', 'bank_txs', '综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T14:14:57.603337",
+    "industry": "纺织产品",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 82.1,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 3,
+    "total_findings": 62,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 56.25555562181207,
+    "customer_concentration": 95.85287652435744,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 17113948.6,
+      "purchases": 15667192.0,
+      "bank_in": 10435010.05,
+      "bank_out": 10270235.99,
+      "salary": 0,
+      "gross_margin_pct": 8.453669190054722
     }
   }
 ]

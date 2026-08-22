@@ -1,93 +1,5 @@
 [
   {
-    "id": "ADJ-0070",
-    "rule_id": "b802b82d",
-    "trigger": "发现#37引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "运费发票抵扣金额与货物周转量不匹配",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:44.170903",
-    "applied_count": 1,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0071",
-    "rule_id": "49b8630c",
-    "trigger": "发现#49引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "附表二通行费抵扣栏填报数据无电子发票佐证",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:44.170908",
-    "applied_count": 6,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0072",
-    "rule_id": "37a79cfc",
-    "trigger": "发现#50引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "固定资产出租租金未计入其他业务收入",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:44.170913",
-    "applied_count": 3,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0073",
-    "rule_id": "de91d5d6",
-    "trigger": "发现#52引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "建筑机械租赁大额进项无设备登记专项",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:44.170917",
-    "applied_count": 5,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0074",
-    "rule_id": "b32d69ae",
-    "trigger": "发现#42引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "办公用品一批无明细清单发票风险",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:47.486437",
-    "applied_count": 2,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0075",
-    "rule_id": "3c64032c",
-    "trigger": "发现#55引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "附表二通行费抵扣栏填报数据无电子发票佐证",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:47.486447",
-    "applied_count": 3,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0076",
-    "rule_id": "8d03d2a7",
-    "trigger": "发现#56引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "固定资产出租租金未计入其他业务收入",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:47.486452",
-    "applied_count": 2,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0077",
-    "rule_id": "7ebdb775",
-    "trigger": "发现#58引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "建筑机械租赁大额进项无设备登记专项",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T16:38:47.486457",
-    "applied_count": 3,
-    "status": "active"
-  },
-  {
     "id": "ADJ-0078",
     "rule_id": "51a84fa9",
     "trigger": "高风险发现#57仅0条证据",
@@ -1085,7 +997,7 @@
     "target": "经营实质-缺水电支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T11:31:57.366153",
-    "applied_count": 13,
+    "applied_count": 30,
     "status": "active"
   },
   {
@@ -1096,7 +1008,95 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T11:31:57.366170",
-    "applied_count": 13,
+    "applied_count": 46,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "448814ff",
+    "trigger": "高风险发现#5仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 加工费掩盖的虚开发票路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T12:48:39.062184",
+    "applied_count": 10,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "8d100baa",
+    "trigger": "高风险发现#10仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T12:48:39.062213",
+    "applied_count": 15,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "314e1c83",
+    "trigger": "高风险发现#7仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 加工费掩盖的虚开发票路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T13:42:17.063229",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "b4cbc6e3",
+    "trigger": "高风险发现#11仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-缺水电支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T13:42:17.063245",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0103",
+    "rule_id": "39a8ec36",
+    "trigger": "高风险发现#13仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T13:42:17.063253",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "3e3a2834",
+    "trigger": "高风险发现#9仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 成本虚列的科目腾挪路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T14:01:20.461768",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "3202b1a2",
+    "trigger": "高风险发现#14仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-缺水电支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T14:01:20.461783",
+    "applied_count": 4,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0103",
+    "rule_id": "5e8589de",
+    "trigger": "高风险发现#16仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T14:01:20.461789",
+    "applied_count": 4,
     "status": "active"
   }
 ]

@@ -10306,6 +10306,1070 @@
       },
       "learning_points": [],
       "timestamp": "2026-08-22T12:11:53.824108"
+    },
+    {
+      "trace_id": "ad9d0ebe",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:22:06.428823",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "375f5da4",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:22:07.161600"
+    },
+    {
+      "trace_id": "12888b3d",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:22:46.669266",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "68de7f3c",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:22:47.459393"
+    },
+    {
+      "trace_id": "52cf0a7a",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:23:26.789156",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "ee3857ba",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:23:27.598976"
+    },
+    {
+      "trace_id": "9a4392bf",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:24:16.879907",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "19d16f11",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:24:17.746248"
+    },
+    {
+      "trace_id": "af6a5b1b",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:32:35.331635",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "815b3a0a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:32:36.105266"
+    },
+    {
+      "trace_id": "457e342a",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:34:23.321516",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "e0799448",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:34:24.076572"
+    },
+    {
+      "trace_id": "c0252b84",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:34:56.937235",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "e6151b47",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "综合贸易/批发",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:34:57.736578"
+    },
+    {
+      "trace_id": "dfb0776e",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:37:04.159098",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8f2e80b3",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:37:04.968280"
+    },
+    {
+      "trace_id": "12187dce",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:37:36.561246",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "de40d0e0",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:37:37.406739"
+    },
+    {
+      "trace_id": "0b7800c6",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:38:13.687341",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "bb5804f2",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:38:14.574986"
+    },
+    {
+      "trace_id": "eb5a3a43",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:39:20.353733",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8a115ab6",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:39:21.288226"
+    },
+    {
+      "trace_id": "0a5bb683",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:40:51.720923",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "6a723e19",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:40:52.673081"
+    },
+    {
+      "trace_id": "6b982f59",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:41:24.604674",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "3780e8b3",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:41:25.606247"
+    },
+    {
+      "trace_id": "3d567205",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:43:21.921586",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "30f67316",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:43:22.971061"
+    },
+    {
+      "trace_id": "f37c9035",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:45:03.198828",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "ed655a3b",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:45:04.268809"
+    },
+    {
+      "trace_id": "510d5b59",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:45:34.842230",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "270bfc3a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:45:35.946795"
+    },
+    {
+      "trace_id": "44d0089d",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:47:08.868105",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "31e249b1",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:47:10.015179"
+    },
+    {
+      "trace_id": "ce2042b3",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:48:39.677367",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "52e52a11",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:48:40.848943"
+    },
+    {
+      "trace_id": "32015fa2",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:49:12.464789",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8f224e75",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:49:13.684040"
+    },
+    {
+      "trace_id": "47ab3933",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T12:50:37.572987",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "943cd425",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T12:50:38.810548"
+    },
+    {
+      "trace_id": "118bd768",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:32:15.675354",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8a59a258",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:32:16.467899"
+    },
+    {
+      "trace_id": "6fcd3392",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:32:49.325650",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "d1609078",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:32:50.121146"
+    },
+    {
+      "trace_id": "15d25659",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:33:40.962638",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "b98e9a79",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:33:41.769063"
+    },
+    {
+      "trace_id": "ebc0bd9b",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:34:35.402210",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "4b26e8ba",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:34:36.215374"
+    },
+    {
+      "trace_id": "bd045cd7",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:35:11.996821",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "eb6d59c3",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:35:12.832954"
+    },
+    {
+      "trace_id": "ed087691",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:37:09.261968",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "6bb78ade",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:37:10.078480"
+    },
+    {
+      "trace_id": "6feb9bb8",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:37:44.175512",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "90e64858",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:37:45.025038"
+    },
+    {
+      "trace_id": "19844f0d",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:39:35.375380",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "54f365a2",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:39:36.217549"
+    },
+    {
+      "trace_id": "8c5eb1a8",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:42:17.692217",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "eaca2ee1",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:42:18.539848"
+    },
+    {
+      "trace_id": "3265a31d",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:42:56.569102",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "fbb48067",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:42:57.436929"
+    },
+    {
+      "trace_id": "77607bae",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:43:50.072376",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "4e809305",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:43:50.949015"
+    },
+    {
+      "trace_id": "21047281",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:44:48.810556",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "747b2c6f",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:44:49.693130"
+    },
+    {
+      "trace_id": "a15cc986",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T13:57:41.417192",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "59ff4dd9",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T13:57:42.355728"
+    },
+    {
+      "trace_id": "3fb338d1",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T14:01:21.111214",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "c74e5c58",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T14:01:22.093591"
+    },
+    {
+      "trace_id": "903bfd96",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T14:07:33.550561",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "7feb15ed",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T14:07:34.519668"
+    },
+    {
+      "trace_id": "bf66e4bc",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T14:13:38.407825",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "67e8a536",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T14:13:39.416043"
+    },
+    {
+      "trace_id": "e51a02ea",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T14:14:16.824527",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "307f041d",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T14:14:17.859762"
+    },
+    {
+      "trace_id": "699cefcd",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-22T14:14:58.225414",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "80de25b3",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [],
+      "timestamp": "2026-08-22T14:14:59.287761"
     }
   ],
   "industry_patterns": {
@@ -10334,7 +11398,7 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 14,
+      "analyses_count": 52,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
