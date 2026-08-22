@@ -4965,8 +4965,15 @@ def _parse_inventory_sheet(sheet):
         "产品编码", "产品名称", "期初库存", "期末库存", "本期入库", "本期出库"
     ])
     header = _get_row_values(sheet, header_row)
-    cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no",
-        "入库": "in_qty", "出库": "out_qty", "存货": "item", "数量": "qty", "金额": "amount"})
+    cols = _find_cols_semantic(header, {
+        "日期": "date", "凭证字号": "voucher_no",
+        "期初库存": "begin_qty", "期初数量": "begin_qty", "期初": "begin_qty",
+        "期末库存": "end_qty", "期末数量": "end_qty", "期末": "end_qty",
+        "本期入库": "in_qty", "入库数量": "in_qty", "入库": "in_qty",
+        "本期出库": "out_qty", "出库数量": "out_qty", "出库": "out_qty",
+        "存货": "item", "存货名称": "item", "产品名称": "item", "品名": "item",
+        "数量": "qty", "金额": "amount",
+    })
     if not cols: return None
     rows = []
     for r in range(header_row + 1, min(nrows, 5000)):
@@ -4978,7 +4985,7 @@ def _parse_inventory_sheet(sheet):
                 vals[field] = v
             except: vals[field] = ""
         if not vals.get("date") and not vals.get("item"): continue
-        for k in ["in_qty","out_qty","amount"]:
+        for k in ["in_qty","out_qty","begin_qty","end_qty","amount"]:
             try: vals[k] = float(vals.get(k, 0) or 0)
             except: vals[k] = 0
         rows.append(vals)

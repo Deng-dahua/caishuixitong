@@ -674,7 +674,35 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     total_out_val = sum(float(i.get("out_amount", 0) or 0) for i in inventory)
     stock_val = total_in_val - total_out_val
     out_rate = total_out / max(total_in, 1) * 100
-    
+
+    # ── 进销存数量勾稽：期初 + 入库 − 出库 ≈ 期末 ──
+    if inventory:
+        imbalances = []
+        for inv in inventory:
+            begin = float(inv.get("begin_qty", 0) or 0)
+            inq = float(inv.get("in_qty", 0) or 0)
+            outq = float(inv.get("out_qty", 0) or 0)
+            end = float(inv.get("end_qty", 0) or 0)
+            # 仅当四项齐备且期末>0时做勾稽（避免无期初期末的流水式台账误报）
+            if end > 0 and (begin or inq or outq):
+                expected = begin + inq - outq
+                tol = max(1.0, abs(end) * 0.02)
+                if abs(expected - end) > tol:
+                    item = str(inv.get("item", "")).strip() or "未命名品项"
+                    imbalances.append((item, begin, inq, outq, end, expected))
+        if imbalances:
+            imb_str = "；".join(
+                f"{it}（期初{bf:.0f}+入库{inq:.0f}−出库{ot:.0f}={exp:.0f}，期末{en:.0f}，差{en-exp:+.0f}）"
+                for it, bf, inq, ot, en, exp in imbalances[:8]
+            )
+            findings.append({"type": "进销存数量勾稽不平衡", "level": "高风险", "score": 7,
+                "how_found": f"对{len(inventory)}条进销存台账逐行做数量勾稽：期初+入库−出库 与 期末库存比对，发现{len(imbalances)}条不平衡。",
+                "detail": f"不平衡品项：{imb_str}",
+                "description": f"进销存台账的数量勾稽关系为「期初库存 + 本期入库 − 本期出库 = 期末库存」。逐行核对发现{len(imbalances)}条品项不满足该恒等式，差额异常。勾稽不平衡意味着：① 账实不符（实际存货与账面不一致，可能已销售未入账或虚增库存）；② 单据缺失或串户（出库/入库漏记）；③ 单位换算或盘点错误。这是稽查判定存货真实性的第一道闸门。",
+                "tax_impact": "勾稽不平衡→税务机关直接怀疑存货账实不符→可能已销售未确认收入（账外销售）或虚增存货虚抵成本→补税+滞纳金+罚款。",
+                "suggestion": "① 对不平衡品项逐笔核对出入库单、领料单、盘点表；② 说明差异来源（串户/单位换算/暂估入库）；③ 出具差异调节表；④ 对长期不平衡品项做实地盘点。",
+                "category": "域6 存货"})
+
     # ── 存货积压：基础判断 ──
     if total_in > 0 and total_out > 0 and total_in / max(total_out, 1) > 10:
         out_rate = total_out / total_in * 100
@@ -798,181 +826,255 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
 
 # ═══════════ BOM投入产出验证 — 生产型企业核心分析 ═══════════
 
+# ── BOM 品名语义匹配（与进销比对一致的 bigram 重叠系数）──
+_PROVINCE_KEYWORDS = ("北京", "上海", "天津", "重庆", "河北", "山西", "辽宁", "吉林", "黑龙江",
+    "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "海南",
+    "四川", "贵州", "云南", "陕西", "甘肃", "青海", "内蒙古", "广西", "西藏", "宁夏", "新疆")
+
+
+def _bom_bigrams(text):
+    t = re.sub(r'[^\u4e00-\u9fa5A-Za-z0-9]', '', str(text or ""))
+    if len(t) < 2:
+        return {t} if t else set()
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def _bom_overlap(a, b):
+    if not a or not b:
+        return 0.0
+    return len(a & b) / min(len(a), len(b))
+
+
+def _bom_goods_match(a, b, threshold=0.5):
+    """BOM原料名 ↔ 发票/台账品名 语义匹配：双向包含 或 bigram 重叠系数达标。"""
+    if not a or not b:
+        return False
+    a_s, b_s = str(a).strip(), str(b).strip()
+    if len(a_s) >= 2 and len(b_s) >= 2 and (a_s in b_s or b_s in a_s):
+        return True
+    return _bom_overlap(_bom_bigrams(a_s), _bom_bigrams(b_s)) >= threshold
+
+
+def _is_cross_region(name):
+    return any(p in str(name) for p in _PROVINCE_KEYWORDS)
+
+
 def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
     """域6-B: BOM投入产出验证——将BOM配方与实际采购/生产数据进行交叉比对。
-    
+
     这是生产型企业稽查的核心验证：用BOM表的标准配方，验证企业的
     实际原材料采购量是否与成品产出量匹配。投入产出严重偏离意味着：
     1) 虚列原材料采购（进项虚抵）
     2) 隐匿成品销售（账外收入）
     3) BOM表不真实（应付检查的假BOM）
-    
+
     分析链：
     BOM配方 → 理论原料消耗 = 成品产出量 × 单位用量 × (1+损耗率)
-    → 与实际原料采购量比较 → 差异分析
+    → 与实际原料耗用（含期初期末缓冲）比较 → 差异分析
     """
     findings = []
-    
+
     if not bom_data:
         return findings
-    
+
     # 汇总BOM信息
     all_products = []
     for bom_file in bom_data:
         all_products.extend(bom_file.get("products", []))
-    
+
     if not all_products:
         return findings
-    
+
     # 构建原料到成品的映射
     material_to_products = {}  # 每种原料用于哪些成品
     product_recipes = {}  # 每种成品的配方
     total_materials_count = 0
-    
+
     for prod in all_products:
         name = prod.get("finished_name", prod.get("finished_code", "未知成品"))
         product_recipes[name] = prod
         for mat in prod.get("materials", []):
             m_name = mat.get("material_name", mat.get("material_code", ""))
-            if not m_name: continue
+            if not m_name:
+                continue
             total_materials_count += 1
-            if m_name not in material_to_products:
-                material_to_products[m_name] = []
-            material_to_products[m_name].append(name)
-    
+            material_to_products.setdefault(m_name, []).append(name)
+    # 同时作为成品出现的原料 = 中间品（自产自用），其"无外部耗用"属预期，不报异常
+    finished_names = set(product_recipes.keys())
+
     # ═══ 1. BOM概况 ═══
     findings.append({"type": "BOM表概况", "level": "信息", "score": 2,
         "how_found": f"解析了{len(bom_data)}个BOM文件，共{len(all_products)}个成品、{len(product_recipes)}种配方、{total_materials_count}条原料映射。",
         "detail": f"识别{len(all_products)}个成品，{total_materials_count}条原料配方映射。",
         "description": f"BOM表定义了{len(all_products)}种成品的配方关系，共涉及{len(material_to_products)}种原料。这些配方关系是验证生产型企业投入产出真实性的基础依据。",
         "category": "域6 存货"})
-    
-    # ═══ 2. BOM配方 vs 进项发票交叉验证 ═══
+
+    # ═══ 2. BOM配方 vs 进项发票交叉验证（语义匹配） ═══
     if pur_invs:
-        # 提取进项发票中的品名
-        pur_goods = set()
-        for inv in pur_invs:
-            goods = str(inv.get("goods", ""))
-            if goods:
-                pur_goods.add(goods)
-        
-        # 检查BOM中的原料是否都有对应的采购记录
+        pur_goods = [str(inv.get("goods", "")) for inv in pur_invs if inv.get("goods")]
         matched_materials = set()
         unmatched_materials = []
         for m_name in material_to_products:
-            matched = False
-            for pg in pur_goods:
-                # 模糊匹配：原料名在品名中出现 或 品名在原料名中出现
-                if m_name[:4] in pg or pg[:4] in m_name:
-                    matched = True
-                    matched_materials.add(m_name)
-                    break
-            if not matched:
+            if m_name in finished_names:
+                # 中间品（同时是成品）自产自用，无外部采购属预期，不计缺失
+                matched_materials.add(m_name)
+                continue
+            if any(_bom_goods_match(m_name, pg) for pg in pur_goods):
+                matched_materials.add(m_name)
+            else:
                 unmatched_materials.append(m_name)
-        
         if unmatched_materials:
             unmatched_str = "、".join(unmatched_materials[:10])
             if len(unmatched_materials) > 10:
                 unmatched_str += f"...等{len(unmatched_materials)}种"
             findings.append({"type": "BOM原料无采购记录", "level": "高风险", "score": 8,
-                "how_found": f"将BOM表中{len(material_to_products)}种原料与进项发票{len(pur_goods)}种品名逐项交叉比对。",
+                "how_found": f"将BOM表中{len(material_to_products)}种原料与进项发票{len(pur_goods)}种品名逐项语义匹配（bigram重叠）。",
                 "detail": f"BOM配方中{len(unmatched_materials)}种原料在进项发票中找不到对应采购记录：{unmatched_str}。",
                 "description": f"BOM表定义的{len(unmatched_materials)}种原料在进项发票中找不到采购记录。这有两种可能：(1)BOM表不真实——为了应付检查编造的配方，实际并不使用这些原料；(2)原料采购未取得发票——供应商未开票，企业通过其他渠道购入。无论哪种情况，都严重影响生产真实性的认定。",
                 "tax_impact": "若BOM配方不真实，则基于该配方的成本核算、存货计价、进项税额抵扣均不成立。进项税额可能需要转出。",
                 "suggestion": f"① 逐项核实{len(unmatched_materials)}种原料的实际采购情况，提供采购合同、入库单、付款记录；② 若BOM表为早期版本，提供更新后的BOM表；③ 若部分原料由客户提供（来料加工），需提供委外加工合同。",
                 "category": "域6 存货"})
-        
         if matched_materials:
             findings.append({"type": "BOM-采购匹配概述", "level": "低风险", "score": 2,
                 "detail": f"BOM中{len(matched_materials)}/{len(material_to_products)}种原料在进项发票中找到对应采购记录，匹配率{len(matched_materials)/max(len(material_to_products),1)*100:.1f}%。",
-                "description": f"BOM表原料与进项发票品名的初步匹配结果表明，{len(matched_materials)}/{len(material_to_products)}种原料有对应的采购记录。匹配率较高说明BOM表与实际情况基本吻合；匹配率较低则需要进一步核实BOM版本或采购记录。",
+                "description": f"BOM表原料与进项发票品名的语义匹配结果表明，{len(matched_materials)}/{len(material_to_products)}种原料有对应的采购记录。匹配率较高说明BOM表与实际情况基本吻合；匹配率较低则需要进一步核实BOM版本或采购记录。",
                 "category": "域6 存货"})
-    
-    # ═══ 3. 投入产出数量验证（需要进销存数据） ═══
-    if inventory and pur_invs:
-        # 从进销存中统计每种成品的出库量（近似成品产出）
-        finished_output = {}
+
+    # ═══ 3. 投入产出数量验证 ═══
+    # 3a. 成品产出量：进销存(出库+期初期末缓冲) 或 销项开票数量
+    finished_output = {}
+    if inventory:
         for inv in inventory:
             item = str(inv.get("item", "")).strip()
-            if not item: continue
+            if not item:
+                continue
             out_qty = float(inv.get("out_qty", 0) or 0)
-            if out_qty <= 0: continue
-            
-            # 检查这个品名是否对应BOM中的成品
+            begin = float(inv.get("begin_qty", 0) or 0)
+            end = float(inv.get("end_qty", 0) or 0)
+            # 期间成为可用的成品总量（自产+委外收回）≈ 出库 + (期末-期初)
+            output = out_qty + (end - begin) if (begin or end) else out_qty
+            if output <= 0:
+                continue
             for prod_name, recipe in product_recipes.items():
-                if item[:4] in prod_name or prod_name[:4] in item:
-                    if prod_name not in finished_output:
-                        finished_output[prod_name] = {"output_qty": 0, "recipe": recipe}
-                    finished_output[prod_name]["output_qty"] += out_qty
+                if _bom_goods_match(item, prod_name):
+                    finished_output.setdefault(prod_name, {"output_qty": 0.0, "recipe": recipe})["output_qty"] += output
                     break
-        
-        # 对每个有产出数据的成品，计算理论原料消耗
-        if finished_output:
-            raw_material_theoretical = {}
-            for prod_name, data in finished_output.items():
-                output = data["output_qty"]
-                recipe = data["recipe"]
-                for mat in recipe.get("materials", []):
-                    m_name = mat.get("material_name", mat.get("material_code", ""))
-                    if not m_name: continue
-                    unit_qty = mat.get("unit_qty", 0)
-                    scrap_rate = mat.get("scrap_rate", 0)
-                    if unit_qty <= 0: continue
-                    theoretical = output * unit_qty * (1 + scrap_rate)
-                    if m_name not in raw_material_theoretical:
-                        raw_material_theoretical[m_name] = 0
-                    raw_material_theoretical[m_name] += theoretical
-            
-            # 统计实际采购量（从进项发票）
-            actual_purchases = {}
-            for inv in pur_invs:
-                goods = str(inv.get("goods", "")).strip()
-                if not goods: continue
-                qty = float(inv.get("qty", 0) or 0)
-                if qty <= 0: continue
-                for m_name in raw_material_theoretical:
-                    if m_name[:4] in goods or goods[:4] in m_name:
-                        if m_name not in actual_purchases:
-                            actual_purchases[m_name] = 0
-                        actual_purchases[m_name] += qty
-                        break
-            
-            # 比较理论消耗 vs 实际采购
-            large_deviations = []
-            for m_name, theoretical in sorted(raw_material_theoretical.items(), key=lambda x: -x[1]):
-                actual = actual_purchases.get(m_name, 0)
-                if theoretical > 0:
-                    ratio = actual / theoretical
-                    if ratio < 0.5:  # 实际采购不足理论消耗的50%
-                        large_deviations.append((m_name, "采购不足", theoretical, actual, ratio))
-                    elif ratio > 3.0:  # 实际采购超过理论消耗的3倍
-                        large_deviations.append((m_name, "采购过量", theoretical, actual, ratio))
-            
-            if large_deviations:
-                for m_name, issue, theo, act, ratio in large_deviations[:8]:
-                    findings.append({"type": f"BOM投入产出偏离-{issue}", "level": "高风险" if abs(1-ratio) > 0.8 else "中风险",
-                        "score": 9 if abs(1-ratio) > 0.8 else 6,
-                        "how_found": f"成品产出→BOM配方反推理论原料消耗={theo:.1f}，与实际采购量={act:.1f}比较。",
-                        "detail": f"{m_name}：理论需消耗{theo:.1f}，实际采购{act:.1f}，偏差率{(ratio-1)*100:+.0f}%。",
-                        "description": f"根据BOM配方和实际成品产出量，{m_name}的理论消耗为{theo:.1f}，但实际采购量为{act:.1f}。偏差率{(ratio-1)*100:+.0f}%。{issue}可能原因：{'BOM配方不准确、存在替代料或配方变更、部分原料未取得发票（采购不足）；虚列采购、BOM表编造或车间损耗异常（采购过量）' if issue=='采购不足' else '虚开发票多列成本、BOM损耗率偏低、存在代购或拼单采购、原料用于其他非BOM成品'}。",
-                        "tax_impact": "投入产出严重偏离→虚抵进项税额或隐匿收入→补税+滞纳金+罚款。税务机关将以BOM配方为基础核定产量和成本。",
-                        "suggestion": f"① 核实BOM表的{issue}原料配方是否准确（版本、损耗率、替代料）；② 提供车间投料记录和领料单；③ 若使用替代料，更新BOM表；④ 若部分原料自行生产（半成品），提供半成品BOM。",
-                        "category": "域6 存货"})
+    if sal_invs:
+        for inv in sal_invs:
+            g = str(inv.get("goods", "")).strip()
+            if not g:
+                continue
+            qty = float(inv.get("qty", inv.get("数量", 0) or 0) or 0)
+            if qty <= 0:
+                continue
+            for prod_name, recipe in product_recipes.items():
+                if _bom_goods_match(g, prod_name):
+                    d = finished_output.setdefault(prod_name, {"output_qty": 0.0, "recipe": recipe})
+                    d["output_qty"] = max(d["output_qty"], qty)
+                    break
+
+    if finished_output and pur_invs:
+        # 3b. 理论原料消耗
+        theoretical = {}
+        for prod_name, data in finished_output.items():
+            output = data["output_qty"]
+            recipe = data["recipe"]
+            for mat in recipe.get("materials", []):
+                m_name = mat.get("material_name", mat.get("material_code", ""))
+                if not m_name:
+                    continue
+                unit_qty = float(mat.get("unit_qty", 0) or 0)
+                scrap_rate = float(mat.get("scrap_rate", 0) or 0)
+                if unit_qty <= 0:
+                    continue
+                theoretical[m_name] = theoretical.get(m_name, 0.0) + output * unit_qty * (1 + scrap_rate)
+        # 3c. 实际耗用：优先进销存(期初+入库-期末)，否则进项采购数量
+        actual = {}
+        inv_consumed = {}
+        if inventory:
+            for inv in inventory:
+                item = str(inv.get("item", "")).strip()
+                if not item:
+                    continue
+                begin = float(inv.get("begin_qty", 0) or 0)
+                inq = float(inv.get("in_qty", 0) or 0)
+                end = float(inv.get("end_qty", 0) or 0)
+                cons = begin + inq - end
+                for m_name in theoretical:
+                    if _bom_goods_match(item, m_name):
+                        inv_consumed[m_name] = inv_consumed.get(m_name, 0.0) + max(cons, 0.0)
+        for m_name in theoretical:
+            if m_name in inv_consumed:
+                actual[m_name] = inv_consumed[m_name]
             else:
-                findings.append({"type": "BOM投入产出基本吻合", "level": "低风险", "score": 2,
-                    "detail": f"对{len(finished_output)}个有产出数据的成品进行BOM验证，原料理论消耗与实际采购基本匹配。",
-                    "description": f"基于BOM配方反推的原料理论消耗量与实际采购量基本吻合，偏差在合理范围内。这表明BOM表与实际生产情况一致，采购记录可信。",
+                q = 0.0
+                for inv in pur_invs:
+                    g = str(inv.get("goods", "")).strip()
+                    if g and _bom_goods_match(g, m_name):
+                        q += float(inv.get("qty", inv.get("数量", 0) or 0) or 0)
+                if q > 0:
+                    actual[m_name] = q
+        # 3d. 比较
+        large_deviations = []
+        for m_name, theo in sorted(theoretical.items(), key=lambda x: -x[1]):
+            act = actual.get(m_name, 0.0)
+            if theo <= 0:
+                continue
+            if act <= 0:
+                # 中间品（同时是成品）自产自用，无外部耗用属预期，跳过
+                if m_name in finished_names:
+                    continue
+                large_deviations.append((m_name, "无耗用数据", theo, act, 0.0))
+            else:
+                ratio = act / theo
+                if ratio < 0.5:
+                    large_deviations.append((m_name, "采购不足", theo, act, ratio))
+                elif ratio > 3.0:
+                    large_deviations.append((m_name, "采购过量", theo, act, ratio))
+        if large_deviations:
+            for m_name, issue, theo, act, ratio in large_deviations[:8]:
+                findings.append({"type": f"BOM投入产出偏离-{issue}", "level": "高风险" if (abs(1-ratio) > 0.8 or issue == "无耗用数据") else "中风险",
+                    "score": 9 if (abs(1-ratio) > 0.8 or issue == "无耗用数据") else 6,
+                    "how_found": f"成品产出→BOM配方反推理论原料消耗={theo:.1f}，实际耗用={act:.1f}（含期初期末缓冲）。",
+                    "detail": f"{m_name}：理论需消耗{theo:.1f}，实际耗用{act:.1f}，偏差率{(ratio-1)*100:+.0f}%。",
+                    "description": f"根据BOM配方和实际成品产出量，{m_name}的理论消耗为{theo:.1f}，但实际耗用量为{act:.1f}。偏差率{(ratio-1)*100:+.0f}%。{issue}可能原因：{'BOM配方不准确、存在替代料或配方变更、部分原料未取得发票（采购不足）；虚列采购、BOM表编造或车间损耗异常（采购过量）' if issue=='采购不足' else ('缺乏对应耗用/采购数据，无法支撑该原料的投入产出闭环，须补录进销存或采购明细' if issue=='无耗用数据' else '虚开发票多列成本、BOM损耗率偏低、存在代购或拼单采购、原料用于其他非BOM成品')}。",
+                    "tax_impact": "投入产出严重偏离→虚抵进项税额或隐匿收入→补税+滞纳金+罚款。税务机关将以BOM配方为基础核定产量和成本。",
+                    "suggestion": f"① 核实BOM表的{issue}原料配方是否准确（版本、损耗率、替代料）；② 提供车间投料记录和领料单；③ 若使用替代料，更新BOM表；④ 若部分原料自行生产（半成品），提供半成品BOM。",
                     "category": "域6 存货"})
-    
-    # ═══ 4. BOM完整性建议 ═══
+        else:
+            findings.append({"type": "BOM投入产出基本吻合", "level": "低风险", "score": 2,
+                "detail": f"对{len(finished_output)}个有产出数据的成品进行BOM验证，原料理论消耗与实际耗用基本匹配。",
+                "description": f"基于BOM配方反推的原料理论消耗量与实际耗用（含期初期末缓冲）基本吻合，偏差在合理范围内。这表明BOM表与实际生产情况一致，采购记录可信。",
+                "category": "域6 存货"})
+
+    # ═══ 4. 委外加工链条 BOM 映射（制造业核心风险） ═══
+    processing = []
+    for inv in pur_invs:
+        g = str(inv.get("goods", "")).strip()
+        if any(k in g for k in ("加工费", "委外", "外协", "受托加工", "加工劳务", "加工服务")):
+            sup = str(inv.get("seller", inv.get("supplier", inv.get("name", "")) or ""))
+            amt = float(inv.get("amount", 0) or 0)
+            processing.append((sup, amt, g, _is_cross_region(sup)))
+    if processing and all_products:
+        total_amt = sum(p[1] for p in processing)
+        cross = [p for p in processing if p[3]]
+        cross_str = "、".join(f"{p[0]}({p[1]:,.0f}元)" for p in cross[:5])
+        findings.append({"type": "委外加工链条待BOM核验", "level": "中风险", "score": 6,
+            "detail": f"发现{len(processing)}笔加工费类进项（合计{total_amt:,.0f}元）" + (f"，其中跨地区：{cross_str}" if cross else "，均为本地加工") + "。须以BOM配方核验发出原料→加工→收回成品的闭环。",
+            "description": f"企业存在委托加工业务（加工费合计{total_amt:,.0f}元）。税务稽查委外加工的核心证据链：① 委托加工合同；② 发出原料清单（应与BOM原料一致）；③ 收回成品数量（应与BOM产出匹配）；④ 加工费定价依据（加工费率合理性）。" + (f"跨地区委托加工（{cross_str}）运输与税务风险更高，须重点核实发出原料与收回成品是否形成完整闭环，防范虚增加工成本或接受虚开发票。" if cross else "本地加工亦须核实合同与收回数量。"),
+            "tax_impact": "委外加工链条不完整→加工费真实性存疑→可能虚增成本、虚抵进项；收回成品未入账→隐匿收入。",
+            "suggestion": "① 提供委托加工合同与发出原料出库单；② 提供收回成品入库单（数量须≥BOM应产出）；③ 提供加工费结算单与定价依据；④ 跨地区加工须提供物流单据。",
+            "category": "域6 存货"})
+
+    # ═══ 5. BOM完整性建议 ═══
     if not inventory:
         findings.append({"type": "BOM验证-缺少进销存数据", "level": "中风险", "score": 5,
             "detail": "虽有BOM表但缺少进销存台账，无法进行成品产出→原料消耗的数量验证。",
-            "description": "BOM表定义了配方关系，但要验证投入产出是否合理，还需要进销存台账中的成品出库数量。缺少进销存数据导致只能做品名匹配，无法做数量级验证。",
+            "description": "BOM表定义了配方关系，但要验证投入产出是否合理，还需要进销存台账（含产品名称、入库/出库/期初/期末数量）。缺少进销存数据导致只能做品名匹配，无法做数量级验证。",
             "tax_impact": "无法验证投入产出的数量合理性，BOM表可能形同虚设。",
-            "suggestion": "上传进销存台账（含产品名称、出库数量、单位字段），以实现BOM配方→实际产出的完整验证。",
+            "suggestion": "上传进销存台账（含产品名称、入库数量、出库数量、期初/期末库存字段），以实现BOM配方→实际产出的完整验证。",
             "category": "域6 存货"})
-    
+
     return findings
 
 def _domain_tax_consistency(bank_txs, db, company_id):
